@@ -27,9 +27,23 @@ def stateID(url, seed):
     return ident.hexdigest()
 
 def rndstr(size=16):
+    """
+    Returns a string of random characters
+
+    :param size: The length of the string
+    :return: string
+    """
     return "".join([random.choice(string.ascii_letters) for _ in range(size)])
 
 def factory(kaka, sdb, config):
+    """
+    Return the right Consumer instance dependent on what's in the cookie
+
+    :param kaka: The cookie
+    :param sdb: The session database
+    :param config: The common Consumer configuration
+    :return: Consumer instance or None
+    """
     part = http_util.cookie_parts(config["name"], kaka)
     if part is None:
         return None
@@ -79,10 +93,20 @@ class Consumer(Client):
         self.seed = ""
 
     def restore(self, sid):
+        """ Restores the instance variables from something stored in the
+        session database.
+
+        :param sid: Session identifier
+        """
         for key, val in self.sdb[sid].items():
             setattr(self, key, val)
 
     def _backup(self, sid):
+        """ Stores instance variable values in the session store under a
+        session identifier.
+
+        :param sid: Session identifier
+        """
         self.sdb[sid] = {
             "client_id": self.client_id,
             "state": self.state,
@@ -101,6 +125,13 @@ class Consumer(Client):
 
     #noinspection PyUnusedLocal,PyArgumentEqualDefault
     def begin(self, environ, start_response, logger):
+        """ Begin the OAuth2 flow
+
+        :param environ: The WSGI environment
+        :param start_response: The function to start the response process
+        :param logger: A logger instance
+        :return: A URL to which the user should be redirected
+        """
         _log_info = logger.info
 
         if self.debug:
@@ -136,7 +167,13 @@ class Consumer(Client):
     #noinspection PyUnusedLocal
     def parse_authz(self, environ, start_response, logger):
         """
-        This is where we get redirect back to after an authorization request
+        This is where we get redirect back to after authorization at the
+        authorization server has happened.
+
+        :param environ: The WSGI environment
+        :param start_response: The function to start the response process
+        :param logger: A logger instance
+        :return: A AccessTokenResponse instance
         """
 
         _log_info = logger.info
@@ -170,11 +207,25 @@ class Consumer(Client):
 
             return atr
 
-    def complete(self):
-        # Do the access token request, the last step in a code flow
-        atr = self.do_access_token_request(code=self.authorization_code,
+    def complete(self, logger):
+        """
+        Do the access token request, the last step in a code flow.
+        If Implicit flow was used then this method is never used.
+        """
+        if self.config["password"]:
+            logger.info("basic auth")
+            atr = self.do_access_token_request(code=self.authorization_code,
                                     grant_type="authorization_code",
                                     client_password=self.config["password"])
+        elif self.config["client_secret"]:
+            logger.info("request_body auth")
+            atr = self.do_access_token_request(code=self.authorization_code,
+                                    grant_type="authorization_code",
+                                    auth_method="request_body",
+                                    client_secret=self.config["client_secret"])
+        else:
+            raise Exception("Nothing to authenticate with")
+        
         if isinstance(atr, ErrorResponse):
             raise TokenError(atr.error)
 

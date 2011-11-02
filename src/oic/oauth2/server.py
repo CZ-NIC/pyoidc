@@ -17,6 +17,7 @@ from oic.oauth2 import AuthorizationResponse
 from oic.oauth2 import AuthorizationRequest
 from oic.oauth2 import AccessTokenResponse
 from oic.oauth2 import AccessTokenRequest
+from oic.oauth2 import TokenErrorResponse
 from oic import oauth2
 
 class AuthnFailure(Exception):
@@ -47,14 +48,16 @@ def rndstr(size=16):
 
 class Server(oauth2.Server):
 
-    def __init__(self, name, sdb, authn_func, authz_func, verify_func,
-                 urlmap=None, debug=0):
+    def __init__(self, name, sdb, cdb, authn_func, authz_func, verify_func,
+                 verify_client, urlmap=None, debug=0):
         self.name = name
         self.sdb = sdb
-
+        self.cdb = cdb
+        
         self.authn_func = authn_func
         self.verify_func = verify_func
         self.authz_func = authz_func
+        self.verify_client = verify_client
 
         self.debug = debug
         self.seed = rndstr()
@@ -222,6 +225,11 @@ class Server(oauth2.Server):
             _log_info("body: %s" % body)
 
         areq = AccessTokenRequest.set_urlencoded(body, extended=True)
+
+        if not self.verify_client(environ, areq, self.cdb):
+            err = TokenErrorResponse(error="unathorized_client")
+            resp = Response(err.get_json, content="application/json")
+            return resp(environ, start_response)
 
         if self.debug:
             _log_info("AccessTokenRequest: %s" % areq)
