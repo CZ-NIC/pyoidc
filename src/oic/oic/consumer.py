@@ -9,9 +9,12 @@ import time
 from hashlib import md5
 
 from oic.utils import http_util
-from oic.oauth2 import AuthorizationRequest
-from oic.oauth2 import Client
+from oic.oic import AuthorizationRequest
+from oic.oic import Client
 from oic.oauth2 import ErrorResponse
+from oic.oauth2.consumer import TokenError
+from oic.oauth2.consumer import AuthzError
+from oic.oauth2.consumer import UnknownState
 
 def stateID(url, seed):
     """The hash of the time + server path + a seed makes an unique
@@ -28,12 +31,13 @@ def stateID(url, seed):
 
 def rndstr(size=16):
     """
-    Returns a string of random characters
+    Returns a string of random ascii characters or digits
 
     :param size: The length of the string
     :return: string
     """
-    return "".join([random.choice(string.ascii_letters) for _ in range(size)])
+    _basech = string.ascii_letters + string.digits
+    return "".join([random.choice(_basech) for _ in range(size)])
 
 def factory(kaka, sdb, config):
     """
@@ -53,22 +57,13 @@ def factory(kaka, sdb, config):
     http_util.parse_cookie(config["name"], cons.seed, kaka)
     return cons
 
-class UnknownState(Exception):
-    pass
-
-class TokenError(Exception):
-    pass
-
-class AuthzError(Exception):
-    pass
-
 class Consumer(Client):
     """ An OpenID Connect consumer implementation
 
     """
     #noinspection PyUnusedLocal
     def __init__(self, session_db, config, client_config=None,
-                 server_info=None):
+                 server_info=None, function=None):
         """ Initializes a Consumer instance.
 
         :param session_db: Where info are kept about sessions
@@ -90,7 +85,9 @@ class Consumer(Client):
             self.token_endpoint = server_info["token_endpoint"]
 
         self.sdb = session_db
+        self.function = function
         self.seed = ""
+        self.nonce = ""
 
     def restore(self, sid):
         """ Restores the instance variables from something stored in the
@@ -121,6 +118,7 @@ class Consumer(Client):
             "token_revocation_endpoint": self.token_revocation_endpoint,
             "seed": self.seed,
             "debug": self.debug,
+            "nonce": self.nonce,
         }
 
     #noinspection PyUnusedLocal,PyArgumentEqualDefault
@@ -150,11 +148,24 @@ class Consumer(Client):
 
         # Store the request and the redirect uri used
         self._request = http_util.geturl(environ)
+        self.nonce = rndstr(12)
 
         areq = self.get_authorization_request(AuthorizationRequest,
                             state=sid,
+                            client_id=self.client_id,
+                            redirect_uri=self.redirect_uri,
                             response_type=self.config["response_type"],
-                            scope=self.config["scope"])
+                            scope=self.config["scope"],
+                            nonce=self.nonce)
+
+        id_request = self.function["openid_request"](areq, self.config["key"])
+        if self.config["request_method"] == "parameter":
+            areq.request = id_request
+        elif self.config["request_method"] == "simple":
+            pass
+        else: # has to be 'file' at least that's my assumption.
+            # write to file in the tmp directory remember the name
+            pass
 
         location = "%s?%s" % (self.authorization_endpoint,
                               areq.get_urlencoded())
@@ -234,7 +245,9 @@ class Consumer(Client):
 
         return atr
 
-
+    def refresh_token(self):
+        pass
+    
     #noinspection PyUnusedLocal
     def userinfo(self, logger):
         pass

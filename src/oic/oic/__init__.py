@@ -798,9 +798,9 @@ class Server(oauth2.Server):
         return urlparse.parse_qs(query)
 
     def parse_authorization_request(self, rcls=AuthorizationRequest,
-                                    url=None, query=None):
+                                    url=None, query=None, extended=False):
         return oauth2.Server.parse_authorization_request(self, rcls, url,
-                                                         query)
+                                                         query, extended)
 
     def parse_token_request(self, rcls=AccessTokenRequest, body=None):
         return oauth2.Server.parse_token_request(self, rcls, body)

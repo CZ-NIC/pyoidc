@@ -220,6 +220,13 @@ CDB = {
     },
 }
 
+FUNCTION = {
+    "authentication":do_authentication,
+    "authorize": do_authorization,
+    "verify user": verify_username_and_password,
+    "verify client": verify_client,
+}
+
 if __name__ == '__main__':
     from wsgiref.simple_server import make_server
     import argparse
@@ -236,10 +243,7 @@ if __name__ == '__main__':
     SERVER = Server("pyoicserv",
                     sdb.SessionDB(),
                     CDB,
-                    do_authentication,
-                    do_authorization,
-                    verify_username_and_password,
-                    verify_client,
+                    FUNCTION,
                     debug=args.debug)
     
     srv = make_server('localhost', args.port, application)

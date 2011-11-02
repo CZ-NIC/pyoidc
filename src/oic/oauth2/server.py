@@ -48,16 +48,12 @@ def rndstr(size=16):
 
 class Server(oauth2.Server):
 
-    def __init__(self, name, sdb, cdb, authn_func, authz_func, verify_func,
-                 verify_client, urlmap=None, debug=0):
+    def __init__(self, name, sdb, cdb, function, urlmap=None, debug=0):
         self.name = name
         self.sdb = sdb
         self.cdb = cdb
         
-        self.authn_func = authn_func
-        self.verify_func = verify_func
-        self.authz_func = authz_func
-        self.verify_client = verify_client
+        self.function = function
 
         self.debug = debug
         self.seed = rndstr()
@@ -82,7 +78,7 @@ class Server(oauth2.Server):
         dic = parse_qs(get_post(environ))
 
         try:
-            (verified, user) = self.verify_func(dic)
+            (verified, user) = self.function["verify user"](dic)
             if not verified:
                 resp = Unauthorized("Wrong password")
                 return resp(environ, start_response)
@@ -112,7 +108,7 @@ class Server(oauth2.Server):
 
         # Do the authorization
         try:
-            permission = self.authz_func(user)
+            permission = self.function["authorize"](user)
             _sdb.update(scode, "permission", permission)
         except Exception:
             raise
@@ -207,7 +203,7 @@ class Server(oauth2.Server):
         if self.debug:
             _log_info("code: '%s'" % grant)
 
-        return self.authn_func(environ, start_response, grant)
+        return self.func["authentication"](environ, start_response, grant)
 
     #noinspection PyUnusedLocal
     def token_endpoint(self, environ, start_response, logger, handle):
@@ -226,7 +222,7 @@ class Server(oauth2.Server):
 
         areq = AccessTokenRequest.set_urlencoded(body, extended=True)
 
-        if not self.verify_client(environ, areq, self.cdb):
+        if not self.function["verify client"](environ, areq, self.cdb):
             err = TokenErrorResponse(error="unathorized_client")
             resp = Response(err.get_json, content="application/json")
             return resp(environ, start_response)
