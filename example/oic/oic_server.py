@@ -17,7 +17,7 @@ from oic.oauth2.server import AuthnFailure
 from mako.lookup import TemplateLookup
 
 LOGGER = logging.getLogger("oicServer")
-hdlr = logging.FileHandler('oauth2Server.log')
+hdlr = logging.FileHandler('oicServer.log')
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 LOGGER.addHandler(hdlr)
@@ -54,7 +54,13 @@ def verify_username_and_password(dic):
 
 #noinspection PyUnusedLocal
 def do_authorization(user, session):
-    return session.scope, "ALL"
+    """
+    :param user: The user identifier
+    :param session: Session information as a dictionary
+    :return: A tuple containing scope and permission specifications
+        scope is a string, permission is whatever you want.
+    """
+    return session["scope"], "ALL"
 
 # ----------------------------------------------------------------------------
 
@@ -211,12 +217,13 @@ def application(environ, start_response):
 # ----------------------------------------------------------------------------
 
 from oic.utils import sdb
-from oic.oauth2.server import Server
+from oic.oic.server import Server
 
 CDB = {
     "a1b2c3": {
         "password": "hemligt",
-        "client_secret": "drickyoughurt"
+        "client_secret": "drickyoughurt",
+        "jwt_key": "",
     },
 }
 
@@ -240,12 +247,13 @@ if __name__ == '__main__':
 
     # in memory session storage
 
-    SERVER = Server("pyoicserv",
+    SERVER = Server("http://localhost:8088/",
                     sdb.SessionDB(),
                     CDB,
                     FUNCTION,
+                    "1234567890",
                     debug=args.debug)
-    
+
     srv = make_server('localhost', args.port, application)
-    print "OAuth2 Authz server listening on port: %s" % args.port
+    print "OIC Authz server listening on port: %s" % args.port
     srv.serve_forever()

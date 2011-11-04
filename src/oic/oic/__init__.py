@@ -26,8 +26,66 @@ SINGLE_OPTIONAL_BOOLEAN = (bool, False, None, None)
 SINGLE_OPTIONAL_JSON = (dict, False, to_json, from_json)
 SINGLE_REQUIRED_INT = (int, True, None, None)
 
-class AuthorizationResponse(oauth2.AuthorizationResponse):
-    pass
+class AccessTokenResponse(oauth2.AccessTokenResponse):
+    c_attributes = oauth2.AccessTokenResponse.c_attributes.copy()
+    c_attributes["id_token"] = SINGLE_OPTIONAL_STRING
+    c_attributes["domain"] = SINGLE_OPTIONAL_STRING
+
+    def __init__(self,
+                 access_token=None,
+                 token_type=None,
+                 expires_in=None,
+                 refresh_token=None,
+                 scope=None,
+                 id_token=None,
+                 domain=None,
+                 **kwargs):
+        oauth2.AccessTokenResponse.__init__(self,
+                                            access_token,
+                                            token_type,
+                                            expires_in,
+                                            refresh_token,
+                                            scope,
+                                            **kwargs)
+        self.id_token = id_token
+        self.domain = domain
+
+class AuthorizationResponse(oauth2.AuthorizationResponse, AccessTokenResponse):
+    c_attributes = oauth2.AuthorizationResponse.c_attributes.copy()
+    c_attributes["nonce"] = SINGLE_OPTIONAL_STRING
+    # Add all the AccessTokenResponse properties
+    c_attributes.update(AccessTokenResponse.c_attributes)
+#    c_attributes["access_token"] = SINGLE_REQUIRED_STRING
+#    c_attributes["token_type"] = SINGLE_REQUIRED_STRING
+#    c_attributes["expires_in"] = SINGLE_OPTIONAL_INT
+#    c_attributes["refresh_token"] = SINGLE_OPTIONAL_STRING
+#    c_attributes["scope"] = OPTIONAL_LIST_OF_STRINGS
+#    c_attributes["id_token"] = SINGLE_OPTIONAL_JWT
+
+    def __init__(self,
+                 code = None,
+                 state=None,
+                 nonce= None,
+                 access_token=None,
+                 token_type=None,
+                 expires_in=None,
+                 refresh_token=None,
+                 scope=None,
+                 id_token=None,
+                 domain=None,
+                 **kwargs):
+        AccessTokenResponse.__init__(self, access_token, token_type,
+                                     expires_in, refresh_token, scope,
+                                     id_token, domain)
+        oauth2.AuthorizationResponse.__init__(self, code, state, **kwargs)
+        self.nonce = nonce
+#        self.access_token = access_token
+#        self.token_type = token_type
+#        self.expires_in = expires_in
+#        self.refresh_token = refresh_token
+#        self.scope = scope or []
+#        self.id_token = id_token
+
 
 class AuthorizationErrorResponse(oauth2.AuthorizationErrorResponse):
     c_attributes = oauth2.AuthorizationErrorResponse.c_attributes.copy()
@@ -76,30 +134,6 @@ class TokenErrorResponse(oauth2.TokenErrorResponse):
                 raise ValueError("'%s' not an allowed error type" % self.error)
 
         return oauth2.TokenErrorResponse.verify(self)
-
-class AccessTokenResponse(oauth2.AccessTokenResponse):
-    c_attributes = oauth2.AccessTokenResponse.c_attributes.copy()
-    c_attributes["id_token"] = SINGLE_OPTIONAL_STRING
-    c_attributes["domain"] = SINGLE_OPTIONAL_STRING
-
-    def __init__(self,
-                 access_token=None,
-                 token_type=None,
-                 expires_in=None,
-                 refresh_token=None,
-                 scope=None,
-                 id_token=None,
-                 domain=None,
-                 **kwargs):
-        oauth2.AccessTokenResponse.__init__(self,
-                                            access_token,
-                                            token_type,
-                                            expires_in,
-                                            refresh_token,
-                                            scope,
-                                            **kwargs)
-        self.id_token = id_token
-        self.domain = domain
 
 class AccessTokenRequest(oauth2.AccessTokenRequest):
     c_attributes = oauth2.AccessTokenRequest.c_attributes.copy()
@@ -606,9 +640,9 @@ class JWKEllipticKeyObject(JWKKeyObject):
 def key_object_list_deserializer(items, format="json", extended=False):
     if format == "urlencoded":
         return [JWKKeyObject.set_urlencoded(item,
-                                        extended=extended) for item in items]
+                        extended=extended).dictionary() for item in items]
     elif format == "json" or format=="dict":
-        return [JWKKeyObject(**item) for item in items]
+        return items
 
 def key_object_list_serializer(objs, format="json", extended=False):
     if format == "json":

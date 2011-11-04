@@ -1,6 +1,10 @@
+#!/usr/bin/env python
+
 __author__ = 'rohe0002'
 
 import re
+import os
+import logging
 
 from oic.oic import CLAIMS
 from oic.oic import UserInfoClaim
@@ -125,6 +129,19 @@ def authz(environ, start_response, logger, kaka=None):
     _log_info("Cookie: %s" % (kaka,))
     return resp(environ, start_response)
 
+def do_request_file(environ, start_response, path):
+    _fp = open(path)
+    _req = _fp.read()
+    _fp.close()
+    # Can only be used once
+    os.unlink(path)
+    resp = http_util.Response(_req)
+    return resp(environ, start_response)
+
+def jqauthz(environ, start_response, path):
+    resp = http_util.Response(open("jqauthz").read())
+    return resp(environ, start_response)
+
 # ----------------------------------------------------------------------------
 
 URLS = [
@@ -158,6 +175,7 @@ def application(environ, start_response):
     path = environ.get('PATH_INFO', '').lstrip('/')
     kaka = environ.get("HTTP_COOKIE", '')
 
+    LOGGER.info("PATH: %s" % path)
     if kaka:
         if CONSUMER_CONFIG.debug:
             LOGGER.debug("Cookie: %s" % (kaka,))
@@ -166,6 +184,12 @@ def application(environ, start_response):
     environ["oic.server.info"] = SERVER_INFO
     environ["oic.session_db"] = SESSION_DB
     environ["oic.client_config"] = CLIENT_CONFIG
+
+    if path.startswith(CONSUMER_CONFIG["temp_dir"]):
+        return do_request_file(environ, start_response, path)
+
+    if path == "jqauthz":
+        return jqauthz(environ, start_response, path)
 
     for regex, callback in URLS:
         if kaka:
@@ -184,6 +208,13 @@ def application(environ, start_response):
 
 
 # ----------------------------------------------------------------------------
+
+LOGGER = logging.getLogger("oicClient")
+hdlr = logging.FileHandler('oicClient.log')
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+hdlr.setFormatter(formatter)
+LOGGER.addHandler(hdlr)
+LOGGER.setLevel(logging.INFO)
 
 SESSION_DB = {}
 CLIENT_CONFIG = {}
@@ -207,13 +238,14 @@ FUNCTION = {
 }
 
 if __name__ == '__main__':
-    from wsgiref.simple_server import make_server
+    #from wsgiref.simple_server import make_server
+    from cherrypy import wsgiserver
+    #from cherrypy.wsgiserver import ssl_builtin
+
     import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', dest='scope', nargs='*', help='Scope')
-    parser.add_argument('-t', dest="type", nargs=1, help='Flow type',
-                        default="code")
     parser.add_argument('-i', dest="client_id", default="a1b2c3")
     parser.add_argument('-v', dest='verbose', action='store_true')
     parser.add_argument('-d', dest='debug', action='store_true')
@@ -224,6 +256,8 @@ if __name__ == '__main__':
     parser.add_argument('-x', dest='server_info')
     parser.add_argument('-c', dest='client_secret')
     parser.add_argument('-m', dest='request_method', default="parameter")
+    parser.add_argument('-T', dest='temp_dir', default="tmp")
+    parser.add_argument('-j', dest='jwt_key', default="client_key")
 
     args = parser.parse_args()
 
@@ -243,23 +277,31 @@ if __name__ == '__main__':
     CONSUMER_CONFIG = {
         "debug": args.debug,
         "server_info": SERVER_INFO,
-        "authz_page": "/authz",
+        "authz_page": "/jqauthz",
         "name": "pyoic",
-        "flow_type": args.type,
         "password": args.passwd,
         "scope": args.scope,
         "expire_in": args.expire_in,
         "client_secret": args.client_secret,
         "function": FUNCTION,
         "request_method": args.request_method,
+        "temp_dir": args.temp_dir,
+        "key": args.jwt_key,
     }
 
-    if args.type == "implicit":
-        CONSUMER_CONFIG["response_type"] =["token"]
+    if args.response_type:
+        CONSUMER_CONFIG["response_type"] = args.response_type
     else:
-        CONSUMER_CONFIG["response_type"] =["code"]
+        CONSUMER_CONFIG["response_type"] = []
 
+    if args.response_type == ["code"]:
+        CONSUMER_CONFIG["flow_type"]= "code"
+    else:
+        CONSUMER_CONFIG["flow_type"]= "implicit"
 
-    srv = make_server('localhost', args.port, application)
+    srv = wsgiserver.CherryPyWSGIServer(('localhost', args.port), application)
     print "OIC client listening on port: %s" % args.port
-    srv.serve_forever()
+    try:
+        srv.start()
+    except KeyboardInterrupt:
+        srv.stop()

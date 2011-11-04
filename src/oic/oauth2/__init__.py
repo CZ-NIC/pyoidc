@@ -563,21 +563,21 @@ class RefreshAccessTokenRequest(Base):
     c_attributes = Base.c_attributes.copy()
     c_attributes["grant_type"] = SINGLE_REQUIRED_STRING
     c_attributes["refresh_token"] = SINGLE_REQUIRED_STRING
-    c_attributes["scope"] = SINGLE_OPTIONAL_STRING
     c_attributes["client_id"] = SINGLE_REQUIRED_STRING
+    c_attributes["scope"] = SINGLE_OPTIONAL_STRING
     c_attributes["client_secret"] = SINGLE_OPTIONAL_STRING
 
     def __init__(self, grant_type="refresh_token",
                  refresh_token=None,
-                 scope=None,
                  client_id=None,
+                 scope=None,
                  client_secret=None,
                  **kwargs):
         Base.__init__(self, **kwargs)
         self.grant_type = grant_type
         self.refresh_token = refresh_token
-        self.scope = scope
         self.client_id = client_id
+        self.scope = scope
         self.client_secret = client_secret
 
     def verify(self):

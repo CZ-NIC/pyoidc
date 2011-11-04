@@ -89,7 +89,7 @@ class Server(oauth2.Server):
         try:
             # Use the session identifier to find the session information
             scode = dic["sid"][0]
-            asession = _sdb[scode]
+            asession = _sdb[_sdb["seed:%s" % scode]]
         except KeyError:
             resp = BadRequest("")
             return resp(environ, start_response)
@@ -203,7 +203,7 @@ class Server(oauth2.Server):
         if self.debug:
             _log_info("code: '%s'" % grant)
 
-        return self.func["authentication"](environ, start_response, grant)
+        return self.function["authenticate"](environ, start_response, sid)
 
     #noinspection PyUnusedLocal
     def token_endpoint(self, environ, start_response, logger, handle):

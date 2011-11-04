@@ -215,10 +215,12 @@ def test_authz_resp_1():
 # RefreshAccessTokenRequest
 
 def test_ratr():
-    ratr = oic.RefreshAccessTokenRequest(refresh_token="ababababab")
+    ratr = oic.RefreshAccessTokenRequest(refresh_token="ababababab",
+                                         client_id="1")
 
     assert ratr.grant_type == "refresh_token"
     assert ratr.refresh_token == "ababababab"
+    assert ratr.client_id == "1"
 
     assert ratr.verify()
 
@@ -396,3 +398,51 @@ def test_key_container():
 
     jdic = jco.dictionary(extended=True)
     assert jdic.keys() == ["keyvalues"]
+
+def test_auth_response_code():
+    aresp = oic.AuthorizationResponse(
+        code="Qcb0Orv1zh30vL1MPRsbm-diHiMwcLyZvn1arpZv-Jxf_11jnpEX3Tgfvk",
+        state="af0ifjsldkj")
+
+    assert aresp.dictionary() == {
+        "code": "Qcb0Orv1zh30vL1MPRsbm-diHiMwcLyZvn1arpZv-Jxf_11jnpEX3Tgfvk",
+        "state": "af0ifjsldkj"}
+
+def test_auth_response_token():
+    aresp = oic.AuthorizationResponse(
+        access_token="jHkWEdUXMU1BwAsC4vtUsZwnNvTIxEl0z9K3vx5KF0Y",
+        token_type="Bearer",
+        state="af0ifjsldkj")
+
+    assert aresp.dictionary() == {
+        "access_token": "jHkWEdUXMU1BwAsC4vtUsZwnNvTIxEl0z9K3vx5KF0Y",
+        "token_type": "Bearer",
+        "state": "af0ifjsldkj"}
+
+def test_auth_response_code_and_token():
+    aresp = oic.AuthorizationResponse(
+        code="Qcb0Orv1zh30vL1MPRsbm-diHiMwcLyZvn1arpZv-Jxf_11jnpEX3Tgfvk",
+        access_token="jHkWEdUXMU1BwAsC4vtUsZwnNvTIxEl0z9K3vx5KF0Y",
+        token_type="Bearer",
+        state="af0ifjsldkj")
+
+    assert aresp.dictionary() == {
+        "code": "Qcb0Orv1zh30vL1MPRsbm-diHiMwcLyZvn1arpZv-Jxf_11jnpEX3Tgfvk",
+        "access_token": "jHkWEdUXMU1BwAsC4vtUsZwnNvTIxEl0z9K3vx5KF0Y",
+        "token_type": "Bearer",
+        "state": "af0ifjsldkj"}
+
+def test_auth_response_code_and_token():
+    aresp = oic.AuthorizationResponse(
+        code="Qcb0Orv1zh30vL1MPRsbm-diHiMwcLyZvn1arpZv-Jxf_11jnpEX3Tgfvk",
+        access_token="jHkWEdUXMU1BwAsC4vtUsZwnNvTIxEl0z9K3vx5KF0Y",
+        token_type="Bearer",
+        id_token="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ.foo",
+        state="af0ifjsldkj")
+
+    assert aresp.dictionary() == {
+        "code": "Qcb0Orv1zh30vL1MPRsbm-diHiMwcLyZvn1arpZv-Jxf_11jnpEX3Tgfvk",
+        "access_token": "jHkWEdUXMU1BwAsC4vtUsZwnNvTIxEl0z9K3vx5KF0Y",
+        "token_type": "Bearer",
+        "id_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ.foo",
+        "state": "af0ifjsldkj"}

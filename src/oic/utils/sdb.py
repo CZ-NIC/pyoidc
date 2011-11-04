@@ -92,7 +92,7 @@ class SessionDB(object):
                 if areq.redirect_uri:
                     csum.update(areq.redirect_uri)
             sid = csum.digest() # 28 bytes long, 224 bits
-            hsid = csum.hexdigest() # 56 bytes
+            #hsid = csum.hexdigest() # 56 bytes
         rnd = num
         while rnd == num:
             rnd = ''.join([random.choice(string.letters) for x in xrange(3)])
@@ -121,19 +121,28 @@ class SessionDB(object):
             "oauth_state": "authz",
             "user_id": user_id,
             "code": access_grant,
-            "authzreq": areq.get_json()
+            "authzreq": areq.get_json(),
+            "client_id": areq.client_id,
         }
 
+        try:
+            _dic["nonce"] = areq.nonce
+        except AttributeError:
+            pass
+        
         if areq.redirect_uri:
             _dic["redirect_uri"] = areq.redirect_uri
         if areq.state:
             _dic["state"] = areq.state
+
+        # Just an assumption
         if areq.scope:
             _dic["scope"] = areq.scope
+
         if id_token:
             _dic["id_token"] = id_token
         if oidreq:
-            _dic["oidreq"] = oidreq
+            _dic["oidreq"] = oidreq.get_json()
 
         self._db[sid] = _dic
         return sid
@@ -160,6 +169,7 @@ class SessionDB(object):
 
         _, _at = self.session("T", token)
         dic["access_token"] = _at
+        dic["access_token_scope"] = "?"
         dic["oauth_state"] = "token"
         dic["token_type"] = "bearer"
         dic["expires_in"] = self.token_expires_in

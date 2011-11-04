@@ -5,11 +5,13 @@ __author__ = 'rohe0002'
 import random
 import string
 import time
+import os.path
 
 from hashlib import md5
 
 from oic.utils import http_util
 from oic.oic import AuthorizationRequest
+from oic.oic import AccessTokenResponse
 from oic.oic import Client
 from oic.oauth2 import ErrorResponse
 from oic.oauth2.consumer import TokenError
@@ -63,7 +65,7 @@ class Consumer(Client):
     """
     #noinspection PyUnusedLocal
     def __init__(self, session_db, config, client_config=None,
-                 server_info=None, function=None):
+                 server_info=None):
         """ Initializes a Consumer instance.
 
         :param session_db: Where info are kept about sessions
@@ -85,9 +87,10 @@ class Consumer(Client):
             self.token_endpoint = server_info["token_endpoint"]
 
         self.sdb = session_db
-        self.function = function
+        self.function = self.config["function"]
         self.seed = ""
         self.nonce = ""
+        self.request_filename=""
 
     def restore(self, sid):
         """ Restores the instance variables from something stored in the
@@ -119,8 +122,15 @@ class Consumer(Client):
             "seed": self.seed,
             "debug": self.debug,
             "nonce": self.nonce,
+            "request_filename": self.request_filename
         }
 
+    def extract_access_token_response(self, aresp):
+        atr = AccessTokenResponse()
+        for prop in AccessTokenResponse.c_attributes.keys():
+            setattr(atr, prop, getattr(aresp, prop))
+        return atr
+    
     #noinspection PyUnusedLocal,PyArgumentEqualDefault
     def begin(self, environ, start_response, logger):
         """ Begin the OAuth2 flow
@@ -165,7 +175,14 @@ class Consumer(Client):
             pass
         else: # has to be 'file' at least that's my assumption.
             # write to file in the tmp directory remember the name
-            pass
+            filename = os.path.join(self.config["temp_dir"], rndstr(10))
+            while os.path.exists(filename):
+                filename = os.path.join(self.config["temp_dir"], rndstr(10))
+            fid = open(filename)
+            fid.write(id_request)
+            fid.close()
+            self.request_filename = "/"+filename
+            self._backup(sid)
 
         location = "%s?%s" % (self.authorization_endpoint,
                               areq.get_urlencoded())
@@ -191,11 +208,12 @@ class Consumer(Client):
         if self.debug:
             _log_info("- authorization -")
             _log_info("- %s flow -" % self.config["flow_type"])
+            _log_info("environ: %s" % environ)
 
         _query = environ.get("QUERY_STRING")
         _path = http_util.geturl(environ, False, False)
 
-        if self.config["flow_type"] == "code":
+        if "code" in self.config["response_type"]:
             # Might be an error response
             aresp = self.parse_authorization_response(query=_query)
             if isinstance(aresp, ErrorResponse):
@@ -206,9 +224,15 @@ class Consumer(Client):
             except KeyError:
                 raise UnknownState(aresp.state)
 
-            self.set_from_authorization_response(aresp)
-            self._backup(aresp.state)
-            return aresp
+            # May have token and id_token information too
+            if aresp.access_token:
+                atr = self.extract_access_token_response(aresp)
+                self.access_token = atr
+            else:
+                atr = None
+
+            idt = None
+            return aresp, atr, idt
         else:
             atr = self.parse_access_token_response(info=_query,
                                                    format="urlencoded",
@@ -216,7 +240,8 @@ class Consumer(Client):
             if isinstance(atr, ErrorResponse):
                 raise TokenError(atr.error)
 
-            return atr
+            idt = None
+            return None, atr, idt
 
     def complete(self, logger):
         """
