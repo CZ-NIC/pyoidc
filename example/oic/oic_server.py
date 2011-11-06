@@ -5,6 +5,8 @@ __author__ = 'rohe0002'
 import logging
 import re
 import base64
+import os
+
 
 try:
     from urlparse import parse_qs
@@ -25,7 +27,14 @@ LOGGER.setLevel(logging.INFO)
 
 SERVER = None
 
-USERS = [("foo", "bar")]
+USERS = [("foo", "bar"), ('jodo', 'judo')]
+
+def userinfo(user_db, user_info_claim, idtoken, keys):
+    claims = user_info_claim.claims
+
+    _locale = user_info_claim.locale
+    
+    return user_db.pick(user_id, client_id, claims, _locale)
 
 def do_authentication(environ, start_response, sid):
     """
@@ -115,14 +124,17 @@ def safe(environ, start_response, logger, handle):
         resp = Unauthorized("Not authorized")
         return resp(environ, start_response)
 
-    info = "'%s' permissions: %s" % (_sinfo["userid"], _sinfo["permission"])
+    _log_info("SINFO: %s" % _sinfo)
+    
+    info = "'%s' permissions: %s" % (_sinfo["user_id"], _sinfo["permission"])
     resp = Response(info)
     return resp(environ, start_response)
 
 #noinspection PyUnusedLocal
 def css(environ, start_response, handle, logger):
+    _wd = os.getcwd()
     try:
-        info = open(environ["PATH_INFO"]).read()
+        info = open(os.path.join(_wd, environ["PATH_INFO"])).read()
         resp = Response(info)
     except Exception:
         resp = NotFound(environ["PATH_INFO"])
@@ -218,6 +230,7 @@ def application(environ, start_response):
 
 from oic.utils import sdb
 from oic.oic.server import Server
+from oic.oic.server import UserInfo
 
 CDB = {
     "a1b2c3": {
@@ -232,18 +245,28 @@ FUNCTION = {
     "authorize": do_authorization,
     "verify user": verify_username_and_password,
     "verify client": verify_client,
+    "user info": userinfo,
 }
 
 if __name__ == '__main__':
     from wsgiref.simple_server import make_server
     import argparse
+    import importlib
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', dest='debug', action='store_true')
     parser.add_argument('-p', dest='port', default=8088, type=int)
+    parser.add_argument('-u', dest='user_info', default=8088, type=int)
+    parser.add_argument('-r', dest='claim_rules', default=8088, type=int)
     args = parser.parse_args()
 
     URLMAP={}
+    if args.user_info and args.claim_rules:
+        uinfo = importlib.import_module(args.user_info)
+        rules = importlib.import_module(args.claim_rules)
+        USERDB = UserInfo(uinfo.DB, rules.RULES)
+    else:
+        USERDB = None
 
     # in memory session storage
 
@@ -252,6 +275,7 @@ if __name__ == '__main__':
                     CDB,
                     FUNCTION,
                     "1234567890",
+                    USERDB,
                     debug=args.debug)
 
     srv = make_server('localhost', args.port, application)

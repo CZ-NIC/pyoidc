@@ -6,6 +6,7 @@ import random
 import string
 import httplib2
 import base64
+import json
 
 try:
     from urlparse import parse_qs
@@ -30,6 +31,9 @@ from oic.oic import IdToken
 from oic import oauth2
 
 class AuthnFailure(Exception):
+    pass
+
+class MissingAttribute(Exception):
     pass
 
 #noinspection PyUnusedLocal
@@ -342,4 +346,83 @@ class Server(oic.Server):
         resp = Response(atr.get_json(), content="application/json")
         return resp(environ, start_response)
 
-  
+
+class UserInfo():
+    """The generic user info interface. It's a read only interface"""
+    def __init__(self, rules, db):
+        """
+        :param rules: The servers view on what a what a specific client
+            should receive
+        """
+        self.rules = rules
+        self.db = db
+
+    def pick(self, userid, client_id, claims=None, locale=""):
+        """
+        One implementation
+        
+        :param userid: The User ID
+        :param client_id: The ID of the client
+        :param claims: The claims the client has defined
+        :param locale: Which locale the client wants
+        :return: A dictionary
+        """
+        try:
+            info = self.db[userid]
+        except KeyError:
+            return None
+
+        # attribute names are of the form name '#' locale
+
+        # first my own rules on what to return
+        try:
+            attrs = self.rules[client_id]
+
+            for key, val in info.items():
+                if key in attrs:
+                    continue
+
+                try:
+                    prop, ploc = key.split("#")
+                    if prop in attrs:
+                        continue
+                except ValueError:
+                    pass
+
+                del info[key]
+
+        except KeyError:
+            pass
+
+        # Don't send back more than is needed
+        if claims:
+            cdic = claims.dictionary(extended=True)
+            attrs = cdic.keys()
+
+            for key, val in info.items():
+                if key in attrs:
+                    continue
+
+                try:
+                    prop, ploc = key.split("#")
+                    if locale:
+                        if ploc != locale:
+                            del info[key]
+                        continue
+                    elif prop in attrs:
+                        continue
+                except ValueError:
+                    del info[key]
+
+
+            for attr in [key for key, val in cdic.items() if not val]:
+                if attr not in info.keys():
+                    raise MissingAttribute(attr)
+        return info
+
+
+class JSON_UserInfo(UserInfo):
+    def __init__(self, rules, json_file):
+        UserInfo.__init__(self,
+                          json.loads(open(rules).read()),
+                          json.loads(open(json_file).read()))

@@ -2,9 +2,14 @@
 
 __author__ = 'rohe0002'
 
+import cgitb
+cgitb.enable()
+
 import re
 import os
 import logging
+
+from mako.lookup import TemplateLookup
 
 from oic.oic import CLAIMS
 from oic.oic import UserInfoClaim
@@ -103,7 +108,7 @@ def authz(environ, start_response, logger, kaka=None):
 
     try:
         _cli = Consumer(_session_db, _conc, _cc, _server_info)
-        response = _cli.parse_authz(environ, start_response, logger)
+        aresp, atr, idt = _cli.parse_authz(environ, start_response, logger)
     except (AuthzError, TokenError), err:
         resp = http_util.Unauthorized("%s" % err)
         return resp(environ, start_response)
@@ -111,35 +116,69 @@ def authz(environ, start_response, logger, kaka=None):
         resp = http_util.BadRequest("Unsolicited Response")
         return resp(environ, start_response)
 
-    if _conc["flow_type"] == "code": # Not done yet
+    if _conc["response_type"] == ["code"]: # Not done yet
         try:
-            _cli.complete(logger) # get the access token from the token
-                                    # endpoint
+            atr = _cli.complete(logger) # get the access token from the token
+                                        # endpoint
         except TokenError, err:
             resp = http_util.Unauthorized("%s" % err)
             return resp(environ, start_response)
+
+    else:
+        pass
+
+    _log_info("AU: %s" % aresp)
+    _log_info("AT: %s" % atr)
+    _log_info("DUMP: %s" % (_cli.sdb[_cli.state],))
 
     # Valid for 6 hours (=360 minutes)
     kaka = http_util.cookie(_conc["name"], _cli.state, _cli.seed, expire=360,
                             path="/")
 
-    _log_info("DUMP: %s" % (_cli.sdb[_cli.sdb["seed:%s" % _cli.seed]],))
-
     resp = http_util.Response("Your will is registered", headers=[kaka])
     _log_info("Cookie: %s" % (kaka,))
     return resp(environ, start_response)
 
+#def fragment(environ, start_response, logger, kaka=None):
+#    _session_db = environ["oic.session_db"]
+#    _cc = environ["oic.client_config"]
+#    _conc = environ["oic.consumer.config"]
+#    _server_info = environ["oic.server.info"]
+#
+#    _log_info = logger.info
+#
+#    _log_info("environ: %s" % environ)
+#
+#    try:
+#        _cli = Consumer(_session_db, _conc, _cc, _server_info)
+#        response = _cli.parse_authz(environ, start_response, logger)
+#
+#    aresp =
+#    resp = http_util.Response("Yipee!")
+#    return resp(environ, start_response)
+
+
+# ========================================================================
+
 def do_request_file(environ, start_response, path):
-    _fp = open(path)
+    _path = os.path.join(os.getcwd(), path)
+    _fp = open(_path)
     _req = _fp.read()
     _fp.close()
     # Can only be used once
-    os.unlink(path)
+    #os.unlink(path)
     resp = http_util.Response(_req)
     return resp(environ, start_response)
 
+def scripts(environ, start_response, path):
+    _path = os.path.join(os.getcwd(), path)
+    resp = http_util.Response(open(_path).read())
+    return resp(environ, start_response)
+
 def jqauthz(environ, start_response, path):
-    resp = http_util.Response(open("jqauthz").read())
+    resp = http_util.Response(mako_template="jqa.mako", 
+                              template_lookup=environ["mako.lookup"])
+
     return resp(environ, start_response)
 
 # ----------------------------------------------------------------------------
@@ -148,6 +187,8 @@ URLS = [
     (r'resource', resource),
     (r'register$', register),
     (r'authz', authz),
+    (r'scripts', scripts),
+#    (r'fragment', fragment),
 ]
 
 # ----------------------------------------------------------------------------
@@ -171,22 +212,27 @@ def application(environ, start_response):
     global SERVER_INFO
     global SESSION_DB
     global CLIENT_CONFIG
+    global LOOKUP
 
     path = environ.get('PATH_INFO', '').lstrip('/')
     kaka = environ.get("HTTP_COOKIE", '')
 
     LOGGER.info("PATH: %s" % path)
     if kaka:
-        if CONSUMER_CONFIG.debug:
+        if CONSUMER_CONFIG["debug"]:
             LOGGER.debug("Cookie: %s" % (kaka,))
 
     environ["oic.consumer.config"] = CONSUMER_CONFIG
     environ["oic.server.info"] = SERVER_INFO
     environ["oic.session_db"] = SESSION_DB
     environ["oic.client_config"] = CLIENT_CONFIG
+    environ["mako.lookup"] = LOOKUP
 
     if path.startswith(CONSUMER_CONFIG["temp_dir"]):
         return do_request_file(environ, start_response, path)
+
+    if path.startswith("scripts"):
+        return scripts(environ, start_response, path)
 
     if path == "jqauthz":
         return jqauthz(environ, start_response, path)
@@ -208,6 +254,11 @@ def application(environ, start_response):
 
 
 # ----------------------------------------------------------------------------
+
+ROOT = '../'
+LOOKUP = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
+                        module_directory=ROOT + 'modules',
+                        input_encoding='utf-8', output_encoding='utf-8')
 
 LOGGER = logging.getLogger("oicClient")
 hdlr = logging.FileHandler('oicClient.log')

@@ -1,4 +1,5 @@
 <%inherit file="root.mako" />
+
 <%def name="title()">Log in</%def>
 
 <div class="login_form" class="block">

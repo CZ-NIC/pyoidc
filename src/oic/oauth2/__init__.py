@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#
 
 __author__ = 'rohe0002'
 
@@ -829,6 +830,10 @@ class Client(object):
         return atr(**ar_args)
 
 
+    def set_from_access_token(self, atr):
+        for prop in atr.c_attributes.keys():
+            setattr(self, prop, getattr(atr, prop))
+
     def parse_access_token_response(self, cls=AccessTokenResponse, info="",
                                     format="json", extended=False):
         """
@@ -861,7 +866,7 @@ class Client(object):
         assert atr.verify()
 
         if isinstance(atr, cls):
-            self.access_token = atr
+            self.set_from_access_token(atr)
             if self.access_token.expires_in:
                 self.token_expiration_time = time.time() + self.access_token.expires_in
                 
@@ -1008,7 +1013,7 @@ class Client(object):
             _acc_token = kwargs["access_token"]
             del kwargs["access_token"]
         except KeyError:
-            _acc_token= self.access_token.access_token
+            _acc_token= self.access_token
 
         headers["Authorization"] = "Bearer %s" % base64.encodestring(_acc_token)
 

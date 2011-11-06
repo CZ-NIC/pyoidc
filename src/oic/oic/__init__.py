@@ -4,6 +4,7 @@ from oic import oauth2
 import json
 import jwt
 import tempfile
+import time
 import os
 import os.path
 import sys
@@ -682,10 +683,20 @@ class Client(oauth2.Client):
         self.refresh_session=None
         self.end_session=None
 
+    def set_from_authorization_response(self, aresp):
+        self.authorization_response = aresp
+        self.grant_expiration_time = time.time()+self.expire_in
+        self.authorization_code = aresp.code
+        for prop in AuthorizationResponse.c_attributes.keys():
+            setattr(self, prop, getattr(aresp, prop))
+
     def parse_authorization_response(self, rcls=AuthorizationResponse,
                                      url="", query=""):
-        return oauth2.Client.parse_authorization_response(self, rcls, url,
-                                                         query)
+        aresp = oauth2.Client.parse_authorization_response(self, rcls, url,
+                                                           query)
+
+        self.set_from_authorization_response(aresp)
+        return aresp
 
     def parse_access_token_response(self, cls=AccessTokenResponse, info="",
                                     format="json", extended=False):

@@ -446,3 +446,16 @@ def test_auth_response_code_and_token():
         "token_type": "Bearer",
         "id_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ.foo",
         "state": "af0ifjsldkj"}
+
+def test_X():
+    from oic.oic import Client
+
+    resp = "nonce=uqfc3MhAVhMn&code=gMepFsHWQ%2BaUR89FiiAwbx%2BsZM%2FxC%2B%2BhkC66bnqUaJI%3D&access_token=gMepFsHWQ%2BaUR89FiiAwb9Fkmn9B0bS5xkBS651dakQ%3D&expires_in=3600&token_type=bearer&state=eafa67e294f92d3f495ca31931f3e9b3&scope=openid"
+
+    c = Client()
+    aresp = c.parse_authorization_response(query=resp)
+
+    assert aresp.nonce == "uqfc3MhAVhMn"
+    assert aresp.token_type == "bearer"
+    assert aresp.state == "eafa67e294f92d3f495ca31931f3e9b3"
+    assert aresp.scope == ["openid"]

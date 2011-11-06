@@ -92,6 +92,18 @@ class Consumer(Client):
         self.nonce = ""
         self.request_filename=""
 
+    def update(self, sid):
+        """ Updates the instance variables from something stored in the
+        session database. Will not overwrite something that's already there.
+
+        :param sid: Session identifier
+        """
+        for key, val in self.sdb[sid].items():
+            if self.key:
+                pass
+            else:
+                setattr(self, key, val)
+
     def restore(self, sid):
         """ Restores the instance variables from something stored in the
         session database.
@@ -101,13 +113,8 @@ class Consumer(Client):
         for key, val in self.sdb[sid].items():
             setattr(self, key, val)
 
-    def _backup(self, sid):
-        """ Stores instance variable values in the session store under a
-        session identifier.
-
-        :param sid: Session identifier
-        """
-        self.sdb[sid] = {
+    def dictionary(self):
+        return {
             "client_id": self.client_id,
             "state": self.state,
             "authorization_code": self.authorization_code,
@@ -124,6 +131,14 @@ class Consumer(Client):
             "nonce": self.nonce,
             "request_filename": self.request_filename
         }
+
+    def _backup(self, sid):
+        """ Stores instance variable values in the session store under a
+        session identifier.
+
+        :param sid: Session identifier
+        """
+        self.sdb[sid] = self.dictionary()
 
     def extract_access_token_response(self, aresp):
         atr = AccessTokenResponse()
@@ -210,7 +225,16 @@ class Consumer(Client):
             _log_info("- %s flow -" % self.config["flow_type"])
             _log_info("environ: %s" % environ)
 
-        _query = environ.get("QUERY_STRING")
+        if environ.get("REQUEST_METHOD") == "GET":
+            _query = environ.get("QUERY_STRING")
+        elif environ.get("REQUEST_METHOD") == "POST":
+            _query = http_util.get_post(environ)
+        else:
+            resp = http_util.BadRequest("Unsupported method")
+            return resp(environ, start_response)
+
+        _log_info("response: %s" % _query)
+        
         _path = http_util.geturl(environ, False, False)
 
         if "code" in self.config["response_type"]:
@@ -219,11 +243,17 @@ class Consumer(Client):
             if isinstance(aresp, ErrorResponse):
                 raise AuthzError(aresp.error)
 
-            try:
-                self.restore(aresp.state)
-            except KeyError:
-                raise UnknownState(aresp.state)
+            _log_info("before: %s" % (self.dictionary(),))
 
+#            try:
+#                self.update(self.state)
+#            except KeyError:
+#                raise UnknownState(self.state)
+#
+#            _log_info("after: %s" % (self.dictionary(),))
+
+            self._backup(self.state)
+            
             # May have token and id_token information too
             if aresp.access_token:
                 atr = self.extract_access_token_response(aresp)
