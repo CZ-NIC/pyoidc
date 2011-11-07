@@ -100,11 +100,8 @@ class SessionDB(object):
         return sid, base64.b64encode(ctext)
 
     def get_type_and_key(self, token):
-        try:
-            plain = self.crypt.decrypt(base64.b64decode(token))
-            return plain[-4], plain[:-4], plain[-3:]
-        except Exception:
-            return "","",""
+        plain = self.crypt.decrypt(base64.b64decode(token))
+        return plain[-4], plain[:-4], plain[-3:]
 
     def create_authz_session(self, user_id, areq, id_token=None, oidreq=None):
         """

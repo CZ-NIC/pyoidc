@@ -90,6 +90,7 @@ def register(environ, start_response, logger, kaka=None):
     _oac = Consumer(_session_db, _conc, _cc, _server_info)
     location = _oac.begin(environ, start_response, logger)
 
+    logger.info("[1] %s" % (_oac.__dict__,))
     resp = http_util.Redirect(location)
     return resp(environ, start_response)
 
@@ -131,12 +132,52 @@ def authz(environ, start_response, logger, kaka=None):
     _log_info("AT: %s" % atr)
     _log_info("DUMP: %s" % (_cli.sdb[_cli.state],))
 
+    _log_info("[2] %s" % (_cli.__dict__,))
+
     # Valid for 6 hours (=360 minutes)
     kaka = http_util.cookie(_conc["name"], _cli.state, _cli.seed, expire=360,
                             path="/")
 
     resp = http_util.Response("Your will is registered", headers=[kaka])
     _log_info("Cookie: %s" % (kaka,))
+    return resp(environ, start_response)
+
+#noinspection PyUnusedLocal
+def userinfo(environ, start_response, logger, kaka=None):
+
+    _session_db = environ["oic.session_db"]
+    _cc = environ["oic.client_config"]
+    _conc = environ["oic.consumer.config"]
+    _server_info = environ["oic.server.info"]
+
+    _log_info = logger.info
+
+    _oac = consumer.factory(kaka, _session_db, _conc)
+
+    _log_info("_server_info: %s" % (_server_info, ))
+    _log_info("[3]: %s" % (_oac.__dict__, ))
+    
+    try:
+        uinfo = _oac.userinfo(logger)
+    except (AuthzError, TokenError), err:
+        resp = http_util.Unauthorized("%s" % err)
+        return resp(environ, start_response)
+
+    _log_info("userinfo: %s" % (uinfo.dictionary(),))
+
+    if not _oac.id_token:
+
+    tab = ["<h2>User Info</h2>",
+           '<table border="1">',
+           "<tr><th>attribute</th><th>value</th></tr>"]
+
+    for attr in uinfo.c_attributes.keys():
+        v = getattr(uinfo, attr, "")
+        if v:
+            tab.append("<tr><td>%s</td><td>%s</td></tr>" % (attr, v))
+    tab.append("</table>")
+
+    resp = http_util.Response("\n".join(tab))
     return resp(environ, start_response)
 
 #def fragment(environ, start_response, logger, kaka=None):
@@ -175,6 +216,7 @@ def scripts(environ, start_response, path):
     resp = http_util.Response(open(_path).read())
     return resp(environ, start_response)
 
+#noinspection PyUnusedLocal
 def jqauthz(environ, start_response, path):
     resp = http_util.Response(mako_template="jqa.mako", 
                               template_lookup=environ["mako.lookup"])
@@ -188,6 +230,7 @@ URLS = [
     (r'register$', register),
     (r'authz', authz),
     (r'scripts', scripts),
+    (r'userinfo', userinfo),
 #    (r'fragment', fragment),
 ]
 
@@ -239,7 +282,13 @@ def application(environ, start_response):
 
     for regex, callback in URLS:
         if kaka:
-            return resource(environ, start_response, LOGGER, kaka)
+            match = re.search(regex, path)
+            if match is not None:
+                try:
+                    environ['oic.url_args'] = match.groups()[0]
+                except IndexError:
+                    environ['oic.url_args'] = path
+                return callback(environ, start_response, LOGGER, kaka)
         else:
             match = re.search(regex, path)
             if match is not None:
@@ -275,7 +324,7 @@ SERVER_INFO ={
     "issuer":"https://connect-op.heroku.com",
     "authorization_endpoint":"http://localhost:8088/authorization",
     "token_endpoint":"http://localhost:8088/token",
-    #"user_info_endpoint":"http://localhost:8088/user_info",
+    "user_info_endpoint":"http://localhost:8088/user_info",
     #"check_id_endpoint":"http://localhost:8088/id_token",
     #"registration_endpoint":"https://connect-op.heroku.com/connect/client",
     #"scopes_supported":["openid","profile","email","address","PPID"],

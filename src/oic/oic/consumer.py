@@ -16,7 +16,7 @@ from oic.oic import Client
 from oic.oauth2 import ErrorResponse
 from oic.oauth2.consumer import TokenError
 from oic.oauth2.consumer import AuthzError
-from oic.oauth2.consumer import UnknownState
+#from oic.oauth2.consumer import UnknownState
 
 def stateID(url, seed):
     """The hash of the time + server path + a seed makes an unique
@@ -85,12 +85,14 @@ class Consumer(Client):
         if server_info:
             self.authorization_endpoint = server_info["authorization_endpoint"]
             self.token_endpoint = server_info["token_endpoint"]
+            self.user_info_endpoint = server_info["user_info_endpoint"]
 
         self.sdb = session_db
         self.function = self.config["function"]
         self.seed = ""
         self.nonce = ""
         self.request_filename=""
+        self.user_info = None
 
     def update(self, sid):
         """ Updates the instance variables from something stored in the
@@ -126,10 +128,13 @@ class Consumer(Client):
             "authorization_endpoint": self.authorization_endpoint,
             "token_endpoint": self.token_endpoint,
             "token_revocation_endpoint": self.token_revocation_endpoint,
+            "user_info_endpoint": self.user_info_endpoint,
             "seed": self.seed,
             "debug": self.debug,
             "nonce": self.nonce,
-            "request_filename": self.request_filename
+            "request_filename": self.request_filename,
+            "user_info": self.user_info,
+            "id_token": self.id_token
         }
 
     def _backup(self, sid):
@@ -305,7 +310,16 @@ class Consumer(Client):
     
     #noinspection PyUnusedLocal
     def userinfo(self, logger):
-        pass
+        self.log = logger
+        uinfo = self.do_user_info_request()
+
+        if isinstance(uinfo, ErrorResponse):
+            raise TokenError(uinfo.error)
+
+        self.user_info = uinfo
+        self._backup(self.state)
+
+        return uinfo
 
     def refresh_session(self):
         pass

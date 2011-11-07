@@ -19,7 +19,7 @@ from oic.utils.http_util import *
 from oic.utils import time_util
 
 from oic.oauth2 import MissingRequiredAttribute
-
+from oic.oic import CLAIMS
 from oic.oic import AuthorizationResponse
 from oic.oic import AuthorizationRequest
 from oic.oic import AccessTokenResponse
@@ -34,6 +34,9 @@ class AuthnFailure(Exception):
     pass
 
 class MissingAttribute(Exception):
+    pass
+
+class UnsupportedMethod(Exception):
     pass
 
 #noinspection PyUnusedLocal
@@ -59,8 +62,20 @@ def do_authorization(user):
 def rndstr(size=16):
     return "".join([random.choice(string.ascii_letters) for _ in range(size)])
 
+def get_or_post(environ):
+    _method = environ.get("REQUEST_METHOD")
+    
+    if _method == "GET":
+        data = environ.get("QUERY_STRING")
+    elif _method == "POST":
+        data = get_post(environ)
+    else:
+        raise UnsupportedMethod(_method)
+
+    return data
+
 class Server(oic.Server):
-    def __init__(self, name, sdb, cdb, function, jwt_key, urlmap=None,
+    def __init__(self, name, sdb, cdb, function, jwt_key, userdb, urlmap=None,
                  debug=0,
                  cache=None, timeout=None,
                  proxy_info=None, follow_redirects=True,
@@ -69,6 +84,7 @@ class Server(oic.Server):
         self.sdb = sdb
         self.cdb = cdb
         self.jwt_key = jwt_key
+        self.userdb = userdb
 
         self.function = function
 
@@ -246,11 +262,9 @@ class Server(oic.Server):
             _log_info("- authorization -")
 
         # Support GET and POST
-        if environ.get("REQUEST_METHOD") == "GET":
-            query = environ.get("QUERY_STRING")
-        elif environ.get("REQUEST_METHOD") == "POST":
-            query = get_post(environ)
-        else:
+        try:
+            query = get_or_post(environ)
+        except UnsupportedMethod:
             resp = BadRequest("Unsupported method")
             return resp(environ, start_response)
 
@@ -346,6 +360,52 @@ class Server(oic.Server):
         resp = Response(atr.get_json(), content="application/json")
         return resp(environ, start_response)
 
+    #noinspection PyUnusedLocal
+    def user_info_endpoint(self, environ, start_response, logger):
+
+        # POST or GET
+        try:
+            query = get_or_post(environ)
+        except UnsupportedMethod:
+            resp = BadRequest("Unsupported method")
+            return resp(environ, start_response)
+
+        uireq = self.parse_user_info_request(query=query)
+        logger.info("user_info_request: %s" % uireq)
+
+        # should be an access token
+        typ, key, _ = self.sdb.get_type_and_key(uireq.access_token)
+        logger.info("access_token type: '%s', key: '%s'" % (typ, key))
+        
+        assert typ == "T"
+        session = self.sdb[uireq.access_token]
+        _req = session["oidreq"]
+
+        oidreq = OpenIDRequest.from_json(_req)
+
+        #logger.info("oidreq: %s[%s]" % (oidreq, type(oidreq)))
+        info = self.function["user info"](self.userdb,
+                                          session["user_id"],
+                                          session["client_id"],
+                                          oidreq.user_info)
+
+        logger.info("info: %s" % (info,))
+        resp = Response(json.dumps(info), content="application/json")
+        return resp(environ, start_response)
+
+    #noinspection PyUnusedLocal
+    def check_id_endpoint(self, environ, start_response, logger):
+
+        try:
+            query = get_or_post(environ)
+        except UnsupportedMethod:
+            resp = BadRequest("Unsupported method")
+            return resp(environ, start_response)
+
+        resp = Response()
+        return resp(environ, start_response)
+
+# -----------------------------------------------------------------------------
 
 class UserInfo():
     """The generic user info interface. It's a read only interface"""
@@ -396,7 +456,10 @@ class UserInfo():
 
         # Don't send back more than is needed
         if claims:
-            cdic = claims.dictionary(extended=True)
+            if isinstance(claims, CLAIMS):
+                cdic = claims.dictionary(extended=True)
+            else:
+                cdic = claims
             attrs = cdic.keys()
 
             for key, val in info.items():

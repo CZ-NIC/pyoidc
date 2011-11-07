@@ -29,11 +29,15 @@ SERVER = None
 
 USERS = [("foo", "bar"), ('jodo', 'judo')]
 
-def userinfo(user_db, user_info_claim, idtoken, keys):
-    claims = user_info_claim.claims
+def userinfo(user_db, user_id, client_id, user_info_claim):
+    global LOGGER
 
+    LOGGER.info("userid: %s, client_id: %s" % (user_id, client_id))
+
+    claims = user_info_claim.claims
     _locale = user_info_claim.locale
-    
+    LOGGER.info("locale: %s, claims: %s" % (_locale, claims))
+    LOGGER.info("-info-: %s" % user_db.db[user_id])
     return user_db.pick(user_id, client_id, claims, _locale)
 
 def do_authentication(environ, start_response, sid):
@@ -161,6 +165,12 @@ def authenticated(environ, start_response, logger, handle):
 
     return _oas.authenticated(environ, start_response, logger, handle)
 
+#noinspection PyUnusedLocal
+def user_info(environ, start_response, logger, handle):
+    _oas = environ["oic.server"]
+
+    return _oas.user_info_endpoint(environ, start_response, logger)
+
 # ----------------------------------------------------------------------------
 
 URLS = [
@@ -168,7 +178,8 @@ URLS = [
     (r'^authenticated', authenticated),
     (r'^token', token),
     (r'.+\.css$', css),
-    (r'safe', safe)
+    (r'safe', safe),
+    (r'user_info', user_info)
 ]
 
 # ----------------------------------------------------------------------------
@@ -256,15 +267,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', dest='debug', action='store_true')
     parser.add_argument('-p', dest='port', default=8088, type=int)
-    parser.add_argument('-u', dest='user_info', default=8088, type=int)
-    parser.add_argument('-r', dest='claim_rules', default=8088, type=int)
+    parser.add_argument('-u', dest='user_info')
+    parser.add_argument('-r', dest='claim_rules')
     args = parser.parse_args()
 
     URLMAP={}
     if args.user_info and args.claim_rules:
         uinfo = importlib.import_module(args.user_info)
         rules = importlib.import_module(args.claim_rules)
-        USERDB = UserInfo(uinfo.DB, rules.RULES)
+        USERDB = UserInfo(rules.RULES, uinfo.DB)
     else:
         USERDB = None
 

@@ -420,6 +420,16 @@ class CheckSessionRequest(oauth2.Base):
         oauth2.Base.__init__(self, **kwargs)
         self.id_token = id_token
 
+class CheckIDRequest(oauth2.Base):
+    c_attributes = oauth2.Base.c_attributes.copy()
+    c_attributes["id_token"] = SINGLE_REQUIRED_STRING
+
+    def __init__(self,
+                 id_token=None,
+                 **kwargs):
+        oauth2.Base.__init__(self, **kwargs)
+        self.id_token = id_token
+
 class EndSessionRequest(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
     c_attributes["id_token"] = SINGLE_REQUIRED_STRING
@@ -678,10 +688,13 @@ class Client(oauth2.Client):
         self.file_store = "./file/"
         self.file_uri = "http://localhost/"
         # OpenID connect specific endpoints
-        self.userinfo_endpoint = None
+        self.user_info_endpoint = None
         self.check_session = None
         self.refresh_session=None
         self.end_session=None
+
+        self.id_token=None
+        self.log = None
 
     def set_from_authorization_response(self, aresp):
         self.authorization_response = aresp
@@ -789,15 +802,18 @@ class Client(oauth2.Client):
     def do_user_info_request(self, method="GET", **kwargs):
         uir = UserInfoRequest()
         if self.access_token_is_valid():
-            uir.access_token = self.access_token.access_token
+            uir.access_token = self.access_token
         else:
             # raise oauth2.OldAccessToken
+            if self.log:
+                self.log.info("do access token refresh")
             try:
                 self.do_access_token_refresh()
+                uir.access_token = self.access_token
             except Exception:
                 raise
             
-        uri = self._endpoint("userinfo_endpoint", **kwargs)
+        uri = self._endpoint("user_info_endpoint", **kwargs)
 
         if method == "GET":
             path = uri + '?' + uir.get_urlencoded()

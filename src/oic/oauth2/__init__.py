@@ -676,7 +676,7 @@ class Client(object):
             del kwargs[endpoint]
         except KeyError:
             try:
-                uri = getattr(self,endpoint)
+                uri = getattr(self, endpoint)
             except Exception:
                 raise Exception("No '%s' specified" % endpoint)
         return uri
