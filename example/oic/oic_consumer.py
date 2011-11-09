@@ -97,7 +97,7 @@ def register(environ, start_response, logger, kaka=None):
 #noinspection PyUnusedLocal
 def authz(environ, start_response, logger, kaka=None):
     """
-    This is where I get back to after authentication at the Authorization
+    This is where I am returned to after authentication at the Authorization
     service
     """
     _session_db = environ["oic.session_db"]
@@ -117,14 +117,20 @@ def authz(environ, start_response, logger, kaka=None):
         resp = http_util.BadRequest("Unsolicited Response")
         return resp(environ, start_response)
 
-    if _conc["response_type"] == ["code"]: # Not done yet
+    #_log_info("CLI: %s" % (_cli.__dict__,))
+
+    if _conc["response_type"] == ["code"] or _conc["response_type"] == "code":
+        # Not  done yet
         try:
             atr = _cli.complete(logger) # get the access token from the token
                                         # endpoint
         except TokenError, err:
+            _log_info("Err: %s" % err)
             resp = http_util.Unauthorized("%s" % err)
             return resp(environ, start_response)
-
+        except Exception, err:
+            _log_info("Exception err: %s" % err)
+            raise
     else:
         pass
 
@@ -166,6 +172,8 @@ def userinfo(environ, start_response, logger, kaka=None):
     _log_info("userinfo: %s" % (uinfo.dictionary(),))
 
     if not _oac.id_token:
+        # get id_token from the authorization end point
+        pass
 
     tab = ["<h2>User Info</h2>",
            '<table border="1">',
@@ -390,14 +398,18 @@ if __name__ == '__main__':
     }
 
     if args.response_type:
-        CONSUMER_CONFIG["response_type"] = args.response_type
+        CONSUMER_CONFIG["response_type"] = args.response_type.split(" ")
     else:
         CONSUMER_CONFIG["response_type"] = []
 
-    if args.response_type == ["code"]:
+    print "Response type: %s" % CONSUMER_CONFIG["response_type"]
+    
+    if CONSUMER_CONFIG["response_type"] == ["code"]:
         CONSUMER_CONFIG["flow_type"]= "code"
     else:
         CONSUMER_CONFIG["flow_type"]= "implicit"
+
+    print "flow type: %s" % CONSUMER_CONFIG["flow_type"]
 
     srv = wsgiserver.CherryPyWSGIServer(('localhost', args.port), application)
     print "OIC client listening on port: %s" % args.port

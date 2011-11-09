@@ -16,6 +16,8 @@ except ImportError:
 from oic.utils.http_util import *
 from oic.oauth2.server import AuthnFailure
 
+from oic.oic import ProviderConfigurationResponse
+
 from mako.lookup import TemplateLookup
 
 LOGGER = logging.getLogger("oicServer")
@@ -79,10 +81,12 @@ def do_authorization(user, session):
 
 #noinspection PyUnusedLocal
 def client_basic_auth(environ, atr, cdb):
-    user, passwd = base64.decodestring(environ["HTTP_AUTHORIZATION"]).split(":")
+    (type, key) = environ["HTTP_AUTHORIZATION"].split(" ")
+    assert type == "Basic"
+    user, passwd = base64.b64decode(key).split(":")
     try:
         assert cdb[user]["password"] == passwd
-    except (KeyError, AssertionError):
+    except (KeyError, AssertionError), err:
         return False
 
     return True
@@ -97,6 +101,7 @@ def client_secret(environ, atr, cdb):
     return True
 
 def verify_client(environ, atr, cdb):
+    print "Verify client"
     try:
         return client_basic_auth(environ, atr, cdb)
     except KeyError:
@@ -151,7 +156,12 @@ def css(environ, start_response, handle, logger):
 def token(environ, start_response, logger, handle):
     _oas = environ["oic.server"]
 
-    return _oas.token_endpoint(environ, start_response, logger, handle)
+    try:
+        return _oas.token_endpoint(environ, start_response, logger, handle)
+    except Exception,err:
+        logger.info("exception: %s" % err)
+        resp = ServiceError("%s" % err)
+        return resp(environ, start_response)
 
 #noinspection PyUnusedLocal
 def authorization(environ, start_response, logger, handle):
@@ -171,6 +181,25 @@ def user_info(environ, start_response, logger, handle):
 
     return _oas.user_info_endpoint(environ, start_response, logger)
 
+#noinspection PyUnusedLocal
+def openid_configuration(environ, start_response, logger, handle):
+    _oas = environ["oic.server"]
+    _path = geturl(environ, False, False)
+
+    conf = ProviderConfigurationResponse(issuer=_oas.name,
+            authorization_endpoint=_path+"/authorization",
+            token_endpoint=_path+"/token",
+            user_info_endpoint=_path+"/user_info",
+            check_session_endpoint=_path+"/check",
+            refresh_session_endpoint=_path+"/refresh_session",
+            end_session_endpoint=_path+"/end_session",
+            registration_endpoint=_path+"/registration",
+            scopes_supported=["openid"],
+            flows_supported=["code", "id_token", "token"])
+
+    resp = Response(conf.to_json())
+    return resp(environ, start_response)
+
 # ----------------------------------------------------------------------------
 
 URLS = [
@@ -179,7 +208,8 @@ URLS = [
     (r'^token', token),
     (r'.+\.css$', css),
     (r'safe', safe),
-    (r'user_info', user_info)
+    (r'user_info', user_info),
+    (r'openid-configuration', openid_configuration)
 ]
 
 # ----------------------------------------------------------------------------

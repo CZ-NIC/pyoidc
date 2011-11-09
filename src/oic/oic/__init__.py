@@ -56,8 +56,9 @@ class AuthorizationResponse(oauth2.AuthorizationResponse, AccessTokenResponse):
     c_attributes["nonce"] = SINGLE_OPTIONAL_STRING
     # Add all the AccessTokenResponse properties
     c_attributes.update(AccessTokenResponse.c_attributes)
-#    c_attributes["access_token"] = SINGLE_REQUIRED_STRING
-#    c_attributes["token_type"] = SINGLE_REQUIRED_STRING
+    # Change these two from required to optional
+    c_attributes["access_token"] = SINGLE_OPTIONAL_STRING
+    c_attributes["token_type"] = SINGLE_OPTIONAL_STRING
 #    c_attributes["expires_in"] = SINGLE_OPTIONAL_INT
 #    c_attributes["refresh_token"] = SINGLE_OPTIONAL_STRING
 #    c_attributes["scope"] = OPTIONAL_LIST_OF_STRINGS
@@ -545,22 +546,6 @@ class OpenIDRequest(AuthorizationRequest):
         self.iss = iss
         self.aud = aud
 
-#version	string	Version of the provider response. "3.0" is the default.
-#issuer	string	The https: URL with no path component the OP asserts as it's issuer identifyer
-#authorization_endpoint	string	URL of the OP's Authentication and Authorization Endpoint [OpenID.Messages]
-#token_endpoint	string	URL of the OP's OAuth 2.0 Token Endpoint [OpenID.Messages]
-#user_info_endpoint	string	URL of the OP's UserInfo Endpoint [OpenID.Messages]
-#check_session_endpoint	string	URL of the OP's Check Session Endpoint [OpenID.Session]
-#refresh_session_endpoint	string	URL of the OP's Refresh Session Endpoint [OpenID.Session]
-#end_session_endpoint	string	URL of the OP's End Session Endpoint [OpenID.Session]
-#jwk_document	string	URL of the OP's JSON Web Key [JWK] document
-#certs_url	string	URL of the OP's X.509 certificates in PEM format.
-#registration_endpoint	string	URL of the OP's Dynamic Client Registration Endpoint [OpenID.Registration]
-#scopes_supported	array	A JSON array containing a list of the OAuth 2.0 [OAuth2.0] scopes that this server supports. The server MUST support the openid scope.
-#flows_supported	array	A JSON array containing a list of the OAuth 2.0 flows that this server supports. The server MUST support the code flow.
-#iso29115_supported	array	A JSON array containing a list of the ISO 29115 assurance contexts that this server supports.
-#identifiers_supported	array	A JSON array containing a list of the user identifier types that this server supports
-
 class ProviderConfigurationResponse(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
     c_attributes["version"] = SINGLE_OPTIONAL_STRING
@@ -571,9 +556,9 @@ class ProviderConfigurationResponse(oauth2.Base):
     c_attributes["check_session_endpoint"] = SINGLE_OPTIONAL_STRING
     c_attributes["refresh_session_endpoint"] = SINGLE_OPTIONAL_STRING
     c_attributes["end_session_endpoint"] = SINGLE_OPTIONAL_STRING
-    c_attributes["jwk_document"] = SINGLE_OPTIONAL_STRING
-    c_attributes["certs_url"] = SINGLE_OPTIONAL_STRING
     c_attributes["registration_endpoint"] = SINGLE_OPTIONAL_STRING
+    c_attributes["jwk_document"] = SINGLE_OPTIONAL_STRING
+    c_attributes["x509_url"] = SINGLE_OPTIONAL_STRING
     c_attributes["scopes_supported"] = OPTIONAL_LIST_OF_STRINGS
     c_attributes["flows_supported"] = OPTIONAL_LIST_OF_STRINGS
     c_attributes["iso29115_supported"] = OPTIONAL_LIST_OF_STRINGS
@@ -589,7 +574,7 @@ class ProviderConfigurationResponse(oauth2.Base):
                  refresh_session_endpoint=None,
                  end_session_endpoint=None,
                  jwk_document=None,
-                 certs_url=None,
+                 x509_url=None,
                  registration_endpoint=None,
                  scopes_supported=None,
                  flows_supported=None,
@@ -606,7 +591,7 @@ class ProviderConfigurationResponse(oauth2.Base):
         self.refresh_session_endpoint = refresh_session_endpoint
         self.end_session_endpoint = end_session_endpoint
         self.jwk_document = jwk_document
-        self.certs_url = certs_url
+        self.x509_url = x509_url
         self.registration_endpoint = registration_endpoint
         self.scopes_supported = scopes_supported
         self.flows_supported = flows_supported
@@ -698,7 +683,7 @@ class Client(oauth2.Client):
 
     def set_from_authorization_response(self, aresp):
         self.authorization_response = aresp
-        self.grant_expiration_time = time.time()+self.expire_in
+        self.grant_expiration_time = time.time()+self.grant_expire_in
         self.authorization_code = aresp.code
         for prop in AuthorizationResponse.c_attributes.keys():
             setattr(self, prop, getattr(aresp, prop))

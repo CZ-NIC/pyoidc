@@ -244,12 +244,15 @@ class Consumer(Client):
 
         if "code" in self.config["response_type"]:
             # Might be an error response
+            _log_info("Expect Authorization Response")
             aresp = self.parse_authorization_response(query=_query)
             if isinstance(aresp, ErrorResponse):
+                _log_info("ErrorResponse: %s" % aresp)
                 raise AuthzError(aresp.error)
 
+            _log_info("Aresp: %s" % aresp)
+            self.redirect_uri = self.sdb[aresp.state]["redirect_uri"]
             _log_info("before: %s" % (self.dictionary(),))
-
 #            try:
 #                self.update(self.state)
 #            except KeyError:
@@ -269,6 +272,7 @@ class Consumer(Client):
             idt = None
             return aresp, atr, idt
         else:
+            _log_info("Expect Access Token Response")
             atr = self.parse_access_token_response(info=_query,
                                                    format="urlencoded",
                                                    extended=True)
@@ -296,6 +300,8 @@ class Consumer(Client):
                                     client_secret=self.config["client_secret"])
         else:
             raise Exception("Nothing to authenticate with")
+
+        logger.info("Access Token Response: %s" % atr)
 
         if isinstance(atr, ErrorResponse):
             raise TokenError(atr.error)

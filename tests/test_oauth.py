@@ -196,12 +196,13 @@ def test_extra():
     atr = oauth2.AccessTokenRequest("authorization_code",
                                     "SplxlOBeZQQYbYS6WxSbIA",
                                     "https://client.example.com/cb",
+                                    "client_id",
                                     extra="foo")
 
     assert atr
     query = atr.get_urlencoded(True)
     print query
-    assert query == "code=SplxlOBeZQQYbYS6WxSbIA&grant_type=authorization_code&redirect_uri=https%3A%2F%2Fclient.example.com%2Fcb&extra=foo"
+    assert query == "code=SplxlOBeZQQYbYS6WxSbIA&grant_type=authorization_code&client_id=client_id&redirect_uri=https%3A%2F%2Fclient.example.com%2Fcb&extra=foo"
 
     atr2 = oauth2.AccessTokenRequest.set_urlencoded(query, True)
     print atr2.c_extension
@@ -240,10 +241,12 @@ def test_cc_acc_token_req():
 # RefreshAccessTokenRequest
 
 def test_ratr():
-    ratr = oauth2.RefreshAccessTokenRequest(refresh_token="ababababab")
+    ratr = oauth2.RefreshAccessTokenRequest(refresh_token="ababababab",
+                                            client_id="Client_id")
 
     assert ratr.grant_type == "refresh_token"
     assert ratr.refresh_token == "ababababab"
+    assert ratr.client_id == "Client_id"
 
     assert ratr.verify()
 

@@ -3,9 +3,10 @@
 __author__ = 'rohe0002'
 
 from oic import oauth2
+from oic import oic
 import time
 
-class TestClient():
+class TestOAuthClient():
     def setup_class(self):
         self.client = oauth2.Client("1")
         self.client.redirect_uri = "http://example.com/redirect"
@@ -111,12 +112,12 @@ class TestClient():
                                         x.strip() for x in jso.split("\n")]))
 
         assert self.client.access_token
-        assert self.client.access_token.access_token == "2YotnFZFEjr1zCsicMWpAA"
-        assert self.client.access_token.token_type == "example"
-        assert self.client.access_token.expires_in == 3600
-        assert self.client.access_token.refresh_token == "tGzv3JOkF0XG5Qx2TlKWIA"
+        assert self.client.access_token == "2YotnFZFEjr1zCsicMWpAA"
+        assert self.client.token_type == "example"
+        assert self.client.expires_in == 3600
+        assert self.client.refresh_token == "tGzv3JOkF0XG5Qx2TlKWIA"
         # I'm dropping parameters I don't recognize
-        assert "example_parameter" not in self.client.access_token.__dict__
+        assert "example_parameter" not in self.client.__dict__
 
     def test_get_access_token_refresh_1(self):
         # Uses refresh_token from previous response
@@ -152,4 +153,20 @@ class TestClient():
 
         assert resp.error == "access_denied"
         assert resp.state == "xyz"
-        
+
+
+class TestOICClient():
+    def setup_class(self):
+        self.client = oic.Client("1")
+        self.client.redirect_uri = "http://example.com/redirect"
+
+
+    def test_parse_authz_response_1(self):
+        ruri = "nonce=rld7t7eXH7GR&code=enAPFuUhruD7AkUB0PKS%2F66XFJEtgOmWuKPpmTcG4ag%3D&state=2aa45025b0578eddcfcdf979b4f344b7&scope=openid"
+        resp = self.client.parse_authorization_response(query=ruri)
+
+        assert isinstance(resp, oic.AuthorizationResponse)
+
+        assert resp.nonce == "rld7t7eXH7GR"
+        assert resp.state == "2aa45025b0578eddcfcdf979b4f344b7"
+        assert resp.scope == ["openid"]

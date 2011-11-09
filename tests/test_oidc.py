@@ -1,5 +1,6 @@
 __author__ = 'rohe0002'
 
+import json
 from oic import oic
 #from oic.oauth2 import MissingRequiredAttribute
 
@@ -459,3 +460,18 @@ def test_X():
     assert aresp.token_type == "bearer"
     assert aresp.state == "eafa67e294f92d3f495ca31931f3e9b3"
     assert aresp.scope == ["openid"]
+
+def test_act_1():
+    resp = "token_type=bearer&state=9afe48e30d390d6ab163f1f857f576d8&access_token=7kFAO9Gwq59EmaoldboyhhLDnzXgc%2BnP4Gewl50k2Rc%3D&scope=openid&expires_in=3600&refresh_token=7kFAO9Gwq59Emaoldboyhn3aQdsI6czLVRL1k455ZHg%3D"
+
+    atr = oic.AccessTokenResponse().from_urlencoded(resp)
+
+    rdict = {"access_token": "7kFAO9Gwq59EmaoldboyhhLDnzXgc+nP4Gewl50k2Rc=",
+             "expires_in": 3600,
+             "token_type": "bearer",
+             "state": "9afe48e30d390d6ab163f1f857f576d8",
+             "scope": ["openid"],
+             "refresh_token": "7kFAO9Gwq59Emaoldboyhn3aQdsI6czLVRL1k455ZHg="}
+
+    print atr.to_json()
+    assert atr.to_json() == json.dumps(rdict)

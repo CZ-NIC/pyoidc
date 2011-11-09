@@ -329,9 +329,15 @@ class Server(oic.Server):
 
         areq = AccessTokenRequest.set_urlencoded(body, extended=True)
 
+        if self.debug:
+            _log_info("environ: %s" % environ)
+
         if not self.function["verify client"](environ, areq, self.cdb):
+            _log_info("could not verify client")
             err = TokenErrorResponse(error="unathorized_client")
-            resp = Response(err.get_json, content="application/json")
+            resp = Unauthorized(err.get_json(), content="application/json",
+                                headers=[("WWW-Authenticate",
+                                          'Basic realm="WallyWorld"')])
             return resp(environ, start_response)
 
         if self.debug:
@@ -347,7 +353,14 @@ class Server(oic.Server):
         if "redirect_uri" in _info:
             assert areq.redirect_uri == _info["redirect_uri"]
 
-        _tinfo = _sdb.update_to_token(areq.code)
+        if self.debug:
+            _log_info("All checks OK")
+
+        try:
+            _tinfo = _sdb.update_to_token(areq.code)
+        except Exception,err:
+            _log_info("Error: %s" % err)
+            raise
 
         if self.debug:
             _log_info("_tinfo: %s" % _tinfo)
@@ -357,7 +370,7 @@ class Server(oic.Server):
         if self.debug:
             _log_info("AccessTokenResponse: %s" % atr)
 
-        resp = Response(atr.get_json(), content="application/json")
+        resp = Response(atr.to_json(), content="application/json")
         return resp(environ, start_response)
 
     #noinspection PyUnusedLocal

@@ -594,6 +594,7 @@ class TokenRevocationRequest(Base):
         Base.__init__(self, **kwargs)
         self.token = token
 
+
 # =============================================================================
 
 def factory(cls, **argv):
@@ -612,7 +613,7 @@ class Client(object):
     def __init__(self, client_id=None, cache=None, timeout=None,
                  proxy_info=None, follow_redirects=True,
                  disable_ssl_certificate_validation=False, key=None,
-                 algorithm="HS256", expire_in=600):
+                 algorithm="HS256", grant_expire_in=600):
 
         self.http = httplib2.Http(cache, timeout, proxy_info,
             disable_ssl_certificate_validation=disable_ssl_certificate_validation)
@@ -623,11 +624,14 @@ class Client(object):
         self.nonce = None
 
         self.authorization_code = None
-        self.expire_in = expire_in
+        self.grant_expire_in = grant_expire_in
         self.grant_expiration_time = 0
+        # from the token endpoint
         self.scope = None
         self.access_token = None
         self.token_expiration_time = 0
+        self.refresh_token = None
+        self.expires_in = 0
 
         # own endpoint
         self.redirect_uri = None
@@ -645,11 +649,13 @@ class Client(object):
         self.nonce = None
 
         self.authorization_code = None
-        self.expire_in = 600
+        self.grant_expire_in = 600
         self.grant_expiration_time = 0
         self.scope = None
         self.access_token = None
         self.token_expiration_time = 0
+        self.refresh_token = None
+        self.expires_in = 0
 
         self.authorization_endpoint=None
         self.token_endpoint=None
@@ -749,7 +755,7 @@ class Client(object):
 
     def set_from_authorization_response(self, aresp):
         self.authorization_response = aresp
-        self.grant_expiration_time = time.time()+self.expire_in
+        self.grant_expiration_time = time.time()+self.grant_expire_in
         self.authorization_code = aresp.code
         self.state = aresp.state
 
@@ -818,7 +824,7 @@ class Client(object):
                                     time.time(), self.grant_expiration_time))
 
         ar_args = self._parse_args(atr, **kwargs)
-        ar_args["redirect_uri"]=self.redirect_uri
+        ar_args["redirect_uri"] = self.redirect_uri
         ar_args["code"] = self.authorization_code
 
         if "grant_type" not in ar_args:
@@ -867,15 +873,15 @@ class Client(object):
 
         if isinstance(atr, cls):
             self.set_from_access_token(atr)
-            if self.access_token.expires_in:
-                self.token_expiration_time = time.time() + self.access_token.expires_in
+            if self.expires_in:
+                self.token_expiration_time = time.time() + self.expires_in
                 
         return atr
 
     def get_access_token_refresh(self, ratr=RefreshAccessTokenRequest,
                                  **kwargs):
 
-        kwargs["refresh_token"] = self.access_token.refresh_token
+        kwargs["refresh_token"] = self.refresh_token
         ar_args = self._parse_args(ratr, **kwargs)
 
         return ratr(**ar_args)
@@ -937,7 +943,7 @@ class Client(object):
             h_args["headers"] = {"content-type": DEFAULT_POST_CONTENT_TYPE}
 
         # to please the syntax checker
-        response = content = ""
+        content = ""
         
         try:
             response, content = self.http.request(uri, method,
@@ -945,12 +951,11 @@ class Client(object):
                                                     **h_args)
         except MissingRequiredAttribute:
             raise
-        finally:
-            if passwd:
-                self.http.clear_credentials()
 
         if response.status == 200:
             assert "application/json" in response["content-type"]
+            if passwd:
+                self.http.clear_credentials()
         elif response.status == 500:
             raise Exception("ERROR: Something went wrong: %s" % content)
         else:
@@ -962,7 +967,7 @@ class Client(object):
 
     def _access_token_refresh(self, reqcls, method="POST", **kwargs):
 
-        kwargs["refresh_token"] = self.access_token.refresh_token
+        kwargs["refresh_token"] = self.refresh_token
             
         atr = self.get_access_token_refresh(reqcls, **kwargs)
 
