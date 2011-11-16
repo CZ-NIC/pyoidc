@@ -184,7 +184,7 @@ class Consumer(Client):
         _query = environ.get("QUERY_STRING")
         _path = http_util.geturl(environ, False, False)
 
-        if self.config["flow_type"] == "code":
+        if "code" in self.config["response_type"]:
             # Might be an error response
             aresp = self.parse_authorization_response(query=_query)
             if isinstance(aresp, ErrorResponse):
@@ -233,5 +233,3 @@ class Consumer(Client):
         self._backup(self.state)
         
         return atr
-
-

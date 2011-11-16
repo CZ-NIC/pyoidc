@@ -4,6 +4,7 @@ __author__ = 'rohe0002'
 
 import random
 import string
+import base64
 
 try:
     from urlparse import parse_qs
@@ -88,33 +89,34 @@ class Server(oauth2.Server):
 
         try:
             # Use the session identifier to find the session information
-            scode = dic["sid"][0]
-            asession = _sdb[_sdb["seed:%s" % scode]]
+            sid = base64.b64decode(dic["sid"][0])
+            session = _sdb[sid]
         except KeyError:
             resp = BadRequest("")
             return resp(environ, start_response)
 
-        _sdb.update(scode, "userid", dic["login"][0])
+        _sdb.update(sid, "userid", dic["login"][0])
 
         if self.debug:
-            _log_info("asession[\"authzreq\"] = %s" % asession["authzreq"])
-        #_log_info( "type: %s" % type(asession["authzreq"]))
+            _log_info("session[\"authzreq\"] = %s" % session["authzreq"])
+        #_log_info( "type: %s" % type(session["authzreq"]))
 
         # pick up the original request
-        areq = AuthorizationRequest.set_json(asession["authzreq"], extended=True)
+        areq = AuthorizationRequest.set_json(session["authzreq"], extended=True)
 
         if self.debug:
             _log_info("areq: %s" % areq)
 
         # Do the authorization
         try:
-            permission = self.function["authorize"](user)
-            _sdb.update(scode, "permission", permission)
+            permission = self.function["authorize"](user, session)
+            _sdb.update(sid, "permission", permission)
         except Exception:
             raise
 
         _log_info("response type: %s" % areq.response_type)
 
+        scode = session["code"]
         # create the response
         if "code" in areq.response_type:
             aresp = AuthorizationResponse()
@@ -199,11 +201,13 @@ class Server(oauth2.Server):
             _redirect = self.urlmap[areq.client_id][0]
 
         sid = _sdb.create_authz_session("", areq)
+        bsid = base64.b64encode(sid)
+
         grant = _sdb[sid]["code"]
         if self.debug:
             _log_info("code: '%s'" % grant)
 
-        return self.function["authenticate"](environ, start_response, sid)
+        return self.function["authenticate"](environ, start_response, bsid)
 
     #noinspection PyUnusedLocal
     def token_endpoint(self, environ, start_response, logger, handle):

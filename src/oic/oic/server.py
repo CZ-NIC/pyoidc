@@ -27,6 +27,8 @@ from oic.oic import AccessTokenRequest
 from oic.oic import TokenErrorResponse
 from oic.oic import OpenIDRequest
 from oic.oic import IdToken
+from oic.oic import RegistrationRequest
+from oic.oic import RegistrationResponse
 
 from oic import oauth2
 
@@ -73,6 +75,16 @@ def get_or_post(environ):
         raise UnsupportedMethod(_method)
 
     return data
+
+def secret(seed, id):
+    csum = hmac.new(seed, digestmod=hashlib.sha224)
+    csum.update("%s" % time.time())
+    csum.update("%f" % random.random())
+    csum.update(id)
+    return csum.hexdigest()
+
+def time_sans_frac():
+    return int("%d" % time.time())
 
 class Server(oic.Server):
     def __init__(self, name, sdb, cdb, function, jwt_key, userdb, urlmap=None,
@@ -416,6 +428,63 @@ class Server(oic.Server):
             return resp(environ, start_response)
 
         resp = Response()
+        return resp(environ, start_response)
+
+    #noinspection PyUnusedLocal
+    def registration_endpoint(self, environ, start_response, logger):
+
+        try:
+            query = get_or_post(environ)
+        except UnsupportedMethod:
+            resp = BadRequest("Unsupported method")
+            return resp(environ, start_response)
+
+        request = RegistrationRequest.from_urlencoded(query)
+
+        if request.type == "client_associate":
+            # create new id och secret
+            client_id = rndstr(12)
+            while client_id in self.cdb:
+                client_id = rndstr(12)
+
+            client_secret = secret(self.seed, client_id)
+            self.cdb[client_id] = {
+                "client_secret":client_secret
+            }
+            _cinfo = self.cdb[client_id]
+
+            for key,val in request.dictionary().items():
+                _cinfo[key] = val
+
+        elif request.type == "client_update":
+            # verify that these are an id,secret pair I know about
+            try:
+                _cinfo = self.cdb[request.client_id]
+            except KeyError:
+                logger.info("Unknown client id")
+                resp = BadRequest()
+                return resp(environ, start_response)
+
+            if _cinfo["client_secret"] != request.client_secret:
+                logger.info("Wrong secret")
+                resp = BadRequest()
+                return resp(environ, start_response)
+
+            # update secret
+            client_secret = secret(self.seed, request.client_id)
+            _cinfo["client_secret"] = client_secret
+            client_id = request.client_id
+        else:
+            resp = BadRequest("Unknown request type: %s" % request.type)
+            return resp(environ, start_response)
+
+        # set expiration time
+        _cinfo["registration_expires"] = time_sans_frac()+3600
+        response = RegistrationResponse(client_id, client_secret,
+                                        expires_in=3600)
+
+        resp = Response(response.to_json(), content="application/json",
+                        headers=[("Cache-Control", "no-store")])
         return resp(environ, start_response)
 
 # -----------------------------------------------------------------------------

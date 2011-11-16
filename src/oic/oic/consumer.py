@@ -6,13 +6,20 @@ import random
 import string
 import time
 import os.path
+import json
+import urlparse
+import httplib2
 
+from urllib import urlencode
 from hashlib import md5
 
 from oic.utils import http_util
 from oic.oic import AuthorizationRequest
 from oic.oic import AccessTokenResponse
 from oic.oic import Client
+from oic.oic import ProviderConfigurationResponse
+from oic.oic import RegistrationRequest
+from oic.oic import RegistrationResponse
 from oic.oauth2 import ErrorResponse
 from oic.oauth2.consumer import TokenError
 from oic.oauth2.consumer import AuthzError
@@ -88,11 +95,16 @@ class Consumer(Client):
             self.user_info_endpoint = server_info["user_info_endpoint"]
 
         self.sdb = session_db
-        self.function = self.config["function"]
+        try:
+            self.function = self.config["function"]
+        except (KeyError, TypeError):
+            self.function = {}
+            
         self.seed = ""
         self.nonce = ""
         self.request_filename=""
         self.user_info = None
+        self.registration_expires_in = 0
 
     def update(self, sid):
         """ Updates the instance variables from something stored in the
@@ -335,4 +347,85 @@ class Consumer(Client):
 
     def end_session(self):
         pass
-    
+
+
+    def _disc_query(self, location, principal):
+        param = {
+            "service": "http://openid.net/specs/connect/1.0/issuer",
+            "principal": principal,
+        }
+
+        uri = "%s?%s" % (location, urlencode(param))
+
+        try:
+            (response, content) = self.http.request(uri)
+        except httplib2.ServerNotFoundError:
+            if location.startswith("http://"): # switch to https
+                location = "https://"+location[7:]
+                return self._disc_query(location, principal)
+            else:
+                raise
+
+        if response.status == 200:
+            result = json.loads(content)
+            if "SWD_service_redirect" in result:
+                return self._disc_query(
+                            result["SWD_service_redirect"]["locations"][0],
+                            principal)
+            else:
+                return result
+        else:
+            raise Exception(response.status)
+
+    def provider_config(self, issuer):
+
+        url = "%s/.well-known/openid-configuration" % issuer
+
+        (response, content) = self.http.request(url)
+        if response.status == 200:
+            return ProviderConfigurationResponse.from_json(content)
+        else:
+            raise Exception("%s" % response.status)
+
+    def discover(self, principal, idtype="mail"):
+
+        if idtype == "mail":
+            (local, domain) = principal.split("@")
+        elif idtype == "url":
+            domain, user = urlparse.urlparse(principal)[1:2]
+        else:
+            domain = ""
+
+        result = self._disc_query(
+                        "http://%s/.well-known/simple-web-discovery" % domain,
+                        principal)
+
+        try:
+            return self.provider_config(result["locations"][0])
+        except Exception:
+            return result["location"]
+
+    def register(self, server, type="client_associate", **kwargs):
+        req = RegistrationRequest(type=type)
+
+        if type == "client_update":
+            req.client_id = self.client_id
+            req.client_secret = self.client_secret
+
+        for prop in RegistrationRequest.c_attributes.keys():
+            if prop in ["type", "client_id", "client_secret"]:
+                continue
+            if prop in kwargs:
+                setattr(req, prop, kwargs[prop])
+
+        (response, content) = self.http.request(server, "POST",
+                                                req.to_urlencoded())
+
+        if response.status == 200:
+            resp = RegistrationResponse.from_json(content)
+            self.client_secret = resp.client_secret
+            self.client_id = resp.client_id
+            self.registration_expires_in = resp.expires_in
+        else:
+            raise Exception("Registration failed: %s" % response.status)
+        

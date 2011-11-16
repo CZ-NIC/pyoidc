@@ -613,13 +613,15 @@ class Client(object):
     def __init__(self, client_id=None, cache=None, timeout=None,
                  proxy_info=None, follow_redirects=True,
                  disable_ssl_certificate_validation=False, key=None,
-                 algorithm="HS256", grant_expire_in=600):
+                 algorithm="HS256", grant_expire_in=600, client_secret=""):
 
         self.http = httplib2.Http(cache, timeout, proxy_info,
             disable_ssl_certificate_validation=disable_ssl_certificate_validation)
         self.http.follow_redirects = follow_redirects
 
         self.client_id = client_id
+        self.client_secret = client_secret
+
         self.state = None
         self.nonce = None
 
@@ -930,7 +932,14 @@ class Client(object):
             self.http.add_credentials(self.client_id, passwd)
         elif auth_method == "request_body":
             kwargs["client_id"] = self.client_id
-            assert "client_secret" in kwargs
+
+            try:
+                assert "client_secret" in kwargs
+            except AssertionError:
+                if self.client_secret:
+                    kwargs["client_secret"] = self.client_secret
+                else:
+                    raise
 
         atr = self.get_access_token_request(reqcls, **kwargs)
 
