@@ -250,8 +250,10 @@ def application(environ, start_response):
     else:
         handle = ""
 
-    environ["oic.server"] = SERVER
-    environ["mako.lookup"] = LOOKUP
+    if not "oic.server" in environ:
+        environ["oic.server"] = SERVER
+    if not "mako.lookup" in environ:
+        environ["mako.lookup"] = LOOKUP
 
     LOGGER.info("path: %s" % path)
     for regex, callback in URLS:

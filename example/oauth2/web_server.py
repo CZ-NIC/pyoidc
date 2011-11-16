@@ -54,8 +54,11 @@ def verify_username_and_password(dic):
 
 #noinspection PyUnusedLocal
 def do_authorization(user, session):
-    return session.scope, "ALL"
-
+    try:
+        return session["scope"], "ALL"
+    except KeyError:
+        return "", "ALL"
+        
 # ----------------------------------------------------------------------------
 
 #noinspection PyUnusedLocal
@@ -191,8 +194,10 @@ def application(environ, start_response):
     else:
         handle = ""
 
-    environ["oic.server"] = SERVER
-    environ["mako.lookup"] = LOOKUP
+    if "oic.server" not in environ:
+        environ["oic.server"] = SERVER
+    if "mako.lookup" not in environ:
+        environ["mako.lookup"] = LOOKUP
 
     LOGGER.info("path: %s" % path)
     for regex, callback in URLS:

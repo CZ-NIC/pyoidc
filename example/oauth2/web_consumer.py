@@ -159,10 +159,14 @@ def application(environ, start_response):
     if kaka:
         LOGGER.info("Incomming Cookie: %s" % (kaka,))
 
-    environ["oic.consumer.config"] = CONSUMER_CONFIG
-    environ["oic.server.info"] = SERVER_INFO
-    environ["oic.sessiondb"] = SESSION_DB
-    environ["oic.client_config"] = CLIENT_CONFIG
+    if "oic.consumer.config" not in environ:
+        environ["oic.consumer.config"] = CONSUMER_CONFIG
+    if "oic.server.info" not in environ:
+        environ["oic.server.info"] = SERVER_INFO
+    if "oic.sessiondb" not in environ:
+        environ["oic.sessiondb"] = SESSION_DB
+    if "oic.client_config" not in environ:
+        environ["oic.client_config"] = CLIENT_CONFIG
 
     for regex, callback in URLS:
         if kaka:
