@@ -31,6 +31,6 @@ setup(
     classifiers = ["Development Status :: 4 - Beta",
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Libraries :: Python Modules"],
-    install_requires = ['httplib2'],
+    install_requires = ['httplib2', "PyJWT", "pycrypto"],
     zip_safe=False,
 )
