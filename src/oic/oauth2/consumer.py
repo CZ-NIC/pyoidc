@@ -110,11 +110,7 @@ class Consumer(Client):
         self.sdb[sid] = {
             "client_id": self.client_id,
             "state": self.state,
-            "authorization_code": self.authorization_code,
-            "grant_expiration_time": self.grant_expiration_time,
-            "scope": self.scope,
-            "access_token": self.access_token,
-            "token_expiration_time": self.token_expiration_time,
+            "grant": self.grant,
             "redirect_uri": self.redirect_uri,
             "authorization_endpoint": self.authorization_endpoint,
             "token_endpoint": self.token_endpoint,
@@ -145,6 +141,7 @@ class Consumer(Client):
             self.seed = rndstr()
 
         sid = stateID(_path, self.seed)
+        self.state = sid
         self._backup(sid)
         self.sdb["seed:%s" % self.seed] = sid
 
@@ -195,7 +192,6 @@ class Consumer(Client):
             except KeyError:
                 raise UnknownState(aresp.state)
             
-            self.set_from_authorization_response(aresp)
             self._backup(aresp.state)
             return aresp
         else:

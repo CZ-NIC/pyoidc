@@ -83,9 +83,6 @@ def secret(seed, id):
     csum.update(id)
     return csum.hexdigest()
 
-def time_sans_frac():
-    return int("%d" % time.time())
-
 class Server(oic.Server):
     def __init__(self, name, sdb, cdb, function, jwt_key, userdb, urlmap=None,
                  debug=0,
@@ -479,7 +476,7 @@ class Server(oic.Server):
             return resp(environ, start_response)
 
         # set expiration time
-        _cinfo["registration_expires"] = time_sans_frac()+3600
+        _cinfo["registration_expires"] = time_util.time_sans_frac()+3600
         response = RegistrationResponse(client_id, client_secret,
                                         expires_in=3600)
 

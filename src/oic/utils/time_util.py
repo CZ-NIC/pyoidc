@@ -290,3 +290,6 @@ def later_than(then, that):
         that = time.gmtime(that)
 
     return then >= that
+
+def time_sans_frac():
+    return int("%d" % time.time())

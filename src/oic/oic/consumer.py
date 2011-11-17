@@ -23,7 +23,7 @@ from oic.oic import RegistrationResponse
 from oic.oauth2 import ErrorResponse
 from oic.oauth2.consumer import TokenError
 from oic.oauth2.consumer import AuthzError
-#from oic.oauth2.consumer import UnknownState
+from oic.oauth2.consumer import UnknownState
 
 def stateID(url, seed):
     """The hash of the time + server path + a seed makes an unique
@@ -109,13 +109,16 @@ class Consumer(Client):
     def update(self, sid):
         """ Updates the instance variables from something stored in the
         session database. Will not overwrite something that's already there.
+        Except for the grant dictionary !!
 
         :param sid: Session identifier
         """
         for key, val in self.sdb[sid].items():
-            if self.key:
-                pass
-            else:
+            _val = getattr(self, key)
+            if not _val and val:
+                setattr(self, key, val)
+            elif key == "grant" and val:
+                val.update(_val)
                 setattr(self, key, val)
 
     def restore(self, sid):
@@ -131,11 +134,7 @@ class Consumer(Client):
         return {
             "client_id": self.client_id,
             "state": self.state,
-            "authorization_code": self.authorization_code,
-            "grant_expiration_time": self.grant_expiration_time,
-            "scope": self.scope,
-            "access_token": self.access_token,
-            "token_expiration_time": self.token_expiration_time,
+            "grant": self.grant,
             "redirect_uri": self.redirect_uri,
             "authorization_endpoint": self.authorization_endpoint,
             "token_endpoint": self.token_endpoint,
@@ -164,7 +163,7 @@ class Consumer(Client):
         return atr
     
     #noinspection PyUnusedLocal,PyArgumentEqualDefault
-    def begin(self, environ, start_response, logger):
+    def begin(self, environ, start_response, logger, scope="", response_type=""):
         """ Begin the OAuth2 flow
 
         :param environ: The WSGI environment
@@ -185,6 +184,7 @@ class Consumer(Client):
             self.seed = rndstr()
 
         sid = stateID(_path, self.seed)
+        self.state = sid
         self._backup(sid)
         self.sdb["seed:%s" % self.seed] = sid
 
@@ -192,12 +192,17 @@ class Consumer(Client):
         self._request = http_util.geturl(environ)
         self.nonce = rndstr(12)
 
+        if not scope:
+            scope = self.config["scope"]
+        if not response_type:
+            response_type = self.config["response_type"]
+
         areq = self.get_authorization_request(AuthorizationRequest,
                             state=sid,
                             client_id=self.client_id,
                             redirect_uri=self.redirect_uri,
-                            response_type=self.config["response_type"],
-                            scope=self.config["scope"],
+                            response_type=response_type,
+                            scope=scope,
                             nonce=self.nonce)
 
         id_request = self.function["openid_request"](areq, self.config["key"])
@@ -263,16 +268,15 @@ class Consumer(Client):
                 raise AuthzError(aresp.error)
 
             _log_info("Aresp: %s" % aresp)
-            self.redirect_uri = self.sdb[aresp.state]["redirect_uri"]
-            _log_info("before: %s" % (self.dictionary(),))
-#            try:
-#                self.update(self.state)
-#            except KeyError:
-#                raise UnknownState(self.state)
-#
-#            _log_info("after: %s" % (self.dictionary(),))
 
-            self._backup(self.state)
+            try:
+                self.update(aresp.state)
+            except KeyError:
+                raise UnknownState(aresp.state)
+
+            self.redirect_uri = self.sdb[aresp.state]["redirect_uri"]
+
+            self._backup(aresp.state)
             
             # May have token and id_token information too
             if aresp.access_token:
@@ -294,19 +298,19 @@ class Consumer(Client):
             idt = None
             return None, atr, idt
 
-    def complete(self, logger):
+    def complete(self, logger, scope=""):
         """
         Do the access token request, the last step in a code flow.
         If Implicit flow was used then this method is never used.
         """
         if self.config["password"]:
             logger.info("basic auth")
-            atr = self.do_access_token_request(code=self.authorization_code,
+            atr = self.do_access_token_request(code=self.grant[scope].code,
                                     grant_type="authorization_code",
                                     client_password=self.config["password"])
         elif self.config["client_secret"]:
             logger.info("request_body auth")
-            atr = self.do_access_token_request(code=self.authorization_code,
+            atr = self.do_access_token_request(code=self.grant[scope].code,
                                     grant_type="authorization_code",
                                     auth_method="request_body",
                                     client_secret=self.config["client_secret"])

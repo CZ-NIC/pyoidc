@@ -684,23 +684,23 @@ class Client(oauth2.Client):
         self.id_token=None
         self.log = None
 
-    def set_from_authorization_response(self, aresp):
-        self.authorization_response = aresp
-        self.grant_expiration_time = time.time()+self.grant_expire_in
-        self.authorization_code = aresp.code
-        for prop in AuthorizationResponse.c_attributes.keys():
-            setattr(self, prop, getattr(aresp, prop))
+#    def set_from_authorization_response(self, aresp):
+#        self.authorization_response = aresp
+#        self.grant_expiration_time = time.time()+self.grant_expire_in
+#        self.authorization_code = aresp.code
+#        for prop in AuthorizationResponse.c_attributes.keys():
+#            setattr(self, prop, getattr(aresp, prop))
 
     def parse_authorization_response(self, rcls=AuthorizationResponse,
-                                     url="", query=""):
+                                     url="", query="", scope=""):
         aresp = oauth2.Client.parse_authorization_response(self, rcls, url,
-                                                           query)
+                                                           query, scope)
 
-        self.set_from_authorization_response(aresp)
+        #self.set_from_authorization_response(aresp)
         return aresp
 
     def parse_access_token_response(self, cls=AccessTokenResponse, info="",
-                                    format="json", extended=False):
+                                    format="json", scope="", extended=False):
         """
         if format is urlencoded then the id_token is in the fragment
         This is a quirkiness specific to OpenID Connect.
@@ -713,7 +713,8 @@ class Client(oauth2.Client):
             Will raise an exception on any error.
         """
         instance = oauth2.Client.parse_access_token_response(self, cls, info,
-                                                            format, extended)
+                                                            format, scope,
+                                                            extended)
         if format == "urlencoded" and '?' in info:
             #fragment is the 6th part
             instance.id_token = urllib.unquote_plus(urlparse.urlparse(info)[6])
@@ -768,9 +769,9 @@ class Client(oauth2.Client):
 
     def do_access_token_refresh(self, reqcls=RefreshAccessTokenRequest,
                                 respcls=AccessTokenResponse,
-                                method="POST", **kwargs):
+                                method="POST", scope="", **kwargs):
         return oauth2.Client.do_access_token_refresh(self, reqcls, respcls,
-                                                     method, **kwargs)
+                                                     method, scope, **kwargs)
 
     def get_open_id_request(self, cls=AuthorizationRequest, claims=None,
                             uinfo_format="", locale="",
@@ -786,18 +787,30 @@ class Client(oauth2.Client):
         return OpenIDRequest(ar.response_type, ar.client_id, ar.redirect_uri,
                              ar.scope, ar.state, user_info, id_token)
 
+    def get_authorization_request_with_request(self,
+                                               arclass=AuthorizationRequest,
+                                               response_type=None, **kwargs):
+        inst = self.get_authorization_request(arclass, response_type, **kwargs)
+        inst.request = inst.get_jwt(key=self.key, algorithm=self.algorithm)
+        return inst
 
-    def do_user_info_request(self, method="GET", **kwargs):
+    def get_authorization_request_on_side(self, arclass=AuthorizationRequest,
+                                               response_type=None, **kwargs):
+        inst = self.get_authorization_request(arclass, response_type, **kwargs)
+        request = inst.get_jwt(key=self.key, algorithm=self.algorithm)
+        return inst, request
+
+    def do_user_info_request(self, method="GET", scope="openid", **kwargs):
         uir = UserInfoRequest()
         if self.access_token_is_valid():
-            uir.access_token = self.access_token
+            uir.access_token = self.grant[scope].access_token
         else:
             # raise oauth2.OldAccessToken
             if self.log:
                 self.log.info("do access token refresh")
             try:
                 self.do_access_token_refresh()
-                uir.access_token = self.access_token
+                uir.access_token = self.grant[scope].access_token
             except Exception:
                 raise
             

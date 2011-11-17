@@ -142,6 +142,7 @@ def handle_authz_response(environ, start_response):
     print "ARESP: %s" % aresp
     print "ATR: %s" % atr
     print "IDT: %s" % idt
+    print "GSess: %s" % _cli.grant
     kaka = http_util.cookie(CONSUMER_CONFIG["name"], _cli.state, _cli.seed,
                             expire=360, path="/")
 
