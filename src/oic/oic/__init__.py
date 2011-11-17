@@ -289,9 +289,10 @@ class RegistrationRequest(oauth2.Base):
     c_attributes["application_type"] = SINGLE_OPTIONAL_STRING
     c_attributes["application_name"] = SINGLE_OPTIONAL_STRING
     c_attributes["logo_url"] = SINGLE_OPTIONAL_STRING
-    c_attributes["redirect_url"] = OPTIONAL_LIST_OF_STRINGS
-    c_attributes["js_origin_url"] = OPTIONAL_LIST_OF_STRINGS
+    c_attributes["redirect_uri"] = OPTIONAL_LIST_OF_STRINGS
+    c_attributes["js_origin_uri"] = OPTIONAL_LIST_OF_STRINGS
     c_attributes["jwk_url"] = SINGLE_OPTIONAL_STRING
+    c_attributes["x509_url"] = SINGLE_OPTIONAL_STRING
     c_attributes["sector_identifier"] = SINGLE_OPTIONAL_STRING
 
     def __init__(self,
@@ -302,9 +303,10 @@ class RegistrationRequest(oauth2.Base):
                  application_type=None,
                  application_name=None,
                  logo_url=None,
-                 redirect_url=None,
-                 js_origin_url=None,
+                 redirect_uri=None,
+                 js_origin_uri=None,
                  jwk_url=None,
+                 x509_url=None,
                  sector_identifier=None,
                  **kwargs
                 ):
@@ -316,9 +318,10 @@ class RegistrationRequest(oauth2.Base):
         self.application_type=application_type
         self.application_name=application_name
         self.logo_url=logo_url
-        self.redirect_url=redirect_url or []
-        self.js_origin_url=js_origin_url or []
+        self.redirect_uri=redirect_uri or []
+        self.js_origin_uri=js_origin_uri or []
         self.jwk_url=jwk_url
+        self.x509_url=x509_url
         self.sector_identifier=sector_identifier
 
     def verify(self):
