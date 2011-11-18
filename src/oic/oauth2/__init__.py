@@ -217,41 +217,48 @@ class Base(object):
         extension = {}
 
         for key, val in json.loads(txt).items():
+            # Earlier versions of python don't like unicode strings as
+            # variable names
+            skey = str(key)
             if key in cls.c_attributes:
                 (vtyp, req, _, _deser) = cls.c_attributes[key]
                 if isinstance(vtyp, list):
                     vtype = vtyp[0]
                     if isinstance(val, vtype):
-                        args[key] = [val]
+                        args[skey] = [val]
                     elif isinstance(val, list):
                         if _deser:
                             val = _deser(val, format="json", extended=extended)
 
                         if issubclass(vtype, Base):
-                            args[key] = [vtype(**v) for v in val]
+                            args[skey] = [
+                                vtype(**dict([(str(x),
+                                               y) for x,y
+                                                  in v.items()])) for v in val]
                         else:
                             for v in val:
                                 if not isinstance(v, vtype):
                                     raise ValueError("Wrong type != %s" % vtype)
 
-                            args[key] = val
+                            args[skey] = val
                     else:
                         raise ValueError("Wrong type != %s" % vtype)
                 else:
                     if isinstance(val, basestring):
-                        args[key] = val
+                        args[skey] = val
                     elif isinstance(val, list):
                         if len(val) == 1:
-                            args[key] = val[0]
+                            args[skey] = val[0]
                         else:
                             raise TooManyValues
                     else:
                         if issubclass(vtyp, Base):
-                            args[key] = vtyp(**val)
+                            val = dict([(str(k), v) for k,v in val.items()])
+                            args[skey] = vtyp(**val)
                         else:
-                            args[key] = val
+                            args[skey] = val
             elif extended:
-                extension[key] = val
+                extension[skey] = val
             #ignore attributes I don't know about
 
         if extended and extension:
