@@ -7,14 +7,12 @@ import re
 import base64
 import os
 
-
 try:
     from urlparse import parse_qs
 except ImportError:
     from cgi import parse_qs
 
 from oic.utils.http_util import *
-from oic.oauth2.server import AuthnFailure
 
 from oic.oic import ProviderConfigurationResponse
 
@@ -28,8 +26,6 @@ LOGGER.addHandler(hdlr)
 LOGGER.setLevel(logging.INFO)
 
 SERVER = None
-
-USERS = [("foo", "bar"), ('jodo', 'judo')]
 
 def userinfo(user_db, user_id, client_id, user_info_claim):
     global LOGGER
@@ -55,17 +51,6 @@ def do_authentication(environ, start_response, sid):
              "action": "authenticated"
     }
     return resp(environ, start_response, **argv)
-
-def verify_username_and_password(dic):
-    # verify username and password
-    for user in USERS:
-        if user[0] == dic["login"][0]:
-            if user[1] == dic["password"][0]:
-                return True, user[0]
-            else:
-                raise AuthnFailure("Wrong password")
-
-    return False, ""
 
 #noinspection PyUnusedLocal
 def do_authorization(user, session):
@@ -274,6 +259,7 @@ def application(environ, start_response):
 from oic.utils import sdb
 from oic.oic.server import Server
 from oic.oic.server import UserInfo
+from authentication import Authentication
 
 CDB = {
     "a1b2c3": {
@@ -283,10 +269,12 @@ CDB = {
     },
 }
 
+AUTHN = Authentication("userdb")
+
 FUNCTION = {
     "authenticate": do_authentication,
     "authorize": do_authorization,
-    "verify user": verify_username_and_password,
+    "verify user": AUTHN.verify_username_and_password,
     "verify client": verify_client,
     "user info": userinfo,
 }

@@ -8,7 +8,6 @@ from webtest import TestApp
 from oic_server import application
 from oic_server import do_authentication
 from oic_server import do_authorization
-from oic_server import verify_username_and_password
 from oic_server import verify_client
 from oic_server import userinfo
 
@@ -30,10 +29,14 @@ CDB = {
     },
 }
 
+from authentication import Authentication
+
+AUTHN = Authentication("userdb")
+
 FUNCTION = {
     "authenticate": do_authentication,
     "authorize": do_authorization,
-    "verify user": verify_username_and_password,
+    "verify user": AUTHN.verify_username_and_password,
     "verify client": verify_client,
     "user info": userinfo,
 }
@@ -126,8 +129,8 @@ assert res.status == "200 OK"
 form = res.form
 fields = list(form.fields.items())
 #print fields
-form["login"] = "foo"
-form['password'] = 'bar'
+form["login"] = "curtis"
+form['password'] = 'curtis'
 #form.set('name', 'Bob', index=0)
 
 res = form.submit(extra_environ={"oic.server":SERVER, "mako.lookup":LOOKUP})
