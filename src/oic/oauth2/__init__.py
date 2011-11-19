@@ -618,17 +618,21 @@ def factory(cls, **argv):
 DEFAULT_POST_CONTENT_TYPE = 'application/x-www-form-urlencoded'
 
 class Grant(object):
-    def __init__(self):
+    def __init__(self, state=""):
+        self.state = state
         self.grant_expiration_time = 0
         self.token_expiration_time = 0
 
     @classmethod
-    def add_code(cls, resp):
+    def from_code(cls, resp):
         instance = cls()
-        instance.code = resp.code
-        instance.grant_expiration_time = time_util.time_sans_frac() + 600
-        instance.state = resp.state
+        instance.add_code(resp)
         return instance
+
+    def add_code(self, resp):
+        self.code = resp.code
+        self.grant_expiration_time = time_util.time_sans_frac() + 600
+        self.state = resp.state
 
     def valid_code(self):
         if time.time() > self.grant_expiration_time:
@@ -637,19 +641,22 @@ class Grant(object):
             return True
 
     @classmethod
-    def add_token(cls, atr):
+    def from_token(cls, atr):
         instance = cls()
+        instance.add_token(atr)
+        return instance
+
+    def add_token(self, atr):
         for prop in AccessTokenResponse.c_attributes.keys():
             _val = getattr(atr, prop)
             if _val:
-                setattr(instance, prop, _val)
+                setattr(self, prop, _val)
 
         if atr.expires_in:
             _tet = "%s%s" % (time_util.time_sans_frac(), atr.expires_in)
         else:
             _tet = 0
-        instance.token_expiration_time = _tet
-        return instance
+        self.token_expiration_time = _tet
 
     def valid_token(self):
         if self.token_expiration_time:
@@ -698,6 +705,13 @@ class Client(object):
         self.token_endpoint=None
         self.redirect_uri = None
 
+    def grant_from_state(self, state):
+        for grant in self.grant.values():
+            if grant.state == state:
+                return grant
+
+        return None
+    
     def _parse_args(self, klass, **kwargs):
         ar_args = {}
         for prop, val in kwargs.items():
@@ -811,7 +825,10 @@ class Client(object):
             aresp = arclass.set_urlencoded(query)
             assert aresp.verify()
             # This is the side effect
-            self.grant[scope] = Grant.add_code(aresp)
+            try:
+                self.grant_from_state(aresp.state).add_code(aresp)
+            except KeyError:
+                self.grant[scope] = Grant.from_code(aresp)
         except Exception:
             # Could be an error response
             aresp = AuthorizationErrorResponse.set_urlencoded(query)
@@ -859,7 +876,7 @@ class Client(object):
         try:
             self.grant[scope].add_token(atr)
         except KeyError: # Not presided by a grant ?!
-            self.grant[scope] = Grant.add_token(atr)
+            self.grant[scope] = Grant.from_token(atr)
 
     def parse_access_token_response(self, cls=AccessTokenResponse, info="",
                                     format="json", scope="", extended=False):

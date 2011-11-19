@@ -142,7 +142,8 @@ class Server(oic.Server):
         dic = parse_qs(get_post(environ))
 
         try:
-            (verified, user) = self.function["verify user"](dic)
+            user = dic["login"][0]
+            verified = self.function["verify user"](user, dic["password"][0])
             if not verified:
                 resp = Unauthorized("Wrong password")
                 return resp(environ, start_response)
@@ -492,6 +493,7 @@ class UserInfo():
         """
         :param rules: The servers view on what a what a specific client
             should receive
+        :param db: UserInformation interface
         """
         self.rules = rules
         self.db = db

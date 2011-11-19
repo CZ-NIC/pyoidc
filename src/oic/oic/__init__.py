@@ -4,7 +4,6 @@ from oic import oauth2
 import json
 import jwt
 import tempfile
-import time
 import os
 import os.path
 import sys
@@ -753,7 +752,7 @@ class Client(oauth2.Client):
         else:
             raise Exception("Unknown OIC authorization method: %s" % oic_method)
 
-        path = uri + '?' + ar.get_urlencoded()
+        path, kwargs = self.get_or_post(uri, method, ar, **kwargs)
 
         print >> sys.stderr, path
         
@@ -800,9 +799,25 @@ class Client(oauth2.Client):
         request = inst.get_jwt(key=self.key, algorithm=self.algorithm)
         return inst, request
 
-    def do_user_info_request(self, method="GET", scope="openid", **kwargs):
+    def get_or_post(self, method, req, **kwargs):
+        if method == "GET":
+            path = uri + '?' + req.get_urlencoded()
+        elif method == "POST":
+            path = uri
+            kwargs["body"] = req.get_urlencoded()
+            header_ext = {"content-type": "application/x-www-form-urlencoded"}
+            if "headers" in kwargs.keys():
+                kwargs["headers"].update(header_ext)
+            else:
+                kwargs["headers"] = header_ext
+        else:
+            raise Exception("Unsupported HTTP method: '%s'" % method)
+
+        return path, kwargs
+
+    def user_info_request(self, method="GET", scope="openid", **kwargs):
         uir = UserInfoRequest()
-        if self.access_token_is_valid():
+        if self.grant[scope].valid_token():
             uir.access_token = self.grant[scope].access_token
         else:
             # raise oauth2.OldAccessToken
@@ -813,23 +828,17 @@ class Client(oauth2.Client):
                 uir.access_token = self.grant[scope].access_token
             except Exception:
                 raise
-            
+
         uri = self._endpoint("user_info_endpoint", **kwargs)
 
-        if method == "GET":
-            path = uri + '?' + uir.get_urlencoded()
-            body=None
-        elif method == "POST":
-            path = uri
-            body = uir.get_urlencoded()
-        else:
-            raise Exception("Unsupported HTTP method: '%s'" % method)
-
-        print >> sys.stderr, path
+        path, kwargs = self.get_or_post(uri, method, uir, **kwargs)
 
         h_args = dict([(k, v) for k,v in kwargs.items() if k in HTTP_ARGS])
-        if body:
-            h_args["body"] = body
+
+        return path, method, h_args
+
+    def do_user_info_request(self, method="GET", scope="openid", **kwargs):
+        path, method, h_args = self.user_info_request(method, scope, **kwargs)
 
         try:
             response, content = self.http.request(path, method, **h_args)

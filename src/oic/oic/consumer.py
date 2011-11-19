@@ -21,6 +21,7 @@ from oic.oic import ProviderConfigurationResponse
 from oic.oic import RegistrationRequest
 from oic.oic import RegistrationResponse
 from oic.oauth2 import ErrorResponse
+from oic.oauth2 import Grant
 from oic.oauth2.consumer import TokenError
 from oic.oauth2.consumer import AuthzError
 from oic.oauth2.consumer import UnknownState
@@ -130,6 +131,23 @@ class Consumer(Client):
         for key, val in self.sdb[sid].items():
             setattr(self, key, val)
 
+    def grant_from_state(self, state):
+        res = Client.grant_from_state(self, state)
+        if res:
+            return res
+
+        try:
+            session = self.sdb[state]
+        except KeyError:
+            return None
+
+        for scope, grant in session["grant"].items():
+            if grant.state == state:
+                self.grant[scope] = grant
+                return grant
+
+        return None
+
     def dictionary(self):
         return {
             "client_id": self.client_id,
@@ -160,6 +178,10 @@ class Consumer(Client):
         atr = AccessTokenResponse()
         for prop in AccessTokenResponse.c_attributes.keys():
             setattr(atr, prop, getattr(aresp, prop))
+
+        # update the grant object
+        self.grant_from_state(aresp.state).add_token(atr)
+        
         return atr
     
     #noinspection PyUnusedLocal,PyArgumentEqualDefault
@@ -183,19 +205,25 @@ class Consumer(Client):
         if not self.seed:
             self.seed = rndstr()
 
+        if not scope:
+            scope = self.config["scope"]
+        if not response_type:
+            response_type = self.config["response_type"]
+
         sid = stateID(_path, self.seed)
         self.state = sid
+
+        if isinstance(scope, basestring):
+            self.grant[scope] = Grant(sid)
+        else:
+            self.grant[" ".join(scope)] = Grant(sid)
+            
         self._backup(sid)
         self.sdb["seed:%s" % self.seed] = sid
 
         # Store the request and the redirect uri used
         self._request = http_util.geturl(environ)
         self.nonce = rndstr(12)
-
-        if not scope:
-            scope = self.config["scope"]
-        if not response_type:
-            response_type = self.config["response_type"]
 
         areq = self.get_authorization_request(AuthorizationRequest,
                             state=sid,
@@ -276,14 +304,14 @@ class Consumer(Client):
 
             self.redirect_uri = self.sdb[aresp.state]["redirect_uri"]
 
-            self._backup(aresp.state)
-            
             # May have token and id_token information too
             if aresp.access_token:
                 atr = self.extract_access_token_response(aresp)
                 self.access_token = atr
             else:
                 atr = None
+
+            self._backup(aresp.state)
 
             idt = None
             return aresp, atr, idt
@@ -422,8 +450,12 @@ class Consumer(Client):
             if prop in kwargs:
                 setattr(req, prop, kwargs[prop])
 
+        print "2",req.to_urlencoded()
+
+        headers = {"content-type": "application/x-www-form-urlencoded"}
         (response, content) = self.http.request(server, "POST",
-                                                req.to_urlencoded())
+                                                req.to_urlencoded(),
+                                                headers=headers)
 
         if response.status == 200:
             resp = RegistrationResponse.from_json(content)
