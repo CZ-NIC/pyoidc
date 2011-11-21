@@ -669,7 +669,8 @@ class Client(object):
     def __init__(self, client_id=None, cache=None, timeout=None,
                  proxy_info=None, follow_redirects=True,
                  disable_ssl_certificate_validation=False, key=None,
-                 algorithm="HS256", grant_expire_in=600, client_secret=""):
+                 algorithm="HS256", grant_expire_in=600, client_secret="",
+                 client_timeout=0):
 
         self.http = httplib2.Http(cache, timeout, proxy_info,
             disable_ssl_certificate_validation=disable_ssl_certificate_validation)
@@ -677,6 +678,7 @@ class Client(object):
 
         self.client_id = client_id
         self.client_secret = client_secret
+        self.client_timeout = client_timeout
 
         self.state = None
         self.nonce = None

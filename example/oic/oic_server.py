@@ -6,6 +6,7 @@ import logging
 import re
 import base64
 import os
+import json
 
 try:
     from urlparse import parse_qs
@@ -15,6 +16,12 @@ except ImportError:
 from oic.utils.http_util import *
 
 from oic.oic import ProviderConfigurationResponse
+
+from oic.utils import sdb
+from oic.oic.server import Server
+from oic.oic.server import UserInfo
+from oic.oic.consumer import ISSUER_URL
+from authentication import Authentication
 
 from mako.lookup import TemplateLookup
 
@@ -185,6 +192,31 @@ def openid_configuration(environ, start_response, logger, handle):
     resp = Response(conf.to_json())
     return resp(environ, start_response)
 
+#noinspection PyUnusedLocal
+def well_known(environ, start_response, logger, handle):
+    #_oas = environ["oic.server"]
+    #_path = geturl(environ, False, False)
+
+    args = environ['oic.url_args']
+    if args == "simple-web-discovery":
+        qs = parse_qs(environ["QUERY_STRING"])
+
+        if len(qs["service"]) == 1 and qs["service"][0] == ISSUER_URL:
+            result = {"locations": ["http://localhost:8088/"]}
+            resp = Response(json.dumps(result))
+        else:
+            resp = BadRequest("Unknown service")
+    else:
+        resp = BadRequest("Unknown type")
+        
+    return resp(environ, start_response)
+
+#noinspection PyUnusedLocal
+def client_registration(environ, start_response, logger, handle):
+    _oas = environ["oic.server"]
+
+    return _oas.registration_endpoint(environ, start_response, logger)
+
 # ----------------------------------------------------------------------------
 
 URLS = [
@@ -194,7 +226,10 @@ URLS = [
     (r'.+\.css$', css),
     (r'safe', safe),
     (r'user_info', user_info),
-    (r'openid-configuration', openid_configuration)
+    (r'\.well-known/openid-configuration$', openid_configuration),
+    (r'\.well-known/(.*)$', well_known),
+    (r'registration', client_registration)
+
 ]
 
 # ----------------------------------------------------------------------------
@@ -256,10 +291,6 @@ def application(environ, start_response):
 
 # ----------------------------------------------------------------------------
 
-from oic.utils import sdb
-from oic.oic.server import Server
-from oic.oic.server import UserInfo
-from authentication import Authentication
 
 CDB = {
     "a1b2c3": {

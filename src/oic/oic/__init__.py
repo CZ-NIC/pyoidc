@@ -14,6 +14,7 @@ from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.oauth2 import SINGLE_REQUIRED_STRING
 from oic.oauth2 import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2 import HTTP_ARGS
+from oic.utils.time_util import time_sans_frac
 
 def to_json(dic):
     return json.dumps(dic)
@@ -668,12 +669,20 @@ class JWKContainerObject(oauth2.Base):
 class Client(oauth2.Client):
     def __init__(self, client_id=None, cache=None, timeout=None,
                  proxy_info=None, follow_redirects=True,
-                 disable_ssl_certificate_validation=False):
+                 disable_ssl_certificate_validation=False, key=None,
+                 algorithm="HS256", client_secret="", client_timeout=0,
+                 expires_in=0):
+
+        if expires_in:
+            client_timeout = time_sans_frac() + expires_in
+            
         oauth2.Client.__init__(self, client_id, cache, timeout, proxy_info,
-                       follow_redirects, disable_ssl_certificate_validation)
+                       follow_redirects, disable_ssl_certificate_validation,
+                       key, algorithm, client_secret, client_timeout)
 
         self.file_store = "./file/"
         self.file_uri = "http://localhost/"
+
         # OpenID connect specific endpoints
         self.user_info_endpoint = None
         self.check_session = None
@@ -799,7 +808,7 @@ class Client(oauth2.Client):
         request = inst.get_jwt(key=self.key, algorithm=self.algorithm)
         return inst, request
 
-    def get_or_post(self, method, req, **kwargs):
+    def get_or_post(self, uri, method, req, **kwargs):
         if method == "GET":
             path = uri + '?' + req.get_urlencoded()
         elif method == "POST":

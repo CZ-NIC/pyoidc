@@ -26,6 +26,10 @@ from oic.oauth2.consumer import TokenError
 from oic.oauth2.consumer import AuthzError
 from oic.oauth2.consumer import UnknownState
 
+SWD_PATTERN = "http://%s/.well-known/simple-web-discovery"
+OIDCONF_PATTERN = "%s/.well-known/openid-configuration"
+ISSUER_URL = "http://openid.net/specs/connect/1.0/issuer"
+
 def stateID(url, seed):
     """The hash of the time + server path + a seed makes an unique
     SID for each session.
@@ -66,6 +70,11 @@ def factory(kaka, sdb, config):
     cons.restore(part[0])
     http_util.parse_cookie(config["name"], cons.seed, kaka)
     return cons
+
+PARAMS = ["client_id","state","grant", "redirect_uri",
+          "authorization_endpoint", "token_endpoint",
+          "token_revocation_endpoint", "user_info_endpoint", "seed", "debug",
+          "nonce", "request_filename", "user_info", "id_token"]
 
 class Consumer(Client):
     """ An OpenID Connect consumer implementation
@@ -149,22 +158,7 @@ class Consumer(Client):
         return None
 
     def dictionary(self):
-        return {
-            "client_id": self.client_id,
-            "state": self.state,
-            "grant": self.grant,
-            "redirect_uri": self.redirect_uri,
-            "authorization_endpoint": self.authorization_endpoint,
-            "token_endpoint": self.token_endpoint,
-            "token_revocation_endpoint": self.token_revocation_endpoint,
-            "user_info_endpoint": self.user_info_endpoint,
-            "seed": self.seed,
-            "debug": self.debug,
-            "nonce": self.nonce,
-            "request_filename": self.request_filename,
-            "user_info": self.user_info,
-            "id_token": self.id_token
-        }
+        return dict([(p, getattr(self,p)) for p in PARAMS])
 
     def _backup(self, sid):
         """ Stores instance variable values in the session store under a
@@ -336,12 +330,13 @@ class Consumer(Client):
             atr = self.do_access_token_request(code=self.grant[scope].code,
                                     grant_type="authorization_code",
                                     client_password=self.config["password"])
-        elif self.config["client_secret"]:
+        elif self.client_secret:
             logger.info("request_body auth")
             atr = self.do_access_token_request(code=self.grant[scope].code,
                                     grant_type="authorization_code",
                                     auth_method="request_body",
-                                    client_secret=self.config["client_secret"])
+                                    client_secret=self.client_secret,
+                                    client_id=self.client_id)
         else:
             raise Exception("Nothing to authenticate with")
 
@@ -380,20 +375,20 @@ class Consumer(Client):
     def end_session(self):
         pass
 
-
-    def _disc_query(self, location, principal):
+    def issuer_query(self, location, principal):
         param = {
-            "service": "http://openid.net/specs/connect/1.0/issuer",
+            "service": ISSUER_URL,
             "principal": principal,
         }
 
-        uri = "%s?%s" % (location, urlencode(param))
+        return "%s?%s" % (location, urlencode(param))
 
+    def _disc_query(self, uri, principal):
         try:
             (response, content) = self.http.request(uri)
         except httplib2.ServerNotFoundError:
-            if location.startswith("http://"): # switch to https
-                location = "https://"+location[7:]
+            if uri.startswith("http://"): # switch to https
+                location = "https://%s" % uri[7:]
                 return self._disc_query(location, principal)
             else:
                 raise
@@ -401,9 +396,10 @@ class Consumer(Client):
         if response.status == 200:
             result = json.loads(content)
             if "SWD_service_redirect" in result:
-                return self._disc_query(
+                _uri = self.issuer_query(
                             result["SWD_service_redirect"]["locations"][0],
                             principal)
+                return self._disc_query(_uri, principal)
             else:
                 return result
         else:
@@ -411,7 +407,7 @@ class Consumer(Client):
 
     def provider_config(self, issuer):
 
-        url = "%s/.well-known/openid-configuration" % issuer
+        url = OIDCONF_PATTERN % issuer
 
         (response, content) = self.http.request(url)
         if response.status == 200:
@@ -419,8 +415,7 @@ class Consumer(Client):
         else:
             raise Exception("%s" % response.status)
 
-    def discover(self, principal, idtype="mail"):
-
+    def get_domain(self, principal, idtype="mail"):
         if idtype == "mail":
             (local, domain) = principal.split("@")
         elif idtype == "url":
@@ -428,9 +423,13 @@ class Consumer(Client):
         else:
             domain = ""
 
-        result = self._disc_query(
-                        "http://%s/.well-known/simple-web-discovery" % domain,
-                        principal)
+        return domain
+    
+    def discover(self, principal, idtype="mail"):
+        domain = self.get_domain(principal, idtype)
+        uri = self.issuer_query(SWD_PATTERN % domain, principal)
+
+        result = self._disc_query(uri, principal)
 
         try:
             return self.provider_config(result["locations"][0])

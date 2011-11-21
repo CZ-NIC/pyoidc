@@ -300,17 +300,20 @@ class Server(oic.Server):
             _redirect = self.urlmap[areq.client_id][0]
 
         # Is there an request decode it
+        if not self.cdb[areq.client_id]["jwk_url"]:
+            jwt_key = ""
+        else: # TODO
+            jwt_key = ()
+            
         if areq.request:
-            openid_req = OpenIDRequest.set_jwt(areq.request,
-                                            self.cdb[areq.client_id]["jwt_key"])
+            openid_req = OpenIDRequest.set_jwt(areq.request, jwt_key)
         elif areq.request_uri:
             # Do a HTTP get
             _req = self.http.request(areq.request_uri)
             if not _req:
                 resp = BadRequest("Couldn't get at the OpenID request")
                 return resp(environ, start_response)
-            openid_req = OpenIDRequest.set_jwt(_req,
-                                            self.cdb[areq.client_id]["jwt_key"])
+            openid_req = OpenIDRequest.set_jwt(_req, jwt_key)
         else:
             openid_req = None
 
@@ -454,6 +457,9 @@ class Server(oic.Server):
             for key,val in request.dictionary().items():
                 _cinfo[key] = val
 
+            if "jwk_url" not in _cinfo:
+                _cinfo["jwk_url"] = None
+                
         elif request.type == "client_update":
             # verify that these are an id,secret pair I know about
             try:
