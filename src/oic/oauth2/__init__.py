@@ -665,6 +665,9 @@ class Grant(object):
 
         return True
 
+    def __str__(self):
+        return "%s" % self.__dict__
+    
 class Client(object):
     def __init__(self, client_id=None, cache=None, timeout=None,
                  proxy_info=None, follow_redirects=True,
@@ -829,7 +832,7 @@ class Client(object):
             # This is the side effect
             try:
                 self.grant_from_state(aresp.state).add_code(aresp)
-            except KeyError:
+            except (KeyError, AttributeError):
                 self.grant[scope] = Grant.from_code(aresp)
         except Exception:
             # Could be an error response

@@ -23,57 +23,58 @@ class TestOAuthClient():
         assert ar.scope == []
         
     def test_areq_2(self):
-        self.client.state = "xyz"
+        self.client.state = "abc"
         ar = self.client.get_authorization_request(response_type=["code"],
                                                    scope=["foo", "bar"])
 
         assert ar.redirect_uri == "http://example.com/redirect"
         assert ar.response_type == ["code"]
         assert ar.client_id == "1"
-        assert ar.state == "xyz"
+        assert ar.state == "abc"
         assert ar.scope == ["foo", "bar"]
 
     def test_areq_replace_default_state(self):
-        self.client.state = "xyz"
+        self.client.state = "efg"
         ar = self.client.get_authorization_request(response_type=["code"],
                                                    scope = ["foo", "bar"])
 
         assert ar.redirect_uri == "http://example.com/redirect"
         assert ar.response_type == ["code"]
         assert ar.client_id == "1"
-        assert ar.state == "xyz"
+        assert ar.state == "efg"
         assert ar.scope == ["foo", "bar"]
 
     def test_parse_authz_resp_url(self):
-        url = "https://client.example.com/cb?code=SplxlOBeZQQYbYS6WxSbIA&state=xyz"
+        url = "https://client.example.com/cb?code=SplxlOBeZQQYbYS6WxSbIA&state=ghi"
         aresp = self.client.parse_authorization_response(url=url)
 
         assert aresp.code == "SplxlOBeZQQYbYS6WxSbIA"
-        assert aresp.state == "xyz"
+        assert aresp.state == "ghi"
 
         assert self.client.grant[""]
         assert self.client.grant[""].code == aresp.code
         assert self.client.grant[""].grant_expiration_time
 
     def test_parse_authz_resp_query(self):
-        query = "code=SplxlOBeZQQYbYS6WxSbIA&state=xyz"
+        query = "code=SplxlOBeZQQYbYS6WxSbIA&state=hij"
         aresp = self.client.parse_authorization_response(query=query,
                                                          scope="foo")
 
         assert aresp.code == "SplxlOBeZQQYbYS6WxSbIA"
-        assert aresp.state == "xyz"
+        assert aresp.state == "hij"
 
+        print self.client.grant.keys()
         assert self.client.grant["foo"]
         assert self.client.grant["foo"].code == aresp.code
         assert self.client.grant["foo"].grant_expiration_time
 
     def test_parse_authz_resp_query_multi_scope(self):
-        query = "code=SplxlOBeZQQYbYS6WxAAAA&state=xyz"
+        query = "code=SplxlOBeZQQYbYS6WxAAAA&state=klm"
         aresp = self.client.parse_authorization_response(query=query,
                                                          scope="foo bar")
 
         assert aresp.code == "SplxlOBeZQQYbYS6WxAAAA"
-        assert aresp.state == "xyz"
+        assert aresp.state == "klm"
 
         assert self.client.grant["foo bar"]
         assert self.client.grant["foo bar"].code == aresp.code

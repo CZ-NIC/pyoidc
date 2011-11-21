@@ -56,24 +56,24 @@ class TestOICClient():
         assert self.client.grant[""].grant_expiration_time
 
     def test_parse_authz_resp_query(self):
-        query = "code=SplxlOBeZQQYbYS6WxSbIA&state=xyz"
+        query = "code=SplxlOBeZQQYbYS6WxSbIA&state=abc"
         aresp = self.client.parse_authorization_response(query=query,
                                                          scope="foo")
 
         assert aresp.code == "SplxlOBeZQQYbYS6WxSbIA"
-        assert aresp.state == "xyz"
+        assert aresp.state == "abc"
 
         assert self.client.grant["foo"]
         assert self.client.grant["foo"].code == aresp.code
         assert self.client.grant["foo"].grant_expiration_time
 
     def test_parse_authz_resp_query_multi_scope(self):
-        query = "code=SplxlOBeZQQYbYS6WxAAAA&state=xyz"
+        query = "code=SplxlOBeZQQYbYS6WxAAAA&state=def"
         aresp = self.client.parse_authorization_response(query=query,
                                                          scope="foo bar")
 
         assert aresp.code == "SplxlOBeZQQYbYS6WxAAAA"
-        assert aresp.state == "xyz"
+        assert aresp.state == "def"
 
         assert self.client.grant["foo bar"]
         assert self.client.grant["foo bar"].code == aresp.code
@@ -82,12 +82,12 @@ class TestOICClient():
         assert _eq(self.client.grant.keys(), ['', 'foo bar', 'foo'])
 
     def test_parse_authz_resp_query_unknown_parameter(self):
-        query = "code=SplxlOBeZQQYbYS6WxSbIA&state=xyz&foo=bar"
+        query = "code=SplxlOBeZQQYbYS6WxSbIA&state=rst&foo=bar"
         aresp = self.client.parse_authorization_response(query=query,
                                                          scope="bar")
 
         assert aresp.code == "SplxlOBeZQQYbYS6WxSbIA"
-        assert aresp.state == "xyz"
+        assert aresp.state == "rst"
 
         print aresp.__dict__.keys()
         assert "foo" not in aresp.__dict__
