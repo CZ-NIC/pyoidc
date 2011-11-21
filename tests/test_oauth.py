@@ -270,14 +270,14 @@ def test_crypt2():
     txt = csum.digest() # 28 bytes long, 224 bits
     print len(txt)
     db[txt] = "foobar"
-    txt += "aces" # another 4 bytes
-    print len(txt), txt
+    txt = "%saces" % txt # another 4 bytes
+    #print len(txt), txt
     crypt = oauth2.Crypt("4-amino-1H-pyrimidine-2-one")
     ctext = crypt.encrypt(txt)
     onthewire = base64.b64encode(ctext)
-    print onthewire
+    #print onthewire
     plain = crypt.decrypt(base64.b64decode(onthewire))
-    print len(plain), plain
+    #print len(plain), plain
     #assert plain == txt
     assert plain.endswith("aces")
     assert db[plain[:-4]] == "foobar"
