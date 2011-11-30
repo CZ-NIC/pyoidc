@@ -113,8 +113,8 @@ def authz(environ, start_response, logger, kaka=None):
             return resp(environ, start_response)
 
     # Valid for 6 hours (=360 minutes)
-    kaka = http_util.cookie(_conc["name"], _cli.state, _cli.seed, expire=360,
-                            path="/")
+    kaka = http_util.cookie(_cc["client_id"], _cli.state, _cli.seed,
+                            expire=360, path="/")
 
     _log_info("DUMP: %s" % (_cli.sdb[_cli.sdb["seed:%s" % _cli.seed]],))
     
@@ -222,7 +222,6 @@ if __name__ == '__main__':
         "debug": args.debug,
         "server_info": SERVER_INFO,
         "authz_page": "/authz",
-        "name": "pyoic",
         "flow_type": args.type,
         "password": args.passwd,
         "scope": args.scope,

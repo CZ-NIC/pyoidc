@@ -412,6 +412,9 @@ if __name__ == '__main__':
     print "flow type: %s" % CONSUMER_CONFIG["flow_type"]
 
     srv = wsgiserver.CherryPyWSGIServer(('localhost', args.port), application)
+    # srv.ssl_adapter = ssl_builtin.BuiltinSSLAdapter("certs/servcert.pem",
+    #                                                     "certs/servkey.pem")
+
     print "OIC client listening on port: %s" % args.port
     try:
         srv.start()

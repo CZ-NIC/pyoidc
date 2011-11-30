@@ -10,8 +10,14 @@ from hashlib import md5
 
 from oic.utils import http_util
 from oic.oauth2 import AuthorizationRequest
+from oic.oauth2 import AuthorizationResponse
+from oic.oauth2 import AccessTokenResponse
 from oic.oauth2 import Client
 from oic.oauth2 import ErrorResponse
+#from oic.oauth2 import Grant
+
+ENDPOINTS = ["authorization_endpoint", "token_endpoint", "user_info_endpoint",
+    "check_id_endpoint", "registration_endpoint", "token_revokation_endpoint"]
 
 def stateID(url, seed):
     """The hash of the time + server path + a seed makes an unique
@@ -35,22 +41,22 @@ def rndstr(size=16):
     """
     return "".join([random.choice(string.ascii_letters) for _ in range(size)])
 
-def factory(kaka, sdb, config):
+def factory(kaka, sdb, client_id, **kwargs):
     """
     Return the right Consumer instance dependent on what's in the cookie
 
     :param kaka: The cookie
     :param sdb: The session database
-    :param config: The common Consumer configuration
+    :param kwargs: The Consumer configuration arguments
     :return: Consumer instance or None
     """
-    part = http_util.cookie_parts(config["name"], kaka)
+    part = http_util.cookie_parts(client_id, kaka)
     if part is None:
         return None
     
-    cons = Consumer(sdb, config=config)
+    cons = Consumer(sdb, **kwargs)
     cons.restore(part[0])
-    http_util.parse_cookie(config["name"], cons.seed, kaka)
+    http_util.parse_cookie(client_id, cons.seed, kaka)
     return cons
 
 class UnknownState(Exception):
@@ -67,30 +73,45 @@ class Consumer(Client):
 
     """
     #noinspection PyUnusedLocal
-    def __init__(self, session_db, config, client_config=None,
-                 server_info=None):
+    def __init__(self, session_db, client_config=None,
+                 server_info=None, authz_page="", response_type="",
+                 scope="", flow_type="", debug=False, password=None):
         """ Initializes a Consumer instance.
 
-        :param session_db: Where info are kept about sessions
-        :param config: Configuration of the consumer
+        :param session_db: Where info are kept about sessions acts like a
+            dictionary
         :param client_config: Client configuration
         :param server_info: Information about the server
+        :param authz_page:
+        :param response_type:
+        :param scope:
+        :param flow_type:
+        :param debug:
         """
         if client_config is None:
             client_config = {}
             
         Client.__init__(self, **client_config)
 
-        self.config = config
-        if config:
-            self.debug = config["debug"]
+        self.authz_page = authz_page
+        self.response_type = response_type
+        self.scope = scope
+        self.flow_type = flow_type
+        self.debug = debug
+        self.password = password
 
         if server_info:
-            self.authorization_endpoint = server_info["authorization_endpoint"]
-            self.token_endpoint = server_info["token_endpoint"]
+            for endpoint in ENDPOINTS:
+                try:
+                    setattr(self, endpoint, server_info[endpoint])
+                except KeyError:
+                    setattr(self, endpoint, None)
+        else:
+            for endpoint in ENDPOINTS:
+                setattr(self, endpoint, None)
 
         self.sdb = session_db
-        self.seed = ""
+        self.seed = rndstr()
 
     def restore(self, sid):
         """ Restores the instance variables from something stored in the
@@ -102,22 +123,22 @@ class Consumer(Client):
             setattr(self, key, val)
 
     def _backup(self, sid):
-        """ Stores instance variable values in the session store under a
-        session identifier.
+        """ Stores dynamic instance variable values in the session store
+        under a session identifier.
 
         :param sid: Session identifier
         """
-        self.sdb[sid] = {
-            "client_id": self.client_id,
+
+        res = {
             "state": self.state,
             "grant": self.grant,
-            "redirect_uri": self.redirect_uri,
-            "authorization_endpoint": self.authorization_endpoint,
-            "token_endpoint": self.token_endpoint,
-            "token_revocation_endpoint": self.token_revocation_endpoint,
             "seed": self.seed,
-            "debug": self.debug,
         }
+
+        for endpoint in ENDPOINTS:
+            res[endpoint] = getattr(self, endpoint, None)
+
+        self.sdb[sid] = res
 
     #noinspection PyUnusedLocal,PyArgumentEqualDefault
     def begin(self, environ, start_response, logger):
@@ -133,8 +154,10 @@ class Consumer(Client):
         if self.debug:
             _log_info("- begin -")
 
+        # Store the request and the redirect uri used
         _path = http_util.geturl(environ, False, False)
-        self.redirect_uri = _path + self.config["authz_page"]
+        self.redirect_uri = "%s%s" % (_path, self.authz_page)
+        self._request = http_util.geturl(environ)
 
         # Put myself in the dictionary of sessions, keyed on session-id
         if not self.seed:
@@ -145,19 +168,13 @@ class Consumer(Client):
         self._backup(sid)
         self.sdb["seed:%s" % self.seed] = sid
 
-        # Store the request and the redirect uri used
-        self._request = http_util.geturl(environ)
+        location = self.request_info(AuthorizationRequest, method="GET",
+                                       scope=self.scope,
+                                       request_args={"state": sid})[0]
 
-        areq = self.get_authorization_request(AuthorizationRequest,
-                            state=sid,
-                            response_type=self.config["response_type"],
-                            scope=self.config["scope"])
-
-        location = "%s?%s" % (self.authorization_endpoint,
-                              areq.get_urlencoded())
 
         if self.debug:
-            _log_info("Redirecting to: %s" % location)
+            _log_info("Redirecting to: %s" % (location,))
 
         return location
 
@@ -176,14 +193,28 @@ class Consumer(Client):
         _log_info = logger.info
         if self.debug:
             _log_info("- authorization -")
-            _log_info("- %s flow -" % self.config["flow_type"])
+            _log_info("- %s flow -" % self.flow_type)
 
         _query = environ.get("QUERY_STRING")
+        if self.debug:
+            _log_info("QUERY: %s" % _query)
         _path = http_util.geturl(environ, False, False)
 
-        if "code" in self.config["response_type"]:
+        if isinstance(self.scope, basestring):
+            _scope = self.scope
+        else:
+            _scope = " ".join(self.scope)
+            
+        if "code" in self.response_type:
             # Might be an error response
-            aresp = self.parse_authorization_response(query=_query)
+            try:
+                aresp = self.parse_response(AuthorizationResponse,
+                                            info=_query, format="urlencoded",
+                                            scope=_scope)
+            except Exception, err:
+                logger.error("%s" % err)
+                raise
+            
             if isinstance(aresp, ErrorResponse):
                 raise AuthzError(aresp.error)
 
@@ -195,34 +226,34 @@ class Consumer(Client):
             self._backup(aresp.state)
             return aresp
         else:
-            atr = self.parse_access_token_response(info=_query,
-                                                   format="urlencoded",
-                                                   extended=True)
+            atr = self.parse_response(AccessTokenResponse, info=_query,
+                                      format="urlencoded", extended=True,
+                                      scope=_scope)
             if isinstance(atr, ErrorResponse):
                 raise TokenError(atr.error)
 
             return atr
 
-    def complete(self, logger):
+    def complete(self, state, logger):
         """
         Do the access token request, the last step in a code flow.
         If Implicit flow was used then this method is never used.
         """
-        if self.config["password"]:
+
+        if self.password:
             logger.info("basic auth")
-            atr = self.do_access_token_request(code=self.authorization_code,
-                                    grant_type="authorization_code",
-                                    client_password=self.config["password"])
-        elif self.config["client_secret"]:
+            atr = self.do_access_token_request(scope=self.scope,
+                                    http_args={"password":self.password})
+        elif self.client_secret:
             logger.info("request_body auth")
-            atr = self.do_access_token_request(code=self.authorization_code,
-                                    grant_type="authorization_code",
-                                    auth_method="request_body",
-                                    client_secret=self.config["client_secret"])
+            atr = self.do_access_token_request(state=state,
+                                    request_args={
+                                        "client_secret": self.client_secret})
         else:
             raise Exception("Nothing to authenticate with")
         
         if isinstance(atr, ErrorResponse):
+            # Losing information here, not good!
             raise TokenError(atr.error)
 
         #self._backup(self.sdb["seed:%s" % _cli.seed])

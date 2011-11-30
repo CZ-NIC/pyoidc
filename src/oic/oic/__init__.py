@@ -6,26 +6,124 @@ import jwt
 import tempfile
 import os
 import os.path
-import sys
 import urlparse
 import urllib
 
 from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.oauth2 import SINGLE_REQUIRED_STRING
 from oic.oauth2 import OPTIONAL_LIST_OF_STRINGS
+from oic.oauth2 import SINGLE_OPTIONAL_INT
 from oic.oauth2 import HTTP_ARGS
 from oic.utils.time_util import time_sans_frac
 
 def to_json(dic):
     return json.dumps(dic)
 
-def from_json(str):
+#noinspection PyUnusedLocal
+def from_json(str, extended=None):
     return json.loads(str)
 
 SINGLE_OPTIONAL_JWT = SINGLE_OPTIONAL_STRING
 SINGLE_OPTIONAL_BOOLEAN = (bool, False, None, None)
 SINGLE_OPTIONAL_JSON = (dict, False, to_json, from_json)
 SINGLE_REQUIRED_INT = (int, True, None, None)
+
+def base_deser(cls, val, format, extended=False):
+    if format == "urlencoded":
+        res = cls.set_urlencoded(val, extended)
+    elif format == "json":
+        res = cls.set_json(val, extended)
+    elif format == "dict":
+        res = cls(**val)
+    else:
+        raise Exception("Unknown format")
+
+    return res
+
+def base_ser(cls, format, extended=False):
+    if format == "urlencoded":
+        res = cls.get_urlencoded(extended)
+    elif format == "json":
+        res = cls.get_json(extended)
+    elif format == "dict":
+        if isinstance(cls, oauth2.Base):
+            res = cls.dictionary()
+        elif isinstance(cls, dict):
+            res = cls
+        else:
+            raise ValueError("%s" % type(cls))
+    else:
+        raise Exception("Unknown format")
+
+    return res
+
+def idtoken_ser(val, format="urlencoded", extended=False):
+    return base_ser(val, format, extended)
+
+def idtoken_deser(val, format="urlencoded", extended=False):
+    return base_deser(IdToken, val, format, extended)
+
+def idtokenclaim_ser(val, format="urlencoded", extended=False):
+    return base_ser(val, format, extended)
+
+def idtokenclaim_deser(val, format="urlencoded", extended=False):
+    return base_deser(IDTokenClaim, val, format, extended)
+
+def userinfo_ser(val, format="urlencoded", extended=False):
+    return base_ser(val, format, extended)
+
+def userinfo_deser(val, format="urlencoded", extended=False):
+    return base_deser(UserInfoClaim, val, format, extended)
+
+#noinspection PyUnusedLocal
+def claims_ser(val, format="urlencoded", extended=False):
+    # everything in c_extension
+    if format == "urlencoded":
+        res = [urllib.urlencode(v.c_extension) for v in val]
+    elif format == "json":
+        res = [json.dumps(v.c_extension) for v in val]
+    elif format == "dict":
+        if isinstance(val[0], oauth2.Base):
+            res = [v.c_extension for v in val]
+        elif isinstance(val[0], dict):
+            res = val
+        else:
+            raise ValueError("%s" % type(val[0]))
+    else:
+        raise Exception("Unknown format")
+
+    return res
+
+def parse_qs(str):
+    res = {}
+    for key, vals in urlparse.parse_qs(str).items():
+        val = vals[0]
+        if val == "None":
+            res[key] = None
+        elif val[0] == "{" and val[-1] == "}":
+            res[key] = eval(val)
+        else:
+            res[key] = val
+
+    return res
+
+#noinspection PyUnusedLocal
+def claims_deser(val, format="urlencoded", extended=False):
+    if format == "urlencoded":
+        if isinstance(val, list):
+            pass
+        else:
+            val = eval(val)
+
+        res = [CLAIMS(**parse_qs(v)) for v in val]
+    elif format == "json":
+        res = [CLAIMS(**json.loads(v)) for v in val]
+    elif format == "dict":
+        res = [CLAIMS(**v) for v in val]
+    else:
+        raise Exception("Unknown format")
+
+    return res
 
 class AccessTokenResponse(oauth2.AccessTokenResponse):
     c_attributes = oauth2.AccessTokenResponse.c_attributes.copy()
@@ -107,12 +205,12 @@ class AuthorizationErrorResponse(oauth2.AuthorizationErrorResponse):
 
     def verify(self):
         if self.error:
-            if not self.error in ["invalid_request_redirect_uri",
+            if self.error in ["invalid_request_redirect_uri",
                                   "login_required",
                                   "session_selection_required",
                                   "approval_required",
                                   "user_mismatched"]:
-                raise ValueError("'%s' not an allowed error type" % self.error)
+                return True
 
         return oauth2.AuthorizationErrorResponse.verify(self)
 
@@ -132,8 +230,8 @@ class TokenErrorResponse(oauth2.TokenErrorResponse):
 
     def verify(self):
         if self.error:
-            if not self.error in ["invalid_authorization_code"]:
-                raise ValueError("'%s' not an allowed error type" % self.error)
+            if self.error in ["invalid_authorization_code"]:
+                return True
 
         return oauth2.TokenErrorResponse.verify(self)
 
@@ -185,7 +283,7 @@ class AuthorizationRequest(oauth2.AuthorizationRequest):
         self.request = request
         self.request_uri = request_uri
         self.display = display
-        self.prompt = prompt
+        self.prompt = prompt or []
         self.nonce = nonce
         self.id_token_audience = id_token_audience
 
@@ -357,7 +455,7 @@ class IdToken(oauth2.Base):
     c_attributes["nonce"] = SINGLE_OPTIONAL_STRING
     c_attributes["issued_to"] = SINGLE_OPTIONAL_STRING
     c_attributes["auth_time"] = SINGLE_OPTIONAL_STRING
-    c_attributes["max_age"] = SINGLE_OPTIONAL_STRING
+    c_attributes["max_age"] = SINGLE_OPTIONAL_INT
     c_attributes["iso29115"] = SINGLE_OPTIONAL_STRING
 
     def __init__(self,
@@ -466,17 +564,7 @@ class CLAIMS(oauth2.Base):
     def __init__(self, **kwargs):
         oauth2.Base.__init__(self, **kwargs)
 
-#noinspection PyUnusedLocal
-def claims_ser(vals, format="dict", extended=False):
-    if format == "dict":
-        return [val.dictionary() for val in vals]
-
-#noinspection PyUnusedLocal
-def claims_deser(vals, format="dict", extended=False):
-    if format == "dict":
-        return [CLAIMS(**val) for val in vals]
-
-OPTIONAL_MULTIPLE_CLAIMS = ([CLAIMS], False, None, None)
+OPTIONAL_MULTIPLE_CLAIMS = ([CLAIMS], False, claims_ser, claims_deser)
 
 class UserInfoClaim(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
@@ -490,7 +578,7 @@ class UserInfoClaim(oauth2.Base):
                  locale=None,
                  **kwargs):
         oauth2.Base.__init__(self, **kwargs)
-        self.claims = claims
+        self.claims = claims or []
         self.format = format
         self.locale = locale
 
@@ -503,7 +591,7 @@ class UserInfoClaim(oauth2.Base):
 class IDTokenClaim(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
     c_attributes["claims"] = OPTIONAL_MULTIPLE_CLAIMS
-    c_attributes["max_age"] = SINGLE_OPTIONAL_STRING
+    c_attributes["max_age"] = SINGLE_OPTIONAL_INT
     c_attributes["iso29115"] = SINGLE_OPTIONAL_STRING
 
     def __init__(self,
@@ -516,8 +604,10 @@ class IDTokenClaim(oauth2.Base):
         self.max_age = max_age
         self.iso29115 = iso29115
 
-SINGLE_OPTIONAL_USERINFO_CLAIM = (UserInfoClaim, False, None, None)
-SINGLE_OPTIONAL_ID_TOKEN_CLAIM = (IDTokenClaim, False, None, None)
+SINGLE_OPTIONAL_USERINFO_CLAIM = (UserInfoClaim, False, userinfo_ser,
+                                  userinfo_deser)
+SINGLE_OPTIONAL_ID_TOKEN_CLAIM = (IDTokenClaim, False, idtokenclaim_ser,
+                                  idtokenclaim_deser)
 
 class OpenIDRequest(AuthorizationRequest):
     c_attributes = AuthorizationRequest.c_attributes.copy()
@@ -639,9 +729,11 @@ class JWKEllipticKeyObject(JWKKeyObject):
 def key_object_list_deserializer(items, format="json", extended=False):
     if format == "urlencoded":
         return [JWKKeyObject.set_urlencoded(item,
-                        extended=extended).dictionary() for item in items]
-    elif format == "json" or format=="dict":
-        return items
+                                        extended=extended) for item in items]
+    elif format == "json":
+        return [JWKKeyObject.set_json(txt=item) for item in items]
+    elif format=="dict":
+        return [JWKKeyObject(**item) for item in items]
 
 def key_object_list_serializer(objs, format="json", extended=False):
     if format == "json":
@@ -666,6 +758,7 @@ class JWKContainerObject(oauth2.Base):
 
 # =============================================================================
 
+#noinspection PyMethodOverriding
 class Client(oauth2.Client):
     def __init__(self, client_id=None, cache=None, timeout=None,
                  proxy_info=None, follow_redirects=True,
@@ -723,14 +816,14 @@ class Client(oauth2.Client):
         instance = oauth2.Client.parse_access_token_response(self, cls, info,
                                                             format, scope,
                                                             extended)
-        if format == "urlencoded" and '?' in info:
-            #fragment is the 6th part
-            instance.id_token = urllib.unquote_plus(urlparse.urlparse(info)[6])
+#        if format == "urlencoded" and '?' in info:
+#            #fragment is the 6th part
+#            instance.id_token = urllib.unquote_plus(urlparse.urlparse(info)[6])
 
         return instance
 
     #noinspection PyMethodOverriding
-    def do_authorization_request(self, cls=AuthorizationRequest,
+    def _do_authorization_request(self, cls=AuthorizationRequest,
                                  method="GET", oic_method="query_parameter",
                                  **kwargs):
         """
@@ -763,10 +856,18 @@ class Client(oauth2.Client):
 
         path, kwargs = self.get_or_post(uri, method, ar, **kwargs)
 
-        print >> sys.stderr, path
+        #print >> sys.stderr, path
         
         h_args = dict([(k, v) for k,v in kwargs.items() if k in HTTP_ARGS])
+        
+        return path, h_args
 
+    def do_authorization_request(self, cls=AuthorizationRequest,
+                                 method="GET", oic_method="query_parameter",
+                                 **kwargs):
+        
+        path, h_args = self._do_authorization_request(cls, method, oic_method,
+                                                      **kwargs)
         return self.http.request(path, method, **h_args)
 
     def do_access_token_request(self, reqcls=AccessTokenRequest,
@@ -787,7 +888,7 @@ class Client(oauth2.Client):
                             **kwargs):
 
         claims = CLAIMS(**claims)
-        user_info = UserInfoClaim(claims, format=uinfo_format, locale=locale)
+        user_info = UserInfoClaim([claims], format=uinfo_format, locale=locale)
         id_token = IDTokenClaim(**id_token_restriction)
 
         ar = self.get_authorization_request(cls, **kwargs)
@@ -864,6 +965,7 @@ class Client(oauth2.Client):
         return UserInfoResponse.set_json(txt=content, extended=True)
 
 
+#noinspection PyMethodOverriding
 class Server(oauth2.Server):
     def __init__(self, jwt_keys=None):
         oauth2.Server.__init__(self)
@@ -890,13 +992,17 @@ class Server(oauth2.Server):
         return oauth2.Server.parse_refresh_token_request(self, rcls, body)
 
     def parse_check_session_request(self, url=None, query=None):
+        """
+
+        """
         param = self._parse_urlencoded(url, query)
         assert "id_token" in param # ignore the rest
         # have to start decoding the jwt in order to find out which
         # key to verify the JWT signature with
         info = json.loads(jwt.decode(param["id_token"][0], verify=False))
 
-        print info
+        #print info
+
         # in there there should be information about the client_id
         # Use that to find the key and do the signature verify
 
