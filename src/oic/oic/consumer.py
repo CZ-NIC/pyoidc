@@ -207,7 +207,7 @@ class Consumer(Client):
 
         sid = stateID(_path, self.seed)
         self.state = sid
-        self.grant[sid] = Grant()
+        self.grant[sid] = Grant(seed=self.seed)
 
         self._backup(sid)
         self.sdb["seed:%s" % self.seed] = sid

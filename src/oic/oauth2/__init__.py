@@ -61,9 +61,10 @@ class Token(object):
         return self.__dict__.keys()
 
 class Grant(object):
-    def __init__(self, exp_in=600, resp=None):
+    def __init__(self, exp_in=600, resp=None, seed=""):
         self.grant_expiration_time = 0
         self.exp_in = exp_in
+        self.seed = seed
         self.tokens = []
         if resp:
             if isinstance(resp, AuthorizationResponse):
@@ -115,6 +116,16 @@ class Grant(object):
 
         return token
 
+    def join(self, grant):
+        if not self.exp_in:
+            self.exp_in = grant.exp_in
+        if not self.grant_expiration_time:
+            self.grant_expiration_time = grant.grant_expiration_time
+        if not self.seed:
+            self.seed = grant.seed
+        self.tokens.extend(grant.tokens)
+
+        
 class Client(object):
     def __init__(self, client_id=None, cache=None, http_timeout=None,
                  proxy_info=None, follow_redirects=True,
@@ -426,13 +437,13 @@ class Client(object):
                         state="", http_args=None):
         """
         :param url: The URL to which the request should be sent
-        :param respcls: The class the should represent the response
+        :param cls: The class the should represent the response
         :param method: Which HTTP method to use
         :param body: A message body if any
         :param return_format: The format of the body of the return message
-        :param extended: If non-standard parametrar should be honored
+        :param extended: If non-standard parameters should be honored
         :param http_args: Arguments for the HTTP client
-        :return: A respcls or ErrorResponse instance or True if no response
+        :return: A cls or ErrorResponse instance or True if no response
             body was expected.
         """
 

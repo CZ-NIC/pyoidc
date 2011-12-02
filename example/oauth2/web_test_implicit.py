@@ -53,6 +53,9 @@ SESSION_DB = {}
 
 CLIENT_CONFIG = {
     "client_id": "a1b2c3",
+    "grant_expire_in": 600,
+    "key": "args.jwt_key",
+    "client_secret": None,
 }
 
 SERVER_INFO ={
@@ -60,21 +63,16 @@ SERVER_INFO ={
     "issuer":"https://localhost:8088",
     "authorization_endpoint":"http://localhost:8088/authorization",
     "token_endpoint":"http://localhost:8088/token",
-    "user_info_endpoint":"http://localhost:8088/user_info",
+#    "user_info_endpoint":"http://localhost:8088/user_info",
     "flows_supported":["code","token"],
 }
 
 CONSUMER_CONFIG = {
-    "debug": 0,
-    "server_info": SERVER_INFO,
     "authz_page": "/authz",
-    "name": "pyoauth2",
     "password": "hemligt",
     "scope": "",
-    "expire_in": 600,
-    "client_secret": None,
-    "response_type": ["code"],
-    "key": "args.jwt_key",
+    "response_type": ["token"],
+    "debug": 0,
 }
 
 #noinspection PyUnusedLocal
@@ -83,7 +81,7 @@ class DEVNULL():
         return
 
 def register(environ, start_response):
-    _oac = Consumer(SESSION_DB, CONSUMER_CONFIG, CLIENT_CONFIG, SERVER_INFO)
+    _oac = Consumer(SESSION_DB, CLIENT_CONFIG, SERVER_INFO, **CONSUMER_CONFIG)
     location = _oac.begin(environ, start_response, DEVNULL())
     resp = http_util.Redirect(location)
     return resp(environ, start_response)
@@ -117,11 +115,11 @@ url = url.replace("#","?")
 # implicit flow with multiple return types
 
 def handle_authz_response(environ, start_response):
-    _cli = Consumer(SESSION_DB, CONSUMER_CONFIG, CLIENT_CONFIG, SERVER_INFO)
+    _cli = Consumer(SESSION_DB, CLIENT_CONFIG, SERVER_INFO, **CONSUMER_CONFIG)
     aresp = _cli.parse_authz(environ, start_response, DEVNULL())
     print "ARESP: %s" % aresp
 
-    kaka = http_util.cookie(CONSUMER_CONFIG["name"], _cli.state, _cli.seed,
+    kaka = http_util.cookie(CLIENT_CONFIG["client_id"], aresp.state, _cli.seed,
                             expire=360, path="/")
 
     resp = http_util.Response("Your will is registered", headers=[kaka])

@@ -113,6 +113,30 @@ class Consumer(Client):
         self.sdb = session_db
         self.seed = rndstr()
 
+    def update(self, sid):
+        """ Updates the instance variables from something stored in the
+        session database. Will not overwrite something that's already there.
+        Except for the grant dictionary !!
+
+        :param sid: Session identifier
+        """
+        for key, val in self.sdb[sid].items():
+            _val = getattr(self, key)
+            if not _val and val:
+                setattr(self, key, val)
+            elif key == "grant" and val:
+                _tmp = {}
+                for state, info in _val.items():
+                    try:
+                        info.join(val[state])
+                    except KeyError:
+                        pass
+
+                    _tmp[state] = info
+                setattr(self, key, _tmp)
+
+        return self
+
     def restore(self, sid):
         """ Restores the instance variables from something stored in the
         session database.
@@ -165,7 +189,7 @@ class Consumer(Client):
 
         sid = stateID(_path, self.seed)
         self.state = sid
-        self.grant[sid] = Grant()
+        self.grant[sid] = Grant(seed=self.seed)
         self._backup(sid)
         self.sdb["seed:%s" % self.seed] = sid
 
@@ -214,7 +238,7 @@ class Consumer(Client):
                 raise AuthzError(aresp.error)
 
             try:
-                self.restore(aresp.state)
+                self.update(aresp.state)
             except KeyError:
                 raise UnknownState(aresp.state)
             
@@ -226,9 +250,16 @@ class Consumer(Client):
             if isinstance(atr, ErrorResponse):
                 raise TokenError(atr.error)
 
+            try:
+                self.update(atr.state)
+            except KeyError:
+                raise UnknownState(atr.state)
+
+            self.seed = self.grant[self.state].seed
+            
             return atr
 
-    def complete(self, state, logger):
+    def complete(self, logger):
         """
         Do the access token request, the last step in a code flow.
         If Implicit flow was used then this method is never used.
@@ -236,11 +267,11 @@ class Consumer(Client):
 
         if self.password:
             logger.info("basic auth")
-            atr = self.do_access_token_request(scope=self.scope,
+            atr = self.do_access_token_request(state=self.state,
                                     http_args={"password":self.password})
         elif self.client_secret:
             logger.info("request_body auth")
-            atr = self.do_access_token_request(state=state,
+            atr = self.do_access_token_request(state=self.state,
                                     request_args={
                                         "client_secret": self.client_secret})
         else:
