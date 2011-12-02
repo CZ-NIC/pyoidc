@@ -360,61 +360,61 @@ def test_reset():
     assert oir2.keys() == oir.keys()
 
 #def test_oid_req():
-    client = Client()
-    client.redirect_uri = "http://example.com/redirect"
-    client.client_id = "1"
-
-    claims = {
-        "name":None,
-        "email":None,
-        "verified":None,
-        "nickname": {"optional": True},
-        "picture": {"optional": True},
-    }
-
-    uinfo_format="signed"
-    id_token_restriction = { "max_age": 86400, "iso29115": "2"}
-
-    kwargs = { "response_type": ["code","id_token"],
-               "client_id": "s6BhdRkqt3",
-               "redirect_uri": "https://client.example.com/cb",
-               "scope": ["openid", "profile"],
-               "state": "af0ifjsldkj",
-    }
-
-    oir = client.get_open_id_request(claims=claims, uinfo_format=uinfo_format,
-                                     id_token_restriction=id_token_restriction,
-                                     **kwargs)
-
-    oirdic = oir.dictionary(extended=True)
-    print oirdic.keys()
-    assert _eq(oirdic.keys(), ['id_token', 'user_info', 'state',
-                               'redirect_uri', 'response_type', 'client_id',
-                               'scope'])
-
-    print oirdic["user_info"]
-    assert oirdic["user_info"].keys() == ['claims', 'format']
-    assert oirdic["user_info"]["format"] == "signed"
-    assert oirdic["id_token"].keys() == ["max_age", "iso29115"]
-
-    srv = Server()
-    poir = srv.parse_open_id_request(oir.get_json(extended=True))
-    assert _eq(poir.keys(), ['id_token', 'user_info', 'state',
-                               'redirect_uri', 'response_type', 'client_id',
-                               'scope'])
-    assert _eq(poir["user_info"].keys(), ['claims', 'format'])
-    assert poir["user_info"]["format"] == "signed"
-    assert _eq(poir["id_token"].keys(), ["max_age", "iso29115"])
-
-
-def test_check_session_request():
-    srv = Server({"provider":"098zyx"})
-
-    _jwt = ("eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.IntcImlzc1wiOiBcInByb3ZpZGVyXCIsIFwidXNlcl9pZFwiOiBcImR1bW15XCIsIFwiYXVkXCI6IFwidGVzdENvbnN1bWVyXCIsIFwiZXhwXCI6IDEzMTU5NDY5NTYuNDIwMDU2LCBcImlzbzI5MTE1XCI6IFwiMlwifSI.dfwtaOBXZQG0Xg9Z-Ji3VSc0Br29oMvR3HrTjiX2ft8")
-
-    idt = srv.parse_check_session_request(query="id_token=%s" % _jwt)
-    print idt
-    assert isinstance(idt, IdToken)
+#    client = Client()
+#    client.redirect_uri = "http://example.com/redirect"
+#    client.client_id = "1"
+#
+#    claims = {
+#        "name":None,
+#        "email":None,
+#        "verified":None,
+#        "nickname": {"optional": True},
+#        "picture": {"optional": True},
+#    }
+#
+#    uinfo_format="signed"
+#    id_token_restriction = { "max_age": 86400, "iso29115": "2"}
+#
+#    kwargs = { "response_type": ["code","id_token"],
+#               "client_id": "s6BhdRkqt3",
+#               "redirect_uri": "https://client.example.com/cb",
+#               "scope": ["openid", "profile"],
+#               "state": "af0ifjsldkj",
+#    }
+#
+#    oir = client.get_open_id_request(claims=claims, uinfo_format=uinfo_format,
+#                                     id_token_restriction=id_token_restriction,
+#                                     **kwargs)
+#
+#    oirdic = oir.dictionary(extended=True)
+#    print oirdic.keys()
+#    assert _eq(oirdic.keys(), ['id_token', 'user_info', 'state',
+#                               'redirect_uri', 'response_type', 'client_id',
+#                               'scope'])
+#
+#    print oirdic["user_info"]
+#    assert oirdic["user_info"].keys() == ['claims', 'format']
+#    assert oirdic["user_info"]["format"] == "signed"
+#    assert oirdic["id_token"].keys() == ["max_age", "iso29115"]
+#
+#    srv = Server()
+#    poir = srv.parse_open_id_request(oir.get_json(extended=True))
+#    assert _eq(poir.keys(), ['id_token', 'user_info', 'state',
+#                               'redirect_uri', 'response_type', 'client_id',
+#                               'scope'])
+#    assert _eq(poir["user_info"].keys(), ['claims', 'format'])
+#    assert poir["user_info"]["format"] == "signed"
+#    assert _eq(poir["id_token"].keys(), ["max_age", "iso29115"])
+#
+#
+#def test_check_session_request():
+#    srv = Server({"provider":"098zyx"})
+#
+#    _jwt = ("eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.IntcImlzc1wiOiBcInByb3ZpZGVyXCIsIFwidXNlcl9pZFwiOiBcImR1bW15XCIsIFwiYXVkXCI6IFwidGVzdENvbnN1bWVyXCIsIFwiZXhwXCI6IDEzMTU5NDY5NTYuNDIwMDU2LCBcImlzbzI5MTE1XCI6IFwiMlwifSI.dfwtaOBXZQG0Xg9Z-Ji3VSc0Br29oMvR3HrTjiX2ft8")
+#
+#    idt = srv.parse_check_session_request(query="id_token=%s" % _jwt)
+#    print idt
+#    assert isinstance(idt, IdToken)
 
 def test_key_object():
     d = {"algorithm":"EC",
@@ -486,18 +486,18 @@ def test_auth_response_code_and_token():
         "id_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ.foo",
         "state": "af0ifjsldkj"}
 
-def test_X():
-    from oic.oic.consumer import Client
-
-    resp = "nonce=uqfc3MhAVhMn&code=gMepFsHWQ%2BaUR89FiiAwbx%2BsZM%2FxC%2B%2BhkC66bnqUaJI%3D&access_token=gMepFsHWQ%2BaUR89FiiAwb9Fkmn9B0bS5xkBS651dakQ%3D&expires_in=3600&token_type=bearer&state=eafa67e294f92d3f495ca31931f3e9b3&scope=openid"
-
-    c = Client()
-    aresp = c.parse_authorization_response(query=resp)
-
-    assert aresp.nonce == "uqfc3MhAVhMn"
-    assert aresp.token_type == "bearer"
-    assert aresp.state == "eafa67e294f92d3f495ca31931f3e9b3"
-    assert aresp.scope == ["openid"]
+#def test_X():
+#    from oic.oic.consumer import Client
+#
+#    resp = "nonce=uqfc3MhAVhMn&code=gMepFsHWQ%2BaUR89FiiAwbx%2BsZM%2FxC%2B%2BhkC66bnqUaJI%3D&access_token=gMepFsHWQ%2BaUR89FiiAwb9Fkmn9B0bS5xkBS651dakQ%3D&expires_in=3600&token_type=bearer&state=eafa67e294f92d3f495ca31931f3e9b3&scope=openid"
+#
+#    c = Client()
+#    aresp = c.parse_authorization_response(query=resp)
+#
+#    assert aresp.nonce == "uqfc3MhAVhMn"
+#    assert aresp.token_type == "bearer"
+#    assert aresp.state == "eafa67e294f92d3f495ca31931f3e9b3"
+#    assert aresp.scope == ["openid"]
 
 def test_act_1():
     resp = "token_type=bearer&state=9afe48e30d390d6ab163f1f857f576d8&access_token=7kFAO9Gwq59EmaoldboyhhLDnzXgc%2BnP4Gewl50k2Rc%3D&scope=openid&expires_in=3600&refresh_token=7kFAO9Gwq59Emaoldboyhn3aQdsI6czLVRL1k455ZHg%3D"
@@ -682,179 +682,179 @@ def test_ser_deser_key_object_list():
     assert jkos[0].algorithm == "RSA"
     assert jkos[0].use == "signature"
 
-def test_client_parse_access_token_response():
-    client = Client()
+#def test_client_parse_access_token_response():
+#    client = Client()
+#
+#    resp = AccessTokenResponse("SlAV32hkKG", "token_type", 3600)
+#
+#    client.parse_access_token_response(info=resp.get_json(), scope="openid")
+#    grant = client.grant["openid"]
+#
+#    assert grant.access_token == "SlAV32hkKG"
+#    assert grant.token_type == "token_type"
 
-    resp = AccessTokenResponse("SlAV32hkKG", "token_type", 3600)
-
-    client.parse_access_token_response(info=resp.get_json(), scope="openid")
-    grant = client.grant["openid"]
-
-    assert grant.access_token == "SlAV32hkKG"
-    assert grant.token_type == "token_type"
-
-def test_do_authorization_request():
-    client = Client()
-    client.authorization_endpoint = "https://example.com/authz"
-    args = {
-        "response_type":["code"],
-        "client_id":"foobar",
-        "redirect_uri":"http://foobar.example.com/oaclient",
-        "state":"cold",
-    }
-
-    path, h_args = client._do_authorization_request(**args)
-
-    assert h_args == {}
-    print path
-    assert path == "https://example.com/authz?state=cold&redirect_uri=http%3A%2F%2Ffoobar.example.com%2Foaclient&response_type=code&client_id=foobar"
-
-    path, h_args = client._do_authorization_request(
-                                        oic_method="request_parameter", **args)
-
-    assert h_args == {}
-    print path
-    part = urlparse.urlparse(path)
-    print part.query
-
-    arq = AuthorizationRequest.set_urlencoded(part.query)
-    assert _eq(arq.keys(), ['request', 'state', 'response_type', 'client_id',
-                            'redirect_uri'])
-
-    path, h_args = client._do_authorization_request(
-                                        oic_method="request_file", **args)
-
-    assert h_args == {}
-    print path
-    part = urlparse.urlparse(path)
-    print part.query
-
-    arq = AuthorizationRequest.set_urlencoded(part.query)
-    assert _eq(arq.keys(), ['request_uri', 'state', 'response_type', 'client_id',
-                            'redirect_uri'])
-
-def test_client_get_or_post():
-    client = Client()
-    args = {
-        "response_type":["code"],
-        "client_id":"foobar",
-        "redirect_uri":"http://foobar.example.com/oaclient",
-        "state":"cold",
-    }
-    arq = AuthorizationRequest(**args)
-
-    post, kwargs = client.get_or_post("https://example.com/authz", "POST",
-                                      arq)
-
-    print post
-    print kwargs
-
-    assert post == "https://example.com/authz"
-    assert _eq(kwargs.keys(), ['body', 'headers'])
-    assert kwargs["headers"] == {'content-type':
-                                     'application/x-www-form-urlencoded'}
-
-def test_user_info_request():
-    client = Client()
-    client.user_info_endpoint = "https://example.com/userinfo"
-    resp = AccessTokenResponse("SlAV32hkKG", "token_type", 3600)
-
-    client.parse_access_token_response(info=resp.get_json(), scope="openid")
-
-    path, method, h_args = client.user_info_request()
-
-    assert method == "GET"
-    assert h_args == {}
-    assert path == "https://example.com/userinfo?access_token=SlAV32hkKG"
-
-def test_server_parse_urlencoded():
-    srv = Server()
-
-    res = srv._parse_urlencoded("https://example.com/userinfo?access_token=SlAV32hkKG")
-    assert res.keys() == ["access_token"]
-    assert res["access_token"] == ["SlAV32hkKG"]
-
-    res = srv._parse_urlencoded(query="access_token=SlAV32hkKG")
-    assert res.keys() == ["access_token"]
-    assert res["access_token"] == ["SlAV32hkKG"]
-
-def test_server_parse_check_session_request():
-    srv = Server()
-
-    args = {
-        "iss": "http://server.example.com",
-        "aud": "http://client.example.com",
-        "user_id": "user_328723",
-        "exp":"1303852880",
-    }
-
-    srv.jwt_keys[args["iss"]] = "12345678"
-
-    idt = IdToken(**args)
-
-    rsr = CheckSessionRequest(idt.get_jwt(key="12345678"))
-
-    sidt = srv.parse_check_session_request(query=rsr.get_urlencoded())
-
-    assert isinstance(sidt, IdToken)
-
-    assert _eq(sidt.keys(), ['user_id', 'aud', 'iss', 'exp'])
-    assert sidt.dictionary() == args
-
-
-def test_parse_open_id_request():
-    srv = Server()
-
-    ar = AuthorizationRequest(["code","id_token"], "s6BhdRkqt3",
-                            "https://client.example.com/cb",
-                            ["openid", "profile"],
-                            "af0ifjsldkj")
-
-    id_token = IDTokenClaim(max_age=86400, iso29115="2")
-    claims = CLAIMS(name=None, nickname={"optional": True},
-                 email=None, verified=None,
-                 picture={"optional": True})
-
-    uic = UserInfoClaim([claims], format="signed", locale="us-en")
-
-    oir = OpenIDRequest(ar.response_type, ar.client_id, ar.redirect_uri,
-                            ar.scope, ar.state, uic, id_token)
-    
-    oidr = srv.parse_open_id_request(oir.get_json())
-
-    print oidr.dictionary()
-
-    assert oidr.dictionary() == {
-        'id_token': {'max_age': 86400, 'iso29115': u'2'},
-        'user_info': {'locale': u'us-en',
-                      'claims': [{u'picture': {u'optional': True},
-                                  u'nickname': {u'optional': True},
-                                  u'verified': None,
-                                  u'email': None,
-                                  u'name': None}],
-                      'format': u'signed'},
-        'state': u'af0ifjsldkj',
-        'redirect_uri': u'https://client.example.com/cb',
-        'response_type': [u'code', u'id_token'],
-        'client_id': u's6BhdRkqt3',
-        'scope': [u'openid', u'profile']}
-
-    oir2 = srv.parse_open_id_request(oir.get_urlencoded(), format="urlencoded")
-
-    print oir2.dictionary()
-    
-    assert oir2.dictionary() == {
-            'id_token': {'max_age': 86400, 'iso29115': '2'},
-            'user_info': {'locale': 'us-en',
-                          "claims": [{
-                              'picture': {'optional': True},
-                              'nickname': {'optional': True},
-                              'verified': None,
-                              'email': None,
-                              'name': None}],
-                          'format': 'signed'},
-            'state': 'af0ifjsldkj',
-            'redirect_uri': 'https://client.example.com/cb',
-            'response_type': ['code', 'id_token'],
-            'client_id': 's6BhdRkqt3',
-            'scope': ['openid', 'profile']}
+#def test_do_authorization_request():
+#    client = Client()
+#    client.authorization_endpoint = "https://example.com/authz"
+#    args = {
+#        "response_type":["code"],
+#        "client_id":"foobar",
+#        "redirect_uri":"http://foobar.example.com/oaclient",
+#        "state":"cold",
+#    }
+#
+#    path, h_args = client._do_authorization_request(**args)
+#
+#    assert h_args == {}
+#    print path
+#    assert path == "https://example.com/authz?state=cold&redirect_uri=http%3A%2F%2Ffoobar.example.com%2Foaclient&response_type=code&client_id=foobar"
+#
+#    path, h_args = client._do_authorization_request(
+#                                        oic_method="request_parameter", **args)
+#
+#    assert h_args == {}
+#    print path
+#    part = urlparse.urlparse(path)
+#    print part.query
+#
+#    arq = AuthorizationRequest.set_urlencoded(part.query)
+#    assert _eq(arq.keys(), ['request', 'state', 'response_type', 'client_id',
+#                            'redirect_uri'])
+#
+#    path, h_args = client._do_authorization_request(
+#                                        oic_method="request_file", **args)
+#
+#    assert h_args == {}
+#    print path
+#    part = urlparse.urlparse(path)
+#    print part.query
+#
+#    arq = AuthorizationRequest.set_urlencoded(part.query)
+#    assert _eq(arq.keys(), ['request_uri', 'state', 'response_type', 'client_id',
+#                            'redirect_uri'])
+#
+#def test_client_get_or_post():
+#    client = Client()
+#    args = {
+#        "response_type":["code"],
+#        "client_id":"foobar",
+#        "redirect_uri":"http://foobar.example.com/oaclient",
+#        "state":"cold",
+#    }
+#    arq = AuthorizationRequest(**args)
+#
+#    post, kwargs = client.get_or_post("https://example.com/authz", "POST",
+#                                      arq)
+#
+#    print post
+#    print kwargs
+#
+#    assert post == "https://example.com/authz"
+#    assert _eq(kwargs.keys(), ['body', 'headers'])
+#    assert kwargs["headers"] == {'content-type':
+#                                     'application/x-www-form-urlencoded'}
+#
+#def test_user_info_request():
+#    client = Client()
+#    client.user_info_endpoint = "https://example.com/userinfo"
+#    resp = AccessTokenResponse("SlAV32hkKG", "token_type", 3600)
+#
+#    client.parse_access_token_response(info=resp.get_json(), scope="openid")
+#
+#    path, method, h_args = client.user_info_request()
+#
+#    assert method == "GET"
+#    assert h_args == {}
+#    assert path == "https://example.com/userinfo?access_token=SlAV32hkKG"
+#
+#def test_server_parse_urlencoded():
+#    srv = Server()
+#
+#    res = srv._parse_urlencoded("https://example.com/userinfo?access_token=SlAV32hkKG")
+#    assert res.keys() == ["access_token"]
+#    assert res["access_token"] == ["SlAV32hkKG"]
+#
+#    res = srv._parse_urlencoded(query="access_token=SlAV32hkKG")
+#    assert res.keys() == ["access_token"]
+#    assert res["access_token"] == ["SlAV32hkKG"]
+#
+#def test_server_parse_check_session_request():
+#    srv = Server()
+#
+#    args = {
+#        "iss": "http://server.example.com",
+#        "aud": "http://client.example.com",
+#        "user_id": "user_328723",
+#        "exp":"1303852880",
+#    }
+#
+#    srv.jwt_keys[args["iss"]] = "12345678"
+#
+#    idt = IdToken(**args)
+#
+#    rsr = CheckSessionRequest(idt.get_jwt(key="12345678"))
+#
+#    sidt = srv.parse_check_session_request(query=rsr.get_urlencoded())
+#
+#    assert isinstance(sidt, IdToken)
+#
+#    assert _eq(sidt.keys(), ['user_id', 'aud', 'iss', 'exp'])
+#    assert sidt.dictionary() == args
+#
+#
+#def test_parse_open_id_request():
+#    srv = Server()
+#
+#    ar = AuthorizationRequest(["code","id_token"], "s6BhdRkqt3",
+#                            "https://client.example.com/cb",
+#                            ["openid", "profile"],
+#                            "af0ifjsldkj")
+#
+#    id_token = IDTokenClaim(max_age=86400, iso29115="2")
+#    claims = CLAIMS(name=None, nickname={"optional": True},
+#                 email=None, verified=None,
+#                 picture={"optional": True})
+#
+#    uic = UserInfoClaim([claims], format="signed", locale="us-en")
+#
+#    oir = OpenIDRequest(ar.response_type, ar.client_id, ar.redirect_uri,
+#                            ar.scope, ar.state, uic, id_token)
+#
+#    oidr = srv.parse_open_id_request(oir.get_json())
+#
+#    print oidr.dictionary()
+#
+#    assert oidr.dictionary() == {
+#        'id_token': {'max_age': 86400, 'iso29115': u'2'},
+#        'user_info': {'locale': u'us-en',
+#                      'claims': [{u'picture': {u'optional': True},
+#                                  u'nickname': {u'optional': True},
+#                                  u'verified': None,
+#                                  u'email': None,
+#                                  u'name': None}],
+#                      'format': u'signed'},
+#        'state': u'af0ifjsldkj',
+#        'redirect_uri': u'https://client.example.com/cb',
+#        'response_type': [u'code', u'id_token'],
+#        'client_id': u's6BhdRkqt3',
+#        'scope': [u'openid', u'profile']}
+#
+#    oir2 = srv.parse_open_id_request(oir.get_urlencoded(), format="urlencoded")
+#
+#    print oir2.dictionary()
+#
+#    assert oir2.dictionary() == {
+#            'id_token': {'max_age': 86400, 'iso29115': '2'},
+#            'user_info': {'locale': 'us-en',
+#                          "claims": [{
+#                              'picture': {'optional': True},
+#                              'nickname': {'optional': True},
+#                              'verified': None,
+#                              'email': None,
+#                              'name': None}],
+#                          'format': 'signed'},
+#            'state': 'af0ifjsldkj',
+#            'redirect_uri': 'https://client.example.com/cb',
+#            'response_type': ['code', 'id_token'],
+#            'client_id': 's6BhdRkqt3',
+#            'scope': ['openid', 'profile']}

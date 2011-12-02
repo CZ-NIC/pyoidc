@@ -140,15 +140,11 @@ def add_duration(tid, duration):
         # days
         if dur["tm_mday"] > maximum_day_in_month_for(year, month):
             temp_days = maximum_day_in_month_for(year, month)
-        elif dur["tm_mday"] < 1:
-            temp_days = 1
         else:
             temp_days = dur["tm_mday"]
         days = temp_days + tid.tm_mday + carry
         while True:
-            if days < 1:
-                pass
-            elif days > maximum_day_in_month_for(year, month):
+            if days > maximum_day_in_month_for(year, month):
                 days = days - maximum_day_in_month_for(year, month)
                 carry = 1
             else:
@@ -160,7 +156,7 @@ def add_duration(tid, duration):
         return time.localtime(time.mktime((year, month, days, hour, minutes, 
                                 secs, 0, 0, -1)))
     else:
-        pass
+        return None
 
 # ---------------------------------------------------------------------------
 
@@ -195,7 +191,7 @@ def in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
         timedelta([days[, seconds[, microseconds[, milliseconds[,
                     minutes[, hours[, weeks]]]]]]])
     """
-    if format is None:
+    if not format:
         format = TIME_FORMAT
         
     return time_in_a_while(days, seconds, microseconds, milliseconds,
@@ -226,12 +222,11 @@ def str_to_time(timestr):
     try:
         then = time.strptime(timestr, TIME_FORMAT)
     except Exception: # assume it's a format problem
-        try:
-            elem = TIME_FORMAT_WITH_FRAGMENT.match(timestr)
-        except Exception, exc:
-            print >> sys.stderr, "Exception: %s on %s" % (exc, timestr)
-            raise
-        then = time.strptime(elem.groups()[0]+"Z", TIME_FORMAT)
+        elem = TIME_FORMAT_WITH_FRAGMENT.match(timestr)
+        if elem:
+            then = time.strptime(elem.groups()[0]+"Z", TIME_FORMAT)
+        else:
+            raise Exception("Wrong format")
 
     return time.gmtime(calendar.timegm(then))
 
@@ -254,6 +249,8 @@ def before(point):
     if isinstance(point, basestring):
         point = str_to_time(point)
     elif isinstance(point, int):
+        point = time.gmtime(point)
+    elif isinstance(point, float):
         point = time.gmtime(point)
 
     return point < time.gmtime()

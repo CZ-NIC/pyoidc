@@ -14,7 +14,7 @@ from oic.oauth2 import AuthorizationResponse
 from oic.oauth2 import AccessTokenResponse
 from oic.oauth2 import Client
 from oic.oauth2 import ErrorResponse
-#from oic.oauth2 import Grant
+from oic.oauth2 import Grant
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint", "user_info_endpoint",
     "check_id_endpoint", "registration_endpoint", "token_revokation_endpoint"]
@@ -165,6 +165,7 @@ class Consumer(Client):
 
         sid = stateID(_path, self.seed)
         self.state = sid
+        self.grant[sid] = Grant()
         self._backup(sid)
         self.sdb["seed:%s" % self.seed] = sid
 
@@ -200,17 +201,11 @@ class Consumer(Client):
             _log_info("QUERY: %s" % _query)
         _path = http_util.geturl(environ, False, False)
 
-        if isinstance(self.scope, basestring):
-            _scope = self.scope
-        else:
-            _scope = " ".join(self.scope)
-            
         if "code" in self.response_type:
             # Might be an error response
             try:
                 aresp = self.parse_response(AuthorizationResponse,
-                                            info=_query, format="urlencoded",
-                                            scope=_scope)
+                                            info=_query, format="urlencoded")
             except Exception, err:
                 logger.error("%s" % err)
                 raise
@@ -225,10 +220,9 @@ class Consumer(Client):
             
             self._backup(aresp.state)
             return aresp
-        else:
+        else: # implicit flow
             atr = self.parse_response(AccessTokenResponse, info=_query,
-                                      format="urlencoded", extended=True,
-                                      scope=_scope)
+                                      format="urlencoded", extended=True)
             if isinstance(atr, ErrorResponse):
                 raise TokenError(atr.error)
 

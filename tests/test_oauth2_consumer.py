@@ -10,10 +10,10 @@ from oic.oauth2.consumer import rndstr
 from oic.oauth2.consumer import factory
 
 from oic.utils import http_util
-from oic.oauth2 import AuthorizationResponse
-from oic.oauth2 import AuthorizationErrorResponse
-from oic.oauth2 import AccessTokenResponse
-from oic.oauth2 import TokenErrorResponse
+from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import AuthorizationErrorResponse
+from oic.oauth2.message import AccessTokenResponse
+from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.consumer import AuthzError
 
 class LOG():
@@ -160,8 +160,8 @@ def test_consumer_parse_authz():
     res = cons.parse_authz(environ, start_response, LOG())
 
     assert isinstance(res, AuthorizationResponse)
-    print cons.grant["openid"]
-    grant = cons.grant["openid"]
+    print cons.grant[cons.state]
+    grant = cons.grant[cons.state]
     assert grant.code == "SplxlOBeZQQYbYS6WxSbIA"
 
 def test_consumer_parse_authz_exception():
@@ -197,6 +197,7 @@ def test_consumer_parse_authz_error():
     raises(AuthzError, "cons.parse_authz(environ, start_response, LOG())")
 
 def test_consumer_parse_access_token():
+    # implicit flow test
     _session_db = {}
     cons = Consumer(_session_db, client_config = CLIENT_CONFIG,
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
@@ -209,7 +210,8 @@ def test_consumer_parse_access_token():
     atr = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
                               token_type="example",
                               refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
-                              example_parameter="example_value")
+                              example_parameter="example_value",
+                              state=cons.state)
 
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = atr.get_urlencoded()
@@ -217,9 +219,11 @@ def test_consumer_parse_access_token():
     res = cons.parse_authz(environ, start_response, LOG())
 
     assert isinstance(res, AccessTokenResponse)
-    print cons.grant["openid"]
-    grant = cons.grant["openid"]
-    assert grant.access_token == "2YotnFZFEjr1zCsicMWpAA"
+    print cons.grant[cons.state]
+    grant = cons.grant[cons.state]
+    assert len(grant.tokens) == 1
+    token = grant.tokens[0]
+    assert token.access_token == "2YotnFZFEjr1zCsicMWpAA"
 
 def test_consumer_parse_authz_error_2():
     _session_db = {}

@@ -124,7 +124,7 @@ class SessionDB(object):
 
         try:
             _dic["nonce"] = areq.nonce
-        except AttributeError:
+        except (AttributeError, KeyError):
             pass
         
         if areq.redirect_uri:

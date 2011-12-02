@@ -14,13 +14,14 @@ from urllib import urlencode
 from hashlib import md5
 
 from oic.utils import http_util
-from oic.oic import AuthorizationRequest
-from oic.oic import AccessTokenResponse
 from oic.oic import Client
-from oic.oic import ProviderConfigurationResponse
-from oic.oic import RegistrationRequest
-from oic.oic import RegistrationResponse
-from oic.oauth2 import ErrorResponse
+from oic.oic.message import AuthorizationRequest
+from oic.oic.message import AuthorizationResponse
+from oic.oic.message import AccessTokenResponse
+from oic.oic.message import ProviderConfigurationResponse
+from oic.oic.message import RegistrationRequest
+from oic.oic.message import RegistrationResponse
+from oic.oauth2.message import ErrorResponse
 from oic.oauth2 import Grant
 from oic.oauth2.consumer import TokenError
 from oic.oauth2.consumer import AuthzError
@@ -206,12 +207,8 @@ class Consumer(Client):
 
         sid = stateID(_path, self.seed)
         self.state = sid
+        self.grant[sid] = Grant()
 
-        if isinstance(scope, basestring):
-            self.grant[scope] = Grant(sid)
-        else:
-            self.grant[" ".join(scope)] = Grant(sid)
-            
         self._backup(sid)
         self.sdb["seed:%s" % self.seed] = sid
 
@@ -219,13 +216,15 @@ class Consumer(Client):
         self._request = http_util.geturl(environ)
         self.nonce = rndstr(12)
 
-        areq = self.get_authorization_request(AuthorizationRequest,
-                            state=sid,
-                            client_id=self.client_id,
-                            redirect_uri=self.redirect_uri,
-                            response_type=response_type,
-                            scope=scope,
-                            nonce=self.nonce)
+        args = {
+            "state":sid,
+            "response_type":response_type,
+            "scope": scope,
+            "nonce": self.nonce
+        }
+        
+        areq = self.construct_AuthorizationRequest(AuthorizationRequest,
+                                                   request_args=args)
 
         id_request = self.function["openid_request"](areq, self.config["key"])
         if self.config["request_method"] == "parameter":
@@ -284,7 +283,7 @@ class Consumer(Client):
         if "code" in self.config["response_type"]:
             # Might be an error response
             _log_info("Expect Authorization Response")
-            aresp = self.parse_authorization_response(query=_query)
+            aresp = self.parse_response(AuthorizationResponse, info=_query)
             if isinstance(aresp, ErrorResponse):
                 _log_info("ErrorResponse: %s" % aresp)
                 raise AuthzError(aresp.error)
@@ -309,34 +308,33 @@ class Consumer(Client):
 
             idt = None
             return aresp, atr, idt
-        else:
+        else: # implicit flow
             _log_info("Expect Access Token Response")
-            atr = self.parse_access_token_response(info=_query,
-                                                   format="urlencoded",
-                                                   extended=True)
+            atr = self.parse_response(AccessTokenResponse, info=_query,
+                                      format="urlencoded", extended=True)
             if isinstance(atr, ErrorResponse):
                 raise TokenError(atr.error)
 
             idt = None
             return None, atr, idt
 
-    def complete(self, logger, scope=""):
+    def complete(self, logger):
         """
         Do the access token request, the last step in a code flow.
         If Implicit flow was used then this method is never used.
         """
         if self.config["password"]:
             logger.info("basic auth")
-            atr = self.do_access_token_request(code=self.grant[scope].code,
-                                    grant_type="authorization_code",
-                                    client_password=self.config["password"])
+            args = {"client_password":self.config["password"]}
+            atr = self.construct_AccessTokenRequest(request_args=args,
+                                                    state=self.state)
         elif self.client_secret:
             logger.info("request_body auth")
-            atr = self.do_access_token_request(code=self.grant[scope].code,
-                                    grant_type="authorization_code",
-                                    auth_method="request_body",
-                                    client_secret=self.client_secret,
-                                    client_id=self.client_id)
+            args = {"client_secret":self.config["client_secret"],
+                    "client_id": self.client_id,
+                    "auth_method":"request_body"}
+            atr = self.construct_AccessTokenRequest(request_args=args,
+                                                    state=self.state)
         else:
             raise Exception("Nothing to authenticate with")
 
