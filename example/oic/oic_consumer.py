@@ -11,7 +11,7 @@ import logging
 
 from mako.lookup import TemplateLookup
 
-from oic.oic import CLAIMS
+from oic.oic import Claims
 from oic.oic import UserInfoClaim
 from oic.oic import IDTokenClaim
 from oic.oic import OpenIDRequest
@@ -31,7 +31,7 @@ def construct_openid_request(arq, key):
     """
 
     # Should be configurable !!
-    claims = CLAIMS(name=None, nickname={"optional": True},
+    claims = Claims(name=None, nickname={"optional": True},
                  email=None, verified=None,
                  picture={"optional": True})
 

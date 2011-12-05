@@ -183,7 +183,7 @@ def application(environ, start_response):
     global LOOKUP
     global SERVER
 
-    #user = environ.get("REMOTE_USER", "")
+    user = environ.get("REMOTE_USER", "")
     path = environ.get('PATH_INFO', '').lstrip('/')
     kaka = environ.get("HTTP_COOKIE", '')
 

@@ -19,13 +19,10 @@ from oic.oauth2 import AuthorizationRequest
 from oic.oauth2 import AccessTokenResponse
 from oic.oauth2 import AccessTokenRequest
 from oic.oauth2 import TokenErrorResponse
+from oic.oauth2 import NoneResponse
 from oic import oauth2
 
 class AuthnFailure(Exception):
-    pass
-
-#noinspection PyUnusedLocal
-def devnull(txt):
     pass
 
 def get_post(environ):
@@ -41,8 +38,8 @@ def get_post(environ):
     return environ['wsgi.input'].read(request_body_size)
 
 #noinspection PyUnusedLocal
-def do_authorization(user):
-    return ""
+#def do_authorization(user):
+#    return ""
 
 def rndstr(size=16):
     return "".join([random.choice(string.ascii_letters) for _ in range(size)])
@@ -83,8 +80,11 @@ class Server(oauth2.Server):
             if not verified:
                 resp = Unauthorized("Wrong password")
                 return resp(environ, start_response)
+        except KeyError, err:
+            resp = Unauthorized("Missing key: %s" % (err,))
+            return resp(environ, start_response)
         except AuthnFailure, err:
-            resp = Unauthorized("%s" % (err,))
+            resp = Unauthorized("Authentication failure: %s" % (err,))
             return resp(environ, start_response)
 
         try:
@@ -92,7 +92,7 @@ class Server(oauth2.Server):
             sid = base64.b64decode(dic["sid"][0])
             session = _sdb[sid]
         except KeyError:
-            resp = BadRequest("")
+            resp = BadRequest("Unknown session identifier")
             return resp(environ, start_response)
 
         _sdb.update(sid, "userid", dic["login"][0])
@@ -142,7 +142,7 @@ class Server(oauth2.Server):
         elif "none" in areq.response_type:
             # return only state
 
-            aresp = AuthorizationResponse()
+            aresp = NoneResponse()
             if areq.state:
                 aresp.state = areq.state
         else: # Don't know what to do raise an exception
@@ -228,7 +228,8 @@ class Server(oauth2.Server):
 
         if not self.function["verify client"](environ, areq, self.cdb):
             err = TokenErrorResponse(error="unathorized_client")
-            resp = Response(err.get_json, content="application/json")
+            resp = Response(err.get_json(), content="application/json",
+                            status="401 Unauthorized")
             return resp(environ, start_response)
 
         if self.debug:

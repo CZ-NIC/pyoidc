@@ -26,7 +26,7 @@ class LOG():
     def debug(self, txt):
         print >> sys.stdout, "DEBUG: %s" % txt
 
-def start_response():
+def start_response(status, headers=None):
     return 
 
 CLIENT_CONFIG = {
@@ -144,7 +144,7 @@ def test_consumer_begin():
     
     assert loc == url
 
-def test_consumer_parse_authz():
+def test_consumer_handle_authorization_response():
     _session_db = {}
     cons = Consumer(_session_db, client_config = CLIENT_CONFIG,
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
@@ -157,7 +157,7 @@ def test_consumer_parse_authz():
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = atr.get_urlencoded()
 
-    res = cons.parse_authz(environ, start_response, LOG())
+    res = cons.handle_authorization_response(environ, start_response, LOG())
 
     assert isinstance(res, AuthorizationResponse)
     print cons.grant[cons.state]
@@ -179,7 +179,8 @@ def test_consumer_parse_authz_exception():
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = urllib.urlencode(adict)
 
-    raises(ValueError, "cons.parse_authz(environ, start_response, LOG())")
+    raises(ValueError,
+           "cons.handle_authorization_response(environ, start_response, LOG())")
 
 def test_consumer_parse_authz_error():
     _session_db = {}
@@ -194,7 +195,8 @@ def test_consumer_parse_authz_error():
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = atr.get_urlencoded()
 
-    raises(AuthzError, "cons.parse_authz(environ, start_response, LOG())")
+    raises(AuthzError,
+           "cons.handle_authorization_response(environ, start_response, LOG())")
 
 def test_consumer_parse_access_token():
     # implicit flow test
@@ -216,7 +218,7 @@ def test_consumer_parse_access_token():
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = atr.get_urlencoded()
 
-    res = cons.parse_authz(environ, start_response, LOG())
+    res = cons.handle_authorization_response(environ, start_response, LOG())
 
     assert isinstance(res, AccessTokenResponse)
     print cons.grant[cons.state]
@@ -238,4 +240,5 @@ def test_consumer_parse_authz_error_2():
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = atr.get_urlencoded()
 
-    raises(AuthzError, "cons.parse_authz(environ, start_response, LOG())")
+    raises(AuthzError,
+           "cons.handle_authorization_response(environ, start_response, LOG())")

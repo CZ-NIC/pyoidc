@@ -31,8 +31,10 @@ RESPONSE2ERROR = {
 }
 
 class Token(object):
+    _class = AccessTokenResponse
+
     def __init__(self, resp=None):
-        for prop in AccessTokenResponse.c_attributes.keys():
+        for prop in self._class.c_attributes.keys():
             _val = getattr(resp, prop)
             if _val:
                 setattr(self, prop, _val)
@@ -60,16 +62,32 @@ class Token(object):
     def keys(self):
         return self.__dict__.keys()
 
+    def __eq__(self, other):
+        skeys = self.keys()
+        okeys = other.keys()
+        if set(skeys) != set(okeys):
+            return False
+
+        for key in skeys:
+            if getattr(self, key) != getattr(other, key):
+                return False
+
+        return True
+
 class Grant(object):
+    _authz_resp = AuthorizationResponse
+    _acc_resp = AccessTokenResponse
+    _token_class = Token
+    
     def __init__(self, exp_in=600, resp=None, seed=""):
         self.grant_expiration_time = 0
         self.exp_in = exp_in
         self.seed = seed
         self.tokens = []
         if resp:
-            if isinstance(resp, AuthorizationResponse):
+            if isinstance(resp, self._authz_resp):
                 self.add_code(resp)
-            elif isinstance(resp, AccessTokenResponse):
+            elif isinstance(resp, self._acc_resp):
                 self.add_token(resp)
 
     @classmethod
@@ -83,7 +101,7 @@ class Grant(object):
         self.grant_expiration_time = time_util.time_sans_frac() + self.exp_in
 
     def add_token(self, resp):
-        self.tokens.append(Token(resp))
+        self.tokens.append(self._token_class(resp))
         
     def is_valid(self):
         if time.time() > self.grant_expiration_time:
@@ -98,9 +116,11 @@ class Grant(object):
         return self.__dict__.keys()
 
     def update(self, resp):
-        if isinstance(resp, AccessTokenResponse):
-            self.tokens.append(Token(resp))
-        elif isinstance(resp, AuthorizationResponse):
+        if isinstance(resp, self._acc_resp):
+            tok = self._token_class(resp)
+            if tok not in self.tokens:
+                self.tokens.append(tok)
+        elif isinstance(resp, self._authz_resp):
             self.add_code(resp)
 
     def get_token(self, scope=""):
@@ -123,7 +143,9 @@ class Grant(object):
             self.grant_expiration_time = grant.grant_expiration_time
         if not self.seed:
             self.seed = grant.seed
-        self.tokens.extend(grant.tokens)
+        for token in grant.tokens:
+            if token not in self.tokens:
+                self.tokens.append(token)
 
         
 class Client(object):
@@ -158,8 +180,11 @@ class Client(object):
 
         self.key = key
         self.algorithm = algorithm
+
         self.request2endpoint = REQUEST2ENDPOINT
         self.response2error = RESPONSE2ERROR
+        self.grant_class = Grant
+        self.token_class = Token
 
     def reset(self):
         self.state = None
@@ -317,22 +342,10 @@ class Client(object):
         request_args["token"] = token.access_token
         return self.construct_request(cls, request_args, extra_args)
 
-    def request_info(self, cls, method="POST", request_args=None,
-                     extra_args=None, **kwargs):
-
-        if request_args is None:
-            request_args = {}
-            
-        cis = getattr(self, "construct_%s" % cls.__name__)(cls, request_args,
-                                                           extra_args,
-                                                           **kwargs)
-
+    def uri_and_body(self, cls, cis, method="POST", request_args=None,
+                     extend=False):
+        
         uri = self._endpoint(self.request2endpoint[cls], **request_args)
-
-        if extra_args:
-            extend = True
-        else:
-            extend = False
 
         if method == "POST":
             body = cis.get_urlencoded(extended=extend)
@@ -347,9 +360,25 @@ class Client(object):
 
         return uri, body, h_args, cis
 
+    def request_info(self, cls, method="POST", request_args=None,
+                     extra_args=None, **kwargs):
+
+        if request_args is None:
+            request_args = {}
+            
+        cis = getattr(self, "construct_%s" % cls.__name__)(cls, request_args,
+                                                           extra_args,
+                                                           **kwargs)
+
+        if extra_args:
+            extend = True
+        else:
+            extend = False
+
+        return self.uri_and_body(cls, cis, method, request_args, extend)
 
     def parse_response(self, cls, info="", format="json", state="",
-                       extended=False, response2error=None):
+                       extended=False):
         """
         Parse a response
 
@@ -428,7 +457,7 @@ class Client(object):
         try:
             self.grant[_state].update(resp)
         except KeyError:
-            self.grant[_state] = Grant(resp=resp)
+            self.grant[_state] = self.grant_class(resp=resp)
 
         return resp
 
@@ -437,7 +466,7 @@ class Client(object):
                         state="", http_args=None):
         """
         :param url: The URL to which the request should be sent
-        :param cls: The class the should represent the response
+        :param respcls: The class the should represent the response
         :param method: Which HTTP method to use
         :param body: A message body if any
         :param return_format: The format of the body of the return message
@@ -529,6 +558,7 @@ class Client(object):
                                 **kwargs):
 
         token = self._get_token(state=state, **kwargs)
+            
         url, body, ht_args, csi = self.request_info(cls, method=method,
                                                     request_args=request_args,
                                                     extra_args=extra_args,

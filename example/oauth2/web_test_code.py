@@ -13,6 +13,7 @@ from web_server import verify_client
 
 from oic.utils import sdb
 from oic.oauth2.server import Server
+from oic.oauth2.message import AuthorizationResponse
 
 ROOT = '../'
 
@@ -43,6 +44,22 @@ SERVER = Server("http://localhost:8088/",
                 "1234567890",
                 debug=1)
 
+
+BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',
+               'REQUEST_METHOD': 'GET',
+               'QUERY_STRING': '',
+               'HTTP_CONNECTION': 'keep-alive',
+               'REMOTE_ADDR': '127.0.0.1',
+               'wsgi.url_scheme': 'http',
+               'SERVER_PORT': '8087',
+               'PATH_INFO': '/register',
+               'HTTP_HOST': 'localhost:8087',
+               'HTTP_ACCEPT': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+               'HTTP_ACCEPT_LANGUAGE': 'sv-se',
+               'CONTENT_TYPE': 'text/plain',
+               'REMOTE_HOST': '1.0.0.127.in-addr.arpa',
+               'HTTP_ACCEPT_ENCODING': 'gzip, deflate',
+               'COMMAND_MODE': 'unix2003'}
 
 # -----------------------------------------------------------------------------
 
@@ -80,6 +97,10 @@ class DEVNULL():
     def info(self, txt):
         return
 
+#noinspection PyUnusedLocal
+def start_response(status, headers=None):
+    return ""
+
 def register(environ, start_response):
     _oac = Consumer(SESSION_DB, CLIENT_CONFIG, SERVER_INFO, **CONSUMER_CONFIG)
     location = _oac.begin(environ, start_response, DEVNULL())
@@ -111,22 +132,38 @@ form['password'] = 'bar'
 res = form.submit(extra_environ={"oic.server":SERVER, "mako.lookup":LOOKUP})
 assert res.status == "302 Found"
 url = res.headers["location"]
-url = url.replace("#","?")
-# implicit flow with multiple return types
 
-def handle_authz_response(environ, start_response):
-    _cli = Consumer(SESSION_DB, CLIENT_CONFIG, SERVER_INFO, **CONSUMER_CONFIG)
-    aresp = _cli.parse_authz(environ, start_response, DEVNULL())
-    print "ARESP: %s" % aresp
+# Parse by the client
 
-    kaka = http_util.cookie(CLIENT_CONFIG["client_id"], _cli.state, _cli.seed,
-                            expire=360, path="/")
+environ = BASE_ENVIRON.copy()
+environ["QUERY_STRING"] = url
+_cli = Consumer(SESSION_DB, CLIENT_CONFIG, SERVER_INFO, **CONSUMER_CONFIG)
+aresp = _cli.handle_authorization_response(environ, start_response, DEVNULL())
 
-    resp = http_util.Response("Your will is registered", headers=[kaka])
-    return resp(environ, start_response)
+print "ARESP: %s" % aresp
 
-capp = TestApp(handle_authz_response)
-cres = capp.get(url)
-assert cres.status == "200 OK"
+assert isinstance(aresp, AuthorizationResponse)
+
+# Create the AccessTokenRequest
+url, body, http_args = _cli.get_access_token_request(environ, start_response,
+                                                     DEVNULL())
+
+assert url == "http://localhost:8088/token"
+assert len(body) != 0
+assert http_args == {"client_password": "hemligt"}
+
+# complete with access token request
+
+
+app = TestApp(application)
+cres = app.post('/token', body,
+                extra_environ={"oic.server":SERVER,
+                               "mako.lookup":LOOKUP,
+                               "REMOTE_USER":_cli.client_id})
+
+print cres.status
 print cres.headers
-assert "Set-Cookie" in cres.headers.keys()
+#def handle_access_token_reponse(environ, start_response):
+#
+#    resp = http_util.Response()
+#    return resp(environ, start_response)

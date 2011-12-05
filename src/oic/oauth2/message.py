@@ -536,6 +536,14 @@ class AuthorizationResponse(Base):
         self.code = code
         self.state = state
 
+class NoneResponse(Base):
+    c_attributes = Base.c_attributes.copy()
+    c_attributes["state"] = SINGLE_OPTIONAL_STRING
+
+    def __init__(self, state=None, **kwargs):
+        Base.__init__(self, **kwargs)
+        self.state = state
+
 class ROPCAccessTokenRequest(Base):
     c_attributes = Base.c_attributes.copy()
     c_attributes["grant_type"] = SINGLE_REQUIRED_STRING

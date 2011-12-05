@@ -19,7 +19,7 @@ from oic.utils.http_util import *
 from oic.utils import time_util
 
 from oic.oauth2 import MissingRequiredAttribute
-from oic.oic import CLAIMS
+from oic.oic import Claims
 from oic.oic import AuthorizationResponse
 from oic.oic import AuthorizationRequest
 from oic.oic import AccessTokenResponse
@@ -543,7 +543,7 @@ class UserInfo():
 
         # Don't send back more than is needed
         if claims:
-            if isinstance(claims, CLAIMS):
+            if isinstance(claims, Claims):
                 cdic = claims.dictionary(extended=True)
             else:
                 cdic = claims

@@ -115,11 +115,11 @@ def claims_deser(val, format="urlencoded", extended=False):
         else:
             val = eval(val)
 
-        res = [CLAIMS(**parse_qs(v)) for v in val]
+        res = [Claims(**parse_qs(v)) for v in val]
     elif format == "json":
-        res = [CLAIMS(**json.loads(v)) for v in val]
+        res = [Claims(**json.loads(v)) for v in val]
     elif format == "dict":
-        res = [CLAIMS(**v) for v in val]
+        res = [Claims(**v) for v in val]
     else:
         raise Exception("Unknown format")
 
@@ -522,15 +522,16 @@ class CheckSessionRequest(oauth2.Base):
         oauth2.Base.__init__(self, **kwargs)
         self.id_token = id_token
 
-class CheckIDRequest(oauth2.Base):
-    c_attributes = oauth2.Base.c_attributes.copy()
-    c_attributes["id_token"] = SINGLE_REQUIRED_STRING
-
-    def __init__(self,
-                 id_token=None,
-                 **kwargs):
-        oauth2.Base.__init__(self, **kwargs)
-        self.id_token = id_token
+# The same as CheckSessionRequest
+#class CheckIDRequest(oauth2.Base):
+#    c_attributes = oauth2.Base.c_attributes.copy()
+#    c_attributes["id_token"] = SINGLE_REQUIRED_STRING
+#
+#    def __init__(self,
+#                 id_token=None,
+#                 **kwargs):
+#        oauth2.Base.__init__(self, **kwargs)
+#        self.id_token = id_token
 
 class EndSessionRequest(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
@@ -558,17 +559,17 @@ class EndSessionResponse(oauth2.Base):
         oauth2.Base.__init__(self, **kwargs)
         self.state = state
 
-class CLAIMS(oauth2.Base):
+class Claims(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
 
     def __init__(self, **kwargs):
         oauth2.Base.__init__(self, **kwargs)
 
-OPTIONAL_MULTIPLE_CLAIMS = ([CLAIMS], False, claims_ser, claims_deser)
+OPTIONAL_MULTIPLE_Claims = ([Claims], False, claims_ser, claims_deser)
 
 class UserInfoClaim(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
-    c_attributes["claims"] = OPTIONAL_MULTIPLE_CLAIMS
+    c_attributes["claims"] = OPTIONAL_MULTIPLE_Claims
     c_attributes["format"] = SINGLE_OPTIONAL_STRING
     c_attributes["locale"] = SINGLE_OPTIONAL_STRING
 
@@ -590,7 +591,7 @@ class UserInfoClaim(oauth2.Base):
 
 class IDTokenClaim(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
-    c_attributes["claims"] = OPTIONAL_MULTIPLE_CLAIMS
+    c_attributes["claims"] = OPTIONAL_MULTIPLE_Claims
     c_attributes["max_age"] = SINGLE_OPTIONAL_INT
     c_attributes["iso29115"] = SINGLE_OPTIONAL_STRING
 
@@ -622,6 +623,12 @@ class OpenIDRequest(AuthorizationRequest):
                  redirect_uri=None,
                  scope=None,
                  state=None,
+                 request=None,
+                 request_uri=None,
+                 display=None,
+                 prompt=None,
+                 nonce=None,
+                 id_token_audience=None,
                  user_info=None,
                  id_token=None,
                  iss=None,
@@ -633,7 +640,13 @@ class OpenIDRequest(AuthorizationRequest):
                                       redirect_uri,
                                       scope,
                                       state,
-                                       **kwargs)
+                                      request,
+                                      request_uri,
+                                      display,
+                                      prompt,
+                                      nonce,
+                                      id_token_audience,
+                                      **kwargs)
         self.user_info = user_info
         self.id_token = id_token
         self.iss = iss

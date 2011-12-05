@@ -543,7 +543,7 @@ def test_grant_access_token_1():
     grant.tokens.append(token)
 
     print grant.keys()
-    assert _eq(grant.keys(), ['tokens', 'code', 'exp_in',
+    assert _eq(grant.keys(), ['tokens', 'code', 'exp_in', 'seed',
                               'grant_expiration_time'])
     print token.keys()
     assert _eq(token.keys(), ['token_expiration_time', 'access_token',

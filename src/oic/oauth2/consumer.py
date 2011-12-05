@@ -10,6 +10,7 @@ from hashlib import md5
 
 from oic.utils import http_util
 from oic.oauth2 import AuthorizationRequest
+from oic.oauth2 import AccessTokenRequest
 from oic.oauth2 import AuthorizationResponse
 from oic.oauth2 import AccessTokenResponse
 from oic.oauth2 import Client
@@ -157,6 +158,7 @@ class Consumer(Client):
             "state": self.state,
             "grant": self.grant,
             "seed": self.seed,
+            "redirect_uri": self.redirect_uri,
         }
 
         for endpoint in ENDPOINTS:
@@ -204,7 +206,7 @@ class Consumer(Client):
         return location
 
     #noinspection PyUnusedLocal
-    def parse_authz(self, environ, start_response, logger):
+    def handle_authorization_response(self, environ, start_response, logger):
         """
         This is where we get redirect back to after authorization at the
         authorization server has happened.
@@ -243,10 +245,12 @@ class Consumer(Client):
                 raise UnknownState(aresp.state)
             
             self._backup(aresp.state)
+
             return aresp
         else: # implicit flow
             atr = self.parse_response(AccessTokenResponse, info=_query,
                                       format="urlencoded", extended=True)
+
             if isinstance(atr, ErrorResponse):
                 raise TokenError(atr.error)
 
@@ -259,29 +263,46 @@ class Consumer(Client):
             
             return atr
 
-    def complete(self, logger):
-        """
-        Do the access token request, the last step in a code flow.
-        If Implicit flow was used then this method is never used.
+    def complete(self, environ, start_response, logger):
+        resp = self.handle_authorization_response(environ, start_response,
+                                                  logger)
+
+        if isinstance(resp, AuthorizationResponse):
+            # Go get the access token
+            resp = self.do_access_token_request(state=self.state)
+
+        return resp
+
+    def client_auth_info(self):
         """
 
+        """
         if self.password:
-            logger.info("basic auth")
-            atr = self.do_access_token_request(state=self.state,
-                                    http_args={"password":self.password})
+            http_args = {"client_password":self.password}
+            request_args = {}
         elif self.client_secret:
-            logger.info("request_body auth")
-            atr = self.do_access_token_request(state=self.state,
-                                    request_args={
-                                        "client_secret": self.client_secret})
+            http_args = {}
+            request_args = {
+                    "client_secret":self.client_secret,
+                    "client_id": self.client_id,
+                    "auth_method":"request_body"}
         else:
             raise Exception("Nothing to authenticate with")
-        
-        if isinstance(atr, ErrorResponse):
-            # Losing information here, not good!
-            raise TokenError(atr.error)
 
-        #self._backup(self.sdb["seed:%s" % _cli.seed])
-        self._backup(self.state)
-        
-        return atr
+        return request_args, http_args
+
+    #noinspection PyUnusedLocal
+    def get_access_token_request(self, environ, start_response, logger):
+
+        request_args, http_args = self.client_auth_info()
+
+        url, body, ht_args, csi = self.request_info(AccessTokenRequest, 
+                                                    request_args=request_args,
+                                                    state=self.state)
+
+        if not http_args:
+            http_args = ht_args
+        else:
+            http_args.update(http_args)
+
+        return url, body, http_args

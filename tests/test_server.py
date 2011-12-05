@@ -2,7 +2,7 @@
 __author__ = 'rohe0002'
 
 from oic.oic.server import UserInfo
-from oic.oic import CLAIMS
+from oic.oic import Claims
 
 DB = {
     "user1": {
@@ -68,7 +68,7 @@ class TestUserInfo():
                'phone_number', 'email'])
 
     def test_2(self):
-        claims = CLAIMS(name=None, nickname={"optional": True},
+        claims = Claims(name=None, nickname={"optional": True},
                         email=None, verified=None,
                         picture={"optional": True})
 
@@ -79,7 +79,7 @@ class TestUserInfo():
                     ['picture', 'verified', 'nickname', 'name', 'email'])
 
     def test_3(self):
-        claims = CLAIMS(name=None, nickname={"optional": True},
+        claims = Claims(name=None, nickname={"optional": True},
                         email=None, verified=None,
                         picture={"optional": True})
 

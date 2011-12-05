@@ -9,6 +9,10 @@ from oic import oauth2
 from oic.oauth2 import server
 from oic.oauth2.consumer import Consumer
 from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import AuthorizationRequest
+from oic.oauth2.message import AccessTokenRequest
+from oic.oauth2.message import AccessTokenResponse
+from oic.oauth2.message import TokenErrorResponse
 
 from oic.oauth2.server import Server
 from oic.utils import http_util
@@ -81,13 +85,34 @@ def do_authentication(environ, start_response, bsid):
 
 #noinspection PyUnusedLocal
 def do_authorization(user, session):
-    return "ALL"
+    if user == "user":
+        return "ALL"
+    else:
+        raise Exception("No Authorization defined")
 
 def verify_username_and_password(dic):
-    return True, dic["login"][0]
+    _user = dic["login"][0]
+    if _user == "user":
+        return True, _user
+    elif _user == "hannibal":
+        raise server.AuthnFailure(
+                                "Not allowed to use this service (%s)" % _user)
+    else:
+        if _user:
+            return False, _user
+        else:
+            raise server.AuthnFailure("Missing user name")
 
-def verify_client():
-    return True
+
+#noinspection PyUnusedLocal
+def verify_client(environ, areq, cdb):
+    if areq.client_id and areq.client_secret:
+        if areq.client_id == "client1" and areq.client_secret == "secret":
+            return True
+        else:
+            return False
+
+    return False
 
 def create_return_form_env(user, password, sid):
     _dict = {
@@ -145,6 +170,13 @@ def test_get_post():
 
     post = server.get_post(environ)
     assert post == ""
+
+    environ["CONTENT_LENGTH"] = "A"
+    fil = StringIO.StringIO(buf=str)
+    environ["wsgi.input"] = fil
+
+    post = server.get_post(environ)
+    assert post == ""
     
 def test_server_init():
     server = Server("pyoicserv", sdb.SessionDB(), CDB, FUNCTIONS)
@@ -175,6 +207,24 @@ def test_server_authorization_endpoint():
 
     print resp
     assert resp[0].startswith("FORM with")
+
+def test_failed_authenticated():
+    server = Server("pyoicserv", sdb.SessionDB(), CDB, FUNCTIONS)
+    environ0 = create_return_form_env("haden", "secret", "sid1")
+    resp1 = server.authenticated(environ0, start_response, LOG(), None)
+    print resp1
+    assert resp1 == ['<html>Wrong password</html>']
+
+    environ1 = create_return_form_env("", "secret", "sid2")
+    resp2 = server.authenticated(environ1, start_response, LOG(), None)
+    print resp2
+    assert resp2 == ["<html>Missing key: 'login'</html>"]
+
+    environ2 = create_return_form_env("hannibal", "hemligt", "sid3")
+    print environ2
+    resp = server.authenticated(environ2, start_response, LOG(), None)
+    print resp
+    assert resp == ['<html>Authentication failure: Not allowed to use this service (hannibal)</html>']
 
 def test_server_authenticated():
     server = Server("pyoicserv", sdb.SessionDB(), CDB, FUNCTIONS)
@@ -209,7 +259,7 @@ def test_server_authenticated():
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = location
 
-    aresp = cons.parse_authz(environ, start_response, LOG())
+    aresp = cons.handle_authorization_response(environ, start_response, LOG())
 
     #aresp = client.parse_response(AuthorizationResponse, location,
     #                              format="urlencoded",
@@ -221,4 +271,159 @@ def test_server_authenticated():
 
     print cons.grant[cons.state].keys()
     assert _eq(cons.grant[cons.state].keys(), ['tokens', 'code', 'exp_in',
+                                               'seed', 
                                                'grant_expiration_time'])
+
+def test_server_authenticated_1():
+    server = Server("pyoicserv", sdb.SessionDB(), CDB, FUNCTIONS)
+    _session_db = {}
+    cons = Consumer(_session_db, client_config = CLIENT_CONFIG,
+                    server_info=SERVER_INFO, **CONSUMER_CONFIG)
+    cons.debug = True
+    environ = BASE_ENVIRON
+
+    location = cons.begin(environ, start_response, LOG())
+
+    environ = BASE_ENVIRON.copy()
+    environ["QUERY_STRING"] = location
+
+    _ = server.authorization_endpoint(environ, start_response, LOG(), None)
+
+    #sid = resp[0][len("FORM with "):]
+    environ2 = create_return_form_env("user", "password", "abcd")
+
+    resp2 = server.authenticated(environ2, start_response, LOG(), None)
+    print resp2
+    assert resp2 == ['<html>Unknown session identifier</html>']
+
+def test_server_authenticated_token():
+    server = Server("pyoicserv", sdb.SessionDB(), CDB, FUNCTIONS)
+    _session_db = {}
+    cons = Consumer(_session_db, client_config = CLIENT_CONFIG,
+                    server_info=SERVER_INFO, **CONSUMER_CONFIG)
+    cons.debug = True
+    cons.response_type = "token"
+    environ = BASE_ENVIRON
+
+    location = cons.begin(environ, start_response, LOG())
+
+    environ = BASE_ENVIRON.copy()
+    environ["QUERY_STRING"] = location
+
+    resp = server.authorization_endpoint(environ, start_response, LOG(), None)
+
+    sid = resp[0][len("FORM with "):]
+    environ2 = create_return_form_env("user", "password", sid)
+
+    resp2 = server.authenticated(environ2, start_response, LOG(), None)
+
+    assert len(resp2) == 1
+    txt = resp2[0]
+    assert "access_token=" in txt
+    assert "token_type=bearer" in txt
+
+def test_server_authenticated_none():
+    server = Server("pyoicserv", sdb.SessionDB(), CDB, FUNCTIONS)
+    _session_db = {}
+    cons = Consumer(_session_db, client_config = CLIENT_CONFIG,
+                    server_info=SERVER_INFO, **CONSUMER_CONFIG)
+    cons.debug = True
+    cons.response_type = "none"
+    environ = BASE_ENVIRON
+
+    location = cons.begin(environ, start_response, LOG())
+
+    environ = BASE_ENVIRON.copy()
+    environ["QUERY_STRING"] = location
+
+    resp = server.authorization_endpoint(environ, start_response, LOG(), None)
+
+    sid = resp[0][len("FORM with "):]
+    environ2 = create_return_form_env("user", "password", sid)
+
+    resp2 = server.authenticated(environ2, start_response, LOG(), None)
+
+    assert len(resp2) == 1
+    txt = resp2[0]
+    pos0 = txt.index("<title>") + len("<title>Redirecting to ")
+    pos1 = txt.index("</title>")
+    location = txt[pos0:pos1]
+    print location
+
+    assert location.startswith("http://localhost:8087/authz")
+    query = location.split("?")[1]
+    assert query.startswith("state=")
+    assert "&" not in query
+
+def test_token_endpoint():
+    server = Server("pyoicserv", sdb.SessionDB(), CDB, FUNCTIONS)
+
+    authreq = AuthorizationRequest(state="state",
+                                   redirect_uri="http://example.com/authz",
+                                   client_id="client1")
+
+    _sdb = server.sdb
+    sid, access_grant = _sdb.session(user="user_id", areq=authreq)
+    _sdb[sid] = {
+        "oauth_state": "authz",
+        "user_id": "user_id",
+        "authzreq": "",
+        "client_id": "client1",
+        "code": access_grant,
+        "redirect_uri":"http://example.com/authz"
+    }
+
+    # Construct Access token request
+    areq = AccessTokenRequest(grant_type="authorization_code", code=access_grant,
+                              redirect_uri="http://example.com/authz",
+                              client_id="client1", client_secret="secret",)
+
+
+    str = areq.get_urlencoded()
+    fil = StringIO.StringIO(buf=str)
+    environ = BASE_ENVIRON.copy()
+    environ["CONTENT_LENGTH"] = len(str)
+    environ["wsgi.input"] = fil
+
+    resp = server.token_endpoint(environ, start_response, LOG(), None)
+    print resp
+    atr = AccessTokenResponse.set_json(resp[0])
+    print atr.keys()
+    assert _eq(atr.keys(), ['access_token', 'expires_in', 'token_type',
+                            'refresh_token'])
+
+def test_token_endpoint_unauth():
+    server = Server("pyoicserv", sdb.SessionDB(), CDB, FUNCTIONS)
+
+    authreq = AuthorizationRequest(state="state",
+                                   redirect_uri="http://example.com/authz",
+                                   client_id="client1")
+
+    _sdb = server.sdb
+    sid, access_grant = _sdb.session(user="user_id", areq=authreq)
+    _sdb[sid] = {
+        "oauth_state": "authz",
+        "user_id": "user_id",
+        "authzreq": "",
+        "client_id": "client1",
+        "code": access_grant,
+        "redirect_uri":"http://example.com/authz"
+    }
+
+    # Construct Access token request
+    areq = AccessTokenRequest(grant_type="authorization_code", code=access_grant,
+                              redirect_uri="http://example.com/authz",
+                              client_id="client1", client_secret="hemlighet",)
+
+
+    str = areq.get_urlencoded()
+    fil = StringIO.StringIO(buf=str)
+    environ = BASE_ENVIRON.copy()
+    environ["CONTENT_LENGTH"] = len(str)
+    environ["wsgi.input"] = fil
+
+    resp = server.token_endpoint(environ, start_response, LOG(), None)
+    print resp
+    atr = TokenErrorResponse.set_json(resp[0])
+    print atr.keys()
+    assert _eq(atr.keys(), ['error'])

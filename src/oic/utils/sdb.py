@@ -10,34 +10,35 @@ import string
 from oic.oic import OpenIDRequest
 from oic import oauth2
 
+class ExpiredToken(Exception):
+    pass
 
-def xxxx(secret, user, areq, redirect_uri=""):
-    """Generates a session key."""
-    csum = hmac.new(secret, digestmod=hashlib.sha256)
-    if user:
-        csum.update(user)
-    csum.update(areq.state)
-    if areq.state:
-        for val in areq.scope:
-            csum.update(val)
-    if areq.redirect_uri:
-        csum.update(areq.redirect_uri)
-    else:
-        csum.update(redirect_uri)
-    return csum.hexdigest()
+class WrongTokenType(Exception):
+    pass
 
 #noinspection PyUnusedLocal
+def rndstr(size=16):
+    """
+    Returns a string of random characters
+
+    :param size: The length of the string
+    :return: string
+    """
+    return "".join([random.choice(string.ascii_letters) for _ in range(size)])
 
 class SessionDB(object):
     def __init__(self, db=None, secret = "Ab01FG65", token_expires_in=3600,
-                 password="4-amino-1H-pyrimidine-2-one"):
+                 password="4-amino-1H-pyrimidine-2-one",
+                 grant_expires_in=600):
         if db:
             self._db = db
         else:
             self._db = {}
         self.secret = secret
         self.token_expires_in = token_expires_in
+        self.grant_expires_in = grant_expires_in
         self.crypt = oauth2.Crypt(password)
+        self._rndlen = 19
 
     def __getitem__(self, item):
         """
@@ -46,7 +47,10 @@ class SessionDB(object):
         try:
             return self._db[item]
         except KeyError:
-            _, sid, _ = self.get_type_and_key(item)
+            try:
+                _, sid, _ = self.get_type_and_key(item)
+            except Exception:
+                raise KeyError
             return self._db[sid]
 
     def __setitem__(self, key, value):
@@ -57,12 +61,18 @@ class SessionDB(object):
         self._db[key] = value
 
     def update(self, key, attribute, value):
-        try:
-            item = self._db[key]
-        except KeyError:
-            _, sid, _ = self.get_type_and_key(key)
-            item = self._db[sid]
-            key = sid
+        if key in self._db:
+            pass
+        else:
+            try:
+                _, sid, _ = self.get_type_and_key(key)
+            except Exception:
+                raise KeyError
+            
+            if sid not in self._db:
+                raise KeyError
+            else:
+                key = sid
 
         self._db[key][attribute] = value
 
@@ -86,7 +96,7 @@ class SessionDB(object):
                 csum.update(user)
             if areq:
                 csum.update(areq.state)
-                if areq.state:
+                if areq.scope:
                     for val in areq.scope:
                         csum.update(val)
                 if areq.redirect_uri:
@@ -95,13 +105,16 @@ class SessionDB(object):
             #hsid = csum.hexdigest() # 56 bytes
         rnd = num
         while rnd == num:
-            rnd = ''.join([random.choice(string.letters) for x in xrange(3)])
+            rnd = rndstr(self._rndlen)
+        # Ultimate length multiple of 16
         ctext = self.crypt.encrypt("%s%s%s" % (sid, type, rnd))
         return sid, base64.b64encode(ctext)
 
     def get_type_and_key(self, token):
         plain = self.crypt.decrypt(base64.b64decode(token))
-        return plain[-4], plain[:-4], plain[-3:]
+        _n = self._rndlen +1
+        _m = self._rndlen
+        return plain[-_n], plain[:-_n], plain[-_m:]
 
     def create_authz_session(self, user_id, areq, id_token=None, oidreq=None):
         """
@@ -120,10 +133,14 @@ class SessionDB(object):
             "code": access_grant,
             "authzreq": areq.get_json(),
             "client_id": areq.client_id,
+            "expires_in": self.grant_expires_in,
+            "issued": time.time()
         }
 
         try:
-            _dic["nonce"] = areq.nonce
+            _val = areq.nonce
+            if _val:
+                _dic["nonce"] = _val
         except (AttributeError, KeyError):
             pass
         
@@ -157,12 +174,12 @@ class SessionDB(object):
         (typ, key, _) = self.get_type_and_key(token)
 
         if typ != "A": # not a access grant
-            raise Exception("Wrong type of token")
+            raise WrongTokenType("Not a grant token")
         
         dic = self._db[key]
 
         if dic["oauth_state"] == "token":
-            return Exception("Already used!!")
+            raise Exception("Already used!!")
 
         _, _at = self.session("T", token)
         dic["access_token"] = _at
@@ -186,39 +203,59 @@ class SessionDB(object):
         # assert that it is a refresh token
         (typ, _, _) = self.get_type_and_key(rtoken)
         if typ == "R":
-            sid, access_token = self.session(prev=rtoken)
+            if not self.is_valid(rtoken):
+                raise ExpiredToken()
+            
+            sid, access_token = self.session("T", prev=rtoken)
 
             # This might raise an error
             dic = self._db[sid]
 
             dic["issued"] = time.time()
-            dic["oauth_token"] = access_token
+            dic["access_token"] = access_token
             self._db[sid] = dic
             #self._db[dic["xxxx"]] = dic
             return dic
         else:
-            raise Exception("Not a refresh token!")
+            raise WrongTokenType("Not a refresh token!")
 
-    def valid(self, token):
+    def is_expired(self, sess):
+        if "issued" in sess:
+            if (sess["issued"] + sess["expires_in"]) < time.time():
+                return True
+
+        return False
+
+    def is_valid(self, token):
         (typ, sid, _) = self.get_type_and_key(token)
 
         _dic = self._db[sid]
-        if typ == "A" and not _dic["access_grant"]:
-            return False
-        elif typ == "T" and not _dic["oauth_token"]:
-            return False
-        elif typ == "R" and not _dic["oauth_refresh_token"]:
-            return False
-        elif _dic["issued"] + _dic["oauth_token_expires_in"] < time.time():
-            return False
-        else:
-            return True
+        if typ == "A":
+            if _dic["code"] != token:
+                return False
+            elif _dic["oauth_state"] != "authz":
+                return False
 
-    def set_oir(self, key, oir):
-        self._db[key] = oir.dictionary()
+            if self.is_expired(_dic):
+                return False
 
-    def get_oir(self, key):
-        return OpenIDRequest(**self._db[key])
+        elif typ == "T":
+            if _dic["access_token"] != token:
+                return False
+
+            if self.is_expired(_dic):
+                return False
+
+        elif typ == "R" and _dic["refresh_token"] != token:
+            return False
+
+        return True
+
+#    def set_oir(self, key, oir):
+#        self._db[key] = oir.dictionary()
+#
+#    def get_oir(self, key):
+#        return OpenIDRequest(**self._db[key])
 
     def revoke_token(self, token):
         # revokes either the refresh token or the access token
@@ -227,9 +264,11 @@ class SessionDB(object):
 
         _dict = self._db[sid]
         if typ == "A":
-            _dict["oauth_token"] = ""
+            _dict["code"] = ""
+        elif typ == "T":
+            _dict["access_token"] = ""
         elif typ == "R":
-            _dict["oauth_refresh_token"] = ""
+            _dict["refresh_token"] = ""
         else:
             pass
 
