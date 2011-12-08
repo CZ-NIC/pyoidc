@@ -6,6 +6,8 @@ import httplib2
 import time
 import base64
 import inspect
+import random
+import string
 
 from oic.utils import time_util
 from oic.oauth2.message import *
@@ -30,23 +32,34 @@ RESPONSE2ERROR = {
     AccessTokenResponse: [TokenErrorResponse]
 }
 
+def rndstr(size=16):
+    """
+    Returns a string of random ascii characters or digits
+
+    :param size: The length of the string
+    :return: string
+    """
+    _basech = string.ascii_letters + string.digits
+    return "".join([random.choice(_basech) for _ in range(size)])
+
 class Token(object):
     _class = AccessTokenResponse
 
     def __init__(self, resp=None):
-        for prop in self._class.c_attributes.keys():
-            _val = getattr(resp, prop)
-            if _val:
-                setattr(self, prop, _val)
+        if resp:
+            for prop in self._class.c_attributes.keys():
+                _val = getattr(resp, prop)
+                if _val:
+                    setattr(self, prop, _val)
 
-        for key, val in resp.c_extension.items():
-            setattr(self, key, val)
+            for key, val in resp.c_extension.items():
+                setattr(self, key, val)
 
-        if resp.expires_in:
-            _tet = time_util.time_sans_frac() + int(resp.expires_in)
-        else:
-            _tet = 0
-        self.token_expiration_time = int(_tet)
+            if resp.expires_in:
+                _tet = time_util.time_sans_frac() + int(resp.expires_in)
+            else:
+                _tet = 0
+            self.token_expiration_time = int(_tet)
 
 
     def is_valid(self):
@@ -245,23 +258,41 @@ class Client(object):
 
         return uri
 
-    def _get_token(self, **kwargs):
+    def get_grant(self, **kwargs):
+        try:
+            _state = kwargs["state"]
+            if not _state:
+                _state = self.state
+        except KeyError:
+            _state = self.state
+
+        try:
+            return self.grant[_state]
+        except:
+            raise Exception("No grant found for state:'%s'" % _state)
+
+    def get_token(self, **kwargs):
         token = None
         try:
-            token = kwargs["token"]
+            return kwargs["token"]
         except KeyError:
-            if "state" and "scope" in kwargs:
-                token = self.grant[kwargs["state"]].get_token(kwargs["scope"])
-            else:
+            grant = self.get_grant(**kwargs)
+
+            try:
+                token = grant.get_token(kwargs["scope"])
+            except KeyError:
                 try:
                     token = self.grant[kwargs["state"]].get_token("")
                 except KeyError:
-                    pass
+                    raise Exception("No token found for scope")
 
-        if token and token.is_valid():
+        if token is None:
+            raise Exception("No suitable token found")
+        
+        if token.is_valid():
             return token
         else:
-            return None
+            Exception("Expired token!")
 
     def construct_request(self, reqclass, request_args=None, extra_args=None):
         if request_args is None:
@@ -290,10 +321,7 @@ class Client(object):
                                      request_args=None, extra_args=None,
                                      **kwargs):
 
-        try:
-            grant = self.grant[kwargs["state"]]
-        except KeyError:
-            raise Exception("Missing grant")
+        grant = self.get_grant(**kwargs)
 
         if not grant.is_valid():
             raise GrantExpired("Authorization Code to old %s > %s" % (time.time(),
@@ -317,7 +345,7 @@ class Client(object):
         if request_args is None:
             request_args = {}
 
-        token = self._get_token(**kwargs)
+        token = self.get_token(**kwargs)
         if token is None:
             raise Exception("No valid token available")
         
@@ -337,7 +365,7 @@ class Client(object):
         if request_args is None:
             request_args = {}
 
-        token = self._get_token(**kwargs)
+        token = self.get_token(**kwargs)
 
         request_args["token"] = token.access_token
         return self.construct_request(cls, request_args, extra_args)
@@ -462,18 +490,18 @@ class Client(object):
         return resp
 
     def request_and_return(self, url, respcls=None, method="GET", body=None,
-                        return_format="json", extended=True,
+                        body_type="json", extended=True,
                         state="", http_args=None):
         """
         :param url: The URL to which the request should be sent
         :param respcls: The class the should represent the response
         :param method: Which HTTP method to use
         :param body: A message body if any
-        :param return_format: The format of the body of the return message
+        :param body_type: The format of the body of the return message
         :param extended: If non-standard parameters should be honored
         :param http_args: Arguments for the HTTP client
-        :return: A cls or ErrorResponse instance or True if no response
-            body was expected.
+        :return: A cls or ErrorResponse instance or the HTTP response
+            instance if no response body was expected.
         """
 
         if http_args is None:
@@ -489,33 +517,34 @@ class Client(object):
             raise
 
         if response.status == 200:
-            if return_format == "":
+            if body_type == "":
                 pass
-            elif return_format == "json":
+            elif body_type == "json":
                 assert "application/json" in response["content-type"]
-            elif return_format == "urlencoded":
+            elif body_type == "urlencoded":
                 assert DEFAULT_POST_CONTENT_TYPE in response["content-type"]
             else:
-                raise ValueError("Unknown return format: %s" % return_format)
+                raise ValueError("Unknown return format: %s" % body_type)
+        elif response.status == 302: # redirect
+            pass
         elif response.status == 500:
             raise Exception("ERROR: Something went wrong: %s" % content)
         else:
             raise Exception("ERROR: Something went wrong [%s]" % response.status)
 
-        if return_format:
-            return self.parse_response(respcls, content, return_format,
+        if body_type:
+            return self.parse_response(respcls, content, body_type,
                                        state, extended)
         else:
-            return True
+            return response
 
     def do_authorization_request(self, cls=AuthorizationRequest,
-                                 state="", return_format="", method="GET",
+                                 state="", body_type="", method="GET",
                                  request_args=None, extra_args=None,
                                  http_args=None, resp_cls=None):
 
-        url, body, ht_args, csi = self.request_info(cls,
-                                                    request_args=request_args,
-                                                    extra_args=extra_args)
+        url, body, ht_args, csi = self.request_info(cls, method, request_args,
+                                                    extra_args)
 
         if http_args is None:
             http_args = ht_args
@@ -523,7 +552,7 @@ class Client(object):
             http_args.update(http_args)
 
         resp = self.request_and_return(url, resp_cls, method, body,
-                                       return_format, extended=False,
+                                       body_type, extended=False,
                                        state=state, http_args=http_args)
 
         if isinstance(resp, ErrorResponse):
@@ -532,7 +561,7 @@ class Client(object):
         return resp
 
     def do_access_token_request(self, cls=AccessTokenRequest, scope="",
-                                state="", return_format="json", method="POST",
+                                state="", body_type="json", method="POST",
                                 request_args=None, extra_args=None,
                                 http_args=None, resp_cls=AccessTokenResponse):
 
@@ -548,16 +577,16 @@ class Client(object):
             http_args.update(http_args)
 
         return self.request_and_return(url, resp_cls, method, body,
-                                       return_format, extended=False,
+                                       body_type, extended=False,
                                        state=state, http_args=http_args)
 
     def do_access_token_refresh(self, cls=RefreshAccessTokenRequest,
-                                state="", return_format="json", method="POST",
+                                state="", body_type="json", method="POST",
                                 request_args=None, extra_args=None,
                                 http_args=None, resp_cls=AccessTokenResponse,
                                 **kwargs):
 
-        token = self._get_token(state=state, **kwargs)
+        token = self.get_token(state=state, **kwargs)
             
         url, body, ht_args, csi = self.request_info(cls, method=method,
                                                     request_args=request_args,
@@ -570,11 +599,11 @@ class Client(object):
             http_args.update(http_args)
 
         return self.request_and_return(url, resp_cls, method, body,
-                                       return_format, extended=False,
+                                       body_type, extended=False,
                                        state=state, http_args=http_args)
 
     def do_revocate_token(self, cls=TokenRevocationRequest, scope="", state="",
-                          return_format="json", method="POST",
+                          body_type="json", method="POST",
                           request_args=None, extra_args=None, http_args=None,
                           resp_cls=None):
 
@@ -589,7 +618,7 @@ class Client(object):
             http_args.update(http_args)
 
         return self.request_and_return(url, resp_cls, method, body,
-                                       return_format, extended=False,
+                                       body_type, extended=False,
                                        state=state, http_args=http_args)
 
     def fetch_protected_resource(self, uri, method="GET", headers=None,

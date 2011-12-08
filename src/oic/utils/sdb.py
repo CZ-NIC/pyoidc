@@ -5,26 +5,15 @@ import hashlib
 import time
 import random
 import base64
-import string
 
-from oic.oic import OpenIDRequest
 from oic import oauth2
+from oic.oauth2 import rndstr
 
 class ExpiredToken(Exception):
     pass
 
 class WrongTokenType(Exception):
     pass
-
-#noinspection PyUnusedLocal
-def rndstr(size=16):
-    """
-    Returns a string of random characters
-
-    :param size: The length of the string
-    :return: string
-    """
-    return "".join([random.choice(string.ascii_letters) for _ in range(size)])
 
 class SessionDB(object):
     def __init__(self, db=None, secret = "Ab01FG65", token_expires_in=3600,

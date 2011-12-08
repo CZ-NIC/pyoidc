@@ -2,6 +2,11 @@ __author__ = 'rohe0002'
 
 from oic.oic.message import *
 
+ENDPOINTS = ["authorization_endpoint", "token_endpoint",
+             "user_info_endpoint", "refresh_session_endpoint",
+             "check_session_endpoint", "end_session_endpoint",
+             "registration_endpoint"]
+
 RESPONSE2ERROR = {
     AuthorizationResponse: [AuthorizationErrorResponse, TokenErrorResponse],
     AccessTokenResponse: [TokenErrorResponse]
@@ -11,7 +16,11 @@ REQUEST2ENDPOINT = {
     AuthorizationRequest: "authorization_endpoint",
     AccessTokenRequest: "token_endpoint",
     RefreshAccessTokenRequest: "token_endpoint",
+    UserInfoRequest: "user_info_endpoint",
     CheckSessionRequest: "check_session_endpoint",
+    EndSessionRequest: "end_session_endpoint",
+    RefreshSessionRequest: "refresh_session_endpoint",
+    RegistrationRequest: "registration_endpoint"
 }
 
 class Token(oauth2.Token):
@@ -42,10 +51,8 @@ class Client(oauth2.Client):
         self.file_uri = "http://localhost/"
 
         # OpenID connect specific endpoints
-        self.user_info_endpoint = None
-        self.check_session = None
-        self.refresh_session=None
-        self.end_session=None
+        for endpoint in ENDPOINTS:
+            setattr(self, endpoint, "")
 
         self.id_token=None
         self.log = None
@@ -56,7 +63,7 @@ class Client(oauth2.Client):
         self.token_class = Token
 
     def _get_id_token(self, **kwargs):
-        token = self._get_token(**kwargs)
+        token = self.get_token(**kwargs)
 
         if token:
             return token.id_token
@@ -99,7 +106,7 @@ class Client(oauth2.Client):
         if "access_token" in request_args:
             pass
         else:
-            token = self._get_token(**kwargs)
+            token = self.get_token(**kwargs)
             if token is None:
                 raise Exception("No valid token available")
 
@@ -161,8 +168,8 @@ class Client(oauth2.Client):
         elif "state" in request_args:
             kwargs["state"] = request_args["state"]
 
-        if "redirect_uri" not in request_args:
-            request_args["redirect_url"] = self.redirect_uri
+#        if "redirect_url" not in request_args:
+#            request_args["redirect_url"] = self.redirect_url
             
         return self._id_token_based(cls, request_args, extra_args, **kwargs)
 
@@ -183,63 +190,63 @@ class Client(oauth2.Client):
     # ------------------------------------------------------------------------
 
     def do_authorization_request(self, cls=AuthorizationRequest,
-                                 state="", return_format="", method="GET",
+                                 state="", body_type="", method="GET",
                                  request_args=None, extra_args=None,
                                  http_args=None, resp_cls=None):
 
         return oauth2.Client.do_authorization_request(self, cls, state,
-                                                      return_format, method,
+                                                      body_type, method,
                                                       request_args,
                                                       extra_args, http_args,
                                                       resp_cls)
 
 
     def do_access_token_request(self, cls=AccessTokenRequest, scope="",
-                                state="", return_format="json", method="POST",
+                                state="", body_type="json", method="POST",
                                 request_args=None, extra_args=None,
                                 http_args=None, resp_cls=AccessTokenResponse,
                                 token=None):
 
         return oauth2.Client.do_access_token_request(self, cls, scope, state,
-                                                     return_format, method,
+                                                     body_type, method,
                                                      request_args, extra_args,
                                                      http_args, resp_cls)
 
     def do_access_token_refresh(self, cls=RefreshAccessTokenRequest,
-                                state="", return_format="json", method="POST",
+                                state="", body_type="json", method="POST",
                                 request_args=None, extra_args=None,
                                 http_args=None, resp_cls=AccessTokenResponse,
                                 **kwargs):
 
         return oauth2.Client.do_access_token_refresh(self, cls, state,
-                                                     return_format, method,
+                                                     body_type, method,
                                                      request_args,
                                                      extra_args, http_args,
                                                      resp_cls, **kwargs)
 
-    def do_user_info_request(self, cls=UserInfoRequest, state="",
-                             return_format="json", method="POST",
-                             request_args=None, extra_args=None,
-                             http_args=None, resp_cls=UserInfoResponse,
-                             **kwargs):
-
-        token = self._get_token(state=state, **kwargs)
-        url, body, ht_args, csi = self.request_info(cls, method=method,
-                                                    request_args=request_args,
-                                                    extra_args=extra_args,
-                                                    token=token)
-
-        if http_args is None:
-            http_args = ht_args
-        else:
-            http_args.update(http_args)
-
-        return self.request_and_return(url, resp_cls, method, body,
-                                       return_format, extended=False,
-                                       state=state, http_args=http_args)
+#    def do_user_info_request(self, cls=UserInfoRequest, state="",
+#                             body_type="json", method="POST",
+#                             request_args=None, extra_args=None,
+#                             http_args=None, resp_cls=UserInfoResponse,
+#                             **kwargs):
+#
+#        token = self._get_token(state=state, **kwargs)
+#        url, body, ht_args, csi = self.request_info(cls, method=method,
+#                                                    request_args=request_args,
+#                                                    extra_args=extra_args,
+#                                                    token=token)
+#
+#        if http_args is None:
+#            http_args = ht_args
+#        else:
+#            http_args.update(http_args)
+#
+#        return self.request_and_return(url, resp_cls, method, body,
+#                                       body_type, extended=False,
+#                                       state=state, http_args=http_args)
 
     def do_registration_request(self, cls=RegistrationRequest, scope="",
-                                state="", return_format="json", method="POST",
+                                state="", body_type="json", method="POST",
                                 request_args=None, extra_args=None,
                                 http_args=None, resp_cls=RegistrationResponse):
 
@@ -254,14 +261,14 @@ class Client(oauth2.Client):
             http_args.update(http_args)
 
         return self.request_and_return(url, resp_cls, method, body,
-                                       return_format, extended=False,
+                                       body_type, extended=False,
                                        state=state, http_args=http_args)
 
     def do_check_session_request(self, cls=CheckSessionRequest, scope="",
-                                 state="", return_format="json", method="POST",
+                                 state="", body_type="json", method="GET",
                                  request_args=None, extra_args=None,
                                  http_args=None,
-                                 resp_cls=RegistrationResponse):
+                                 resp_cls=IdToken):
 
         url, body, ht_args, csi = self.request_info(cls, method=method,
                                                     request_args=request_args,
@@ -274,11 +281,11 @@ class Client(oauth2.Client):
             http_args.update(http_args)
 
         return self.request_and_return(url, resp_cls, method, body,
-                                       return_format, extended=False,
+                                       body_type, extended=False,
                                        state=state, http_args=http_args)
 
 #    def do_check_id_request(self, cls=CheckIDRequest, scope="",
-#                                 state="", return_format="json", method="POST",
+#                                 state="", body_type="json", method="POST",
 #                                 request_args=None, extra_args=None,
 #                                 http_args=None, resp_cls=None):
 #
@@ -293,13 +300,13 @@ class Client(oauth2.Client):
 #            http_args.update(http_args)
 #
 #        return self.request_and_return(url, resp_cls, method, body,
-#                                       return_format, extended=False,
+#                                       body_type, extended=False,
 #                                       state=state, http_args=http_args)
 
     def do_end_session_request(self, cls=EndSessionRequest, scope="",
-                                 state="", return_format="json", method="POST",
+                                 state="", body_type="", method="GET",
                                  request_args=None, extra_args=None,
-                                 http_args=None, resp_cls=EndSessionResponse):
+                                 http_args=None, resp_cls=None):
 
         url, body, ht_args, csi = self.request_info(cls, method=method,
                                                     request_args=request_args,
@@ -312,28 +319,28 @@ class Client(oauth2.Client):
             http_args.update(http_args)
 
         return self.request_and_return(url, resp_cls, method, body,
-                                       return_format, extended=False,
+                                       body_type, extended=False,
                                        state=state, http_args=http_args)
 
-    def do_open_id_request(self, cls=OpenIDRequest, scope="",
-                                 state="", return_format="json", method="POST",
-                                 request_args=None, extra_args=None,
-                                 http_args=None,
-                                 resp_cls=AuthorizationResponse):
-
-        url, body, ht_args, csi = self.request_info(cls, method=method,
-                                                    request_args=request_args,
-                                                    extra_args=extra_args,
-                                                    scope=scope, state=state)
-
-        if http_args is None:
-            http_args = ht_args
-        else:
-            http_args.update(http_args)
-
-        return self.request_and_return(url, resp_cls, method, body,
-                                       return_format, extended=False,
-                                       state=state, http_args=http_args)
+#    def do_open_id_request(self, cls=OpenIDRequest, scope="",
+#                                 state="", body_type="json", method="GET",
+#                                 request_args=None, extra_args=None,
+#                                 http_args=None,
+#                                 resp_cls=AuthorizationResponse):
+#
+#        url, body, ht_args, csi = self.request_info(cls, method=method,
+#                                                    request_args=request_args,
+#                                                    extra_args=extra_args,
+#                                                    scope=scope, state=state)
+#
+#        if http_args is None:
+#            http_args = ht_args
+#        else:
+#            http_args.update(http_args)
+#
+#        return self.request_and_return(url, resp_cls, method, body,
+#                                       body_type, extended=False,
+#                                       state=state, http_args=http_args)
 
     def get_or_post(self, uri, method, req, **kwargs):
         if method == "GET":
@@ -364,7 +371,8 @@ class Client(oauth2.Client):
                 self.log.info("do access token refresh")
             try:
                 self.do_access_token_refresh(token=token)
-                uir.access_token = self.grant[state].access_token
+                token = self.grant[state].get_token(scope)
+                uir.access_token = token.access_token
             except Exception:
                 raise
 
@@ -381,7 +389,7 @@ class Client(oauth2.Client):
 
         return path, body, method, h_args
 
-    def do_user_info_request(self, method="GET", state="", scope="openid",
+    def do_user_info_request(self, method="POST", state="", scope="openid",
                              schema="openid", **kwargs):
 
         kwargs["schema"] = schema
@@ -418,8 +426,8 @@ class Server(oauth2.Server):
         return urlparse.parse_qs(query)
 
     def parse_token_request(self, cls=AccessTokenRequest, body=None,
-                            extend=False):
-        return oauth2.Server.parse_token_request(self, cls, body, extend)
+                            extended=False):
+        return oauth2.Server.parse_token_request(self, cls, body, extended)
 
     def parse_authorization_request(self, rcls=AuthorizationRequest,
                                     url=None, query=None, extended=False):
@@ -427,15 +435,15 @@ class Server(oauth2.Server):
                                                          query, extended)
 
     def parse_jwt_request(self, rcls=AuthorizationRequest, txt="", key="",
-                          verify=True, extend=False):
+                          verify=True, extended=False):
 
         return oauth2.Server.parse_jwt_request(self, rcls, txt, key, verify,
-                                               extend)
+                                               extended)
 
     def parse_refresh_token_request(self, cls=RefreshAccessTokenRequest,
-                                    body=None, extend=False):
+                                    body=None, extended=False):
         return oauth2.Server.parse_refresh_token_request(self, cls, body,
-                                                         extend)
+                                                         extended)
 
     def _deser_id_token(self, str=""):
         if not str:
@@ -458,28 +466,27 @@ class Server(oauth2.Server):
         assert "id_token" in param # ignore the rest
         return self._deser_id_token(param["id_token"][0])
 
-    def parse_open_id_request(self, data, format="json", extended=False):
+    def _parse_request(self, cls, data, format, extended):
         if format == "json":
-            oidr = OpenIDRequest.set_json(data, extended)
+            request = cls.set_json(data, extended)
         elif format == "urlencoded":
             if '?' in data:
                 parts = urlparse.urlparse(data)
                 scheme, netloc, path, params, query, fragment = parts[:6]
             else:
                 query = data
-            oidr = OpenIDRequest.set_urlencoded(query, extended)
+            request = cls.set_urlencoded(query, extended)
         else:
             raise Exception("Unknown package format: '%s'" %  format)
 
-        assert oidr.verify()
-        return oidr
+        request.verify()
+        return request
+    
+    def parse_open_id_request(self, data, format="urlencoded", extended=False):
+        return self._parse_request(OpenIDRequest, data, format, extended)
 
-    def parse_user_info_request(self, url=None, query=None, extended=False):
-        if url:
-            parts = urlparse.urlparse(url)
-            scheme, netloc, path, params, query, fragment = parts[:6]
-
-        return UserInfoRequest.set_urlencoded(query, extended)
+    def parse_user_info_request(self, data, format="urlencoded", extended=False):
+        return self._parse_request(UserInfoRequest, data, format, extended)
 
     def parse_refresh_session_request(self, url=None, query=None,
                                       extended=False):
@@ -489,8 +496,9 @@ class Server(oauth2.Server):
 
         return RefreshSessionRequest.set_urlencoded(query, extended)
 
-    def parse_registration_request(self, query, extended=True):
-        return RegistrationRequest.set_urlencoded(query, extended)
+    def parse_registration_request(self, data, format="urlencoded",
+                                   extended=True):
+        return self._parse_request(RegistrationRequest, data, format, extended)
 
     def parse_end_session_request(self, query, extended=True):
         esr = EndSessionRequest.set_urlencoded(query, extended)

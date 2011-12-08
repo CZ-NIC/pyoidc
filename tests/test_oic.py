@@ -10,13 +10,20 @@ from oic.oic import Token
 from oic.oic import Client
 from oic.oic import Server
 from oic.oic.message import *
+
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import GrantExpired
 
 from pytest import raises
 
+from fakeoicsrv import MyFakeOICServer
+
 def _eq(l1, l2):
     return set(l1) == set(l2)
+
+IDTOKEN = IdToken(iss="http://oic.example.org/", user_id="user_id",
+                  aud="http://example.com/oicclient",
+                  exp=time_sans_frac()+86400, nonce="N0nce")
 
 # ----------------- CLIENT --------------------
 
@@ -305,6 +312,104 @@ class TestOICClient():
         assert h_args == {}
         assert isinstance(cis, AuthorizationRequest)
 
+    def test_do_authorization_request(self):
+        self.client.grant = {}
+        self.client.redirect_uri = "https://www.example.com/authz"
+        self.client.authorization_endpoint = "http://oic.example.org/authorization"
+        self.client.client_id = "a1b2c3"
+        self.client.state = "state0"
+        self.client.http = MyFakeOICServer()
+
+        args = {"response_type":["code"],
+                "scope": ["openid"]}
+        result = self.client.do_authorization_request(state=self.client.state,
+                                                      request_args=args)
+        assert result.status == 302
+        assert result.location.startswith(self.client.redirect_uri)
+        _, query = result.location.split("?")
+
+        self.client.parse_response(AuthorizationResponse, info=query,
+                                   format="urlencoded")
+
+    def test_access_token_request(self):
+        self.client.token_endpoint = "http://oic.example.org/token"
+
+        print self.client.grant.keys()
+        print self.client.state
+        print self.client.grant[self.client.state]
+
+        resp = self.client.do_access_token_request(scope="openid")
+        print resp
+        assert isinstance(resp, AccessTokenResponse)
+        assert _eq(resp.keys(), ['token_type', 'state', 'access_token',
+                                 'expires_in', 'refresh_token', 'scope'])
+
+    def test_do_user_info_request(self):
+        self.client.user_info_endpoint = "http://oic.example.org/userinfo"
+
+        resp = self.client.do_user_info_request(state=self.client.state)
+        assert isinstance(resp, UserInfoResponse)
+        assert _eq(resp.keys(), ['name', 'email', 'verified', 'nickname'])
+        assert resp.name == "Melody Gardot"
+
+    def test_do_access_token_refresh(self):
+        token = self.client.get_token(scope="openid")
+
+        resp = self.client.do_access_token_refresh(scope="openid")
+        print resp
+        assert isinstance(resp, AccessTokenResponse)
+        assert _eq(resp.keys(), ['token_type', 'state', 'access_token',
+                                 'expires_in', 'refresh_token', 'scope'])
+
+    def test_do_check_session_request(self):
+        self.client.redirect_uri = "https://www.example.com/authz"
+        self.client.client_id = "a1b2c3"
+        self.client.http.jwt_keys = {"http://oic.example.org/": JWT_KEY}
+        self.client.check_session_endpoint = "https://example.org/check_session"
+
+        args = {"id_token": IDTOKEN.get_jwt(key=JWT_KEY)}
+        resp = self.client.do_check_session_request(request_args=args)
+
+        assert isinstance(resp, IdToken)
+        assert _eq(resp.keys(), ['nonce', 'user_id', 'aud', 'iss', 'exp'])
+
+    def test_do_end_session_request(self):
+        self.client.redirect_uri = "https://www.example.com/authz"
+        self.client.client_id = "a1b2c3"
+        self.client.http.jwt_keys = {"http://oic.example.org/": JWT_KEY}
+        self.client.end_session_endpoint = "https://example.org/end_session"
+
+        args = {"id_token": IDTOKEN.get_jwt(key=JWT_KEY),
+                "redirect_url": "http://example.com/end"}
+        resp = self.client.do_end_session_request(request_args=args,
+                                                  state="state1")
+
+        assert resp.status == 302
+        assert resp.location.startswith("http://example.com/end")
+
+    def test_do_registration_request(self):
+        self.client.registration_endpoint = "https://example.org/registration"
+
+        args = {"type":"client_associate",
+                "application_type": "web",
+                "application_name": "my service",
+                "redirect_uri": ["http://example.com/authz"]}
+        resp = self.client.do_registration_request(request_args=args)
+        print resp
+        assert _eq(resp.keys(),['client_secret', 'expires_in', 'client_id'])
+
+    def test_do_user_info_request_with_access_token_refresh(self):
+        self.client.user_info_endpoint = "http://oic.example.org/userinfo"
+
+        token = self.client.get_token(state=self.client.state, scope="openid")
+        token.token_expiration_time = time_sans_frac()-86400
+
+        resp = self.client.do_user_info_request(state=self.client.state)
+        assert isinstance(resp, UserInfoResponse)
+        assert _eq(resp.keys(), ['name', 'email', 'verified', 'nickname'])
+        assert resp.name == "Melody Gardot"
+
+
 def test_get_authorization_request():
     client = Client()
     client.redirect_uri = "https://www.example.com/authz"
@@ -526,7 +631,7 @@ def test_server_parse_token_request():
     assert tr.grant_type == "authorization_code"
     assert tr.code == "SplxlOBeZQQYbYS6WxSbIA"
 
-    tr = srv.parse_token_request(body=uenc, extend=True)
+    tr = srv.parse_token_request(body=uenc, extended=True)
     print tr.keys()
 
     assert isinstance(tr, AccessTokenRequest)
@@ -640,7 +745,8 @@ def test_construct_EndSessionRequest():
     resp.scope = ["openid"]
     cli.grant["foo"].tokens.append(Token(resp))
 
-    esr = cli.construct_EndSessionRequest(state="foo")
+    args = {"redirect_url":"http://example.com/end"}
+    esr = cli.construct_EndSessionRequest(state="foo", request_args=args)
     print esr.keys()
     assert _eq(esr.keys(), ['id_token', 'state', "redirect_url"])
 
@@ -691,6 +797,20 @@ def test_user_info_request():
     assert h_args == {'headers': {'content-type': 'application/x-www-form-urlencoded'}}
 
 
+    path, body, method, h_args = cli.user_info_request(method="POST", 
+                                                       state="state0")
+
+    assert path == "http://example.com/userinfo"
+    assert method == "POST"
+    assert body == "access_token=access_token"
+    assert h_args == {'headers': {'content-type': 'application/x-www-form-urlencoded'}}
+
+def test_do_user_indo_request():
+    cli = Client()
+    cli.user_info_endpoint = "http://example.com/userinfo"
+
+    cli.http = MyFakeOICServer()
+
 # ----------------------------------------------------------------------------
 
 TREQ = AccessTokenRequest(grant_type="authorization_code", code="code",
@@ -712,10 +832,6 @@ RSREQ = RefreshSessionRequest(id_token="id_token",
                               redirect_url="http://example.com/authz",
                               state="state0")
 
-IDTOKEN = IdToken(iss="http://oic.example.org/", user_id="user_id",
-                  aud="http://example.com/oicclient",
-                  exp=time_sans_frac()+86400, nonce="N0nce")
-
 JWT_KEY = "abcdefghijklmnop"
 CSREQ = CheckSessionRequest(id_token=IDTOKEN.get_jwt(key=JWT_KEY))
 
@@ -726,13 +842,14 @@ ESREQ = EndSessionRequest(id_token=IDTOKEN.get_jwt(key=JWT_KEY),
 IDT2 = IDTokenClaim(max_age=86400, iso29115="2")
 CLAIM = Claims(name=None, nickname={"optional": True}, email=None,
                verified=None, picture={"optional": True})
-USRINFO = UserInfoClaim(claims=CLAIM, format="signed")
+USRINFO = UserInfoClaim(claims=[CLAIM], format="signed")
 
-OIDREQ = OpenIDRequest(response_type="code id_token", client_id="s6BhdRkqt3",
+OIDREQ = OpenIDRequest(response_type=["code", "id_token"],
+                       client_id="s6BhdRkqt3",
                        redirect_uri="https://client.example.com/cb",
                        scope="openid profile", state= "n-0S6_WzA2Mj",
                        nonce="af0ifjsldkj",
-                       userinfo=USRINFO, id_token=IDT2)
+                       user_info=USRINFO, id_token=IDT2)
 
 def test_server_init():
 
@@ -768,14 +885,20 @@ def test_parse_token_request():
 
 def test_parse_user_info_request():
     srv = Server()
-    qdict = srv.parse_user_info_request(query=UIREQ.get_urlencoded())
+    qdict = srv.parse_user_info_request(data=UIREQ.get_urlencoded())
+    assert _eq(qdict.keys(),['access_token', 'schema'])
+    assert qdict["access_token"] == "access_token"
+    assert qdict["schema"] == "openid"
+
+    url = "https://example.org/userinfo?%s" % UIREQ.get_urlencoded()
+    qdict = srv.parse_user_info_request(data=url)
     assert _eq(qdict.keys(),['access_token', 'schema'])
     assert qdict["access_token"] == "access_token"
     assert qdict["schema"] == "openid"
 
 def test_parse_registration_request():
     srv = Server()
-    request = srv.parse_registration_request(query=REGREQ.get_urlencoded())
+    request = srv.parse_registration_request(data=REGREQ.get_urlencoded())
     assert isinstance(request, RegistrationRequest)
     assert _eq(request.keys(),['redirect_uri', 'contact', 'client_id',
                              'application_name', 'type'])
@@ -785,6 +908,12 @@ def test_parse_registration_request():
 def test_parse_refresh_session_request():
     srv = Server()
     request = srv.parse_refresh_session_request(query=RSREQ.get_urlencoded())
+    assert isinstance(request, RefreshSessionRequest)
+    assert _eq(request.keys(),['id_token', 'state', 'redirect_url'])
+    assert request.id_token == "id_token"
+
+    url = "https://example.org/userinfo?%s" % RSREQ.get_urlencoded()
+    request = srv.parse_refresh_session_request(url=url)
     assert isinstance(request, RefreshSessionRequest)
     assert _eq(request.keys(),['id_token', 'state', 'redirect_url'])
     assert request.id_token == "id_token"
@@ -807,12 +936,47 @@ def test_parse_end_session_request():
 
 def test_parse_open_id_request():
     srv = Server({"http://oic.example.org/":JWT_KEY})
-    request = srv.parse_open_id_request(data=OIDREQ.get_urlencoded(),
-                                        format="urlencoded")
+    request = srv.parse_open_id_request(data=OIDREQ.get_urlencoded())
     assert isinstance(request, OpenIDRequest)
     print request.keys()
-    assert _eq(request.keys(),['nonce', 'id_token', 'state', 'redirect_uri',
-                               'response_type', 'client_id', 'scope'])
+    assert _eq(request.keys(),['nonce', 'id_token', 'user_info', 'state',
+                               'redirect_uri', 'response_type', 'client_id',
+                               'scope'])
     assert request.state == "n-0S6_WzA2Mj"
 
-    assert request.id_token.aud == "http://example.com/oicclient"
+    print request.user_info
+
+    assert request.user_info.format == "signed"
+    assert len(request.user_info.claims) == 1
+    assert request.user_info.claims[0].nickname == {"optional": True}
+
+    request = srv.parse_open_id_request(data=OIDREQ.get_json(), format="json")
+    assert isinstance(request, OpenIDRequest)
+    print request.keys()
+    assert _eq(request.keys(),['nonce', 'id_token', 'user_info', 'state',
+                               'redirect_uri', 'response_type', 'client_id',
+                               'scope'])
+    assert request.nonce == "af0ifjsldkj"
+
+    print request.user_info
+
+    assert request.user_info.format == "signed"
+    assert len(request.user_info.claims) == 1
+    assert request.user_info.claims[0].email is None
+
+    url = "https://example.org/openid?%s" % OIDREQ.get_urlencoded()
+    request = srv.parse_open_id_request(url)
+    assert isinstance(request, OpenIDRequest)
+    print request.keys()
+    assert _eq(request.keys(),['nonce', 'id_token', 'user_info', 'state',
+                               'redirect_uri', 'response_type', 'client_id',
+                               'scope'])
+    assert request.state == "n-0S6_WzA2Mj"
+
+    print request.user_info
+
+    assert request.user_info.format == "signed"
+    assert len(request.user_info.claims) == 1
+    assert request.user_info.claims[0].nickname == {"optional": True}
+
+    raises(Exception, 'srv.parse_open_id_request(url, format="base64")')

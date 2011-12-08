@@ -4,9 +4,10 @@ import urllib
 
 from pytest import raises
 
+from oic.oauth2 import rndstr
+
 from oic.oauth2.consumer import Consumer
 from oic.oauth2.consumer import stateID
-from oic.oauth2.consumer import rndstr
 from oic.oauth2.consumer import factory
 
 from oic.utils import http_util

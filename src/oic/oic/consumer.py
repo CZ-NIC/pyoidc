@@ -2,8 +2,6 @@
 
 __author__ = 'rohe0002'
 
-import random
-import string
 import time
 import os.path
 import json
@@ -15,14 +13,22 @@ from hashlib import md5
 
 from oic.utils import http_util
 from oic.oic import Client
+from oic.oic import ENDPOINTS
 from oic.oic.message import AuthorizationRequest
+from oic.oic.message import IDTokenClaim
+from oic.oic.message import UserInfoClaim
+from oic.oic.message import Claims
+from oic.oic.message import OpenIDRequest
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import RegistrationResponse
+
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2 import Grant
+from oic.oauth2 import rndstr
+
 from oic.oauth2.consumer import TokenError
 from oic.oauth2.consumer import AuthzError
 from oic.oauth2.consumer import UnknownState
@@ -44,16 +50,6 @@ def stateID(url, seed):
     ident.update(seed)
     return ident.hexdigest()
 
-def rndstr(size=16):
-    """
-    Returns a string of random ascii characters or digits
-
-    :param size: The length of the string
-    :return: string
-    """
-    _basech = string.ascii_letters + string.digits
-    return "".join([random.choice(_basech) for _ in range(size)])
-
 def factory(kaka, sdb, config):
     """
     Return the right Consumer instance dependent on what's in the cookie
@@ -72,10 +68,33 @@ def factory(kaka, sdb, config):
     http_util.parse_cookie(config["name"], cons.seed, kaka)
     return cons
 
-PARAMS = ["client_id","state","grant", "redirect_uri",
-          "authorization_endpoint", "token_endpoint",
-          "token_revocation_endpoint", "user_info_endpoint", "seed", "debug",
-          "nonce", "request_filename", "user_info", "id_token"]
+def construct_openid_request(arq, key):
+    """
+    Construct the specification of what I want returned.
+    The request will be signed
+    """
+
+    # Should be configurable !!
+    claim = Claims(name=None, nickname={"optional": True},
+                 email=None, verified=None,
+                 picture={"optional": True})
+
+    uic = UserInfoClaim([claim], format="signed", locale="us-en")
+
+    id_token = IDTokenClaim(max_age=86400, iso29115="2")
+
+    oir = OpenIDRequest(arq.response_type, arq.client_id,
+                            arq.redirect_uri,
+                            arq.scope, arq.state, uic, id_token)
+
+    return oir.get_jwt(key=key)
+
+
+
+
+IGNORE = ["request2endpoint", "response2error", "grant_class", "token_class",
+          "http"]
+
 
 class Consumer(Client):
     """ An OpenID Connect consumer implementation
@@ -98,19 +117,21 @@ class Consumer(Client):
 
         self.config = config
         if config:
-            self.debug = config["debug"]
+            try:
+                self.debug = config["debug"]
+            except KeyError:
+                self.debug = 0
 
         if server_info:
-            self.authorization_endpoint = server_info["authorization_endpoint"]
-            self.token_endpoint = server_info["token_endpoint"]
-            self.user_info_endpoint = server_info["user_info_endpoint"]
+            for endpoint in ENDPOINTS:
+                try:
+                    setattr(self, endpoint, server_info[endpoint])
+                except KeyError:
+                    setattr(self, endpoint, "")
+
 
         self.sdb = session_db
-        try:
-            self.function = self.config["function"]
-        except (KeyError, TypeError):
-            self.function = {}
-            
+
         self.seed = ""
         self.nonce = ""
         self.request_filename=""
@@ -159,7 +180,8 @@ class Consumer(Client):
         return None
 
     def dictionary(self):
-        return dict([(p, getattr(self,p)) for p in PARAMS])
+        return dict([(k,v) for k, v in self.__dict__.items() if k not in
+                                                               IGNORE])
 
     def _backup(self, sid):
         """ Stores instance variable values in the session store under a
@@ -217,6 +239,7 @@ class Consumer(Client):
         self.nonce = rndstr(12)
 
         args = {
+            "client_id": self.client_id,
             "state":sid,
             "response_type":response_type,
             "scope": scope,
@@ -226,7 +249,7 @@ class Consumer(Client):
         areq = self.construct_AuthorizationRequest(AuthorizationRequest,
                                                    request_args=args)
 
-        id_request = self.function["openid_request"](areq, self.config["key"])
+        id_request = construct_openid_request(areq, self.config["key"])
         if self.config["request_method"] == "parameter":
             areq.request = id_request
         elif self.config["request_method"] == "simple":
@@ -265,7 +288,6 @@ class Consumer(Client):
         _log_info = logger.info
         if self.debug:
             _log_info("- authorization -")
-            _log_info("- %s flow -" % self.config["flow_type"])
             _log_info("environ: %s" % environ)
 
         if environ.get("REQUEST_METHOD") == "GET":

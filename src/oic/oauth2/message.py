@@ -204,7 +204,7 @@ class Base(object):
         return json.dumps(dic)
 
     @classmethod
-    def set_json(cls, txt, extended=False):
+    def from_dictionary(cls, dictionary, extended=False):
         """
         Given a JSON text representation create a class instance
 
@@ -218,7 +218,7 @@ class Base(object):
         args = {}
         extension = {}
 
-        for key, val in json.loads(txt).items():
+        for key, val in dictionary.items():
             # Earlier versions of python don't like unicode strings as
             # variable names
             skey = str(key)
@@ -246,17 +246,19 @@ class Base(object):
                     else:
                         raise ValueError("Wrong type != %s" % vtype)
                 else:
-                    if isinstance(val, basestring):
+                    if isinstance(val,vtyp): # Not necessary to do anything
                         args[skey] = val
-                    elif isinstance(val, list):
-                        if len(val) == 1:
-                            args[skey] = val[0]
-                        else:
-                            raise TooManyValues
                     else:
-                        if issubclass(vtyp, Base):
-                            val = dict([(str(k), v) for k,v in val.items()])
-                            args[skey] = vtyp(**val)
+                        if _deser:
+                            val = _deser(val, format="dict", extended=extended)
+
+                        if isinstance(val, basestring):
+                            args[skey] = val
+                        elif isinstance(val, list):
+                            if len(val) == 1:
+                                args[skey] = val[0]
+                            else:
+                                raise TooManyValues
                         else:
                             args[skey] = val
             elif extended:
@@ -268,12 +270,17 @@ class Base(object):
 
         return cls(**args)
 
-    def to_json(self, extended=False):
-        return self.get_json(extended)
+    @classmethod
+    def set_json(cls, txt, extended=False):
+        return cls.from_dictionary(json.loads(txt), extended)
 
     @classmethod
     def from_json(cls, txt, extended=False):
-        return cls.set_json(txt, extended)
+        return cls.from_dictionary(json.loads(txt), extended)
+
+    def to_json(self, extended=False):
+        return self.get_json(extended)
+
 
     def get_jwt(self, extended=False, key="", algorithm=""):
         """

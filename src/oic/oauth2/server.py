@@ -12,8 +12,10 @@ except ImportError:
     from cgi import parse_qs
 
 from oic.utils.http_util import *
-from oic.oauth2 import MissingRequiredAttribute
 
+from oic.oauth2 import rndstr
+
+from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2 import AuthorizationResponse
 from oic.oauth2 import AuthorizationRequest
 from oic.oauth2 import AccessTokenResponse
@@ -40,9 +42,6 @@ def get_post(environ):
 #noinspection PyUnusedLocal
 #def do_authorization(user):
 #    return ""
-
-def rndstr(size=16):
-    return "".join([random.choice(string.ascii_letters) for _ in range(size)])
 
 class Server(oauth2.Server):
 

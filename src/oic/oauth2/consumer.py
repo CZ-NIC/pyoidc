@@ -16,6 +16,7 @@ from oic.oauth2 import AccessTokenResponse
 from oic.oauth2 import Client
 from oic.oauth2 import ErrorResponse
 from oic.oauth2 import Grant
+from oic.oauth2 import rndstr
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint", "user_info_endpoint",
     "check_id_endpoint", "registration_endpoint", "token_revokation_endpoint"]
@@ -32,15 +33,6 @@ def stateID(url, seed):
     ident.update(url)
     ident.update(seed)
     return ident.hexdigest()
-
-def rndstr(size=16):
-    """
-    Returns a string of random characters
-
-    :param size: The length of the string
-    :return: string
-    """
-    return "".join([random.choice(string.ascii_letters) for _ in range(size)])
 
 def factory(kaka, sdb, client_id, **kwargs):
     """

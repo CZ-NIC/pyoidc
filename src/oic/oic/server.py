@@ -19,6 +19,8 @@ from oic.utils.http_util import *
 from oic.utils import time_util
 
 from oic.oauth2 import MissingRequiredAttribute
+from oic.oauth2 import rndstr
+
 from oic.oic import Claims
 from oic.oic import AuthorizationResponse
 from oic.oic import AuthorizationRequest
@@ -60,9 +62,6 @@ def get_post(environ):
 #noinspection PyUnusedLocal
 def do_authorization(user):
     return ""
-
-def rndstr(size=16):
-    return "".join([random.choice(string.ascii_letters) for _ in range(size)])
 
 def get_or_post(environ):
     _method = environ.get("REQUEST_METHOD")

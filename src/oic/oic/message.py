@@ -73,7 +73,16 @@ def userinfo_ser(val, format="urlencoded", extended=False):
     return base_ser(val, format, extended)
 
 def userinfo_deser(val, format="urlencoded", extended=False):
-    return base_deser(UserInfoClaim, val, format, extended)
+    if format=="dict":
+        res = UserInfoClaim.from_dictionary(val, extended)
+    elif format == "urlencoded":
+        res = UserInfoClaim.set_urlencoded(val, extended)
+    elif format == "json":
+        res = UserInfoClaim.set_json(val, extended)
+    else:
+        raise Exception("Unknown format")
+
+    return res
 
 #noinspection PyUnusedLocal
 def claims_ser(val, format="urlencoded", extended=False):
@@ -136,6 +145,7 @@ class AccessTokenResponse(oauth2.AccessTokenResponse):
                  expires_in=None,
                  refresh_token=None,
                  scope=None,
+                 state=None,
                  id_token=None,
                  domain=None,
                  **kwargs):
@@ -145,6 +155,7 @@ class AccessTokenResponse(oauth2.AccessTokenResponse):
                                             expires_in,
                                             refresh_token,
                                             scope,
+                                            state,
                                             **kwargs)
         self.id_token = id_token
         self.domain = domain
@@ -424,7 +435,8 @@ class RegistrationRequest(oauth2.Base):
 
     def verify(self):
         assert self.type in ["client_associate", "client_update"]
-        assert self.application_type in ["native", "web"]
+        if self.application_type:
+            assert self.application_type in ["native", "web"]
 
         return oauth2.Base.verify(self)
 
@@ -451,7 +463,7 @@ class IdToken(oauth2.Base):
     #c_attributes["client_id"] = SINGLE_REQUIRED_STRING
     c_attributes["user_id"] = SINGLE_REQUIRED_STRING
     c_attributes["aud"] = SINGLE_REQUIRED_STRING
-    c_attributes["exp"] = SINGLE_REQUIRED_STRING
+    c_attributes["exp"] = SINGLE_REQUIRED_INT
     c_attributes["nonce"] = SINGLE_OPTIONAL_STRING
     c_attributes["issued_to"] = SINGLE_OPTIONAL_STRING
     c_attributes["auth_time"] = SINGLE_OPTIONAL_STRING
