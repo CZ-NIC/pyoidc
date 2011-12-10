@@ -2,10 +2,6 @@
 
 from oic import oauth2
 import json
-import jwt
-import tempfile
-import os
-import os.path
 import urlparse
 import urllib
 
@@ -13,8 +9,6 @@ from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.oauth2 import SINGLE_REQUIRED_STRING
 from oic.oauth2 import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2 import SINGLE_OPTIONAL_INT
-from oic.oauth2 import HTTP_ARGS
-from oic.utils.time_util import time_sans_frac
 
 def to_json(dic):
     return json.dumps(dic)
@@ -40,18 +34,18 @@ def base_deser(cls, val, format, extended=False):
 
     return res
 
-def base_ser(cls, format, extended=False):
+def base_ser(inst, format, extended=False):
     if format == "urlencoded":
-        res = cls.get_urlencoded(extended)
+        res = inst.get_urlencoded(extended)
     elif format == "json":
-        res = cls.get_json(extended)
+        res = inst.get_json(extended)
     elif format == "dict":
-        if isinstance(cls, oauth2.Base):
-            res = cls.dictionary()
-        elif isinstance(cls, dict):
-            res = cls
+        if isinstance(inst, oauth2.Base):
+            res = inst.dictionary()
+        elif isinstance(inst, dict):
+            res = inst
         else:
-            raise ValueError("%s" % type(cls))
+            raise ValueError("%s" % type(inst))
     else:
         raise Exception("Unknown format")
 
@@ -249,22 +243,22 @@ class TokenErrorResponse(oauth2.TokenErrorResponse):
 class AccessTokenRequest(oauth2.AccessTokenRequest):
     c_attributes = oauth2.AccessTokenRequest.c_attributes.copy()
     c_attributes["client_id"] = SINGLE_REQUIRED_STRING
-    c_attributes["secret_type"] = SINGLE_OPTIONAL_STRING
     c_attributes["client_secret"] = SINGLE_OPTIONAL_STRING
+    c_attributes["secret_type"] = SINGLE_OPTIONAL_STRING
 
     def __init__(self,
-                 grant_type=None,
+                 grant_type="authorization_code",
                  code=None,
                  redirect_uri=None,
                  client_id=None,
-                 secret_type=None,
                  client_secret=None,
+                 secret_type=None,
                  **kwargs):
         oauth2.AccessTokenRequest.__init__(self, grant_type, code,
                                            redirect_uri, **kwargs)
         self.client_id = client_id
-        self.secret_type = secret_type
         self.client_secret = client_secret
+        self.secret_type = secret_type
 
 class AuthorizationRequest(oauth2.AuthorizationRequest):
     c_attributes = oauth2.AuthorizationRequest.c_attributes.copy()
@@ -739,7 +733,7 @@ class JWKEllipticKeyObject(JWKKeyObject):
     c_attributes["y"] = SINGLE_OPTIONAL_STRING
 
     def __init__(self,
-                 algorithm=None,
+                 algorithm="EC",
                  use=None,
                  keyid=None,
                  curve=None,
@@ -750,6 +744,22 @@ class JWKEllipticKeyObject(JWKKeyObject):
         self.curve = curve
         self.x = x
         self.y = y
+
+class JWKRSAKeyObject(JWKKeyObject):
+    c_attributes = JWKKeyObject.c_attributes.copy()
+    c_attributes["exponent"] = SINGLE_REQUIRED_STRING
+    c_attributes["modulus"] = SINGLE_OPTIONAL_STRING
+
+    def __init__(self,
+                 algorithm="RSA",
+                 use=None,
+                 keyid=None,
+                 exponent=None,
+                 modulus=None,
+                 **kwargs):
+        JWKKeyObject.__init__(self, algorithm, use, keyid, **kwargs)
+        self.exponent = exponent
+        self.modulus = modulus
 
 def key_object_list_deserializer(items, format="json", extended=False):
     if format == "urlencoded":
@@ -781,3 +791,49 @@ class JWKContainerObject(oauth2.Base):
         oauth2.Base.__init__(self, **kwargs)
         self.keyvalues = keyvalues
 
+class IssuerRequest(oauth2.Base):
+    c_attributes = oauth2.Base.c_attributes.copy()
+    c_attributes["service"] = SINGLE_REQUIRED_STRING
+    c_attributes["principal"] = SINGLE_REQUIRED_STRING
+
+    def __init__(self,
+                 service=None,
+                 principal=None,
+                 **kwargs):
+        oauth2.Base.__init__(self, **kwargs)
+        self.service = service
+        self.principal = principal
+
+class SWDServiceRedirect(oauth2.Base):
+    c_attributes = oauth2.Base.c_attributes.copy()
+    c_attributes["location"] = SINGLE_REQUIRED_STRING
+    c_attributes["expires"] = SINGLE_OPTIONAL_INT
+
+    def __init__(self,
+                 location=None,
+                 expires=None,
+                 **kwargs):
+        oauth2.Base.__init__(self, **kwargs)
+        self.location = location
+        self.expires = expires
+
+def swd_deser(val, format="json", extended=False):
+    return base_deser(SWDServiceRedirect, val, format, extended)
+
+def swd_ser(val, format="json", extended=False):
+    return base_ser(val, format, extended)
+
+SINGLE_OPTIONAL_SERVICE_REDIRECT = (SWDServiceRedirect, False, swd_ser, swd_deser)
+
+class IssuerResponse(oauth2.Base):
+    c_attributes = oauth2.Base.c_attributes.copy()
+    c_attributes["locations"] = OPTIONAL_LIST_OF_STRINGS
+    c_attributes["SWD_service_redirect"] = SINGLE_OPTIONAL_SERVICE_REDIRECT
+
+    def __init__(self,
+                 locations=None,
+                 SWD_service_redirect=None,
+                 **kwargs):
+        oauth2.Base.__init__(self, **kwargs)
+        self.locations = locations
+        self.SWD_service_redirect = SWD_service_redirect

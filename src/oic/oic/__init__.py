@@ -1,6 +1,10 @@
 __author__ = 'rohe0002'
 
+import jwt
+
+from oic.oauth2 import HTTP_ARGS
 from oic.oic.message import *
+from oic.utils.time_util import time_sans_frac
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint",
              "user_info_endpoint", "refresh_session_endpoint",
@@ -506,4 +510,5 @@ class Server(oauth2.Server):
         esr.id_token = self._deser_id_token(esr.id_token)
         return esr
     
-
+    def parse_issuer_request(self, info, format="urlencoded", extended=True):
+        return self._parse_request(IssuerRequest, info, format, extended)

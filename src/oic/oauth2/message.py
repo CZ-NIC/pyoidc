@@ -381,6 +381,21 @@ class Base(object):
 
     def __getattr__(self, item):
         return self.c_extension[item]
+
+    def __contains__(self, item):
+        try:
+            if getattr(self, item):
+                return True
+            else:
+                return False
+        except Exception:
+            pass
+        
+        return item in self.c_extension
+
+    def request(self, location):
+        return "%s?%s" % (location, self.to_urlencoded(extended=True))
+    
 #
 # =============================================================================
 #
@@ -495,21 +510,15 @@ class AccessTokenRequest(Base):
     c_attributes["grant_type"] = SINGLE_REQUIRED_STRING
     c_attributes["code"] = SINGLE_REQUIRED_STRING
     c_attributes["redirect_uri"] = SINGLE_REQUIRED_STRING
-    c_attributes["client_id"] = SINGLE_REQUIRED_STRING
-    c_attributes["client_secret"] = SINGLE_OPTIONAL_STRING
 
-    def __init__(self, grant_type=None,
+    def __init__(self, grant_type="authorization_code",
                  code=None,
                  redirect_uri=None,
-                 client_id=None,
-                 client_secret=None,
                  **kwargs):
         Base.__init__(self, **kwargs)
         self.grant_type = grant_type
         self.code = code
         self.redirect_uri = redirect_uri
-        self.client_id = client_id
-        self.client_secret = client_secret
 
 class AuthorizationRequest(Base):
     c_attributes = Base.c_attributes.copy()

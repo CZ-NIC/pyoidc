@@ -4,14 +4,14 @@ __author__ = 'rohe0002'
 
 import time
 import os.path
-import json
 import urlparse
 import httplib2
 
-from urllib import urlencode
 from hashlib import md5
 
 from oic.utils import http_util
+from oic.utils.time_util import time_sans_frac
+
 from oic.oic import Client
 from oic.oic import ENDPOINTS
 from oic.oic.message import AuthorizationRequest
@@ -24,6 +24,8 @@ from oic.oic.message import AccessTokenResponse
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import RegistrationResponse
+from oic.oic.message import IssuerRequest
+from oic.oic.message import IssuerResponse
 
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2 import Grant
@@ -89,6 +91,18 @@ def construct_openid_request(arq, key):
 
     return oir.get_jwt(key=key)
 
+def clean_response(aresp):
+    """
+    Creates a new instance with only the standard attributes
+
+    :param aresp: The original AccessTokenResponse
+    :return: An AccessTokenResponse instance
+    """
+    atr = AccessTokenResponse()
+    for prop in AccessTokenResponse.c_attributes.keys():
+        setattr(atr, prop, getattr(aresp, prop))
+
+    return atr
 
 
 
@@ -162,23 +176,6 @@ class Consumer(Client):
         for key, val in self.sdb[sid].items():
             setattr(self, key, val)
 
-    def grant_from_state(self, state):
-        res = Client.grant_from_state(self, state)
-        if res:
-            return res
-
-        try:
-            session = self.sdb[state]
-        except KeyError:
-            return None
-
-        for scope, grant in session["grant"].items():
-            if grant.state == state:
-                self.grant[scope] = grant
-                return grant
-
-        return None
-
     def dictionary(self):
         return dict([(k,v) for k, v in self.__dict__.items() if k not in
                                                                IGNORE])
@@ -191,16 +188,6 @@ class Consumer(Client):
         """
         self.sdb[sid] = self.dictionary()
 
-    def extract_access_token_response(self, aresp):
-        atr = AccessTokenResponse()
-        for prop in AccessTokenResponse.c_attributes.keys():
-            setattr(atr, prop, getattr(aresp, prop))
-
-        # update the grant object
-        self.grant_from_state(aresp.state).add_token(atr)
-        
-        return atr
-    
     #noinspection PyUnusedLocal,PyArgumentEqualDefault
     def begin(self, environ, start_response, logger, scope="", response_type=""):
         """ Begin the OAuth2 flow
@@ -256,13 +243,19 @@ class Consumer(Client):
             pass
         else: # has to be 'file' at least that's my assumption.
             # write to file in the tmp directory remember the name
-            filename = os.path.join(self.config["temp_dir"], rndstr(10))
+            _filedir = self.config["temp_dir"]
+            _webpath = self.config["temp_path"]
+            _name = rndstr(10)
+            filename = os.path.join(_filedir, _name)
             while os.path.exists(filename):
-                filename = os.path.join(self.config["temp_dir"], rndstr(10))
-            fid = open(filename)
+                _name = rndstr(10)
+                filename = os.path.join(_filedir, _name)
+            fid = open(filename, mode="w")
             fid.write(id_request)
             fid.close()
-            self.request_filename = "/"+filename
+            _webname = "%s%s%s" % (_path,_webpath,_name)
+            areq.request_uri = _webname
+            self.request_uri = _webname
             self._backup(sid)
 
         location = "%s?%s" % (self.authorization_endpoint,
@@ -292,8 +285,8 @@ class Consumer(Client):
 
         if environ.get("REQUEST_METHOD") == "GET":
             _query = environ.get("QUERY_STRING")
-        elif environ.get("REQUEST_METHOD") == "POST":
-            _query = http_util.get_post(environ)
+#        elif environ.get("REQUEST_METHOD") == "POST":
+#            _query = http_util.get_post(environ)
         else:
             resp = http_util.BadRequest("Unsupported method")
             return resp(environ, start_response)
@@ -305,7 +298,8 @@ class Consumer(Client):
         if "code" in self.config["response_type"]:
             # Might be an error response
             _log_info("Expect Authorization Response")
-            aresp = self.parse_response(AuthorizationResponse, info=_query)
+            aresp = self.parse_response(AuthorizationResponse, info=_query,
+                                        format="urlencoded")
             if isinstance(aresp, ErrorResponse):
                 _log_info("ErrorResponse: %s" % aresp)
                 raise AuthzError(aresp.error)
@@ -321,8 +315,10 @@ class Consumer(Client):
 
             # May have token and id_token information too
             if aresp.access_token:
-                atr = self.extract_access_token_response(aresp)
+                atr = clean_response(aresp)
                 self.access_token = atr
+                # update the grant object
+                self.get_grant(state=aresp.state).add_token(atr)
             else:
                 atr = None
 
@@ -345,30 +341,32 @@ class Consumer(Client):
         Do the access token request, the last step in a code flow.
         If Implicit flow was used then this method is never used.
         """
-        if self.config["password"]:
+        args = {"redirect_uri": self.redirect_uri}
+        if "password" in self.config and self.config["password"]:
             logger.info("basic auth")
-            args = {"client_password":self.config["password"]}
-            atr = self.construct_AccessTokenRequest(request_args=args,
-                                                    state=self.state)
+            http_args = {"password":self.config["password"]}
         elif self.client_secret:
             logger.info("request_body auth")
-            args = {"client_secret":self.config["client_secret"],
-                    "client_id": self.client_id,
-                    "auth_method":"request_body"}
-            atr = self.construct_AccessTokenRequest(request_args=args,
-                                                    state=self.state)
+            http_args = {}
+            args.update({"client_secret":self.client_secret,
+                         "client_id": self.client_id,
+                         "secret_type": self.secret_type})
         else:
             raise Exception("Nothing to authenticate with")
 
-        logger.info("Access Token Response: %s" % atr)
+        resp = self.do_access_token_request(state=self.state,
+                                            request_args=args,
+                                            http_args=http_args)
 
-        if isinstance(atr, ErrorResponse):
-            raise TokenError(atr.error)
+        logger.info("Access Token Response: %s" % resp)
+
+        if isinstance(resp, ErrorResponse):
+            raise TokenError(resp.error)
 
         #self._backup(self.sdb["seed:%s" % _cli.seed])
         self._backup(self.state)
 
-        return atr
+        return resp
 
     def refresh_token(self):
         pass
@@ -376,7 +374,7 @@ class Consumer(Client):
     #noinspection PyUnusedLocal
     def userinfo(self, logger):
         self.log = logger
-        uinfo = self.do_user_info_request()
+        uinfo = self.do_user_info_request(state=self.state)
 
         if isinstance(uinfo, ErrorResponse):
             raise TokenError(uinfo.error)
@@ -395,31 +393,22 @@ class Consumer(Client):
     def end_session(self):
         pass
 
-    def issuer_query(self, location, principal):
-        param = {
-            "service": ISSUER_URL,
-            "principal": principal,
-        }
-
-        return "%s?%s" % (location, urlencode(param))
-
-    def _disc_query(self, uri, principal):
+    def discovery_query(self, uri, principal):
         try:
             (response, content) = self.http.request(uri)
         except httplib2.ServerNotFoundError:
             if uri.startswith("http://"): # switch to https
                 location = "https://%s" % uri[7:]
-                return self._disc_query(location, principal)
+                return self.discovery_query(location, principal)
             else:
                 raise
 
         if response.status == 200:
-            result = json.loads(content)
-            if "SWD_service_redirect" in result:
-                _uri = self.issuer_query(
-                            result["SWD_service_redirect"]["locations"][0],
-                            principal)
-                return self._disc_query(_uri, principal)
+            result = IssuerResponse.from_json(content)
+            if result.SWD_service_redirect:
+                _loc = result.SWD_service_redirect.location
+                _uri = IssuerRequest(ISSUER_URL, principal).request(_loc)
+                return self.discovery_query(_uri, principal)
             else:
                 return result
         else:
@@ -446,15 +435,11 @@ class Consumer(Client):
         return domain
     
     def discover(self, principal, idtype="mail"):
-        domain = self.get_domain(principal, idtype)
-        uri = self.issuer_query(SWD_PATTERN % domain, principal)
+        _loc = SWD_PATTERN % self.get_domain(principal, idtype)
+        uri = IssuerRequest(ISSUER_URL, principal).request(_loc)
 
-        result = self._disc_query(uri, principal)
-
-        try:
-            return self.provider_config(result["locations"][0])
-        except Exception:
-            return result["location"]
+        result = self.discovery_query(uri, principal)
+        return result.locations[0]
 
     def register(self, server, type="client_associate", **kwargs):
         req = RegistrationRequest(type=type)
@@ -466,10 +451,13 @@ class Consumer(Client):
         for prop in RegistrationRequest.c_attributes.keys():
             if prop in ["type", "client_id", "client_secret"]:
                 continue
-            if prop in kwargs:
-                setattr(req, prop, kwargs[prop])
 
-        print "2",req.to_urlencoded()
+            try:
+                val = getattr(self, prop)
+                setattr(req, prop, val)
+            except Exception:
+                if prop in kwargs:
+                    setattr(req, prop, kwargs[prop])
 
         headers = {"content-type": "application/x-www-form-urlencoded"}
         (response, content) = self.http.request(server, "POST",
@@ -480,7 +468,7 @@ class Consumer(Client):
             resp = RegistrationResponse.from_json(content)
             self.client_secret = resp.client_secret
             self.client_id = resp.client_id
-            self.registration_expires_in = resp.expires_in
+            self.registration_expires = time_sans_frac() + resp.expires_in
         else:
             raise Exception("Registration failed: %s" % response.status)
         

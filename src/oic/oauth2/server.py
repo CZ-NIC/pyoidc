@@ -225,7 +225,9 @@ class Server(oauth2.Server):
 
         areq = AccessTokenRequest.set_urlencoded(body, extended=True)
 
-        if not self.function["verify client"](environ, areq, self.cdb):
+        # Client is from basic auth or ...
+        client = environ["REMOTE_USER"]
+        if not self.function["verify client"](environ, client, self.cdb):
             err = TokenErrorResponse(error="unathorized_client")
             resp = Response(err.get_json(), content="application/json",
                             status="401 Unauthorized")

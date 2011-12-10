@@ -176,6 +176,7 @@ class Client(object):
         self.client_id = client_id
         self.client_secret = client_secret
         self.client_timeout = client_timeout
+        self.secret_type = "basic "
 
         self.state = None
         self.nonce = None
@@ -297,8 +298,9 @@ class Client(object):
     def construct_request(self, reqclass, request_args=None, extra_args=None):
         if request_args is None:
             request_args = {}
-            
+
         args = self._parse_args(reqclass, **request_args)
+
         if extra_args:
             args.update(extra_args)
         return reqclass(**args)
@@ -313,7 +315,12 @@ class Client(object):
                 self.redirect_uri = request_args["redirect_uri"]
             except KeyError:
                 pass
+        else:
+            request_args = {}
 
+        if "grant_type" not in request_args:
+            request_args["grant_type"] = "authorization_code"
+            
         return self.construct_request(reqclass, request_args, extra_args)
 
     #noinspection PyUnusedLocal
@@ -334,6 +341,11 @@ class Client(object):
 
         if "grant_type" not in request_args:
             request_args["grant_type"] = "authorization_code"
+
+        if "client_id" not in request_args:
+            request_args["client_id"] = self.client_id
+        elif not request_args["client_id"]:
+            request_args["client_id"] = self.client_id
 
         return self.construct_request(cls, request_args, extra_args)
 

@@ -14,6 +14,8 @@ from oic.oic.message import *
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import GrantExpired
 
+from oic.utils.time_util import time_sans_frac
+
 from pytest import raises
 
 from fakeoicsrv import MyFakeOICServer
@@ -240,7 +242,7 @@ class TestOICClient():
         assert req
         print req.keys()
         assert _eq(req.keys(), ['code', 'grant_type', 'client_id',
-                                'redirect_uri', 'foo'])
+                                'redirect_uri', 'foo', "secret_type"])
         assert req.foo == "bar"
 
     def test_construct_TokenRevocationRequest(self):

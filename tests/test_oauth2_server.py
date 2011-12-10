@@ -105,9 +105,9 @@ def verify_username_and_password(dic):
 
 
 #noinspection PyUnusedLocal
-def verify_client(environ, areq, cdb):
-    if areq.client_id and areq.client_secret:
-        if areq.client_id == "client1" and areq.client_secret == "secret":
+def verify_client(environ, identity, cdb):
+    if identity:
+        if identity == "client1":
             return True
         else:
             return False
@@ -375,8 +375,7 @@ def test_token_endpoint():
 
     # Construct Access token request
     areq = AccessTokenRequest(grant_type="authorization_code", code=access_grant,
-                              redirect_uri="http://example.com/authz",
-                              client_id="client1", client_secret="secret",)
+                              redirect_uri="http://example.com/authz")
 
 
     str = areq.get_urlencoded()
@@ -384,6 +383,7 @@ def test_token_endpoint():
     environ = BASE_ENVIRON.copy()
     environ["CONTENT_LENGTH"] = len(str)
     environ["wsgi.input"] = fil
+    environ["REMOTE_USER"] = "client1"
 
     resp = server.token_endpoint(environ, start_response, LOG(), None)
     print resp
@@ -421,6 +421,7 @@ def test_token_endpoint_unauth():
     environ = BASE_ENVIRON.copy()
     environ["CONTENT_LENGTH"] = len(str)
     environ["wsgi.input"] = fil
+    environ["REMOTE_USER"] = "client2"
 
     resp = server.token_endpoint(environ, start_response, LOG(), None)
     print resp

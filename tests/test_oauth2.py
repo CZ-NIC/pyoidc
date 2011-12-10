@@ -301,12 +301,13 @@ class TestOAuthClient():
         assert self.client.grant_from_state("123456abcdef") is None
 
     def test_construct_request_with_extra_args(self):
+        print self.client.__dict__.items()
         req = self.client.construct_AccessTokenRequest(state="foo",
                                                        extra_args={"foo":"bar"})
 
         assert req
         print req.keys()
-        assert _eq(req.keys(), ['code', 'grant_type', 'client_id',
+        assert _eq(req.keys(), ['code', 'grant_type',
                                 'redirect_uri', 'foo'])
         assert req.foo == "bar"
 
@@ -692,7 +693,6 @@ def test_server_parse_token_request():
     atr = AccessTokenRequest("authorization_code",
                                     "SplxlOBeZQQYbYS6WxSbIA",
                                     "https://client.example.com/cb",
-                                    "client_id",
                                     extra="foo")
 
     uenc = atr.get_urlencoded(extended=True)
@@ -702,7 +702,7 @@ def test_server_parse_token_request():
     print tr.keys()
 
     assert isinstance(tr, AccessTokenRequest)
-    assert _eq(tr.keys(), ['code', 'grant_type', 'client_id', 'redirect_uri'])
+    assert _eq(tr.keys(), ['code', 'grant_type', 'redirect_uri'])
 
     assert tr.grant_type == "authorization_code"
     assert tr.code == "SplxlOBeZQQYbYS6WxSbIA"
@@ -711,8 +711,7 @@ def test_server_parse_token_request():
     print tr.keys()
 
     assert isinstance(tr, AccessTokenRequest)
-    assert _eq(tr.keys(), ['code', 'grant_type', 'client_id', 'redirect_uri',
-                           'extra'])
+    assert _eq(tr.keys(), ['code', 'grant_type', 'redirect_uri', 'extra'])
 
     assert tr.extra == "foo"
 

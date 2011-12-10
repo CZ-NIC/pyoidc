@@ -209,6 +209,10 @@ def test_authz_err_resp_2():
     assert ter.error_description == "brewers has a four game series"
     assert ter.c_extension == {'foo': 'bar'}
 
+    assert "error" in ter
+    assert "error_description" in ter
+    assert "foo" in ter
+
 # AccessTokenResponse
 
 def test_accesstokenreponse_1():
@@ -225,13 +229,12 @@ def test_extra():
     atr = AccessTokenRequest("authorization_code",
                                     "SplxlOBeZQQYbYS6WxSbIA",
                                     "https://client.example.com/cb",
-                                    "client_id",
                                     extra="foo")
 
     assert atr
     query = atr.get_urlencoded(True)
     print query
-    assert query == "code=SplxlOBeZQQYbYS6WxSbIA&grant_type=authorization_code&client_id=client_id&redirect_uri=https%3A%2F%2Fclient.example.com%2Fcb&extra=foo"
+    assert query == "code=SplxlOBeZQQYbYS6WxSbIA&grant_type=authorization_code&redirect_uri=https%3A%2F%2Fclient.example.com%2Fcb&extra=foo"
 
     atr2 = AccessTokenRequest.set_urlencoded(query, True)
     print atr2.c_extension
@@ -521,3 +524,8 @@ def test_factory():
     assert _eq(cls.keys(), ['opt_str', 'req_str', 'req_str_list',
                             'opt_str_list', 'opt_int'])
 
+
+def test_request():
+    req = CLASS(req_str="Fair", req_str_list=["game"]).request("http://example.com")
+
+    assert req == "http://example.com?req_str=Fair&req_str_list=game"
