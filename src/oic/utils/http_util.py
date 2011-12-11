@@ -36,7 +36,10 @@ class Response(object):
 
     def _response(self, message="", **argv):
         if self.template:
-            return [str(self.template % message)]
+            if ("Content-type",'application/json') in self.headers:
+                return [message]
+            else:
+                return [str(self.template % message)]
         elif self.mako_lookup and self.mako_template:
             argv["message"] = message
             mte = self.mako_lookup.get_template(self.mako_template)

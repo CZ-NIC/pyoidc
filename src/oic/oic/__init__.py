@@ -40,16 +40,18 @@ class Grant(oauth2.Grant):
 class Client(oauth2.Client):
     def __init__(self, client_id=None, cache=None, timeout=None,
                  proxy_info=None, follow_redirects=True,
-                 disable_ssl_certificate_validation=False, key=None,
+                 disable_ssl_certificate_validation=False,
+                 ca_certs="", key=None,
                  algorithm="HS256", client_secret="", client_timeout=0,
-                 expires_in=0):
+                 expire_in=0, grant_expire_in=0):
 
-        if expires_in:
-            client_timeout = time_sans_frac() + expires_in
+        if expire_in:
+            client_timeout = time_sans_frac() + expire_in
 
         oauth2.Client.__init__(self, client_id, cache, timeout, proxy_info,
                        follow_redirects, disable_ssl_certificate_validation,
-                       key, algorithm, client_secret, client_timeout)
+                       ca_certs, key, algorithm, grant_expire_in,
+                       client_secret, client_timeout)
 
         self.file_store = "./file/"
         self.file_uri = "http://localhost/"

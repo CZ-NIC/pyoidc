@@ -236,27 +236,28 @@ class Consumer(Client):
         areq = self.construct_AuthorizationRequest(AuthorizationRequest,
                                                    request_args=args)
 
-        id_request = construct_openid_request(areq, self.config["key"])
-        if self.config["request_method"] == "parameter":
-            areq.request = id_request
-        elif self.config["request_method"] == "simple":
-            pass
-        else: # has to be 'file' at least that's my assumption.
-            # write to file in the tmp directory remember the name
-            _filedir = self.config["temp_dir"]
-            _webpath = self.config["temp_path"]
-            _name = rndstr(10)
-            filename = os.path.join(_filedir, _name)
-            while os.path.exists(filename):
+        if "request_method" in self.config:
+            id_request = construct_openid_request(areq, self.config["key"])
+            if self.config["request_method"] == "parameter":
+                areq.request = id_request
+            elif self.config["request_method"] == "simple":
+                pass
+            else: # has to be 'file' at least that's my assumption.
+                # write to file in the tmp directory remember the name
+                _filedir = self.config["temp_dir"]
+                _webpath = self.config["temp_path"]
                 _name = rndstr(10)
                 filename = os.path.join(_filedir, _name)
-            fid = open(filename, mode="w")
-            fid.write(id_request)
-            fid.close()
-            _webname = "%s%s%s" % (_path,_webpath,_name)
-            areq.request_uri = _webname
-            self.request_uri = _webname
-            self._backup(sid)
+                while os.path.exists(filename):
+                    _name = rndstr(10)
+                    filename = os.path.join(_filedir, _name)
+                fid = open(filename, mode="w")
+                fid.write(id_request)
+                fid.close()
+                _webname = "%s%s%s" % (_path,_webpath,_name)
+                areq.request_uri = _webname
+                self.request_uri = _webname
+                self._backup(sid)
 
         location = "%s?%s" % (self.authorization_endpoint,
                               areq.get_urlencoded())

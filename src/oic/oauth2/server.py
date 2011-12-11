@@ -2,8 +2,6 @@
 
 __author__ = 'rohe0002'
 
-import random
-import string
 import base64
 
 try:
@@ -14,6 +12,8 @@ except ImportError:
 from oic.utils.http_util import *
 
 from oic.oauth2 import rndstr
+
+from oic.oauth2 import Server as SrvMethod
 
 from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2 import AuthorizationResponse
@@ -43,13 +43,52 @@ def get_post(environ):
 #def do_authorization(user):
 #    return ""
 
-class Server(oauth2.Server):
+#noinspection PyUnusedLocal
+def code_response(**kwargs):
+    _areq = kwargs["areq"]
+    _scode = kwargs["scode"]
+    aresp = AuthorizationResponse()
+    if _areq.state:
+        aresp.state = _areq.state
+    aresp.code = _scode
+    return aresp
 
+def token_response(**kwargs):
+    _areq = kwargs["areq"]
+    _scode = kwargs["scode"]
+    _sdb = kwargs["sdb"]
+    _dic = _sdb.update_to_token(_scode, issue_refresh=False)
+
+    aresp = oauth2.factory(AccessTokenResponse, **_dic)
+    if _areq.scope:
+        aresp.scope = _areq.scope
+    aresp.c_extension = _areq.c_extension
+    return aresp
+
+#noinspection PyUnusedLocal
+def none_response(**kwargs):
+    _areq = kwargs["areq"]
+    aresp = NoneResponse()
+    if _areq.state:
+        aresp.state = _areq.state
+    return aresp
+
+def location_url(response_type, redirect_uri, query):
+    if response_type in [["code"],["token"],["none"]]:
+        return "%s?%s" % (redirect_uri, query)
+    else:
+        return "%s#%s" % (redirect_uri, query)
+
+class Server(object):
+    authorization_request = AuthorizationRequest
+    
     def __init__(self, name, sdb, cdb, function, urlmap=None, debug=0):
         self.name = name
         self.sdb = sdb
         self.cdb = cdb
-        
+
+        self.srvmethod = SrvMethod()
+
         self.function = function
 
         self.debug = debug
@@ -59,8 +98,14 @@ class Server(oauth2.Server):
         else:
             self.urlmap = urlmap
 
+        self.response_type_map = {
+            "code": code_response,
+            "token": token_response,
+            "none": none_response,
+        }
+
     #noinspection PyUnusedLocal
-    def authenticated(self, environ, start_response, logger, _):
+    def authn_intro(self, environ, start_response, logger):
         """
         After the authentication this is where you should end up
         """
@@ -68,31 +113,24 @@ class Server(oauth2.Server):
         _log_info = logger.info
         _sdb = self.sdb
 
-        if self.debug:
-            _log_info("- authenticated -")
-
         # parse the form
         dic = parse_qs(get_post(environ))
 
         try:
             (verified, user) = self.function["verify user"](dic)
             if not verified:
-                resp = Unauthorized("Wrong password")
-                return resp(environ, start_response)
+                return Unauthorized("Wrong password")
         except KeyError, err:
-            resp = Unauthorized("Missing key: %s" % (err,))
-            return resp(environ, start_response)
+            return Unauthorized("Authentication failed")
         except AuthnFailure, err:
-            resp = Unauthorized("Authentication failure: %s" % (err,))
-            return resp(environ, start_response)
+            return Unauthorized("Authentication failure: %s" % (err,))
 
         try:
             # Use the session identifier to find the session information
             sid = base64.b64decode(dic["sid"][0])
             session = _sdb[sid]
         except KeyError:
-            resp = BadRequest("Unknown session identifier")
-            return resp(environ, start_response)
+            return BadRequest("Unknown session identifier")
 
         _sdb.update(sid, "userid", dic["login"][0])
 
@@ -101,7 +139,8 @@ class Server(oauth2.Server):
         #_log_info( "type: %s" % type(session["authzreq"]))
 
         # pick up the original request
-        areq = AuthorizationRequest.set_json(session["authzreq"], extended=True)
+        areq = self.authorization_request.set_json(session["authzreq"],
+                                                   extended=True)
 
         if self.debug:
             _log_info("areq: %s" % areq)
@@ -115,38 +154,10 @@ class Server(oauth2.Server):
 
         _log_info("response type: %s" % areq.response_type)
 
-        scode = session["code"]
-        # create the response
-        if "code" in areq.response_type:
-            aresp = AuthorizationResponse()
-            if areq.state:
-                aresp.state = areq.state
+        return areq, session
 
-            if self.debug:
-                _log_info("_dic: %s" % _sdb[scode])
-            aresp.code = scode
-            aresp.c_extension = areq.c_extension
-        elif "token" in areq.response_type:
-            _dic = _sdb.update_to_token(scode, issue_refresh=False)
-            if self.debug:
-                _log_info("_dic: %s" % _dic)
-            aresp = oauth2.factory(AccessTokenResponse, **_dic)
-
-            if areq.state:
-                aresp.state = areq.state
-            if areq.scope:
-                aresp.scope = areq.scope
-            aresp.c_extension = areq.c_extension
-
-        elif "none" in areq.response_type:
-            # return only state
-
-            aresp = NoneResponse()
-            if areq.state:
-                aresp.state = areq.state
-        else: # Don't know what to do raise an exception
-            resp = BadRequest("Unknown response type")
-            return resp(environ, start_response)
+    def authn_reply(self, areq, aresp, environ, start_response, logger):
+        _log_info = logger.info
 
         if areq.redirect_uri:
             # TODO verify that the uri is reasonable
@@ -154,7 +165,8 @@ class Server(oauth2.Server):
         else:
             redirect_uri = self.urlmap[areq.client_id]
 
-        location = "%s?%s" % (redirect_uri, aresp.get_urlencoded())
+        location = location_url(areq.response_type, redirect_uri,
+                                aresp.get_urlencoded())
 
         if self.debug:
             _log_info("Redirected to: '%s' (%s)" % (location, type(location)))
@@ -162,6 +174,41 @@ class Server(oauth2.Server):
         redirect = Redirect(str(location))
         return redirect(environ, start_response)
 
+    def authn_response(self, areq, session):
+        scode = session["code"]
+        areq.response_type.sort()
+        _rtype = " ".join(areq.response_type)
+        return self.response_type_map[_rtype](areq=areq, scode=scode,
+                                              sdb=self.sdb)
+
+    def authenticated(self, environ, start_response, logger, _):
+        _log_info = logger.info
+
+        if self.debug:
+            _log_info("- authenticated -")
+
+        try:
+            result = self.authn_intro(environ, start_response, logger)
+        except Exception, err:
+            resp = ServiceError("%s" % err)
+            return resp(environ, start_response)
+
+        if isinstance(result, Response):
+            return result(environ, start_response)
+        else:
+            areq, session = result
+
+
+        try:
+            aresp = self.authn_response(areq, session)
+        except KeyError: # Don't know what to do raise an exception
+            resp = BadRequest("Unknown response type")
+            return resp(environ, start_response)
+
+        aresp.c_extension = areq.c_extension
+
+        return self.authn_reply(areq, aresp, environ, start_response, logger)
+    
     #noinspection PyUnusedLocal
     def authorization_endpoint(self, environ, start_response, logger, _):
         # The AuthorizationRequest endpoint
@@ -184,8 +231,8 @@ class Server(oauth2.Server):
             _log_info("Query: '%s'" % query)
 
         try:
-            areq = self.parse_authorization_request(query=query,
-                                                    extended=True)
+            areq = self.srvmethod.parse_authorization_request(query=query,
+                                                              extended=True)
         except MissingRequiredAttribute, err:
             resp = BadRequest("%s" % err)
             return resp(environ, start_response)
