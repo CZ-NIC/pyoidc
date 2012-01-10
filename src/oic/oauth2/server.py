@@ -132,7 +132,7 @@ class Server(object):
         except KeyError:
             return BadRequest("Unknown session identifier")
 
-        _sdb.update(sid, "userid", dic["login"][0])
+        _sdb.update(sid, "user_id", dic["login"][0])
 
         if self.debug:
             _log_info("session[\"authzreq\"] = %s" % session["authzreq"])

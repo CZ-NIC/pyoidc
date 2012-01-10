@@ -5,7 +5,6 @@ __author__ = 'rohe0002'
 import random
 import httplib2
 import base64
-import json
 
 try:
     from urlparse import parse_qs
@@ -22,7 +21,6 @@ from oic.oauth2 import rndstr
 
 from oic.oic import Server as SrvMethod
 
-from oic.oic import Claims
 from oic.oic import AuthorizationResponse
 from oic.oic import AuthorizationRequest
 from oic.oic import AccessTokenResponse
@@ -103,6 +101,14 @@ def token_response(**kwargs):
         aresp.scope = _areq.scope
     return aresp
 
+def add_token_info(aresp, sdict):
+    for prop in AccessTokenResponse.c_attributes.keys():
+        try:
+            if sdict[prop]:
+                setattr(aresp, prop, sdict[prop])
+        except KeyError:
+            pass
+
 def code_token_response(**kwargs):
     _areq = kwargs["areq"]
     _scode = kwargs["scode"]
@@ -118,11 +124,7 @@ def code_token_response(**kwargs):
     aresp.code = _scode
 
     _dic = _sdb.update_to_token(_scode, issue_refresh=False)
-    for key in AccessTokenResponse.c_attributes.keys():
-        try:
-            setattr(aresp, key, _dic[key])
-        except KeyError:
-            pass
+    add_token_info(aresp, _dic)
 
     return aresp
 
@@ -137,11 +139,11 @@ class Server(AServer):
 
     def __init__(self, name, sdb, cdb, function, jwt_key, userdb, urlmap=None,
                  debug=0, cache=None, timeout=None, proxy_info=None,
-                 follow_redirects=True, ca_certs=""):
+                 follow_redirects=True, ca_certs="", jwt_keys=None):
 
         AServer.__init__(self, name, sdb, cdb, function, urlmap, debug)
 
-        self.srvmethod = SrvMethod()
+        self.srvmethod = SrvMethod(jwt_keys)
 
         self.jwt_key = jwt_key
         self.userdb = userdb
@@ -175,13 +177,6 @@ class Server(AServer):
         return idt.get_jwt(key=self.jwt_key)
 
     #noinspection PyUnusedLocal
-    def add_token_info(self, aresp, sdict):
-        for prop in AccessTokenResponse.c_attributes.keys():
-            try:
-                if sdict[prop]:
-                    setattr(aresp, prop, sdict[prop])
-            except KeyError:
-                pass
 
     def authn_response(self, areq, session):
         areq.response_type.sort()
@@ -237,7 +232,9 @@ class Server(AServer):
         openid_req = None
         if "request" in areq or "request_uri" in areq:
             try:
-                jwt_key = self.cdb[areq.client_id]["jwk_url"]
+                # Should actually do a get on the URL
+                #jwt_key = self.cdb[areq.client_id]["jwk_url"]
+                jwt_key = self.cdb[areq.client_id]["jwk_key"]
             except KeyError: # TODO
                 jwt_key = ()
         
@@ -348,19 +345,21 @@ class Server(AServer):
                                           oidreq.user_info)
 
         logger.info("info: %s" % (info,))
-        resp = Response(json.dumps(info), content="application/json")
+        resp = Response(info.get_json(), content="application/json")
         return resp(environ, start_response)
 
     #noinspection PyUnusedLocal
-    def check_id_endpoint(self, environ, start_response, logger):
+    def check_session_endpoint(self, environ, start_response, logger):
 
         try:
-            query = get_or_post(environ)
+            info = get_or_post(environ)
         except UnsupportedMethod:
             resp = BadRequest("Unsupported method")
             return resp(environ, start_response)
 
-        resp = Response()
+        idt = self.srvmethod.parse_check_session_request(query=info)
+
+        resp = Response(idt.get_json(), content="application/json")
         return resp(environ, start_response)
 
     #noinspection PyUnusedLocal
@@ -425,86 +424,86 @@ class Server(AServer):
 
 # -----------------------------------------------------------------------------
 
-class UserInfo():
-    """The generic user info interface. It's a read only interface"""
-    def __init__(self, rules, db):
-        """
-        :param rules: The servers view on what a what a specific client
-            should receive
-        :param db: UserInformation interface
-        """
-        self.rules = rules
-        self.db = db
-
-    def pick(self, userid, client_id, claims=None, locale=""):
-        """
-        One implementation
-        
-        :param userid: The User ID
-        :param client_id: The ID of the client
-        :param claims: The claims the client has defined
-        :param locale: Which locale the client wants
-        :return: A dictionary
-        """
-        try:
-            info = self.db[userid]
-        except KeyError:
-            return None
-
-        # attribute names are of the form name '#' locale
-
-        # first my own rules on what to return
-        try:
-            attrs = self.rules[client_id]
-
-            for key, val in info.items():
-                if key in attrs:
-                    continue
-
-                try:
-                    prop, ploc = key.split("#")
-                    if prop in attrs:
-                        continue
-                except ValueError:
-                    pass
-
-                del info[key]
-
-        except KeyError:
-            pass
-
-        # Don't send back more than is needed
-        if claims:
-            if isinstance(claims, Claims):
-                cdic = claims.dictionary(extended=True)
-            else:
-                cdic = claims
-            attrs = cdic.keys()
-
-            for key, val in info.items():
-                if key in attrs:
-                    continue
-
-                try:
-                    prop, ploc = key.split("#")
-                    if locale:
-                        if ploc != locale:
-                            del info[key]
-                        continue
-                    elif prop in attrs:
-                        continue
-                except ValueError:
-                    del info[key]
-
-
-            for attr in [key for key, val in cdic.items() if not val]:
-                if attr not in info.keys():
-                    raise MissingAttribute(attr)
-        return info
-
-
-class JSON_UserInfo(UserInfo):
-    def __init__(self, rules, json_file):
-        UserInfo.__init__(self,
-                          json.loads(open(rules).read()),
-                          json.loads(open(json_file).read()))
+#class UserInfo():
+#    """The generic user info interface. It's a read only interface"""
+#    def __init__(self, rules, db):
+#        """
+#        :param rules: The servers view on what a what a specific client
+#            should receive
+#        :param db: UserInformation interface
+#        """
+#        self.rules = rules
+#        self.db = db
+#
+#    def pick(self, userid, client_id, claims=None, locale=""):
+#        """
+#        One implementation
+#
+#        :param userid: The User ID
+#        :param client_id: The ID of the client
+#        :param claims: The claims the client has defined
+#        :param locale: Which locale the client wants
+#        :return: A dictionary
+#        """
+#        try:
+#            info = self.db[userid]
+#        except KeyError:
+#            return None
+#
+#        # attribute names are of the form name '#' locale
+#
+#        # first my own rules on what to return
+#        try:
+#            attrs = self.rules[client_id]
+#
+#            for key, val in info.items():
+#                if key in attrs:
+#                    continue
+#
+#                try:
+#                    prop, ploc = key.split("#")
+#                    if prop in attrs:
+#                        continue
+#                except ValueError:
+#                    pass
+#
+#                del info[key]
+#
+#        except KeyError:
+#            pass
+#
+#        # Don't send back more than is needed
+#        if claims:
+#            if isinstance(claims, Claims):
+#                cdic = claims.dictionary(extended=True)
+#            else:
+#                cdic = claims
+#            attrs = cdic.keys()
+#
+#            for key, val in info.items():
+#                if key in attrs:
+#                    continue
+#
+#                try:
+#                    prop, ploc = key.split("#")
+#                    if locale:
+#                        if ploc != locale:
+#                            del info[key]
+#                        continue
+#                    elif prop in attrs:
+#                        continue
+#                except ValueError:
+#                    del info[key]
+#
+#
+#            for attr in [key for key, val in cdic.items() if not val]:
+#                if attr not in info.keys():
+#                    raise MissingAttribute(attr)
+#        return info
+#
+#
+#class JSON_UserInfo(UserInfo):
+#    def __init__(self, rules, json_file):
+#        UserInfo.__init__(self,
+#                          json.loads(open(rules).read()),
+#                          json.loads(open(json_file).read()))

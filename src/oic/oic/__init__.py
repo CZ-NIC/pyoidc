@@ -2,9 +2,13 @@ __author__ = 'rohe0002'
 
 import jwt
 
+from oic.oauth2 import AUTHN_METHOD as OAUTH2_AUTHN_METHOD
 from oic.oauth2 import HTTP_ARGS
+from oic.oauth2 import rndstr
 from oic.oic.message import *
 from oic.utils.time_util import time_sans_frac
+from oic.utils.time_util import utc_now
+from oic.utils.time_util import epoch_in_a_while
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint",
              "user_info_endpoint", "refresh_session_endpoint",
@@ -27,6 +31,43 @@ REQUEST2ENDPOINT = {
     RegistrationRequest: "registration_endpoint"
 }
 
+# -----------------------------------------------------------------------------
+
+JWT_BEARER = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+
+AUTHN_METHOD = OAUTH2_AUTHN_METHOD.copy()
+
+def assertion_jwt(cli, key, audience):
+    at = AuthnToken(
+        iss = cli.client_id,
+        prn = cli.client_id,
+        aud = audience,
+        jti = rndstr(8),
+        exp = int(epoch_in_a_while(minutes=10)),
+        iat = utc_now()
+    )
+    return at.get_jwt(key=key, algorithm="HS256")
+
+#noinspection PyUnusedLocal
+def client_secret_jwt(cli, authn_method, request_args=None, http_args=None,
+                      req=None):
+    # signing key is the client secret
+    try:
+        signing_key = http_args["client_secret"]
+    except KeyError:
+        signing_key = cli.client_secret
+
+    # audience is the OP endpoint
+    audience = cli._endpoint(REQUEST2ENDPOINT[req])
+
+    request_args["client_assertion"] = assertion_jwt(cli, signing_key,
+                                                     audience)
+    request_args["client_assertion_type"] = JWT_BEARER
+
+AUTHN_METHOD.update({"client_secret_jwt": client_secret_jwt})
+
+# -----------------------------------------------------------------------------
+
 class Token(oauth2.Token):
     _class = AccessTokenResponse
 
@@ -41,17 +82,20 @@ class Client(oauth2.Client):
     def __init__(self, client_id=None, cache=None, timeout=None,
                  proxy_info=None, follow_redirects=True,
                  disable_ssl_certificate_validation=False,
-                 ca_certs="", key=None,
-                 algorithm="HS256", client_secret="", client_timeout=0,
-                 expire_in=0, grant_expire_in=0):
+                 ca_certs="",
+                 #key=None, algorithm="HS256",
+                 client_secret="", client_timeout=0,
+                 expire_in=0, grant_expire_in=0, httpclass=None):
 
         if expire_in:
             client_timeout = time_sans_frac() + expire_in
 
         oauth2.Client.__init__(self, client_id, cache, timeout, proxy_info,
                        follow_redirects, disable_ssl_certificate_validation,
-                       ca_certs, key, algorithm, grant_expire_in,
-                       client_secret, client_timeout)
+                       ca_certs,
+                       #key, algorithm,
+                       grant_expire_in, client_secret, client_timeout,
+                       httpclass)
 
         self.file_store = "./file/"
         self.file_uri = "http://localhost/"
@@ -79,6 +123,12 @@ class Client(oauth2.Client):
     def construct_AuthorizationRequest(self, cls=AuthorizationRequest,
                                        request_args=None, extra_args=None,
                                        **kwargs):
+
+        if request_args is not None:
+            if "nonce" not in request_args:
+                request_args["nonce"] = rndstr(12)
+        else:
+            request_args = {"nonce": rndstr(12)}
 
         return oauth2.Client.construct_AuthorizationRequest(self, cls,
                                                             request_args,
@@ -211,12 +261,16 @@ class Client(oauth2.Client):
                                 state="", body_type="json", method="POST",
                                 request_args=None, extra_args=None,
                                 http_args=None, resp_cls=AccessTokenResponse,
-                                token=None):
+                                authn_method="", **kwargs):
+
+        self.init_authentication_method(authn_method, request_args,
+                                          http_args, req=cls)
 
         return oauth2.Client.do_access_token_request(self, cls, scope, state,
                                                      body_type, method,
                                                      request_args, extra_args,
-                                                     http_args, resp_cls)
+                                                     http_args, resp_cls,
+                                                     authn_method, **kwargs)
 
     def do_access_token_refresh(self, cls=RefreshAccessTokenRequest,
                                 state="", body_type="json", method="POST",
@@ -229,27 +283,6 @@ class Client(oauth2.Client):
                                                      request_args,
                                                      extra_args, http_args,
                                                      resp_cls, **kwargs)
-
-#    def do_user_info_request(self, cls=UserInfoRequest, state="",
-#                             body_type="json", method="POST",
-#                             request_args=None, extra_args=None,
-#                             http_args=None, resp_cls=UserInfoResponse,
-#                             **kwargs):
-#
-#        token = self._get_token(state=state, **kwargs)
-#        url, body, ht_args, csi = self.request_info(cls, method=method,
-#                                                    request_args=request_args,
-#                                                    extra_args=extra_args,
-#                                                    token=token)
-#
-#        if http_args is None:
-#            http_args = ht_args
-#        else:
-#            http_args.update(http_args)
-#
-#        return self.request_and_return(url, resp_cls, method, body,
-#                                       body_type, extended=False,
-#                                       state=state, http_args=http_args)
 
     def do_registration_request(self, cls=RegistrationRequest, scope="",
                                 state="", body_type="json", method="POST",
@@ -290,25 +323,6 @@ class Client(oauth2.Client):
                                        body_type, extended=False,
                                        state=state, http_args=http_args)
 
-#    def do_check_id_request(self, cls=CheckIDRequest, scope="",
-#                                 state="", body_type="json", method="POST",
-#                                 request_args=None, extra_args=None,
-#                                 http_args=None, resp_cls=None):
-#
-#        url, body, ht_args, csi = self.request_info(cls, method=method,
-#                                                    request_args=request_args,
-#                                                    extra_args=extra_args,
-#                                                    scope=scope, state=state)
-#
-#        if http_args is None:
-#            http_args = ht_args
-#        else:
-#            http_args.update(http_args)
-#
-#        return self.request_and_return(url, resp_cls, method, body,
-#                                       body_type, extended=False,
-#                                       state=state, http_args=http_args)
-
     def do_end_session_request(self, cls=EndSessionRequest, scope="",
                                  state="", body_type="", method="GET",
                                  request_args=None, extra_args=None,
@@ -327,26 +341,6 @@ class Client(oauth2.Client):
         return self.request_and_return(url, resp_cls, method, body,
                                        body_type, extended=False,
                                        state=state, http_args=http_args)
-
-#    def do_open_id_request(self, cls=OpenIDRequest, scope="",
-#                                 state="", body_type="json", method="GET",
-#                                 request_args=None, extra_args=None,
-#                                 http_args=None,
-#                                 resp_cls=AuthorizationResponse):
-#
-#        url, body, ht_args, csi = self.request_info(cls, method=method,
-#                                                    request_args=request_args,
-#                                                    extra_args=extra_args,
-#                                                    scope=scope, state=state)
-#
-#        if http_args is None:
-#            http_args = ht_args
-#        else:
-#            http_args.update(http_args)
-#
-#        return self.request_and_return(url, resp_cls, method, body,
-#                                       body_type, extended=False,
-#                                       state=state, http_args=http_args)
 
     def get_or_post(self, uri, method, req, **kwargs):
         if method == "GET":
@@ -388,6 +382,23 @@ class Client(oauth2.Client):
             pass
 
         uri = self._endpoint("user_info_endpoint", **kwargs)
+        # If access token is a bearer token it might be sent in the
+        # authorization header
+        # 3-ways of sending the access_token:
+        # - POST with token in authorization header
+        # - POST with token in message body
+        # - GET with token in authorization header
+        if "behavior" in kwargs:
+            _behav = kwargs["behavior"]
+            # use_authorization_header, token_in_message_body
+            if "use_authorization_header" in _behav and token.type == "bearer":
+                if "headers" in kwargs:
+                    kwargs["headers"].append(("Authorization", token.access_token))
+                else:
+                    kwargs["headers"] = [("Authorization", token.access_token)]
+            if not "token_in_message_body" in _behav:
+                # remove the token from the request
+                uir.access_token = None
 
         path, body, kwargs = self.get_or_post(uri, method, uir, **kwargs)
 
@@ -414,7 +425,7 @@ class Client(oauth2.Client):
         else:
             raise Exception("ERROR: Something went wrong [%s]" % response.status)
 
-        return UserInfoResponse.set_json(txt=content, extended=True)
+        return OpenIDSchema.set_json(txt=content, extended=True)
 
 
 #noinspection PyMethodOverriding

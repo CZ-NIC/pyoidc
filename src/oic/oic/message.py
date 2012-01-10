@@ -81,6 +81,9 @@ def userinfo_deser(val, format="urlencoded", extended=False):
 #noinspection PyUnusedLocal
 def claims_ser(val, format="urlencoded", extended=False):
     # everything in c_extension
+    if isinstance(val, basestring):
+        val = [val]
+
     if format == "urlencoded":
         res = [urllib.urlencode(v.c_extension) for v in val]
     elif format == "json":
@@ -128,10 +131,28 @@ def claims_deser(val, format="urlencoded", extended=False):
 
     return res
 
+#noinspection PyUnusedLocal
+def address_deser(val, format="urlencoded", extended=False):
+    if format == "urlencoded":
+#        if isinstance(val, list):
+#            pass
+#        else:
+#            val = eval(val)
+#
+        res = AddressClaim(**parse_qs(val))
+    elif format == "json":
+        res = AddressClaim(**json.loads(val))
+    elif format == "dict":
+        res = AddressClaim(**val)
+    else:
+        raise Exception("Unknown format")
+
+    return res
+
 class AccessTokenResponse(oauth2.AccessTokenResponse):
     c_attributes = oauth2.AccessTokenResponse.c_attributes.copy()
     c_attributes["id_token"] = SINGLE_OPTIONAL_STRING
-    c_attributes["domain"] = SINGLE_OPTIONAL_STRING
+    #c_attributes["domain"] = SINGLE_OPTIONAL_STRING
 
     def __init__(self,
                  access_token=None,
@@ -141,7 +162,7 @@ class AccessTokenResponse(oauth2.AccessTokenResponse):
                  scope=None,
                  state=None,
                  id_token=None,
-                 domain=None,
+    #             domain=None,
                  **kwargs):
         oauth2.AccessTokenResponse.__init__(self,
                                             access_token,
@@ -152,7 +173,7 @@ class AccessTokenResponse(oauth2.AccessTokenResponse):
                                             state,
                                             **kwargs)
         self.id_token = id_token
-        self.domain = domain
+    #    self.domain = domain
 
 class AuthorizationResponse(oauth2.AuthorizationResponse, AccessTokenResponse):
     c_attributes = oauth2.AuthorizationResponse.c_attributes.copy()
@@ -213,8 +234,10 @@ class AuthorizationErrorResponse(oauth2.AuthorizationErrorResponse):
             if self.error in ["invalid_request_redirect_uri",
                                   "login_required",
                                   "session_selection_required",
-                                  "approval_required",
-                                  "user_mismatched"]:
+                                  "consent_required",
+                                  "user_mismatched",
+                                  "invalid_request_uri",
+                                  "invalid_openid_request_object"]:
                 return True
 
         return oauth2.AuthorizationErrorResponse.verify(self)
@@ -244,7 +267,8 @@ class AccessTokenRequest(oauth2.AccessTokenRequest):
     c_attributes = oauth2.AccessTokenRequest.c_attributes.copy()
     c_attributes["client_id"] = SINGLE_REQUIRED_STRING
     c_attributes["client_secret"] = SINGLE_OPTIONAL_STRING
-    c_attributes["secret_type"] = SINGLE_OPTIONAL_STRING
+    c_attributes["client_assertion_type"] = SINGLE_OPTIONAL_STRING
+    c_attributes["client_assertion"] = SINGLE_OPTIONAL_STRING
 
     def __init__(self,
                  grant_type="authorization_code",
@@ -252,13 +276,15 @@ class AccessTokenRequest(oauth2.AccessTokenRequest):
                  redirect_uri=None,
                  client_id=None,
                  client_secret=None,
-                 secret_type=None,
+                 client_assertion_type=None,
+                 client_assertion=None,
                  **kwargs):
         oauth2.AccessTokenRequest.__init__(self, grant_type, code,
                                            redirect_uri, **kwargs)
         self.client_id = client_id
         self.client_secret = client_secret
-        self.secret_type = secret_type
+        self.client_assertion_type = client_assertion_type
+        self.client_assertion = client_assertion
 
 class AuthorizationRequest(oauth2.AuthorizationRequest):
     c_attributes = oauth2.AuthorizationRequest.c_attributes.copy()
@@ -266,8 +292,8 @@ class AuthorizationRequest(oauth2.AuthorizationRequest):
     c_attributes["request_uri"] = SINGLE_OPTIONAL_STRING
     c_attributes["display"] = SINGLE_OPTIONAL_STRING
     c_attributes["prompt"] = OPTIONAL_LIST_OF_STRINGS
-    c_attributes["nonce"] = SINGLE_OPTIONAL_STRING
-    c_attributes["id_token_audience"] = SINGLE_OPTIONAL_STRING
+    c_attributes["nonce"] = SINGLE_REQUIRED_STRING
+    #c_attributes["id_token_audience"] = SINGLE_OPTIONAL_STRING
 
     def __init__(self,
                  response_type=None,
@@ -280,7 +306,7 @@ class AuthorizationRequest(oauth2.AuthorizationRequest):
                  display=None,
                  prompt=None,
                  nonce=None,
-                 id_token_audience=None,
+                 #id_token_audience=None,
                  **kwargs):
         oauth2.AuthorizationRequest.__init__(self, response_type, client_id,
                                              redirect_uri, scope, state,
@@ -290,14 +316,15 @@ class AuthorizationRequest(oauth2.AuthorizationRequest):
         self.display = display
         self.prompt = prompt or []
         self.nonce = nonce
-        self.id_token_audience = id_token_audience
+        #self.id_token_audience = id_token_audience
 
     def verify(self):
         if self.display:
-            assert self.display in ["none", "popup", "mobile"]
+            assert self.display in ["page", "popup", "touch", "wap",
+                                    "embedded"]
         if self.prompt:
             for val in self.prompt:
-                assert val in ["login", "consent", "select_account"]
+                assert val in ["none", "login", "consent", "select_account"]
 
         return oauth2.AuthorizationRequest.verify(self)
 
@@ -321,9 +348,55 @@ class UserInfoRequest(oauth2.Base):
         self.schema=schema
         self.id=id
 
-class UserInfoResponse(oauth2.Base):
+class AddressClaim(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
-    c_attributes["id"] = SINGLE_OPTIONAL_STRING
+    c_attributes["formatted"] = SINGLE_OPTIONAL_STRING
+    c_attributes["street_address"] = SINGLE_OPTIONAL_STRING
+    c_attributes["locality"] = SINGLE_OPTIONAL_STRING
+    c_attributes["region"] = SINGLE_OPTIONAL_STRING
+    c_attributes["postal_code"] = SINGLE_OPTIONAL_STRING
+    c_attributes["country"] = SINGLE_OPTIONAL_STRING
+
+    def __init__(self,
+                 formatted=None,
+                 street_address=None,
+                 locality=None,
+                 region=None,
+                 postal_code=None,
+                 country=None,
+                 **kwargs
+        ):
+        oauth2.Base.__init__(self, **kwargs)
+        self.formatted=formatted
+        self.street_address=street_address
+        self.locality=locality
+        self.region=region
+        self.postal_code=postal_code
+        self.country=country
+
+#noinspection PyUnusedLocal
+def address_deser(val, format="urlencoded", extended=False):
+    if format == "urlencoded":
+    #        if isinstance(val, list):
+    #            pass
+    #        else:
+    #            val = eval(val)
+    #
+        res = AddressClaim(**parse_qs(val))
+    elif format == "json":
+        res = AddressClaim(**json.loads(val))
+    elif format == "dict":
+        res = AddressClaim(**val)
+    else:
+        raise Exception("Unknown format")
+
+    return res
+
+OPTIONAL_ADDRESS = (AddressClaim, False, claims_ser, address_deser)
+
+class OpenIDSchema(oauth2.Base):
+    c_attributes = oauth2.Base.c_attributes.copy()
+    c_attributes["user_id"] = SINGLE_OPTIONAL_STRING
     c_attributes["name"] = SINGLE_OPTIONAL_STRING
     c_attributes["given_name"] = SINGLE_OPTIONAL_STRING
     c_attributes["family_name"] = SINGLE_OPTIONAL_STRING
@@ -339,11 +412,11 @@ class UserInfoResponse(oauth2.Base):
     c_attributes["zoneinfo"] = SINGLE_OPTIONAL_STRING
     c_attributes["locale"] = SINGLE_OPTIONAL_STRING
     c_attributes["phone_number"] = SINGLE_OPTIONAL_STRING
-    c_attributes["address"] = SINGLE_OPTIONAL_JSON
-    c_attributes["update_time"] = SINGLE_OPTIONAL_STRING
+    c_attributes["address"] = OPTIONAL_ADDRESS
+    c_attributes["updated_time"] = SINGLE_OPTIONAL_STRING
 
     def __init__(self,
-                 id=None,
+                 user_id=None,
                  name=None,
                  given_name=None,
                  family_name=None,
@@ -360,11 +433,11 @@ class UserInfoResponse(oauth2.Base):
                  locale=None,
                  phone_number=None,
                  address=None,
-                 update_time=None,
+                 updated_time=None,
                  **kwargs
                 ):
         oauth2.Base.__init__(self, **kwargs)
-        self.id = id
+        self.user_id = user_id
         self.name = name
         self.given_name = given_name
         self.family_name = family_name
@@ -381,7 +454,8 @@ class UserInfoResponse(oauth2.Base):
         self.locale = locale
         self.phone_number = phone_number
         self.address = address
-        self.update_time = update_time
+        self.updated_time = updated_time
+
 
 class RegistrationRequest(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
@@ -395,8 +469,15 @@ class RegistrationRequest(oauth2.Base):
     c_attributes["redirect_uri"] = OPTIONAL_LIST_OF_STRINGS
     c_attributes["js_origin_uri"] = OPTIONAL_LIST_OF_STRINGS
     c_attributes["jwk_url"] = SINGLE_OPTIONAL_STRING
+    c_attributes["jwk_encryption_url"] = SINGLE_OPTIONAL_STRING
     c_attributes["x509_url"] = SINGLE_OPTIONAL_STRING
+    c_attributes["x509_encryption_url"] = SINGLE_OPTIONAL_STRING
     c_attributes["sector_identifier"] = SINGLE_OPTIONAL_STRING
+    c_attributes["require_signed_request_object"] = SINGLE_OPTIONAL_STRING
+    c_attributes["userinfo_signed_response_algs"] = SINGLE_OPTIONAL_STRING
+    c_attributes["userinfo_encrypted_response_algs"] = OPTIONAL_LIST_OF_STRINGS
+    c_attributes["id_token_signed_response_algs"] = SINGLE_OPTIONAL_STRING
+    c_attributes["id_token_encrypted_response_algs"] = OPTIONAL_LIST_OF_STRINGS
 
     def __init__(self,
                  type=None,
@@ -409,8 +490,15 @@ class RegistrationRequest(oauth2.Base):
                  redirect_uri=None,
                  js_origin_uri=None,
                  jwk_url=None,
+                 jwk_encryption_url=None,
                  x509_url=None,
+                 x509_encryption_url=None,
                  sector_identifier=None,
+                 require_signed_request_object=None,
+                 userinfo_signed_response_algs=None,
+                 userinfo_encrypted_response_algs=None,
+                 id_token_signed_response_algs=None,
+                 id_token_encrypted_response_algs=None,
                  **kwargs
                 ):
         oauth2.Base.__init__(self, **kwargs)
@@ -424,8 +512,16 @@ class RegistrationRequest(oauth2.Base):
         self.redirect_uri=redirect_uri or []
         self.js_origin_uri=js_origin_uri or []
         self.jwk_url=jwk_url
+        self.jwk_encryption_url=jwk_encryption_url
         self.x509_url=x509_url
+        self.x509_encryption_url=x509_encryption_url
         self.sector_identifier=sector_identifier
+        self.require_signed_request_object=require_signed_request_object
+        self.userinfo_signed_response_algs=userinfo_signed_response_algs
+        self.userinfo_encrypted_response_algs=userinfo_encrypted_response_algs
+        self.id_token_signed_response_algs=id_token_signed_response_algs
+        self.id_token_encrypted_response_algs=id_token_encrypted_response_algs
+
 
     def verify(self):
         assert self.type in ["client_associate", "client_update"]
@@ -458,11 +554,11 @@ class IdToken(oauth2.Base):
     c_attributes["user_id"] = SINGLE_REQUIRED_STRING
     c_attributes["aud"] = SINGLE_REQUIRED_STRING
     c_attributes["exp"] = SINGLE_REQUIRED_INT
+    c_attributes["acr"] = SINGLE_OPTIONAL_STRING
     c_attributes["nonce"] = SINGLE_OPTIONAL_STRING
-    c_attributes["issued_to"] = SINGLE_OPTIONAL_STRING
     c_attributes["auth_time"] = SINGLE_OPTIONAL_STRING
-    c_attributes["max_age"] = SINGLE_OPTIONAL_INT
-    c_attributes["iso29115"] = SINGLE_OPTIONAL_STRING
+    #c_attributes["max_age"] = SINGLE_OPTIONAL_INT
+    #c_attributes["issued_to"] = SINGLE_OPTIONAL_STRING
 
     def __init__(self,
                  iss=None,
@@ -470,11 +566,11 @@ class IdToken(oauth2.Base):
                  user_id=None,
                  aud=None,
                  exp=None,
+                 acr=None,
                  nonce=None,
-                 issued_to=None,
                  auth_time=None,
-                 max_age=None,
-                 iso29115=None,
+#                 issued_to=None,
+#                 max_age=None,
                  **kwargs
                 ):
         oauth2.Base.__init__(self, **kwargs)
@@ -483,11 +579,11 @@ class IdToken(oauth2.Base):
         self.user_id=user_id
         self.aud=aud
         self.exp=exp
+        self.acr=acr
         self.nonce=nonce
-        self.issued_to=issued_to
         self.auth_time=auth_time
-        self.max_age=max_age
-        self.iso29115=iso29115
+        #self.issued_to=issued_to
+        #self.max_age=max_age
 
 class RefreshSessionRequest(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
@@ -529,15 +625,15 @@ class CheckSessionRequest(oauth2.Base):
         self.id_token = id_token
 
 # The same as CheckSessionRequest
-#class CheckIDRequest(oauth2.Base):
-#    c_attributes = oauth2.Base.c_attributes.copy()
-#    c_attributes["id_token"] = SINGLE_REQUIRED_STRING
-#
-#    def __init__(self,
-#                 id_token=None,
-#                 **kwargs):
-#        oauth2.Base.__init__(self, **kwargs)
-#        self.id_token = id_token
+class CheckIDRequest(oauth2.Base):
+    c_attributes = oauth2.Base.c_attributes.copy()
+    c_attributes["access_token"] = SINGLE_REQUIRED_STRING
+
+    def __init__(self,
+                 access_token=None,
+                 **kwargs):
+        oauth2.Base.__init__(self, **kwargs)
+        self.access_token = access_token
 
 class EndSessionRequest(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
@@ -576,18 +672,18 @@ OPTIONAL_MULTIPLE_Claims = ([Claims], False, claims_ser, claims_deser)
 class UserInfoClaim(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
     c_attributes["claims"] = OPTIONAL_MULTIPLE_Claims
-    c_attributes["format"] = SINGLE_OPTIONAL_STRING
-    c_attributes["locale"] = SINGLE_OPTIONAL_STRING
+    #c_attributes["format"] = SINGLE_OPTIONAL_STRING
+    c_attributes["preferred_locale"] = SINGLE_OPTIONAL_STRING
 
     def __init__(self,
                  claims=None,
-                 format=None,
-                 locale=None,
+                 #format=None,
+                 preferred_locale=None,
                  **kwargs):
         oauth2.Base.__init__(self, **kwargs)
         self.claims = claims or []
-        self.format = format
-        self.locale = locale
+        #self.format = format
+        self.preferred_locale = preferred_locale
 
     def verify(self):
         if self.format:
@@ -599,17 +695,14 @@ class IDTokenClaim(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
     c_attributes["claims"] = OPTIONAL_MULTIPLE_Claims
     c_attributes["max_age"] = SINGLE_OPTIONAL_INT
-    c_attributes["iso29115"] = SINGLE_OPTIONAL_STRING
 
     def __init__(self,
                  claims=None,
                  max_age=None,
-                 iso29115=None,
                  **kwargs):
         oauth2.Base.__init__(self, **kwargs)
         self.claims = claims
         self.max_age = max_age
-        self.iso29115 = iso29115
 
 SINGLE_OPTIONAL_USERINFO_CLAIM = (UserInfoClaim, False, userinfo_ser,
                                   userinfo_deser)
@@ -620,6 +713,7 @@ class OpenIDRequest(AuthorizationRequest):
     c_attributes = AuthorizationRequest.c_attributes.copy()
     c_attributes["user_info"] = SINGLE_OPTIONAL_USERINFO_CLAIM
     c_attributes["id_token"] = SINGLE_OPTIONAL_ID_TOKEN_CLAIM
+    # If signed it should contain these
     c_attributes["iss"] = SINGLE_OPTIONAL_STRING
     c_attributes["aud"] = SINGLE_OPTIONAL_STRING
 
@@ -634,7 +728,7 @@ class OpenIDRequest(AuthorizationRequest):
                  display=None,
                  prompt=None,
                  nonce=None,
-                 id_token_audience=None,
+                 #id_token_audience=None,
                  user_info=None,
                  id_token=None,
                  iss=None,
@@ -651,7 +745,7 @@ class OpenIDRequest(AuthorizationRequest):
                                       display,
                                       prompt,
                                       nonce,
-                                      id_token_audience,
+                                      #id_token_audience,
                                       **kwargs)
         self.user_info = user_info
         self.id_token = id_token
@@ -664,51 +758,73 @@ class ProviderConfigurationResponse(oauth2.Base):
     c_attributes["issuer"] = SINGLE_OPTIONAL_STRING
     c_attributes["authorization_endpoint"] = SINGLE_OPTIONAL_STRING
     c_attributes["token_endpoint"] = SINGLE_OPTIONAL_STRING
-    c_attributes["user_info_endpoint"] = SINGLE_OPTIONAL_STRING
-    c_attributes["check_session_endpoint"] = SINGLE_OPTIONAL_STRING
+    c_attributes["userinfo_endpoint"] = SINGLE_OPTIONAL_STRING
+    c_attributes["check_id_endpoint"] = SINGLE_OPTIONAL_STRING
     c_attributes["refresh_session_endpoint"] = SINGLE_OPTIONAL_STRING
     c_attributes["end_session_endpoint"] = SINGLE_OPTIONAL_STRING
     c_attributes["registration_endpoint"] = SINGLE_OPTIONAL_STRING
-    c_attributes["jwk_document"] = SINGLE_OPTIONAL_STRING
+    c_attributes["jwk_url"] = SINGLE_OPTIONAL_STRING
     c_attributes["x509_url"] = SINGLE_OPTIONAL_STRING
+    c_attributes["jwk_encryption_url"] = SINGLE_OPTIONAL_STRING
+    c_attributes["x509_encryption_url"] = SINGLE_OPTIONAL_STRING
     c_attributes["scopes_supported"] = OPTIONAL_LIST_OF_STRINGS
-    c_attributes["flows_supported"] = OPTIONAL_LIST_OF_STRINGS
-    c_attributes["iso29115_supported"] = OPTIONAL_LIST_OF_STRINGS
-    c_attributes["identifiers_supported"] = OPTIONAL_LIST_OF_STRINGS
+    c_attributes["response_types_supported"] = OPTIONAL_LIST_OF_STRINGS
+    c_attributes["acrs_supported"] = OPTIONAL_LIST_OF_STRINGS
+    c_attributes["user_id_types_supported"] = OPTIONAL_LIST_OF_STRINGS
+    c_attributes["userinfo_algs_supported"] = OPTIONAL_LIST_OF_STRINGS
+    c_attributes["id_token_algs_supported"] = OPTIONAL_LIST_OF_STRINGS
+    c_attributes["request_object_algs_supported"] = OPTIONAL_LIST_OF_STRINGS
+    c_attributes["token_endpoint_auth_types_supported"] = OPTIONAL_LIST_OF_STRINGS
+    c_attributes["token_endpoint_auth_algs_supported"] = OPTIONAL_LIST_OF_STRINGS
 
     def __init__(self,
                  version="3.0",
                  issuer=None,
                  authorization_endpoint=None,
                  token_endpoint=None,
-                 user_info_endpoint=None,
-                 check_session_endpoint=None,
+                 userinfo_endpoint=None,
+                 check_id_endpoint=None,
                  refresh_session_endpoint=None,
                  end_session_endpoint=None,
-                 jwk_document=None,
+                 jwk_url=None,
+                 jwk_encryption_url=None,
                  x509_url=None,
+                 x509_encryption_url=None,
                  registration_endpoint=None,
                  scopes_supported=None,
-                 flows_supported=None,
-                 iso29115_supported=None,
-                 identifiers_supported=None,
+                 response_types_supported=None,
+                 acrs_supported=None,
+                 user_id_types_supported=None,
+                 userinfo_algs_supported=None,
+                 id_token_algs_supported=None,
+                 request_object_algs_supported=None,
+                 token_endpoint_auth_types_supported=None,
+                 token_endpoint_auth_algs_supported=None,
                  **kwargs):
         oauth2.Base.__init__(self, **kwargs)
         self.version = version
         self.issuer = issuer
         self.authorization_endpoint = authorization_endpoint
         self.token_endpoint = token_endpoint
-        self.user_info_endpoint = user_info_endpoint
-        self.check_session_endpoint = check_session_endpoint
+        self.userinfo_endpoint = userinfo_endpoint
+        self.check_id_endpoint = check_id_endpoint
         self.refresh_session_endpoint = refresh_session_endpoint
         self.end_session_endpoint = end_session_endpoint
-        self.jwk_document = jwk_document
+        self.jwk_url = jwk_url
         self.x509_url = x509_url
+        self.jwk_encryption_url = jwk_encryption_url
+        self.x509_encryption_url = x509_encryption_url
         self.registration_endpoint = registration_endpoint
         self.scopes_supported = scopes_supported
-        self.flows_supported = flows_supported
-        self.iso29115_supported = iso29115_supported
-        self.identifiers_supported = identifiers_supported
+        self.response_types_supported=response_types_supported
+        self.acrs_supported=acrs_supported
+        self.user_id_types_supported=user_id_types_supported
+        self.userinfo_algs_supported=userinfo_algs_supported
+        self.id_token_algs_supported=id_token_algs_supported
+        self.request_object_algs_supported=request_object_algs_supported
+        self.token_endpoint_auth_types_supported=token_endpoint_auth_types_supported
+        self.token_endpoint_auth_algs_supported=token_endpoint_auth_algs_supported
+
 
 class JWKKeyObject(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
@@ -837,3 +953,57 @@ class IssuerResponse(oauth2.Base):
         oauth2.Base.__init__(self, **kwargs)
         self.locations = locations
         self.SWD_service_redirect = SWD_service_redirect
+
+class AuthnToken(oauth2.Base):
+    c_attributes = oauth2.Base.c_attributes.copy()
+    c_attributes["iss"] = SINGLE_REQUIRED_STRING
+    c_attributes["prn"] = SINGLE_REQUIRED_STRING
+    c_attributes["aud"] = SINGLE_REQUIRED_STRING
+    c_attributes["jti"] = SINGLE_REQUIRED_STRING
+    c_attributes["exp"] = SINGLE_REQUIRED_INT
+    c_attributes["iat"] = SINGLE_OPTIONAL_INT
+
+    def __init__(self,
+                 iss=None,
+                 prn=None,
+                 aud=None,
+                 jti=None,
+                 exp=None,
+                 iat=None,
+                 **kwargs):
+        oauth2.Base.__init__(self, **kwargs)
+        self.iss = iss
+        self.prn = prn
+        self.aud = aud
+        self.jti = jti
+        self.exp = exp
+        self.iat = iat
+
+class UserInfoErrorResponse(oauth2.ErrorResponse):
+    c_attributes = oauth2.ErrorResponse.c_attributes.copy()
+
+    def __init__(self,
+             error=None,
+             error_description=None,
+             error_uri=None,
+             **kwargs):
+        oauth2.ErrorResponse.__init__(self, error, error_description,
+                                      error_uri, **kwargs)
+
+    def verify(self):
+        if self.error:
+            assert self.error in ["invalid_schema", "invalid_request",
+                                  "invalid_token", "insufficient_scope"]
+
+        return oauth2.ErrorResponse.verify(self)
+
+def factory(cls, **argv):
+    _dict = {}
+    for attr in cls.c_attributes:
+        try:
+            _dict[attr] = argv[attr]
+        except KeyError:
+            pass
+
+    return cls(**_dict)
+

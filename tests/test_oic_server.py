@@ -12,6 +12,7 @@ from oic.oic import Client
 from oic.oic.consumer import Consumer
 from oic.oic.server import Server
 from oic.oic.server import get_post
+from oic.oic.server import add_token_info
 from oic.oauth2.server import AuthnFailure
 
 from oic.oic.message import AuthorizationResponse
@@ -19,6 +20,12 @@ from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AccessTokenRequest
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import TokenErrorResponse
+from oic.oic.message import UserInfoRequest
+from oic.oic.message import OpenIDSchema
+from oic.oic.message import CheckSessionRequest
+from oic.oic.message import IdToken
+from oic.oic.message import RegistrationRequest
+from oic.oic.message import RegistrationResponse
 
 from oic.utils import http_util
 
@@ -26,8 +33,8 @@ CLIENT_CONFIG = {
     "client_id": "number5",
     "ca_certs": "/usr/local/etc/oic/ca_certs.txt",
     "disable_ssl_certificate_validation":False,
-    "key":None,
-    "algorithm":"HS256",
+    #"key":None,
+    #"algorithm":"HS256",
     "expire_in":600,
     "client_secret":"",
     "client_timeout":0
@@ -40,6 +47,7 @@ CONSUMER_CONFIG = {
     "scope": ["openid"],
     "response_type": ["code"],
     #"expire_in": 600,
+    "key": "jwt_key_001"
 }
 
 SERVER_INFO ={
@@ -73,9 +81,10 @@ BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',
                'COMMAND_MODE': 'unix2003'}
 
 CDB = {
-    "a1b2c3": {
+    "number5": {
         "password": "hemligt",
-        "client_secret": "drickyoughurt"
+        "client_secret": "drickyoughurt",
+        "jwk_key": CONSUMER_CONFIG["key"],
     },
 }
 
@@ -138,6 +147,21 @@ def create_return_form_env(user, password, sid):
 
     return environ
 
+#noinspection PyUnusedLocal
+def user_info(userdb, user_id, client_id, user_info):
+    identity = userdb[user_id]
+    result = {}
+    for claim in user_info.claims:
+        for key, restr in claim.items():
+            try:
+                result[key] = identity[key]
+            except KeyError:
+                if restr == {"optional": True}:
+                    pass
+                else:
+                    raise Exception("Missing property '%s'" % key)
+
+    return OpenIDSchema(**result)
 
 class LOG():
     def info(self, txt):
@@ -154,9 +178,17 @@ FUNCTIONS = {
     "authorize": do_authorization,
     "verify user": verify_username_and_password,
     "verify client": verify_client,
+    "user info": user_info,
 }
 
-USERDB = {}
+USERDB = {
+    "user":{
+        "name": "Hans Granberg",
+        "nickname": "Hasse",
+        "email": "hans@example.org",
+        "verified": False,
+    }
+}
 
 URLMAP = {"client1": ["https://example.com/authz"]}
 
@@ -205,7 +237,8 @@ def test_server_authorization_endpoint():
            "state": "id-6da9ca0cc23959f5f33e8becd9b08cae",
            "redirect_uri": "http://localhost:8087authz",
            "response_type": ["code"],
-           "client_id": "a1b2c3"}
+           "client_id": "a1b2c3",
+           "nonce": "Nonce"}
 
     arq = AuthorizationRequest(**bib)
 
@@ -248,7 +281,7 @@ def test_server_authenticated():
     location = cons.begin(environ, start_response, LOG())
 
     environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = location
+    environ["QUERY_STRING"] = location.split("?")[1]
 
     resp = server.authorization_endpoint(environ, start_response, LOG(), None)
 
@@ -282,7 +315,7 @@ def test_server_authenticated():
 
     print aresp.keys()
     assert isinstance(aresp, AuthorizationResponse)
-    assert _eq(aresp.keys(), ['state', 'code'])
+    assert _eq(aresp.keys(), ['state', 'code', 'nonce'])
 
     print cons.grant[cons.state].keys()
     assert _eq(cons.grant[cons.state].keys(), ['tokens', 'exp_in', 'seed',
@@ -299,7 +332,7 @@ def test_server_authenticated_1():
     location = cons.begin(environ, start_response, LOG())
 
     environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = location
+    environ["QUERY_STRING"] = location.split("?")[1]
 
     _ = server.authorization_endpoint(environ, start_response, LOG(), None)
 
@@ -323,7 +356,7 @@ def test_server_authenticated_token():
     location = cons.begin(environ, start_response, LOG())
 
     environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = location
+    environ["QUERY_STRING"] = location.split("?")[1]
 
     resp = server.authorization_endpoint(environ, start_response, LOG(), None)
 
@@ -349,7 +382,7 @@ def test_server_authenticated_none():
     location = cons.begin(environ, start_response, LOG())
 
     environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = location
+    environ["QUERY_STRING"] = location.split("?")[1]
 
     resp = server.authorization_endpoint(environ, start_response, LOG(), None)
 
@@ -479,7 +512,6 @@ def test_idtoken():
 
 def test_add_token_info():
     server = srv_init
-
     AREQ = AuthorizationRequest(response_type="code", client_id="client1",
                                 redirect_uri="http://example.com/authz",
                                 scope=["openid"], state="state000")
@@ -497,8 +529,105 @@ def test_add_token_info():
         AREQ.nonce = AREQ.nonce
 
     _dic = server.sdb.update_to_token(scode, issue_refresh=False)
-    server.add_token_info(aresp, _dic)
+    add_token_info(aresp, _dic)
 
     print aresp.keys()
     assert _eq(aresp.keys(), ['access_token', 'expires_in', 'token_type',
                               'state', 'scope'])
+
+def test_user_info_endpoint():
+    server = srv_init
+
+    _session_db = {}
+    cons = Consumer(_session_db, CONSUMER_CONFIG, CLIENT_CONFIG,
+                    server_info=SERVER_INFO, )
+    cons.debug = True
+    cons.config["response_type"] = ["token"]
+    cons.config["request_method"] = "parameter"
+    environ = BASE_ENVIRON
+
+    location = cons.begin(environ, start_response, LOG())
+
+    environ = BASE_ENVIRON.copy()
+    environ["QUERY_STRING"] = location.split("?")[1]
+
+    resp = server.authorization_endpoint(environ, start_response, LOG(), None)
+
+    sid = resp[0][len("<form>"):-len("</form>")]
+    environ2 = create_return_form_env("user", "password", sid)
+
+    resp2 = server.authenticated(environ2, start_response, LOG(), None)
+    line = resp2[0]
+    start = line.index("<title>")
+    start += len("<title>Redirecting to ")
+    stop = line.index("</title>")
+    path, query = line[start:stop].split("?")
+
+    # redirect
+    atr = AuthorizationResponse.from_urlencoded(query)
+
+    uir = UserInfoRequest(access_token=atr.access_token, schema="openid")
+
+    environ = BASE_ENVIRON.copy()
+    environ["QUERY_STRING"] = uir.get_urlencoded()
+
+    resp3 = server.user_info_endpoint(environ, start_response, LOG())
+    ident = OpenIDSchema.set_json(resp3[0])
+    print ident.keys()
+    assert _eq(ident.keys(), ['name', 'email', 'nickname'])
+    assert ident.name == USERDB["user"]["name"]
+
+def test_check_session_endpoint():
+    server = srv_init
+    print server.name
+    server.srvmethod.jwt_keys = {server.name: server.jwt_key}
+
+    session = {"user_id": "UserID", "client_id": "number5"}
+    idtoken = server._id_token(session)
+    csr = CheckSessionRequest(id_token=idtoken)
+    environ = BASE_ENVIRON.copy()
+    environ["QUERY_STRING"] = csr.get_urlencoded()
+
+    info = server.check_session_endpoint(environ, start_response, LOG())
+    print info
+    idt = IdToken.set_json(info[0])
+    print idt.keys()
+    assert _eq(idt.keys(), ['user_id', 'aud', 'iss', 'exp'])
+    assert idt.iss == server.name
+
+def test_registration_endpoint():
+    server = srv_init
+
+    req = RegistrationRequest(type="client_associate")
+
+    req.application_type = "web"
+    req.application_name = "My super service"
+    req.redirect_uri = "http://example.com/authz"
+    req.contact = ["foo@example.com"]
+
+    environ = BASE_ENVIRON.copy()
+    environ["QUERY_STRING"] = req.get_urlencoded()
+
+    resp = server.registration_endpoint(environ, start_response, LOG())
+
+    print resp
+    regresp = RegistrationResponse.from_json(resp[0])
+    print regresp.keys()
+    assert _eq(regresp.keys(), ['client_secret', 'expires_in', 'client_id'])
+
+    # --- UPDATE ----
+
+    req = RegistrationRequest(type="client_update")
+    req.client_id = regresp.client_id
+    req.client_secret = regresp.client_secret
+
+    environ = BASE_ENVIRON.copy()
+    environ["QUERY_STRING"] = req.get_urlencoded()
+
+    resp = server.registration_endpoint(environ, start_response, LOG())
+
+    print resp
+    update = RegistrationResponse.from_json(resp[0])
+    print update.keys()
+    assert _eq(update.keys(), ['client_secret', 'expires_in', 'client_id'])
+    assert update.client_secret != regresp.client_secret

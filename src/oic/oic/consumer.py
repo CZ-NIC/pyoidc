@@ -83,11 +83,12 @@ def construct_openid_request(arq, key):
 
     uic = UserInfoClaim([claim], format="signed", locale="us-en")
 
-    id_token = IDTokenClaim(max_age=86400, iso29115="2")
+    id_token = IDTokenClaim(max_age=86400)
 
     oir = OpenIDRequest(arq.response_type, arq.client_id,
                             arq.redirect_uri,
-                            arq.scope, arq.state, uic, id_token)
+                            arq.scope, arq.state,
+                            user_info=uic, id_token=id_token)
 
     return oir.get_jwt(key=key)
 
@@ -455,8 +456,12 @@ class Consumer(Client):
 
             try:
                 val = getattr(self, prop)
-                setattr(req, prop, val)
+                if val:
+                    setattr(req, prop, val)
             except Exception:
+                val = None
+
+            if not val:
                 if prop in kwargs:
                     setattr(req, prop, kwargs[prop])
 
@@ -472,4 +477,5 @@ class Consumer(Client):
             self.registration_expires = time_sans_frac() + resp.expires_in
         else:
             raise Exception("Registration failed: %s" % response.status)
-        
+
+        return resp

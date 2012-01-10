@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 #
+
 __author__ = 'rohe0002'
 
 import httplib2
@@ -41,6 +42,54 @@ def rndstr(size=16):
     """
     _basech = string.ascii_letters + string.digits
     return "".join([random.choice(_basech) for _ in range(size)])
+
+# -----------------------------------------------------------------------------
+# Authentication Methods
+
+#noinspection PyUnusedLocal
+def client_secret_basic(cli, request_args=None, http_args=None,
+                        **Kwargs):
+    cli.http.add_credentials(cli.client_id, http_args["password"])
+
+#noinspection PyUnusedLocal
+def client_secret_post(cli, request_args=None, http_args=None,
+                       **kwargs):
+    try:
+        request_args["client_secret"] = http_args["client_secret"]
+    except KeyError:
+        request_args["client_secret"] = cli.client_secret
+
+    request_args["client_id"] = cli.client_id
+
+#noinspection PyUnusedLocal
+def bearer_token(cli, request_args=None, http_args=None,
+                 **kwargs):
+    try:
+        _acc_token = request_args["access_token"]
+        del request_args["access_token"]
+    except KeyError:
+        try:
+            _scope = kwargs["scope"]
+        except KeyError:
+            raise Exception("Missing scope specification")
+
+        _acc_token= cli.grant[_scope].access_token
+
+    http_args["headers"]["Authorization"] = "Bearer %s" % base64.encodestring(
+                                                                    _acc_token)
+
+
+AUTHN_METHOD = {
+    "client_secret_basic": client_secret_basic,
+    "client_secret_post" : client_secret_post
+}
+
+# -----------------------------------------------------------------------------
+
+class ExpiredToken(Exception):
+    pass
+
+# -----------------------------------------------------------------------------
 
 class Token(object):
     _class = AccessTokenResponse
@@ -162,14 +211,21 @@ class Grant(object):
 
         
 class Client(object):
-    def __init__(self, client_id=None, cache=None, http_timeout=None,
+    def __init__(self, client_id=None, cache=None, time_out=None,
                  proxy_info=None, follow_redirects=True,
                  disable_ssl_certificate_validation=False,
-                 ca_certs="", key=None,
-                 algorithm="HS256", grant_expire_in=600, client_secret="",
-                 client_timeout=0):
+                 ca_certs="", #jwt_key=None,
+                 grant_expire_in=600, client_secret="", client_timeout=0,
+                 httpclass=None):
 
-        self.http = httplib2.Http(cache, http_timeout, proxy_info, ca_certs,
+        if not ca_certs and disable_ssl_certificate_validation is False:
+            disable_ssl_certificate_validation = True
+
+        if httpclass is None:
+            httpclass = httplib2.Http
+
+        self.http = httpclass(cache=cache, timeout=time_out,
+            proxy_info=proxy_info, ca_certs=ca_certs,
             disable_ssl_certificate_validation=disable_ssl_certificate_validation)
         self.http.follow_redirects = follow_redirects
 
@@ -192,11 +248,11 @@ class Client(object):
         self.token_endpoint=None
         self.token_revocation_endpoint=None
 
-        self.key = key
-        self.algorithm = algorithm
+        #self.jwt_signing_key = jwt_key
 
         self.request2endpoint = REQUEST2ENDPOINT
         self.response2error = RESPONSE2ERROR
+        self.authn_method = AUTHN_METHOD
         self.grant_class = Grant
         self.token_class = Token
 
@@ -272,8 +328,7 @@ class Client(object):
         except:
             raise Exception("No grant found for state:'%s'" % _state)
 
-    def get_token(self, **kwargs):
-        token = None
+    def get_token(self, also_expired=False, **kwargs):
         try:
             return kwargs["token"]
         except KeyError:
@@ -282,18 +337,22 @@ class Client(object):
             try:
                 token = grant.get_token(kwargs["scope"])
             except KeyError:
-                try:
-                    token = self.grant[kwargs["state"]].get_token("")
-                except KeyError:
-                    raise Exception("No token found for scope")
+                token = grant.get_token("")
+                if not token:
+                    try:
+                        token = self.grant[kwargs["state"]].get_token("")
+                    except KeyError:
+                        raise Exception("No token found for scope")
 
         if token is None:
             raise Exception("No suitable token found")
-        
-        if token.is_valid():
+
+        if also_expired:
+            return token
+        elif token.is_valid():
             return token
         else:
-            Exception("Expired token!")
+            raise ExpiredToken()
 
     def construct_request(self, reqclass, request_args=None, extra_args=None):
         if request_args is None:
@@ -318,9 +377,6 @@ class Client(object):
         else:
             request_args = {}
 
-        if "grant_type" not in request_args:
-            request_args["grant_type"] = "authorization_code"
-            
         return self.construct_request(reqclass, request_args, extra_args)
 
     #noinspection PyUnusedLocal
@@ -357,10 +413,8 @@ class Client(object):
         if request_args is None:
             request_args = {}
 
-        token = self.get_token(**kwargs)
-        if token is None:
-            raise Exception("No valid token available")
-        
+        token = self.get_token(also_expired=True, **kwargs)
+
         request_args["refresh_token"] = token.refresh_token
 
         try:
@@ -501,6 +555,19 @@ class Client(object):
 
         return resp
 
+    #noinspection PyUnusedLocal
+    def init_authentication_method(self, authn_method, request_args=None,
+                                     http_args=None, **kwargs):
+
+        if http_args is None:
+            http_args = {}
+        if request_args is None:
+            request_args = {}
+
+        if authn_method:
+            self.authn_method[authn_method](self, request_args, http_args)
+
+
     def request_and_return(self, url, respcls=None, method="GET", body=None,
                         body_type="json", extended=True,
                         state="", http_args=None):
@@ -518,9 +585,6 @@ class Client(object):
 
         if http_args is None:
             http_args = {}
-
-        if "password" in http_args:
-            self.http.add_credentials(self.client_id, http_args["password"])
 
         try:
             response, content = self.http.request(url, method, body=body,
@@ -575,13 +639,18 @@ class Client(object):
     def do_access_token_request(self, cls=AccessTokenRequest, scope="",
                                 state="", body_type="json", method="POST",
                                 request_args=None, extra_args=None,
-                                http_args=None, resp_cls=AccessTokenResponse):
+                                http_args=None, resp_cls=AccessTokenResponse,
+                                authn_method="", **kwargs):
+
+        self.init_authentication_method(authn_method, request_args,
+                                        http_args, **kwargs)
 
         # method is default POST
         url, body, ht_args, csi = self.request_info(cls, method=method,
                                                     request_args=request_args,
                                                     extra_args=extra_args,
-                                                    scope=scope, state=state)
+                                                    scope=scope, state=state,
+                                                    authn_method=authn_method)
 
         if http_args is None:
             http_args = ht_args
@@ -596,10 +665,13 @@ class Client(object):
                                 state="", body_type="json", method="POST",
                                 request_args=None, extra_args=None,
                                 http_args=None, resp_cls=AccessTokenResponse,
-                                **kwargs):
+                                authn_method="", **kwargs):
 
-        token = self.get_token(state=state, **kwargs)
-            
+        self.init_authentication_method(authn_method, request_args,
+                                        http_args, **kwargs)
+
+        token = self.get_token(also_expired=True, state=state, **kwargs)
+
         url, body, ht_args, csi = self.request_info(cls, method=method,
                                                     request_args=request_args,
                                                     extra_args=extra_args,
@@ -617,7 +689,9 @@ class Client(object):
     def do_revocate_token(self, cls=TokenRevocationRequest, scope="", state="",
                           body_type="json", method="POST",
                           request_args=None, extra_args=None, http_args=None,
-                          resp_cls=None):
+                          resp_cls=None, authn_method=""):
+
+        self.init_authentication_method(authn_method, request_args, http_args)
 
         url, body, ht_args, csi = self.request_info(cls, method=method,
                                                     request_args=request_args,
@@ -636,24 +710,25 @@ class Client(object):
     def fetch_protected_resource(self, uri, method="GET", headers=None,
                                  state="", scope="", **kwargs):
 
-        token = self.grant[state].get_token(scope)
-        if not token:
-            raise Exception("No suitable token available")
-        
-        if not token.is_valid():
+        try:
+            token = self.get_token(state=state, **kwargs)
+        except ExpiredToken:
             # The token is to old, refresh
             self.do_access_token_refresh()
+            token = self.get_token(state=state, **kwargs)
 
         if headers is None:
             headers = {}
 
-        try:
-            _acc_token = kwargs["access_token"]
-            del kwargs["access_token"]
-        except KeyError:
-            _acc_token= self.grant[scope].access_token
+        request_args = {"access_token": token.access_token}
+        http_args = {}
 
-        headers["Authorization"] = "Bearer %s" % base64.encodestring(_acc_token)
+        if "authn_method" in kwargs:
+            self.init_authentication_method(request_args, http_args, kwargs)
+        else:
+            bearer_token(self, request_args, http_args, scope=scope, **kwargs)
+
+        headers.update(http_args["headers"])
 
         return self.http.request(uri, method, headers=headers, **kwargs)
 

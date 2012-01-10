@@ -34,8 +34,8 @@ CLIENT_CONFIG = {
     "client_id": "number5",
     "ca_certs": "/usr/local/etc/oic/ca_certs.txt",
     "disable_ssl_certificate_validation":False,
-    "key":None,
-    "algorithm":"HS256",
+#    "key":None,
+#    "algorithm":"HS256",
     "grant_expire_in":600,
     "client_secret":"",
     "client_timeout":0

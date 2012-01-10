@@ -146,7 +146,7 @@ class MyFakeOICServer(Server):
             "verified": True,
         }
 
-        resp = factory(UserInfoResponse, **_info)
+        resp = factory(OpenIDSchema, **_info)
         content = resp.get_json()
         response = Response({"content-type":"application/json"})
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2009-2011 Umeå University
+# Copyright (C) 2009-2012 Umeå University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -202,6 +202,16 @@ def a_while_ago(days=0, seconds=0, microseconds=0, milliseconds=0,
                 minutes=0, hours=0, weeks=0, format=TIME_FORMAT):
     return time_a_while_ago(days, seconds, microseconds, milliseconds,
                             minutes, hours, weeks).strftime(format)
+
+def epoch_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
+                     minutes=0, hours=0, weeks=0):
+    """
+    Return a point in the future as number of seconds since the epoch
+    1970-01-01
+    """
+    return time.mktime(time_in_a_while(days, seconds, microseconds,
+                                       milliseconds, minutes, hours,
+                                       weeks).timetuple())
 
 # ---------------------------------------------------------------------------
 

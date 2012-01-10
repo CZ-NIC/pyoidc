@@ -5,6 +5,34 @@ from oic.oic.message import *
 def _eq(l1, l2):
     return set(l1) == set(l2)
 
+def test_ProviderConfigurationResponse():
+    resp = {
+        "authorization_endpoint": "https://server.example.com/connect/authorize",
+        "issuer" : "https://server.example.com",
+        "token_endpoint": "https://server.example.com/connect/token",
+        "token_endpoint_auth_types_supported": ["client_secret_basic", "private_key_jwt"],
+        "userinfo_endpoint": "https://server.example.com/connect/user",
+        "check_id_endpoint": "https://server.example.com/connect/check_id",
+        "refresh_session_endpoint": "https://server.example.com/connect/refresh_session",
+        "end_session_endpoint": "https://server.example.com/connect/end_session",
+        "jwk_url": "https://server.example.com/jwk.json",
+        "registration_endpoint": "https://server.example.com/connect/register",
+        "scopes_supported": ["openid", "profile", "email", "address", "phone"],
+        "response_types_supported": ["code", "code id_token", "token id_token"],
+        "acrs_supported": ["1","2","http://id.incommon.org/assurance/bronze"],
+        "user_id_types_supported": ["public", "pairwise"],
+        "userinfo_algs_supported": ["HS256", "RS256", "A128CBC", "A128KW", "RSA1_5"],
+        "id_token_algs_supported": ["HS256", "RS256", "A128CBC", "A128KW", "RSA1_5"],
+        "request_object_algs_supported": ["HS256", "RS256", "A128CBC", "A128KW", "RSA1_5"]
+    }
+
+    pcr = ProviderConfigurationResponse.set_json(json.dumps(resp),
+                                                 extended=True)
+
+    assert _eq(pcr.user_id_types_supported, ["public", "pairwise"])
+    assert _eq(pcr.acrs_supported, ["1", "2",
+                                    "http://id.incommon.org/assurance/bronze"])
+
 def test_iss():
     swd = SWDServiceRedirect(location="https://example.net")
     ir = IssuerResponse(SWD_service_redirect=swd)

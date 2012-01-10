@@ -5,7 +5,7 @@ import time
 from oic.oic import Server
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AuthorizationResponse
-from oic.oic.message import UserInfoResponse
+from oic.oic.message import OpenIDSchema
 #from oic.oic.message import RegistrationResponse
 from oic.oic.message import ProviderConfigurationResponse
 #from oic.oic import Grant
@@ -56,6 +56,7 @@ CONFIG = {
     "password":"hemligt",
     #client_secret
 }
+
 CLIENT_CONFIG = {
     "client_id": "client0"
 }
@@ -375,7 +376,7 @@ def test_userinfo():
 
     result = consumer.userinfo(DEVNULL())
     print result
-    assert isinstance(result, UserInfoResponse)
+    assert isinstance(result, OpenIDSchema)
     assert _eq(result.keys(), ['name', 'email', 'verified', 'nickname'])
 
 def real_test_discover():
@@ -425,12 +426,9 @@ def test_provider_config():
     info = c.provider_config(res)
     assert isinstance(info, ProviderConfigurationResponse)
     print info.keys()
-    assert _eq(info.keys(), ['registration_endpoint',
-                             'check_session_endpoint', 'scopes_supported',
-                             'refresh_session_endpoint',
-                             'identifiers_supported', 'token_endpoint',
-                             'flows_supported', 'version',
-                             'user_info_endpoint', 'end_session_endpoint',
+    assert _eq(info.keys(), ['refresh_session_endpoint', 'token_endpoint',
+                             'version', 'registration_endpoint',
+                             'scopes_supported', 'end_session_endpoint',
                              'authorization_endpoint'])
 
     assert info.end_session_endpoint == "http://example.com/end_session"
