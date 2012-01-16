@@ -1,7 +1,3 @@
-__author__ = 'rohe0002'
-
-
-
 #!/usr/bin/env python
 
 import json
@@ -15,8 +11,9 @@ info = {
     "flows": ["basic-code-authn",
               "basic-code-idtoken-get"],
     "server_conf": {
-        "authorization_endpoint": "https://https://coip-test.sunet.se/oauth2/",
-        "token_endpoint": "https://coip-test.sunet.se/oauth2/"
+        "authorization_endpoint":
+            "https://https://coip-test.sunet.se/oauth2/authorization",
+        "token_endpoint": "https://coip-test.sunet.se/oauth2/token"
     },
 #    "function_args": {
 #        "login_form": { "user_label": "email",
