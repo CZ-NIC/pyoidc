@@ -11,7 +11,7 @@ from oic.utils.time_util import utc_now
 from oic.utils.time_util import epoch_in_a_while
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint",
-             "user_info_endpoint", "refresh_session_endpoint",
+             "userinfo_endpoint", "refresh_session_endpoint",
              "check_session_endpoint", "end_session_endpoint",
              "registration_endpoint"]
 
@@ -21,14 +21,15 @@ RESPONSE2ERROR = {
 }
 
 REQUEST2ENDPOINT = {
-    AuthorizationRequest: "authorization_endpoint",
-    AccessTokenRequest: "token_endpoint",
-    RefreshAccessTokenRequest: "token_endpoint",
-    UserInfoRequest: "user_info_endpoint",
-    CheckSessionRequest: "check_session_endpoint",
-    EndSessionRequest: "end_session_endpoint",
-    RefreshSessionRequest: "refresh_session_endpoint",
-    RegistrationRequest: "registration_endpoint"
+    "AuthorizationRequest": "authorization_endpoint",
+    "AccessTokenRequest": "token_endpoint",
+    "RefreshAccessTokenRequest": "token_endpoint",
+    "UserInfoRequest": "userinfo_endpoint",
+    "CheckSessionRequest": "check_session_endpoint",
+    "CheckIDRequest": "check_id_endpoint",
+    "EndSessionRequest": "end_session_endpoint",
+    "RefreshSessionRequest": "refresh_session_endpoint",
+    "RegistrationRequest": "registration_endpoint"
 }
 
 # -----------------------------------------------------------------------------
@@ -190,14 +191,19 @@ class Client(oauth2.Client):
         if request_args is None:
             request_args = {}
 
-        if "id_token" in request_args:
+        try:
+            _prop = kwargs["prop"]
+        except KeyError:
+            _prop = "id_token"
+
+        if _prop in request_args:
             pass
         else:
             id_token = self._get_id_token(**kwargs)
             if id_token is None:
                 raise Exception("No valid id token available")
 
-            request_args["id_token"] = id_token
+            request_args[_prop] = id_token
 
         return self.construct_request(cls, request_args, extra_args)
 
@@ -207,10 +213,11 @@ class Client(oauth2.Client):
 
         return self._id_token_based(cls, request_args, extra_args, **kwargs)
 
-#    def construct_CheckIDRequest(self, cls=CheckIDRequest, request_args=None,
-#                                 extra_args=None, **kwargs):
-#
-#        return self._id_token_based(cls, request_args, extra_args, **kwargs)
+    def construct_CheckIDRequest(self, cls=CheckIDRequest, request_args=None,
+                                 extra_args=None, **kwargs):
+
+        return self._id_token_based(cls, request_args, extra_args,
+                                    prop="access_token", **kwargs)
 
     def construct_EndSessionRequest(self, cls=EndSessionRequest,
                                     request_args=None, extra_args=None,
@@ -323,6 +330,26 @@ class Client(oauth2.Client):
                                        body_type, extended=False,
                                        state=state, http_args=http_args)
 
+    def do_check_id_request(self, cls=CheckIDRequest, scope="",
+                                 state="", body_type="json", method="GET",
+                                 request_args=None, extra_args=None,
+                                 http_args=None,
+                                 resp_cls=IdToken):
+
+        url, body, ht_args, csi = self.request_info(cls, method=method,
+                                                    request_args=request_args,
+                                                    extra_args=extra_args,
+                                                    scope=scope, state=state)
+
+        if http_args is None:
+            http_args = ht_args
+        else:
+            http_args.update(http_args)
+
+        return self.request_and_return(url, resp_cls, method, body,
+                                       body_type, extended=False,
+                                       state=state, http_args=http_args)
+
     def do_end_session_request(self, cls=EndSessionRequest, scope="",
                                  state="", body_type="", method="GET",
                                  request_args=None, extra_args=None,
@@ -381,7 +408,7 @@ class Client(oauth2.Client):
         except KeyError:
             pass
 
-        uri = self._endpoint("user_info_endpoint", **kwargs)
+        uri = self._endpoint("userinfo_endpoint", **kwargs)
         # If access token is a bearer token it might be sent in the
         # authorization header
         # 3-ways of sending the access_token:

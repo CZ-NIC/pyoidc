@@ -41,7 +41,7 @@ SERVER_INFO ={
     "issuer":"https://localhost:8088",
     "authorization_endpoint":"http://localhost:8088/authorization",
     "token_endpoint":"http://localhost:8088/token",
-    "user_info_endpoint":"http://localhost:8088/userinfo",
+    "userinfo_endpoint":"http://localhost:8088/userinfo",
     "flows_supported":["code","token"],
 }
 
@@ -137,23 +137,23 @@ class TestOICConsumer():
 
         self.consumer.authorization_endpoint = "http://example.com/authorization"
         self.consumer.token_endpoint = "http://example.com/token"
-        self.consumer.user_info_endpoint = "http://example.com/userinfo"
+        self.consumer.userinfo_endpoint = "http://example.com/userinfo"
 
         self.consumer._backup("sid")
 
         self.consumer.authorization_endpoint = "http://example.org/authorization"
         self.consumer.token_endpoint = "http://example.org/token"
-        self.consumer.user_info_endpoint = ""
+        self.consumer.userinfo_endpoint = ""
 
         assert self.consumer.authorization_endpoint == "http://example.org/authorization"
         assert self.consumer.token_endpoint == "http://example.org/token"
-        assert self.consumer.user_info_endpoint == ""
+        assert self.consumer.userinfo_endpoint == ""
 
         self.consumer.update("sid")
 
         assert self.consumer.authorization_endpoint == "http://example.org/authorization"
         assert self.consumer.token_endpoint == "http://example.org/token"
-        assert self.consumer.user_info_endpoint == "http://example.com/userinfo"
+        assert self.consumer.userinfo_endpoint == "http://example.com/userinfo"
 
     def test_begin(self):
         self.consumer.authorization_endpoint = "http://example.com/authorization"
@@ -390,7 +390,7 @@ def real_test_discover():
     print res.keys()
     assert _eq(res.keys(), ['registration_endpoint', 'scopes_supported',
                             'identifiers_supported', 'token_endpoint',
-                            'flows_supported', 'version', 'user_info_endpoint',
+                            'flows_supported', 'version', 'userinfo_endpoint',
                             'authorization_endpoint', 'x509_url', 'issuer'])
     assert res.version == "3.0"
     print res.flows_supported

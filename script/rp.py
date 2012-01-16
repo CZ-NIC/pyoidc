@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from script.oic import operations, httplib2cookie
 
 __author__ = 'rohe0002'
 
@@ -9,8 +10,7 @@ from httplib2 import Http
 from oic.oic import Client
 from oic.oic import message
 from oic.oic.consumer import Consumer
-
-import operations
+from oic.oauth2.message import ErrorResponse
 
 QUERY2RESPONSE = {
     "AuthorizationRequest": "AuthorizationResponse",
@@ -18,6 +18,30 @@ QUERY2RESPONSE = {
     "UserInfoRequest": "OpenIDSchema",
     "RegistrationRequest": "RegistrationResponse"
 }
+
+def make_sequence(info):
+    sequences = []
+    for flows in info["flows"]:
+        sequence = []
+        for flow in flows:
+            (items, resp) = info["phases"][flow]
+            if isinstance(items, basestring):
+                seq = [getattr(operations, items.strip())]
+            else:
+                seq = [getattr(operations, item.strip()) for item in items]
+            resp = getattr(operations, resp.strip())
+            for _se in seq:
+                try:
+                    _se["function"] = _se["function"].__name__
+                except KeyError:
+                    pass
+            sequence.append((seq, resp))
+        sequences.append(sequence)
+
+    info["sequences"] = sequences
+    del info["flows"]
+    del info["phases"]
+    return info
 
 class Trace(object):
     def __init__(self):
@@ -115,11 +139,14 @@ def do_operation(client, opdef, response=None, content=None, trace=None):
             trace.reply("CONTENT: %s" % unicode(content, encoding="utf-8"))
 
     elif "function" in op:
-        func = op["function"]
+        func = getattr(operations, op["function"])
         try:
             _args = op["args"]
         except KeyError:
             _args = {}
+
+        _args["trace"] = trace
+
         if trace:
             trace.request("FUNCTION: %s" % func.__name__)
             trace.request("ARGS: %s" % _args)
@@ -174,7 +201,6 @@ def register(endpoint, info):
 if __name__ == "__main__":
     import argparse
     import json
-    import httplib2cookie
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', dest='verbose', action='store_true')
@@ -187,6 +213,7 @@ if __name__ == "__main__":
     parser.add_argument('-R', dest="register", action="store_true")
     parser.add_argument('-i', dest="conf_issuer")
     parser.add_argument('-J', dest="json_config_file")
+    parser.add_argument('-A', dest="function_args")
     args = parser.parse_args()
 
     trace = Trace()
@@ -213,8 +240,8 @@ if __name__ == "__main__":
     elif json_config:
         if "server_conf" in json_config:
             sconf = json_config["server_conf"]
-        elif "conf_issuer" in json_config:
-            sconf = provider_config(json_config["conf_issuer"]).dictionary()
+        elif "provider_conf_url" in json_config:
+            sconf = provider_config(json_config["provider_conf_url"]).dictionary()
 
     trace.info("SERVER CONFIGURATION: %s" % sconf)
 
@@ -282,6 +309,8 @@ if __name__ == "__main__":
                 resp = getattr(operations, resp.strip())
                 sequence.append((seq, resp))
             sequences.append(sequence)
+    elif "sequences" in json_config:
+        sequences = json_config["sequences"]
     else:
         sequences = []
 
@@ -293,7 +322,7 @@ if __name__ == "__main__":
             err = None
             for oper in opers:
                 if trace:
-                    trace.info(60*"=")
+                    trace.info(70*"=")
 
                 try:
                     response, content = do_operation(client, oper, response,
@@ -318,8 +347,20 @@ if __name__ == "__main__":
                     if for_me:
                         break
                     else:
+                        if trace:
+                            trace.info(70*"-")
                         response,content = do_request(client, url, "GET",
                                                       trace=trace)
+
+                if response.status >= 400:
+                    if response["content-type"] == "application/json":
+                        err = ErrorResponse.set_json(content)
+                        if trace:
+                            trace.error("%s: %s" % (response.status,
+                                                    err.get_json()))
+                    else:
+                        err = content
+                    break
 
             if err is None:
                 if resp["where"] == "url":

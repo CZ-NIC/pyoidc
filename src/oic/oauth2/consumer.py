@@ -18,7 +18,7 @@ from oic.oauth2 import ErrorResponse
 from oic.oauth2 import Grant
 from oic.oauth2 import rndstr
 
-ENDPOINTS = ["authorization_endpoint", "token_endpoint", "user_info_endpoint",
+ENDPOINTS = ["authorization_endpoint", "token_endpoint", "userinfo_endpoint",
     "check_id_endpoint", "registration_endpoint", "token_revokation_endpoint"]
 
 def stateID(url, seed):

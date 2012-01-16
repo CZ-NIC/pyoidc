@@ -363,7 +363,7 @@ class TestOICClient():
                                  'expires_in', 'refresh_token', 'scope'])
 
     def test_do_user_info_request(self):
-        self.client.user_info_endpoint = "http://oic.example.org/userinfo"
+        self.client.userinfo_endpoint = "http://oic.example.org/userinfo"
 
         resp = self.client.do_user_info_request(state=self.client.state)
         assert isinstance(resp, OpenIDSchema)
@@ -417,7 +417,7 @@ class TestOICClient():
         assert _eq(resp.keys(),['client_secret', 'expires_in', 'client_id'])
 
     def test_do_user_info_request_with_access_token_refresh(self):
-        self.client.user_info_endpoint = "http://oic.example.org/userinfo"
+        self.client.userinfo_endpoint = "http://oic.example.org/userinfo"
 
         token = self.client.get_token(state=self.client.state, scope="openid")
         token.token_expiration_time = time_sans_frac()-86400
@@ -672,7 +672,7 @@ def test_server_parse_refresh_token_request():
 
 def test_construct_UserInfoRequest():
     cli = Client()
-    cli.user_info_endpoint = "https://example.org/oauth2/userinfo"
+    cli.userinfo_endpoint = "https://example.org/oauth2/userinfo"
 
     uir = cli.construct_UserInfoRequest(
                                     request_args={"access_token":"access_token"})
@@ -681,7 +681,7 @@ def test_construct_UserInfoRequest():
 
 def test_construct_UserInfoRequest_2():
     cli = Client()
-    cli.user_info_endpoint = "https://example.org/oauth2/userinfo"
+    cli.userinfo_endpoint = "https://example.org/oauth2/userinfo"
     cli.grant["foo"] = Grant()
     cli.grant["foo"].grant_expiration_time = time.time()+60
     cli.grant["foo"].code = "access_code"
@@ -707,7 +707,7 @@ def test_construct_CheckSessionRequest():
 
 def test_construct_CheckSessionRequest_2():
     cli = Client()
-    cli.user_info_endpoint = "https://example.org/oauth2/userinfo"
+    cli.userinfo_endpoint = "https://example.org/oauth2/userinfo"
     cli.grant["foo"] = Grant()
     cli.grant["foo"].grant_expiration_time = time.time()+60
     cli.grant["foo"].code = "access_code"
@@ -786,7 +786,7 @@ TRESP = AccessTokenResponse(access_token="access_token", token_type="bearer",
 
 def test_user_info_request():
     cli = Client()
-    cli.user_info_endpoint = "http://example.com/userinfo"
+    cli.userinfo_endpoint = "http://example.com/userinfo"
     
     info = ARESP.get_urlencoded()
     cli.parse_response(AuthorizationResponse, info, format="urlencoded",
@@ -823,7 +823,7 @@ def test_user_info_request():
 
 def test_do_user_indo_request():
     cli = Client()
-    cli.user_info_endpoint = "http://example.com/userinfo"
+    cli.userinfo_endpoint = "http://example.com/userinfo"
 
     cli.http = MyFakeOICServer()
 

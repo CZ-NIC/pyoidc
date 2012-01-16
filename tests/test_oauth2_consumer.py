@@ -56,7 +56,7 @@ SERVER_INFO ={
     "issuer":"https://connect-op.heroku.com",
     "authorization_endpoint":"http://localhost:8088/authorization",
     "token_endpoint":"http://localhost:8088/token",
-    #"user_info_endpoint":"http://localhost:8088/user_info",
+    #"userinfo_endpoint":"http://localhost:8088/user_info",
     #"check_id_endpoint":"http://localhost:8088/id_token",
     #"registration_endpoint":"https://connect-op.heroku.com/connect/client",
     #"scopes_supported":["openid","profile","email","address","PPID"],

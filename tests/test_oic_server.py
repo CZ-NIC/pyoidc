@@ -55,7 +55,7 @@ SERVER_INFO ={
     "issuer":"https://connect-op.heroku.com",
     "authorization_endpoint":"http://localhost:8088/authorization",
     "token_endpoint":"http://localhost:8088/token",
-    #"user_info_endpoint":"http://localhost:8088/user_info",
+    #"userinfo_endpoint":"http://localhost:8088/user_info",
     #"check_id_endpoint":"http://localhost:8088/id_token",
     #"registration_endpoint":"https://connect-op.heroku.com/connect/client",
     #"scopes_supported":["openid","profile","email","address","PPID"],
@@ -535,7 +535,7 @@ def test_add_token_info():
     assert _eq(aresp.keys(), ['access_token', 'expires_in', 'token_type',
                               'state', 'scope'])
 
-def test_user_info_endpoint():
+def test_userinfo_endpoint():
     server = srv_init
 
     _session_db = {}
@@ -571,7 +571,7 @@ def test_user_info_endpoint():
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = uir.get_urlencoded()
 
-    resp3 = server.user_info_endpoint(environ, start_response, LOG())
+    resp3 = server.userinfo_endpoint(environ, start_response, LOG())
     ident = OpenIDSchema.set_json(resp3[0])
     print ident.keys()
     assert _eq(ident.keys(), ['name', 'email', 'nickname'])

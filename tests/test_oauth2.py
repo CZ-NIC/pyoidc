@@ -15,6 +15,7 @@ from oic.oauth2 import Client
 from oic.oauth2 import Server
 from oic.oauth2 import Token
 from oic.oauth2.message import *
+from oic import oauth2
 
 from pytest import raises
 
@@ -690,10 +691,8 @@ def test_server_parse_jwt_request():
     assert req.state == "cold"
 
 def test_server_parse_token_request():
-    atr = AccessTokenRequest("authorization_code",
-                                    "SplxlOBeZQQYbYS6WxSbIA",
-                                    "https://client.example.com/cb",
-                                    extra="foo")
+    atr = AccessTokenRequest("authorization_code", "SplxlOBeZQQYbYS6WxSbIA",
+                             "https://client.example.com/cb", extra="foo")
 
     uenc = atr.get_urlencoded(extended=True)
 
@@ -717,7 +716,7 @@ def test_server_parse_token_request():
 
 def test_server_parse_refresh_token_request():
     ratr = RefreshAccessTokenRequest(refresh_token="ababababab",
-                                            client_id="Client_id")
+                                     client_id="Client_id")
 
     uenc = ratr.get_urlencoded()
 
@@ -729,3 +728,80 @@ def test_server_parse_refresh_token_request():
     assert tr.refresh_token == "ababababab"
     assert tr.client_id == "Client_id"
 
+def test_client_secret_basic():
+    client = Client("1")
+
+    assert len(client.http.credentials.credentials) == 0
+
+    oauth2.client_secret_basic(client, http_args={"password": "hemligt"})
+
+    assert len(client.http.credentials. credentials) == 1
+    print client.http.credentials.credentials[0]
+    assert client.http.credentials.credentials[0] == ('', '1', 'hemligt')
+
+def test_client_secret_post():
+    client = Client("A")
+    client.client_secret = "boarding pass"
+
+    request_args, http_args = oauth2.client_secret_post(client)
+
+    print request_args
+    assert request_args == {"client_id": "A", "client_secret": "boarding pass"}
+    print http_args
+    assert http_args is None
+
+    request_args = {}
+    request_args, http_args = oauth2.client_secret_post(client, request_args,
+            http_args={"client_secret": "another"})
+
+    print request_args
+    assert request_args == {"client_id": "A", "client_secret": "another"}
+    print http_args
+    assert http_args == {}
+
+
+def test_bearer_header():
+    client = Client("A")
+    client.client_secret = "boarding pass"
+
+    request_args = {"access_token": "Sesame"}
+
+    request_args, http_args = oauth2.bearer_header(client, request_args)
+    print request_args
+    assert request_args == {}
+    print http_args
+    assert http_args == {"headers": {"Authorization":"Bearer U2VzYW1l"}}
+
+def test_bearer_body():
+    client = Client("A")
+    client.client_secret = "boarding pass"
+
+    request_args = {"access_token": "Sesame"}
+
+    request_args, http_args = oauth2.bearer_body(client, request_args)
+    print request_args
+    assert request_args == {"access_token": "Sesame"}
+    print http_args
+    assert http_args is None
+
+    # ----------
+    resp = AuthorizationResponse("code", "state")
+    grant = Grant()
+    grant.add_code(resp)
+
+    atr = AccessTokenResponse(
+        access_token="2YotnFZFEjr1zCsicMWpAA",
+        token_type="example",
+        refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
+        example_parameter="example_value",
+        scope=["inner", "outer"])
+
+    grant.add_token(atr)
+    client.grant["state"] = grant
+
+    request_args, http_args = oauth2.bearer_body(client, {}, state="state",
+                                                 scope="inner")
+    print request_args
+    assert request_args == {"access_token": "2YotnFZFEjr1zCsicMWpAA"}
+    print http_args
+    assert http_args is None
