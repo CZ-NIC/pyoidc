@@ -17,8 +17,8 @@ info = {
     "function_args": {
         "login_form": { "user_label": "email",
                         "password_label": "pass",
-                        "user": "roland.hedberg@adm.umu.se",
-                        "password": "888cartalk"}}
+                        "user": "",
+                        "password": ""}}
 }
 
 print json.dumps(info)
