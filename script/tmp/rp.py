@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-from script.oic import operations, httplib2cookie
+from oic.script import httplib2cookie
+from script.oic import operations
 
 __author__ = 'rohe0002'
 

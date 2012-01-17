@@ -5,6 +5,7 @@ import json
 from urlparse import urlparse
 
 from mechanize import ParseResponse
+from mechanize._form import ControlNotFoundError
 #from httplib2 import Response
 
 class FlowException(Exception):
@@ -82,6 +83,21 @@ def do_request(client, url, method, body="", headers=None, trace=False):
 
     return response, content
 
+def pick_form(response, content, url=None, **kwargs):
+    forms = ParseResponse(response)
+    if not forms:
+        raise FlowException(content=content, url=url)
+
+    form = None
+    if len(forms) == 1:
+        form = forms[0]
+    else:
+        for form in forms:
+            if kwargs["_action_url"] in form.action:
+                break
+
+    return form
+
 #noinspection PyUnusedLocal
 def login_form(client, orig_response, content, **kwargs):
     _url = orig_response["content-location"]
@@ -89,11 +105,7 @@ def login_form(client, orig_response, content, **kwargs):
     response = DResponse(status=orig_response["status"], url=_url)
     response.write(content)
 
-    forms = ParseResponse(response)
-    try:
-        form = forms[0]
-    except IndexError: # Wasn't able to parse
-        raise FlowException(content=content, url=_url)
+    form = pick_form(response, content, _url, **kwargs)
 
     try:
         form[kwargs["user_label"]] = kwargs["user"]
@@ -113,7 +125,7 @@ def login_form(client, orig_response, content, **kwargs):
 
     url = request._Request__original
     try:
-        _trace = kwargs["trace"]
+        _trace = kwargs["_trace_"]
     except KeyError:
         _trace = False
 
@@ -130,11 +142,7 @@ def approve_form(client, orig_response, content, **kwargs):
         response.url = client.authorization_endpoint
     response.write(content)
 
-    forms = ParseResponse(response)
-    try:
-        form = forms[0]
-    except IndexError:
-        raise FlowException(content=content, url=response.url)
+    form = pick_form(response, content, **kwargs)
 
     # do something with args
 
@@ -145,7 +153,7 @@ def approve_form(client, orig_response, content, **kwargs):
         headers[key] = val
 
     try:
-        _trace = kwargs["trace"]
+        _trace = kwargs["_trace_"]
     except KeyError:
         _trace = False
 
@@ -153,6 +161,40 @@ def approve_form(client, orig_response, content, **kwargs):
     return do_request(client, url, "POST", request.data, headers, _trace)
 #    resp.url = request._Request__original
 #    return resp, request.data
+
+def select_form(client, orig_response, content, **kwargs):
+    _url = orig_response["content-location"]
+    # content is a form to be filled in and returned
+    response = DResponse(status=orig_response["status"], url=_url)
+    response.write(content)
+
+    form = pick_form(response, content, _url, **kwargs)
+
+    for key, val in kwargs.items():
+        if key.startswith("_"):
+            continue
+
+        try:
+            form[key] = val
+        except ControlNotFoundError:
+            pass
+
+    request = form.click()
+
+    headers = {}
+    for key, val in request.unredirected_hdrs.items():
+        headers[key] = val
+
+    url = request._Request__original
+    try:
+        _trace = kwargs["_trace_"]
+    except KeyError:
+        _trace = False
+
+    if form.method == "POST":
+        return do_request(client, url, "POST", request.data, headers, _trace)
+    else:
+        return do_request(client, url, "GET", headers=headers, trace=_trace)
 
 #noinspection PyUnusedLocal
 def chose(client, orig_response, content, **kwargs):
@@ -169,9 +211,34 @@ def chose(client, orig_response, content, **kwargs):
     return do_request(client, url, "GET", trace=_trace)
     #return resp, ""
 
+def post_form(client, orig_response, content, **kwargs):
+    _url = orig_response["content-location"]
+    # content is a form to be filled in and returned
+    response = DResponse(status=orig_response["status"], url=_url)
+    response.write(content)
+
+    form = pick_form(response, content, _url, **kwargs)
+
+    request = form.click()
+
+    headers = {}
+    for key, val in request.unredirected_hdrs.items():
+        headers[key] = val
+
+    url = request._Request__original
+    try:
+        _trace = kwargs["_trace_"]
+    except KeyError:
+        _trace = False
+
+    if form.method == "POST":
+        return do_request(client, url, "POST", request.data, headers, _trace)
+    else:
+        return do_request(client, url, "GET", headers=headers, trace=_trace)
+
 # ========================================================================
 
-#FORM_LOGIN = {
+#LOGIN_FORM = {
 #    "function": login_form,
 #    "args": {
 #        "user_label": "login",
@@ -181,7 +248,7 @@ def chose(client, orig_response, content, **kwargs):
 #        }
 #}
 
-FORM_LOGIN = {
+LOGIN_FORM = {
     "id": "login_form",
     "function": login_form,
     }
@@ -198,122 +265,15 @@ CHOSE = {
     "args": { "path": "/account/fake"}
 }
 
+SELECT_FORM = {
+    "id": "select_form",
+    "function": select_form,
+    "args": { "path": "/account/fake"}
+}
+
+POST_FORM = {
+    "id": "post_form",
+    "function": post_form,
+    }
+
 # ========================================================================
-
-RESPOND = {
-    "method": "POST",
-    }
-
-AUTHZREQ_CODE = {
-    "request": "AuthorizationRequest",
-    "method": "GET",
-    "args": {
-        "request": {"response_type": "code"},
-        }
-}
-
-AUTHZRESP = {
-    "response": "AuthorizationResponse",
-    "where": "url",
-    "type": "urlencoded",
-    }
-
-ACCESS_TOKEN_RESPONSE = {
-    "response": "AccessTokenResponse",
-    "where": "body",
-    "type": "json"
-}
-
-USER_INFO_RESPONSE = {
-    "response": "OpenIDSchema",
-    "where": "body",
-    "type": "json"
-}
-
-ACCESS_TOKEN_REQUEST_PASSWD = {
-    "request":"AccessTokenRequest",
-    "method": "POST",
-    "args": {
-        "kw": {"authn_method": "client_secret_basic"}
-    },
-    }
-
-ACCESS_TOKEN_REQUEST_CLI_SECRET_POST = {
-    "request":"AccessTokenRequest",
-    "method": "POST",
-    "args": {
-        "kw": {"authn_method": "client_secret_post"}
-    },
-    }
-
-ACCESS_TOKEN_REQUEST_CLI_SECRET_GET = {
-    "request":"AccessTokenRequest",
-    "method": "GET",
-    "args": {
-        "kw": {"authn_method": "client_secret_post"}
-    },
-    }
-
-ACCESS_TOKEN_REQUEST_FACEBOOK = {
-    "request":("facebook","AccessTokenRequest"),
-    "method": "GET",
-    "args": {
-        "kw": {"authn_method": "client_secret_post"}
-    },
-    }
-
-ACCESS_TOKEN_RESPONSE_FACEBOOK = {
-    "response": ("facebook", "AccessTokenResponse"),
-    "where": "body",
-    "type": "urlencoded"
-}
-
-PHASES= {
-    "login": ([AUTHZREQ_CODE], AUTHZRESP),
-    "login-form": ([AUTHZREQ_CODE, FORM_LOGIN], AUTHZRESP),
-    "login-form-approve": ([AUTHZREQ_CODE, FORM_LOGIN, APPROVE_FORM],
-                           AUTHZRESP),
-    "access-token-request-post":([ACCESS_TOKEN_REQUEST_CLI_SECRET_POST],
-                                 ACCESS_TOKEN_RESPONSE),
-    "access-token-request-get":([ACCESS_TOKEN_REQUEST_CLI_SECRET_GET],
-                                ACCESS_TOKEN_RESPONSE),
-    "facebook-access-token-request-get":([ACCESS_TOKEN_REQUEST_FACEBOOK],
-                                         ACCESS_TOKEN_RESPONSE_FACEBOOK),
-}
-
-
-FLOWS = {
-    'basic-code-authn': {
-        "name": 'Basic Code flow with authentication',
-        "descr": ('Very basic test of a Provider using the authorization code ',
-                  'flow. The test tool acting as a consumer is very relaxed',
-                  'and tries to obtain an ID Token.'),
-        "sequence": ["login-form"],
-        "endpoints": ["authorization_endpoint"]
-    },
-    'basic-code-idtoken-post': {
-        "name": 'Basic Code flow with ID Token',
-        "descr": ('Very basic test of a Provider using the authorization code ',
-                  'flow. The test tool acting as a consumer is very relaxed',
-                  'and tries to obtain an ID Token.'),
-        "depends": ["basic-code-authn"],
-        "sequence": ["login-form", "access-token-request-post"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"]
-    },
-    'basic-code-idtoken-get': {
-        "name": 'Basic Code flow with ID Token',
-        "descr": ('Very basic test of a Provider using the authorization code ',
-                  'flow. The test tool acting as a consumer is very relaxed',
-                  'and tries to obtain an ID Token.'),
-        "depends": ["basic-code-authn"],
-        "sequence": ["login-form", "access-token-request-get"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"]
-    },
-    'facebook-idtoken-get': {
-        "name": 'Facebook flow with ID Token',
-        "descr": ('Facebook specific flow'),
-        "depends": ["basic-code-authn"],
-        "sequence": ["login-form", "facebook-access-token-request-get"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"]
-    },
-}
