@@ -70,18 +70,15 @@ ACCESS_TOKEN_RESPONSE_FACEBOOK = {
 }
 
 PHASES= {
-    "login": ([AUTHZREQ_CODE], AUTHZRESP),
-    "login-form": ([AUTHZREQ_CODE, LOGIN_FORM], AUTHZRESP),
-    "login-form-approve": ([AUTHZREQ_CODE, LOGIN_FORM, APPROVE_FORM],
-                           AUTHZRESP),
-    "access-token-request-post":([ACCESS_TOKEN_REQUEST_CLI_SECRET_POST],
+    "login": (AUTHZREQ_CODE, AUTHZRESP),
+    "access-token-request-post":(ACCESS_TOKEN_REQUEST_CLI_SECRET_POST,
                                  ACCESS_TOKEN_RESPONSE),
-    "access-token-request-get":([ACCESS_TOKEN_REQUEST_CLI_SECRET_GET],
+    "access-token-request-get":(ACCESS_TOKEN_REQUEST_CLI_SECRET_GET,
                                 ACCESS_TOKEN_RESPONSE),
-    "facebook-access-token-request-get":([ACCESS_TOKEN_REQUEST_FACEBOOK],
+    "facebook-access-token-request-get":(ACCESS_TOKEN_REQUEST_FACEBOOK,
                                          ACCESS_TOKEN_RESPONSE_FACEBOOK),
-    "coip-login": ([AUTHZREQ_CODE, CHOSE, SELECT_FORM, LOGIN_FORM, POST_FORM],
-                   AUTHZRESP),
+#    "coip-login": ([AUTHZREQ_CODE, CHOSE, SELECT_FORM, LOGIN_FORM, POST_FORM],
+#                   AUTHZRESP),
 }
 
 
@@ -91,7 +88,7 @@ FLOWS = {
         "descr": ('Very basic test of a Provider using the authorization code ',
                   'flow. The test tool acting as a consumer is very relaxed',
                   'and tries to obtain an ID Token.'),
-        "sequence": ["login-form"],
+        "sequence": ["login"],
         "endpoints": ["authorization_endpoint"]
     },
     'basic-code-idtoken-post': {
@@ -100,7 +97,7 @@ FLOWS = {
                   'flow. The test tool acting as a consumer is very relaxed',
                   'and tries to obtain an ID Token.'),
         "depends": ["basic-code-authn"],
-        "sequence": ["login-form", "access-token-request-post"],
+        "sequence": ["login", "access-token-request-post"],
         "endpoints": ["authorization_endpoint", "token_endpoint"]
     },
     'basic-code-idtoken-get': {
@@ -109,19 +106,14 @@ FLOWS = {
                   'flow. The test tool acting as a consumer is very relaxed',
                   'and tries to obtain an ID Token.'),
         "depends": ["basic-code-authn"],
-        "sequence": ["login-form", "access-token-request-get"],
+        "sequence": ["login", "access-token-request-get"],
         "endpoints": ["authorization_endpoint", "token_endpoint"]
     },
     'facebook-idtoken-get': {
         "name": 'Facebook flow with ID Token',
         "descr": ('Facebook specific flow'),
         "depends": ["basic-code-authn"],
-        "sequence": ["login-form", "facebook-access-token-request-get"],
+        "sequence": ["login", "facebook-access-token-request-get"],
         "endpoints": ["authorization_endpoint", "token_endpoint"]
     },
-    'coip-authn': {
-        "sequence": ["coip-login"],
-        "endpoints": ["authorization_endpoint"]
-    },
-
 }

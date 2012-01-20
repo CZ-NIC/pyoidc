@@ -9,6 +9,7 @@ from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.oauth2 import SINGLE_REQUIRED_STRING
 from oic.oauth2 import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2 import SINGLE_OPTIONAL_INT
+from oic.oauth2.message import Base
 
 def to_json(dic):
     return json.dumps(dic)
@@ -83,11 +84,24 @@ def claims_ser(val, format="urlencoded", extended=False):
     # everything in c_extension
     if isinstance(val, basestring):
         val = [val]
+    elif isinstance(val, list):
+        pass
+    else:
+        val = [val]
 
+    res = []
     if format == "urlencoded":
-        res = [urllib.urlencode(v.c_extension) for v in val]
+        for item in val:
+            if isinstance(item, Base):
+                res.append(urllib.urlencode(item.c_extension))
+            else:
+                res.append(urllib.urlencode(item))
     elif format == "json":
-        res = [json.dumps(v.c_extension) for v in val]
+        for item in val:
+            if isinstance(item, Base):
+                res.append(json.dumps(item.c_extension))
+            else:
+                res.append(json.dumps(item))
     elif format == "dict":
         if isinstance(val[0], oauth2.Base):
             res = [v.c_extension for v in val]

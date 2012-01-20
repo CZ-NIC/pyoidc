@@ -427,6 +427,46 @@ class TestOICClient():
         assert _eq(resp.keys(), ['name', 'email', 'verified', 'nickname'])
         assert resp.name == "Melody Gardot"
 
+    def test_openid_request_with_request_1(self):
+        claims = {
+            "name": None,
+            "nickname": {"optional": True},
+            "email": None,
+            "verified": None,
+            "picture": {"optional": True}
+        }
+
+        areq = self.client.construct_OpenIDRequest(
+                            userinfo_claims={"claims":claims,
+                                             "preferred_locale":"en"},
+                            idtoken_claims={"claims":{"auth_time": None,
+                                                      "acr":{"values":["2"]}},
+                                            "max_age": 86400},
+                            key=self.client.client_secret,
+                            )
+
+        print areq
+        assert areq
+        assert areq.request
+
+    def test_openid_request_with_request_2(self):
+        areq = self.client.construct_OpenIDRequest(
+            idtoken_claims={"claims": {"user_id": {"value":"248289761001"}}},
+            key=self.client.client_secret,
+            )
+
+        print areq
+        assert areq
+        assert areq.request
+
+        jwtreq = OpenIDRequest.set_jwt(areq.request,
+                                       key=self.client.client_secret)
+        print
+        print jwtreq
+        print jwtreq.keys()
+        assert _eq(jwtreq.keys(), ['nonce', 'id_token', 'state',
+                                   'redirect_uri', 'response_type',
+                                   'client_id'])
 
 def test_get_authorization_request():
     client = Client()
@@ -776,7 +816,7 @@ def test_construct_OpenIDRequest():
 
     oidr = cli.construct_OpenIDRequest(request_args=request_args)
     print oidr.keys()
-    assert _eq(oidr.keys(), ['state', 'redirect_uri', 'response_type',
+    assert _eq(oidr.keys(), ['nonce', 'state', 'redirect_uri', 'response_type',
                              'client_id', 'scope'])
 
 ARESP = AuthorizationResponse(code="code", state="state000")

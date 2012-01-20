@@ -12,7 +12,33 @@ AUTHZREQ_CODE = {
     "request": "AuthorizationRequest",
     "method": "GET",
     "args": {
-        "request": {"response_type": "code", "scope": ["openid"]},
+        "request": {"response_type": "code",
+                    "scope": ["openid"],
+        },
+    }
+}
+
+# 2.1.2.1.2
+# The User Identifier for which an ID Token is being requested.
+# If the specified user is not currently authenticated to the Authorization
+# Server, they may be prompted for authenticated, unless the prompt parameter
+# in the Authorization Request is set to none. The Claim Value in the request
+# is an object containing the single element value.
+#"user_id": {"value":"248289761001"}
+
+AUTHZREQ_CODE_21212 = {
+    "request": "AuthorizationRequest",
+    "method": "GET",
+    "args": {
+        "request": {"response_type": "code",
+                    "scope": ["openid"],
+                    "prompt": "none"
+                    },
+        "kw": {
+            "idtoken_claims": {
+                "claims": {"user_id": {"value":"248289761001"}}
+            }
+        }
     }
 }
 
@@ -82,14 +108,14 @@ CHECK_ID_RESPONSE = {
 }
 
 PHASES= {
-    "login": ([AUTHZREQ_CODE], AUTHZRESP),
-    "login-form": ([AUTHZREQ_CODE, LOGIN_FORM], AUTHZRESP),
-    "login-form-approve": ([AUTHZREQ_CODE, LOGIN_FORM, APPROVE_FORM],
-                            AUTHZRESP),
-    "access-token-request":([ACCESS_TOKEN_REQUEST_CLI_SECRET],
+    "login": (AUTHZREQ_CODE, AUTHZRESP),
+#    "login-form": ([AUTHZREQ_CODE, LOGIN_FORM], AUTHZRESP),
+#    "login-form-approve": ([AUTHZREQ_CODE, LOGIN_FORM, APPROVE_FORM],
+#                            AUTHZRESP),
+    "access-token-request":(ACCESS_TOKEN_REQUEST_CLI_SECRET,
                             ACCESS_TOKEN_RESPONSE),
-    "check-id-request":([CHECK_ID_REQUEST], CHECK_ID_RESPONSE),
-    "user-info-request":([USER_INFO_REQUEST_BODY], USER_INFO_RESPONSE)
+    "check-id-request":(CHECK_ID_REQUEST, CHECK_ID_RESPONSE),
+    "user-info-request":(USER_INFO_REQUEST_BODY, USER_INFO_RESPONSE)
 }
 
 
@@ -99,7 +125,7 @@ FLOWS = {
         "descr": ('Very basic test of a Provider using the authorization code ',
                   'flow. The test tool acting as a consumer is very relaxed',
                   'and tries to obtain an ID Token.'),
-        "sequence": ["login-form-approve"],
+        "sequence": ["login"],
         "endpoints": ["authorization_endpoint"]
     },
     'basic-code-idtoken': {
@@ -108,7 +134,7 @@ FLOWS = {
                   'flow. The test tool acting as a consumer is very relaxed',
                   'and tries to obtain an ID Token.'),
         "depends": ["basic-code-authn"],
-        "sequence": ["login-form-approve", "access-token-request"],
+        "sequence": ["login", "access-token-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"]
     },
     'basic-code-idtoken-userdata': {
@@ -117,8 +143,7 @@ FLOWS = {
                   ' flow, but in addition to retrieve an ID Token,',
                   ' this test flow also tried to obtain user data.'),
         "depends": ['basic-code-idtoken'],
-        "sequence": ["login-form-approve", "access-token-request",
-                     "user-info-request"],
+        "sequence": ["login", "access-token-request", "user-info-request"],
         "endpoints": ["authorization_endpoint", "userinfo_endpoint"]
     },
     'basic-code-idtoken-check_id': {
@@ -127,8 +152,7 @@ FLOWS = {
                   ' flow, but in addition to retrieve an ID Token,',
                   ' this test flow also tried to verify the ID Token.'),
         "depends": ['basic-code-idtoken'],
-        "sequence": ["login-form-approve", "access-token-request",
-                     "check-id-request"],
+        "sequence": ["login", "access-token-request", "check-id-request"],
         "endpoints": ["authorization_endpoint", "check_id_endpoint"]
     },
 }

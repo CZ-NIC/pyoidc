@@ -33,7 +33,7 @@ REQUEST2ENDPOINT = {
 }
 
 # -----------------------------------------------------------------------------
-
+MAX_AUTHENTICATION_AGE = 86400
 JWT_BEARER = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 
 AUTHN_METHOD = OAUTH2_AUTHN_METHOD.copy()
@@ -121,6 +121,53 @@ class Client(oauth2.Client):
         else:
             return None
 
+    #noinspection PyUnusedLocal
+    def make_openid_request(self, arq, key, userinfo_claims=None,
+                            idtoken_claims=None, **kwargs):
+        """
+        Construct the specification of what I want returned.
+        The request will be signed
+        """
+
+        if userinfo_claims is not None:
+            # UserInfoClaims
+            claim = Claims(**userinfo_claims["claims"])
+
+            uic_args = {}
+            for prop, val in userinfo_claims.items():
+                if prop == "claims":
+                    continue
+                if prop in UserInfoClaim.c_attributes.keys():
+                    uic_args[prop] = val
+
+            uic = UserInfoClaim([claim], **uic_args)
+        else:
+            uic = None
+
+        if idtoken_claims is not None:
+            #IdTokenClaims
+            try:
+                _max_age = idtoken_claims["max_age"]
+            except KeyError:
+                _max_age=MAX_AUTHENTICATION_AGE
+
+            id_token = IDTokenClaim(max_age=_max_age)
+            if "claims" in idtoken_claims:
+                idtclaims = Claims(**idtoken_claims["claims"])
+                id_token.claims = idtclaims
+        else: # uic must be != None
+            id_token = IDTokenClaim(max_age=MAX_AUTHENTICATION_AGE)
+
+        oir_args = {"user_info":uic, "id_token":id_token}
+        for prop in arq.keys():
+            _val = getattr(arq, prop)
+            if _val:
+                oir_args[prop] = _val
+
+        oir = OpenIDRequest(**oir_args)
+
+        return oir.get_jwt(extended=True, key=key)
+
     def construct_AuthorizationRequest(self, cls=AuthorizationRequest,
                                        request_args=None, extra_args=None,
                                        **kwargs):
@@ -135,6 +182,26 @@ class Client(oauth2.Client):
                                                             request_args,
                                                             extra_args,
                                                             **kwargs)
+
+    def construct_OpenIDRequest(self, cls=OpenIDRequest,
+                                       request_args=None, extra_args=None,
+                                       **kwargs):
+
+        if request_args is not None:
+            if "nonce" not in request_args:
+                request_args["nonce"] = rndstr(12)
+        else:
+            request_args = {"nonce": rndstr(12)}
+
+        areq = oauth2.Client.construct_AuthorizationRequest(self, cls,
+                                                            request_args,
+                                                            extra_args,
+                                                            **kwargs)
+
+        if "userinfo_claims" in kwargs or "idtoken_claims" in kwargs:
+            areq.request = self.make_openid_request(areq, **kwargs)
+
+        return areq
 
     #noinspection PyUnusedLocal
     def construct_AccessTokenRequest(self, cls=AccessTokenRequest,
@@ -236,20 +303,6 @@ class Client(oauth2.Client):
             
         return self._id_token_based(cls, request_args, extra_args, **kwargs)
 
-    def construct_OpenIDRequest(self, cls=OpenIDRequest, request_args=None,
-                                extra_args=None, **kwargs):
-        if request_args is None:
-            request_args = {}
-
-        if "state" in kwargs:
-            request_args["state"] = kwargs["state"]
-
-        for prop in ["redirect_uri", "client_id", "scope", "response_type"]:
-            if prop not in request_args:
-                request_args[prop] = getattr(self, prop)
-
-        return self.construct_request(cls, request_args, extra_args)
-
     # ------------------------------------------------------------------------
 
     def do_authorization_request(self, cls=AuthorizationRequest,
@@ -269,9 +322,6 @@ class Client(oauth2.Client):
                                 request_args=None, extra_args=None,
                                 http_args=None, resp_cls=AccessTokenResponse,
                                 authn_method="", **kwargs):
-
-        self.init_authentication_method(authn_method, request_args,
-                                          http_args, req=cls)
 
         return oauth2.Client.do_access_token_request(self, cls, scope, state,
                                                      body_type, method,
@@ -368,23 +418,6 @@ class Client(oauth2.Client):
         return self.request_and_return(url, resp_cls, method, body,
                                        body_type, extended=False,
                                        state=state, http_args=http_args)
-
-    def get_or_post(self, uri, method, req, **kwargs):
-        if method == "GET":
-            path = uri + '?' + req.get_urlencoded()
-            body = None
-        elif method == "POST":
-            path = uri
-            body = req.get_urlencoded()
-            header_ext = {"content-type": "application/x-www-form-urlencoded"}
-            if "headers" in kwargs.keys():
-                kwargs["headers"].update(header_ext)
-            else:
-                kwargs["headers"] = header_ext
-        else:
-            raise Exception("Unsupported HTTP method: '%s'" % method)
-
-        return path, body, kwargs
 
     def user_info_request(self, method="GET", state="", scope="", **kwargs):
         uir = UserInfoRequest()

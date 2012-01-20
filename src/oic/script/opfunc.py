@@ -27,7 +27,8 @@ class DResponse():
         self.url = ""
         if kwargs:
             for key, val in kwargs.items():
-                self.__setitem__(key, val)
+                if val:
+                    self.__setitem__(key, val)
 
     def __setitem__(self, key, value):
         setattr(self, key, value)
@@ -81,104 +82,37 @@ def do_request(client, url, method, body="", headers=None, trace=False):
         trace.reply("RESPONSE: %s" % response)
         trace.reply("CONTENT: %s" % unicode(content, encoding="utf-8"))
 
-    return response, content
+    return url, response, content
 
 def pick_form(response, content, url=None, **kwargs):
     forms = ParseResponse(response)
     if not forms:
         raise FlowException(content=content, url=url)
 
-    form = None
+    _form = None
     if len(forms) == 1:
-        form = forms[0]
+        _form = forms[0]
     else:
+        (type, key, val) = kwargs["_form_pick_"]
         for form in forms:
-            if kwargs["_action_url"] in form.action:
+            if _form:
                 break
+            if type == "action":
+                if key == "url" and val in form.action:
+                    _form = form
+            elif type == "control":
+                try:
+                    orig_val = form[key]
+                    if isinstance(orig_val, basestring):
+                        if orig_val == val:
+                            _form = form
+                    elif val in orig_val:
+                        _form = form
+                except KeyError:
+                    pass
+    return _form
 
-    return form
-
-#noinspection PyUnusedLocal
-def login_form(client, orig_response, content, **kwargs):
-    _url = orig_response["content-location"]
-    # content is a form to be filled in and returned
-    response = DResponse(status=orig_response["status"], url=_url)
-    response.write(content)
-
-    form = pick_form(response, content, _url, **kwargs)
-
-    try:
-        form[kwargs["user_label"]] = kwargs["user"]
-    except KeyError:
-        pass
-
-    try:
-        form[kwargs["password_label"]] = kwargs["password"]
-    except KeyError:
-        pass
-
-    request = form.click()
-
-    headers = {}
-    for key, val in request.unredirected_hdrs.items():
-        headers[key] = val
-
-    url = request._Request__original
-    try:
-        _trace = kwargs["_trace_"]
-    except KeyError:
-        _trace = False
-
-    return do_request(client, url, "POST", request.data, headers, _trace)
-
-#noinspection PyUnusedLocal
-def approve_form(client, orig_response, content, **kwargs):
-    # content is a form to be filled in and returned
-    response = DResponse(status=orig_response["status"],
-    )
-    if orig_response["status"] == 302:
-        response.url = orig_response["content-location"]
-    else:
-        response.url = client.authorization_endpoint
-    response.write(content)
-
-    form = pick_form(response, content, **kwargs)
-
-    # do something with args
-
-    request = form.click()
-
-    headers = {}
-    for key, val in request.unredirected_hdrs.items():
-        headers[key] = val
-
-    try:
-        _trace = kwargs["_trace_"]
-    except KeyError:
-        _trace = False
-
-    url = request._Request__original
-    return do_request(client, url, "POST", request.data, headers, _trace)
-#    resp.url = request._Request__original
-#    return resp, request.data
-
-def select_form(client, orig_response, content, **kwargs):
-    _url = orig_response["content-location"]
-    # content is a form to be filled in and returned
-    response = DResponse(status=orig_response["status"], url=_url)
-    response.write(content)
-
-    form = pick_form(response, content, _url, **kwargs)
-
-    for key, val in kwargs.items():
-        if key.startswith("_"):
-            continue
-
-        try:
-            form[key] = val
-        except ControlNotFoundError:
-            pass
-
+def do_click(client, form, **kwargs):
     request = form.click()
 
     headers = {}
@@ -197,9 +131,74 @@ def select_form(client, orig_response, content, **kwargs):
         return do_request(client, url, "GET", headers=headers, trace=_trace)
 
 #noinspection PyUnusedLocal
+def login_form(client, orig_response, content, **kwargs):
+    try:
+        _url = orig_response["content-location"]
+    except KeyError:
+        _url = kwargs["location"]
+    # content is a form to be filled in and returned
+    response = DResponse(status=orig_response["status"], url=_url)
+    response.write(content)
+
+    form = pick_form(response, content, _url, **kwargs)
+
+    try:
+        form[kwargs["user_label"]] = kwargs["user"]
+    except KeyError:
+        pass
+
+    try:
+        form[kwargs["password_label"]] = kwargs["password"]
+    except KeyError:
+        pass
+
+    return do_click(client, form, **kwargs)
+
+#noinspection PyUnusedLocal
+def approve_form(client, orig_response, content, **kwargs):
+    # content is a form to be filled in and returned
+    response = DResponse(status=orig_response["status"])
+    if orig_response["status"] == 302:
+        response.url = orig_response["content-location"]
+    else:
+        response.url = client.authorization_endpoint
+    response.write(content)
+
+    form = pick_form(response, content, **kwargs)
+
+    # do something with args
+
+    return do_click(client, form, **kwargs)
+
+def select_form(client, orig_response, content, **kwargs):
+    try:
+        _url = orig_response["content-location"]
+    except KeyError:
+        _url = kwargs["location"]
+    # content is a form to be filled in and returned
+    response = DResponse(status=orig_response["status"], url=_url)
+    response.write(content)
+
+    form = pick_form(response, content, _url, **kwargs)
+
+    for key, val in kwargs.items():
+        if key.startswith("_"):
+            continue
+
+        try:
+            form[key] = val
+        except ControlNotFoundError:
+            pass
+
+    return do_click(client, form, **kwargs)
+
+#noinspection PyUnusedLocal
 def chose(client, orig_response, content, **kwargs):
-    _loc = orig_response["content-location"]
-    part = urlparse(_loc)
+    try:
+        _url = orig_response["content-location"]
+    except KeyError:
+        _url = kwargs["location"]
+    part = urlparse(_url)
     #resp = Response({"status":"302"})
 
     try:
@@ -219,22 +218,7 @@ def post_form(client, orig_response, content, **kwargs):
 
     form = pick_form(response, content, _url, **kwargs)
 
-    request = form.click()
-
-    headers = {}
-    for key, val in request.unredirected_hdrs.items():
-        headers[key] = val
-
-    url = request._Request__original
-    try:
-        _trace = kwargs["_trace_"]
-    except KeyError:
-        _trace = False
-
-    if form.method == "POST":
-        return do_request(client, url, "POST", request.data, headers, _trace)
-    else:
-        return do_request(client, url, "GET", headers=headers, trace=_trace)
+    return do_click(client, form, **kwargs)
 
 # ========================================================================
 
@@ -258,7 +242,6 @@ APPROVE_FORM = {
     "function": approve_form,
     }
 
-
 CHOSE = {
     "id": "chose",
     "function": chose,
@@ -268,7 +251,7 @@ CHOSE = {
 SELECT_FORM = {
     "id": "select_form",
     "function": select_form,
-    "args": { "path": "/account/fake"}
+    "args": { }
 }
 
 POST_FORM = {

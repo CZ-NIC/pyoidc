@@ -54,6 +54,10 @@ class Trace(object):
     def clear(self):
         self.trace = []
 
+def flow2sequence(operations, item):
+    flow = operations.FLOWS[item]
+    return [operations.PHASES[phase] for phase in flow["sequence"]]
+
 def do_request(client, url, method, body="", headers=None, trace=False):
     if headers is None:
         headers = {}
@@ -74,7 +78,7 @@ def do_request(client, url, method, body="", headers=None, trace=False):
 
 #noinspection PyUnusedLocal
 def do_operation(client, opdef, message_mod, response=None, content=None,
-                 trace=None):
+                 trace=None, location=""):
     op = opdef
     qresp = None
 
@@ -105,11 +109,6 @@ def do_operation(client, opdef, message_mod, response=None, content=None,
         cis = getattr(client, "construct_%s" % cls.__name__)(cls, **kwargs)
 
         ht_add = None
-
-        if "token_placement" in kwargs:
-            if kwargs["token_placement"] == "header":
-                ht_add = {"Authorization": "Bearer %s" % cis.access_token}
-                cis.access_token = None
 
         if "authn_method" in kwargs:
             (r_arg, h_arg) = client.init_authentication_method(**kwargs)
@@ -143,20 +142,17 @@ def do_operation(client, opdef, message_mod, response=None, content=None,
         func = op["function"]
         try:
             _args = op["args"].copy()
-        except KeyError:
+        except (KeyError, AttributeError):
             _args = {}
 
         _args["_trace_"] = trace
+        _args["location"] = location
 
         if trace:
             trace.request("FUNCTION: %s" % func.__name__)
             trace.request("ARGS: %s" % _args)
 
-        response, content = func(client, response, content, **_args)
-
-        if trace:
-            trace.reply("RESPONSE: %s" % response)
-            trace.reply("CONTENT: %s" % unicode(content, encoding="utf-8"))
+        url, response, content = func(client, response, content, **_args)
     else:
         try:
             url = response.url
@@ -185,99 +181,151 @@ def do_operation(client, opdef, message_mod, response=None, content=None,
             trace.reply("RESPONSE: %s" % response)
             trace.reply("CONTENT: %s" % unicode(content, encoding="utf-8"))
 
-    return response, content
+    return url, response, content
 
-def run_sequences(client, sequences, trace, function_args, message_mod):
+def run_sequence(client, sequence, trace, interaction, message_mod, verbose):
     response = None
     content = None
+    err = None
 
-    for sequence, endpoints in sequences:
+    for req, resp in sequence:
+        err = None
+        if trace:
+            trace.info(70*"=")
+        try:
+            extra_args = interaction[req["request"]]
+            try:
+                req["args"]["request"].update(extra_args)
+            except KeyError:
+                req["args"]["request"] = extra_args
+        except KeyError:
+            pass
+
+        try:
+            url, response, content = do_operation(client, req,
+                                                  message_mod,
+                                                  response, content,
+                                                  trace)
+        except Exception, err:
+            trace.error("%s: %s" % (err.__class__.__name__, err))
+            break
+
+        done = False
+        while not done:
+            while response.status in [302, 301, 303]:
+                try:
+                    url = response.url
+                except AttributeError:
+                    url = response["location"]
+
+                # If back to me
+                for_me = False
+                for redirect_uri in client.redirect_uri:
+                    if url.startswith(redirect_uri):
+                        for_me=True
+
+                if for_me:
+                    done = True
+                    break
+                else:
+                    if trace:
+                        trace.info(70*".")
+                    response, content = do_request(client, url, "GET",
+                                                  trace=trace)
+            if done or err:
+                break
+
+            if response.status >= 400:
+                if response["content-type"] == "application/json":
+                    err = ErrorResponse.set_json(content)
+                    if trace:
+                        trace.error("%s: %s" % (response.status,
+                                                err.get_json()))
+                else:
+                    err = content
+                break
+
+            if trace:
+                trace.info(70*"=")
+
+            _base = url.split("?")[0]
+            try:
+                _spec = interaction[_base]
+            except KeyError:
+                trace.error("No interaction bound to '%s'" % _base)
+                raise
+
+            _op = {"function": _spec[0], "args": _spec[1]}
+
+            try:
+                url, response, content = do_operation(client, _op,
+                                                      message_mod,
+                                                      response, content,
+                                                      trace, location=url)
+                #print content
+            except Exception, err:
+                trace.error("%s: %s" % (err.__class__.__name__, err))
+                raise
+
+
+        if err is None:
+            if resp["where"] == "url":
+                try:
+                    info = response["location"]
+                except KeyError:
+                    trace.error("Not a final redirect")
+                    raise Exception
+            else:
+                info = content
+
+            if info:
+                if isinstance(resp["response"], tuple):
+                    (mod, klass) = resp["response"]
+                    imod = import_module(mod)
+                    respcls = getattr(imod, klass)
+                else:
+                    respcls = getattr(message_mod, resp["response"])
+
+                try:
+                    qresp = client.parse_response(respcls, info,
+                                                  resp["type"],
+                                                  client.state, True)
+                    if trace and qresp:
+                        trace.info("[%s]: %s" % (qresp.__class__.__name__,
+                                                 qresp.dictionary()))
+                except Exception, err:
+                    trace.error("info: %s" % info)
+                    trace.error("%s" % err)
+                    raise
+
+        if err:
+            break
+
+    if err or verbose:
+        print trace
+
+    return err
+
+
+def run_sequences(client, sequences, trace, interaction, message_mod,
+                  verbose=False):
+    for sequence, endpoints, fid in sequences:
         # clear cookie cache
         client.grant.clear()
         try:
             client.http.cookiejar.clear()
         except AttributeError:
             pass
-        for opers, resp in sequence:
-            err = None
-            for oper in opers:
-                if trace:
-                    trace.info(70*"=")
 
-                if "function" in oper:
-                    try:
-                        oper["args"] = function_args[oper["id"]]
-                    except KeyError:
-                        pass
+        err = run_sequence(client, sequence, trace, interaction, message_mod,
+                           verbose)
 
-                try:
-                    response, content = do_operation(client, oper, message_mod,
-                                                     response, content, trace)
-                #print content
-                except Exception, err:
-                    trace.error("%s: %s" % (err.__class__.__name__, err))
-                    break
+        if err:
+            print "%s - FAIL" % fid
+            print
+            if not verbose:
+                print trace
+        else:
+            print "%s - OK" % fid
 
-                while response.status in [302, 301, 303]:
-                    try:
-                        url = response.url
-                    except AttributeError:
-                        url = response["location"]
-
-                    # If back to me
-                    for_me = False
-                    for redirect_uri in client.redirect_uri:
-                        if url.startswith(redirect_uri):
-                            for_me=True
-
-                    if for_me:
-                        break
-                    else:
-                        if trace:
-                            trace.info(70*"-")
-                        response,content = do_request(client, url, "GET",
-                                                      trace=trace)
-
-                if response.status >= 400:
-                    if response["content-type"] == "application/json":
-                        err = ErrorResponse.set_json(content)
-                        if trace:
-                            trace.error("%s: %s" % (response.status,
-                                                    err.get_json()))
-                    else:
-                        err = content
-                    break
-
-            if err is None:
-                if resp["where"] == "url":
-                    try:
-                        info = response["location"]
-                    except KeyError:
-                        trace.error("Not a final redirect")
-                        info = None
-                else:
-                    info = content
-
-                if info:
-                    if isinstance(resp["response"], tuple):
-                        (mod, klass) = resp["response"]
-                        imod = import_module(mod)
-                        respcls = getattr(imod, klass)
-                    else:
-                        respcls = getattr(message_mod, resp["response"])
-
-                    try:
-                        qresp = client.parse_response(respcls, info,
-                                                      resp["type"],
-                                                      client.state, True)
-                        if trace and qresp:
-                            trace.info("[%s]: %s" % (qresp.__class__.__name__,
-                                                     qresp.dictionary()))
-                    except Exception, err:
-                        trace.error("info: %s" % info)
-                        trace.error("%s" % err)
-
-            print trace
-            trace.clear()
-            if err:
-                break
+        trace.clear()

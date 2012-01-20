@@ -470,29 +470,33 @@ class Client(object):
         request_args["token"] = token.access_token
         return self.construct_request(cls, request_args, extra_args)
 
+    def get_or_post(self, uri, method, req, extend=False, **kwargs):
+        if method == "GET":
+            path = uri + '?' + req.get_urlencoded(extended=extend)
+            body = None
+        elif method == "POST":
+            path = uri
+            body = req.get_urlencoded(extended=extend)
+            header_ext = {"content-type": DEFAULT_POST_CONTENT_TYPE}
+            if "headers" in kwargs.keys():
+                kwargs["headers"].update(header_ext)
+            else:
+                kwargs["headers"] = header_ext
+        else:
+            raise Exception("Unsupported HTTP method: '%s'" % method)
+
+        return path, body, kwargs
+
     def uri_and_body(self, cls, cis, method="POST", request_args=None,
                      extend=False):
         
         uri = self._endpoint(self.request2endpoint[cls.__name__],
                              **request_args)
 
-        if request_args:
-            for key, val in request_args.items():
-                if key in cis.c_attributes:
-                    setattr(cis, key, val)
-                else:
-                    extend=True
-                    cis.c_extension[key] = val
-
-        if method == "POST":
-            body = cis.get_urlencoded(extended=extend)
-        else: # assume GET
-            uri = "%s?%s" % (uri, cis.get_urlencoded(extended=extend))
-            body = None
-
-        if method == "POST":
-            h_args = {"headers": {"content-type": DEFAULT_POST_CONTENT_TYPE}}
-        else:
+        uri, body, kwargs = self.get_or_post(uri, method, cis, extend)
+        try:
+            h_args = {"headers": kwargs["headers"]}
+        except KeyError:
             h_args = {}
 
         return uri, body, h_args, cis
@@ -512,7 +516,7 @@ class Client(object):
         else:
             extend = False
 
-        return self.uri_and_body(cls, cis, method, request_args, extend)
+        return self.uri_and_body(cls, cis, method, request_args, extend=extend)
 
     def parse_response(self, cls, info="", format="json", state="",
                        extended=False):
@@ -610,7 +614,8 @@ class Client(object):
         if authn_method:
             return self.authn_method[authn_method](self, request_args,
                                                    http_args)
-
+        else:
+            return request_args, http_args
 
     def request_and_return(self, url, respcls=None, method="GET", body=None,
                         body_type="json", extended=True,

@@ -97,6 +97,10 @@ class Base(object):
                     else:
                         for item in val:
                             params.append((attribute, str(item)))
+                elif isinstance(val, Base):
+                    params.append((attribute, str(_ser(val,
+                                                       format="urlencoded",
+                                                       extended=extended))))
                 else:
                     params.append((attribute, str(val)))
         if extended:
