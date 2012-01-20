@@ -36,6 +36,8 @@ OPENID_REQUEST_TOKEN = {
     "args": {"request": {"response_type": "token", "scope": ["openid"]}}
 }
 
+# {"OpenIDRequest": {"request", {"response_type":["code","token"]}}}
+
 OPENID_REQUEST_CODE_TOKEN = {
     "request": "OpenIDRequest",
     "method": "GET",

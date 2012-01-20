@@ -223,10 +223,10 @@ class AuthorizationResponse(oauth2.AuthorizationResponse, AccessTokenResponse):
         self.nonce = nonce
         self.access_token = access_token
         self.token_type = token_type
-#        self.expires_in = expires_in
-#        self.refresh_token = refresh_token
-#        self.scope = scope or []
-#        self.id_token = id_token
+        self.expires_in = expires_in
+        self.refresh_token = refresh_token
+        self.scope = scope or []
+        self.id_token = id_token
 
 
 class AuthorizationErrorResponse(oauth2.AuthorizationErrorResponse):

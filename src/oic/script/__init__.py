@@ -154,13 +154,18 @@ class OAuth2(object):
     def get_interactions(self):
         interactions = {}
 
-        if self.args.interactions:
-            interactions = json.loads(self.args.interactions)
-        elif self.json_config:
+        if self.json_config:
             try:
                 interactions = self.json_config["interaction"]
             except KeyError:
                 pass
+
+        if self.args.interactions:
+            _int = self.args.interactions.replace("\'", '"')
+            if interactions:
+                interactions.update(json.loads(_int))
+            else:
+                interactions = json.loads(_int)
 
         for url, spec in interactions.items():
             try:

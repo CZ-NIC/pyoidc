@@ -183,6 +183,25 @@ def do_operation(client, opdef, message_mod, response=None, content=None,
 
     return url, response, content
 
+def rec_update(dic0, dic1):
+    res = {}
+    for key, val in dic0.items():
+        if key not in dic1:
+            res[key] = val
+        else:
+            if isinstance(val, dict):
+                res[key] = rec_update(val, dic1[key])
+            else:
+                res[key] = dic1[key]
+
+    for key, val in dic1.items():
+        if key in dic0:
+            continue
+        else:
+            res[key] = val
+
+    return res
+
 def run_sequence(client, sequence, trace, interaction, message_mod, verbose):
     response = None
     content = None
@@ -195,9 +214,9 @@ def run_sequence(client, sequence, trace, interaction, message_mod, verbose):
         try:
             extra_args = interaction[req["request"]]
             try:
-                req["args"]["request"].update(extra_args)
+                req["args"] = rec_update(req["args"], extra_args)
             except KeyError:
-                req["args"]["request"] = extra_args
+                req["args"] = extra_args
         except KeyError:
             pass
 
