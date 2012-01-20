@@ -10,6 +10,7 @@ from oic.script.base import *
 
 QUERY2RESPONSE = {
     "AuthorizationRequest": "AuthorizationResponse",
+    "OpenIDRequest": "OpenIDResponse",
     "AccessTokenRequest": "AccessTokenResponse",
     "UserInfoRequest": "OpenIDSchema",
     "RegistrationRequest": "RegistrationResponse"

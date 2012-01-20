@@ -18,6 +18,52 @@ AUTHZREQ_CODE = {
     }
 }
 
+AUTHZRESP = {
+    "response": "AuthorizationResponse",
+    "where": "url",
+    "type": "urlencoded",
+    }
+
+OPENID_REQUEST_CODE = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": "code", "scope": ["openid"]}}
+}
+
+OPENID_REQUEST_TOKEN = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": "token", "scope": ["openid"]}}
+}
+
+OPENID_REQUEST_CODE_TOKEN = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": ["code","token"],
+                         "scope": ["openid"]}}
+}
+
+OPENID_REQUEST_CODE_IDTOKEN = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": ["code","id_token"],
+                         "scope": ["openid"]}}
+}
+
+OPENID_REQUEST_TOKEN_IDTOKEN = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": ["token","id_token"],
+                         "scope": ["openid"]}}
+}
+
+OPENID_REQUEST_CODE_TOKEN_IDTOKEN = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": ["code", "token", "id_token"],
+                         "scope": ["openid"]}}
+}
+
 # 2.1.2.1.2
 # The User Identifier for which an ID Token is being requested.
 # If the specified user is not currently authenticated to the Authorization
@@ -26,27 +72,21 @@ AUTHZREQ_CODE = {
 # is an object containing the single element value.
 #"user_id": {"value":"248289761001"}
 
-AUTHZREQ_CODE_21212 = {
-    "request": "AuthorizationRequest",
-    "method": "GET",
-    "args": {
-        "request": {"response_type": "code",
-                    "scope": ["openid"],
-                    "prompt": "none"
-                    },
-        "kw": {
-            "idtoken_claims": {
-                "claims": {"user_id": {"value":"248289761001"}}
-            }
-        }
-    }
-}
-
-AUTHZRESP = {
-    "response": "AuthorizationResponse",
-    "where": "url",
-    "type": "urlencoded",
-}
+#OPENID_REQUEST_CODE_21212 = {
+#    "request": "AuthorizationRequest",
+#    "method": "GET",
+#    "args": {
+#        "request": {"response_type": "code",
+#                    "scope": ["openid"],
+#                    "prompt": "none"
+#                    },
+#        "kw": {
+#            "idtoken_claims": {
+#                "claims": {"user_id": {"value":"248289761001"}}
+#            }
+#        }
+#    }
+#}
 
 ACCESS_TOKEN_RESPONSE = {
     "response": "AccessTokenResponse",
@@ -109,6 +149,8 @@ CHECK_ID_RESPONSE = {
 
 PHASES= {
     "login": (AUTHZREQ_CODE, AUTHZRESP),
+    "oic-login": (OPENID_REQUEST_CODE, AUTHZRESP),
+    "oic-login-token": (OPENID_REQUEST_TOKEN, AUTHZRESP),
 #    "login-form": ([AUTHZREQ_CODE, LOGIN_FORM], AUTHZRESP),
 #    "login-form-approve": ([AUTHZREQ_CODE, LOGIN_FORM, APPROVE_FORM],
 #                            AUTHZRESP),
@@ -155,4 +197,30 @@ FLOWS = {
         "sequence": ["login", "access-token-request", "check-id-request"],
         "endpoints": ["authorization_endpoint", "check_id_endpoint"]
     },
+    'basic-token-openid-authn': {
+        "name": 'Basic OpenID Connect Token flow with authentication',
+        "descr": ('Very basic test of a OIC Provider using the token ',
+                  'flow. The test tool acting as a consumer is very relaxed',
+                  'and tries to obtain an ID Token.'),
+        "sequence": ["oic-login-token"],
+        "endpoints": ["authorization_endpoint"]
+    },
+    'basic-code-openid-authn': {
+        "name": 'Basic Code flow with authentication',
+        "descr": ('Very basic test of a Provider using the authorization code ',
+                  'flow. The test tool acting as a consumer is very relaxed',
+                  'and tries to obtain an ID Token.'),
+        "sequence": ["oic-login"],
+        "endpoints": ["authorization_endpoint"]
+    },
+    'basic-token-userdata': {
+        "name": 'Basic Code flow with ID Token and User data',
+        "descr": ('Very basic test of a Provider using the authorization code'
+                  ' flow, but in addition to retrieve an ID Token,',
+                  ' this test flow also tried to obtain user data.'),
+        "depends": ['basic-code-idtoken'],
+        "sequence": ["oic-login-token", "user-info-request"],
+        "endpoints": ["authorization_endpoint", "userinfo_endpoint"]
+    },
+
 }

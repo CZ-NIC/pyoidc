@@ -191,6 +191,8 @@ class AccessTokenResponse(oauth2.AccessTokenResponse):
 
 class AuthorizationResponse(oauth2.AuthorizationResponse, AccessTokenResponse):
     c_attributes = oauth2.AuthorizationResponse.c_attributes.copy()
+    # code is actually optional
+    c_attributes["code"] = SINGLE_OPTIONAL_STRING
     c_attributes["nonce"] = SINGLE_OPTIONAL_STRING
     # Add all the AccessTokenResponse properties
     c_attributes.update(AccessTokenResponse.c_attributes)
@@ -219,8 +221,8 @@ class AuthorizationResponse(oauth2.AuthorizationResponse, AccessTokenResponse):
                                      id_token, domain)
         oauth2.AuthorizationResponse.__init__(self, code, state, **kwargs)
         self.nonce = nonce
-#        self.access_token = access_token
-#        self.token_type = token_type
+        self.access_token = access_token
+        self.token_type = token_type
 #        self.expires_in = expires_in
 #        self.refresh_token = refresh_token
 #        self.scope = scope or []

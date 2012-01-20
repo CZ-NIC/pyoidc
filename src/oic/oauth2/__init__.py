@@ -557,9 +557,14 @@ class Client(object):
                         raise ValueError("Parse error: %s" % serr)
 
         elif format == "urlencoded":
-            if '?' in info:
+            if '?' in info or '#' in info:
                 parts = urlparse.urlparse(info)
                 scheme, netloc, path, params, query, fragment = parts[:6]
+                # either query of fragment
+                if query:
+                    pass
+                else:
+                    query = fragment
             else:
                 query = info
 

@@ -22,6 +22,7 @@ RESPONSE2ERROR = {
 
 REQUEST2ENDPOINT = {
     "AuthorizationRequest": "authorization_endpoint",
+    "OpenIDRequest": "authorization_endpoint",
     "AccessTokenRequest": "token_endpoint",
     "RefreshAccessTokenRequest": "token_endpoint",
     "UserInfoRequest": "userinfo_endpoint",

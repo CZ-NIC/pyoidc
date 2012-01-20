@@ -20,6 +20,7 @@ info = {
     #"basic-code-idtoken-userdata"
     #"basic-code-idtoken-check_id"
     "interaction": {
+        #"OpenIDRequest": {"request": {"response_type": "token"}},
         "https://connect.openid4.us/abop/op.php/auth": ["login_form", None],
         "https://connect.openid4.us/abop/op.php/login": ["select_form",
                         {"_form_pick_": ("control", "persona", "Default")}]
