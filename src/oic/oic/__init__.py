@@ -1,10 +1,12 @@
 __author__ = 'rohe0002'
 
-import jwt
+#import jwt
 
 from oic.oauth2 import AUTHN_METHOD as OAUTH2_AUTHN_METHOD
 from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import rndstr
+from oic.oauth2.message import ErrorResponse
+
 from oic.oic.message import *
 from oic.utils.time_util import time_sans_frac
 from oic.utils.time_util import utc_now
@@ -13,11 +15,14 @@ from oic.utils.time_util import epoch_in_a_while
 ENDPOINTS = ["authorization_endpoint", "token_endpoint",
              "userinfo_endpoint", "refresh_session_endpoint",
              "check_session_endpoint", "end_session_endpoint",
-             "registration_endpoint"]
+             "registration_endpoint", "check_id_endpoint"]
 
 RESPONSE2ERROR = {
     AuthorizationResponse: [AuthorizationErrorResponse, TokenErrorResponse],
-    AccessTokenResponse: [TokenErrorResponse]
+    AccessTokenResponse: [TokenErrorResponse],
+    IdToken: [ErrorResponse],
+    RegistrationResponse: [ErrorResponse],
+    OpenIDSchema: [UserInfoErrorResponse]
 }
 
 REQUEST2ENDPOINT = {
@@ -79,8 +84,21 @@ class Grant(oauth2.Grant):
     _acc_resp = AccessTokenResponse
     _token_class = Token
 
+    def add_token(self, resp):
+        tok = self._token_class(resp)
+        if tok.access_token:
+            self.tokens.append(tok)
+        else:
+            try:
+                _ = tok.id_token
+                self.tokens.append(tok)
+            except AttributeError:
+                pass
+
 #noinspection PyMethodOverriding
 class Client(oauth2.Client):
+    _endpoints = ENDPOINTS
+
     def __init__(self, client_id=None, cache=None, timeout=None,
                  proxy_info=None, follow_redirects=True,
                  disable_ssl_certificate_validation=False,
@@ -115,12 +133,32 @@ class Client(oauth2.Client):
         self.token_class = Token
 
     def _get_id_token(self, **kwargs):
-        token = self.get_token(**kwargs)
+        try:
+            return kwargs["id_token"]
+        except KeyError:
+            grant = self.get_grant(**kwargs)
 
-        if token:
-            return token.id_token
-        else:
-            return None
+        if grant:
+            try:
+                _scope = kwargs["scope"]
+            except KeyError:
+                _scope = None
+
+            for token in grant.tokens:
+                if token.scope and _scope:
+                    flag = True
+                    for item in _scope:
+                        try:
+                            assert item in token.scope
+                        except AssertionError:
+                            flag = False
+                            break
+                    if not flag:
+                        break
+                if token.id_token:
+                    return token.id_token
+
+        return None
 
     #noinspection PyUnusedLocal
     def make_openid_request(self, arq, key, userinfo_claims=None,
@@ -199,6 +237,9 @@ class Client(oauth2.Client):
                                                             extra_args,
                                                             **kwargs)
 
+        if "key" not in kwargs:
+            kwargs["key"] = self.client_secret
+
         if "userinfo_claims" in kwargs or "idtoken_claims" in kwargs:
             areq.request = self.make_openid_request(areq, **kwargs)
 
@@ -228,14 +269,15 @@ class Client(oauth2.Client):
         if request_args is None:
             request_args = {}
 
-        if "access_token" in request_args:
-            pass
-        else:
-            token = self.get_token(**kwargs)
-            if token is None:
-                raise Exception("No valid token available")
-
-            request_args["access_token"] = token.access_token
+        # this is authentication stuff and should be handled as such
+#        if "access_token" in request_args:
+#            pass
+#        else:
+#            token = self.get_token(**kwargs)
+#            if token is None:
+#                raise Exception("No valid token available")
+#
+#            request_args["access_token"] = token.access_token
 
         return self.construct_request(cls, request_args, extra_args)
 
@@ -284,6 +326,7 @@ class Client(oauth2.Client):
     def construct_CheckIDRequest(self, cls=CheckIDRequest, request_args=None,
                                  extra_args=None, **kwargs):
 
+        # access_token is where the id_token will be placed
         return self._id_token_based(cls, request_args, extra_args,
                                     prop="access_token", **kwargs)
 

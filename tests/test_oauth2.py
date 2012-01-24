@@ -545,12 +545,12 @@ def test_grant_access_token_1():
     grant.tokens.append(token)
 
     print grant.keys()
-    assert _eq(grant.keys(), ['tokens', 'code', 'exp_in', 'seed',
+    assert _eq(grant.keys(), ['tokens', 'id_token', 'code', 'exp_in', 'seed',
                               'grant_expiration_time'])
     print token.keys()
     assert _eq(token.keys(), ['token_expiration_time', 'access_token',
                               'expires_in', 'example_parameter', 'token_type',
-                              'xscope', 'refresh_token'])
+                              'xscope', 'refresh_token', 'scope'])
 
     assert token.access_token == "2YotnFZFEjr1zCsicMWpAA"
     assert token.token_type == "example"

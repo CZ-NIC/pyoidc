@@ -314,7 +314,7 @@ class Base(object):
         :return: A class instance
         """
         jso = jwt.decode(txt, key, verify)
-        return cls.set_json(jso, extended)
+        return cls.from_dictionary(jso, extended)
 
     def to_jwt(self, extended=False, key="", algorithm=""):
         return self.get_jwt(extended, key, algorithm)
@@ -346,7 +346,7 @@ class Base(object):
             if not isinstance(val, typ):
                 raise ValueError("value: '%s' not of type '%s'" % (val, typ))
 
-    def verify(self):
+    def verify(self, **kwargs):
         """
         Make sure all the required values are there and that the values are
         of the correct type
@@ -448,7 +448,7 @@ class AuthorizationErrorResponse(ErrorResponse):
                                **kwargs)
         self.state = state
 
-    def verify(self):
+    def verify(self, **kwargs):
         if self.error:
             if self.error in ["invalid_request", "unathorized_client",
                               "access_denied", "unsupported_response_type",
@@ -458,7 +458,7 @@ class AuthorizationErrorResponse(ErrorResponse):
             else:
                 raise ValueError("'%s' not an valid error type" % self.error)
 
-        return ErrorResponse.verify(self)
+        return ErrorResponse.verify(self, **kwargs)
 
 class TokenErrorResponse(ErrorResponse):
     c_attributes = ErrorResponse.c_attributes.copy()
@@ -474,14 +474,14 @@ class TokenErrorResponse(ErrorResponse):
                                error_uri,
                                **kwargs)
 
-    def verify(self):
+    def verify(self, **kwargs):
         if self.error:
             if not self.error in ["invalid_request", "invalid_client",
                               "invalid_grant", "unauthorized_client",
                               "unsupported_grant_type", "invalid_scope"]:
                 raise ValueError("'%s' not an valid error type" % self.error)
 
-        return ErrorResponse.verify(self)
+        return ErrorResponse.verify(self, **kwargs)
 
 class AccessTokenResponse(Base):
     c_attributes = Base.c_attributes.copy()
@@ -579,9 +579,9 @@ class ROPCAccessTokenRequest(Base):
         self.password = password
         self.scope = scope
 
-    def verify(self):
+    def verify(self, **kwargs):
         assert self.grant_type == "password"
-        return Base.verify(self)
+        return Base.verify(self, **kwargs)
 
 class CCAccessTokenRequest(Base):
     c_attributes = Base.c_attributes.copy()
@@ -593,9 +593,9 @@ class CCAccessTokenRequest(Base):
         self.grant_type = grant_type
         self.scope = scope
 
-    def verify(self):
+    def verify(self, **kwargs):
         assert self.grant_type == "client_credentials"
-        return Base.verify(self)
+        return Base.verify(self, **kwargs)
 
 class RefreshAccessTokenRequest(Base):
     c_attributes = Base.c_attributes.copy()
@@ -618,9 +618,9 @@ class RefreshAccessTokenRequest(Base):
         self.scope = scope
         self.client_secret = client_secret
 
-    def verify(self):
+    def verify(self, **kwargs):
         assert self.grant_type == "refresh_token"
-        return Base.verify(self)
+        return Base.verify(self, **kwargs)
 
 
 class TokenRevocationRequest(Base):

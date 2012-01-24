@@ -319,7 +319,8 @@ def test_server_authenticated():
 
     print cons.grant[cons.state].keys()
     assert _eq(cons.grant[cons.state].keys(), ['tokens', 'exp_in', 'seed',
-                                               'grant_expiration_time'])
+                                               'grant_expiration_time',
+                                               'id_token'])
 
 def test_server_authenticated_1():
     server = srv_init

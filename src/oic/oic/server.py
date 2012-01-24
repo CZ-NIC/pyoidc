@@ -316,7 +316,7 @@ class Server(AServer):
         return resp(environ, start_response)
 
     #noinspection PyUnusedLocal
-    def user_info_endpoint(self, environ, start_response, logger):
+    def userinfo_endpoint(self, environ, start_response, logger):
 
         # POST or GET
         try:

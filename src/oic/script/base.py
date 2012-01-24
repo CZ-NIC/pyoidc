@@ -5,30 +5,6 @@ __author__ = 'rohe0002'
 from importlib import import_module
 from oic.oauth2.message import ErrorResponse
 
-#def make_sequence(info):
-#    sequences = []
-#    for flows in info["flows"]:
-#        sequence = []
-#        for flow in flows:
-#            (items, resp) = info["phases"][flow]
-#            if isinstance(items, basestring):
-#                seq = [getattr(operations, items.strip())]
-#            else:
-#                seq = [getattr(operations, item.strip()) for item in items]
-#            resp = getattr(operations, resp.strip())
-#            for _se in seq:
-#                try:
-#                    _se["function"] = _se["function"].__name__
-#                except KeyError:
-#                    pass
-#            sequence.append((seq, resp))
-#        sequences.append(sequence)
-#
-#    info["sequences"] = sequences
-#    del info["flows"]
-#    del info["phases"]
-#    return info
-
 class Trace(object):
     def __init__(self):
         self.trace = []
@@ -57,6 +33,13 @@ class Trace(object):
 def flow2sequence(operations, item):
     flow = operations.FLOWS[item]
     return [operations.PHASES[phase] for phase in flow["sequence"]]
+
+def endpoint(client, base):
+    for _endp in client._endpoints:
+        if getattr(client, _endp) == base:
+            return True
+
+    return False
 
 def do_request(client, url, method, body="", headers=None, trace=False):
     if headers is None:
@@ -113,7 +96,8 @@ def do_operation(client, opdef, message_mod, response=None, content=None,
         if "authn_method" in kwargs:
             (r_arg, h_arg) = client.init_authentication_method(**kwargs)
             if r_arg:
-                _req.update(r_arg)
+                for key,val in r_arg.items():
+                    setattr(cis, key, val)
         else:
             h_arg = None
 
@@ -202,7 +186,9 @@ def rec_update(dic0, dic1):
 
     return res
 
-def run_sequence(client, sequence, trace, interaction, message_mod, verbose):
+def run_sequence(client, sequence, trace, interaction, message_mod, verbose,
+                 tests=None):
+    item = []
     response = None
     content = None
     err = None
@@ -271,6 +257,8 @@ def run_sequence(client, sequence, trace, interaction, message_mod, verbose):
             try:
                 _spec = interaction[_base]
             except KeyError:
+                if endpoint(client, _base):
+                    break
                 trace.error("No interaction bound to '%s'" % _base)
                 raise
 
@@ -308,10 +296,13 @@ def run_sequence(client, sequence, trace, interaction, message_mod, verbose):
                 try:
                     qresp = client.parse_response(respcls, info,
                                                   resp["type"],
-                                                  client.state, True)
+                                                  client.state, True,
+                                                  key=client.client_secret,
+                                                  client_id=client.client_id)
                     if trace and qresp:
                         trace.info("[%s]: %s" % (qresp.__class__.__name__,
                                                  qresp.dictionary()))
+                    item.append(qresp)
                 except Exception, err:
                     trace.error("info: %s" % info)
                     trace.error("%s" % err)
@@ -322,6 +313,10 @@ def run_sequence(client, sequence, trace, interaction, message_mod, verbose):
 
     if err or verbose:
         print trace
+
+    if not err and tests:
+        for test in tests:
+            assert test(client, item)
 
     return err
 

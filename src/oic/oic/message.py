@@ -2,6 +2,7 @@
 
 from oic import oauth2
 import json
+import jwt
 import urlparse
 import urllib
 
@@ -189,6 +190,15 @@ class AccessTokenResponse(oauth2.AccessTokenResponse):
         self.id_token = id_token
     #    self.domain = domain
 
+    def verify(self, **kwargs):
+        if self.id_token:
+            # Try to decode the JWT, checks the signature
+            idt = IdToken.set_jwt(str(self.id_token), kwargs["key"])
+            if not idt.verify(**kwargs):
+                return False
+
+        return oauth2.AccessTokenResponse.verify(self, **kwargs)
+
 class AuthorizationResponse(oauth2.AuthorizationResponse, AccessTokenResponse):
     c_attributes = oauth2.AuthorizationResponse.c_attributes.copy()
     # code is actually optional
@@ -228,6 +238,14 @@ class AuthorizationResponse(oauth2.AuthorizationResponse, AccessTokenResponse):
         self.scope = scope or []
         self.id_token = id_token
 
+    def verify(self, **kwargs):
+        if self.id_token:
+            # Try to decode the JWT, checks the signature
+            idt = IdToken.set_jwt(str(self.id_token), kwargs["key"])
+            if not idt.verify(**kwargs):
+                return False
+
+        return oauth2.AuthorizationResponse.verify(self, **kwargs)
 
 class AuthorizationErrorResponse(oauth2.AuthorizationErrorResponse):
     c_attributes = oauth2.AuthorizationErrorResponse.c_attributes.copy()
@@ -245,7 +263,7 @@ class AuthorizationErrorResponse(oauth2.AuthorizationErrorResponse):
         self.error_uri = error_uri
         self.state = state
 
-    def verify(self):
+    def verify(self, **kwargs):
         if self.error:
             if self.error in ["invalid_request_redirect_uri",
                                   "login_required",
@@ -256,7 +274,7 @@ class AuthorizationErrorResponse(oauth2.AuthorizationErrorResponse):
                                   "invalid_openid_request_object"]:
                 return True
 
-        return oauth2.AuthorizationErrorResponse.verify(self)
+        return oauth2.AuthorizationErrorResponse.verify(self, **kwargs)
 
 class TokenErrorResponse(oauth2.TokenErrorResponse):
     c_attributes = oauth2.TokenErrorResponse.c_attributes.copy()
@@ -272,12 +290,12 @@ class TokenErrorResponse(oauth2.TokenErrorResponse):
                                            error_uri,
                                            **kwargs)
 
-    def verify(self):
+    def verify(self, **kwargs):
         if self.error:
             if self.error in ["invalid_authorization_code"]:
                 return True
 
-        return oauth2.TokenErrorResponse.verify(self)
+        return oauth2.TokenErrorResponse.verify(self, **kwargs)
 
 class AccessTokenRequest(oauth2.AccessTokenRequest):
     c_attributes = oauth2.AccessTokenRequest.c_attributes.copy()
@@ -334,7 +352,7 @@ class AuthorizationRequest(oauth2.AuthorizationRequest):
         self.nonce = nonce
         #self.id_token_audience = id_token_audience
 
-    def verify(self):
+    def verify(self, **kwargs):
         if self.display:
             assert self.display in ["page", "popup", "touch", "wap",
                                     "embedded"]
@@ -342,7 +360,7 @@ class AuthorizationRequest(oauth2.AuthorizationRequest):
             for val in self.prompt:
                 assert val in ["none", "login", "consent", "select_account"]
 
-        return oauth2.AuthorizationRequest.verify(self)
+        return oauth2.AuthorizationRequest.verify(self, **kwargs)
 
 class RefreshAccessTokenRequest(oauth2.RefreshAccessTokenRequest):
     pass
@@ -402,7 +420,10 @@ def address_deser(val, format="urlencoded", extended=False):
     elif format == "json":
         res = AddressClaim(**json.loads(val))
     elif format == "dict":
-        res = AddressClaim(**val)
+        if isinstance(val, dict):
+            res = AddressClaim(**val)
+        else:
+            raise AttributeError("Expected dict got '%s'" % type(val))
     else:
         raise Exception("Unknown format")
 
@@ -539,12 +560,12 @@ class RegistrationRequest(oauth2.Base):
         self.id_token_encrypted_response_algs=id_token_encrypted_response_algs
 
 
-    def verify(self):
+    def verify(self, **kwargs):
         assert self.type in ["client_associate", "client_update"]
         if self.application_type:
             assert self.application_type in ["native", "web"]
 
-        return oauth2.Base.verify(self)
+        return oauth2.Base.verify(self, **kwargs)
 
 class RegistrationResponse(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
@@ -601,6 +622,15 @@ class IdToken(oauth2.Base):
         #self.issued_to=issued_to
         #self.max_age=max_age
 
+    def verify(self, **kwargs):
+        if self.aud:
+            if "client_id" in kwargs:
+                # check that it's for me
+                if self.aud != kwargs["client_id"]:
+                    return False
+
+        return oauth2.Base.verify(self, **kwargs)
+
 class RefreshSessionRequest(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
     c_attributes["id_token"] = SINGLE_REQUIRED_STRING
@@ -629,6 +659,15 @@ class RefreshSessionResponse(oauth2.Base):
         oauth2.Base.__init__(self, **kwargs)
         self.id_token = id_token
         self.state = state
+
+    def verify(self, **kwargs):
+        if self.id_token:
+            # Try to decode the JWT, checks the signature
+            idt = IdToken.set_jwt(str(self.id_token), kwargs["key"])
+            if not idt.verify(**kwargs):
+                return False
+
+        return oauth2.AuthorizationResponse.verify(self, **kwargs)
 
 class CheckSessionRequest(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
@@ -701,11 +740,11 @@ class UserInfoClaim(oauth2.Base):
         #self.format = format
         self.preferred_locale = preferred_locale
 
-    def verify(self):
+    def verify(self, **kwargs):
         if self.format:
             assert self.format in ["unsigned", "signed", "encrypted"]
 
-        return oauth2.Base.verify(self)
+        return oauth2.Base.verify(self, **kwargs)
 
 class IDTokenClaim(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
@@ -1006,12 +1045,12 @@ class UserInfoErrorResponse(oauth2.ErrorResponse):
         oauth2.ErrorResponse.__init__(self, error, error_description,
                                       error_uri, **kwargs)
 
-    def verify(self):
+    def verify(self, **kwargs):
         if self.error:
             assert self.error in ["invalid_schema", "invalid_request",
                                   "invalid_token", "insufficient_scope"]
 
-        return oauth2.ErrorResponse.verify(self)
+        return oauth2.ErrorResponse.verify(self, **kwargs)
 
 def factory(cls, **argv):
     _dict = {}

@@ -65,14 +65,15 @@ class OAuth2(object):
             #client.http = MyFakeOICServer()
             _seq = self.make_sequence()
             interact = self.get_interactions()
-
+            tests = self.get_test()
             self.client.state = "STATE0"
 
             try:
                 run_sequence(self.client, _seq, self.trace, interact,
-                             self.message_mod, self.args.verbose)
-            except Exception:
+                             self.message_mod, self.args.verbose, tests)
+            except Exception, err:
                 print self.trace
+                print err
 
     def operations(self):
         lista = []
@@ -141,11 +142,12 @@ class OAuth2(object):
                 pass
 
     def make_sequence(self):
-        if self.json_config and "flow" in self.json_config:
+        # Whatever is specified on the command line takes precedences
+        if self.args.flow:
+            sequence = flow2sequence(self.operations_mod, self.args.flow)
+        elif self.json_config and "flow" in self.json_config:
             sequence = flow2sequence(self.operations_mod,
                                             self.json_config["flow"])
-        elif self.args.flow:
-            sequence = flow2sequence(self.operations_mod, self.args.flow)
         else:
             sequence = None
 
@@ -176,6 +178,19 @@ class OAuth2(object):
                 interactions[url] = spec
 
         return interactions
+
+    def get_test(self):
+        if self.args.flow:
+            flow = self.operations_mod.FLOWS[self.args.flow]
+        elif self.json_config and "flow" in self.json_config:
+            flow = self.operations_mod.FLOWS[self.json_config["flow"]]
+        else:
+            flow = None
+
+        try:
+            return [getattr(self.operations_mod, t) for t in flow["tests"]]
+        except KeyError:
+            return []
 
 class OIC(OAuth2):
     client_args = ["client_id", "redirect_uri", "password", "client_secret"]

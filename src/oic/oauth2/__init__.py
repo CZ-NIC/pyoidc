@@ -33,6 +33,9 @@ RESPONSE2ERROR = {
     AccessTokenResponse: [TokenErrorResponse]
 }
 
+ENDPOINTS = ["authorization_endpoint", "token_endpoint",
+             "token_revocation_endpoint"]
+
 def rndstr(size=16):
     """
     Returns a string of random ascii characters or digits
@@ -77,12 +80,15 @@ def bearer_header(cli, request_args=None, http_args=None, **kwargs):
         try:
             _state = kwargs["state"]
         except KeyError:
-            raise Exception("Missing state specification")
+            if not cli.state:
+                raise Exception("Missing state specification")
+            kwargs["state"] = cli.state
 
         _acc_token= cli.get_token(**kwargs).access_token
 
     # Do I need to base64 encode the access token ? Probably !
-    _bearer = "Bearer %s" % base64.b64encode(_acc_token)
+    #_bearer = "Bearer %s" % base64.b64encode(_acc_token)
+    _bearer = "Bearer %s" % _acc_token
     if http_args is None:
         http_args = {"headers": {}}
         http_args["headers"]["Authorization"] = _bearer
@@ -105,7 +111,9 @@ def bearer_body(cli, request_args=None, http_args=None, **kwargs):
         try:
             _state = kwargs["state"]
         except KeyError:
-            raise Exception("Missing state specification")
+            if not cli.state:
+                raise Exception("Missing state specification")
+            kwargs["state"] = cli.state
 
         request_args["access_token"] = cli.get_token(**kwargs).access_token
 
@@ -129,17 +137,31 @@ class Token(object):
     _class = AccessTokenResponse
 
     def __init__(self, resp=None):
+        self.scope = []
+        self.token_expiration_time = 0
+        self.access_token = None
+        self.refresh_token = None
+        self.token_type = None
+
         if resp:
             for prop in self._class.c_attributes.keys():
-                _val = getattr(resp, prop)
+                try:
+                    _val = getattr(resp, prop)
+                except KeyError:
+                    continue
                 if _val:
                     setattr(self, prop, _val)
 
             for key, val in resp.c_extension.items():
                 setattr(self, key, val)
 
-            if resp.expires_in:
-                _tet = time_util.time_sans_frac() + int(resp.expires_in)
+            try:
+                _expires_in = resp.expires_in
+            except KeyError:
+                return
+
+            if _expires_in:
+                _tet = time_util.time_sans_frac() + int(_expires_in)
             else:
                 _tet = 0
             self.token_expiration_time = int(_tet)
@@ -180,11 +202,10 @@ class Grant(object):
         self.exp_in = exp_in
         self.seed = seed
         self.tokens = []
+        self.id_token = None
         if resp:
-            if isinstance(resp, self._authz_resp):
-                self.add_code(resp)
-            elif isinstance(resp, self._acc_resp):
-                self.add_token(resp)
+            self.add_code(resp)
+            self.add_token(resp)
 
     @classmethod
     def from_code(cls, resp):
@@ -193,12 +214,17 @@ class Grant(object):
         return instance
 
     def add_code(self, resp):
-        self.code = resp.code
-        self.grant_expiration_time = time_util.time_sans_frac() + self.exp_in
+        try:
+            self.code = resp.code
+            self.grant_expiration_time = time_util.time_sans_frac() + self.exp_in
+        except KeyError:
+            pass
 
     def add_token(self, resp):
-        self.tokens.append(self._token_class(resp))
-        
+        tok = self._token_class(resp)
+        if tok.access_token:
+            self.tokens.append(tok)
+
     def is_valid(self):
         if time.time() > self.grant_expiration_time:
             return False
@@ -232,6 +258,9 @@ class Grant(object):
 
         return token
 
+    def get_id_token(self):
+        return self.id_token
+
     def join(self, grant):
         if not self.exp_in:
             self.exp_in = grant.exp_in
@@ -245,6 +274,8 @@ class Grant(object):
 
         
 class Client(object):
+    _endpoints = ENDPOINTS
+
     def __init__(self, client_id=None, cache=None, time_out=None,
                  proxy_info=None, follow_redirects=True,
                  disable_ssl_certificate_validation=False,
@@ -519,7 +550,7 @@ class Client(object):
         return self.uri_and_body(cls, cis, method, request_args, extend=extend)
 
     def parse_response(self, cls, info="", format="json", state="",
-                       extended=False):
+                       extended=False, **kwargs):
         """
         Parse a response
 
@@ -533,28 +564,22 @@ class Client(object):
 
         _r2e = self.response2error
 
-        resp = None
+        err = None
         if format == "json":
             try:
                 resp = cls.set_json(info, extended)
-                assert resp.verify()
+                assert resp.verify(**kwargs)
             except Exception, err:
-                aresp = resp
-                serr = ""
+                resp = None
 
-                for errcls in _r2e[cls]:
-                    try:
-                        resp = errcls.set_json(info, extended)
-                        resp.verify()
-                        break
-                    except Exception, serr:
-                        resp = None
-
-                if not resp:
-                    if aresp and aresp.keys():
-                        raise ValueError("Parse error: %s" % err)
-                    else:
-                        raise ValueError("Parse error: %s" % serr)
+            eresp = None
+            for errcls in _r2e[cls]:
+                try:
+                    eresp = errcls.set_json(info, extended)
+                    eresp.verify()
+                    break
+                except Exception:
+                    eresp = None
 
         elif format == "urlencoded":
             if '?' in info or '#' in info:
@@ -570,40 +595,42 @@ class Client(object):
 
             try:
                 resp = cls.set_urlencoded(query, extended)
-                assert resp.verify()
+                assert resp.verify(**kwargs)
             except Exception, err:
-                aresp = resp
-                serr = ""
+                resp = None
 
-                for errcls in _r2e[cls]:
-                    try:
-                        resp = errcls.set_urlencoded(query, extended)
-                        resp.verify()
-                        break
-                    except Exception, serr:
-                        resp = None
-
-                if not resp:
-                    if aresp and aresp.keys():
-                        raise ValueError("Parse error: %s" % err)
-                    else:
-                        raise ValueError("Parse error: %s" % serr)
+            eresp = None
+            for errcls in _r2e[cls]:
+                try:
+                    eresp = errcls.set_urlencoded(query, extended)
+                    eresp.verify()
+                    break
+                except Exception:
+                    eresp = None
 
         else:
             raise Exception("Unknown package format: '%s'" %  format)
 
-        try:
-            _state = resp.state
-        except (AttributeError, KeyError):
-            _state = ""
-            
-        if not _state:
-            _state = state
+        # Error responses has higher precedence
+        if eresp:
+            resp = eresp
 
-        try:
-            self.grant[_state].update(resp)
-        except KeyError:
-            self.grant[_state] = self.grant_class(resp=resp)
+        if not resp:
+            raise ValueError("Parse error: %s" % err)
+
+        if not isinstance(resp, ErrorResponse):
+            try:
+                _state = resp.state
+            except (AttributeError, KeyError):
+                _state = ""
+
+            if not _state:
+                _state = state
+
+            try:
+                self.grant[_state].update(resp)
+            except KeyError:
+                self.grant[_state] = self.grant_class(resp=resp)
 
         return resp
 

@@ -1,12 +1,14 @@
 __author__ = 'rohe0002'
 
 import json
+#import jwt
 
 from urlparse import urlparse
 
 from mechanize import ParseResponse
 from mechanize._form import ControlNotFoundError
 #from httplib2 import Response
+
 
 class FlowException(Exception):
     def __init__(self, function="", content="", url=""):
@@ -93,23 +95,30 @@ def pick_form(response, content, url=None, **kwargs):
     if len(forms) == 1:
         _form = forms[0]
     else:
-        (type, key, val) = kwargs["_form_pick_"]
+        _dict = kwargs["_form_pick_"]
         for form in forms:
             if _form:
                 break
-            if type == "action":
-                if key == "url" and val in form.action:
-                    _form = form
-            elif type == "control":
-                try:
-                    orig_val = form[key]
-                    if isinstance(orig_val, basestring):
-                        if orig_val == val:
-                            _form = form
-                    elif val in orig_val:
+            _keys = form.attrs.keys()
+            for key,val in _dict.items():
+                if key in _keys:
+                    if val == form.attrs[key]:
                         _form = form
-                except KeyError:
-                    pass
+                elif key == "control":
+                    try:
+                        orig_val = form[key]
+                        if isinstance(orig_val, basestring):
+                            if orig_val == val:
+                                _form = form
+                        elif val in orig_val:
+                            _form = form
+                    except KeyError:
+                        pass
+                else:
+                    _form = None
+
+                if not _form:
+                    break
     return _form
 
 def do_click(client, form, **kwargs):
@@ -260,3 +269,12 @@ POST_FORM = {
     }
 
 # ========================================================================
+from oic.oic.message import IdToken
+
+def cmp_idtoken(client, item):
+    idt = IdToken.from_jwt(item[0].id_token, key=client.client_secret)
+    return idt.dictionary() == item[1].dictionary()
+
+# ========================================================================
+
+

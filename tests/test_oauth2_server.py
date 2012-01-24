@@ -271,7 +271,7 @@ def test_server_authenticated():
 
     print cons.grant[cons.state].keys()
     assert _eq(cons.grant[cons.state].keys(), ['tokens', 'code', 'exp_in',
-                                               'seed', 
+                                               'seed', 'id_token',
                                                'grant_expiration_time'])
 
 def test_server_authenticated_1():
