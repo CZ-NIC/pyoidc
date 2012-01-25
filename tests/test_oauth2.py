@@ -770,7 +770,7 @@ def test_bearer_header():
     print request_args
     assert request_args == {}
     print http_args
-    assert http_args == {"headers": {"Authorization":"Bearer U2VzYW1l"}}
+    assert http_args == {"headers": {"Authorization":"Bearer Sesame"}}
 
 def test_bearer_body():
     client = Client("A")

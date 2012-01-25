@@ -314,6 +314,8 @@ class Base(object):
         :return: A class instance
         """
         jso = jwt.decode(txt, key, verify)
+        if isinstance(jso, basestring):
+            jso = json.loads(jso)
         return cls.from_dictionary(jso, extended)
 
     def to_jwt(self, extended=False, key="", algorithm=""):
