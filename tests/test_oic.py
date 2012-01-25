@@ -734,7 +734,7 @@ def test_construct_UserInfoRequest_2():
 
     uir = cli.construct_UserInfoRequest(state="foo", scope=["openid"])
     print uir
-    assert ("%s" % uir) == "access_token=access"
+    assert uir.keys() == []
 
 def test_construct_CheckSessionRequest():
     cli = Client()
