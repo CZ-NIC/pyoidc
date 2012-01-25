@@ -21,16 +21,17 @@ __author__ = 'rohe0002'
 
 setup(
     name="oic",
-    version="0.0.2",
+    version="0.0.3",
     description="Python implementation of OAuth2 and OpenID Connect",
     author = "Roland Hedberg",
     author_email = "roland.hedberg@adm.umu.se",
     license="Apache 2.0",
-    packages=["oic", "oic/oauth2", "oic/oic", "oic/utils", "oic/script"],
+    packages=["oic", "oic/oauth2", "oic/oic", "oic/utils"],
     package_dir = {"": "src"},
     classifiers = ["Development Status :: 4 - Beta",
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires = ['httplib2', "PyJWT", "pycrypto"],
+
     zip_safe=False,
 )
