@@ -11,6 +11,9 @@ import random
 import string
 
 from oic.utils import time_util
+
+DEF_SIGN_ALG = "HS256"
+
 from oic.oauth2.message import *
 
 Version = "2.0"
@@ -35,6 +38,7 @@ RESPONSE2ERROR = {
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint",
              "token_revocation_endpoint"]
+
 
 def rndstr(size=16):
     """
@@ -297,7 +301,7 @@ class Client(object):
         self.client_id = client_id
         self.client_secret = client_secret
         self.client_timeout = client_timeout
-        self.secret_type = "basic "
+        #self.secret_type = "basic "
 
         self.state = None
         self.nonce = None
@@ -313,7 +317,10 @@ class Client(object):
         self.token_endpoint=None
         self.token_revocation_endpoint=None
 
-        #self.jwt_signing_key = jwt_key
+        # These should be dictionaries with algorithm as key and
+        # signing/encrypting key as value
+        self.srv_sig_key = {"hmac":self.client_secret}
+        self.srv_enc_key = {}
 
         self.request2endpoint = REQUEST2ENDPOINT
         self.response2error = RESPONSE2ERROR
@@ -558,7 +565,7 @@ class Client(object):
         :param info: The response, can be either an JSON code or an urlencoded
             form:
         :param format: Which serialization that was used
-        :param extended: If non-standard parametrar should be honored
+        :param extended: If non-standard parameters should be honored
         :return: The parsed and to some extend verified response
         """
 

@@ -2,7 +2,7 @@
 
 from oic import oauth2
 import json
-import jwt
+#import jwt
 import urlparse
 import urllib
 
@@ -10,6 +10,7 @@ from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.oauth2 import SINGLE_REQUIRED_STRING
 from oic.oauth2 import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2 import SINGLE_OPTIONAL_INT
+#from oic.oauth2.message import DEF_SIGN_ALG
 from oic.oauth2.message import Base
 
 def to_json(dic):
@@ -193,7 +194,11 @@ class AccessTokenResponse(oauth2.AccessTokenResponse):
     def verify(self, **kwargs):
         if self.id_token:
             # Try to decode the JWT, checks the signature
-            idt = IdToken.set_jwt(str(self.id_token), kwargs["key"])
+            try:
+                idt = IdToken.set_jwt(str(self.id_token), kwargs["key"])
+            except Exception, _err:
+                raise
+
             if not idt.verify(**kwargs):
                 return False
 
@@ -266,10 +271,7 @@ class AuthorizationErrorResponse(oauth2.AuthorizationErrorResponse):
     def verify(self, **kwargs):
         if self.error:
             if self.error in ["invalid_request_redirect_uri",
-                                  "login_required",
-                                  "session_selection_required",
-                                  "consent_required",
-                                  "user_mismatched",
+                                  "interaction_required",
                                   "invalid_request_uri",
                                   "invalid_openid_request_object"]:
                 return True

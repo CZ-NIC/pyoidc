@@ -1,13 +1,15 @@
+
 __author__ = 'rohe0002'
 
-#import jwt
-
 from oic.oauth2 import AUTHN_METHOD as OAUTH2_AUTHN_METHOD
+from oic.oauth2 import DEF_SIGN_ALG
 from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import rndstr
 from oic.oauth2.message import ErrorResponse
 
 from oic.oic.message import *
+from oic.utils import jwt
+
 from oic.utils.time_util import time_sans_frac
 from oic.utils.time_util import utc_now
 from oic.utils.time_util import epoch_in_a_while
@@ -44,7 +46,7 @@ JWT_BEARER = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 
 AUTHN_METHOD = OAUTH2_AUTHN_METHOD.copy()
 
-def assertion_jwt(cli, key, audience):
+def assertion_jwt(cli, key, audience, algorithm=DEF_SIGN_ALG):
     at = AuthnToken(
         iss = cli.client_id,
         prn = cli.client_id,
@@ -53,7 +55,7 @@ def assertion_jwt(cli, key, audience):
         exp = int(epoch_in_a_while(minutes=10)),
         iat = utc_now()
     )
-    return at.get_jwt(key=key, algorithm="HS256")
+    return at.get_jwt(key=key, algorithm=algorithm)
 
 #noinspection PyUnusedLocal
 def client_secret_jwt(cli, authn_method, request_args=None, http_args=None,
@@ -103,7 +105,7 @@ class Client(oauth2.Client):
                  proxy_info=None, follow_redirects=True,
                  disable_ssl_certificate_validation=False,
                  ca_certs="",
-                 #key=None, algorithm="HS256",
+                 #key=None, algorithm=DEF_SIGN_ALG,
                  client_secret="", client_timeout=0,
                  expire_in=0, grant_expire_in=0, httpclass=None):
 
@@ -162,7 +164,8 @@ class Client(oauth2.Client):
 
     #noinspection PyUnusedLocal
     def make_openid_request(self, arq, key, userinfo_claims=None,
-                            idtoken_claims=None, **kwargs):
+                            idtoken_claims=None, algorithm=DEF_SIGN_ALG,
+                            **kwargs):
         """
         Construct the specification of what I want returned.
         The request will be signed
@@ -205,7 +208,7 @@ class Client(oauth2.Client):
 
         oir = OpenIDRequest(**oir_args)
 
-        return oir.get_jwt(extended=True, key=key)
+        return oir.get_jwt(extended=True, key=key, algorithm=algorithm)
 
     def construct_AuthorizationRequest(self, cls=AuthorizationRequest,
                                        request_args=None, extra_args=None,
@@ -264,7 +267,8 @@ class Client(oauth2.Client):
                                                           extra_args, **kwargs)
 
     def construct_UserInfoRequest(self, cls=UserInfoRequest,
-                                  request_args=None, extra_args=None, **kwargs):
+                                  request_args=None, extra_args=None,
+                                  **kwargs):
 
         if request_args is None:
             request_args = {}
@@ -572,7 +576,7 @@ class Server(oauth2.Server):
         
         # have to start decoding the jwt without verifying in order to find
         # out which key to verify the JWT signature with
-        info = json.loads(jwt.decode(str, verify=False))
+        info = json.loads(jwt.unpack(str)[1])
 
         # in there there should be information about the client_id
         # Use that to find the key and do the signature verify

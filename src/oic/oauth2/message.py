@@ -5,7 +5,8 @@ __author__ = 'rohe0002'
 import urllib
 import urlparse
 import json
-import jwt
+from oic.utils import jwt
+from oic.oauth2 import DEF_SIGN_ALG
 
 Version = "2.0"
 
@@ -297,8 +298,8 @@ class Base(object):
         :return: A signed JWT
         """
         if not algorithm:
-            algorithm = "HS256"
-        return jwt.encode(self.get_json(extended), key, algorithm)
+            algorithm = DEF_SIGN_ALG
+        return jwt.sign(self.get_json(extended), key, algorithm)
 
     @classmethod
     def set_jwt(cls, txt, key="", verify=True, extended=False):
@@ -313,7 +314,14 @@ class Base(object):
         :param extended: Whether parameter extension should be allowed
         :return: A class instance
         """
-        jso = jwt.decode(txt, key, verify)
+        try:
+            if verify:
+                jso = jwt.verify(txt, key)
+            else:
+                jso = jwt.unpack(txt)[1]
+        except Exception, _err:
+            raise
+
         if isinstance(jso, basestring):
             jso = json.loads(jso)
         return cls.from_dictionary(jso, extended)

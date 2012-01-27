@@ -680,9 +680,9 @@ def test_server_parse_jwt_request():
                                      "http://foobar.example.com/oaclient",
                                      state="cold")
 
-    jwt = ar.get_jwt(key="A1B2C3D4", algorithm="HS256")
+    _jwt = ar.get_jwt(key="A1B2C3D4", algorithm="HS256")
 
-    req = srv.parse_jwt_request(txt=jwt, key="A1B2C3D4")
+    req = srv.parse_jwt_request(txt=_jwt, key="A1B2C3D4")
 
     assert isinstance(req, AuthorizationRequest)
     assert req.response_type == ["code"]

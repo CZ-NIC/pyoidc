@@ -2,8 +2,6 @@
 
 __author__ = 'rohe0002'
 
-import random
-import string
 import time
 
 from hashlib import md5

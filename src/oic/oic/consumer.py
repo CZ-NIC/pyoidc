@@ -29,6 +29,7 @@ from oic.oic.message import IssuerResponse
 
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2 import Grant
+from oic.oauth2 import DEF_SIGN_ALG
 from oic.oauth2 import rndstr
 
 from oic.oauth2.consumer import TokenError
@@ -70,7 +71,7 @@ def factory(kaka, sdb, config):
     http_util.parse_cookie(config["name"], cons.seed, kaka)
     return cons
 
-def construct_openid_request(arq, key):
+def construct_openid_request(arq, key, algorithm=DEF_SIGN_ALG):
     """
     Construct the specification of what I want returned.
     The request will be signed
@@ -90,7 +91,7 @@ def construct_openid_request(arq, key):
                             arq.scope, arq.state,
                             user_info=uic, id_token=id_token)
 
-    return oir.get_jwt(key=key)
+    return oir.get_jwt(key=key, algorithm=algorithm)
 
 def clean_response(aresp):
     """
