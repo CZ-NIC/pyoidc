@@ -5,7 +5,6 @@ __author__ = 'rohe0002'
 
 import httplib2
 import time
-import base64
 import inspect
 import random
 import string
@@ -54,41 +53,46 @@ def rndstr(size=16):
 # Authentication Methods
 
 #noinspection PyUnusedLocal
-def client_secret_basic(cli, request_args=None, http_args=None, **kwargs):
+def client_secret_basic(cli, cis, request_args=None, http_args=None, **kwargs):
     cli.http.add_credentials(cli.client_id, http_args["password"])
 
-    return request_args, http_args
+    return http_args
 
 #noinspection PyUnusedLocal
-def client_secret_post(cli, request_args=None, http_args=None, **kwargs):
+def client_secret_post(cli, cis, request_args=None, http_args=None, **kwargs):
 
     if request_args is None:
         request_args = {}
 
-    try:
-        request_args["client_secret"] = http_args["client_secret"]
-        del http_args["client_secret"]
-    except (KeyError, TypeError):
-        request_args["client_secret"] = cli.client_secret
+    if not cis.client_secret:
+        try:
+            cis.client_secret = http_args["client_secret"]
+            del http_args["client_secret"]
+        except (KeyError, TypeError):
+            cis.client_secret = cli.client_secret
 
-    request_args["client_id"] = cli.client_id
+    cis.client_id = cli.client_id
 
-    return request_args, http_args
+    return http_args
 
 #noinspection PyUnusedLocal
-def bearer_header(cli, request_args=None, http_args=None, **kwargs):
-    try:
-        _acc_token = request_args["access_token"]
-        del request_args["access_token"]
-    except KeyError:
+def bearer_header(cli, cis, request_args=None, http_args=None, **kwargs):
+    if cis.access_token:
+        _acc_token = cis.access_token
+        cis.access_token = None
+    else:
         try:
-            _state = kwargs["state"]
+            _acc_token = request_args["access_token"]
+            del request_args["access_token"]
         except KeyError:
-            if not cli.state:
-                raise Exception("Missing state specification")
-            kwargs["state"] = cli.state
+            try:
+                _state = kwargs["state"]
+            except KeyError:
+                if not cli.state:
+                    raise Exception("Missing state specification")
+                kwargs["state"] = cli.state
 
-        _acc_token= cli.get_token(**kwargs).access_token
+            _acc_token= cli.get_token(**kwargs).access_token
 
     # Do I need to base64 encode the access token ? Probably !
     #_bearer = "Bearer %s" % base64.b64encode(_acc_token)
@@ -102,26 +106,29 @@ def bearer_header(cli, request_args=None, http_args=None, **kwargs):
         except KeyError:
             http_args["headers"] = {"Authorization": _bearer}
 
-    return request_args, http_args
+    return http_args
 
 #noinspection PyUnusedLocal
-def bearer_body(cli, request_args=None, http_args=None, **kwargs):
+def bearer_body(cli, cis, request_args=None, http_args=None, **kwargs):
     if request_args is None:
         request_args = {}
 
-    try:
-        request_args["access_token"]
-    except KeyError:
+    if cis.access_token:
+        pass
+    else:
         try:
-            _state = kwargs["state"]
+            cis.access_token = request_args["access_token"]
         except KeyError:
-            if not cli.state:
-                raise Exception("Missing state specification")
-            kwargs["state"] = cli.state
+            try:
+                _state = kwargs["state"]
+            except KeyError:
+                if not cli.state:
+                    raise Exception("Missing state specification")
+                kwargs["state"] = cli.state
 
-        request_args["access_token"] = cli.get_token(**kwargs).access_token
+            cis.access_token = cli.get_token(**kwargs).access_token
 
-    return request_args, http_args
+    return http_args
 
 AUTHN_METHOD = {
     "client_secret_basic": client_secret_basic,
@@ -287,6 +294,10 @@ class Client(object):
                  grant_expire_in=600, client_secret="", client_timeout=0,
                  httpclass=None):
 
+        self._c_secret = None
+        self.send_keys = {"sign": {}, "verify": {}, "enc": {}, "dec": {}}
+        self.recv_keys = {"sign": {}, "verify": {}, "enc": {}, "dec": {}}
+
         if not ca_certs and disable_ssl_certificate_validation is False:
             disable_ssl_certificate_validation = True
 
@@ -317,16 +328,50 @@ class Client(object):
         self.token_endpoint=None
         self.token_revocation_endpoint=None
 
-        # These should be dictionaries with algorithm as key and
-        # signing/encrypting key as value
-        self.srv_sig_key = {"hmac":self.client_secret}
-        self.srv_enc_key = {}
-
         self.request2endpoint = REQUEST2ENDPOINT
         self.response2error = RESPONSE2ERROR
         self.authn_method = AUTHN_METHOD
         self.grant_class = Grant
         self.token_class = Token
+
+    def get_client_secret(self):
+        return self._c_secret
+
+    def set_client_secret(self, val):
+        self._c_secret = val
+        # client uses it for signing
+        self.send_keys["sign"]["hmac"] = val
+        # Server might also use it for signing which means the
+        # client uses it for verifying server signatures
+        self.recv_keys["verify"]["hmac"] = val
+
+    client_secret = property(get_client_secret, set_client_secret)
+
+    def get_verify_key(self):
+        return self.recv_keys["verify"]
+
+    def set_verify_key(self, val):
+        if isinstance(val, tuple):
+            self.recv_keys["verify"][val[0]] = val[1]
+        elif isinstance(val, dict):
+            self.recv_keys["verify"].update(val)
+        else: # assume hmac key
+            self.recv_keys["verify"]["hmac"] = val
+
+    verify_key = property(get_verify_key, set_verify_key)
+
+    def get_decrypt_key(self):
+        return self.recv_keys["dec"]
+
+    def set_decrypt_key(self, val):
+        if isinstance(val, tuple):
+            self.recv_keys["dec"][val[0]] = val[1]
+        elif isinstance(val, dict):
+            self.recv_keys["dec"].update(val)
+        else: # assume hmac key
+            self.recv_keys["dec"]["hmac"] = val
+
+    decrypt_key = property(get_decrypt_key, set_decrypt_key)
 
     def reset(self):
         self.state = None
@@ -493,7 +538,7 @@ class Client(object):
             request_args["scope"] = token.scope
         except AttributeError:
             pass
-        
+
         return self.construct_request(cls, request_args, extra_args)
 
     def construct_TokenRevocationRequest(self, cls=TokenRevocationRequest,
@@ -526,12 +571,12 @@ class Client(object):
         return path, body, kwargs
 
     def uri_and_body(self, cls, cis, method="POST", request_args=None,
-                     extend=False):
-        
+                     extend=False, **kwargs):
+
         uri = self._endpoint(self.request2endpoint[cls.__name__],
                              **request_args)
 
-        uri, body, kwargs = self.get_or_post(uri, method, cis, extend)
+        uri, body, kwargs = self.get_or_post(uri, method, cis, extend, **kwargs)
         try:
             h_args = {"headers": kwargs["headers"]}
         except KeyError:
@@ -544,17 +589,31 @@ class Client(object):
 
         if request_args is None:
             request_args = {}
-            
+
         cis = getattr(self, "construct_%s" % cls.__name__)(cls, request_args,
                                                            extra_args,
                                                            **kwargs)
+
+        if "authn_method" in kwargs:
+            h_arg = self.init_authentication_method(cis,
+                                                    request_args=request_args,
+                                                    **kwargs)
+        else:
+            h_arg = None
+
+        if h_arg:
+            if "headers" in kwargs.keys():
+                kwargs["headers"].update(h_arg)
+            else:
+                kwargs["headers"] = h_arg
 
         if extra_args:
             extend = True
         else:
             extend = False
 
-        return self.uri_and_body(cls, cis, method, request_args, extend=extend)
+        return self.uri_and_body(cls, cis, method, request_args,
+                                 extend=extend, **kwargs)
 
     def parse_response(self, cls, info="", format="json", state="",
                        extended=False, **kwargs):
@@ -642,7 +701,7 @@ class Client(object):
         return resp
 
     #noinspection PyUnusedLocal
-    def init_authentication_method(self, authn_method, request_args=None,
+    def init_authentication_method(self, cis, authn_method, request_args=None,
                                      http_args=None, **kwargs):
 
         if http_args is None:
@@ -651,10 +710,10 @@ class Client(object):
             request_args = {}
 
         if authn_method:
-            return self.authn_method[authn_method](self, request_args,
+            return self.authn_method[authn_method](self, cis, request_args,
                                                    http_args)
         else:
-            return request_args, http_args
+            return http_args
 
     def request_and_return(self, url, respcls=None, method="GET", body=None,
                         body_type="json", extended=True,
@@ -730,19 +789,13 @@ class Client(object):
                                 http_args=None, resp_cls=AccessTokenResponse,
                                 authn_method="", **kwargs):
 
-        (r_arg, h_arg) = self.init_authentication_method(authn_method,
-                                                         request_args,
-                                                         http_args, **kwargs)
-
-        if r_arg:
-            request_args.update(r_arg)
-
         # method is default POST
         url, body, ht_args, csi = self.request_info(cls, method=method,
                                                     request_args=request_args,
                                                     extra_args=extra_args,
                                                     scope=scope, state=state,
-                                                    authn_method=authn_method)
+                                                    authn_method=authn_method,
+                                                    **kwargs)
 
         if http_args is None:
             http_args = ht_args
@@ -759,15 +812,13 @@ class Client(object):
                                 http_args=None, resp_cls=AccessTokenResponse,
                                 authn_method="", **kwargs):
 
-        self.init_authentication_method(authn_method, request_args,
-                                        http_args, **kwargs)
-
         token = self.get_token(also_expired=True, state=state, **kwargs)
 
         url, body, ht_args, csi = self.request_info(cls, method=method,
                                                     request_args=request_args,
                                                     extra_args=extra_args,
-                                                    token=token)
+                                                    token=token,
+                                                    authn_method=authn_method)
 
         if http_args is None:
             http_args = ht_args
@@ -783,12 +834,11 @@ class Client(object):
                           request_args=None, extra_args=None, http_args=None,
                           resp_cls=None, authn_method=""):
 
-        self.init_authentication_method(authn_method, request_args, http_args)
-
         url, body, ht_args, csi = self.request_info(cls, method=method,
                                                     request_args=request_args,
                                                     extra_args=extra_args,
-                                                    scope=scope, state=state)
+                                                    scope=scope, state=state,
+                                                    authn_method=authn_method)
 
         if http_args is None:
             http_args = ht_args
@@ -815,12 +865,10 @@ class Client(object):
         request_args = {"access_token": token.access_token}
 
         if "authn_method" in kwargs:
-            request_args, http_args = self.init_authentication_method(
-                                                                request_args,
-                                                                **kwargs)
+            http_args = self.init_authentication_method(request_args, **kwargs)
         else:
-            request_args, http_args = bearer_header(self, request_args,
-                                                    **kwargs)
+            # If nothing defined this is the default
+            http_args = bearer_header(self, request_args, **kwargs)
 
         headers.update(http_args["headers"])
 

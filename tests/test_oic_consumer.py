@@ -19,7 +19,8 @@ from oic.utils.sdb import SessionDB
 
 from fakeoicsrv import MyFakeOICServer
 
-JWT_KEY = "abcdefghijklmop"
+JWT_KEY = {"hmac":"abcdefghijklmop"}
+
 BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',
                'REQUEST_METHOD': 'GET',
                'QUERY_STRING': '',

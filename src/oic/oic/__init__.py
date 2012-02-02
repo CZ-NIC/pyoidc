@@ -58,8 +58,9 @@ def assertion_jwt(cli, key, audience, algorithm=DEF_SIGN_ALG):
     return at.get_jwt(key=key, algorithm=algorithm)
 
 #noinspection PyUnusedLocal
-def client_secret_jwt(cli, authn_method, request_args=None, http_args=None,
-                      req=None):
+def client_secret_jwt(cli, cis, authn_method, request_args=None,
+                      http_args=None, req=None):
+
     # signing key is the client secret
     try:
         signing_key = http_args["client_secret"]
@@ -69,9 +70,10 @@ def client_secret_jwt(cli, authn_method, request_args=None, http_args=None,
     # audience is the OP endpoint
     audience = cli._endpoint(REQUEST2ENDPOINT[req])
 
-    request_args["client_assertion"] = assertion_jwt(cli, signing_key,
-                                                     audience)
-    request_args["client_assertion_type"] = JWT_BEARER
+    cis.client_assertion = assertion_jwt(cli, signing_key, audience)
+    cis.client_assertion_type = JWT_BEARER
+
+    return {}
 
 AUTHN_METHOD.update({"client_secret_jwt": client_secret_jwt})
 
@@ -91,11 +93,9 @@ class Grant(oauth2.Grant):
         if tok.access_token:
             self.tokens.append(tok)
         else:
-            try:
-                _ = tok.id_token
+            _tmp = getattr(tok, "id_token", None)
+            if _tmp:
                 self.tokens.append(tok)
-            except AttributeError:
-                pass
 
 #noinspection PyMethodOverriding
 class Client(oauth2.Client):
@@ -273,15 +273,14 @@ class Client(oauth2.Client):
         if request_args is None:
             request_args = {}
 
-        # this is authentication stuff and should be handled as such
-#        if "access_token" in request_args:
-#            pass
-#        else:
-#            token = self.get_token(**kwargs)
-#            if token is None:
-#                raise Exception("No valid token available")
-#
-#            request_args["access_token"] = token.access_token
+        if "access_token" in request_args:
+            pass
+        else:
+            token = self.get_token(**kwargs)
+            if token is None:
+                raise Exception("No valid token available")
+
+            request_args["access_token"] = token.access_token
 
         return self.construct_request(cls, request_args, extra_args)
 

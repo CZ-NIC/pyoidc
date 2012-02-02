@@ -287,7 +287,7 @@ class Base(object):
         return self.get_json(extended)
 
 
-    def get_jwt(self, extended=False, key="", algorithm=""):
+    def get_jwt(self, extended=False, key=None, algorithm=""):
         """
         Create a signed JWT representation of the class instance
         draft-jones-json-web-signature-02
@@ -319,7 +319,7 @@ class Base(object):
                 jso = jwt.verify(txt, key)
             else:
                 jso = jwt.unpack(txt)[1]
-        except Exception, _err:
+        except Exception:
             raise
 
         if isinstance(jso, basestring):
@@ -524,15 +524,21 @@ class AccessTokenRequest(Base):
     c_attributes["grant_type"] = SINGLE_REQUIRED_STRING
     c_attributes["code"] = SINGLE_REQUIRED_STRING
     c_attributes["redirect_uri"] = SINGLE_REQUIRED_STRING
+    c_attributes["client_id"] = SINGLE_OPTIONAL_STRING
+    c_attributes["client_secret"] = SINGLE_OPTIONAL_STRING
 
     def __init__(self, grant_type="authorization_code",
                  code=None,
                  redirect_uri=None,
+                 client_id=None,
+                 client_secret=None,
                  **kwargs):
         Base.__init__(self, **kwargs)
         self.grant_type = grant_type
         self.code = code
         self.redirect_uri = redirect_uri
+        self.client_id = client_id
+        self.client_secret = client_secret
 
 class AuthorizationRequest(Base):
     c_attributes = Base.c_attributes.copy()
@@ -640,6 +646,14 @@ class TokenRevocationRequest(Base):
     def __init__(self, token=None, **kwargs):
         Base.__init__(self, **kwargs)
         self.token = token
+
+class ResourceRequest(Base):
+    c_attributes = Base.c_attributes.copy()
+    c_attributes["access_token"] = SINGLE_OPTIONAL_STRING
+
+    def __init__(self, access_token=None, **kwargs):
+        Base.__init__(self, **kwargs)
+        self.access_token = access_token
 
 def factory(cls, **argv):
     _dict = {}

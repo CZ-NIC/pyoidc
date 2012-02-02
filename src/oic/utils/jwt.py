@@ -224,7 +224,7 @@ def check(token, key):
     except Invalid:
         return False
 
-def sign(payload, key, alg):
+def sign(payload, keys, alg):
     """Sign the payload with the given algorithm and key.
 
     The payload can be any JSON-dumpable object.
@@ -236,6 +236,12 @@ def sign(payload, key, alg):
 
     header = {u'alg': alg}
     signer = ALGS[alg]
+    if isinstance(signer, HMACSigner):
+        key = keys["hmac"]
+    elif isinstance(signer, RSASigner):
+        key = keys["rsa"]
+    else:
+        key = keys["ec"]
 
     header_b64 = b64e(json.dumps(header, separators=(",", ":")))
     payload_b64 = b64e(payload)

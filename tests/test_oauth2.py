@@ -308,7 +308,7 @@ class TestOAuthClient():
 
         assert req
         print req.keys()
-        assert _eq(req.keys(), ['code', 'grant_type',
+        assert _eq(req.keys(), ['code', 'grant_type', 'client_id',
                                 'redirect_uri', 'foo'])
         assert req.foo == "bar"
 
@@ -680,9 +680,9 @@ def test_server_parse_jwt_request():
                                      "http://foobar.example.com/oaclient",
                                      state="cold")
 
-    _jwt = ar.get_jwt(key="A1B2C3D4", algorithm="HS256")
+    _jwt = ar.get_jwt(key={"hmac":"A1B2C3D4"}, algorithm="HS256")
 
-    req = srv.parse_jwt_request(txt=_jwt, key="A1B2C3D4")
+    req = srv.parse_jwt_request(txt=_jwt, key={"hmac":"A1B2C3D4"})
 
     assert isinstance(req, AuthorizationRequest)
     assert req.response_type == ["code"]
@@ -733,7 +733,9 @@ def test_client_secret_basic():
 
     assert len(client.http.credentials.credentials) == 0
 
-    oauth2.client_secret_basic(client, http_args={"password": "hemligt"})
+    cis = AccessTokenRequest(code="foo", redirect_uri="http://example.com")
+    oauth2.client_secret_basic(client, cis,
+                               http_args={"password": "hemligt"})
 
     assert len(client.http.credentials. credentials) == 1
     print client.http.credentials.credentials[0]
@@ -743,19 +745,24 @@ def test_client_secret_post():
     client = Client("A")
     client.client_secret = "boarding pass"
 
-    request_args, http_args = oauth2.client_secret_post(client)
+    cis = AccessTokenRequest(code="foo", redirect_uri="http://example.com")
+    http_args = oauth2.client_secret_post(client, cis)
 
-    print request_args
-    assert request_args == {"client_id": "A", "client_secret": "boarding pass"}
+    print cis
+    assert cis.client_id == "A"
+    assert cis.client_secret == "boarding pass"
     print http_args
     assert http_args is None
 
-    request_args = {}
-    request_args, http_args = oauth2.client_secret_post(client, request_args,
-            http_args={"client_secret": "another"})
+    cis = AccessTokenRequest(code="foo", redirect_uri="http://example.com")
 
-    print request_args
-    assert request_args == {"client_id": "A", "client_secret": "another"}
+    request_args = {}
+    http_args = oauth2.client_secret_post(client, cis, request_args,
+                        http_args={"client_secret": "another"})
+
+    print cis
+    assert cis.client_id == "A"
+    assert cis.client_secret == "another"
     print http_args
     assert http_args == {}
 
@@ -766,9 +773,11 @@ def test_bearer_header():
 
     request_args = {"access_token": "Sesame"}
 
-    request_args, http_args = oauth2.bearer_header(client, request_args)
-    print request_args
-    assert request_args == {}
+    cis = ResourceRequest()
+
+    http_args = oauth2.bearer_header(client, cis, request_args)
+
+    print cis
     print http_args
     assert http_args == {"headers": {"Authorization":"Bearer Sesame"}}
 
@@ -778,9 +787,9 @@ def test_bearer_body():
 
     request_args = {"access_token": "Sesame"}
 
-    request_args, http_args = oauth2.bearer_body(client, request_args)
-    print request_args
-    assert request_args == {"access_token": "Sesame"}
+    cis = ResourceRequest()
+    http_args = oauth2.bearer_body(client, cis, request_args)
+    assert cis.access_token == "Sesame"
     print http_args
     assert http_args is None
 
@@ -799,9 +808,9 @@ def test_bearer_body():
     grant.add_token(atr)
     client.grant["state"] = grant
 
-    request_args, http_args = oauth2.bearer_body(client, {}, state="state",
-                                                 scope="inner")
-    print request_args
-    assert request_args == {"access_token": "2YotnFZFEjr1zCsicMWpAA"}
+    cis = ResourceRequest()
+    http_args = oauth2.bearer_body(client, cis, {}, state="state",
+                                   scope="inner")
+    assert cis.access_token == "2YotnFZFEjr1zCsicMWpAA"
     print http_args
     assert http_args is None

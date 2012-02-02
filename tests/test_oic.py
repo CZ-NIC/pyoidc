@@ -33,6 +33,7 @@ class TestOICClient():
     def setup_class(self):
         self.client = Client("1")
         self.client.redirect_uri = "http://example.com/redirect"
+        self.client.client_secret = "abcdefghijkl"
 
     def test_areq_1(self):
         ar = self.client.construct_AuthorizationRequest(
@@ -242,7 +243,7 @@ class TestOICClient():
         assert req
         print req.keys()
         assert _eq(req.keys(), ['code', 'grant_type', 'client_id',
-                                'redirect_uri', 'foo'])
+                                'client_secret', 'redirect_uri', 'foo'])
         assert req.foo == "bar"
 
     def test_construct_TokenRevocationRequest(self):
@@ -442,7 +443,7 @@ class TestOICClient():
                             idtoken_claims={"claims":{"auth_time": None,
                                                       "acr":{"values":["2"]}},
                                             "max_age": 86400},
-                            key=self.client.client_secret,
+                            key={"hmac":self.client.client_secret},
                             )
 
         print areq
@@ -452,7 +453,7 @@ class TestOICClient():
     def test_openid_request_with_request_2(self):
         areq = self.client.construct_OpenIDRequest(
             idtoken_claims={"claims": {"user_id": {"value":"248289761001"}}},
-            key=self.client.client_secret,
+            key={"hmac":self.client.client_secret},
             )
 
         print areq
@@ -460,7 +461,7 @@ class TestOICClient():
         assert areq.request
 
         jwtreq = OpenIDRequest.set_jwt(areq.request,
-                                       key=self.client.client_secret)
+                                       key={"hmac":self.client.client_secret})
         print
         print jwtreq
         print jwtreq.keys()
@@ -658,9 +659,9 @@ def test_server_parse_jwt_request():
                                      "http://foobar.example.com/oaclient",
                                      state="cold", nonce="NONCE")
 
-    _jwt = ar.get_jwt(key="A1B2C3D4", algorithm="HS256")
+    _jwt = ar.get_jwt(key={"hmac": "A1B2C3D4"}, algorithm="HS256")
 
-    req = srv.parse_jwt_request(txt=_jwt, key="A1B2C3D4")
+    req = srv.parse_jwt_request(txt=_jwt, key={"hmac": "A1B2C3D4"})
 
     assert isinstance(req, AuthorizationRequest)
     assert req.response_type == ["code"]
@@ -729,12 +730,13 @@ def test_construct_UserInfoRequest_2():
     resp = AccessTokenResponse()
     resp.refresh_token = "refresh_with_me"
     resp.access_token = "access"
+    resp.id_token = "IDTOKEN"
     resp.scope = ["openid"]
     cli.grant["foo"].tokens.append(Token(resp))
 
     uir = cli.construct_UserInfoRequest(state="foo", scope=["openid"])
     print uir
-    assert uir.keys() == []
+    assert uir.keys() == ["access_token"]
 
 def test_construct_CheckSessionRequest():
     cli = Client()
@@ -887,7 +889,7 @@ RSREQ = RefreshSessionRequest(id_token="id_token",
                               redirect_url="http://example.com/authz",
                               state="state0")
 
-JWT_KEY = "abcdefghijklmnop"
+JWT_KEY = {"hmac": "abcdefghijklmnop"}
 CSREQ = CheckSessionRequest(id_token=IDTOKEN.get_jwt(key=JWT_KEY))
 
 ESREQ = EndSessionRequest(id_token=IDTOKEN.get_jwt(key=JWT_KEY),

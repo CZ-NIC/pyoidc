@@ -47,7 +47,7 @@ CONSUMER_CONFIG = {
     "scope": ["openid"],
     "response_type": ["code"],
     #"expire_in": 600,
-    "key": "jwt_key_001"
+    "key": {"hmac":"jwt_key_001"}
 }
 
 SERVER_INFO ={
@@ -192,7 +192,7 @@ USERDB = {
 
 URLMAP = {"client1": ["https://example.com/authz"]}
 
-srv_init = Server("pyoicserv", SessionDB(), CDB, FUNCTIONS, "jwt_key",
+srv_init = Server("pyoicserv", SessionDB(), CDB, FUNCTIONS, {"hmac":"mac_key"},
                   USERDB, URLMAP)
 
 def _eq(l1, l2):
