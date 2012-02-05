@@ -85,7 +85,19 @@ CDB = {
         "password": "hemligt",
         "client_secret": "drickyoughurt",
         "jwk_key": CONSUMER_CONFIG["key"],
+        "redirect_uri": ["http://localhost:8087/authz"]
     },
+    "a1b2c3":{
+        "redirect_uri": ["http://localhost:8087/authz"]
+    },
+    "client0":{
+        "redirect_uri": ["http://www.example.org/authz"]
+    },
+    "client1": {
+        "client_secret": "drickyoughurt",
+        "jwk_key": CONSUMER_CONFIG["key"],
+    }
+
 }
 
 #noinspection PyUnusedLocal
@@ -97,14 +109,17 @@ def do_authentication(environ, start_response, bsid):
     return resp(environ, start_response)
 
 #noinspection PyUnusedLocal
-def do_authorization(user, session):
+def do_authorization(user, session=None):
     if user == "user":
         return "ALL"
     else:
         raise Exception("No Authorization defined")
 
 def verify_username_and_password(dic):
-    user = dic["login"][0]
+    try:
+        user = dic["login"][0]
+    except KeyError:
+        raise AuthnFailure("Authentication failed")
 
     if user == "user":
         return True, user
@@ -176,9 +191,9 @@ class LOG():
 FUNCTIONS = {
     "authenticate": do_authentication,
     "authorize": do_authorization,
-    "verify user": verify_username_and_password,
-    "verify client": verify_client,
-    "user info": user_info,
+    "verify_user": verify_username_and_password,
+    "verify_client": verify_client,
+    "userinfo": user_info,
 }
 
 USERDB = {
@@ -235,7 +250,7 @@ def test_server_authorization_endpoint():
 
     bib = {"scope": ["openid"],
            "state": "id-6da9ca0cc23959f5f33e8becd9b08cae",
-           "redirect_uri": "http://localhost:8087authz",
+           "redirect_uri": "http://localhost:8087/authz",
            "response_type": ["code"],
            "client_id": "a1b2c3",
            "nonce": "Nonce"}
@@ -268,7 +283,7 @@ def test_failed_authenticated():
     print environ2
     resp = server.authenticated(environ2, start_response, LOG(), None)
     print resp
-    assert resp == ['<html>Authentication failure: Not allowed to use this service (hannibal)</html>']
+    assert resp == ['<html>Not allowed to use this service (hannibal)</html>']
 
 def test_server_authenticated():
     server = srv_init
@@ -315,7 +330,7 @@ def test_server_authenticated():
 
     print aresp.keys()
     assert isinstance(aresp, AuthorizationResponse)
-    assert _eq(aresp.keys(), ['state', 'code', 'nonce'])
+    assert _eq(aresp.keys(), ['code', 'state', 'scope'])
 
     print cons.grant[cons.state].keys()
     assert _eq(cons.grant[cons.state].keys(), ['tokens', 'exp_in', 'seed',
@@ -342,7 +357,7 @@ def test_server_authenticated_1():
 
     resp2 = server.authenticated(environ2, start_response, LOG(), None)
     print resp2
-    assert resp2 == ['<html>Unknown session identifier</html>']
+    assert resp2 == ['<html>Could not find session</html>']
 
 def test_server_authenticated_token():
     server = srv_init
@@ -412,7 +427,8 @@ def test_token_endpoint():
                                    client_id="client1")
 
     _sdb = server.sdb
-    sid, access_grant = _sdb.session(user="user_id", areq=authreq)
+    sid = _sdb.token.key(user="user_id", areq=authreq)
+    access_grant = _sdb.token(sid=sid)
     _sdb[sid] = {
         "oauth_state": "authz",
         "user_id": "user_id",
@@ -450,7 +466,8 @@ def test_token_endpoint_unauth():
                                    client_id="client1")
 
     _sdb = server.sdb
-    sid, access_grant = _sdb.session(user="user_id", areq=authreq)
+    sid = _sdb.token.key(user="user_id", areq=authreq)
+    access_grant = _sdb.token(sid=sid)
     _sdb[sid] = {
         "oauth_state": "authz",
         "user_id": "user_id",
@@ -581,7 +598,8 @@ def test_userinfo_endpoint():
 def test_check_session_endpoint():
     server = srv_init
     print server.name
-    server.srvmethod.jwt_keys = {server.name: server.jwt_key}
+    server.srvmethod.jwt_keys = {"number5": {"hmac":
+                                                 CDB["number5"]["client_secret"]}}
 
     session = {"user_id": "UserID", "client_id": "number5"}
     idtoken = server._id_token(session)

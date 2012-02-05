@@ -462,11 +462,11 @@ def test_parse_access_token_response_missing_attribute():
     client = Client()
     ATR = AccessTokenResponse
 
-    raises(ValueError, "client.parse_response(ATR, info=atj)")
+    raises(MissingRequiredAttribute, "client.parse_response(ATR, info=atj)")
 
     atuec = urllib.urlencode(atdict)
 
-    raises(ValueError,
+    raises(MissingRequiredAttribute,
            "client.parse_response(ATR, info=atuec, format='urlencoded')")
 
 def test_crypt():
@@ -550,7 +550,8 @@ def test_grant_access_token_1():
     print token.keys()
     assert _eq(token.keys(), ['token_expiration_time', 'access_token',
                               'expires_in', 'example_parameter', 'token_type',
-                              'xscope', 'refresh_token', 'scope'])
+                              'xscope', 'refresh_token', 'scope',
+                              'replaced'])
 
     assert token.access_token == "2YotnFZFEjr1zCsicMWpAA"
     assert token.token_type == "example"

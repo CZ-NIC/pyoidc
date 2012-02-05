@@ -32,45 +32,44 @@ OAUTH2_AREQ = message.AuthorizationRequest(response_type="code",
 def _eq(l1, l2):
     return set(l1) == set(l2)
 
-def test_session():
+def test_token():
     sdb = SessionDB()
-    sid, code = sdb.session(areq=AREQ)
+    sid = sdb.token.key(areq=AREQ)
     assert len(sid) == 28
 
     sdb = SessionDB({"a":"b"})
-    sid, code = sdb.session(areq=AREQ)
+    sid = sdb.token.key(areq=AREQ)
     assert len(sid) == 28
 
 def test_new_token():
     sdb = SessionDB()
-    sid, code = sdb.session(areq=AREQ)
+    sid = sdb.token.key(areq=AREQ)
     assert len(sid) == 28
 
-    sid2, code2 = sdb.session('T', code, areq=AREQ)
-    assert len(sid2) == 28
-    assert sid == sid2
-    assert code != code2
+    code2 = sdb.token('T', sid=sid)
+    assert len(sid) == 28
 
-    sid3, code3 = sdb.session(type="", prev=code2, areq=AREQ)
-    assert len(sid2) == 28
-    assert sid == sid3
+    code3 = sdb.token(type="", prev=code2)
     assert code2 != code3
     
-    sid, code = sdb.session(areq=AREQ, user="jones")
-    assert len(sid) == 28
+    sid2 = sdb.token.key(areq=AREQ, user="jones")
+    assert len(sid2) == 28
+    assert sid != sid2
 
-def test_get_type_and_key():
+def test_type_and_key():
     sdb = SessionDB()
-    sid, code = sdb.session(areq=AREQ)
+    sid = sdb.token.key(areq=AREQ)
+    code = sdb.token(sid=sid)
     print sid
-    part = sdb.get_type_and_key(code)
+    part = sdb.token.type_and_key(code)
     print part
     assert part[0] == "A"
     assert part[1] == sid
 
 def test_setitem():
     sdb = SessionDB()
-    sid, code = sdb.session(areq=AREQ)
+    sid = sdb.token.key(areq=AREQ)
+    code = sdb.token(sid=sid)
 
     sdb[sid] = {"indo":"china"}
 
@@ -84,7 +83,8 @@ def test_setitem():
 
 def test_update():
     sdb = SessionDB()
-    sid, code = sdb.session(areq=AREQ)
+    sid = sdb.token.key(areq=AREQ)
+    code = sdb.token(sid=sid)
 
     raises(KeyError, 'sdb.update(sid, "indo", "nebue")')
     raises(KeyError, 'sdb.update(code, "indo", "nebue")')
@@ -97,7 +97,7 @@ def test_update():
     raises(KeyError, 'sdb.update("abcdefghijklmnop", "indo", "bar")')
 
     #noinspection PyUnusedLocal
-    sid2, code2 = sdb.session(areq=AREQ)
+    sid2 = sdb.token.key(areq=AREQ)
 
     raises(KeyError, 'sdb.update(sid2, "indo", "bar")')
 
@@ -255,7 +255,7 @@ def test_revoke_token():
 
     assert sdb.is_valid(token)
 
-    # --- new session ----
+    # --- new token ----
 
     sdb = SessionDB()
     sid = sdb.create_authz_session("user_id", AREQ)

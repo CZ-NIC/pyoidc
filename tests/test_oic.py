@@ -13,6 +13,7 @@ from oic.oic.message import *
 
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import GrantExpired
+from oic.oauth2.message import MissingRequiredAttribute
 
 from oic.utils.time_util import time_sans_frac
 
@@ -383,7 +384,7 @@ class TestOICClient():
     def test_do_check_session_request(self):
         self.client.redirect_uri = "https://www.example.com/authz"
         self.client.client_id = "a1b2c3"
-        self.client.http.jwt_keys = {"http://oic.example.org/": JWT_KEY}
+        self.client.http.jwt_keys = {"http://example.com/oicclient": JWT_KEY}
         self.client.check_session_endpoint = "https://example.org/check_session"
 
         args = {"id_token": IDTOKEN.get_jwt(key=JWT_KEY)}
@@ -395,7 +396,7 @@ class TestOICClient():
     def test_do_end_session_request(self):
         self.client.redirect_uri = "https://www.example.com/authz"
         self.client.client_id = "a1b2c3"
-        self.client.http.jwt_keys = {"http://oic.example.org/": JWT_KEY}
+        self.client.http.jwt_keys = {"http://example.com/oicclient": JWT_KEY}
         self.client.end_session_endpoint = "https://example.org/end_session"
 
         args = {"id_token": IDTOKEN.get_jwt(key=JWT_KEY),
@@ -550,11 +551,11 @@ def test_parse_access_token_response_missing_attribute():
     client = Client()
     ATR = AccessTokenResponse
 
-    raises(ValueError, "client.parse_response(ATR, info=atj)")
+    raises(MissingRequiredAttribute, "client.parse_response(ATR, info=atj)")
 
     atuec = urllib.urlencode(atdict)
 
-    raises(ValueError,
+    raises(MissingRequiredAttribute,
            "client.parse_response(ATR, info=atuec, format='urlencoded')")
 
 
@@ -976,14 +977,14 @@ def test_parse_refresh_session_request():
     assert request.id_token == "id_token"
 
 def test_parse_check_session_request():
-    srv = Server({"http://oic.example.org/":JWT_KEY})
+    srv = Server({"http://example.com/oicclient":JWT_KEY})
     request = srv.parse_check_session_request(query=CSREQ.get_urlencoded())
     assert isinstance(request, IdToken)
     assert _eq(request.keys(),['nonce', 'user_id', 'aud', 'iss', 'exp'])
     assert request.aud == "http://example.com/oicclient"
 
 def test_parse_end_session_request():
-    srv = Server({"http://oic.example.org/":JWT_KEY})
+    srv = Server({"http://example.com/oicclient":JWT_KEY})
     request = srv.parse_end_session_request(query=ESREQ.get_urlencoded())
     assert isinstance(request, EndSessionRequest)
     assert _eq(request.keys(),['id_token', 'redirect_url', 'state'])
@@ -992,7 +993,7 @@ def test_parse_end_session_request():
     assert request.id_token.aud == "http://example.com/oicclient"
 
 def test_parse_open_id_request():
-    srv = Server({"http://oic.example.org/":JWT_KEY})
+    srv = Server({"http://example.com/oicclient":JWT_KEY})
     request = srv.parse_open_id_request(data=OIDREQ.get_urlencoded())
     assert isinstance(request, OpenIDRequest)
     print request.keys()

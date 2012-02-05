@@ -204,7 +204,7 @@ def verify(token, keys):
 
     verifier = ALGS[alg]
     if isinstance(verifier, HMACSigner):
-        key = keys["hmac"]
+        key = str(keys["hmac"])
     elif isinstance(verifier, RSASigner):
         key = keys["rsa"]
     else:
@@ -237,7 +237,7 @@ def sign(payload, keys, alg):
     header = {u'alg': alg}
     signer = ALGS[alg]
     if isinstance(signer, HMACSigner):
-        key = keys["hmac"]
+        key = str(keys["hmac"])
     elif isinstance(signer, RSASigner):
         key = keys["rsa"]
     else:

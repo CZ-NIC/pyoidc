@@ -145,13 +145,13 @@ def add_duration(tid, duration):
         days = temp_days + tid.tm_mday + carry
         while True:
             if days > maximum_day_in_month_for(year, month):
-                days = days - maximum_day_in_month_for(year, month)
+                days -= maximum_day_in_month_for(year, month)
                 carry = 1
             else:
                 break
             temp = month + carry
             month = modulo(temp, 1, 13)
-            year = year + f_quotient(temp, 1, 13)
+            year += f_quotient(temp, 1, 13)
     
         return time.localtime(time.mktime((year, month, days, hour, minutes, 
                                 secs, 0, 0, -1)))
@@ -209,9 +209,9 @@ def epoch_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
     Return a point in the future as number of seconds since the epoch
     1970-01-01
     """
-    return time.mktime(time_in_a_while(days, seconds, microseconds,
+    return int("%d" % time.mktime(time_in_a_while(days, seconds, microseconds,
                                        milliseconds, minutes, hours,
-                                       weeks).timetuple())
+                                       weeks).timetuple()))
 
 # ---------------------------------------------------------------------------
 

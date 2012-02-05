@@ -363,7 +363,8 @@ def test_token_endpoint():
                                    client_id="client1")
 
     _sdb = server.sdb
-    sid, access_grant = _sdb.session(user="user_id", areq=authreq)
+    sid = _sdb.token.key(user="user_id", areq=authreq)
+    access_grant = _sdb.token(sid=sid)
     _sdb[sid] = {
         "oauth_state": "authz",
         "user_id": "user_id",
@@ -374,7 +375,7 @@ def test_token_endpoint():
     }
 
     # Construct Access token request
-    areq = AccessTokenRequest(grant_type="authorization_code", code=access_grant,
+    areq = AccessTokenRequest(code=access_grant,
                               redirect_uri="http://example.com/authz")
 
 
@@ -400,7 +401,8 @@ def test_token_endpoint_unauth():
                                    client_id="client1")
 
     _sdb = server.sdb
-    sid, access_grant = _sdb.session(user="user_id", areq=authreq)
+    sid = _sdb.token.key(user="user_id", areq=authreq)
+    access_grant = _sdb.token(sid=sid)
     _sdb[sid] = {
         "oauth_state": "authz",
         "user_id": "user_id",
@@ -411,7 +413,7 @@ def test_token_endpoint_unauth():
     }
 
     # Construct Access token request
-    areq = AccessTokenRequest(grant_type="authorization_code", code=access_grant,
+    areq = AccessTokenRequest(code=access_grant,
                               redirect_uri="http://example.com/authz",
                               client_id="client1", client_secret="hemlighet",)
 

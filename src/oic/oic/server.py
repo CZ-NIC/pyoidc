@@ -6,10 +6,7 @@ import random
 import httplib2
 import base64
 
-try:
-    from urlparse import parse_qs
-except ImportError:
-    from cgi import parse_qs
+from urlparse import parse_qs
 
 from oic.oauth2.server import Server as AServer
 
@@ -17,19 +14,21 @@ from oic.utils.http_util import *
 from oic.utils import time_util
 
 from oic.oauth2 import MissingRequiredAttribute
+from oic.oauth2.server import AuthnFailure
 from oic.oauth2 import rndstr
 
 from oic.oic import Server as SrvMethod
 
-from oic.oic import AuthorizationResponse
-from oic.oic import AuthorizationRequest
-from oic.oic import AccessTokenResponse
-from oic.oic import AccessTokenRequest
-from oic.oic import TokenErrorResponse
-from oic.oic import OpenIDRequest
-from oic.oic import IdToken
-from oic.oic import RegistrationRequest
-from oic.oic import RegistrationResponse
+from oic.oic.message import AuthorizationResponse
+from oic.oic.message import AuthorizationRequest
+from oic.oic.message import AccessTokenResponse
+from oic.oic.message import AccessTokenRequest
+from oic.oic.message import TokenErrorResponse
+from oic.oic.message import OpenIDRequest
+from oic.oic.message import IdToken
+from oic.oic.message import RegistrationRequest
+from oic.oic.message import RegistrationResponse
+from oic.oic.message import ProviderConfigurationResponse
 
 from oic import oauth2
 
@@ -78,28 +77,28 @@ def secret(seed, id):
     csum.update(id)
     return csum.hexdigest()
 
-#noinspection PyUnusedLocal
-def code_response(**kwargs):
-    _areq = kwargs["areq"]
-    _scode = kwargs["scode"]
-    aresp = AuthorizationResponse()
-    if _areq.state:
-        aresp.state = _areq.state
-    if _areq.nonce:
-        aresp.nonce = _areq.nonce
-    aresp.code = _scode
-    return aresp
-
-def token_response(**kwargs):
-    _areq = kwargs["areq"]
-    _scode = kwargs["scode"]
-    _sdb = kwargs["sdb"]
-    _dic = _sdb.update_to_token(_scode, issue_refresh=False)
-
-    aresp = oauth2.factory(AccessTokenResponse, **_dic)
-    if _areq.scope:
-        aresp.scope = _areq.scope
-    return aresp
+##noinspection PyUnusedLocal
+#def code_response(**kwargs):
+#    _areq = kwargs["areq"]
+#    _scode = kwargs["scode"]
+#    aresp = AuthorizationResponse()
+#    if _areq.state:
+#        aresp.state = _areq.state
+#    if _areq.nonce:
+#        aresp.nonce = _areq.nonce
+#    aresp.code = _scode
+#    return aresp
+#
+#def token_response(**kwargs):
+#    _areq = kwargs["areq"]
+#    _scode = kwargs["scode"]
+#    _sdb = kwargs["sdb"]
+#    _dic = _sdb.update_to_token(_scode, issue_refresh=False)
+#
+#    aresp = oauth2.factory(AccessTokenResponse, **_dic)
+#    if _areq.scope:
+#        aresp.scope = _areq.scope
+#    return aresp
 
 def add_token_info(aresp, sdict):
     for prop in AccessTokenResponse.c_attributes.keys():
@@ -137,7 +136,7 @@ def location_url(response_type, redirect_uri, query):
 class Server(AServer):
     authorization_request = AuthorizationRequest
 
-    def __init__(self, name, sdb, cdb, function, jwt_key, userdb, urlmap=None,
+    def __init__(self, name, sdb, cdb, function, keys, userdb, urlmap=None,
                  debug=0, cache=None, timeout=None, proxy_info=None,
                  follow_redirects=True, ca_certs="", jwt_keys=None):
 
@@ -145,15 +144,17 @@ class Server(AServer):
 
         self.srvmethod = SrvMethod(jwt_keys)
 
-        self.jwt_key = jwt_key
+        self.keys = keys
         self.userdb = userdb
 
         self.function = function
+        self.endpoints = []
+        self.baseurl = ""
 
-        self.response_type_map.update({
-            "code": code_response,
-            "token": token_response,
-        })
+#        self.response_type_map.update({
+#            "code": code_response,
+#            "token": token_response,
+#        })
 
         if not ca_certs:
             self.http = httplib2.Http(cache, timeout, proxy_info,
@@ -164,34 +165,38 @@ class Server(AServer):
 
         self.http.follow_redirects = follow_redirects
 
-    def _id_token(self, session, loa=2):
+    def _id_token(self, session, loa=2, info_log=None):
         idt = IdToken(iss=self.name,
                        user_id=session["user_id"],
                        aud = session["client_id"],
-                       exp = time_util.in_a_while(days=1),
+                       exp = time_util.epoch_in_a_while(days=1),
                        iso29115=loa,
                        )
         if "nonce" in session:
             idt.nonce = session["nonce"]
 
-        return idt.get_jwt(key=self.jwt_key)
+        # sign with clients secret key
+        ckey = self.cdb[session["client_id"]]["client_secret"]
+        if info_log:
+            info_log("Signed with '%s'" % ckey)
+
+        return idt.get_jwt(key={"hmac":ckey})
 
     #noinspection PyUnusedLocal
 
-    def authn_response(self, areq, session):
-        areq.response_type.sort()
-        _rtype = " ".join(areq.response_type)
+#    def authn_response(self, areq, session):
+#        areq.response_type.sort()
+#        _rtype = " ".join(areq.response_type)
+#
+#        scode = session["code"]
+#
+#        args = {"areq":areq, "scode":scode, "sdb":self.sdb}
+#        if "id_token" in areq.response_type:
+#            args["id_token"] = self._id_token(session)
+#
+#        return self.response_type_map[_rtype](**args)
 
-        scode = session["code"]
-
-        args = {"areq":areq, "scode":scode, "sdb":self.sdb}
-        if "id_token" in areq.response_type:
-            args["id_token"] = self._id_token(session)
-
-        return self.response_type_map[_rtype](**args)
-
-    #noinspection PyUnusedLocal
-    def authorization_endpoint(self, environ, start_response, logger, _):
+    def authorization_endpoint(self, environ, start_response, logger, *args):
         # The AuthorizationRequest endpoint
 
         _log_info = logger.info
@@ -221,12 +226,9 @@ class Server(AServer):
             resp = BadRequest("%s" % err)
             return resp(environ, start_response)
 
-        # This is where to send the use afterwards
+        # verify that the redirect URI is resonable
         if areq.redirect_uri:
-            _redirect = areq.redirect_uri
-        else:
-            # A list, so pick one (==the first)
-            _redirect = self.urlmap[areq.client_id][0]
+            assert areq.redirect_uri in self.cdb[areq.client_id]["redirect_uri"]
 
         # Is there an request decode it
         openid_req = None
@@ -250,6 +252,9 @@ class Server(AServer):
 
         # Store session info
         sid = _sdb.create_authz_session("", areq, oidreq=openid_req)
+        if self.debug:
+            _log_info("session: %s" % _sdb[sid])
+
         bsid = base64.b64encode(sid)
         _log_info("SID:%s" % bsid)
 
@@ -276,7 +281,7 @@ class Server(AServer):
         if self.debug:
             _log_info("environ: %s" % environ)
 
-        if not self.function["verify client"](environ, areq, self.cdb):
+        if not self.function["verify_client"](environ, areq, self.cdb):
             _log_info("could not verify client")
             err = TokenErrorResponse(error="unathorized_client")
             resp = Unauthorized(err.get_json(), content="application/json")
@@ -298,8 +303,13 @@ class Server(AServer):
         if self.debug:
             _log_info("All checks OK")
 
+        if "id_token" not in _info and "openid" in _info["scope"]:
+            _idtoken = self._id_token(_info, _log_info)
+        else:
+            _idtoken = None
+
         try:
-            _tinfo = _sdb.update_to_token(areq.code)
+            _tinfo = _sdb.update_to_token(areq.code, id_token=_idtoken)
         except Exception,err:
             _log_info("Error: %s" % err)
             raise
@@ -315,8 +325,22 @@ class Server(AServer):
         resp = Response(atr.to_json(), content="application/json")
         return resp(environ, start_response)
 
+    def _bearer_auth(self, environ):
+        #'HTTP_AUTHORIZATION': 'Bearer pC7efiVgbI8UASlolltdh76DrTZ2BQJQXFhVvwWlKekFvWCcdMTmNCI/BCSCxQiG'
+        try:
+            authn = environ["HTTP_AUTHORIZATION"]
+            try:
+                assert authn[:6].lower() == "bearer"
+                _token = authn[7:]
+            except AssertionError:
+                raise AuthnFailure("AuthZ type I don't know")
+        except KeyError:
+            raise AuthnFailure
+
+        return _token
+
     #noinspection PyUnusedLocal
-    def userinfo_endpoint(self, environ, start_response, logger):
+    def userinfo_endpoint(self, environ, start_response, logger, *args):
 
         # POST or GET
         try:
@@ -325,31 +349,45 @@ class Server(AServer):
             resp = BadRequest("Unsupported method")
             return resp(environ, start_response)
 
-        uireq = self.srvmethod.parse_user_info_request(data=query)
-        logger.info("user_info_request: %s" % uireq)
+        logger.info("environ: %s" % environ)
+        logger.info("userinfo_endpoint: %s" % query)
+        if not query or "access_token" not in query:
+            _token = self._bearer_auth(environ)
+        else:
+            uireq = self.srvmethod.parse_user_info_request(data=query)
+            logger.info("user_info_request: %s" % uireq)
+            _token = uireq.access_token
 
         # should be an access token
-        typ, key, _ = self.sdb.get_type_and_key(uireq.access_token)
+        typ, key = self.sdb.token.type_and_key(_token)
         logger.info("access_token type: '%s', key: '%s'" % (typ, key))
-        
-        assert typ == "T"
-        session = self.sdb[uireq.access_token]
-        _req = session["oidreq"]
 
-        oidreq = OpenIDRequest.from_json(_req)
+        try:
+            assert typ == "T"
+        except AssertionError:
+            raise AuthnFailure("Wrong type of token")
+
+        #logger.info("keys: %s" % self.sdb.keys())
+        session = self.sdb[key]
+        try:
+            _req = session["oidreq"]
+            oidreq = OpenIDRequest.from_json(_req)
+            userinfo_claims = oidreq.user_info
+        except KeyError:
+            userinfo_claims = {}
 
         #logger.info("oidreq: %s[%s]" % (oidreq, type(oidreq)))
-        info = self.function["user info"](self.userdb,
+        info = self.function["userinfo"](self.userdb,
                                           session["user_id"],
                                           session["client_id"],
-                                          oidreq.user_info)
+                                          userinfo_claims)
 
         logger.info("info: %s" % (info,))
         resp = Response(info.get_json(), content="application/json")
         return resp(environ, start_response)
 
     #noinspection PyUnusedLocal
-    def check_session_endpoint(self, environ, start_response, logger):
+    def check_session_endpoint(self, environ, start_response, logger, *args):
 
         try:
             info = get_or_post(environ)
@@ -357,13 +395,33 @@ class Server(AServer):
             resp = BadRequest("Unsupported method")
             return resp(environ, start_response)
 
+        if not info:
+            info = "id_token=%s" % self._bearer_auth(environ)
+
         idt = self.srvmethod.parse_check_session_request(query=info)
 
         resp = Response(idt.get_json(), content="application/json")
         return resp(environ, start_response)
 
     #noinspection PyUnusedLocal
-    def registration_endpoint(self, environ, start_response, logger):
+    def check_id_endpoint(self, environ, start_response, logger, *args):
+
+        try:
+            info = get_or_post(environ)
+        except UnsupportedMethod:
+            resp = BadRequest("Unsupported method")
+            return resp(environ, start_response)
+
+        if not info:
+            info = "access_token=%s" % self._bearer_auth(environ)
+
+        idt = self.srvmethod.parse_check_id_request(query=info)
+
+        resp = Response(idt.get_json(), content="application/json")
+        return resp(environ, start_response)
+
+    #noinspection PyUnusedLocal
+    def registration_endpoint(self, environ, start_response, logger, *args):
 
         try:
             query = get_or_post(environ)
@@ -372,6 +430,7 @@ class Server(AServer):
             return resp(environ, start_response)
 
         request = RegistrationRequest.from_urlencoded(query)
+        logger.info("%s" % request.dictionary())
 
         if request.type == "client_associate":
             # create new id och secret
@@ -392,7 +451,7 @@ class Server(AServer):
                 _cinfo["jwk_url"] = None
                 
         elif request.type == "client_update":
-            # verify that these are an id,secret pair I know about
+            #  that these are an id,secret pair I know about
             try:
                 _cinfo = self.cdb[request.client_id]
             except KeyError:
@@ -413,97 +472,187 @@ class Server(AServer):
             resp = BadRequest("Unknown request type: %s" % request.type)
             return resp(environ, start_response)
 
+        # Add the key to the keystore
+
+        self.srvmethod.jwt_keys[client_id] = {"hmac": client_secret}
+
         # set expiration time
         _cinfo["registration_expires"] = time_util.time_sans_frac()+3600
         response = RegistrationResponse(client_id, client_secret,
                                         expires_in=3600)
 
+        logger.info("Registration response: %s" % response.dictionary())
+
         resp = Response(response.to_json(), content="application/json",
                         headers=[("Cache-Control", "no-store")])
         return resp(environ, start_response)
 
+    #noinspection PyUnusedLocal
+    def providerinfo_endpoint(self, environ, start_response, logger, *args):
+        _response = ProviderConfigurationResponse(
+            token_endpoint_auth_types_supported=["client_secret_post",
+                                                 "client_secret_basic",
+                                                 "client_secret_jwt"],
+            scopes_supported=["openid"],
+            response_types_supported=["code", "token", "id_token",
+                                      "code token", "code id_token",
+                                      "token id_token", "code token id_token"],
+            user_id_types_supported=["basic"],
+            request_object_algs_supported=["HS256"]
+        )
+
+        if not self.baseurl.endswith("/"):
+            self.baseurl += "/"
+        for endp in self.endpoints:
+            setattr(_response, endp.name, "%s%s" % (self.baseurl, endp.type))
+
+        resp = Response(_response.to_json(), content="application/json",
+                            headers=[("Cache-Control", "no-store")])
+        return resp(environ, start_response)
+
+    def authenticated(self, environ, start_response, logger, *args):
+        """
+        After the authentication this is where you should end up
+        """
+
+        _log_info = logger.info
+
+        if self.debug:
+            _log_info("- in authenticated() -")
+
+        # parse the form
+        #noinspection PyDeprecation
+        dic = parse_qs(get_post(environ))
+
+        try:
+            (verified, user) = self.function["verify_user"](dic)
+            if not verified:
+                resp = Unauthorized("Wrong password")
+                return resp(environ, start_response)
+        except AuthnFailure, err:
+            resp = Unauthorized("%s" % (err,))
+            return resp(environ, start_response)
+
+        if self.debug:
+            _log_info("verified user: %s" % user)
+
+        try:
+            # Use the session identifier to find the session information
+            b64scode = dic["sid"][0]
+            scode = base64.b64decode(b64scode)
+            asession = self.sdb[scode]
+        except KeyError:
+            resp = BadRequest("Could not find session")
+            return resp(environ, start_response)
+
+        self.sdb.update(scode, "user_id", dic["login"][0])
+
+        if self.debug:
+            _log_info("asession[\"authzreq\"] = %s" % asession["authzreq"])
+            #_log_info( "type: %s" % type(asession["authzreq"]))
+
+        # pick up the original request
+        areq = AuthorizationRequest.set_json(asession["authzreq"],
+                                             extended=True)
+
+        if self.debug:
+            _log_info("areq: %s" % areq)
+
+        # Do the authorization
+        try:
+            permission = self.function["authorize"](user)
+            self.sdb.update(scode, "permission", permission)
+        except Exception:
+            raise
+
+        _log_info("response type: %s" % areq.response_type)
+
+        # create the response
+        aresp = AuthorizationResponse()
+        if areq.state:
+            aresp.state = areq.state
+
+        if len(areq.response_type) == 1 and "none" in areq.response_type:
+            pass
+        else:
+            _sinfo = self.sdb[scode]
+
+            if areq.scope:
+                aresp.scope = areq.scope
+
+            if self.debug:
+                _log_info("_dic: %s" % _sinfo)
+
+            rtype = set(areq.response_type[:])
+            if "code" in areq.response_type:
+                aresp.code = _sinfo["code"]
+                aresp.c_extension = areq.c_extension
+                rtype.remove("code")
+            else:
+                self.sdb[scode]["code"] = None
+
+            if "id_token" in areq.response_type:
+                id_token = self._id_token(_sinfo, info_log=_log_info)
+                aresp.id_token = id_token
+                _sinfo["id_token"] = id_token
+                rtype.remove("id_token")
+
+            if "token" in areq.response_type:
+                _dic = self.sdb.update_to_token(issue_refresh=False,
+                                                key=scode)
+
+                if self.debug:
+                    _log_info("_dic: %s" % _dic)
+                for key, val in _dic.items():
+                    if key in aresp.c_attributes:
+                        setattr(aresp, key, val)
+
+                aresp.c_extension = areq.c_extension
+                rtype.remove("token")
+
+            if len(rtype):
+                resp = BadRequest("Unknown response type")
+                return resp(environ, start_response)
+
+        if areq.redirect_uri:
+            assert areq.redirect_uri in self.cdb[areq.client_id]["redirect_uri"]
+            redirect_uri = areq.redirect_uri
+        else:
+            redirect_uri = self.cdb[areq.client_id].redirect_uri[0]
+
+        location = "%s?%s" % (redirect_uri, aresp.get_urlencoded())
+
+        if self.debug:
+            _log_info("Redirected to: '%s' (%s)" % (location, type(location)))
+
+        redirect = Redirect(str(location))
+        return redirect(environ, start_response)
+
 # -----------------------------------------------------------------------------
 
-#class UserInfo():
-#    """The generic user info interface. It's a read only interface"""
-#    def __init__(self, rules, db):
-#        """
-#        :param rules: The servers view on what a what a specific client
-#            should receive
-#        :param db: UserInformation interface
-#        """
-#        self.rules = rules
-#        self.db = db
-#
-#    def pick(self, userid, client_id, claims=None, locale=""):
-#        """
-#        One implementation
-#
-#        :param userid: The User ID
-#        :param client_id: The ID of the client
-#        :param claims: The claims the client has defined
-#        :param locale: Which locale the client wants
-#        :return: A dictionary
-#        """
-#        try:
-#            info = self.db[userid]
-#        except KeyError:
-#            return None
-#
-#        # attribute names are of the form name '#' locale
-#
-#        # first my own rules on what to return
-#        try:
-#            attrs = self.rules[client_id]
-#
-#            for key, val in info.items():
-#                if key in attrs:
-#                    continue
-#
-#                try:
-#                    prop, ploc = key.split("#")
-#                    if prop in attrs:
-#                        continue
-#                except ValueError:
-#                    pass
-#
-#                del info[key]
-#
-#        except KeyError:
-#            pass
-#
-#        # Don't send back more than is needed
-#        if claims:
-#            if isinstance(claims, Claims):
-#                cdic = claims.dictionary(extended=True)
-#            else:
-#                cdic = claims
-#            attrs = cdic.keys()
-#
-#            for key, val in info.items():
-#                if key in attrs:
-#                    continue
-#
-#                try:
-#                    prop, ploc = key.split("#")
-#                    if locale:
-#                        if ploc != locale:
-#                            del info[key]
-#                        continue
-#                    elif prop in attrs:
-#                        continue
-#                except ValueError:
-#                    del info[key]
-#
-#
-#            for attr in [key for key, val in cdic.items() if not val]:
-#                if attr not in info.keys():
-#                    raise MissingAttribute(attr)
-#        return info
-#
-#
-#class JSON_UserInfo(UserInfo):
-#    def __init__(self, rules, json_file):
-#        UserInfo.__init__(self,
-#                          json.loads(open(rules).read()),
-#                          json.loads(open(json_file).read()))
+class Endpoint(object):
+    type = ""
+    def __init__(self, func):
+        self.func = func
+
+    @property
+    def name(self):
+        return "%s_endpoint" % self.type
+
+    def __call__(self, *args):
+        return self.func(*args)
+
+class AuthorizationEndpoint(Endpoint):
+    type = "authorization"
+
+class TokenEndpoint(Endpoint):
+    type = "token"
+
+class UserinfoEndpoint(Endpoint):
+    type = "userinfo"
+
+class CheckIDEndpoint(Endpoint):
+    type = "check_id"
+
+class RegistrationEndpoint(Endpoint):
+    type = "registration"

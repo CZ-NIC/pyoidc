@@ -15,6 +15,8 @@ from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import AuthorizationErrorResponse
 from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import TokenErrorResponse
+from oic.oauth2.message import MissingRequiredAttribute
+
 from oic.oauth2.consumer import AuthzError
 
 class LOG():
@@ -180,7 +182,7 @@ def test_consumer_parse_authz_exception():
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = urllib.urlencode(adict)
 
-    raises(ValueError,
+    raises(MissingRequiredAttribute,
            "cons.handle_authorization_response(environ, start_response, LOG())")
 
 def test_consumer_parse_authz_error():

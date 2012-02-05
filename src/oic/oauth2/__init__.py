@@ -80,6 +80,8 @@ def bearer_header(cli, cis, request_args=None, http_args=None, **kwargs):
     if cis.access_token:
         _acc_token = cis.access_token
         cis.access_token = None
+        # Required under certain circumstances :-) not under other
+        cis.c_attributes["access_token"] = SINGLE_OPTIONAL_STRING
     else:
         try:
             _acc_token = request_args["access_token"]
@@ -153,6 +155,7 @@ class Token(object):
         self.access_token = None
         self.refresh_token = None
         self.token_type = None
+        self.replaced = False
 
         if resp:
             for prop in self._class.c_attributes.keys():
@@ -252,6 +255,9 @@ class Grant(object):
         if isinstance(resp, self._acc_resp):
             tok = self._token_class(resp)
             if tok not in self.tokens:
+                for otok in self.tokens:
+                    if tok.scope == otok.scope:
+                        otok.replaced = True
                 self.tokens.append(tok)
         elif isinstance(resp, self._authz_resp):
             self.add_code(resp)
@@ -260,11 +266,11 @@ class Grant(object):
         token = None
         if scope:
             for token in self.tokens:
-                if scope in token.scope:
+                if scope in token.scope and not token.replaced:
                     return token
         else:
             for token in self.tokens:
-                if token.is_valid():
+                if token.is_valid() and not token.replaced:
                     return token
 
         return token
@@ -281,6 +287,9 @@ class Grant(object):
             self.seed = grant.seed
         for token in grant.tokens:
             if token not in self.tokens:
+                for otok in self.tokens:
+                    if token.scope == otok.scope:
+                        otok.replaced = True
                 self.tokens.append(token)
 
         
@@ -682,7 +691,7 @@ class Client(object):
             resp = eresp
 
         if not resp:
-            raise ValueError("Parse error: %s" % err)
+            raise err
 
         if not isinstance(resp, ErrorResponse):
             try:

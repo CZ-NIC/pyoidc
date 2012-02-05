@@ -580,7 +580,7 @@ class Server(oauth2.Server):
         # in there there should be information about the client_id
         # Use that to find the key and do the signature verify
 
-        return IdToken.set_jwt(str, key=self.jwt_keys[info["iss"]])
+        return IdToken.set_jwt(str, key=self.jwt_keys[info["aud"]])
 
     def parse_check_session_request(self, url=None, query=None):
         """
@@ -589,6 +589,14 @@ class Server(oauth2.Server):
         param = self._parse_urlencoded(url, query)
         assert "id_token" in param # ignore the rest
         return self._deser_id_token(param["id_token"][0])
+
+    def parse_check_id_request(self, url=None, query=None):
+        """
+
+        """
+        param = self._parse_urlencoded(url, query)
+        assert "access_token" in param # ignore the rest
+        return self._deser_id_token(param["access_token"][0])
 
     def _parse_request(self, cls, data, format, extended):
         if format == "json":
