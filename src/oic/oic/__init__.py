@@ -225,11 +225,14 @@ class Client(oauth2.Client):
                                                             extra_args,
                                                             **kwargs)
 
-    def construct_OpenIDRequest(self, cls=OpenIDRequest,
-                                       request_args=None, extra_args=None,
-                                       **kwargs):
+    def construct_OpenIDRequest(self, cls=OpenIDRequest, request_args=None,
+                                extra_args=None, **kwargs):
 
         if request_args is not None:
+            for arg in ["idtoken_claims", "userinfo_claims"]:
+                if arg in request_args:
+                    kwargs[arg] = request_args[arg]
+                    del request_args[arg]
             if "nonce" not in request_args:
                 request_args["nonce"] = rndstr(12)
         else:
@@ -241,7 +244,7 @@ class Client(oauth2.Client):
                                                             **kwargs)
 
         if "key" not in kwargs:
-            kwargs["key"] = self.client_secret
+            kwargs["key"] = {"hmac": self.client_secret}
 
         if "userinfo_claims" in kwargs or "idtoken_claims" in kwargs:
             areq.request = self.make_openid_request(areq, **kwargs)

@@ -413,17 +413,18 @@ class AddressClaim(oauth2.Base):
 #noinspection PyUnusedLocal
 def address_deser(val, format="urlencoded", extended=False):
     if format == "urlencoded":
-    #        if isinstance(val, list):
-    #            pass
-    #        else:
-    #            val = eval(val)
-    #
-        res = AddressClaim(**parse_qs(val))
+        res = [AddressClaim(**parse_qs(val))]
     elif format == "json":
-        res = AddressClaim(**json.loads(val))
+        _val = json.loads(val)
+        if isinstance(_val, list):
+            res = [AddressClaim(**v) for v in _val]
+        elif isinstance(_val, dict):
+            res = [AddressClaim(**_val)]
     elif format == "dict":
-        if isinstance(val, dict):
-            res = AddressClaim(**val)
+        if isinstance(val, list):
+            res = [AddressClaim(**v) for v in val]
+        elif isinstance(val, dict):
+            res = [AddressClaim(**val)]
         else:
             raise AttributeError("Expected dict got '%s'" % type(val))
     else:
@@ -1064,3 +1065,12 @@ def factory(cls, **argv):
 
     return cls(**_dict)
 
+SCOPE2CLAIMS = {
+    "openid": ["user_id"],
+    "profile": ["name", "given_name", "family_name", "middle_name",
+                "nickname", "profile", "picture", "website", "gender",
+                "birthday", "zoneinfo", "locale", "updated_time"],
+    "email": ["email", "verified"],
+    "address": ["address"],
+    "phone": ["phone_number"]
+}

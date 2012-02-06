@@ -20,6 +20,7 @@ from oic.oauth2 import rndstr
 from oic.oic import Server as SrvMethod
 
 from oic.oic.message import AuthorizationResponse
+from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AccessTokenRequest
@@ -29,6 +30,7 @@ from oic.oic.message import IdToken
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import ProviderConfigurationResponse
+from oic.oic.message import UserInfoClaim
 
 from oic import oauth2
 
@@ -166,10 +168,25 @@ class Server(AServer):
         self.http.follow_redirects = follow_redirects
 
     def _id_token(self, session, loa=2, info_log=None):
+        #defaults
+        inawhile = {"days": 1}
+        # Handle the idtoken_claims
+        try:
+            oidreq = OpenIDRequest.from_json(session["oidreq"])
+            itc = oidreq.id_token
+            if itc.max_age:
+                inawhile = {"seconds": itc.max_age}
+            if itc.claims:
+                for claim in itc.claims:
+                    for key, val in claim.items():
+                        pass
+        except KeyError:
+            pass
+
         idt = IdToken(iss=self.name,
                        user_id=session["user_id"],
                        aud = session["client_id"],
-                       exp = time_util.epoch_in_a_while(days=1),
+                       exp = time_util.epoch_in_a_while(**inawhile),
                        iso29115=loa,
                        )
         if "nonce" in session:
@@ -234,11 +251,9 @@ class Server(AServer):
         openid_req = None
         if "request" in areq or "request_uri" in areq:
             try:
-                # Should actually do a get on the URL
-                #jwt_key = self.cdb[areq.client_id]["jwk_url"]
-                jwt_key = self.cdb[areq.client_id]["jwk_key"]
+                jwt_key = {"hmac":self.cdb[areq.client_id]["client_secret"]}
             except KeyError: # TODO
-                jwt_key = ()
+                raise KeyError("Missing client signing key")
         
             if areq.request:
                 openid_req = OpenIDRequest.set_jwt(areq.request, jwt_key)
@@ -349,18 +364,20 @@ class Server(AServer):
             resp = BadRequest("Unsupported method")
             return resp(environ, start_response)
 
-        logger.info("environ: %s" % environ)
-        logger.info("userinfo_endpoint: %s" % query)
+        _log_info = logger.info
+
+        _log_info("environ: %s" % environ)
+        _log_info("userinfo_endpoint: %s" % query)
         if not query or "access_token" not in query:
             _token = self._bearer_auth(environ)
         else:
             uireq = self.srvmethod.parse_user_info_request(data=query)
-            logger.info("user_info_request: %s" % uireq)
+            _log_info("user_info_request: %s" % uireq)
             _token = uireq.access_token
 
         # should be an access token
         typ, key = self.sdb.token.type_and_key(_token)
-        logger.info("access_token type: '%s', key: '%s'" % (typ, key))
+        _log_info("access_token type: '%s', key: '%s'" % (typ, key))
 
         try:
             assert typ == "T"
@@ -369,20 +386,41 @@ class Server(AServer):
 
         #logger.info("keys: %s" % self.sdb.keys())
         session = self.sdb[key]
+        # Scope can translate to userinfo_claims
+
+        uic = {}
+        for scope in session["scope"]:
+            try:
+                claims = dict([(name, {"optional":True}) for name in
+                                               SCOPE2CLAIMS[scope]])
+                uic.update(claims)
+            except KeyError:
+                pass
+
         try:
             _req = session["oidreq"]
+            _log_info("OIDREQ: %s" % _req)
             oidreq = OpenIDRequest.from_json(_req)
             userinfo_claims = oidreq.user_info
+            if userinfo_claims:
+                _claim = userinfo_claims.claims[0]
+                for key, val in uic.items():
+                    if key not in _claim:
+                        setattr(_claim, key, val)
         except KeyError:
-            userinfo_claims = {}
+            if uic:
+                userinfo_claims = UserInfoClaim(claims=[uic])
+            else:
+                userinfo_claims  = None
 
+        _log_info("userinfo_claim: %s" % userinfo_claims)
         #logger.info("oidreq: %s[%s]" % (oidreq, type(oidreq)))
         info = self.function["userinfo"](self.userdb,
                                           session["user_id"],
                                           session["client_id"],
                                           userinfo_claims)
 
-        logger.info("info: %s" % (info,))
+        _log_info("info: %s" % (info,))
         resp = Response(info.get_json(), content="application/json")
         return resp(environ, start_response)
 

@@ -371,6 +371,7 @@ def test_token_endpoint():
         "authzreq": "",
         "client_id": "client1",
         "code": access_grant,
+        "code_used": False,
         "redirect_uri":"http://example.com/authz"
     }
 
@@ -409,6 +410,7 @@ def test_token_endpoint_unauth():
         "authzreq": "",
         "client_id": "client1",
         "code": access_grant,
+        "code_used": False,
         "redirect_uri":"http://example.com/authz"
     }
 

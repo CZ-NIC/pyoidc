@@ -435,6 +435,8 @@ def test_token_endpoint():
         "authzreq": "",
         "client_id": "client1",
         "code": access_grant,
+        "code_used": False,
+        "scope": ["openid"],
         "redirect_uri":"http://example.com/authz"
     }
 
@@ -455,8 +457,8 @@ def test_token_endpoint():
     print resp
     atr = AccessTokenResponse.set_json(resp[0])
     print atr.keys()
-    assert _eq(atr.keys(), ['access_token', 'expires_in', 'token_type',
-                            'refresh_token'])
+    assert _eq(atr.keys(), ['token_type', 'id_token', 'access_token', 'scope',
+                            'expires_in', 'refresh_token'])
 
 def test_token_endpoint_unauth():
     server = srv_init
@@ -474,6 +476,8 @@ def test_token_endpoint_unauth():
         "authzreq": "",
         "client_id": "client1",
         "code": access_grant,
+        "code_used": False,
+        "scope": ["openid"],
         "redirect_uri":"http://example.com/authz"
     }
 
