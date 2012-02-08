@@ -477,6 +477,7 @@ class Consumer(Client):
             self.client_id = resp.client_id
             self.registration_expires = time_sans_frac() + resp.expires_in
         else:
-            raise Exception("Registration failed: %s" % response.status)
+            err = ErrorResponse.from_json(content)
+            raise Exception("Registration failed: %s" % err.get_json())
 
         return resp

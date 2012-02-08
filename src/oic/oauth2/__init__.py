@@ -418,7 +418,10 @@ class Client(object):
             if prop not in ar_args:
                 index = argspec[0].index(prop) -1 # skip self
                 if not argspec[3][index]:
-                    ar_args[prop] = getattr(self, prop, None)
+                    if prop == "redirect_uri":
+                        ar_args[prop] = getattr(self, "redirect_uris", None)
+                    else:
+                        ar_args[prop] = getattr(self, prop, None)
 
         return ar_args
 
@@ -675,13 +678,16 @@ class Client(object):
                 resp = None
 
             eresp = None
-            for errcls in _r2e[cls]:
-                try:
-                    eresp = errcls.set_urlencoded(query, extended)
-                    eresp.verify()
-                    break
-                except Exception:
-                    eresp = None
+            try:
+                for errcls in _r2e[cls]:
+                    try:
+                        eresp = errcls.set_urlencoded(query, extended)
+                        eresp.verify()
+                        break
+                    except Exception:
+                        eresp = None
+            except KeyError:
+                pass
 
         else:
             raise Exception("Unknown package format: '%s'" %  format)

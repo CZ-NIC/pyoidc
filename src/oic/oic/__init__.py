@@ -23,7 +23,7 @@ RESPONSE2ERROR = {
     AuthorizationResponse: [AuthorizationErrorResponse, TokenErrorResponse],
     AccessTokenResponse: [TokenErrorResponse],
     IdToken: [ErrorResponse],
-    RegistrationResponse: [ErrorResponse],
+    RegistrationResponse: [ClientRegistrationErrorResponse],
     OpenIDSchema: [UserInfoErrorResponse]
 }
 

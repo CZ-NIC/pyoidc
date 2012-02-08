@@ -502,17 +502,20 @@ class RegistrationRequest(oauth2.Base):
     c_attributes["type"] = SINGLE_REQUIRED_STRING
     c_attributes["client_id"] = SINGLE_OPTIONAL_STRING
     c_attributes["client_secret"] = SINGLE_OPTIONAL_STRING
-    c_attributes["contact"] = OPTIONAL_LIST_OF_STRINGS
+    c_attributes["access_token"] = SINGLE_OPTIONAL_STRING
+    c_attributes["contacts"] = OPTIONAL_LIST_OF_STRINGS
     c_attributes["application_type"] = SINGLE_OPTIONAL_STRING
     c_attributes["application_name"] = SINGLE_OPTIONAL_STRING
     c_attributes["logo_url"] = SINGLE_OPTIONAL_STRING
-    c_attributes["redirect_uri"] = OPTIONAL_LIST_OF_STRINGS
-    c_attributes["js_origin_uri"] = OPTIONAL_LIST_OF_STRINGS
+    c_attributes["redirect_uris"] = OPTIONAL_LIST_OF_STRINGS
+    c_attributes["token_endpoint_auth_type"] = SINGLE_OPTIONAL_STRING
+    c_attributes["policy_url"] = SINGLE_OPTIONAL_STRING
     c_attributes["jwk_url"] = SINGLE_OPTIONAL_STRING
     c_attributes["jwk_encryption_url"] = SINGLE_OPTIONAL_STRING
     c_attributes["x509_url"] = SINGLE_OPTIONAL_STRING
     c_attributes["x509_encryption_url"] = SINGLE_OPTIONAL_STRING
-    c_attributes["sector_identifier"] = SINGLE_OPTIONAL_STRING
+    c_attributes["sector_identifier_url"] = SINGLE_OPTIONAL_STRING
+    c_attributes["user_id_type"] = SINGLE_OPTIONAL_STRING
     c_attributes["require_signed_request_object"] = SINGLE_OPTIONAL_STRING
     c_attributes["userinfo_signed_response_algs"] = SINGLE_OPTIONAL_STRING
     c_attributes["userinfo_encrypted_response_algs"] = OPTIONAL_LIST_OF_STRINGS
@@ -523,17 +526,20 @@ class RegistrationRequest(oauth2.Base):
                  type=None,
                  client_id=None,
                  client_secret=None,
-                 contact=None,
+                 access_token=None,
+                 contacts=None,
                  application_type=None,
                  application_name=None,
                  logo_url=None,
-                 redirect_uri=None,
-                 js_origin_uri=None,
+                 redirect_uris=None,
+                 token_endpoint_auth_type=None,
+                 policy_url=None,
                  jwk_url=None,
                  jwk_encryption_url=None,
                  x509_url=None,
                  x509_encryption_url=None,
-                 sector_identifier=None,
+                 sector_identifier_url=None,
+                 user_id_type=None,
                  require_signed_request_object=None,
                  userinfo_signed_response_algs=None,
                  userinfo_encrypted_response_algs=None,
@@ -545,22 +551,25 @@ class RegistrationRequest(oauth2.Base):
         self.type = type
         self.client_id=client_id
         self.client_secret=client_secret
-        self.contact=contact or []
+        self.contacts=contacts or []
         self.application_type=application_type
         self.application_name=application_name
         self.logo_url=logo_url
-        self.redirect_uri=redirect_uri or []
-        self.js_origin_uri=js_origin_uri or []
+        self.redirect_uris=redirect_uris or []
         self.jwk_url=jwk_url
         self.jwk_encryption_url=jwk_encryption_url
         self.x509_url=x509_url
         self.x509_encryption_url=x509_encryption_url
-        self.sector_identifier=sector_identifier
+        self.sector_identifier_url=sector_identifier_url
+        self.user_id_type=user_id_type
         self.require_signed_request_object=require_signed_request_object
         self.userinfo_signed_response_algs=userinfo_signed_response_algs
         self.userinfo_encrypted_response_algs=userinfo_encrypted_response_algs
         self.id_token_signed_response_algs=id_token_signed_response_algs
         self.id_token_encrypted_response_algs=id_token_encrypted_response_algs
+        self.access_token=access_token
+        self.token_endpoint_auth_type=token_endpoint_auth_type
+        self.policy_url=policy_url
 
 
     def verify(self, **kwargs):
@@ -574,18 +583,37 @@ class RegistrationResponse(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
     c_attributes["client_id"] = SINGLE_REQUIRED_STRING
     c_attributes["client_secret"] = SINGLE_REQUIRED_STRING
-    c_attributes["expires_in"] = SINGLE_REQUIRED_INT
+    c_attributes["expires_at"] = SINGLE_REQUIRED_INT
 
     def __init__(self,
                  client_id=None,
                  client_secret=None,
-                 expires_in=0,
+                 expires_at=0,
                  **kwargs
                 ):
         oauth2.Base.__init__(self, **kwargs)
         self.client_id=client_id
         self.client_secret=client_secret
-        self.expires_in=expires_in
+        self.expires_at=expires_at
+
+class ClientRegistrationErrorResponse(oauth2.ErrorResponse):
+    c_attributes = oauth2.ErrorResponse.c_attributes.copy()
+
+    def __init__(self,
+                 error=None,
+                 error_description=None,
+                 error_uri=None,
+                 **kwargs):
+        oauth2.ErrorResponse.__init__(self, error, error_description,
+                                      error_uri, **kwargs)
+
+    def verify(self, **kwargs):
+        if self.error:
+            assert self.error in ["invalid_type", "invalid_client_id",
+                                  "invalid_client_secret",
+                                  "invalid_configuration_parameter"]
+
+        return oauth2.ErrorResponse.verify(self, **kwargs)
 
 class IdToken(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()

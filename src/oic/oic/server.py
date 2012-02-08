@@ -16,10 +16,12 @@ from oic.utils import time_util
 from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2.server import AuthnFailure
 from oic.oauth2 import rndstr
+from oic.oauth2.message import ErrorResponse
 
 from oic.oic import Server as SrvMethod
 
 from oic.oic.message import AuthorizationResponse
+from oic.oic.message import AuthorizationErrorResponse
 from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AccessTokenResponse
@@ -38,6 +40,9 @@ class MissingAttribute(Exception):
     pass
 
 class UnsupportedMethod(Exception):
+    pass
+
+class AccessDenied(Exception):
     pass
 
 #noinspection PyUnusedLocal
@@ -135,6 +140,26 @@ def location_url(response_type, redirect_uri, query):
     else:
         return "%s#%s" % (redirect_uri, query)
 
+ACR_LISTS = [
+    ["0", "1", "2", "3", "4"],
+]
+
+def verify_acr_level(req, level):
+    if req is None:
+        return level
+    elif req == {"optional": True}:
+        return level
+    else:
+        for _r in req["values"]:
+            for alist in ACR_LISTS:
+                try:
+                    if alist.index(_r) <= alist.index(level):
+                        return level
+                except ValueError:
+                    pass
+
+    raise AccessDenied
+
 class Server(AServer):
     authorization_request = AuthorizationRequest
 
@@ -167,19 +192,25 @@ class Server(AServer):
 
         self.http.follow_redirects = follow_redirects
 
-    def _id_token(self, session, loa=2, info_log=None):
+    def _id_token(self, session, loa="2", info_log=None):
         #defaults
         inawhile = {"days": 1}
         # Handle the idtoken_claims
+        extra = {}
         try:
             oidreq = OpenIDRequest.from_json(session["oidreq"])
             itc = oidreq.id_token
+            info_log("ID Token claims: %s" % itc.dictionary())
             if itc.max_age:
                 inawhile = {"seconds": itc.max_age}
             if itc.claims:
                 for claim in itc.claims:
                     for key, val in claim.items():
-                        pass
+                        if key == "auth_time":
+                            extra["auth_time"] = time_util.instant()
+                        elif key == "acr":
+                            #["2","http://id.incommon.org/assurance/bronze"]
+                            extra["acr"] = verify_acr_level(val, loa)
         except KeyError:
             pass
 
@@ -187,8 +218,11 @@ class Server(AServer):
                        user_id=session["user_id"],
                        aud = session["client_id"],
                        exp = time_util.epoch_in_a_while(**inawhile),
-                       iso29115=loa,
+                       acr=loa,
                        )
+        for key, val in extra.items():
+            setattr(idt, key, val)
+
         if "nonce" in session:
             idt.nonce = session["nonce"]
 
@@ -212,6 +246,17 @@ class Server(AServer):
 #            args["id_token"] = self._id_token(session)
 #
 #        return self.response_type_map[_rtype](**args)
+
+    def _error(self, environ, start_response, error, descr=None):
+        response = ErrorResponse(error=error, error_description=descr)
+        resp = Response(response.get_json(), content="application/json")
+        return resp(environ, start_response)
+
+    def _authz_error(self, environ, start_response, error, descr=None):
+        response = AuthorizationErrorResponse(error=error,
+                                                error_description=descr)
+        resp = Response(response.get_json(), content="application/json")
+        return resp(environ, start_response)
 
     def authorization_endpoint(self, environ, start_response, logger, *args):
         # The AuthorizationRequest endpoint
@@ -243,9 +288,26 @@ class Server(AServer):
             resp = BadRequest("%s" % err)
             return resp(environ, start_response)
 
+        if self.debug:
+            _log_info("Prompt: '%s'" % areq.prompt)
+
+        if "none" in areq.prompt:
+            if len(areq.prompt) > 1:
+                return self._error(environ, start_response, "invalid_request")
+            else:
+                return self._authz_error(environ, start_response,
+                                         "login_required")
+
+        # just ignore all areq.display requests
+
         # verify that the redirect URI is resonable
         if areq.redirect_uri:
-            assert areq.redirect_uri in self.cdb[areq.client_id]["redirect_uri"]
+            try:
+                assert areq.redirect_uri in self.cdb[
+                                            areq.client_id]["redirect_uris"]
+            except AssertionError:
+                return self._authz_error(environ, start_response,
+                                         "invalid_request_redirect_uri")
 
         # Is there an request decode it
         openid_req = None
@@ -256,14 +318,24 @@ class Server(AServer):
                 raise KeyError("Missing client signing key")
         
             if areq.request:
-                openid_req = OpenIDRequest.set_jwt(areq.request, jwt_key)
+                try:
+                    openid_req = OpenIDRequest.set_jwt(areq.request, jwt_key)
+                except Exception:
+                    return self._authz_error(environ, start_response,
+                                             "invalid_openid_request_object")
+
             elif areq.request_uri:
                 # Do a HTTP get
                 _req = self.http.request(areq.request_uri)
                 if not _req:
-                    resp = BadRequest("Couldn't get at the OpenID request")
-                    return resp(environ, start_response)
-                openid_req = OpenIDRequest.set_jwt(_req, jwt_key)
+                    return self._authz_error(environ, start_response,
+                                             "invalid_request_uri")
+
+                try:
+                    openid_req = OpenIDRequest.set_jwt(_req, jwt_key)
+                except Exception:
+                    return self._authz_error(environ, start_response,
+                                             "invalid_openid_request_object")
 
         # Store session info
         sid = _sdb.create_authz_session("", areq, oidreq=openid_req)
@@ -319,7 +391,11 @@ class Server(AServer):
             _log_info("All checks OK")
 
         if "id_token" not in _info and "openid" in _info["scope"]:
-            _idtoken = self._id_token(_info, _log_info)
+            try:
+                _idtoken = self._id_token(_info, info_log=_log_info)
+            except AccessDenied:
+                return self._error(environ, start_response,
+                                   error="access_denied")
         else:
             _idtoken = None
 
@@ -653,10 +729,11 @@ class Server(AServer):
                 return resp(environ, start_response)
 
         if areq.redirect_uri:
-            assert areq.redirect_uri in self.cdb[areq.client_id]["redirect_uri"]
+            assert areq.redirect_uri in self.cdb[
+                                            areq.client_id]["redirect_uris"]
             redirect_uri = areq.redirect_uri
         else:
-            redirect_uri = self.cdb[areq.client_id].redirect_uri[0]
+            redirect_uri = self.cdb[areq.client_id]["redirect_uris"][0]
 
         location = "%s?%s" % (redirect_uri, aresp.get_urlencoded())
 
