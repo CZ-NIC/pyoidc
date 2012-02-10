@@ -4,12 +4,11 @@
 __author__ = 'rohe0002'
 
 import httplib2
-import time
 import inspect
 import random
 import string
 
-from oic.utils import time_util
+from oic.utils.time_util import utc_time_sans_frac
 
 DEF_SIGN_ALG = "HS256"
 
@@ -170,12 +169,12 @@ class Token(object):
                 setattr(self, key, val)
 
             try:
-                _expires_in = resp.expires_in
+                _expires_in = resp.expires_at
             except KeyError:
                 return
 
             if _expires_in:
-                _tet = time_util.time_sans_frac() + int(_expires_in)
+                _tet = utc_time_sans_frac() + int(_expires_in)
             else:
                 _tet = 0
             self.token_expiration_time = int(_tet)
@@ -183,7 +182,7 @@ class Token(object):
 
     def is_valid(self):
         if self.token_expiration_time:
-            if time.time() > self.token_expiration_time:
+            if utc_time_sans_frac() > self.token_expiration_time:
                 return False
 
         return True
@@ -230,7 +229,7 @@ class Grant(object):
     def add_code(self, resp):
         try:
             self.code = resp.code
-            self.grant_expiration_time = time_util.time_sans_frac() + self.exp_in
+            self.grant_expiration_time = utc_time_sans_frac() + self.exp_in
         except KeyError:
             pass
 
@@ -240,7 +239,7 @@ class Grant(object):
             self.tokens.append(tok)
 
     def is_valid(self):
-        if time.time() > self.grant_expiration_time:
+        if utc_time_sans_frac() > self.grant_expiration_time:
             return False
         else:
             return True
@@ -253,12 +252,15 @@ class Grant(object):
 
     def update(self, resp):
         if isinstance(resp, self._acc_resp):
-            tok = self._token_class(resp)
-            if tok not in self.tokens:
-                for otok in self.tokens:
-                    if tok.scope == otok.scope:
-                        otok.replaced = True
-                self.tokens.append(tok)
+            if "token" in resp or "id_token" in resp:
+                tok = self._token_class(resp)
+                if tok not in self.tokens:
+                    for otok in self.tokens:
+                        if tok.scope == otok.scope:
+                            otok.replaced = True
+                    self.tokens.append(tok)
+            else:
+                self.add_code(resp)
         elif isinstance(resp, self._authz_resp):
             self.add_code(resp)
 
@@ -419,7 +421,8 @@ class Client(object):
                 index = argspec[0].index(prop) -1 # skip self
                 if not argspec[3][index]:
                     if prop == "redirect_uri":
-                        ar_args[prop] = getattr(self, "redirect_uris", None)
+                        ar_args[prop] = getattr(self, "redirect_uris",
+                                                [None])[0]
                     else:
                         ar_args[prop] = getattr(self, prop, None)
 
@@ -516,7 +519,8 @@ class Client(object):
         grant = self.get_grant(**kwargs)
 
         if not grant.is_valid():
-            raise GrantExpired("Authorization Code to old %s > %s" % (time.time(),
+            raise GrantExpired("Authorization Code to old %s > %s" % (
+                                                utc_time_sans_frac(),
                                                 grant.grant_expiration_time))
 
         if request_args is None:

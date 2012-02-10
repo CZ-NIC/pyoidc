@@ -2,9 +2,10 @@
 
 from oic import oauth2
 import json
-#import jwt
 import urlparse
 import urllib
+
+#from oic.utils import jwt
 
 from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.oauth2 import SINGLE_REQUIRED_STRING
@@ -197,7 +198,7 @@ class AccessTokenResponse(oauth2.AccessTokenResponse):
             try:
                 idt = IdToken.set_jwt(str(self.id_token), kwargs["key"])
             except Exception, _err:
-                raise
+                raise Exception(_err.__class__.__name__)
 
             if not idt.verify(**kwargs):
                 return False
@@ -412,6 +413,8 @@ class AddressClaim(oauth2.Base):
 
 #noinspection PyUnusedLocal
 def address_deser(val, format="urlencoded", extended=False):
+    res = None
+
     if format == "urlencoded":
         res = [AddressClaim(**parse_qs(val))]
     elif format == "json":

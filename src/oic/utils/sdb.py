@@ -8,6 +8,7 @@ import base64
 
 from oic import oauth2
 from oic.oauth2 import rndstr
+from oic.utils.time_util import utc_time_sans_frac
 
 class ExpiredToken(Exception):
     pass
@@ -143,6 +144,7 @@ class SessionDB(object):
             "authzreq": areq.get_json(),
             "client_id": areq.client_id,
             "expires_in": self.grant_expires_in,
+            "expires_at": utc_time_sans_frac()+self.grant_expires_in,
             "issued": time.time()
         }
 
@@ -202,6 +204,7 @@ class SessionDB(object):
         dic["access_token_scope"] = "?"
         dic["oauth_state"] = "token"
         dic["token_type"] = "bearer"
+        dic["expires_at"] = utc_time_sans_frac()+self.token_expires_in
         dic["expires_in"] = self.token_expires_in
         dic["issued"] = time.time()
         if id_token:

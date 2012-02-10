@@ -298,5 +298,8 @@ def later_than(then, that):
 
     return then >= that
 
+def utc_time_sans_frac():
+    return int("%d" % time.mktime(time.gmtime()))
+
 def time_sans_frac():
     return int("%d" % time.time())
