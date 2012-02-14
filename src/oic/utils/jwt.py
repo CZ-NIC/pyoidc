@@ -204,18 +204,23 @@ def verify(token, keys):
 
     verifier = ALGS[alg]
     if isinstance(verifier, HMACSigner):
-        key = str(keys["hmac"])
+        keys = str(keys["hmac"])
     elif isinstance(verifier, RSASigner):
-        key = keys["rsa"]
+        keys = keys["rsa"]
     else:
-        key = keys["ec"]
+        keys = keys["ec"]
 
-    if not key:
+    if not keys:
         raise MissingKey(alg)
 
-    verifier.verify(sigdata, crypto, key)
+    for key in keys:
+        try:
+            verifier.verify(sigdata, crypto, key)
+            return claim
+        except Exception:
+            pass
 
-    return claim
+    raise
 
 def check(token, key):
     try:

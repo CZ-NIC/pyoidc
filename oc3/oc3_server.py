@@ -14,7 +14,7 @@ from oic.oic.server import AuthnFailure
 from mako.lookup import TemplateLookup
 
 LOGGER = logging.getLogger("oicServer")
-hdlr = logging.FileHandler('oauth2Server.log')
+hdlr = logging.FileHandler('oc3.log')
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 LOGGER.addHandler(hdlr)

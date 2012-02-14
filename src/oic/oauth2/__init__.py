@@ -357,17 +357,27 @@ class Client(object):
         self.recv_keys["verify"]["hmac"] = val
 
     client_secret = property(get_client_secret, set_client_secret)
+    signing_key = property(get_client_secret, set_client_secret)
 
     def get_verify_key(self):
         return self.recv_keys["verify"]
 
-    def set_verify_key(self, val):
+    def set_X_key(self, val, type):
         if isinstance(val, tuple):
-            self.recv_keys["verify"][val[0]] = val[1]
+            _d = {val[0]: val[1]}
         elif isinstance(val, dict):
-            self.recv_keys["verify"].update(val)
+            _d = val
         else: # assume hmac key
-            self.recv_keys["verify"]["hmac"] = val
+            _d = {"hmac": val}
+
+        for key, val in _d.items():
+            try:
+                self.recv_keys[type]["hmac"].append(val)
+            except KeyError:
+                self.recv_keys[type]["hmac"] = [val]
+
+    def set_verify_key(self, val):
+        self.set_X_key(val, "verify")
 
     verify_key = property(get_verify_key, set_verify_key)
 
@@ -375,12 +385,7 @@ class Client(object):
         return self.recv_keys["dec"]
 
     def set_decrypt_key(self, val):
-        if isinstance(val, tuple):
-            self.recv_keys["dec"][val[0]] = val[1]
-        elif isinstance(val, dict):
-            self.recv_keys["dec"].update(val)
-        else: # assume hmac key
-            self.recv_keys["dec"]["hmac"] = val
+        self.set_X_key(val, "dec")
 
     decrypt_key = property(get_decrypt_key, set_decrypt_key)
 
