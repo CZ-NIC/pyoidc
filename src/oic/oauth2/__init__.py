@@ -352,9 +352,10 @@ class Client(object):
         self._c_secret = val
         # client uses it for signing
         self.send_keys["sign"]["hmac"] = val
+
         # Server might also use it for signing which means the
         # client uses it for verifying server signatures
-        self.recv_keys["verify"]["hmac"] = val
+        self.recv_keys["verify"]["hmac"] = [val]
 
     client_secret = property(get_client_secret, set_client_secret)
     signing_key = property(get_client_secret, set_client_secret)
