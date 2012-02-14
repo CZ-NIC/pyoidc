@@ -1,0 +1,5 @@
+{
+    "baseurl":"https://localhost",
+    "issuer": "https://www.kodtest.se/rolandsCP",
+    "keys": {"hmac": "NanaimoBritishColumbia"}
+}
