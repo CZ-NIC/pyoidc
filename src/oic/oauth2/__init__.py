@@ -302,7 +302,7 @@ class Client(object):
                  proxy_info=None, follow_redirects=True,
                  disable_ssl_certificate_validation=False,
                  ca_certs="", #jwt_key=None,
-                 grant_expire_in=600, client_secret="", client_timeout=0,
+                 grant_expire_in=600, client_timeout=0,
                  httpclass=None):
 
         self._c_secret = None
@@ -321,7 +321,6 @@ class Client(object):
         self.http.follow_redirects = follow_redirects
 
         self.client_id = client_id
-        self.client_secret = client_secret
         self.client_timeout = client_timeout
         #self.secret_type = "basic "
 
@@ -661,13 +660,16 @@ class Client(object):
                 resp = None
 
             eresp = None
-            for errcls in _r2e[cls]:
-                try:
-                    eresp = errcls.set_json(info, extended)
-                    eresp.verify()
-                    break
-                except Exception:
-                    eresp = None
+            try:
+                for errcls in _r2e[cls]:
+                    try:
+                        eresp = errcls.set_json(info, extended)
+                        eresp.verify()
+                        break
+                    except Exception:
+                        eresp = None
+            except KeyError:
+                pass
 
         elif format == "urlencoded":
             if '?' in info or '#' in info:
@@ -709,7 +711,7 @@ class Client(object):
         if not resp:
             raise err
 
-        if not isinstance(resp, ErrorResponse):
+        if isinstance(resp, (AuthorizationResponse, AccessTokenResponse)):
             try:
                 _state = resp.state
             except (AttributeError, KeyError):
@@ -742,7 +744,7 @@ class Client(object):
 
     def request_and_return(self, url, respcls=None, method="GET", body=None,
                         body_type="json", extended=True,
-                        state="", http_args=None):
+                        state="", http_args=None, **kwargs):
         """
         :param url: The URL to which the request should be sent
         :param respcls: The class the should represent the response
@@ -782,7 +784,7 @@ class Client(object):
 
         if body_type:
             return self.parse_response(respcls, content, body_type,
-                                       state, extended)
+                                       state, extended, **kwargs)
         else:
             return response
 

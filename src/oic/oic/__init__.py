@@ -104,9 +104,7 @@ class Client(oauth2.Client):
     def __init__(self, client_id=None, cache=None, timeout=None,
                  proxy_info=None, follow_redirects=True,
                  disable_ssl_certificate_validation=False,
-                 ca_certs="",
-                 #key=None, algorithm=DEF_SIGN_ALG,
-                 client_secret="", client_timeout=0,
+                 ca_certs="",client_timeout=0,
                  expire_in=0, grant_expire_in=0, httpclass=None):
 
         if expire_in:
@@ -114,10 +112,7 @@ class Client(oauth2.Client):
 
         oauth2.Client.__init__(self, client_id, cache, timeout, proxy_info,
                        follow_redirects, disable_ssl_certificate_validation,
-                       ca_certs,
-                       #key, algorithm,
-                       grant_expire_in, client_secret, client_timeout,
-                       httpclass)
+                       ca_certs, grant_expire_in, client_timeout, httpclass)
 
         self.file_store = "./file/"
         self.file_uri = "http://localhost/"
@@ -643,3 +638,7 @@ class Server(oauth2.Server):
     
     def parse_issuer_request(self, info, format="urlencoded", extended=True):
         return self._parse_request(IssuerRequest, info, format, extended)
+
+    def parse_user_claims_request(self, info, format="urlencoded",
+                                extended=True):
+        return self._parse_request(UserClaimsRequest, info, format, extended)

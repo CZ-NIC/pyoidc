@@ -11,7 +11,7 @@ from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.oauth2 import SINGLE_REQUIRED_STRING
 from oic.oauth2 import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2 import SINGLE_OPTIONAL_INT
-#from oic.oauth2.message import DEF_SIGN_ALG
+from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 from oic.oauth2.message import Base
 
 def to_json(dic):
@@ -429,9 +429,9 @@ def address_deser(val, format="urlencoded", extended=False):
         elif isinstance(val, dict):
             res = [AddressClaim(**val)]
         else:
-            raise AttributeError("Expected dict got '%s'" % type(val))
+            raise AttributeError("expected struct got '%s'" % type(val))
     else:
-        raise Exception("Unknown format")
+        raise Exception("unknown format")
 
     return res
 
@@ -457,6 +457,8 @@ class OpenIDSchema(oauth2.Base):
     c_attributes["phone_number"] = SINGLE_OPTIONAL_STRING
     c_attributes["address"] = OPTIONAL_ADDRESS
     c_attributes["updated_time"] = SINGLE_OPTIONAL_STRING
+    c_attributes["_claims_names"] = SINGLE_OPTIONAL_STRING
+    c_attributes["_claims_sources"] = SINGLE_OPTIONAL_STRING
 
     def __init__(self,
                  user_id=None,
@@ -469,7 +471,7 @@ class OpenIDSchema(oauth2.Base):
                  picture=None,
                  website=None,
                  email=None,
-                 verified=False,
+                 verified=None,
                  gender=None,
                  birthday=None,
                  zoneinfo=None,
@@ -477,6 +479,8 @@ class OpenIDSchema(oauth2.Base):
                  phone_number=None,
                  address=None,
                  updated_time=None,
+                 _claims_names=None,
+                 _claims_sources=None,
                  **kwargs
                 ):
         oauth2.Base.__init__(self, **kwargs)
@@ -498,6 +502,8 @@ class OpenIDSchema(oauth2.Base):
         self.phone_number = phone_number
         self.address = address
         self.updated_time = updated_time
+        self._claims_names = _claims_names
+        self._claims_sources = _claims_sources
 
 
 class RegistrationRequest(oauth2.Base):

@@ -178,6 +178,9 @@ class Server(AServer):
         self.endpoints = []
         self.baseurl = ""
 
+        self.send_keys = {"sign": {}, "enc": {}}
+        #self.recv_keys = {"verify": {}, "dec": {}}
+
 #        self.response_type_map.update({
 #            "code": code_response,
 #            "token": token_response,
@@ -742,6 +745,7 @@ class Server(AServer):
 
         redirect = Redirect(str(location))
         return redirect(environ, start_response)
+
 
 # -----------------------------------------------------------------------------
 

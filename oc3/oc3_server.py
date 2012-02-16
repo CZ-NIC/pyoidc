@@ -10,6 +10,7 @@ import re
 from oic.utils.http_util import *
 from oic.oic.message import OpenIDSchema
 from oic.oic.server import AuthnFailure
+from oic.oic.claims_provider import ClaimsClient
 
 from mako.lookup import TemplateLookup
 
@@ -76,26 +77,95 @@ def verify_client(environ, areq, cdb):
 
     return False
 
-
 #import sys
+CLIENT_INFO = {
+    "https://localhost:8089/claims": {
+        "client_id": "client_1",
+        "client_secret": "hemlig"
+    }
+}
+
+def _collect_distributed(endp, user_id, what, alias=""):
+    cc = ClaimsClient(client_id=CLIENT_INFO[endp]["client_id"])
+    cc.client_secret=CLIENT_INFO[endp]["client_secret"]
+
+
+    cc.userclaims_endpoint = endp
+    try:
+        resp = cc.do_claims_request(request_args={"user_id": user_id,
+                                                  "claims_names": what})
+    except Exception:
+        raise
+
+    result = {"_claims_names":{}, "_claims_sources": {}}
+
+    if not alias:
+        alias = endp
+
+    for key in resp.claims_names:
+        result["_claims_names"][key] = alias
+
+    if resp.jwt:
+        result["_claims_sources"][alias] = {"JWT": resp.jwt}
+    else:
+        result["_claims_sources"][alias] = {"endpoint": resp.endpoint}
+        if "access_token" in resp:
+            result["_claims_sources"][alias]["access_token"] = resp.access_token
+
+    return result
 
 #noinspection PyUnusedLocal
-def user_info(userdb, user_id, client_id, user_info_claims=None):
+def user_info(userdb, user_id, client_id="", user_info_claims=None):
     #print >> sys.stderr, "claims: %s" % user_info_claims
+
     identity = userdb[user_id]
+
     if user_info_claims:
         result = {}
+        missing = []
+        optional = []
         for claim in user_info_claims.claims:
             for key, restr in claim.items():
                 try:
                     result[key] = identity[key]
                 except KeyError:
                     if restr == {"optional": True}:
-                        pass
+                        optional.append(key)
                     else:
-                        raise Exception("Missing property '%s'" % key)
+                        missing.append(key)
+
+        # Check if anything asked for is somewhere else
+        if (missing or optional) and identity["_external_"]:
+            cpoints = {}
+            remaining = missing[:]
+            missing.extend(optional)
+            for key in missing:
+                for _srv, what in identity["_external_"].items():
+                    if key in what:
+                        try:
+                            cpoints[_srv].append(key)
+                        except KeyError:
+                            cpoints[_srv] = [key]
+                        try:
+                            remaining.remove(key)
+                        except ValueError:
+                            pass
+
+            if remaining:
+                raise Exception("Missing properties '%s'" % remaining)
+
+            for srv, what in cpoints.items():
+                _res = _collect_distributed(srv, user_id, what)
+                for key, val in _res.items():
+                    if key in result:
+                        result[key].update(val)
+                    else:
+                        result[key] = val
+
     else:
-        result = identity
+        # default is what "openid" demands which is user_id
+        #result = identity
+        result = {"user_id": user_id}
 
     return OpenIDSchema(**result)
 
@@ -258,6 +328,8 @@ def application(environ, start_response):
     environ["mako.lookup"] = LOOKUP
 
     LOGGER.info("path: %s" % path)
+    LOGGER.info("client address: %s" % environ.get("REMOTE_ADDR"))
+
     for regex, callback in URLS:
         match = re.search(regex, path)
         if match is not None:
@@ -284,13 +356,10 @@ USERDB = {
         "email": "diana@example.org",
         "verified": False,
         "phone_number": "+46 90 7865000",
-        "address": {
-            "street_address": "Umeå Universitet",
-            "locality": "Umeå",
-            "postal_code": "SE-90187",
-            "country": "Sweden"
-            }
+        "_external_": {
+            "https://localhost:8089/claims": ["birthdate", "gender", "address"]
         }
+    }
 }
 
 if __name__ == '__main__':
@@ -303,6 +372,7 @@ if __name__ == '__main__':
 
     from oic.oic.server import Server
     from oic.utils.sdb import SessionDB
+
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', dest='verbose', action='store_true')

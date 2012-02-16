@@ -58,6 +58,8 @@ def json_serializer(obj, format="urlencoded", extended=False):
 def json_deserializer(txt, format="urlencoded", extended=False):
     return json.loads(txt)
 
+ERRTXT = "On '%s': %s"
+
 class Base(object):
     c_attributes = {}
 
@@ -235,27 +237,39 @@ class Base(object):
                         args[skey] = [val]
                     elif isinstance(val, list):
                         if _deser:
-                            val = _deser(val, format="dict", extended=extended)
+                            try:
+                                val = _deser(val, format="dict",
+                                             extended=extended)
+                            except Exception, exc:
+                                raise DecodeError(ERRTXT % (key, exc))
 
                         if issubclass(vtype, Base):
-                            args[skey] = [
-                                vtype(**dict([(str(x),
+                            try:
+                                args[skey] = [
+                                    vtype(**dict([(str(x),
                                                y) for x,y
                                                   in v.items()])) for v in val]
+                            except Exception, exc:
+                                raise DecodeError(ERRTXT % (key, exc))
                         else:
                             for v in val:
                                 if not isinstance(v, vtype):
-                                    raise ValueError("Wrong type != %s" % vtype)
+                                    raise DecodeError(ERRTXT % (key,
+                                                        "type != %s" % vtype))
 
                             args[skey] = val
                     else:
-                        raise ValueError("Wrong type != %s" % vtype)
+                        raise DecodeError(ERRTXT % (key, "type != %s" % vtype))
                 else:
                     if isinstance(val,vtyp): # Not necessary to do anything
                         args[skey] = val
                     else:
                         if _deser:
-                            val = _deser(val, format="dict", extended=extended)
+                            try:
+                                val = _deser(val, format="dict",
+                                             extended=extended)
+                            except Exception, exc:
+                                raise DecodeError(ERRTXT % (key, exc))
 
                         if isinstance(val, basestring):
                             args[skey] = val
@@ -263,7 +277,7 @@ class Base(object):
                             if len(val) == 1:
                                 args[skey] = val[0]
                             else:
-                                raise TooManyValues
+                                raise TooManyValues(key)
                         else:
                             args[skey] = val
             elif extended:

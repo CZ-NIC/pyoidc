@@ -8,15 +8,53 @@ import logging
 import re
 
 from oic.utils.http_util import *
-#from oic.oic.message import OpenIDSchema
+from oic.oic.message import OpenIDSchema
 #from oic.oic.server import AuthnFailure
 
 LOGGER = logging.getLogger("oicServer")
-hdlr = logging.FileHandler('oc3.log')
+hdlr = logging.FileHandler('oc3cp.log')
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 LOGGER.addHandler(hdlr)
 LOGGER.setLevel(logging.INFO)
+
+# ----------------------------------------------------------------------------
+#noinspection PyUnusedLocal
+def verify_client(environ, req, cdb):
+    identity = req.client_id
+    secret = req.client_secret
+    if identity:
+        if identity in cdb:
+            if cdb[identity]["client_secret"] == secret:
+                return True
+
+    return False
+
+#noinspection PyUnusedLocal
+def user_info(userdb, user_id, client_id="", user_info_claims=None):
+    #print >> sys.stderr, "claims: %s" % user_info_claims
+
+    identity = userdb[user_id]
+    if user_info_claims:
+        result = {}
+        for claim in user_info_claims.claims:
+            for key, restr in claim.items():
+                try:
+                    result[key] = identity[key]
+                except KeyError:
+                    if restr == {"optional": True}:
+                        pass
+                    else:
+                        raise Exception("Missing property '%s'" % key)
+    else:
+        result = identity
+
+    return OpenIDSchema(**result)
+
+FUNCTIONS = {
+    "verify_client": verify_client,
+    "userinfo": user_info,
+    }
 
 # ----------------------------------------------------------------------------
 #noinspection PyUnusedLocal
@@ -37,6 +75,12 @@ def op_info(environ, start_response, handle):
 
     return _oas.providerinfo_endpoint(environ, start_response, LOGGER)
 
+#noinspection PyUnusedLocal
+def claims(environ, start_response, handle):
+    _oas = environ["oic.oas"]
+
+    return _oas.claims_endpoint(environ, start_response, LOGGER)
+
 # ----------------------------------------------------------------------------
 
 from oic.oic.server import UserinfoEndpoint
@@ -49,6 +93,7 @@ ENDPOINTS = [
 
 URLS = [
     (r'^.well-known/openid-configuration', op_info),
+    ("claims", claims)
 ]
 
 for endp in ENDPOINTS:
@@ -68,7 +113,6 @@ def application(environ, start_response):
         request is done
     :return: The response as a list of lines
     """
-    global LOOKUP
     global OAS
 
     #user = environ.get("REMOTE_USER", "")
@@ -84,7 +128,6 @@ def application(environ, start_response):
         handle = ""
 
     environ["oic.oas"] = OAS
-    environ["mako.lookup"] = LOOKUP
 
     LOGGER.info("path: %s" % path)
     for regex, callback in URLS:
@@ -102,12 +145,16 @@ def application(environ, start_response):
 
 # ----------------------------------------------------------------------------
 
-FUNCTIONS = {}
-
 USERDB = {
     "diana":{
         "birthdate": "02/14/2012",
-        "gender": "female"
+        "gender": "female",
+        "address": {
+            "street_address": "Umeå Universitet",
+            "locality": "Umeå",
+            "postal_code": "SE-90187",
+            "country": "Sweden"
+        },
     }
 }
 
@@ -118,27 +165,27 @@ SERVER_DB = {
 if __name__ == '__main__':
     import argparse
     import json
-    import shelve
 
     from cherrypy import wsgiserver
     from cherrypy.wsgiserver import ssl_builtin
 
-    from oic.oic.server import Server
+    from oic.oic.claims_provider import ClaimsServer
     from oic.utils.sdb import SessionDB
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', dest='verbose', action='store_true')
     parser.add_argument('-d', dest='debug', action='store_true')
-    parser.add_argument('-p', dest='port', default=80, type=int)
+    parser.add_argument('-p', dest='port', default=8089, type=int)
     parser.add_argument(dest="config")
     args = parser.parse_args()
 
-    cdb = shelve.open("client_db", writeback=True)
+    cdb = json.loads(open("claims_client.json").read())
+
     # in memory session storage
 
     config = json.loads(open(args.config).read())
-    OAS = Server(config["issuer"], SessionDB(), cdb, FUNCTIONS,
-                 config["keys"], USERDB)
+    OAS = ClaimsServer(config["issuer"], SessionDB(), cdb, FUNCTIONS,
+                       config["keys"], USERDB)
 
     #print URLS
     if args.debug:
