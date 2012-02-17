@@ -461,7 +461,7 @@ def test_to_from_jwt():
 
     print jws
 
-    jitem = CLASS.from_jwt(jws, {"hmac":"A1B2C3D4"})
+    jitem = CLASS.from_jwt(jws, {"hmac":["A1B2C3D4"]})
 
     print jitem.keys()
 

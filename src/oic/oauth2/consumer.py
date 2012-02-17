@@ -148,7 +148,7 @@ class Consumer(Client):
             "state": self.state,
             "grant": self.grant,
             "seed": self.seed,
-            "redirect_uri": self.redirect_uri,
+            "redirect_uris": self.redirect_uris,
         }
 
         for endpoint in ENDPOINTS:
@@ -172,7 +172,7 @@ class Consumer(Client):
 
         # Store the request and the redirect uri used
         _path = http_util.geturl(environ, False, False)
-        self.redirect_uri = "%s%s" % (_path, self.authz_page)
+        self.redirect_uris = ["%s%s" % (_path, self.authz_page)]
         self._request = http_util.geturl(environ)
 
         # Put myself in the dictionary of sessions, keyed on session-id

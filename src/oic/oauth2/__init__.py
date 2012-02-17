@@ -169,7 +169,7 @@ class Token(object):
                 setattr(self, key, val)
 
             try:
-                _expires_in = resp.expires_at
+                _expires_in = resp.expires_in
             except KeyError:
                 return
 
@@ -252,7 +252,7 @@ class Grant(object):
 
     def update(self, resp):
         if isinstance(resp, self._acc_resp):
-            if "token" in resp or "id_token" in resp:
+            if "access_token" in resp or "id_token" in resp:
                 tok = self._token_class(resp)
                 if tok not in self.tokens:
                     for otok in self.tokens:
@@ -331,7 +331,7 @@ class Client(object):
         self.grant = {}
 
         # own endpoint
-        self.redirect_uri = None
+        self.redirect_uris = [None]
 
         # service endpoints
         self.authorization_endpoint=None
@@ -397,7 +397,7 @@ class Client(object):
 
         self.authorization_endpoint=None
         self.token_endpoint=None
-        self.redirect_uri = None
+        self.redirect_uris = None
 
     def grant_from_state(self, state):
         for key, grant in self.grant.items():
@@ -508,7 +508,7 @@ class Client(object):
 
         if request_args is not None:
             try: # change default
-                self.redirect_uri = request_args["redirect_uri"]
+                self.redirect_uris = [request_args["redirect_uri"]]
             except KeyError:
                 pass
         else:

@@ -36,7 +36,6 @@ CLIENT_CONFIG = {
     #"key":None,
     #"algorithm":"HS256",
     "expire_in":600,
-    "client_secret":"",
     "client_timeout":0
 }
 
@@ -333,9 +332,9 @@ def test_server_authenticated():
     assert _eq(aresp.keys(), ['code', 'state', 'scope'])
 
     print cons.grant[cons.state].keys()
-    assert _eq(cons.grant[cons.state].keys(), ['tokens', 'exp_in', 'seed',
-                                               'grant_expiration_time',
-                                               'id_token'])
+    assert _eq(cons.grant[cons.state].keys(), ['code', 'id_token', 'tokens',
+                                               'exp_in',
+                                               'grant_expiration_time', 'seed'])
 
 def test_server_authenticated_1():
     server = srv_init

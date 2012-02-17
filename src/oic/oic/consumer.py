@@ -118,7 +118,7 @@ class Consumer(Client):
     """
     #noinspection PyUnusedLocal
     def __init__(self, session_db, config, client_config=None,
-                 server_info=None):
+                 server_info=None, debug=False):
         """ Initializes a Consumer instance.
 
         :param session_db: Where info are kept about sessions
@@ -147,7 +147,7 @@ class Consumer(Client):
 
 
         self.sdb = session_db
-
+        self.debug = debug
         self.seed = ""
         self.nonce = ""
         self.request_filename=""
@@ -205,7 +205,7 @@ class Consumer(Client):
             _log_info("- begin -")
 
         _path = http_util.geturl(environ, False, False)
-        self.redirect_uri = _path + self.config["authz_page"]
+        self.redirect_uris = [_path + self.config["authz_page"]]
 
         # Put myself in the dictionary of sessions, keyed on session-id
         if not self.seed:
@@ -314,7 +314,7 @@ class Consumer(Client):
             except KeyError:
                 raise UnknownState(aresp.state)
 
-            self.redirect_uri = self.sdb[aresp.state]["redirect_uri"]
+            self.redirect_uris = [self.sdb[aresp.state]["redirect_uris"]]
 
             # May have token and id_token information too
             if aresp.access_token:
@@ -344,7 +344,7 @@ class Consumer(Client):
         Do the access token request, the last step in a code flow.
         If Implicit flow was used then this method is never used.
         """
-        args = {"redirect_uri": self.redirect_uri}
+        args = {"redirect_uri": self.redirect_uris[0]}
         if "password" in self.config and self.config["password"]:
             logger.info("basic auth")
             http_args = {"password":self.config["password"]}

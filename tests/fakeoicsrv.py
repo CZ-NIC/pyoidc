@@ -4,6 +4,7 @@ __author__ = 'rohe0002'
 
 from oic.utils.sdb import SessionDB
 from oic.utils.time_util import time_sans_frac
+from oic.utils.time_util import utc_time_sans_frac
 
 from oic.oic import Server
 from oic.oic.message import *
@@ -156,24 +157,25 @@ class MyFakeOICServer(Server):
         req = self.parse_registration_request(body)
 
         client_secret = rndstr()
+        expires = utc_time_sans_frac() + self.registration_expires_in
         if req.type == "client_associate":
             client_id = rndstr(10)
 
             self.client[client_id] = {
                 "client_secret": client_secret,
                 "info": req.dictionary(),
-                "expires": time_sans_frac() + self.registration_expires_in
+                "expires": expires
             }
         else:
             client_id = req.client_id
             _cinfo = self.client[req.client_id]
             _cinfo["info"].update(req.directory())
             _cinfo["client_secret"] = client_secret
-            _cinfo["expires"] = time_sans_frac() + self.registration_expires_in
+            _cinfo["expires"] = expires
 
         resp = RegistrationResponse(client_id=client_id,
                                     client_secret=client_secret,
-                                    expires_in=self.registration_expires_in)
+                                    expires_at=expires)
 
         response = Response({"content-type":"application/json"})
         return response, resp.get_json()

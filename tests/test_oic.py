@@ -33,7 +33,7 @@ IDTOKEN = IdToken(iss="http://oic.example.org/", user_id="user_id",
 class TestOICClient():
     def setup_class(self):
         self.client = Client("1")
-        self.client.redirect_uri = "http://example.com/redirect"
+        self.client.redirect_uris = ["http://example.com/redirect"]
         self.client.client_secret = "abcdefghijkl"
 
     def test_areq_1(self):
@@ -124,7 +124,7 @@ class TestOICClient():
 
     def test_get_access_token_request_1(self):
         self.client.reset()
-        self.client.redirect_uri = "http://client.example.com/authz"
+        self.client.redirect_uris = ["http://client.example.com/authz"]
         grant = Grant()
         grant.code = "AbCdEf"
         grant.grant_expiration_time = time_util.time_sans_frac() + 30
@@ -143,7 +143,7 @@ class TestOICClient():
 
     def test_get_access_token_request_override(self):
         self.client.reset()
-        self.client.redirect_uri = "http://client.example.com/authz"
+        self.client.redirect_uris = ["http://client.example.com/authz"]
         grant = Grant()
         grant.code = "AbCdEf"
         grant.grant_expiration_time = time_util.time_sans_frac() + 30
@@ -334,7 +334,7 @@ class TestOICClient():
 
     def test_do_authorization_request(self):
         self.client.grant = {}
-        self.client.redirect_uri = "https://www.example.com/authz"
+        self.client.redirect_uris = ["https://www.example.com/authz"]
         self.client.authorization_endpoint = "http://oic.example.org/authorization"
         self.client.client_id = "a1b2c3"
         self.client.state = "state0"
@@ -345,7 +345,7 @@ class TestOICClient():
         result = self.client.do_authorization_request(state=self.client.state,
                                                       request_args=args)
         assert result.status == 302
-        assert result.location.startswith(self.client.redirect_uri)
+        assert result.location.startswith(self.client.redirect_uris[0])
         _, query = result.location.split("?")
 
         self.client.parse_response(AuthorizationResponse, info=query,
@@ -382,24 +382,24 @@ class TestOICClient():
                                  'expires_in', 'refresh_token', 'scope'])
 
     def test_do_check_session_request(self):
-        self.client.redirect_uri = "https://www.example.com/authz"
+        self.client.redirect_uris = ["https://www.example.com/authz"]
         self.client.client_id = "a1b2c3"
-        self.client.http.jwt_keys = {"http://example.com/oicclient": JWT_KEY}
+        self.client.http.jwt_keys = {"http://example.com/oicclient": VERIFY_KEY}
         self.client.check_session_endpoint = "https://example.org/check_session"
 
-        args = {"id_token": IDTOKEN.get_jwt(key=JWT_KEY)}
+        args = {"id_token": IDTOKEN.get_jwt(key=SIGN_KEY)}
         resp = self.client.do_check_session_request(request_args=args)
 
         assert isinstance(resp, IdToken)
         assert _eq(resp.keys(), ['nonce', 'user_id', 'aud', 'iss', 'exp'])
 
     def test_do_end_session_request(self):
-        self.client.redirect_uri = "https://www.example.com/authz"
+        self.client.redirect_uris = ["https://www.example.com/authz"]
         self.client.client_id = "a1b2c3"
-        self.client.http.jwt_keys = {"http://example.com/oicclient": JWT_KEY}
+        self.client.http.jwt_keys = {"http://example.com/oicclient": VERIFY_KEY}
         self.client.end_session_endpoint = "https://example.org/end_session"
 
-        args = {"id_token": IDTOKEN.get_jwt(key=JWT_KEY),
+        args = {"id_token": IDTOKEN.get_jwt(key=SIGN_KEY),
                 "redirect_url": "http://example.com/end"}
         resp = self.client.do_end_session_request(request_args=args,
                                                   state="state1")
@@ -413,10 +413,10 @@ class TestOICClient():
         args = {"type":"client_associate",
                 "application_type": "web",
                 "application_name": "my service",
-                "redirect_uri": ["http://example.com/authz"]}
+                "redirect_uri": "http://example.com/authz"}
         resp = self.client.do_registration_request(request_args=args)
         print resp
-        assert _eq(resp.keys(),['client_secret', 'expires_in', 'client_id'])
+        assert _eq(resp.keys(),['client_secret', 'expires_at', 'client_id'])
 
     def test_do_user_info_request_with_access_token_refresh(self):
         self.client.userinfo_endpoint = "http://oic.example.org/userinfo"
@@ -462,7 +462,7 @@ class TestOICClient():
         assert areq.request
 
         jwtreq = OpenIDRequest.set_jwt(areq.request,
-                                       key={"hmac":self.client.client_secret})
+                                       key={"hmac":[self.client.client_secret]})
         print
         print jwtreq
         print jwtreq.keys()
@@ -472,7 +472,7 @@ class TestOICClient():
 
 def test_get_authorization_request():
     client = Client()
-    client.redirect_uri = "https://www.example.com/authz"
+    client.redirect_uris = ["https://www.example.com/authz"]
     client.client_id = "a1b2c3"
     args = {"response_type":["code"]}
     ar = client.construct_AuthorizationRequest(request_args=args)
@@ -578,7 +578,7 @@ def test_client_parse_args():
     args = {
         "response_type":"",
         "client_id":"client_id",
-        "redirect_uri":"http://example.com/authz",
+        "redirect_uri": "http://example.com/authz",
         "scope":"scope",
         "state":"state",
     }
@@ -595,7 +595,7 @@ def test_client_parse_extra_args():
     args = {
         "response_type":"",
         "client_id":"client_id",
-        "redirect_uri":"http://example.com/authz",
+        "redirect_uri": "http://example.com/authz",
         "scope":"scope",
         "state":"state",
         "extra_session": "home"
@@ -662,7 +662,7 @@ def test_server_parse_jwt_request():
 
     _jwt = ar.get_jwt(key={"hmac": "A1B2C3D4"}, algorithm="HS256")
 
-    req = srv.parse_jwt_request(txt=_jwt, key={"hmac": "A1B2C3D4"})
+    req = srv.parse_jwt_request(txt=_jwt, key={"hmac": ["A1B2C3D4"]})
 
     assert isinstance(req, AuthorizationRequest)
     assert req.response_type == ["code"]
@@ -771,7 +771,7 @@ def test_construct_RegistrationRequest():
     request_args = {
         "type":"client_associate",
         "client_id":"client0",
-        "contact":"foo@example.com",
+        "contacts":["foo@example.com"],
         "application_type":"web",
         "application_name":"EXAMPLE OIC service",
     }
@@ -779,8 +779,8 @@ def test_construct_RegistrationRequest():
     crr = cli.construct_RegistrationRequest(request_args=request_args)
 
     print crr.keys()
-    assert _eq(crr.keys(), ['application_type', 'contact', 'client_id',
-                            'application_name', 'type'])
+    assert _eq(crr.keys(), ['application_type', 'contacts', 'type',
+                            'redirect_uris', 'client_id', 'application_name'])
 
 #def test_construct_CheckIDRequest():
 #    cli = Client()
@@ -793,7 +793,7 @@ def test_construct_RegistrationRequest():
 
 def test_construct_EndSessionRequest():
     cli = Client()
-    cli.redirect_uri = "http://example.com/authz"
+    cli.redirect_uris = ["http://example.com/authz"]
     cli.grant["foo"] = Grant()
     cli.grant["foo"].grant_expiration_time = time.time()+60
     cli.grant["foo"].code = "access_code"
@@ -813,7 +813,7 @@ def test_construct_OpenIDRequest():
     cli = Client()
     cli.client_id = "abcdefg"
     cli.scope = ["openid", "profile"]
-    cli.redirect_uri= "https://client.example.com/cb"
+    cli.redirect_uris= ["https://client.example.com/cb"]
 
     request_args = {"response_type": "code id_token", "state": "af0ifjsldkj" }
 
@@ -880,8 +880,8 @@ AREQ = AuthorizationRequest("code", "client_id", "http://example.com/authz",
 
 UIREQ = UserInfoRequest(access_token="access_token", schema="openid")
 
-REGREQ = RegistrationRequest(contact=["roland.hedberg@adm.umu.se"],
-                             redirect_uri="http://example.org/jqauthz",
+REGREQ = RegistrationRequest(contacts=["roland.hedberg@adm.umu.se"],
+                             redirect_uris=["http://example.org/jqauthz"],
                              application_name="pacubar",
                              client_id="a1b2c4",
                              type="client_associate")
@@ -890,10 +890,11 @@ RSREQ = RefreshSessionRequest(id_token="id_token",
                               redirect_url="http://example.com/authz",
                               state="state0")
 
-JWT_KEY = {"hmac": "abcdefghijklmnop"}
-CSREQ = CheckSessionRequest(id_token=IDTOKEN.get_jwt(key=JWT_KEY))
+VERIFY_KEY = {"hmac": ["abcdefghijklmnop"]}
+SIGN_KEY = {"hmac": "abcdefghijklmnop"}
+CSREQ = CheckSessionRequest(id_token=IDTOKEN.get_jwt(key=SIGN_KEY))
 
-ESREQ = EndSessionRequest(id_token=IDTOKEN.get_jwt(key=JWT_KEY),
+ESREQ = EndSessionRequest(id_token=IDTOKEN.get_jwt(key=SIGN_KEY),
                           redirect_url="http://example.org/jqauthz",
                           state="state0")
 
@@ -958,7 +959,7 @@ def test_parse_registration_request():
     srv = Server()
     request = srv.parse_registration_request(data=REGREQ.get_urlencoded())
     assert isinstance(request, RegistrationRequest)
-    assert _eq(request.keys(),['redirect_uri', 'contact', 'client_id',
+    assert _eq(request.keys(),['redirect_uris', 'contacts', 'client_id',
                              'application_name', 'type'])
     assert request.application_name == "pacubar"
     assert request["type"] == "client_associate"
@@ -977,14 +978,14 @@ def test_parse_refresh_session_request():
     assert request.id_token == "id_token"
 
 def test_parse_check_session_request():
-    srv = Server({"http://example.com/oicclient":JWT_KEY})
+    srv = Server({"http://example.com/oicclient":VERIFY_KEY})
     request = srv.parse_check_session_request(query=CSREQ.get_urlencoded())
     assert isinstance(request, IdToken)
     assert _eq(request.keys(),['nonce', 'user_id', 'aud', 'iss', 'exp'])
     assert request.aud == "http://example.com/oicclient"
 
 def test_parse_end_session_request():
-    srv = Server({"http://example.com/oicclient":JWT_KEY})
+    srv = Server({"http://example.com/oicclient":VERIFY_KEY})
     request = srv.parse_end_session_request(query=ESREQ.get_urlencoded())
     assert isinstance(request, EndSessionRequest)
     assert _eq(request.keys(),['id_token', 'redirect_url', 'state'])
@@ -993,7 +994,7 @@ def test_parse_end_session_request():
     assert request.id_token.aud == "http://example.com/oicclient"
 
 def test_parse_open_id_request():
-    srv = Server({"http://example.com/oicclient":JWT_KEY})
+    srv = Server({"http://example.com/oicclient":VERIFY_KEY})
     request = srv.parse_open_id_request(data=OIDREQ.get_urlencoded())
     assert isinstance(request, OpenIDRequest)
     print request.keys()

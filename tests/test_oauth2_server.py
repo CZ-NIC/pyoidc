@@ -24,7 +24,6 @@ CLIENT_CONFIG = {
 #    "key":None,
 #    "algorithm":"HS256",
     "grant_expire_in":600,
-    "client_secret":"",
     "client_timeout":0
 }
 

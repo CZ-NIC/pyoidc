@@ -307,7 +307,7 @@ class Server(AServer):
         if areq.redirect_uri:
             try:
                 assert areq.redirect_uri in self.cdb[
-                                            areq.client_id]["redirect_uris"]
+                                            areq.client_id]["redirect_uri"]
             except AssertionError:
                 return self._authz_error(environ, start_response,
                                          "invalid_request_redirect_uri")
@@ -733,7 +733,7 @@ class Server(AServer):
 
         if areq.redirect_uri:
             assert areq.redirect_uri in self.cdb[
-                                            areq.client_id]["redirect_uris"]
+                                            areq.client_id]["redirect_uri"]
             redirect_uri = areq.redirect_uri
         else:
             redirect_uri = self.cdb[areq.client_id]["redirect_uris"][0]

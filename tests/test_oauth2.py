@@ -98,7 +98,7 @@ def test_grant_set_3():
 class TestOAuthClient():
     def setup_class(self):
         self.client = Client("1")
-        self.client.redirect_uri = "http://example.com/redirect"
+        self.client.redirect_uris = ["http://example.com/redirect"]
 
     def test_areq_1(self):
         ar = self.client.construct_AuthorizationRequest(
@@ -188,7 +188,7 @@ class TestOAuthClient():
 
     def test_get_access_token_request_1(self):
         self.client.reset()
-        self.client.redirect_uri = "http://client.example.com/authz"
+        self.client.redirect_uris = ["http://client.example.com/authz"]
         grant = Grant()
         grant.code = "AbCdEf"
         grant.grant_expiration_time = time_util.time_sans_frac() + 30
@@ -207,7 +207,7 @@ class TestOAuthClient():
 
     def test_get_access_token_request_override(self):
         self.client.reset()
-        self.client.redirect_uri = "http://client.example.com/authz"
+        self.client.redirect_uris = ["http://client.example.com/authz"]
         grant = Grant()
         grant.code = "AbCdEf"
         grant.grant_expiration_time = time_util.time_sans_frac() + 30
@@ -383,7 +383,7 @@ class TestOAuthClient():
 
 def test_get_authorization_request():
     client = Client()
-    client.redirect_uri = "https://www.example.com/authz"
+    client.redirect_uris = ["https://www.example.com/authz"]
     client.client_id = "a1b2c3"
     args = {"response_type":["code"]}
     ar = client.construct_AuthorizationRequest(request_args=args)
@@ -683,7 +683,7 @@ def test_server_parse_jwt_request():
 
     _jwt = ar.get_jwt(key={"hmac":"A1B2C3D4"}, algorithm="HS256")
 
-    req = srv.parse_jwt_request(txt=_jwt, key={"hmac":"A1B2C3D4"})
+    req = srv.parse_jwt_request(txt=_jwt, key={"hmac":["A1B2C3D4"]})
 
     assert isinstance(req, AuthorizationRequest)
     assert req.response_type == ["code"]
