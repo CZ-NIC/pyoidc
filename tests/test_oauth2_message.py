@@ -1,11 +1,6 @@
 
 __author__ = 'rohe0002'
 
-import hmac
-import hashlib
-import time
-import random
-import base64
 from oic.oauth2.message import *
 
 from pytest import raises
@@ -457,11 +452,11 @@ def test_to_from_jwt():
                 opt_str_list=["one", "two"], req_str_list=["spike", "lee"],
                 opt_json='{"ford": "green"}')
 
-    jws = item.to_jwt(True, {"hmac":"A1B2C3D4"}, "HS256")
+    jws = item.to_jwt(True, {"hmac":["A1B2C3D4"]}, "HS256")
 
     print jws
 
-    jitem = CLASS.from_jwt(jws, {"hmac":["A1B2C3D4"]})
+    jitem = CLASS.from_jwt(jws, {".":{"hmac":["A1B2C3D4"]}})
 
     print jitem.keys()
 

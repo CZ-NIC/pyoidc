@@ -681,9 +681,13 @@ def test_server_parse_jwt_request():
                                      "http://foobar.example.com/oaclient",
                                      state="cold")
 
-    _jwt = ar.get_jwt(key={"hmac":"A1B2C3D4"}, algorithm="HS256")
+    srv.keystore.set_verify_key("A1B2C3D4", owner="foobar")
+    srv.keystore.set_sign_key("A1B2C3D4", owner="foobar")
 
-    req = srv.parse_jwt_request(txt=_jwt, key={"hmac":["A1B2C3D4"]})
+    keys = srv.keystore.get_sign_key(owner="foobar")
+    _jwt = ar.get_jwt(key=keys, algorithm="HS256")
+
+    req = srv.parse_jwt_request(client_id="foobar", txt=_jwt)
 
     assert isinstance(req, AuthorizationRequest)
     assert req.response_type == ["code"]

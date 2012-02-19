@@ -294,20 +294,135 @@ class Grant(object):
                         otok.replaced = True
                 self.tokens.append(token)
 
-        
+
+class KeyStore(object):
+    use = ["sign", "verify", "enc", "dec"]
+    def __init__(self, keyspecs=None):
+        self._store = {}
+
+        if keyspecs:
+            for keyspec in keyspecs:
+                self.add_key(*keyspec)
+
+    def add_key(self, key, type, usage, owner="."):
+        """
+        :param key: The key
+        :param type: Type of key (rsa, ec, hmac, .. )
+        :param usage: What to use the key for (signing, verifying, encrypting,
+            decrypting
+        """
+
+        if owner not in self._store:
+            self._store[owner] = {"sign": {}, "verify": {}, "enc": {},
+                                  "dec": {}}
+            self._store[owner][usage][type] = [key]
+        else:
+            _keys = self._store[owner][usage]
+            try:
+                _keys[type].append(key)
+            except KeyError:
+                _keys[type] = [key]
+
+    def get_keys(self, usage, type=None, owner="."):
+        if not owner:
+            res = {}
+            for owner, _spec in self._store.items():
+                res[owner] = _spec[usage]
+            return res
+        else:
+            if type:
+                return self._store[owner][usage][type]
+            else:
+                return self._store[owner][usage]
+
+    def remove_key(self, key, owner=".", type=None, usage=None):
+        _keys = self._store[owner]
+        if usage:
+            if type:
+                _keys[usage][type].remove(key)
+            else:
+                for _typ, vals in self._store[owner][usage].items():
+                    try:
+                        vals.remove(key)
+                    except Exception:
+                        pass
+        else:
+            for _usage, item in _keys.items():
+                if type:
+                    _keys[_usage][type].remove(key)
+                else:
+                    for _typ, vals in _keys[_usage].items():
+                        try:
+                            vals.remove(key)
+                        except Exception:
+                            pass
+
+
+    def get_verify_key(self, type="", owner="."):
+        return self.get_keys("verify", type, owner)
+
+    def get_sign_key(self, type="", owner="."):
+        return self.get_keys("sign", type, owner)
+
+    def get_encrypt_key(self, type="", owner="."):
+        return self.get_keys("enc", type, owner)
+
+    def get_decrypt_key(self, type="", owner="."):
+        return self.get_keys("dec", type, owner)
+
+    def set_verify_key(self, val, type="hmac", owner="."):
+        self.add_key(val, type, "verify", owner)
+
+    def set_sign_key(self, val, type="hmac", owner="."):
+        self.add_key(val, type, "sign", owner)
+
+    def set_encrypt_key(self, val, type="hmac", owner="."):
+        self.add_key(val, type, "enc", owner)
+
+    def set_decrypt_key(self, val, type="hmac", owner="."):
+        self.add_key(val, type, "dec", owner)
+
+    def match_owner(self, url):
+        for owner in self._store.keys():
+            if url.startswith(owner):
+                return owner
+
+        raise Exception("No keys for '%s'" % url)
+
+    def collect_keys(self, url, usage="verify"):
+        try:
+            owner = self.match_owner(url)
+            keys = self.get_keys(usage, owner=owner)
+        except Exception:
+            keys = None
+
+        try:
+            own_keys = self.get_keys(usage)
+            if keys:
+                for type, key in own_keys.items():
+                    keys[type].extend(key)
+            else:
+                keys = own_keys
+        except KeyError:
+            pass
+
+        return keys
+
+
+
 class Client(object):
     _endpoints = ENDPOINTS
 
     def __init__(self, client_id=None, cache=None, time_out=None,
                  proxy_info=None, follow_redirects=True,
-                 disable_ssl_certificate_validation=False,
-                 ca_certs="", #jwt_key=None,
-                 grant_expire_in=600, client_timeout=0,
-                 httpclass=None):
+                 disable_ssl_certificate_validation=False, ca_certs="",
+                 grant_expire_in=600, client_timeout=0, httpclass=None,
+                 jwt_keys=None):
 
-        self._c_secret = None
-        self.send_keys = {"sign": {}, "verify": {}, "enc": {}, "dec": {}}
-        self.recv_keys = {"sign": {}, "verify": {}, "enc": {}, "dec": {}}
+        if jwt_keys is None:
+            self.keystore = KeyStore()
+        else:
+            self.keystore = KeyStore(jwt_keys)
 
         if not ca_certs and disable_ssl_certificate_validation is False:
             disable_ssl_certificate_validation = True
@@ -350,44 +465,13 @@ class Client(object):
     def set_client_secret(self, val):
         self._c_secret = val
         # client uses it for signing
-        self.send_keys["sign"]["hmac"] = val
+        self.keystore.add_key(val, "hmac", "sign")
 
         # Server might also use it for signing which means the
         # client uses it for verifying server signatures
-        self.recv_keys["verify"]["hmac"] = [val]
+        self.keystore.add_key(val, "hmac", "verify")
 
     client_secret = property(get_client_secret, set_client_secret)
-    signing_key = property(get_client_secret, set_client_secret)
-
-    def get_verify_key(self):
-        return self.recv_keys["verify"]
-
-    def set_X_key(self, val, type):
-        if isinstance(val, tuple):
-            _d = {val[0]: val[1]}
-        elif isinstance(val, dict):
-            _d = val
-        else: # assume hmac key
-            _d = {"hmac": val}
-
-        for key, val in _d.items():
-            try:
-                self.recv_keys[type]["hmac"].append(val)
-            except KeyError:
-                self.recv_keys[type]["hmac"] = [val]
-
-    def set_verify_key(self, val):
-        self.set_X_key(val, "verify")
-
-    verify_key = property(get_verify_key, set_verify_key)
-
-    def get_decrypt_key(self):
-        return self.recv_keys["dec"]
-
-    def set_decrypt_key(self, val):
-        self.set_X_key(val, "dec")
-
-    decrypt_key = property(get_decrypt_key, set_decrypt_key)
 
     def reset(self):
         self.state = None
@@ -902,8 +986,13 @@ class Client(object):
         return self.http.request(uri, method, headers=headers, **kwargs)
 
 class Server(object):
-    def __init__(self):
-        pass
+    def __init__(self, jwt_keys=None):
+
+        if jwt_keys is None:
+            self.keystore = KeyStore()
+        else:
+            self.keystore = KeyStore(jwt_keys)
+
 
     def parse_url_request(self, cls, url=None, query=None, extended=False):
         if url:
@@ -919,9 +1008,13 @@ class Server(object):
         
         return self.parse_url_request(rcls, url, query, extended)
 
-    def parse_jwt_request(self, rcls=AuthorizationRequest, txt="", key="",
+    def parse_jwt_request(self, client_id, rcls=AuthorizationRequest, txt="", keystore="",
                           verify=True, extend=False):
-        areq = rcls.set_jwt(txt, key, verify, extend)
+        if not keystore:
+            keystore = self.keystore
+
+        keys = keystore.get_keys("verify", owner=None)
+        areq = rcls.set_jwt(txt, keys, verify, extend)
         areq.verify()
         return areq
 

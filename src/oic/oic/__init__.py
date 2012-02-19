@@ -46,7 +46,7 @@ JWT_BEARER = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 
 AUTHN_METHOD = OAUTH2_AUTHN_METHOD.copy()
 
-def assertion_jwt(cli, key, audience, algorithm=DEF_SIGN_ALG):
+def assertion_jwt(cli, keys, audience, algorithm=DEF_SIGN_ALG):
     at = AuthnToken(
         iss = cli.client_id,
         prn = cli.client_id,
@@ -55,17 +55,14 @@ def assertion_jwt(cli, key, audience, algorithm=DEF_SIGN_ALG):
         exp = int(epoch_in_a_while(minutes=10)),
         iat = utc_now()
     )
-    return at.get_jwt(key=key, algorithm=algorithm)
+    return at.get_jwt(key=keys, algorithm=algorithm)
 
 #noinspection PyUnusedLocal
 def client_secret_jwt(cli, cis, authn_method, request_args=None,
                       http_args=None, req=None):
 
     # signing key is the client secret
-    try:
-        signing_key = http_args["client_secret"]
-    except KeyError:
-        signing_key = cli.client_secret
+    signing_key = cli.keystore.get_sign_keys()
 
     # audience is the OP endpoint
     audience = cli._endpoint(REQUEST2ENDPOINT[req])
@@ -158,7 +155,7 @@ class Client(oauth2.Client):
         return None
 
     #noinspection PyUnusedLocal
-    def make_openid_request(self, arq, key, userinfo_claims=None,
+    def make_openid_request(self, arq, keys, userinfo_claims=None,
                             idtoken_claims=None, algorithm=DEF_SIGN_ALG,
                             **kwargs):
         """
@@ -203,7 +200,7 @@ class Client(oauth2.Client):
 
         oir = OpenIDRequest(**oir_args)
 
-        return oir.get_jwt(extended=True, key=key, algorithm=algorithm)
+        return oir.get_jwt(extended=True, key=keys, algorithm=algorithm)
 
     def construct_AuthorizationRequest(self, cls=AuthorizationRequest,
                                        request_args=None, extra_args=None,
@@ -239,7 +236,7 @@ class Client(oauth2.Client):
                                                             **kwargs)
 
         if "key" not in kwargs:
-            kwargs["key"] = {"hmac": self.client_secret}
+            kwargs["keys"] = self.keystore.get_sign_key()
 
         if "userinfo_claims" in kwargs or "idtoken_claims" in kwargs:
             areq.request = self.make_openid_request(areq, **kwargs)
@@ -536,9 +533,7 @@ class Client(oauth2.Client):
 #noinspection PyMethodOverriding
 class Server(oauth2.Server):
     def __init__(self, jwt_keys=None):
-        oauth2.Server.__init__(self)
-
-        self.jwt_keys = jwt_keys or {}
+        oauth2.Server.__init__(self, jwt_keys)
 
     def _parse_urlencoded(self, url=None, query=None):
         if url:
@@ -556,11 +551,11 @@ class Server(oauth2.Server):
         return oauth2.Server.parse_authorization_request(self, rcls, url,
                                                          query, extended)
 
-    def parse_jwt_request(self, rcls=AuthorizationRequest, txt="", key="",
-                          verify=True, extended=False):
+    def parse_jwt_request(self, client_id, rcls=AuthorizationRequest, txt="",
+                          keys=None, verify=True, extended=False):
 
-        return oauth2.Server.parse_jwt_request(self, rcls, txt, key, verify,
-                                               extended)
+        return oauth2.Server.parse_jwt_request(self, client_id, rcls, txt,
+                                               keys, verify, extended)
 
     def parse_refresh_token_request(self, cls=RefreshAccessTokenRequest,
                                     body=None, extended=False):
@@ -578,7 +573,9 @@ class Server(oauth2.Server):
         # in there there should be information about the client_id
         # Use that to find the key and do the signature verify
 
-        return IdToken.set_jwt(str, key=self.jwt_keys[info["aud"]])
+        keys = self.keystore.get_keys("verify", owner=None)
+
+        return IdToken.set_jwt(str, key=keys)
 
     def parse_check_session_request(self, url=None, query=None):
         """

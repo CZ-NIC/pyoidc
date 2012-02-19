@@ -21,7 +21,15 @@ from oic.utils.sdb import SessionDB
 
 from fakeoicsrv import MyFakeOICServer
 
-JWT_KEY = {"hmac":"abcdefghijklmop"}
+CLIENT_SECRET = "abcdefghijklmnop"
+CLIENT_ID = "client_1"
+
+KEYS = [
+    [CLIENT_SECRET, "hmac", "verify", CLIENT_ID],
+    [CLIENT_SECRET, "hmac", "sign", CLIENT_ID]
+]
+
+SIGN_KEY = {"hmac": ["abcdefghijklmnop"]}
 
 BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',
                'REQUEST_METHOD': 'GET',
@@ -52,7 +60,6 @@ CONFIG = {
     "authz_page": "authz",
     "scope": ["openid"],
     "response_type": "code",
-    "key": JWT_KEY,
     "request_method": "parameter",
     #"temp_dir": "./tmp",
     #"flow_type":
@@ -61,7 +68,7 @@ CONFIG = {
 }
 
 CLIENT_CONFIG = {
-    "client_id": "client0",
+    "client_id": CLIENT_ID,
 }
 
 def start_response(status=200, headers=None):
@@ -106,6 +113,7 @@ class TestOICConsumer():
     def setup_class(self):
         self.consumer = Consumer(SessionDB(), CONFIG, CLIENT_CONFIG,
                                  SERVER_INFO)
+        self.consumer.client_secret = CLIENT_SECRET
 
     def test_init(self):
         assert self.consumer
@@ -160,7 +168,7 @@ class TestOICConsumer():
 
     def test_begin(self):
         self.consumer.authorization_endpoint = "http://example.com/authorization"
-        srv = Server()
+        srv = Server(KEYS)
         print "redirect_uris",self.consumer.redirect_uris
         location = self.consumer.begin(BASE_ENVIRON, start_response, DEVNULL())
         print location
@@ -180,7 +188,7 @@ class TestOICConsumer():
         self.consumer.config["request_method"] = "file"
         self.consumer.config["temp_dir"] = "./file"
         self.consumer.config["temp_path"] = "/tmp/"
-        srv = Server()
+        srv = Server(KEYS)
         location = self.consumer.begin(BASE_ENVIRON, start_response, DEVNULL())
         print location
         authreq = srv.parse_authorization_request(url=location)
@@ -196,7 +204,7 @@ class TestOICConsumer():
         assert authreq.request_uri.startswith("http://localhost:8087/tmp/")
 
     def test_complete(self):
-        self.consumer.http = MyFakeOICServer()
+        self.consumer.http = MyFakeOICServer(KEYS)
         self.consumer.state = "state0"
         self.consumer.nonce = rndstr()
         self.consumer.redirect_uris = ["https://example.com/cb"]
@@ -229,7 +237,7 @@ class TestOICConsumer():
         assert resp.state == self.consumer.state
 
     def test_parse_authz(self):
-        self.consumer.http = MyFakeOICServer()
+        self.consumer.http = MyFakeOICServer(KEYS)
         self.consumer.state = "state0"
         self.consumer.nonce = rndstr()
         args = {
@@ -283,7 +291,7 @@ class TestOICConsumer():
 
 def test_complete_secret_auth():
     consumer = Consumer(SessionDB(), CONFIG, CLIENT_CONFIG, SERVER_INFO)
-    consumer.http = MyFakeOICServer()
+    consumer.http = MyFakeOICServer(KEYS)
     consumer.redirect_uris = ["http://example.com/authz"]
     consumer.state = "state0"
     consumer.nonce = rndstr()
@@ -317,7 +325,7 @@ def test_complete_secret_auth():
 
 def test_complete_auth_token():
     consumer = Consumer(SessionDB(), CONFIG, CLIENT_CONFIG, SERVER_INFO)
-    consumer.http = MyFakeOICServer()
+    consumer.http = MyFakeOICServer(KEYS)
     consumer.redirect_uri = ["http://example.com/authz"]
     consumer.state = "state0"
     consumer.nonce = rndstr()
@@ -360,7 +368,7 @@ def test_complete_auth_token():
 
 def test_userinfo():
     consumer = Consumer(SessionDB(), CONFIG, CLIENT_CONFIG, SERVER_INFO)
-    consumer.http = MyFakeOICServer()
+    consumer.http = MyFakeOICServer(KEYS)
     consumer.redirect_uris = ["http://example.com/authz"]
     consumer.state = "state0"
     consumer.nonce = rndstr()
@@ -410,7 +418,7 @@ def real_test_discover():
 
 def test_discover():
     c = Consumer(None, None)
-    c.http = MyFakeOICServer()
+    c.http = MyFakeOICServer(KEYS)
     
     principal = "foo@example.com"
 
@@ -428,7 +436,7 @@ def test_discover_redirect():
 
 def test_provider_config():
     c = Consumer(None, None)
-    c.http = MyFakeOICServer()
+    c.http = MyFakeOICServer(KEYS)
 
     principal = "foo@example.com"
 
@@ -451,7 +459,7 @@ def test_client_register():
     c.redirect_uris = ["http://example.com/authz"]
     c.contact = ["foo@example.com"]
 
-    c.http = MyFakeOICServer()
+    c.http = MyFakeOICServer(KEYS)
     location = c.discover("foo@example.com")
     info = c.provider_config(location)
 

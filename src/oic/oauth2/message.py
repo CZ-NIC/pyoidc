@@ -58,6 +58,18 @@ def json_serializer(obj, format="urlencoded", extended=False):
 def json_deserializer(txt, format="urlencoded", extended=False):
     return json.loads(txt)
 
+def gather_keys(comb, collection, jso, target):
+    try:
+        for typ, keys in collection[jso[target]].items():
+            try:
+                comb[typ].extend(keys)
+            except KeyError:
+                comb[typ] = keys
+    except KeyError:
+        pass
+
+    return comb
+
 ERRTXT = "On '%s': %s"
 
 class Base(object):
@@ -315,6 +327,7 @@ class Base(object):
             algorithm = DEF_SIGN_ALG
         return jwt.sign(self.get_json(extended), key, algorithm)
 
+
     @classmethod
     def set_jwt(cls, txt, key="", verify=True, extended=False):
         """
@@ -323,21 +336,40 @@ class Base(object):
 
         :param cls: Then type of class
         :param txt: The JWT
-        :param key: The key that supposedly used to sign the JWT
+        :param key: keys that might be used to verify the signature of the JWT
         :param verify: Whether the signature should be verified or not
         :param extended: Whether parameter extension should be allowed
         :return: A class instance
         """
         try:
+            jso = jwt.unpack(txt)[1]
+            if isinstance(jso, basestring):
+                jso = json.loads(jso)
             if verify:
-                jso = jwt.verify(txt, key)
-            else:
-                jso = jwt.unpack(txt)[1]
+                try:
+                    _keys = key['.']
+                except KeyError:
+                    _keys = {}
+
+                if "iss" in jso:
+                    _keys = gather_keys(_keys, key, jso, "iss")
+                if "aud" in jso:
+                    _keys = gather_keys(_keys, key, jso, "aud")
+
+                if "iss" not in jso and "aud" not in jso:
+                    for owner, _spec in key.items():
+                        if owner == ".":
+                            continue
+                        for typ, keys in _spec.items():
+                            try:
+                                _keys[typ].extend(keys)
+                            except KeyError:
+                                _keys[typ] = keys
+
+                jwt.verify(txt, _keys)
         except Exception:
             raise
 
-        if isinstance(jso, basestring):
-            jso = json.loads(jso)
         return cls.from_dictionary(jso, extended)
 
     def to_jwt(self, extended=False, key="", algorithm=""):

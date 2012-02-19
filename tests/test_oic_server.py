@@ -33,8 +33,6 @@ CLIENT_CONFIG = {
     "client_id": "number5",
     "ca_certs": "/usr/local/etc/oic/ca_certs.txt",
     "disable_ssl_certificate_validation":False,
-    #"key":None,
-    #"algorithm":"HS256",
     "expire_in":600,
     "client_timeout":0
 }
@@ -46,7 +44,6 @@ CONSUMER_CONFIG = {
     "scope": ["openid"],
     "response_type": ["code"],
     #"expire_in": 600,
-    "key": {"hmac":"jwt_key_001"}
 }
 
 SERVER_INFO ={
@@ -79,11 +76,23 @@ BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',
                'HTTP_ACCEPT_ENCODING': 'gzip, deflate',
                'COMMAND_MODE': 'unix2003'}
 
+CLIENT_SECRET = "abcdefghijklmnop"
+CLIENT_ID = "client_1"
+
+KEYS = [
+    [CLIENT_SECRET, "hmac", "verify", CLIENT_ID],
+    [CLIENT_SECRET, "hmac", "sign", CLIENT_ID],
+    ["drickyoughurt", "hmac", "verify", "number5"],
+    ["drickyoughurt", "hmac", "sign", "number5"],
+]
+
+#SIGN_KEY = {"hmac": ["abcdefghijklmnop"]}
+
 CDB = {
     "number5": {
         "password": "hemligt",
         "client_secret": "drickyoughurt",
-        "jwk_key": CONSUMER_CONFIG["key"],
+        #"jwk_key": CONSUMER_CONFIG["key"],
         "redirect_uri": ["http://localhost:8087/authz"]
     },
     "a1b2c3":{
@@ -92,9 +101,8 @@ CDB = {
     "client0":{
         "redirect_uri": ["http://www.example.org/authz"]
     },
-    "client1": {
-        "client_secret": "drickyoughurt",
-        "jwk_key": CONSUMER_CONFIG["key"],
+    CLIENT_ID: {
+        "client_secret": CLIENT_SECRET,
     }
 
 }
@@ -136,7 +144,7 @@ def verify_client(environ, areq, cdb):
     identity = areq.client_id
     secret = areq.client_secret
     if identity:
-        if identity == "client1" and secret == "hemligt":
+        if identity == CLIENT_ID and secret == CLIENT_SECRET:
             return True
         else:
             return False
@@ -206,8 +214,8 @@ USERDB = {
 
 URLMAP = {"client1": ["https://example.com/authz"]}
 
-srv_init = Server("pyoicserv", SessionDB(), CDB, FUNCTIONS, {"hmac":"mac_key"},
-                  USERDB, URLMAP)
+srv_init = Server("pyoicserv", SessionDB(), CDB, FUNCTIONS,
+                  userdb=USERDB, urlmap=URLMAP, jwt_keys=KEYS)
 
 def _eq(l1, l2):
     return set(l1) == set(l2)
@@ -423,7 +431,7 @@ def test_token_endpoint():
 
     authreq = AuthorizationRequest(state="state",
                                    redirect_uri="http://example.com/authz",
-                                   client_id="client1")
+                                   client_id=CLIENT_ID)
 
     _sdb = server.sdb
     sid = _sdb.token.key(user="user_id", areq=authreq)
@@ -432,7 +440,7 @@ def test_token_endpoint():
         "oauth_state": "authz",
         "user_id": "user_id",
         "authzreq": "",
-        "client_id": "client1",
+        "client_id": CLIENT_ID,
         "code": access_grant,
         "code_used": False,
         "scope": ["openid"],
@@ -440,9 +448,9 @@ def test_token_endpoint():
     }
 
     # Construct Access token request
-    areq = AccessTokenRequest(code=access_grant, client_id="client1",
+    areq = AccessTokenRequest(code=access_grant, client_id=CLIENT_ID,
                               redirect_uri="http://example.com/authz",
-                              client_secret="hemligt")
+                              client_secret=CLIENT_SECRET)
 
 
     str = areq.get_urlencoded()
@@ -450,7 +458,7 @@ def test_token_endpoint():
     environ = BASE_ENVIRON.copy()
     environ["CONTENT_LENGTH"] = len(str)
     environ["wsgi.input"] = fil
-    environ["REMOTE_USER"] = "client1"
+    environ["REMOTE_USER"] = CLIENT_ID
 
     resp = server.token_endpoint(environ, start_response, LOG(), None)
     print resp
@@ -520,7 +528,7 @@ def test_authz_endpoint():
 
 def test_idtoken():
     server = srv_init
-    AREQ = AuthorizationRequest(response_type="code", client_id="client1",
+    AREQ = AuthorizationRequest(response_type="code", client_id=CLIENT_ID,
                                 redirect_uri="http://example.com/authz",
                                 scope=["openid"], state="state000")
 
@@ -533,7 +541,7 @@ def test_idtoken():
 
 def test_add_token_info():
     server = srv_init
-    AREQ = AuthorizationRequest(response_type="code", client_id="client1",
+    AREQ = AuthorizationRequest(response_type="code", client_id=CLIENT_ID,
                                 redirect_uri="http://example.com/authz",
                                 scope=["openid"], state="state000")
 
@@ -561,8 +569,9 @@ def test_userinfo_endpoint():
 
     _session_db = {}
     cons = Consumer(_session_db, CONSUMER_CONFIG, CLIENT_CONFIG,
-                    server_info=SERVER_INFO, )
+                    server_info=SERVER_INFO)
     cons.debug = True
+    cons.client_secret = "drickyoughurt"
     cons.config["response_type"] = ["token"]
     cons.config["request_method"] = "parameter"
     environ = BASE_ENVIRON
@@ -601,8 +610,8 @@ def test_userinfo_endpoint():
 def test_check_session_endpoint():
     server = srv_init
     print server.name
-    server.srvmethod.jwt_keys = {"number5": {"hmac":
-                                                 CDB["number5"]["client_secret"]}}
+    server.keystore.add_key(CDB["number5"]["client_secret"], "hmac", "verify",
+                            "number5")
 
     session = {"user_id": "UserID", "client_id": "number5"}
     idtoken = server._id_token(session)
@@ -614,7 +623,7 @@ def test_check_session_endpoint():
     print info
     idt = IdToken.set_json(info[0])
     print idt.keys()
-    assert _eq(idt.keys(), ['user_id', 'aud', 'iss', 'exp'])
+    assert _eq(idt.keys(), ['user_id', 'aud', 'iss', 'acr', 'exp'])
     assert idt.iss == server.name
 
 def test_registration_endpoint():
@@ -635,7 +644,7 @@ def test_registration_endpoint():
     print resp
     regresp = RegistrationResponse.from_json(resp[0])
     print regresp.keys()
-    assert _eq(regresp.keys(), ['client_secret', 'expires_in', 'client_id'])
+    assert _eq(regresp.keys(), ['client_secret', 'client_id'])
 
     # --- UPDATE ----
 
@@ -651,5 +660,5 @@ def test_registration_endpoint():
     print resp
     update = RegistrationResponse.from_json(resp[0])
     print update.keys()
-    assert _eq(update.keys(), ['client_secret', 'expires_in', 'client_id'])
+    assert _eq(update.keys(), ['client_secret', 'client_id'])
     assert update.client_secret != regresp.client_secret

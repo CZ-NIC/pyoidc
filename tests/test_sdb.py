@@ -143,11 +143,11 @@ def test_update_to_token():
     _dict = sdb.update_to_token(grant)
 
     print _dict.keys()
-    assert _eq(_dict.keys(), ['code', 'oauth_state', 'issued', 'token_type',
-                              'client_id', 'authzreq', 'refresh_token',
-                              'user_id', 'access_token', 'expires_in',
-                              'state', 'redirect_uri', 'code_used', 'scope',
-                              'access_token_scope'])
+    assert _eq(_dict.keys(), ['code', 'oauth_state', 'issued', 'expires_at',
+                              'token_type', 'client_id', 'authzreq',
+                              'refresh_token', 'user_id', 'access_token',
+                              'expires_in', 'state', 'redirect_uri',
+                              'code_used', 'scope', 'access_token_scope'])
 
     raises(Exception, 'sdb.update_to_token(grant)')
 
@@ -159,12 +159,12 @@ def test_update_to_token():
 
     _dict = sdb.update_to_token(grant, id_token="id_token", oidreq=OIDR)
     print _dict.keys()
-    assert _eq(_dict.keys(), ['code', 'oauth_state', 'issued', 'token_type',
-                              'client_id', 'authzreq', 'refresh_token',
-                              'user_id', 'oidreq', 'access_token',
-                              'expires_in', 'state', 'redirect_uri',
-                              'code_used', 'id_token', 'scope',
-                              'access_token_scope'])
+    assert _eq(_dict.keys(), ['code', 'oauth_state', 'issued', 'expires_at',
+                              'token_type', 'client_id', 'authzreq',
+                              'refresh_token', 'user_id', 'oidreq',
+                              'access_token', 'expires_in', 'state',
+                              'redirect_uri', 'code_used', 'id_token',
+                              'scope', 'access_token_scope'])
 
     assert _dict["id_token"] == "id_token"
     assert isinstance(_dict["oidreq"], OpenIDRequest)

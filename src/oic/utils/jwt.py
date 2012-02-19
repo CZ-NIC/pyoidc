@@ -189,7 +189,7 @@ def unpack(token):
 
     return header, claim, crypto, header_b64, claim_b64
 
-def verify(token, keys):
+def verify(token, dkeys):
     header, claim, crypto, header_b64, claim_b64 = unpack(token)
 
     if u'typ' in header:
@@ -204,11 +204,11 @@ def verify(token, keys):
 
     verifier = ALGS[alg]
     if isinstance(verifier, HMACSigner):
-        keys = [str(k) for k in keys["hmac"]]
+        keys = [str(k) for k in dkeys["hmac"]]
     elif isinstance(verifier, RSASigner):
-        keys = keys["rsa"]
+        keys = dkeys["rsa"]
     else:
-        keys = keys["ec"]
+        keys = dkeys["ec"]
 
     if not keys:
         raise MissingKey(alg)
@@ -242,11 +242,11 @@ def sign(payload, keys, alg):
     header = {u'alg': alg}
     signer = ALGS[alg]
     if isinstance(signer, HMACSigner):
-        key = str(keys["hmac"])
+        key = str(keys["hmac"][0])
     elif isinstance(signer, RSASigner):
-        key = keys["rsa"]
+        key = keys["rsa"][0]
     else:
-        key = keys["ec"]
+        key = keys["ec"][0]
 
     header_b64 = b64e(json.dumps(header, separators=(",", ":")))
     payload_b64 = b64e(payload)

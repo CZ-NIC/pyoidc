@@ -37,12 +37,8 @@ ENDPOINT = {
 
 class MyFakeOICServer(Server):
     def __init__(self, jwt_keys=None, name=""):
-        Server.__init__(self)
+        Server.__init__(self, jwt_keys)
         self.sdb = SessionDB()
-        if jwt_keys is None:
-            self.jwt_keys = {}
-        else:
-            self.jwt_keys = jwt_keys
         self.name = name
         self.client = {}
         self.registration_expires_in = 3600
@@ -183,7 +179,7 @@ class MyFakeOICServer(Server):
     def check_session_endpoint(self, query):
         try:
             idtoken = self.parse_check_session_request(query=query)
-        except Exception:
+        except Exception, err:
             raise
 
         response = Response({"content-type":"application/json"})

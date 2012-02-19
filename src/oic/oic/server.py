@@ -163,28 +163,20 @@ def verify_acr_level(req, level):
 class Server(AServer):
     authorization_request = AuthorizationRequest
 
-    def __init__(self, name, sdb, cdb, function, keys, userdb, urlmap=None,
+    def __init__(self, name, sdb, cdb, function, userdb, urlmap=None,
                  debug=0, cache=None, timeout=None, proxy_info=None,
                  follow_redirects=True, ca_certs="", jwt_keys=None):
 
         AServer.__init__(self, name, sdb, cdb, function, urlmap, debug)
 
-        self.srvmethod = SrvMethod(jwt_keys)
+        self.srvmethod = SrvMethod(jwt_keys=jwt_keys)
+        self.keystore = self.srvmethod.keystore
 
-        self.keys = keys
         self.userdb = userdb
 
         self.function = function
         self.endpoints = []
         self.baseurl = ""
-
-        self.send_keys = {"sign": {}, "enc": {}}
-        #self.recv_keys = {"verify": {}, "dec": {}}
-
-#        self.response_type_map.update({
-#            "code": code_response,
-#            "token": token_response,
-#        })
 
         if not ca_certs:
             self.http = httplib2.Http(cache, timeout, proxy_info,
@@ -195,7 +187,8 @@ class Server(AServer):
 
         self.http.follow_redirects = follow_redirects
 
-    def _id_token(self, session, loa="2", info_log=None):
+    def _id_token(self, session, loa="2", info_log=None,
+                  signature="symmetric"):
         #defaults
         inawhile = {"days": 1}
         # Handle the idtoken_claims
@@ -230,25 +223,16 @@ class Server(AServer):
             idt.nonce = session["nonce"]
 
         # sign with clients secret key
-        ckey = self.cdb[session["client_id"]]["client_secret"]
+        _keystore = self.srvmethod.keystore
+        if signature == "symmetric":
+            ckey = _keystore.get_keys("sign", owner=session["client_id"])
+        else: # own asymmetric key
+            ckey = _keystore.get_sign_key()
+
         if info_log:
             info_log("Signed with '%s'" % ckey)
 
-        return idt.get_jwt(key={"hmac":ckey})
-
-    #noinspection PyUnusedLocal
-
-#    def authn_response(self, areq, session):
-#        areq.response_type.sort()
-#        _rtype = " ".join(areq.response_type)
-#
-#        scode = session["code"]
-#
-#        args = {"areq":areq, "scode":scode, "sdb":self.sdb}
-#        if "id_token" in areq.response_type:
-#            args["id_token"] = self._id_token(session)
-#
-#        return self.response_type_map[_rtype](**args)
+        return idt.get_jwt(key=ckey)
 
     def _error(self, environ, start_response, error, descr=None):
         response = ErrorResponse(error=error, error_description=descr)
@@ -316,9 +300,10 @@ class Server(AServer):
         openid_req = None
         if "request" in areq or "request_uri" in areq:
             try:
-                jwt_key = {"hmac":self.cdb[areq.client_id]["client_secret"]}
+                _keystore = self.srvmethod.keystore
+                jwt_key = _keystore.get_keys("verify", owner=None)
             except KeyError: # TODO
-                raise KeyError("Missing client signing key")
+                raise KeyError("Missing verifying key")
         
             if areq.request:
                 try:
@@ -549,6 +534,7 @@ class Server(AServer):
         request = RegistrationRequest.from_urlencoded(query)
         logger.info("%s" % request.dictionary())
 
+        _keystore = self.srvmethod.keystore
         if request.type == "client_associate":
             # create new id och secret
             client_id = rndstr(12)
@@ -569,8 +555,9 @@ class Server(AServer):
                 
         elif request.type == "client_update":
             #  that these are an id,secret pair I know about
+            client_id = request.client_id
             try:
-                _cinfo = self.cdb[request.client_id]
+                _cinfo = self.cdb[client_id]
             except KeyError:
                 logger.info("Unknown client id")
                 resp = BadRequest()
@@ -582,16 +569,21 @@ class Server(AServer):
                 return resp(environ, start_response)
 
             # update secret
-            client_secret = secret(self.seed, request.client_id)
+            client_secret = secret(self.seed, client_id)
             _cinfo["client_secret"] = client_secret
-            client_id = request.client_id
+
+            old_key = request.client_secret
+            _keystore.remove_key(old_key, client_id, type="hmac", usage="sign")
+            _keystore.remove_key(old_key, client_id, type="hmac",
+                                 usage="verify")
         else:
             resp = BadRequest("Unknown request type: %s" % request.type)
             return resp(environ, start_response)
 
         # Add the key to the keystore
 
-        self.srvmethod.jwt_keys[client_id] = {"hmac": client_secret}
+        _keystore.set_sign_key(client_secret, owner=client_id)
+        _keystore.set_verify_key(client_secret, owner=client_id)
 
         # set expiration time
         _cinfo["registration_expires"] = time_util.time_sans_frac()+3600

@@ -10,7 +10,7 @@ import httplib2
 from hashlib import md5
 
 from oic.utils import http_util
-from oic.utils.time_util import time_sans_frac
+#from oic.utils.time_util import time_sans_frac
 
 from oic.oic import Client
 from oic.oic import ENDPOINTS
@@ -71,7 +71,7 @@ def factory(kaka, sdb, config):
     http_util.parse_cookie(config["name"], cons.seed, kaka)
     return cons
 
-def construct_openid_request(arq, key, algorithm=DEF_SIGN_ALG):
+def construct_openid_request(arq, keys, algorithm=DEF_SIGN_ALG):
     """
     Construct the specification of what I want returned.
     The request will be signed
@@ -91,7 +91,7 @@ def construct_openid_request(arq, key, algorithm=DEF_SIGN_ALG):
                             arq.scope, arq.state,
                             user_info=uic, id_token=id_token)
 
-    return oir.get_jwt(key=key, algorithm=algorithm)
+    return oir.get_jwt(key=keys, algorithm=algorithm)
 
 def clean_response(aresp):
     """
@@ -153,6 +153,7 @@ class Consumer(Client):
         self.request_filename=""
         self.user_info = None
         self.registration_expires_in = 0
+        self.secret_type = "Bearer"
 
     def update(self, sid):
         """ Updates the instance variables from something stored in the
@@ -239,7 +240,8 @@ class Consumer(Client):
                                                    request_args=args)
 
         if "request_method" in self.config:
-            id_request = construct_openid_request(areq, self.config["key"])
+            _keys = self.keystore.get_sign_key()
+            id_request = construct_openid_request(areq, _keys)
             if self.config["request_method"] == "parameter":
                 areq.request = id_request
             elif self.config["request_method"] == "simple":

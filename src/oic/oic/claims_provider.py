@@ -77,14 +77,41 @@ class OICCServer(OicServer):
 
 class ClaimsServer(Server):
 
-    def __init__(self, name, sdb, cdb, function, keys, userdb, urlmap=None,
+    def __init__(self, name, sdb, cdb, function, userdb, urlmap=None,
                  debug=0, cache=None, timeout=None, proxy_info=None,
                  follow_redirects=True, ca_certs="", jwt_keys=None):
-        Server.__init__(self, name, sdb, cdb, function, keys, userdb, urlmap,
+        Server.__init__(self, name, sdb, cdb, function, userdb, urlmap,
                         debug, cache, timeout, proxy_info,
                         follow_redirects, ca_certs, jwt_keys)
 
-        self.srvmethod = OICCServer(jwt_keys)
+        if jwt_keys is None:
+            jwt_keys = []
+
+        for cid, _dic in cdb.items():
+            jwt_keys.append([_dic["client_secret"], "hmac", "sign", cid])
+            jwt_keys.append([_dic["client_secret"], "hmac", "verify", cid])
+
+        self.srvmethod = OICCServer(jwt_keys=jwt_keys)
+        self.keystore = self.srvmethod.keystore
+
+    def _aggregation(self, info, logger):
+
+        jwt_key = self.keystore.get_sign_key()
+        cresp = UserClaimsResponse(jwt=info.get_jwt(key=jwt_key,
+                                                    algorithm="RS256"),
+                                   claims_names=info.keys())
+
+        logger.info("RESPONSE: %s" % (cresp.dictionary(),))
+        return cresp
+
+    #noinspection PyUnusedLocal
+    def _distributed(self, ucreq, logger):
+
+        cresp = UserClaimsResponse()
+        return cresp
+
+    def do_aggregation(self):
+        return True
 
     #noinspection PyUnusedLocal
     def claims_endpoint(self, environ, start_response, logger, *args):
@@ -96,7 +123,7 @@ class ClaimsServer(Server):
         _log_info("request: %s" % ucreq)
 
         if ucreq.claims_names:
-            args = dict([(n, None) for n in ucreq.claims_names])
+            args = dict([(n, {"optional": True}) for n in ucreq.claims_names])
             uic = UserInfoClaim(claims=[Claims(**args)])
         else:
             uic = None
@@ -108,11 +135,11 @@ class ClaimsServer(Server):
 
         _log_info("User info: %s" % info.dictionary())
 
-        jwt_key = {"hmac":self.cdb[ucreq.client_id]["client_secret"]}
-        cresp = UserClaimsResponse(jwt=info.get_jwt(key=jwt_key),
-                                   claims_names=info.keys())
+        if self.do_aggregation():
+            cresp = self._aggregation(info, logger)
+        else:
+            cresp = self._distributed(info, logger)
 
-        _log_info("RESPONSE: %s" % (cresp.dictionary(),))
         resp = Response(cresp.get_json(), content="application/json")
         return resp(environ, start_response)
 
@@ -160,5 +187,5 @@ class ClaimsClient(Client):
         return self.request_and_return(url, resp_cls, method, body,
                                        body_type, extended=False,
                                        http_args=http_args,
-                                       key=self.verify_key)
+                                       key=self.keystore.get_verify_key("rsa"))
 
