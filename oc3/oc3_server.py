@@ -337,7 +337,12 @@ def application(environ, start_response):
                 environ['oic.url_args'] = match.groups()[0]
             except IndexError:
                 environ['oic.url_args'] = path
-            return callback(environ, start_response, handle)
+
+            try:
+                return callback(environ, start_response, handle)
+            except Exception,err:
+                resp = ServiceError("%s" % err)
+                return resp(environ, start_response)
 
     resp = NotFound("Couldn't find the side you asked for!")
     return resp(environ, start_response)
