@@ -1042,26 +1042,26 @@ class Server(object):
 #        return True
 
 
-import hashlib
-from Crypto.Cipher import AES
-
-class Crypt():
-    def __init__(self, password, mode=AES.MODE_CBC):
-        self.password = password or 'kitty'
-        self.key = hashlib.sha256(password).digest()
-        self.mode = mode
-
-    def encrypt(self, text):
-        encryptor = AES.new(self.key, self.mode)
-
-        if len(text) % 16:
-            text += ' ' * (16 - len(text) % 16)
-            
-        return encryptor.encrypt(text)
-
-    def decrypt(self, ciphertext):
-        decryptor = AES.new(self.key, self.mode)
-        return decryptor.decrypt(ciphertext)
+#import hashlib
+#from Crypto.Cipher import AES
+#
+#class Crypt():
+#    def __init__(self, password, mode=AES.MODE_CBC):
+#        self.password = password or 'kitty'
+#        self.key = hashlib.sha256(password).digest()
+#        self.mode = mode
+#
+#    def encrypt(self, text):
+#        encryptor = AES.new(self.key, self.mode)
+#
+#        if len(text) % 16:
+#            text += ' ' * (16 - len(text) % 16)
+#
+#        return encryptor.encrypt(text)
+#
+#    def decrypt(self, ciphertext):
+#        decryptor = AES.new(self.key, self.mode)
+#        return decryptor.decrypt(ciphertext)
     
 
 if __name__ == "__main__":
