@@ -81,14 +81,38 @@ def claims(environ, start_response, handle):
 
     return _oas.claims_endpoint(environ, start_response, LOGGER)
 
+#noinspection PyUnusedLocal
+def registration(environ, start_response, handle):
+    _oas = environ["oic.oas"]
+
+    return _oas.registration_endpoint(environ, start_response, LOGGER)
+
+# ----------------------------------------------------------------------------
+
+def static(environ, start_response, path):
+    _log_info = environ["oic.logger"].info
+
+    _txt = open(path).read()
+    if "x509" in path:
+        content = "text/xml"
+    else:
+        content = "application/json"
+
+    _log_info(_txt)
+
+    resp = Response(_txt, content=content)
+    return resp(environ, start_response)
+
 # ----------------------------------------------------------------------------
 
 from oic.oic.server import UserinfoEndpoint
 from oic.oic.server import CheckIDEndpoint
+from oic.oic.server import RegistrationEndpoint
 
 ENDPOINTS = [
     UserinfoEndpoint(userinfo),
     CheckIDEndpoint(check_id),
+    RegistrationEndpoint(registration)
 ]
 
 URLS = [
@@ -114,11 +138,11 @@ def application(environ, start_response):
     :return: The response as a list of lines
     """
     global OAS
+    global LOGGER
 
     #user = environ.get("REMOTE_USER", "")
     path = environ.get('PATH_INFO', '').lstrip('/')
     kaka = environ.get("HTTP_COOKIE", '')
-
 
     if kaka:
         handle = parse_cookie(OAS.name, OAS.seed, kaka)
@@ -128,16 +152,20 @@ def application(environ, start_response):
         handle = ""
 
     environ["oic.oas"] = OAS
+    environ["oic.logger"] = LOGGER
 
     LOGGER.info("path: %s" % path)
-    for regex, callback in URLS:
-        match = re.search(regex, path)
-        if match is not None:
-            try:
-                environ['oic.url_args'] = match.groups()[0]
-            except IndexError:
-                environ['oic.url_args'] = path
-            return callback(environ, start_response, handle)
+    if path in OAS.cert or OAS.jwk:
+        return static(environ, start_response, path)
+    else:
+        for regex, callback in URLS:
+            match = re.search(regex, path)
+            if match is not None:
+                try:
+                    environ['oic.url_args'] = match.groups()[0]
+                except IndexError:
+                    environ['oic.url_args'] = path
+                return callback(environ, start_response, handle)
 
     resp = NotFound("Couldn't find the side you asked for!")
     return resp(environ, start_response)
@@ -165,6 +193,7 @@ SERVER_DB = {
 if __name__ == '__main__':
     import argparse
     import json
+    from oic.utils import jwt
 
     from cherrypy import wsgiserver
     from cherrypy.wsgiserver import ssl_builtin
@@ -185,7 +214,12 @@ if __name__ == '__main__':
 
     config = json.loads(open(args.config).read())
     OAS = ClaimsServer(config["issuer"], SessionDB(), cdb, FUNCTIONS,
-                       config["keys"], USERDB)
+                       USERDB)
+
+    if "keys" in config:
+        for type, info in config["keys"].items():
+            OAS.keystore.add_key(jwt.rsa_load(info["key"]), type, "sign")
+            OAS.cert.append(info["cert"])
 
     #print URLS
     if args.debug:
@@ -203,8 +237,8 @@ if __name__ == '__main__':
         OAS.baseurl += "/"
 
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
-    SRV.ssl_adapter = ssl_builtin.BuiltinSSLAdapter("certs/server.crt",
-                                                    "certs/server.key")
+    #SRV.ssl_adapter = ssl_builtin.BuiltinSSLAdapter("certs/server.crt",
+    #                                                "certs/server.key")
     try:
         SRV.start()
     except KeyboardInterrupt:

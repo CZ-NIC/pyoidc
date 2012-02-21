@@ -9,12 +9,12 @@ from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 from oic.oauth2.message import ErrorResponse
 
-from oic.utils.http_util import Response
+from oic.utils.http_util import Response, Unauthorized
 from oic.oic import REQUEST2ENDPOINT
 from oic.oic import RESPONSE2ERROR
 
 #from oic.oic.message import IdToken, OpenIDSchema
-from oic.oic.message import Claims
+from oic.oic.message import Claims, TokenErrorResponse
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import UserInfoClaim
 
@@ -121,6 +121,12 @@ class ClaimsServer(Server):
         ucreq = self.srvmethod.parse_user_claims_request(query)
 
         _log_info("request: %s" % ucreq)
+
+        if not self.function["verify_client"](environ, ucreq, self.cdb):
+            _log_info("could not verify client")
+            err = TokenErrorResponse(error="unathorized_client")
+            resp = Unauthorized(err.get_json(), content="application/json")
+            return resp(environ, start_response)
 
         if ucreq.claims_names:
             args = dict([(n, {"optional": True}) for n in ucreq.claims_names])

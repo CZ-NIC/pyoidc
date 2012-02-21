@@ -101,7 +101,7 @@ class Client(oauth2.Client):
     def __init__(self, client_id=None, cache=None, timeout=None,
                  proxy_info=None, follow_redirects=True,
                  disable_ssl_certificate_validation=False,
-                 ca_certs="",client_timeout=0,
+                 ca_certs=None,client_timeout=0,
                  expire_in=0, grant_expire_in=0, httpclass=None):
 
         if expire_in:
@@ -551,10 +551,10 @@ class Server(oauth2.Server):
         return oauth2.Server.parse_authorization_request(self, rcls, url,
                                                          query, extended)
 
-    def parse_jwt_request(self, client_id, rcls=AuthorizationRequest, txt="",
+    def parse_jwt_request(self, rcls=AuthorizationRequest, txt="",
                           keys=None, verify=True, extended=False):
 
-        return oauth2.Server.parse_jwt_request(self, client_id, rcls, txt,
+        return oauth2.Server.parse_jwt_request(self, rcls, txt,
                                                keys, verify, extended)
 
     def parse_refresh_token_request(self, cls=RefreshAccessTokenRequest,

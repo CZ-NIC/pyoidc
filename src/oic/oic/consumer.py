@@ -420,6 +420,8 @@ class Consumer(Client):
             raise Exception(response.status)
 
     def provider_config(self, issuer):
+        if issuer.endswith("/"):
+            issuer = issuer[:-1]
 
         url = OIDCONF_PATTERN % issuer
 

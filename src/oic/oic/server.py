@@ -177,6 +177,8 @@ class Server(AServer):
         self.function = function
         self.endpoints = []
         self.baseurl = ""
+        self.cert = []
+        self.jwk = []
 
         if not ca_certs:
             self.http = httplib2.Http(cache, timeout, proxy_info,
@@ -599,6 +601,7 @@ class Server(AServer):
     #noinspection PyUnusedLocal
     def providerinfo_endpoint(self, environ, start_response, logger, *args):
         _response = ProviderConfigurationResponse(
+            issuer=self.baseurl,
             token_endpoint_auth_types_supported=["client_secret_post",
                                                  "client_secret_basic",
                                                  "client_secret_jwt"],
@@ -607,8 +610,14 @@ class Server(AServer):
                                       "code token", "code id_token",
                                       "token id_token", "code token id_token"],
             user_id_types_supported=["basic"],
-            request_object_algs_supported=["HS256"]
+            #request_object_algs_supported=["HS256"]
         )
+
+        #keys = self.keystore.keys_by_owner(owner=".")
+        for cert in self.cert:
+            setattr(_response, "x509_url", "%s%s" % (self.baseurl, cert))
+        for jwk in self.jwk:
+            setattr(_response, "jwk_url", "%s%s" % (self.baseurl, jwk))
 
         if not self.baseurl.endswith("/"):
             self.baseurl += "/"

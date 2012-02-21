@@ -335,6 +335,9 @@ class KeyStore(object):
             else:
                 return self._store[owner][usage]
 
+    def keys_by_owner(self, owner):
+        return self._store[owner]
+
     def remove_key(self, key, owner=".", type=None, usage=None):
         _keys = self._store[owner]
         if usage:
@@ -415,7 +418,7 @@ class Client(object):
 
     def __init__(self, client_id=None, cache=None, time_out=None,
                  proxy_info=None, follow_redirects=True,
-                 disable_ssl_certificate_validation=False, ca_certs="",
+                 disable_ssl_certificate_validation=False, ca_certs=None,
                  grant_expire_in=600, client_timeout=0, httpclass=None,
                  jwt_keys=None):
 
@@ -1008,7 +1011,7 @@ class Server(object):
         
         return self.parse_url_request(rcls, url, query, extended)
 
-    def parse_jwt_request(self, client_id, rcls=AuthorizationRequest, txt="", keystore="",
+    def parse_jwt_request(self, rcls=AuthorizationRequest, txt="", keystore="",
                           verify=True, extend=False):
         if not keystore:
             keystore = self.keystore
@@ -1042,27 +1045,6 @@ class Server(object):
 #        return True
 
 
-#import hashlib
-#from Crypto.Cipher import AES
-#
-#class Crypt():
-#    def __init__(self, password, mode=AES.MODE_CBC):
-#        self.password = password or 'kitty'
-#        self.key = hashlib.sha256(password).digest()
-#        self.mode = mode
-#
-#    def encrypt(self, text):
-#        encryptor = AES.new(self.key, self.mode)
-#
-#        if len(text) % 16:
-#            text += ' ' * (16 - len(text) % 16)
-#
-#        return encryptor.encrypt(text)
-#
-#    def decrypt(self, ciphertext):
-#        decryptor = AES.new(self.key, self.mode)
-#        return decryptor.decrypt(ciphertext)
-    
 
 if __name__ == "__main__":
     import doctest

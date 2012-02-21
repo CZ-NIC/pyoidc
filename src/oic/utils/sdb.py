@@ -6,9 +6,10 @@ import time
 import random
 import base64
 
-from oic import oauth2
 from oic.oauth2 import rndstr
 from oic.utils.time_util import utc_time_sans_frac
+
+from Crypto.Cipher import AES
 
 class ExpiredToken(Exception):
     pass
@@ -16,12 +17,31 @@ class ExpiredToken(Exception):
 class WrongTokenType(Exception):
     pass
 
+
+class Crypt():
+    def __init__(self, password, mode=AES.MODE_CBC):
+        self.password = password or 'kitty'
+        self.key = hashlib.sha256(password).digest()
+        self.mode = mode
+
+    def encrypt(self, text):
+        encryptor = AES.new(self.key, self.mode)
+
+        if len(text) % 16:
+            text += ' ' * (16 - len(text) % 16)
+
+        return encryptor.encrypt(text)
+
+    def decrypt(self, ciphertext):
+        decryptor = AES.new(self.key, self.mode)
+        return decryptor.decrypt(ciphertext)
+
 class Token(object):
     def __init__(self, secret, password):
         self.secret = secret
         self._rndlen = 19
         self._sidlen = 28
-        self.crypt = oauth2.Crypt(password)
+        self.crypt = Crypt(password)
 
     def __call__(self, type="A", prev="", sid=None):
         if prev:
