@@ -43,6 +43,7 @@ REQUEST2ENDPOINT = {
 # -----------------------------------------------------------------------------
 MAX_AUTHENTICATION_AGE = 86400
 JWT_BEARER = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+OIDCONF_PATTERN = "%s/.well-known/openid-configuration"
 
 AUTHN_METHOD = OAUTH2_AUTHN_METHOD.copy()
 
@@ -529,6 +530,60 @@ class Client(oauth2.Client):
 
         return OpenIDSchema.set_json(txt=content, extended=True)
 
+    def provider_config(self, issuer, only_keys=False):
+        if issuer.endswith("/"):
+            _issuer = issuer[:-1]
+        else:
+            _issuer = issuer
+
+        url = OIDCONF_PATTERN % _issuer
+
+        (response, content) = self.http.request(url)
+        if response.status == 200:
+            pcr = ProviderConfigurationResponse.from_json(content,
+                                                          extended=True)
+        else:
+            raise Exception("%s" % response.status)
+
+        if pcr["issuer"]:
+            assert issuer == pcr["issuer"]
+
+        if not only_keys:
+            for key, val in pcr.items():
+                if key.endswith("_endpoint"):
+                    setattr(self, key, val)
+
+        _keystore = self.keystore
+
+        if "x509_url" in pcr:
+            _verkey = self.load_x509_cert(pcr["x509_url"], "verify", issuer)
+        else:
+            _verkey = None
+
+        if "x509_encryption_url" in pcr:
+            self.load_x509_cert(pcr["x509_encryption_url"], "enc",
+                                          issuer)
+        elif _verkey:
+            _keystore.set_decrypt_key(_verkey, "rsa", issuer)
+
+        return pcr
+
+    def unpack_aggregated_claims(self, userinfo):
+        for csrc, spec in userinfo._claims_sources.items():
+            if "JWT" in spec:
+                if not csrc in self.keystore:
+                    self.provider_config(csrc, only_keys=True)
+
+                keycol = self.keystore.pairkeys(csrc)["verify"]
+                info = json.loads(jwt.verify(str(spec["JWT"]), keycol))
+                attr = [n for n, s in userinfo._claims_names.items() if s ==
+                                                                        csrc]
+                assert attr == info.keys()
+
+                for key, vals in info.items():
+                    userinfo[key] = vals
+
+        return userinfo
 
 #noinspection PyMethodOverriding
 class Server(oauth2.Server):
@@ -568,7 +623,7 @@ class Server(oauth2.Server):
         
         # have to start decoding the jwt without verifying in order to find
         # out which key to verify the JWT signature with
-        info = json.loads(jwt.unpack(str)[1])
+        _ = json.loads(jwt.unpack(str)[1])
 
         # in there there should be information about the client_id
         # Use that to find the key and do the signature verify
@@ -636,6 +691,3 @@ class Server(oauth2.Server):
     def parse_issuer_request(self, info, format="urlencoded", extended=True):
         return self._parse_request(IssuerRequest, info, format, extended)
 
-    def parse_user_claims_request(self, info, format="urlencoded",
-                                extended=True):
-        return self._parse_request(UserClaimsRequest, info, format, extended)

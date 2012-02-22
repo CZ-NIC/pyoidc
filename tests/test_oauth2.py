@@ -9,13 +9,14 @@ import hmac
 import hashlib
 
 from oic.utils import time_util
-from oic.oauth2 import Crypt
 from oic.oauth2 import Grant
 from oic.oauth2 import Client
 from oic.oauth2 import Server
 from oic.oauth2 import Token
 from oic.oauth2.message import *
 from oic import oauth2
+
+from oic.utils.sdb import Crypt
 
 from pytest import raises
 
@@ -687,7 +688,7 @@ def test_server_parse_jwt_request():
     keys = srv.keystore.get_sign_key(owner="foobar")
     _jwt = ar.get_jwt(key=keys, algorithm="HS256")
 
-    req = srv.parse_jwt_request(client_id="foobar", txt=_jwt)
+    req = srv.parse_jwt_request(txt=_jwt)
 
     assert isinstance(req, AuthorizationRequest)
     assert req.response_type == ["code"]

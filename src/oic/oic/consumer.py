@@ -21,7 +21,7 @@ from oic.oic.message import Claims
 from oic.oic.message import OpenIDRequest
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import AccessTokenResponse
-from oic.oic.message import ProviderConfigurationResponse
+#from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import IssuerRequest
@@ -37,7 +37,6 @@ from oic.oauth2.consumer import AuthzError
 from oic.oauth2.consumer import UnknownState
 
 SWD_PATTERN = "http://%s/.well-known/simple-web-discovery"
-OIDCONF_PATTERN = "%s/.well-known/openid-configuration"
 ISSUER_URL = "http://openid.net/specs/connect/1.0/issuer"
 
 def stateID(url, seed):
@@ -418,18 +417,6 @@ class Consumer(Client):
                 return result
         else:
             raise Exception(response.status)
-
-    def provider_config(self, issuer):
-        if issuer.endswith("/"):
-            issuer = issuer[:-1]
-
-        url = OIDCONF_PATTERN % issuer
-
-        (response, content) = self.http.request(url)
-        if response.status == 200:
-            return ProviderConfigurationResponse.from_json(content)
-        else:
-            raise Exception("%s" % response.status)
 
     def get_domain(self, principal, idtype="mail"):
         if idtype == "mail":

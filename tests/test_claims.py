@@ -13,7 +13,7 @@ from oic.oic.claims_provider import UserClaimsRequest
 from oic.oic.claims_provider import UserClaimsResponse
 
 #noinspection PyUnusedLocal
-def user_info(userdb, user_id, client_id="", user_info_claims=None):
+def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
     #print >> sys.stderr, "claims: %s" % user_info_claims
     identity = userdb[user_id]
     if user_info_claims:
@@ -73,6 +73,14 @@ CDB = {
     "client_1": { "client_secret": "hemlig"}
 }
 
+def verify_client(env, req, cdb):
+    return True
+
+FUNCTIONS = {
+    "verify_client": verify_client,
+    "userinfo": user_info
+}
+
 # ============================================================================
 
 def _eq(l1,l2):
@@ -107,7 +115,7 @@ def test_c2():
 
 def test_srv1():
 
-    info = user_info(USERDB, "diana")
+    info = user_info(None, USERDB, "diana")
 
     keys = {"hmac": "hemlig"}
     cresp = UserClaimsResponse(jwt=info.get_jwt(key=keys),
@@ -125,7 +133,7 @@ def test_srv2():
     req = cc.construct_UserClaimsRequest(request_args={"user_id": "diana",
                                         "claims_names":["gender", "birthdate"]})
 
-    srv = ClaimsServer("name", None, CDB, {"userinfo": user_info}, USERDB)
+    srv = ClaimsServer("name", None, CDB, FUNCTIONS, USERDB)
 
     srv.keystore.set_sign_key(jwt.rsa_load("rsa.key"), "rsa")
     assert srv

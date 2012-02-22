@@ -31,7 +31,7 @@ def verify_client(environ, req, cdb):
     return False
 
 #noinspection PyUnusedLocal
-def user_info(userdb, user_id, client_id="", user_info_claims=None):
+def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
     #print >> sys.stderr, "claims: %s" % user_info_claims
 
     identity = userdb[user_id]
@@ -76,7 +76,7 @@ def op_info(environ, start_response, handle):
     return _oas.providerinfo_endpoint(environ, start_response, LOGGER)
 
 #noinspection PyUnusedLocal
-def claims(environ, start_response, handle):
+def userclaims(environ, start_response, handle):
     _oas = environ["oic.oas"]
 
     return _oas.claims_endpoint(environ, start_response, LOGGER)
@@ -85,12 +85,13 @@ def claims(environ, start_response, handle):
 def registration(environ, start_response, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.registration_endpoint(environ, start_response, LOGGER)
+    return _oas.registration_endpoint(environ, start_response,
+                                      environ["oic.logger"])
 
 # ----------------------------------------------------------------------------
 
 def static(environ, start_response, path):
-    _log_info = environ["oic.logger"].info
+    #_log_info = environ["oic.logger"].info
 
     _txt = open(path).read()
     if "x509" in path:
@@ -98,7 +99,7 @@ def static(environ, start_response, path):
     else:
         content = "application/json"
 
-    _log_info(_txt)
+    #_log_info(_txt)
 
     resp = Response(_txt, content=content)
     return resp(environ, start_response)
@@ -108,16 +109,17 @@ def static(environ, start_response, path):
 from oic.oic.server import UserinfoEndpoint
 from oic.oic.server import CheckIDEndpoint
 from oic.oic.server import RegistrationEndpoint
+from oic.oic.claims_provider import UserClaimsEndpoint
 
 ENDPOINTS = [
     UserinfoEndpoint(userinfo),
     CheckIDEndpoint(check_id),
-    RegistrationEndpoint(registration)
+    RegistrationEndpoint(registration),
+    UserClaimsEndpoint(userclaims)
 ]
 
 URLS = [
-    (r'^.well-known/openid-configuration', op_info),
-    ("claims", claims)
+    (r'^.well-known/openid-configuration', op_info)
 ]
 
 for endp in ENDPOINTS:
@@ -237,8 +239,8 @@ if __name__ == '__main__':
         OAS.baseurl += "/"
 
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
-    #SRV.ssl_adapter = ssl_builtin.BuiltinSSLAdapter("certs/server.crt",
-    #                                                "certs/server.key")
+    SRV.ssl_adapter = ssl_builtin.BuiltinSSLAdapter("certs/mycert.pem",
+                                                    "certs/mycert.key")
     try:
         SRV.start()
     except KeyboardInterrupt:

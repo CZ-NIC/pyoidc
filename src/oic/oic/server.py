@@ -293,7 +293,7 @@ class Server(AServer):
         if areq.redirect_uri:
             try:
                 assert areq.redirect_uri in self.cdb[
-                                            areq.client_id]["redirect_uri"]
+                                            areq.client_id]["redirect_uris"]
             except AssertionError:
                 return self._authz_error(environ, start_response,
                                          "invalid_request_redirect_uri")
@@ -480,8 +480,9 @@ class Server(AServer):
                 userinfo_claims  = None
 
         _log_info("userinfo_claim: %s" % userinfo_claims)
+        _log_info("userdb: %s" % self.userdb.keys())
         #logger.info("oidreq: %s[%s]" % (oidreq, type(oidreq)))
-        info = self.function["userinfo"](self.userdb,
+        info = self.function["userinfo"](self, self.userdb,
                                           session["user_id"],
                                           session["client_id"],
                                           userinfo_claims)
@@ -534,7 +535,7 @@ class Server(AServer):
             return resp(environ, start_response)
 
         request = RegistrationRequest.from_urlencoded(query)
-        logger.info("%s" % request.dictionary())
+        logger.info("RegistrationRequest:%s" % request.dictionary())
 
         _keystore = self.srvmethod.keystore
         if request.type == "client_associate":
@@ -621,10 +622,13 @@ class Server(AServer):
 
         if not self.baseurl.endswith("/"):
             self.baseurl += "/"
+        logger.info("endpoints: %s" % self.endpoints)
         for endp in self.endpoints:
-            setattr(_response, endp.name, "%s%s" % (self.baseurl, endp.type))
+            logger.info("# %s, %s" % (endp, endp.name))
+            _response[endp.name] = "%s%s" % (self.baseurl, endp.type)
 
-        resp = Response(_response.to_json(), content="application/json",
+        logger.info("provider_info_response: %s" % _response.dictionary(True))
+        resp = Response(_response.to_json(True), content="application/json",
                             headers=[("Cache-Control", "no-store")])
         return resp(environ, start_response)
 
@@ -734,7 +738,7 @@ class Server(AServer):
 
         if areq.redirect_uri:
             assert areq.redirect_uri in self.cdb[
-                                            areq.client_id]["redirect_uri"]
+                                            areq.client_id]["redirect_uris"]
             redirect_uri = areq.redirect_uri
         else:
             redirect_uri = self.cdb[areq.client_id]["redirect_uris"][0]
@@ -774,5 +778,5 @@ class UserinfoEndpoint(Endpoint):
 class CheckIDEndpoint(Endpoint):
     type = "check_id"
 
-class RegistrationEndpoint(Endpoint):
+class RegistrationEndpoint(Endpoint) :
     type = "registration"

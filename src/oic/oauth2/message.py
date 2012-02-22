@@ -455,7 +455,12 @@ class Base(object):
 
     def request(self, location):
         return "%s?%s" % (location, self.to_urlencoded(extended=True))
-    
+
+    def __setitem__(self, key, value):
+        if key in self.c_attributes:
+            setattr(self, key, value)
+        else:
+            self.c_extension[key] = value
 #
 # =============================================================================
 #

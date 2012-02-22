@@ -11,19 +11,20 @@ from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.oauth2 import SINGLE_REQUIRED_STRING
 from oic.oauth2 import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2 import SINGLE_OPTIONAL_INT
-from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
+#from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 from oic.oauth2.message import Base
 
-def to_json(dic):
-    return json.dumps(dic)
+#noinspection PyUnusedLocal
+def json_ser(val, format=None, extended=False):
+    return json.dumps(val)
 
 #noinspection PyUnusedLocal
-def from_json(str, extended=None):
-    return json.loads(str)
+def json_deser(val, format, extended=None):
+    return json.loads(val)
 
 SINGLE_OPTIONAL_JWT = SINGLE_OPTIONAL_STRING
 SINGLE_OPTIONAL_BOOLEAN = (bool, False, None, None)
-SINGLE_OPTIONAL_JSON = (dict, False, to_json, from_json)
+SINGLE_OPTIONAL_JSON = (dict, False, json_ser, json_deser)
 SINGLE_REQUIRED_INT = (int, True, None, None)
 
 def base_deser(cls, val, format, extended=False):
@@ -457,8 +458,8 @@ class OpenIDSchema(oauth2.Base):
     c_attributes["phone_number"] = SINGLE_OPTIONAL_STRING
     c_attributes["address"] = OPTIONAL_ADDRESS
     c_attributes["updated_time"] = SINGLE_OPTIONAL_STRING
-    c_attributes["_claims_names"] = SINGLE_OPTIONAL_STRING
-    c_attributes["_claims_sources"] = SINGLE_OPTIONAL_STRING
+    c_attributes["_claims_names"] = SINGLE_OPTIONAL_JSON
+    c_attributes["_claims_sources"] = SINGLE_OPTIONAL_JSON
 
     def __init__(self,
                  user_id=None,

@@ -78,19 +78,30 @@ def verify_client(environ, areq, cdb):
     return False
 
 #import sys
-CLIENT_INFO = {
-    "https://localhost:8089/claims": {
-        "client_id": "client_1",
-        "client_secret": "hemlig"
-    }
-}
+def dynamic_init_claims_client(issuer, req_args):
+    cc = ClaimsClient()
+    # dynamic provider info discovery
+    cc.provider_config(issuer)
+    resp = cc.do_registration_request(request_args=req_args)
+    cc.client_id = resp.client_id
+    cc.client_secret = resp.client_secret
+    return cc
 
-def _collect_distributed(endp, user_id, what, alias=""):
-    cc = ClaimsClient(client_id=CLIENT_INFO[endp]["client_id"])
-    cc.client_secret=CLIENT_INFO[endp]["client_secret"]
+def init_claims_clients(client_info):
+    res = {}
+    for cid, specs in client_info.items():
+        if "dynamic" in specs:
+            cc = dynamic_init_claims_client(cid, args)
+        else:
+            cc = ClaimsClient(client_id=specs["client_id"])
+            cc.client_secret=specs["client_secret"]
+            cc.load_x509_cert(specs["x509_url"], "verify", cid)
+            cc.userclaims_endpoint = specs["userclaims_endpoint"]
+        res[cid] = cc
+    return res
 
+def _collect_distributed(srv, cc, user_id, what, alias=""):
 
-    cc.userclaims_endpoint = endp
     try:
         resp = cc.do_claims_request(request_args={"user_id": user_id,
                                                   "claims_names": what})
@@ -100,7 +111,7 @@ def _collect_distributed(endp, user_id, what, alias=""):
     result = {"_claims_names":{}, "_claims_sources": {}}
 
     if not alias:
-        alias = endp
+        alias = srv
 
     for key in resp.claims_names:
         result["_claims_names"][key] = alias
@@ -115,7 +126,7 @@ def _collect_distributed(endp, user_id, what, alias=""):
     return result
 
 #noinspection PyUnusedLocal
-def user_info(userdb, user_id, client_id="", user_info_claims=None):
+def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
     #print >> sys.stderr, "claims: %s" % user_info_claims
 
     identity = userdb[user_id]
@@ -155,7 +166,8 @@ def user_info(userdb, user_id, client_id="", user_info_claims=None):
                 raise Exception("Missing properties '%s'" % remaining)
 
             for srv, what in cpoints.items():
-                _res = _collect_distributed(srv, user_id, what)
+                cc = oicsrv.claims_clients[srv]
+                _res = _collect_distributed(srv, cc, user_id, what)
                 for key, val in _res.items():
                     if key in result:
                         result[key].update(val)
@@ -341,6 +353,7 @@ def application(environ, start_response):
             try:
                 return callback(environ, start_response, handle)
             except Exception,err:
+                LOGGER.exception("%s" % err)
                 resp = ServiceError("%s" % err)
                 return resp(environ, start_response)
 
@@ -362,9 +375,18 @@ USERDB = {
         "verified": False,
         "phone_number": "+46 90 7865000",
         "_external_": {
-            "https://localhost:8089/claims": ["birthdate", "gender", "address"]
+            "https://localhost:8089/": ["birthdate", "gender", "address"]
         }
     }
+}
+
+CLIENT_INFO = {
+    "https://localhost:8089/": {
+        "userclaims_endpoint":"https://localhost:8089/userclaims",
+        "client_id": "client_1",
+        "client_secret": "hemlig",
+        "x509_url": "https://localhost:8089/certs/mycert.pem",
+        }
 }
 
 if __name__ == '__main__':
@@ -390,8 +412,7 @@ if __name__ == '__main__':
     # in memory session storage
 
     config = json.loads(open(args.config).read())
-    OAS = Server(config["issuer"], SessionDB(), cdb, FUNCTIONS,
-                config["keys"], USERDB)
+    OAS = Server(config["issuer"], SessionDB(), cdb, FUNCTIONS,  USERDB)
 
     #print URLS
     if args.debug:
@@ -407,6 +428,8 @@ if __name__ == '__main__':
 
     if not OAS.baseurl.endswith("/"):
         OAS.baseurl += "/"
+
+    OAS.claims_clients = init_claims_clients(CLIENT_INFO)
 
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
     SRV.ssl_adapter = ssl_builtin.BuiltinSSLAdapter("certs/server.crt",

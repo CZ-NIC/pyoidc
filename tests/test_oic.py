@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from oic.oauth2 import KeyStore
+#from oic.oauth2 import KeyStore
 
 __author__ = 'rohe0002'
 
@@ -674,7 +674,7 @@ def test_server_parse_jwt_request():
     _keys = srv.keystore.get_verify_key(owner=CLIENT_ID)
     _jwt = ar.get_jwt(key=_keys, algorithm="HS256")
 
-    req = srv.parse_jwt_request(CLIENT_ID, txt=_jwt)
+    req = srv.parse_jwt_request(txt=_jwt)
 
     assert isinstance(req, AuthorizationRequest)
     assert req.response_type == ["code"]

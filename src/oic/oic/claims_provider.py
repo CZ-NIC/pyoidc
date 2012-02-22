@@ -3,7 +3,7 @@ __author__ = 'rohe0002'
 from oic import oauth2
 from oic.oic import Server as OicServer
 from oic.oic import Client
-from oic.oic.server import Server, get_or_post
+from oic.oic.server import Server, get_or_post, Endpoint
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
@@ -17,6 +17,9 @@ from oic.oic import RESPONSE2ERROR
 from oic.oic.message import Claims, TokenErrorResponse
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import UserInfoClaim
+# Used in claims.py
+from oic.oic.message import RegistrationRequest
+from oic.oic.message import RegistrationResponse
 
 class UserClaimsRequest(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
@@ -136,7 +139,7 @@ class ClaimsServer(Server):
 
         _log_info("User info claims: %s" % uic)
 
-        info = self.function["userinfo"](self.userdb, ucreq.user_id,
+        info = self.function["userinfo"](self, self.userdb, ucreq.user_id,
                                          user_info_claims=uic)
 
         _log_info("User info: %s" % info.dictionary())
@@ -193,5 +196,8 @@ class ClaimsClient(Client):
         return self.request_and_return(url, resp_cls, method, body,
                                        body_type, extended=False,
                                        http_args=http_args,
-                                       key=self.keystore.get_verify_key("rsa"))
+                                       key=self.keystore.pairkeys(
+                                                self.keystore.match_owner(url)))
 
+class UserClaimsEndpoint(Endpoint) :
+    type = "userclaims"

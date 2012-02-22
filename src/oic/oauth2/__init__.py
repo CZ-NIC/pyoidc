@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 #
-
 __author__ = 'rohe0002'
 
 import httplib2
@@ -37,6 +36,8 @@ RESPONSE2ERROR = {
 ENDPOINTS = ["authorization_endpoint", "token_endpoint",
              "token_revocation_endpoint"]
 
+class HTTP_ERROR(Exception):
+    pass
 
 def rndstr(size=16):
     """
@@ -335,6 +336,17 @@ class KeyStore(object):
             else:
                 return self._store[owner][usage]
 
+    def pairkeys(self, part):
+        _coll = self.keys_by_owner(part)
+        for usage, spec in self.keys_by_owner(".").items():
+            for typ, keys in spec.items():
+                try:
+                    _coll[usage][typ].extend(keys)
+                except KeyError:
+                    _coll[usage][typ] = keys
+
+        return _coll
+
     def keys_by_owner(self, owner):
         return self._store[owner]
 
@@ -411,7 +423,11 @@ class KeyStore(object):
 
         return keys
 
-
+    def __contains__(self, item):
+        if item in self._store:
+            return True
+        else:
+            return False
 
 class Client(object):
     _endpoints = ENDPOINTS
@@ -987,6 +1003,18 @@ class Client(object):
         headers.update(http_args["headers"])
 
         return self.http.request(uri, method, headers=headers, **kwargs)
+
+    def get_page(self, url):
+        resp, content = self.http.request(url)
+        if resp.status == 200:
+            return content
+        else:
+            raise HTTP_ERROR(resp.status)
+
+    def load_x509_cert(self, url, usage, owner):
+        _key = jwt.x509_rsa_loads(self.get_page(url))
+        self.keystore.add_key(_key, "rsa", usage, owner)
+        return _key
 
 class Server(object):
     def __init__(self, jwt_keys=None):

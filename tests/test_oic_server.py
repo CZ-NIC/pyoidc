@@ -93,13 +93,13 @@ CDB = {
         "password": "hemligt",
         "client_secret": "drickyoughurt",
         #"jwk_key": CONSUMER_CONFIG["key"],
-        "redirect_uri": ["http://localhost:8087/authz"]
+        "redirect_uris": ["http://localhost:8087/authz"]
     },
     "a1b2c3":{
-        "redirect_uri": ["http://localhost:8087/authz"]
+        "redirect_uris": ["http://localhost:8087/authz"]
     },
     "client0":{
-        "redirect_uri": ["http://www.example.org/authz"]
+        "redirect_uris": ["http://www.example.org/authz"]
     },
     CLIENT_ID: {
         "client_secret": CLIENT_SECRET,
@@ -170,7 +170,7 @@ def create_return_form_env(user, password, sid):
     return environ
 
 #noinspection PyUnusedLocal
-def user_info(userdb, user_id, client_id, user_info):
+def user_info(oicsrv, userdb, user_id, client_id, user_info):
     identity = userdb[user_id]
     result = {}
     for claim in user_info.claims:
