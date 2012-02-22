@@ -17,6 +17,7 @@ from oic.oic import RESPONSE2ERROR
 from oic.oic.message import Claims, TokenErrorResponse
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import UserInfoClaim
+
 # Used in claims.py
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import RegistrationResponse
@@ -96,6 +97,7 @@ class ClaimsServer(Server):
 
         self.srvmethod = OICCServer(jwt_keys=jwt_keys)
         self.keystore = self.srvmethod.keystore
+        self.claims_mode = "aggregate"
 
     def _aggregation(self, info, logger):
 
@@ -109,12 +111,16 @@ class ClaimsServer(Server):
 
     #noinspection PyUnusedLocal
     def _distributed(self, ucreq, logger):
-
         cresp = UserClaimsResponse()
+        cresp.endpoint = ""
+        cresp.access_token = ""
         return cresp
 
     def do_aggregation(self):
-        return True
+        if self.claims_mode == "aggregate":
+            return True
+        else:
+            return False
 
     #noinspection PyUnusedLocal
     def claims_endpoint(self, environ, start_response, logger, *args):
@@ -131,8 +137,8 @@ class ClaimsServer(Server):
             resp = Unauthorized(err.get_json(), content="application/json")
             return resp(environ, start_response)
 
-        if ucreq.claims_names:
-            args = dict([(n, {"optional": True}) for n in ucreq.claims_names])
+        if ucreq.claim_names:
+            args = dict([(n, {"optional": True}) for n in ucreq.claim_names])
             uic = UserInfoClaim(claims=[Claims(**args)])
         else:
             uic = None

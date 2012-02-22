@@ -1016,6 +1016,9 @@ class Client(object):
         self.keystore.add_key(_key, "rsa", usage, owner)
         return _key
 
+    def load_jwk(self, url, usage, owner):
+        jwk = self.get_page(url)
+
 class Server(object):
     def __init__(self, jwt_keys=None):
 

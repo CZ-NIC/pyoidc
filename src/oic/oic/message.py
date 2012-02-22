@@ -458,8 +458,8 @@ class OpenIDSchema(oauth2.Base):
     c_attributes["phone_number"] = SINGLE_OPTIONAL_STRING
     c_attributes["address"] = OPTIONAL_ADDRESS
     c_attributes["updated_time"] = SINGLE_OPTIONAL_STRING
-    c_attributes["_claims_names"] = SINGLE_OPTIONAL_JSON
-    c_attributes["_claims_sources"] = SINGLE_OPTIONAL_JSON
+    c_attributes["_claim_names"] = SINGLE_OPTIONAL_JSON
+    c_attributes["_claim_sources"] = SINGLE_OPTIONAL_JSON
 
     def __init__(self,
                  user_id=None,
@@ -480,8 +480,8 @@ class OpenIDSchema(oauth2.Base):
                  phone_number=None,
                  address=None,
                  updated_time=None,
-                 _claims_names=None,
-                 _claims_sources=None,
+                 _claim_names=None,
+                 _claim_sources=None,
                  **kwargs
                 ):
         oauth2.Base.__init__(self, **kwargs)
@@ -503,8 +503,8 @@ class OpenIDSchema(oauth2.Base):
         self.phone_number = phone_number
         self.address = address
         self.updated_time = updated_time
-        self._claims_names = _claims_names
-        self._claims_sources = _claims_sources
+        self._claim_names = _claim_names
+        self._claim_sources = _claim_sources
 
 
 class RegistrationRequest(oauth2.Base):

@@ -47,6 +47,8 @@ OIDCONF_PATTERN = "%s/.well-known/openid-configuration"
 
 AUTHN_METHOD = OAUTH2_AUTHN_METHOD.copy()
 
+KEYLOADERR = "Failed to load %s key from '%s'"
+
 def assertion_jwt(cli, keys, audience, algorithm=DEF_SIGN_ALG):
     at = AuthnToken(
         iss = cli.client_id,
@@ -464,20 +466,31 @@ class Client(oauth2.Client):
 
     def user_info_request(self, method="GET", state="", scope="", **kwargs):
         uir = UserInfoRequest()
-        token = self.grant[state].get_token(scope)
-
-        if token.is_valid():
-            uir.access_token = token.access_token
+        if "token" in kwargs:
+            if kwargs["token"]:
+                uir.access_token = kwargs["token"]
+                token = Token()
+                token.type = "bearer"
+                token.access_token = kwargs["token"]
+                kwargs["behavior"] = "use_authorization_header"
+            else:
+                # What to do ? Need a callback
+                token = None
         else:
-            # raise oauth2.OldAccessToken
-            if self.log:
-                self.log.info("do access token refresh")
-            try:
-                self.do_access_token_refresh(token=token)
-                token = self.grant[state].get_token(scope)
+            token = self.grant[state].get_token(scope)
+
+            if token.is_valid():
                 uir.access_token = token.access_token
-            except Exception:
-                raise
+            else:
+                # raise oauth2.OldAccessToken
+                if self.log:
+                    self.log.info("do access token refresh")
+                try:
+                    self.do_access_token_refresh(token=token)
+                    token = self.grant[state].get_token(scope)
+                    uir.access_token = token.access_token
+                except Exception:
+                    raise
 
         try:
             uir.schema = kwargs["schema"]
@@ -530,7 +543,7 @@ class Client(oauth2.Client):
 
         return OpenIDSchema.set_json(txt=content, extended=True)
 
-    def provider_config(self, issuer, only_keys=False):
+    def provider_config(self, issuer, keys=True, endpoints=True):
         if issuer.endswith("/"):
             _issuer = issuer[:-1]
         else:
@@ -545,42 +558,86 @@ class Client(oauth2.Client):
         else:
             raise Exception("%s" % response.status)
 
-        if pcr["issuer"]:
-            assert issuer == pcr["issuer"]
+        if pcr.issuer:
+            if pcr.issuer.endswith("/"):
+                _pcr_issuer = pcr.issuer[:-1]
+            else:
+                _pcr_issuer = pcr.issuer
 
-        if not only_keys:
+            try:
+                assert _issuer == _pcr_issuer
+            except AssertionError:
+                raise Exception("provider info issuer mismatch")
+
+        if endpoints:
             for key, val in pcr.items():
                 if key.endswith("_endpoint"):
                     setattr(self, key, val)
 
-        _keystore = self.keystore
+        if keys:
+            _keystore = self.keystore
 
-        if "x509_url" in pcr:
-            _verkey = self.load_x509_cert(pcr["x509_url"], "verify", issuer)
-        else:
-            _verkey = None
+            if "x509_url" in pcr:
+                try:
+                    _verkey = self.load_x509_cert(pcr.x509_url, "verify", issuer)
+                except Exception:
+                    raise Exception(KEYLOADERR % ('x509', pcr.x509_url))
+            else:
+                _verkey = None
 
-        if "x509_encryption_url" in pcr:
-            self.load_x509_cert(pcr["x509_encryption_url"], "enc",
-                                          issuer)
-        elif _verkey:
-            _keystore.set_decrypt_key(_verkey, "rsa", issuer)
+            if "x509_encryption_url" in pcr:
+                try:
+                    self.load_x509_cert(pcr.x509_encryption_url, "enc", issuer)
+                except Exception:
+                    raise Exception(KEYLOADERR % ('x509_encryption',
+                                                  pcr.x509_encryption_url))
+            elif _verkey:
+                _keystore.set_decrypt_key(_verkey, "rsa", issuer)
+
+            if "jwk_url" in pcr:
+                try:
+                    self.load_jwk(pcr.jwk_url, "verify", issuer)
+                except Exception:
+                    raise Exception(KEYLOADERR % ('jwk', pcr.jwk_url))
 
         return pcr
 
     def unpack_aggregated_claims(self, userinfo):
-        for csrc, spec in userinfo._claims_sources.items():
-            if "JWT" in spec:
-                if not csrc in self.keystore:
-                    self.provider_config(csrc, only_keys=True)
+        if userinfo._claim_sources:
+            for csrc, spec in userinfo._claim_sources.items():
+                if "JWT" in spec:
+                    if not csrc in self.keystore:
+                        self.provider_config(csrc, endpoints=False)
 
-                keycol = self.keystore.pairkeys(csrc)["verify"]
-                info = json.loads(jwt.verify(str(spec["JWT"]), keycol))
-                attr = [n for n, s in userinfo._claims_names.items() if s ==
+                    keycol = self.keystore.pairkeys(csrc)["verify"]
+                    info = json.loads(jwt.verify(str(spec["JWT"]), keycol))
+                    attr = [n for n, s in userinfo._claim_names.items() if s ==
+                                                                            csrc]
+                    assert attr == info.keys()
+
+                    for key, vals in info.items():
+                        userinfo[key] = vals
+
+        return userinfo
+
+    def fetch_distributed_claims(self, userinfo, callback=None):
+        for csrc, spec in userinfo._claim_sources.items():
+            if "endpoint" in spec:
+                #pcr = self.provider_config(csrc, keys=False, endpoints=False)
+
+                if "access_token" in spec:
+                    _uinfo = self.do_user_info_request(
+                                        token=spec["access_token"],
+                                        userinfo_endpoint=spec["endpoint"])
+                else:
+                    _uinfo = self.do_user_info_request(token=callback(csrc),
+                                        userinfo_endpoint=spec["endpoint"])
+
+                attr = [n for n, s in userinfo._claim_names.items() if s ==
                                                                         csrc]
-                assert attr == info.keys()
+                assert attr == _uinfo.keys()
 
-                for key, vals in info.items():
+                for key, vals in _uinfo.items():
                     userinfo[key] = vals
 
         return userinfo
