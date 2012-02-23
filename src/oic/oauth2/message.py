@@ -246,7 +246,15 @@ class Base(object):
                 if isinstance(vtyp, list):
                     vtype = vtyp[0]
                     if isinstance(val, vtype):
-                        args[skey] = [val]
+                        if _deser:
+                            try:
+                                val = _deser(val, format="urlencoded",
+                                             extended=extended)
+                                args[skey] = val
+                            except Exception, exc:
+                                raise DecodeError(ERRTXT % (key, exc))
+                        else:
+                            args[skey] = [val]
                     elif isinstance(val, list):
                         if _deser:
                             try:

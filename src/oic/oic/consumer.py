@@ -70,7 +70,8 @@ def factory(kaka, sdb, config):
     http_util.parse_cookie(config["name"], cons.seed, kaka)
     return cons
 
-def construct_openid_request(arq, keys, algorithm=DEF_SIGN_ALG):
+def construct_openid_request(arq, keys, algorithm=DEF_SIGN_ALG, iss=None,
+                             aud=None):
     """
     Construct the specification of what I want returned.
     The request will be signed
@@ -84,11 +85,18 @@ def construct_openid_request(arq, keys, algorithm=DEF_SIGN_ALG):
     uic = UserInfoClaim([claim], format="signed", locale="us-en")
 
     id_token = IDTokenClaim(max_age=86400)
+    ava = {}
+    for attr in ["response_type", "scope", "prompt"]:
+        _tmp = arq[attr]
+        if _tmp:
+            ava[attr] = " ".join(_tmp)
+        else:
+            ava[attr] = _tmp
 
-    oir = OpenIDRequest(arq.response_type, arq.client_id,
-                            arq.redirect_uri,
-                            arq.scope, arq.state,
-                            user_info=uic, id_token=id_token)
+    oir = OpenIDRequest(ava["response_type"], arq.client_id, arq.redirect_uri,
+                        ava["scope"], arq.state, user_info=uic,
+                        prompt=ava["prompt"], id_token=id_token, iss=iss,
+                        aud=aud)
 
     return oir.get_jwt(key=keys, algorithm=algorithm)
 

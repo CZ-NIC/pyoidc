@@ -201,6 +201,10 @@ class Client(oauth2.Client):
             if _val:
                 oir_args[prop] = _val
 
+        for attr in ["scope", "prompt", "response_type"]:
+            if attr in oir_args:
+                oir_args[attr] = " ".join(oir_args[attr])
+
         oir = OpenIDRequest(**oir_args)
 
         return oir.get_jwt(extended=True, key=keys, algorithm=algorithm)
