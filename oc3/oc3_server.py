@@ -146,7 +146,7 @@ def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
                         missing.append(key)
 
         # Check if anything asked for is somewhere else
-        if (missing or optional) and identity["_external_"]:
+        if (missing or optional) and "_external_" in identity:
             cpoints = {}
             remaining = missing[:]
             missing.extend(optional)
@@ -374,19 +374,26 @@ USERDB = {
         "email": "diana@example.org",
         "verified": False,
         "phone_number": "+46 90 7865000",
-        "_external_": {
-            "https://localhost:8089/": ["birthdate", "gender", "address"]
-        }
+        "address": {
+            "street_address": "Umeå Universitet",
+            "locality": "Umeå",
+            "postal_code": "SE-90187",
+            "country": "Sweden"
+        },
+
+#        "_external_": {
+#            "https://localhost:8089/": ["birthdate", "gender", "address"]
+#        }
     }
 }
 
 CLIENT_INFO = {
-    "https://localhost:8089/": {
-        "userclaims_endpoint":"https://localhost:8089/userclaims",
-        "client_id": "client_1",
-        "client_secret": "hemlig",
-        "x509_url": "https://localhost:8089/certs/mycert.pem",
-        }
+#    "https://localhost:8089/": {
+#        "userclaims_endpoint":"https://localhost:8089/userclaims",
+#        "client_id": "client_1",
+#        "client_secret": "hemlig",
+#        "x509_url": "https://localhost:8089/certs/mycert.pem",
+#        }
 }
 
 if __name__ == '__main__':
