@@ -474,7 +474,7 @@ class Client(oauth2.Client):
             if kwargs["token"]:
                 uir.access_token = kwargs["token"]
                 token = Token()
-                token.type = "bearer"
+                token.type = "Bearer"
                 token.access_token = kwargs["token"]
                 kwargs["behavior"] = "use_authorization_header"
             else:
@@ -511,7 +511,7 @@ class Client(oauth2.Client):
         if "behavior" in kwargs:
             _behav = kwargs["behavior"]
             # use_authorization_header, token_in_message_body
-            if "use_authorization_header" in _behav and token.type == "bearer":
+            if "use_authorization_header" in _behav and token.type == "Bearer":
                 if "headers" in kwargs:
                     kwargs["headers"].append(("Authorization", token.access_token))
                 else:

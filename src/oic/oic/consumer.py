@@ -70,35 +70,55 @@ def factory(kaka, sdb, config):
     http_util.parse_cookie(config["name"], cons.seed, kaka)
     return cons
 
-def construct_openid_request(arq, keys, algorithm=DEF_SIGN_ALG, iss=None,
-                             aud=None):
+def build_userinfo_claims(claims, format="signed", locale="us-en"):
     """
-    Construct the specification of what I want returned.
-    The request will be signed
+    config example:
+    "userinfo_claims":{
+        "format": "signed",
+        "locale": "sv-se",
+        "claims": {
+            "name": None,
+            "verified": None,
+            "email": None,
+            "picture": {"optional": True},
+            "nickname": {"optional": True},
+        }
+    }
     """
+    claim = Claims(**cdict)
 
-    # Should be configurable !!
-    claim = Claims(name=None, nickname={"optional": True},
-                 email=None, verified=None,
-                 picture={"optional": True})
+    return UserInfoClaim([claim], format=format, locale=locale)
 
-    uic = UserInfoClaim([claim], format="signed", locale="us-en")
 
-    id_token = IDTokenClaim(max_age=86400)
-    ava = {}
-    for attr in ["response_type", "scope", "prompt"]:
-        _tmp = arq[attr]
-        if _tmp:
-            ava[attr] = " ".join(_tmp)
-        else:
-            ava[attr] = _tmp
-
-    oir = OpenIDRequest(ava["response_type"], arq.client_id, arq.redirect_uri,
-                        ava["scope"], arq.state, user_info=uic,
-                        prompt=ava["prompt"], id_token=id_token, iss=iss,
-                        aud=aud)
-
-    return oir.get_jwt(key=keys, algorithm=algorithm)
+#def construct_openid_request(arq, keys, algorithm=DEF_SIGN_ALG, iss=None,
+#                             aud=None):
+#    """
+#    Construct the specification of what I want returned.
+#    The request will be signed
+#    """
+#
+#    # Should be configurable !!
+#    claim = Claims(name=None, nickname={"optional": True},
+#                 email=None, verified=None,
+#                 picture={"optional": True})
+#
+#    uic = UserInfoClaim([claim], format="signed", locale="us-en")
+#
+#    id_token = IDTokenClaim(max_age=86400)
+#    ava = {}
+#    for attr in ["response_type", "scope", "prompt"]:
+#        _tmp = arq[attr]
+#        if _tmp:
+#            ava[attr] = " ".join(_tmp)
+#        else:
+#            ava[attr] = _tmp
+#
+#    oir = OpenIDRequest(ava["response_type"], arq.client_id, arq.redirect_uri,
+#                        ava["scope"], arq.state, user_info=uic,
+#                        prompt=ava["prompt"], id_token=id_token, iss=iss,
+#                        aud=aud)
+#
+#    return oir.get_jwt(key=keys, algorithm=algorithm)
 
 def clean_response(aresp):
     """
@@ -240,21 +260,23 @@ class Consumer(Client):
             "state":sid,
             "response_type":response_type,
             "scope": scope,
-            "nonce": self.nonce
+            "nonce": self.nonce,
         }
-        
-        areq = self.construct_AuthorizationRequest(AuthorizationRequest,
-                                                   request_args=args)
+
+        if "max_age" in self.config:
+            args["id_token"] = IDTokenClaim(max_age=self.config["max_age"])
+
+        if "userinfo_claims" in self.config:
+            args["userinfo_claims"] = build_userinfo_claims(
+                                                    **self.config["user_info"])
 
         if "request_method" in self.config:
-            _keys = self.keystore.get_sign_key()
-            id_request = construct_openid_request(areq, _keys)
-            if self.config["request_method"] == "parameter":
-                areq.request = id_request
-            elif self.config["request_method"] == "simple":
-                pass
-            else: # has to be 'file' at least that's my assumption.
-                # write to file in the tmp directory remember the name
+            areq = self.construct_OpenIDRequest(request_args=args,
+                                                 extra_args=None)
+
+            if self.config["request_method"] == "file":
+                id_request = areq.request
+                areq.request = None
                 _filedir = self.config["temp_dir"]
                 _webpath = self.config["temp_path"]
                 _name = rndstr(10)
@@ -269,6 +291,10 @@ class Consumer(Client):
                 areq.request_uri = _webname
                 self.request_uri = _webname
                 self._backup(sid)
+        else:
+            areq = self.construct_AuthorizationRequest(AuthorizationRequest,
+                                                       request_args=args)
+
 
         location = "%s?%s" % (self.authorization_endpoint,
                               areq.get_urlencoded())

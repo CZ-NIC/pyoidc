@@ -137,8 +137,8 @@ class ClaimsServer(Server):
             resp = Unauthorized(err.get_json(), content="application/json")
             return resp(environ, start_response)
 
-        if ucreq.claim_names:
-            args = dict([(n, {"optional": True}) for n in ucreq.claim_names])
+        if ucreq.claims_names:
+            args = dict([(n, {"optional": True}) for n in ucreq.claims_names])
             uic = UserInfoClaim(claims=[Claims(**args)])
         else:
             uic = None
