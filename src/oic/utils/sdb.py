@@ -223,7 +223,7 @@ class SessionDB(object):
         dic["access_token"] = _at
         dic["access_token_scope"] = "?"
         dic["oauth_state"] = "token"
-        dic["token_type"] = "bearer"
+        dic["token_type"] = "Bearer"
         dic["expires_at"] = utc_time_sans_frac()+self.token_expires_in
         dic["expires_in"] = self.token_expires_in
         dic["issued"] = time.time()
