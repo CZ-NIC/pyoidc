@@ -177,7 +177,7 @@ class Client(oauth2.Client):
                 if prop in UserInfoClaim.c_attributes.keys():
                     uic_args[prop] = val
 
-            uic = UserInfoClaim([claim], **uic_args)
+            uic = UserInfoClaim(claim, **uic_args)
         else:
             uic = None
 

@@ -469,13 +469,13 @@ class Server(AServer):
             oidreq = OpenIDRequest.from_json(_req)
             userinfo_claims = oidreq.user_info
             if userinfo_claims:
-                _claim = userinfo_claims.claims[0]
+                _claim = userinfo_claims.claims
                 for key, val in uic.items():
                     if key not in _claim:
                         setattr(_claim, key, val)
         except KeyError:
             if uic:
-                userinfo_claims = UserInfoClaim(claims=[uic])
+                userinfo_claims = UserInfoClaim(claims=uic)
             else:
                 userinfo_claims  = None
 

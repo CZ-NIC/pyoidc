@@ -85,9 +85,9 @@ def build_userinfo_claims(claims, format="signed", locale="us-en"):
         }
     }
     """
-    claim = Claims(**cdict)
+    claim = Claims(**claims)
 
-    return UserInfoClaim([claim], format=format, locale=locale)
+    return UserInfoClaim(claim, format=format, locale=locale)
 
 
 #def construct_openid_request(arq, keys, algorithm=DEF_SIGN_ALG, iss=None,
@@ -102,7 +102,7 @@ def build_userinfo_claims(claims, format="signed", locale="us-en"):
 #                 email=None, verified=None,
 #                 picture={"optional": True})
 #
-#    uic = UserInfoClaim([claim], format="signed", locale="us-en")
+#    uic = UserInfoClaim(claim, format="signed", locale="us-en")
 #
 #    id_token = IDTokenClaim(max_age=86400)
 #    ava = {}
@@ -264,11 +264,10 @@ class Consumer(Client):
         }
 
         if "max_age" in self.config:
-            args["id_token"] = IDTokenClaim(max_age=self.config["max_age"])
+            args["idtoken_claims"] = {"max_age": self.config["max_age"]}
 
-        if "userinfo_claims" in self.config:
-            args["userinfo_claims"] = build_userinfo_claims(
-                                                    **self.config["user_info"])
+        if "user_info" in self.config:
+            args["userinfo_claims"] = self.config["user_info"]
 
         if "request_method" in self.config:
             areq = self.construct_OpenIDRequest(request_args=args,

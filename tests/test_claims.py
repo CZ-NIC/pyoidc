@@ -18,15 +18,14 @@ def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
     identity = userdb[user_id]
     if user_info_claims:
         result = {}
-        for claim in user_info_claims.claims:
-            for key, restr in claim.items():
-                try:
-                    result[key] = identity[key]
-                except KeyError:
-                    if restr == {"optional": True}:
-                        pass
-                    else:
-                        raise Exception("Missing property '%s'" % key)
+        for key, restr in user_info_claims.claims.items():
+            try:
+                result[key] = identity[key]
+            except KeyError:
+                if restr == {"optional": True}:
+                    pass
+                else:
+                    raise Exception("Missing property '%s'" % key)
     else:
         result = identity
 

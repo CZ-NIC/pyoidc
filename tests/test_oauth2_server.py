@@ -319,7 +319,7 @@ def test_server_authenticated_token():
     assert len(resp2) == 1
     txt = resp2[0]
     assert "access_token=" in txt
-    assert "token_type=bearer" in txt
+    assert "token_type=Bearer" in txt
 
 def test_server_authenticated_none():
     server = Server("pyoicserv", sdb.SessionDB(), CDB, FUNCTIONS)

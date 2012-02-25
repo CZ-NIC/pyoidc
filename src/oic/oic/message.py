@@ -87,32 +87,29 @@ def userinfo_deser(val, format="urlencoded", extended=False):
 def claims_ser(val, format="urlencoded", extended=False):
     # everything in c_extension
     if isinstance(val, basestring):
-        val = [val]
+        item = val
     elif isinstance(val, list):
-        pass
+        item = val[0]
     else:
-        val = [val]
+        item = val
 
-    res = []
     if format == "urlencoded":
-        for item in val:
-            if isinstance(item, Base):
-                res.append(urllib.urlencode(item.c_extension))
-            else:
-                res.append(urllib.urlencode(item))
-    elif format == "json":
-        for item in val:
-            if isinstance(item, Base):
-                res.append(json.dumps(item.c_extension))
-            else:
-                res.append(json.dumps(item))
-    elif format == "dict":
-        if isinstance(val[0], oauth2.Base):
-            res = [v.c_extension for v in val]
-        elif isinstance(val[0], dict):
-            res = val
+        if isinstance(item, Base):
+            res = urllib.urlencode(item.c_extension)
         else:
-            raise ValueError("%s" % type(val[0]))
+            res = urllib.urlencode(item)
+    elif format == "json":
+        if isinstance(item, Base):
+            res = json.dumps(item.c_extension)
+        else:
+            res = json.dumps(item)
+    elif format == "dict":
+        if isinstance(item, oauth2.Base):
+            res = item.c_extension
+        elif isinstance(item, dict):
+            res = item
+        else:
+            raise ValueError("%s" % type(item))
     else:
         raise Exception("Unknown format")
 
@@ -135,15 +132,13 @@ def parse_qs(str):
 def claims_deser(val, format="urlencoded", extended=False):
     if format == "urlencoded":
         if isinstance(val, list):
-            pass
-        else:
-            val = eval(val)
+            val = val[0]
 
-        res = [Claims(**parse_qs(v)) for v in val]
+        res = Claims(**parse_qs(val))
     elif format == "json":
-        res = [Claims(**json.loads(v)) for v in val]
+        res = Claims(**json.loads(val))
     elif format == "dict":
-        res = [Claims(**v) for v in val]
+        res = Claims(**val)
     else:
         raise Exception("Unknown format")
 
@@ -763,7 +758,7 @@ class Claims(oauth2.Base):
     def __init__(self, **kwargs):
         oauth2.Base.__init__(self, **kwargs)
 
-OPTIONAL_MULTIPLE_Claims = ([Claims], False, claims_ser, claims_deser)
+OPTIONAL_MULTIPLE_Claims = (Claims, False, claims_ser, claims_deser)
 
 class UserInfoClaim(oauth2.Base):
     c_attributes = oauth2.Base.c_attributes.copy()
@@ -777,7 +772,7 @@ class UserInfoClaim(oauth2.Base):
                  preferred_locale=None,
                  **kwargs):
         oauth2.Base.__init__(self, **kwargs)
-        self.claims = claims or []
+        self.claims = claims
         #self.format = format
         self.preferred_locale = preferred_locale
 

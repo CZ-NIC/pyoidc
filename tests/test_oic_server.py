@@ -44,6 +44,13 @@ CONSUMER_CONFIG = {
     "scope": ["openid"],
     "response_type": ["code"],
     #"expire_in": 600,
+    "user_info": {
+        "claims": {
+            "name": None,
+            "email": None,
+            "nickname": None
+        }
+    }
 }
 
 SERVER_INFO ={
@@ -173,15 +180,14 @@ def create_return_form_env(user, password, sid):
 def user_info(oicsrv, userdb, user_id, client_id, user_info):
     identity = userdb[user_id]
     result = {}
-    for claim in user_info.claims:
-        for key, restr in claim.items():
-            try:
-                result[key] = identity[key]
-            except KeyError:
-                if restr == {"optional": True}:
-                    pass
-                else:
-                    raise Exception("Missing property '%s'" % key)
+    for key, restr in user_info.claims.items():
+        try:
+            result[key] = identity[key]
+        except KeyError:
+            if restr == {"optional": True}:
+                pass
+            else:
+                raise Exception("Missing property '%s'" % key)
 
     return OpenIDSchema(**result)
 
@@ -391,7 +397,7 @@ def test_server_authenticated_token():
     assert len(resp2) == 1
     txt = resp2[0]
     assert "access_token=" in txt
-    assert "token_type=bearer" in txt
+    assert "token_type=Bearer" in txt
 
 def test_server_authenticated_none():
     server = srv_init
@@ -424,7 +430,7 @@ def test_server_authenticated_none():
     assert location.startswith("http://localhost:8087/authz")
     query = location.split("?")[1]
     print query
-    assert "token_type=bearer" in query
+    assert "token_type=Bearer" in query
     
 def test_token_endpoint():
     server = srv_init

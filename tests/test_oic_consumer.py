@@ -1,7 +1,5 @@
 __author__ = 'rohe0002'
 
-import time
-
 from oic.oic import Server
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AuthorizationResponse
@@ -15,7 +13,6 @@ from oic.oic.consumer import Consumer
 from oic.oic.consumer import IGNORE
 from oic.oic.consumer import clean_response
 
-from oic.utils.time_util import utc_now
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.sdb import SessionDB
 
@@ -64,7 +61,13 @@ CONFIG = {
     #"temp_dir": "./tmp",
     #"flow_type":
     "password":"hemligt",
+    "max_age": 3600,
     #client_secret
+    "user_info": {
+        "claims": {
+            "name": None,
+        }
+    }
 }
 
 CLIENT_CONFIG = {
@@ -174,9 +177,8 @@ class TestOICConsumer():
         print location
         authreq = srv.parse_authorization_request(url=location)
         print authreq.keys()
-        assert _eq(authreq.keys(), ['nonce', 'request', 'state',
-                                    'redirect_uri', 'response_type',
-                                    'client_id', 'scope'])
+        assert _eq(authreq.keys(), ['nonce', 'request', 'state', 'redirect_uri',
+                                    'response_type', 'client_id', 'scope'])
         
         assert authreq.state == self.consumer.state
         assert authreq.scope == self.consumer.config["scope"]

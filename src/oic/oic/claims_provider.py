@@ -139,7 +139,7 @@ class ClaimsServer(Server):
 
         if ucreq.claims_names:
             args = dict([(n, {"optional": True}) for n in ucreq.claims_names])
-            uic = UserInfoClaim(claims=[Claims(**args)])
+            uic = UserInfoClaim(claims=Claims(**args))
         else:
             uic = None
 

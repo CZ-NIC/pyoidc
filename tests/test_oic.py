@@ -914,7 +914,7 @@ ESREQ = EndSessionRequest(id_token=IDTOKEN.get_jwt(key=SIGN_KEY),
 IDT2 = IDTokenClaim(max_age=86400)
 CLAIM = Claims(name=None, nickname={"optional": True}, email=None,
                verified=None, picture={"optional": True})
-USRINFO = UserInfoClaim(claims=[CLAIM], format="signed")
+USRINFO = UserInfoClaim(claims=CLAIM, format="signed")
 
 OIDREQ = OpenIDRequest(response_type=["code", "id_token"],
                        client_id=CLIENT_ID,
@@ -1019,8 +1019,7 @@ def test_parse_open_id_request():
     print request.user_info
 
     #assert request.user_info.format == "signed"
-    assert len(request.user_info.claims) == 1
-    assert request.user_info.claims[0].nickname == {"optional": True}
+    assert request.user_info.claims.nickname == {"optional": True}
 
     request = srv.parse_open_id_request(data=OIDREQ.get_json(), format="json")
     assert isinstance(request, OpenIDRequest)
@@ -1033,8 +1032,7 @@ def test_parse_open_id_request():
     print request.user_info
 
     #assert request.user_info.format == "signed"
-    assert len(request.user_info.claims) == 1
-    assert request.user_info.claims[0].email is None
+    assert request.user_info.claims.email is None
 
     url = "https://example.org/openid?%s" % OIDREQ.get_urlencoded()
     request = srv.parse_open_id_request(url)
@@ -1048,7 +1046,6 @@ def test_parse_open_id_request():
     print request.user_info
 
     #assert request.user_info.format == "signed"
-    assert len(request.user_info.claims) == 1
-    assert request.user_info.claims[0].nickname == {"optional": True}
+    assert request.user_info.claims.nickname == {"optional": True}
 
     raises(Exception, 'srv.parse_open_id_request(url, format="base64")')
