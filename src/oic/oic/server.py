@@ -36,13 +36,19 @@ from oic.oic.message import UserInfoClaim
 
 from oic import oauth2
 
-class MissingAttribute(Exception):
+class OICError(Exception):
     pass
 
-class UnsupportedMethod(Exception):
+class MissingAttribute(OICError):
     pass
 
-class AccessDenied(Exception):
+class UnsupportedMethod(OICError):
+    pass
+
+class AccessDenied(OICError):
+    pass
+
+class UnknownClient(OICError):
     pass
 
 #noinspection PyUnusedLocal
@@ -202,13 +208,12 @@ class Server(AServer):
             if itc.max_age:
                 inawhile = {"seconds": itc.max_age}
             if itc.claims:
-                for claim in itc.claims:
-                    for key, val in claim.items():
-                        if key == "auth_time":
-                            extra["auth_time"] = time_util.instant()
-                        elif key == "acr":
-                            #["2","http://id.incommon.org/assurance/bronze"]
-                            extra["acr"] = verify_acr_level(val, loa)
+                for key, val in itc.claims.items():
+                    if key == "auth_time":
+                        extra["auth_time"] = time_util.instant()
+                    elif key == "acr":
+                        #["2","http://id.incommon.org/assurance/bronze"]
+                        extra["acr"] = verify_acr_level(val, loa)
         except KeyError:
             pass
 
@@ -287,7 +292,9 @@ class Server(AServer):
                 return self._authz_error(environ, start_response,
                                          "login_required")
 
-        # just ignore all areq.display requests
+
+        if areq.client_id not in self.cdb:
+            raise UnknownClient(areq.client_id)
 
         # verify that the redirect URI is resonable
         if areq.redirect_uri:

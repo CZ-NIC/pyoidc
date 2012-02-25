@@ -135,15 +135,14 @@ def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
         result = {}
         missing = []
         optional = []
-        for claim in user_info_claims.claims:
-            for key, restr in claim.items():
-                try:
-                    result[key] = identity[key]
-                except KeyError:
-                    if restr == {"optional": True}:
-                        optional.append(key)
-                    else:
-                        missing.append(key)
+        for key, restr in user_info_claims.claims.items():
+            try:
+                result[key] = identity[key]
+            except KeyError:
+                if restr == {"optional": True}:
+                    optional.append(key)
+                else:
+                    missing.append(key)
 
         # Check if anything asked for is somewhere else
         if (missing or optional) and "_external_" in identity:
