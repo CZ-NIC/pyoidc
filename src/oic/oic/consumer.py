@@ -266,8 +266,8 @@ class Consumer(Client):
         if "max_age" in self.config:
             args["idtoken_claims"] = {"max_age": self.config["max_age"]}
 
-        if "user_info" in self.config:
-            args["userinfo_claims"] = self.config["user_info"]
+        if "userinfo" in self.config:
+            args["userinfo_claims"] = self.config["userinfo"]
 
         if "request_method" in self.config:
             areq = self.construct_OpenIDRequest(request_args=args,

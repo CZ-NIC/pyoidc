@@ -802,7 +802,7 @@ SINGLE_OPTIONAL_ID_TOKEN_CLAIM = (IDTokenClaim, False, idtokenclaim_ser,
 
 class OpenIDRequest(AuthorizationRequest):
     c_attributes = AuthorizationRequest.c_attributes.copy()
-    c_attributes["user_info"] = SINGLE_OPTIONAL_USERINFO_CLAIM
+    c_attributes["userinfo"] = SINGLE_OPTIONAL_USERINFO_CLAIM
     c_attributes["id_token"] = SINGLE_OPTIONAL_ID_TOKEN_CLAIM
     # If signed it should contain these
     c_attributes["iss"] = SINGLE_OPTIONAL_STRING
@@ -820,7 +820,7 @@ class OpenIDRequest(AuthorizationRequest):
                  prompt=None,
                  nonce=None,
                  #id_token_audience=None,
-                 user_info=None,
+                 userinfo=None,
                  id_token=None,
                  iss=None,
                  aud=None,
@@ -838,7 +838,7 @@ class OpenIDRequest(AuthorizationRequest):
                                       nonce,
                                       #id_token_audience,
                                       **kwargs)
-        self.user_info = user_info
+        self.userinfo = userinfo
         self.id_token = id_token
         self.iss = iss
         self.aud = aud

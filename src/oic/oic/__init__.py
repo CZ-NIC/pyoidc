@@ -195,7 +195,7 @@ class Client(oauth2.Client):
         else: # uic must be != None
             id_token = IDTokenClaim(max_age=MAX_AUTHENTICATION_AGE)
 
-        oir_args = {"user_info":uic, "id_token":id_token}
+        oir_args = {"userinfo":uic, "id_token":id_token}
         for prop in arq.keys():
             _val = getattr(arq, prop)
             if _val:

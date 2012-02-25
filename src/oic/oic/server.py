@@ -474,7 +474,7 @@ class Server(AServer):
             _req = session["oidreq"]
             _log_info("OIDREQ: %s" % _req)
             oidreq = OpenIDRequest.from_json(_req)
-            userinfo_claims = oidreq.user_info
+            userinfo_claims = oidreq.userinfo
             if userinfo_claims:
                 _claim = userinfo_claims.claims
                 for key, val in uic.items():

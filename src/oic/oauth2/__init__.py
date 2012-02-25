@@ -54,7 +54,10 @@ def rndstr(size=16):
 
 #noinspection PyUnusedLocal
 def client_secret_basic(cli, cis, request_args=None, http_args=None, **kwargs):
-    cli.http.add_credentials(cli.client_id, http_args["password"])
+    try:
+        cli.http.add_credentials(cli.client_id, http_args["password"])
+    except KeyError:
+        cli.http.add_credentials(cli.client_id, cli.client_secret)
 
     return http_args
 
