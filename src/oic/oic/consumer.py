@@ -15,10 +15,10 @@ from oic.utils import http_util
 from oic.oic import Client
 from oic.oic import ENDPOINTS
 from oic.oic.message import AuthorizationRequest
-from oic.oic.message import IDTokenClaim
+#from oic.oic.message import IDTokenClaim
 from oic.oic.message import UserInfoClaim
 from oic.oic.message import Claims
-from oic.oic.message import OpenIDRequest
+#from oic.oic.message import OpenIDRequest
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import AccessTokenResponse
 #from oic.oic.message import ProviderConfigurationResponse
@@ -29,7 +29,7 @@ from oic.oic.message import IssuerResponse
 
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2 import Grant
-from oic.oauth2 import DEF_SIGN_ALG
+#from oic.oauth2 import DEF_SIGN_ALG
 from oic.oauth2 import rndstr
 
 from oic.oauth2.consumer import TokenError
@@ -266,8 +266,8 @@ class Consumer(Client):
         if "max_age" in self.config:
             args["idtoken_claims"] = {"max_age": self.config["max_age"]}
 
-        if "userinfo" in self.config:
-            args["userinfo_claims"] = self.config["userinfo"]
+        if "user_info" in self.config:
+            args["userinfo_claims"] = self.config["user_info"]
 
         if "request_method" in self.config:
             areq = self.construct_OpenIDRequest(request_args=args,
@@ -409,7 +409,7 @@ class Consumer(Client):
         pass
     
     #noinspection PyUnusedLocal
-    def userinfo(self, logger):
+    def get_user_info(self, logger):
         self.log = logger
         uinfo = self.do_user_info_request(state=self.state)
 

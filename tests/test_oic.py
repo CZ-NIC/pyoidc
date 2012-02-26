@@ -840,7 +840,7 @@ TRESP = AccessTokenResponse(access_token="access_token", token_type="bearer",
                             expires_in=600, refresh_token="refresh",
                             scope=["openid"])
 
-def test_user_info_request():
+def test_userinfo_request():
     cli = Client()
     cli.userinfo_endpoint = "http://example.com/userinfo"
     
@@ -869,7 +869,7 @@ def test_user_info_request():
     assert h_args == {'headers': {'content-type': 'application/x-www-form-urlencoded'}}
 
 
-    path, body, method, h_args = cli.user_info_request(method="POST", 
+    path, body, method, h_args = cli.user_info_request(method="POST",
                                                        state="state0")
 
     assert path == "http://example.com/userinfo"
@@ -921,7 +921,7 @@ OIDREQ = OpenIDRequest(response_type=["code", "id_token"],
                        redirect_uri="https://client.example.com/cb",
                        scope="openid profile", state= "n-0S6_WzA2Mj",
                        nonce="af0ifjsldkj",
-                       user_info=USRINFO, id_token=IDT2)
+                       userinfo=USRINFO, id_token=IDT2)
 
 def test_server_init():
 
@@ -955,7 +955,7 @@ def test_parse_token_request():
     assert qdict["client_id"] == CLIENT_ID
     assert qdict["code"] == "code"
 
-def test_parse_user_info_request():
+def test_parse_userinfo_request():
     srv = Server()
     qdict = srv.parse_user_info_request(data=UIREQ.get_urlencoded())
     assert _eq(qdict.keys(),['access_token', 'schema'])
@@ -1011,41 +1011,41 @@ def test_parse_open_id_request():
     request = srv.parse_open_id_request(data=OIDREQ.get_urlencoded())
     assert isinstance(request, OpenIDRequest)
     print request.keys()
-    assert _eq(request.keys(),['nonce', 'id_token', 'user_info', 'state',
+    assert _eq(request.keys(),['nonce', 'id_token', 'userinfo', 'state',
                                'redirect_uri', 'response_type', 'client_id',
                                'scope'])
     assert request.state == "n-0S6_WzA2Mj"
 
-    print request.user_info
+    print request.userinfo
 
-    #assert request.user_info.format == "signed"
-    assert request.user_info.claims.nickname == {"optional": True}
+    #assert request.userinfo.format == "signed"
+    assert request.userinfo.claims.nickname == {"optional": True}
 
     request = srv.parse_open_id_request(data=OIDREQ.get_json(), format="json")
     assert isinstance(request, OpenIDRequest)
     print request.keys()
-    assert _eq(request.keys(),['nonce', 'id_token', 'user_info', 'state',
+    assert _eq(request.keys(),['nonce', 'id_token', 'userinfo', 'state',
                                'redirect_uri', 'response_type', 'client_id',
                                'scope'])
     assert request.nonce == "af0ifjsldkj"
 
-    print request.user_info
+    print request.userinfo
 
-    #assert request.user_info.format == "signed"
-    assert request.user_info.claims.email is None
+    #assert request.userinfo.format == "signed"
+    assert request.userinfo.claims.email is None
 
     url = "https://example.org/openid?%s" % OIDREQ.get_urlencoded()
     request = srv.parse_open_id_request(url)
     assert isinstance(request, OpenIDRequest)
     print request.keys()
-    assert _eq(request.keys(),['nonce', 'id_token', 'user_info', 'state',
+    assert _eq(request.keys(),['nonce', 'id_token', 'userinfo', 'state',
                                'redirect_uri', 'response_type', 'client_id',
                                'scope'])
     assert request.state == "n-0S6_WzA2Mj"
 
-    print request.user_info
+    print request.userinfo
 
-    #assert request.user_info.format == "signed"
-    assert request.user_info.claims.nickname == {"optional": True}
+    #assert request.userinfo.format == "signed"
+    assert request.userinfo.claims.nickname == {"optional": True}
 
     raises(Exception, 'srv.parse_open_id_request(url, format="base64")')

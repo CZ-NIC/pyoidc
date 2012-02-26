@@ -629,7 +629,7 @@ class IdToken(oauth2.Base):
     c_attributes["exp"] = SINGLE_REQUIRED_INT
     c_attributes["acr"] = SINGLE_OPTIONAL_STRING
     c_attributes["nonce"] = SINGLE_OPTIONAL_STRING
-    c_attributes["auth_time"] = SINGLE_OPTIONAL_STRING
+    c_attributes["auth_time"] = SINGLE_OPTIONAL_INT
     #c_attributes["max_age"] = SINGLE_OPTIONAL_INT
     #c_attributes["issued_to"] = SINGLE_OPTIONAL_STRING
 

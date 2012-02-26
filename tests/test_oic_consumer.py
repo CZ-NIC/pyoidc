@@ -63,10 +63,11 @@ CONFIG = {
     "password":"hemligt",
     "max_age": 3600,
     #client_secret
-    "user_info": {
+    "user_info":{
         "claims": {
-            "name": None,
-        }
+            "name":None,
+            },
+        "format": "signed"
     }
 }
 
@@ -394,7 +395,7 @@ def test_userinfo():
 
     consumer.complete(DEVNULL())
 
-    result = consumer.userinfo(DEVNULL())
+    result = consumer.get_user_info(DEVNULL())
     print result
     assert isinstance(result, OpenIDSchema)
     assert _eq(result.keys(), ['name', 'email', 'verified', 'nickname'])

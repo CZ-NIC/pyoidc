@@ -583,7 +583,8 @@ class Client(oauth2.Client):
 
             if "x509_url" in pcr:
                 try:
-                    _verkey = self.load_x509_cert(pcr.x509_url, "verify", issuer)
+                    _verkey = self.load_x509_cert(pcr.x509_url, "verify",
+                                                  _issuer)
                 except Exception:
                     raise Exception(KEYLOADERR % ('x509', pcr.x509_url))
             else:
@@ -591,16 +592,17 @@ class Client(oauth2.Client):
 
             if "x509_encryption_url" in pcr:
                 try:
-                    self.load_x509_cert(pcr.x509_encryption_url, "enc", issuer)
+                    self.load_x509_cert(pcr.x509_encryption_url, "enc",
+                                        _issuer)
                 except Exception:
                     raise Exception(KEYLOADERR % ('x509_encryption',
                                                   pcr.x509_encryption_url))
             elif _verkey:
-                _keystore.set_decrypt_key(_verkey, "rsa", issuer)
+                _keystore.set_decrypt_key(_verkey, "rsa", _issuer)
 
             if "jwk_url" in pcr:
                 try:
-                    self.load_jwk(pcr.jwk_url, "verify", issuer)
+                    self.load_jwk(pcr.jwk_url, "verify", _issuer)
                 except Exception:
                     raise Exception(KEYLOADERR % ('jwk', pcr.jwk_url))
 
