@@ -170,6 +170,10 @@ def cookie_signature(seed, *parts):
 
 def cookie(name, sid, seed, expire=0, domain="",  path=""):
     """
+    Create and return a cookie
+
+    :param sid: Session identifier
+    :param seed: A seed for the HMAC function
     :param expire: Number of minutes before this cookie goes stale
     :param domain: The domain of the cookie
     :param path: The path specification for the cookie
@@ -205,7 +209,7 @@ def parse_cookie(name, seed, kaka):
             raise Exception("Invalid cookie signature")
 
         try:
-            return parts[0].strip()
+            return parts[0].strip(), parts[1]
         except KeyError:
             return None
     else:

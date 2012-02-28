@@ -195,6 +195,11 @@ class Server(AServer):
 
         self.http.follow_redirects = follow_redirects
 
+        self.cookie_func = None
+        self.cookie_name = "pyoidc"
+        self.seed = ""
+        self.cookie_ttl = 0
+
     def _id_token(self, session, loa="2", info_log=None,
                   signature="symmetric"):
         #defaults
@@ -210,7 +215,7 @@ class Server(AServer):
             if itc.claims:
                 for key, val in itc.claims.items():
                     if key == "auth_time":
-                        extra["auth_time"] = time_util.instant()
+                        extra["auth_time"] = time_util.utc_time_sans_frac()
                     elif key == "acr":
                         #["2","http://id.incommon.org/assurance/bronze"]
                         extra["acr"] = verify_acr_level(val, loa)
@@ -252,7 +257,8 @@ class Server(AServer):
         resp = Response(response.get_json(), content="application/json")
         return resp(environ, start_response)
 
-    def authorization_endpoint(self, environ, start_response, logger, *args):
+    def authorization_endpoint(self, environ, start_response, logger,
+                               **kwargs):
         # The AuthorizationRequest endpoint
 
         _log_info = logger.info
@@ -342,7 +348,28 @@ class Server(AServer):
         bsid = base64.b64encode(sid)
         _log_info("SID:%s" % bsid)
 
-        # start the authentication process
+        if openid_req:
+            _max_age = -1
+            if openid_req.id_token:
+                if openid_req.id_token.max_age:
+                    _max_age = openid_req.id_token.max_age
+
+            if _max_age >= 0:
+                if "handle" in kwargs:
+                    try:
+                        (b64sid, timestamp) = kwargs["handle"]
+                        if (int(time.time()) - int(timestamp)) <= _max_age:
+                            _log_info("- SSO -")
+                            _scode = base64.b64decode(b64sid)
+                            user = self.sdb[_scode]["user_id"]
+                            _sdb.update(sid, "user_id", user)
+                            return self.authenticated(environ, start_response,
+                                                      logger, active_auth=bsid,
+                                                      areq=areq, user=user)
+                    except ValueError:
+                        pass
+
+        # DEFAULT: start the authentication process
         return self.function["authenticate"](environ, start_response, bsid)
 
     #noinspection PyUnusedLocal
@@ -639,7 +666,7 @@ class Server(AServer):
                             headers=[("Cache-Control", "no-store")])
         return resp(environ, start_response)
 
-    def authenticated(self, environ, start_response, logger, *args):
+    def authenticated(self, environ, start_response, logger, **kwargs):
         """
         After the authentication this is where you should end up
         """
@@ -649,43 +676,51 @@ class Server(AServer):
         if self.debug:
             _log_info("- in authenticated() -")
 
-        # parse the form
-        #noinspection PyDeprecation
-        dic = parse_qs(get_post(environ))
-
-        try:
-            (verified, user) = self.function["verify_user"](dic)
-            if not verified:
-                resp = Unauthorized("Wrong password")
-                return resp(environ, start_response)
-        except AuthnFailure, err:
-            resp = Unauthorized("%s" % (err,))
-            return resp(environ, start_response)
-
-        if self.debug:
-            _log_info("verified user: %s" % user)
-
-        try:
-            # Use the session identifier to find the session information
-            b64scode = dic["sid"][0]
+        if "active_auth" in kwargs:
+            b64scode = kwargs["active_auth"]
             scode = base64.b64decode(b64scode)
-            asession = self.sdb[scode]
-        except KeyError:
-            resp = BadRequest("Could not find session")
-            return resp(environ, start_response)
+            user = kwargs["user"]
+            areq = kwargs["areq"]
+        else:
+            # parse the form
+            #noinspection PyDeprecation
+            dic = parse_qs(get_post(environ))
+            _log_info("QS: %s" % dic)
 
-        self.sdb.update(scode, "user_id", dic["login"][0])
+            try:
+                (verified, user) = self.function["verify_user"](dic)
+                if not verified:
+                    resp = Unauthorized("Wrong password")
+                    return resp(environ, start_response)
+            except AuthnFailure, err:
+                resp = Unauthorized("%s" % (err,))
+                return resp(environ, start_response)
 
-        if self.debug:
-            _log_info("asession[\"authzreq\"] = %s" % asession["authzreq"])
-            #_log_info( "type: %s" % type(asession["authzreq"]))
+            if self.debug:
+                _log_info("verified user: %s" % user)
 
-        # pick up the original request
-        areq = AuthorizationRequest.set_json(asession["authzreq"],
-                                             extended=True)
+            try:
+                # Use the session identifier to find the session information
+                b64scode = dic["sid"][0]
+                scode = base64.b64decode(b64scode)
+                asession = self.sdb[scode]
+            except KeyError:
+                resp = BadRequest("Could not find session")
+                return resp(environ, start_response)
 
-        if self.debug:
-            _log_info("areq: %s" % areq)
+            self.sdb.update(scode, "user_id", dic["login"][0])
+
+            if self.debug:
+                _log_info("asession[\"authzreq\"] = %s" % asession["authzreq"])
+                #_log_info( "type: %s" % type(asession["authzreq"]))
+
+            # pick up the original request
+            areq = AuthorizationRequest.set_json(asession["authzreq"],
+                                                 extended=True)
+
+            if self.debug:
+                _log_info("areq: %s" % areq)
+
 
         # Do the authorization
         try:
@@ -752,10 +787,17 @@ class Server(AServer):
 
         location = "%s?%s" % (redirect_uri, aresp.get_urlencoded())
 
+
         if self.debug:
             _log_info("Redirected to: '%s' (%s)" % (location, type(location)))
 
-        redirect = Redirect(str(location))
+        if self.cookie_func and not "active_auth" in kwargs:
+            cookie = self.cookie_func(self.cookie_name, b64scode, self.seed,
+                                      self.cookie_ttl)
+            redirect = Redirect(str(location), headers=[cookie])
+        else:
+            redirect = Redirect(str(location))
+
         return redirect(environ, start_response)
 
 

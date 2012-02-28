@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #import sys
+from oic.utils import http_util
 
 __author__ = 'rohe0002'
 
@@ -238,7 +239,8 @@ def token(environ, start_response, handle):
 def authorization(environ, start_response, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.authorization_endpoint(environ, start_response, LOGGER)
+    return _oas.authorization_endpoint(environ, start_response, LOGGER,
+                                       handle=handle)
 
 #noinspection PyUnusedLocal
 def authenticated(environ, start_response, handle):
@@ -329,9 +331,12 @@ def application(environ, start_response):
 
 
     if kaka:
-        handle = parse_cookie(OAS.name, OAS.seed, kaka)
         if OAS.debug:
             OAS.logger.debug("Cookie: %s" % (kaka,))
+        try:
+            handle = parse_cookie(OAS.cookie_name, OAS.seed, kaka)
+        except ValueError:
+            handle = ""
     else:
         handle = ""
 
@@ -397,8 +402,8 @@ CLIENT_INFO = {
 
 if __name__ == '__main__':
     import argparse
-    import json
     import shelve
+    import importlib
 
     from cherrypy import wsgiserver
     from cherrypy.wsgiserver import ssl_builtin
@@ -417,8 +422,20 @@ if __name__ == '__main__':
     cdb = shelve.open("client_db", writeback=True)
     # in memory session storage
 
-    config = json.loads(open(args.config).read())
-    OAS = Server(config["issuer"], SessionDB(), cdb, FUNCTIONS,  USERDB)
+    config = importlib.import_module(args.config)
+    OAS = Server(config.issuer, SessionDB(), cdb, FUNCTIONS,  USERDB)
+
+    try:
+        OAS.cookie_ttl = config.COOKIETTL
+    except AttributeError:
+        pass
+
+    try:
+        OAS.cookie_name = config.COOKIENAME
+    except AttributeError:
+        pass
+
+    OAS.cookie_func = http_util.cookie
 
     #print URLS
     if args.debug:
@@ -426,11 +443,11 @@ if __name__ == '__main__':
 
     OAS.endpoints = ENDPOINTS
     if args.port == 80:
-        OAS.baseurl = config["baseurl"]
+        OAS.baseurl = config.baseurl
     else:
-        if config["baseurl"].endswith("/"):
-            config["baseurl"] = config["baseurl"][:-1]
-        OAS.baseurl = "%s:%d" % (config["baseurl"], args.port)
+        if config.baseurl.endswith("/"):
+            config.baseurl = config.baseurl[:-1]
+        OAS.baseurl = "%s:%d" % (config.baseurl, args.port)
 
     if not OAS.baseurl.endswith("/"):
         OAS.baseurl += "/"

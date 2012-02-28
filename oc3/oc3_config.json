@@ -1,5 +1,0 @@
-{
-    "baseurl":"https://localhost",
-    "issuer": "https://www.kodtest.se/rolandsOP",
-    "keys": {"hmac": "somethinglongandconvoluted"}
-}

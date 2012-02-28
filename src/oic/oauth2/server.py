@@ -4,10 +4,7 @@ __author__ = 'rohe0002'
 
 import base64
 
-try:
-    from urlparse import parse_qs
-except ImportError:
-    from cgi import parse_qs
+from urlparse import parse_qs
 
 from oic.utils.http_util import *
 
@@ -181,7 +178,8 @@ class Server(object):
         return self.response_type_map[_rtype](areq=areq, scode=scode,
                                               sdb=self.sdb)
 
-    def authenticated(self, environ, start_response, logger, _):
+    #noinspection PyUnusedLocal
+    def authenticated(self, environ, start_response, logger, **kwargs):
         _log_info = logger.info
 
         if self.debug:
@@ -210,7 +208,8 @@ class Server(object):
         return self.authn_reply(areq, aresp, environ, start_response, logger)
     
     #noinspection PyUnusedLocal
-    def authorization_endpoint(self, environ, start_response, logger, _):
+    def authorization_endpoint(self, environ, start_response, logger,
+                               **kwargs):
         # The AuthorizationRequest endpoint
 
         _log_info = logger.info
