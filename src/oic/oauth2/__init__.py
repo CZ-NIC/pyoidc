@@ -298,11 +298,16 @@ class Grant(object):
                         otok.replaced = True
                 self.tokens.append(token)
 
+KEYLOADERR = "Failed to load %s key from '%s' (%s)"
 
 class KeyStore(object):
     use = ["sign", "verify", "enc", "dec"]
-    def __init__(self, keyspecs=None):
+    url_types = ["x509_url", "x509_encryption_url", "jwk_url",
+                 "jwk_encryption_url"]
+
+    def __init__(self, get_page, keyspecs=None):
         self._store = {}
+        self.get_page = get_page
 
         if keyspecs:
             for keyspec in keyspecs:
@@ -334,10 +339,13 @@ class KeyStore(object):
                 res[owner] = _spec[usage]
             return res
         else:
-            if type:
-                return self._store[owner][usage][type]
-            else:
-                return self._store[owner][usage]
+            try:
+                if type:
+                    return self._store[owner][usage][type]
+                else:
+                    return self._store[owner][usage]
+            except KeyError:
+                return {}
 
     def pairkeys(self, part):
         _coll = self.keys_by_owner(part)
@@ -351,7 +359,16 @@ class KeyStore(object):
         return _coll
 
     def keys_by_owner(self, owner):
-        return self._store[owner]
+        try:
+            return self._store[owner]
+        except KeyError:
+            return {}
+
+    def remove_key_collection(self, owner):
+        try:
+            del self._store[owner]
+        except Exception:
+            pass
 
     def remove_key(self, key, owner=".", type=None, usage=None):
         _keys = self._store[owner]
@@ -432,19 +449,78 @@ class KeyStore(object):
         else:
             return False
 
-class Client(object):
-    _endpoints = ENDPOINTS
+    def load_x509_cert(self, url, usage, owner):
+        try:
+            _key = jwt.x509_rsa_loads(self.get_page(url))
+            self.add_key(_key, "rsa", usage, owner)
+            return _key
+        except Exception: # not a RSA key
+            return None
 
-    def __init__(self, client_id=None, cache=None, time_out=None,
+    def load_jwk(self, url, usage, owner):
+        jwk = self.get_page(url)
+
+        res = []
+        for tag, key in jwt.jwk_loads(jwk).items():
+            if tag.startswith("rsa"):
+                self.add_key(key, "rsa", usage, owner)
+                res.append(key)
+
+        return res
+
+    def load_keys(self, inst, _issuer, replace=False):
+        for attr in self.url_types:
+            if attr in inst:
+                if replace:
+                    self.remove_key_collection(_issuer)
+                break
+
+        if "x509_url" in inst:
+            try:
+                _verkey = self.load_x509_cert(inst.x509_url, "verify",
+                                              _issuer)
+            except Exception:
+                raise Exception(KEYLOADERR % ('x509', inst.x509_url))
+        else:
+            _verkey = None
+
+        if "x509_encryption_url" in inst:
+            try:
+                self.load_x509_cert(inst.x509_encryption_url, "enc",
+                                    _issuer)
+            except Exception:
+                raise Exception(KEYLOADERR % ('x509_encryption',
+                                              inst.x509_encryption_url))
+        elif _verkey:
+            self.set_decrypt_key(_verkey, "rsa", _issuer)
+
+        if "jwk_url" in inst:
+            try:
+                _verkeys = self.load_jwk(inst.jwk_url, "verify", _issuer)
+            except Exception, err:
+                raise Exception(KEYLOADERR % ('jwk', inst.jwk_url, err))
+        else:
+            _verkeys = []
+
+        if "jwk_encryption_url" in inst:
+            try:
+                self.load_jwk(inst.jwk_url, "enc", _issuer)
+            except Exception:
+                raise Exception(KEYLOADERR % ('jwk', inst.jwk_encryption_url))
+        elif _verkeys:
+            for key in _verkeys:
+                self.set_decrypt_key(key, "rsa", _issuer)
+
+class PBase(object):
+    def __init__(self, cache=None, time_out=None,
                  proxy_info=None, follow_redirects=True,
                  disable_ssl_certificate_validation=False, ca_certs=None,
-                 grant_expire_in=600, client_timeout=0, httpclass=None,
-                 jwt_keys=None):
+                 httpclass=None, jwt_keys=None):
 
         if jwt_keys is None:
-            self.keystore = KeyStore()
+            self.keystore = KeyStore(self.get_page)
         else:
-            self.keystore = KeyStore(jwt_keys)
+            self.keystore = KeyStore(self.get_page, jwt_keys)
 
         if not ca_certs and disable_ssl_certificate_validation is False:
             disable_ssl_certificate_validation = True
@@ -453,9 +529,29 @@ class Client(object):
             httpclass = httplib2.Http
 
         self.http = httpclass(cache=cache, timeout=time_out,
-            proxy_info=proxy_info, ca_certs=ca_certs,
-            disable_ssl_certificate_validation=disable_ssl_certificate_validation)
+                              proxy_info=proxy_info, ca_certs=ca_certs,
+                              disable_ssl_certificate_validation=disable_ssl_certificate_validation)
         self.http.follow_redirects = follow_redirects
+
+    def get_page(self, url):
+        resp, content = self.http.request(url)
+        if resp.status == 200:
+            return content
+        else:
+            raise HTTP_ERROR(resp.status)
+
+class Client(PBase):
+    _endpoints = ENDPOINTS
+
+    def __init__(self, client_id=None, cache=None, time_out=None,
+                 proxy_info=None, follow_redirects=True,
+                 disable_ssl_certificate_validation=False, ca_certs=None,
+                 grant_expire_in=600, client_timeout=0, httpclass=None,
+                 jwt_keys=None):
+
+        PBase.__init__(self, cache, time_out, proxy_info, follow_redirects,
+                      disable_ssl_certificate_validation, ca_certs,
+                      httpclass, jwt_keys)
 
         self.client_id = client_id
         self.client_timeout = client_timeout
@@ -1007,28 +1103,16 @@ class Client(object):
 
         return self.http.request(uri, method, headers=headers, **kwargs)
 
-    def get_page(self, url):
-        resp, content = self.http.request(url)
-        if resp.status == 200:
-            return content
-        else:
-            raise HTTP_ERROR(resp.status)
 
-    def load_x509_cert(self, url, usage, owner):
-        _key = jwt.x509_rsa_loads(self.get_page(url))
-        self.keystore.add_key(_key, "rsa", usage, owner)
-        return _key
+class Server(PBase):
+    def __init__(self, jwt_keys=None, cache=None, time_out=None,
+                 proxy_info=None, follow_redirects=True,
+                 disable_ssl_certificate_validation=False, ca_certs=None,
+                 httpclass=None):
 
-    def load_jwk(self, url, usage, owner):
-        jwk = self.get_page(url)
-
-class Server(object):
-    def __init__(self, jwt_keys=None):
-
-        if jwt_keys is None:
-            self.keystore = KeyStore()
-        else:
-            self.keystore = KeyStore(jwt_keys)
+        PBase.__init__(self, cache, time_out, proxy_info, follow_redirects,
+                      disable_ssl_certificate_validation, ca_certs,
+                      httpclass, jwt_keys)
 
 
     def parse_url_request(self, cls, url=None, query=None, extended=False):

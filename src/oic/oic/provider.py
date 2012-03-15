@@ -3,24 +3,26 @@
 __author__ = 'rohe0002'
 
 import random
-import httplib2
+#import httplib2
 import base64
+
+#from random import SystemRandom
 
 from urlparse import parse_qs
 
-from oic.oauth2.server import Server as AServer
+from oic.oauth2.provider import Provider as AProvider
 
 from oic.utils.http_util import *
 from oic.utils import time_util
 
 from oic.oauth2 import MissingRequiredAttribute
-from oic.oauth2.server import AuthnFailure
+from oic.oauth2.provider import AuthnFailure
 from oic.oauth2 import rndstr
 from oic.oauth2.message import ErrorResponse
 
-from oic.oic import Server as SrvMethod
+from oic.oic import Server
 
-from oic.oic.message import AuthorizationResponse
+from oic.oic.message import AuthorizationResponse, AuthnToken
 from oic.oic.message import AuthorizationErrorResponse
 from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.message import AuthorizationRequest
@@ -35,6 +37,7 @@ from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import UserInfoClaim
 
 from oic import oauth2
+from oic.oic import JWT_BEARER
 
 class OICError(Exception):
     pass
@@ -166,17 +169,21 @@ def verify_acr_level(req, level):
 
     raise AccessDenied
 
-class Server(AServer):
+class Provider(AProvider):
     authorization_request = AuthorizationRequest
 
     def __init__(self, name, sdb, cdb, function, userdb, urlmap=None,
                  debug=0, cache=None, timeout=None, proxy_info=None,
                  follow_redirects=True, ca_certs="", jwt_keys=None):
 
-        AServer.__init__(self, name, sdb, cdb, function, urlmap, debug)
+        AProvider.__init__(self, name, sdb, cdb, function, urlmap, debug)
 
-        self.srvmethod = SrvMethod(jwt_keys=jwt_keys)
-        self.keystore = self.srvmethod.keystore
+        self.server = Server(jwt_keys=jwt_keys, cache=cache,
+                                   time_out=timeout, proxy_info=proxy_info,
+                                   follow_redirects=follow_redirects,
+                                   ca_certs=ca_certs)
+        self.keystore = self.server.keystore
+        self.http = self.server.http
 
         self.userdb = userdb
 
@@ -185,16 +192,6 @@ class Server(AServer):
         self.baseurl = ""
         self.cert = []
         self.jwk = []
-
-        if not ca_certs:
-            self.http = httplib2.Http(cache, timeout, proxy_info,
-                                      disable_ssl_certificate_validation=True)
-        else:
-            self.http = httplib2.Http(cache, timeout, proxy_info,
-                                      ca_certs=ca_certs)
-
-        self.http.follow_redirects = follow_redirects
-
         self.cookie_func = None
         self.cookie_name = "pyoidc"
         self.seed = ""
@@ -235,14 +232,14 @@ class Server(AServer):
             idt.nonce = session["nonce"]
 
         # sign with clients secret key
-        _keystore = self.srvmethod.keystore
+        _keystore = self.keystore
         if signature == "symmetric":
             ckey = _keystore.get_keys("sign", owner=session["client_id"])
         else: # own asymmetric key
             ckey = _keystore.get_sign_key()
 
         if info_log:
-            info_log("Signed with '%s'" % ckey)
+            info_log("Sign idtoken with '%s'" % ckey)
 
         return idt.get_jwt(key=ckey)
 
@@ -279,7 +276,7 @@ class Server(AServer):
 
         # Same serialization used for GET and POST
         try:
-            areq = self.srvmethod.parse_authorization_request(query=query, 
+            areq = self.server.parse_authorization_request(query=query, 
                                                               extended=True)
         except MissingRequiredAttribute, err:
             resp = BadRequest("%s" % err)
@@ -315,7 +312,7 @@ class Server(AServer):
         openid_req = None
         if "request" in areq or "request_uri" in areq:
             try:
-                _keystore = self.srvmethod.keystore
+                _keystore = self.server.keystore
                 jwt_key = _keystore.get_keys("verify", owner=None)
             except KeyError: # TODO
                 raise KeyError("Missing verifying key")
@@ -372,6 +369,46 @@ class Server(AServer):
         # DEFAULT: start the authentication process
         return self.function["authenticate"](environ, start_response, bsid)
 
+    def verify_client(self, environ, areq, log_info=None):
+        try:
+            _token = self._bearer_auth(environ)
+            if _token in self.cdb:
+                return True
+        except AuthnFailure:
+            pass
+
+        if areq.client_id not in self.cdb:
+            return False
+
+        if areq.client_secret: # client_secret_post
+            identity = areq.client_id
+            if self.cdb[identity]["client_secret"] == areq.client_secret:
+                return True
+        elif areq.client_assertion: # client_secret_jwt or public_key_jwt
+            if areq.client_assertion_type != JWT_BEARER:
+                return False
+
+            key_col = {areq.client_id:
+                       self.keystore.get_verify_key(owner=areq.client_id)}
+            key_col.update({".":self.keystore.get_verify_key()})
+
+            if log_info:
+                log_info("key_col: %s" % (key_col,))
+
+            bjwt = AuthnToken.set_jwt(areq.client_assertion, key_col)
+
+            try:
+                assert bjwt.iss == areq.client_id # Issuer = the client
+                # Is this true bjwt.iss == areq.client_id
+                assert str(bjwt.iss) in self.cdb # It's a client I know
+                assert str(bjwt.aud) == geturl(environ,
+                                              query=False) # audience = me
+                return True
+            except AssertionError:
+                pass
+
+        return False
+
     #noinspection PyUnusedLocal
     def token_endpoint(self, environ, start_response, logger, handle):
         """
@@ -392,7 +429,7 @@ class Server(AServer):
         if self.debug:
             _log_info("environ: %s" % environ)
 
-        if not self.function["verify_client"](environ, areq, self.cdb):
+        if not self.verify_client(environ, areq, _log_info):
             _log_info("could not verify client")
             err = TokenErrorResponse(error="unathorized_client")
             resp = Unauthorized(err.get_json(), content="application/json")
@@ -471,7 +508,7 @@ class Server(AServer):
         if not query or "access_token" not in query:
             _token = self._bearer_auth(environ)
         else:
-            uireq = self.srvmethod.parse_user_info_request(data=query)
+            uireq = self.server.parse_user_info_request(data=query)
             _log_info("user_info_request: %s" % uireq)
             _token = uireq.access_token
 
@@ -537,7 +574,7 @@ class Server(AServer):
         if not info:
             info = "id_token=%s" % self._bearer_auth(environ)
 
-        idt = self.srvmethod.parse_check_session_request(query=info)
+        idt = self.server.parse_check_session_request(query=info)
 
         resp = Response(idt.get_json(), content="application/json")
         return resp(environ, start_response)
@@ -554,7 +591,7 @@ class Server(AServer):
         if not info:
             info = "access_token=%s" % self._bearer_auth(environ)
 
-        idt = self.srvmethod.parse_check_id_request(query=info)
+        idt = self.server.parse_check_id_request(query=info)
 
         resp = Response(idt.get_json(), content="application/json")
         return resp(environ, start_response)
@@ -571,7 +608,7 @@ class Server(AServer):
         request = RegistrationRequest.from_urlencoded(query)
         logger.info("RegistrationRequest:%s" % request.dictionary())
 
-        _keystore = self.srvmethod.keystore
+        _keystore = self.server.keystore
         if request.type == "client_associate":
             # create new id och secret
             client_id = rndstr(12)
@@ -587,9 +624,9 @@ class Server(AServer):
             for key,val in request.dictionary().items():
                 _cinfo[key] = val
 
-            if "jwk_url" not in _cinfo:
-                _cinfo["jwk_url"] = None
-                
+            self.keystore.load_keys(request, client_id)
+            logger.info("KEYSTORE: %s" % self.keystore._store)
+
         elif request.type == "client_update":
             #  that these are an id,secret pair I know about
             client_id = request.client_id
@@ -613,6 +650,15 @@ class Server(AServer):
             _keystore.remove_key(old_key, client_id, type="hmac", usage="sign")
             _keystore.remove_key(old_key, client_id, type="hmac",
                                  usage="verify")
+
+            for key,val in request.dictionary().items():
+                if key in ["client_id", "client_secret"]:
+                    continue
+
+                _cinfo[key] = val
+
+            self.keystore.load_keys(request, client_id, replace=True)
+
         else:
             resp = BadRequest("Unknown request type: %s" % request.type)
             return resp(environ, start_response)

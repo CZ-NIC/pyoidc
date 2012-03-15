@@ -47,8 +47,6 @@ OIDCONF_PATTERN = "%s/.well-known/openid-configuration"
 
 AUTHN_METHOD = OAUTH2_AUTHN_METHOD.copy()
 
-KEYLOADERR = "Failed to load %s key from '%s'"
-
 def assertion_jwt(cli, keys, audience, algorithm=DEF_SIGN_ALG):
     at = AuthnToken(
         iss = cli.client_id,
@@ -65,17 +63,38 @@ def client_secret_jwt(cli, cis, authn_method, request_args=None,
                       http_args=None, req=None):
 
     # signing key is the client secret
-    signing_key = cli.keystore.get_sign_keys()
+    signing_key = cli.keystore.get_sign_key()
 
     # audience is the OP endpoint
-    audience = cli._endpoint(REQUEST2ENDPOINT[req])
+    audience = cli._endpoint(REQUEST2ENDPOINT[cis.__class__.__name__])
 
-    cis.client_assertion = assertion_jwt(cli, signing_key, audience)
+    cis.client_assertion = assertion_jwt(cli, signing_key, audience,
+                                         "RS256")
+    cis.client_assertion_type = JWT_BEARER
+
+    if cis.client_secret:
+        cis.client_secret = None
+
+    return {}
+
+#noinspection PyUnusedLocal
+def private_key_jwt(cli, cis, authn_method, request_args=None,
+                      http_args=None, req=None):
+
+    # signing key is the clients rsa key for instance
+    signing_key = cli.keystore.get_sign_key()
+
+    # audience is the OP endpoint
+    audience = cli._endpoint(REQUEST2ENDPOINT[cis.__class__.__name__])
+
+    cis.client_assertion = assertion_jwt(cli, signing_key, audience,
+                                         algorithm="RS512")
     cis.client_assertion_type = JWT_BEARER
 
     return {}
 
-AUTHN_METHOD.update({"client_secret_jwt": client_secret_jwt})
+AUTHN_METHOD.update({"client_secret_jwt": client_secret_jwt,
+                     "private_key_jwt": private_key_jwt})
 
 # -----------------------------------------------------------------------------
 
@@ -128,6 +147,7 @@ class Client(oauth2.Client):
         self.response2error = RESPONSE2ERROR
         self.grant_class = Grant
         self.token_class = Token
+        self.authn_method = AUTHN_METHOD
 
     def _get_id_token(self, **kwargs):
         try:
@@ -547,6 +567,7 @@ class Client(oauth2.Client):
 
         return OpenIDSchema.set_json(txt=content, extended=True)
 
+
     def provider_config(self, issuer, keys=True, endpoints=True):
         if issuer.endswith("/"):
             _issuer = issuer[:-1]
@@ -579,32 +600,7 @@ class Client(oauth2.Client):
                     setattr(self, key, val)
 
         if keys:
-            _keystore = self.keystore
-
-            if "x509_url" in pcr:
-                try:
-                    _verkey = self.load_x509_cert(pcr.x509_url, "verify",
-                                                  _issuer)
-                except Exception:
-                    raise Exception(KEYLOADERR % ('x509', pcr.x509_url))
-            else:
-                _verkey = None
-
-            if "x509_encryption_url" in pcr:
-                try:
-                    self.load_x509_cert(pcr.x509_encryption_url, "enc",
-                                        _issuer)
-                except Exception:
-                    raise Exception(KEYLOADERR % ('x509_encryption',
-                                                  pcr.x509_encryption_url))
-            elif _verkey:
-                _keystore.set_decrypt_key(_verkey, "rsa", _issuer)
-
-            if "jwk_url" in pcr:
-                try:
-                    self.load_jwk(pcr.jwk_url, "verify", _issuer)
-                except Exception:
-                    raise Exception(KEYLOADERR % ('jwk', pcr.jwk_url))
+            self.keystore.load_keys(pcr, _issuer)
 
         return pcr
 
@@ -650,8 +646,14 @@ class Client(oauth2.Client):
 
 #noinspection PyMethodOverriding
 class Server(oauth2.Server):
-    def __init__(self, jwt_keys=None):
-        oauth2.Server.__init__(self, jwt_keys)
+    def __init__(self, jwt_keys=None, cache=None, time_out=None,
+                 proxy_info=None, follow_redirects=True,
+                 disable_ssl_certificate_validation=False, ca_certs=None,
+                 httpclass=None):
+        oauth2.Server.__init__(self, jwt_keys, cache, time_out, proxy_info,
+                               follow_redirects,
+                               disable_ssl_certificate_validation,
+                               ca_certs, httpclass)
 
     def _parse_urlencoded(self, url=None, query=None):
         if url:

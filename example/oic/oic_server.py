@@ -18,8 +18,8 @@ from oic.utils.http_util import *
 from oic.oic import ProviderConfigurationResponse
 
 from oic.utils import sdb
-from oic.oic.server import Server
-from oic.oic.server import UserInfo
+from oic.oic.provider import Server
+from oic.oic.provider import UserInfo
 from oic.oic.consumer import ISSUER_URL
 from authentication import Authentication
 

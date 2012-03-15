@@ -9,7 +9,7 @@ import re
 
 from oic.utils.http_util import *
 from oic.oic.message import OpenIDSchema
-#from oic.oic.server import AuthnFailure
+#from oic.oic.provider import AuthnFailure
 
 LOGGER = logging.getLogger("oicServer")
 hdlr = logging.FileHandler('oc3cp.log')
@@ -106,9 +106,9 @@ def static(environ, start_response, path):
 
 # ----------------------------------------------------------------------------
 
-from oic.oic.server import UserinfoEndpoint
-from oic.oic.server import CheckIDEndpoint
-from oic.oic.server import RegistrationEndpoint
+from oic.oic.provider import UserinfoEndpoint
+from oic.oic.provider import CheckIDEndpoint
+from oic.oic.provider import RegistrationEndpoint
 from oic.oic.claims_provider import UserClaimsEndpoint
 
 ENDPOINTS = [
@@ -177,14 +177,7 @@ def application(environ, start_response):
 
 USERDB = {
     "diana":{
-        "birthdate": "02/14/2012",
-        "gender": "female",
-        "address": {
-            "street_address": "Umeå Universitet",
-            "locality": "Umeå",
-            "postal_code": "SE-90187",
-            "country": "Sweden"
-        },
+        "geolocation": {"longitude":20.3076, "latitude": 63.8206},
     }
 }
 

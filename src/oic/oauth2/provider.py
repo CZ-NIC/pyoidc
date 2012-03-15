@@ -76,7 +76,7 @@ def location_url(response_type, redirect_uri, query):
     else:
         return "%s#%s" % (redirect_uri, query)
 
-class Server(object):
+class Provider(object):
     authorization_request = AuthorizationRequest
     
     def __init__(self, name, sdb, cdb, function, urlmap=None, debug=0):

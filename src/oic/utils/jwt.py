@@ -1,15 +1,23 @@
-u"""JSON Web Token"""
+"""JSON Web Token"""
+
+# Most of the code herein I have borrowed/stolen from other people
+# Most notably Jeff Lindsay, Ryan Kelly
 
 import base64
 import json
 import re
+import os
 
 import M2Crypto
 import hashlib
 import hmac
+import struct
+import binascii
+#import rsa
 
 from struct import pack
 from itertools import izip
+from M2Crypto.__m2crypto import hex_to_bn, bn_to_mpi
 
 JWT_TYPS = (u"JWT", u"http://openid.net/specs/jwt/1.0")
 
@@ -173,9 +181,17 @@ ALGS = {
     u'RS512': RSASigner(sha512_digest, 'sha512'),
 
     u'ES256': ECDSASigner(sha256_digest),
+#    u'AES256': AESEncrypter
     }
 
 def unpack(token):
+    """
+    Unpacks a JWT into its parts and base64 decodes the parts individually
+
+    :param token: The JWT
+    :return: A tuple of the header, claim, crypto parts plus the header
+        and claims part before base64 decoding
+    """
     if isinstance(token, unicode):
         raise TypeError
 
@@ -190,6 +206,10 @@ def unpack(token):
     return header, claim, crypto, header_b64, claim_b64
 
 def verify(token, dkeys):
+    """
+    Verifies that a token is correctly signed.
+
+    """
     header, claim, crypto, header_b64, claim_b64 = unpack(token)
 
     if u'typ' in header:
@@ -229,12 +249,31 @@ def check(token, key):
     except Invalid:
         return False
 
-def sign(payload, keys, alg):
+def pack(payload):
+    """
+    Unsigned JWT
+    """
+    header = {'alg': 'none'}
+
+    header_b64 = b64e(json.dumps(header, separators=(",", ":")))
+    if isinstance(payload, basestring):
+        payload_b64 = b64e(payload)
+    else:
+        payload_b64 = b64e(json.dumps(payload, separators=(",", ":")))
+
+    token = header_b64 + b"." + payload_b64 + b"."
+
+    return token
+
+def sign(payload, keys, alg=None):
     """Sign the payload with the given algorithm and key.
 
     The payload can be any JSON-dumpable object.
 
     Returns a token string."""
+
+    if not alg:
+        return pack(payload)
 
     if alg not in ALGS:
         raise UnknownAlgorithm(alg)
@@ -274,3 +313,122 @@ def ec_load(filename):
 def x509_rsa_loads(string):
     cert = M2Crypto.X509.load_cert_string(string)
     return cert.get_pubkey().get_rsa()
+
+def jwk_loads(txt):
+    """
+    Expects something on this form
+    {"jwk":
+        [
+            {"alg":"EC",
+             "crv":"P-256",
+             "x":"MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4",
+            "y":"4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM",
+            "use":"enc",
+            "kid":"1"},
+
+            {"alg":"RSA",
+            "mod": "0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFb....."
+            "exp":"AQAB",
+            "kid":"2011-04-29"}
+        ]
+    }
+
+    """
+    res = {}
+    spec = json.loads(txt)
+    for kspec in spec["jwk"]:
+        if kspec["alg"] == "RSA":
+            e = my_b64decode(kspec["exp"])
+            n = my_b64decode(kspec["mod"])
+
+            k = M2Crypto.RSA.new_pub_key((long_to_mpi(e), long_to_mpi(n)))
+
+            if "kid" in kspec:
+                tag = "%s:%s" % ("rsa", kspec["kid"])
+            else:
+                tag = "rsa"
+
+            res[tag] = k
+
+    return res
+
+def construct_rsa_jwk(key):
+    spec = {
+        "alg": "RSA",
+        "mod": my_b64encode(mpi_to_long(key.n)),
+        "exp": my_b64encode(mpi_to_long(key.e)),
+        "use": "sig"
+    }
+    return spec
+
+def construct_jwk(keys):
+    kspecs = []
+    for key in keys:
+        if isinstance(key, M2Crypto.RSA.RSA):
+            kspecs.append(construct_rsa_jwk(key))
+
+    if kspecs:
+        return {"jwk": kspecs}
+    else:
+        return None
+
+# ========== base64 encoding/decoding large numbers ====
+
+import string
+ALPHABET = string.ascii_uppercase + string.ascii_lowercase +\
+           string.digits + '-_'
+ALPHABET_REVERSE = dict((c, i) for (i, c) in enumerate(ALPHABET))
+BASE = len(ALPHABET)
+
+def my_b64encode(n):
+    encoded = ''
+    while n > 0:
+        n, r = divmod(n, BASE)
+        encoded = ALPHABET[int(r)] + encoded
+
+    return encoded
+
+def my_b64decode(data):
+    decoded = 0
+    for i in range(0, len(data)):
+        decoded = (decoded << 6) | ALPHABET_REVERSE[data[i]]
+    return decoded
+
+from binascii import b2a_hex
+
+def long_to_mpi(num):
+    #Converts a python integer or long to OpenSSL MPInt used by M2Crypto.
+    h = hex(num)[2:] # strip leading 0x in string
+    if len(h) % 2 == 1:
+        h = '0' + h # add leading 0 to get even number of hexdigits
+    return bn_to_mpi(hex_to_bn(h)) # convert using OpenSSL BinNum
+
+def mpi_to_long(mpi):
+    #Converts an OpenSSL MPint used by M2Crypto to a python integer/long.
+    return eval("0x%s" % b2a_hex(mpi[4:]))
+
+#def int2mpint(x):
+#    """Convert a Python long integer to a string in OpenSSL's MPINT format."""
+#    # MPINT is big-endian bytes with a size prefix.
+#    hexbytes = hex(x)[2:].rstrip("L")
+#    if len(hexbytes) % 2:
+#        hexbytes = "0" + hexbytes
+#    bytes = binascii.unhexlify(hexbytes)
+#    # Add an extra significant byte that's just zero.  I think this is only
+#    # necessary if the number has its MSB set, to prevent it being mistaken
+#    # for a sign bit.  I do it uniformly since it's valid and simpler.
+#    return struct.pack(">I", len(bytes) + 1) + "\x00" + bytes
+
+# ================= create RSA key ======================
+
+def create_rsa_key_pair(name="pyoidc", path="."):
+    #Seed the random number generator with 1024 random bytes (8192 bits)
+    M2Crypto.Rand.rand_seed(os.urandom(1024))
+
+    key = M2Crypto.RSA.gen_key(1024, 65537)
+
+    key.save_key('%s/%s' % (path, name), None)
+    key.save_pub_key('%s/%s.pub' % (path, name))
+
+    return key
+

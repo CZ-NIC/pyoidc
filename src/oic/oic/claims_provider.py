@@ -3,7 +3,7 @@ __author__ = 'rohe0002'
 from oic import oauth2
 from oic.oic import Server as OicServer
 from oic.oic import Client
-from oic.oic.server import Server, get_or_post, Endpoint
+from oic.oic.provider import Provider, get_or_post, Endpoint
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
@@ -79,12 +79,12 @@ class OICCServer(OicServer):
                                   extended=True):
         return self._parse_request(UserClaimsRequest, info, format, extended)
 
-class ClaimsServer(Server):
+class ClaimsServer(Provider):
 
     def __init__(self, name, sdb, cdb, function, userdb, urlmap=None,
                  debug=0, cache=None, timeout=None, proxy_info=None,
                  follow_redirects=True, ca_certs="", jwt_keys=None):
-        Server.__init__(self, name, sdb, cdb, function, userdb, urlmap,
+        Provider.__init__(self, name, sdb, cdb, function, userdb, urlmap,
                         debug, cache, timeout, proxy_info,
                         follow_redirects, ca_certs, jwt_keys)
 
@@ -116,7 +116,8 @@ class ClaimsServer(Server):
         cresp.access_token = ""
         return cresp
 
-    def do_aggregation(self):
+    #noinspection PyUnusedLocal
+    def do_aggregation(self, info, uid):
         if self.claims_mode == "aggregate":
             return True
         else:
@@ -150,7 +151,7 @@ class ClaimsServer(Server):
 
         _log_info("User info: %s" % info.dictionary())
 
-        if self.do_aggregation():
+        if self.do_aggregation(info, ucreq.user_id):
             cresp = self._aggregation(info, logger)
         else:
             cresp = self._distributed(info, logger)

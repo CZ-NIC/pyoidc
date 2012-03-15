@@ -9,9 +9,10 @@ import logging
 import re
 
 from oic.utils.http_util import *
-from oic.oic.message import OpenIDSchema
-from oic.oic.server import AuthnFailure
+from oic.oic.message import OpenIDSchema, AuthnToken
+from oic.oic.provider import AuthnFailure
 from oic.oic.claims_provider import ClaimsClient
+from oic.oic import JWT_BEARER
 
 from mako.lookup import TemplateLookup
 
@@ -28,7 +29,7 @@ NAME = "pyoic"
 
 OAS = None
 
-PASSWD = [("diana", "krall")]
+PASSWD = [("diana", "krall"), ("babs", "howes")]
 
 
 #noinspection PyUnusedLocal
@@ -69,13 +70,16 @@ def do_authorization(user, session=None):
 
 #noinspection PyUnusedLocal
 def verify_client(environ, areq, cdb):
-    identity = areq.client_id
-    secret = areq.client_secret
-    if identity:
+    if areq.client_secret: # client_secret_post
+        identity = areq.client_id
         if identity in cdb:
-            if cdb[identity]["client_secret"] == secret:
+            if cdb[identity]["client_secret"] == areq.client_secret:
                 return True
-
+    elif areq.client_assertion: # client_secret_jwt or public_key_jwt
+        assert areq.client_assertion_type == JWT_BEARER
+        secret = cdb[areq.client_id]["client_secret"]
+        key_col = {"hmac": secret}
+        bjwt = AuthnToken.set_jwt(areq.client_assertion, key_col)
     return False
 
 #import sys
@@ -96,7 +100,7 @@ def init_claims_clients(client_info):
         else:
             cc = ClaimsClient(client_id=specs["client_id"])
             cc.client_secret=specs["client_secret"]
-            cc.load_x509_cert(specs["x509_url"], "verify", cid)
+            cc.keystore.load_x509_cert(specs["x509_url"], "verify", cid)
             cc.userclaims_endpoint = specs["userclaims_endpoint"]
         res[cid] = cc
     return res
@@ -273,11 +277,11 @@ def check_id(environ, start_response, handle):
     return _oas.check_id_endpoint(environ, start_response, LOGGER)
 
 # ----------------------------------------------------------------------------
-from oic.oic.server import AuthorizationEndpoint
-from oic.oic.server import TokenEndpoint
-from oic.oic.server import UserinfoEndpoint
-from oic.oic.server import CheckIDEndpoint
-from oic.oic.server import RegistrationEndpoint
+from oic.oic.provider import AuthorizationEndpoint
+from oic.oic.provider import TokenEndpoint
+from oic.oic.provider import UserinfoEndpoint
+from oic.oic.provider import CheckIDEndpoint
+from oic.oic.provider import RegistrationEndpoint
 
 
 ENDPOINTS = [
@@ -332,7 +336,7 @@ def application(environ, start_response):
 
     if kaka:
         if OAS.debug:
-            OAS.logger.debug("Cookie: %s" % (kaka,))
+            LOGGER.debug("Cookie: %s" % (kaka,))
         try:
             handle = parse_cookie(OAS.cookie_name, OAS.seed, kaka)
         except ValueError:
@@ -384,10 +388,25 @@ USERDB = {
             "postal_code": "SE-90187",
             "country": "Sweden"
         },
-
-#        "_external_": {
-#            "https://localhost:8089/": ["birthdate", "gender", "address"]
-#        }
+    },
+    "babs": {
+        "user_id": "babs0001",
+        "name": "Barbara J Jensen",
+        "given_name": "Barbara",
+        "family_name": "Jensen",
+        "nickname": "babs",
+        "email": "babs@example.com",
+        "verified": True,
+        "address": {
+            "street_address": "100 Universal City Plaza",
+            "locality": "Hollywood",
+            "region": "CA",
+            "postal_code": "91608",
+            "country": "USA",
+        },
+        "_external_": {
+            "https://localhost:8089/": ["geolocation"]
+        }
     }
 }
 
@@ -408,7 +427,7 @@ if __name__ == '__main__':
     from cherrypy import wsgiserver
     from cherrypy.wsgiserver import ssl_builtin
 
-    from oic.oic.server import Server
+    from oic.oic.provider import Provider
     from oic.utils.sdb import SessionDB
 
 
@@ -423,7 +442,7 @@ if __name__ == '__main__':
     # in memory session storage
 
     config = importlib.import_module(args.config)
-    OAS = Server(config.issuer, SessionDB(), cdb, FUNCTIONS,  USERDB)
+    OAS = Provider(config.issuer, SessionDB(), cdb, FUNCTIONS,  USERDB)
 
     try:
         OAS.cookie_ttl = config.COOKIETTL
