@@ -10,10 +10,10 @@ from oic.utils.sdb import SessionDB
 from oic.oic import Client
 
 from oic.oic.consumer import Consumer
-from oic.oic.server import Server
-from oic.oic.server import get_post
-from oic.oic.server import add_token_info
-from oic.oauth2.server import AuthnFailure
+from oic.oic.provider import Provider
+from oic.oic.provider import get_post
+from oic.oic.provider import add_token_info
+from oic.oauth2.provider import AuthnFailure
 
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import AuthorizationRequest
@@ -220,7 +220,7 @@ USERDB = {
 
 URLMAP = {"client1": ["https://example.com/authz"]}
 
-srv_init = Server("pyoicserv", SessionDB(), CDB, FUNCTIONS,
+srv_init = Provider("pyoicserv", SessionDB(), CDB, FUNCTIONS,
                   userdb=USERDB, urlmap=URLMAP, jwt_keys=KEYS)
 
 def _eq(l1, l2):
@@ -273,7 +273,7 @@ def test_server_authorization_endpoint():
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = arq.get_urlencoded()
 
-    resp = server.authorization_endpoint(environ, start_response, LOG(), None)
+    resp = server.authorization_endpoint(environ, start_response, LOG())
 
     print resp
     line = resp[0]
@@ -283,18 +283,18 @@ def test_server_authorization_endpoint():
 def test_failed_authenticated():
     server = srv_init
     environ0 = create_return_form_env("haden", "secret", "sid1")
-    resp1 = server.authenticated(environ0, start_response, LOG(), None)
+    resp1 = server.authenticated(environ0, start_response, LOG())
     print resp1
     assert resp1 == ['<html>Wrong password</html>']
 
     environ1 = create_return_form_env("", "secret", "sid2")
-    resp2 = server.authenticated(environ1, start_response, LOG(), None)
+    resp2 = server.authenticated(environ1, start_response, LOG())
     print resp2
     assert resp2 == ["<html>Authentication failed</html>"]
 
     environ2 = create_return_form_env("hannibal", "hemligt", "sid3")
     print environ2
-    resp = server.authenticated(environ2, start_response, LOG(), None)
+    resp = server.authenticated(environ2, start_response, LOG())
     print resp
     assert resp == ['<html>Not allowed to use this service (hannibal)</html>']
 
@@ -311,12 +311,12 @@ def test_server_authenticated():
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = location.split("?")[1]
 
-    resp = server.authorization_endpoint(environ, start_response, LOG(), None)
+    resp = server.authorization_endpoint(environ, start_response, LOG())
 
     sid = resp[0][len("<form>"):-len("</form>")]
     environ2 = create_return_form_env("user", "password", sid)
 
-    resp2 = server.authenticated(environ2, start_response, LOG(), None)
+    resp2 = server.authenticated(environ2, start_response, LOG())
 
     print resp2[0]
     assert len(resp2) == 1
@@ -363,12 +363,12 @@ def test_server_authenticated_1():
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = location.split("?")[1]
 
-    _ = server.authorization_endpoint(environ, start_response, LOG(), None)
+    _ = server.authorization_endpoint(environ, start_response, LOG())
 
     #sid = resp[0][len("FORM with "):]
     environ2 = create_return_form_env("user", "password", "abcd")
 
-    resp2 = server.authenticated(environ2, start_response, LOG(), None)
+    resp2 = server.authenticated(environ2, start_response, LOG())
     print resp2
     assert resp2 == ['<html>Could not find session</html>']
 
@@ -387,12 +387,12 @@ def test_server_authenticated_token():
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = location.split("?")[1]
 
-    resp = server.authorization_endpoint(environ, start_response, LOG(), None)
+    resp = server.authorization_endpoint(environ, start_response, LOG())
 
     sid = resp[0][len("<form>"):-len("</form>")]
     environ2 = create_return_form_env("user", "password", sid)
 
-    resp2 = server.authenticated(environ2, start_response, LOG(), None)
+    resp2 = server.authenticated(environ2, start_response, LOG())
 
     assert len(resp2) == 1
     txt = resp2[0]
@@ -413,12 +413,12 @@ def test_server_authenticated_none():
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = location.split("?")[1]
 
-    resp = server.authorization_endpoint(environ, start_response, LOG(), None)
+    resp = server.authorization_endpoint(environ, start_response, LOG())
 
     sid = resp[0][len("<form>"):-len("</form>")]
     environ2 = create_return_form_env("user", "password", sid)
 
-    resp2 = server.authenticated(environ2, start_response, LOG(), None)
+    resp2 = server.authenticated(environ2, start_response, LOG())
 
     assert len(resp2) == 1
     txt = resp2[0]
@@ -527,7 +527,7 @@ def test_authz_endpoint():
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = req.get_urlencoded()
 
-    resp = server.authorization_endpoint(environ, start_response, LOG(), None)
+    resp = server.authorization_endpoint(environ, start_response, LOG())
     print resp
     assert resp[0].startswith('<form>')
     assert resp[0].endswith('</form>')
@@ -587,12 +587,12 @@ def test_userinfo_endpoint():
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = location.split("?")[1]
 
-    resp = server.authorization_endpoint(environ, start_response, LOG(), None)
+    resp = server.authorization_endpoint(environ, start_response, LOG())
 
     sid = resp[0][len("<form>"):-len("</form>")]
     environ2 = create_return_form_env("user", "password", sid)
 
-    resp2 = server.authenticated(environ2, start_response, LOG(), None)
+    resp2 = server.authenticated(environ2, start_response, LOG())
     line = resp2[0]
     start = line.index("<title>")
     start += len("<title>Redirecting to ")

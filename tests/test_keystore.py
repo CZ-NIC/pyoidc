@@ -3,13 +3,13 @@ __author__ = 'rohe0002'
 from oic.oauth2 import KeyStore
 
 def test_init_1():
-    keystore = KeyStore()
+    keystore = KeyStore(None)
 
 def test_init_2():
     #key, type, usage, owner
     jwt_keys = [["foobar","hmac", "sign", "."]]
 
-    keystore = KeyStore(jwt_keys)
+    keystore = KeyStore(None, jwt_keys)
 
     skeys = keystore.get_sign_key()
 
@@ -21,7 +21,7 @@ def test_init_2():
 
 def test_3():
     jwt_keys = [["foobar","hmac", "sign", "."]]
-    keystore = KeyStore(jwt_keys)
+    keystore = KeyStore(None, jwt_keys)
 
     keystore.set_verify_key("xyz", owner="http://example.com/")
 
