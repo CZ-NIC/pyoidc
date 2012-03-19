@@ -182,7 +182,7 @@ def test_authz_err_resp_1():
     assert ter
     print ter.__dict__.items()
     assert ter["error"] == "access_denied"
-    assert _eq(ter.keys(), {'state', 'error'})
+    assert _eq(ter.keys(), ['state', 'error'])
 
 def test_authz_err_resp_2():
     ter = message("TokenErrorResponse", error="access_denied",
