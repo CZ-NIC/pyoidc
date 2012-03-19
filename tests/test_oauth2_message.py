@@ -1,7 +1,7 @@
 
 __author__ = 'rohe0002'
 
-from src.oic.oauth2.message import *
+from oic.oauth2.message import *
 
 from pytest import raises
 
