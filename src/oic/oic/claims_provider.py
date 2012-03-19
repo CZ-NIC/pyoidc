@@ -38,6 +38,7 @@ def verify(self, **kwargs):
 SCHEMA = {
     "": {"param": {}},
     "UserClaimsRequest": {
+        "name": "UserClaimsRequest",
         "param": {
             "user_id": SINGLE_REQUIRED_STRING,
             "client_id": SINGLE_REQUIRED_STRING,
@@ -46,6 +47,7 @@ SCHEMA = {
         },
     },
     "UserClaimsResponse": {
+        "name": "UserClaimsResponse",
         "param": {
             "claims_names": REQUIRED_LIST_OF_STRINGS,
             "jwt": SINGLE_OPTIONAL_STRING,
@@ -85,7 +87,7 @@ class ClaimsServer(Provider):
 
         jwt_key = self.keystore.get_sign_key()
         cresp = Message("UserClaimsResponse", SCHEMA["UserClaimsResponse"],
-                        jwt=info.get_jwt(key=jwt_key, algorithm="RS256"),
+                        jwt=info.to_jwt(key=jwt_key, algorithm="RS256"),
                         claims_names=info.keys())
 
         logger.info("RESPONSE: %s" % (cresp.to_dict(),))
@@ -114,23 +116,23 @@ class ClaimsServer(Provider):
         if not self.function["verify_client"](environ, ucreq, self.cdb):
             _log_info("could not verify client")
             err = message("TokenErrorResponse", error="unathorized_client")
-            resp = Unauthorized(err.get_json(), content="application/json")
+            resp = Unauthorized(err.to_json(), content="application/json")
             return resp(environ, start_response)
 
-        if ucreq.claims_names:
-            args = dict([(n, {"optional": True}) for n in ucreq.claims_names])
+        if "claims_names" in ucreq:
+            args = dict([(n, {"optional": True}) for n in ucreq["claims_names"]])
             uic = message("UserInfoClaim", claims=message("Claims", **args))
         else:
             uic = None
 
         _log_info("User info claims: %s" % uic)
 
-        info = self.function["userinfo"](self, self.userdb, ucreq.user_id,
+        info = self.function["userinfo"](self, self.userdb, ucreq["user_id"],
                                          user_info_claims=uic)
 
-        _log_info("User info: %s" % info.dictionary())
+        _log_info("User info: %s" % info.to_dict())
 
-        if self.do_aggregation(info, ucreq.user_id):
+        if self.do_aggregation(info, ucreq["user_id"]):
             cresp = self._aggregation(info, logger)
         else:
             cresp = self._distributed(info, logger)
