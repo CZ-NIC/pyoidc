@@ -8,8 +8,7 @@ import logging
 import re
 
 from oic.utils.http_util import *
-from oic.oic.message import OpenIDSchema
-#from oic.oic.provider import AuthnFailure
+from oic.oic.message import message
 
 LOGGER = logging.getLogger("oicServer")
 hdlr = logging.FileHandler('oc3cp.log')
@@ -49,7 +48,7 @@ def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
     else:
         result = identity
 
-    return OpenIDSchema(**result)
+    return message("OpenIDSchema", **result)
 
 FUNCTIONS = {
     "verify_client": verify_client,

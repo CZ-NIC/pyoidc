@@ -1,11 +1,14 @@
-
 __author__ = 'rohe0002'
+
+import urlparse
+
+from oic import oauth2
 
 from oic.oauth2 import AUTHN_METHOD as OAUTH2_AUTHN_METHOD
 from oic.oauth2 import DEF_SIGN_ALG
 from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import rndstr
-from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import message_from_schema
 
 from oic.oic.message import *
 from oic.utils import jwt
@@ -20,11 +23,12 @@ ENDPOINTS = ["authorization_endpoint", "token_endpoint",
              "registration_endpoint", "check_id_endpoint"]
 
 RESPONSE2ERROR = {
-    AuthorizationResponse: [AuthorizationErrorResponse, TokenErrorResponse],
-    AccessTokenResponse: [TokenErrorResponse],
-    IdToken: [ErrorResponse],
-    RegistrationResponse: [ClientRegistrationErrorResponse],
-    OpenIDSchema: [UserInfoErrorResponse]
+    "AuthorizationResponse": ["AuthorizationErrorResponse", 
+                              "TokenErrorResponse"],
+    "AccessTokenResponse": ["TokenErrorResponse"],
+    "IdToken": ["ErrorResponse"],
+    "RegistrationResponse": ["ClientRegistrationErrorResponse"],
+    "OpenIDSchema": ["UserInfoErrorResponse"]
 }
 
 REQUEST2ENDPOINT = {
@@ -48,15 +52,10 @@ OIDCONF_PATTERN = "%s/.well-known/openid-configuration"
 AUTHN_METHOD = OAUTH2_AUTHN_METHOD.copy()
 
 def assertion_jwt(cli, keys, audience, algorithm=DEF_SIGN_ALG):
-    at = AuthnToken(
-        iss = cli.client_id,
-        prn = cli.client_id,
-        aud = audience,
-        jti = rndstr(8),
-        exp = int(epoch_in_a_while(minutes=10)),
-        iat = utc_now()
-    )
-    return at.get_jwt(key=keys, algorithm=algorithm)
+    at = message("AuthnToken", iss = cli.client_id, prn = cli.client_id, 
+                 aud = audience, jti = rndstr(8), 
+                 exp = int(epoch_in_a_while(minutes=10)), iat = utc_now())
+    return at.to_jwt(key=keys, algorithm=algorithm)
 
 #noinspection PyUnusedLocal
 def client_secret_jwt(cli, cis, authn_method, request_args=None,
@@ -66,30 +65,37 @@ def client_secret_jwt(cli, cis, authn_method, request_args=None,
     signing_key = cli.keystore.get_sign_key()
 
     # audience is the OP endpoint
-    audience = cli._endpoint(REQUEST2ENDPOINT[cis.__class__.__name__])
+    audience = cli._endpoint(REQUEST2ENDPOINT[cis.type()])
 
-    cis.client_assertion = assertion_jwt(cli, signing_key, audience,
-                                         "RS256")
-    cis.client_assertion_type = JWT_BEARER
+    cis["client_assertion"] = assertion_jwt(cli, signing_key, audience,
+                                            "RS256")
+    cis["client_assertion_type"] = JWT_BEARER
 
-    if cis.client_secret:
-        cis.client_secret = None
+    try:
+        del cis["client_secret"]
+    except KeyError:
+        pass
 
     return {}
 
 #noinspection PyUnusedLocal
 def private_key_jwt(cli, cis, authn_method, request_args=None,
-                      http_args=None, req=None):
+                    http_args=None, req=None):
 
     # signing key is the clients rsa key for instance
     signing_key = cli.keystore.get_sign_key()
 
     # audience is the OP endpoint
-    audience = cli._endpoint(REQUEST2ENDPOINT[cis.__class__.__name__])
+    audience = cli._endpoint(REQUEST2ENDPOINT[cis.type()])
 
-    cis.client_assertion = assertion_jwt(cli, signing_key, audience,
+    cis["client_assertion"] = assertion_jwt(cli, signing_key, audience,
                                          algorithm="RS512")
-    cis.client_assertion_type = JWT_BEARER
+    cis["client_assertion_type"] = JWT_BEARER
+
+    try:
+        del cis["client_secret"]
+    except KeyError:
+        pass
 
     return {}
 
@@ -99,12 +105,12 @@ AUTHN_METHOD.update({"client_secret_jwt": client_secret_jwt,
 # -----------------------------------------------------------------------------
 
 class Token(oauth2.Token):
-    _class = AccessTokenResponse
+    _schema = SCHEMA["AccessTokenResponse"]
 
 
 class Grant(oauth2.Grant):
-    _authz_resp = AuthorizationResponse
-    _acc_resp = AccessTokenResponse
+    _authz_resp = "AuthorizationResponse"
+    _acc_resp = "AccessTokenResponse"
     _token_class = Token
 
     def add_token(self, resp):
@@ -130,8 +136,8 @@ class Client(oauth2.Client):
             client_timeout = time_sans_frac() + expire_in
 
         oauth2.Client.__init__(self, client_id, cache, timeout, proxy_info,
-                       follow_redirects, disable_ssl_certificate_validation,
-                       ca_certs, grant_expire_in, client_timeout, httpclass)
+                               follow_redirects, disable_ssl_certificate_validation,
+                               ca_certs, grant_expire_in, client_timeout, httpclass)
 
         self.file_store = "./file/"
         self.file_uri = "http://localhost/"
@@ -186,20 +192,25 @@ class Client(oauth2.Client):
         The request will be signed
         """
 
+        oir_args = {}
+
         if userinfo_claims is not None:
             # UserInfoClaims
-            claim = Claims(**userinfo_claims["claims"])
+            claim = message("Claims", **userinfo_claims["claims"])
 
             uic_args = {}
             for prop, val in userinfo_claims.items():
                 if prop == "claims":
                     continue
-                if prop in UserInfoClaim.c_attributes.keys():
+                if prop in SCHEMA["UserInfoClaim"]["param"].keys():
                     uic_args[prop] = val
 
-            uic = UserInfoClaim(claim, **uic_args)
+            uic = message("UserInfoClaim", claims=claim, **uic_args)
         else:
             uic = None
+
+        if uic:
+            oir_args["userinfo"] = uic
 
         if idtoken_claims is not None:
             #IdTokenClaims
@@ -208,28 +219,29 @@ class Client(oauth2.Client):
             except KeyError:
                 _max_age=MAX_AUTHENTICATION_AGE
 
-            id_token = IDTokenClaim(max_age=_max_age)
+            id_token = message("IDTokenClaim", max_age=_max_age)
             if "claims" in idtoken_claims:
-                idtclaims = Claims(**idtoken_claims["claims"])
-                id_token.claims = idtclaims
+                idtclaims = message("Claims", **idtoken_claims["claims"])
+                id_token["claims"] = idtclaims
         else: # uic must be != None
-            id_token = IDTokenClaim(max_age=MAX_AUTHENTICATION_AGE)
+            id_token = message("IDTokenClaim", max_age=MAX_AUTHENTICATION_AGE)
 
-        oir_args = {"userinfo":uic, "id_token":id_token}
-        for prop in arq.keys():
-            _val = getattr(arq, prop)
-            if _val:
-                oir_args[prop] = _val
+        if id_token:
+            oir_args["id_token"] = id_token
+
+        for prop, val in arq.items():
+            oir_args[prop] = val
 
         for attr in ["scope", "prompt", "response_type"]:
             if attr in oir_args:
                 oir_args[attr] = " ".join(oir_args[attr])
 
-        oir = OpenIDRequest(**oir_args)
+        oir = message("OpenIDRequest", **oir_args)
 
-        return oir.get_jwt(extended=True, key=keys, algorithm=algorithm)
+        return oir.to_jwt(key=keys, algorithm=algorithm)
 
-    def construct_AuthorizationRequest(self, cls=AuthorizationRequest,
+    def construct_AuthorizationRequest(self,
+                                       schema=SCHEMA["AuthorizationRequest"],
                                        request_args=None, extra_args=None,
                                        **kwargs):
 
@@ -239,13 +251,13 @@ class Client(oauth2.Client):
         else:
             request_args = {"nonce": rndstr(12)}
 
-        return oauth2.Client.construct_AuthorizationRequest(self, cls,
+        return oauth2.Client.construct_AuthorizationRequest(self, schema,
                                                             request_args,
                                                             extra_args,
                                                             **kwargs)
 
-    def construct_OpenIDRequest(self, cls=OpenIDRequest, request_args=None,
-                                extra_args=None, **kwargs):
+    def construct_OpenIDRequest(self, schema=SCHEMA["OpenIDRequest"],
+                                request_args=None, extra_args=None, **kwargs):
 
         if request_args is not None:
             for arg in ["idtoken_claims", "userinfo_claims"]:
@@ -257,7 +269,7 @@ class Client(oauth2.Client):
         else:
             request_args = {"nonce": rndstr(12)}
 
-        areq = oauth2.Client.construct_AuthorizationRequest(self, cls,
+        areq = oauth2.Client.construct_AuthorizationRequest(self, schema,
                                                             request_args,
                                                             extra_args,
                                                             **kwargs)
@@ -266,29 +278,29 @@ class Client(oauth2.Client):
             kwargs["keys"] = self.keystore.get_sign_key()
 
         if "userinfo_claims" in kwargs or "idtoken_claims" in kwargs:
-            areq.request = self.make_openid_request(areq, **kwargs)
+            areq["request"] = self.make_openid_request(areq, **kwargs)
 
         return areq
 
     #noinspection PyUnusedLocal
-    def construct_AccessTokenRequest(self, cls=AccessTokenRequest,
+    def construct_AccessTokenRequest(self, schema=SCHEMA["AccessTokenRequest"],
                                      request_args=None, extra_args=None,
                                      **kwargs):
 
-        return oauth2.Client.construct_AccessTokenRequest(self, cls,
+        return oauth2.Client.construct_AccessTokenRequest(self, schema,
                                                           request_args,
                                                           extra_args, **kwargs)
 
     def construct_RefreshAccessTokenRequest(self,
-                                            cls=RefreshAccessTokenRequest,
-                                            request_args=None, extra_args=None,
-                                            **kwargs):
+                                    schema=SCHEMA["RefreshAccessTokenRequest"],
+                                    request_args=None, extra_args=None,
+                                    **kwargs):
 
-        return oauth2.Client.construct_RefreshAccessTokenRequest(self, cls,
-                                                          request_args,
-                                                          extra_args, **kwargs)
+        return oauth2.Client.construct_RefreshAccessTokenRequest(self, schema,
+                                                                 request_args,
+                                                                 extra_args, **kwargs)
 
-    def construct_UserInfoRequest(self, cls=UserInfoRequest,
+    def construct_UserInfoRequest(self, schema=SCHEMA["UserInfoRequest"],
                                   request_args=None, extra_args=None,
                                   **kwargs):
 
@@ -304,23 +316,25 @@ class Client(oauth2.Client):
 
             request_args["access_token"] = token.access_token
 
-        return self.construct_request(cls, request_args, extra_args)
+        return self.construct_request(schema, request_args, extra_args)
 
     #noinspection PyUnusedLocal
-    def construct_RegistrationRequest(self, cls=RegistrationRequest,
+    def construct_RegistrationRequest(self,
+                                      schema=SCHEMA["RegistrationRequest"],
                                       request_args=None, extra_args=None,
                                       **kwargs):
 
-        return self.construct_request(cls, request_args, extra_args)
+        return self.construct_request(schema, request_args, extra_args)
 
     #noinspection PyUnusedLocal
-    def construct_RefreshSessionRequest(self, cls=RefreshSessionRequest,
+    def construct_RefreshSessionRequest(self,
+                                        schema=SCHEMA["RefreshSessionRequest"],
                                         request_args=None, extra_args=None,
                                         **kwargs):
 
-        return self.construct_request(cls, request_args, extra_args)
+        return self.construct_request(schema, request_args, extra_args)
 
-    def _id_token_based(self, cls, request_args=None, extra_args=None,
+    def _id_token_based(self, schema, request_args=None, extra_args=None,
                         **kwargs):
 
         if request_args is None:
@@ -340,82 +354,88 @@ class Client(oauth2.Client):
 
             request_args[_prop] = id_token
 
-        return self.construct_request(cls, request_args, extra_args)
+        return self.construct_request(schema, request_args, extra_args)
 
-    def construct_CheckSessionRequest(self, cls=CheckSessionRequest,
-                                        request_args=None, extra_args=None,
-                                        **kwargs):
+    def construct_CheckSessionRequest(self,
+                                      schema=SCHEMA["CheckSessionRequest"],
+                                      request_args=None, extra_args=None,
+                                      **kwargs):
 
-        return self._id_token_based(cls, request_args, extra_args, **kwargs)
+        return self._id_token_based(schema, request_args, extra_args, **kwargs)
 
-    def construct_CheckIDRequest(self, cls=CheckIDRequest, request_args=None,
+    def construct_CheckIDRequest(self, schema=SCHEMA["CheckIDRequest"],
+                                 request_args=None,
                                  extra_args=None, **kwargs):
 
         # access_token is where the id_token will be placed
-        return self._id_token_based(cls, request_args, extra_args,
+        return self._id_token_based(schema, request_args, extra_args,
                                     prop="access_token", **kwargs)
 
-    def construct_EndSessionRequest(self, cls=EndSessionRequest,
+    def construct_EndSessionRequest(self, schema=SCHEMA["EndSessionRequest"],
                                     request_args=None, extra_args=None,
                                     **kwargs):
 
         if request_args is None:
             request_args = {}
-            
+
         if "state" in kwargs:
             request_args["state"] = kwargs["state"]
         elif "state" in request_args:
             kwargs["state"] = request_args["state"]
 
-#        if "redirect_url" not in request_args:
-#            request_args["redirect_url"] = self.redirect_url
-            
-        return self._id_token_based(cls, request_args, extra_args, **kwargs)
+        #        if "redirect_url" not in request_args:
+        #            request_args["redirect_url"] = self.redirect_url
+
+        return self._id_token_based(schema, request_args, extra_args, **kwargs)
 
     # ------------------------------------------------------------------------
 
-    def do_authorization_request(self, cls=AuthorizationRequest,
+    def do_authorization_request(self, schema=SCHEMA["AuthorizationRequest"],
                                  state="", body_type="", method="GET",
                                  request_args=None, extra_args=None,
-                                 http_args=None, resp_cls=None):
+                                 http_args=None,
+                                 resp_schema=SCHEMA["AuthorizationResponse"]):
 
-        return oauth2.Client.do_authorization_request(self, cls, state,
+        return oauth2.Client.do_authorization_request(self, schema, state,
                                                       body_type, method,
                                                       request_args,
                                                       extra_args, http_args,
-                                                      resp_cls)
+                                                      resp_schema)
 
 
-    def do_access_token_request(self, cls=AccessTokenRequest, scope="",
-                                state="", body_type="json", method="POST",
-                                request_args=None, extra_args=None,
-                                http_args=None, resp_cls=AccessTokenResponse,
+    def do_access_token_request(self, schema=SCHEMA["AccessTokenRequest"],
+                                scope="", state="", body_type="json",
+                                method="POST", request_args=None,
+                                extra_args=None, http_args=None,
+                                resp_schema=SCHEMA["AccessTokenResponse"],
                                 authn_method="", **kwargs):
 
-        return oauth2.Client.do_access_token_request(self, cls, scope, state,
+        return oauth2.Client.do_access_token_request(self, schema, scope, state,
                                                      body_type, method,
                                                      request_args, extra_args,
-                                                     http_args, resp_cls,
+                                                     http_args, resp_schema,
                                                      authn_method, **kwargs)
 
-    def do_access_token_refresh(self, cls=RefreshAccessTokenRequest,
+    def do_access_token_refresh(self, schema=SCHEMA["RefreshAccessTokenRequest"],
                                 state="", body_type="json", method="POST",
                                 request_args=None, extra_args=None,
-                                http_args=None, resp_cls=AccessTokenResponse,
+                                http_args=None,
+                                resp_schema=SCHEMA["AccessTokenResponse"],
                                 **kwargs):
 
-        return oauth2.Client.do_access_token_refresh(self, cls, state,
+        return oauth2.Client.do_access_token_refresh(self, schema, state,
                                                      body_type, method,
                                                      request_args,
                                                      extra_args, http_args,
-                                                     resp_cls, **kwargs)
+                                                     resp_schema, **kwargs)
 
-    def do_registration_request(self, cls=RegistrationRequest, scope="",
-                                state="", body_type="json", method="POST",
-                                request_args=None, extra_args=None,
-                                http_args=None, resp_cls=RegistrationResponse):
+    def do_registration_request(self, schema=SCHEMA["RegistrationRequest"],
+                                scope="", state="", body_type="json",
+                                method="POST", request_args=None,
+                                extra_args=None, http_args=None,
+                                resp_schema=SCHEMA["RegistrationResponse"]):
 
-        url, body, ht_args, csi = self.request_info(cls, method=method,
+        url, body, ht_args, csi = self.request_info(schema, method=method,
                                                     request_args=request_args,
                                                     extra_args=extra_args,
                                                     scope=scope, state=state)
@@ -425,17 +445,18 @@ class Client(oauth2.Client):
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(url, resp_cls, method, body,
-                                       body_type, extended=False,
-                                       state=state, http_args=http_args)
+        return self.request_and_return(url, resp_schema, method, body,
+                                       body_type, state=state,
+                                       http_args=http_args)
 
-    def do_check_session_request(self, cls=CheckSessionRequest, scope="",
+    def do_check_session_request(self, schema=SCHEMA["CheckSessionRequest"],
+                                 scope="",
                                  state="", body_type="json", method="GET",
                                  request_args=None, extra_args=None,
                                  http_args=None,
-                                 resp_cls=IdToken):
+                                 resp_schema=SCHEMA["IdToken"]):
 
-        url, body, ht_args, csi = self.request_info(cls, method=method,
+        url, body, ht_args, csi = self.request_info(schema, method=method,
                                                     request_args=request_args,
                                                     extra_args=extra_args,
                                                     scope=scope, state=state)
@@ -445,17 +466,17 @@ class Client(oauth2.Client):
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(url, resp_cls, method, body,
-                                       body_type, extended=False,
-                                       state=state, http_args=http_args)
+        return self.request_and_return(url, resp_schema, method, body,
+                                       body_type, state=state,
+                                       http_args=http_args)
 
-    def do_check_id_request(self, cls=CheckIDRequest, scope="",
-                                 state="", body_type="json", method="GET",
-                                 request_args=None, extra_args=None,
-                                 http_args=None,
-                                 resp_cls=IdToken):
+    def do_check_id_request(self, schema=SCHEMA["CheckIDRequest"], scope="",
+                            state="", body_type="json", method="GET",
+                            request_args=None, extra_args=None,
+                            http_args=None,
+                            resp_schema=SCHEMA["IdToken"]):
 
-        url, body, ht_args, csi = self.request_info(cls, method=method,
+        url, body, ht_args, csi = self.request_info(schema, method=method,
                                                     request_args=request_args,
                                                     extra_args=extra_args,
                                                     scope=scope, state=state)
@@ -465,16 +486,16 @@ class Client(oauth2.Client):
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(url, resp_cls, method, body,
-                                       body_type, extended=False,
-                                       state=state, http_args=http_args)
+        return self.request_and_return(url, resp_schema, method, body,
+                                       body_type, state=state,
+                                       http_args=http_args)
 
-    def do_end_session_request(self, cls=EndSessionRequest, scope="",
-                                 state="", body_type="", method="GET",
-                                 request_args=None, extra_args=None,
-                                 http_args=None, resp_cls=None):
+    def do_end_session_request(self, schema=SCHEMA["EndSessionRequest"], scope="",
+                               state="", body_type="", method="GET",
+                               request_args=None, extra_args=None,
+                               http_args=None, resp_schema=SCHEMA[""]):
 
-        url, body, ht_args, csi = self.request_info(cls, method=method,
+        url, body, ht_args, csi = self.request_info(schema, method=method,
                                                     request_args=request_args,
                                                     extra_args=extra_args,
                                                     scope=scope, state=state)
@@ -484,15 +505,15 @@ class Client(oauth2.Client):
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(url, resp_cls, method, body,
-                                       body_type, extended=False,
-                                       state=state, http_args=http_args)
+        return self.request_and_return(url, resp_schema, method, body,
+                                       body_type, state=state,
+                                       http_args=http_args)
 
     def user_info_request(self, method="GET", state="", scope="", **kwargs):
-        uir = UserInfoRequest()
+        uir = message("UserInfoRequest")
         if "token" in kwargs:
             if kwargs["token"]:
-                uir.access_token = kwargs["token"]
+                uir["access_token"] = kwargs["token"]
                 token = Token()
                 token.type = "Bearer"
                 token.access_token = kwargs["token"]
@@ -504,7 +525,7 @@ class Client(oauth2.Client):
             token = self.grant[state].get_token(scope)
 
             if token.is_valid():
-                uir.access_token = token.access_token
+                uir["access_token"] = token.access_token
             else:
                 # raise oauth2.OldAccessToken
                 if self.log:
@@ -512,12 +533,12 @@ class Client(oauth2.Client):
                 try:
                     self.do_access_token_refresh(token=token)
                     token = self.grant[state].get_token(scope)
-                    uir.access_token = token.access_token
+                    uir["access_token"] = token.access_token
                 except Exception:
                     raise
 
         try:
-            uir.schema = kwargs["schema"]
+            uir["schema"] = kwargs["schema"]
         except KeyError:
             pass
 
@@ -538,7 +559,7 @@ class Client(oauth2.Client):
                     kwargs["headers"] = [("Authorization", token.access_token)]
             if not "token_in_message_body" in _behav:
                 # remove the token from the request
-                uir.access_token = None
+                uir["access_token"] = None
 
         path, body, kwargs = self.get_or_post(uri, method, uir, **kwargs)
 
@@ -551,7 +572,7 @@ class Client(oauth2.Client):
 
         kwargs["schema"] = schema
         path, body, method, h_args = self.user_info_request(method, state,
-                                                           scope, **kwargs)
+                                                            scope, **kwargs)
 
         try:
             response, content = self.http.request(path, method, body, **h_args)
@@ -565,7 +586,7 @@ class Client(oauth2.Client):
         else:
             raise Exception("ERROR: Something went wrong [%s]" % response.status)
 
-        return OpenIDSchema.set_json(txt=content, extended=True)
+        return message("OpenIDSchema").from_json(txt=content)
 
 
     def provider_config(self, issuer, keys=True, endpoints=True):
@@ -578,21 +599,21 @@ class Client(oauth2.Client):
 
         (response, content) = self.http.request(url)
         if response.status == 200:
-            pcr = ProviderConfigurationResponse.from_json(content,
-                                                          extended=True)
+            pcr = message("ProviderConfigurationResponse").from_json(content)
         else:
             raise Exception("%s" % response.status)
 
-        if pcr.issuer:
-            if pcr.issuer.endswith("/"):
-                _pcr_issuer = pcr.issuer[:-1]
+        if "issuer" in pcr:
+            if pcr["issuer"].endswith("/"):
+                _pcr_issuer = pcr["issuer"][:-1]
             else:
-                _pcr_issuer = pcr.issuer
+                _pcr_issuer = pcr["issuer"]
 
             try:
                 assert _issuer == _pcr_issuer
             except AssertionError:
-                raise Exception("provider info issuer mismatch")
+                raise Exception("provider info issuer mismatch '%s' != '%s'" % (
+                                                        _issuer, _pcr_issuer))
 
         if endpoints:
             for key, val in pcr.items():
@@ -614,7 +635,7 @@ class Client(oauth2.Client):
                     keycol = self.keystore.pairkeys(csrc)["verify"]
                     info = json.loads(jwt.verify(str(spec["JWT"]), keycol))
                     attr = [n for n, s in userinfo._claim_names.items() if s ==
-                                                                            csrc]
+                                                                           csrc]
                     assert attr == info.keys()
 
                     for key, vals in info.items():
@@ -629,14 +650,14 @@ class Client(oauth2.Client):
 
                 if "access_token" in spec:
                     _uinfo = self.do_user_info_request(
-                                        token=spec["access_token"],
-                                        userinfo_endpoint=spec["endpoint"])
+                        token=spec["access_token"],
+                        userinfo_endpoint=spec["endpoint"])
                 else:
                     _uinfo = self.do_user_info_request(token=callback(csrc),
-                                        userinfo_endpoint=spec["endpoint"])
+                                                       userinfo_endpoint=spec["endpoint"])
 
                 attr = [n for n, s in userinfo._claim_names.items() if s ==
-                                                                        csrc]
+                                                                       csrc]
                 assert attr == _uinfo.keys()
 
                 for key, vals in _uinfo.items():
@@ -662,30 +683,27 @@ class Server(oauth2.Server):
 
         return urlparse.parse_qs(query)
 
-    def parse_token_request(self, cls=AccessTokenRequest, body=None,
-                            extended=False):
-        return oauth2.Server.parse_token_request(self, cls, body, extended)
+    def parse_token_request(self, msg="AccessTokenRequest", body=None):
+        return oauth2.Server.parse_token_request(self, msg, body)
 
-    def parse_authorization_request(self, rcls=AuthorizationRequest,
-                                    url=None, query=None, extended=False):
-        return oauth2.Server.parse_authorization_request(self, rcls, url,
-                                                         query, extended)
+    def parse_authorization_request(self, msg="AuthorizationRequest",
+                                    url=None, query=None):
+        return oauth2.Server.parse_authorization_request(self, msg, url, query)
 
-    def parse_jwt_request(self, rcls=AuthorizationRequest, txt="",
-                          keys=None, verify=True, extended=False):
+    def parse_jwt_request(self, msg="AuthorizationRequest", txt="",
+                          keys=None, verify=True):
 
-        return oauth2.Server.parse_jwt_request(self, rcls, txt,
-                                               keys, verify, extended)
+        return oauth2.Server.parse_jwt_request(self, msg, txt,
+                                               keys, verify)
 
-    def parse_refresh_token_request(self, cls=RefreshAccessTokenRequest,
-                                    body=None, extended=False):
-        return oauth2.Server.parse_refresh_token_request(self, cls, body,
-                                                         extended)
+    def parse_refresh_token_request(self, msg="RefreshAccessTokenRequest",
+                                    body=None):
+        return oauth2.Server.parse_refresh_token_request(self, msg, body)
 
     def _deser_id_token(self, str=""):
         if not str:
             return None
-        
+
         # have to start decoding the jwt without verifying in order to find
         # out which key to verify the JWT signature with
         _ = json.loads(jwt.unpack(str)[1])
@@ -695,7 +713,7 @@ class Server(oauth2.Server):
 
         keys = self.keystore.get_keys("verify", owner=None)
 
-        return IdToken.set_jwt(str, key=keys)
+        return message("IdToken").from_jwt(str, key=keys)
 
     def parse_check_session_request(self, url=None, query=None):
         """
@@ -713,46 +731,44 @@ class Server(oauth2.Server):
         assert "access_token" in param # ignore the rest
         return self._deser_id_token(param["access_token"][0])
 
-    def _parse_request(self, cls, data, format, extended):
+    def _parse_request(self, schema, data, format):
         if format == "json":
-            request = cls.set_json(data, extended)
+            request = message_from_schema(schema).from_json(data)
         elif format == "urlencoded":
             if '?' in data:
                 parts = urlparse.urlparse(data)
                 scheme, netloc, path, params, query, fragment = parts[:6]
             else:
                 query = data
-            request = cls.set_urlencoded(query, extended)
+            request = message_from_schema(schema).from_urlencoded(query)
         else:
             raise Exception("Unknown package format: '%s'" %  format)
 
         request.verify()
         return request
-    
-    def parse_open_id_request(self, data, format="urlencoded", extended=False):
-        return self._parse_request(OpenIDRequest, data, format, extended)
 
-    def parse_user_info_request(self, data, format="urlencoded", extended=False):
-        return self._parse_request(UserInfoRequest, data, format, extended)
+    def parse_open_id_request(self, data, format="urlencoded"):
+        return self._parse_request(SCHEMA["OpenIDRequest"], data, format)
 
-    def parse_refresh_session_request(self, url=None, query=None,
-                                      extended=False):
+    def parse_user_info_request(self, data, format="urlencoded"):
+        return self._parse_request(SCHEMA["UserInfoRequest"], data, format)
+
+    def parse_refresh_session_request(self, url=None, query=None):
         if url:
             parts = urlparse.urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]
 
-        return RefreshSessionRequest.set_urlencoded(query, extended)
+        return message("RefreshSessionRequest").from_urlencoded(query)
 
-    def parse_registration_request(self, data, format="urlencoded",
-                                   extended=True):
-        return self._parse_request(RegistrationRequest, data, format, extended)
+    def parse_registration_request(self, data, format="urlencoded"):
+        return self._parse_request(SCHEMA["RegistrationRequest"], data, format)
 
-    def parse_end_session_request(self, query, extended=True):
-        esr = EndSessionRequest.set_urlencoded(query, extended)
+    def parse_end_session_request(self, query):
+        esr = message("EndSessionRequest").from_urlencoded(query)
         # if there is a id_token in there it is as a string
-        esr.id_token = self._deser_id_token(esr.id_token)
+        esr["id_token"] = self._deser_id_token(esr["id_token"])
         return esr
-    
-    def parse_issuer_request(self, info, format="urlencoded", extended=True):
-        return self._parse_request(IssuerRequest, info, format, extended)
+
+    def parse_issuer_request(self, info, format="urlencoded"):
+        return self._parse_request(SCHEMA["IssuerRequest"], info, format)
 

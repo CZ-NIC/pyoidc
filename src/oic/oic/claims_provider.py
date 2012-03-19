@@ -1,83 +1,65 @@
+
 __author__ = 'rohe0002'
 
-from oic import oauth2
 from oic.oic import Server as OicServer
 from oic.oic import Client
-from oic.oic.provider import Provider, get_or_post, Endpoint
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
-from oic.oauth2.message import ErrorResponse
-
-from oic.utils.http_util import Response, Unauthorized
 from oic.oic import REQUEST2ENDPOINT
 from oic.oic import RESPONSE2ERROR
 
-#from oic.oic.message import IdToken, OpenIDSchema
-from oic.oic.message import Claims, TokenErrorResponse
-from oic.oic.message import OpenIDSchema
-from oic.oic.message import UserInfoClaim
+from oic.oic.message import message
+#from oic.oic.message import SCHEMA
+
+from oic.oic.provider import Provider, get_or_post, Endpoint
+
+from oic.oauth2.message import SINGLE_REQUIRED_STRING, Message
+from oic.oauth2.message import SINGLE_OPTIONAL_STRING
+from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
+
+from oic.utils.http_util import Response, Unauthorized
 
 # Used in claims.py
-from oic.oic.message import RegistrationRequest
-from oic.oic.message import RegistrationResponse
+#from oic.oic.message import RegistrationRequest
+#from oic.oic.message import RegistrationResponse
 
-class UserClaimsRequest(oauth2.Base):
-    c_attributes = oauth2.Base.c_attributes.copy()
-    c_attributes["user_id"] = SINGLE_REQUIRED_STRING
-    c_attributes["client_id"] = SINGLE_REQUIRED_STRING
-    c_attributes["client_secret"] = SINGLE_REQUIRED_STRING
-    c_attributes["claims_names"] = REQUIRED_LIST_OF_STRINGS
+def verify(self, **kwargs):
+    if self.jwt:
+        # Try to decode the JWT, checks the signature
+        try:
+            item = message("OpenIDSchema").set_jwt(str(self.jwt),
+                                                   kwargs["key"])
+        except Exception, _err:
+            raise Exception(_err.__class__.__name__)
 
-    def __init__(self,
-                 user_id=None,
-                 client_id=None,
-                 client_secret=None,
-                 claims_names=None,
-                 **kwargs):
-        oauth2.Base.__init__(self, **kwargs)
-        self.user_id = user_id
-        self.client_id = client_id
-        self.client_secret = client_secret
-        self.claims_names = claims_names
+        if not item.verify(**kwargs):
+            return False
 
-class UserClaimsResponse(oauth2.Base):
-    c_attributes = oauth2.Base.c_attributes.copy()
-    c_attributes["claims_names"] = REQUIRED_LIST_OF_STRINGS
-    c_attributes["jwt"] = SINGLE_OPTIONAL_STRING
-    c_attributes["endpoint"] = SINGLE_OPTIONAL_STRING
-    c_attributes["access_token"] = SINGLE_OPTIONAL_STRING
+    return super(self.__class__, self).verify(**kwargs)
 
-    def __init__(self,
-                 jwt=None,
-                 claims_names=None,
-                 endpoint=None,
-                 access_token=None,
-                 **kwargs):
-        oauth2.Base.__init__(self, **kwargs)
-        self.jwt = jwt
-        self.claims_names = claims_names
-        self.endpoint = endpoint
-        self.access_token = access_token
-
-    def verify(self, **kwargs):
-        if self.jwt:
-            # Try to decode the JWT, checks the signature
-            try:
-                item = OpenIDSchema.set_jwt(str(self.jwt), kwargs["key"])
-            except Exception, _err:
-                raise Exception(_err.__class__.__name__)
-
-            if not item.verify(**kwargs):
-                return False
-
-        return oauth2.Base.verify(self, **kwargs)
+SCHEMA = {
+    "": {"param": {}},
+    "UserClaimsRequest": {
+        "param": {
+            "user_id": SINGLE_REQUIRED_STRING,
+            "client_id": SINGLE_REQUIRED_STRING,
+            "client_secret": SINGLE_REQUIRED_STRING,
+            "claims_names": REQUIRED_LIST_OF_STRINGS
+        },
+    },
+    "UserClaimsResponse": {
+        "param": {
+            "claims_names": REQUIRED_LIST_OF_STRINGS,
+            "jwt": SINGLE_OPTIONAL_STRING,
+            "endpoint": SINGLE_OPTIONAL_STRING,
+            "access_token": SINGLE_OPTIONAL_STRING
+        },
+        "verify": verify,
+    },
+}
 
 class OICCServer(OicServer):
 
-    def parse_user_claims_request(self, info, format="urlencoded",
-                                  extended=True):
-        return self._parse_request(UserClaimsRequest, info, format, extended)
+    def parse_user_claims_request(self, info, format="urlencoded"):
+        return self._parse_request(SCHEMA["UserClaimsRequest"], info, format)
 
 class ClaimsServer(Provider):
 
@@ -85,8 +67,8 @@ class ClaimsServer(Provider):
                  debug=0, cache=None, timeout=None, proxy_info=None,
                  follow_redirects=True, ca_certs="", jwt_keys=None):
         Provider.__init__(self, name, sdb, cdb, function, userdb, urlmap,
-                        debug, cache, timeout, proxy_info,
-                        follow_redirects, ca_certs, jwt_keys)
+                          debug, cache, timeout, proxy_info,
+                          follow_redirects, ca_certs, jwt_keys)
 
         if jwt_keys is None:
             jwt_keys = []
@@ -102,19 +84,16 @@ class ClaimsServer(Provider):
     def _aggregation(self, info, logger):
 
         jwt_key = self.keystore.get_sign_key()
-        cresp = UserClaimsResponse(jwt=info.get_jwt(key=jwt_key,
-                                                    algorithm="RS256"),
-                                   claims_names=info.keys())
+        cresp = Message("UserClaimsResponse", SCHEMA["UserClaimsResponse"],
+                        jwt=info.get_jwt(key=jwt_key, algorithm="RS256"),
+                        claims_names=info.keys())
 
-        logger.info("RESPONSE: %s" % (cresp.dictionary(),))
+        logger.info("RESPONSE: %s" % (cresp.to_dict(),))
         return cresp
 
     #noinspection PyUnusedLocal
     def _distributed(self, ucreq, logger):
-        cresp = UserClaimsResponse()
-        cresp.endpoint = ""
-        cresp.access_token = ""
-        return cresp
+        return Message("UserClaimsResponse", SCHEMA["UserClaimsResponse"])
 
     #noinspection PyUnusedLocal
     def do_aggregation(self, info, uid):
@@ -134,13 +113,13 @@ class ClaimsServer(Provider):
 
         if not self.function["verify_client"](environ, ucreq, self.cdb):
             _log_info("could not verify client")
-            err = TokenErrorResponse(error="unathorized_client")
+            err = message("TokenErrorResponse", error="unathorized_client")
             resp = Unauthorized(err.get_json(), content="application/json")
             return resp(environ, start_response)
 
         if ucreq.claims_names:
             args = dict([(n, {"optional": True}) for n in ucreq.claims_names])
-            uic = UserInfoClaim(claims=Claims(**args))
+            uic = message("UserInfoClaim", claims=message("Claims", **args))
         else:
             uic = None
 
@@ -156,7 +135,7 @@ class ClaimsServer(Provider):
         else:
             cresp = self._distributed(info, logger)
 
-        resp = Response(cresp.get_json(), content="application/json")
+        resp = Response(cresp.to_json(), content="application/json")
         return resp(environ, start_response)
 
 class ClaimsClient(Client):
@@ -176,22 +155,23 @@ class ClaimsClient(Client):
         self.request2endpoint = REQUEST2ENDPOINT.copy()
         self.request2endpoint["UserClaimsRequest"] = "userclaims_endpoint"
         self.response2error = RESPONSE2ERROR.copy()
-        self.response2error[UserClaimsResponse] = [ErrorResponse]
+        self.response2error["UserClaimsResponse"] = ["ErrorResponse"]
 
     #noinspection PyUnusedLocal
-    def construct_UserClaimsRequest(self, cls=UserClaimsRequest,
-                                         request_args=None, extra_args=None,
-                                         **kwargs):
+    def construct_UserClaimsRequest(self, schema=SCHEMA["UserClaimsRequest"],
+                                    request_args=None, extra_args=None,
+                                    **kwargs):
 
-        return self.construct_request(cls, request_args, extra_args)
+        return self.construct_request(schema, request_args, extra_args)
 
 
-    def do_claims_request(self, cls=UserClaimsRequest,
-                          resp_cls=UserClaimsResponse, body_type="json",
+    def do_claims_request(self, schema=SCHEMA["UserClaimsRequest"],
+                          resp_schema=SCHEMA["UserClaimsResponse"],
+                          body_type="json",
                           method="POST", request_args=None, extra_args=None,
                           http_args=None):
 
-        url, body, ht_args, csi = self.request_info(cls, method=method,
+        url, body, ht_args, csi = self.request_info(schema, method=method,
                                                     request_args=request_args,
                                                     extra_args=extra_args)
 
@@ -200,11 +180,11 @@ class ClaimsClient(Client):
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(url, resp_cls, method, body,
+        return self.request_and_return(url, resp_schema, method, body,
                                        body_type, extended=False,
                                        http_args=http_args,
                                        key=self.keystore.pairkeys(
-                                                self.keystore.match_owner(url)))
+                                           self.keystore.match_owner(url)))
 
 class UserClaimsEndpoint(Endpoint) :
     type = "userclaims"

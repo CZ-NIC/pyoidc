@@ -9,7 +9,8 @@ import logging
 import re
 
 from oic.utils.http_util import *
-from oic.oic.message import OpenIDSchema, AuthnToken
+#from oic.oic.message import OpenIDSchema, AuthnToken
+from oic.oic.message import message, msg_deser
 from oic.oic.provider import AuthnFailure
 from oic.oic.claims_provider import ClaimsClient
 from oic.oic import JWT_BEARER
@@ -70,16 +71,17 @@ def do_authorization(user, session=None):
 
 #noinspection PyUnusedLocal
 def verify_client(environ, areq, cdb):
-    if areq.client_secret: # client_secret_post
-        identity = areq.client_id
+    if "client_secret" in areq: # client_secret_post
+        identity = areq["client_id"]
         if identity in cdb:
-            if cdb[identity]["client_secret"] == areq.client_secret:
+            if cdb[identity]["client_secret"] == areq["client_secret"]:
                 return True
-    elif areq.client_assertion: # client_secret_jwt or public_key_jwt
-        assert areq.client_assertion_type == JWT_BEARER
-        secret = cdb[areq.client_id]["client_secret"]
+    elif "client_assertion" in areq: # client_secret_jwt or public_key_jwt
+        assert areq["client_assertion_type"] == JWT_BEARER
+        secret = cdb[areq["client_id"]]["client_secret"]
         key_col = {"hmac": secret}
-        bjwt = AuthnToken.set_jwt(areq.client_assertion, key_col)
+        bjwt = msg_deser(areq["client_assertion"], "jwt", "AuthnToken",
+                         key=key_col)
     return False
 
 #import sys
@@ -118,15 +120,15 @@ def _collect_distributed(srv, cc, user_id, what, alias=""):
     if not alias:
         alias = srv
 
-    for key in resp.claims_names:
+    for key in resp["claims_names"]:
         result["_claims_names"][key] = alias
 
-    if resp.jwt:
+    if "jwt" in resp:
         result["_claims_sources"][alias] = {"JWT": resp.jwt}
     else:
-        result["_claims_sources"][alias] = {"endpoint": resp.endpoint}
+        result["_claims_sources"][alias] = {"endpoint": resp["endpoint"]}
         if "access_token" in resp:
-            result["_claims_sources"][alias]["access_token"] = resp.access_token
+            result["_claims_sources"][alias]["access_token"] = resp["access_token"]
 
     return result
 
@@ -140,7 +142,7 @@ def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
         result = {}
         missing = []
         optional = []
-        for key, restr in user_info_claims.claims.items():
+        for key, restr in user_info_claims["claims"].items():
             try:
                 result[key] = identity[key]
             except KeyError:
@@ -183,7 +185,7 @@ def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
         #result = identity
         result = {"user_id": user_id}
 
-    return OpenIDSchema(**result)
+    return message("OpenIDSchema", **result)
 
 FUNCTIONS = {
     "authenticate": do_authentication,
@@ -304,7 +306,7 @@ for endp in ENDPOINTS:
 
 # ----------------------------------------------------------------------------
 
-ROOT = '../'
+ROOT = './'
 
 LOOKUP = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
                         module_directory=ROOT + 'modules',

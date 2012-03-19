@@ -7,17 +7,15 @@ import time
 from hashlib import md5
 
 from oic.utils import http_util
-from oic.oauth2 import AuthorizationRequest
-from oic.oauth2 import AccessTokenRequest
-from oic.oauth2 import AuthorizationResponse
-from oic.oauth2 import AccessTokenResponse
 from oic.oauth2 import Client
-from oic.oauth2 import ErrorResponse
 from oic.oauth2 import Grant
 from oic.oauth2 import rndstr
+from oic.oauth2.message import SCHEMA
+from oic.oauth2.message import Message
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint", "userinfo_endpoint",
-    "check_id_endpoint", "registration_endpoint", "token_revokation_endpoint"]
+             "check_id_endpoint", "registration_endpoint",
+             "token_revokation_endpoint"]
 
 def stateID(url, seed):
     """The hash of the time + server path + a seed makes an unique
@@ -44,7 +42,7 @@ def factory(kaka, sdb, client_id, **kwargs):
     part = http_util.cookie_parts(client_id, kaka)
     if part is None:
         return None
-    
+
     cons = Consumer(sdb, **kwargs)
     cons.restore(part[0])
     http_util.parse_cookie(client_id, cons.seed, kaka)
@@ -81,7 +79,7 @@ class Consumer(Client):
         """
         if client_config is None:
             client_config = {}
-            
+
         Client.__init__(self, **client_config)
 
         self.authz_page = authz_page
@@ -149,7 +147,7 @@ class Consumer(Client):
             "grant": self.grant,
             "seed": self.seed,
             "redirect_uris": self.redirect_uris,
-        }
+            }
 
         for endpoint in ENDPOINTS:
             res[endpoint] = getattr(self, endpoint, None)
@@ -185,9 +183,9 @@ class Consumer(Client):
         self._backup(sid)
         self.sdb["seed:%s" % self.seed] = sid
 
-        location = self.request_info(AuthorizationRequest, method="GET",
-                                       scope=self.scope,
-                                       request_args={"state": sid})[0]
+        location = self.request_info(SCHEMA["AuthorizationRequest"],
+                                     method="GET", scope=self.scope,
+                                     request_args={"state": sid})[0]
 
 
         if self.debug:
@@ -220,44 +218,47 @@ class Consumer(Client):
         if "code" in self.response_type:
             # Might be an error response
             try:
-                aresp = self.parse_response(AuthorizationResponse,
+                aresp = self.parse_response(SCHEMA["AuthorizationResponse"],
                                             info=_query, format="urlencoded")
             except Exception, err:
                 logger.error("%s" % err)
                 raise
-            
-            if isinstance(aresp, ErrorResponse):
-                raise AuthzError(aresp.error)
+
+            if isinstance(aresp, Message):
+                if aresp.type().endswith("ErrorResponse"):
+                    raise AuthzError(aresp["error"])
 
             try:
-                self.update(aresp.state)
+                self.update(aresp["state"])
             except KeyError:
-                raise UnknownState(aresp.state)
-            
-            self._backup(aresp.state)
+                raise UnknownState(aresp["state"])
+
+            self._backup(aresp["state"])
 
             return aresp
         else: # implicit flow
-            atr = self.parse_response(AccessTokenResponse, info=_query,
-                                      format="urlencoded", extended=True)
+            atr = self.parse_response(SCHEMA["AccessTokenResponse"],
+                                      info=_query, format="urlencoded",
+                                      extended=True)
 
-            if isinstance(atr, ErrorResponse):
-                raise TokenError(atr.error)
+            if isinstance(atr, Message):
+                if atr.type().endswith("ErrorResponse"):
+                    raise TokenError(atr["error"])
 
             try:
-                self.update(atr.state)
+                self.update(atr["state"])
             except KeyError:
-                raise UnknownState(atr.state)
+                raise UnknownState(atr["state"])
 
             self.seed = self.grant[self.state].seed
-            
+
             return atr
 
     def complete(self, environ, start_response, logger):
         resp = self.handle_authorization_response(environ, start_response,
                                                   logger)
 
-        if isinstance(resp, AuthorizationResponse):
+        if resp.type() == "AuthorizationResponse":
             # Go get the access token
             resp = self.do_access_token_request(state=self.state)
 
@@ -273,9 +274,9 @@ class Consumer(Client):
         elif self.client_secret:
             http_args = {}
             request_args = {
-                    "client_secret":self.client_secret,
-                    "client_id": self.client_id,
-                    "auth_method":"request_body"}
+                "client_secret":self.client_secret,
+                "client_id": self.client_id,
+                "auth_method":"request_body"}
         else:
             raise Exception("Nothing to authenticate with")
 
@@ -286,7 +287,7 @@ class Consumer(Client):
 
         request_args, http_args = self.client_auth_info()
 
-        url, body, ht_args, csi = self.request_info(AccessTokenRequest, 
+        url, body, ht_args, csi = self.request_info(SCHEMA["AccessTokenRequest"],
                                                     request_args=request_args,
                                                     state=self.state)
 

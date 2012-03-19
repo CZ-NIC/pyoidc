@@ -1,14 +1,10 @@
-#!/usr/bin/env python
-#
-__author__ = 'rohe0002'
-
 import urllib
 import urlparse
 import json
+import copy
+
 from oic.utils import jwt
 from oic.oauth2 import DEF_SIGN_ALG
-
-Version = "2.0"
 
 class MissingRequiredAttribute(Exception):
     def __init__(self, attr):
@@ -33,30 +29,7 @@ class DecodeError(Exception):
 class VerificationError(Exception):
     pass
 
-#noinspection PyUnusedLocal
-def sp_sep_list_serializer(vals, format="urlencoded", extended=False):
-    if format == "urlencoded":
-        return " ".join(vals)
-    else:
-        return vals
-
-#noinspection PyUnusedLocal
-def sp_sep_list_deserializer(val, format="urlencoded", extended=False):
-    if format == "urlencoded":
-        if isinstance(val, basestring):
-            return val.split(" ")
-        elif isinstance(val, list) and len(val) == 1:
-            return val[0].split(" ")
-    else:
-        return val
-
-#noinspection PyUnusedLocal
-def json_serializer(obj, format="urlencoded", extended=False):
-    return json.dumps(obj)
-
-#noinspection PyUnusedLocal
-def json_deserializer(txt, format="urlencoded", extended=False):
-    return json.loads(txt)
+ERRTXT = "On '%s': %s"
 
 def gather_keys(comb, collection, jso, target):
     try:
@@ -70,283 +43,284 @@ def gather_keys(comb, collection, jso, target):
 
     return comb
 
-ERRTXT = "On '%s': %s"
+class Message(object):
+    def __init__(self, _name_, _schema_, **kwargs):
+        self._name = _name_
+        self._schema = copy.deepcopy(_schema_)
+        self._dict = {}
+        try:
+            self.set_defaults(_schema_["default"])
+        except KeyError:
+            pass
 
-class Base(object):
-    c_attributes = {}
+        self.from_dict(kwargs)
 
-    def __init__(self, **kwargs):
-        self.c_extension = {}
-        for key, val in kwargs.items():
-            self.c_extension[key] = val
+    def type(self):
+        return self._name
 
-    def get_urlencoded(self, extended=False, omit=None):
+    def parameters(self):
+        return self._schema["param"].keys()
+
+    def home(self):
+        return self._schema["mod"]
+
+    def set_defaults(self, defaults):
+        for key, val in defaults.items():
+            self._dict[key] = val
+
+    def to_urlencoded(self):
         """
         Creates a string using the application/x-www-form-urlencoded format
 
-        :param extended: Allow parameter extension
-        :param omit: A list of parameters that are not to be included when
-            constructing the urlencoded form
         :return: A string of the application/x-www-form-urlencoded format
         """
-        if omit is None:
-            omit = []
+
+        _spec = self._schema["param"]
+        for attribute, (_, req, _ser, _) in _spec.items():
+            if req and attribute not in self._dict:
+                raise MissingRequiredAttribute("%s" % attribute)
 
         params = []
-        for (attribute, (_, req, _ser, _)) in self.c_attributes.items():
-            if attribute in omit:
-                continue
-            val = getattr(self, attribute)
+
+        for key, val in self._dict.items():
+            try:
+                (_, req, _ser, _) = _spec[key]
+            except KeyError: #extra attribute
+                try:
+                    (_, req, _ser, _) = _spec['*']
+                except KeyError:
+                    _ser = None
+
             # Should I allow parameters with "" as value ???
-            if val is None or val == []:
-                if req:
-                    raise MissingRequiredAttribute("%s" % attribute)
+            if isinstance(val, basestring):
+                params.append((key, str(val)))
+            elif isinstance(val, list):
+                if _ser:
+                    params.append((key, str(_ser(val, format="urlencoded"))))
+                else:
+                    for item in val:
+                        params.append((key, str(item)))
+            elif isinstance(val, Message):
+                params.append((key, str(_ser(val, format="urlencoded"))))
             else:
-                if isinstance(val, basestring):
-                    params.append((attribute, str(val)))
-                elif isinstance(val, list):
-                    if _ser:
-                        params.append((attribute, str(_ser(val,
-                                                           format="urlencoded",
-                                                           extended=extended))))
-                    else:
-                        for item in val:
-                            params.append((attribute, str(item)))
-                elif isinstance(val, Base):
-                    params.append((attribute, str(_ser(val,
-                                                       format="urlencoded",
-                                                       extended=extended))))
-                else:
-                    params.append((attribute, str(val)))
-        if extended:
-            for key, val in self.c_extension.items():
-                if key in omit:
-                    continue
-                if isinstance(val, basestring):
-                    params.append((key,val))
-                elif isinstance(val, list):
-                    item = " ".join([str(v) for v in val])
-                    params.append((key,item))
-                else:
+                try:
+                    params.append((key, _ser(val)))
+                except Exception:
                     params.append((key, str(val)))
 
         return urllib.urlencode(params)
 
-    def to_urlencoded(self, extended=False, omit=None):
-        return self.get_urlencoded(extended, omit)
+    def serialize(self, method="urlencoded", **kwargs):
+        return getattr(self, "to_%s" % method)(**kwargs)
 
-    @classmethod
-    def set_urlencoded(cls, urlencoded, extended=False):
+    def deserialize(self, info, method="urlencoded", **kwargs):
+        try:
+            return getattr(self, "from_%s" % method)(info, **kwargs)
+        except AttributeError, err:
+            raise Exception("Unknown method (%s)" % err)
+
+    def from_urlencoded(self, urlencoded):
         """
         from a string of the application/x-www-form-urlencoded format creates
         a class instance
 
-        :param cls: The class to instantiate
         :param urlencoded: The string
-        :param extended: If parameter extension is to be allowed
         :return: An instance of the cls class
         """
-        argv = {}
-        extension = {}
+
         #parse_qs returns a dictionary with keys and values. The values are
         #always lists even if there is only one value in the list.
         #keys only appears once.
+
+        if isinstance(urlencoded, basestring):
+            pass
+        elif isinstance(urlencoded, list):
+            urlencoded = urlencoded[0]
+
+        _spec = self._schema["param"]
+
         for key, val in urlparse.parse_qs(urlencoded).items():
-            if key in cls.c_attributes:
-                (typ, _, _, _deser) = cls.c_attributes[key]
-                if isinstance(typ, list):
-                    if _deser:
-                        argv[key] = _deser(val[0], "urlencoded", extended)
-                    else:
-                        argv[key] = val
-                else: # must be single value
+            try:
+                (typ, _, _, _deser) = _spec[key]
+            except KeyError:
+                try:
+                    (typ, _, _, _deser) = _spec['*']
+                except KeyError:
                     if len(val) == 1:
-                        if _deser:
-                            argv[key] = _deser(val[0], "urlencoded", extended)
-                        elif isinstance(val[0], typ):
-                            argv[key] = val[0]
-                        else:
-                            try:
-                                argv[key] = typ(val[0])
-                            except Exception:
-                                raise
-                    else:
-                        raise TooManyValues
-            elif extended:
-                if len(val) == 1:
-                    extension[key] = val[0]
+                        val = val[0]
+
+                    self._dict[key] = val
+                    continue
+
+            if isinstance(typ, list):
+                if _deser:
+                    self._dict[key] = _deser(val[0], "urlencoded")
                 else:
-                    extension[key] = val
-            #ignore attributes I don't know about
+                    self._dict[key] = val
+            else: # must be single value
+                if len(val) == 1:
+                    if _deser:
+                        self._dict[key] = _deser(val[0], "urlencoded")
+                    elif isinstance(val[0], typ):
+                        self._dict[key] = val[0]
+                    else:
+                        try:
+                            self._dict[key] = typ(val[0])
+                        except :
+                            raise ValueError
+                else:
+                    raise TooManyValues
 
-        if extended and extension:
-            argv.update(extension)
+        return self
 
-        return cls(**argv)
-
-    @classmethod
-    def from_urlencoded(cls, urlencoded, extended=False):
-        return cls.set_urlencoded(urlencoded, extended)
-
-    def dictionary(self, extended=False):
+    def to_dict(self):
         """
         Return a dictionary representation of the class
 
-        :param extended: Allow parameter extension
         :return: A dict
         """
-        dic = {}
-        for (attribute, (typ, _, ser, _)) in self.c_attributes.items():
-            val = getattr(self, attribute)
-            if val is None or val == [] or val == "":
-                pass
+        _res= {}
+        for key, val in self._dict.items():
+            if isinstance(val, Message):
+                _res[key] = val.to_dict()
+            elif isinstance(val, list) and isinstance(val[0], Message):
+                _res[key] = [v.to_dict() for v in val]
             else:
-                if ser:
-                    val = ser(val, format="dict", extended=extended)
-                elif isinstance(val, Base):
-                    val = val.dictionary(extended=extended)
-                elif isinstance(val, list) and isinstance(val[0], Base):
-                    val = [v.dictionary(extended=extended) for v in val]
-                dic[attribute] = val
-        if extended:
-            dic.update(self.c_extension)
-        return dic
+                _res[key] = val
 
-    def get_json(self, extended=False):
+        return _res
+
+    def to_json(self):
         """
         Return a JSON representation of the class instance
 
-        :param extended: Allow parameter extension
         :return: A JSON encoded string
         """
-        dic = self.dictionary(extended)
-        return json.dumps(dic)
 
-    @classmethod
-    def from_dictionary(cls, dictionary, extended=False):
+        return json.dumps(self._dict)
+
+    def from_dict(self, dictionary):
         """
-        Given a JSON text representation create a class instance
-
         Direct translation so the value for one key might be a list or a
         single value.
 
-        :param cls: The type of class
-        :param extended: Whether parameter extension should be allowed
+        :param dictionary: The info
         :return: A class instance or raise an exception on error
         """
-        args = {}
-        extension = {}
+
+        _spec = self._schema["param"]
 
         for key, val in dictionary.items():
             # Earlier versions of python don't like unicode strings as
             # variable names
             skey = str(key)
-            if key in cls.c_attributes:
-                (vtyp, req, _, _deser) = cls.c_attributes[key]
-                if isinstance(vtyp, list):
-                    vtype = vtyp[0]
-                    if isinstance(val, vtype):
-                        if _deser:
-                            try:
-                                val = _deser(val, format="urlencoded",
-                                             extended=extended)
-                                args[skey] = val
-                            except Exception, exc:
-                                raise DecodeError(ERRTXT % (key, exc))
-                        else:
-                            args[skey] = [val]
-                    elif isinstance(val, list):
-                        if _deser:
-                            try:
-                                val = _deser(val, format="dict",
-                                             extended=extended)
-                            except Exception, exc:
-                                raise DecodeError(ERRTXT % (key, exc))
+            try:
 
-                        if issubclass(vtype, Base):
-                            try:
-                                args[skey] = [
-                                    vtype(**dict([(str(x),
-                                               y) for x,y
-                                                  in v.items()])) for v in val]
-                            except Exception, exc:
-                                raise DecodeError(ERRTXT % (key, exc))
-                        else:
-                            for v in val:
-                                if not isinstance(v, vtype):
-                                    raise DecodeError(ERRTXT % (key,
+                (vtyp, req, _, _deser) = _spec[key]
+            except KeyError:
+                try:
+                    (vtyp, _, _, _deser) = _spec['*']
+                    if val is None:
+                        self._dict[key] = val
+                        continue
+                except KeyError:
+                    self._dict[key] = val
+                    continue
+
+            self._add_value(skey, vtyp, key, val, _deser)
+        return self
+
+    def _add_value(self, skey, vtyp, key, val, _deser):
+#        if not val:
+#            return
+
+        if isinstance(val, list):
+            if len(val) == 0 or val[0] is None:
+                return
+
+        if isinstance(vtyp, list):
+            vtype = vtyp[0]
+            if isinstance(val, vtype):
+                if _deser:
+                    try:
+                        self._dict[skey] = _deser(val, format="urlencoded")
+                    except Exception, exc:
+                        raise DecodeError(ERRTXT % (key, exc))
+                else:
+                    setattr(self, skey, [val])
+            elif isinstance(val, list):
+                if _deser:
+                    try:
+                        val = _deser(val, format="dict")
+                    except Exception, exc:
+                        raise DecodeError(ERRTXT % (key, exc))
+
+                if issubclass(vtype, Message):
+                    try:
+                        val = [vtype(**dict([(str(x),
+                                       y) for x,y
+                                          in v.items()])) for v in val]
+                    except Exception, exc:
+                        raise DecodeError(ERRTXT % (key, exc))
+                else:
+                    for v in val:
+                        if not isinstance(v, vtype):
+                            raise DecodeError(ERRTXT % (key,
                                                         "type != %s" % vtype))
 
-                            args[skey] = val
+                self._dict[skey] = val
+            else:
+                raise DecodeError(ERRTXT % (key, "type != %s" % vtype))
+        else:
+            if isinstance(val,vtyp): # Not necessary to do anything
+                self._dict[skey] = val
+            else:
+                if _deser:
+                    try:
+                        val = _deser(val, format="dict")
+                    except Exception, exc:
+                        raise DecodeError(ERRTXT % (key, exc))
+
+                if isinstance(val, basestring):
+                    self._dict[skey] = val
+                elif isinstance(val, list):
+                    if len(val) == 1:
+                        self._dict[skey] = val[0]
+                    elif not len(val):
+                        pass # ignore
                     else:
-                        raise DecodeError(ERRTXT % (key, "type != %s" % vtype))
+                        raise TooManyValues(key)
                 else:
-                    if isinstance(val,vtyp): # Not necessary to do anything
-                        args[skey] = val
-                    else:
-                        if _deser:
-                            try:
-                                val = _deser(val, format="dict",
-                                             extended=extended)
-                            except Exception, exc:
-                                raise DecodeError(ERRTXT % (key, exc))
+                    self._dict[skey] = val
 
-                        if isinstance(val, basestring):
-                            args[skey] = val
-                        elif isinstance(val, list):
-                            if len(val) == 1:
-                                args[skey] = val[0]
-                            else:
-                                raise TooManyValues(key)
-                        else:
-                            args[skey] = val
-            elif extended:
-                extension[skey] = val
-            #ignore attributes I don't know about
+    def to_json(self):
+        return json.dumps(self.to_dict())
 
-        if extended and extension:
-            args.update(extension)
+    def from_json(self, txt):
+        return self.from_dict(json.loads(txt))
 
-        return cls(**args)
-
-    @classmethod
-    def set_json(cls, txt, extended=False):
-        return cls.from_dictionary(json.loads(txt), extended)
-
-    @classmethod
-    def from_json(cls, txt, extended=False):
-        return cls.from_dictionary(json.loads(txt), extended)
-
-    def to_json(self, extended=False):
-        return self.get_json(extended)
-
-
-    def get_jwt(self, extended=False, key=None, algorithm=""):
+    def to_jwt(self, key=None, algorithm=""):
         """
         Create a signed JWT representation of the class instance
         draft-jones-json-web-signature-02
 
-        :param extended: Whether parameter extension should be allowed
         :param key: The signing key
         :param algorithm: The signature algorithm to use
         :return: A signed JWT
         """
         if not algorithm:
             algorithm = DEF_SIGN_ALG
-        return jwt.sign(self.get_json(extended), key, algorithm)
+        return jwt.sign(self.to_json(), key, algorithm)
 
 
-    @classmethod
-    def set_jwt(cls, txt, key="", verify=True, extended=False):
+    def from_jwt(self, txt, key, verify=True):
         """
         Given a signed JWT, verify its correctness and then create a class
         instance from the content.
 
-        :param cls: Then type of class
         :param txt: The JWT
         :param key: keys that might be used to verify the signature of the JWT
         :param verify: Whether the signature should be verified or not
-        :param extended: Whether parameter extension should be allowed
         :return: A class instance
         """
         try:
@@ -378,52 +352,52 @@ class Base(object):
         except Exception:
             raise
 
-        return cls.from_dictionary(jso, extended)
-
-    def to_jwt(self, extended=False, key="", algorithm=""):
-        return self.get_jwt(extended, key, algorithm)
-
-    @classmethod
-    def from_jwt(cls, txt, key="", verify=True, extended=False):
-        return cls.set_jwt(txt, key, verify, extended)
+        return self.from_dict(jso)
 
     def __str__(self):
-        return self.get_urlencoded()
+        return self.to_urlencoded()
 
-    def _isinstance(self, val, typ):
-        """
-        Make sure that the values are of the correct type
-        Raises an ValueError exception if this isn't the case.
-
-        :param: the value or values
-        :param: a specification of the value type
-        """
-        if isinstance(typ, str):
-            if not isinstance(val, typ):
-                raise ValueError
-        elif isinstance(typ, list):
-            if isinstance(val, list): # If one is a list then both must be
-                _typ = typ[0]
-                for item in val:
-                    self._isinstance(item, _typ)
-        else:
-            if not isinstance(val, typ):
-                raise ValueError("value: '%s' not of type '%s'" % (val, typ))
-
+    #noinspection PyUnusedLocal
     def verify(self, **kwargs):
         """
         Make sure all the required values are there and that the values are
         of the correct type
         """
-        for (attribute, (typ, required, _, _)) in self.c_attributes.items():
-            val = getattr(self, attribute)
-            if val is None or val == []:
+        _spec = self._schema["param"]
+        try:
+            _allowed = self._schema["allowed values"]
+        except KeyError:
+            _allowed = {}
+
+        for (attribute, (typ, required, _, _)) in _spec.items():
+            if attribute == "*":
+                continue
+
+            try:
+                val = self._dict[attribute]
+            except KeyError:
                 if required:
                     raise MissingRequiredAttribute("%s" % attribute)
-            else:
-                self._isinstance(val, typ)
+                continue
+
+            if attribute not in _allowed:
+                continue
+
+            if typ is basestring:
+                if val not in _allowed[attribute]:
+                    raise ValueError("Not allowed value '%s'" % val)
+            elif typ is int:
+                if val not in _allowed[attribute]:
+                    raise ValueError("Not allowed value '%s'" % val)
+            elif isinstance(typ, list):
+                if isinstance(val, list): #
+                    _typ = typ[0]
+                    for item in val:
+                        if item not in _allowed[attribute]:
+                            raise ValueError("Not allowed value '%s'" % val)
 
         return True
+
 
     def keys(self):
         """
@@ -432,295 +406,366 @@ class Base(object):
 
         :return: A list of attribute names
         """
-        res = []
-        for key in self.c_attributes.keys():
-            if getattr(self, key):
-                res.append(key)
-
-        res.extend(self.c_extension.keys())
-
-        return res
+        return self._dict.keys()
 
     def __getitem__(self, item):
-        return getattr(self, item)
+        return self._dict[item]
 
     def items(self):
-        return self.dictionary(extended=True).items()
-
-    def __getattr__(self, item):
-        return self.c_extension[item]
+        return self._dict.items()
 
     def __contains__(self, item):
-        try:
-            if getattr(self, item):
-                return True
-            else:
-                return False
-        except Exception:
-            pass
-        
-        return item in self.c_extension
+        return item in self._dict
 
     def request(self, location):
-        return "%s?%s" % (location, self.to_urlencoded(extended=True))
+        return "%s?%s" % (location, self.to_urlencoded())
 
     def __setitem__(self, key, value):
-        if key in self.c_attributes:
-            setattr(self, key, value)
-        else:
-            self.c_extension[key] = value
-#
+        try:
+            (vtyp, req, _, _deser) = self._schema["param"][key]
+            self._add_value(str(key), vtyp, key, value, _deser)
+        except KeyError:
+            self._dict[key] = value
+
+    def set_schema(self, schema):
+        self._schema = schema
+
+    def __eq__(self, other):
+        if not isinstance(other, Message):
+            return False
+        if self._name != other._name:
+            return False
+
+        if self._dict != other._dict:
+            return False
+
+        return True
+
+#    def __getattr__(self, item):
+#        return self._dict[item]
+
+    def __delitem__(self, key):
+        del self._dict[key]
+
 # =============================================================================
 #
+
+#noinspection PyUnusedLocal
+def sp_sep_list_serializer(vals, format="urlencoded", extended=False):
+    if format == "urlencoded":
+        return " ".join(vals)
+    else:
+        return vals
+
+#noinspection PyUnusedLocal
+def sp_sep_list_deserializer(val, format="urlencoded", extended=False):
+    if format == "urlencoded":
+        if isinstance(val, basestring):
+            return val.split(" ")
+        elif isinstance(val, list) and len(val) == 1:
+            return val[0].split(" ")
+    else:
+        return val
+
+#noinspection PyUnusedLocal
+def json_serializer(obj, format="urlencoded", extended=False):
+    return json.dumps(obj)
+
+#noinspection PyUnusedLocal
+def json_deserializer(txt, format="urlencoded", extended=False):
+    return json.loads(txt)
 
 SINGLE_REQUIRED_STRING = (basestring, True, None, None)
 SINGLE_OPTIONAL_STRING = (basestring, False, None, None)
 SINGLE_OPTIONAL_INT = (int, False, None, None)
 OPTIONAL_LIST_OF_STRINGS = ([basestring], False, sp_sep_list_serializer,
-                            sp_sep_list_deserializer)
+                                          sp_sep_list_deserializer)
 REQUIRED_LIST_OF_STRINGS = ([basestring], True,
-                            sp_sep_list_serializer,
-                            sp_sep_list_deserializer)
+                                          sp_sep_list_serializer,
+                                          sp_sep_list_deserializer)
 SINGLE_OPTIONAL_JSON = (basestring, False, json_serializer, json_deserializer)
 
+#
+# =============================================================================
+#
 
-class ErrorResponse(Base):
-    c_attributes = Base.c_attributes.copy()
-    c_attributes["error"] = SINGLE_REQUIRED_STRING
-    c_attributes["error_description"] = SINGLE_OPTIONAL_STRING
-    c_attributes["error_uri"] = SINGLE_OPTIONAL_STRING
+SCHEMA = {
+    "": {"param": {}},
+    "ErrorResponse": {
+        "param": {
+            "error": SINGLE_REQUIRED_STRING,
+            "error_description": SINGLE_OPTIONAL_STRING,
+            "error_uri":SINGLE_OPTIONAL_STRING,
+        },
+    },
+    "AuthorizationErrorResponse": {
+        "param": {
+            "state":SINGLE_OPTIONAL_STRING,
+        },
+        "parent": ["ErrorResponse"],
+        "allowed_values": {
+            "error": ["invalid_request", "unathorized_client",
+                      "access_denied", "unsupported_response_type",
+                      "invalid_scope", "server_error",
+                      "temporarily_unavailable"]
+        }
+    },
+    "TokenErrorResponse": {
+        "param": {},
+        "parent": ["ErrorResponse"],
+        "allowed_values": {
+            "error": ["invalid_request", "invalid_client",
+                      "invalid_grant", "unauthorized_client",
+                      "unsupported_grant_type", "invalid_scope"]
+        }
+    },
+    "AccessTokenRequest": {
+        "param":{
+            "grant_type": SINGLE_REQUIRED_STRING,
+            "code": SINGLE_REQUIRED_STRING,
+            "redirect_uri": SINGLE_REQUIRED_STRING,
+            "client_id": SINGLE_OPTIONAL_STRING,
+            "client_secret": SINGLE_OPTIONAL_STRING,
+        },
+        "default": {"grant_type":"authorization_code"}
+    },
+    "AuthorizationRequest": {
+        "param": {
+            "response_type": REQUIRED_LIST_OF_STRINGS,
+            "client_id": SINGLE_REQUIRED_STRING,
+            "redirect_uri": SINGLE_OPTIONAL_STRING,
+            "scope": OPTIONAL_LIST_OF_STRINGS,
+            "state": SINGLE_OPTIONAL_STRING
+        }
+    },
+    "AuthorizationResponse": {
+        "param": {
+            "code": SINGLE_REQUIRED_STRING,
+            "state": SINGLE_OPTIONAL_STRING
+        }
+    },
+    "AccessTokenResponse": {
+        "param": {
+            "access_token": SINGLE_REQUIRED_STRING,
+            "token_type": SINGLE_REQUIRED_STRING,
+            "expires_in": SINGLE_OPTIONAL_INT,
+            "refresh_token": SINGLE_OPTIONAL_STRING,
+            "scope": OPTIONAL_LIST_OF_STRINGS,
+            "state": SINGLE_OPTIONAL_STRING
+        }
+    },
+    "NoneResponse": {
+        "param": {
+            "state": SINGLE_OPTIONAL_STRING
+        }
+    },
+    "ROPCAccessTokenRequest": {
+        "param": {
+            "grant_type": SINGLE_REQUIRED_STRING,
+            "username": SINGLE_OPTIONAL_STRING,
+            "password": SINGLE_OPTIONAL_STRING,
+            "scope": SINGLE_OPTIONAL_STRING
+        },
+    },
+    "CCAccessTokenRequest": {
+        "param": {
+            "grant_type": SINGLE_REQUIRED_STRING,
+            "scope": SINGLE_OPTIONAL_STRING
+        },
+        "allowed_values": {"grant_type":"client_credentials"},
+        "default": {"grant_type":"client_credentials"}
+    },
+    "RefreshAccessTokenRequest": {
+        "param": {
+            "grant_type": SINGLE_REQUIRED_STRING,
+            "refresh_token": SINGLE_REQUIRED_STRING,
+            "client_id": SINGLE_REQUIRED_STRING,
+            "scope": SINGLE_OPTIONAL_STRING,
+            "client_secret": SINGLE_OPTIONAL_STRING
+        },
+        "allowed_values": {"grant_type":"refresh_token"},
+        "default": {"grant_type":"refresh_token"}
+    },
+    "TokenRevocationRequest": {
+        "param": {
+            "token": SINGLE_REQUIRED_STRING,
+        }
+    },
+    "ResourceRequest": {
+        "param": {
+            "access_token": SINGLE_OPTIONAL_STRING,
+        }
+    },
+}
 
-    def __init__(self,
-                 error=None,
-                 error_description=None,
-                 error_uri=None,
-                 **kwargs):
-        Base.__init__(self, **kwargs)
-        self.error = error
-        self.error_description = error_description
-        self.error_uri = error_uri
+lc_types = dict((x.lower(), x) for x in SCHEMA.keys())
 
-class AuthorizationErrorResponse(ErrorResponse):
-    c_attributes = ErrorResponse.c_attributes.copy()
-    c_attributes["state"] = SINGLE_OPTIONAL_STRING
-
-    def __init__(self,
-                 error=None,
-                 error_description=None,
-                 error_uri=None,
-                 state=None,
-                 **kwargs):
-        ErrorResponse.__init__(self,
-                               error,
-                               error_description,
-                               error_uri,
-                               **kwargs)
-        self.state = state
-
-    def verify(self, **kwargs):
-        if self.error:
-            if self.error in ["invalid_request", "unathorized_client",
-                              "access_denied", "unsupported_response_type",
-                              "invalid_scope", "server_error",
-                              "temporarily_unavailable"]:
-                pass
+def join(dic0, dic1):
+    res = {}
+    for key, val in dic0.items():
+        if key not in dic1:
+            res[key] = val
+        else:
+            if isinstance(val, dict):
+                res[key] = join(val, dic1[key])
             else:
-                raise ValueError("'%s' not an valid error type" % self.error)
+                val.extend(dic1[key])
+                res[key] = val
 
-        return ErrorResponse.verify(self, **kwargs)
+    for key, val in dic1.items():
+        if key in dic0:
+            continue
+        else:
+            res[key] = val
 
-class TokenErrorResponse(ErrorResponse):
-    c_attributes = ErrorResponse.c_attributes.copy()
+    return res
 
-    def __init__(self,
-                 error=None,
-                 error_description=None,
-                 error_uri=None,
-                 **kwargs):
-        ErrorResponse.__init__(self,
-                               error,
-                               error_description,
-                               error_uri,
-                               **kwargs)
+def join_spec(*arg):
+    _child = arg[0]
+    _parent = arg[1]
+    _sp = {"param": _child["param"].copy()}
 
-    def verify(self, **kwargs):
-        if self.error:
-            if not self.error in ["invalid_request", "invalid_client",
-                              "invalid_grant", "unauthorized_client",
-                              "unsupported_grant_type", "invalid_scope"]:
-                raise ValueError("'%s' not an valid error type" % self.error)
+    try:
+        _parent = inherit(_parent, _parent["parent"])
+    except KeyError:
+        pass
 
-        return ErrorResponse.verify(self, **kwargs)
+    # param
+    for key, val in _parent["param"].items():
+        # Child overrides parent
+        if key not in _sp["param"]:
+            _sp["param"][key] = val
 
-class AccessTokenResponse(Base):
-    c_attributes = Base.c_attributes.copy()
-    c_attributes["access_token"] = SINGLE_REQUIRED_STRING
-    c_attributes["token_type"] = SINGLE_REQUIRED_STRING
-    c_attributes["expires_in"] = SINGLE_OPTIONAL_INT
-    c_attributes["refresh_token"] = SINGLE_OPTIONAL_STRING
-    c_attributes["scope"] = OPTIONAL_LIST_OF_STRINGS
-    # Only for implicit flow
-    c_attributes["state"] = SINGLE_OPTIONAL_STRING
-
-    def __init__(self,
-                 access_token=None,
-                 token_type=None,
-                 expires_in=None,
-                 refresh_token=None,
-                 scope=None,
-                 state=None,
-                 **kwargs):
-        Base.__init__(self, **kwargs)
-        self.access_token = access_token
-        self.token_type = token_type
-        self.expires_in = expires_in
-        self.refresh_token = refresh_token
-        self.scope = scope or []
-        self.state = state
-
-class AccessTokenRequest(Base):
-    c_attributes = Base.c_attributes.copy()
-    c_attributes["grant_type"] = SINGLE_REQUIRED_STRING
-    c_attributes["code"] = SINGLE_REQUIRED_STRING
-    c_attributes["redirect_uri"] = SINGLE_REQUIRED_STRING
-    c_attributes["client_id"] = SINGLE_OPTIONAL_STRING
-    c_attributes["client_secret"] = SINGLE_OPTIONAL_STRING
-
-    def __init__(self, grant_type="authorization_code",
-                 code=None,
-                 redirect_uri=None,
-                 client_id=None,
-                 client_secret=None,
-                 **kwargs):
-        Base.__init__(self, **kwargs)
-        self.grant_type = grant_type
-        self.code = code
-        self.redirect_uri = redirect_uri
-        self.client_id = client_id
-        self.client_secret = client_secret
-
-class AuthorizationRequest(Base):
-    c_attributes = Base.c_attributes.copy()
-    c_attributes["response_type"] = REQUIRED_LIST_OF_STRINGS
-    c_attributes["client_id"] = SINGLE_REQUIRED_STRING
-    c_attributes["redirect_uri"] = SINGLE_OPTIONAL_STRING
-    c_attributes["scope"] = OPTIONAL_LIST_OF_STRINGS
-    c_attributes["state"] = SINGLE_OPTIONAL_STRING
-
-    def __init__(self,
-                 response_type=None,
-                 client_id=None,
-                 redirect_uri=None,
-                 scope=None,
-                 state=None,
-                 **kwargs):
-        Base.__init__(self, **kwargs)
-        self.response_type = response_type or []
-        self.client_id = client_id
-        self.redirect_uri = redirect_uri
-        self.scope = scope or []
-        self.state = state
-
-class AuthorizationResponse(Base):
-    c_attributes = Base.c_attributes.copy()
-    c_attributes["code"] = SINGLE_REQUIRED_STRING
-    c_attributes["state"] = SINGLE_OPTIONAL_STRING
-
-    def __init__(self, code=None, state=None, **kwargs):
-        Base.__init__(self, **kwargs)
-        self.code = code
-        self.state = state
-
-class NoneResponse(Base):
-    c_attributes = Base.c_attributes.copy()
-    c_attributes["state"] = SINGLE_OPTIONAL_STRING
-
-    def __init__(self, state=None, **kwargs):
-        Base.__init__(self, **kwargs)
-        self.state = state
-
-class ROPCAccessTokenRequest(Base):
-    c_attributes = Base.c_attributes.copy()
-    c_attributes["grant_type"] = SINGLE_REQUIRED_STRING
-    c_attributes["username"] = SINGLE_REQUIRED_STRING
-    c_attributes["password"] = SINGLE_REQUIRED_STRING
-    c_attributes["scope"] = SINGLE_OPTIONAL_STRING
-
-    def __init__(self, grant_type="password", username=None, password=None,
-                 scope=None, **kwargs):
-        Base.__init__(self, **kwargs)
-        self.grant_type = grant_type
-        self.username = username
-        self.password = password
-        self.scope = scope
-
-    def verify(self, **kwargs):
-        assert self.grant_type == "password"
-        return Base.verify(self, **kwargs)
-
-class CCAccessTokenRequest(Base):
-    c_attributes = Base.c_attributes.copy()
-    c_attributes["grant_type"] = SINGLE_REQUIRED_STRING
-    c_attributes["scope"] = SINGLE_OPTIONAL_STRING
-
-    def __init__(self, grant_type="client_credentials", scope=None, **kwargs):
-        Base.__init__(self,**kwargs)
-        self.grant_type = grant_type
-        self.scope = scope
-
-    def verify(self, **kwargs):
-        assert self.grant_type == "client_credentials"
-        return Base.verify(self, **kwargs)
-
-class RefreshAccessTokenRequest(Base):
-    c_attributes = Base.c_attributes.copy()
-    c_attributes["grant_type"] = SINGLE_REQUIRED_STRING
-    c_attributes["refresh_token"] = SINGLE_REQUIRED_STRING
-    c_attributes["client_id"] = SINGLE_REQUIRED_STRING
-    c_attributes["scope"] = SINGLE_OPTIONAL_STRING
-    c_attributes["client_secret"] = SINGLE_OPTIONAL_STRING
-
-    def __init__(self, grant_type="refresh_token",
-                 refresh_token=None,
-                 client_id=None,
-                 scope=None,
-                 client_secret=None,
-                 **kwargs):
-        Base.__init__(self, **kwargs)
-        self.grant_type = grant_type
-        self.refresh_token = refresh_token
-        self.client_id = client_id
-        self.scope = scope
-        self.client_secret = client_secret
-
-    def verify(self, **kwargs):
-        assert self.grant_type == "refresh_token"
-        return Base.verify(self, **kwargs)
-
-
-class TokenRevocationRequest(Base):
-    c_attributes = Base.c_attributes.copy()
-    c_attributes["token"] = SINGLE_REQUIRED_STRING
-
-    def __init__(self, token=None, **kwargs):
-        Base.__init__(self, **kwargs)
-        self.token = token
-
-class ResourceRequest(Base):
-    c_attributes = Base.c_attributes.copy()
-    c_attributes["access_token"] = SINGLE_OPTIONAL_STRING
-
-    def __init__(self, access_token=None, **kwargs):
-        Base.__init__(self, **kwargs)
-        self.access_token = access_token
-
-def factory(cls, **argv):
-    _dict = {}
-    for attr in cls.c_attributes:
+    # allowed values
+    _av = [None, None]
+    for i in [0,1]:
         try:
-            _dict[attr] = argv[attr]
+            _av[i] = arg[i]["allowed_values"]
         except KeyError:
             pass
 
-    return cls(**_dict)
+    if _av[0] is None and _av[1] is None:
+        pass
+    elif _av[0] is None:
+        if _av[1]:
+            _sp["allowed_values"] = _av[1]
+    elif _av[1] is None:
+        if _av[0]:
+            _sp["allowed_values"] = _av[0]
+    else:
+        _sp["allowed_values"] = join(_av[1], _av[0])
 
+    # default
+    if "default" in _child:
+        _def = _child["default"]
+        if "default" in _parent:
+            for key, val in _parent["default"].items():
+                if key not in _def:
+                    _def[key] = val
+        _sp["default"] = _def
+    else:
+        try:
+            _sp["default"] = _parent["default"]
+        except KeyError:
+            pass
+
+    # verify
+    try:
+        _sp["verify"] = _child["verify"]
+    except KeyError:
+        try:
+            _sp["verify"] = _parent["verify"]
+        except KeyError:
+            pass
+
+    return _sp
+
+def inherit(spec, parent):
+    for p in parent:
+        if isinstance(p, dict):
+            _spec = p
+        else:
+            _spec = SCHEMA[p]
+        spec = join_spec(spec, _spec)
+
+    return spec
+
+_schema = {}
+for key, _spec in SCHEMA.items():
+    if "parent" in _spec:
+        _schema[key] = inherit(_spec, _spec["parent"])
+    else:
+        _schema[key] = _spec
+    _schema[key]["mod"] = __name__
+    _schema[key]["name"] = key
+
+SCHEMA = _schema
+
+def by_schema(_spec_, **kwargs):
+    try:
+        if isinstance(_spec_, basestring):
+            name = lc_types[_spec_.lower()]
+            pkeys = SCHEMA[name]["param"].keys()
+        else:
+            pkeys = _spec_["param"].keys()
+
+        return dict([(k,v) for k, v in kwargs.items() if k in pkeys])
+    except KeyError:
+        raise Exception("Unknown message type")
+
+def add_non_standard(msg1, msg2):
+    """
+    Adds all non standard attributes in msg1 to msg2
+    """
+    for key, val in msg1.items():
+        if key not in msg1._schema["param"]:
+            msg2[key] = val
+
+def message(_type_, **kwargs):
+    try:
+        name = lc_types[_type_.lower()]
+        return Message(name, SCHEMA[name], **kwargs)
+    except KeyError:
+        raise Exception("Unknown message type")
+
+def message_from_schema(schema, **kwargs):
+    return Message(schema["name"], schema, **kwargs)
+
+def msg_deser(val, format, typ="", schema=None, **kwargs):
+    if typ:
+        return message(typ).deserialize(val, format, **kwargs)
+    else:
+        return Message(schema["name"], schema).deserialize(val, format,
+                                                           **kwargs)
+
+if __name__ == "__main__":
+    foo = Message("AccessTokenRequest", SCHEMA["AccessTokenRequest"],
+                  grant_type="authorization_code",
+                  code="foo", redirect_uri="http://example.com/cb")
+    print foo
+    bar = Message("CCAccessTokenRequest",SCHEMA["CCAccessTokenRequest"],
+                  grant_type="client_credentials")
+    print bar
+    print bar.verify()
+    xyz = Message("AuthorizationErrorResponse",
+                  SCHEMA["AuthorizationErrorResponse"],
+                  error="invalid_request",
+                  state="foxbar")
+    print xyz
+    print xyz.verify()
+
+    urlencoded = foo.to_urlencoded()
+    atr = Message("AccessTokenRequest",
+                  SCHEMA["AccessTokenRequest"]).from_urlencoded(urlencoded)
+    print atr
+
+    atr = Message("AccessTokenRequest",
+                  SCHEMA["AccessTokenRequest"]).deserialize(urlencoded)
+    print atr
+
+    atr = message("AccessTokenRequest").deserialize(urlencoded)
+    print atr
+
+    areq = message("accesstokenrequest", grant_type="authorization_code",
+                  code="foo", redirect_uri="http://example.com/cb")
+    print areq

@@ -3,7 +3,6 @@
 __author__ = 'rohe0002'
 
 import httplib2
-import inspect
 import random
 import string
 
@@ -22,15 +21,15 @@ DEFAULT_POST_CONTENT_TYPE = 'application/x-www-form-urlencoded'
 REQUEST2ENDPOINT = {
     "AuthorizationRequest": "authorization_endpoint",
     "AccessTokenRequest": "token_endpoint",
-#    ROPCAccessTokenRequest: "authorization_endpoint",
-#    CCAccessTokenRequest: "authorization_endpoint",
+    #    ROPCAccessTokenRequest: "authorization_endpoint",
+    #    CCAccessTokenRequest: "authorization_endpoint",
     "RefreshAccessTokenRequest": "token_endpoint",
     "TokenRevocationRequest": "token_endpoint",
-}
+    }
 
 RESPONSE2ERROR = {
-    AuthorizationResponse: [AuthorizationErrorResponse, TokenErrorResponse],
-    AccessTokenResponse: [TokenErrorResponse]
+    "AuthorizationResponse": ["AuthorizationErrorResponse", "TokenErrorResponse"],
+    "AccessTokenResponse": ["TokenErrorResponse"]
 }
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint",
@@ -67,24 +66,24 @@ def client_secret_post(cli, cis, request_args=None, http_args=None, **kwargs):
     if request_args is None:
         request_args = {}
 
-    if not cis.client_secret:
+    if "client_secret" not in cis:
         try:
-            cis.client_secret = http_args["client_secret"]
+            cis["client_secret"] = http_args["client_secret"]
             del http_args["client_secret"]
         except (KeyError, TypeError):
-            cis.client_secret = cli.client_secret
+            cis["client_secret"] = cli.client_secret
 
-    cis.client_id = cli.client_id
+    cis["client_id"] = cli.client_id
 
     return http_args
 
 #noinspection PyUnusedLocal
 def bearer_header(cli, cis, request_args=None, http_args=None, **kwargs):
-    if cis.access_token:
-        _acc_token = cis.access_token
-        cis.access_token = None
+    if "access_token" in cis:
+        _acc_token = cis["access_token"]
+        del cis["access_token"]
         # Required under certain circumstances :-) not under other
-        cis.c_attributes["access_token"] = SINGLE_OPTIONAL_STRING
+        cis._schema["param"]["access_token"] = SINGLE_OPTIONAL_STRING
     else:
         try:
             _acc_token = request_args["access_token"]
@@ -118,11 +117,11 @@ def bearer_body(cli, cis, request_args=None, http_args=None, **kwargs):
     if request_args is None:
         request_args = {}
 
-    if cis.access_token:
+    if "access_token" in cis:
         pass
     else:
         try:
-            cis.access_token = request_args["access_token"]
+            cis["access_token"] = request_args["access_token"]
         except KeyError:
             try:
                 _state = kwargs["state"]
@@ -131,7 +130,7 @@ def bearer_body(cli, cis, request_args=None, http_args=None, **kwargs):
                     raise Exception("Missing state specification")
                 kwargs["state"] = cli.state
 
-            cis.access_token = cli.get_token(**kwargs).access_token
+            cis["access_token"] = cli.get_token(**kwargs).access_token
 
     return http_args
 
@@ -140,7 +139,7 @@ AUTHN_METHOD = {
     "client_secret_post" : client_secret_post,
     "bearer_header": bearer_header,
     "bearer_body": bearer_body,
-}
+    }
 
 # -----------------------------------------------------------------------------
 
@@ -150,7 +149,7 @@ class ExpiredToken(Exception):
 # -----------------------------------------------------------------------------
 
 class Token(object):
-    _class = AccessTokenResponse
+    _schema = SCHEMA["AccessTokenResponse"]
 
     def __init__(self, resp=None):
         self.scope = []
@@ -161,19 +160,11 @@ class Token(object):
         self.replaced = False
 
         if resp:
-            for prop in self._class.c_attributes.keys():
-                try:
-                    _val = getattr(resp, prop)
-                except KeyError:
-                    continue
-                if _val:
-                    setattr(self, prop, _val)
-
-            for key, val in resp.c_extension.items():
-                setattr(self, key, val)
+            for prop, val in resp.items():
+                setattr(self, prop, val)
 
             try:
-                _expires_in = resp.expires_in
+                _expires_in = resp["expires_in"]
             except KeyError:
                 return
 
@@ -210,10 +201,10 @@ class Token(object):
         return True
 
 class Grant(object):
-    _authz_resp = AuthorizationResponse
-    _acc_resp = AccessTokenResponse
+    _authz_resp = "AuthorizationResponse"
+    _acc_resp = "AccessTokenResponse"
     _token_class = Token
-    
+
     def __init__(self, exp_in=600, resp=None, seed=""):
         self.grant_expiration_time = 0
         self.exp_in = exp_in
@@ -232,12 +223,15 @@ class Grant(object):
 
     def add_code(self, resp):
         try:
-            self.code = resp.code
+            self.code = resp["code"]
             self.grant_expiration_time = utc_time_sans_frac() + self.exp_in
         except KeyError:
             pass
 
     def add_token(self, resp):
+        """
+        :param resp: A Authorization Response instance
+        """
         tok = self._token_class(resp)
         if tok.access_token:
             self.tokens.append(tok)
@@ -255,7 +249,7 @@ class Grant(object):
         return self.__dict__.keys()
 
     def update(self, resp):
-        if isinstance(resp, self._acc_resp):
+        if resp.type() == self._acc_resp:
             if "access_token" in resp or "id_token" in resp:
                 tok = self._token_class(resp)
                 if tok not in self.tokens:
@@ -265,7 +259,7 @@ class Grant(object):
                     self.tokens.append(tok)
             else:
                 self.add_code(resp)
-        elif isinstance(resp, self._authz_resp):
+        elif resp.type() == self._authz_resp:
             self.add_code(resp)
 
     def get_token(self, scope=""):
@@ -477,36 +471,37 @@ class KeyStore(object):
 
         if "x509_url" in inst:
             try:
-                _verkey = self.load_x509_cert(inst.x509_url, "verify",
+                _verkey = self.load_x509_cert(inst["x509_url"], "verify",
                                               _issuer)
             except Exception:
-                raise Exception(KEYLOADERR % ('x509', inst.x509_url))
+                raise Exception(KEYLOADERR % ('x509', inst["x509_url"]))
         else:
             _verkey = None
 
         if "x509_encryption_url" in inst:
             try:
-                self.load_x509_cert(inst.x509_encryption_url, "enc",
+                self.load_x509_cert(inst["x509_encryption_url"], "enc",
                                     _issuer)
             except Exception:
                 raise Exception(KEYLOADERR % ('x509_encryption',
-                                              inst.x509_encryption_url))
+                                              inst["x509_encryption_url"]))
         elif _verkey:
             self.set_decrypt_key(_verkey, "rsa", _issuer)
 
         if "jwk_url" in inst:
             try:
-                _verkeys = self.load_jwk(inst.jwk_url, "verify", _issuer)
+                _verkeys = self.load_jwk(inst["jwk_url"], "verify", _issuer)
             except Exception, err:
-                raise Exception(KEYLOADERR % ('jwk', inst.jwk_url, err))
+                raise Exception(KEYLOADERR % ('jwk', inst["jwk_url"], err))
         else:
             _verkeys = []
 
         if "jwk_encryption_url" in inst:
             try:
-                self.load_jwk(inst.jwk_url, "enc", _issuer)
+                self.load_jwk(inst["jwk_encryption_url"], "enc", _issuer)
             except Exception:
-                raise Exception(KEYLOADERR % ('jwk', inst.jwk_encryption_url))
+                raise Exception(KEYLOADERR % ('jwk',
+                                              inst["jwk_encryption_url"]))
         elif _verkeys:
             for key in _verkeys:
                 self.set_decrypt_key(key, "rsa", _issuer)
@@ -550,8 +545,8 @@ class Client(PBase):
                  jwt_keys=None):
 
         PBase.__init__(self, cache, time_out, proxy_info, follow_redirects,
-                      disable_ssl_certificate_validation, ca_certs,
-                      httpclass, jwt_keys)
+                       disable_ssl_certificate_validation, ca_certs,
+                       httpclass, jwt_keys)
 
         self.client_id = client_id
         self.client_timeout = client_timeout
@@ -608,30 +603,21 @@ class Client(PBase):
 
         return None
 
-#    def scope_from_state(self, state):
-#
-#    def grant_from_state_or_scope(self, state, scope):
+    def _parse_args(self, schema, **kwargs):
+        ar_args = kwargs.copy()
 
-    def _parse_args(self, klass, **kwargs):
-        ar_args = {}
-        for prop, val in kwargs.items():
-            if prop in klass.c_attributes:
-                ar_args[prop] = val
-            elif prop.startswith("extra_"):
-                if prop[6:] not in klass.c_attributes:
-                    ar_args[prop[6:]] = val
-
-        # Used to not overwrite defaults
-        argspec = inspect.getargspec(klass.__init__)
-        for prop in klass.c_attributes.keys():
-            if prop not in ar_args:
-                index = argspec[0].index(prop) -1 # skip self
-                if not argspec[3][index]:
-                    if prop == "redirect_uri":
-                        ar_args[prop] = getattr(self, "redirect_uris",
-                                                [None])[0]
-                    else:
-                        ar_args[prop] = getattr(self, prop, None)
+        for prop in schema["param"].keys():
+            if prop in ar_args:
+                continue
+            else:
+                if prop == "redirect_uri":
+                    _val = getattr(self, "redirect_uris", [None])[0]
+                    if _val:
+                        ar_args[prop] = _val
+                else:
+                    _val = getattr(self, prop, None)
+                    if _val:
+                        ar_args[prop] = _val
 
         return ar_args
 
@@ -693,18 +679,19 @@ class Client(PBase):
         else:
             raise ExpiredToken()
 
-    def construct_request(self, reqclass, request_args=None, extra_args=None):
+    def construct_request(self, schema, request_args=None, extra_args=None):
         if request_args is None:
             request_args = {}
 
-        args = self._parse_args(reqclass, **request_args)
+        args = self._parse_args(schema, **request_args)
 
         if extra_args:
             args.update(extra_args)
-        return reqclass(**args)
+        return Message(schema["name"], schema, **args)
 
     #noinspection PyUnusedLocal
-    def construct_AuthorizationRequest(self, reqclass=AuthorizationRequest,
+    def construct_AuthorizationRequest(self,
+                                       schema=SCHEMA["AuthorizationRequest"],
                                        request_args=None, extra_args=None,
                                        **kwargs):
 
@@ -716,10 +703,11 @@ class Client(PBase):
         else:
             request_args = {}
 
-        return self.construct_request(reqclass, request_args, extra_args)
+        return self.construct_request(schema, request_args, extra_args)
 
     #noinspection PyUnusedLocal
-    def construct_AccessTokenRequest(self, cls=AccessTokenRequest,
+    def construct_AccessTokenRequest(self,
+                                     schema=SCHEMA["AccessTokenRequest"],
                                      request_args=None, extra_args=None,
                                      **kwargs):
 
@@ -727,8 +715,8 @@ class Client(PBase):
 
         if not grant.is_valid():
             raise GrantExpired("Authorization Code to old %s > %s" % (
-                                                utc_time_sans_frac(),
-                                                grant.grant_expiration_time))
+                utc_time_sans_frac(),
+                grant.grant_expiration_time))
 
         if request_args is None:
             request_args = {}
@@ -743,12 +731,12 @@ class Client(PBase):
         elif not request_args["client_id"]:
             request_args["client_id"] = self.client_id
 
-        return self.construct_request(cls, request_args, extra_args)
+        return self.construct_request(schema, request_args, extra_args)
 
     def construct_RefreshAccessTokenRequest(self,
-                                            cls=RefreshAccessTokenRequest,
-                                            request_args=None, extra_args=None,
-                                            **kwargs):
+                                    schema=SCHEMA["RefreshAccessTokenRequest"],
+                                    request_args=None, extra_args=None,
+                                    **kwargs):
 
         if request_args is None:
             request_args = {}
@@ -762,9 +750,10 @@ class Client(PBase):
         except AttributeError:
             pass
 
-        return self.construct_request(cls, request_args, extra_args)
+        return self.construct_request(schema, request_args, extra_args)
 
-    def construct_TokenRevocationRequest(self, cls=TokenRevocationRequest,
+    def construct_TokenRevocationRequest(self,
+                                         schema=SCHEMA["TokenRevocationRequest"],
                                          request_args=None, extra_args=None,
                                          **kwargs):
 
@@ -774,15 +763,15 @@ class Client(PBase):
         token = self.get_token(**kwargs)
 
         request_args["token"] = token.access_token
-        return self.construct_request(cls, request_args, extra_args)
+        return self.construct_request(schema, request_args, extra_args)
 
-    def get_or_post(self, uri, method, req, extend=False, **kwargs):
+    def get_or_post(self, uri, method, req, **kwargs):
         if method == "GET":
-            path = uri + '?' + req.get_urlencoded(extended=extend)
+            path = uri + '?' + req.to_urlencoded()
             body = None
         elif method == "POST":
             path = uri
-            body = req.get_urlencoded(extended=extend)
+            body = req.to_urlencoded()
             header_ext = {"content-type": DEFAULT_POST_CONTENT_TYPE}
             if "headers" in kwargs.keys():
                 kwargs["headers"].update(header_ext)
@@ -793,13 +782,12 @@ class Client(PBase):
 
         return path, body, kwargs
 
-    def uri_and_body(self, cls, cis, method="POST", request_args=None,
-                     extend=False, **kwargs):
+    def uri_and_body(self, reqmsg, cis, method="POST", request_args=None,
+                     **kwargs):
 
-        uri = self._endpoint(self.request2endpoint[cls.__name__],
-                             **request_args)
+        uri = self._endpoint(self.request2endpoint[reqmsg], **request_args)
 
-        uri, body, kwargs = self.get_or_post(uri, method, cis, extend, **kwargs)
+        uri, body, kwargs = self.get_or_post(uri, method, cis, **kwargs)
         try:
             h_args = {"headers": kwargs["headers"]}
         except KeyError:
@@ -807,15 +795,15 @@ class Client(PBase):
 
         return uri, body, h_args, cis
 
-    def request_info(self, cls, method="POST", request_args=None,
+    def request_info(self, schema, method="POST", request_args=None,
                      extra_args=None, **kwargs):
 
         if request_args is None:
             request_args = {}
 
-        cis = getattr(self, "construct_%s" % cls.__name__)(cls, request_args,
-                                                           extra_args,
-                                                           **kwargs)
+        cis = getattr(self, "construct_%s" % schema["name"])(schema,
+                                                     request_args,
+                                                     extra_args, **kwargs)
 
         if "authn_method" in kwargs:
             h_arg = self.init_authentication_method(cis,
@@ -830,81 +818,51 @@ class Client(PBase):
             else:
                 kwargs["headers"] = h_arg
 
-        if extra_args:
-            extend = True
-        else:
-            extend = False
+        return self.uri_and_body(schema["name"], cis, method, request_args,
+                                 **kwargs)
 
-        return self.uri_and_body(cls, cis, method, request_args,
-                                 extend=extend, **kwargs)
-
-    def parse_response(self, cls, info="", format="json", state="",
-                       extended=False, **kwargs):
+    def parse_response(self, schema, info="", format="json", state="",
+                       **kwargs):
         """
         Parse a response
 
-        :param cls: Which class to use when parsing the response
+        :param schema: Which schema the response should adhere to
         :param info: The response, can be either an JSON code or an urlencoded
             form:
         :param format: Which serialization that was used
-        :param extended: If non-standard parameters should be honored
         :return: The parsed and to some extend verified response
         """
 
         _r2e = self.response2error
 
         err = None
-        if format == "json":
-            try:
-                resp = cls.set_json(info, extended)
-                assert resp.verify(**kwargs)
-            except Exception, err:
-                resp = None
-
-            eresp = None
-            try:
-                for errcls in _r2e[cls]:
-                    try:
-                        eresp = errcls.set_json(info, extended)
-                        eresp.verify()
-                        break
-                    except Exception:
-                        eresp = None
-            except KeyError:
-                pass
-
-        elif format == "urlencoded":
+        if format == "urlencoded":
             if '?' in info or '#' in info:
                 parts = urlparse.urlparse(info)
                 scheme, netloc, path, params, query, fragment = parts[:6]
                 # either query of fragment
                 if query:
-                    pass
+                    info = query
                 else:
-                    query = fragment
-            else:
-                query = info
+                    info = fragment
 
-            try:
-                resp = cls.set_urlencoded(query, extended)
-                assert resp.verify(**kwargs)
-            except Exception, err:
-                resp = None
+        try:
+            resp = msg_deser(info, format, schema=schema)
+            assert resp.verify(**kwargs)
+        except Exception, err:
+            resp = None
 
-            eresp = None
-            try:
-                for errcls in _r2e[cls]:
-                    try:
-                        eresp = errcls.set_urlencoded(query, extended)
-                        eresp.verify()
-                        break
-                    except Exception:
-                        eresp = None
-            except KeyError:
-                pass
-
-        else:
-            raise Exception("Unknown package format: '%s'" %  format)
+        eresp = None
+        try:
+            for errmsg in _r2e[schema["name"]]:
+                try:
+                    eresp = msg_deser(info, format, typ=errmsg)
+                    eresp.verify()
+                    break
+                except Exception:
+                    eresp = None
+        except KeyError:
+            pass
 
         # Error responses has higher precedence
         if eresp:
@@ -913,9 +871,9 @@ class Client(PBase):
         if not resp:
             raise err
 
-        if isinstance(resp, (AuthorizationResponse, AccessTokenResponse)):
+        if resp._name in ["AuthorizationResponse", "AccessTokenResponse"]:
             try:
-                _state = resp.state
+                _state = resp["state"]
             except (AttributeError, KeyError):
                 _state = ""
 
@@ -931,7 +889,7 @@ class Client(PBase):
 
     #noinspection PyUnusedLocal
     def init_authentication_method(self, cis, authn_method, request_args=None,
-                                     http_args=None, **kwargs):
+                                   http_args=None, **kwargs):
 
         if http_args is None:
             http_args = {}
@@ -944,16 +902,15 @@ class Client(PBase):
         else:
             return http_args
 
-    def request_and_return(self, url, respcls=None, method="GET", body=None,
-                        body_type="json", extended=True,
-                        state="", http_args=None, **kwargs):
+    def request_and_return(self, url, schema=None, method="GET", body=None,
+                           body_type="json", state="", http_args=None,
+                           **kwargs):
         """
         :param url: The URL to which the request should be sent
-        :param respcls: The class the should represent the response
+        :param schema: The schema the response should adhere to
         :param method: Which HTTP method to use
         :param body: A message body if any
         :param body_type: The format of the body of the return message
-        :param extended: If non-standard parameters should be honored
         :param http_args: Arguments for the HTTP client
         :return: A cls or ErrorResponse instance or the HTTP response
             instance if no response body was expected.
@@ -985,41 +942,44 @@ class Client(PBase):
             raise Exception("ERROR: Something went wrong [%s]" % response.status)
 
         if body_type:
-            return self.parse_response(respcls, content, body_type,
-                                       state, extended, **kwargs)
+            return self.parse_response(schema, content, body_type, state,
+                                       **kwargs)
         else:
             return response
 
-    def do_authorization_request(self, cls=AuthorizationRequest,
+    def do_authorization_request(self, schema=SCHEMA["AuthorizationRequest"],
                                  state="", body_type="", method="GET",
                                  request_args=None, extra_args=None,
-                                 http_args=None, resp_cls=None):
+                                 http_args=None,
+                                 resp_schema=SCHEMA["AuthorizationResponse"]):
 
-        url, body, ht_args, csi = self.request_info(cls, method, request_args,
-                                                    extra_args)
+        url, body, ht_args, csi = self.request_info(schema, method,
+                                                    request_args, extra_args)
 
         if http_args is None:
             http_args = ht_args
         else:
             http_args.update(http_args)
 
-        resp = self.request_and_return(url, resp_cls, method, body,
-                                       body_type, extended=False,
-                                       state=state, http_args=http_args)
+        resp = self.request_and_return(url, resp_schema, method, body,
+                                       body_type, state=state,
+                                       http_args=http_args)
 
-        if isinstance(resp, ErrorResponse):
-            resp.state = csi.state
+        if isinstance(resp, Message):
+            if resp.type() in RESPONSE2ERROR["AuthorizationRequest"]:
+                resp.state = csi.state
 
         return resp
 
-    def do_access_token_request(self, cls=AccessTokenRequest, scope="",
-                                state="", body_type="json", method="POST",
-                                request_args=None, extra_args=None,
-                                http_args=None, resp_cls=AccessTokenResponse,
+    def do_access_token_request(self, schema=SCHEMA["AccessTokenRequest"],
+                                scope="", state="", body_type="json",
+                                method="POST", request_args=None,
+                                extra_args=None, http_args=None,
+                                resp_schema=SCHEMA["AccessTokenResponse"],
                                 authn_method="", **kwargs):
 
         # method is default POST
-        url, body, ht_args, csi = self.request_info(cls, method=method,
+        url, body, ht_args, csi = self.request_info(schema, method=method,
                                                     request_args=request_args,
                                                     extra_args=extra_args,
                                                     scope=scope, state=state,
@@ -1031,19 +991,20 @@ class Client(PBase):
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(url, resp_cls, method, body,
-                                       body_type, extended=False,
-                                       state=state, http_args=http_args)
+        return self.request_and_return(url, resp_schema, method, body,
+                                       body_type, state=state,
+                                       http_args=http_args)
 
-    def do_access_token_refresh(self, cls=RefreshAccessTokenRequest,
+    def do_access_token_refresh(self, schema=SCHEMA["RefreshAccessTokenRequest"],
                                 state="", body_type="json", method="POST",
                                 request_args=None, extra_args=None,
-                                http_args=None, resp_cls=AccessTokenResponse,
+                                http_args=None,
+                                resp_schema=SCHEMA["AccessTokenResponse"],
                                 authn_method="", **kwargs):
 
         token = self.get_token(also_expired=True, state=state, **kwargs)
 
-        url, body, ht_args, csi = self.request_info(cls, method=method,
+        url, body, ht_args, csi = self.request_info(schema, method=method,
                                                     request_args=request_args,
                                                     extra_args=extra_args,
                                                     token=token,
@@ -1054,16 +1015,16 @@ class Client(PBase):
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(url, resp_cls, method, body,
-                                       body_type, extended=False,
-                                       state=state, http_args=http_args)
+        return self.request_and_return(url, resp_schema, method, body,
+                                       body_type, state=state,
+                                       http_args=http_args)
 
-    def do_revocate_token(self, cls=TokenRevocationRequest, scope="", state="",
-                          body_type="json", method="POST",
+    def do_revocate_token(self, schema=SCHEMA["TokenRevocationRequest"],
+                          scope="", state="", body_type="json", method="POST",
                           request_args=None, extra_args=None, http_args=None,
-                          resp_cls=None, authn_method=""):
+                          resp_schema=SCHEMA[""], authn_method=""):
 
-        url, body, ht_args, csi = self.request_info(cls, method=method,
+        url, body, ht_args, csi = self.request_info(schema, method=method,
                                                     request_args=request_args,
                                                     extra_args=extra_args,
                                                     scope=scope, state=state,
@@ -1074,9 +1035,9 @@ class Client(PBase):
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(url, resp_cls, method, body,
-                                       body_type, extended=False,
-                                       state=state, http_args=http_args)
+        return self.request_and_return(url, resp_schema, method, body,
+                                       body_type, state=state,
+                                       http_args=http_args)
 
     def fetch_protected_resource(self, uri, method="GET", headers=None,
                                  state="", **kwargs):
@@ -1111,56 +1072,48 @@ class Server(PBase):
                  httpclass=None):
 
         PBase.__init__(self, cache, time_out, proxy_info, follow_redirects,
-                      disable_ssl_certificate_validation, ca_certs,
-                      httpclass, jwt_keys)
+                       disable_ssl_certificate_validation, ca_certs,
+                       httpclass, jwt_keys)
 
 
-    def parse_url_request(self, cls, url=None, query=None, extended=False):
+    def parse_url_request(self, msg, url=None, query=None):
         if url:
             parts = urlparse.urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]
 
-        req = cls.set_urlencoded(query, extended)
+        req = msg_deser(query, "urlencoded", msg)
+        #req = message(msg).from_urlencoded(query)
         req.verify()
         return req
 
-    def parse_authorization_request(self, rcls=AuthorizationRequest,
-                                    url=None, query=None, extended=False):
-        
-        return self.parse_url_request(rcls, url, query, extended)
+    def parse_authorization_request(self, reqmsg="AuthorizationRequest",
+                                    url=None, query=None):
 
-    def parse_jwt_request(self, rcls=AuthorizationRequest, txt="", keystore="",
-                          verify=True, extend=False):
+        return self.parse_url_request(reqmsg, url, query)
+
+    def parse_jwt_request(self, reqmsg="AuthorizationRequest", txt="",
+                          keystore="", verify=True):
         if not keystore:
             keystore = self.keystore
 
         keys = keystore.get_keys("verify", owner=None)
-        areq = rcls.set_jwt(txt, keys, verify, extend)
+        #areq = message().from_(txt, keys, verify)
+        areq = msg_deser(txt, "jwt", reqmsg, key=keys, verify=verify)
         areq.verify()
         return areq
 
-    def parse_body_request(self, cls=AccessTokenRequest, body=None,
-                           extend=False):
-        req = cls.set_urlencoded(body, extend)
+    def parse_body_request(self, reqmsg="AccessTokenRequest", body=None):
+        #req = message(reqmsg).from_urlencoded(body)
+        req = msg_deser(body, "urlencoded", reqmsg)
         req.verify()
         return req
 
-    def parse_token_request(self, rcls=AccessTokenRequest, body=None,
-                            extend=False):
-        return self.parse_body_request(rcls, body, extend)
+    def parse_token_request(self, reqmsg="AccessTokenRequest", body=None):
+        return self.parse_body_request(reqmsg, body)
 
-    def parse_refresh_token_request(self, rcls=RefreshAccessTokenRequest,
-                                    body=None, extend=False):
-        return self.parse_body_request(rcls, body, extend)
-
-#    def is_authorized(self, path, authorization=None):
-#        if not authorization:
-#            return False
-#
-#        if authorization.startswith("Bearer"):
-#            parts = authorization.split(" ")
-#
-#        return True
+    def parse_refresh_token_request(self, reqmsg="RefreshAccessTokenRequest",
+                                    body=None):
+        return self.parse_body_request(reqmsg, body)
 
 
 

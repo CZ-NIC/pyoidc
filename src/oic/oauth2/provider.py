@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from oic.oauth2.message import message, add_non_standard, msg_deser, by_schema, SCHEMA
 
 __author__ = 'rohe0002'
 
@@ -9,17 +10,8 @@ from urlparse import parse_qs
 from oic.utils.http_util import *
 
 from oic.oauth2 import rndstr
-
 from oic.oauth2 import Server as SrvMethod
-
 from oic.oauth2 import MissingRequiredAttribute
-from oic.oauth2 import AuthorizationResponse
-from oic.oauth2 import AuthorizationRequest
-from oic.oauth2 import AccessTokenResponse
-from oic.oauth2 import AccessTokenRequest
-from oic.oauth2 import TokenErrorResponse
-from oic.oauth2 import NoneResponse
-from oic import oauth2
 
 class AuthnFailure(Exception):
     pass
@@ -44,10 +36,11 @@ def get_post(environ):
 def code_response(**kwargs):
     _areq = kwargs["areq"]
     _scode = kwargs["scode"]
-    aresp = AuthorizationResponse()
-    if _areq.state:
-        aresp.state = _areq.state
-    aresp.code = _scode
+    aresp = message("AuthorizationResponse")
+    if "state" in _areq:
+        aresp["state"] = _areq["state"]
+    aresp["code"] = _scode
+    add_non_standard(_areq, aresp)
     return aresp
 
 def token_response(**kwargs):
@@ -56,18 +49,19 @@ def token_response(**kwargs):
     _sdb = kwargs["sdb"]
     _dic = _sdb.update_to_token(_scode, issue_refresh=False)
 
-    aresp = oauth2.factory(AccessTokenResponse, **_dic)
-    if _areq.scope:
-        aresp.scope = _areq.scope
-    aresp.c_extension = _areq.c_extension
+    aresp = message("AccessTokenResponse", **_dic)
+    if "state" in _areq:
+        aresp["state"] = _areq["state"]
+
     return aresp
 
 #noinspection PyUnusedLocal
 def none_response(**kwargs):
     _areq = kwargs["areq"]
-    aresp = NoneResponse()
-    if _areq.state:
-        aresp.state = _areq.state
+    aresp = message("NoneResponse")
+    if "state" in _areq:
+        aresp["state"] = _areq["state"]
+
     return aresp
 
 def location_url(response_type, redirect_uri, query):
@@ -77,8 +71,6 @@ def location_url(response_type, redirect_uri, query):
         return "%s#%s" % (redirect_uri, query)
 
 class Provider(object):
-    authorization_request = AuthorizationRequest
-    
     def __init__(self, name, sdb, cdb, function, urlmap=None, debug=0):
         self.name = name
         self.sdb = sdb
@@ -136,8 +128,8 @@ class Provider(object):
         #_log_info( "type: %s" % type(session["authzreq"]))
 
         # pick up the original request
-        areq = self.authorization_request.set_json(session["authzreq"],
-                                                   extended=True)
+        areq = msg_deser(session["authzreq"], "json",
+                         schema=SCHEMA["AuthorizationRequest"])
 
         if self.debug:
             _log_info("areq: %s" % areq)
@@ -149,21 +141,21 @@ class Provider(object):
         except Exception:
             raise
 
-        _log_info("response type: %s" % areq.response_type)
+        _log_info("response type: %s" % areq["response_type"])
 
         return areq, session
 
     def authn_reply(self, areq, aresp, environ, start_response, logger):
         _log_info = logger.info
 
-        if areq.redirect_uri:
+        if "redirect_uri" in areq:
             # TODO verify that the uri is reasonable
-            redirect_uri = areq.redirect_uri
+            redirect_uri = areq["redirect_uri"]
         else:
-            redirect_uri = self.urlmap[areq.client_id]
+            redirect_uri = self.urlmap[areq["client_id"]]
 
-        location = location_url(areq.response_type, redirect_uri,
-                                aresp.get_urlencoded())
+        location = location_url(areq["response_type"], redirect_uri,
+                                aresp.to_urlencoded())
 
         if self.debug:
             _log_info("Redirected to: '%s' (%s)" % (location, type(location)))
@@ -173,13 +165,12 @@ class Provider(object):
 
     def authn_response(self, areq, session):
         scode = session["code"]
-        areq.response_type.sort()
-        _rtype = " ".join(areq.response_type)
+        areq["response_type"].sort()
+        _rtype = " ".join(areq["response_type"])
         return self.response_type_map[_rtype](areq=areq, scode=scode,
                                               sdb=self.sdb)
 
-    #noinspection PyUnusedLocal
-    def authenticated(self, environ, start_response, logger, **kwargs):
+    def authenticated(self, environ, start_response, logger):
         _log_info = logger.info
 
         if self.debug:
@@ -203,13 +194,11 @@ class Provider(object):
             resp = BadRequest("Unknown response type")
             return resp(environ, start_response)
 
-        aresp.c_extension = areq.c_extension
+        add_non_standard(aresp, areq)
 
         return self.authn_reply(areq, aresp, environ, start_response, logger)
     
-    #noinspection PyUnusedLocal
-    def authorization_endpoint(self, environ, start_response, logger,
-                               **kwargs):
+    def authorization_endpoint(self, environ, start_response, logger):
         # The AuthorizationRequest endpoint
 
         _log_info = logger.info
@@ -230,8 +219,7 @@ class Provider(object):
             _log_info("Query: '%s'" % query)
 
         try:
-            areq = self.srvmethod.parse_authorization_request(query=query,
-                                                              extended=True)
+            areq = self.srvmethod.parse_authorization_request(query=query)
         except MissingRequiredAttribute, err:
             resp = BadRequest("%s" % err)
             return resp(environ, start_response)
@@ -239,11 +227,11 @@ class Provider(object):
             resp = BadRequest("%s" % err)
             return resp(environ, start_response)
 
-        if areq.redirect_uri:
-            _redirect = areq.redirect_uri
-        else:
-            # A list, so pick one (==the first)
-            _redirect = self.urlmap[areq.client_id][0]
+#        if "redirect_uri" in areq:
+#            _redirect = areq["redirect_uri"]
+#        else:
+#            # A list, so pick one (==the first)
+#            _redirect = self.urlmap[areq["client_id"]][0]
 
         sid = _sdb.create_authz_session("", areq)
         bsid = base64.b64encode(sid)
@@ -254,8 +242,7 @@ class Provider(object):
 
         return self.function["authenticate"](environ, start_response, bsid)
 
-    #noinspection PyUnusedLocal
-    def token_endpoint(self, environ, start_response, logger, handle):
+    def token_endpoint(self, environ, start_response, logger):
         """
         This is where clients come to get their access tokens
         """
@@ -269,39 +256,40 @@ class Provider(object):
         if self.debug:
             _log_info("body: %s" % body)
 
-        areq = AccessTokenRequest.set_urlencoded(body, extended=True)
+        areq = msg_deser(body, "urlencoded", typ="AccessTokenRequest")
 
         # Client is from basic auth or ...
         client = environ["REMOTE_USER"]
         if not self.function["verify client"](environ, client, self.cdb):
-            err = TokenErrorResponse(error="unathorized_client")
-            resp = Response(err.get_json(), content="application/json",
+            err = message("TokenErrorResponse", error="unathorized_client")
+            resp = Response(err.to_json(), content="application/json",
                             status="401 Unauthorized")
             return resp(environ, start_response)
 
         if self.debug:
             _log_info("AccessTokenRequest: %s" % areq)
 
-        assert areq.grant_type == "authorization_code"
+        assert areq["grant_type"] == "authorization_code"
 
         # assert that the code is valid
-        _info = _sdb[areq.code]
+        _info = _sdb[areq["code"]]
 
         # If redirect_uri was in the initial authorization request
         # verify that the one given here is the correct one.
         if "redirect_uri" in _info:
-            assert areq.redirect_uri == _info["redirect_uri"]
+            assert areq["redirect_uri"] == _info["redirect_uri"]
 
-        _tinfo = _sdb.update_to_token(areq.code)
+        _tinfo = _sdb.update_to_token(areq["code"])
 
         if self.debug:
             _log_info("_tinfo: %s" % _tinfo)
             
-        atr = oauth2.factory(AccessTokenResponse, **_tinfo)
+        atr = message("AccessTokenResponse",
+                      **by_schema("AccessTokenResponse", **_tinfo))
 
         if self.debug:
             _log_info("AccessTokenResponse: %s" % atr)
 
-        resp = Response(atr.get_json(), content="application/json")
+        resp = Response(atr.to_json(), content="application/json")
         return resp(environ, start_response)
 

@@ -64,13 +64,20 @@ class Token(object):
         csum.update("%f" % random.random())
         if user:
             csum.update(user)
+
         if areq:
-            csum.update(areq.state)
-            if areq.scope:
-                for val in areq.scope:
+            csum.update(areq["state"])
+            try:
+                for val in areq["scope"]:
                     csum.update(val)
-            if areq.redirect_uri:
-                csum.update(areq.redirect_uri)
+            except KeyError:
+                pass
+
+            try:
+                csum.update(areq["redirect_uri"])
+            except KeyError:
+                pass
+
         return csum.digest() # 28 bytes long, 224 bits
 
     def _split_token(self, token):
@@ -161,33 +168,30 @@ class SessionDB(object):
             "user_id": user_id,
             "code": access_grant,
             "code_used": False,
-            "authzreq": areq.get_json(),
-            "client_id": areq.client_id,
+            "authzreq": areq.to_json(),
+            "client_id": areq["client_id"],
             "expires_in": self.grant_expires_in,
             "expires_at": utc_time_sans_frac()+self.grant_expires_in,
             "issued": time.time()
         }
 
         try:
-            _val = areq.nonce
+            _val = areq["nonce"]
             if _val:
                 _dic["nonce"] = _val
         except (AttributeError, KeyError):
             pass
-        
-        if areq.redirect_uri:
-            _dic["redirect_uri"] = areq.redirect_uri
-        if areq.state:
-            _dic["state"] = areq.state
 
-        # Just an assumption
-        if areq.scope:
-            _dic["scope"] = areq.scope
+        for key in ["redirect_uri", "state", "scope"]:
+            try:
+                _dic[key] = areq[key]
+            except KeyError:
+                pass
 
         if id_token:
             _dic["id_token"] = id_token
         if oidreq:
-            _dic["oidreq"] = oidreq.get_json()
+            _dic["oidreq"] = oidreq.to_json()
 
         self._db[sid] = _dic
         return sid

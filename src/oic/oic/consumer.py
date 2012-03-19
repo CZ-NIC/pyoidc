@@ -10,26 +10,14 @@ import httplib2
 from hashlib import md5
 
 from oic.utils import http_util
-#from oic.utils.time_util import time_sans_frac
 
 from oic.oic import Client
 from oic.oic import ENDPOINTS
-from oic.oic.message import AuthorizationRequest
-#from oic.oic.message import IDTokenClaim
-from oic.oic.message import UserInfoClaim
-from oic.oic.message import Claims
-#from oic.oic.message import OpenIDRequest
-from oic.oic.message import AuthorizationResponse
-from oic.oic.message import AccessTokenResponse
-#from oic.oic.message import ProviderConfigurationResponse
-from oic.oic.message import RegistrationRequest
-from oic.oic.message import RegistrationResponse
-from oic.oic.message import IssuerRequest
-from oic.oic.message import IssuerResponse
 
-from oic.oauth2.message import ErrorResponse
+from oic.oic.message import SCHEMA, msg_deser
+from oic.oic.message import message
+
 from oic.oauth2 import Grant
-#from oic.oauth2 import DEF_SIGN_ALG
 from oic.oauth2 import rndstr
 
 from oic.oauth2.consumer import TokenError
@@ -85,9 +73,9 @@ def build_userinfo_claims(claims, format="signed", locale="us-en"):
         }
     }
     """
-    claim = Claims(**claims)
+    claim = message("Claims", **claims)
 
-    return UserInfoClaim(claim, format=format, locale=locale)
+    return message("UserInfoClaim", claims=claim, format=format, locale=locale)
 
 
 #def construct_openid_request(arq, keys, algorithm=DEF_SIGN_ALG, iss=None,
@@ -127,9 +115,12 @@ def clean_response(aresp):
     :param aresp: The original AccessTokenResponse
     :return: An AccessTokenResponse instance
     """
-    atr = AccessTokenResponse()
-    for prop in AccessTokenResponse.c_attributes.keys():
-        setattr(atr, prop, getattr(aresp, prop))
+    atr = message("AccessTokenResponse")
+    for prop in atr.parameters():
+        try:
+            atr[prop] = aresp[prop]
+        except KeyError:
+            pass
 
     return atr
 
@@ -233,7 +224,17 @@ class Consumer(Client):
             _log_info("- begin -")
 
         _path = http_util.geturl(environ, False, False)
-        self.redirect_uris = [_path + self.config["authz_page"]]
+        _page = self.config["authz_page"]
+        if not _path.endswith("/"):
+            if _page.startswith("/"):
+                self.redirect_uris = [_path + _page]
+            else:
+                self.redirect_uris = ["%s/%s" % (_path, _page)]
+        else:
+            if _page.startswith("/"):
+                self.redirect_uris = [_path + _page[1:]]
+            else:
+                self.redirect_uris = ["%s/%s" % (_path, _page)]
 
         # Put myself in the dictionary of sessions, keyed on session-id
         if not self.seed:
@@ -274,8 +275,8 @@ class Consumer(Client):
                                                  extra_args=None)
 
             if self.config["request_method"] == "file":
-                id_request = areq.request
-                areq.request = None
+                id_request = areq["request"]
+                del areq["request"]
                 _filedir = self.config["temp_dir"]
                 _webpath = self.config["temp_path"]
                 _name = rndstr(10)
@@ -287,16 +288,16 @@ class Consumer(Client):
                 fid.write(id_request)
                 fid.close()
                 _webname = "%s%s%s" % (_path,_webpath,_name)
-                areq.request_uri = _webname
+                areq["request_uri"] = _webname
                 self.request_uri = _webname
                 self._backup(sid)
         else:
-            areq = self.construct_AuthorizationRequest(AuthorizationRequest,
-                                                       request_args=args)
+            areq = self.construct_AuthorizationRequest(
+                                                SCHEMA["AuthorizationRequest"],
+                                                request_args=args)
 
 
-        location = "%s?%s" % (self.authorization_endpoint,
-                              areq.get_urlencoded())
+        location = areq.request(self.authorization_endpoint)
 
         if self.debug:
             _log_info("Redirecting to: %s" % location)
@@ -335,39 +336,41 @@ class Consumer(Client):
         if "code" in self.config["response_type"]:
             # Might be an error response
             _log_info("Expect Authorization Response")
-            aresp = self.parse_response(AuthorizationResponse, info=_query,
+            aresp = self.parse_response(SCHEMA["AuthorizationResponse"],
+                                        info=_query,
                                         format="urlencoded")
-            if isinstance(aresp, ErrorResponse):
+            if aresp.type() == "ErrorResponse":
                 _log_info("ErrorResponse: %s" % aresp)
                 raise AuthzError(aresp.error)
 
             _log_info("Aresp: %s" % aresp)
 
+            _state = aresp["state"]
             try:
-                self.update(aresp.state)
+                self.update(_state)
             except KeyError:
-                raise UnknownState(aresp.state)
+                raise UnknownState(_state)
 
-            self.redirect_uris = [self.sdb[aresp.state]["redirect_uris"]]
+            self.redirect_uris = [self.sdb[_state]["redirect_uris"]]
 
             # May have token and id_token information too
-            if aresp.access_token:
+            if "access_token" in aresp:
                 atr = clean_response(aresp)
                 self.access_token = atr
                 # update the grant object
-                self.get_grant(state=aresp.state).add_token(atr)
+                self.get_grant(state=_state).add_token(atr)
             else:
                 atr = None
 
-            self._backup(aresp.state)
+            self._backup(_state)
 
             idt = None
             return aresp, atr, idt
         else: # implicit flow
             _log_info("Expect Access Token Response")
-            atr = self.parse_response(AccessTokenResponse, info=_query,
-                                      format="urlencoded", extended=True)
-            if isinstance(atr, ErrorResponse):
+            atr = self.parse_response(SCHEMA["AccessTokenResponse"],
+                                      info=_query, format="urlencoded")
+            if atr.type() == "ErrorResponse":
                 raise TokenError(atr.error)
 
             idt = None
@@ -397,7 +400,7 @@ class Consumer(Client):
 
         logger.info("Access Token Response: %s" % resp)
 
-        if isinstance(resp, ErrorResponse):
+        if resp.type() == "ErrorResponse":
             raise TokenError(resp.error)
 
         #self._backup(self.sdb["seed:%s" % _cli.seed])
@@ -413,7 +416,7 @@ class Consumer(Client):
         self.log = logger
         uinfo = self.do_user_info_request(state=self.state)
 
-        if isinstance(uinfo, ErrorResponse):
+        if uinfo.type() == "ErrorResponse":
             raise TokenError(uinfo.error)
 
         self.user_info = uinfo
@@ -441,10 +444,11 @@ class Consumer(Client):
                 raise
 
         if response.status == 200:
-            result = IssuerResponse.from_json(content)
-            if result.SWD_service_redirect:
-                _loc = result.SWD_service_redirect.location
-                _uri = IssuerRequest(ISSUER_URL, principal).request(_loc)
+            result = msg_deser(content, "json", "IssuerResponse")
+            if "SWD_service_redirect" in result:
+                _loc = result["SWD_service_redirect"]["location"]
+                _uri = message("IssuerRequest", service=ISSUER_URL,
+                               principal=principal).request(_loc)
                 return self.discovery_query(_uri, principal)
             else:
                 return result
@@ -463,32 +467,35 @@ class Consumer(Client):
     
     def discover(self, principal, idtype="mail"):
         _loc = SWD_PATTERN % self.get_domain(principal, idtype)
-        uri = IssuerRequest(ISSUER_URL, principal).request(_loc)
+        uri = message("IssuerRequest", service=ISSUER_URL,
+                       principal=principal).request(_loc)
 
         result = self.discovery_query(uri, principal)
-        return result.locations[0]
+        return result["locations"][0]
 
     def register(self, server, type="client_associate", **kwargs):
-        req = RegistrationRequest(type=type)
+        req = message("RegistrationRequest", type=type)
 
         if type == "client_update":
-            req.client_id = self.client_id
-            req.client_secret = self.client_secret
+            req["client_id"] = self.client_id
+            req["client_secret"] = self.client_secret
 
-        for prop in RegistrationRequest.c_attributes.keys():
+        for prop in req.parameters():
             if prop in ["type", "client_id", "client_secret"]:
                 continue
 
             try:
                 val = getattr(self, prop)
                 if val:
-                    setattr(req, prop, val)
+                    req[prop] = val
             except Exception:
                 val = None
 
             if not val:
-                if prop in kwargs:
-                    setattr(req, prop, kwargs[prop])
+                try:
+                    req[prop] = kwargs[prop]
+                except KeyError:
+                    pass
 
         headers = {"content-type": "application/x-www-form-urlencoded"}
         (response, content) = self.http.request(server, "POST",
@@ -496,12 +503,12 @@ class Consumer(Client):
                                                 headers=headers)
 
         if response.status == 200:
-            resp = RegistrationResponse.from_json(content)
-            self.client_secret = resp.client_secret
-            self.client_id = resp.client_id
-            self.registration_expires = resp.expires_at
+            resp = msg_deser(content, "json", "RegistrationResponse")
+            self.client_secret = resp["client_secret"]
+            self.client_id = resp["client_id"]
+            self.registration_expires = resp["expires_at"]
         else:
-            err = ErrorResponse.from_json(content)
+            err = msg_deser(content, "json", "ErrorResponse")
             raise Exception("Registration failed: %s" % err.get_json())
 
         return resp
