@@ -20,7 +20,7 @@ from oic.utils.time_util import time_sans_frac
 
 from pytest import raises
 
-from tests.fakeoicsrv import MyFakeOICServer
+from fakeoicsrv import MyFakeOICServer
 
 def _eq(l1, l2):
     return set(l1) == set(l2)

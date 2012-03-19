@@ -14,7 +14,7 @@ from oic.oic.consumer import clean_response
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.sdb import SessionDB
 
-from tests.fakeoicsrv import MyFakeOICServer
+from fakeoicsrv import MyFakeOICServer
 
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
