@@ -1,13 +1,11 @@
+from oic.oic import message
+
 __author__ = 'rohe0002'
 
 from oic.oic import Server
-from oic.oic.message import AccessTokenResponse
-from oic.oic.message import AuthorizationResponse
-from oic.oic.message import OpenIDSchema
-#from oic.oic.message import RegistrationResponse
-from oic.oic.message import ProviderConfigurationResponse
-#from oic.oic import Grant
 from oic.oauth2 import rndstr
+
+from oic.oic.message import  SCHEMA
 
 from oic.oic.consumer import Consumer
 from oic.oic.consumer import IGNORE
@@ -16,7 +14,7 @@ from oic.oic.consumer import clean_response
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.sdb import SessionDB
 
-from fakeoicsrv import MyFakeOICServer
+from tests.fakeoicsrv import MyFakeOICServer
 
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
@@ -98,10 +96,9 @@ def redirect_environment(query):
 
 
 def test_clean_response():
-    atr = AccessTokenResponse(access_token="access_token",
-                              token_type="bearer", expires_in=600,
-                              refresh_token="refresh", steps=39,
-                              stalls="yes")
+    atr = message("AccessTokenResponse", access_token="access_token",
+                  token_type="bearer", expires_in=600,
+                  refresh_token="refresh", steps=39, stalls="yes")
 
     catr = clean_response(atr)
     atr_keys = atr.keys()
@@ -174,17 +171,19 @@ class TestOICConsumer():
         self.consumer.authorization_endpoint = "http://example.com/authorization"
         srv = Server(KEYS)
         print "redirect_uris",self.consumer.redirect_uris
+        print "config", self.consumer.config
         location = self.consumer.begin(BASE_ENVIRON, start_response, DEVNULL())
         print location
         authreq = srv.parse_authorization_request(url=location)
         print authreq.keys()
-        assert _eq(authreq.keys(), ['nonce', 'request', 'state', 'redirect_uri',
-                                    'response_type', 'client_id', 'scope'])
+        assert _eq(authreq.keys(), ['nonce', 'request', 'state',
+                                    'redirect_uri', 'response_type',
+                                    'client_id', 'scope'])
         
-        assert authreq.state == self.consumer.state
-        assert authreq.scope == self.consumer.config["scope"]
-        assert authreq.client_id == self.consumer.client_id
-        assert authreq.nonce == self.consumer.nonce
+        assert authreq["state"] == self.consumer.state
+        assert authreq["scope"] == self.consumer.config["scope"]
+        assert authreq["client_id"] == self.consumer.client_id
+        assert authreq["nonce"] == self.consumer.nonce
 
 
     def test_begin_file(self):
@@ -196,15 +195,15 @@ class TestOICConsumer():
         print location
         authreq = srv.parse_authorization_request(url=location)
         print authreq.keys()
-        assert _eq(authreq.keys(), ['nonce', 'request_uri', 'state',
-                                    'redirect_uri', 'response_type',
-                                    'client_id', 'scope'])
+        assert _eq(authreq.keys(), ['nonce', 'state', 'redirect_uri',
+                                    'response_type', 'client_id', 'scope',
+                                    'request_uri'])
 
-        assert authreq.state == self.consumer.state
-        assert authreq.scope == self.consumer.config["scope"]
-        assert authreq.client_id == self.consumer.client_id
-        assert authreq.nonce == self.consumer.nonce
-        assert authreq.request_uri.startswith("http://localhost:8087/tmp/")
+        assert authreq["state"] == self.consumer.state
+        assert authreq["scope"] == self.consumer.config["scope"]
+        assert authreq["client_id"] == self.consumer.client_id
+        assert authreq["nonce"] == self.consumer.nonce
+        assert authreq["redirect_uri"].startswith("http://localhost:8087/authz")
 
     def test_complete(self):
         self.consumer.http = MyFakeOICServer(KEYS)
@@ -227,17 +226,17 @@ class TestOICConsumer():
         assert result.location.startswith(self.consumer.redirect_uris[0])
         _, query = result.location.split("?")
 
-        self.consumer.parse_response(AuthorizationResponse, info=query,
-                                   format="urlencoded")
+        self.consumer.parse_response(SCHEMA["AuthorizationResponse"],
+                                     info=query, format="urlencoded")
 
         resp = self.consumer.complete(DEVNULL())
         print resp
-        assert isinstance(resp, AccessTokenResponse)
+        assert resp.type() == "AccessTokenResponse"
         print resp.keys()
         assert _eq(resp.keys(), ['token_type', 'state', 'access_token',
                                  'scope', 'expires_in', 'refresh_token'])
 
-        assert resp.state == self.consumer.state
+        assert resp["state"] == self.consumer.state
 
     def test_parse_authz(self):
         self.consumer.http = MyFakeOICServer(KEYS)
@@ -263,8 +262,8 @@ class TestOICConsumer():
         assert part[1] is None
         assert part[2] is None
 
-        assert isinstance(atr, AuthorizationResponse)
-        assert atr.state == "state0"
+        assert atr.type() ==  "AuthorizationResponse"
+        assert atr["state"] == "state0"
         assert "code" in atr
 
     def test_parse_authz_implicit(self):
@@ -288,8 +287,8 @@ class TestOICConsumer():
         atr = part[1]
         assert part[2] is None
 
-        assert isinstance(atr, AccessTokenResponse)
-        assert atr.state == "state0"
+        assert atr.type() == "AccessTokenResponse"
+        assert atr["state"] == "state0"
         assert "access_token" in atr
 
 def test_complete_secret_auth():
@@ -314,22 +313,22 @@ def test_complete_secret_auth():
     assert result.location.startswith(consumer.redirect_uris[0])
     _, query = result.location.split("?")
 
-    consumer.parse_response(AuthorizationResponse, info=query,
+    consumer.parse_response(SCHEMA["AuthorizationResponse"], info=query,
                             format="urlencoded")
 
     resp = consumer.complete(DEVNULL())
     print resp
-    assert isinstance(resp, AccessTokenResponse)
+    assert resp.type() == "AccessTokenResponse"
     print resp.keys()
     assert _eq(resp.keys(), ['token_type', 'state', 'access_token',
                              'scope', 'expires_in', 'refresh_token'])
 
-    assert resp.state == consumer.state
+    assert resp["state"] == consumer.state
 
 def test_complete_auth_token():
     consumer = Consumer(SessionDB(), CONFIG, CLIENT_CONFIG, SERVER_INFO)
     consumer.http = MyFakeOICServer(KEYS)
-    consumer.redirect_uri = ["http://example.com/authz"]
+    consumer.redirect_uris = ["http://example.com/authz"]
     consumer.state = "state0"
     consumer.nonce = rndstr()
     consumer.client_secret = "hemlig"
@@ -360,8 +359,8 @@ def test_complete_auth_token():
 
     #print auth.dictionary()
     #print acc.dictionary()
-    assert isinstance(auth, AuthorizationResponse)
-    assert isinstance(acc, AccessTokenResponse)
+    assert auth.type() == "AuthorizationResponse"
+    assert acc.type() == "AccessTokenResponse"
     print auth.keys()
     assert _eq(auth.keys(), ['nonce', 'code', 'access_token', 'expires_in',
                              'token_type', 'state', 'scope', 'refresh_token'])
@@ -390,14 +389,14 @@ def test_userinfo():
     assert result.location.startswith(consumer.redirect_uris[0])
     _, query = result.location.split("?")
 
-    consumer.parse_response(AuthorizationResponse, info=query,
+    consumer.parse_response(SCHEMA["AuthorizationResponse"], info=query,
                             format="urlencoded")
 
     consumer.complete(DEVNULL())
 
     result = consumer.get_user_info(DEVNULL())
     print result
-    assert isinstance(result, OpenIDSchema)
+    assert result.type() == "OpenIDSchema"
     assert _eq(result.keys(), ['name', 'email', 'verified', 'nickname'])
 
 def real_test_discover():
@@ -407,7 +406,7 @@ def real_test_discover():
 
     res = c.discover(principal)
     print res
-    assert isinstance(res, ProviderConfigurationResponse)
+    assert res.type() == "ProviderConfigurationResponse"
     print res.keys()
     assert _eq(res.keys(), ['registration_endpoint', 'scopes_supported',
                             'identifiers_supported', 'token_endpoint',
@@ -421,16 +420,16 @@ def real_test_discover():
 
 def test_discover():
     c = Consumer(None, None)
-    c.http = MyFakeOICServer(KEYS)
+    c.http = MyFakeOICServer(KEYS, "http://example.com/")
     
     principal = "foo@example.com"
 
     res = c.discover(principal)
-    assert res == "http://example.com/providerconf"
+    assert res == "http://example.com/"
 
 def test_discover_redirect():
     c = Consumer(None, None)
-    c.http = MyFakeOICServer()
+    c.http = MyFakeOICServer(name="http://example.com/")
 
     principal = "bar@example.org"
 
@@ -439,20 +438,22 @@ def test_discover_redirect():
 
 def test_provider_config():
     c = Consumer(None, None)
-    c.http = MyFakeOICServer(KEYS)
+    c.http = MyFakeOICServer(KEYS, "http://example.com/")
 
     principal = "foo@example.com"
 
     res = c.discover(principal)
     info = c.provider_config(res)
-    assert isinstance(info, ProviderConfigurationResponse)
+    assert info.type() == "ProviderConfigurationResponse"
     print info.keys()
-    assert _eq(info.keys(), ['refresh_session_endpoint', 'token_endpoint',
-                             'version', 'registration_endpoint',
-                             'scopes_supported', 'end_session_endpoint',
-                             'authorization_endpoint'])
+    assert _eq(info.keys(), ['registration_endpoint', 'check_session_endpoint',
+                             'refresh_session_endpoint', 'scopes_supported',
+                             'identifiers_supported', 'token_endpoint',
+                             'version', 'user_info_endpoint',
+                             'end_session_endpoint', 'authorization_endpoint',
+                             'flows_supported', 'issuer'])
 
-    assert info.end_session_endpoint == "http://example.com/end_session"
+    assert info["end_session_endpoint"] == "http://example.com/end_session"
 
 def test_client_register():
     c = Consumer(None, None)
@@ -462,7 +463,7 @@ def test_client_register():
     c.redirect_uris = ["http://example.com/authz"]
     c.contact = ["foo@example.com"]
 
-    c.http = MyFakeOICServer(KEYS)
+    c.http = MyFakeOICServer(KEYS, "http://example.com/")
     location = c.discover("foo@example.com")
     info = c.provider_config(location)
 

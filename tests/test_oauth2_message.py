@@ -1,161 +1,153 @@
 
 __author__ = 'rohe0002'
 
-from oic.oauth2.message import *
+from src.oic.oauth2.message import *
 
 from pytest import raises
 
-class CLASS(Base):
-    c_attributes = Base.c_attributes.copy()
-    c_attributes["req_str"] = SINGLE_REQUIRED_STRING
-    c_attributes["opt_str"] = SINGLE_OPTIONAL_STRING
-    c_attributes["opt_int"] = SINGLE_OPTIONAL_INT
-    c_attributes["opt_str_list"] = OPTIONAL_LIST_OF_STRINGS
-    c_attributes["req_str_list"] = REQUIRED_LIST_OF_STRINGS
-    c_attributes["opt_json"] = SINGLE_OPTIONAL_JSON
+CLASS_SPEC = {
+    "param": {
+        "req_str": SINGLE_REQUIRED_STRING,
+        "opt_str": SINGLE_OPTIONAL_STRING,
+        "opt_int": SINGLE_OPTIONAL_INT,
+        "opt_str_list": OPTIONAL_LIST_OF_STRINGS,
+        "req_str_list": REQUIRED_LIST_OF_STRINGS,
+        "opt_json": SINGLE_OPTIONAL_JSON},
+}
 
-    def __init__(self,
-                 req_str=None,
-                 opt_str=None,
-                 opt_int=None,
-                 opt_str_list=None,
-                 req_str_list=None,
-                 opt_json=None,
-                 **kwargs):
-        Base.__init__(self, **kwargs)
-        self.req_str = req_str
-        self.opt_str = opt_str
-        self.opt_int = opt_int
-        self.opt_str_list = opt_str_list or []
-        self.req_str_list = req_str_list or []
-        self.opt_json = opt_json
-
-        
 def _eq(l1, l2):
     return set(l1) == set(l2)
 
 def test_authz_req_urlencoded_1():
-    ar = AuthorizationRequest(["code"], "foobar")
-    ue = ar.get_urlencoded()
+    ar = message("AuthorizationRequest", response_type=["code"],
+                 client_id = "foobar")
+    ue = ar.to_urlencoded()
     print ue
     assert ue == "response_type=code&client_id=foobar"
 
 def test_authz_req_urlencoded_2():
-    ar = AuthorizationRequest(["code"], "foobar",
-                                     "http://foobar.example.com/oaclient",
-                                     state="cold")
-    ue = ar.get_urlencoded()
+    ar = message("AuthorizationRequest", response_type=["code"],
+                 client_id = "foobar",
+                 redirect_uri = "http://foobar.example.com/oaclient",
+                 state="cold")
+
+    ue = ar.to_urlencoded()
     print ue
     assert ue == "state=cold&redirect_uri=http%3A%2F%2Ffoobar.example.com%2Foaclient&response_type=code&client_id=foobar"
 
 def test_authz_req_urlencoded_3():
-    ar = AuthorizationRequest(["token"],
-                                    "s6BhdRkqt3",
-                                    "https://client.example.com/cb",
-                                    state="xyz")
-    ue = ar.get_urlencoded()
+    ar = message("AuthorizationRequest", response_type=["token"],
+                 client_id="s6BhdRkqt3",
+                 redirect_uri="https://client.example.com/cb", state="xyz")
+
+    ue = ar.to_urlencoded()
     print ue
     assert ue == "state=xyz&redirect_uri=https%3A%2F%2Fclient.example.com%2Fcb&response_type=token&client_id=s6BhdRkqt3"
 
 def test_authz_req_urlencoded_4():
-    ar = AuthorizationRequest(["code"], "foobar")
-    urlencoded = ar.get_urlencoded()
-    ar2 = AuthorizationRequest.set_urlencoded(urlencoded)
+    ar = message("AuthorizationRequest", response_type=["code"],
+                 client_id="foobar")
+
+    urlencoded = ar.to_urlencoded()
+    ar2 = msg_deser(urlencoded, "urlencoded", typ="AuthorizationRequest")
 
     print ar
     print ar2
-    
+
     for attr in ar.c_attributes.keys():
         assert getattr(ar, attr) == getattr(ar2, attr)
-    
-def test_authz_req_urlencoded_5():
-    ar = AuthorizationRequest(["code"], "foobar",
-                                     "http://foobar.example.com/oaclient",
-                                     ["foo", "bar"],
-                                     state="cold")
 
-    ue = ar.get_urlencoded()
+def test_authz_req_urlencoded_5():
+    ar = message("AuthorizationRequest", response_type = ["code"],
+                 client_id="foobar",
+                 redirect_uri="http://foobar.example.com/oaclient",
+                 scope = ["foo", "bar"], state="cold")
+
+    ue = ar.to_urlencoded()
     print ue
     assert ue == "scope=foo+bar&state=cold&redirect_uri=http%3A%2F%2Ffoobar.example.com%2Foaclient&response_type=code&client_id=foobar"
 
 def test_authz_req_urlencoded_6():
-    ar = AuthorizationRequest(["code"], "foobar",
-                                     "http://foobar.example.com/oaclient",
-                                     ["foo", "bar"],
-                                     state="cold")
+    ar = message("AuthorizationRequest", response_type=["code"],
+                 client_id="foobar",
+                 redirect_uri="http://foobar.example.com/oaclient",
+                 scope=["foo", "bar"], state="cold")
 
-    urlencoded = ar.get_urlencoded()
-    ar2 = AuthorizationRequest.set_urlencoded(urlencoded)
+    urlencoded = ar.to_urlencoded()
+    ar2 = msg_deser(urlencoded, "urlencoded", typ="AuthorizationRequest")
 
-    for attr in ar.c_attributes.keys():
-        assert getattr(ar, attr) == getattr(ar2, attr)
+    assert ar == ar2
 
 def test_authz_req_urlencoded_7():
-    ar = AuthorizationRequest(["code"])
+    ar = message("AuthorizationRequest", response_type=["code"])
     raises(MissingRequiredAttribute, ar.verify)
 
 def test_authz_req_urlencoded_8():
-    ar = AuthorizationRequest([10], "foobar",
-                                     "http://foobar.example.com/oaclient",
-                                     ["foo", "bar"],
-                                     state="cold")
+    args = {"response_type":[10], "client_id":"foobar",
+            "redirect_uri":"http://foobar.example.com/oaclient",
+            "scope":["foo", "bar"], "state":"cold"}
 
-    raises(ValueError, ar.verify)
+    raises(Exception, 'message("AuthorizationRequest", **args)')
 
 def test_authz_req_urlencoded_9():
     txt = "scope=foo+bar&state=-11&redirect_uri=http%3A%2F%2Ffoobar.example.com%2Foaclient&response_type=code&client_id=foobar"
 
-    ar = AuthorizationRequest.set_urlencoded(txt)
+    ar = msg_deser(txt, "urlencoded", typ="AuthorizationRequest")
     print ar
-    assert ar.state == "-11"
+    assert ar["state"] == "-11"
 
 def test_authz_req_urlencoded_10():
     txt = "scope=openid&state=id-6a3fc96caa7fd5cb1c7d00ed66937134&redirect_uri=http%3A%2F%2Flocalhost%3A8087authz&response_type=code&client_id=a1b2c3"
 
-    ar = AuthorizationRequest.set_urlencoded(txt)
+    ar = msg_deser(txt, "urlencoded", typ="AuthorizationRequest")
     print ar
-    assert ar.scope == ["openid"]
-    assert ar.response_type == ["code"]
+    assert ar["scope"] == ["openid"]
+    assert ar["response_type"] == ["code"]
 
 
 def test_authz_req_json_1():
-    ar = AuthorizationRequest(["code"], "foobar")
-    js = ar.get_json()
+    ar = message("AuthorizationRequest", response_type=["code"],
+                 client_id="foobar")
+    
+    js = ar.serialize(method="json")
     print js
     assert js == '{"response_type": ["code"], "client_id": "foobar"}'
 
 def test_authz_req_json_2():
-    ar = AuthorizationRequest(["code"], "foobar",
-                                     "http://foobar.example.com/oaclient",
-                                     state="cold")
-    ue = ar.get_json()
+    ar = message("AuthorizationRequest", response_type=["code"], 
+                 client_id="foobar",
+                 redirect_uri="http://foobar.example.com/oaclient", state="cold")
+    
+    ue = ar.serialize(method="json")
     print ue
     assert ue == '{"state": "cold", "redirect_uri": "http://foobar.example.com/oaclient", "response_type": ["code"], "client_id": "foobar"}'
 
 def test_authz_req_urlencoded_3():
-    ar = AuthorizationRequest(["token"],
-                                    "s6BhdRkqt3",
-                                    "https://client.example.com/cb",
-                                    state="xyz")
-    ue = ar.get_json()
+    ar = message("AuthorizationRequest", response_type=["token"], 
+                 client_id="s6BhdRkqt3",
+                 redirect_uri="https://client.example.com/cb", state="xyz")
+    
+    ue = ar.serialize(method="json")
     print ue
     assert ue == '{"state": "xyz", "redirect_uri": "https://client.example.com/cb", "response_type": ["token"], "client_id": "s6BhdRkqt3"}'
 
 def test_authz_req_urlencoded_4():
-    ar = AuthorizationRequest(["code"], "foobar")
-    jtxt = ar.get_json()
-    ar2 = AuthorizationRequest.set_json(jtxt)
+    ar = message("AuthorizationRequest", response_type=["code"], 
+                 client_id="foobar")
+    
+    jtxt = ar.serialize(method="json")
+
+    ar2 = msg_deser(jtxt, "json", typ="AuthorizationRequest")
 
     print ar
     print ar2
 
-    for attr in ar.c_attributes.keys():
-        assert getattr(ar, attr) == getattr(ar2, attr)
+    assert ar == ar2
 
 def test_authz_req_x1():
     query = 'redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauthz&response_type=code&client_id=0123456789'
 
-    ar = AuthorizationRequest.set_urlencoded(query)
+    ar = msg_deser(query, format="urlencoded", typ="AuthorizationRequest")
 
     print ar
 
@@ -164,45 +156,44 @@ def test_authz_req_x1():
 # AuthorizationErrorResponse
 
 def test_authz_err_resp_1():
-    aer = AuthorizationErrorResponse(error="access_denied", state="xyz")
+    aer = message("AuthorizationErrorResponse", error="access_denied", 
+                  state="xyz")
 
     assert aer
     print aer.__dict__.items()
-    assert aer.error == "access_denied"
-    assert aer.state == "xyz"
-    assert aer.c_extension == {}
+    assert aer["error"] == "access_denied"
+    assert aer["state"] == "xyz"
 
 def test_authz_err_resp_2():
-    aer = AuthorizationErrorResponse(error="access_denied",
-                            error_description="brewers has a four game series",
-                            foo="bar")
+    aer = message("AuthorizationErrorResponse", error="access_denied",
+                  error_description="brewers has a four game series", 
+                  foo="bar")
 
     assert aer
     print aer.__dict__.items()
-    assert aer.error == "access_denied"
-    assert aer.error_description == "brewers has a four game series"
-    assert aer.c_extension == {'foo': 'bar'}
+    assert aer["error"] == "access_denied"
+    assert aer["error_description"] == "brewers has a four game series"
 
 # TokenErrorResponse
 
 def test_authz_err_resp_1():
-    ter = TokenErrorResponse(error="access_denied", state="xyz")
+    ter = message("TokenErrorResponse", error="access_denied", state="xyz")
 
     assert ter
     print ter.__dict__.items()
-    assert ter.error == "access_denied"
-    assert ter.c_extension == {'state': 'xyz'}
+    assert ter["error"] == "access_denied"
+    assert _eq(ter.keys(), {'state', 'error'})
 
 def test_authz_err_resp_2():
-    ter = TokenErrorResponse(error="access_denied",
-                            error_description="brewers has a four game series",
-                            foo="bar")
+    ter = message("TokenErrorResponse", error="access_denied",
+                             error_description="brewers has a four game series",
+                             foo="bar")
 
     assert ter
     print ter.__dict__.items()
-    assert ter.error == "access_denied"
-    assert ter.error_description == "brewers has a four game series"
-    assert ter.c_extension == {'foo': 'bar'}
+    assert ter["error"] == "access_denied"
+    assert ter["error_description"] == "brewers has a four game series"
+    assert ter["foo"] == "bar"
 
     assert "error" in ter
     assert "error_description" in ter
@@ -211,69 +202,71 @@ def test_authz_err_resp_2():
 # AccessTokenResponse
 
 def test_accesstokenreponse_1():
-    at = AccessTokenResponse("SlAV32hkKG", "8xLOxBtZp8", 3600)
+    at = message("AccessTokenResponse", access_token="SlAV32hkKG",
+                token_type="Bearer", expires_in=3600)
 
     assert at
-    atj = at.get_json()
+    atj = at.serialize(method="json")
     print atj
-    assert atj == '{"access_token": "SlAV32hkKG", "token_type": "8xLOxBtZp8", "expires_in": 3600}'
+    assert atj == '{"access_token": "SlAV32hkKG", "token_type": "Bearer", "expires_in": 3600}'
 
 # AccessTokenRequest
 
 def test_extra():
-    atr = AccessTokenRequest("authorization_code",
-                                    "SplxlOBeZQQYbYS6WxSbIA",
-                                    "https://client.example.com/cb",
-                                    extra="foo")
+    atr = message("AccessTokenRequest", grant_type="authorization_code",
+                  code="SplxlOBeZQQYbYS6WxSbIA",
+                  redirect_uri="https://client.example.com/cb", extra="foo")
 
     assert atr
-    query = atr.get_urlencoded(True)
+    query = atr.to_urlencoded()
     print query
-    assert query == "code=SplxlOBeZQQYbYS6WxSbIA&grant_type=authorization_code&redirect_uri=https%3A%2F%2Fclient.example.com%2Fcb&extra=foo"
+    assert query == "code=SplxlOBeZQQYbYS6WxSbIA&redirect_uri=https%3A%2F" \
+                    "%2Fclient.example.com%2Fcb&grant_type=authorization_code&extra=foo"
 
-    atr2 = AccessTokenRequest.set_urlencoded(query, True)
-    print atr2.c_extension
-    assert atr2.c_extension == {"extra": "foo"}
+    atr2 = msg_deser(query, "urlencoded", typ="AccessTokenRequest")
+
+    print atr.to_dict()
+    print atr2.to_dict()
+    assert atr == atr2
 
 # AuthorizationResponse
 
 def test_authz_resp_1():
-    atr = AuthorizationResponse("SplxlOBeZQQYbYS6WxSbIA",
-                                        "Fun_state",
-                                        extra="foo")
+    atr = message("AuthorizationResponse", code="SplxlOBeZQQYbYS6WxSbIA",
+                  state="Fun_state", extra="foo")
 
-    assert atr.code == "SplxlOBeZQQYbYS6WxSbIA"
-    assert atr.state == "Fun_state"
-    print atr.c_extension
-    assert atr.c_extension == {"extra": "foo"}
+    assert atr["code"] == "SplxlOBeZQQYbYS6WxSbIA"
+    assert atr["state"] == "Fun_state"
+    assert atr["extra"] == "foo"
 
 # ROPCAccessTokenRequest
 
 #noinspection PyArgumentEqualDefault
 def test_ropc_acc_token_req():
-    ropc = ROPCAccessTokenRequest("password", "johndoe", "A3ddj3w")
+    ropc = message("ROPCAccessTokenRequest", grant_type="password",
+                   username="johndoe", password="A3ddj3w")
 
-    assert ropc.grant_type == "password"
-    assert ropc.username == "johndoe"
-    assert ropc.password == "A3ddj3w"
+    assert ropc["grant_type"] == "password"
+    assert ropc["username"] == "johndoe"
+    assert ropc["password"] == "A3ddj3w"
 
 # CCAccessTokenRequest
 
 def test_cc_acc_token_req():
-    cc = CCAccessTokenRequest(scope="/foo")
+    cc = message("CCAccessTokenRequest", scope="/foo")
 
-    assert cc.grant_type == "client_credentials"
-    assert cc.scope == "/foo"
+    assert cc["grant_type"] == "client_credentials"
+    assert cc["scope"] == "/foo"
 
 # RefreshAccessTokenRequest
 
 def test_ratr():
-    ratr = RefreshAccessTokenRequest(refresh_token="ababababab",
-                                            client_id="Client_id")
+    ratr = message("RefreshAccessTokenRequest", refresh_token="ababababab",
+                                     client_id="Client_id")
 
-    assert ratr.grant_type == "refresh_token"
-    assert ratr.refresh_token == "ababababab"
-    assert ratr.client_id == "Client_id"
+    assert ratr["grant_type"] == "refresh_token"
+    assert ratr["refresh_token"] == "ababababab"
+    assert ratr["client_id"] == "Client_id"
 
     assert ratr.verify()
 
@@ -284,13 +277,13 @@ def test_authz_load_dict():
            "response_type": ["code"],
            "client_id": "a1b2c3"}
 
-    arq = AuthorizationRequest(**bib)
+    arq = message("AuthorizationRequest", **bib)
 
-    assert arq.scope == bib["scope"]
-    assert arq.response_type == bib["response_type"]
-    assert arq.redirect_uri == bib["redirect_uri"]
-    assert arq.state == bib["state"]
-    assert arq.client_id == bib["client_id"]
+    assert arq["scope"] == bib["scope"]
+    assert arq["response_type"] == bib["response_type"]
+    assert arq["redirect_uri"] == bib["redirect_uri"]
+    assert arq["state"] == bib["state"]
+    assert arq["client_id"] == bib["client_id"]
 
 def test_authz_req_set_json():
     argv = {"scope": ["openid"],
@@ -299,18 +292,18 @@ def test_authz_req_set_json():
             "response_type": ["code"],
             "client_id": "a1b2c3"}
 
-    arq = AuthorizationRequest(**argv)
+    arq = message("AuthorizationRequest", **argv)
 
 
-    jstr = arq.get_json()
+    jstr = arq.serialize(method="json")
 
-    jarq = AuthorizationRequest.set_json(jstr)
+    jarq = msg_deser(jstr, "json", typ="AuthorizationRequest")
 
-    assert jarq.scope == ["openid"]
-    assert jarq.response_type == ["code"]
-    assert jarq.redirect_uri == "http://localhost:8087authz"
-    assert jarq.state == "id-b0be8bb64118c3ec5f70093a1174b039"
-    assert jarq.client_id == "a1b2c3"
+    assert jarq["scope"] == ["openid"]
+    assert jarq["response_type"] == ["code"]
+    assert jarq["redirect_uri"] == "http://localhost:8087authz"
+    assert jarq["state"] == "id-b0be8bb64118c3ec5f70093a1174b039"
+    assert jarq["client_id"] == "a1b2c3"
 
 def test_sp_sep_list_deserializer():
     vals = sp_sep_list_deserializer("foo bar zen")
@@ -334,193 +327,177 @@ def test_json_deserializer():
     assert _dict == sdict
 
 def test_omit():
-    err = ErrorResponse("invalid_request",
-                                "Something was missing",
-                                "http://example.com/error_message.html")
+    err = message("ErrorResponse", error="invalid_request",
+                  error_description="Something was missing",
+                  error_uri="http://example.com/error_message.html")
 
     ue_str = err.to_urlencoded()
-    ueo_str = err.to_urlencoded(omit=["error_uri"])
+    del err["error_uri"]
+    ueo_str = err.to_urlencoded()
 
     assert ue_str != ueo_str
     assert "error_message" not in ueo_str
     assert "error_message" in ue_str
 
 def test_missing_required():
-    err = ErrorResponse()
-    assert err.error is None
+    err = message("ErrorResponse")
+    assert "error" not in err
 
     raises(MissingRequiredAttribute, "err.to_urlencoded()")
 
-def test_get_urlencoded():
-    atr = AccessTokenResponse(
-                            access_token="2YotnFZFEjr1zCsicMWpAA",
-                            token_type="example",
-                            expires_in=3600,
-                            refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
-                            example_parameter="example_value",
-                            scope=["inner", "outer"])
+def test_to_urlencoded():
+    atr = message("AccessTokenResponse", 
+        access_token="2YotnFZFEjr1zCsicMWpAA",
+        token_type="example",
+        expires_in=3600,
+        refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
+        example_parameter="example_value",
+        scope=["inner", "outer"])
 
-    assert _eq(atr.scope, ["inner", "outer"])
+    assert _eq(atr["scope"], ["inner", "outer"])
 
-    uec = atr.get_urlencoded()
+    uec = atr.to_urlencoded()
     print uec
     assert "inner+outer" in uec
 
-def test_get_urlencoded_extended_omit():
-    atr = AccessTokenResponse(
-                            access_token="2YotnFZFEjr1zCsicMWpAA",
-                            token_type="example",
-                            expires_in=3600,
-                            refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
-                            example_parameter="example_value",
-                            scope=["inner", "outer"],
-                            extra=["local", "external"],
-                            level=3)
+def test_to_urlencoded_extended_omit():
+    atr = message("AccessTokenResponse", 
+        access_token="2YotnFZFEjr1zCsicMWpAA",
+        token_type="example",
+        expires_in=3600,
+        refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
+        example_parameter="example_value",
+        scope=["inner", "outer"],
+        extra=["local", "external"],
+        level=3)
 
-    assert _eq(atr.c_extension.keys(), ["example_parameter", "extra", "level"])
-
-    uec = atr.get_urlencoded(extended=True)
+    uec = atr.to_urlencoded()
     print uec
     assert "level=3" in uec
     assert "example_parameter=example_value" in uec
-    assert "extra=local+external" in uec
-    ouec = atr.get_urlencoded(extended=True, omit=["extra"])
+    assert "extra=local" in uec
+    assert "extra=external" in uec
+    del atr["extra"]
+    ouec = atr.to_urlencoded()
     print ouec
     assert "level=3" in ouec
     assert "example_parameter=example_value" in ouec
-    assert "extra=local+external" not in ouec
+    assert "extra=local" not in ouec
     assert uec != ouec
-    assert len(uec) == (len(ouec) + len("extra=local+external") + 1)
+    assert len(uec) == (len(ouec) + len("extra=local") +
+                        len("extra=external") + 2)
 
-    atr2 = AccessTokenResponse.set_urlencoded(uec, True)
+    atr2 = msg_deser(uec, "urlencoded", typ="AccessTokenResponse")
     print atr2.keys()
     assert _eq(atr2.keys(),['access_token', 'expires_in', 'token_type',
                             'scope', 'refresh_token', 'level',
                             'example_parameter', 'extra'])
 
-    atr3 = AccessTokenResponse.set_urlencoded(ouec, True)
+    atr3 = msg_deser(ouec, "urlencoded", typ="AccessTokenResponse")
     print atr3.keys()
     assert _eq(atr3.keys(),['access_token', 'expires_in', 'token_type',
                             'scope', 'refresh_token', 'level',
                             'example_parameter'])
 
 ##noinspection PyUnusedLocal
-#def test_get_urlencoded_to_many_values():
+#def test_to_urlencoded_to_many_values():
 #    uec = "access_token=2YotnFZFEjr1zCsicMWpAA+AAA111BBB222CCC333"
 #    raises(ValueError, "AccessTokenResponse.set_urlencoded(uec)")
 
 #noinspection PyUnusedLocal
-def test_get_set_json():
+def test_to_set_json():
     """
 
     """
-    item = CLASS(req_str="Fair", opt_str="game", opt_int=9,
-                opt_str_list=["one", "two"], req_str_list=["spike", "lee"],
-                opt_json='{"ford": "green"}')
+    item = Message("CLASS", CLASS_SPEC, req_str="Fair", opt_str="game",
+                       opt_int=9, opt_str_list=["one", "two"],
+                       req_str_list=["spike", "lee"],
+                       opt_json='{"ford": "green"}')
 
-    jso = item.get_json()
+    jso = item.serialize(method="json")
     print jso
-    item2 = CLASS.set_json(jso)
+    item2 = Message("CLASS", CLASS_SPEC).deserialize(jso, "json")
     print item2
     assert _eq(item2.keys(),['opt_str', 'req_str', 'opt_json', 'req_str_list',
                              'opt_str_list', 'opt_int'])
 
     jso_1 = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], "opt_int": [9]}'
 
-    item3 = CLASS.set_json(jso_1)
+    item3 = Message("CLASS", CLASS_SPEC).deserialize(jso_1, "json")
+
     assert _eq(item3.keys(),['req_str', 'req_str_list', 'opt_int'])
-    assert item3.opt_int == 9
+    assert item3["opt_int"] == 9
 
     jso_2 = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], "opt_int": [9, 10]}'
-    raises(TooManyValues, "CLASS.set_json(jso_2)")
+    raises(TooManyValues, 'Message("CLASS", CLASS_SPEC).deserialize(jso_2, "json")')
 
     jso_3 = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], "extra": "out"}'
-    item4 = CLASS.set_json(jso_3, extended=True)
+    item4 = Message("CLASS", CLASS_SPEC).deserialize(jso_3, "json")
 
     print item4
     assert _eq(item4.keys(),['req_str', 'req_str_list', 'extra'])
-    assert item4.extra == "out"
-    
-    item4 = CLASS.from_json(jso_3, extended=True)
+    assert item4["extra"] == "out"
+
+    item4 = Message("CLASS", CLASS_SPEC).deserialize(jso_3, "json")
 
     print item4
     assert _eq(item4.keys(),['req_str', 'req_str_list', 'extra'])
-    assert item4.extra == "out"
+    assert item4["extra"] == "out"
 
 def test_to_from_jwt():
-    item = CLASS(req_str="Fair", opt_str="game", opt_int=9,
-                opt_str_list=["one", "two"], req_str_list=["spike", "lee"],
-                opt_json='{"ford": "green"}')
+    item = Message("CLASS", CLASS_SPEC, req_str="Fair", opt_str="game",
+                       opt_int=9, opt_str_list=["one", "two"],
+                       req_str_list=["spike", "lee"],
+                       opt_json='{"ford": "green"}')
 
-    jws = item.to_jwt(True, {"hmac":["A1B2C3D4"]}, "HS256")
+    jws = item.to_jwt({"hmac":["A1B2C3D4"]}, "HS256")
 
     print jws
 
-    jitem = CLASS.from_jwt(jws, {".":{"hmac":["A1B2C3D4"]}})
+    jitem = Message("CLASS", CLASS_SPEC).from_jwt(jws,
+                                                  key={".":{"hmac":["A1B2C3D4"]}})
 
     print jitem.keys()
 
     assert _eq(jitem.keys(), ['opt_str', 'req_str', 'opt_json',
                               'req_str_list', 'opt_str_list', 'opt_int'])
 
-#noinspection PyUnusedLocal
-def test_TokenErrorResponse():
-    terr = TokenErrorResponse("invalid_request", "Missing argument")
-    assert terr.verify()
-
-    terr = TokenErrorResponse("whatever", "Missing argument")
-    raises(ValueError, "terr.verify()")
-
-#noinspection PyUnusedLocal,PyArgumentEqualDefault
-def test_ROPCAccessTokenRequest():
-    ratr = ROPCAccessTokenRequest("password", "user", "secret")
-    assert ratr.verify()
-
-    ratr = ROPCAccessTokenRequest("certificate", "user", "secret")
-    raises(AssertionError, "ratr.verify()")
-
-
-#noinspection PyUnusedLocal,PyArgumentEqualDefault
-def test_CCAccessTokenRequest():
-    catr = CCAccessTokenRequest("client_credentials", "home")
-    assert catr.verify()
-
-    catr = CCAccessTokenRequest("password", "home")
-    raises(AssertionError, "catr.verify()")
 
 def test_TokenRevocationRequest():
-    trr = TokenRevocationRequest("token")
+    trr = message("TokenRevocationRequest", token="token")
     assert trr.verify()
 
-def test_factory():
+def test_message():
     _dict = {"req_str":"Fair", "opt_str":"game", "opt_int":9,
-                "opt_str_list":["one", "two"], "req_str_list":["spike", "lee"],
-                "opt_json":'{"ford": "green"}'}
+             "opt_str_list":["one", "two"], "req_str_list":["spike", "lee"],
+             "opt_json":'{"ford": "green"}'}
 
-    cls = factory(CLASS, **_dict)
+    cls = Message("CLASS", CLASS_SPEC, **_dict)
     cls.verify()
     assert _eq(cls.keys(), ['opt_str', 'req_str', 'opt_json',
-                              'req_str_list', 'opt_str_list', 'opt_int'])
+                            'req_str_list', 'opt_str_list', 'opt_int'])
 
     _dict = {"req_str":"Fair", "opt_str":"game", "opt_int":9,
-                "opt_str_list":["one", "two"], "req_str_list":["spike", "lee"],
-                "opt_json":'{"ford": "green"}', "extra":"internal"}
+             "opt_str_list":["one", "two"], "req_str_list":["spike", "lee"],
+             "opt_json":'{"ford": "green"}', "extra":"internal"}
 
-    cls = factory(CLASS, **_dict)
+    cls = Message("CLASS", CLASS_SPEC, **_dict)
     cls.verify()
-    assert _eq(cls.keys(), ['opt_str', 'req_str', 'opt_json',
-                              'req_str_list', 'opt_str_list', 'opt_int'])
+    print cls.keys()
+    assert _eq(cls.keys(), ['opt_str', 'req_str', 'extra', 'opt_json',
+                            'req_str_list', 'opt_str_list', 'opt_int'])
 
     _dict = {"req_str":"Fair", "opt_str":"game", "opt_int":9,
-                "opt_str_list":["one", "two"], "req_str_list":["spike", "lee"]}
+             "opt_str_list":["one", "two"], "req_str_list":["spike", "lee"]}
 
-    cls = factory(CLASS, **_dict)
+    cls = Message("CLASS", CLASS_SPEC, **_dict)
     cls.verify()
     assert _eq(cls.keys(), ['opt_str', 'req_str', 'req_str_list',
                             'opt_str_list', 'opt_int'])
 
 
 def test_request():
-    req = CLASS(req_str="Fair", req_str_list=["game"]).request("http://example.com")
+    req = Message("CLASS", CLASS_SPEC, req_str="Fair",
+                  req_str_list=["game"]).request("http://example.com")
 
     assert req == "http://example.com?req_str=Fair&req_str_list=game"

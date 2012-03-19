@@ -1,3 +1,4 @@
+
 __author__ = 'rohe0002'
 import sys
 import urllib
@@ -11,13 +12,10 @@ from oic.oauth2.consumer import stateID
 from oic.oauth2.consumer import factory
 
 from oic.utils import http_util
-from oic.oauth2.message import AuthorizationResponse
-from oic.oauth2.message import AuthorizationErrorResponse
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.message import MissingRequiredAttribute
 
 from oic.oauth2.consumer import AuthzError
+from oic.oauth2.message import message
 
 class LOG():
     def info(self, txt):
@@ -155,13 +153,15 @@ def test_consumer_handle_authorization_response():
 
     _ = cons.begin(environ, start_response, LOG())
 
-    atr = AuthorizationResponse("SplxlOBeZQQYbYS6WxSbIA", cons.state)
+    atr = message("AuthorizationResponse", code="SplxlOBeZQQYbYS6WxSbIA",
+                  state=cons.state)
+
     environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = atr.get_urlencoded()
+    environ["QUERY_STRING"] = atr.to_urlencoded()
 
     res = cons.handle_authorization_response(environ, start_response, LOG())
 
-    assert isinstance(res, AuthorizationResponse)
+    assert res.type() == "AuthorizationResponse"
     print cons.grant[cons.state]
     grant = cons.grant[cons.state]
     assert grant.code == "SplxlOBeZQQYbYS6WxSbIA"
@@ -175,8 +175,10 @@ def test_consumer_parse_authz_exception():
 
     _ = cons.begin(environ, start_response, LOG())
 
-    atr = AuthorizationResponse("SplxlOBeZQQYbYS6WxSbIA", cons.state)
-    adict = atr.dictionary()
+    atr = message("AuthorizationResponse", code="SplxlOBeZQQYbYS6WxSbIA", 
+                  state=cons.state)
+    
+    adict = atr.to_dict()
     del adict["code"]
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = urllib.urlencode(adict)
@@ -193,9 +195,11 @@ def test_consumer_parse_authz_error():
 
     _ = cons.begin(environ, start_response, LOG())
 
-    atr = AuthorizationErrorResponse("access_denied", cons.state)
+    atr = message("AuthorizationErrorResponse", error="access_denied",
+                  state=cons.state)
+    
     environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = atr.get_urlencoded()
+    environ["QUERY_STRING"] = atr.to_urlencoded()
 
     raises(AuthzError,
            "cons.handle_authorization_response(environ, start_response, LOG())")
@@ -211,18 +215,18 @@ def test_consumer_parse_access_token():
     cons.response_type = ["token"]
     _ = cons.begin(environ, start_response, LOG())
 
-    atr = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
-                              token_type="example",
-                              refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
-                              example_parameter="example_value",
-                              state=cons.state)
+    atr = message("AccessTokenResponse", access_token="2YotnFZFEjr1zCsicMWpAA",
+                  token_type="example",
+                  refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
+                  example_parameter="example_value",
+                  state=cons.state)
 
     environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = atr.get_urlencoded()
+    environ["QUERY_STRING"] = atr.to_urlencoded()
 
     res = cons.handle_authorization_response(environ, start_response, LOG())
 
-    assert isinstance(res, AccessTokenResponse)
+    assert res.type() ==  "AccessTokenResponse"
     print cons.grant[cons.state]
     grant = cons.grant[cons.state]
     assert len(grant.tokens) == 1
@@ -238,9 +242,9 @@ def test_consumer_parse_authz_error_2():
 
     _ = cons.begin(environ, start_response, LOG())
 
-    atr = TokenErrorResponse("invalid_client")
+    atr = message("TokenErrorResponse", error="invalid_client")
     environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = atr.get_urlencoded()
+    environ["QUERY_STRING"] = atr.to_urlencoded()
 
     raises(AuthzError,
            "cons.handle_authorization_response(environ, start_response, LOG())")
