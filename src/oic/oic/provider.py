@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import urlparse
 
 __author__ = 'rohe0002'
 
@@ -222,6 +223,25 @@ class Provider(AProvider):
         resp = Response(response.to_json(), content="application/json")
         return resp(environ, start_response)
 
+    def _verify_redirect_uri(self, environ, start_response, areq):
+        # MUST NOT contain a fragment
+
+        _redirect_uri = areq["redirect_uri"]
+        part = urlparse.urlparse(_redirect_uri)
+        if part.fragment:
+            raise ValueError
+
+        match = False
+        for registered in self.cdb[areq["client_id"]]["redirect_uris"]:
+            if _redirect_uri == registered:
+                match=True
+                break
+            elif _redirect_uri.startswith(registered):
+                match=True
+                break
+        if not match:
+            raise AssertionError
+
     def authorization_endpoint(self, environ, start_response, logger,
                                **kwargs):
         # The AuthorizationRequest endpoint
@@ -274,17 +294,8 @@ class Provider(AProvider):
         # verify that the redirect URI is resonable
         if "redirect_uri" in areq:
             try:
-                match = False
-                for registered in self.cdb[areq["client_id"]]["redirect_uris"]:
-                    if areq["redirect_uri"] == registered:
-                        match=True
-                        break
-                    elif areq["redirect_uri"].startswith(registered):
-                        match=True
-                        break
-                if not match:
-                    raise AssertionError
-            except AssertionError:
+                self._verify_redirect_uri(environ, start_response, areq)
+            except Exception:
                 return self._authz_error(environ, start_response,
                                          "invalid_request_redirect_uri")
 
@@ -629,6 +640,17 @@ class Provider(AProvider):
             }
             _cinfo = self.cdb[client_id]
 
+            if "redirect_uris" in request:
+                for uri in request["redirect_uris"]:
+                    if urlparse.urlparse(uri).fragment:
+                        err = message("ClientRegistrationErrorResponse",
+                            error="invalid_configuration_parameter",
+                            error_description="redirect_uri contains fragment")
+                        resp = Response(err.to_json(),
+                                        content="application/json",
+                                        status="400 Bad Request")
+                        return resp(environ, start_response)
+
             for key,val in request.items():
                 _cinfo[key] = val
 
@@ -838,8 +860,11 @@ class Provider(AProvider):
                 return resp(environ, start_response)
 
         if "redirect_uri" in areq:
-            assert areq["redirect_uri"] in self.cdb[
-                                            areq["client_id"]]["redirect_uris"]
+#            try:
+#                self._verify_redirect_uri(environ, start_response, areq)
+#            except Exception:
+#                return self._authz_error(environ, start_response,
+#                                         "invalid_request_redirect_uri")
             redirect_uri = areq["redirect_uri"]
         else:
             redirect_uri = self.cdb[areq["client_id"]]["redirect_uris"][0]
