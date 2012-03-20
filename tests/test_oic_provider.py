@@ -541,31 +541,6 @@ def test_idtoken():
     print id_token
     assert len(id_token.split(".")) == 3
 
-#def test_update_info():
-#    server = provider_init
-#    AREQ = message("AuthorizationRequest", response_type="code",
-#                   client_id=CLIENT_ID,
-#                   redirect_uri="http://example.com/authz", scope=["openid"],
-#                   state="state000")
-#
-#    sid = server.sdb.create_authz_session("user_id", AREQ)
-#    session = server.sdb[sid]
-#    scode = session["code"]
-#
-#    aresp = message("AuthorizationResponse")
-#    for key in ["state", "scope", "nonce"]:
-#        try:
-#            aresp[key] = AREQ[key]
-#        except KeyError:
-#            pass
-#
-#    _dic = server.sdb.update_to_token(scode, issue_refresh=False)
-#    update_info(aresp, _dic)
-#
-#    print aresp.keys()
-#    assert _eq(aresp.keys(), ['access_token', 'expires_in', 'token_type',
-#                              'state', 'scope'])
-
 def test_userinfo_endpoint():
     server = provider_init
 
