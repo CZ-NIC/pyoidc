@@ -420,7 +420,10 @@ class Message(object):
         return item in self._dict
 
     def request(self, location):
-        return "%s?%s" % (location, self.to_urlencoded())
+        if "?" in location:
+            return "%s&%s" % (location, self.to_urlencoded())
+        else:
+            return "%s?%s" % (location, self.to_urlencoded())
 
     def __setitem__(self, key, value):
         try:

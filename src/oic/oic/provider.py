@@ -274,8 +274,16 @@ class Provider(AProvider):
         # verify that the redirect URI is resonable
         if "redirect_uri" in areq:
             try:
-                assert areq["redirect_uri"] in self.cdb[
-                                            areq["client_id"]]["redirect_uris"]
+                match = False
+                for registered in self.cdb[areq["client_id"]]["redirect_uris"]:
+                    if areq["redirect_uri"] == registered:
+                        match=True
+                        break
+                    elif areq["redirect_uri"].startswith(registered):
+                        match=True
+                        break
+                if not match:
+                    raise AssertionError
             except AssertionError:
                 return self._authz_error(environ, start_response,
                                          "invalid_request_redirect_uri")
