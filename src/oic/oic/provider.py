@@ -245,8 +245,10 @@ class Provider(AProvider):
         # Same serialization used for GET and POST
         try:
             areq = self.server.parse_authorization_request(query=query)
-        except MissingRequiredAttribute, err:
-            resp = BadRequest("%s" % err)
+        except MissingRequiredAttribute:
+            err = message(OA2_SCHEMA["ErrorResponse"], error="invalid_request")
+            resp = Response("%s" % err.to_json(), content="application/json",
+                            status="400 Bad Request")
             return resp(environ, start_response)
         except Exception,err:
             resp = BadRequest("%s" % err)

@@ -48,6 +48,7 @@ class Message(object):
         self._name = _name_
         self._schema = copy.deepcopy(_schema_)
         self._dict = {}
+        self.lax = False
         try:
             self.set_defaults(_schema_["default"])
         except KeyError:
@@ -76,9 +77,10 @@ class Message(object):
         """
 
         _spec = self._schema["param"]
-        for attribute, (_, req, _ser, _) in _spec.items():
-            if req and attribute not in self._dict:
-                raise MissingRequiredAttribute("%s" % attribute)
+        if not self.lax:
+            for attribute, (_, req, _ser, _) in _spec.items():
+                if req and attribute not in self._dict:
+                    raise MissingRequiredAttribute("%s" % attribute)
 
         params = []
 
