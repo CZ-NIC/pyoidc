@@ -365,7 +365,11 @@ class KeyStore(object):
             pass
 
     def remove_key(self, key, owner=".", type=None, usage=None):
-        _keys = self._store[owner]
+        try:
+            _keys = self._store[owner]
+        except KeyError:
+            return
+
         if usage:
             if type:
                 _keys[usage][type].remove(key)
@@ -387,7 +391,11 @@ class KeyStore(object):
                             pass
 
     def remove_key_type(self, type, owner="."):
-        _keys = self._store[owner]
+        try:
+            _keys = self._store[owner]
+        except KeyError:
+            return
+
         for _usage in _keys.keys():
             _keys[_usage][type] = []
 
