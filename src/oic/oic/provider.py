@@ -324,8 +324,13 @@ class Provider(AProvider):
                                                                 jwt_key)
                 except Exception, err:
                     logger.error("Faulty request: %s" % areq["request"])
+                    logger.error("Verfied with JWT_keys: %s" % jwt_key)
                     logger.error("Exception: %s [%s]" % (err,
                                                         err.__class__.__name__))
+                    openid_req = message("OpenIDRequest").from_jwt(
+                                                                areq["request"],
+                                                                verify=False)
+                    logger.error("Request: %s" % openid_req)
                     return self._authz_error(environ, start_response,
                                              "invalid_openid_request_object")
 
@@ -339,8 +344,9 @@ class Provider(AProvider):
                 try:
                     openid_req = message("OpenIDRequest").from_jwt(_req,
                                                                   jwt_key)
-                except Exception:
+                except Exception, err:
                     logger.error("Faulty request: %s" % areq["request"])
+                    logger.error("Verfied with JWT_keys: %s" % jwt_key)
                     logger.error("Exception: %s [%s]" % (err,
                                                      err.__class__.__name__))
                     return self._authz_error(environ, start_response,
