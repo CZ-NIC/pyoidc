@@ -239,7 +239,7 @@ def css(environ, start_response, handle, logger):
 def token(environ, start_response, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.token_endpoint(environ, start_response, LOGGER, handle)
+    return _oas.token_endpoint(environ, start_response, LOGGER, handle=handle)
 
 #noinspection PyUnusedLocal
 def authorization(environ, start_response, handle):
