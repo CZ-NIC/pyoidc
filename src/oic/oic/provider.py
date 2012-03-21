@@ -329,6 +329,7 @@ class Provider(AProvider):
                                                         err.__class__.__name__))
                     openid_req = message("OpenIDRequest").from_jwt(
                                                                 areq["request"],
+                                                                jwt_key,
                                                                 verify=False)
                     logger.error("Request: %s" % openid_req)
                     return self._authz_error(environ, start_response,
