@@ -228,7 +228,7 @@ class Provider(AProvider):
                         status="400 Bad Request")
         return resp(environ, start_response)
 
-    def _verify_redirect_uri(self, areq):
+    def _verify_redirect_uri(self, areq, logger):
         # MUST NOT contain a fragment
 
         _redirect_uri = areq["redirect_uri"]
@@ -299,8 +299,11 @@ class Provider(AProvider):
         # verify that the redirect URI is resonable
         if "redirect_uri" in areq:
             try:
-                self._verify_redirect_uri(areq)
+                self._verify_redirect_uri(areq, logger)
             except Exception:
+                logger.error("Faulty redirect_uri: %s" % areq["redirect_uri"])
+                logger.info("Registered redirect_uris: %s" % (
+                            self.cdb[areq["client_id"]]["redirect_uris"],))
                 return self._authz_error(environ, start_response,
                                          "invalid_request_redirect_uri")
 
