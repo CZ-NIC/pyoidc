@@ -469,7 +469,7 @@ class KeyStore(object):
                     self.remove_key_collection(_issuer)
                 break
 
-        if "x509_url" in inst:
+        if "x509_url" in inst and inst["x509_url"]:
             try:
                 _verkey = self.load_x509_cert(inst["x509_url"], "verify",
                                               _issuer)
@@ -478,7 +478,7 @@ class KeyStore(object):
         else:
             _verkey = None
 
-        if "x509_encryption_url" in inst:
+        if "x509_encryption_url" in inst and inst["x509_encryption_url"]:
             try:
                 self.load_x509_cert(inst["x509_encryption_url"], "enc",
                                     _issuer)
@@ -488,7 +488,7 @@ class KeyStore(object):
         elif _verkey:
             self.set_decrypt_key(_verkey, "rsa", _issuer)
 
-        if "jwk_url" in inst:
+        if "jwk_url" in inst and inst["jwk_url"]:
             try:
                 _verkeys = self.load_jwk(inst["jwk_url"], "verify", _issuer)
             except Exception, err:
@@ -496,7 +496,7 @@ class KeyStore(object):
         else:
             _verkeys = []
 
-        if "jwk_encryption_url" in inst:
+        if "jwk_encryption_url" in inst and inst["jwk_encryption_url"]:
             try:
                 self.load_jwk(inst["jwk_encryption_url"], "enc", _issuer)
             except Exception:

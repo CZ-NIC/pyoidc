@@ -349,6 +349,8 @@ def jwk_loads(txt):
                 tag = "rsa"
 
             res[tag] = k
+        elif kspec["alg"] == "HMAC":
+            res["hmac"] = kspec["modulus"]
 
     return res
 

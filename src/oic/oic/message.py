@@ -10,6 +10,7 @@ from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import SINGLE_OPTIONAL_INT
+from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 
 import json
 
@@ -447,6 +448,17 @@ MSGDEF = {
         },
         "parent": [OA2_SCHEMA["ErrorResponse"]]
     },
+    "DiscoveryRequest": {
+        "param": {
+            "principal": SINGLE_REQUIRED_STRING,
+            "service": SINGLE_REQUIRED_STRING
+        }
+    },
+    "DiscoveryResponse": {
+        "param": {
+            "locations": REQUIRED_LIST_OF_STRINGS
+        }
+    }
 }
 
 def inherit(spec, parent):

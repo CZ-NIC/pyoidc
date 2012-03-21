@@ -42,6 +42,8 @@ class AccessDenied(OICError):
 class UnknownClient(OICError):
     pass
 
+SWD_ISSUER = "http://openid.net/specs/connect/1.0/issuer"
+
 #noinspection PyUnusedLocal
 def devnull(txt):
     pass
@@ -217,10 +219,13 @@ class Provider(AProvider):
         return resp(environ, start_response)
 
     def _authz_error(self, environ, start_response, error, descr=None):
-        response = message("AuthorizationErrorResponse", error=error,
-                           error_description=descr)
-        
-        resp = Response(response.to_json(), content="application/json")
+
+        response = message("AuthorizationErrorResponse", error=error)
+        if descr:
+            response["error_description"]=descr
+
+        resp = Response(response.to_json(), content="application/json",
+                        status="400 Bad Request")
         return resp(environ, start_response)
 
     def _verify_redirect_uri(self, environ, start_response, areq):
@@ -721,7 +726,7 @@ class Provider(AProvider):
             response_types_supported=["code", "token", "id_token",
                                       "code token", "code id_token",
                                       "token id_token", "code token id_token"],
-            user_id_types_supported=["basic"],
+            user_id_types_supported=["public"],
             #request_object_algs_supported=["HS256"]
         )
 
@@ -741,6 +746,29 @@ class Provider(AProvider):
         logger.info("provider_info_response: %s" % _response.to_dict())
         resp = Response(_response.to_json(), content="application/json",
                             headers=[("Cache-Control", "no-store")])
+        return resp(environ, start_response)
+
+    def discovery_endpoint(self, environ, start_response, logger, *args):
+        try:
+            query = get_or_post(environ)
+        except UnsupportedMethod:
+            resp = BadRequest("Unsupported method")
+            return resp(environ, start_response)
+
+        request = msg_deser(query, "urlencoded", "DiscoveryRequest")
+        logger.info("DiscoveryRequest:%s" % request.to_dict())
+
+        try:
+            assert request["service"] == SWD_ISSUER
+        except AssertionError:
+            resp = BadRequest("Unsupported service")
+            return resp(environ, start_response)
+
+        # verify that the principal is one of mine
+
+        _response = message("DiscoveryResponse", locations=[self.baseurl])
+        resp = Response(_response.to_json(), content="application/json",
+                        headers=[("Cache-Control", "no-store")])
         return resp(environ, start_response)
 
     def authenticated(self, environ, start_response, logger, **kwargs):

@@ -278,6 +278,12 @@ def check_id(environ, start_response, handle):
 
     return _oas.check_id_endpoint(environ, start_response, LOGGER)
 
+#noinspection PyUnusedLocal
+def swd_info(environ, start_response, handle):
+    _oas = environ["oic.oas"]
+
+    return _oas.discovery_endpoint(environ, start_response, LOGGER)
+
 # ----------------------------------------------------------------------------
 from oic.oic.provider import AuthorizationEndpoint
 from oic.oic.provider import TokenEndpoint
@@ -297,6 +303,7 @@ ENDPOINTS = [
 URLS = [
     (r'^authenticated', authenticated),
     (r'^.well-known/openid-configuration', op_info),
+    (r'^.well-known/simple-web-discovery', swd_info),
     (r'.+\.css$', css),
     (r'safe', safe)
 ]
