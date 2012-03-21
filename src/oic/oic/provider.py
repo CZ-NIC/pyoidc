@@ -228,7 +228,7 @@ class Provider(AProvider):
                         status="400 Bad Request")
         return resp(environ, start_response)
 
-    def _verify_redirect_uri(self, environ, start_response, areq):
+    def _verify_redirect_uri(self, areq):
         # MUST NOT contain a fragment
 
         _redirect_uri = areq["redirect_uri"]
@@ -299,7 +299,7 @@ class Provider(AProvider):
         # verify that the redirect URI is resonable
         if "redirect_uri" in areq:
             try:
-                self._verify_redirect_uri(environ, start_response, areq)
+                self._verify_redirect_uri(areq)
             except Exception:
                 return self._authz_error(environ, start_response,
                                          "invalid_request_redirect_uri")
@@ -426,7 +426,7 @@ class Provider(AProvider):
         return False
 
     #noinspection PyUnusedLocal
-    def token_endpoint(self, environ, start_response, logger, handle):
+    def token_endpoint(self, environ, start_response, logger, **kwargs):
         """
         This is where clients come to get their access tokens
         """
@@ -520,10 +520,13 @@ class Provider(AProvider):
 
         _log_info = logger.info
 
-        _log_info("environ: %s" % environ)
-        _log_info("userinfo_endpoint: %s" % query)
+        if self.debug:
+            _log_info("environ: %s" % environ)
+
+        _log_info("userinfo_endpoint query: %s" % query)
         if not query or "access_token" not in query:
             _token = self._bearer_auth(environ)
+            _log_info("Bearer token: %s" % _token)
         else:
             uireq = self.server.parse_user_info_request(data=query)
             _log_info("user_info_request: %s" % uireq)
@@ -531,7 +534,7 @@ class Provider(AProvider):
 
         # should be an access token
         typ, key = self.sdb.token.type_and_key(_token)
-        _log_info("access_token type: '%s', key: '%s'" % (typ, key))
+        _log_info("access_token type: '%s'" % (typ,))
 
         try:
             assert typ == "T"
@@ -738,9 +741,10 @@ class Provider(AProvider):
 
         if not self.baseurl.endswith("/"):
             self.baseurl += "/"
-        logger.info("endpoints: %s" % self.endpoints)
+
+        #logger.info("endpoints: %s" % self.endpoints)
         for endp in self.endpoints:
-            logger.info("# %s, %s" % (endp, endp.name))
+            #logger.info("# %s, %s" % (endp, endp.name))
             _response[endp.name] = "%s%s" % (self.baseurl, endp.type)
 
         logger.info("provider_info_response: %s" % _response.to_dict())
@@ -748,7 +752,7 @@ class Provider(AProvider):
                             headers=[("Cache-Control", "no-store")])
         return resp(environ, start_response)
 
-    def discovery_endpoint(self, environ, start_response, logger, *args):
+    def discovery_endpoint(self, environ, start_response, logger):
         try:
             query = get_or_post(environ)
         except UnsupportedMethod:
@@ -889,7 +893,7 @@ class Provider(AProvider):
 
         if "redirect_uri" in areq:
 #            try:
-#                self._verify_redirect_uri(environ, start_response, areq)
+#                self._verify_redirect_uri(areq)
 #            except Exception:
 #                return self._authz_error(environ, start_response,
 #                                         "invalid_request_redirect_uri")
