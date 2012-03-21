@@ -322,7 +322,10 @@ class Provider(AProvider):
                     openid_req = message("OpenIDRequest").from_jwt(
                                                                 areq["request"],
                                                                 jwt_key)
-                except Exception:
+                except Exception, err:
+                    logger.error("Faulty request: %s" % areq["request"])
+                    logger.error("Exception: %s [%s]" % (err,
+                                                        err.__class__.__name__))
                     return self._authz_error(environ, start_response,
                                              "invalid_openid_request_object")
 
@@ -337,6 +340,9 @@ class Provider(AProvider):
                     openid_req = message("OpenIDRequest").from_jwt(_req,
                                                                   jwt_key)
                 except Exception:
+                    logger.error("Faulty request: %s" % areq["request"])
+                    logger.error("Exception: %s [%s]" % (err,
+                                                     err.__class__.__name__))
                     return self._authz_error(environ, start_response,
                                              "invalid_openid_request_object")
 
@@ -663,7 +669,8 @@ class Provider(AProvider):
                 _cinfo[key] = val
 
             self.keystore.load_keys(request, client_id)
-            logger.info("KEYSTORE: %s" % self.keystore._store)
+            if self.debug:
+                logger.info("KEYSTORE: %s" % self.keystore._store)
 
         elif request["type"] == "client_update":
             #  that these are an id,secret pair I know about
