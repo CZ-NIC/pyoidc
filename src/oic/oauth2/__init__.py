@@ -386,6 +386,10 @@ class KeyStore(object):
                         except Exception:
                             pass
 
+    def remove_key_type(self, type, owner="."):
+        _keys = self._store[owner]
+        for _usage in _keys.keys():
+            _keys[_usage][type] = []
 
     def get_verify_key(self, type="", owner="."):
         return self.get_keys("verify", type, owner)

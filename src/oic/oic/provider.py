@@ -325,13 +325,12 @@ class Provider(AProvider):
                 except Exception, err:
                     logger.error("Faulty request: %s" % areq["request"])
                     logger.error("Verfied with JWT_keys: %s" % jwt_key)
-                    logger.error("Exception: %s [%s]" % (err,
-                                                        err.__class__.__name__))
+                    logger.error("Exception: %s" % (err.__class__.__name__,))
                     openid_req = message("OpenIDRequest").from_jwt(
                                                                 areq["request"],
                                                                 jwt_key,
                                                                 verify=False)
-                    logger.error("Request: %s" % openid_req)
+                    logger.error("Request: %s" % openid_req.to_dict())
                     return self._authz_error(environ, start_response,
                                              "invalid_openid_request_object")
 
@@ -359,9 +358,10 @@ class Provider(AProvider):
             _log_info("session: %s" % _sdb[sid])
 
         bsid = base64.b64encode(sid)
-        _log_info("SID:%s" % bsid)
+        #_log_info("SID:%s" % bsid)
 
         if openid_req:
+            _log_info("Request: %s" % openid_req.to_dict())
             try:
                 _max_age = openid_req["id_token"]["max_age"]
             except KeyError:
