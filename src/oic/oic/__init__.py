@@ -683,22 +683,24 @@ class Server(oauth2.Server):
 
         return urlparse.parse_qs(query)
 
-    def parse_token_request(self, msg="AccessTokenRequest", body=None):
-        return oauth2.Server.parse_token_request(self, msg, body)
+    def parse_token_request(self, schema=SCHEMA["AccessTokenRequest"],
+                            body=None):
+        return oauth2.Server.parse_token_request(self, schema, body)
 
-    def parse_authorization_request(self, msg="AuthorizationRequest",
+    def parse_authorization_request(self, schema=SCHEMA["AuthorizationRequest"],
                                     url=None, query=None):
-        return oauth2.Server.parse_authorization_request(self, msg, url, query)
+        return oauth2.Server.parse_authorization_request(self, schema, url,
+                                                         query)
 
-    def parse_jwt_request(self, msg="AuthorizationRequest", txt="",
+    def parse_jwt_request(self, schema=SCHEMA["AuthorizationRequest"], txt="",
                           keys=None, verify=True):
 
-        return oauth2.Server.parse_jwt_request(self, msg, txt,
-                                               keys, verify)
+        return oauth2.Server.parse_jwt_request(self, schema, txt, keys, verify)
 
-    def parse_refresh_token_request(self, msg="RefreshAccessTokenRequest",
+    def parse_refresh_token_request(self,
+                                    schema=SCHEMA["RefreshAccessTokenRequest"],
                                     body=None):
-        return oauth2.Server.parse_refresh_token_request(self, msg, body)
+        return oauth2.Server.parse_refresh_token_request(self, schema, body)
 
     def _deser_id_token(self, str=""):
         if not str:
@@ -763,8 +765,9 @@ class Server(oauth2.Server):
     def parse_registration_request(self, data, format="urlencoded"):
         return self._parse_request(SCHEMA["RegistrationRequest"], data, format)
 
-    def parse_end_session_request(self, query):
-        esr = message("EndSessionRequest").from_urlencoded(query)
+    def parse_end_session_request(self, query, format="urlencoded"):
+        esr = self._parse_request(SCHEMA["EndSessionRequest"], query,
+                                  format)
         # if there is a id_token in there it is as a string
         esr["id_token"] = self._deser_id_token(esr["id_token"])
         return esr

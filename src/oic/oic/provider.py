@@ -228,24 +228,43 @@ class Provider(AProvider):
                         status="400 Bad Request")
         return resp(environ, start_response)
 
+    def _redirect_authz_error(self, error, redirect_uri, descr=None):
+        err = message(OA2_SCHEMA["ErrorResponse"], error=error)
+        if descr:
+            err.error_description = descr
+        location = err.request(redirect_uri)
+        return Redirect(location)
+
     def _verify_redirect_uri(self, areq, logger):
         # MUST NOT contain a fragment
 
-        _redirect_uri = areq["redirect_uri"]
-        part = urlparse.urlparse(_redirect_uri)
-        if part.fragment:
-            raise ValueError
+        try:
+            _redirect_uri = areq["redirect_uri"]
+            part = urlparse.urlparse(_redirect_uri)
+            if part.fragment:
+                raise ValueError
 
-        match = False
-        for registered in self.cdb[areq["client_id"]]["redirect_uris"]:
-            if _redirect_uri == registered:
-                match=True
-                break
-            elif _redirect_uri.startswith(registered):
-                match=True
-                break
-        if not match:
-            raise AssertionError
+            match = False
+            for registered in self.cdb[areq["client_id"]]["redirect_uris"]:
+                if _redirect_uri == registered:
+                    match=True
+                    break
+                elif _redirect_uri.startswith(registered):
+                    match=True
+                    break
+            if not match:
+                raise AssertionError
+            return None
+        except Exception:
+            logger.error("Faulty redirect_uri: %s" % areq["redirect_uri"])
+            logger.info("Registered redirect_uris: %s" % (
+                                self.cdb[areq["client_id"]]["redirect_uris"],))
+            response = message("AuthorizationErrorResponse",
+                               error="invalid_request",
+                               error_description="Faulty redirect_uri")
+
+            return Response(response.to_json(), content="application/json",
+                            status="400 Bad Request")
 
     def authorization_endpoint(self, environ, start_response, logger,
                                **kwargs):
@@ -271,9 +290,14 @@ class Provider(AProvider):
         try:
             areq = self.server.parse_authorization_request(query=query)
         except MissingRequiredAttribute:
-            err = message(OA2_SCHEMA["ErrorResponse"], error="invalid_request")
-            resp = Response("%s" % err.to_json(), content="application/json",
-                            status="400 Bad Request")
+            areq = msg_deser(query, "urlencoded", "AuthorizationRequest")
+            # verify the redirect_uri
+            reply = self._verify_redirect_uri(areq, logger)
+            if reply:
+                return reply(environ, start_response)
+            resp = self._redirect_authz_error("invalid_request",
+                                              areq["redirect_uri"],
+                                              "Missing required attribute")
             return resp(environ, start_response)
         except Exception,err:
             resp = BadRequest("%s" % err)
@@ -289,23 +313,18 @@ class Provider(AProvider):
                     return self._error(environ, start_response,
                                        "invalid_request")
                 else:
-                    return self._authz_error(environ, start_response,
-                                             "login_required")
-
+                    resp = self._redirect_authz_error("login_required",
+                                                      areq["redirect_uri"])
+                    return resp(environ, start_response)
 
         if areq["client_id"] not in self.cdb:
             raise UnknownClient(areq["client_id"])
 
         # verify that the redirect URI is resonable
         if "redirect_uri" in areq:
-            try:
-                self._verify_redirect_uri(areq, logger)
-            except Exception:
-                logger.error("Faulty redirect_uri: %s" % areq["redirect_uri"])
-                logger.info("Registered redirect_uris: %s" % (
-                            self.cdb[areq["client_id"]]["redirect_uris"],))
-                return self._authz_error(environ, start_response,
-                                         "invalid_request_redirect_uri")
+            reply = self._verify_redirect_uri(areq, logger)
+            if reply:
+                return reply(environ, start_response)
 
         if self.debug:
             _log_info("AREQ keys: %s" % areq.keys())
@@ -317,7 +336,7 @@ class Provider(AProvider):
             try:
                 _keystore = self.server.keystore
                 jwt_key = _keystore.get_keys("verify", owner=None)
-            except KeyError: # TODO
+            except KeyError:
                 raise KeyError("Missing verifying key")
         
             if "request" in areq:
@@ -334,8 +353,9 @@ class Provider(AProvider):
                                                                 jwt_key,
                                                                 verify=False)
                     logger.error("Request: %s" % openid_req.to_dict())
-                    return self._authz_error(environ, start_response,
-                                             "invalid_openid_request_object")
+                    resp = self._redirect_authz_error("invalid_openid_request_object",
+                                                      areq["redirect_uri"])
+                    return resp(environ, start_response)
 
             elif "request_uri" in areq:
                 # Do a HTTP get
@@ -352,8 +372,9 @@ class Provider(AProvider):
                     logger.error("Verfied with JWT_keys: %s" % jwt_key)
                     logger.error("Exception: %s [%s]" % (err,
                                                      err.__class__.__name__))
-                    return self._authz_error(environ, start_response,
-                                             "invalid_openid_request_object")
+                    resp = self._redirect_authz_error("invalid_openid_request_object",
+                                                      areq["redirect_uri"])
+                    return resp(environ, start_response)
 
         # Store session info
         sid = _sdb.create_authz_session("", areq, oidreq=openid_req)
@@ -422,7 +443,7 @@ class Provider(AProvider):
 
             key_col = {areq["client_id"]:
                        self.keystore.get_verify_key(owner=areq["client_id"])}
-            key_col.update({".":self.keystore.get_verify_key()})
+            key_col.update({".": self.keystore.get_verify_key()})
 
             if log_info:
                 log_info("key_col: %s" % (key_col,))

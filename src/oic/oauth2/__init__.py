@@ -1088,44 +1088,48 @@ class Server(PBase):
                        httpclass, jwt_keys)
 
 
-    def parse_url_request(self, msg, url=None, query=None):
+    def parse_url_request(self, schema, url=None, query=None):
         if url:
             parts = urlparse.urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]
 
-        req = msg_deser(query, "urlencoded", msg)
+        req = msg_deser(query, "urlencoded", schema=schema)
         #req = message(msg).from_urlencoded(query)
         req.verify()
         return req
 
-    def parse_authorization_request(self, reqmsg="AuthorizationRequest",
+    def parse_authorization_request(self,
+                                    schema=SCHEMA["AuthorizationRequest"],
                                     url=None, query=None):
 
-        return self.parse_url_request(reqmsg, url, query)
+        return self.parse_url_request(schema, url, query)
 
-    def parse_jwt_request(self, reqmsg="AuthorizationRequest", txt="",
-                          keystore="", verify=True):
+    def parse_jwt_request(self, schema=SCHEMA["AuthorizationRequest"],
+                          txt="", keystore="", verify=True):
         if not keystore:
             keystore = self.keystore
 
         keys = keystore.get_keys("verify", owner=None)
         #areq = message().from_(txt, keys, verify)
-        areq = msg_deser(txt, "jwt", reqmsg, key=keys, verify=verify)
+        areq = msg_deser(txt, "jwt", schema, key=keys, verify=verify)
         areq.verify()
         return areq
 
-    def parse_body_request(self, reqmsg="AccessTokenRequest", body=None):
+    def parse_body_request(self, schema=SCHEMA["AccessTokenRequest"],
+                           body=None):
         #req = message(reqmsg).from_urlencoded(body)
-        req = msg_deser(body, "urlencoded", reqmsg)
+        req = msg_deser(body, "urlencoded", schema=schema)
         req.verify()
         return req
 
-    def parse_token_request(self, reqmsg="AccessTokenRequest", body=None):
-        return self.parse_body_request(reqmsg, body)
+    def parse_token_request(self, schema=SCHEMA["AccessTokenRequest"],
+                            body=None):
+        return self.parse_body_request(schema, body)
 
-    def parse_refresh_token_request(self, reqmsg="RefreshAccessTokenRequest",
+    def parse_refresh_token_request(self,
+                                    schema=SCHEMA["RefreshAccessTokenRequest"],
                                     body=None):
-        return self.parse_body_request(reqmsg, body)
+        return self.parse_body_request(schema, body)
 
 
 
