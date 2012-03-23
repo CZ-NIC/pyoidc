@@ -358,7 +358,7 @@ class Provider(AProvider):
 
             elif "request_uri" in areq:
                 # Do a HTTP get
-                _req = self.http.request(areq["request_uri"])
+                _req = self.server.request(areq["request_uri"])
                 if not _req:
                     return self._authz_error(environ, start_response,
                                              "invalid_request_uri")
