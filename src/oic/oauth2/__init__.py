@@ -1125,8 +1125,3 @@ class Server(PBase):
                                     body=None):
         return self.parse_body_request(schema, body)
 
-
-
-if __name__ == "__main__":
-    doctest.testmod()
-    import doctest

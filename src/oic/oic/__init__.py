@@ -13,7 +13,7 @@ from oic.oauth2.message import message_from_schema
 from oic.oic.message import *
 from oic.utils import jwt
 
-from oic.utils.time_util import time_sans_frac
+#from oic.utils.time_util import time_sans_frac
 from oic.utils.time_util import utc_now
 from oic.utils.time_util import epoch_in_a_while
 
@@ -126,18 +126,12 @@ class Grant(oauth2.Grant):
 class Client(oauth2.Client):
     _endpoints = ENDPOINTS
 
-    def __init__(self, client_id=None, cache=None, timeout=None,
-                 proxy_info=None, follow_redirects=True,
-                 disable_ssl_certificate_validation=False,
-                 ca_certs=None,client_timeout=0,
-                 expire_in=0, grant_expire_in=0, httpclass=None):
+    def __init__(self, client_id=None, ca_certs=None, grant_expire_in=600,
+                 jwt_keys=None, client_timeout=0):
 
-        if expire_in:
-            client_timeout = time_sans_frac() + expire_in
-
-        oauth2.Client.__init__(self, client_id, cache, timeout, proxy_info,
-                               follow_redirects, disable_ssl_certificate_validation,
-                               ca_certs, grant_expire_in, client_timeout, httpclass)
+        oauth2.Client.__init__(self, client_id, ca_certs, grant_expire_in,
+                               client_timeout=client_timeout,
+                               jwt_keys=jwt_keys)
 
         self.file_store = "./file/"
         self.file_uri = "http://localhost/"
@@ -575,7 +569,8 @@ class Client(oauth2.Client):
                                                             scope, **kwargs)
 
         try:
-            response, content = self.http.request(path, method, body, **h_args)
+            response, content = self.request(path, method, body,
+                                                   **h_args)
         except oauth2.MissingRequiredAttribute:
             raise
 
@@ -597,7 +592,7 @@ class Client(oauth2.Client):
 
         url = OIDCONF_PATTERN % _issuer
 
-        (response, content) = self.http.request(url)
+        (response, content) = self.request(url)
         if response.status == 200:
             pcr = message("ProviderConfigurationResponse").from_json(content)
         else:
@@ -667,10 +662,7 @@ class Client(oauth2.Client):
 
 #noinspection PyMethodOverriding
 class Server(oauth2.Server):
-    def __init__(self, jwt_keys=None, cache=None, time_out=None,
-                 proxy_info=None, follow_redirects=True,
-                 disable_ssl_certificate_validation=False, ca_certs=None,
-                 httpclass=None):
+    def __init__(self, jwt_keys=None, ca_certs=None):
         oauth2.Server.__init__(self, ca_certs, jwt_keys)
 
     def _parse_urlencoded(self, url=None, query=None):

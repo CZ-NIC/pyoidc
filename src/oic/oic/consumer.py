@@ -436,7 +436,7 @@ class Consumer(Client):
 
     def discovery_query(self, uri, principal):
         try:
-            (response, content) = self.http.request(uri)
+            (response, content) = self.request(uri)
         except requests.ConnectionError:
             if uri.startswith("http://"): # switch to https
                 location = "https://%s" % uri[7:]
@@ -499,7 +499,7 @@ class Consumer(Client):
                     pass
 
         headers = {"content-type": "application/x-www-form-urlencoded"}
-        (response, content) = self.http.request(server, "POST",
+        (response, content) = self.request(server, "POST",
                                                 req.to_urlencoded(),
                                                 headers=headers)
 
