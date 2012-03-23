@@ -861,6 +861,11 @@ class Client(PBase):
         try:
             resp = msg_deser(info, format, schema=schema)
             assert resp.verify(**kwargs)
+            if resp.type() == "AuthorizationResponse" and "scope" not in resp:
+                try:
+                    resp["scope"] = kwargs["scope"]
+                except KeyError:
+                    pass
         except Exception, err:
             resp = None
 

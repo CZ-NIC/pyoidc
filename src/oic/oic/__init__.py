@@ -310,7 +310,7 @@ class Client(oauth2.Client):
         if "access_token" in request_args:
             pass
         else:
-            token = self.get_token(**kwargs)
+            token = self.get_token(scope="openid", **kwargs)
             if token is None:
                 raise Exception("No valid token available")
 

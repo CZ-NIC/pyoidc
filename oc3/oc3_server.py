@@ -353,6 +353,9 @@ def application(environ, start_response):
     else:
         handle = ""
 
+    if OAS.debug:
+        LOGGER.debug("Environ: %s" % environ)
+
     environ["oic.oas"] = OAS
     environ["mako.lookup"] = LOOKUP
 
