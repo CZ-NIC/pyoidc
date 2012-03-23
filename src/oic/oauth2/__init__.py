@@ -2,7 +2,7 @@
 #
 __author__ = 'rohe0002'
 
-import httplib2
+import requests
 import random
 import string
 
@@ -457,14 +457,14 @@ class KeyStore(object):
 
     def load_x509_cert(self, url, usage, owner):
         try:
-            _key = jwt.x509_rsa_loads(self.get_page(url))
+            _key = jwt.x509_rsa_loads(self.get_page(url, allow_redirects=True))
             self.add_key(_key, "rsa", usage, owner)
             return _key
         except Exception: # not a RSA key
             return None
 
     def load_jwk(self, url, usage, owner):
-        jwk = self.get_page(url)
+        jwk = self.get_page(url, allow_redirects=True)
 
         res = []
         for tag, key in jwt.jwk_loads(jwk).items():
@@ -519,46 +519,40 @@ class KeyStore(object):
                 self.set_decrypt_key(key, "rsa", _issuer)
 
 class PBase(object):
-    def __init__(self, cache=None, time_out=None,
-                 proxy_info=None, follow_redirects=True,
-                 disable_ssl_certificate_validation=False, ca_certs=None,
-                 httpclass=None, jwt_keys=None):
+    def __init__(self, ca_certs=None, jwt_keys=None):
 
         if jwt_keys is None:
-            self.keystore = KeyStore(self.get_page)
+            self.keystore = KeyStore(self.request)
         else:
-            self.keystore = KeyStore(self.get_page, jwt_keys)
+            self.keystore = KeyStore(self.request, jwt_keys)
 
-        if not ca_certs and disable_ssl_certificate_validation is False:
-            disable_ssl_certificate_validation = True
+        self.request_args = {
+            "allow_redirects": False,
 
-        if httpclass is None:
-            httpclass = httplib2.Http
-
-        self.http = httpclass(cache=cache, timeout=time_out,
-                              proxy_info=proxy_info, ca_certs=ca_certs,
-                              disable_ssl_certificate_validation=disable_ssl_certificate_validation)
-        self.http.follow_redirects = follow_redirects
-
-    def get_page(self, url):
-        resp, content = self.http.request(url)
-        if resp.status == 200:
-            return content
+            }
+        if ca_certs:
+            self.request_args["verify"] = True
         else:
-            raise HTTP_ERROR(resp.status)
+            self.request_args["verify"] = False
+
+    def request(self, url, method="GET", **kwargs):
+        _kwargs = copy.copy(self.request_args)
+        if kwargs:
+            _kwargs.update(kwargs)
+
+        r = requests.request(method, url, **_kwargs)
+        if r.status_code == 200:
+            return r.text
+        else:
+            raise HTTP_ERROR(r.status_code)
 
 class Client(PBase):
     _endpoints = ENDPOINTS
 
-    def __init__(self, client_id=None, cache=None, time_out=None,
-                 proxy_info=None, follow_redirects=True,
-                 disable_ssl_certificate_validation=False, ca_certs=None,
-                 grant_expire_in=600, client_timeout=0, httpclass=None,
-                 jwt_keys=None):
+    def __init__(self, client_id=None, ca_certs=None,
+                 grant_expire_in=600, client_timeout=0, jwt_keys=None):
 
-        PBase.__init__(self, cache, time_out, proxy_info, follow_redirects,
-                       disable_ssl_certificate_validation, ca_certs,
-                       httpclass, jwt_keys)
+        PBase.__init__(self, ca_certs, jwt_keys)
 
         self.client_id = client_id
         self.client_timeout = client_timeout
@@ -746,9 +740,9 @@ class Client(PBase):
         return self.construct_request(schema, request_args, extra_args)
 
     def construct_RefreshAccessTokenRequest(self,
-                                    schema=SCHEMA["RefreshAccessTokenRequest"],
-                                    request_args=None, extra_args=None,
-                                    **kwargs):
+                                            schema=SCHEMA["RefreshAccessTokenRequest"],
+                                            request_args=None, extra_args=None,
+                                            **kwargs):
 
         if request_args is None:
             request_args = {}
@@ -814,8 +808,8 @@ class Client(PBase):
             request_args = {}
 
         cis = getattr(self, "construct_%s" % schema["name"])(schema,
-                                                     request_args,
-                                                     extra_args, **kwargs)
+                                                             request_args,
+                                                             extra_args, **kwargs)
 
         if "authn_method" in kwargs:
             h_arg = self.init_authentication_method(cis,
@@ -937,8 +931,8 @@ class Client(PBase):
             http_args = {}
 
         try:
-            response, content = self.http.request(url, method, body=body,
-                                                  **http_args)
+            response, content = self.request(url, method, body=body,
+                                             **http_args)
         except Exception:
             raise
 
@@ -1079,18 +1073,13 @@ class Client(PBase):
 
         headers.update(http_args["headers"])
 
-        return self.http.request(uri, method, headers=headers, **kwargs)
+        return self.request(uri, method, headers=headers, **kwargs)
 
 
 class Server(PBase):
-    def __init__(self, jwt_keys=None, cache=None, time_out=None,
-                 proxy_info=None, follow_redirects=True,
-                 disable_ssl_certificate_validation=False, ca_certs=None,
-                 httpclass=None):
+    def __init__(self, jwt_keys=None, ca_certs=None):
 
-        PBase.__init__(self, cache, time_out, proxy_info, follow_redirects,
-                       disable_ssl_certificate_validation, ca_certs,
-                       httpclass, jwt_keys)
+        PBase.__init__(self, ca_certs, jwt_keys)
 
 
     def parse_url_request(self, schema, url=None, query=None):
@@ -1139,5 +1128,5 @@ class Server(PBase):
 
 
 if __name__ == "__main__":
-    import doctest
     doctest.testmod()
+    import doctest

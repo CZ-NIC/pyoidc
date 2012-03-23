@@ -31,7 +31,7 @@ setup(
     classifiers = ["Development Status :: 4 - Beta",
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Libraries :: Python Modules"],
-    install_requires = ['httplib2', "M2Crypto", "pycrypto"],
+    install_requires = ['requests', "M2Crypto", "pycrypto"],
 
     zip_safe=False,
 )

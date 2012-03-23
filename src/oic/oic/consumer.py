@@ -5,7 +5,8 @@ __author__ = 'rohe0002'
 import time
 import os.path
 import urlparse
-import httplib2
+#import httplib2
+import requests
 
 from hashlib import md5
 
@@ -436,7 +437,7 @@ class Consumer(Client):
     def discovery_query(self, uri, principal):
         try:
             (response, content) = self.http.request(uri)
-        except httplib2.ServerNotFoundError:
+        except requests.ConnectionError:
             if uri.startswith("http://"): # switch to https
                 location = "https://%s" % uri[7:]
                 return self.discovery_query(location, principal)

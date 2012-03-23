@@ -671,10 +671,7 @@ class Server(oauth2.Server):
                  proxy_info=None, follow_redirects=True,
                  disable_ssl_certificate_validation=False, ca_certs=None,
                  httpclass=None):
-        oauth2.Server.__init__(self, jwt_keys, cache, time_out, proxy_info,
-                               follow_redirects,
-                               disable_ssl_certificate_validation,
-                               ca_certs, httpclass)
+        oauth2.Server.__init__(self, ca_certs, jwt_keys)
 
     def _parse_urlencoded(self, url=None, query=None):
         if url:

@@ -151,9 +151,8 @@ class Provider(AProvider):
                                    time_out=timeout, proxy_info=proxy_info,
                                    follow_redirects=follow_redirects,
                                    ca_certs=ca_certs)
-        self.keystore = self.server.keystore
-        self.http = self.server.http
 
+        self.keystore = self.server.keystore
         self.userdb = userdb
 
         self.function = function
