@@ -53,10 +53,12 @@ def rndstr(size=16):
 
 #noinspection PyUnusedLocal
 def client_secret_basic(cli, cis, request_args=None, http_args=None, **kwargs):
+    if http_args is None:
+        http_args = {}
     try:
-        cli.http.add_credentials(cli.client_id, http_args["password"])
+        http_args["auth"] = (cli.client_id, http_args["password"])
     except KeyError:
-        cli.http.add_credentials(cli.client_id, cli.client_secret)
+        http_args["auth"] = (cli.client_id, cli.client_secret)
 
     return http_args
 
@@ -522,29 +524,28 @@ class PBase(object):
     def __init__(self, ca_certs=None, jwt_keys=None):
 
         if jwt_keys is None:
-            self.keystore = KeyStore(self.request)
+            self.keystore = KeyStore(self.http_request)
         else:
-            self.keystore = KeyStore(self.request, jwt_keys)
+            self.keystore = KeyStore(self.http_request, jwt_keys)
 
-        self.request_args = {
-            "allow_redirects": False,
 
-            }
+        self.request_args = {"allow_redirects": False,}
+        self.cookies = {}
         if ca_certs:
             self.request_args["verify"] = True
         else:
             self.request_args["verify"] = False
 
-    def request(self, url, method="GET", **kwargs):
+    def http_request(self, url, method="GET", **kwargs):
         _kwargs = copy.copy(self.request_args)
         if kwargs:
             _kwargs.update(kwargs)
+        if self.cookies:
+            _kwargs["cookies"] = self.cookies
 
         r = requests.request(method, url, **_kwargs)
-        if r.status_code == 200:
-            return r.text
-        else:
-            raise HTTP_ERROR(r.status_code)
+        self.cookies = r.cookies
+        return r
 
 class Client(PBase):
     _endpoints = ENDPOINTS
@@ -931,32 +932,32 @@ class Client(PBase):
             http_args = {}
 
         try:
-            response, content = self.request(url, method, body=body,
-                                             **http_args)
+            resp = self.http_request(url, method, data=body, **http_args)
         except Exception:
             raise
 
-        if response.status == 200:
+        if resp.status_code == 200:
             if body_type == "":
                 pass
             elif body_type == "json":
-                assert "application/json" in response["content-type"]
+                assert "application/json" in resp.headers["content-type"]
             elif body_type == "urlencoded":
-                assert DEFAULT_POST_CONTENT_TYPE in response["content-type"]
+                assert DEFAULT_POST_CONTENT_TYPE in resp.headers["content-type"]
             else:
                 raise ValueError("Unknown return format: %s" % body_type)
-        elif response.status == 302: # redirect
+        elif resp.status_code == 302: # redirect
             pass
-        elif response.status == 500:
-            raise Exception("ERROR: Something went wrong: %s" % content)
+        elif resp.status_code == 500:
+            raise Exception("ERROR: Something went wrong: %s" % resp.text)
         else:
-            raise Exception("ERROR: Something went wrong [%s]" % response.status)
+            raise Exception("ERROR: Something went wrong [%s]" % (
+                                                            resp.status_code,))
 
         if body_type:
-            return self.parse_response(schema, content, body_type, state,
+            return self.parse_response(schema, resp.text, body_type, state,
                                        **kwargs)
         else:
-            return response
+            return resp
 
     def do_authorization_request(self, schema=SCHEMA["AuthorizationRequest"],
                                  state="", body_type="", method="GET",
@@ -1073,7 +1074,7 @@ class Client(PBase):
 
         headers.update(http_args["headers"])
 
-        return self.request(uri, method, headers=headers, **kwargs)
+        return self.http_request(uri, method, headers=headers, **kwargs)
 
 
 class Server(PBase):

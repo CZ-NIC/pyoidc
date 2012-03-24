@@ -142,15 +142,11 @@ def verify_acr_level(req, level):
 
 class Provider(AProvider):
     def __init__(self, name, sdb, cdb, function, userdb, urlmap=None,
-                 debug=0, cache=None, timeout=None, proxy_info=None,
-                 follow_redirects=True, ca_certs="", jwt_keys=None):
+                 debug=0, ca_certs="", jwt_keys=None):
 
         AProvider.__init__(self, name, sdb, cdb, function, urlmap, debug)
 
-        self.server = Server(jwt_keys=jwt_keys, cache=cache,
-                                   time_out=timeout, proxy_info=proxy_info,
-                                   follow_redirects=follow_redirects,
-                                   ca_certs=ca_certs)
+        self.server = Server(jwt_keys=jwt_keys, ca_certs=ca_certs)
 
         self.keystore = self.server.keystore
         self.userdb = userdb
@@ -358,7 +354,7 @@ class Provider(AProvider):
 
             elif "request_uri" in areq:
                 # Do a HTTP get
-                _req = self.server.request(areq["request_uri"])
+                _req = self.server.http_request(areq["request_uri"])
                 if not _req:
                     return self._authz_error(environ, start_response,
                                              "invalid_request_uri")
@@ -367,7 +363,8 @@ class Provider(AProvider):
                     openid_req = message("OpenIDRequest").from_jwt(_req,
                                                                   jwt_key)
                 except Exception, err:
-                    logger.error("Faulty request: %s" % areq["request"])
+                    logger.error("Faulty request uri: %s" %
+                                 areq["request_uri"])
                     logger.error("Verfied with JWT_keys: %s" % jwt_key)
                     logger.error("Exception: %s [%s]" % (err,
                                                      err.__class__.__name__))

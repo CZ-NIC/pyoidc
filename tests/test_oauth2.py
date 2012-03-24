@@ -756,21 +756,6 @@ def test_server_parse_refresh_token_request():
     assert tr["refresh_token"] == "ababababab"
     assert tr["client_id"] == "Client_id"
 
-def test_client_secret_basic():
-    client = Client("1")
-
-    assert len(client.http.credentials.credentials) == 0
-
-    cis = message("AccessTokenRequest", code="foo",
-                  redirect_uri="http://example.com")
-
-    oauth2.client_secret_basic(client, cis,
-                               http_args={"password": "hemligt"})
-
-    assert len(client.http.credentials. credentials) == 1
-    print client.http.credentials.credentials[0]
-    assert client.http.credentials.credentials[0] == ('', '1', 'hemligt')
-
 def test_client_secret_post():
     client = Client("A")
     client.client_secret = "boarding pass"

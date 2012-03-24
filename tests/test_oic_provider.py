@@ -25,8 +25,6 @@ from oic.utils import http_util
 CLIENT_CONFIG = {
     "client_id": "number5",
     "ca_certs": "/usr/local/etc/oic/ca_certs.txt",
-    "disable_ssl_certificate_validation":False,
-    "expire_in":600,
     "client_timeout":0
 }
 
@@ -461,7 +459,7 @@ def test_token_endpoint():
     environ["wsgi.input"] = fil
     environ["REMOTE_USER"] = CLIENT_ID
 
-    resp = server.token_endpoint(environ, start_response, LOG(), None)
+    resp = server.token_endpoint(environ, start_response, LOG())
     print resp
     atr = msg_deser(resp[0], "json", schema=SCHEMA["AccessTokenResponse"])
     print atr.keys()
@@ -502,7 +500,7 @@ def test_token_endpoint_unauth():
     environ["wsgi.input"] = fil
     environ["REMOTE_USER"] = "client2"
 
-    resp = server.token_endpoint(environ, start_response, LOG(), None)
+    resp = server.token_endpoint(environ, start_response, LOG())
     print resp
     atr = msg_deser(resp[0] ,"json", schema=SCHEMA["TokenErrorResponse"])
     print atr.keys()

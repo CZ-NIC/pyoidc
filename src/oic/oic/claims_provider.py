@@ -66,11 +66,9 @@ class OICCServer(OicServer):
 class ClaimsServer(Provider):
 
     def __init__(self, name, sdb, cdb, function, userdb, urlmap=None,
-                 debug=0, cache=None, timeout=None, proxy_info=None,
-                 follow_redirects=True, ca_certs="", jwt_keys=None):
+                 debug=0, ca_certs="", jwt_keys=None):
         Provider.__init__(self, name, sdb, cdb, function, userdb, urlmap,
-                          debug, cache, timeout, proxy_info,
-                          follow_redirects, ca_certs, jwt_keys)
+                          debug, ca_certs, jwt_keys)
 
         if jwt_keys is None:
             jwt_keys = []
@@ -142,17 +140,11 @@ class ClaimsServer(Provider):
 
 class ClaimsClient(Client):
 
-    def __init__(self, client_id=None, cache=None, timeout=None,
-                 proxy_info=None, follow_redirects=True,
-                 disable_ssl_certificate_validation=False, ca_certs="",
-                 client_timeout=0, expire_in=0, grant_expire_in=0,
-                 httpclass=None):
+    def __init__(self, client_id=None, ca_certs="",
+                 client_timeout=0, jwt_keys=None):
 
-        Client.__init__(self, client_id, cache, timeout,
-                        proxy_info, follow_redirects,
-                        disable_ssl_certificate_validation,
-                        ca_certs, client_timeout, expire_in, grant_expire_in,
-                        httpclass)
+        Client.__init__(self, client_id, ca_certs, jwt_keys=jwt_keys,
+                        client_timeout=client_timeout)
 
         self.request2endpoint = REQUEST2ENDPOINT.copy()
         self.request2endpoint["UserClaimsRequest"] = "userclaims_endpoint"

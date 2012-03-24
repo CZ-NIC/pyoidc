@@ -15,7 +15,7 @@ from oic.oauth2 import rndstr
 
 class Response():
     def __init__(self, base=None):
-        self.status = 200
+        self.status_code = 200
         if base:
             for key, val in base.items():
                 self.__setitem__(key, val)
@@ -38,7 +38,7 @@ ENDPOINT = {
 
 class MyFakeOICServer(Server):
     def __init__(self, jwt_keys=None, name=""):
-        Server.__init__(self, jwt_keys)
+        Server.__init__(self, jwt_keys=jwt_keys)
         self.sdb = SessionDB()
         self.name = name
         self.client = {}
@@ -46,49 +46,49 @@ class MyFakeOICServer(Server):
         self.host = ""
 
     #noinspection PyUnusedLocal
-    def request(self, path, method="GET", body=None, **kwargs):
+    def http_request(self, path, method="GET", data=None, **kwargs):
         part = urlparse.urlparse(path)
         path = part[2]
         query = part[4]
         self.host = "%s://%s" % (part.scheme, part.netloc)
 
         response = Response
-        response.status = 500
-        content = ""
+        response.status_code = 500
+        response.text = ""
 
         if path == ENDPOINT["authorization_endpoint"]:
             assert method == "GET"
-            response, content = self.authorization_endpoint(query)
+            response = self.authorization_endpoint(query)
         elif path == ENDPOINT["token_endpoint"]:
             assert method == "POST"
-            response, content = self.token_endpoint(body)
+            response = self.token_endpoint(data)
         elif path == ENDPOINT["user_info_endpoint"]:
             assert method == "POST"
-            response, content = self.userinfo_endpoint(body)
+            response = self.userinfo_endpoint(data)
         elif path == ENDPOINT["refresh_session_endpoint"]:
             assert method == "GET"
-            response, content = self.refresh_session_endpoint(query)
+            response = self.refresh_session_endpoint(query)
         elif path == ENDPOINT["check_session_endpoint"]:
             assert method == "GET"
-            response, content = self.check_session_endpoint(query)
+            response = self.check_session_endpoint(query)
         elif path == ENDPOINT["end_session_endpoint"]:
             assert method == "GET"
-            response, content = self.end_session_endpoint(query)
+            response = self.end_session_endpoint(query)
         elif path == ENDPOINT["registration_endpoint"]:
             if method == "POST":
-                response, content = self.registration_endpoint(body)
+                response = self.registration_endpoint(data)
         elif path == "/.well-known/simple-web-discovery":
             assert method == "GET"
-            response, content = self.issuer(query)
+            response = self.issuer(query)
         elif path == "/swd_server":
             assert method == "GET"
-            response, content = self.swd_server(query)
+            response = self.swd_server(query)
         elif path == "/.well-known/openid-configuration"\
         or path == "/providerconf/.well-known/openid-configuration":
             assert method == "GET"
-            response, content = self.openid_conf()
+            response = self.openid_conf()
 
-        return response, content
+        return response
 
     def authorization_endpoint(self, query):
         req = self.parse_authorization_request(query=query)
@@ -116,17 +116,18 @@ class MyFakeOICServer(Server):
             resp = message_from_schema(SCHEMA["AccessTokenResponse"], **_dict)
 
         location = resp.request(req["redirect_uri"])
-        response= Response({"location":location})
-        response.status = 302
-        content= ""
-        return response, content
+        response= Response()
+        response.headers = {"location":location}
+        response.status_code = 302
+        response.text = ""
+        return response
 
-    def token_endpoint(self, body):
-        if "grant_type=refresh_token" in body:
-            req = self.parse_refresh_token_request(body=body)
+    def token_endpoint(self, data):
+        if "grant_type=refresh_token" in data:
+            req = self.parse_refresh_token_request(body=data)
             _info = self.sdb.refresh_token(req["refresh_token"])
         elif "grant_type=authorization_code":
-            req = self.parse_token_request(body=body)
+            req = self.parse_token_request(body=data)
             _info = self.sdb.update_to_token(req["code"])
         else:
             response = message_from_schema(SCHEMA["TokenErrorResponse"],
@@ -135,14 +136,15 @@ class MyFakeOICServer(Server):
 
         resp = message_from_schema(SCHEMA["AccessTokenResponse"],
                                    **by_schema("AccessTokenResponse", **_info))
-        content = resp.to_json()
-        response = Response({"content-type":"application/json"})
+        response = Response()
+        response.headers = {"content-type":"application/json"}
+        response.text = resp.to_json()
 
-        return response, content
+        return response
 
-    def userinfo_endpoint(self, body):
+    def userinfo_endpoint(self, data):
 
-        _ = self.parse_user_info_request(body)
+        _ = self.parse_user_info_request(data)
         _info = {
             "name": "Melody Gardot",
             "nickname": "Mel",
@@ -151,13 +153,14 @@ class MyFakeOICServer(Server):
             }
 
         resp = message_from_schema(SCHEMA["OpenIDSchema"], **_info)
-        content = resp.to_json()
-        response = Response({"content-type":"application/json"})
+        response = Response()
+        response.headers = {"content-type":"application/json"}
+        response.text = resp.to_json()
 
-        return response, content
+        return response
 
-    def registration_endpoint(self, body):
-        req = self.parse_registration_request(body)
+    def registration_endpoint(self, data):
+        req = self.parse_registration_request(data)
 
         client_secret = rndstr()
         expires = utc_time_sans_frac() + self.registration_expires_in
@@ -181,8 +184,11 @@ class MyFakeOICServer(Server):
                                    client_secret=client_secret,
                                    expires_at=expires)
 
-        response = Response({"content-type":"application/json"})
-        return response, resp.to_json()
+        response = Response()
+        response.headers = {"content-type":"application/json"}
+        response.text = resp.to_json()
+
+        return response
 
     def check_session_endpoint(self, query):
         try:
@@ -190,8 +196,10 @@ class MyFakeOICServer(Server):
         except Exception:
             raise
 
-        response = Response({"content-type":"application/json"})
-        return response, idtoken.to_json()
+        response = Response()
+        response.text = idtoken.to_json()
+        response.headers = {"content-type":"application/json"}
+        return response
 
     #noinspection PyUnusedLocal
     def refresh_session_endpoint(self, query):
@@ -204,8 +212,10 @@ class MyFakeOICServer(Server):
                                     client_id="anonymous",
                                     client_secret="hemligt")
 
-        response = Response({"content-type":"application/json"})
-        return response, resp.to_json()
+        response = Response()
+        response.headers = {"content-type":"application/json"}
+        response.text = resp.to_json()
+        return response
 
     def end_session_endpoint(self, query):
         try:
@@ -219,9 +229,11 @@ class MyFakeOICServer(Server):
 
         url = resp.request(req["redirect_url"])
 
-        response = Response({"location":url})
-        response.status = 302  # redirect
-        return response, ""
+        response = Response()
+        response.headers= {"location":url}
+        response.status_code = 302  # redirect
+        response.text = ""
+        return response
 
     #noinspection PyUnusedLocal
     def add_credentials(self, user, passwd):
@@ -246,8 +258,10 @@ class MyFakeOICServer(Server):
             response.status = 401
             return response, ""
         else:
-            response = Response({"content-type":"application/json"})
-            return response, resp.to_json()
+            response = Response()
+            response.headers = {"content-type":"application/json"}
+            response.text = resp.to_json()
+            return response
 
     def swd_server(self, query):
         request = self.parse_issuer_request(query)
@@ -259,11 +273,14 @@ class MyFakeOICServer(Server):
 
         if resp is None:
             response = Response()
-            response.status = 401
-            return response, ""
+            response.status_code = 401
+            response.text = ""
+            return response
         else:
-            response = Response({"content-type":"application/json"})
-            return response, resp.to_json()
+            response = Response()
+            response.headers = {"content-type":"application/json"}
+            response.text = resp.to_json()
+            return response
 
     def openid_conf(self):
         endpoint = {}
@@ -281,6 +298,8 @@ class MyFakeOICServer(Server):
                                                     "token id_token"],
                                    **endpoint)
 
-        response = Response({"content-type":"application/json"})
-        return response, resp.to_json()
+        response = Response()
+        response.headers = {"content-type":"application/json"}
+        response.text = resp.to_json()
+        return response
 

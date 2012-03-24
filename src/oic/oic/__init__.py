@@ -304,7 +304,9 @@ class Client(oauth2.Client):
         if "access_token" in request_args:
             pass
         else:
-            token = self.get_token(scope="openid", **kwargs)
+            if "scope" not in kwargs:
+                kwargs["scope"] = "openid"
+            token = self.get_token(**kwargs)
             if token is None:
                 raise Exception("No valid token available")
 
@@ -439,9 +441,15 @@ class Client(oauth2.Client):
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(url, resp_schema, method, body,
-                                       body_type, state=state,
-                                       http_args=http_args)
+        response = self.request_and_return(url, resp_schema, method, body,
+                                           body_type, state=state,
+                                           http_args=http_args)
+
+#        if isinstance(response, Message):
+#            if "token_endpoint_auth_type" not in response:
+#                response["token_endpoint_auth_type"] = "client_secret_basic"
+
+        return response
 
     def do_check_session_request(self, schema=SCHEMA["CheckSessionRequest"],
                                  scope="",
@@ -569,19 +577,18 @@ class Client(oauth2.Client):
                                                             scope, **kwargs)
 
         try:
-            response, content = self.request(path, method, body,
-                                                   **h_args)
+            resp = self.http_request(path, method, body, **h_args)
         except oauth2.MissingRequiredAttribute:
             raise
 
-        if response.status == 200:
-            assert "application/json" in response["content-type"]
-        elif response.status == 500:
-            raise Exception("ERROR: Something went wrong: %s" % content)
+        if resp.status_code == 200:
+            assert "application/json" in resp.headers["content-type"]
+        elif resp.status_code == 500:
+            raise Exception("ERROR: Something went wrong: %s" % resp.text)
         else:
-            raise Exception("ERROR: Something went wrong [%s]" % response.status)
+            raise Exception("ERROR: Something went wrong [%s]" % resp.status_code)
 
-        return message("OpenIDSchema").from_json(txt=content)
+        return message("OpenIDSchema").from_json(txt=resp.text)
 
 
     def provider_config(self, issuer, keys=True, endpoints=True):
@@ -592,11 +599,11 @@ class Client(oauth2.Client):
 
         url = OIDCONF_PATTERN % _issuer
 
-        (response, content) = self.request(url)
-        if response.status == 200:
-            pcr = message("ProviderConfigurationResponse").from_json(content)
+        r = self.http_request(url)
+        if r.status_code == 200:
+            pcr = message("ProviderConfigurationResponse").from_json(r.text)
         else:
-            raise Exception("%s" % response.status)
+            raise Exception("%s" % r.status_code)
 
         if "issuer" in pcr:
             if pcr["issuer"].endswith("/"):
@@ -663,7 +670,7 @@ class Client(oauth2.Client):
 #noinspection PyMethodOverriding
 class Server(oauth2.Server):
     def __init__(self, jwt_keys=None, ca_certs=None):
-        oauth2.Server.__init__(self, ca_certs, jwt_keys)
+        oauth2.Server.__init__(self, jwt_keys, ca_certs)
 
     def _parse_urlencoded(self, url=None, query=None):
         if url:

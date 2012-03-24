@@ -727,11 +727,14 @@ def add_non_standard(msg1, msg2):
             msg2[key] = val
 
 def message(_type_, **kwargs):
-    try:
-        name = lc_types[_type_.lower()]
-        return Message(name, SCHEMA[name], **kwargs)
-    except KeyError:
-        raise Exception("Unknown message type")
+    if isinstance(_type_, dict):
+        return Message(_type_["name"], _type_, **kwargs)
+    else:
+        try:
+            name = lc_types[_type_.lower()]
+            return Message(name, SCHEMA[name], **kwargs)
+        except KeyError:
+            raise Exception("Unknown message type")
 
 def message_from_schema(schema, **kwargs):
     return Message(schema["name"], schema, **kwargs)

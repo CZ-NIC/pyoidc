@@ -340,27 +340,28 @@ def application(environ, start_response):
 
     #user = environ.get("REMOTE_USER", "")
     path = environ.get('PATH_INFO', '').lstrip('/')
+
+    environ["oic.oas"] = OAS
+    environ["mako.lookup"] = LOOKUP
+
+    LOGGER.info("--- path: %s ---" % path)
+    LOGGER.info("client address: %s" % environ.get("REMOTE_ADDR"))
+    if OAS.debug:
+        LOGGER.info("Environ: %s" % environ)
+
     kaka = environ.get("HTTP_COOKIE", '')
-
-
     if kaka:
         if OAS.debug:
-            LOGGER.debug("Cookie: %s" % (kaka,))
+            LOGGER.info("Cookie: %s" % (kaka,))
         try:
             handle = parse_cookie(OAS.cookie_name, OAS.seed, kaka)
+            if OAS.debug:
+                LOGGER.info("Handle: %s" % (handle,))
         except ValueError:
             handle = ""
     else:
         handle = ""
 
-    if OAS.debug:
-        LOGGER.debug("Environ: %s" % environ)
-
-    environ["oic.oas"] = OAS
-    environ["mako.lookup"] = LOOKUP
-
-    LOGGER.info("path: %s" % path)
-    LOGGER.info("client address: %s" % environ.get("REMOTE_ADDR"))
 
     for regex, callback in URLS:
         match = re.search(regex, path)

@@ -30,12 +30,11 @@ class LOG():
 def start_response(status, headers=None):
     return 
 
+# client_id=None, ca_certs=None,grant_expire_in=600, client_timeout=0,
+# jwt_keys=None
 CLIENT_CONFIG = {
     "client_id": "number5",
     "ca_certs": "/usr/local/etc/oic/ca_certs.txt",
-    "disable_ssl_certificate_validation":False,
-#    "key":None,
-#    "algorithm":"HS256",
     "grant_expire_in":600,
     "client_timeout":0
 }

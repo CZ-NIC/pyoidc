@@ -345,15 +345,17 @@ class TestOICClient():
         self.client.authorization_endpoint = "http://oic.example.org/authorization"
         self.client.client_id = "a1b2c3"
         self.client.state = "state0"
-        self.client.http = MyFakeOICServer(KEYS)
+        mfos = MyFakeOICServer(KEYS)
+        self.client.http_request = mfos.http_request
 
         args = {"response_type":["code"],
                 "scope": ["openid"]}
         result = self.client.do_authorization_request(state=self.client.state,
                                                       request_args=args)
-        assert result.status == 302
-        assert result.location.startswith(self.client.redirect_uris[0])
-        _, query = result.location.split("?")
+        assert result.status_code == 302
+        _loc = result.headers["location"]
+        assert _loc.startswith(self.client.redirect_uris[0])
+        _, query = _loc.split("?")
 
         self.client.parse_response(SCHEMA["AuthorizationResponse"], info=query,
                                    format="urlencoded")
@@ -415,8 +417,8 @@ class TestOICClient():
         resp = self.client.do_end_session_request(request_args=args,
                                                   state="state1")
 
-        assert resp["status"] == 302
-        assert resp["location"].startswith("http://example.com/end")
+        assert resp.status_code == 302
+        assert resp.headers["location"].startswith("http://example.com/end")
 
     def test_do_registration_request(self):
         self.client.registration_endpoint = "https://example.org/registration"

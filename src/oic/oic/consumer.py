@@ -127,8 +127,7 @@ def clean_response(aresp):
 
 
 
-IGNORE = ["request2endpoint", "response2error", "grant_class", "token_class",
-          "http"]
+IGNORE = ["request2endpoint", "response2error", "grant_class", "token_class"]
 
 
 class Consumer(Client):
@@ -436,7 +435,7 @@ class Consumer(Client):
 
     def discovery_query(self, uri, principal):
         try:
-            (response, content) = self.request(uri)
+            rsp = self.http_request(uri)
         except requests.ConnectionError:
             if uri.startswith("http://"): # switch to https
                 location = "https://%s" % uri[7:]
@@ -444,8 +443,8 @@ class Consumer(Client):
             else:
                 raise
 
-        if response.status == 200:
-            result = msg_deser(content, "json", "IssuerResponse")
+        if rsp.status_code == 200:
+            result = msg_deser(rsp.text, "json", "IssuerResponse")
             if "SWD_service_redirect" in result:
                 _loc = result["SWD_service_redirect"]["location"]
                 _uri = message("IssuerRequest", service=ISSUER_URL,
@@ -454,7 +453,7 @@ class Consumer(Client):
             else:
                 return result
         else:
-            raise Exception(response.status)
+            raise Exception(rsp.status_code)
 
     def get_domain(self, principal, idtype="mail"):
         if idtype == "mail":
@@ -499,17 +498,16 @@ class Consumer(Client):
                     pass
 
         headers = {"content-type": "application/x-www-form-urlencoded"}
-        (response, content) = self.request(server, "POST",
-                                                req.to_urlencoded(),
-                                                headers=headers)
+        rsp = self.http_request(server, "POST", req.to_urlencoded(),
+                                headers=headers)
 
-        if response.status == 200:
-            resp = msg_deser(content, "json", "RegistrationResponse")
+        if rsp.status_code == 200:
+            resp = msg_deser(rsp.text, "json", "RegistrationResponse")
             self.client_secret = resp["client_secret"]
             self.client_id = resp["client_id"]
             self.registration_expires = resp["expires_at"]
         else:
-            err = msg_deser(content, "json", "ErrorResponse")
+            err = msg_deser(rsp.text, "json", "ErrorResponse")
             raise Exception("Registration failed: %s" % err.get_json())
 
         return resp
