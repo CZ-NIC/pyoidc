@@ -456,19 +456,35 @@ class Message(object):
 #
 
 #noinspection PyUnusedLocal
-def sp_sep_list_serializer(vals, format="urlencoded", extended=False):
+def list_serializer(vals, format="urlencoded", extended=False):
     if format == "urlencoded":
         return " ".join(vals)
     else:
         return vals
 
 #noinspection PyUnusedLocal
-def sp_sep_list_deserializer(val, format="urlencoded", extended=False):
+def list_deserializer(val, format="urlencoded", extended=False):
     if format == "urlencoded":
         if isinstance(val, basestring):
             return val.split(" ")
         elif isinstance(val, list) and len(val) == 1:
             return val[0].split(" ")
+    else:
+        return val
+
+#noinspection PyUnusedLocal
+def sp_sep_list_serializer(vals, format="urlencoded", extended=False):
+    if isinstance(vals, basestring):
+        return vals
+    else:
+        return " ".join(vals)
+
+#noinspection PyUnusedLocal
+def sp_sep_list_deserializer(val, format="urlencoded", extended=False):
+    if isinstance(val, basestring):
+        return val.split(" ")
+    elif isinstance(val, list) and len(val) == 1:
+        return val[0].split(" ")
     else:
         return val
 
@@ -483,9 +499,13 @@ def json_deserializer(txt, format="urlencoded", extended=False):
 SINGLE_REQUIRED_STRING = (basestring, True, None, None)
 SINGLE_OPTIONAL_STRING = (basestring, False, None, None)
 SINGLE_OPTIONAL_INT = (int, False, None, None)
-OPTIONAL_LIST_OF_STRINGS = ([basestring], False, sp_sep_list_serializer,
+OPTIONAL_LIST_OF_STRINGS = ([basestring], False, list_serializer,
+                                          list_deserializer)
+REQUIRED_LIST_OF_STRINGS = ([basestring], True, list_serializer,
+                                          list_deserializer)
+OPTIONAL_LIST_OF_SP_SEP_STRINGS = ([basestring], False, sp_sep_list_serializer,
                                           sp_sep_list_deserializer)
-REQUIRED_LIST_OF_STRINGS = ([basestring], True,
+REQUIRED_LIST_OF_SP_SEP_STRINGS = ([basestring], True,
                                           sp_sep_list_serializer,
                                           sp_sep_list_deserializer)
 SINGLE_OPTIONAL_JSON = (basestring, False, json_serializer, json_deserializer)
@@ -536,10 +556,10 @@ SCHEMA = {
     },
     "AuthorizationRequest": {
         "param": {
-            "response_type": REQUIRED_LIST_OF_STRINGS,
+            "response_type": REQUIRED_LIST_OF_SP_SEP_STRINGS,
             "client_id": SINGLE_REQUIRED_STRING,
             "redirect_uri": SINGLE_OPTIONAL_STRING,
-            "scope": OPTIONAL_LIST_OF_STRINGS,
+            "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
             "state": SINGLE_OPTIONAL_STRING
         }
     },
@@ -555,7 +575,7 @@ SCHEMA = {
             "token_type": SINGLE_REQUIRED_STRING,
             "expires_in": SINGLE_OPTIONAL_INT,
             "refresh_token": SINGLE_OPTIONAL_STRING,
-            "scope": OPTIONAL_LIST_OF_STRINGS,
+            "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
             "state": SINGLE_OPTIONAL_STRING
         }
     },

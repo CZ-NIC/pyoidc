@@ -8,9 +8,11 @@ from oic.oauth2.message import Message
 from oic.oauth2.message import join_spec
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import SINGLE_OPTIONAL_INT
+from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
+from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
+#from oic.oauth2.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
 
 import json
 
@@ -246,7 +248,7 @@ MSGDEF = {
             "client_id": SINGLE_OPTIONAL_STRING,
             "client_secret": SINGLE_OPTIONAL_STRING,
             "access_token": SINGLE_OPTIONAL_STRING,
-            "contacts": OPTIONAL_LIST_OF_STRINGS,
+            "contacts": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
             "application_type": SINGLE_OPTIONAL_STRING,
             "application_name": SINGLE_OPTIONAL_STRING,
             "logo_url": SINGLE_OPTIONAL_STRING,
@@ -261,9 +263,9 @@ MSGDEF = {
             "user_id_type": SINGLE_OPTIONAL_STRING,
             "require_signed_request_object": SINGLE_OPTIONAL_STRING,
             "userinfo_signed_response_algs": SINGLE_OPTIONAL_STRING,
-            "userinfo_encrypted_response_algs": OPTIONAL_LIST_OF_STRINGS,
+            "userinfo_encrypted_response_algs": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
             "id_token_signed_response_algs": SINGLE_OPTIONAL_STRING,
-            "id_token_encrypted_response_algs": OPTIONAL_LIST_OF_STRINGS,
+            "id_token_encrypted_response_algs": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
 
         },
         "allowed_values": {

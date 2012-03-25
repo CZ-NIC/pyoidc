@@ -501,3 +501,26 @@ def test_request():
                   req_str_list=["game"]).request("http://example.com")
 
     assert req == "http://example.com?req_str=Fair&req_str_list=game"
+
+def test_multiple_response_types():
+    ar = message("AuthorizationRequest", response_type=["code", "token"],
+                 client_id = "foobar")
+    ue = ar.to_urlencoded()
+    print ue
+    assert ue == "response_type=code+token&client_id=foobar"
+
+    are = msg_deser(ue, "urlencoded", "AuthorizationRequest")
+    assert _eq(are.keys(), ["response_type", "client_id"])
+    assert _eq(are["response_type"], ["code", "token"])
+
+def test_multiple_scopes():
+    ar = message("AuthorizationRequest", response_type=["code", "token"],
+                 client_id = "foobar", scope=["openid", "foxtrot"])
+    ue = ar.to_urlencoded()
+    print ue
+    assert ue == "scope=openid+foxtrot&response_type=code+token&client_id=foobar"
+
+    are = msg_deser(ue, "urlencoded", "AuthorizationRequest")
+    assert _eq(are.keys(), ["response_type", "client_id", "scope"])
+    assert _eq(are["response_type"], ["code", "token"])
+    assert _eq(are["scope"], ["openid", "foxtrot"])
