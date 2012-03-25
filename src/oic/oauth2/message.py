@@ -69,7 +69,7 @@ class Message(object):
         for key, val in defaults.items():
             self._dict[key] = val
 
-    def to_urlencoded(self):
+    def to_urlencoded(self, lev=0):
         """
         Creates a string using the application/x-www-form-urlencoded format
 
@@ -98,22 +98,24 @@ class Message(object):
                 params.append((key, str(val)))
             elif isinstance(val, list):
                 if _ser:
-                    params.append((key, str(_ser(val, format="urlencoded"))))
+                    params.append((key, str(_ser(val, format="urlencoded",
+                                                 lev=lev))))
                 else:
                     for item in val:
                         params.append((key, str(item)))
             elif isinstance(val, Message):
-                params.append((key, str(_ser(val, format="urlencoded"))))
+                params.append((key, str(_ser(val, format="urlencoded",
+                                             lev=lev))))
             else:
                 try:
-                    params.append((key, _ser(val)))
+                    params.append((key, _ser(val, lev=lev)))
                 except Exception:
                     params.append((key, str(val)))
 
         return urllib.urlencode(params)
 
-    def serialize(self, method="urlencoded", **kwargs):
-        return getattr(self, "to_%s" % method)(**kwargs)
+    def serialize(self, method="urlencoded", lev=0, **kwargs):
+        return getattr(self, "to_%s" % method)(lev=lev, **kwargs)
 
     def deserialize(self, info, method="urlencoded", **kwargs):
         try:
@@ -175,31 +177,34 @@ class Message(object):
 
         return self
 
-    def to_dict(self):
+    def to_dict(self, lev=0):
         """
         Return a dictionary representation of the class
 
         :return: A dict
         """
+
+        _spec = self._schema["param"]
+
         _res= {}
+        lev += 1
         for key, val in self._dict.items():
+            try:
+                (vtyp, req, _ser, _) = _spec[str(key)]
+            except KeyError:
+                _ser = None
+
+            if _ser:
+                val = _ser(val, "json", lev)
+
             if isinstance(val, Message):
-                _res[key] = val.to_dict()
+                _res[key] = val.to_dict(lev)
             elif isinstance(val, list) and isinstance(val[0], Message):
-                _res[key] = [v.to_dict() for v in val]
+                _res[key] = [v.to_dict(lev) for v in val]
             else:
                 _res[key] = val
 
         return _res
-
-    def to_json(self):
-        """
-        Return a JSON representation of the class instance
-
-        :return: A JSON encoded string
-        """
-
-        return json.dumps(self._dict)
 
     def from_dict(self, dictionary):
         """
@@ -295,13 +300,16 @@ class Message(object):
                 else:
                     self._dict[skey] = val
 
-    def to_json(self):
-        return json.dumps(self.to_dict())
+    def to_json(self, lev=0):
+        if lev:
+            return self.to_dict(lev+1)
+        else:
+            return json.dumps(self.to_dict(lev+1))
 
     def from_json(self, txt):
         return self.from_dict(json.loads(txt))
 
-    def to_jwt(self, key=None, algorithm=""):
+    def to_jwt(self, key=None, algorithm="", lev=0):
         """
         Create a signed JWT representation of the class instance
         draft-jones-json-web-signature-02
@@ -312,7 +320,7 @@ class Message(object):
         """
         if not algorithm:
             algorithm = DEF_SIGN_ALG
-        return jwt.sign(self.to_json(), key, algorithm)
+        return jwt.sign(self.to_json(lev), key, algorithm)
 
 
     def from_jwt(self, txt, key, verify=True):
@@ -456,14 +464,14 @@ class Message(object):
 #
 
 #noinspection PyUnusedLocal
-def list_serializer(vals, format="urlencoded", extended=False):
+def list_serializer(vals, format="urlencoded", lev=0):
     if format == "urlencoded":
         return " ".join(vals)
     else:
         return vals
 
 #noinspection PyUnusedLocal
-def list_deserializer(val, format="urlencoded", extended=False):
+def list_deserializer(val, format="urlencoded"):
     if format == "urlencoded":
         if isinstance(val, basestring):
             return val.split(" ")
@@ -473,14 +481,14 @@ def list_deserializer(val, format="urlencoded", extended=False):
         return val
 
 #noinspection PyUnusedLocal
-def sp_sep_list_serializer(vals, format="urlencoded", extended=False):
+def sp_sep_list_serializer(vals, format="urlencoded", lev=0):
     if isinstance(vals, basestring):
         return vals
     else:
         return " ".join(vals)
 
 #noinspection PyUnusedLocal
-def sp_sep_list_deserializer(val, format="urlencoded", extended=False):
+def sp_sep_list_deserializer(val, format="urlencoded"):
     if isinstance(val, basestring):
         return val.split(" ")
     elif isinstance(val, list) and len(val) == 1:
@@ -489,11 +497,11 @@ def sp_sep_list_deserializer(val, format="urlencoded", extended=False):
         return val
 
 #noinspection PyUnusedLocal
-def json_serializer(obj, format="urlencoded", extended=False):
+def json_serializer(obj, format="urlencoded", lev=0):
     return json.dumps(obj)
 
 #noinspection PyUnusedLocal
-def json_deserializer(txt, format="urlencoded", extended=False):
+def json_deserializer(txt, format="urlencoded"):
     return json.loads(txt)
 
 SINGLE_REQUIRED_STRING = (basestring, True, None, None)

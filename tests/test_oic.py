@@ -1012,18 +1012,6 @@ def test_parse_end_session_request():
 
 def test_parse_open_id_request():
     srv = Server(KEYS)
-    request = srv.parse_open_id_request(data=OIDREQ.to_urlencoded())
-    assert request.type() == "OpenIDRequest"
-    print request.keys()
-    assert _eq(request.keys(),['nonce', 'id_token', 'userinfo', 'state',
-                               'redirect_uri', 'response_type', 'client_id',
-                               'scope'])
-    assert request["state"] == "n-0S6_WzA2Mj"
-
-    print request["userinfo"]
-
-    assert request["userinfo"]["claims"]["nickname"] == {'optional': True}
-
     request = srv.parse_open_id_request(data=OIDREQ.to_json(), format="json")
     assert request.type() == "OpenIDRequest"
     print request.keys()
@@ -1037,19 +1025,3 @@ def test_parse_open_id_request():
     #assert request.userinfo.format == "signed"
     print request["userinfo"]["claims"].to_dict()
     assert "email" in request["userinfo"]["claims"]
-
-    url = "https://example.org/openid?%s" % OIDREQ.to_urlencoded()
-    request = srv.parse_open_id_request(url)
-    assert request.type() == "OpenIDRequest"
-    print request.keys()
-    assert _eq(request.keys(),['nonce', 'id_token', 'userinfo', 'state',
-                               'redirect_uri', 'response_type', 'client_id',
-                               'scope'])
-    assert request["state"] == "n-0S6_WzA2Mj"
-
-    print request["userinfo"]
-
-    #assert request.userinfo.format == "signed"
-    assert request["userinfo"]["claims"]["nickname"] == {"optional": True}
-
-    raises(Exception, 'srv.parse_open_id_request(url, format="base64")')

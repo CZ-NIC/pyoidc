@@ -111,7 +111,7 @@ def test_authz_req_json_1():
     
     js = ar.serialize(method="json")
     print js
-    assert js == '{"response_type": ["code"], "client_id": "foobar"}'
+    assert js == '{"response_type": "code", "client_id": "foobar"}'
 
 def test_authz_req_json_2():
     ar = message("AuthorizationRequest", response_type=["code"], 
@@ -120,7 +120,7 @@ def test_authz_req_json_2():
     
     ue = ar.serialize(method="json")
     print ue
-    assert ue == '{"state": "cold", "redirect_uri": "http://foobar.example.com/oaclient", "response_type": ["code"], "client_id": "foobar"}'
+    assert ue == '{"state": "cold", "redirect_uri": "http://foobar.example.com/oaclient", "response_type": "code", "client_id": "foobar"}'
 
 def test_authz_req_urlencoded_3():
     ar = message("AuthorizationRequest", response_type=["token"], 
@@ -129,7 +129,7 @@ def test_authz_req_urlencoded_3():
     
     ue = ar.serialize(method="json")
     print ue
-    assert ue == '{"state": "xyz", "redirect_uri": "https://client.example.com/cb", "response_type": ["token"], "client_id": "s6BhdRkqt3"}'
+    assert ue == '{"state": "xyz", "redirect_uri": "https://client.example.com/cb", "response_type": "token", "client_id": "s6BhdRkqt3"}'
 
 def test_authz_req_urlencoded_4():
     ar = message("AuthorizationRequest", response_type=["code"], 
@@ -502,7 +502,7 @@ def test_request():
 
     assert req == "http://example.com?req_str=Fair&req_str_list=game"
 
-def test_multiple_response_types():
+def test_multiple_response_types_urlencoded():
     ar = message("AuthorizationRequest", response_type=["code", "token"],
                  client_id = "foobar")
     ue = ar.to_urlencoded()
@@ -513,7 +513,7 @@ def test_multiple_response_types():
     assert _eq(are.keys(), ["response_type", "client_id"])
     assert _eq(are["response_type"], ["code", "token"])
 
-def test_multiple_scopes():
+def test_multiple_scopes_urlencoded():
     ar = message("AuthorizationRequest", response_type=["code", "token"],
                  client_id = "foobar", scope=["openid", "foxtrot"])
     ue = ar.to_urlencoded()
@@ -521,6 +521,30 @@ def test_multiple_scopes():
     assert ue == "scope=openid+foxtrot&response_type=code+token&client_id=foobar"
 
     are = msg_deser(ue, "urlencoded", "AuthorizationRequest")
+    assert _eq(are.keys(), ["response_type", "client_id", "scope"])
+    assert _eq(are["response_type"], ["code", "token"])
+    assert _eq(are["scope"], ["openid", "foxtrot"])
+
+def test_multiple_response_types_json():
+    ar = message("AuthorizationRequest", response_type=["code", "token"],
+                 client_id = "foobar")
+    ue = ar.to_json()
+    print ue
+    assert ue == '{"response_type": "code token", "client_id": "foobar"}'
+
+    are = msg_deser(ue, "json", "AuthorizationRequest")
+    print are.keys()
+    assert _eq(are.keys(), ["response_type", "client_id"])
+    assert _eq(are["response_type"], ["code", "token"])
+
+def test_multiple_scopes_json():
+    ar = message("AuthorizationRequest", response_type=["code", "token"],
+                 client_id = "foobar", scope=["openid", "foxtrot"])
+    ue = ar.to_json()
+    print ue
+    assert ue == '{"scope": "openid foxtrot", "response_type": "code token", "client_id": "foobar"}'
+
+    are = msg_deser(ue, "json", "AuthorizationRequest")
     assert _eq(are.keys(), ["response_type", "client_id", "scope"])
     assert _eq(are["response_type"], ["code", "token"])
     assert _eq(are["scope"], ["openid", "foxtrot"])

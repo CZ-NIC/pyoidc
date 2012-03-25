@@ -52,29 +52,44 @@ def idtoken_deser(val, format="urlencoded"):
     return msg_deser(val, format, "IdToken")
 
 def idtokenclaim_deser(val, format="urlencoded"):
+    if format in ["dict", "json"]:
+        if isinstance(val, basestring):
+            val = json.loads(val)
     return msg_deser(val, format, "IDTokenClaim")
 
 def userinfo_deser(val, format="urlencoded"):
+    if format in ["dict", "json"]:
+        if isinstance(val, basestring):
+            val = json.loads(val)
     return msg_deser(val, format, "UserInfoClaim")
 
 def address_deser(val, format="urlencoded"):
+    if format in ["dict", "json"]:
+        if isinstance(val, basestring):
+            val = json.loads(val)
     return msg_deser(val, format, "AddressClaim")
 
 def claims_deser(val, format="urlencoded"):
+    if format in ["dict", "json"]:
+        if isinstance(val, basestring):
+            val = json.loads(val)
     return msg_deser(val, format, "Claims")
 
 def srvdir_deser(val, format="urlencoded"):
+    if format in ["dict", "json"]:
+        if isinstance(val, basestring):
+            val = json.loads(val)
     return msg_deser(val, format, "SWDServiceRedirect")
 
 def keyobj_list_deser(val_list, format="urlencoded"):
     return [msg_deser(val, format, "JWKKeyObject") for val in val_list]
 
-def msg_ser(inst, format):
+def msg_ser(inst, format, lev=0):
     if format in ["urlencoded", "json"]:
-        res = inst.serialize(format)
+        res = inst.serialize(format, lev)
     elif format == "dict":
         if isinstance(inst, Message):
-            res = inst.serialize(format)
+            res = inst.serialize(format, lev)
         elif isinstance(inst, dict):
             res = inst
         else:
@@ -84,10 +99,10 @@ def msg_ser(inst, format):
 
     return res
 
-def msg_list_ser(insts, format):
-    return [msg_ser(inst, format) for inst in insts]
+def msg_list_ser(insts, format, lev=0):
+    return [msg_ser(inst, format, lev) for inst in insts]
 
-def claims_ser(val, format="urlencoded"):
+def claims_ser(val, format="urlencoded", lev=0):
     # everything in c_extension
     if isinstance(val, basestring):
         item = val
@@ -97,12 +112,15 @@ def claims_ser(val, format="urlencoded"):
         item = val
 
     if isinstance(item, Message):
-        return item.serialize(method=format)
+        return item.serialize(method=format, lev=lev+1)
 
     if format == "urlencoded":
         res = urllib.urlencode(item)
     elif format == "json":
-        res = json.dumps(item)
+        if lev:
+            res = item
+        else:
+            res = json.dumps(item)
     elif format == "dict":
         if isinstance(item, dict):
             res = item
