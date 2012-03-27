@@ -301,9 +301,9 @@ class KeyStore(object):
     url_types = ["x509_url", "x509_encryption_url", "jwk_url",
                  "jwk_encryption_url"]
 
-    def __init__(self, get_page, keyspecs=None):
+    def __init__(self, http_request, keyspecs=None):
         self._store = {}
-        self.get_page = get_page
+        self.http_request = http_request
 
         if keyspecs:
             for keyspec in keyspecs:
@@ -459,17 +459,23 @@ class KeyStore(object):
 
     def load_x509_cert(self, url, usage, owner):
         try:
-            _key = jwt.x509_rsa_loads(self.get_page(url, allow_redirects=True))
-            self.add_key(_key, "rsa", usage, owner)
-            return _key
+            r = self.http_request(url, allow_redirects=True)
+            if r.status_code == 200:
+                _key = jwt.x509_rsa_loads(t.text)
+                self.add_key(_key, "rsa", usage, owner)
+                return _key
+            else:
+                raise Exception("HTTP Get error: %s" % r.status_code)
         except Exception: # not a RSA key
             return None
 
     def load_jwk(self, url, usage, owner):
-        jwk = self.get_page(url, allow_redirects=True)
+        r = self.http_request(url, allow_redirects=True)
+        if r.status_code != 200:
+            raise Exception("HTTP Get error: %s" % r.status_code)
 
         res = []
-        for tag, key in jwt.jwk_loads(jwk).items():
+        for tag, key in jwt.jwk_loads(r.text).items():
             if tag.startswith("rsa"):
                 self.add_key(key, "rsa", usage, owner)
                 res.append(key)
