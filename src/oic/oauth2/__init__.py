@@ -451,17 +451,24 @@ class KeyStore(object):
 
         return keys
 
-    def __contains__(self, item):
-        if item in self._store:
+    def __contains__(self, owner):
+        if owner in self._store:
             return True
         else:
+            return False
+
+    def has_key_of_type(self, owner, usage, type):
+        try:
+            _ = self._store[owner][usage][type]
+            return True
+        except KeyError:
             return False
 
     def load_x509_cert(self, url, usage, owner):
         try:
             r = self.http_request(url, allow_redirects=True)
             if r.status_code == 200:
-                _key = jwt.x509_rsa_loads(t.text)
+                _key = jwt.x509_rsa_loads(r.text)
                 self.add_key(_key, "rsa", usage, owner)
                 return _key
             else:
