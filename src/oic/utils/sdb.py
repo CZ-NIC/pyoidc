@@ -216,7 +216,7 @@ class SessionDB(object):
             dic = self._db[key]
 
             if dic["code_used"]:
-                raise Exception("Already used!!")
+                raise Exception("Access code already used!!")
             _at = self.token("T", token)
             dic["code_used"] = True
         else:
@@ -319,4 +319,10 @@ class SessionDB(object):
 
         return True
 
+    def revoke_all_tokens(self, token):
+        typ, sid = self.token.type_and_key(token)
+
+        _dict = self._db[sid]
+        for key in ["code", "access_token", "refresh_token"]:
+            _dict[key] = ""
 

@@ -210,7 +210,8 @@ class Provider(AProvider):
     def _error(self, environ, start_response, error, descr=None):
         response = message(OA2_SCHEMA["ErrorResponse"], error=error,
                            error_description=descr)
-        resp = Response(response.to_json(), content="application/json")
+        resp = Response(response.to_json(), content="application/json",
+                        status="400 Bad Request")
         return resp(environ, start_response)
 
     def _authz_error(self, environ, start_response, error, descr=None):
@@ -513,7 +514,10 @@ class Provider(AProvider):
             _tinfo = _sdb.update_to_token(areq["code"], id_token=_idtoken)
         except Exception,err:
             _log_info("Error: %s" % err)
-            raise
+            # Should revoke the token issued to this access code
+            _sdb.revoke_all_tokens(areq["code"])
+            return self._error(environ, start_response,
+                               error="access_denied", descr= "%s" % err)
 
         if self.debug:
             _log_info("_tinfo: %s" % _tinfo)

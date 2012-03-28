@@ -160,6 +160,30 @@ def verify_idtoken(self, **kwargs):
 
     return super(self.__class__, self).verify(**kwargs)
 
+
+SCOPE_CHARSET = []
+for set in ['\x21', ('\x23','\x5b'), ('\x5d','\x7E')]:
+    if isinstance(set, tuple):
+        c = set[0]
+        while c <= set[1]:
+            SCOPE_CHARSET.append(c)
+            c = chr(ord(c) + 1)
+    else:
+        SCOPE_CHARSET.append(set)
+
+def check_char_set(str, allowed):
+    for c in str:
+        if c not in allowed:
+            raise ValueError("'%c' not in the allowed character set" % c)
+
+
+def verify_scopes_supported(self, **kwargs):
+    if "scopes_supported" in self:
+        assert "openid" in self["scopes_supported"]
+        for scope in self["scopes_supported"]:
+            check_char_set(scope, SCOPE_CHARSET)
+    return super(self.__class__, self).verify(**kwargs)
+
 # -----------------------------------------------------------------------------
 
 MSGDEF = {
@@ -404,7 +428,8 @@ MSGDEF = {
             "token_endpoint_auth_types_supported": OPTIONAL_LIST_OF_STRINGS,
             "token_endpoint_auth_algs_supported": OPTIONAL_LIST_OF_STRINGS,
         },
-        "default": {"version": "3.0"}
+        "default": {"version": "3.0"},
+        "verify": verify_scopes_supported
     },
     "JWKKeyObject": {
         "param": {
