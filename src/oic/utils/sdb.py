@@ -172,7 +172,8 @@ class SessionDB(object):
             "client_id": areq["client_id"],
             "expires_in": self.grant_expires_in,
             "expires_at": utc_time_sans_frac()+self.grant_expires_in,
-            "issued": time.time()
+            "issued": time.time(),
+            "revoked": False
         }
 
         try:
@@ -222,7 +223,6 @@ class SessionDB(object):
         else:
             dic = self._db[key]
             _at = self.token("T", sid=key)
-
 
         dic["access_token"] = _at
         dic["access_token_scope"] = "?"
@@ -296,6 +296,10 @@ class SessionDB(object):
 
         return True
 
+    def is_revoked(self, sid):
+        #typ, sid = self.token.type_and_key(token)
+        return self[sid]["revoked"]
+
 #    def set_oir(self, key, oir):
 #        self._db[key] = oir.dictionary()
 #
@@ -322,7 +326,5 @@ class SessionDB(object):
     def revoke_all_tokens(self, token):
         typ, sid = self.token.type_and_key(token)
 
-        _dict = self._db[sid]
-        for key in ["code", "access_token", "refresh_token"]:
-            _dict[key] = ""
+        self._db[sid]["revoked"] = True
 

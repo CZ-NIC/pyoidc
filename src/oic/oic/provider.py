@@ -491,6 +491,10 @@ class Provider(AProvider):
         assert areq["grant_type"] == "authorization_code"
 
         # assert that the code is valid
+        if self.sdb.is_revoked(areq["code"]):
+            return self._error(environ, start_response,
+                               error="access_denied", descr="Token is revoked")
+
         _info = _sdb[areq["code"]]
 
         # If redirect_uri was in the initial authorization request
@@ -579,7 +583,11 @@ class Provider(AProvider):
             raise AuthnFailure("Wrong type of token")
 
         #logger.info("keys: %s" % self.sdb.keys())
+        if self.sdb.is_revoked(key):
+            return self._error(environ, start_response, error="access_denied",
+                               descr="Token is revoked")
         session = self.sdb[key]
+
         # Scope can translate to userinfo_claims
 
         uic = {}
@@ -850,6 +858,10 @@ class Provider(AProvider):
                 # Use the session identifier to find the session information
                 b64scode = dic["sid"][0]
                 scode = base64.b64decode(b64scode)
+                if self.sdb.is_revoked(scode):
+                    return self._error(environ, start_response,
+                                       error="access_denied",
+                                       descr="Token is revoked")
                 asession = self.sdb[scode]
             except KeyError:
                 resp = BadRequest("Could not find session")
@@ -890,6 +902,11 @@ class Provider(AProvider):
                 "none" in areq["response_type"]:
             pass
         else:
+            if self.sdb.is_revoked(scode):
+                return self._error(environ, start_response,
+                                   error="access_denied",
+                                   descr="Token is revoked")
+
             _sinfo = self.sdb[scode]
 
             try:
