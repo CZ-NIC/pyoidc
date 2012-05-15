@@ -1,4 +1,4 @@
-from oic.oic import message
+from oic.utils.jwt import rsa_load
 
 __author__ = 'rohe0002'
 
@@ -8,13 +8,24 @@ import urllib
 
 from oic.oauth2 import rndstr
 
+from oic.oic.message import AuthorizationRequest
+from oic.oic.message import OpenIDSchema
+from oic.oic.message import AccessTokenResponse
+from oic.oic.message import AccessTokenRequest
+from oic.oic.message import TokenErrorResponse
+from oic.oic.message import AuthorizationResponse
+from oic.oic.message import UserInfoRequest
+from oic.oic.message import CheckSessionRequest
+from oic.oic.message import RegistrationRequest
+from oic.oic.message import IdToken
+from oic.oic.message import RegistrationResponse
+
 from oic.utils.sdb import SessionDB
 from oic.oic import Client
 
 from oic.oic.consumer import Consumer
 from oic.oic.provider import Provider
 from oic.oic.provider import get_post
-from oic.oic.message import  msg_deser, SCHEMA
 
 #from oic.oic.provider import update_info
 from oic.oauth2.provider import AuthnFailure
@@ -77,11 +88,15 @@ BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
+rsapub = rsa_load("../oc3/certs/mycert.key")
+
 KEYS = [
     [CLIENT_SECRET, "hmac", "verify", CLIENT_ID],
     [CLIENT_SECRET, "hmac", "sign", CLIENT_ID],
     ["drickyoughurt", "hmac", "verify", "number5"],
     ["drickyoughurt", "hmac", "sign", "number5"],
+    [rsapub, "rsa", "sign", "."],
+    [rsapub, "rsa", "verify", "."]
 ]
 
 #SIGN_KEY = {"hmac": ["abcdefghijklmnop"]}
@@ -109,7 +124,8 @@ CDB = {
 def start_response(status, headers=None):
     return
 
-def do_authentication(environ, start_response, bsid):
+#noinspection PyUnusedLocal
+def do_authentication(environ, start_response, bsid, cookie):
     resp = http_util.Response("<form>%s</form>" % bsid)
     return resp(environ, start_response)
 
@@ -180,7 +196,7 @@ def user_info(oicsrv, userdb, user_id, client_id, user_info):
             else:
                 raise Exception("Missing property '%s'" % key)
 
-    return message("OpenIDSchema", **result)
+    return OpenIDSchema(**result)
 
 class LOG():
     def info(self, txt):
@@ -260,7 +276,7 @@ def test_server_authorization_endpoint():
            "client_id": "a1b2c3",
            "nonce": "Nonce"}
 
-    arq = message("AuthorizationRequest", **bib)
+    arq = AuthorizationRequest(**bib)
 
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = arq.to_urlencoded()
@@ -427,9 +443,9 @@ def test_server_authenticated_none():
 def test_token_endpoint():
     server = provider_init
 
-    authreq = message("AuthorizationRequest", state="state",
-                      redirect_uri="http://example.com/authz",
-                      client_id=CLIENT_ID)
+    authreq = AuthorizationRequest(state="state",
+                                   redirect_uri="http://example.com/authz",
+                                   client_id=CLIENT_ID)
 
     _sdb = server.sdb
     sid = _sdb.token.key(user="user_id", areq=authreq)
@@ -446,10 +462,9 @@ def test_token_endpoint():
     }
 
     # Construct Access token request
-    areq = message("AccessTokenRequest", code=access_grant,
-                   client_id=CLIENT_ID,
-                   redirect_uri="http://example.com/authz",
-                   client_secret=CLIENT_SECRET)
+    areq = AccessTokenRequest(code=access_grant, client_id=CLIENT_ID,
+                              redirect_uri="http://example.com/authz",
+                              client_secret=CLIENT_SECRET)
 
 
     str = areq.to_urlencoded()
@@ -461,7 +476,7 @@ def test_token_endpoint():
 
     resp = server.token_endpoint(environ, start_response, LOG())
     print resp
-    atr = msg_deser(resp[0], "json", schema=SCHEMA["AccessTokenResponse"])
+    atr = AccessTokenResponse().deserialize(resp[0], "json")
     print atr.keys()
     assert _eq(atr.keys(), ['token_type', 'id_token', 'access_token', 'scope',
                             'expires_in', 'refresh_token'])
@@ -469,9 +484,9 @@ def test_token_endpoint():
 def test_token_endpoint_unauth():
     server = provider_init
 
-    authreq = message("AuthorizationRequest", state="state",
-                      redirect_uri="http://example.com/authz",
-                      client_id="client1")
+    authreq = AuthorizationRequest(state="state",
+                                   redirect_uri="http://example.com/authz",
+                                   client_id="client1")
 
     _sdb = server.sdb
     sid = _sdb.token.key(user="user_id", areq=authreq)
@@ -488,9 +503,9 @@ def test_token_endpoint_unauth():
     }
 
     # Construct Access token request
-    areq = message("AccessTokenRequest", code=access_grant,
-                   redirect_uri="http://example.com/authz",
-                   client_id="client1", client_secret="secret",)
+    areq = AccessTokenRequest(code=access_grant,
+                              redirect_uri="http://example.com/authz",
+                              client_id="client1", client_secret="secret",)
 
 
     str = areq.to_urlencoded()
@@ -502,7 +517,7 @@ def test_token_endpoint_unauth():
 
     resp = server.token_endpoint(environ, start_response, LOG())
     print resp
-    atr = msg_deser(resp[0] ,"json", schema=SCHEMA["TokenErrorResponse"])
+    atr = TokenErrorResponse().deserialize(resp[0] ,"json")
     print atr.keys()
     assert _eq(atr.keys(), ['error'])
 
@@ -527,10 +542,9 @@ def test_authz_endpoint():
 
 def test_idtoken():
     server = provider_init
-    AREQ = message("AuthorizationRequest", response_type="code",
-                   client_id=CLIENT_ID,
-                   redirect_uri="http://example.com/authz", scope=["openid"],
-                   state="state000")
+    AREQ = AuthorizationRequest(response_type="code", client_id=CLIENT_ID,
+                                redirect_uri="http://example.com/authz",
+                                scope=["openid"], state="state000")
 
     sid = server.sdb.create_authz_session("user_id", AREQ)
     session = server.sdb[sid]
@@ -569,17 +583,15 @@ def test_userinfo_endpoint():
     path, query = line[start:stop].split("?")
 
     # redirect
-    atr = msg_deser(query, "urlencoded",
-                    schema=SCHEMA["AuthorizationResponse"])
+    atr = AuthorizationResponse().deserialize(query, "urlencoded")
 
-    uir = message("UserInfoRequest", access_token=atr["access_token"],
-                  schema="openid")
+    uir = UserInfoRequest(access_token=atr["access_token"], schema="openid")
 
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = uir.to_urlencoded()
 
     resp3 = server.userinfo_endpoint(environ, start_response, LOG())
-    ident = msg_deser(resp3[0], "json", schema=SCHEMA["OpenIDSchema"])
+    ident = OpenIDSchema().deserialize(resp3[0], "json")
     print ident.keys()
     assert _eq(ident.keys(), ['nickname', 'user_id', 'name', 'email'])
     assert ident["user_id"] == USERDB["user"]["user_id"]
@@ -592,13 +604,13 @@ def test_check_session_endpoint():
 
     session = {"user_id": "UserID", "client_id": "number5"}
     idtoken = server._id_token(session)
-    csr = message("CheckSessionRequest", id_token=idtoken)
+    csr = CheckSessionRequest(id_token=idtoken)
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = csr.to_urlencoded()
 
     info = server.check_session_endpoint(environ, start_response, LOG())
     print info
-    idt = msg_deser(info[0], "json", schema=SCHEMA["IdToken"])
+    idt = IdToken().deserialize(info[0], "json")
     print idt.keys()
     assert _eq(idt.keys(), ['user_id', 'aud', 'iss', 'acr', 'exp'])
     assert idt["iss"] == server.name
@@ -606,7 +618,7 @@ def test_check_session_endpoint():
 def test_registration_endpoint():
     server = provider_init
 
-    req = message("RegistrationRequest", type="client_associate")
+    req = RegistrationRequest(type="client_associate")
 
     req["application_type"] = "web"
     req["application_name"] = "My super service"
@@ -619,13 +631,13 @@ def test_registration_endpoint():
     resp = server.registration_endpoint(environ, start_response, LOG())
 
     print resp
-    regresp = msg_deser(resp[0], "json", schema=SCHEMA["RegistrationResponse"])
+    regresp = RegistrationResponse().deserialize(resp[0], "json")
     print regresp.keys()
     assert _eq(regresp.keys(), ['client_secret', 'expires_at', 'client_id'])
 
     # --- UPDATE ----
 
-    req = message("RegistrationRequest", type="client_update")
+    req = RegistrationRequest(type="client_update")
     req["client_id"] = regresp["client_id"]
     req["client_secret"] = regresp["client_secret"]
 
@@ -635,7 +647,16 @@ def test_registration_endpoint():
     resp = server.registration_endpoint(environ, start_response, LOG())
 
     print resp
-    update = msg_deser(resp[0], "json", schema=SCHEMA["RegistrationResponse"])
+    update = RegistrationResponse().deserialize(resp[0], "json")
     print update.keys()
     assert _eq(update.keys(), ['client_secret', 'expires_at', 'client_id'])
     assert update["client_secret"] != regresp["client_secret"]
+
+def test_provider_key_setup():
+    provider = Provider("pyoicserv", SessionDB(), None, None, None)
+    provider.baseurl = "http://www.example.com/"
+    provider.key_setup("static", sign={"format": "jwk", "alg": "rsa"})
+
+    keys = provider.keystore.get_sign_key("rsa")
+    assert len(keys) == 1
+    assert provider.jwk[0] == "http://www.example.com/static/jwk.json"

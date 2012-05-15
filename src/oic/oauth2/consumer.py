@@ -10,8 +10,7 @@ from oic.utils import http_util
 from oic.oauth2 import Client
 from oic.oauth2 import Grant
 from oic.oauth2 import rndstr
-from oic.oauth2.message import SCHEMA
-from oic.oauth2.message import Message
+from oic.oauth2.message import *
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint", "userinfo_endpoint",
              "check_id_endpoint", "registration_endpoint",
@@ -183,7 +182,7 @@ class Consumer(Client):
         self._backup(sid)
         self.sdb["seed:%s" % self.seed] = sid
 
-        location = self.request_info(SCHEMA["AuthorizationRequest"],
+        location = self.request_info(AuthorizationRequest,
                                      method="GET", scope=self.scope,
                                      request_args={"state": sid})[0]
 
@@ -218,7 +217,7 @@ class Consumer(Client):
         if "code" in self.response_type:
             # Might be an error response
             try:
-                aresp = self.parse_response(SCHEMA["AuthorizationResponse"],
+                aresp = self.parse_response(AuthorizationResponse,
                                             info=_query, format="urlencoded")
             except Exception, err:
                 logger.error("%s" % err)
@@ -237,7 +236,7 @@ class Consumer(Client):
 
             return aresp
         else: # implicit flow
-            atr = self.parse_response(SCHEMA["AccessTokenResponse"],
+            atr = self.parse_response(AccessTokenResponse,
                                       info=_query, format="urlencoded",
                                       extended=True)
 
@@ -287,7 +286,7 @@ class Consumer(Client):
 
         request_args, http_args = self.client_auth_info()
 
-        url, body, ht_args, csi = self.request_info(SCHEMA["AccessTokenRequest"],
+        url, body, ht_args, csi = self.request_info(AccessTokenRequest,
                                                     request_args=request_args,
                                                     state=self.state)
 

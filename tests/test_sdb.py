@@ -6,23 +6,24 @@ from pytest import raises
 
 from oic.utils.sdb import SessionDB
 from oic.utils.sdb import ExpiredToken
-from oic.oic.message import message
+from oic.oic.message import AuthorizationRequest
+from oic.oic.message import OpenIDRequest
 
 #from oic.oauth2 import message
 
-AREQ = message("AuthorizationRequest", response_type="code",
+AREQ = AuthorizationRequest(response_type="code",
                client_id="client1", redirect_uri="http://example.com/authz",
                scope=["openid"], state="state000")
 
-AREQN = message("AuthorizationRequest", response_type="code",
+AREQN = AuthorizationRequest(response_type="code",
                 client_id="client1", redirect_uri="http://example.com/authz",
                 scope=["openid"], state="state000", nonce="something")
 
-OIDR = message("OpenIDRequest", response_type="code", client_id="client1",
+OIDR = OpenIDRequest(response_type="code", client_id="client1",
                redirect_uri="http://example.com/authz", scope=["openid"],
                state="state000")
 
-OAUTH2_AREQ = message("AuthorizationRequest", response_type="code",
+OAUTH2_AREQ = AuthorizationRequest(response_type="code",
                       client_id="client1",
                       redirect_uri="http://example.com/authz",
                       scope=["openid"], state="state000")
@@ -145,7 +146,8 @@ def test_update_to_token():
                               'token_type', 'client_id', 'authzreq',
                               'refresh_token', 'user_id', 'access_token',
                               'expires_in', 'state', 'redirect_uri',
-                              'code_used', 'scope', 'access_token_scope'])
+                              'code_used', 'scope', 'access_token_scope',
+                              'revoked'])
 
     raises(Exception, 'sdb.update_to_token(grant)')
 
@@ -162,7 +164,7 @@ def test_update_to_token():
                               'refresh_token', 'user_id', 'oidreq',
                               'access_token', 'expires_in', 'state',
                               'redirect_uri', 'code_used', 'id_token',
-                              'scope', 'access_token_scope'])
+                              'scope', 'access_token_scope', 'revoked'])
 
     assert _dict["id_token"] == "id_token"
     assert _dict["oidreq"].type() == "OpenIDRequest"

@@ -16,8 +16,7 @@ from oic.utils import time_util
 from oic.oauth2 import Client
 from oic.oauth2 import Server
 from oic.oauth2 import Token
-from oic.oauth2.message import message
-from oic.oauth2.message import SCHEMA
+from oic.oauth2.message import *
 
 from oic.utils.sdb import Crypt
 
@@ -28,12 +27,11 @@ def _eq(l1, l2):
 
 # ----------------- GRANT --------------------
 
-acc_tok_resp = message("AccessTokenResponse",
-    access_token="2YotnFZFEjr1zCsicMWpAA",
-    token_type="example",
-    refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
-    example_parameter="example_value",
-    scope=["inner", "outer"])
+ACC_TOK_RESP = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
+                                   token_type="example",
+                                   refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
+                                   example_parameter="example_value",
+                                   scope=["inner", "outer"])
 
 def test_grant():
     grant = Grant()
@@ -44,7 +42,7 @@ def test_grant():
     assert grant.exp_in == 60
 
 def test_grant_from_code():
-    ar = message("AuthorizationResponse", code="code", state="state")
+    ar = AuthorizationResponse(code="code", state="state")
 
     grant = Grant.from_code(ar)
 
@@ -52,7 +50,7 @@ def test_grant_from_code():
     assert grant.code == "code"
 
 def test_grant_add_code():
-    ar = message("AuthorizationResponse", code="code", state="state")
+    ar = AuthorizationResponse(code="code", state="state")
 
     grant = Grant()
     grant.add_code(ar)
@@ -60,7 +58,7 @@ def test_grant_add_code():
     assert grant.code == "code"
 
 def test_grant_update():
-    ar = message("AuthorizationResponse", code="code", state="state")
+    ar = AuthorizationResponse(code="code", state="state")
 
     grant = Grant()
     grant.update(ar)
@@ -69,7 +67,7 @@ def test_grant_update():
     assert grant.code == "code"
 
 def test_grant_set():
-    ar = message("AuthorizationResponse", code="code", state="state")
+    ar = AuthorizationResponse(code="code", state="state")
 
     grant = Grant.from_code(ar)
 
@@ -79,7 +77,7 @@ def test_grant_set():
 def test_grant_add_token():
 
     grant = Grant()
-    grant.update(acc_tok_resp)
+    grant.update(ACC_TOK_RESP)
 
     assert len(grant.tokens) == 1
     token = grant.tokens[0]
@@ -89,7 +87,7 @@ def test_grant_add_token():
     assert token.refresh_token == "tGzv3JOkF0XG5Qx2TlKWIA"
 
 def test_grant_set_3():
-    err = message("ErrorResponse", error="invalid_request")
+    err = ErrorResponse(error="invalid_request")
     grant = Grant()
     grant.update(err)
 
@@ -138,7 +136,7 @@ class TestOAuthClient():
 
     def test_parse_authz_resp_url(self):
         url = "https://client.example.com/cb?code=SplxlOBeZQQYbYS6WxSbIA&state=ghi"
-        aresp = self.client.parse_response(SCHEMA["AuthorizationResponse"],
+        aresp = self.client.parse_response(AuthorizationResponse,
                                            info=url, format="urlencoded")
 
         assert aresp["code"] == "SplxlOBeZQQYbYS6WxSbIA"
@@ -150,7 +148,7 @@ class TestOAuthClient():
 
     def test_parse_authz_resp_query(self):
         query = "code=SplxlOBeZQQYbYS6WxSbIA&state=hij"
-        aresp = self.client.parse_response(SCHEMA["AuthorizationResponse"],
+        aresp = self.client.parse_response(AuthorizationResponse,
                                            info=query, format="urlencoded")
 
         assert aresp["code"] == "SplxlOBeZQQYbYS6WxSbIA"
@@ -163,7 +161,7 @@ class TestOAuthClient():
 
     def test_parse_authz_resp_query_multi_scope(self):
         query = "code=SplxlOBeZQQYbYS6WxAAAA&state=klm"
-        aresp = self.client.parse_response(SCHEMA["AuthorizationResponse"],
+        aresp = self.client.parse_response(AuthorizationResponse,
                                            info=query, format="urlencoded")
 
         assert aresp["code"] == "SplxlOBeZQQYbYS6WxAAAA"
@@ -177,7 +175,7 @@ class TestOAuthClient():
 
     def test_parse_authz_resp_query_unknown_parameter(self):
         query = "code=SplxlOBeZQQYbYS6WxSbIA&state=xyz&foo=bar"
-        aresp = self.client.parse_response(SCHEMA["AuthorizationResponse"],
+        aresp = self.client.parse_response(AuthorizationResponse,
                                            info=query, format="urlencoded")
 
         assert aresp["code"] == "SplxlOBeZQQYbYS6WxSbIA"
@@ -241,7 +239,7 @@ class TestOAuthClient():
        "example_parameter":"example_value"
      }"""
 
-        self.client.parse_response(SCHEMA["AccessTokenResponse"],
+        self.client.parse_response(AccessTokenResponse,
                                    info="".join([
                                    x.strip() for x in jso.split("\n")]))
 
@@ -269,6 +267,7 @@ class TestOAuthClient():
         # Uses refresh_token from previous response
         atr = self.client.construct_RefreshAccessTokenRequest(token=token)
 
+        print atr.to_dict()
         assert atr.type() == "RefreshAccessTokenRequest"
         assert atr["grant_type"] == "refresh_token"
         assert atr["refresh_token"] == "tGzv3JOkF0XG5Qx2TlKWIA"
@@ -279,9 +278,8 @@ class TestOAuthClient():
         self.client.grant["foo"].code = "access_code"
 
         print self.client.grant["foo"]
-        resp = message("AccessTokenResponse",
-                       refresh_token = "refresh_with_me",
-                       access_token = "access")
+        resp = AccessTokenResponse(refresh_token = "refresh_with_me",
+                                   access_token = "access")
 
         self.client.grant["foo"].tokens.append(Token(resp))
         # Uses refresh_token from previous response
@@ -294,7 +292,7 @@ class TestOAuthClient():
     def test_parse_authz_err_response(self):
         ruri = "https://client.example.com/cb?error=access_denied&amp;state=xyz"
 
-        resp = self.client.parse_response(SCHEMA["AuthorizationResponse"],
+        resp = self.client.parse_response(AuthorizationResponse,
                                           info=ruri, format="urlencoded")
 
         print type(resp), resp
@@ -327,8 +325,7 @@ class TestOAuthClient():
 
     def test_request_info_simple(self):
         self.client.authorization_endpoint = "https://example.com/authz"
-        uri, body, h_args, cis = self.client.request_info(
-                                                SCHEMA["AuthorizationRequest"])
+        uri, body, h_args, cis = self.client.request_info(AuthorizationRequest)
 
         # default == "POST"
         assert uri == 'https://example.com/authz'
@@ -339,7 +336,7 @@ class TestOAuthClient():
     def test_request_info_simple_get(self):
         #self.client.authorization_endpoint = "https://example.com/authz"
         uri, body, h_args, cis = self.client.request_info(
-                                                SCHEMA["AuthorizationRequest"],
+                                                AuthorizationRequest,
                                                 method="GET")
 
         assert uri == 'https://example.com/authz?redirect_uri=http%3A%2F%2Fclient.example.com%2Fauthz&response_type=code&client_id=1'
@@ -350,7 +347,7 @@ class TestOAuthClient():
     def test_request_info_simple_get_with_req_args(self):
         #self.client.authorization_endpoint = "https://example.com/authz"
         uri, body, h_args, cis = self.client.request_info(
-                                                SCHEMA["AuthorizationRequest"],
+                                                AuthorizationRequest,
                                                 method="GET",
                                                 request_args={"state":"init"})
 
@@ -363,7 +360,7 @@ class TestOAuthClient():
     def test_request_info_simple_get_with_extra_args(self):
         #self.client.authorization_endpoint = "https://example.com/authz"
         uri, body, h_args, cis = self.client.request_info(
-                                                SCHEMA["AuthorizationRequest"],
+                                                AuthorizationRequest,
                                                 method="GET",
                                                 extra_args={"rock":"little"})
 
@@ -376,7 +373,7 @@ class TestOAuthClient():
     def test_request_info_with_req_and_extra_args(self):
         #self.client.authorization_endpoint = "https://example.com/authz"
         uri, body, h_args, cis = self.client.request_info(
-            SCHEMA["AuthorizationRequest"],
+            AuthorizationRequest,
             method="GET",
             request_args={"state":"init"},
             extra_args={"rock":"little"})
@@ -407,7 +404,7 @@ def test_get_authorization_request():
     assert ar["response_type"] == ['code']
 
 def test_get_access_token_request():
-    resp = message("AuthorizationResponse", code="code", state="state")
+    resp = AuthorizationResponse(code="code", state="state")
     grant = Grant(1)
     grant.add_code(resp)
 
@@ -422,13 +419,13 @@ def test_get_access_token_request():
 def test_parse_access_token_response():
     client = Client()
 
-    at = message("AccessTokenResponse", access_token="SlAV32hkKG",
+    at = AccessTokenResponse(access_token="SlAV32hkKG",
                  token_type="Bearer", refresh_token="8xLOxBtZp8",
                  expire_in=3600)
 
     atj = at.to_json()
 
-    ATR = SCHEMA["AccessTokenResponse"]
+    ATR = AccessTokenResponse
     atr = client.parse_response(ATR, info=atj)
 
     assert _eq(atr.keys(), ['access_token', 'token_type', u'expire_in',
@@ -447,7 +444,7 @@ def test_parse_access_token_response():
     assert _eq(uatr.keys(), ['access_token', 'token_type', 'expire_in',
                              'refresh_token'])
 
-    err = message("ErrorResponse", error="invalid_request",
+    err = ErrorResponse(error="invalid_request",
                         error_description="Something was missing",
                         error_uri="http://example.com/error_message.html")
 
@@ -467,7 +464,7 @@ def test_parse_access_token_response():
 
 #noinspection PyUnusedLocal
 def test_parse_access_token_response_missing_attribute():
-    at = message("AccessTokenResponse", access_token="SlAV32hkKG",
+    at = AccessTokenResponse(access_token="SlAV32hkKG",
                  token_type="Bearer", refresh_token="8xLOxBtZp8",
                  expire_in=3600)
 
@@ -476,7 +473,7 @@ def test_parse_access_token_response_missing_attribute():
     atj = json.dumps(atdict)
     print atj
     client = Client()
-    ATR = SCHEMA["AccessTokenResponse"]
+    ATR = AccessTokenResponse
 
     try:
         client.parse_response(ATR, info=atj)
@@ -531,7 +528,7 @@ def test_grant_init():
     assert grant.grant_expiration_time == 0
 
 def test_grant_resp():
-    resp = message("AuthorizationResponse", code="code", state="state")
+    resp = AuthorizationResponse(code="code", state="state")
     grant = Grant()
     grant.add_code(resp)
 
@@ -550,11 +547,11 @@ def test_grant_resp():
 
 
 def test_grant_access_token_1():
-    resp = message("AuthorizationResponse", code="code", state="state")
+    resp = AuthorizationResponse(code="code", state="state")
     grant = Grant()
     grant.add_code(resp)
 
-    atr = message("AccessTokenResponse", access_token="2YotnFZFEjr1zCsicMWpAA",
+    atr = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
                   token_type="example", expires_in=1,
                   refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
                   example_parameter="example_value", xscope=["inner", "outer"])
@@ -582,16 +579,15 @@ def test_grant_access_token_1():
     assert token.is_valid() == False
 
 def test_grant_access_token_2():
-    resp = message("AuthorizationResponse", code="code", state="state")
+    resp = AuthorizationResponse(code="code", state="state")
     grant = Grant()
     grant.add_code(resp)
 
-    atr = message("AccessTokenResponse",
-        access_token="2YotnFZFEjr1zCsicMWpAA",
-        token_type="example",
-        refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
-        example_parameter="example_value",
-        scope=["inner", "outer"])
+    atr = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
+                              token_type="example",
+                              refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
+                              example_parameter="example_value",
+                              scope=["inner", "outer"])
 
     grant.add_token(atr)
 
@@ -605,7 +601,7 @@ def test_grant_access_token_2():
 def test_client_get_grant():
     cli = Client()
 
-    resp = message("AuthorizationResponse", code="code", state="state")
+    resp = AuthorizationResponse(code="code", state="state")
     grant = Grant()
     grant.add_code(resp)
 
@@ -626,7 +622,7 @@ def test_client_parse_args():
         "state":"state",
         }
 
-    ar_args = cli._parse_args(SCHEMA["AuthorizationRequest"], **args)
+    ar_args = cli._parse_args(AuthorizationRequest, **args)
 
     assert _eq(ar_args.keys(), ['scope', 'state', 'redirect_uri',
                                 'response_type', 'client_id'])
@@ -642,7 +638,7 @@ def test_client_parse_extra_args():
         "state":"state",
         "extra_session": "home"
     }
-    ar_args = cli._parse_args(SCHEMA["AuthorizationRequest"], **args)
+    ar_args = cli._parse_args(AuthorizationRequest, **args)
 
     assert _eq(ar_args.keys(), ['state', 'redirect_uri', 'response_type',
                                 'client_id', 'scope', 'extra_session'])
@@ -671,10 +667,10 @@ def test_client_endpoint():
 
 def test_server_parse_parse_authorization_request():
     srv = Server()
-    ar = message("AuthorizationRequest", response_type=["code"],
-                 client_id="foobar",
-                 redirect_uri="http://foobar.example.com/oaclient",
-                 state="cold")
+    ar = AuthorizationRequest(response_type=["code"],
+                              client_id="foobar",
+                              redirect_uri="http://foobar.example.com/oaclient",
+                              state="cold")
 
     uencq = ar.to_urlencoded()
 
@@ -698,7 +694,7 @@ def test_server_parse_parse_authorization_request():
 
 def test_server_parse_jwt_request():
     srv = Server()
-    ar = message("AuthorizationRequest", response_type=["code"],
+    ar = AuthorizationRequest(response_type=["code"],
                  client_id="foobar",
                  redirect_uri="http://foobar.example.com/oaclient",
                  state="cold")
@@ -718,7 +714,7 @@ def test_server_parse_jwt_request():
     assert req["state"] == "cold"
 
 def test_server_parse_token_request():
-    atr = message("AccessTokenRequest", grant_type="authorization_code",
+    atr = AccessTokenRequest(grant_type="authorization_code",
                   code="SplxlOBeZQQYbYS6WxSbIA",
                   redirect_uri="https://client.example.com/cb", extra="foo")
 
@@ -743,7 +739,7 @@ def test_server_parse_token_request():
     assert tr["extra"] == "foo"
 
 def test_server_parse_refresh_token_request():
-    ratr = message("RefreshAccessTokenRequest", refresh_token="ababababab",
+    ratr = RefreshAccessTokenRequest(refresh_token="ababababab",
                    client_id="Client_id")
 
     uenc = ratr.to_urlencoded()
@@ -760,8 +756,7 @@ def test_client_secret_post():
     client = Client("A")
     client.client_secret = "boarding pass"
 
-    cis = message("AccessTokenRequest",code="foo",
-                  redirect_uri="http://example.com")
+    cis = AccessTokenRequest(code="foo", redirect_uri="http://example.com")
 
     http_args = oauth2.client_secret_post(client, cis)
 
@@ -771,8 +766,7 @@ def test_client_secret_post():
     print http_args
     assert http_args is None
 
-    cis = message("AccessTokenRequest", code="foo",
-                  redirect_uri="http://example.com")
+    cis = AccessTokenRequest(code="foo", redirect_uri="http://example.com")
 
     request_args = {}
     http_args = oauth2.client_secret_post(client, cis, request_args,
@@ -791,7 +785,7 @@ def test_bearer_header():
 
     request_args = {"access_token": "Sesame"}
 
-    cis = message("ResourceRequest")
+    cis = ResourceRequest()
 
     http_args = oauth2.bearer_header(client, cis, request_args)
 
@@ -805,27 +799,27 @@ def test_bearer_body():
 
     request_args = {"access_token": "Sesame"}
 
-    cis = message("ResourceRequest")
+    cis = ResourceRequest()
     http_args = oauth2.bearer_body(client, cis, request_args)
     assert cis["access_token"] == "Sesame"
     print http_args
     assert http_args is None
 
     # ----------
-    resp = message("AuthorizationResponse", code="code", state="state")
+    resp = AuthorizationResponse(code="code", state="state")
     grant = Grant()
     grant.add_code(resp)
 
-    atr = message("AccessTokenResponse",
-                  access_token="2YotnFZFEjr1zCsicMWpAA", token_type="example",
-                  refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
-                  example_parameter="example_value",
-                  scope=["inner", "outer"])
+    atr = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
+                              token_type="example",
+                              refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
+                              example_parameter="example_value",
+                              scope=["inner", "outer"])
 
     grant.add_token(atr)
     client.grant["state"] = grant
 
-    cis = message("ResourceRequest")
+    cis = ResourceRequest()
     http_args = oauth2.bearer_body(client, cis, {}, state="state",
                                    scope="inner")
     assert cis["access_token"] == "2YotnFZFEjr1zCsicMWpAA"

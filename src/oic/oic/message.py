@@ -1,20 +1,18 @@
 __author__ = 'rohe0002'
 
 import urllib
-
-from oic.oauth2.message import SCHEMA as OA2_SCHEMA
-
-from oic.oauth2.message import Message
-from oic.oauth2.message import join_spec
-from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import SINGLE_OPTIONAL_INT
-from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
-from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
-from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
-#from oic.oauth2.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
-
 import json
+
+from oic.oauth2 import message
+from oic.oauth2.message import Message
+from oic.oauth2.message import SINGLE_OPTIONAL_STRING
+from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
+from oic.oauth2.message import SINGLE_REQUIRED_STRING
+from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
+from oic.oauth2.message import SINGLE_OPTIONAL_INT
+from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
+
+from oic.utils import jwt
 
 #noinspection PyUnusedLocal
 def json_ser(val, format=None):
@@ -24,65 +22,48 @@ def json_ser(val, format=None):
 def json_deser(val, format=None):
     return json.loads(val)
 
-SINGLE_OPTIONAL_JWT = SINGLE_OPTIONAL_STRING
+SINGLE_OPTIONAL_JWT = message.SINGLE_OPTIONAL_STRING
 SINGLE_OPTIONAL_BOOLEAN = (bool, False, None, None)
 SINGLE_OPTIONAL_JSON = (dict, False, json_ser, json_deser)
 SINGLE_REQUIRED_INT = (int, True, None, None)
 
 
-def message(_type_, **kwargs):
-    try:
-        if isinstance(_type_, basestring):
-            _name = lc_types[_type_.lower()]
-            m = Message(_name, SCHEMA[lc_types[_type_.lower()]], **kwargs)
-        else:
-            m = Message(_type_["name"], _type_, **kwargs)
-        return m
-    except KeyError:
-        raise Exception("Unknown message type")
-
-def msg_deser(val, format, typ="", schema=None, **kwargs):
-    if typ:
-        return message(typ).deserialize(val, format, **kwargs)
-    else:
-        return Message(schema["name"], schema).deserialize(val, format,
-                                                           **kwargs)
 
 def idtoken_deser(val, format="urlencoded"):
-    return msg_deser(val, format, "IdToken")
+    return IdToken().deserialize(val, format)
 
 def idtokenclaim_deser(val, format="urlencoded"):
     if format in ["dict", "json"]:
         if isinstance(val, basestring):
             val = json.loads(val)
-    return msg_deser(val, format, "IDTokenClaim")
+    return IDTokenClaim().deserialize(val, format)
 
 def userinfo_deser(val, format="urlencoded"):
     if format in ["dict", "json"]:
         if isinstance(val, basestring):
             val = json.loads(val)
-    return msg_deser(val, format, "UserInfoClaim")
+    return UserInfoClaim().deserialize(val, format)
 
 def address_deser(val, format="urlencoded"):
     if format in ["dict", "json"]:
         if isinstance(val, basestring):
             val = json.loads(val)
-    return msg_deser(val, format, "AddressClaim")
+    return AddressClaim().deserialize(val, format)
 
 def claims_deser(val, format="urlencoded"):
     if format in ["dict", "json"]:
         if isinstance(val, basestring):
             val = json.loads(val)
-    return msg_deser(val, format, "Claims")
+    return Claims().deserialize(val, format)
 
 def srvdir_deser(val, format="urlencoded"):
     if format in ["dict", "json"]:
         if isinstance(val, basestring):
             val = json.loads(val)
-    return msg_deser(val, format, "SWDServiceRedirect")
+    return SWDServiceRedirect().deserialize(val, format)
 
 def keyobj_list_deser(val_list, format="urlencoded"):
-    return [msg_deser(val, format, "JWKKeyObject") for val in val_list]
+    return [JWKKeyObject().deserialize(val, format) for val in val_list]
 
 def msg_ser(inst, format, lev=0):
     if format in ["urlencoded", "json"]:
@@ -142,24 +123,6 @@ SINGLE_OPTIONAL_SERVICE_REDIRECT = (Message, True, msg_ser, srvdir_deser)
 
 # ----------------------------------------------------------------------------
 
-def verify_id_token(self, **kwargs):
-    if self.id_token:
-        # Try to decode the JWT, checks the signature
-        idt = message("IdToken").from_jwt(str(self.id_token), kwargs["key"])
-        if not idt.verify(**kwargs):
-            return False
-
-    return super(self.__class__, self).verify(**kwargs)
-
-def verify_idtoken(self, **kwargs):
-    if self.aud:
-        if "client_id" in kwargs:
-            # check that it's for me
-            if self.aud != kwargs["client_id"]:
-                return False
-
-    return super(self.__class__, self).verify(**kwargs)
-
 
 SCOPE_CHARSET = []
 for set in ['\x21', ('\x23','\x5b'), ('\x5d','\x7E')]:
@@ -177,91 +140,128 @@ def check_char_set(str, allowed):
             raise ValueError("'%c' not in the allowed character set" % c)
 
 
-def verify_scopes_supported(self, **kwargs):
-    if "scopes_supported" in self:
-        assert "openid" in self["scopes_supported"]
-        for scope in self["scopes_supported"]:
-            check_char_set(scope, SCOPE_CHARSET)
-    return super(self.__class__, self).verify(**kwargs)
 
 # -----------------------------------------------------------------------------
 
-MSGDEF = {
-    "": {"param": {}},
-    "AccessTokenResponse": {
-        "param": {
-            "id_token": SINGLE_OPTIONAL_STRING,
-            },
-        "parent": [OA2_SCHEMA["AccessTokenResponse"]]
-    },
-    "RefreshAccessTokenRequest": {
-        "param": {},
-        "parent": [OA2_SCHEMA["RefreshAccessTokenRequest"]]
-    },
-    "UserInfoRequest": {
-        "param": {
-            "access_token": SINGLE_OPTIONAL_STRING,
-            "schema": SINGLE_OPTIONAL_STRING,
-            "id": SINGLE_OPTIONAL_STRING,
-        }
-    },
-    "AuthorizationResponse": {
-        "param": {
-            "code": SINGLE_OPTIONAL_STRING,
-            "nonce": SINGLE_OPTIONAL_STRING,
-            "access_token": SINGLE_OPTIONAL_STRING,
-            "token_type": SINGLE_OPTIONAL_STRING,
-        },
-        "parent": [OA2_SCHEMA["AuthorizationResponse"], "AccessTokenResponse"],
-        "verify": verify_id_token,
-    },
-    "AuthorizationErrorResponse": {
-        "param": {},
-        "parent": [OA2_SCHEMA["AuthorizationErrorResponse"]],
-        "allowed_values": {
-            "error": ["invalid_request_redirect_uri", "interaction_required",
-                      "invalid_request_uri", "invalid_openid_request_object"]
-        }
-    },
-    "TokenErrorResponse": {
-        "param": {},
-        "parent": [OA2_SCHEMA["TokenErrorResponse"]],
-    },
-    "AuthorizationRequest": {
-        "param": {
-            "request": SINGLE_OPTIONAL_JWT,
-            #"request_uri": SINGLE_OPTIONAL_STRING,
-            "display": SINGLE_OPTIONAL_STRING,
-            "prompt": OPTIONAL_LIST_OF_STRINGS,
-            "nonce": SINGLE_REQUIRED_STRING
-        },
-        "parent": [OA2_SCHEMA["AuthorizationRequest"]],
-        "allowed_values": {
-            "display": ["page", "popup", "touch", "wap", "embedded"],
+class RefreshAccessTokenRequest(message.RefreshAccessTokenRequest):
+    pass
+
+class TokenErrorResponse(message.TokenErrorResponse):
+    pass
+
+class AccessTokenResponse(message.AccessTokenResponse):
+    c_param = message.AccessTokenResponse.c_param.copy()
+    c_param.update({"id_token": message.SINGLE_OPTIONAL_STRING})
+
+    def verify(self, **kwargs):
+        if "id_token" in self:
+            # Try to decode the JWT, checks the signature
+            idt = IdToken().from_jwt(str(self["id_token"]), kwargs["key"])
+            if not idt.verify(**kwargs):
+                return False
+
+        return super(self.__class__, self).verify(**kwargs)
+
+
+class UserInfoRequest(Message):
+    c_param = {"access_token": SINGLE_OPTIONAL_STRING,
+               "schema": SINGLE_OPTIONAL_STRING,
+               "id": SINGLE_OPTIONAL_STRING}
+
+class AuthorizationResponse(message.AuthorizationResponse,
+                            message.AccessTokenResponse):
+
+    c_param = message.AuthorizationResponse.c_param.copy()
+    c_param.update(message.AccessTokenResponse.c_param)
+    c_param.update({
+        "code": SINGLE_OPTIONAL_STRING,
+        "nonce": SINGLE_OPTIONAL_STRING,
+        "access_token": SINGLE_OPTIONAL_STRING,
+        "token_type": SINGLE_OPTIONAL_STRING,
+        "id_token": SINGLE_OPTIONAL_JWT
+    })
+
+    def verify(self, **kwargs):
+        if "aud" in self:
+            if "client_id" in kwargs:
+                # check that it's for me
+                if self["aud"] != kwargs["client_id"]:
+                    return False
+
+        if "id_token" in self:
+            # Try to decode the JWT, checks the signature
+            idt = IdToken().from_jwt(str(self["id_token"]), kwargs["key"])
+            if not idt.verify(**kwargs):
+                return False
+
+            hfunc = "HS"+ jwt.unpack(self["id_token"])[0]["alg"][-3:]
+
+            if "access_token" in self:
+                try:
+                    assert "at_hash" in idt
+                except AssertionError:
+                    raise Exception("Missing at_hash property")
+                try:
+                    assert idt["at_hash"] == jwt.left_hash(
+                        self["access_token"], hfunc )
+                except AssertionError:
+                    raise Exception("Failed to verify access_token hash")
+
+            if "code" in self:
+                try:
+                    assert "c_hash" in idt
+                except AssertionError:
+                    raise Exception("Missing c_hash property")
+                try:
+                    assert idt["c_hash"] == jwt.left_hash(self["code"], hfunc)
+                except AssertionError:
+                    raise Exception("Failed to verify code hash")
+
+
+        return super(self.__class__, self).verify(**kwargs)
+
+class AuthorizationErrorResponse(message.AuthorizationErrorResponse):
+    c_allowed_values = message.AuthorizationErrorResponse.c_allowed_values.copy()
+    c_allowed_values["error"].extend(["invalid_request_redirect_uri",
+                                      "interaction_required",
+                                      "invalid_request_uri",
+                                      "invalid_openid_request_object"])
+
+
+class AuthorizationRequest(message.AuthorizationRequest):
+    c_param = message.AuthorizationRequest.c_param.copy()
+    c_param.update({"request": SINGLE_OPTIONAL_JWT,
+                    #"request_uri": SINGLE_OPTIONAL_STRING,
+                    "display": SINGLE_OPTIONAL_STRING,
+                    "prompt": OPTIONAL_LIST_OF_STRINGS,
+                    "nonce": SINGLE_OPTIONAL_STRING,
+                    "id_token": SINGLE_OPTIONAL_JWT
+                })
+    c_allowed_values = message.AuthorizationRequest.c_allowed_values.copy()
+    c_allowed_values = {
+            "display": ["page", "popup", "touch", "wap"],
             "prompt": ["none", "login", "consent", "select_account"]
         }
-    },
-    "AccessTokenRequest": {
-        "param": {
-            "client_id": SINGLE_REQUIRED_STRING,
-            "client_secret": SINGLE_OPTIONAL_STRING,
-            "client_assertion_type": SINGLE_OPTIONAL_STRING,
-            "client_assertion": SINGLE_OPTIONAL_STRING
-        },
-        "parent": [OA2_SCHEMA["AccessTokenRequest"]],
-    },
-    "AddressClaim": {
-        "param": {
+
+class AccessTokenRequest(message.AccessTokenRequest):
+    c_param = message.AccessTokenRequest.c_param.copy()
+    c_param.update({"client_id": SINGLE_REQUIRED_STRING,
+                    "client_secret": SINGLE_OPTIONAL_STRING,
+                    "client_assertion_type": SINGLE_OPTIONAL_STRING,
+                    "client_assertion": SINGLE_OPTIONAL_STRING})
+
+class AddressClaim(Message):
+    c_param = {
             "formatted": SINGLE_OPTIONAL_STRING,
             "street_address": SINGLE_OPTIONAL_STRING,
             "locality": SINGLE_OPTIONAL_STRING,
             "region": SINGLE_OPTIONAL_STRING,
             "postal_code": SINGLE_OPTIONAL_STRING,
             "country": SINGLE_OPTIONAL_STRING,
-        },
-    },
-    "OpenIDSchema": {
-        "param": {
+        }
+
+class OpenIDSchema(Message):
+    c_param= {
             "user_id": SINGLE_OPTIONAL_STRING,
             "name": SINGLE_OPTIONAL_STRING,
             "given_name": SINGLE_OPTIONAL_STRING,
@@ -282,10 +282,11 @@ MSGDEF = {
             "updated_time": SINGLE_OPTIONAL_STRING,
             "_claim_names": SINGLE_OPTIONAL_JSON,
             "_claim_sources": SINGLE_OPTIONAL_JSON,
-        },
-    },
-    "RegistrationRequest": {
-        "param": {
+        }
+
+
+class RegistrationRequest(Message):
+    c_param = {
             "type": SINGLE_REQUIRED_STRING,
             "client_id": SINGLE_OPTIONAL_STRING,
             "client_secret": SINGLE_OPTIONAL_STRING,
@@ -305,106 +306,93 @@ MSGDEF = {
             "user_id_type": SINGLE_OPTIONAL_STRING,
             "require_signed_request_object": SINGLE_OPTIONAL_STRING,
             "userinfo_signed_response_algs": SINGLE_OPTIONAL_STRING,
-            "userinfo_encrypted_response_algs": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+            "userinfo_encrypted_response_alg": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+            "userinfo_encrypted_response_enc": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+            "userinfo_encrypted_response_int": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
             "id_token_signed_response_algs": SINGLE_OPTIONAL_STRING,
-            "id_token_encrypted_response_algs": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+            "id_token_encrypted_response_alg": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+            "id_token_encrypted_response_enc": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+            "id_token_encrypted_response_int": OPTIONAL_LIST_OF_SP_SEP_STRINGS}
 
-        },
-        "allowed_values": {
+    c_allowed_values = {
             "type" : ["client_associate", "client_update"],
             "application_type": ["native", "web"]
         }
 
-    },
-    "RegistrationResponse": {
-        "param": {
-            "client_id": SINGLE_REQUIRED_STRING,
-            "client_secret": SINGLE_REQUIRED_STRING,
-            "expires_at": SINGLE_REQUIRED_INT,
-        },
-    },
-    "ClientRegistrationErrorResponse": {
-        "param": {},
-        "parent": [OA2_SCHEMA["ErrorResponse"]],
-        "allowed_values": {
-            "error": ["invalid_type", "invalid_client_id",
-                      "invalid_client_secret",
-                      "invalid_configuration_parameter"]
-        }
-    },
-    "IdToken": {
-        "param": {
-            "iss": SINGLE_REQUIRED_STRING,
-            "user_id": SINGLE_REQUIRED_STRING,
-            "aud": SINGLE_REQUIRED_STRING,
-            "exp": SINGLE_REQUIRED_INT,
-            "acr": SINGLE_OPTIONAL_STRING,
-            "nonce": SINGLE_OPTIONAL_STRING,
-            "auth_time": SINGLE_OPTIONAL_INT,
-        },
-        "verify": verify_idtoken
-    },
-    "RefreshSessionRequest": {
-        "param": {
+class RegistrationResponse(Message):
+    c_param = {"client_id": SINGLE_REQUIRED_STRING,
+               "client_secret": SINGLE_REQUIRED_STRING,
+               "expires_at": SINGLE_REQUIRED_INT}
+
+class ClientRegistrationErrorResponse(message.ErrorResponse):
+    c_allowed_values= {"error":["invalid_type", "invalid_client_id",
+                                       "invalid_client_secret",
+                                       "invalid_configuration_parameter"]}
+
+class IdToken(Message):
+    c_param = {"iss": SINGLE_REQUIRED_STRING,
+               "user_id": SINGLE_REQUIRED_STRING,
+               "aud": SINGLE_REQUIRED_STRING,
+               "exp": SINGLE_REQUIRED_INT,
+               "acr": SINGLE_OPTIONAL_STRING,
+               "nonce": SINGLE_OPTIONAL_STRING,
+               "auth_time": SINGLE_OPTIONAL_INT,
+               "at_hash": SINGLE_OPTIONAL_STRING,
+               "c_hash": SINGLE_OPTIONAL_STRING}
+
+    def verify(self, **kwargs):
+        if "aud" in self:
+            if "client_id" in kwargs:
+                # check that it's for me
+                if self["aud"] != kwargs["client_id"]:
+                    return False
+
+        return super(self.__class__, self).verify(**kwargs)
+
+class RefreshSessionRequest(Message):
+    c_param = {"id_token": SINGLE_REQUIRED_STRING,
+               "redirect_url": SINGLE_REQUIRED_STRING,
+               "state": SINGLE_REQUIRED_STRING}
+
+class RefreshSessionResponse(Message):
+    c_param = {"id_token": SINGLE_REQUIRED_STRING,
+               "state": SINGLE_REQUIRED_STRING}
+
+class CheckSessionRequest(Message):
+    c_param = {"id_token": SINGLE_REQUIRED_STRING}
+
+class CheckIDRequest(Message):
+    c_param = {"access_token": SINGLE_REQUIRED_STRING}
+
+class EndSessionRequest(Message):
+    c_param = {
             "id_token": SINGLE_REQUIRED_STRING,
             "redirect_url": SINGLE_REQUIRED_STRING,
-            "state": SINGLE_REQUIRED_STRING
-        },
-    },
-    "RefreshSessionResponse": {
-        "param": {
-            "id_token": SINGLE_REQUIRED_STRING,
-            "state": SINGLE_REQUIRED_STRING
-        },
-    },
-    "CheckSessionRequest": {
-        "param": {
-            "id_token": SINGLE_REQUIRED_STRING,
-        },
-    },
-    "CheckIDRequest": {
-        "param": {
-            "access_token": SINGLE_REQUIRED_STRING,
-        },
-    },
-    "EndSessionRequest": {
-        "param": {
-            "id_token": SINGLE_REQUIRED_STRING,
-            "redirect_url": SINGLE_REQUIRED_STRING,
-            "state": SINGLE_REQUIRED_STRING
-        },
-    },
-    "EndSessionResponse": {
-        "param": {
-            "state": SINGLE_REQUIRED_STRING
-        },
-    },
-    "Claims": {
-        "param": {"*": SINGLE_OPTIONAL_JSON }
-    },
-    "UserInfoClaim": {
-        "param": {
-            "claims": OPTIONAL_MULTIPLE_Claims,
-            "preferred_locale": SINGLE_OPTIONAL_STRING
-        }
-    },
-    "IDTokenClaim": {
-        "param": {
-            "claims": OPTIONAL_MULTIPLE_Claims,
-            "max_age": SINGLE_OPTIONAL_INT
-        }
-    },
-    "OpenIDRequest": {
-        "param": {
-            "userinfo": SINGLE_OPTIONAL_USERINFO_CLAIM,
-            "id_token": SINGLE_OPTIONAL_ID_TOKEN_CLAIM,
-            "iss": SINGLE_OPTIONAL_STRING,
-            "aud": SINGLE_OPTIONAL_STRING,
-        },
-        "parent": ["AuthorizationRequest"]
-    },
-    "ProviderConfigurationResponse": {
-        "param": {
+            "state": SINGLE_REQUIRED_STRING}
+
+class EndSessionResponse(Message):
+    c_param = {"state": SINGLE_REQUIRED_STRING}
+
+class Claims(Message):
+    c_param = {"*": SINGLE_OPTIONAL_JSON}
+
+class UserInfoClaim(Message):
+    c_param = {"claims": OPTIONAL_MULTIPLE_Claims,
+               "preferred_locale": SINGLE_OPTIONAL_STRING}
+
+class IDTokenClaim(Message):
+    c_param = {"claims": OPTIONAL_MULTIPLE_Claims,
+               "max_age": SINGLE_OPTIONAL_INT}
+
+class OpenIDRequest(message.AuthorizationRequest):
+    c_param = message.AuthorizationRequest.c_param.copy()
+    c_param.update({"userinfo": SINGLE_OPTIONAL_USERINFO_CLAIM,
+                    "id_token": SINGLE_OPTIONAL_ID_TOKEN_CLAIM,
+                    "iss": SINGLE_OPTIONAL_STRING,
+                    "aud": SINGLE_OPTIONAL_STRING})
+
+class ProviderConfigurationResponse(Message):
+    c_param = {
             "version": SINGLE_OPTIONAL_STRING,
             "issuer": SINGLE_OPTIONAL_STRING,
             "authorization_endpoint": SINGLE_OPTIONAL_STRING,
@@ -426,58 +414,53 @@ MSGDEF = {
             "id_token_algs_supported": OPTIONAL_LIST_OF_STRINGS,
             "request_object_algs_supported": OPTIONAL_LIST_OF_STRINGS,
             "token_endpoint_auth_types_supported": OPTIONAL_LIST_OF_STRINGS,
-            "token_endpoint_auth_algs_supported": OPTIONAL_LIST_OF_STRINGS,
-        },
-        "default": {"version": "3.0"},
-        "verify": verify_scopes_supported
-    },
-    "JWKKeyObject": {
-        "param": {
-            "algorithm": SINGLE_REQUIRED_STRING,
-            "use": SINGLE_OPTIONAL_STRING,
-            "keyid": SINGLE_OPTIONAL_STRING,
-        }
-    },
-    "JWKEllipticKeyObject": {
-        "param": {
-            "curve": SINGLE_REQUIRED_STRING,
-            "x": SINGLE_OPTIONAL_STRING,
-            "y": SINGLE_OPTIONAL_STRING
-        },
-        "parent": ["JWKKeyObject"],
-        "default": {"algorithm": "EC"}
-    },
-    "JWKRSAKeyObject": {
-        "param": {
-            "exponent": SINGLE_REQUIRED_STRING,
-            "modulus": SINGLE_OPTIONAL_STRING
-        },
-        "parent": ["JWKKeyObject"],
-        "default": {"algorithm": "RSA"}
-    },
-    "JWKContainerObject":{
-        "param": {"keyvalues": REQUIRED_LIST_OF_KEYOBJECTS}
-    },
-    "IssuerRequest":{
-        "param": {
-            "service": SINGLE_REQUIRED_STRING,
-            "principal": SINGLE_REQUIRED_STRING,
-        }
-    },
-    "SWDServiceRedirect":{
-        "param": {
-            "location": SINGLE_REQUIRED_STRING,
-            "expires": SINGLE_OPTIONAL_INT
-        }
-    },
-    "IssuerResponse":{
-        "param": {
-            "locations": OPTIONAL_LIST_OF_STRINGS,
-            "SWD_service_redirect": SINGLE_OPTIONAL_SERVICE_REDIRECT
-        }
-    },
-    "AuthnToken":{
-        "param": {
+            "token_endpoint_auth_algs_supported": OPTIONAL_LIST_OF_STRINGS}
+    c_default = {"version": "3.0"}
+
+    def verify(self, **kwargs):
+        if "scopes_supported" in self:
+            assert "openid" in self["scopes_supported"]
+            for scope in self["scopes_supported"]:
+                check_char_set(scope, SCOPE_CHARSET)
+
+        return super(self.__class__, self).verify(**kwargs)
+
+
+class JWKKeyObject(Message):
+    c_param = {"algorithm": SINGLE_REQUIRED_STRING,
+               "use": SINGLE_OPTIONAL_STRING, "keyid": SINGLE_OPTIONAL_STRING}
+
+class JWKEllipticKeyObject(JWKKeyObject):
+    c_param = JWKKeyObject.c_param.copy()
+    c_param.update({"curve": SINGLE_REQUIRED_STRING,
+                    "x": SINGLE_OPTIONAL_STRING,
+                    "y": SINGLE_OPTIONAL_STRING})
+
+    c_default = {"algorithm": "EC"}
+
+class JWKRSAKeyObject(JWKKeyObject):
+    c_param = JWKKeyObject.c_param.copy()
+    c_param.update({"exponent": SINGLE_REQUIRED_STRING,
+                    "modulus": SINGLE_OPTIONAL_STRING})
+    c_default = {"algorithm": "RSA"}
+
+class JWKContainerObject(Message):
+    c_param = {"keyvalues": REQUIRED_LIST_OF_KEYOBJECTS}
+
+class IssuerRequest(Message):
+    c_param = {"service": SINGLE_REQUIRED_STRING,
+               "principal": SINGLE_REQUIRED_STRING}
+
+class SWDServiceRedirect(Message):
+    c_param = {"location": SINGLE_REQUIRED_STRING,
+               "expires": SINGLE_OPTIONAL_INT}
+
+class IssuerResponse(Message):
+    c_param = {"locations": OPTIONAL_LIST_OF_STRINGS,
+               "SWD_service_redirect": SINGLE_OPTIONAL_SERVICE_REDIRECT}
+
+class AuthnToken(Message):
+    c_param = {
             "iss": SINGLE_REQUIRED_STRING,
             "prn": SINGLE_REQUIRED_STRING,
             "aud": SINGLE_REQUIRED_STRING,
@@ -485,47 +468,20 @@ MSGDEF = {
             "exp": SINGLE_REQUIRED_INT,
             "iat": SINGLE_OPTIONAL_INT
         }
-    },
-    "UserInfoErrorResponse":{
-        "param": {},
-        "allowed_values": {"error": ["invalid_schema", "invalid_request",
-                                     "invalid_token", "insufficient_scope"]
-        },
-        "parent": [OA2_SCHEMA["ErrorResponse"]]
-    },
-    "DiscoveryRequest": {
-        "param": {
-            "principal": SINGLE_REQUIRED_STRING,
-            "service": SINGLE_REQUIRED_STRING
-        }
-    },
-    "DiscoveryResponse": {
-        "param": {
-            "locations": REQUIRED_LIST_OF_STRINGS
-        }
-    }
-}
 
-def inherit(spec, parent):
-    for p in parent:
-        if isinstance(p, dict):
-            _spec = p
-        else:
-            _spec = MSGDEF[p]
-        spec = join_spec(spec, _spec)
+class UserInfoErrorResponse(message.ErrorResponse):
+    c_allowed_values = {"error": ["invalid_schema", "invalid_request",
+                                     "invalid_token", "insufficient_scope"]}
 
-    return spec
+class DiscoveryRequest(Message):
+    c_param = {"principal": SINGLE_REQUIRED_STRING,
+               "service": SINGLE_REQUIRED_STRING}
 
-SCHEMA = {}
-for key, _spec in MSGDEF.items():
-    if "parent" in _spec:
-        SCHEMA[key] = inherit(_spec, _spec["parent"])
-    else:
-        SCHEMA[key] = _spec
-    SCHEMA[key]["mod"] = __name__
-    SCHEMA[key]["name"] = key
+class DiscoveryResponse(Message):
+    c_param = {"locations": REQUIRED_LIST_OF_STRINGS}
 
-lc_types = dict((x.lower(), x) for x in SCHEMA.keys())
+class ResourceRequest(Message):
+    c_param = {"access_token": SINGLE_OPTIONAL_STRING}
 
 SCOPE2CLAIMS = {
     "openid": ["user_id"],
@@ -537,16 +493,65 @@ SCOPE2CLAIMS = {
     "phone": ["phone_number"]
 }
 
+MSG = {
+    "RefreshAccessTokenRequest" : RefreshAccessTokenRequest,
+    "TokenErrorResponse" :TokenErrorResponse,
+    "AccessTokenResponse": AccessTokenResponse,
+    "UserInfoRequest": UserInfoRequest,
+    "AuthorizationResponse" : AuthorizationResponse,
+    "AuthorizationErrorResponse" : AuthorizationErrorResponse,
+    "AuthorizationRequest": AuthorizationRequest,
+    "AccessTokenRequest" : AccessTokenRequest,
+    "AddressClaim": AddressClaim,
+    "OpenIDSchema": OpenIDSchema,
+    "RegistrationRequest": RegistrationRequest,
+    "RegistrationResponse" : RegistrationResponse,
+    "ClientRegistrationErrorResponse": ClientRegistrationErrorResponse,
+    "IdToken": IdToken,
+    "RefreshSessionRequest": RefreshSessionRequest,
+    "RefreshSessionResponse": RefreshSessionResponse,
+    "CheckSessionRequest": CheckSessionRequest,
+    "CheckIDRequest": CheckIDRequest,
+    "EndSessionRequest": EndSessionRequest,
+    "EndSessionResponse": EndSessionResponse,
+    "Claims": Claims,
+    "UserInfoClaim": UserInfoClaim,
+    "IDTokenClaim": IDTokenClaim,
+    "OpenIDRequest": OpenIDRequest,
+    "ProviderConfigurationResponse": ProviderConfigurationResponse,
+    "JWKKeyObject": JWKKeyObject,
+    "JWKEllipticKeyObject": JWKEllipticKeyObject,
+    "JWKRSAKeyObject": JWKRSAKeyObject,
+    "JWKContainerObject": JWKContainerObject,
+    "IssuerRequest": IssuerRequest,
+    "SWDServiceRedirect": SWDServiceRedirect,
+    "IssuerResponse": IssuerResponse,
+    "AuthnToken": AuthnToken,
+    "UserInfoErrorResponse": UserInfoErrorResponse,
+    "DiscoveryRequest": DiscoveryRequest,
+    "DiscoveryResponse": DiscoveryResponse,
+    "ResourceRequest": ResourceRequest
+}
+
+def factory(msgtype):
+    try:
+        return MSG[msgtype]
+    except KeyError:
+        if msgtype == "ErrorResponse":
+            return message.ErrorResponse
+        else:
+            raise Exception("Unknown message type: %s" % msgtype)
+
 if __name__ == "__main__":
-    atr = message("AccessTokenResponse", access_token="access_token",
-                  token_type="token_type")
+    atr = AccessTokenResponse(access_token="access_token",
+                              token_type="token_type")
     print atr
     print atr.verify()
 
-    atr = message("AccessTokenRequest", code="code", client_id="client_id",
-                  redirect_uri="redirect_uri")
+    atr = AccessTokenRequest(code="code", client_id="client_id",
+                             redirect_uri="redirect_uri")
     print atr
     print atr.verify()
     uue = atr.serialize()
-    atr = msg_deser("AccessTokenRequest", uue, "urlencoded")
+    atr = AccessTokenRequest().deserialize(uue, "urlencoded")
     print atr

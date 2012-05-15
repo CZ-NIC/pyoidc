@@ -1,17 +1,19 @@
-from oic.oauth2 import message
-
 __author__ = 'rohe0002'
 
 import sys
 import StringIO
 import urllib
 
+from oic.oauth2.message import AuthorizationRequest
+from oic.oauth2.message import AccessTokenRequest
+from oic.oauth2.message import AccessTokenResponse
+from oic.oauth2.message import TokenErrorResponse
+
 from oic.utils import sdb, http_util
 from oic.oauth2 import rndstr
 from oic.oauth2.consumer import Consumer
 from oic.oauth2.provider import Provider, get_post
 from oic.oauth2.provider import AuthnFailure
-from oic.oauth2.message import  msg_deser
 
 CLIENT_CONFIG = {
     "client_id": "number5",
@@ -25,7 +27,7 @@ CONSUMER_CONFIG = {
     "authz_page": "/authz",
     "flow_type": "code",
     #"password": args.passwd,
-    "scope": ["openid"],
+    "scope": [],
     "response_type": "code",
     #"expire_in": 600,
 }
@@ -189,7 +191,7 @@ def test_provider_authorization_endpoint():
            "response_type": ["code"],
            "client_id": "a1b2c3"}
 
-    arq = message("AuthorizationRequest", **bib)
+    arq = AuthorizationRequest(**bib)
 
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = arq.to_urlencoded()
@@ -276,7 +278,7 @@ def test_provider_authenticated_1():
     location = cons.begin(environ, start_response, LOG())
 
     environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = location
+    environ["QUERY_STRING"] = location.split("?")[1]
 
     _ = provider.authorization_endpoint(environ, start_response, LOG())
 
@@ -299,7 +301,7 @@ def test_provider_authenticated_token():
     location = cons.begin(environ, start_response, LOG())
 
     environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = location
+    environ["QUERY_STRING"] = location.split("?")[1]
 
     resp = provider.authorization_endpoint(environ, start_response, LOG())
 
@@ -325,7 +327,7 @@ def test_provider_authenticated_none():
     location = cons.begin(environ, start_response, LOG())
 
     environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = location
+    environ["QUERY_STRING"] = location.split("?")[1]
 
     resp = provider.authorization_endpoint(environ, start_response, LOG())
 
@@ -349,9 +351,9 @@ def test_provider_authenticated_none():
 def test_token_endpoint():
     provider = Provider("pyoicserv", sdb.SessionDB(), CDB, FUNCTIONS)
 
-    authreq = message("AuthorizationRequest", state="state",
-                      redirect_uri="http://example.com/authz",
-                      client_id="client1")
+    authreq = AuthorizationRequest(state="state",
+                                   redirect_uri="http://example.com/authz",
+                                   client_id="client1")
 
     _sdb = provider.sdb
     sid = _sdb.token.key(user="user_id", areq=authreq)
@@ -367,8 +369,8 @@ def test_token_endpoint():
     }
 
     # Construct Access token request
-    areq = message("AccessTokenRequest", code=access_grant,
-                   redirect_uri="http://example.com/authz")
+    areq = AccessTokenRequest(code=access_grant,
+                              redirect_uri="http://example.com/authz")
 
 
     str = areq.to_urlencoded()
@@ -380,7 +382,7 @@ def test_token_endpoint():
 
     resp = provider.token_endpoint(environ, start_response, LOG())
     print resp
-    atr = msg_deser(resp[0], "json", "AccessTokenResponse")
+    atr = AccessTokenResponse().deserialize(resp[0], "json")
 
     print atr.keys()
     assert _eq(atr.keys(), ['access_token', 'expires_in', 'token_type',
@@ -389,9 +391,9 @@ def test_token_endpoint():
 def test_token_endpoint_unauth():
     provider = Provider("pyoicserv", sdb.SessionDB(), CDB, FUNCTIONS)
 
-    authreq = message("AuthorizationRequest", state="state",
-                      redirect_uri="http://example.com/authz",
-                      client_id="client1")
+    authreq = AuthorizationRequest(state="state",
+                                   redirect_uri="http://example.com/authz",
+                                   client_id="client1")
 
     _sdb = provider.sdb
     sid = _sdb.token.key(user="user_id", areq=authreq)
@@ -407,9 +409,9 @@ def test_token_endpoint_unauth():
     }
 
     # Construct Access token request
-    areq = message("AccessTokenRequest", code=access_grant,
-                   redirect_uri="http://example.com/authz",
-                   client_id="client1", client_secret="hemlighet",)
+    areq = AccessTokenRequest(code=access_grant,
+                              redirect_uri="http://example.com/authz",
+                              client_id="client1", client_secret="hemlighet",)
 
 
     str = areq.to_urlencoded()
@@ -421,6 +423,6 @@ def test_token_endpoint_unauth():
 
     resp = provider.token_endpoint(environ, start_response, LOG())
     print resp
-    atr = msg_deser(resp[0], "json", "TokenErrorResponse")
+    atr = TokenErrorResponse().deserialize(resp[0], "json")
     print atr.keys()
     assert _eq(atr.keys(), ['error'])

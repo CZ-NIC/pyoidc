@@ -8,7 +8,7 @@ import logging
 import re
 
 from oic.utils.http_util import *
-from oic.oic.message import message
+from oic.oic.message import OpenIDSchema
 
 LOGGER = logging.getLogger("oicServer")
 hdlr = logging.FileHandler('oc3cp.log')
@@ -20,8 +20,8 @@ LOGGER.setLevel(logging.INFO)
 # ----------------------------------------------------------------------------
 #noinspection PyUnusedLocal
 def verify_client(environ, req, cdb):
-    identity = req.client_id
-    secret = req.client_secret
+    identity = req["client_id"]
+    secret = req["client_secret"]
     if identity:
         if identity in cdb:
             if cdb[identity]["client_secret"] == secret:
@@ -36,23 +36,31 @@ def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
     identity = userdb[user_id]
     if user_info_claims:
         result = {}
-        for claim in user_info_claims.claims:
-            for key, restr in claim.items():
-                try:
-                    result[key] = identity[key]
-                except KeyError:
-                    if restr == {"optional": True}:
-                        pass
-                    else:
-                        raise Exception("Missing property '%s'" % key)
+        claims = user_info_claims["claims"]
+        for key, restr in claims.items():
+            try:
+                result[key] = identity[key]
+            except KeyError:
+                if restr == {"optional": True}:
+                    pass
+                else:
+                    raise Exception("Missing property '%s'" % key)
     else:
         result = identity
 
-    return message("OpenIDSchema", **result)
+    return OpenIDSchema(**result)
+
+#noinspection PyUnusedLocal
+def claims_mode(info, uid):
+    if USER2MODE[uid] == "aggregate":
+        return True
+    else:
+        return False
 
 FUNCTIONS = {
     "verify_client": verify_client,
     "userinfo": user_info,
+    "claims_mode": claims_mode
     }
 
 # ----------------------------------------------------------------------------
@@ -78,6 +86,7 @@ def op_info(environ, start_response, handle):
 def userclaims(environ, start_response, handle):
     _oas = environ["oic.oas"]
 
+    LOGGER.info("claims_endpoint")
     return _oas.claims_endpoint(environ, start_response, LOGGER)
 
 #noinspection PyUnusedLocal
@@ -86,6 +95,13 @@ def registration(environ, start_response, handle):
 
     return _oas.registration_endpoint(environ, start_response,
                                       environ["oic.logger"])
+
+#noinspection PyUnusedLocal
+def userclaimsinfo(environ, start_response, handle):
+    _oas = environ["oic.oas"]
+
+    LOGGER.info("claims_info_endpoint")
+    return _oas.claims_info_endpoint(environ, start_response, LOGGER)
 
 # ----------------------------------------------------------------------------
 
@@ -109,12 +125,14 @@ from oic.oic.provider import UserinfoEndpoint
 from oic.oic.provider import CheckIDEndpoint
 from oic.oic.provider import RegistrationEndpoint
 from oic.oic.claims_provider import UserClaimsEndpoint
+from oic.oic.claims_provider import UserClaimsInfoEndpoint
 
 ENDPOINTS = [
     UserinfoEndpoint(userinfo),
     CheckIDEndpoint(check_id),
     RegistrationEndpoint(registration),
-    UserClaimsEndpoint(userclaims)
+    UserClaimsEndpoint(userclaims),
+    UserClaimsInfoEndpoint(userclaimsinfo)
 ]
 
 URLS = [
@@ -122,7 +140,7 @@ URLS = [
 ]
 
 for endp in ENDPOINTS:
-    URLS.append(("^%s" % endp.type, endp))
+    URLS.append(("^%s$" % endp.type, endp))
 
 def application(environ, start_response):
     """
@@ -156,7 +174,7 @@ def application(environ, start_response):
     environ["oic.logger"] = LOGGER
 
     LOGGER.info("path: %s" % path)
-    if path in OAS.cert or OAS.jwk:
+    if path in OAS.cert or path in OAS.jwk:
         return static(environ, start_response, path)
     else:
         for regex, callback in URLS:
@@ -177,12 +195,20 @@ def application(environ, start_response):
 USERDB = {
     "diana":{
         "geolocation": {"longitude":20.3076, "latitude": 63.8206},
+    },
+    "upper":{
+        "geolocation": {"longitude":17.0393, "latitude": 59.65075},
+    },
+    "babs":{
+        "geolocation": {"longitude":4.8890, "latitude": 52.3673},
     }
 }
 
-SERVER_DB = {
+USER2MODE = {"diana": "aggregate",
+             "upper": "distribute",
+             "babs": "aggregate"}
 
-}
+SERVER_DB = {}
 
 if __name__ == '__main__':
     import argparse
@@ -210,10 +236,21 @@ if __name__ == '__main__':
     OAS = ClaimsServer(config["issuer"], SessionDB(), cdb, FUNCTIONS,
                        USERDB)
 
+
     if "keys" in config:
         for type, info in config["keys"].items():
-            OAS.keystore.add_key(jwt.rsa_load(info["key"]), type, "sign")
-            OAS.cert.append(info["cert"])
+            _rsa = jwt.rsa_load(info["key"])
+            OAS.keystore.add_key(_rsa, type, "sign")
+            OAS.keystore.add_key(_rsa, type, "verify")
+            try:
+                OAS.cert.append(info["cert"])
+            except KeyError:
+                pass
+            try:
+                OAS.jwk.append(info["jwk"])
+            except KeyError:
+                pass
+
 
     #print URLS
     if args.debug:
@@ -230,9 +267,12 @@ if __name__ == '__main__':
     if not OAS.baseurl.endswith("/"):
         OAS.baseurl += "/"
 
+    OAS.claims_userinfo_endpoint = "%s%s"  % (OAS.baseurl,
+                                UserClaimsInfoEndpoint(userclaimsinfo).type)
+
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
-    SRV.ssl_adapter = ssl_builtin.BuiltinSSLAdapter("certs/mycert.pem",
-                                                    "certs/mycert.key")
+    SRV.ssl_adapter = ssl_builtin.BuiltinSSLAdapter("certs/server.crt",
+                                                    "certs/server.key")
     try:
         SRV.start()
     except KeyboardInterrupt:

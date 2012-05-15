@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from oic.oauth2.message import message, add_non_standard, msg_deser, by_schema, SCHEMA
+from oic.oauth2.message import *
 
 __author__ = 'rohe0002'
 
@@ -11,7 +11,6 @@ from oic.utils.http_util import *
 
 from oic.oauth2 import rndstr
 from oic.oauth2 import Server as SrvMethod
-from oic.oauth2 import MissingRequiredAttribute
 
 class AuthnFailure(Exception):
     pass
@@ -32,11 +31,10 @@ def get_post(environ):
 #def do_authorization(user):
 #    return ""
 
-#noinspection PyUnusedLocal
 def code_response(**kwargs):
     _areq = kwargs["areq"]
     _scode = kwargs["scode"]
-    aresp = message("AuthorizationResponse")
+    aresp = AuthorizationResponse()
     if "state" in _areq:
         aresp["state"] = _areq["state"]
     aresp["code"] = _scode
@@ -49,7 +47,7 @@ def token_response(**kwargs):
     _sdb = kwargs["sdb"]
     _dic = _sdb.update_to_token(_scode, issue_refresh=False)
 
-    aresp = message("AccessTokenResponse", **_dic)
+    aresp = AccessTokenResponse(**_dic)
     if "state" in _areq:
         aresp["state"] = _areq["state"]
 
@@ -58,7 +56,7 @@ def token_response(**kwargs):
 #noinspection PyUnusedLocal
 def none_response(**kwargs):
     _areq = kwargs["areq"]
-    aresp = message("NoneResponse")
+    aresp = NoneResponse()
     if "state" in _areq:
         aresp["state"] = _areq["state"]
 
@@ -128,8 +126,7 @@ class Provider(object):
         #_log_info( "type: %s" % type(session["authzreq"]))
 
         # pick up the original request
-        areq = msg_deser(session["authzreq"], "json",
-                         schema=SCHEMA["AuthorizationRequest"])
+        areq = AuthorizationRequest().deserialize(session["authzreq"], "json")
 
         if self.debug:
             _log_info("areq: %s" % areq)
@@ -163,8 +160,8 @@ class Provider(object):
         redirect = Redirect(str(location))
         return redirect(environ, start_response)
 
-    def authn_response(self, areq, session):
-        scode = session["code"]
+    def authn_response(self, areq, **kwargs):
+        scode = kwargs["code"]
         areq["response_type"].sort()
         _rtype = " ".join(areq["response_type"])
         return self.response_type_map[_rtype](areq=areq, scode=scode,
@@ -189,9 +186,11 @@ class Provider(object):
 
 
         try:
-            aresp = self.authn_response(areq, session)
-        except KeyError: # Don't know what to do raise an exception
-            resp = BadRequest("Unknown response type")
+            aresp = self.authn_response(areq,
+                                        **by_schema(AuthorizationResponse,
+                                                    **session))
+        except KeyError, err: # Don't know what to do raise an exception
+            resp = BadRequest("Unknown response type (%s)" % err)
             return resp(environ, start_response)
 
         add_non_standard(aresp, areq)
@@ -256,12 +255,12 @@ class Provider(object):
         if self.debug:
             _log_info("body: %s" % body)
 
-        areq = msg_deser(body, "urlencoded", typ="AccessTokenRequest")
+        areq = AccessTokenRequest().deserialize(body, "urlencoded")
 
         # Client is from basic auth or ...
         client = environ["REMOTE_USER"]
         if not self.function["verify client"](environ, client, self.cdb):
-            err = message("TokenErrorResponse", error="unathorized_client")
+            err = TokenErrorResponse(error="unathorized_client")
             resp = Response(err.to_json(), content="application/json",
                             status="401 Unauthorized")
             return resp(environ, start_response)
@@ -284,8 +283,7 @@ class Provider(object):
         if self.debug:
             _log_info("_tinfo: %s" % _tinfo)
             
-        atr = message("AccessTokenResponse",
-                      **by_schema("AccessTokenResponse", **_tinfo))
+        atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
 
         if self.debug:
             _log_info("AccessTokenResponse: %s" % atr)

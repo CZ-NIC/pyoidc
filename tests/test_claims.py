@@ -1,15 +1,15 @@
-from oic.utils import jwt
+#!/usr/bin/env python
 
 __author__ = 'rohe0002'
 
 import StringIO
 import sys
 
-from oic.oic.message import SCHEMA as OIC_SCHEMA, message, msg_deser
+from oic.oic.message import OpenIDSchema
+from oic.utils import jwt
 
-from oic.oic.claims_provider import ClaimsClient
+from oic.oic.claims_provider import ClaimsClient, UserClaimsRequest, UserClaimsResponse
 from oic.oic.claims_provider import ClaimsServer
-from oic.oic.claims_provider import SCHEMA
 
 #noinspection PyUnusedLocal
 def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
@@ -28,7 +28,7 @@ def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
     else:
         result = identity
 
-    return message(OIC_SCHEMA["OpenIDSchema"], **result)
+    return OpenIDSchema(**result)
 
 class LOG():
     def info(self, txt):
@@ -102,11 +102,11 @@ def test_c2():
     cc = ClaimsClient(client_id="client_1")
     cc.client_secret="hemlig"
     cc.userclaims_endpoint = "https://example.com/claims"
-    schema=SCHEMA["UserClaimsRequest"]
+    request=UserClaimsRequest
     method = "POST"
     request_args = {"user_id": "norah", "claims_names":["gender", "birthdate"]}
 
-    cc.request_info(schema, method=method, request_args=request_args)
+    cc.request_info(request, method=method, request_args=request_args)
 
 
 
@@ -115,8 +115,8 @@ def test_srv1():
     info = user_info(None, USERDB, "diana")
 
     keys = {"hmac": "hemlig"}
-    cresp = message(SCHEMA["UserClaimsResponse"], jwt=info.to_jwt(key=keys),
-                    claims_names=info.keys())
+    cresp = UserClaimsResponse(jwt=info.to_jwt(key=keys),
+                               claims_names=info.keys())
 
     print cresp
     assert _eq(cresp.keys(), ["jwt", "claims_names"])
@@ -147,7 +147,7 @@ def test_srv2():
     print resp
     assert len(resp) == 1
 
-    ucr = msg_deser(resp[0], "json", schema=SCHEMA["UserClaimsResponse"])
+    ucr = UserClaimsResponse().deserialize(resp[0], "json")
     ucr.verify(key = srv.keystore.get_keys("sign", owner=None))
 
     print ucr

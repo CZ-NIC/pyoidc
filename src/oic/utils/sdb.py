@@ -149,6 +149,9 @@ class SessionDB(object):
 
         self._db[key][attribute] = value
 
+    def update_by_token(self, token, attribute, value):
+        (typ, key) = self.token.type_and_key(token)
+        return self.update(key, attribute, value)
 
     def create_authz_session(self, user_id, areq, id_token=None, oidreq=None):
         """
@@ -298,7 +301,10 @@ class SessionDB(object):
 
     def is_revoked(self, sid):
         #typ, sid = self.token.type_and_key(token)
-        return self[sid]["revoked"]
+        try:
+            return self[sid]["revoked"]
+        except KeyError:
+            return False
 
 #    def set_oir(self, key, oir):
 #        self._db[key] = oir.dictionary()

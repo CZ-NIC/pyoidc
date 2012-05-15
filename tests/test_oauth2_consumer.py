@@ -13,9 +13,13 @@ from oic.oauth2.consumer import factory
 
 from oic.utils import http_util
 from oic.oauth2.message import MissingRequiredAttribute
+from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import AuthorizationErrorResponse
+from oic.oauth2.message import AccessTokenResponse
+from oic.oauth2.message import TokenErrorResponse
 
 from oic.oauth2.consumer import AuthzError
-from oic.oauth2.message import message
+#from oic.oauth2.message import
 
 class LOG():
     def info(self, txt):
@@ -152,8 +156,8 @@ def test_consumer_handle_authorization_response():
 
     _ = cons.begin(environ, start_response, LOG())
 
-    atr = message("AuthorizationResponse", code="SplxlOBeZQQYbYS6WxSbIA",
-                  state=cons.state)
+    atr = AuthorizationResponse(code="SplxlOBeZQQYbYS6WxSbIA",
+                                state=cons.state)
 
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = atr.to_urlencoded()
@@ -174,8 +178,8 @@ def test_consumer_parse_authz_exception():
 
     _ = cons.begin(environ, start_response, LOG())
 
-    atr = message("AuthorizationResponse", code="SplxlOBeZQQYbYS6WxSbIA", 
-                  state=cons.state)
+    atr = AuthorizationResponse(code="SplxlOBeZQQYbYS6WxSbIA",
+                                state=cons.state)
     
     adict = atr.to_dict()
     del adict["code"]
@@ -194,8 +198,7 @@ def test_consumer_parse_authz_error():
 
     _ = cons.begin(environ, start_response, LOG())
 
-    atr = message("AuthorizationErrorResponse", error="access_denied",
-                  state=cons.state)
+    atr = AuthorizationErrorResponse(error="access_denied", state=cons.state)
     
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = atr.to_urlencoded()
@@ -214,11 +217,11 @@ def test_consumer_parse_access_token():
     cons.response_type = ["token"]
     _ = cons.begin(environ, start_response, LOG())
 
-    atr = message("AccessTokenResponse", access_token="2YotnFZFEjr1zCsicMWpAA",
-                  token_type="example",
-                  refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
-                  example_parameter="example_value",
-                  state=cons.state)
+    atr = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
+                              token_type="example",
+                              refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
+                              example_parameter="example_value",
+                              state=cons.state)
 
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = atr.to_urlencoded()
@@ -241,7 +244,7 @@ def test_consumer_parse_authz_error_2():
 
     _ = cons.begin(environ, start_response, LOG())
 
-    atr = message("TokenErrorResponse", error="invalid_client")
+    atr = TokenErrorResponse(error="invalid_client")
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = atr.to_urlencoded()
 

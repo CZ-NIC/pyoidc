@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from oic.oauth2.message import by_schema
+
 __author__ = 'rohe0002'
 
 import urlparse
@@ -8,9 +10,8 @@ from oic.utils.time_util import time_sans_frac
 from oic.utils.time_util import utc_time_sans_frac
 
 from oic.oic import Server
-from oic.oic.message import SCHEMA
 
-from oic.oauth2.message import  by_schema, message_from_schema
+from oic.oic.message import *
 from oic.oauth2 import rndstr
 
 class Response():
@@ -46,7 +47,7 @@ class MyFakeOICServer(Server):
         self.host = ""
 
     #noinspection PyUnusedLocal
-    def http_request(self, path, method="GET", data=None, **kwargs):
+    def http_request(self, path, method="GET", **kwargs):
         part = urlparse.urlparse(path)
         path = part[2]
         query = part[4]
@@ -61,10 +62,10 @@ class MyFakeOICServer(Server):
             response = self.authorization_endpoint(query)
         elif path == ENDPOINT["token_endpoint"]:
             assert method == "POST"
-            response = self.token_endpoint(data)
+            response = self.token_endpoint(kwargs["data"])
         elif path == ENDPOINT["user_info_endpoint"]:
             assert method == "POST"
-            response = self.userinfo_endpoint(data)
+            response = self.userinfo_endpoint(kwargs["data"])
         elif path == ENDPOINT["refresh_session_endpoint"]:
             assert method == "GET"
             response = self.refresh_session_endpoint(query)
@@ -76,7 +77,7 @@ class MyFakeOICServer(Server):
             response = self.end_session_endpoint(query)
         elif path == ENDPOINT["registration_endpoint"]:
             if method == "POST":
-                response = self.registration_endpoint(data)
+                response = self.registration_endpoint(kwargs["data"])
         elif path == "/.well-known/simple-web-discovery":
             assert method == "GET"
             response = self.issuer(query)
@@ -101,19 +102,30 @@ class MyFakeOICServer(Server):
                 _dict = self.sdb.update_to_token(grant)
                 _dict["oauth_state"]="authz",
 
-                _dict = by_schema(SCHEMA["AuthorizationResponse"], **_dict)
-                resp = message_from_schema(SCHEMA["AuthorizationResponse"],
-                                           **_dict)
+                _dict = by_schema(AuthorizationResponse(), **_dict)
+                resp = AuthorizationResponse(**_dict)
                 #resp.code = grant
             else:
-                resp = message_from_schema(SCHEMA["AuthorizationResponse"],
-                                           state=req["state"],
-                                           code=_info["code"])
+                resp = AuthorizationResponse(state=req["state"],
+                                             code=_info["code"])
 
         else: # "implicit" in req.response_type:
             grant = _info["code"]
-            _dict = self.sdb.update_to_token(grant)
-            resp = message_from_schema(SCHEMA["AccessTokenResponse"], **_dict)
+            params = AccessTokenResponse.c_param.keys()
+
+            _dict = dict([(k,v) for k,
+                        v in self.sdb.update_to_token(grant).items() if k in
+                                                                    params])
+            try:
+                del _dict["refresh_token"]
+            except KeyError:
+                pass
+
+            if "id_token" in req["response_type"]:
+                _dict["id_token"] = self.make_id_token(_info, issuer=self.name,
+                                            access_token=_dict["access_token"])
+
+            resp = AccessTokenResponse(**_dict)
 
         location = resp.request(req["redirect_uri"])
         response= Response()
@@ -130,12 +142,10 @@ class MyFakeOICServer(Server):
             req = self.parse_token_request(body=data)
             _info = self.sdb.update_to_token(req["code"])
         else:
-            response = message_from_schema(SCHEMA["TokenErrorResponse"],
-                                           error="unsupported_grant_type")
+            response = TokenErrorResponse(error="unsupported_grant_type")
             return response, ""
 
-        resp = message_from_schema(SCHEMA["AccessTokenResponse"],
-                                   **by_schema("AccessTokenResponse", **_info))
+        resp = AccessTokenResponse(**by_schema(AccessTokenResponse, **_info))
         response = Response()
         response.headers = {"content-type":"application/json"}
         response.text = resp.to_json()
@@ -152,7 +162,7 @@ class MyFakeOICServer(Server):
             "verified": True,
             }
 
-        resp = message_from_schema(SCHEMA["OpenIDSchema"], **_info)
+        resp = OpenIDSchema(**_info)
         response = Response()
         response.headers = {"content-type":"application/json"}
         response.text = resp.to_json()
@@ -179,10 +189,9 @@ class MyFakeOICServer(Server):
             _cinfo["client_secret"] = client_secret
             _cinfo["expires"] = expires
 
-        resp = message_from_schema(SCHEMA["RegistrationResponse"],
-                                   client_id=client_id,
-                                   client_secret=client_secret,
-                                   expires_at=expires)
+        resp = RegistrationResponse(client_id=client_id,
+                                    client_secret=client_secret,
+                                    expires_at=expires)
 
         response = Response()
         response.headers = {"content-type":"application/json"}
@@ -208,8 +217,7 @@ class MyFakeOICServer(Server):
         except Exception:
             raise
 
-        resp = message_from_schema(SCHEMA["RegistrationResponse"],
-                                    client_id="anonymous",
+        resp = RegistrationResponse(client_id="anonymous",
                                     client_secret="hemligt")
 
         response = Response()
@@ -224,8 +232,7 @@ class MyFakeOICServer(Server):
             raise
 
         # redirect back
-        resp = message_from_schema(SCHEMA["EndSessionResponse"],
-                                   state=req["state"])
+        resp = EndSessionResponse(state=req["state"])
 
         url = resp.request(req["redirect_url"])
 
@@ -242,14 +249,11 @@ class MyFakeOICServer(Server):
     def issuer(self, query):
         request = self.parse_issuer_request(query)
         if request["principal"] == "foo@example.com":
-            resp = message_from_schema(SCHEMA["IssuerResponse"],
-                                       locations="http://example.com/")
+            resp = IssuerResponse(locations="http://example.com/")
         elif request["principal"] == "bar@example.org":
-            swd = message_from_schema(SCHEMA["SWDServiceRedirect"],
-                                      location="https://example.net/swd_server")
-            resp = message_from_schema(SCHEMA["IssuerResponse"],
-                                       SWD_service_redirect=swd,
-                                       expires=time_sans_frac() + 600)
+            swd = SWDServiceRedirect(location="https://example.net/swd_server")
+            resp = IssuerResponse(SWD_service_redirect=swd,
+                                  expires=time_sans_frac() + 600)
         else:
             resp = None
 
@@ -266,8 +270,7 @@ class MyFakeOICServer(Server):
     def swd_server(self, query):
         request = self.parse_issuer_request(query)
         if request["principal"] == "bar@example.org":
-            resp = message_from_schema(SCHEMA["IssuerResponse"],
-                                       locations="http://example.net/providerconf")
+            resp = IssuerResponse(locations="http://example.net/providerconf")
         else:
             resp = None
 
@@ -287,7 +290,7 @@ class MyFakeOICServer(Server):
         for point, path in ENDPOINT.items():
             endpoint[point] = "%s%s" % (self.host, path)
 
-        resp = message_from_schema(SCHEMA["ProviderConfigurationResponse"],
+        resp = ProviderConfigurationResponse(
                                    issuer=self.name,
                                    scopes_supported=["openid", "profile",
                                                      "email", "address"],

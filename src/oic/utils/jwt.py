@@ -7,17 +7,18 @@ import base64
 import json
 import re
 import os
+import urlparse
 
 import M2Crypto
 import hashlib
 import hmac
 import struct
-import binascii
+#import binascii
 #import rsa
 
-from struct import pack
 from itertools import izip
 from M2Crypto.__m2crypto import hex_to_bn, bn_to_mpi
+from M2Crypto.util import no_passphrase_callback
 
 JWT_TYPS = (u"JWT", u"http://openid.net/specs/jwt/1.0")
 
@@ -103,9 +104,18 @@ def sha384_digest(msg):
 def sha512_digest(msg):
     return hashlib.sha512(msg).digest()
 
+def left_hash(msg, func="HS256"):
+    """ 128 bits == 16 bytes """
+    if func == 'HS256':
+        return b64e(sha256_digest(msg)[:16])
+    elif func == 'HS384':
+        return b64e(sha384_digest(msg)[:24])
+    elif func == 'HS512':
+        return b64e(sha512_digest(msg)[:32])
+
 def mpint(b):
     b = b"\x00" + b
-    return pack(">L", len(b)) + b
+    return struct.pack(">L", len(b)) + b
 
 def mp2bin(b):
     # just ignore the length...
@@ -193,7 +203,7 @@ def unpack(token):
         and claims part before base64 decoding
     """
     if isinstance(token, unicode):
-        raise TypeError
+        token = str(token)
 
     header_b64, claim_b64, crypto_b64 = split_token(token)
 
@@ -370,7 +380,7 @@ def construct_jwk(keys):
             kspecs.append(construct_rsa_jwk(key))
 
     if kspecs:
-        return {"jwk": kspecs}
+        return json.dumps({"jwk": kspecs})
     else:
         return None
 
@@ -429,8 +439,107 @@ def create_rsa_key_pair(name="pyoidc", path="."):
 
     key = M2Crypto.RSA.gen_key(1024, 65537)
 
-    key.save_key('%s/%s' % (path, name), None)
-    key.save_pub_key('%s/%s.pub' % (path, name))
+    if not path.endswith("/"):
+        path += "/"
+
+    key.save_key('%s%s' % (path, name), None, callback=no_passphrase_callback)
+    key.save_pub_key('%s%s.pub' % (path, name))
 
     return key
 
+def proper_path(path):
+    if path.startswith("./"):
+        pass
+    elif path.startswith("/"):
+        path = ".%s" % path
+    elif path.startswith("."):
+        while path.startswith("."):
+            path = path[1:]
+        if path.startswith("/"):
+            path = ".%s" % path
+    else:
+        path = "./%s" % path
+
+    if not path.endswith("/"):
+        path += "/"
+
+    return path
+
+def key_export(baseurl, local_path, vault, **kwargs):
+    part = urlparse.urlsplit(baseurl)
+
+    # deal with the export directory
+    if part.path.endswith("/"):
+        _path = part.path[:-1]
+    else:
+        _path = part.path[:]
+
+    local_path = proper_path(local_path)
+    vault = proper_path(vault)
+
+    if not os.path.exists(vault):
+        os.makedirs(vault)
+
+    if not os.path.exists(local_path):
+        os.makedirs(local_path)
+
+    res = {}
+    # For each usage type
+    # type, usage, format (rsa, sign, jwt)
+    for usage in ["sign", "enc"]:
+        if usage in kwargs:
+            if kwargs[usage] is None:
+                continue
+
+            _keys = {}
+
+            if kwargs[usage]["format"] == "jwk":
+                if usage == "sign":
+                    _name = ("jwk.json", "jwk_url")
+                else:
+                    _name = ("jwk_enc.json", "jwk_encryption_url")
+            else: # must be 'x509'
+                if usage == "sign":
+                    _name = ("x509.pub", "x509_url")
+                else:
+                    _name = ("x509_enc.pub", "x509_encryption_url")
+
+            # the local filename
+            _local_filename = "%s%s" % (local_path, _name[0])
+
+            if kwargs[usage]["alg"] == "rsa":
+                try:
+                    _keys["rsa"] = rsa_load('%s%s' % (vault, "pyoidc"))
+                except Exception:
+                    _keys["rsa"] = create_rsa_key_pair(path=vault)
+
+            if kwargs[usage]["format"] == "jwk":
+                _jwk = []
+                for typ, key in _keys.items():
+                    if typ == "rsa":
+                        _jwk.append(construct_rsa_jwk(key))
+
+                _jwk = {"jwk": _jwk}
+
+                f = open(_local_filename, "w")
+                f.write(json.dumps(_jwk))
+                f.close()
+
+            keyspec = []
+            for typ, key in _keys.items():
+                keyspec.append([key, typ, usage])
+                if usage == "sign":
+                    keyspec.append([key, typ, "verify"])
+                if usage == "enc":
+                    keyspec.append([key, typ, "dec"])
+
+            if _path:
+                _url = "%s://%s%s%s" % (part.scheme, part.netloc, _path,
+                                       _local_filename[1:])
+            else:
+                _url = "%s://%s%s" % (part.scheme, part.netloc,
+                                        _local_filename[1:])
+
+            res[_name[1]] = (_url, keyspec)
+
+    return part, res

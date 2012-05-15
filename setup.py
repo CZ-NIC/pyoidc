@@ -21,7 +21,7 @@ __author__ = 'rohe0002'
 
 setup(
     name="oic",
-    version="0.2.0",
+    version="0.3.0",
     description="Python implementation of OAuth2 and OpenID Connect",
     author = "Roland Hedberg",
     author_email = "roland.hedberg@adm.umu.se",
@@ -31,7 +31,8 @@ setup(
     classifiers = ["Development Status :: 4 - Beta",
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Libraries :: Python Modules"],
-    install_requires = ['requests', "M2Crypto", "pycrypto"],
+    install_requires = ['requests', "M2Crypto", "pycrypto",
+                        "cherrypy", "mako"],
 
     zip_safe=False,
 )

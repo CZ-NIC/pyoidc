@@ -1,11 +1,10 @@
-from oic.oic import message
+from oic.oic.message import AccessTokenResponse, AuthorizationResponse
+from oic.utils.jwt import rsa_load
 
 __author__ = 'rohe0002'
 
 from oic.oic import Server
 from oic.oauth2 import rndstr
-
-from oic.oic.message import  SCHEMA
 
 from oic.oic.consumer import Consumer
 from oic.oic.consumer import IGNORE
@@ -19,12 +18,21 @@ from fakeoicsrv import MyFakeOICServer
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
-KEYS = [
-    [CLIENT_SECRET, "hmac", "verify", CLIENT_ID],
-    [CLIENT_SECRET, "hmac", "sign", CLIENT_ID]
+rsapub = rsa_load("../oc3/certs/mycert.key")
+
+SRVKEYS = [
+    ["abcdefghijklmnop", "hmac", "verify", "client_1"],
+    ["abcdefghijklmnop", "hmac", "sign", "client_1"],
+    [rsapub, "rsa", "sign", "."],
+    [rsapub, "rsa", "verify", "."]
 ]
 
-SIGN_KEY = {"hmac": ["abcdefghijklmnop"]}
+CLIKEYS = [
+    ["abcdefghijklmnop", "hmac", "verify", "."],
+    ["abcdefghijklmnop", "hmac", "sign", "."],
+    [rsapub, "rsa", "sign", "http://localhost:8088"],
+    [rsapub, "rsa", "verify", "http://localhost:8088"]
+]
 
 BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',
                'REQUEST_METHOD': 'GET',
@@ -69,9 +77,7 @@ CONFIG = {
     }
 }
 
-CLIENT_CONFIG = {
-    "client_id": CLIENT_ID,
-}
+CLIENT_CONFIG = {"client_id": CLIENT_ID, "jwt_keys": CLIKEYS}
 
 def start_response(status=200, headers=None):
     if headers is None:
@@ -96,9 +102,9 @@ def redirect_environment(query):
 
 
 def test_clean_response():
-    atr = message("AccessTokenResponse", access_token="access_token",
-                  token_type="bearer", expires_in=600,
-                  refresh_token="refresh", steps=39, stalls="yes")
+    atr = AccessTokenResponse(access_token="access_token",
+                            token_type="bearer", expires_in=600,
+                            refresh_token="refresh", steps=39, stalls="yes")
 
     catr = clean_response(atr)
     atr_keys = atr.keys()
@@ -169,7 +175,7 @@ class TestOICConsumer():
 
     def test_begin(self):
         self.consumer.authorization_endpoint = "http://example.com/authorization"
-        srv = Server(KEYS)
+        srv = Server(SRVKEYS)
         print "redirect_uris",self.consumer.redirect_uris
         print "config", self.consumer.config
         location = self.consumer.begin(BASE_ENVIRON, start_response, DEVNULL())
@@ -190,7 +196,7 @@ class TestOICConsumer():
         self.consumer.config["request_method"] = "file"
         self.consumer.config["temp_dir"] = "./file"
         self.consumer.config["temp_path"] = "/tmp/"
-        srv = Server(KEYS)
+        srv = Server(SRVKEYS)
         location = self.consumer.begin(BASE_ENVIRON, start_response, DEVNULL())
         print location
         authreq = srv.parse_authorization_request(url=location)
@@ -206,7 +212,7 @@ class TestOICConsumer():
         assert authreq["redirect_uri"].startswith("http://localhost:8087/authz")
 
     def test_complete(self):
-        mfos = MyFakeOICServer(KEYS)
+        mfos = MyFakeOICServer(SRVKEYS, "http://localhost:8088")
         self.consumer.http_request = mfos.http_request
         self.consumer.state = "state0"
         self.consumer.nonce = rndstr()
@@ -227,7 +233,7 @@ class TestOICConsumer():
         assert result.headers["location"].startswith(self.consumer.redirect_uris[0])
         _, query = result.headers["location"].split("?")
 
-        self.consumer.parse_response(SCHEMA["AuthorizationResponse"],
+        self.consumer.parse_response(AuthorizationResponse,
                                      info=query, format="urlencoded")
 
         resp = self.consumer.complete(DEVNULL())
@@ -240,7 +246,7 @@ class TestOICConsumer():
         assert resp["state"] == self.consumer.state
 
     def test_parse_authz(self):
-        mfos = MyFakeOICServer(KEYS)
+        mfos = MyFakeOICServer(SRVKEYS, "http://localhost:8088")
         self.consumer.http_request = mfos.http_request
         self.consumer.state = "state0"
         self.consumer.nonce = rndstr()
@@ -295,7 +301,7 @@ class TestOICConsumer():
 
 def test_complete_secret_auth():
     consumer = Consumer(SessionDB(), CONFIG, CLIENT_CONFIG, SERVER_INFO)
-    mfos = MyFakeOICServer(KEYS)
+    mfos = MyFakeOICServer(SRVKEYS, "http://localhost:8088")
     consumer.http_request = mfos.http_request
     consumer.redirect_uris = ["http://example.com/authz"]
     consumer.state = "state0"
@@ -316,7 +322,7 @@ def test_complete_secret_auth():
     assert result.headers["location"].startswith(consumer.redirect_uris[0])
     _, query = result.headers["location"].split("?")
 
-    consumer.parse_response(SCHEMA["AuthorizationResponse"], info=query,
+    consumer.parse_response(AuthorizationResponse, info=query,
                             format="urlencoded")
 
     resp = consumer.complete(DEVNULL())
@@ -330,7 +336,7 @@ def test_complete_secret_auth():
 
 def test_complete_auth_token():
     consumer = Consumer(SessionDB(), CONFIG, CLIENT_CONFIG, SERVER_INFO)
-    mfos = MyFakeOICServer(KEYS)
+    mfos = MyFakeOICServer(SRVKEYS, "http://localhost:8088")
     consumer.http_request = mfos.http_request
     consumer.redirect_uris = ["http://example.com/authz"]
     consumer.state = "state0"
@@ -371,10 +377,49 @@ def test_complete_auth_token():
     assert _eq(acc.keys(), ['token_type', 'state', 'access_token', 'scope',
                             'expires_in', 'refresh_token'])
 
+def test_complete_auth_token_idtoken():
+    consumer = Consumer(SessionDB(), CONFIG, CLIENT_CONFIG, SERVER_INFO)
+    mfos = MyFakeOICServer(SRVKEYS, "http://localhost:8088")
+    consumer.http_request = mfos.http_request
+    consumer.redirect_uris = ["http://example.com/authz"]
+    consumer.state = "state0"
+    consumer.nonce = rndstr()
+    consumer.client_secret = "hemlig"
+    consumer.secret_type = "basic"
+    consumer.config["response_type"] = ["id_token", "token"]
+
+    args = {
+        "client_id": consumer.client_id,
+        "response_type": consumer.config["response_type"],
+        "scope": ["openid"],
+        }
+
+    result = consumer.do_authorization_request(state=consumer.state,
+                                               request_args=args)
+    consumer._backup("state0")
+
+    assert result.status_code == 302
+    #assert result.location.startswith(consumer.redirect_uri[0])
+    _, query = result.headers["location"].split("?")
+    print query
+    environ = redirect_environment(query)
+
+    part = consumer.parse_authz(environ, start_response, DEVNULL())
+    print part
+    auth = part[0]
+    acc = part[1]
+    assert part[2] is None
+
+    #print auth.dictionary()
+    #print acc.dictionary()
+    assert auth is None
+    assert acc.type() == "AccessTokenResponse"
+    assert _eq(acc.keys(), ['access_token', 'id_token', 'expires_in',
+                            'token_type', 'state', 'scope'])
 
 def test_userinfo():
     consumer = Consumer(SessionDB(), CONFIG, CLIENT_CONFIG, SERVER_INFO)
-    mfos = MyFakeOICServer(KEYS)
+    mfos = MyFakeOICServer(SRVKEYS, "http://localhost:8088")
     consumer.http_request = mfos.http_request
     consumer.redirect_uris = ["http://example.com/authz"]
     consumer.state = "state0"
@@ -394,7 +439,7 @@ def test_userinfo():
     assert result.headers["location"].startswith(consumer.redirect_uris[0])
     _, query = result.headers["location"].split("?")
 
-    consumer.parse_response(SCHEMA["AuthorizationResponse"], info=query,
+    consumer.parse_response(AuthorizationResponse, info=query,
                             format="urlencoded")
 
     consumer.complete(DEVNULL())
@@ -425,7 +470,7 @@ def real_test_discover():
 
 def test_discover():
     c = Consumer(None, None)
-    mfos = MyFakeOICServer(KEYS, "http://example.com/")
+    mfos = MyFakeOICServer(SRVKEYS, "http://example.com/")
     c.http_request = mfos.http_request
 
     principal = "foo@example.com"
@@ -445,7 +490,7 @@ def test_discover_redirect():
 
 def test_provider_config():
     c = Consumer(None, None)
-    mfos = MyFakeOICServer(KEYS, "http://example.com/")
+    mfos = MyFakeOICServer(SRVKEYS, "http://example.com/")
     c.http_request = mfos.http_request
 
     principal = "foo@example.com"
@@ -471,7 +516,7 @@ def test_client_register():
     c.redirect_uris = ["http://example.com/authz"]
     c.contact = ["foo@example.com"]
 
-    mfos = MyFakeOICServer(KEYS, "http://example.com/")
+    mfos = MyFakeOICServer(SRVKEYS, "http://example.com/")
     c.http_request = mfos.http_request
     location = c.discover("foo@example.com")
     info = c.provider_config(location)

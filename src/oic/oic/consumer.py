@@ -12,11 +12,20 @@ from hashlib import md5
 
 from oic.utils import http_util
 
+#from oic.oic.base import Client
+#from oic.oic.base import ENDPOINTS
 from oic.oic import Client
 from oic.oic import ENDPOINTS
 
-from oic.oic.message import SCHEMA, msg_deser
-from oic.oic.message import message
+from oic.oauth2.message import ErrorResponse
+
+from oic.oic.message import Claims, IssuerResponse, AuthorizationRequest
+from oic.oic.message import RegistrationResponse
+from oic.oic.message import AuthorizationResponse
+from oic.oic.message import UserInfoClaim
+from oic.oic.message import AccessTokenResponse
+from oic.oic.message import IssuerRequest
+from oic.oic.message import RegistrationRequest
 
 from oic.oauth2 import Grant
 from oic.oauth2 import rndstr
@@ -74,9 +83,9 @@ def build_userinfo_claims(claims, format="signed", locale="us-en"):
         }
     }
     """
-    claim = message("Claims", **claims)
+    claim = Claims(**claims)
 
-    return message("UserInfoClaim", claims=claim, format=format, locale=locale)
+    return UserInfoClaim(claims=claim, format=format, locale=locale)
 
 
 #def construct_openid_request(arq, keys, algorithm=DEF_SIGN_ALG, iss=None,
@@ -116,7 +125,7 @@ def clean_response(aresp):
     :param aresp: The original AccessTokenResponse
     :return: An AccessTokenResponse instance
     """
-    atr = message("AccessTokenResponse")
+    atr = AccessTokenResponse()
     for prop in atr.parameters():
         try:
             atr[prop] = aresp[prop]
@@ -292,10 +301,8 @@ class Consumer(Client):
                 self.request_uri = _webname
                 self._backup(sid)
         else:
-            areq = self.construct_AuthorizationRequest(
-                                                SCHEMA["AuthorizationRequest"],
-                                                request_args=args)
-
+            areq = self.construct_AuthorizationRequest(AuthorizationRequest,
+                                                       request_args=args)
 
         location = areq.request(self.authorization_endpoint)
 
@@ -332,13 +339,15 @@ class Consumer(Client):
         _log_info("response: %s" % _query)
         
         _path = http_util.geturl(environ, False, False)
+        vkeys = self.keystore.get_verify_key(owner=None)
 
         if "code" in self.config["response_type"]:
             # Might be an error response
             _log_info("Expect Authorization Response")
-            aresp = self.parse_response(SCHEMA["AuthorizationResponse"],
+            aresp = self.parse_response(AuthorizationResponse,
                                         info=_query,
-                                        format="urlencoded")
+                                        format="urlencoded",
+                                        key=vkeys)
             if aresp.type() == "ErrorResponse":
                 _log_info("ErrorResponse: %s" % aresp)
                 raise AuthzError(aresp.error)
@@ -364,12 +373,16 @@ class Consumer(Client):
 
             self._backup(_state)
 
-            idt = None
+            if "id_token" in aresp:
+                idt = aresp.id_token
+            else:
+                idt = None
+
             return aresp, atr, idt
         else: # implicit flow
             _log_info("Expect Access Token Response")
-            atr = self.parse_response(SCHEMA["AccessTokenResponse"],
-                                      info=_query, format="urlencoded")
+            atr = self.parse_response(AccessTokenResponse, info=_query,
+                                      format="urlencoded", key=vkeys)
             if atr.type() == "ErrorResponse":
                 raise TokenError(atr.error)
 
@@ -444,11 +457,11 @@ class Consumer(Client):
                 raise
 
         if rsp.status_code == 200:
-            result = msg_deser(rsp.text, "json", "IssuerResponse")
+            result = IssuerResponse().deserialize(rsp.text, "json")
             if "SWD_service_redirect" in result:
                 _loc = result["SWD_service_redirect"]["location"]
-                _uri = message("IssuerRequest", service=ISSUER_URL,
-                               principal=principal).request(_loc)
+                _uri = IssuerRequest(service=ISSUER_URL,
+                                     principal=principal).request(_loc)
                 return self.discovery_query(_uri, principal)
             else:
                 return result
@@ -467,14 +480,14 @@ class Consumer(Client):
     
     def discover(self, principal, idtype="mail"):
         _loc = SWD_PATTERN % self.get_domain(principal, idtype)
-        uri = message("IssuerRequest", service=ISSUER_URL,
-                       principal=principal).request(_loc)
+        uri = IssuerRequest(service=ISSUER_URL,
+                            principal=principal).request(_loc)
 
         result = self.discovery_query(uri, principal)
         return result["locations"][0]
 
     def register(self, server, type="client_associate", **kwargs):
-        req = message("RegistrationRequest", type=type)
+        req = RegistrationRequest(type=type)
 
         if type == "client_update":
             req["client_id"] = self.client_id
@@ -498,16 +511,16 @@ class Consumer(Client):
                     pass
 
         headers = {"content-type": "application/x-www-form-urlencoded"}
-        rsp = self.http_request(server, "POST", req.to_urlencoded(),
+        rsp = self.http_request(server, "POST", data=req.to_urlencoded(),
                                 headers=headers)
 
         if rsp.status_code == 200:
-            resp = msg_deser(rsp.text, "json", "RegistrationResponse")
+            resp = RegistrationResponse().deserialize(rsp.text, "json")
             self.client_secret = resp["client_secret"]
             self.client_id = resp["client_id"]
             self.registration_expires = resp["expires_at"]
         else:
-            err = msg_deser(rsp.text, "json", "ErrorResponse")
+            err = ErrorResponse().deserialize(rsp.text, "json")
             raise Exception("Registration failed: %s" % err.get_json())
 
         return resp

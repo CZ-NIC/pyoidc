@@ -1,7 +1,6 @@
 import urllib
 import urlparse
 import json
-import copy
 
 from oic.utils import jwt
 from oic.oauth2 import DEF_SIGN_ALG
@@ -44,29 +43,23 @@ def gather_keys(comb, collection, jso, target):
     return comb
 
 class Message(object):
-    def __init__(self, _name_, _schema_, **kwargs):
-        self._name = _name_
-        self._schema = copy.deepcopy(_schema_)
-        self._dict = {}
-        self.lax = False
-        try:
-            self.set_defaults(_schema_["default"])
-        except KeyError:
-            pass
+    c_param = {}
+    c_default = {}
+    c_allowed_values = {}
 
+    def __init__(self, **kwargs):
+        self._dict = self.c_default.copy()
+        self.lax = False
         self.from_dict(kwargs)
 
     def type(self):
-        return self._name
+        return self.__class__.__name__
 
     def parameters(self):
-        return self._schema["param"].keys()
+        return self.c_param.keys()
 
-    def home(self):
-        return self._schema["mod"]
-
-    def set_defaults(self, defaults):
-        for key, val in defaults.items():
+    def set_defaults(self):
+        for key, val in self.c_default.items():
             self._dict[key] = val
 
     def to_urlencoded(self, lev=0):
@@ -76,7 +69,7 @@ class Message(object):
         :return: A string of the application/x-www-form-urlencoded format
         """
 
-        _spec = self._schema["param"]
+        _spec = self.c_param
         if not self.lax:
             for attribute, (_, req, _ser, _) in _spec.items():
                 if req and attribute not in self._dict:
@@ -141,7 +134,7 @@ class Message(object):
         elif isinstance(urlencoded, list):
             urlencoded = urlencoded[0]
 
-        _spec = self._schema["param"]
+        _spec = self.c_param
 
         for key, val in urlparse.parse_qs(urlencoded).items():
             try:
@@ -184,7 +177,7 @@ class Message(object):
         :return: A dict
         """
 
-        _spec = self._schema["param"]
+        _spec = self.c_param
 
         _res= {}
         lev += 1
@@ -215,7 +208,7 @@ class Message(object):
         :return: A class instance or raise an exception on error
         """
 
-        _spec = self._schema["param"]
+        _spec = self.c_param
 
         for key, val in dictionary.items():
             # Earlier versions of python don't like unicode strings as
@@ -264,9 +257,11 @@ class Message(object):
 
                 if issubclass(vtype, Message):
                     try:
-                        val = [vtype(**dict([(str(x),
-                                       y) for x,y
-                                          in v.items()])) for v in val]
+                        _val = []
+                        for v in val:
+                            _val.append(vtype(**dict([(str(x),y) for x,
+                                                            y in v.items()])))
+                        val = _val
                     except Exception, exc:
                         raise DecodeError(ERRTXT % (key, exc))
                 else:
@@ -373,9 +368,9 @@ class Message(object):
         Make sure all the required values are there and that the values are
         of the correct type
         """
-        _spec = self._schema["param"]
+        _spec = self.c_param
         try:
-            _allowed = self._schema["allowed values"]
+            _allowed = self.c_allowed_values
         except KeyError:
             _allowed = {}
 
@@ -435,18 +430,15 @@ class Message(object):
 
     def __setitem__(self, key, value):
         try:
-            (vtyp, req, _, _deser) = self._schema["param"][key]
+            (vtyp, req, _, _deser) = self.c_param[key]
             self._add_value(str(key), vtyp, key, value, _deser)
         except KeyError:
             self._dict[key] = value
 
-    def set_schema(self, schema):
-        self._schema = schema
-
     def __eq__(self, other):
         if not isinstance(other, Message):
             return False
-        if self._name != other._name:
+        if self.type() != other.type():
             return False
 
         if self._dict != other._dict:
@@ -460,8 +452,22 @@ class Message(object):
     def __delitem__(self, key):
         del self._dict[key]
 
+    def extra(self):
+        return dict([(key,val) for key,
+                         val in self._dict.items() if key not in self.c_param])
+
 # =============================================================================
-#
+
+
+def by_schema(cls, **kwa):
+    return dict([(key, val) for key,val in kwa.items() if key in cls.c_param])
+
+def add_non_standard(msg1, msg2):
+    for key, val in msg2.extra():
+        if key not in msg1.c_param:
+            msg1[key] = val
+
+# =============================================================================
 
 #noinspection PyUnusedLocal
 def list_serializer(vals, format="urlencoded", lev=0):
@@ -522,286 +528,151 @@ SINGLE_OPTIONAL_JSON = (basestring, False, json_serializer, json_deserializer)
 # =============================================================================
 #
 
-SCHEMA = {
-    "": {"param": {}},
-    "ErrorResponse": {
-        "param": {
-            "error": SINGLE_REQUIRED_STRING,
-            "error_description": SINGLE_OPTIONAL_STRING,
-            "error_uri":SINGLE_OPTIONAL_STRING,
-        },
-    },
-    "AuthorizationErrorResponse": {
-        "param": {
-            "state":SINGLE_OPTIONAL_STRING,
-        },
-        "parent": ["ErrorResponse"],
-        "allowed_values": {
-            "error": ["invalid_request", "unathorized_client",
-                      "access_denied", "unsupported_response_type",
-                      "invalid_scope", "server_error",
-                      "temporarily_unavailable"]
-        }
-    },
-    "TokenErrorResponse": {
-        "param": {},
-        "parent": ["ErrorResponse"],
-        "allowed_values": {
-            "error": ["invalid_request", "invalid_client",
-                      "invalid_grant", "unauthorized_client",
-                      "unsupported_grant_type", "invalid_scope"]
-        }
-    },
-    "AccessTokenRequest": {
-        "param":{
-            "grant_type": SINGLE_REQUIRED_STRING,
-            "code": SINGLE_REQUIRED_STRING,
-            "redirect_uri": SINGLE_REQUIRED_STRING,
-            "client_id": SINGLE_OPTIONAL_STRING,
-            "client_secret": SINGLE_OPTIONAL_STRING,
-        },
-        "default": {"grant_type":"authorization_code"}
-    },
-    "AuthorizationRequest": {
-        "param": {
-            "response_type": REQUIRED_LIST_OF_SP_SEP_STRINGS,
-            "client_id": SINGLE_REQUIRED_STRING,
-            "redirect_uri": SINGLE_OPTIONAL_STRING,
-            "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-            "state": SINGLE_OPTIONAL_STRING
-        }
-    },
-    "AuthorizationResponse": {
-        "param": {
-            "code": SINGLE_REQUIRED_STRING,
-            "state": SINGLE_OPTIONAL_STRING
-        }
-    },
-    "AccessTokenResponse": {
-        "param": {
-            "access_token": SINGLE_REQUIRED_STRING,
-            "token_type": SINGLE_REQUIRED_STRING,
-            "expires_in": SINGLE_OPTIONAL_INT,
-            "refresh_token": SINGLE_OPTIONAL_STRING,
-            "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-            "state": SINGLE_OPTIONAL_STRING
-        }
-    },
-    "NoneResponse": {
-        "param": {
-            "state": SINGLE_OPTIONAL_STRING
-        }
-    },
-    "ROPCAccessTokenRequest": {
-        "param": {
-            "grant_type": SINGLE_REQUIRED_STRING,
-            "username": SINGLE_OPTIONAL_STRING,
-            "password": SINGLE_OPTIONAL_STRING,
-            "scope": SINGLE_OPTIONAL_STRING
-        },
-    },
-    "CCAccessTokenRequest": {
-        "param": {
-            "grant_type": SINGLE_REQUIRED_STRING,
-            "scope": SINGLE_OPTIONAL_STRING
-        },
-        "allowed_values": {"grant_type":"client_credentials"},
-        "default": {"grant_type":"client_credentials"}
-    },
-    "RefreshAccessTokenRequest": {
-        "param": {
-            "grant_type": SINGLE_REQUIRED_STRING,
-            "refresh_token": SINGLE_REQUIRED_STRING,
-            "client_id": SINGLE_REQUIRED_STRING,
-            "scope": SINGLE_OPTIONAL_STRING,
-            "client_secret": SINGLE_OPTIONAL_STRING
-        },
-        "allowed_values": {"grant_type":"refresh_token"},
-        "default": {"grant_type":"refresh_token"}
-    },
-    "TokenRevocationRequest": {
-        "param": {
-            "token": SINGLE_REQUIRED_STRING,
-        }
-    },
-    "ResourceRequest": {
-        "param": {
-            "access_token": SINGLE_OPTIONAL_STRING,
-        }
-    },
+class ErrorResponse(Message):
+    c_param = {"error": SINGLE_REQUIRED_STRING,
+             "error_description": SINGLE_OPTIONAL_STRING,
+             "error_uri":SINGLE_OPTIONAL_STRING,
+    }
+
+class AuthorizationErrorResponse(ErrorResponse):
+    c_param = ErrorResponse.c_param.copy()
+    c_param.update({"state":SINGLE_OPTIONAL_STRING})
+    c_allowed_values = ErrorResponse.c_allowed_values.copy()
+    c_allowed_values.update({"error":["invalid_request",
+                                 "unathorized_client",
+                                 "access_denied",
+                                 "unsupported_response_type",
+                                 "invalid_scope", "server_error",
+                                 "temporarily_unavailable"]})
+
+class TokenErrorResponse(ErrorResponse):
+    c_allowed_values = {"error":["invalid_request", "invalid_client",
+                                 "invalid_grant", "unauthorized_client",
+                                 "unsupported_grant_type",
+                                 "invalid_scope"]}
+
+class AccessTokenRequest(Message):
+    c_param = {"grant_type": SINGLE_REQUIRED_STRING,
+               "code": SINGLE_REQUIRED_STRING,
+               "redirect_uri": SINGLE_REQUIRED_STRING,
+               "client_id": SINGLE_OPTIONAL_STRING,
+               "client_secret": SINGLE_OPTIONAL_STRING,}
+    c_default = {"grant_type":"authorization_code"}
+
+class AuthorizationRequest(Message):
+    c_param = {
+        "response_type": REQUIRED_LIST_OF_SP_SEP_STRINGS,
+        "client_id": SINGLE_REQUIRED_STRING,
+        "redirect_uri": SINGLE_OPTIONAL_STRING,
+        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+        "state": SINGLE_OPTIONAL_STRING
+    }
+
+class AuthorizationResponse(Message):
+    c_param = {
+        "code": SINGLE_REQUIRED_STRING,
+        "state": SINGLE_OPTIONAL_STRING
+    }
+
+class AccessTokenResponse(Message):
+    c_param = {
+        "access_token": SINGLE_REQUIRED_STRING,
+        "token_type": SINGLE_REQUIRED_STRING,
+        "expires_in": SINGLE_OPTIONAL_INT,
+        "refresh_token": SINGLE_OPTIONAL_STRING,
+        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+        "state": SINGLE_OPTIONAL_STRING
+    }
+
+class NoneResponse(Message):
+    c_param = {
+        "state": SINGLE_OPTIONAL_STRING
+    }
+
+class ROPCAccessTokenRequest(Message):
+    c_param = {
+        "grant_type": SINGLE_REQUIRED_STRING,
+        "username": SINGLE_OPTIONAL_STRING,
+        "password": SINGLE_OPTIONAL_STRING,
+        "scope": SINGLE_OPTIONAL_STRING
+    }
+
+class CCAccessTokenRequest(Message):
+    c_param = {
+        "grant_type": SINGLE_REQUIRED_STRING,
+        "scope": SINGLE_OPTIONAL_STRING
+    }
+    c_default = {"grant_type":"client_credentials"}
+    c_allowed_values = {"grant_type": ["client_credentials"]}
+
+class RefreshAccessTokenRequest(Message):
+    c_param = {
+        "grant_type": SINGLE_REQUIRED_STRING,
+        "refresh_token": SINGLE_REQUIRED_STRING,
+        "client_id": SINGLE_REQUIRED_STRING,
+        "scope": SINGLE_OPTIONAL_STRING,
+        "client_secret": SINGLE_OPTIONAL_STRING
+    }
+    c_default = {"grant_type":"refresh_token"}
+    c_allowed_values = {"grant_type": ["refresh_token"]}
+
+class TokenRevocationRequest(Message):
+    c_param = {"token": SINGLE_REQUIRED_STRING}
+
+class ResourceRequest(Message):
+    c_param = {"access_token": SINGLE_OPTIONAL_STRING}
+
+MSG = {
+    "Message": Message,
+    "ErrorResponse": ErrorResponse,
+    "AuthorizationErrorResponse": AuthorizationErrorResponse,
+    "TokenErrorResponse": TokenErrorResponse,
+    "AccessTokenRequest": AccessTokenRequest,
+    "AuthorizationRequest": AuthorizationRequest,
+    "AuthorizationResponse": AuthorizationResponse,
+    "AccessTokenResponse": AccessTokenResponse,
+    "NoneResponse": NoneResponse,
+    "ROPCAccessTokenRequest": ROPCAccessTokenRequest,
+    "CCAccessTokenRequest": CCAccessTokenRequest,
+    "RefreshAccessTokenRequest": RefreshAccessTokenRequest,
+    "TokenRevocationRequest": TokenRevocationRequest,
+    "ResourceRequest": ResourceRequest,
 }
 
-lc_types = dict((x.lower(), x) for x in SCHEMA.keys())
-
-def join(dic0, dic1):
-    res = {}
-    for key, val in dic0.items():
-        if key not in dic1:
-            res[key] = val
-        else:
-            if isinstance(val, dict):
-                res[key] = join(val, dic1[key])
-            else:
-                val.extend(dic1[key])
-                res[key] = val
-
-    for key, val in dic1.items():
-        if key in dic0:
-            continue
-        else:
-            res[key] = val
-
-    return res
-
-def join_spec(*arg):
-    _child = arg[0]
-    _parent = arg[1]
-    _sp = {"param": _child["param"].copy()}
-
+def factory(msgtype):
     try:
-        _parent = inherit(_parent, _parent["parent"])
+        return MSG[msgtype]
     except KeyError:
-        pass
-
-    # param
-    for key, val in _parent["param"].items():
-        # Child overrides parent
-        if key not in _sp["param"]:
-            _sp["param"][key] = val
-
-    # allowed values
-    _av = [None, None]
-    for i in [0,1]:
-        try:
-            _av[i] = arg[i]["allowed_values"]
-        except KeyError:
-            pass
-
-    if _av[0] is None and _av[1] is None:
-        pass
-    elif _av[0] is None:
-        if _av[1]:
-            _sp["allowed_values"] = _av[1]
-    elif _av[1] is None:
-        if _av[0]:
-            _sp["allowed_values"] = _av[0]
-    else:
-        _sp["allowed_values"] = join(_av[1], _av[0])
-
-    # default
-    if "default" in _child:
-        _def = _child["default"]
-        if "default" in _parent:
-            for key, val in _parent["default"].items():
-                if key not in _def:
-                    _def[key] = val
-        _sp["default"] = _def
-    else:
-        try:
-            _sp["default"] = _parent["default"]
-        except KeyError:
-            pass
-
-    # verify
-    try:
-        _sp["verify"] = _child["verify"]
-    except KeyError:
-        try:
-            _sp["verify"] = _parent["verify"]
-        except KeyError:
-            pass
-
-    return _sp
-
-def inherit(spec, parent):
-    for p in parent:
-        if isinstance(p, dict):
-            _spec = p
-        else:
-            _spec = SCHEMA[p]
-        spec = join_spec(spec, _spec)
-
-    return spec
-
-_schema = {}
-for key, _spec in SCHEMA.items():
-    if "parent" in _spec:
-        _schema[key] = inherit(_spec, _spec["parent"])
-    else:
-        _schema[key] = _spec
-    _schema[key]["mod"] = __name__
-    _schema[key]["name"] = key
-
-SCHEMA = _schema
-
-def by_schema(_spec_, **kwargs):
-    try:
-        if isinstance(_spec_, basestring):
-            name = lc_types[_spec_.lower()]
-            pkeys = SCHEMA[name]["param"].keys()
-        else:
-            pkeys = _spec_["param"].keys()
-
-        return dict([(k,v) for k, v in kwargs.items() if k in pkeys])
-    except KeyError:
-        raise Exception("Unknown message type")
-
-def add_non_standard(msg1, msg2):
-    """
-    Adds all non standard attributes in msg1 to msg2
-    """
-    for key, val in msg1.items():
-        if key not in msg1._schema["param"]:
-            msg2[key] = val
-
-def message(_type_, **kwargs):
-    if isinstance(_type_, dict):
-        return Message(_type_["name"], _type_, **kwargs)
-    else:
-        try:
-            name = lc_types[_type_.lower()]
-            return Message(name, SCHEMA[name], **kwargs)
-        except KeyError:
-            raise Exception("Unknown message type")
-
-def message_from_schema(schema, **kwargs):
-    return Message(schema["name"], schema, **kwargs)
-
-def msg_deser(val, format, typ="", schema=None, **kwargs):
-    if typ:
-        return message(typ).deserialize(val, format, **kwargs)
-    else:
-        return Message(schema["name"], schema).deserialize(val, format,
-                                                           **kwargs)
+        raise Exception("Unknown message type: %s" % msgtype)
 
 if __name__ == "__main__":
-    foo = Message("AccessTokenRequest", SCHEMA["AccessTokenRequest"],
-                  grant_type="authorization_code",
-                  code="foo", redirect_uri="http://example.com/cb")
+    foo = AccessTokenRequest(grant_type="authorization_code",
+                             code="foo",
+                             redirect_uri="http://example.com/cb")
     print foo
-    bar = Message("CCAccessTokenRequest",SCHEMA["CCAccessTokenRequest"],
-                  grant_type="client_credentials")
-    print bar
-    print bar.verify()
-    xyz = Message("AuthorizationErrorResponse",
-                  SCHEMA["AuthorizationErrorResponse"],
-                  error="invalid_request",
-                  state="foxbar")
-    print xyz
-    print xyz.verify()
-
-    urlencoded = foo.to_urlencoded()
-    atr = Message("AccessTokenRequest",
-                  SCHEMA["AccessTokenRequest"]).from_urlencoded(urlencoded)
-    print atr
-
-    atr = Message("AccessTokenRequest",
-                  SCHEMA["AccessTokenRequest"]).deserialize(urlencoded)
-    print atr
-
-    atr = message("AccessTokenRequest").deserialize(urlencoded)
-    print atr
-
-    areq = message("accesstokenrequest", grant_type="authorization_code",
-                  code="foo", redirect_uri="http://example.com/cb")
-    print areq
+#    bar = Message("CCAccessTokenRequest",SCHEMA["CCAccessTokenRequest"],
+#                  grant_type="client_credentials")
+#    print bar
+#    print bar.verify()
+#    xyz = Message("AuthorizationErrorResponse",
+#                  SCHEMA["AuthorizationErrorResponse"],
+#                  error="invalid_request",
+#                  state="foxbar")
+#    print xyz
+#    print xyz.verify()
+#
+#    urlencoded = foo.to_urlencoded()
+#    atr = Message("AccessTokenRequest",
+#                  SCHEMA["AccessTokenRequest"]).from_urlencoded(urlencoded)
+#    print atr
+#
+#    atr = Message("AccessTokenRequest",
+#                  SCHEMA["AccessTokenRequest"]).deserialize(urlencoded)
+#    print atr
+#
+#    atr = message("AccessTokenRequest").deserialize(urlencoded)
+#    print atr
+#
+#    areq = message("accesstokenrequest", grant_type="authorization_code",
+#                  code="foo", redirect_uri="http://example.com/cb")
+#    print areq

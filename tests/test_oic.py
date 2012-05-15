@@ -4,38 +4,61 @@
 __author__ = 'rohe0002'
 
 import time
+import json
+import urllib
 
 from oic.oic import Grant
 from oic.oic import Token
 from oic.oic import Client
 from oic.oic import Server
-from oic.oic.message import *
+from oic.oic.message import IdToken
+from oic.oic.message import AuthorizationErrorResponse
+from oic.oic.message import Claims
+from oic.oic.message import UserInfoClaim
+from oic.oic.message import UserInfoRequest
+from oic.oic.message import RegistrationRequest
+from oic.oic.message import RefreshSessionRequest
+from oic.oic.message import CheckSessionRequest
+from oic.oic.message import EndSessionRequest
+from oic.oic.message import IDTokenClaim
+from oic.oic.message import RefreshAccessTokenRequest
+from oic.oic.message import AccessTokenRequest
+from oic.oic.message import OpenIDRequest
+from oic.oic.message import AuthorizationRequest
+from oic.oic.message import AccessTokenResponse
+from oic.oic.message import AuthorizationResponse
 
-from oic.oauth2.message import SCHEMA as OA2_SCHEMA
-from oic.oauth2.message import GrantExpired, message_from_schema
+from oic.oauth2.message import GrantExpired
+from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import MissingRequiredAttribute
 
 from oic.utils import time_util
 from oic.utils.time_util import time_sans_frac
+from oic.utils.jwt import rsa_load, left_hash, unpack
 
 from pytest import raises
 
 from fakeoicsrv import MyFakeOICServer
 
 def _eq(l1, l2):
-    return set(l1) == set(l2)
+    s1 = set(l1)
+    s2 = set(l2)
+    return s1 == s2
 
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
+rsapub = rsa_load("../oc3/certs/mycert.key")
+
 KEYS = [
     ["abcdefghijklmnop", "hmac", "verify", "client_1"],
-    ["abcdefghijklmnop", "hmac", "sign", "client_1"]
+    ["abcdefghijklmnop", "hmac", "sign", "client_1"],
+    [rsapub, "rsa", "sign", "."],
+    [rsapub, "rsa", "verify", "."]
 ]
 
 SIGN_KEY = {"hmac": ["abcdefghijklmnop"]}
-
-IDTOKEN = message("IdToken", iss="http://oic.example.org/", user_id="user_id",
+IDTOKEN = IdToken(iss="http://oic.example.org/", user_id="user_id",
                   aud=CLIENT_ID, exp=time_sans_frac()+86400, nonce="N0nce")
 
 # ----------------- CLIENT --------------------
@@ -80,7 +103,7 @@ class TestOICClient():
 
     def test_parse_authz_resp_url(self):
         url = "https://client.example.com/cb?code=SplxlOBeZQQYbYS6WxSbIA&state=ghi"
-        aresp = self.client.parse_response(SCHEMA["AuthorizationResponse"],
+        aresp = self.client.parse_response(AuthorizationResponse,
                                            info=url, format="urlencoded")
 
         assert aresp["code"] == "SplxlOBeZQQYbYS6WxSbIA"
@@ -92,7 +115,7 @@ class TestOICClient():
 
     def test_parse_authz_resp_query(self):
         query = "code=SplxlOBeZQQYbYS6WxSbIA&state=hij"
-        aresp = self.client.parse_response(SCHEMA["AuthorizationResponse"],
+        aresp = self.client.parse_response(AuthorizationResponse,
                                            info=query, format="urlencoded")
 
         assert aresp["code"] == "SplxlOBeZQQYbYS6WxSbIA"
@@ -105,7 +128,7 @@ class TestOICClient():
 
     def test_parse_authz_resp_query_multi_scope(self):
         query = "code=SplxlOBeZQQYbYS6WxAAAA&state=klm"
-        aresp = self.client.parse_response(SCHEMA["AuthorizationResponse"],
+        aresp = self.client.parse_response(AuthorizationResponse,
                                            info=query, format="urlencoded")
 
         assert aresp["code"] == "SplxlOBeZQQYbYS6WxAAAA"
@@ -119,7 +142,7 @@ class TestOICClient():
 
     def test_parse_authz_resp_query_unknown_parameter(self):
         query = "code=SplxlOBeZQQYbYS6WxSbIA&state=xyz&foo=bar"
-        aresp = self.client.parse_response(SCHEMA["AuthorizationResponse"],
+        aresp = self.client.parse_response(AuthorizationResponse,
                                            info=query, format="urlencoded")
 
         assert aresp["code"] == "SplxlOBeZQQYbYS6WxSbIA"
@@ -183,9 +206,9 @@ class TestOICClient():
        "example_parameter":"example_value"
      }"""
 
-        self.client.parse_response(SCHEMA["AccessTokenResponse"],
+        self.client.parse_response(AccessTokenResponse,
                                    info="".join([
-                                   x.strip() for x in jso.split("\n")]))
+                                        x.strip() for x in jso.split("\n")]))
 
         assert self.client.grant
         _grant = self.client.grant[""]
@@ -221,7 +244,7 @@ class TestOICClient():
         self.client.grant["foo"].code = "access_code"
 
         print self.client.grant["foo"]
-        resp = message("AccessTokenResponse")
+        resp = AccessTokenResponse()
         resp["refresh_token"] = "refresh_with_me"
         resp["access_token"] = "access"
         self.client.grant["foo"].tokens.append(Token(resp))
@@ -235,7 +258,7 @@ class TestOICClient():
     def test_parse_authz_err_response(self):
         ruri = "https://client.example.com/cb?error=access_denied&amp;state=xyz"
 
-        resp = self.client.parse_response(SCHEMA["AuthorizationResponse"],
+        resp = self.client.parse_response(AuthorizationErrorResponse,
                                           info=ruri, format="urlencoded")
 
         print type(resp), resp
@@ -267,23 +290,22 @@ class TestOICClient():
 
     def test_request_info_simple(self):
         self.client.authorization_endpoint = "https://example.com/authz"
-        uri, body, h_args, cis = self.client.request_info(
-                                                SCHEMA["AuthorizationRequest"])
+        uri, body, h_args, cis = self.client.request_info(AuthorizationRequest)
 
         # default == "POST"
         assert uri == 'https://example.com/authz'
-        areq = message("AuthorizationRequest").from_urlencoded(body)
+        areq = AuthorizationRequest().from_urlencoded(body)
         assert _eq(areq.keys(), ["nonce","redirect_uri","response_type",
                                  "client_id"])
         assert h_args == {'headers': {'content-type': 'application/x-www-form-urlencoded'}}
         assert cis.type() == "AuthorizationRequest"
 
     def test_request_info_simple_get(self):
-        uri, body, h_args, cis = self.client.request_info(
-                                SCHEMA["AuthorizationRequest"], method="GET")
+        uri, body, h_args, cis = self.client.request_info(AuthorizationRequest,
+                                                          method="GET")
 
         (url, query) = uri.split("?")
-        areq = message("AuthorizationRequest").from_urlencoded(query)
+        areq = AuthorizationRequest().from_urlencoded(query)
         assert _eq(areq.keys(), ["nonce","redirect_uri","response_type",
                                  "client_id"])
         assert areq["redirect_uri"] == "http://client.example.com/authz"
@@ -295,12 +317,12 @@ class TestOICClient():
     def test_request_info_simple_get_with_req_args(self):
         #self.client.authorization_endpoint = "https://example.com/authz"
         uri, body, h_args, cis = self.client.request_info(
-                                SCHEMA["AuthorizationRequest"], method="GET",
+                                AuthorizationRequest, method="GET",
                                 request_args={"state":"init"})
 
         print uri
         (url, query) = uri.split("?")
-        areq = message("AuthorizationRequest").from_urlencoded(query)
+        areq = AuthorizationRequest().from_urlencoded(query)
         assert _eq(areq.keys(), ["nonce","redirect_uri","response_type",
                                  "client_id", "state"])
         assert areq["state"]
@@ -310,13 +332,13 @@ class TestOICClient():
 
     def test_request_info_simple_get_with_extra_args(self):
         #self.client.authorization_endpoint = "https://example.com/authz"
-        uri, body, h_args, cis = self.client.request_info(
-                                    SCHEMA["AuthorizationRequest"],
-                                    method="GET", extra_args={"rock":"little"})
+        uri, body, h_args, cis = self.client.request_info(AuthorizationRequest,
+                                                method="GET",
+                                                extra_args={"rock":"little"})
 
         print uri
         (url, query) = uri.split("?")
-        areq = message("AuthorizationRequest").from_urlencoded(query)
+        areq = AuthorizationRequest().from_urlencoded(query)
         assert _eq(areq.keys(), ["nonce","redirect_uri","response_type",
                                  "client_id", "rock"])
         assert body is None
@@ -326,13 +348,13 @@ class TestOICClient():
     def test_request_info_with_req_and_extra_args(self):
         #self.client.authorization_endpoint = "https://example.com/authz"
         uri, body, h_args, cis = self.client.request_info(
-                    SCHEMA["AuthorizationRequest"], method="GET",
-                    request_args={"state":"init"},
-                    extra_args={"rock":"little"})
+                                        AuthorizationRequest, method="GET",
+                                        request_args={"state":"init"},
+                                        extra_args={"rock":"little"})
 
         print uri
         (url, query) = uri.split("?")
-        areq = message("AuthorizationRequest").from_urlencoded(query)
+        areq = AuthorizationRequest().from_urlencoded(query)
         assert _eq(areq.keys(), ["nonce","redirect_uri","response_type",
                                  "client_id", "state", "rock"])
         assert body is None
@@ -357,7 +379,7 @@ class TestOICClient():
         assert _loc.startswith(self.client.redirect_uris[0])
         _, query = _loc.split("?")
 
-        self.client.parse_response(SCHEMA["AuthorizationResponse"], info=query,
+        self.client.parse_response(AuthorizationResponse, info=query,
                                    format="urlencoded")
 
     def test_access_token_request(self):
@@ -370,13 +392,15 @@ class TestOICClient():
         resp = self.client.do_access_token_request(scope="openid")
         print resp
         print resp.keys()
+        self.client.grant[self.client.state].add_token(resp)
         assert resp.type() == "AccessTokenResponse"
         assert _eq(resp.keys(), ['token_type', 'state', 'access_token',
                                  'expires_in', 'refresh_token', 'scope'])
 
     def test_do_user_info_request(self):
         self.client.userinfo_endpoint = "http://oic.example.org/userinfo"
-
+        print self.client.grant.keys()
+        print self.client.grant[self.client.state]
         resp = self.client.do_user_info_request(state=self.client.state)
         assert resp.type() == "OpenIDSchema"
         assert _eq(resp.keys(), ['name', 'email', 'verified', 'nickname'])
@@ -473,7 +497,7 @@ class TestOICClient():
         assert areq.request
 
         _keys = self.client.keystore.get_keys("verify", owner=None)
-        jwtreq = msg_deser(areq["request"], "jwt", "OpenIDRequest", key=_keys)
+        jwtreq = OpenIDRequest().deserialize(areq["request"], "jwt", key=_keys)
         print
         print jwtreq
         print jwtreq.keys()
@@ -501,7 +525,7 @@ def test_get_authorization_request():
     assert ar["response_type"] == ['code']
 
 def test_get_access_token_request():
-    resp = message("AuthorizationResponse", code="code", state="state")
+    resp = AuthorizationResponse(code="code", state="state")
 
     grant = Grant(1)
     grant.add_code(resp)
@@ -516,13 +540,12 @@ def test_get_access_token_request():
 def test_parse_access_token_response():
     client = Client()
 
-    at = message("AccessTokenResponse", access_token="SlAV32hkKG",
-                 token_type="Bearer", refresh_token="8xLOxBtZp8",
-                 expires_in=3600)
+    at = AccessTokenResponse(access_token="SlAV32hkKG", token_type="Bearer",
+                             refresh_token="8xLOxBtZp8", expires_in=3600)
 
     atj = at.to_json()
 
-    ATR = SCHEMA["AccessTokenResponse"]
+    ATR = AccessTokenResponse
     atr = client.parse_response(ATR, info=atj)
 
     assert _eq(atr.keys(), ['access_token', 'token_type', 'expires_in',
@@ -541,10 +564,9 @@ def test_parse_access_token_response():
     assert _eq(uatr.keys(), ['access_token', 'token_type', 'expires_in',
                              'refresh_token'])
 
-    err = message_from_schema(OA2_SCHEMA["ErrorResponse"],
-                              error="invalid_request",
-                              error_description="Something was missing", 
-                              error_uri="http://example.com/error_message.html")
+    err = ErrorResponse(error="invalid_request",
+                        error_description="Something was missing",
+                        error_uri="http://example.com/error_message.html")
 
     jerr = err.to_json()
     uerr = err.to_urlencoded()
@@ -562,16 +584,15 @@ def test_parse_access_token_response():
 
 #noinspection PyUnusedLocal
 def test_parse_access_token_response_missing_attribute():
-    at = message("AccessTokenResponse", access_token="SlAV32hkKG",
-                 token_type="Bearer", refresh_token="8xLOxBtZp8",
-                 expires_in=3600)
+    at = AccessTokenResponse(access_token="SlAV32hkKG", token_type="Bearer",
+                             refresh_token="8xLOxBtZp8", expires_in=3600)
 
     atdict = at.to_dict()
     del atdict["access_token"]
     atj = json.dumps(atdict)
     print atj
     client = Client()
-    ATR = SCHEMA["AccessTokenResponse"]
+    ATR = AccessTokenResponse
 
     raises(MissingRequiredAttribute, "client.parse_response(ATR, info=atj)")
 
@@ -584,7 +605,7 @@ def test_parse_access_token_response_missing_attribute():
 def test_client_get_grant():
     cli = Client()
 
-    resp = message("AuthorizationResponse", code="code", state="state")
+    resp = AuthorizationResponse(code="code", state="state")
     grant = Grant()
     grant.add_code(resp)
 
@@ -604,7 +625,7 @@ def test_client_parse_args():
         "scope":"scope",
         "state":"state",
         }
-    ar_args = cli._parse_args(SCHEMA["AuthorizationRequest"], **args)
+    ar_args = cli._parse_args(AuthorizationRequest, **args)
 
     print ar_args.keys()
     assert _eq(ar_args.keys(), ['scope', 'state', 'redirect_uri',
@@ -621,7 +642,7 @@ def test_client_parse_extra_args():
         "state":"state",
         "extra_session": "home"
     }
-    ar_args = cli._parse_args(SCHEMA["AuthorizationRequest"], **args)
+    ar_args = cli._parse_args(AuthorizationRequest, **args)
 
     print ar_args.keys()
     assert _eq(ar_args.keys(), ['state', 'redirect_uri', 'response_type',
@@ -651,10 +672,9 @@ def test_client_endpoint():
 
 def test_server_parse_parse_authorization_request():
     srv = Server()
-    ar = message("AuthorizationRequest", response_type=["code"],
-                 client_id="foobar",
-                 redirect_uri="http://foobar.example.com/oaclient",
-                 state="cold", nonce="NONCE")
+    ar = AuthorizationRequest(response_type=["code"], client_id="foobar",
+                            redirect_uri="http://foobar.example.com/oaclient",
+                            state="cold", nonce="NONCE")
 
     uencq = ar.to_urlencoded()
 
@@ -678,10 +698,9 @@ def test_server_parse_parse_authorization_request():
 
 def test_server_parse_jwt_request():
     srv = Server(KEYS)
-    ar = message("AuthorizationRequest", response_type=["code"],
-                 client_id="foobar",
-                 redirect_uri="http://foobar.example.com/oaclient",
-                 state="cold", nonce="NONCE")
+    ar = AuthorizationRequest(response_type=["code"], client_id="foobar",
+                              redirect_uri="http://foobar.example.com/oaclient",
+                              state="cold", nonce="NONCE")
 
     _keys = srv.keystore.get_verify_key(owner=CLIENT_ID)
     _jwt = ar.to_jwt(key=_keys, algorithm="HS256")
@@ -695,10 +714,10 @@ def test_server_parse_jwt_request():
     assert req["state"] == "cold"
 
 def test_server_parse_token_request():
-    atr = message("AccessTokenRequest", grant_type="authorization_code",
-                  code="SplxlOBeZQQYbYS6WxSbIA",
-                  redirect_uri="https://client.example.com/cb",
-                  client_id="client_id", extra="foo")
+    atr = AccessTokenRequest(grant_type="authorization_code",
+                             code="SplxlOBeZQQYbYS6WxSbIA",
+                             redirect_uri="https://client.example.com/cb",
+                             client_id="client_id", extra="foo")
 
     uenc = atr.to_urlencoded()
 
@@ -723,8 +742,8 @@ def test_server_parse_token_request():
     assert tr["extra"] == "foo"
 
 def test_server_parse_refresh_token_request():
-    ratr = message("RefreshAccessTokenRequest", refresh_token="ababababab",
-                   client_id="Client_id")
+    ratr = RefreshAccessTokenRequest(refresh_token="ababababab",
+                                     client_id="Client_id")
 
     uenc = ratr.to_urlencoded()
 
@@ -752,9 +771,9 @@ def test_construct_UserInfoRequest_2():
     cli.grant["foo"].grant_expiration_time = time.time()+60
     cli.grant["foo"].code = "access_code"
 
-    resp = message("AccessTokenResponse", refresh_token="refresh_with_me",
-                   access_token="access", id_token="IDTOKEN",
-                   scope=["openid"])
+    resp = AccessTokenResponse(refresh_token="refresh_with_me",
+                               access_token="access", id_token="IDTOKEN",
+                               scope=["openid"])
 
     cli.grant["foo"].tokens.append(Token(resp))
 
@@ -778,8 +797,8 @@ def test_construct_CheckSessionRequest_2():
     cli.grant["foo"].grant_expiration_time = time.time()+60
     cli.grant["foo"].code = "access_code"
 
-    resp = message("AccessTokenResponse", id_token = "id_id_id_id",
-                   access_token = "access", scope = ["openid"])
+    resp = AccessTokenResponse(id_token = "id_id_id_id",
+                               access_token = "access", scope = ["openid"])
 
     cli.grant["foo"].tokens.append(Token(resp))
 
@@ -813,8 +832,8 @@ def test_construct_EndSessionRequest():
     cli.grant["foo"].grant_expiration_time = time.time()+60
     cli.grant["foo"].code = "access_code"
 
-    resp = message("AccessTokenResponse", id_token = "id_id_id_id",
-                   access_token = "access", scope = ["openid"])
+    resp = AccessTokenResponse(id_token = "id_id_id_id",
+                               access_token = "access", scope = ["openid"])
 
     cli.grant["foo"].tokens.append(Token(resp))
 
@@ -837,21 +856,20 @@ def test_construct_OpenIDRequest():
     assert _eq(oidr.keys(), ['nonce', 'state', 'redirect_uri', 'response_type',
                              'client_id', 'scope'])
 
-ARESP = message("AuthorizationResponse", code="code", state="state000")
-TRESP = message("AccessTokenResponse", access_token="access_token",
-                token_type="bearer", expires_in=600, refresh_token="refresh",
-                scope=["openid"])
+ARESP = AuthorizationResponse(code="code", state="state000")
+TRESP = AccessTokenResponse(access_token="access_token", token_type="bearer",
+                            expires_in=600, refresh_token="refresh",
+                            scope=["openid"])
 
 def test_userinfo_request():
     cli = Client()
     cli.userinfo_endpoint = "http://example.com/userinfo"
 
     info = ARESP.to_urlencoded()
-    cli.parse_response(SCHEMA["AuthorizationResponse"], info,
+    cli.parse_response(AuthorizationResponse, info,
                        format="urlencoded", state="state0")
 
-    cli.parse_response(SCHEMA["AccessTokenResponse"], TRESP.to_json(),
-                       state="state0")
+    cli.parse_response(AccessTokenResponse, TRESP.to_json(), state="state0")
 
     path, body, method, h_args = cli.user_info_request(state="state0",
                                                        schema="openid")
@@ -888,44 +906,43 @@ def test_userinfo_request():
 
 # ----------------------------------------------------------------------------
 
-TREQ = message("AccessTokenRequest", code="code",
-               redirect_uri="http://example.com/authz", client_id=CLIENT_ID)
+TREQ = AccessTokenRequest(code="code", redirect_uri="http://example.com/authz",
+                          client_id=CLIENT_ID)
 
-AREQ = message("AuthorizationRequest", response_type="code",
-               client_id="client_id",
-               redirect_uri="http://example.com/authz", scope=["openid"],
-               state="state0", nonce="N0nce")
+AREQ = AuthorizationRequest(response_type="code", client_id="client_id",
+                            redirect_uri="http://example.com/authz",
+                            scope=["openid"], state="state0", nonce="N0nce")
 
-UIREQ = message("UserInfoRequest", access_token="access_token",
-                schema="openid")
+UIREQ = UserInfoRequest(access_token="access_token", schema="openid")
 
-REGREQ = message("RegistrationRequest", contacts=["roland.hedberg@adm.umu.se"],
-                 redirect_uris=["http://example.org/jqauthz"],
-                 application_name="pacubar", client_id=CLIENT_ID,
-                 type="client_associate")
+REGREQ = RegistrationRequest(contacts=["roland.hedberg@adm.umu.se"],
+                             redirect_uris=["http://example.org/jqauthz"],
+                             application_name="pacubar", client_id=CLIENT_ID,
+                             type="client_associate")
 
-RSREQ = message("RefreshSessionRequest", id_token="id_token",
-                redirect_url="http://example.com/authz", state="state0")
+RSREQ = RefreshSessionRequest(id_token="id_token",
+                              redirect_url="http://example.com/authz",
+                              state="state0")
 
 #key, type, usage, owner="."
 
-CSREQ = message("CheckSessionRequest",id_token=IDTOKEN.to_jwt(key=SIGN_KEY))
+CSREQ = CheckSessionRequest(id_token=IDTOKEN.to_jwt(key=SIGN_KEY))
 
-ESREQ = message("EndSessionRequest", id_token=IDTOKEN.to_jwt(key=SIGN_KEY),
-                redirect_url="http://example.org/jqauthz", state="state0")
+ESREQ = EndSessionRequest(id_token=IDTOKEN.to_jwt(key=SIGN_KEY),
+                          redirect_url="http://example.org/jqauthz",
+                          state="state0")
 
-IDT2 = message("IDTokenClaim", max_age=86400)
+IDT2 = IDTokenClaim(max_age=86400)
 
-CLAIM = message("Claims", name=None, nickname={"optional": True}, email=None,
+CLAIM = Claims(name=None, nickname={"optional": True}, email=None,
                verified=None, picture={"optional": True})
 
-USRINFO = message("UserInfoClaim", claims=CLAIM, format="signed")
+USRINFO = UserInfoClaim(claims=CLAIM, format="signed")
 
-OIDREQ = message("OpenIDRequest", response_type=["code", "id_token"],
-                 client_id=CLIENT_ID,
-                 redirect_uri="https://client.example.com/cb",
-                 scope="openid profile", state= "n-0S6_WzA2Mj",
-                 nonce="af0ifjsldkj", userinfo=USRINFO, id_token=IDT2)
+OIDREQ = OpenIDRequest(response_type=["code", "id_token"], client_id=CLIENT_ID,
+                       redirect_uri="https://client.example.com/cb",
+                        scope="openid profile", state= "n-0S6_WzA2Mj",
+                        nonce="af0ifjsldkj", userinfo=USRINFO, id_token=IDT2)
 
 def test_server_init():
 
@@ -1025,3 +1042,25 @@ def test_parse_open_id_request():
     #assert request.userinfo.format == "signed"
     print request["userinfo"]["claims"].to_dict()
     assert "email" in request["userinfo"]["claims"]
+
+def test_make_id_token():
+    srv = Server(KEYS)
+    session = {"user_id": "user0",
+               "client_id": "http://oic.example/rp"}
+    issuer= "http://oic.example/idp"
+    code = "abcdefghijklmnop"
+    idt_jwt = srv.make_id_token(session, loa="2", info_log=None, issuer=issuer,
+                                code=code, access_token="access_token")
+
+    jwt_keys = srv.keystore.get_keys("verify", owner=None)
+    idt = IdToken().from_jwt(idt_jwt, key=jwt_keys)
+    print idt
+    header = unpack(idt_jwt)
+
+    lha = left_hash(code, func="HS"+ header[0]["alg"][-3:])
+    assert lha == idt["c_hash"]
+
+    atr = AccessTokenResponse(id_token= idt_jwt, access_token="access_token",
+                              token_type="Bearer")
+    atr["code"] = code
+    assert atr.verify(key=jwt_keys)

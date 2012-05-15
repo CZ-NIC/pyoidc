@@ -1,16 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#import sys
-from oic.utils import http_util
+import os
+import traceback
+from oic.oauth2 import rndstr
+import sys
 
 __author__ = 'rohe0002'
 
 import logging
 import re
 
+from logging.handlers import BufferingHandler
+
+from oic.utils import http_util
+from oic.oic.provider import Provider
+from oic.oic.provider import STR
+
 from oic.utils.http_util import *
-#from oic.oic.message import OpenIDSchema, AuthnToken
-from oic.oic.message import message, msg_deser
+from oic.oic.message import OpenIDSchema
+from oic.oic.message import AuthnToken
 from oic.oic.provider import AuthnFailure
 from oic.oic.claims_provider import ClaimsClient
 from oic.oic import JWT_BEARER
@@ -18,9 +26,14 @@ from oic.oic import JWT_BEARER
 from mako.lookup import TemplateLookup
 
 LOGGER = logging.getLogger("oicServer")
-hdlr = logging.FileHandler('oc3.log')
-formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-hdlr.setFormatter(formatter)
+LOGFILE_NAME = 'oc3.log'
+hdlr = logging.FileHandler(LOGFILE_NAME)
+base_formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+
+CPC = '%(asctime)s %(levelname)s [%(client)s,%(path)s,%(cid)s] %(message)s'
+cpc_formatter = logging.Formatter(CPC)
+
+hdlr.setFormatter(base_formatter)
 LOGGER.addHandler(hdlr)
 LOGGER.setLevel(logging.INFO)
 
@@ -30,19 +43,42 @@ NAME = "pyoic"
 
 OAS = None
 
-PASSWD = [("diana", "krall"), ("babs", "howes")]
+PASSWD = [("diana", "krall"),
+            ("babs", "howes"),
+            ("upper", "crust")]
 
 
 #noinspection PyUnusedLocal
 def devnull(txt):
     pass
 
-def do_authentication(environ, start_response, sid):
+
+def create_session_logger(id, format=CPC):
+    logger = logging.getLogger('oics-'+id)
+    _formatter = logging.Formatter(format)
+
+    handl = BufferingHandler(10000)
+    handl.setFormatter(_formatter)
+    logger.addHandler(handl)
+
+    #    _fh = logging.FileHandler(LOGFILE_NAME)
+    #    _fh.setFormatter(_formatter)
+    #    logger.addHandler(_fh)
+
+    logger.setLevel(logging.INFO)
+
+    return logger
+
+def do_authentication(environ, start_response, sid, cookie=None):
     """
     Put up the login form
     """
+    if cookie:
+        headers = [cookie]
+    else:
+        headers = []
     resp = Response(mako_template="login.mako",
-                    template_lookup=environ["mako.lookup"])
+                    template_lookup=environ["mako.lookup"], headers=headers)
 
     argv = { "sid": sid,
              "login": "",
@@ -80,8 +116,8 @@ def verify_client(environ, areq, cdb):
         assert areq["client_assertion_type"] == JWT_BEARER
         secret = cdb[areq["client_id"]]["client_secret"]
         key_col = {"hmac": secret}
-        bjwt = msg_deser(areq["client_assertion"], "jwt", "AuthnToken",
-                         key=key_col)
+        bjwt = AuthnToken.deserialize(areq["client_assertion"], "jwt",
+                                      key=key_col)
     return False
 
 #import sys
@@ -102,7 +138,14 @@ def init_claims_clients(client_info):
         else:
             cc = ClaimsClient(client_id=specs["client_id"])
             cc.client_secret=specs["client_secret"]
-            cc.keystore.load_x509_cert(specs["x509_url"], "verify", cid)
+            try:
+                cc.keystore.load_x509_cert(specs["x509_url"], "verify", cid)
+            except KeyError:
+                pass
+            try:
+                cc.keystore.load_jwk(specs["jwk_url"], "verify", cid)
+            except KeyError:
+                pass
             cc.userclaims_endpoint = specs["userclaims_endpoint"]
         res[cid] = cc
     return res
@@ -124,7 +167,7 @@ def _collect_distributed(srv, cc, user_id, what, alias=""):
         result["_claims_names"][key] = alias
 
     if "jwt" in resp:
-        result["_claims_sources"][alias] = {"JWT": resp.jwt}
+        result["_claims_sources"][alias] = {"JWT": resp["jwt"]}
     else:
         result["_claims_sources"][alias] = {"endpoint": resp["endpoint"]}
         if "access_token" in resp:
@@ -173,6 +216,7 @@ def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
 
             for srv, what in cpoints.items():
                 cc = oicsrv.claims_clients[srv]
+                print >> sys.stderr, srv, what
                 _res = _collect_distributed(srv, cc, user_id, what)
                 for key, val in _res.items():
                     if key in result:
@@ -185,7 +229,7 @@ def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
         #result = identity
         result = {"user_id": user_id}
 
-    return message("OpenIDSchema", **result)
+    return OpenIDSchema(**result)
 
 FUNCTIONS = {
     "authenticate": do_authentication,
@@ -236,53 +280,105 @@ def css(environ, start_response, handle, logger):
 
 # ----------------------------------------------------------------------------
 
-def token(environ, start_response, handle):
+def token(environ, start_response, handle, logger):
     _oas = environ["oic.oas"]
 
-    return _oas.token_endpoint(environ, start_response, LOGGER, handle=handle)
+    return _oas.token_endpoint(environ, start_response, logger, handle=handle)
 
 #noinspection PyUnusedLocal
-def authorization(environ, start_response, handle):
+def authorization(environ, start_response, handle, logger):
     _oas = environ["oic.oas"]
 
-    return _oas.authorization_endpoint(environ, start_response, LOGGER,
+    return _oas.authorization_endpoint(environ, start_response, logger,
                                        handle=handle)
 
 #noinspection PyUnusedLocal
-def authenticated(environ, start_response, handle):
+def authenticated(environ, start_response, handle, logger):
     _oas = environ["oic.oas"]
 
-    return _oas.authenticated(environ, start_response, LOGGER)
+    return _oas.authenticated(environ, start_response, logger, handle=handle)
 
 #noinspection PyUnusedLocal
-def userinfo(environ, start_response, handle):
+def userinfo(environ, start_response, handle, logger):
     _oas = environ["oic.oas"]
 
-    return _oas.userinfo_endpoint(environ, start_response, LOGGER)
+    return _oas.userinfo_endpoint(environ, start_response, logger,
+                                  handle=handle)
 
 #noinspection PyUnusedLocal
-def op_info(environ, start_response, handle):
+def op_info(environ, start_response, handle, logger):
     _oas = environ["oic.oas"]
 
-    return _oas.providerinfo_endpoint(environ, start_response, LOGGER)
+    return _oas.providerinfo_endpoint(environ, start_response, logger,
+                                      handle=handle)
 
 #noinspection PyUnusedLocal
-def registration(environ, start_response, handle):
+def registration(environ, start_response, handle, logger):
     _oas = environ["oic.oas"]
 
-    return _oas.registration_endpoint(environ, start_response, LOGGER)
+    return _oas.registration_endpoint(environ, start_response, logger,
+                                      handle=handle)
 
 #noinspection PyUnusedLocal
-def check_id(environ, start_response, handle):
+def check_id(environ, start_response, handle, logger):
     _oas = environ["oic.oas"]
 
-    return _oas.check_id_endpoint(environ, start_response, LOGGER)
+    return _oas.check_id_endpoint(environ, start_response, logger,
+                                  handle=handle)
 
 #noinspection PyUnusedLocal
-def swd_info(environ, start_response, handle):
+def swd_info(environ, start_response, handle, logger):
     _oas = environ["oic.oas"]
 
-    return _oas.discovery_endpoint(environ, start_response, LOGGER)
+    return _oas.discovery_endpoint(environ, start_response, logger,
+                                   handle=handle)
+
+def trace_log(environ, start_response, handle, logger):
+    _oas = environ["oic.oas"]
+
+    return _oas.tracelog_endpoint(environ, start_response, logger,
+                                   handle=handle)
+
+def meta_info(environ, start_response, handle, logger):
+    """
+    Returns something like this
+     {"links":[
+        {
+            "rel":"http://openid.net/specs/connect/1.0/issuer",
+            "href":"https://openidconnect.info/"
+        }
+     ]}
+    """
+    pass
+
+def static_file(path):
+    try:
+        os.stat(path)
+        return True
+    except OSError:
+        return False
+
+def static(environ, start_response, logger, path):
+    logger.info("[static]sending: %s" % (path,))
+
+    try:
+        text = open(path).read()
+        if path.endswith(".ico"):
+            start_response('200 OK', [('Content-Type', "image/x-icon")])
+        elif path.endswith(".html"):
+            start_response('200 OK', [('Content-Type', 'text/html')])
+        elif path.endswith(".json"):
+            start_response('200 OK', [('Content-Type', 'application/json')])
+        elif path.endswith(".txt"):
+            start_response('200 OK', [('Content-Type', 'text/plain')])
+        elif path.endswith(".css"):
+            start_response('200 OK', [('Content-Type', 'text/css')])
+        else:
+            start_response('200 OK', [('Content-Type', "text/xml")])
+        return [text]
+    except IOError:
+        resp = NotFound()
+        return resp(environ, start_response)
 
 # ----------------------------------------------------------------------------
 from oic.oic.provider import AuthorizationEndpoint
@@ -304,8 +400,10 @@ URLS = [
     (r'^authenticated', authenticated),
     (r'^.well-known/openid-configuration', op_info),
     (r'^.well-known/simple-web-discovery', swd_info),
+    (r'^.well-known/host-meta.json', meta_info),
     (r'.+\.css$', css),
-    (r'safe', safe)
+    (r'safe', safe),
+#    (r'tracelog', trace_log),
 ]
 
 for endp in ENDPOINTS:
@@ -344,24 +442,53 @@ def application(environ, start_response):
     environ["oic.oas"] = OAS
     environ["mako.lookup"] = LOOKUP
 
-    LOGGER.info("--- path: %s ---" % path)
-    LOGGER.info("client address: %s" % environ.get("REMOTE_ADDR"))
+    remote = environ.get("REMOTE_ADDR")
+    logger = logging.getLogger('oicServer')
+#    hdlr.setFormatter(cpc_formatter)
+#    a1 = logging.LoggerAdapter(logger,
+#                               {'path' : path, 'client' : remote, "cid": ''})
+
+    #a1.info("")
     if OAS.debug:
-        LOGGER.info("Environ: %s" % environ)
+        logger.info("Environ: %s" % environ)
 
     kaka = environ.get("HTTP_COOKIE", '')
+    a1 = None
+    handle = ""
+    key = ""
     if kaka:
         if OAS.debug:
-            LOGGER.info("Cookie: %s" % (kaka,))
+            logger.info("Cookie: %s" % (kaka,))
         try:
             handle = parse_cookie(OAS.cookie_name, OAS.seed, kaka)
-            if OAS.debug:
-                LOGGER.info("Handle: %s" % (handle,))
-        except ValueError:
-            handle = ""
-    else:
-        handle = ""
+            key = handle[0]
 
+            try:
+                _log = OAS.trace_log[key]
+            except KeyError:
+                _log = create_session_logger(key)
+                OAS.trace_log[key] = _log
+            except AttributeError:
+                _log = logger
+
+            a1 = logging.LoggerAdapter(_log,
+                                {'path' : path, 'client' : remote, "cid": key})
+
+        except ValueError:
+            pass
+
+    if not a1:
+        key = STR+rndstr()+STR
+        handle = (key, 0)
+        _log = create_session_logger(key)
+        OAS.trace_log[key] = _log
+        a1 = logging.LoggerAdapter(_log, {'path' : path, 'client' : remote,
+                                          "cid": key})
+
+    logger.info("handle:%s [%s]" % (handle, a1))
+    a1.info(40*"-")
+    if path.startswith("static/"):
+        return static(environ, start_response, a1, path)
 
     for regex, callback in URLS:
         match = re.search(regex, path)
@@ -372,10 +499,18 @@ def application(environ, start_response):
                 environ['oic.url_args'] = path
 
             try:
-                return callback(environ, start_response, handle)
+                return callback(environ, start_response, handle, a1)
             except Exception,err:
-                LOGGER.exception("%s" % err)
-                resp = ServiceError("%s" % err)
+                print >> sys.stderr, "%s" % err
+                message = traceback.format_exception(*sys.exc_info())
+                print >> sys.stderr, message
+                a1.exception("%s" % err)
+                if key:
+                    _txt = OAS.dump_tracelog(key)
+                    _txt += "\n" + "%s" % err
+                    resp = ServiceError(_txt)
+                else:
+                    resp = ServiceError("%s" % err)
                 return resp(environ, start_response)
 
     resp = NotFound("Couldn't find the side you asked for!")
@@ -420,17 +555,67 @@ USERDB = {
         "_external_": {
             "https://localhost:8089/": ["geolocation"]
         }
+    },
+    "upper": {
+        "user_id": "uppe0001",
+        "name": "Upper Crust",
+        "given_name": "Upper",
+        "family_name": "Crust",
+        "email": "uc@example.com",
+        "verified": True,
+        "_external_": {
+            "https://localhost:8089/": ["geolocation"]
+        }
     }
 }
 
 CLIENT_INFO = {
-#    "https://localhost:8089/": {
-#        "userclaims_endpoint":"https://localhost:8089/userclaims",
-#        "client_id": "client_1",
-#        "client_secret": "hemlig",
-#        "x509_url": "https://localhost:8089/certs/mycert.pem",
-#        }
+    "https://localhost:8089/": {
+        "userclaims_endpoint":"https://localhost:8089/userclaims",
+        "client_id": "client_1",
+        "client_secret": "hemlig",
+        #"x509_url": "https://localhost:8089/certs/mycert.pem",
+        "jwk_url": "https://localhost:8089/certs/cpkey.jwk",
+        }
 }
+
+class TestProvider(Provider):
+    def __init__(self, name, sdb, cdb, function, userdb, urlmap=None,
+             debug=0, ca_certs="", jwt_keys=None):
+        Provider.__init__(self, name, sdb, cdb, function, userdb, urlmap,
+                          debug, ca_certs, jwt_keys)
+        self.test_mode = True
+        self.trace_log = {}
+
+    def dump_tracelog(self, key):
+        tlog = self.trace_log[key]
+        for handler in tlog.handlers:
+            if isinstance(handler, BufferingHandler):
+                arr = []
+                for record in handler.buffer:
+                    arr.append(handler.format(record))
+
+                return "\n".join(arr)
+        return ""
+
+    #noinspection PyUnusedLocal
+    def tracelog_endpoint(self, environ, start_response, logger, **kwargs):
+        handle = kwargs["handle"]
+        tlog = self.trace_log[handle[0]]
+        for handler in tlog.handlers:
+            if isinstance(handler, BufferingHandler):
+                arr = []
+                for record in handler.buffer:
+                    arr.append(handler.format(record))
+
+                resp = Response("\n".join(arr), content="text/plain")
+                return resp(environ, start_response)
+
+        resp = Response("no info", content="text/plain")
+        return resp(environ, start_response)
+
+    def re_link_log(self, old, new):
+        self.trace_log[new] = self.trace_log[old]
 
 if __name__ == '__main__':
     import argparse
@@ -440,13 +625,12 @@ if __name__ == '__main__':
     from cherrypy import wsgiserver
     from cherrypy.wsgiserver import ssl_builtin
 
-    from oic.oic.provider import Provider
     from oic.utils.sdb import SessionDB
-
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', dest='verbose', action='store_true')
     parser.add_argument('-d', dest='debug', action='store_true')
+    parser.add_argument('-t', dest='test', action='store_true')
     parser.add_argument('-p', dest='port', default=80, type=int)
     parser.add_argument(dest="config")
     args = parser.parse_args()
@@ -455,7 +639,11 @@ if __name__ == '__main__':
     # in memory session storage
 
     config = importlib.import_module(args.config)
-    OAS = Provider(config.issuer, SessionDB(), cdb, FUNCTIONS,  USERDB)
+    if args.test:
+        URLS.append((r'tracelog', trace_log))
+        OAS = TestProvider(config.issuer, SessionDB(), cdb, FUNCTIONS,  USERDB)
+    else:
+        OAS = Provider(config.issuer, SessionDB(), cdb, FUNCTIONS,  USERDB)
 
     try:
         OAS.cookie_ttl = config.COOKIETTL
@@ -472,6 +660,10 @@ if __name__ == '__main__':
     #print URLS
     if args.debug:
         OAS.debug = True
+    if args.test:
+        OAS.test_mode = True
+    else:
+        OAS.test_mode = False
 
     OAS.endpoints = ENDPOINTS
     if args.port == 80:
@@ -484,8 +676,15 @@ if __name__ == '__main__':
     if not OAS.baseurl.endswith("/"):
         OAS.baseurl += "/"
 
+    OAS.key_setup("static", sign={"format":"jwk", "alg":"rsa"})
     OAS.claims_clients = init_claims_clients(CLIENT_INFO)
 
+    for key, cc in OAS.claims_clients.items():
+        OAS.keystore.update(cc.keystore)
+
+    print OAS.keystore._store
+
+    # Add the claims providers keys
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
     SRV.ssl_adapter = ssl_builtin.BuiltinSSLAdapter("certs/server.crt",
                                                     "certs/server.key")

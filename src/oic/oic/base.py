@@ -1,4 +1,17 @@
-from oic.oauth2.message import ErrorResponse
+from oic.oic.message import AuthnToken, CheckSessionRequest, CheckIDRequest, EndSessionRequest, AuthorizationResponse, RegistrationResponse, IdToken, OpenIDSchema, ProviderConfigurationResponse, IssuerRequest
+from oic.oic.message import AuthorizationRequest
+from oic.oic.message import OpenIDRequest
+from oic.oic.message import Claims
+from oic.oic.message import AccessTokenResponse
+from oic.oic.message import IDTokenClaim
+from oic.oic.message import UserInfoClaim
+from oic.oic.message import RefreshSessionRequest
+from oic.oic.message import RegistrationRequest
+from oic.oic.message import UserInfoRequest
+from oic.oic.message import AccessTokenRequest
+from oic.oic.message import RefreshAccessTokenRequest
+
+from oic.oic.exception import AccessDenied
 
 __author__ = 'rohe0002'
 
@@ -12,11 +25,8 @@ from oic.oauth2 import DEF_SIGN_ALG
 from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import rndstr
 
-from oic.oic.message import *
-from oic.oic.exception import AccessDenied
-
 from oic.utils import time_util
-#from oic.utils import jwt
+from oic.utils import jwt
 
 #from oic.utils.time_util import time_sans_frac
 from oic.utils.time_util import utc_now
@@ -28,12 +38,12 @@ ENDPOINTS = ["authorization_endpoint", "token_endpoint",
              "registration_endpoint", "check_id_endpoint"]
 
 RESPONSE2ERROR = {
-    "AuthorizationResponse": [AuthorizationErrorResponse,
-                              TokenErrorResponse],
-    "AccessTokenResponse": [TokenErrorResponse],
-    "IdToken": [ErrorResponse],
-    "RegistrationResponse": [ClientRegistrationErrorResponse],
-    "OpenIDSchema": [UserInfoErrorResponse]
+    "AuthorizationResponse": ["AuthorizationErrorResponse",
+                              "TokenErrorResponse"],
+    "AccessTokenResponse": ["TokenErrorResponse"],
+    "IdToken": ["ErrorResponse"],
+    "RegistrationResponse": ["ClientRegistrationErrorResponse"],
+    "OpenIDSchema": ["UserInfoErrorResponse"]
 }
 
 REQUEST2ENDPOINT = {
@@ -46,9 +56,7 @@ REQUEST2ENDPOINT = {
     "CheckIDRequest": "check_id_endpoint",
     "EndSessionRequest": "end_session_endpoint",
     "RefreshSessionRequest": "refresh_session_endpoint",
-    "RegistrationRequest": "registration_endpoint",
-    # ---
-    "ResourceRequest": "resource_endpoint"
+    "RegistrationRequest": "registration_endpoint"
 }
 
 # -----------------------------------------------------------------------------
@@ -59,9 +67,9 @@ OIDCONF_PATTERN = "%s/.well-known/openid-configuration"
 AUTHN_METHOD = OAUTH2_AUTHN_METHOD.copy()
 
 def assertion_jwt(cli, keys, audience, algorithm=DEF_SIGN_ALG):
-    at = AuthnToken(iss = cli.client_id, prn = cli.client_id,
-                    aud = audience, jti = rndstr(8),
-                    exp = int(epoch_in_a_while(minutes=10)), iat = utc_now())
+    at = AuthnToken(iss = cli.client_id, prn = cli.client_id, aud = audience,
+                    jti = rndstr(8), exp = int(epoch_in_a_while(minutes=10)),
+                    iat = utc_now())
     return at.to_jwt(key=keys, algorithm=algorithm)
 
 #noinspection PyUnusedLocal
@@ -150,11 +158,12 @@ def verify_acr_level(req, level):
 # -----------------------------------------------------------------------------
 
 class Token(oauth2.Token):
-    pass
+    _response = AccessTokenResponse
+
 
 class Grant(oauth2.Grant):
-    _authz_resp = AuthorizationResponse
-    _acc_resp = AccessTokenResponse
+    _authz_resp = "AuthorizationResponse"
+    _acc_resp = "AccessTokenResponse"
     _token_class = Token
 
     def add_token(self, resp):
@@ -278,7 +287,8 @@ class Client(oauth2.Client):
 
         return oir.to_jwt(key=keys, algorithm=algorithm)
 
-    def construct_AuthorizationRequest(self, request=AuthorizationRequest,
+    def construct_AuthorizationRequest(self,
+                                       request=AuthorizationRequest,
                                        request_args=None, extra_args=None,
                                        **kwargs):
 
@@ -319,8 +329,8 @@ class Client(oauth2.Client):
 
         return areq
 
-    #noinspection PyUnusedLocal
     def construct_AccessTokenRequest(self, request=AccessTokenRequest,
+    #noinspection PyUnusedLocal
                                      request_args=None, extra_args=None,
                                      **kwargs):
 
@@ -358,7 +368,8 @@ class Client(oauth2.Client):
         return self.construct_request(request, request_args, extra_args)
 
     #noinspection PyUnusedLocal
-    def construct_RegistrationRequest(self, request=RegistrationRequest,
+    def construct_RegistrationRequest(self,
+                                      request=RegistrationRequest,
                                       request_args=None, extra_args=None,
                                       **kwargs):
 
@@ -394,7 +405,8 @@ class Client(oauth2.Client):
 
         return self.construct_request(request, request_args, extra_args)
 
-    def construct_CheckSessionRequest(self, request=CheckSessionRequest,
+    def construct_CheckSessionRequest(self,
+                                      request=CheckSessionRequest,
                                       request_args=None, extra_args=None,
                                       **kwargs):
 
@@ -423,8 +435,7 @@ class Client(oauth2.Client):
         #        if "redirect_url" not in request_args:
         #            request_args["redirect_url"] = self.redirect_url
 
-        return self._id_token_based(request, request_args, extra_args, 
-                                    **kwargs)
+        return self._id_token_based(request, request_args, extra_args, **kwargs)
 
     # ------------------------------------------------------------------------
 
@@ -439,13 +450,13 @@ class Client(oauth2.Client):
                                  state="", body_type="", method="GET",
                                  request_args=None, extra_args=None,
                                  http_args=None,
-                                 resp_request=AuthorizationResponse):
+                                 request_resp=AuthorizationResponse):
 
         return oauth2.Client.do_authorization_request(self, request, state,
                                                       body_type, method,
                                                       request_args,
                                                       extra_args, http_args,
-                                                      resp_request)
+                                                      request_resp)
 
 
     def do_access_token_request(self, request=AccessTokenRequest,
@@ -589,7 +600,7 @@ class Client(oauth2.Client):
                     raise
 
         try:
-            uir["schema"] = kwargs["schema"]
+            uir["request"] = kwargs["request"]
         except KeyError:
             pass
 
@@ -626,7 +637,7 @@ class Client(oauth2.Client):
                                                             scope, **kwargs)
 
         try:
-            resp = self.http_request(path, method, data=body, **h_args)
+            resp = self.http_request(path, method, body, **h_args)
         except oauth2.MissingRequiredAttribute:
             raise
 
@@ -639,41 +650,6 @@ class Client(oauth2.Client):
 
         return OpenIDSchema().from_json(txt=resp.text)
 
-    def get_userinfo_claims(self, access_token, endpoint, method="POST",
-                            schema_class=OpenIDSchema, **kwargs):
-
-        uir = UserInfoRequest(access_token=access_token)
-        try:
-            uir["schema"] = kwargs["schema"]
-        except KeyError:
-            pass
-
-
-        h_args = dict([(k, v) for k,v in kwargs.items() if k in HTTP_ARGS])
-
-        if "authn_method" in kwargs:
-            http_args = self.init_authentication_method(**kwargs)
-        else:
-            # If nothing defined this is the default
-            http_args = self.init_authentication_method(uir, "bearer_header",
-                                                        **kwargs)
-
-        h_args.update(http_args)
-        path, body, kwargs = self.get_or_post(endpoint, method, uir, **kwargs)
-
-        try:
-            resp = self.http_request(path, method, data=body, **h_args)
-        except oauth2.MissingRequiredAttribute:
-            raise
-
-        if resp.status_code == 200:
-            assert "application/json" in resp.headers["content-type"]
-        elif resp.status_code == 500:
-            raise Exception("ERROR: Something went wrong: %s" % resp.text)
-        else:
-            raise Exception("ERROR: Something went wrong [%s]" % resp.status_code)
-
-        return schema_class().from_json(txt=resp.text)
 
     def provider_config(self, issuer, keys=True, endpoints=True):
         if issuer.endswith("/"):
@@ -856,13 +832,13 @@ class Server(oauth2.Server):
         return self._parse_request(IssuerRequest, info, format)
 
     def make_id_token(self, session, loa="2", info_log=None, issuer="",
-                      keytype="rsa", code=None, access_token=None):
+                      signature="symmetric", code=None, access_token=None):
         #defaults
         inawhile = {"days": 1}
         # Handle the idtoken_claims
         extra = {}
         try:
-            oidreq = OpenIDRequest().deserialize(session["oidreq"], "json")
+            oidreq = OpenIDRequest.deserialize(session["oidreq"], "json")
             itc = oidreq["id_token"]
             info_log("ID Token claims: %s" % itc.to_dict())
             try:
@@ -898,19 +874,12 @@ class Server(oauth2.Server):
 
         # sign with clients secret key
         _keystore = self.keystore
-        if keytype == "hmac":
-            ckey = {"hmac":
-                        _keystore.get_sign_key("hmac",
-                                               owner=session["client_id"])}
-            algo = "HS256"
-        elif keytype == "rsa": # own asymmetric key
-            algo = "RS256"
-            ckey = {"rsa": _keystore.get_sign_key("rsa")}
-        else:
-            algo = "ES256"
-            ckey = {"ec":_keystore.get_sign_key("ec")}
+        if signature == "symmetric":
+            ckey = _keystore.get_keys("sign", owner=session["client_id"])
+        else: # own asymmetric key
+            ckey = _keystore.get_sign_key()
 
         if info_log:
-            info_log("Sign idtoken with '%s'" % (ckey,))
+            info_log("Sign idtoken with '%s'" % ckey)
 
-        return idt.to_jwt(key=ckey, algorithm=algo)
+        return idt.to_jwt(key=ckey)
