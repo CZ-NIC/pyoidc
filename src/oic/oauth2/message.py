@@ -32,7 +32,24 @@ ERRTXT = "On '%s': %s"
 
 def gather_keys(comb, collection, jso, target):
     try:
-        for typ, keys in collection[jso[target]].items():
+        _id = jso[target]
+    except KeyError:
+        return comb
+
+    try:
+        _col = collection[_id]
+    except KeyError:
+        if _id.endswith("/"):
+            _id = _id[:-1]
+            try:
+                _col = collection[_id]
+            except KeyError:
+                return comb
+        else:
+            return comb
+
+    try:
+        for typ, keys in _col.items():
             try:
                 comb[typ].extend(keys)
             except KeyError:

@@ -687,7 +687,7 @@ class Client(oauth2.Client):
         if r.status_code == 200:
             pcr = ProviderConfigurationResponse().from_json(r.text)
         else:
-            raise Exception("%s" % r.status_code)
+            raise Exception("Trying '%s', status %s" % (url, r.status_code))
 
         if "issuer" in pcr:
             if pcr["issuer"].endswith("/"):

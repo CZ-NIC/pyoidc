@@ -451,6 +451,7 @@ def application(environ, start_response):
     #a1.info("")
     if OAS.debug:
         logger.info("Environ: %s" % environ)
+        logger.info("PATH: '%s'" % path)
 
     kaka = environ.get("HTTP_COOKIE", '')
     a1 = None
@@ -481,7 +482,10 @@ def application(environ, start_response):
         key = STR+rndstr()+STR
         handle = (key, 0)
         _log = create_session_logger(key)
-        OAS.trace_log[key] = _log
+        try:
+            OAS.trace_log[key] = _log
+        except AttributeError:
+            pass
         a1 = logging.LoggerAdapter(_log, {'path' : path, 'client' : remote,
                                           "cid": key})
 

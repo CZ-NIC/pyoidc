@@ -1,8 +1,10 @@
+from oic.oauth2.message import by_schema
+
 __author__ = 'rohe0002'
 
 import json
 
-from oic.oic.message import ProviderConfigurationResponse
+from oic.oic.message import ProviderConfigurationResponse, AccessTokenResponse
 from oic.oic.message import SWDServiceRedirect
 from oic.oic.message import JWKEllipticKeyObject
 from oic.oic.message import JWKRSAKeyObject

@@ -971,7 +971,7 @@ class Provider(AProvider):
                 if self.debug:
                     _log_info("_dic: %s" % _dic)
                 for key, val in _dic.items():
-                    if key in aresp.parameters():
+                    if key in aresp.parameters() and val is not None:
                         aresp[key] = val
 
                 rtype.remove("token")
