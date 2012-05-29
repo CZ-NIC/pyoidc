@@ -272,7 +272,7 @@ class OpenIDSchema(Message):
             "picture": SINGLE_OPTIONAL_STRING,
             "website": SINGLE_OPTIONAL_STRING,
             "email": SINGLE_OPTIONAL_STRING,
-            "verified": SINGLE_OPTIONAL_BOOLEAN,
+            "email_verified": SINGLE_OPTIONAL_BOOLEAN,
             "gender": SINGLE_OPTIONAL_STRING,
             "birthday": SINGLE_OPTIONAL_STRING,
             "zoneinfo": SINGLE_OPTIONAL_STRING,
@@ -391,6 +391,27 @@ class OpenIDRequest(message.AuthorizationRequest):
                     "iss": SINGLE_OPTIONAL_STRING,
                     "aud": SINGLE_OPTIONAL_STRING})
 
+    def verify(self, **kwargs):
+        """Authorization Request parameters that are OPTIONAL in the OAuth 2.0
+        specification MAY be included in the OpenID Request Object without also
+        passing them as OAuth 2.0 Authorization Request parameters, with one
+        exception: The scope parameter MUST always be present in OAuth 2.0
+        Authorization Request parameters.
+        All parameter values that are present both in the OAuth 2.0
+        Authorization Request and in the OpenID Request Object MUST exactly
+        match."""
+        if "request" in self:
+            # Try to decode the JWT, checks the signature
+            oidr = OpenIDRequest().from_jwt(str(self["request"]), kwargs["key"])
+            if not oidr.verify(**kwargs):
+                return False
+
+            for key, val in oidr.items():
+                if key in self:
+                    assert self[key] == val
+
+        return super(self.__class__, self).verify(**kwargs)
+
 class ProviderConfigurationResponse(Message):
     c_param = {
             "version": SINGLE_OPTIONAL_STRING,
@@ -488,7 +509,7 @@ SCOPE2CLAIMS = {
     "profile": ["name", "given_name", "family_name", "middle_name",
                 "nickname", "profile", "picture", "website", "gender",
                 "birthday", "zoneinfo", "locale", "updated_time"],
-    "email": ["email", "verified"],
+    "email": ["email", "email_verified"],
     "address": ["address"],
     "phone": ["phone_number"]
 }

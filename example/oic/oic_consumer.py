@@ -31,19 +31,20 @@ def construct_openid_request(arq, key):
     """
 
     # Should be configurable !!
-    claims = Claims(name=None, nickname={"optional": True},
-                 email=None, verified=None,
-                 picture={"optional": True})
+    claims = Claims(name={"essential": True}, nickname=None,
+                 email={"essential": True}, email_verified={"essential": True},
+                 picture=None)
 
     uic = UserInfoClaim(claims, format="signed", locale="us-en")
 
     id_token = IDTokenClaim(max_age=86400, iso29115="2")
 
-    oir = OpenIDRequest(arq.response_type, arq.client_id,
-                            arq.redirect_uri,
-                            arq.scope, arq.state, uic, id_token)
+    oir = OpenIDRequest(arq.response_type, client_id=arq.client_id,
+                            redirect_uri=arq.redirect_uri,
+                            scope=arq.scope, state=arq.state,
+                            userinfo=uic, id_token=id_token)
 
-    return oir.get_jwt(key)
+    return oir.to_jwt(key)
 
 
 # ----------------------------------------------------------------------------

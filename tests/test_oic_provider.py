@@ -191,9 +191,7 @@ def user_info(oicsrv, userdb, user_id, client_id, user_info):
         try:
             result[key] = identity[key]
         except KeyError:
-            if restr == {"optional": True}:
-                pass
-            else:
+            if restr == {"essential": True}:
                 raise Exception("Missing property '%s'" % key)
 
     return OpenIDSchema(**result)
@@ -563,6 +561,9 @@ def test_userinfo_endpoint():
     cons.client_secret = "drickyoughurt"
     cons.config["response_type"] = ["token"]
     cons.config["request_method"] = "parameter"
+    cons.keystore.set_sign_key(rsapub, "rsa")
+    cons.keystore.set_verify_key(rsapub, "rsa")
+
     environ = BASE_ENVIRON
 
     location = cons.begin(environ, start_response, LOG())
@@ -649,7 +650,25 @@ def test_registration_endpoint():
     print resp
     update = RegistrationResponse().deserialize(resp[0], "json")
     print update.keys()
-    assert _eq(update.keys(), ['client_secret', 'expires_at', 'client_id'])
+    assert _eq(update.keys(), ['expires_at', 'client_id'])
+    #assert update["client_secret"] != regresp["client_secret"]
+
+
+    # --- Key Rotate ----
+
+    req = RegistrationRequest(type="rotate_secret")
+    req["client_id"] = regresp["client_id"]
+    req["client_secret"] = regresp["client_secret"]
+
+    environ = BASE_ENVIRON.copy()
+    environ["QUERY_STRING"] = req.to_urlencoded()
+
+    resp = server.registration_endpoint(environ, start_response, LOG())
+
+    print resp
+    update = RegistrationResponse().deserialize(resp[0], "json")
+    print update.keys()
+    assert _eq(update.keys(), ["client_secret", 'expires_at', 'client_id'])
     assert update["client_secret"] != regresp["client_secret"]
 
 def test_provider_key_setup():

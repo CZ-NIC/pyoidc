@@ -189,10 +189,10 @@ def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
             try:
                 result[key] = identity[key]
             except KeyError:
-                if restr == {"optional": True}:
-                    optional.append(key)
-                else:
+                if restr == {"essential": True}:
                     missing.append(key)
+                else:
+                    optional.append(key)
 
         # Check if anything asked for is somewhere else
         if (missing or optional) and "_external_" in identity:
@@ -489,7 +489,7 @@ def application(environ, start_response):
         a1 = logging.LoggerAdapter(_log, {'path' : path, 'client' : remote,
                                           "cid": key})
 
-    logger.info("handle:%s [%s]" % (handle, a1))
+    #qlogger.info("handle:%s [%s]" % (handle, a1))
     a1.info(40*"-")
     if path.startswith("static/"):
         return static(environ, start_response, a1, path)
@@ -532,7 +532,7 @@ USERDB = {
         "family_name": "Krall",
         "nickname": "Dina",
         "email": "diana@example.org",
-        "verified": False,
+        "email_verified": False,
         "phone_number": "+46 90 7865000",
         "address": {
             "street_address": "Umeå Universitet",
@@ -548,7 +548,7 @@ USERDB = {
         "family_name": "Jensen",
         "nickname": "babs",
         "email": "babs@example.com",
-        "verified": True,
+        "email_verified": True,
         "address": {
             "street_address": "100 Universal City Plaza",
             "locality": "Hollywood",
@@ -566,7 +566,7 @@ USERDB = {
         "given_name": "Upper",
         "family_name": "Crust",
         "email": "uc@example.com",
-        "verified": True,
+        "email_verified": True,
         "_external_": {
             "https://localhost:8089/": ["geolocation"]
         }

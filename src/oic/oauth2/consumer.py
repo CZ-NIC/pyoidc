@@ -270,25 +270,26 @@ class Consumer(Client):
         if self.password:
             http_args = {"client_password":self.password}
             request_args = {}
+            extra_args = {}
         elif self.client_secret:
             http_args = {}
-            request_args = {
-                "client_secret":self.client_secret,
-                "client_id": self.client_id,
-                "auth_method":"request_body"}
+            request_args = { "client_secret":self.client_secret,
+                             "client_id": self.client_id }
+            extra_args = {"auth_method":"bearer_body"}
         else:
             raise Exception("Nothing to authenticate with")
 
-        return request_args, http_args
+        return request_args, http_args, extra_args
 
     #noinspection PyUnusedLocal
     def get_access_token_request(self, environ, start_response, logger):
 
-        request_args, http_args = self.client_auth_info()
+        request_args, http_args, extra_args = self.client_auth_info()
 
         url, body, ht_args, csi = self.request_info(AccessTokenRequest,
                                                     request_args=request_args,
-                                                    state=self.state)
+                                                    state=self.state,
+                                                    **extra_args)
 
         if not http_args:
             http_args = ht_args

@@ -7,8 +7,7 @@ import json
 
 from oic import oauth2
 
-from oic.oauth2 import AUTHN_METHOD as OAUTH2_AUTHN_METHOD
-from oic.oauth2 import DEF_SIGN_ALG
+from oic.oauth2 import AUTHN_METHOD as OAUTH2_AUTHN_METHOD, DEF_SIGN_ALG
 from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import rndstr
 
@@ -57,16 +56,16 @@ JWT_BEARER = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 OIDCONF_PATTERN = "%s/.well-known/openid-configuration"
 
 AUTHN_METHOD = OAUTH2_AUTHN_METHOD.copy()
+OIC_DEF_SIGN_ALG = "RS256"
 
-def assertion_jwt(cli, keys, audience, algorithm=DEF_SIGN_ALG):
+def assertion_jwt(cli, keys, audience, algorithm=OIC_DEF_SIGN_ALG):
     at = AuthnToken(iss = cli.client_id, prn = cli.client_id,
                     aud = audience, jti = rndstr(8),
                     exp = int(epoch_in_a_while(minutes=10)), iat = utc_now())
     return at.to_jwt(key=keys, algorithm=algorithm)
 
 #noinspection PyUnusedLocal
-def client_secret_jwt(cli, cis, authn_method, request_args=None,
-                      http_args=None, req=None):
+def client_secret_jwt(cli, cis, **kwargs):
 
     # signing key is the client secret
     signing_key = cli.keystore.get_sign_key()
@@ -74,8 +73,13 @@ def client_secret_jwt(cli, cis, authn_method, request_args=None,
     # audience is the OP endpoint
     audience = cli._endpoint(REQUEST2ENDPOINT[cis.type()])
 
+    try:
+        algorithm = kwargs["algorithm"]
+    except KeyError:
+        algorithm = DEF_SIGN_ALG
+
     cis["client_assertion"] = assertion_jwt(cli, signing_key, audience,
-                                            "RS256")
+                                            algorithm)
     cis["client_assertion_type"] = JWT_BEARER
 
     try:
@@ -86,17 +90,20 @@ def client_secret_jwt(cli, cis, authn_method, request_args=None,
     return {}
 
 #noinspection PyUnusedLocal
-def private_key_jwt(cli, cis, authn_method, request_args=None,
-                    http_args=None, req=None):
+def private_key_jwt(cli, cis, **kwargs):
 
     # signing key is the clients rsa key for instance
     signing_key = cli.keystore.get_sign_key()
 
     # audience is the OP endpoint
     audience = cli._endpoint(REQUEST2ENDPOINT[cis.type()])
+    try:
+        algorithm = kwargs["algorithm"]
+    except KeyError:
+        algorithm = OIC_DEF_SIGN_ALG
 
     cis["client_assertion"] = assertion_jwt(cli, signing_key, audience,
-                                            algorithm="RS512")
+                                            algorithm)
     cis["client_assertion_type"] = JWT_BEARER
 
     try:
@@ -223,7 +230,7 @@ class Client(oauth2.Client):
 
     #noinspection PyUnusedLocal
     def make_openid_request(self, arq, keys, userinfo_claims=None,
-                            idtoken_claims=None, algorithm=DEF_SIGN_ALG,
+                            idtoken_claims=None, algorithm=OIC_DEF_SIGN_ALG,
                             **kwargs):
         """
         Construct the specification of what I want returned.
@@ -301,9 +308,13 @@ class Client(oauth2.Client):
                 if arg in request_args:
                     kwargs[arg] = request_args[arg]
                     del request_args[arg]
-            if "nonce" not in request_args:
+            if "nonce" not in request_args and "token" in \
+                                               request_args["response_type"]:
                 request_args["nonce"] = rndstr(12)
-        else:
+        elif "response_type" in kwargs:
+            if "token" in kwargs["response_type"]:
+                request_args = {"nonce": rndstr(12)}
+        else: # Never wrong to specify a nonce
             request_args = {"nonce": rndstr(12)}
 
         areq = oauth2.Client.construct_AuthorizationRequest(self, request,

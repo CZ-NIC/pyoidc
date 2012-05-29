@@ -350,6 +350,9 @@ class Message(object):
             if isinstance(jso, basestring):
                 jso = json.loads(jso)
             if verify:
+                if key is None:
+                    key = {}
+
                 try:
                     _keys = key['.']
                 except KeyError:

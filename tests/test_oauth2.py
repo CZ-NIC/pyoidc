@@ -11,7 +11,7 @@ import json
 import urllib
 
 from oic import oauth2
-from oic.oauth2 import Grant
+from oic.oauth2 import Grant, KeyStore
 from oic.utils import time_util
 from oic.oauth2 import Client
 from oic.oauth2 import Server
@@ -778,6 +778,15 @@ def test_client_secret_post():
     print http_args
     assert http_args == {}
 
+def test_client_secret_basic():
+    client = Client("A")
+    client.client_secret = "boarding pass"
+
+    cis = AccessTokenRequest(code="foo", redirect_uri="http://example.com")
+
+    http_args = oauth2.client_secret_basic(client, cis)
+
+    assert http_args == {"auth": ("A", "boarding pass")}
 
 def test_bearer_header():
     client = Client("A")
@@ -792,6 +801,72 @@ def test_bearer_header():
     print cis
     print http_args
     assert http_args == {"headers": {"Authorization":"Bearer Sesame"}}
+
+def test_bearer_header_with_http_args():
+    client = Client("A")
+    client.client_secret = "boarding pass"
+
+    request_args = {"access_token": "Sesame"}
+
+    cis = ResourceRequest()
+
+    http_args = oauth2.bearer_header(client, cis, request_args,
+                                     http_args={"foo": "bar"})
+
+    print cis
+    print http_args
+    assert _eq(http_args.keys(), ["foo", "headers"])
+    assert http_args["headers"] == {"Authorization":"Bearer Sesame"}
+
+    # -----------------
+
+    request_args = {"access_token": "Sesame"}
+
+    http_args = oauth2.bearer_header(client, cis, request_args,
+                                    http_args={"headers": {"x-foo": "bar"}})
+
+    print cis
+    print http_args
+    assert _eq(http_args.keys(), ["headers"])
+    assert _eq(http_args["headers"].keys(), ["Authorization", "x-foo"])
+    assert http_args["headers"]["Authorization"] == "Bearer Sesame"
+
+def test_bearer_header_2():
+    client = Client("A")
+    client.client_secret = "boarding pass"
+
+    cis = ResourceRequest(access_token= "Sesame")
+
+    http_args = oauth2.bearer_header(client, cis)
+
+    print cis
+    assert "access_token" not in cis
+    print http_args
+    assert http_args == {"headers": {"Authorization":"Bearer Sesame"}}
+
+def test_bearer_header_3():
+    client = Client("A")
+    client.client_secret = "boarding pass"
+    client.state = "state"
+
+    resp1 = AuthorizationResponse(code="auth_grant", state="state")
+    client.parse_response(AuthorizationResponse, resp1.to_urlencoded(),
+                          "urlencoded")
+    resp2 = AccessTokenResponse(access_token="token1",
+                                token_type="Bearer", expires_in=0,
+                                state="state")
+    client.parse_response(AccessTokenResponse, resp2.to_urlencoded(),
+                          "urlencoded")
+
+    cis = ResourceRequest()
+
+    http_args = oauth2.bearer_header(client, cis)
+
+    print cis
+    assert "access_token" not in cis
+    print http_args
+    assert http_args == {"headers": {"Authorization":"Bearer token1"}}
+
 
 def test_bearer_body():
     client = Client("A")
@@ -825,3 +900,116 @@ def test_bearer_body():
     assert cis["access_token"] == "2YotnFZFEjr1zCsicMWpAA"
     print http_args
     assert http_args is None
+
+def test_bearer_body_get_token():
+    client = Client("A")
+    client.client_secret = "boarding pass"
+    client.state = "state"
+
+    resp1 = AuthorizationResponse(code="auth_grant", state="state")
+    client.parse_response(AuthorizationResponse, resp1.to_urlencoded(),
+                          "urlencoded")
+    resp2 = AccessTokenResponse(access_token="token1",
+                                token_type="Bearer", expires_in=0,
+                                state="state")
+    client.parse_response(AccessTokenResponse, resp2.to_urlencoded(),
+                          "urlencoded")
+
+    cis = ResourceRequest()
+
+    oauth2.bearer_body(client, cis)
+
+    assert "access_token" in cis
+    assert cis["access_token"] == "token1"
+
+def test_keystore_pairkeys():
+    ks = KeyStore(None)
+    ks.add_key("a1b2c3d4", "hmac", "sign")
+    ks.add_key("a1b2c3d4", "hmac", "verify")
+    ks.add_key("e5f6g7h8", "hmac", "sign", "http://www.example.org")
+    ks.add_key("e5f6g7h8", "hmac", "verify", "http://www.example.org")
+    ks.add_key("-rsa-key-", "rsa", "enc", "http://www.example.org")
+    ks.add_key("-rsa-key-", "rsa", "dec", "http://www.example.org")
+    ks.add_key("i9j10k11l12", "hmac", "sign", "http://www.example.com")
+    ks.add_key("i9j10k11l12", "hmac", "verify", "http://www.example.com")
+
+    collection = ks.pairkeys("http://www.example.org")
+
+    assert _eq(collection.keys(), ["sign", "verify", "enc", "dec"])
+
+def test_keystore_remove_key():
+    ks = KeyStore(None)
+    ks.add_key("a1b2c3d4", "hmac", "sign")
+    ks.add_key("a1b2c3d4", "hmac", "verify")
+    ks.add_key("e5f6g7h8", "hmac", "sign", "http://www.example.org")
+    ks.add_key("e5f6g7h8", "hmac", "verify", "http://www.example.org")
+    ks.add_key("-rsa-key-", "rsa", "enc", "http://www.example.org")
+    ks.add_key("-rsa-key-", "rsa", "dec", "http://www.example.org")
+    ks.add_key("i9j10k11l12", "hmac", "sign", "http://www.example.com")
+    ks.add_key("i9j10k11l12", "hmac", "verify", "http://www.example.com")
+
+    coll = ks.keys_by_owner("http://www.example.org")
+    assert _eq(coll.keys(), ["sign", "verify", "enc", "dec"])
+
+    ks.remove_key("-rsa-key-", "http://www.example.org")
+
+    coll = ks.keys_by_owner("http://www.example.org")
+    assert _eq(coll.keys(), ["sign", "verify"])
+
+def test_keystore_remove_key_usage():
+    ks = KeyStore(None)
+    ks.add_key("a1b2c3d4", "hmac", "sign")
+    ks.add_key("a1b2c3d4", "hmac", "verify")
+    ks.add_key("e5f6g7h8", "hmac", "sign", "http://www.example.org")
+    ks.add_key("e5f6g7h8", "hmac", "verify", "http://www.example.org")
+    ks.add_key("-rsa-key-", "rsa", "enc", "http://www.example.org")
+    ks.add_key("-rsa-key-", "rsa", "dec", "http://www.example.org")
+    ks.add_key("i9j10k11l12", "hmac", "sign", "http://www.example.com")
+    ks.add_key("i9j10k11l12", "hmac", "verify", "http://www.example.com")
+
+    ks.remove_key("-rsa-key-", "http://www.example.org",usage="dec")
+
+    coll = ks.keys_by_owner("http://www.example.org")
+    assert _eq(coll.keys(), ["sign", "verify", "enc"])
+
+def test_keystore_remove_key_type():
+    ks = KeyStore(None)
+    ks.add_key("a1b2c3d4", "hmac", "sign")
+    ks.add_key("a1b2c3d4", "hmac", "verify")
+    ks.add_key("e5f6g7h8", "hmac", "sign", "http://www.example.org")
+    ks.add_key("e5f6g7h8", "hmac", "verify", "http://www.example.org")
+    ks.add_key("-rsa-key-", "rsa", "enc", "http://www.example.org")
+    ks.add_key("-rsa-key-", "rsa", "dec", "http://www.example.org")
+    ks.add_key("i9j10k11l12", "hmac", "sign", "http://www.example.com")
+    ks.add_key("i9j10k11l12", "hmac", "verify", "http://www.example.com")
+
+    ks.remove_key_type("rsa", "http://www.example.org")
+
+    coll = ks.keys_by_owner("http://www.example.org")
+    assert _eq(coll.keys(), ["sign", "verify"])
+
+KEYSTORE = KeyStore(None)
+KEYSTORE.add_key("a1b2c3d4", "hmac", "sign")
+KEYSTORE.add_key("a1b2c3d4", "hmac", "verify")
+KEYSTORE.add_key("e5f6g7h8", "hmac", "sign", "http://www.example.org")
+KEYSTORE.add_key("e5f6g7h8", "hmac", "verify", "http://www.example.org")
+KEYSTORE.add_key("-rsa-key-", "rsa", "enc", "http://www.example.org")
+KEYSTORE.add_key("-rsa-key-", "rsa", "dec", "http://www.example.org")
+KEYSTORE.add_key("i9j10k11l12", "hmac", "sign", "http://www.example.com")
+KEYSTORE.add_key("i9j10k11l12", "hmac", "verify", "http://www.example.com")
+
+def test_keystore_collect_keys():
+    col = KEYSTORE.collect_keys("http://www.example.org/oic")
+
+    print col
+    assert col == {'hmac': ['e5f6g7h8', 'a1b2c3d4']}
+
+
+def test_keystore_contains():
+    assert "http://www.example.org" in KEYSTORE
+    assert "http://www.example.com" in KEYSTORE
+    assert "http://www.example.com/oic" not in KEYSTORE
+
+def test_keystore_has_key_of_type():
+    assert KEYSTORE.has_key_of_type("http://www.example.org", "sign", "hmac")
+    assert not KEYSTORE.has_key_of_type("http://www.example.org", "sign", "rsa")

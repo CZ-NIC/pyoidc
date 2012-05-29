@@ -7,10 +7,13 @@ import time
 import json
 import urllib
 
-from oic.oic import Grant
+from oic import oic
+
+from oic.oic import Grant, JWT_BEARER
 from oic.oic import Token
 from oic.oic import Client
 from oic.oic import Server
+
 from oic.oic.message import IdToken
 from oic.oic.message import AuthorizationErrorResponse
 from oic.oic.message import Claims
@@ -68,6 +71,8 @@ class TestOICClient():
         self.client = Client(CLIENT_ID)
         self.client.redirect_uris = ["http://example.com/redirect"]
         self.client.client_secret = CLIENT_SECRET
+        self.client.keystore.set_sign_key(rsapub, "rsa")
+        self.client.keystore.set_verify_key(rsapub, "rsa")
 
     def test_areq_1(self):
         ar = self.client.construct_AuthorizationRequest(
@@ -468,11 +473,11 @@ class TestOICClient():
 
     def test_openid_request_with_request_1(self):
         claims = {
-            "name": None,
-            "nickname": {"optional": True},
-            "email": None,
-            "verified": None,
-            "picture": {"optional": True}
+            "name": {"essential": True},
+            "nickname": None,
+            "email": {"essential": True},
+            "verified": {"essential": True},
+            "picture": None
         }
 
         areq = self.client.construct_OpenIDRequest(
@@ -934,8 +939,9 @@ ESREQ = EndSessionRequest(id_token=IDTOKEN.to_jwt(key=SIGN_KEY),
 
 IDT2 = IDTokenClaim(max_age=86400)
 
-CLAIM = Claims(name=None, nickname={"optional": True}, email=None,
-               verified=None, picture={"optional": True})
+CLAIM = Claims(name={"essential": True}, nickname=None,
+               email={"essential": True},
+               email_verified={"essential": True}, picture=None)
 
 USRINFO = UserInfoClaim(claims=CLAIM, format="signed")
 
@@ -1064,3 +1070,45 @@ def test_make_id_token():
                               token_type="Bearer")
     atr["code"] = code
     assert atr.verify(key=jwt_keys)
+
+def test_assertion_jwt():
+    cli = Client("Foo")
+    cli.client_secret = "secert"
+    at = oic.assertion_jwt(cli, {}, audience="audience", algorithm="none")
+    print at
+    header, claim, crypto, header_b64, claim_b64 = unpack(at)
+    jso = json.loads(claim)
+    assert _eq(jso.keys(), ["aud", "iss", "prn", "jti", "exp", "iat"])
+
+def test_client_secret_jwt():
+    cli = Client("Foo")
+    cli.token_endpoint = "https://example.com/token"
+    cli.client_secret = "foobar"
+
+    cis = AccessTokenRequest()
+    at = oic.client_secret_jwt(cli, cis)
+    assert at == {}
+    assert cis["client_assertion_type"] == JWT_BEARER
+    assert "client_assertion" in cis
+    cas = cis["client_assertion"]
+    header, claim, crypto, header_b64, claim_b64 = unpack(cas)
+    jso = json.loads(claim)
+    assert _eq(jso.keys(), ["aud", "iss", "prn", "jti", "exp", "iat"])
+    print header
+    assert header == {'alg': 'HS256'}
+
+def test_private_key_jwt():
+    cli = Client("FOO")
+    cli.token_endpoint = "https://example.com/token"
+    cli.keystore.set_sign_key(rsapub, "rsa")
+    cli.keystore.set_verify_key(rsapub, "rsa")
+
+    cis = AccessTokenRequest()
+    at = oic.private_key_jwt(cli, cis)
+    assert at == {}
+    cas = cis["client_assertion"]
+    header, claim, crypto, header_b64, claim_b64 = unpack(cas)
+    jso = json.loads(claim)
+    assert _eq(jso.keys(), ["aud", "iss", "prn", "jti", "exp", "iat"])
+    print header
+    assert header == {'alg': 'RS256'}

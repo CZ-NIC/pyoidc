@@ -250,3 +250,38 @@ def test_consumer_parse_authz_error_2():
 
     raises(AuthzError,
            "cons.handle_authorization_response(environ, start_response, LOG())")
+
+def test_consumer_client_auth_info():
+    _session_db = {}
+    cons = Consumer(_session_db, client_config = CLIENT_CONFIG,
+                    server_info=SERVER_INFO, **CONSUMER_CONFIG)
+    cons.client_secret = "secret0"
+    ra, ha, extra = cons.client_auth_info()
+    assert ra == {'client_secret': 'secret0', 'client_id': 'number5'}
+    assert ha == {}
+    assert extra == {'auth_method': 'bearer_body'}
+
+def test_consumer_client_get_access_token_reques():
+    _session_db = {}
+    cons = Consumer(_session_db, client_config = CLIENT_CONFIG,
+                    server_info=SERVER_INFO, **CONSUMER_CONFIG)
+    cons.client_secret = "secret0"
+    cons.state = "state"
+    cons.redirect_uris = ["https://www.example.com/oic/cb"]
+
+    resp1 = AuthorizationResponse(code="auth_grant", state="state")
+    cons.parse_response(AuthorizationResponse, resp1.to_urlencoded(),
+                          "urlencoded")
+    resp2 = AccessTokenResponse(access_token="token1",
+                                token_type="Bearer", expires_in=0,
+                                state="state")
+    cons.parse_response(AccessTokenResponse, resp2.to_urlencoded(),
+                          "urlencoded")
+
+    url, body, http_args = cons.get_access_token_request({}, None, None)
+    assert url == "http://localhost:8088/token"
+    print body
+    assert body == "code=auth_grant&client_secret=secret0&grant_type=authorization_code&client_id=number5&redirect_uri=https%3A%2F%2Fwww.example.com%2Foic%2Fcb"
+    assert http_args == {'headers': {'content-type':
+                               'application/x-www-form-urlencoded'}}
+

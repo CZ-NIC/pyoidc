@@ -75,11 +75,11 @@ def build_userinfo_claims(claims, format="signed", locale="us-en"):
         "format": "signed",
         "locale": "sv-se",
         "claims": {
-            "name": None,
-            "verified": None,
-            "email": None,
-            "picture": {"optional": True},
-            "nickname": {"optional": True},
+             "name": {"essential": true},
+             "nickname": null,
+             "email": {"essential": true},
+             "email_verified": {"essential": true},
+             "picture": null
         }
     }
     """
@@ -96,9 +96,10 @@ def build_userinfo_claims(claims, format="signed", locale="us-en"):
 #    """
 #
 #    # Should be configurable !!
-#    claim = Claims(name=None, nickname={"optional": True},
-#                 email=None, verified=None,
-#                 picture={"optional": True})
+#    claim = Claims(name={"essential": true}, nickname=None,
+#                 email={"essential": true},
+#                 email_verified={"essential": true},
+#                 picture=None)
 #
 #    uic = UserInfoClaim(claim, format="signed", locale="us-en")
 #
@@ -219,12 +220,18 @@ class Consumer(Client):
         self.sdb[sid] = self.dictionary()
 
     #noinspection PyUnusedLocal,PyArgumentEqualDefault
-    def begin(self, environ, start_response, logger, scope="", response_type=""):
+    def begin(self, environ, start_response, logger, scope="",
+              response_type="", use_nonce=False):
         """ Begin the OAuth2 flow
 
         :param environ: The WSGI environment
         :param start_response: The function to start the response process
         :param logger: A logger instance
+        :param scope: Defines which user info claims is wanted
+        :param response_type: Controls the parameters returned in the
+            response from the Authorization Endpoint
+        :param use_nonce: If not implicit flow nonce is optional.
+            This defines if it should be used anyway.
         :return: A URL to which the user should be redirected
         """
         _log_info = logger.info
@@ -263,15 +270,19 @@ class Consumer(Client):
 
         # Store the request and the redirect uri used
         self._request = http_util.geturl(environ)
-        self.nonce = rndstr(12)
 
         args = {
             "client_id": self.client_id,
             "state":sid,
             "response_type":response_type,
             "scope": scope,
-            "nonce": self.nonce,
-        }
+            }
+
+    # nonce is REQUIRED in implicit flow,
+        # OPTIONAL on code flow.
+        if "token" in response_type or use_nonce:
+            self.nonce = rndstr(12)
+            args["nonce"] = self.nonce
 
         if "max_age" in self.config:
             args["idtoken_claims"] = {"max_age": self.config["max_age"]}

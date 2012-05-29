@@ -41,9 +41,7 @@ def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
             try:
                 result[key] = identity[key]
             except KeyError:
-                if restr == {"optional": True}:
-                    pass
-                else:
+                if restr == {"essential": True}:
                     raise Exception("Missing property '%s'" % key)
     else:
         result = identity

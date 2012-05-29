@@ -175,6 +175,9 @@ class TestOICConsumer():
 
     def test_begin(self):
         self.consumer.authorization_endpoint = "http://example.com/authorization"
+        self.consumer.keystore.set_sign_key(rsapub, "rsa")
+        self.consumer.keystore.set_verify_key(rsapub, "rsa")
+
         srv = Server(SRVKEYS)
         print "redirect_uris",self.consumer.redirect_uris
         print "config", self.consumer.config
@@ -182,14 +185,13 @@ class TestOICConsumer():
         print location
         authreq = srv.parse_authorization_request(url=location)
         print authreq.keys()
-        assert _eq(authreq.keys(), ['nonce', 'request', 'state',
+        assert _eq(authreq.keys(), ['request', 'state',
                                     'redirect_uri', 'response_type',
                                     'client_id', 'scope'])
         
         assert authreq["state"] == self.consumer.state
         assert authreq["scope"] == self.consumer.config["scope"]
         assert authreq["client_id"] == self.consumer.client_id
-        assert authreq["nonce"] == self.consumer.nonce
 
 
     def test_begin_file(self):
@@ -201,14 +203,13 @@ class TestOICConsumer():
         print location
         authreq = srv.parse_authorization_request(url=location)
         print authreq.keys()
-        assert _eq(authreq.keys(), ['nonce', 'state', 'redirect_uri',
+        assert _eq(authreq.keys(), ['state', 'redirect_uri',
                                     'response_type', 'client_id', 'scope',
                                     'request_uri'])
 
         assert authreq["state"] == self.consumer.state
         assert authreq["scope"] == self.consumer.config["scope"]
         assert authreq["client_id"] == self.consumer.client_id
-        assert authreq["nonce"] == self.consumer.nonce
         assert authreq["redirect_uri"].startswith("http://localhost:8087/authz")
 
     def test_complete(self):

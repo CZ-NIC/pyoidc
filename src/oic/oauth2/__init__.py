@@ -95,7 +95,7 @@ def bearer_header(cli, cis, request_args=None, http_args=None, **kwargs):
         try:
             _acc_token = request_args["access_token"]
             del request_args["access_token"]
-        except KeyError:
+        except (KeyError, TypeError):
             try:
                 _state = kwargs["state"]
             except KeyError:
@@ -345,13 +345,20 @@ class KeyStore(object):
                 return {}
 
     def pairkeys(self, part):
+        """
+        Keys for me and someone else.
+
+        :param part: The other part
+        :return: dictionary of keys
+        """
         _coll = self.keys_by_owner(part)
-        for usage, spec in self.keys_by_owner(".").items():
-            for typ, keys in spec.items():
-                try:
-                    _coll[usage][typ].extend(keys)
-                except KeyError:
-                    _coll[usage][typ] = keys
+        if part != ".":
+            for usage, spec in self.keys_by_owner(".").items():
+                for typ, keys in spec.items():
+                    try:
+                        _coll[usage][typ].extend(keys)
+                    except KeyError:
+                        _coll[usage][typ] = keys
 
         return _coll
 
@@ -373,6 +380,7 @@ class KeyStore(object):
         except KeyError:
             return
 
+        rem = []
         if usage:
             if type:
                 _keys[usage][type].remove(key)
@@ -380,6 +388,8 @@ class KeyStore(object):
                 for _typ, vals in self._store[owner][usage].items():
                     try:
                         vals.remove(key)
+                        if not vals:
+                            rem.append((usage, _typ))
                     except Exception:
                         pass
         else:
@@ -390,8 +400,15 @@ class KeyStore(object):
                     for _typ, vals in _keys[_usage].items():
                         try:
                             vals.remove(key)
+                            if not vals:
+                                rem.append((_usage, _typ))
                         except Exception:
                             pass
+
+        for _use, _typ in rem:
+            del self._store[owner][_use][_typ]
+            if not self._store[owner][_use]:
+                del self._store[owner][_use]
 
     def remove_key_type(self, type, owner="."):
         try:
@@ -400,7 +417,12 @@ class KeyStore(object):
             return
 
         for _usage in _keys.keys():
-            _keys[_usage][type] = []
+            try:
+                del self._store[owner][_usage][type]
+                if not self._store[owner][_usage]:
+                    del self._store[owner][_usage]
+            except KeyError:
+                pass
 
     def get_verify_key(self, type="", owner="."):
         return self.get_keys("verify", type, owner)

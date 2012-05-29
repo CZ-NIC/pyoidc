@@ -227,8 +227,11 @@ def verify(token, dkeys):
             raise BadType(header)
 
     alg = header[u'alg']
-    if alg not in ALGS:
+    if alg == "none": # not signed
+        return claim
+    elif alg not in ALGS:
         raise UnknownAlgorithm(alg)
+
 
     sigdata = header_b64 + b'.' + claim_b64
 
@@ -282,7 +285,7 @@ def sign(payload, keys, alg=None):
 
     Returns a token string."""
 
-    if not alg:
+    if not alg or alg.lower() == "none":
         return pack(payload)
 
     if alg not in ALGS:

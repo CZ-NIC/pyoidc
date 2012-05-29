@@ -572,7 +572,7 @@ class Provider(AProvider):
         uic = {}
         for scope in session["scope"]:
             try:
-                claims = dict([(name, {"optional":True}) for name in
+                claims = dict([(name, None) for name in
                                                SCOPE2CLAIMS[scope]])
                 uic.update(claims)
             except KeyError:
@@ -637,32 +637,6 @@ class Provider(AProvider):
         return resp(environ, start_response)
 
     #noinspection PyUnusedLocal
-    def check_id_endpoint(self, environ, start_response, logger, **kwargs):
-
-        try:
-            info = kwargs["query"]
-        except KeyError:
-            try:
-                info = get_or_post(environ)
-            except UnsupportedMethod:
-                resp = BadRequest("Unsupported method")
-                return resp(environ, start_response)
-
-        if self.test_mode:
-            logger.info("check_id_request: %s" % info)
-        if not info:
-            logger.info("HTTP_AUTHORIZATION: %s" %
-                        environ["HTTP_AUTHORIZATION"])
-            info = "access_token=%s" % self._bearer_auth(environ)
-
-        idt = self.server.parse_check_id_request(query=info)
-
-        if self.test_mode:
-            logger.info("check_id_response: %s" % idt.to_dict())
-        resp = Response(idt.to_json(), content="application/json")
-        return resp(environ, start_response)
-
-    #noinspection PyUnusedLocal
     def registration_endpoint(self, environ, start_response, logger, **kwargs):
 
         try:
@@ -709,7 +683,8 @@ class Provider(AProvider):
             if self.debug:
                 logger.info("KEYSTORE: %s" % self.keystore._store)
 
-        elif request["type"] == "client_update":
+        elif request["type"] == "client_update" or \
+             request["type"] == "rotate_secret":
             #  that these are an id,secret pair I know about
             client_id = request["client_id"]
             try:
@@ -724,20 +699,23 @@ class Provider(AProvider):
                 resp = BadRequest()
                 return resp(environ, start_response)
 
-            # update secret
-            client_secret = secret(self.seed, client_id)
-            _cinfo["client_secret"] = client_secret
+            if request["type"] == "rotate_secret":
+                # update secret
+                client_secret = secret(self.seed, client_id)
+                _cinfo["client_secret"] = client_secret
 
-            old_key = request["client_secret"]
-            _keystore.remove_key(old_key, client_id, type="hmac", usage="sign")
-            _keystore.remove_key(old_key, client_id, type="hmac",
-                                 usage="verify")
+                old_key = request["client_secret"]
+                _keystore.remove_key(old_key, client_id, type="hmac",
+                                     usage="sign")
+                _keystore.remove_key(old_key, client_id, type="hmac",
+                                     usage="verify")
+            else: # client_update
+                client_secret = None
+                for key,val in request.items():
+                    if key in ["client_id", "client_secret"]:
+                        continue
 
-            for key,val in request.items():
-                if key in ["client_id", "client_secret"]:
-                    continue
-
-                _cinfo[key] = val
+                    _cinfo[key] = val
 
             self.keystore.load_keys(request, client_id, replace=True)
 
@@ -745,16 +723,17 @@ class Provider(AProvider):
             resp = BadRequest("Unknown request type: %s" % request.type)
             return resp(environ, start_response)
 
-        # Add the key to the keystore
-
-        _keystore.set_sign_key(client_secret, owner=client_id)
-        _keystore.set_verify_key(client_secret, owner=client_id)
 
         # set expiration time
         _cinfo["registration_expires"] = time_util.time_sans_frac()+3600
         response = RegistrationResponse(client_id=client_id,
-                                        client_secret=client_secret,
                                     expires_at=_cinfo["registration_expires"])
+
+        # Add the key to the keystore
+        if client_secret:
+            _keystore.set_sign_key(client_secret, owner=client_id)
+            _keystore.set_verify_key(client_secret, owner=client_id)
+            response["client_secret"] = client_secret
 
         if self.test_mode:
             logger.info("registration_response: %s" % response.to_dict())
@@ -1057,9 +1036,6 @@ class TokenEndpoint(Endpoint):
 
 class UserinfoEndpoint(Endpoint):
     type = "userinfo"
-
-class CheckIDEndpoint(Endpoint):
-    type = "check_id"
 
 class RegistrationEndpoint(Endpoint) :
     type = "registration"
