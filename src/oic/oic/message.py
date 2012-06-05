@@ -15,11 +15,11 @@ from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 from oic.utils import jwt
 
 #noinspection PyUnusedLocal
-def json_ser(val, format=None):
+def json_ser(val, format=None, lev=0):
     return json.dumps(val)
 
 #noinspection PyUnusedLocal
-def json_deser(val, format=None):
+def json_deser(val, format=None, lev=0):
     return json.loads(val)
 
 SINGLE_OPTIONAL_JWT = message.SINGLE_OPTIONAL_STRING
@@ -28,38 +28,42 @@ SINGLE_OPTIONAL_JSON = (dict, False, json_ser, json_deser)
 SINGLE_REQUIRED_INT = (int, True, None, None)
 
 
-
 def idtoken_deser(val, format="urlencoded"):
     return IdToken().deserialize(val, format)
 
 def idtokenclaim_deser(val, format="urlencoded"):
     if format in ["dict", "json"]:
-        if isinstance(val, basestring):
-            val = json.loads(val)
+        if not isinstance(val, basestring):
+            val = json.dumps(val)
+            format="json"
     return IDTokenClaim().deserialize(val, format)
 
 def userinfo_deser(val, format="urlencoded"):
     if format in ["dict", "json"]:
-        if isinstance(val, basestring):
-            val = json.loads(val)
+        if not isinstance(val, basestring):
+            val = json.dumps(val)
+            format = "json"
     return UserInfoClaim().deserialize(val, format)
 
 def address_deser(val, format="urlencoded"):
     if format in ["dict", "json"]:
-        if isinstance(val, basestring):
-            val = json.loads(val)
+        if not isinstance(val, basestring):
+            val = json.dumps(val)
+            format = "json"
     return AddressClaim().deserialize(val, format)
 
 def claims_deser(val, format="urlencoded"):
     if format in ["dict", "json"]:
-        if isinstance(val, basestring):
-            val = json.loads(val)
+        if not isinstance(val, basestring):
+            val = json.dumps(val)
+            format = "json"
     return Claims().deserialize(val, format)
 
 def srvdir_deser(val, format="urlencoded"):
     if format in ["dict", "json"]:
-        if isinstance(val, basestring):
-            val = json.loads(val)
+        if not isinstance(val, basestring):
+            val = json.dumps(val)
+            format = "json"
     return SWDServiceRedirect().deserialize(val, format)
 
 def keyobj_list_deser(val_list, format="urlencoded"):
@@ -329,8 +333,9 @@ class ClientRegistrationErrorResponse(message.ErrorResponse):
                                        "invalid_client_secret",
                                        "invalid_configuration_parameter"]}
 
-class IdToken(Message):
-    c_param = {"iss": SINGLE_REQUIRED_STRING,
+class IdToken(OpenIDSchema):
+    c_param = OpenIDSchema.c_param.copy()
+    c_param.update({"iss": SINGLE_REQUIRED_STRING,
                "user_id": SINGLE_REQUIRED_STRING,
                "aud": SINGLE_REQUIRED_STRING,
                "exp": SINGLE_REQUIRED_INT,
@@ -338,7 +343,7 @@ class IdToken(Message):
                "nonce": SINGLE_OPTIONAL_STRING,
                "auth_time": SINGLE_OPTIONAL_INT,
                "at_hash": SINGLE_OPTIONAL_STRING,
-               "c_hash": SINGLE_OPTIONAL_STRING}
+               "c_hash": SINGLE_OPTIONAL_STRING})
 
     def verify(self, **kwargs):
         if "aud" in self:
@@ -511,7 +516,8 @@ SCOPE2CLAIMS = {
                 "birthday", "zoneinfo", "locale", "updated_time"],
     "email": ["email", "email_verified"],
     "address": ["address"],
-    "phone": ["phone_number"]
+    "phone": ["phone_number"],
+    "claims_in_id_token": []
 }
 
 MSG = {

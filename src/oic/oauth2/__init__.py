@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 #
+
 __author__ = 'rohe0002'
 
 import requests
 import random
 import string
 import copy
+import cookielib
+from Cookie import SimpleCookie
 
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.jwt import construct_rsa_jwk
@@ -571,6 +574,42 @@ class KeyStore(object):
 # =============================================================================
 # =============================================================================
 
+ATTRS = {"version":None,
+         "name":"",
+         "value": None,
+         "port": None,
+         "port_specified": False,
+         "domain": "",
+         "domain_specified": False,
+         "domain_initial_dot": False,
+         "path": "",
+         "path_specified": False,
+         "secure": False,
+         "expires": None,
+         "discard": True,
+         "comment": None,
+         "comment_url": None,
+         "rest": "",
+         "rfc2109": True}
+
+PAIRS = {
+    "port": "port_specified",
+    "domain": "domain_specified",
+    "path": "path_specified"
+}
+
+import time
+
+def _since_epoch(cdate):
+    # date format 'Wed, 06-Jun-2012 01:34:34 GMT'
+    cdate = cdate[5:-4]
+    try:
+        t = time.strptime(cdate, "%d-%b-%Y %H:%M:%S")
+    except ValueError:
+        t = time.strptime(cdate, "%d-%b-%y %H:%M:%S")
+    return int(time.mktime(t))
+
+
 class PBase(object):
     def __init__(self, ca_certs=None, jwt_keys=None):
 
@@ -581,21 +620,74 @@ class PBase(object):
 
 
         self.request_args = {"allow_redirects": False,}
+        #self.cookies = cookielib.CookieJar()
         self.cookies = {}
+        self.cookiejar = cookielib.CookieJar()
         if ca_certs:
             self.request_args["verify"] = True
         else:
             self.request_args["verify"] = False
 
+    def set_cookie(self, kaka, request):
+        """Returns a cookielib.Cookie based on a set-cookie header line"""
+
+        # default rfc2109=False
+        # max-age, httponly
+        for cookie_name, morsel in kaka.items():
+            std_attr = ATTRS.copy()
+            std_attr["name"] = cookie_name
+            std_attr["value"] = morsel.coded_value
+            std_attr["version"] = 0
+            # copy attributes that have values
+            for attr in morsel.keys():
+                if attr in ATTRS:
+                    if morsel[attr]:
+                        if attr == "expires":
+                            std_attr[attr]=_since_epoch(morsel[attr])
+                        else:
+                            std_attr[attr]=morsel[attr]
+                elif attr == "max-age":
+                    if morsel["max-age"]:
+                        std_attr["expires"] = _since_epoch(morsel["max-age"])
+
+            for att, set in PAIRS.items():
+                if std_attr[att]:
+                    std_attr[set] = True
+
+            if std_attr["domain"] and std_attr["domain"].startswith("."):
+                std_attr["domain_initial_dot"] = True
+
+            if morsel["max-age"] is 0:
+                try:
+                    self.cookiejar.clear(domain=std_attr["domain"],
+                                         path=std_attr["path"],
+                                         name=std_attr["name"])
+                except ValueError:
+                    pass
+            else:
+                new_cookie = cookielib.Cookie(**std_attr)
+
+                self.cookiejar.set_cookie(new_cookie)
+
+        #return cookiejar
+
     def http_request(self, url, method="GET", **kwargs):
         _kwargs = copy.copy(self.request_args)
         if kwargs:
             _kwargs.update(kwargs)
-        if self.cookies:
-            _kwargs["cookies"] = self.cookies
+
+        if self.cookiejar:
+            #_kwargs["cookies"] = [k.output() for k in self.cookiejar]
+            #_kwargs["cookies"] = self.cookiejar
+            _kwargs["cookies"] = requests.utils.dict_from_cookiejar(self.cookiejar)
 
         r = requests.request(method, url, **_kwargs)
-        self.cookies = r.cookies
+        try:
+            print "SET_COOKIE", r.headers["set-cookie"]
+            self.set_cookie(SimpleCookie(r.headers["set-cookie"]), r)
+        except AttributeError, err:
+            pass
+
         return r
 
 class Client(PBase):

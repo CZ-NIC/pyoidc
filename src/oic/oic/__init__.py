@@ -137,22 +137,33 @@ def verify_acr_level(req, level):
 
     raise AccessDenied
 
-#def verify_id_token(self, **kwargs):
-#    if self.id_token:
-#        # Try to decode the JWT, checks the signature
-#        idt = message("IdToken").from_jwt(str(self.id_token), kwargs["key"])
-#        if not idt.verify(**kwargs):
-#            return False
-#
-#        if "at_hash" in idt:
-#            assert idt["at_hash"] == jwt.left_hash(kwargs["access_token"])
-#
-#        if "c_hash" in idt:
-#            assert idt["c_hash"] == jwt.left_hash(kwargs["code"])
-#
-#    return super(self.__class__, self).verify(**kwargs)
-#
-#MESSAGE["AuthorizationResponse"]["verify"] = verify_id_token()
+def deser_id_token(inst, str=""):
+    if not str:
+        return None
+
+    jso = json.loads(jwt.unpack(str)[1])
+
+    # gather all the necessary keys
+    # my own first
+    collection = inst.keystore.get_verify_key()
+
+    if "iss" in jso:
+        for key, val in inst.keystore.collect_keys(jso["iss"]).items():
+            try:
+                collection[key].extend(val)
+            except KeyError:
+                collection[key] = val
+
+    if "aud" in jso:
+        for key, val in inst.keystore.collect_keys(jso["aud"]).items():
+            try:
+                collection[key].extend(val)
+            except KeyError:
+                collection[key] = val
+
+    jwt.verify(str, collection)
+
+    return IdToken().from_dict(jso)
 
 # -----------------------------------------------------------------------------
 
@@ -793,28 +804,13 @@ class Server(oauth2.Server):
                                     body=None):
         return oauth2.Server.parse_refresh_token_request(self, request, body)
 
-    def _deser_id_token(self, str=""):
-        if not str:
-            return None
-
-        # have to start decoding the jwt without verifying in order to find
-        # out which key to verify the JWT signature with
-        _ = json.loads(jwt.unpack(str)[1])
-
-        # in there there should be information about the client_id
-        # Use that to find the key and do the signature verify
-
-        keys = self.keystore.get_keys("verify", owner=None)
-
-        return IdToken().from_jwt(str, key=keys)
-
     def parse_check_session_request(self, url=None, query=None):
         """
 
         """
         param = self._parse_urlencoded(url, query)
         assert "id_token" in param # ignore the rest
-        return self._deser_id_token(param["id_token"][0])
+        return deser_id_token(self, param["id_token"][0])
 
     def parse_check_id_request(self, url=None, query=None):
         """
@@ -822,7 +818,7 @@ class Server(oauth2.Server):
         """
         param = self._parse_urlencoded(url, query)
         assert "access_token" in param # ignore the rest
-        return self._deser_id_token(param["access_token"][0])
+        return deser_id_token(self, param["access_token"][0])
 
     def _parse_request(self, request, data, format):
         if format == "json":
@@ -860,14 +856,15 @@ class Server(oauth2.Server):
         esr = self._parse_request(EndSessionRequest, query,
                                   format)
         # if there is a id_token in there it is as a string
-        esr["id_token"] = self._deser_id_token(esr["id_token"])
+        esr["id_token"] = deser_id_token(self, esr["id_token"])
         return esr
 
     def parse_issuer_request(self, info, format="urlencoded"):
         return self._parse_request(IssuerRequest, info, format)
 
     def make_id_token(self, session, loa="2", info_log=None, issuer="",
-                      keytype="rsa", code=None, access_token=None):
+                      keytype="rsa", code=None, access_token=None,
+                      user_info=None):
         #defaults
         inawhile = {"days": 1}
         # Handle the idtoken_claims
@@ -890,7 +887,19 @@ class Server(oauth2.Server):
         except KeyError:
             pass
 
-        _args = {}
+        if user_info is None:
+            _args = {}
+        else:
+            _args = user_info.to_dict()
+
+        # Make sure that there are no name clashes
+        for key in ["iss", "user_id", "aud", "exp", "acr", "nonce",
+                    "auth_time"]:
+            try:
+                del _args[key]
+            except KeyError:
+                pass
+
         if code:
             _args["c_hash"] = jwt.left_hash(code, "HS256")
         if access_token:

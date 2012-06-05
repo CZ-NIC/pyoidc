@@ -7,10 +7,10 @@ from oic.oic.message import Claims
 from oic.oic.message import TokenErrorResponse
 from oic.oic.message import UserInfoClaim
 
-from oic.oic.base import Server as OicServer
-from oic.oic.base import Client
-from oic.oic.base import REQUEST2ENDPOINT
-from oic.oic.base import RESPONSE2ERROR
+from oic.oic import Server as OicServer
+from oic.oic import Client
+from oic.oic import REQUEST2ENDPOINT
+from oic.oic import RESPONSE2ERROR
 
 from oic.oic.provider import Provider, get_or_post, Endpoint
 

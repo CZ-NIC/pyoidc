@@ -52,7 +52,8 @@ CONSUMER_CONFIG = {
             "email": None,
             "nickname": None
         }
-    }
+    },
+    "request_method": "param"
 }
 
 SERVER_INFO ={
@@ -310,6 +311,9 @@ def test_server_authenticated():
     cons = Consumer(_session_db, CONSUMER_CONFIG, CLIENT_CONFIG,
                     server_info=SERVER_INFO, )
     cons.debug = True
+    cons.keystore.set_sign_key(rsapub, "rsa")
+    cons.keystore.set_verify_key(rsapub, "rsa")
+
     environ = BASE_ENVIRON
 
     location = cons.begin(environ, start_response, LOG())
@@ -362,6 +366,8 @@ def test_server_authenticated_1():
     cons = Consumer(_session_db, CONSUMER_CONFIG, CLIENT_CONFIG,
                     server_info=SERVER_INFO, )
     cons.debug = True
+    cons.keystore.set_sign_key(rsapub, "rsa")
+    cons.keystore.set_verify_key(rsapub, "rsa")
     environ = BASE_ENVIRON
 
     location = cons.begin(environ, start_response, LOG())
@@ -378,6 +384,67 @@ def test_server_authenticated_1():
     print resp2
     assert resp2 == ['<html>Could not find session</html>']
 
+def test_server_authenticated_2():
+    server = provider_init
+    _session_db = {}
+    cons = Consumer(_session_db, CONSUMER_CONFIG, CLIENT_CONFIG,
+                    server_info=SERVER_INFO, )
+    cons.debug = True
+    cons.keystore.set_sign_key(rsapub, "rsa")
+    cons.keystore.set_verify_key(rsapub, "rsa")
+
+    environ = BASE_ENVIRON
+
+    location = cons.begin(environ, start_response, LOG(),
+                          scope="openid email claims_in_id_token",
+                          response_type="code id_token")
+
+    environ = BASE_ENVIRON.copy()
+    environ["QUERY_STRING"] = location.split("?")[1]
+
+    resp = server.authorization_endpoint(environ, start_response, LOG())
+
+    sid = resp[0][len("<form>"):-len("</form>")]
+    environ2 = create_return_form_env("user", "password", sid)
+
+    resp2 = server.authenticated(environ2, start_response, LOG())
+
+    print resp2[0]
+    assert len(resp2) == 1
+    txt = resp2[0]
+    pos0 = txt.index("<title>") + len("<title>Redirecting to ")
+    pos1 = txt.index("</title>")
+    location = txt[pos0:pos1]
+    print location
+
+    assert location.startswith("http://localhost:8087/authz")
+
+    environ = BASE_ENVIRON.copy()
+    environ["QUERY_STRING"] = location
+
+    part = cons.parse_authz(environ, start_response, LOG())
+
+    aresp = part[0]
+    assert part[1] is None
+    assert part[2] is not None
+
+    #aresp = client.parse_response(AuthorizationResponse, location,
+    #                              format="urlencoded",
+    #                              state="id-6da9ca0cc23959f5f33e8becd9b08cae")
+
+    print aresp.keys()
+    assert aresp.type() == "AuthorizationResponse"
+    assert _eq(aresp.keys(), ['code', 'state', 'scope', "id_token"])
+
+    print cons.grant[cons.state].keys()
+    assert _eq(cons.grant[cons.state].keys(), ['code', 'id_token', 'tokens',
+                                               'exp_in',
+                                               'grant_expiration_time', 'seed'])
+
+    assert isinstance(part[2], IdToken)
+    assert (part[2].keys(),['acr', 'aud', 'c_hash', 'email', 'exp', 'iss',
+                            'name', 'nickname', 'user_id'])
+
 def test_server_authenticated_token():
     server = provider_init
 
@@ -385,6 +452,9 @@ def test_server_authenticated_token():
     cons = Consumer(_session_db, CONSUMER_CONFIG, CLIENT_CONFIG,
                     server_info=SERVER_INFO, )
     cons.debug = True
+    cons.keystore.set_sign_key(rsapub, "rsa")
+    cons.keystore.set_verify_key(rsapub, "rsa")
+
     cons.config["response_type"] = ["token"]
     environ = BASE_ENVIRON
 
@@ -411,6 +481,8 @@ def test_server_authenticated_none():
     cons = Consumer(_session_db, CONSUMER_CONFIG, CLIENT_CONFIG,
                     server_info=SERVER_INFO, )
     cons.debug = True
+    cons.keystore.set_sign_key(rsapub, "rsa")
+    cons.keystore.set_verify_key(rsapub, "rsa")
     cons.response_type = "none"
     environ = BASE_ENVIRON
 

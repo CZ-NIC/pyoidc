@@ -119,7 +119,7 @@ class Message(object):
             else:
                 try:
                     params.append((key, _ser(val, lev=lev)))
-                except Exception:
+                except Exception, err:
                     params.append((key, str(val)))
 
         return urllib.urlencode(params)

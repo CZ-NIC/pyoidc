@@ -14,12 +14,14 @@ from oic.utils import http_util
 
 #from oic.oic.base import Client
 #from oic.oic.base import ENDPOINTS
-from oic.oic import Client
+from oic.oic import Client, deser_id_token
 from oic.oic import ENDPOINTS
 
 from oic.oauth2.message import ErrorResponse
 
-from oic.oic.message import Claims, IssuerResponse, AuthorizationRequest
+from oic.oic.message import Claims
+from oic.oic.message import IssuerResponse
+from oic.oic.message import AuthorizationRequest
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import UserInfoClaim
@@ -180,7 +182,7 @@ class Consumer(Client):
         self.nonce = ""
         self.request_filename=""
         self.user_info = None
-        self.registration_expires_in = 0
+        self.registration_expires_at = 0
         self.secret_type = "Bearer"
 
     def update(self, sid):
@@ -312,6 +314,9 @@ class Consumer(Client):
                 self.request_uri = _webname
                 self._backup(sid)
         else:
+            if "userinfo_claims" in args: # can only be carried in an IDRequest
+                raise Exception("Need a request method")
+
             areq = self.construct_AuthorizationRequest(AuthorizationRequest,
                                                        request_args=args)
 
@@ -385,7 +390,8 @@ class Consumer(Client):
             self._backup(_state)
 
             if "id_token" in aresp:
-                idt = aresp.id_token
+
+                idt = deser_id_token(self, aresp["id_token"])
             else:
                 idt = None
 
@@ -395,7 +401,7 @@ class Consumer(Client):
             atr = self.parse_response(AccessTokenResponse, info=_query,
                                       format="urlencoded", key=vkeys)
             if atr.type() == "ErrorResponse":
-                raise TokenError(atr.error)
+                raise TokenError(atr["error"])
 
             idt = None
             return None, atr, idt
