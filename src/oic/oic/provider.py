@@ -750,13 +750,15 @@ class Provider(AProvider):
 
     #noinspection PyUnusedLocal
     def providerinfo_endpoint(self, environ, start_response, logger, **kwargs):
+        logger.info("[providerinfo_endpoint]")
         try:
             _response = ProviderConfigurationResponse(
-                                issuer=self.baseurl,
-                        token_endpoint_auth_types_supported=["client_secret_post",
-                                                             "client_secret_basic",
-                                                             "client_secret_jwt"],
-                                scopes_supported=["openid"],
+                            issuer=self.baseurl,
+                            token_endpoint_auth_types_supported=[
+                                                        "client_secret_post",
+                                                        "client_secret_basic",
+                                                        "client_secret_jwt"],
+                            scopes_supported=["openid"],
                             response_types_supported=["code", "token",
                                                       "id_token", "code token",
                                                       "code id_token",
@@ -781,11 +783,11 @@ class Provider(AProvider):
                 #logger.info("# %s, %s" % (endp, endp.name))
                 _response[endp.name] = "%s%s" % (self.baseurl, endp.type)
 
-            if self.test_mode:
+            #if self.test_mode:
                 #print sys.stderr >> "providerinfo_endpoint.handle: %s" %
                 # kwargs["handle"]
 
-                logger.info("provider_info_response: %s" % (_response.to_dict(),))
+            logger.info("provider_info_response: %s" % (_response.to_dict(),))
 
             headers=[("Cache-Control", "no-store"), ("x-ffo", "bar")]
             if "handle" in kwargs:
@@ -794,10 +796,12 @@ class Provider(AProvider):
                     cookie = self.cookie_func(self.cookie_name, key, self.seed,
                                               self.cookie_ttl)
                     headers.append(cookie)
+
             resp = Response(_response.to_json(), content="application/json",
                             headers=headers)
         except Exception, err:
             message = traceback.format_exception(*sys.exc_info())
+            logger.error(message)
             resp = Response(message, content="html/text")
 
         return resp(environ, start_response)

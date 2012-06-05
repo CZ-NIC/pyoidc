@@ -1,5 +1,5 @@
 {
-    "baseurl":"https://localhost",
+    "baseurl":"https://localhost:8089",
     "issuer": "https://www.kodtest.se/rolandsCP",
     "keys": {"rsa": {"key":"certs/cpkey.pem",
                      "jwk": "certs/cpkey.jwk"}}

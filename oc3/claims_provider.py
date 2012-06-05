@@ -120,14 +120,14 @@ def static(environ, start_response, path):
 # ----------------------------------------------------------------------------
 
 from oic.oic.provider import UserinfoEndpoint
-from oic.oic.provider import CheckIDEndpoint
+#from oic.oic.provider import CheckIDEndpoint
 from oic.oic.provider import RegistrationEndpoint
 from oic.oic.claims_provider import UserClaimsEndpoint
 from oic.oic.claims_provider import UserClaimsInfoEndpoint
 
 ENDPOINTS = [
     UserinfoEndpoint(userinfo),
-    CheckIDEndpoint(check_id),
+    #CheckIDEndpoint(check_id),
     RegistrationEndpoint(registration),
     UserClaimsEndpoint(userclaims),
     UserClaimsInfoEndpoint(userclaimsinfo)

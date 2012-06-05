@@ -180,7 +180,7 @@ def cookie(name, sid, seed, expire=0, domain="",  path=""):
     :return: A tuple to be added to headers
     """
     cookie = SimpleCookie()
-    timestamp = str(int(time.time()))
+    timestamp = str(int(time.mktime(time.gmtime())))
     signature = cookie_signature(seed, sid, timestamp)
     cookie[name] = "|".join([sid, timestamp, signature])
     if path:
@@ -189,7 +189,7 @@ def cookie(name, sid, seed, expire=0, domain="",  path=""):
         cookie[name]["domain"] = domain
     if expire:
         cookie[name]["expires"] = _expiration(expire,
-                                              "%a, %d-%b-%Y %H:%M:%S CET")
+                                              "%a, %d-%b-%Y %H:%M:%S GMT")
 
     return tuple(cookie.output().split(": ", 1))
 

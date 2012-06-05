@@ -308,7 +308,7 @@ def userinfo(environ, start_response, handle, logger):
 #noinspection PyUnusedLocal
 def op_info(environ, start_response, handle, logger):
     _oas = environ["oic.oas"]
-
+    logger.info("op_info")
     return _oas.providerinfo_endpoint(environ, start_response, logger,
                                       handle=handle)
 
@@ -384,7 +384,7 @@ def static(environ, start_response, logger, path):
 from oic.oic.provider import AuthorizationEndpoint
 from oic.oic.provider import TokenEndpoint
 from oic.oic.provider import UserinfoEndpoint
-from oic.oic.provider import CheckIDEndpoint
+#from oic.oic.provider import CheckIDEndpoint
 from oic.oic.provider import RegistrationEndpoint
 
 
@@ -392,7 +392,7 @@ ENDPOINTS = [
     AuthorizationEndpoint(authorization),
     TokenEndpoint(token),
     UserinfoEndpoint(userinfo),
-    CheckIDEndpoint(check_id),
+    #CheckIDEndpoint(check_id),
     RegistrationEndpoint(registration)
     ]
 
@@ -464,12 +464,13 @@ def application(environ, start_response):
             handle = parse_cookie(OAS.cookie_name, OAS.seed, kaka)
             key = handle[0]
 
-            try:
-                _log = OAS.trace_log[key]
-            except KeyError:
-                _log = create_session_logger(key)
-                OAS.trace_log[key] = _log
-            except AttributeError:
+            if hasattr(OAS, "trace_log"):
+                try:
+                    _log = OAS.trace_log[key]
+                except KeyError:
+                    _log = create_session_logger(key)
+                    OAS.trace_log[key] = _log
+            else:
                 _log = logger
 
             a1 = logging.LoggerAdapter(_log,
@@ -481,15 +482,20 @@ def application(environ, start_response):
     if not a1:
         key = STR+rndstr()+STR
         handle = (key, 0)
-        _log = create_session_logger(key)
-        try:
-            OAS.trace_log[key] = _log
-        except AttributeError:
-            pass
+
+        if hasattr(OAS, "trace_log"):
+            try:
+                _log = OAS.trace_log[key]
+            except KeyError:
+                _log = create_session_logger(key)
+                OAS.trace_log[key] = _log
+        else:
+            _log = logger
+
         a1 = logging.LoggerAdapter(_log, {'path' : path, 'client' : remote,
                                           "cid": key})
 
-    #qlogger.info("handle:%s [%s]" % (handle, a1))
+    logger.info("handle:%s [%s]" % (handle, a1))
     a1.info(40*"-")
     if path.startswith("static/"):
         return static(environ, start_response, a1, path)
@@ -502,6 +508,7 @@ def application(environ, start_response):
             except IndexError:
                 environ['oic.url_args'] = path
 
+            a1.info("callback: %s" % callback)
             try:
                 return callback(environ, start_response, handle, a1)
             except Exception,err:
