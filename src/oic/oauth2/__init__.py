@@ -683,7 +683,7 @@ class PBase(object):
 
         r = requests.request(method, url, **_kwargs)
         try:
-            print "SET_COOKIE", r.headers["set-cookie"]
+            #print "SET_COOKIE", r.headers["set-cookie"]
             self.set_cookie(SimpleCookie(r.headers["set-cookie"]), r)
         except AttributeError, err:
             pass
