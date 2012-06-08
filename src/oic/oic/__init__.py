@@ -65,7 +65,7 @@ def assertion_jwt(cli, keys, audience, algorithm=OIC_DEF_SIGN_ALG):
     return at.to_jwt(key=keys, algorithm=algorithm)
 
 #noinspection PyUnusedLocal
-def client_secret_jwt(cli, cis, **kwargs):
+def client_secret_jwt(cli, cis, request_args=None, http_args=None, **kwargs):
 
     # signing key is the client secret
     signing_key = cli.keystore.get_sign_key()
@@ -90,7 +90,7 @@ def client_secret_jwt(cli, cis, **kwargs):
     return {}
 
 #noinspection PyUnusedLocal
-def private_key_jwt(cli, cis, **kwargs):
+def private_key_jwt(cli, cis, request_args=None, http_args=None, **kwargs):
 
     # signing key is the clients rsa key for instance
     signing_key = cli.keystore.get_sign_key()

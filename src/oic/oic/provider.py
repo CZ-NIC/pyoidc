@@ -357,7 +357,8 @@ class Provider(AProvider):
                         if key.startswith(STR) and key.endswith(STR):
                             pass
                         else:
-                            if (int(time.time()) - int(timestamp)) <= _max_age:
+                            _now = time.mktime(time.gmtime())
+                            if (_now - int(timestamp)) <= _max_age:
                                 _log_info("- SSO -")
                                 _scode = base64.b64decode(key)
                                 user = self.sdb[_scode]["user_id"]
@@ -367,6 +368,9 @@ class Provider(AProvider):
                                                           logger,
                                                           active_auth=bsid,
                                                           areq=areq, user=user)
+                            else:
+                                _log_info("Authentication to old: %d>%d" % (
+                                            _now - int(timestamp), _max_age))
                     except ValueError:
                         pass
         else:
