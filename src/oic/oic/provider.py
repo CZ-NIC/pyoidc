@@ -655,8 +655,7 @@ class Provider(AProvider):
                 return resp(environ, start_response)
 
         request = RegistrationRequest().deserialize(query, "urlencoded")
-        if self.test_mode:
-            logger.info("registration_request:%s" % request.to_dict())
+        logger.info("registration_request:%s" % request.to_dict())
 
         _keystore = self.server.keystore
         if request["type"] == "client_associate":

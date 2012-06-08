@@ -636,7 +636,12 @@ class PBase(object):
         for cookie_name, morsel in kaka.items():
             std_attr = ATTRS.copy()
             std_attr["name"] = cookie_name
-            std_attr["value"] = morsel.coded_value
+            _tmp = morsel.coded_value
+            if _tmp.startswith('"') and _tmp.endswith('"'):
+                std_attr["value"] = _tmp[1:-1]
+            else:
+                std_attr["value"] = _tmp
+
             std_attr["version"] = 0
             # copy attributes that have values
             for attr in morsel.keys():

@@ -516,7 +516,7 @@ def application(environ, start_response):
                 message = traceback.format_exception(*sys.exc_info())
                 print >> sys.stderr, message
                 a1.exception("%s" % err)
-                if key:
+                if key and hasattr(OAS, "trace_log"):
                     _txt = OAS.dump_tracelog(key)
                     _txt += "\n" + "%s" % err
                     resp = ServiceError(_txt)

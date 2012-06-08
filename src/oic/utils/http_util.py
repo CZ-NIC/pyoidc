@@ -1,3 +1,5 @@
+import sys
+
 __author__ = 'rohe0002'
 
 import cgi
@@ -181,7 +183,10 @@ def cookie(name, sid, seed, expire=0, domain="",  path=""):
     """
     cookie = SimpleCookie()
     timestamp = str(int(time.mktime(time.gmtime())))
+    #print >> sys.stderr, "COOKIE create '%s' '%s' '%s'" %  (seed, sid,
+    #                                                        timestamp)
     signature = cookie_signature(seed, sid, timestamp)
+    #print >> sys.stderr, ">>", signature
     cookie[name] = "|".join([sid, timestamp, signature])
     if path:
         cookie[name]["path"] = path
@@ -205,7 +210,12 @@ def parse_cookie(name, seed, kaka):
         parts = morsel.value.split("|")
         if len(parts) != 3: return None
         # verify the cookie signature
-        if cookie_signature(seed, parts[0], parts[1]) != parts[2]:
+        #print >> sys.stderr, "COOKIE verify '%s' '%s' '%s'" %  (seed,
+        #                                                        parts[0],
+        #                                                        parts[1])
+        sig = cookie_signature(seed, parts[0], parts[1])
+        #print >> sys.stderr, ">>", sig
+        if sig != parts[2]:
             raise Exception("Invalid cookie signature")
 
         try:
