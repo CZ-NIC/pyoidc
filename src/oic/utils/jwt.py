@@ -367,6 +367,22 @@ def jwk_loads(txt):
 
     return res
 
+def rsa_eq(key1, key2):
+    # Check if two RSA keys are in fact the same
+    if key1.n == key2.n and key1.e == key2.e:
+        return True
+    else:
+        return False
+
+def key_eq(key1, key2):
+    if type(key1) == type(key2):
+        if isinstance(key1, basestring):
+            return key1 == key2
+        elif isinstance(key1, M2Crypto.RSA.RSA):
+            return rsa_eq(key1, key2)
+
+    return False
+
 def construct_rsa_jwk(key):
     spec = {
         "alg": "RSA",
@@ -436,7 +452,7 @@ def mpi_to_long(mpi):
 
 # ================= create RSA key ======================
 
-def create_rsa_key_pair(name="pyoidc", path="."):
+def create_and_store_rsa_key_pair(name="pyoidc", path="."):
     #Seed the random number generator with 1024 random bytes (8192 bits)
     M2Crypto.Rand.rand_seed(os.urandom(1024))
 
@@ -514,7 +530,7 @@ def key_export(baseurl, local_path, vault, **kwargs):
                 try:
                     _keys["rsa"] = rsa_load('%s%s' % (vault, "pyoidc"))
                 except Exception:
-                    _keys["rsa"] = create_rsa_key_pair(path=vault)
+                    _keys["rsa"] = create_and_store_rsa_key_pair(path=vault)
 
             if kwargs[usage]["format"] == "jwk":
                 _jwk = []

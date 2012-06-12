@@ -11,7 +11,7 @@ import cookielib
 from Cookie import SimpleCookie
 
 from oic.utils.time_util import utc_time_sans_frac
-from oic.utils.jwt import construct_rsa_jwk
+from oic.utils.jwt import construct_rsa_jwk, key_eq
 
 DEF_SIGN_ALG = "HS256"
 
@@ -328,6 +328,10 @@ class KeyStore(object):
         else:
             _keys = self._store[owner][usage]
             try:
+                for _key in _keys[type]:
+                    if key_eq(_key, key):
+                        return
+
                 _keys[type].append(key)
             except KeyError:
                 _keys[type] = [key]
