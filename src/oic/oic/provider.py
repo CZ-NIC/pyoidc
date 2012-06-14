@@ -690,10 +690,10 @@ class Provider(AProvider):
 
             try:
                 self.keystore.load_keys(request, client_id)
-            except Exception:
+            except Exception, err:
                 err = ClientRegistrationErrorResponse(
                         error="invalid_configuration_parameter",
-                        error_description="failed to load client keys")
+                        error_description="%s" % err)
                 resp = Response(err.to_json(), content="application/json",
                                 status="400 Bad Request")
                 return resp(environ, start_response)
