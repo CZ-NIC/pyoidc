@@ -247,8 +247,8 @@ def safe(environ, start_response, handle):
     _log_info = _oas.logger.info
 
     _log_info("- safe -")
-    _log_info("env: %s" % environ)
-    _log_info("handle: %s" % (handle,))
+    #_log_info("env: %s" % environ)
+    #_log_info("handle: %s" % (handle,))
 
     try:
         authz = environ["HTTP_AUTHORIZATION"]
@@ -495,7 +495,7 @@ def application(environ, start_response):
         a1 = logging.LoggerAdapter(_log, {'path' : path, 'client' : remote,
                                           "cid": key})
 
-    logger.info("handle:%s [%s]" % (handle, a1))
+    #logger.info("handle:%s [%s]" % (handle, a1))
     a1.info(40*"-")
     if path.startswith("static/"):
         return static(environ, start_response, a1, path)

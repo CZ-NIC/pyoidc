@@ -688,7 +688,16 @@ class Provider(AProvider):
             for key,val in request.items():
                 _cinfo[key] = val
 
-            self.keystore.load_keys(request, client_id)
+            try:
+                self.keystore.load_keys(request, client_id)
+            except Exception:
+                err = ClientRegistrationErrorResponse(
+                        error="invalid_configuration_parameter",
+                        error_description="failed to load client keys")
+                resp = Response(err.to_json(), content="application/json",
+                                status="400 Bad Request")
+                return resp(environ, start_response)
+
             if self.debug:
                 logger.info("KEYSTORE: %s" % self.keystore._store)
 
