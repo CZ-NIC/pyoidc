@@ -419,8 +419,9 @@ class Provider(AProvider):
                        self.keystore.get_verify_key(owner=areq["client_id"])}
             key_col.update({".": self.keystore.get_verify_key()})
 
-            if log_info:
-                log_info("key_col: %s" % (key_col,))
+#           On a busy system this is lots of data
+#            if log_info:
+#                log_info("key_col: %s" % (key_col,))
 
             bjwt = AuthnToken().from_jwt(areq["client_assertion"], key_col)
 
@@ -699,8 +700,8 @@ class Provider(AProvider):
                                 status="400 Bad Request")
                 return resp(environ, start_response)
 
-            if self.debug:
-                logger.info("KEYSTORE: %s" % self.keystore._store)
+            #if self.debug:
+            #    logger.info("KEYSTORE: %s" % self.keystore._store)
 
         elif request["type"] == "client_update" or \
              request["type"] == "rotate_secret":

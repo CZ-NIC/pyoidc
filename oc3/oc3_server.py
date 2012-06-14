@@ -37,6 +37,15 @@ hdlr.setFormatter(base_formatter)
 LOGGER.addHandler(hdlr)
 LOGGER.setLevel(logging.INFO)
 
+_formatter = logging.Formatter(CPC)
+fil_handl = logging.FileHandler(LOGFILE_NAME)
+fil_handl.setFormatter(_formatter)
+
+buf_handl = BufferingHandler(10000)
+buf_handl.setFormatter(_formatter)
+
+HANDLER = {"CPC-file": fil_handl, "CPC-buffer": buf_handl}
+
 URLMAP={}
 
 NAME = "pyoic"
@@ -55,17 +64,29 @@ def devnull(txt):
 
 def create_session_logger(id, format=CPC):
     logger = logging.getLogger('oics-'+id)
-    _formatter = logging.Formatter(format)
-
-    handl = BufferingHandler(10000)
-    handl.setFormatter(_formatter)
-    logger.addHandler(handl)
-
-    #    _fh = logging.FileHandler(LOGFILE_NAME)
-    #    _fh.setFormatter(_formatter)
-    #    logger.addHandler(_fh)
+    try:
+        logger.addHandler(HANDLER["%s-buffer" % format])
+    except KeyError:
+        _formatter = logging.Formatter(format)
+        handl = BufferingHandler(10000)
+        handl.setFormatter(_formatter)
+        logger.addHandler(handl)
 
     logger.setLevel(logging.INFO)
+
+    return logger
+
+def replace_format_handler(logger, format=CPC):
+    # remove all present handler
+    logger.handlers = []
+
+    try:
+        logger.addHandler(HANDLER["%s-file"] % format)
+    except KeyError:
+        _formatter = logging.Formatter(format)
+        handl = logging.FileHandler(LOGFILE_NAME)
+        handl.setFormatter(_formatter)
+        logger.addHandler(handl)
 
     return logger
 
@@ -444,22 +465,12 @@ def application(environ, start_response):
 
     remote = environ.get("REMOTE_ADDR")
     logger = logging.getLogger('oicServer')
-#    hdlr.setFormatter(cpc_formatter)
-#    a1 = logging.LoggerAdapter(logger,
-#                               {'path' : path, 'client' : remote, "cid": ''})
-
-    #a1.info("")
-    if OAS.debug:
-        logger.info("Environ: %s" % environ)
-        logger.info("PATH: '%s'" % path)
 
     kaka = environ.get("HTTP_COOKIE", '')
     a1 = None
     handle = ""
     key = ""
     if kaka:
-        if OAS.debug:
-            logger.info("Cookie: %s" % (kaka,))
         try:
             handle = parse_cookie(OAS.cookie_name, OAS.seed, kaka)
             key = handle[0]
@@ -471,7 +482,7 @@ def application(environ, start_response):
                     _log = create_session_logger(key)
                     OAS.trace_log[key] = _log
             else:
-                _log = logger
+                _log = replace_format_handler(logger)
 
             a1 = logging.LoggerAdapter(_log,
                                 {'path' : path, 'client' : remote, "cid": key})
@@ -490,13 +501,13 @@ def application(environ, start_response):
                 _log = create_session_logger(key)
                 OAS.trace_log[key] = _log
         else:
-            _log = logger
+            _log = replace_format_handler(logger)
 
         a1 = logging.LoggerAdapter(_log, {'path' : path, 'client' : remote,
                                           "cid": key})
 
     #logger.info("handle:%s [%s]" % (handle, a1))
-    a1.info(40*"-")
+    #a1.info(40*"-")
     if path.startswith("static/"):
         return static(environ, start_response, a1, path)
 

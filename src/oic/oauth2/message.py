@@ -105,7 +105,7 @@ class Message(object):
 
             # Should I allow parameters with "" as value ???
             if isinstance(val, basestring):
-                params.append((key, str(val)))
+                params.append((key, unicode(val)))
             elif isinstance(val, list):
                 if _ser:
                     params.append((key, str(_ser(val, format="urlencoded",

@@ -735,6 +735,9 @@ class Client(PBase):
         return self._c_secret
 
     def set_client_secret(self, val):
+        if not val:
+            return
+
         self._c_secret = val
         # client uses it for signing
         self.keystore.add_key(val, "hmac", "sign")
