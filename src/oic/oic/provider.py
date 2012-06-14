@@ -691,6 +691,7 @@ class Provider(AProvider):
             try:
                 self.keystore.load_keys(request, client_id)
             except Exception, err:
+                logger.error("Failed to load client keys: %s" % request.to_dict())
                 err = ClientRegistrationErrorResponse(
                         error="invalid_configuration_parameter",
                         error_description="%s" % err)
