@@ -122,7 +122,11 @@ class Message(object):
                 except Exception, err:
                     params.append((key, str(val)))
 
-        return urllib.urlencode(params)
+        try:
+            return urllib.urlencode(params)
+        except UnicodeEncodeError:
+            _val = [(k,unicode.encode(v, "utf-8")) for k,v in params]
+            return urllib.urlencode(_val)
 
     def serialize(self, method="urlencoded", lev=0, **kwargs):
         return getattr(self, "to_%s" % method)(lev=lev, **kwargs)
