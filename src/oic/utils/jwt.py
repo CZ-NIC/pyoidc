@@ -493,11 +493,11 @@ def key_export(baseurl, local_path, vault, **kwargs):
     else:
         _path = part.path[:]
 
-    local_path = proper_path(local_path)
-    vault = proper_path(vault)
+    local_path = proper_path("%s/%s" % (_path,local_path))
+    vault_path = proper_path(vault)
 
-    if not os.path.exists(vault):
-        os.makedirs(vault)
+    if not os.path.exists(vault_path):
+        os.makedirs(vault_path)
 
     if not os.path.exists(local_path):
         os.makedirs(local_path)
@@ -524,13 +524,13 @@ def key_export(baseurl, local_path, vault, **kwargs):
                     _name = ("x509_enc.pub", "x509_encryption_url")
 
             # the local filename
-            _local_filename = "%s%s" % (local_path, _name[0])
+            _export_filename = "%s%s" % (local_path, _name[0])
 
             if kwargs[usage]["alg"] == "rsa":
                 try:
-                    _keys["rsa"] = rsa_load('%s%s' % (vault, "pyoidc"))
+                    _keys["rsa"] = rsa_load('%s%s' % (vault_path, "pyoidc"))
                 except Exception:
-                    _keys["rsa"] = create_and_store_rsa_key_pair(path=vault)
+                    _keys["rsa"] = create_and_store_rsa_key_pair(path=vault_path)
 
             if kwargs[usage]["format"] == "jwk":
                 _jwk = []
@@ -540,7 +540,7 @@ def key_export(baseurl, local_path, vault, **kwargs):
 
                 _jwk = {"jwk": _jwk}
 
-                f = open(_local_filename, "w")
+                f = open(_export_filename, "w")
                 f.write(json.dumps(_jwk))
                 f.close()
 
@@ -552,12 +552,8 @@ def key_export(baseurl, local_path, vault, **kwargs):
                 if usage == "enc":
                     keyspec.append([key, typ, "dec"])
 
-            if _path:
-                _url = "%s://%s%s%s" % (part.scheme, part.netloc, _path,
-                                       _local_filename[1:])
-            else:
-                _url = "%s://%s%s" % (part.scheme, part.netloc,
-                                        _local_filename[1:])
+            _url = "%s://%s%s" % (part.scheme, part.netloc,
+                                  _export_filename[1:])
 
             res[_name[1]] = (_url, keyspec)
 
