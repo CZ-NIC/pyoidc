@@ -117,6 +117,7 @@ def claims_ser(val, format="urlencoded", lev=0):
     return res
 
 OPTIONAL_ADDRESS = (Message, False, msg_ser, address_deser)
+OPTIONAL_LOGICAL = (bool, False, None, None)
 OPTIONAL_MULTIPLE_Claims = (Message, False, claims_ser, claims_deser)
 SINGLE_OPTIONAL_USERINFO_CLAIM = (Message, False, msg_ser, userinfo_deser)
 SINGLE_OPTIONAL_ID_TOKEN_CLAIM = (Message, False, msg_ser, idtokenclaim_deser)
@@ -284,6 +285,7 @@ class OpenIDSchema(Message):
             "phone_number": SINGLE_OPTIONAL_STRING,
             "address": OPTIONAL_ADDRESS,
             "updated_time": SINGLE_OPTIONAL_STRING,
+            "preferred_username": SINGLE_OPTIONAL_STRING,
             "_claim_names": SINGLE_OPTIONAL_JSON,
             "_claim_sources": SINGLE_OPTIONAL_JSON,
         }
@@ -316,17 +318,30 @@ class RegistrationRequest(Message):
             "id_token_signed_response_algs": SINGLE_OPTIONAL_STRING,
             "id_token_encrypted_response_alg": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
             "id_token_encrypted_response_enc": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-            "id_token_encrypted_response_int": OPTIONAL_LIST_OF_SP_SEP_STRINGS}
+            "id_token_encrypted_response_int": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+            "default_max_age": SINGLE_OPTIONAL_INT,
+            "require_auth_time": SINGLE_OPTIONAL_STRING,
+            "default_acr":SINGLE_OPTIONAL_STRING
+    }
 
     c_allowed_values = {
-            "type" : ["client_associate", "client_update"],
+            "type" : ["client_associate", "client_update", "rotate_secret"],
             "application_type": ["native", "web"]
         }
 
-class RegistrationResponse(Message):
+class RegistrationResponseCARS(Message):
+    """
+    Response to client_associate or rotate_secret registration requests
+    """
     c_param = {"client_id": SINGLE_REQUIRED_STRING,
                "client_secret": SINGLE_REQUIRED_STRING,
                "expires_at": SINGLE_REQUIRED_INT}
+
+class RegistrationResponseCU(Message):
+    """
+    Response to client_update registration requests
+    """
+    c_param = {"client_id": SINGLE_REQUIRED_STRING}
 
 class ClientRegistrationErrorResponse(message.ErrorResponse):
     c_allowed_values= {"error":["invalid_type", "invalid_client_id",
@@ -532,7 +547,8 @@ MSG = {
     "AddressClaim": AddressClaim,
     "OpenIDSchema": OpenIDSchema,
     "RegistrationRequest": RegistrationRequest,
-    "RegistrationResponse" : RegistrationResponse,
+    "RegistrationResponseCARS" : RegistrationResponseCARS,
+    "RegistrationResponseCU" : RegistrationResponseCU,
     "ClientRegistrationErrorResponse": ClientRegistrationErrorResponse,
     "IdToken": IdToken,
     "RefreshSessionRequest": RefreshSessionRequest,

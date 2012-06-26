@@ -160,11 +160,11 @@ def init_claims_clients(client_info):
             cc = ClaimsClient(client_id=specs["client_id"])
             cc.client_secret=specs["client_secret"]
             try:
-                cc.keystore.load_x509_cert(specs["x509_url"], "verify", cid)
+                cc.keystore.load_x509_cert(specs["x509_url"], "ver", cid)
             except KeyError:
                 pass
             try:
-                cc.keystore.load_jwk(specs["jwk_url"], "verify", cid)
+                cc.keystore.load_jwk(specs["jwk_url"], "ver", cid)
             except KeyError:
                 pass
             cc.userclaims_endpoint = specs["userclaims_endpoint"]
@@ -698,7 +698,7 @@ if __name__ == '__main__':
     if not OAS.baseurl.endswith("/"):
         OAS.baseurl += "/"
 
-    OAS.key_setup("static", sign={"format":"jwk", "alg":"rsa"})
+    OAS.key_setup("static", sig={"format":"jwk", "alg":"rsa"})
     OAS.claims_clients = init_claims_clients(CLIENT_INFO)
 
     for key, cc in OAS.claims_clients.items():

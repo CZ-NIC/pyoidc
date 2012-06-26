@@ -924,79 +924,79 @@ def test_bearer_body_get_token():
 
 def test_keystore_pairkeys():
     ks = KeyStore(None)
-    ks.add_key("a1b2c3d4", "hmac", "sign")
-    ks.add_key("a1b2c3d4", "hmac", "verify")
-    ks.add_key("e5f6g7h8", "hmac", "sign", "http://www.example.org")
-    ks.add_key("e5f6g7h8", "hmac", "verify", "http://www.example.org")
+    ks.add_key("a1b2c3d4", "hmac", "sig")
+    ks.add_key("a1b2c3d4", "hmac", "ver")
+    ks.add_key("e5f6g7h8", "hmac", "sig", "http://www.example.org")
+    ks.add_key("e5f6g7h8", "hmac", "ver", "http://www.example.org")
     ks.add_key("-rsa-key-", "rsa", "enc", "http://www.example.org")
     ks.add_key("-rsa-key-", "rsa", "dec", "http://www.example.org")
-    ks.add_key("i9j10k11l12", "hmac", "sign", "http://www.example.com")
-    ks.add_key("i9j10k11l12", "hmac", "verify", "http://www.example.com")
+    ks.add_key("i9j10k11l12", "hmac", "sig", "http://www.example.com")
+    ks.add_key("i9j10k11l12", "hmac", "ver", "http://www.example.com")
 
     collection = ks.pairkeys("http://www.example.org")
 
-    assert _eq(collection.keys(), ["sign", "verify", "enc", "dec"])
+    assert _eq(collection.keys(), ["sig", "ver", "enc", "dec"])
 
 def test_keystore_remove_key():
     ks = KeyStore(None)
-    ks.add_key("a1b2c3d4", "hmac", "sign")
-    ks.add_key("a1b2c3d4", "hmac", "verify")
-    ks.add_key("e5f6g7h8", "hmac", "sign", "http://www.example.org")
-    ks.add_key("e5f6g7h8", "hmac", "verify", "http://www.example.org")
+    ks.add_key("a1b2c3d4", "hmac", "sig")
+    ks.add_key("a1b2c3d4", "hmac", "ver")
+    ks.add_key("e5f6g7h8", "hmac", "sig", "http://www.example.org")
+    ks.add_key("e5f6g7h8", "hmac", "ver", "http://www.example.org")
     ks.add_key("-rsa-key-", "rsa", "enc", "http://www.example.org")
     ks.add_key("-rsa-key-", "rsa", "dec", "http://www.example.org")
-    ks.add_key("i9j10k11l12", "hmac", "sign", "http://www.example.com")
-    ks.add_key("i9j10k11l12", "hmac", "verify", "http://www.example.com")
+    ks.add_key("i9j10k11l12", "hmac", "sig", "http://www.example.com")
+    ks.add_key("i9j10k11l12", "hmac", "ver", "http://www.example.com")
 
     coll = ks.keys_by_owner("http://www.example.org")
-    assert _eq(coll.keys(), ["sign", "verify", "enc", "dec"])
+    assert _eq(coll.keys(), ["sig", "ver", "enc", "dec"])
 
     ks.remove_key("-rsa-key-", "http://www.example.org")
 
     coll = ks.keys_by_owner("http://www.example.org")
-    assert _eq(coll.keys(), ["sign", "verify"])
+    assert _eq(coll.keys(), ["sig", "ver"])
 
 def test_keystore_remove_key_usage():
     ks = KeyStore(None)
-    ks.add_key("a1b2c3d4", "hmac", "sign")
-    ks.add_key("a1b2c3d4", "hmac", "verify")
-    ks.add_key("e5f6g7h8", "hmac", "sign", "http://www.example.org")
-    ks.add_key("e5f6g7h8", "hmac", "verify", "http://www.example.org")
+    ks.add_key("a1b2c3d4", "hmac", "sig")
+    ks.add_key("a1b2c3d4", "hmac", "ver")
+    ks.add_key("e5f6g7h8", "hmac", "sig", "http://www.example.org")
+    ks.add_key("e5f6g7h8", "hmac", "ver", "http://www.example.org")
     ks.add_key("-rsa-key-", "rsa", "enc", "http://www.example.org")
     ks.add_key("-rsa-key-", "rsa", "dec", "http://www.example.org")
-    ks.add_key("i9j10k11l12", "hmac", "sign", "http://www.example.com")
-    ks.add_key("i9j10k11l12", "hmac", "verify", "http://www.example.com")
+    ks.add_key("i9j10k11l12", "hmac", "sig", "http://www.example.com")
+    ks.add_key("i9j10k11l12", "hmac", "ver", "http://www.example.com")
 
     ks.remove_key("-rsa-key-", "http://www.example.org",usage="dec")
 
     coll = ks.keys_by_owner("http://www.example.org")
-    assert _eq(coll.keys(), ["sign", "verify", "enc"])
+    assert _eq(coll.keys(), ["sig", "ver", "enc"])
 
 def test_keystore_remove_key_type():
     ks = KeyStore(None)
-    ks.add_key("a1b2c3d4", "hmac", "sign")
-    ks.add_key("a1b2c3d4", "hmac", "verify")
-    ks.add_key("e5f6g7h8", "hmac", "sign", "http://www.example.org")
-    ks.add_key("e5f6g7h8", "hmac", "verify", "http://www.example.org")
+    ks.add_key("a1b2c3d4", "hmac", "sig")
+    ks.add_key("a1b2c3d4", "hmac", "ver")
+    ks.add_key("e5f6g7h8", "hmac", "sig", "http://www.example.org")
+    ks.add_key("e5f6g7h8", "hmac", "ver", "http://www.example.org")
     ks.add_key("-rsa-key-", "rsa", "enc", "http://www.example.org")
     ks.add_key("-rsa-key-", "rsa", "dec", "http://www.example.org")
-    ks.add_key("i9j10k11l12", "hmac", "sign", "http://www.example.com")
-    ks.add_key("i9j10k11l12", "hmac", "verify", "http://www.example.com")
+    ks.add_key("i9j10k11l12", "hmac", "sig", "http://www.example.com")
+    ks.add_key("i9j10k11l12", "hmac", "ver", "http://www.example.com")
 
     ks.remove_key_type("rsa", "http://www.example.org")
 
     coll = ks.keys_by_owner("http://www.example.org")
-    assert _eq(coll.keys(), ["sign", "verify"])
+    assert _eq(coll.keys(), ["sig", "ver"])
 
 KEYSTORE = KeyStore(None)
-KEYSTORE.add_key("a1b2c3d4", "hmac", "sign")
-KEYSTORE.add_key("a1b2c3d4", "hmac", "verify")
-KEYSTORE.add_key("e5f6g7h8", "hmac", "sign", "http://www.example.org")
-KEYSTORE.add_key("e5f6g7h8", "hmac", "verify", "http://www.example.org")
+KEYSTORE.add_key("a1b2c3d4", "hmac", "sig")
+KEYSTORE.add_key("a1b2c3d4", "hmac", "ver")
+KEYSTORE.add_key("e5f6g7h8", "hmac", "sig", "http://www.example.org")
+KEYSTORE.add_key("e5f6g7h8", "hmac", "ver", "http://www.example.org")
 KEYSTORE.add_key("-rsa-key-", "rsa", "enc", "http://www.example.org")
 KEYSTORE.add_key("-rsa-key-", "rsa", "dec", "http://www.example.org")
-KEYSTORE.add_key("i9j10k11l12", "hmac", "sign", "http://www.example.com")
-KEYSTORE.add_key("i9j10k11l12", "hmac", "verify", "http://www.example.com")
+KEYSTORE.add_key("i9j10k11l12", "hmac", "sig", "http://www.example.com")
+KEYSTORE.add_key("i9j10k11l12", "hmac", "ver", "http://www.example.com")
 
 def test_keystore_collect_keys():
     col = KEYSTORE.collect_keys("http://www.example.org/oic")
@@ -1011,5 +1011,5 @@ def test_keystore_contains():
     assert "http://www.example.com/oic" not in KEYSTORE
 
 def test_keystore_has_key_of_type():
-    assert KEYSTORE.has_key_of_type("http://www.example.org", "sign", "hmac")
-    assert not KEYSTORE.has_key_of_type("http://www.example.org", "sign", "rsa")
+    assert KEYSTORE.has_key_of_type("http://www.example.org", "sig", "hmac")
+    assert not KEYSTORE.has_key_of_type("http://www.example.org", "sig", "rsa")

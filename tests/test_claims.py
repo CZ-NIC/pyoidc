@@ -1,12 +1,11 @@
 #!/usr/bin/env python
-
 __author__ = 'rohe0002'
 
 import StringIO
 import sys
 
 from oic.oic.message import OpenIDSchema
-from oic.utils import jwt
+from oic.utils.keystore import rsa_load
 
 from oic.oic.claims_provider import ClaimsClient, UserClaimsRequest, UserClaimsResponse
 from oic.oic.claims_provider import ClaimsServer
@@ -130,7 +129,7 @@ def test_srv2():
 
     srv = ClaimsServer("name", None, CDB, FUNCTIONS, USERDB)
 
-    srv.keystore.set_sign_key(jwt.rsa_load("rsa.key"), "rsa")
+    srv.keystore.set_sign_key(rsa_load("rsa.key"), "rsa")
     assert srv
 
     environ = BASE_ENVIRON.copy()
@@ -146,7 +145,7 @@ def test_srv2():
     assert len(resp) == 1
 
     ucr = UserClaimsResponse().deserialize(resp[0], "json")
-    ucr.verify(key = srv.keystore.get_keys("sign", owner=None))
+    ucr.verify(key = srv.keystore.get_keys("sig", owner=None))
 
     print ucr
     assert _eq(ucr["claims_names"], ["gender", "birthdate"])

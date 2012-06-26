@@ -1,8 +1,5 @@
-from oic.utils.jwt import key_export
-
 __author__ = 'rohe0002'
 
-import json
 from oic.utils import jwt
 
 def test_1():
@@ -56,19 +53,3 @@ def test_left_hash_hs512():
     hsh = jwt.left_hash("Please take a moment to register today", "HS512")
     assert hsh == "_h6feWLt8zbYcOFnaBmekTzMJYEHdVTaXlDgJSWsEeY"
 
-def test_key_export():
-    part,res =key_export("http://www.example.com/as", "static", "keys",
-                         sign={"format":"jwk", "alg":"rsa"})
-
-    print part
-    assert part.scheme == "http"
-    assert part.netloc == "www.example.com"
-    assert part.path == "/as"
-    print res
-    assert res.keys() == ["jwk_url"]
-    (url, keys) = res["jwk_url"]
-    assert url == 'http://www.example.com/as/static/jwk.json'
-    assert len(keys) == 2
-    (key, type, usage) = keys[0]
-    assert type == "rsa"
-    assert usage == "sign" or usage == "verify"

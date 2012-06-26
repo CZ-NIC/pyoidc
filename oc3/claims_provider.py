@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #import sys
+from oic.utils.keystore import rsa_load
 
 __author__ = 'rohe0002'
 
@@ -211,7 +212,6 @@ SERVER_DB = {}
 if __name__ == '__main__':
     import argparse
     import json
-    from oic.utils import jwt
 
     from cherrypy import wsgiserver
     from cherrypy.wsgiserver import ssl_builtin
@@ -237,9 +237,9 @@ if __name__ == '__main__':
 
     if "keys" in config:
         for type, info in config["keys"].items():
-            _rsa = jwt.rsa_load(info["key"])
-            OAS.keystore.add_key(_rsa, type, "sign")
-            OAS.keystore.add_key(_rsa, type, "verify")
+            _rsa = rsa_load(info["key"])
+            OAS.keystore.add_key(_rsa, type, "sig")
+            OAS.keystore.add_key(_rsa, type, "ver")
             try:
                 OAS.cert.append(info["cert"])
             except KeyError:

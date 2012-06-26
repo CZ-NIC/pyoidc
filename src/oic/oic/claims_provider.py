@@ -73,8 +73,8 @@ class ClaimsServer(Provider):
             jwt_keys = []
 
         for cid, _dic in cdb.items():
-            jwt_keys.append([_dic["client_secret"], "hmac", "sign", cid])
-            jwt_keys.append([_dic["client_secret"], "hmac", "verify", cid])
+            jwt_keys.append([_dic["client_secret"], "hmac", "sig", cid])
+            jwt_keys.append([_dic["client_secret"], "hmac", "ver", cid])
 
         self.srvmethod = OICCServer(jwt_keys=jwt_keys)
         self.keystore = self.srvmethod.keystore

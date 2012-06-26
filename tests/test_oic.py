@@ -37,7 +37,8 @@ from oic.oauth2.message import MissingRequiredAttribute
 
 from oic.utils import time_util
 from oic.utils.time_util import time_sans_frac
-from oic.utils.jwt import rsa_load, left_hash, unpack
+from oic.utils.jwt import left_hash, unpack
+from oic.utils.keystore import rsa_load
 
 from pytest import raises
 
@@ -54,10 +55,10 @@ CLIENT_ID = "client_1"
 rsapub = rsa_load("../oc3/certs/mycert.key")
 
 KEYS = [
-    ["abcdefghijklmnop", "hmac", "verify", "client_1"],
-    ["abcdefghijklmnop", "hmac", "sign", "client_1"],
-    [rsapub, "rsa", "sign", "."],
-    [rsapub, "rsa", "verify", "."]
+    ["abcdefghijklmnop", "hmac", "ver", "client_1"],
+    ["abcdefghijklmnop", "hmac", "sig", "client_1"],
+    [rsapub, "rsa", "sig", "."],
+    [rsapub, "rsa", "ver", "."]
 ]
 
 SIGN_KEY = {"hmac": ["abcdefghijklmnop"]}
@@ -501,7 +502,7 @@ class TestOICClient():
         assert areq
         assert areq.request
 
-        _keys = self.client.keystore.get_keys("verify", owner=None)
+        _keys = self.client.keystore.get_keys("ver", owner=None)
         jwtreq = OpenIDRequest().deserialize(areq["request"], "jwt", key=_keys)
         print
         print jwtreq
@@ -1058,7 +1059,7 @@ def test_make_id_token():
     idt_jwt = srv.make_id_token(session, loa="2", info_log=None, issuer=issuer,
                                 code=code, access_token="access_token")
 
-    jwt_keys = srv.keystore.get_keys("verify", owner=None)
+    jwt_keys = srv.keystore.get_keys("ver", owner=None)
     idt = IdToken().from_jwt(idt_jwt, key=jwt_keys)
     print idt
     header = unpack(idt_jwt)

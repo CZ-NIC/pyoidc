@@ -1,5 +1,5 @@
 from oic.oic.message import AccessTokenResponse, AuthorizationResponse
-from oic.utils.jwt import rsa_load
+from oic.utils.keystore import rsa_load
 
 __author__ = 'rohe0002'
 
@@ -21,17 +21,17 @@ CLIENT_ID = "client_1"
 rsapub = rsa_load("../oc3/certs/mycert.key")
 
 SRVKEYS = [
-    ["abcdefghijklmnop", "hmac", "verify", "client_1"],
-    ["abcdefghijklmnop", "hmac", "sign", "client_1"],
-    [rsapub, "rsa", "sign", "."],
-    [rsapub, "rsa", "verify", "."]
+    ["abcdefghijklmnop", "hmac", "ver", "client_1"],
+    ["abcdefghijklmnop", "hmac", "sig", "client_1"],
+    [rsapub, "rsa", "sig", "."],
+    [rsapub, "rsa", "ver", "."]
 ]
 
 CLIKEYS = [
-    ["abcdefghijklmnop", "hmac", "verify", "."],
-    ["abcdefghijklmnop", "hmac", "sign", "."],
-    [rsapub, "rsa", "sign", "http://localhost:8088"],
-    [rsapub, "rsa", "verify", "http://localhost:8088"]
+    ["abcdefghijklmnop", "hmac", "ver", "."],
+    ["abcdefghijklmnop", "hmac", "sig", "."],
+    [rsapub, "rsa", "sig", "http://localhost:8088"],
+    [rsapub, "rsa", "ver", "http://localhost:8088"]
 ]
 
 BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',

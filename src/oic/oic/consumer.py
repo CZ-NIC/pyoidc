@@ -20,9 +20,10 @@ from oic.oic import ENDPOINTS
 from oic.oauth2.message import ErrorResponse
 
 from oic.oic.message import Claims
+from oic.oic.message import RegistrationResponseCARS
+from oic.oic.message import RegistrationResponseCU
 from oic.oic.message import IssuerResponse
 from oic.oic.message import AuthorizationRequest
-from oic.oic.message import RegistrationResponse
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import UserInfoClaim
 from oic.oic.message import AccessTokenResponse
@@ -37,7 +38,7 @@ from oic.oauth2.consumer import AuthzError
 from oic.oauth2.consumer import UnknownState
 
 SWD_PATTERN = "http://%s/.well-known/simple-web-discovery"
-ISSUER_URL = "http://openid.net/specs/connect/1.0/issuer"
+SERVICE_TYPE = "http://openid.net/specs/connect/1.0/issuer"
 
 def stateID(url, seed):
     """The hash of the time + server path + a seed makes an unique
@@ -477,7 +478,7 @@ class Consumer(Client):
             result = IssuerResponse().deserialize(rsp.text, "json")
             if "SWD_service_redirect" in result:
                 _loc = result["SWD_service_redirect"]["location"]
-                _uri = IssuerRequest(service=ISSUER_URL,
+                _uri = IssuerRequest(service=SERVICE_TYPE,
                                      principal=principal).request(_loc)
                 return self.discovery_query(_uri, principal)
             else:
@@ -497,7 +498,7 @@ class Consumer(Client):
     
     def discover(self, principal, idtype="mail"):
         _loc = SWD_PATTERN % self.get_domain(principal, idtype)
-        uri = IssuerRequest(service=ISSUER_URL,
+        uri = IssuerRequest(service=SERVICE_TYPE,
                             principal=principal).request(_loc)
 
         result = self.discovery_query(uri, principal)
@@ -506,7 +507,7 @@ class Consumer(Client):
     def register(self, server, type="client_associate", **kwargs):
         req = RegistrationRequest(type=type)
 
-        if type == "client_update":
+        if type == "client_update" or type == "rotate_secret":
             req["client_id"] = self.client_id
             req["client_secret"] = self.client_secret
 
@@ -532,7 +533,12 @@ class Consumer(Client):
                                 headers=headers)
 
         if rsp.status_code == 200:
-            resp = RegistrationResponse().deserialize(rsp.text, "json")
+            if type == "client_associate" or type == "rotate_secret":
+                rr = RegistrationResponseCARS()
+            else:
+                rr = RegistrationResponseCU()
+
+            resp = rr.deserialize(rsp.text, "json")
             self.client_secret = resp["client_secret"]
             self.client_id = resp["client_id"]
             self.registration_expires = resp["expires_at"]

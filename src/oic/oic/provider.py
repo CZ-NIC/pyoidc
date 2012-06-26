@@ -2,6 +2,8 @@
 import traceback
 from oic.oauth2.message import ErrorResponse, by_schema
 from oic.oic.message import AuthorizationRequest
+from oic.oic.message import RegistrationResponseCU
+from oic.oic.message import RegistrationResponseCARS
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import AuthorizationErrorResponse
 from oic.oic.message import OpenIDRequest
@@ -13,11 +15,10 @@ from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import ClientRegistrationErrorResponse
 from oic.oic.message import UserInfoClaim
-from oic.oic.message import RegistrationResponse
 from oic.oic.message import DiscoveryRequest
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import DiscoveryResponse
-from oic.utils.jwt import key_export, unpack
+from oic.utils.jwt import unpack
 #import sys
 import sys
 
@@ -292,7 +293,7 @@ class Provider(AProvider):
                 _log_info("OpenID request")
             try:
                 _keystore = self.server.keystore
-                jwt_key = _keystore.get_keys("verify", owner=None)
+                jwt_key = _keystore.get_keys("ver", owner=None)
             except KeyError:
                 raise KeyError("Missing verifying key")
         
@@ -700,6 +701,7 @@ class Provider(AProvider):
                                 status="400 Bad Request")
                 return resp(environ, start_response)
 
+            response = RegistrationResponseCARS(client_id=client_id)
             #if self.debug:
             #    logger.info("KEYSTORE: %s" % self.keystore._store)
 
@@ -726,9 +728,10 @@ class Provider(AProvider):
 
                 old_key = request["client_secret"]
                 _keystore.remove_key(old_key, client_id, type="hmac",
-                                     usage="sign")
+                                     usage="sig")
                 _keystore.remove_key(old_key, client_id, type="hmac",
-                                     usage="verify")
+                                     usage="ver")
+                response = RegistrationResponseCARS(client_id=client_id)
             else: # client_update
                 client_secret = None
                 for key,val in request.items():
@@ -737,23 +740,23 @@ class Provider(AProvider):
 
                     _cinfo[key] = val
 
+                response = RegistrationResponseCU(client_id=client_id)
+
             self.keystore.load_keys(request, client_id, replace=True)
 
         else:
             resp = BadRequest("Unknown request type: %s" % request.type)
             return resp(environ, start_response)
 
-
-        # set expiration time
-        _cinfo["registration_expires"] = time_util.time_sans_frac()+3600
-        response = RegistrationResponse(client_id=client_id,
-                                    expires_at=_cinfo["registration_expires"])
-
         # Add the key to the keystore
         if client_secret:
             _keystore.set_sign_key(client_secret, owner=client_id)
             _keystore.set_verify_key(client_secret, owner=client_id)
+
+            _cinfo["registration_expires"] = time_util.time_sans_frac()+3600
+
             response["client_secret"] = client_secret
+            response["expires_at"] = _cinfo["registration_expires"]
 
         if self.test_mode:
             logger.info("registration_response: %s" % response.to_dict())
@@ -1033,16 +1036,14 @@ class Provider(AProvider):
     def re_link_log(self, old, new):
         pass
 
-    def key_setup(self, local_path, vault="keys", sign=None, enc=None):
+    def key_setup(self, local_path, vault="keys", sig=None, enc=None):
         # my keys
 
-        part,res = key_export(self.baseurl, local_path, vault,
-                              sign=sign, enc=enc)
+        part,res = self.keystore.key_export(self.baseurl, local_path, vault,
+                                            sig=sig, enc=enc)
 
-        for name, (url, keyspecs) in res.items():
+        for name, url in res.items():
             self.jwk.append(url)
-            for key, typ, usage in keyspecs:
-                self.keystore.add_key(key, typ, usage)
 
 # -----------------------------------------------------------------------------
 

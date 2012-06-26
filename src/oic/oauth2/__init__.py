@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 #
+from oic.utils.keystore import KeyStore
 
 __author__ = 'rohe0002'
 
@@ -11,7 +12,7 @@ import cookielib
 from Cookie import SimpleCookie
 
 from oic.utils.time_util import utc_time_sans_frac
-from oic.utils.jwt import construct_rsa_jwk, key_eq
+#from oic.utils.jwt import construct_rsa_jwk, key_eq
 
 DEF_SIGN_ALG = "HS256"
 
@@ -298,282 +299,6 @@ class Grant(object):
                         otok.replaced = True
                 self.tokens.append(token)
 
-KEYLOADERR = "Failed to load %s key from '%s' (%s)"
-
-class KeyStore(object):
-    use = ["sign", "verify", "enc", "dec"]
-    url_types = ["x509_url", "x509_encryption_url", "jwk_url",
-                 "jwk_encryption_url"]
-
-    def __init__(self, http_request, keyspecs=None):
-        self._store = {}
-        self.http_request = http_request
-
-        if keyspecs:
-            for keyspec in keyspecs:
-                self.add_key(*keyspec)
-
-    def add_key(self, key, type, usage, owner="."):
-        """
-        :param key: The key
-        :param type: Type of key (rsa, ec, hmac, .. )
-        :param usage: What to use the key for (signing, verifying, encrypting,
-            decrypting
-        """
-
-        if owner not in self._store:
-            self._store[owner] = {"sign": {}, "verify": {}, "enc": {},
-                                  "dec": {}}
-            self._store[owner][usage][type] = [key]
-        else:
-            _keys = self._store[owner][usage]
-            try:
-                for _key in _keys[type]:
-                    if key_eq(_key, key):
-                        return
-
-                _keys[type].append(key)
-            except KeyError:
-                _keys[type] = [key]
-
-    def get_keys(self, usage, type=None, owner="."):
-        if not owner:
-            res = {}
-            for owner, _spec in self._store.items():
-                res[owner] = _spec[usage]
-            return res
-        else:
-            try:
-                if type:
-                    return self._store[owner][usage][type]
-                else:
-                    return self._store[owner][usage]
-            except KeyError:
-                return {}
-
-    def pairkeys(self, part):
-        """
-        Keys for me and someone else.
-
-        :param part: The other part
-        :return: dictionary of keys
-        """
-        _coll = self.keys_by_owner(part)
-        if part != ".":
-            for usage, spec in self.keys_by_owner(".").items():
-                for typ, keys in spec.items():
-                    try:
-                        _coll[usage][typ].extend(keys)
-                    except KeyError:
-                        _coll[usage][typ] = keys
-
-        return _coll
-
-    def keys_by_owner(self, owner):
-        try:
-            return self._store[owner]
-        except KeyError:
-            return {}
-
-    def remove_key_collection(self, owner):
-        try:
-            del self._store[owner]
-        except Exception:
-            pass
-
-    def remove_key(self, key, owner=".", type=None, usage=None):
-        try:
-            _keys = self._store[owner]
-        except KeyError:
-            return
-
-        rem = []
-        if usage:
-            if type:
-                _keys[usage][type].remove(key)
-            else:
-                for _typ, vals in self._store[owner][usage].items():
-                    try:
-                        vals.remove(key)
-                        if not vals:
-                            rem.append((usage, _typ))
-                    except Exception:
-                        pass
-        else:
-            for _usage, item in _keys.items():
-                if type:
-                    _keys[_usage][type].remove(key)
-                else:
-                    for _typ, vals in _keys[_usage].items():
-                        try:
-                            vals.remove(key)
-                            if not vals:
-                                rem.append((_usage, _typ))
-                        except Exception:
-                            pass
-
-        for _use, _typ in rem:
-            del self._store[owner][_use][_typ]
-            if not self._store[owner][_use]:
-                del self._store[owner][_use]
-
-    def remove_key_type(self, type, owner="."):
-        try:
-            _keys = self._store[owner]
-        except KeyError:
-            return
-
-        for _usage in _keys.keys():
-            try:
-                del self._store[owner][_usage][type]
-                if not self._store[owner][_usage]:
-                    del self._store[owner][_usage]
-            except KeyError:
-                pass
-
-    def get_verify_key(self, type="", owner="."):
-        return self.get_keys("verify", type, owner)
-
-    def get_sign_key(self, type="", owner="."):
-        return self.get_keys("sign", type, owner)
-
-    def get_encrypt_key(self, type="", owner="."):
-        return self.get_keys("enc", type, owner)
-
-    def get_decrypt_key(self, type="", owner="."):
-        return self.get_keys("dec", type, owner)
-
-    def set_verify_key(self, val, type="hmac", owner="."):
-        self.add_key(val, type, "verify", owner)
-
-    def set_sign_key(self, val, type="hmac", owner="."):
-        self.add_key(val, type, "sign", owner)
-
-    def set_encrypt_key(self, val, type="hmac", owner="."):
-        self.add_key(val, type, "enc", owner)
-
-    def set_decrypt_key(self, val, type="hmac", owner="."):
-        self.add_key(val, type, "dec", owner)
-
-    def match_owner(self, url):
-        for owner in self._store.keys():
-            if url.startswith(owner):
-                return owner
-
-        raise Exception("No keys for '%s'" % url)
-
-    def collect_keys(self, url, usage="verify"):
-        try:
-            owner = self.match_owner(url)
-            keys = self.get_keys(usage, owner=owner)
-        except Exception:
-            keys = None
-
-        try:
-            own_keys = self.get_keys(usage)
-            if keys:
-                for type, key in own_keys.items():
-                    keys[type].extend(key)
-            else:
-                keys = own_keys
-        except KeyError:
-            pass
-
-        return keys
-
-    def __contains__(self, owner):
-        if owner in self._store:
-            return True
-        else:
-            return False
-
-    def has_key_of_type(self, owner, usage, type):
-        try:
-            _ = self._store[owner][usage][type]
-            return True
-        except KeyError:
-            return False
-
-    def load_x509_cert(self, url, usage, owner):
-        try:
-            r = self.http_request(url, allow_redirects=True)
-            if r.status_code == 200:
-                _key = jwt.x509_rsa_loads(r.text)
-                self.add_key(_key, "rsa", usage, owner)
-                return _key
-            else:
-                raise Exception("HTTP Get error: %s" % r.status_code)
-        except Exception, err: # not a RSA key
-            return None
-
-    def load_jwk(self, url, usage, owner):
-        r = self.http_request(url, allow_redirects=True)
-        if r.status_code != 200:
-            raise Exception("HTTP Get error: %s" % r.status_code)
-
-        res = []
-        for tag, key in jwt.jwk_loads(r.text).items():
-            if tag.startswith("rsa"):
-                self.add_key(key, "rsa", usage, owner)
-                res.append(key)
-
-        return res
-
-    def load_keys(self, inst, _issuer, replace=False):
-        for attr in self.url_types:
-            if attr in inst:
-                if replace:
-                    self.remove_key_collection(_issuer)
-                break
-
-        if "x509_url" in inst and inst["x509_url"]:
-            try:
-                _verkey = self.load_x509_cert(inst["x509_url"], "verify",
-                                              _issuer)
-            except Exception:
-                raise Exception(KEYLOADERR % ('x509', inst["x509_url"]))
-        else:
-            _verkey = None
-
-        if "x509_encryption_url" in inst and inst["x509_encryption_url"]:
-            try:
-                self.load_x509_cert(inst["x509_encryption_url"], "enc",
-                                    _issuer)
-            except Exception:
-                raise Exception(KEYLOADERR % ('x509_encryption',
-                                              inst["x509_encryption_url"]))
-        elif _verkey:
-            self.set_decrypt_key(_verkey, "rsa", _issuer)
-
-        if "jwk_url" in inst and inst["jwk_url"]:
-            try:
-                _verkeys = self.load_jwk(inst["jwk_url"], "verify", _issuer)
-            except Exception, err:
-                raise Exception(KEYLOADERR % ('jwk', inst["jwk_url"], err))
-        else:
-            _verkeys = []
-
-        if "jwk_encryption_url" in inst and inst["jwk_encryption_url"]:
-            try:
-                self.load_jwk(inst["jwk_encryption_url"], "enc", _issuer)
-            except Exception:
-                raise Exception(KEYLOADERR % ('jwk',
-                                              inst["jwk_encryption_url"]))
-        elif _verkeys:
-            for key in _verkeys:
-                self.set_decrypt_key(key, "rsa", _issuer)
-
-    def publishable_jwks(self, usage, type="rsa"):
-        jwks = []
-        for key in self.get_keys(usage, type):
-            jwks.append(construct_rsa_jwk(key))
-        return jwks
-
-    def update(self, keystore):
-        for owner, spec in keystore._store.items():
-            if owner == ".":
-                continue
-            self._store[owner] = spec
 
 # =============================================================================
 # =============================================================================
@@ -740,11 +465,11 @@ class Client(PBase):
 
         self._c_secret = val
         # client uses it for signing
-        self.keystore.add_key(val, "hmac", "sign")
+        self.keystore.add_key(val, "hmac", "sig")
 
         # Server might also use it for signing which means the
         # client uses it for verifying server signatures
-        self.keystore.add_key(val, "hmac", "verify")
+        self.keystore.add_key(val, "hmac", "ver")
 
     client_secret = property(get_client_secret, set_client_secret)
 
@@ -1286,7 +1011,7 @@ class Server(PBase):
         if not keystore:
                 keystore = self.keystore
 
-        keys = keystore.get_keys("verify", owner=None)
+        keys = keystore.get_keys("ver", owner=None)
         #areq = message().from_(txt, keys, verify)
         areq = request().deserialize(txt, "jwt", key=keys, verify=verify)
         areq.verify()

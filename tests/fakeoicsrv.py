@@ -189,7 +189,7 @@ class MyFakeOICServer(Server):
             _cinfo["client_secret"] = client_secret
             _cinfo["expires"] = expires
 
-        resp = RegistrationResponse(client_id=client_id,
+        resp = RegistrationResponseCARS(client_id=client_id,
                                     client_secret=client_secret,
                                     expires_at=expires)
 
@@ -217,7 +217,7 @@ class MyFakeOICServer(Server):
         except Exception:
             raise
 
-        resp = RegistrationResponse(client_id="anonymous",
+        resp = RegistrationResponseCARS(client_id="anonymous",
                                     client_secret="hemligt")
 
         response = Response()

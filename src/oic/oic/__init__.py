@@ -500,7 +500,7 @@ class Client(oauth2.Client):
                                 scope="", state="", body_type="json",
                                 method="POST", request_args=None,
                                 extra_args=None, http_args=None,
-                                resp_request=RegistrationResponse):
+                                resp_request=None):
 
         url, body, ht_args, csi = self.request_info(request, method=method,
                                                     request_args=request_args,
@@ -511,6 +511,13 @@ class Client(oauth2.Client):
             http_args = ht_args
         else:
             http_args.update(http_args)
+
+        if resp_request is None:
+            if request_args["type"] == "client_associate" or \
+               request_args["type"] == "rotate_secret":
+                resp_request = RegistrationResponseCARS
+            else:
+                resp_request = RegistrationResponseCU
 
         response = self.request_and_return(url, resp_request, method, body,
                                            body_type, state=state,
@@ -740,7 +747,7 @@ class Client(oauth2.Client):
                     if not csrc in self.keystore:
                         self.provider_config(csrc, endpoints=False)
 
-                    keycol = self.keystore.pairkeys(csrc)["verify"]
+                    keycol = self.keystore.pairkeys(csrc)["ver"]
                     info = json.loads(jwt.verify(str(spec["JWT"]), keycol))
                     attr = [n for n, s in userinfo._claim_names.items() if s ==
                                                                            csrc]

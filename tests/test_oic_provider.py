@@ -1,4 +1,3 @@
-from oic.utils.jwt import rsa_load
 
 __author__ = 'rohe0002'
 
@@ -8,7 +7,9 @@ import urllib
 
 from oic.oauth2 import rndstr
 
-from oic.oic.message import AuthorizationRequest
+from oic.utils.keystore import rsa_load
+
+from oic.oic.message import AuthorizationRequest, RegistrationResponseCARS, RegistrationResponseCU
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AccessTokenRequest
@@ -18,7 +19,6 @@ from oic.oic.message import UserInfoRequest
 from oic.oic.message import CheckSessionRequest
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import IdToken
-from oic.oic.message import RegistrationResponse
 
 from oic.utils.sdb import SessionDB
 from oic.oic import Client
@@ -92,12 +92,12 @@ CLIENT_ID = "client_1"
 rsapub = rsa_load("../oc3/certs/mycert.key")
 
 KEYS = [
-    [CLIENT_SECRET, "hmac", "verify", CLIENT_ID],
-    [CLIENT_SECRET, "hmac", "sign", CLIENT_ID],
-    ["drickyoughurt", "hmac", "verify", "number5"],
-    ["drickyoughurt", "hmac", "sign", "number5"],
-    [rsapub, "rsa", "sign", "."],
-    [rsapub, "rsa", "verify", "."]
+    [CLIENT_SECRET, "hmac", "ver", CLIENT_ID],
+    [CLIENT_SECRET, "hmac", "sig", CLIENT_ID],
+    ["drickyoughurt", "hmac", "ver", "number5"],
+    ["drickyoughurt", "hmac", "sig", "number5"],
+    [rsapub, "rsa", "sig", "."],
+    [rsapub, "rsa", "ver", "."]
 ]
 
 #SIGN_KEY = {"hmac": ["abcdefghijklmnop"]}
@@ -672,7 +672,7 @@ def test_userinfo_endpoint():
 def test_check_session_endpoint():
     server = provider_init
     print server.name
-    server.keystore.add_key(CDB["number5"]["client_secret"], "hmac", "verify",
+    server.keystore.add_key(CDB["number5"]["client_secret"], "hmac", "ver",
                             "number5")
 
     session = {"user_id": "UserID", "client_id": "number5"}
@@ -704,7 +704,7 @@ def test_registration_endpoint():
     resp = server.registration_endpoint(environ, start_response, LOG())
 
     print resp
-    regresp = RegistrationResponse().deserialize(resp[0], "json")
+    regresp = RegistrationResponseCARS().deserialize(resp[0], "json")
     print regresp.keys()
     assert _eq(regresp.keys(), ['client_secret', 'expires_at', 'client_id'])
 
@@ -720,9 +720,9 @@ def test_registration_endpoint():
     resp = server.registration_endpoint(environ, start_response, LOG())
 
     print resp
-    update = RegistrationResponse().deserialize(resp[0], "json")
+    update = RegistrationResponseCU().deserialize(resp[0], "json")
     print update.keys()
-    assert _eq(update.keys(), ['expires_at', 'client_id'])
+    assert _eq(update.keys(), ['client_id'])
     #assert update["client_secret"] != regresp["client_secret"]
 
 
@@ -738,7 +738,7 @@ def test_registration_endpoint():
     resp = server.registration_endpoint(environ, start_response, LOG())
 
     print resp
-    update = RegistrationResponse().deserialize(resp[0], "json")
+    update = RegistrationResponseCARS().deserialize(resp[0], "json")
     print update.keys()
     assert _eq(update.keys(), ["client_secret", 'expires_at', 'client_id'])
     assert update["client_secret"] != regresp["client_secret"]
@@ -746,7 +746,7 @@ def test_registration_endpoint():
 def test_provider_key_setup():
     provider = Provider("pyoicserv", SessionDB(), None, None, None)
     provider.baseurl = "http://www.example.com/"
-    provider.key_setup("static", sign={"format": "jwk", "alg": "rsa"})
+    provider.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
 
     keys = provider.keystore.get_sign_key("rsa")
     assert len(keys) == 1
