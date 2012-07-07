@@ -1,9 +1,38 @@
-from oic.oauth2.message import ErrorResponse
 
 __author__ = 'rohe0002'
 
 import urlparse
 import json
+import logging
+
+from oic.oauth2.message import ErrorResponse
+
+from oic.oic.message import IdToken
+from oic.oic.message import AuthorizationResponse
+from oic.oic.message import AccessTokenResponse
+from oic.oic.message import Claims
+from oic.oic.message import UserInfoClaim
+from oic.oic.message import IDTokenClaim
+from oic.oic.message import AccessTokenRequest
+from oic.oic.message import RefreshAccessTokenRequest
+from oic.oic.message import UserInfoRequest
+from oic.oic.message import AuthorizationRequest
+from oic.oic.message import OpenIDRequest
+from oic.oic.message import RegistrationRequest
+from oic.oic.message import RefreshSessionRequest
+from oic.oic.message import RegistrationResponseCU
+from oic.oic.message import RegistrationResponseCARS
+from oic.oic.message import CheckSessionRequest
+from oic.oic.message import CheckIDRequest
+from oic.oic.message import EndSessionRequest
+from oic.oic.message import OpenIDSchema
+from oic.oic.message import ProviderConfigurationResponse
+from oic.oic.message import IssuerRequest
+from oic.oic.message import AuthnToken
+from oic.oic.message import TokenErrorResponse
+from oic.oic.message import ClientRegistrationErrorResponse
+from oic.oic.message import UserInfoErrorResponse
+from oic.oic.message import AuthorizationErrorResponse
 
 from oic import oauth2
 
@@ -11,15 +40,18 @@ from oic.oauth2 import AUTHN_METHOD as OAUTH2_AUTHN_METHOD, DEF_SIGN_ALG
 from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import rndstr
 
-from oic.oic.message import *
+#from oic.oic.message import *
+
 from oic.oic.exception import AccessDenied
 
-from oic.utils import time_util
+from oic.utils import time_util, jwt
 #from oic.utils import jwt
 
 #from oic.utils.time_util import time_sans_frac
 from oic.utils.time_util import utc_now
 from oic.utils.time_util import epoch_in_a_while
+
+logger = logging.getLogger(__name__)
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint",
              "userinfo_endpoint", "refresh_session_endpoint",
@@ -166,6 +198,64 @@ def deser_id_token(inst, str=""):
     return IdToken().from_dict(jso)
 
 # -----------------------------------------------------------------------------
+def make_openid_request(arq, keys, userinfo_claims=None,
+                        idtoken_claims=None, algorithm=OIC_DEF_SIGN_ALG,
+                        **kwargs):
+    """
+    Construct the specification of what I want returned.
+    The request will be signed
+    """
+
+    oir_args = {}
+
+    if userinfo_claims is not None:
+        # UserInfoClaims
+        claim = Claims(**userinfo_claims["claims"])
+
+        uic_args = {}
+        for prop, val in userinfo_claims.items():
+            if prop == "claims":
+                continue
+            if prop in UserInfoClaim.c_param.keys():
+                uic_args[prop] = val
+
+        uic = UserInfoClaim(claims=claim, **uic_args)
+    else:
+        uic = None
+
+    if uic:
+        oir_args["userinfo"] = uic
+
+    if idtoken_claims is not None:
+        #IdTokenClaims
+        try:
+            _max_age = idtoken_claims["max_age"]
+        except KeyError:
+            _max_age=MAX_AUTHENTICATION_AGE
+
+        id_token = IDTokenClaim(max_age=_max_age)
+        if "claims" in idtoken_claims:
+            idtclaims = Claims(**idtoken_claims["claims"])
+            id_token["claims"] = idtclaims
+    else: # uic must be != None
+        id_token = IDTokenClaim(max_age=MAX_AUTHENTICATION_AGE)
+
+    if id_token:
+        oir_args["id_token"] = id_token
+
+    for prop in OpenIDRequest.c_param.keys():
+        try:
+            oir_args[prop] = arq[prop]
+        except KeyError:
+            pass
+
+    for attr in ["scope", "response_type"]:
+        if attr in oir_args:
+            oir_args[attr] = " ".join(oir_args[attr])
+
+    oir = OpenIDRequest(**oir_args)
+
+    return oir.to_jwt(key=keys, algorithm=algorithm)
 
 class Token(oauth2.Token):
     pass
@@ -240,62 +330,6 @@ class Client(oauth2.Client):
         return None
 
     #noinspection PyUnusedLocal
-    def make_openid_request(self, arq, keys, userinfo_claims=None,
-                            idtoken_claims=None, algorithm=OIC_DEF_SIGN_ALG,
-                            **kwargs):
-        """
-        Construct the specification of what I want returned.
-        The request will be signed
-        """
-
-        oir_args = {}
-
-        if userinfo_claims is not None:
-            # UserInfoClaims
-            claim = Claims(**userinfo_claims["claims"])
-
-            uic_args = {}
-            for prop, val in userinfo_claims.items():
-                if prop == "claims":
-                    continue
-                if prop in UserInfoClaim.c_param.keys():
-                    uic_args[prop] = val
-
-            uic = UserInfoClaim(claims=claim, **uic_args)
-        else:
-            uic = None
-
-        if uic:
-            oir_args["userinfo"] = uic
-
-        if idtoken_claims is not None:
-            #IdTokenClaims
-            try:
-                _max_age = idtoken_claims["max_age"]
-            except KeyError:
-                _max_age=MAX_AUTHENTICATION_AGE
-
-            id_token = IDTokenClaim(max_age=_max_age)
-            if "claims" in idtoken_claims:
-                idtclaims = Claims(**idtoken_claims["claims"])
-                id_token["claims"] = idtclaims
-        else: # uic must be != None
-            id_token = IDTokenClaim(max_age=MAX_AUTHENTICATION_AGE)
-
-        if id_token:
-            oir_args["id_token"] = id_token
-
-        for prop, val in arq.items():
-            oir_args[prop] = val
-
-        for attr in ["scope", "prompt", "response_type"]:
-            if attr in oir_args:
-                oir_args[attr] = " ".join(oir_args[attr])
-
-        oir = OpenIDRequest(**oir_args)
-
-        return oir.to_jwt(key=keys, algorithm=algorithm)
-
     def construct_AuthorizationRequest(self, request=AuthorizationRequest,
                                        request_args=None, extra_args=None,
                                        **kwargs):
@@ -337,7 +371,7 @@ class Client(oauth2.Client):
             kwargs["keys"] = self.keystore.get_sign_key()
 
         if "userinfo_claims" in kwargs or "idtoken_claims" in kwargs:
-            areq["request"] = self.make_openid_request(areq, **kwargs)
+            areq["request"] = make_openid_request(areq, **kwargs)
 
         return areq
 
@@ -797,9 +831,12 @@ class Server(oauth2.Server):
         return oauth2.Server.parse_token_request(self, request, body)
 
     def parse_authorization_request(self, request=AuthorizationRequest,
-                                    url=None, query=None):
-        return oauth2.Server.parse_authorization_request(self, request, url,
-                                                         query)
+                                    url=None, query=None, keys=None):
+        if url:
+            parts = urlparse.urlparse(url)
+            scheme, netloc, path, params, query, fragment = parts[:6]
+
+        return self._parse_request(request, query, "urlencoded", keys)
 
     def parse_jwt_request(self, request=AuthorizationRequest, txt="",
                           keys=None, verify=True):
@@ -827,9 +864,11 @@ class Server(oauth2.Server):
         assert "access_token" in param # ignore the rest
         return deser_id_token(self, param["access_token"][0])
 
-    def _parse_request(self, request, data, format):
+    def _parse_request(self, request, data, format, keys=None):
         if format == "json":
             request = request().from_json(data)
+        elif format == "jwt":
+            request = request().from_jwt(data, keys)
         elif format == "urlencoded":
             if '?' in data:
                 parts = urlparse.urlparse(data)
@@ -840,11 +879,11 @@ class Server(oauth2.Server):
         else:
             raise Exception("Unknown package format: '%s'" %  format)
 
-        request.verify()
+        request.verify(key=keys)
         return request
 
-    def parse_open_id_request(self, data, format="urlencoded"):
-        return self._parse_request(OpenIDRequest, data, format)
+    def parse_open_id_request(self, data, format="urlencoded", keys=None):
+        return self._parse_request(OpenIDRequest, data, format, keys)
 
     def parse_user_info_request(self, data, format="urlencoded"):
         return self._parse_request(UserInfoRequest, data, format)
@@ -869,7 +908,7 @@ class Server(oauth2.Server):
     def parse_issuer_request(self, info, format="urlencoded"):
         return self._parse_request(IssuerRequest, info, format)
 
-    def make_id_token(self, session, loa="2", info_log=None, issuer="",
+    def make_id_token(self, session, loa="2", issuer="",
                       keytype="rsa", code=None, access_token=None,
                       user_info=None):
         #defaults
@@ -879,7 +918,7 @@ class Server(oauth2.Server):
         try:
             oidreq = OpenIDRequest().deserialize(session["oidreq"], "json")
             itc = oidreq["id_token"]
-            info_log("ID Token claims: %s" % itc.to_dict())
+            logger.debug("ID Token claims: %s" % itc.to_dict())
             try:
                 inawhile = {"seconds": itc["max_age"]}
             except KeyError:
@@ -937,7 +976,6 @@ class Server(oauth2.Server):
             algo = "ES256"
             ckey = {"ec":_keystore.get_sign_key("ec")}
 
-        if info_log:
-            info_log("Sign idtoken with '%s'" % (ckey,))
+        logger.debug("Sign idtoken with '%s'" % (ckey,))
 
         return idt.to_jwt(key=ckey, algorithm=algo)

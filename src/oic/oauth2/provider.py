@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from oic.oauth2.message import *
+import logging
 
 __author__ = 'rohe0002'
 
@@ -7,10 +7,28 @@ import base64
 
 from urlparse import parse_qs
 
-from oic.utils.http_util import *
+from oic.oauth2.message import AccessTokenResponse
+from oic.oauth2.message import add_non_standard
+from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import NoneResponse
+from oic.oauth2.message import AuthorizationRequest
+from oic.oauth2.message import by_schema
+from oic.oauth2.message import MissingRequiredAttribute
+from oic.oauth2.message import TokenErrorResponse
+from oic.oauth2.message import AccessTokenRequest
+
+from oic.utils.http_util import Unauthorized
+from oic.utils.http_util import BadRequest
+from oic.utils.http_util import Redirect
+from oic.utils.http_util import ServiceError
+from oic.utils.http_util import Response
 
 from oic.oauth2 import rndstr
 from oic.oauth2 import Server as SrvMethod
+
+logger = logging.getLogger(__name__)
+LOG_INFO = logger.info
+LOG_DEBUG = logger.debug
 
 class AuthnFailure(Exception):
     pass
@@ -69,17 +87,14 @@ def location_url(response_type, redirect_uri, query):
         return "%s#%s" % (redirect_uri, query)
 
 class Provider(object):
-    def __init__(self, name, sdb, cdb, function, urlmap=None, debug=0):
+    def __init__(self, name, sdb, cdb, function, urlmap=None):
         self.name = name
         self.sdb = sdb
         self.cdb = cdb
-
         self.srvmethod = SrvMethod()
-
         self.function = function
-
-        self.debug = debug
         self.seed = rndstr()
+
         if urlmap is None:
             self.urlmap = {}
         else:
@@ -92,12 +107,11 @@ class Provider(object):
         }
 
     #noinspection PyUnusedLocal
-    def authn_intro(self, environ, start_response, logger):
+    def authn_intro(self, environ, start_response):
         """
         After the authentication this is where you should end up
         """
 
-        _log_info = logger.info
         _sdb = self.sdb
 
         # parse the form
@@ -121,15 +135,13 @@ class Provider(object):
 
         _sdb.update(sid, "user_id", dic["login"][0])
 
-        if self.debug:
-            _log_info("session[\"authzreq\"] = %s" % session["authzreq"])
+        LOG_DEBUG("session[\"authzreq\"] = %s" % session["authzreq"])
         #_log_info( "type: %s" % type(session["authzreq"]))
 
         # pick up the original request
         areq = AuthorizationRequest().deserialize(session["authzreq"], "json")
 
-        if self.debug:
-            _log_info("areq: %s" % areq)
+        LOG_DEBUG("areq: %s" % areq)
 
         # Do the authorization
         try:
@@ -138,12 +150,11 @@ class Provider(object):
         except Exception:
             raise
 
-        _log_info("response type: %s" % areq["response_type"])
+        LOG_INFO("response type: %s" % areq["response_type"])
 
         return areq, session
 
-    def authn_reply(self, areq, aresp, environ, start_response, logger):
-        _log_info = logger.info
+    def authn_reply(self, areq, aresp, environ, start_response):
 
         if "redirect_uri" in areq:
             # TODO verify that the uri is reasonable
@@ -154,8 +165,7 @@ class Provider(object):
         location = location_url(areq["response_type"], redirect_uri,
                                 aresp.to_urlencoded())
 
-        if self.debug:
-            _log_info("Redirected to: '%s' (%s)" % (location, type(location)))
+        LOG_DEBUG("Redirected to: '%s' (%s)" % (location, type(location)))
 
         redirect = Redirect(str(location))
         return redirect(environ, start_response)
@@ -167,14 +177,12 @@ class Provider(object):
         return self.response_type_map[_rtype](areq=areq, scode=scode,
                                               sdb=self.sdb)
 
-    def authenticated(self, environ, start_response, logger):
-        _log_info = logger.info
+    def authenticated(self, environ, start_response):
 
-        if self.debug:
-            _log_info("- authenticated -")
+        LOG_DEBUG("- authenticated -")
 
         try:
-            result = self.authn_intro(environ, start_response, logger)
+            result = self.authn_intro(environ, start_response)
         except Exception, err:
             resp = ServiceError("%s" % err)
             return resp(environ, start_response)
@@ -195,16 +203,14 @@ class Provider(object):
 
         add_non_standard(aresp, areq)
 
-        return self.authn_reply(areq, aresp, environ, start_response, logger)
+        return self.authn_reply(areq, aresp, environ, start_response)
     
-    def authorization_endpoint(self, environ, start_response, logger):
+    def authorization_endpoint(self, environ, start_response, **kwargs):
         # The AuthorizationRequest endpoint
 
-        _log_info = logger.info
         _sdb = self.sdb
 
-        if self.debug:
-            _log_info("- authorization -")
+        LOG_DEBUG("- authorization -")
 
         if environ.get("REQUEST_METHOD") == "GET":
             query = environ.get("QUERY_STRING")
@@ -214,8 +220,7 @@ class Provider(object):
             resp = BadRequest("Unsupported method")
             return resp(environ, start_response)
             
-        if self.debug:
-            _log_info("Query: '%s'" % query)
+        LOG_DEBUG("Query: '%s'" % query)
 
         try:
             areq = self.srvmethod.parse_authorization_request(query=query)
@@ -236,24 +241,20 @@ class Provider(object):
         bsid = base64.b64encode(sid)
 
         grant = _sdb[sid]["code"]
-        if self.debug:
-            _log_info("code: '%s'" % grant)
+        LOG_DEBUG("code: '%s'" % grant)
 
         return self.function["authenticate"](environ, start_response, bsid)
 
-    def token_endpoint(self, environ, start_response, logger):
+    def token_endpoint(self, environ, start_response):
         """
         This is where clients come to get their access tokens
         """
 
-        _log_info = logger.info
         _sdb = self.sdb
 
-        if self.debug:
-            _log_info("- token -")
+        LOG_DEBUG("- token -")
         body = get_post(environ)
-        if self.debug:
-            _log_info("body: %s" % body)
+        LOG_DEBUG("body: %s" % body)
 
         areq = AccessTokenRequest().deserialize(body, "urlencoded")
 
@@ -265,8 +266,7 @@ class Provider(object):
                             status="401 Unauthorized")
             return resp(environ, start_response)
 
-        if self.debug:
-            _log_info("AccessTokenRequest: %s" % areq)
+        LOG_DEBUG("AccessTokenRequest: %s" % areq)
 
         assert areq["grant_type"] == "authorization_code"
 
@@ -280,13 +280,11 @@ class Provider(object):
 
         _tinfo = _sdb.update_to_token(areq["code"])
 
-        if self.debug:
-            _log_info("_tinfo: %s" % _tinfo)
+        LOG_DEBUG("_tinfo: %s" % _tinfo)
             
         atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
 
-        if self.debug:
-            _log_info("AccessTokenResponse: %s" % atr)
+        LOG_DEBUG("AccessTokenResponse: %s" % atr)
 
         resp = Response(atr.to_json(), content="application/json")
         return resp(environ, start_response)

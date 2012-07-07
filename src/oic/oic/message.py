@@ -2,6 +2,7 @@ __author__ = 'rohe0002'
 
 import urllib
 import json
+import logging
 
 from oic.oauth2 import message
 from oic.oauth2.message import Message
@@ -14,6 +15,8 @@ from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 
 from oic.utils import jwt
 
+logger = logging.getLogger(__name__)
+
 #noinspection PyUnusedLocal
 def json_ser(val, format=None, lev=0):
     return json.dumps(val)
@@ -22,14 +25,13 @@ def json_ser(val, format=None, lev=0):
 def json_deser(val, format=None, lev=0):
     return json.loads(val)
 
-SINGLE_OPTIONAL_JWT = message.SINGLE_OPTIONAL_STRING
 SINGLE_OPTIONAL_BOOLEAN = (bool, False, None, None)
 SINGLE_OPTIONAL_JSON = (dict, False, json_ser, json_deser)
 SINGLE_REQUIRED_INT = (int, True, None, None)
 
-
 def idtoken_deser(val, format="urlencoded"):
-    return IdToken().deserialize(val, format)
+    # id_token are always serialized as a JWT
+    return IdToken().deserialize(val, "jwt")
 
 def idtokenclaim_deser(val, format="urlencoded"):
     if format in ["dict", "json"]:
@@ -125,6 +127,7 @@ SINGLE_OPTIONAL_ID_TOKEN_CLAIM = (Message, False, msg_ser, idtokenclaim_deser)
 REQUIRED_LIST_OF_KEYOBJECTS = ([Message], True, msg_list_ser,
                                           keyobj_list_deser)
 SINGLE_OPTIONAL_SERVICE_REDIRECT = (Message, True, msg_ser, srvdir_deser)
+SINGLE_OPTIONAL_JWT = (basestring, False, msg_ser, None)
 
 # ----------------------------------------------------------------------------
 
@@ -164,6 +167,9 @@ class AccessTokenResponse(message.AccessTokenResponse):
             idt = IdToken().from_jwt(str(self["id_token"]), kwargs["key"])
             if not idt.verify(**kwargs):
                 return False
+
+            # replace the JWT with the IdToken instance
+            self["id_token"] = idt
 
         return super(self.__class__, self).verify(**kwargs)
 
@@ -222,6 +228,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
                 except AssertionError:
                     raise Exception("Failed to verify code hash")
 
+            self["id_token"] = idt
 
         return super(self.__class__, self).verify(**kwargs)
 
@@ -247,6 +254,33 @@ class AuthorizationRequest(message.AuthorizationRequest):
             "display": ["page", "popup", "touch", "wap"],
             "prompt": ["none", "login", "consent", "select_account"]
         }
+
+    def verify(self, **kwargs):
+        """Authorization Request parameters that are OPTIONAL in the OAuth 2.0
+        specification MAY be included in the OpenID Request Object without also
+        passing them as OAuth 2.0 Authorization Request parameters, with one
+        exception: The scope parameter MUST always be present in OAuth 2.0
+        Authorization Request parameters.
+        All parameter values that are present both in the OAuth 2.0
+        Authorization Request and in the OpenID Request Object MUST exactly
+        match."""
+        if "request" in self:
+            # Try to decode the JWT, checks the signature
+            oidr = OpenIDRequest().from_jwt(str(self["request"]), kwargs["key"])
+
+            # verify that nothing is change in the original message
+            for key, val in oidr.items():
+                if key in self:
+                    assert self[key] == val
+
+            # replace the JWT with the parsed and verified instance
+            self["request"] = oidr
+
+        if "id_token" in self:
+            idt = IdToken().from_jwt(str(self["id_token"]), kwargs["key"])
+            self["id_token"] = idt
+
+        return super(self.__class__, self).verify(**kwargs)
 
 class AccessTokenRequest(message.AccessTokenRequest):
     c_param = message.AccessTokenRequest.c_param.copy()
@@ -320,7 +354,7 @@ class RegistrationRequest(Message):
             "id_token_encrypted_response_enc": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
             "id_token_encrypted_response_int": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
             "default_max_age": SINGLE_OPTIONAL_INT,
-            "require_auth_time": SINGLE_OPTIONAL_STRING,
+            "require_auth_time": OPTIONAL_LOGICAL,
             "default_acr":SINGLE_OPTIONAL_STRING
     }
 
@@ -411,26 +445,29 @@ class OpenIDRequest(message.AuthorizationRequest):
                     "iss": SINGLE_OPTIONAL_STRING,
                     "aud": SINGLE_OPTIONAL_STRING})
 
-    def verify(self, **kwargs):
-        """Authorization Request parameters that are OPTIONAL in the OAuth 2.0
-        specification MAY be included in the OpenID Request Object without also
-        passing them as OAuth 2.0 Authorization Request parameters, with one
-        exception: The scope parameter MUST always be present in OAuth 2.0
-        Authorization Request parameters.
-        All parameter values that are present both in the OAuth 2.0
-        Authorization Request and in the OpenID Request Object MUST exactly
-        match."""
-        if "request" in self:
-            # Try to decode the JWT, checks the signature
-            oidr = OpenIDRequest().from_jwt(str(self["request"]), kwargs["key"])
-            if not oidr.verify(**kwargs):
-                return False
-
-            for key, val in oidr.items():
-                if key in self:
-                    assert self[key] == val
-
-        return super(self.__class__, self).verify(**kwargs)
+#    def verify(self, **kwargs):
+#        """Authorization Request parameters that are OPTIONAL in the OAuth 2.0
+#        specification MAY be included in the OpenID Request Object without also
+#        passing them as OAuth 2.0 Authorization Request parameters, with one
+#        exception: The scope parameter MUST always be present in OAuth 2.0
+#        Authorization Request parameters.
+#        All parameter values that are present both in the OAuth 2.0
+#        Authorization Request and in the OpenID Request Object MUST exactly
+#        match."""
+#        if "request" in self:
+#            # Try to decode the JWT, checks the signature
+#            oidr = OpenIDRequest().from_jwt(str(self["request"]), kwargs["key"])
+#            if not oidr.verify(**kwargs):
+#                return False
+#
+#            for key, val in oidr.items():
+#                if key in self:
+#                    assert self[key] == val
+#
+#            # replace the JWT with the parsed and verified instance
+#            self["request"] = oidr
+#
+#        return super(self.__class__, self).verify(**kwargs)
 
 class ProviderConfigurationResponse(Message):
     c_param = {

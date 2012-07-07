@@ -1,9 +1,12 @@
+import logging
 import urllib
 import urlparse
 import json
 
 from oic.utils import jwt
 from oic.oauth2 import DEF_SIGN_ALG
+
+logger = logging.getLogger(__name__)
 
 class MissingRequiredAttribute(Exception):
     def __init__(self, attr):

@@ -5,11 +5,15 @@ import hashlib
 import time
 import random
 import base64
+import logging
+import hashlib
 
 from oic.oauth2 import rndstr
 from oic.utils.time_util import utc_time_sans_frac
 
 from Crypto.Cipher import AES
+
+logger = logging.getLogger(__name__)
 
 class ExpiredToken(Exception):
     pass
@@ -17,6 +21,8 @@ class ExpiredToken(Exception):
 class WrongTokenType(Exception):
     pass
 
+def pairwise_id(user_id, sector_identifier, seed):
+    return hashlib.sha256("%s%s%s" % (user_id, sector_identifier, seed))
 
 class Crypt():
     def __init__(self, password, mode=AES.MODE_CBC):
@@ -109,6 +115,7 @@ class SessionDB(object):
         self.token = Token(secret, password)
         self.token_expires_in = token_expires_in
         self.grant_expires_in = grant_expires_in
+        self.uid2sid = {}
 
     def __getitem__(self, item):
         """
@@ -198,6 +205,7 @@ class SessionDB(object):
             _dic["oidreq"] = oidreq.to_json()
 
         self._db[sid] = _dic
+        self.uid2sid[user_id] = sid
         return sid
 
     def update_to_token(self, token=None, issue_refresh=True, id_token="",
@@ -334,3 +342,6 @@ class SessionDB(object):
 
         self._db[sid]["revoked"] = True
 
+
+    def get_sid_from_userid(self, uid):
+        return self.uid2sid[uid]

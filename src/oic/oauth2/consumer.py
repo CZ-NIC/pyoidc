@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-
 __author__ = 'rohe0002'
 
 import time
+import logging
 
 from hashlib import md5
 
@@ -15,6 +15,10 @@ from oic.oauth2.message import *
 ENDPOINTS = ["authorization_endpoint", "token_endpoint", "userinfo_endpoint",
              "check_id_endpoint", "registration_endpoint",
              "token_revokation_endpoint"]
+
+logger = logging.getLogger(__name__)
+LOG_INFO = logger.info
+LOG_DEBUG = logger.debug
 
 def stateID(url, seed):
     """The hash of the time + server path + a seed makes an unique
@@ -63,7 +67,7 @@ class Consumer(Client):
     #noinspection PyUnusedLocal
     def __init__(self, session_db, client_config=None,
                  server_info=None, authz_page="", response_type="",
-                 scope="", flow_type="", debug=False, password=None):
+                 scope="", flow_type="", password=None):
         """ Initializes a Consumer instance.
 
         :param session_db: Where info are kept about sessions acts like a
@@ -74,7 +78,6 @@ class Consumer(Client):
         :param response_type:
         :param scope:
         :param flow_type:
-        :param debug:
         """
         if client_config is None:
             client_config = {}
@@ -85,7 +88,6 @@ class Consumer(Client):
         self.response_type = response_type
         self.scope = scope
         self.flow_type = flow_type
-        self.debug = debug
         self.password = password
 
         if server_info:
@@ -154,18 +156,15 @@ class Consumer(Client):
         self.sdb[sid] = res
 
     #noinspection PyUnusedLocal,PyArgumentEqualDefault
-    def begin(self, environ, start_response, logger):
+    def begin(self, environ, start_response):
         """ Begin the OAuth2 flow
 
         :param environ: The WSGI environment
         :param start_response: The function to start the response process
-        :param logger: A logger instance
         :return: A URL to which the user should be redirected
         """
-        _log_info = logger.info
 
-        if self.debug:
-            _log_info("- begin -")
+        LOG_DEBUG("- begin -")
 
         # Store the request and the redirect uri used
         _path = http_util.geturl(environ, False, False)
@@ -187,31 +186,25 @@ class Consumer(Client):
                                      request_args={"state": sid})[0]
 
 
-        if self.debug:
-            _log_info("Redirecting to: %s" % (location,))
+        LOG_DEBUG("Redirecting to: %s" % (location,))
 
         return location
 
     #noinspection PyUnusedLocal
-    def handle_authorization_response(self, environ, start_response, logger):
+    def handle_authorization_response(self, environ, start_response):
         """
         This is where we get redirect back to after authorization at the
         authorization server has happened.
 
         :param environ: The WSGI environment
         :param start_response: The function to start the response process
-        :param logger: A logger instance
         :return: A AccessTokenResponse instance
         """
 
-        _log_info = logger.info
-        if self.debug:
-            _log_info("- authorization -")
-            _log_info("- %s flow -" % self.flow_type)
+        LOG_DEBUG("- authorization - %s flow -" % self.flow_type)
 
         _query = environ.get("QUERY_STRING")
-        if self.debug:
-            _log_info("QUERY: %s" % _query)
+        LOG_DEBUG("QUERY: %s" % _query)
         _path = http_util.geturl(environ, False, False)
 
         if "code" in self.response_type:
@@ -253,9 +246,8 @@ class Consumer(Client):
 
             return atr
 
-    def complete(self, environ, start_response, logger):
-        resp = self.handle_authorization_response(environ, start_response,
-                                                  logger)
+    def complete(self, environ, start_response):
+        resp = self.handle_authorization_response(environ, start_response)
 
         if resp.type() == "AuthorizationResponse":
             # Go get the access token
@@ -282,7 +274,7 @@ class Consumer(Client):
         return request_args, http_args, extra_args
 
     #noinspection PyUnusedLocal
-    def get_access_token_request(self, environ, start_response, logger):
+    def get_access_token_request(self, environ, start_response):
 
         request_args, http_args, extra_args = self.client_auth_info()
 

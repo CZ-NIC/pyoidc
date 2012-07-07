@@ -507,7 +507,7 @@ class TestOICClient():
         print
         print jwtreq
         print jwtreq.keys()
-        assert _eq(jwtreq.keys(), ['nonce', 'id_token', 'state',
+        assert _eq(jwtreq.keys(), ['id_token', 'state',
                                    'redirect_uri', 'response_type',
                                    'client_id'])
 
@@ -1056,7 +1056,7 @@ def test_make_id_token():
                "client_id": "http://oic.example/rp"}
     issuer= "http://oic.example/idp"
     code = "abcdefghijklmnop"
-    idt_jwt = srv.make_id_token(session, loa="2", info_log=None, issuer=issuer,
+    idt_jwt = srv.make_id_token(session, loa="2", issuer=issuer,
                                 code=code, access_token="access_token")
 
     jwt_keys = srv.keystore.get_keys("ver", owner=None)

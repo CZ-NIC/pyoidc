@@ -23,7 +23,6 @@ CLIENT_CONFIG = {
 }
 
 CONSUMER_CONFIG = {
-    "debug": 1,
     "authz_page": "/authz",
     "flow_type": "code",
     #"password": args.passwd,
@@ -125,17 +124,6 @@ def create_return_form_env(user, password, sid):
 
     return environ
 
-
-class LOG():
-    def info(self, txt):
-        print >> sys.stdout, "INFO: %s" % txt
-
-    def error(self, txt):
-        print >> sys.stdout, "ERROR: %s" % txt
-
-    def debug(self, txt):
-        print >> sys.stdout, "DEBUG: %s" % txt
-
 FUNCTIONS = {
     "authenticate": do_authentication,
     "authorize": do_authorization,
@@ -196,7 +184,7 @@ def test_provider_authorization_endpoint():
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = arq.to_urlencoded()
 
-    resp = provider.authorization_endpoint(environ, start_response, LOG())
+    resp = provider.authorization_endpoint(environ, start_response)
 
     print resp
     assert resp[0].startswith("FORM with")
@@ -204,18 +192,18 @@ def test_provider_authorization_endpoint():
 def test_failed_authenticated():
     provider = Provider("pyoicserv", sdb.SessionDB(), CDB, FUNCTIONS)
     environ0 = create_return_form_env("haden", "secret", "sid1")
-    resp1 = provider.authenticated(environ0, start_response, LOG())
+    resp1 = provider.authenticated(environ0, start_response)
     print resp1
     assert resp1 == ['<html>Wrong password</html>']
 
     environ1 = create_return_form_env("", "secret", "sid2")
-    resp2 = provider.authenticated(environ1, start_response, LOG())
+    resp2 = provider.authenticated(environ1, start_response)
     print resp2
     assert resp2 == ["<html>Authentication failed</html>"]
 
     environ2 = create_return_form_env("hannibal", "hemligt", "sid3")
     print environ2
-    resp = provider.authenticated(environ2, start_response, LOG())
+    resp = provider.authenticated(environ2, start_response)
     print resp
     assert resp == ['<html>Authentication failure: Not allowed to use this service (hannibal)</html>']
 
@@ -227,17 +215,17 @@ def test_provider_authenticated():
     cons.debug = True
     environ = BASE_ENVIRON
 
-    location = cons.begin(environ, start_response, LOG())
+    location = cons.begin(environ, start_response)
 
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = location.split("?")[1]
 
-    resp = provider.authorization_endpoint(environ, start_response, LOG())
+    resp = provider.authorization_endpoint(environ, start_response)
 
     sid = resp[0][len("FORM with "):]
     environ2 = create_return_form_env("user", "password", sid)
 
-    resp2 = provider.authenticated(environ2, start_response, LOG())
+    resp2 = provider.authenticated(environ2, start_response)
 
     print resp2[0]
     assert len(resp2) == 1
@@ -252,7 +240,7 @@ def test_provider_authenticated():
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = location.split("?")[1]
 
-    aresp = cons.handle_authorization_response(environ, start_response, LOG())
+    aresp = cons.handle_authorization_response(environ, start_response)
 
     #aresp = client.parse_response(AuthorizationResponse, location,
     #                              format="urlencoded",
@@ -275,17 +263,17 @@ def test_provider_authenticated_1():
     cons.debug = True
     environ = BASE_ENVIRON
 
-    location = cons.begin(environ, start_response, LOG())
+    location = cons.begin(environ, start_response)
 
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = location.split("?")[1]
 
-    _ = provider.authorization_endpoint(environ, start_response, LOG())
+    _ = provider.authorization_endpoint(environ, start_response)
 
     #sid = resp[0][len("FORM with "):]
     environ2 = create_return_form_env("user", "password", "abcd")
 
-    resp2 = provider.authenticated(environ2, start_response, LOG())
+    resp2 = provider.authenticated(environ2, start_response)
     print resp2
     assert resp2 == ['<html>Unknown session identifier</html>']
 
@@ -298,17 +286,17 @@ def test_provider_authenticated_token():
     cons.response_type = "token"
     environ = BASE_ENVIRON
 
-    location = cons.begin(environ, start_response, LOG())
+    location = cons.begin(environ, start_response)
 
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = location.split("?")[1]
 
-    resp = provider.authorization_endpoint(environ, start_response, LOG())
+    resp = provider.authorization_endpoint(environ, start_response)
 
     sid = resp[0][len("FORM with "):]
     environ2 = create_return_form_env("user", "password", sid)
 
-    resp2 = provider.authenticated(environ2, start_response, LOG())
+    resp2 = provider.authenticated(environ2, start_response)
 
     assert len(resp2) == 1
     txt = resp2[0]
@@ -324,17 +312,17 @@ def test_provider_authenticated_none():
     cons.response_type = "none"
     environ = BASE_ENVIRON
 
-    location = cons.begin(environ, start_response, LOG())
+    location = cons.begin(environ, start_response)
 
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = location.split("?")[1]
 
-    resp = provider.authorization_endpoint(environ, start_response, LOG())
+    resp = provider.authorization_endpoint(environ, start_response)
 
     sid = resp[0][len("FORM with "):]
     environ2 = create_return_form_env("user", "password", sid)
 
-    resp2 = provider.authenticated(environ2, start_response, LOG())
+    resp2 = provider.authenticated(environ2, start_response)
 
     assert len(resp2) == 1
     txt = resp2[0]
@@ -380,7 +368,7 @@ def test_token_endpoint():
     environ["wsgi.input"] = fil
     environ["REMOTE_USER"] = "client1"
 
-    resp = provider.token_endpoint(environ, start_response, LOG())
+    resp = provider.token_endpoint(environ, start_response)
     print resp
     atr = AccessTokenResponse().deserialize(resp[0], "json")
 
@@ -421,7 +409,7 @@ def test_token_endpoint_unauth():
     environ["wsgi.input"] = fil
     environ["REMOTE_USER"] = "client2"
 
-    resp = provider.token_endpoint(environ, start_response, LOG())
+    resp = provider.token_endpoint(environ, start_response)
     print resp
     atr = TokenErrorResponse().deserialize(resp[0], "json")
     print atr.keys()

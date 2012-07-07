@@ -25,12 +25,12 @@ from oic.oic import JWT_BEARER
 
 from mako.lookup import TemplateLookup
 
-LOGGER = logging.getLogger("oicServer")
+LOGGER = logging.getLogger("")
 LOGFILE_NAME = 'oc3.log'
 hdlr = logging.FileHandler(LOGFILE_NAME)
-base_formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+base_formatter = logging.Formatter("%(asctime)s %(name)s:%(levelname)s %(message)s")
 
-CPC = '%(asctime)s %(levelname)s [%(client)s,%(path)s,%(cid)s] %(message)s'
+CPC = '%(asctime)s %(name)s:%(levelname)s [%(client)s,%(path)s,%(cid)s] %(message)s'
 cpc_formatter = logging.Formatter(CPC)
 
 hdlr.setFormatter(base_formatter)
@@ -62,8 +62,8 @@ def devnull(txt):
     pass
 
 
-def create_session_logger(id, format=CPC):
-    logger = logging.getLogger('oics-'+id)
+def create_session_logger(format="CPC"):
+    logger = logging.getLogger("")
     try:
         logger.addHandler(HANDLER["%s-buffer" % format])
     except KeyError:
@@ -76,12 +76,16 @@ def create_session_logger(id, format=CPC):
 
     return logger
 
-def replace_format_handler(logger, format=CPC):
+def replace_format_handler(logger, format="CPC"):
+    _handler = HANDLER["%s-file" % format]
+    if _handler in logger.handlers:
+        return logger
+
     # remove all present handler
     logger.handlers = []
 
     try:
-        logger.addHandler(HANDLER["%s-file"] % format)
+        logger.addHandler(HANDLER["%s-file" % format])
     except KeyError:
         _formatter = logging.Formatter(format)
         handl = logging.FileHandler(LOGFILE_NAME)
@@ -290,7 +294,7 @@ def safe(environ, start_response, handle):
     return resp(environ, start_response)
 
 #noinspection PyUnusedLocal
-def css(environ, start_response, handle, logger):
+def css(environ, start_response, handle):
     try:
         info = open(environ["PATH_INFO"]).read()
         resp = Response(info)
@@ -301,66 +305,60 @@ def css(environ, start_response, handle, logger):
 
 # ----------------------------------------------------------------------------
 
-def token(environ, start_response, handle, logger):
+def token(environ, start_response, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.token_endpoint(environ, start_response, logger, handle=handle)
+    return _oas.token_endpoint(environ, start_response, handle=handle)
 
 #noinspection PyUnusedLocal
-def authorization(environ, start_response, handle, logger):
+def authorization(environ, start_response, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.authorization_endpoint(environ, start_response, logger,
+    return _oas.authorization_endpoint(environ, start_response,
                                        handle=handle)
 
 #noinspection PyUnusedLocal
-def authenticated(environ, start_response, handle, logger):
+def authenticated(environ, start_response, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.authenticated(environ, start_response, logger, handle=handle)
+    return _oas.authenticated(environ, start_response, handle=handle)
 
 #noinspection PyUnusedLocal
-def userinfo(environ, start_response, handle, logger):
+def userinfo(environ, start_response, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.userinfo_endpoint(environ, start_response, logger,
-                                  handle=handle)
+    return _oas.userinfo_endpoint(environ, start_response, handle=handle)
 
 #noinspection PyUnusedLocal
-def op_info(environ, start_response, handle, logger):
+def op_info(environ, start_response, handle):
     _oas = environ["oic.oas"]
-    logger.info("op_info")
-    return _oas.providerinfo_endpoint(environ, start_response, logger,
-                                      handle=handle)
+    LOGGER.info("op_info")
+    return _oas.providerinfo_endpoint(environ, start_response, handle=handle)
 
 #noinspection PyUnusedLocal
-def registration(environ, start_response, handle, logger):
+def registration(environ, start_response, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.registration_endpoint(environ, start_response, logger,
-                                      handle=handle)
+    return _oas.registration_endpoint(environ, start_response, handle=handle)
 
 #noinspection PyUnusedLocal
-def check_id(environ, start_response, handle, logger):
+def check_id(environ, start_response, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.check_id_endpoint(environ, start_response, logger,
-                                  handle=handle)
+    return _oas.check_id_endpoint(environ, start_response, handle=handle)
 
 #noinspection PyUnusedLocal
-def swd_info(environ, start_response, handle, logger):
+def swd_info(environ, start_response, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.discovery_endpoint(environ, start_response, logger,
-                                   handle=handle)
+    return _oas.discovery_endpoint(environ, start_response, handle=handle)
 
-def trace_log(environ, start_response, handle, logger):
+def trace_log(environ, start_response, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.tracelog_endpoint(environ, start_response, logger,
-                                   handle=handle)
+    return _oas.tracelog_endpoint(environ, start_response, handle=handle)
 
-def meta_info(environ, start_response, handle, logger):
+def meta_info(environ, start_response, handle):
     """
     Returns something like this
      {"links":[
@@ -521,7 +519,7 @@ def application(environ, start_response):
 
             a1.info("callback: %s" % callback)
             try:
-                return callback(environ, start_response, handle, a1)
+                return callback(environ, start_response, handle)
             except Exception,err:
                 print >> sys.stderr, "%s" % err
                 message = traceback.format_exception(*sys.exc_info())
@@ -605,7 +603,7 @@ class TestProvider(Provider):
     def __init__(self, name, sdb, cdb, function, userdb, urlmap=None,
              debug=0, ca_certs="", jwt_keys=None):
         Provider.__init__(self, name, sdb, cdb, function, userdb, urlmap,
-                          debug, ca_certs, jwt_keys)
+                          ca_certs, jwt_keys)
         self.test_mode = True
         self.trace_log = {}
 
@@ -710,6 +708,8 @@ if __name__ == '__main__':
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
     SRV.ssl_adapter = ssl_builtin.BuiltinSSLAdapter("certs/server.crt",
                                                     "certs/server.key")
+
+    LOGGER.info("OC3 server starting")
     try:
         SRV.start()
     except KeyboardInterrupt:

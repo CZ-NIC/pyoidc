@@ -5,9 +5,8 @@
 
 import base64
 import json
+import logging
 import re
-import os
-import urlparse
 
 import M2Crypto
 import hashlib
@@ -17,6 +16,8 @@ import struct
 #import rsa
 
 from itertools import izip
+
+logger = logging.getLogger(__name__)
 
 JWT_TYPS = (u"JWT", u"http://openid.net/specs/jwt/1.0")
 

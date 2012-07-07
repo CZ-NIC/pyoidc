@@ -3,7 +3,7 @@ __author__ = 'rohe0002'
 
 import json
 
-from oic.oic.message import ProviderConfigurationResponse, msg_ser, msg_list_ser, claims_ser
+from oic.oic.message import ProviderConfigurationResponse, msg_ser, msg_list_ser, claims_ser, RegistrationRequest
 from oic.oic.message import IDTokenClaim
 from oic.oic.message import UserInfoClaim
 from oic.oic.message import userinfo_deser
@@ -201,3 +201,13 @@ def test_claims_ser_urlencoded():
 
 def test_claims_ser_urlencoded_dict():
     pass
+
+def test_registration_request():
+    req = RegistrationRequest(type="client_associate", default_max_age=10,
+                              require_auth_time=True, default_acr="foo")
+    js = req.to_json()
+    print js
+    assert js == '{"require_auth_time": true, "default_acr": "foo", "type": "client_associate", "default_max_age": 10}'
+    ue = req.to_urlencoded()
+    print ue
+    assert ue == 'default_acr=foo&type=client_associate&default_max_age=10&require_auth_time=True'

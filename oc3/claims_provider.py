@@ -11,12 +11,12 @@ import re
 from oic.utils.http_util import *
 from oic.oic.message import OpenIDSchema
 
-LOGGER = logging.getLogger("oicServer")
+LOGGER = logging.getLogger("")
 hdlr = logging.FileHandler('oc3cp.log')
-formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+formatter = logging.Formatter('%(asctime)s %(name)s:%(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 LOGGER.addHandler(hdlr)
-LOGGER.setLevel(logging.INFO)
+LOGGER.setLevel(logging.DEBUG)
 
 # ----------------------------------------------------------------------------
 #noinspection PyUnusedLocal
@@ -92,8 +92,7 @@ def userclaims(environ, start_response, handle):
 def registration(environ, start_response, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.registration_endpoint(environ, start_response,
-                                      environ["oic.logger"])
+    return _oas.registration_endpoint(environ, start_response)
 
 #noinspection PyUnusedLocal
 def userclaimsinfo(environ, start_response, handle):
@@ -105,15 +104,12 @@ def userclaimsinfo(environ, start_response, handle):
 # ----------------------------------------------------------------------------
 
 def static(environ, start_response, path):
-    #_log_info = environ["oic.logger"].info
 
     _txt = open(path).read()
     if "x509" in path:
         content = "text/xml"
     else:
         content = "application/json"
-
-    #_log_info(_txt)
 
     resp = Response(_txt, content=content)
     return resp(environ, start_response)
@@ -156,7 +152,6 @@ def application(environ, start_response):
     :return: The response as a list of lines
     """
     global OAS
-    global LOGGER
 
     #user = environ.get("REMOTE_USER", "")
     path = environ.get('PATH_INFO', '').lstrip('/')
@@ -164,13 +159,11 @@ def application(environ, start_response):
 
     if kaka:
         handle = parse_cookie(OAS.name, OAS.seed, kaka)
-        if OAS.debug:
-            OAS.logger.debug("Cookie: %s" % (kaka,))
+        LOGGER.debug("Cookie: %s" % (kaka,))
     else:
         handle = ""
 
     environ["oic.oas"] = OAS
-    environ["oic.logger"] = LOGGER
 
     LOGGER.info("path: %s" % path)
     if path in OAS.cert or path in OAS.jwk:
@@ -271,6 +264,8 @@ if __name__ == '__main__':
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
     SRV.ssl_adapter = ssl_builtin.BuiltinSSLAdapter("certs/server.crt",
                                                     "certs/server.key")
+
+    LOGGER.info("Starting server")
     try:
         SRV.start()
     except KeyboardInterrupt:

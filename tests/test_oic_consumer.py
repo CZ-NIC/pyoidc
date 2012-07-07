@@ -88,11 +88,6 @@ def start_response(status=200, headers=None):
 def _eq(l1, l2):
     return set(l1) == set(l2)
 
-class DEVNULL():
-    #noinspection PyUnusedLocal
-    def info(self, txt):
-        return
-
 def redirect_environment(query):
     environ = BASE_ENVIRON.copy()
     environ["REQUEST_METHOD"] = "GET"
@@ -181,9 +176,10 @@ class TestOICConsumer():
         srv = Server(SRVKEYS)
         print "redirect_uris",self.consumer.redirect_uris
         print "config", self.consumer.config
-        location = self.consumer.begin(BASE_ENVIRON, start_response, DEVNULL())
+        location = self.consumer.begin(BASE_ENVIRON, start_response)
         print location
-        authreq = srv.parse_authorization_request(url=location)
+        vkeys = {".":srv.keystore.get_verify_key()}
+        authreq = srv.parse_authorization_request(url=location, keys=vkeys)
         print authreq.keys()
         assert _eq(authreq.keys(), ['request', 'state',
                                     'redirect_uri', 'response_type',
@@ -199,9 +195,10 @@ class TestOICConsumer():
         self.consumer.config["temp_dir"] = "./file"
         self.consumer.config["temp_path"] = "/tmp/"
         srv = Server(SRVKEYS)
-        location = self.consumer.begin(BASE_ENVIRON, start_response, DEVNULL())
+        location = self.consumer.begin(BASE_ENVIRON, start_response)
         print location
-        authreq = srv.parse_authorization_request(url=location)
+        vkeys = {".":srv.keystore.get_verify_key()}
+        authreq = srv.parse_authorization_request(url=location, keys=vkeys)
         print authreq.keys()
         assert _eq(authreq.keys(), ['state', 'redirect_uri',
                                     'response_type', 'client_id', 'scope',
@@ -234,10 +231,12 @@ class TestOICConsumer():
         assert result.headers["location"].startswith(self.consumer.redirect_uris[0])
         _, query = result.headers["location"].split("?")
 
-        self.consumer.parse_response(AuthorizationResponse,
-                                     info=query, format="urlencoded")
+        vkeys = {".": self.consumer.keystore.get_verify_key()}
 
-        resp = self.consumer.complete(DEVNULL())
+        self.consumer.parse_response(AuthorizationResponse, info=query,
+                                     format="urlencoded", key=vkeys)
+
+        resp = self.consumer.complete()
         print resp
         assert resp.type() == "AccessTokenResponse"
         print resp.keys()
@@ -265,7 +264,7 @@ class TestOICConsumer():
 
         print self.consumer.sdb.keys()
         print self.consumer.sdb["state0"].keys()
-        part = self.consumer.parse_authz(environ, start_response, DEVNULL())
+        part = self.consumer.parse_authz(environ, start_response)
         print part
         atr = part[0]
         assert part[1] is None
@@ -290,7 +289,7 @@ class TestOICConsumer():
 
         environ = redirect_environment(result.headers["location"])
 
-        part = self.consumer.parse_authz(environ, start_response, DEVNULL())
+        part = self.consumer.parse_authz(environ, start_response)
         print part
         assert part[0] is None
         atr = part[1]
@@ -326,7 +325,7 @@ def test_complete_secret_auth():
     consumer.parse_response(AuthorizationResponse, info=query,
                             format="urlencoded")
 
-    resp = consumer.complete(DEVNULL())
+    resp = consumer.complete()
     print resp
     assert resp.type() == "AccessTokenResponse"
     print resp.keys()
@@ -362,7 +361,7 @@ def test_complete_auth_token():
     print query
     environ = redirect_environment(query)
 
-    part = consumer.parse_authz(environ, start_response, DEVNULL())
+    part = consumer.parse_authz(environ, start_response)
     print part
     auth = part[0]
     acc = part[1]
@@ -405,7 +404,7 @@ def test_complete_auth_token_idtoken():
     print query
     environ = redirect_environment(query)
 
-    part = consumer.parse_authz(environ, start_response, DEVNULL())
+    part = consumer.parse_authz(environ, start_response)
     print part
     auth = part[0]
     acc = part[1]
@@ -443,9 +442,9 @@ def test_userinfo():
     consumer.parse_response(AuthorizationResponse, info=query,
                             format="urlencoded")
 
-    consumer.complete(DEVNULL())
+    consumer.complete()
 
-    result = consumer.get_user_info(DEVNULL())
+    result = consumer.get_user_info()
     print result
     assert result.type() == "OpenIDSchema"
     assert _eq(result.keys(), ['name', 'email', 'verified', 'nickname'])

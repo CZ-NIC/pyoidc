@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 #
-from oic.utils.keystore import KeyStore
-
 __author__ = 'rohe0002'
 
 import requests
@@ -10,7 +8,9 @@ import string
 import copy
 import cookielib
 from Cookie import SimpleCookie
+import logging
 
+from oic.utils.keystore import KeyStore
 from oic.utils.time_util import utc_time_sans_frac
 #from oic.utils.jwt import construct_rsa_jwk, key_eq
 
@@ -40,6 +40,8 @@ RESPONSE2ERROR = {
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint",
              "token_revocation_endpoint"]
+
+logger = logging.getLogger(__name__)
 
 class HTTP_ERROR(Exception):
     pass

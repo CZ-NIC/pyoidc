@@ -1,6 +1,7 @@
-from oic.oauth2 import rndstr
-
 __author__ = 'rohe0002'
+
+import logging
+from oic.oauth2 import rndstr
 
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import Claims
@@ -25,6 +26,7 @@ from oic.utils.http_util import Response, Unauthorized
 #from oic.oic.message import RegistrationRequest
 #from oic.oic.message import RegistrationResponse
 
+logger = logging.getLogger(__name__)
 
 class UserClaimsRequest(Message):
     c_param = {"user_id": SINGLE_REQUIRED_STRING,
@@ -67,7 +69,7 @@ class ClaimsServer(Provider):
     def __init__(self, name, sdb, cdb, function, userdb, urlmap=None,
                  debug=0, ca_certs="", jwt_keys=None):
         Provider.__init__(self, name, sdb, cdb, function, userdb, urlmap,
-                          debug, ca_certs, jwt_keys)
+                          ca_certs, jwt_keys)
 
         if jwt_keys is None:
             jwt_keys = []
@@ -82,7 +84,7 @@ class ClaimsServer(Provider):
         self.info_store = {}
         self.claims_userinfo_endpoint = ""
 
-    def _aggregation(self, info, logger):
+    def _aggregation(self, info):
 
         jwt_key = self.keystore.get_sign_key()
         cresp = UserClaimsResponse(jwt=info.to_jwt(key=jwt_key,
@@ -93,7 +95,7 @@ class ClaimsServer(Provider):
         return cresp
 
     #noinspection PyUnusedLocal
-    def _distributed(self, info, logger):
+    def _distributed(self, info):
         # store the user info so it can be accessed later
         access_token = rndstr()
         self.info_store[access_token] = info
@@ -112,7 +114,7 @@ class ClaimsServer(Provider):
                 return False
 
     #noinspection PyUnusedLocal
-    def claims_endpoint(self, environ, start_response, logger, *args):
+    def claims_endpoint(self, environ, start_response, *args):
         _log_info = logger.info
 
         query = get_or_post(environ)
@@ -140,16 +142,16 @@ class ClaimsServer(Provider):
         _log_info("User info: %s" % info.to_dict())
 
         if self.do_aggregation(info, ucreq["user_id"]):
-            cresp = self._aggregation(info, logger)
+            cresp = self._aggregation(info)
         else:
-            cresp = self._distributed(info, logger)
+            cresp = self._distributed(info)
 
         _log_info("response: %s" % cresp.to_dict())
 
         resp = Response(cresp.to_json(), content="application/json")
         return resp(environ, start_response)
 
-    def claims_info_endpoint(self, environ, start_response, logger, *args):
+    def claims_info_endpoint(self, environ, start_response, *args):
         _log_info = logger.info
 
         query = get_or_post(environ)

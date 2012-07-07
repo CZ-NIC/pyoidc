@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import logging
 
 __author__ = 'rohe0002'
 
@@ -14,7 +15,7 @@ from oic.utils import http_util
 
 #from oic.oic.base import Client
 #from oic.oic.base import ENDPOINTS
-from oic.oic import Client, deser_id_token
+from oic.oic import Client
 from oic.oic import ENDPOINTS
 
 from oic.oauth2.message import ErrorResponse
@@ -39,6 +40,8 @@ from oic.oauth2.consumer import UnknownState
 
 SWD_PATTERN = "http://%s/.well-known/simple-web-discovery"
 SERVICE_TYPE = "http://openid.net/specs/connect/1.0/issuer"
+
+logger = logging.getLogger(__name__)
 
 def stateID(url, seed):
     """The hash of the time + server path + a seed makes an unique
@@ -223,13 +226,12 @@ class Consumer(Client):
         self.sdb[sid] = self.dictionary()
 
     #noinspection PyUnusedLocal,PyArgumentEqualDefault
-    def begin(self, environ, start_response, logger, scope="",
+    def begin(self, environ, start_response, scope="",
               response_type="", use_nonce=False):
         """ Begin the OAuth2 flow
 
         :param environ: The WSGI environment
         :param start_response: The function to start the response process
-        :param logger: A logger instance
         :param scope: Defines which user info claims is wanted
         :param response_type: Controls the parameters returned in the
             response from the Authorization Endpoint
@@ -329,14 +331,13 @@ class Consumer(Client):
         return location
 
     #noinspection PyUnusedLocal
-    def parse_authz(self, environ, start_response, logger):
+    def parse_authz(self, environ, start_response):
         """
         This is where we get redirect back to after authorization at the
         authorization server has happened.
 
         :param environ: The WSGI environment
         :param start_response: The function to start the response process
-        :param logger: A logger instance
         :return: A AccessTokenResponse instance
         """
 
@@ -390,10 +391,9 @@ class Consumer(Client):
 
             self._backup(_state)
 
-            if "id_token" in aresp:
-
-                idt = deser_id_token(self, aresp["id_token"])
-            else:
+            try:
+                idt = aresp["id_token"]
+            except KeyError:
                 idt = None
 
             return aresp, atr, idt
@@ -407,7 +407,7 @@ class Consumer(Client):
             idt = None
             return None, atr, idt
 
-    def complete(self, logger):
+    def complete(self):
         """
         Do the access token request, the last step in a code flow.
         If Implicit flow was used then this method is never used.
@@ -443,8 +443,7 @@ class Consumer(Client):
         pass
     
     #noinspection PyUnusedLocal
-    def get_user_info(self, logger):
-        self.log = logger
+    def get_user_info(self):
         uinfo = self.do_user_info_request(state=self.state)
 
         if uinfo.type() == "ErrorResponse":

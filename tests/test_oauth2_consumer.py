@@ -21,16 +21,6 @@ from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.consumer import AuthzError
 #from oic.oauth2.message import
 
-class LOG():
-    def info(self, txt):
-        print >> sys.stdout, "INFO: %s" % txt
-
-    def error(self, txt):
-        print >> sys.stdout, "ERROR: %s" % txt
-
-    def debug(self, txt):
-        print >> sys.stdout, "DEBUG: %s" % txt
-
 def start_response(status, headers=None):
     return 
 
@@ -44,7 +34,6 @@ CLIENT_CONFIG = {
 }
 
 CONSUMER_CONFIG = {
-    "debug": 1,
     "authz_page": "/authz",
     "flow_type": "code",
     #"password": args.passwd,
@@ -134,7 +123,7 @@ def test_consumer_begin():
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
     environ = BASE_ENVIRON
 
-    loc = cons.begin(environ, start_response, LOG())
+    loc = cons.begin(environ, start_response)
 
     # state is dynamic
     params = {"scope":"openid",
@@ -154,7 +143,7 @@ def test_consumer_handle_authorization_response():
     cons.debug = True
     environ = BASE_ENVIRON
 
-    _ = cons.begin(environ, start_response, LOG())
+    _ = cons.begin(environ, start_response)
 
     atr = AuthorizationResponse(code="SplxlOBeZQQYbYS6WxSbIA",
                                 state=cons.state)
@@ -162,7 +151,7 @@ def test_consumer_handle_authorization_response():
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = atr.to_urlencoded()
 
-    res = cons.handle_authorization_response(environ, start_response, LOG())
+    res = cons.handle_authorization_response(environ, start_response)
 
     assert res.type() == "AuthorizationResponse"
     print cons.grant[cons.state]
@@ -176,7 +165,7 @@ def test_consumer_parse_authz_exception():
     cons.debug = True
     environ = BASE_ENVIRON
 
-    _ = cons.begin(environ, start_response, LOG())
+    _ = cons.begin(environ, start_response)
 
     atr = AuthorizationResponse(code="SplxlOBeZQQYbYS6WxSbIA",
                                 state=cons.state)
@@ -187,7 +176,7 @@ def test_consumer_parse_authz_exception():
     environ["QUERY_STRING"] = urllib.urlencode(adict)
 
     raises(MissingRequiredAttribute,
-           "cons.handle_authorization_response(environ, start_response, LOG())")
+           "cons.handle_authorization_response(environ, start_response)")
 
 def test_consumer_parse_authz_error():
     _session_db = {}
@@ -196,7 +185,7 @@ def test_consumer_parse_authz_error():
     cons.debug = True
     environ = BASE_ENVIRON
 
-    _ = cons.begin(environ, start_response, LOG())
+    _ = cons.begin(environ, start_response)
 
     atr = AuthorizationErrorResponse(error="access_denied", state=cons.state)
     
@@ -204,7 +193,7 @@ def test_consumer_parse_authz_error():
     environ["QUERY_STRING"] = atr.to_urlencoded()
 
     raises(AuthzError,
-           "cons.handle_authorization_response(environ, start_response, LOG())")
+           "cons.handle_authorization_response(environ, start_response)")
 
 def test_consumer_parse_access_token():
     # implicit flow test
@@ -215,7 +204,7 @@ def test_consumer_parse_access_token():
     environ = BASE_ENVIRON
 
     cons.response_type = ["token"]
-    _ = cons.begin(environ, start_response, LOG())
+    _ = cons.begin(environ, start_response)
 
     atr = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
                               token_type="example",
@@ -226,7 +215,7 @@ def test_consumer_parse_access_token():
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = atr.to_urlencoded()
 
-    res = cons.handle_authorization_response(environ, start_response, LOG())
+    res = cons.handle_authorization_response(environ, start_response)
 
     assert res.type() ==  "AccessTokenResponse"
     print cons.grant[cons.state]
@@ -242,14 +231,14 @@ def test_consumer_parse_authz_error_2():
     cons.debug = True
     environ = BASE_ENVIRON
 
-    _ = cons.begin(environ, start_response, LOG())
+    _ = cons.begin(environ, start_response)
 
     atr = TokenErrorResponse(error="invalid_client")
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = atr.to_urlencoded()
 
     raises(AuthzError,
-           "cons.handle_authorization_response(environ, start_response, LOG())")
+           "cons.handle_authorization_response(environ, start_response)")
 
 def test_consumer_client_auth_info():
     _session_db = {}
@@ -278,7 +267,7 @@ def test_consumer_client_get_access_token_reques():
     cons.parse_response(AccessTokenResponse, resp2.to_urlencoded(),
                           "urlencoded")
 
-    url, body, http_args = cons.get_access_token_request({}, None, None)
+    url, body, http_args = cons.get_access_token_request({}, None)
     assert url == "http://localhost:8088/token"
     print body
     assert body == "code=auth_grant&client_secret=secret0&grant_type=authorization_code&client_id=number5&redirect_uri=https%3A%2F%2Fwww.example.com%2Foic%2Fcb"

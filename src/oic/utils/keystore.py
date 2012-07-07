@@ -1,16 +1,17 @@
-import json
-import os
-import urlparse
-
 __author__ = 'rohe0002'
 
 import M2Crypto
+import json
+import logging
+import os
+import urlparse
 
 from binascii import b2a_hex
 from M2Crypto.__m2crypto import hex_to_bn, bn_to_mpi
 from M2Crypto.util import no_passphrase_callback
 
 KEYLOADERR = "Failed to load %s key from '%s' (%s)"
+logger = logging.getLogger(__name__)
 
 # ========== base64 encoding/decoding large numbers ====
 
