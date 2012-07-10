@@ -134,6 +134,24 @@ def test_create_authz_session():
     assert "id_token" not in info
     assert "oidreq" in info
 
+def test_create_authz_session_with_sector_id():
+    sdb = SessionDB(seed="foo")
+    sid5 = sdb.create_authz_session("user_id", AREQN, oidreq=OIDR,
+                                    sector_id="http://example.com/")
+
+    info_1 = sdb[sid5]
+    print info_1
+    assert "id_token" not in info_1
+    assert "oidreq" in info_1
+    assert info_1["user_id"] != "user_id"
+
+    sid6 = sdb.create_authz_session("user_id", AREQN, oidreq=OIDR,
+                                    sector_id="http://example.org/")
+
+    info_2 = sdb[sid6]
+    print info_2
+    assert info_2["user_id"] != "user_id"
+    assert info_2["user_id"] != info_1["user_id"]
 
 def test_update_to_token():
     sdb = SessionDB()

@@ -289,6 +289,11 @@ class Provider(AProvider):
             resp = BadRequest("%s" % err)
             return resp(environ, start_response)
 
+        try:
+            client_info = self.cdb[areq["client_id"]]
+        except KeyError:
+            raise UnknownClient(areq["client_id"])
+
         if "request_uri" in areq:
             # Do a HTTP get
             _req = _srv.http_request(areq["request_uri"])
@@ -308,8 +313,6 @@ class Provider(AProvider):
             openid_req = areq["request"]
         except KeyError:
             openid_req = None
-
-
 
         if "prompt" in areq:
             _log_debug("Prompt: '%s'" % areq["prompt"])
@@ -346,9 +349,6 @@ class Provider(AProvider):
 
                     return resp(environ, start_response)
 
-        if areq["client_id"] not in self.cdb:
-            raise UnknownClient(areq["client_id"])
-
         # verify that the redirect URI is resonable
         if "redirect_uri" in areq:
             reply = self._verify_redirect_uri(areq)
@@ -358,7 +358,13 @@ class Provider(AProvider):
         _log_debug("AREQ keys: %s" % areq.keys())
 
         # Store session info
-        sid = _sdb.create_authz_session("", areq, oidreq=openid_req)
+        try:
+            sector_id = client_info["sector_identifier_url"]
+        except KeyError:
+            sector_id = ""
+
+        sid = _sdb.create_authz_session("", areq, oidreq=openid_req,
+                                        sector_id=sector_id)
         _log_debug("session: %s" % _sdb[sid])
 
         bsid = base64.b64encode(sid)
@@ -548,46 +554,52 @@ class Provider(AProvider):
 
         return _token
 
-    def _collect_user_info(self, session):
-        _log_info = logger.info
-        uic = {}
-        for scope in session["scope"]:
-            try:
-                claims = dict([(name, None) for name in SCOPE2CLAIMS[scope]])
-                uic.update(claims)
-            except KeyError:
-                pass
+    def _collect_user_info(self, session, userinfo_claims=None):
+        """
+        Collect information about a user.
+        This can happen in two cases, either when constructing a IdToken or
+        when returning user info through the UserInfo endpoint
 
-        if "oidreq" in session:
-            oidreq = OpenIDRequest().deserialize(session["oidreq"], "json")
-            _log_info("OIDREQ: %s" % oidreq.to_dict())
-            if "userinfo" in oidreq:
-                userinfo_claims = oidreq["userinfo"]
-                _claim = oidreq["userinfo"]["claims"]
-                for key, val in uic.items():
-                    if key not in _claim:
-                        _claim[key] = val
+        :param session: Session information
+        :param userinfo_claims: user info claims
+        :return: User info
+        """
+        if userinfo_claims is None:
+            uic = {}
+            for scope in session["scope"]:
+                try:
+                    claims = dict([(name, None) for name in SCOPE2CLAIMS[scope]])
+                    uic.update(claims)
+                except KeyError:
+                    pass
+
+            if "oidreq" in session:
+                oidreq = OpenIDRequest().deserialize(session["oidreq"], "json")
+                logger.debug("OIDREQ: %s" % oidreq.to_dict())
+                if "userinfo" in oidreq:
+                    userinfo_claims = oidreq["userinfo"]
+                    _claim = oidreq["userinfo"]["claims"]
+                    for key, val in uic.items():
+                        if key not in _claim:
+                            _claim[key] = val
+                elif uic:
+                    userinfo_claims = UserInfoClaim(claims=uic)
+                else:
+                    userinfo_claims = None
             elif uic:
                 userinfo_claims = UserInfoClaim(claims=uic)
             else:
                 userinfo_claims = None
-        elif uic:
-            userinfo_claims = UserInfoClaim(claims=uic)
-        else:
-            userinfo_claims = None
 
-        if self.test_mode:
-            _log_info("userinfo_claim: %s" % userinfo_claims.to_dict())
+            logger.debug("userinfo_claim: %s" % userinfo_claims.to_dict())
 
         logger.debug("userdb: %s" % self.userdb.keys())
-            #logger.info("oidreq: %s[%s]" % (oidreq, type(oidreq)))
         info = self.function["userinfo"](self, self.userdb,
                                          session["user_id"],
                                          session["client_id"],
                                          userinfo_claims)
 
-        if self.test_mode:
-            _log_info("user_info_response: %s" % (info,))
+        logger.debug("user_info_response: %s" % (info,))
 
         return info
 
@@ -995,9 +1007,10 @@ class Provider(AProvider):
                 _access_token = None
 
             if "id_token" in areq["response_type"]:
-                if "claims_in_id_token" in aresp["scope"]:
+                try:
+                    idtoken_claims = areq["request"]["id_token"]["claims"]
                     user_info = self._collect_user_info(_sinfo)
-                else:
+                except KeyError:
                     user_info = None
 
                 id_token = self._id_token(_sinfo,

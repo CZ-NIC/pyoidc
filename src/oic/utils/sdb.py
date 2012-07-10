@@ -6,7 +6,6 @@ import time
 import random
 import base64
 import logging
-import hashlib
 
 from oic.oauth2 import rndstr
 from oic.utils.time_util import utc_time_sans_frac
@@ -107,7 +106,7 @@ class Token(object):
 class SessionDB(object):
     def __init__(self, db=None, secret = "Ab01FG65", token_expires_in=3600,
                  password="4-amino-1H-pyrimidine-2-one",
-                 grant_expires_in=600):
+                 grant_expires_in=600, seed=""):
         if db:
             self._db = db
         else:
@@ -116,6 +115,7 @@ class SessionDB(object):
         self.token_expires_in = token_expires_in
         self.grant_expires_in = grant_expires_in
         self.uid2sid = {}
+        self.seed = seed or secret
 
     def __getitem__(self, item):
         """
@@ -160,22 +160,29 @@ class SessionDB(object):
         (typ, key) = self.token.type_and_key(token)
         return self.update(key, attribute, value)
 
-    def create_authz_session(self, user_id, areq, id_token=None, oidreq=None):
+    def create_authz_session(self, user_id, areq, id_token=None, oidreq=None,
+                             sector_id=""):
         """
 
         :param user_id: Identifier for the user, this is the real identifier
         :param areq: The AuthorizationRequest instance
         :param id_token: An IDToken instance
         :param oidreq: An OpenIDRequest instance
+        :param sector_id: The Sector_identifier_url
         :return: The session identifier, which is the database key
         """
+
+        if sector_id:
+            uid = pairwise_id(user_id, sector_id, self.seed)
+        else:
+            uid = user_id
 
         sid = self.token.key(user=user_id, areq=areq)
         access_grant = self.token(sid=sid)
 
         _dic  = {
             "oauth_state": "authz",
-            "user_id": user_id,
+            "user_id": uid,
             "code": access_grant,
             "code_used": False,
             "authzreq": areq.to_json(),
