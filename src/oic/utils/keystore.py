@@ -1,3 +1,5 @@
+import sys
+
 __author__ = 'rohe0002'
 
 import M2Crypto
@@ -77,6 +79,21 @@ def ec_load(filename):
 def x509_rsa_loads(string):
     cert = M2Crypto.X509.load_cert_string(string)
     return cert.get_pubkey().get_rsa()
+
+class RedirectStdStreams(object):
+    def __init__(self, stdout=None, stderr=None):
+        self._stdout = stdout or sys.stdout
+        self._stderr = stderr or sys.stderr
+
+    def __enter__(self):
+        self.old_stdout, self.old_stderr = sys.stdout, sys.stderr
+        self.old_stdout.flush(); self.old_stderr.flush()
+        sys.stdout, sys.stderr = self._stdout, self._stderr
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._stdout.flush(); self._stderr.flush()
+        sys.stdout = self.old_stdout
+        sys.stderr = self.old_stderr
 
 
 class KeyStore(object):
@@ -490,8 +507,10 @@ class KeyStore(object):
 
                     try:
                         _key = rsa_load('%s%s' % (vault_path, "pyoidc"))
-                    except Exception:
-                        _key = create_and_store_rsa_key_pair(path=vault_path)
+                    except Exception, err:
+                        devnull = open(os.devnull, 'w')
+                        with RedirectStdStreams(stdout=devnull, stderr=devnull):
+                            _key = create_and_store_rsa_key_pair(path=vault_path)
 
                     self.add_key(_key, "rsa", usage)
                     if usage == "sig":
@@ -522,7 +541,7 @@ def create_and_store_rsa_key_pair(name="pyoidc", path="."):
     if not path.endswith("/"):
         path += "/"
 
-    key.save_key('%s%s' % (path, name), callback=no_passphrase_callback)
+    key.save_key('%s%s' % (path, name), None, callback=no_passphrase_callback)
     key.save_pub_key('%s%s.pub' % (path, name))
 
     return key

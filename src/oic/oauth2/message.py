@@ -365,10 +365,8 @@ class Message(object):
                 except KeyError:
                     _keys = {}
 
-                if "iss" in jso:
-                    _keys = gather_keys(_keys, key, jso, "iss")
-                if "aud" in jso:
-                    _keys = gather_keys(_keys, key, jso, "aud")
+                for ent in ["iss", "aud", "client_id"]:
+                    _keys = gather_keys(_keys, key, jso, ent)
 
                 if "iss" not in jso and "aud" not in jso:
                     for owner, _spec in key.items():

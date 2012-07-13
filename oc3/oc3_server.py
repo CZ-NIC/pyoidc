@@ -35,7 +35,7 @@ cpc_formatter = logging.Formatter(CPC)
 
 hdlr.setFormatter(base_formatter)
 LOGGER.addHandler(hdlr)
-LOGGER.setLevel(logging.INFO)
+LOGGER.setLevel(logging.DEBUG)
 
 _formatter = logging.Formatter(CPC)
 fil_handl = logging.FileHandler(LOGFILE_NAME)

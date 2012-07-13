@@ -273,7 +273,7 @@ class Provider(AProvider):
 
         # Same serialization used for GET and POST
         try:
-            v_keys = {".": _srv.keystore.get_keys("ver", owner=".")}
+            v_keys = _srv.keystore.get_keys("ver", owner=None)
             areq = _srv.parse_authorization_request(query=query, keys=v_keys)
         except MissingRequiredAttribute:
             areq = AuthorizationRequest().deserialize(query, "urlencoded")
@@ -286,12 +286,14 @@ class Provider(AProvider):
                                               "Missing required attribute")
             return resp(environ, start_response)
         except Exception,err:
+            _log_debug("Bad request: %s" % err)
             resp = BadRequest("%s" % err)
             return resp(environ, start_response)
 
         try:
             client_info = self.cdb[areq["client_id"]]
         except KeyError:
+            _log_info("Unknown client: %s" % areq["client_id"])
             raise UnknownClient(areq["client_id"])
 
         if "request_uri" in areq:
