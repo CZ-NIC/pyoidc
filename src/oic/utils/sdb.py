@@ -21,7 +21,7 @@ class WrongTokenType(Exception):
     pass
 
 def pairwise_id(user_id, sector_identifier, seed):
-    return hashlib.sha256("%s%s%s" % (user_id, sector_identifier, seed))
+    return hashlib.sha256("%s%s%s" % (user_id, sector_identifier, seed)).digest()
 
 class Crypt():
     def __init__(self, password, mode=AES.MODE_CBC):
@@ -161,18 +161,18 @@ class SessionDB(object):
         return self.update(key, attribute, value)
 
     def create_authz_session(self, user_id, areq, id_token=None, oidreq=None,
-                             sector_id=""):
+                             si_redirects="", sector_id=""):
         """
 
         :param user_id: Identifier for the user, this is the real identifier
         :param areq: The AuthorizationRequest instance
         :param id_token: An IDToken instance
         :param oidreq: An OpenIDRequest instance
-        :param sector_id: The Sector_identifier_url
+        :param si_redirects: The Sector_identifier_url
         :return: The session identifier, which is the database key
         """
 
-        if sector_id:
+        if si_redirects:
             uid = pairwise_id(user_id, sector_id, self.seed)
         else:
             uid = user_id
@@ -200,7 +200,7 @@ class SessionDB(object):
         except (AttributeError, KeyError):
             pass
 
-        for key in ["redirect_uri", "state", "scope"]:
+        for key in ["redirect_uri", "state", "scope", "si_redirects"]:
             try:
                 _dic[key] = areq[key]
             except KeyError:

@@ -137,7 +137,8 @@ def test_create_authz_session():
 def test_create_authz_session_with_sector_id():
     sdb = SessionDB(seed="foo")
     sid5 = sdb.create_authz_session("user_id", AREQN, oidreq=OIDR,
-                                    sector_id="http://example.com/")
+                                    si_redirects=["http://example.com/"],
+                                    sector_id="http://example.com/si.jwt")
 
     info_1 = sdb[sid5]
     print info_1
@@ -145,8 +146,9 @@ def test_create_authz_session_with_sector_id():
     assert "oidreq" in info_1
     assert info_1["user_id"] != "user_id"
 
-    sid6 = sdb.create_authz_session("user_id", AREQN, oidreq=OIDR,
-                                    sector_id="http://example.org/")
+    sid6 = sdb.create_authz_session("user_id2", AREQN, oidreq=OIDR,
+                                    si_redirects=["http://example.com/"],
+                                    sector_id="http://example.com/si.jwt")
 
     info_2 = sdb[sid6]
     print info_2

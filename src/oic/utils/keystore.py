@@ -22,31 +22,57 @@ ALPHABET = string.ascii_uppercase + string.ascii_lowercase +\
            string.digits + '-_'
 ALPHABET_REVERSE = dict((c, i) for (i, c) in enumerate(ALPHABET))
 BASE = len(ALPHABET)
+TB = 2**24
+foo = '0000 0001 0000 0000 0000 0001'
+foo_b64 = "QAB="
 
-def my_b64encode(n):
-    encoded = ''
-    while n > 0:
-        n, r = divmod(n, BASE)
-        encoded = ALPHABET[int(r)] + encoded
+import base64
+import struct
 
-    return encoded
+def bytes( long_int ):
+    bytes = []
+    while long_int:
+        long_int, r = divmod(long_int, 256)
+        bytes.insert(0, r)
+    return bytes
 
-def my_b64decode(data):
-    decoded = 0
-    for i in range(0, len(data)):
-        decoded = (decoded << 6) | ALPHABET_REVERSE[data[i]]
-    return decoded
+def long_to_base64(n):
+    bys = bytes(n)
+    data = struct.pack('>%sB' % len(bys), *bys)
+    if not len(data):
+        data = '\x00'
+    s = base64.urlsafe_b64encode(data).rstrip('=')
+    return s
+
+def b64_set_to_long(s):
+    data = base64.urlsafe_b64decode(s + '==')
+    n = struct.unpack('>Q', '\x00'* (8-len(data)) + data )
+    return n[0]
+
+def base64_to_long(data):
+    if len(data) % 4: # not a multiple of 4
+        data += '=' * (4 - (len(data) % 4))
+
+    res = 0
+    for i in range(0, len(data), 4):
+        res = res * TB + b64_set_to_long(data[i:i+4])
+
+    return res
 
 def long_to_mpi(num):
-    #Converts a python integer or long to OpenSSL MPInt used by M2Crypto.
+    """Converts a python integer or long to OpenSSL MPInt used by M2Crypto.
+    Borrowed from Snowball.Shared.Crypto"""
     h = hex(num)[2:] # strip leading 0x in string
     if len(h) % 2 == 1:
         h = '0' + h # add leading 0 to get even number of hexdigits
     return bn_to_mpi(hex_to_bn(h)) # convert using OpenSSL BinNum
 
 def mpi_to_long(mpi):
-    #Converts an OpenSSL MPint used by M2Crypto to a python integer/long.
+    """Converts an OpenSSL MPint used by M2Crypto to a python integer/long.
+    Borrowed from Snowball.Shared.Crypto"""
     return eval("0x%s" % b2a_hex(mpi[4:]))
+
+# ======================================================================
 
 def rsa_eq(key1, key2):
     # Check if two RSA keys are in fact the same
@@ -90,6 +116,7 @@ class RedirectStdStreams(object):
         self.old_stdout.flush(); self.old_stderr.flush()
         sys.stdout, sys.stderr = self._stdout, self._stderr
 
+    #noinspection PyUnusedLocal
     def __exit__(self, exc_type, exc_value, traceback):
         self._stdout.flush(); self._stderr.flush()
         sys.stdout = self.old_stdout
@@ -311,12 +338,14 @@ class KeyStore(object):
         try:
             r = self.http_request(url, allow_redirects=True)
             if r.status_code == 200:
-                _key = x509_rsa_loads(r.text)
+                cert = str(r.text)
+                _key = x509_rsa_loads(cert)
                 self.add_key(_key, "rsa", usage, owner)
                 return _key
             else:
                 raise Exception("HTTP Get error: %s" % r.status_code)
         except Exception, err: # not a RSA key
+            logger.warning("Can't load key: %s" % err)
             return None
 
     def load_jwk(self, url, usage, owner):
@@ -425,15 +454,15 @@ class KeyStore(object):
         spec = json.loads(txt)
         for kspec in spec["keys"]:
             if kspec["alg"] == "RSA":
-                e = my_b64decode(kspec["exp"])
-                n = my_b64decode(kspec["mod"])
+                e = base64_to_long(kspec["exp"])
+                n = base64_to_long(kspec["mod"])
 
                 k = M2Crypto.RSA.new_pub_key((long_to_mpi(e), long_to_mpi(n)))
 
-                if "kid" in kspec:
-                    tag = "%s:%s" % ("rsa", kspec["kid"])
-                else:
-                    tag = "rsa"
+#                if "kid" in kspec:
+#                    tag = "%s:%s" % ("rsa", kspec["kid"])
+#                else:
+#                    tag = "rsa"
 
                 self.add_key(k, "rsa", usage, owner)
             elif kspec["alg"] == "HMAC":
@@ -452,8 +481,8 @@ class KeyStore(object):
             if isinstance(key, M2Crypto.RSA.RSA):
                 kspecs.append({
                     "alg": "RSA",
-                    "mod": my_b64encode(mpi_to_long(key.n)),
-                    "exp": my_b64encode(mpi_to_long(key.e)),
+                    "mod": long_to_base64(mpi_to_long(key.n)),
+                    "exp": long_to_base64(mpi_to_long(key.e)),
                     "use": usage
                 })
 
@@ -496,21 +525,14 @@ class KeyStore(object):
                     continue
 
                 _args = kwargs[usage]
-                if _args["alg"] == "rsa" and _args["format"] == "jwk":
-                    if usage == "sig":
-                        _name = ("jwk.json", "jwk_url")
-                    else:
-                        _name = ("jwk_enc.json", "jwk_encryption_url")
-
-                    # the local filename
-                    _export_filename = "%s%s" % (local_path, _name[0])
-
+                if _args["alg"] == "rsa":
                     try:
                         _key = rsa_load('%s%s' % (vault_path, "pyoidc"))
-                    except Exception, err:
+                    except Exception:
                         devnull = open(os.devnull, 'w')
                         with RedirectStdStreams(stdout=devnull, stderr=devnull):
-                            _key = create_and_store_rsa_key_pair(path=vault_path)
+                            _key = create_and_store_rsa_key_pair(
+                                                                path=vault_path)
 
                     self.add_key(_key, "rsa", usage)
                     if usage == "sig":
@@ -518,25 +540,46 @@ class KeyStore(object):
                     elif usage == "enc":
                         self.add_key(_key, "rsa", "dec")
 
-                    f = open(_export_filename, "w")
-                    f.write(self.dumps(usage))
-                    f.close()
+                    if "jwk" in _args["format"]:
+                            if usage == "sig":
+                                _name = ("jwk.json", "jwk_url")
+                            else:
+                                _name = ("jwk_enc.json", "jwk_encryption_url")
 
+                            # the local filename
+                            _export_filename = "%s%s" % (local_path, _name[0])
 
-                    _url = "%s://%s%s" % (part.scheme, part.netloc,
-                                          _export_filename[1:])
+                            f = open(_export_filename, "w")
+                            f.write(self.dumps(usage))
+                            f.close()
 
-                    res[_name[1]] = _url
+                            _url = "%s://%s%s" % (part.scheme, part.netloc,
+                                                  _export_filename[1:])
+
+                            res[_name[1]] = _url
+                    if "x509" in _args["format"]:
+                        if usage == "sig":
+                            _name = "x509_url"
+                        else:
+                            _name = "x509_encryption_url"
+
+                        # the local filename
+                        _export_filename = "%s%s" % (local_path, "rsa.pub")
+                        _key.save_pub_key(_export_filename)
+                        _url = "%s://%s%s" % (part.scheme, part.netloc,
+                                              _export_filename[1:])
+
+                        res[_name] = _url
 
         return part, res
 
 # ================= create RSA key ======================
 
-def create_and_store_rsa_key_pair(name="pyoidc", path="."):
+def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=1024):
     #Seed the random number generator with 1024 random bytes (8192 bits)
-    M2Crypto.Rand.rand_seed(os.urandom(1024))
+    M2Crypto.Rand.rand_seed(os.urandom(size))
 
-    key = M2Crypto.RSA.gen_key(1024, 65537)
+    key = M2Crypto.RSA.gen_key(size, 65537)
 
     if not path.endswith("/"):
         path += "/"

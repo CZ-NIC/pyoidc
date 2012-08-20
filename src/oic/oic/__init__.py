@@ -300,6 +300,7 @@ class Client(oauth2.Client):
         self.grant_class = Grant
         self.token_class = Token
         self.authn_method = AUTHN_METHOD
+        self.provider_info = {}
 
     def _get_id_token(self, **kwargs):
         try:
@@ -763,6 +764,8 @@ class Client(oauth2.Client):
             except AssertionError:
                 raise Exception("provider info issuer mismatch '%s' != '%s'" % (
                     _issuer, _pcr_issuer))
+
+        self.provider_info[_pcr_issuer] = pcr
 
         if endpoints:
             for key, val in pcr.items():

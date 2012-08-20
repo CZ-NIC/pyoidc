@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import json
 import traceback
 from oic.oauth2.message import ErrorResponse, by_schema
 from oic.oic.message import AuthorizationRequest, IdToken
@@ -359,14 +360,13 @@ class Provider(AProvider):
 
         _log_debug("AREQ keys: %s" % areq.keys())
 
-        # Store session info
         try:
-            sector_id = client_info["sector_identifier_url"]
+            si_redirects = client_info["si_redirects"]
         except KeyError:
-            sector_id = ""
+            si_redirects = None
 
         sid = _sdb.create_authz_session("", areq, oidreq=openid_req,
-                                        sector_id=sector_id)
+                                        si_redirects=si_redirects)
         _log_debug("session: %s" % _sdb[sid])
 
         bsid = base64.b64encode(sid)
@@ -714,6 +714,23 @@ class Provider(AProvider):
                                         content="application/json",
                                         status="400 Bad Request")
                         return resp(environ, start_response)
+
+            if "sector_identifier_url" in request:
+                si_url = request["sector_identifier_url"]
+                res = self.server.http_request(si_url)
+                if not res:
+                    return self._error(environ, start_response,
+                        "invalid_configuration_parameter",
+                        descr="Couldn't open sector_identifier_url")
+                try:
+                    si_redirects = json.loads(res.text)
+                except Exception:
+                    return self._error(environ, start_response,
+                        "invalid_configuration_parameter",
+                        descr="Error deserializing sector_identifier_url content")
+
+                _cinfo["si_redirects"] = si_redirects
+                _cinfo["sector_id"] = si_url
 
             for key,val in request.items():
                 _cinfo[key] = val
