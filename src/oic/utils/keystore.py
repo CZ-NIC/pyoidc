@@ -38,7 +38,8 @@ def bytes( long_int ):
 
 def long_to_base64(n):
     bys = bytes(n)
-    data = struct.pack('>%sB' % len(bys), *bys)
+    data = struct.pack('%sB' % len(bys), *bys)
+    #xdata = struct.pack('<%sB' % len(bys), *bys)
     if not len(data):
         data = '\x00'
     s = base64.urlsafe_b64encode(data).rstrip('=')
@@ -50,12 +51,25 @@ def b64_set_to_long(s):
     return n[0]
 
 def base64_to_long(data):
-    if len(data) % 4: # not a multiple of 4
-        data += '=' * (4 - (len(data) % 4))
+    #if len(data) % 4: # not a multiple of 4
+    #    data += '=' * (4 - (len(data) % 4))
 
-    res = 0
-    for i in range(0, len(data), 4):
-        res = res * TB + b64_set_to_long(data[i:i+4])
+    ld = len(data)
+    data = str(data)
+
+    lshift = 8 * (3-(ld % 4))
+
+    res = b64_set_to_long(data[0:4])
+
+    if ld > 4:
+        if lshift == 24:
+            for i in range(4, ld, 4):
+                res = (res << 24) + b64_set_to_long(data[i:i+4])
+        else:
+            for i in range(4, ld-4, 4):
+                res = (res << 24) + b64_set_to_long(data[i:i+4])
+            i += 4
+            res = (res << lshift) + b64_set_to_long(data[i:i+4])
 
     return res
 
