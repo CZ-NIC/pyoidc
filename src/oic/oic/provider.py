@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import json
 import traceback
+import urllib
 from oic.oauth2.message import ErrorResponse, by_schema
 from oic.oic.message import AuthorizationRequest, IdToken
 from oic.oic.message import RegistrationResponseCU
@@ -196,24 +197,36 @@ class Provider(AProvider):
         return Redirect(location)
 
     def _verify_redirect_uri(self, areq):
-        # MUST NOT contain a fragment
-
+        """
+        MUST NOT contain a fragment
+        MAY contain query component
+        """
         try:
             _redirect_uri = areq["redirect_uri"]
+
             part = urlparse.urlparse(_redirect_uri)
             if part.fragment:
                 raise ValueError
 
+            (_base, _query) = urllib.splitquery(_redirect_uri)
+            if _query:
+                _query = urlparse.parse_qs(_query)
+
             match = False
-            for registered in self.cdb[areq["client_id"]]["redirect_uris"]:
-                if _redirect_uri == registered:
-                    match=True
-                    break
-                elif _redirect_uri.startswith(registered):
-                    match=True
+            for regbase, rquery in self.cdb[areq["client_id"]]["redirect_uris"]:
+                if _base == regbase or _redirect_uri.startswith(regbase):
+                    # every registered query component must exist in the
+                    # redirect_uri
+                    if rquery:
+                        for key, vals in rquery.items():
+                            assert key in _query
+                            for val in vals:
+                                assert val in _query[key]
+                    match = True
                     break
             if not match:
                 raise AssertionError
+            # ignore query components that are not registered
             return None
         except Exception:
             logger.error("Faulty redirect_uri: %s" % areq["redirect_uri"])
@@ -705,6 +718,7 @@ class Provider(AProvider):
             _cinfo = self.cdb[client_id]
 
             if "redirect_uris" in request:
+                ruri = []
                 for uri in request["redirect_uris"]:
                     if urlparse.urlparse(uri).fragment:
                         err = ClientRegistrationErrorResponse(
@@ -714,6 +728,12 @@ class Provider(AProvider):
                                         content="application/json",
                                         status="400 Bad Request")
                         return resp(environ, start_response)
+                    base, query = urllib.splitquery(uri)
+                    if query:
+                        ruri.append((base, urlparse.parse_qs(query)))
+                    else:
+                        ruri.append((base, query))
+                _cinfo["redirect_uris"] = ruri
 
             if "sector_identifier_url" in request:
                 si_url = request["sector_identifier_url"]
@@ -733,6 +753,8 @@ class Provider(AProvider):
                 _cinfo["sector_id"] = si_url
 
             for key,val in request.items():
+                if key == "redirect_uris":
+                    continue
                 _cinfo[key] = val
 
             try:
