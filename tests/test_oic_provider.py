@@ -107,13 +107,13 @@ CDB = {
         "password": "hemligt",
         "client_secret": "drickyoughurt",
         #"jwk_key": CONSUMER_CONFIG["key"],
-        "redirect_uris": ["http://localhost:8087/authz"]
+        "redirect_uris": [("http://localhost:8087/authz", None)]
     },
     "a1b2c3":{
-        "redirect_uris": ["http://localhost:8087/authz"]
+        "redirect_uris": [("http://localhost:8087/authz", None)]
     },
     "client0":{
-        "redirect_uris": ["http://www.example.org/authz"]
+        "redirect_uris": [("http://www.example.org/authz", None)]
     },
     CLIENT_ID: {
         "client_secret": CLIENT_SECRET,
@@ -802,3 +802,74 @@ def test_provider_key_setup():
     keys = provider.keystore.get_sign_key("rsa")
     assert len(keys) == 1
     assert provider.jwk[0] == "http://www.example.com/static/jwk.json"
+
+def test_registered_redirect_uri_without_query_component():
+    provider = Provider("FOO", {}, {}, None, None)
+    rr = RegistrationRequest(type="client_associate",
+                             redirect_uris=["http://example.org/cb"])
+
+    registration_req = rr.to_urlencoded()
+
+    provider.registration_endpoint({}, start_response,
+                                   query=registration_req)
+
+    correct = [
+        "http://example.org/cb",
+        "http://example.org/cb/foo",
+        "http://example.org/cb?got=you"
+        "http://example.org/cb/foo?got=you"
+    ]
+    faulty = [
+        "http://example.org/foo",
+        "http://example.com/cb",
+    ]
+
+    for ruri in faulty:
+        areq = AuthorizationRequest(redirect_uri=ruri,
+                                    client_id=provider.cdb.keys()[0])
+
+        assert provider._verify_redirect_uri(areq) != None
+
+
+    for ruri in correct:
+        areq = AuthorizationRequest(redirect_uri= ruri,
+                                    client_id=provider.cdb.keys()[0])
+
+        assert provider._verify_redirect_uri(areq) == None
+
+def test_registered_redirect_uri_with_query_component():
+    provider2 = Provider("FOOP", {}, {}, None, None)
+    environ = {}
+
+    rr = RegistrationRequest(type="client_associate",
+                             redirect_uris=["http://example.org/cb?foo=bar"])
+
+    registration_req = rr.to_urlencoded()
+    provider2.registration_endpoint(environ, start_response,
+                                    query=registration_req)
+
+    faulty = [
+        "http://example.org/cb",
+        "http://example.org/cb/foo",
+        "http://example.org/cb?got=you"
+        "http://example.org/cb?foo=you"
+    ]
+    correct = [
+        "http://example.org/cb?foo=bar",
+        "http://example.org/cb?foo=bar&got=you",
+        "http://example.org/cb?foo=bar&foo=you"
+    ]
+
+    for ruri in faulty:
+        areq = AuthorizationRequest(redirect_uri=ruri,
+                                    client_id=provider2.cdb.keys()[0])
+
+        assert provider2._verify_redirect_uri(areq) != None
+
+
+    for ruri in correct:
+        areq = AuthorizationRequest(redirect_uri= ruri,
+                                    client_id=provider2.cdb.keys()[0])
+
+        assert provider2._verify_redirect_uri(areq) == None
+
