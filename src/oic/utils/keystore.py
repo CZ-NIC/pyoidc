@@ -657,7 +657,7 @@ def make_req(bits, fqdn="example.com", rsa=None):
     return x, pk, rsa
 
 def make_cert(bits, fqdn="example.com", rsa=None):
-    req, pk, rsa = mkreq(bits, fqdn=fqdn, rsa=rsa)
+    req, pk, rsa = make_req(bits, fqdn=fqdn, rsa=rsa)
     pkey = req.get_pubkey()
     sub = req.get_subject()
     cert = X509.X509()
