@@ -577,9 +577,11 @@ class KeyStore(object):
                         else:
                             _name = "x509_encryption_url"
 
+                        cert, _key = make_cert(2045, "lingon.ladok.umu.se",
+                                               _key)
                         # the local filename
-                        _export_filename = "%s%s" % (local_path, "rsa.pub")
-                        _key.save_pub_key(_export_filename)
+                        _export_filename = "%s%s" % (local_path, "cert.pem")
+                        cert.save(_export_filename)
                         _url = "%s://%s%s" % (part.scheme, part.netloc,
                                               _export_filename[1:])
 
@@ -593,7 +595,7 @@ def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=1024):
     #Seed the random number generator with 1024 random bytes (8192 bits)
     M2Crypto.Rand.rand_seed(os.urandom(size))
 
-    key = M2Crypto.RSA.gen_key(size, 65537)
+    key = M2Crypto.RSA.gen_key(size, 65537, lambda : None)
 
     if not path.endswith("/"):
         path += "/"
@@ -625,3 +627,54 @@ def proper_path(path):
 
     return path
 
+# ================= create certificate ======================
+# heavily influenced by
+# http://svn.osafoundation.org/m2crypto/trunk/tests/test_x509.py
+
+import time
+from M2Crypto import EVP
+from M2Crypto import X509
+from M2Crypto import RSA
+from M2Crypto import ASN1
+
+def make_req(bits, fqdn="example.com", rsa=None):
+    pk = EVP.PKey()
+    x = X509.Request()
+    if not rsa:
+        rsa = RSA.gen_key(bits, 65537, lambda : None)
+    pk.assign_rsa(rsa)
+    # Because rsa is messed with
+    rsa = pk.get_rsa()
+    x.set_pubkey(pk)
+    name = x.get_subject()
+    name.C = "SE"
+    name.CN = "OpenID Connect Test Server"
+    ext1 = X509.new_extension('subjectAltName', fqdn)
+    extstack = X509.X509_Extension_Stack()
+    extstack.push(ext1)
+    x.add_extensions(extstack)
+    x.sign(pk,'sha1')
+    return x, pk, rsa
+
+def make_cert(bits, fqdn="example.com", rsa=None):
+    req, pk, rsa = mkreq(bits, fqdn=fqdn, rsa=rsa)
+    pkey = req.get_pubkey()
+    sub = req.get_subject()
+    cert = X509.X509()
+    cert.set_serial_number(1)
+    cert.set_version(2)
+    cert.set_subject(sub)
+    t = long(time.time()) + time.timezone
+    now = ASN1.ASN1_UTCTIME()
+    now.set_time(t)
+    nowPlusYear = ASN1.ASN1_UTCTIME()
+    nowPlusYear.set_time(t + 60 * 60 * 24 * 365)
+    cert.set_not_before(now)
+    cert.set_not_after(nowPlusYear)
+    issuer = X509.X509_Name()
+    issuer.CN = 'The code tester'
+    issuer.O = 'Umea University'
+    cert.set_issuer(issuer)
+    cert.set_pubkey(pkey)
+    cert.sign(pk, 'sha1')
+    return cert, rsa
