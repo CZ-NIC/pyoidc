@@ -95,7 +95,8 @@ def replace_format_handler(logger, format="CPC"):
 
     return logger
 
-def do_authentication(environ, start_response, sid, cookie=None):
+def do_authentication(environ, start_response, sid, cookie=None,
+                      policy_url=None, logo_url=None):
     """
     Put up the login form
     """
@@ -109,8 +110,11 @@ def do_authentication(environ, start_response, sid, cookie=None):
     argv = { "sid": sid,
              "login": "",
              "password": "",
-             "action": "authenticated"
+             "action": "authenticated",
+             "policy_url": policy_url,
+             "logo_url": logo_url
     }
+    LOGGER.info("do_authentication argv: %s" % argv)
     return resp(environ, start_response, **argv)
 
 def verify_username_and_password(dic):
