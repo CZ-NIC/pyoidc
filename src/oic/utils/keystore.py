@@ -136,6 +136,13 @@ class RedirectStdStreams(object):
         sys.stdout = self.old_stdout
         sys.stderr = self.old_stderr
 
+def kspec(key, usage):
+    return {
+        "alg": "RSA",
+        "mod": long_to_base64(mpi_to_long(key.n)),
+        "exp": long_to_base64(mpi_to_long(key.e)),
+        "use": usage
+    }
 
 class KeyStore(object):
     use = ["sig", "ver", "enc", "dec"]
@@ -493,12 +500,7 @@ class KeyStore(object):
         kspecs = []
         for key in self.get_keys(usage, type):
             if isinstance(key, M2Crypto.RSA.RSA):
-                kspecs.append({
-                    "alg": "RSA",
-                    "mod": long_to_base64(mpi_to_long(key.n)),
-                    "exp": long_to_base64(mpi_to_long(key.e)),
-                    "use": usage
-                })
+                kspecs.append(kspec(key, usage))
 
         if kspecs:
             return json.dumps({"keys": kspecs})
@@ -548,29 +550,7 @@ class KeyStore(object):
                             _key = create_and_store_rsa_key_pair(
                                                                 path=vault_path)
 
-                    self.add_key(_key, "rsa", usage)
-                    if usage == "sig":
-                        self.add_key(_key, "rsa", "ver")
-                    elif usage == "enc":
-                        self.add_key(_key, "rsa", "dec")
-
-                    if "jwk" in _args["format"]:
-                            if usage == "sig":
-                                _name = ("jwk.json", "jwk_url")
-                            else:
-                                _name = ("jwk_enc.json", "jwk_encryption_url")
-
-                            # the local filename
-                            _export_filename = "%s%s" % (local_path, _name[0])
-
-                            f = open(_export_filename, "w")
-                            f.write(self.dumps(usage))
-                            f.close()
-
-                            _url = "%s://%s%s" % (part.scheme, part.netloc,
-                                                  _export_filename[1:])
-
-                            res[_name[1]] = _url
+                    # order is not arbitrary, make_cert messes with key
                     if "x509" in _args["format"]:
                         if usage == "sig":
                             _name = "x509_url"
@@ -586,6 +566,31 @@ class KeyStore(object):
                                               _export_filename[1:])
 
                         res[_name] = _url
+
+                    self.add_key(_key, "rsa", usage)
+                    if usage == "sig":
+                        self.add_key(_key, "rsa", "ver")
+                    elif usage == "enc":
+                        self.add_key(_key, "rsa", "dec")
+
+                    if "jwk" in _args["format"]:
+                        if usage == "sig":
+                            _name = ("jwk.json", "jwk_url")
+                        else:
+                            _name = ("jwk_enc.json", "jwk_encryption_url")
+
+                        # the local filename
+                        _export_filename = "%s%s" % (local_path, _name[0])
+
+                        f = open(_export_filename, "w")
+                        f.write(self.dumps(usage))
+                        f.close()
+
+                        _url = "%s://%s%s" % (part.scheme, part.netloc,
+                                              _export_filename[1:])
+
+                        res[_name[1]] = _url
+
 
         return part, res
 
@@ -649,10 +654,11 @@ def make_req(bits, fqdn="example.com", rsa=None):
     name = x.get_subject()
     name.C = "SE"
     name.CN = "OpenID Connect Test Server"
-    ext1 = X509.new_extension('subjectAltName', fqdn)
-    extstack = X509.X509_Extension_Stack()
-    extstack.push(ext1)
-    x.add_extensions(extstack)
+    if fqdn:
+        ext1 = X509.new_extension('subjectAltName', fqdn)
+        extstack = X509.X509_Extension_Stack()
+        extstack.push(ext1)
+        x.add_extensions(extstack)
     x.sign(pk,'sha1')
     return x, pk, rsa
 
