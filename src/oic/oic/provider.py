@@ -209,7 +209,7 @@ class Provider(AProvider):
         MAY contain query component
         """
         try:
-            _redirect_uri = areq["redirect_uri"]
+            _redirect_uri = urlparse.unquote(areq["redirect_uri"])
 
             part = urlparse.urlparse(_redirect_uri)
             if part.fragment:
