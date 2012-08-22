@@ -586,7 +586,9 @@ class Client(PBase):
 
         if request_args is not None:
             try: # change default
-                self.redirect_uris = [request_args["redirect_uri"]]
+                new = request_args["redirect_uri"]
+                if new:
+                    self.redirect_uris = [new]
             except KeyError:
                 pass
         else:
