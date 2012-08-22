@@ -12,6 +12,7 @@ from oic.oauth2.message import SINGLE_REQUIRED_STRING
 from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
 from oic.oauth2.message import SINGLE_OPTIONAL_INT
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
+from oic.oauth2.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
 
 from oic.utils import jwt
 
@@ -247,6 +248,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
                     "display": SINGLE_OPTIONAL_STRING,
                     "prompt": OPTIONAL_LIST_OF_STRINGS,
                     "nonce": SINGLE_OPTIONAL_STRING,
+                    "scope": REQUIRED_LIST_OF_SP_SEP_STRINGS,
                     "id_token": SINGLE_OPTIONAL_JWT
                 })
     c_allowed_values = message.AuthorizationRequest.c_allowed_values.copy()
@@ -565,7 +567,8 @@ SCOPE2CLAIMS = {
     "openid": ["user_id"],
     "profile": ["name", "given_name", "family_name", "middle_name",
                 "nickname", "profile", "picture", "website", "gender",
-                "birthday", "zoneinfo", "locale", "updated_time"],
+                "birthday", "zoneinfo", "locale", "updated_time",
+                "preferred_username"],
     "email": ["email", "email_verified"],
     "address": ["address"],
     "phone": ["phone_number"],
