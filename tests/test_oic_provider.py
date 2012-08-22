@@ -650,7 +650,7 @@ def test_authz_endpoint():
     cli.redirect_uri = "http://www.example.org/authz"
     cli.client_id = "client0"
     cli.state = "_state_"
-    args = {"response_type": ["code", "token"]}
+    args = {"response_type": ["code", "token"], "scope":["openid"]}
     req = cli.construct_AuthorizationRequest(request_args=args)
 
     environ = BASE_ENVIRON.copy()
