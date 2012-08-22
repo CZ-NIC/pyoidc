@@ -180,6 +180,11 @@ class Provider(AProvider):
 
         return _idtoken
 
+    def _error_response(self, error, descr=None):
+        response = ErrorResponse(error=error, error_description=descr)
+        return Response(response.to_json(), content="application/json",
+                        status="400 Bad Request")
+
     def _error(self, environ, start_response, error, descr=None):
         response = ErrorResponse(error=error, error_description=descr)
         resp = Response(response.to_json(), content="application/json",
@@ -459,8 +464,16 @@ class Provider(AProvider):
                         pass
 
         # DEFAULT: start the authentication process
+        kwa = {"cookie": cookie}
+        for item in ["policy_url", "logo_url"]:
+            try:
+                kwa[item] = client_info[item]
+            except KeyError:
+                pass
+
+        _log_info("KWA: %s" % kwa)
         return self.function["authenticate"](environ, start_response, bsid,
-                                             cookie)
+                                             **kwa)
 
     def verify_client(self, environ, areq):
         try:
@@ -711,6 +724,81 @@ class Provider(AProvider):
         resp = Response(idt.to_json(), content="application/json")
         return resp(environ, start_response)
 
+    def _verify_url(self, url, urlset):
+        part = urlparse.urlparse(url)
+
+        for reg, qp in urlset:
+            _part = urlparse.urlparse(reg)
+            if part.scheme == _part.scheme and part.netloc == _part.netloc:
+                    return True
+
+        return False
+
+    def do_client_registration(self, request, client_id, ignore=None):
+        if ignore is None:
+            ignore = []
+
+        _cinfo = self.cdb[client_id].copy()
+
+        for key,val in request.items():
+            if key not in ignore:
+                _cinfo[key] = val
+
+        if "redirect_uris" in request:
+            ruri = []
+            for uri in request["redirect_uris"]:
+                if urlparse.urlparse(uri).fragment:
+                    err = ClientRegistrationErrorResponse(
+                        error="invalid_configuration_parameter",
+                        error_description="redirect_uri contains fragment")
+                    return Response(err.to_json(),
+                                    content="application/json",
+                                    status="400 Bad Request")
+                base, query = urllib.splitquery(uri)
+                if query:
+                    ruri.append((base, urlparse.parse_qs(query)))
+                else:
+                    ruri.append((base, query))
+            _cinfo["redirect_uris"] = ruri
+
+        if "sector_identifier_url" in request:
+            si_url = request["sector_identifier_url"]
+            res = self.server.http_request(si_url)
+            if not res:
+                return self._error_response(
+                                   "invalid_configuration_parameter",
+                                   descr="Couldn't open sector_identifier_url")
+            try:
+                si_redirects = json.loads(res.text)
+            except Exception:
+                return self._error_response(
+                                   "invalid_configuration_parameter",
+                                   descr="Error deserializing sector_identifier_url content")
+
+            _cinfo["si_redirects"] = si_redirects
+            _cinfo["sector_id"] = si_url
+
+        for item in ["policy_url", "logo_url"]:
+            if item in request:
+                if self._verify_url(request[item], _cinfo["redirect_uris"]):
+                    _cinfo[item] = request[item]
+                else:
+                    return self._error_response(
+                                        "invalid_configuration_parameter",
+                                       descr="%s pointed to illegal URL" % item)
+
+        try:
+            self.keystore.load_keys(request, client_id)
+        except Exception, err:
+            logger.error("Failed to load client keys: %s" % request.to_dict())
+            err = ClientRegistrationErrorResponse(
+                error="invalid_configuration_parameter",
+                error_description="%s" % err)
+            return Response(err.to_json(), content="application/json",
+                            status="400 Bad Request")
+
+        return _cinfo
+
     #noinspection PyUnusedLocal
     def registration_endpoint(self, environ, start_response, **kwargs):
         logger.debug("@registration_endpoint")
@@ -737,58 +825,14 @@ class Provider(AProvider):
             self.cdb[client_id] = {
                 "client_secret":client_secret
             }
-            _cinfo = self.cdb[client_id]
-
-            if "redirect_uris" in request:
-                ruri = []
-                for uri in request["redirect_uris"]:
-                    if urlparse.urlparse(uri).fragment:
-                        err = ClientRegistrationErrorResponse(
-                                    error="invalid_configuration_parameter",
-                            error_description="redirect_uri contains fragment")
-                        resp = Response(err.to_json(),
-                                        content="application/json",
-                                        status="400 Bad Request")
-                        return resp(environ, start_response)
-                    base, query = urllib.splitquery(uri)
-                    if query:
-                        ruri.append((base, urlparse.parse_qs(query)))
-                    else:
-                        ruri.append((base, query))
-                _cinfo["redirect_uris"] = ruri
-
-            if "sector_identifier_url" in request:
-                si_url = request["sector_identifier_url"]
-                res = self.server.http_request(si_url)
-                if not res:
-                    return self._error(environ, start_response,
-                        "invalid_configuration_parameter",
-                        descr="Couldn't open sector_identifier_url")
-                try:
-                    si_redirects = json.loads(res.text)
-                except Exception:
-                    return self._error(environ, start_response,
-                        "invalid_configuration_parameter",
-                        descr="Error deserializing sector_identifier_url content")
-
-                _cinfo["si_redirects"] = si_redirects
-                _cinfo["sector_id"] = si_url
-
-            for key,val in request.items():
-                if key == "redirect_uris":
-                    continue
-                _cinfo[key] = val
-
-            try:
-                self.keystore.load_keys(request, client_id)
-            except Exception, err:
-                logger.error("Failed to load client keys: %s" % request.to_dict())
-                err = ClientRegistrationErrorResponse(
-                        error="invalid_configuration_parameter",
-                        error_description="%s" % err)
-                resp = Response(err.to_json(), content="application/json",
-                                status="400 Bad Request")
+            resp = self.do_client_registration(request, client_id,
+                                               ignore=["redirect_uris",
+                                                       "policy_url",
+                                                       "logo_url"])
+            if isinstance(resp, Response) :
                 return resp(environ, start_response)
+            else:
+                _cinfo = resp
 
             response = RegistrationResponseCARS(client_id=client_id)
             #if self.debug:
@@ -799,7 +843,7 @@ class Provider(AProvider):
             #  that these are an id,secret pair I know about
             client_id = request["client_id"]
             try:
-                _cinfo = self.cdb[client_id]
+                _cinfo = self.cdb[client_id].copy()
             except KeyError:
                 logger.info("Unknown client id")
                 resp = BadRequest()
@@ -823,13 +867,18 @@ class Provider(AProvider):
                 response = RegistrationResponseCARS(client_id=client_id)
             else: # client_update
                 client_secret = None
-                for key,val in request.items():
-                    if key in ["client_id", "client_secret"]:
-                        continue
+                resp = self.do_client_registration(request, client_id,
+                                                   ignore=["client_id",
+                                                           "client_secret",
+                                                           "policy_url",
+                                                           "redirect_uris",
+                                                           "logo_url"])
 
-                    _cinfo[key] = val
-
-                response = RegistrationResponseCU(client_id=client_id)
+                if isinstance(resp, Response):
+                    return resp(environ, start_response)
+                else:
+                    _cinfo = resp
+                    response = RegistrationResponseCU(client_id=client_id)
 
             self.keystore.load_keys(request, client_id, replace=True)
 
@@ -846,6 +895,9 @@ class Provider(AProvider):
 
             response["client_secret"] = client_secret
             response["expires_at"] = _cinfo["registration_expires"]
+
+        self.cdb[client_id] = _cinfo
+        logger.info("Client info: %s" % _cinfo)
 
         if self.test_mode:
             logger.info("registration_response: %s" % response.to_dict())
