@@ -196,7 +196,8 @@ class TestOICClient():
 
     def test_construct_request_no_input(self):
         self.client.response_type = ["code"]
-        atr = self.client.construct_AuthorizationRequest()
+        atr = self.client.construct_AuthorizationRequest(request_args={
+                                                        "scope": ["openid"]})
 
         print atr
         assert atr["redirect_uri"] == "http://client.example.com/authz"
@@ -296,24 +297,28 @@ class TestOICClient():
 
     def test_request_info_simple(self):
         self.client.authorization_endpoint = "https://example.com/authz"
-        uri, body, h_args, cis = self.client.request_info(AuthorizationRequest)
+        uri, body, h_args, cis = self.client.request_info(AuthorizationRequest,
+                                                          request_args={"scope":
+                                                                            ["openid"]})
 
         # default == "POST"
         assert uri == 'https://example.com/authz'
         areq = AuthorizationRequest().from_urlencoded(body)
         assert _eq(areq.keys(), ["nonce","redirect_uri","response_type",
-                                 "client_id"])
+                                 "client_id", "scope"])
         assert h_args == {'headers': {'content-type': 'application/x-www-form-urlencoded'}}
         assert cis.type() == "AuthorizationRequest"
 
     def test_request_info_simple_get(self):
         uri, body, h_args, cis = self.client.request_info(AuthorizationRequest,
-                                                          method="GET")
+                                                          method="GET",
+                                                          request_args={"scope":
+                                                                            ["openid"]})
 
         (url, query) = uri.split("?")
         areq = AuthorizationRequest().from_urlencoded(query)
         assert _eq(areq.keys(), ["nonce","redirect_uri","response_type",
-                                 "client_id"])
+                                 "client_id", "scope"])
         assert areq["redirect_uri"] == "http://client.example.com/authz"
 
         assert body is None
@@ -324,13 +329,14 @@ class TestOICClient():
         #self.client.authorization_endpoint = "https://example.com/authz"
         uri, body, h_args, cis = self.client.request_info(
                                 AuthorizationRequest, method="GET",
-                                request_args={"state":"init"})
+                                request_args={"state":"init",
+                                              "scope":["openid"]})
 
         print uri
         (url, query) = uri.split("?")
         areq = AuthorizationRequest().from_urlencoded(query)
         assert _eq(areq.keys(), ["nonce","redirect_uri","response_type",
-                                 "client_id", "state"])
+                                 "client_id", "state", "scope"])
         assert areq["state"]
         assert body is None
         assert h_args == {}
@@ -340,13 +346,14 @@ class TestOICClient():
         #self.client.authorization_endpoint = "https://example.com/authz"
         uri, body, h_args, cis = self.client.request_info(AuthorizationRequest,
                                                 method="GET",
+                                                request_args={"scope":["openid"]},
                                                 extra_args={"rock":"little"})
 
         print uri
         (url, query) = uri.split("?")
         areq = AuthorizationRequest().from_urlencoded(query)
         assert _eq(areq.keys(), ["nonce","redirect_uri","response_type",
-                                 "client_id", "rock"])
+                                 "client_id", "rock", "scope"])
         assert body is None
         assert h_args == {}
         assert cis.type() == "AuthorizationRequest"
@@ -355,14 +362,15 @@ class TestOICClient():
         #self.client.authorization_endpoint = "https://example.com/authz"
         uri, body, h_args, cis = self.client.request_info(
                                         AuthorizationRequest, method="GET",
-                                        request_args={"state":"init"},
+                                        request_args={"state":"init",
+                                                      "scope":["openid"]},
                                         extra_args={"rock":"little"})
 
         print uri
         (url, query) = uri.split("?")
         areq = AuthorizationRequest().from_urlencoded(query)
         assert _eq(areq.keys(), ["nonce","redirect_uri","response_type",
-                                 "client_id", "state", "rock"])
+                                 "client_id", "state", "rock", "scope"])
         assert body is None
         assert h_args == {}
         assert cis.type() == "AuthorizationRequest"
@@ -680,7 +688,7 @@ def test_server_parse_parse_authorization_request():
     srv = Server()
     ar = AuthorizationRequest(response_type=["code"], client_id="foobar",
                             redirect_uri="http://foobar.example.com/oaclient",
-                            state="cold", nonce="NONCE")
+                            state="cold", nonce="NONCE", scope=["openid"])
 
     uencq = ar.to_urlencoded()
 
@@ -706,7 +714,7 @@ def test_server_parse_jwt_request():
     srv = Server(KEYS)
     ar = AuthorizationRequest(response_type=["code"], client_id="foobar",
                               redirect_uri="http://foobar.example.com/oaclient",
-                              state="cold", nonce="NONCE")
+                              state="cold", nonce="NONCE", scope=["openid"])
 
     _keys = srv.keystore.get_verify_key(owner=CLIENT_ID)
     _jwt = ar.to_jwt(key=_keys, algorithm="HS256")
