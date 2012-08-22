@@ -4,6 +4,7 @@ import os
 import traceback
 from oic.oauth2 import rndstr
 import sys
+from oic.utils.keystore import rsa_load
 
 __author__ = 'rohe0002'
 
@@ -508,6 +509,8 @@ def application(environ, start_response):
     #a1.info(40*"-")
     if path.startswith("static/"):
         return static(environ, start_response, a1, path)
+#    elif path.startswith("oc3_keys/"):
+#        return static(environ, start_response, a1, path)
 
     for regex, callback in URLS:
         match = re.search(regex, path)
@@ -594,8 +597,8 @@ CLIENT_INFO = {
         "userclaims_endpoint":"https://localhost:8089/userclaims",
         "client_id": "client_1",
         "client_secret": "hemlig",
-        #"x509_url": "https://localhost:8089/certs/mycert.pem",
-        "jwk_url": "https://localhost:8089/certs/cpkey.jwk",
+        "x509_url": "https://localhost:8089/cp_keys/cert.pem",
+        "jwk_url": "https://localhost:8089/cp_keys/pub.jwk",
         }
 }
 
@@ -636,6 +639,13 @@ class TestProvider(Provider):
 
     def re_link_log(self, old, new):
         self.trace_log[new] = self.trace_log[old]
+
+def mv_content(fro, to):
+    txt = open(fro).read()
+    (head, tail) = os.path.split(fro)
+    f = open("%s/%s" % (to, tail))
+    f.write(txt)
+    f.close
 
 if __name__ == '__main__':
     import argparse
@@ -696,13 +706,31 @@ if __name__ == '__main__':
     if not OAS.baseurl.endswith("/"):
         OAS.baseurl += "/"
 
-    OAS.key_setup("static", sig={"format":"jwk", "alg":"rsa"})
+        try:
+            for type, info in config.keys.items():
+                _rsa = rsa_load(info["key"])
+                OAS.keystore.add_key(_rsa, type, "sig")
+                OAS.keystore.add_key(_rsa, type, "ver")
+                try:
+                    OAS.cert.append(info["cert"])
+                    mv_content(info["cert"], "static")
+                except KeyError:
+                    pass
+                try:
+                    OAS.jwk.append(info["jwk"])
+                    mv_content(info["jwk"], "static")
+                except KeyError:
+                    pass
+
+        except Exception:
+            OAS.key_setup("static", sig={"format":"jwk", "alg":"rsa"})
+
     OAS.claims_clients = init_claims_clients(CLIENT_INFO)
 
     for key, cc in OAS.claims_clients.items():
         OAS.keystore.update(cc.keystore)
 
-    print OAS.keystore._store
+    LOGGER.debug("%s" % OAS.keystore._store)
 
     # Add the claims providers keys
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
