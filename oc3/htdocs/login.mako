@@ -21,6 +21,12 @@
             </tr>
         </table>
     </form>
+    % if logo_url:
+        <img src="${logo_url}" alt="Client logo">
+    % endif
+    % if policy_url:
+         <a href="${policy_url}"><b>Client policy</b></a>
+    % endif
 </div>
 
 <%def name="add_js()">
