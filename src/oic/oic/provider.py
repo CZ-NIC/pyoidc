@@ -138,6 +138,13 @@ def location_url(response_type, redirect_uri, query):
     else:
         return "%s#%s" % (redirect_uri, query)
 
+def construct_uri(item):
+    (base_url, query) = item
+    if query:
+        return "%s?%s" % (base_url, urllib.urlencode(query))
+    else:
+        return base_url
+
 class Provider(AProvider):
     def __init__(self, name, sdb, cdb, function, userdb, urlmap=None,
                  ca_certs="", jwt_keys=None):
@@ -263,6 +270,25 @@ class Provider(AProvider):
             return self._redirect_authz_error("invalid_id_token_object",
                                               redirect_uri)
 
+    def get_redirect_uri(self, areq):
+        # verify that the redirect URI is reasonable
+        if 'redirect_uri' in areq:
+            reply = self._verify_redirect_uri(areq)
+            if reply:
+                return (None, reply)
+            uri = areq["redirect_uri"]
+        else: # pick the one registered
+            ruris = self.cdb[areq["client_id"]]["redirect_uris"]
+            if len(ruris) == 1:
+                uri = construct_uri(ruris[0])
+            else:
+                err = "Missing redirect_uri and more than one registered"
+                logger.debug("Bad request: %s" % err)
+                resp = BadRequest("%s" % err)
+                return None, resp
+
+        return uri, None
+
     def authorization_endpoint(self, environ, start_response, **kwargs):
         # The AuthorizationRequest endpoint
 
@@ -292,17 +318,20 @@ class Provider(AProvider):
         except MissingRequiredAttribute:
             areq = AuthorizationRequest().deserialize(query, "urlencoded")
             # verify the redirect_uri
-            reply = self._verify_redirect_uri(areq)
+            (uri, reply) = self.get_redirect_uri(areq)
             if reply:
                 return reply(environ, start_response)
             resp = self._redirect_authz_error("invalid_request",
-                                              areq["redirect_uri"],
-                                              "Missing required attribute")
+                                              uri, "Missing required attribute")
             return resp(environ, start_response)
         except Exception,err:
             _log_debug("Bad request: %s" % err)
             resp = BadRequest("%s" % err)
             return resp(environ, start_response)
+
+        (redirect_uri, reply) = self.get_redirect_uri(areq)
+        if reply:
+            return reply(environ, start_response)
 
         try:
             client_info = self.cdb[areq["client_id"]]
@@ -318,8 +347,7 @@ class Provider(AProvider):
                                          "invalid_request_uri")
 
             v_keys = {".": _srv.keystore.get_keys("ver", owner=".")}
-            resp = self._parse_openid_request(_req, areq["redirect_uri"],
-                                              v_keys)
+            resp = self._parse_openid_request(_req, redirect_uri, v_keys)
             if isinstance(resp, Response):
                 return resp(environ, start_response)
             else:
@@ -340,7 +368,7 @@ class Provider(AProvider):
                 else:
                     # This is the default
                     resp = self._redirect_authz_error("login_required",
-                                                      areq["redirect_uri"])
+                                                      redirect_uri)
                     # If there is hint on which user is question
                     # used that
                     user = ""
@@ -364,12 +392,6 @@ class Provider(AProvider):
                             logger.error("Unknown user id '%s'" % user)
 
                     return resp(environ, start_response)
-
-        # verify that the redirect URI is resonable
-        if "redirect_uri" in areq:
-            reply = self._verify_redirect_uri(areq)
-            if reply:
-                return reply(environ, start_response)
 
         _log_debug("AREQ keys: %s" % areq.keys())
 
@@ -1066,15 +1088,9 @@ class Provider(AProvider):
                 resp = BadRequest("Unknown response type")
                 return resp(environ, start_response)
 
-        if "redirect_uri" in areq:
-#            try:
-#                self._verify_redirect_uri(areq)
-#            except Exception:
-#                return self._authz_error(environ, start_response,
-#                                         "invalid_request_redirect_uri")
-            redirect_uri = areq["redirect_uri"]
-        else:
-            redirect_uri = self.cdb[areq["client_id"]]["redirect_uris"][0]
+        (redirect_uri, reply) = self.get_redirect_uri(areq)
+        if reply: # shouldn't happen but want to be on the safe side
+            return reply(environ, start_response)
 
         location = aresp.request(redirect_uri)
 
