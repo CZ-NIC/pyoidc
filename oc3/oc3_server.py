@@ -1,5 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __builtin__ import int, open, hasattr, isinstance
+from exceptions import KeyError
+from exceptions import Exception
+from exceptions import ValueError
+from exceptions import OSError
+from exceptions import IndexError
+from exceptions import AttributeError
+from exceptions import KeyboardInterrupt
+
 import os
 import traceback
 from oic.oauth2 import rndstr
@@ -20,6 +29,7 @@ from oic.oic.provider import STR
 from oic.utils.http_util import *
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import AuthnToken
+from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.provider import AuthnFailure
 from oic.oic.claims_provider import ClaimsClient
 from oic.oic import JWT_BEARER
@@ -382,6 +392,7 @@ def static_file(path):
     except OSError:
         return False
 
+#noinspection PyUnresolvedReferences
 def static(environ, start_response, logger, path):
     logger.info("[static]sending: %s" % (path,))
 
@@ -411,7 +422,6 @@ from oic.oic.provider import UserinfoEndpoint
 #from oic.oic.provider import CheckIDEndpoint
 from oic.oic.provider import RegistrationEndpoint
 
-
 ENDPOINTS = [
     AuthorizationEndpoint(authorization),
     TokenEndpoint(token),
@@ -430,8 +440,11 @@ URLS = [
 #    (r'tracelog', trace_log),
 ]
 
-for endp in ENDPOINTS:
-    URLS.append(("^%s" % endp.type, endp))
+def add_endpoints(extra):
+    global URLS
+
+    for endp in extra:
+        URLS.append(("^%s" % endp.type, endp))
 
 # ----------------------------------------------------------------------------
 
@@ -649,7 +662,7 @@ def mv_content(fro, to):
     (head, tail) = os.path.split(fro)
     f = open("%s/%s" % (to, tail))
     f.write(txt)
-    f.close
+    f.close()
 
 if __name__ == '__main__':
     import argparse
@@ -664,8 +677,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', dest='verbose', action='store_true')
     parser.add_argument('-d', dest='debug', action='store_true')
-    parser.add_argument('-t', dest='test', action='store_true')
     parser.add_argument('-p', dest='port', default=80, type=int)
+    parser.add_argument('-t', dest='test', action='store_true')
+    parser.add_argument('-P', dest='provider_conf')
     parser.add_argument(dest="config")
     args = parser.parse_args()
 
@@ -699,7 +713,18 @@ if __name__ == '__main__':
     else:
         OAS.test_mode = False
 
-    OAS.endpoints = ENDPOINTS
+    if args.provider_conf:
+        prc = ProviderConfigurationResponse().from_json(open(args.provider_conf).read())
+        endpoints = []
+        for key in prc.keys():
+            if key.endswith("_endpoint"):
+                endpoints.append(key)
+    else:
+        endpoints = ENDPOINTS
+
+    add_endpoints(endpoints)
+    OAS.endpoints = endpoints
+
     if args.port == 80:
         OAS.baseurl = config.baseurl
     else:
