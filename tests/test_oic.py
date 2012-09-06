@@ -15,7 +15,7 @@ from oic.oic import Client
 from oic.oic import Server
 
 from oic.oic.message import IdToken
-from oic.oic.message import AuthorizationErrorResponse
+#from oic.oic.message import AuthorizationErrorResponse
 from oic.oic.message import Claims
 from oic.oic.message import UserInfoClaim
 from oic.oic.message import UserInfoRequest
@@ -37,7 +37,8 @@ from oic.oauth2.message import MissingRequiredAttribute
 
 from oic.utils import time_util
 from oic.utils.time_util import time_sans_frac
-from oic.utils.jwt import left_hash, unpack
+from oic.jwt.jws import left_hash
+from oic.jwt import unpack
 from oic.utils.keystore import rsa_load
 
 from pytest import raises
@@ -265,7 +266,8 @@ class TestOICClient():
     def test_parse_authz_err_response(self):
         ruri = "https://client.example.com/cb?error=access_denied&amp;state=xyz"
 
-        resp = self.client.parse_response(AuthorizationErrorResponse,
+        #print self.client.response2error[AuthorizationErrorResponse.__name__]
+        resp = self.client.parse_response(AuthorizationResponse,
                                           info=ruri, format="urlencoded")
 
         print type(resp), resp
@@ -415,7 +417,8 @@ class TestOICClient():
         self.client.userinfo_endpoint = "http://oic.example.org/userinfo"
         print self.client.grant.keys()
         print self.client.grant[self.client.state]
-        resp = self.client.do_user_info_request(state=self.client.state)
+        resp = self.client.do_user_info_request(state=self.client.state,
+                                                schema=["openid"])
         assert resp.type() == "OpenIDSchema"
         assert _eq(resp.keys(), ['name', 'email', 'verified', 'nickname'])
         assert resp["name"] == "Melody Gardot"
@@ -475,7 +478,8 @@ class TestOICClient():
         token = self.client.get_token(state=self.client.state, scope="openid")
         token.token_expiration_time = time_sans_frac()-86400
 
-        resp = self.client.do_user_info_request(state=self.client.state)
+        resp = self.client.do_user_info_request(state=self.client.state,
+                                                schema=["openid"])
         assert resp.type() == "OpenIDSchema"
         assert _eq(resp.keys(), ['name', 'email', 'verified', 'nickname'])
         assert resp["name"] == "Melody Gardot"
@@ -774,9 +778,9 @@ def test_construct_UserInfoRequest():
     cli.userinfo_endpoint = "https://example.org/oauth2/userinfo"
 
     uir = cli.construct_UserInfoRequest(
-        request_args={"access_token":"access_token"})
+        request_args={"access_token":"access_token", "schema":["openid"]})
     print uir
-    assert ("%s" % uir) == "access_token=access_token"
+    assert ("%s" % uir) == "access_token=access_token&schema=openid"
 
 def test_construct_UserInfoRequest_2():
     cli = Client()
@@ -791,9 +795,10 @@ def test_construct_UserInfoRequest_2():
 
     cli.grant["foo"].tokens.append(Token(resp))
 
-    uir = cli.construct_UserInfoRequest(state="foo", scope=["openid"])
+    uir = cli.construct_UserInfoRequest(state="foo", scope=["openid"],
+                                        request_args={"schema":["openid"]})
     print uir
-    assert uir.keys() == ["access_token"]
+    assert uir.keys() == ["access_token", "schema"]
 
 def test_construct_CheckSessionRequest():
     cli = Client()
@@ -905,11 +910,12 @@ def test_userinfo_request():
 
 
     path, body, method, h_args = cli.user_info_request(method="POST",
-                                                       state="state0")
+                                                       state="state0",
+                                                       schema=["openid"])
 
     assert path == "http://example.com/userinfo"
     assert method == "POST"
-    assert body == "access_token=access_token"
+    assert body == "access_token=access_token&schema=openid"
     assert h_args == {'headers': {'content-type': 'application/x-www-form-urlencoded'}}
 
 #def test_do_user_indo_request():
@@ -1064,18 +1070,21 @@ def test_make_id_token():
                "client_id": "http://oic.example/rp"}
     issuer= "http://oic.example/idp"
     code = "abcdefghijklmnop"
-    idt_jwt = srv.make_id_token(session, loa="2", issuer=issuer,
+    _idt = srv.make_id_token(session, loa="2", issuer=issuer,
                                 code=code, access_token="access_token")
 
+    ckey, algo = srv.get_signing_key(session, keytype="rsa")
+    _signed_jwt = _idt.to_jwt(key=ckey, algorithm=algo)
+
     jwt_keys = srv.keystore.get_keys("ver", owner=None)
-    idt = IdToken().from_jwt(idt_jwt, key=jwt_keys)
+    idt = IdToken().from_jwt(_signed_jwt, key=jwt_keys)
     print idt
-    header = unpack(idt_jwt)
+    header = unpack(_signed_jwt)
 
     lha = left_hash(code, func="HS"+ header[0]["alg"][-3:])
     assert lha == idt["c_hash"]
 
-    atr = AccessTokenResponse(id_token= idt_jwt, access_token="access_token",
+    atr = AccessTokenResponse(id_token=_signed_jwt, access_token="access_token",
                               token_type="Bearer")
     atr["code"] = code
     assert atr.verify(key=jwt_keys)

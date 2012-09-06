@@ -93,7 +93,8 @@ class MyFakeOICServer(Server):
 
     def authorization_endpoint(self, query):
         req = self.parse_authorization_request(query=query)
-        sid = self.sdb.create_authz_session(user_id="user", areq=req)
+        sid = self.sdb.create_authz_session(user_id="user", areq=req,
+                                            preferred_id_type="public")
         _info = self.sdb[sid]
 
         if "code" in req["response_type"]:
@@ -122,8 +123,10 @@ class MyFakeOICServer(Server):
                 pass
 
             if "id_token" in req["response_type"]:
-                _dict["id_token"] = self.make_id_token(_info, issuer=self.name,
-                                            access_token=_dict["access_token"])
+                _idt = self.make_id_token(_info, issuer=self.name,
+                                          access_token=_dict["access_token"])
+                ckey, algo = self.get_signing_key(_info, keytype="rsa")
+                _dict["id_token"] = _idt.to_jwt(key=ckey, algorithm=algo)
 
             resp = AccessTokenResponse(**_dict)
 

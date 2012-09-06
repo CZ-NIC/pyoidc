@@ -1,3 +1,4 @@
+from oic.utils.time_util import in_a_while, time_in_a_while, epoch_in_a_while
 
 __author__ = 'rohe0002'
 
@@ -107,7 +108,7 @@ CDB = {
         "password": "hemligt",
         "client_secret": "drickyoughurt",
         #"jwk_key": CONSUMER_CONFIG["key"],
-        "redirect_uris": [("http://localhost:8087/authz", None)]
+        "redirect_uris": [("http://localhost:8087/authz", None)],
     },
     "a1b2c3":{
         "redirect_uris": [("http://localhost:8087/authz", None)]
@@ -320,12 +321,16 @@ def test_server_authorization_endpoint_id_token():
                                 scope=["openid"], state="state000")
 
     sdb = SessionDB()
-    sid = sdb.create_authz_session("username", AREQ)
+    sid = sdb.create_authz_session("username", AREQ, preferred_id_type="public")
 
     _info = sdb[sid]
+    _user_info = IdToken(iss="https://foo.example.om", user_id="foo",
+                         aud=bib["client_id"], exp=epoch_in_a_while(minutes=10),
+                        acr="2", nonce=bib["nonce"])
 
-    idt = provider.server.make_id_token(_info, issuer=provider.name,
-                                        access_token="access_token")
+    print _user_info.to_dict()
+    idt = provider.id_token_as_signed_jwt(_info, access_token="access_token",
+                                          user_info=_user_info)
 
     req["id_token"] = idt
 
@@ -667,10 +672,11 @@ def test_idtoken():
                                 redirect_uri="http://example.com/authz",
                                 scope=["openid"], state="state000")
 
-    sid = server.sdb.create_authz_session("user_id", AREQ)
+    sid = server.sdb.create_authz_session("user_id", AREQ,
+                                          preferred_id_type="public")
     session = server.sdb[sid]
 
-    id_token = server._id_token(session)
+    id_token = server.id_token_as_signed_jwt(session)
     print id_token
     assert len(id_token.split(".")) == 3
 
@@ -727,7 +733,7 @@ def test_check_session_endpoint():
                             "number5")
 
     session = {"user_id": "UserID", "client_id": "number5"}
-    idtoken = server._id_token(session)
+    idtoken = server.id_token_as_signed_jwt(session)
     csr = CheckSessionRequest(id_token=idtoken)
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = csr.to_urlencoded()
