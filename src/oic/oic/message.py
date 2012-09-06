@@ -14,7 +14,8 @@ from oic.oauth2.message import SINGLE_OPTIONAL_INT
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 from oic.oauth2.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
 
-from oic.utils import jwt
+from oic import jwt
+from oic.jwt import jws
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +178,7 @@ class AccessTokenResponse(message.AccessTokenResponse):
 
 class UserInfoRequest(Message):
     c_param = {"access_token": SINGLE_OPTIONAL_STRING,
-               "schema": SINGLE_OPTIONAL_STRING,
+               "schema": SINGLE_REQUIRED_STRING,
                "id": SINGLE_OPTIONAL_STRING}
 
 class AuthorizationResponse(message.AuthorizationResponse,
@@ -214,7 +215,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
                 except AssertionError:
                     raise Exception("Missing at_hash property")
                 try:
-                    assert idt["at_hash"] == jwt.left_hash(
+                    assert idt["at_hash"] == jws.left_hash(
                         self["access_token"], hfunc )
                 except AssertionError:
                     raise Exception("Failed to verify access_token hash")
@@ -225,7 +226,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
                 except AssertionError:
                     raise Exception("Missing c_hash property")
                 try:
-                    assert idt["c_hash"] == jwt.left_hash(self["code"], hfunc)
+                    assert idt["c_hash"] == jws.left_hash(self["code"], hfunc)
                 except AssertionError:
                     raise Exception("Failed to verify code hash")
 
@@ -362,7 +363,8 @@ class RegistrationRequest(Message):
 
     c_allowed_values = {
             "type" : ["client_associate", "client_update", "rotate_secret"],
-            "application_type": ["native", "web"]
+            "application_type": ["native", "web"],
+            "user_id_type": ["public", "pairwise"]
         }
 
 class RegistrationResponseCARS(Message):
@@ -572,7 +574,7 @@ SCOPE2CLAIMS = {
     "email": ["email", "email_verified"],
     "address": ["address"],
     "phone": ["phone_number"],
-    "claims_in_id_token": []
+    #"claims_in_id_token": []
 }
 
 MSG = {
