@@ -12,7 +12,6 @@ import logging
 
 from oic.utils.keystore import KeyStore
 from oic.utils.time_util import utc_time_sans_frac
-#from oic.utils.jwt import construct_rsa_jwk, key_eq
 
 DEF_SIGN_ALG = "HS256"
 
@@ -749,7 +748,6 @@ class Client(PBase):
 
         _r2e = self.response2error
 
-        err = None
         if format == "urlencoded":
             if '?' in info or '#' in info:
                 parts = urlparse.urlparse(info)
@@ -760,37 +758,45 @@ class Client(PBase):
                 else:
                     info = fragment
 
+        err = None
         try:
             resp = response().deserialize(info, format)
-            verf = resp.verify(**kwargs)
-            if not verf:
-                raise Exception("Verification of the response failed")
-            if resp.type() == "AuthorizationResponse" and "scope" not in resp:
+            if "error" in resp:
+                resp = None
                 try:
-                    resp["scope"] = kwargs["scope"]
+                    errmsgs = _r2e[response.__name__]
+                except KeyError:
+                    errmsgs = [response]
+
+                try:
+                    for errmsg in errmsgs:
+                        try:
+                            resp = errmsg().deserialize(info, format)
+                            resp.verify()
+                            break
+                        except Exception, aerr:
+                            resp = None
+                            err = aerr
                 except KeyError:
                     pass
-        except Exception, err:
+            else:
+                verf = resp.verify(**kwargs)
+                if not verf:
+                    raise Exception("Verification of the response failed")
+                if resp.type() == "AuthorizationResponse" and "scope" not in resp:
+                    try:
+                        resp["scope"] = kwargs["scope"]
+                    except KeyError:
+                        pass
+        except Exception, derr:
             resp = None
-
-        eresp = None
-        try:
-            for errmsg in _r2e[response.__name__]:
-                try:
-                    eresp = errmsg().deserialize(info, format)
-                    eresp.verify()
-                    break
-                except Exception:
-                    eresp = None
-        except KeyError:
-            pass
-
-        # Error responses has higher precedence
-        if eresp:
-            resp = eresp
+            err = derr
 
         if not resp:
-            raise err
+            if err:
+                raise err
+            else:
+                raise Exception()
 
         if resp.type() in ["AuthorizationResponse", "AccessTokenResponse"]:
             try:
