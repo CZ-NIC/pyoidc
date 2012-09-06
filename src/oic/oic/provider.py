@@ -20,7 +20,7 @@ from oic.oic.message import UserInfoClaim
 from oic.oic.message import DiscoveryRequest
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import DiscoveryResponse
-from oic.utils.jwt import unpack
+from oic.jwt import unpack
 #import sys
 import sys
 
@@ -169,16 +169,18 @@ class Provider(AProvider):
         self.test_mode = False
         self.jwk = []
 
-    def _id_token(self, session, loa="2", keytype="rsa",
+    def id_token_as_signed_jwt(self, session, loa="2", keytype="rsa",
                   code=None, access_token=None, user_info=None):
 
-        _idtoken = self.server.make_id_token(session, loa,
+        _idt = self.server.make_id_token(session, loa,
                                              self.name, keytype, code,
                                              access_token, user_info)
 
-        logger.debug("id_token: %s" % unpack(_idtoken)[1])
+        logger.debug("id_token: %s" % _idt.to_dict())
+        ckey, algo = self.server.get_signing_key(session, keytype)
+        _signed_jwt = _idt.to_jwt(key=ckey, algorithm=algo)
 
-        return _idtoken
+        return _signed_jwt
 
     def _error_response(self, error, descr=None):
         response = ErrorResponse(error=error, error_description=descr)
@@ -276,7 +278,11 @@ class Provider(AProvider):
                                               redirect_uri)
 
     def get_redirect_uri(self, areq):
-        # verify that the redirect URI is reasonable
+        """ verify that the redirect URI is reasonable
+        :param areq: The Authorization request
+        :return: Tuple of (redirect_uri, Response instance)
+            Response instance is not None of matching redirect_uri failed
+        """
         if 'redirect_uri' in areq:
             reply = self._verify_redirect_uri(areq)
             if reply:
@@ -293,6 +299,37 @@ class Provider(AProvider):
                 return None, resp
 
         return uri, None
+
+    def get_sector_id(self, redirect_uri, client_info):
+        """
+        Pick the sector id given a number of factors
+        :param redirect_uri: The redirect_uri used
+        :param client_info: Information provided by the client in the
+          client registration
+        :return: A sector_id or None
+        """
+
+        _redirect_uri = urlparse.unquote(redirect_uri)
+
+        part = urlparse.urlparse(_redirect_uri)
+        if part.fragment:
+            raise ValueError
+
+        (_base, _query) = urllib.splitquery(_redirect_uri)
+
+        sid = ""
+        try:
+            if _base in client_info["si_redirects"]:
+                sid = client_info["sector_id"]
+        except KeyError:
+            try:
+                uit = client_info["user_id_type"]
+                if uit == "pairwise":
+                    sid = _base
+            except KeyError:
+                pass
+
+        return sid
 
     def authorization_endpoint(self, environ, start_response, **kwargs):
         # The AuthorizationRequest endpoint
@@ -400,13 +437,15 @@ class Provider(AProvider):
 
         _log_debug("AREQ keys: %s" % areq.keys())
 
-        try:
-            si_redirects = client_info["si_redirects"]
-        except KeyError:
-            si_redirects = None
+        sect_id = self.get_sector_id(redirect_uri, client_info)
 
-        sid = _sdb.create_authz_session("", areq, oidreq=openid_req,
-                                        si_redirects=si_redirects)
+        if sect_id:
+            sid = _sdb.create_authz_session("", areq, oidreq=openid_req,
+                                            sector_id=sect_id)
+        else:
+            sid = _sdb.create_authz_session("", areq, oidreq=openid_req,
+                                            preferred_id_type="public")
+
         _log_debug("session: %s" % _sdb[sid])
 
         bsid = base64.b64encode(sid)
@@ -573,7 +612,7 @@ class Provider(AProvider):
 
         if "openid" in _info["scope"]:
             try:
-                _idtoken = self._id_token(_info)
+                _idtoken = self.id_token_as_signed_jwt(_info)
             except AccessDenied:
                 return self._error(environ, start_response,
                                    error="access_denied")
@@ -775,8 +814,33 @@ class Provider(AProvider):
                                    "invalid_configuration_parameter",
                                    descr="Error deserializing sector_identifier_url content")
 
+            if "redirect_uris" in request:
+                for uri in request["redirect_uris"]:
+                    try:
+                        assert uri in si_redirects
+                    except AssertionError:
+                        return self._error_response(
+                            "invalid_configuration_parameter",
+                            descr="redirect_uri missing from sector_identifiers")
+
             _cinfo["si_redirects"] = si_redirects
             _cinfo["sector_id"] = si_url
+        elif "redirect_uris" in request:
+            if len(request["redirect_uris"]) > 1:
+                # check that the hostnames are the same
+                host = ""
+                for url in request["redirect_uris"]:
+                    part = urlparse.urlparse(url)
+                    _host = part.netloc.split(":")[0]
+                    if not host:
+                        host = _host
+                    else:
+                        try:
+                            assert host == _host
+                        except AssertionError:
+                            return self._error_response(
+                                "invalid_configuration_parameter",
+                                descr="'sector_identifier_url' must be registered")
 
         for item in ["policy_url", "logo_url"]:
             if item in request:
@@ -922,7 +986,7 @@ class Provider(AProvider):
                                                       "code id_token",
                                                       "token id_token",
                                                       "code token id_token"],
-                            user_id_types_supported=["public"],
+                            user_id_types_supported=["public", "pairwise"],
                             #request_object_algs_supported=["HS256"]
                         )
 
@@ -1128,10 +1192,9 @@ class Provider(AProvider):
                 except KeyError:
                     user_info = None
 
-                id_token = self._id_token(_sinfo,
-                                          code=_code,
-                                          access_token=_access_token,
-                                          user_info=user_info)
+                id_token = self.id_token_as_signed_jwt(_sinfo, code=_code,
+                                                       access_token=_access_token,
+                                                       user_info=user_info)
                 aresp["id_token"] = id_token
                 _sinfo["id_token"] = id_token
                 rtype.remove("id_token")
