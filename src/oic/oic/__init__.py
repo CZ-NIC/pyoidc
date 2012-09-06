@@ -44,7 +44,9 @@ from oic.oauth2 import rndstr
 
 from oic.oic.exception import AccessDenied
 
-from oic.utils import time_util, jwt
+from oic import jwt
+from oic.jwt import jws
+from oic.utils import time_util
 #from oic.utils import jwt
 
 #from oic.utils.time_util import time_sans_frac
@@ -193,7 +195,7 @@ def deser_id_token(inst, str=""):
             except KeyError:
                 collection[key] = val
 
-    jwt.verify(str, collection)
+    jws.verify(str, collection)
 
     return IdToken().from_dict(jso)
 
@@ -747,10 +749,18 @@ class Client(oauth2.Client):
 
         url = OIDCONF_PATTERN % _issuer
 
+        pcr = None
         r = self.http_request(url)
         if r.status_code == 200:
             pcr = ProviderConfigurationResponse().from_json(r.text)
-        else:
+        elif r.status_code == 302:
+            while r.status_code == 302:
+                r = self.http_request(r.headers["location"])
+                if r.status_code == 200:
+                    pcr = ProviderConfigurationResponse().from_json(r.text)
+                    break
+
+        if pcr is None:
             raise Exception("Trying '%s', status %s" % (url, r.status_code))
 
         if "issuer" in pcr:
@@ -765,7 +775,7 @@ class Client(oauth2.Client):
                 raise Exception("provider info issuer mismatch '%s' != '%s'" % (
                     _issuer, _pcr_issuer))
 
-        self.provider_info[_pcr_issuer] = pcr
+            self.provider_info[_pcr_issuer] = pcr
 
         if endpoints:
             for key, val in pcr.items():
@@ -785,7 +795,7 @@ class Client(oauth2.Client):
                         self.provider_config(csrc, endpoints=False)
 
                     keycol = self.keystore.pairkeys(csrc)["ver"]
-                    info = json.loads(jwt.verify(str(spec["JWT"]), keycol))
+                    info = json.loads(jws.verify(str(spec["JWT"]), keycol))
                     attr = [n for n, s in userinfo._claim_names.items() if s ==
                                                                            csrc]
                     assert attr == info.keys()
@@ -816,6 +826,38 @@ class Client(oauth2.Client):
                     userinfo[key] = vals
 
         return userinfo
+
+    def verify_alg_support(self, alg, usage, other):
+        """
+        Verifies that the algorithm to be used are supported by the other side.
+
+        :param alg: The algorithm specification
+        :param usage: In which context the 'alg' will be used.
+            The following values are supported:
+            - userinfo
+            - id_token
+            - request_object
+            - token_endpoint_auth
+        :param other: The identifier for the other side
+        :return: True or False
+        """
+
+        try:
+            _pcr = self.provider_info[other]
+            supported = _pcr["%s_algs_supported" % usage]
+        except KeyError:
+            try:
+                supported = getattr(self, "%s_algs_supported" % usage)
+            except AttributeError:
+                supported = None
+
+        if supported is None:
+            return True
+        else:
+            if alg in supported:
+                return True
+            else:
+                return False
 
 #noinspection PyMethodOverriding
 class Server(oauth2.Server):
@@ -911,6 +953,30 @@ class Server(oauth2.Server):
     def parse_issuer_request(self, info, format="urlencoded"):
         return self._parse_request(IssuerRequest, info, format)
 
+    def get_signing_key(self, session, keytype):
+        """Find out which key and algorithm to use
+
+        :param session: session information
+        :param keytype: which type of key to use
+        :return: tuple with (key, algorithm)
+        """
+        _keystore = self.keystore
+        if keytype == "hmac":
+            ckey = {"hmac":
+                        _keystore.get_sign_key("hmac",
+                                               owner=session["client_id"])}
+            algo = "HS256"
+        elif keytype == "rsa": # own asymmetric key
+            algo = "RS256"
+            ckey = {"rsa": _keystore.get_sign_key("rsa")}
+        else:
+            algo = "ES256"
+            ckey = {"ec":_keystore.get_sign_key("ec")}
+
+        logger.debug("Sign with '%s'" % (ckey,))
+
+        return ckey, algo
+
     def make_id_token(self, session, loa="2", issuer="",
                       keytype="rsa", code=None, access_token=None,
                       user_info=None):
@@ -950,9 +1016,9 @@ class Server(oauth2.Server):
                 pass
 
         if code:
-            _args["c_hash"] = jwt.left_hash(code, "HS256")
+            _args["c_hash"] = jws.left_hash(code, "HS256")
         if access_token:
-            _args["at_hash"] = jwt.left_hash(access_token, "HS256")
+            _args["at_hash"] = jws.left_hash(access_token, "HS256")
 
         idt = IdToken(iss=issuer, user_id=session["user_id"],
                       aud = session["client_id"],
@@ -965,20 +1031,4 @@ class Server(oauth2.Server):
         if "nonce" in session:
             idt.nonce = session["nonce"]
 
-        # sign with clients secret key
-        _keystore = self.keystore
-        if keytype == "hmac":
-            ckey = {"hmac":
-                        _keystore.get_sign_key("hmac",
-                                               owner=session["client_id"])}
-            algo = "HS256"
-        elif keytype == "rsa": # own asymmetric key
-            algo = "RS256"
-            ckey = {"rsa": _keystore.get_sign_key("rsa")}
-        else:
-            algo = "ES256"
-            ckey = {"ec":_keystore.get_sign_key("ec")}
-
-        logger.debug("Sign idtoken with '%s'" % (ckey,))
-
-        return idt.to_jwt(key=ckey, algorithm=algo)
+        return idt
