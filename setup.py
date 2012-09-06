@@ -26,7 +26,7 @@ setup(
     author = "Roland Hedberg",
     author_email = "roland.hedberg@adm.umu.se",
     license="Apache 2.0",
-    packages=["oic", "oic/oauth2", "oic/oic", "oic/utils"],
+    packages=["oic", "oic/oauth2", "oic/oic", "oic/utils", "oic/jwt"],
     package_dir = {"": "src"},
     classifiers = ["Development Status :: 4 - Beta",
         "License :: OSI Approved :: Apache Software License",
