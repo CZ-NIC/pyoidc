@@ -3,7 +3,8 @@ import urllib
 import urlparse
 import json
 
-from oic.utils import jwt
+from oic import jwt
+from oic.jwt import jws
 from oic.oauth2 import DEF_SIGN_ALG
 
 logger = logging.getLogger(__name__)
@@ -339,7 +340,7 @@ class Message(object):
         """
         if not algorithm:
             algorithm = DEF_SIGN_ALG
-        return jwt.sign(self.to_json(lev), key, algorithm)
+        return jws.sign(self.to_json(lev), key, algorithm)
 
 
     def from_jwt(self, txt, key, verify=True):
@@ -378,7 +379,7 @@ class Message(object):
                             except KeyError:
                                 _keys[typ] = keys
 
-                jwt.verify(txt, _keys)
+                jws.verify(txt, _keys)
         except Exception:
             raise
 
