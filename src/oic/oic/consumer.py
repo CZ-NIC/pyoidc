@@ -444,7 +444,7 @@ class Consumer(Client):
     
     #noinspection PyUnusedLocal
     def get_user_info(self):
-        uinfo = self.do_user_info_request(state=self.state)
+        uinfo = self.do_user_info_request(state=self.state, schema="openid")
 
         if uinfo.type() == "ErrorResponse":
             raise TokenError(uinfo.error)
@@ -482,6 +482,8 @@ class Consumer(Client):
                 return self.discovery_query(_uri, principal)
             else:
                 return result
+        elif rsp.status_code == 302:
+            return self.discovery_query(rsp.headers["location"], principal)
         else:
             raise Exception(rsp.status_code)
 
@@ -546,3 +548,4 @@ class Consumer(Client):
             raise Exception("Registration failed: %s" % err.get_json())
 
         return resp
+
