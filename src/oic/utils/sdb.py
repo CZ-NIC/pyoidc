@@ -161,21 +161,23 @@ class SessionDB(object):
         return self.update(key, attribute, value)
 
     def create_authz_session(self, user_id, areq, id_token=None, oidreq=None,
-                             si_redirects="", sector_id=""):
+                             sector_id="", preferred_id_type="pairwise"):
         """
 
         :param user_id: Identifier for the user, this is the real identifier
         :param areq: The AuthorizationRequest instance
         :param id_token: An IDToken instance
         :param oidreq: An OpenIDRequest instance
-        :param si_redirects: The Sector_identifier_url
+        :param sector_id:
+        :param preferred_id_type: Whether public or pairwise user_id should be
+            used.
         :return: The session identifier, which is the database key
         """
 
-        if si_redirects:
-            uid = pairwise_id(user_id, sector_id, self.seed)
-        else:
+        if preferred_id_type == "public":
             uid = user_id
+        else:
+            uid = pairwise_id(user_id, sector_id, self.seed)
 
         sid = self.token.key(user=user_id, areq=areq)
         access_grant = self.token(sid=sid)
