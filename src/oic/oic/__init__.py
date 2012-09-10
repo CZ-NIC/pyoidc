@@ -110,7 +110,8 @@ def client_secret_jwt(cli, cis, request_args=None, http_args=None, **kwargs):
     try:
         algorithm = kwargs["algorithm"]
     except KeyError:
-        algorithm = DEF_SIGN_ALG
+        algorithm = cli.require_signed_request_object
+
 
     cis["client_assertion"] = assertion_jwt(cli, signing_key, audience,
                                             algorithm)
@@ -201,7 +202,7 @@ def deser_id_token(inst, str=""):
 
 # -----------------------------------------------------------------------------
 def make_openid_request(arq, keys, userinfo_claims=None,
-                        idtoken_claims=None, algorithm=OIC_DEF_SIGN_ALG,
+                        idtoken_claims=None, algorithm=None,
                         **kwargs):
     """
     Construct the specification of what I want returned.
@@ -303,6 +304,7 @@ class Client(oauth2.Client):
         self.token_class = Token
         self.authn_method = AUTHN_METHOD
         self.provider_info = {}
+        self.require_signed_request_object = OIC_DEF_SIGN_ALG
 
     def _get_id_token(self, **kwargs):
         try:
@@ -374,6 +376,9 @@ class Client(oauth2.Client):
             kwargs["keys"] = self.keystore.get_sign_key()
 
         if "userinfo_claims" in kwargs or "idtoken_claims" in kwargs:
+            if "algorithm" not in kwargs:
+                kwargs["algorithm"] = self.require_signed_request_object
+
             areq["request"] = make_openid_request(areq, **kwargs)
 
         return areq
