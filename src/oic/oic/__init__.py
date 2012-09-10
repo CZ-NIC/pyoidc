@@ -36,7 +36,7 @@ from oic.oic.message import AuthorizationErrorResponse
 
 from oic import oauth2
 
-from oic.oauth2 import AUTHN_METHOD as OAUTH2_AUTHN_METHOD, DEF_SIGN_ALG
+from oic.oauth2 import AUTHN_METHOD as OAUTH2_AUTHN_METHOD
 from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import rndstr
 
