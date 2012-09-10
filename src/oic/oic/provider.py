@@ -20,9 +20,9 @@ from oic.oic.message import UserInfoClaim
 from oic.oic.message import DiscoveryRequest
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import DiscoveryResponse
-from oic.jwt import unpack
 #import sys
 import sys
+from requests import ConnectionError
 
 __author__ = 'rohe0002'
 
@@ -383,7 +383,12 @@ class Provider(AProvider):
 
         if "request_uri" in areq:
             # Do a HTTP get
-            _req = _srv.http_request(areq["request_uri"])
+            try:
+                _req = _srv.http_request(areq["request_uri"])
+            except ConnectionError:
+                return self._authz_error(environ, start_response,
+                                         "invalid_request_uri")
+
             if not _req:
                 return self._authz_error(environ, start_response,
                                          "invalid_request_uri")
@@ -802,7 +807,12 @@ class Provider(AProvider):
 
         if "sector_identifier_url" in request:
             si_url = request["sector_identifier_url"]
-            res = self.server.http_request(si_url)
+            try:
+                res = self.server.http_request(si_url)
+            except ConnectionError:
+                return self._error_response("invalid_configuration_parameter",
+                                    descr="Couldn't open sector_identifier_url")
+
             if not res:
                 return self._error_response(
                                    "invalid_configuration_parameter",
@@ -878,7 +888,18 @@ class Provider(AProvider):
         request = RegistrationRequest().deserialize(query, "urlencoded")
         logger.info("registration_request:%s" % request.to_dict())
 
+        try:
+            request.verify()
+        except Exception, err:
+            if "type" not in request:
+                return self._error(environ, start_response,
+                                   error="invalid_type")
+            else:
+                return self._error(environ, start_response,
+                                   error="invalid_configuration_parameter")
+
         _keystore = self.server.keystore
+
         if request["type"] == "client_associate":
             # create new id och secret
             client_id = rndstr(12)
