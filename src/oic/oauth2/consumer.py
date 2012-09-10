@@ -60,6 +60,9 @@ class TokenError(Exception):
 class AuthzError(Exception):
     pass
 
+class ConfigurationError(Exception):
+    pass
+
 class Consumer(Client):
     """ An OAuth2 consumer implementation
 
