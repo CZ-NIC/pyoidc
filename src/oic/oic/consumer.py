@@ -37,6 +37,7 @@ from oic.oauth2 import rndstr
 from oic.oauth2.consumer import TokenError
 from oic.oauth2.consumer import AuthzError
 from oic.oauth2.consumer import UnknownState
+from oic.oauth2.consumer import ConfigurationError
 
 SWD_PATTERN = "http://%s/.well-known/simple-web-discovery"
 SERVICE_TYPE = "http://openid.net/specs/connect/1.0/issuer"
@@ -145,6 +146,22 @@ def clean_response(aresp):
 
 IGNORE = ["request2endpoint", "response2error", "grant_class", "token_class"]
 
+CONSUMER_PREF_ARGS =[
+    "token_endpoint_auth_type",
+    "user_id_type",
+    "require_signed_request_object",
+    "userinfo_signed_response_algs",
+    "userinfo_encrypted_response_alg",
+    "userinfo_encrypted_response_enc",
+    "userinfo_encrypted_response_int",
+    "id_token_signed_response_algs",
+    "id_token_encrypted_response_alg",
+    "id_token_encrypted_response_enc",
+    "id_token_encrypted_response_int",
+    "default_max_age",
+    "require_auth_time",
+    "default_acr"
+]
 
 class Consumer(Client):
     """ An OpenID Connect consumer implementation
@@ -152,13 +169,15 @@ class Consumer(Client):
     """
     #noinspection PyUnusedLocal
     def __init__(self, session_db, config, client_config=None,
-                 server_info=None, debug=False):
+                 server_info=None, debug=False, client_prefs=None):
         """ Initializes a Consumer instance.
 
         :param session_db: Where info are kept about sessions
         :param config: Configuration of the consumer
         :param client_config: Client configuration
         :param server_info: Information about the server
+        :param client_prefs: Run time preferences, which are chosen
+            depends on what the server can do.
         """
         if client_config is None:
             client_config = {}
@@ -182,6 +201,7 @@ class Consumer(Client):
 
         self.sdb = session_db
         self.debug = debug
+        self.client_prefs = client_prefs
         self.seed = ""
         self.nonce = ""
         self.request_filename=""
@@ -504,6 +524,19 @@ class Consumer(Client):
 
         result = self.discovery_query(uri, principal)
         return result["locations"][0]
+
+    def match_preferences(self, issuer):
+        pcr = self.provider_info[issuer]
+
+        for key, vals in self.client_prefs.items():
+            for val in vals:
+                if val in pcr["key"]:
+                    setattr(self, key, val)
+                    break
+            try:
+                v = getattr(self,key)
+            except AttributeError:
+                raise ConfigurationError("OP couldn't match preferences")
 
     def register(self, server, type="client_associate", **kwargs):
         req = RegistrationRequest(type=type)
