@@ -37,9 +37,9 @@ from oic.oauth2.message import MissingRequiredAttribute
 
 from oic.utils import time_util
 from oic.utils.time_util import time_sans_frac
-from oic.jwt.jws import left_hash
+from oic.jwt.jws import left_hash, alg2keytype
 from oic.jwt import unpack
-from oic.utils.keystore import rsa_load
+from oic.utils.keystore import rsa_load, get_signing_key
 
 from pytest import raises
 
@@ -1073,8 +1073,10 @@ def test_make_id_token():
     _idt = srv.make_id_token(session, loa="2", issuer=issuer,
                                 code=code, access_token="access_token")
 
-    ckey, algo = srv.get_signing_key(session, keytype="rsa")
-    _signed_jwt = _idt.to_jwt(key=ckey, algorithm=algo)
+    algo = "RS256"
+    ckey = get_signing_key(srv.keystore, alg2keytype(algo),
+                           session["client_id"])
+    _signed_jwt = _idt.to_jwt(key=ckey, algorithm="RS256")
 
     jwt_keys = srv.keystore.get_keys("ver", owner=None)
     idt = IdToken().from_jwt(_signed_jwt, key=jwt_keys)
@@ -1104,7 +1106,7 @@ def test_client_secret_jwt():
     cli.client_secret = "foobar"
 
     cis = AccessTokenRequest()
-    at = oic.client_secret_jwt(cli, cis)
+    at = oic.client_secret_jwt(cli, cis, algorithm="HS256")
     assert at == {}
     assert cis["client_assertion_type"] == JWT_BEARER
     assert "client_assertion" in cis

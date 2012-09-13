@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from oic.oauth2.message import by_schema
+from oic.jwt.jws import alg2keytype
 
 __author__ = 'rohe0002'
 
@@ -10,6 +11,7 @@ from oic.utils.time_util import time_sans_frac
 from oic.utils.time_util import utc_time_sans_frac
 
 from oic.oic import Server
+from oic.utils.keystore import get_signing_key
 
 from oic.oic.message import *
 from oic.oauth2 import rndstr
@@ -93,9 +95,9 @@ class MyFakeOICServer(Server):
 
     def authorization_endpoint(self, query):
         req = self.parse_authorization_request(query=query)
-        sid = self.sdb.create_authz_session(user_id="user", areq=req,
-                                            preferred_id_type="public")
+        sid = self.sdb.create_authz_session(user_id="user", areq=req)
         _info = self.sdb[sid]
+        _info["user_id"] = _info["local_user_id"]
 
         if "code" in req["response_type"]:
             if "token" in req["response_type"]:
@@ -125,8 +127,10 @@ class MyFakeOICServer(Server):
             if "id_token" in req["response_type"]:
                 _idt = self.make_id_token(_info, issuer=self.name,
                                           access_token=_dict["access_token"])
-                ckey, algo = self.get_signing_key(_info, keytype="rsa")
-                _dict["id_token"] = _idt.to_jwt(key=ckey, algorithm=algo)
+                alg = "RS256"
+                ckey = get_signing_key(self.keystore, alg2keytype(alg),
+                                       _info["client_id"])
+                _dict["id_token"] = _idt.to_jwt(key=ckey, algorithm=alg)
 
             resp = AccessTokenResponse(**_dict)
 

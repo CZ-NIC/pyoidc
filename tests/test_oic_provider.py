@@ -291,8 +291,9 @@ def test_server_authorization_endpoint_request():
 
     req = AuthorizationRequest(**bib)
     ic = {"claims": {"user_id": { "value":"username" }}}
-    _keys = server.keystore.get_sign_key()
-    req["request"] = make_openid_request(req, _keys, idtoken_claims=ic)
+    _keys = {"rsa": server.keystore.get_sign_key(type="rsa")}
+    req["request"] = make_openid_request(req, _keys, idtoken_claims=ic,
+                                         algorithm="RS256")
 
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = req.to_urlencoded()
@@ -321,7 +322,7 @@ def test_server_authorization_endpoint_id_token():
                                 scope=["openid"], state="state000")
 
     sdb = SessionDB()
-    sid = sdb.create_authz_session("username", AREQ, preferred_id_type="public")
+    sid = sdb.create_authz_session("username", AREQ)
 
     _info = sdb[sid]
     _user_info = IdToken(iss="https://foo.example.om", user_id="foo",
