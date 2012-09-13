@@ -286,6 +286,9 @@ class AuthorizationRequest(message.AuthorizationRequest):
             idt = IdToken().from_jwt(str(self["id_token"]), kwargs["key"])
             self["id_token"] = idt
 
+        if "response_type" not in self:
+            raise MissingRequiredAttribute("response_type missing")
+
         _rt = self["response_type"]
         if "token" in _rt or "id_token" in _rt:
             try:

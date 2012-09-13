@@ -363,7 +363,7 @@ class Provider(AProvider):
         try:
             v_keys = _srv.keystore.get_keys("ver", owner=None)
             areq = _srv.parse_authorization_request(query=query, keys=v_keys)
-        except MissingRequiredAttribute:
+        except (MissingRequiredAttribute, KeyError):
             areq = AuthorizationRequest().deserialize(query, "urlencoded")
             # verify the redirect_uri
             (uri, reply) = self.get_redirect_uri(areq)
@@ -372,8 +372,8 @@ class Provider(AProvider):
             resp = self._redirect_authz_error("invalid_request",
                                               uri, "Missing required attribute")
             return resp(environ, start_response)
-        except Exception,err:
-            _log_debug("Bad request: %s" % err)
+        except Exception, err:
+            _log_debug("Bad request: %s (%s)" % (err, err.__class__.__name__))
             resp = BadRequest("%s" % err)
             return resp(environ, start_response)
 
