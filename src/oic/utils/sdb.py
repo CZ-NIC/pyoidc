@@ -1,3 +1,6 @@
+import copy
+from oic.oic import AuthorizationRequest
+
 __author__ = 'rohe0002'
 
 import hmac
@@ -21,7 +24,7 @@ class WrongTokenType(Exception):
     pass
 
 def pairwise_id(user_id, sector_identifier, seed):
-    return hashlib.sha256("%s%s%s" % (user_id, sector_identifier, seed)).digest()
+    return hashlib.sha256("%s%s%s" % (user_id, sector_identifier, seed)).hexdigest()
 
 class Crypt():
     def __init__(self, password, mode=AES.MODE_CBC):
@@ -160,8 +163,25 @@ class SessionDB(object):
         (typ, key) = self.token.type_and_key(token)
         return self.update(key, attribute, value)
 
-    def create_authz_session(self, user_id, areq, id_token=None, oidreq=None,
-                             sector_id="", preferred_id_type="pairwise"):
+    def do_userid(self, sid, user_id, sector_id, preferred_id_type):
+        if preferred_id_type == "public":
+            uid = user_id
+        else:
+            uid = pairwise_id(user_id, sector_id, self.seed)
+
+        if uid != user_id:
+            try:
+                del self.uid2sid[user_id]
+            except KeyError:
+                pass
+            self.uid2sid[uid] = sid
+
+        self._db[sid]["local_user_id"] = user_id
+        self._db[sid]["user_id"] = uid
+
+        return uid
+
+    def create_authz_session(self, user_id, areq, id_token=None, oidreq=None):
         """
 
         :param user_id: Identifier for the user, this is the real identifier
@@ -174,17 +194,13 @@ class SessionDB(object):
         :return: The session identifier, which is the database key
         """
 
-        if preferred_id_type == "public":
-            uid = user_id
-        else:
-            uid = pairwise_id(user_id, sector_id, self.seed)
-
         sid = self.token.key(user=user_id, areq=areq)
         access_grant = self.token(sid=sid)
 
         _dic  = {
             "oauth_state": "authz",
-            "user_id": uid,
+            "local_user_id": user_id,
+            "user_id": user_id,
             "code": access_grant,
             "code_used": False,
             "authzreq": areq.to_json(),
@@ -192,7 +208,7 @@ class SessionDB(object):
             "expires_in": self.grant_expires_in,
             "expires_at": utc_time_sans_frac()+self.grant_expires_in,
             "issued": time.time(),
-            "revoked": False
+            "revoked": False,
         }
 
         try:
@@ -351,6 +367,25 @@ class SessionDB(object):
 
         self._db[sid]["revoked"] = True
 
-
     def get_sid_from_userid(self, uid):
         return self.uid2sid[uid]
+
+    def duplicate(self, sinfo):
+        _dic = copy.copy(sinfo)
+        areq = AuthorizationRequest().from_json(_dic["authzreq"])
+        sid = self.token.key(user=_dic["user_id"], areq=areq)
+
+        _dic["code"] = self.token(sid=sid)
+        _dic["code_used"] = False
+
+        for key in ["access_token", "access_token_scope", "oauth_state",
+                    "token_type", "expires_at", "expires_in", "issued",
+                    "id_token", "oidreq", "refresh_token"]:
+            try:
+                del _dic[key]
+            except KeyError:
+                pass
+
+        self._db[sid] = _dic
+        self.uid2sid[_dic["user_id"]] = sid
+        return sid
