@@ -688,7 +688,7 @@ def make_cert(bits, fqdn="example.com", rsa=None):
 
 # ============================================================================
 
-def get_signing_key(keystore, keytype="rsa", owner="."):
+def get_signing_key(keystore, keytype="rsa", owner=None):
     """Find out which key and algorithm to use
 
     :param keystore: The key store
@@ -698,11 +698,11 @@ def get_signing_key(keystore, keytype="rsa", owner="."):
     """
 
     if keytype == "hmac":
-        ckey = {"hmac": keystore.get_sign_key("hmac", owner=owner)}
+        ckey = {"hmac": keystore.get_sign_key("hmac",owner=owner)}
     elif keytype == "rsa": # own asymmetric key
-        ckey = {"rsa": keystore.get_sign_key("rsa", owner=owner)}
+        ckey = {"rsa": keystore.get_sign_key("rsa")}
     else:
-        ckey = {"ec":keystore.get_sign_key("ec", owner=owner)}
+        ckey = {"ec":keystore.get_sign_key("ec")}
 
     logger.debug("Sign with '%s'" % (ckey,))
 
