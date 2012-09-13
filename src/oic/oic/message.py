@@ -4,7 +4,7 @@ import urllib
 import json
 import logging
 
-from oic.oauth2 import message
+from oic.oauth2 import message, MissingRequiredAttribute
 from oic.oauth2.message import Message
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
@@ -75,7 +75,10 @@ def keyobj_list_deser(val_list, format="urlencoded"):
 
 def msg_ser(inst, format, lev=0):
     if format in ["urlencoded", "json"]:
-        res = inst.serialize(format, lev)
+        if isinstance(inst, dict) or isinstance(inst, Message):
+            res = inst.serialize(format, lev)
+        else:
+            res = inst
     elif format == "dict":
         if isinstance(inst, Message):
             res = inst.serialize(format, lev)
@@ -161,7 +164,7 @@ class TokenErrorResponse(message.TokenErrorResponse):
 
 class AccessTokenResponse(message.AccessTokenResponse):
     c_param = message.AccessTokenResponse.c_param.copy()
-    c_param.update({"id_token": message.SINGLE_OPTIONAL_STRING})
+    c_param.update({"id_token": SINGLE_OPTIONAL_STRING})
 
     def verify(self, **kwargs):
         if "id_token" in self:
@@ -191,7 +194,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
         "nonce": SINGLE_OPTIONAL_STRING,
         "access_token": SINGLE_OPTIONAL_STRING,
         "token_type": SINGLE_OPTIONAL_STRING,
-        "id_token": SINGLE_OPTIONAL_JWT
+        "id_token": SINGLE_OPTIONAL_STRING
     })
 
     def verify(self, **kwargs):
@@ -244,13 +247,13 @@ class AuthorizationErrorResponse(message.AuthorizationErrorResponse):
 
 class AuthorizationRequest(message.AuthorizationRequest):
     c_param = message.AuthorizationRequest.c_param.copy()
-    c_param.update({"request": SINGLE_OPTIONAL_JWT,
-                    #"request_uri": SINGLE_OPTIONAL_STRING,
+    c_param.update({"request": SINGLE_OPTIONAL_STRING,
+                    "request_uri": SINGLE_OPTIONAL_STRING,
                     "display": SINGLE_OPTIONAL_STRING,
                     "prompt": OPTIONAL_LIST_OF_STRINGS,
                     "nonce": SINGLE_OPTIONAL_STRING,
                     "scope": REQUIRED_LIST_OF_SP_SEP_STRINGS,
-                    "id_token": SINGLE_OPTIONAL_JWT
+                    "id_token": SINGLE_OPTIONAL_STRING
                 })
     c_allowed_values = message.AuthorizationRequest.c_allowed_values.copy()
     c_allowed_values = {
@@ -282,6 +285,13 @@ class AuthorizationRequest(message.AuthorizationRequest):
         if "id_token" in self:
             idt = IdToken().from_jwt(str(self["id_token"]), kwargs["key"])
             self["id_token"] = idt
+
+        _rt = self["response_type"]
+        if "token" in _rt or "id_token" in _rt:
+            try:
+                assert "nonce" in self
+            except AssertionError:
+                raise MissingRequiredAttribute("Nonce missing")
 
         return super(self.__class__, self).verify(**kwargs)
 
@@ -447,7 +457,8 @@ class OpenIDRequest(message.AuthorizationRequest):
     c_param.update({"userinfo": SINGLE_OPTIONAL_USERINFO_CLAIM,
                     "id_token": SINGLE_OPTIONAL_ID_TOKEN_CLAIM,
                     "iss": SINGLE_OPTIONAL_STRING,
-                    "aud": SINGLE_OPTIONAL_STRING})
+                    "aud": SINGLE_OPTIONAL_STRING,
+                    "nonce": SINGLE_OPTIONAL_STRING})
 
 #    def verify(self, **kwargs):
 #        """Authorization Request parameters that are OPTIONAL in the OAuth 2.0
