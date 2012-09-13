@@ -37,7 +37,6 @@ from oic.oauth2 import rndstr
 from oic.oauth2.consumer import TokenError
 from oic.oauth2.consumer import AuthzError
 from oic.oauth2.consumer import UnknownState
-from oic.oauth2.consumer import ConfigurationError
 
 SWD_PATTERN = "http://%s/.well-known/simple-web-discovery"
 SERVICE_TYPE = "http://openid.net/specs/connect/1.0/issuer"
@@ -201,7 +200,6 @@ class Consumer(Client):
 
         self.sdb = session_db
         self.debug = debug
-        self.client_prefs = client_prefs
         self.seed = ""
         self.nonce = ""
         self.request_filename=""
@@ -525,19 +523,6 @@ class Consumer(Client):
         result = self.discovery_query(uri, principal)
         return result["locations"][0]
 
-    def match_preferences(self, issuer):
-        pcr = self.provider_info[issuer]
-
-        for key, vals in self.client_prefs.items():
-            for val in vals:
-                if val in pcr["key"]:
-                    setattr(self, key, val)
-                    break
-            try:
-                v = getattr(self,key)
-            except AttributeError:
-                raise ConfigurationError("OP couldn't match preferences")
-
     def register(self, server, type="client_associate", **kwargs):
         req = RegistrationRequest(type=type)
 
@@ -550,17 +535,13 @@ class Consumer(Client):
                 continue
 
             try:
-                val = getattr(self, prop)
-                if val:
-                    req[prop] = val
-            except Exception:
-                val = None
-
-            if not val:
+                req[prop] = kwargs[prop]
+            except KeyError:
                 try:
-                    req[prop] = kwargs[prop]
+                    req[prop] = self.behaviour[prop]
                 except KeyError:
                     pass
+
 
         headers = {"content-type": "application/x-www-form-urlencoded"}
         rsp = self.http_request(server, "POST", data=req.to_urlencoded(),
