@@ -217,22 +217,31 @@ def _collect_distributed(srv, cc, user_id, what, alias=""):
 
 #noinspection PyUnusedLocal
 def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
+    """
+    :param oicsrv: The OpenID Connect server instance
+    :param userdb: A user DB
+    :param user_id: The local user id
+    :param client_id: Identifier of the RP
+    :param user_info_claims: Possible userinfo claims (a dictionary)
+    :return: A schema dependent userinfo instance
+    """
     #print >> sys.stderr, "claims: %s" % user_info_claims
-
+    LOGGER.info("User_info about '%s'" % user_id)
     identity = userdb[user_id]
 
     if user_info_claims:
         result = {}
         missing = []
         optional = []
-        for key, restr in user_info_claims["claims"].items():
-            try:
-                result[key] = identity[key]
-            except KeyError:
-                if restr == {"essential": True}:
-                    missing.append(key)
-                else:
-                    optional.append(key)
+        if "claims" in user_info_claims:
+            for key, restr in user_info_claims["claims"].items():
+                try:
+                    result[key] = identity[key]
+                except KeyError:
+                    if restr == {"essential": True}:
+                        missing.append(key)
+                    else:
+                        optional.append(key)
 
         # Check if anything asked for is somewhere else
         if (missing or optional) and "_external_" in identity:
@@ -679,6 +688,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', dest='debug', action='store_true')
     parser.add_argument('-p', dest='port', default=80, type=int)
     parser.add_argument('-t', dest='test', action='store_true')
+    parser.add_argument('-A', dest='authn_as', default="")
     parser.add_argument('-P', dest='provider_conf')
     parser.add_argument(dest="config")
     args = parser.parse_args()
@@ -712,6 +722,9 @@ if __name__ == '__main__':
         OAS.test_mode = True
     else:
         OAS.test_mode = False
+
+    if args.authn_as:
+        OAS.authn_as = args.authn_as
 
     if args.provider_conf:
         prc = ProviderConfigurationResponse().from_json(open(args.provider_conf).read())
