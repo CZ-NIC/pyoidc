@@ -415,10 +415,10 @@ class PBase(object):
             #_kwargs["cookies"] = [k.output() for k in self.cookiejar]
             #_kwargs["cookies"] = self.cookiejar
             _kwargs["cookies"] = requests.utils.dict_from_cookiejar(self.cookiejar)
-
+            logger.info("SENT COOKIEs: %s" % (_kwargs["cookies"],))
         r = requests.request(method, url, **_kwargs)
         try:
-            #print "SET_COOKIE", r.headers["set-cookie"]
+            logger.info("RECEIVED COOKIEs: %s" % (r.headers["set-cookie"],))
             self.set_cookie(SimpleCookie(r.headers["set-cookie"]), r)
         except AttributeError, err:
             pass
