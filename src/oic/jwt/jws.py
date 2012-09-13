@@ -114,6 +114,16 @@ SIGNER_ALGS = {
 #    u'AES256': AESEncrypter
     }
 
+def alg2keytype(alg):
+    if alg.startswith("RS"):
+        return "rsa"
+    elif alg.startswith("HS"):
+        return "hmac"
+    elif alg.startswith("ES"):
+        return "ec"
+    else:
+        return None
+
 def verify(token, dkeys):
     """
     Verifies that a token is correctly signed.
@@ -130,7 +140,6 @@ def verify(token, dkeys):
         return claim
     elif alg not in SIGNER_ALGS:
         raise UnknownAlgorithm(alg)
-
 
     sigdata = header_b64 + b'.' + claim_b64
 
