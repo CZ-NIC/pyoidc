@@ -1,3 +1,6 @@
+import os
+from oic.utils.keystore import get_signing_key
+from oic.jwt.jws import alg2keytype
 
 __author__ = 'rohe0002'
 
@@ -39,6 +42,7 @@ from oic import oauth2
 from oic.oauth2 import AUTHN_METHOD as OAUTH2_AUTHN_METHOD
 from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import rndstr
+from oic.oauth2.consumer import ConfigurationError
 
 #from oic.oic.message import *
 
@@ -110,8 +114,7 @@ def client_secret_jwt(cli, cis, request_args=None, http_args=None, **kwargs):
     try:
         algorithm = kwargs["algorithm"]
     except KeyError:
-        algorithm = cli.require_signed_request_object
-
+        algorithm = cli.behaviour["require_signed_request_object"]
 
     cis["client_assertion"] = assertion_jwt(cli, signing_key, audience,
                                             algorithm)
@@ -159,9 +162,7 @@ ACR_LISTS = [
 def verify_acr_level(req, level):
     if req is None:
         return level
-    elif req == {"optional": True}:
-        return level
-    else:
+    elif "values" in req:
         for _r in req["values"]:
             for alist in ACR_LISTS:
                 try:
@@ -169,6 +170,8 @@ def verify_acr_level(req, level):
                         return level
                 except ValueError:
                     pass
+    else: #Required or Optional
+        return level
 
     raise AccessDenied
 
@@ -277,12 +280,23 @@ class Grant(oauth2.Grant):
             if _tmp:
                 self.tokens.append(tok)
 
+PREFERENCE2PROVIDER = {
+    "token_endpoint_auth_type": "token_endpoint_auth_types_supported",
+    "require_signed_request_object": "request_object_algs_supported",
+    "userinfo_signed_response_alg": "userinfo_algs_supported",
+    "userinfo_encrypted_response_alg": "userinfo_algs_supported",
+    "id_token_signed_response_alg": "id_token_algs_supported",
+    "id_token_encrypted_response_alg": "id_token_algs_supported",
+    "default_acr": "acrs_supported",
+    "user_id_type": "user_id_types_supported"
+}
+
 #noinspection PyMethodOverriding
 class Client(oauth2.Client):
     _endpoints = ENDPOINTS
 
     def __init__(self, client_id=None, ca_certs=None, grant_expire_in=600,
-                 jwt_keys=None, client_timeout=0):
+                 jwt_keys=None, client_timeout=0, client_prefs=None):
 
         oauth2.Client.__init__(self, client_id, ca_certs, grant_expire_in,
                                client_timeout=client_timeout,
@@ -304,7 +318,8 @@ class Client(oauth2.Client):
         self.token_class = Token
         self.authn_method = AUTHN_METHOD
         self.provider_info = {}
-        self.require_signed_request_object = OIC_DEF_SIGN_ALG
+        self.client_prefs = client_prefs or {}
+        self.behaviour = {"require_signed_request_object": OIC_DEF_SIGN_ALG}
 
     def _get_id_token(self, **kwargs):
         try:
@@ -367,19 +382,46 @@ class Client(oauth2.Client):
         else: # Never wrong to specify a nonce
             request_args = {"nonce": rndstr(12)}
 
+        if "idtoken_claims" in kwargs or "userinfo_claims" in kwargs:
+            request_param = "request"
+            if "request_method" in kwargs:
+                if kwargs["request_method"] == "file":
+                    request_param = "request_uri"
+                    del kwargs["request_method"]
+        else:
+            request_param = None
+
         areq = oauth2.Client.construct_AuthorizationRequest(self, request,
                                                             request_args,
                                                             extra_args,
                                                             **kwargs)
 
-        if "key" not in kwargs:
-            kwargs["keys"] = self.keystore.get_sign_key()
-
-        if "userinfo_claims" in kwargs or "idtoken_claims" in kwargs:
+        if request_param:
+            alg = self.behaviour["require_signed_request_object"]
             if "algorithm" not in kwargs:
-                kwargs["algorithm"] = self.require_signed_request_object
+                kwargs["algorithm"] = alg
 
-            areq["request"] = make_openid_request(areq, **kwargs)
+            if "keys" not in kwargs:
+                atype = alg2keytype(alg)
+                kwargs["keys"] = get_signing_key(self.keystore, atype, "")
+
+            _req = make_openid_request(areq, **kwargs)
+
+            if request_param == "request":
+                areq["request"] = _req
+            else:
+                _filedir = kwargs["local_dir"]
+                _webpath = kwargs["base_path"]
+                _name = rndstr(10)
+                filename = os.path.join(_filedir, _name)
+                while os.path.exists(filename):
+                    _name = rndstr(10)
+                    filename = os.path.join(_filedir, _name)
+                fid = open(filename, mode="w")
+                fid.write(_req)
+                fid.close()
+                _webname = "%s%s" % (_webpath,_name)
+                areq["request_uri"] = _webname
 
         return areq
 
@@ -399,7 +441,8 @@ class Client(oauth2.Client):
 
         return oauth2.Client.construct_RefreshAccessTokenRequest(self, request,
                                                                  request_args,
-                                                                 extra_args, **kwargs)
+                                                                 extra_args,
+                                                                 **kwargs)
 
     def construct_UserInfoRequest(self, request=UserInfoRequest,
                                   request_args=None, extra_args=None,
@@ -864,6 +907,33 @@ class Client(oauth2.Client):
             else:
                 return False
 
+    def match_preferences(self, pcr=None, issuer=None):
+        if not pcr:
+            pcr = self.provider_info[issuer]
+
+        for _pref, _prov in PREFERENCE2PROVIDER.items():
+            try:
+                vals = self.client_prefs[_pref]
+            except KeyError:
+                continue
+
+            try:
+                _pvals = pcr[_prov]
+            except KeyError:
+                self.behaviour[_pref]= vals[0]
+                continue
+
+            for val in vals:
+                if val in _pvals:
+                    self.behaviour[_pref]= val
+                    break
+            if _pref not in self.behaviour:
+                raise ConfigurationError("OP couldn't match preferences")
+
+        for key, val in self.client_prefs.items():
+            if key not in PREFERENCE2PROVIDER:
+                self.behaviour[key] = val
+
 #noinspection PyMethodOverriding
 class Server(oauth2.Server):
     def __init__(self, jwt_keys=None, ca_certs=None):
@@ -958,41 +1028,41 @@ class Server(oauth2.Server):
     def parse_issuer_request(self, info, format="urlencoded"):
         return self._parse_request(IssuerRequest, info, format)
 
-    def get_signing_key(self, session, keytype):
-        """Find out which key and algorithm to use
-
-        :param session: session information
-        :param keytype: which type of key to use
-        :return: tuple with (key, algorithm)
+    def id_token_claims(self, session):
         """
-        _keystore = self.keystore
-        if keytype == "hmac":
-            ckey = {"hmac":
-                        _keystore.get_sign_key("hmac",
-                                               owner=session["client_id"])}
-            algo = "HS256"
-        elif keytype == "rsa": # own asymmetric key
-            algo = "RS256"
-            ckey = {"rsa": _keystore.get_sign_key("rsa")}
-        else:
-            algo = "ES256"
-            ckey = {"ec":_keystore.get_sign_key("ec")}
+        Pick the IdToken claims from the request
 
-        logger.debug("Sign with '%s'" % (ckey,))
-
-        return ckey, algo
+        :param session: Session information
+        :return: The IdToken claims
+        """
+        try:
+            oidreq = OpenIDRequest().deserialize(session["oidreq"], "json")
+            itc = oidreq["id_token"]
+            logger.debug("ID Token claims: %s" % itc)
+            return itc
+        except KeyError:
+            return None
 
     def make_id_token(self, session, loa="2", issuer="",
-                      keytype="rsa", code=None, access_token=None,
+                      alg="RS256", code=None, access_token=None,
                       user_info=None):
+        """
+
+        :param session: Session information
+        :param loa: Level of Assurance/Authentication context
+        :param issuer: My identifier
+        :param alg: Which signing algorithm to use for the IdToken
+        :param code: Access grant
+        :param access_token: Access Token
+        :param user_info: If user info are to be part of the IdToken
+        :return: IDToken instance
+        """
         #defaults
         inawhile = {"days": 1}
         # Handle the idtoken_claims
         extra = {}
-        try:
-            oidreq = OpenIDRequest().deserialize(session["oidreq"], "json")
-            itc = oidreq["id_token"]
-            logger.debug("ID Token claims: %s" % itc.to_dict())
+        itc = self.id_token_claims(session)
+        if itc:
             try:
                 inawhile = {"seconds": itc["max_age"]}
             except KeyError:
@@ -1004,8 +1074,6 @@ class Server(oauth2.Server):
                     elif key == "acr":
                         #["2","http://id.incommon.org/assurance/bronze"]
                         extra["acr"] = verify_acr_level(val, loa)
-        except KeyError:
-            pass
 
         if user_info is None:
             _args = {}
@@ -1020,10 +1088,12 @@ class Server(oauth2.Server):
             except KeyError:
                 pass
 
+        halg = "HS%s" % alg[-3:]
+
         if code:
-            _args["c_hash"] = jws.left_hash(code, "HS256")
+            _args["c_hash"] = jws.left_hash(code, halg)
         if access_token:
-            _args["at_hash"] = jws.left_hash(access_token, "HS256")
+            _args["at_hash"] = jws.left_hash(access_token, halg)
 
         idt = IdToken(iss=issuer, user_id=session["user_id"],
                       aud = session["client_id"],
