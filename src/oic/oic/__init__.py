@@ -373,9 +373,10 @@ class Client(oauth2.Client):
                 if arg in request_args:
                     kwargs[arg] = request_args[arg]
                     del request_args[arg]
-            if "nonce" not in request_args and "token" in \
-                                               request_args["response_type"]:
-                request_args["nonce"] = rndstr(12)
+            if "nonce" not in request_args:
+                _rt = request_args["response_type"]
+                if "token" in _rt or "id_token" in _rt:
+                    request_args["nonce"] = rndstr(12)
         elif "response_type" in kwargs:
             if "token" in kwargs["response_type"]:
                 request_args = {"nonce": rndstr(12)}
@@ -745,13 +746,24 @@ class Client(oauth2.Client):
             raise
 
         if resp.status_code == 200:
-            assert "application/json" in resp.headers["content-type"]
+            try:
+                assert "application/json" in resp.headers["content-type"]
+                format = "json"
+            except AssertionError:
+                assert "application/jwt" in resp.headers["content-type"]
+                format = "jwt"
         elif resp.status_code == 500:
             raise Exception("ERROR: Something went wrong: %s" % resp.text)
         else:
             raise Exception("ERROR: Something went wrong [%s]" % resp.status_code)
 
-        return OpenIDSchema().from_json(txt=resp.text)
+        if format == "json":
+            return OpenIDSchema().from_json(txt=resp.text)
+        else:
+            algo = self.client_prefs["userinfo_signed_response_alg"]
+            # Keys of the OP ?
+            keys = get_signing_key(self.keystore, alg2keytype(algo))
+            return OpenIDSchema().from_jwt(resp.text, keys)
 
     def get_userinfo_claims(self, access_token, endpoint, method="POST",
                             schema_class=OpenIDSchema, **kwargs):
