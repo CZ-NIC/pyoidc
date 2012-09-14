@@ -807,8 +807,17 @@ class Provider(AProvider):
 
         info = self._collect_user_info(session)
 
-        resp = Response(info.to_json(), content="application/json")
-        return resp(environ, start_response)
+        # Should I return a JSON or a JWT ?
+        _cinfo = self.cdb[session["client_id"]]
+        if "userinfo_signed_response_alg" in _cinfo:
+            algo = _cinfo["userinfo_signed_response_alg"]
+            key = get_signing_key(self.keystore, alg2keytype(algo),
+                                  owner=session["client_id"])
+            resp = Response(info.to_jwt(key, algo), content="application/jwt")
+            return resp(environ, start_response)
+        else:
+            resp = Response(info.to_json(), content="application/json")
+            return resp(environ, start_response)
 
     #noinspection PyUnusedLocal
     def check_session_endpoint(self, environ, start_response, **kwargs):
