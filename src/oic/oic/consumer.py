@@ -509,7 +509,8 @@ class Consumer(Client):
         if idtype == "mail":
             (local, domain) = principal.split("@")
         elif idtype == "url":
-            domain, user = urlparse.urlparse(principal)[1:2]
+            p = urlparse.urlparse(principal)
+            domain = p.netloc
         else:
             domain = ""
 
