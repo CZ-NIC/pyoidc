@@ -169,7 +169,13 @@ class AccessTokenResponse(message.AccessTokenResponse):
     def verify(self, **kwargs):
         if "id_token" in self:
             # Try to decode the JWT, checks the signature
-            idt = IdToken().from_jwt(str(self["id_token"]), kwargs["key"])
+            args = {}
+            for arg in ["key", "keystore"]:
+                try:
+                    args[arg] = kwargs[arg]
+                except KeyError:
+                    pass
+            idt = IdToken().from_jwt(str(self["id_token"]), **args)
             if not idt.verify(**kwargs):
                 return False
 
@@ -206,7 +212,13 @@ class AuthorizationResponse(message.AuthorizationResponse,
 
         if "id_token" in self:
             # Try to decode the JWT, checks the signature
-            idt = IdToken().from_jwt(str(self["id_token"]), kwargs["key"])
+            args = {}
+            for arg in ["key", "keystore"]:
+                try:
+                    args[arg] = kwargs[arg]
+                except KeyError:
+                    pass
+            idt = IdToken().from_jwt(str(self["id_token"]), **args)
             if not idt.verify(**kwargs):
                 return False
 
@@ -270,9 +282,16 @@ class AuthorizationRequest(message.AuthorizationRequest):
         All parameter values that are present both in the OAuth 2.0
         Authorization Request and in the OpenID Request Object MUST exactly
         match."""
+        args = {}
+        for arg in ["key", "keystore"]:
+            try:
+                args[arg] = kwargs[arg]
+            except KeyError:
+                pass
+
         if "request" in self:
             # Try to decode the JWT, checks the signature
-            oidr = OpenIDRequest().from_jwt(str(self["request"]), kwargs["key"])
+            oidr = OpenIDRequest().from_jwt(str(self["request"]), **args)
 
             # verify that nothing is change in the original message
             for key, val in oidr.items():
@@ -283,7 +302,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
             self["request"] = oidr
 
         if "id_token" in self:
-            idt = IdToken().from_jwt(str(self["id_token"]), kwargs["key"])
+            idt = IdToken().from_jwt(str(self["id_token"]), **args)
             self["id_token"] = idt
 
         if "response_type" not in self:

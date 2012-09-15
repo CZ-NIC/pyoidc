@@ -1,3 +1,4 @@
+import copy
 import sys
 
 __author__ = 'rohe0002'
@@ -9,7 +10,7 @@ import os
 import urlparse
 
 from binascii import b2a_hex
-from M2Crypto.__m2crypto import hex_to_bn, bn_to_mpi
+from M2Crypto.__m2crypto import hex_to_bn, bn_to_mpi, sha1
 from M2Crypto.util import no_passphrase_callback
 
 KEYLOADERR = "Failed to load %s key from '%s' (%s)"
@@ -145,6 +146,9 @@ def kspec(key, usage):
         "use": usage
     }
 
+def dicthash(d):
+    return hash(repr(sorted(d.items())))
+
 class KeyStore(object):
     use = ["sig", "ver", "enc", "dec"]
     url_types = ["x509_url", "x509_encryption_url", "jwk_url",
@@ -153,6 +157,7 @@ class KeyStore(object):
     def __init__(self, http_request, keyspecs=None):
         self._store = {}
         self.http_request = http_request
+        self.spec2key = {}
 
         if keyspecs:
             for keyspec in keyspecs:
@@ -185,14 +190,20 @@ class KeyStore(object):
         if not owner:
             res = {}
             for owner, _spec in self._store.items():
-                res[owner] = _spec[usage]
+                _r0 = {}
+                for usage, _val in _spec.items():
+                    _r1 = {}
+                    for typ, val in _val.items():
+                        _r1[typ] = val[:]
+                    _r0[usage] = _r1
+                res[owner] = _r0
             return res
         else:
             try:
                 if type:
-                    return self._store[owner][usage][type]
+                    return self._store[owner][usage][type][:]
                 else:
-                    return self._store[owner][usage]
+                    return copy.copy(self._store[owner][usage])
             except KeyError:
                 return {}
 
@@ -210,7 +221,7 @@ class KeyStore(object):
                     try:
                         _coll[usage][typ].extend(keys)
                     except KeyError:
-                        _coll[usage][typ] = keys
+                        _coll[usage][typ] = keys[:]
 
         return _coll
 
@@ -221,7 +232,7 @@ class KeyStore(object):
         :param owner: The name/URL of the owner
         """
         try:
-            return self._store[owner]
+            return copy.copy(self._store[owner])
         except KeyError:
             return {}
 
@@ -361,7 +372,11 @@ class KeyStore(object):
             r = self.http_request(url, allow_redirects=True)
             if r.status_code == 200:
                 cert = str(r.text)
-                _key = x509_rsa_loads(cert)
+                try:
+                    _key =  self.spec2key[cert]
+                except KeyError:
+                    _key = x509_rsa_loads(cert)
+                    self.spec2key[cert] = _key
                 self.add_key(_key, "rsa", usage, owner)
                 return _key
             else:
@@ -476,10 +491,15 @@ class KeyStore(object):
         spec = json.loads(txt)
         for kspec in spec["keys"]:
             if kspec["alg"] == "RSA":
-                e = base64_to_long(kspec["exp"])
-                n = base64_to_long(kspec["mod"])
+                try:
+                    k = self.spec2key[dicthash(kspec)]
+                except KeyError:
+                    e = base64_to_long(kspec["exp"])
+                    n = base64_to_long(kspec["mod"])
 
-                k = M2Crypto.RSA.new_pub_key((long_to_mpi(e), long_to_mpi(n)))
+                    k = M2Crypto.RSA.new_pub_key((long_to_mpi(e),
+                                                  long_to_mpi(n)))
+                    self.spec2key[dicthash(kspec)] = k
 
 #                if "kid" in kspec:
 #                    tag = "%s:%s" % ("rsa", kspec["kid"])

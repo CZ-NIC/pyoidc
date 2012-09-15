@@ -55,7 +55,7 @@ def gather_keys(comb, collection, jso, target):
     try:
         for typ, keys in _col.items():
             try:
-                comb[typ].extend(keys)
+                comb[typ].update(keys)
             except KeyError:
                 comb[typ] = keys
     except KeyError:
@@ -238,6 +238,9 @@ class Message(object):
         for key, val in dictionary.items():
             # Earlier versions of python don't like unicode strings as
             # variable names
+            if val == "" or val == [""]:
+                continue
+
             skey = str(key)
             try:
 
@@ -338,12 +341,17 @@ class Message(object):
         :param algorithm: The signature algorithm to use
         :return: A signed JWT
         """
-        if not algorithm:
+        if algorithm is None:
+            pass
+        elif not algorithm:
             algorithm = DEF_SIGN_ALG
-        return jws.sign(self.to_json(lev), key, algorithm)
 
+        if algorithm:
+            return jws.sign(self.to_json(lev), key, algorithm)
+        else:
+            return jwt.pack(self.to_json(lev))
 
-    def from_jwt(self, txt, key, verify=True):
+    def from_jwt(self, txt, key=None, verify=True, keystore=None):
         """
         Given a signed JWT, verify its correctness and then create a class
         instance from the content.
@@ -353,33 +361,27 @@ class Message(object):
         :param verify: Whether the signature should be verified or not
         :return: A class instance
         """
+        if key == None:
+            key = keystore.get_verify_key(owner=".")
+
         try:
             jso = jwt.unpack(txt)[1]
             if isinstance(jso, basestring):
                 jso = json.loads(jso)
             if verify:
-                if key is None:
-                    key = {}
+                if keystore:
+                    for ent in ["iss", "aud", "client_id"]:
+                        try:
+                            for t, v in keystore.get_verify_key(
+                                                        owner=jso[ent]).items():
+                                try:
+                                    key[t].extend(v)
+                                except KeyError:
+                                    key[t] = v
+                        except KeyError:
+                            pass
 
-                try:
-                    _keys = key['.']
-                except KeyError:
-                    _keys = {}
-
-                for ent in ["iss", "aud", "client_id"]:
-                    _keys = gather_keys(_keys, key, jso, ent)
-
-                if "iss" not in jso and "aud" not in jso:
-                    for owner, _spec in key.items():
-                        if owner == ".":
-                            continue
-                        for typ, keys in _spec.items():
-                            try:
-                                _keys[typ].extend(keys)
-                            except KeyError:
-                                _keys[typ] = keys
-
-                jws.verify(txt, _keys)
+                jws.verify(txt, key)
         except Exception:
             raise
 

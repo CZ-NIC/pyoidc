@@ -179,37 +179,25 @@ def deser_id_token(inst, str=""):
     if not str:
         return None
 
+    jws.verify(str, keystore = inst.keystore)
     jso = json.loads(jwt.unpack(str)[1])
-
-    # gather all the necessary keys
-    # my own first
-    collection = inst.keystore.get_verify_key()
-
-    if "iss" in jso:
-        for key, val in inst.keystore.collect_keys(jso["iss"]).items():
-            try:
-                collection[key].extend(val)
-            except KeyError:
-                collection[key] = val
-
-    if "aud" in jso:
-        for key, val in inst.keystore.collect_keys(jso["aud"]).items():
-            try:
-                collection[key].extend(val)
-            except KeyError:
-                collection[key] = val
-
-    jws.verify(str, collection)
 
     return IdToken().from_dict(jso)
 
 # -----------------------------------------------------------------------------
-def make_openid_request(arq, keys, userinfo_claims=None,
+def make_openid_request(arq, keys=None, userinfo_claims=None,
                         idtoken_claims=None, algorithm=None,
                         **kwargs):
     """
     Construct the specification of what I want returned.
     The request will be signed
+
+    :param arq: The Authorization request
+    :param keys: Keys to use for signing/encrypting
+    :param userinfo_claims: UserInfo claims
+    :param idtoken_claims: IdToken claims
+    :param algorithm: Which signing/encrypting algorithm to use
+    :return: JWT encoded OpenID request
     """
 
     oir_args = {}
@@ -288,7 +276,13 @@ PREFERENCE2PROVIDER = {
     "id_token_signed_response_alg": "id_token_algs_supported",
     "id_token_encrypted_response_alg": "id_token_algs_supported",
     "default_acr": "acrs_supported",
-    "user_id_type": "user_id_types_supported"
+    "user_id_type": "user_id_types_supported",
+    "token_endpoint_auth_alg": "token_endpoint_auth_algs_supported",
+}
+
+PROVIDER_DEFAULT = {
+    "token_endpoint_auth_type": "client_secret_basic",
+    "id_token_signed_response_alg": "RS256",
 }
 
 #noinspection PyMethodOverriding
@@ -402,7 +396,7 @@ class Client(oauth2.Client):
             if "algorithm" not in kwargs:
                 kwargs["algorithm"] = alg
 
-            if "keys" not in kwargs:
+            if "keys" not in kwargs and alg:
                 atype = alg2keytype(alg)
                 kwargs["keys"] = get_signing_key(self.keystore, atype, "")
 
@@ -920,6 +914,12 @@ class Client(oauth2.Client):
                 return False
 
     def match_preferences(self, pcr=None, issuer=None):
+        """
+        Match the clients preferences against what the provider can do.
+
+        :param pcr: Provider configuration response if available
+        :param issuer: The issuer identifier
+        """
         if not pcr:
             pcr = self.provider_info[issuer]
 
@@ -932,13 +932,18 @@ class Client(oauth2.Client):
             try:
                 _pvals = pcr[_prov]
             except KeyError:
-                self.behaviour[_pref]= vals[0]
+                try:
+                    self.behaviour[_pref] = PROVIDER_DEFAULT[_pref]
+                except KeyError:
+                    #self.behaviour[_pref]= vals[0]
+                    self.behaviour[_pref] = None
                 continue
 
             for val in vals:
                 if val in _pvals:
                     self.behaviour[_pref]= val
                     break
+
             if _pref not in self.behaviour:
                 raise ConfigurationError("OP couldn't match preferences")
 
@@ -996,11 +1001,11 @@ class Server(oauth2.Server):
         assert "access_token" in param # ignore the rest
         return deser_id_token(self, param["access_token"][0])
 
-    def _parse_request(self, request, data, format, keys=None):
+    def _parse_request(self, request, data, format, client_id=None):
         if format == "json":
             request = request().from_json(data)
         elif format == "jwt":
-            request = request().from_jwt(data, keys)
+            request = request().from_jwt(data, keystore=self.keystore)
         elif format == "urlencoded":
             if '?' in data:
                 parts = urlparse.urlparse(data)
@@ -1011,11 +1016,22 @@ class Server(oauth2.Server):
         else:
             raise Exception("Unknown package format: '%s'" %  format)
 
-        request.verify(key=keys)
+        # get the verification keys
+        if client_id:
+            keys = self.keystore.get_verify_key(owner=client_id)
+            for typ, val in self.keystore.get_verify_key(owner=".").items():
+                try:
+                    keys[typ].extend(val)
+                except KeyError:
+                    keys[typ] = val
+        else:
+            keys = None
+
+        request.verify(key=keys, keystore=self.keystore)
         return request
 
-    def parse_open_id_request(self, data, format="urlencoded", keys=None):
-        return self._parse_request(OpenIDRequest, data, format, keys)
+    def parse_open_id_request(self, data, format="urlencoded", client_id=None):
+        return self._parse_request(OpenIDRequest, data, format, client_id)
 
     def parse_user_info_request(self, data, format="urlencoded"):
         return self._parse_request(UserInfoRequest, data, format)

@@ -3,7 +3,9 @@ import json
 import traceback
 import urllib
 from oic.oauth2.message import ErrorResponse, by_schema
-from oic.oic.message import AuthorizationRequest, IdToken, OpenIDSchema
+from oic.oic.message import AuthorizationRequest
+from oic.oic.message import IdToken
+from oic.oic.message import OpenIDSchema
 from oic.oic.message import RegistrationResponseCU
 from oic.oic.message import RegistrationResponseCARS
 from oic.oic.message import AuthorizationResponse
@@ -361,8 +363,7 @@ class Provider(AProvider):
 
         # Same serialization used for GET and POST
         try:
-            v_keys = _srv.keystore.get_keys("ver", owner=None)
-            areq = _srv.parse_authorization_request(query=query, keys=v_keys)
+            areq = _srv.parse_authorization_request(query=query)
         except (MissingRequiredAttribute, KeyError):
             areq = AuthorizationRequest().deserialize(query, "urlencoded")
             # verify the redirect_uri
@@ -373,6 +374,8 @@ class Provider(AProvider):
                                               uri, "Missing required attribute")
             return resp(environ, start_response)
         except Exception, err:
+            message = traceback.format_exception(*sys.exc_info())
+            logger.error(message)
             _log_debug("Bad request: %s (%s)" % (err, err.__class__.__name__))
             resp = BadRequest("%s" % err)
             return resp(environ, start_response)
