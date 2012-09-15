@@ -260,27 +260,24 @@ class Provider(AProvider):
             return Response(response.to_json(), content="application/json",
                             status="400 Bad Request")
 
-    def _parse_openid_request(self, request, redirect_uri, jwt_key):
+    def _parse_openid_request(self, request, redirect_uri):
         try:
-            return OpenIDRequest().from_jwt(request, jwt_key)
+            return OpenIDRequest().from_jwt(request, keystore=self.keystore)
         except Exception, err:
             logger.error("Faulty request: %s" % request)
-            logger.error("Verfied with JWT_keys: %s" % jwt_key)
             logger.error("Exception: %s" % (err.__class__.__name__,))
-            openid_req = OpenIDRequest().from_jwt(request, jwt_key,
-                                                  verify=False)
+            openid_req = OpenIDRequest().from_jwt(request, verify=False)
             logger.error("Request: %s" % openid_req.to_dict())
             return self._redirect_authz_error("invalid_openid_request_object",
                                               redirect_uri)
 
-    def _parse_id_token(self, id_token, redirect_uri, jwt_key):
+    def _parse_id_token(self, id_token, redirect_uri):
         try:
-            return IdToken().from_jwt(id_token, jwt_key)
+            return IdToken().from_jwt(id_token, keystore=self.keystore)
         except Exception, err:
             logger.error("Faulty id_token: %s" % id_token)
-            logger.error("Verfied with JWT_keys: %s" % jwt_key)
             logger.error("Exception: %s" % (err.__class__.__name__,))
-            id_token = IdToken().from_jwt(id_token, jwt_key, verify=False)
+            id_token = IdToken().from_jwt(id_token, verify=False)
             logger.error("IdToken: %s" % id_token.to_dict())
             return self._redirect_authz_error("invalid_id_token_object",
                                               redirect_uri)
@@ -409,10 +406,7 @@ class Provider(AProvider):
                 return self._authz_error(environ, start_response,
                                          "invalid_request_uri")
 
-            _log_info("keys: %s" % _srv.keystore._store)
-            v_keys = {".": _srv.keystore.get_keys("ver",
-                                                  owner=areq["client_id"])}
-            resp = self._parse_openid_request(_req.text, redirect_uri, v_keys)
+            resp = self._parse_openid_request(_req.text, redirect_uri)
             if isinstance(resp, Response):
                 return resp(environ, start_response)
             else:
@@ -575,15 +569,8 @@ class Provider(AProvider):
             if areq["client_assertion_type"] != JWT_BEARER:
                 return False
 
-            key_col = {areq["client_id"]:
-                       self.keystore.get_verify_key(owner=areq["client_id"])}
-            key_col.update({".": self.keystore.get_verify_key()})
-
-#           On a busy system this is lots of data
-#            if log_info:
-#                log_info("key_col: %s" % (key_col,))
-
-            bjwt = AuthnToken().from_jwt(areq["client_assertion"], key_col)
+            bjwt = AuthnToken().from_jwt(areq["client_assertion"],
+                                         keystore=self.keystore)
 
             try:
                 assert bjwt["iss"] == areq["client_id"] # Issuer = the client

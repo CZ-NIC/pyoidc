@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __builtin__ import int, open, hasattr, isinstance
+import copy
 from exceptions import KeyError
 from exceptions import Exception
 from exceptions import ValueError
@@ -56,7 +57,7 @@ buf_handl = BufferingHandler(10000)
 buf_handl.setFormatter(_formatter)
 
 HANDLER = {"CPC-file": fil_handl, "CPC-buffer": buf_handl}
-
+ACTIVE_HANDLER = "BASE"
 URLMAP={}
 
 NAME = "pyoic"
@@ -74,6 +75,8 @@ def devnull(txt):
 
 
 def create_session_logger(format="CPC"):
+    global HANDLER
+
     logger = logging.getLogger("")
     try:
         logger.addHandler(HANDLER["%s-buffer" % format])
@@ -88,6 +91,13 @@ def create_session_logger(format="CPC"):
     return logger
 
 def replace_format_handler(logger, format="CPC"):
+    global ACTIVE_HANDLER
+    global HANDLER
+    global LOGFILE_NAME
+
+    if ACTIVE_HANDLER == format:
+        return logger
+
     _handler = HANDLER["%s-file" % format]
     if _handler in logger.handlers:
         return logger
@@ -103,6 +113,7 @@ def replace_format_handler(logger, format="CPC"):
         handl.setFormatter(_formatter)
         logger.addHandler(handl)
 
+    ACTIVE_HANDLER = format
     return logger
 
 def do_authentication(environ, start_response, sid, cookie=None,
@@ -128,6 +139,7 @@ def do_authentication(environ, start_response, sid, cookie=None,
     return resp(environ, start_response, **argv)
 
 def verify_username_and_password(dic):
+    global PASSWD
     # verify username and password
     for user, pwd in PASSWD:
         if user == dic["login"][0]:
@@ -140,6 +152,7 @@ def verify_username_and_password(dic):
 
 #noinspection PyUnusedLocal
 def do_authorization(user, session=None):
+    global PASSWD
     if user in [u for u,p in PASSWD]:
         return "ALL"
     else:
@@ -147,6 +160,7 @@ def do_authorization(user, session=None):
 
 #noinspection PyUnusedLocal
 def verify_client(environ, areq, cdb):
+    global JWT_BEARER
     if "client_secret" in areq: # client_secret_post
         identity = areq["client_id"]
         if identity in cdb:
@@ -226,8 +240,10 @@ def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
     :return: A schema dependent userinfo instance
     """
     #print >> sys.stderr, "claims: %s" % user_info_claims
+    global LOGGER
+
     LOGGER.info("User_info about '%s'" % user_id)
-    identity = userdb[user_id]
+    identity = copy.copy(userdb[user_id])
 
     if user_info_claims:
         result = {}
@@ -278,6 +294,12 @@ def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
         #result = identity
         result = {"user_id": user_id}
 
+    return OpenIDSchema(**result)
+
+#noinspection PyUnusedLocal
+def simple_user_info(oicsrv, userdb, user_id, client_id="",
+                     user_info_claims=None):
+    result = {"user_id": "diana"}
     return OpenIDSchema(**result)
 
 FUNCTIONS = {
