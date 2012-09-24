@@ -5,9 +5,7 @@ __author__ = 'rohe0002'
 
 import time
 import os.path
-import urlparse
 #import httplib2
-import requests
 
 from hashlib import md5
 
@@ -18,18 +16,12 @@ from oic.utils import http_util
 from oic.oic import Client
 from oic.oic import ENDPOINTS
 
-from oic.oauth2.message import ErrorResponse
 
 from oic.oic.message import Claims
-from oic.oic.message import RegistrationResponseCARS
-from oic.oic.message import RegistrationResponseCU
-from oic.oic.message import IssuerResponse
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import UserInfoClaim
 from oic.oic.message import AccessTokenResponse
-from oic.oic.message import IssuerRequest
-from oic.oic.message import RegistrationRequest
 
 from oic.oauth2 import Grant
 from oic.oauth2 import rndstr
@@ -38,8 +30,6 @@ from oic.oauth2.consumer import TokenError
 from oic.oauth2.consumer import AuthzError
 from oic.oauth2.consumer import UnknownState
 
-SWD_PATTERN = "http://%s/.well-known/simple-web-discovery"
-SERVICE_TYPE = "http://openid.net/specs/connect/1.0/issuer"
 
 logger = logging.getLogger(__name__)
 
@@ -480,87 +470,4 @@ class Consumer(Client):
 
     def end_session(self):
         pass
-
-    def discovery_query(self, uri, principal):
-        try:
-            rsp = self.http_request(uri)
-        except requests.ConnectionError:
-            if uri.startswith("http://"): # switch to https
-                location = "https://%s" % uri[7:]
-                return self.discovery_query(location, principal)
-            else:
-                raise
-
-        if rsp.status_code == 200:
-            result = IssuerResponse().deserialize(rsp.text, "json")
-            if "SWD_service_redirect" in result:
-                _loc = result["SWD_service_redirect"]["location"]
-                _uri = IssuerRequest(service=SERVICE_TYPE,
-                                     principal=principal).request(_loc)
-                return self.discovery_query(_uri, principal)
-            else:
-                return result
-        elif rsp.status_code == 302:
-            return self.discovery_query(rsp.headers["location"], principal)
-        else:
-            raise Exception(rsp.status_code)
-
-    def get_domain(self, principal, idtype="mail"):
-        if idtype == "mail":
-            (local, domain) = principal.split("@")
-        elif idtype == "url":
-            p = urlparse.urlparse(principal)
-            domain = p.netloc
-        else:
-            domain = ""
-
-        return domain
-    
-    def discover(self, principal, idtype="mail"):
-        _loc = SWD_PATTERN % self.get_domain(principal, idtype)
-        uri = IssuerRequest(service=SERVICE_TYPE,
-                            principal=principal).request(_loc)
-
-        result = self.discovery_query(uri, principal)
-        return result["locations"][0]
-
-    def register(self, server, type="client_associate", **kwargs):
-        req = RegistrationRequest(type=type)
-
-        if type == "client_update" or type == "rotate_secret":
-            req["client_id"] = self.client_id
-            req["client_secret"] = self.client_secret
-
-        for prop in req.parameters():
-            if prop in ["type", "client_id", "client_secret"]:
-                continue
-
-            try:
-                req[prop] = kwargs[prop]
-            except KeyError:
-                try:
-                    req[prop] = self.behaviour[prop]
-                except KeyError:
-                    pass
-
-
-        headers = {"content-type": "application/x-www-form-urlencoded"}
-        rsp = self.http_request(server, "POST", data=req.to_urlencoded(),
-                                headers=headers)
-
-        if rsp.status_code == 200:
-            if type == "client_associate" or type == "rotate_secret":
-                rr = RegistrationResponseCARS()
-            else:
-                rr = RegistrationResponseCU()
-
-            resp = rr.deserialize(rsp.text, "json")
-            self.client_secret = resp["client_secret"]
-            self.client_id = resp["client_id"]
-            self.registration_expires = resp["expires_at"]
-        else:
-            err = ErrorResponse().deserialize(rsp.text, "json")
-            raise Exception("Registration failed: %s" % err.get_json())
-
-        return resp
 
