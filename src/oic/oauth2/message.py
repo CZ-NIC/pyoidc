@@ -141,7 +141,7 @@ class Message(object):
         except AttributeError, err:
             raise Exception("Unknown method (%s)" % err)
 
-    def from_urlencoded(self, urlencoded):
+    def from_urlencoded(self, urlencoded, **kwargs):
         """
         from a string of the application/x-www-form-urlencoded format creates
         a class instance
@@ -329,7 +329,7 @@ class Message(object):
         else:
             return json.dumps(self.to_dict(lev+1))
 
-    def from_json(self, txt):
+    def from_json(self, txt, **kwargs):
         return self.from_dict(json.loads(txt))
 
     def to_jwt(self, key=None, algorithm="", lev=0):
@@ -351,7 +351,7 @@ class Message(object):
         else:
             return jwt.pack(self.to_json(lev))
 
-    def from_jwt(self, txt, key=None, verify=True, keystore=None):
+    def from_jwt(self, txt, key=None, verify=True, keystore=None, **kwargs):
         """
         Given a signed JWT, verify its correctness and then create a class
         instance from the content.
