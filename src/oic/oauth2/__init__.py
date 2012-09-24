@@ -571,11 +571,13 @@ class Client(PBase):
         if request_args is None:
             request_args = {}
 
+        #logger.debug("request_args: %s" % request_args)
         kwargs = self._parse_args(request, **request_args)
 
         if extra_args:
             kwargs.update(extra_args)
-            
+        #logger.debug("kwargs: %s" % kwargs)
+        #logger.debug("request: %s" % request)
         return request(**kwargs)
 
     #noinspection PyUnusedLocal
@@ -760,7 +762,7 @@ class Client(PBase):
 
         err = None
         try:
-            resp = response().deserialize(info, format)
+            resp = response().deserialize(info, format, **kwargs)
             if "error" in resp:
                 resp = None
                 try:
