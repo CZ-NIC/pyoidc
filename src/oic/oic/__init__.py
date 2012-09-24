@@ -1,17 +1,17 @@
-import os
-from oic.utils.keystore import get_signing_key
-from oic.jwt.jws import alg2keytype
 
 __author__ = 'rohe0002'
 
 import urlparse
 import json
 import logging
+import os
+import requests
 
 from oic.oauth2.message import ErrorResponse
 
 from oic.oic.message import IdToken
 from oic.oic.message import AuthorizationResponse
+from oic.oic.message import IssuerResponse
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import Claims
 from oic.oic.message import UserInfoClaim
@@ -44,18 +44,15 @@ from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import rndstr
 from oic.oauth2.consumer import ConfigurationError
 
-#from oic.oic.message import *
-
 from oic.oic.exception import AccessDenied
 
-from oic import jwt
 from oic.jwt import jws
-from oic.utils import time_util
-#from oic.utils import jwt
+from oic.jwt.jws import alg2keytype
 
-#from oic.utils.time_util import time_sans_frac
+from oic.utils import time_util
 from oic.utils.time_util import utc_now
 from oic.utils.time_util import epoch_in_a_while
+from oic.utils.keystore import get_signing_key
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +89,8 @@ REQUEST2ENDPOINT = {
 MAX_AUTHENTICATION_AGE = 86400
 JWT_BEARER = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 OIDCONF_PATTERN = "%s/.well-known/openid-configuration"
+SWD_PATTERN = "http://%s/.well-known/simple-web-discovery"
+SERVICE_TYPE = "http://openid.net/specs/connect/1.0/issuer"
 
 AUTHN_METHOD = OAUTH2_AUTHN_METHOD.copy()
 OIC_DEF_SIGN_ALG = "RS256"
@@ -178,11 +177,8 @@ def verify_acr_level(req, level):
 def deser_id_token(inst, str=""):
     if not str:
         return None
-
-    jws.verify(str, keystore = inst.keystore)
-    jso = json.loads(jwt.unpack(str)[1])
-
-    return IdToken().from_dict(jso)
+    else:
+        return IdToken().from_jwt(str, keystore=inst.keystore)
 
 # -----------------------------------------------------------------------------
 def make_openid_request(arq, keys=None, userinfo_claims=None,
@@ -950,6 +946,88 @@ class Client(oauth2.Client):
         for key, val in self.client_prefs.items():
             if key not in PREFERENCE2PROVIDER:
                 self.behaviour[key] = val
+
+    def register(self, url, type="client_associate", **kwargs):
+        req = RegistrationRequest(type=type)
+
+        if type == "client_update" or type == "rotate_secret":
+            req["client_id"] = self.client_id
+            req["client_secret"] = self.client_secret
+
+        for prop in req.parameters():
+            if prop in ["type", "client_id", "client_secret"]:
+                continue
+
+            try:
+                req[prop] = kwargs[prop]
+            except KeyError:
+                try:
+                    req[prop] = self.behaviour[prop]
+                except KeyError:
+                    pass
+
+        headers = {"content-type": "application/x-www-form-urlencoded"}
+        rsp = self.http_request(url, "POST", data=req.to_urlencoded(),
+                                headers=headers)
+
+        if rsp.status_code == 200:
+            if type == "client_associate" or type == "rotate_secret":
+                rr = RegistrationResponseCARS()
+            else:
+                rr = RegistrationResponseCU()
+
+            resp = rr.deserialize(rsp.text, "json")
+            self.client_secret = resp["client_secret"]
+            self.client_id = resp["client_id"]
+            self.registration_expires = resp["expires_at"]
+        else:
+            err = ErrorResponse().deserialize(rsp.text, "json")
+            raise Exception("Registration failed: %s" % err.get_json())
+
+        return resp
+
+    def discovery_query(self, uri, principal):
+        try:
+            rsp = self.http_request(uri)
+        except requests.ConnectionError:
+            if uri.startswith("http://"): # switch to https
+                location = "https://%s" % uri[7:]
+                return self.discovery_query(location, principal)
+            else:
+                raise
+
+        if rsp.status_code == 200:
+            result = IssuerResponse().deserialize(rsp.text, "json")
+            if "SWD_service_redirect" in result:
+                _loc = result["SWD_service_redirect"]["location"]
+                _uri = IssuerRequest(service=SERVICE_TYPE,
+                                     principal=principal).request(_loc)
+                return self.discovery_query(_uri, principal)
+            else:
+                return result
+        elif rsp.status_code == 302:
+            return self.discovery_query(rsp.headers["location"], principal)
+        else:
+            raise Exception(rsp.status_code)
+
+    def get_domain(self, principal, idtype="mail"):
+        if idtype == "mail":
+            (local, domain) = principal.split("@")
+        elif idtype == "url":
+            p = urlparse.urlparse(principal)
+            domain = p.netloc
+        else:
+            domain = ""
+
+        return domain
+
+    def discover(self, principal, idtype="mail"):
+        _loc = SWD_PATTERN % self.get_domain(principal, idtype)
+        uri = IssuerRequest(service=SERVICE_TYPE,
+                            principal=principal).request(_loc)
+
+        result = self.discovery_query(uri, principal)
+        return result["locations"][0]
 
 #noinspection PyMethodOverriding
 class Server(oauth2.Server):
