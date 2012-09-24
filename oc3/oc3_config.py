@@ -1,6 +1,6 @@
 baseurl = "https://localhost"
 #issuer= "https://www.kodtest.se/rolandsOP"
-issuer="https://localhost:8088"
+issuer="https://localhost:8092"
 keys= {
     "rsa": {
         "key":"oc3_keys/key.pem",
