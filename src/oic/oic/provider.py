@@ -339,8 +339,12 @@ class Provider(AProvider):
     def authorization_endpoint(self, environ, start_response, **kwargs):
         # The AuthorizationRequest endpoint
 
-        _log_debug = logger.debug
-        _log_info = logger.info
+        try:
+            _log_debug = kwargs["logger"].debug
+            _log_info = kwargs["logger"].info
+        except KeyError:
+            _log_debug = logger.debug
+            _log_info = logger.info
         _sdb = self.sdb
         _srv = self.server
 
@@ -610,8 +614,12 @@ class Provider(AProvider):
         This is where clients come to get their access tokens
         """
 
-        _log_info = logger.info
-        _log_debug = logger.debug
+        try:
+            _log_debug = kwargs["logger"].debug
+            _log_info = kwargs["logger"].info
+        except KeyError:
+            _log_debug = logger.debug
+            _log_info = logger.info
         _sdb = self.sdb
 
         _log_debug("- token -")
@@ -626,7 +634,13 @@ class Provider(AProvider):
 
         areq = AccessTokenRequest().deserialize(body, "urlencoded")
 
-        if not self.verify_client(environ, areq):
+        try:
+            resp = self.verify_client(environ, areq)
+        except Exception, err:
+            _log_info("Failed to verify client due to: %s" % err)
+            resp = False
+
+        if not resp:
             _log_info("could not verify client")
             err = TokenErrorResponse(error="unathorized_client")
             resp = Unauthorized(err.to_json(), content="application/json")
@@ -756,6 +770,13 @@ class Provider(AProvider):
     #noinspection PyUnusedLocal
     def userinfo_endpoint(self, environ, start_response, **kwargs):
 
+        try:
+            _log_debug = kwargs["logger"].debug
+            _log_info = kwargs["logger"].info
+        except KeyError:
+            _log_debug = logger.debug
+            _log_info = logger.info
+
         # POST or GET
         try:
             query = kwargs["query"]
@@ -766,7 +787,6 @@ class Provider(AProvider):
                 resp = BadRequest("Unsupported method")
                 return resp(environ, start_response)
 
-        _log_debug = logger.debug
         _log_debug("environ: %s" % environ)
         _sdb = self.sdb
 
@@ -787,7 +807,7 @@ class Provider(AProvider):
         except AssertionError:
             raise AuthnFailure("Wrong type of token")
 
-        #logger.info("keys: %s" % self.sdb.keys())
+        #_log_info("keys: %s" % self.sdb.keys())
         if _sdb.is_revoked(key):
             return self._error(environ, start_response, error="access_denied",
                                descr="Token is revoked")
@@ -811,6 +831,12 @@ class Provider(AProvider):
 
     #noinspection PyUnusedLocal
     def check_session_endpoint(self, environ, start_response, **kwargs):
+        try:
+            _log_debug = kwargs["logger"].debug
+            _log_info = kwargs["logger"].info
+        except KeyError:
+            _log_debug = logger.debug
+            _log_info = logger.info
 
         try:
             info = kwargs["query"]
@@ -825,10 +851,10 @@ class Provider(AProvider):
             info = "id_token=%s" % self._bearer_auth(environ)
 
         if self.test_mode:
-            logger.info("check_session_request: %s" % info)
+            _log_info("check_session_request: %s" % info)
         idt = self.server.parse_check_session_request(query=info)
         if self.test_mode:
-            logger.info("check_session_response: %s" % idt.to_dict())
+            _log_info("check_session_response: %s" % idt.to_dict())
 
         resp = Response(idt.to_json(), content="application/json")
         return resp(environ, start_response)
@@ -940,7 +966,14 @@ class Provider(AProvider):
 
     #noinspection PyUnusedLocal
     def registration_endpoint(self, environ, start_response, **kwargs):
-        logger.debug("@registration_endpoint")
+        try:
+            _log_debug = kwargs["logger"].debug
+            _log_info = kwargs["logger"].info
+        except KeyError:
+            _log_debug = logger.debug
+            _log_info = logger.info
+
+        _log_debug("@registration_endpoint")
         try:
             query = kwargs["query"]
         except KeyError:
@@ -951,7 +984,7 @@ class Provider(AProvider):
                 return resp(environ, start_response)
 
         request = RegistrationRequest().deserialize(query, "urlencoded")
-        logger.info("registration_request:%s" % request.to_dict())
+        _log_info("registration_request:%s" % request.to_dict())
 
         try:
             request.verify()
@@ -986,7 +1019,7 @@ class Provider(AProvider):
 
             response = RegistrationResponseCARS(client_id=client_id)
             #if self.debug:
-            #    logger.info("KEYSTORE: %s" % self.keystore._store)
+            #    _log_info("KEYSTORE: %s" % self.keystore._store)
 
         elif request["type"] == "client_update" or \
              request["type"] == "rotate_secret":
@@ -995,12 +1028,12 @@ class Provider(AProvider):
             try:
                 _cinfo = self.cdb[client_id].copy()
             except KeyError:
-                logger.info("Unknown client id")
+                _log_info("Unknown client id")
                 resp = BadRequest()
                 return resp(environ, start_response)
 
             if _cinfo["client_secret"] != request["client_secret"]:
-                logger.info("Wrong secret")
+                _log_info("Wrong secret")
                 resp = BadRequest()
                 return resp(environ, start_response)
 
@@ -1047,10 +1080,10 @@ class Provider(AProvider):
             response["expires_at"] = _cinfo["registration_expires"]
 
         self.cdb[client_id] = _cinfo
-        logger.info("Client info: %s" % _cinfo)
+        _log_info("Client info: %s" % _cinfo)
 
         if self.test_mode:
-            logger.info("registration_response: %s" % response.to_dict())
+            _log_info("registration_response: %s" % response.to_dict())
 
         resp = Response(response.to_json(), content="application/json",
                         headers=[("Cache-Control", "no-store")])
@@ -1058,7 +1091,14 @@ class Provider(AProvider):
 
     #noinspection PyUnusedLocal
     def providerinfo_endpoint(self, environ, start_response, **kwargs):
-        logger.info("@providerinfo_endpoint")
+        try:
+            _log_debug = kwargs["logger"].debug
+            _log_info = kwargs["logger"].info
+        except KeyError:
+            _log_debug = logger.debug
+            _log_info = logger.info
+
+        _log_info("@providerinfo_endpoint")
         try:
             _response = ProviderConfigurationResponse(
                             issuer=self.baseurl,
@@ -1086,16 +1126,16 @@ class Provider(AProvider):
             if self.jwk:
                 _response["jwk_url"] = self.jwk
 
-            #logger.info("endpoints: %s" % self.endpoints)
+            #_log_info("endpoints: %s" % self.endpoints)
             for endp in self.endpoints:
-                #logger.info("# %s, %s" % (endp, endp.name))
+                #_log_info("# %s, %s" % (endp, endp.name))
                 _response[endp.name] = "%s%s" % (self.baseurl, endp.type)
 
             #if self.test_mode:
                 #print sys.stderr >> "providerinfo_endpoint.handle: %s" %
                 # kwargs["handle"]
 
-            logger.info("provider_info_response: %s" % (_response.to_dict(),))
+            _log_info("provider_info_response: %s" % (_response.to_dict(),))
 
             headers=[("Cache-Control", "no-store"), ("x-ffo", "bar")]
             if "handle" in kwargs:
@@ -1115,7 +1155,12 @@ class Provider(AProvider):
         return resp(environ, start_response)
 
     def discovery_endpoint(self, environ, start_response, **kwargs):
-        logger.debug("@discovery_endpoint")
+        try:
+            _log_debug = kwargs["logger"].debug
+        except KeyError:
+            _log_debug = logger.debug
+
+        _log_debug("@discovery_endpoint")
         try:
             query = kwargs["query"]
         except KeyError:
@@ -1126,7 +1171,7 @@ class Provider(AProvider):
                 return resp(environ, start_response)
 
         request = DiscoveryRequest().deserialize(query, "urlencoded")
-        logger.debug("discovery_request:%s" % (request.to_dict(),))
+        _log_debug("discovery_request:%s" % (request.to_dict(),))
 
         try:
             assert request["service"] == SWD_ISSUER
@@ -1138,7 +1183,7 @@ class Provider(AProvider):
 
         _response = DiscoveryResponse(locations=[self.baseurl])
 
-        logger.debug("discovery_response:%s" % (_response.to_dict(),))
+        _log_debug("discovery_response:%s" % (_response.to_dict(),))
 
         headers=[("Cache-Control", "no-store")]
         (key, timestamp) = kwargs["handle"]
@@ -1155,8 +1200,12 @@ class Provider(AProvider):
         """
         After the authentication this is where you should end up
         """
-
-        _log_debug = logger.debug
+        try:
+            _log_debug = kwargs["logger"].debug
+            #_log_info = kwargs["logger"].info
+        except KeyError:
+            _log_debug = logger.debug
+            #_log_info = logger.info
 
         _log_debug("- in authenticated() -")
 
