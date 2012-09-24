@@ -33,7 +33,6 @@ from oic.oic.message import AuthnToken
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.provider import AuthnFailure
 from oic.oic.claims_provider import ClaimsClient
-from oic.oic import JWT_BEARER
 
 from mako.lookup import TemplateLookup
 
@@ -312,7 +311,7 @@ FUNCTIONS = {
 
 # ----------------------------------------------------------------------------
 
-def safe(environ, start_response, handle):
+def safe(environ, start_response, logger, handle):
     _oas = environ["oic.oas"]
     _srv = _oas.server
     _log_info = _oas.logger.info
@@ -340,7 +339,7 @@ def safe(environ, start_response, handle):
     return resp(environ, start_response)
 
 #noinspection PyUnusedLocal
-def css(environ, start_response, handle):
+def css(environ, start_response, logger, handle):
     try:
         info = open(environ["PATH_INFO"]).read()
         resp = Response(info)
@@ -351,60 +350,68 @@ def css(environ, start_response, handle):
 
 # ----------------------------------------------------------------------------
 
-def token(environ, start_response, handle):
+def token(environ, start_response, logger, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.token_endpoint(environ, start_response, handle=handle)
+    return _oas.token_endpoint(environ, start_response, logger=logger,
+                               handle=handle)
 
 #noinspection PyUnusedLocal
-def authorization(environ, start_response, handle):
+def authorization(environ, start_response, logger, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.authorization_endpoint(environ, start_response,
+    return _oas.authorization_endpoint(environ, start_response, logger=logger,
                                        handle=handle)
 
 #noinspection PyUnusedLocal
-def authenticated(environ, start_response, handle):
+def authenticated(environ, start_response, logger, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.authenticated(environ, start_response, handle=handle)
+    return _oas.authenticated(environ, start_response, logger=logger,
+                              handle=handle)
 
 #noinspection PyUnusedLocal
-def userinfo(environ, start_response, handle):
+def userinfo(environ, start_response, logger, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.userinfo_endpoint(environ, start_response, handle=handle)
+    return _oas.userinfo_endpoint(environ, start_response, logger=logger,
+                                  handle=handle)
 
 #noinspection PyUnusedLocal
-def op_info(environ, start_response, handle):
+def op_info(environ, start_response, logger, handle):
     _oas = environ["oic.oas"]
     LOGGER.info("op_info")
-    return _oas.providerinfo_endpoint(environ, start_response, handle=handle)
+    return _oas.providerinfo_endpoint(environ, start_response, logger=logger,
+                                      handle=handle)
 
 #noinspection PyUnusedLocal
-def registration(environ, start_response, handle):
+def registration(environ, start_response, logger, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.registration_endpoint(environ, start_response, handle=handle)
+    return _oas.registration_endpoint(environ, start_response, logger=logger,
+                                      handle=handle)
 
 #noinspection PyUnusedLocal
-def check_id(environ, start_response, handle):
+def check_id(environ, start_response, logger, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.check_id_endpoint(environ, start_response, handle=handle)
+    return _oas.check_id_endpoint(environ, start_response, logger=logger,
+                                  handle=handle)
 
 #noinspection PyUnusedLocal
-def swd_info(environ, start_response, handle):
+def swd_info(environ, start_response, logger, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.discovery_endpoint(environ, start_response, handle=handle)
+    return _oas.discovery_endpoint(environ, start_response, logger=logger,
+                                   handle=handle)
 
-def trace_log(environ, start_response, handle):
+def trace_log(environ, start_response, logger, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.tracelog_endpoint(environ, start_response, handle=handle)
+    return _oas.tracelog_endpoint(environ, start_response, logger=logger,
+                                  handle=handle)
 
-def meta_info(environ, start_response, handle):
+def meta_info(environ, start_response, logger, handle):
     """
     Returns something like this
      {"links":[
@@ -545,8 +552,7 @@ def application(environ, start_response):
             try:
                 _log = OAS.trace_log[key]
             except KeyError:
-                _log = create_session_logger(key)
-                OAS.trace_log[key] = _log
+                _log = OAS.new_trace_log(key)
         else:
             _log = replace_format_handler(logger)
 
@@ -570,7 +576,7 @@ def application(environ, start_response):
 
             a1.info("callback: %s" % callback)
             try:
-                return callback(environ, start_response, handle)
+                return callback(environ, start_response, a1, handle)
             except Exception,err:
                 print >> sys.stderr, "%s" % err
                 message = traceback.format_exception(*sys.exc_info())
@@ -590,6 +596,7 @@ def application(environ, start_response):
 
 # ----------------------------------------------------------------------------
 
+CLAIMS_PROVIDER = "https://localhost:8093/"
 
 USERDB = {
     "diana":{
@@ -624,7 +631,7 @@ USERDB = {
             "country": "USA",
         },
         "_external_": {
-            "https://localhost:8089/": ["geolocation"]
+            CLAIMS_PROVIDER: ["geolocation"]
         }
     },
     "upper": {
@@ -635,18 +642,18 @@ USERDB = {
         "email": "uc@example.com",
         "email_verified": True,
         "_external_": {
-            "https://localhost:8089/": ["geolocation"]
+            CLAIMS_PROVIDER: ["geolocation"]
         }
     }
 }
 
 CLIENT_INFO = {
-    "https://localhost:8089/": {
-        "userclaims_endpoint":"https://localhost:8089/userclaims",
+    CLAIMS_PROVIDER: {
+        "userclaims_endpoint":"%suserclaims" % CLAIMS_PROVIDER,
         "client_id": "client_1",
         "client_secret": "hemlig",
-        "x509_url": "https://localhost:8089/cp_keys/cert.pem",
-        "jwk_url": "https://localhost:8089/cp_keys/pub.jwk",
+        "x509_url": "%scp_keys/cert.pem" % CLAIMS_PROVIDER,
+        "jwk_url": "%scp_keys/pub.jwk" % CLAIMS_PROVIDER,
         }
 }
 
@@ -657,6 +664,8 @@ class TestProvider(Provider):
                           ca_certs, jwt_keys)
         self.test_mode = True
         self.trace_log = {}
+        self.sessions = []
+        self.max_sessions = 100
 
     def dump_tracelog(self, key):
         tlog = self.trace_log[key]
@@ -682,11 +691,23 @@ class TestProvider(Provider):
                 resp = Response("\n".join(arr), content="text/plain")
                 return resp(environ, start_response)
 
+        del self.trace_log[handle[0]]
+        self.sessions.remove(handle[0])
         resp = Response("no info", content="text/plain")
         return resp(environ, start_response)
 
     def re_link_log(self, old, new):
         self.trace_log[new] = self.trace_log[old]
+
+    def new_trace_log(self, key):
+        _log = create_session_logger(key)
+        if len(self.trace_log) > self.max_sessions:
+            # remove the oldest
+            oldest = self.sessions[0]
+            del self.trace_log[oldest]
+            self.sessions = self.sessions[1:]
+        self.trace_log[key] = _log
+        return _log
 
 def mv_content(fro, to):
     txt = open(fro).read()
@@ -801,7 +822,7 @@ if __name__ == '__main__':
     SRV.ssl_adapter = ssl_builtin.BuiltinSSLAdapter("certs/server.crt",
                                                     "certs/server.key")
 
-    LOGGER.info("OC3 server starting")
+    LOGGER.info("OC3 server starting listening on port:%s" % args.port)
     try:
         SRV.start()
     except KeyboardInterrupt:
