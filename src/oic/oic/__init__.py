@@ -1005,7 +1005,7 @@ class Client(oauth2.Client):
                 return self.discovery_query(_uri, principal)
             else:
                 return result
-        elif rsp.status_code == 302:
+        elif rsp.status_code == 302 or rsp.status_code == 301:
             return self.discovery_query(rsp.headers["location"], principal)
         else:
             raise Exception(rsp.status_code)
