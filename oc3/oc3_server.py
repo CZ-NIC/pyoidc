@@ -514,11 +514,15 @@ def application(environ, start_response):
     #user = environ.get("REMOTE_USER", "")
     path = environ.get('PATH_INFO', '').lstrip('/')
 
+    logger = logging.getLogger('oicServer')
+
+    if path == "robots.txt":
+        return static(environ, start_response, logger, "static/robots.txt")
+
     environ["oic.oas"] = OAS
     environ["mako.lookup"] = LOOKUP
 
     remote = environ.get("REMOTE_ADDR")
-    logger = logging.getLogger('oicServer')
 
     kaka = environ.get("HTTP_COOKIE", '')
     a1 = None
