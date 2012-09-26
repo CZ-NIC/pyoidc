@@ -177,14 +177,14 @@ class Provider(AProvider):
         self.authn_as = None
         self.preferred_id_type = "public"
 
-    def id_token_as_signed_jwt(self, session, loa="2", alg="RS256",
-                  code=None, access_token=None, user_info=None):
+    def id_token_as_signed_jwt(self, session, loa="2", alg="RS256", code=None,
+                               access_token=None, user_info=None):
 
-        _idt = self.server.make_id_token(session, loa,
-                                             self.name, alg, code,
-                                             access_token, user_info)
+        _idt = self.server.make_id_token(session, loa, self.name, alg, code,
+                                         access_token, user_info)
 
         logger.debug("id_token: %s" % _idt.to_dict())
+        logger.debug("Signing alg: %s" % alg)
         ckey = get_signing_key(self.keystore, alg2keytype(alg),
                                session["client_id"])
         _signed_jwt = _idt.to_jwt(key=ckey, algorithm=alg)
@@ -680,12 +680,12 @@ class Provider(AProvider):
             userinfo = self.userinfo_in_id_token_claims(_info)
 
             try:
-                alg = client_info["id_token_signed_response_algs"]
+                alg = client_info["id_token_signed_response_alg"]
             except KeyError:
                 alg = "RS256"
 
             try:
-                _idtoken = self.id_token_as_signed_jwt(_info,
+                _idtoken = self.id_token_as_signed_jwt(_info, alg=alg,
                                                        user_info=userinfo)
             except AccessDenied:
                 return self._error(environ, start_response,
@@ -1118,10 +1118,12 @@ class Provider(AProvider):
                         )
 
             supported_algs = jws.SIGNER_ALGS.keys()
-            for typ, alg in jwe.SUPPORTED.items():
-                if alg not in supported_algs:
-                    supported_algs.append(alg)
+            for typ, algs in jwe.SUPPORTED.items():
+                for alg in algs:
+                    if alg not in supported_algs:
+                        supported_algs.append(alg)
 
+            _log_info("Supported algs: %s" % supported_algs)
             # local policy may remove some of these
             _response["request_object_algs_supported"] = supported_algs
             _response["userinfo_algs_supported"] = supported_algs
@@ -1297,7 +1299,7 @@ class Provider(AProvider):
             raise
 
         _log_debug("response type: %s" % areq["response_type"])
-
+        _log_debug("client info: %s" % client_info)
         # create the response
         aresp = AuthorizationResponse()
         try:
@@ -1356,7 +1358,7 @@ class Provider(AProvider):
                 user_info = self.userinfo_in_id_token_claims(_sinfo)
 
                 try:
-                    alg = client_info["id_token_signed_response_algs"]
+                    alg = client_info["id_token_signed_response_alg"]
                 except KeyError:
                     alg = "RS256"
 
