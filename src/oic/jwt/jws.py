@@ -11,7 +11,16 @@ import hashlib
 import hmac
 import struct
 
-from oic.jwt import b64e, safe_str_cmp, BadSignature, unpack, JWT_TYPS, BadType, UnknownAlgorithm, MissingKey, Invalid, pack
+from oic.jwt import b64e
+from oic.jwt import safe_str_cmp
+from oic.jwt import BadSignature
+from oic.jwt import unpack
+from oic.jwt import JWT_TYPS
+from oic.jwt import BadType
+from oic.jwt import UnknownAlgorithm
+from oic.jwt import MissingKey
+from oic.jwt import Invalid
+from oic.jwt import pack
 
 logger = logging.getLogger(__name__)
 
