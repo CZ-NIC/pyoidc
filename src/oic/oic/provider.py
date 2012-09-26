@@ -27,6 +27,7 @@ import sys
 from requests import ConnectionError
 from oic.jwt.jws import alg2keytype
 from oic.utils.keystore import get_signing_key
+from oic.jwt import jws, jwe
 
 __author__ = 'rohe0002'
 
@@ -1115,6 +1116,16 @@ class Provider(AProvider):
                             user_id_types_supported=["public", "pairwise"],
                             #request_object_algs_supported=["HS256"]
                         )
+
+            supported_algs = jws.SIGNER_ALGS.keys()
+            for typ, alg in jwe.SUPPORTED.items():
+                if alg not in supported_algs:
+                    supported_algs.append(alg)
+
+            # local policy may remove some of these
+            _response["request_object_algs_supported"] = supported_algs
+            _response["userinfo_algs_supported"] = supported_algs
+            _response["id_token_algs_supported"] = supported_algs
 
             if not self.baseurl.endswith("/"):
                 self.baseurl += "/"
