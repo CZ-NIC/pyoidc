@@ -159,6 +159,13 @@ def keysize(spec):
         return int(spec[1:4])
     return 0
 
+ENC2ALG = {"A128CBC": "aes_128_cbc", "A256CBC": "aes_256_cbc"}
+
+SUPPORTED = {
+    "alg": ["RSA1_5", "RSA-OAEP"],
+    "enc": ["A128CBC", "A256CBC", "A256GCM"],
+    "int": ["HS256", "HS384", "HS512"]
+}
 # ---------------------------------------------------------------------------
 
 def rsa_encrypt(msg, key, alg="RSA-OAEP", enc="A256GCM", int="HS256",
@@ -185,7 +192,7 @@ def rsa_encrypt(msg, key, alg="RSA-OAEP", enc="A256GCM", int="HS256",
         auth_data = b64e(header) + b'.' + b64e(ek)
         ctxt, tag = gcm_encrypt(cmk, iv, msg, auth_data)
         res = auth_data + b'.' + b64e(ctxt)
-    elif enc=="A128CBC":
+    elif enc=="A128CBC" or enc=="A256CBC":
         if not iv:
             iv = os.urandom(16) # 128 bits
         _dc = hd2ia(hexlify(cmk))
@@ -193,7 +200,7 @@ def rsa_encrypt(msg, key, alg="RSA-OAEP", enc="A256GCM", int="HS256",
         cik = get_cik(_dc, length=keysize(int), hashsize=keysize(kdf))
         #logger.info("iv: %s" % dehexlify(iv))
         #logger.info("cek: %s" % cek)
-        c = M2Crypto.EVP.Cipher(alg='aes_128_cbc', key=cek, iv=iv, op=ENC)
+        c = M2Crypto.EVP.Cipher(alg=ENC2ALG[enc], key=cek, iv=iv, op=ENC)
         ctxt = aes_enc(c, msg)
         #t = None
         header = json.dumps({"alg":alg, "enc":enc, "iv": b64e(iv),
@@ -207,8 +214,6 @@ def rsa_encrypt(msg, key, alg="RSA-OAEP", enc="A256GCM", int="HS256",
 
     res += b'.' + b64e(tag)
     return res
-
-
 
 def rsa_decrypt(token, key):
     """
@@ -234,7 +239,7 @@ def rsa_decrypt(token, key):
     if dic["enc"] == "A256GCM":
         auth_data = header + b'.' + ek
         msg = gcm_decrypt(cmk, iv, b64d(ctxt), auth_data, b64d(tag))
-    elif dic["enc"]=="A128CBC":
+    elif dic["enc"]=="A128CBC" or dic["enc"]=="A256CBC":
         try:
             kdf = dic["kdf"]
         except KeyError:
@@ -243,7 +248,10 @@ def rsa_decrypt(token, key):
         _dc = hd2ia(hexlify(cmk))
         cek = get_cek(_dc, length=keysize(dic["enc"]), hashsize=keysize(kdf))
         cik = get_cik(_dc, length=keysize(dic["int"]), hashsize=keysize(kdf))
-        c = M2Crypto.EVP.Cipher(alg='aes_128_cbc', key=cek, iv=iv, op=DEC)
+
+        c = M2Crypto.EVP.Cipher(alg=ENC2ALG[dic["enc"]], key=cek, iv=iv,
+                                op=DEC)
+
         msg = aes_dec(c, b64d(ctxt))
         verifier = SIGNER_ALGS[dic["int"]]
         verifier.verify(header + b'.' + ek + b'.' + ctxt, b64d(tag), cik)
