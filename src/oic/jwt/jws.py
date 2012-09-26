@@ -121,6 +121,7 @@ SIGNER_ALGS = {
 
     u'ES256': ECDSASigner(sha256_digest),
 #    u'AES256': AESEncrypter
+    u'none': None
     }
 
 def alg2keytype(alg):
