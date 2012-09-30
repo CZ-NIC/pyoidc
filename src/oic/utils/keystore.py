@@ -1,16 +1,14 @@
 import copy
 import sys
+from oic.jwt import jwk
 
 __author__ = 'rohe0002'
 
 import M2Crypto
-import json
 import logging
 import os
 import urlparse
 
-from binascii import b2a_hex
-from M2Crypto.__m2crypto import hex_to_bn, bn_to_mpi, sha1
 from M2Crypto.util import no_passphrase_callback
 
 KEYLOADERR = "Failed to load %s key from '%s' (%s)"
@@ -27,66 +25,69 @@ TB = 2**24
 foo = '0000 0001 0000 0000 0000 0001'
 foo_b64 = "QAB="
 
-import base64
-import struct
+#import base64
+#import struct
 
-def bytes( long_int ):
-    bytes = []
-    while long_int:
-        long_int, r = divmod(long_int, 256)
-        bytes.insert(0, r)
-    return bytes
+#def bytes( long_int ):
+#    bytes = []
+#    while long_int:
+#        long_int, r = divmod(long_int, 256)
+#        bytes.insert(0, r)
+#    return bytes
+#
+#def long_to_base64(n):
+#    bys = bytes(n)
+#    data = struct.pack('%sB' % len(bys), *bys)
+#    #xdata = struct.pack('<%sB' % len(bys), *bys)
+#    if not len(data):
+#        data = '\x00'
+#    s = base64.urlsafe_b64encode(data).rstrip('=')
+#    return s
+#
+#def b64_set_to_long(s):
+#    data = base64.urlsafe_b64decode(s + '==')
+#    n = struct.unpack('>Q', '\x00'* (8-len(data)) + data )
+#    return n[0]
+#
+#def base64_to_long(data):
+#    #if len(data) % 4: # not a multiple of 4
+#    #    data += '=' * (4 - (len(data) % 4))
+#
+#    ld = len(data)
+#    data = str(data)
+#
+#    lshift = 8 * (3-(ld % 4))
+#
+#    res = b64_set_to_long(data[0:4])
+#
+#    if ld > 4:
+#        if lshift == 24:
+#            for i in range(4, ld, 4):
+#                res = (res << 24) + b64_set_to_long(data[i:i+4])
+#        else:
+#            i = 0
+#            for i in range(4, ld-4, 4):
+#                res = (res << 24) + b64_set_to_long(data[i:i+4])
+#            i += 4
+#            res = (res << lshift) + b64_set_to_long(data[i:i+4])
+#
+#    return res
+#
+#def long_to_mpi(num):
+#    """Converts a python integer or long to OpenSSL MPInt used by M2Crypto.
+#    Borrowed from Snowball.Shared.Crypto"""
+#    h = hex(num)[2:] # strip leading 0x in string
+#    if len(h) % 2 == 1:
+#        h = '0' + h # add leading 0 to get even number of hexdigits
+#    return bn_to_mpi(hex_to_bn(h)) # convert using OpenSSL BinNum
+#
+#def mpi_to_long(mpi):
+#    """Converts an OpenSSL MPint used by M2Crypto to a python integer/long.
+#    Borrowed from Snowball.Shared.Crypto"""
+#    return eval("0x%s" % b2a_hex(mpi[4:]))
 
-def long_to_base64(n):
-    bys = bytes(n)
-    data = struct.pack('%sB' % len(bys), *bys)
-    #xdata = struct.pack('<%sB' % len(bys), *bys)
-    if not len(data):
-        data = '\x00'
-    s = base64.urlsafe_b64encode(data).rstrip('=')
-    return s
-
-def b64_set_to_long(s):
-    data = base64.urlsafe_b64decode(s + '==')
-    n = struct.unpack('>Q', '\x00'* (8-len(data)) + data )
-    return n[0]
-
-def base64_to_long(data):
-    #if len(data) % 4: # not a multiple of 4
-    #    data += '=' * (4 - (len(data) % 4))
-
-    ld = len(data)
-    data = str(data)
-
-    lshift = 8 * (3-(ld % 4))
-
-    res = b64_set_to_long(data[0:4])
-
-    if ld > 4:
-        if lshift == 24:
-            for i in range(4, ld, 4):
-                res = (res << 24) + b64_set_to_long(data[i:i+4])
-        else:
-            i = 0
-            for i in range(4, ld-4, 4):
-                res = (res << 24) + b64_set_to_long(data[i:i+4])
-            i += 4
-            res = (res << lshift) + b64_set_to_long(data[i:i+4])
-
-    return res
-
-def long_to_mpi(num):
-    """Converts a python integer or long to OpenSSL MPInt used by M2Crypto.
-    Borrowed from Snowball.Shared.Crypto"""
-    h = hex(num)[2:] # strip leading 0x in string
-    if len(h) % 2 == 1:
-        h = '0' + h # add leading 0 to get even number of hexdigits
-    return bn_to_mpi(hex_to_bn(h)) # convert using OpenSSL BinNum
-
-def mpi_to_long(mpi):
-    """Converts an OpenSSL MPint used by M2Crypto to a python integer/long.
-    Borrowed from Snowball.Shared.Crypto"""
-    return eval("0x%s" % b2a_hex(mpi[4:]))
+#def dicthash(d):
+#    return hash(repr(sorted(d.items())))
 
 # ======================================================================
 
@@ -137,17 +138,6 @@ class RedirectStdStreams(object):
         self._stdout.flush(); self._stderr.flush()
         sys.stdout = self.old_stdout
         sys.stderr = self.old_stderr
-
-def kspec(key, usage):
-    return {
-        "alg": "RSA",
-        "mod": long_to_base64(mpi_to_long(key.n)),
-        "exp": long_to_base64(mpi_to_long(key.e)),
-        "use": usage
-    }
-
-def dicthash(d):
-    return hash(repr(sorted(d.items())))
 
 class KeyStore(object):
     use = ["sig", "ver", "enc", "dec"]
@@ -378,6 +368,8 @@ class KeyStore(object):
                     _key = x509_rsa_loads(cert)
                     self.spec2key[cert] = _key
                 self.add_key(_key, "rsa", usage, owner)
+                logger.debug("added x509 key: type=%s, usage=%s, owner=%s" % (
+                    "rsa", usage, owner))
                 return _key
             else:
                 raise Exception("HTTP Get error: %s" % r.status_code)
@@ -431,7 +423,9 @@ class KeyStore(object):
                 raise Exception(KEYLOADERR % ('x509_encryption',
                                               inst["x509_encryption_url"]))
         elif _verkey:
-            self.set_decrypt_key(_verkey, "rsa", issuer)
+            logger.debug("added x509 key: type=%s, usage=%s, owner=%s" % (
+                "rsa", "enc", issuer))
+            self.set_encrypt_key(_verkey, "rsa", issuer)
 
         if "jwk_url" in inst and inst["jwk_url"]:
             try:
@@ -449,7 +443,9 @@ class KeyStore(object):
                                               inst["jwk_encryption_url"]))
         elif _verkeys:
             for key in _verkeys:
-                self.set_decrypt_key(key, "rsa", issuer)
+                logger.debug("added JWK key: type=%s, usage=%s, owner=%s" % (
+                    "rsa", "enc", issuer))
+                self.set_encrypt_key(key, "rsa", issuer)
 
     def update(self, keystore):
         """
@@ -488,27 +484,10 @@ class KeyStore(object):
         :param usage: Usage if not specified in the JWK
         :param owner: The URL of the server from which the keys where received
         """
-        spec = json.loads(txt)
-        for kspec in spec["keys"]:
-            if kspec["alg"] == "RSA":
-                try:
-                    k = self.spec2key[dicthash(kspec)]
-                except KeyError:
-                    e = base64_to_long(kspec["exp"])
-                    n = base64_to_long(kspec["mod"])
-
-                    k = M2Crypto.RSA.new_pub_key((long_to_mpi(e),
-                                                  long_to_mpi(n)))
-                    self.spec2key[dicthash(kspec)] = k
-
-#                if "kid" in kspec:
-#                    tag = "%s:%s" % ("rsa", kspec["kid"])
-#                else:
-#                    tag = "rsa"
-
-                self.add_key(k, "rsa", usage, owner)
-            elif kspec["alg"] == "HMAC":
-                self.add_key(kspec["modulus"], "hmac", usage, owner)
+        for (key, type) in jwk.loads(txt, self.spec2key):
+            self.add_key(key, type, usage, owner)
+            logger.debug("added JWK key: type=%s, usage=%s, owner=%s" % (
+                                                        key, usage, owner))
 
     def dumps(self, usage, type="rsa"):
         """
@@ -518,15 +497,7 @@ class KeyStore(object):
         :param type: The type of key
         :return: The JWK string representation or None
         """
-        kspecs = []
-        for key in self.get_keys(usage, type):
-            if isinstance(key, M2Crypto.RSA.RSA):
-                kspecs.append(kspec(key, usage))
-
-        if kspecs:
-            return json.dumps({"keys": kspecs})
-        else:
-            return None
+        return jwk.dumps(self.get_keys(usage, type), usage)
 
     def key_export(self, baseurl, local_path, vault, **kwargs):
         """
@@ -556,7 +527,7 @@ class KeyStore(object):
         # For each usage type
         # type, usage, format (rsa, sign, jwt)
 
-        for usage in ["sig", "enc"]:
+        for usage in ["sig", "dec"]:
             if usage in kwargs:
                 if kwargs[usage] is None:
                     continue
@@ -588,11 +559,13 @@ class KeyStore(object):
 
                         res[_name] = _url
 
-                    self.add_key(_key, "rsa", usage)
+
+                    rsa_key = rsa_load('%s%s' % (vault_path, "pyoidc"))
+                    self.add_key(rsa_key, "rsa", usage)
                     if usage == "sig":
-                        self.add_key(_key, "rsa", "ver")
+                        self.add_key(rsa_key, "rsa", "ver")
                     elif usage == "enc":
-                        self.add_key(_key, "rsa", "dec")
+                        self.add_key(rsa_key, "rsa", "dec")
 
                     if "jwk" in _args["format"]:
                         if usage == "sig":
@@ -611,6 +584,9 @@ class KeyStore(object):
                                               _export_filename[1:])
 
                         res[_name[1]] = _url
+
+                    if usage == "sig" and "dec" not in kwargs:
+                        self.add_key(rsa_key, "rsa", "dec")
 
 
         return part, res
