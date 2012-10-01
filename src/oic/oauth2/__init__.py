@@ -358,6 +358,17 @@ class PBase(object):
         else:
             self.request_args["verify"] = False
 
+    def _cookies(self):
+        cookie_dict = {}
+
+        for _, a in list(self.cookiejar._cookies.items()):
+            for _, b in list(a.items()):
+                for cookie in list(b.values()):
+                    # print cookie
+                    cookie_dict[cookie.name] = cookie.value
+
+        return cookie_dict
+
     def set_cookie(self, kaka, request):
         """Returns a cookielib.Cookie based on a set-cookie header line"""
 
@@ -414,7 +425,8 @@ class PBase(object):
         if self.cookiejar:
             #_kwargs["cookies"] = [k.output() for k in self.cookiejar]
             #_kwargs["cookies"] = self.cookiejar
-            _kwargs["cookies"] = requests.utils.dict_from_cookiejar(self.cookiejar)
+            #_kwargs["cookies"] = requests.utils.dict_from_cookiejar(self.cookiejar)
+            _kwargs["cookies"] = self._cookies()
             logger.info("SENT COOKIEs: %s" % (_kwargs["cookies"],))
         r = requests.request(method, url, **_kwargs)
         try:
@@ -1023,9 +1035,9 @@ class Server(PBase):
         if not keystore:
                 keystore = self.keystore
 
-        keys = keystore.get_keys("ver", owner=None)
         #areq = message().from_(txt, keys, verify)
-        areq = request().deserialize(txt, "jwt", key=keys, verify=verify)
+        areq = request().deserialize(txt, "jwt", keystore=keystore,
+                                     verify=verify)
         areq.verify()
         return areq
 
