@@ -304,7 +304,7 @@ class Consumer(Client):
             args["userinfo_claims"] = self.config["user_info"]
 
         if "request_method" in self.config:
-            areq = self.construct_OpenIDRequest(request_args=args,
+            areq = self.construct_AuthorizationRequest(request_args=args,
                                                  extra_args=None)
 
             if self.config["request_method"] == "file":
@@ -365,7 +365,6 @@ class Consumer(Client):
         _log_info("response: %s" % _query)
         
         _path = http_util.geturl(environ, False, False)
-        vkeys = self.keystore.get_verify_key(owner=None)
 
         if "code" in self.config["response_type"]:
             # Might be an error response
@@ -373,7 +372,7 @@ class Consumer(Client):
             aresp = self.parse_response(AuthorizationResponse,
                                         info=_query,
                                         format="urlencoded",
-                                        key=vkeys)
+                                        keystore=self.keystore)
             if aresp.type() == "ErrorResponse":
                 _log_info("ErrorResponse: %s" % aresp)
                 raise AuthzError(aresp.error)
@@ -408,7 +407,8 @@ class Consumer(Client):
         else: # implicit flow
             _log_info("Expect Access Token Response")
             atr = self.parse_response(AccessTokenResponse, info=_query,
-                                      format="urlencoded", key=vkeys)
+                                      format="urlencoded",
+                                      keystore=self.keystore)
             if atr.type() == "ErrorResponse":
                 raise TokenError(atr["error"])
 
