@@ -67,11 +67,30 @@ class Encrypter(object):
         """Return decrypted message."""
         raise NotImplementedError
 
+    def private_encrypt(self, msg, key):
+        """Encrypt ``msg`` with ``key`` and return the encrypted message."""
+        raise NotImplementedError
+
+    def private_decrypt(self, msg, key):
+        """Return decrypted message."""
+        raise NotImplementedError
+
 class RSAEncrypter(Encrypter):
 
     def public_encrypt(self, msg, key, padding="pkcs1_padding"):
         p = getattr(M2Crypto.RSA, padding)
         return key.public_encrypt(msg, p)
+
+    def private_encrypt(self, msg, key, padding="pkcs1_padding"):
+        p = getattr(M2Crypto.RSA, padding)
+        return key.private_encrypt(msg, p)
+
+    def public_decrypt(self, msg, key, padding="pkcs1_padding"):
+        p = getattr(M2Crypto.RSA, padding)
+        try:
+            return key.public_decrypt(msg, p)
+        except M2Crypto.RSA.RSAError, e:
+            raise CannotDecode(e)
 
     def private_decrypt(self, msg, key, padding="pkcs1_padding"):
         p = getattr(M2Crypto.RSA, padding)
@@ -168,19 +187,22 @@ SUPPORTED = {
 }
 # ---------------------------------------------------------------------------
 
-def rsa_encrypt(msg, key, alg="RSA-OAEP", enc="A256GCM", int="HS256",
-                kdf="CS256", iv="", cmk=""):
+def rsa_encrypt(msg, key, alg="RSA-OAEP", enc="A256GCM",
+                context="public", int="HS256", kdf="CS256", iv="", cmk=""):
 
     # content master key 256 bit
     if not cmk:
         cmk = os.urandom(32)
 
-    encrypter = RSAEncrypter()
+    if context == "private":
+        _encrypt = RSAEncrypter().private_encrypt
+    else:
+        _encrypt = RSAEncrypter().public_encrypt
 
     if alg == "RSA-OAEP":
-        ek = encrypter.public_encrypt(cmk, key, 'pkcs1_oaep_padding')
+        ek = _encrypt(cmk, key, 'pkcs1_oaep_padding')
     elif alg == "RSA1_5":
-        ek = encrypter.public_encrypt(cmk, key)
+        ek = _encrypt(cmk, key)
     else:
         raise NotSupportedAlgorithm(alg)
 
@@ -215,7 +237,7 @@ def rsa_encrypt(msg, key, alg="RSA-OAEP", enc="A256GCM", int="HS256",
     res += b'.' + b64e(tag)
     return res
 
-def rsa_decrypt(token, key):
+def rsa_decrypt(token, key, context):
     """
     Does decryption according to the JWE proposal
 
@@ -226,13 +248,17 @@ def rsa_decrypt(token, key):
     header, ek, ctxt, tag = token.split(b".")
     dic = json.loads(b64d(header))
     iv = b64d(str(dic["iv"]))
-    encrypter = RSAEncrypter()
+
+    if context == "private":
+        _decrypt = RSAEncrypter().private_decrypt
+    else:
+        _decrypt = RSAEncrypter().public_decrypt
 
     jek = b64d(ek)
     if dic["alg"] == "RSA-OAEP":
-        cmk = encrypter.private_decrypt(jek, key, 'pkcs1_oaep_padding')
+        cmk = _decrypt(jek, key, 'pkcs1_oaep_padding')
     elif dic["alg"] == "RSA1_5":
-        cmk = encrypter.private_decrypt(jek, key)
+        cmk = _decrypt(jek, key)
     else:
         raise NotSupportedAlgorithm(dic["alg"])
 
@@ -262,21 +288,21 @@ def rsa_decrypt(token, key):
 
 # =============================================================================
 
-def encrypt(payload, keys, alg, enc, **kwargs):
+def encrypt(payload, keys, alg, enc, context, **kwargs):
     if alg.startswith("RSA") and alg in ["RSA-OAEP", "RSA1_5"]:
         encrypter = rsa_encrypt
         key = keys["rsa"][0]
     else:
         raise NotSupportedAlgorithm
 
-    token = encrypter(payload, key, alg, enc, **kwargs)
+    token = encrypter(payload, key, alg, enc, context, **kwargs)
 
     return token
 
-def decrypt(token, dkeys):
+def decrypt(token, dkeys, context):
 
     header, ek, ctxt, tag = token.split(b".")
-    dic = json.loads(b64d(header))
+    dic = json.loads(b64d(str(header)))
 
     if dic["alg"].startswith("RSA") and dic["alg"] in ["RSA-OAEP", "RSA1_5"]:
         decrypter = rsa_decrypt
@@ -287,7 +313,7 @@ def decrypt(token, dkeys):
 
     for key in keys:
         try:
-            msg = decrypter(token, key)
+            msg = decrypter(str(token), key, context)
             return msg
         except KeyError:
             pass
