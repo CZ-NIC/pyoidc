@@ -15,6 +15,7 @@ import traceback
 from oic.oauth2 import rndstr
 import sys
 from oic.utils.keystore import rsa_load
+from oic.utils.crypt import load_x509_cert, load_jwk
 
 __author__ = 'rohe0002'
 
@@ -191,12 +192,16 @@ def init_claims_clients(client_info):
         else:
             cc = ClaimsClient(client_id=specs["client_id"])
             cc.client_secret=specs["client_secret"]
+            _req = cc.keystore.crypt.http_request
+            _s2k = cc.keystore.spec2key
             try:
-                cc.keystore.load_x509_cert(specs["x509_url"], "ver", cid)
+                for typ, key in load_x509_cert(_req, specs["x509_url"], _s2k):
+                    cc.keystore.set_verify_key(key, typ, cid)
             except KeyError:
                 pass
             try:
-                cc.keystore.load_jwk(specs["jwk_url"], "ver", cid)
+                for typ, key in load_jwk(_req, specs["jwk_url"], _s2k):
+                    cc.keystore.set_verify_key(key, typ, cid)
             except KeyError:
                 pass
             cc.userclaims_endpoint = specs["userclaims_endpoint"]
@@ -716,9 +721,11 @@ class TestProvider(Provider):
 def mv_content(fro, to):
     txt = open(fro).read()
     (head, tail) = os.path.split(fro)
-    f = open("%s/%s" % (to, tail))
+    name = "%s/%s" % (to, tail)
+    f = open(name, 'w')
     f.write(txt)
     f.close()
+    return name
 
 if __name__ == '__main__':
     import argparse
@@ -801,25 +808,22 @@ if __name__ == '__main__':
                 OAS.keystore.add_key(_rsa, type, "sig")
                 OAS.keystore.add_key(_rsa, type, "ver")
                 try:
-                    OAS.cert.append(info["cert"])
-                    mv_content(info["cert"], "static")
+                    name = mv_content(info["cert"], "static")
+                    OAS.cert.append(name)
                 except KeyError:
                     pass
                 try:
-                    OAS.jwk.append(info["jwk"])
-                    mv_content(info["jwk"], "static")
+                    new_name = mv_content(info["jwk"], "static")
+                    OAS.jwk.append("%s%s" % (OAS.baseurl, new_name))
                 except KeyError:
                     pass
-
-        except Exception:
+        except Exception, err:
             OAS.key_setup("static", sig={"format":"jwk", "alg":"rsa"})
 
     OAS.claims_clients = init_claims_clients(CLIENT_INFO)
 
     for key, cc in OAS.claims_clients.items():
         OAS.keystore.update(cc.keystore)
-
-    LOGGER.debug("%s" % OAS.keystore._store)
 
     # Add the claims providers keys
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
