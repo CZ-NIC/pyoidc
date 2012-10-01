@@ -340,23 +340,42 @@ class Client(oauth2.Client):
         return None
 
     #noinspection PyUnusedLocal
+#    def construct_AuthorizationRequest(self, request=AuthorizationRequest,
+#                                       request_args=None, extra_args=None,
+#                                       **kwargs):
+#
+#        if request_args is not None:
+#            for arg in ["idtoken_claims", "userinfo_claims"]:
+#                if arg in request_args:
+#                    kwargs[arg] = request_args[arg]
+#                    del request_args[arg]
+#            if "nonce" not in request_args:
+#                _rt = request_args["response_type"]
+#                if "token" in _rt or "id_token" in _rt:
+#                    request_args["nonce"] = rndstr(12)
+#        elif "response_type" in kwargs:
+#            if "token" in kwargs["response_type"]:
+#                request_args = {"nonce": rndstr(12)}
+#        else: # Never wrong to specify a nonce
+#            request_args = {"nonce": rndstr(12)}
+#
+#        if "idtoken_claims" in kwargs or "userinfo_claims" in kwargs:
+#            request_param = "request"
+#            if "request_method" in kwargs:
+#                if kwargs["request_method"] == "file":
+#                    request_param = "request_uri"
+#                    del kwargs["request_method"]
+#        else:
+#            request_param = None
+#
+#        return oauth2.Client.construct_AuthorizationRequest(self, request,
+#                                                            request_args,
+#                                                            extra_args,
+#                                                            **kwargs)
+
     def construct_AuthorizationRequest(self, request=AuthorizationRequest,
                                        request_args=None, extra_args=None,
                                        **kwargs):
-
-        if request_args is not None:
-            if "nonce" not in request_args:
-                request_args["nonce"] = rndstr(12)
-        else:
-            request_args = {"nonce": rndstr(12)}
-
-        return oauth2.Client.construct_AuthorizationRequest(self, request,
-                                                            request_args,
-                                                            extra_args,
-                                                            **kwargs)
-
-    def construct_OpenIDRequest(self, request=OpenIDRequest,
-                                request_args=None, extra_args=None, **kwargs):
 
         if request_args is not None:
             for arg in ["idtoken_claims", "userinfo_claims"]:
@@ -1051,7 +1070,7 @@ class Server(oauth2.Server):
             parts = urlparse.urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]
 
-        return self._parse_request(request, query, "urlencoded", keys)
+        return self._parse_request(request, query, "urlencoded")
 
     def parse_jwt_request(self, request=AuthorizationRequest, txt="",
                           keys=None, verify=True):
