@@ -43,10 +43,12 @@ class UserClaimsResponse(Message):
     def verify(self, **kwargs):
         if "jwt" in self:
             # Try to decode the JWT, checks the signature
+            args = dict([(claim, kwargs[claim]) for claim in ["key","keystore"] \
+                            if claim in kwargs])
             try:
-                item = OpenIDSchema().from_jwt(str(self["jwt"]), kwargs["key"])
+                item = OpenIDSchema().from_jwt(str(self["jwt"]), **args)
             except Exception, _err:
-                raise Exception(_err.__class__.__name__)
+                raise
 
             if not item.verify(**kwargs):
                 return False
@@ -75,8 +77,11 @@ class ClaimsServer(Provider):
             jwt_keys = []
 
         for cid, _dic in cdb.items():
-            jwt_keys.append([_dic["client_secret"], "hmac", "sig", cid])
-            jwt_keys.append([_dic["client_secret"], "hmac", "ver", cid])
+            try:
+                jwt_keys.append([_dic["client_secret"], "hmac", "sig", cid])
+                jwt_keys.append([_dic["client_secret"], "hmac", "ver", cid])
+            except KeyError:
+                pass
 
         self.srvmethod = OICCServer(jwt_keys=jwt_keys)
         self.keystore = self.srvmethod.keystore
@@ -137,7 +142,7 @@ class ClaimsServer(Provider):
         _log_info("User info claims: %s" % uic)
 
         info = self.function["userinfo"](self, self.userdb, ucreq["user_id"],
-                                         user_info_claims=uic)
+                                         ucreq["client_id"], user_info=uic)
 
         _log_info("User info: %s" % info.to_dict())
 
