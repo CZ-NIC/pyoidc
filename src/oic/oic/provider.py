@@ -422,42 +422,39 @@ class Provider(AProvider):
         except KeyError:
             openid_req = None
 
-        user = ""
+        if openid_req:
+            try:
+                user = openid_req["id_token"]["claims"]["user_id"]["value"]
+            except KeyError:
+                user = ""
+        elif "id_token" in areq:
+            user = areq["id_token"]["user_id"]
+        else:
+            user = ""
+
+        if user:
+            try:
+                sid = _sdb.get_sid_from_userid(user)
+            except Exception:
+                logger.error("Unknown user id '%s'" % user)
+                logger.debug("uid2sid: %s" % _sdb.uid2sid)
+                sid = ""
+
+            if sid:
+                return self.authenticated(environ,
+                                          start_response,
+                                          active_auth=sid,
+                                          areq=areq, user=user)
+
         if "prompt" in areq:
             _log_debug("Prompt: '%s'" % areq["prompt"])
 
             if "none" in areq["prompt"]:
-                if len(areq["prompt"]) > 1:
-                    return self._error(environ, start_response,
-                                       "invalid_request")
-                else:
-                    # This is the default
-                    resp = self._redirect_authz_error("login_required",
-                                                      redirect_uri)
-                    # If there is hint on which user is question
-                    # used that
-                    user = ""
-                    if openid_req:
-                        try:
-                            user = openid_req["id_token"]["claims"]["user_id"]["value"]
-                        except KeyError:
-                            pass
-
-                    elif "id_token" in areq:
-                        user = areq["id_token"]["user_id"]
-
-                    if user:
-                        try:
-                            bsid = _sdb.get_sid_from_userid(user)
-                            return self.authenticated(environ,
-                                                      start_response,
-                                                      active_auth=bsid,
-                                                      areq=areq, user=user)
-                        except Exception:
-                            logger.error("Unknown user id '%s'" % user)
-
-                    return resp(environ, start_response)
-            if "login": # force re-authentication, remove link to SSO history
+                resp = self._redirect_authz_error("login_required",
+                                                  redirect_uri)
+                return resp(environ, start_response)
+            elif "login" in areq["prompt"]:
+                # force re-authentication, remove link to SSO history
                 try:
                     del kwargs["handle"]
                 except KeyError:
@@ -470,7 +467,6 @@ class Provider(AProvider):
         _log_debug("session: %s" % _sdb[sid])
 
         bsid = base64.b64encode(sid)
-        #_log_info("SID:%s" % bsid)
 
         cookie = None
 
@@ -489,8 +485,8 @@ class Provider(AProvider):
 
             self.sdb.do_userid(sid, user_id, sector_id, preferred_id_type)
             _log_debug("session: %s" % _sdb[sid])
-
-            return self.authenticated(environ, start_response, active_auth=bsid,
+            _log_debug("uid2sid: %s" % _sdb.uid2sid)
+            return self.authenticated(environ, start_response, active_auth=sid,
                                       areq=areq, user=user_id)
 
         if openid_req:
@@ -517,7 +513,7 @@ class Provider(AProvider):
                                 _sdb.update(sid, "user_id", user)
                                 return self.authenticated(environ,
                                                           start_response,
-                                                          active_auth=key,
+                                                          active_auth=_scode,
                                                           areq=areq, user=user)
                             else:
                                 _log_info("Authentication to old: %d>%d" % (
@@ -538,7 +534,7 @@ class Provider(AProvider):
                         _sdb.update(sid, "user_id", user)
                         # This happens if a valid cookie is presented
                         return self.authenticated(environ, start_response,
-                                                  active_auth=key,
+                                                  active_auth=_scode,
                                                   areq=areq, user=user)
                     except ValueError:
                         pass
@@ -609,7 +605,66 @@ class Provider(AProvider):
         else:
             return None
 
-        #noinspection PyUnusedLocal
+    def encrypt(self, payload, client_info, cid, type="id_token"):
+        """
+        Handles the encryption of a payload
+
+        :param payload: The information to be encrypted
+        :param client_info: Client information
+        :param cid: Client id
+        :return: The encrypted information as a JWT
+        """
+
+        alg = client_info["%s_encrypted_response_alg" % type]
+        try:
+            enc = client_info["%s_encrypted_response_enc" % type]
+        except KeyError:
+            enc = "A128CBC"
+        try:
+            int = client_info["%s_encrypted_response_int" % type]
+        except KeyError:
+            int = "HS256"
+
+        keys = self.keystore.get_encrypt_key(owner=cid)
+        logger.debug("keys for %s: %s" % (cid, self.keystore.keys_by_owner(cid)))
+        logger.debug("alg=%s, enc=%s, int=%s" % (alg, enc, int))
+        logger.debug("Encryption keys for %s: %s" % (cid, keys))
+
+        # use the clients public key for encryption
+        return jwe.encrypt(payload, keys, alg, enc, context="public", int=int)
+
+    def sign_encrypt_id_token(self, sinfo, client_info, areq, code=None,
+                              access_token=None, user_info=None):
+        """
+        Signed and or encrypt a IDToken
+
+        :param sinfo: Session information
+        :param client_info: Client information
+        :param areq: The request
+        :param code: Access grant
+        :param access_token: Access Token
+        :param user_info: User information
+        :return: IDToken instance
+        """
+
+        try:
+            alg = client_info["id_token_signed_response_alg"]
+        except KeyError:
+            alg = "RS256"
+
+        id_token = self.id_token_as_signed_jwt(sinfo, alg=alg,
+                                               code=code,
+                                               access_token=access_token,
+                                               user_info=user_info)
+
+        # Then encrypt
+        if "id_token_encrypted_response_alg" in client_info:
+            id_token = self.encrypt(id_token, client_info, areq["client_id"],
+                                    "id_token")
+
+        return id_token
+
+    #noinspection PyUnusedLocal
     def token_endpoint(self, environ, start_response, **kwargs):
         """
         This is where clients come to get their access tokens
@@ -678,27 +733,15 @@ class Provider(AProvider):
 
         if "openid" in _info["scope"]:
             userinfo = self.userinfo_in_id_token_claims(_info)
-
-            try:
-                alg = client_info["id_token_signed_response_alg"]
-            except KeyError:
-                alg = "RS256"
-
-            try:
-                _idtoken = self.id_token_as_signed_jwt(_info, alg=alg,
-                                                       user_info=userinfo)
-            except AccessDenied:
-                return self._error(environ, start_response,
-                                   error="access_denied")
-
+            _idtoken = self.sign_encrypt_id_token(_info, client_info, areq,
+                                                  user_info=userinfo)
             _sdb.update_by_token(_access_code, "id_token", _idtoken)
 
         _log_debug("_tinfo: %s" % _tinfo)
 
         atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
 
-        if self.test_mode:
-            _log_info("access_token_response: %s" % atr.to_dict())
+        _log_debug("access_token_response: %s" % atr.to_dict())
 
         resp = Response(atr.to_json(), content="application/json")
         return resp(environ, start_response)
@@ -824,11 +867,21 @@ class Provider(AProvider):
             algo = _cinfo["userinfo_signed_response_alg"]
             key = get_signing_key(self.keystore, alg2keytype(algo),
                                   owner=session["client_id"])
-            resp = Response(info.to_jwt(key, algo), content="application/jwt")
-            return resp(environ, start_response)
+            jinfo = info.to_jwt(key, algo)
+            content_type="application/jwt"
+            if "userinfo_encrypted_response_alg" in _cinfo:
+                jinfo = self.encrypt(jinfo, _cinfo, session["client_id"],
+                                     "userinfo")
+        elif "userinfo_encrypted_response_alg" in _cinfo:
+            jinfo = self.encrypt(info.to_json(), _cinfo, session["client_id"],
+                                 "userinfo")
+            content_type="application/jwt"
         else:
-            resp = Response(info.to_json(), content="application/json")
-            return resp(environ, start_response)
+            jinfo = info.to_json()
+            content_type="application/json"
+
+        resp = Response(jinfo, content=content_type)
+        return resp(environ, start_response)
 
     #noinspection PyUnusedLocal
     def check_session_endpoint(self, environ, start_response, **kwargs):
@@ -955,6 +1008,8 @@ class Provider(AProvider):
 
         try:
             self.keystore.load_keys(request, client_id)
+            logger.debug("keys for %s: %s" % (client_id,
+                                              self.keystore.keys_by_owner(client_id)))
         except Exception, err:
             logger.error("Failed to load client keys: %s" % request.to_dict())
             err = ClientRegistrationErrorResponse(
@@ -1224,8 +1279,7 @@ class Provider(AProvider):
 
         issue_new_code = False
         if "active_auth" in kwargs:
-            b64scode = kwargs["active_auth"]
-            scode = base64.b64decode(b64scode)
+            scode = kwargs["active_auth"]
             user_id = kwargs["user"]
             areq = kwargs["areq"]
             client_info = self.cdb[areq["client_id"]]
@@ -1290,6 +1344,7 @@ class Provider(AProvider):
 
             _log_debug("areq: %s" % areq)
             _log_debug("session: %s" % self.sdb[scode])
+            _log_debug("uid2sid: %s" % self.sdb.uid2sid)
 
         # Do the authorization
         try:
@@ -1357,15 +1412,11 @@ class Provider(AProvider):
             if "id_token" in areq["response_type"]:
                 user_info = self.userinfo_in_id_token_claims(_sinfo)
 
-                try:
-                    alg = client_info["id_token_signed_response_alg"]
-                except KeyError:
-                    alg = "RS256"
+                id_token = self.sign_encrypt_id_token(_sinfo, client_info, areq,
+                                                     code=_code,
+                                                     access_token=_access_token,
+                                                     user_info=user_info)
 
-                id_token = self.id_token_as_signed_jwt(_sinfo, alg=alg,
-                                                       code=_code,
-                                                       access_token=_access_token,
-                                                       user_info=user_info)
                 aresp["id_token"] = id_token
                 _sinfo["id_token"] = id_token
                 rtype.remove("id_token")
@@ -1384,6 +1435,7 @@ class Provider(AProvider):
 
         if self.cookie_func and not "active_auth" in kwargs:
             (key, timestamp) = kwargs["handle"]
+            b64scode = base64.b64encode(scode)
             self.re_link_log(key, b64scode)
             cookie = self.cookie_func(self.cookie_name, b64scode, self.seed,
                                       self.cookie_ttl)
@@ -1401,7 +1453,7 @@ class Provider(AProvider):
     def key_setup(self, local_path, vault="keys", sig=None, enc=None):
         # my keys
 
-        part,res = self.keystore.key_export(self.baseurl, local_path, vault,
+        part, res = self.keystore.key_export(self.baseurl, local_path, vault,
                                             sig=sig, enc=enc)
 
         for name, url in res.items():
