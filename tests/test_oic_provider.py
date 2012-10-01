@@ -673,8 +673,7 @@ def test_idtoken():
                                 redirect_uri="http://example.com/authz",
                                 scope=["openid"], state="state000")
 
-    sid = server.sdb.create_authz_session("user_id", AREQ,
-                                          preferred_id_type="public")
+    sid = server.sdb.create_authz_session("user_id", AREQ)
     session = server.sdb[sid]
 
     id_token = server.id_token_as_signed_jwt(session)

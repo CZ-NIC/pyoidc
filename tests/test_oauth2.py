@@ -193,7 +193,7 @@ class TestOAuthClient():
         self.client.redirect_uris = ["http://client.example.com/authz"]
         grant = Grant()
         grant.code = "AbCdEf"
-        grant.grant_expiration_time = time_util.time_sans_frac() + 30
+        grant.grant_expiration_time = time_util.utc_time_sans_frac() + 30
         self.client.grant = {"stat": grant}
 
         # scope is default=""
@@ -212,7 +212,7 @@ class TestOAuthClient():
         self.client.redirect_uris = ["http://client.example.com/authz"]
         grant = Grant()
         grant.code = "AbCdEf"
-        grant.grant_expiration_time = time_util.time_sans_frac() + 30
+        grant.grant_expiration_time = time_util.utc_time_sans_frac() + 30
         self.client.grant = {"xyz": grant}
 
         atr = self.client.construct_AccessTokenRequest(state="xyz")
@@ -274,7 +274,7 @@ class TestOAuthClient():
 
     def test_get_access_token_refresh_2(self):
         self.client.grant["foo"] = Grant()
-        self.client.grant["foo"].grant_expiration_time = time.time()+60
+        self.client.grant["foo"].grant_expiration_time = time_util.utc_time_sans_frac()+60
         self.client.grant["foo"].code = "access_code"
 
         print self.client.grant["foo"]

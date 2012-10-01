@@ -68,20 +68,20 @@ plain = "Now is the time for all good men to come to the aid of their country."
 def test_rsa_encrypt_decrypt_rsa_cbc():
     jwt = rsa_encrypt(plain, rsa, alg="RSA1_5", enc="A128CBC", int="HS256")
 
-    msg = rsa_decrypt(jwt, rsa)
+    msg = rsa_decrypt(jwt, rsa, "private")
 
     assert msg == plain
 
 def test_rsa_encrypt_decrypt_rsa_oaep_gcm():
     jwt = rsa_encrypt(plain, rsa, alg="RSA-OAEP", enc="A256GCM")
 
-    msg = rsa_decrypt(jwt, rsa)
+    msg = rsa_decrypt(jwt, rsa, "private")
 
     assert msg == plain
 
 def test_encrypt_decrypt_rsa_cbc():
     jwt = encrypt(plain, {"rsa":[rsa]}, alg="RSA1_5", enc="A128CBC",
-                  int="HS256")
-    msg = decrypt(jwt, {"rsa":[rsa]})
+                  context="public", int="HS256")
+    msg = decrypt(jwt, {"rsa":[rsa]}, "private")
 
     assert msg == plain

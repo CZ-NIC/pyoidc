@@ -36,7 +36,7 @@ from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import MissingRequiredAttribute
 
 from oic.utils import time_util
-from oic.utils.time_util import time_sans_frac
+from oic.utils.time_util import utc_time_sans_frac
 from oic.jwt.jws import left_hash, alg2keytype
 from oic.jwt import unpack
 from oic.utils.keystore import rsa_load, get_signing_key
@@ -64,7 +64,7 @@ KEYS = [
 
 SIGN_KEY = {"hmac": ["abcdefghijklmnop"]}
 IDTOKEN = IdToken(iss="http://oic.example.org/", user_id="user_id",
-                  aud=CLIENT_ID, exp=time_sans_frac()+86400, nonce="N0nce")
+                  aud=CLIENT_ID, exp=utc_time_sans_frac()+86400, nonce="N0nce")
 
 # ----------------- CLIENT --------------------
 
@@ -167,7 +167,7 @@ class TestOICClient():
         self.client.redirect_uris = ["http://client.example.com/authz"]
         grant = Grant()
         grant.code = "AbCdEf"
-        grant.grant_expiration_time = time_util.time_sans_frac() + 30
+        grant.grant_expiration_time = time_util.utc_time_sans_frac() + 30
         self.client.grant = {"stat": grant}
 
         # scope is default=""
@@ -186,7 +186,7 @@ class TestOICClient():
         self.client.redirect_uris = ["http://client.example.com/authz"]
         grant = Grant()
         grant.code = "AbCdEf"
-        grant.grant_expiration_time = time_util.time_sans_frac() + 30
+        grant.grant_expiration_time = time_util.utc_time_sans_frac() + 30
         self.client.grant = {"xyz": grant}
 
         atr = self.client.construct_AccessTokenRequest(state="xyz")
@@ -198,7 +198,8 @@ class TestOICClient():
     def test_construct_request_no_input(self):
         self.client.response_type = ["code"]
         atr = self.client.construct_AuthorizationRequest(request_args={
-                                                        "scope": ["openid"]})
+                                                        "scope": ["openid"],
+                                                        "response_type":["code"]})
 
         print atr
         assert atr["redirect_uri"] == "http://client.example.com/authz"
@@ -248,7 +249,7 @@ class TestOICClient():
 
     def test_get_access_token_refresh_2(self):
         self.client.grant["foo"] = Grant()
-        self.client.grant["foo"].grant_expiration_time = time.time()+60
+        self.client.grant["foo"].grant_expiration_time = utc_time_sans_frac()+60
         self.client.grant["foo"].code = "access_code"
 
         print self.client.grant["foo"]
@@ -300,8 +301,8 @@ class TestOICClient():
     def test_request_info_simple(self):
         self.client.authorization_endpoint = "https://example.com/authz"
         uri, body, h_args, cis = self.client.request_info(AuthorizationRequest,
-                                                          request_args={"scope":
-                                                                            ["openid"]})
+                                            request_args={"scope":["openid"],
+                                                          "response_type":"token"})
 
         # default == "POST"
         assert uri == 'https://example.com/authz'
@@ -313,9 +314,9 @@ class TestOICClient():
 
     def test_request_info_simple_get(self):
         uri, body, h_args, cis = self.client.request_info(AuthorizationRequest,
-                                                          method="GET",
-                                                          request_args={"scope":
-                                                                            ["openid"]})
+                                                method="GET",
+                                                request_args={"scope":["openid"],
+                                                              "response_type":"token"})
 
         (url, query) = uri.split("?")
         areq = AuthorizationRequest().from_urlencoded(query)
@@ -332,12 +333,13 @@ class TestOICClient():
         uri, body, h_args, cis = self.client.request_info(
                                 AuthorizationRequest, method="GET",
                                 request_args={"state":"init",
-                                              "scope":["openid"]})
+                                              "scope":["openid"],
+                                              "response_type":"code"})
 
         print uri
         (url, query) = uri.split("?")
         areq = AuthorizationRequest().from_urlencoded(query)
-        assert _eq(areq.keys(), ["nonce","redirect_uri","response_type",
+        assert _eq(areq.keys(), ["redirect_uri","response_type",
                                  "client_id", "state", "scope"])
         assert areq["state"]
         assert body is None
@@ -348,13 +350,14 @@ class TestOICClient():
         #self.client.authorization_endpoint = "https://example.com/authz"
         uri, body, h_args, cis = self.client.request_info(AuthorizationRequest,
                                                 method="GET",
-                                                request_args={"scope":["openid"]},
+                                                request_args={"scope":["openid"],
+                                                              "response_type":"code"},
                                                 extra_args={"rock":"little"})
 
         print uri
         (url, query) = uri.split("?")
         areq = AuthorizationRequest().from_urlencoded(query)
-        assert _eq(areq.keys(), ["nonce","redirect_uri","response_type",
+        assert _eq(areq.keys(), ["redirect_uri","response_type",
                                  "client_id", "rock", "scope"])
         assert body is None
         assert h_args == {}
@@ -365,13 +368,14 @@ class TestOICClient():
         uri, body, h_args, cis = self.client.request_info(
                                         AuthorizationRequest, method="GET",
                                         request_args={"state":"init",
-                                                      "scope":["openid"]},
+                                                      "scope":["openid"],
+                                                      "response_type":"code"},
                                         extra_args={"rock":"little"})
 
         print uri
         (url, query) = uri.split("?")
         areq = AuthorizationRequest().from_urlencoded(query)
-        assert _eq(areq.keys(), ["nonce","redirect_uri","response_type",
+        assert _eq(areq.keys(), ["redirect_uri","response_type",
                                  "client_id", "state", "rock", "scope"])
         assert body is None
         assert h_args == {}
@@ -476,7 +480,7 @@ class TestOICClient():
         self.client.userinfo_endpoint = "http://oic.example.org/userinfo"
 
         token = self.client.get_token(state=self.client.state, scope="openid")
-        token.token_expiration_time = time_sans_frac()-86400
+        token.token_expiration_time = utc_time_sans_frac()-86400
 
         resp = self.client.do_user_info_request(state=self.client.state,
                                                 schema=["openid"])
@@ -493,7 +497,8 @@ class TestOICClient():
             "picture": None
         }
 
-        areq = self.client.construct_OpenIDRequest(
+        areq = self.client.construct_AuthorizationRequest(
+            request_args={"scope":"openid", "response_type":["code"]},
             userinfo_claims={"claims":claims,
                              "preferred_locale":"en"},
             idtoken_claims={"claims":{"auth_time": None,
@@ -506,7 +511,8 @@ class TestOICClient():
         assert "request" in areq
 
     def test_openid_request_with_request_2(self):
-        areq = self.client.construct_OpenIDRequest(
+        areq = self.client.construct_AuthorizationRequest(
+            request_args={"scope":"openid", "response_type":["code"]},
             idtoken_claims={"claims": {"user_id": {"value":"248289761001"}}},
         )
 
@@ -514,14 +520,14 @@ class TestOICClient():
         assert areq
         assert areq.request
 
-        _keys = self.client.keystore.get_keys("ver", owner=None)
-        jwtreq = OpenIDRequest().deserialize(areq["request"], "jwt", key=_keys)
+        jwtreq = OpenIDRequest().deserialize(areq["request"], "jwt",
+                                             keystore=self.client.keystore)
         print
         print jwtreq
         print jwtreq.keys()
         assert _eq(jwtreq.keys(), ['id_token', 'state',
                                    'redirect_uri', 'response_type',
-                                   'client_id'])
+                                   'client_id', 'scope'])
 
 def test_get_authorization_request():
     client = Client()
@@ -716,7 +722,7 @@ def test_server_parse_parse_authorization_request():
 
 def test_server_parse_jwt_request():
     srv = Server(KEYS)
-    ar = AuthorizationRequest(response_type=["code"], client_id="foobar",
+    ar = AuthorizationRequest(response_type=["code"], client_id=CLIENT_ID,
                               redirect_uri="http://foobar.example.com/oaclient",
                               state="cold", nonce="NONCE", scope=["openid"])
 
@@ -727,7 +733,7 @@ def test_server_parse_jwt_request():
 
     assert req.type() == "AuthorizationRequest"
     assert req["response_type"] == ["code"]
-    assert req["client_id"] == "foobar"
+    assert req["client_id"] == CLIENT_ID
     assert req["redirect_uri"] == "http://foobar.example.com/oaclient"
     assert req["state"] == "cold"
 
@@ -735,7 +741,7 @@ def test_server_parse_token_request():
     atr = AccessTokenRequest(grant_type="authorization_code",
                              code="SplxlOBeZQQYbYS6WxSbIA",
                              redirect_uri="https://client.example.com/cb",
-                             client_id="client_id", extra="foo")
+                             client_id=CLIENT_ID, extra="foo")
 
     uenc = atr.to_urlencoded()
 
@@ -870,7 +876,7 @@ def test_construct_OpenIDRequest():
 
     request_args = {"response_type": "code id_token", "state": "af0ifjsldkj" }
 
-    oidr = cli.construct_OpenIDRequest(request_args=request_args)
+    oidr = cli.construct_AuthorizationRequest(request_args=request_args)
     print oidr.keys()
     assert _eq(oidr.keys(), ['nonce', 'state', 'redirect_uri', 'response_type',
                              'client_id', 'scope'])
@@ -1078,8 +1084,7 @@ def test_make_id_token():
                            session["client_id"])
     _signed_jwt = _idt.to_jwt(key=ckey, algorithm="RS256")
 
-    jwt_keys = srv.keystore.get_keys("ver", owner=None)
-    idt = IdToken().from_jwt(_signed_jwt, key=jwt_keys)
+    idt = IdToken().from_jwt(_signed_jwt, keystore=srv.keystore)
     print idt
     header = unpack(_signed_jwt)
 
@@ -1089,7 +1094,7 @@ def test_make_id_token():
     atr = AccessTokenResponse(id_token=_signed_jwt, access_token="access_token",
                               token_type="Bearer")
     atr["code"] = code
-    assert atr.verify(key=jwt_keys)
+    assert atr.verify(keystore=srv.keystore)
 
 def test_assertion_jwt():
     cli = Client("Foo")

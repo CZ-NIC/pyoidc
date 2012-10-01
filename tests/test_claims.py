@@ -11,12 +11,12 @@ from oic.oic.claims_provider import ClaimsClient, UserClaimsRequest, UserClaimsR
 from oic.oic.claims_provider import ClaimsServer
 
 #noinspection PyUnusedLocal
-def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
+def user_info(oicsrv, userdb, user_id, client_id="", user_info=None):
     #print >> sys.stderr, "claims: %s" % user_info_claims
     identity = userdb[user_id]
-    if user_info_claims:
+    if user_info:
         result = {}
-        for key, restr in user_info_claims["claims"].items():
+        for key, restr in user_info["claims"].items():
             try:
                 result[key] = identity[key]
             except KeyError:
@@ -130,6 +130,7 @@ def test_srv2():
     srv = ClaimsServer("name", None, CDB, FUNCTIONS, USERDB)
 
     srv.keystore.set_sign_key(rsa_load("rsa.key"), "rsa")
+    srv.keystore.set_verify_key(rsa_load("rsa.key"), "rsa")
     assert srv
 
     environ = BASE_ENVIRON.copy()
@@ -145,7 +146,7 @@ def test_srv2():
     assert len(resp) == 1
 
     ucr = UserClaimsResponse().deserialize(resp[0], "json")
-    ucr.verify(key = srv.keystore.get_keys("sig", owner=None))
+    ucr.verify(keystore = srv.keystore)
 
     print ucr
     assert _eq(ucr["claims_names"], ["gender", "birthdate"])

@@ -51,4 +51,5 @@ def test_key_export():
     url = res["jwk_url"]
     assert url == 'http://www.example.com/as/static/jwk.json'
 
+    print keystore.crypt.issuer_keys[""]
     assert keystore.get_sign_key("rsa")

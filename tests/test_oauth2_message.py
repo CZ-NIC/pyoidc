@@ -448,7 +448,7 @@ def test_to_from_jwt():
 
     print jws
 
-    jitem = Dummy_Message().from_jwt(jws, key={".":{"hmac":["A1B2C3D4"]}})
+    jitem = Dummy_Message().from_jwt(jws, key={"hmac":["A1B2C3D4"]})
 
     print jitem.keys()
 

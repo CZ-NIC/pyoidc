@@ -136,22 +136,23 @@ def test_create_authz_session():
 
 def test_create_authz_session_with_sector_id():
     sdb = SessionDB(seed="foo")
-    sid5 = sdb.create_authz_session("user_id", AREQN, oidreq=OIDR,
-                                    sector_id="http://example.com/si.jwt")
+    uid = "user_id"
+    sid5 = sdb.create_authz_session(uid, AREQN, oidreq=OIDR)
+    sdb.do_userid(sid5, uid, "http://example.com/si.jwt", "pairwise")
 
     info_1 = sdb[sid5]
     print info_1
     assert "id_token" not in info_1
     assert "oidreq" in info_1
     assert info_1["user_id"] != "user_id"
+    user_id1 = info_1["user_id"]
 
-    sid6 = sdb.create_authz_session("user_id2", AREQN, oidreq=OIDR,
-                                    sector_id="http://example.com/si.jwt")
+    sdb.do_userid(sid5, uid, "http://example.net/si.jwt", "pairwise")
 
-    info_2 = sdb[sid6]
+    info_2 = sdb[sid5]
     print info_2
     assert info_2["user_id"] != "user_id"
-    assert info_2["user_id"] != info_1["user_id"]
+    assert info_2["user_id"] != user_id1
 
 def test_update_to_token():
     sdb = SessionDB()
@@ -162,10 +163,10 @@ def test_update_to_token():
     print _dict.keys()
     assert _eq(_dict.keys(), ['code', 'oauth_state', 'issued', 'expires_at',
                               'token_type', 'client_id', 'authzreq',
-                              'refresh_token', 'user_id', 'access_token',
-                              'expires_in', 'state', 'redirect_uri',
-                              'code_used', 'scope', 'access_token_scope',
-                              'revoked'])
+                              'refresh_token', 'local_user_id', 'user_id',
+                              'access_token', 'expires_in', 'state',
+                              'redirect_uri', 'code_used', 'scope',
+                              'access_token_scope', 'revoked'])
 
     raises(Exception, 'sdb.update_to_token(grant)')
 
@@ -179,8 +180,8 @@ def test_update_to_token():
     print _dict.keys()
     assert _eq(_dict.keys(), ['code', 'oauth_state', 'issued', 'expires_at',
                               'token_type', 'client_id', 'authzreq',
-                              'refresh_token', 'user_id', 'oidreq',
-                              'access_token', 'expires_in', 'state',
+                              'refresh_token', 'local_user_id', 'user_id',
+                              'oidreq', 'access_token', 'expires_in', 'state',
                               'redirect_uri', 'code_used', 'id_token',
                               'scope', 'access_token_scope', 'revoked'])
 

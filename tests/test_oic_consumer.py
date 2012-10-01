@@ -178,8 +178,7 @@ class TestOICConsumer():
         print "config", self.consumer.config
         location = self.consumer.begin(BASE_ENVIRON, start_response)
         print location
-        vkeys = {".":srv.keystore.get_verify_key()}
-        authreq = srv.parse_authorization_request(url=location, keys=vkeys)
+        authreq = srv.parse_authorization_request(url=location)
         print authreq.keys()
         assert _eq(authreq.keys(), ['request', 'state',
                                     'redirect_uri', 'response_type',
