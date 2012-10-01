@@ -164,18 +164,23 @@ class SessionDB(object):
         return self.update(key, attribute, value)
 
     def do_userid(self, sid, user_id, sector_id, preferred_id_type):
+        old = [""]
         if preferred_id_type == "public":
             uid = user_id
         else:
             uid = pairwise_id(user_id, sector_id, self.seed)
+            old.append(user_id)
 
-        if uid != user_id:
+        logger.debug("uid: %s, old: %s" % (uid, old))
+        self.uid2sid[uid] = sid
+
+        for id in old:
             try:
-                del self.uid2sid[user_id]
+                del self.uid2sid[id]
             except KeyError:
                 pass
-            self.uid2sid[uid] = sid
 
+        logger.debug("uid2sid: %s" % self.uid2sid)
         self._db[sid]["local_user_id"] = user_id
         self._db[sid]["user_id"] = uid
 
@@ -188,9 +193,6 @@ class SessionDB(object):
         :param areq: The AuthorizationRequest instance
         :param id_token: An IDToken instance
         :param oidreq: An OpenIDRequest instance
-        :param sector_id:
-        :param preferred_id_type: Whether public or pairwise user_id should be
-            used.
         :return: The session identifier, which is the database key
         """
 
