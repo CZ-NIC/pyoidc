@@ -1,22 +1,18 @@
 import copy
 import sys
-from oic.jwt import jwk
-
-__author__ = 'rohe0002'
-
 import M2Crypto
 import logging
-import os
-import urlparse
+import string
 
-from M2Crypto.util import no_passphrase_callback
+from oic.utils.keyio import KeyJar
+
+__author__ = 'rohe0002'
 
 KEYLOADERR = "Failed to load %s key from '%s' (%s)"
 logger = logging.getLogger(__name__)
 
 # ========== base64 encoding/decoding large numbers ====
 
-import string
 ALPHABET = string.ascii_uppercase + string.ascii_lowercase +\
            string.digits + '-_'
 ALPHABET_REVERSE = dict((c, i) for (i, c) in enumerate(ALPHABET))
@@ -25,69 +21,6 @@ TB = 2**24
 foo = '0000 0001 0000 0000 0000 0001'
 foo_b64 = "QAB="
 
-#import base64
-#import struct
-
-#def bytes( long_int ):
-#    bytes = []
-#    while long_int:
-#        long_int, r = divmod(long_int, 256)
-#        bytes.insert(0, r)
-#    return bytes
-#
-#def long_to_base64(n):
-#    bys = bytes(n)
-#    data = struct.pack('%sB' % len(bys), *bys)
-#    #xdata = struct.pack('<%sB' % len(bys), *bys)
-#    if not len(data):
-#        data = '\x00'
-#    s = base64.urlsafe_b64encode(data).rstrip('=')
-#    return s
-#
-#def b64_set_to_long(s):
-#    data = base64.urlsafe_b64decode(s + '==')
-#    n = struct.unpack('>Q', '\x00'* (8-len(data)) + data )
-#    return n[0]
-#
-#def base64_to_long(data):
-#    #if len(data) % 4: # not a multiple of 4
-#    #    data += '=' * (4 - (len(data) % 4))
-#
-#    ld = len(data)
-#    data = str(data)
-#
-#    lshift = 8 * (3-(ld % 4))
-#
-#    res = b64_set_to_long(data[0:4])
-#
-#    if ld > 4:
-#        if lshift == 24:
-#            for i in range(4, ld, 4):
-#                res = (res << 24) + b64_set_to_long(data[i:i+4])
-#        else:
-#            i = 0
-#            for i in range(4, ld-4, 4):
-#                res = (res << 24) + b64_set_to_long(data[i:i+4])
-#            i += 4
-#            res = (res << lshift) + b64_set_to_long(data[i:i+4])
-#
-#    return res
-#
-#def long_to_mpi(num):
-#    """Converts a python integer or long to OpenSSL MPInt used by M2Crypto.
-#    Borrowed from Snowball.Shared.Crypto"""
-#    h = hex(num)[2:] # strip leading 0x in string
-#    if len(h) % 2 == 1:
-#        h = '0' + h # add leading 0 to get even number of hexdigits
-#    return bn_to_mpi(hex_to_bn(h)) # convert using OpenSSL BinNum
-#
-#def mpi_to_long(mpi):
-#    """Converts an OpenSSL MPint used by M2Crypto to a python integer/long.
-#    Borrowed from Snowball.Shared.Crypto"""
-#    return eval("0x%s" % b2a_hex(mpi[4:]))
-
-#def dicthash(d):
-#    return hash(repr(sorted(d.items())))
 
 # ======================================================================
 
@@ -140,15 +73,11 @@ class RedirectStdStreams(object):
         sys.stderr = self.old_stderr
 
 class KeyStore(object):
-    use = ["sig", "ver", "enc", "dec"]
-    url_types = ["x509_url", "x509_encryption_url", "jwk_url",
-                 "jwk_encryption_url"]
 
     def __init__(self, http_request, keyspecs=None):
         self._store = {}
-        self.http_request = http_request
         self.spec2key = {}
-
+        self.crypt = KeyJar(http_request)
         if keyspecs:
             for keyspec in keyspecs:
                 self.add_key(*keyspec)
@@ -350,103 +279,6 @@ class KeyStore(object):
         except KeyError:
             return False
 
-    def load_x509_cert(self, url, usage, owner):
-        """
-        Get and transform a X509 cert into a key
-
-        :param url: Where the X509 cert can be found
-        :param usage: Assumed usage of the key
-        :param owner: The URL of the server
-        """
-        try:
-            r = self.http_request(url, allow_redirects=True)
-            if r.status_code == 200:
-                cert = str(r.text)
-                try:
-                    _key =  self.spec2key[cert]
-                except KeyError:
-                    _key = x509_rsa_loads(cert)
-                    self.spec2key[cert] = _key
-                self.add_key(_key, "rsa", usage, owner)
-                logger.debug("added x509 key: type=%s, usage=%s, owner=%s" % (
-                    "rsa", usage, owner))
-                return _key
-            else:
-                raise Exception("HTTP Get error: %s" % r.status_code)
-        except Exception, err: # not a RSA key
-            logger.warning("Can't load key: %s" % err)
-            return None
-
-    def load_jwk(self, url, usage, owner):
-        """
-        Get and transform a JWK into keys
-
-        :param url: Where the JWK can be found
-        :param usage: Assumed usage of the key
-        :param owner: The URL of the server
-        """
-        r = self.http_request(url, allow_redirects=True)
-        if r.status_code != 200:
-            raise Exception("HTTP Get error: %s" % r.status_code)
-
-        self.loads(r.text, usage, owner)
-
-    def load_keys(self, inst, issuer, replace=False):
-        """
-        Fetch keys from another server
-
-        :param inst: The provider information
-        :param issuer: The provider URL
-        :param replace: If all previously gathered keys from this provider
-            should be replace.
-        """
-        for attr in self.url_types:
-            if attr in inst:
-                if replace:
-                    self.remove_key_collection(issuer)
-                break
-
-        if "x509_url" in inst and inst["x509_url"]:
-            try:
-                _verkey = self.load_x509_cert(inst["x509_url"], "ver",
-                                              issuer)
-            except Exception:
-                raise Exception(KEYLOADERR % ('x509', inst["x509_url"]))
-        else:
-            _verkey = None
-
-        if "x509_encryption_url" in inst and inst["x509_encryption_url"]:
-            try:
-                self.load_x509_cert(inst["x509_encryption_url"], "enc",
-                                    issuer)
-            except Exception:
-                raise Exception(KEYLOADERR % ('x509_encryption',
-                                              inst["x509_encryption_url"]))
-        elif _verkey:
-            logger.debug("added x509 key: type=%s, usage=%s, owner=%s" % (
-                "rsa", "enc", issuer))
-            self.set_encrypt_key(_verkey, "rsa", issuer)
-
-        if "jwk_url" in inst and inst["jwk_url"]:
-            try:
-                _verkeys = self.load_jwk(inst["jwk_url"], "ver", issuer)
-            except Exception, err:
-                raise Exception(KEYLOADERR % ('jwk', inst["jwk_url"], err))
-        else:
-            _verkeys = []
-
-        if "jwk_encryption_url" in inst and inst["jwk_encryption_url"]:
-            try:
-                self.load_jwk(inst["jwk_encryption_url"], "enc", issuer)
-            except Exception:
-                raise Exception(KEYLOADERR % ('jwk',
-                                              inst["jwk_encryption_url"]))
-        elif _verkeys:
-            for key in _verkeys:
-                logger.debug("added JWK key: type=%s, usage=%s, owner=%s" % (
-                    "rsa", "enc", issuer))
-                self.set_encrypt_key(key, "rsa", issuer)
-
     def update(self, keystore):
         """
         Add keys from another keystore to this keystore
@@ -459,230 +291,19 @@ class KeyStore(object):
                 continue
             self._store[owner] = spec
 
-    def loads(self, txt, usage, owner):
-        """
-        Load and create keys from a JWK representation
-
-        Expects something on this form
-        {"keys":
-            [
-                {"alg":"EC",
-                 "crv":"P-256",
-                 "x":"MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4",
-                "y":"4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM",
-                "use":"enc",
-                "kid":"1"},
-
-                {"alg":"RSA",
-                "mod": "0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFb....."
-                "exp":"AQAB",
-                "kid":"2011-04-29"}
-            ]
-        }
-
-        :param txt: The JWK string representation
-        :param usage: Usage if not specified in the JWK
-        :param owner: The URL of the server from which the keys where received
-        """
-        for (key, type) in jwk.loads(txt, self.spec2key):
-            self.add_key(key, type, usage, owner)
-            logger.debug("added JWK key: type=%s, usage=%s, owner=%s" % (
-                                                        key, usage, owner))
-
-    def dumps(self, usage, type="rsa"):
-        """
-        Dump to JWK string representation
-
-        :param usage: What the key are expected to be use for
-        :param type: The type of key
-        :return: The JWK string representation or None
-        """
-        return jwk.dumps(self.get_keys(usage, type), usage)
+    def load_keys(self, pcr, issuer, replace=False):
+        for usage, keys in self.crypt.load_keys(pcr, issuer, replace).items():
+            for typ, key in keys:
+                self.add_key(key, typ, usage, issuer)
 
     def key_export(self, baseurl, local_path, vault, **kwargs):
-        """
-        :param baseurl: The base URL to which the key file names are added
-        :param local_path: Where on the machine the export files are kept
-        :param vault: Where the keys are kept
-        :return:
-        """
-        part = urlparse.urlsplit(baseurl)
+        res = self.crypt.key_export(baseurl, local_path, vault, **kwargs)
 
-        # deal with the export directory
-        if part.path.endswith("/"):
-            _path = part.path[:-1]
-        else:
-            _path = part.path[:]
+        for usage, keyspec in self.crypt.issuer_keys[""].items():
+            for typ, key in keyspec:
+                self.add_key(key, typ, usage, ".")
 
-        local_path = proper_path("%s/%s" % (_path,local_path))
-        vault_path = proper_path(vault)
-
-        if not os.path.exists(vault_path):
-            os.makedirs(vault_path)
-
-        if not os.path.exists(local_path):
-            os.makedirs(local_path)
-
-        res = {}
-        # For each usage type
-        # type, usage, format (rsa, sign, jwt)
-
-        for usage in ["sig", "dec"]:
-            if usage in kwargs:
-                if kwargs[usage] is None:
-                    continue
-
-                _args = kwargs[usage]
-                if _args["alg"] == "rsa":
-                    try:
-                        _key = rsa_load('%s%s' % (vault_path, "pyoidc"))
-                    except Exception:
-                        devnull = open(os.devnull, 'w')
-                        with RedirectStdStreams(stdout=devnull, stderr=devnull):
-                            _key = create_and_store_rsa_key_pair(
-                                                                path=vault_path)
-
-                    # order is not arbitrary, make_cert messes with key
-                    if "x509" in _args["format"]:
-                        if usage == "sig":
-                            _name = "x509_url"
-                        else:
-                            _name = "x509_encryption_url"
-
-                        cert, _key = make_cert(2045, "lingon.ladok.umu.se",
-                                               _key)
-                        # the local filename
-                        _export_filename = "%s%s" % (local_path, "cert.pem")
-                        cert.save(_export_filename)
-                        _url = "%s://%s%s" % (part.scheme, part.netloc,
-                                              _export_filename[1:])
-
-                        res[_name] = _url
-
-
-                    rsa_key = rsa_load('%s%s' % (vault_path, "pyoidc"))
-                    self.add_key(rsa_key, "rsa", usage)
-                    if usage == "sig":
-                        self.add_key(rsa_key, "rsa", "ver")
-                    elif usage == "enc":
-                        self.add_key(rsa_key, "rsa", "dec")
-
-                    if "jwk" in _args["format"]:
-                        if usage == "sig":
-                            _name = ("jwk.json", "jwk_url")
-                        else:
-                            _name = ("jwk_enc.json", "jwk_encryption_url")
-
-                        # the local filename
-                        _export_filename = "%s%s" % (local_path, _name[0])
-
-                        f = open(_export_filename, "w")
-                        f.write(self.dumps(usage))
-                        f.close()
-
-                        _url = "%s://%s%s" % (part.scheme, part.netloc,
-                                              _export_filename[1:])
-
-                        res[_name[1]] = _url
-
-                    if usage == "sig" and "dec" not in kwargs:
-                        self.add_key(rsa_key, "rsa", "dec")
-
-
-        return part, res
-
-# ================= create RSA key ======================
-
-def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=1024):
-    #Seed the random number generator with 1024 random bytes (8192 bits)
-    M2Crypto.Rand.rand_seed(os.urandom(size))
-
-    key = M2Crypto.RSA.gen_key(size, 65537, lambda : None)
-
-    if not path.endswith("/"):
-        path += "/"
-
-    key.save_key('%s%s' % (path, name), None, callback=no_passphrase_callback)
-    key.save_pub_key('%s%s.pub' % (path, name))
-
-    return key
-
-def proper_path(path):
-    """
-    Clean up the path specification so it looks like something I could use.
-    "./" <path> "/"
-    """
-    if path.startswith("./"):
-        pass
-    elif path.startswith("/"):
-        path = ".%s" % path
-    elif path.startswith("."):
-        while path.startswith("."):
-            path = path[1:]
-        if path.startswith("/"):
-            path = ".%s" % path
-    else:
-        path = "./%s" % path
-
-    if not path.endswith("/"):
-        path += "/"
-
-    return path
-
-# ================= create certificate ======================
-# heavily influenced by
-# http://svn.osafoundation.org/m2crypto/trunk/tests/test_x509.py
-
-import time
-from M2Crypto import EVP
-from M2Crypto import X509
-from M2Crypto import RSA
-from M2Crypto import ASN1
-
-def make_req(bits, fqdn="example.com", rsa=None):
-    pk = EVP.PKey()
-    x = X509.Request()
-    if not rsa:
-        rsa = RSA.gen_key(bits, 65537, lambda : None)
-    pk.assign_rsa(rsa)
-    # Because rsa is messed with
-    rsa = pk.get_rsa()
-    x.set_pubkey(pk)
-    name = x.get_subject()
-    name.C = "SE"
-    name.CN = "OpenID Connect Test Server"
-    if fqdn:
-        ext1 = X509.new_extension('subjectAltName', fqdn)
-        extstack = X509.X509_Extension_Stack()
-        extstack.push(ext1)
-        x.add_extensions(extstack)
-    x.sign(pk,'sha1')
-    return x, pk, rsa
-
-def make_cert(bits, fqdn="example.com", rsa=None):
-    req, pk, rsa = make_req(bits, fqdn=fqdn, rsa=rsa)
-    pkey = req.get_pubkey()
-    sub = req.get_subject()
-    cert = X509.X509()
-    cert.set_serial_number(1)
-    cert.set_version(2)
-    cert.set_subject(sub)
-    t = long(time.time()) + time.timezone
-    now = ASN1.ASN1_UTCTIME()
-    now.set_time(t)
-    nowPlusYear = ASN1.ASN1_UTCTIME()
-    nowPlusYear.set_time(t + 60 * 60 * 24 * 365)
-    cert.set_not_before(now)
-    cert.set_not_after(nowPlusYear)
-    issuer = X509.X509_Name()
-    issuer.CN = 'The code tester'
-    issuer.O = 'Umea University'
-    cert.set_issuer(issuer)
-    cert.set_pubkey(pkey)
-    cert.sign(pk, 'sha1')
-    return cert, rsa
-
-# ============================================================================
+        return res
 
 def get_signing_key(keystore, keytype="rsa", owner=None):
     """Find out which key and algorithm to use
