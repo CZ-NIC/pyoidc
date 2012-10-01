@@ -6,6 +6,7 @@ import M2Crypto
 
 from binascii import b2a_hex
 from M2Crypto.__m2crypto import hex_to_bn, bn_to_mpi
+from oic.jwt.jwe import intarr2long, dehexlify
 
 __author__ = 'rohe0002'
 
@@ -32,28 +33,31 @@ def b64_set_to_long(s):
     return n[0]
 
 def base64_to_long(data):
-    #if len(data) % 4: # not a multiple of 4
-    #    data += '=' * (4 - (len(data) % 4))
+    _d = base64.urlsafe_b64decode(data + '==')
+    return intarr2long(dehexlify(_d))
 
-    ld = len(data)
-    data = str(data)
-
-    lshift = 8 * (3-(ld % 4))
-
-    res = b64_set_to_long(data[0:4])
-
-    if ld > 4:
-        if lshift == 24:
-            for i in range(4, ld, 4):
-                res = (res << 24) + b64_set_to_long(data[i:i+4])
-        else:
-            i = 0
-            for i in range(4, ld-4, 4):
-                res = (res << 24) + b64_set_to_long(data[i:i+4])
-            i += 4
-            res = (res << lshift) + b64_set_to_long(data[i:i+4])
-
-    return res
+##if len(data) % 4: # not a multiple of 4
+#    #    data += '=' * (4 - (len(data) % 4))
+#
+#    ld = len(data)
+#    data = str(data)
+#
+#    lshift = 8 * (3-(ld % 4))
+#
+#    res = b64_set_to_long(data[0:4])
+#
+#    if ld > 4:
+#        if lshift == 24:
+#            for i in range(4, ld, 4):
+#                res = (res << 24) + b64_set_to_long(data[i:i+4])
+#        else:
+#            i = 0
+#            for i in range(4, ld-4, 4):
+#                res = (res << 24) + b64_set_to_long(data[i:i+4])
+#            i += 4
+#            res = (res << lshift) + b64_set_to_long(data[i:i+4])
+#
+#    return res
 
 def long_to_mpi(num):
     """Converts a python integer or long to OpenSSL MPInt used by M2Crypto.
@@ -103,7 +107,7 @@ def loads(txt, spec2key):
     }
 
     :param txt: The JWK string representation
-    :return: list of tuples containing key, type, usage owner
+    :return: list of 2-tuples containing key, type
     """
     spec = json.loads(txt)
     res = []
@@ -112,8 +116,8 @@ def loads(txt, spec2key):
             try:
                 k = spec2key[dicthash(kspec)]
             except KeyError:
-                e = base64_to_long(kspec["exp"])
-                n = base64_to_long(kspec["mod"])
+                e = base64_to_long(str(kspec["exp"]))
+                n = base64_to_long(str(kspec["mod"]))
 
                 k = M2Crypto.RSA.new_pub_key((long_to_mpi(e),
                                               long_to_mpi(n)))
@@ -124,9 +128,9 @@ def loads(txt, spec2key):
             #                else:
             #                    tag = "rsa"
 
-            res.append((k, "rsa"))
+            res.append(("rsa", k))
         elif kspec["alg"] == "HMAC":
-            res.append((kspec["mod"], "hmac"))
+            res.append(("hmac", kspec["mod"]))
 
     return res
 
