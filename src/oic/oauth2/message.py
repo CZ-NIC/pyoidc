@@ -4,7 +4,8 @@ import urlparse
 import json
 
 from oic import jwt
-from oic.jwt import jws
+from oic.jwt import jws, jwe
+from oic.jwt import b64d
 from oic.oauth2 import DEF_SIGN_ALG
 
 logger = logging.getLogger(__name__)
@@ -62,6 +63,9 @@ def gather_keys(comb, collection, jso, target):
         pass
 
     return comb
+
+def swap_dict(dic):
+    return dict([(val, key) for key, val in dic.items()])
 
 class Message(object):
     c_param = {}
@@ -335,55 +339,70 @@ class Message(object):
     def to_jwt(self, key=None, algorithm="", lev=0):
         """
         Create a signed JWT representation of the class instance
-        draft-jones-json-web-signature-02
 
         :param key: The signing key
         :param algorithm: The signature algorithm to use
         :return: A signed JWT
         """
-        if algorithm is None:
-            pass
-        elif not algorithm:
-            algorithm = DEF_SIGN_ALG
 
         if algorithm:
             return jws.sign(self.to_json(lev), key, algorithm)
         else:
             return jwt.pack(self.to_json(lev))
 
+
     def from_jwt(self, txt, key=None, verify=True, keystore=None, **kwargs):
         """
-        Given a signed JWT, verify its correctness and then create a class
-        instance from the content.
+        Given a signed and/or encrypted JWT, verify its correctness and then
+        create a class instance from the content.
 
         :param txt: The JWT
-        :param key: keys that might be used to verify the signature of the JWT
+        :param key: keys that might be used to decrypt and/or verify the
+            signature of the JWT
         :param verify: Whether the signature should be verified or not
         :return: A class instance
         """
         if key == None:
             key = keystore.get_verify_key(owner=".")
 
+        header = json.loads(b64d(str(txt.split(".")[0])))
         try:
-            jso = jwt.unpack(txt)[1]
-            if isinstance(jso, basestring):
-                jso = json.loads(jso)
-            if verify:
-                if keystore:
-                    for ent in ["iss", "aud", "client_id"]:
-                        try:
-                            for t, v in keystore.get_verify_key(
-                                                        owner=jso[ent]).items():
-                                try:
-                                    key[t].extend(v)
-                                except KeyError:
-                                    key[t] = v
-                        except KeyError:
-                            pass
+            type = header["typ"]
+        except KeyError:
+            type = None
 
-                jws.verify(txt, key)
-        except Exception:
-            raise
+        jso = None
+        if type == "JWE" or ("alg" in header and "enc" in header): # encrypted
+            dkeys = keystore.get_decrypt_key(owner=".")
+            txt = jwe.decrypt(txt, dkeys, "private")
+            try:
+                jso = json.loads(txt)
+            except Exception:
+                pass
+            #type = self._typ(txt)
+
+        # assume type == 'JWS'
+        if not jso:
+            try:
+                jso = jwt.unpack(txt)[1]
+                if isinstance(jso, basestring):
+                    jso = json.loads(jso)
+                if verify:
+                    if keystore:
+                        for ent in ["iss", "aud", "client_id"]:
+                            try:
+                                for t, vs in keystore.get_verify_key(
+                                                        owner=jso[ent]).items():
+                                    try:
+                                        key[t].extend(vs)
+                                    except KeyError:
+                                        key[t] = vs
+                            except KeyError:
+                                pass
+
+                    jws.verify(txt, key)
+            except Exception:
+                raise
 
         return self.from_dict(jso)
 
