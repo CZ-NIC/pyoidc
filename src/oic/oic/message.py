@@ -133,6 +133,7 @@ REQUIRED_LIST_OF_KEYOBJECTS = ([Message], True, msg_list_ser,
                                           keyobj_list_deser)
 SINGLE_OPTIONAL_SERVICE_REDIRECT = (Message, True, msg_ser, srvdir_deser)
 SINGLE_OPTIONAL_JWT = (basestring, False, msg_ser, None)
+SINGLE_OPTIONAL_IDTOKEN = (basestring, False, msg_ser, None)
 
 # ----------------------------------------------------------------------------
 
@@ -200,7 +201,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
         "nonce": SINGLE_OPTIONAL_STRING,
         "access_token": SINGLE_OPTIONAL_STRING,
         "token_type": SINGLE_OPTIONAL_STRING,
-        "id_token": SINGLE_OPTIONAL_STRING
+        "id_token": SINGLE_OPTIONAL_IDTOKEN
     })
 
     def verify(self, **kwargs):
@@ -381,13 +382,13 @@ class RegistrationRequest(Message):
             "user_id_type": SINGLE_OPTIONAL_STRING,
             "require_signed_request_object": SINGLE_OPTIONAL_STRING,
             "userinfo_signed_response_algs": SINGLE_OPTIONAL_STRING,
-            "userinfo_encrypted_response_alg": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-            "userinfo_encrypted_response_enc": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-            "userinfo_encrypted_response_int": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+            "userinfo_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
+            "userinfo_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
+            "userinfo_encrypted_response_int": SINGLE_OPTIONAL_STRING,
             "id_token_signed_response_algs": SINGLE_OPTIONAL_STRING,
-            "id_token_encrypted_response_alg": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-            "id_token_encrypted_response_enc": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-            "id_token_encrypted_response_int": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+            "id_token_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
+            "id_token_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
+            "id_token_encrypted_response_int": SINGLE_OPTIONAL_STRING,
             "default_max_age": SINGLE_OPTIONAL_INT,
             "require_auth_time": OPTIONAL_LOGICAL,
             "default_acr":SINGLE_OPTIONAL_STRING
