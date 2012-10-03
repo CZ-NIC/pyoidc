@@ -14,8 +14,8 @@ from oic.oauth2.message import SINGLE_OPTIONAL_INT
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 from oic.oauth2.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
 
-from oic import jwt
-from oic.jwt import jws
+import jwkest
+from jwkest import jws
 
 logger = logging.getLogger(__name__)
 
@@ -223,7 +223,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
             if not idt.verify(**kwargs):
                 return False
 
-            hfunc = "HS"+ jwt.unpack(self["id_token"])[0]["alg"][-3:]
+            hfunc = "HS"+ jwkest.unpack(self["id_token"])[0]["alg"][-3:]
 
             if "access_token" in self:
                 try:

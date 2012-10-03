@@ -7,9 +7,9 @@ import urlparse
 import sys
 import traceback
 
+from jwkest import jwk
 from jwkest.jwk import load_x509_cert
 from jwkest.jwk import load_jwk
-from oic.jwt import jwk
 from M2Crypto.util import no_passphrase_callback
 
 KEYLOADERR = "Failed to load %s key from '%s' (%s)"

@@ -3,10 +3,11 @@ import urllib
 import urlparse
 import json
 
-from oic import jwt
-from oic.jwt import jws, jwe
-from oic.jwt import b64d
-from oic.oauth2 import DEF_SIGN_ALG
+from jwkest import jws
+from jwkest import jwe
+from jwkest import b64d
+#from oic.oauth2 import DEF_SIGN_ALG
+import jwkest
 
 logger = logging.getLogger(__name__)
 
@@ -348,7 +349,7 @@ class Message(object):
         if algorithm:
             return jws.sign(self.to_json(lev), key, algorithm)
         else:
-            return jwt.pack(self.to_json(lev))
+            return jwkest.pack(self.to_json(lev))
 
 
     def from_jwt(self, txt, key=None, verify=True, keystore=None, **kwargs):
@@ -384,7 +385,7 @@ class Message(object):
         # assume type == 'JWS'
         if not jso:
             try:
-                jso = jwt.unpack(txt)[1]
+                jso = jwkest.unpack(txt)[1]
                 if isinstance(jso, basestring):
                     jso = json.loads(jso)
                 if verify:

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __builtin__ import int, open, hasattr, isinstance
+from __builtin__ import int, open, hasattr
 import copy
 from exceptions import KeyError
 from exceptions import Exception
@@ -10,14 +10,17 @@ from exceptions import IndexError
 from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
 
+import sys
 import os
 import traceback
+
+from jwkest.jwk import load_x509_cert
+from jwkest.jwk import load_jwk
+from jwkest.jws import alg2keytype
+
 from oic.oauth2 import rndstr
-import sys
 from oic.utils.keystore import rsa_load
 from oic.utils.keystore import get_signing_key
-from oic.utils.crypt import load_x509_cert, load_jwk
-from jwkest.jws import alg2keytype
 
 __author__ = 'rohe0002'
 

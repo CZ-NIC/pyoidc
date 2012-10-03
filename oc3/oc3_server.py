@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 from __builtin__ import int, open, hasattr, isinstance
 import copy
+import sys
+import os
+import traceback
+
 from exceptions import KeyError
 from exceptions import Exception
 from exceptions import ValueError
@@ -10,12 +14,11 @@ from exceptions import IndexError
 from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
 
-import os
-import traceback
+from jwkest.jwk import load_jwk
+from jwkest.jwk import load_x509_cert
+
 from oic.oauth2 import rndstr
-import sys
 from oic.utils.keystore import rsa_load
-from oic.utils.crypt import load_x509_cert, load_jwk
 
 __author__ = 'rohe0002'
 

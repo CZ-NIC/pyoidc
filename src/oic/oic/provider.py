@@ -2,6 +2,10 @@
 import json
 import traceback
 import urllib
+import sys
+
+from requests import ConnectionError
+
 from oic.oauth2.message import ErrorResponse, by_schema
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import IdToken
@@ -22,12 +26,11 @@ from oic.oic.message import UserInfoClaim
 from oic.oic.message import DiscoveryRequest
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import DiscoveryResponse
-#import sys
-import sys
-from requests import ConnectionError
-from oic.jwt.jws import alg2keytype
+
 from oic.utils.keystore import get_signing_key
-from oic.jwt import jws, jwe
+
+from jwkest import jws, jwe
+from jwkest.jws import alg2keytype
 
 __author__ = 'rohe0002'
 

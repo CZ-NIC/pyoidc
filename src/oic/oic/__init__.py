@@ -46,13 +46,13 @@ from oic.oauth2.consumer import ConfigurationError
 
 from oic.oic.exception import AccessDenied
 
-from oic.jwt import jws
-from oic.jwt.jws import alg2keytype
-
 from oic.utils import time_util
 from oic.utils.time_util import utc_now
 from oic.utils.time_util import epoch_in_a_while
 from oic.utils.keystore import get_signing_key
+
+from jwkest import jws
+from jwkest.jws import alg2keytype
 
 logger = logging.getLogger(__name__)
 

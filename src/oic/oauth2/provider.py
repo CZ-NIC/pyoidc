@@ -261,7 +261,8 @@ class Provider(object):
         # Client is from basic auth or ...
         client = environ["REMOTE_USER"]
         if not self.function["verify client"](environ, client, self.cdb):
-            err = TokenErrorResponse(error="unathorized_client")
+            err = TokenErrorResponse(error="unathorized_client",
+                                     error_description="client_id:%s" % client)
             resp = Response(err.to_json(), content="application/json",
                             status="401 Unauthorized")
             return resp(environ, start_response)
