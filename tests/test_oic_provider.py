@@ -1,4 +1,3 @@
-from oic.utils.time_util import in_a_while, time_in_a_while, epoch_in_a_while
 
 __author__ = 'rohe0002'
 
@@ -23,7 +22,8 @@ from oic.oic.message import RegistrationRequest
 from oic.oic.message import IdToken
 
 from oic.utils.sdb import SessionDB
-from oic.oic import Client, make_openid_request
+from oic.oic import Client
+from oic.oic import make_openid_request
 
 from oic.oic.consumer import Consumer
 from oic.oic.provider import Provider
@@ -32,8 +32,8 @@ from oic.oic.provider import get_post
 #from oic.oic.provider import update_info
 from oic.oauth2.provider import AuthnFailure
 
-
 from oic.utils import http_util
+from oic.utils.time_util import epoch_in_a_while
 
 CLIENT_CONFIG = {
     "client_id": "number5",
@@ -156,11 +156,9 @@ def verify_username_and_password(dic):
 
 
 #noinspection PyUnusedLocal
-def verify_client(environ, areq, cdb):
-    identity = areq.client_id
-    secret = areq.client_secret
-    if identity:
-        if identity == CLIENT_ID and secret == CLIENT_SECRET:
+def verify_client(environ, client, cdb):
+    if client:
+        if client == CLIENT_ID:
             return True
         else:
             return False
@@ -597,6 +595,7 @@ def test_token_endpoint():
     str = areq.to_urlencoded()
     fil = StringIO.StringIO(buf=str)
     environ = BASE_ENVIRON.copy()
+    environ["REQUEST_METHOD"] = "POST"
     environ["CONTENT_LENGTH"] = len(str)
     environ["wsgi.input"] = fil
     environ["REMOTE_USER"] = CLIENT_ID

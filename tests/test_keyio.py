@@ -1,9 +1,11 @@
 __author__ = 'rohe0002'
 
 from binascii import hexlify
-from oic.jwt import jwk, jwe
+
+from jwkest import jwk, jwe
+from jwkest.jwk import x509_rsa_loads
+
 from oic.utils import keyio
-from oic.utils.keyio import x509_rsa_loads
 
 def test1():
     jar = keyio.KeyJar(None)

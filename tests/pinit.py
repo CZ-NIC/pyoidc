@@ -2,8 +2,6 @@ import sys
 
 __author__ = 'rohe0002'
 
-__author__ = 'rohe0002'
-
 import StringIO
 import urllib
 
@@ -136,8 +134,8 @@ def verify_username_and_password(dic):
 
 #noinspection PyUnusedLocal
 def verify_client(environ, areq, cdb):
-    identity = areq.client_id
-    secret = areq.client_secret
+    identity = areq["client_id"]
+    secret = areq["client_secret"]
     if identity:
         if identity == CLIENT_ID and secret == CLIENT_SECRET:
             return True

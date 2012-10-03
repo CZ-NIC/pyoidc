@@ -413,4 +413,4 @@ def test_token_endpoint_unauth():
     print resp
     atr = TokenErrorResponse().deserialize(resp[0], "json")
     print atr.keys()
-    assert _eq(atr.keys(), ['error'])
+    assert _eq(atr.keys(), ['error_description', 'error'])

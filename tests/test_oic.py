@@ -37,9 +37,11 @@ from oic.oauth2.message import MissingRequiredAttribute
 
 from oic.utils import time_util
 from oic.utils.time_util import utc_time_sans_frac
-from oic.jwt.jws import left_hash, alg2keytype
-from oic.jwt import unpack
 from oic.utils.keystore import rsa_load, get_signing_key
+
+from jwkest import unpack
+from jwkest.jws import left_hash
+from jwkest.jws import alg2keytype
 
 from pytest import raises
 

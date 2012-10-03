@@ -1,6 +1,6 @@
 #!/usr/bin/env python
+from jwkest.jws import alg2keytype
 from oic.oauth2.message import by_schema
-from oic.jwt.jws import alg2keytype
 
 __author__ = 'rohe0002'
 
