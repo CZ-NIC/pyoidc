@@ -26,13 +26,13 @@ setup(
     author = "Roland Hedberg",
     author_email = "roland.hedberg@adm.umu.se",
     license="Apache 2.0",
-    packages=["oic", "oic/oauth2", "oic/oic", "oic/utils", "oic/jwt"],
+    packages=["oic", "oic/oauth2", "oic/oic", "oic/utils"],
     package_dir = {"": "src"},
     classifiers = ["Development Status :: 4 - Beta",
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires = ['requests', "M2Crypto", "pycrypto",
-                        "cherrypy", "mako"],
+                        "cherrypy", "mako", "pyjwkest"],
 
     zip_safe=False,
 )

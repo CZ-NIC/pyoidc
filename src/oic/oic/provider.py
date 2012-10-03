@@ -180,11 +180,11 @@ class Provider(AProvider):
     def id_token_as_signed_jwt(self, session, loa="2", alg="RS256", code=None,
                                access_token=None, user_info=None):
 
+        logger.debug("Signing alg: %s" % alg)
         _idt = self.server.make_id_token(session, loa, self.name, alg, code,
                                          access_token, user_info)
 
         logger.debug("id_token: %s" % _idt.to_dict())
-        logger.debug("Signing alg: %s" % alg)
         ckey = get_signing_key(self.keystore, alg2keytype(alg),
                                session["client_id"])
         _signed_jwt = _idt.to_jwt(key=ckey, algorithm=alg)
@@ -200,7 +200,10 @@ class Provider(AProvider):
         response = ErrorResponse(error=error, error_description=descr)
         resp = Response(response.to_json(), content="application/json",
                         status="400 Bad Request")
-        return resp(environ, start_response)
+        if start_response:
+            return resp(environ, start_response)
+        else:
+            return resp
 
     def _authz_error(self, environ, start_response, error, descr=None):
 
@@ -337,6 +340,18 @@ class Provider(AProvider):
 
         return sid
 
+    def input(self, environ, **kwargs):
+        # Support GET and POST
+        try:
+            query = kwargs["query"]
+        except KeyError:
+            try:
+                query = get_or_post(environ)
+            except UnsupportedMethod:
+                return BadRequest("Unsupported method")
+
+        return query
+
     def authorization_endpoint(self, environ, start_response, **kwargs):
         # The AuthorizationRequest endpoint
 
@@ -351,15 +366,9 @@ class Provider(AProvider):
 
         _log_debug("- authorization -")
 
-        # Support GET and POST
-        try:
-            query = kwargs["query"]
-        except KeyError:
-            try:
-                query = get_or_post(environ)
-            except UnsupportedMethod:
-                resp = BadRequest("Unsupported method")
-                return resp(environ, start_response)
+        query = self.input(environ, **kwargs)
+        if isinstance(query, Response):
+            return query(environ, start_response)
 
         _log_debug("authorization_request: %s" % query)
 
@@ -680,10 +689,9 @@ class Provider(AProvider):
 
         _log_debug("- token -")
 
-        try:
-            body = kwargs["query"]
-        except KeyError:
-            body = get_post(environ)
+        body = self.input(environ, **kwargs)
+        if isinstance(body, Response):
+            return body(environ, start_response)
 
         if self.test_mode:
             _log_info("token_request: %s" % body)
@@ -821,15 +829,9 @@ class Provider(AProvider):
             _log_debug = logger.debug
             _log_info = logger.info
 
-        # POST or GET
-        try:
-            query = kwargs["query"]
-        except KeyError:
-            try:
-                query = get_or_post(environ)
-            except UnsupportedMethod:
-                resp = BadRequest("Unsupported method")
-                return resp(environ, start_response)
+        query = self.input(environ, **kwargs)
+        if isinstance(query, Response):
+            return query(environ, start_response)
 
         _log_debug("environ: %s" % environ)
         _sdb = self.sdb
@@ -892,14 +894,9 @@ class Provider(AProvider):
             _log_debug = logger.debug
             _log_info = logger.info
 
-        try:
-            info = kwargs["query"]
-        except KeyError:
-            try:
-                info = get_or_post(environ)
-            except UnsupportedMethod:
-                resp = BadRequest("Unsupported method")
-                return resp(environ, start_response)
+        info = self.input(environ, **kwargs)
+        if isinstance(info, Response):
+            return info(environ, start_response)
 
         if not info:
             info = "id_token=%s" % self._bearer_auth(environ)
@@ -1021,7 +1018,7 @@ class Provider(AProvider):
         return _cinfo
 
     #noinspection PyUnusedLocal
-    def registration_endpoint(self, environ, start_response, **kwargs):
+    def l_registration_endpoint(self, environ, **kwargs):
         try:
             _log_debug = kwargs["logger"].debug
             _log_info = kwargs["logger"].info
@@ -1030,14 +1027,10 @@ class Provider(AProvider):
             _log_info = logger.info
 
         _log_debug("@registration_endpoint")
-        try:
-            query = kwargs["query"]
-        except KeyError:
-            try:
-                query = get_or_post(environ)
-            except UnsupportedMethod:
-                resp = BadRequest("Unsupported method")
-                return resp(environ, start_response)
+
+        query = self.input(environ, **kwargs)
+        if isinstance(query, Response):
+            return query
 
         request = RegistrationRequest().deserialize(query, "urlencoded")
         _log_info("registration_request:%s" % request.to_dict())
@@ -1046,10 +1039,9 @@ class Provider(AProvider):
             request.verify()
         except Exception, err:
             if "type" not in request:
-                return self._error(environ, start_response,
-                                   error="invalid_type")
+                return self._error(environ, None, error="invalid_type")
             else:
-                return self._error(environ, start_response,
+                return self._error(environ, None,
                                    error="invalid_configuration_parameter")
 
         _keystore = self.server.keystore
@@ -1069,7 +1061,7 @@ class Provider(AProvider):
                                                        "policy_url",
                                                        "logo_url"])
             if isinstance(resp, Response) :
-                return resp(environ, start_response)
+                return resp
             else:
                 _cinfo = resp
 
@@ -1085,13 +1077,11 @@ class Provider(AProvider):
                 _cinfo = self.cdb[client_id].copy()
             except KeyError:
                 _log_info("Unknown client id")
-                resp = BadRequest()
-                return resp(environ, start_response)
+                return BadRequest()
 
             if _cinfo["client_secret"] != request["client_secret"]:
                 _log_info("Wrong secret")
-                resp = BadRequest()
-                return resp(environ, start_response)
+                return BadRequest()
 
             if request["type"] == "rotate_secret":
                 # update secret
@@ -1114,7 +1104,7 @@ class Provider(AProvider):
                                                            "logo_url"])
 
                 if isinstance(resp, Response):
-                    return resp(environ, start_response)
+                    return resp
                 else:
                     _cinfo = resp
                     response = RegistrationResponseCU(client_id=client_id)
@@ -1122,8 +1112,7 @@ class Provider(AProvider):
             self.keystore.load_keys(request, client_id, replace=True)
 
         else:
-            resp = BadRequest("Unknown request type: %s" % request.type)
-            return resp(environ, start_response)
+            return BadRequest("Unknown request type: %s" % request.type)
 
         # Add the key to the keystore
         if client_secret:
@@ -1141,8 +1130,11 @@ class Provider(AProvider):
         if self.test_mode:
             _log_info("registration_response: %s" % response.to_dict())
 
-        resp = Response(response.to_json(), content="application/json",
+        return Response(response.to_json(), content="application/json",
                         headers=[("Cache-Control", "no-store")])
+
+    def registration_endpoint(self, environ, start_response, **kwargs):
+        resp = self.l_registration_endpoint(environ, **kwargs)
         return resp(environ, start_response)
 
     #noinspection PyUnusedLocal
@@ -1229,14 +1221,10 @@ class Provider(AProvider):
             _log_debug = logger.debug
 
         _log_debug("@discovery_endpoint")
-        try:
-            query = kwargs["query"]
-        except KeyError:
-            try:
-                query = get_or_post(environ)
-            except UnsupportedMethod:
-                resp = BadRequest("Unsupported method")
-                return resp(environ, start_response)
+
+        query = self.input(environ, **kwargs)
+        if isinstance(query, Response):
+            return query(environ, start_response)
 
         request = DiscoveryRequest().deserialize(query, "urlencoded")
         _log_debug("discovery_request:%s" % (request.to_dict(),))

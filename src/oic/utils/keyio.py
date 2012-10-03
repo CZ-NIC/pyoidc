@@ -7,6 +7,8 @@ import urlparse
 import sys
 import traceback
 
+from jwkest.jwk import load_x509_cert
+from jwkest.jwk import load_jwk
 from oic.jwt import jwk
 from M2Crypto.util import no_passphrase_callback
 
@@ -44,10 +46,6 @@ def rsa_loads(key):
 def ec_load(filename):
     return M2Crypto.EC.load_key(filename, M2Crypto.util.no_passphrase_callback)
 
-def x509_rsa_loads(string):
-    cert = M2Crypto.X509.load_cert_string(string)
-    return cert.get_pubkey().get_rsa()
-
 class RedirectStdStreams(object):
     def __init__(self, stdout=None, stderr=None):
         self._stdout = stdout or sys.stdout
@@ -63,47 +61,6 @@ class RedirectStdStreams(object):
         self._stdout.flush(); self._stderr.flush()
         sys.stdout = self.old_stdout
         sys.stderr = self.old_stderr
-
-
-def load_x509_cert(http_request, url, spec2key):
-    """
-    Get and transform a X509 cert into a key
-
-    :param http_request: A HTTP request function
-    :param url: Where the X509 cert can be found
-    :param spec2key: A dictionary over keys already seen
-    :return: List of 2-tuples (keytype, key)
-    """
-    try:
-        r = http_request(url, allow_redirects=True)
-        if r.status_code == 200:
-            cert = str(r.text)
-            try:
-                _key = spec2key[cert]
-            except KeyError:
-                _key = x509_rsa_loads(cert)
-                spec2key[cert] = _key
-            return [("rsa", _key)]
-        else:
-            raise Exception("HTTP Get error: %s" % r.status_code)
-    except Exception, err: # not a RSA key
-        logger.warning("Can't load key: %s" % err)
-        return []
-
-def load_jwk(http_request, url, spec2key):
-    """
-    Get and transform a JWK into keys
-
-    :param http_request: A HTTP request function
-    :param url: Where the JWK can be found
-    :param spec2key: A dictionary over keys already seen
-    :return: List of 2-tuples (keytype, key)
-    """
-    r = http_request(url, allow_redirects=True)
-    if r.status_code == 200:
-        return jwk.loads(r.text, spec2key)
-    else:
-        raise Exception("HTTP Get error: %s" % r.status_code)
 
 
 TYPE2FUNC = {"x509": load_x509_cert, "jwk": load_jwk}
