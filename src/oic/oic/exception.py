@@ -14,3 +14,6 @@ class AccessDenied(OICError):
 
 class UnknownClient(OICError):
     pass
+
+class MissingParameter(OICError):
+    pass
