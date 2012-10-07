@@ -288,8 +288,9 @@ def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
 
             for srv, what in cpoints.items():
                 cc = oicsrv.claims_clients[srv]
-                print >> sys.stderr, srv, what
+                LOGGER.debug("srv: %s, what: %s" % (srv, what))
                 _res = _collect_distributed(srv, cc, user_id, what)
+                LOGGER.debug("Got: %s" % _res)
                 for key, val in _res.items():
                     if key in result:
                         result[key].update(val)

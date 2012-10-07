@@ -4,7 +4,7 @@ import urllib
 import json
 import logging
 
-from oic.oauth2 import message, MissingRequiredAttribute
+from oic.oauth2 import message, MissingRequiredAttribute, VerificationError
 from oic.oauth2.message import Message
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
@@ -221,7 +221,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
                     pass
             idt = IdToken().from_jwt(str(self["id_token"]), **args)
             if not idt.verify(**kwargs):
-                return False
+                raise VerificationError("Could not verify id_token")
 
             hfunc = "HS"+ jwkest.unpack(self["id_token"])[0]["alg"][-3:]
 
@@ -229,22 +229,22 @@ class AuthorizationResponse(message.AuthorizationResponse,
                 try:
                     assert "at_hash" in idt
                 except AssertionError:
-                    raise Exception("Missing at_hash property")
+                    raise MissingRequiredAttribute("Missing at_hash property")
                 try:
                     assert idt["at_hash"] == jws.left_hash(
                         self["access_token"], hfunc )
                 except AssertionError:
-                    raise Exception("Failed to verify access_token hash")
+                    raise VerificationError("Failed to verify access_token hash")
 
             if "code" in self:
                 try:
                     assert "c_hash" in idt
                 except AssertionError:
-                    raise Exception("Missing c_hash property")
+                    raise MissingRequiredAttribute("Missing c_hash property")
                 try:
                     assert idt["c_hash"] == jws.left_hash(self["code"], hfunc)
                 except AssertionError:
-                    raise Exception("Failed to verify code hash")
+                    raise VerificationError("Failed to verify code hash")
 
             self["id_token"] = idt
 
@@ -478,7 +478,7 @@ class IDTokenClaim(Message):
 class OpenIDRequest(message.AuthorizationRequest):
     c_param = message.AuthorizationRequest.c_param.copy()
     c_param.update({"userinfo": SINGLE_OPTIONAL_USERINFO_CLAIM,
-                    "id_token": SINGLE_OPTIONAL_ID_TOKEN_CLAIM,
+                    "id_token_hint": SINGLE_OPTIONAL_ID_TOKEN_CLAIM,
                     "iss": SINGLE_OPTIONAL_STRING,
                     "aud": SINGLE_OPTIONAL_STRING,
                     "nonce": SINGLE_OPTIONAL_STRING})

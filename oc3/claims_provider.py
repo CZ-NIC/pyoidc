@@ -215,7 +215,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', dest='verbose', action='store_true')
     parser.add_argument('-d', dest='debug', action='store_true')
-    parser.add_argument('-p', dest='port', default=8092, type=int)
+    parser.add_argument('-p', dest='port', default=8093, type=int)
     parser.add_argument(dest="config")
     args = parser.parse_args()
 
