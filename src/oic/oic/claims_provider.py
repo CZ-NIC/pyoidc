@@ -40,20 +40,20 @@ class UserClaimsResponse(Message):
                "endpoint": SINGLE_OPTIONAL_STRING,
                "access_token": SINGLE_OPTIONAL_STRING}
 
-    def verify(self, **kwargs):
-        if "jwt" in self:
-            # Try to decode the JWT, checks the signature
-            args = dict([(claim, kwargs[claim]) for claim in ["key","keystore"] \
-                            if claim in kwargs])
-            try:
-                item = OpenIDSchema().from_jwt(str(self["jwt"]), **args)
-            except Exception, _err:
-                raise
-
-            if not item.verify(**kwargs):
-                return False
-
-        return super(self.__class__, self).verify(**kwargs)
+#    def verify(self, **kwargs):
+#        if "jwt" in self:
+#            # Try to decode the JWT, checks the signature
+#            args = dict([(claim, kwargs[claim]) for claim in ["key","keystore"] \
+#                            if claim in kwargs])
+#            try:
+#                item = OpenIDSchema().from_jwt(str(self["jwt"]), **args)
+#            except Exception, _err:
+#                raise
+#
+#            if not item.verify(**kwargs):
+#                return False
+#
+#        return super(self.__class__, self).verify(**kwargs)
 
 class UserInfoClaimsRequest(Message):
     c_param = {"access_token": SINGLE_REQUIRED_STRING}
@@ -141,8 +141,10 @@ class ClaimsServer(Provider):
 
         _log_info("User info claims: %s" % uic)
 
+        #oicsrv, userdb, user_id, client_id="", user_info_claims=None
         info = self.function["userinfo"](self, self.userdb, ucreq["user_id"],
-                                         ucreq["client_id"], user_info=uic)
+                                         ucreq["client_id"],
+                                         user_info_claims=uic)
 
         _log_info("User info: %s" % info.to_dict())
 
@@ -170,6 +172,7 @@ class ClaimsServer(Provider):
         access_token = self._bearer_auth(environ)
         uiresp = OpenIDSchema(**self.info_store[access_token])
 
+        _log_info("returning: %s" % uiresp.to_dict())
         resp = Response(uiresp.to_json(), content="application/json")
         return resp(environ, start_response)
 
