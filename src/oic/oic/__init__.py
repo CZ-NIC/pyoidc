@@ -833,10 +833,17 @@ class Client(oauth2.Client):
             raise Exception("Trying '%s', status %s" % (url, r.status_code))
 
         if "issuer" in pcr:
+            _pcr_issuer = pcr["issuer"]
             if pcr["issuer"].endswith("/"):
-                _pcr_issuer = pcr["issuer"][:-1]
+                if issuer.endswith("/"):
+                    _issuer = issuer
+                else:
+                    _issuer = issuer + "/"
             else:
-                _pcr_issuer = pcr["issuer"]
+                if issuer.endswith("/"):
+                    _issuer = issuer[:-1]
+                else:
+                    _issuer = issuer
 
             try:
                 assert _issuer == _pcr_issuer
@@ -845,6 +852,8 @@ class Client(oauth2.Client):
                     _issuer, _pcr_issuer))
 
             self.provider_info[_pcr_issuer] = pcr
+        else:
+            _pcr_issuer = issuer
 
         if endpoints:
             for key, val in pcr.items():
@@ -852,7 +861,7 @@ class Client(oauth2.Client):
                     setattr(self, key, val)
 
         if keys:
-            self.keystore.load_keys(pcr, _issuer)
+            self.keystore.load_keys(pcr, _pcr_issuer)
 
         return pcr
 
