@@ -96,16 +96,26 @@ AUTHN_METHOD = OAUTH2_AUTHN_METHOD.copy()
 OIC_DEF_SIGN_ALG = "RS256"
 
 def assertion_jwt(cli, keys, audience, algorithm=OIC_DEF_SIGN_ALG):
+    _now = utc_now()
+
     at = AuthnToken(iss = cli.client_id, prn = cli.client_id,
                     aud = audience, jti = rndstr(8),
-                    exp = int(epoch_in_a_while(minutes=10)), iat = utc_now())
+                    exp = _now+600, iat = _now)
     return at.to_jwt(key=keys, algorithm=algorithm)
 
 #noinspection PyUnusedLocal
 def client_secret_jwt(cli, cis, request_args=None, http_args=None, **kwargs):
+    """
+    Constructs a client assertion and signs it with the clients
+    secret key. The request is modified as a side effect.
 
-    # signing key is the client secret
-    signing_key = cli.keystore.get_sign_key()
+    :param cli: Client instance
+    :param cis: The request
+    :param request_args: request arguments
+    :param http_args: HTTP arguments
+    :param kwargs: Extra arguments
+    :return: Constructed HTTP arguments, in this case none
+    """
 
     # audience is the OP endpoint
     audience = cli._endpoint(REQUEST2ENDPOINT[cis.type()])
@@ -113,7 +123,10 @@ def client_secret_jwt(cli, cis, request_args=None, http_args=None, **kwargs):
     try:
         algorithm = kwargs["algorithm"]
     except KeyError:
-        algorithm = cli.behaviour["require_signed_request_object"]
+        #algorithm = cli.behaviour["require_signed_request_object"]
+        algorithm = "HS256"
+
+    signing_key = get_signing_key(cli.keystore, alg2keytype(algorithm), ".")
 
     cis["client_assertion"] = assertion_jwt(cli, signing_key, audience,
                                             algorithm)
@@ -128,9 +141,18 @@ def client_secret_jwt(cli, cis, request_args=None, http_args=None, **kwargs):
 
 #noinspection PyUnusedLocal
 def private_key_jwt(cli, cis, request_args=None, http_args=None, **kwargs):
+    """
+    Constructs a client assertion and signs it with the clients
+    public RSA key. The request is modified as a side effect.
 
-    # signing key is the clients rsa key for instance
-    signing_key = cli.keystore.get_sign_key()
+    :param cli: Client instance
+    :param cis: The request
+    :param request_args: request arguments
+    :param http_args: HTTP arguments
+    :param kwargs: Extra arguments
+    :return: Constructed HTTP arguments, in this case none
+    """
+
 
     # audience is the OP endpoint
     audience = cli._endpoint(REQUEST2ENDPOINT[cis.type()])
@@ -138,6 +160,9 @@ def private_key_jwt(cli, cis, request_args=None, http_args=None, **kwargs):
         algorithm = kwargs["algorithm"]
     except KeyError:
         algorithm = OIC_DEF_SIGN_ALG
+
+    # signing key should be the clients rsa key
+    signing_key = get_signing_key(cli.keystore, alg2keytype(algorithm), ".")
 
     cis["client_assertion"] = assertion_jwt(cli, signing_key, audience,
                                             algorithm)
@@ -969,7 +994,9 @@ class Client(oauth2.Client):
                     break
 
             if _pref not in self.behaviour:
-                raise ConfigurationError("OP couldn't match preferences")
+                raise ConfigurationError(
+                    "OP couldn't match preferences",
+                                         "%s" % _pref)
 
         for key, val in self.client_prefs.items():
             if key not in PREFERENCE2PROVIDER:
