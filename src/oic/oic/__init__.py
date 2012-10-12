@@ -418,12 +418,13 @@ class Client(oauth2.Client):
 
         if "idtoken_claims" in kwargs or "userinfo_claims" in kwargs:
             request_param = "request"
-            if "request_method" in kwargs:
-                if kwargs["request_method"] == "file":
-                    request_param = "request_uri"
-                    del kwargs["request_method"]
         else:
             request_param = None
+
+        if "request_method" in kwargs:
+            if kwargs["request_method"] == "file":
+                request_param = "request_uri"
+                del kwargs["request_method"]
 
         areq = oauth2.Client.construct_AuthorizationRequest(self, request,
                                                             request_args,
