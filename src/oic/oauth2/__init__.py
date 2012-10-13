@@ -70,6 +70,11 @@ def client_secret_basic(cli, cis, request_args=None, http_args=None, **kwargs):
     except KeyError:
         http_args["auth"] = (cli.client_id, cli.client_secret)
 
+    try:
+        del cis["client_secret"]
+    except KeyError:
+        pass
+
     return http_args
 
 #noinspection PyUnusedLocal
