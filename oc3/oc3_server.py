@@ -737,7 +737,8 @@ if __name__ == '__main__':
     import importlib
 
     from cherrypy import wsgiserver
-    from cherrypy.wsgiserver import ssl_builtin
+    #from cherrypy.wsgiserver import ssl_builtin
+    from cherrypy.wsgiserver import ssl_pyopenssl
 
     from oic.utils.sdb import SessionDB
 
@@ -831,8 +832,12 @@ if __name__ == '__main__':
 
     # Add the claims providers keys
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
-    SRV.ssl_adapter = ssl_builtin.BuiltinSSLAdapter("certs/server.crt",
-                                                    "certs/server.key")
+
+    SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(config.SERVER_CERT,
+                                                    config.SERVER_KEY,
+                                                    config.CERT_CHAIN)
+    #SRV.ssl_adapter = ssl_builtin.BuiltinSSLAdapter("certs/server.crt",
+    #                                                "certs/server.key")
 
     LOGGER.info("OC3 server starting listening on port:%s" % args.port)
     try:
