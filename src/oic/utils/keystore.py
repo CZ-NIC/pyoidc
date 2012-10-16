@@ -106,6 +106,7 @@ class KeyStore(object):
                 _keys[type] = [key]
 
     def get_keys(self, usage, type=None, owner="."):
+        logger.debug("get_keys(%s, %s, %s)" % (usage, type, owner))
         if not owner:
             res = {}
             for owner, _spec in self._store.items():
@@ -322,5 +323,25 @@ def get_signing_key(keystore, keytype="rsa", owner=None):
         ckey = {"ec":keystore.get_sign_key("ec")}
 
     logger.debug("Sign with '%s'" % (ckey,))
+
+    return ckey
+
+def get_verify_key(keystore, keytype="rsa", owner=None):
+    """Find out which key and algorithm to use
+
+    :param keystore: The key store
+    :param keytype: which type of key to use
+    :param owner: Whoes key to look for
+    :return: key
+    """
+
+    if keytype == "hmac":
+        ckey = {"hmac": keystore.get_verify_key("hmac",owner=owner)}
+    elif keytype == "rsa": # own asymmetric key
+        ckey = {"rsa": keystore.get_verify_key("rsa", owner=owner)}
+    else:
+        ckey = {"ec":keystore.get_verify_key("ec", owner=owner)}
+
+    logger.debug("Verify with '%s'" % (ckey,))
 
     return ckey
