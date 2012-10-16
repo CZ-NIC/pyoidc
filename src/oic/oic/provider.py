@@ -696,8 +696,7 @@ class Provider(AProvider):
         if isinstance(body, Response):
             return body(environ, start_response)
 
-        if self.test_mode:
-            _log_info("token_request: %s" % body)
+        _log_info("token_request: %s" % body)
 
         areq = AccessTokenRequest().deserialize(body, "urlencoded")
 
