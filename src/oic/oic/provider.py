@@ -533,7 +533,7 @@ class Provider(AProvider):
                     except ValueError:
                         pass
         else:
-            if "handle" in kwargs:
+            if "handle" in kwargs and kwargs["handle"]:
                 (key, timestamp) = kwargs["handle"]
                 if key.startswith(STR) and key.endswith(STR):
                     cookie = self.cookie_func(self.cookie_name, key,
@@ -1156,7 +1156,8 @@ class Provider(AProvider):
                             token_endpoint_auth_types_supported=[
                                                         "client_secret_post",
                                                         "client_secret_basic",
-                                                        "client_secret_jwt"],
+                                                        "client_secret_jwt",
+                                                        "private_key_jwt"],
                             scopes_supported=["openid"],
                             response_types_supported=["code", "token",
                                                       "id_token", "code token",
@@ -1425,12 +1426,15 @@ class Provider(AProvider):
         logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
 
         if self.cookie_func and not "active_auth" in kwargs:
-            (key, timestamp) = kwargs["handle"]
-            b64scode = base64.b64encode(scode)
-            self.re_link_log(key, b64scode)
-            cookie = self.cookie_func(self.cookie_name, b64scode, self.seed,
-                                      self.cookie_ttl)
-            redirect = Redirect(str(location), headers=[cookie])
+            try:
+                (key, timestamp) = kwargs["handle"]
+                b64scode = base64.b64encode(scode)
+                self.re_link_log(key, b64scode)
+                cookie = self.cookie_func(self.cookie_name, b64scode, self.seed,
+                                          self.cookie_ttl)
+                redirect = Redirect(str(location), headers=[cookie])
+            except TypeError:
+                redirect = Redirect(str(location))
         else:
             redirect = Redirect(str(location))
 
