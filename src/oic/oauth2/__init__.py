@@ -942,7 +942,7 @@ class Client(PBase):
 
         return self.request_and_return(url, resp_request, method, body,
                                        body_type, state=state,
-                                       http_args=http_args)
+                                       http_args=http_args, **kwargs)
 
     def do_access_token_refresh(self, request=RefreshAccessTokenRequest,
                                 state="", body_type="json", method="POST",
