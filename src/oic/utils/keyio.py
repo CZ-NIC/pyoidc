@@ -82,7 +82,7 @@ def uniq_ext(lst, keys):
 
     return lst
 
-URLPAT = ["%s_url", "%s_encryption_url"]
+URLPAT = [("%s_url", "ver"), ("%s_encryption_url", "enc")]
 
 class KeyJar(object):
 
@@ -90,6 +90,19 @@ class KeyJar(object):
         self.http_request = http_request
         self.spec2key = {}
         self.issuer_keys = {}
+
+    def add_if_unique(self, issuer, use, keys):
+        if use in self.issuer_keys[issuer] and self.issuer_keys[issuer][use]:
+            for typ, key in keys:
+                flag = 1
+                for _typ, _key in self.issuer_keys[issuer][use]:
+                    if _typ == typ and key is _key:
+                        flag = 0
+                        break
+                if flag:
+                    self.issuer_keys[issuer][use].append((typ, key))
+        else:
+            self.issuer_keys[issuer][use] = keys
 
     def load_keys(self, inst, issuer, replace=False):
         """
@@ -110,7 +123,7 @@ class KeyJar(object):
         _s2k = self.spec2key
         for typ in ["jwk", "x509"]:
             _keys = None
-            for pat in URLPAT:
+            for pat, use in URLPAT:
                 spec = pat % typ
                 logger.debug("spec: %s, key: %s" % (spec, _keys))
                 if spec in inst and inst[spec]:
@@ -121,15 +134,9 @@ class KeyJar(object):
                         #message = traceback.format_exception(*sys.exc_info())
                         raise Exception(KEYLOADERR % (inst[spec], issuer, err))
 
-                    try:
-                        self.issuer_keys[issuer]["ver"].extend(_keys)
-                    except KeyError:
-                        self.issuer_keys[issuer]["ver"] =_keys
-                elif pat == URLPAT[1] and _keys:
-                    try:
-                        self.issuer_keys[issuer]["enc"].extend(_keys)
-                    except KeyError:
-                        self.issuer_keys[issuer]["enc"] =_keys
+                    self.add_if_unique(issuer, use, _keys)
+                elif use == "enc" and _keys:
+                    self.add_if_unique(issuer, use, _keys)
 
         logger.debug("keys: %s" % self.issuer_keys[issuer])
         return self.issuer_keys[issuer]
