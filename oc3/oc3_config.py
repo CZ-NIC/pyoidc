@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
-baseurl = "https://localhost"
 #issuer= "https://www.kodtest.se/rolandsOP"
-issuer="https://localhost:8092"
+#baseurl = "https://localhost"
+baseurl = "https://lingon.ladok.umu.se"
+issuer="%s:8092" % baseurl
 keys= {
     "rsa": {
         "key":"oc3_keys/key.pem",

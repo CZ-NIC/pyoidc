@@ -540,7 +540,10 @@ def application(environ, start_response):
     if kaka:
         try:
             handle = parse_cookie(OAS.cookie_name, OAS.seed, kaka)
-            key = handle[0]
+            try:
+                key = handle[0]
+            except TypeError:
+                key = ""
 
             if hasattr(OAS, "trace_log"):
                 try:
