@@ -95,25 +95,28 @@ def client_secret_post(cli, cis, request_args=None, http_args=None, **kwargs):
     return http_args
 
 #noinspection PyUnusedLocal
-def bearer_header(cli, cis, request_args=None, http_args=None, **kwargs):
-    if "access_token" in cis:
-        _acc_token = cis["access_token"]
-        del cis["access_token"]
-        # Required under certain circumstances :-) not under other
-        cis.c_param["access_token"] = SINGLE_OPTIONAL_STRING
-    else:
-        try:
-            _acc_token = request_args["access_token"]
-            del request_args["access_token"]
-        except (KeyError, TypeError):
+def bearer_header(cli, cis=None, request_args=None, http_args=None, **kwargs):
+    if cis:
+        if "access_token" in cis:
+            _acc_token = cis["access_token"]
+            del cis["access_token"]
+            # Required under certain circumstances :-) not under other
+            cis.c_param["access_token"] = SINGLE_OPTIONAL_STRING
+        else:
             try:
-                _state = kwargs["state"]
-            except KeyError:
-                if not cli.state:
-                    raise Exception("Missing state specification")
-                kwargs["state"] = cli.state
+                _acc_token = request_args["access_token"]
+                del request_args["access_token"]
+            except (KeyError, TypeError):
+                try:
+                    _state = kwargs["state"]
+                except KeyError:
+                    if not cli.state:
+                        raise Exception("Missing state specification")
+                    kwargs["state"] = cli.state
 
-            _acc_token= cli.get_token(**kwargs).access_token
+                _acc_token= cli.get_token(**kwargs).access_token
+    else:
+        _acc_token = kwargs["access_token"]
 
     # Do I need to base64 encode the access token ? Probably !
     #_bearer = "Bearer %s" % base64.b64encode(_acc_token)
@@ -871,12 +874,17 @@ class Client(PBase):
             raise
 
         if resp.status_code == 200:
+            logger.debug("resp.headers: %s" % (resp.headers,))
+            logger.debug("resp.txt: %s" % (resp.text,))
             if body_type == "":
                 pass
             elif body_type == "json":
                 assert "application/json" in resp.headers["content-type"]
             elif body_type == "urlencoded":
-                assert DEFAULT_POST_CONTENT_TYPE in resp.headers["content-type"]
+                try:
+                    assert DEFAULT_POST_CONTENT_TYPE in resp.headers["content-type"]
+                except AssertionError:
+                    assert "text/plain" in resp.headers["content-type"]
             else:
                 raise ValueError("Unknown return format: %s" % body_type)
         elif resp.status_code == 302: # redirect
@@ -991,27 +999,30 @@ class Client(PBase):
     def fetch_protected_resource(self, uri, method="GET", headers=None,
                                  state="", **kwargs):
 
-        try:
-            token = self.get_token(state=state, **kwargs)
-        except ExpiredToken:
-            # The token is to old, refresh
-            self.do_access_token_refresh()
-            token = self.get_token(state=state, **kwargs)
+        if "token" in kwargs and kwargs["token"]:
+            token = kwargs["token"]
+            request_args = {"access_token": token}
+        else:
+            try:
+                token = self.get_token(state=state, **kwargs)
+            except ExpiredToken:
+                # The token is to old, refresh
+                self.do_access_token_refresh()
+                token = self.get_token(state=state, **kwargs)
+            request_args = {"access_token": token.access_token}
 
         if headers is None:
             headers = {}
-
-        request_args = {"access_token": token.access_token}
 
         if "authn_method" in kwargs:
             http_args = self.init_authentication_method(request_args, **kwargs)
         else:
             # If nothing defined this is the default
-            http_args = bearer_header(self, request_args, **kwargs)
+            http_args = bearer_header(self, **request_args)
 
         headers.update(http_args["headers"])
 
-        return self.http_request(uri, method, headers=headers, **kwargs)
+        return self.http_request(uri, method, headers=headers)
 
 
 class Server(PBase):
