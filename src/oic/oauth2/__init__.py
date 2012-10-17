@@ -713,8 +713,11 @@ class Client(PBase):
     def uri_and_body(self, reqmsg, cis, method="POST", request_args=None,
                      **kwargs):
 
-        uri = self._endpoint(self.request2endpoint[reqmsg.__name__],
-                             **request_args)
+        if "endpoint" in kwargs and kwargs["endpoint"]:
+            uri = kwargs["endpoint"]
+        else:
+            uri = self._endpoint(self.request2endpoint[reqmsg.__name__],
+                                 **request_args)
 
         uri, body, kwargs = self.get_or_post(uri, method, cis, **kwargs)
         try:
@@ -788,7 +791,7 @@ class Client(PBase):
                 try:
                     errmsgs = _r2e[response.__name__]
                 except KeyError:
-                    errmsgs = [response]
+                    errmsgs = [ErrorResponse]
 
                 try:
                     for errmsg in errmsgs:
@@ -995,6 +998,25 @@ class Client(PBase):
         return self.request_and_return(url, resp_request, method, body,
                                        body_type, state=state,
                                        http_args=http_args)
+
+    def do_any(self, request, endpoint="", scope="", state="", body_type="json",
+               method="POST", request_args=None, extra_args=None,
+               http_args=None, response=None, authn_method=""):
+
+        url, body, ht_args, csi = self.request_info(request, method=method,
+                                                    request_args=request_args,
+                                                    extra_args=extra_args,
+                                                    scope=scope, state=state,
+                                                    authn_method=authn_method,
+                                                    endpoint=endpoint)
+
+        if http_args is None:
+            http_args = ht_args
+        else:
+            http_args.update(http_args)
+
+        return self.request_and_return(url, response, method, body, body_type,
+                                       state=state, http_args=http_args)
 
     def fetch_protected_resource(self, uri, method="GET", headers=None,
                                  state="", **kwargs):
