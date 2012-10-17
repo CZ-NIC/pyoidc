@@ -586,8 +586,9 @@ class Provider(AProvider):
                                          keystore=self.keystore)
 
             try:
-                assert bjwt["iss"] == areq["client_id"] # Issuer = the client
-                # Is this true bjwt.iss == areq.client_id
+                # There might not be a client_id in the request
+                #assert bjwt["iss"] == areq["client_id"] # Issuer == the client
+
                 assert str(bjwt["iss"]) in self.cdb # It's a client I know
                 assert str(bjwt["aud"]) == geturl(environ, query=False)
                 return True
