@@ -425,6 +425,7 @@ class IdToken(OpenIDSchema):
                "user_id": SINGLE_REQUIRED_STRING,
                "aud": SINGLE_REQUIRED_STRING,
                "exp": SINGLE_REQUIRED_INT,
+               "iat": SINGLE_REQUIRED_INT,
                "acr": SINGLE_OPTIONAL_STRING,
                "nonce": SINGLE_OPTIONAL_STRING,
                "auth_time": SINGLE_OPTIONAL_INT,
