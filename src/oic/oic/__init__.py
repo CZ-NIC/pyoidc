@@ -581,46 +581,46 @@ class Client(oauth2.Client):
                                  state="", body_type="", method="GET",
                                  request_args=None, extra_args=None,
                                  http_args=None,
-                                 resp_request=AuthorizationResponse):
+                                 response_cls=AuthorizationResponse):
 
         return oauth2.Client.do_authorization_request(self, request, state,
                                                       body_type, method,
                                                       request_args,
                                                       extra_args, http_args,
-                                                      resp_request)
+                                                      response_cls)
 
 
     def do_access_token_request(self, request=AccessTokenRequest,
                                 scope="", state="", body_type="json",
                                 method="POST", request_args=None,
                                 extra_args=None, http_args=None,
-                                resp_request=AccessTokenResponse,
+                                response_cls=AccessTokenResponse,
                                 authn_method="", **kwargs):
 
         return oauth2.Client.do_access_token_request(self, request, scope, state,
                                                      body_type, method,
                                                      request_args, extra_args,
-                                                     http_args, resp_request,
+                                                     http_args, response_cls,
                                                      authn_method, **kwargs)
 
     def do_access_token_refresh(self, request=RefreshAccessTokenRequest,
                                 state="", body_type="json", method="POST",
                                 request_args=None, extra_args=None,
                                 http_args=None,
-                                resp_request=AccessTokenResponse,
+                                response_cls=AccessTokenResponse,
                                 **kwargs):
 
         return oauth2.Client.do_access_token_refresh(self, request, state,
                                                      body_type, method,
                                                      request_args,
                                                      extra_args, http_args,
-                                                     resp_request, **kwargs)
+                                                     response_cls, **kwargs)
 
     def do_registration_request(self, request=RegistrationRequest,
                                 scope="", state="", body_type="json",
                                 method="POST", request_args=None,
                                 extra_args=None, http_args=None,
-                                resp_request=None):
+                                response_cls=None):
 
         url, body, ht_args, csi = self.request_info(request, method=method,
                                                     request_args=request_args,
@@ -632,14 +632,14 @@ class Client(oauth2.Client):
         else:
             http_args.update(http_args)
 
-        if resp_request is None:
+        if response_cls is None:
             if request_args["type"] == "client_associate" or \
                request_args["type"] == "rotate_secret":
-                resp_request = RegistrationResponseCARS
+                response_cls = RegistrationResponseCARS
             else:
-                resp_request = RegistrationResponseCU
+                response_cls = RegistrationResponseCU
 
-        response = self.request_and_return(url, resp_request, method, body,
+        response = self.request_and_return(url, response_cls, method, body,
                                            body_type, state=state,
                                            http_args=http_args)
 
@@ -654,7 +654,7 @@ class Client(oauth2.Client):
                                  state="", body_type="json", method="GET",
                                  request_args=None, extra_args=None,
                                  http_args=None,
-                                 resp_request=IdToken):
+                                 response_cls=IdToken):
 
         url, body, ht_args, csi = self.request_info(request, method=method,
                                                     request_args=request_args,
@@ -666,7 +666,7 @@ class Client(oauth2.Client):
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(url, resp_request, method, body,
+        return self.request_and_return(url, response_cls, method, body,
                                        body_type, state=state,
                                        http_args=http_args)
 
@@ -674,7 +674,7 @@ class Client(oauth2.Client):
                             state="", body_type="json", method="GET",
                             request_args=None, extra_args=None,
                             http_args=None,
-                            resp_request=IdToken):
+                            response_cls=IdToken):
 
         url, body, ht_args, csi = self.request_info(request, method=method,
                                                     request_args=request_args,
@@ -686,14 +686,14 @@ class Client(oauth2.Client):
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(url, resp_request, method, body,
+        return self.request_and_return(url, response_cls, method, body,
                                        body_type, state=state,
                                        http_args=http_args)
 
     def do_end_session_request(self, request=EndSessionRequest, scope="",
                                state="", body_type="", method="GET",
                                request_args=None, extra_args=None,
-                               http_args=None, resp_request=None):
+                               http_args=None, response_cls=None):
 
         url, body, ht_args, csi = self.request_info(request, method=method,
                                                     request_args=request_args,
@@ -705,7 +705,7 @@ class Client(oauth2.Client):
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(url, resp_request, method, body,
+        return self.request_and_return(url, response_cls, method, body,
                                        body_type, state=state,
                                        http_args=http_args)
 

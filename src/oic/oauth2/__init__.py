@@ -768,6 +768,8 @@ class Client(PBase):
         :param info: The response, can be either an JSON code or an urlencoded
             form:
         :param format: Which serialization that was used
+        :param state:
+        :param kwargs: Extra key word arguments
         :return: The parsed and to some extend verified response
         """
 
@@ -911,7 +913,7 @@ class Client(PBase):
                                  state="", body_type="", method="GET",
                                  request_args=None, extra_args=None,
                                  http_args=None,
-                                 resp_request=AuthorizationResponse):
+                                 response_cls=AuthorizationResponse):
 
         url, body, ht_args, csi = self.request_info(request, method,
                                                     request_args, extra_args)
@@ -921,7 +923,7 @@ class Client(PBase):
         else:
             http_args.update(http_args)
 
-        resp = self.request_and_return(url, resp_request, method, body,
+        resp = self.request_and_return(url, response_cls, method, body,
                                        body_type, state=state,
                                        http_args=http_args)
 
@@ -935,7 +937,7 @@ class Client(PBase):
                                 scope="", state="", body_type="json",
                                 method="POST", request_args=None,
                                 extra_args=None, http_args=None,
-                                resp_request=AccessTokenResponse,
+                                response_cls=AccessTokenResponse,
                                 authn_method="", **kwargs):
 
         # method is default POST
@@ -951,7 +953,9 @@ class Client(PBase):
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(url, resp_request, method, body,
+        logger.debug("<do_access_token> URL: %s, Body: %s" % (url, body))
+
+        return self.request_and_return(url, response_cls, method, body,
                                        body_type, state=state,
                                        http_args=http_args, **kwargs)
 
@@ -959,7 +963,7 @@ class Client(PBase):
                                 state="", body_type="json", method="POST",
                                 request_args=None, extra_args=None,
                                 http_args=None,
-                                resp_request=AccessTokenResponse,
+                                response_cls=AccessTokenResponse,
                                 authn_method="", **kwargs):
 
         token = self.get_token(also_expired=True, state=state, **kwargs)
@@ -975,14 +979,14 @@ class Client(PBase):
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(url, resp_request, method, body,
+        return self.request_and_return(url, response_cls, method, body,
                                        body_type, state=state,
                                        http_args=http_args)
 
     def do_revocate_token(self, request=TokenRevocationRequest,
                           scope="", state="", body_type="json", method="POST",
                           request_args=None, extra_args=None, http_args=None,
-                          resp_request=None, authn_method=""):
+                          response_cls=None, authn_method=""):
 
         url, body, ht_args, csi = self.request_info(request, method=method,
                                                     request_args=request_args,
@@ -995,7 +999,7 @@ class Client(PBase):
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(url, resp_request, method, body,
+        return self.request_and_return(url, response_cls, method, body,
                                        body_type, state=state,
                                        http_args=http_args)
 
