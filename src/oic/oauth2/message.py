@@ -363,8 +363,10 @@ class Message(object):
         :param verify: Whether the signature should be verified or not
         :return: A class instance
         """
-        if key == None:
+        if key == None and keystore is not None:
             key = keystore.get_verify_key(owner=".")
+        else:
+            key = {}
 
         header = json.loads(b64d(str(txt.split(".")[0])))
         try:
@@ -374,7 +376,10 @@ class Message(object):
 
         jso = None
         if type == "JWE" or ("alg" in header and "enc" in header): # encrypted
-            dkeys = keystore.get_decrypt_key(owner=".")
+            if keystore:
+                dkeys = keystore.get_decrypt_key(owner=".")
+            else:
+                dkeys = {}
             txt = jwe.decrypt(txt, dkeys, "private")
             try:
                 jso = json.loads(txt)
