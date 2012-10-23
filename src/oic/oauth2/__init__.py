@@ -733,10 +733,13 @@ class Client(PBase):
         if request_args is None:
             request_args = {}
 
-        cis = getattr(self, "construct_%s" % request.__name__)(
-                                                request_args=request_args,
-                                                extra_args=extra_args,
-                                                **kwargs)
+        try:
+            cls = getattr(self, "construct_%s" % request.__name__)
+            cis = cls(request_args=request_args, extra_args=extra_args,
+                      **kwargs)
+        except AttributeError:
+            cis = self.construct_request(request, request_args, extra_args)
+
 
         if "authn_method" in kwargs:
             h_arg = self.init_authentication_method(cis,
@@ -788,7 +791,7 @@ class Client(PBase):
         err = None
         try:
             resp = response().deserialize(info, format, **kwargs)
-            if "error" in resp:
+            if "error" in resp and not isinstance(resp, ErrorResponse):
                 resp = None
                 try:
                     errmsgs = _r2e[response.__name__]
@@ -954,6 +957,7 @@ class Client(PBase):
             http_args.update(http_args)
 
         logger.debug("<do_access_token> URL: %s, Body: %s" % (url, body))
+        logger.debug("<do_access_token> response_cls: %s" % response_cls)
 
         return self.request_and_return(url, response_cls, method, body,
                                        body_type, state=state,
@@ -1048,6 +1052,7 @@ class Client(PBase):
 
         headers.update(http_args["headers"])
 
+        logger.debug("Fetch URI: %s" % uri)
         return self.http_request(uri, method, headers=headers)
 
 
