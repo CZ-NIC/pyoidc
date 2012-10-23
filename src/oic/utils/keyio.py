@@ -8,7 +8,7 @@ import sys
 import traceback
 
 from jwkest import jwk
-from jwkest.jwk import load_x509_cert
+from jwkest.jwk import load_x509_cert, x509_rsa_loads, loads
 from jwkest.jwk import load_jwk
 from M2Crypto.util import no_passphrase_callback
 
@@ -62,8 +62,7 @@ class RedirectStdStreams(object):
         sys.stdout = self.old_stdout
         sys.stderr = self.old_stderr
 
-
-TYPE2FUNC = {"x509": load_x509_cert, "jwk": load_jwk}
+TYPE2FUNC = {"x509": x509_rsa_loads, "jwk": load_jwk}
 
 def uniq_ext(lst, keys):
     rkeys = {}
@@ -84,12 +83,59 @@ def uniq_ext(lst, keys):
 
 URLPAT = [("%s_url", "ver"), ("%s_encryption_url", "enc")]
 
+class Key(object):
+    def __init__(self, key=None, source="", type="", remote=True, srctype=""):
+        if key:
+            self._key = key
+        else:
+            self.source = source
+            self.remote = remote
+            self.srctype = srctype
+            if remote == False: # local file
+                if type == "rsa":
+                    self._key = rsa_load(source)
+                elif type == "ec":
+                    self._key = ec_load(source)
+            else: # load when needed
+                self._key = None
+        self.etag = ""
+        self.cache_control = []
+
+    def update(self, http_request):
+        """
+        Reload the key if necessary
+
+        :param http_request: A function that can do a HTTP request
+        """
+        args = {"allow_redirects": True}
+        if self.etag:
+            args["headers"] = {"If-None-Match": self.etag}
+
+        r = http_request(self.source, **args)
+        if r.status_code == 304: # file has not changed
+            return
+        elif r.status_code == 200: # New content
+            pass
+
+    def get(self):
+        if self._key:
+            if self.remote: # verify that it's not to old
+                pass
+            return self._key
+        elif self.remote:
+            pass
+
+    def set(self, key, cache_info):
+        self._key = key
+
+
 class KeyJar(object):
 
-    def __init__(self, http_request):
+    def __init__(self, http_request, ca_certs=None):
         self.http_request = http_request
         self.spec2key = {}
         self.issuer_keys = {}
+        self.ca_certs = ca_certs
 
     def add_if_unique(self, issuer, use, keys):
         if use in self.issuer_keys[issuer] and self.issuer_keys[issuer][use]:
@@ -103,6 +149,29 @@ class KeyJar(object):
                     self.issuer_keys[issuer][use].append((typ, key))
         else:
             self.issuer_keys[issuer][use] = keys
+
+    def load(self, url, type, key=None):
+
+        r = self.http_request(url, allow_redirects=True)
+        if r.status_code == 200:
+            _key = TYPE2FUNC[type](r.text)
+
+            if key is None:
+                key = Key(_key, url, remote=True, srctype=type)
+            else:
+                key.set(_key)
+
+            try:
+                key.etag = r.headers["Etag"]
+            except KeyError:
+                pass
+            try:
+                key.cache_control = r.headers["Cache-Control"]
+            except KeyError:
+                pass
+            return
+        else:
+            raise Exception("HTTP Get error: %s" % r.status_code)
 
     def load_keys(self, inst, issuer, replace=False):
         """
