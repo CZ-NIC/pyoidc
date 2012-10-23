@@ -711,6 +711,7 @@ class Client(oauth2.Client):
 
     def user_info_request(self, method="GET", state="", scope="", **kwargs):
         uir = UserInfoRequest()
+        logger.debug("[user_info_request]: kwargs:%s" % (kwargs,))
         if "token" in kwargs:
             if kwargs["token"]:
                 uir["access_token"] = kwargs["token"]
@@ -721,6 +722,9 @@ class Client(oauth2.Client):
             else:
                 # What to do ? Need a callback
                 token = None
+        elif "access_token" in kwargs and kwargs["access_token"]:
+            uir["access_token"] = kwargs["access_token"]
+            del kwargs["access_token"]
         else:
             token = self.grant[state].get_token(scope)
 
@@ -753,13 +757,14 @@ class Client(oauth2.Client):
             _behav = kwargs["behavior"]
             # use_authorization_header, token_in_message_body
             if "use_authorization_header" in _behav and token.type == "Bearer":
+                bh = "Bearer %s" % token.access_token
                 if "headers" in kwargs:
-                    kwargs["headers"].append(("Authorization", token.access_token))
+                    kwargs["headers"]= {"Authorization": bh}
                 else:
-                    kwargs["headers"] = [("Authorization", token.access_token)]
+                    kwargs["headers"] = {"Authorization": bh}
             if not "token_in_message_body" in _behav:
                 # remove the token from the request
-                uir["access_token"] = None
+                del uir["access_token"]
 
         path, body, kwargs = self.get_or_post(uri, method, uir, **kwargs)
 
@@ -773,6 +778,9 @@ class Client(oauth2.Client):
         kwargs["request"] = request
         path, body, method, h_args = self.user_info_request(method, state,
                                                             scope, **kwargs)
+
+        logger.debug("[do_user_info_request] PATH:%s BODY:%s H_ARGS: %s" % (
+                                                        path, body, h_args))
 
         try:
             resp = self.http_request(path, method, data=body, **h_args)
@@ -789,7 +797,9 @@ class Client(oauth2.Client):
         elif resp.status_code == 500:
             raise Exception("ERROR: Something went wrong: %s" % resp.text)
         else:
-            raise Exception("ERROR: Something went wrong [%s]" % resp.status_code)
+            raise Exception("ERROR: Something went wrong [%s]: %s" % (
+                                                            resp.status_code,
+                                                            resp.text))
 
         if format == "json":
             return OpenIDSchema().from_json(txt=resp.text)
