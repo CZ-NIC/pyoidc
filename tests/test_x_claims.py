@@ -5,18 +5,20 @@ import StringIO
 import sys
 
 from oic.oic.message import OpenIDSchema
-from oic.utils.keystore import rsa_load
+from oic.utils.keyio import KeyChain
 
-from oic.oic.claims_provider import ClaimsClient, UserClaimsRequest, UserClaimsResponse
+from oic.oic.claims_provider import ClaimsClient
+from oic.oic.claims_provider import UserClaimsResponse
+from oic.oic.claims_provider import UserClaimsRequest
 from oic.oic.claims_provider import ClaimsServer
 
 #noinspection PyUnusedLocal
-def user_info(oicsrv, userdb, user_id, client_id="", user_info=None):
+def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
     #print >> sys.stderr, "claims: %s" % user_info_claims
     identity = userdb[user_id]
-    if user_info:
+    if user_info_claims:
         result = {}
-        for key, restr in user_info["claims"].items():
+        for key, restr in user_info_claims["claims"].items():
             try:
                 result[key] = identity[key]
             except KeyError:
@@ -129,8 +131,7 @@ def test_srv2():
 
     srv = ClaimsServer("name", None, CDB, FUNCTIONS, USERDB)
 
-    srv.keystore.set_sign_key(rsa_load("rsa.key"), "rsa")
-    srv.keystore.set_verify_key(rsa_load("rsa.key"), "rsa")
+    srv.keyjar[""] = [KeyChain(source="file://rsa.key", usage=["ver", "sig"])]
     assert srv
 
     environ = BASE_ENVIRON.copy()
@@ -146,7 +147,7 @@ def test_srv2():
     assert len(resp) == 1
 
     ucr = UserClaimsResponse().deserialize(resp[0], "json")
-    ucr.verify(keystore = srv.keystore)
+    ucr.verify(keyjar = srv.keyjar)
 
     print ucr
     assert _eq(ucr["claims_names"], ["gender", "birthdate"])

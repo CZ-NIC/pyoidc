@@ -372,7 +372,7 @@ class Consumer(Client):
             aresp = self.parse_response(AuthorizationResponse,
                                         info=_query,
                                         format="urlencoded",
-                                        keystore=self.keystore)
+                                        keyjar=self.keyjar)
             if aresp.type() == "ErrorResponse":
                 _log_info("ErrorResponse: %s" % aresp)
                 raise AuthzError(aresp.error)
@@ -408,7 +408,7 @@ class Consumer(Client):
             _log_info("Expect Access Token Response")
             atr = self.parse_response(AccessTokenResponse, info=_query,
                                       format="urlencoded",
-                                      keystore=self.keystore)
+                                      keyjar=self.keyjar)
             if atr.type() == "ErrorResponse":
                 raise TokenError(atr["error"])
 

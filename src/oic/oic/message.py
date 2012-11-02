@@ -171,7 +171,7 @@ class AccessTokenResponse(message.AccessTokenResponse):
         if "id_token" in self:
             # Try to decode the JWT, checks the signature
             args = {}
-            for arg in ["key", "keystore"]:
+            for arg in ["key", "keyjar"]:
                 try:
                     args[arg] = kwargs[arg]
                 except KeyError:
@@ -214,7 +214,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
         if "id_token" in self:
             # Try to decode the JWT, checks the signature
             args = {}
-            for arg in ["key", "keystore"]:
+            for arg in ["key", "keyjar"]:
                 try:
                     args[arg] = kwargs[arg]
                 except KeyError:
@@ -284,7 +284,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
         Authorization Request and in the OpenID Request Object MUST exactly
         match."""
         args = {}
-        for arg in ["key", "keystore"]:
+        for arg in ["key", "keyjar"]:
             try:
                 args[arg] = kwargs[arg]
             except KeyError:

@@ -3,6 +3,7 @@ import json
 import traceback
 import urllib
 import sys
+from oic.utils.keyio import KeyChain, key_export
 
 from requests import ConnectionError
 
@@ -26,8 +27,6 @@ from oic.oic.message import UserInfoClaim
 from oic.oic.message import DiscoveryRequest
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import DiscoveryResponse
-
-from oic.utils.keystore import get_signing_key
 
 from jwkest import jws, jwe
 from jwkest.jws import alg2keytype
@@ -153,15 +152,19 @@ def construct_uri(item):
     else:
         return base_url
 
+import socket
+
 class Provider(AProvider):
     def __init__(self, name, sdb, cdb, function, userdb, urlmap=None,
-                 ca_certs="", jwt_keys=None):
+                 ca_certs="", keyjar=None, hostname=""):
 
         AProvider.__init__(self, name, sdb, cdb, function, urlmap)
 
-        self.server = Server(jwt_keys=jwt_keys, ca_certs=ca_certs)
+        self.server = Server(ca_certs=ca_certs)
+        if keyjar:
+            self.server.keyjar = keyjar
 
-        self.keystore = self.server.keystore
+        self.keyjar = self.server.keyjar
         self.userdb = userdb
 
         self.function = function
@@ -179,6 +182,7 @@ class Provider(AProvider):
 
         self.authn_as = None
         self.preferred_id_type = "public"
+        self.hostname = hostname or socket.gethostname
 
     def id_token_as_signed_jwt(self, session, loa="2", alg="RS256", code=None,
                                access_token=None, user_info=None):
@@ -188,7 +192,7 @@ class Provider(AProvider):
                                          access_token, user_info)
 
         logger.debug("id_token: %s" % _idt.to_dict())
-        ckey = get_signing_key(self.keystore, alg2keytype(alg),
+        ckey = self.keyjar.get_signing_key(alg2keytype(alg),
                                session["client_id"])
         _signed_jwt = _idt.to_jwt(key=ckey, algorithm=alg)
 
@@ -269,7 +273,7 @@ class Provider(AProvider):
 
     def _parse_openid_request(self, request, redirect_uri):
         try:
-            return OpenIDRequest().from_jwt(request, keystore=self.keystore)
+            return OpenIDRequest().from_jwt(request, keyjar=self.keyjar)
         except Exception, err:
             logger.error("Faulty request: %s" % request)
             logger.error("Exception: %s" % (err.__class__.__name__,))
@@ -280,7 +284,7 @@ class Provider(AProvider):
 
     def _parse_id_token(self, id_token, redirect_uri):
         try:
-            return IdToken().from_jwt(id_token, keystore=self.keystore)
+            return IdToken().from_jwt(id_token, keyjar=self.keyjar)
         except Exception, err:
             logger.error("Faulty id_token: %s" % id_token)
             logger.error("Exception: %s" % (err.__class__.__name__,))
@@ -583,7 +587,7 @@ class Provider(AProvider):
                 return False
 
             bjwt = AuthnToken().from_jwt(areq["client_assertion"],
-                                         keystore=self.keystore)
+                                         keyjar=self.keyjar)
 
             try:
                 # There might not be a client_id in the request
@@ -638,8 +642,8 @@ class Provider(AProvider):
         except KeyError:
             int = "HS256"
 
-        keys = self.keystore.get_encrypt_key(owner=cid)
-        logger.debug("keys for %s: %s" % (cid, self.keystore.keys_by_owner(cid)))
+        keys = self.keyjar.get_encrypt_key(owner=cid)
+        #logger.debug("keys for %s: %s" % (cid, self.keyjar.keys_by_owner(cid)))
         logger.debug("alg=%s, enc=%s, int=%s" % (alg, enc, int))
         logger.debug("Encryption keys for %s: %s" % (cid, keys))
 
@@ -870,7 +874,7 @@ class Provider(AProvider):
         _cinfo = self.cdb[session["client_id"]]
         if "userinfo_signed_response_alg" in _cinfo:
             algo = _cinfo["userinfo_signed_response_alg"]
-            key = get_signing_key(self.keystore, alg2keytype(algo),
+            key = self.keyjar.get_signing_key(alg2keytype(algo),
                                   owner=session["client_id"])
             jinfo = info.to_jwt(key, algo)
             content_type="application/jwt"
@@ -1007,9 +1011,12 @@ class Provider(AProvider):
                                        descr="%s pointed to illegal URL" % item)
 
         try:
-            self.keystore.load_keys(request, client_id)
-            logger.debug("keys for %s: %s" % (client_id,
-                                              self.keystore.keys_by_owner(client_id)))
+            self.keyjar.provider_keys(request, client_id)
+            try:
+                logger.debug("keys for %s: %s" % (client_id,
+                                                  self.keyjar[client_id]))
+            except KeyError:
+                pass
         except Exception, err:
             logger.error("Failed to load client keys: %s" % request.to_dict())
             err = ClientRegistrationErrorResponse(
@@ -1047,7 +1054,7 @@ class Provider(AProvider):
                 return self._error(environ, None,
                                    error="invalid_configuration_parameter")
 
-        _keystore = self.server.keystore
+        _keyjar = self.server.keyjar
 
         if request["type"] == "client_associate":
             # create new id och secret
@@ -1070,7 +1077,7 @@ class Provider(AProvider):
 
             response = RegistrationResponseCARS(client_id=client_id)
             #if self.debug:
-            #    _log_info("KEYSTORE: %s" % self.keystore._store)
+            #    _log_info("KEYSTORE: %s" % self.keyjar._store)
 
         elif request["type"] == "client_update" or \
              request["type"] == "rotate_secret":
@@ -1091,11 +1098,8 @@ class Provider(AProvider):
                 client_secret = secret(self.seed, client_id)
                 _cinfo["client_secret"] = client_secret
 
-                old_key = request["client_secret"]
-                _keystore.remove_key(old_key, client_id, type="hmac",
-                                     usage="sig")
-                _keystore.remove_key(old_key, client_id, type="hmac",
-                                     usage="ver")
+                _keyjar.remove_key(client_id, type="hmac",
+                                   key=request["client_secret"])
                 response = RegistrationResponseCARS(client_id=client_id)
             else: # client_update
                 client_secret = None
@@ -1112,15 +1116,18 @@ class Provider(AProvider):
                     _cinfo = resp
                     response = RegistrationResponseCU(client_id=client_id)
 
-            self.keystore.load_keys(request, client_id, replace=True)
+            self.keyjar.provider_keys(request, client_id, replace=True)
 
         else:
             return BadRequest("Unknown request type: %s" % request.type)
 
-        # Add the key to the keystore
+        # Add the key to the keyjar
         if client_secret:
-            _keystore.set_sign_key(client_secret, owner=client_id)
-            _keystore.set_verify_key(client_secret, owner=client_id)
+            _kc = KeyChain({"hmac": client_secret}, usage=["ver","sig"])
+            try:
+                _keyjar[client_id].append(_kc)
+            except KeyError:
+                _keyjar[client_id] = [_kc]
 
             _cinfo["registration_expires"] = time_util.time_sans_frac()+3600
 
@@ -1183,7 +1190,7 @@ class Provider(AProvider):
             if not self.baseurl.endswith("/"):
                 self.baseurl += "/"
 
-            #keys = self.keystore.keys_by_owner(owner=".")
+            #keys = self.keyjar.keys_by_owner(owner=".")
             #for cert in self.cert:
             #    _response["x509_url"] = "%s%s" % (self.baseurl, cert)
 
@@ -1448,8 +1455,8 @@ class Provider(AProvider):
     def key_setup(self, local_path, vault="keys", sig=None, enc=None):
         # my keys
 
-        part, res = self.keystore.key_export(self.baseurl, local_path, vault,
-                                            sig=sig, enc=enc)
+        part, res = key_export(self.baseurl, local_path, vault, self.keyjar,
+                               fqdn=self.hostname, sig=sig, enc=enc)
 
         for name, url in res.items():
             self.jwk.append(url)

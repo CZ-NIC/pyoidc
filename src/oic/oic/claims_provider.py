@@ -13,7 +13,9 @@ from oic.oic import Client
 from oic.oic import REQUEST2ENDPOINT
 from oic.oic import RESPONSE2ERROR
 
-from oic.oic.provider import Provider, get_or_post, Endpoint
+from oic.oic.provider import Provider
+from oic.oic.provider import get_or_post
+from oic.oic.provider import Endpoint
 
 from oic.oauth2.message import Message
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
@@ -43,7 +45,7 @@ class UserClaimsResponse(Message):
 #    def verify(self, **kwargs):
 #        if "jwt" in self:
 #            # Try to decode the JWT, checks the signature
-#            args = dict([(claim, kwargs[claim]) for claim in ["key","keystore"] \
+#            args = dict([(claim, kwargs[claim]) for claim in ["key","keyjar"] \
 #                            if claim in kwargs])
 #            try:
 #                item = OpenIDSchema().from_jwt(str(self["jwt"]), **args)
@@ -84,14 +86,14 @@ class ClaimsServer(Provider):
                 pass
 
         self.srvmethod = OICCServer(jwt_keys=jwt_keys)
-        self.keystore = self.srvmethod.keystore
+        self.keyjar = self.srvmethod.keyjar
         self.claims_mode = "aggregate"
         self.info_store = {}
         self.claims_userinfo_endpoint = ""
 
     def _aggregation(self, info):
 
-        jwt_key = self.keystore.get_sign_key()
+        jwt_key = self.keyjar.get_signing_key()
         cresp = UserClaimsResponse(jwt=info.to_jwt(key=jwt_key,
                                                    algorithm="RS256"),
                                    claims_names=info.keys())
@@ -218,8 +220,8 @@ class ClaimsClient(Client):
         return self.request_and_return(url, request_resp, method, body,
                                        body_type, extended=False,
                                        http_args=http_args,
-                                       key=self.keystore.pairkeys(
-                                           self.keystore.match_owner(url)))
+                                       key=self.keyjar.verify_keys(
+                                           self.keyjar.match_owner(url)))
 
 class UserClaimsEndpoint(Endpoint) :
     type = "userclaims"

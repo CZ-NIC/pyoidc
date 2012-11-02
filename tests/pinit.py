@@ -1,4 +1,5 @@
 import sys
+from oic.utils.keyio import KeyChain, KeyJar
 
 __author__ = 'rohe0002'
 
@@ -67,16 +68,14 @@ BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
-rsapub = rsa_load("../oc3/certs/mycert.key")
-
-KEYS = [
-    [CLIENT_SECRET, "hmac", "ver", CLIENT_ID],
-    [CLIENT_SECRET, "hmac", "sig", CLIENT_ID],
-    ["drickyoughurt", "hmac", "ver", "number5"],
-    ["drickyoughurt", "hmac", "sig", "number5"],
-    [rsapub, "rsa", "sig", "."],
-    [rsapub, "rsa", "ver", "."]
-]
+KC_HMAC = KeyChain({"hmac": CLIENT_SECRET}, usage=["ver", "sig"])
+KC_HMAC2 = KeyChain({"hmac": "drickyoughurt"}, usage=["ver", "sig"])
+KC_RSA = KeyChain(source="file://../oc3/certs/mycert.key", type="rsa",
+                  usage=["sig", "ver"])
+KEYJAR = KeyJar()
+KEYJAR[CLIENT_ID] = [KC_HMAC, KC_RSA]
+KEYJAR["number5"] = [KC_HMAC2, KC_RSA]
+KEYJAR[""] = KC_RSA
 
 #SIGN_KEY = {"hmac": ["abcdefghijklmnop"]}
 
@@ -206,4 +205,4 @@ class LOG():
         print >> sys.stdout, "DEBUG: %s" % txt
 
 provider_init = Provider("pyoicserv", SessionDB(), CDB, FUNCTIONS,
-                         userdb=USERDB, urlmap=URLMAP, jwt_keys=KEYS)
+                         userdb=USERDB, urlmap=URLMAP, keyjar=KEYJAR)

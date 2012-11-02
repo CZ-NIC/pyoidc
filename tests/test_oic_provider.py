@@ -6,7 +6,7 @@ import urllib
 
 from oic.oauth2 import rndstr
 
-from oic.utils.keystore import rsa_load
+from oic.utils.keyio import rsa_load, KeyChain, KeyJar
 
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import RegistrationResponseCARS
@@ -90,18 +90,14 @@ BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
-rsapub = rsa_load("../oc3/certs/mycert.key")
-
-KEYS = [
-    [CLIENT_SECRET, "hmac", "ver", CLIENT_ID],
-    [CLIENT_SECRET, "hmac", "sig", CLIENT_ID],
-    ["drickyoughurt", "hmac", "ver", "number5"],
-    ["drickyoughurt", "hmac", "sig", "number5"],
-    [rsapub, "rsa", "sig", "."],
-    [rsapub, "rsa", "ver", "."]
-]
-
-#SIGN_KEY = {"hmac": ["abcdefghijklmnop"]}
+KC_HMAC = KeyChain({"hmac": CLIENT_SECRET}, usage=["ver", "sig"])
+KC_HMAC2 = KeyChain({"hmac": "drickyoughurt"}, usage=["ver", "sig"])
+KC_RSA = KeyChain(source="file://../oc3/certs/mycert.key", type="rsa",
+                  usage=["sig", "ver"])
+KEYJAR = KeyJar()
+KEYJAR[CLIENT_ID] = [KC_HMAC, KC_RSA]
+KEYJAR["number5"] = [KC_HMAC2, KC_RSA]
+KEYJAR[""] = KC_RSA
 
 CDB = {
     "number5": {
@@ -214,10 +210,10 @@ USERDB = {
     }
 }
 
-URLMAP = {"client1": ["https://example.com/authz"]}
+URLMAP = {"client_1": ["https://example.com/authz"]}
 
 provider_init = Provider("pyoicserv", SessionDB(), CDB, FUNCTIONS,
-                  userdb=USERDB, urlmap=URLMAP, jwt_keys=KEYS)
+                  userdb=USERDB, urlmap=URLMAP, keyjar=KEYJAR)
 
 def _eq(l1, l2):
     return set(l1) == set(l2)
@@ -252,7 +248,7 @@ def test_server_init():
 
     assert server
     assert server.function["authenticate"] == do_authentication
-    assert server.urlmap["client1"] == ["https://example.com/authz"]
+    assert server.urlmap["client_1"] == ["https://example.com/authz"]
 
 def test_server_authorization_endpoint():
     server = provider_init
@@ -289,7 +285,7 @@ def test_server_authorization_endpoint_request():
 
     req = AuthorizationRequest(**bib)
     ic = {"claims": {"user_id": { "value":"username" }}}
-    _keys = {"rsa": server.keystore.get_sign_key(type="rsa")}
+    _keys = server.keyjar.get_signing_key(type="rsa")
     req["request"] = make_openid_request(req, _keys, idtoken_claims=ic,
                                          algorithm="RS256")
 
@@ -315,7 +311,7 @@ def test_server_authorization_endpoint_id_token():
 
     req = AuthorizationRequest(**bib)
     AREQ = AuthorizationRequest(response_type="code",
-                                client_id="client1",
+                                client_id="client_1",
                                 redirect_uri="http://example.com/authz",
                                 scope=["openid"], state="state000")
 
@@ -327,6 +323,7 @@ def test_server_authorization_endpoint_id_token():
                          aud=bib["client_id"], exp=epoch_in_a_while(minutes=10),
                         acr="2", nonce=bib["nonce"])
 
+    print provider.keyjar.issuer_keys
     print _user_info.to_dict()
     idt = provider.id_token_as_signed_jwt(_info, access_token="access_token",
                                           user_info=_user_info)
@@ -366,8 +363,7 @@ def test_server_authenticated():
     cons = Consumer(_session_db, CONSUMER_CONFIG, CLIENT_CONFIG,
                     server_info=SERVER_INFO, )
     cons.debug = True
-    cons.keystore.set_sign_key(rsapub, "rsa")
-    cons.keystore.set_verify_key(rsapub, "rsa")
+    cons.keyjar[""] = KC_RSA
 
     environ = BASE_ENVIRON
 
@@ -421,8 +417,7 @@ def test_server_authenticated_1():
     cons = Consumer(_session_db, CONSUMER_CONFIG, CLIENT_CONFIG,
                     server_info=SERVER_INFO, )
     cons.debug = True
-    cons.keystore.set_sign_key(rsapub, "rsa")
-    cons.keystore.set_verify_key(rsapub, "rsa")
+    cons.keyjar[""] = KC_RSA
     environ = BASE_ENVIRON
 
     location = cons.begin(environ, start_response)
@@ -445,8 +440,7 @@ def test_server_authenticated_2():
     cons = Consumer(_session_db, CONSUMER_CONFIG, CLIENT_CONFIG,
                     server_info=SERVER_INFO, )
     cons.debug = True
-    cons.keystore.set_sign_key(rsapub, "rsa")
-    cons.keystore.set_verify_key(rsapub, "rsa")
+    cons.keyjar[""] = KC_RSA
 
     environ = BASE_ENVIRON
 
@@ -461,6 +455,8 @@ def test_server_authenticated_2():
 
     sid = resp[0][len("<form>"):-len("</form>")]
     environ2 = create_return_form_env("user", "password", sid)
+
+    print server.keyjar.issuer_keys
 
     resp2 = server.authenticated(environ2, start_response)
 
@@ -507,8 +503,7 @@ def test_server_authenticated_token():
     cons = Consumer(_session_db, CONSUMER_CONFIG, CLIENT_CONFIG,
                     server_info=SERVER_INFO, )
     cons.debug = True
-    cons.keystore.set_sign_key(rsapub, "rsa")
-    cons.keystore.set_verify_key(rsapub, "rsa")
+    cons.keyjar[""] = KC_RSA
 
     cons.config["response_type"] = ["token"]
     environ = BASE_ENVIRON
@@ -536,8 +531,7 @@ def test_server_authenticated_none():
     cons = Consumer(_session_db, CONSUMER_CONFIG, CLIENT_CONFIG,
                     server_info=SERVER_INFO, )
     cons.debug = True
-    cons.keystore.set_sign_key(rsapub, "rsa")
-    cons.keystore.set_verify_key(rsapub, "rsa")
+    cons.keyjar[""] = KC_RSA
     cons.response_type = "none"
     environ = BASE_ENVIRON
 
@@ -612,7 +606,7 @@ def test_token_endpoint_unauth():
 
     authreq = AuthorizationRequest(state="state",
                                    redirect_uri="http://example.com/authz",
-                                   client_id="client1")
+                                   client_id="client_1")
 
     _sdb = server.sdb
     sid = _sdb.token.key(user="user_id", areq=authreq)
@@ -621,7 +615,7 @@ def test_token_endpoint_unauth():
         "oauth_state": "authz",
         "user_id": "user_id",
         "authzreq": "",
-        "client_id": "client1",
+        "client_id": "client_1",
         "code": access_grant,
         "code_used": False,
         "scope": ["openid"],
@@ -631,7 +625,7 @@ def test_token_endpoint_unauth():
     # Construct Access token request
     areq = AccessTokenRequest(code=access_grant,
                               redirect_uri="http://example.com/authz",
-                              client_id="client1", client_secret="secret",)
+                              client_id="client_1", client_secret="secret",)
 
 
     str = areq.to_urlencoded()
@@ -689,8 +683,7 @@ def test_userinfo_endpoint():
     cons.client_secret = "drickyoughurt"
     cons.config["response_type"] = ["token"]
     cons.config["request_method"] = "parameter"
-    cons.keystore.set_sign_key(rsapub, "rsa")
-    cons.keystore.set_verify_key(rsapub, "rsa")
+    cons.keyjar[""] = KC_RSA
 
     environ = BASE_ENVIRON
 
@@ -728,8 +721,9 @@ def test_userinfo_endpoint():
 def test_check_session_endpoint():
     server = provider_init
     print server.name
-    server.keystore.add_key(CDB["number5"]["client_secret"], "hmac", "ver",
-                            "number5")
+
+#    server.keyjar["number5"] = KeyChain({"hmac":CDB["number5"]["client_secret"]},
+#                                        usage=["ver"])
 
     session = {"user_id": "UserID", "client_id": "number5"}
     idtoken = server.id_token_as_signed_jwt(session)
@@ -741,7 +735,7 @@ def test_check_session_endpoint():
     print info
     idt = IdToken().deserialize(info[0], "json")
     print idt.keys()
-    assert _eq(idt.keys(), ['user_id', 'aud', 'iss', 'acr', 'exp'])
+    assert _eq(idt.keys(), ['user_id', 'aud', 'iss', 'acr', 'exp', 'iat'])
     assert idt["iss"] == server.name
 
 def test_registration_endpoint():
@@ -751,7 +745,7 @@ def test_registration_endpoint():
 
     req["application_type"] = "web"
     req["application_name"] = "My super service"
-    req["redirect_uri"] = "http://example.com/authz"
+    req["redirect_uris"] = ["http://example.com/authz"]
     req["contact"] = ["foo@example.com"]
 
     environ = BASE_ENVIRON.copy()
@@ -804,7 +798,7 @@ def test_provider_key_setup():
     provider.baseurl = "http://www.example.com/"
     provider.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
 
-    keys = provider.keystore.get_sign_key("rsa")
+    keys = provider.keyjar.get_signing_key("rsa")
     assert len(keys) == 1
     assert provider.jwk[0] == "http://www.example.com/static/jwk.json"
 

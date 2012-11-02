@@ -37,7 +37,7 @@ from oic.oauth2.message import MissingRequiredAttribute
 
 from oic.utils import time_util
 from oic.utils.time_util import utc_time_sans_frac
-from oic.utils.keystore import rsa_load, get_signing_key
+from oic.utils.keyio import rsa_load, KeyChain, KeyJar
 
 from jwkest import unpack
 from jwkest.jws import left_hash
@@ -55,18 +55,19 @@ def _eq(l1, l2):
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
-rsapub = rsa_load("../oc3/certs/mycert.key")
+KC_HMAC_VS = KeyChain({"hmac": "abcdefghijklmnop"}, usage=["ver", "sig"])
+KC_RSA = KeyChain(source="file://../oc3/certs/mycert.key", type="rsa",
+                  usage=["ver", "sig"])
+KC_HMAC_S = KeyChain({"hmac": "abcdefghijklmnop"}, usage=["sig"])
 
-KEYS = [
-    ["abcdefghijklmnop", "hmac", "ver", "client_1"],
-    ["abcdefghijklmnop", "hmac", "sig", "client_1"],
-    [rsapub, "rsa", "sig", "."],
-    [rsapub, "rsa", "ver", "."]
-]
+KEYJ = KeyJar()
+KEYJ[""] = [KC_RSA, KC_HMAC_S]
+KEYJ["client_1"] = [KC_HMAC_VS]
 
-SIGN_KEY = {"hmac": ["abcdefghijklmnop"]}
 IDTOKEN = IdToken(iss="http://oic.example.org/", user_id="user_id",
-                  aud=CLIENT_ID, exp=utc_time_sans_frac()+86400, nonce="N0nce")
+                  aud=CLIENT_ID, exp=utc_time_sans_frac()+86400,
+                  nonce="N0nce",
+                  iat=time.time())
 
 # ----------------- CLIENT --------------------
 
@@ -75,8 +76,7 @@ class TestOICClient():
         self.client = Client(CLIENT_ID)
         self.client.redirect_uris = ["http://example.com/redirect"]
         self.client.client_secret = CLIENT_SECRET
-        self.client.keystore.set_sign_key(rsapub, "rsa")
-        self.client.keystore.set_verify_key(rsapub, "rsa")
+        self.client.keyjar[""] = KC_RSA
 
     def test_areq_1(self):
         ar = self.client.construct_AuthorizationRequest(
@@ -389,7 +389,8 @@ class TestOICClient():
         self.client.authorization_endpoint = "http://oic.example.org/authorization"
         self.client.client_id = "a1b2c3"
         self.client.state = "state0"
-        mfos = MyFakeOICServer(KEYS)
+        mfos = MyFakeOICServer()
+        mfos.keyjar = KEYJ
         self.client.http_request = mfos.http_request
 
         args = {"response_type":["code"],
@@ -443,21 +444,21 @@ class TestOICClient():
         self.client.client_id = CLIENT_ID
         self.client.check_session_endpoint = "https://example.org/check_session"
 
-        print self.client.keystore._store
-        _sign_key = self.client.keystore.get_sign_key()
+        _sign_key = self.client.keyjar.get_signing_key()
         print _sign_key
         args = {"id_token": IDTOKEN.to_jwt(key=_sign_key)}
+        print self.client.keyjar.issuer_keys
         resp = self.client.do_check_session_request(request_args=args)
 
         assert resp.type() == "IdToken"
-        assert _eq(resp.keys(), ['nonce', 'user_id', 'aud', 'iss', 'exp'])
+        assert _eq(resp.keys(), ['nonce', 'user_id', 'aud', 'iss', 'exp', 'iat'])
 
     def test_do_end_session_request(self):
         self.client.redirect_uris = ["https://www.example.com/authz"]
         self.client.client_id = "a1b2c3"
         self.client.end_session_endpoint = "https://example.org/end_session"
 
-        _sign_key = self.client.keystore.get_sign_key()
+        _sign_key = self.client.keyjar.get_signing_key()
         args = {"id_token": IDTOKEN.to_jwt(key=_sign_key),
                 "redirect_url": "http://example.com/end"}
 
@@ -523,7 +524,7 @@ class TestOICClient():
         assert areq.request
 
         jwtreq = OpenIDRequest().deserialize(areq["request"], "jwt",
-                                             keystore=self.client.keystore)
+                                             keyjar=self.client.keyjar)
         print
         print jwtreq
         print jwtreq.keys()
@@ -698,6 +699,7 @@ def test_client_endpoint():
 
 def test_server_parse_parse_authorization_request():
     srv = Server()
+    srv.keyjar = KEYJ
     ar = AuthorizationRequest(response_type=["code"], client_id="foobar",
                             redirect_uri="http://foobar.example.com/oaclient",
                             state="cold", nonce="NONCE", scope=["openid"])
@@ -723,12 +725,13 @@ def test_server_parse_parse_authorization_request():
     assert areq["state"] == "cold"
 
 def test_server_parse_jwt_request():
-    srv = Server(KEYS)
+    srv = Server()
+    srv.keyjar = KEYJ
     ar = AuthorizationRequest(response_type=["code"], client_id=CLIENT_ID,
                               redirect_uri="http://foobar.example.com/oaclient",
                               state="cold", nonce="NONCE", scope=["openid"])
 
-    _keys = srv.keystore.get_verify_key(owner=CLIENT_ID)
+    _keys = srv.keyjar.get_verify_key(owner=CLIENT_ID)
     _jwt = ar.to_jwt(key=_keys, algorithm="HS256")
 
     req = srv.parse_jwt_request(txt=_jwt)
@@ -748,6 +751,7 @@ def test_server_parse_token_request():
     uenc = atr.to_urlencoded()
 
     srv = Server()
+    srv.keyjar = KEYJ
     tr = srv.parse_token_request(body=uenc)
     print tr.keys()
 
@@ -774,6 +778,7 @@ def test_server_parse_refresh_token_request():
     uenc = ratr.to_urlencoded()
 
     srv = Server()
+    srv.keyjar = KEYJ
     tr = srv.parse_refresh_token_request(body=uenc)
     print tr.keys()
 
@@ -954,9 +959,9 @@ RSREQ = RefreshSessionRequest(id_token="id_token",
 
 #key, type, usage, owner="."
 
-CSREQ = CheckSessionRequest(id_token=IDTOKEN.to_jwt(key=SIGN_KEY))
+CSREQ = CheckSessionRequest(id_token=IDTOKEN.to_jwt(key=KC_HMAC_S))
 
-ESREQ = EndSessionRequest(id_token=IDTOKEN.to_jwt(key=SIGN_KEY),
+ESREQ = EndSessionRequest(id_token=IDTOKEN.to_jwt(key=KC_HMAC_S),
                           redirect_url="http://example.org/jqauthz",
                           state="state0")
 
@@ -978,7 +983,7 @@ def test_server_init():
     srv = Server()
     assert srv
 
-    srv = Server(KEYS)
+    srv = Server()
     assert srv
 
 def test_parse_urlencoded():
@@ -1041,14 +1046,17 @@ def test_parse_refresh_session_request():
     assert request["id_token"] == "id_token"
 
 def test_parse_check_session_request():
-    srv = Server(KEYS)
+    srv = Server()
+    srv.keyjar = KEYJ
     request = srv.parse_check_session_request(query=CSREQ.to_urlencoded())
     assert request.type() == "IdToken"
-    assert _eq(request.keys(),['nonce', 'user_id', 'aud', 'iss', 'exp'])
+    assert _eq(request.keys(),['nonce', 'user_id', 'aud', 'iss', 'exp', 'iat'])
     assert request["aud"] == "client_1"
 
 def test_parse_end_session_request():
-    srv = Server(KEYS)
+    srv = Server()
+    srv.keyjar = KEYJ
+
     request = srv.parse_end_session_request(query=ESREQ.to_urlencoded())
     assert request.type() == "EndSessionRequest"
     assert _eq(request.keys(),['id_token', 'redirect_url', 'state'])
@@ -1057,7 +1065,9 @@ def test_parse_end_session_request():
     assert request["id_token"]["aud"] == "client_1"
 
 def test_parse_open_id_request():
-    srv = Server(KEYS)
+    srv = Server()
+    srv.keyjar = KEYJ
+
     request = srv.parse_open_id_request(data=OIDREQ.to_json(), format="json")
     assert request.type() == "OpenIDRequest"
     print request.keys()
@@ -1073,7 +1083,10 @@ def test_parse_open_id_request():
     assert "email" in request["userinfo"]["claims"]
 
 def test_make_id_token():
-    srv = Server(KEYS)
+    srv = Server()
+    srv.keyjar = KEYJ
+    srv.keyjar["http://oic.example/rp"] = KC_RSA
+
     session = {"user_id": "user0",
                "client_id": "http://oic.example/rp"}
     issuer= "http://oic.example/idp"
@@ -1082,11 +1095,10 @@ def test_make_id_token():
                                 code=code, access_token="access_token")
 
     algo = "RS256"
-    ckey = get_signing_key(srv.keystore, alg2keytype(algo),
-                           session["client_id"])
+    ckey = srv.keyjar.get_signing_key(alg2keytype(algo), session["client_id"])
     _signed_jwt = _idt.to_jwt(key=ckey, algorithm="RS256")
 
-    idt = IdToken().from_jwt(_signed_jwt, keystore=srv.keystore)
+    idt = IdToken().from_jwt(_signed_jwt, keyjar=srv.keyjar)
     print idt
     header = unpack(_signed_jwt)
 
@@ -1096,7 +1108,7 @@ def test_make_id_token():
     atr = AccessTokenResponse(id_token=_signed_jwt, access_token="access_token",
                               token_type="Bearer")
     atr["code"] = code
-    assert atr.verify(keystore=srv.keystore)
+    assert atr.verify(keyjar=srv.keyjar)
 
 def test_assertion_jwt():
     cli = Client("Foo")
@@ -1127,8 +1139,7 @@ def test_client_secret_jwt():
 def test_private_key_jwt():
     cli = Client("FOO")
     cli.token_endpoint = "https://example.com/token"
-    cli.keystore.set_sign_key(rsapub, "rsa")
-    cli.keystore.set_verify_key(rsapub, "rsa")
+    cli.keyjar[""] = KC_RSA
 
     cis = AccessTokenRequest()
     at = oic.private_key_jwt(cli, cis)

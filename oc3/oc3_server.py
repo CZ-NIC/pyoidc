@@ -14,11 +14,8 @@ from exceptions import IndexError
 from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
 
-from jwkest.jwk import load_jwk
-from jwkest.jwk import load_x509_cert
-
 from oic.oauth2 import rndstr
-from oic.utils.keystore import rsa_load
+from oic.utils.keyio import KeyChain
 
 __author__ = 'rohe0002'
 
@@ -195,16 +192,14 @@ def init_claims_clients(client_info):
         else:
             cc = ClaimsClient(client_id=specs["client_id"])
             cc.client_secret=specs["client_secret"]
-            _req = cc.keystore.crypt.http_request
-            _s2k = cc.keystore.spec2key
             try:
-                for typ, key in load_x509_cert(_req, specs["x509_url"], _s2k):
-                    cc.keystore.set_verify_key(key, typ, cid)
+                cc.keyjar.add(specs["client_id"], specs["x509_url"],
+                              "x509", "ver")
             except KeyError:
                 pass
             try:
-                for typ, key in load_jwk(_req, specs["jwk_url"], _s2k):
-                    cc.keystore.set_verify_key(key, typ, cid)
+                cc.keyjar.add(specs["client_id"], specs["jwk_url"],
+                              "jwk", "ver")
             except KeyError:
                 pass
             cc.userclaims_endpoint = specs["userclaims_endpoint"]
@@ -753,9 +748,8 @@ if __name__ == '__main__':
 
         try:
             for type, info in config.keys.items():
-                _rsa = rsa_load(info["key"])
-                OAS.keystore.add_key(_rsa, type, "sig")
-                OAS.keystore.add_key(_rsa, type, "ver")
+                kc = KeyChain(source=info["key"], usage=["sig", "ver"] )
+                OAS.keyjar[""]=[kc]
                 try:
                     name = mv_content(info["cert"], "static")
                     OAS.cert.append(name)
@@ -772,7 +766,7 @@ if __name__ == '__main__':
     OAS.claims_clients = init_claims_clients(config.CLIENT_INFO)
 
     for key, cc in OAS.claims_clients.items():
-        OAS.keystore.update(cc.keystore)
+        OAS.keyjar.update(cc.keyjar)
 
     # Add the claims providers keys
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)

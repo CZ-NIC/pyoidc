@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 #
+
 __author__ = 'rohe0002'
 
 import requests
@@ -10,7 +11,7 @@ import cookielib
 from Cookie import SimpleCookie
 import logging
 
-from oic.utils.keystore import KeyStore
+from oic.utils.keyio import KeyJar, KeyChain
 from oic.utils.time_util import utc_time_sans_frac
 
 DEF_SIGN_ALG = "HS256"
@@ -68,7 +69,10 @@ def client_secret_basic(cli, cis, request_args=None, http_args=None, **kwargs):
     try:
         http_args["auth"] = (cli.client_id, http_args["password"])
     except KeyError:
-        http_args["auth"] = (cli.client_id, cli.client_secret)
+        try:
+            http_args["auth"] = (cli.client_id, cis["client_secret"])
+        except KeyError:
+            http_args["auth"] = (cli.client_id, cli.client_secret)
 
     try:
         del cis["client_secret"]
@@ -349,13 +353,9 @@ def _since_epoch(cdate):
 
 
 class PBase(object):
-    def __init__(self, ca_certs=None, jwt_keys=None):
+    def __init__(self, ca_certs=None):
 
-        if jwt_keys is None:
-            self.keystore = KeyStore(self.http_request)
-        else:
-            self.keystore = KeyStore(self.http_request, jwt_keys)
-
+        self.keyjar = KeyJar()
 
         self.request_args = {"allow_redirects": False,}
         #self.cookies = cookielib.CookieJar()
@@ -451,7 +451,7 @@ class Client(PBase):
     def __init__(self, client_id=None, ca_certs=None,
                  grant_expire_in=600, client_timeout=0, jwt_keys=None):
 
-        PBase.__init__(self, ca_certs, jwt_keys)
+        PBase.__init__(self, ca_certs)
 
         self.client_id = client_id
         self.client_timeout = client_timeout
@@ -486,11 +486,9 @@ class Client(PBase):
 
         self._c_secret = val
         # client uses it for signing
-        self.keystore.add_key(val, "hmac", "sig")
-
         # Server might also use it for signing which means the
         # client uses it for verifying server signatures
-        self.keystore.add_key(val, "hmac", "ver")
+        self.keyjar[""] = KeyChain({"hmac":val}, usage=["sig", "ver"])
 
     client_secret = property(get_client_secret, set_client_secret)
 
@@ -1057,9 +1055,9 @@ class Client(PBase):
 
 
 class Server(PBase):
-    def __init__(self, jwt_keys=None, ca_certs=None):
+    def __init__(self, keys=None, ca_certs=None):
 
-        PBase.__init__(self, ca_certs, jwt_keys)
+        PBase.__init__(self, ca_certs)
 
 
     def parse_url_request(self, request, url=None, query=None):
@@ -1077,13 +1075,13 @@ class Server(PBase):
         return self.parse_url_request(request, url, query)
 
     def parse_jwt_request(self, request=AuthorizationRequest, txt="",
-                          keystore="", verify=True):
+                          keyjar="", verify=True):
 
-        if not keystore:
-                keystore = self.keystore
+        if not keyjar:
+                keyjar = self.keyjar
 
         #areq = message().from_(txt, keys, verify)
-        areq = request().deserialize(txt, "jwt", keystore=keystore,
+        areq = request().deserialize(txt, "jwt", keyjar=keyjar,
                                      verify=verify)
         areq.verify()
         return areq

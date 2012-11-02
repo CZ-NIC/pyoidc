@@ -11,7 +11,6 @@ from oic.utils.time_util import time_sans_frac
 from oic.utils.time_util import utc_time_sans_frac
 
 from oic.oic import Server
-from oic.utils.keystore import get_signing_key
 
 from oic.oic.message import *
 from oic.oauth2 import rndstr
@@ -40,8 +39,8 @@ ENDPOINT = {
 }
 
 class MyFakeOICServer(Server):
-    def __init__(self, jwt_keys=None, name=""):
-        Server.__init__(self, jwt_keys=jwt_keys)
+    def __init__(self, name=""):
+        Server.__init__(self)
         self.sdb = SessionDB()
         self.name = name
         self.client = {}
@@ -128,8 +127,8 @@ class MyFakeOICServer(Server):
                 _idt = self.make_id_token(_info, issuer=self.name,
                                           access_token=_dict["access_token"])
                 alg = "RS256"
-                ckey = get_signing_key(self.keystore, alg2keytype(alg),
-                                       _info["client_id"])
+                ckey = self.keyjar.get_signing_key(alg2keytype(alg),
+                                                   _info["client_id"])
                 _dict["id_token"] = _idt.to_jwt(key=ckey, algorithm=alg)
 
             resp = AccessTokenResponse(**_dict)

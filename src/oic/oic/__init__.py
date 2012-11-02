@@ -48,7 +48,6 @@ from oic.oic.exception import AccessDenied
 
 from oic.utils import time_util
 from oic.utils.time_util import utc_now
-from oic.utils.keystore import get_signing_key
 
 from jwkest import jws
 from jwkest.jws import alg2keytype
@@ -125,7 +124,7 @@ def client_secret_jwt(cli, cis, request_args=None, http_args=None, **kwargs):
         #algorithm = cli.behaviour["require_signed_request_object"]
         algorithm = "HS256"
 
-    signing_key = get_signing_key(cli.keystore, alg2keytype(algorithm), ".")
+    signing_key = cli.keyjar.get_signing_key(alg2keytype(algorithm))
 
     cis["client_assertion"] = assertion_jwt(cli, signing_key, audience,
                                             algorithm)
@@ -161,7 +160,7 @@ def private_key_jwt(cli, cis, request_args=None, http_args=None, **kwargs):
         algorithm = OIC_DEF_SIGN_ALG
 
     # signing key should be the clients rsa key
-    signing_key = get_signing_key(cli.keystore, alg2keytype(algorithm), ".")
+    signing_key = cli.keyjar.get_signing_key( alg2keytype(algorithm), "")
 
     cis["client_assertion"] = assertion_jwt(cli, signing_key, audience,
                                             algorithm)
@@ -202,7 +201,7 @@ def deser_id_token(inst, str=""):
     if not str:
         return None
     else:
-        return IdToken().from_jwt(str, keystore=inst.keystore)
+        return IdToken().from_jwt(str, keyjar=inst.keyjar)
 
 # -----------------------------------------------------------------------------
 def make_openid_request(arq, keys=None, userinfo_claims=None,
@@ -438,7 +437,7 @@ class Client(oauth2.Client):
 
             if "keys" not in kwargs and alg:
                 atype = alg2keytype(alg)
-                kwargs["keys"] = get_signing_key(self.keystore, atype, "")
+                kwargs["keys"] = self.keyjar.get_signing_key(atype)
 
             _req = make_openid_request(areq, **kwargs)
 
@@ -725,6 +724,7 @@ class Client(oauth2.Client):
         elif "access_token" in kwargs and kwargs["access_token"]:
             uir["access_token"] = kwargs["access_token"]
             del kwargs["access_token"]
+            token = None
         else:
             token = self.grant[state].get_token(scope)
 
@@ -806,7 +806,7 @@ class Client(oauth2.Client):
         else:
             algo = self.client_prefs["userinfo_signed_response_alg"]
             # Keys of the OP ?
-            keys = get_signing_key(self.keystore, alg2keytype(algo))
+            keys = self.keyjar.get_signing_key(alg2keytype(algo))
             return OpenIDSchema().from_jwt(resp.text, keys)
 
     def get_userinfo_claims(self, access_token, endpoint, method="POST",
@@ -896,7 +896,7 @@ class Client(oauth2.Client):
                     setattr(self, key, val)
 
         if keys:
-            self.keystore.load_keys(pcr, _pcr_issuer)
+            self.keyjar.provider_keys(pcr, _pcr_issuer)
 
         return pcr
 
@@ -904,10 +904,10 @@ class Client(oauth2.Client):
         if userinfo._claim_sources:
             for csrc, spec in userinfo._claim_sources.items():
                 if "JWT" in spec:
-                    if not csrc in self.keystore:
+                    if not csrc in self.keyjar:
                         self.provider_config(csrc, endpoints=False)
 
-                    keycol = self.keystore.pairkeys(csrc)["ver"]
+                    keycol = self.keyjar.pairkeys(csrc)["ver"]
                     info = json.loads(jws.verify(str(spec["JWT"]), keycol))
                     attr = [n for n, s in userinfo._claim_names.items() if s ==
                                                                            csrc]
@@ -1148,7 +1148,7 @@ class Server(oauth2.Server):
         if format == "json":
             request = request().from_json(data)
         elif format == "jwt":
-            request = request().from_jwt(data, keystore=self.keystore)
+            request = request().from_jwt(data, keyjar=self.keyjar)
         elif format == "urlencoded":
             if '?' in data:
                 parts = urlparse.urlparse(data)
@@ -1161,16 +1161,11 @@ class Server(oauth2.Server):
 
         # get the verification keys
         if client_id:
-            keys = self.keystore.get_verify_key(owner=client_id)
-            for typ, val in self.keystore.get_verify_key(owner=".").items():
-                try:
-                    keys[typ].extend(val)
-                except KeyError:
-                    keys[typ] = val
+            keys = self.keyjar.verify_keys(client_id)
         else:
             keys = None
 
-        request.verify(key=keys, keystore=self.keystore)
+        request.verify(key=keys, keyjar=self.keyjar)
         return request
 
     def parse_open_id_request(self, data, format="urlencoded", client_id=None):

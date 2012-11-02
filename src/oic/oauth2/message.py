@@ -352,7 +352,7 @@ class Message(object):
             return jwkest.pack(self.to_json(lev))
 
 
-    def from_jwt(self, txt, key=None, verify=True, keystore=None, **kwargs):
+    def from_jwt(self, txt, key=None, verify=True, keyjar=None, **kwargs):
         """
         Given a signed and/or encrypted JWT, verify its correctness and then
         create a class instance from the content.
@@ -363,9 +363,9 @@ class Message(object):
         :param verify: Whether the signature should be verified or not
         :return: A class instance
         """
-        if key == None and keystore is not None:
-            key = keystore.get_verify_key(owner=".")
-        else:
+        if key == None and keyjar is not None:
+            key = keyjar.get_verify_key(owner="")
+        elif key is None:
             key = {}
 
         header = json.loads(b64d(str(txt.split(".")[0])))
@@ -376,8 +376,8 @@ class Message(object):
 
         jso = None
         if type == "JWE" or ("alg" in header and "enc" in header): # encrypted
-            if keystore:
-                dkeys = keystore.get_decrypt_key(owner=".")
+            if keyjar:
+                dkeys = keyjar.get_decrypt_key(owner="")
             else:
                 dkeys = {}
             txt = jwe.decrypt(txt, dkeys, "private")
@@ -394,10 +394,10 @@ class Message(object):
                 if isinstance(jso, basestring):
                     jso = json.loads(jso)
                 if verify:
-                    if keystore:
+                    if keyjar:
                         for ent in ["iss", "aud", "client_id"]:
                             try:
-                                for t, vs in keystore.get_verify_key(
+                                for t, vs in keyjar.get_verify_key(
                                                         owner=jso[ent]).items():
                                     try:
                                         key[t].extend(vs)
