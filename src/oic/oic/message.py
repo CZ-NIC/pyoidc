@@ -360,18 +360,15 @@ class OpenIDSchema(Message):
             "_claim_sources": SINGLE_OPTIONAL_JSON,
         }
 
-
 class RegistrationRequest(Message):
     c_param = {
             "type": SINGLE_REQUIRED_STRING,
-            "client_id": SINGLE_OPTIONAL_STRING,
-            "client_secret": SINGLE_OPTIONAL_STRING,
+            "redirect_uris": REQUIRED_LIST_OF_STRINGS,
+            "application_type": SINGLE_REQUIRED_STRING,
             "access_token": SINGLE_OPTIONAL_STRING,
             "contacts": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-            "application_type": SINGLE_OPTIONAL_STRING,
             "application_name": SINGLE_OPTIONAL_STRING,
             "logo_url": SINGLE_OPTIONAL_STRING,
-            "redirect_uris": OPTIONAL_LIST_OF_STRINGS,
             "token_endpoint_auth_type": SINGLE_OPTIONAL_STRING,
             "policy_url": SINGLE_OPTIONAL_STRING,
             "jwk_url": SINGLE_OPTIONAL_STRING,
@@ -380,18 +377,19 @@ class RegistrationRequest(Message):
             "x509_encryption_url": SINGLE_OPTIONAL_STRING,
             "sector_identifier_url": SINGLE_OPTIONAL_STRING,
             "user_id_type": SINGLE_OPTIONAL_STRING,
-            "require_signed_request_object": SINGLE_OPTIONAL_STRING,
+            "request_object_signing_alg": SINGLE_OPTIONAL_STRING,
             "userinfo_signed_response_algs": SINGLE_OPTIONAL_STRING,
             "userinfo_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
             "userinfo_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
-            "userinfo_encrypted_response_int": SINGLE_OPTIONAL_STRING,
             "id_token_signed_response_algs": SINGLE_OPTIONAL_STRING,
             "id_token_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
             "id_token_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
-            "id_token_encrypted_response_int": SINGLE_OPTIONAL_STRING,
             "default_max_age": SINGLE_OPTIONAL_INT,
             "require_auth_time": OPTIONAL_LOGICAL,
-            "default_acr":SINGLE_OPTIONAL_STRING
+            "default_acr":SINGLE_OPTIONAL_STRING,
+            "javascript_origin_uris":OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+            #"client_id": SINGLE_OPTIONAL_STRING,
+            #"client_secret": SINGLE_OPTIONAL_STRING,
     }
 
     c_allowed_values = {
@@ -405,7 +403,8 @@ class RegistrationResponseCARS(Message):
     Response to client_associate or rotate_secret registration requests
     """
     c_param = {"client_id": SINGLE_REQUIRED_STRING,
-               "client_secret": SINGLE_REQUIRED_STRING,
+               "client_secret": SINGLE_OPTIONAL_STRING,
+               "registration_access_token": SINGLE_REQUIRED_STRING,
                "expires_at": SINGLE_REQUIRED_INT}
 
 class RegistrationResponseCU(Message):
@@ -508,6 +507,28 @@ class OpenIDRequest(message.AuthorizationRequest):
 #
 #        return super(self.__class__, self).verify(**kwargs)
 
+#Parameters changed:
+#    userinfo_algs_supported ->
+#       userinfo_signing_alg_values_supported
+#       userinfo_encryption_alg_values_supported
+#       userinfo_encryption_enc_values_supported
+#   id_token_algs_supported ->
+#       id_token_signing_alg_values_supported
+#       id_token_encryption_alg_values_supported
+#       id_token_encryption_enc_values_supported
+#request_object_algs_supported ->
+#   request_object_signing_alg_values_supported
+#   request_object_encryption_alg_values_supported
+#   request_object_encryption_enc_values_supported
+#token_endpoint_auth_algs_supported ->
+#   token_endpoint_auth_signing_alg_values_supported
+#require_signed_request_object ->
+#   request_object_signing_alg
+
+#Parameters deleted:
+#userinfo_encrypted_response_int
+#id_token_encrypted_response_int
+
 class ProviderConfigurationResponse(Message):
     c_param = {
             "version": SINGLE_OPTIONAL_STRING,
@@ -515,23 +536,30 @@ class ProviderConfigurationResponse(Message):
             "authorization_endpoint": SINGLE_OPTIONAL_STRING,
             "token_endpoint": SINGLE_OPTIONAL_STRING,
             "userinfo_endpoint": SINGLE_OPTIONAL_STRING,
-            "check_id_endpoint": SINGLE_OPTIONAL_STRING,
             "refresh_session_endpoint": SINGLE_OPTIONAL_STRING,
+            "check_session_endpoint": SINGLE_OPTIONAL_STRING,
             "end_session_endpoint": SINGLE_OPTIONAL_STRING,
-            "registration_endpoint": SINGLE_OPTIONAL_STRING,
             "jwk_url": SINGLE_OPTIONAL_STRING,
-            "x509_url": SINGLE_OPTIONAL_STRING,
             "jwk_encryption_url": SINGLE_OPTIONAL_STRING,
+            "x509_url": SINGLE_OPTIONAL_STRING,
             "x509_encryption_url": SINGLE_OPTIONAL_STRING,
+            "registration_endpoint": SINGLE_OPTIONAL_STRING,
             "scopes_supported": OPTIONAL_LIST_OF_STRINGS,
             "response_types_supported": OPTIONAL_LIST_OF_STRINGS,
             "acrs_supported": OPTIONAL_LIST_OF_STRINGS,
             "user_id_types_supported": OPTIONAL_LIST_OF_STRINGS,
-            "userinfo_algs_supported": OPTIONAL_LIST_OF_STRINGS,
-            "id_token_algs_supported": OPTIONAL_LIST_OF_STRINGS,
-            "request_object_algs_supported": OPTIONAL_LIST_OF_STRINGS,
+            "userinfo_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
+            "userinfo_encryption_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
+            "userinfo_encryption_enc_values_supported": OPTIONAL_LIST_OF_STRINGS,
+            "id_token_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
+            "id_token_encryption_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
+            "id_token_encryption_enc_values_supported": OPTIONAL_LIST_OF_STRINGS,
+            "request_object_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
+            "request_object_encryption_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
+            "request_object_encryption_enc_values_supported": OPTIONAL_LIST_OF_STRINGS,
             "token_endpoint_auth_types_supported": OPTIONAL_LIST_OF_STRINGS,
-            "token_endpoint_auth_algs_supported": OPTIONAL_LIST_OF_STRINGS}
+            "token_endpoint_auth_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS
+            }
     c_default = {"version": "3.0"}
 
     def verify(self, **kwargs):
