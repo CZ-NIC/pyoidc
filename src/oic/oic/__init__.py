@@ -290,13 +290,16 @@ class Grant(oauth2.Grant):
 PREFERENCE2PROVIDER = {
     "token_endpoint_auth_type": "token_endpoint_auth_types_supported",
     "require_signed_request_object": "request_object_algs_supported",
-    "userinfo_signed_response_alg": "userinfo_algs_supported",
-    "userinfo_encrypted_response_alg": "userinfo_algs_supported",
-    "id_token_signed_response_alg": "id_token_algs_supported",
-    "id_token_encrypted_response_alg": "id_token_algs_supported",
+    "userinfo_signed_response_algs": "userinfo_signing_alg_values_supported",
+    "userinfo_encrypted_response_alg": "userinfo_encryption_enc_values_supported",
+    "userinfo_encrypted_response_enc": "userinfo_encryption_enc_values_supported",
+    "id_token_signed_response_algs": "id_token_signing_alg_values_supported",
+    "id_token_encrypted_response_alg": "id_token_encryption_alg_values_supported",
+    "id_token_encrypted_response_enc": "id_token_encryption_enc_values_supported",
     "default_acr": "acrs_supported",
     "user_id_type": "user_id_types_supported",
     "token_endpoint_auth_alg": "token_endpoint_auth_algs_supported",
+    #"request_object_signing_alg": "request_object_signing_alg_values_supported
 }
 
 PROVIDER_DEFAULT = {
@@ -907,7 +910,13 @@ class Client(oauth2.Client):
                     if not csrc in self.keyjar:
                         self.provider_config(csrc, endpoints=False)
 
-                    keycol = self.keyjar.pairkeys(csrc)["ver"]
+                    keycol = self.keyjar.get_verify_key(owner=csrc)
+                    for typ, keyl in self.keyjar.get_verify_key().items():
+                        try:
+                            keycol[typ].extend(keyl)
+                        except KeyError:
+                            keycol[typ] = keyl
+
                     info = json.loads(jws.verify(str(spec["JWT"]), keycol))
                     attr = [n for n, s in userinfo._claim_names.items() if s ==
                                                                            csrc]
@@ -1032,6 +1041,10 @@ class Client(oauth2.Client):
                     pass
 
         headers = {"content-type": "application/x-www-form-urlencoded"}
+
+        if type == "client_update":
+            headers["Authorization"] = "Bearer %s" % self.registration_access_token
+
         rsp = self.http_request(url, "POST", data=req.to_urlencoded(),
                                 headers=headers)
 
@@ -1045,6 +1058,7 @@ class Client(oauth2.Client):
             self.client_secret = resp["client_secret"]
             self.client_id = resp["client_id"]
             self.registration_expires = resp["expires_at"]
+            self.registration_access_token = resp["registration_access_token"]
         else:
             err = ErrorResponse().deserialize(rsp.text, "json")
             raise Exception("Registration failed: %s" % err.get_json())
