@@ -91,9 +91,13 @@ SWD_PATTERN = "http://%s/.well-known/simple-web-discovery"
 SERVICE_TYPE = "http://openid.net/specs/connect/1.0/issuer"
 
 AUTHN_METHOD = OAUTH2_AUTHN_METHOD.copy()
-OIC_DEF_SIGN_ALG = "RS256"
 
-def assertion_jwt(cli, keys, audience, algorithm=OIC_DEF_SIGN_ALG):
+DEF_SIGN_ALG = { "id_token":"RS256",
+                 "openid_request_object": "RS256",
+                 "client_secret_jwt": "HS256",
+                 "private_key_jwt": None}
+
+def assertion_jwt(cli, keys, audience, algorithm):
     _now = utc_now()
 
     at = AuthnToken(iss = cli.client_id, prn = cli.client_id,
@@ -122,7 +126,7 @@ def client_secret_jwt(cli, cis, request_args=None, http_args=None, **kwargs):
         algorithm = kwargs["algorithm"]
     except KeyError:
         #algorithm = cli.behaviour["require_signed_request_object"]
-        algorithm = "HS256"
+        algorithm = DEF_SIGN_ALG["client_secret_jwt"]
 
     signing_key = cli.keyjar.get_signing_key(alg2keytype(algorithm))
 
@@ -157,10 +161,12 @@ def private_key_jwt(cli, cis, request_args=None, http_args=None, **kwargs):
     try:
         algorithm = kwargs["algorithm"]
     except KeyError:
-        algorithm = OIC_DEF_SIGN_ALG
+        algorithm = DEF_SIGN_ALG["private_key_jwt"]
+        if not algorithm:
+            raise Exception("Missing algorithm specification")
 
     # signing key should be the clients rsa key
-    signing_key = cli.keyjar.get_signing_key( alg2keytype(algorithm), "")
+    signing_key = cli.keyjar.get_signing_key(alg2keytype(algorithm), "")
 
     cis["client_assertion"] = assertion_jwt(cli, signing_key, audience,
                                             algorithm)
@@ -335,7 +341,8 @@ class Client(oauth2.Client):
         self.authn_method = AUTHN_METHOD
         self.provider_info = {}
         self.client_prefs = client_prefs or {}
-        self.behaviour = {"require_signed_request_object": OIC_DEF_SIGN_ALG}
+        self.behaviour = {"require_signed_request_object":
+                                        DEF_SIGN_ALG["openid_request_object"]}
 
     def _get_id_token(self, **kwargs):
         try:
