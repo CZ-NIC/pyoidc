@@ -325,6 +325,11 @@ class AccessTokenRequest(message.AccessTokenRequest):
                     "client_assertion_type": SINGLE_OPTIONAL_STRING,
                     "client_assertion": SINGLE_OPTIONAL_STRING})
 
+    c_allowed_values = {
+        "client_assertion_type" : [
+                    "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"],
+    }
+
 class AddressClaim(Message):
     c_param = {
             "formatted": SINGLE_OPTIONAL_STRING,
