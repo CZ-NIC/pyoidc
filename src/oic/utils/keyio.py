@@ -106,7 +106,7 @@ class KeyChain(object):
         self._key = {}
         self.remote = False
         if keys:
-            for typ,inst in keys.items():
+            for typ, inst in keys.items():
                 try:
                     self._key[typ].append(inst)
                 except KeyError:
@@ -123,7 +123,7 @@ class KeyChain(object):
             self.src_type = src_type
             if not self.remote: # local file
                 if src_type == "JWK":
-                    for typ,inst in loads(source):
+                    for typ, inst in loads(source):
                         try:
                             self._key[type].append(inst)
                         except KeyError:
@@ -215,21 +215,35 @@ class KeyChain(object):
             return self._key
 
     def keys(self):
+        if self.remote: # verify that it's not to old
+            if time.time() > self.time_out:
+                self.update()
+
         return self._key
 
-    def remove(self, key, val=None):
+    def remove(self, typ, val=None):
+        """
+
+        :param typ: Type of key (rsa, ec, hmac, ..)
+        :param val: The key it self
+        """
         if val:
             try:
-                self._key[key].remove(val)
+                self._key[typ].remove(val)
             except (ValueError, KeyError):
                 pass
         else:
             try:
-                del self._key[key]
+                del self._key[typ]
             except KeyError:
                 pass
 
+    def __str__(self):
+        return "%s" % self._key
+
 class KeyJar(object):
+    """ A keyjar contains a number of KeyChains """
+
     def __init__(self, ca_certs=None):
         self.spec2key = {}
         self.issuer_keys = {}
@@ -273,7 +287,7 @@ class KeyJar(object):
     def get(self, use, type="", issuer=""):
         """
 
-        :param use: A key useful for this usage
+        :param use: A key useful for this usage (enc, dec, sig, ver)
         :param type: Type of key (rsa, ec, hmac, ..)
         :param issuer: Who is responsible for the keys, "" == me
         :return: A possibly empty list of keys
@@ -378,6 +392,47 @@ class KeyJar(object):
 
         raise Exception("No keys for '%s'" % url)
 
+    def __str__(self):
+        return "%s" % self.issuer_keys
+
+    def keys(self):
+        self.issuer_keys.keys()
+
+    def load_keys(self, pcr, issuer, replace=False):
+        """
+        Fetch keys from another server
+
+        :param pcr: The provider information
+        :param issuer: The provider URL
+        :param replace: If all previously gathered keys from this provider
+            should be replace.
+        :return: Dictionary with usage as key and keys as values
+        """
+
+        logger.debug("loading keys for issuer: %s" % issuer)
+        logger.debug("pcr: %s" % pcr)
+        if issuer not in self.issuer_keys:
+            self.issuer_keys[issuer] = {}
+
+        if pcr["jwk_url"]:
+            kc_j = self.add(issuer, pcr["jwk_url"], src_type="jwk", use="ver")
+        else:
+            kc_j = None
+        if pcr["x509_url"]:
+            kc_x = self.add(issuer, pcr["x509_url"], src_type="x509", use="ver")
+        else:
+            kc_x = None
+        if pcr["jwk_encryption_url"]:
+            self.add(issuer, pcr["jwk_encryption_url"], src_type="jwk",
+                     use="dec")
+        elif kc_j:
+            kc_j.usage.append("dec")
+        if pcr["x509_encryption_url"]:
+            self.add(issuer, pcr["x509_encryption_url"], src_type="x509",
+                     use="dec")
+        else:
+            kc_x.usage.append("dec")
+
 # =============================================================================
 
 def key_export(baseurl, local_path, vault, keyjar, fqdn="", **kwargs):
@@ -448,7 +503,7 @@ def key_export(baseurl, local_path, vault, keyjar, fqdn="", **kwargs):
                 if usage == "sig":
                     kc.usage.append("ver")
                 elif usage == "enc":
-                    kc.usage.append("de")
+                    kc.usage.append("dec")
 
                 if "jwk" in _args["format"]:
                     if usage == "sig":
