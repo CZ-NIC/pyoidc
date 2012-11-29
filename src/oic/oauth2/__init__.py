@@ -488,7 +488,11 @@ class Client(PBase):
         # client uses it for signing
         # Server might also use it for signing which means the
         # client uses it for verifying server signatures
-        self.keyjar[""] = KeyChain({"hmac":val}, usage=["sig", "ver"])
+        _kc = KeyChain({"hmac":val}, usage=["sig", "ver"])
+        try:
+            self.keyjar[""].append(_kc)
+        except:
+            self.keyjar[""] = _kc
 
     client_secret = property(get_client_secret, set_client_secret)
 
