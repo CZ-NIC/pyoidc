@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 #issuer= "https://www.kodtest.se/rolandsOP"
-#baseurl = "https://localhost"
-baseurl = "https://lingon.ladok.umu.se"
+baseurl = "https://localhost"
+#baseurl = "https://lingon.ladok.umu.se"
 issuer="%s:8092" % baseurl
 keys= {
     "rsa": {
@@ -69,12 +69,12 @@ USERDB = {
     }
 }
 
-CLIENT_INFO = {
-    CLAIMS_PROVIDER: {
-        "userclaims_endpoint":"%suserclaims" % CLAIMS_PROVIDER,
-        "client_id": "client_1",
-        "client_secret": "hemlig",
-        "x509_url": "%scp_keys/cert.pem" % CLAIMS_PROVIDER,
-        "jwk_url": "%scp_keys/pub.jwk" % CLAIMS_PROVIDER,
-        }
-}
+CLIENT_INFO = { }
+#    CLAIMS_PROVIDER: {
+#        "userclaims_endpoint":"%suserclaims" % CLAIMS_PROVIDER,
+#        "client_id": "client_1",
+#        "client_secret": "hemlig",
+#        "x509_url": "%scp_keys/cert.pem" % CLAIMS_PROVIDER,
+#        "jwk_url": "%scp_keys/pub.jwk" % CLAIMS_PROVIDER,
+#        }
+#}
