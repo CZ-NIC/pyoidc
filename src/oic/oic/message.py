@@ -483,52 +483,6 @@ class OpenIDRequest(message.AuthorizationRequest):
                     "aud": SINGLE_OPTIONAL_STRING,
                     "nonce": SINGLE_OPTIONAL_STRING})
 
-#    def verify(self, **kwargs):
-#        """Authorization Request parameters that are OPTIONAL in the OAuth 2.0
-#        specification MAY be included in the OpenID Request Object without also
-#        passing them as OAuth 2.0 Authorization Request parameters, with one
-#        exception: The scope parameter MUST always be present in OAuth 2.0
-#        Authorization Request parameters.
-#        All parameter values that are present both in the OAuth 2.0
-#        Authorization Request and in the OpenID Request Object MUST exactly
-#        match."""
-#        if "request" in self:
-#            # Try to decode the JWT, checks the signature
-#            oidr = OpenIDRequest().from_jwt(str(self["request"]), kwargs["key"])
-#            if not oidr.verify(**kwargs):
-#                return False
-#
-#            for key, val in oidr.items():
-#                if key in self:
-#                    assert self[key] == val
-#
-#            # replace the JWT with the parsed and verified instance
-#            self["request"] = oidr
-#
-#        return super(self.__class__, self).verify(**kwargs)
-
-#Parameters changed:
-#    userinfo_algs_supported ->
-#       userinfo_signing_alg_values_supported
-#       userinfo_encryption_alg_values_supported
-#       userinfo_encryption_enc_values_supported
-#   id_token_algs_supported ->
-#       id_token_signing_alg_values_supported
-#       id_token_encryption_alg_values_supported
-#       id_token_encryption_enc_values_supported
-#request_object_algs_supported ->
-#   request_object_signing_alg_values_supported
-#   request_object_encryption_alg_values_supported
-#   request_object_encryption_enc_values_supported
-#token_endpoint_auth_algs_supported ->
-#   token_endpoint_auth_signing_alg_values_supported
-#require_signed_request_object ->
-#   request_object_signing_alg
-
-#Parameters deleted:
-#userinfo_encrypted_response_int
-#id_token_encrypted_response_int
-
 class ProviderConfigurationResponse(Message):
     c_param = {
             "version": SINGLE_OPTIONAL_STRING,
@@ -549,18 +503,28 @@ class ProviderConfigurationResponse(Message):
             "acrs_supported": OPTIONAL_LIST_OF_STRINGS,
             "user_id_types_supported": OPTIONAL_LIST_OF_STRINGS,
             "userinfo_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
-            "userinfo_encryption_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
-            "userinfo_encryption_enc_values_supported": OPTIONAL_LIST_OF_STRINGS,
+            "userinfo_encryption_alg_values_supported":
+                                                    OPTIONAL_LIST_OF_STRINGS,
+            "userinfo_encryption_enc_values_supported":
+                                                    OPTIONAL_LIST_OF_STRINGS,
             "id_token_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
-            "id_token_encryption_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
-            "id_token_encryption_enc_values_supported": OPTIONAL_LIST_OF_STRINGS,
-            "request_object_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
-            "request_object_encryption_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
-            "request_object_encryption_enc_values_supported": OPTIONAL_LIST_OF_STRINGS,
+            "id_token_encryption_alg_values_supported":
+                                                    OPTIONAL_LIST_OF_STRINGS,
+            "id_token_encryption_enc_values_supported":
+                                                    OPTIONAL_LIST_OF_STRINGS,
+            "request_object_signing_alg_values_supported":
+                                                    OPTIONAL_LIST_OF_STRINGS,
+            "request_object_encryption_alg_values_supported":
+                                                    OPTIONAL_LIST_OF_STRINGS,
+            "request_object_encryption_enc_values_supported":
+                                                    OPTIONAL_LIST_OF_STRINGS,
             "token_endpoint_auth_types_supported": OPTIONAL_LIST_OF_STRINGS,
-            "token_endpoint_auth_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS
+            "token_endpoint_auth_signing_alg_values_supported":
+                                                    OPTIONAL_LIST_OF_STRINGS
             }
-    c_default = {"version": "3.0"}
+    c_default = {"version": "3.0",
+                 "token_endpoint_auth_types_supported":"client_secret_basic",
+                 "request_object_signing_alg_values_supported": "RS256"}
 
     def verify(self, **kwargs):
         if "scopes_supported" in self:
@@ -637,7 +601,6 @@ SCOPE2CLAIMS = {
     "email": ["email", "email_verified"],
     "address": ["address"],
     "phone": ["phone_number"],
-    #"claims_in_id_token": []
 }
 
 MSG = {
