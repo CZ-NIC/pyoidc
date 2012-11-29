@@ -826,7 +826,18 @@ class Provider(AProvider):
 
         return info
 
-    #noinspection PyUnusedLocal
+    def get_access_token(self, query, environ):
+        if not query or "access_token" not in query:
+            _token = self._bearer_auth(environ)
+            logger.debug("Bearer token: %s" % _token)
+        else:
+            uireq = self.server.parse_user_info_request(data=query)
+            logger.debug("user_info_request: %s" % uireq)
+            _token = uireq["access_token"]
+
+        return _token
+
+#noinspection PyUnusedLocal
     def userinfo_endpoint(self, environ, start_response, **kwargs):
 
         try:
@@ -843,13 +854,7 @@ class Provider(AProvider):
         _log_debug("environ: %s" % environ)
         _sdb = self.sdb
 
-        if not query or "access_token" not in query:
-            _token = self._bearer_auth(environ)
-            logger.debug("Bearer token: %s" % _token)
-        else:
-            uireq = self.server.parse_user_info_request(data=query)
-            _log_debug("user_info_request: %s" % uireq)
-            _token = uireq["access_token"]
+        _token = self.get_access_token(query, environ)
 
         # should be an access token
         typ, key = _sdb.token.type_and_key(_token)
@@ -1063,9 +1068,14 @@ class Provider(AProvider):
                 client_id = rndstr(12)
 
             client_secret = secret(self.seed, client_id)
+
+            _rat = rndstr(32)
             self.cdb[client_id] = {
-                "client_secret":client_secret
-            }
+                "client_secret":client_secret,
+                "registration_access_token": _rat}
+
+            self.cdb[_rat] = client_id
+
             resp = self.do_client_registration(request, client_id,
                                                ignore=["redirect_uris",
                                                        "policy_url",
@@ -1081,12 +1091,13 @@ class Provider(AProvider):
 
         elif request["type"] == "client_update" or \
              request["type"] == "rotate_secret":
-            #  that these are an id,secret pair I know about
-            client_id = request["client_id"]
+
+            client_id = _cinfo = None
+            access_token = self.get_access_token(query, environ)
             try:
-                _cinfo = self.cdb[client_id].copy()
+                _cinfo = self.cdb[self.cdb[access_token]].copy()
             except KeyError:
-                _log_info("Unknown client id")
+                _log_info("Unknown client")
                 return BadRequest()
 
             if _cinfo["client_secret"] != request["client_secret"]:
@@ -1131,6 +1142,9 @@ class Provider(AProvider):
 
             _cinfo["registration_expires"] = time_util.time_sans_frac()+3600
 
+            if request["type"] == "client_associate":
+                response["registration_access_token"] = _cinfo[
+                                                    "registration_access_token"]
             response["client_secret"] = client_secret
             response["expires_at"] = _cinfo["registration_expires"]
 
