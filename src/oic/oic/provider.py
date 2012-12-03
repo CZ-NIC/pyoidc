@@ -3,7 +3,8 @@ import json
 import traceback
 import urllib
 import sys
-from oic.utils.keyio import KeyChain, key_export
+from oic.utils.time_util import utc_time_sans_frac
+from oic.utils.keyio import KeyBundle, key_export
 
 from requests import ConnectionError
 
@@ -50,7 +51,7 @@ from oic.utils.http_util import Redirect
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import geturl
 from oic.utils.http_util import Unauthorized
-from oic.utils import time_util
+#from oic.utils import time_util
 
 from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2 import rndstr
@@ -192,8 +193,14 @@ class Provider(AProvider):
                                          access_token, user_info)
 
         logger.debug("id_token: %s" % _idt.to_dict())
-        ckey = self.keyjar.get_signing_key(alg2keytype(alg),
-                               session["client_id"])
+        logger.debug("client_id: %s" % session["client_id"])
+        # My signing key if its RS*, can use client secret if HS*
+        if alg.startswith("HS"):
+            ckey = self.keyjar.get_signing_key(alg2keytype(alg),
+                                               session["client_id"])
+        else:
+            ckey = self.keyjar.get_signing_key(alg2keytype(alg), "")
+        logger.debug("ckey: %s" % ckey)
         _signed_jwt = _idt.to_jwt(key=ckey, algorithm=alg)
 
         return _signed_jwt
@@ -262,6 +269,9 @@ class Provider(AProvider):
             # ignore query components that are not registered
             return None
         except Exception:
+            print sys.stderr, "areq: %s" % areq.to_dict()
+            print sys.stdout, "cdb keys:%s" % self.cdb.keys()
+            print sys.stdout, "%s" % self.cdb[areq["client_id"]]
             logger.error("Faulty redirect_uri: %s" % areq["redirect_uri"])
             logger.info("Registered redirect_uris: %s" % (
                                 self.cdb[areq["client_id"]]["redirect_uris"],))
@@ -569,18 +579,14 @@ class Provider(AProvider):
 
     def verify_client(self, environ, areq):
         try:
-            _token = self._bearer_auth(environ)
-            if _token in self.cdb:
-                return True
+            client_id = self.get_client_id(environ, areq)
         except AuthnFailure:
-            pass
-
-        if areq["client_id"] not in self.cdb:
             return False
 
+        logger.debug("Verified Client ID: %s" % client_id)
+
         if "client_secret" in areq: # client_secret_post
-            identity = areq["client_id"]
-            if self.cdb[identity]["client_secret"] == areq["client_secret"]:
+            if self.cdb[client_id]["client_secret"] == areq["client_secret"]:
                 return True
         elif "client_assertion" in areq: # client_secret_jwt or public_key_jwt
             if areq["client_assertion_type"] != JWT_BEARER:
@@ -598,8 +604,8 @@ class Provider(AProvider):
                 return True
             except AssertionError:
                 pass
-
-        return False
+        else:
+            return True
 
     def userinfo_in_id_token_claims(self, session):
         itc = self.server.id_token_claims(session)
@@ -637,18 +643,14 @@ class Provider(AProvider):
             enc = client_info["%s_encrypted_response_enc" % type]
         except KeyError:
             enc = "A128CBC"
-        try:
-            int = client_info["%s_encrypted_response_int" % type]
-        except KeyError:
-            int = "HS256"
 
         keys = self.keyjar.get_encrypt_key(owner=cid)
-        #logger.debug("keys for %s: %s" % (cid, self.keyjar.keys_by_owner(cid)))
-        logger.debug("alg=%s, enc=%s, int=%s" % (alg, enc, int))
+        logger.debug("keys for %s: %s" % (cid, self.keyjar[cid]))
+        logger.debug("alg=%s, enc=%s" % (alg, enc))
         logger.debug("Encryption keys for %s: %s" % (cid, keys))
 
         # use the clients public key for encryption
-        return jwe.encrypt(payload, keys, alg, enc, context="public", int=int)
+        return jwe.encrypt(payload, keys, alg, enc, context="public")
 
     def sign_encrypt_id_token(self, sinfo, client_info, areq, code=None,
                               access_token=None, user_info=None):
@@ -762,18 +764,66 @@ class Provider(AProvider):
         return resp(environ, start_response)
 
     def _bearer_auth(self, environ):
-        #'HTTP_AUTHORIZATION': 'Bearer pC7efiVgbI8UASlolltdh76DrTZ2BQJQXFhVvwWlKekFvWCcdMTmNCI/BCSCxQiG'
+        authn = environ["HTTP_AUTHORIZATION"]
         try:
-            authn = environ["HTTP_AUTHORIZATION"]
-            try:
-                assert authn[:6].lower() == "bearer"
-                _token = authn[7:]
-            except AssertionError:
-                raise AuthnFailure("AuthZ type I don't know")
-        except KeyError:
-            raise AuthnFailure
+            assert authn[:6].lower() == "bearer"
+            return authn[7:]
+        except AssertionError:
+            return None
 
-        return _token
+    def get_client_id(self, environ, req):
+        """
+        Verify the client and return the client id
+
+        :param environ:
+        :param req:
+        :return:
+        """
+
+        _id = None
+
+        logger.debug("REQ: %s" % req.to_dict())
+        try:
+            logger.debug("ENV: %s" % environ)
+            authn = environ["HTTP_AUTHORIZATION"]
+            if authn.startswith("Basic "):
+                logger.debug("Basic auth")
+                (_id, _secret) = base64.b64decode(authn[6:]).split(":")
+                if _id not in self.cdb:
+                    logger.debug("Unknown client_id")
+                    raise AuthnFailure
+                else:
+                    try:
+                        assert _secret == self.cdb[_id]["client_secret"]
+                    except AssertionError:
+                        logger.debug("Incorrect secret")
+                        raise AuthnFailure
+            else:
+                try:
+                    assert authn[:6].lower() == "bearer"
+                    logger.debug("Bearer auth")
+                    _token = authn[7:]
+                except AssertionError:
+                    raise AuthnFailure("AuthZ type I don't know")
+
+                try:
+                    _id = self.cdb[_token]
+                except KeyError:
+                    logger.debug("Unknown access token")
+                    raise AuthnFailure
+        except KeyError:
+            pass
+
+        if _id is None:
+            try:
+                _id = req["client_id"]
+                if _id not in self.cdb:
+                    logger.debug("Unknown client_id")
+                    return AuthnFailure
+            except KeyError:
+                return AuthnFailure
+
+        return _id
 
     def _collect_user_info(self, session, userinfo_claims=None):
         """
@@ -826,18 +876,7 @@ class Provider(AProvider):
 
         return info
 
-    def get_access_token(self, query, environ):
-        if not query or "access_token" not in query:
-            _token = self._bearer_auth(environ)
-            logger.debug("Bearer token: %s" % _token)
-        else:
-            uireq = self.server.parse_user_info_request(data=query)
-            logger.debug("user_info_request: %s" % uireq)
-            _token = uireq["access_token"]
-
-        return _token
-
-#noinspection PyUnusedLocal
+    #noinspection PyUnusedLocal
     def userinfo_endpoint(self, environ, start_response, **kwargs):
 
         try:
@@ -854,7 +893,13 @@ class Provider(AProvider):
         _log_debug("environ: %s" % environ)
         _sdb = self.sdb
 
-        _token = self.get_access_token(query, environ)
+        if not query or "access_token" not in query:
+            _token = self._bearer_auth(environ)
+            logger.debug("Bearer token: %s" % _token)
+        else:
+            uireq = self.server.parse_user_info_request(data=query)
+            logger.debug("user_info_request: %s" % uireq)
+            _token = uireq["access_token"]
 
         # should be an access token
         typ, key = _sdb.token.type_and_key(_token)
@@ -879,11 +924,12 @@ class Provider(AProvider):
         _cinfo = self.cdb[session["client_id"]]
         if "userinfo_signed_response_alg" in _cinfo:
             algo = _cinfo["userinfo_signed_response_alg"]
-            key = self.keyjar.get_signing_key(alg2keytype(algo),
-                                  owner=session["client_id"])
+            # Use my key for signing
+            key = self.keyjar.get_signing_key(alg2keytype(algo),"")
             jinfo = info.to_jwt(key, algo)
             content_type="application/jwt"
             if "userinfo_encrypted_response_alg" in _cinfo:
+                # encrypt with clients public key
                 jinfo = self.encrypt(jinfo, _cinfo, session["client_id"],
                                      "userinfo")
         elif "userinfo_encrypted_response_alg" in _cinfo:
@@ -911,7 +957,13 @@ class Provider(AProvider):
             return info(environ, start_response)
 
         if not info:
-            info = "id_token=%s" % self._bearer_auth(environ)
+            _tok = self._bearer_auth(environ)
+            if not _tok:
+                return self._error(environ, start_response,
+                                   error="access_denied",
+                                   descr="Illegal token")
+            else:
+                info = "id_token=%s" % _tok
 
         if self.test_mode:
             _log_info("check_session_request: %s" % info)
@@ -1016,7 +1068,7 @@ class Provider(AProvider):
                                        descr="%s pointed to illegal URL" % item)
 
         try:
-            self.keyjar.provider_keys(request, client_id)
+            self.keyjar.load_keys(request, client_id)
             try:
                 logger.debug("keys for %s: %s" % (client_id,
                                                   self.keyjar[client_id]))
@@ -1072,7 +1124,8 @@ class Provider(AProvider):
             _rat = rndstr(32)
             self.cdb[client_id] = {
                 "client_secret":client_secret,
-                "registration_access_token": _rat}
+                "registration_access_token": _rat,
+                "expires_at": utc_time_sans_frac()+86400}
 
             self.cdb[_rat] = client_id
 
@@ -1089,29 +1142,32 @@ class Provider(AProvider):
             #if self.debug:
             #    _log_info("KEYSTORE: %s" % self.keyjar._store)
 
-        elif request["type"] == "client_update" or \
-             request["type"] == "rotate_secret":
-
+        elif request["type"] in ["client_update", "rotate_secret"]:
             client_id = _cinfo = None
-            access_token = self.get_access_token(query, environ)
+            if not query or "access_token" not in query:
+                access_token = self._bearer_auth(environ)
+                logger.debug("Bearer token: %s" % access_token)
+            else:
+                access_token = request["access_token"]
+
             try:
-                _cinfo = self.cdb[self.cdb[access_token]].copy()
+                client_id = self.cdb[access_token]
+                _cinfo = self.cdb[client_id].copy()
             except KeyError:
                 _log_info("Unknown client")
-                return BadRequest()
-
-            if _cinfo["client_secret"] != request["client_secret"]:
-                _log_info("Wrong secret")
                 return BadRequest()
 
             if request["type"] == "rotate_secret":
                 # update secret
                 client_secret = secret(self.seed, client_id)
+                old_secret = _cinfo["client_secret"]
                 _cinfo["client_secret"] = client_secret
 
-                _keyjar.remove_key(client_id, type="hmac",
-                                   key=request["client_secret"])
-                response = RegistrationResponseCARS(client_id=client_id)
+                _keyjar.remove_key(client_id, type="hmac", key=old_secret)
+                response = RegistrationResponseCARS(client_id=client_id,
+                                    client_secret=client_secret,
+                                    registration_access_token=_cinfo[
+                                                "registration_access_token"])
             else: # client_update
                 client_secret = None
                 resp = self.do_client_registration(request, client_id,
@@ -1121,32 +1177,33 @@ class Provider(AProvider):
                                                            "redirect_uris",
                                                            "logo_url"])
 
+                print >> sys.stdout, "do_cr > %s" % resp
+
                 if isinstance(resp, Response):
                     return resp
                 else:
                     _cinfo = resp
                     response = RegistrationResponseCU(client_id=client_id)
 
-            self.keyjar.provider_keys(request, client_id, replace=True)
+            self.keyjar.load_keys(request, client_id, replace=True)
 
         else:
             return BadRequest("Unknown request type: %s" % request.type)
 
+        logger.debug("Cinfo: %s" % _cinfo)
         # Add the key to the keyjar
         if client_secret:
-            _kc = KeyChain({"hmac": client_secret}, usage=["ver","sig"])
+            _kc = KeyBundle({"hmac": client_secret}, usage=["ver","sig"])
             try:
                 _keyjar[client_id].append(_kc)
             except KeyError:
                 _keyjar[client_id] = [_kc]
 
-            _cinfo["registration_expires"] = time_util.time_sans_frac()+3600
-
             if request["type"] == "client_associate":
                 response["registration_access_token"] = _cinfo[
                                                     "registration_access_token"]
             response["client_secret"] = client_secret
-            response["expires_at"] = _cinfo["registration_expires"]
+            response["expires_at"] = _cinfo["expires_at"]
 
         self.cdb[client_id] = _cinfo
         _log_info("Client info: %s" % _cinfo)
@@ -1189,17 +1246,19 @@ class Provider(AProvider):
                             #request_object_algs_supported=["HS256"]
                         )
 
-            supported_algs = jws.SIGNER_ALGS.keys()
-            for typ, algs in jwe.SUPPORTED.items():
-                for alg in algs:
-                    if alg not in supported_algs:
-                        supported_algs.append(alg)
+            signing_algs = jws.SIGNER_ALGS.keys()
 
-            _log_info("Supported algs: %s" % supported_algs)
-            # local policy may remove some of these
-            _response["request_object_algs_supported"] = supported_algs
-            _response["userinfo_algs_supported"] = supported_algs
-            _response["id_token_algs_supported"] = supported_algs
+            for typ in ["userinfo", "id_token", "request_object",
+                        "token_endpoint_auth"]:
+                _response["%s_signing_alg_values_supported" % typ] = signing_algs
+
+            algs = jwe.SUPPORTED["alg"]
+            for typ in ["userinfo", "id_token", "request_object"]:
+                _response["%s_encryption_alg_values_supported" % typ] = algs
+
+            encs = jwe.SUPPORTED["enc"]
+            for typ in ["userinfo", "id_token", "request_object"]:
+                _response["%s_encryption_enc_values_supported" % typ] = encs
 
             if not self.baseurl.endswith("/"):
                 self.baseurl += "/"
