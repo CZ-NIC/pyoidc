@@ -627,13 +627,14 @@ def test_token_endpoint_unauth():
                               redirect_uri="http://example.com/authz",
                               client_id="client_1", client_secret="secret",)
 
-
+    print areq.to_dict()
     str = areq.to_urlencoded()
     fil = StringIO.StringIO(buf=str)
     environ = BASE_ENVIRON.copy()
     environ["CONTENT_LENGTH"] = len(str)
     environ["wsgi.input"] = fil
     environ["REMOTE_USER"] = "client2"
+    environ["REQUEST_METHOD"] = "POST"
 
     resp = server.token_endpoint(environ, start_response)
     print resp
@@ -791,7 +792,8 @@ def test_registration_endpoint():
     print resp
     update = RegistrationResponseCARS().deserialize(resp[0], "json")
     print update.keys()
-    assert _eq(update.keys(), ["client_secret", 'expires_at', 'client_id'])
+    assert _eq(update.keys(), ['client_secret', 'registration_access_token',
+                               'client_id', 'expires_at'])
     assert update["client_secret"] != regresp["client_secret"]
 
 def test_provider_key_setup():
@@ -838,7 +840,9 @@ def test_registered_redirect_uri_without_query_component():
         areq = AuthorizationRequest(redirect_uri= ruri,
                                     client_id=provider.cdb.keys()[0])
 
-        assert provider._verify_redirect_uri(areq) == None
+        resp = provider._verify_redirect_uri(areq)
+        print resp
+        assert resp == None
 
 def test_registered_redirect_uri_with_query_component():
     provider2 = Provider("FOOP", {}, {}, None, None)
@@ -881,5 +885,7 @@ def test_registered_redirect_uri_with_query_component():
         areq = AuthorizationRequest(redirect_uri= ruri,
                                     client_id=regresp["client_id"])
 
-        assert provider2._verify_redirect_uri(areq) == None
+        resp = provider2._verify_redirect_uri(areq)
+        print resp
+        assert resp == None
 

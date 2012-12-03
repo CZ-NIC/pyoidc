@@ -1,12 +1,12 @@
 import sys
-from oic.utils.keyio import KeyChain, KeyJar
+from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import KeyJar
 
 __author__ = 'rohe0002'
 
 import StringIO
 import urllib
 
-from oic.utils.keystore import rsa_load
 from oic.oic.message import OpenIDSchema
 from oic.utils.sdb import SessionDB
 from oic.oic.provider import Provider
@@ -68,9 +68,9 @@ BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
-KC_HMAC = KeyChain({"hmac": CLIENT_SECRET}, usage=["ver", "sig"])
-KC_HMAC2 = KeyChain({"hmac": "drickyoughurt"}, usage=["ver", "sig"])
-KC_RSA = KeyChain(source="file://../oc3/certs/mycert.key", type="rsa",
+KC_HMAC = KeyBundle({"hmac": CLIENT_SECRET}, usage=["ver", "sig"])
+KC_HMAC2 = KeyBundle({"hmac": "drickyoughurt"}, usage=["ver", "sig"])
+KC_RSA = KeyBundle(source="file://../oc3/certs/mycert.key", type="rsa",
                   usage=["sig", "ver"])
 KEYJAR = KeyJar()
 KEYJAR[CLIENT_ID] = [KC_HMAC, KC_RSA]

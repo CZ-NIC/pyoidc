@@ -269,12 +269,9 @@ class Provider(AProvider):
             # ignore query components that are not registered
             return None
         except Exception:
-            print sys.stderr, "areq: %s" % areq.to_dict()
-            print sys.stdout, "cdb keys:%s" % self.cdb.keys()
-            print sys.stdout, "%s" % self.cdb[areq["client_id"]]
             logger.error("Faulty redirect_uri: %s" % areq["redirect_uri"])
-            logger.info("Registered redirect_uris: %s" % (
-                                self.cdb[areq["client_id"]]["redirect_uris"],))
+            _cinfo = self.cdb[areq["client_id"]]
+            logger.info("Registered redirect_uris: %s" % _cinfo)
             response = AuthorizationErrorResponse(error="invalid_request",
                                error_description="Faulty redirect_uri")
 
