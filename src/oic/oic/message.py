@@ -4,8 +4,11 @@ import urllib
 import json
 import logging
 
-from oic.oauth2 import message, MissingRequiredAttribute, VerificationError
+from oic.oauth2 import message
+from oic.oauth2 import MissingRequiredAttribute
+from oic.oauth2 import VerificationError
 from oic.oauth2.message import Message
+from oic.oauth2.message import REQUIRED
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
@@ -368,8 +371,8 @@ class OpenIDSchema(Message):
 class RegistrationRequest(Message):
     c_param = {
             "type": SINGLE_REQUIRED_STRING,
-            "redirect_uris": REQUIRED_LIST_OF_STRINGS,
-            "application_type": SINGLE_REQUIRED_STRING,
+            "redirect_uris": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+            "application_type": SINGLE_OPTIONAL_STRING,
             "access_token": SINGLE_OPTIONAL_STRING,
             "contacts": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
             "application_name": SINGLE_OPTIONAL_STRING,
@@ -397,11 +400,30 @@ class RegistrationRequest(Message):
             #"client_secret": SINGLE_OPTIONAL_STRING,
     }
 
+    c_default = {"application_type": "web"}
     c_allowed_values = {
             "type" : ["client_associate", "client_update", "rotate_secret"],
             "application_type": ["native", "web"],
             "user_id_type": ["public", "pairwise"]
         }
+
+    def verify(self, **kwargs):
+        if self["type"] == "client_associate":
+            if not "redirect_uris" in self or not self["redirect_uris"]:
+                return False
+        elif self["type"] == "rotate_secret":
+            # no optional parameters other than access_token may
+            # be included in the request.
+            for param, spec in self.c_param.items():
+                if param == "access_token":
+                    continue
+                elif spec in REQUIRED:
+                    continue
+                else:
+                    if param in self:
+                        return False
+
+        return super(self.__class__, self).verify(**kwargs)
 
 class RegistrationResponseCARS(Message):
     """
