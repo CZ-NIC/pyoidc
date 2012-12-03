@@ -11,7 +11,7 @@ import cookielib
 from Cookie import SimpleCookie
 import logging
 
-from oic.utils.keyio import KeyJar, KeyChain
+from oic.utils.keyio import KeyJar, KeyBundle
 from oic.utils.time_util import utc_time_sans_frac
 
 DEF_SIGN_ALG = "HS256"
@@ -100,6 +100,17 @@ def client_secret_post(cli, cis, request_args=None, http_args=None, **kwargs):
 
 #noinspection PyUnusedLocal
 def bearer_header(cli, cis=None, request_args=None, http_args=None, **kwargs):
+    """
+    More complicated logic then I would have liked it to be
+
+    :param cli:
+    :param cis:
+    :param request_args:
+    :param http_args:
+    :param kwargs:
+    :return:
+    """
+    _acc_token = None
     if cis:
         if "access_token" in cis:
             _acc_token = cis["access_token"]
@@ -112,13 +123,16 @@ def bearer_header(cli, cis=None, request_args=None, http_args=None, **kwargs):
                 del request_args["access_token"]
             except (KeyError, TypeError):
                 try:
-                    _state = kwargs["state"]
+                    _acc_token = kwargs["access_token"]
                 except KeyError:
-                    if not cli.state:
-                        raise Exception("Missing state specification")
-                    kwargs["state"] = cli.state
+                    try:
+                        _state = kwargs["state"]
+                    except KeyError:
+                        if not cli.state:
+                            raise Exception("Missing state specification")
+                        kwargs["state"] = cli.state
 
-                _acc_token= cli.get_token(**kwargs).access_token
+                    _acc_token= cli.get_token(**kwargs).access_token
     else:
         _acc_token = kwargs["access_token"]
 
@@ -488,7 +502,7 @@ class Client(PBase):
         # client uses it for signing
         # Server might also use it for signing which means the
         # client uses it for verifying server signatures
-        _kc = KeyChain({"hmac":val}, usage=["sig", "ver"])
+        _kc = KeyBundle({"hmac":val}, usage=["sig", "ver"])
         try:
             self.keyjar[""].append(_kc)
         except:
@@ -857,7 +871,7 @@ class Client(PBase):
 
         if authn_method:
             return self.authn_method[authn_method](self, cis, request_args,
-                                                   http_args)
+                                                   http_args, **kwargs)
         else:
             return http_args
 
