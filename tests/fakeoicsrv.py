@@ -180,14 +180,17 @@ class MyFakeOICServer(Server):
 
         client_secret = rndstr()
         expires = utc_time_sans_frac() + self.registration_expires_in
+        kwargs = {}
         if req["type"] == "client_associate":
             client_id = rndstr(10)
-
+            registration_access_token = rndstr(20)
             self.client[client_id] = {
                 "client_secret": client_secret,
                 "info": req.to_dict(),
-                "expires": expires
+                "expires": expires,
+                "registration_access_token": registration_access_token
             }
+            kwargs["registration_access_token"] = registration_access_token
         else:
             client_id = req.client_id
             _cinfo = self.client[req.client_id]
@@ -196,8 +199,9 @@ class MyFakeOICServer(Server):
             _cinfo["expires"] = expires
 
         resp = RegistrationResponseCARS(client_id=client_id,
-                                    client_secret=client_secret,
-                                    expires_at=expires)
+                            client_secret=client_secret,
+                            expires_at=expires,
+                            **kwargs)
 
         response = Response()
         response.headers = {"content-type":"application/json"}

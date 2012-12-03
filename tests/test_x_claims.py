@@ -5,7 +5,7 @@ import StringIO
 import sys
 
 from oic.oic.message import OpenIDSchema
-from oic.utils.keyio import KeyChain
+from oic.utils.keyio import KeyBundle
 
 from oic.oic.claims_provider import ClaimsClient
 from oic.oic.claims_provider import UserClaimsResponse
@@ -131,7 +131,7 @@ def test_srv2():
 
     srv = ClaimsServer("name", None, CDB, FUNCTIONS, USERDB)
 
-    srv.keyjar[""] = [KeyChain(source="file://rsa.key", usage=["ver", "sig"])]
+    srv.keyjar[""] = [KeyBundle(source="file://rsa.key", usage=["ver", "sig"])]
     assert srv
 
     environ = BASE_ENVIRON.copy()

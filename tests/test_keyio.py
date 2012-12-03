@@ -1,3 +1,4 @@
+import M2Crypto
 
 __author__ = 'rohe0002'
 
@@ -5,10 +6,71 @@ from binascii import hexlify
 
 from jwkest import jwk, jwe
 from jwkest.jwk import x509_rsa_loads
-from oic.utils.keyio import key_export, KeyJar, KeyChain
+from oic.utils.keyio import key_export, KeyJar, KeyBundle
 
 def _eq(l1, l2):
     return set(l1) == set(l2)
+
+def test_chain_1():
+    kc = KeyBundle({"hmac": "supersecret"}, usage="sig")
+    assert len(kc.get("hmac")) == 1
+    assert len(kc.get("rsa")) == 0
+    assert kc.usage == ["sig"]
+    assert kc.remote == False
+    assert kc.source is None
+
+    kc.update() # Nothing should happen
+    assert len(kc.get("hmac")) == 1
+    assert len(kc.get("rsa")) == 0
+    assert kc.usage == ["sig"]
+    assert kc.remote == False
+    assert kc.source is None
+
+def test_chain_2():
+    kc = KeyBundle(source="file://../oc3/certs/mycert.key", type="rsa",
+                  usage=["ver", "sig"])
+    assert kc.usage == ["ver", "sig"]
+    assert kc.remote == False
+    assert kc.source == "../oc3/certs/mycert.key"
+    assert len(kc.get("hmac")) == 0
+    assert len(kc.get("rsa")) == 1
+
+    key = kc.get("rsa")[0]
+    assert isinstance(key, M2Crypto.RSA.RSA)
+
+    kc.update()
+    assert kc.usage == ["ver", "sig"]
+    assert kc.remote == False
+    assert kc.source == "../oc3/certs/mycert.key"
+    assert len(kc.get("hmac")) == 0
+    assert len(kc.get("rsa")) == 1
+
+    key = kc.get("rsa")[0]
+    assert isinstance(key, M2Crypto.RSA.RSA)
+
+def test_chain_3():
+    kc = KeyBundle(source="file://../oc3/certs/server.crt", type="rsa",
+                  src_type="x509", usage=["sig", "enc"])
+    assert kc.usage == ["sig", "enc"]
+    assert kc.remote == False
+    assert kc.source == "../oc3/certs/server.crt"
+    assert len(kc.get("hmac")) == 0
+    assert len(kc.get("rsa")) == 1
+
+    key = kc.get("rsa")[0]
+    assert isinstance(key, M2Crypto.RSA.RSA)
+
+    kc.update()
+    assert kc.usage == ["sig", "enc"]
+    assert kc.remote == False
+    assert kc.source == "../oc3/certs/server.crt"
+    assert len(kc.get("hmac")) == 0
+    assert len(kc.get("rsa")) == 1
+
+    key = kc.get("rsa")[0]
+    assert isinstance(key, M2Crypto.RSA.RSA)
+
+# remote testing is tricky
 
 def test1():
     kj = KeyJar()
@@ -36,13 +98,13 @@ URL = "https://openidconnect.info/jwk/jwk.json"
 
 def test_keyjar_pairkeys():
     ks = KeyJar()
-    ks[""] = KeyChain({"hmac": "a1b2c3d4"}, usage=["sig", "ver"])
-    ks["http://www.example.org"] = KeyChain({"hmac": "e5f6g7h8"},
+    ks[""] = KeyBundle({"hmac": "a1b2c3d4"}, usage=["sig", "ver"])
+    ks["http://www.example.org"] = KeyBundle({"hmac": "e5f6g7h8"},
                                             usage=["sig", "ver"])
-    ks["http://www.example.org"].append(KeyChain({"rsa": "-rsa-key-"},
+    ks["http://www.example.org"].append(KeyBundle({"rsa": "-rsa-key-"},
                                                  usage=["enc", "dec"]))
 
-    ks["http://www.example.org"].append(KeyChain({"rsa": "i9j10k11l12"},
+    ks["http://www.example.org"].append(KeyBundle({"rsa": "i9j10k11l12"},
                                                  usage=["sig", "ver"]))
 
     collection = ks.verify_keys("http://www.example.org")
@@ -50,79 +112,33 @@ def test_keyjar_pairkeys():
     assert _eq(collection.keys(), ["hmac", "rsa"])
 
 
-#def test_keyjar_remove_key():
-#    ks = KeyJar()
-#    ks.add_key("a1b2c3d4", "hmac", "sig")
-#    ks.add_key("a1b2c3d4", "hmac", "ver")
-#    ks.add_key("e5f6g7h8", "hmac", "sig", "http://www.example.org")
-#    ks.add_key("e5f6g7h8", "hmac", "ver", "http://www.example.org")
-#    ks.add_key("-rsa-key-", "rsa", "enc", "http://www.example.org")
-#    ks.add_key("-rsa-key-", "rsa", "dec", "http://www.example.org")
-#    ks.add_key("i9j10k11l12", "hmac", "sig", "http://www.example.com")
-#    ks.add_key("i9j10k11l12", "hmac", "ver", "http://www.example.com")
-#
-#    coll = ks.keys_by_owner("http://www.example.org")
-#    assert _eq(coll.keys(), ["sig", "ver", "enc", "dec"])
-#
-#    ks.remove_key("-rsa-key-", "http://www.example.org")
-#
-#    coll = ks.keys_by_owner("http://www.example.org")
-#    assert _eq(coll.keys(), ["sig", "ver"])
-#
-#def test_keyjar_remove_key_usage():
-#    ks = KeyStore(None)
-#    ks.add_key("a1b2c3d4", "hmac", "sig")
-#    ks.add_key("a1b2c3d4", "hmac", "ver")
-#    ks.add_key("e5f6g7h8", "hmac", "sig", "http://www.example.org")
-#    ks.add_key("e5f6g7h8", "hmac", "ver", "http://www.example.org")
-#    ks.add_key("-rsa-key-", "rsa", "enc", "http://www.example.org")
-#    ks.add_key("-rsa-key-", "rsa", "dec", "http://www.example.org")
-#    ks.add_key("i9j10k11l12", "hmac", "sig", "http://www.example.com")
-#    ks.add_key("i9j10k11l12", "hmac", "ver", "http://www.example.com")
-#
-#    ks.remove_key("-rsa-key-", "http://www.example.org",usage="dec")
-#
-#    coll = ks.keys_by_owner("http://www.example.org")
-#    assert _eq(coll.keys(), ["sig", "ver", "enc"])
-#
-#def test_keyjar_remove_key_type():
-#    ks = KeyStore(None)
-#    ks.add_key("a1b2c3d4", "hmac", "sig")
-#    ks.add_key("a1b2c3d4", "hmac", "ver")
-#    ks.add_key("e5f6g7h8", "hmac", "sig", "http://www.example.org")
-#    ks.add_key("e5f6g7h8", "hmac", "ver", "http://www.example.org")
-#    ks.add_key("-rsa-key-", "rsa", "enc", "http://www.example.org")
-#    ks.add_key("-rsa-key-", "rsa", "dec", "http://www.example.org")
-#    ks.add_key("i9j10k11l12", "hmac", "sig", "http://www.example.com")
-#    ks.add_key("i9j10k11l12", "hmac", "ver", "http://www.example.com")
-#
-#    ks.remove_key_type("rsa", "http://www.example.org")
-#
-#    coll = ks.keys_by_owner("http://www.example.org")
-#    assert _eq(coll.keys(), ["sig", "ver"])
-#
-#KEYSTORE = KeyStore(None)
-#KEYSTORE.add_key("a1b2c3d4", "hmac", "sig")
-#KEYSTORE.add_key("a1b2c3d4", "hmac", "ver")
-#KEYSTORE.add_key("e5f6g7h8", "hmac", "sig", "http://www.example.org")
-#KEYSTORE.add_key("e5f6g7h8", "hmac", "ver", "http://www.example.org")
-#KEYSTORE.add_key("-rsa-key-", "rsa", "enc", "http://www.example.org")
-#KEYSTORE.add_key("-rsa-key-", "rsa", "dec", "http://www.example.org")
-#KEYSTORE.add_key("i9j10k11l12", "hmac", "sig", "http://www.example.com")
-#KEYSTORE.add_key("i9j10k11l12", "hmac", "ver", "http://www.example.com")
-#
-#def test_keyjar_collect_keys():
-#    col = KEYSTORE.collect_keys("http://www.example.org/oic")
-#
-#    print col
-#    assert col == {'hmac': ['e5f6g7h8', 'a1b2c3d4']}
-#
-#
-#def test_keyjar_contains():
-#    assert "http://www.example.org" in KEYSTORE
-#    assert "http://www.example.com" in KEYSTORE
-#    assert "http://www.example.com/oic" not in KEYSTORE
-#
-#def test_keyjar_has_key_of_type():
-#    assert KEYSTORE.has_key_of_type("http://www.example.org", "sig", "hmac")
-#    assert not KEYSTORE.has_key_of_type("http://www.example.org", "sig", "rsa")
+def test_keyjar_remove_key():
+    ks = KeyJar()
+    ks[""] = KeyBundle({"hmac":"a1b2c3d4"}, usage=["sig", "ver"])
+    ks["http://www.example.org"] = [
+            KeyBundle({"hmac": "e5f6g7h8"}, usage=["sig", "ver"]),
+            KeyBundle({"rsa": "-rsa-key-"}, usage=["enc", "dec"])
+    ]
+    ks["http://www.example.com"] = KeyBundle({"hmac": "i9j10k11l12"},
+                                             usage=["sig", "ver"])
+
+    coll = ks["http://www.example.org"]
+    # coll is list of KeyBundles
+    assert len(coll) == 2
+    key = ks.get_encrypt_key(type="rsa", owner="http://www.example.org")
+    assert key == {"rsa": ["-rsa-key-"]}
+
+    ks.remove_key("http://www.example.org", "rsa", "-rsa-key-")
+
+    coll = ks["http://www.example.org"]
+    assert len(coll) == 1 # Only one remaining key
+    key = ks.get_encrypt_key(type="rsa", owner="http://www.example.org")
+    assert key == {"rsa": []}
+
+    keys = ks.verify_keys("http://www.example.com")
+    assert keys == {'hmac': ['i9j10k11l12', 'a1b2c3d4']}
+
+    keys = ks.decrypt_keys("http://www.example.org")
+    assert keys == {}
+
+

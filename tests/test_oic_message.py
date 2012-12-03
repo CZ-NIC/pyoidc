@@ -204,10 +204,12 @@ def test_claims_ser_urlencoded_dict():
 
 def test_registration_request():
     req = RegistrationRequest(type="client_associate", default_max_age=10,
-                              require_auth_time=True, default_acr="foo")
+                              require_auth_time=True, default_acr="foo",
+                              application_type="web",
+                              redirect_uris=["https://example.com/authz_cb"])
     js = req.to_json()
     print js
-    assert js == '{"require_auth_time": true, "default_acr": "foo", "type": "client_associate", "default_max_age": 10}'
+    assert js == '{"redirect_uris": "https://example.com/authz_cb", "application_type": "web", "default_acr": "foo", "require_auth_time": true, "default_max_age": 10, "type": "client_associate"}'
     ue = req.to_urlencoded()
     print ue
-    assert ue == 'default_acr=foo&type=client_associate&default_max_age=10&require_auth_time=True'
+    assert ue == 'redirect_uris=https%3A%2F%2Fexample.com%2Fauthz_cb&application_type=web&default_acr=foo&require_auth_time=True&default_max_age=10&type=client_associate'

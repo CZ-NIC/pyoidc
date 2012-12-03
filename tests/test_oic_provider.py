@@ -6,7 +6,7 @@ import urllib
 
 from oic.oauth2 import rndstr
 
-from oic.utils.keyio import rsa_load, KeyChain, KeyJar
+from oic.utils.keyio import KeyBundle, KeyJar
 
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import RegistrationResponseCARS
@@ -90,9 +90,9 @@ BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
-KC_HMAC = KeyChain({"hmac": CLIENT_SECRET}, usage=["ver", "sig"])
-KC_HMAC2 = KeyChain({"hmac": "drickyoughurt"}, usage=["ver", "sig"])
-KC_RSA = KeyChain(source="file://../oc3/certs/mycert.key", type="rsa",
+KC_HMAC = KeyBundle({"hmac": CLIENT_SECRET}, usage=["ver", "sig"])
+KC_HMAC2 = KeyBundle({"hmac": "drickyoughurt"}, usage=["ver", "sig"])
+KC_RSA = KeyBundle(source="file://../oc3/certs/mycert.key", type="rsa",
                   usage=["sig", "ver"])
 KEYJAR = KeyJar()
 KEYJAR[CLIENT_ID] = [KC_HMAC, KC_RSA]
@@ -756,16 +756,20 @@ def test_registration_endpoint():
     print resp
     regresp = RegistrationResponseCARS().deserialize(resp[0], "json")
     print regresp.keys()
-    assert _eq(regresp.keys(), ['client_secret', 'expires_at', 'client_id'])
+    assert _eq(regresp.keys(), ['client_secret', 'registration_access_token',
+                                'client_id', 'expires_at'])
 
     # --- UPDATE ----
 
     req = RegistrationRequest(type="client_update")
-    req["client_id"] = regresp["client_id"]
-    req["client_secret"] = regresp["client_secret"]
+    req["application_type"] = "web"
+    req["application_name"] = "My super duper service"
+    req["redirect_uris"] = ["http://example.com/authz"]
+    req["contact"] = ["foo@example.com"]
 
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = req.to_urlencoded()
+    environ["HTTP_AUTHORIZATION"] = "Bearer %s" % regresp["registration_access_token"]
 
     resp = server.registration_endpoint(environ, start_response)
 
@@ -773,17 +777,14 @@ def test_registration_endpoint():
     update = RegistrationResponseCU().deserialize(resp[0], "json")
     print update.keys()
     assert _eq(update.keys(), ['client_id'])
-    #assert update["client_secret"] != regresp["client_secret"]
-
 
     # --- Key Rotate ----
 
     req = RegistrationRequest(type="rotate_secret")
-    req["client_id"] = regresp["client_id"]
-    req["client_secret"] = regresp["client_secret"]
 
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = req.to_urlencoded()
+    environ["HTTP_AUTHORIZATION"] = "Bearer %s" % regresp["registration_access_token"]
 
     resp = server.registration_endpoint(environ, start_response)
 
@@ -825,8 +826,11 @@ def test_registered_redirect_uri_without_query_component():
 
     for ruri in faulty:
         areq = AuthorizationRequest(redirect_uri=ruri,
-                                    client_id=provider.cdb.keys()[0])
+                                    client_id=provider.cdb.keys()[0],
+                                    response_type="code",
+                                    scope="openid")
 
+        print areq
         assert provider._verify_redirect_uri(areq) != None
 
 
@@ -844,8 +848,12 @@ def test_registered_redirect_uri_with_query_component():
                              redirect_uris=["http://example.org/cb?foo=bar"])
 
     registration_req = rr.to_urlencoded()
-    provider2.registration_endpoint(environ, start_response,
+    resp = provider2.registration_endpoint(environ, start_response,
                                     query=registration_req)
+
+    regresp = RegistrationResponseCARS().from_json(resp[0])
+
+    print regresp.to_dict()
 
     faulty = [
         "http://example.org/cb",
@@ -861,14 +869,17 @@ def test_registered_redirect_uri_with_query_component():
 
     for ruri in faulty:
         areq = AuthorizationRequest(redirect_uri=ruri,
-                                    client_id=provider2.cdb.keys()[0])
+                                    client_id=regresp["client_id"],
+                                    scope="openid",
+                                    response_type="code")
 
+        print areq
         assert provider2._verify_redirect_uri(areq) != None
 
 
     for ruri in correct:
         areq = AuthorizationRequest(redirect_uri= ruri,
-                                    client_id=provider2.cdb.keys()[0])
+                                    client_id=regresp["client_id"])
 
         assert provider2._verify_redirect_uri(areq) == None
 

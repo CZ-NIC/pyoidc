@@ -1,5 +1,5 @@
 from oic.oic.message import AccessTokenResponse, AuthorizationResponse
-from oic.utils.keyio import KeyChain
+from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 
 __author__ = 'rohe0002'
@@ -21,9 +21,9 @@ CLIENT_ID = "client_1"
 
 RSAPUB = "../oc3/certs/mycert.key"
 
-KC_HMAC_VS = KeyChain({"hmac": CLIENT_SECRET}, usage=["ver", "sig"])
-KC_RSA = KeyChain(source="file://%s" % RSAPUB, type="rsa", usage=["ver", "sig"])
-KC_HMAC_S = KeyChain({"hmac": CLIENT_SECRET}, usage=["sig"])
+KC_HMAC_VS = KeyBundle({"hmac": CLIENT_SECRET}, usage=["ver", "sig"])
+KC_RSA = KeyBundle(source="file://%s" % RSAPUB, type="rsa", usage=["ver", "sig"])
+KC_HMAC_S = KeyBundle({"hmac": CLIENT_SECRET}, usage=["sig"])
 
 SRVKEYS = KeyJar()
 SRVKEYS[""] = [KC_RSA]
@@ -515,12 +515,14 @@ def test_provider_config():
     info = c.provider_config(res)
     assert info.type() == "ProviderConfigurationResponse"
     print info.keys()
-    assert _eq(info.keys(), ['registration_endpoint', 'check_session_endpoint',
-                             'refresh_session_endpoint', 'scopes_supported',
-                             'identifiers_supported', 'token_endpoint',
-                             'version', 'user_info_endpoint',
-                             'end_session_endpoint', 'authorization_endpoint',
-                             'flows_supported', 'issuer'])
+    assert _eq(info.keys(), ['registration_endpoint', 'authorization_endpoint',
+                             'token_endpoint_auth_types_supported',
+                             'request_object_signing_alg_values_supported',
+                             'issuer', 'refresh_session_endpoint',
+                             'scopes_supported', 'identifiers_supported',
+                             'token_endpoint', 'version', 'user_info_endpoint',
+                             'end_session_endpoint', 'flows_supported',
+                             'check_session_endpoint'])
 
     assert info["end_session_endpoint"] == "http://example.com/end_session"
 

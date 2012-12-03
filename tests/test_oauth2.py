@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from oic.utils.keyio import KeyChain
+from oic.utils.keyio import KeyBundle
 
 __author__ = 'rohe0002'
 
@@ -700,8 +700,8 @@ def test_server_parse_jwt_request():
                  redirect_uri="http://foobar.example.com/oaclient",
                  state="cold")
 
-    srv.keyjar["foobar"] = KeyChain({"hmac":"A1B2C3D4"}, usage=["ver", "sig"])
-    srv.keyjar[""] = KeyChain({"hmac":"A1B2C3D4"}, usage=["ver", "sig"])
+    srv.keyjar["foobar"] = KeyBundle({"hmac":"A1B2C3D4"}, usage=["ver", "sig"])
+    srv.keyjar[""] = KeyBundle({"hmac":"A1B2C3D4"}, usage=["ver", "sig"])
 
     keys = srv.keyjar.get_signing_key(owner="foobar")
     _jwt = ar.to_jwt(key=keys, algorithm="HS256")

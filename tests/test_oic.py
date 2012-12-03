@@ -37,7 +37,7 @@ from oic.oauth2.message import MissingRequiredAttribute
 
 from oic.utils import time_util
 from oic.utils.time_util import utc_time_sans_frac
-from oic.utils.keyio import rsa_load, KeyChain, KeyJar
+from oic.utils.keyio import KeyBundle, KeyJar
 
 from jwkest import unpack
 from jwkest.jws import left_hash
@@ -55,10 +55,10 @@ def _eq(l1, l2):
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
-KC_HMAC_VS = KeyChain({"hmac": "abcdefghijklmnop"}, usage=["ver", "sig"])
-KC_RSA = KeyChain(source="file://../oc3/certs/mycert.key", type="rsa",
+KC_HMAC_VS = KeyBundle({"hmac": "abcdefghijklmnop"}, usage=["ver", "sig"])
+KC_RSA = KeyBundle(source="file://../oc3/certs/mycert.key", type="rsa",
                   usage=["ver", "sig"])
-KC_HMAC_S = KeyChain({"hmac": "abcdefghijklmnop"}, usage=["sig"])
+KC_HMAC_S = KeyBundle({"hmac": "abcdefghijklmnop"}, usage=["sig"])
 
 KEYJ = KeyJar()
 KEYJ[""] = [KC_RSA, KC_HMAC_S]
@@ -477,7 +477,8 @@ class TestOICClient():
                 "redirect_uri": "http://example.com/authz"}
         resp = self.client.do_registration_request(request_args=args)
         print resp
-        assert _eq(resp.keys(),['client_secret', 'expires_at', 'client_id'])
+        assert _eq(resp.keys(),['client_secret', 'expires_at', 'client_id',
+                                'registration_access_token'])
 
     def test_do_user_info_request_with_access_token_refresh(self):
         self.client.userinfo_endpoint = "http://oic.example.org/userinfo"
@@ -951,7 +952,7 @@ UIREQ = UserInfoRequest(access_token="access_token", schema="openid")
 REGREQ = RegistrationRequest(contacts=["roland.hedberg@adm.umu.se"],
                              redirect_uris=["http://example.org/jqauthz"],
                              application_name="pacubar", client_id=CLIENT_ID,
-                             type="client_associate")
+                             type="client_associate", application_type="web")
 
 RSREQ = RefreshSessionRequest(id_token="id_token",
                               redirect_url="http://example.com/authz",
@@ -1028,7 +1029,7 @@ def test_parse_registration_request():
     request = srv.parse_registration_request(data=REGREQ.to_urlencoded())
     assert request.type() == "RegistrationRequest"
     assert _eq(request.keys(),['redirect_uris', 'contacts', 'client_id',
-                               'application_name', 'type'])
+                               'application_name', 'type', 'application_type'])
     assert request["application_name"] == "pacubar"
     assert request["type"] == "client_associate"
 
@@ -1142,7 +1143,7 @@ def test_private_key_jwt():
     cli.keyjar[""] = KC_RSA
 
     cis = AccessTokenRequest()
-    at = oic.private_key_jwt(cli, cis)
+    at = oic.private_key_jwt(cli, cis, algorithm="RS256")
     assert at == {}
     cas = cis["client_assertion"]
     header, claim, crypto, header_b64, claim_b64 = unpack(cas)
