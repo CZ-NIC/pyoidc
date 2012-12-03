@@ -40,6 +40,7 @@ from oic.oic.message import AuthorizationErrorResponse
 from oic import oauth2
 
 from oic.oauth2 import AUTHN_METHOD as OAUTH2_AUTHN_METHOD
+from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import rndstr
 from oic.oauth2.consumer import ConfigurationError
@@ -95,7 +96,7 @@ AUTHN_METHOD = OAUTH2_AUTHN_METHOD.copy()
 DEF_SIGN_ALG = { "id_token":"RS256",
                  "openid_request_object": "RS256",
                  "client_secret_jwt": "HS256",
-                 "private_key_jwt": None}
+                 "private_key_jwt": "HS256"}
 
 def assertion_jwt(cli, keys, audience, algorithm):
     _now = utc_now()
@@ -371,40 +372,6 @@ class Client(oauth2.Client):
                     return token.id_token
 
         return None
-
-    #noinspection PyUnusedLocal
-#    def construct_AuthorizationRequest(self, request=AuthorizationRequest,
-#                                       request_args=None, extra_args=None,
-#                                       **kwargs):
-#
-#        if request_args is not None:
-#            for arg in ["idtoken_claims", "userinfo_claims"]:
-#                if arg in request_args:
-#                    kwargs[arg] = request_args[arg]
-#                    del request_args[arg]
-#            if "nonce" not in request_args:
-#                _rt = request_args["response_type"]
-#                if "token" in _rt or "id_token" in _rt:
-#                    request_args["nonce"] = rndstr(12)
-#        elif "response_type" in kwargs:
-#            if "token" in kwargs["response_type"]:
-#                request_args = {"nonce": rndstr(12)}
-#        else: # Never wrong to specify a nonce
-#            request_args = {"nonce": rndstr(12)}
-#
-#        if "idtoken_claims" in kwargs or "userinfo_claims" in kwargs:
-#            request_param = "request"
-#            if "request_method" in kwargs:
-#                if kwargs["request_method"] == "file":
-#                    request_param = "request_uri"
-#                    del kwargs["request_method"]
-#        else:
-#            request_param = None
-#
-#        return oauth2.Client.construct_AuthorizationRequest(self, request,
-#                                                            request_args,
-#                                                            extra_args,
-#                                                            **kwargs)
 
     def construct_AuthorizationRequest(self, request=AuthorizationRequest,
                                        request_args=None, extra_args=None,
@@ -906,7 +873,7 @@ class Client(oauth2.Client):
                     setattr(self, key, val)
 
         if keys:
-            self.keyjar.provider_keys(pcr, _pcr_issuer)
+            self.keyjar.load_keys(pcr, _pcr_issuer)
 
         return pcr
 
@@ -1028,8 +995,10 @@ class Client(oauth2.Client):
             if key not in PREFERENCE2PROVIDER:
                 self.behaviour[key] = val
 
-    def register(self, url, type="client_associate", **kwargs):
-        req = RegistrationRequest(type=type)
+    def register(self, url, type="client_associate", application_type="web",
+                 **kwargs):
+        req = RegistrationRequest(type=type,
+                                  application_type=application_type)
 
         if type == "client_update" or type == "rotate_secret":
             req["client_id"] = self.client_id
@@ -1046,6 +1015,12 @@ class Client(oauth2.Client):
                     req[prop] = self.behaviour[prop]
                 except KeyError:
                     pass
+
+        if "redirect_uris" not in req:
+            try:
+                req["redirect_uris"] = self.redirect_uris
+            except AttributeError:
+                raise MissingRequiredAttribute("redirect_uris")
 
         headers = {"content-type": "application/x-www-form-urlencoded"}
 
