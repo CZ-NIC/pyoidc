@@ -577,6 +577,9 @@ REQUIRED_LIST_OF_SP_SEP_STRINGS = ([basestring], True,
                                           sp_sep_list_deserializer)
 SINGLE_OPTIONAL_JSON = (basestring, False, json_serializer, json_deserializer)
 
+REQUIRED = [SINGLE_REQUIRED_STRING, REQUIRED_LIST_OF_STRINGS,
+            REQUIRED_LIST_OF_SP_SEP_STRINGS]
+
 #
 # =============================================================================
 #
