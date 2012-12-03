@@ -31,7 +31,7 @@ def key_eq(key1, key2):
     if type(key1) == type(key2):
         if isinstance(key1, basestring):
             return key1 == key2
-        elif isinstance(key1, M2Crypto.RSA.RSA):
+        elif isinstance(key1, M2Crypto.RSA.RSA) :
             return rsa_eq(key1, key2)
 
     return False
@@ -90,11 +90,11 @@ def uniq_ext(lst, keys):
 
     return lst
 
-URLPAT = [("%s_url", "ver"), ("%s_encryption_url", "enc")]
+URLPAT = [("%s_url", ["dec", "ver"]), ("%s_encryption_url", ["enc", "sig"])]
 
-class KeyChain(object):
+class KeyBundle(object):
     def __init__(self, keys=None, source="", type="rsa", src_type="",
-                 cache_time=300, usage=""):
+                 cache_time=300, usage="", verify_ssl=True):
         """
 
         :param keys: A dictionary
@@ -102,16 +102,21 @@ class KeyChain(object):
         :param type: What type of key it is (rsa, ec, hmac,..)
         :param src_type: How the key is packed (x509, jwk,..)
         :param usage: What the key should be used for (enc, dec, sig, ver)
+        :param verify_ssl: Verify the SSL cert used by the server
         """
         self._key = {}
         self.remote = False
+        self.verify_ssl = verify_ssl
         if keys:
+            self.source = None
+            self.orig_type = None
             for typ, inst in keys.items():
                 try:
                     self._key[typ].append(inst)
                 except KeyError:
                     self._key[typ] = [inst]
         else:
+            self.orig_type = type
             if source.startswith("file://"):
                 self.source = source[7:]
             elif source.startswith("http://") or source.startswith("https://"):
@@ -129,20 +134,7 @@ class KeyChain(object):
                         except KeyError:
                             self._key[type] = [inst]
                 else: # native format
-                    if type == "rsa":
-                        _key = rsa_load(self.source)
-                    elif type == "ec":
-                        _key = ec_load(self.source)
-                    else: # Assume hmac
-                        _key = open(self.source).read()
-                        type = "hmac"
-
-                    try:
-                        self._key[type].append(_key)
-                    except KeyError:
-                        self._key[type] = [_key]
-
-                self._type = type
+                    self.do_native(type, src_type)
 
         if usage:
             if isinstance(usage, basestring):
@@ -157,11 +149,42 @@ class KeyChain(object):
         self.time_out = 0
         self.cache_time = cache_time
 
+    def do_native(self, type, src_type=""):
+        if type == "rsa":
+            if src_type=="x509":
+                _key = x509_rsa_loads(open(self.source).read())
+                type = "rsa"
+            else:
+                _key = rsa_load(self.source)
+        elif type == "ec":
+            _key = ec_load(self.source)
+        else: # Assume hmac
+            _key = open(self.source).read()
+            type = "hmac"
+
+        try:
+            self._key[type].append(_key)
+        except KeyError:
+            self._key[type] = [_key]
+
     def update(self):
         """
         Reload the key if necessary
+        This is a forced update, will happen even if cache time has not elapsed
         """
-        args = {"allow_redirects": True}
+        if not self.source:
+            return
+
+        # reread everything
+
+        if self.remote is False:
+            self._key = {}
+            self.do_native(self.orig_type, self.src_type)
+            return
+
+        args = {"allow_redirects": True,
+                "verify":self.verify_ssl,
+                "timeout": 5.0}
         if self.etag:
             args["headers"] = {"If-None-Match": self.etag}
 
@@ -181,6 +204,7 @@ class KeyChain(object):
                     _new[typ].append(inst)
                 except KeyError:
                     _new[typ] = [inst]
+
             self._key = _new
 
             try:
@@ -225,7 +249,7 @@ class KeyChain(object):
         """
 
         :param typ: Type of key (rsa, ec, hmac, ..)
-        :param val: The key it self
+        :param val: The key itself
         """
         if val:
             try:
@@ -238,11 +262,19 @@ class KeyChain(object):
             except KeyError:
                 pass
 
+        for key,val in self._key.items():
+            if val == []:
+                del self._key[key]
+
     def __str__(self):
-        return "%s" % self._key
+        if self.remote: # verify that it's not to old
+            if time.time() > self.time_out:
+                self.update()
+
+        return "%s %s" % (self._key, self.usage)
 
 class KeyJar(object):
-    """ A keyjar contains a number of KeyChains """
+    """ A keyjar contains a number of KeyBundles """
 
     def __init__(self, ca_certs=None):
         self.spec2key = {}
@@ -269,7 +301,12 @@ class KeyJar(object):
         :param url: Where can the key/-s be found
         :param src_type: How are the keys packed
         """
-        kc = KeyChain(source=url, src_type=src_type, usage=use)
+
+        if "/localhost:" in url or "/localhost/" in url:
+            kc = KeyBundle(source=url, src_type=src_type, usage=use,
+                           verify_ssl=False)
+        else:
+            kc = KeyBundle(source=url, src_type=src_type, usage=use)
 
         try:
             self.issuer_keys[issuer].append(kc)
@@ -292,17 +329,36 @@ class KeyJar(object):
         :param issuer: Who is responsible for the keys, "" == me
         :return: A possibly empty list of keys
         """
-        res = {}
-        if type:
-            lst = []
-            for kc in self.issuer_keys[issuer]:
-                if use in kc.usage:
-                    lst.extend(kc.get(type))
-            res[type] = lst
+
+        if issuer != "":
+            try:
+                _keys = self.issuer_keys[issuer]
+            except KeyError:
+                if issuer.endswith("/"):
+                    try:
+                        _keys = self.issuer_keys[issuer[:-1]]
+                    except KeyError:
+                        _keys = []
+                else:
+                    try:
+                        _keys = self.issuer_keys[issuer+"/"]
+                    except KeyError:
+                        _keys = []
         else:
-            for kc in self.issuer_keys[issuer]:
-                if use in kc.usage:
-                    res.update(kc.keys())
+            _keys = self.issuer_keys[issuer]
+
+        res = {}
+        if _keys:
+            if type:
+                lst = []
+                for kc in _keys:
+                    if use in kc.usage:
+                        lst.extend(kc.get(type))
+                res[type] = lst
+            else:
+                for kc in _keys:
+                    if use in kc.usage:
+                        res.update(kc.keys())
 
         return res
 
@@ -318,40 +374,24 @@ class KeyJar(object):
     def get_decrypt_key(self, type="", owner=""):
         return self.get("dec", type, owner)
 
-    def provider_keys(self, inst, issuer, replace=True):
-        """
-        Fetch keys from another server
-
-        :param inst: The provider information
-        :param issuer: The provider URL
-        :param replace: If all previously gathered keys from this provider
-            should be replace.
-        :return: Dictionary with usage as key and keys as values
-        """
-
-        logger.debug("loading keys for issuer: %s" % issuer)
-        logger.debug("pcr: %s" % inst)
-
-        for typ in ["jwk", "x509"]:
-            _kc = None
-            for pat, use in URLPAT:
-                spec = pat % typ
-                if spec in inst and inst[spec]:
-                    _kc = self.add(issuer, inst[spec], typ, use)
-                elif use == "enc" and _kc:
-                    _kc.usage.append(use)
-
-        try:
-            logger.debug("keys: %s" % self.issuer_keys[issuer])
-            return self.issuer_keys[issuer]
-        except KeyError:
-            return None
-
     def __contains__(self, item):
         if item in self.issuer_keys:
             return True
         else:
             return False
+
+    def x_keys(self, var, part):
+        _func = getattr(self, "get_%s_key" % var)
+
+        keys = _func(type="", owner=part)
+        for typ, val in _func(type="", owner="").items():
+            if not val:
+                continue
+            try:
+                keys[typ].extend(val)
+            except KeyError:
+                keys[typ] = val
+        return keys
 
     def verify_keys(self, part):
         """
@@ -360,14 +400,17 @@ class KeyJar(object):
         :param part: The other part
         :return: dictionary of keys
         """
+        return self.x_keys("verify", part)
 
-        keys = self.get_verify_key(type="", owner=part)
-        for typ, val in self.get_verify_key(type="", owner="").items():
-            try:
-                keys[typ].extend(val)
-            except KeyError:
-                keys[typ] = val
-        return keys
+    def decrypt_keys(self, part):
+        """
+        Keys for me and someone else.
+
+        :param part: The other part
+        :return: dictionary of keys
+        """
+
+        return self.x_keys("decrypt", part)
 
     def __getitem__(self, issuer):
         return self.issuer_keys[issuer]
@@ -380,6 +423,8 @@ class KeyJar(object):
 
         for kc in kcs:
             kc.remove(type, key)
+            if kc.keys() == {}:
+                self.issuer_keys[issuer].remove(kc)
 
     def update(self, kj):
         for key, val in kj.issuer_keys.items():
@@ -412,26 +457,26 @@ class KeyJar(object):
         logger.debug("loading keys for issuer: %s" % issuer)
         logger.debug("pcr: %s" % pcr)
         if issuer not in self.issuer_keys:
-            self.issuer_keys[issuer] = {}
+            self.issuer_keys[issuer] = []
 
-        if pcr["jwk_url"]:
-            kc_j = self.add(issuer, pcr["jwk_url"], src_type="jwk", use="ver")
+        if "jwk_url" in pcr:
+            bj = self.add(issuer, pcr["jwk_url"], src_type="jwk", use=["ver"])
         else:
-            kc_j = None
-        if pcr["x509_url"]:
-            kc_x = self.add(issuer, pcr["x509_url"], src_type="x509", use="ver")
+            bj = None
+        if "x509_url" in pcr:
+            bx = self.add(issuer, pcr["x509_url"], src_type="x509", use=["ver"])
         else:
-            kc_x = None
-        if pcr["jwk_encryption_url"]:
+            bx = None
+        if "jwk_encryption_url" in pcr:
             self.add(issuer, pcr["jwk_encryption_url"], src_type="jwk",
-                     use="dec")
-        elif kc_j:
-            kc_j.usage.append("dec")
-        if pcr["x509_encryption_url"]:
+                     use=["dec", "enc"])
+        elif bj:
+            bj.usage.extend(["dec", "enc"])
+        if "x509_encryption_url" in pcr:
             self.add(issuer, pcr["x509_encryption_url"], src_type="x509",
-                     use="dec")
-        else:
-            kc_x.usage.append("dec")
+                     use=["dec", "enc"])
+        elif bx:
+            bx.usage.extend(["dec", "enc"])
 
 # =============================================================================
 
@@ -499,7 +544,7 @@ def key_export(baseurl, local_path, vault, keyjar, fqdn="", **kwargs):
 
 
                 rsa_key = rsa_load('%s%s' % (vault_path, "pyoidc"))
-                kc = KeyChain({"rsa": rsa_key}, usage=[usage])
+                kc = KeyBundle({"rsa": rsa_key}, usage=[usage])
                 if usage == "sig":
                     kc.usage.append("ver")
                 elif usage == "enc":
@@ -515,7 +560,7 @@ def key_export(baseurl, local_path, vault, keyjar, fqdn="", **kwargs):
                     _export_filename = "%s%s" % (local_path, _name[0])
 
                     f = open(_export_filename, "w")
-                    f.write(jwk.dumps([rsa_key], usage))
+                    f.write(jwk.dump_jwk([{"key":rsa_key, "use":usage}]))
                     f.close()
 
                     _url = "%s://%s%s" % (part.scheme, part.netloc,
