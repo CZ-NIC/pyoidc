@@ -15,7 +15,7 @@ from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
 
 from oic.oauth2 import rndstr
-from oic.utils.keyio import KeyChain
+from oic.utils.keyio import KeyBundle
 
 __author__ = 'rohe0002'
 
@@ -743,25 +743,32 @@ if __name__ == '__main__':
             config.baseurl = config.baseurl[:-1]
         OAS.baseurl = "%s:%d" % (config.baseurl, args.port)
 
+    LOGGER.info("OC3 server keyjar: %s" % OAS.keyjar)
+
     if not OAS.baseurl.endswith("/"):
         OAS.baseurl += "/"
 
-        try:
-            for type, info in config.keys.items():
-                kc = KeyChain(source=info["key"], usage=["sig", "ver"] )
-                OAS.keyjar[""]=[kc]
-                try:
-                    name = mv_content(info["cert"], "static")
-                    OAS.cert.append(name)
-                except KeyError:
-                    pass
-                try:
-                    new_name = mv_content(info["jwk"], "static")
-                    OAS.jwk.append("%s%s" % (OAS.baseurl, new_name))
-                except KeyError:
-                    pass
-        except Exception, err:
-            OAS.key_setup("static", sig={"format":"jwk", "alg":"rsa"})
+    try:
+        OAS.keyjar[""]=[]
+        for typ, info in config.keys.items():
+            LOGGER.info("OC3 server key init: %s, %s" % (typ, info))
+            kc = KeyBundle(source="file://%s" % info["key"],
+                           usage=["sig", "ver"] )
+            OAS.keyjar[""].append(kc)
+            try:
+                name = mv_content(info["cert"], "static")
+                OAS.cert.append(name)
+            except KeyError:
+                pass
+            try:
+                new_name = mv_content(info["jwk"], "static")
+                OAS.jwk.append("%s%s" % (OAS.baseurl, new_name))
+            except KeyError:
+                pass
+        for b in OAS.keyjar[""]:
+            LOGGER.info("OC3 server keyjar: %s" % b)
+    except Exception, err:
+        OAS.key_setup("static", sig={"format":"jwk", "alg":"rsa"})
 
     OAS.claims_clients = init_claims_clients(config.CLIENT_INFO)
 
