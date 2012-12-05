@@ -766,7 +766,7 @@ if __name__ == '__main__':
             except KeyError:
                 pass
         for b in OAS.keyjar[""]:
-            LOGGER.info("OC3 server keyjar: %s" % b)
+            LOGGER.info("OC3 server keys: %s" % b)
     except Exception, err:
         OAS.key_setup("static", sig={"format":"jwk", "alg":"rsa"})
 
