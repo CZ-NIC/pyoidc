@@ -330,7 +330,9 @@ class KeyJar(object):
         return kc
 
     def __setitem__(self, issuer, val):
-        if not isinstance(val, list):
+        if isinstance(val, basestring):
+            val = [val]
+        elif not isinstance(val, list):
             val = [val]
 
         self.issuer_keys[issuer] = val
@@ -442,7 +444,15 @@ class KeyJar(object):
 
     def update(self, kj):
         for key, val in kj.issuer_keys.items():
-            self.issuer_keys[key] = val
+            if isinstance(val, basestring):
+                val = [val]
+            elif not isinstance(val, list):
+                val = [val]
+
+            try:
+                self.issuer_keys[key].extend(val)
+            except:
+                self.issuer_keys[key] = val
 
     def match_owner(self, url):
         for owner in self.issuer_keys.keys():
