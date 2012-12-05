@@ -188,17 +188,19 @@ class Provider(AProvider):
     def id_token_as_signed_jwt(self, session, loa="2", alg="RS256", code=None,
                                access_token=None, user_info=None):
 
-        logger.debug("Signing alg: %s" % alg)
+        logger.debug("Signing alg: %s [%s]" % (alg, alg2keytype(alg)))
         _idt = self.server.make_id_token(session, loa, self.name, alg, code,
                                          access_token, user_info)
 
         logger.debug("id_token: %s" % _idt.to_dict())
-        logger.debug("client_id: %s" % session["client_id"])
         # My signing key if its RS*, can use client secret if HS*
         if alg.startswith("HS"):
+            logger.debug("client_id: %s" % session["client_id"])
             ckey = self.keyjar.get_signing_key(alg2keytype(alg),
                                                session["client_id"])
         else:
+            for b in self.keyjar[""]:
+                logger.debug("OC3 server keys: %s" % b)
             ckey = self.keyjar.get_signing_key(alg2keytype(alg), "")
         logger.debug("ckey: %s" % ckey)
         _signed_jwt = _idt.to_jwt(key=ckey, algorithm=alg)
@@ -1067,8 +1069,8 @@ class Provider(AProvider):
         try:
             self.keyjar.load_keys(request, client_id)
             try:
-                logger.debug("keys for %s: %s" % (client_id,
-                                                  self.keyjar[client_id]))
+                logger.debug("keys for %s: [%s]" % (client_id,
+                        ",".join(["%s" % x for x in self.keyjar[client_id]])))
             except KeyError:
                 pass
         except Exception, err:
