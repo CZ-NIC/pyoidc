@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#import sys
+
 from oic.utils.keystore import rsa_load
 
 __author__ = 'rohe0002'
@@ -231,8 +231,8 @@ if __name__ == '__main__':
     if "keys" in config:
         for type, info in config["keys"].items():
             _rsa = rsa_load(info["key"])
-            OAS.keystore.add_key(_rsa, type, "sig")
-            OAS.keystore.add_key(_rsa, type, "ver")
+            OAS.keyjar.add_key(_rsa, type, "sig")
+            OAS.keyjar.add_key(_rsa, type, "ver")
             try:
                 OAS.cert.append(info["cert"])
             except KeyError:
