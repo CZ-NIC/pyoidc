@@ -9,8 +9,8 @@ import traceback
 
 from requests import request
 
-from jwkest import jwk
 from jwkest.jwk import x509_rsa_loads
+from jwkest.jwk import dump_jwk
 from jwkest.jwk import loads
 from M2Crypto.util import no_passphrase_callback
 
@@ -560,7 +560,7 @@ def key_export(baseurl, local_path, vault, keyjar, fqdn="", **kwargs):
                     _export_filename = "%s%s" % (local_path, _name[0])
 
                     f = open(_export_filename, "w")
-                    f.write(jwk.dump_jwk([{"key":rsa_key, "use":usage}]))
+                    f.write(dump_jwk([{"key":rsa_key, "use":usage}]))
                     f.close()
 
                     _url = "%s://%s%s" % (part.scheme, part.netloc,
