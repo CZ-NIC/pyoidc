@@ -228,7 +228,7 @@ if __name__ == '__main__':
 
     if "keys" in config:
         for type, info in config["keys"].items():
-            OAS.keyjar.add("", "file://%s" % info["key"], "x509",
+            OAS.keyjar.add("", "file://%s" % info["key"], "key",
                            ["sig", "ver"])
             try:
                 OAS.cert.append(info["cert"])
