@@ -107,6 +107,9 @@ class KeyBundle(object):
         self._key = {}
         self.remote = False
         self.verify_ssl = verify_ssl
+        type = type.lower()
+        src_type = src_type.lower()
+
         if keys:
             self.source = None
             self.orig_type = None
@@ -127,7 +130,7 @@ class KeyBundle(object):
 
             self.src_type = src_type
             if not self.remote: # local file
-                if src_type == "JWK":
+                if src_type == "jwk":
                     for typ, inst in loads(source):
                         try:
                             self._key[type].append(inst)
@@ -150,6 +153,14 @@ class KeyBundle(object):
         self.cache_time = cache_time
 
     def do_native(self, type, src_type=""):
+        """
+        Fetch a local key
+
+        :param type: Type of key
+        :param src_type: How the key is stored
+        """
+        type = type.lower()
+        src_type = src_type.lower()
         if type == "rsa":
             if src_type=="x509":
                 _key = x509_rsa_loads(open(self.source).read())
@@ -231,6 +242,7 @@ class KeyBundle(object):
             self.update()
 
         if typ:
+            typ = typ.lower()
             try:
                 return self._key[typ]
             except KeyError:
@@ -251,6 +263,8 @@ class KeyBundle(object):
         :param typ: Type of key (rsa, ec, hmac, ..)
         :param val: The key itself
         """
+        typ = typ.lower()
+
         if val:
             try:
                 self._key[typ].remove(val)
@@ -263,7 +277,7 @@ class KeyBundle(object):
                 pass
 
         for key,val in self._key.items():
-            if val == []:
+            if val is []:
                 del self._key[key]
 
     def __str__(self):
