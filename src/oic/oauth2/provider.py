@@ -133,7 +133,7 @@ class Provider(object):
         except KeyError:
             return BadRequest("Unknown session identifier")
 
-        _sdb.update(sid, "user_id", dic["login"][0])
+        _sdb.update(sid, "sub", dic["login"][0])
 
         LOG_DEBUG("session[\"authzreq\"] = %s" % session["authzreq"])
         #_log_info( "type: %s" % type(session["authzreq"]))

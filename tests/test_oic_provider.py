@@ -206,7 +206,7 @@ USERDB = {
         "nickname": "Hasse",
         "email": "hans@example.org",
         "verified": False,
-        "user_id": "user"
+        "sub": "user"
     }
 }
 
@@ -284,7 +284,7 @@ def test_server_authorization_endpoint_request():
            "prompt": ["none"]}
 
     req = AuthorizationRequest(**bib)
-    ic = {"claims": {"user_id": { "value":"username" }}}
+    ic = {"claims": {"sub": { "value":"username" }}}
     _keys = server.keyjar.get_signing_key(type="rsa")
     req["request"] = make_openid_request(req, _keys, idtoken_claims=ic,
                                          algorithm="RS256")
@@ -319,7 +319,7 @@ def test_server_authorization_endpoint_id_token():
     sid = sdb.create_authz_session("username", AREQ)
 
     _info = sdb[sid]
-    _user_info = IdToken(iss="https://foo.example.om", user_id="foo",
+    _user_info = IdToken(iss="https://foo.example.om", sub="foo",
                          aud=bib["client_id"], exp=epoch_in_a_while(minutes=10),
                         acr="2", nonce=bib["nonce"])
 
@@ -494,7 +494,7 @@ def test_server_authenticated_2():
 
     assert isinstance(part[2], IdToken)
     assert (part[2].keys(),['acr', 'aud', 'c_hash', 'email', 'exp', 'iss',
-                            'name', 'nickname', 'user_id'])
+                            'name', 'nickname', 'sub'])
 
 def test_server_authenticated_token():
     server = provider_init
@@ -571,7 +571,7 @@ def test_token_endpoint():
     access_grant = _sdb.token(sid=sid)
     _sdb[sid] = {
         "oauth_state": "authz",
-        "user_id": "user_id",
+        "sub": "user_id",
         "authzreq": "",
         "client_id": CLIENT_ID,
         "code": access_grant,
@@ -613,7 +613,7 @@ def test_token_endpoint_unauth():
     access_grant = _sdb.token(sid=sid)
     _sdb[sid] = {
         "oauth_state": "authz",
-        "user_id": "user_id",
+        "sub": "user_id",
         "authzreq": "",
         "client_id": "client_1",
         "code": access_grant,
@@ -716,8 +716,8 @@ def test_userinfo_endpoint():
     resp3 = server.userinfo_endpoint(environ, start_response)
     ident = OpenIDSchema().deserialize(resp3[0], "json")
     print ident.keys()
-    assert _eq(ident.keys(), ['nickname', 'user_id', 'name', 'email'])
-    assert ident["user_id"] == USERDB["user"]["user_id"]
+    assert _eq(ident.keys(), ['nickname', 'sub', 'name', 'email'])
+    assert ident["sub"] == USERDB["user"]["sub"]
 
 def test_check_session_endpoint():
     server = provider_init
@@ -726,7 +726,7 @@ def test_check_session_endpoint():
 #    server.keyjar["number5"] = KeyChain({"hmac":CDB["number5"]["client_secret"]},
 #                                        usage=["ver"])
 
-    session = {"user_id": "UserID", "client_id": "number5"}
+    session = {"sub": "UserID", "client_id": "number5"}
     idtoken = server.id_token_as_signed_jwt(session)
     csr = CheckSessionRequest(id_token=idtoken)
     environ = BASE_ENVIRON.copy()
@@ -736,7 +736,7 @@ def test_check_session_endpoint():
     print info
     idt = IdToken().deserialize(info[0], "json")
     print idt.keys()
-    assert _eq(idt.keys(), ['user_id', 'aud', 'iss', 'acr', 'exp', 'iat'])
+    assert _eq(idt.keys(), ['sub', 'aud', 'iss', 'acr', 'exp', 'iat'])
     assert idt["iss"] == server.name
 
 def test_registration_endpoint():
@@ -842,7 +842,7 @@ def test_registered_redirect_uri_without_query_component():
 
         resp = provider._verify_redirect_uri(areq)
         print resp
-        assert resp == None
+        assert resp is None
 
 def test_registered_redirect_uri_with_query_component():
     provider2 = Provider("FOOP", {}, {}, None, None)
@@ -862,7 +862,7 @@ def test_registered_redirect_uri_with_query_component():
     faulty = [
         "http://example.org/cb",
         "http://example.org/cb/foo",
-        "http://example.org/cb?got=you"
+        "http://example.org/cb?got=you",
         "http://example.org/cb?foo=you"
     ]
     correct = [

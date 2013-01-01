@@ -304,7 +304,7 @@ PREFERENCE2PROVIDER = {
     "id_token_encrypted_response_alg": "id_token_encryption_alg_values_supported",
     "id_token_encrypted_response_enc": "id_token_encryption_enc_values_supported",
     "default_acr": "acrs_supported",
-    "user_id_type": "user_id_types_supported",
+    "subbject_type": "subbject_types_supported",
     "token_endpoint_auth_alg": "token_endpoint_auth_algs_supported",
     #"request_object_signing_alg": "request_object_signing_alg_values_supported
 }
@@ -1243,7 +1243,7 @@ class Server(oauth2.Server):
             _args = user_info.to_dict()
 
         # Make sure that there are no name clashes
-        for key in ["iss", "user_id", "aud", "exp", "acr", "nonce",
+        for key in ["iss", "sub", "aud", "exp", "acr", "nonce",
                     "auth_time"]:
             try:
                 del _args[key]
@@ -1257,7 +1257,7 @@ class Server(oauth2.Server):
         if access_token:
             _args["at_hash"] = jws.left_hash(access_token, halg)
 
-        idt = IdToken(iss=issuer, user_id=session["user_id"],
+        idt = IdToken(iss=issuer, sub=session["sub"],
                       aud = session["client_id"],
                       exp = time_util.epoch_in_a_while(**inawhile), acr=loa,
                       iat = time_util.utc_now(),

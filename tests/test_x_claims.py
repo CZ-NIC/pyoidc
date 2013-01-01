@@ -87,14 +87,14 @@ def test_1():
     cc = ClaimsClient(client_id="client_1")
     cc.client_secret="hemlig"
 
-    req = cc.construct_UserClaimsRequest(request_args={"user_id": "norah",
+    req = cc.construct_UserClaimsRequest(request_args={"sub": "norah",
                                         "claims_names":["gender", "birthdate"]})
 
     print req
     assert req.type() == "UserClaimsRequest"
-    assert _eq(req.keys(),['client_secret', 'claims_names', 'user_id',
+    assert _eq(req.keys(),['client_secret', 'claims_names', 'sub',
                            'client_id'])
-    assert req["user_id"] == "norah"
+    assert req["sub"] == "norah"
     assert req["client_id"] == "client_1"
 
 def test_c2():
@@ -103,7 +103,7 @@ def test_c2():
     cc.userclaims_endpoint = "https://example.com/claims"
     request=UserClaimsRequest
     method = "POST"
-    request_args = {"user_id": "norah", "claims_names":["gender", "birthdate"]}
+    request_args = {"sub": "norah", "claims_names":["gender", "birthdate"]}
 
     cc.request_info(request, method=method, request_args=request_args)
 
@@ -126,7 +126,7 @@ def test_srv2():
     cc = ClaimsClient(client_id="client_1")
     cc.client_secret="hemlig"
 
-    req = cc.construct_UserClaimsRequest(request_args={"user_id": "diana",
+    req = cc.construct_UserClaimsRequest(request_args={"sub": "diana",
                                         "claims_names":["gender", "birthdate"]})
 
     srv = ClaimsServer("name", None, CDB, FUNCTIONS, USERDB)

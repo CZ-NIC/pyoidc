@@ -23,8 +23,8 @@ class ExpiredToken(Exception):
 class WrongTokenType(Exception):
     pass
 
-def pairwise_id(user_id, sector_identifier, seed):
-    return hashlib.sha256("%s%s%s" % (user_id, sector_identifier, seed)).hexdigest()
+def pairwise_id(sub, sector_identifier, seed):
+    return hashlib.sha256("%s%s%s" % (sub, sector_identifier, seed)).hexdigest()
 
 class Crypt():
     def __init__(self, password, mode=AES.MODE_CBC):
@@ -163,13 +163,13 @@ class SessionDB(object):
         (typ, key) = self.token.type_and_key(token)
         return self.update(key, attribute, value)
 
-    def do_userid(self, sid, user_id, sector_id, preferred_id_type):
+    def do_userid(self, sid, sub, sector_id, preferred_id_type):
         old = [""]
         if preferred_id_type == "public":
-            uid = user_id
+            uid = sub
         else:
-            uid = pairwise_id(user_id, sector_id, self.seed)
-            old.append(user_id)
+            uid = pairwise_id(sub, sector_id, self.seed)
+            old.append(sub)
 
         logger.debug("uid: %s, old: %s" % (uid, old))
         self.uid2sid[uid] = sid
@@ -181,28 +181,28 @@ class SessionDB(object):
                 pass
 
         logger.debug("uid2sid: %s" % self.uid2sid)
-        self._db[sid]["local_user_id"] = user_id
-        self._db[sid]["user_id"] = uid
+        self._db[sid]["local_sub"] = sub
+        self._db[sid]["sub"] = uid
 
         return uid
 
-    def create_authz_session(self, user_id, areq, id_token=None, oidreq=None):
+    def create_authz_session(self, sub, areq, id_token=None, oidreq=None):
         """
 
-        :param user_id: Identifier for the user, this is the real identifier
+        :param sub: Identifier for the user, this is the real identifier
         :param areq: The AuthorizationRequest instance
         :param id_token: An IDToken instance
         :param oidreq: An OpenIDRequest instance
         :return: The session identifier, which is the database key
         """
 
-        sid = self.token.key(user=user_id, areq=areq)
+        sid = self.token.key(user=sub, areq=areq)
         access_grant = self.token(sid=sid)
 
         _dic  = {
             "oauth_state": "authz",
-            "local_user_id": user_id,
-            "user_id": user_id,
+            "local_sub": sub,
+            "sub": sub,
             "code": access_grant,
             "code_used": False,
             "authzreq": areq.to_json(),
@@ -232,7 +232,7 @@ class SessionDB(object):
             _dic["oidreq"] = oidreq.to_json()
 
         self._db[sid] = _dic
-        self.uid2sid[user_id] = sid
+        self.uid2sid[sub] = sid
         return sid
 
     def update_to_token(self, token=None, issue_refresh=True, id_token="",
@@ -375,7 +375,7 @@ class SessionDB(object):
     def duplicate(self, sinfo):
         _dic = copy.copy(sinfo)
         areq = AuthorizationRequest().from_json(_dic["authzreq"])
-        sid = self.token.key(user=_dic["user_id"], areq=areq)
+        sid = self.token.key(user=_dic["sub"], areq=areq)
 
         _dic["code"] = self.token(sid=sid)
         _dic["code_used"] = False
@@ -389,5 +389,5 @@ class SessionDB(object):
                 pass
 
         self._db[sid] = _dic
-        self.uid2sid[_dic["user_id"]] = sid
+        self.uid2sid[_dic["sub"]] = sid
         return sid

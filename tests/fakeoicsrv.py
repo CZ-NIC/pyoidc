@@ -94,9 +94,9 @@ class MyFakeOICServer(Server):
 
     def authorization_endpoint(self, query):
         req = self.parse_authorization_request(query=query)
-        sid = self.sdb.create_authz_session(user_id="user", areq=req)
+        sid = self.sdb.create_authz_session(sub="user", areq=req)
         _info = self.sdb[sid]
-        _info["user_id"] = _info["local_user_id"]
+        _info["sub"] = _info["local_sub"]
 
         if "code" in req["response_type"]:
             if "token" in req["response_type"]:

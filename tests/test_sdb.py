@@ -144,15 +144,15 @@ def test_create_authz_session_with_sector_id():
     print info_1
     assert "id_token" not in info_1
     assert "oidreq" in info_1
-    assert info_1["user_id"] != "user_id"
-    user_id1 = info_1["user_id"]
+    assert info_1["sub"] != "user_id"
+    user_id1 = info_1["sub"]
 
     sdb.do_userid(sid5, uid, "http://example.net/si.jwt", "pairwise")
 
     info_2 = sdb[sid5]
     print info_2
-    assert info_2["user_id"] != "user_id"
-    assert info_2["user_id"] != user_id1
+    assert info_2["sub"] != "user_id"
+    assert info_2["sub"] != user_id1
 
 def test_update_to_token():
     sdb = SessionDB()
@@ -163,7 +163,7 @@ def test_update_to_token():
     print _dict.keys()
     assert _eq(_dict.keys(), ['code', 'oauth_state', 'issued', 'expires_at',
                               'token_type', 'client_id', 'authzreq',
-                              'refresh_token', 'local_user_id', 'user_id',
+                              'refresh_token', 'local_sub', 'sub',
                               'access_token', 'expires_in', 'state',
                               'redirect_uri', 'code_used', 'scope',
                               'access_token_scope', 'revoked'])
@@ -180,7 +180,7 @@ def test_update_to_token():
     print _dict.keys()
     assert _eq(_dict.keys(), ['code', 'oauth_state', 'issued', 'expires_at',
                               'token_type', 'client_id', 'authzreq',
-                              'refresh_token', 'local_user_id', 'user_id',
+                              'refresh_token', 'local_sub', 'sub',
                               'oidreq', 'access_token', 'expires_in', 'state',
                               'redirect_uri', 'code_used', 'id_token',
                               'scope', 'access_token_scope', 'revoked'])

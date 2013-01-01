@@ -31,7 +31,7 @@ from oic.utils.http_util import Response, Unauthorized
 logger = logging.getLogger(__name__)
 
 class UserClaimsRequest(Message):
-    c_param = {"user_id": SINGLE_REQUIRED_STRING,
+    c_param = {"sub": SINGLE_REQUIRED_STRING,
                "client_id": SINGLE_REQUIRED_STRING,
                "client_secret": SINGLE_REQUIRED_STRING,
                "claims_names": REQUIRED_LIST_OF_STRINGS}
@@ -143,14 +143,14 @@ class ClaimsServer(Provider):
 
         _log_info("User info claims: %s" % uic)
 
-        #oicsrv, userdb, user_id, client_id="", user_info_claims=None
-        info = self.function["userinfo"](self, self.userdb, ucreq["user_id"],
+        #oicsrv, userdb, subject, client_id="", user_info_claims=None
+        info = self.function["userinfo"](self, self.userdb, ucreq["sub"],
                                          ucreq["client_id"],
                                          user_info_claims=uic)
 
         _log_info("User info: %s" % info.to_dict())
 
-        if self.do_aggregation(info, ucreq["user_id"]):
+        if self.do_aggregation(info, ucreq["sub"]):
             cresp = self._aggregation(info)
         else:
             cresp = self._distributed(info)

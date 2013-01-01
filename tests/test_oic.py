@@ -64,7 +64,7 @@ KEYJ = KeyJar()
 KEYJ[""] = [KC_RSA, KC_HMAC_S]
 KEYJ["client_1"] = [KC_HMAC_VS]
 
-IDTOKEN = IdToken(iss="http://oic.example.org/", user_id="user_id",
+IDTOKEN = IdToken(iss="http://oic.example.org/", sub="user_id",
                   aud=CLIENT_ID, exp=utc_time_sans_frac()+86400,
                   nonce="N0nce",
                   iat=time.time())
@@ -451,7 +451,7 @@ class TestOICClient():
         resp = self.client.do_check_session_request(request_args=args)
 
         assert resp.type() == "IdToken"
-        assert _eq(resp.keys(), ['nonce', 'user_id', 'aud', 'iss', 'exp', 'iat'])
+        assert _eq(resp.keys(), ['nonce', 'sub', 'aud', 'iss', 'exp', 'iat'])
 
     def test_do_end_session_request(self):
         self.client.redirect_uris = ["https://www.example.com/authz"]
@@ -517,7 +517,7 @@ class TestOICClient():
     def test_openid_request_with_request_2(self):
         areq = self.client.construct_AuthorizationRequest(
             request_args={"scope":"openid", "response_type":["code"]},
-            idtoken_claims={"claims": {"user_id": {"value":"248289761001"}}},
+            idtoken_claims={"claims": {"sub": {"value":"248289761001"}}},
         )
 
         print areq
@@ -1051,7 +1051,7 @@ def test_parse_check_session_request():
     srv.keyjar = KEYJ
     request = srv.parse_check_session_request(query=CSREQ.to_urlencoded())
     assert request.type() == "IdToken"
-    assert _eq(request.keys(),['nonce', 'user_id', 'aud', 'iss', 'exp', 'iat'])
+    assert _eq(request.keys(),['nonce', 'sub', 'aud', 'iss', 'exp', 'iat'])
     assert request["aud"] == "client_1"
 
 def test_parse_end_session_request():
@@ -1088,7 +1088,7 @@ def test_make_id_token():
     srv.keyjar = KEYJ
     srv.keyjar["http://oic.example/rp"] = KC_RSA
 
-    session = {"user_id": "user0",
+    session = {"sub": "user0",
                "client_id": "http://oic.example/rp"}
     issuer= "http://oic.example/idp"
     code = "abcdefghijklmnop"

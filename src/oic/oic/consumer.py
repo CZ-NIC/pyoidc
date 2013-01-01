@@ -137,7 +137,7 @@ IGNORE = ["request2endpoint", "response2error", "grant_class", "token_class"]
 
 CONSUMER_PREF_ARGS =[
     "token_endpoint_auth_type",
-    "user_id_type",
+    "subject_type",
     "require_signed_request_object",
     "userinfo_signed_response_algs",
     "userinfo_encrypted_response_alg",

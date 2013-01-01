@@ -277,7 +277,7 @@ class KeyBundle(object):
                 pass
 
         for key,val in self._key.items():
-            if val is []:
+            if val == []:
                 del self._key[key]
 
     def __str__(self):
