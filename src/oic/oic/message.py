@@ -73,9 +73,6 @@ def srvdir_deser(val, format="urlencoded"):
             format = "json"
     return SWDServiceRedirect().deserialize(val, format)
 
-def keyobj_list_deser(val_list, format="urlencoded"):
-    return [JWKKeyObject().deserialize(val, format) for val in val_list]
-
 def msg_ser(inst, format, lev=0):
     if format in ["urlencoded", "json"]:
         if isinstance(inst, dict) or isinstance(inst, Message):
@@ -132,8 +129,6 @@ OPTIONAL_MULTIPLE_Claims = (Message, False, claims_ser, claims_deser)
 SINGLE_OPTIONAL_USERINFO_CLAIM = (Message, False, msg_ser, userinfo_deser)
 SINGLE_OPTIONAL_ID_TOKEN_CLAIM = (Message, False, msg_ser, idtokenclaim_deser)
 
-REQUIRED_LIST_OF_KEYOBJECTS = ([Message], True, msg_list_ser,
-                                          keyobj_list_deser)
 SINGLE_OPTIONAL_SERVICE_REDIRECT = (Message, True, msg_ser, srvdir_deser)
 SINGLE_OPTIONAL_JWT = (basestring, False, msg_ser, None)
 SINGLE_OPTIONAL_IDTOKEN = (basestring, False, msg_ser, None)
@@ -345,7 +340,7 @@ class AddressClaim(Message):
 
 class OpenIDSchema(Message):
     c_param= {
-            "user_id": SINGLE_OPTIONAL_STRING,
+            "sub": SINGLE_OPTIONAL_STRING,
             "name": SINGLE_OPTIONAL_STRING,
             "given_name": SINGLE_OPTIONAL_STRING,
             "family_name": SINGLE_OPTIONAL_STRING,
@@ -384,7 +379,7 @@ class RegistrationRequest(Message):
             "x509_url": SINGLE_OPTIONAL_STRING,
             "x509_encryption_url": SINGLE_OPTIONAL_STRING,
             "sector_identifier_url": SINGLE_OPTIONAL_STRING,
-            "user_id_type": SINGLE_OPTIONAL_STRING,
+            "subject_type": SINGLE_OPTIONAL_STRING,
             "request_object_signing_alg": SINGLE_OPTIONAL_STRING,
             "userinfo_signed_response_algs": SINGLE_OPTIONAL_STRING,
             "userinfo_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
@@ -396,6 +391,7 @@ class RegistrationRequest(Message):
             "require_auth_time": OPTIONAL_LOGICAL,
             "default_acr":SINGLE_OPTIONAL_STRING,
             "javascript_origin_uris":OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+            "tos_url": SINGLE_OPTIONAL_STRING
             #"client_id": SINGLE_OPTIONAL_STRING,
             #"client_secret": SINGLE_OPTIONAL_STRING,
     }
@@ -404,7 +400,7 @@ class RegistrationRequest(Message):
     c_allowed_values = {
             "type" : ["client_associate", "client_update", "rotate_secret"],
             "application_type": ["native", "web"],
-            "user_id_type": ["public", "pairwise"]
+            "subject_type": ["public", "pairwise"]
         }
 
     def verify(self, **kwargs):
@@ -448,7 +444,7 @@ class ClientRegistrationErrorResponse(message.ErrorResponse):
 class IdToken(OpenIDSchema):
     c_param = OpenIDSchema.c_param.copy()
     c_param.update({"iss": SINGLE_REQUIRED_STRING,
-               "user_id": SINGLE_REQUIRED_STRING,
+               "sub": SINGLE_REQUIRED_STRING,
                "aud": SINGLE_REQUIRED_STRING,
                "exp": SINGLE_REQUIRED_INT,
                "iat": SINGLE_REQUIRED_INT,
@@ -527,8 +523,8 @@ class ProviderConfigurationResponse(Message):
             "registration_endpoint": SINGLE_OPTIONAL_STRING,
             "scopes_supported": OPTIONAL_LIST_OF_STRINGS,
             "response_types_supported": OPTIONAL_LIST_OF_STRINGS,
-            "acrs_supported": OPTIONAL_LIST_OF_STRINGS,
-            "user_id_types_supported": OPTIONAL_LIST_OF_STRINGS,
+            "acr_values_supported": OPTIONAL_LIST_OF_STRINGS,
+            "subbject_types_supported": OPTIONAL_LIST_OF_STRINGS,
             "userinfo_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
             "userinfo_encryption_alg_values_supported":
                                                     OPTIONAL_LIST_OF_STRINGS,
@@ -562,27 +558,6 @@ class ProviderConfigurationResponse(Message):
         return super(self.__class__, self).verify(**kwargs)
 
 
-class JWKKeyObject(Message):
-    c_param = {"algorithm": SINGLE_REQUIRED_STRING,
-               "use": SINGLE_OPTIONAL_STRING, "keyid": SINGLE_OPTIONAL_STRING}
-
-class JWKEllipticKeyObject(JWKKeyObject):
-    c_param = JWKKeyObject.c_param.copy()
-    c_param.update({"curve": SINGLE_REQUIRED_STRING,
-                    "x": SINGLE_OPTIONAL_STRING,
-                    "y": SINGLE_OPTIONAL_STRING})
-
-    c_default = {"algorithm": "EC"}
-
-class JWKRSAKeyObject(JWKKeyObject):
-    c_param = JWKKeyObject.c_param.copy()
-    c_param.update({"exponent": SINGLE_REQUIRED_STRING,
-                    "modulus": SINGLE_OPTIONAL_STRING})
-    c_default = {"algorithm": "RSA"}
-
-class JWKContainerObject(Message):
-    c_param = {"keyvalues": REQUIRED_LIST_OF_KEYOBJECTS}
-
 class IssuerRequest(Message):
     c_param = {"service": SINGLE_REQUIRED_STRING,
                "principal": SINGLE_REQUIRED_STRING}
@@ -598,7 +573,7 @@ class IssuerResponse(Message):
 class AuthnToken(Message):
     c_param = {
             "iss": SINGLE_REQUIRED_STRING,
-            "prn": SINGLE_REQUIRED_STRING,
+            "sub": SINGLE_REQUIRED_STRING,
             "aud": SINGLE_REQUIRED_STRING,
             "jti": SINGLE_REQUIRED_STRING,
             "exp": SINGLE_REQUIRED_INT,
@@ -620,7 +595,7 @@ class ResourceRequest(Message):
     c_param = {"access_token": SINGLE_OPTIONAL_STRING}
 
 SCOPE2CLAIMS = {
-    "openid": ["user_id"],
+    "openid": ["sub"],
     "profile": ["name", "given_name", "family_name", "middle_name",
                 "nickname", "profile", "picture", "website", "gender",
                 "birthday", "zoneinfo", "locale", "updated_time",
@@ -657,10 +632,6 @@ MSG = {
     "IDTokenClaim": IDTokenClaim,
     "OpenIDRequest": OpenIDRequest,
     "ProviderConfigurationResponse": ProviderConfigurationResponse,
-    "JWKKeyObject": JWKKeyObject,
-    "JWKEllipticKeyObject": JWKEllipticKeyObject,
-    "JWKRSAKeyObject": JWKRSAKeyObject,
-    "JWKContainerObject": JWKContainerObject,
     "IssuerRequest": IssuerRequest,
     "SWDServiceRedirect": SWDServiceRedirect,
     "IssuerResponse": IssuerResponse,
