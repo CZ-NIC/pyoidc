@@ -251,9 +251,12 @@ class KeyBundle(object):
             return self._key
 
     def keys(self):
-        if self.remote: # verify that it's not to old
-            if time.time() > self.time_out:
-                self.update()
+        if self._key:
+            if self.remote: # verify that it's not to old
+                if time.time() > self.time_out:
+                    self.update()
+        elif self.remote:
+            self.update()
 
         return self._key
 

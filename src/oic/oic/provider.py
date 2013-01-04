@@ -602,7 +602,14 @@ class Provider(AProvider):
                 #assert bjwt["iss"] == areq["client_id"] # Issuer == the client
 
                 assert str(bjwt["iss"]) in self.cdb # It's a client I know
-                assert str(bjwt["aud"]) == geturl(environ, query=False)
+                # aud can be a string or a list
+                iaud = geturl(environ, query=False)
+                _aud = bjwt["aud"]
+                if isinstance(_aud, basestring):
+                    assert str(_aud) == iaud
+                else:
+                    assert iaud in _aud
+                    
                 return True
             except AssertionError:
                 pass

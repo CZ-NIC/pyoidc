@@ -206,7 +206,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
         if "aud" in self:
             if "client_id" in kwargs:
                 # check that it's for me
-                if self["aud"] != kwargs["client_id"]:
+                if kwargs["client_id"] not in self["aud"]:
                     return False
 
         if "id_token" in self:
@@ -445,7 +445,7 @@ class IdToken(OpenIDSchema):
     c_param = OpenIDSchema.c_param.copy()
     c_param.update({"iss": SINGLE_REQUIRED_STRING,
                "sub": SINGLE_REQUIRED_STRING,
-               "aud": SINGLE_REQUIRED_STRING,
+               "aud": REQUIRED_LIST_OF_STRINGS, # Array of strings or string
                "exp": SINGLE_REQUIRED_INT,
                "iat": SINGLE_REQUIRED_INT,
                "acr": SINGLE_OPTIONAL_STRING,
@@ -457,8 +457,8 @@ class IdToken(OpenIDSchema):
     def verify(self, **kwargs):
         if "aud" in self:
             if "client_id" in kwargs:
-                # check that it's for me
-                if self["aud"] != kwargs["client_id"]:
+                # check that I'm among the recipients
+                if kwargs["client_id"] not in self["aud"]:
                     return False
 
         return super(self.__class__, self).verify(**kwargs)
@@ -503,7 +503,7 @@ class OpenIDRequest(message.AuthorizationRequest):
     c_param.update({"userinfo": SINGLE_OPTIONAL_USERINFO_CLAIM,
                     "id_token_hint": SINGLE_OPTIONAL_ID_TOKEN_CLAIM,
                     "iss": SINGLE_OPTIONAL_STRING,
-                    "aud": SINGLE_OPTIONAL_STRING,
+                    "aud": OPTIONAL_LIST_OF_STRINGS, # Array of strings or string
                     "nonce": SINGLE_OPTIONAL_STRING})
 
 class ProviderConfigurationResponse(Message):
@@ -524,7 +524,7 @@ class ProviderConfigurationResponse(Message):
             "scopes_supported": OPTIONAL_LIST_OF_STRINGS,
             "response_types_supported": OPTIONAL_LIST_OF_STRINGS,
             "acr_values_supported": OPTIONAL_LIST_OF_STRINGS,
-            "subbject_types_supported": OPTIONAL_LIST_OF_STRINGS,
+            "subject_types_supported": OPTIONAL_LIST_OF_STRINGS,
             "userinfo_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
             "userinfo_encryption_alg_values_supported":
                                                     OPTIONAL_LIST_OF_STRINGS,
@@ -574,10 +574,11 @@ class AuthnToken(Message):
     c_param = {
             "iss": SINGLE_REQUIRED_STRING,
             "sub": SINGLE_REQUIRED_STRING,
-            "aud": SINGLE_REQUIRED_STRING,
+            "aud": REQUIRED_LIST_OF_STRINGS, # Array of strings or string
             "jti": SINGLE_REQUIRED_STRING,
             "exp": SINGLE_REQUIRED_INT,
-            "iat": SINGLE_OPTIONAL_INT
+            "iat": SINGLE_OPTIONAL_INT,
+            "azp": SINGLE_OPTIONAL_INT,
         }
 
 class UserInfoErrorResponse(message.ErrorResponse):
@@ -603,6 +604,7 @@ SCOPE2CLAIMS = {
     "email": ["email", "email_verified"],
     "address": ["address"],
     "phone": ["phone_number"],
+    "offline_access": []
 }
 
 MSG = {

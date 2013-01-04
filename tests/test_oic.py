@@ -1052,7 +1052,7 @@ def test_parse_check_session_request():
     request = srv.parse_check_session_request(query=CSREQ.to_urlencoded())
     assert request.type() == "IdToken"
     assert _eq(request.keys(),['nonce', 'sub', 'aud', 'iss', 'exp', 'iat'])
-    assert request["aud"] == "client_1"
+    assert request["aud"] == ["client_1"]
 
 def test_parse_end_session_request():
     srv = Server()
@@ -1063,7 +1063,7 @@ def test_parse_end_session_request():
     assert _eq(request.keys(),['id_token', 'redirect_url', 'state'])
     assert request["state"] == "state0"
 
-    assert request["id_token"]["aud"] == "client_1"
+    assert request["id_token"]["aud"] == ["client_1"]
 
 def test_parse_open_id_request():
     srv = Server()

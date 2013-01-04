@@ -352,6 +352,16 @@ class Message(object):
             return jwkest.pack(self.to_json(lev))
 
 
+    def _add_key(self, keyjar, item, key):
+        try:
+            for t, vs in keyjar.get_verify_key(owner=item).items():
+                try:
+                    key[t].extend(vs)
+                except KeyError:
+                    key[t] = vs
+        except KeyError:
+            pass
+
     def from_jwt(self, txt, key=None, verify=True, keyjar=None, **kwargs):
         """
         Given a signed and/or encrypted JWT, verify its correctness and then
@@ -396,15 +406,13 @@ class Message(object):
                 if verify:
                     if keyjar:
                         for ent in ["iss", "aud", "client_id"]:
-                            try:
-                                for t, vs in keyjar.get_verify_key(
-                                                        owner=jso[ent]).items():
-                                    try:
-                                        key[t].extend(vs)
-                                    except KeyError:
-                                        key[t] = vs
-                            except KeyError:
-                                pass
+                            if ent not in jso:
+                                continue
+                            if ent == "aud":
+                                for _e in jso[ent]:
+                                    self._add_key(keyjar, _e, key)
+                            else:
+                                self._add_key(keyjar, jso[ent], key)
 
                     jws.verify(txt, key)
             except Exception:
@@ -414,6 +422,20 @@ class Message(object):
 
     def __str__(self):
         return self.to_urlencoded()
+
+    def _type_check(self, typ, _allowed, val):
+        if typ is basestring:
+            if val not in _allowed:
+                raise ValueError("Not allowed value '%s'" % val)
+        elif typ is int:
+            if val not in _allowed:
+                raise ValueError("Not allowed value '%s'" % val)
+        elif isinstance(typ, list):
+            if isinstance(val, list): #
+                #_typ = typ[0]
+                for item in val:
+                    if item not in _allowed:
+                        raise ValueError("Not allowed value '%s'" % val)
 
     #noinspection PyUnusedLocal
     def verify(self, **kwargs):
@@ -441,18 +463,19 @@ class Message(object):
             if attribute not in _allowed:
                 continue
 
-            if typ is basestring:
-                if val not in _allowed[attribute]:
+            if isinstance(typ, tuple):
+                _ityp = None
+                for _typ in typ:
+                    try:
+                        self._type_check(_typ, _allowed[attribute], val)
+                        _ityp = _typ
+                        break
+                    except ValueError:
+                        pass
+                if _ityp is None:
                     raise ValueError("Not allowed value '%s'" % val)
-            elif typ is int:
-                if val not in _allowed[attribute]:
-                    raise ValueError("Not allowed value '%s'" % val)
-            elif isinstance(typ, list):
-                if isinstance(val, list): #
-                    _typ = typ[0]
-                    for item in val:
-                        if item not in _allowed[attribute]:
-                            raise ValueError("Not allowed value '%s'" % val)
+            else:
+                self._type_check(typ, _allowed[attribute], val)
 
         return True
 
