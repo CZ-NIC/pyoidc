@@ -609,7 +609,7 @@ class Provider(AProvider):
                     assert str(_aud) == iaud
                 else:
                     assert iaud in _aud
-                    
+
                 return True
             except AssertionError:
                 pass
@@ -1186,7 +1186,7 @@ class Provider(AProvider):
                                                            "redirect_uris",
                                                            "logo_url"])
 
-                print >> sys.stdout, "do_cr > %s" % resp
+                #print >> sys.stdout, "do_cr > %s" % resp
 
                 if isinstance(resp, Response):
                     return resp
