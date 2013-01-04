@@ -1,1 +1,1 @@
-{"jwk": [{"alg": "RSA", "use": "sig", "exp": "QAB", "mod": "NNl_N9hMcVUi43Smikya0KeOo9u7Ed_i6kkhvqJRLLnD9pnmFPcYTyQZfrfFp-vX7snO13JLnLjPfTKYlRHrKS7cJiFLGy7tjt83m_HfP74lCBXZI_aAtRmaKECPQdYNANa1b5lN7zLSE1W9JxNESRNcvL4IoArcqeA4uJAZ8dX"}]}
+{"jwk": [{"kty": "RSA", "use": "sig", "e": "QAB", "n": "NNl_N9hMcVUi43Smikya0KeOo9u7Ed_i6kkhvqJRLLnD9pnmFPcYTyQZfrfFp-vX7snO13JLnLjPfTKYlRHrKS7cJiFLGy7tjt83m_HfP74lCBXZI_aAtRmaKECPQdYNANa1b5lN7zLSE1W9JxNESRNcvL4IoArcqeA4uJAZ8dX"}]}
