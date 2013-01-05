@@ -101,7 +101,7 @@ DEF_SIGN_ALG = { "id_token":"RS256",
 def assertion_jwt(cli, keys, audience, algorithm):
     _now = utc_now()
 
-    at = AuthnToken(iss = cli.client_id, prn = cli.client_id,
+    at = AuthnToken(iss = cli.client_id, sub = cli.client_id,
                     aud = audience, jti = rndstr(8),
                     exp = _now+600, iat = _now)
     return at.to_jwt(key=keys, algorithm=algorithm)
