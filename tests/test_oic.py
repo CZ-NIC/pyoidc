@@ -1118,7 +1118,7 @@ def test_assertion_jwt():
     print at
     header, claim, crypto, header_b64, claim_b64 = unpack(at)
     jso = json.loads(claim)
-    assert _eq(jso.keys(), ["aud", "iss", "prn", "jti", "exp", "iat"])
+    assert _eq(jso.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
 
 def test_client_secret_jwt():
     cli = Client("Foo")
@@ -1133,7 +1133,7 @@ def test_client_secret_jwt():
     cas = cis["client_assertion"]
     header, claim, crypto, header_b64, claim_b64 = unpack(cas)
     jso = json.loads(claim)
-    assert _eq(jso.keys(), ["aud", "iss", "prn", "jti", "exp", "iat"])
+    assert _eq(jso.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
     print header
     assert header == {'alg': 'HS256'}
 
@@ -1148,6 +1148,6 @@ def test_private_key_jwt():
     cas = cis["client_assertion"]
     header, claim, crypto, header_b64, claim_b64 = unpack(cas)
     jso = json.loads(claim)
-    assert _eq(jso.keys(), ["aud", "iss", "prn", "jti", "exp", "iat"])
+    assert _eq(jso.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
     print header
     assert header == {'alg': 'RS256'}
