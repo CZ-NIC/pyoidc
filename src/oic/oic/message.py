@@ -183,7 +183,7 @@ class AccessTokenResponse(message.AccessTokenResponse):
             # replace the JWT with the IdToken instance
             self["id_token"] = idt
 
-        return super(self.__class__, self).verify(**kwargs)
+        return super(AccessTokenResponse, self).verify(**kwargs)
 
 
 class UserInfoRequest(Message):
@@ -248,7 +248,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
 
             self["id_token"] = idt
 
-        return super(self.__class__, self).verify(**kwargs)
+        return super(AuthorizationResponse, self).verify(**kwargs)
 
 class AuthorizationErrorResponse(message.AuthorizationErrorResponse):
     c_allowed_values = message.AuthorizationErrorResponse.c_allowed_values.copy()
@@ -316,7 +316,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
             except AssertionError:
                 raise MissingRequiredAttribute("Nonce missing")
 
-        return super(self.__class__, self).verify(**kwargs)
+        return super(AuthorizationRequest, self).verify(**kwargs)
 
 class AccessTokenRequest(message.AccessTokenRequest):
     c_param = message.AccessTokenRequest.c_param.copy()
@@ -369,13 +369,14 @@ class OpenIDSchema(Message):
         if "birthdate" in self:
             # Either YYYY-MM-DD or just YYYY
             try:
-                t = time.strftime(self["birthdate"], "%Y-%m-%d")
+                _ = time.strftime(self["birthdate"], "%Y-%m-%d")
             except ValueError:
                 try:
-                    t = time.strftime(self["birthdate"], "%Y")
+                    _ = time.strftime(self["birthdate"], "%Y")
                 except ValueError:
                     raise VerificationError("Birthdate format error")
 
+        return super(OpenIDSchema, self).verify(**kwargs)
 
 class RegistrationRequest(Message):
     c_param = {
@@ -433,7 +434,7 @@ class RegistrationRequest(Message):
                     if param in self:
                         return False
 
-        return super(self.__class__, self).verify(**kwargs)
+        return super(RegistrationRequest, self).verify(**kwargs)
 
 class RegistrationResponseCARS(Message):
     """
@@ -475,7 +476,7 @@ class IdToken(OpenIDSchema):
                 if kwargs["client_id"] not in self["aud"]:
                     return False
 
-        return super(self.__class__, self).verify(**kwargs)
+        return super(IdToken, self).verify(**kwargs)
 
 class RefreshSessionRequest(Message):
     c_param = {"id_token": SINGLE_REQUIRED_STRING,
@@ -569,7 +570,7 @@ class ProviderConfigurationResponse(Message):
             for scope in self["scopes_supported"]:
                 check_char_set(scope, SCOPE_CHARSET)
 
-        return super(self.__class__, self).verify(**kwargs)
+        return super(ProviderConfigurationResponse, self).verify(**kwargs)
 
 
 class IssuerRequest(Message):
