@@ -1,3 +1,5 @@
+import time
+
 __author__ = 'rohe0002'
 
 import urllib
@@ -352,7 +354,7 @@ class OpenIDSchema(Message):
             "email": SINGLE_OPTIONAL_STRING,
             "email_verified": SINGLE_OPTIONAL_BOOLEAN,
             "gender": SINGLE_OPTIONAL_STRING,
-            "birthday": SINGLE_OPTIONAL_STRING,
+            "birthdate": SINGLE_OPTIONAL_STRING,
             "zoneinfo": SINGLE_OPTIONAL_STRING,
             "locale": SINGLE_OPTIONAL_STRING,
             "phone_number": SINGLE_OPTIONAL_STRING,
@@ -362,6 +364,18 @@ class OpenIDSchema(Message):
             "_claim_names": SINGLE_OPTIONAL_JSON,
             "_claim_sources": SINGLE_OPTIONAL_JSON,
         }
+
+    def verify(self, **kwargs):
+        if "birthdate" in self:
+            # Either YYYY-MM-DD or just YYYY
+            try:
+                t = time.strftime(self["birthdate"], "%Y-%m-%d")
+            except ValueError:
+                try:
+                    t = time.strftime(self["birthdate"], "%Y")
+                except ValueError:
+                    raise VerificationError("Birthdate format error")
+
 
 class RegistrationRequest(Message):
     c_param = {
@@ -599,7 +613,7 @@ SCOPE2CLAIMS = {
     "openid": ["sub"],
     "profile": ["name", "given_name", "family_name", "middle_name",
                 "nickname", "profile", "picture", "website", "gender",
-                "birthday", "zoneinfo", "locale", "updated_time",
+                "birthdate", "zoneinfo", "locale", "updated_time",
                 "preferred_username"],
     "email": ["email", "email_verified"],
     "address": ["address"],
