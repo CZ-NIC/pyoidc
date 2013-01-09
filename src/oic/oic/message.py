@@ -369,10 +369,10 @@ class OpenIDSchema(Message):
         if "birthdate" in self:
             # Either YYYY-MM-DD or just YYYY
             try:
-                _ = time.strftime(self["birthdate"], "%Y-%m-%d")
+                _ = time.strptime(self["birthdate"], "%Y-%m-%d")
             except ValueError:
                 try:
-                    _ = time.strftime(self["birthdate"], "%Y")
+                    _ = time.strptime(self["birthdate"], "%Y")
                 except ValueError:
                     raise VerificationError("Birthdate format error")
 
