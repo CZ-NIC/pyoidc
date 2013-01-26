@@ -190,6 +190,6 @@ class WebFinger(object):
                     return link["href"]
             return None
         elif rsp.status_code in [302,301,307]:
-            return self.discovery_query(rsp.headers["location"])
+            return self.discovery_query(rsp.headers["location"], resource)
         else:
             raise Exception(rsp.status_code)
