@@ -1,11 +1,9 @@
-
 __author__ = 'rohe0002'
 
 import urlparse
 import json
 import logging
 import os
-import requests
 
 from oic.oauth2.message import ErrorResponse
 
@@ -50,6 +48,9 @@ from oic.oic.exception import AccessDenied
 from oic.utils import time_util
 from oic.utils.time_util import utc_now
 
+from oic.utils.webfinger import OIC_ISSUER
+from oic.utils.webfinger import WebFinger
+
 from jwkest import jws
 from jwkest.jws import alg2keytype
 
@@ -87,9 +88,8 @@ REQUEST2ENDPOINT = {
 # -----------------------------------------------------------------------------
 MAX_AUTHENTICATION_AGE = 86400
 JWT_BEARER = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+
 OIDCONF_PATTERN = "%s/.well-known/openid-configuration"
-SWD_PATTERN = "http://%s/.well-known/simple-web-discovery"
-SERVICE_TYPE = "http://openid.net/specs/connect/1.0/issuer"
 
 AUTHN_METHOD = OAUTH2_AUTHN_METHOD.copy()
 
@@ -344,6 +344,8 @@ class Client(oauth2.Client):
         self.client_prefs = client_prefs or {}
         self.behaviour = {"require_signed_request_object":
                                         DEF_SIGN_ALG["openid_request_object"]}
+
+        self.wf = WebFinger(OIC_ISSUER)
 
     def _get_id_token(self, **kwargs):
         try:
@@ -1047,48 +1049,23 @@ class Client(oauth2.Client):
 
         return resp
 
-    def discovery_query(self, uri, principal):
-        try:
-            rsp = self.http_request(uri)
-        except requests.ConnectionError:
-            if uri.startswith("http://"): # switch to https
-                location = "https://%s" % uri[7:]
-                return self.discovery_query(location, principal)
-            else:
-                raise
-
-        if rsp.status_code == 200:
-            result = IssuerResponse().deserialize(rsp.text, "json")
-            if "SWD_service_redirect" in result:
-                _loc = result["SWD_service_redirect"]["location"]
-                _uri = IssuerRequest(service=SERVICE_TYPE,
-                                     principal=principal).request(_loc)
-                return self.discovery_query(_uri, principal)
-            else:
-                return result
-        elif rsp.status_code == 302 or rsp.status_code == 301:
-            return self.discovery_query(rsp.headers["location"], principal)
-        else:
-            raise Exception(rsp.status_code)
-
-    def get_domain(self, principal, idtype="mail"):
+    def normalization(self, principal, idtype="mail"):
         if idtype == "mail":
             (local, domain) = principal.split("@")
+            subject = "acct:%s" % principal
         elif idtype == "url":
             p = urlparse.urlparse(principal)
             domain = p.netloc
+            subject = principal
         else:
             domain = ""
+            subject = principal
 
-        return domain
+        return subject, domain
 
-    def discover(self, principal, idtype="mail"):
-        _loc = SWD_PATTERN % self.get_domain(principal, idtype)
-        uri = IssuerRequest(service=SERVICE_TYPE,
-                            principal=principal).request(_loc)
-
-        result = self.discovery_query(uri, principal)
-        return result["locations"][0]
+    def discover(self, principal):
+        subject, host = self.normalization(principal)
+        return self.wf.discovery_query(host, subject)
 
 #noinspection PyMethodOverriding
 class Server(oauth2.Server):

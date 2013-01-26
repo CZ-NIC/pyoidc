@@ -1,5 +1,3 @@
-import sys
-
 __author__ = 'rohe0002'
 
 import cgi
@@ -58,7 +56,7 @@ class Redirect(Response):
         '</body>\n</html>'
     _status = '302 Found'
 
-    def __call__(self, environ, start_response):
+    def __call__(self, environ, start_response, **kwargs):
         location = self.message
         self.headers.append(('location', location))
         start_response(self.status, self.headers)
@@ -70,7 +68,7 @@ class SeeOther(Response):
         '</body>\n</html>'
     _status = '303 See Other'
 
-    def __call__(self, environ, start_response):
+    def __call__(self, environ, start_response, **kwargs):
         location = self.message
         self.headers.append(('location', location))
         start_response(self.status, self.headers)

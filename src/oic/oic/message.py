@@ -380,14 +380,14 @@ class OpenIDSchema(Message):
 
 class RegistrationRequest(Message):
     c_param = {
-            "type": SINGLE_REQUIRED_STRING,
+            "operation": SINGLE_REQUIRED_STRING,
             "redirect_uris": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
             "application_type": SINGLE_OPTIONAL_STRING,
             "access_token": SINGLE_OPTIONAL_STRING,
             "contacts": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-            "application_name": SINGLE_OPTIONAL_STRING,
+            "client_name": SINGLE_OPTIONAL_STRING,
             "logo_url": SINGLE_OPTIONAL_STRING,
-            "token_endpoint_auth_type": SINGLE_OPTIONAL_STRING,
+            "token_endpoint_auth_method": SINGLE_OPTIONAL_STRING,
             "policy_url": SINGLE_OPTIONAL_STRING,
             "jwk_url": SINGLE_OPTIONAL_STRING,
             "jwk_encryption_url": SINGLE_OPTIONAL_STRING,
@@ -413,13 +413,13 @@ class RegistrationRequest(Message):
 
     c_default = {"application_type": "web"}
     c_allowed_values = {
-            "type" : ["client_associate", "client_update", "rotate_secret"],
+            "type" : ["register", "client_update", "rotate_secret"],
             "application_type": ["native", "web"],
             "subject_type": ["public", "pairwise"]
         }
 
     def verify(self, **kwargs):
-        if self["type"] == "client_associate":
+        if self["type"] == "register":
             if not "redirect_uris" in self or not self["redirect_uris"]:
                 return False
         elif self["type"] == "rotate_secret":
@@ -556,12 +556,16 @@ class ProviderConfigurationResponse(Message):
                                                     OPTIONAL_LIST_OF_STRINGS,
             "request_object_encryption_enc_values_supported":
                                                     OPTIONAL_LIST_OF_STRINGS,
-            "token_endpoint_auth_types_supported": OPTIONAL_LIST_OF_STRINGS,
+            "token_endpoint_auth_methods_supported": OPTIONAL_LIST_OF_STRINGS,
             "token_endpoint_auth_signing_alg_values_supported":
-                                                    OPTIONAL_LIST_OF_STRINGS
+                                                    OPTIONAL_LIST_OF_STRINGS,
+            "display_values_supported": OPTIONAL_LIST_OF_STRINGS,
+            "claim_types_supported": OPTIONAL_LIST_OF_STRINGS,
+            "claims_supported": OPTIONAL_LIST_OF_STRINGS,
+            "service_documentation": SINGLE_OPTIONAL_STRING
             }
     c_default = {"version": "3.0",
-                 "token_endpoint_auth_types_supported":"client_secret_basic",
+                 "token_endpoint_auth_methods_supported":"client_secret_basic",
                  "request_object_signing_alg_values_supported": "RS256"}
 
     def verify(self, **kwargs):

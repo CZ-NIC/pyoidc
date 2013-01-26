@@ -32,7 +32,7 @@ TIME_FORMAT_WITH_FRAGMENT = re.compile(
     "^(\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2})\.\d*Z$")
 
 # ---------------------------------------------------------------------------
-#I'm sure this is implemeted somewhere else cann't find it now though, so I
+#I am sure this is implemented somewhere else can't find it now though, so I
 #made an attempt.
 #Implemented according to 
 #http://www.w3.org/TR/2001/REC-xmlschema-2-20010502/
