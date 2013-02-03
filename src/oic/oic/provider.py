@@ -999,6 +999,7 @@ class Provider(AProvider):
             ignore = []
 
         _cinfo = self.cdb[client_id].copy()
+        logger.debug("_cinfo: %s" % _cinfo)
 
         for key,val in request.items():
             if key not in ignore:
@@ -1203,7 +1204,7 @@ class Provider(AProvider):
         else:
             return BadRequest("Unknown request type: %s" % request.type)
 
-        logger.debug("Cinfo: %s" % _cinfo)
+        logger.debug("_cinfo: %s" % _cinfo)
         # Add the key to the keyjar
         if client_secret:
             _kc = KeyBundle({"hmac": client_secret}, usage=["ver","sig"])
@@ -1221,8 +1222,18 @@ class Provider(AProvider):
         self.cdb[client_id] = _cinfo
         _log_info("Client info: %s" % _cinfo)
 
-        if self.test_mode:
-            _log_info("registration_response: %s" % response.to_dict())
+        if request["operation"] != "rotate_secret":
+            for key in response.c_param.keys():
+                if key not in response:
+                    if key == "redirect_uris":
+                        response[key] = [construct_uri(c) for c in _cinfo[key]]
+                    else:
+                        try:
+                            response[key] = _cinfo[key]
+                        except KeyError:
+                            pass
+
+        logger.debug("registration_response: %s" % response.to_dict())
 
         return Response(response.to_json(), content="application/json",
                         headers=[("Cache-Control", "no-store")])
@@ -1277,8 +1288,8 @@ class Provider(AProvider):
                 self.baseurl += "/"
 
             #keys = self.keyjar.keys_by_owner(owner=".")
-            #for cert in self.cert:
-            #    _response["x509_url"] = "%s%s" % (self.baseurl, cert)
+            if self.cert:
+                _response["x509_url"] = self.cert
 
             if self.jwk:
                 _response["jwk_url"] = self.jwk

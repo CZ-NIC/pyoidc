@@ -757,7 +757,7 @@ if __name__ == '__main__':
             OAS.keyjar[""].append(kc)
             try:
                 name = mv_content(info["cert"], "static")
-                OAS.cert.append(name)
+                OAS.cert.append("%s%s" % (OAS.baseurl, name))
             except KeyError:
                 pass
             try:

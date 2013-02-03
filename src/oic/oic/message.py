@@ -447,29 +447,16 @@ class RegistrationRequest(Message):
         return super(RegistrationRequest, self).verify(**kwargs)
 
 class RotateSecret(Message):
-    c_param = {"operation": SINGLE_REQUIRED_STRING}
-    c_param.update(RRCP)
-    c_param["redirect_uris"] = OPTIONAL_LIST_OF_SP_SEP_STRINGS
-    c_default = {"application_type": "web"}
+    # no optional parameters other than access_token may
+    # be included in the request.
+    c_param = {
+        "operation": SINGLE_REQUIRED_STRING,
+        "access_token": SINGLE_OPTIONAL_STRING,
+        }
     c_allowed_values = {
         "operation" : ["rotate_secret"],
-        "application_type": ["native", "web"],
-        "subject_type": ["public", "pairwise"]
     }
 
-    def verify(self, **kwargs):
-        # no optional parameters other than access_token may
-        # be included in the request.
-        for param, spec in self.c_param.items():
-            if param == "access_token":
-                continue
-            elif spec in REQUIRED:
-                continue
-            else:
-                if param in self:
-                    return False
-
-        return Message.verify(self, **kwargs)
 
 class RegistrationResponseCR(Message):
     """
@@ -487,9 +474,9 @@ class RegistrationResponseRS(Message):
     Response to rotate_secret request
     """
     c_param = {"client_id": SINGLE_REQUIRED_STRING,
-                    "client_secret": SINGLE_OPTIONAL_STRING,
-                    "registration_access_token": SINGLE_REQUIRED_STRING,
-                    "expires_at": SINGLE_REQUIRED_INT}
+               "client_secret": SINGLE_OPTIONAL_STRING,
+               "registration_access_token": SINGLE_REQUIRED_STRING,
+               "expires_at": SINGLE_REQUIRED_INT}
 
 class RegistrationResponseCU(RegistrationRequest):
     """
@@ -704,7 +691,8 @@ MSG = {
     "UserInfoErrorResponse": UserInfoErrorResponse,
     "DiscoveryRequest": DiscoveryRequest,
     "DiscoveryResponse": DiscoveryResponse,
-    "ResourceRequest": ResourceRequest
+    "ResourceRequest": ResourceRequest,
+    "RotateSecret": RotateSecret
 }
 
 def factory(msgtype):

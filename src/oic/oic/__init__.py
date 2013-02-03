@@ -80,6 +80,7 @@ REQUEST2ENDPOINT = {
     "EndSessionRequest": "end_session_endpoint",
     "RefreshSessionRequest": "refresh_session_endpoint",
     "RegistrationRequest": "registration_endpoint",
+    "RotateSecret": "registration_endpoint",
     # ---
     "ResourceRequest": "resource_endpoint"
 }
@@ -545,6 +546,12 @@ class Client(oauth2.Client):
 
         return self._id_token_based(request, request_args, extra_args, 
                                     **kwargs)
+
+    def construct_RotateSecret(self, request=RotateSecret, request_args=None,
+                               extra_args=None, **kwargs):
+
+        return self.construct_request(request, request_args, extra_args)
+
 
     # ------------------------------------------------------------------------
 
