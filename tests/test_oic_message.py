@@ -15,8 +15,6 @@ from oic.oic.message import AddressClaim
 from oic.oic.message import address_deser
 from oic.oic.message import Claims
 from oic.oic.message import idtokenclaim_deser
-from oic.oic.message import SWDServiceRedirect
-from oic.oic.message import IssuerResponse
 
 def _eq(l1, l2):
     return set(l1) == set(l2)
@@ -47,13 +45,6 @@ def test_ProviderConfigurationResponse():
     assert _eq(pcr["user_id_types_supported"], ["public", "pairwise"])
     assert _eq(pcr["acrs_supported"], ["1", "2",
                                     "http://id.incommon.org/assurance/bronze"])
-
-def test_iss():
-    swd = SWDServiceRedirect(location="https://example.net")
-    ir = IssuerResponse(SWD_service_redirect=swd)
-    res = ir.serialize(method="json")
-
-    assert res == '{"SWD_service_redirect": {"location": "https://example.net"}}'
 
 
 def test_idtokenclaim_deser():
@@ -153,13 +144,13 @@ def test_claims_ser_urlencoded_dict():
     pass
 
 def test_registration_request():
-    req = RegistrationRequest(type="client_associate", default_max_age=10,
+    req = RegistrationRequest(operation="register", default_max_age=10,
                               require_auth_time=True, default_acr="foo",
                               application_type="web",
                               redirect_uris=["https://example.com/authz_cb"])
     js = req.to_json()
     print js
-    assert js == '{"redirect_uris": "https://example.com/authz_cb", "application_type": "web", "default_acr": "foo", "require_auth_time": true, "default_max_age": 10, "type": "client_associate"}'
+    assert js == '{"redirect_uris": "https://example.com/authz_cb", "application_type": "web", "default_acr": "foo", "require_auth_time": true, "operation": "register", "default_max_age": 10}'
     ue = req.to_urlencoded()
     print ue
-    assert ue == 'redirect_uris=https%3A%2F%2Fexample.com%2Fauthz_cb&application_type=web&default_acr=foo&require_auth_time=True&default_max_age=10&type=client_associate'
+    assert ue == 'redirect_uris=https%3A%2F%2Fexample.com%2Fauthz_cb&application_type=web&default_acr=foo&require_auth_time=True&operation=register&default_max_age=10'

@@ -427,7 +427,7 @@ class TestOICClient():
         resp = self.client.do_user_info_request(state=self.client.state,
                                                 schema=["openid"])
         assert resp.type() == "OpenIDSchema"
-        assert _eq(resp.keys(), ['name', 'email', 'verified', 'nickname'])
+        assert _eq(resp.keys(), ['name', 'email', 'verified', 'nickname', 'sub'])
         assert resp["name"] == "Melody Gardot"
 
     def test_do_access_token_refresh(self):
@@ -471,14 +471,17 @@ class TestOICClient():
     def test_do_registration_request(self):
         self.client.registration_endpoint = "https://example.org/registration"
 
-        args = {"type":"client_associate",
+        args = {"operation":"register",
                 "application_type": "web",
                 "application_name": "my service",
                 "redirect_uri": "http://example.com/authz"}
         resp = self.client.do_registration_request(request_args=args)
         print resp
-        assert _eq(resp.keys(),['client_secret', 'expires_at', 'client_id',
-                                'registration_access_token'])
+        print resp.keys()
+        assert _eq(resp.keys(),['redirect_uris', u'redirect_uri',
+                                'application_type', 'expires_at',
+                                'registration_access_token', 'client_id',
+                                'application_name', 'client_secret'])
 
     def test_do_user_info_request_with_access_token_refresh(self):
         self.client.userinfo_endpoint = "http://oic.example.org/userinfo"
@@ -489,7 +492,8 @@ class TestOICClient():
         resp = self.client.do_user_info_request(state=self.client.state,
                                                 schema=["openid"])
         assert resp.type() == "OpenIDSchema"
-        assert _eq(resp.keys(), ['name', 'email', 'verified', 'nickname'])
+        assert _eq(resp.keys(), ['name', 'email', 'verified', 'nickname',
+                                 'sub'])
         assert resp["name"] == "Melody Gardot"
 
     def test_openid_request_with_request_1(self):
@@ -952,7 +956,7 @@ UIREQ = UserInfoRequest(access_token="access_token", schema="openid")
 REGREQ = RegistrationRequest(contacts=["roland.hedberg@adm.umu.se"],
                              redirect_uris=["http://example.org/jqauthz"],
                              application_name="pacubar", client_id=CLIENT_ID,
-                             type="client_associate", application_type="web")
+                             operation="register", application_type="web")
 
 RSREQ = RefreshSessionRequest(id_token="id_token",
                               redirect_url="http://example.com/authz",
@@ -1029,9 +1033,9 @@ def test_parse_registration_request():
     request = srv.parse_registration_request(data=REGREQ.to_urlencoded())
     assert request.type() == "RegistrationRequest"
     assert _eq(request.keys(),['redirect_uris', 'contacts', 'client_id',
-                               'application_name', 'type', 'application_type'])
+                               'application_name', 'operation', 'application_type'])
     assert request["application_name"] == "pacubar"
-    assert request["type"] == "client_associate"
+    assert request["operation"] == "register"
 
 def test_parse_refresh_session_request():
     srv = Server()

@@ -1,13 +1,12 @@
 #!/usr/bin/env python
+from urlparse import parse_qs
 from jwkest.jws import alg2keytype
 from oic.oauth2.message import by_schema
+from oic.utils.webfinger import WebFinger
 
 __author__ = 'rohe0002'
 
-import urlparse
-
 from oic.utils.sdb import SessionDB
-from oic.utils.time_util import time_sans_frac
 from oic.utils.time_util import utc_time_sans_frac
 
 from oic.oic import Server
@@ -35,7 +34,8 @@ ENDPOINT = {
     "check_session_endpoint":"/check_session",
     "refresh_session_endpoint": "/refresh_session",
     "end_session_endpoint": "/end_session",
-    "registration_endpoint": "/registration"
+    "registration_endpoint": "/registration",
+    "discovery_endpoint": "/discovery"
 }
 
 class MyFakeOICServer(Server):
@@ -46,10 +46,11 @@ class MyFakeOICServer(Server):
         self.client = {}
         self.registration_expires_in = 3600
         self.host = ""
+        self.webfinger = WebFinger()
 
     #noinspection PyUnusedLocal
     def http_request(self, path, method="GET", **kwargs):
-        part = urlparse.urlparse(path)
+        part = urlparse(path)
         path = part[2]
         query = part[4]
         self.host = "%s://%s" % (part.scheme, part.netloc)
@@ -79,14 +80,13 @@ class MyFakeOICServer(Server):
         elif path == ENDPOINT["registration_endpoint"]:
             if method == "POST":
                 response = self.registration_endpoint(kwargs["data"])
-        elif path == "/.well-known/simple-web-discovery":
+        elif path == "/.well-known/webfinger":
             assert method == "GET"
-            response = self.issuer(query)
-        elif path == "/swd_server":
-            assert method == "GET"
-            response = self.swd_server(query)
-        elif path == "/.well-known/openid-configuration"\
-        or path == "/providerconf/.well-known/openid-configuration":
+            qdict = parse_qs(query)
+            response.status_code = 200
+            response.text = self.webfinger.response(qdict["resource"][0],
+                                                    "%s/" % self.name)
+        elif path == "/.well-known/openid-configuration":
             assert method == "GET"
             response = self.openid_conf()
 
@@ -162,6 +162,7 @@ class MyFakeOICServer(Server):
 
         _ = self.parse_user_info_request(data)
         _info = {
+            "sub": "melgar",
             "name": "Melody Gardot",
             "nickname": "Mel",
             "email": "mel@example.com",
@@ -181,16 +182,20 @@ class MyFakeOICServer(Server):
         client_secret = rndstr()
         expires = utc_time_sans_frac() + self.registration_expires_in
         kwargs = {}
-        if req["type"] == "client_associate":
+        if req["operation"] == "register":
             client_id = rndstr(10)
             registration_access_token = rndstr(20)
-            self.client[client_id] = {
+            _client_info = req.to_dict()
+            kwargs.update(_client_info)
+            _client_info.update({
                 "client_secret": client_secret,
                 "info": req.to_dict(),
                 "expires": expires,
                 "registration_access_token": registration_access_token
-            }
+            })
+            self.client[client_id] = _client_info
             kwargs["registration_access_token"] = registration_access_token
+            del kwargs["operation"]
         else:
             client_id = req.client_id
             _cinfo = self.client[req.client_id]
@@ -198,7 +203,7 @@ class MyFakeOICServer(Server):
             _cinfo["client_secret"] = client_secret
             _cinfo["expires"] = expires
 
-        resp = RegistrationResponseCARS(client_id=client_id,
+        resp = RegistrationResponseCR(client_id=client_id,
                             client_secret=client_secret,
                             expires_at=expires,
                             **kwargs)
@@ -227,7 +232,7 @@ class MyFakeOICServer(Server):
         except Exception:
             raise
 
-        resp = RegistrationResponseCARS(client_id="anonymous",
+        resp = RegistrationResponseRS(client_id="anonymous",
                                     client_secret="hemligt")
 
         response = Response()
@@ -256,50 +261,12 @@ class MyFakeOICServer(Server):
     def add_credentials(self, user, passwd):
         return
 
-    def issuer(self, query):
-        request = self.parse_issuer_request(query)
-        if request["principal"] == "foo@example.com":
-            resp = IssuerResponse(locations="http://example.com/")
-        elif request["principal"] == "bar@example.org":
-            swd = SWDServiceRedirect(location="https://example.net/swd_server")
-            resp = IssuerResponse(SWD_service_redirect=swd,
-                                  expires=time_sans_frac() + 600)
-        else:
-            resp = None
-
-        if resp is None:
-            response = Response()
-            response.status = 401
-            return response, ""
-        else:
-            response = Response()
-            response.headers = {"content-type":"application/json"}
-            response.text = resp.to_json()
-            return response
-
-    def swd_server(self, query):
-        request = self.parse_issuer_request(query)
-        if request["principal"] == "bar@example.org":
-            resp = IssuerResponse(locations="http://example.net/providerconf")
-        else:
-            resp = None
-
-        if resp is None:
-            response = Response()
-            response.status_code = 401
-            response.text = ""
-            return response
-        else:
-            response = Response()
-            response.headers = {"content-type":"application/json"}
-            response.text = resp.to_json()
-            return response
-
     def openid_conf(self):
         endpoint = {}
         for point, path in ENDPOINT.items():
             endpoint[point] = "%s%s" % (self.host, path)
 
+        signing_algs = jws.SIGNER_ALGS.keys()
         resp = ProviderConfigurationResponse(
                                    issuer=self.name,
                                    scopes_supported=["openid", "profile",
@@ -309,6 +276,15 @@ class MyFakeOICServer(Server):
                                                     "code token", "id_token",
                                                     "code id_token",
                                                     "token id_token"],
+                                   subject_types_supported=["pairwise",
+                                                            "public"],
+                                   response_types_supported=["code", "token",
+                                                             "id_token", "code token",
+                                                             "code id_token",
+                                                             "token id_token",
+                                                             "code token id_token"],
+                                   x509_url="http://example.com/oidc/x509.pem",
+                                   id_token_signing_alg_values_supported=signing_algs,
                                    **endpoint)
 
         response = Response()

@@ -33,7 +33,9 @@ class Crypt():
         self.mode = mode
 
     def encrypt(self, text):
-        encryptor = AES.new(self.key, self.mode)
+        # setting iv because the underlying AES module misbehaves
+        # on certain platforms
+        encryptor = AES.new(self.key, self.mode, IV="0"*16)
 
         if len(text) % 16:
             text += ' ' * (16 - len(text) % 16)
@@ -41,7 +43,7 @@ class Crypt():
         return encryptor.encrypt(text)
 
     def decrypt(self, ciphertext):
-        decryptor = AES.new(self.key, self.mode)
+        decryptor = AES.new(self.key, self.mode, IV="0"*16)
         return decryptor.decrypt(ciphertext)
 
 class Token(object):

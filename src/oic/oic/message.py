@@ -1,4 +1,5 @@
 import time
+from urlparse import urlparse
 
 __author__ = 'rohe0002'
 
@@ -68,13 +69,6 @@ def claims_deser(val, format="urlencoded"):
             format = "json"
     return Claims().deserialize(val, format)
 
-def srvdir_deser(val, format="urlencoded"):
-    if format in ["dict", "json"]:
-        if not isinstance(val, basestring):
-            val = json.dumps(val)
-            format = "json"
-    return SWDServiceRedirect().deserialize(val, format)
-
 def msg_ser(inst, format, lev=0):
     if format in ["urlencoded", "json"]:
         if isinstance(inst, dict) or isinstance(inst, Message):
@@ -125,15 +119,24 @@ def claims_ser(val, format="urlencoded", lev=0):
 
     return res
 
+def registration_request_deser(val, format="urlencoded"):
+    if format in ["dict", "json"]:
+        if not isinstance(val, basestring):
+            val = json.dumps(val)
+            format = "json"
+    return RegistrationRequest().deserialize(val, format)
+
 OPTIONAL_ADDRESS = (Message, False, msg_ser, address_deser)
 OPTIONAL_LOGICAL = (bool, False, None, None)
 OPTIONAL_MULTIPLE_Claims = (Message, False, claims_ser, claims_deser)
 SINGLE_OPTIONAL_USERINFO_CLAIM = (Message, False, msg_ser, userinfo_deser)
 SINGLE_OPTIONAL_ID_TOKEN_CLAIM = (Message, False, msg_ser, idtokenclaim_deser)
 
-SINGLE_OPTIONAL_SERVICE_REDIRECT = (Message, True, msg_ser, srvdir_deser)
 SINGLE_OPTIONAL_JWT = (basestring, False, msg_ser, None)
 SINGLE_OPTIONAL_IDTOKEN = (basestring, False, msg_ser, None)
+
+SINGLE_OPTIONAL_REGISTRATION_REQUEST= (Message, False, msg_ser,
+                                       registration_request_deser)
 
 # ----------------------------------------------------------------------------
 
@@ -252,8 +255,10 @@ class AuthorizationResponse(message.AuthorizationResponse,
 
 class AuthorizationErrorResponse(message.AuthorizationErrorResponse):
     c_allowed_values = message.AuthorizationErrorResponse.c_allowed_values.copy()
-    c_allowed_values["error"].extend(["invalid_request_redirect_uri",
-                                      "interaction_required",
+    c_allowed_values["error"].extend(["interaction_required",
+                                      "login_required",
+                                      "session_selection_required",
+                                      "consent_required",
                                       "invalid_request_uri",
                                       "invalid_openid_request_object"])
 
@@ -342,7 +347,7 @@ class AddressClaim(Message):
 
 class OpenIDSchema(Message):
     c_param= {
-            "sub": SINGLE_OPTIONAL_STRING,
+            "sub": SINGLE_REQUIRED_STRING,
             "name": SINGLE_OPTIONAL_STRING,
             "given_name": SINGLE_OPTIONAL_STRING,
             "family_name": SINGLE_OPTIONAL_STRING,
@@ -378,51 +383,53 @@ class OpenIDSchema(Message):
 
         return super(OpenIDSchema, self).verify(**kwargs)
 
-class RegistrationRequest(Message):
-    c_param = {
-            "operation": SINGLE_REQUIRED_STRING,
-            "redirect_uris": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-            "application_type": SINGLE_OPTIONAL_STRING,
-            "access_token": SINGLE_OPTIONAL_STRING,
-            "contacts": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-            "client_name": SINGLE_OPTIONAL_STRING,
-            "logo_url": SINGLE_OPTIONAL_STRING,
-            "token_endpoint_auth_method": SINGLE_OPTIONAL_STRING,
-            "policy_url": SINGLE_OPTIONAL_STRING,
-            "jwk_url": SINGLE_OPTIONAL_STRING,
-            "jwk_encryption_url": SINGLE_OPTIONAL_STRING,
-            "x509_url": SINGLE_OPTIONAL_STRING,
-            "x509_encryption_url": SINGLE_OPTIONAL_STRING,
-            "sector_identifier_url": SINGLE_OPTIONAL_STRING,
-            "subject_type": SINGLE_OPTIONAL_STRING,
-            "request_object_signing_alg": SINGLE_OPTIONAL_STRING,
-            "userinfo_signed_response_algs": SINGLE_OPTIONAL_STRING,
-            "userinfo_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
-            "userinfo_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
-            "id_token_signed_response_algs": SINGLE_OPTIONAL_STRING,
-            "id_token_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
-            "id_token_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
-            "default_max_age": SINGLE_OPTIONAL_INT,
-            "require_auth_time": OPTIONAL_LOGICAL,
-            "default_acr":SINGLE_OPTIONAL_STRING,
-            "javascript_origin_uris":OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-            "tos_url": SINGLE_OPTIONAL_STRING
-            #"client_id": SINGLE_OPTIONAL_STRING,
-            #"client_secret": SINGLE_OPTIONAL_STRING,
-    }
+RRCP = {
+    "redirect_uris": REQUIRED_LIST_OF_SP_SEP_STRINGS,
+    "application_type": SINGLE_OPTIONAL_STRING,
+    "access_token": SINGLE_OPTIONAL_STRING,
+    "contacts": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+    "client_name": SINGLE_OPTIONAL_STRING,
+    "logo_url": SINGLE_OPTIONAL_STRING,
+    "token_endpoint_auth_method": SINGLE_OPTIONAL_STRING,
+    "policy_url": SINGLE_OPTIONAL_STRING,
+    "tos_url": SINGLE_OPTIONAL_STRING,
+    "jwk_url": SINGLE_OPTIONAL_STRING,
+    "jwk_encryption_url": SINGLE_OPTIONAL_STRING,
+    "x509_url": SINGLE_OPTIONAL_STRING,
+    "x509_encryption_url": SINGLE_OPTIONAL_STRING,
+    "sector_identifier_url": SINGLE_OPTIONAL_STRING,
+    "subject_type": SINGLE_OPTIONAL_STRING,
+    "request_object_signing_alg": SINGLE_OPTIONAL_STRING,
+    "userinfo_signed_response_algs": SINGLE_OPTIONAL_STRING,
+    "userinfo_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
+    "userinfo_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
+    "id_token_signed_response_algs": SINGLE_OPTIONAL_STRING,
+    "id_token_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
+    "id_token_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
+    "default_max_age": SINGLE_OPTIONAL_INT,
+    "require_auth_time": OPTIONAL_LOGICAL,
+    "default_acr":SINGLE_OPTIONAL_STRING,
+    "initiate_login_uri":SINGLE_OPTIONAL_STRING,
+    "post_logout_redirect_url":SINGLE_OPTIONAL_STRING,
+    #"client_id": SINGLE_OPTIONAL_STRING,
+    #"client_secret": SINGLE_OPTIONAL_STRING,
+}
 
+class RegistrationRequest(Message):
+    c_param = {"operation": SINGLE_REQUIRED_STRING}
+    c_param.update(RRCP)
     c_default = {"application_type": "web"}
     c_allowed_values = {
-            "type" : ["register", "client_update", "rotate_secret"],
+            "operation" : ["register", "client_update"],
             "application_type": ["native", "web"],
             "subject_type": ["public", "pairwise"]
         }
 
     def verify(self, **kwargs):
-        if self["type"] == "register":
+        if self["operation"] == "register":
             if not "redirect_uris" in self or not self["redirect_uris"]:
                 return False
-        elif self["type"] == "rotate_secret":
+        elif self["operation"] == "rotate_secret":
             # no optional parameters other than access_token may
             # be included in the request.
             for param, spec in self.c_param.items():
@@ -434,40 +441,88 @@ class RegistrationRequest(Message):
                     if param in self:
                         return False
 
+        if "initiate_login_uri" in self:
+            assert self["initiate_login_uri"].startswith("https:")
+
         return super(RegistrationRequest, self).verify(**kwargs)
 
-class RegistrationResponseCARS(Message):
+class RotateSecret(Message):
+    c_param = {"operation": SINGLE_REQUIRED_STRING}
+    c_param.update(RRCP)
+    c_param["redirect_uris"] = OPTIONAL_LIST_OF_SP_SEP_STRINGS
+    c_default = {"application_type": "web"}
+    c_allowed_values = {
+        "operation" : ["rotate_secret"],
+        "application_type": ["native", "web"],
+        "subject_type": ["public", "pairwise"]
+    }
+
+    def verify(self, **kwargs):
+        # no optional parameters other than access_token may
+        # be included in the request.
+        for param, spec in self.c_param.items():
+            if param == "access_token":
+                continue
+            elif spec in REQUIRED:
+                continue
+            else:
+                if param in self:
+                    return False
+
+        return Message.verify(self, **kwargs)
+
+class RegistrationResponseCR(Message):
     """
-    Response to client_associate or rotate_secret registration requests
+    Response to client_register registration requests
+    """
+    c_param = RRCP
+    c_param.update({"client_id": SINGLE_REQUIRED_STRING,
+                    "client_secret": SINGLE_OPTIONAL_STRING,
+                    "registration_access_token": SINGLE_REQUIRED_STRING,
+                    "expires_at": SINGLE_REQUIRED_INT})
+
+
+class RegistrationResponseRS(Message):
+    """
+    Response to rotate_secret request
     """
     c_param = {"client_id": SINGLE_REQUIRED_STRING,
-               "client_secret": SINGLE_OPTIONAL_STRING,
-               "registration_access_token": SINGLE_REQUIRED_STRING,
-               "expires_at": SINGLE_REQUIRED_INT}
+                    "client_secret": SINGLE_OPTIONAL_STRING,
+                    "registration_access_token": SINGLE_REQUIRED_STRING,
+                    "expires_at": SINGLE_REQUIRED_INT}
 
-class RegistrationResponseCU(Message):
+class RegistrationResponseCU(RegistrationRequest):
     """
     Response to client_update registration requests
     """
-    c_param = {"client_id": SINGLE_REQUIRED_STRING}
+    c_param = RRCP
+    c_param.update({"client_id": SINGLE_REQUIRED_STRING})
+
+    def verify(self, **kwargs):
+        return Message.verify(self, **kwargs)
 
 class ClientRegistrationErrorResponse(message.ErrorResponse):
-    c_allowed_values= {"error":["invalid_type", "invalid_client_id",
-                                       "invalid_client_secret",
-                                       "invalid_configuration_parameter"]}
+    c_allowed_values= {"error":["invalid_operation", "invalid_client_id",
+                                "invalid_client_secret",
+                                "invalid_redirect_uri",
+                                "invalid_configuration_parameter"]}
 
 class IdToken(OpenIDSchema):
     c_param = OpenIDSchema.c_param.copy()
-    c_param.update({"iss": SINGLE_REQUIRED_STRING,
-               "sub": SINGLE_REQUIRED_STRING,
-               "aud": REQUIRED_LIST_OF_STRINGS, # Array of strings or string
-               "exp": SINGLE_REQUIRED_INT,
-               "iat": SINGLE_REQUIRED_INT,
-               "acr": SINGLE_OPTIONAL_STRING,
-               "nonce": SINGLE_OPTIONAL_STRING,
-               "auth_time": SINGLE_OPTIONAL_INT,
-               "at_hash": SINGLE_OPTIONAL_STRING,
-               "c_hash": SINGLE_OPTIONAL_STRING})
+    c_param.update({
+        "iss": SINGLE_REQUIRED_STRING,
+        "sub": SINGLE_REQUIRED_STRING,
+        "aud": REQUIRED_LIST_OF_STRINGS, # Array of strings or string
+        "azp": SINGLE_OPTIONAL_STRING,
+        "exp": SINGLE_REQUIRED_INT,
+        "iat": SINGLE_REQUIRED_INT,
+        "acr": SINGLE_OPTIONAL_STRING,
+        "nonce": SINGLE_OPTIONAL_STRING,
+        "auth_time": SINGLE_OPTIONAL_INT,
+        "at_hash": SINGLE_OPTIONAL_STRING,
+        "c_hash": SINGLE_OPTIONAL_STRING,
+        "sub_jwk": SINGLE_OPTIONAL_STRING
+    })
 
     def verify(self, **kwargs):
         if "aud" in self:
@@ -516,36 +571,36 @@ class IDTokenClaim(Message):
 class OpenIDRequest(message.AuthorizationRequest):
     c_param = message.AuthorizationRequest.c_param.copy()
     c_param.update({"userinfo": SINGLE_OPTIONAL_USERINFO_CLAIM,
-                    "id_token_hint": SINGLE_OPTIONAL_ID_TOKEN_CLAIM,
+                    "id_token": SINGLE_OPTIONAL_ID_TOKEN_CLAIM,
                     "iss": SINGLE_OPTIONAL_STRING,
                     "aud": OPTIONAL_LIST_OF_STRINGS, # Array of strings or string
-                    "nonce": SINGLE_OPTIONAL_STRING})
+                    #"nonce": SINGLE_OPTIONAL_STRING,
+                    "registration": SINGLE_OPTIONAL_REGISTRATION_REQUEST})
 
 class ProviderConfigurationResponse(Message):
     c_param = {
-            "version": SINGLE_OPTIONAL_STRING,
-            "issuer": SINGLE_OPTIONAL_STRING,
+            "version": SINGLE_REQUIRED_STRING,
+            "issuer": SINGLE_REQUIRED_STRING,
             "authorization_endpoint": SINGLE_OPTIONAL_STRING,
             "token_endpoint": SINGLE_OPTIONAL_STRING,
             "userinfo_endpoint": SINGLE_OPTIONAL_STRING,
-            "refresh_session_endpoint": SINGLE_OPTIONAL_STRING,
-            "check_session_endpoint": SINGLE_OPTIONAL_STRING,
+            "check_session_iframe": SINGLE_OPTIONAL_STRING,
             "end_session_endpoint": SINGLE_OPTIONAL_STRING,
             "jwk_url": SINGLE_OPTIONAL_STRING,
             "jwk_encryption_url": SINGLE_OPTIONAL_STRING,
-            "x509_url": SINGLE_OPTIONAL_STRING,
+            "x509_url": SINGLE_REQUIRED_STRING,
             "x509_encryption_url": SINGLE_OPTIONAL_STRING,
             "registration_endpoint": SINGLE_OPTIONAL_STRING,
             "scopes_supported": OPTIONAL_LIST_OF_STRINGS,
-            "response_types_supported": OPTIONAL_LIST_OF_STRINGS,
+            "response_types_supported": REQUIRED_LIST_OF_STRINGS,
             "acr_values_supported": OPTIONAL_LIST_OF_STRINGS,
-            "subject_types_supported": OPTIONAL_LIST_OF_STRINGS,
+            "subject_types_supported": REQUIRED_LIST_OF_STRINGS,
             "userinfo_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
             "userinfo_encryption_alg_values_supported":
                                                     OPTIONAL_LIST_OF_STRINGS,
             "userinfo_encryption_enc_values_supported":
                                                     OPTIONAL_LIST_OF_STRINGS,
-            "id_token_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
+            "id_token_signing_alg_values_supported": REQUIRED_LIST_OF_STRINGS,
             "id_token_encryption_alg_values_supported":
                                                     OPTIONAL_LIST_OF_STRINGS,
             "id_token_encryption_enc_values_supported":
@@ -565,8 +620,7 @@ class ProviderConfigurationResponse(Message):
             "service_documentation": SINGLE_OPTIONAL_STRING
             }
     c_default = {"version": "3.0",
-                 "token_endpoint_auth_methods_supported":"client_secret_basic",
-                 "request_object_signing_alg_values_supported": "RS256"}
+                 "token_endpoint_auth_methods_supported":"client_secret_basic"}
 
     def verify(self, **kwargs):
         if "scopes_supported" in self:
@@ -574,20 +628,12 @@ class ProviderConfigurationResponse(Message):
             for scope in self["scopes_supported"]:
                 check_char_set(scope, SCOPE_CHARSET)
 
+        parts = urlparse(self["issuer"])
+        assert parts.scheme == "https"
+        assert not parts.query and not parts.fragment
+
         return super(ProviderConfigurationResponse, self).verify(**kwargs)
 
-
-class IssuerRequest(Message):
-    c_param = {"service": SINGLE_REQUIRED_STRING,
-               "principal": SINGLE_REQUIRED_STRING}
-
-class SWDServiceRedirect(Message):
-    c_param = {"location": SINGLE_REQUIRED_STRING,
-               "expires": SINGLE_OPTIONAL_INT}
-
-class IssuerResponse(Message):
-    c_param = {"locations": OPTIONAL_LIST_OF_STRINGS,
-               "SWD_service_redirect": SINGLE_OPTIONAL_SERVICE_REDIRECT}
 
 class AuthnToken(Message):
     c_param = {
@@ -638,7 +684,8 @@ MSG = {
     "AddressClaim": AddressClaim,
     "OpenIDSchema": OpenIDSchema,
     "RegistrationRequest": RegistrationRequest,
-    "RegistrationResponseCARS" : RegistrationResponseCARS,
+    "RegistrationResponseCR" : RegistrationResponseCR,
+    "RegistrationResponseRS" : RegistrationResponseRS,
     "RegistrationResponseCU" : RegistrationResponseCU,
     "ClientRegistrationErrorResponse": ClientRegistrationErrorResponse,
     "IdToken": IdToken,
@@ -653,9 +700,6 @@ MSG = {
     "IDTokenClaim": IDTokenClaim,
     "OpenIDRequest": OpenIDRequest,
     "ProviderConfigurationResponse": ProviderConfigurationResponse,
-    "IssuerRequest": IssuerRequest,
-    "SWDServiceRedirect": SWDServiceRedirect,
-    "IssuerResponse": IssuerResponse,
     "AuthnToken": AuthnToken,
     "UserInfoErrorResponse": UserInfoErrorResponse,
     "DiscoveryRequest": DiscoveryRequest,

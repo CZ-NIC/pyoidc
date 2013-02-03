@@ -70,7 +70,7 @@ class Base(object):
             except KeyError:
                 continue
 
-            if self.c_param[key] == (list, LINK):
+            if self.c_param[key]["type"] == (list, LINK):
                 sres = []
                 for _val in val:
                     sres.append(_val.dump())
@@ -99,6 +99,9 @@ class Base(object):
     def __len__(self):
         return self._ava.__len__()
 
+    def __contains__(self, item):
+        return item in self._ava
+
 class LINK(Base):
     c_param = {
         "rel": {"type":basestring, "required":True},
@@ -116,6 +119,10 @@ class JRD(Base):
         "properties": {"type":dict, "required":False},
         "links": {"type":(list, LINK), "required":False},
     }
+
+    def __init__(self, dic=None, days=0, seconds=0, minutes=0, hours=0, weeks=0):
+        Base.__init__(self, dic)
+        self.expires_in(days, seconds, minutes, hours, weeks)
 
     def expires_in(self, days=0, seconds=0, minutes=0, hours=0, weeks=0):
         self._exp_days = days
@@ -149,6 +156,9 @@ class WebFinger(object):
         else:
             for val in rel:
                 info.append(("rel", val))
+
+        if base.endswith("/"):
+            base = base[:-1]
 
         return "%s?%s" % (WF_URL % base, urlencode(info))
 
@@ -193,3 +203,12 @@ class WebFinger(object):
             return self.discovery_query(rsp.headers["location"], resource)
         else:
             raise Exception(rsp.status_code)
+
+    def response(self, subject, base):
+        self.jrd = JRD()
+        self.jrd["subject"] = subject
+        link = LINK()
+        link["rel"] = OIC_ISSUER
+        link["href"] = base
+        self.jrd["links"] = [link]
+        return json.dumps(self.jrd.export())

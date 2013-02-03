@@ -7,9 +7,10 @@ import os
 
 from oic.oauth2.message import ErrorResponse
 
-from oic.oic.message import IdToken
+from oic.oic.message import IdToken, RotateSecret
+from oic.oic.message import RegistrationResponseCR
+from oic.oic.message import RegistrationResponseRS
 from oic.oic.message import AuthorizationResponse
-from oic.oic.message import IssuerResponse
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import Claims
 from oic.oic.message import UserInfoClaim
@@ -22,13 +23,11 @@ from oic.oic.message import OpenIDRequest
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import RefreshSessionRequest
 from oic.oic.message import RegistrationResponseCU
-from oic.oic.message import RegistrationResponseCARS
 from oic.oic.message import CheckSessionRequest
 from oic.oic.message import CheckIDRequest
 from oic.oic.message import EndSessionRequest
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import ProviderConfigurationResponse
-from oic.oic.message import IssuerRequest
 from oic.oic.message import AuthnToken
 from oic.oic.message import TokenErrorResponse
 from oic.oic.message import ClientRegistrationErrorResponse
@@ -346,6 +345,7 @@ class Client(oauth2.Client):
                                         DEF_SIGN_ALG["openid_request_object"]}
 
         self.wf = WebFinger(OIC_ISSUER)
+        self.wf.httpd = self
 
     def _get_id_token(self, **kwargs):
         try:
@@ -611,10 +611,11 @@ class Client(oauth2.Client):
             http_args.update(http_args)
 
         if response_cls is None:
-            if request_args["type"] == "client_associate" or \
-               request_args["type"] == "rotate_secret":
-                response_cls = RegistrationResponseCARS
-            else:
+            if request_args["operation"] == "register":
+                response_cls = RegistrationResponseCR
+            elif request_args["operation"] == "rotate_secret":
+                response_cls = RegistrationResponseRS
+            elif request_args["operation"] == "client_update":
                 response_cls = RegistrationResponseCU
 
         response = self.request_and_return(url, response_cls, method, body,
@@ -997,17 +998,17 @@ class Client(oauth2.Client):
             if key not in PREFERENCE2PROVIDER:
                 self.behaviour[key] = val
 
-    def register(self, url, type="client_associate", application_type="web",
+    def register(self, url, operation="register", application_type="web",
                  **kwargs):
-        req = RegistrationRequest(type=type,
+        req = RegistrationRequest(operation=operation,
                                   application_type=application_type)
 
-        if type == "client_update" or type == "rotate_secret":
+        if operation == "client_update" or operation == "rotate_secret":
             req["client_id"] = self.client_id
             req["client_secret"] = self.client_secret
 
         for prop in req.parameters():
-            if prop in ["type", "client_id", "client_secret"]:
+            if prop in ["operation", "client_id", "client_secret"]:
                 continue
 
             try:
@@ -1026,17 +1027,21 @@ class Client(oauth2.Client):
 
         headers = {"content-type": "application/x-www-form-urlencoded"}
 
-        if type == "client_update":
+        if operation == "client_update":
             headers["Authorization"] = "Bearer %s" % self.registration_access_token
 
         rsp = self.http_request(url, "POST", data=req.to_urlencoded(),
                                 headers=headers)
 
         if rsp.status_code == 200:
-            if type == "client_associate" or type == "rotate_secret":
-                rr = RegistrationResponseCARS()
-            else:
+            if operation == "register":
+                rr = RegistrationResponseCR()
+            elif operation == "rotate_secret":
+                rr = RegistrationResponseRS()
+            elif operation == "client_update":
                 rr = RegistrationResponseCU()
+            else:
+                raise Exception("Unkown registration operation")
 
             resp = rr.deserialize(rsp.text, "json")
             self.client_secret = resp["client_secret"]
@@ -1048,6 +1053,30 @@ class Client(oauth2.Client):
             raise Exception("Registration failed: %s" % err.get_json())
 
         return resp
+
+    def rotate_secret(self, url, access_token):
+        req = RotateSecret(operation="rotate_secret", access_token=access_token)
+        req["client_id"] = self.client_id
+        req["client_secret"] = self.client_secret
+
+        headers = {"content-type": "application/x-www-form-urlencoded"}
+        rsp = self.http_request(url, "POST", data=req.to_urlencoded(),
+                                headers=headers)
+
+        if rsp.status_code == 200:
+            rr = RegistrationResponseRS()
+
+            resp = rr.deserialize(rsp.text, "json")
+            self.client_secret = resp["client_secret"]
+            self.client_id = resp["client_id"]
+            self.registration_expires = resp["expires_at"]
+            self.registration_access_token = resp["registration_access_token"]
+        else:
+            err = ErrorResponse().deserialize(rsp.text, "json")
+            raise Exception("Registration failed: %s" % err.get_json())
+
+        return resp
+
 
     def normalization(self, principal, idtype="mail"):
         if idtype == "mail":
@@ -1164,8 +1193,8 @@ class Server(oauth2.Server):
         esr["id_token"] = deser_id_token(self, esr["id_token"])
         return esr
 
-    def parse_issuer_request(self, info, format="urlencoded"):
-        return self._parse_request(IssuerRequest, info, format)
+#    def parse_issuer_request(self, info, format="urlencoded"):
+#        return self._parse_request(IssuerRequest, info, format)
 
     def id_token_claims(self, session):
         """

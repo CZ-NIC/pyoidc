@@ -9,11 +9,12 @@ from oic.utils.keyio import KeyBundle, key_export
 from requests import ConnectionError
 
 from oic.oauth2.message import ErrorResponse, by_schema
-from oic.oic.message import AuthorizationRequest
+from oic.oic.message import AuthorizationRequest, RotateSecret
 from oic.oic.message import IdToken
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import RegistrationResponseCU
-from oic.oic.message import RegistrationResponseCARS
+from oic.oic.message import RegistrationResponseCR
+from oic.oic.message import RegistrationResponseRS
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import AuthorizationErrorResponse
 from oic.oic.message import OpenIDRequest
@@ -1109,6 +1110,9 @@ class Provider(AProvider):
             return query
 
         request = RegistrationRequest().deserialize(query, "urlencoded")
+        if request["operation"] == "rotate_secret":
+            request = RotateSecret().deserialize(query, "urlencoded")
+
         _log_info("registration_request:%s" % request.to_dict())
 
         try:
@@ -1122,7 +1126,7 @@ class Provider(AProvider):
 
         _keyjar = self.server.keyjar
 
-        if request["type"] == "client_associate":
+        if request["operation"] == "register":
             # create new id och secret
             client_id = rndstr(12)
             while client_id in self.cdb:
@@ -1147,11 +1151,11 @@ class Provider(AProvider):
             else:
                 _cinfo = resp
 
-            response = RegistrationResponseCARS(client_id=client_id)
+            response = RegistrationResponseCR(client_id=client_id)
             #if self.debug:
             #    _log_info("KEYSTORE: %s" % self.keyjar._store)
 
-        elif request["type"] in ["client_update", "rotate_secret"]:
+        elif request["operation"] in ["client_update", "rotate_secret"]:
             client_id = _cinfo = None
             if not query or "access_token" not in query:
                 access_token = self._bearer_auth(environ)
@@ -1166,14 +1170,14 @@ class Provider(AProvider):
                 _log_info("Unknown client")
                 return BadRequest()
 
-            if request["type"] == "rotate_secret":
+            if request["operation"] == "rotate_secret":
                 # update secret
                 client_secret = secret(self.seed, client_id)
                 old_secret = _cinfo["client_secret"]
                 _cinfo["client_secret"] = client_secret
 
                 _keyjar.remove_key(client_id, type="hmac", key=old_secret)
-                response = RegistrationResponseCARS(client_id=client_id,
+                response = RegistrationResponseRS(client_id=client_id,
                                     client_secret=client_secret,
                                     registration_access_token=_cinfo[
                                                 "registration_access_token"])
@@ -1208,7 +1212,7 @@ class Provider(AProvider):
             except KeyError:
                 _keyjar[client_id] = [_kc]
 
-            if request["type"] == "client_associate":
+            if request["operation"] == "register":
                 response["registration_access_token"] = _cinfo[
                                                     "registration_access_token"]
             response["client_secret"] = client_secret
