@@ -11,7 +11,6 @@ from oic.oauth2 import message
 from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2 import VerificationError
 from oic.oauth2.message import Message
-from oic.oauth2.message import REQUIRED
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
@@ -383,41 +382,38 @@ class OpenIDSchema(Message):
 
         return super(OpenIDSchema, self).verify(**kwargs)
 
-RRCP = {
-    "redirect_uris": REQUIRED_LIST_OF_SP_SEP_STRINGS,
-    "application_type": SINGLE_OPTIONAL_STRING,
-    "access_token": SINGLE_OPTIONAL_STRING,
-    "contacts": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-    "client_name": SINGLE_OPTIONAL_STRING,
-    "logo_url": SINGLE_OPTIONAL_STRING,
-    "token_endpoint_auth_method": SINGLE_OPTIONAL_STRING,
-    "policy_url": SINGLE_OPTIONAL_STRING,
-    "tos_url": SINGLE_OPTIONAL_STRING,
-    "jwk_url": SINGLE_OPTIONAL_STRING,
-    "jwk_encryption_url": SINGLE_OPTIONAL_STRING,
-    "x509_url": SINGLE_OPTIONAL_STRING,
-    "x509_encryption_url": SINGLE_OPTIONAL_STRING,
-    "sector_identifier_url": SINGLE_OPTIONAL_STRING,
-    "subject_type": SINGLE_OPTIONAL_STRING,
-    "request_object_signing_alg": SINGLE_OPTIONAL_STRING,
-    "userinfo_signed_response_algs": SINGLE_OPTIONAL_STRING,
-    "userinfo_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
-    "userinfo_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
-    "id_token_signed_response_algs": SINGLE_OPTIONAL_STRING,
-    "id_token_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
-    "id_token_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
-    "default_max_age": SINGLE_OPTIONAL_INT,
-    "require_auth_time": OPTIONAL_LOGICAL,
-    "default_acr":SINGLE_OPTIONAL_STRING,
-    "initiate_login_uri":SINGLE_OPTIONAL_STRING,
-    "post_logout_redirect_url":SINGLE_OPTIONAL_STRING,
-    #"client_id": SINGLE_OPTIONAL_STRING,
-    #"client_secret": SINGLE_OPTIONAL_STRING,
-}
-
 class RegistrationRequest(Message):
-    c_param = {"operation": SINGLE_REQUIRED_STRING}
-    c_param.update(RRCP)
+    c_param = {
+        "redirect_uris": REQUIRED_LIST_OF_SP_SEP_STRINGS,
+        "application_type": SINGLE_OPTIONAL_STRING,
+        "access_token": SINGLE_OPTIONAL_STRING,
+        "contacts": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+        "client_name": SINGLE_OPTIONAL_STRING,
+        "logo_url": SINGLE_OPTIONAL_STRING,
+        "token_endpoint_auth_method": SINGLE_OPTIONAL_STRING,
+        "policy_url": SINGLE_OPTIONAL_STRING,
+        "tos_url": SINGLE_OPTIONAL_STRING,
+        "jwk_url": SINGLE_OPTIONAL_STRING,
+        "jwk_encryption_url": SINGLE_OPTIONAL_STRING,
+        "x509_url": SINGLE_OPTIONAL_STRING,
+        "x509_encryption_url": SINGLE_OPTIONAL_STRING,
+        "sector_identifier_url": SINGLE_OPTIONAL_STRING,
+        "subject_type": SINGLE_OPTIONAL_STRING,
+        "request_object_signing_alg": SINGLE_OPTIONAL_STRING,
+        "userinfo_signed_response_algs": SINGLE_OPTIONAL_STRING,
+        "userinfo_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
+        "userinfo_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
+        "id_token_signed_response_algs": SINGLE_OPTIONAL_STRING,
+        "id_token_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
+        "id_token_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
+        "default_max_age": SINGLE_OPTIONAL_INT,
+        "require_auth_time": OPTIONAL_LOGICAL,
+        "default_acr":SINGLE_OPTIONAL_STRING,
+        "initiate_login_uri":SINGLE_OPTIONAL_STRING,
+        "post_logout_redirect_url":SINGLE_OPTIONAL_STRING,
+        #"client_id": SINGLE_OPTIONAL_STRING,
+        #"client_secret": SINGLE_OPTIONAL_STRING,
+    }
     c_default = {"application_type": "web"}
     c_allowed_values = {
             "operation" : ["register", "client_update"],
@@ -426,67 +422,49 @@ class RegistrationRequest(Message):
         }
 
     def verify(self, **kwargs):
-        if self["operation"] == "register":
-            if not "redirect_uris" in self or not self["redirect_uris"]:
-                return False
-        elif self["operation"] == "rotate_secret":
-            # no optional parameters other than access_token may
-            # be included in the request.
-            for param, spec in self.c_param.items():
-                if param == "access_token":
-                    continue
-                elif spec in REQUIRED:
-                    continue
-                else:
-                    if param in self:
-                        return False
-
         if "initiate_login_uri" in self:
             assert self["initiate_login_uri"].startswith("https:")
 
         return super(RegistrationRequest, self).verify(**kwargs)
 
-class RotateSecret(Message):
-    # no optional parameters other than access_token may
-    # be included in the request.
-    c_param = {
-        "operation": SINGLE_REQUIRED_STRING,
-        "access_token": SINGLE_OPTIONAL_STRING,
-        }
-    c_allowed_values = {
-        "operation" : ["rotate_secret"],
-    }
-
-
-class RegistrationResponseCR(Message):
+class RegistrationResponse(Message):
     """
     Response to client_register registration requests
     """
-    c_param = RRCP
-    c_param.update({"client_id": SINGLE_REQUIRED_STRING,
-                    "client_secret": SINGLE_OPTIONAL_STRING,
-                    "registration_access_token": SINGLE_REQUIRED_STRING,
-                    "expires_at": SINGLE_REQUIRED_INT})
-
-
-class RegistrationResponseRS(Message):
-    """
-    Response to rotate_secret request
-    """
-    c_param = {"client_id": SINGLE_REQUIRED_STRING,
-               "client_secret": SINGLE_OPTIONAL_STRING,
-               "registration_access_token": SINGLE_REQUIRED_STRING,
-               "expires_at": SINGLE_REQUIRED_INT}
-
-class RegistrationResponseCU(RegistrationRequest):
-    """
-    Response to client_update registration requests
-    """
-    c_param = RRCP
-    c_param.update({"client_id": SINGLE_REQUIRED_STRING})
-
-    def verify(self, **kwargs):
-        return Message.verify(self, **kwargs)
+    c_param = {
+        "redirect_uris": REQUIRED_LIST_OF_SP_SEP_STRINGS,
+        "application_type": SINGLE_OPTIONAL_STRING,
+        "access_token": SINGLE_OPTIONAL_STRING,
+        "contacts": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+        "client_name": SINGLE_OPTIONAL_STRING,
+        "logo_url": SINGLE_OPTIONAL_STRING,
+        "token_endpoint_auth_method": SINGLE_OPTIONAL_STRING,
+        "policy_url": SINGLE_OPTIONAL_STRING,
+        "tos_url": SINGLE_OPTIONAL_STRING,
+        "jwk_url": SINGLE_OPTIONAL_STRING,
+        "jwk_encryption_url": SINGLE_OPTIONAL_STRING,
+        "x509_url": SINGLE_OPTIONAL_STRING,
+        "x509_encryption_url": SINGLE_OPTIONAL_STRING,
+        "sector_identifier_url": SINGLE_OPTIONAL_STRING,
+        "subject_type": SINGLE_OPTIONAL_STRING,
+        "request_object_signing_alg": SINGLE_OPTIONAL_STRING,
+        "userinfo_signed_response_algs": SINGLE_OPTIONAL_STRING,
+        "userinfo_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
+        "userinfo_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
+        "id_token_signed_response_algs": SINGLE_OPTIONAL_STRING,
+        "id_token_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
+        "id_token_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
+        "default_max_age": SINGLE_OPTIONAL_INT,
+        "require_auth_time": OPTIONAL_LOGICAL,
+        "default_acr":SINGLE_OPTIONAL_STRING,
+        "initiate_login_uri":SINGLE_OPTIONAL_STRING,
+        "post_logout_redirect_url":SINGLE_OPTIONAL_STRING,
+        "client_id": SINGLE_REQUIRED_STRING,
+        "client_secret": SINGLE_OPTIONAL_STRING,
+        "registration_access_token": SINGLE_REQUIRED_STRING,
+        "expires_at": SINGLE_OPTIONAL_INT,
+        "issued_at": SINGLE_OPTIONAL_INT
+    }
 
 class ClientRegistrationErrorResponse(message.ErrorResponse):
     c_allowed_values= {"error":["invalid_operation", "invalid_client_id",
@@ -671,9 +649,7 @@ MSG = {
     "AddressClaim": AddressClaim,
     "OpenIDSchema": OpenIDSchema,
     "RegistrationRequest": RegistrationRequest,
-    "RegistrationResponseCR" : RegistrationResponseCR,
-    "RegistrationResponseRS" : RegistrationResponseRS,
-    "RegistrationResponseCU" : RegistrationResponseCU,
+    "RegistrationResponse" : RegistrationResponse,
     "ClientRegistrationErrorResponse": ClientRegistrationErrorResponse,
     "IdToken": IdToken,
     "RefreshSessionRequest": RefreshSessionRequest,
@@ -692,7 +668,6 @@ MSG = {
     "DiscoveryRequest": DiscoveryRequest,
     "DiscoveryResponse": DiscoveryResponse,
     "ResourceRequest": ResourceRequest,
-    "RotateSecret": RotateSecret
 }
 
 def factory(msgtype):

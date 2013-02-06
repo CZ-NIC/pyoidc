@@ -9,12 +9,10 @@ from oic.utils.keyio import KeyBundle, key_export
 from requests import ConnectionError
 
 from oic.oauth2.message import ErrorResponse, by_schema
-from oic.oic.message import AuthorizationRequest, RotateSecret
+from oic.oic.message import AuthorizationRequest
 from oic.oic.message import IdToken
 from oic.oic.message import OpenIDSchema
-from oic.oic.message import RegistrationResponseCU
-from oic.oic.message import RegistrationResponseCR
-from oic.oic.message import RegistrationResponseRS
+from oic.oic.message import RegistrationResponse
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import AuthorizationErrorResponse
 from oic.oic.message import OpenIDRequest
@@ -1111,8 +1109,6 @@ class Provider(AProvider):
             return query
 
         request = RegistrationRequest().deserialize(query, "urlencoded")
-        if request["operation"] == "rotate_secret":
-            request = RotateSecret().deserialize(query, "urlencoded")
 
         _log_info("registration_request:%s" % request.to_dict())
 
@@ -1127,7 +1123,7 @@ class Provider(AProvider):
 
         _keyjar = self.server.keyjar
 
-        if request["operation"] == "register":
+        if "client_id" not in request:
             # create new id och secret
             client_id = rndstr(12)
             while client_id in self.cdb:
@@ -1152,11 +1148,11 @@ class Provider(AProvider):
             else:
                 _cinfo = resp
 
-            response = RegistrationResponseCR(client_id=client_id)
+            response = RegistrationResponse(client_id=client_id)
             #if self.debug:
             #    _log_info("KEYSTORE: %s" % self.keyjar._store)
 
-        elif request["operation"] in ["client_update", "rotate_secret"]:
+        else:
             client_id = _cinfo = None
             if not query or "access_token" not in query:
                 access_token = self._bearer_auth(environ)
@@ -1166,43 +1162,32 @@ class Provider(AProvider):
 
             try:
                 client_id = self.cdb[access_token]
+                try:
+                    assert client_id == request["client_id"]
+                except AssertionError:
+                    return BadRequest("Mismatch in client_id")
                 _cinfo = self.cdb[client_id].copy()
             except KeyError:
                 _log_info("Unknown client")
                 return BadRequest()
 
-            if request["operation"] == "rotate_secret":
-                # update secret
-                client_secret = secret(self.seed, client_id)
-                old_secret = _cinfo["client_secret"]
-                _cinfo["client_secret"] = client_secret
+            client_secret = None
+            resp = self.do_client_registration(request, client_id,
+                                               ignore=["client_id",
+                                                       "client_secret",
+                                                       "policy_url",
+                                                       "redirect_uris",
+                                                       "logo_url"])
 
-                _keyjar.remove_key(client_id, type="hmac", key=old_secret)
-                response = RegistrationResponseRS(client_id=client_id,
-                                    client_secret=client_secret,
-                                    registration_access_token=_cinfo[
-                                                "registration_access_token"])
-            else: # client_update
-                client_secret = None
-                resp = self.do_client_registration(request, client_id,
-                                                   ignore=["client_id",
-                                                           "client_secret",
-                                                           "policy_url",
-                                                           "redirect_uris",
-                                                           "logo_url"])
+            #print >> sys.stdout, "do_cr > %s" % resp
 
-                #print >> sys.stdout, "do_cr > %s" % resp
-
-                if isinstance(resp, Response):
-                    return resp
-                else:
-                    _cinfo = resp
-                    response = RegistrationResponseCU(client_id=client_id)
+            if isinstance(resp, Response):
+                return resp
+            else:
+                _cinfo = resp
+                response = RegistrationResponse(client_id=client_id)
 
             self.keyjar.load_keys(request, client_id, replace=True)
-
-        else:
-            return BadRequest("Unknown request type: %s" % request.type)
 
         logger.debug("_cinfo: %s" % _cinfo)
         # Add the key to the keyjar

@@ -7,9 +7,8 @@ import os
 
 from oic.oauth2.message import ErrorResponse
 
-from oic.oic.message import IdToken, RotateSecret
-from oic.oic.message import RegistrationResponseCR
-from oic.oic.message import RegistrationResponseRS
+from oic.oic.message import IdToken
+from oic.oic.message import RegistrationResponse
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import Claims
@@ -22,7 +21,6 @@ from oic.oic.message import AuthorizationRequest
 from oic.oic.message import OpenIDRequest
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import RefreshSessionRequest
-from oic.oic.message import RegistrationResponseCU
 from oic.oic.message import CheckSessionRequest
 from oic.oic.message import CheckIDRequest
 from oic.oic.message import EndSessionRequest
@@ -547,11 +545,6 @@ class Client(oauth2.Client):
         return self._id_token_based(request, request_args, extra_args, 
                                     **kwargs)
 
-    def construct_RotateSecret(self, request=RotateSecret, request_args=None,
-                               extra_args=None, **kwargs):
-
-        return self.construct_request(request, request_args, extra_args)
-
 
     # ------------------------------------------------------------------------
 
@@ -618,12 +611,7 @@ class Client(oauth2.Client):
             http_args.update(http_args)
 
         if response_cls is None:
-            if request_args["operation"] == "register":
-                response_cls = RegistrationResponseCR
-            elif request_args["operation"] == "rotate_secret":
-                response_cls = RegistrationResponseRS
-            elif request_args["operation"] == "client_update":
-                response_cls = RegistrationResponseCU
+            response_cls = RegistrationResponse
 
         response = self.request_and_return(url, response_cls, method, body,
                                            body_type, state=state,
@@ -1010,7 +998,7 @@ class Client(oauth2.Client):
         req = RegistrationRequest(operation=operation,
                                   application_type=application_type)
 
-        if operation == "client_update" or operation == "rotate_secret":
+        if operation == "update":
             req["client_id"] = self.client_id
             req["client_secret"] = self.client_secret
 
@@ -1041,39 +1029,7 @@ class Client(oauth2.Client):
                                 headers=headers)
 
         if rsp.status_code == 200:
-            if operation == "register":
-                rr = RegistrationResponseCR()
-            elif operation == "rotate_secret":
-                rr = RegistrationResponseRS()
-            elif operation == "client_update":
-                rr = RegistrationResponseCU()
-            else:
-                raise Exception("Unkown registration operation")
-
-            resp = rr.deserialize(rsp.text, "json")
-            self.client_secret = resp["client_secret"]
-            self.client_id = resp["client_id"]
-            self.registration_expires = resp["expires_at"]
-            self.registration_access_token = resp["registration_access_token"]
-        else:
-            err = ErrorResponse().deserialize(rsp.text, "json")
-            raise Exception("Registration failed: %s" % err.get_json())
-
-        return resp
-
-    def rotate_secret(self, url, access_token):
-        req = RotateSecret(operation="rotate_secret", access_token=access_token)
-        req["client_id"] = self.client_id
-        req["client_secret"] = self.client_secret
-
-        headers = {"content-type": "application/x-www-form-urlencoded"}
-        rsp = self.http_request(url, "POST", data=req.to_urlencoded(),
-                                headers=headers)
-
-        if rsp.status_code == 200:
-            rr = RegistrationResponseRS()
-
-            resp = rr.deserialize(rsp.text, "json")
+            resp = RegistrationResponse().deserialize(rsp.text, "json")
             self.client_secret = resp["client_secret"]
             self.client_id = resp["client_id"]
             self.registration_expires = resp["expires_at"]

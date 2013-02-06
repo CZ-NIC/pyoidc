@@ -8,10 +8,8 @@ from oic.oauth2 import rndstr
 
 from oic.utils.keyio import KeyBundle, KeyJar
 
-from oic.oic.message import AuthorizationRequest, RotateSecret
-from oic.oic.message import RegistrationResponseRS
-from oic.oic.message import RegistrationResponseCU
-from oic.oic.message import RegistrationResponseCR
+from oic.oic.message import AuthorizationRequest
+from oic.oic.message import RegistrationResponse
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AccessTokenRequest
@@ -746,9 +744,9 @@ def test_registration_endpoint():
     req = RegistrationRequest(operation="register")
 
     req["application_type"] = "web"
-    req["application_name"] = "My super service"
+    req["client_name"] = "My super service"
     req["redirect_uris"] = ["http://example.com/authz"]
-    req["contact"] = ["foo@example.com"]
+    req["contacts"] = ["foo@example.com"]
 
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = req.to_urlencoded()
@@ -756,18 +754,20 @@ def test_registration_endpoint():
     resp = server.registration_endpoint(environ, start_response)
 
     print resp
-    regresp = RegistrationResponseCR().deserialize(resp[0], "json")
+    regresp = RegistrationResponse().deserialize(resp[0], "json")
     print regresp.keys()
-    assert _eq(regresp.keys(), ['client_secret', 'registration_access_token',
-                                'client_id', 'expires_at'])
+    assert _eq(regresp.keys(), ['redirect_uris', 'application_type',
+                                'expires_at', 'registration_access_token',
+                                'client_id', 'client_secret', 'client_name',
+                                "contacts"])
 
     # --- UPDATE ----
 
     req = RegistrationRequest(operation="client_update")
     req["application_type"] = "web"
-    req["application_name"] = "My super duper service"
+    req["client_name"] = "My super duper service"
     req["redirect_uris"] = ["http://example.com/authz"]
-    req["contact"] = ["foo@example.com"]
+    req["contacts"] = ["foo@example.com"]
 
     environ = BASE_ENVIRON.copy()
     environ["QUERY_STRING"] = req.to_urlencoded()
@@ -776,26 +776,13 @@ def test_registration_endpoint():
     resp = server.registration_endpoint(environ, start_response)
 
     print resp
-    update = RegistrationResponseCU().deserialize(resp[0], "json")
+    update = RegistrationResponse().deserialize(resp[0], "json")
     print update.keys()
-    assert _eq(update.keys(), ['application_type', 'client_id'])
+    assert _eq(update.keys(), ['redirect_uris', 'application_type',
+                               'expires_at', 'registration_access_token',
+                               'client_id', 'client_secret', 'client_name',
+                               'contacts'])
 
-    # --- Key Rotate ----
-
-    req = RotateSecret(operation="rotate_secret")
-
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = req.to_urlencoded()
-    environ["HTTP_AUTHORIZATION"] = "Bearer %s" % regresp["registration_access_token"]
-
-    resp = server.registration_endpoint(environ, start_response)
-
-    print resp
-    update = RegistrationResponseRS().deserialize(resp[0], "json")
-    print update.keys()
-    assert _eq(update.keys(), ['client_secret', 'registration_access_token',
-                               'client_id', 'expires_at'])
-    assert update["client_secret"] != regresp["client_secret"]
 
 def test_provider_key_setup():
     provider = Provider("pyoicserv", SessionDB(), None, None, None)
@@ -856,7 +843,7 @@ def test_registered_redirect_uri_with_query_component():
     resp = provider2.registration_endpoint(environ, start_response,
                                     query=registration_req)
 
-    regresp = RegistrationResponseCR().from_json(resp[0])
+    regresp = RegistrationResponse().from_json(resp[0])
 
     print regresp.to_dict()
 

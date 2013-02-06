@@ -182,7 +182,7 @@ class MyFakeOICServer(Server):
         client_secret = rndstr()
         expires = utc_time_sans_frac() + self.registration_expires_in
         kwargs = {}
-        if req["operation"] == "register":
+        if "client_id" not in req:
             client_id = rndstr(10)
             registration_access_token = rndstr(20)
             _client_info = req.to_dict()
@@ -203,7 +203,7 @@ class MyFakeOICServer(Server):
             _cinfo["client_secret"] = client_secret
             _cinfo["expires"] = expires
 
-        resp = RegistrationResponseCR(client_id=client_id,
+        resp = RegistrationResponse(client_id=client_id,
                             client_secret=client_secret,
                             expires_at=expires,
                             **kwargs)
@@ -232,7 +232,7 @@ class MyFakeOICServer(Server):
         except Exception:
             raise
 
-        resp = RegistrationResponseRS(client_id="anonymous",
+        resp = RegistrationResponse(client_id="anonymous",
                                     client_secret="hemligt")
 
         response = Response()
