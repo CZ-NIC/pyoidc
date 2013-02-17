@@ -133,7 +133,7 @@ URLS = [
 ]
 
 for endp in ENDPOINTS:
-    URLS.append(("^%s$" % endp.type, endp))
+    URLS.append(("^%s$" % endp.etype, endp))
 
 def application(environ, start_response):
     """

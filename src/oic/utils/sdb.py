@@ -17,14 +17,18 @@ from Crypto.Cipher import AES
 
 logger = logging.getLogger(__name__)
 
+
 class ExpiredToken(Exception):
     pass
+
 
 class WrongTokenType(Exception):
     pass
 
+
 def pairwise_id(sub, sector_identifier, seed):
     return hashlib.sha256("%s%s%s" % (sub, sector_identifier, seed)).hexdigest()
+
 
 class Crypt():
     def __init__(self, password, mode=AES.MODE_CBC):
@@ -35,7 +39,7 @@ class Crypt():
     def encrypt(self, text):
         # setting iv because the underlying AES module misbehaves
         # on certain platforms
-        encryptor = AES.new(self.key, self.mode, IV="0"*16)
+        encryptor = AES.new(self.key, self.mode, IV="0" * 16)
 
         if len(text) % 16:
             text += ' ' * (16 - len(text) % 16)
@@ -43,8 +47,9 @@ class Crypt():
         return encryptor.encrypt(text)
 
     def decrypt(self, ciphertext):
-        decryptor = AES.new(self.key, self.mode, IV="0"*16)
+        decryptor = AES.new(self.key, self.mode, IV="0" * 16)
         return decryptor.decrypt(ciphertext)
+
 
 class Token(object):
     def __init__(self, secret, password):
@@ -53,11 +58,11 @@ class Token(object):
         self._sidlen = 28
         self.crypt = Crypt(password)
 
-    def __call__(self, type="A", prev="", sid=None):
+    def __call__(self, ttype="A", prev="", sid=None):
         if prev:
             ptyp, sid, tmp = self._split_token(prev)
-            if not type:
-                type = ptyp
+            if not ttype:
+                ttype = ptyp
         else:
             tmp = ""
 
@@ -66,7 +71,8 @@ class Token(object):
             rnd = rndstr(self._rndlen)
             # Ultimate length multiple of 16
 
-        return base64.b64encode(self.crypt.encrypt("%s%s%s" % (sid, type, rnd)))
+        return base64.b64encode(self.crypt.encrypt("%s%s%s" % (sid, ttype,
+                                                               rnd)))
 
     def key(self, user="", areq=None):
         csum = hmac.new(self.secret, digestmod=hashlib.sha224)
@@ -76,7 +82,11 @@ class Token(object):
             csum.update(user)
 
         if areq:
-            csum.update(areq["state"])
+            try:
+                csum.update(areq["state"])
+            except KeyError:
+                pass
+
             try:
                 for val in areq["scope"]:
                     csum.update(val)
@@ -88,7 +98,7 @@ class Token(object):
             except KeyError:
                 pass
 
-        return csum.digest() # 28 bytes long, 224 bits
+        return csum.digest()  # 28 bytes long, 224 bits
 
     def _split_token(self, token):
         plain = self.crypt.decrypt(base64.b64decode(token))
@@ -108,8 +118,9 @@ class Token(object):
     def get_type(self, token):
         return self._split_token(token)[0]
 
+
 class SessionDB(object):
-    def __init__(self, db=None, secret = "Ab01FG65", token_expires_in=3600,
+    def __init__(self, db=None, secret="Ab01FG65", token_expires_in=3600,
                  password="4-amino-1H-pyrimidine-2-one",
                  grant_expires_in=600, seed=""):
         if db:
@@ -201,7 +212,7 @@ class SessionDB(object):
         sid = self.token.key(user=sub, areq=areq)
         access_grant = self.token(sid=sid)
 
-        _dic  = {
+        _dic = {
             "oauth_state": "authz",
             "local_sub": sub,
             "sub": sub,
@@ -209,9 +220,9 @@ class SessionDB(object):
             "code_used": False,
             "authzreq": areq.to_json(),
             "client_id": areq["client_id"],
-            "expires_in": self.grant_expires_in,
-            "expires_at": utc_time_sans_frac()+self.grant_expires_in,
-            "issued": time.time(),
+            #"expires_in": self.grant_expires_in,
+            "expires_at": utc_time_sans_frac() + self.grant_expires_in,
+            "issued_at": utc_time_sans_frac(),
             "revoked": False,
         }
 
@@ -251,7 +262,7 @@ class SessionDB(object):
         if token:
             (typ, key) = self.token.type_and_key(token)
 
-            if typ != "A": # not a access grant
+            if typ != "A":  # not a access grant
                 raise WrongTokenType("Not a grant token")
 
             dic = self._db[key]
@@ -268,7 +279,7 @@ class SessionDB(object):
         dic["access_token_scope"] = "?"
         dic["oauth_state"] = "token"
         dic["token_type"] = "Bearer"
-        dic["expires_at"] = utc_time_sans_frac()+self.token_expires_in
+        dic["expires_at"] = utc_time_sans_frac() + self.token_expires_in
         dic["expires_in"] = self.token_expires_in
         dic["issued"] = time.time()
         if id_token:

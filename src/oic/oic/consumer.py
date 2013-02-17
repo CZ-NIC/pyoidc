@@ -64,7 +64,7 @@ def factory(kaka, sdb, config):
     http_util.parse_cookie(config["name"], cons.seed, kaka)
     return cons
 
-def build_userinfo_claims(claims, format="signed", locale="us-en"):
+def build_userinfo_claims(claims, sformat="signed", locale="us-en"):
     """
     config example:
     "userinfo_claims":{
@@ -81,7 +81,7 @@ def build_userinfo_claims(claims, format="signed", locale="us-en"):
     """
     claim = Claims(**claims)
 
-    return UserInfoClaim(claims=claim, format=format, locale=locale)
+    return UserInfoClaim(claims=claim, format=sformat, locale=locale)
 
 
 #def construct_openid_request(arq, keys, algorithm=DEF_SIGN_ALG, iss=None,
@@ -222,8 +222,8 @@ class Consumer(Client):
             setattr(self, key, val)
 
     def dictionary(self):
-        return dict([(k,v) for k, v in self.__dict__.items() if k not in
-                                                               IGNORE])
+        return dict([(k, v) for k, v in
+                     self.__dict__.items() if k not in IGNORE])
 
     def _backup(self, sid):
         """ Stores instance variable values in the session store under a

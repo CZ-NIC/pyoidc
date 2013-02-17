@@ -330,7 +330,7 @@ class Client(oauth2.Client):
         for endpoint in ENDPOINTS:
             setattr(self, endpoint, "")
 
-        self.id_token=None
+        self.id_token = None
         self.log = None
 
         self.request2endpoint = REQUEST2ENDPOINT
@@ -341,7 +341,7 @@ class Client(oauth2.Client):
         self.provider_info = {}
         self.client_prefs = client_prefs or {}
         self.behaviour = {"require_signed_request_object":
-                                        DEF_SIGN_ALG["openid_request_object"]}
+                          DEF_SIGN_ALG["openid_request_object"]}
 
         self.wf = WebFinger(OIC_ISSUER)
         self.wf.httpd = self

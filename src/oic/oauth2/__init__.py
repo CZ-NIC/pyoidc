@@ -30,8 +30,7 @@ REQUEST2ENDPOINT = {
     #    ROPCAccessTokenRequest: "authorization_endpoint",
     #    CCAccessTokenRequest: "authorization_endpoint",
     "RefreshAccessTokenRequest": "token_endpoint",
-    "TokenRevocationRequest": "token_endpoint",
-    }
+    "TokenRevocationRequest": "token_endpoint"}
 
 RESPONSE2ERROR = {
     "AuthorizationResponse": [AuthorizationErrorResponse, TokenErrorResponse],
@@ -43,11 +42,14 @@ ENDPOINTS = ["authorization_endpoint", "token_endpoint",
 
 logger = logging.getLogger(__name__)
 
+
 class HTTP_ERROR(Exception):
     pass
 
+
 class MISSING_REQUIRED_ATTRIBUTE(Exception):
     pass
+
 
 def rndstr(size=16):
     """
@@ -61,6 +63,7 @@ def rndstr(size=16):
 
 # -----------------------------------------------------------------------------
 # Authentication Methods
+
 
 #noinspection PyUnusedLocal
 def client_secret_basic(cli, cis, request_args=None, http_args=None, **kwargs):
@@ -81,9 +84,9 @@ def client_secret_basic(cli, cis, request_args=None, http_args=None, **kwargs):
 
     return http_args
 
+
 #noinspection PyUnusedLocal
 def client_secret_post(cli, cis, request_args=None, http_args=None, **kwargs):
-
     if request_args is None:
         request_args = {}
 
@@ -97,6 +100,7 @@ def client_secret_post(cli, cis, request_args=None, http_args=None, **kwargs):
     cis["client_id"] = cli.client_id
 
     return http_args
+
 
 #noinspection PyUnusedLocal
 def bearer_header(cli, cis=None, request_args=None, http_args=None, **kwargs):
@@ -132,7 +136,7 @@ def bearer_header(cli, cis=None, request_args=None, http_args=None, **kwargs):
                             raise Exception("Missing state specification")
                         kwargs["state"] = cli.state
 
-                    _acc_token= cli.get_token(**kwargs).access_token
+                    _acc_token = cli.get_token(**kwargs).access_token
     else:
         _acc_token = kwargs["access_token"]
 
@@ -149,6 +153,7 @@ def bearer_header(cli, cis=None, request_args=None, http_args=None, **kwargs):
             http_args["headers"] = {"Authorization": _bearer}
 
     return http_args
+
 
 #noinspection PyUnusedLocal
 def bearer_body(cli, cis, request_args=None, http_args=None, **kwargs):
@@ -172,19 +177,22 @@ def bearer_body(cli, cis, request_args=None, http_args=None, **kwargs):
 
     return http_args
 
+
 AUTHN_METHOD = {
     "client_secret_basic": client_secret_basic,
-    "client_secret_post" : client_secret_post,
+    "client_secret_post": client_secret_post,
     "bearer_header": bearer_header,
     "bearer_body": bearer_body,
-    }
+}
 
 # -----------------------------------------------------------------------------
+
 
 class ExpiredToken(Exception):
     pass
 
 # -----------------------------------------------------------------------------
+
 
 class Token(object):
     def __init__(self, resp=None):
@@ -210,7 +218,6 @@ class Token(object):
                 _tet = 0
             self.token_expiration_time = int(_tet)
 
-
     def is_valid(self):
         if self.token_expiration_time:
             if utc_time_sans_frac() > self.token_expiration_time:
@@ -235,6 +242,7 @@ class Token(object):
                 return False
 
         return True
+
 
 class Grant(object):
     _authz_resp = AuthorizationResponse
@@ -330,8 +338,8 @@ class Grant(object):
 # =============================================================================
 # =============================================================================
 
-ATTRS = {"version":None,
-         "name":"",
+ATTRS = {"version": None,
+         "name": "",
          "value": None,
          "port": None,
          "port_specified": False,
@@ -356,6 +364,7 @@ PAIRS = {
 
 import time
 
+
 def _since_epoch(cdate):
     # date format 'Wed, 06-Jun-2012 01:34:34 GMT'
     cdate = cdate[5:-4]
@@ -371,7 +380,7 @@ class PBase(object):
 
         self.keyjar = KeyJar()
 
-        self.request_args = {"allow_redirects": False,}
+        self.request_args = {"allow_redirects": False}
         #self.cookies = cookielib.CookieJar()
         self.cookies = {}
         self.cookiejar = cookielib.CookieJar()
@@ -411,16 +420,16 @@ class PBase(object):
                 if attr in ATTRS:
                     if morsel[attr]:
                         if attr == "expires":
-                            std_attr[attr]=_since_epoch(morsel[attr])
+                            std_attr[attr] = _since_epoch(morsel[attr])
                         else:
-                            std_attr[attr]=morsel[attr]
+                            std_attr[attr] = morsel[attr]
                 elif attr == "max-age":
                     if morsel["max-age"]:
                         std_attr["expires"] = _since_epoch(morsel["max-age"])
 
-            for att, set in PAIRS.items():
+            for att, spec in PAIRS.items():
                 if std_attr[att]:
-                    std_attr[set] = True
+                    std_attr[spec] = True
 
             if std_attr["domain"] and std_attr["domain"].startswith("."):
                 std_attr["domain_initial_dot"] = True
@@ -437,7 +446,7 @@ class PBase(object):
 
                 self.cookiejar.set_cookie(new_cookie)
 
-        #return cookiejar
+                #return cookiejar
 
     def http_request(self, url, method="GET", **kwargs):
         _kwargs = copy.copy(self.request_args)
@@ -445,19 +454,20 @@ class PBase(object):
             _kwargs.update(kwargs)
 
         if self.cookiejar:
-            #_kwargs["cookies"] = [k.output() for k in self.cookiejar]
-            #_kwargs["cookies"] = self.cookiejar
-            #_kwargs["cookies"] = requests.utils.dict_from_cookiejar(self.cookiejar)
             _kwargs["cookies"] = self._cookies()
             logger.info("SENT COOKIEs: %s" % (_kwargs["cookies"],))
         r = requests.request(method, url, **_kwargs)
         try:
             logger.info("RECEIVED COOKIEs: %s" % (r.headers["set-cookie"],))
             self.set_cookie(SimpleCookie(r.headers["set-cookie"]), r)
-        except AttributeError, err:
+        except AttributeError:
             pass
 
         return r
+
+    def send(self, url, method="GET", **kwargs):
+        return self.http_request(url, method, **kwargs)
+
 
 class Client(PBase):
     _endpoints = ENDPOINTS
@@ -481,9 +491,9 @@ class Client(PBase):
         self.redirect_uris = [None]
 
         # service endpoints
-        self.authorization_endpoint=None
-        self.token_endpoint=None
-        self.token_revocation_endpoint=None
+        self.authorization_endpoint = None
+        self.token_endpoint = None
+        self.token_revocation_endpoint = None
 
         self.request2endpoint = REQUEST2ENDPOINT
         self.response2error = RESPONSE2ERROR
@@ -502,10 +512,10 @@ class Client(PBase):
         # client uses it for signing
         # Server might also use it for signing which means the
         # client uses it for verifying server signatures
-        _kc = KeyBundle({"hmac":val}, usage=["sig", "ver"])
+        _kc = KeyBundle({"hmac": val}, usage=["sig", "ver"])
         try:
             self.keyjar[""].append(_kc)
-        except:
+        except KeyError:
             self.keyjar[""] = _kc
 
     client_secret = property(get_client_secret, set_client_secret)
@@ -516,8 +526,8 @@ class Client(PBase):
 
         self.grant = {}
 
-        self.authorization_endpoint=None
-        self.token_endpoint=None
+        self.authorization_endpoint = None
+        self.token_endpoint = None
         self.redirect_uris = None
 
     def grant_from_state(self, state):
@@ -612,7 +622,7 @@ class Client(PBase):
 
         if extra_args:
             kwargs.update(extra_args)
-        #logger.debug("kwargs: %s" % kwargs)
+            #logger.debug("kwargs: %s" % kwargs)
         #logger.debug("request: %s" % request)
         return request(**kwargs)
 
@@ -622,7 +632,7 @@ class Client(PBase):
                                        **kwargs):
 
         if request_args is not None:
-            try: # change default
+            try:  # change default
                 new = request_args["redirect_uri"]
                 if new:
                     self.redirect_uris = [new]
@@ -630,6 +640,11 @@ class Client(PBase):
                 pass
         else:
             request_args = {}
+
+        if "client_id" not in request_args:
+            request_args["client_id"] = self.client_id
+        elif not request_args["client_id"]:
+            request_args["client_id"] = self.client_id
 
         return self.construct_request(request, request_args, extra_args)
 
@@ -756,7 +771,6 @@ class Client(PBase):
         except AttributeError:
             cis = self.construct_request(request, request_args, extra_args)
 
-
         if "authn_method" in kwargs:
             h_arg = self.init_authentication_method(cis,
                                                     request_args=request_args,
@@ -778,7 +792,7 @@ class Client(PBase):
         return self.request_info(AuthorizationRequest, "GET",
                                  request_args, extra_args, **kwargs)
 
-    def parse_response(self, response, info="", format="json", state="",
+    def parse_response(self, response, info="", sformat="json", state="",
                        **kwargs):
         """
         Parse a response
@@ -786,7 +800,7 @@ class Client(PBase):
         :param response: Response type
         :param info: The response, can be either an JSON code or an urlencoded
             form:
-        :param format: Which serialization that was used
+        :param sformat: Which serialization that was used
         :param state:
         :param kwargs: Extra key word arguments
         :return: The parsed and to some extend verified response
@@ -794,7 +808,7 @@ class Client(PBase):
 
         _r2e = self.response2error
 
-        if format == "urlencoded":
+        if sformat == "urlencoded":
             if '?' in info or '#' in info:
                 parts = urlparse.urlparse(info)
                 scheme, netloc, path, params, query, fragment = parts[:6]
@@ -806,7 +820,7 @@ class Client(PBase):
 
         err = None
         try:
-            resp = response().deserialize(info, format, **kwargs)
+            resp = response().deserialize(info, sformat, **kwargs)
             if "error" in resp and not isinstance(resp, ErrorResponse):
                 resp = None
                 try:
@@ -817,7 +831,7 @@ class Client(PBase):
                 try:
                     for errmsg in errmsgs:
                         try:
-                            resp = errmsg().deserialize(info, format)
+                            resp = errmsg().deserialize(info, sformat)
                             resp.verify()
                             break
                         except Exception, aerr:
@@ -829,7 +843,8 @@ class Client(PBase):
                 verf = resp.verify(**kwargs)
                 if not verf:
                     raise Exception("Verification of the response failed")
-                if resp.type() == "AuthorizationResponse" and "scope" not in resp:
+                if resp.type() == "AuthorizationResponse" and \
+                        "scope" not in resp:
                     try:
                         resp["scope"] = kwargs["scope"]
                     except KeyError:
@@ -906,18 +921,19 @@ class Client(PBase):
                 assert "application/json" in resp.headers["content-type"]
             elif body_type == "urlencoded":
                 try:
-                    assert DEFAULT_POST_CONTENT_TYPE in resp.headers["content-type"]
+                    assert DEFAULT_POST_CONTENT_TYPE in resp.headers[
+                        "content-type"]
                 except AssertionError:
                     assert "text/plain" in resp.headers["content-type"]
             else:
                 raise ValueError("Unknown return format: %s" % body_type)
-        elif resp.status_code == 302: # redirect
+        elif resp.status_code == 302:  # redirect
             pass
         elif resp.status_code == 500:
             raise Exception("ERROR: Something went wrong: %s" % resp.text)
         else:
             raise Exception("ERROR: Something went wrong [%s]" % (
-                                                            resp.status_code,))
+                resp.status_code,))
 
         if body_type:
             if response:
@@ -1096,7 +1112,7 @@ class Server(PBase):
                           keyjar="", verify=True):
 
         if not keyjar:
-                keyjar = self.keyjar
+            keyjar = self.keyjar
 
         #areq = message().from_(txt, keys, verify)
         areq = request().deserialize(txt, "jwt", keyjar=keyjar,
@@ -1117,4 +1133,3 @@ class Server(PBase):
     def parse_refresh_token_request(self, request=RefreshAccessTokenRequest,
                                     body=None):
         return self.parse_body_request(request, body)
-

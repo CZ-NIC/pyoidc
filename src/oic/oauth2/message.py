@@ -11,6 +11,7 @@ import jwkest
 
 logger = logging.getLogger(__name__)
 
+
 class MissingRequiredAttribute(Exception):
     def __init__(self, attr):
         Exception.__init__(self)
@@ -19,22 +20,28 @@ class MissingRequiredAttribute(Exception):
     def __str__(self):
         return "Missing required attribute '%s'" % self.attr
 
+
 class TooManyValues(Exception):
     pass
+
 
 class GrantExpired(Exception):
     pass
 
+
 class OldAccessToken(Exception):
     pass
 
+
 class DecodeError(Exception):
     pass
+
 
 class VerificationError(Exception):
     pass
 
 ERRTXT = "On '%s': %s"
+
 
 def gather_keys(comb, collection, jso, target):
     try:
@@ -65,8 +72,10 @@ def gather_keys(comb, collection, jso, target):
 
     return comb
 
+
 def swap_dict(dic):
     return dict([(val, key) for key, val in dic.items()])
+
 
 class Message(object):
     c_param = {}
@@ -106,7 +115,7 @@ class Message(object):
         for key, val in self._dict.items():
             try:
                 (_, req, _ser, _) = _spec[key]
-            except KeyError: #extra attribute
+            except KeyError:  # extra attribute
                 try:
                     (_, req, _ser, _) = _spec['*']
                 except KeyError:
@@ -117,24 +126,24 @@ class Message(object):
                 params.append((key, unicode(val)))
             elif isinstance(val, list):
                 if _ser:
-                    params.append((key, str(_ser(val, format="urlencoded",
+                    params.append((key, str(_ser(val, sformat="urlencoded",
                                                  lev=lev))))
                 else:
                     for item in val:
                         params.append((key, str(item)))
             elif isinstance(val, Message):
-                params.append((key, str(_ser(val, format="urlencoded",
+                params.append((key, str(_ser(val, sformat="urlencoded",
                                              lev=lev))))
             else:
                 try:
                     params.append((key, _ser(val, lev=lev)))
-                except Exception, err:
+                except Exception:
                     params.append((key, str(val)))
 
         try:
             return urllib.urlencode(params)
         except UnicodeEncodeError:
-            _val = [(k,unicode.encode(v, "utf-8")) for k,v in params]
+            _val = [(k, unicode.encode(v, "utf-8")) for k, v in params]
             return urllib.urlencode(_val)
 
     def serialize(self, method="urlencoded", lev=0, **kwargs):
@@ -184,7 +193,7 @@ class Message(object):
                     self._dict[key] = _deser(val[0], "urlencoded")
                 else:
                     self._dict[key] = val
-            else: # must be single value
+            else:  # must be single value
                 if len(val) == 1:
                     if _deser:
                         self._dict[key] = _deser(val[0], "urlencoded")
@@ -193,7 +202,7 @@ class Message(object):
                     else:
                         try:
                             self._dict[key] = typ(val[0])
-                        except :
+                        except KeyError:
                             raise ValueError
                 else:
                     raise TooManyValues
@@ -209,7 +218,7 @@ class Message(object):
 
         _spec = self.c_param
 
-        _res= {}
+        _res = {}
         lev += 1
         for key, val in self._dict.items():
             try:
@@ -276,7 +285,7 @@ class Message(object):
             if isinstance(val, vtype):
                 if _deser:
                     try:
-                        self._dict[skey] = _deser(val, format="urlencoded")
+                        self._dict[skey] = _deser(val, sformat="urlencoded")
                     except Exception, exc:
                         raise DecodeError(ERRTXT % (key, exc))
                 else:
@@ -284,7 +293,7 @@ class Message(object):
             elif isinstance(val, list):
                 if _deser:
                     try:
-                        val = _deser(val, format="dict")
+                        val = _deser(val, sformat="dict")
                     except Exception, exc:
                         raise DecodeError(ERRTXT % (key, exc))
 
@@ -292,8 +301,8 @@ class Message(object):
                     try:
                         _val = []
                         for v in val:
-                            _val.append(vtype(**dict([(str(x),y) for x,
-                                                            y in v.items()])))
+                            _val.append(vtype(**dict([(str(x), y) for x, y
+                                                      in v.items()])))
                         val = _val
                     except Exception, exc:
                         raise DecodeError(ERRTXT % (key, exc))
@@ -307,12 +316,12 @@ class Message(object):
             else:
                 raise DecodeError(ERRTXT % (key, "type != %s" % vtype))
         else:
-            if isinstance(val,vtyp): # Not necessary to do anything
+            if isinstance(val, vtyp):  # Not necessary to do anything
                 self._dict[skey] = val
             else:
                 if _deser:
                     try:
-                        val = _deser(val, format="dict")
+                        val = _deser(val, sformat="dict")
                     except Exception, exc:
                         raise DecodeError(ERRTXT % (key, exc))
 
@@ -322,7 +331,7 @@ class Message(object):
                     if len(val) == 1:
                         self._dict[skey] = val[0]
                     elif not len(val):
-                        pass # ignore
+                        pass
                     else:
                         raise TooManyValues(key)
                 else:
@@ -330,9 +339,9 @@ class Message(object):
 
     def to_json(self, lev=0):
         if lev:
-            return self.to_dict(lev+1)
+            return self.to_dict(lev + 1)
         else:
-            return json.dumps(self.to_dict(lev+1))
+            return json.dumps(self.to_dict(lev + 1))
 
     def from_json(self, txt, **kwargs):
         return self.from_dict(json.loads(txt))
@@ -350,7 +359,6 @@ class Message(object):
             return jws.sign(self.to_json(lev), key, algorithm)
         else:
             return jwkest.pack(self.to_json(lev))
-
 
     def _add_key(self, keyjar, item, key):
         try:
@@ -373,19 +381,19 @@ class Message(object):
         :param verify: Whether the signature should be verified or not
         :return: A class instance
         """
-        if key == None and keyjar is not None:
+        if key is None and keyjar is not None:
             key = keyjar.get_verify_key(owner="")
         elif key is None:
             key = {}
 
         header = json.loads(b64d(str(txt.split(".")[0])))
         try:
-            type = header["typ"]
+            htype = header["typ"]
         except KeyError:
-            type = None
+            htype = None
 
         jso = None
-        if type == "JWE" or ("alg" in header and "enc" in header): # encrypted
+        if htype == "JWE" or ("alg" in header and "enc" in header):  # encrypted
             if keyjar:
                 dkeys = keyjar.get_decrypt_key(owner="")
             else:
@@ -395,9 +403,8 @@ class Message(object):
                 jso = json.loads(txt)
             except Exception:
                 pass
-            #type = self._typ(txt)
 
-        # assume type == 'JWS'
+        # assume htype == 'JWS'
         if not jso:
             try:
                 jso = jwkest.unpack(txt)[1]
@@ -431,7 +438,7 @@ class Message(object):
             if val not in _allowed:
                 raise ValueError("Not allowed value '%s'" % val)
         elif isinstance(typ, list):
-            if isinstance(val, list): #
+            if isinstance(val, list):
                 #_typ = typ[0]
                 for item in val:
                     if item not in _allowed:
@@ -478,7 +485,6 @@ class Message(object):
                 self._type_check(typ, _allowed[attribute], val)
 
         return True
-
 
     def keys(self):
         """
@@ -529,14 +535,15 @@ class Message(object):
         del self._dict[key]
 
     def extra(self):
-        return dict([(key,val) for key,
-                         val in self._dict.items() if key not in self.c_param])
+        return dict([(key, val) for key, val in
+                     self._dict.items() if key not in self.c_param])
 
 # =============================================================================
 
 
 def by_schema(cls, **kwa):
-    return dict([(key, val) for key,val in kwa.items() if key in cls.c_param])
+    return dict([(key, val) for key, val in kwa.items() if key in cls.c_param])
+
 
 def add_non_standard(msg1, msg2):
     for key, val in msg2.extra():
@@ -545,16 +552,18 @@ def add_non_standard(msg1, msg2):
 
 # =============================================================================
 
+
 #noinspection PyUnusedLocal
-def list_serializer(vals, format="urlencoded", lev=0):
-    if format == "urlencoded":
+def list_serializer(vals, sformat="urlencoded", lev=0):
+    if sformat == "urlencoded":
         return " ".join(vals)
     else:
         return vals
 
+
 #noinspection PyUnusedLocal
-def list_deserializer(val, format="urlencoded"):
-    if format == "urlencoded":
+def list_deserializer(val, sformat="urlencoded"):
+    if sformat == "urlencoded":
         if isinstance(val, basestring):
             return val.split(" ")
         elif isinstance(val, list) and len(val) == 1:
@@ -562,15 +571,17 @@ def list_deserializer(val, format="urlencoded"):
     else:
         return val
 
+
 #noinspection PyUnusedLocal
-def sp_sep_list_serializer(vals, format="urlencoded", lev=0):
+def sp_sep_list_serializer(vals, sformat="urlencoded", lev=0):
     if isinstance(vals, basestring):
         return vals
     else:
         return " ".join(vals)
 
+
 #noinspection PyUnusedLocal
-def sp_sep_list_deserializer(val, format="urlencoded"):
+def sp_sep_list_deserializer(val, sformat="urlencoded"):
     if isinstance(val, basestring):
         return val.split(" ")
     elif isinstance(val, list) and len(val) == 1:
@@ -578,26 +589,27 @@ def sp_sep_list_deserializer(val, format="urlencoded"):
     else:
         return val
 
-#noinspection PyUnusedLocal
-def json_serializer(obj, format="urlencoded", lev=0):
-    return json.dumps(obj)
 
 #noinspection PyUnusedLocal
-def json_deserializer(txt, format="urlencoded"):
+def json_serializer(obj, sformat="urlencoded", lev=0):
+    return json.dumps(obj)
+
+
+#noinspection PyUnusedLocal
+def json_deserializer(txt, sformat="urlencoded"):
     return json.loads(txt)
 
 SINGLE_REQUIRED_STRING = (basestring, True, None, None)
 SINGLE_OPTIONAL_STRING = (basestring, False, None, None)
 SINGLE_OPTIONAL_INT = (int, False, None, None)
 OPTIONAL_LIST_OF_STRINGS = ([basestring], False, list_serializer,
-                                          list_deserializer)
+                            list_deserializer)
 REQUIRED_LIST_OF_STRINGS = ([basestring], True, list_serializer,
-                                          list_deserializer)
+                            list_deserializer)
 OPTIONAL_LIST_OF_SP_SEP_STRINGS = ([basestring], False, sp_sep_list_serializer,
-                                          sp_sep_list_deserializer)
-REQUIRED_LIST_OF_SP_SEP_STRINGS = ([basestring], True,
-                                          sp_sep_list_serializer,
-                                          sp_sep_list_deserializer)
+                                   sp_sep_list_deserializer)
+REQUIRED_LIST_OF_SP_SEP_STRINGS = ([basestring], True, sp_sep_list_serializer,
+                                   sp_sep_list_deserializer)
 SINGLE_OPTIONAL_JSON = (basestring, False, json_serializer, json_deserializer)
 
 REQUIRED = [SINGLE_REQUIRED_STRING, REQUIRED_LIST_OF_STRINGS,
@@ -607,36 +619,40 @@ REQUIRED = [SINGLE_REQUIRED_STRING, REQUIRED_LIST_OF_STRINGS,
 # =============================================================================
 #
 
+
 class ErrorResponse(Message):
     c_param = {"error": SINGLE_REQUIRED_STRING,
-             "error_description": SINGLE_OPTIONAL_STRING,
-             "error_uri":SINGLE_OPTIONAL_STRING,
-    }
+               "error_description": SINGLE_OPTIONAL_STRING,
+               "error_uri": SINGLE_OPTIONAL_STRING}
+
 
 class AuthorizationErrorResponse(ErrorResponse):
     c_param = ErrorResponse.c_param.copy()
-    c_param.update({"state":SINGLE_OPTIONAL_STRING})
+    c_param.update({"state": SINGLE_OPTIONAL_STRING})
     c_allowed_values = ErrorResponse.c_allowed_values.copy()
-    c_allowed_values.update({"error":["invalid_request",
-                                 "unathorized_client",
-                                 "access_denied",
-                                 "unsupported_response_type",
-                                 "invalid_scope", "server_error",
-                                 "temporarily_unavailable"]})
+    c_allowed_values.update({"error": ["invalid_request",
+                                       "unathorized_client",
+                                       "access_denied",
+                                       "unsupported_response_type",
+                                       "invalid_scope", "server_error",
+                                       "temporarily_unavailable"]})
+
 
 class TokenErrorResponse(ErrorResponse):
-    c_allowed_values = {"error":["invalid_request", "invalid_client",
-                                 "invalid_grant", "unauthorized_client",
-                                 "unsupported_grant_type",
-                                 "invalid_scope"]}
+    c_allowed_values = {"error": ["invalid_request", "invalid_client",
+                                  "invalid_grant", "unauthorized_client",
+                                  "unsupported_grant_type",
+                                  "invalid_scope"]}
+
 
 class AccessTokenRequest(Message):
     c_param = {"grant_type": SINGLE_REQUIRED_STRING,
                "code": SINGLE_REQUIRED_STRING,
                "redirect_uri": SINGLE_REQUIRED_STRING,
                "client_id": SINGLE_OPTIONAL_STRING,
-               "client_secret": SINGLE_OPTIONAL_STRING,}
-    c_default = {"grant_type":"authorization_code"}
+               "client_secret": SINGLE_OPTIONAL_STRING}
+    c_default = {"grant_type": "authorization_code"}
+
 
 class AuthorizationRequest(Message):
     c_param = {
@@ -647,11 +663,13 @@ class AuthorizationRequest(Message):
         "state": SINGLE_OPTIONAL_STRING
     }
 
+
 class AuthorizationResponse(Message):
     c_param = {
         "code": SINGLE_REQUIRED_STRING,
         "state": SINGLE_OPTIONAL_STRING
     }
+
 
 class AccessTokenResponse(Message):
     c_param = {
@@ -663,10 +681,12 @@ class AccessTokenResponse(Message):
         "state": SINGLE_OPTIONAL_STRING
     }
 
+
 class NoneResponse(Message):
     c_param = {
         "state": SINGLE_OPTIONAL_STRING
     }
+
 
 class ROPCAccessTokenRequest(Message):
     c_param = {
@@ -676,13 +696,15 @@ class ROPCAccessTokenRequest(Message):
         "scope": SINGLE_OPTIONAL_STRING
     }
 
+
 class CCAccessTokenRequest(Message):
     c_param = {
         "grant_type": SINGLE_REQUIRED_STRING,
         "scope": SINGLE_OPTIONAL_STRING
     }
-    c_default = {"grant_type":"client_credentials"}
+    c_default = {"grant_type": "client_credentials"}
     c_allowed_values = {"grant_type": ["client_credentials"]}
+
 
 class RefreshAccessTokenRequest(Message):
     c_param = {
@@ -692,11 +714,13 @@ class RefreshAccessTokenRequest(Message):
         "scope": SINGLE_OPTIONAL_STRING,
         "client_secret": SINGLE_OPTIONAL_STRING
     }
-    c_default = {"grant_type":"refresh_token"}
+    c_default = {"grant_type": "refresh_token"}
     c_allowed_values = {"grant_type": ["refresh_token"]}
+
 
 class TokenRevocationRequest(Message):
     c_param = {"token": SINGLE_REQUIRED_STRING}
+
 
 class ResourceRequest(Message):
     c_param = {"access_token": SINGLE_OPTIONAL_STRING}
@@ -717,6 +741,7 @@ MSG = {
     "TokenRevocationRequest": TokenRevocationRequest,
     "ResourceRequest": ResourceRequest,
 }
+
 
 def factory(msgtype):
     try:
