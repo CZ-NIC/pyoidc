@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 # ======================================================================
 traceback.format_exception(*sys.exc_info())
 
+
 def rsa_eq(key1, key2):
     # Check if two RSA keys are in fact the same
     if key1.n == key2.n and key1.e == key2.e:
@@ -27,26 +28,31 @@ def rsa_eq(key1, key2):
     else:
         return False
 
+
 def key_eq(key1, key2):
     if type(key1) == type(key2):
         if isinstance(key1, basestring):
             return key1 == key2
-        elif isinstance(key1, M2Crypto.RSA.RSA) :
+        elif isinstance(key1, M2Crypto.RSA.RSA):
             return rsa_eq(key1, key2)
 
     return False
 
+
 def rsa_load(filename):
     """Read a PEM-encoded RSA key pair from a file."""
     return M2Crypto.RSA.load_key(filename, M2Crypto.util.no_passphrase_callback)
+
 
 def rsa_loads(key):
     """Read a PEM-encoded RSA key pair from a string."""
     return M2Crypto.RSA.load_key_string(key,
                                         M2Crypto.util.no_passphrase_callback)
 
+
 def ec_load(filename):
     return M2Crypto.EC.load_key(filename, M2Crypto.util.no_passphrase_callback)
+
 
 def x509_rsa_load(txt):
     """ So I get the same output format as loads produces
@@ -55,6 +61,7 @@ def x509_rsa_load(txt):
     """
     return [("rsa", x509_rsa_loads(txt))]
 
+
 class RedirectStdStreams(object):
     def __init__(self, stdout=None, stderr=None):
         self._stdout = stdout or sys.stdout
@@ -62,16 +69,19 @@ class RedirectStdStreams(object):
 
     def __enter__(self):
         self.old_stdout, self.old_stderr = sys.stdout, sys.stderr
-        self.old_stdout.flush(); self.old_stderr.flush()
+        self.old_stdout.flush()
+        self.old_stderr.flush()
         sys.stdout, sys.stderr = self._stdout, self._stderr
 
     #noinspection PyUnusedLocal
     def __exit__(self, exc_type, exc_value, traceback):
-        self._stdout.flush(); self._stderr.flush()
+        self._stdout.flush()
+        self._stderr.flush()
         sys.stdout = self.old_stdout
         sys.stderr = self.old_stderr
 
 TYPE2FUNC = {"x509": x509_rsa_load, "jwk": loads}
+
 
 def uniq_ext(lst, keys):
     rkeys = {}
@@ -91,6 +101,7 @@ def uniq_ext(lst, keys):
     return lst
 
 URLPAT = [("%s_url", ["dec", "ver"]), ("%s_encryption_url", ["enc", "sig"])]
+
 
 class KeyBundle(object):
     def __init__(self, keys=None, source="", type="rsa", src_type="",
@@ -129,14 +140,14 @@ class KeyBundle(object):
                 raise Exception("Unsupported source type: %s" % source)
 
             self.src_type = src_type
-            if not self.remote: # local file
+            if not self.remote:  # local file
                 if src_type == "jwk":
                     for typ, inst in loads(source):
                         try:
                             self._key[type].append(inst)
                         except KeyError:
                             self._key[type] = [inst]
-                else: # native format
+                else:  # native format
                     self.do_native(type, src_type)
 
         if usage:
@@ -194,23 +205,23 @@ class KeyBundle(object):
             return
 
         args = {"allow_redirects": True,
-                "verify":self.verify_ssl,
+                "verify": self.verify_ssl,
                 "timeout": 5.0}
         if self.etag:
             args["headers"] = {"If-None-Match": self.etag}
 
         r = request("GET", self.source, **args)
 
-        if r.status_code == 304: # file has not changed
+        if r.status_code == 304:  # file has not changed
             self.time_out = time.time() + self.cache_time
-        elif r.status_code == 200: # New content
+        elif r.status_code == 200:  # New content
             self.time_out = time.time() + self.cache_time
             _new = {}
             if self.src_type == "x509":
                 txt = str(r.text)
             else:
                 txt = r.text
-            for typ,inst in TYPE2FUNC[self.src_type](txt):
+            for typ, inst in TYPE2FUNC[self.src_type](txt):
                 try:
                     _new[typ].append(inst)
                 except KeyError:
@@ -235,7 +246,7 @@ class KeyBundle(object):
             otherwise the appropriate keys in a list
         """
         if self._key:
-            if self.remote: # verify that it's not to old
+            if self.remote:  # verify that it's not to old
                 if time.time() > self.time_out:
                     self.update()
         elif self.remote:
@@ -252,7 +263,7 @@ class KeyBundle(object):
 
     def keys(self):
         if self._key:
-            if self.remote: # verify that it's not to old
+            if self.remote:  # verify that it's not to old
                 if time.time() > self.time_out:
                     self.update()
         elif self.remote:
@@ -279,16 +290,17 @@ class KeyBundle(object):
             except KeyError:
                 pass
 
-        for key,val in self._key.items():
-            if val == []:
+        for key, val in self._key.items():
+            if val is []:
                 del self._key[key]
 
     def __str__(self):
-        if self.remote: # verify that it's not to old
+        if self.remote:  # verify that it's not to old
             if time.time() > self.time_out:
                 self.update()
 
         return "%s %s" % (self._key, self.usage)
+
 
 class KeyJar(object):
     """ A keyjar contains a number of KeyBundles """
@@ -360,7 +372,7 @@ class KeyJar(object):
                         _keys = []
                 else:
                     try:
-                        _keys = self.issuer_keys[issuer+"/"]
+                        _keys = self.issuer_keys[issuer + "/"]
                     except KeyError:
                         _keys = []
         else:
@@ -507,6 +519,7 @@ class KeyJar(object):
 
 # =============================================================================
 
+
 def key_export(baseurl, local_path, vault, keyjar, fqdn="", **kwargs):
     """
     :param baseurl: The base URL to which the key file names are added
@@ -525,7 +538,7 @@ def key_export(baseurl, local_path, vault, keyjar, fqdn="", **kwargs):
     else:
         _path = part.path[:]
 
-    local_path = proper_path("%s/%s" % (_path,local_path))
+    local_path = proper_path("%s/%s" % (_path, local_path))
     vault_path = proper_path(vault)
 
     if not os.path.exists(vault_path):
@@ -537,7 +550,7 @@ def key_export(baseurl, local_path, vault, keyjar, fqdn="", **kwargs):
     res = {}
     # For each usage type
     # type, usage, format (rsa, sign, jwt)
-    issuer_keys = {"sig":[], "ver": [], "enc": [], "dec":[]}
+    issuer_keys = {"sig": [], "ver": [], "enc": [], "dec": []}
     for usage in ["sig", "enc"]:
         if usage in kwargs:
             if kwargs[usage] is None:
@@ -568,7 +581,6 @@ def key_export(baseurl, local_path, vault, keyjar, fqdn="", **kwargs):
                                           _export_filename[1:])
 
                     res[_name] = _url
-
 
                 rsa_key = rsa_load('%s%s' % (vault_path, "pyoidc"))
                 kc = KeyBundle({"rsa": rsa_key}, usage=[usage])
@@ -607,6 +619,7 @@ def key_export(baseurl, local_path, vault, keyjar, fqdn="", **kwargs):
 
 # ================= create RSA key ======================
 
+
 def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=1024):
     #Seed the random number generator with 1024 random bytes (8192 bits)
     M2Crypto.Rand.rand_seed(os.urandom(size))
@@ -620,6 +633,7 @@ def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=1024):
     key.save_pub_key('%s%s.pub' % (path, name))
 
     return key
+
 
 def proper_path(path):
     """
@@ -653,11 +667,12 @@ from M2Crypto import X509
 from M2Crypto import RSA
 from M2Crypto import ASN1
 
+
 def make_req(bits, fqdn="example.com", rsa=None):
     pk = EVP.PKey()
     x = X509.Request()
     if not rsa:
-        rsa = RSA.gen_key(bits, 65537, lambda : None)
+        rsa = RSA.gen_key(bits, 65537, lambda: None)
     pk.assign_rsa(rsa)
     # Because rsa is messed with
     rsa = pk.get_rsa()
@@ -670,8 +685,9 @@ def make_req(bits, fqdn="example.com", rsa=None):
         extstack = X509.X509_Extension_Stack()
         extstack.push(ext1)
         x.add_extensions(extstack)
-    x.sign(pk,'sha1')
+    x.sign(pk, 'sha1')
     return x, pk, rsa
+
 
 def make_cert(bits, fqdn="example.com", rsa=None):
     req, pk, rsa = make_req(bits, fqdn=fqdn, rsa=rsa)
@@ -695,6 +711,3 @@ def make_cert(bits, fqdn="example.com", rsa=None):
     cert.set_pubkey(pkey)
     cert.sign(pk, 'sha1')
     return cert, rsa
-
-
-
