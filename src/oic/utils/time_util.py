@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2009-2012 Umeå University
+# Copyright (C) 2009-2011 Umeå University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" 
-Implements some usefull functions when dealing with validity of 
+"""
+Implements some usefull functions when dealing with validity of
 different types of information.
 """
 
@@ -32,19 +32,21 @@ TIME_FORMAT_WITH_FRAGMENT = re.compile(
     "^(\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2})\.\d*Z$")
 
 # ---------------------------------------------------------------------------
-#I am sure this is implemented somewhere else can't find it now though, so I
-#made an attempt.
-#Implemented according to 
+# I'm sure this is implemented somewhere else can't find it now though, so I
+# made an attempt.
+#Implemented according to
 #http://www.w3.org/TR/2001/REC-xmlschema-2-20010502/
 #adding-durations-to-dateTimes
 
+
 def f_quotient(arg0, arg1, arg2=0):
     if arg2:
-        return int((arg0-arg1)/(arg2-arg1))
+        return int((arg0 - arg1) / (arg2 - arg1))
     elif not arg0:
         return 0
     else:
-        return int(arg0/arg1)
+        return int(arg0 / arg1)
+
 
 def modulo(arg0, arg1, arg2=0):
     if arg2:
@@ -67,6 +69,7 @@ D_FORMAT = [
     ("S", "tm_sec")
 ]
 
+
 def parse_duration(duration):
     # (-)PnYnMnDTnHnMnS
     index = 0
@@ -77,9 +80,9 @@ def parse_duration(duration):
         sign = '+'
     assert duration[index] == "P"
     index += 1
-    
+
     dic = dict([(typ, 0) for (code, typ) in D_FORMAT])
-    
+
     for code, typ in D_FORMAT:
         #print duration[index:], code
         if duration[index] == '-':
@@ -95,29 +98,29 @@ def parse_duration(duration):
             try:
                 mod = duration[index:].index(code)
                 try:
-                    dic[typ] = int(duration[index:index+mod])
+                    dic[typ] = int(duration[index:index + mod])
                 except ValueError:
                     if code == "S":
                         try:
-                            dic[typ] = float(duration[index:index+mod])
+                            dic[typ] = float(duration[index:index + mod])
                         except ValueError:
                             raise Exception("Not a float")
                     else:
                         raise Exception(
-                                "Fractions not allow on anything byt seconds")
+                            "Fractions not allow on anything byt seconds")
                 index = mod+index+1
             except ValueError:
                 dic[typ] = 0
 
         if index == len(duration):
             break
-        
+
     return sign, dic
-    
+
 def add_duration(tid, duration):
-    
+
     (sign, dur) = parse_duration(duration)
-    
+
     if sign == '+':
         #Months
         temp = tid.tm_mon + dur["tm_mon"]
@@ -140,11 +143,15 @@ def add_duration(tid, duration):
         # days
         if dur["tm_mday"] > maximum_day_in_month_for(year, month):
             temp_days = maximum_day_in_month_for(year, month)
+        elif dur["tm_mday"] < 1:
+            temp_days = 1
         else:
             temp_days = dur["tm_mday"]
         days = temp_days + tid.tm_mday + carry
         while True:
-            if days > maximum_day_in_month_for(year, month):
+            if days < 1:
+                pass
+            elif days > maximum_day_in_month_for(year, month):
                 days -= maximum_day_in_month_for(year, month)
                 carry = 1
             else:
@@ -152,13 +159,14 @@ def add_duration(tid, duration):
             temp = month + carry
             month = modulo(temp, 1, 13)
             year += f_quotient(temp, 1, 13)
-    
-        return time.localtime(time.mktime((year, month, days, hour, minutes, 
-                                secs, 0, 0, -1)))
+
+        return time.localtime(time.mktime((year, month, days, hour, minutes,
+                                           secs, 0, 0, -1)))
     else:
-        return None
+        pass
 
 # ---------------------------------------------------------------------------
+
 
 def time_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
                     minutes=0, hours=0, weeks=0):
@@ -166,6 +174,7 @@ def time_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
     format of timedelta:
         timedelta([days[, seconds[, microseconds[, milliseconds[,
                     minutes[, hours[, weeks]]]]]]])
+    :return: UTC time
     """
     delta = timedelta(days, seconds, microseconds, milliseconds,
                       minutes, hours, weeks)
@@ -191,9 +200,9 @@ def in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
         timedelta([days[, seconds[, microseconds[, milliseconds[,
                     minutes[, hours[, weeks]]]]]]])
     """
-    if not format:
+    if format is None:
         format = TIME_FORMAT
-        
+
     return time_in_a_while(days, seconds, microseconds, milliseconds,
                            minutes, hours, weeks).strftime(format)
 
@@ -203,17 +212,8 @@ def a_while_ago(days=0, seconds=0, microseconds=0, milliseconds=0,
     return time_a_while_ago(days, seconds, microseconds, milliseconds,
                             minutes, hours, weeks).strftime(format)
 
-def epoch_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
-                     minutes=0, hours=0, weeks=0):
-    """
-    Return a point in the future as number of seconds since the epoch
-    1970-01-01
-    """
-    return int("%d" % time.mktime(time_in_a_while(days, seconds, microseconds,
-                                       milliseconds, minutes, hours,
-                                       weeks).timetuple()))
-
 # ---------------------------------------------------------------------------
+
 
 def shift_time(dtime, shift):
     """ Adds/deletes an integer amount of seconds from a datetime specification
@@ -226,17 +226,25 @@ def shift_time(dtime, shift):
 
 # ---------------------------------------------------------------------------
 
-def str_to_time(timestr):
+
+def str_to_time(timestr, format=TIME_FORMAT):
+    """
+
+    :param timestr:
+    :param format:
+    :return: UTC time
+    """
     if not timestr:
         return 0
     try:
-        then = time.strptime(timestr, TIME_FORMAT)
-    except Exception: # assume it's a format problem
-        elem = TIME_FORMAT_WITH_FRAGMENT.match(timestr)
-        if elem:
-            then = time.strptime(elem.groups()[0]+"Z", TIME_FORMAT)
-        else:
-            raise Exception("Wrong format")
+        then = time.strptime(timestr, format)
+    except ValueError, err: # assume it's a format problem
+        try:
+            elem = TIME_FORMAT_WITH_FRAGMENT.match(timestr)
+        except Exception, exc:
+            print >> sys.stderr, "Exception: %s on %s" % (exc, timestr)
+            raise
+        then = time.strptime(elem.groups()[0]+"Z", TIME_FORMAT)
 
     return time.gmtime(calendar.timegm(then))
 
@@ -246,10 +254,12 @@ def instant(format=TIME_FORMAT):
 
 # ---------------------------------------------------------------------------
 
+
 def utc_now():
     return calendar.timegm(time.gmtime())
 
 # ---------------------------------------------------------------------------
+
 
 def before(point):
     """ True if point datetime specification is before now """
@@ -260,10 +270,8 @@ def before(point):
         point = str_to_time(point)
     elif isinstance(point, int):
         point = time.gmtime(point)
-    elif isinstance(point, float):
-        point = time.gmtime(point)
 
-    return point < time.gmtime()
+    return time.gmtime() < point
 
 
 def after(point):
@@ -276,30 +284,24 @@ def after(point):
 
 not_before = after
 
-# 'not_on_or_after' is just an obscure name for 'not before'
-not_on_or_after = after
+# 'not_on_or_after' is just an obscure name for 'before'
+not_on_or_after = before
 
-# a point is valid if is now or sometime in the future, in other words,
+# a point is valid if it is now or sometime in the future, in other words,
 # if it is not before now
-valid = after
+valid = before
 
 
-def later_than(then, that):
+def later_than(after, before):
     """ True if then is later or equal to that """
-    if isinstance(then, basestring):
-        then = str_to_time(then)
-    elif isinstance(then, int):
-        then = time.gmtime(then)
+    if isinstance(after, basestring):
+        after = str_to_time(after)
+    elif isinstance(after, int):
+        after = time.gmtime(after)
 
-    if isinstance(that, basestring):
-        that = str_to_time(that)
-    elif isinstance(that, int):
-        that = time.gmtime(that)
+    if isinstance(before, basestring):
+        before = str_to_time(before)
+    elif isinstance(before, int):
+        before = time.gmtime(before)
 
-    return then >= that
-
-def utc_time_sans_frac():
-    return int("%d" % time.mktime(time.gmtime()))
-
-def time_sans_frac():
-    return int("%d" % time.time())
+    return after >= before

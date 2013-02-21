@@ -10,6 +10,7 @@ from Cookie import SimpleCookie
 from oic.utils import time_util
 from urllib import quote
 
+
 class Response(object):
     _template = None
     _status = '200 OK'
@@ -36,7 +37,7 @@ class Response(object):
 
     def _response(self, message="", **argv):
         if self.template:
-            if ("Content-type",'application/json') in self.headers:
+            if ("Content-type", 'application/json') in self.headers:
                 return [message]
             else:
                 return [str(self.template % message)]
@@ -47,8 +48,10 @@ class Response(object):
         else:
             return [message]
 
+
 class Created(Response):
     _status = "201 Created"
+
 
 class Redirect(Response):
     _template = '<html>\n<head><title>Redirecting to %s</title></head>\n' \
@@ -62,6 +65,7 @@ class Redirect(Response):
         start_response(self.status, self.headers)
         return self.response((location, location, location))
 
+
 class SeeOther(Response):
     _template = '<html>\n<head><title>Redirecting to %s</title></head>\n' \
         '<body>\nYou are being redirected to <a href="%s">%s</a>\n' \
@@ -74,23 +78,29 @@ class SeeOther(Response):
         start_response(self.status, self.headers)
         return self.response((location, location, location))
 
+
 class Forbidden(Response):
     _status = '403 Forbidden'
     _template = "<html>Not allowed to mess with: '%s'</html>"
+
 
 class BadRequest(Response):
     _status = "400 Bad Request"
     _template = "<html>%s</html>"
 
+
 class Unauthorized(Response):
     _status = "401 Unauthorized"
     _template = "<html>%s</html>"
 
+
 class NotFound(Response):
     _status = '404 NOT FOUND'
 
+
 class NotAcceptable(Response):
     _status = '406 Not Acceptable'
+
 
 class ServiceError(Response):
     _status = '500 Internal Service Error'
@@ -108,8 +118,10 @@ R2C = {
     500: ServiceError,
 }
 
+
 def factory(code, message):
     return R2C[code](message)
+
 
 def extract(environ, empty=False, err=False):
     """Extracts strings in form data and returns a dict.
@@ -124,6 +136,7 @@ def extract(environ, empty=False, err=False):
         if len(value) == 1:
             formdata[key] = value[0]
     return formdata
+
 
 def geturl(environ, query=True, path=True):
     """Rebuilds a request URL (from PEP 333).
@@ -148,10 +161,12 @@ def geturl(environ, query=True, path=True):
         url.append('?' + environ['QUERY_STRING'])
     return ''.join(url)
 
+
 def getpath(environ):
     """Builds a path."""
     return ''.join([quote(environ.get('SCRIPT_NAME', '')),
-        quote(environ.get('PATH_INFO', ''))])
+                    quote(environ.get('PATH_INFO', ''))])
+
 
 def _expiration(timeout, strformat=None):
     if timeout == "now":
@@ -160,6 +175,7 @@ def _expiration(timeout, strformat=None):
         # validity time should match lifetime of assertions
         return time_util.in_a_while(minutes=timeout, format=strformat)
 
+
 def cookie_signature(seed, *parts):
     """Generates a cookie signature."""
     sha1 = hmac.new(seed, digestmod=hashlib.sha1)
@@ -167,6 +183,7 @@ def cookie_signature(seed, *parts):
         if part:
             sha1.update(part)
     return sha1.hexdigest()
+
 
 def cookie(name, sid, seed, expire=0, domain="",  path=""):
     """
@@ -196,6 +213,7 @@ def cookie(name, sid, seed, expire=0, domain="",  path=""):
 
     return tuple(cookie.output().split(": ", 1))
 
+
 def parse_cookie(name, seed, kaka):
     """Parses and verifies a cookie value """
     if not kaka:
@@ -223,6 +241,7 @@ def parse_cookie(name, seed, kaka):
     else:
         return None
 
+
 def cookie_parts(name, kaka):
     cookie_obj = SimpleCookie(kaka)
     morsel = cookie_obj.get(name)
@@ -231,12 +250,13 @@ def cookie_parts(name, kaka):
     else:
         return None
 
+
 def get_post(environ):
     # the environment variable CONTENT_LENGTH may be empty or missing
     try:
-      request_body_size = int(environ.get('CONTENT_LENGTH', 0))
+        request_body_size = int(environ.get('CONTENT_LENGTH', 0))
     except ValueError:
-      request_body_size = 0
+        request_body_size = 0
 
     # When the method is POST the query string will be sent
     # in the HTTP request body which is passed by the WSGI server
