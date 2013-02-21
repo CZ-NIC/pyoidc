@@ -108,7 +108,7 @@ def parse_duration(duration):
                     else:
                         raise Exception(
                             "Fractions not allow on anything byt seconds")
-                index = mod+index+1
+                index = mod + index + 1
             except ValueError:
                 dic[typ] = 0
 
@@ -116,6 +116,7 @@ def parse_duration(duration):
             break
 
     return sign, dic
+
 
 def add_duration(tid, duration):
 
@@ -238,13 +239,13 @@ def str_to_time(timestr, format=TIME_FORMAT):
         return 0
     try:
         then = time.strptime(timestr, format)
-    except ValueError, err: # assume it's a format problem
+    except ValueError:  # assume it's a format problem
         try:
             elem = TIME_FORMAT_WITH_FRAGMENT.match(timestr)
         except Exception, exc:
             print >> sys.stderr, "Exception: %s on %s" % (exc, timestr)
             raise
-        then = time.strptime(elem.groups()[0]+"Z", TIME_FORMAT)
+        then = time.strptime(elem.groups()[0] + "Z", TIME_FORMAT)
 
     return time.gmtime(calendar.timegm(then))
 
