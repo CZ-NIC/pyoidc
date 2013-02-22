@@ -829,7 +829,8 @@ def test_registered_redirect_uri_without_query_component():
                                     client_id=provider.cdb.keys()[0])
 
         resp = provider._verify_redirect_uri(areq)
-        print resp
+        if resp:
+            print resp.message
         assert resp is None
 
 def test_registered_redirect_uri_with_query_component():

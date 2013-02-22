@@ -76,7 +76,7 @@ class Token(object):
 
     def key(self, user="", areq=None):
         csum = hmac.new(self.secret, digestmod=hashlib.sha224)
-        csum.update("%s" % time.time())
+        csum.update("%s" % utc_time_sans_frac())
         csum.update("%f" % random.random())
         if user:
             csum.update(user)
@@ -105,7 +105,7 @@ class Token(object):
         # first _sidlen bytes are the sid
         _sid = plain[:self._sidlen]
         _type = plain[self._sidlen]
-        _rnd = plain[self._sidlen+1:]
+        _rnd = plain[self._sidlen + 1:]
         return _type, _sid, _rnd
 
     def type_and_key(self, token):
@@ -187,9 +187,9 @@ class SessionDB(object):
         logger.debug("uid: %s, old: %s" % (uid, old))
         self.uid2sid[uid] = sid
 
-        for id in old:
+        for old_id in old:
             try:
-                del self.uid2sid[id]
+                del self.uid2sid[old_id]
             except KeyError:
                 pass
 
@@ -281,7 +281,7 @@ class SessionDB(object):
         dic["token_type"] = "Bearer"
         dic["expires_at"] = utc_time_sans_frac() + self.token_expires_in
         dic["expires_in"] = self.token_expires_in
-        dic["issued"] = time.time()
+        dic["issued"] = utc_time_sans_frac()
         if id_token:
             dic["id_token"] = id_token
         if oidreq:
@@ -307,7 +307,8 @@ class SessionDB(object):
 
             access_token = self.token("T", prev=rtoken)
 
-            dic["issued"] = time.time()
+            dic["expires_at"] = utc_time_sans_frac() + self.token_expires_in
+            dic["issued"] = utc_time_sans_frac()
             dic["access_token"] = access_token
             self._db[sid] = dic
             #self._db[dic["xxxx"]] = dic
@@ -316,8 +317,8 @@ class SessionDB(object):
             raise WrongTokenType("Not a refresh token!")
 
     def is_expired(self, sess):
-        if "issued" in sess:
-            if (sess["issued"] + sess["expires_in"]) < time.time():
+        if "expires_at" in sess:
+            if sess["expires_at"] < utc_time_sans_frac():
                 return True
 
         return False

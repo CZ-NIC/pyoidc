@@ -195,23 +195,23 @@ def time_a_while_ago(days=0, seconds=0, microseconds=0, milliseconds=0,
 
 
 def in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
-               minutes=0, hours=0, weeks=0, format=TIME_FORMAT):
+               minutes=0, hours=0, weeks=0, time_format=TIME_FORMAT):
     """
     format of timedelta:
         timedelta([days[, seconds[, microseconds[, milliseconds[,
                     minutes[, hours[, weeks]]]]]]])
     """
-    if format is None:
-        format = TIME_FORMAT
+    if not time_format:
+        time_format = TIME_FORMAT
 
     return time_in_a_while(days, seconds, microseconds, milliseconds,
-                           minutes, hours, weeks).strftime(format)
+                           minutes, hours, weeks).strftime(time_format)
 
 
 def a_while_ago(days=0, seconds=0, microseconds=0, milliseconds=0,
-                minutes=0, hours=0, weeks=0, format=TIME_FORMAT):
+                minutes=0, hours=0, weeks=0, time_format=TIME_FORMAT):
     return time_a_while_ago(days, seconds, microseconds, milliseconds,
-                            minutes, hours, weeks).strftime(format)
+                            minutes, hours, weeks).strftime(time_format)
 
 # ---------------------------------------------------------------------------
 
@@ -228,17 +228,17 @@ def shift_time(dtime, shift):
 # ---------------------------------------------------------------------------
 
 
-def str_to_time(timestr, format=TIME_FORMAT):
+def str_to_time(timestr, time_format=TIME_FORMAT):
     """
 
     :param timestr:
-    :param format:
+    :param time_format:
     :return: UTC time
     """
     if not timestr:
         return 0
     try:
-        then = time.strptime(timestr, format)
+        then = time.strptime(timestr, time_format)
     except ValueError:  # assume it's a format problem
         try:
             elem = TIME_FORMAT_WITH_FRAGMENT.match(timestr)
@@ -250,8 +250,8 @@ def str_to_time(timestr, format=TIME_FORMAT):
     return time.gmtime(calendar.timegm(then))
 
 
-def instant(format=TIME_FORMAT):
-    return time.strftime(format, time.gmtime())
+def instant(time_format=TIME_FORMAT):
+    return time.strftime(time_format, time.gmtime())
 
 # ---------------------------------------------------------------------------
 
@@ -306,3 +306,21 @@ def later_than(after, before):
         before = time.gmtime(before)
 
     return after >= before
+
+
+def utc_time_sans_frac():
+    return int("%d" % time.mktime(time.gmtime()))
+
+
+def time_sans_frac():
+    return int("%d" % time.time())
+
+def epoch_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
+                     minutes=0, hours=0, weeks=0):
+    """
+    Return a point in the future as number of seconds since the epoch
+    1970-01-01
+    """
+    return int("%d" % time.mktime(time_in_a_while(days, seconds, microseconds,
+                                                  milliseconds, minutes, hours,
+                                                  weeks).timetuple()))

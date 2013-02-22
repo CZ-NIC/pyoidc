@@ -239,7 +239,7 @@ class TestOICConsumer():
         #vkeys = {".": self.consumer.keyjar.get_verify_key()}
 
         self.consumer.parse_response(AuthorizationResponse, info=query,
-                                     format="urlencoded")
+                                     sformat="urlencoded")
 
         resp = self.consumer.complete()
         print resp
@@ -331,7 +331,7 @@ def test_complete_secret_auth():
     _, query = result.headers["location"].split("?")
 
     consumer.parse_response(AuthorizationResponse, info=query,
-                            format="urlencoded")
+                            sformat="urlencoded")
 
     resp = consumer.complete()
     print resp
@@ -454,7 +454,7 @@ def test_userinfo():
     _, query = result.headers["location"].split("?")
 
     consumer.parse_response(AuthorizationResponse, info=query,
-                            format="urlencoded")
+                            sformat="urlencoded")
 
     consumer.complete()
 

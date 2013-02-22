@@ -50,7 +50,7 @@ def test_ProviderConfigurationResponse():
 def test_idtokenclaim_deser():
     claims = Claims(weather={"acr": "2"})
     pre = IDTokenClaim(claims=claims, max_age=3600)
-    idt = idtokenclaim_deser(pre.to_json(), format="json")
+    idt = idtokenclaim_deser(pre.to_json(), sformat="json")
     assert _eq(idt.keys(), ['claims', "max_age"])
 
 
@@ -61,7 +61,7 @@ def test_userinfo_deser():
 
     pre_uic = UserInfoClaim(claims=CLAIM, format="signed")
 
-    uic = userinfo_deser(pre_uic.to_json(), format="json")
+    uic = userinfo_deser(pre_uic.to_json(), sformat="json")
     assert _eq(uic.keys(), ["claims", "format"])
 
 def test_claims_deser():
@@ -69,11 +69,11 @@ def test_claims_deser():
                    email={"essential": True},
                    email_verified={"essential": True}, picture=None)
 
-    claims = claims_deser(pre.to_json(), format="json")
+    claims = claims_deser(pre.to_json(), sformat="json")
     assert _eq(claims.keys(), ['name', 'nickname', 'email', 'email_verified',
                                'picture'])
 
-    claims = claims_deser(pre.to_dict(), format="dict")
+    claims = claims_deser(pre.to_dict(), sformat="dict")
     assert _eq(claims.keys(), ['name', 'nickname', 'email', 'email_verified',
                            'picture'])
 
@@ -81,10 +81,10 @@ def test_address_deser():
     pre = AddressClaim(street_address="Kasamark 114", locality="Umea",
                        country="Sweden")
 
-    adc = address_deser(pre.to_json(), format="json")
+    adc = address_deser(pre.to_json(), sformat="json")
     assert _eq(adc.keys(), ['street_address', 'locality', 'country'])
 
-    adc = address_deser(pre.to_dict(), format="json")
+    adc = address_deser(pre.to_dict(), sformat="json")
     assert _eq(adc.keys(), ['street_address', 'locality', 'country'])
 
 
@@ -130,12 +130,12 @@ CLAIMS = Claims(name={"essential": True}, nickname=None,
                  email_verified={"essential": True}, picture=None)
 
 def test_claims_ser_json():
-    claims = claims_deser(claims_ser(CLAIMS, "json"), format="json")
+    claims = claims_deser(claims_ser(CLAIMS, "json"), sformat="json")
     assert _eq(claims.keys(), ['name', 'nickname', 'email', 'email_verified',
                            'picture'])
 
 def test_claims_ser_urlencoded():
-    claims = claims_deser(claims_ser(CLAIMS, "urlencoded"), format="urlencoded")
+    claims = claims_deser(claims_ser(CLAIMS, "urlencoded"), sformat="urlencoded")
     assert _eq(claims.keys(), ['name', 'nickname', 'email', 'email_verified',
                                'picture'])
 

@@ -1,3 +1,5 @@
+from oic.utils.time_util import utc_time_sans_frac
+
 __author__ = 'rohe0002'
 
 import time
@@ -11,34 +13,38 @@ from oic.oic.message import OpenIDRequest
 
 #from oic.oauth2 import message
 
-AREQ = AuthorizationRequest(response_type="code",
-               client_id="client1", redirect_uri="http://example.com/authz",
-               scope=["openid"], state="state000")
+AREQ = AuthorizationRequest(response_type="code", client_id="client1",
+                            redirect_uri="http://example.com/authz",
+                            scope=["openid"], state="state000")
 
-AREQN = AuthorizationRequest(response_type="code",
-                client_id="client1", redirect_uri="http://example.com/authz",
-                scope=["openid"], state="state000", nonce="something")
+AREQN = AuthorizationRequest(response_type="code", client_id="client1",
+                             redirect_uri="http://example.com/authz",
+                             scope=["openid"], state="state000",
+                             nonce="something")
 
 OIDR = OpenIDRequest(response_type="code", client_id="client1",
-               redirect_uri="http://example.com/authz", scope=["openid"],
-               state="state000")
+                     redirect_uri="http://example.com/authz", scope=["openid"],
+                     state="state000")
 
 OAUTH2_AREQ = AuthorizationRequest(response_type="code",
-                      client_id="client1",
-                      redirect_uri="http://example.com/authz",
-                      scope=["openid"], state="state000")
+                                   client_id="client1",
+                                   redirect_uri="http://example.com/authz",
+                                   scope=["openid"], state="state000")
+
 
 def _eq(l1, l2):
     return set(l1) == set(l2)
+
 
 def test_token():
     sdb = SessionDB()
     sid = sdb.token.key(areq=AREQ)
     assert len(sid) == 28
 
-    sdb = SessionDB({"a":"b"})
+    sdb = SessionDB({"a": "b"})
     sid = sdb.token.key(areq=AREQ)
     assert len(sid) == 28
+
 
 def test_new_token():
     sdb = SessionDB()
@@ -48,12 +54,13 @@ def test_new_token():
     code2 = sdb.token('T', sid=sid)
     assert len(sid) == 28
 
-    code3 = sdb.token(type="", prev=code2)
+    code3 = sdb.token(ttype="", prev=code2)
     assert code2 != code3
     
     sid2 = sdb.token.key(areq=AREQ, user="jones")
     assert len(sid2) == 28
     assert sid != sid2
+
 
 def test_type_and_key():
     sdb = SessionDB()
@@ -65,20 +72,22 @@ def test_type_and_key():
     assert part[0] == "A"
     assert part[1] == sid
 
+
 def test_setitem():
     sdb = SessionDB()
     sid = sdb.token.key(areq=AREQ)
     code = sdb.token(sid=sid)
 
-    sdb[sid] = {"indo":"china"}
+    sdb[sid] = {"indo": "china"}
 
     info = sdb[sid]
-    assert info == {"indo":"china"}
+    assert info == {"indo": "china"}
 
     info = sdb[code]
-    assert info == {"indo":"china"}
+    assert info == {"indo": "china"}
 
     raises(KeyError, 'sdb["abcdefghijklmnop"]')
+
 
 def test_update():
     sdb = SessionDB()
@@ -88,7 +97,7 @@ def test_update():
     raises(KeyError, 'sdb.update(sid, "indo", "nebue")')
     raises(KeyError, 'sdb.update(code, "indo", "nebue")')
 
-    sdb[sid] = {"indo":"china"}
+    sdb[sid] = {"indo": "china"}
 
     sdb.update(sid, "indo", "nebue")
     sdb.update(code, "indo", "second")
@@ -99,6 +108,7 @@ def test_update():
     sid2 = sdb.token.key(areq=AREQ)
 
     raises(KeyError, 'sdb.update(sid2, "indo", "bar")')
+
 
 def test_create_authz_session():
     sdb = SessionDB()
@@ -134,6 +144,7 @@ def test_create_authz_session():
     assert "id_token" not in info
     assert "oidreq" in info
 
+
 def test_create_authz_session_with_sector_id():
     sdb = SessionDB(seed="foo")
     uid = "user_id"
@@ -154,6 +165,7 @@ def test_create_authz_session_with_sector_id():
     assert info_2["sub"] != "user_id"
     assert info_2["sub"] != user_id1
 
+
 def test_update_to_token():
     sdb = SessionDB()
     sid = sdb.create_authz_session("user_id", AREQ)
@@ -161,12 +173,12 @@ def test_update_to_token():
     _dict = sdb.update_to_token(grant)
 
     print _dict.keys()
-    assert _eq(_dict.keys(), ['code', 'oauth_state', 'issued', 'expires_at',
-                              'token_type', 'client_id', 'authzreq',
-                              'refresh_token', 'local_sub', 'sub',
-                              'access_token', 'expires_in', 'state',
-                              'redirect_uri', 'code_used', 'scope',
-                              'access_token_scope', 'revoked'])
+    assert _eq(_dict.keys(), ['code', 'authzreq', 'issued', 'expires_at',
+                              'token_type', 'local_sub', 'client_id',
+                              'issued_at', 'oauth_state', 'refresh_token',
+                              'revoked', 'sub', 'access_token', 'expires_in',
+                              'state', 'redirect_uri', 'code_used', 'scope',
+                              'access_token_scope'])
 
     raises(Exception, 'sdb.update_to_token(grant)')
 
@@ -178,16 +190,17 @@ def test_update_to_token():
 
     _dict = sdb.update_to_token(grant, id_token="id_token", oidreq=OIDR)
     print _dict.keys()
-    assert _eq(_dict.keys(), ['code', 'oauth_state', 'issued', 'expires_at',
-                              'token_type', 'client_id', 'authzreq',
-                              'refresh_token', 'local_sub', 'sub',
-                              'oidreq', 'access_token', 'expires_in', 'state',
-                              'redirect_uri', 'code_used', 'id_token',
-                              'scope', 'access_token_scope', 'revoked'])
+    assert _eq(_dict.keys(), ['code', 'authzreq', 'issued', 'expires_at',
+                              'token_type', 'local_sub', 'client_id',
+                              'issued_at', 'oauth_state', 'refresh_token',
+                              'revoked', 'sub', 'oidreq', 'access_token',
+                              'expires_in', 'state', 'redirect_uri',
+                              'code_used', 'id_token', 'scope',
+                              'access_token_scope'])
 
     assert _dict["id_token"] == "id_token"
     assert _dict["oidreq"].type() == "OpenIDRequest"
-    token = _dict["access_token"]
+    _ = _dict["access_token"]
     raises(Exception, 'sdb.update_to_token(token)')
 
 
@@ -217,7 +230,7 @@ def test_is_valid():
     assert sdb.is_valid(grant)
 
     _dict = sdb.update_to_token(grant)
-    assert sdb.is_valid(grant) == False
+    assert sdb.is_valid(grant) is False
     token1 = _dict["access_token"]
     assert sdb.is_valid(token1)
 
@@ -231,24 +244,25 @@ def test_is_valid():
     # replace refresh_token
 
     dict2["refresh_token"] = token2
-    assert sdb.is_valid(rtoken) == False
+    assert sdb.is_valid(rtoken) is False
     
     # mess with the time-line
 
-    dict2["issued"] = time.time() - 86400 # like yesterday
-    assert sdb.is_valid(token2) == False
+    dict2["expires_at"] = utc_time_sans_frac() - 86400  # like yesterday
+    assert sdb.is_valid(token2) is False
 
     # replace access_token
 
     dict2["access_token"] = token1
-    assert sdb.is_valid(token2) == False
+    assert sdb.is_valid(token2) is False
 
     sid = sdb.create_authz_session("another:user", AREQ)
     grant = sdb[sid]["code"]
 
     gdict = sdb[grant]
-    gdict["issued"] = time.time() - 86400 # like yesterday
-    assert sdb.is_valid(grant) == False
+    gdict["expires_at"] = utc_time_sans_frac() - 86400  # like yesterday
+    assert sdb.is_valid(grant) is False
+
 
 def test_revoke_token():
     sdb = SessionDB()
@@ -263,14 +277,14 @@ def test_revoke_token():
     assert sdb.is_valid(token)
 
     sdb.revoke_token(token)
-    assert sdb.is_valid(token) == False
+    assert sdb.is_valid(token) is False
 
     dict2 = sdb.refresh_token(rtoken)
     token = dict2["access_token"]
     assert sdb.is_valid(token)
 
     sdb.revoke_token(rtoken)
-    assert sdb.is_valid(rtoken) == False
+    assert sdb.is_valid(rtoken) is False
 
     raises(ExpiredToken, 'sdb.refresh_token(rtoken)')
 
@@ -283,4 +297,4 @@ def test_revoke_token():
 
     grant = sdb[sid]["code"]
     sdb.revoke_token(grant)
-    assert sdb.is_valid(grant) == False
+    assert sdb.is_valid(grant) is False

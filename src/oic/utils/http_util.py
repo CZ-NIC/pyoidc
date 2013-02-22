@@ -168,12 +168,12 @@ def getpath(environ):
                     quote(environ.get('PATH_INFO', ''))])
 
 
-def _expiration(timeout, strformat=None):
+def _expiration(timeout, time_format=None):
     if timeout == "now":
-        return time_util.instant(strformat)
+        return time_util.instant(time_format)
     else:
         # validity time should match lifetime of assertions
-        return time_util.in_a_while(minutes=timeout, format=strformat)
+        return time_util.in_a_while(minutes=timeout, time_format=time_format)
 
 
 def cookie_signature(seed, *parts):

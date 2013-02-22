@@ -113,7 +113,7 @@ class TestOICClient():
     def test_parse_authz_resp_url(self):
         url = "https://client.example.com/cb?code=SplxlOBeZQQYbYS6WxSbIA&state=ghi"
         aresp = self.client.parse_response(AuthorizationResponse,
-                                           info=url, format="urlencoded")
+                                           info=url, sformat="urlencoded")
 
         assert aresp["code"] == "SplxlOBeZQQYbYS6WxSbIA"
         assert aresp["state"] == "ghi"
@@ -125,7 +125,7 @@ class TestOICClient():
     def test_parse_authz_resp_query(self):
         query = "code=SplxlOBeZQQYbYS6WxSbIA&state=hij"
         aresp = self.client.parse_response(AuthorizationResponse,
-                                           info=query, format="urlencoded")
+                                           info=query, sformat="urlencoded")
 
         assert aresp["code"] == "SplxlOBeZQQYbYS6WxSbIA"
         assert aresp["state"] == "hij"
@@ -138,7 +138,7 @@ class TestOICClient():
     def test_parse_authz_resp_query_multi_scope(self):
         query = "code=SplxlOBeZQQYbYS6WxAAAA&state=klm"
         aresp = self.client.parse_response(AuthorizationResponse,
-                                           info=query, format="urlencoded")
+                                           info=query, sformat="urlencoded")
 
         assert aresp["code"] == "SplxlOBeZQQYbYS6WxAAAA"
         assert aresp["state"] == "klm"
@@ -152,7 +152,7 @@ class TestOICClient():
     def test_parse_authz_resp_query_unknown_parameter(self):
         query = "code=SplxlOBeZQQYbYS6WxSbIA&state=xyz&foo=bar"
         aresp = self.client.parse_response(AuthorizationResponse,
-                                           info=query, format="urlencoded")
+                                           info=query, sformat="urlencoded")
 
         assert aresp["code"] == "SplxlOBeZQQYbYS6WxSbIA"
         assert aresp["state"] == "xyz"
@@ -271,7 +271,7 @@ class TestOICClient():
 
         #print self.client.response2error[AuthorizationErrorResponse.__name__]
         resp = self.client.parse_response(AuthorizationResponse,
-                                          info=ruri, format="urlencoded")
+                                          info=ruri, sformat="urlencoded")
 
         print type(resp), resp
         assert resp.type() == "AuthorizationErrorResponse"
@@ -403,7 +403,7 @@ class TestOICClient():
         _, query = _loc.split("?")
 
         self.client.parse_response(AuthorizationResponse, info=query,
-                                   format="urlencoded")
+                                   sformat="urlencoded")
 
     def test_access_token_request(self):
         self.client.token_endpoint = "http://oic.example.org/token"
@@ -586,13 +586,13 @@ def test_parse_access_token_response():
     uec = at.to_urlencoded()
     raises(ValueError, 'client.parse_response(ATR, info=uec)')
 
-    uatr = client.parse_response(ATR, info=uec, format="urlencoded")
+    uatr = client.parse_response(ATR, info=uec, sformat="urlencoded")
     assert _eq(uatr.keys(), ['access_token', 'token_type', 'expires_in',
                              'refresh_token'])
 
     huec = "%s?%s" % ("https://example.com/token", uec)
 
-    uatr = client.parse_response(ATR, info=huec, format="urlencoded")
+    uatr = client.parse_response(ATR, info=huec, sformat="urlencoded")
     assert _eq(uatr.keys(), ['access_token', 'token_type', 'expires_in',
                              'refresh_token'])
 
@@ -604,15 +604,15 @@ def test_parse_access_token_response():
     uerr = err.to_urlencoded()
 
     _ = client.parse_response(ATR, info=jerr)
-    _ = client.parse_response(ATR, info=uerr, format="urlencoded")
+    _ = client.parse_response(ATR, info=uerr, sformat="urlencoded")
 
     raises(Exception,
-           'client.parse_response(ATR, info=jerr, format="urlencoded")')
+           'client.parse_response(ATR, info=jerr, sformat="urlencoded")')
 
     raises(Exception, "client.parse_response(ATR, info=uerr)")
 
     raises(Exception,
-           'client.parse_response(ATR, info=jerr, format="focus")')
+           'client.parse_response(ATR, info=jerr, sformat="focus")')
 
 #noinspection PyUnusedLocal
 def test_parse_access_token_response_missing_attribute():
@@ -631,7 +631,7 @@ def test_parse_access_token_response_missing_attribute():
     atuec = urllib.urlencode(atdict)
 
     raises(MissingRequiredAttribute,
-           "client.parse_response(ATR, info=atuec, format='urlencoded')")
+           "client.parse_response(ATR, info=atuec, sformat='urlencoded')")
 
 
 def test_client_get_grant():
@@ -904,7 +904,7 @@ def test_userinfo_request():
 
     info = ARESP.to_urlencoded()
     cli.parse_response(AuthorizationResponse, info,
-                       format="urlencoded", state="state0")
+                       sformat="urlencoded", state="state0")
 
     cli.parse_response(AccessTokenResponse, TRESP.to_json(), state="state0")
 
@@ -976,7 +976,7 @@ CLAIM = Claims(name={"essential": True}, nickname=None,
                email={"essential": True},
                email_verified={"essential": True}, picture=None)
 
-USRINFO = UserInfoClaim(claims=CLAIM, format="signed")
+USRINFO = UserInfoClaim(claims=CLAIM, sformat="signed")
 
 OIDREQ = OpenIDRequest(response_type=["code", "id_token"], client_id=CLIENT_ID,
                        redirect_uri="https://client.example.com/cb",

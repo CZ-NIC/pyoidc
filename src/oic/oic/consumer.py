@@ -371,7 +371,7 @@ class Consumer(Client):
             _log_info("Expect Authorization Response")
             aresp = self.parse_response(AuthorizationResponse,
                                         info=_query,
-                                        format="urlencoded",
+                                        sformat="urlencoded",
                                         keyjar=self.keyjar)
             if aresp.type() == "ErrorResponse":
                 _log_info("ErrorResponse: %s" % aresp)
@@ -407,7 +407,7 @@ class Consumer(Client):
         else: # implicit flow
             _log_info("Expect Access Token Response")
             atr = self.parse_response(AccessTokenResponse, info=_query,
-                                      format="urlencoded",
+                                      sformat="urlencoded",
                                       keyjar=self.keyjar)
             if atr.type() == "ErrorResponse":
                 raise TokenError(atr["error"])

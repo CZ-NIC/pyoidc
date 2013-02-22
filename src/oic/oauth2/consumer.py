@@ -214,7 +214,7 @@ class Consumer(Client):
             # Might be an error response
             try:
                 aresp = self.parse_response(AuthorizationResponse,
-                                            info=_query, format="urlencoded")
+                                            info=_query, sformat="urlencoded")
             except Exception, err:
                 logger.error("%s" % err)
                 raise
@@ -233,7 +233,7 @@ class Consumer(Client):
             return aresp
         else: # implicit flow
             atr = self.parse_response(AccessTokenResponse,
-                                      info=_query, format="urlencoded",
+                                      info=_query, sformat="urlencoded",
                                       extended=True)
 
             if isinstance(atr, Message):
