@@ -67,6 +67,7 @@ def rndstr(size=16):
 
 #noinspection PyUnusedLocal
 def client_secret_basic(cli, cis, request_args=None, http_args=None, **kwargs):
+    # Basic HTTP Authentication
     if http_args is None:
         http_args = {}
     try:
