@@ -30,15 +30,17 @@ logger = logging.getLogger(__name__)
 LOG_INFO = logger.info
 LOG_DEBUG = logger.debug
 
+
 class AuthnFailure(Exception):
     pass
+
 
 def get_post(environ):
     # the environment variable CONTENT_LENGTH may be empty or missing
     try:
-      request_body_size = int(environ.get('CONTENT_LENGTH', 0))
+        request_body_size = int(environ.get('CONTENT_LENGTH', 0))
     except ValueError:
-      request_body_size = 0
+        request_body_size = 0
 
     # When the method is POST the query string will be sent
     # in the HTTP request body which is passed by the WSGI server
@@ -49,6 +51,7 @@ def get_post(environ):
 #def do_authorization(user):
 #    return ""
 
+
 def code_response(**kwargs):
     _areq = kwargs["areq"]
     _scode = kwargs["scode"]
@@ -58,6 +61,7 @@ def code_response(**kwargs):
     aresp["code"] = _scode
     add_non_standard(_areq, aresp)
     return aresp
+
 
 def token_response(**kwargs):
     _areq = kwargs["areq"]
@@ -71,6 +75,7 @@ def token_response(**kwargs):
 
     return aresp
 
+
 #noinspection PyUnusedLocal
 def none_response(**kwargs):
     _areq = kwargs["areq"]
@@ -80,11 +85,13 @@ def none_response(**kwargs):
 
     return aresp
 
+
 def location_url(response_type, redirect_uri, query):
-    if response_type in [["code"],["token"],["none"]]:
+    if response_type in [["code"], ["token"], ["none"]]:
         return "%s?%s" % (redirect_uri, query)
     else:
         return "%s#%s" % (redirect_uri, query)
+
 
 class Provider(object):
     def __init__(self, name, sdb, cdb, function, urlmap=None):
@@ -118,10 +125,11 @@ class Provider(object):
         dic = parse_qs(get_post(environ))
 
         try:
-            (verified, user) = self.function["verify user"](dic)
+            (verified, user) = self.function["verify_user"](dic)
             if not verified:
                 return Unauthorized("Wrong password")
         except KeyError, err:
+            logger.error("KeyError on authentication: %s" % err)
             return Unauthorized("Authentication failed")
         except AuthnFailure, err:
             return Unauthorized("Authentication failure: %s" % (err,))
@@ -192,12 +200,11 @@ class Provider(object):
         else:
             areq, session = result
 
-
         try:
             aresp = self.authn_response(areq,
                                         **by_schema(AuthorizationResponse,
                                                     **session))
-        except KeyError, err: # Don't know what to do raise an exception
+        except KeyError, err:  # Don't know what to do raise an exception
             resp = BadRequest("Unknown response type (%s)" % err)
             return resp(environ, start_response)
 
@@ -227,7 +234,7 @@ class Provider(object):
         except MissingRequiredAttribute, err:
             resp = BadRequest("%s" % err)
             return resp(environ, start_response)
-        except Exception,err:
+        except Exception, err:
             resp = BadRequest("%s" % err)
             return resp(environ, start_response)
 
@@ -259,8 +266,10 @@ class Provider(object):
         areq = AccessTokenRequest().deserialize(body, "urlencoded")
 
         # Client is from basic auth or ...
-        client = environ["REMOTE_USER"]
-        if not self.function["verify client"](environ, client, self.cdb):
+        client = None
+        try:
+            client = self.function["verify_client"](environ, client, self.cdb)
+        except (KeyError, AttributeError):
             err = TokenErrorResponse(error="unathorized_client",
                                      error_description="client_id:%s" % client)
             resp = Response(err.to_json(), content="application/json",
@@ -290,3 +299,26 @@ class Provider(object):
         resp = Response(atr.to_json(), content="application/json")
         return resp(environ, start_response)
 
+# =============================================================================
+
+
+class Endpoint(object):
+    etype = ""
+
+    def __init__(self, func):
+        self.func = func
+
+    @property
+    def name(self):
+        return "%s_endpoint" % self.etype
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+
+
+class AuthorizationEndpoint(Endpoint):
+    etype = "authorization"
+
+
+class TokenEndpoint(Endpoint):
+    etype = "token"
