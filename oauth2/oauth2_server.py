@@ -7,9 +7,7 @@ from oic.oauth2.provider import Provider
 from oic.utils.sdb import SessionDB
 from oic.utils.http_util import Response, NotFound
 
-from cherrypy import wsgiserver
-import cherrypy
-
+import base64
 import logging
 
 from mako import exceptions as mako_exceptions
@@ -17,14 +15,15 @@ from mako.lookup import TemplateLookup
 
 from os import path
 
-import pudb
-
 
 USERDB = {
-        'emil': 'snatte'
+        'diana': 'krall'
     }
 AUTHORIZATIONS = {
-        'emil': 'ALL'
+        'diana': 'ALL'
+    }
+CLIENTS = {
+        '42': 'puttefnask'
     }
 
 ROOT = path.relpath(path.join(path.dirname(__file__), '..'))
@@ -76,6 +75,17 @@ class DefHash(object):
     default = property(_getdefault, _setdefault)
 
 
+class SafeProvider(Provider):
+
+    def token_endpoint(self, environ, start_response):
+        try:
+            return super(SafeProvider, self).token_endpoint(environ, start_response)
+        except AssertionError as err:
+            return self._error(environ, start_response,
+                            error="unsupported_grant_type",
+                            descr="Wrong value for grant_type")
+
+
 class Dispatcher:
     """ A stupid url-lookup table.
 
@@ -91,6 +101,7 @@ class Dispatcher:
         self.urls = DefHash({
                 '/authenticated': self._is_authenticated,
                 '/authorization': self._authorization,
+                '/token': self._token,
                 }, default=self._error_404)
 
     def __call__(self, environ, start_response):
@@ -111,9 +122,25 @@ class Dispatcher:
         self._logger.trace("args(%s,%s)", args, kwargs)
         return self.provider.authenticated(environ, start_response)
 
+    def _token(self, environ, start_response, *args, **kwargs):
+        return self.provider.token_endpoint(environ, start_response)
+
     def _error_404(self, environ, start_response, *args, **kwargs):
         self._logger.debug("Couldn't find: %s", environ['PATH_INFO'])
         return NotFound()(environ, start_response)
+
+    def parse_auth(self, environ):
+        if "HTTP_AUTHORIZATION" in environ:
+            authentication_type, code = environ["HTTP_AUTHORIZATION"].split(" ")
+            if "Basic" == authentication_type:
+                user, passwd = self.parse_basic_auth(code)
+
+            environ["REMOTE_USER"] = user
+            environ["REMOTE_PASSWD"] = passwd # TODO: Epic security fail
+
+    def parse_basic_auth(self, code):
+        user, passwd = base64.decodestring(code).split(":")
+        return user, passwd
 
     def parse_cookie_data(self, environ):
         cookie_data = environ.get('HTTP_COOKIE', None)
@@ -134,14 +161,15 @@ class Application:
         self.cookie_db = {} # TODO: Replace with shelve
         self.user_db = USERDB
         self.auth_db = AUTHORIZATIONS
-        self.provider = Provider(name=self.issuer,
+        self.client_db = CLIENTS
+        self.provider = SafeProvider(name=self.issuer,
                                  sdb=self.session_db, cdb=self.cookie_db,
                                  function=self, urlmap=CLIENT_URL_MAP)
         self.callbacks = {
                 'authenticate': self._login,
                 'authorize': self._authorization,
-                'verify_user': self._verify_user,
-                # 'userinfo': user_info,
+                'verify user': self._verify_user,
+                'verify client': self._verify_client,
                 }
 
     def __getitem__(self, key):
@@ -164,6 +192,12 @@ class Application:
         except KeyError:
             pass
         return False, ""
+
+    def _verify_client(self, environ, client_id, cookie_db):
+        if client_id in self.client_db:
+            if self.client_db[client_id] == environ["REMOTE_PASSWD"]:
+                return True
+        return False
 
     def _login(self, environ, start_response, session_id, cookie=None,
                       *args, **kwargs):
@@ -192,7 +226,9 @@ def log_header():
     print('_'*100)
 
 if "__main__" == __name__:
-    log_header()
+    from cherrypy import wsgiserver
+    import cherrypy
+
     # Setting up logger for trace messages
     format_str = '%(asctime)23s | %(levelname)-5s | %(name)-24s %(funcName)-22s | %(message)s'
     stdout_log = logging.StreamHandler()
@@ -212,6 +248,8 @@ if "__main__" == __name__:
     server = wsgiserver.CherryPyWSGIServer(address, Dispatcher(Application()))
 
     try:
+        print "Server url:", server_url
+        log_header()
         server.start()
     except KeyboardInterrupt:
         server.stop()
