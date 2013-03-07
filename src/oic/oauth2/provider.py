@@ -7,6 +7,7 @@ import base64
 
 from urlparse import parse_qs
 
+from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import add_non_standard
 from oic.oauth2.message import AuthorizationResponse
@@ -22,6 +23,8 @@ from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import ServiceError
 from oic.utils.http_util import Response
+
+from oic.utils.sdb import AccessCodeAlreadyUsed
 
 from oic.oauth2 import rndstr
 from oic.oauth2 import Server as SrvMethod
@@ -281,14 +284,20 @@ class Provider(object):
         assert areq["grant_type"] == "authorization_code"
 
         # assert that the code is valid
-        _info = _sdb[areq["code"]]
+        _access_code = areq["code"]
+        _info = _sdb[_access_code]
 
         # If redirect_uri was in the initial authorization request
         # verify that the one given here is the correct one.
         if "redirect_uri" in _info:
             assert areq["redirect_uri"] == _info["redirect_uri"]
 
-        _tinfo = _sdb.update_to_token(areq["code"])
+        try:
+            _tinfo = _sdb.update_to_token(areq["code"])
+        except AccessCodeAlreadyUsed as err:
+            _sdb.revoke_all_tokens(_access_code)
+            return self._error(environ, start_response,
+                    error="invalid_grant", descr="%s" % err)
 
         LOG_DEBUG("_tinfo: %s" % _tinfo)
             

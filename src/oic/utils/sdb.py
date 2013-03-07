@@ -17,6 +17,10 @@ from Crypto.Cipher import AES
 
 logger = logging.getLogger(__name__)
 
+class InvalidAccessCode(Exception):
+    pass
+class AccessCodeAlreadyUsed(InvalidAccessCode):
+    pass
 
 class ExpiredToken(Exception):
     pass
@@ -268,7 +272,7 @@ class SessionDB(object):
             dic = self._db[key]
 
             if dic["code_used"]:
-                raise Exception("Access code already used!!")
+                raise AccessCodeAlreadyUsed("This Access code has already been used.")
             _at = self.token("T", token)
             dic["code_used"] = True
         else:
