@@ -5,12 +5,14 @@ __author__ = 'rohe0002'
 
 import base64
 
-from urlparse import parse_qs
+import urllib
+import urlparse
 
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import add_non_standard
 from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import AuthorizationErrorResponse
 from oic.oauth2.message import NoneResponse
 from oic.oauth2.message import AuthorizationRequest
 from oic.oauth2.message import by_schema
@@ -125,7 +127,7 @@ class Provider(object):
         _sdb = self.sdb
 
         # parse the form
-        dic = parse_qs(get_post(environ))
+        dic = urlparse.parse_qs(get_post(environ))
 
         try:
             (verified, user) = self.function["verify_user"](dic)
@@ -169,7 +171,9 @@ class Provider(object):
 
         if "redirect_uri" in areq:
             # TODO verify that the uri is reasonable
-            redirect_uri = areq["redirect_uri"]
+            (redirect_uri, error_response) = self.get_redirect_uri(areq)
+            if error_response is not None:
+                return error_response(environ, start_response)
         else:
             redirect_uri = self.urlmap[areq["client_id"]]
 
@@ -241,11 +245,9 @@ class Provider(object):
             resp = BadRequest("%s" % err)
             return resp(environ, start_response)
 
-#        if "redirect_uri" in areq:
-#            _redirect = areq["redirect_uri"]
-#        else:
-#            # A list, so pick one (==the first)
-#            _redirect = self.urlmap[areq["client_id"]][0]
+        (_, error_response) = self.get_redirect_uri(areq)
+        if error_response is not None:
+            return error_response(environ, start_response)
 
         sid = _sdb.create_authz_session("", areq)
         bsid = base64.b64encode(sid)
@@ -308,6 +310,29 @@ class Provider(object):
         resp = Response(atr.to_json(), content="application/json")
         return resp(environ, start_response)
 
+    def get_redirect_uri(self, areq):
+        """ verify that the redirect URI is reasonable
+        :param areq: The Authorization request
+        :return: Tuple of (redirect_uri, Response instance)
+            Response instance is not None of matching redirect_uri failed
+        """
+        if 'redirect_uri' in areq:
+            reply = self._verify_redirect_uri(areq)
+            if reply:
+                return None, reply
+            uri = areq["redirect_uri"]
+        else:  # pick the one registered
+            ruris = self.cdb[areq["client_id"]]["redirect_uris"]
+            if len(ruris) == 1:
+                uri = construct_uri(ruris[0])
+            else:
+                err = "Missing redirect_uri and more than one registered"
+                logger.debug("Bad request: %s" % err)
+                resp = BadRequest("%s" % err)
+                return None, resp
+
+        return uri, None
+
     def _error_response(self, error, descr=None):
         logger.error("%s" % error)
         response = ErrorResponse(error=error, error_description=descr)
@@ -317,6 +342,53 @@ class Provider(object):
     def _error(self, environ, start_response, error, descr=None):
         response = self._error_response(error, descr)
         return response(environ, start_response)
+
+    def _verify_redirect_uri(self, areq):
+        """
+        MUST NOT contain a fragment
+        MAY contain query component
+
+        :return: An error response if the redirect URI is faulty otherwise
+            None
+        """
+        try:
+            _redirect_uri = urlparse.unquote(areq["redirect_uri"])
+
+            part = urlparse.urlparse(_redirect_uri)
+            if part.fragment:
+                raise ValueError
+
+            (_base, _query) = urllib.splitquery(_redirect_uri)
+            if _query:
+                _query = urlparse.parse_qs(_query)
+
+            match = False
+            # This loop (verifying that the redirect_uri belongs to the client)
+            # should probably be moved to a function callback
+            for regbase, rquery in self.cdb[areq["client_id"]]["redirect_uris"]:
+                if _base == regbase or _redirect_uri.startswith(regbase):
+                    # every registered query component must exist in the
+                    # redirect_uri
+                    if rquery:
+                        for key, vals in rquery.items():
+                            assert key in _query
+                            for val in vals:
+                                assert val in _query[key]
+                    match = True
+                    break
+            if not match:
+                raise AssertionError
+            # ignore query components that are not registered
+            return None
+        except Exception:
+            logger.error("Faulty redirect_uri: %s" % areq["redirect_uri"])
+            _cinfo = self.cdb[areq["client_id"]]
+            logger.info("Registered redirect_uris: %s" % _cinfo)
+            response = AuthorizationErrorResponse(error="invalid_request",
+                               error_description="Faulty redirect_uri")
+
+            return Response(response.to_json(), content="application/json",
+                            status="400 Bad Request")
 
 
 class Endpoint(object):

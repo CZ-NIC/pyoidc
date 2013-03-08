@@ -23,7 +23,11 @@ AUTHORIZATIONS = {
         'diana': 'ALL'
     }
 CLIENTS = {
-        '42': 'puttefnask'
+        '42': {
+            'password': 'puttefnask',
+            'client_secret': '',
+            'redirect_uris': [('http://localhost:8081/', None)],
+        },
     }
 
 ROOT = path.relpath(path.join(path.dirname(__file__), '..'))
@@ -158,18 +162,17 @@ class Application:
     def __init__(self):
         self.issuer = None
         self.session_db = SessionDB()
-        self.cookie_db = {} # TODO: Replace with shelve
         self.user_db = USERDB
         self.auth_db = AUTHORIZATIONS
         self.client_db = CLIENTS
         self.provider = SafeProvider(name=self.issuer,
-                                 sdb=self.session_db, cdb=self.cookie_db,
+                                 sdb=self.session_db, cdb=self.client_db,
                                  function=self, urlmap=CLIENT_URL_MAP)
         self.callbacks = {
                 'authenticate': self._login,
                 'authorize': self._authorization,
-                'verify user': self._verify_user,
-                'verify client': self._verify_client,
+                'verify_user': self._verify_user,
+                'verify_client': self._verify_client,
                 }
 
     def __getitem__(self, key):
@@ -183,7 +186,7 @@ class Application:
             raise Exception("No Authorization defined")
 
     def _verify_user(self, form_data, *args, **kwargs):
-        self._logger.trace("verifying (%s,%s)", form_data['login'][0], form_data['password'][0])
+        self._logger.trace("verifying (%s,%s)", form_data['login'], form_data['password'])
         try:
             user = form_data['login'][0]
             password = form_data['password'][0]
@@ -195,7 +198,8 @@ class Application:
 
     def _verify_client(self, environ, client_id, cookie_db):
         if client_id in self.client_db:
-            if self.client_db[client_id] == environ["REMOTE_PASSWD"]:
+            client_secret = self.client_db.get("client_secret")
+            if client_secret == environ["REMOTE_PASSWD"]:
                 return True
         return False
 

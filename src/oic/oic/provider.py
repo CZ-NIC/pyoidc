@@ -232,51 +232,6 @@ class Provider(AProvider):
         location = err.request(redirect_uri)
         return Redirect(location)
 
-    def _verify_redirect_uri(self, areq):
-        """
-        MUST NOT contain a fragment
-        MAY contain query component
-
-        :return: An error response if the redirect URI is faulty otherwise
-            None
-        """
-        try:
-            _redirect_uri = urlparse.unquote(areq["redirect_uri"])
-
-            part = urlparse.urlparse(_redirect_uri)
-            if part.fragment:
-                raise ValueError
-
-            (_base, _query) = urllib.splitquery(_redirect_uri)
-            if _query:
-                _query = urlparse.parse_qs(_query)
-
-            match = False
-            for regbase, rquery in self.cdb[areq["client_id"]]["redirect_uris"]:
-                if _base == regbase or _redirect_uri.startswith(regbase):
-                    # every registered query component must exist in the
-                    # redirect_uri
-                    if rquery:
-                        for key, vals in rquery.items():
-                            assert key in _query
-                            for val in vals:
-                                assert val in _query[key]
-                    match = True
-                    break
-            if not match:
-                raise AssertionError
-            # ignore query components that are not registered
-            return None
-        except Exception:
-            logger.error("Faulty redirect_uri: %s" % areq["redirect_uri"])
-            _cinfo = self.cdb[areq["client_id"]]
-            logger.info("Registered redirect_uris: %s" % _cinfo)
-            response = AuthorizationErrorResponse(error="invalid_request",
-                               error_description="Faulty redirect_uri")
-
-            return Response(response.to_json(), content="application/json",
-                            status="400 Bad Request")
-
     def _parse_openid_request(self, request, redirect_uri):
         try:
             return OpenIDRequest().from_jwt(request, keyjar=self.keyjar)
@@ -298,29 +253,6 @@ class Provider(AProvider):
             logger.error("IdToken: %s" % id_token.to_dict())
             return self._redirect_authz_error("invalid_id_token_object",
                                               redirect_uri)
-
-    def get_redirect_uri(self, areq):
-        """ verify that the redirect URI is reasonable
-        :param areq: The Authorization request
-        :return: Tuple of (redirect_uri, Response instance)
-            Response instance is not None of matching redirect_uri failed
-        """
-        if 'redirect_uri' in areq:
-            reply = self._verify_redirect_uri(areq)
-            if reply:
-                return None, reply
-            uri = areq["redirect_uri"]
-        else:  # pick the one registered
-            ruris = self.cdb[areq["client_id"]]["redirect_uris"]
-            if len(ruris) == 1:
-                uri = construct_uri(ruris[0])
-            else:
-                err = "Missing redirect_uri and more than one registered"
-                logger.debug("Bad request: %s" % err)
-                resp = BadRequest("%s" % err)
-                return None, resp
-
-        return uri, None
 
     def get_sector_id(self, redirect_uri, client_info):
         """
