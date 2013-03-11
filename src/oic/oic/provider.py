@@ -1122,9 +1122,9 @@ class Provider(AProvider):
             request.verify()
         except Exception, err:
             if "type" not in request:
-                return self._error(environ, None, error="invalid_type")
+                return self._error_response(environ, error="invalid_type")
             else:
-                return self._error(environ, None,
+                return self._error_response(environ,
                                    error="invalid_configuration_parameter")
 
         _keyjar = self.server.keyjar

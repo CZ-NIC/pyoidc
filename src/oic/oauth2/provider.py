@@ -315,13 +315,8 @@ class Provider(object):
                         status="400 Bad Request")
 
     def _error(self, environ, start_response, error, descr=None):
-        response = ErrorResponse(error=error, error_description=descr)
-        resp = Response(response.to_json(), content="application/json",
-                        status="400 Bad Request")
-        if start_response:
-            return resp(environ, start_response)
-        else:
-            return resp
+        response = self._error_response(error, descr)
+        return response(environ, start_response)
 
 
 class Endpoint(object):
