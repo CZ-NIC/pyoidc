@@ -1,18 +1,17 @@
 <%inherit file="root.mako" />
-<%def name="title()">Log in</%def>
+<%block name="title">Log in</%block>
 
 <div class="login_form" class="block">
     <form action="${action}" method="post" class="login form">
         <input type="hidden" name="sid" value="${sid}"/>
         <table>
             <tr>
-                <td>Username</td>
-                <td><input type="text" name="login" value="${login}"/></td>
+                <td><label for="login_input">Username</label></td>
+                <td><input type="text" name="login" id="login_input" value="${login}"/></td>
             </tr>
             <tr>
-                <td>Password</td>
-                <td><input type="password" name="password"
-                value="${password}"/></td>
+                <td><label for="password_input">Password</label></td>
+                <td><input type="password" name="password" id="password_input" value="${password}"/></td>
             </tr>
             <tr>
                 </td>
