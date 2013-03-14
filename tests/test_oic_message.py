@@ -16,8 +16,10 @@ from oic.oic.message import address_deser
 from oic.oic.message import Claims
 from oic.oic.message import idtokenclaim_deser
 
+
 def _eq(l1, l2):
     return set(l1) == set(l2)
+
 
 def test_ProviderConfigurationResponse():
     resp = {

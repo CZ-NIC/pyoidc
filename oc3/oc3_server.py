@@ -162,7 +162,7 @@ def do_authorization(user, session=None):
 
 
 #noinspection PyUnusedLocal
-def verify_client(environ, areq, cdb):
+def verify_client(areq, cdb):
     global JWT_BEARER
     if "client_secret" in areq:  # client_secret_post
         identity = areq["client_id"]
@@ -197,13 +197,7 @@ def init_claims_clients(client_info):
             cc = ClaimsClient(client_id=specs["client_id"])
             cc.client_secret = specs["client_secret"]
             try:
-                cc.keyjar.add(specs["client_id"], specs["x509_url"],
-                              "x509", "ver")
-            except KeyError:
-                pass
-            try:
-                cc.keyjar.add(specs["client_id"], specs["jwk_url"],
-                              "jwk", "ver")
+                cc.keyjar.add(specs["client_id"], specs["jwks_uri"])
             except KeyError:
                 pass
             cc.userclaims_endpoint = specs["userclaims_endpoint"]
@@ -369,71 +363,71 @@ def css(environ, start_response, logger, handle):
 def token(environ, start_response, logger, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.token_endpoint(environ, start_response, logger=logger,
-                               handle=handle)
+    return wsgi_wrapper(environ, start_response, _oas.token_endpoint,
+                        logger=logger, handle=handle)
 
 
 #noinspection PyUnusedLocal
 def authorization(environ, start_response, logger, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.authorization_endpoint(environ, start_response, logger=logger,
-                                       handle=handle)
+    return wsgi_wrapper(environ, start_response, _oas.authorization_endpoint,
+                        logger=logger, handle=handle)
 
 
 #noinspection PyUnusedLocal
 def authenticated(environ, start_response, logger, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.authenticated(environ, start_response, logger=logger,
-                              handle=handle)
+    return wsgi_wrapper(environ, start_response, _oas.authenticated,
+                        logger=logger, handle=handle)
 
 
 #noinspection PyUnusedLocal
 def userinfo(environ, start_response, logger, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.userinfo_endpoint(environ, start_response, logger=logger,
-                                  handle=handle)
+    return wsgi_wrapper(environ, start_response, _oas.userinfo_endpoint,
+                        logger=logger, handle=handle)
 
 
 #noinspection PyUnusedLocal
 def op_info(environ, start_response, logger, handle):
     _oas = environ["oic.oas"]
     LOGGER.info("op_info")
-    return _oas.providerinfo_endpoint(environ, start_response, logger=logger,
-                                      handle=handle)
+    return wsgi_wrapper(environ, start_response, _oas.providerinfo_endpoint,
+                        logger=logger, handle=handle)
 
 
 #noinspection PyUnusedLocal
 def registration(environ, start_response, logger, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.registration_endpoint(environ, start_response, logger=logger,
-                                      handle=handle)
+    return wsgi_wrapper(environ, start_response, _oas.registration_endpoint,
+                        logger=logger, handle=handle)
 
 
 #noinspection PyUnusedLocal
 def check_id(environ, start_response, logger, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.check_id_endpoint(environ, start_response, logger=logger,
-                                  handle=handle)
+    return wsgi_wrapper(environ, start_response, _oas.check_id_endpoint,
+                        logger=logger, handle=handle)
 
 
 #noinspection PyUnusedLocal
 def swd_info(environ, start_response, logger, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.discovery_endpoint(environ, start_response, logger=logger,
-                                   handle=handle)
+    return wsgi_wrapper(environ, start_response, _oas.discovery_endpoint,
+                        logger=logger, handle=handle)
 
 
 def trace_log(environ, start_response, logger, handle):
     _oas = environ["oic.oas"]
 
-    return _oas.tracelog_endpoint(environ, start_response, logger=logger,
-                                  handle=handle)
+    return wsgi_wrapper(environ, start_response, _oas.tracelog_endpoint,
+                        logger=logger, handle=handle)
 
 
 #noinspection PyUnusedLocal
@@ -783,17 +777,11 @@ if __name__ == '__main__':
         OAS.keyjar[""] = []
         for typ, info in config.keys.items():
             LOGGER.info("OC3 server key init: %s, %s" % (typ, info))
-            kc = KeyBundle(source="file://%s" % info["key"],
-                           usage=["sig", "ver"])
+            kc = KeyBundle(source="file://%s" % info["key"])
             OAS.keyjar[""].append(kc)
             try:
-                name = mv_content(info["cert"], "static")
-                OAS.cert.append("%s%s" % (OAS.baseurl, name))
-            except KeyError:
-                pass
-            try:
                 new_name = mv_content(info["jwk"], "static")
-                OAS.jwk.append("%s%s" % (OAS.baseurl, new_name))
+                OAS.jwks_uri.append("%s%s" % (OAS.baseurl, new_name))
             except KeyError:
                 pass
         for b in OAS.keyjar[""]:

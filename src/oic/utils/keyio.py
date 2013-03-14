@@ -1,3 +1,5 @@
+import json
+
 __author__ = 'rohe0002'
 
 import M2Crypto
@@ -10,8 +12,9 @@ import traceback
 from requests import request
 
 from jwkest.jwk import x509_rsa_loads
-from jwkest.jwk import dump_jwk
-from jwkest.jwk import loads
+from jwkest.jwk import long_to_mpi
+from jwkest.jwk import long_to_base64
+from jwkest.jwk import mpi_to_long
 from M2Crypto.util import no_passphrase_callback
 
 KEYLOADERR = "Failed to load %s key from '%s' (%s)"
@@ -80,8 +83,6 @@ class RedirectStdStreams(object):
         sys.stdout = self.old_stdout
         sys.stderr = self.old_stderr
 
-TYPE2FUNC = {"x509": x509_rsa_load, "jwk": loads}
-
 
 def uniq_ext(lst, keys):
     rkeys = {}
@@ -100,110 +101,124 @@ def uniq_ext(lst, keys):
 
     return lst
 
-URLPAT = [("%s_url", ["dec", "ver"]), ("%s_encryption_url", ["enc", "sig"])]
+
+class Key():
+    members = ["kty", "alg", "use", "kid"]
+
+    def __init__(self, kty="", alg="", use="", kid="", key=""):
+        self.key = key
+        self.kty = kty.lower()
+        self.alg = alg
+        self.use = use
+        self.kid = kid
+
+    def to_dict(self):
+        res = {}
+        for key in self.members:
+            try:
+                res[key] = getattr(self, key)
+            except KeyError:
+                pass
+
+    def __str__(self):
+        return str(self.to_dict())
+
+    def comp(self):
+        pass
+
+    def decomp(self):
+        pass
+
+
+class RSA_key(Key):
+    members = ["kty", "alg", "use", "kid", "n", "e"]
+
+    def __init__(self, kty="rsa", alg="", use="", kid="", n="", e="", key=""):
+        Key.__init__(self, kty, alg, use, kid, key)
+        self.n = n
+        self.e = e
+
+    def comp(self):
+        self.key = M2Crypto.RSA.new_pub_key((long_to_mpi(self.e),
+                                             long_to_mpi(self.n)))
+
+    def decomp(self):
+        self.n = long_to_base64(mpi_to_long(self.key.n)),
+        self.e = long_to_base64(mpi_to_long(self.key.e))
+
+    def load(self, filename):
+        self.key = rsa_load(filename)
+
+class EC_key(Key):
+    members = ["kty", "alg", "use", "kid", "crv", "x", "y"]
+
+    def __init__(self, kty="rsa", alg="", use="", kid="", crv="", x="", y="",
+                 key=""):
+        Key.__init__(self, kty, alg, use, kid, key)
+        self.crv = crv
+        self.x = x
+        self.y = y
+
+
+class HMAC_key(Key):
+    pass
+
+K2C = {
+    "rsa": RSA_key,
+    "ec": EC_key,
+    "hmac": HMAC_key
+}
 
 
 class KeyBundle(object):
-    def __init__(self, keys=None, source="", type="rsa", src_type="",
-                 cache_time=300, usage="", verify_ssl=True):
+    def __init__(self, keys=None, source="", cache_time=300, verify_ssl=True):
         """
 
-        :param keys: A dictionary
-        :param source: Where the key can be fetch from
-        :param type: What type of key it is (rsa, ec, hmac,..)
-        :param src_type: How the key is packed (x509, jwk,..)
-        :param usage: What the key should be used for (enc, dec, sig, ver)
+        :param keys: A list of dictionaries of the format
+            with the keys ["kty", "key", "alg", "use", "kid"]
+        :param source: Where the key set can be fetch from
         :param verify_ssl: Verify the SSL cert used by the server
         """
-        self._key = {}
+        self.keys = []
         self.remote = False
         self.verify_ssl = verify_ssl
-        type = type.lower()
-        src_type = src_type.lower()
+        self.cache_time = cache_time
+        self.time_out = 0
+        self.etags = ""
+        self.cache_control = None
+        self.source = None
 
         if keys:
             self.source = None
-            self.orig_type = None
-            for typ, inst in keys.items():
-                try:
-                    self._key[typ].append(inst)
-                except KeyError:
-                    self._key[typ] = [inst]
+            if isinstance(keys, dict):
+                self.do_keys([keys])
+            else:
+                self.do_keys(keys)
         else:
-            self.orig_type = type
             if source.startswith("file://"):
                 self.source = source[7:]
             elif source.startswith("http://") or source.startswith("https://"):
                 self.source = source
                 self.remote = True
+            elif source == "":
+                return
             else:
                 raise Exception("Unsupported source type: %s" % source)
 
-            self.src_type = src_type
             if not self.remote:  # local file
-                if src_type == "jwk":
-                    for typ, inst in loads(source):
-                        try:
-                            self._key[type].append(inst)
-                        except KeyError:
-                            self._key[type] = [inst]
-                else:  # native format
-                    self.do_native(type, src_type)
+                self.do_local(source)
 
-        if usage:
-            if isinstance(usage, basestring):
-                self.usage = [usage]
-            else:
-                self.usage = usage
-        else:
-            self.usage = []
+    def do_keys(self, keys):
+        for inst in keys:
+            typ = inst["kty"]
+            _key = K2C[typ](**inst)
+            _key.decomp()
+            self.keys.append(_key)
 
-        self.etag = ""
-        self.cache_control = []
-        self.time_out = 0
-        self.cache_time = cache_time
+    def do_local(self, filename):
+        self.do_keys(json.loads(open(filename).read())["keys"])
 
-    def do_native(self, type, src_type=""):
-        """
-        Fetch a local key
-
-        :param type: Type of key
-        :param src_type: How the key is stored
-        """
-        type = type.lower()
-        src_type = src_type.lower()
-        if type == "rsa":
-            if src_type=="x509":
-                _key = x509_rsa_loads(open(self.source).read())
-                type = "rsa"
-            else:
-                _key = rsa_load(self.source)
-        elif type == "ec":
-            _key = ec_load(self.source)
-        else: # Assume hmac
-            _key = open(self.source).read()
-            type = "hmac"
-
-        try:
-            self._key[type].append(_key)
-        except KeyError:
-            self._key[type] = [_key]
-
-    def update(self):
-        """
-        Reload the key if necessary
-        This is a forced update, will happen even if cache time has not elapsed
-        """
-        if not self.source:
-            return
-
-        # reread everything
-
-        if self.remote is False:
-            self._key = {}
-            self.do_native(self.orig_type, self.src_type)
-            return
-
+    def do_remote(self):
         args = {"allow_redirects": True,
                 "verify": self.verify_ssl,
                 "timeout": 5.0}
@@ -216,18 +231,8 @@ class KeyBundle(object):
             self.time_out = time.time() + self.cache_time
         elif r.status_code == 200:  # New content
             self.time_out = time.time() + self.cache_time
-            _new = {}
-            if self.src_type == "x509":
-                txt = str(r.text)
-            else:
-                txt = r.text
-            for typ, inst in TYPE2FUNC[self.src_type](txt):
-                try:
-                    _new[typ].append(inst)
-                except KeyError:
-                    _new[typ] = [inst]
 
-            self._key = _new
+            self.do_keys(json.loads(r.text)["keys"])
 
             try:
                 self.etag = r.headers["Etag"]
@@ -238,6 +243,29 @@ class KeyBundle(object):
             except KeyError:
                 pass
 
+    def _uptodate(self):
+        if self.keys:
+            if self.remote:  # verify that it's not to old
+                if time.time() > self.time_out:
+                    self.update()
+        elif self.remote:
+            self.update()
+
+    def update(self):
+        """
+        Reload the key if necessary
+        This is a forced update, will happen even if cache time has not elapsed
+        """
+        if self.source:
+            # reread everything
+
+            self.keys = []
+
+            if self.remote is False:
+                self.do_local(self.source)
+            else:
+                self.do_remote()
+
     def get(self, typ):
         """
 
@@ -245,31 +273,18 @@ class KeyBundle(object):
         :return: If typ is undefined all the keys as a dictionary
             otherwise the appropriate keys in a list
         """
-        if self._key:
-            if self.remote:  # verify that it's not to old
-                if time.time() > self.time_out:
-                    self.update()
-        elif self.remote:
-            self.update()
+        self._uptodate()
 
         if typ:
             typ = typ.lower()
-            try:
-                return self._key[typ]
-            except KeyError:
-                return []
+            return [k for k in self.keys if k.kty == typ]
         else:
-            return self._key
+            return self.keys
 
     def keys(self):
-        if self._key:
-            if self.remote:  # verify that it's not to old
-                if time.time() > self.time_out:
-                    self.update()
-        elif self.remote:
-            self.update()
+        self._uptodate()
 
-        return self._key
+        return self.keys
 
     def remove(self, typ, val=None):
         """
@@ -280,26 +295,35 @@ class KeyBundle(object):
         typ = typ.lower()
 
         if val:
-            try:
-                self._key[typ].remove(val)
-            except (ValueError, KeyError):
-                pass
+            self.keys = [k for k in self.keys if
+                         not (k.kty == typ and k.key == val)]
         else:
-            try:
-                del self._key[typ]
-            except KeyError:
-                pass
-
-        for key, val in self._key.items():
-            if val == []:
-                del self._key[key]
+            self.keys = [k for k in self.keys if not k.kty == typ]
 
     def __str__(self):
-        if self.remote:  # verify that it's not to old
-            if time.time() > self.time_out:
-                self.update()
+        return str(self.jwks())
 
-        return "%s %s" % (self._key, self.usage)
+    def jwks(self):
+        self._uptodate()
+        return {"keys": [k.to_dict() for k in self.keys]}
+
+
+def keybundle_from_local_file(filename, typ, usage):
+    if typ.lower() == "rsa":
+        kb = KeyBundle()
+        k = RSA_key()
+        k.load(filename)
+        k.use = usage[0]
+        kb.keys.append(k)
+        for use in usage[1:]:
+            _k = RSA_key()
+            _k.key = k.key
+            _k.use = use
+            kb.keys.append(_k)
+    else:
+        raise Exception("Unsupported key type")
+
+    return kb
 
 
 class KeyJar(object):
@@ -323,19 +347,17 @@ class KeyJar(object):
         else:
             self.issuer_keys[issuer][use] = keys
 
-    def add(self, issuer, url, src_type="", use=""):
+    def add(self, issuer, url):
         """
 
         :param issuer: Who issued the keys
         :param url: Where can the key/-s be found
-        :param src_type: How are the keys packed
         """
 
         if "/localhost:" in url or "/localhost/" in url:
-            kc = KeyBundle(source=url, src_type=src_type, usage=use,
-                           verify_ssl=False)
+            kc = KeyBundle(source=url, verify_ssl=False)
         else:
-            kc = KeyBundle(source=url, src_type=src_type, usage=use)
+            kc = KeyBundle(source=url)
 
         try:
             self.issuer_keys[issuer].append(kc)
@@ -352,11 +374,11 @@ class KeyJar(object):
 
         self.issuer_keys[issuer] = val
 
-    def get(self, use, type="", issuer=""):
+    def get(self, use, key_type="", issuer=""):
         """
 
         :param use: A key useful for this usage (enc, dec, sig, ver)
-        :param type: Type of key (rsa, ec, hmac, ..)
+        :param key_type: Type of key (rsa, ec, hmac, ..)
         :param issuer: Who is responsible for the keys, "" == me
         :return: A possibly empty list of keys
         """
@@ -380,30 +402,35 @@ class KeyJar(object):
 
         res = {}
         if _keys:
-            if type:
+            if key_type:
                 lst = []
-                for kc in _keys:
-                    if use in kc.usage:
-                        lst.extend(kc.get(type))
-                res[type] = lst
+                for bundles in _keys:
+                    for key in bundles.get(key_type):
+                        if use == key.use:
+                            lst.append(key)
+                res[key_type] = lst
             else:
-                for kc in _keys:
-                    if use in kc.usage:
-                        res.update(kc.keys())
+                for bundles in _keys:
+                    for key in bundles.keys:
+                        if use == key.use:
+                            try:
+                                res[key.kty].append(key)
+                            except KeyError:
+                                res[key.kty] = [key]
 
         return res
 
-    def get_signing_key(self, type="", owner=""):
-        return self.get("sig", type, owner)
+    def get_signing_key(self, key_type="", owner=""):
+        return self.get("sig", key_type, owner)
 
-    def get_verify_key(self, type="", owner=""):
-        return self.get("ver", type, owner)
+    def get_verify_key(self, key_type="", owner=""):
+        return self.get("ver", key_type, owner)
 
-    def get_encrypt_key(self, type="", owner=""):
-        return self.get("enc", type, owner)
+    def get_encrypt_key(self, key_type="", owner=""):
+        return self.get("enc", key_type, owner)
 
-    def get_decrypt_key(self, type="", owner=""):
-        return self.get("dec", type, owner)
+    def get_decrypt_key(self, key_type="", owner=""):
+        return self.get("dec", key_type, owner)
 
     def __contains__(self, item):
         if item in self.issuer_keys:
@@ -414,14 +441,14 @@ class KeyJar(object):
     def x_keys(self, var, part):
         _func = getattr(self, "get_%s_key" % var)
 
-        keys = _func(type="", owner=part)
-        for typ, val in _func(type="", owner="").items():
+        keys = _func(key_type="", owner=part)
+        for kty, val in _func(key_type="", owner="").items():
             if not val:
                 continue
             try:
-                keys[typ].extend(val)
+                keys[kty].extend(val)
             except KeyError:
-                keys[typ] = val
+                keys[kty] = val
         return keys
 
     def verify_keys(self, part):
@@ -446,15 +473,15 @@ class KeyJar(object):
     def __getitem__(self, issuer):
         return self.issuer_keys[issuer]
 
-    def remove_key(self, issuer, type, key):
+    def remove_key(self, issuer, key_type, key):
         try:
             kcs = self.issuer_keys[issuer]
         except KeyError:
             return
 
         for kc in kcs:
-            kc.remove(type, key)
-            if kc.keys() == {}:
+            kc.remove(key_type, key)
+            if not kc.keys:
                 self.issuer_keys[issuer].remove(kc)
 
     def update(self, kj):
@@ -466,7 +493,7 @@ class KeyJar(object):
 
             try:
                 self.issuer_keys[key].extend(val)
-            except:
+            except KeyError:
                 self.issuer_keys[key] = val
 
     def match_owner(self, url):
@@ -497,30 +524,53 @@ class KeyJar(object):
         logger.debug("pcr: %s" % pcr)
         if issuer not in self.issuer_keys:
             self.issuer_keys[issuer] = []
+        elif replace:
+            self.issuer_keys[issuer] = []
 
-        if "jwk_url" in pcr:
-            bj = self.add(issuer, pcr["jwk_url"], src_type="jwk", use=["ver"])
-        else:
-            bj = None
-        if "x509_url" in pcr:
-            bx = self.add(issuer, pcr["x509_url"], src_type="x509", use=["ver"])
-        else:
-            bx = None
-        if "jwk_encryption_url" in pcr:
-            self.add(issuer, pcr["jwk_encryption_url"], src_type="jwk",
-                     use=["dec", "enc"])
-        elif bj:
-            bj.usage.extend(["dec", "enc"])
-        if "x509_encryption_url" in pcr:
-            self.add(issuer, pcr["x509_encryption_url"], src_type="x509",
-                     use=["dec", "enc"])
-        elif bx:
-            bx.usage.extend(["dec", "enc"])
+        self.add(issuer, pcr["jwks_uri"])
+
 
 # =============================================================================
 
 
-def key_export(baseurl, local_path, vault, keyjar, fqdn="", **kwargs):
+def key_setup(vault, **kwargs):
+    """
+    :param vault: Where the keys are kept
+    :return: 2-tuple: result of urlsplit and a dictionary with
+        parameter name as key and url and value
+    """
+    vault_path = proper_path(vault)
+
+    if not os.path.exists(vault_path):
+        os.makedirs(vault_path)
+
+    kb = KeyBundle()
+    kid = 1
+    for usage in ["sig", "enc"]:
+        if usage in kwargs:
+            if kwargs[usage] is None:
+                continue
+
+            _args = kwargs[usage]
+            if _args["alg"] == "rsa":
+                try:
+                    _key = rsa_load('%s%s' % (vault_path, "pyoidc"))
+                except Exception:
+                    devnull = open(os.devnull, 'w')
+                    with RedirectStdStreams(stdout=devnull, stderr=devnull):
+                        _key = create_and_store_rsa_key_pair(
+                            path=vault_path)
+
+                kb.keys.append(RSA_key(key=_key, use=usage, kid=kid))
+                kid += 1
+                if usage == "sig" and "enc" not in kwargs:
+                    kb.keys.append(RSA_key(key=_key, use="enc", kid=kid))
+                    kid += 1
+
+    return kb
+
+
+def key_export(baseurl, local_path, vault, keyjar, **kwargs):
     """
     :param baseurl: The base URL to which the key file names are added
     :param local_path: Where on the machine the export files are kept
@@ -539,83 +589,28 @@ def key_export(baseurl, local_path, vault, keyjar, fqdn="", **kwargs):
         _path = part.path[:]
 
     local_path = proper_path("%s/%s" % (_path, local_path))
-    vault_path = proper_path(vault)
-
-    if not os.path.exists(vault_path):
-        os.makedirs(vault_path)
 
     if not os.path.exists(local_path):
         os.makedirs(local_path)
 
-    res = {}
-    # For each usage type
-    # type, usage, format (rsa, sign, jwt)
-    issuer_keys = {"sig": [], "ver": [], "enc": [], "dec": []}
-    for usage in ["sig", "enc"]:
-        if usage in kwargs:
-            if kwargs[usage] is None:
-                continue
+    kb = key_setup(vault, **kwargs)
 
-            _args = kwargs[usage]
-            if _args["alg"] == "rsa":
-                try:
-                    _key = rsa_load('%s%s' % (vault_path, "pyoidc"))
-                except Exception:
-                    devnull = open(os.devnull, 'w')
-                    with RedirectStdStreams(stdout=devnull, stderr=devnull):
-                        _key = create_and_store_rsa_key_pair(
-                            path=vault_path)
+    try:
+        keyjar[""].append(kb)
+    except KeyError:
+        keyjar[""] = kb
 
-                # order is not arbitrary, make_cert messes with key
-                if "x509" in _args["format"]:
-                    if usage == "sig":
-                        _name = "x509_url"
-                    else:
-                        _name = "x509_encryption_url"
+    # the local filename
+    _export_filename = "%sjwks" % local_path
 
-                    cert, _key = make_cert(2045, fqdn, _key)
-                    # the local filename
-                    _export_filename = "%s%s" % (local_path, "cert.pem")
-                    cert.save(_export_filename)
-                    _url = "%s://%s%s" % (part.scheme, part.netloc,
-                                          _export_filename[1:])
+    f = open(_export_filename, "w")
+    f.write("%s" % kb)
+    f.close()
 
-                    res[_name] = _url
+    _url = "%s://%s%s" % (part.scheme, part.netloc,
+                          _export_filename[1:])
 
-                rsa_key = rsa_load('%s%s' % (vault_path, "pyoidc"))
-                kc = KeyBundle({"rsa": rsa_key}, usage=[usage])
-                if usage == "sig":
-                    kc.usage.append("ver")
-                elif usage == "enc":
-                    kc.usage.append("dec")
-
-                if "jwk" in _args["format"]:
-                    if usage == "sig":
-                        _name = ("jwk.json", "jwk_url")
-                    else:
-                        _name = ("jwk_enc.json", "jwk_encryption_url")
-
-                    # the local filename
-                    _export_filename = "%s%s" % (local_path, _name[0])
-
-                    f = open(_export_filename, "w")
-                    f.write(dump_jwk([{"key":rsa_key, "use":usage}]))
-                    f.close()
-
-                    _url = "%s://%s%s" % (part.scheme, part.netloc,
-                                          _export_filename[1:])
-
-                    res[_name[1]] = _url
-
-                if usage == "sig" and "enc" not in kwargs:
-                    kc.usage.extend(["enc", "dec"])
-
-                try:
-                    keyjar[""].append(kc)
-                except KeyError:
-                    keyjar[""] = kc
-
-    return part, res
+    return _url
 
 # ================= create RSA key ======================
 
@@ -624,7 +619,7 @@ def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=1024):
     #Seed the random number generator with 1024 random bytes (8192 bits)
     M2Crypto.Rand.rand_seed(os.urandom(size))
 
-    key = M2Crypto.RSA.gen_key(size, 65537, lambda : None)
+    key = M2Crypto.RSA.gen_key(size, 65537, lambda: None)
 
     if not path.endswith("/"):
         path += "/"

@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 LOG_INFO = logger.info
 LOG_DEBUG = logger.debug
 
+
 def stateID(url, seed):
     """The hash of the time + server path + a seed makes an unique
     SID for each session.
@@ -32,6 +33,7 @@ def stateID(url, seed):
     ident.update(url)
     ident.update(seed)
     return ident.hexdigest()
+
 
 def factory(kaka, sdb, client_id, **kwargs):
     """
@@ -51,17 +53,22 @@ def factory(kaka, sdb, client_id, **kwargs):
     http_util.parse_cookie(client_id, cons.seed, kaka)
     return cons
 
+
 class UnknownState(Exception):
     pass
+
 
 class TokenError(Exception):
     pass
 
+
 class AuthzError(Exception):
     pass
 
+
 class ConfigurationError(Exception):
     pass
+
 
 class Consumer(Client):
     """ An OAuth2 consumer implementation
@@ -151,7 +158,7 @@ class Consumer(Client):
             "grant": self.grant,
             "seed": self.seed,
             "redirect_uris": self.redirect_uris,
-            }
+        }
 
         for endpoint in ENDPOINTS:
             res[endpoint] = getattr(self, endpoint, None)
@@ -159,62 +166,58 @@ class Consumer(Client):
         self.sdb[sid] = res
 
     #noinspection PyUnusedLocal,PyArgumentEqualDefault
-    def begin(self, environ, start_response):
+    def begin(self, baseurl, authz_endpoint, response_type="code", **kwargs):
         """ Begin the OAuth2 flow
 
-        :param environ: The WSGI environment
-        :param start_response: The function to start the response process
+        :param baseurl: The RPs base
+        :param authz_endpoint: The Authorization query
+        :param response_type: The response type the AS should use.
+            Default 'code'.
         :return: A URL to which the user should be redirected
         """
 
         LOG_DEBUG("- begin -")
 
         # Store the request and the redirect uri used
-        _path = http_util.geturl(environ, False, False)
-        self.redirect_uris = ["%s%s" % (_path, self.authz_page)]
-        self._request = http_util.geturl(environ)
+        self.redirect_uris = ["%s%s" % (baseurl, self.authz_page)]
+        self._request = authz_endpoint
 
         # Put myself in the dictionary of sessions, keyed on session-id
         if not self.seed:
             self.seed = rndstr()
 
-        sid = stateID(_path, self.seed)
+        sid = stateID(authz_endpoint, self.seed)
         self.state = sid
         self.grant[sid] = Grant(seed=self.seed)
         self._backup(sid)
         self.sdb["seed:%s" % self.seed] = sid
 
-        location = self.request_info(AuthorizationRequest,
-                                     method="GET", scope=self.scope,
-                                     request_args={"state": sid})[0]
-
+        location = self.request_info(
+            AuthorizationRequest, method="GET", scope=self.scope,
+            request_args={"state": sid, "response_type": response_type})[0]
 
         LOG_DEBUG("Redirecting to: %s" % (location,))
 
         return location
 
     #noinspection PyUnusedLocal
-    def handle_authorization_response(self, environ, start_response):
+    def handle_authorization_response(self, query="", **kwargs):
         """
         This is where we get redirect back to after authorization at the
         authorization server has happened.
 
-        :param environ: The WSGI environment
-        :param start_response: The function to start the response process
+        :param query: The query part of the request
         :return: A AccessTokenResponse instance
         """
 
         LOG_DEBUG("- authorization - %s flow -" % self.flow_type)
-
-        _query = environ.get("QUERY_STRING")
-        LOG_DEBUG("QUERY: %s" % _query)
-        _path = http_util.geturl(environ, False, False)
+        LOG_DEBUG("QUERY: %s" % query)
 
         if "code" in self.response_type:
             # Might be an error response
             try:
                 aresp = self.parse_response(AuthorizationResponse,
-                                            info=_query, sformat="urlencoded")
+                                            info=query, sformat="urlencoded")
             except Exception, err:
                 logger.error("%s" % err)
                 raise
@@ -231,9 +234,9 @@ class Consumer(Client):
             self._backup(aresp["state"])
 
             return aresp
-        else: # implicit flow
+        else:  # implicit flow
             atr = self.parse_response(AccessTokenResponse,
-                                      info=_query, sformat="urlencoded",
+                                      info=query, sformat="urlencoded",
                                       extended=True)
 
             if isinstance(atr, Message):
@@ -249,8 +252,12 @@ class Consumer(Client):
 
             return atr
 
-    def complete(self, environ, start_response):
-        resp = self.handle_authorization_response(environ, start_response)
+    def complete(self, query="", **kwargs):
+        """
+        :param query: The query part of the request URL
+        """
+
+        resp = self.handle_authorization_response(query, **kwargs)
 
         if resp.type() == "AuthorizationResponse":
             # Go get the access token
@@ -263,21 +270,21 @@ class Consumer(Client):
 
         """
         if self.password:
-            http_args = {"client_password":self.password}
+            http_args = {"client_password": self.password}
             request_args = {}
             extra_args = {}
         elif self.client_secret:
             http_args = {}
-            request_args = { "client_secret":self.client_secret,
-                             "client_id": self.client_id }
-            extra_args = {"auth_method":"bearer_body"}
+            request_args = {"client_secret": self.client_secret,
+                            "client_id": self.client_id}
+            extra_args = {"auth_method": "bearer_body"}
         else:
             raise Exception("Nothing to authenticate with")
 
         return request_args, http_args, extra_args
 
     #noinspection PyUnusedLocal
-    def get_access_token_request(self, environ, start_response):
+    def get_access_token_request(self, **kwargs):
 
         request_args, http_args, extra_args = self.client_auth_info()
 

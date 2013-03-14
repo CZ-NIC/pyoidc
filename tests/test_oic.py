@@ -37,7 +37,7 @@ from oic.oauth2.message import MissingRequiredAttribute
 
 from oic.utils import time_util
 from oic.utils.time_util import utc_time_sans_frac
-from oic.utils.keyio import KeyBundle, KeyJar
+from oic.utils.keyio import KeyBundle, KeyJar, rsa_load
 
 from jwkest import unpack
 from jwkest.jws import left_hash
@@ -55,10 +55,12 @@ def _eq(l1, l2):
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
-KC_HMAC_VS = KeyBundle({"hmac": "abcdefghijklmnop"}, usage=["ver", "sig"])
-KC_RSA = KeyBundle(source="file://../oc3/certs/mycert.key", type="rsa",
-                  usage=["ver", "sig"])
-KC_HMAC_S = KeyBundle({"hmac": "abcdefghijklmnop"}, usage=["sig"])
+KC_HMAC_VS = KeyBundle({"kty": "hmac", "key": "abcdefghijklmnop", "use": "ver"})
+KC_HMAC_S = KeyBundle({"kty": "hmac", "key": "abcdefghijklmnop", "use": "sig"})
+
+_key = rsa_load("../oc3/certs/mycert.key")
+KC_RSA = KeyBundle([{"key":_key, "kty":"rsa", "use":"ver"},
+                    {"key":_key, "kty":"rsa", "use":"sig"}])
 
 KEYJ = KeyJar()
 KEYJ[""] = [KC_RSA, KC_HMAC_S]
@@ -70,6 +72,7 @@ IDTOKEN = IdToken(iss="http://oic.example.org/", sub="user_id",
                   iat=time.time())
 
 # ----------------- CLIENT --------------------
+
 
 class TestOICClient():
     def setup_class(self):
@@ -199,9 +202,8 @@ class TestOICClient():
 
     def test_construct_request_no_input(self):
         self.client.response_type = ["code"]
-        atr = self.client.construct_AuthorizationRequest(request_args={
-                                                        "scope": ["openid"],
-                                                        "response_type":["code"]})
+        atr = self.client.construct_AuthorizationRequest(
+            request_args={"scope": ["openid"], "response_type": ["code"]})
 
         print atr
         assert atr["redirect_uri"] == "http://client.example.com/authz"
@@ -215,7 +217,7 @@ class TestOICClient():
        "expires_in":3600,
        "refresh_token":"tGzv3JOkF0XG5Qx2TlKWIA",
        "example_parameter":"example_value"
-     }"""
+    }"""
 
         self.client.parse_response(AccessTokenResponse,
                                    info="".join([

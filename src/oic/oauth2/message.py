@@ -12,7 +12,11 @@ import jwkest
 logger = logging.getLogger(__name__)
 
 
-class MissingRequiredAttribute(Exception):
+class MessageException(Exception):
+    pass
+
+
+class MissingRequiredAttribute(MessageException):
     def __init__(self, attr):
         Exception.__init__(self)
         self.attr = attr
@@ -21,7 +25,11 @@ class MissingRequiredAttribute(Exception):
         return "Missing required attribute '%s'" % self.attr
 
 
-class TooManyValues(Exception):
+class TooManyValues(MessageException):
+    pass
+
+
+class DecodeError(MessageException):
     pass
 
 
@@ -33,12 +41,7 @@ class OldAccessToken(Exception):
     pass
 
 
-class DecodeError(Exception):
-    pass
 
-
-class VerificationError(Exception):
-    pass
 
 ERRTXT = "On '%s': %s"
 
@@ -658,8 +661,8 @@ class AuthorizationRequest(Message):
     c_param = {
         "response_type": REQUIRED_LIST_OF_SP_SEP_STRINGS,
         "client_id": SINGLE_REQUIRED_STRING,
-        "redirect_uri": SINGLE_OPTIONAL_STRING,
         "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+        "redirect_uri": SINGLE_OPTIONAL_STRING,
         "state": SINGLE_OPTIONAL_STRING
     }
 

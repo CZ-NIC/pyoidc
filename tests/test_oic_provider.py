@@ -1,12 +1,13 @@
-
 __author__ = 'rohe0002'
 
 import StringIO
 import urllib
 
-from oic.oauth2 import rndstr
+from oic.oauth2.exception import FailedAuthentication
 
-from oic.utils.keyio import KeyBundle, KeyJar
+from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import KeyJar
+from oic.utils.keyio import keybundle_from_local_file
 
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import RegistrationResponse
@@ -26,10 +27,6 @@ from oic.oic import make_openid_request
 
 from oic.oic.consumer import Consumer
 from oic.oic.provider import Provider
-from oic.oic.provider import get_post
-
-#from oic.oic.provider import update_info
-from oic.oauth2.provider import AuthnFailure
 
 from oic.utils import http_util
 from oic.utils.time_util import epoch_in_a_while
@@ -37,7 +34,7 @@ from oic.utils.time_util import epoch_in_a_while
 CLIENT_CONFIG = {
     "client_id": "number5",
     "ca_certs": "/usr/local/etc/oic/ca_certs.txt",
-    "client_timeout":0
+    "client_timeout": 0
 }
 
 CONSUMER_CONFIG = {
@@ -56,43 +53,48 @@ CONSUMER_CONFIG = {
     "request_method": "param"
 }
 
-SERVER_INFO ={
-    "version":"3.0",
-    "issuer":"https://connect-op.heroku.com",
-    "authorization_endpoint":"http://localhost:8088/authorization",
-    "token_endpoint":"http://localhost:8088/token",
+SERVER_INFO = {
+    "version": "3.0",
+    "issuer": "https://connect-op.heroku.com",
+    "authorization_endpoint": "http://localhost:8088/authorization",
+    "token_endpoint": "http://localhost:8088/token",
     #"userinfo_endpoint":"http://localhost:8088/user_info",
     #"check_id_endpoint":"http://localhost:8088/id_token",
     #"registration_endpoint":"https://connect-op.heroku.com/connect/client",
     #"scopes_supported":["openid","profile","email","address","PPID"],
-    "flows_supported":["code","token","code token"],
+    "flows_supported": ["code", "token", "code token"],
     #"identifiers_supported":["public","ppid"],
     #"x509_url":"https://connect-op.heroku.com/cert.pem"
 }
 
 BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',
-               'REQUEST_METHOD': 'GET',
-               'QUERY_STRING': '',
-               'HTTP_CONNECTION': 'keep-alive',
-               'REMOTE_ADDR': '127.0.0.1',
-               'wsgi.url_scheme': 'http',
-               'SERVER_PORT': '8087',
-               'PATH_INFO': '/register',
-               'HTTP_HOST': 'localhost:8087',
-               'HTTP_ACCEPT': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-               'HTTP_ACCEPT_LANGUAGE': 'sv-se',
-               'CONTENT_TYPE': 'text/plain',
-               'REMOTE_HOST': '1.0.0.127.in-addr.arpa',
-               'HTTP_ACCEPT_ENCODING': 'gzip, deflate',
-               'COMMAND_MODE': 'unix2003'}
+                'REQUEST_METHOD': 'GET',
+                'QUERY_STRING': '',
+                'HTTP_CONNECTION': 'keep-alive',
+                'REMOTE_ADDR': '127.0.0.1',
+                'wsgi.url_scheme': 'http',
+                'SERVER_PORT': '8087',
+                'PATH_INFO': '/register',
+                'HTTP_HOST': 'localhost:8087',
+                'HTTP_ACCEPT':
+                    'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'HTTP_ACCEPT_LANGUAGE': 'sv-se',
+                'CONTENT_TYPE': 'text/plain',
+                'REMOTE_HOST': '1.0.0.127.in-addr.arpa',
+                'HTTP_ACCEPT_ENCODING': 'gzip, deflate',
+                'COMMAND_MODE': 'unix2003'}
 
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
-KC_HMAC = KeyBundle({"hmac": CLIENT_SECRET}, usage=["ver", "sig"])
-KC_HMAC2 = KeyBundle({"hmac": "drickyoughurt"}, usage=["ver", "sig"])
-KC_RSA = KeyBundle(source="file://../oc3/certs/mycert.key", type="rsa",
-                  usage=["sig", "ver"])
+KC_HMAC = KeyBundle([{"kty": "hmac", "key": CLIENT_SECRET, "use": "ver"},
+                     {"kty": "hmac", "key": CLIENT_SECRET, "use": "sig"}])
+KC_HMAC2 = KeyBundle([{"kty": "hmac", "key": "drickyoughurt", "use": "sig"},
+                      {"kty": "hmac", "key": "drickyoughurt", "use": "ver"}])
+
+KC_RSA = keybundle_from_local_file("../oc3/certs/mycert.key", "rsa",
+                                   ["ver", "sig"])
+
 KEYJAR = KeyJar()
 KEYJAR[CLIENT_ID] = [KC_HMAC, KC_RSA]
 KEYJAR["number5"] = [KC_HMAC2, KC_RSA]
@@ -105,10 +107,10 @@ CDB = {
         #"jwk_key": CONSUMER_CONFIG["key"],
         "redirect_uris": [("http://localhost:8087/authz", None)],
     },
-    "a1b2c3":{
+    "a1b2c3": {
         "redirect_uris": [("http://localhost:8087/authz", None)]
     },
-    "client0":{
+    "client0": {
         "redirect_uris": [("http://www.example.org/authz", None)]
     },
     CLIENT_ID: {
@@ -117,14 +119,17 @@ CDB = {
 
 }
 
+
 #noinspection PyUnusedLocal
 def start_response(status, headers=None):
     return
+
 
 #noinspection PyUnusedLocal
 def do_authentication(environ, start_response, bsid, cookie):
     resp = http_util.Response("<form>%s</form>" % bsid)
     return resp(environ, start_response)
+
 
 #noinspection PyUnusedLocal
 def do_authorization(user, session=None):
@@ -133,21 +138,23 @@ def do_authorization(user, session=None):
     else:
         raise Exception("No Authorization defined")
 
+
 def verify_username_and_password(dic):
     try:
         user = dic["login"][0]
     except KeyError:
-        raise AuthnFailure("Authentication failed")
+        raise FailedAuthentication("Authentication failed")
 
     if user == "user":
         return True, user
     elif user == "hannibal":
-        raise AuthnFailure("Not allowed to use this service (%s)" % user)
+        raise FailedAuthentication(
+            "Not allowed to use this service (%s)" % user)
     else:
         if user:
             return False, user
         else:
-            raise AuthnFailure("Missing user name")
+            raise FailedAuthentication("Missing user name")
 
 
 #noinspection PyUnusedLocal
@@ -160,6 +167,7 @@ def verify_client(environ, client, cdb):
 
     return False
 
+
 def create_return_form_env(user, password, sid):
     _dict = {
         "login": user,
@@ -170,13 +178,14 @@ def create_return_form_env(user, password, sid):
     environ = BASE_ENVIRON.copy()
     environ["REQUEST_METHOD"] = "POST"
 
-    str = urllib.urlencode(_dict)
-    environ["CONTENT_LENGTH"] = len(str)
+    text = urllib.urlencode(_dict)
+    environ["CONTENT_LENGTH"] = len(text)
 
-    fil = StringIO.StringIO(buf=str)
+    fil = StringIO.StringIO(buf=text)
     environ["wsgi.input"] = fil
 
     return environ
+
 
 #noinspection PyUnusedLocal
 def user_info(oicsrv, userdb, user_id, client_id, user_info):
@@ -200,7 +209,7 @@ FUNCTIONS = {
 }
 
 USERDB = {
-    "user":{
+    "user": {
         "name": "Hans Granberg",
         "nickname": "Hasse",
         "email": "hans@example.org",
@@ -212,35 +221,12 @@ USERDB = {
 URLMAP = {"client_1": ["https://example.com/authz"]}
 
 provider_init = Provider("pyoicserv", SessionDB(), CDB, FUNCTIONS,
-                  userdb=USERDB, urlmap=URLMAP, keyjar=KEYJAR)
+                         userdb=USERDB, urlmap=URLMAP, keyjar=KEYJAR)
+
 
 def _eq(l1, l2):
     return set(l1) == set(l2)
 
-def test_get_post():
-    environ = BASE_ENVIRON.copy()
-    environ["CONTENT_LENGTH"] = 16
-
-    str = rndstr()
-    fil = StringIO.StringIO(buf=str)
-    environ["wsgi.input"] = fil
-
-    post = get_post(environ)
-    assert post == str
-
-    del environ["CONTENT_LENGTH"]
-    fil = StringIO.StringIO(buf=str)
-    environ["wsgi.input"] = fil
-
-    post = get_post(environ)
-    assert post == ""
-
-    environ["CONTENT_LENGTH"] = "A"
-    fil = StringIO.StringIO(buf=str)
-    environ["wsgi.input"] = fil
-
-    post = get_post(environ)
-    assert post == ""
 
 def test_server_init():
     server = provider_init
@@ -248,6 +234,7 @@ def test_server_init():
     assert server
     assert server.function["authenticate"] == do_authentication
     assert server.urlmap["client_1"] == ["https://example.com/authz"]
+
 
 def test_server_authorization_endpoint():
     server = provider_init
@@ -261,15 +248,13 @@ def test_server_authorization_endpoint():
 
     arq = AuthorizationRequest(**bib)
 
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = arq.to_urlencoded()
-
-    resp = server.authorization_endpoint(environ, start_response)
+    resp = server.authorization_endpoint(query=arq.to_urlencoded())
 
     print resp
     line = resp[0]
     assert line.startswith("<form>")
     assert line.endswith("</form>")
+
 
 def test_server_authorization_endpoint_request():
     server = provider_init
@@ -283,19 +268,17 @@ def test_server_authorization_endpoint_request():
            "prompt": ["none"]}
 
     req = AuthorizationRequest(**bib)
-    ic = {"claims": {"sub": { "value":"username" }}}
-    _keys = server.keyjar.get_signing_key(type="rsa")
+    ic = {"claims": {"sub": {"value": "username"}}}
+    _keys = server.keyjar.get_signing_key(key_type="rsa")
     req["request"] = make_openid_request(req, _keys, idtoken_claims=ic,
                                          algorithm="RS256")
 
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = req.to_urlencoded()
-
-    resp = server.authorization_endpoint(environ, start_response)
+    resp = server.authorization_endpoint(query=req.to_urlencoded())
 
     print resp
     line = resp[0]
     assert "error=login_required" in line
+
 
 def test_server_authorization_endpoint_id_token():
     provider = provider_init
@@ -320,7 +303,7 @@ def test_server_authorization_endpoint_id_token():
     _info = sdb[sid]
     _user_info = IdToken(iss="https://foo.example.om", sub="foo",
                          aud=bib["client_id"], exp=epoch_in_a_while(minutes=10),
-                        acr="2", nonce=bib["nonce"])
+                         acr="2", nonce=bib["nonce"])
 
     print provider.keyjar.issuer_keys
     print _user_info.to_dict()
@@ -329,32 +312,29 @@ def test_server_authorization_endpoint_id_token():
 
     req["id_token"] = idt
 
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = req.to_urlencoded()
+    QUERY_STRING = req.to_urlencoded()
 
-    resp = provider.authorization_endpoint(environ, start_response)
+    resp = provider.authorization_endpoint(query=QUERY_STRING)
 
     print resp
     line = resp[0]
     assert "error=login_required" in line
 
+
 def test_failed_authenticated():
     server = provider_init
-    environ0 = create_return_form_env("haden", "secret", "sid1")
-    resp1 = server.authenticated(environ0, start_response)
-    print resp1
-    assert resp1 == ['<html>Wrong password</html>']
+    post = create_return_form_env("haden", "secret", "sid1")
+    resp1 = server.authenticated(post)
+    assert resp1.message == "Wrong password"
 
-    environ1 = create_return_form_env("", "secret", "sid2")
-    resp2 = server.authenticated(environ1, start_response)
-    print resp2
-    assert resp2 == ["<html>Authentication failed</html>"]
+    post = create_return_form_env("", "secret", "sid2")
+    resp2 = server.authenticated(post)
+    assert resp2.message == "Authentication failed"
 
-    environ2 = create_return_form_env("hannibal", "hemligt", "sid3")
-    print environ2
-    resp = server.authenticated(environ2, start_response)
-    print resp
-    assert resp == ['<html>Not allowed to use this service (hannibal)</html>']
+    form = create_return_form_env("hannibal", "hemligt", "sid3")
+    resp = server.authenticated(form)
+    assert resp.message == "Authentication failed"
+
 
 def test_server_authenticated():
     server = provider_init
@@ -364,19 +344,18 @@ def test_server_authenticated():
     cons.debug = True
     cons.keyjar[""] = KC_RSA
 
-    environ = BASE_ENVIRON
+    location = cons.begin("http://localhost:8087",
+                          "http://localhost:8088/authorization")
 
-    location = cons.begin(environ, start_response)
+    QUERY_STRING = location.split("?")[1]
 
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = location.split("?")[1]
+    resp = server.authorization_endpoint(query=QUERY_STRING)
 
-    resp = server.authorization_endpoint(environ, start_response)
-
+    print resp.message
     sid = resp[0][len("<form>"):-len("</form>")]
-    environ2 = create_return_form_env("user", "password", sid)
+    form = create_return_form_env("user", "password", sid)
 
-    resp2 = server.authenticated(environ2, start_response)
+    resp2 = server.authenticated(form)
 
     print resp2[0]
     assert len(resp2) == 1
@@ -388,10 +367,7 @@ def test_server_authenticated():
 
     assert location.startswith("http://localhost:8087/authz")
 
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = location
-
-    part = cons.parse_authz(environ, start_response)
+    part = cons.parse_authz(query=location)
     
     aresp = part[0]
     assert part[1] is None
@@ -410,6 +386,7 @@ def test_server_authenticated():
                                                'exp_in',
                                                'grant_expiration_time', 'seed'])
 
+
 def test_server_authenticated_1():
     server = provider_init
     _session_db = {}
@@ -417,14 +394,11 @@ def test_server_authenticated_1():
                     server_info=SERVER_INFO, )
     cons.debug = True
     cons.keyjar[""] = KC_RSA
-    environ = BASE_ENVIRON
 
-    location = cons.begin(environ, start_response)
+    location = cons.begin("http://localhost:8087",
+                          "http://localhost:8088/authorization")
 
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = location.split("?")[1]
-
-    _ = server.authorization_endpoint(environ, start_response)
+    _ = server.authorization_endpoint(query=location.split("?")[1])
 
     #sid = resp[0][len("FORM with "):]
     environ2 = create_return_form_env("user", "password", "abcd")
@@ -432,6 +406,7 @@ def test_server_authenticated_1():
     resp2 = server.authenticated(environ2, start_response)
     print resp2
     assert resp2 == ['<html>Could not find session</html>']
+
 
 def test_server_authenticated_2():
     server = provider_init
@@ -441,16 +416,10 @@ def test_server_authenticated_2():
     cons.debug = True
     cons.keyjar[""] = KC_RSA
 
-    environ = BASE_ENVIRON
-
-    location = cons.begin(environ, start_response,
-                          scope="openid email claims_in_id_token",
+    location = cons.begin(scope="openid email claims_in_id_token",
                           response_type="code id_token")
 
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = location.split("?")[1]
-
-    resp = server.authorization_endpoint(environ, start_response)
+    resp = server.authorization_endpoint(query=location.split("?")[1])
 
     sid = resp[0][len("<form>"):-len("</form>")]
     environ2 = create_return_form_env("user", "password", sid)
@@ -492,8 +461,9 @@ def test_server_authenticated_2():
                                                'grant_expiration_time', 'seed'])
 
     assert isinstance(part[2], IdToken)
-    assert (part[2].keys(),['acr', 'aud', 'c_hash', 'email', 'exp', 'iss',
-                            'name', 'nickname', 'sub'])
+    assert (part[2].keys(), ['acr', 'aud', 'c_hash', 'email', 'exp', 'iss',
+                             'name', 'nickname', 'sub'])
+
 
 def test_server_authenticated_token():
     server = provider_init
@@ -507,12 +477,10 @@ def test_server_authenticated_token():
     cons.config["response_type"] = ["token"]
     environ = BASE_ENVIRON
 
-    location = cons.begin(environ, start_response)
+    location = cons.begin("http://localhost:8087",
+                          "http://localhost:8088/authorization")
 
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = location.split("?")[1]
-
-    resp = server.authorization_endpoint(environ, start_response)
+    resp = server.authorization_endpoint(query=location.split("?")[1])
 
     sid = resp[0][len("<form>"):-len("</form>")]
     environ2 = create_return_form_env("user", "password", sid)
@@ -524,6 +492,7 @@ def test_server_authenticated_token():
     assert "access_token=" in txt
     assert "token_type=Bearer" in txt
 
+
 def test_server_authenticated_none():
     server = provider_init
     _session_db = {}
@@ -532,14 +501,11 @@ def test_server_authenticated_none():
     cons.debug = True
     cons.keyjar[""] = KC_RSA
     cons.response_type = "none"
-    environ = BASE_ENVIRON
 
-    location = cons.begin(environ, start_response)
+    location = cons.begin("http://localhost:8087",
+                          "http://localhost:8088/authorization")
 
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = location.split("?")[1]
-
-    resp = server.authorization_endpoint(environ, start_response)
+    resp = server.authorization_endpoint(query=location.split("?")[1])
 
     sid = resp[0][len("<form>"):-len("</form>")]
     environ2 = create_return_form_env("user", "password", sid)
@@ -558,6 +524,7 @@ def test_server_authenticated_none():
     print query
     assert "token_type=Bearer" in query
     
+
 def test_token_endpoint():
     server = provider_init
 
@@ -576,7 +543,7 @@ def test_token_endpoint():
         "code": access_grant,
         "code_used": False,
         "scope": ["openid"],
-        "redirect_uri":"http://example.com/authz"
+        "redirect_uri": "http://example.com/authz"
     }
 
     # Construct Access token request
@@ -584,21 +551,15 @@ def test_token_endpoint():
                               redirect_uri="http://example.com/authz",
                               client_secret=CLIENT_SECRET)
 
+    txt = areq.to_urlencoded()
 
-    str = areq.to_urlencoded()
-    fil = StringIO.StringIO(buf=str)
-    environ = BASE_ENVIRON.copy()
-    environ["REQUEST_METHOD"] = "POST"
-    environ["CONTENT_LENGTH"] = len(str)
-    environ["wsgi.input"] = fil
-    environ["REMOTE_USER"] = CLIENT_ID
-
-    resp = server.token_endpoint(environ, start_response)
+    resp = server.token_endpoint(post=txt, remote_user=CLIENT_ID)
     print resp
     atr = AccessTokenResponse().deserialize(resp[0], "json")
     print atr.keys()
     assert _eq(atr.keys(), ['token_type', 'id_token', 'access_token', 'scope',
                             'expires_in', 'refresh_token'])
+
 
 def test_token_endpoint_unauth():
     server = provider_init
@@ -618,7 +579,7 @@ def test_token_endpoint_unauth():
         "code": access_grant,
         "code_used": False,
         "scope": ["openid"],
-        "redirect_uri":"http://example.com/authz"
+        "redirect_uri": "http://example.com/authz"
     }
 
     # Construct Access token request
@@ -627,17 +588,12 @@ def test_token_endpoint_unauth():
                               client_id="client_1", client_secret="secret",)
 
     print areq.to_dict()
-    str = areq.to_urlencoded()
-    fil = StringIO.StringIO(buf=str)
-    environ = BASE_ENVIRON.copy()
-    environ["CONTENT_LENGTH"] = len(str)
-    environ["wsgi.input"] = fil
-    environ["REMOTE_USER"] = "client2"
-    environ["REQUEST_METHOD"] = "POST"
+    txt = areq.to_urlencoded()
 
-    resp = server.token_endpoint(environ, start_response)
+    resp = server.token_endpoint(post=txt, remote_user="client2",
+                                 request_method="POST")
     print resp
-    atr = TokenErrorResponse().deserialize(resp[0] ,"json")
+    atr = TokenErrorResponse().deserialize(resp[0], "json")
     print atr.keys()
     assert _eq(atr.keys(), ['error'])
 
@@ -649,16 +605,14 @@ def test_authz_endpoint():
     cli.redirect_uri = "http://www.example.org/authz"
     cli.client_id = "client0"
     cli.state = "_state_"
-    args = {"response_type": ["code", "token"], "scope":["openid"]}
+    args = {"response_type": ["code", "token"], "scope": ["openid"]}
     req = cli.construct_AuthorizationRequest(request_args=args)
 
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = req.to_urlencoded()
-
-    resp = server.authorization_endpoint(environ, start_response)
+    resp = server.authorization_endpoint(query=req.to_urlencoded())
     print resp
     assert resp[0].startswith('<form>')
     assert resp[0].endswith('</form>')
+
 
 def test_idtoken():
     server = provider_init
@@ -673,6 +627,7 @@ def test_idtoken():
     print id_token
     assert len(id_token.split(".")) == 3
 
+
 def test_userinfo_endpoint():
     server = provider_init
 
@@ -685,14 +640,10 @@ def test_userinfo_endpoint():
     cons.config["request_method"] = "parameter"
     cons.keyjar[""] = KC_RSA
 
-    environ = BASE_ENVIRON
+    location = cons.begin("http://localhost:8087",
+                          "http://localhost:8088/authorization")
 
-    location = cons.begin(environ, start_response)
-
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = location.split("?")[1]
-
-    resp = server.authorization_endpoint(environ, start_response)
+    resp = server.authorization_endpoint(query=location.split("?")[1])
 
     sid = resp[0][len("<form>"):-len("</form>")]
     environ2 = create_return_form_env("user", "password", sid)
@@ -709,34 +660,28 @@ def test_userinfo_endpoint():
 
     uir = UserInfoRequest(access_token=atr["access_token"], schema="openid")
 
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = uir.to_urlencoded()
-
-    resp3 = server.userinfo_endpoint(environ, start_response)
+    resp3 = server.userinfo_endpoint(query=uir.to_urlencoded())
     ident = OpenIDSchema().deserialize(resp3[0], "json")
     print ident.keys()
     assert _eq(ident.keys(), ['nickname', 'sub', 'name', 'email'])
     assert ident["sub"] == USERDB["user"]["sub"]
 
+
 def test_check_session_endpoint():
     server = provider_init
     print server.name
 
-#    server.keyjar["number5"] = KeyChain({"hmac":CDB["number5"]["client_secret"]},
-#                                        usage=["ver"])
-
     session = {"sub": "UserID", "client_id": "number5"}
     idtoken = server.id_token_as_signed_jwt(session)
     csr = CheckSessionRequest(id_token=idtoken)
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = csr.to_urlencoded()
 
-    info = server.check_session_endpoint(environ, start_response)
+    info = server.check_session_endpoint(query=csr.to_urlencoded())
     print info
     idt = IdToken().deserialize(info[0], "json")
     print idt.keys()
     assert _eq(idt.keys(), ['sub', 'aud', 'iss', 'acr', 'exp', 'iat'])
     assert idt["iss"] == server.name
+
 
 def test_registration_endpoint():
     server = provider_init
@@ -769,11 +714,9 @@ def test_registration_endpoint():
     req["redirect_uris"] = ["http://example.com/authz"]
     req["contacts"] = ["foo@example.com"]
 
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = req.to_urlencoded()
-    environ["HTTP_AUTHORIZATION"] = "Bearer %s" % regresp["registration_access_token"]
-
-    resp = server.registration_endpoint(environ, start_response)
+    resp = server.registration_endpoint(query=req.to_urlencoded(),
+                                        authn="Bearer %s" % regresp[
+                                            "registration_access_token"])
 
     print resp
     update = RegistrationResponse().deserialize(resp[0], "json")
@@ -791,7 +734,8 @@ def test_provider_key_setup():
 
     keys = provider.keyjar.get_signing_key("rsa")
     assert len(keys) == 1
-    assert provider.jwk[0] == "http://www.example.com/static/jwk.json"
+    assert provider.jwks_uri[0] == "http://www.example.com/static/jwk.json"
+
 
 def test_registered_redirect_uri_without_query_component():
     provider = Provider("FOO", {}, {}, None, None)
@@ -821,17 +765,17 @@ def test_registered_redirect_uri_without_query_component():
                                     scope="openid")
 
         print areq
-        assert provider._verify_redirect_uri(areq) != None
-
+        assert provider._verify_redirect_uri(areq) is not None
 
     for ruri in correct:
-        areq = AuthorizationRequest(redirect_uri= ruri,
+        areq = AuthorizationRequest(redirect_uri=ruri,
                                     client_id=provider.cdb.keys()[0])
 
         resp = provider._verify_redirect_uri(areq)
         if resp:
             print resp.message
         assert resp is None
+
 
 def test_registered_redirect_uri_with_query_component():
     provider2 = Provider("FOOP", {}, {}, None, None)
@@ -842,7 +786,7 @@ def test_registered_redirect_uri_with_query_component():
 
     registration_req = rr.to_urlencoded()
     resp = provider2.registration_endpoint(environ, start_response,
-                                    query=registration_req)
+                                           query=registration_req)
 
     regresp = RegistrationResponse().from_json(resp[0])
 
@@ -867,14 +811,12 @@ def test_registered_redirect_uri_with_query_component():
                                     response_type="code")
 
         print areq
-        assert provider2._verify_redirect_uri(areq) != None
-
+        assert provider2._verify_redirect_uri(areq) is not None
 
     for ruri in correct:
-        areq = AuthorizationRequest(redirect_uri= ruri,
+        areq = AuthorizationRequest(redirect_uri=ruri,
                                     client_id=regresp["client_id"])
 
         resp = provider2._verify_redirect_uri(areq)
         print resp
-        assert resp == None
-
+        assert resp is None

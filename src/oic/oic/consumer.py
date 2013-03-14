@@ -5,14 +5,11 @@ __author__ = 'rohe0002'
 
 import time
 import os.path
-#import httplib2
 
 from hashlib import md5
 
 from oic.utils import http_util
 
-#from oic.oic.base import Client
-#from oic.oic.base import ENDPOINTS
 from oic.oic import Client
 from oic.oic import ENDPOINTS
 
@@ -33,6 +30,7 @@ from oic.oauth2.consumer import UnknownState
 
 logger = logging.getLogger(__name__)
 
+
 def stateID(url, seed):
     """The hash of the time + server path + a seed makes an unique
     SID for each session.
@@ -45,6 +43,7 @@ def stateID(url, seed):
     ident.update(url)
     ident.update(seed)
     return ident.hexdigest()
+
 
 def factory(kaka, sdb, config):
     """
@@ -63,6 +62,7 @@ def factory(kaka, sdb, config):
     cons.restore(part[0])
     http_util.parse_cookie(config["name"], cons.seed, kaka)
     return cons
+
 
 def build_userinfo_claims(claims, sformat="signed", locale="us-en"):
     """
@@ -84,37 +84,6 @@ def build_userinfo_claims(claims, sformat="signed", locale="us-en"):
     return UserInfoClaim(claims=claim, format=sformat, locale=locale)
 
 
-#def construct_openid_request(arq, keys, algorithm=DEF_SIGN_ALG, iss=None,
-#                             aud=None):
-#    """
-#    Construct the specification of what I want returned.
-#    The request will be signed
-#    """
-#
-#    # Should be configurable !!
-#    claim = Claims(name={"essential": true}, nickname=None,
-#                 email={"essential": true},
-#                 email_verified={"essential": true},
-#                 picture=None)
-#
-#    uic = UserInfoClaim(claim, format="signed", locale="us-en")
-#
-#    id_token = IDTokenClaim(max_age=86400)
-#    ava = {}
-#    for attr in ["response_type", "scope", "prompt"]:
-#        _tmp = arq[attr]
-#        if _tmp:
-#            ava[attr] = " ".join(_tmp)
-#        else:
-#            ava[attr] = _tmp
-#
-#    oir = OpenIDRequest(ava["response_type"], arq.client_id, arq.redirect_uri,
-#                        ava["scope"], arq.state, user_info=uic,
-#                        prompt=ava["prompt"], id_token=id_token, iss=iss,
-#                        aud=aud)
-#
-#    return oir.get_jwt(key=keys, algorithm=algorithm)
-
 def clean_response(aresp):
     """
     Creates a new instance with only the standard attributes
@@ -131,11 +100,9 @@ def clean_response(aresp):
 
     return atr
 
-
-
 IGNORE = ["request2endpoint", "response2error", "grant_class", "token_class"]
 
-CONSUMER_PREF_ARGS =[
+CONSUMER_PREF_ARGS = [
     "token_endpoint_auth_type",
     "subject_type",
     "require_signed_request_object",
@@ -151,6 +118,7 @@ CONSUMER_PREF_ARGS =[
     "require_auth_time",
     "default_acr"
 ]
+
 
 class Consumer(Client):
     """ An OpenID Connect consumer implementation
@@ -187,12 +155,11 @@ class Consumer(Client):
                 except KeyError:
                     setattr(self, endpoint, "")
 
-
         self.sdb = session_db
         self.debug = debug
         self.seed = ""
         self.nonce = ""
-        self.request_filename=""
+        self.request_filename = ""
         self.user_info = None
         self.registration_expires_at = 0
         self.secret_type = "Bearer"
@@ -234,17 +201,17 @@ class Consumer(Client):
         self.sdb[sid] = self.dictionary()
 
     #noinspection PyUnusedLocal,PyArgumentEqualDefault
-    def begin(self, environ, start_response, scope="",
-              response_type="", use_nonce=False):
+    def begin(self, scope="", response_type="", use_nonce=False, path="",
+              requrl="", **kwargs):
         """ Begin the OAuth2 flow
 
-        :param environ: The WSGI environment
-        :param start_response: The function to start the response process
         :param scope: Defines which user info claims is wanted
         :param response_type: Controls the parameters returned in the
             response from the Authorization Endpoint
         :param use_nonce: If not implicit flow nonce is optional.
             This defines if it should be used anyway.
+        :param path: The path part of the request URL
+        :param requrl: Request URL
         :return: A URL to which the user should be redirected
         """
         _log_info = logger.info
@@ -252,18 +219,17 @@ class Consumer(Client):
         if self.debug:
             _log_info("- begin -")
 
-        _path = http_util.geturl(environ, False, False)
         _page = self.config["authz_page"]
-        if not _path.endswith("/"):
+        if not path.endswith("/"):
             if _page.startswith("/"):
-                self.redirect_uris = [_path + _page]
+                self.redirect_uris = [path + _page]
             else:
-                self.redirect_uris = ["%s/%s" % (_path, _page)]
+                self.redirect_uris = ["%s/%s" % (path, _page)]
         else:
             if _page.startswith("/"):
-                self.redirect_uris = [_path + _page[1:]]
+                self.redirect_uris = [path + _page[1:]]
             else:
-                self.redirect_uris = ["%s/%s" % (_path, _page)]
+                self.redirect_uris = ["%s/%s" % (path, _page)]
 
         # Put myself in the dictionary of sessions, keyed on session-id
         if not self.seed:
@@ -274,7 +240,7 @@ class Consumer(Client):
         if not response_type:
             response_type = self.config["response_type"]
 
-        sid = stateID(_path, self.seed)
+        sid = stateID(path, self.seed)
         self.state = sid
         self.grant[sid] = Grant(seed=self.seed)
 
@@ -282,16 +248,16 @@ class Consumer(Client):
         self.sdb["seed:%s" % self.seed] = sid
 
         # Store the request and the redirect uri used
-        self._request = http_util.geturl(environ)
+        self._request = requrl
 
         args = {
             "client_id": self.client_id,
-            "state":sid,
-            "response_type":response_type,
+            "state": sid,
+            "response_type": response_type,
             "scope": scope,
-            }
+        }
 
-    # nonce is REQUIRED in implicit flow,
+        # nonce is REQUIRED in implicit flow,
         # OPTIONAL on code flow.
         if "token" in response_type or use_nonce:
             self.nonce = rndstr(12)
@@ -305,7 +271,7 @@ class Consumer(Client):
 
         if "request_method" in self.config:
             areq = self.construct_AuthorizationRequest(request_args=args,
-                                                 extra_args=None)
+                                                       extra_args=None)
 
             if self.config["request_method"] == "file":
                 id_request = areq["request"]
@@ -320,12 +286,12 @@ class Consumer(Client):
                 fid = open(filename, mode="w")
                 fid.write(id_request)
                 fid.close()
-                _webname = "%s%s%s" % (_path,_webpath,_name)
+                _webname = "%s%s%s" % (path, _webpath, _name)
                 areq["request_uri"] = _webname
                 self.request_uri = _webname
                 self._backup(sid)
         else:
-            if "userinfo_claims" in args: # can only be carried in an IDRequest
+            if "userinfo_claims" in args:  # can only be carried in an IDRequest
                 raise Exception("Need a request method")
 
             areq = self.construct_AuthorizationRequest(AuthorizationRequest,
@@ -339,38 +305,27 @@ class Consumer(Client):
         return location
 
     #noinspection PyUnusedLocal
-    def parse_authz(self, environ, start_response):
+    def parse_authz(self, query="", **kwargs):
         """
         This is where we get redirect back to after authorization at the
         authorization server has happened.
 
-        :param environ: The WSGI environment
-        :param start_response: The function to start the response process
         :return: A AccessTokenResponse instance
         """
 
         _log_info = logger.info
-        if self.debug:
-            _log_info("- authorization -")
-            _log_info("environ: %s" % environ)
+        logger.debug("- authorization -")
 
-        if environ.get("REQUEST_METHOD") == "GET":
-            _query = environ.get("QUERY_STRING")
-#        elif environ.get("REQUEST_METHOD") == "POST":
-#            _query = http_util.get_post(environ)
-        else:
-            resp = http_util.BadRequest("Unsupported method")
-            return resp(environ, start_response)
+        if not query:
+            return http_util.BadRequest("Missing query")
 
-        _log_info("response: %s" % _query)
+        _log_info("response: %s" % query)
         
-        _path = http_util.geturl(environ, False, False)
-
         if "code" in self.config["response_type"]:
             # Might be an error response
             _log_info("Expect Authorization Response")
             aresp = self.parse_response(AuthorizationResponse,
-                                        info=_query,
+                                        info=query,
                                         sformat="urlencoded",
                                         keyjar=self.keyjar)
             if aresp.type() == "ErrorResponse":
@@ -404,9 +359,9 @@ class Consumer(Client):
                 idt = None
 
             return aresp, atr, idt
-        else: # implicit flow
+        else:  # implicit flow
             _log_info("Expect Access Token Response")
-            atr = self.parse_response(AccessTokenResponse, info=_query,
+            atr = self.parse_response(AccessTokenResponse, info=query,
                                       sformat="urlencoded",
                                       keyjar=self.keyjar)
             if atr.type() == "ErrorResponse":
@@ -423,11 +378,11 @@ class Consumer(Client):
         args = {"redirect_uri": self.redirect_uris[0]}
         if "password" in self.config and self.config["password"]:
             logger.info("basic auth")
-            http_args = {"password":self.config["password"]}
+            http_args = {"password": self.config["password"]}
         elif self.client_secret:
             logger.info("request_body auth")
             http_args = {}
-            args.update({"client_secret":self.client_secret,
+            args.update({"client_secret": self.client_secret,
                          "client_id": self.client_id,
                          "secret_type": self.secret_type})
         else:
@@ -470,4 +425,3 @@ class Consumer(Client):
 
     def end_session(self):
         pass
-

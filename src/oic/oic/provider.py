@@ -3,12 +3,13 @@ import json
 import traceback
 import urllib
 import sys
+from saml2.saml import assertion_from_string
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.keyio import KeyBundle, key_export
 
 from requests import ConnectionError
 
-from oic.oauth2.message import ErrorResponse, by_schema
+from oic.oauth2.message import ErrorResponse, by_schema, MessageException
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import IdToken
 from oic.oic.message import OpenIDSchema
@@ -48,21 +49,16 @@ from oic.oauth2.provider import Provider as AProvider
 from oic.utils.http_util import Response
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import BadRequest
-from oic.utils.http_util import geturl
 from oic.utils.http_util import Unauthorized
-#from oic.utils import time_util
 
 from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2 import rndstr
-from oic.oauth2.provider import AuthnFailure
-
 
 from oic.oic import Server
+from oic.oic import SAML2_BEARER_ASSERTION_TYPE
 from oic.oic import JWT_BEARER
-#from oic.oic.base import Server
-#from oic.oic.base import JWT_BEARER
 
-from oic.oic.exception import *
+from oic.oauth2.exception import *
 
 logger = logging.getLogger(__name__)
 
@@ -75,35 +71,9 @@ def devnull(txt):
     pass
 
 
-def get_post(environ):
-    # the environment variable CONTENT_LENGTH may be empty or missing
-    try:
-      request_body_size = int(environ.get('CONTENT_LENGTH', 0))
-    except ValueError:
-      request_body_size = 0
-
-    # When the method is POST the query string will be sent
-    # in the HTTP request body which is passed by the WSGI server
-    # in the file like wsgi.input environment variable.
-    return environ['wsgi.input'].read(request_body_size)
-
-
 #noinspection PyUnusedLocal
 def do_authorization(user):
     return ""
-
-
-def get_or_post(environ):
-    _method = environ.get("REQUEST_METHOD")
-    
-    if _method == "GET":
-        data = environ.get("QUERY_STRING")
-    elif _method == "POST":
-        data = get_post(environ)
-    else:
-        raise UnsupportedMethod(_method)
-
-    return data
 
 
 def secret(seed, sid):
@@ -147,7 +117,7 @@ def code_token_response(**kwargs):
 
 
 def location_url(response_type, redirect_uri, query):
-    if response_type in [["code"],["token"],["none"]]:
+    if response_type in [["code"], ["token"], ["none"]]:
         return "%s?%s" % (redirect_uri, query)
     else:
         return "%s#%s" % (redirect_uri, query)
@@ -187,11 +157,12 @@ class Provider(AProvider):
         self.seed = ""
         self.cookie_ttl = 0
         self.test_mode = False
-        self.jwk = []
+        self.jwks_uri = None
 
         self.authn_as = None
         self.preferred_id_type = "public"
         self.hostname = hostname or socket.gethostname
+        self.register_endpoint = "%s%s" % (self.baseurl, "register")
 
     def id_token_as_signed_jwt(self, session, loa="2", alg="RS256", code=None,
                                access_token=None, user_info=None):
@@ -221,24 +192,19 @@ class Provider(AProvider):
         return Response(response.to_json(), content="application/json",
                         status="400 Bad Request")
 
-    def _error(self, environ, start_response, error, descr=None):
+    def _error(self, error, descr=None):
         response = ErrorResponse(error=error, error_description=descr)
-        resp = Response(response.to_json(), content="application/json",
+        return Response(response.to_json(), content="application/json",
                         status="400 Bad Request")
-        if start_response:
-            return resp(environ, start_response)
-        else:
-            return resp
 
-    def _authz_error(self, environ, start_response, error, descr=None):
+    def _authz_error(self, error, descr=None):
 
         response = AuthorizationErrorResponse(error=error)
         if descr:
             response["error_description"] = descr
 
-        resp = Response(response.to_json(), content="application/json",
+        return Response(response.to_json(), content="application/json",
                         status="400 Bad Request")
-        return resp(environ, start_response)
 
     def _redirect_authz_error(self, error, redirect_uri, descr=None):
         err = ErrorResponse(error=error)
@@ -260,7 +226,7 @@ class Provider(AProvider):
 
             part = urlparse.urlparse(_redirect_uri)
             if part.fragment:
-                raise ValueError
+                raise URIError("Contains fragment")
 
             (_base, _query) = urllib.splitquery(_redirect_uri)
             if _query:
@@ -279,29 +245,27 @@ class Provider(AProvider):
                     match = True
                     break
             if not match:
-                raise AssertionError
+                raise RedirectURIError("Doesn't match any registered uris")
             # ignore query components that are not registered
             return None
         except Exception:
             logger.error("Faulty redirect_uri: %s" % areq["redirect_uri"])
             _cinfo = self.cdb[areq["client_id"]]
             logger.info("Registered redirect_uris: %s" % _cinfo)
-            response = AuthorizationErrorResponse(error="invalid_request",
-                               error_description="Faulty redirect_uri")
+            raise RedirectURIError("Faulty redirect_uri")
 
-            return Response(response.to_json(), content="application/json",
-                            status="400 Bad Request")
+    def _verify_saml2_assertion(self, assertion):
+        subject = assertion.subject
+        client_id = subject.name_id.text
+        who_ever_issued_it = assertion.issuer.text
 
-    def _parse_openid_request(self, request, redirect_uri):
-        try:
-            return OpenIDRequest().from_jwt(request, keyjar=self.keyjar)
-        except Exception, err:
-            logger.error("Faulty request: %s" % request)
-            logger.error("Exception: %s" % (err.__class__.__name__,))
-            openid_req = OpenIDRequest().from_jwt(request, verify=False)
-            logger.error("Request: %s" % openid_req.to_dict())
-            return self._redirect_authz_error("invalid_openid_request_object",
-                                              redirect_uri)
+        audience = []
+        for ar in subject.audience_restiction:
+            for aud in ar.audience:
+                audience.append(aud)
+
+    def _parse_openid_request(self, request):
+        return OpenIDRequest().from_jwt(request, keyjar=self.keyjar)
 
     def _parse_id_token(self, id_token, redirect_uri):
         try:
@@ -321,21 +285,17 @@ class Provider(AProvider):
             Response instance is not None of matching redirect_uri failed
         """
         if 'redirect_uri' in areq:
-            reply = self._verify_redirect_uri(areq)
-            if reply:
-                return None, reply
+            self._verify_redirect_uri(areq)
             uri = areq["redirect_uri"]
         else:  # pick the one registered
             ruris = self.cdb[areq["client_id"]]["redirect_uris"]
             if len(ruris) == 1:
                 uri = construct_uri(ruris[0])
             else:
-                err = "Missing redirect_uri and more than one registered"
-                logger.debug("Bad request: %s" % err)
-                resp = BadRequest("%s" % err)
-                return None, resp
+                raise ParameterError(
+                    "Missing redirect_uri and more than one registered")
 
-        return uri, None
+        return uri
 
     def get_sector_id(self, redirect_uri, client_info):
         """
@@ -368,19 +328,7 @@ class Provider(AProvider):
 
         return sid
 
-    def input(self, environ, **kwargs):
-        # Support GET and POST
-        try:
-            query = kwargs["query"]
-        except KeyError:
-            try:
-                query = get_or_post(environ)
-            except UnsupportedMethod:
-                return BadRequest("Unsupported method")
-
-        return query
-
-    def authorization_endpoint(self, environ, start_response, **kwargs):
+    def authorization_endpoint(self, **kwargs):
         # The AuthorizationRequest endpoint
 
         try:
@@ -394,9 +342,10 @@ class Provider(AProvider):
 
         _log_debug("- authorization -")
 
-        query = self.input(environ, **kwargs)
-        if isinstance(query, Response):
-            return query(environ, start_response)
+        try:
+            query = self.input(**kwargs)
+        except MissingParameter:
+            return BadRequest("Missing input")
 
         _log_debug("authorization_request: %s" % query)
 
@@ -406,29 +355,23 @@ class Provider(AProvider):
         except (MissingRequiredAttribute, KeyError):
             areq = AuthorizationRequest().deserialize(query, "urlencoded")
             # verify the redirect_uri
-            (uri, reply) = self.get_redirect_uri(areq)
-            if reply:
-                return reply(environ, start_response)
-            resp = self._redirect_authz_error("invalid_request",
-                                              uri, "Missing required attribute")
-            return resp(environ, start_response)
+            try:
+                uri = self.get_redirect_uri(areq)
+            except RedirectURIError, err:
+                return self._redirect_authz_error("invalid_request", uri,
+                                                  "%s" % err)
         except Exception, err:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
             _log_debug("Bad request: %s (%s)" % (err, err.__class__.__name__))
-            resp = BadRequest("%s" % err)
-            return resp(environ, start_response)
+            return BadRequest("%s" % err)
 
-#        try:
-#            areq.verify()
-#        except Exception, err:
-#            _log_debug("Bad request: %s" % err)
-#            resp = BadRequest("%s" % err)
-#            return resp(environ, start_response)
 
-        (redirect_uri, reply) = self.get_redirect_uri(areq)
-        if reply:
-            return reply(environ, start_response)
+        try:
+            redirect_uri = self.get_redirect_uri(areq)
+        except RedirectURIError, err:
+            return self._redirect_authz_error("invalid_request", uri,
+                                              "%s" % err)
 
         try:
             client_info = self.cdb[areq["client_id"]]
@@ -441,18 +384,18 @@ class Provider(AProvider):
             try:
                 _req = _srv.http_request(areq["request_uri"])
             except ConnectionError:
-                return self._authz_error(environ, start_response,
-                                         "invalid_request_uri")
+                return self._authz_error("invalid_request_uri")
 
             if not _req:
-                return self._authz_error(environ, start_response,
-                                         "invalid_request_uri")
+                return self._authz_error("invalid_request_uri")
 
-            resp = self._parse_openid_request(_req.text, redirect_uri)
-            if isinstance(resp, Response):
-                return resp(environ, start_response)
-            else:
-                areq["request"] = resp
+            try:
+                resq = self._parse_openid_request(_req.text)
+            except Exception:
+                return self._redirect_authz_error(
+                    "invalid_openid_request_object", redirect_uri)
+
+            areq["request"] = resq
 
         try:
             openid_req = areq["request"]
@@ -472,24 +415,21 @@ class Provider(AProvider):
         if user:
             try:
                 sid = _sdb.get_sid_from_userid(user)
-            except Exception:
+            except KeyError:
                 logger.error("Unknown user id '%s'" % user)
                 logger.debug("uid2sid: %s" % _sdb.uid2sid)
                 sid = ""
 
             if sid:
-                return self.authenticated(environ,
-                                          start_response,
-                                          active_auth=sid,
+                return self.authenticated(active_auth=sid,
                                           areq=areq, user=user)
 
         if "prompt" in areq:
             _log_debug("Prompt: '%s'" % areq["prompt"])
 
             if "none" in areq["prompt"]:
-                resp = self._redirect_authz_error("login_required",
+                return self._redirect_authz_error("login_required",
                                                   redirect_uri)
-                return resp(environ, start_response)
             elif "login" in areq["prompt"]:
                 # force re-authentication, remove link to SSO history
                 try:
@@ -523,8 +463,7 @@ class Provider(AProvider):
             self.sdb.do_userid(sid, sub, sector_id, preferred_id_type)
             _log_debug("session: %s" % _sdb[sid])
             _log_debug("uid2sid: %s" % _sdb.uid2sid)
-            return self.authenticated(environ, start_response, active_auth=sid,
-                                      areq=areq, user=sub)
+            return self.authenticated(active_auth=sid, areq=areq, user=sub)
 
         if openid_req:
             _log_info("Request: %s" % openid_req.to_dict())
@@ -548,9 +487,7 @@ class Provider(AProvider):
                                 _log_debug("OLD session: %s" % _sdb[_scode])
                                 user = self.sdb[_scode]["sub"]
                                 _sdb.update(sid, "sub", user)
-                                return self.authenticated(environ,
-                                                          start_response,
-                                                          active_auth=_scode,
+                                return self.authenticated(active_auth=_scode,
                                                           areq=areq, user=user)
                             else:
                                 _log_info(
@@ -571,8 +508,7 @@ class Provider(AProvider):
                         user = self.sdb[_scode]["sub"]
                         _sdb.update(sid, "sub", user)
                         # This happens if a valid cookie is presented
-                        return self.authenticated(environ, start_response,
-                                                  active_auth=_scode,
+                        return self.authenticated(active_auth=_scode,
                                                   areq=areq, user=user)
                     except ValueError:
                         pass
@@ -586,43 +522,54 @@ class Provider(AProvider):
                 pass
 
         _log_info("KWA: %s" % kwa)
-        return self.function["authenticate"](environ, start_response, bsid,
-                                             **kwa)
+        return self.function["authenticate"](bsid, **kwa)
 
-    def verify_client(self, environ, areq):
+    def verify_client(self, areq, baseurl, authn):
+        """
+
+        :param areq: The request
+        :param baseurl:
+        :param authn: client authentication information
+        :return:
+        """
         try:
-            client_id = self.get_client_id(environ, areq)
-        except AuthnFailure:
+            client_id = self.get_client_id(areq, authn)
+        except FailedAuthentication:
             return False
 
         logger.debug("Verified Client ID: %s" % client_id)
 
-        if "client_secret" in areq: # client_secret_post
+        if "client_secret" in areq:  # client_secret_post
             if self.cdb[client_id]["client_secret"] == areq["client_secret"]:
                 return True
         elif "client_assertion" in areq:  # client_secret_jwt or public_key_jwt
-            if areq["client_assertion_type"] != JWT_BEARER:
-                return False
+            if areq["client_assertion_type"] == JWT_BEARER:
+                bjwt = AuthnToken().from_jwt(areq["client_assertion"],
+                                             keyjar=self.keyjar)
 
-            bjwt = AuthnToken().from_jwt(areq["client_assertion"],
-                                         keyjar=self.keyjar)
+                try:
+                    # There might not be a client_id in the request
 
-            try:
-                # There might not be a client_id in the request
-                #assert bjwt["iss"] == areq["client_id"] # Issuer == the client
+                    assert str(bjwt["iss"]) in self.cdb  # It's a client I know
+                    # aud can be a string or a list
+                    _aud = bjwt["aud"]
+                    if isinstance(_aud, basestring):
+                        assert str(_aud) == baseurl
+                    else:
+                        assert baseurl in _aud
 
-                assert str(bjwt["iss"]) in self.cdb  # It's a client I know
-                # aud can be a string or a list
-                iaud = geturl(environ, query=False)
-                _aud = bjwt["aud"]
-                if isinstance(_aud, basestring):
-                    assert str(_aud) == iaud
-                else:
-                    assert iaud in _aud
-
-                return True
-            except AssertionError:
-                pass
+                    return True
+                except AssertionError:
+                    pass
+            elif areq["client_assertion_type"] == SAML2_BEARER_ASSERTION_TYPE:
+                xmlstr = base64.urlsafe_b64decode(areq["client_assertion"])
+                try:
+                    assertion = assertion_from_string(xmlstr)
+                except:
+                    return False
+                return self._verify_saml2_assertion(assertion)
+            else:
+                raise UnknownAssertionType(areq["client_assertion_type"])
         else:
             return True
 
@@ -703,7 +650,7 @@ class Provider(AProvider):
         return id_token
 
     #noinspection PyUnusedLocal
-    def token_endpoint(self, environ, start_response, **kwargs):
+    def token_endpoint(self, **kwargs):
         """
         This is where clients come to get their access tokens
         """
@@ -718,16 +665,17 @@ class Provider(AProvider):
 
         _log_debug("- token -")
 
-        body = self.input(environ, **kwargs)
-        if isinstance(body, Response):
-            return body(environ, start_response)
+        try:
+            body = self.input(**kwargs)
+        except MissingParameter:
+            return BadRequest("Missing input")
 
         _log_info("token_request: %s" % body)
 
         areq = AccessTokenRequest().deserialize(body, "urlencoded")
 
         try:
-            resp = self.verify_client(environ, areq)
+            resp = self.verify_client(areq, **kwargs)
         except Exception, err:
             _log_info("Failed to verify client due to: %s" % err)
             resp = False
@@ -735,8 +683,7 @@ class Provider(AProvider):
         if not resp:
             _log_info("could not verify client")
             err = TokenErrorResponse(error="unathorized_client")
-            resp = Unauthorized(err.to_json(), content="application/json")
-            return resp(environ, start_response)
+            return Unauthorized(err.to_json(), content="application/json")
 
         _log_debug("AccessTokenRequest: %s" % areq)
         client_info = self.cdb[areq["client_id"]]
@@ -746,8 +693,7 @@ class Provider(AProvider):
         _access_code = areq["code"]
         # assert that the code is valid
         if self.sdb.is_revoked(_access_code):
-            return self._error(environ, start_response,
-                               error="access_denied", descr="Token is revoked")
+            return self._error(error="access_denied", descr="Token is revoked")
 
         _info = _sdb[_access_code]
 
@@ -764,8 +710,7 @@ class Provider(AProvider):
             _log_info("Error: %s" % err)
             # Should revoke the token issued to this access code
             _sdb.revoke_all_tokens(_access_code)
-            return self._error(environ, start_response,
-                               error="access_denied", descr="%s" % err)
+            return self._error(error="access_denied", descr="%s" % err)
 
         if "openid" in _info["scope"]:
             userinfo = self.userinfo_in_id_token_claims(_info)
@@ -779,68 +724,52 @@ class Provider(AProvider):
 
         _log_debug("access_token_response: %s" % atr.to_dict())
 
-        resp = Response(atr.to_json(), content="application/json")
-        return resp(environ, start_response)
+        return Response(atr.to_json(), content="application/json")
 
-    def _bearer_auth(self, environ):
-        authn = environ["HTTP_AUTHORIZATION"]
-        try:
-            assert authn[:6].lower() == "bearer"
-            return authn[7:]
-        except AssertionError:
-            return None
-
-    def get_client_id(self, environ, req):
+    def get_client_id(self, req, authn):
         """
         Verify the client and return the client id
 
-        :param environ:
-        :param req:
+        :param req: The request
+        :param authn: Authentication information
         :return:
         """
 
-        _id = None
-
         logger.debug("REQ: %s" % req.to_dict())
-        try:
-            logger.debug("ENV: %s" % environ)
-            authn = environ["HTTP_AUTHORIZATION"]
+        if authn:
             if authn.startswith("Basic "):
                 logger.debug("Basic auth")
                 (_id, _secret) = base64.b64decode(authn[6:]).split(":")
                 if _id not in self.cdb:
                     logger.debug("Unknown client_id")
-                    raise AuthnFailure
+                    raise FailedAuthentication
                 else:
                     try:
                         assert _secret == self.cdb[_id]["client_secret"]
                     except AssertionError:
                         logger.debug("Incorrect secret")
-                        raise AuthnFailure
+                        raise FailedAuthentication
             else:
                 try:
                     assert authn[:6].lower() == "bearer"
                     logger.debug("Bearer auth")
                     _token = authn[7:]
                 except AssertionError:
-                    raise AuthnFailure("AuthZ type I don't know")
+                    raise FailedAuthentication("AuthZ type I don't know")
 
                 try:
                     _id = self.cdb[_token]
                 except KeyError:
                     logger.debug("Unknown access token")
-                    raise AuthnFailure
-        except KeyError:
-            pass
-
-        if _id is None:
+                    raise FailedAuthentication
+        else:
             try:
                 _id = req["client_id"]
                 if _id not in self.cdb:
                     logger.debug("Unknown client_id")
-                    return AuthnFailure
+                    return FailedAuthentication
             except KeyError:
-                return AuthnFailure
+                return FailedAuthentication
 
         return _id
 
@@ -897,7 +826,7 @@ class Provider(AProvider):
         return info
 
     #noinspection PyUnusedLocal
-    def userinfo_endpoint(self, environ, start_response, **kwargs):
+    def userinfo_endpoint(self, **kwargs):
 
         try:
             _log_debug = kwargs["logger"].debug
@@ -906,15 +835,15 @@ class Provider(AProvider):
             _log_debug = logger.debug
             _log_info = logger.info
 
-        query = self.input(environ, **kwargs)
-        if isinstance(query, Response):
-            return query(environ, start_response)
+        try:
+            query = self.input(**kwargs)
+        except MissingParameter:
+            return BadRequest("Missing input")
 
-        _log_debug("environ: %s" % environ)
         _sdb = self.sdb
 
         if not query or "access_token" not in query:
-            _token = self._bearer_auth(environ)
+            _token = kwargs["authn"]
             logger.debug("Bearer token: %s" % _token)
         else:
             uireq = self.server.parse_user_info_request(data=query)
@@ -928,12 +857,11 @@ class Provider(AProvider):
         try:
             assert typ == "T"
         except AssertionError:
-            raise AuthnFailure("Wrong type of token")
+            raise FailedAuthentication("Wrong type of token")
 
         #_log_info("keys: %s" % self.sdb.keys())
         if _sdb.is_revoked(key):
-            return self._error(environ, start_response, error="access_denied",
-                               descr="Token is revoked")
+            return self._error(error="access_denied", descr="Token is revoked")
         session = _sdb[key]
 
         # Scope can translate to userinfo_claims
@@ -960,11 +888,10 @@ class Provider(AProvider):
             jinfo = info.to_json()
             content_type = "application/json"
 
-        resp = Response(jinfo, content=content_type)
-        return resp(environ, start_response)
+        return Response(jinfo, content=content_type)
 
     #noinspection PyUnusedLocal
-    def check_session_endpoint(self, environ, start_response, **kwargs):
+    def check_session_endpoint(self, **kwargs):
         try:
             _log_debug = kwargs["logger"].debug
             _log_info = kwargs["logger"].info
@@ -972,16 +899,15 @@ class Provider(AProvider):
             _log_debug = logger.debug
             _log_info = logger.info
 
-        info = self.input(environ, **kwargs)
-        if isinstance(info, Response):
-            return info(environ, start_response)
+        try:
+            info = self.input(**kwargs)
+        except MissingParameter:
+            return BadRequest("Missing input")
 
         if not info:
-            _tok = self._bearer_auth(environ)
+            _tok = kwargs["authn"]
             if not _tok:
-                return self._error(environ, start_response,
-                                   error="access_denied",
-                                   descr="Illegal token")
+                return self._error(error="access_denied", descr="Illegal token")
             else:
                 info = "id_token=%s" % _tok
 
@@ -991,8 +917,7 @@ class Provider(AProvider):
         if self.test_mode:
             _log_info("check_session_response: %s" % idt.to_dict())
 
-        resp = Response(idt.to_json(), content="application/json")
-        return resp(environ, start_response)
+        return Response(idt.to_json(), content="application/json")
 
     def _verify_url(self, url, urlset):
         part = urlparse.urlparse(url)
@@ -1051,7 +976,7 @@ class Provider(AProvider):
 
             try:
                 si_redirects = json.loads(res.text)
-            except Exception:
+            except ValueError:
                 return self._error_response(
                     "invalid_configuration_parameter",
                     descr="Error deserializing sector_identifier_url content")
@@ -1084,7 +1009,8 @@ class Provider(AProvider):
                         except AssertionError:
                             return self._error_response(
                                 "invalid_configuration_parameter",
-                                descr="'sector_identifier_url' must be registered")
+                                descr=
+                                "'sector_identifier_url' must be registered")
 
         for item in ["policy_url", "logo_url"]:
             if item in request:
@@ -1114,19 +1040,16 @@ class Provider(AProvider):
         return _cinfo
 
     #noinspection PyUnusedLocal
-    def l_registration_endpoint(self, environ, **kwargs):
-        try:
-            _log_debug = kwargs["logger"].debug
-            _log_info = kwargs["logger"].info
-        except KeyError:
-            _log_debug = logger.debug
-            _log_info = logger.info
+    def l_registration_endpoint(self, authn, **kwargs):
+        _log_debug = logger.debug
+        _log_info = logger.info
 
         _log_debug("@registration_endpoint")
 
-        query = self.input(environ, **kwargs)
-        if isinstance(query, Response):
-            return query
+        try:
+            query = self.input(**kwargs)
+        except MissingParameter:
+            return BadRequest("Missing input")
 
         request = RegistrationRequest().deserialize(query, "urlencoded")
 
@@ -1135,12 +1058,13 @@ class Provider(AProvider):
 
         try:
             request.verify()
-        except Exception, err:
+        except MessageException, err:
             if "type" not in request:
-                return self._error(environ, None, error="invalid_type")
+                return self._error(error="invalid_type", 
+                                   descr="%s" % err)
             else:
-                return self._error(environ, None,
-                                   error="invalid_configuration_parameter")
+                return self._error(error="invalid_configuration_parameter",
+                                   descr="%s" % err)
 
         _keyjar = self.server.keyjar
         if "client_id" not in request:
@@ -1157,6 +1081,7 @@ class Provider(AProvider):
                 "client_id": client_id,
                 "client_secret": client_secret,
                 "registration_access_token": _rat,
+                "registration_client_uri": self.register_endpoint,
                 "expires_at": utc_time_sans_frac() + 86400}
 
             self.cdb[_rat] = client_id
@@ -1172,7 +1097,7 @@ class Provider(AProvider):
             update = True
             client_id = None
             if not query or "access_token" not in query:
-                access_token = self._bearer_auth(environ)
+                access_token = authn
                 logger.debug("Bearer token: %s" % access_token)
             else:
                 access_token = request["access_token"]
@@ -1215,7 +1140,8 @@ class Provider(AProvider):
 
         # Add the key to the keyjar
         if client_secret:
-            _kc = KeyBundle({"hmac": client_secret}, usage=["ver", "sig"])
+            _kc = KeyBundle([{"hmac": client_secret, "use":"ver"},
+                             {"hmac": client_secret, "use":"sig"}])
             try:
                 _keyjar[client_id].append(_kc)
             except KeyError:
@@ -1229,18 +1155,13 @@ class Provider(AProvider):
         return Response(response.to_json(), content="application/json",
                         headers=[("Cache-Control", "no-store")])
 
-    def registration_endpoint(self, environ, start_response, **kwargs):
-        resp = self.l_registration_endpoint(environ, **kwargs)
-        return resp(environ, start_response)
+    def registration_endpoint(self, authn, **kwargs):
+        return self.l_registration_endpoint(authn, **kwargs)
 
     #noinspection PyUnusedLocal
-    def providerinfo_endpoint(self, environ, start_response, **kwargs):
-        try:
-            _log_debug = kwargs["logger"].debug
-            _log_info = kwargs["logger"].info
-        except KeyError:
-            _log_debug = logger.debug
-            _log_info = logger.info
+    def providerinfo_endpoint(self, handle="", **kwargs):
+        _log_debug = logger.debug
+        _log_info = logger.info
 
         _log_info("@providerinfo_endpoint")
         try:
@@ -1256,14 +1177,22 @@ class Provider(AProvider):
                                           "token id_token",
                                           "code token id_token"],
                 subject_types_supported=["public", "pairwise"],
+                grant_types_supported=[
+                    "authorization_code", "implicit",
+                    "urn:ietf:params:oauth:grant-type:jwt-bearer"],
+                claim_types_supported=["normal", "aggregated", "distributed"],
+                claims_supported=SCOPE2CLAIMS.keys(),
+                claims_parameter_supported="true",
+                request_parameter_supported="true",
+                request_uri_parameter_supported="true",
                 #request_object_algs_supported=["HS256"]
-                )
+            )
 
-            signing_algs = jws.SIGNER_ALGS.keys()
+            sign_algs = jws.SIGNER_ALGS.keys()
 
             for typ in ["userinfo", "id_token", "request_object",
                         "token_endpoint_auth"]:
-                _response["%s_signing_alg_values_supported" % typ] = signing_algs
+                _response["%s_signing_alg_values_supported" % typ] = sign_algs
 
             algs = jwe.SUPPORTED["alg"]
             for typ in ["userinfo", "id_token", "request_object"]:
@@ -1277,26 +1206,19 @@ class Provider(AProvider):
                 self.baseurl += "/"
 
             #keys = self.keyjar.keys_by_owner(owner=".")
-            if self.cert:
-                _response["x509_url"] = self.cert
-
-            if self.jwk:
-                _response["jwk_url"] = self.jwk
+            if self.jwks_uri:
+                _response["jwks_uri"] = self.jwks_uri
 
             #_log_info("endpoints: %s" % self.endpoints)
             for endp in self.endpoints:
                 #_log_info("# %s, %s" % (endp, endp.name))
                 _response[endp.name] = "%s%s" % (self.baseurl, endp.etype)
 
-            #if self.test_mode:
-                #print sys.stderr >> "providerinfo_endpoint.handle: %s" %
-                # kwargs["handle"]
-
             _log_info("provider_info_response: %s" % (_response.to_dict(),))
 
             headers = [("Cache-Control", "no-store"), ("x-ffo", "bar")]
-            if "handle" in kwargs:
-                (key, timestamp) = kwargs["handle"]
+            if handle:
+                (key, timestamp) = handle
                 if key.startswith(STR) and key.endswith(STR):
                     cookie = self.cookie_func(self.cookie_name, key, self.seed,
                                               self.cookie_ttl)
@@ -1309,19 +1231,17 @@ class Provider(AProvider):
             logger.error(message)
             resp = Response(message, content="html/text")
 
-        return resp(environ, start_response)
+        return resp
 
-    def discovery_endpoint(self, environ, start_response, **kwargs):
-        try:
-            _log_debug = kwargs["logger"].debug
-        except KeyError:
-            _log_debug = logger.debug
+    def discovery_endpoint(self, handle=None, **kwargs):
+        _log_debug = logger.debug
 
         _log_debug("@discovery_endpoint")
 
-        query = self.input(environ, **kwargs)
-        if isinstance(query, Response):
-            return query(environ, start_response)
+        try:
+            query = self.input(**kwargs)
+        except MissingParameter:
+            return BadRequest("Missing input")
 
         request = DiscoveryRequest().deserialize(query, "urlencoded")
         _log_debug("discovery_request:%s" % (request.to_dict(),))
@@ -1329,8 +1249,7 @@ class Provider(AProvider):
         try:
             assert request["service"] == SWD_ISSUER
         except AssertionError:
-            resp = BadRequest("Unsupported service")
-            return resp(environ, start_response)
+            return BadRequest("Unsupported service")
 
         # verify that the principal is one of mine
 
@@ -1339,27 +1258,20 @@ class Provider(AProvider):
         _log_debug("discovery_response:%s" % (_response.to_dict(),))
 
         headers = [("Cache-Control", "no-store")]
-        (key, timestamp) = kwargs["handle"]
+        (key, timestamp) = handle
         if key.startswith(STR) and key.endswith(STR):
             cookie = self.cookie_func(self.cookie_name, key, self.seed,
                                       self.cookie_ttl)
             headers.append(cookie)
 
-        resp = Response(_response.to_json(), content="application/json",
+        return Response(_response.to_json(), content="application/json",
                         headers=headers)
-        return resp(environ, start_response)
 
-    def authenticated(self, environ, start_response, **kwargs):
+    def authenticated(self, post="", handle=None, **kwargs):
         """
         After the authentication this is where you should end up
         """
-        try:
-            _log_debug = kwargs["logger"].debug
-            #_log_info = kwargs["logger"].info
-        except KeyError:
-            _log_debug = logger.debug
-            #_log_info = logger.info
-
+        _log_debug = logger.debug
         _log_debug("- in authenticated() -")
 
         issue_new_code = False
@@ -1372,8 +1284,7 @@ class Provider(AProvider):
                 issue_new_code = True
         else:
             # parse the form
-            #noinspection PyDeprecation
-            dic = parse_qs(get_post(environ))
+            dic = parse_qs(post)
 
             _log_debug("QS: %s" % dic)
             try:
@@ -1384,11 +1295,9 @@ class Provider(AProvider):
             try:
                 (verified, sub) = self.function["verify_user"](dic)
                 if not verified:
-                    resp = Unauthorized("Wrong password")
-                    return resp(environ, start_response)
-            except AuthnFailure, err:
-                resp = Unauthorized("%s" % (err,))
-                return resp(environ, start_response)
+                    return Unauthorized("Wrong password")
+            except FailedAuthentication, err:
+                return Unauthorized("%s" % (err,))
 
             _log_debug("verified sub: %s" % sub)
 
@@ -1397,13 +1306,11 @@ class Provider(AProvider):
                 b64scode = dic["sid"][0]
                 scode = base64.b64decode(b64scode)
                 if self.sdb.is_revoked(scode):
-                    return self._error(environ, start_response,
-                                       error="access_denied",
+                    return self._error(error="access_denied",
                                        descr="Token is revoked")
                 asession = self.sdb[scode]
             except KeyError:
-                resp = BadRequest("Could not find session")
-                return resp(environ, start_response)
+                return BadRequest("Could not find session")
 
             _log_debug("asession[\"authzreq\"] = %s" % asession["authzreq"])
                 #_log_info( "type: %s" % type(asession["authzreq"]))
@@ -1453,8 +1360,7 @@ class Provider(AProvider):
             pass
         else:
             if self.sdb.is_revoked(scode):
-                return self._error(environ, start_response,
-                                   error="access_denied",
+                return self._error(error="access_denied",
                                    descr="Token is revoked")
 
             _sinfo = self.sdb[scode]
@@ -1506,31 +1412,31 @@ class Provider(AProvider):
                 rtype.remove("id_token")
 
             if len(rtype):
-                resp = BadRequest("Unknown response type")
-                return resp(environ, start_response)
+                return BadRequest("Unknown response type")
 
-        (redirect_uri, reply) = self.get_redirect_uri(areq)
-        if reply:  # shouldn't happen but want to be on the safe side
-            return reply(environ, start_response)
+        try:
+            redirect_uri = self.get_redirect_uri(areq)
+        except RedirectURIError, err:
+            return BadRequest("%s" % err)
 
         location = aresp.request(redirect_uri)
 
         logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
 
         if self.cookie_func and not "active_auth" in kwargs:
-            try:
-                (key, timestamp) = kwargs["handle"]
+            if handle:
+                (key, timestamp) = handle
                 b64scode = base64.b64encode(scode)
                 self.re_link_log(key, b64scode)
                 cookie = self.cookie_func(self.cookie_name, b64scode, self.seed,
                                           self.cookie_ttl)
                 redirect = Redirect(str(location), headers=[cookie])
-            except TypeError:
+            else:
                 redirect = Redirect(str(location))
         else:
             redirect = Redirect(str(location))
 
-        return redirect(environ, start_response)
+        return redirect
 
     #noinspection PyUnusedLocal
     def re_link_log(self, old, new):
@@ -1539,17 +1445,18 @@ class Provider(AProvider):
     def key_setup(self, local_path, vault="keys", sig=None, enc=None):
         # my keys
 
-        part, res = key_export(self.baseurl, local_path, vault, self.keyjar,
-                               fqdn=self.hostname, sig=sig, enc=enc)
+        self.jwks_uri = key_export(self.baseurl, local_path, vault, self.keyjar,
+                                   fqdn=self.hostname, sig=sig, enc=enc)
 
-        for name, url in res.items():
-            self.jwk.append(url)
+    def register_endpoint(self, post="", **kwargs):
+        pass
 
 # -----------------------------------------------------------------------------
 
 
 class Endpoint(object):
     etype = ""
+
     def __init__(self, func):
         self.func = func
 

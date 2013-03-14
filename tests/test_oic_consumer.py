@@ -1,5 +1,5 @@
 from oic.oic.message import AccessTokenResponse, AuthorizationResponse
-from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import KeyBundle, keybundle_from_local_file
 from oic.utils.keyio import KeyJar
 
 __author__ = 'rohe0002'
@@ -19,11 +19,11 @@ from fakeoicsrv import MyFakeOICServer
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
-RSAPUB = "../oc3/certs/mycert.key"
+KC_HMAC_VS = KeyBundle({"kty": "hmac", "key": "abcdefghijklmnop", "use": "ver"})
+KC_HMAC_S = KeyBundle({"kty": "hmac", "key": "abcdefghijklmnop", "use": "sig"})
 
-KC_HMAC_VS = KeyBundle({"hmac": CLIENT_SECRET}, usage=["ver", "sig"])
-KC_RSA = KeyBundle(source="file://%s" % RSAPUB, type="rsa", usage=["ver", "sig"])
-KC_HMAC_S = KeyBundle({"hmac": CLIENT_SECRET}, usage=["sig"])
+KC_RSA = keybundle_from_local_file("../oc3/certs/mycert.key", "rsa",
+                                   ["ver", "sig"])
 
 SRVKEYS = KeyJar()
 SRVKEYS[""] = [KC_RSA]

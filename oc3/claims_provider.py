@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from oic.utils.keyio import keybundle_from_local_file
 
 __author__ = 'rohe0002'
 
@@ -227,15 +228,12 @@ if __name__ == '__main__':
 
 
     if "keys" in config:
-        for type, info in config["keys"].items():
-            OAS.keyjar.add("", "file://%s" % info["key"], "key",
-                           ["sig", "ver"])
+        for typ, info in config["keys"].items():
+            kb = keybundle_from_local_file(info["key"], "rsa", ["ver", "sig"])
+
+            OAS.keyjar.add("", kb)
             try:
-                OAS.cert.append(info["cert"])
-            except KeyError:
-                pass
-            try:
-                OAS.jwk.append(info["jwk"])
+                OAS.jwks_uri.append(info["jwk"])
             except KeyError:
                 pass
 

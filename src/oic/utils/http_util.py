@@ -1,3 +1,5 @@
+from oic.oauth2.exception import UnsupportedMethod
+
 __author__ = 'rohe0002'
 
 import cgi
@@ -262,3 +264,51 @@ def get_post(environ):
     # in the HTTP request body which is passed by the WSGI server
     # in the file like wsgi.input environment variable.
     return environ['wsgi.input'].read(request_body_size)
+
+
+def get_or_post(environ):
+    _method = environ["REQUEST_METHOD"]
+
+    if _method == "GET":
+        data = environ.get["QUERY_STRING"]
+    elif _method == "POST":
+        data = get_post(environ)
+    else:
+        raise UnsupportedMethod(_method)
+
+    return data
+
+
+def wsgi_wrapper(environ, start_response, func, **kwargs):
+    try:
+        query = environ["QUERY_STRING"]
+    except KeyError:
+        query = None
+
+    if not query:
+        try:
+            post = get_post(environ)
+        except KeyError:
+            post = None
+
+        if post:
+            kwargs["post"] = post
+    else:
+        kwargs["query"] = query
+
+    # authentication information
+    try:
+        kwargs["authn"] = environ["HTTP_AUTHORIZATION"]
+    except KeyError:
+        pass
+
+    # intended audience
+    kwargs["requrl"] = geturl(environ)
+    kwargs["url"] = geturl(environ, query=False)
+    kwargs["baseurl"] = geturl(environ, query=False, path=False)
+    kwargs["path"] = getpath(environ)
+
+    resp = func(**kwargs)
+    return resp(environ, start_response)
+
+

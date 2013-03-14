@@ -1,6 +1,4 @@
-
 __author__ = 'rohe0002'
-import sys
 import urllib
 
 from pytest import raises
@@ -19,10 +17,8 @@ from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import TokenErrorResponse
 
 from oic.oauth2.consumer import AuthzError
-#from oic.oauth2.message import
 
-def start_response(status, headers=None):
-    return 
+#from oic.oauth2.message import
 
 # client_id=None, ca_certs=None,grant_expire_in=600, client_timeout=0,
 # jwt_keys=None
@@ -72,6 +68,7 @@ BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',
                'HTTP_ACCEPT_ENCODING': 'gzip, deflate',
                'COMMAND_MODE': 'unix2003'}
 
+
 def test_stateID():
     seed = rndstr()
     sid0  = stateID("http://example.com/home", seed)
@@ -79,6 +76,7 @@ def test_stateID():
     assert sid0
     assert sid1
     assert sid0 != sid1
+
 
 def test_init_consumer():
 
@@ -96,6 +94,7 @@ def test_init_consumer():
     cons = Consumer({}, **CONSUMER_CONFIG)
     assert cons.authorization_endpoint is None
     
+
 def test_factory():
     _session_db = {}
     cons = Consumer(_session_db, client_config = CLIENT_CONFIG,
@@ -117,20 +116,21 @@ def test_factory():
     assert _oac.state == cons.state
     assert _oac.seed == cons.seed
 
+
 def test_consumer_begin():
     _session_db = {}
     cons = Consumer(_session_db, client_config = CLIENT_CONFIG,
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
-    environ = BASE_ENVIRON
 
-    loc = cons.begin(environ, start_response)
+    loc = cons.begin("http://localhost:8087",
+                     "http://localhost:8088/authorization")
 
     # state is dynamic
-    params = {"scope":"openid",
-            "state": cons.state,
-            "redirect_uri":"http://localhost:8087/authz",
-            "response_type":"code",
-            "client_id":"number5"}
+    params = {"scope": "openid",
+              "state": cons.state,
+              "redirect_uri": "http://localhost:8087/authz",
+              "response_type": "code",
+              "client_id": "number5"}
 
     url = "http://localhost:8088/authorization?%s" % urllib.urlencode(params)
     
@@ -141,17 +141,14 @@ def test_consumer_handle_authorization_response():
     cons = Consumer(_session_db, client_config = CLIENT_CONFIG,
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
     cons.debug = True
-    environ = BASE_ENVIRON
 
-    _ = cons.begin(environ, start_response)
+    _ = cons.begin("http://localhost:8087",
+                   "http://localhost:8088/authorization")
 
     atr = AuthorizationResponse(code="SplxlOBeZQQYbYS6WxSbIA",
                                 state=cons.state)
 
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = atr.to_urlencoded()
-
-    res = cons.handle_authorization_response(environ, start_response)
+    res = cons.handle_authorization_response(query=atr.to_urlencoded())
 
     assert res.type() == "AuthorizationResponse"
     print cons.grant[cons.state]
@@ -163,37 +160,35 @@ def test_consumer_parse_authz_exception():
     cons = Consumer(_session_db, client_config = CLIENT_CONFIG,
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
     cons.debug = True
-    environ = BASE_ENVIRON
 
-    _ = cons.begin(environ, start_response)
+    _ = cons.begin("http://localhost:8087",
+                   "http://localhost:8088/authorization")
 
     atr = AuthorizationResponse(code="SplxlOBeZQQYbYS6WxSbIA",
                                 state=cons.state)
     
     adict = atr.to_dict()
     del adict["code"]
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = urllib.urlencode(adict)
+    QUERY_STRING = urllib.urlencode(adict)
 
     raises(MissingRequiredAttribute,
-           "cons.handle_authorization_response(environ, start_response)")
+           "cons.handle_authorization_response(query=QUERY_STRING)")
 
 def test_consumer_parse_authz_error():
     _session_db = {}
     cons = Consumer(_session_db, client_config = CLIENT_CONFIG,
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
     cons.debug = True
-    environ = BASE_ENVIRON
 
-    _ = cons.begin(environ, start_response)
+    _ = cons.begin("http://localhost:8087",
+                   "http://localhost:8088/authorization")
 
     atr = AuthorizationErrorResponse(error="access_denied", state=cons.state)
     
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = atr.to_urlencoded()
+    QUERY_STRING = atr.to_urlencoded()
 
     raises(AuthzError,
-           "cons.handle_authorization_response(environ, start_response)")
+           "cons.handle_authorization_response(query=QUERY_STRING)")
 
 def test_consumer_parse_access_token():
     # implicit flow test
@@ -204,7 +199,8 @@ def test_consumer_parse_access_token():
     environ = BASE_ENVIRON
 
     cons.response_type = ["token"]
-    _ = cons.begin(environ, start_response)
+    _ = cons.begin("http://localhost:8087",
+                   "http://localhost:8088/authorization")
 
     atr = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
                               token_type="example",
@@ -212,12 +208,9 @@ def test_consumer_parse_access_token():
                               example_parameter="example_value",
                               state=cons.state)
 
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = atr.to_urlencoded()
+    res = cons.handle_authorization_response(query=atr.to_urlencoded())
 
-    res = cons.handle_authorization_response(environ, start_response)
-
-    assert res.type() ==  "AccessTokenResponse"
+    assert res.type() == "AccessTokenResponse"
     print cons.grant[cons.state]
     grant = cons.grant[cons.state]
     assert len(grant.tokens) == 1
@@ -229,16 +222,15 @@ def test_consumer_parse_authz_error_2():
     cons = Consumer(_session_db, client_config = CLIENT_CONFIG,
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
     cons.debug = True
-    environ = BASE_ENVIRON
 
-    _ = cons.begin(environ, start_response)
+    _ = cons.begin("http://localhost:8087",
+                   "http://localhost:8088/authorization")
 
     atr = TokenErrorResponse(error="invalid_client")
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = atr.to_urlencoded()
+    QUERY_STRING = atr.to_urlencoded()
 
     raises(AuthzError,
-           "cons.handle_authorization_response(environ, start_response)")
+           "cons.handle_authorization_response(query=QUERY_STRING)")
 
 def test_consumer_client_auth_info():
     _session_db = {}
@@ -267,7 +259,7 @@ def test_consumer_client_get_access_token_reques():
     cons.parse_response(AccessTokenResponse, resp2.to_urlencoded(),
                           "urlencoded")
 
-    url, body, http_args = cons.get_access_token_request({}, None)
+    url, body, http_args = cons.get_access_token_request()
     assert url == "http://localhost:8088/token"
     print body
     assert body == "code=auth_grant&client_secret=secret0&grant_type=authorization_code&client_id=number5&redirect_uri=https%3A%2F%2Fwww.example.com%2Foic%2Fcb"

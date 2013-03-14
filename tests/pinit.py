@@ -10,7 +10,7 @@ import urllib
 from oic.oic.message import OpenIDSchema
 from oic.utils.sdb import SessionDB
 from oic.oic.provider import Provider
-from oic.oauth2.provider import AuthnFailure
+from oic.oauth2.provider import FailedAuthentication
 from oic.utils import http_util
 
 CLIENT_CONFIG = {
@@ -118,17 +118,17 @@ def verify_username_and_password(dic):
     try:
         user = dic["login"][0]
     except KeyError:
-        raise AuthnFailure("Authentication failed")
+        raise FailedAuthentication("Authentication failed")
 
     if user == "user":
         return True, user
     elif user == "hannibal":
-        raise AuthnFailure("Not allowed to use this service (%s)" % user)
+        raise FailedAuthentication("Not allowed to use this service (%s)" % user)
     else:
         if user:
             return False, user
         else:
-            raise AuthnFailure("Missing user name")
+            raise FailedAuthentication("Missing user name")
 
 
 #noinspection PyUnusedLocal

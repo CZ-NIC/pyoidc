@@ -5,12 +5,13 @@ import StringIO
 import sys
 
 from oic.oic.message import OpenIDSchema
-from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import keybundle_from_local_file
 
 from oic.oic.claims_provider import ClaimsClient
 from oic.oic.claims_provider import UserClaimsResponse
 from oic.oic.claims_provider import UserClaimsRequest
 from oic.oic.claims_provider import ClaimsServer
+
 
 #noinspection PyUnusedLocal
 def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
@@ -29,6 +30,7 @@ def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
 
     return OpenIDSchema(**result)
 
+
 class LOG():
     def info(self, txt):
         print >> sys.stdout, "INFO: %s" % txt
@@ -38,6 +40,7 @@ class LOG():
 
     def debug(self, txt):
         print >> sys.stdout, "DEBUG: %s" % txt
+
 
 #noinspection PyUnusedLocal
 def start_response(status, headers=None):
@@ -70,6 +73,7 @@ CDB = {
     "client_1": { "client_secret": "hemlig"}
 }
 
+
 def verify_client(env, req, cdb):
     return True
 
@@ -80,8 +84,10 @@ FUNCTIONS = {
 
 # ============================================================================
 
+
 def _eq(l1,l2):
     return set(l1) == set(l2)
+
 
 def test_1():
     cc = ClaimsClient(client_id="client_1")
@@ -97,6 +103,7 @@ def test_1():
     assert req["sub"] == "norah"
     assert req["client_id"] == "client_1"
 
+
 def test_c2():
     cc = ClaimsClient(client_id="client_1")
     cc.client_secret="hemlig"
@@ -106,7 +113,6 @@ def test_c2():
     request_args = {"sub": "norah", "claims_names":["gender", "birthdate"]}
 
     cc.request_info(request, method=method, request_args=request_args)
-
 
 
 def test_srv1():
@@ -122,16 +128,18 @@ def test_srv1():
     assert _eq(cresp["claims_names"], ['gender', 'birthdate'])
     assert "jwt" in cresp
 
+
 def test_srv2():
     cc = ClaimsClient(client_id="client_1")
     cc.client_secret="hemlig"
 
-    req = cc.construct_UserClaimsRequest(request_args={"sub": "diana",
-                                        "claims_names":["gender", "birthdate"]})
+    req = cc.construct_UserClaimsRequest(
+        request_args={"sub": "diana", "claims_names":["gender", "birthdate"]})
 
     srv = ClaimsServer("name", None, CDB, FUNCTIONS, USERDB)
 
-    srv.keyjar[""] = [KeyBundle(source="file://rsa.key", usage=["ver", "sig"])]
+    srv.keyjar[""] = keybundle_from_local_file("rsa.key", "rsa", ["ver", "sig"])
+
     assert srv
 
     environ = BASE_ENVIRON.copy()

@@ -5,6 +5,7 @@ from oic.oauth2.message import *
 
 from pytest import raises
 
+
 class Dummy_Message(Message):
     c_param = {
         "req_str": SINGLE_REQUIRED_STRING,
@@ -14,8 +15,10 @@ class Dummy_Message(Message):
         "req_str_list": REQUIRED_LIST_OF_STRINGS,
         "opt_json": SINGLE_OPTIONAL_JSON}
 
+
 def _eq(l1, l2):
     return set(l1) == set(l2)
+
 
 def test_authz_req_urlencoded_1():
     ar = AuthorizationRequest(response_type=["code"], client_id = "foobar")

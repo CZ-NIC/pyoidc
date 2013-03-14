@@ -14,7 +14,6 @@ from oic.oic import REQUEST2ENDPOINT
 from oic.oic import RESPONSE2ERROR
 
 from oic.oic.provider import Provider
-from oic.oic.provider import get_or_post
 from oic.oic.provider import Endpoint
 
 from oic.oauth2.message import Message
@@ -22,7 +21,7 @@ from oic.oauth2.message import SINGLE_REQUIRED_STRING
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 
-from oic.utils.http_util import Response, Unauthorized
+from oic.utils.http_util import Response, Unauthorized, get_or_post
 
 # Used in claims.py
 #from oic.oic.message import RegistrationRequest
@@ -30,11 +29,13 @@ from oic.utils.http_util import Response, Unauthorized
 
 logger = logging.getLogger(__name__)
 
+
 class UserClaimsRequest(Message):
     c_param = {"sub": SINGLE_REQUIRED_STRING,
                "client_id": SINGLE_REQUIRED_STRING,
                "client_secret": SINGLE_REQUIRED_STRING,
                "claims_names": REQUIRED_LIST_OF_STRINGS}
+
 
 class UserClaimsResponse(Message):
     c_param = {"claims_names": REQUIRED_LIST_OF_STRINGS,
@@ -57,8 +58,10 @@ class UserClaimsResponse(Message):
 #
 #        return super(self.__class__, self).verify(**kwargs)
 
+
 class UserInfoClaimsRequest(Message):
     c_param = {"access_token": SINGLE_REQUIRED_STRING}
+
 
 class OICCServer(OicServer):
 
@@ -67,6 +70,7 @@ class OICCServer(OicServer):
 
     def parse_userinfo_claims_request(self, info, format="urlencoded"):
         return self._parse_request(UserInfoClaimsRequest, info, format)
+
 
 class ClaimsServer(Provider):
 

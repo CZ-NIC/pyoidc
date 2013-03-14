@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 import logging
+from oic.oic.exception import MissingParameter
+from oic.oauth2.exception import FailedAuthentication, MissingSession
 
 __author__ = 'rohe0002'
 
@@ -29,10 +31,6 @@ from oic.oauth2 import Server as SrvMethod
 logger = logging.getLogger(__name__)
 LOG_INFO = logger.info
 LOG_DEBUG = logger.debug
-
-
-class AuthnFailure(Exception):
-    pass
 
 
 def get_post(environ):
@@ -114,7 +112,7 @@ class Provider(object):
         }
 
     #noinspection PyUnusedLocal
-    def authn_intro(self, environ, start_response):
+    def authn_intro(self, post="", **kwargs):
         """
         After the authentication this is where you should end up
         """
@@ -122,24 +120,24 @@ class Provider(object):
         _sdb = self.sdb
 
         # parse the form
-        dic = parse_qs(get_post(environ))
+        dic = parse_qs(post)
 
         try:
             (verified, user) = self.function["verify_user"](dic)
             if not verified:
-                return Unauthorized("Wrong password")
+                raise FailedAuthentication("Wrong password")
         except KeyError, err:
             logger.error("KeyError on authentication: %s" % err)
-            return Unauthorized("Authentication failed")
-        except AuthnFailure, err:
-            return Unauthorized("Authentication failure: %s" % (err,))
+            raise FailedAuthentication("Authentication failed")
+        except FailedAuthentication, err:
+            raise
 
         try:
             # Use the session identifier to find the session information
             sid = base64.b64decode(dic["sid"][0])
             session = _sdb[sid]
         except KeyError:
-            return BadRequest("Unknown session identifier")
+            raise MissingSession("Unknown session identifier")
 
         _sdb.update(sid, "sub", dic["login"][0])
 
@@ -162,7 +160,7 @@ class Provider(object):
 
         return areq, session
 
-    def authn_reply(self, areq, aresp, environ, start_response):
+    def authn_reply(self, areq, aresp, **kwargs):
 
         if "redirect_uri" in areq:
             # TODO verify that the uri is reasonable
@@ -175,8 +173,7 @@ class Provider(object):
 
         LOG_DEBUG("Redirected to: '%s' (%s)" % (location, type(location)))
 
-        redirect = Redirect(str(location))
-        return redirect(environ, start_response)
+        return Redirect(str(location))
 
     def authn_response(self, areq, **kwargs):
         scode = kwargs["code"]
@@ -185,58 +182,54 @@ class Provider(object):
         return self.response_type_map[_rtype](areq=areq, scode=scode,
                                               sdb=self.sdb)
 
-    def authenticated(self, environ, start_response):
+    def authenticated(self, post=None, **kwargs):
 
         LOG_DEBUG("- authenticated -")
 
         try:
-            result = self.authn_intro(environ, start_response)
-        except Exception, err:
-            resp = ServiceError("%s" % err)
-            return resp(environ, start_response)
-
-        if isinstance(result, Response):
-            return result(environ, start_response)
-        else:
-            areq, session = result
+            areq, session = self.authn_intro(post, **kwargs)
+        except FailedAuthentication:
+            return Unauthorized("Authentication failed")
+        except MissingSession, err:
+            return ServiceError("%s" % err)
 
         try:
             aresp = self.authn_response(areq,
                                         **by_schema(AuthorizationResponse,
                                                     **session))
         except KeyError, err:  # Don't know what to do raise an exception
-            resp = BadRequest("Unknown response type (%s)" % err)
-            return resp(environ, start_response)
+            return BadRequest("Unknown response type (%s)" % err)
 
         add_non_standard(aresp, areq)
 
-        return self.authn_reply(areq, aresp, environ, start_response)
-    
-    def authorization_endpoint(self, environ, start_response, **kwargs):
-        # The AuthorizationRequest endpoint
+        return self.authn_reply(areq, aresp)
 
+    def input(self, **kwargs):
+        # Support GET and POST
+        try:
+            return kwargs["query"]
+        except KeyError:
+            try:
+                return kwargs["post"]
+            except KeyError:
+                raise MissingParameter("No input")
+
+    def authorization_endpoint(self, query="", **kwargs):
+        """ The AuthorizationRequest endpoint
+
+        :param query: The query part of the request URL
+        """
         _sdb = self.sdb
 
         LOG_DEBUG("- authorization -")
-
-        if environ.get("REQUEST_METHOD") == "GET":
-            query = environ.get("QUERY_STRING")
-        elif environ.get("REQUEST_METHOD") == "POST":
-            query = get_post(environ)
-        else:
-            resp = BadRequest("Unsupported method")
-            return resp(environ, start_response)
-            
         LOG_DEBUG("Query: '%s'" % query)
 
         try:
             areq = self.srvmethod.parse_authorization_request(query=query)
         except MissingRequiredAttribute, err:
-            resp = BadRequest("%s" % err)
-            return resp(environ, start_response)
+            return BadRequest("%s" % err)
         except Exception, err:
-            resp = BadRequest("%s" % err)
-            return resp(environ, start_response)
+            return BadRequest("%s" % err)
 
 #        if "redirect_uri" in areq:
 #            _redirect = areq["redirect_uri"]
@@ -250,9 +243,9 @@ class Provider(object):
         grant = _sdb[sid]["code"]
         LOG_DEBUG("code: '%s'" % grant)
 
-        return self.function["authenticate"](environ, start_response, bsid)
+        return self.function["authenticate"](bsid)
 
-    def token_endpoint(self, environ, start_response):
+    def token_endpoint(self, **kwargs):
         """
         This is where clients come to get their access tokens
         """
@@ -260,21 +253,26 @@ class Provider(object):
         _sdb = self.sdb
 
         LOG_DEBUG("- token -")
-        body = get_post(environ)
+        body = kwargs["post"]
         LOG_DEBUG("body: %s" % body)
 
         areq = AccessTokenRequest().deserialize(body, "urlencoded")
 
         # Client is from basic auth or ...
-        client = None
         try:
-            client = self.function["verify_client"](environ, client, self.cdb)
+            client = areq["client_id"]
+        except KeyError:
+            err = TokenErrorResponse(error="unathorized_client")
+            return Response(err.to_json(), content="application/json",
+                            status="401 Unauthorized")
+
+        try:
+            client = self.function["verify_client"](client, self.cdb)
         except (KeyError, AttributeError):
             err = TokenErrorResponse(error="unathorized_client",
                                      error_description="client_id:%s" % client)
-            resp = Response(err.to_json(), content="application/json",
+            return Response(err.to_json(), content="application/json",
                             status="401 Unauthorized")
-            return resp(environ, start_response)
 
         LOG_DEBUG("AccessTokenRequest: %s" % areq)
 
@@ -296,8 +294,7 @@ class Provider(object):
 
         LOG_DEBUG("AccessTokenResponse: %s" % atr)
 
-        resp = Response(atr.to_json(), content="application/json")
-        return resp(environ, start_response)
+        return Response(atr.to_json(), content="application/json")
 
 # =============================================================================
 

@@ -17,7 +17,6 @@ from oic.oauth2.message import SINGLE_REQUIRED_STRING
 from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
 from oic.oauth2.message import SINGLE_OPTIONAL_INT
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
-from oic.oauth2.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
 
 import jwkest
 from jwkest import jws
@@ -39,6 +38,7 @@ SINGLE_OPTIONAL_JSON = (dict, False, json_ser, json_deser)
 SINGLE_REQUIRED_INT = (int, True, None, None)
 
 
+#noinspection PyUnusedLocal
 def idtoken_deser(val, sformat="urlencoded"):
     # id_token are always serialized as a JWT
     return IdToken().deserialize(val, "jwt")
@@ -275,19 +275,30 @@ class AuthorizationErrorResponse(message.AuthorizationErrorResponse):
                                       "session_selection_required",
                                       "consent_required",
                                       "invalid_request_uri",
-                                      "invalid_openid_request_object"])
+                                      "invalid_request_object",
+                                      "registration_not_supported",
+                                      "request_not_supported"])
 
 
 class AuthorizationRequest(message.AuthorizationRequest):
     c_param = message.AuthorizationRequest.c_param.copy()
-    c_param.update({"request": SINGLE_OPTIONAL_STRING,
-                    "request_uri": SINGLE_OPTIONAL_STRING,
-                    "display": SINGLE_OPTIONAL_STRING,
-                    "prompt": OPTIONAL_LIST_OF_STRINGS,
-                    "nonce": SINGLE_OPTIONAL_STRING,
-                    "scope": REQUIRED_LIST_OF_SP_SEP_STRINGS,
-                    "id_token": SINGLE_OPTIONAL_STRING
-    })
+    c_param.update(
+        {
+            "nonce": SINGLE_OPTIONAL_STRING,
+            "display": SINGLE_OPTIONAL_STRING,
+            "prompt": OPTIONAL_LIST_OF_STRINGS,
+            "max_age": SINGLE_OPTIONAL_INT,
+            "ui_locales": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+            "claims_locale": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+            "id_token_hint": SINGLE_OPTIONAL_STRING,
+            "login_hint": SINGLE_OPTIONAL_STRING,
+            "acr_values": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+            "claims": SINGLE_OPTIONAL_JSON,
+            "registration": SINGLE_OPTIONAL_JSON,
+            "request": SINGLE_OPTIONAL_STRING,
+            "request_uri": SINGLE_OPTIONAL_STRING,
+        }
+    )
     c_allowed_values = message.AuthorizationRequest.c_allowed_values.copy()
     c_allowed_values = {
         "display": ["page", "popup", "touch", "wap"],
@@ -368,6 +379,7 @@ class OpenIDSchema(Message):
                "family_name": SINGLE_OPTIONAL_STRING,
                "middle_name": SINGLE_OPTIONAL_STRING,
                "nickname": SINGLE_OPTIONAL_STRING,
+               "preferred_username": SINGLE_OPTIONAL_STRING,
                "profile": SINGLE_OPTIONAL_STRING,
                "picture": SINGLE_OPTIONAL_STRING,
                "website": SINGLE_OPTIONAL_STRING,
@@ -380,7 +392,6 @@ class OpenIDSchema(Message):
                "phone_number": SINGLE_OPTIONAL_STRING,
                "address": OPTIONAL_ADDRESS,
                "updated_time": SINGLE_OPTIONAL_STRING,
-               "preferred_username": SINGLE_OPTIONAL_STRING,
                "_claim_names": SINGLE_OPTIONAL_JSON,
                "_claim_sources": SINGLE_OPTIONAL_JSON}
 
@@ -400,20 +411,19 @@ class OpenIDSchema(Message):
 
 class RegistrationRequest(Message):
     c_param = {
-        "redirect_uris": REQUIRED_LIST_OF_SP_SEP_STRINGS,
-        "application_type": SINGLE_OPTIONAL_STRING,
         "access_token": SINGLE_OPTIONAL_STRING,
+        "redirect_uris": OPTIONAL_LIST_OF_STRINGS,
+        "response_type": OPTIONAL_LIST_OF_STRINGS,
+        "grant_types": OPTIONAL_LIST_OF_STRINGS,
+        "application_type": SINGLE_OPTIONAL_STRING,
         "contacts": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
         "client_name": SINGLE_OPTIONAL_STRING,
-        "logo_url": SINGLE_OPTIONAL_STRING,
+        "logo_uri": SINGLE_OPTIONAL_STRING,
         "token_endpoint_auth_method": SINGLE_OPTIONAL_STRING,
-        "policy_url": SINGLE_OPTIONAL_STRING,
-        "tos_url": SINGLE_OPTIONAL_STRING,
-        "jwk_url": SINGLE_OPTIONAL_STRING,
-        "jwk_encryption_url": SINGLE_OPTIONAL_STRING,
-        "x509_url": SINGLE_OPTIONAL_STRING,
-        "x509_encryption_url": SINGLE_OPTIONAL_STRING,
-        "sector_identifier_url": SINGLE_OPTIONAL_STRING,
+        "policy_uri": SINGLE_OPTIONAL_STRING,
+        "tos_uri": SINGLE_OPTIONAL_STRING,
+        "jwks_uri": SINGLE_OPTIONAL_STRING,
+        "sector_identifier_uri": SINGLE_OPTIONAL_STRING,
         "subject_type": SINGLE_OPTIONAL_STRING,
         "request_object_signing_alg": SINGLE_OPTIONAL_STRING,
         "userinfo_signed_response_algs": SINGLE_OPTIONAL_STRING,
@@ -424,9 +434,10 @@ class RegistrationRequest(Message):
         "id_token_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
         "default_max_age": SINGLE_OPTIONAL_INT,
         "require_auth_time": OPTIONAL_LOGICAL,
-        "default_acr": SINGLE_OPTIONAL_STRING,
+        "default_acr_values": SINGLE_OPTIONAL_STRING,
         "initiate_login_uri": SINGLE_OPTIONAL_STRING,
         "post_logout_redirect_url": SINGLE_OPTIONAL_STRING,
+        "request_uris": OPTIONAL_LIST_OF_STRINGS
         #"client_id": SINGLE_OPTIONAL_STRING,
         #"client_secret": SINGLE_OPTIONAL_STRING,
     }
@@ -447,45 +458,19 @@ class RegistrationResponse(Message):
     Response to client_register registration requests
     """
     c_param = {
-        "redirect_uris": REQUIRED_LIST_OF_SP_SEP_STRINGS,
-        "application_type": SINGLE_OPTIONAL_STRING,
-        "access_token": SINGLE_OPTIONAL_STRING,
-        "contacts": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-        "client_name": SINGLE_OPTIONAL_STRING,
-        "logo_url": SINGLE_OPTIONAL_STRING,
-        "token_endpoint_auth_method": SINGLE_OPTIONAL_STRING,
-        "policy_url": SINGLE_OPTIONAL_STRING,
-        "tos_url": SINGLE_OPTIONAL_STRING,
-        "jwk_url": SINGLE_OPTIONAL_STRING,
-        "jwk_encryption_url": SINGLE_OPTIONAL_STRING,
-        "x509_url": SINGLE_OPTIONAL_STRING,
-        "x509_encryption_url": SINGLE_OPTIONAL_STRING,
-        "sector_identifier_url": SINGLE_OPTIONAL_STRING,
-        "subject_type": SINGLE_OPTIONAL_STRING,
-        "request_object_signing_alg": SINGLE_OPTIONAL_STRING,
-        "userinfo_signed_response_algs": SINGLE_OPTIONAL_STRING,
-        "userinfo_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
-        "userinfo_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
-        "id_token_signed_response_algs": SINGLE_OPTIONAL_STRING,
-        "id_token_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
-        "id_token_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
-        "default_max_age": SINGLE_OPTIONAL_INT,
-        "require_auth_time": OPTIONAL_LOGICAL,
-        "default_acr": SINGLE_OPTIONAL_STRING,
-        "initiate_login_uri": SINGLE_OPTIONAL_STRING,
-        "post_logout_redirect_url": SINGLE_OPTIONAL_STRING,
         "client_id": SINGLE_REQUIRED_STRING,
         "client_secret": SINGLE_OPTIONAL_STRING,
         "registration_access_token": SINGLE_REQUIRED_STRING,
+        "registration_client_uri": SINGLE_REQUIRED_STRING,
+        "issued_at": SINGLE_OPTIONAL_INT,
         "expires_at": SINGLE_OPTIONAL_INT,
-        "issued_at": SINGLE_OPTIONAL_INT
     }
+    c_param.update(RegistrationRequest.c_param)
 
 
 class ClientRegistrationErrorResponse(message.ErrorResponse):
-    c_allowed_values= {"error": ["invalid_operation", "invalid_client_id",
-                                 "invalid_redirect_uri",
-                                 "invalid_configuration_parameter"]}
+    c_allowed_values = {"error": ["invalid_redirect_uri",
+                                  "invalid_client_metadata"]}
 
 
 class IdToken(OpenIDSchema):
@@ -497,11 +482,12 @@ class IdToken(OpenIDSchema):
         "azp": SINGLE_OPTIONAL_STRING,
         "exp": SINGLE_REQUIRED_INT,
         "iat": SINGLE_REQUIRED_INT,
-        "acr": SINGLE_OPTIONAL_STRING,
-        "nonce": SINGLE_OPTIONAL_STRING,
         "auth_time": SINGLE_OPTIONAL_INT,
+        "nonce": SINGLE_OPTIONAL_STRING,
         "at_hash": SINGLE_OPTIONAL_STRING,
         "c_hash": SINGLE_OPTIONAL_STRING,
+        "acr": SINGLE_OPTIONAL_STRING,
+        "amr": OPTIONAL_LIST_OF_STRINGS,
         "sub_jwk": SINGLE_OPTIONAL_STRING
     })
 
@@ -560,12 +546,16 @@ class IDTokenClaim(Message):
 
 class OpenIDRequest(message.AuthorizationRequest):
     c_param = message.AuthorizationRequest.c_param.copy()
-    c_param.update({"userinfo": SINGLE_OPTIONAL_USERINFO_CLAIM,
-                    "id_token": SINGLE_OPTIONAL_ID_TOKEN_CLAIM,
-                    "iss": SINGLE_OPTIONAL_STRING,
-                    "aud": OPTIONAL_LIST_OF_STRINGS,
-                    #"nonce": SINGLE_OPTIONAL_STRING,
-                    "registration": SINGLE_OPTIONAL_REGISTRATION_REQUEST})
+    c_param.update(
+        {
+            "userinfo": SINGLE_OPTIONAL_USERINFO_CLAIM,
+            "id_token": SINGLE_OPTIONAL_ID_TOKEN_CLAIM,
+            #"iss": SINGLE_OPTIONAL_STRING,
+            #"aud": OPTIONAL_LIST_OF_STRINGS,
+            #"nonce": SINGLE_OPTIONAL_STRING,
+            #"registration": SINGLE_OPTIONAL_REGISTRATION_REQUEST
+        }
+    )
 
 
 class ProviderConfigurationResponse(Message):
@@ -577,13 +567,14 @@ class ProviderConfigurationResponse(Message):
         "userinfo_endpoint": SINGLE_OPTIONAL_STRING,
         "check_session_iframe": SINGLE_OPTIONAL_STRING,
         "end_session_endpoint": SINGLE_OPTIONAL_STRING,
-        "jwk_url": SINGLE_OPTIONAL_STRING,
-        "jwk_encryption_url": SINGLE_OPTIONAL_STRING,
-        "x509_url": SINGLE_REQUIRED_STRING,
-        "x509_encryption_url": SINGLE_OPTIONAL_STRING,
+        "jwks_uri": SINGLE_OPTIONAL_STRING,
+        #"jwk_encryption_url": SINGLE_OPTIONAL_STRING,
+        #"x509_url": SINGLE_REQUIRED_STRING,
+        #"x509_encryption_url": SINGLE_OPTIONAL_STRING,
         "registration_endpoint": SINGLE_OPTIONAL_STRING,
         "scopes_supported": OPTIONAL_LIST_OF_STRINGS,
         "response_types_supported": REQUIRED_LIST_OF_STRINGS,
+        "grant_types_supported": REQUIRED_LIST_OF_STRINGS,
         "acr_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "subject_types_supported": REQUIRED_LIST_OF_STRINGS,
         "userinfo_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
@@ -603,10 +594,22 @@ class ProviderConfigurationResponse(Message):
         "display_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "claim_types_supported": OPTIONAL_LIST_OF_STRINGS,
         "claims_supported": OPTIONAL_LIST_OF_STRINGS,
-        "service_documentation": SINGLE_OPTIONAL_STRING
+        "service_documentation": SINGLE_OPTIONAL_STRING,
+        "claims_locales_supported": OPTIONAL_LIST_OF_STRINGS,
+        "ui_locales_supported": OPTIONAL_LIST_OF_STRINGS,
+        "claims_parameter_supported": SINGLE_OPTIONAL_STRING,
+        "request_parameter_supported": SINGLE_OPTIONAL_STRING,
+        "request_uri_parameter_supported": SINGLE_OPTIONAL_STRING,
+        "require_request_uri_registration": SINGLE_OPTIONAL_STRING,
+        "op_policy_uri": SINGLE_OPTIONAL_STRING,
+        "op_tos_uri": SINGLE_OPTIONAL_STRING
     }
     c_default = {"version": "3.0",
-                 "token_endpoint_auth_methods_supported": "client_secret_basic"}
+                 "token_endpoint_auth_methods_supported": "client_secret_basic",
+                 "claims_parameter_supported": "false",
+                 "request_parameter_supported": "false",
+                 "request_uri_parameter_supported": "true",
+                 "require_request_uri_registration": "true"}
 
     def verify(self, **kwargs):
         if "scopes_supported" in self:
@@ -623,13 +626,12 @@ class ProviderConfigurationResponse(Message):
 
 class AuthnToken(Message):
     c_param = {
-            "iss": SINGLE_REQUIRED_STRING,
-            "sub": SINGLE_REQUIRED_STRING,
-            "aud": REQUIRED_LIST_OF_STRINGS, # Array of strings or string
-            "jti": SINGLE_REQUIRED_STRING,
-            "exp": SINGLE_REQUIRED_INT,
-            "iat": SINGLE_OPTIONAL_INT,
-            "azp": SINGLE_OPTIONAL_INT,
+        "iss": SINGLE_REQUIRED_STRING,
+        "sub": SINGLE_REQUIRED_STRING,
+        "aud": REQUIRED_LIST_OF_STRINGS,  # Array of strings or string
+        "jti": SINGLE_REQUIRED_STRING,
+        "exp": SINGLE_REQUIRED_INT,
+        "iat": SINGLE_OPTIONAL_INT,
     }
 
 

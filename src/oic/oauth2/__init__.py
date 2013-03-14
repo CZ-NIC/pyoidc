@@ -51,6 +51,10 @@ class MISSING_REQUIRED_ATTRIBUTE(Exception):
     pass
 
 
+class VerificationError(Exception):
+    pass
+
+
 def rndstr(size=16):
     """
     Returns a string of random ascii characters or digits
@@ -513,7 +517,8 @@ class Client(PBase):
         # client uses it for signing
         # Server might also use it for signing which means the
         # client uses it for verifying server signatures
-        _kc = KeyBundle({"hmac": val}, usage=["sig", "ver"])
+        _kc = KeyBundle([{"kty":"hmac", "key": "val", "use":"sig"},
+                         {"kty":"hmac", "key": "val", "use":"ver"}])
         try:
             self.keyjar[""].append(_kc)
         except KeyError:
