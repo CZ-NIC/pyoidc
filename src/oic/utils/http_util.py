@@ -280,22 +280,19 @@ def get_or_post(environ):
 
 
 def wsgi_wrapper(environ, start_response, func, **kwargs):
+    request = None
     try:
-        query = environ["QUERY_STRING"]
+        request = environ["QUERY_STRING"]
     except KeyError:
-        query = None
+        pass
 
-    if not query:
+    if not request:
         try:
-            post = get_post(environ)
+            request = get_post(environ)
         except KeyError:
-            post = None
+            pass
 
-        if post:
-            kwargs["post"] = post
-    else:
-        kwargs["query"] = query
-
+    kwargs["request"] = request
     # authentication information
     try:
         kwargs["authn"] = environ["HTTP_AUTHORIZATION"]

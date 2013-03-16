@@ -328,9 +328,11 @@ class Provider(AProvider):
 
         return sid
 
-    def authorization_endpoint(self, **kwargs):
-        # The AuthorizationRequest endpoint
+    def authorization_endpoint(self, request="", **kwargs):
+        """ The AuthorizationRequest endpoint
 
+        :param request: The client request
+        """
         try:
             _log_debug = kwargs["logger"].debug
             _log_info = kwargs["logger"].info
@@ -340,23 +342,16 @@ class Provider(AProvider):
         _sdb = self.sdb
         _srv = self.server
 
-        _log_debug("- authorization -")
-
-        try:
-            query = self.input(**kwargs)
-        except MissingParameter:
-            return BadRequest("Missing input")
-
-        _log_debug("authorization_request: %s" % query)
+        _log_debug("request: %s" % request)
 
         # Same serialization used for GET and POST
         try:
-            areq = _srv.parse_authorization_request(query=query)
+            areq = _srv.parse_authorization_request(query=request)
         except (MissingRequiredAttribute, KeyError):
-            areq = AuthorizationRequest().deserialize(query, "urlencoded")
+            areq = AuthorizationRequest().deserialize(request, "urlencoded")
             # verify the redirect_uri
             try:
-                uri = self.get_redirect_uri(areq)
+                self.get_redirect_uri(areq)
             except RedirectURIError, err:
                 return self._error("invalid_request", "%s" % err)
         except Exception, err:
@@ -647,10 +642,11 @@ class Provider(AProvider):
         return id_token
 
     #noinspection PyUnusedLocal
-    def token_endpoint(self, authn=None, **kwargs):
+    def token_endpoint(self, request="", authn=None, **kwargs):
         """
         This is where clients come to get their access tokens
 
+        :param request: The request
         :param authn: Authentication info, comes from HTTP header
         :returns:
         """
@@ -665,14 +661,9 @@ class Provider(AProvider):
 
         _log_debug("- token -")
 
-        try:
-            body = self.input(**kwargs)
-        except MissingParameter:
-            return BadRequest("Missing input")
+        _log_info("token_request: %s" % request)
 
-        _log_info("token_request: %s" % body)
-
-        areq = AccessTokenRequest().deserialize(body, "urlencoded")
+        areq = AccessTokenRequest().deserialize(request, "urlencoded")
 
         try:
             resp = self.verify_client(areq, self.baseurl, authn)
@@ -826,8 +817,10 @@ class Provider(AProvider):
         return info
 
     #noinspection PyUnusedLocal
-    def userinfo_endpoint(self, **kwargs):
-
+    def userinfo_endpoint(self, request="", **kwargs):
+        """
+        :param request: The request in a string format
+        """
         try:
             _log_debug = kwargs["logger"].debug
             _log_info = kwargs["logger"].info
@@ -835,18 +828,13 @@ class Provider(AProvider):
             _log_debug = logger.debug
             _log_info = logger.info
 
-        try:
-            query = self.input(**kwargs)
-        except MissingParameter:
-            return BadRequest("Missing input")
-
         _sdb = self.sdb
 
-        if not query or "access_token" not in query:
+        if not request or "access_token" not in request:
             _token = kwargs["authn"]
             logger.debug("Bearer token: %s" % _token)
         else:
-            uireq = self.server.parse_user_info_request(data=query)
+            uireq = self.server.parse_user_info_request(data=request)
             logger.debug("user_info_request: %s" % uireq)
             _token = uireq["access_token"]
 
@@ -891,7 +879,9 @@ class Provider(AProvider):
         return Response(jinfo, content=content_type)
 
     #noinspection PyUnusedLocal
-    def check_session_endpoint(self, **kwargs):
+    def check_session_endpoint(self, request, **kwargs):
+        """
+        """
         try:
             _log_debug = kwargs["logger"].debug
             _log_info = kwargs["logger"].info
@@ -899,12 +889,7 @@ class Provider(AProvider):
             _log_debug = logger.debug
             _log_info = logger.info
 
-        try:
-            info = self.input(**kwargs)
-        except MissingParameter:
-            return BadRequest("Missing input")
-
-        if not info:
+        if not request:
             _tok = kwargs["authn"]
             if not _tok:
                 return self._error(error="access_denied", descr="Illegal token")
@@ -912,8 +897,8 @@ class Provider(AProvider):
                 info = "id_token=%s" % _tok
 
         if self.test_mode:
-            _log_info("check_session_request: %s" % info)
-        idt = self.server.parse_check_session_request(query=info)
+            _log_info("check_session_request: %s" % request)
+        idt = self.server.parse_check_session_request(query=request)
         if self.test_mode:
             _log_info("check_session_response: %s" % idt.to_dict())
 
@@ -1040,18 +1025,13 @@ class Provider(AProvider):
         return _cinfo
 
     #noinspection PyUnusedLocal
-    def l_registration_endpoint(self, authn=None, **kwargs):
+    def l_registration_endpoint(self, request, authn=None, **kwargs):
         _log_debug = logger.debug
         _log_info = logger.info
 
         _log_debug("@registration_endpoint")
 
-        try:
-            query = self.input(**kwargs)
-        except MissingParameter:
-            return BadRequest("Missing input")
-
-        request = RegistrationRequest().deserialize(query, "urlencoded")
+        request = RegistrationRequest().deserialize(request, "urlencoded")
 
         _log_info("registration_request:%s" % request.to_dict())
         resp_keys = request.keys()
@@ -1122,8 +1102,8 @@ class Provider(AProvider):
         return Response(response.to_json(), content="application/json",
                         headers=[("Cache-Control", "no-store")])
 
-    def registration_endpoint(self, authn=None, **kwargs):
-        return self.l_registration_endpoint(authn=None, **kwargs)
+    def registration_endpoint(self, request, authn=None, **kwargs):
+        return self.l_registration_endpoint(request, authn, **kwargs)
 
     #noinspection PyUnusedLocal
     def providerinfo_endpoint(self, handle="", **kwargs):
@@ -1200,17 +1180,18 @@ class Provider(AProvider):
 
         return resp
 
-    def discovery_endpoint(self, handle=None, **kwargs):
+    #noinspection PyUnusedLocal
+    def discovery_endpoint(self, request, handle=None, **kwargs):
+        """
+        :param request:
+        :param handle:
+        """
+
         _log_debug = logger.debug
 
         _log_debug("@discovery_endpoint")
 
-        try:
-            query = self.input(**kwargs)
-        except MissingParameter:
-            return BadRequest("Missing input")
-
-        request = DiscoveryRequest().deserialize(query, "urlencoded")
+        request = DiscoveryRequest().deserialize(request, "urlencoded")
         _log_debug("discovery_request:%s" % (request.to_dict(),))
 
         try:
@@ -1419,7 +1400,7 @@ class Provider(AProvider):
         self.jwks_uri = key_export(self.baseurl, local_path, vault, self.keyjar,
                                    fqdn=self.hostname, sig=sig, enc=enc)
 
-    def register_endpoint(self, post="", **kwargs):
+    def register_endpoint(self, request="", **kwargs):
         pass
 
 # -----------------------------------------------------------------------------

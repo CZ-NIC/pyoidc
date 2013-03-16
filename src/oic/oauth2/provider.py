@@ -33,23 +33,6 @@ LOG_INFO = logger.info
 LOG_DEBUG = logger.debug
 
 
-def get_post(environ):
-    # the environment variable CONTENT_LENGTH may be empty or missing
-    try:
-        request_body_size = int(environ.get('CONTENT_LENGTH', 0))
-    except ValueError:
-        request_body_size = 0
-
-    # When the method is POST the query string will be sent
-    # in the HTTP request body which is passed by the WSGI server
-    # in the file like wsgi.input environment variable.
-    return environ['wsgi.input'].read(request_body_size)
-
-#noinspection PyUnusedLocal
-#def do_authorization(user):
-#    return ""
-
-
 def code_response(**kwargs):
     _areq = kwargs["areq"]
     _scode = kwargs["scode"]
@@ -204,15 +187,14 @@ class Provider(object):
 
         return self.authn_reply(areq, aresp)
 
-    def input(self, **kwargs):
+    def input(self, query="", post=None):
         # Support GET and POST
-        try:
-            return kwargs["query"]
-        except KeyError:
-            try:
-                return kwargs["post"]
-            except KeyError:
-                raise MissingParameter("No input")
+        if query:
+            return query
+        elif post:
+            return post
+        else:
+            raise MissingParameter("No input")
 
     def authorization_endpoint(self, query="", **kwargs):
         """ The AuthorizationRequest endpoint
