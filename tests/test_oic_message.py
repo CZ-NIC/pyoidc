@@ -128,8 +128,8 @@ def test_msg_ser_dictionary():
 
 
 CLAIMS = Claims(name={"essential": True}, nickname=None,
-                 email={"essential": True},
-                 email_verified={"essential": True}, picture=None)
+                email={"essential": True},
+                email_verified={"essential": True}, picture=None)
 
 def test_claims_ser_json():
     claims = claims_deser(claims_ser(CLAIMS, "json"), sformat="json")
@@ -152,7 +152,7 @@ def test_registration_request():
                               redirect_uris=["https://example.com/authz_cb"])
     js = req.to_json()
     print js
-    assert js == '{"redirect_uris": "https://example.com/authz_cb", "application_type": "web", "default_acr": "foo", "require_auth_time": true, "operation": "register", "default_max_age": 10}'
+    assert js == '{"redirect_uris": ["https://example.com/authz_cb"], "application_type": "web", "default_acr": "foo", "require_auth_time": true, "operation": "register", "default_max_age": 10}'
     ue = req.to_urlencoded()
     print ue
     assert ue == 'redirect_uris=https%3A%2F%2Fexample.com%2Fauthz_cb&application_type=web&default_acr=foo&require_auth_time=True&operation=register&default_max_age=10'

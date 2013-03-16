@@ -248,16 +248,16 @@ class Provider(AProvider):
                 raise RedirectURIError("Doesn't match any registered uris")
             # ignore query components that are not registered
             return None
-        except Exception:
+        except Exception, err:
             logger.error("Faulty redirect_uri: %s" % areq["redirect_uri"])
             _cinfo = self.cdb[areq["client_id"]]
             logger.info("Registered redirect_uris: %s" % _cinfo)
-            raise RedirectURIError("Faulty redirect_uri")
+            raise RedirectURIError("Faulty redirect_uri: %s" % err)
 
     def _verify_saml2_assertion(self, assertion):
         subject = assertion.subject
-        client_id = subject.name_id.text
-        who_ever_issued_it = assertion.issuer.text
+        #client_id = subject.name_id.text
+        #who_ever_issued_it = assertion.issuer.text
 
         audience = []
         for ar in subject.audience_restiction:
@@ -358,20 +358,17 @@ class Provider(AProvider):
             try:
                 uri = self.get_redirect_uri(areq)
             except RedirectURIError, err:
-                return self._redirect_authz_error("invalid_request", uri,
-                                                  "%s" % err)
+                return self._error("invalid_request", "%s" % err)
         except Exception, err:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
             _log_debug("Bad request: %s (%s)" % (err, err.__class__.__name__))
             return BadRequest("%s" % err)
 
-
         try:
             redirect_uri = self.get_redirect_uri(areq)
         except RedirectURIError, err:
-            return self._redirect_authz_error("invalid_request", uri,
-                                              "%s" % err)
+            return self._error("invalid_request", "%s" % err)
 
         try:
             client_info = self.cdb[areq["client_id"]]
@@ -650,9 +647,12 @@ class Provider(AProvider):
         return id_token
 
     #noinspection PyUnusedLocal
-    def token_endpoint(self, **kwargs):
+    def token_endpoint(self, authn=None, **kwargs):
         """
         This is where clients come to get their access tokens
+
+        :param authn: Authentication info, comes from HTTP header
+        :returns:
         """
 
         try:
@@ -675,7 +675,7 @@ class Provider(AProvider):
         areq = AccessTokenRequest().deserialize(body, "urlencoded")
 
         try:
-            resp = self.verify_client(areq, **kwargs)
+            resp = self.verify_client(areq, self.baseurl, authn)
         except Exception, err:
             _log_info("Failed to verify client due to: %s" % err)
             resp = False
@@ -1040,7 +1040,7 @@ class Provider(AProvider):
         return _cinfo
 
     #noinspection PyUnusedLocal
-    def l_registration_endpoint(self, authn, **kwargs):
+    def l_registration_endpoint(self, authn=None, **kwargs):
         _log_debug = logger.debug
         _log_info = logger.info
 
@@ -1067,63 +1067,30 @@ class Provider(AProvider):
                                    descr="%s" % err)
 
         _keyjar = self.server.keyjar
-        if "client_id" not in request:
-            update = False
-            # create new id och secret
+
+        # create new id och secret
+        client_id = rndstr(12)
+        while client_id in self.cdb:
             client_id = rndstr(12)
-            while client_id in self.cdb:
-                client_id = rndstr(12)
 
-            client_secret = secret(self.seed, client_id)
+        client_secret = secret(self.seed, client_id)
 
-            _rat = rndstr(32)
-            self.cdb[client_id] = {
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "registration_access_token": _rat,
-                "registration_client_uri": self.register_endpoint,
-                "expires_at": utc_time_sans_frac() + 86400}
+        _rat = rndstr(32)
+        self.cdb[client_id] = {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "registration_access_token": _rat,
+            "registration_client_uri": self.register_endpoint,
+            "expires_at": utc_time_sans_frac() + 86400}
 
-            self.cdb[_rat] = client_id
+        self.cdb[_rat] = client_id
 
-            _cinfo = self.do_client_registration(request, client_id,
-                                                 ignore=["redirect_uris",
-                                                         "policy_url",
-                                                         "logo_url"])
-            if isinstance(_cinfo, Response):
-                return _cinfo
-
-        else:
-            update = True
-            client_id = None
-            if not query or "access_token" not in query:
-                access_token = authn
-                logger.debug("Bearer token: %s" % access_token)
-            else:
-                access_token = request["access_token"]
-
-            try:
-                client_id = self.cdb[access_token]
-                try:
-                    assert client_id == request["client_id"]
-                except AssertionError:
-                    return BadRequest("Mismatch in client_id")
-            except KeyError:
-                _log_info("Unknown client")
-                return BadRequest()
-
-            client_secret = None
-            _cinfo = self.do_client_registration(request, client_id,
-                                                 ignore=["client_id",
-                                                         "client_secret",
-                                                         "policy_url",
-                                                         "redirect_uris",
-                                                         "logo_url"])
-
-            #print >> sys.stdout, "do_cr > %s" % resp
-
-            if isinstance(_cinfo, Response):
-                return _cinfo
+        _cinfo = self.do_client_registration(request, client_id,
+                                             ignore=["redirect_uris",
+                                                     "policy_url",
+                                                     "logo_url"])
+        if isinstance(_cinfo, Response):
+            return _cinfo
 
         args = dict([(k, v) for k, v in _cinfo.items()
                      if k in RegistrationResponse.c_param])
@@ -1136,12 +1103,12 @@ class Provider(AProvider):
         args["redirect_uris"] = val
         response = RegistrationResponse(**args)
 
-        self.keyjar.load_keys(request, client_id, replace=update)
+        self.keyjar.load_keys(request, client_id)
 
         # Add the key to the keyjar
         if client_secret:
-            _kc = KeyBundle([{"hmac": client_secret, "use":"ver"},
-                             {"hmac": client_secret, "use":"sig"}])
+            _kc = KeyBundle([{"kty":"hmac", "key": client_secret, "use":"ver"},
+                             {"kty":"hmac", "key": client_secret, "use":"sig"}])
             try:
                 _keyjar[client_id].append(_kc)
             except KeyError:
@@ -1155,8 +1122,8 @@ class Provider(AProvider):
         return Response(response.to_json(), content="application/json",
                         headers=[("Cache-Control", "no-store")])
 
-    def registration_endpoint(self, authn, **kwargs):
-        return self.l_registration_endpoint(authn, **kwargs)
+    def registration_endpoint(self, authn=None, **kwargs):
+        return self.l_registration_endpoint(authn=None, **kwargs)
 
     #noinspection PyUnusedLocal
     def providerinfo_endpoint(self, handle="", **kwargs):
@@ -1321,7 +1288,11 @@ class Provider(AProvider):
 
             self.sdb.update(scode, "local_sub", sub)
 
-            (redirect_uri, reply) = self.get_redirect_uri(areq)
+            try:
+                redirect_uri = self.get_redirect_uri(areq)
+            except RedirectURIError, err:
+                return self._error("invalid_request", "%s" % err)
+
             client_info = self.cdb[areq["client_id"]]
             sector_id = self.get_sector_id(redirect_uri, client_info)
             try:

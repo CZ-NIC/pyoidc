@@ -407,16 +407,16 @@ class KeyJar(object):
                 for bundles in _keys:
                     for key in bundles.get(key_type):
                         if use == key.use:
-                            lst.append(key)
+                            lst.append(key.key)
                 res[key_type] = lst
             else:
                 for bundles in _keys:
                     for key in bundles.keys:
                         if use == key.use:
                             try:
-                                res[key.kty].append(key)
+                                res[key.kty].append(key.key)
                             except KeyError:
-                                res[key.kty] = [key]
+                                res[key.kty] = [key.key]
 
         return res
 
@@ -527,7 +527,10 @@ class KeyJar(object):
         elif replace:
             self.issuer_keys[issuer] = []
 
-        self.add(issuer, pcr["jwks_uri"])
+        try:
+            self.add(issuer, pcr["jwks_uri"])
+        except KeyError:
+            pass
 
 
 # =============================================================================

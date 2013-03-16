@@ -88,13 +88,6 @@ def start_response(status=200, headers=None):
 def _eq(l1, l2):
     return set(l1) == set(l2)
 
-def redirect_environment(query):
-    environ = BASE_ENVIRON.copy()
-    environ["REQUEST_METHOD"] = "GET"
-    environ["QUERY_STRING"] = query
-
-    return environ
-
 
 def test_clean_response():
     atr = AccessTokenResponse(access_token="access_token",
@@ -178,7 +171,7 @@ class TestOICConsumer():
         srv.keyjar = SRVKEYS
         print "redirect_uris",self.consumer.redirect_uris
         print "config", self.consumer.config
-        location = self.consumer.begin(BASE_ENVIRON, start_response)
+        location = self.consumer.begin("openid", "code")
         print location
         authreq = srv.parse_authorization_request(url=location)
         print authreq.keys()
@@ -195,10 +188,12 @@ class TestOICConsumer():
         self.consumer.config["request_method"] = "file"
         self.consumer.config["temp_dir"] = "./file"
         self.consumer.config["temp_path"] = "/tmp/"
+        self.consumer.config["authz_page"] = "/authz"
         srv = Server()
         srv.keyjar = SRVKEYS
 
-        location = self.consumer.begin(BASE_ENVIRON, start_response)
+        location = self.consumer.begin("openid", "code",
+                                       path="http://localhost:8087")
         print location
         #vkeys = {".":srv.keyjar.get_verify_key()}
         authreq = srv.parse_authorization_request(url=location)
@@ -227,13 +222,13 @@ class TestOICConsumer():
         }
 
         result = self.consumer.do_authorization_request(
-                                                    state=self.consumer.state,
-                                                    request_args=args)
+            state=self.consumer.state, request_args=args)
         assert result.status_code == 302
         print "redirect_uris", self.consumer.redirect_uris
         print result.headers["location"]
 
-        assert result.headers["location"].startswith(self.consumer.redirect_uris[0])
+        assert result.headers["location"].startswith(
+            self.consumer.redirect_uris[0])
         _, query = result.headers["location"].split("?")
 
         #vkeys = {".": self.consumer.keyjar.get_verify_key()}
@@ -264,14 +259,11 @@ class TestOICConsumer():
         }
 
         result = self.consumer.do_authorization_request(
-                                                    state=self.consumer.state,
-                                                    request_args=args)
-
-        environ = redirect_environment(result.headers["location"])
+            state=self.consumer.state,request_args=args)
 
         print self.consumer.sdb.keys()
         print self.consumer.sdb["state0"].keys()
-        part = self.consumer.parse_authz(environ, start_response)
+        part = self.consumer.parse_authz(query=result.headers["location"])
         print part
         atr = part[0]
         assert part[1] is None
@@ -291,12 +283,9 @@ class TestOICConsumer():
         }
 
         result = self.consumer.do_authorization_request(
-                                                    state=self.consumer.state,
-                                                    request_args=args)
+            state=self.consumer.state, request_args=args)
 
-        environ = redirect_environment(result.headers["location"])
-
-        part = self.consumer.parse_authz(environ, start_response)
+        part = self.consumer.parse_authz(query=result.headers["location"])
         print part
         assert part[0] is None
         atr = part[1]
@@ -368,9 +357,7 @@ def test_complete_auth_token():
     #assert result.location.startswith(consumer.redirect_uri[0])
     _, query = result.headers["location"].split("?")
     print query
-    environ = redirect_environment(query)
-
-    part = consumer.parse_authz(environ, start_response)
+    part = consumer.parse_authz(query=query)
     print part
     auth = part[0]
     acc = part[1]
@@ -413,9 +400,7 @@ def test_complete_auth_token_idtoken():
     #assert result.location.startswith(consumer.redirect_uri[0])
     _, query = result.headers["location"].split("?")
     print query
-    environ = redirect_environment(query)
-
-    part = consumer.parse_authz(environ, start_response)
+    part = consumer.parse_authz(query=query)
     print part
     auth = part[0]
     acc = part[1]
@@ -515,16 +500,22 @@ def test_provider_config():
     info = c.provider_config(res)
     assert info.type() == "ProviderConfigurationResponse"
     print info.keys()
-    assert _eq(info.keys(), ['registration_endpoint', u'check_session_endpoint',
-                             u'refresh_session_endpoint', 'scopes_supported',
+    assert _eq(info.keys(), ['registration_endpoint', 'jwks_uri',
+                             'check_session_endpoint',
+                             'refresh_session_endpoint', 'register_endpoint',
                              'subject_types_supported',
                              'token_endpoint_auth_methods_supported',
                              'id_token_signing_alg_values_supported',
-                             u'flows_supported', 'version',
-                             u'identifiers_supported', u'user_info_endpoint',
-                             'response_types_supported', 'end_session_endpoint',
-                             'authorization_endpoint', u'discovery_endpoint',
-                             'token_endpoint', 'x509_url', 'issuer'])
+                             'grant_types_supported', 'user_info_endpoint',
+                             'claims_parameter_supported',
+                             'request_parameter_supported',
+                             'discovery_endpoint', 'issuer',
+                             'authorization_endpoint', 'scopes_supported',
+                             'require_request_uri_registration',
+                             'identifiers_supported', 'token_endpoint',
+                             'request_uri_parameter_supported', 'version',
+                             'response_types_supported',
+                             'end_session_endpoint', 'flows_supported'])
 
     assert info["end_session_endpoint"] == "http://example.com/end_session"
 

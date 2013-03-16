@@ -203,14 +203,14 @@ class Consumer(Client):
     #noinspection PyUnusedLocal,PyArgumentEqualDefault
     def begin(self, scope="", response_type="", use_nonce=False, path="",
               requrl="", **kwargs):
-        """ Begin the OAuth2 flow
+        """ Begin the OIDC flow
 
         :param scope: Defines which user info claims is wanted
         :param response_type: Controls the parameters returned in the
             response from the Authorization Endpoint
         :param use_nonce: If not implicit flow nonce is optional.
             This defines if it should be used anyway.
-        :param path: The path part of the request URL
+        :param path: The path part of the redirect URL
         :param requrl: Request URL
         :return: A URL to which the user should be redirected
         """

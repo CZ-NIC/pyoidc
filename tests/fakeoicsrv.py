@@ -28,15 +28,17 @@ class Response():
         return getattr(self, item)
 
 ENDPOINT = {
-    "authorization_endpoint":"/authorization",
-    "token_endpoint":"/token",
-    "user_info_endpoint":"/userinfo",
-    "check_session_endpoint":"/check_session",
+    "authorization_endpoint": "/authorization",
+    "token_endpoint": "/token",
+    "user_info_endpoint": "/userinfo",
+    "check_session_endpoint": "/check_session",
     "refresh_session_endpoint": "/refresh_session",
     "end_session_endpoint": "/end_session",
     "registration_endpoint": "/registration",
-    "discovery_endpoint": "/discovery"
+    "discovery_endpoint": "/discovery",
+    "register_endpoint": "/register"
 }
+
 
 class MyFakeOICServer(Server):
     def __init__(self, name=""):
@@ -102,7 +104,7 @@ class MyFakeOICServer(Server):
             if "token" in req["response_type"]:
                 grant = _info["code"]
                 _dict = self.sdb.update_to_token(grant)
-                _dict["oauth_state"]="authz",
+                _dict["oauth_state"] = "authz",
 
                 _dict = by_schema(AuthorizationResponse(), **_dict)
                 resp = AuthorizationResponse(**_dict)
@@ -111,13 +113,13 @@ class MyFakeOICServer(Server):
                 resp = AuthorizationResponse(state=req["state"],
                                              code=_info["code"])
 
-        else: # "implicit" in req.response_type:
+        else:  # "implicit" in req.response_type:
             grant = _info["code"]
             params = AccessTokenResponse.c_param.keys()
 
-            _dict = dict([(k,v) for k,
-                        v in self.sdb.update_to_token(grant).items() if k in
-                                                                    params])
+            _dict = dict([(k, v) for k, v in
+                          self.sdb.update_to_token(grant).items() if k in
+                                                                     params])
             try:
                 del _dict["refresh_token"]
             except KeyError:
@@ -134,8 +136,8 @@ class MyFakeOICServer(Server):
             resp = AccessTokenResponse(**_dict)
 
         location = resp.request(req["redirect_uri"])
-        response= Response()
-        response.headers = {"location":location}
+        response = Response()
+        response.headers = {"location": location}
         response.status_code = 302
         response.text = ""
         return response
@@ -153,7 +155,7 @@ class MyFakeOICServer(Server):
 
         resp = AccessTokenResponse(**by_schema(AccessTokenResponse, **_info))
         response = Response()
-        response.headers = {"content-type":"application/json"}
+        response.headers = {"content-type": "application/json"}
         response.text = resp.to_json()
 
         return response
@@ -167,11 +169,11 @@ class MyFakeOICServer(Server):
             "nickname": "Mel",
             "email": "mel@example.com",
             "verified": True,
-            }
+        }
 
         resp = OpenIDSchema(**_info)
         response = Response()
-        response.headers = {"content-type":"application/json"}
+        response.headers = {"content-type": "application/json"}
         response.text = resp.to_json()
 
         return response
@@ -191,10 +193,12 @@ class MyFakeOICServer(Server):
                 "client_secret": client_secret,
                 "info": req.to_dict(),
                 "expires": expires,
-                "registration_access_token": registration_access_token
+                "registration_access_token": registration_access_token,
+                "registration_client_uri": "register_endpoint"
             })
             self.client[client_id] = _client_info
             kwargs["registration_access_token"] = registration_access_token
+            kwargs["registration_client_uri"] = "register_endpoint"
             del kwargs["operation"]
         else:
             client_id = req.client_id
@@ -204,12 +208,12 @@ class MyFakeOICServer(Server):
             _cinfo["expires"] = expires
 
         resp = RegistrationResponse(client_id=client_id,
-                            client_secret=client_secret,
-                            expires_at=expires,
-                            **kwargs)
+                                    client_secret=client_secret,
+                                    expires_at=expires,
+                                    **kwargs)
 
         response = Response()
-        response.headers = {"content-type":"application/json"}
+        response.headers = {"content-type": "application/json"}
         response.text = resp.to_json()
 
         return response
@@ -222,7 +226,7 @@ class MyFakeOICServer(Server):
 
         response = Response()
         response.text = idtoken.to_json()
-        response.headers = {"content-type":"application/json"}
+        response.headers = {"content-type": "application/json"}
         return response
 
     #noinspection PyUnusedLocal
@@ -236,7 +240,7 @@ class MyFakeOICServer(Server):
                                     client_secret="hemligt")
 
         response = Response()
-        response.headers = {"content-type":"application/json"}
+        response.headers = {"content-type": "application/json"}
         response.text = resp.to_json()
         return response
 
@@ -252,7 +256,7 @@ class MyFakeOICServer(Server):
         url = resp.request(req["redirect_url"])
 
         response = Response()
-        response.headers= {"location":url}
+        response.headers = {"location": url}
         response.status_code = 302  # redirect
         response.text = ""
         return response
@@ -268,27 +272,21 @@ class MyFakeOICServer(Server):
 
         signing_algs = jws.SIGNER_ALGS.keys()
         resp = ProviderConfigurationResponse(
-                                   issuer=self.name,
-                                   scopes_supported=["openid", "profile",
-                                                     "email", "address"],
-                                   identifiers_supported=["public", "PPID"],
-                                   flows_supported=["code", "token",
-                                                    "code token", "id_token",
-                                                    "code id_token",
-                                                    "token id_token"],
-                                   subject_types_supported=["pairwise",
-                                                            "public"],
-                                   response_types_supported=["code", "token",
-                                                             "id_token", "code token",
-                                                             "code id_token",
-                                                             "token id_token",
-                                                             "code token id_token"],
-                                   x509_url="http://example.com/oidc/x509.pem",
-                                   id_token_signing_alg_values_supported=signing_algs,
-                                   **endpoint)
+            issuer=self.name,
+            scopes_supported=["openid", "profile", "email", "address"],
+            identifiers_supported=["public", "PPID"],
+            flows_supported=["code", "token", "code token", "id_token",
+                             "code id_token", "token id_token"],
+            subject_types_supported=["pairwise", "public"],
+            response_types_supported=["code", "token", "id_token",
+                                      "code token", "code id_token",
+                                      "token id_token", "code token id_token"],
+            jwks_uri="http://example.com/oidc/jwks",
+            id_token_signing_alg_values_supported=signing_algs,
+            grant_types_supported=["authorization_code", "implicit"],
+            **endpoint)
 
         response = Response()
-        response.headers = {"content-type":"application/json"}
+        response.headers = {"content-type": "application/json"}
         response.text = resp.to_json()
         return response
-

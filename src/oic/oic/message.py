@@ -442,8 +442,7 @@ class RegistrationRequest(Message):
         #"client_secret": SINGLE_OPTIONAL_STRING,
     }
     c_default = {"application_type": "web"}
-    c_allowed_values = {"operation": ["register", "client_update"],
-                        "application_type": ["native", "web"],
+    c_allowed_values = {"application_type": ["native", "web"],
                         "subject_type": ["public", "pairwise"]}
 
     def verify(self, **kwargs):
@@ -609,7 +608,8 @@ class ProviderConfigurationResponse(Message):
                  "claims_parameter_supported": "false",
                  "request_parameter_supported": "false",
                  "request_uri_parameter_supported": "true",
-                 "require_request_uri_registration": "true"}
+                 "require_request_uri_registration": "true",
+                 "grant_types_supported": ["authorization_code", "implicit"]}
 
     def verify(self, **kwargs):
         if "scopes_supported" in self:

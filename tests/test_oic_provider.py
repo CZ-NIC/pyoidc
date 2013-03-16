@@ -1,9 +1,11 @@
+import copy
+
 __author__ = 'rohe0002'
 
 import StringIO
 import urllib
 
-from oic.oauth2.exception import FailedAuthentication
+from oic.oauth2.exception import FailedAuthentication, RedirectURIError
 
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
@@ -126,9 +128,8 @@ def start_response(status, headers=None):
 
 
 #noinspection PyUnusedLocal
-def do_authentication(environ, start_response, bsid, cookie):
-    resp = http_util.Response("<form>%s</form>" % bsid)
-    return resp(environ, start_response)
+def do_authentication(bsid, cookie):
+    return http_util.Response("<form>%s</form>" % bsid)
 
 
 #noinspection PyUnusedLocal
@@ -158,33 +159,22 @@ def verify_username_and_password(dic):
 
 
 #noinspection PyUnusedLocal
-def verify_client(environ, client, cdb):
+def verify_client(client, cdb):
     if client:
         if client == CLIENT_ID:
-            return True
+            pass
         else:
-            return False
-
-    return False
+            raise KeyError
 
 
-def create_return_form_env(user, password, sid):
+def create_return_form_post(user, password, sid):
     _dict = {
         "login": user,
         "password": password,
         "sid": sid
     }
 
-    environ = BASE_ENVIRON.copy()
-    environ["REQUEST_METHOD"] = "POST"
-
-    text = urllib.urlencode(_dict)
-    environ["CONTENT_LENGTH"] = len(text)
-
-    fil = StringIO.StringIO(buf=text)
-    environ["wsgi.input"] = fil
-
-    return environ
+    return urllib.urlencode(_dict)
 
 
 #noinspection PyUnusedLocal
@@ -218,7 +208,7 @@ USERDB = {
     }
 }
 
-URLMAP = {"client_1": ["https://example.com/authz"]}
+URLMAP = {CLIENT_ID: ["https://example.com/authz"]}
 
 provider_init = Provider("pyoicserv", SessionDB(), CDB, FUNCTIONS,
                          userdb=USERDB, urlmap=URLMAP, keyjar=KEYJAR)
@@ -250,11 +240,8 @@ def test_server_authorization_endpoint():
 
     resp = server.authorization_endpoint(query=arq.to_urlencoded())
 
-    print resp
-    line = resp[0]
-    assert line.startswith("<form>")
-    assert line.endswith("</form>")
-
+    print resp.message
+    assert resp.message
 
 def test_server_authorization_endpoint_request():
     server = provider_init
@@ -276,8 +263,7 @@ def test_server_authorization_endpoint_request():
     resp = server.authorization_endpoint(query=req.to_urlencoded())
 
     print resp
-    line = resp[0]
-    assert "error=login_required" in line
+    assert "error=login_required" in resp.message
 
 
 def test_server_authorization_endpoint_id_token():
@@ -317,23 +303,22 @@ def test_server_authorization_endpoint_id_token():
     resp = provider.authorization_endpoint(query=QUERY_STRING)
 
     print resp
-    line = resp[0]
-    assert "error=login_required" in line
+    assert "error=login_required" in resp.message
 
 
 def test_failed_authenticated():
     server = provider_init
-    post = create_return_form_env("haden", "secret", "sid1")
+    post = create_return_form_post("haden", "secret", "sid1")
     resp1 = server.authenticated(post)
     assert resp1.message == "Wrong password"
 
-    post = create_return_form_env("", "secret", "sid2")
+    post = create_return_form_post("", "secret", "sid2")
     resp2 = server.authenticated(post)
     assert resp2.message == "Authentication failed"
 
-    form = create_return_form_env("hannibal", "hemligt", "sid3")
-    resp = server.authenticated(form)
-    assert resp.message == "Authentication failed"
+    post = create_return_form_post("hannibal", "hemligt", "sid3")
+    resp = server.authenticated(post)
+    assert resp.message == "Not allowed to use this service (hannibal)"
 
 
 def test_server_authenticated():
@@ -344,28 +329,22 @@ def test_server_authenticated():
     cons.debug = True
     cons.keyjar[""] = KC_RSA
 
-    location = cons.begin("http://localhost:8087",
-                          "http://localhost:8088/authorization")
+    location = cons.begin("openid", "code", path="http://localhost:8087")
 
     QUERY_STRING = location.split("?")[1]
-
+    print QUERY_STRING
     resp = server.authorization_endpoint(query=QUERY_STRING)
 
     print resp.message
-    sid = resp[0][len("<form>"):-len("</form>")]
-    form = create_return_form_env("user", "password", sid)
+    sid = resp.message[len("<form>"):-len("</form>")]
+    print sid
+    form = create_return_form_post("user", "password", sid)
 
     resp2 = server.authenticated(form)
 
-    print resp2[0]
-    assert len(resp2) == 1
-    txt = resp2[0]
-    pos0 = txt.index("<title>") + len("<title>Redirecting to ")
-    pos1 = txt.index("</title>")
-    location = txt[pos0:pos1]
-    print location
+    print resp2.message
 
-    assert location.startswith("http://localhost:8087/authz")
+    assert resp2.message.startswith("http://localhost:8087/authz")
 
     part = cons.parse_authz(query=location)
     
@@ -379,12 +358,12 @@ def test_server_authenticated():
 
     print aresp.keys()
     assert aresp.type() == "AuthorizationResponse"
-    assert _eq(aresp.keys(), ['code', 'state', 'scope'])
+    assert _eq(aresp.keys(), ['request', 'state', 'redirect_uri',
+                              'response_type', 'client_id', 'scope'])
 
     print cons.grant[cons.state].keys()
-    assert _eq(cons.grant[cons.state].keys(), ['code', 'id_token', 'tokens',
-                                               'exp_in',
-                                               'grant_expiration_time', 'seed'])
+    assert _eq(cons.grant[cons.state].keys(), ['tokens', 'id_token', 'exp_in',
+                                               'seed', 'grant_expiration_time'])
 
 
 def test_server_authenticated_1():
@@ -395,17 +374,16 @@ def test_server_authenticated_1():
     cons.debug = True
     cons.keyjar[""] = KC_RSA
 
-    location = cons.begin("http://localhost:8087",
-                          "http://localhost:8088/authorization")
+    location = cons.begin("openid", "code")
 
     _ = server.authorization_endpoint(query=location.split("?")[1])
 
     #sid = resp[0][len("FORM with "):]
-    environ2 = create_return_form_env("user", "password", "abcd")
+    environ2 = create_return_form_post("user", "password", "abcd")
 
     resp2 = server.authenticated(environ2, start_response)
     print resp2
-    assert resp2 == ['<html>Could not find session</html>']
+    assert resp2.message == 'Could not find session'
 
 
 def test_server_authenticated_2():
@@ -417,32 +395,25 @@ def test_server_authenticated_2():
     cons.keyjar[""] = KC_RSA
 
     location = cons.begin(scope="openid email claims_in_id_token",
-                          response_type="code id_token")
+                          response_type="code id_token",
+                          path="http://localhost:8087")
 
+    print location
     resp = server.authorization_endpoint(query=location.split("?")[1])
 
-    sid = resp[0][len("<form>"):-len("</form>")]
-    environ2 = create_return_form_env("user", "password", sid)
+    print resp.message
+    sid = resp.message[len("<form>"):-len("</form>")]
+    post = create_return_form_post("user", "password", sid)
 
     print server.keyjar.issuer_keys
 
-    resp2 = server.authenticated(environ2, start_response)
+    resp2 = server.authenticated(post)
+    print resp2.message
+    assert resp2.message.startswith("http://localhost:8087/authz")
 
-    print resp2[0]
-    assert len(resp2) == 1
-    txt = resp2[0]
-    pos0 = txt.index("<title>") + len("<title>Redirecting to ")
-    pos1 = txt.index("</title>")
-    location = txt[pos0:pos1]
-    print location
+    part = cons.parse_authz(resp2.message)
 
-    assert location.startswith("http://localhost:8087/authz")
-
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = location
-
-    part = cons.parse_authz(environ, start_response)
-
+    print part
     aresp = part[0]
     assert part[1] is None
     assert part[2] is not None
@@ -474,21 +445,16 @@ def test_server_authenticated_token():
     cons.debug = True
     cons.keyjar[""] = KC_RSA
 
-    cons.config["response_type"] = ["token"]
-    environ = BASE_ENVIRON
-
-    location = cons.begin("http://localhost:8087",
-                          "http://localhost:8088/authorization")
+    location = cons.begin("openid", response_type="token",
+                          path="http://localhost:8087")
 
     resp = server.authorization_endpoint(query=location.split("?")[1])
 
-    sid = resp[0][len("<form>"):-len("</form>")]
-    environ2 = create_return_form_env("user", "password", sid)
+    sid = resp.message[len("<form>"):-len("</form>")]
+    resp2 = server.authenticated(create_return_form_post("user", "password",
+                                                         sid))
 
-    resp2 = server.authenticated(environ2, start_response)
-
-    assert len(resp2) == 1
-    txt = resp2[0]
+    txt = resp2.message
     assert "access_token=" in txt
     assert "token_type=Bearer" in txt
 
@@ -500,29 +466,21 @@ def test_server_authenticated_none():
                     server_info=SERVER_INFO, )
     cons.debug = True
     cons.keyjar[""] = KC_RSA
-    cons.response_type = "none"
 
-    location = cons.begin("http://localhost:8087",
-                          "http://localhost:8088/authorization")
+    location = cons.begin("openid", response_type="none",
+                          path="http://localhost:8087")
 
     resp = server.authorization_endpoint(query=location.split("?")[1])
 
-    sid = resp[0][len("<form>"):-len("</form>")]
-    environ2 = create_return_form_env("user", "password", sid)
+    sid = resp.message[len("<form>"):-len("</form>")]
 
-    resp2 = server.authenticated(environ2, start_response)
+    post = create_return_form_post("user", "password", sid)
+    resp2 = server.authenticated(post)
 
-    assert len(resp2) == 1
-    txt = resp2[0]
-    pos0 = txt.index("<title>") + len("<title>Redirecting to ")
-    pos1 = txt.index("</title>")
-    location = txt[pos0:pos1]
-    print location
-
-    assert location.startswith("http://localhost:8087/authz")
-    query = location.split("?")[1]
-    print query
-    assert "token_type=Bearer" in query
+    assert resp2.message.startswith("http://localhost:8087/authz")
+    query_part = resp2.message.split("?")[1]
+    print query_part
+    assert "state" in query_part
     
 
 def test_token_endpoint():
@@ -553,9 +511,9 @@ def test_token_endpoint():
 
     txt = areq.to_urlencoded()
 
-    resp = server.token_endpoint(post=txt, remote_user=CLIENT_ID)
+    resp = server.token_endpoint(post=txt)
     print resp
-    atr = AccessTokenResponse().deserialize(resp[0], "json")
+    atr = AccessTokenResponse().deserialize(resp.message, "json")
     print atr.keys()
     assert _eq(atr.keys(), ['token_type', 'id_token', 'access_token', 'scope',
                             'expires_in', 'refresh_token'])
@@ -593,7 +551,7 @@ def test_token_endpoint_unauth():
     resp = server.token_endpoint(post=txt, remote_user="client2",
                                  request_method="POST")
     print resp
-    atr = TokenErrorResponse().deserialize(resp[0], "json")
+    atr = TokenErrorResponse().deserialize(resp.message, "json")
     print atr.keys()
     assert _eq(atr.keys(), ['error'])
 
@@ -610,8 +568,8 @@ def test_authz_endpoint():
 
     resp = server.authorization_endpoint(query=req.to_urlencoded())
     print resp
-    assert resp[0].startswith('<form>')
-    assert resp[0].endswith('</form>')
+    assert resp.message.startswith('<form>')
+    assert resp.message.endswith('</form>')
 
 
 def test_idtoken():
@@ -640,20 +598,16 @@ def test_userinfo_endpoint():
     cons.config["request_method"] = "parameter"
     cons.keyjar[""] = KC_RSA
 
-    location = cons.begin("http://localhost:8087",
-                          "http://localhost:8088/authorization")
+    location = cons.begin("openid", "token", path="http://localhost:8087")
 
     resp = server.authorization_endpoint(query=location.split("?")[1])
 
-    sid = resp[0][len("<form>"):-len("</form>")]
-    environ2 = create_return_form_env("user", "password", sid)
+    sid = resp.message[len("<form>"):-len("</form>")]
 
-    resp2 = server.authenticated(environ2, start_response)
-    line = resp2[0]
-    start = line.index("<title>")
-    start += len("<title>Redirecting to ")
-    stop = line.index("</title>")
-    path, query = line[start:stop].split("?")
+    resp2 = server.authenticated(create_return_form_post("user", "password",
+                                                         sid))
+    line = resp2.message
+    path, query = line.split("?")
 
     # redirect
     atr = AuthorizationResponse().deserialize(query, "urlencoded")
@@ -661,7 +615,7 @@ def test_userinfo_endpoint():
     uir = UserInfoRequest(access_token=atr["access_token"], schema="openid")
 
     resp3 = server.userinfo_endpoint(query=uir.to_urlencoded())
-    ident = OpenIDSchema().deserialize(resp3[0], "json")
+    ident = OpenIDSchema().deserialize(resp3.message, "json")
     print ident.keys()
     assert _eq(ident.keys(), ['nickname', 'sub', 'name', 'email'])
     assert ident["sub"] == USERDB["user"]["sub"]
@@ -677,7 +631,7 @@ def test_check_session_endpoint():
 
     info = server.check_session_endpoint(query=csr.to_urlencoded())
     print info
-    idt = IdToken().deserialize(info[0], "json")
+    idt = IdToken().deserialize(info.message, "json")
     print idt.keys()
     assert _eq(idt.keys(), ['sub', 'aud', 'iss', 'acr', 'exp', 'iat'])
     assert idt["iss"] == server.name
@@ -686,45 +640,24 @@ def test_check_session_endpoint():
 def test_registration_endpoint():
     server = provider_init
 
-    req = RegistrationRequest(operation="register")
+    req = RegistrationRequest()
 
     req["application_type"] = "web"
     req["client_name"] = "My super service"
     req["redirect_uris"] = ["http://example.com/authz"]
     req["contacts"] = ["foo@example.com"]
 
-    environ = BASE_ENVIRON.copy()
-    environ["QUERY_STRING"] = req.to_urlencoded()
+    print req.to_dict()
 
-    resp = server.registration_endpoint(environ, start_response)
+    resp = server.registration_endpoint(query=req.to_urlencoded())
 
-    print resp
-    regresp = RegistrationResponse().deserialize(resp[0], "json")
+    print resp.message
+    regresp = RegistrationResponse().deserialize(resp.message, "json")
     print regresp.keys()
-    assert _eq(regresp.keys(), ['redirect_uris', 'application_type',
+    assert _eq(regresp.keys(), ['redirect_uris', 'contacts', 'application_type',
+                                'client_name', 'registration_client_uri',
                                 'expires_at', 'registration_access_token',
-                                'client_id', 'client_secret', 'client_name',
-                                "contacts"])
-
-    # --- UPDATE ----
-
-    req = RegistrationRequest(operation="client_update")
-    req["application_type"] = "web"
-    req["client_name"] = "My super duper service"
-    req["redirect_uris"] = ["http://example.com/authz"]
-    req["contacts"] = ["foo@example.com"]
-
-    resp = server.registration_endpoint(query=req.to_urlencoded(),
-                                        authn="Bearer %s" % regresp[
-                                            "registration_access_token"])
-
-    print resp
-    update = RegistrationResponse().deserialize(resp[0], "json")
-    print update.keys()
-    assert _eq(update.keys(), ['redirect_uris', 'application_type',
-                               'expires_at', 'registration_access_token',
-                               'client_id', 'client_secret', 'client_name',
-                               'contacts'])
+                                'client_id', 'client_secret'])
 
 
 def test_provider_key_setup():
@@ -734,7 +667,17 @@ def test_provider_key_setup():
 
     keys = provider.keyjar.get_signing_key("rsa")
     assert len(keys) == 1
-    assert provider.jwks_uri[0] == "http://www.example.com/static/jwk.json"
+    assert provider.jwks_uri == "http://www.example.com/static/jwks"
+
+
+def _client_id(cdb):
+    cid = None
+    for k, item in cdb.items():
+        if item in cdb.keys():
+            cid = item
+            break
+
+    return cid
 
 
 def test_registered_redirect_uri_without_query_component():
@@ -744,8 +687,7 @@ def test_registered_redirect_uri_without_query_component():
 
     registration_req = rr.to_urlencoded()
 
-    provider.registration_endpoint({}, start_response,
-                                   query=registration_req)
+    provider.registration_endpoint(query=registration_req)
 
     correct = [
         "http://example.org/cb",
@@ -758,23 +700,32 @@ def test_registered_redirect_uri_without_query_component():
         "http://example.com/cb",
     ]
 
+    cid = _client_id(provider.cdb)
+
     for ruri in faulty:
         areq = AuthorizationRequest(redirect_uri=ruri,
-                                    client_id=provider.cdb.keys()[0],
+                                    client_id=cid,
                                     response_type="code",
                                     scope="openid")
 
         print areq
-        assert provider._verify_redirect_uri(areq) is not None
+        try:
+            provider._verify_redirect_uri(areq)
+            assert False
+        except RedirectURIError:
+            pass
 
     for ruri in correct:
         areq = AuthorizationRequest(redirect_uri=ruri,
-                                    client_id=provider.cdb.keys()[0])
+                                    client_id=cid,
+                                    response_type="code", scope="openid")
 
-        resp = provider._verify_redirect_uri(areq)
-        if resp:
-            print resp.message
-        assert resp is None
+        print areq
+        try:
+            provider._verify_redirect_uri(areq)
+        except RedirectURIError, err:
+            print err
+            assert False
 
 
 def test_registered_redirect_uri_with_query_component():
@@ -785,10 +736,9 @@ def test_registered_redirect_uri_with_query_component():
                              redirect_uris=["http://example.org/cb?foo=bar"])
 
     registration_req = rr.to_urlencoded()
-    resp = provider2.registration_endpoint(environ, start_response,
-                                           query=registration_req)
+    resp = provider2.registration_endpoint(query=registration_req)
 
-    regresp = RegistrationResponse().from_json(resp[0])
+    regresp = RegistrationResponse().from_json(resp.message)
 
     print regresp.to_dict()
 
@@ -804,18 +754,24 @@ def test_registered_redirect_uri_with_query_component():
         "http://example.org/cb?foo=bar&foo=you"
     ]
 
+    cid = regresp["client_id"]
+
     for ruri in faulty:
         areq = AuthorizationRequest(redirect_uri=ruri,
-                                    client_id=regresp["client_id"],
+                                    client_id=cid,
                                     scope="openid",
                                     response_type="code")
 
         print areq
-        assert provider2._verify_redirect_uri(areq) is not None
+        try:
+            provider2._verify_redirect_uri(areq)
+        except RedirectURIError:
+            pass
 
     for ruri in correct:
         areq = AuthorizationRequest(redirect_uri=ruri,
-                                    client_id=regresp["client_id"])
+                                    client_id=cid, scope="openid",
+                                    response_type="code")
 
         resp = provider2._verify_redirect_uri(areq)
         print resp

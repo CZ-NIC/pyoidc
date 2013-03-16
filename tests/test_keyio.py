@@ -94,7 +94,7 @@ def test_keyjar_remove_key():
     keys = key["rsa"]
     assert len(key) == 1
     _key = keys[0]
-    ks.remove_key("http://www.example.org", "rsa", _key.key)
+    ks.remove_key("http://www.example.org", "rsa", _key)
 
     coll = ks["http://www.example.org"]
     assert len(coll) == 1  # Only one remaining key
