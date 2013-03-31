@@ -5,7 +5,6 @@ __author__ = 'rohe0002'
 
 import hmac
 import hashlib
-import time
 import random
 import base64
 import logging

@@ -187,11 +187,13 @@ def cookie_signature(seed, *parts):
     return sha1.hexdigest()
 
 
-def cookie(name, sid, seed, expire=0, domain="",  path=""):
+def cookie(name, load, seed, expire=0, domain="",  path="",
+           timestamp=""):
     """
     Create and return a cookie
 
-    :param sid: Session identifier
+    :param name: Cookie name
+    :param load: Cookie load
     :param seed: A seed for the HMAC function
     :param expire: Number of minutes before this cookie goes stale
     :param domain: The domain of the cookie
@@ -199,12 +201,10 @@ def cookie(name, sid, seed, expire=0, domain="",  path=""):
     :return: A tuple to be added to headers
     """
     cookie = SimpleCookie()
-    timestamp = str(int(time.mktime(time.gmtime())))
-    #print >> sys.stderr, "COOKIE create '%s' '%s' '%s'" %  (seed, sid,
-    #                                                        timestamp)
-    signature = cookie_signature(seed, sid, timestamp)
-    #print >> sys.stderr, ">>", signature
-    cookie[name] = "|".join([sid, timestamp, signature])
+    if not timestamp:
+        timestamp = str(int(time.mktime(time.gmtime())))
+    signature = cookie_signature(seed, load, timestamp)
+    cookie[name] = "|".join([load, timestamp, signature])
     if path:
         cookie[name]["path"] = path
     if domain:
@@ -217,7 +217,12 @@ def cookie(name, sid, seed, expire=0, domain="",  path=""):
 
 
 def parse_cookie(name, seed, kaka):
-    """Parses and verifies a cookie value """
+    """Parses and verifies a cookie value
+
+    :param seed: A seed used for the HMAC signature
+    :param kaka: The cookie
+    :return: A tuple consisting of (payload, timestamp)
+    """
     if not kaka:
         return None
 
@@ -226,13 +231,10 @@ def parse_cookie(name, seed, kaka):
 
     if morsel:
         parts = morsel.value.split("|")
-        if len(parts) != 3: return None
+        if len(parts) != 3:
+            return None
         # verify the cookie signature
-        #print >> sys.stderr, "COOKIE verify '%s' '%s' '%s'" %  (seed,
-        #                                                        parts[0],
-        #                                                        parts[1])
         sig = cookie_signature(seed, parts[0], parts[1])
-        #print >> sys.stderr, ">>", sig
         if sig != parts[2]:
             raise Exception("Invalid cookie signature")
 
@@ -307,5 +309,3 @@ def wsgi_wrapper(environ, start_response, func, **kwargs):
 
     resp = func(**kwargs)
     return resp(environ, start_response)
-
-

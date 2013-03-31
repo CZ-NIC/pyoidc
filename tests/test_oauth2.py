@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from oic.utils.keyio import KeyBundle
 
 __author__ = 'rohe0002'
 
@@ -11,7 +10,6 @@ import hashlib
 import json
 import urllib
 
-from oic import oauth2
 from oic.oauth2 import Grant
 from oic.utils import time_util
 from oic.oauth2 import Client
@@ -20,6 +18,11 @@ from oic.oauth2 import Token
 from oic.oauth2.message import *
 
 from oic.utils.sdb import Crypt
+from oic.utils.authn import ClientSecretBasic
+from oic.utils.authn import ClientSecretPost
+from oic.utils.authn import BearerBody
+from oic.utils.authn import BearerHeader
+from oic.utils.keyio import KeyBundle
 
 from pytest import raises
 
@@ -103,9 +106,7 @@ def test_grant_set_3():
     assert len(grant.tokens) == 0
 
 
-
 # ----------------- CLIENT --------------------
-
 class TestOAuthClient():
     def setup_class(self):
         self.client = Client("1")
@@ -123,7 +124,7 @@ class TestOAuthClient():
 
     def test_areq_2(self):
         self.client.state = "abc"
-        req_args = {"response_type":["code"], "scope": ["foo", "bar"]}
+        req_args = {"response_type": ["code"], "scope": ["foo", "bar"]}
         ar = self.client.construct_AuthorizationRequest(request_args=req_args)
 
         assert ar["redirect_uri"] == "http://example.com/redirect"
@@ -134,7 +135,7 @@ class TestOAuthClient():
 
     def test_areq_replace_default_state(self):
         self.client.state = "efg"
-        req_args = {"response_type":["code"], "scope": ["foo", "bar"]}
+        req_args = {"response_type": ["code"], "scope": ["foo", "bar"]}
         ar = self.client.construct_AuthorizationRequest(request_args=req_args)
 
         assert ar["redirect_uri"] == "http://example.com/redirect"
@@ -381,8 +382,8 @@ class TestOAuthClient():
         uri, body, h_args, cis = self.client.request_info(
             AuthorizationRequest,
             method="GET",
-            request_args={"state":"init"},
-            extra_args={"rock":"little"})
+            request_args={"state": "init"},
+            extra_args={"rock": "little"})
 
         print uri
         assert uri == 'https://example.com/authz?state=init&redirect_uri=http%3A%2F%2Fclient.example.com%2Fauthz&response_type=code&client_id=1&rock=little'
@@ -395,7 +396,7 @@ def test_get_authorization_request():
     client = Client()
     client.redirect_uris = ["https://www.example.com/authz"]
     client.client_id = "a1b2c3"
-    args = {"response_type":["code"]}
+    args = {"response_type": ["code"]}
     ar = client.construct_AuthorizationRequest(request_args=args)
     assert ar["client_id"] == 'a1b2c3'
     assert ar["redirect_uri"] == 'https://www.example.com/authz'
@@ -403,7 +404,7 @@ def test_get_authorization_request():
 
     client = Client()
     client.client_id = "a1b2c3"
-    args = {"response_type":["code"],
+    args = {"response_type": ["code"],
             "redirect_uri": "https://www.example.com/authz"}
     ar = client.construct_AuthorizationRequest(request_args=args)
     assert ar["client_id"] == 'a1b2c3'
@@ -428,9 +429,8 @@ def test_get_access_token_request():
 def test_parse_access_token_response():
     client = Client()
 
-    at = AccessTokenResponse(access_token="SlAV32hkKG",
-                 token_type="Bearer", refresh_token="8xLOxBtZp8",
-                 expire_in=3600)
+    at = AccessTokenResponse(access_token="SlAV32hkKG", token_type="Bearer",
+                             refresh_token="8xLOxBtZp8", expire_in=3600)
 
     atj = at.to_json()
 
@@ -470,6 +470,7 @@ def test_parse_access_token_response():
 
     raises(Exception,
            'client.parse_response(ATR, info=jerr, sformat="focus")')
+
 
 def test_parse_access_token_response_missing_attribute():
     at = AccessTokenResponse(access_token="SlAV32hkKG",
@@ -783,7 +784,8 @@ def test_client_secret_post():
 
     cis = AccessTokenRequest(code="foo", redirect_uri="http://example.com")
 
-    http_args = oauth2.client_secret_post(client, cis)
+    csp = ClientSecretPost(client)
+    http_args = csp.construct(cis)
 
     print cis
     assert cis["client_id"] == "A"
@@ -794,8 +796,8 @@ def test_client_secret_post():
     cis = AccessTokenRequest(code="foo", redirect_uri="http://example.com")
 
     request_args = {}
-    http_args = oauth2.client_secret_post(
-        client, cis, request_args, http_args={"client_secret": "another"})
+    http_args = csp.construct(cis, request_args,
+                              http_args={"client_secret": "another"})
 
     print cis
     assert cis["client_id"] == "A"
@@ -810,7 +812,8 @@ def test_client_secret_basic():
 
     cis = AccessTokenRequest(code="foo", redirect_uri="http://example.com")
 
-    http_args = oauth2.client_secret_basic(client, cis)
+    csb = ClientSecretBasic(client)
+    http_args = csb.construct(cis)
 
     assert http_args == {"auth": ("A", "boarding pass")}
 
@@ -823,7 +826,8 @@ def test_bearer_header():
 
     cis = ResourceRequest()
 
-    http_args = oauth2.bearer_header(client, cis, request_args)
+    bh = BearerHeader(client)
+    http_args = bh.construct(cis, request_args)
 
     print cis
     print http_args
@@ -838,8 +842,8 @@ def test_bearer_header_with_http_args():
 
     cis = ResourceRequest()
 
-    http_args = oauth2.bearer_header(client, cis, request_args,
-                                     http_args={"foo": "bar"})
+    bh = BearerHeader(client)
+    http_args = bh.construct(cis, request_args, http_args={"foo": "bar"})
 
     print cis
     print http_args
@@ -850,8 +854,9 @@ def test_bearer_header_with_http_args():
 
     request_args = {"access_token": "Sesame"}
 
-    http_args = oauth2.bearer_header(client, cis, request_args,
-                                     http_args={"headers": {"x-foo": "bar"}})
+    bh = BearerHeader(client)
+    http_args = bh.construct(cis, request_args,
+                             http_args={"headers": {"x-foo": "bar"}})
 
     print cis
     print http_args
@@ -864,9 +869,10 @@ def test_bearer_header_2():
     client = Client("A")
     client.client_secret = "boarding pass"
 
+    bh = BearerHeader(client)
     cis = ResourceRequest(access_token="Sesame")
 
-    http_args = oauth2.bearer_header(client, cis)
+    http_args = bh.construct(cis)
 
     print cis
     assert "access_token" not in cis
@@ -890,12 +896,12 @@ def test_bearer_header_3():
 
     cis = ResourceRequest()
 
-    http_args = oauth2.bearer_header(client, cis)
+    http_args = BearerHeader(client).construct(cis)
 
     print cis
     assert "access_token" not in cis
     print http_args
-    assert http_args == {"headers": {"Authorization":"Bearer token1"}}
+    assert http_args == {"headers": {"Authorization": "Bearer token1"}}
 
 
 def test_bearer_body():
@@ -905,7 +911,7 @@ def test_bearer_body():
     request_args = {"access_token": "Sesame"}
 
     cis = ResourceRequest()
-    http_args = oauth2.bearer_body(client, cis, request_args)
+    http_args = BearerBody(client).construct(cis, request_args)
     assert cis["access_token"] == "Sesame"
     print http_args
     assert http_args is None
@@ -925,8 +931,8 @@ def test_bearer_body():
     client.grant["state"] = grant
 
     cis = ResourceRequest()
-    http_args = oauth2.bearer_body(client, cis, {}, state="state",
-                                   scope="inner")
+    http_args = BearerBody(client).construct(cis,  {}, state="state",
+                                               scope="inner")
     assert cis["access_token"] == "2YotnFZFEjr1zCsicMWpAA"
     print http_args
     assert http_args is None
@@ -948,7 +954,7 @@ def test_bearer_body_get_token():
 
     cis = ResourceRequest()
 
-    oauth2.bearer_body(client, cis)
+    _ = BearerBody(client).construct(cis)
 
     assert "access_token" in cis
     assert cis["access_token"] == "token1"

@@ -149,6 +149,7 @@ class RSA_key(Key):
     def load(self, filename):
         self.key = rsa_load(filename)
 
+
 class EC_key(Key):
     members = ["kty", "alg", "use", "kid", "crv", "x", "y"]
 
@@ -365,6 +366,15 @@ class KeyJar(object):
             self.issuer_keys[issuer] = [kc]
 
         return kc
+
+    def add_hmac(self, issuer, key, usage):
+        if not issuer in self.issuer_keys:
+            self.issuer_keys[issuer] = []
+
+        for use in usage:
+            self.issuer_keys[""].append(KeyBundle([{"kty": "hmac",
+                                                    "key": key,
+                                                    "use": use}]))
 
     def __setitem__(self, issuer, val):
         if isinstance(val, basestring):

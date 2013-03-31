@@ -5,7 +5,6 @@ from oic.oauth2 import rndstr
 
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import Claims
-from oic.oic.message import TokenErrorResponse
 from oic.oic.message import UserInfoClaim
 
 from oic.oic import Server as OicServer
@@ -21,7 +20,8 @@ from oic.oauth2.message import SINGLE_REQUIRED_STRING
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 
-from oic.utils.http_util import Response, Unauthorized, get_or_post
+from oic.utils.http_util import Response
+from oic.utils.authn import bearer_auth
 
 # Used in claims.py
 #from oic.oic.message import RegistrationRequest
@@ -65,33 +65,30 @@ class UserInfoClaimsRequest(Message):
 
 class OICCServer(OicServer):
 
-    def parse_user_claims_request(self, info, format="urlencoded"):
-        return self._parse_request(UserClaimsRequest, info, format)
+    def parse_user_claims_request(self, info, sformat="urlencoded"):
+        return self._parse_request(UserClaimsRequest, info, sformat)
 
-    def parse_userinfo_claims_request(self, info, format="urlencoded"):
-        return self._parse_request(UserInfoClaimsRequest, info, format)
+    def parse_userinfo_claims_request(self, info, sformat="urlencoded"):
+        return self._parse_request(UserInfoClaimsRequest, info, sformat)
 
 
 class ClaimsServer(Provider):
 
-    def __init__(self, name, sdb, cdb, function, userdb, urlmap=None,
-                 debug=0, ca_certs="", jwt_keys=None):
-        Provider.__init__(self, name, sdb, cdb, function, userdb, urlmap,
-                          ca_certs, jwt_keys)
-
-        if jwt_keys is None:
-            jwt_keys = []
+    def __init__(self, name, sdb, cdb, authn_method, userinfo, authz,
+                 client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
+                 hostname="", dist_claims_mode=None):
+        Provider.__init__(self, name, sdb, cdb, authn_method, userinfo, authz,
+                          client_authn, symkey, urlmap, ca_certs, keyjar,
+                          hostname)
 
         for cid, _dic in cdb.items():
             try:
-                jwt_keys.append([_dic["client_secret"], "hmac", "sig", cid])
-                jwt_keys.append([_dic["client_secret"], "hmac", "ver", cid])
+                keyjar.add_hmac("", _dic["client_secret"], ["sig", "ver"])
             except KeyError:
                 pass
 
-        self.srvmethod = OICCServer(jwt_keys=jwt_keys)
-        self.keyjar = self.srvmethod.keyjar
-        self.claims_mode = "aggregate"
+        self.srvmethod = OICCServer(keyjar=keyjar)
+        self.dist_claims_mode = dist_claims_mode
         self.info_store = {}
         self.claims_userinfo_endpoint = ""
 
@@ -116,31 +113,25 @@ class ClaimsServer(Provider):
 
     #noinspection PyUnusedLocal
     def do_aggregation(self, info, uid):
-        try:
-            return self.function["claims_mode"](info, uid)
-        except KeyError:
-            if self.claims_mode == "aggregate":
-                return True
-            else:
-                return False
+        return self.dist_claims_mode.aggregate(uid, info)
 
     #noinspection PyUnusedLocal
-    def claims_endpoint(self, environ, start_response, *args):
+    def claims_endpoint(self, request, http_authz, *args):
         _log_info = logger.info
 
-        query = get_or_post(environ)
-        ucreq = self.srvmethod.parse_user_claims_request(query)
+        ucreq = self.srvmethod.parse_user_claims_request(request)
 
         _log_info("request: %s" % ucreq)
 
-        if not self.function["verify_client"](environ, ucreq, self.cdb):
-            _log_info("could not verify client")
-            err = TokenErrorResponse(error="unathorized_client")
-            resp = Unauthorized(err.to_json(), content="application/json")
-            return resp(environ, start_response)
+        try:
+            resp = self.client_authn(self, ucreq, http_authz)
+        except Exception, err:
+            _log_info("Failed to verify client due to: %s" % err)
+            resp = False
 
         if "claims_names" in ucreq:
-            args = dict([(n, {"optional": True}) for n in ucreq["claims_names"]])
+            args = dict([(n, {"optional": True}) for n in
+                         ucreq["claims_names"]])
             uic = UserInfoClaim(claims=Claims(**args))
         else:
             uic = None
@@ -148,11 +139,13 @@ class ClaimsServer(Provider):
         _log_info("User info claims: %s" % uic)
 
         #oicsrv, userdb, subject, client_id="", user_info_claims=None
-        info = self.function["userinfo"](self, self.userdb, ucreq["sub"],
-                                         ucreq["client_id"],
-                                         user_info_claims=uic)
+        info = self.userinfo(ucreq["sub"], user_info_claims=uic,
+                             client_id=ucreq["client_id"])
 
-        _log_info("User info: %s" % info.to_dict())
+        _log_info("User info: %s" % info)
+
+        # Convert to message format
+        info = OpenIDSchema(**info)
 
         if self.do_aggregation(info, ucreq["sub"]):
             cresp = self._aggregation(info)
@@ -161,26 +154,23 @@ class ClaimsServer(Provider):
 
         _log_info("response: %s" % cresp.to_dict())
 
-        resp = Response(cresp.to_json(), content="application/json")
-        return resp(environ, start_response)
+        return Response(cresp.to_json(), content="application/json")
 
-    def claims_info_endpoint(self, environ, start_response, *args):
+    def claims_info_endpoint(self, request, authn):
         _log_info = logger.info
 
-        query = get_or_post(environ)
-        _log_info("Claims_info_endpoint query: '%s'" % query)
-        _log_info("environ: %s" % environ)
+        _log_info("Claims_info_endpoint query: '%s'" % request)
 
-        #ucreq = self.srvmethod.parse_userinfo_claims_request(query)
+        ucreq = self.srvmethod.parse_userinfo_claims_request(request)
         #_log_info("request: %s" % ucreq)
 
-        # Supposed to be "Bearer <access_token>
-        access_token = self._bearer_auth(environ)
+        # Bearer header or body
+        access_token = bearer_auth(ucreq, authn)
         uiresp = OpenIDSchema(**self.info_store[access_token])
 
         _log_info("returning: %s" % uiresp.to_dict())
-        resp = Response(uiresp.to_json(), content="application/json")
-        return resp(environ, start_response)
+        return Response(uiresp.to_json(), content="application/json")
+
 
 class ClaimsClient(Client):
 
@@ -201,7 +191,6 @@ class ClaimsClient(Client):
                                     **kwargs):
 
         return self.construct_request(request, request_args, extra_args)
-
 
     def do_claims_request(self, request=UserClaimsRequest,
                           request_resp=UserClaimsResponse,
@@ -227,8 +216,10 @@ class ClaimsClient(Client):
                                        key=self.keyjar.verify_keys(
                                            self.keyjar.match_owner(url)))
 
-class UserClaimsEndpoint(Endpoint) :
-    type = "userclaims"
 
-class UserClaimsInfoEndpoint(Endpoint) :
-    type = "userclaimsinfo"
+class UserClaimsEndpoint(Endpoint):
+    etype = "userclaims"
+
+
+class UserClaimsInfoEndpoint(Endpoint):
+    etype = "userclaimsinfo"

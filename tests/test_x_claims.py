@@ -1,7 +1,13 @@
 #!/usr/bin/env python
+from oic.utils.claims import ClaimsMode
+from oic.utils.sdb import SessionDB
+from oic.utils.authn import verify_client, UserAuthnMethod
+from oic.utils.authz import AuthzHandling
+from oic.utils.userinfo import UserInfo
+from tests.pinit import KEYJAR
+
 __author__ = 'rohe0002'
 
-import StringIO
 import sys
 
 from oic.oic.message import OpenIDSchema
@@ -47,70 +53,67 @@ def start_response(status, headers=None):
     return
 
 USERDB = {
-    "diana":{
+    "diana": {
         "birthdate": "02/14/2012",
         "gender": "female"
     }
 }
 
-BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',
-                'REQUEST_METHOD': 'GET',
-                'QUERY_STRING': '',
-                'HTTP_CONNECTION': 'keep-alive',
-                'REMOTE_ADDR': '127.0.0.1',
-                'wsgi.url_scheme': 'http',
-                'SERVER_PORT': '8087',
-                'PATH_INFO': '/register',
-                'HTTP_HOST': 'localhost:8087',
-                'HTTP_ACCEPT': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'HTTP_ACCEPT_LANGUAGE': 'sv-se',
-                'CONTENT_TYPE': 'text/plain',
-                'REMOTE_HOST': '1.0.0.127.in-addr.arpa',
-                'HTTP_ACCEPT_ENCODING': 'gzip, deflate',
-                'COMMAND_MODE': 'unix2003'}
+USERINFO = UserInfo(USERDB)
 
 CDB = {
-    "client_1": { "client_secret": "hemlig"}
+    "client_1": {"client_secret": "hemlig"}
 }
 
 
-def verify_client(env, req, cdb):
-    return True
+class DummyAuthn(UserAuthnMethod):
+    def __init__(self, srv, user):
+        UserAuthnMethod.__init__(self, srv)
+        self.user = user
 
-FUNCTIONS = {
-    "verify_client": verify_client,
-    "userinfo": user_info
-}
+    def authenticated_as(self):
+        return {"uid": self.user}
+
+AUTHN = DummyAuthn(None, "username")
+
+# dealing with authorization
+AUTHZ = AuthzHandling()
+SYMKEY = "symmetric key used to encrypt cookie info"
+
+USER2MODE = {"diana": "aggregate",
+             "upper": "distribute",
+             "babs": "aggregate"}
 
 # ============================================================================
 
 
-def _eq(l1,l2):
+def _eq(l1, l2):
     return set(l1) == set(l2)
 
 
 def test_1():
     cc = ClaimsClient(client_id="client_1")
-    cc.client_secret="hemlig"
+    cc.client_secret = "hemlig"
 
     req = cc.construct_UserClaimsRequest(request_args={"sub": "norah",
-                                        "claims_names":["gender", "birthdate"]})
+                                         "claims_names": ["gender",
+                                                          "birthdate"]})
 
     print req
     assert req.type() == "UserClaimsRequest"
-    assert _eq(req.keys(),['client_secret', 'claims_names', 'sub',
-                           'client_id'])
+    assert _eq(req.keys(), ['client_secret', 'claims_names', 'sub',
+                            'client_id'])
     assert req["sub"] == "norah"
     assert req["client_id"] == "client_1"
 
 
 def test_c2():
     cc = ClaimsClient(client_id="client_1")
-    cc.client_secret="hemlig"
+    cc.client_secret = "hemlig"
     cc.userclaims_endpoint = "https://example.com/claims"
-    request=UserClaimsRequest
+    request = UserClaimsRequest
     method = "POST"
-    request_args = {"sub": "norah", "claims_names":["gender", "birthdate"]}
+    request_args = {"sub": "norah", "claims_names": ["gender", "birthdate"]}
 
     cc.request_info(request, method=method, request_args=request_args)
 
@@ -131,33 +134,26 @@ def test_srv1():
 
 def test_srv2():
     cc = ClaimsClient(client_id="client_1")
-    cc.client_secret="hemlig"
+    cc.client_secret = "hemlig"
 
     req = cc.construct_UserClaimsRequest(
-        request_args={"sub": "diana", "claims_names":["gender", "birthdate"]})
+        request_args={"sub": "diana", "claims_names": ["gender", "birthdate"]})
 
-    srv = ClaimsServer("name", None, CDB, FUNCTIONS, USERDB)
+    srv = ClaimsServer("pyoicserv", SessionDB(), CDB, AUTHN, USERINFO,
+                       AUTHZ, verify_client, "SYMKEY",
+                       keyjar=KEYJAR, dist_claims_mode=ClaimsMode(USER2MODE))
 
     srv.keyjar[""] = keybundle_from_local_file("rsa.key", "rsa", ["ver", "sig"])
 
     assert srv
 
-    environ = BASE_ENVIRON.copy()
-    environ["REQUEST_METHOD"] = "POST"
-    txt = req.to_urlencoded()
-    environ["CONTENT_LENGTH"] = len(txt)
-    fil = StringIO.StringIO(buf=txt)
-    environ["wsgi.input"] = fil
+    resp = srv.claims_endpoint(req.to_urlencoded(), "")
 
-    resp = srv.claims_endpoint(environ, start_response, LOG())
+    print resp.message
 
-    print resp
-    assert len(resp) == 1
-
-    ucr = UserClaimsResponse().deserialize(resp[0], "json")
-    ucr.verify(keyjar = srv.keyjar)
+    ucr = UserClaimsResponse().deserialize(resp.message, "json")
+    ucr.verify(keyjar=srv.keyjar)
 
     print ucr
     assert _eq(ucr["claims_names"], ["gender", "birthdate"])
     assert "jwt" in ucr
-

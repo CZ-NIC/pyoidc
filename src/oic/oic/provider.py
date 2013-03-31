@@ -3,7 +3,6 @@ import json
 import traceback
 import urllib
 import sys
-from saml2.saml import assertion_from_string
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.keyio import KeyBundle, key_export
 
@@ -18,7 +17,6 @@ from oic.oic.message import AuthorizationResponse
 from oic.oic.message import AuthorizationErrorResponse
 from oic.oic.message import OpenIDRequest
 from oic.oic.message import AccessTokenResponse
-from oic.oic.message import AuthnToken
 from oic.oic.message import AccessTokenRequest
 from oic.oic.message import TokenErrorResponse
 from oic.oic.message import SCOPE2CLAIMS
@@ -35,14 +33,11 @@ from jwkest.jws import alg2keytype
 __author__ = 'rohe0002'
 
 import random
-import base64
 import urlparse
 import hmac
 import time
 import hashlib
 import logging
-
-from urlparse import parse_qs
 
 from oic.oauth2.provider import Provider as AProvider
 
@@ -55,8 +50,6 @@ from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2 import rndstr
 
 from oic.oic import Server
-from oic.oic import SAML2_BEARER_ASSERTION_TYPE
-from oic.oic import JWT_BEARER
 
 from oic.oauth2.exception import *
 
@@ -134,19 +127,19 @@ import socket
 
 
 class Provider(AProvider):
-    def __init__(self, name, sdb, cdb, function, userdb, urlmap=None,
-                 ca_certs="", keyjar=None, hostname=""):
+    def __init__(self, name, sdb, cdb, authn_method, userinfo, authz,
+                 client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
+                 hostname=""):
 
-        AProvider.__init__(self, name, sdb, cdb, function, urlmap)
-
+        AProvider.__init__(self, name, sdb, cdb, authn_method, authz,
+                           client_authn, symkey, urlmap)
+        self.userinfo = userinfo
         self.server = Server(ca_certs=ca_certs)
+
         if keyjar:
             self.server.keyjar = keyjar
 
         self.keyjar = self.server.keyjar
-        self.userdb = userdb
-
-        self.function = function
         self.endpoints = []
         self.baseurl = ""
         self.cert = []
@@ -254,16 +247,6 @@ class Provider(AProvider):
             logger.info("Registered redirect_uris: %s" % _cinfo)
             raise RedirectURIError("Faulty redirect_uri: %s" % err)
 
-    def _verify_saml2_assertion(self, assertion):
-        subject = assertion.subject
-        #client_id = subject.name_id.text
-        #who_ever_issued_it = assertion.issuer.text
-
-        audience = []
-        for ar in subject.audience_restiction:
-            for aud in ar.audience:
-                audience.append(aud)
-
     def _parse_openid_request(self, request):
         return OpenIDRequest().from_jwt(request, keyjar=self.keyjar)
 
@@ -328,53 +311,11 @@ class Provider(AProvider):
 
         return sid
 
-    def authorization_endpoint(self, request="", **kwargs):
-        """ The AuthorizationRequest endpoint
-
-        :param request: The client request
-        """
-        try:
-            _log_debug = kwargs["logger"].debug
-            _log_info = kwargs["logger"].info
-        except KeyError:
-            _log_debug = logger.debug
-            _log_info = logger.info
-        _sdb = self.sdb
-        _srv = self.server
-
-        _log_debug("request: %s" % request)
-
-        # Same serialization used for GET and POST
-        try:
-            areq = _srv.parse_authorization_request(query=request)
-        except (MissingRequiredAttribute, KeyError):
-            areq = AuthorizationRequest().deserialize(request, "urlencoded")
-            # verify the redirect_uri
-            try:
-                self.get_redirect_uri(areq)
-            except RedirectURIError, err:
-                return self._error("invalid_request", "%s" % err)
-        except Exception, err:
-            message = traceback.format_exception(*sys.exc_info())
-            logger.error(message)
-            _log_debug("Bad request: %s (%s)" % (err, err.__class__.__name__))
-            return BadRequest("%s" % err)
-
-        try:
-            redirect_uri = self.get_redirect_uri(areq)
-        except RedirectURIError, err:
-            return self._error("invalid_request", "%s" % err)
-
-        try:
-            client_info = self.cdb[areq["client_id"]]
-        except KeyError:
-            _log_info("Unknown client: %s" % areq["client_id"])
-            raise UnknownClient(areq["client_id"])
-
+    def handle_oidc_request(self, areq, redirect_uri):
         if "request_uri" in areq:
             # Do a HTTP get
             try:
-                _req = _srv.http_request(areq["request_uri"])
+                _req = self.server.http_request(areq["request_uri"])
             except ConnectionError:
                 return self._authz_error("invalid_request_uri")
 
@@ -396,174 +337,96 @@ class Provider(AProvider):
 
         if openid_req:
             try:
-                user = openid_req["id_token"]["claims"]["sub"]["value"]
+                req_user = openid_req["id_token"]["claims"]["sub"]["value"]
             except KeyError:
-                user = ""
+                req_user = ""
         elif "id_token" in areq:
-            user = areq["id_token"]["sub"]
+            req_user = areq["id_token"]["sub"]
         else:
-            user = ""
+            req_user = ""
 
-        if user:
+        return areq
+
+    def required_user(self, areq):
+        req_user = ""
+        try:
+            oidc_req = areq["request"]
             try:
-                sid = _sdb.get_sid_from_userid(user)
-            except KeyError:
-                logger.error("Unknown user id '%s'" % user)
-                logger.debug("uid2sid: %s" % _sdb.uid2sid)
-                sid = ""
-
-            if sid:
-                return self.authenticated(active_auth=sid,
-                                          areq=areq, user=user)
-
-        if "prompt" in areq:
-            _log_debug("Prompt: '%s'" % areq["prompt"])
-
-            if "none" in areq["prompt"]:
-                return self._redirect_authz_error("login_required",
-                                                  redirect_uri)
-            elif "login" in areq["prompt"]:
-                # force re-authentication, remove link to SSO history
-                try:
-                    del kwargs["handle"]
-                except KeyError:
-                    pass
-
-        _log_debug("AREQ keys: %s" % areq.keys())
-
-        sid = _sdb.create_authz_session(user, areq, oidreq=openid_req)
-
-        _log_debug("session: %s" % _sdb[sid])
-
-        bsid = base64.b64encode(sid)
-
-        cookie = None
-
-        if self.authn_as:
-            sub = self.authn_as
-            _log_debug("Implicit authenticated as %s" % sub)
-            _sdb.update(sid, "local_sub", sub)
-            (redirect_uri, reply) = self.get_redirect_uri(areq)
-            client_info = self.cdb[areq["client_id"]]
-            sector_id = self.get_sector_id(redirect_uri, client_info)
-
-            try:
-                preferred_id_type = client_info["preferred_id_type"]
-            except KeyError:
-                preferred_id_type = self.preferred_id_type
-
-            self.sdb.do_userid(sid, sub, sector_id, preferred_id_type)
-            _log_debug("session: %s" % _sdb[sid])
-            _log_debug("uid2sid: %s" % _sdb.uid2sid)
-            return self.authenticated(active_auth=sid, areq=areq, user=sub)
-
-        if openid_req:
-            _log_info("Request: %s" % openid_req.to_dict())
-            try:
-                _max_age = openid_req["id_token"]["max_age"]
-            except KeyError:
-                _max_age = -1
-
-            if _max_age >= 0:
-                if "handle" in kwargs:
-                    try:
-                        (key, timestamp) = kwargs["handle"]
-                        _log_info("key: %s" % key)
-                        if key.startswith(STR) and key.endswith(STR):
-                            pass
-                        else:
-                            _now = time.mktime(time.gmtime())
-                            if (_now - int(timestamp)) <= _max_age:
-                                _log_info("- SSO -")
-                                _scode = base64.b64decode(key)
-                                _log_debug("OLD session: %s" % _sdb[_scode])
-                                user = self.sdb[_scode]["sub"]
-                                _sdb.update(sid, "sub", user)
-                                return self.authenticated(active_auth=_scode,
-                                                          areq=areq, user=user)
-                            else:
-                                _log_info(
-                                    "Authentication to old: %d>%d" % (
-                                        _now - int(timestamp), _max_age))
-                    except ValueError:
-                        pass
-        else:
-            if "handle" in kwargs and kwargs["handle"]:
-                (key, timestamp) = kwargs["handle"]
-                if key.startswith(STR) and key.endswith(STR):
-                    cookie = self.cookie_func(self.cookie_name, key,
-                                              self.seed, self.cookie_ttl)
-                else:
-                    try:
-                        _log_info("- SSO -")
-                        _scode = base64.b64decode(key)
-                        user = self.sdb[_scode]["sub"]
-                        _sdb.update(sid, "sub", user)
-                        # This happens if a valid cookie is presented
-                        return self.authenticated(active_auth=_scode,
-                                                  areq=areq, user=user)
-                    except ValueError:
-                        pass
-
-        # DEFAULT: start the authentication process
-        kwa = {"cookie": cookie}
-        for item in ["policy_url", "logo_url"]:
-            try:
-                kwa[item] = client_info[item]
+                req_user = oidc_req["id_token"]["claims"]["sub"]["value"]
             except KeyError:
                 pass
+        except KeyError:
+            if "id_token" in areq:
+                req_user = areq["id_token"]["sub"]
 
-        _log_info("KWA: %s" % kwa)
-        return self.function["authenticate"](bsid, **kwa)
+        return req_user
 
-    def verify_client(self, areq, baseurl, authn):
+    def authorization_endpoint(self, request="", **kwargs):
+        """ The AuthorizationRequest endpoint
+
+        :param request: The client request
         """
 
-        :param areq: The request
-        :param baseurl:
-        :param authn: client authentication information
-        :return:
-        """
+        # Same serialization used for GET and POST
         try:
-            client_id = self.get_client_id(areq, authn)
-        except FailedAuthentication:
-            return False
+            areq = self.server.parse_authorization_request(query=request)
+        except (MissingRequiredAttribute, KeyError):
+            areq = AuthorizationRequest().deserialize(request, "urlencoded")
+            # verify the redirect_uri
+            try:
+                self.get_redirect_uri(areq)
+            except RedirectURIError, err:
+                return self._error("invalid_request", "%s" % err)
+        except Exception, err:
+            message = traceback.format_exception(*sys.exc_info())
+            logger.error(message)
+            logger.debug("Bad request: %s (%s)" % (err, err.__class__.__name__))
+            return BadRequest("%s" % err)
 
-        logger.debug("Verified Client ID: %s" % client_id)
+        try:
+            redirect_uri = self.get_redirect_uri(areq)
+        except RedirectURIError, err:
+            return self._error("invalid_request", "%s" % err)
 
-        if "client_secret" in areq:  # client_secret_post
-            if self.cdb[client_id]["client_secret"] == areq["client_secret"]:
-                return True
-        elif "client_assertion" in areq:  # client_secret_jwt or public_key_jwt
-            if areq["client_assertion_type"] == JWT_BEARER:
-                bjwt = AuthnToken().from_jwt(areq["client_assertion"],
-                                             keyjar=self.keyjar)
+        areq = self.handle_oidc_request(areq, redirect_uri)
 
-                try:
-                    # There might not be a client_id in the request
+        req_user = self.required_user(areq)
 
-                    assert str(bjwt["iss"]) in self.cdb  # It's a client I know
-                    # aud can be a string or a list
-                    _aud = bjwt["aud"]
-                    if isinstance(_aud, basestring):
-                        assert str(_aud) == baseurl
-                    else:
-                        assert baseurl in _aud
+        identity = self.authn.authenticated_as()
 
-                    return True
-                except AssertionError:
-                    pass
-            elif areq["client_assertion_type"] == SAML2_BEARER_ASSERTION_TYPE:
-                xmlstr = base64.urlsafe_b64decode(areq["client_assertion"])
-                try:
-                    assertion = assertion_from_string(xmlstr)
-                except:
-                    return False
-                return self._verify_saml2_assertion(assertion)
+        # To authenticate or Not
+        if identity is None:  # No!
+            if "prompt" in areq and "none" in areq["prompt"]:
+                # Need to authenticate but not allowed
+                return self._redirect_authz_error("login_required",
+                                                  redirect_uri)
             else:
-                raise UnknownAssertionType(areq["client_assertion_type"])
+                return self.authn(query=request, as_user=req_user)
         else:
-            return True
+            if "prompt" in areq and "login" in areq["prompt"]:
+                # demand re-authentication
+                return self.authn(query=request, as_user=req_user)
+            else:
+                # I get back a dictionary
+                user = identity["uid"]
+                if req_user and req_user != user:
+                    if "prompt" in areq and "none" in areq["prompt"]:
+                        # Need to authenticate but not allowed
+                        return self._redirect_authz_error("login_required",
+                                                          redirect_uri)
+                    else:
+                        return self.authn(query=request, as_user=req_user)
+
+        logger.debug("- authenticated -")
+        logger.debug("AREQ keys: %s" % areq.keys())
+
+        try:
+            oidc_req = areq["request"]
+        except KeyError:
+            oidc_req = None
+
+        sid = self.sdb.create_authz_session(user, areq, oidreq=oidc_req)
+        return self.authz_part2(user, areq, sid)
 
     def userinfo_in_id_token_claims(self, session):
         itc = self.server.id_token_claims(session)
@@ -575,11 +438,7 @@ class Provider(AProvider):
         except KeyError:
             return None
 
-        _claims = {}
-        # schema dependent
-        for key in OpenIDSchema().parameters():
-            if key in claims:
-                _claims[key] = claims[key]
+        _claims = by_schema(OpenIDSchema, **claims)
 
         if _claims:
             return self._collect_user_info(session, {"claims": _claims})
@@ -666,7 +525,7 @@ class Provider(AProvider):
         areq = AccessTokenRequest().deserialize(request, "urlencoded")
 
         try:
-            resp = self.verify_client(areq, self.baseurl, authn)
+            resp = self.client_authn(self, areq, authn)
         except Exception, err:
             _log_info("Failed to verify client due to: %s" % err)
             resp = False
@@ -717,57 +576,10 @@ class Provider(AProvider):
 
         return Response(atr.to_json(), content="application/json")
 
-    def get_client_id(self, req, authn):
-        """
-        Verify the client and return the client id
-
-        :param req: The request
-        :param authn: Authentication information
-        :return:
-        """
-
-        logger.debug("REQ: %s" % req.to_dict())
-        if authn:
-            if authn.startswith("Basic "):
-                logger.debug("Basic auth")
-                (_id, _secret) = base64.b64decode(authn[6:]).split(":")
-                if _id not in self.cdb:
-                    logger.debug("Unknown client_id")
-                    raise FailedAuthentication
-                else:
-                    try:
-                        assert _secret == self.cdb[_id]["client_secret"]
-                    except AssertionError:
-                        logger.debug("Incorrect secret")
-                        raise FailedAuthentication
-            else:
-                try:
-                    assert authn[:6].lower() == "bearer"
-                    logger.debug("Bearer auth")
-                    _token = authn[7:]
-                except AssertionError:
-                    raise FailedAuthentication("AuthZ type I don't know")
-
-                try:
-                    _id = self.cdb[_token]
-                except KeyError:
-                    logger.debug("Unknown access token")
-                    raise FailedAuthentication
-        else:
-            try:
-                _id = req["client_id"]
-                if _id not in self.cdb:
-                    logger.debug("Unknown client_id")
-                    return FailedAuthentication
-            except KeyError:
-                return FailedAuthentication
-
-        return _id
-
     def _collect_user_info(self, session, userinfo_claims=None):
         """
         Collect information about a user.
-        This can happen in two cases, either when constructing a IdToken or
+        This can happen in two cases, either when constructing an IdToken or
         when returning user info through the UserInfo endpoint
 
         :param session: Session information
@@ -804,12 +616,8 @@ class Provider(AProvider):
 
             logger.debug("userinfo_claim: %s" % userinfo_claims.to_dict())
 
-        logger.debug("userdb: %s" % self.userdb.keys())
         logger.debug("Session info: %s" % session)
-        info = self.function["userinfo"](self, self.userdb,
-                                         session["local_sub"],
-                                         session["client_id"],
-                                         userinfo_claims)
+        info = self.userinfo(session["local_sub"], userinfo_claims)
 
         info["sub"] = session["sub"]
         logger.debug("user_info_response: %s" % (info,))
@@ -854,7 +662,7 @@ class Provider(AProvider):
 
         # Scope can translate to userinfo_claims
 
-        info = self._collect_user_info(session)
+        info = OpenIDSchema(**self._collect_user_info(session))
 
         # Should I return a JSON or a JWT ?
         _cinfo = self.cdb[session["client_id"]]
@@ -1215,90 +1023,22 @@ class Provider(AProvider):
         return Response(_response.to_json(), content="application/json",
                         headers=headers)
 
-    def authenticated(self, post="", handle=None, **kwargs):
+    def authz_part2(self, user, areq, sid, **kwargs):
         """
         After the authentication this is where you should end up
         """
         _log_debug = logger.debug
         _log_debug("- in authenticated() -")
 
-        issue_new_code = False
-        if "active_auth" in kwargs:
-            scode = kwargs["active_auth"]
-            sub = kwargs["user"]
-            areq = kwargs["areq"]
-            client_info = self.cdb[areq["client_id"]]
-            if "code" in areq["response_type"]:
-                issue_new_code = True
-        else:
-            # parse the form
-            dic = parse_qs(post)
-
-            _log_debug("QS: %s" % dic)
-            try:
-                _log_debug("user: %s" % dic["login"])
-            except KeyError:
-                pass
-
-            try:
-                (verified, sub) = self.function["verify_user"](dic)
-                if not verified:
-                    return Unauthorized("Wrong password")
-            except FailedAuthentication, err:
-                return Unauthorized("%s" % (err,))
-
-            _log_debug("verified sub: %s" % sub)
-
-            try:
-                # Use the session identifier to find the session information
-                b64scode = dic["sid"][0]
-                scode = base64.b64decode(b64scode)
-                if self.sdb.is_revoked(scode):
-                    return self._error(error="access_denied",
-                                       descr="Token is revoked")
-                asession = self.sdb[scode]
-            except KeyError:
-                return BadRequest("Could not find session")
-
-            _log_debug("asession[\"authzreq\"] = %s" % asession["authzreq"])
-                #_log_info( "type: %s" % type(asession["authzreq"]))
-
-            # pick up the original request
-            areq = AuthorizationRequest().deserialize(asession["authzreq"],
-                                                      "json")
-
-            self.sdb.update(scode, "local_sub", sub)
-
-            try:
-                redirect_uri = self.get_redirect_uri(areq)
-            except RedirectURIError, err:
-                return self._error("invalid_request", "%s" % err)
-
-            client_info = self.cdb[areq["client_id"]]
-            sector_id = self.get_sector_id(redirect_uri, client_info)
-            try:
-                preferred_id_type = client_info["subject_type"]
-            except KeyError:
-                preferred_id_type = self.preferred_id_type
-
-            _log_debug("sector_id: %s, preferred_id_type: %s" % (
-                sector_id, preferred_id_type))
-
-            self.sdb.do_userid(scode, sub, sector_id, preferred_id_type)
-
-            _log_debug("areq: %s" % areq)
-            _log_debug("session: %s" % self.sdb[scode])
-            _log_debug("uid2sid: %s" % self.sdb.uid2sid)
-
         # Do the authorization
         try:
-            permission = self.function["authorize"](sub)
-            self.sdb.update(scode, "permission", permission)
+            permission = self.authz(user)
+            self.sdb.update(sid, "permission", permission)
         except Exception:
             raise
 
         _log_debug("response type: %s" % areq["response_type"])
-        _log_debug("client info: %s" % client_info)
+
         # create the response
         aresp = AuthorizationResponse()
         try:
@@ -1311,11 +1051,11 @@ class Provider(AProvider):
                 "none" in areq["response_type"]:
             pass
         else:
-            if self.sdb.is_revoked(scode):
+            if self.sdb.is_revoked(sid):
                 return self._error(error="access_denied",
                                    descr="Token is revoked")
 
-            _sinfo = self.sdb[scode]
+            _sinfo = self.sdb[sid]
 
             try:
                 aresp["scope"] = areq["scope"]
@@ -1326,19 +1066,18 @@ class Provider(AProvider):
 
             rtype = set(areq["response_type"][:])
             if "code" in areq["response_type"]:
-                if issue_new_code:
-                    scode = self.sdb.duplicate(_sinfo)
-                    _sinfo = self.sdb[scode]
+                #if issue_new_code:
+                #    scode = self.sdb.duplicate(_sinfo)
+                #    _sinfo = self.sdb[scode]
 
                 _code = aresp["code"] = _sinfo["code"]
                 rtype.remove("code")
             else:
-                self.sdb[scode]["code"] = None
+                self.sdb[sid]["code"] = None
                 _code = None
 
-            if "token" in areq["response_type"]:
-                _dic = self.sdb.update_to_token(issue_refresh=False,
-                                                key=scode)
+            if "token" in rtype:
+                _dic = self.sdb.update_to_token(issue_refresh=False, key=sid)
 
                 _log_debug("_dic: %s" % _dic)
                 for key, val in _dic.items():
@@ -1354,6 +1093,7 @@ class Provider(AProvider):
 
             if "id_token" in areq["response_type"]:
                 user_info = self.userinfo_in_id_token_claims(_sinfo)
+                client_info = self.cdb[areq["client_id"]]
 
                 id_token = self.sign_encrypt_id_token(
                     _sinfo, client_info, areq, code=_code,
@@ -1372,27 +1112,8 @@ class Provider(AProvider):
             return BadRequest("%s" % err)
 
         location = aresp.request(redirect_uri)
-
         logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
-
-        if self.cookie_func and not "active_auth" in kwargs:
-            if handle:
-                (key, timestamp) = handle
-                b64scode = base64.b64encode(scode)
-                self.re_link_log(key, b64scode)
-                cookie = self.cookie_func(self.cookie_name, b64scode, self.seed,
-                                          self.cookie_ttl)
-                redirect = Redirect(str(location), headers=[cookie])
-            else:
-                redirect = Redirect(str(location))
-        else:
-            redirect = Redirect(str(location))
-
-        return redirect
-
-    #noinspection PyUnusedLocal
-    def re_link_log(self, old, new):
-        pass
+        return Redirect(str(location))
 
     def key_setup(self, local_path, vault="keys", sig=None, enc=None):
         # my keys

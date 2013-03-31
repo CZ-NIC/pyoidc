@@ -1,5 +1,3 @@
-import base64
-
 __author__ = 'rohe0002'
 
 import urlparse
@@ -36,7 +34,6 @@ from oic.oic.message import AuthorizationErrorResponse
 
 from oic import oauth2
 
-from oic.oauth2 import AUTHN_METHOD as OAUTH2_AUTHN_METHOD
 from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import rndstr
@@ -45,7 +42,6 @@ from oic.oauth2.consumer import ConfigurationError
 from oic.oic.exception import AccessDenied
 
 from oic.utils import time_util
-from oic.utils.time_util import utc_now
 
 from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.webfinger import WebFinger
@@ -91,123 +87,13 @@ JWT_BEARER = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 
 OIDCONF_PATTERN = "%s/.well-known/openid-configuration"
 
-AUTHN_METHOD = OAUTH2_AUTHN_METHOD.copy()
-
 DEF_SIGN_ALG = {"id_token": "RS256",
                 "openid_request_object": "RS256",
                 "client_secret_jwt": "HS256",
                 "private_key_jwt": "HS256"}
 
 SAML2_BEARER_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:saml2-bearer"
-SAML2_BEARER_ASSERTION_TYPE = \
-    "urn:ietf:params:oauth:client-assertion-type:saml2-bearer"
 
-
-def assertion_jwt(cli, keys, audience, algorithm):
-    _now = utc_now()
-
-    at = AuthnToken(iss=cli.client_id, sub=cli.client_id,
-                    aud=audience, jti=rndstr(8),
-                    exp=_now + 600, iat=_now)
-    return at.to_jwt(key=keys, algorithm=algorithm)
-
-
-#noinspection PyUnusedLocal
-def client_secret_jwt(cli, cis, request_args=None, http_args=None, **kwargs):
-    """
-    Constructs a client assertion and signs it with the clients
-    secret key. The request is modified as a side effect.
-
-    :param cli: Client instance
-    :param cis: The request
-    :param request_args: request arguments
-    :param http_args: HTTP arguments
-    :param kwargs: Extra arguments
-    :return: Constructed HTTP arguments, in this case none
-    """
-
-    # audience is the OP endpoint
-    audience = cli._endpoint(REQUEST2ENDPOINT[cis.type()])
-
-    try:
-        algorithm = kwargs["algorithm"]
-    except KeyError:
-        #algorithm = cli.behaviour["require_signed_request_object"]
-        algorithm = DEF_SIGN_ALG["client_secret_jwt"]
-
-    signing_key = cli.keyjar.get_signing_key(alg2keytype(algorithm))
-
-    cis["client_assertion"] = assertion_jwt(cli, signing_key, audience,
-                                            algorithm)
-    cis["client_assertion_type"] = JWT_BEARER
-
-    try:
-        del cis["client_secret"]
-    except KeyError:
-        pass
-
-    return {}
-
-
-#noinspection PyUnusedLocal
-def private_key_jwt(cli, cis, request_args=None, http_args=None, **kwargs):
-    """
-    Constructs a client assertion and signs it with the clients
-    public RSA key. The request is modified as a side effect.
-
-    :param cli: Client instance
-    :param cis: The request
-    :param request_args: request arguments
-    :param http_args: HTTP arguments
-    :param kwargs: Extra arguments
-    :return: Constructed HTTP arguments, in this case none
-    """
-
-    # audience is the OP endpoint
-    audience = cli._endpoint(REQUEST2ENDPOINT[cis.type()])
-    try:
-        algorithm = kwargs["algorithm"]
-    except KeyError:
-        algorithm = DEF_SIGN_ALG["private_key_jwt"]
-        if not algorithm:
-            raise Exception("Missing algorithm specification")
-
-    # signing key should be the clients rsa key
-    signing_key = cli.keyjar.get_signing_key(alg2keytype(algorithm), "")
-
-    cis["client_assertion"] = assertion_jwt(cli, signing_key, audience,
-                                            algorithm)
-    cis["client_assertion_type"] = JWT_BEARER
-
-    try:
-        del cis["client_secret"]
-    except KeyError:
-        pass
-
-    return {}
-
-
-#noinspection PyUnusedLocal
-def saml2_bearer(cli, cis, request_args=None, http_args=None, assertion=None,
-                 **kwargs):
-    """
-
-    :param cli:
-    :param cis:
-    :param request_args:
-    :param http_args:
-    :param assertion:
-    :param kwargs:
-    :return:
-    """
-
-    cis["client_assertion"] = base64.urlsafe_b64encode(str(assertion))
-    cis["client_assertion_type"] = SAML2_BEARER_ASSERTION_TYPE
-    return {}
-
-AUTHN_METHOD.update({"client_secret_jwt": client_secret_jwt,
-                     "private_key_jwt": private_key_jwt,
-                     "saml2_bearer": saml2_bearer})
 
 # -----------------------------------------------------------------------------
 ACR_LISTS = [
@@ -355,11 +241,12 @@ class Client(oauth2.Client):
     _endpoints = ENDPOINTS
 
     def __init__(self, client_id=None, ca_certs=None, grant_expire_in=600,
-                 jwt_keys=None, client_timeout=0, client_prefs=None):
+                 jwt_keys=None, client_timeout=0, client_prefs=None,
+                 client_authn_method=None):
 
         oauth2.Client.__init__(self, client_id, ca_certs, grant_expire_in,
                                client_timeout=client_timeout,
-                               jwt_keys=jwt_keys)
+                               client_authn_method=client_authn_method)
 
         self.file_store = "./file/"
         self.file_uri = "http://localhost/"
@@ -375,7 +262,6 @@ class Client(oauth2.Client):
         self.response2error = RESPONSE2ERROR
         self.grant_class = Grant
         self.token_class = Token
-        self.authn_method = AUTHN_METHOD
         self.provider_info = {}
         self.client_prefs = client_prefs or {}
         self.behaviour = {"require_signed_request_object":
@@ -1090,8 +976,8 @@ class Client(oauth2.Client):
 
 #noinspection PyMethodOverriding
 class Server(oauth2.Server):
-    def __init__(self, jwt_keys=None, ca_certs=None):
-        oauth2.Server.__init__(self, jwt_keys, ca_certs)
+    def __init__(self, keyjar=None, ca_certs=None):
+        oauth2.Server.__init__(self, keyjar, ca_certs)
 
     def _parse_urlencoded(self, url=None, query=None):
         if url:
@@ -1238,7 +1124,10 @@ class Server(oauth2.Server):
         if user_info is None:
             _args = {}
         else:
-            _args = user_info.to_dict()
+            try:
+                _args = user_info.to_dict()
+            except AttributeError:
+                _args = user_info
 
         # Make sure that there are no name clashes
         for key in ["iss", "sub", "aud", "exp", "acr", "nonce",

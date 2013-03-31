@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 #
-
 __author__ = 'rohe0002'
 
 import requests
@@ -65,130 +64,6 @@ def rndstr(size=16):
     _basech = string.ascii_letters + string.digits
     return "".join([random.choice(_basech) for _ in range(size)])
 
-# -----------------------------------------------------------------------------
-# Authentication Methods
-
-
-#noinspection PyUnusedLocal
-def client_secret_basic(cli, cis, request_args=None, http_args=None, **kwargs):
-    # Basic HTTP Authentication
-    if http_args is None:
-        http_args = {}
-    try:
-        http_args["auth"] = (cli.client_id, http_args["password"])
-    except KeyError:
-        try:
-            http_args["auth"] = (cli.client_id, cis["client_secret"])
-        except KeyError:
-            http_args["auth"] = (cli.client_id, cli.client_secret)
-
-    try:
-        del cis["client_secret"]
-    except KeyError:
-        pass
-
-    return http_args
-
-
-#noinspection PyUnusedLocal
-def client_secret_post(cli, cis, request_args=None, http_args=None, **kwargs):
-    if request_args is None:
-        request_args = {}
-
-    if "client_secret" not in cis:
-        try:
-            cis["client_secret"] = http_args["client_secret"]
-            del http_args["client_secret"]
-        except (KeyError, TypeError):
-            cis["client_secret"] = cli.client_secret
-
-    cis["client_id"] = cli.client_id
-
-    return http_args
-
-
-#noinspection PyUnusedLocal
-def bearer_header(cli, cis=None, request_args=None, http_args=None, **kwargs):
-    """
-    More complicated logic then I would have liked it to be
-
-    :param cli:
-    :param cis:
-    :param request_args:
-    :param http_args:
-    :param kwargs:
-    :return:
-    """
-    _acc_token = None
-    if cis:
-        if "access_token" in cis:
-            _acc_token = cis["access_token"]
-            del cis["access_token"]
-            # Required under certain circumstances :-) not under other
-            cis.c_param["access_token"] = SINGLE_OPTIONAL_STRING
-        else:
-            try:
-                _acc_token = request_args["access_token"]
-                del request_args["access_token"]
-            except (KeyError, TypeError):
-                try:
-                    _acc_token = kwargs["access_token"]
-                except KeyError:
-                    try:
-                        _state = kwargs["state"]
-                    except KeyError:
-                        if not cli.state:
-                            raise Exception("Missing state specification")
-                        kwargs["state"] = cli.state
-
-                    _acc_token = cli.get_token(**kwargs).access_token
-    else:
-        _acc_token = kwargs["access_token"]
-
-    # Do I need to base64 encode the access token ? Probably !
-    #_bearer = "Bearer %s" % base64.b64encode(_acc_token)
-    _bearer = "Bearer %s" % _acc_token
-    if http_args is None:
-        http_args = {"headers": {}}
-        http_args["headers"]["Authorization"] = _bearer
-    else:
-        try:
-            http_args["headers"]["Authorization"] = _bearer
-        except KeyError:
-            http_args["headers"] = {"Authorization": _bearer}
-
-    return http_args
-
-
-#noinspection PyUnusedLocal
-def bearer_body(cli, cis, request_args=None, http_args=None, **kwargs):
-    if request_args is None:
-        request_args = {}
-
-    if "access_token" in cis:
-        pass
-    else:
-        try:
-            cis["access_token"] = request_args["access_token"]
-        except KeyError:
-            try:
-                _state = kwargs["state"]
-            except KeyError:
-                if not cli.state:
-                    raise Exception("Missing state specification")
-                kwargs["state"] = cli.state
-
-            cis["access_token"] = cli.get_token(**kwargs).access_token
-
-    return http_args
-
-
-AUTHN_METHOD = {
-    "client_secret_basic": client_secret_basic,
-    "client_secret_post": client_secret_post,
-    "bearer_header": bearer_header,
-    "bearer_body": bearer_body,
-}
 
 # -----------------------------------------------------------------------------
 
@@ -477,8 +352,8 @@ class PBase(object):
 class Client(PBase):
     _endpoints = ENDPOINTS
 
-    def __init__(self, client_id=None, ca_certs=None,
-                 grant_expire_in=600, client_timeout=0, jwt_keys=None):
+    def __init__(self, client_id=None, ca_certs=None, grant_expire_in=600,
+                 client_timeout=0, client_authn_method=None):
 
         PBase.__init__(self, ca_certs)
 
@@ -502,7 +377,7 @@ class Client(PBase):
 
         self.request2endpoint = REQUEST2ENDPOINT
         self.response2error = RESPONSE2ERROR
-        self.authn_method = AUTHN_METHOD
+        self.client_authn_method = client_authn_method
         self.grant_class = Grant
         self.token_class = Token
 
@@ -891,8 +766,8 @@ class Client(PBase):
             request_args = {}
 
         if authn_method:
-            return self.authn_method[authn_method](self, cis, request_args,
-                                                   http_args, **kwargs)
+            return self.client_authn_method[authn_method](self).construct(
+                self, cis, request_args, http_args, **kwargs)
         else:
             return http_args
 
@@ -1083,10 +958,12 @@ class Client(PBase):
             headers = {}
 
         if "authn_method" in kwargs:
-            http_args = self.init_authentication_method(request_args, **kwargs)
+            http_args = self.init_authentication_method(
+                request_args=request_args, **kwargs)
         else:
             # If nothing defined this is the default
-            http_args = bearer_header(self, **request_args)
+            http_args = self.client_authn_method[
+                "bearer_header"](self).construct(request_args=request_args)
 
         headers.update(http_args["headers"])
 
@@ -1096,9 +973,7 @@ class Client(PBase):
 
 class Server(PBase):
     def __init__(self, keys=None, ca_certs=None):
-
         PBase.__init__(self, ca_certs)
-
 
     def parse_url_request(self, request, url=None, query=None):
         if url:
