@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __builtin__ import int, open, hasattr, isinstance
-import copy
 import sys
 import os
 import traceback
@@ -13,9 +12,12 @@ from exceptions import OSError
 from exceptions import IndexError
 from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
+from oic.utils.authn import UsernamePasswordMako, verify_client
 
 from oic.oauth2 import rndstr
+from oic.utils.authz import AuthzHandling
 from oic.utils.keyio import KeyBundle
+from oic.utils.userinfo import DistributedAggregatedUserInfo
 
 __author__ = 'rohe0002'
 
@@ -29,11 +31,7 @@ from oic.oic.provider import Provider
 from oic.oic.provider import STR
 
 from oic.utils.http_util import *
-from oic.oic.message import OpenIDSchema
-from oic.oic.message import AuthnToken
 from oic.oic.message import ProviderConfigurationResponse
-from oic.oic.provider import AuthnFailure
-from oic.oic.claims_provider import ClaimsClient
 
 from mako.lookup import TemplateLookup
 
@@ -116,204 +114,11 @@ def replace_format_handler(logger, log_format="CPC"):
     ACTIVE_HANDLER = format
     return logger
 
-
-def do_authentication(environ, start_response, sid, cookie=None,
-                      policy_url=None, logo_url=None):
-    """
-    Put up the login form
-    """
-    if cookie:
-        headers = [cookie]
-    else:
-        headers = []
-    resp = Response(mako_template="login.mako",
-                    template_lookup=environ["mako.lookup"], headers=headers)
-
-    argv = {"sid": sid,
-            "login": "",
-            "password": "",
-            "action": "authenticated",
-            "policy_url": policy_url,
-            "logo_url": logo_url}
-    LOGGER.info("do_authentication argv: %s" % argv)
-    return resp(environ, start_response, **argv)
-
-
-def verify_username_and_password(dic):
-    global PASSWD
-    # verify username and password
-    for user, pwd in PASSWD:
-        if user == dic["login"][0]:
-            if pwd == dic["password"][0]:
-                return True, user
-            else:
-                raise AuthnFailure("Wrong password")
-
-    return False, ""
-
-
-#noinspection PyUnusedLocal
-def do_authorization(user, session=None):
-    global PASSWD
-    if user in [u for u, p in PASSWD]:
-        return "ALL"
-    else:
-        raise Exception("No Authorization defined")
-
-
-#noinspection PyUnusedLocal
-def verify_client(areq, cdb):
-    global JWT_BEARER
-    if "client_secret" in areq:  # client_secret_post
-        identity = areq["client_id"]
-        if identity in cdb:
-            if cdb[identity]["client_secret"] == areq["client_secret"]:
-                return True
-    elif "client_assertion" in areq:  # client_secret_jwt or public_key_jwt
-        assert areq["client_assertion_type"] == JWT_BEARER
-        secret = cdb[areq["client_id"]]["client_secret"]
-        key_col = {"hmac": secret}
-        bjwt = AuthnToken.deserialize(areq["client_assertion"], "jwt",
-                                      key=key_col)
-    return False
-
-
-def dynamic_init_claims_client(issuer, req_args):
-    cc = ClaimsClient()
-    # dynamic provider info discovery
-    cc.provider_config(issuer)
-    resp = cc.do_registration_request(request_args=req_args)
-    cc.client_id = resp.client_id
-    cc.client_secret = resp.client_secret
-    return cc
-
-
-def init_claims_clients(client_info):
-    res = {}
-    for cid, specs in client_info.items():
-        if "dynamic" in specs:
-            cc = dynamic_init_claims_client(cid, args)
-        else:
-            cc = ClaimsClient(client_id=specs["client_id"])
-            cc.client_secret = specs["client_secret"]
-            try:
-                cc.keyjar.add(specs["client_id"], specs["jwks_uri"])
-            except KeyError:
-                pass
-            cc.userclaims_endpoint = specs["userclaims_endpoint"]
-        res[cid] = cc
-    return res
-
-
-def _collect_distributed(srv, cc, user_id, what, alias=""):
-
-    try:
-        resp = cc.do_claims_request(request_args={"user_id": user_id,
-                                                  "claims_names": what})
-    except Exception:
-        raise
-
-    result = {"_claims_names": {}, "_claims_sources": {}}
-
-    if not alias:
-        alias = srv
-
-    for key in resp["claims_names"]:
-        result["_claims_names"][key] = alias
-
-    if "jwt" in resp:
-        result["_claims_sources"][alias] = {"JWT": resp["jwt"]}
-    else:
-        result["_claims_sources"][alias] = {"endpoint": resp["endpoint"]}
-        if "access_token" in resp:
-            result["_claims_sources"][alias]["access_token"] = resp[
-                "access_token"]
-
-    return result
-
-
-#noinspection PyUnusedLocal
-def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
-    """
-    :param oicsrv: The OpenID Connect server instance
-    :param userdb: A user DB
-    :param user_id: The local user id
-    :param client_id: Identifier of the RP
-    :param user_info_claims: Possible userinfo claims (a dictionary)
-    :return: A schema dependent userinfo instance
-    """
-    #print >> sys.stderr, "claims: %s" % user_info_claims
-    global LOGGER
-
-    LOGGER.info("User_info about '%s'" % user_id)
-    identity = copy.copy(userdb[user_id])
-
-    if user_info_claims:
-        result = {}
-        missing = []
-        optional = []
-        if "claims" in user_info_claims:
-            for key, restr in user_info_claims["claims"].items():
-                try:
-                    result[key] = identity[key]
-                except KeyError:
-                    if restr == {"essential": True}:
-                        missing.append(key)
-                    else:
-                        optional.append(key)
-
-        # Check if anything asked for is somewhere else
-        if (missing or optional) and "_external_" in identity:
-            cpoints = {}
-            remaining = missing[:]
-            missing.extend(optional)
-            for key in missing:
-                for _srv, what in identity["_external_"].items():
-                    if key in what:
-                        try:
-                            cpoints[_srv].append(key)
-                        except KeyError:
-                            cpoints[_srv] = [key]
-                        try:
-                            remaining.remove(key)
-                        except ValueError:
-                            pass
-
-            if remaining:
-                raise Exception("Missing properties '%s'" % remaining)
-
-            for srv, what in cpoints.items():
-                cc = oicsrv.claims_clients[srv]
-                LOGGER.debug("srv: %s, what: %s" % (srv, what))
-                _res = _collect_distributed(srv, cc, user_id, what)
-                LOGGER.debug("Got: %s" % _res)
-                for key, val in _res.items():
-                    if key in result:
-                        result[key].update(val)
-                    else:
-                        result[key] = val
-
-    else:
-        # default is what "openid" demands which is user_id
-        #result = identity
-        result = {"user_id": user_id}
-
-    return OpenIDSchema(**result)
-
-
-#noinspection PyUnusedLocal
-def simple_user_info(oicsrv, userdb, user_id, client_id="",
-                     user_info_claims=None):
-    result = {"user_id": "diana"}
-    return OpenIDSchema(**result)
-
-FUNCTIONS = {
-    "authenticate": do_authentication,
-    "authorize": do_authorization,
-    "verify_user": verify_username_and_password,
-    "verify_client": verify_client,
-    "userinfo": user_info,
-}
+# #noinspection PyUnusedLocal
+# def simple_user_info(oicsrv, userdb, user_id, client_id="",
+#                      user_info_claims=None):
+#     result = {"user_id": "diana"}
+#     return OpenIDSchema(**result)
 
 # ----------------------------------------------------------------------------
 
@@ -352,7 +157,7 @@ def css(environ, start_response, logger, handle):
     try:
         info = open(environ["PATH_INFO"]).read()
         resp = Response(info)
-    except Exception:
+    except OSError:
         resp = NotFound(environ["PATH_INFO"])
 
     return resp(environ, start_response)
@@ -444,6 +249,12 @@ def meta_info(environ, start_response, logger, handle):
     pass
 
 
+#noinspection PyUnusedLocal
+def verify(environ, start_response, logger, handle):
+    _oas = environ["oic.oas"]
+    return _oas.authn.verify(environ, start_response, get_post(environ))
+
+
 def static_file(path):
     try:
         os.stat(path)
@@ -492,6 +303,7 @@ ENDPOINTS = [
 
 URLS = [
     (r'^authenticated', authenticated),
+    (r'^verify', verify),
     (r'^.well-known/openid-configuration', op_info),
     (r'^.well-known/simple-web-discovery', swd_info),
     (r'^.well-known/host-meta.json', meta_info),
@@ -532,7 +344,6 @@ def application(environ, start_response):
         request is done
     :return: The response as a list of lines
     """
-    global LOOKUP
     global OAS
 
     #user = environ.get("REMOTE_USER", "")
@@ -544,8 +355,6 @@ def application(environ, start_response):
         return static(environ, start_response, logger, "static/robots.txt")
 
     environ["oic.oas"] = OAS
-    environ["mako.lookup"] = LOOKUP
-
     remote = environ.get("REMOTE_ADDR")
 
     kaka = environ.get("HTTP_COOKIE", '')
@@ -556,41 +365,41 @@ def application(environ, start_response):
         try:
             handle = parse_cookie(OAS.cookie_name, OAS.seed, kaka)
             try:
-                key = handle[0]
+                sid = handle[0]
             except TypeError:
-                key = ""
+                sid = ""
 
             if hasattr(OAS, "trace_log"):
                 try:
-                    _log = OAS.trace_log[key]
+                    _log = OAS.trace_log[sid]
                 except KeyError:
-                    _log = create_session_logger(key)
-                    OAS.trace_log[key] = _log
+                    _log = create_session_logger(sid)
+                    OAS.trace_log[sid] = _log
             else:
                 _log = replace_format_handler(logger)
 
             a1 = logging.LoggerAdapter(_log,
                                        {'path': path,
                                         'client': remote,
-                                        "cid": key})
+                                        "sid": sid})
 
         except ValueError:
             pass
 
     if not a1:
-        key = STR + rndstr() + STR
-        handle = (key, 0)
+        sid = STR + rndstr() + STR
+        handle = (sid, 0)
 
         if hasattr(OAS, "trace_log"):
             try:
-                _log = OAS.trace_log[key]
+                _log = OAS.trace_log[sid]
             except KeyError:
-                _log = OAS.new_trace_log(key)
+                _log = OAS.new_trace_log(sid)
         else:
             _log = replace_format_handler(logger)
 
         a1 = logging.LoggerAdapter(_log, {'path': path, 'client': remote,
-                                          "cid": key})
+                                          "sid": sid})
 
     #logger.info("handle:%s [%s]" % (handle, a1))
     #a1.info(40*"-")
@@ -717,13 +526,22 @@ if __name__ == '__main__':
     # in memory session storage
 
     config = importlib.import_module(args.config)
+    # Authentication method
+    authn = UsernamePasswordMako(None, "login.mako", TemplateLookup, PASSWD,
+                                 "authenticated")
+    # dealing with authorization
+    authz = AuthzHandling()
+    # User info database
+    userdb = None   # will be set later
     if args.test:
         URLS.append((r'tracelog', trace_log))
-        OAS = TestProvider(config.issuer, SessionDB(), cdb, FUNCTIONS,
-                           config.USERDB)
+        OAS = TestProvider(config.issuer, SessionDB(), cdb, authn, userdb,
+                           authz, config.SYM_KEY)
     else:
-        OAS = Provider(config.issuer, SessionDB(), cdb, FUNCTIONS,
-                       config.USERDB)
+        OAS = Provider(config.issuer, SessionDB(), cdb, authn, userdb, authz,
+                       verify_client, config.SYM_KEY)
+
+    authn.srv = OAS
 
     try:
         OAS.cookie_ttl = config.COOKIETTL
@@ -789,9 +607,10 @@ if __name__ == '__main__':
     except Exception, err:
         OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
 
-    OAS.claims_clients = init_claims_clients(config.CLIENT_INFO)
+    OAS.userdb = DistributedAggregatedUserInfo(config.USERDB, OAS,
+                                               config.CLIENT_INFO)
 
-    for key, cc in OAS.claims_clients.items():
+    for key, cc in OAS.userdb.claims_clients.items():
         OAS.keyjar.update(cc.keyjar)
 
     # Add the claims providers keys

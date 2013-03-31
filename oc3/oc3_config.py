@@ -3,26 +3,27 @@
 #issuer= "https://www.kodtest.se/rolandsOP"
 baseurl = "https://localhost"
 #baseurl = "https://lingon.ladok.umu.se"
-issuer="%s:8092" % baseurl
-keys= {
+issuer = "%s:8092" % baseurl
+keys = {
     "rsa": {
         "key": "oc3_keys/key.pem",
         "jwk": "oc3_keys/pub.jwk",
         "cert": "oc3_keys/cert.pem"
-        }}
+    }
+}
 
 COOKIENAME= 'pyoic'
 COOKIETTL = 4*60 # 4 hours
-SEED = "SoLittleTime,GotToHurry"
-SERVER_CERT="certs/server.crt"
-SERVER_KEY="certs/server.key"
+SYM_KEY = "SoLittleTime,GotToHurry"
+SERVER_CERT = "certs/server.crt"
+SERVER_KEY = "certs/server.key"
 #CERT_CHAIN="certs/chain.pem"
-CERT_CHAIN=None
+CERT_CHAIN = None
 
 CLAIMS_PROVIDER = "https://localhost:8093/"
 
 USERDB = {
-    "diana":{
+    "diana": {
         "user_id": "dikr0001",
         "name": "Diana Krall",
         "given_name": "Diana",

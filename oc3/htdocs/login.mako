@@ -3,7 +3,7 @@
 
 <div class="login_form" class="block">
     <form action="${action}" method="post" class="login form">
-        <input type="hidden" name="sid" value="${sid}"/>
+        <input type="hidden" name="query" value="${query}"/>
         <table>
             <tr>
                 <td>Username</td>

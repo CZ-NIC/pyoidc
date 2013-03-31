@@ -18,6 +18,8 @@ LOGGER.addHandler(hdlr)
 LOGGER.setLevel(logging.DEBUG)
 
 # ----------------------------------------------------------------------------
+
+
 #noinspection PyUnusedLocal
 def verify_client(environ, req, cdb):
     identity = req["client_id"]
@@ -28,6 +30,7 @@ def verify_client(environ, req, cdb):
                 return True
 
     return False
+
 
 #noinspection PyUnusedLocal
 def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
@@ -48,6 +51,12 @@ def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
 
     return OpenIDSchema(**result)
 
+
+USER2MODE = {"diana": "aggregate",
+             "upper": "distribute",
+             "babs": "aggregate"}
+
+
 #noinspection PyUnusedLocal
 def claims_mode(info, uid):
     if USER2MODE[uid] == "aggregate":
@@ -59,14 +68,17 @@ FUNCTIONS = {
     "verify_client": verify_client,
     "userinfo": user_info,
     "claims_mode": claims_mode
-    }
+}
 
 # ----------------------------------------------------------------------------
+
+
 #noinspection PyUnusedLocal
 def userinfo(environ, start_response, handle):
     _oas = environ["oic.oas"]
 
     return _oas.userinfo_endpoint(environ, start_response, LOGGER)
+
 
 #noinspection PyUnusedLocal
 def check_id(environ, start_response, handle):
@@ -74,11 +86,13 @@ def check_id(environ, start_response, handle):
 
     return _oas.check_id_endpoint(environ, start_response, LOGGER)
 
+
 #noinspection PyUnusedLocal
 def op_info(environ, start_response, handle):
     _oas = environ["oic.oas"]
 
     return _oas.providerinfo_endpoint(environ, start_response, LOGGER)
+
 
 #noinspection PyUnusedLocal
 def userclaims(environ, start_response, handle):
@@ -87,11 +101,13 @@ def userclaims(environ, start_response, handle):
     LOGGER.info("claims_endpoint")
     return _oas.claims_endpoint(environ, start_response, LOGGER)
 
+
 #noinspection PyUnusedLocal
 def registration(environ, start_response, handle):
     _oas = environ["oic.oas"]
 
     return _oas.registration_endpoint(environ, start_response)
+
 
 #noinspection PyUnusedLocal
 def userclaimsinfo(environ, start_response, handle):
@@ -101,6 +117,7 @@ def userclaimsinfo(environ, start_response, handle):
     return _oas.claims_info_endpoint(environ, start_response, LOGGER)
 
 # ----------------------------------------------------------------------------
+
 
 def static(environ, start_response, path):
 
@@ -135,6 +152,7 @@ URLS = [
 
 for endp in ENDPOINTS:
     URLS.append(("^%s$" % endp.etype, endp))
+
 
 def application(environ, start_response):
     """
@@ -184,20 +202,17 @@ def application(environ, start_response):
 # ----------------------------------------------------------------------------
 
 USERDB = {
-    "diana":{
-        "geolocation": {"longitude":20.3076, "latitude": 63.8206},
+    "diana": {
+        "geolocation": {"longitude": 20.3076, "latitude": 63.8206},
     },
-    "upper":{
-        "geolocation": {"longitude":17.0393, "latitude": 59.65075},
+    "upper": {
+        "geolocation": {"longitude": 17.0393, "latitude": 59.65075},
     },
-    "babs":{
-        "geolocation": {"longitude":4.8890, "latitude": 52.3673},
+    "babs": {
+        "geolocation": {"longitude": 4.8890, "latitude": 52.3673},
     }
 }
 
-USER2MODE = {"diana": "aggregate",
-             "upper": "distribute",
-             "babs": "aggregate"}
 
 SERVER_DB = {}
 
@@ -224,8 +239,7 @@ if __name__ == '__main__':
 
     config = json.loads(open(args.config).read())
     OAS = ClaimsServer(config["issuer"], SessionDB(), cdb, FUNCTIONS,
-                       USERDB)
-
+                       USERDB, None, verify_client, "")
 
     if "keys" in config:
         for typ, info in config["keys"].items():
@@ -236,7 +250,6 @@ if __name__ == '__main__':
                 OAS.jwks_uri.append(info["jwk"])
             except KeyError:
                 pass
-
 
     #print URLS
     if args.debug:
@@ -253,8 +266,8 @@ if __name__ == '__main__':
     if not OAS.baseurl.endswith("/"):
         OAS.baseurl += "/"
 
-    OAS.claims_userinfo_endpoint = "%s%s"  % (OAS.baseurl,
-                                UserClaimsInfoEndpoint(userclaimsinfo).type)
+    OAS.claims_userinfo_endpoint = "%s%s" % (
+        OAS.baseurl, UserClaimsInfoEndpoint.etype)
 
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
     SRV.ssl_adapter = ssl_builtin.BuiltinSSLAdapter("certs/server.crt",
