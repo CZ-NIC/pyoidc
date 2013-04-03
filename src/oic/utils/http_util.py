@@ -187,7 +187,7 @@ def cookie_signature(seed, *parts):
     return sha1.hexdigest()
 
 
-def cookie(name, load, seed, expire=0, domain="",  path="",
+def make_cookie(name, load, seed, expire=0, domain="",  path="",
            timestamp=""):
     """
     Create and return a cookie
@@ -298,6 +298,11 @@ def wsgi_wrapper(environ, start_response, func, **kwargs):
     # authentication information
     try:
         kwargs["authn"] = environ["HTTP_AUTHORIZATION"]
+    except KeyError:
+        pass
+
+    try:
+        kwargs["cookie"] = environ["HTTP_COOKIE"]
     except KeyError:
         pass
 

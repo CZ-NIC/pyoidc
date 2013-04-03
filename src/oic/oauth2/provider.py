@@ -17,7 +17,8 @@ from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.message import AccessTokenRequest
 
-from oic.utils.http_util import BadRequest, cookie
+from oic.utils.http_util import BadRequest
+from oic.utils.http_util import make_cookie
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import Response
 
@@ -160,9 +161,9 @@ class Provider(object):
 
         # set cookie containing session ID
 
-        kaka = cookie(self.cookie_name, bsid, self.seed)
+        cookie = make_cookie(self.cookie_name, bsid, self.seed)
 
-        return Redirect(str(location), headers=[kaka])
+        return Redirect(str(location), headers=[cookie])
 
     def authn_response(self, areq, **kwargs):
         """

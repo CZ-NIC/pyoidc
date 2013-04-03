@@ -1,17 +1,26 @@
 import base64
 import logging
-from jwkest.jws import alg2keytype
 import time
+from urllib import urlencode
+from urlparse import parse_qs
+from urlparse import urlsplit
+from jwkest import Invalid
+from jwkest import MissingKey
+from jwkest.jws import alg2keytype
 from oic.oauth2.exception import UnknownAssertionType
+from oic.oauth2.exception import NotForMe
 from oic.oauth2 import rndstr
 from oic.oauth2 import SINGLE_OPTIONAL_STRING
-from oic.utils.aes_m2c import AES_encrypt, AES_decrypt
-from oic.utils.time_util import utc_now
 from oic.oic import REQUEST2ENDPOINT
 from oic.oic import DEF_SIGN_ALG
 from oic.oic import AuthnToken
 from oic.oic import JWT_BEARER
-from oic.utils.http_util import Response, parse_cookie, cookie
+from oic.utils.aes_m2c import AES_encrypt
+from oic.utils.aes_m2c import AES_decrypt
+from oic.utils.time_util import utc_now
+from oic.utils.http_util import Response
+from oic.utils.http_util import parse_cookie
+from oic.utils.http_util import make_cookie
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import Unauthorized
 from saml2.saml import assertion_from_string
@@ -39,6 +48,58 @@ class UserAuthnMethod(object):
         raise NotImplemented
 
 
+def url_encode_params(params=None):
+    if not isinstance(params, dict):
+        raise Exception("You must pass in a dictionary!")
+    params_list = []
+    for k, v in params.items():
+        if isinstance(v, list):
+            params_list.extend([(k, x) for x in v])
+        else:
+            params_list.append((k, v))
+    return urlencode(params_list)
+
+
+def create_return_url(base, query, **kwargs):
+    """
+    Add a query string plus extra parameters to a base URL which may contain
+    a query part already.
+
+    :param base: redirect_uri may contain a query part, no fragment allowed.
+    :param query: Old query part as a string
+    :param kwargs: extra query parameters
+    :return:
+    """
+    part = urlsplit(base)
+    if part.fragment:
+        raise ValueError("Base URL contained parts it shouldn't")
+
+    for key, values in parse_qs(query).items():
+        if key in kwargs:
+            if isinstance(kwargs[key], basestring):
+                kwargs[key] = [kwargs[key]]
+            kwargs[key].extend(values)
+        else:
+            kwargs[key] = values
+
+    if part.query:
+        for key, values in parse_qs(part.query).items():
+            if key in kwargs:
+                if isinstance(kwargs[key], basestring):
+                    kwargs[key] = [kwargs[key]]
+                kwargs[key].extend(values)
+            else:
+                kwargs[key] = values
+
+        _pre = base.split("?")[0]
+    else:
+        _pre = base
+
+    logger.debug("kwargs: %s" % kwargs)
+
+    return "%s?%s" % (_pre, url_encode_params(kwargs))
+
+
 class UsernamePasswordMako(UserAuthnMethod):
     """Do user authentication using the normal username password form in a
     WSGI environment using Mako as template system"""
@@ -57,6 +118,7 @@ class UsernamePasswordMako(UserAuthnMethod):
         self.passwd = pwd
         self.return_to = return_to
         self.active = {}
+        self.query_param = "upm_answer"
 
     def __call__(self, cookie=None, policy_url=None, logo_url=None,
                  query="", **kwargs):
@@ -81,19 +143,39 @@ class UsernamePasswordMako(UserAuthnMethod):
         resp.message = mte.render(**argv)
         return resp
 
-    def verify(self, dic):
+    def verify(self, request, **kwargs):
+        """
+        Verifies that the given username and password was correct
+        :param request: Either the query part of a URL a urlencoded
+            body of a HTTP message or a parse such.
+        :param kwargs: Catch whatever else is sent.
+        :return: redirect back to where ever the base applications
+            wants the user after authentication.
+        """
+
+        logger.debug("verify(%s)" % request)
+        if isinstance(request, basestring):
+            _dict = parse_qs(request)
+        elif isinstance(request, dict):
+            _dict = request
+        else:
+            raise ValueError("Wrong type of input")
+
+        logger.debug("dict: %s" % _dict)
+        logger.debug("passwd: %s" % self.passwd)
         # verify username and password
         try:
-            assert dic["password"][0] == self.passwd[dic["login"][0]]
+            assert _dict["password"][0] == self.passwd[_dict["login"][0]]
             timestamp = str(int(time.mktime(time.gmtime())))
             info = AES_encrypt(self.srv.symkey,
-                               "::".join([dic["login"][0],timestamp]),
+                               "::".join([_dict["login"][0], timestamp]),
                                self.srv.iv)
             self.active[info] = timestamp
-            kaka = cookie(self.srv.cookie_name, info, self.srv.seed,
-                          expire=0, domain="", path="")
-            return_to = self.return_to + "?%s" % dic["query"][0]
-            resp = Redirect(return_to, headers=[kaka])
+            cookie = make_cookie(self.srv.cookie_name, info, self.srv.seed,
+                                 expire=0, domain="", path="")
+            return_to = create_return_url(self.return_to, _dict["query"][0],
+                                          **{self.query_param: "true"})
+            resp = Redirect(return_to, headers=[cookie])
         except (AssertionError, KeyError):
             resp = Unauthorized("Unknown user or wrong password")
 
@@ -103,19 +185,32 @@ class UsernamePasswordMako(UserAuthnMethod):
         if cookie is None:
             return None
         else:
+            logger.debug("kwargs: %s" % kwargs)
             try:
                 info, timestamp = parse_cookie(self.srv.cookie_name,
                                                self.srv.seed, cookie)
                 if self.active[info] == timestamp:
-                    del self.active[info]
+                    #del self.active[info]
                     uid, _ts = AES_decrypt(self.srv.symkey,
                                            info, self.srv.iv).split("::")
                     if timestamp == _ts:
+                        if "max_age" in kwargs and kwargs["max_age"]:
+                            _now = int(time.mktime(time.gmtime()))
+                            if _now > (int(_ts) + int(kwargs["max_age"])):
+                                logger.debug("Authentication too old")
+                                return None
                         return {"uid": uid}
             except Exception:
                 pass
 
         return None
+
+    def done(self, areq):
+        try:
+            _ = areq[self.query_param]
+            return False
+        except KeyError:
+            return True
 
 
 class AuthnMethodChooser(object):
@@ -343,22 +438,30 @@ class JWSAuthnMethod(ClientAuthnMethod):
         return {}
 
     def verify(self, areq, **kwargs):
-        bjwt = AuthnToken().from_jwt(areq["client_assertion"],
-                                     keyjar=self.cli.keyjar)
+        try:
+            bjwt = AuthnToken().from_jwt(areq["client_assertion"],
+                                         keyjar=self.cli.keyjar)
+        except (Invalid, MissingKey), err:
+            logger.info("%s" % err)
+            return False
 
         try:
             # There might not be a client_id in the request
             assert str(bjwt["iss"]) in self.cli.cdb  # It's a client I know
-            # aud can be a string or a list
-            _aud = bjwt["aud"]
+        except KeyError:
+            pass
+
+        # aud can be a string or a list
+        _aud = bjwt["aud"]
+        try:
             if isinstance(_aud, basestring):
                 assert str(_aud) == self.cli.baseurl
             else:
                 assert self.cli.baseurl in _aud
-
-            return True
         except AssertionError:
-            pass
+            raise NotForMe()
+
+        return True
 
 
 class ClientSecretJWT(JWSAuthnMethod):
@@ -417,7 +520,7 @@ class SAML2AuthnMethod(ClientAuthnMethod):
                 audience.append(aud)
 
 
-AUTHN_METHOD = {
+CLIENT_AUTHN_METHOD = {
     "client_secret_basic": ClientSecretBasic,
     "client_secret_post": ClientSecretPost,
     "bearer_header": BearerHeader,

@@ -322,20 +322,21 @@ class AuthorizationRequest(message.AuthorizationRequest):
                 pass
 
         if "request" in self:
-            # Try to decode the JWT, checks the signature
-            oidr = OpenIDRequest().from_jwt(str(self["request"]), **args)
+            if isinstance(self["request"], basestring):
+                # Try to decode the JWT, checks the signature
+                oidr = OpenIDRequest().from_jwt(str(self["request"]), **args)
 
-            # verify that nothing is change in the original message
-            for key, val in oidr.items():
-                if key in self:
-                    assert self[key] == val
+                # verify that nothing is change in the original message
+                for key, val in oidr.items():
+                    if key in self:
+                        assert self[key] == val
 
-            # replace the JWT with the parsed and verified instance
-            self["request"] = oidr
-
+                # replace the JWT with the parsed and verified instance
+                self["request"] = oidr
         if "id_token" in self:
-            idt = IdToken().from_jwt(str(self["id_token"]), **args)
-            self["id_token"] = idt
+            if isinstance(self["id_token"], basestring):
+                idt = IdToken().from_jwt(str(self["id_token"]), **args)
+                self["id_token"] = idt
 
         if "response_type" not in self:
             raise MissingRequiredAttribute("response_type missing")

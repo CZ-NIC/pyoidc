@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from oic.utils.keyio import keybundle_from_local_file
+from oic.utils.userinfo import UserInfo
 
 __author__ = 'rohe0002'
 
@@ -234,18 +235,18 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     cdb = json.loads(open("claims_client.json").read())
+    userinfo = UserInfo(USERDB)
 
     # in memory session storage
 
     config = json.loads(open(args.config).read())
-    OAS = ClaimsServer(config["issuer"], SessionDB(), cdb, FUNCTIONS,
-                       USERDB, None, verify_client, "")
+    OAS = ClaimsServer(config["issuer"], SessionDB(), cdb, userinfo,
+                       verify_client)
 
     if "keys" in config:
         for typ, info in config["keys"].items():
-            kb = keybundle_from_local_file(info["key"], "rsa", ["ver", "sig"])
-
-            OAS.keyjar.add("", kb)
+            OAS.keyjar.add_kb("", keybundle_from_local_file(info["key"], "rsa",
+                                                            ["ver", "sig"]))
             try:
                 OAS.jwks_uri.append(info["jwk"])
             except KeyError:

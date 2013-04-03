@@ -1,3 +1,5 @@
+from oic.utils.keyio import KeyJar
+
 __author__ = 'rohe0002'
 
 import logging
@@ -74,16 +76,18 @@ class OICCServer(OicServer):
 
 class ClaimsServer(Provider):
 
-    def __init__(self, name, sdb, cdb, authn_method, userinfo, authz,
-                 client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
-                 hostname="", dist_claims_mode=None):
-        Provider.__init__(self, name, sdb, cdb, authn_method, userinfo, authz,
-                          client_authn, symkey, urlmap, ca_certs, keyjar,
+    def __init__(self, name, sdb, cdb, userinfo, client_authn, urlmap=None,
+                 ca_certs="", keyjar=None, hostname="", dist_claims_mode=None):
+        Provider.__init__(self, name, sdb, cdb, None, userinfo, None,
+                          client_authn, "", urlmap, ca_certs, keyjar,
                           hostname)
+
+        if keyjar is None:
+            keyjar = KeyJar(ca_certs)
 
         for cid, _dic in cdb.items():
             try:
-                keyjar.add_hmac("", _dic["client_secret"], ["sig", "ver"])
+                keyjar.add_hmac(cid, _dic["client_secret"], ["sig", "ver"])
             except KeyError:
                 pass
 

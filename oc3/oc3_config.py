@@ -7,8 +7,7 @@ issuer = "%s:8092" % baseurl
 keys = {
     "rsa": {
         "key": "oc3_keys/key.pem",
-        "jwk": "oc3_keys/pub.jwk",
-        "cert": "oc3_keys/cert.pem"
+        "usage": ["enc", "sig"]
     }
 }
 

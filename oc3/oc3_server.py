@@ -1,22 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __builtin__ import int, open, hasattr, isinstance
 import sys
 import os
 import traceback
 
 from exceptions import KeyError
 from exceptions import Exception
-from exceptions import ValueError
 from exceptions import OSError
 from exceptions import IndexError
 from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
 from oic.utils.authn import UsernamePasswordMako, verify_client
 
-from oic.oauth2 import rndstr
 from oic.utils.authz import AuthzHandling
-from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import KeyBundle, dump_jwks
 from oic.utils.userinfo import DistributedAggregatedUserInfo
 
 __author__ = 'rohe0002'
@@ -28,7 +25,6 @@ from logging.handlers import BufferingHandler
 
 from oic.utils import http_util
 from oic.oic.provider import Provider
-from oic.oic.provider import STR
 
 from oic.utils.http_util import *
 from oic.oic.message import ProviderConfigurationResponse
@@ -63,7 +59,7 @@ NAME = "pyoic"
 
 OAS = None
 
-PASSWD = [("diana", "krall"), ("babs", "howes"), ("upper", "crust")]
+PASSWD = {"diana": "krall", "babs": "howes", "upper": "crust"}
 
 
 #noinspection PyUnusedLocal
@@ -124,7 +120,7 @@ def replace_format_handler(logger, log_format="CPC"):
 
 
 #noinspection PyUnusedLocal
-def safe(environ, start_response, logger, handle):
+def safe(environ, start_response, logger):
     _oas = environ["oic.oas"]
     _srv = _oas.server
     _log_info = _oas.logger.info
@@ -153,7 +149,7 @@ def safe(environ, start_response, logger, handle):
 
 
 #noinspection PyUnusedLocal
-def css(environ, start_response, logger, handle):
+def css(environ, start_response, logger):
     try:
         info = open(environ["PATH_INFO"]).read()
         resp = Response(info)
@@ -165,78 +161,72 @@ def css(environ, start_response, logger, handle):
 # ----------------------------------------------------------------------------
 
 
-def token(environ, start_response, logger, handle):
+#noinspection PyUnusedLocal
+def token(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
     return wsgi_wrapper(environ, start_response, _oas.token_endpoint,
-                        logger=logger, handle=handle)
+                        logger=logger)
 
 
 #noinspection PyUnusedLocal
-def authorization(environ, start_response, logger, handle):
+def authorization(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
     return wsgi_wrapper(environ, start_response, _oas.authorization_endpoint,
-                        logger=logger, handle=handle)
+                        logger=logger)
 
 
 #noinspection PyUnusedLocal
-def authenticated(environ, start_response, logger, handle):
-    _oas = environ["oic.oas"]
-
-    return wsgi_wrapper(environ, start_response, _oas.authenticated,
-                        logger=logger, handle=handle)
-
-
-#noinspection PyUnusedLocal
-def userinfo(environ, start_response, logger, handle):
+def userinfo(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
     return wsgi_wrapper(environ, start_response, _oas.userinfo_endpoint,
-                        logger=logger, handle=handle)
+                        logger=logger)
 
 
 #noinspection PyUnusedLocal
-def op_info(environ, start_response, logger, handle):
+def op_info(environ, start_response, logger):
     _oas = environ["oic.oas"]
     LOGGER.info("op_info")
     return wsgi_wrapper(environ, start_response, _oas.providerinfo_endpoint,
-                        logger=logger, handle=handle)
+                        logger=logger)
 
 
 #noinspection PyUnusedLocal
-def registration(environ, start_response, logger, handle):
+def registration(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
     return wsgi_wrapper(environ, start_response, _oas.registration_endpoint,
-                        logger=logger, handle=handle)
+                        logger=logger)
 
 
 #noinspection PyUnusedLocal
-def check_id(environ, start_response, logger, handle):
+def check_id(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
     return wsgi_wrapper(environ, start_response, _oas.check_id_endpoint,
-                        logger=logger, handle=handle)
+                        logger=logger)
 
 
 #noinspection PyUnusedLocal
-def swd_info(environ, start_response, logger, handle):
+def swd_info(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
     return wsgi_wrapper(environ, start_response, _oas.discovery_endpoint,
-                        logger=logger, handle=handle)
-
-
-def trace_log(environ, start_response, logger, handle):
-    _oas = environ["oic.oas"]
-
-    return wsgi_wrapper(environ, start_response, _oas.tracelog_endpoint,
-                        logger=logger, handle=handle)
+                        logger=logger)
 
 
 #noinspection PyUnusedLocal
-def meta_info(environ, start_response, logger, handle):
+def trace_log(environ, start_response, logger):
+    _oas = environ["oic.oas"]
+
+    return wsgi_wrapper(environ, start_response, _oas.tracelog_endpoint,
+                        logger=logger)
+
+
+#noinspection PyUnusedLocal
+def meta_info(environ, start_response, logger):
     """
     Returns something like this
      {"links":[
@@ -250,9 +240,10 @@ def meta_info(environ, start_response, logger, handle):
 
 
 #noinspection PyUnusedLocal
-def verify(environ, start_response, logger, handle):
+def verify(environ, start_response, logger):
     _oas = environ["oic.oas"]
-    return _oas.authn.verify(environ, start_response, get_post(environ))
+    return wsgi_wrapper(environ, start_response, _oas.authn.verify,
+                        logger=logger)
 
 
 def static_file(path):
@@ -302,7 +293,6 @@ ENDPOINTS = [
 ]
 
 URLS = [
-    (r'^authenticated', authenticated),
     (r'^verify', verify),
     (r'^.well-known/openid-configuration', op_info),
     (r'^.well-known/simple-web-discovery', swd_info),
@@ -355,58 +345,14 @@ def application(environ, start_response):
         return static(environ, start_response, logger, "static/robots.txt")
 
     environ["oic.oas"] = OAS
-    remote = environ.get("REMOTE_ADDR")
+    
+    #remote = environ.get("REMOTE_ADDR")
+    #kaka = environ.get("HTTP_COOKIE", '')
 
-    kaka = environ.get("HTTP_COOKIE", '')
-    a1 = None
-    handle = ""
-    key = ""
-    if kaka:
-        try:
-            handle = parse_cookie(OAS.cookie_name, OAS.seed, kaka)
-            try:
-                sid = handle[0]
-            except TypeError:
-                sid = ""
-
-            if hasattr(OAS, "trace_log"):
-                try:
-                    _log = OAS.trace_log[sid]
-                except KeyError:
-                    _log = create_session_logger(sid)
-                    OAS.trace_log[sid] = _log
-            else:
-                _log = replace_format_handler(logger)
-
-            a1 = logging.LoggerAdapter(_log,
-                                       {'path': path,
-                                        'client': remote,
-                                        "sid": sid})
-
-        except ValueError:
-            pass
-
-    if not a1:
-        sid = STR + rndstr() + STR
-        handle = (sid, 0)
-
-        if hasattr(OAS, "trace_log"):
-            try:
-                _log = OAS.trace_log[sid]
-            except KeyError:
-                _log = OAS.new_trace_log(sid)
-        else:
-            _log = replace_format_handler(logger)
-
-        a1 = logging.LoggerAdapter(_log, {'path': path, 'client': remote,
-                                          "sid": sid})
-
-    #logger.info("handle:%s [%s]" % (handle, a1))
-    #a1.info(40*"-")
     if path.startswith("static/"):
-        return static(environ, start_response, a1, path)
+        return static(environ, start_response, logger, path)
 #    elif path.startswith("oc3_keys/"):
-#        return static(environ, start_response, a1, path)
+#        return static(environ, start_response, logger, path)
 
     for regex, callback in URLS:
         match = re.search(regex, path)
@@ -416,20 +362,15 @@ def application(environ, start_response):
             except IndexError:
                 environ['oic.url_args'] = path
 
-            a1.info("callback: %s" % callback)
+            logger.info("callback: %s" % callback)
             try:
-                return callback(environ, start_response, a1, handle)
+                return callback(environ, start_response, logger)
             except Exception, err:
                 print >> sys.stderr, "%s" % err
                 message = traceback.format_exception(*sys.exc_info())
                 print >> sys.stderr, message
-                a1.exception("%s" % err)
-                if key and hasattr(OAS, "trace_log"):
-                    _txt = OAS.dump_tracelog(key)
-                    _txt += "\n" + "%s" % err
-                    resp = ServiceError(_txt)
-                else:
-                    resp = ServiceError("%s" % err)
+                logger.exception("%s" % err)
+                resp = ServiceError("%s" % err)
                 return resp(environ, start_response)
 
     resp = NotFound("Couldn't find the side you asked for!")
@@ -492,15 +433,6 @@ class TestProvider(Provider):
         return _log
 
 
-def mv_content(fro, to):
-    txt = open(fro).read()
-    (head, tail) = os.path.split(fro)
-    name = "%s/%s" % (to, tail)
-    f = open(name, 'w')
-    f.write(txt)
-    f.close()
-    return name
-
 if __name__ == '__main__':
     import argparse
     import shelve
@@ -527,18 +459,17 @@ if __name__ == '__main__':
 
     config = importlib.import_module(args.config)
     # Authentication method
-    authn = UsernamePasswordMako(None, "login.mako", TemplateLookup, PASSWD,
-                                 "authenticated")
+    authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
+                                 "%s/authorization" % config.issuer)
     # dealing with authorization
     authz = AuthzHandling()
     # User info database
-    userdb = None   # will be set later
     if args.test:
         URLS.append((r'tracelog', trace_log))
-        OAS = TestProvider(config.issuer, SessionDB(), cdb, authn, userdb,
+        OAS = TestProvider(config.issuer, SessionDB(), cdb, authn, None,
                            authz, config.SYM_KEY)
     else:
-        OAS = Provider(config.issuer, SessionDB(), cdb, authn, userdb, authz,
+        OAS = Provider(config.issuer, SessionDB(), cdb, authn, None, authz,
                        verify_client, config.SYM_KEY)
 
     authn.srv = OAS
@@ -553,7 +484,7 @@ if __name__ == '__main__':
     except AttributeError:
         pass
 
-    OAS.cookie_func = http_util.cookie
+    OAS.cookie_func = http_util.make_cookie
 
     #print URLS
     if args.debug:
@@ -593,24 +524,30 @@ if __name__ == '__main__':
 
     try:
         OAS.keyjar[""] = []
+        kbl = []
         for typ, info in config.keys.items():
             LOGGER.info("OC3 server key init: %s, %s" % (typ, info))
-            kc = KeyBundle(source="file://%s" % info["key"])
-            OAS.keyjar[""].append(kc)
-            try:
-                new_name = mv_content(info["jwk"], "static")
-                OAS.jwks_uri.append("%s%s" % (OAS.baseurl, new_name))
-            except KeyError:
-                pass
+            kb = KeyBundle(source="file://%s" % info["key"], fileformat="der",
+                           keytype=typ)
+            OAS.keyjar.add_kb("", kb)
+            kbl.append(kb)
+
+        try:
+            new_name = "static/jwks.json"
+            dump_jwks(kbl, new_name)
+            OAS.jwks_uri.append("%s%s" % (OAS.baseurl, new_name))
+        except KeyError:
+            pass
+
         for b in OAS.keyjar[""]:
             LOGGER.info("OC3 server keys: %s" % b)
     except Exception, err:
         OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
 
-    OAS.userdb = DistributedAggregatedUserInfo(config.USERDB, OAS,
-                                               config.CLIENT_INFO)
+    OAS.userinfo = DistributedAggregatedUserInfo(config.USERDB, OAS,
+                                                 config.CLIENT_INFO)
 
-    for key, cc in OAS.userdb.claims_clients.items():
+    for key, cc in OAS.userinfo.claims_clients.items():
         OAS.keyjar.update(cc.keyjar)
 
     # Add the claims providers keys

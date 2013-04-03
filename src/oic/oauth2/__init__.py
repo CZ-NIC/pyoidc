@@ -392,12 +392,7 @@ class Client(PBase):
         # client uses it for signing
         # Server might also use it for signing which means the
         # client uses it for verifying server signatures
-        _kc = KeyBundle([{"kty":"hmac", "key": "val", "use":"sig"},
-                         {"kty":"hmac", "key": "val", "use":"ver"}])
-        try:
-            self.keyjar[""].append(_kc)
-        except KeyError:
-            self.keyjar[""] = _kc
+        self.keyjar.add_hmac("", val, ["sig"])
 
     client_secret = property(get_client_secret, set_client_secret)
 
@@ -767,7 +762,7 @@ class Client(PBase):
 
         if authn_method:
             return self.client_authn_method[authn_method](self).construct(
-                self, cis, request_args, http_args, **kwargs)
+                cis, request_args, http_args, **kwargs)
         else:
             return http_args
 

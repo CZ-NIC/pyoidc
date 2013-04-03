@@ -55,3 +55,7 @@ class FailedAuthentication(OauthError):
 
 class MissingSession(OauthError):
     pass
+
+
+class NotForMe(OauthError):
+    pass

@@ -150,7 +150,7 @@ class Provider(AProvider):
         self.seed = ""
         self.cookie_ttl = 0
         self.test_mode = False
-        self.jwks_uri = None
+        self.jwks_uri = []
 
         self.authn_as = None
         self.preferred_id_type = "public"
@@ -361,12 +361,26 @@ class Provider(AProvider):
 
         return req_user
 
-    def authorization_endpoint(self, request="", **kwargs):
+    def max_age(self, areq):
+        try:
+            return areq["request"]["id_token"]["max_age"]
+        except KeyError:
+            return 0
+
+    def re_authenticate(self, areq):
+        if "prompt" in areq and "login" in areq["prompt"]:
+            if self.authn.done(areq):
+                return True
+
+        return False
+
+    def authorization_endpoint(self, request="", cookie=None, **kwargs):
         """ The AuthorizationRequest endpoint
 
         :param request: The client request
         """
 
+        logger.debug("Request: '%s'" % request)
         # Same serialization used for GET and POST
         try:
             areq = self.server.parse_authorization_request(query=request)
@@ -383,16 +397,27 @@ class Provider(AProvider):
             logger.debug("Bad request: %s (%s)" % (err, err.__class__.__name__))
             return BadRequest("%s" % err)
 
+        logger.debug("AuthzRequest: %s" % (areq.to_dict(),))
         try:
             redirect_uri = self.get_redirect_uri(areq)
         except RedirectURIError, err:
             return self._error("invalid_request", "%s" % err)
 
+        try:
+            # verify that the request message is correct
+            areq.verify()
+        except (MissingRequiredAttribute, ValueError), err:
+            return self._redirect_authz_error("invalid_request", redirect_uri,
+                                              "%s" % err)
+
         areq = self.handle_oidc_request(areq, redirect_uri)
+        logger.debug("AuthzRequest+oidc_request: %s" % (areq.to_dict(),))
 
         req_user = self.required_user(areq)
 
-        identity = self.authn.authenticated_as()
+        logger.debug("Cookie: %s" % cookie)
+        identity = self.authn.authenticated_as(cookie,
+                                               max_age=self.max_age(areq))
 
         # To authenticate or Not
         if identity is None:  # No!
@@ -403,7 +428,7 @@ class Provider(AProvider):
             else:
                 return self.authn(query=request, as_user=req_user)
         else:
-            if "prompt" in areq and "login" in areq["prompt"]:
+            if self.re_authenticate(areq):
                 # demand re-authentication
                 return self.authn(query=request, as_user=req_user)
             else:
@@ -640,7 +665,9 @@ class Provider(AProvider):
 
         if not request or "access_token" not in request:
             _token = kwargs["authn"]
-            logger.debug("Bearer token: %s" % _token)
+            assert _token.startswith("Bearer ")
+            _token = _token[len("Bearer "):]
+            logger.debug("Bearer token: '%s'" % _token)
         else:
             uireq = self.server.parse_user_info_request(data=request)
             logger.debug("user_info_request: %s" % uireq)

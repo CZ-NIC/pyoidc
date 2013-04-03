@@ -390,6 +390,8 @@ class Message(object):
             key = {}
 
         header = json.loads(b64d(str(txt.split(".")[0])))
+        logger.debug("header: %s" % (header,))
+
         try:
             htype = header["typ"]
         except KeyError:
@@ -411,6 +413,12 @@ class Message(object):
         if not jso:
             try:
                 jso = jwkest.unpack(txt)[1]
+
+                try:
+                    self._add_key(keyjar, kwargs["opponent_id"], key)
+                except KeyError:
+                    pass
+
                 if isinstance(jso, basestring):
                     jso = json.loads(jso)
                 if verify:

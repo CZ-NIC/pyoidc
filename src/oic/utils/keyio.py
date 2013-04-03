@@ -11,7 +11,7 @@ import traceback
 
 from requests import request
 
-from jwkest.jwk import x509_rsa_loads
+from jwkest.jwk import x509_rsa_loads, base64_to_long
 from jwkest.jwk import long_to_mpi
 from jwkest.jwk import long_to_base64
 from jwkest.jwk import mpi_to_long
@@ -116,9 +116,12 @@ class Key():
         res = {}
         for key in self.members:
             try:
-                res[key] = getattr(self, key)
+                _val = getattr(self, key)
+                if _val:
+                    res[key] = _val
             except KeyError:
                 pass
+        return res
 
     def __str__(self):
         return str(self.to_dict())
@@ -139,11 +142,12 @@ class RSA_key(Key):
         self.e = e
 
     def comp(self):
-        self.key = M2Crypto.RSA.new_pub_key((long_to_mpi(self.e),
-                                             long_to_mpi(self.n)))
+        self.key = M2Crypto.RSA.new_pub_key(
+            (long_to_mpi(base64_to_long(str(self.e))),
+             long_to_mpi(base64_to_long(str(self.n)))))
 
     def decomp(self):
-        self.n = long_to_base64(mpi_to_long(self.key.n)),
+        self.n = long_to_base64(mpi_to_long(self.key.n))
         self.e = long_to_base64(mpi_to_long(self.key.e))
 
     def load(self, filename):
@@ -172,22 +176,29 @@ K2C = {
 
 
 class KeyBundle(object):
-    def __init__(self, keys=None, source="", cache_time=300, verify_ssl=True):
+    def __init__(self, keys=None, source="", cache_time=300, verify_ssl=True,
+                 fileformat="jwk", keytype="rsa", keyusage=None):
         """
 
         :param keys: A list of dictionaries of the format
             with the keys ["kty", "key", "alg", "use", "kid"]
         :param source: Where the key set can be fetch from
         :param verify_ssl: Verify the SSL cert used by the server
+        :param fileformat: For a local file either "jwk" or "der"
+        :param keytype: Iff local file and 'der' format what kind of key is it.
         """
-        self.keys = []
+
+        self._keys = []
         self.remote = False
         self.verify_ssl = verify_ssl
         self.cache_time = cache_time
         self.time_out = 0
-        self.etags = ""
+        self.etag = ""
         self.cache_control = None
         self.source = None
+        self.fileformat = fileformat.lower()
+        self.keytype = keytype.lower()
+        self.keyusage = keyusage
 
         if keys:
             self.source = None
@@ -207,17 +218,41 @@ class KeyBundle(object):
                 raise Exception("Unsupported source type: %s" % source)
 
             if not self.remote:  # local file
-                self.do_local(source)
+                if self.fileformat == "jwk":
+                    self.do_local_jwk(self.source)
+                elif self.fileformat == "der":
+                    self.do_local_der(self.source, self.keytype, self.keyusage)
 
     def do_keys(self, keys):
-        for inst in keys:
-            typ = inst["kty"]
-            _key = K2C[typ](**inst)
-            _key.decomp()
-            self.keys.append(_key)
+        """
+        Go from JWK description to binary keys
 
-    def do_local(self, filename):
+        :param keys:
+        :return:
+        """
+        for inst in keys:
+            typ = inst["kty"].lower()
+            _key = K2C[typ](**inst)
+            _key.comp()
+            self._keys.append(_key)
+
+    def do_local_jwk(self, filename):
         self.do_keys(json.loads(open(filename).read())["keys"])
+
+    def do_local_der(self, filename, keytype, keyusage):
+        _bkey = None
+        if keytype == "rsa":
+            _bkey = rsa_load(filename)
+
+        if not keyusage:
+            keyusage = ["enc", "sig"]
+
+        for use in keyusage:
+            _key = K2C[keytype]()
+            _key.key = _bkey
+            _key.decomp()
+            _key.use = use
+            self._keys.append(_key)
 
     def do_remote(self):
         args = {"allow_redirects": True,
@@ -245,7 +280,7 @@ class KeyBundle(object):
                 pass
 
     def _uptodate(self):
-        if self.keys:
+        if self._keys is not []:
             if self.remote:  # verify that it's not to old
                 if time.time() > self.time_out:
                     self.update()
@@ -260,10 +295,13 @@ class KeyBundle(object):
         if self.source:
             # reread everything
 
-            self.keys = []
+            self._keys = []
 
             if self.remote is False:
-                self.do_local(self.source)
+                if self.fileformat == "jwk":
+                    self.do_local_jwk(self.source)
+                elif self.fileformat == "der":
+                    self.do_local_der(self.source, self.keytype, self.keyusage)
             else:
                 self.do_remote()
 
@@ -278,14 +316,14 @@ class KeyBundle(object):
 
         if typ:
             typ = typ.lower()
-            return [k for k in self.keys if k.kty == typ]
+            return [k for k in self._keys if k.kty == typ]
         else:
-            return self.keys
+            return self._keys
 
     def keys(self):
         self._uptodate()
 
-        return self.keys
+        return self._keys
 
     def remove(self, typ, val=None):
         """
@@ -296,17 +334,20 @@ class KeyBundle(object):
         typ = typ.lower()
 
         if val:
-            self.keys = [k for k in self.keys if
-                         not (k.kty == typ and k.key == val)]
+            self._keys = [k for k in self._keys if
+                          not (k.kty == typ and k.key == val)]
         else:
-            self.keys = [k for k in self.keys if not k.kty == typ]
+            self._keys = [k for k in self._keys if not k.kty == typ]
 
     def __str__(self):
         return str(self.jwks())
 
     def jwks(self):
         self._uptodate()
-        return {"keys": [k.to_dict() for k in self.keys]}
+        return json.dumps({"keys": [k.to_dict() for k in self._keys]})
+
+    def append(self, key):
+        self._keys.append(key)
 
 
 def keybundle_from_local_file(filename, typ, usage):
@@ -315,16 +356,27 @@ def keybundle_from_local_file(filename, typ, usage):
         k = RSA_key()
         k.load(filename)
         k.use = usage[0]
-        kb.keys.append(k)
+        kb.append(k)
         for use in usage[1:]:
             _k = RSA_key()
             _k.key = k.key
             _k.use = use
-            kb.keys.append(_k)
+            kb.append(_k)
     else:
         raise Exception("Unsupported key type")
 
     return kb
+
+
+def dump_jwks(kbl, target):
+    res = {"keys": []}
+    for kb in kbl:
+        res["keys"].extend([k.to_dict() for k in kb.keys()])
+
+    f = open(target, 'w')
+    _txt = json.dumps(res)
+    f.write(_txt)
+    f.close()
 
 
 class KeyJar(object):
@@ -376,6 +428,12 @@ class KeyJar(object):
                                                     "key": key,
                                                     "use": use}]))
 
+    def add_kb(self, issuer, kb):
+        try:
+            self.issuer_keys[issuer].append(kb)
+        except KeyError:
+            self.issuer_keys[issuer] = [kb]
+
     def __setitem__(self, issuer, val):
         if isinstance(val, basestring):
             val = [val]
@@ -392,6 +450,11 @@ class KeyJar(object):
         :param issuer: Who is responsible for the keys, "" == me
         :return: A possibly empty list of keys
         """
+
+        if use == "dec":
+            use = "enc"
+        elif use == "ver":
+            use = "sig"
 
         if issuer != "":
             try:
@@ -421,7 +484,7 @@ class KeyJar(object):
                 res[key_type] = lst
             else:
                 for bundles in _keys:
-                    for key in bundles.keys:
+                    for key in bundles.keys():
                         if use == key.use:
                             try:
                                 res[key.kty].append(key.key)
@@ -574,10 +637,10 @@ def key_setup(vault, **kwargs):
                         _key = create_and_store_rsa_key_pair(
                             path=vault_path)
 
-                kb.keys.append(RSA_key(key=_key, use=usage, kid=kid))
+                kb.append(RSA_key(key=_key, use=usage, kid=kid))
                 kid += 1
                 if usage == "sig" and "enc" not in kwargs:
-                    kb.keys.append(RSA_key(key=_key, use="enc", kid=kid))
+                    kb.append(RSA_key(key=_key, use="enc", kid=kid))
                     kid += 1
 
     return kb
@@ -589,7 +652,6 @@ def key_export(baseurl, local_path, vault, keyjar, **kwargs):
     :param local_path: Where on the machine the export files are kept
     :param vault: Where the keys are kept
     :param keyjar: Where to store the exported keys
-    :param fqdn: Fully qualified domain name
     :return: 2-tuple: result of urlsplit and a dictionary with
         parameter name as key and url and value
     """
