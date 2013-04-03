@@ -132,6 +132,9 @@ class Key():
     def decomp(self):
         pass
 
+    def dc(self):
+        pass
+
 
 class RSA_key(Key):
     members = ["kty", "alg", "use", "kid", "n", "e"]
@@ -152,6 +155,14 @@ class RSA_key(Key):
 
     def load(self, filename):
         self.key = rsa_load(filename)
+
+    def dc(self):
+        if self.key:
+            self.decomp()
+        elif self.n and self.e:
+            self.comp()
+        else:  # do nothing
+            pass
 
 
 class EC_key(Key):
@@ -233,7 +244,7 @@ class KeyBundle(object):
         for inst in keys:
             typ = inst["kty"].lower()
             _key = K2C[typ](**inst)
-            _key.comp()
+            _key.dc()
             self._keys.append(_key)
 
     def do_local_jwk(self, filename):
@@ -554,7 +565,7 @@ class KeyJar(object):
 
         for kc in kcs:
             kc.remove(key_type, key)
-            if not kc.keys:
+            if len(kc._keys) == 0:
                 self.issuer_keys[issuer].remove(kc)
 
     def update(self, kj):

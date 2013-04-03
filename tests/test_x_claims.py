@@ -139,8 +139,7 @@ def test_srv2():
     req = cc.construct_UserClaimsRequest(
         request_args={"sub": "diana", "claims_names": ["gender", "birthdate"]})
 
-    srv = ClaimsServer("pyoicserv", SessionDB(), CDB, AUTHN, USERINFO,
-                       AUTHZ, verify_client, "SYMKEY",
+    srv = ClaimsServer("pyoicserv", SessionDB(), CDB, USERINFO, verify_client,
                        keyjar=KEYJAR, dist_claims_mode=ClaimsMode(USER2MODE))
 
     srv.keyjar[""] = keybundle_from_local_file("rsa.key", "rsa", ["ver", "sig"])

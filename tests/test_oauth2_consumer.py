@@ -1,3 +1,4 @@
+
 __author__ = 'rohe0002'
 import urllib
 
@@ -9,7 +10,7 @@ from oic.oauth2.consumer import Consumer
 from oic.oauth2.consumer import stateID
 from oic.oauth2.consumer import factory
 
-from oic.utils import http_util
+from oic.utils.http_util import make_cookie
 from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import AuthorizationErrorResponse
@@ -105,7 +106,7 @@ def test_factory():
     cons._backup(sid)
     cons.sdb["seed:%s" % cons.seed] = sid
 
-    kaka = http_util.cookie(CLIENT_CONFIG["client_id"], cons.state, cons.seed,
+    kaka = make_cookie(CLIENT_CONFIG["client_id"], cons.state, cons.seed,
                             expire=360, path="/")
 
     _oac = factory(kaka[1], _session_db, CLIENT_CONFIG["client_id"],
@@ -219,7 +220,7 @@ def test_consumer_parse_access_token():
 
 def test_consumer_parse_authz_error_2():
     _session_db = {}
-    cons = Consumer(_session_db, client_config = CLIENT_CONFIG,
+    cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
     cons.debug = True
 
@@ -234,7 +235,7 @@ def test_consumer_parse_authz_error_2():
 
 def test_consumer_client_auth_info():
     _session_db = {}
-    cons = Consumer(_session_db, client_config = CLIENT_CONFIG,
+    cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
     cons.client_secret = "secret0"
     ra, ha, extra = cons.client_auth_info()
@@ -244,7 +245,7 @@ def test_consumer_client_auth_info():
 
 def test_consumer_client_get_access_token_reques():
     _session_db = {}
-    cons = Consumer(_session_db, client_config = CLIENT_CONFIG,
+    cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
     cons.client_secret = "secret0"
     cons.state = "state"

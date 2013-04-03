@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __builtin__ import int, open, hasattr, isinstance
-import base64
+from __builtin__ import int, open, hasattr
 import sys
 import os
 import traceback
@@ -108,71 +107,6 @@ def replace_format_handler(logger, log_format="CPC"):
     return logger
 
 
-def do_authentication(environ, start_response, sid, cookie=None,
-                      policy_url=None, logo_url=None):
-    """
-    Put up the login form
-    """
-    if cookie:
-        headers = [cookie]
-    else:
-        headers = []
-    resp = Response(mako_template="login.mako",
-                    template_lookup=environ["mako.lookup"], headers=headers)
-
-    argv = {"sid": sid,
-            "login": "",
-            "password": "",
-            "action": "authenticated",
-            "policy_url": policy_url,
-            "logo_url": logo_url}
-    LOGGER.info("do_authentication argv: %s" % argv)
-    return resp(environ, start_response, **argv)
-
-
-def verify_username_and_password(dic):
-    global PASSWD
-    # verify username and password
-    for user, pwd in PASSWD:
-        if user == dic["login"][0]:
-            if pwd == dic["password"][0]:
-                return True, user
-            else:
-                raise AuthnFailure("Wrong password")
-
-    return False, ""
-
-
-#noinspection PyUnusedLocal
-def do_authorization(user, session=None):
-    global PASSWD
-    if user in [u for u, p in PASSWD]:
-        return "ALL"
-    else:
-        raise Exception("No Authorization defined")
-
-
-#noinspection PyUnusedLocal
-def verify_client(environ, areq, cdb):
-    authz_info = environ["HTTP_AUTHORIZATION"]
-    if authz_info.startswith("Basic "):
-        _info = base64.b64decode(authz_info[6:])
-        LOGGER.debug("Authz_info: %s" % _info)
-        (client, secret) = _info.split(":")
-        if client in cdb:
-            assert cdb[client]["client_secret"] == secret
-    else:
-        client = ""
-
-    return client
-
-
-FUNCTIONS = {
-    "authenticate": do_authentication,
-    "authorize": do_authorization,
-    "verify_user": verify_username_and_password,
-    "verify_client": verify_client,
-}
 
 # ----------------------------------------------------------------------------
 

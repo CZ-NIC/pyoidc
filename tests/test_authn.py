@@ -3,6 +3,7 @@ import os
 import urllib
 from urlparse import parse_qs
 import jwkest
+from jwkest.jws import verify
 from mako.lookup import TemplateLookup
 from oic.oic import JWT_BEARER
 from oic.utils.http_util import Unauthorized
@@ -59,7 +60,7 @@ def test_2():
 
 
 def test_3():
-    form = create_return_form_env("user", "hemligt", "QUERY")
+    form = create_return_form_env("user", "hemligt", "query=foo")
     srv = SRV()
     srv.symkey = "symkey"
     srv.seed = rndstr()
@@ -69,7 +70,7 @@ def test_3():
     authn = UsernamePasswordMako(srv, "login.mako", tl, PASSWD,
                                  "authorization_endpoint")
     response = authn.verify(parse_qs(form))
-    assert response.message == "authorization_endpoint?QUERY"
+    assert response.message == "authorization_endpoint?query=foo&upm_answer=true"
     print len(response.headers) == 2
     flag = 0
     for param, val in response.headers:
@@ -156,6 +157,9 @@ def test_client_secret_jwt():
     print header
     assert header == {'alg': 'HS256'}
 
+    a = verify(cas, {"hmac": [cli.client_secret]})
+    _dict = json.loads(a)
+    assert _eq(_dict.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
 
 def test_private_key_jwt():
     cli = Client("FOO")

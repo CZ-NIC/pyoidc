@@ -136,7 +136,7 @@ class DummyAuthn(UserAuthnMethod):
         UserAuthnMethod.__init__(self, srv)
         self.user = user
 
-    def authenticated_as(self):
+    def authenticated_as(self, cookie, **kwargs):
         return {"uid": self.user}
 
 #AUTHN = UsernamePasswordMako(None, "login.mako", tl, PASSWD, "authenticated")

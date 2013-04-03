@@ -56,16 +56,14 @@ def _eq(l1, l2):
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
-KC_HMAC_VS = KeyBundle({"kty": "hmac", "key": "abcdefghijklmnop", "use": "ver"})
 KC_HMAC_S = KeyBundle({"kty": "hmac", "key": "abcdefghijklmnop", "use": "sig"})
 
 _key = rsa_load("../oc3/certs/mycert.key")
-KC_RSA = KeyBundle([{"key":_key, "kty":"rsa", "use":"ver"},
-                    {"key":_key, "kty":"rsa", "use":"sig"}])
+KC_RSA = KeyBundle({"key":_key, "kty":"rsa", "use":"sig"})
 
 KEYJ = KeyJar()
 KEYJ[""] = [KC_RSA, KC_HMAC_S]
-KEYJ["client_1"] = [KC_HMAC_VS]
+KEYJ["client_1"] = [KC_HMAC_S]
 
 IDTOKEN = IdToken(iss="http://oic.example.org/", sub="user_id",
                   aud=CLIENT_ID, exp=utc_time_sans_frac() + 86400,

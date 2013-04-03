@@ -445,6 +445,8 @@ class JWSAuthnMethod(ClientAuthnMethod):
             logger.info("%s" % err)
             return False
 
+        logger.debug("authntoken: %s" % bjwt.to_dict())
+        logger.debug("known clients: %s" % self.cli.cdb.keys())
         try:
             # There might not be a client_id in the request
             assert str(bjwt["iss"]) in self.cli.cdb  # It's a client I know
@@ -453,13 +455,17 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
         # aud can be a string or a list
         _aud = bjwt["aud"]
+        logger.debug("audience: %s, baseurl: %s" % (_aud, self.cli.baseurl))
         try:
             if isinstance(_aud, basestring):
-                assert str(_aud) == self.cli.baseurl
+                assert str(_aud).startswith(self.cli.baseurl)
             else:
-                assert self.cli.baseurl in _aud
+                for target in _aud:
+                    if target.startswith(self.cli.baseurl):
+                        return True
+                raise NotForMe("Not for me!")
         except AssertionError:
-            raise NotForMe()
+            raise NotForMe("Not for me!")
 
         return True
 
