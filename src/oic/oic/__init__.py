@@ -39,7 +39,7 @@ from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import rndstr
 from oic.oauth2.consumer import ConfigurationError
 
-from oic.oic.exception import AccessDenied
+from oic.oauth2.exception import AccessDenied
 
 from oic.utils import time_util
 
