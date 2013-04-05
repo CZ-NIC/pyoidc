@@ -337,7 +337,10 @@ class BearerHeader(ClientAuthnMethod):
 
                         _acc_token = self.cli.get_token(**kwargs).access_token
         else:
-            _acc_token = kwargs["access_token"]
+            try:
+                _acc_token = kwargs["access_token"]
+            except KeyError:
+                _acc_token = request_args["access_token"]
 
         # Do I need to base64 encode the access token ? Probably !
         #_bearer = "Bearer %s" % base64.b64encode(_acc_token)
