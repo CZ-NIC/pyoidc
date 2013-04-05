@@ -23,7 +23,7 @@ from oic.utils.http_util import parse_cookie
 from oic.utils.http_util import make_cookie
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import Unauthorized
-from saml2.saml import assertion_from_string
+
 
 logger = logging.getLogger(__name__)
 
@@ -494,41 +494,6 @@ SAML2_BEARER_ASSERTION_TYPE = \
     "urn:ietf:params:oauth:client-assertion-type:saml2-bearer"
 
 
-class SAML2AuthnMethod(ClientAuthnMethod):
-    """
-    Authenticating clients using the SAML2 assertion profile
-    """
-    def construct(self, cis, assertion=None, **kwargs):
-        """
-
-        :param cis: The request
-        :param assertion: A SAML2 Assertion
-        :param kwargs: Extra arguments
-        :return: Constructed HTTP arguments, in this case none
-        """
-
-        cis["client_assertion"] = base64.urlsafe_b64encode(str(assertion))
-        cis["client_assertion_type"] = SAML2_BEARER_ASSERTION_TYPE
-
-    def verify(self, areq, **kwargs):
-        xmlstr = base64.urlsafe_b64decode(areq["client_assertion"])
-        try:
-            assertion = assertion_from_string(xmlstr)
-        except:
-            return False
-        return self._verify_saml2_assertion(assertion)
-
-    def _verify_saml2_assertion(self, assertion):
-        subject = assertion.subject
-        #client_id = subject.name_id.text
-        #who_ever_issued_it = assertion.issuer.text
-
-        audience = []
-        for ar in subject.audience_restiction:
-            for aud in ar.audience:
-                audience.append(aud)
-
-
 CLIENT_AUTHN_METHOD = {
     "client_secret_basic": ClientSecretBasic,
     "client_secret_post": ClientSecretPost,
@@ -536,8 +501,48 @@ CLIENT_AUTHN_METHOD = {
     "bearer_body": BearerBody,
     "client_secret_jwt": ClientSecretJWT,
     "private_key_jwt": PrivateKeyJWT,
-    "saml2_bearer": SAML2AuthnMethod
 }
+
+try:
+    from saml2.saml import assertion_from_string
+
+    class SAML2AuthnMethod(ClientAuthnMethod):
+        """
+        Authenticating clients using the SAML2 assertion profile
+        """
+        def construct(self, cis, assertion=None, **kwargs):
+            """
+
+            :param cis: The request
+            :param assertion: A SAML2 Assertion
+            :param kwargs: Extra arguments
+            :return: Constructed HTTP arguments, in this case none
+            """
+
+            cis["client_assertion"] = base64.urlsafe_b64encode(str(assertion))
+            cis["client_assertion_type"] = SAML2_BEARER_ASSERTION_TYPE
+
+        def verify(self, areq, **kwargs):
+            xmlstr = base64.urlsafe_b64decode(areq["client_assertion"])
+            try:
+                assertion = assertion_from_string(xmlstr)
+            except:
+                return False
+            return self._verify_saml2_assertion(assertion)
+
+        def _verify_saml2_assertion(self, assertion):
+            subject = assertion.subject
+            #client_id = subject.name_id.text
+            #who_ever_issued_it = assertion.issuer.text
+
+            audience = []
+            for ar in subject.audience_restiction:
+                for aud in ar.audience:
+                    audience.append(aud)
+
+    CLIENT_AUTHN_METHOD["saml2_bearer"] = SAML2AuthnMethod
+except ImportError:
+    pass
 
 
 def verify_client(inst, areq, authn):
