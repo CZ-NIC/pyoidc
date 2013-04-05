@@ -5,7 +5,7 @@ import base64
 import logging
 import os
 
-from oic.oic.exception import MissingParameter
+from oic.oauth2.exception import MissingParameter
 from oic.oauth2.exception import FailedAuthentication
 
 from oic.oauth2.message import AccessTokenResponse
