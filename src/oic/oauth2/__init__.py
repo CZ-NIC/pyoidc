@@ -10,7 +10,7 @@ import cookielib
 from Cookie import SimpleCookie
 import logging
 
-from oic.utils.keyio import KeyJar, KeyBundle
+from oic.utils.keyio import KeyJar
 from oic.utils.time_util import utc_time_sans_frac
 
 DEF_SIGN_ALG = "HS256"
