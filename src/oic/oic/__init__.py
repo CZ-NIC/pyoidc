@@ -691,13 +691,18 @@ class Client(oauth2.Client):
             raise Exception("ERROR: Something went wrong [%s]: %s" % (
                 resp.status_code, resp.text))
 
+        try:
+            _schema = kwargs["schema"]
+        except KeyError:
+            _schema = OpenIDSchema
+
         if sformat == "json":
-            return OpenIDSchema().from_json(txt=resp.text)
+            return _schema().from_json(txt=resp.text)
         else:
             algo = self.client_prefs["userinfo_signed_response_alg"]
             # Keys of the OP ?
             keys = self.keyjar.get_signing_key(alg2keytype(algo))
-            return OpenIDSchema().from_jwt(resp.text, keys)
+            return _schema().from_jwt(resp.text, keys)
 
     def get_userinfo_claims(self, access_token, endpoint, method="POST",
                             schema_class=OpenIDSchema, **kwargs):
