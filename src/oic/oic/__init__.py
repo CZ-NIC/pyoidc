@@ -692,9 +692,11 @@ class Client(oauth2.Client):
                 resp.status_code, resp.text))
 
         try:
-            _schema = kwargs["schema"]
+            _schema = kwargs["user_info_schema"]
         except KeyError:
             _schema = OpenIDSchema
+
+        logger.debug("Reponse text: '%s'" % resp.text)
 
         if sformat == "json":
             return _schema().from_json(txt=resp.text)
