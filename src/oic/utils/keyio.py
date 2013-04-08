@@ -380,11 +380,23 @@ def keybundle_from_local_file(filename, typ, usage):
 
 
 def dump_jwks(kbl, target):
+    """
+    Write a JWK to a file
+
+    :param kbl: List of KeyBundles
+    :param target: Name of the file to which everything should be written
+    """
     res = {"keys": []}
     for kb in kbl:
         res["keys"].extend([k.to_dict() for k in kb.keys()])
 
-    f = open(target, 'w')
+    try:
+        f = open(target, 'w')
+    except IOError:
+        (head, tail) = os.path.split(target)
+        os.makedirs(head)
+        f = open(target, 'w')
+
     _txt = json.dumps(res)
     f.write(_txt)
     f.close()
