@@ -808,8 +808,8 @@ class Client(PBase):
         elif resp.status_code == 500:
             raise Exception("ERROR: Something went wrong: %s" % resp.text)
         else:
-            raise Exception("ERROR: Something went wrong [%s]" % (
-                resp.status_code,))
+            raise Exception("ERROR: Something went wrong: %s [%s]" % (
+                resp.text, resp.status_code))
 
         if body_type:
             if response:
