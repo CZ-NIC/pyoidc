@@ -600,7 +600,10 @@ class KeyJar(object):
         raise Exception("No keys for '%s'" % url)
 
     def __str__(self):
-        return "%s" % self.issuer_keys
+        _res = {}
+        for k, vs in self.issuer_keys.items():
+            _res[k] = [str(v) for v in vs]
+        return "%s" % _res
 
     def keys(self):
         self.issuer_keys.keys()
