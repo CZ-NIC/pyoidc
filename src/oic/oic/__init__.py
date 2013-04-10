@@ -915,19 +915,43 @@ class Client(oauth2.Client):
             if key not in PREFERENCE2PROVIDER:
                 self.behaviour[key] = val
 
-    def register(self, url, operation="register", application_type="web",
-                 **kwargs):
-        req = RegistrationRequest(operation=operation,
-                                  application_type=application_type)
+    def handle_registration_info(self, response):
+        if response.status_code == 200:
+            resp = RegistrationResponse().deserialize(response.text, "json")
+            self.registration_response = resp
+            self.client_secret = resp["client_secret"]
+            self.client_id = resp["client_id"]
+            self.registration_expires = resp["expires_at"]
+            self.registration_access_token = resp["registration_access_token"]
+        else:
+            err = ErrorResponse().deserialize(response.text, "json")
+            raise Exception("Registration failed: %s" % err.get_json())
 
-        if operation == "update":
-            req["client_id"] = self.client_id
-            req["client_secret"] = self.client_secret
+        return resp
+
+    def registration_read(self, url="", registration_access_token=None):
+        if not url:
+            url = self.registration_response["registration_client_uri"]
+
+        if not registration_access_token:
+            registration_access_token = self.registration_access_token
+
+        headers = [("Authorization", "Bearer %s" % registration_access_token)]
+        rsp = self.http_request(url, "GET", headers=headers)
+
+        return self.handle_registration_info(rsp)
+
+    def register(self, url, **kwargs):
+        """
+        Register the client at an OP
+
+        :param url: The OPs registration endpoint
+        :param kwargs: parameters to the registration request
+        :return:
+        """
+        req = RegistrationRequest()
 
         for prop in req.parameters():
-            if prop in ["operation", "client_id", "client_secret"]:
-                continue
-
             try:
                 req[prop] = kwargs[prop]
             except KeyError:
@@ -942,25 +966,12 @@ class Client(oauth2.Client):
             except AttributeError:
                 raise MissingRequiredAttribute("redirect_uris")
 
-        headers = {"content-type": "application/x-www-form-urlencoded"}
+        headers = {"content-type": "application/json"}
 
-        if operation == "client_update":
-            headers["Authorization"] = "Bearer %s" % self.registration_access_token
-
-        rsp = self.http_request(url, "POST", data=req.to_urlencoded(),
+        rsp = self.http_request(url, "POST", data=req.to_json(),
                                 headers=headers)
 
-        if rsp.status_code == 200:
-            resp = RegistrationResponse().deserialize(rsp.text, "json")
-            self.client_secret = resp["client_secret"]
-            self.client_id = resp["client_id"]
-            self.registration_expires = resp["expires_at"]
-            self.registration_access_token = resp["registration_access_token"]
-        else:
-            err = ErrorResponse().deserialize(rsp.text, "json")
-            raise Exception("Registration failed: %s" % err.get_json())
-
-        return resp
+        return self.handle_registration_info(rsp)
 
     def normalization(self, principal, idtype="mail"):
         if idtype == "mail":

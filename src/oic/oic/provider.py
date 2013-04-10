@@ -859,6 +859,19 @@ class Provider(AProvider):
 
         return _cinfo
 
+    def comb_redirect_uris(self, args):
+        if "redirect_uris" not in args:
+            return
+
+        val = []
+        for base, query in args["redirect_uris"]:
+            if query:
+                val.append("%s?%s" % (base, query))
+            else:
+                val.append(base)
+
+        args["redirect_uris"] = val
+
     #noinspection PyUnusedLocal
     def l_registration_endpoint(self, request, authn=None, **kwargs):
         _log_debug = logger.debug
@@ -866,7 +879,7 @@ class Provider(AProvider):
 
         _log_debug("@registration_endpoint")
 
-        request = RegistrationRequest().deserialize(request, "urlencoded")
+        request = RegistrationRequest().deserialize(request, "json")
 
         _log_info("registration_request:%s" % request.to_dict())
         resp_keys = request.keys()
@@ -891,11 +904,16 @@ class Provider(AProvider):
         client_secret = secret(self.seed, client_id)
 
         _rat = rndstr(32)
+        reg_enp = ""
+        for endp in self.endpoints:
+            if isinstance(endp, RegistrationEndpoint):
+                reg_enp = "%s%s" % (self.baseurl, endp.etype)
+
         self.cdb[client_id] = {
             "client_id": client_id,
             "client_secret": client_secret,
             "registration_access_token": _rat,
-            "registration_client_uri": self.register_endpoint,
+            "registration_client_uri": "%s?client_id=%s" % (reg_enp, client_id),
             "expires_at": utc_time_sans_frac() + 86400}
 
         self.cdb[_rat] = client_id
@@ -909,13 +927,8 @@ class Provider(AProvider):
 
         args = dict([(k, v) for k, v in _cinfo.items()
                      if k in RegistrationResponse.c_param])
-        val = []
-        for base, query in args["redirect_uris"]:
-            if query:
-                val.append("%s?%s" % (base, query))
-            else:
-                val.append(base)
-        args["redirect_uris"] = val
+
+        self.comb_redirect_uris(args)
         response = RegistrationResponse(**args)
 
         self.keyjar.load_keys(request, client_id)
@@ -939,6 +952,41 @@ class Provider(AProvider):
 
     def registration_endpoint(self, request, authn=None, **kwargs):
         return self.l_registration_endpoint(request, authn, **kwargs)
+
+    def read_registration(self, authn, request, **kwargs):
+        """
+        Read all information this server has on a client.
+        Authorization is done by using the access token that was return as
+        part of the client registration result.
+
+        :param authn: The Authorization HTTP header
+        :param request: The query part of the URL
+        :param kwargs: Any other arguments
+        :return:
+        """
+
+        logger.debug("authn: %s, request: %s" % (authn, request))
+
+        # verify the access token, has to be key into the client information
+        # database.
+        assert authn.startswith("Bearer ")
+        token = authn[len("Bearer "):]
+
+        client_id = self.cdb[token]
+
+        # extra check
+        _info = urlparse.parse_qs(request)
+        assert _info["client_id"][0] == client_id
+
+        logger.debug("Client '%s' reads client info" % client_id)
+        args = dict([(k, v) for k, v in self.cdb[client_id].items()
+                     if k in RegistrationResponse.c_param])
+
+        self.comb_redirect_uris(args)
+        response = RegistrationResponse(**args)
+
+        return Response(response.to_json(), content="application/json",
+                        headers=[("Cache-Control", "no-store")])
 
     #noinspection PyUnusedLocal
     def providerinfo_endpoint(self, handle="", **kwargs):
