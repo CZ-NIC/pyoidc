@@ -59,3 +59,7 @@ class MissingSession(OauthError):
 
 class NotForMe(OauthError):
     pass
+
+
+class UnSupported(Exception):
+    pass

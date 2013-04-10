@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 #
+
 __author__ = 'rohe0002'
 
 import requests
@@ -12,6 +13,7 @@ import logging
 
 from oic.utils.keyio import KeyJar
 from oic.utils.time_util import utc_time_sans_frac
+from oic.oauth2.exception import UnSupported
 
 DEF_SIGN_ALG = "HS256"
 
@@ -21,7 +23,9 @@ Version = "2.0"
 
 HTTP_ARGS = ["headers", "redirections", "connection_type"]
 
-DEFAULT_POST_CONTENT_TYPE = 'application/x-www-form-urlencoded'
+URL_ENCODED = 'application/x-www-form-urlencoded'
+JSON_ENCODED = "application/json"
+DEFAULT_POST_CONTENT_TYPE = URL_ENCODED
 
 REQUEST2ENDPOINT = {
     "AuthorizationRequest": "authorization_endpoint",
@@ -596,7 +600,8 @@ class Client(PBase):
         request_args["access_token"] = token.access_token
         return self.construct_request(request, request_args, extra_args)
 
-    def get_or_post(self, uri, method, req, **kwargs):
+    def get_or_post(self, uri, method, req,
+                    content_type=DEFAULT_POST_CONTENT_TYPE, **kwargs):
         if method == "GET":
             _qp = req.to_urlencoded()
             if _qp:
@@ -606,8 +611,15 @@ class Client(PBase):
             body = None
         elif method == "POST":
             path = uri
-            body = req.to_urlencoded()
-            header_ext = {"content-type": DEFAULT_POST_CONTENT_TYPE}
+            if content_type == URL_ENCODED:
+                body = req.to_urlencoded()
+            elif content_type == JSON_ENCODED:
+                body = req.to_json()
+            else:
+                raise UnSupported(
+                    "Unsupported content type: '%s'" % content_type)
+
+            header_ext = {"content-type": content_type}
             if "headers" in kwargs.keys():
                 kwargs["headers"].update(header_ext)
             else:
