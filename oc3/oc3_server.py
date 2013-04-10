@@ -197,8 +197,15 @@ def op_info(environ, start_response, logger):
 def registration(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
-    return wsgi_wrapper(environ, start_response, _oas.registration_endpoint,
-                        logger=logger)
+    if environ["REQUEST_METHOD"] == "POST":
+        return wsgi_wrapper(environ, start_response, _oas.registration_endpoint,
+                            logger=logger)
+    elif environ["REQUEST_METHOD"] == "GET":
+        return wsgi_wrapper(environ, start_response, _oas.read_registration,
+                            logger=logger)
+    else:
+        resp = ServiceError("Method not supported")
+        return resp(environ, start_response)
 
 
 #noinspection PyUnusedLocal
@@ -373,6 +380,7 @@ def application(environ, start_response):
                 resp = ServiceError("%s" % err)
                 return resp(environ, start_response)
 
+    LOGGER.debug("unknown side: %s" % path)
     resp = NotFound("Couldn't find the side you asked for!")
     return resp(environ, start_response)
 
@@ -550,6 +558,7 @@ if __name__ == '__main__':
     for key, cc in OAS.userinfo.claims_clients.items():
         OAS.keyjar.update(cc.keyjar)
 
+    LOGGER.debug("URLS: '%s" % (URLS,))
     # Add the claims providers keys
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
 
