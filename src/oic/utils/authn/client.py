@@ -1,9 +1,4 @@
-import base64
 import logging
-import time
-from urllib import urlencode
-from urlparse import parse_qs
-from urlparse import urlsplit
 from jwkest import Invalid
 from jwkest import MissingKey
 from jwkest.jws import alg2keytype
@@ -15,14 +10,7 @@ from oic.oic import REQUEST2ENDPOINT
 from oic.oic import DEF_SIGN_ALG
 from oic.oic import AuthnToken
 from oic.oic import JWT_BEARER
-from oic.utils.aes_m2c import AES_encrypt
-from oic.utils.aes_m2c import AES_decrypt
 from oic.utils.time_util import utc_now
-from oic.utils.http_util import Response
-from oic.utils.http_util import parse_cookie
-from oic.utils.http_util import make_cookie
-from oic.utils.http_util import Redirect
-from oic.utils.http_util import Unauthorized
 
 
 logger = logging.getLogger(__name__)
@@ -33,197 +21,6 @@ __author__ = 'rolandh'
 class AuthnFailure(Exception):
     pass
 
-
-class UserAuthnMethod(object):
-    def __init__(self, srv):
-        self.srv = srv
-
-    def __call__(self, *args, **kwargs):
-        raise NotImplemented
-
-    def authenticated_as(self, **kwargs):
-        raise NotImplemented
-
-    def verify(self, **kwargs):
-        raise NotImplemented
-
-
-def url_encode_params(params=None):
-    if not isinstance(params, dict):
-        raise Exception("You must pass in a dictionary!")
-    params_list = []
-    for k, v in params.items():
-        if isinstance(v, list):
-            params_list.extend([(k, x) for x in v])
-        else:
-            params_list.append((k, v))
-    return urlencode(params_list)
-
-
-def create_return_url(base, query, **kwargs):
-    """
-    Add a query string plus extra parameters to a base URL which may contain
-    a query part already.
-
-    :param base: redirect_uri may contain a query part, no fragment allowed.
-    :param query: Old query part as a string
-    :param kwargs: extra query parameters
-    :return:
-    """
-    part = urlsplit(base)
-    if part.fragment:
-        raise ValueError("Base URL contained parts it shouldn't")
-
-    for key, values in parse_qs(query).items():
-        if key in kwargs:
-            if isinstance(kwargs[key], basestring):
-                kwargs[key] = [kwargs[key]]
-            kwargs[key].extend(values)
-        else:
-            kwargs[key] = values
-
-    if part.query:
-        for key, values in parse_qs(part.query).items():
-            if key in kwargs:
-                if isinstance(kwargs[key], basestring):
-                    kwargs[key] = [kwargs[key]]
-                kwargs[key].extend(values)
-            else:
-                kwargs[key] = values
-
-        _pre = base.split("?")[0]
-    else:
-        _pre = base
-
-    logger.debug("kwargs: %s" % kwargs)
-
-    return "%s?%s" % (_pre, url_encode_params(kwargs))
-
-
-class UsernamePasswordMako(UserAuthnMethod):
-    """Do user authentication using the normal username password form in a
-    WSGI environment using Mako as template system"""
-
-    def __init__(self, srv, mako_template, template_lookup, pwd, return_to):
-        """
-        :param srv: The server instance
-        :param mako_template: Which Mako template to use
-        :param pwd: Username/password dictionary like database
-        :param return_to: Where to send the user after authentication
-        :return:
-        """
-        UserAuthnMethod.__init__(self, srv)
-        self.mako_template = mako_template
-        self.template_lookup = template_lookup
-        self.passwd = pwd
-        self.return_to = return_to
-        self.active = {}
-        self.query_param = "upm_answer"
-
-    def __call__(self, cookie=None, policy_url=None, logo_url=None,
-                 query="", **kwargs):
-        """
-        Put up the login form
-        """
-        if cookie:
-            headers = [cookie]
-        else:
-            headers = []
-
-        resp = Response(headers=headers)
-
-        argv = {"login": "",
-                "password": "",
-                "action": "verify",
-                "policy_url": policy_url,
-                "logo_url": logo_url,
-                "query": query}
-        logger.info("do_authentication argv: %s" % argv)
-        mte = self.template_lookup.get_template(self.mako_template)
-        resp.message = mte.render(**argv)
-        return resp
-
-    def verify(self, request, **kwargs):
-        """
-        Verifies that the given username and password was correct
-        :param request: Either the query part of a URL a urlencoded
-            body of a HTTP message or a parse such.
-        :param kwargs: Catch whatever else is sent.
-        :return: redirect back to where ever the base applications
-            wants the user after authentication.
-        """
-
-        logger.debug("verify(%s)" % request)
-        if isinstance(request, basestring):
-            _dict = parse_qs(request)
-        elif isinstance(request, dict):
-            _dict = request
-        else:
-            raise ValueError("Wrong type of input")
-
-        logger.debug("dict: %s" % _dict)
-        logger.debug("passwd: %s" % self.passwd)
-        # verify username and password
-        try:
-            assert _dict["password"][0] == self.passwd[_dict["login"][0]]
-            timestamp = str(int(time.mktime(time.gmtime())))
-            info = AES_encrypt(self.srv.symkey,
-                               "::".join([_dict["login"][0], timestamp]),
-                               self.srv.iv)
-            self.active[info] = timestamp
-            cookie = make_cookie(self.srv.cookie_name, info, self.srv.seed,
-                                 expire=0, domain="", path="")
-            return_to = create_return_url(self.return_to, _dict["query"][0],
-                                          **{self.query_param: "true"})
-            resp = Redirect(return_to, headers=[cookie])
-        except (AssertionError, KeyError):
-            resp = Unauthorized("Unknown user or wrong password")
-
-        return resp
-
-    def authenticated_as(self, cookie=None, **kwargs):
-        if cookie is None:
-            return None
-        else:
-            logger.debug("kwargs: %s" % kwargs)
-            try:
-                info, timestamp = parse_cookie(self.srv.cookie_name,
-                                               self.srv.seed, cookie)
-                if self.active[info] == timestamp:
-                    #del self.active[info]
-                    uid, _ts = AES_decrypt(self.srv.symkey,
-                                           info, self.srv.iv).split("::")
-                    if timestamp == _ts:
-                        if "max_age" in kwargs and kwargs["max_age"]:
-                            _now = int(time.mktime(time.gmtime()))
-                            if _now > (int(_ts) + int(kwargs["max_age"])):
-                                logger.debug("Authentication too old")
-                                return None
-                        return {"uid": uid}
-            except Exception:
-                pass
-
-        return None
-
-    def done(self, areq):
-        try:
-            _ = areq[self.query_param]
-            return False
-        except KeyError:
-            return True
-
-
-class AuthnMethodChooser(object):
-    def __init__(self, methods=None):
-        self.methods = methods
-
-    def __call__(self, **kwargs):
-        if not self.methods:
-            raise Exception("No authentication methods defined")
-        elif len(self.methods) == 1:
-            return self.methods[0]
-        else:
-            pass  # TODO 
 
 
 # ========================================================================
@@ -490,8 +287,7 @@ class PrivateKeyJWT(JWSAuthnMethod):
         return self.cli.keyjar.get_signing_key(alg2keytype(algorithm), "")
 
 
-SAML2_BEARER_ASSERTION_TYPE = \
-    "urn:ietf:params:oauth:client-assertion-type:saml2-bearer"
+#from oic.utils.authn.client_saml import SAML2_BEARER_ASSERTION_TYPE
 
 
 CLIENT_AUTHN_METHOD = {
@@ -503,49 +299,10 @@ CLIENT_AUTHN_METHOD = {
     "private_key_jwt": PrivateKeyJWT,
 }
 
-try:
-    from saml2.saml import assertion_from_string
-
-    class SAML2AuthnMethod(ClientAuthnMethod):
-        """
-        Authenticating clients using the SAML2 assertion profile
-        """
-        def construct(self, cis, assertion=None, **kwargs):
-            """
-
-            :param cis: The request
-            :param assertion: A SAML2 Assertion
-            :param kwargs: Extra arguments
-            :return: Constructed HTTP arguments, in this case none
-            """
-
-            cis["client_assertion"] = base64.urlsafe_b64encode(str(assertion))
-            cis["client_assertion_type"] = SAML2_BEARER_ASSERTION_TYPE
-
-        def verify(self, areq, **kwargs):
-            xmlstr = base64.urlsafe_b64decode(areq["client_assertion"])
-            try:
-                assertion = assertion_from_string(xmlstr)
-            except:
-                return False
-            return self._verify_saml2_assertion(assertion)
-
-        def _verify_saml2_assertion(self, assertion):
-            subject = assertion.subject
-            #client_id = subject.name_id.text
-            #who_ever_issued_it = assertion.issuer.text
-
-            audience = []
-            for ar in subject.audience_restiction:
-                for aud in ar.audience:
-                    audience.append(aud)
-
-    CLIENT_AUTHN_METHOD["saml2_bearer"] = SAML2AuthnMethod
-except ImportError:
-    pass
+TYPE_METHOD = [JWT_BEARER, JWSAuthnMethod]
 
 
-def verify_client(inst, areq, authn):
+def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
     """
 
     :param areq: The request
@@ -560,10 +317,9 @@ def verify_client(inst, areq, authn):
     if "client_secret" in areq:  # client_secret_post/client_secret_basic
         return ClientSecretBasic(inst).verify(areq, client_id)
     elif "client_assertion" in areq:  # client_secret_jwt or public_key_jwt
-        if areq["client_assertion_type"] == JWT_BEARER:
-            return JWSAuthnMethod(inst).verify(areq)
-        elif areq["client_assertion_type"] == SAML2_BEARER_ASSERTION_TYPE:
-            return SAML2AuthnMethod(inst).verify(areq)
+        for typ, method in type_method:
+            if areq["client_assertion_type"] == typ:
+                return method(inst).verify(areq)
         else:
             raise UnknownAssertionType(areq["client_assertion_type"])
     else:

@@ -2,23 +2,11 @@ import copy
 import logging
 from oic.oic import OpenIDSchema
 from oic.oic.claims_provider import ClaimsClient
+from oic.utils.userinfo import UserInfo
 
 __author__ = 'rolandh'
 
 logger = logging.getLogger(__name__)
-
-
-class UserInfo(object):
-    """ Read only interface to a user info store """
-
-    def __init__(self, db=None):
-        self.db = db
-
-    def __call__(self, userid, user_info_claims=None, **kwargs):
-        try:
-            return self.db[userid]
-        except KeyError:
-            return {}
 
 
 class DistributedAggregatedUserInfo(UserInfo):
