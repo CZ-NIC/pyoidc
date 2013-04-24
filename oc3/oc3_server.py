@@ -14,7 +14,8 @@ from oic.utils.authn import UsernamePasswordMako, verify_client
 
 from oic.utils.authz import AuthzHandling
 from oic.utils.keyio import KeyBundle, dump_jwks
-from oic.utils.userinfo import DistributedAggregatedUserInfo
+#from oic.utils.userinfo import DistributedAggregatedUserInfo
+from oic.utils.userinfo.ldap_info import UserInfoLDAP
 
 __author__ = 'rohe0002'
 
@@ -552,9 +553,10 @@ if __name__ == '__main__':
     except Exception, err:
         OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
 
-    OAS.userinfo = DistributedAggregatedUserInfo(config.USERDB, OAS,
-                                                 config.CLIENT_INFO)
+#    OAS.userinfo = DistributedAggregatedUserInfo(config.USERDB, OAS,
+#                                                 config.CLIENT_INFO)
 
+    OAS.userinfo = UserInfoLDAP(**config.LDAP)
     for key, cc in OAS.userinfo.claims_clients.items():
         OAS.keyjar.update(cc.keyjar)
 

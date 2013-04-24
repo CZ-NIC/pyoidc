@@ -70,6 +70,16 @@ USERDB = {
     }
 }
 
+# ============= LDAP ==============
+LDAP = {
+    "uri": "ldaps://ldap.umu.se",
+    "base": "dc=umu, dc=se",
+    "filter_pattern": "(uid=%s)",
+    "user": "",
+    "passwd": "",
+    "attr": ["eduPersonScopedAffiliation"]
+}
+
 CLIENT_INFO = { }
 #    CLAIMS_PROVIDER: {
 #        "userclaims_endpoint":"%suserclaims" % CLAIMS_PROVIDER,
