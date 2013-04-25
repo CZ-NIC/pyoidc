@@ -935,8 +935,10 @@ class Provider(AProvider):
 
         # Add the key to the keyjar
         if client_secret:
-            _kc = KeyBundle([{"kty":"hmac", "key": client_secret, "use":"ver"},
-                             {"kty":"hmac", "key": client_secret, "use":"sig"}])
+            _kc = KeyBundle([{"kty": "hmac", "key": client_secret,
+                              "use": "ver"},
+                             {"kty": "hmac", "key": client_secret,
+                              "use": "sig"}])
             try:
                 _keyjar[client_id].append(_kc)
             except KeyError:

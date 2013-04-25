@@ -463,8 +463,8 @@ if __name__ == '__main__':
     parser.add_argument(dest="config")
     args = parser.parse_args()
 
+    # Client data base
     cdb = shelve.open("client_db", writeback=True)
-    # in memory session storage
 
     config = importlib.import_module(args.config)
     # Authentication method
