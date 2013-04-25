@@ -10,7 +10,8 @@ from exceptions import OSError
 from exceptions import IndexError
 from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
-from oic.utils.authn import UsernamePasswordMako, verify_client
+from oic.utils.authn.client import verify_client
+from oic.utils.authn.user import UsernamePasswordMako
 
 from oic.utils.authz import AuthzHandling
 from oic.utils.keyio import KeyBundle, dump_jwks
@@ -38,7 +39,8 @@ hdlr = logging.FileHandler(LOGFILE_NAME)
 base_formatter = logging.Formatter(
     "%(asctime)s %(name)s:%(levelname)s %(message)s")
 
-CPC = '%(asctime)s %(name)s:%(levelname)s [%(client)s,%(path)s,%(cid)s] %(message)s'
+CPC = ('%(asctime)s %(name)s:%(levelname)s '
+       '[%(client)s,%(path)s,%(cid)s] %(message)s')
 cpc_formatter = logging.Formatter(CPC)
 
 hdlr.setFormatter(base_formatter)
@@ -60,7 +62,10 @@ NAME = "pyoic"
 
 OAS = None
 
-PASSWD = {"diana": "krall", "babs": "howes", "upper": "crust"}
+PASSWD = {"diana": "krall",
+          "babs": "howes",
+          "upper": "crust",
+          "rohe0002": "StevieRay"}
 
 
 #noinspection PyUnusedLocal
@@ -555,10 +560,10 @@ if __name__ == '__main__':
 
 #    OAS.userinfo = DistributedAggregatedUserInfo(config.USERDB, OAS,
 #                                                 config.CLIENT_INFO)
+#    for key, cc in OAS.userinfo.claims_clients.items():
+#        OAS.keyjar.update(cc.keyjar)
 
     OAS.userinfo = UserInfoLDAP(**config.LDAP)
-    for key, cc in OAS.userinfo.claims_clients.items():
-        OAS.keyjar.update(cc.keyjar)
 
     LOGGER.debug("URLS: '%s" % (URLS,))
     # Add the claims providers keys
