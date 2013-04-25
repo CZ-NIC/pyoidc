@@ -15,7 +15,8 @@ from oic.utils.authn.user import UsernamePasswordMako
 
 from oic.utils.authz import AuthzHandling
 from oic.utils.keyio import KeyBundle, dump_jwks
-#from oic.utils.userinfo import DistributedAggregatedUserInfo
+from oic.utils.userinfo import UserInfo
+from oic.utils.userinfo.distaggr import DistributedAggregatedUserInfo
 from oic.utils.userinfo.ldap_info import UserInfoLDAP
 
 __author__ = 'rohe0002'
@@ -558,12 +559,14 @@ if __name__ == '__main__':
     except Exception, err:
         OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
 
-#    OAS.userinfo = DistributedAggregatedUserInfo(config.USERDB, OAS,
-#                                                 config.CLIENT_INFO)
-#    for key, cc in OAS.userinfo.claims_clients.items():
-#        OAS.keyjar.update(cc.keyjar)
+    if config.USERINFO == "LDAP":
+        OAS.userinfo = UserInfoLDAP(**config.LDAP)
+    elif config.USERINFO == "SIMPLE":
+        OAS.userinfo = UserInfo(**config.DISTDB)
+    elif config.USERINFO == "DISTRIBUTED":
+        OAS.userinfo = DistributedAggregatedUserInfo(config.USERDB, OAS,
+                                                     config.CLIENT_INFO)
 
-    OAS.userinfo = UserInfoLDAP(**config.LDAP)
 
     LOGGER.debug("URLS: '%s" % (URLS,))
     # Add the claims providers keys

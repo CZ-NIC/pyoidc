@@ -19,7 +19,7 @@ SERVER_KEY = "certs/server.key"
 #CERT_CHAIN="certs/chain.pem"
 CERT_CHAIN = None
 
-CLAIMS_PROVIDER = "https://localhost:8093/"
+# =======  SIMPLE DATABASE ==============
 
 USERDB = {
     "diana": {
@@ -53,9 +53,6 @@ USERDB = {
             "postal_code": "91608",
             "country": "USA",
             },
-        "_external_": {
-            CLAIMS_PROVIDER: ["geolocation"]
-        }
     },
     "upper": {
         "user_id": "uppe0001",
@@ -64,13 +61,29 @@ USERDB = {
         "family_name": "Crust",
         "email": "uc@example.com",
         "email_verified": True,
-        "_external_": {
-            CLAIMS_PROVIDER: ["geolocation"]
-        }
     }
 }
 
+# =======  DISTRIBUTED CLAIMS ===========
+
+CLAIMS_PROVIDER = "https://localhost:8093/"
+
+CLIENT_INFO = {
+    CLAIMS_PROVIDER: {
+        "userclaims_endpoint":"%suserclaims" % CLAIMS_PROVIDER,
+        "client_id": "client_1",
+        "client_secret": "hemlig",
+        "x509_url": "%scp_keys/cert.pem" % CLAIMS_PROVIDER,
+        "jwk_url": "%scp_keys/pub.jwk" % CLAIMS_PROVIDER,
+    }
+}
+
+DISTDB = USERDB.copy()
+DISTDB["babs"]["_external_"] = {CLAIMS_PROVIDER: ["geolocation"]}
+DISTDB["upper"]["_external_"] = {CLAIMS_PROVIDER: ["geolocation"]}
+
 # ============= LDAP ==============
+
 LDAP = {
     "uri": "ldaps://ldap.umu.se",
     "base": "dc=umu, dc=se",
@@ -80,12 +93,4 @@ LDAP = {
     "attr": ["eduPersonScopedAffiliation"]
 }
 
-CLIENT_INFO = { }
-#    CLAIMS_PROVIDER: {
-#        "userclaims_endpoint":"%suserclaims" % CLAIMS_PROVIDER,
-#        "client_id": "client_1",
-#        "client_secret": "hemlig",
-#        "x509_url": "%scp_keys/cert.pem" % CLAIMS_PROVIDER,
-#        "jwk_url": "%scp_keys/pub.jwk" % CLAIMS_PROVIDER,
-#        }
-#}
+USERINFO = "LDAP"
