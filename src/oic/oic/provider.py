@@ -243,9 +243,14 @@ class Provider(AProvider):
             return None
         except Exception, err:
             logger.error("Faulty redirect_uri: %s" % areq["redirect_uri"])
-            _cinfo = self.cdb[areq["client_id"]]
-            logger.info("Registered redirect_uris: %s" % _cinfo)
-            raise RedirectURIError("Faulty redirect_uri: %s" % err)
+            try:
+                _cinfo = self.cdb[areq["client_id"]]
+            except KeyError:
+                logger.info("Unknown client: %s" % areq["client_id"])
+                raise UnknownClient(areq["client_id"])
+            else:
+                logger.info("Registered redirect_uris: %s" % _cinfo)
+                raise RedirectURIError("Faulty redirect_uri: %s" % err)
 
     def _parse_openid_request(self, request):
         return OpenIDRequest().from_jwt(request, keyjar=self.keyjar)
