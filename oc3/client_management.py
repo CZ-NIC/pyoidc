@@ -1,10 +1,27 @@
 #!/usr/bin/env python
 import shelve
+import urllib
+import urlparse
 import argparse
+import sys
 from oic.oic.provider import secret
 from oic.oauth2 import rndstr
 
 __author__ = 'rolandh'
+
+
+def pack_redirect_uri(redirect_uris):
+    ruri = []
+    for uri in redirect_uris:
+        if urlparse.urlparse(uri).fragment:
+            print >> sys.stderr, "Faulty redirect uri, contains fragment"
+        base, query = urllib.splitquery(uri)
+        if query:
+            ruri.append((base, urlparse.parse_qs(query)))
+        else:
+            ruri.append((base, query))
+
+    return ruri
 
 
 class CDB(object):
@@ -45,34 +62,51 @@ class CDB(object):
         self.cdb[client_id] = {
             "client_secret": client_secret,
             "client_id": client_id,
-            "redirect_uris": redirect_uris,
+            "redirect_uris": pack_redirect_uri(redirect_uris),
             "policy_url": policy_url,
             "logo_url": logo_url,
         }
 
-        return client_id, client_secret
+        return self.cdb[client_id]
 
     def __delitem__(self, key):
         del self.cdb[key]
 
+    def __setitem__(self, key, value):
+        self.cdb[key] = eval(value)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-l', dest='list', action='store_true')
-    parser.add_argument('-d', dest='delete')
-    parser.add_argument('-c', dest='create', action='store_true')
-    parser.add_argument('-s', dest='show')
-    #parser.add_argument('-A', dest='authn_as', default="")
-    #parser.add_argument('-P', dest='provider_conf')
+    parser.add_argument('-l', dest='list', action='store_true',
+                        help="list all client_ids")
+    parser.add_argument('-d', dest='delete', action='store_true',
+                        help="delete the entity with the given client_id")
+    parser.add_argument('-c', dest='create', action='store_true',
+                        help=("create a new client, returns the stored" ""
+                              "information"))
+    parser.add_argument('-s', dest='show', action='store_true',
+                        help=("show information connected to a specific"
+                              "client_id"))
+    parser.add_argument('-i', dest='client_id',
+                        help="a client_id on which to do an action")
+    parser.add_argument('-r', dest='replace',
+                        help=("information that should replace what's there"
+                              "about a specific client_id"))
     parser.add_argument(dest="filename")
     args = parser.parse_args()
 
     cdb = CDB(args.filename)
     if args.list:
         print cdb.keys()
-    elif args.delete:
-        del cdb[args.delete]
+    elif args.client_id:
+        if args.delete:
+            del cdb[args.client_id]
+        elif args.show:
+            print cdb[args.client_id]
+        elif args.replace:
+            cdb[args.client_id] = args.replace
     elif args.create:
         print cdb.create()
-    elif args.show:
-        print cdb[args.show]
+    elif args.delete or args.show or args.replace:
+        print "You have to specify a client_id !"
