@@ -1,167 +1,141 @@
-from oic.utils.authn.user import UserAuthnMethod
-
-__author__ = 'rolandh'
-
+import json
+import urllib
+import uuid
+import logging
 import requests
-from HTMLParser import HTMLParser
-from urlparse import urlparse
-from urlparse import parse_qs
+import base64
 import xml.etree.ElementTree as ET
+from oic.utils.authn.user import UserAuthnMethod
+from urlparse import parse_qs
+from oic.utils.http_util import Redirect
+from oic.utils.http_util import Unauthorized
 
+logger = logging.getLogger(__name__)
 
-class LoginFormParser(HTMLParser):
-
-    def __init__(self, formId, userId, passwordId):
-        HTMLParser.__init__(self)
-        self.reset()
-        self.hiddenParams = {}
-        self.userIdExists = False
-        self.passwordIdExists = False
-        self.passwordId = passwordId
-        self.userId = userId
-        self.formId = formId
-        self.collectinput = False
-        self.collectinputTag = None
-        self.action = None
-        self.method = None
-
-    def getAttrValue(self, key, attrs):
-        for attr in attrs:
-            if attr[0].lower() == key.lower():
-                return attr[1]
-        return None
-
-    def handle_starttag(self, tag, attrs):
-        action = None
-        method = None
-        if tag.lower() == "form":
-
-            for attr in attrs:
-                if attr[0].lower() == 'method':
-                    method = attr[1]
-                if attr[0].lower() == 'action':
-                    action = attr[1]
-                if attr[0].lower() == 'id' and attr[1] == self.formId:
-                    self.collectinput = True
-            if self.collectinput:
-                self.collectinputTag = tag
-                if action is not None:
-                    self.action = action
-                if method is not None:
-                    self.method = method
-        if self.collectinput:
-            if tag.lower() == "input":
-                id = self.getAttrValue("id", attrs)
-                if id is None:
-                    id = self.getAttrValue("name", attrs)
-                if self.getAttrValue("type", attrs) == 'hidden':
-                    self.hiddenParams[id] = self.getAttrValue("value", attrs)
-                elif self.getAttrValue("type", attrs) == 'text':
-                    if id == self.userId:
-                        self.userIdExists = True
-                elif self.getAttrValue("type", attrs) == 'text' or \
-                        self.getAttrValue("type", attrs) == 'password':
-                    if id == self.passwordId:
-                        self.passwordIdExists = True
-
-    def handle_endtag(self, tag):
-        if self.collectinputTag == tag:
-            self.collectinput = False
-
-
-class CAS(object):
-    CONST_INIT_CASLOGIN = "caslogin"
-    CONST_CASLOGIN = "/cas/login?service="
+#This class handles user authentication with CAS.
+class CasAuthnMethod(UserAuthnMethod):
+    #Standard login url for a CAS server.
+    CONST_CASLOGIN = "/cas/login?"
+    #Standard URL for validation of a ticket for a CAS server.
     CONST_CAS_VERIFY_TICKET = "/serviceValidate"
+    #Standard name for the parameter containing a CAS ticket.
     CONST_TICKET = "ticket"
+    #Standard name for the parameter containing the service url (callback url).
     CONST_SERVICE = "service"
+    #A successful verification of a ticket against a CAS service will contain this XML element.
+    CONST_AUTHSUCCESS = "authenticationSuccess"
+    #If a success full verification of a CAS ticket has been perform, the uid will be containd in a XML element
+    #with this name.
+    CONST_USER = "user"
+    #Used for preventing replay attacks.
+    CONST_NONCE = "nonce"
+    #Parameter name for queries to be sent back on the URL, after successful authentication.
+    CONST_QUERY = "query"
+    #The name for the CAS cookie, containing query parameters and nonce.
+    CONST_CAS_COOKIE = "cascookie"
 
-    def __init__(self, casurl, callbackurl, **kwargs):
-        self.casurl = casurl
-        self.callbackurl = callbackurl
-        if self.CONST_CASLOGIN in kwargs:
-            self.caslogin = kwargs[self.CONST_INIT_CASLOGIN]
-        else:
-            self.caslogin = self.CONST_CASLOGIN
+    def __init__(self, srv, cas_server, service_url, return_to):
+        """
+        Constructor for the class.
+        :param srv: Usually none, but otherwise the oic server.
+        :param cas_server: Base URL to the cas server.
+        :param service_url: BASE url to the service that will use CAS. In this case the oic server's verify URL.
+        :param return_to: The URL to return to after a successful authentication.
+        """
+        UserAuthnMethod.__init__(self, srv)
+        self.cas_server = cas_server
+        self.service_url = service_url
+        self.return_to = return_to
 
-    def createRedirectUrl(self):
-        cas_url = self.casurl + self.caslogin + self.callbackurl
-        return cas_url
 
-    def callRedirectUrl(self, url, formId, usernameId, passwordId, username,
-                        password):
-        ticket = None
-        resp1 = requests.get(url)
-        content = str(resp1.content)
-        #content = open('../example.html', 'r').read()
-        parser = LoginFormParser(formId, usernameId, passwordId)
-        parser.feed(content)
-        if parser.userIdExists and parser.passwordIdExists and \
-                parser.method is not None and parser.action is not None:
-            data = {parser.userId: username,
-                    parser.passwordId: password}
-            for key in parser.hiddenParams:
-                data[key] = parser.hiddenParams[key]
-            resp2 = None
-            callUrl = self.casurl + parser.action
-            if parser.method.lower() == "post":
-                resp2 = requests.post(callUrl, cookies=resp1.cookies,
-                                      params=data, allow_redirects=False)
-            if parser.method.lower() == "get":
-                resp2 = requests.get(callUrl, cookies=resp1.cookies,
-                                     params=data, allow_redirects=False)
-            if resp2 is not None and resp2.headers is not None and \
-                    'location' in resp2.headers:
-                redirectUrl = resp2.headers['location']
-                parsedUrl = urlparse(redirectUrl)
-                params = parse_qs(parsedUrl[4])
-                if self.CONST_TICKET in params:
-                    ticket = params[self.CONST_TICKET][0]
-        else:
-            raise Exception("Can not parse the response!")
-        if ticket is None:
-            raise Exception("Can not get the ticket!!!")
-        return ticket
+    def createRedirect(self, query):
+        """
+        Performs the redirect to the CAS server.
 
-    def getUserFromTicket(self, ticket):
-        data = {self.CONST_TICKET: ticket, self.CONST_SERVICE: self.callbackurl}
-        resp = requests.get(self.casurl + self.CONST_CAS_VERIFY_TICKET,
+        :rtype : Response
+        :param query: All query parameters to be added to the return_to URL after successful authentication.
+        :return: A redirect response to the CAS server.
+        """
+        nonce = uuid.uuid4().get_urn()
+        service_url = urllib.urlencode({self.CONST_SERVICE: self.getServiceUrl(nonce)})
+        cas_url = self.cas_server + self.CONST_CASLOGIN + service_url
+        cookie = self.create_cookie('{"' + self.CONST_NONCE + '": "' + base64.b64encode(nonce) + '", "' +
+                                    self.CONST_QUERY + '": "' + base64.b64encode(query) + '"}', self.CONST_CAS_COOKIE)
+        return Redirect(cas_url, headers=[cookie])
+
+    def handleCallback(self, ticket, service_url):
+        """
+        Handles the callback from the CAS server.
+
+        :rtype : String
+        :param ticket: Onetime CAS ticket to be validated.
+        :param service_url: The URL the CAS server redirected to.
+        :return: Uid if the login was successful otherwise None.
+        """
+        data = {self.CONST_TICKET: ticket, self.CONST_SERVICE: service_url}
+        resp = requests.get(self.cas_server + self.CONST_CAS_VERIFY_TICKET,
                             params=data)
         root = ET.fromstring(resp.content)
         for l1 in root:
-            if 'authenticationSuccess' in l1.tag:
+            if self.CONST_AUTHSUCCESS in l1.tag:
                 for l2 in l1:
-                    if "user" in l2.tag:
+                    if self.CONST_USER in l2.tag:
                         return l2.text
         return None
 
-    def handleCallback(self, ticket):
-        return self.getUserFromTicket(ticket)
-
-    def performFullCasLogin(self, formId, usernameId, passwordId, username,
-                            password):
-        redirectUrl = self.createRedirectUrl()
-        ticket = self.callRedirectUrl(redirectUrl, formId, usernameId,
-                                      passwordId, username, password)
-        uid = self.handleCallback(ticket)
-        if uid == username:
-            print "All is good!"
-        return uid
+    def __call__(self, query, *args, **kwargs):
+        return self.createRedirect(query)
 
 
-class CasAuthnMethod(UserAuthnMethod):
-    def __init__(self, srv, cas_server, service_url):
-        UserAuthnMethod.__init__(self, srv)
-        self.casObjeckt = CAS(cas_server, service_url)
+    def getServiceUrl(self, nonce):
+        """
+        Creates the service url for the CAS server.
 
-    def __call__(self, *args, **kwargs):
-        self.uid = self.casObjeckt.performFullCasLogin(
-            'idFormLoginForm', 'usernameID', 'passwordID', 'uid', "password")
+        :rtype : String
+        :param nonce: The nonce to be added to the service url.
+        :return: A service url with a nonce.
+        """
+        return self.service_url + "?" + self.CONST_NONCE + "=" + nonce
 
+    def verify(self, request, cookie, **kwargs):
+        """
+        Verifies if the authentication was successful.
 
-    def authenticated_as(self, **kwargs):
-        return self.uid
-
-    def verify(self, **kwargs):
-        raise NotImplemented
+        :rtype : Response
+        :param request: Contains the request parameters.
+        :param cookie: Cookies sent with the request.
+        :param kwargs: Any other parameters.
+        :return: If the authentication was successful: a redirect to the return_to url.
+                 Otherwise a unauthorized response.
+        :raise: ValueError
+        """
+        logger.debug("verify(%s)" % request)
+        if isinstance(request, basestring):
+            _dict = parse_qs(request)
+        elif isinstance(request, dict):
+            _dict = request
+        else:
+            raise ValueError("Wrong type of input")
+        try:
+            cas_cookie = self.getCookieValue(cookie, self.CONST_CAS_COOKIE)
+            data = json.loads(cas_cookie)
+            nonce = base64.b64decode(data[self.CONST_NONCE])
+            if nonce != _dict[self.CONST_NONCE][0]:
+                logger.warning('Someone tried to login without a correct nonce!')
+                return Unauthorized("You are not authorized!")
+            uid = self.handleCallback(_dict[self.CONST_TICKET], self.getServiceUrl(nonce))
+            if uid is None or len(uid) == 0:
+                logger.info('Someone tried to login, but was denied by CAS!')
+                return Unauthorized("You are not authorized!")
+            cookie = self.create_cookie(uid)
+            return_to = self.generateReturnUrl(self.return_to, uid)
+            if '?' in return_to:
+                return_to += "&"
+            else:
+                return_to += "?"
+            return_to += base64.b64decode(data[self.CONST_QUERY])
+            return Redirect(return_to, headers=[cookie])
+        except:
+            logger.fatal('Metod verify in user_cas.py had a fatal exception.', exc_info=True)
+            return Unauthorized("You are not authorized!")
 

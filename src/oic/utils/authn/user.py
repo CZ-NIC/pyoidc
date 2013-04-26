@@ -19,15 +19,71 @@ logger = logging.getLogger(__name__)
 class UserAuthnMethod(object):
     def __init__(self, srv):
         self.srv = srv
+        self.active = {}
+        self.query_param = "upm_answer"
 
     def __call__(self, *args, **kwargs):
         raise NotImplemented
 
-    def authenticated_as(self, **kwargs):
-        raise NotImplemented
+    def create_cookie(self, value, cookie_name=None):
+        if cookie_name is None:
+            cookie_name = self.srv.cookie_name
+        timestamp = str(int(time.mktime(time.gmtime())))
+        info = AES_encrypt(self.srv.symkey,
+                           "::".join([value, timestamp]),
+                           self.srv.iv)
+        self.active[info] = timestamp
+        cookie = make_cookie(cookie_name, info, self.srv.seed,
+                             expire=0, domain="", path="")
+        return cookie
+
+    def getCookieValue(self, cookie=None, cookie_name=None):
+        if cookie is None or cookie_name is None:
+            return None
+        else:
+            try:
+                info, timestamp = parse_cookie(cookie_name,
+                                               self.srv.seed, cookie)
+                if self.active[info] == timestamp:
+                    #del self.active[info]
+                    value, _ts = AES_decrypt(self.srv.symkey, info, self.srv.iv).split("::")
+                    if timestamp == _ts:
+                        return value
+            except Exception:
+                pass
+        return None
+
+    def authenticated_as(self, cookie=None, **kwargs):
+        if cookie is None:
+            return None
+        else:
+            logger.debug("kwargs: %s" % kwargs)
+            try:
+                info, timestamp = parse_cookie(self.srv.cookie_name,
+                                               self.srv.seed, cookie)
+                if self.active[info] == timestamp:
+                    #del self.active[info]
+                    uid, _ts = AES_decrypt(self.srv.symkey,
+                                           info, self.srv.iv).split("::")
+                    if timestamp == _ts:
+                        if "max_age" in kwargs and kwargs["max_age"]:
+                            _now = int(time.mktime(time.gmtime()))
+                            if _now > (int(_ts) + int(kwargs["max_age"])):
+                                logger.debug("Authentication too old")
+                                return None
+                        return {"uid": uid}
+            except Exception:
+                pass
+
+        return None
+
+    def generateReturnUrl(self, return_to, uid):
+        return create_return_url(return_to, uid, **{self.query_param: "true"})
 
     def verify(self, **kwargs):
         raise NotImplemented
+
+
 
 
 def url_encode_params(params=None):
@@ -99,8 +155,7 @@ class UsernamePasswordMako(UserAuthnMethod):
         self.template_lookup = template_lookup
         self.passwd = pwd
         self.return_to = return_to
-        self.active = {}
-        self.query_param = "upm_answer"
+
 
     def __call__(self, cookie=None, policy_url=None, logo_url=None,
                  query="", **kwargs):
@@ -148,44 +203,13 @@ class UsernamePasswordMako(UserAuthnMethod):
         # verify username and password
         try:
             assert _dict["password"][0] == self.passwd[_dict["login"][0]]
-            timestamp = str(int(time.mktime(time.gmtime())))
-            info = AES_encrypt(self.srv.symkey,
-                               "::".join([_dict["login"][0], timestamp]),
-                               self.srv.iv)
-            self.active[info] = timestamp
-            cookie = make_cookie(self.srv.cookie_name, info, self.srv.seed,
-                                 expire=0, domain="", path="")
-            return_to = create_return_url(self.return_to, _dict["query"][0],
-                                          **{self.query_param: "true"})
+            cookie = self.create_cookie(_dict["login"][0])
+            return_to = self.generateReturnUrl(self.return_to, _dict["query"][0])
             resp = Redirect(return_to, headers=[cookie])
         except (AssertionError, KeyError):
             resp = Unauthorized("Unknown user or wrong password")
 
         return resp
-
-    def authenticated_as(self, cookie=None, **kwargs):
-        if cookie is None:
-            return None
-        else:
-            logger.debug("kwargs: %s" % kwargs)
-            try:
-                info, timestamp = parse_cookie(self.srv.cookie_name,
-                                               self.srv.seed, cookie)
-                if self.active[info] == timestamp:
-                    #del self.active[info]
-                    uid, _ts = AES_decrypt(self.srv.symkey,
-                                           info, self.srv.iv).split("::")
-                    if timestamp == _ts:
-                        if "max_age" in kwargs and kwargs["max_age"]:
-                            _now = int(time.mktime(time.gmtime()))
-                            if _now > (int(_ts) + int(kwargs["max_age"])):
-                                logger.debug("Authentication too old")
-                                return None
-                        return {"uid": uid}
-            except Exception:
-                pass
-
-        return None
 
     def done(self, areq):
         try:

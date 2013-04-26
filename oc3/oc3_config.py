@@ -11,6 +11,10 @@ keys = {
     }
 }
 
+AUTHN = "CasAuthnMethod"
+CAS_SERVER  = "https://cas.umu.se"
+SERVICE_URL = "%s/verify" % issuer
+
 COOKIENAME= 'pyoic'
 COOKIETTL = 4*60 # 4 hours
 SYM_KEY = "SoLittleTime,GotToHurry"

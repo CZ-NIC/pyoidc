@@ -79,14 +79,14 @@ class UserInfoLDAP(UserInfo):
         if len(res) == 1:
             # should only be one entry and the information per entry is
             # the tuple (dn, ava)
-            res = {}
+            newres = {}
             for key, val in res[0][1].items():
                 if len(val) == 1:
                     val = val[0]
                 try:
-                    res[LDAP2USERINFO[key]] = val
+                    newres[LDAP2USERINFO[key]] = val
                 except KeyError:
-                    res[key] = val
-            return res
+                    newres[key] = val
+            return newres
         else:
             return {}
