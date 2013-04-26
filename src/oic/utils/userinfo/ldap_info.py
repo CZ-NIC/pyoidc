@@ -32,6 +32,8 @@ OPENID2LDAP = {
     "updated_time": ""
 }
 
+LDAP2USERINFO = {v: k for k, v in OPENID2LDAP.items()}
+
 
 class UserInfoLDAP(UserInfo):
     def __init__(self, uri, base, filter_pattern, scope=SCOPE_SUBTREE,
@@ -77,6 +79,14 @@ class UserInfoLDAP(UserInfo):
         if len(res) == 1:
             # should only be one entry and the information per entry is
             # the tuple (dn, ava)
-            return res[0][1]
+            res = {}
+            for key, val in res[0][1].items():
+                if len(val) == 1:
+                    val = val[0]
+                try:
+                    res[LDAP2USERINFO[key]] = val
+                except KeyError:
+                    res[key] = val
+            return res
         else:
             return {}
