@@ -133,7 +133,7 @@ class Message(object):
                                                  lev=lev))))
                 else:
                     for item in val:
-                        params.append((key, str(item)))
+                        params.append((key, str((unicode(item)).encode('utf-8'))))
             elif isinstance(val, Message):
                 params.append((key, str(_ser(val, sformat="urlencoded",
                                              lev=lev))))

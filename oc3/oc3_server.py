@@ -12,6 +12,7 @@ from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UsernamePasswordMako
+from oic.utils.authn.user_cas import CasAuthnMethod
 
 from oic.utils.authz import AuthzHandling
 from oic.utils.keyio import KeyBundle, dump_jwks
@@ -66,7 +67,8 @@ OAS = None
 PASSWD = {"diana": "krall",
           "babs": "howes",
           "upper": "crust",
-          "rohe0002": "StevieRay"}
+          "rohe0002": "StevieRay",
+          "haho0032": "qwerty"}
 
 
 #noinspection PyUnusedLocal
@@ -472,9 +474,13 @@ if __name__ == '__main__':
     # Client data base
     cdb = shelve.open("client_db", writeback=True)
 
+
     config = importlib.import_module(args.config)
-    # Authentication method
-    authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
+    if config.AUTHN == 'CasAuthnMethod':
+        authn = CasAuthnMethod(None, config.CAS_SERVER, config.SERVICE_URL, "%s/authorization" % config.issuer)
+    else:
+        # Authentication method
+        authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
                                  "%s/authorization" % config.issuer)
     # dealing with authorization
     authz = AuthzHandling()
