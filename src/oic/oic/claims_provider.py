@@ -23,7 +23,7 @@ from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 
 from oic.utils.http_util import Response
-from oic.utils.authn import bearer_auth
+from oic.utils.authn.client import bearer_auth
 
 # Used in claims.py
 #from oic.oic.message import RegistrationRequest
