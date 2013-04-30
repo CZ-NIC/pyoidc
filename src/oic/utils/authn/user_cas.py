@@ -34,7 +34,7 @@ class CasAuthnMethod(UserAuthnMethod):
     #The name for the CAS cookie, containing query parameters and nonce.
     CONST_CAS_COOKIE = "cascookie"
 
-    def __init__(self, srv, cas_server, service_url, return_to):
+    def __init__(self, srv, cas_server, service_url, return_to, extra_validation = None):
         """
         Constructor for the class.
         :param srv: Usually none, but otherwise the oic server.
@@ -46,7 +46,7 @@ class CasAuthnMethod(UserAuthnMethod):
         self.cas_server = cas_server
         self.service_url = service_url
         self.return_to = return_to
-
+        self.extra_validation = extra_validation
 
     def createRedirect(self, query):
         """
@@ -80,6 +80,11 @@ class CasAuthnMethod(UserAuthnMethod):
             if self.CONST_AUTHSUCCESS in l1.tag:
                 for l2 in l1:
                     if self.CONST_USER in l2.tag:
+                        if self.extra_validation is not None:
+                            if self.extra_validation(l2.text):
+                                return l2.text
+                            else:
+                                return None
                         return l2.text
         return None
 
