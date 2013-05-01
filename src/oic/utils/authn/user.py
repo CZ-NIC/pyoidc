@@ -16,6 +16,18 @@ __author__ = 'rolandh'
 logger = logging.getLogger(__name__)
 
 
+class NoSuchAuthentication(Exception):
+    pass
+
+
+class TamperAllert(Exception):
+    pass
+
+
+class ToOld(Exception):
+    pass
+
+
 class UserAuthnMethod(object):
     def __init__(self, srv):
         self.srv = srv
@@ -46,7 +58,8 @@ class UserAuthnMethod(object):
                                                self.srv.seed, cookie)
                 if self.active[info] == timestamp:
                     #del self.active[info]
-                    value, _ts = AES_decrypt(self.srv.symkey, info, self.srv.iv).split("::")
+                    value, _ts = AES_decrypt(self.srv.symkey,
+                                             info, self.srv.iv).split("::")
                     if timestamp == _ts:
                         return value
             except Exception:
@@ -58,32 +71,31 @@ class UserAuthnMethod(object):
             return None
         else:
             logger.debug("kwargs: %s" % kwargs)
-            try:
-                info, timestamp = parse_cookie(self.srv.cookie_name,
-                                               self.srv.seed, cookie)
-                if self.active[info] == timestamp:
-                    #del self.active[info]
-                    uid, _ts = AES_decrypt(self.srv.symkey,
-                                           info, self.srv.iv).split("::")
-                    if timestamp == _ts:
-                        if "max_age" in kwargs and kwargs["max_age"]:
-                            _now = int(time.mktime(time.gmtime()))
-                            if _now > (int(_ts) + int(kwargs["max_age"])):
-                                logger.debug("Authentication too old")
-                                return None
-                        return {"uid": uid}
-            except Exception:
-                pass
 
-        return None
+            info, timestamp = parse_cookie(self.srv.cookie_name,
+                                           self.srv.seed, cookie)
+            if self.active[info] == timestamp:
+                del self.active[info]
+                uid, _ts = AES_decrypt(self.srv.symkey,
+                                       info, self.srv.iv).split("::")
+                if timestamp == _ts:
+                    if "max_age" in kwargs and kwargs["max_age"]:
+                        _now = int(time.mktime(time.gmtime()))
+                        if _now > (int(_ts) + int(kwargs["max_age"])):
+                            logger.debug("Authentication too old")
+                            raise ToOld("%d > (%d + %d)" % (
+                                _now, int(_ts), int(kwargs["max_age"])))
+                    return {"uid": uid}
+                else:
+                    raise TamperAllert()
+            else:
+                raise NoSuchAuthentication()
 
     def generateReturnUrl(self, return_to, uid):
         return create_return_url(return_to, uid, **{self.query_param: "true"})
 
     def verify(self, **kwargs):
         raise NotImplemented
-
-
 
 
 def url_encode_params(params=None):
