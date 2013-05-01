@@ -199,7 +199,10 @@ class MyFakeOICServer(Server):
             self.client[client_id] = _client_info
             kwargs["registration_access_token"] = registration_access_token
             kwargs["registration_client_uri"] = "register_endpoint"
-            del kwargs["operation"]
+            try:
+                del kwargs["operation"]
+            except KeyError:
+                pass
         else:
             client_id = req.client_id
             _cinfo = self.client[req.client_id]

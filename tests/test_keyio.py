@@ -16,7 +16,7 @@ def _eq(l1, l2):
 
 
 def test_chain_1():
-    kc = KeyBundle([{"kty":"hmac", "key":"supersecret", "use":"sig"}])
+    kc = KeyBundle([{"kty": "hmac", "key": "supersecret", "use": "sig"}])
     assert len(kc.get("hmac")) == 1
     assert len(kc.get("rsa")) == 0
     assert kc.remote is False
@@ -106,3 +106,16 @@ def test_keyjar_remove_key():
 
     keys = ks.decrypt_keys("http://www.example.org")
     assert keys == {}
+
+
+def test_local_jwk_file():
+    kb = keybundle_from_local_file("file://jwk.json", "jwk", ["ver", "sig"])
+    assert len(kb) == 1
+    kj = KeyJar()
+    kj.issuer_keys[""] = [kb]
+    keys = kj.get_signing_key()
+    assert len(keys) == 1
+    assert keys.keys() == ["rsa:abc"]
+
+if __name__ == "__main__":
+    test_local_jwk_file()

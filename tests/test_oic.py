@@ -1145,3 +1145,11 @@ def test_make_id_token():
                               token_type="Bearer")
     atr["code"] = code
     assert atr.verify(keyjar=srv.keyjar)
+
+if __name__ == "__main__":
+    toic = TestOICClient()
+    toic.setup_class()
+    mfos = MyFakeOICServer()
+    mfos.keyjar = KEYJ
+    toic.client.http_request = mfos.http_request
+    toic.test_do_registration_request()

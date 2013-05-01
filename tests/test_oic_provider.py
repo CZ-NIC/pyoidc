@@ -1,6 +1,6 @@
 from mako.lookup import TemplateLookup
-from oic.utils.authn import verify_client
-from oic.utils.authn import UserAuthnMethod
+from oic.utils.authn.client import verify_client
+from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
 from oic.utils.userinfo import UserInfo
 
@@ -136,7 +136,7 @@ class DummyAuthn(UserAuthnMethod):
         UserAuthnMethod.__init__(self, srv)
         self.user = user
 
-    def authenticated_as(self, cookie, **kwargs):
+    def authenticated_as(self, cookie=None,  **kwargs):
         return {"uid": self.user}
 
 #AUTHN = UsernamePasswordMako(None, "login.mako", tl, PASSWD, "authenticated")
@@ -341,10 +341,11 @@ def test_server_authenticated_2():
     assert _eq(cons.grant[cons.state].keys(), ['code', 'id_token', 'tokens',
                                                'exp_in',
                                                'grant_expiration_time', 'seed'])
-
-    assert isinstance(part[2], IdToken)
-    assert (part[2].keys(), ['acr', 'aud', 'c_hash', 'email', 'exp', 'iss',
-                             'name', 'nickname', 'sub'])
+    id_token = part[2]
+    assert isinstance(id_token, IdToken)
+    print id_token.keys()
+    assert _eq(id_token.keys(), ['c_hash', 'sub', 'iss', 'acr', 'exp', 'iat',
+                                 'aud'])
 
 
 def test_server_authenticated_token():
@@ -546,7 +547,7 @@ def test_registration_endpoint():
 
     print req.to_dict()
 
-    resp = server.registration_endpoint(request=req.to_urlencoded())
+    resp = server.registration_endpoint(request=req.to_json())
 
     print resp.message
     regresp = RegistrationResponse().deserialize(resp.message, "json")
@@ -583,7 +584,7 @@ def test_registered_redirect_uri_without_query_component():
     rr = RegistrationRequest(operation="register",
                              redirect_uris=["http://example.org/cb"])
 
-    registration_req = rr.to_urlencoded()
+    registration_req = rr.to_json()
 
     provider.registration_endpoint(request=registration_req)
 
@@ -632,7 +633,7 @@ def test_registered_redirect_uri_with_query_component():
     rr = RegistrationRequest(operation="register",
                              redirect_uris=["http://example.org/cb?foo=bar"])
 
-    registration_req = rr.to_urlencoded()
+    registration_req = rr.to_json()
     resp = provider2.registration_endpoint(request=registration_req)
 
     regresp = RegistrationResponse().from_json(resp.message)
@@ -673,3 +674,6 @@ def test_registered_redirect_uri_with_query_component():
         resp = provider2._verify_redirect_uri(areq)
         print resp
         assert resp is None
+
+if __name__ == "__main__":
+    test_server_authenticated_2()
