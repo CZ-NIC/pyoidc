@@ -360,6 +360,9 @@ class KeyBundle(object):
     def append(self, key):
         self._keys.append(key)
 
+    def __len__(self):
+        return len(self._keys)
+
 
 def keybundle_from_local_file(filename, typ, usage):
     if typ.lower() == "rsa":
@@ -373,6 +376,8 @@ def keybundle_from_local_file(filename, typ, usage):
             _k.key = k.key
             _k.use = use
             kb.append(_k)
+    elif typ.lower() == "jwk":
+        kb = KeyBundle(source=filename, fileformat="jwk", keyusage=usage)
     else:
         raise Exception("Unsupported key type")
 
@@ -509,10 +514,14 @@ class KeyJar(object):
                 for bundles in _keys:
                     for key in bundles.keys():
                         if use == key.use:
+                            if key.kid:
+                                _id = "%s:%s" % (key.kty, key.kid)
+                            else:
+                                _id = key.kty
                             try:
-                                res[key.kty].append(key.key)
+                                res[_id].append(key.key)
                             except KeyError:
-                                res[key.kty] = [key.key]
+                                res[_id] = [key.key]
 
         return res
 
@@ -603,7 +612,7 @@ class KeyJar(object):
         _res = {}
         for k, vs in self.issuer_keys.items():
             _res[k] = [str(v) for v in vs]
-        return "%s" % _res
+        return _res
 
     def keys(self):
         self.issuer_keys.keys()
