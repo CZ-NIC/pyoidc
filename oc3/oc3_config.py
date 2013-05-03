@@ -94,7 +94,12 @@ LDAP = {
     "filter_pattern": "(uid=%s)",
     "user": "",
     "passwd": "",
-    "attr": ["eduPersonScopedAffiliation"]
+    "attr": ["eduPersonScopedAffiliation", "eduPersonAffiliation"],
+}
+
+LDAP_EXTRAVALIDATION = {
+    "verifyAttr": "eduPersonAffiliation",
+    "verifyAttrValid": ['employee', 'staff', 'student']
 }
 
 USERINFO = "LDAP"

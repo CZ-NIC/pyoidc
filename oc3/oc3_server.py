@@ -478,11 +478,11 @@ if __name__ == '__main__':
 
 
     config = importlib.import_module(args.config)
+
     if config.AUTHN == 'CasAuthnMethod':
+        config.LDAP_EXTRAVALIDATION.update(config.LDAP)
         authn = CasAuthnMethod(None, config.CAS_SERVER, config.SERVICE_URL, "%s/authorization" % config.issuer,
-                               UserLDAPMemberValidation('eduPersonScopedAffiliation;x-guise-anst2',
-                                                        ['employee@umu.se', 'staff@umu.se', 'member@umu.se'],
-                                                        **config.LDAP))
+                               UserLDAPMemberValidation(**config.LDAP_EXTRAVALIDATION))
     else:
         # Authentication method
         authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
