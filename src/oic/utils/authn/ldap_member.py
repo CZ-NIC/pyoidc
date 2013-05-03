@@ -11,8 +11,6 @@ class UserLDAPMemberValidation(UserInfoLDAP):
     CONST_LDAPMEMBER = 'eduPersonAffiliation'
     CONST_VALIDFIELDS = ['employee', 'staff', 'student']
 
-
-
     def __init__(self,verifyAttr, verifyAttrValid, **kwargs):
         UserInfoLDAP.__init__(self, **kwargs)
         self.verifyAttr = verifyAttr

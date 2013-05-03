@@ -1,5 +1,6 @@
 from mako.lookup import TemplateLookup
-from oic.utils.authn import verify_client, UserAuthnMethod
+from oic.utils.authn.client import verify_client
+from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
 from oic.utils.http_util import Response
 
@@ -65,7 +66,7 @@ class DummyAuthn(UserAuthnMethod):
         UserAuthnMethod.__init__(self, srv)
         self.user = user
 
-    def authenticated_as(self):
+    def authenticated_as(self, **kwargs):
         return {"uid": self.user}
 
 AUTHN = DummyAuthn(None, "dummy")

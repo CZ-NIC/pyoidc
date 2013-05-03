@@ -187,8 +187,7 @@ def cookie_signature(seed, *parts):
     return sha1.hexdigest()
 
 
-def make_cookie(name, load, seed, expire=0, domain="",  path="",
-           timestamp=""):
+def make_cookie(name, load, seed, expire=0, domain="",  path="", timestamp=""):
     """
     Create and return a cookie
 
@@ -198,6 +197,7 @@ def make_cookie(name, load, seed, expire=0, domain="",  path="",
     :param expire: Number of minutes before this cookie goes stale
     :param domain: The domain of the cookie
     :param path: The path specification for the cookie
+    :param timestamp: A time stamp
     :return: A tuple to be added to headers
     """
     cookie = SimpleCookie()

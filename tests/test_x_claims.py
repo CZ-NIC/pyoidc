@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 from oic.utils.claims import ClaimsMode
 from oic.utils.sdb import SessionDB
-from oic.utils.authn import verify_client, UserAuthnMethod
+from oic.utils.authn.client import verify_client
+from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
 from oic.utils.userinfo import UserInfo
 from tests.pinit import KEYJAR
@@ -71,7 +72,7 @@ class DummyAuthn(UserAuthnMethod):
         UserAuthnMethod.__init__(self, srv)
         self.user = user
 
-    def authenticated_as(self):
+    def authenticated_as(self, **kwargs):
         return {"uid": self.user}
 
 AUTHN = DummyAuthn(None, "username")

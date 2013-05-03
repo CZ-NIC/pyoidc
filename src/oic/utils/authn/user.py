@@ -16,39 +16,59 @@ __author__ = 'rolandh'
 logger = logging.getLogger(__name__)
 
 
+class NoSuchAuthentication(Exception):
+    pass
+
+
+class TamperAllert(Exception):
+    pass
+
+
+class ToOld(Exception):
+    pass
+
+
 class UserAuthnMethod(object):
     def __init__(self, srv):
         self.srv = srv
-        self.active = {}
         self.query_param = "upm_answer"
+        # minutes before the authentication should be completed
+        self.cookie_ttl = 5  # 5 minutes
 
     def __call__(self, *args, **kwargs):
         raise NotImplemented
 
-    def create_cookie(self, value, cookie_name=None):
+    def create_cookie(self, value, cookie_name=None, typ="uam", ttl=-1):
+        if ttl < 0:
+            ttl = self.cookie_ttl
         if cookie_name is None:
             cookie_name = self.srv.cookie_name
         timestamp = str(int(time.mktime(time.gmtime())))
         info = AES_encrypt(self.srv.symkey,
-                           "::".join([value, timestamp]),
+                           "::".join([value, timestamp, typ]),
                            self.srv.iv)
-        self.active[info] = timestamp
         cookie = make_cookie(cookie_name, info, self.srv.seed,
-                             expire=0, domain="", path="")
+                             expire=ttl, domain="", path="")
         return cookie
 
     def getCookieValue(self, cookie=None, cookie_name=None):
+        """
+        Return information stored in the Cookie
+
+        :param cookie:
+        :param cookie_name: The name of the cookie I'm looking for
+        :return: tuple (value, timestamp, type)
+        """
         if cookie is None or cookie_name is None:
             return None
         else:
             try:
                 info, timestamp = parse_cookie(cookie_name,
                                                self.srv.seed, cookie)
-                if self.active[info] == timestamp:
-                    #del self.active[info]
-                    value, _ts = AES_decrypt(self.srv.symkey, info, self.srv.iv).split("::")
-                    if timestamp == _ts:
-                        return value
+                value, _ts, typ = AES_decrypt(self.srv.symkey, info,
+                                              self.srv.iv).split("::")
+                if timestamp == _ts:
+                    return value, _ts, typ
             except Exception:
                 pass
         return None
@@ -58,32 +78,30 @@ class UserAuthnMethod(object):
             return None
         else:
             logger.debug("kwargs: %s" % kwargs)
-            try:
-                info, timestamp = parse_cookie(self.srv.cookie_name,
-                                               self.srv.seed, cookie)
-                if self.active[info] == timestamp:
-                    #del self.active[info]
-                    uid, _ts = AES_decrypt(self.srv.symkey,
-                                           info, self.srv.iv).split("::")
-                    if timestamp == _ts:
-                        if "max_age" in kwargs and kwargs["max_age"]:
-                            _now = int(time.mktime(time.gmtime()))
-                            if _now > (int(_ts) + int(kwargs["max_age"])):
-                                logger.debug("Authentication too old")
-                                return None
-                        return {"uid": uid}
-            except Exception:
-                pass
 
-        return None
+            uid, _ts, typ = self.getCookieValue(cookie, self.srv.cookie_name)
+
+            if typ == "uam":  # shortlived
+                _now = int(time.mktime(time.gmtime()))
+                if _now > (int(_ts) + int(self.cookie_ttl * 60)):
+                    logger.debug("Authentication timed out")
+                    raise ToOld("%d > (%d + %d)" % (_now, int(_ts),
+                                                    int(self.cookie_ttl * 60)))
+            else:
+                if "max_age" in kwargs and kwargs["max_age"]:
+                    _now = int(time.mktime(time.gmtime()))
+                    if _now > (int(_ts) + int(kwargs["max_age"])):
+                        logger.debug("Authentication too old")
+                        raise ToOld("%d > (%d + %d)" % (
+                            _now, int(_ts), int(kwargs["max_age"])))
+
+            return {"uid": uid}
 
     def generateReturnUrl(self, return_to, uid):
         return create_return_url(return_to, uid, **{self.query_param: "true"})
 
     def verify(self, **kwargs):
         raise NotImplemented
-
-
 
 
 def url_encode_params(params=None):
@@ -155,7 +173,6 @@ class UsernamePasswordMako(UserAuthnMethod):
         self.template_lookup = template_lookup
         self.passwd = pwd
         self.return_to = return_to
-
 
     def __call__(self, cookie=None, policy_url=None, logo_url=None,
                  query="", **kwargs):

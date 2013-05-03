@@ -11,9 +11,12 @@ keys = {
     }
 }
 
+# ..... If you want to use CAS authentication ....
 AUTHN = "CasAuthnMethod"
 CAS_SERVER  = "https://cas.umu.se"
 SERVICE_URL = "%s/verify" % issuer
+# ..... Otherwise
+#AUTHN = "Simple"
 
 COOKIENAME= 'pyoic'
 COOKIETTL = 4*60 # 4 hours
@@ -41,7 +44,7 @@ USERDB = {
             "postal_code": "SE-90187",
             "country": "Sweden"
         },
-        },
+    },
     "babs": {
         "user_id": "babs0001",
         "name": "Barbara J Jensen",
@@ -56,7 +59,7 @@ USERDB = {
             "region": "CA",
             "postal_code": "91608",
             "country": "USA",
-            },
+        },
     },
     "upper": {
         "user_id": "uppe0001",
@@ -102,4 +105,5 @@ LDAP_EXTRAVALIDATION = {
     "verifyAttrValid": ['employee', 'staff', 'student']
 }
 
-USERINFO = "LDAP"
+#USERINFO = "LDAP"
+USERINFO = "SIMPLE"

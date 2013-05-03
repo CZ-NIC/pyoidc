@@ -1,5 +1,6 @@
 from mako.lookup import TemplateLookup
-from oic.utils.authn import UsernamePasswordMako, verify_client
+from oic.utils.authn.user import UsernamePasswordMako
+from oic.utils.authn.client import verify_client
 from oic.utils.authz import AuthzHandling
 from oic.utils.userinfo import UserInfo
 

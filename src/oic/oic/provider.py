@@ -3,6 +3,7 @@ import json
 import traceback
 import urllib
 import sys
+from oic.utils.authn.user import NoSuchAuthentication, ToOld, TamperAllert
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.keyio import KeyBundle, key_export
 
@@ -145,10 +146,14 @@ class Provider(AProvider):
         self.cert = []
         self.cert_encryption = []
 
-        self.cookie_func = None
+        if authn_method:
+            self.cookie_func = authn_method.create_cookie
+        else:
+            self.cookie_func = None
+
         self.cookie_name = "pyoidc"
         self.seed = ""
-        self.cookie_ttl = 0
+        self.sso_ttl = 0
         self.test_mode = False
         self.jwks_uri = []
 
@@ -340,15 +345,15 @@ class Provider(AProvider):
         except KeyError:
             openid_req = None
 
-        if openid_req:
-            try:
-                req_user = openid_req["id_token"]["claims"]["sub"]["value"]
-            except KeyError:
-                req_user = ""
-        elif "id_token" in areq:
-            req_user = areq["id_token"]["sub"]
-        else:
-            req_user = ""
+        # if openid_req:
+        #     try:
+        #         req_user = openid_req["id_token"]["claims"]["sub"]["value"]
+        #     except KeyError:
+        #         req_user = ""
+        # elif "id_token" in areq:
+        #     req_user = areq["id_token"]["sub"]
+        # else:
+        #     req_user = ""
 
         return areq
 
@@ -394,7 +399,7 @@ class Provider(AProvider):
             # verify the redirect_uri
             try:
                 self.get_redirect_uri(areq)
-            except RedirectURIError, err:
+            except (RedirectURIError, ParameterError), err:
                 return self._error("invalid_request", "%s" % err)
         except Exception, err:
             message = traceback.format_exception(*sys.exc_info())
@@ -405,7 +410,7 @@ class Provider(AProvider):
         logger.debug("AuthzRequest: %s" % (areq.to_dict(),))
         try:
             redirect_uri = self.get_redirect_uri(areq)
-        except RedirectURIError, err:
+        except (RedirectURIError, ParameterError), err:
             return self._error("invalid_request", "%s" % err)
 
         try:
@@ -421,8 +426,20 @@ class Provider(AProvider):
         req_user = self.required_user(areq)
 
         logger.debug("Cookie: %s" % cookie)
-        identity = self.authn.authenticated_as(cookie,
-                                               max_age=self.max_age(areq))
+        try:
+            identity = self.authn.authenticated_as(cookie,
+                                                   max_age=self.max_age(areq))
+        except (NoSuchAuthentication, ToOld, TamperAllert):
+            identity = None
+
+        authn_args = {"query": request, "as_user": req_user}
+
+        cinfo = self.cdb[areq["client_id"]]
+        for attr in ["policy_url", "logo_url"]:
+            try:
+                authn_args[attr] = cinfo[attr]
+            except KeyError:
+                pass
 
         # To authenticate or Not
         if identity is None:  # No!
@@ -431,21 +448,22 @@ class Provider(AProvider):
                 return self._redirect_authz_error("login_required",
                                                   redirect_uri)
             else:
-                return self.authn(query=request, as_user=req_user)
+                return self.authn(**authn_args)
         else:
             if self.re_authenticate(areq):
                 # demand re-authentication
-                return self.authn(query=request, as_user=req_user)
+                return self.authn(**authn_args)
             else:
                 # I get back a dictionary
                 user = identity["uid"]
                 if req_user and req_user != user:
+                    logger.debug("Wanted to be someone else!")
                     if "prompt" in areq and "none" in areq["prompt"]:
                         # Need to authenticate but not allowed
                         return self._redirect_authz_error("login_required",
                                                           redirect_uri)
                     else:
-                        return self.authn(query=request, as_user=req_user)
+                        return self.authn(**authn_args)
 
         logger.debug("- authenticated -")
         logger.debug("AREQ keys: %s" % areq.keys())
@@ -1057,8 +1075,8 @@ class Provider(AProvider):
             if handle:
                 (key, timestamp) = handle
                 if key.startswith(STR) and key.endswith(STR):
-                    cookie = self.cookie_func(self.cookie_name, key, self.seed,
-                                              self.cookie_ttl)
+                    cookie = self.cookie_func(key, self.cookie_name, "pinfo",
+                                              self.sso_ttl)
                     headers.append(cookie)
 
             resp = Response(_response.to_json(), content="application/json",
@@ -1098,8 +1116,8 @@ class Provider(AProvider):
         headers = [("Cache-Control", "no-store")]
         (key, timestamp) = handle
         if key.startswith(STR) and key.endswith(STR):
-            cookie = self.cookie_func(self.cookie_name, key, self.seed,
-                                      self.cookie_ttl)
+            cookie = self.cookie_func(key, self.cookie_name, "disc",
+                                      self.sso_ttl)
             headers.append(cookie)
 
         return Response(_response.to_json(), content="application/json",
@@ -1190,16 +1208,24 @@ class Provider(AProvider):
 
         try:
             redirect_uri = self.get_redirect_uri(areq)
-        except RedirectURIError, err:
+        except (RedirectURIError, ParameterError), err:
             return BadRequest("%s" % err)
 
+        # so everything went well should set a SSO cookie
+        headers = [self.authn.create_cookie(user, typ="sso", ttl=self.sso_ttl)]
         location = aresp.request(redirect_uri)
         logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
-        return Redirect(str(location))
+        return Redirect(str(location), headers=headers)
 
     def key_setup(self, local_path, vault="keys", sig=None, enc=None):
-        # my keys
-
+        """
+        my keys
+        :param local_path: The path to where the JWKs should be stored
+        :param vault: Where the private key will be stored
+        :param sig: Key for signature
+        :param enc: Key for encryption
+        :return: A URL the RP can use to download the key.
+        """
         self.jwks_uri = key_export(self.baseurl, local_path, vault, self.keyjar,
                                    fqdn=self.hostname, sig=sig, enc=enc)
 

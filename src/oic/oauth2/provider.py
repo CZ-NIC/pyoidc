@@ -73,7 +73,7 @@ def location_url(response_type, redirect_uri, query):
 
 class Provider(object):
     def __init__(self, name, sdb, cdb, authn, authz, client_authn,
-                 symkey="", urlmap=None):
+                 symkey="", urlmap=None, iv=0):
         self.name = name
         self.sdb = sdb
         self.cdb = cdb
@@ -85,7 +85,7 @@ class Provider(object):
         self.client_authn = client_authn
         self.symkey = symkey
         self.seed = rndstr()
-        self.iv = os.urandom(16)
+        self.iv = iv or os.urandom(16)
         self.cookie_name = "pyoidc"
 
         if urlmap is None:

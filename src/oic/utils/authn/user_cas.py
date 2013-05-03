@@ -122,7 +122,8 @@ class CasAuthnMethod(UserAuthnMethod):
         else:
             raise ValueError("Wrong type of input")
         try:
-            cas_cookie = self.getCookieValue(cookie, self.CONST_CAS_COOKIE)
+            cas_cookie, _ts, _typ = self.getCookieValue(cookie,
+                                                        self.CONST_CAS_COOKIE)
             data = json.loads(cas_cookie)
             nonce = base64.b64decode(data[self.CONST_NONCE])
             if nonce != _dict[self.CONST_NONCE][0]:

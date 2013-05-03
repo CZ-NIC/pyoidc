@@ -1,3 +1,5 @@
+import copy
+
 __author__ = 'rolandh'
 
 
@@ -7,9 +9,37 @@ class UserInfo(object):
     def __init__(self, db=None):
         self.db = db
 
+    def claims_filtering(self, userinfo, user_info_claims=None):
+        """
+        Return only those claims that are asked for.
+        It's a best effort task; if essential claims are not present
+        no error is flagged.
+
+        :param userinfo: A dictionary containing the available user info.
+        :param user_info_claims: A dictionary specifying the asked for claims
+        :return: A dictionary of filtered claims.
+        """
+
+        if user_info_claims is None:
+            return copy.copy(userinfo)
+        else:
+            result = {}
+            missing = []
+            optional = []
+            if "claims" in user_info_claims:
+                for key, restr in user_info_claims["claims"].items():
+                    try:
+                        result[key] = userinfo[key]
+                    except KeyError:
+                        if restr == {"essential": True}:
+                            missing.append(key)
+                        else:
+                            optional.append(key)
+            return result
+
     def __call__(self, userid, user_info_claims=None, **kwargs):
         try:
-            return self.db[userid]
+            return self.claims_filtering(self.db[userid], user_info_claims)
         except KeyError:
             return {}
 

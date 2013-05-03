@@ -18,10 +18,10 @@ from oic.oauth2 import Token
 from oic.oauth2.message import *
 
 from oic.utils.sdb import Crypt
-from oic.utils.authn import ClientSecretBasic
-from oic.utils.authn import ClientSecretPost
-from oic.utils.authn import BearerBody
-from oic.utils.authn import BearerHeader
+from oic.utils.authn.client import ClientSecretBasic
+from oic.utils.authn.client import ClientSecretPost
+from oic.utils.authn.client import BearerBody
+from oic.utils.authn.client import BearerHeader
 from oic.utils.keyio import KeyBundle
 
 from pytest import raises
@@ -589,7 +589,7 @@ def test_grant_access_token_1():
     assert token.token_expiration_time != 0
 
     time.sleep(2)
-    assert token.is_valid() == False
+    assert token.is_valid() is False
 
 
 def test_grant_access_token_2():
