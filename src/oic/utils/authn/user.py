@@ -31,22 +31,24 @@ class ToOld(Exception):
 class UserAuthnMethod(object):
     def __init__(self, srv):
         self.srv = srv
-        self.active = {}
         self.query_param = "upm_answer"
+        # minutes before the authentication should be completed
+        self.cookie_ttl = 5
 
     def __call__(self, *args, **kwargs):
         raise NotImplemented
 
-    def create_cookie(self, value, cookie_name=None):
+    def create_cookie(self, value, cookie_name=None, typ="uam", ttl=-1):
+        if ttl < 0:
+            ttl = self.cookie_ttl
         if cookie_name is None:
             cookie_name = self.srv.cookie_name
         timestamp = str(int(time.mktime(time.gmtime())))
         info = AES_encrypt(self.srv.symkey,
-                           "::".join([value, timestamp]),
+                           "::".join([value, timestamp, typ]),
                            self.srv.iv)
-        self.active[info] = timestamp
         cookie = make_cookie(cookie_name, info, self.srv.seed,
-                             expire=0, domain="", path="")
+                             expire=ttl, domain="", path="")
         return cookie
 
     def getCookieValue(self, cookie=None, cookie_name=None):
@@ -56,12 +58,10 @@ class UserAuthnMethod(object):
             try:
                 info, timestamp = parse_cookie(cookie_name,
                                                self.srv.seed, cookie)
-                if self.active[info] == timestamp:
-                    #del self.active[info]
-                    value, _ts = AES_decrypt(self.srv.symkey,
-                                             info, self.srv.iv).split("::")
-                    if timestamp == _ts:
-                        return value
+                value, _ts, typ = AES_decrypt(self.srv.symkey, info,
+                                              self.srv.iv).split("::")
+                if timestamp == _ts:
+                    return value, typ
             except Exception:
                 pass
         return None
@@ -74,10 +74,17 @@ class UserAuthnMethod(object):
 
             info, timestamp = parse_cookie(self.srv.cookie_name,
                                            self.srv.seed, cookie)
-            if self.active[info] == timestamp:
-                del self.active[info]
-                uid, _ts = AES_decrypt(self.srv.symkey,
-                                       info, self.srv.iv).split("::")
+            try:
+                then = self.active[info]
+            except KeyError:
+                raise NoSuchAuthentication()
+
+            if then == timestamp:
+                uid, _ts, typ = AES_decrypt(self.srv.symkey, info,
+                                            self.srv.iv).split("::")
+                if typ == "tmp":
+                    del self.active[info]
+
                 if timestamp == _ts:
                     if "max_age" in kwargs and kwargs["max_age"]:
                         _now = int(time.mktime(time.gmtime()))
@@ -89,6 +96,7 @@ class UserAuthnMethod(object):
                 else:
                     raise TamperAllert()
             else:
+                logger.debug("Active: %s" % (self.active,))
                 raise NoSuchAuthentication()
 
     def generateReturnUrl(self, return_to, uid):
@@ -167,7 +175,6 @@ class UsernamePasswordMako(UserAuthnMethod):
         self.template_lookup = template_lookup
         self.passwd = pwd
         self.return_to = return_to
-
 
     def __call__(self, cookie=None, policy_url=None, logo_url=None,
                  query="", **kwargs):

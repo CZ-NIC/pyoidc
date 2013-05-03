@@ -612,7 +612,7 @@ class KeyJar(object):
         _res = {}
         for k, vs in self.issuer_keys.items():
             _res[k] = [str(v) for v in vs]
-        return _res
+        return "%s" % (_res,)
 
     def keys(self):
         self.issuer_keys.keys()

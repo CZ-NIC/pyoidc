@@ -299,7 +299,7 @@ CLIENT_AUTHN_METHOD = {
     "private_key_jwt": PrivateKeyJWT,
 }
 
-TYPE_METHOD = [JWT_BEARER, JWSAuthnMethod]
+TYPE_METHOD = [(JWT_BEARER, JWSAuthnMethod)]
 
 
 def verify_client(inst, areq, authn, type_method=TYPE_METHOD):

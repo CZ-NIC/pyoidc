@@ -476,17 +476,21 @@ if __name__ == '__main__':
     # Client data base
     cdb = shelve.open("client_db", writeback=True)
 
-
     config = importlib.import_module(args.config)
+
+    # Authentication method
     if config.AUTHN == 'CasAuthnMethod':
-        authn = CasAuthnMethod(None, config.CAS_SERVER, config.SERVICE_URL, "%s/authorization" % config.issuer,
-                               UserLDAPMemberValidation('eduPersonScopedAffiliation;x-guise-anst2',
-                                                        ['employee@umu.se', 'staff@umu.se', 'member@umu.se'],
-                                                        **config.LDAP))
+        authn = CasAuthnMethod(
+            None, config.CAS_SERVER, config.SERVICE_URL,
+            "%s/authorization" % config.issuer,
+            UserLDAPMemberValidation(
+                'eduPersonScopedAffiliation;x-guise-anst2',
+                ['employee@umu.se', 'staff@umu.se', 'member@umu.se'],
+                **config.LDAP))
     else:
-        # Authentication method
         authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
-                                 "%s/authorization" % config.issuer)
+                                     "%s/authorization" % config.issuer)
+
     # dealing with authorization
     authz = AuthzHandling()
     # User info database
@@ -543,8 +547,6 @@ if __name__ == '__main__':
             config.baseurl = config.baseurl[:-1]
         OAS.baseurl = "%s:%d" % (config.baseurl, args.port)
 
-    LOGGER.info("OC3 server keyjar: %s" % OAS.keyjar)
-
     if not OAS.baseurl.endswith("/"):
         OAS.baseurl += "/"
 
@@ -573,7 +575,7 @@ if __name__ == '__main__':
     if config.USERINFO == "LDAP":
         OAS.userinfo = UserInfoLDAP(**config.LDAP)
     elif config.USERINFO == "SIMPLE":
-        OAS.userinfo = UserInfo(**config.DISTDB)
+        OAS.userinfo = UserInfo(config.DISTDB)
     elif config.USERINFO == "DISTRIBUTED":
         OAS.userinfo = DistributedAggregatedUserInfo(config.USERDB, OAS,
                                                      config.CLIENT_INFO)
