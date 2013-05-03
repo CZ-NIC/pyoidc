@@ -3,7 +3,6 @@ import json
 import traceback
 import urllib
 import sys
-from oic.utils.aes_m2c import AES_encrypt
 from oic.utils.authn.user import NoSuchAuthentication, ToOld, TamperAllert
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.keyio import KeyBundle, key_export
@@ -346,15 +345,15 @@ class Provider(AProvider):
         except KeyError:
             openid_req = None
 
-        if openid_req:
-            try:
-                req_user = openid_req["id_token"]["claims"]["sub"]["value"]
-            except KeyError:
-                req_user = ""
-        elif "id_token" in areq:
-            req_user = areq["id_token"]["sub"]
-        else:
-            req_user = ""
+        # if openid_req:
+        #     try:
+        #         req_user = openid_req["id_token"]["claims"]["sub"]["value"]
+        #     except KeyError:
+        #         req_user = ""
+        # elif "id_token" in areq:
+        #     req_user = areq["id_token"]["sub"]
+        # else:
+        #     req_user = ""
 
         return areq
 
@@ -400,7 +399,7 @@ class Provider(AProvider):
             # verify the redirect_uri
             try:
                 self.get_redirect_uri(areq)
-            except RedirectURIError, err:
+            except (RedirectURIError, ParameterError), err:
                 return self._error("invalid_request", "%s" % err)
         except Exception, err:
             message = traceback.format_exception(*sys.exc_info())
@@ -411,7 +410,7 @@ class Provider(AProvider):
         logger.debug("AuthzRequest: %s" % (areq.to_dict(),))
         try:
             redirect_uri = self.get_redirect_uri(areq)
-        except RedirectURIError, err:
+        except (RedirectURIError, ParameterError), err:
             return self._error("invalid_request", "%s" % err)
 
         try:
@@ -433,6 +432,15 @@ class Provider(AProvider):
         except (NoSuchAuthentication, ToOld, TamperAllert):
             identity = None
 
+        authn_args = {"query": request, "as_user": req_user}
+
+        cinfo = self.cdb[areq["client_id"]]
+        for attr in ["policy_url", "logo_url"]:
+            try:
+                authn_args[attr] = cinfo[attr]
+            except KeyError:
+                pass
+
         # To authenticate or Not
         if identity is None:  # No!
             if "prompt" in areq and "none" in areq["prompt"]:
@@ -440,11 +448,11 @@ class Provider(AProvider):
                 return self._redirect_authz_error("login_required",
                                                   redirect_uri)
             else:
-                return self.authn(query=request, as_user=req_user)
+                return self.authn(**authn_args)
         else:
             if self.re_authenticate(areq):
                 # demand re-authentication
-                return self.authn(query=request, as_user=req_user)
+                return self.authn(**authn_args)
             else:
                 # I get back a dictionary
                 user = identity["uid"]
@@ -455,7 +463,7 @@ class Provider(AProvider):
                         return self._redirect_authz_error("login_required",
                                                           redirect_uri)
                     else:
-                        return self.authn(query=request, as_user=req_user)
+                        return self.authn(**authn_args)
 
         logger.debug("- authenticated -")
         logger.debug("AREQ keys: %s" % areq.keys())
@@ -1200,11 +1208,11 @@ class Provider(AProvider):
 
         try:
             redirect_uri = self.get_redirect_uri(areq)
-        except RedirectURIError, err:
+        except (RedirectURIError, ParameterError), err:
             return BadRequest("%s" % err)
 
         # so everything went well should set a SSO cookie
-        headers = [self.authn.create_cookie(user, typ="sso", self.sso_ttl)]
+        headers = [self.authn.create_cookie(user, typ="sso", ttl=self.sso_ttl)]
         location = aresp.request(redirect_uri)
         logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
         return Redirect(str(location), headers=headers)

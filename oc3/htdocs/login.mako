@@ -25,7 +25,7 @@
         <img src="${logo_url}" alt="Client logo">
     % endif
     % if policy_url:
-         <a href="${policy_url}"><b>Client policy</b></a>
+        <a href="${policy_url}"><b>Client policy</b></a>
     % endif
 </div>
 
