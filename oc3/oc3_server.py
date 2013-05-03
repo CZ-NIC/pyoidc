@@ -472,18 +472,14 @@ if __name__ == '__main__':
 
     config = importlib.import_module(args.config)
 
-    # Authentication method
     if config.AUTHN == 'CasAuthnMethod':
         from oic.utils.authn.user_cas import CasAuthnMethod
         from oic.utils.authn.ldap_member import UserLDAPMemberValidation
 
-        authn = CasAuthnMethod(
-            None, config.CAS_SERVER, config.SERVICE_URL,
-            "%s/authorization" % config.issuer,
-            UserLDAPMemberValidation(
-                'eduPersonScopedAffiliation;x-guise-anst2',
-                ['employee@umu.se', 'staff@umu.se', 'member@umu.se'],
-                **config.LDAP))
+        config.LDAP_EXTRAVALIDATION.update(config.LDAP)
+        authn = CasAuthnMethod(None, config.CAS_SERVER, config.SERVICE_URL,
+                               "%s/authorization" % config.issuer,
+                               UserLDAPMemberValidation(**config.LDAP_EXTRAVALIDATION))
     else:
         from oic.utils.authn.user import UsernamePasswordMako
         authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,

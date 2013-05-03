@@ -12,11 +12,11 @@ keys = {
 }
 
 # ..... If you want to use CAS authentication ....
-#AUTHN = "CasAuthnMethod"
-#CAS_SERVER  = "https://cas.umu.se"
-#SERVICE_URL = "%s/verify" % issuer
+AUTHN = "CasAuthnMethod"
+CAS_SERVER  = "https://cas.umu.se"
+SERVICE_URL = "%s/verify" % issuer
 # ..... Otherwise
-AUTHN = "Simple"
+#AUTHN = "Simple"
 
 COOKIENAME= 'pyoic'
 COOKIETTL = 4*60 # 4 hours
@@ -97,8 +97,13 @@ LDAP = {
     "filter_pattern": "(uid=%s)",
     "user": "",
     "passwd": "",
-    "attr": ["eduPersonScopedAffiliation"]
+    "attr": ["eduPersonScopedAffiliation", "eduPersonAffiliation"],
 }
 
-#USERINFO = "LDAP"
-USERINFO = "SIMPLE"
+LDAP_EXTRAVALIDATION = {
+    "verifyAttr": "eduPersonAffiliation",
+    "verifyAttrValid": ['employee', 'staff', 'student']
+}
+
+USERINFO = "LDAP"
+#USERINFO = "SIMPLE"
