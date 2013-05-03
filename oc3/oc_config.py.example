@@ -6,7 +6,7 @@ baseurl = "https://localhost"
 issuer = "%s:8092" % baseurl
 keys = {
     "rsa": {
-        "key": "oc3_keys/key.pem",
+        "key": "cp_keys/key.pem",
         "usage": ["enc", "sig"]
     }
 }

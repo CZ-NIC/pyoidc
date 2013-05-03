@@ -8,8 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 class UserLDAPMemberValidation(UserInfoLDAP):
-    CONST_LDAPMEMBER = 'eduPersonAffiliation'
-    CONST_VALIDFIELDS = ['employee', 'staff', 'student']
 
     def __init__(self, verifyAttr=None, verifyAttrValid=None, **kwargs):
         UserInfoLDAP.__init__(self, **kwargs)
@@ -17,8 +15,7 @@ class UserLDAPMemberValidation(UserInfoLDAP):
         self.verifyAttrValid = verifyAttrValid
 
     def __call__(self, userid):
-        uic = {self.verifyAttr: None}
-        result = UserInfoLDAP.__call__(self, userid, UserInfoClaim(claims=uic))
+        result = UserInfoLDAP.__call__(self, userid, None, False)
         if self.verifyAttr in result:
             for field in result[self.verifyAttr]:
                 if field in self.verifyAttrValid:
