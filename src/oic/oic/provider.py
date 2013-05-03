@@ -147,10 +147,14 @@ class Provider(AProvider):
         self.cert = []
         self.cert_encryption = []
 
-        self.cookie_func = None
+        if authn_method:
+            self.cookie_func = authn_method.create_cookie
+        else:
+            self.cookie_func = None
+
         self.cookie_name = "pyoidc"
         self.seed = ""
-        self.cookie_ttl = 0
+        self.sso_ttl = 0
         self.test_mode = False
         self.jwks_uri = []
 
@@ -1063,8 +1067,8 @@ class Provider(AProvider):
             if handle:
                 (key, timestamp) = handle
                 if key.startswith(STR) and key.endswith(STR):
-                    cookie = self.cookie_func(self.cookie_name, key, self.seed,
-                                              self.cookie_ttl)
+                    cookie = self.cookie_func(key, self.cookie_name, "pinfo",
+                                              self.sso_ttl)
                     headers.append(cookie)
 
             resp = Response(_response.to_json(), content="application/json",
@@ -1104,8 +1108,8 @@ class Provider(AProvider):
         headers = [("Cache-Control", "no-store")]
         (key, timestamp) = handle
         if key.startswith(STR) and key.endswith(STR):
-            cookie = self.cookie_func(self.cookie_name, key, self.seed,
-                                      self.cookie_ttl)
+            cookie = self.cookie_func(key, self.cookie_name, "disc",
+                                      self.sso_ttl)
             headers.append(cookie)
 
         return Response(_response.to_json(), content="application/json",
@@ -1200,7 +1204,7 @@ class Provider(AProvider):
             return BadRequest("%s" % err)
 
         # so everything went well should set a SSO cookie
-        headers = [self.authn.create_cookie(user, typ="sso", self.cookie_ttl)]
+        headers = [self.authn.create_cookie(user, typ="sso", self.sso_ttl)]
         location = aresp.request(redirect_uri)
         logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
         return Redirect(str(location), headers=headers)
