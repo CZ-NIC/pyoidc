@@ -11,16 +11,10 @@ from exceptions import IndexError
 from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
 from oic.utils.authn.client import verify_client
-from oic.utils.authn.user import UsernamePasswordMako
-from oic.utils.authn.user_cas import CasAuthnMethod
-from oic.utils.authn.ldap_member import UserLDAPMemberValidation
 
 from oic.utils.authz import AuthzHandling
 from oic.utils.keyio import KeyBundle, dump_jwks
 from oic.utils.userinfo import UserInfo
-from oic.utils.userinfo.distaggr import DistributedAggregatedUserInfo
-from oic.utils.userinfo.ldap_info import UserInfoLDAP
-
 
 __author__ = 'rohe0002'
 
@@ -479,11 +473,15 @@ if __name__ == '__main__':
     config = importlib.import_module(args.config)
 
     if config.AUTHN == 'CasAuthnMethod':
+        from oic.utils.authn.user_cas import CasAuthnMethod
+        from oic.utils.authn.ldap_member import UserLDAPMemberValidation
+
         config.LDAP_EXTRAVALIDATION.update(config.LDAP)
         authn = CasAuthnMethod(None, config.CAS_SERVER, config.SERVICE_URL,
                                "%s/authorization" % config.issuer,
                                UserLDAPMemberValidation(**config.LDAP_EXTRAVALIDATION))
     else:
+        from oic.utils.authn.user import UsernamePasswordMako
         authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
                                      "%s/authorization" % config.issuer)
 
@@ -569,10 +567,12 @@ if __name__ == '__main__':
         OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
 
     if config.USERINFO == "LDAP":
+        from oic.utils.userinfo.ldap_info import UserInfoLDAP
         OAS.userinfo = UserInfoLDAP(**config.LDAP)
     elif config.USERINFO == "SIMPLE":
         OAS.userinfo = UserInfo(config.DISTDB)
     elif config.USERINFO == "DISTRIBUTED":
+        from oic.utils.userinfo.distaggr import DistributedAggregatedUserInfo
         OAS.userinfo = DistributedAggregatedUserInfo(config.USERDB, OAS,
                                                      config.CLIENT_INFO)
 
