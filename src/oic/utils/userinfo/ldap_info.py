@@ -32,7 +32,7 @@ OPENID2LDAP = {
     "updated_time": ""
 }
 
-LDAP2USERINFO = {v: k for k, v in OPENID2LDAP.items()}
+LDAP2USERINFO = dict([(v, k) for k, v in OPENID2LDAP.items()])
 
 
 class UserInfoLDAP(UserInfo):
