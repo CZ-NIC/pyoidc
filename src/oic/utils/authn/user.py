@@ -79,7 +79,11 @@ class UserAuthnMethod(object):
         else:
             logger.debug("kwargs: %s" % kwargs)
 
-            uid, _ts, typ = self.getCookieValue(cookie, self.srv.cookie_name)
+            val = self.getCookieValue(cookie, self.srv.cookie_name)
+            if val is None:
+                return None
+            else:
+                uid, _ts, typ = val
 
             if typ == "uam":  # shortlived
                 _now = int(time.mktime(time.gmtime()))
