@@ -105,5 +105,5 @@ LDAP_EXTRAVALIDATION = {
     "verifyAttrValid": ['employee', 'staff', 'student']
 }
 
-USERINFO = "LDAP"
-#USERINFO = "SIMPLE"
+#USERINFO = "LDAP"
+USERINFO = "SIMPLE"
