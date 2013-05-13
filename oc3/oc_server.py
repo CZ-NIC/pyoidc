@@ -32,7 +32,7 @@ from oic.oic.message import ProviderConfigurationResponse
 from mako.lookup import TemplateLookup
 
 LOGGER = logging.getLogger("")
-LOGFILE_NAME = 'oc3.log'
+LOGFILE_NAME = 'oc.log'
 hdlr = logging.FileHandler(LOGFILE_NAME)
 base_formatter = logging.Formatter(
     "%(asctime)s %(name)s:%(levelname)s %(message)s")
@@ -363,7 +363,7 @@ def application(environ, start_response):
 
     if path.startswith("static/"):
         return static(environ, start_response, logger, path)
-#    elif path.startswith("oc3_keys/"):
+#    elif path.startswith("oc_keys/"):
 #        return static(environ, start_response, logger, path)
 
     for regex, callback in URLS:
@@ -548,7 +548,7 @@ if __name__ == '__main__':
         OAS.keyjar[""] = []
         kbl = []
         for typ, info in config.keys.items():
-            LOGGER.info("OC3 server key init: %s, %s" % (typ, info))
+            LOGGER.info("OC server key init: %s, %s" % (typ, info))
             kb = KeyBundle(source="file://%s" % info["key"], fileformat="der",
                            keytype=typ)
             OAS.keyjar.add_kb("", kb)
