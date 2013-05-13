@@ -50,7 +50,7 @@ class UserInfoLDAP(UserInfo):
         self.ld.protocol_version = ldap.VERSION3
         self.ld.simple_bind_s(user, passwd)
 
-    def __call__(self, userid, user_info_claims=None, **kwargs):
+    def __call__(self, userid, user_info_claims=None, firstOnly=True, **kwargs):
         _filter = self.filter_pattern % userid
         logger.debug("CLAIMS: %s" % user_info_claims)
         _attr = self.attr
@@ -81,7 +81,8 @@ class UserInfoLDAP(UserInfo):
             # the tuple (dn, ava)
             newres = {}
             for key, val in res[0][1].items():
-                val = val[0]  # if more than one just return the first
+                if firstOnly:
+                    val = val[0]  # if more than one just return the first
                 try:
                     newres[LDAP2USERINFO[key]] = val
                 except KeyError:
