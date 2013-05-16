@@ -179,10 +179,34 @@ class EC_key(Key):
 class HMAC_key(Key):
     pass
 
+
+PREFIX = "-----BEGIN CERTIFICATE-----"
+POSTFIX = "-----END CERTIFICATE-----"
+
+
+class PKIX_key(Key):
+    members = ["kty", "alg", "use", "kid", "n", "e"]
+
+    def __init__(self, kty="rsa", alg="", use="", kid="", x5c="", key=""):
+        Key.__init__(self, kty, alg, use, kid, key)
+        self.x5c = x5c
+        self.key = key
+
+    def dc(self):
+        if self.x5c:
+            cert = "\n".join([PREFIX, str(self.x5c[0]), POSTFIX])
+            self.key = x509_rsa_loads(cert)
+        elif self.key:
+            self.x5c = []
+        else:  # do nothing
+            pass
+
+
 K2C = {
     "rsa": RSA_key,
     "ec": EC_key,
-    "hmac": HMAC_key
+    "hmac": HMAC_key,
+#    "pkix": PKIX_key
 }
 
 
@@ -243,9 +267,13 @@ class KeyBundle(object):
         """
         for inst in keys:
             typ = inst["kty"].lower()
-            _key = K2C[typ](**inst)
-            _key.dc()
-            self._keys.append(_key)
+            try:
+                _key = K2C[typ](**inst)
+            except KeyError:
+                continue
+            else:
+                _key.dc()
+                self._keys.append(_key)
 
     def do_local_jwk(self, filename):
         self.do_keys(json.loads(open(filename).read())["keys"])
