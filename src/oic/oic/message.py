@@ -392,7 +392,7 @@ class OpenIDSchema(Message):
                "locale": SINGLE_OPTIONAL_STRING,
                "phone_number": SINGLE_OPTIONAL_STRING,
                "address": OPTIONAL_ADDRESS,
-               "updated_time": SINGLE_OPTIONAL_STRING,
+               "updated_at": SINGLE_OPTIONAL_INT,
                "_claim_names": SINGLE_OPTIONAL_JSON,
                "_claim_sources": SINGLE_OPTIONAL_JSON}
 
@@ -657,7 +657,7 @@ SCOPE2CLAIMS = {
     "openid": ["sub"],
     "profile": ["name", "given_name", "family_name", "middle_name",
                 "nickname", "profile", "picture", "website", "gender",
-                "birthdate", "zoneinfo", "locale", "updated_time",
+                "birthdate", "zoneinfo", "locale", "updated_at",
                 "preferred_username"],
     "email": ["email", "email_verified"],
     "address": ["address"],
