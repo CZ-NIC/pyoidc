@@ -10,7 +10,7 @@ from exceptions import OSError
 from exceptions import IndexError
 from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
-from oc3.XpressConnect import XpressConnectProvider
+from XpressConnect import XpressConnectProvider
 from oic.utils.authn.client import verify_client
 
 from oic.utils.authz import AuthzHandling
