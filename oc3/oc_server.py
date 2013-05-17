@@ -10,6 +10,7 @@ from exceptions import OSError
 from exceptions import IndexError
 from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
+from oc3.XpressConnect import XpressConnectProvider
 from oic.utils.authn.client import verify_client
 
 from oic.utils.authz import AuthzHandling
@@ -462,6 +463,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', dest='debug', action='store_true')
     parser.add_argument('-p', dest='port', default=80, type=int)
     parser.add_argument('-t', dest='test', action='store_true')
+    parser.add_argument('-X', dest='XpressConnect', action='store_true')
     parser.add_argument('-A', dest='authn_as', default="")
     parser.add_argument('-P', dest='provider_conf')
     parser.add_argument(dest="config")
@@ -492,6 +494,9 @@ if __name__ == '__main__':
         URLS.append((r'tracelog', trace_log))
         OAS = TestProvider(config.issuer, SessionDB(), cdb, authn, None,
                            authz, config.SYM_KEY)
+    elif args.XpressConnect:
+        OAS = XpressConnectProvider(config.issuer, SessionDB(), cdb, authn, None, authz,
+                       verify_client, config.SYM_KEY)
     else:
         OAS = Provider(config.issuer, SessionDB(), cdb, authn, None, authz,
                        verify_client, config.SYM_KEY)
