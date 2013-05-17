@@ -46,9 +46,14 @@ class UserInfoLDAP(UserInfo):
         self.tls = tls
         self.attr = attr
         self.attrsonly = attrsonly
-        self.ld = ldap.initialize(uri)
+        self.ldapuser = user
+        self.ldappasswd = passwd
+        self.bind()
+
+    def bind(self):
+        self.ld = ldap.initialize(self.ldapuri)
         self.ld.protocol_version = ldap.VERSION3
-        self.ld.simple_bind_s(user, passwd)
+        self.ld.simple_bind_s(self.ldapuser, self.ldappasswd)
 
     def __call__(self, userid, user_info_claims=None, firstOnly=True, **kwargs):
         _filter = self.filter_pattern % userid
@@ -75,7 +80,15 @@ class UserInfoLDAP(UserInfo):
                 _attr.extend(avaspec.keys())
 
         arg = [self.base, self.scope, _filter, _attr, self.attrsonly]
-        res = self.ld.search_s(*arg)
+        try:
+            res = self.ld.search_s(*arg)
+        except:
+            try:
+                self.ld.close()
+            except:
+                pass
+            self.bind()
+            res = self.ld.search_s(*arg)
         if len(res) == 1:
             # should only be one entry and the information per entry is
             # the tuple (dn, ava)
