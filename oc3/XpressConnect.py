@@ -33,6 +33,7 @@ class XpressConnectProvider(Provider):
             _token = _token[len("Bearer "):]
             logger.debug("Bearer token: '%s'" % _token)
         else:
+            request += "&schema="
             uireq = self.server.parse_user_info_request(data=request)
             logger.debug("user_info_request: %s" % uireq)
             _token = uireq["access_token"]
