@@ -27,13 +27,18 @@ class XpressConnectProvider(Provider):
 
         _sdb = self.sdb
 
+
+        access_token_name = "access_token"
+        if "oauth_token" in request: #Added
+            access_token_name = "oauth_token"
+
         if not request or "access_token" not in request:
             _token = kwargs["authn"]
             assert _token.startswith("Bearer ")
             _token = _token[len("Bearer "):]
             logger.debug("Bearer token: '%s'" % _token)
         else:
-            request += "&schema="
+            request += "&schema=none" #Must be openid for oic but may be empty for OAuth 2.0
             uireq = self.server.parse_user_info_request(data=request)
             logger.debug("user_info_request: %s" % uireq)
             _token = uireq["access_token"]
