@@ -392,7 +392,7 @@ class OpenIDSchema(Message):
                "locale": SINGLE_OPTIONAL_STRING,
                "phone_number": SINGLE_OPTIONAL_STRING,
                "address": OPTIONAL_ADDRESS,
-               "updated_time": SINGLE_OPTIONAL_STRING,
+               "updated_at": SINGLE_OPTIONAL_INT,
                "_claim_names": SINGLE_OPTIONAL_JSON,
                "_claim_sources": SINGLE_OPTIONAL_JSON}
 
@@ -412,9 +412,8 @@ class OpenIDSchema(Message):
 
 class RegistrationRequest(Message):
     c_param = {
-        "access_token": SINGLE_OPTIONAL_STRING,
         "redirect_uris": OPTIONAL_LIST_OF_STRINGS,
-        "response_type": OPTIONAL_LIST_OF_STRINGS,
+        "response_types": OPTIONAL_LIST_OF_STRINGS,
         "grant_types": OPTIONAL_LIST_OF_STRINGS,
         "application_type": SINGLE_OPTIONAL_STRING,
         "contacts": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
@@ -427,10 +426,10 @@ class RegistrationRequest(Message):
         "sector_identifier_uri": SINGLE_OPTIONAL_STRING,
         "subject_type": SINGLE_OPTIONAL_STRING,
         "request_object_signing_alg": SINGLE_OPTIONAL_STRING,
-        "userinfo_signed_response_algs": SINGLE_OPTIONAL_STRING,
+        "userinfo_signed_response_alg": SINGLE_OPTIONAL_STRING,
         "userinfo_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
         "userinfo_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
-        "id_token_signed_response_algs": SINGLE_OPTIONAL_STRING,
+        "id_token_signed_response_alg": SINGLE_OPTIONAL_STRING,
         "id_token_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
         "id_token_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
         "default_max_age": SINGLE_OPTIONAL_INT,
@@ -438,9 +437,10 @@ class RegistrationRequest(Message):
         "default_acr_values": SINGLE_OPTIONAL_STRING,
         "initiate_login_uri": SINGLE_OPTIONAL_STRING,
         "post_logout_redirect_url": SINGLE_OPTIONAL_STRING,
-        "request_uris": OPTIONAL_LIST_OF_STRINGS
+        "request_uris": OPTIONAL_LIST_OF_STRINGS,
         #"client_id": SINGLE_OPTIONAL_STRING,
         #"client_secret": SINGLE_OPTIONAL_STRING,
+        "access_token": SINGLE_OPTIONAL_STRING,
     }
     c_default = {"application_type": "web"}
     c_allowed_values = {"application_type": ["native", "web"],
@@ -657,7 +657,7 @@ SCOPE2CLAIMS = {
     "openid": ["sub"],
     "profile": ["name", "given_name", "family_name", "middle_name",
                 "nickname", "profile", "picture", "website", "gender",
-                "birthdate", "zoneinfo", "locale", "updated_time",
+                "birthdate", "zoneinfo", "locale", "updated_at",
                 "preferred_username"],
     "email": ["email", "email_verified"],
     "address": ["address"],

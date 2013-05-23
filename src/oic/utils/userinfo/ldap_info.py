@@ -29,7 +29,7 @@ OPENID2LDAP = {
     "phone_number":	"telephoneNumber",
     #phone_number_verified
     "address": "postalAddress",
-    "updated_time": ""
+    "updated_at": ""  # Nothing equivalent
 }
 
 LDAP2USERINFO = dict([(v, k) for k, v in OPENID2LDAP.items()])
