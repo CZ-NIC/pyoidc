@@ -120,9 +120,13 @@ class Message(object):
                 (_, req, _ser, _) = _spec[key]
             except KeyError:  # extra attribute
                 try:
-                    (_, req, _ser, _) = _spec['*']
-                except KeyError:
-                    _ser = None
+                    _key, lang = key.split("#")
+                    (_, req, _ser, _deser) = _spec[_key]
+                except (ValueError, KeyError):
+                    try:
+                        (_, req, _ser, _) = _spec['*']
+                    except KeyError:
+                        _ser = None
 
             # Should I allow parameters with "" as value ???
             if isinstance(val, basestring):
@@ -188,13 +192,17 @@ class Message(object):
                 (typ, _, _, _deser) = _spec[key]
             except KeyError:
                 try:
-                    (typ, _, _, _deser) = _spec['*']
-                except KeyError:
-                    if len(val) == 1:
-                        val = val[0]
+                    _key, lang = key.split("#")
+                    (typ, _, _, _deser) = _spec[_key]
+                except (ValueError, KeyError):
+                    try:
+                        (typ, _, _, _deser) = _spec['*']
+                    except KeyError:
+                        if len(val) == 1:
+                            val = val[0]
 
-                    self._dict[key] = val
-                    continue
+                        self._dict[key] = val
+                        continue
 
             if isinstance(typ, list):
                 if _deser:
@@ -230,9 +238,16 @@ class Message(object):
         lev += 1
         for key, val in self._dict.items():
             try:
-                (vtyp, req, _ser, _) = _spec[str(key)]
+                (_, req, _ser, _) = _spec[str(key)]
             except KeyError:
-                _ser = None
+                try:
+                    _key, lang = key.split("#")
+                    (_, req, _ser, _) = _spec[_key]
+                except (ValueError, KeyError):
+                    try:
+                        (_, req, _ser, _) = _spec['*']
+                    except KeyError:
+                        _ser = None
 
             if _ser:
                 val = _ser(val, "json", lev)
@@ -268,14 +283,30 @@ class Message(object):
 
                 (vtyp, req, _, _deser) = _spec[key]
             except KeyError:
+                # might be a parameter with a lang tag
                 try:
-                    (vtyp, _, _, _deser) = _spec['*']
-                    if val is None:
+                    _key, lang = skey.split("#")
+                except ValueError:
+                    try:
+                        (vtyp, _, _, _deser) = _spec['*']
+                        if val is None:
+                            self._dict[key] = val
+                            continue
+                    except KeyError:
                         self._dict[key] = val
                         continue
-                except KeyError:
-                    self._dict[key] = val
-                    continue
+                else:
+                    try:
+                        (vtyp, req, _, _deser) = _spec[_key]
+                    except KeyError:
+                        try:
+                            (vtyp, _, _, _deser) = _spec['*']
+                            if val is None:
+                                self._dict[key] = val
+                                continue
+                        except KeyError:
+                            self._dict[key] = val
+                            continue
 
             self._add_value(skey, vtyp, key, val, _deser)
         return self
@@ -665,6 +696,7 @@ class AccessTokenRequest(Message):
     c_param = {"grant_type": SINGLE_REQUIRED_STRING,
                "code": SINGLE_REQUIRED_STRING,
                "redirect_uri": SINGLE_REQUIRED_STRING,
+               "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
                "client_id": SINGLE_OPTIONAL_STRING,
                "client_secret": SINGLE_OPTIONAL_STRING}
     c_default = {"grant_type": "authorization_code"}

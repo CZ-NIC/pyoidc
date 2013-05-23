@@ -340,21 +340,6 @@ class Provider(AProvider):
 
             areq["request"] = resq
 
-        try:
-            openid_req = areq["request"]
-        except KeyError:
-            openid_req = None
-
-        # if openid_req:
-        #     try:
-        #         req_user = openid_req["id_token"]["claims"]["sub"]["value"]
-        #     except KeyError:
-        #         req_user = ""
-        # elif "id_token" in areq:
-        #     req_user = areq["id_token"]["sub"]
-        # else:
-        #     req_user = ""
-
         return areq
 
     def required_user(self, areq):
