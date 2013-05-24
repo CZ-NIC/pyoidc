@@ -73,7 +73,7 @@ def location_url(response_type, redirect_uri, query):
 
 class Provider(object):
     def __init__(self, name, sdb, cdb, authn, authz, client_authn,
-                 symkey="", urlmap=None, iv=0):
+                 symkey="", urlmap=None, iv=0, default_scope=""):
         self.name = name
         self.sdb = sdb
         self.cdb = cdb
@@ -87,6 +87,7 @@ class Provider(object):
         self.seed = rndstr()
         self.iv = iv or os.urandom(16)
         self.cookie_name = "pyoidc"
+        self.default_scope = default_scope
 
         if urlmap is None:
             self.urlmap = {}
@@ -98,6 +99,21 @@ class Provider(object):
             "token": token_response,
             "none": none_response,
         }
+
+    def subset(self, li1, li2):
+        """
+        Verify that all items in li1 appears in li2
+
+        :param li1: List 1
+        :param li2: List 2
+        :return: True if all items in li1 appears in li2
+        """
+        for item in li1:
+            try:
+                assert item in li2
+            except AssertionError:
+                return False
+        return True
 
     def get_client_id(self, req, authn):
         """
@@ -217,6 +233,10 @@ class Provider(object):
         except Exception, err:
             return BadRequest("%s" % err)
 
+        if "scope" not in areq:
+            if self.default_scope:
+                areq["scope"] = self.default_scope
+
         sid = _sdb.create_authz_session(user, areq)
         bsid = base64.b64encode(sid)
         session = _sdb[sid]
@@ -255,7 +275,6 @@ class Provider(object):
 
         areq = AccessTokenRequest().deserialize(body, "urlencoded")
 
-
         try:
             client = self.client_authn(self, areq, auth_header)
         except FailedAuthentication, err:
@@ -270,6 +289,11 @@ class Provider(object):
 
         # assert that the code is valid
         _info = _sdb[areq["code"]]
+
+        if not self.subset(areq["scope"], _info["scope"]):
+            LOG_INFO("Asked for scope which is not subset of previous defined")
+            err = TokenErrorResponse(error="invalid_scope")
+            return Response(err.to_json(), content="application/json")
 
         # If redirect_uri was in the initial authorization request
         # verify that the one given here is the correct one.

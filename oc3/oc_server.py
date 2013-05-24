@@ -593,6 +593,7 @@ if __name__ == '__main__':
                                                      config.CERT_CHAIN)
 
     LOGGER.info("OC server starting listening on port:%s" % args.port)
+    print "OC server starting listening on port:%s" % args.port
     try:
         SRV.start()
     except KeyboardInterrupt:

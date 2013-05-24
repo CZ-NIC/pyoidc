@@ -595,9 +595,23 @@ class Provider(AProvider):
             _sdb.revoke_all_tokens(_access_code)
             return self._error(error="access_denied", descr="%s" % err)
 
+        # verify that the scope given in the request is a true subset of
+        # the one specified in the AuthorizationRequest
+
+        if not self.subset(areq["scope"], _info["scope"]):
+            _log_info("Asked for scope which is not subset of previous defined")
+            err = TokenErrorResponse(error="invalid_scope")
+            return Response(err.to_json(), content="application/json")
+
         if "openid" in _info["scope"]:
-            userinfo = self.userinfo_in_id_token_claims(_info)
-            _idtoken = self.sign_encrypt_id_token(_info, client_info, areq,
+            if areq["scope"] != _info["scope"]:
+                _inf = _info.copy()
+                _inf["scope"] = areq["scope"]
+            else:
+                _inf = _info
+
+            userinfo = self.userinfo_in_id_token_claims(_inf)
+            _idtoken = self.sign_encrypt_id_token(_inf, client_info, areq,
                                                   user_info=userinfo)
             _sdb.update_by_token(_access_code, "id_token", _idtoken)
 
