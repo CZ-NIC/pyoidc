@@ -1,0 +1,707 @@
+2013-05-24 14:20:03,493 root:DEBUG URLS: '[('^verify', <function verify at 0x101801668>), ('.+\\.css$', <function css at 0x101801500>), ('safe', <function safe at 0x101801488>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x1018185d0>)]
+2013-05-24 14:20:03,494 root:INFO OC server starting listening on port:80
+2013-05-24 14:20:38,041 root:DEBUG URLS: '[('^verify', <function verify at 0x101801668>), ('.+\\.css$', <function css at 0x101801500>), ('safe', <function safe at 0x101801488>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x1018185d0>)]
+2013-05-24 14:20:38,041 root:INFO OC server starting listening on port:80
+2013-05-24 14:20:48,257 root:DEBUG URLS: '[('^verify', <function verify at 0x101801668>), ('.+\\.css$', <function css at 0x101801500>), ('safe', <function safe at 0x101801488>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x1018185d0>)]
+2013-05-24 14:20:48,257 root:INFO OC server starting listening on port:8092
+2013-05-24 14:21:46,459 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>
+2013-05-24 14:21:46,459 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 14:21:46,459 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 14:21:46,460 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 14:21:46,462 oicServer:ERROR Cant locate template for uri 'login.mako'
+Traceback (most recent call last):
+  File "./oa.py", line 235, in application
+    return callback(environ, start_response, logger)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/oic/provider.py", line 1235, in __call__
+    return self.func(*args, **kwargs)
+  File "./oa.py", line 116, in authorization
+    logger=logger)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/utils/http_util.py", line 315, in wsgi_wrapper
+    resp = func(**kwargs)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/oauth2/provider.py", line 202, in authorization_endpoint
+    return self.authn(query=query)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/utils/authn/user.py", line 200, in __call__
+    mte = self.template_lookup.get_template(self.mako_template)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/Mako-0.5.0-py2.7.egg/mako/lookup.py", line 221, in get_template
+    "Cant locate template for uri %r" % uri)
+TopLevelLookupException: Cant locate template for uri 'login.mako'
+2013-05-24 14:22:36,310 root:DEBUG URLS: '[('^verify', <function verify at 0x101801668>), ('.+\\.css$', <function css at 0x101801500>), ('safe', <function safe at 0x101801488>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x1018185d0>)]
+2013-05-24 14:22:36,310 root:INFO OC server starting listening on port:8092
+2013-05-24 14:22:38,794 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>
+2013-05-24 14:22:38,795 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 14:22:38,795 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 14:22:38,795 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 14:22:38,850 oicServer:INFO callback: <function verify at 0x101801668>
+2013-05-24 14:22:38,850 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 14:22:38,850 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 14:22:38,850 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 14:22:38,852 oicServer:ERROR expected a readable buffer object
+Traceback (most recent call last):
+  File "./oa.py", line 235, in application
+    return callback(environ, start_response, logger)
+  File "./oa.py", line 123, in verify
+    logger=logger)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/utils/http_util.py", line 315, in wsgi_wrapper
+    resp = func(**kwargs)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/utils/authn/user.py", line 227, in verify
+    cookie = self.create_cookie(_dict["login"][0])
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/utils/authn/user.py", line 49, in create_cookie
+    self.srv.iv)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/utils/aes_m2c.py", line 32, in AES_encrypt
+    cipher = AES_build_cipher(key, iv, 1)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/utils/aes_m2c.py", line 18, in AES_build_cipher
+    return M2Crypto.EVP.Cipher(alg=alg, key=key, iv=iv, op=op)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/M2Crypto-0.21.1-py2.7-macosx-10.7-intel.egg/M2Crypto/EVP.py", line 116, in __init__
+    m2.cipher_init(self.ctx, self.cipher, key, iv, op)
+TypeError: expected a readable buffer object
+2013-05-24 14:25:04,978 root:DEBUG URLS: '[('^verify', <function verify at 0x103eae140>), ('.+\\.css$', <function css at 0x103eacf50>), ('safe', <function safe at 0x103eaced8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x103eb8dd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x103eb8e10>)]
+2013-05-24 14:25:04,979 root:INFO OC server starting listening on port:80
+2013-05-24 14:25:33,100 root:DEBUG URLS: '[('^verify', <function verify at 0x104ab0140>), ('.+\\.css$', <function css at 0x104aaef50>), ('safe', <function safe at 0x104aaeed8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x104abadd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x104abae10>)]
+2013-05-24 14:25:33,101 root:INFO OC server starting listening on port:8092
+2013-05-24 14:25:42,186 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x104abadd0>
+2013-05-24 14:25:42,186 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 14:25:42,186 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 14:25:42,187 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 14:25:42,219 oicServer:INFO callback: <function verify at 0x104ab0140>
+2013-05-24 14:25:42,220 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 14:25:42,221 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 14:25:42,221 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 14:25:42,223 oicServer:ERROR expected a readable buffer object
+Traceback (most recent call last):
+  File "/Users/rolandh/code/oic-0.3/oauth_example/oa.py", line 235, in application
+    return callback(environ, start_response, logger)
+  File "/Users/rolandh/code/oic-0.3/oauth_example/oa.py", line 123, in verify
+    logger=logger)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/utils/http_util.py", line 315, in wsgi_wrapper
+    resp = func(**kwargs)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/utils/authn/user.py", line 227, in verify
+    cookie = self.create_cookie(_dict["login"][0])
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/utils/authn/user.py", line 49, in create_cookie
+    self.srv.iv)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/utils/aes_m2c.py", line 32, in AES_encrypt
+    cipher = AES_build_cipher(key, iv, 1)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/utils/aes_m2c.py", line 18, in AES_build_cipher
+    return M2Crypto.EVP.Cipher(alg=alg, key=key, iv=iv, op=op)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/M2Crypto-0.21.1-py2.7-macosx-10.7-intel.egg/M2Crypto/EVP.py", line 116, in __init__
+    m2.cipher_init(self.ctx, self.cipher, key, iv, op)
+TypeError: expected a readable buffer object
+2013-05-24 14:26:47,754 root:DEBUG URLS: '[('^verify', <function verify at 0x103ab3140>), ('.+\\.css$', <function css at 0x103ab1f50>), ('safe', <function safe at 0x103ab1ed8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x103abddd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x103abde10>)]
+2013-05-24 14:26:47,755 root:INFO OC server starting listening on port:8092
+2013-05-24 14:26:51,066 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x103abddd0>
+2013-05-24 14:26:51,067 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 14:26:51,067 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 14:26:51,067 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 14:26:51,102 oicServer:INFO callback: <function verify at 0x103ab3140>
+2013-05-24 14:27:39,099 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 14:27:41,292 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 14:27:41,903 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 14:29:52,949 root:DEBUG URLS: '[('^verify', <function verify at 0x101801668>), ('.+\\.css$', <function css at 0x101801500>), ('safe', <function safe at 0x101801488>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x1018185d0>)]
+2013-05-24 14:29:52,949 root:INFO OC server starting listening on port:8092
+2013-05-24 14:30:01,160 root:DEBUG URLS: '[('^verify', <function verify at 0x101801668>), ('.+\\.css$', <function css at 0x101801500>), ('safe', <function safe at 0x101801488>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x1018185d0>)]
+2013-05-24 14:30:01,160 root:INFO OC server starting listening on port:8092
+2013-05-24 14:30:03,002 oicServer:INFO callback: <function verify at 0x101801668>
+2013-05-24 14:30:03,002 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 14:30:03,002 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 14:30:03,002 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 14:30:09,914 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>
+2013-05-24 14:30:09,914 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 14:30:09,914 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 14:30:09,914 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 14:30:09,943 oicServer:INFO callback: <function verify at 0x101801668>
+2013-05-24 14:30:09,943 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 14:30:09,943 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 14:30:09,943 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 14:31:02,046 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>
+2013-05-24 14:31:02,046 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 14:31:02,046 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 14:31:02,046 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 14:31:02,075 oicServer:INFO callback: <function verify at 0x101801668>
+2013-05-24 14:31:02,075 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 14:31:02,075 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 14:31:02,075 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 14:32:48,142 root:DEBUG URLS: '[('^verify', <function verify at 0x101801668>), ('.+\\.css$', <function css at 0x101801500>), ('safe', <function safe at 0x101801488>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x1018185d0>)]
+2013-05-24 14:32:48,142 root:INFO OC server starting listening on port:8092
+2013-05-24 14:34:29,105 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>
+2013-05-24 14:34:29,105 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 14:34:29,105 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 14:34:29,105 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 14:34:34,561 oicServer:INFO callback: <function verify at 0x101801668>
+2013-05-24 14:34:34,561 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 14:34:34,561 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 14:34:34,561 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 14:34:58,154 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>
+2013-05-24 14:34:58,154 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 14:34:58,154 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 14:34:58,154 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 14:35:05,046 oicServer:INFO callback: <function verify at 0x101801668>
+2013-05-24 14:35:05,046 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 14:35:05,047 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 14:35:05,047 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 14:35:52,794 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>
+2013-05-24 14:35:52,794 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 14:35:52,794 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 14:35:52,794 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 14:35:58,230 oicServer:INFO callback: <function verify at 0x101801668>
+2013-05-24 14:35:58,230 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 14:35:58,230 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 14:35:58,230 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 14:36:34,677 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>
+2013-05-24 14:36:34,677 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 14:36:34,677 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 14:36:34,677 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 14:36:39,579 oicServer:INFO callback: <function verify at 0x101801668>
+2013-05-24 14:36:39,579 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 14:36:39,579 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 14:36:39,579 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 14:37:11,811 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>
+2013-05-24 14:37:11,811 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 14:37:11,811 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 14:37:11,812 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 14:37:16,575 oicServer:INFO callback: <function verify at 0x101801668>
+2013-05-24 14:37:16,575 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 14:37:16,575 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 14:37:16,575 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 14:38:11,346 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>
+2013-05-24 14:38:11,347 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 14:38:11,347 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 14:38:11,347 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 14:38:15,311 oicServer:INFO callback: <function verify at 0x101801668>
+2013-05-24 14:38:15,311 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 14:38:15,311 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 14:38:15,311 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 14:42:28,494 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>
+2013-05-24 14:42:28,494 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 14:42:28,494 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 14:42:28,494 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 14:43:28,070 oicServer:INFO callback: <function verify at 0x101801668>
+2013-05-24 14:43:28,071 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 14:43:28,071 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 14:43:28,071 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 14:45:36,531 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>
+2013-05-24 14:45:36,531 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 14:45:36,531 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 14:45:36,531 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 14:46:55,906 oicServer:INFO callback: <function verify at 0x101801668>
+2013-05-24 14:46:55,907 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 14:46:55,907 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 14:46:55,907 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 14:52:28,641 root:DEBUG URLS: '[('^verify', <function verify at 0x1045b0140>), ('.+\\.css$', <function css at 0x1045aef50>), ('safe', <function safe at 0x1045aeed8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x1045badd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x1045bae10>)]
+2013-05-24 14:52:28,642 root:INFO OC server starting listening on port:8092
+2013-05-24 14:53:27,712 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1045badd0>
+2013-05-24 14:53:27,713 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 14:53:27,713 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 14:53:27,713 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 14:53:33,566 oicServer:INFO callback: <function verify at 0x1045b0140>
+2013-05-24 14:53:53,672 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 14:53:58,513 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 14:53:59,230 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 14:57:37,752 root:DEBUG URLS: '[('^verify', <function verify at 0x103db0140>), ('.+\\.css$', <function css at 0x103daef50>), ('safe', <function safe at 0x103daeed8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x103dbadd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x103dbae10>)]
+2013-05-24 14:57:37,753 root:INFO OC server starting listening on port:8092
+2013-05-24 14:58:39,682 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x103dbadd0>
+2013-05-24 14:58:55,488 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 14:58:56,486 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 14:59:19,205 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 14:59:47,860 oicServer:INFO callback: <function verify at 0x103db0140>
+2013-05-24 15:00:06,495 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:00:08,212 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:00:08,726 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:00:51,779 root:DEBUG URLS: '[('^verify', <function verify at 0x1045ad140>), ('.+\\.css$', <function css at 0x1045abf50>), ('safe', <function safe at 0x1045abed8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x1045b7dd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x1045b7e10>)]
+2013-05-24 15:00:51,779 root:INFO OC server starting listening on port:8092
+2013-05-24 15:00:59,265 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1045b7dd0>
+2013-05-24 15:01:01,197 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:01:01,198 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 15:01:01,198 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 15:01:06,016 oicServer:INFO callback: <function verify at 0x1045ad140>
+2013-05-24 15:01:12,493 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:01:14,482 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:01:15,029 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:01:19,821 oic.utils.authn.user:DEBUG kwargs: {'upm_answer': 'true'}
+2013-05-24 15:01:58,042 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1045b7dd0>
+2013-05-24 15:02:03,819 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:02:03,820 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 15:02:03,820 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 15:02:48,232 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1045b7dd0>
+2013-05-24 15:02:53,261 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:02:53,261 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 15:02:53,261 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 15:02:53,293 oicServer:INFO callback: <function verify at 0x1045ad140>
+2013-05-24 15:02:55,218 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:02:55,219 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:02:55,219 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:02:55,220 oic.utils.authn.user:DEBUG kwargs: {'upm_answer': 'true'}
+2013-05-24 15:02:55,252 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1045b7dd0>
+2013-05-24 15:02:56,131 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:02:56,131 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 15:02:56,132 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 15:03:39,517 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1045b7dd0>
+2013-05-24 15:03:41,778 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:03:41,779 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 15:03:41,779 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 15:03:49,584 oicServer:INFO callback: <function verify at 0x1045ad140>
+2013-05-24 15:03:52,275 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:03:52,276 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:03:52,276 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:03:52,277 oic.utils.authn.user:DEBUG kwargs: {'upm_answer': 'true'}
+2013-05-24 15:03:54,853 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1045b7dd0>
+2013-05-24 15:04:00,580 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:04:00,580 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 15:04:00,581 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 15:04:26,881 root:DEBUG URLS: '[('^verify', <function verify at 0x101801668>), ('.+\\.css$', <function css at 0x101801500>), ('safe', <function safe at 0x101801488>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x101818610>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x101818650>)]
+2013-05-24 15:04:26,881 root:INFO OC server starting listening on port:8092
+2013-05-24 15:04:41,414 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x101818610>
+2013-05-24 15:04:41,415 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:04:41,415 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 15:04:41,415 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 15:06:09,154 oicServer:INFO callback: <function verify at 0x101801668>
+2013-05-24 15:06:09,154 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:06:09,154 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:06:09,154 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:06:09,155 oic.utils.authn.user:DEBUG kwargs: {'upm_answer': 'true'}
+2013-05-24 15:07:04,870 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x101818610>
+2013-05-24 15:07:04,870 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:07:04,870 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 15:07:04,870 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 15:07:55,231 root:DEBUG URLS: '[('^verify', <function verify at 0x1052b0140>), ('.+\\.css$', <function css at 0x1052aef50>), ('safe', <function safe at 0x1052aeed8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x1052badd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x1052bae10>)]
+2013-05-24 15:07:55,232 root:INFO OC server starting listening on port:8092
+2013-05-24 15:07:58,038 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1052badd0>
+2013-05-24 15:08:21,416 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:08:22,025 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 15:08:33,719 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 15:08:33,755 oicServer:INFO callback: <function verify at 0x1052b0140>
+2013-05-24 15:09:52,462 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:09:52,462 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:09:52,463 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:09:52,464 oic.utils.authn.user:DEBUG kwargs: {'upm_answer': 'true'}
+2013-05-24 15:11:34,929 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1052badd0>
+2013-05-24 15:12:18,624 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:12:20,381 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 15:12:51,448 root:DEBUG URLS: '[('^verify', <function verify at 0x1036b0140>), ('.+\\.css$', <function css at 0x1036aff50>), ('safe', <function safe at 0x1036afed8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x1036badd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x1036bae10>)]
+2013-05-24 15:12:51,448 root:INFO OC server starting listening on port:8092
+2013-05-24 15:12:59,826 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1036badd0>
+2013-05-24 15:13:00,750 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:13:00,751 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 15:13:09,910 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 15:13:11,324 oicServer:INFO callback: <function verify at 0x1036b0140>
+2013-05-24 15:13:13,708 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:13:13,709 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:13:13,709 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:13:13,710 oic.utils.authn.user:DEBUG kwargs: {'upm_answer': 'true'}
+2013-05-24 15:13:21,352 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1036badd0>
+2013-05-24 15:13:22,210 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:13:22,210 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 15:15:05,223 root:DEBUG URLS: '[('^verify', <function verify at 0x101801668>), ('.+\\.css$', <function css at 0x101801500>), ('safe', <function safe at 0x101801488>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x1018185d0>)]
+2013-05-24 15:15:05,223 root:INFO OC server starting listening on port:8092
+2013-05-24 15:15:26,919 root:DEBUG URLS: '[('^verify', <function verify at 0x103ead140>), ('.+\\.css$', <function css at 0x103eacf50>), ('safe', <function safe at 0x103eaced8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x103eb7dd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x103eb7e10>)]
+2013-05-24 15:15:26,920 root:INFO OC server starting listening on port:8092
+2013-05-24 15:15:35,978 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x103eb7dd0>
+2013-05-24 15:15:36,800 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:15:36,800 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 15:15:36,802 oicServer:ERROR 'cookie'
+Traceback (most recent call last):
+  File "/Users/rolandh/code/oic-0.3/oauth_example/oa.py", line 235, in application
+    return callback(environ, start_response, logger)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/oic/provider.py", line 1235, in __call__
+    return self.func(*args, **kwargs)
+  File "/Users/rolandh/code/oic-0.3/oauth_example/oa.py", line 116, in authorization
+    logger=logger)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/utils/http_util.py", line 315, in wsgi_wrapper
+    resp = func(**kwargs)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/oauth2/provider.py", line 200, in authorization_endpoint
+    identity = self.authn.authenticated_as(kwargs["cookie"])
+KeyError: 'cookie'
+2013-05-24 15:17:53,794 root:DEBUG URLS: '[('^verify', <function verify at 0x1045b0140>), ('.+\\.css$', <function css at 0x1045aff50>), ('safe', <function safe at 0x1045afed8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x1045badd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x1045bae10>)]
+2013-05-24 15:17:53,795 root:INFO OC server starting listening on port:8092
+2013-05-24 15:18:03,214 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1045badd0>
+2013-05-24 15:18:04,553 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:18:04,553 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 15:18:04,555 oicServer:ERROR 'cookie'
+Traceback (most recent call last):
+  File "/Users/rolandh/code/oic-0.3/oauth_example/oa.py", line 235, in application
+    return callback(environ, start_response, logger)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/oic/provider.py", line 1235, in __call__
+    return self.func(*args, **kwargs)
+  File "/Users/rolandh/code/oic-0.3/oauth_example/oa.py", line 116, in authorization
+    logger=logger)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/utils/http_util.py", line 315, in wsgi_wrapper
+    resp = func(**kwargs)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/oauth2/provider.py", line 200, in authorization_endpoint
+    identity = self.authn.authenticated_as(kwargs["cookie"])
+KeyError: 'cookie'
+2013-05-24 15:18:15,273 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1045badd0>
+2013-05-24 15:19:54,378 root:DEBUG URLS: '[('^verify', <function verify at 0x101801668>), ('.+\\.css$', <function css at 0x101801500>), ('safe', <function safe at 0x101801488>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x101818610>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x101818650>)]
+2013-05-24 15:19:54,378 root:INFO OC server starting listening on port:8092
+2013-05-24 15:19:56,863 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x101818610>
+2013-05-24 15:19:56,863 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:19:56,863 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 15:19:56,863 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 15:19:56,893 oicServer:INFO callback: <function verify at 0x101801668>
+2013-05-24 15:19:56,893 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:19:56,894 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:19:56,894 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:19:56,894 oic.utils.authn.user:DEBUG kwargs: {'upm_answer': 'true'}
+2013-05-24 15:19:56,922 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x101818610>
+2013-05-24 15:19:56,923 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:19:56,923 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 15:19:56,923 oic.utils.authn.user:DEBUG kwargs: {}
+2013-05-24 15:19:56,923 oic.oauth2.provider:DEBUG - authenticated -
+2013-05-24 15:21:46,067 root:DEBUG URLS: '[('^verify', <function verify at 0x103ead140>), ('.+\\.css$', <function css at 0x103eacf50>), ('safe', <function safe at 0x103eaced8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x103eb7dd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x103eb7e10>)]
+2013-05-24 15:21:46,068 root:INFO OC server starting listening on port:8092
+2013-05-24 15:21:50,969 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x103eb7dd0>
+2013-05-24 15:21:57,969 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:21:58,779 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 15:22:30,698 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': '', 'login': '', 'password': ''}
+2013-05-24 15:22:44,201 oicServer:INFO callback: <function verify at 0x103ead140>
+2013-05-24 15:22:56,629 oic.utils.authn.user:DEBUG verify(query=&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:22:59,374 oic.utils.authn.user:DEBUG dict: {'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:23:00,008 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:23:04,719 oic.utils.authn.user:DEBUG kwargs: {'upm_answer': 'true'}
+2013-05-24 15:23:09,135 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x103eb7dd0>
+2013-05-24 15:23:14,699 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:23:15,301 oic.oauth2.provider:DEBUG Query: ''
+2013-05-24 15:23:24,065 oic.utils.authn.user:DEBUG kwargs: {}
+2013-05-24 15:23:49,754 oic.oauth2.provider:DEBUG - authenticated -
+2013-05-24 15:24:12,020 root:DEBUG URLS: '[('^verify', <function verify at 0x104bb0140>), ('.+\\.css$', <function css at 0x104baff50>), ('safe', <function safe at 0x104bafed8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x104bbadd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x104bbae10>)]
+2013-05-24 15:24:12,020 root:INFO OC server starting listening on port:8092
+2013-05-24 15:24:20,503 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x104bbadd0>
+2013-05-24 15:26:08,118 root:DEBUG URLS: '[('^verify', <function verify at 0x1043b0140>), ('.+\\.css$', <function css at 0x1043aff50>), ('safe', <function safe at 0x1043afed8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x1043badd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x1043bae10>)]
+2013-05-24 15:26:08,118 root:INFO OC server starting listening on port:8092
+2013-05-24 15:26:15,199 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1043badd0>
+2013-05-24 15:26:23,341 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:26:23,342 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'
+2013-05-24 15:26:23,342 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq', 'login': '', 'password': ''}
+2013-05-24 15:26:25,838 oicServer:INFO callback: <function verify at 0x1043b0140>
+2013-05-24 15:26:31,258 oic.utils.authn.user:DEBUG verify(query=state%3DSTATE0%26redirect_uri%3Dhttps%253A%252F%252Flocalhost%253A8091%252F%26response_type%3Dcode%26client_id%3DJOVPpP2srljq&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:26:31,259 oic.utils.authn.user:DEBUG dict: {'query': ['state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'], 'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:26:31,259 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:26:31,261 oic.utils.authn.user:DEBUG kwargs: {'state': ['STATE0'], 'redirect_uri': ['https://localhost:8091/'], 'response_type': ['code'], 'client_id': ['JOVPpP2srljq'], 'upm_answer': 'true'}
+2013-05-24 15:26:35,663 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1043badd0>
+2013-05-24 15:26:43,042 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:26:43,650 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq&upm_answer=true'
+2013-05-24 15:26:45,347 oic.utils.authn.user:DEBUG kwargs: {}
+2013-05-24 15:26:47,301 oic.oauth2.provider:DEBUG - authenticated -
+2013-05-24 15:27:02,466 oicServer:ERROR 'NoneType' object is not callable
+Traceback (most recent call last):
+  File "/Users/rolandh/code/oic-0.3/oauth_example/oa.py", line 235, in application
+    return callback(environ, start_response, logger)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/oic/provider.py", line 1235, in __call__
+    return self.func(*args, **kwargs)
+  File "/Users/rolandh/code/oic-0.3/oauth_example/oa.py", line 116, in authorization
+    logger=logger)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/utils/http_util.py", line 315, in wsgi_wrapper
+    resp = func(**kwargs)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/oauth2/provider.py", line 226, in authorization_endpoint
+    permission = self.authz(session["sub"], session)
+TypeError: 'NoneType' object is not callable
+2013-05-24 15:27:35,057 root:DEBUG URLS: '[('^verify', <function verify at 0x103ead140>), ('.+\\.css$', <function css at 0x103eacf50>), ('safe', <function safe at 0x103eaced8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x103eb7dd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x103eb7e10>)]
+2013-05-24 15:27:35,058 root:INFO OC server starting listening on port:8092
+2013-05-24 15:27:40,479 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x103eb7dd0>
+2013-05-24 15:27:42,050 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:27:42,050 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'
+2013-05-24 15:27:42,051 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq', 'login': '', 'password': ''}
+2013-05-24 15:27:42,813 oicServer:INFO callback: <function verify at 0x103ead140>
+2013-05-24 15:27:44,490 oic.utils.authn.user:DEBUG verify(query=state%3DSTATE0%26redirect_uri%3Dhttps%253A%252F%252Flocalhost%253A8091%252F%26response_type%3Dcode%26client_id%3DJOVPpP2srljq&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:27:44,491 oic.utils.authn.user:DEBUG dict: {'query': ['state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'], 'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:27:44,491 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:27:44,492 oic.utils.authn.user:DEBUG kwargs: {'state': ['STATE0'], 'redirect_uri': ['https://localhost:8091/'], 'response_type': ['code'], 'client_id': ['JOVPpP2srljq'], 'upm_answer': 'true'}
+2013-05-24 15:27:45,458 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x103eb7dd0>
+2013-05-24 15:27:47,330 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:27:47,331 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq&upm_answer=true'
+2013-05-24 15:27:47,331 oic.utils.authn.user:DEBUG kwargs: {}
+2013-05-24 15:27:47,332 oic.oauth2.provider:DEBUG - authenticated -
+2013-05-24 15:27:47,336 oicServer:ERROR 'NoneType' object is not callable
+Traceback (most recent call last):
+  File "/Users/rolandh/code/oic-0.3/oauth_example/oa.py", line 235, in application
+    return callback(environ, start_response, logger)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/oic/provider.py", line 1235, in __call__
+    return self.func(*args, **kwargs)
+  File "/Users/rolandh/code/oic-0.3/oauth_example/oa.py", line 116, in authorization
+    logger=logger)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/utils/http_util.py", line 315, in wsgi_wrapper
+    resp = func(**kwargs)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/oauth2/provider.py", line 226, in authorization_endpoint
+    permission = self.authz(session["sub"], session)
+TypeError: 'NoneType' object is not callable
+2013-05-24 15:28:04,624 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x103eb7dd0>
+2013-05-24 15:28:06,031 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:28:06,032 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'
+2013-05-24 15:28:06,032 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq', 'login': '', 'password': ''}
+2013-05-24 15:28:06,762 oicServer:INFO callback: <function verify at 0x103ead140>
+2013-05-24 15:28:08,281 oic.utils.authn.user:DEBUG verify(query=state%3DSTATE0%26redirect_uri%3Dhttps%253A%252F%252Flocalhost%253A8091%252F%26response_type%3Dcode%26client_id%3DJOVPpP2srljq&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:28:08,282 oic.utils.authn.user:DEBUG dict: {'query': ['state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'], 'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:28:08,282 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:28:08,283 oic.utils.authn.user:DEBUG kwargs: {'state': ['STATE0'], 'redirect_uri': ['https://localhost:8091/'], 'response_type': ['code'], 'client_id': ['JOVPpP2srljq'], 'upm_answer': 'true'}
+2013-05-24 15:28:14,001 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x103eb7dd0>
+2013-05-24 15:28:20,193 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:28:21,863 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq&upm_answer=true'
+2013-05-24 15:28:23,714 oic.utils.authn.user:DEBUG kwargs: {}
+2013-05-24 15:28:26,829 oic.oauth2.provider:DEBUG - authenticated -
+2013-05-24 15:30:27,195 root:DEBUG URLS: '[('^verify', <function verify at 0x1057ad140>), ('.+\\.css$', <function css at 0x1057acf50>), ('safe', <function safe at 0x1057aced8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x1057b7dd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x1057b7e10>)]
+2013-05-24 15:30:27,196 root:INFO OC server starting listening on port:8092
+2013-05-24 15:30:34,495 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1057b7dd0>
+2013-05-24 15:30:35,747 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:30:35,747 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'
+2013-05-24 15:30:35,748 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq', 'login': '', 'password': ''}
+2013-05-24 15:30:36,317 oicServer:INFO callback: <function verify at 0x1057ad140>
+2013-05-24 15:30:37,601 oic.utils.authn.user:DEBUG verify(query=state%3DSTATE0%26redirect_uri%3Dhttps%253A%252F%252Flocalhost%253A8091%252F%26response_type%3Dcode%26client_id%3DJOVPpP2srljq&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:30:37,601 oic.utils.authn.user:DEBUG dict: {'query': ['state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'], 'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:30:37,602 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:30:37,603 oic.utils.authn.user:DEBUG kwargs: {'state': ['STATE0'], 'redirect_uri': ['https://localhost:8091/'], 'response_type': ['code'], 'client_id': ['JOVPpP2srljq'], 'upm_answer': 'true'}
+2013-05-24 15:30:38,237 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1057b7dd0>
+2013-05-24 15:30:39,544 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:30:39,544 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq&upm_answer=true'
+2013-05-24 15:30:39,544 oic.utils.authn.user:DEBUG kwargs: {}
+2013-05-24 15:30:39,545 oic.oauth2.provider:DEBUG - authenticated -
+2013-05-24 15:30:40,234 oic.oauth2.provider:DEBUG code: 'ZTK2zzqRfZLsvNmg7tBsKQqewVU091QnutXZ+Fr0el0CHAMUqpkp7lmEatAOYO2o'
+2013-05-24 15:30:40,237 oicServer:ERROR too many values to unpack
+Traceback (most recent call last):
+  File "/Users/rolandh/code/oic-0.3/oauth_example/oa.py", line 235, in application
+    return callback(environ, start_response, logger)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/oic/provider.py", line 1235, in __call__
+    return self.func(*args, **kwargs)
+  File "/Users/rolandh/code/oic-0.3/oauth_example/oa.py", line 116, in authorization
+    logger=logger)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/utils/http_util.py", line 315, in wsgi_wrapper
+    resp = func(**kwargs)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/oauth2/provider.py", line 241, in authorization_endpoint
+    add_non_standard(aresp, areq)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/oauth2/message.py", line 596, in add_non_standard
+    for key, val in msg2.extra():
+ValueError: too many values to unpack
+2013-05-24 15:30:57,955 root:DEBUG URLS: '[('^verify', <function verify at 0x104cb0140>), ('.+\\.css$', <function css at 0x104caff50>), ('safe', <function safe at 0x104cafed8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x104cbadd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x104cbae10>)]
+2013-05-24 15:30:57,955 root:INFO OC server starting listening on port:8092
+2013-05-24 15:31:03,078 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x104cbadd0>
+2013-05-24 15:31:04,261 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:31:04,262 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'
+2013-05-24 15:31:04,262 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq', 'login': '', 'password': ''}
+2013-05-24 15:31:04,969 oicServer:INFO callback: <function verify at 0x104cb0140>
+2013-05-24 15:31:06,593 oic.utils.authn.user:DEBUG verify(query=state%3DSTATE0%26redirect_uri%3Dhttps%253A%252F%252Flocalhost%253A8091%252F%26response_type%3Dcode%26client_id%3DJOVPpP2srljq&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:31:06,594 oic.utils.authn.user:DEBUG dict: {'query': ['state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'], 'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:31:06,594 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:31:06,595 oic.utils.authn.user:DEBUG kwargs: {'state': ['STATE0'], 'redirect_uri': ['https://localhost:8091/'], 'response_type': ['code'], 'client_id': ['JOVPpP2srljq'], 'upm_answer': 'true'}
+2013-05-24 15:31:07,268 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x104cbadd0>
+2013-05-24 15:31:09,002 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:31:09,003 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq&upm_answer=true'
+2013-05-24 15:31:09,003 oic.utils.authn.user:DEBUG kwargs: {}
+2013-05-24 15:31:09,004 oic.oauth2.provider:DEBUG - authenticated -
+2013-05-24 15:31:10,047 oic.oauth2.provider:DEBUG code: 'r/dJqkZ8QEc769UHBL/a0CYTyMB6fCVPzw4va6Fiy1yEFTYDH+xP/XaBekefcOQR'
+2013-05-24 15:31:10,050 oicServer:ERROR too many values to unpack
+Traceback (most recent call last):
+  File "/Users/rolandh/code/oic-0.3/oauth_example/oa.py", line 235, in application
+    return callback(environ, start_response, logger)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/oic/provider.py", line 1235, in __call__
+    return self.func(*args, **kwargs)
+  File "/Users/rolandh/code/oic-0.3/oauth_example/oa.py", line 116, in authorization
+    logger=logger)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/utils/http_util.py", line 315, in wsgi_wrapper
+    resp = func(**kwargs)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/oauth2/provider.py", line 241, in authorization_endpoint
+    add_non_standard(aresp, areq)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/oauth2/message.py", line 596, in add_non_standard
+    for key, val in msg2.extra():
+ValueError: too many values to unpack
+2013-05-24 15:31:19,809 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x104cbadd0>
+2013-05-24 15:31:22,148 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:31:22,148 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'
+2013-05-24 15:31:22,149 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq', 'login': '', 'password': ''}
+2013-05-24 15:31:22,862 oicServer:INFO callback: <function verify at 0x104cb0140>
+2013-05-24 15:31:24,251 oic.utils.authn.user:DEBUG verify(query=state%3DSTATE0%26redirect_uri%3Dhttps%253A%252F%252Flocalhost%253A8091%252F%26response_type%3Dcode%26client_id%3DJOVPpP2srljq&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:31:24,251 oic.utils.authn.user:DEBUG dict: {'query': ['state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'], 'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:31:24,252 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:31:24,254 oic.utils.authn.user:DEBUG kwargs: {'state': ['STATE0'], 'redirect_uri': ['https://localhost:8091/'], 'response_type': ['code'], 'client_id': ['JOVPpP2srljq'], 'upm_answer': 'true'}
+2013-05-24 15:31:24,911 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x104cbadd0>
+2013-05-24 15:31:26,368 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:31:26,369 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq&upm_answer=true'
+2013-05-24 15:31:26,369 oic.utils.authn.user:DEBUG kwargs: {}
+2013-05-24 15:31:26,370 oic.oauth2.provider:DEBUG - authenticated -
+2013-05-24 15:31:38,657 oic.oauth2.provider:DEBUG code: 'slcqrTaGpFjq//b+HfcSCMA2SQKxzXtkDv8RxAjhLYQXSFMnDXDmIWssY5gnr6tf'
+2013-05-24 15:32:15,921 root:DEBUG URLS: '[('^verify', <function verify at 0x103fad140>), ('.+\\.css$', <function css at 0x103facf50>), ('safe', <function safe at 0x103faced8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x103fb7dd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x103fb7e10>)]
+2013-05-24 15:32:15,922 root:INFO OC server starting listening on port:8092
+2013-05-24 15:32:20,086 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x103fb7dd0>
+2013-05-24 15:32:21,442 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:32:21,442 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'
+2013-05-24 15:32:21,443 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq', 'login': '', 'password': ''}
+2013-05-24 15:32:22,077 oicServer:INFO callback: <function verify at 0x103fad140>
+2013-05-24 15:32:23,315 oic.utils.authn.user:DEBUG verify(query=state%3DSTATE0%26redirect_uri%3Dhttps%253A%252F%252Flocalhost%253A8091%252F%26response_type%3Dcode%26client_id%3DJOVPpP2srljq&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:32:23,316 oic.utils.authn.user:DEBUG dict: {'query': ['state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'], 'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:32:23,316 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:32:23,317 oic.utils.authn.user:DEBUG kwargs: {'state': ['STATE0'], 'redirect_uri': ['https://localhost:8091/'], 'response_type': ['code'], 'client_id': ['JOVPpP2srljq'], 'upm_answer': 'true'}
+2013-05-24 15:32:23,952 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x103fb7dd0>
+2013-05-24 15:32:25,325 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:32:25,326 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq&upm_answer=true'
+2013-05-24 15:32:25,326 oic.utils.authn.user:DEBUG kwargs: {}
+2013-05-24 15:32:25,327 oic.oauth2.provider:DEBUG - authenticated -
+2013-05-24 15:32:27,450 oic.oauth2.provider:DEBUG code: '0hTWh1VOTrUs+Dr2YmL62kK7HeVP2jERljWZiv7a457iK514r/krsjE8xJUHTbqk'
+2013-05-24 15:33:56,853 root:DEBUG URLS: '[('^verify', <function verify at 0x102fb0140>), ('.+\\.css$', <function css at 0x102faff50>), ('safe', <function safe at 0x102fafed8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x102fbadd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x102fbae10>)]
+2013-05-24 15:33:56,854 root:INFO OC server starting listening on port:8092
+2013-05-24 15:34:01,045 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x102fbadd0>
+2013-05-24 15:34:04,016 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:34:04,017 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'
+2013-05-24 15:34:04,017 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq', 'login': '', 'password': ''}
+2013-05-24 15:34:04,708 oicServer:INFO callback: <function verify at 0x102fb0140>
+2013-05-24 15:34:05,997 oic.utils.authn.user:DEBUG verify(query=state%3DSTATE0%26redirect_uri%3Dhttps%253A%252F%252Flocalhost%253A8091%252F%26response_type%3Dcode%26client_id%3DJOVPpP2srljq&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:34:05,997 oic.utils.authn.user:DEBUG dict: {'query': ['state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'], 'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:34:05,998 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:34:05,999 oic.utils.authn.user:DEBUG kwargs: {'state': ['STATE0'], 'redirect_uri': ['https://localhost:8091/'], 'response_type': ['code'], 'client_id': ['JOVPpP2srljq'], 'upm_answer': 'true'}
+2013-05-24 15:34:06,621 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x102fbadd0>
+2013-05-24 15:34:08,081 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:34:08,081 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq&upm_answer=true'
+2013-05-24 15:34:08,082 oic.utils.authn.user:DEBUG kwargs: {}
+2013-05-24 15:34:08,083 oic.oauth2.provider:DEBUG - authenticated -
+2013-05-24 15:34:09,828 oic.oauth2.provider:DEBUG code: 'I97Orp5iO+Y0ACQ3/E3Oo1hVXBKeEwDpX5gdS7w4HVI5UYL5tOecLrq96jYJjBpi'
+2013-05-24 15:34:22,805 oic.oauth2.provider:DEBUG Redirected to: 'https://localhost:8091/?state=STATE0&code=I97Orp5iO%2BY0ACQ3%2FE3Oo1hVXBKeEwDpX5gdS7w4HVI5UYL5tOecLrq96jYJjBpi&upm_answer=true' (<type 'str'>)
+2013-05-24 15:34:42,742 oicServer:INFO callback: <oic.oic.provider.TokenEndpoint object at 0x102fbae10>
+2013-05-24 15:34:43,803 oic.oauth2.provider:DEBUG - token -
+2013-05-24 15:34:43,805 oicServer:ERROR 'post'
+Traceback (most recent call last):
+  File "/Users/rolandh/code/oic-0.3/oauth_example/oa.py", line 235, in application
+    return callback(environ, start_response, logger)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/oic/provider.py", line 1235, in __call__
+    return self.func(*args, **kwargs)
+  File "/Users/rolandh/code/oic-0.3/oauth_example/oa.py", line 108, in token
+    logger=logger)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/utils/http_util.py", line 315, in wsgi_wrapper
+    resp = func(**kwargs)
+  File "/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oic-0.3.0-py2.7.egg/oic/oauth2/provider.py", line 253, in token_endpoint
+    body = kwargs["post"]
+KeyError: 'post'
+2013-05-24 15:35:20,758 root:DEBUG URLS: '[('^verify', <function verify at 0x1036b0140>), ('.+\\.css$', <function css at 0x1036aff50>), ('safe', <function safe at 0x1036afed8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x1036badd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x1036bae10>)]
+2013-05-24 15:35:20,758 root:INFO OC server starting listening on port:8092
+2013-05-24 15:35:46,250 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1036badd0>
+2013-05-24 15:35:48,848 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:35:48,849 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'
+2013-05-24 15:35:48,849 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq', 'login': '', 'password': ''}
+2013-05-24 15:35:50,145 oicServer:INFO callback: <function verify at 0x1036b0140>
+2013-05-24 15:35:54,650 oic.utils.authn.user:DEBUG verify(query=state%3DSTATE0%26redirect_uri%3Dhttps%253A%252F%252Flocalhost%253A8091%252F%26response_type%3Dcode%26client_id%3DJOVPpP2srljq&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:35:54,651 oic.utils.authn.user:DEBUG dict: {'query': ['state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'], 'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:35:54,651 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:35:54,652 oic.utils.authn.user:DEBUG kwargs: {'state': ['STATE0'], 'redirect_uri': ['https://localhost:8091/'], 'response_type': ['code'], 'client_id': ['JOVPpP2srljq'], 'upm_answer': 'true'}
+2013-05-24 15:35:55,498 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1036badd0>
+2013-05-24 15:35:57,782 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:35:57,783 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq&upm_answer=true'
+2013-05-24 15:35:57,784 oic.utils.authn.user:DEBUG kwargs: {}
+2013-05-24 15:35:57,785 oic.oauth2.provider:DEBUG - authenticated -
+2013-05-24 15:35:58,813 oic.oauth2.provider:DEBUG code: 'cjcg4SBt7yeuVMM4aGVnEXD3q/m4XOdnYGKhwAv6zdV/CddC59xcAQOUci7h7A2m'
+2013-05-24 15:35:58,816 oic.oauth2.provider:DEBUG Redirected to: 'https://localhost:8091/?state=STATE0&code=cjcg4SBt7yeuVMM4aGVnEXD3q%2Fm4XOdnYGKhwAv6zdV%2FCddC59xcAQOUci7h7A2m&upm_answer=true' (<type 'str'>)
+2013-05-24 15:36:02,434 oicServer:INFO callback: <oic.oic.provider.TokenEndpoint object at 0x1036bae10>
+2013-05-24 15:36:12,741 oic.oauth2.provider:DEBUG - token -
+2013-05-24 15:37:43,363 root:DEBUG URLS: '[('^verify', <function verify at 0x104ab0140>), ('.+\\.css$', <function css at 0x104aaff50>), ('safe', <function safe at 0x104aafed8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x104abadd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x104abae10>)]
+2013-05-24 15:37:43,363 root:INFO OC server starting listening on port:8092
+2013-05-24 15:37:48,520 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x104abadd0>
+2013-05-24 15:37:49,905 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:37:49,905 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'
+2013-05-24 15:37:49,906 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq', 'login': '', 'password': ''}
+2013-05-24 15:37:50,588 oicServer:INFO callback: <function verify at 0x104ab0140>
+2013-05-24 15:37:52,185 oic.utils.authn.user:DEBUG verify(query=state%3DSTATE0%26redirect_uri%3Dhttps%253A%252F%252Flocalhost%253A8091%252F%26response_type%3Dcode%26client_id%3DJOVPpP2srljq&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:37:52,186 oic.utils.authn.user:DEBUG dict: {'query': ['state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'], 'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:37:52,186 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:37:52,188 oic.utils.authn.user:DEBUG kwargs: {'state': ['STATE0'], 'redirect_uri': ['https://localhost:8091/'], 'response_type': ['code'], 'client_id': ['JOVPpP2srljq'], 'upm_answer': 'true'}
+2013-05-24 15:37:52,859 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x104abadd0>
+2013-05-24 15:37:54,124 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:37:54,124 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq&upm_answer=true'
+2013-05-24 15:37:54,125 oic.utils.authn.user:DEBUG kwargs: {}
+2013-05-24 15:37:54,125 oic.oauth2.provider:DEBUG - authenticated -
+2013-05-24 15:37:54,739 oic.oauth2.provider:DEBUG code: '80vm5fJH4xp9v+BNrcJnj2BfF0OdUTAzZReMG+z9zp+eiTiv6PUBNC5C3TDO7hmX'
+2013-05-24 15:37:54,742 oic.oauth2.provider:DEBUG Redirected to: 'https://localhost:8091/?state=STATE0&code=80vm5fJH4xp9v%2BBNrcJnj2BfF0OdUTAzZReMG%2Bz9zp%2BeiTiv6PUBNC5C3TDO7hmX&upm_answer=true' (<type 'str'>)
+2013-05-24 15:37:55,549 oicServer:INFO callback: <oic.oic.provider.TokenEndpoint object at 0x104abae10>
+2013-05-24 15:38:02,370 oic.oauth2.provider:DEBUG - token -
+2013-05-24 15:38:03,707 oic.oauth2.provider:DEBUG body: code=80vm5fJH4xp9v%2BBNrcJnj2BfF0OdUTAzZReMG%2Bz9zp%2BeiTiv6PUBNC5C3TDO7hmX&grant_type=authorization_code&client_id=JOVPpP2srljq&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F
+2013-05-24 15:38:07,491 oic.oauth2.provider:DEBUG REQ: {'redirect_uri': 'https://localhost:8091/', 'code': '80vm5fJH4xp9v+BNrcJnj2BfF0OdUTAzZReMG+z9zp+eiTiv6PUBNC5C3TDO7hmX', 'client_id': 'JOVPpP2srljq', 'grant_type': 'authorization_code'}
+2013-05-24 15:38:07,491 oic.oauth2.provider:DEBUG Unknown client_id
+2013-05-24 15:38:37,160 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x104abadd0>
+2013-05-24 15:38:38,443 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:38:38,444 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'
+2013-05-24 15:38:38,444 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq', 'login': '', 'password': ''}
+2013-05-24 15:38:39,055 oicServer:INFO callback: <function verify at 0x104ab0140>
+2013-05-24 15:38:40,258 oic.utils.authn.user:DEBUG verify(query=state%3DSTATE0%26redirect_uri%3Dhttps%253A%252F%252Flocalhost%253A8091%252F%26response_type%3Dcode%26client_id%3DJOVPpP2srljq&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:38:40,259 oic.utils.authn.user:DEBUG dict: {'query': ['state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'], 'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:38:40,259 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:38:40,261 oic.utils.authn.user:DEBUG kwargs: {'state': ['STATE0'], 'redirect_uri': ['https://localhost:8091/'], 'response_type': ['code'], 'client_id': ['JOVPpP2srljq'], 'upm_answer': 'true'}
+2013-05-24 15:38:40,962 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x104abadd0>
+2013-05-24 15:38:42,377 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:38:42,377 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq&upm_answer=true'
+2013-05-24 15:38:42,378 oic.utils.authn.user:DEBUG kwargs: {}
+2013-05-24 15:38:42,379 oic.oauth2.provider:DEBUG - authenticated -
+2013-05-24 15:38:43,080 oic.oauth2.provider:DEBUG code: 'kbq/IWANUaxg5PznPPlB4326L0t/NFMLU3yJNdcXOe0RLSAP0zTpQMqFSD/UGecy'
+2013-05-24 15:38:43,083 oic.oauth2.provider:DEBUG Redirected to: 'https://localhost:8091/?state=STATE0&code=kbq%2FIWANUaxg5PznPPlB4326L0t%2FNFMLU3yJNdcXOe0RLSAP0zTpQMqFSD%2FUGecy&upm_answer=true' (<type 'str'>)
+2013-05-24 15:38:43,803 oicServer:INFO callback: <oic.oic.provider.TokenEndpoint object at 0x104abae10>
+2013-05-24 15:38:44,504 oic.oauth2.provider:DEBUG - token -
+2013-05-24 15:38:44,504 oic.oauth2.provider:DEBUG body: code=kbq%2FIWANUaxg5PznPPlB4326L0t%2FNFMLU3yJNdcXOe0RLSAP0zTpQMqFSD%2FUGecy&grant_type=authorization_code&client_id=JOVPpP2srljq&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F
+2013-05-24 15:38:56,681 oic.oauth2.provider:DEBUG REQ: {'redirect_uri': 'https://localhost:8091/', 'code': 'kbq/IWANUaxg5PznPPlB4326L0t/NFMLU3yJNdcXOe0RLSAP0zTpQMqFSD/UGecy', 'client_id': 'JOVPpP2srljq', 'grant_type': 'authorization_code'}
+2013-05-24 15:38:56,681 oic.oauth2.provider:DEBUG Unknown client_id
+2013-05-24 15:39:18,166 root:DEBUG URLS: '[('^verify', <function verify at 0x1035b0140>), ('.+\\.css$', <function css at 0x1035aff50>), ('safe', <function safe at 0x1035afed8>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x1035badd0>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x1035bae10>)]
+2013-05-24 15:39:18,167 root:INFO OC server starting listening on port:8092
+2013-05-24 15:39:23,856 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1035badd0>
+2013-05-24 15:39:24,967 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:39:24,967 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'
+2013-05-24 15:39:24,968 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq', 'login': '', 'password': ''}
+2013-05-24 15:39:25,503 oicServer:INFO callback: <function verify at 0x1035b0140>
+2013-05-24 15:39:26,754 oic.utils.authn.user:DEBUG verify(query=state%3DSTATE0%26redirect_uri%3Dhttps%253A%252F%252Flocalhost%253A8091%252F%26response_type%3Dcode%26client_id%3DJOVPpP2srljq&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:39:26,754 oic.utils.authn.user:DEBUG dict: {'query': ['state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq'], 'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:39:26,755 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:39:26,756 oic.utils.authn.user:DEBUG kwargs: {'state': ['STATE0'], 'redirect_uri': ['https://localhost:8091/'], 'response_type': ['code'], 'client_id': ['JOVPpP2srljq'], 'upm_answer': 'true'}
+2013-05-24 15:39:27,649 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x1035badd0>
+2013-05-24 15:39:29,105 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:39:29,105 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=JOVPpP2srljq&upm_answer=true'
+2013-05-24 15:39:29,105 oic.utils.authn.user:DEBUG kwargs: {}
+2013-05-24 15:39:29,106 oic.oauth2.provider:DEBUG - authenticated -
+2013-05-24 15:39:29,848 oic.oauth2.provider:DEBUG code: 'fLV1tTwtyp11CVQtiKwA3YpQ4NxgwjU/U2/7t0RBx5n7DvtNb+4/d4VSxLBUvMZL'
+2013-05-24 15:39:29,850 oic.oauth2.provider:DEBUG Redirected to: 'https://localhost:8091/?state=STATE0&code=fLV1tTwtyp11CVQtiKwA3YpQ4NxgwjU%2FU2%2F7t0RBx5n7DvtNb%2B4%2Fd4VSxLBUvMZL&upm_answer=true' (<type 'str'>)
+2013-05-24 15:39:30,610 oicServer:INFO callback: <oic.oic.provider.TokenEndpoint object at 0x1035bae10>
+2013-05-24 15:39:31,305 oic.oauth2.provider:DEBUG - token -
+2013-05-24 15:39:31,305 oic.oauth2.provider:DEBUG body: code=fLV1tTwtyp11CVQtiKwA3YpQ4NxgwjU%2FU2%2F7t0RBx5n7DvtNb%2B4%2Fd4VSxLBUvMZL&grant_type=authorization_code&client_id=JOVPpP2srljq&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F
+2013-05-24 15:39:56,902 oic.oauth2.provider:DEBUG REQ: {'redirect_uri': 'https://localhost:8091/', 'code': 'fLV1tTwtyp11CVQtiKwA3YpQ4NxgwjU/U2/7t0RBx5n7DvtNb+4/d4VSxLBUvMZL', 'client_id': 'JOVPpP2srljq', 'grant_type': 'authorization_code'}
+2013-05-24 15:40:35,544 oic.oauth2.provider:DEBUG Unknown client_id
+2013-05-24 15:43:09,515 root:DEBUG URLS: '[('^verify', <function verify at 0x101801668>), ('.+\\.css$', <function css at 0x101801500>), ('safe', <function safe at 0x101801488>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x1018185d0>)]
+2013-05-24 15:43:09,516 root:INFO OC server starting listening on port:8092
+2013-05-24 15:43:15,507 root:DEBUG URLS: '[('^verify', <function verify at 0x101801668>), ('.+\\.css$', <function css at 0x101801500>), ('safe', <function safe at 0x101801488>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x1018185d0>)]
+2013-05-24 15:43:15,507 root:INFO OC server starting listening on port:8092
+2013-05-24 15:43:17,614 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>
+2013-05-24 15:43:17,614 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:43:17,615 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=5pOGKpoC2eab'
+2013-05-24 15:43:17,615 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=5pOGKpoC2eab', 'login': '', 'password': ''}
+2013-05-24 15:43:17,645 oicServer:INFO callback: <function verify at 0x101801668>
+2013-05-24 15:43:17,645 oic.utils.authn.user:DEBUG verify(query=state%3DSTATE0%26redirect_uri%3Dhttps%253A%252F%252Flocalhost%253A8091%252F%26response_type%3Dcode%26client_id%3D5pOGKpoC2eab&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:43:17,645 oic.utils.authn.user:DEBUG dict: {'query': ['state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=5pOGKpoC2eab'], 'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:43:17,645 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:43:17,646 oic.utils.authn.user:DEBUG kwargs: {'state': ['STATE0'], 'redirect_uri': ['https://localhost:8091/'], 'response_type': ['code'], 'client_id': ['5pOGKpoC2eab'], 'upm_answer': 'true'}
+2013-05-24 15:43:17,675 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>
+2013-05-24 15:43:17,675 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:43:17,675 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=5pOGKpoC2eab&upm_answer=true'
+2013-05-24 15:43:17,675 oic.utils.authn.user:DEBUG kwargs: {}
+2013-05-24 15:43:17,675 oic.oauth2.provider:DEBUG - authenticated -
+2013-05-24 15:43:17,676 oic.oauth2.provider:DEBUG code: 'wnmsf15/skj+BV9ICCLxEIJrm8jjmcgZ/ntDoVlYRPI9PVl0lPbfPbGZqBr9dijk'
+2013-05-24 15:43:17,676 oic.oauth2.provider:DEBUG Redirected to: 'https://localhost:8091/?state=STATE0&code=wnmsf15%2Fskj%2BBV9ICCLxEIJrm8jjmcgZ%2FntDoVlYRPI9PVl0lPbfPbGZqBr9dijk&upm_answer=true' (<type 'str'>)
+2013-05-24 15:43:17,704 oicServer:INFO callback: <oic.oic.provider.TokenEndpoint object at 0x1018185d0>
+2013-05-24 15:43:17,704 oic.oauth2.provider:DEBUG - token -
+2013-05-24 15:43:17,704 oic.oauth2.provider:DEBUG body: code=wnmsf15%2Fskj%2BBV9ICCLxEIJrm8jjmcgZ%2FntDoVlYRPI9PVl0lPbfPbGZqBr9dijk&grant_type=authorization_code&client_id=5pOGKpoC2eab&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F
+2013-05-24 15:43:17,705 oic.oauth2.provider:DEBUG REQ: {'redirect_uri': 'https://localhost:8091/', 'code': 'wnmsf15/skj+BV9ICCLxEIJrm8jjmcgZ/ntDoVlYRPI9PVl0lPbfPbGZqBr9dijk', 'client_id': '5pOGKpoC2eab', 'grant_type': 'authorization_code'}
+2013-05-24 15:43:17,705 oic.utils.authn.client:DEBUG Verified Client ID: 5pOGKpoC2eab
+2013-05-24 15:43:17,705 oic.oauth2.provider:DEBUG AccessTokenRequest: code=wnmsf15%2Fskj%2BBV9ICCLxEIJrm8jjmcgZ%2FntDoVlYRPI9PVl0lPbfPbGZqBr9dijk&grant_type=authorization_code&client_id=5pOGKpoC2eab&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F
+2013-05-24 15:43:17,705 oic.oauth2.provider:DEBUG _tinfo: {'client_id_issued_at': 1369399397, 'code': 'wnmsf15/skj+BV9ICCLxEIJrm8jjmcgZ/ntDoVlYRPI9PVl0lPbfPbGZqBr9dijk', 'authzreq': '{"state": "STATE0", "redirect_uri": "https://localhost:8091/", "response_type": "code", "client_id": "5pOGKpoC2eab", "upm_answer": "true"}', 'permission': '', 'token_type': 'Bearer', 'local_sub': 'diana', 'client_id': '5pOGKpoC2eab', 'oauth_state': 'token', 'refresh_token': 'wnmsf15/skj+BV9ICCLxEO7SfkzgYWalbrKSGOTiz+LRTaE7LXFtf4SZiewE+VAN', 'revoked': False, 'sub': 'diana', 'access_token': 'wnmsf15/skj+BV9ICCLxEK7AwWvLUTL9p3uKYK5J+penkRjYDOkzKT4W4tZmroQt', 'expires_in': 3600, 'state': 'STATE0', 'redirect_uri': 'https://localhost:8091/', 'code_used': True, 'access_token_scope': '?', 'client_secret_expires_at': 1369402997}
+2013-05-24 15:43:17,705 oic.oauth2.provider:DEBUG AccessTokenResponse: access_token=wnmsf15%2Fskj%2BBV9ICCLxEK7AwWvLUTL9p3uKYK5J%2BpenkRjYDOkzKT4W4tZmroQt&token_type=Bearer&state=STATE0&expires_in=3600&refresh_token=wnmsf15%2Fskj%2BBV9ICCLxEO7SfkzgYWalbrKSGOTiz%2BLRTaE7LXFtf4SZiewE%2BVAN
+2013-05-24 15:48:59,518 root:DEBUG URLS: '[('^verify', <function verify at 0x101801668>), ('.+\\.css$', <function css at 0x101801500>), ('safe', <function safe at 0x101801488>), ('^authorization', <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>), ('^token', <oic.oic.provider.TokenEndpoint object at 0x1018185d0>)]
+2013-05-24 15:48:59,518 root:INFO OC server starting listening on port:8092
+2013-05-24 15:49:01,978 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>
+2013-05-24 15:49:01,978 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:49:01,978 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=5pOGKpoC2eab'
+2013-05-24 15:49:01,978 oic.utils.authn.user:INFO do_authentication argv: {'logo_url': None, 'policy_url': None, 'action': 'verify', 'query': 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=5pOGKpoC2eab', 'login': '', 'password': ''}
+2013-05-24 15:49:02,008 oicServer:INFO callback: <function verify at 0x101801668>
+2013-05-24 15:49:02,008 oic.utils.authn.user:DEBUG verify(query=state%3DSTATE0%26redirect_uri%3Dhttps%253A%252F%252Flocalhost%253A8091%252F%26response_type%3Dcode%26client_id%3D5pOGKpoC2eab&login=diana&password=krall&form.commit=Log+In)
+2013-05-24 15:49:02,009 oic.utils.authn.user:DEBUG dict: {'query': ['state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=5pOGKpoC2eab'], 'login': ['diana'], 'password': ['krall'], 'form.commit': ['Log In']}
+2013-05-24 15:49:02,009 oic.utils.authn.user:DEBUG passwd: {'diana': 'krall', 'upper': 'crust', 'babs': 'howes', 'rohe0002': 'StevieRay', 'haho0032': 'qwerty'}
+2013-05-24 15:49:02,009 oic.utils.authn.user:DEBUG kwargs: {'state': ['STATE0'], 'redirect_uri': ['https://localhost:8091/'], 'response_type': ['code'], 'client_id': ['5pOGKpoC2eab'], 'upm_answer': 'true'}
+2013-05-24 15:49:02,038 oicServer:INFO callback: <oic.oic.provider.AuthorizationEndpoint object at 0x101818590>
+2013-05-24 15:49:02,038 oic.oauth2.provider:DEBUG - authorization -
+2013-05-24 15:49:02,038 oic.oauth2.provider:DEBUG Query: 'state=STATE0&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F&response_type=code&client_id=5pOGKpoC2eab&upm_answer=true'
+2013-05-24 15:49:02,038 oic.utils.authn.user:DEBUG kwargs: {}
+2013-05-24 15:49:02,038 oic.oauth2.provider:DEBUG - authenticated -
+2013-05-24 15:49:02,039 oic.oauth2.provider:DEBUG code: 'FCrebMG43BGLLmy7DqtH8xRceK7HBSK/R0S4hoYm3XPZ+6VZ4vkwf2AcLtq5MAC6'
+2013-05-24 15:49:02,039 oic.oauth2.provider:DEBUG Redirected to: 'https://localhost:8091/?state=STATE0&code=FCrebMG43BGLLmy7DqtH8xRceK7HBSK%2FR0S4hoYm3XPZ%2B6VZ4vkwf2AcLtq5MAC6&upm_answer=true' (<type 'str'>)
+2013-05-24 15:49:02,066 oicServer:INFO callback: <oic.oic.provider.TokenEndpoint object at 0x1018185d0>
+2013-05-24 15:49:02,066 oic.oauth2.provider:DEBUG - token -
+2013-05-24 15:49:02,066 oic.oauth2.provider:DEBUG body: code=FCrebMG43BGLLmy7DqtH8xRceK7HBSK%2FR0S4hoYm3XPZ%2B6VZ4vkwf2AcLtq5MAC6&grant_type=authorization_code&client_id=5pOGKpoC2eab&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F
+2013-05-24 15:49:02,067 oic.oauth2.provider:DEBUG REQ: {'redirect_uri': 'https://localhost:8091/', 'code': 'FCrebMG43BGLLmy7DqtH8xRceK7HBSK/R0S4hoYm3XPZ+6VZ4vkwf2AcLtq5MAC6', 'client_id': '5pOGKpoC2eab', 'grant_type': 'authorization_code'}
+2013-05-24 15:49:02,067 oic.utils.authn.client:DEBUG Verified Client ID: 5pOGKpoC2eab
+2013-05-24 15:49:02,067 oic.oauth2.provider:DEBUG AccessTokenRequest: code=FCrebMG43BGLLmy7DqtH8xRceK7HBSK%2FR0S4hoYm3XPZ%2B6VZ4vkwf2AcLtq5MAC6&grant_type=authorization_code&client_id=5pOGKpoC2eab&redirect_uri=https%3A%2F%2Flocalhost%3A8091%2F
+2013-05-24 15:49:02,067 oic.oauth2.provider:DEBUG _tinfo: {'client_id_issued_at': 1369399742, 'code': 'FCrebMG43BGLLmy7DqtH8xRceK7HBSK/R0S4hoYm3XPZ+6VZ4vkwf2AcLtq5MAC6', 'authzreq': '{"state": "STATE0", "redirect_uri": "https://localhost:8091/", "response_type": "code", "client_id": "5pOGKpoC2eab", "upm_answer": "true"}', 'permission': '', 'token_type': 'Bearer', 'local_sub': 'diana', 'client_id': '5pOGKpoC2eab', 'oauth_state': 'token', 'refresh_token': 'FCrebMG43BGLLmy7DqtH867b6Z96JW5FpI78fGj3iXXJ+B08keAFuvTJfUdAdClJ', 'revoked': False, 'sub': 'diana', 'access_token': 'FCrebMG43BGLLmy7DqtH8yjTT6XsIlQW8dfFCmTV5BajRQiDgtwj/UQewaxyDrjL', 'expires_in': 3600, 'state': 'STATE0', 'redirect_uri': 'https://localhost:8091/', 'code_used': True, 'access_token_scope': '?', 'client_secret_expires_at': 1369403342}
+2013-05-24 15:49:02,067 oic.oauth2.provider:DEBUG AccessTokenResponse: access_token=FCrebMG43BGLLmy7DqtH8yjTT6XsIlQW8dfFCmTV5BajRQiDgtwj%2FUQewaxyDrjL&token_type=Bearer&state=STATE0&expires_in=3600&refresh_token=FCrebMG43BGLLmy7DqtH867b6Z96JW5FpI78fGj3iXXJ%2BB08keAFuvTJfUdAdClJ
