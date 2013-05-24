@@ -187,7 +187,7 @@ class Provider(object):
         else:
             raise MissingParameter("No input")
 
-    def authorization_endpoint(self, query="", **kwargs):
+    def authorization_endpoint(self, request="", **kwargs):
         """ The AuthorizationRequest endpoint
 
         :param query: The query part of the request URL
@@ -195,11 +195,15 @@ class Provider(object):
         _sdb = self.sdb
 
         LOG_DEBUG("- authorization -")
-        LOG_DEBUG("Query: '%s'" % query)
+        LOG_DEBUG("Query: '%s'" % request)
 
-        identity = self.authn.authenticated_as()
+        try:
+            kaka = kwargs["cookie"]
+        except KeyError:
+            kaka = None
+        identity = self.authn.authenticated_as(kaka)
         if identity is None:  # No!
-            return self.authn(query=query)
+            return self.authn(query=request)
         else:
             # I get back a dictionary
             user = identity["uid"]
@@ -207,7 +211,7 @@ class Provider(object):
         LOG_DEBUG("- authenticated -")
 
         try:
-            areq = self.srvmethod.parse_authorization_request(query=query)
+            areq = self.srvmethod.parse_authorization_request(query=request)
         except MissingRequiredAttribute, err:
             return BadRequest("%s" % err)
         except Exception, err:
@@ -246,7 +250,7 @@ class Provider(object):
         _sdb = self.sdb
 
         LOG_DEBUG("- token -")
-        body = kwargs["post"]
+        body = kwargs["request"]
         LOG_DEBUG("body: %s" % body)
 
         areq = AccessTokenRequest().deserialize(body, "urlencoded")
