@@ -515,7 +515,7 @@ def test_userinfo_endpoint():
     resp3 = server.userinfo_endpoint(request=uir.to_urlencoded())
     ident = OpenIDSchema().deserialize(resp3.message, "json")
     print ident.keys()
-    assert _eq(ident.keys(), ['nickname', 'sub', 'name', 'email', 'verified'])
+    assert _eq(ident.keys(), ['nickname', 'sub', 'name', 'email'])
     assert ident["sub"] == USERDB["username"]["sub"]
 
 
@@ -554,8 +554,10 @@ def test_registration_endpoint():
     print regresp.keys()
     assert _eq(regresp.keys(), ['redirect_uris', 'contacts', 'application_type',
                                 'client_name', 'registration_client_uri',
-                                'expires_at', 'registration_access_token',
-                                'client_id', 'client_secret'])
+                                'client_secret_expires_at',
+                                'registration_access_token',
+                                'client_id', 'client_secret',
+                                'client_id_issued_at'])
 
 
 def test_provider_key_setup():

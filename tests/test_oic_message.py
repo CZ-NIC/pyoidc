@@ -143,7 +143,7 @@ def test_client_response():
     msg = {
         "client_id": "s6BhdRkqt3",
         "client_secret": "ZJYCqe3GGRvdrudKyZS0XhGv_Z45DuKhCUk0gBR1vZk",
-        "expires_at": 1577858400,
+        "client_secret_expires_at": 1577858400,
         "registration_access_token": "this.is.an.access.token.value.ffx83",
         "registration_client_uri":
             "https://server.example.com/connect/register?client_id=s6BhdRkqt3",

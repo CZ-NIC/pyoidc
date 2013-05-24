@@ -263,7 +263,7 @@ def test_consumer_client_get_access_token_reques():
     url, body, http_args = cons.get_access_token_request()
     assert url == "http://localhost:8088/token"
     print body
-    assert body == "code=auth_grant&client_secret=secret0&grant_type=authorization_code&client_id=number5&redirect_uri=https%3A%2F%2Fwww.example.com%2Foic%2Fcb"
+    assert body == "code=auth_grant&redirect_uri=https%3A%2F%2Fwww.example.com%2Foic%2Fcb&client_id=number5&scope=openid&client_secret=secret0&grant_type=authorization_code"
     assert http_args == {'headers': {'content-type':
                                'application/x-www-form-urlencoded'}}
 

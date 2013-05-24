@@ -481,9 +481,9 @@ class TestOICClient():
         print resp.keys()
         assert _eq(resp.keys(), ['redirect_uris', u'redirect_uri',
                                  'application_type', 'registration_client_uri',
-                                 'expires_at', 'registration_access_token',
-                                 'response_type', 'client_id',
-                                 u'application_name', 'client_secret'])
+                                 'client_secret_expires_at',
+                                 'registration_access_token', 'client_id',
+                                 'application_name', 'client_secret'])
 
     def test_do_user_info_request_with_access_token_refresh(self):
         self.client.userinfo_endpoint = "http://oic.example.org/userinfo"

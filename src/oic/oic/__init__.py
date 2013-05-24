@@ -921,7 +921,7 @@ class Client(oauth2.Client):
             self.registration_response = resp
             self.client_secret = resp["client_secret"]
             self.client_id = resp["client_id"]
-            self.registration_expires = resp["expires_at"]
+            self.registration_expires = resp["client_secret_expires_at"]
             self.registration_access_token = resp["registration_access_token"]
         else:
             err = ErrorResponse().deserialize(response.text, "json")

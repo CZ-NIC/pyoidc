@@ -922,7 +922,8 @@ class Provider(AProvider):
             "client_secret": client_secret,
             "registration_access_token": _rat,
             "registration_client_uri": "%s?client_id=%s" % (reg_enp, client_id),
-            "expires_at": utc_time_sans_frac() + 86400}
+            "client_secret_expires_at": utc_time_sans_frac() + 86400,
+            "client_id_issued_at": utc_time_sans_frac()}
 
         self.cdb[_rat] = client_id
 

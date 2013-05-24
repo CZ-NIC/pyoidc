@@ -220,8 +220,8 @@ class SessionDB(object):
             "authzreq": areq.to_json(),
             "client_id": areq["client_id"],
             #"expires_in": self.grant_expires_in,
-            "expires_at": utc_time_sans_frac() + self.grant_expires_in,
-            "issued_at": utc_time_sans_frac(),
+            "client_secret_expires_at": utc_time_sans_frac() + self.grant_expires_in,
+            "client_id_issued_at": utc_time_sans_frac(),
             "revoked": False,
         }
 
@@ -278,9 +278,9 @@ class SessionDB(object):
         dic["access_token_scope"] = "?"
         dic["oauth_state"] = "token"
         dic["token_type"] = "Bearer"
-        dic["expires_at"] = utc_time_sans_frac() + self.token_expires_in
+        dic["client_secret_expires_at"] = utc_time_sans_frac() + self.token_expires_in
         dic["expires_in"] = self.token_expires_in
-        dic["issued"] = utc_time_sans_frac()
+        dic["client_id_issued_at"] = utc_time_sans_frac()
         if id_token:
             dic["id_token"] = id_token
         if oidreq:
@@ -306,8 +306,8 @@ class SessionDB(object):
 
             access_token = self.token("T", prev=rtoken)
 
-            dic["expires_at"] = utc_time_sans_frac() + self.token_expires_in
-            dic["issued"] = utc_time_sans_frac()
+            dic["client_secret_expires_at"] = utc_time_sans_frac() + self.token_expires_in
+            dic["client_id_issued_at"] = utc_time_sans_frac()
             dic["access_token"] = access_token
             self._db[sid] = dic
             #self._db[dic["xxxx"]] = dic
@@ -316,8 +316,8 @@ class SessionDB(object):
             raise WrongTokenType("Not a refresh token!")
 
     def is_expired(self, sess):
-        if "expires_at" in sess:
-            if sess["expires_at"] < utc_time_sans_frac():
+        if "client_secret_expires_at" in sess:
+            if sess["client_secret_expires_at"] < utc_time_sans_frac():
                 return True
 
         return False
@@ -394,8 +394,9 @@ class SessionDB(object):
         _dic["code_used"] = False
 
         for key in ["access_token", "access_token_scope", "oauth_state",
-                    "token_type", "expires_at", "expires_in", "issued",
-                    "id_token", "oidreq", "refresh_token"]:
+                    "token_type", "client_secret_expires_at", "expires_in",
+                    "client_id_issued_at", "id_token", "oidreq",
+                    "refresh_token"]:
             try:
                 del _dic[key]
             except KeyError:

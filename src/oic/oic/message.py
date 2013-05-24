@@ -462,8 +462,8 @@ class RegistrationResponse(Message):
         "client_secret": SINGLE_OPTIONAL_STRING,
         "registration_access_token": SINGLE_REQUIRED_STRING,
         "registration_client_uri": SINGLE_REQUIRED_STRING,
-        "issued_at": SINGLE_OPTIONAL_INT,
-        "expires_at": SINGLE_OPTIONAL_INT,
+        "client_id_issued_at": SINGLE_OPTIONAL_INT,
+        "client_secret_expires_at": SINGLE_OPTIONAL_INT,
     }
     c_param.update(RegistrationRequest.c_param)
 

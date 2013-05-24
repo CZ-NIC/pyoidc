@@ -473,15 +473,18 @@ if __name__ == '__main__':
     cdb = shelve.open("client_db", writeback=True)
 
     config = importlib.import_module(args.config)
+    config.issuer = config.issuer % args.port
+    config.SERVICE_URL = config.SERVICE_URL % args.port
 
     if config.AUTHN == 'CasAuthnMethod':
         from oic.utils.authn.user_cas import CasAuthnMethod
         from oic.utils.authn.ldap_member import UserLDAPMemberValidation
 
         config.LDAP_EXTRAVALIDATION.update(config.LDAP)
-        authn = CasAuthnMethod(None, config.CAS_SERVER, config.SERVICE_URL,
-                               "%s/authorization" % config.issuer,
-                               UserLDAPMemberValidation(**config.LDAP_EXTRAVALIDATION))
+        authn = CasAuthnMethod(
+            None, config.CAS_SERVER, config.SERVICE_URL,
+            "%s/authorization" % config.issuer,
+            UserLDAPMemberValidation(**config.LDAP_EXTRAVALIDATION))
     else:
         from oic.utils.authn.user import UsernamePasswordMako
         authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
@@ -495,8 +498,8 @@ if __name__ == '__main__':
         OAS = TestProvider(config.issuer, SessionDB(), cdb, authn, None,
                            authz, config.SYM_KEY)
     elif args.XpressConnect:
-        OAS = XpressConnectProvider(config.issuer, SessionDB(), cdb, authn, None, authz,
-                       verify_client, config.SYM_KEY)
+        OAS = XpressConnectProvider(config.issuer, SessionDB(), cdb, authn,
+                                    None, authz, verify_client, config.SYM_KEY)
     else:
         OAS = Provider(config.issuer, SessionDB(), cdb, authn, None, authz,
                        verify_client, config.SYM_KEY)
@@ -581,7 +584,6 @@ if __name__ == '__main__':
         OAS.userinfo = DistributedAggregatedUserInfo(config.USERDB, OAS,
                                                      config.CLIENT_INFO)
 
-
     LOGGER.debug("URLS: '%s" % (URLS,))
     # Add the claims providers keys
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
@@ -590,7 +592,7 @@ if __name__ == '__main__':
                                                      config.SERVER_KEY,
                                                      config.CERT_CHAIN)
 
-    LOGGER.info("OC3 server starting listening on port:%s" % args.port)
+    LOGGER.info("OC server starting listening on port:%s" % args.port)
     try:
         SRV.start()
     except KeyboardInterrupt:
