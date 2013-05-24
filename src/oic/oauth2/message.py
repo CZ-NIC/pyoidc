@@ -593,7 +593,7 @@ def by_schema(cls, **kwa):
 
 
 def add_non_standard(msg1, msg2):
-    for key, val in msg2.extra():
+    for key, val in msg2.extra().items():
         if key not in msg1.c_param:
             msg1[key] = val
 
