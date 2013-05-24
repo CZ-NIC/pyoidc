@@ -156,8 +156,10 @@ def create_return_url(base, query, **kwargs):
         _pre = base
 
     logger.debug("kwargs: %s" % kwargs)
-
-    return "%s?%s" % (_pre, url_encode_params(kwargs))
+    if kwargs:
+        return "%s?%s" % (_pre, url_encode_params(kwargs))
+    else:
+        return _pre
 
 
 class UsernamePasswordMako(UserAuthnMethod):
@@ -225,7 +227,11 @@ class UsernamePasswordMako(UserAuthnMethod):
         try:
             assert _dict["password"][0] == self.passwd[_dict["login"][0]]
             cookie = self.create_cookie(_dict["login"][0])
-            return_to = self.generateReturnUrl(self.return_to, _dict["query"][0])
+            try:
+                _qp = _dict["query"][0]
+            except KeyError:
+                _qp = ""
+            return_to = self.generateReturnUrl(self.return_to, _qp)
             resp = Redirect(return_to, headers=[cookie])
         except (AssertionError, KeyError):
             resp = Unauthorized("Unknown user or wrong password")
