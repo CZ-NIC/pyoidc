@@ -7,13 +7,11 @@ import os
 
 from oic.oauth2.message import ErrorResponse
 
-from oic.oic.message import IdToken
+from oic.oic.message import IdToken, ClaimsRequest
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import Claims
-from oic.oic.message import UserInfoClaim
-from oic.oic.message import IDTokenClaim
 from oic.oic.message import AccessTokenRequest
 from oic.oic.message import RefreshAccessTokenRequest
 from oic.oic.message import UserInfoRequest
@@ -142,42 +140,6 @@ def make_openid_request(arq, keys=None, userinfo_claims=None,
     """
 
     oir_args = {}
-
-    if userinfo_claims is not None:
-        # UserInfoClaims
-        claim = Claims(**userinfo_claims["claims"])
-
-        uic_args = {}
-        for prop, val in userinfo_claims.items():
-            if prop == "claims":
-                continue
-            if prop in UserInfoClaim.c_param.keys():
-                uic_args[prop] = val
-
-        uic = UserInfoClaim(claims=claim, **uic_args)
-    else:
-        uic = None
-
-    if uic:
-        oir_args["userinfo"] = uic
-
-    if idtoken_claims is not None:
-        #IdTokenClaims
-        try:
-            _max_age = idtoken_claims["max_age"]
-        except KeyError:
-            _max_age = MAX_AUTHENTICATION_AGE
-
-        id_token = IDTokenClaim(max_age=_max_age)
-        if "claims" in idtoken_claims:
-            idtclaims = Claims(**idtoken_claims["claims"])
-            id_token["claims"] = idtclaims
-    else:  # uic must be != None
-        id_token = IDTokenClaim(max_age=MAX_AUTHENTICATION_AGE)
-
-    if id_token:
-        oir_args["id_token"] = id_token
-
     for prop in OpenIDRequest.c_param.keys():
         try:
             oir_args[prop] = arq[prop]
@@ -187,6 +149,18 @@ def make_openid_request(arq, keys=None, userinfo_claims=None,
     for attr in ["scope", "response_type"]:
         if attr in oir_args:
             oir_args[attr] = " ".join(oir_args[attr])
+
+    c_args = {}
+    if userinfo_claims is not None:
+        # UserInfoClaims
+        c_args["userinfo"] = Claims(**userinfo_claims)
+
+    if idtoken_claims is not None:
+        #IdTokenClaims
+        c_args["id_token"] = Claims(**idtoken_claims)
+
+    if c_args:
+        oir_args["claims"] = ClaimsRequest(**c_args)
 
     oir = OpenIDRequest(**oir_args)
 
@@ -300,13 +274,12 @@ class Client(oauth2.Client):
 
     def construct_AuthorizationRequest(self, request=AuthorizationRequest,
                                        request_args=None, extra_args=None,
-                                       **kwargs):
+                                       request_param=None, **kwargs):
 
         if request_args is not None:
-            for arg in ["idtoken_claims", "userinfo_claims"]:
-                if arg in request_args:
-                    kwargs[arg] = request_args[arg]
-                    del request_args[arg]
+            # if "claims" in request_args:
+            #     kwargs["claims"] = request_args["claims"]
+            #     del request_args["claims"]
             if "nonce" not in request_args:
                 _rt = request_args["response_type"]
                 if "token" in _rt or "id_token" in _rt:
@@ -316,11 +289,6 @@ class Client(oauth2.Client):
                 request_args = {"nonce": rndstr(12)}
         else:  # Never wrong to specify a nonce
             request_args = {"nonce": rndstr(12)}
-
-        if "idtoken_claims" in kwargs or "userinfo_claims" in kwargs:
-            request_param = "request"
-        else:
-            request_param = None
 
         if "request_method" in kwargs:
             if kwargs["request_method"] == "file":
@@ -1101,7 +1069,7 @@ class Server(oauth2.Server):
         """
         try:
             oidreq = OpenIDRequest().deserialize(session["oidreq"], "json")
-            itc = oidreq["id_token"]
+            itc = oidreq["claims"]["id_token"]
             logger.debug("ID Token claims: %s" % itc)
             return itc
         except KeyError:
@@ -1131,13 +1099,12 @@ class Server(oauth2.Server):
                 inawhile = {"seconds": itc["max_age"]}
             except KeyError:
                 inawhile = {}
-            if "claims" in itc:
-                for key, val in itc["claims"].items():
-                    if key == "auth_time":
-                        extra["auth_time"] = time_util.utc_time_sans_frac()
-                    elif key == "acr":
-                        #["2","http://id.incommon.org/assurance/bronze"]
-                        extra["acr"] = verify_acr_level(val, loa)
+            for key, val in itc.items():
+                if key == "auth_time":
+                    extra["auth_time"] = time_util.utc_time_sans_frac()
+                elif key == "acr":
+                    #["2","http://id.incommon.org/assurance/bronze"]
+                    extra["acr"] = verify_acr_level(val, loa)
 
         if user_info is None:
             _args = {}

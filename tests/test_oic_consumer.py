@@ -70,10 +70,7 @@ CONFIG = {
     "max_age": 3600,
     #client_secret
     "user_info":{
-        "claims": {
-            "name":None,
-            },
-        "format": "signed"
+        "name":None,
     }
 }
 
@@ -175,14 +172,13 @@ class TestOICConsumer():
         print location
         authreq = srv.parse_authorization_request(url=location)
         print authreq.keys()
-        assert _eq(authreq.keys(), ['request', 'state',
-                                    'redirect_uri', 'response_type',
-                                    'client_id', 'scope'])
-        
+        assert _eq(authreq.keys(), ['request', 'state', 'max_age', 'claims',
+                                    'response_type', 'client_id', 'scope',
+                                    'redirect_uri'])
+
         assert authreq["state"] == self.consumer.state
         assert authreq["scope"] == self.consumer.config["scope"]
         assert authreq["client_id"] == self.consumer.client_id
-
 
     def test_begin_file(self):
         self.consumer.config["request_method"] = "file"
@@ -198,9 +194,9 @@ class TestOICConsumer():
         #vkeys = {".":srv.keyjar.get_verify_key()}
         authreq = srv.parse_authorization_request(url=location)
         print authreq.keys()
-        assert _eq(authreq.keys(), ['state', 'redirect_uri',
+        assert _eq(authreq.keys(), ['max_age', 'state', 'redirect_uri',
                                     'response_type', 'client_id', 'scope',
-                                    'request_uri'])
+                                    'claims', 'request_uri'])
 
         assert authreq["state"] == self.consumer.state
         assert authreq["scope"] == self.consumer.config["scope"]
@@ -275,7 +271,7 @@ class TestOICConsumer():
 
     def test_parse_authz_implicit(self):
         self.consumer.config["response_type"] = "implicit"
-        
+
         args = {
             "client_id": self.consumer.client_id,
             "response_type": "implicit",
@@ -342,7 +338,7 @@ def test_complete_auth_token():
     consumer.client_secret = "hemlig"
     consumer.secret_type = "basic"
     consumer.config["response_type"] = ["code", "token"]
-    
+
     args = {
         "client_id": consumer.client_id,
         "response_type": consumer.config["response_type"],
@@ -519,6 +515,7 @@ def test_provider_config():
 
     assert info["end_session_endpoint"] == "http://example.com/end_session"
 
+
 def test_client_register():
     c = Consumer(None, None)
 
@@ -537,3 +534,8 @@ def test_client_register():
     assert c.client_id is not None
     assert c.client_secret is not None
     assert c.registration_expires > utc_time_sans_frac()
+
+if __name__ == "__main__":
+    t = TestOICConsumer()
+    t.setup_class()
+    t.test_begin()

@@ -57,6 +57,11 @@ class ClientAuthnMethod(object):
 
 
 class ClientSecretBasic(ClientAuthnMethod):
+    """
+    Clients that have received a client_secret value from the Authorization
+    Server, authenticate with the Authorization Server in accordance with
+    Section 3.2.1 of OAuth 2.0 [RFC6749] using HTTP Basic authentication scheme.
+    """
     def construct(self, cis, request_args=None, http_args=None, **kwargs):
         # Basic HTTP Authentication
         if http_args is None:
@@ -84,6 +89,12 @@ class ClientSecretBasic(ClientAuthnMethod):
 
 
 class ClientSecretPost(ClientSecretBasic):
+    """
+    Clients that have received a client_secret value from the Authorization
+    Server, authenticate with the Authorization Server in accordance with
+    Section 3.2.1 of OAuth 2.0 [RFC6749] by including the Client Credentials in
+    the request body.
+    """
     def construct(self, cis, request_args=None, http_args=None, **kwargs):
         if "client_secret" not in cis:
             try:
@@ -271,6 +282,12 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
 
 class ClientSecretJWT(JWSAuthnMethod):
+    """
+    Clients that have received a client_secret value from the Authorization
+    Server create a JWT using an HMAC SHA algorithm, such as HMAC SHA-256.
+    The HMAC (Hash-based Message Authentication Code) is calculated using the
+    bytes of the UTF-8 representation of the client_secret as the shared key.
+    """
     def choose_algorithm(self, entity="client_secret_jwt", **kwargs):
         return JWSAuthnMethod.choose_algorithm(self, entity, **kwargs)
 
@@ -279,7 +296,9 @@ class ClientSecretJWT(JWSAuthnMethod):
 
 
 class PrivateKeyJWT(JWSAuthnMethod):
-
+    """
+    Clients that have registered a public key sign a JWT using that key.
+    """
     def choose_algorithm(self, entity="private_key_jwt", **kwargs):
         return JWSAuthnMethod.choose_algorithm(self, entity, **kwargs)
 

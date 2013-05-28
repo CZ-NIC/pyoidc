@@ -10,7 +10,7 @@ from oic.utils.keyio import KeyBundle, key_export
 from requests import ConnectionError
 
 from oic.oauth2.message import ErrorResponse, by_schema, MessageException
-from oic.oic.message import AuthorizationRequest
+from oic.oic.message import AuthorizationRequest, Claims
 from oic.oic.message import IdToken
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import RegistrationResponse
@@ -23,7 +23,6 @@ from oic.oic.message import TokenErrorResponse
 from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import ClientRegistrationErrorResponse
-from oic.oic.message import UserInfoClaim
 from oic.oic.message import DiscoveryRequest
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import DiscoveryResponse
@@ -273,6 +272,7 @@ class Provider(AProvider):
 
     def get_redirect_uri(self, areq):
         """ verify that the redirect URI is reasonable
+
         :param areq: The Authorization request
         :return: Tuple of (redirect_uri, Response instance)
             Response instance is not None of matching redirect_uri failed
@@ -280,13 +280,9 @@ class Provider(AProvider):
         if 'redirect_uri' in areq:
             self._verify_redirect_uri(areq)
             uri = areq["redirect_uri"]
-        else:  # pick the one registered
-            ruris = self.cdb[areq["client_id"]]["redirect_uris"]
-            if len(ruris) == 1:
-                uri = construct_uri(ruris[0])
-            else:
-                raise ParameterError(
-                    "Missing redirect_uri and more than one registered")
+        else:
+            raise ParameterError(
+                "Missing redirect_uri and more than one registered")
 
         return uri
 
@@ -347,18 +343,20 @@ class Provider(AProvider):
         try:
             oidc_req = areq["request"]
             try:
-                req_user = oidc_req["id_token"]["claims"]["sub"]["value"]
+                req_user = oidc_req["claims"]["id_token"]["sub"]["value"]
             except KeyError:
                 pass
         except KeyError:
-            if "id_token" in areq:
+            try:
                 req_user = areq["id_token"]["sub"]
+            except KeyError:
+                pass
 
         return req_user
 
     def max_age(self, areq):
         try:
-            return areq["request"]["id_token"]["max_age"]
+            return areq["request"]["max_age"]
         except KeyError:
             return 0
 
@@ -462,16 +460,16 @@ class Provider(AProvider):
         return self.authz_part2(user, areq, sid)
 
     def userinfo_in_id_token_claims(self, session):
+        """
+        Put userinfo claims in the id token
+        :param session:
+        :return:
+        """
         itc = self.server.id_token_claims(session)
         if not itc:
             return None
 
-        try:
-            claims = itc["claims"]
-        except KeyError:
-            return None
-
-        _claims = by_schema(OpenIDSchema, **claims)
+        _claims = by_schema(OpenIDSchema, **itc)
 
         if _claims:
             return self._collect_user_info(session, {"claims": _claims})
@@ -595,23 +593,9 @@ class Provider(AProvider):
             _sdb.revoke_all_tokens(_access_code)
             return self._error(error="access_denied", descr="%s" % err)
 
-        # verify that the scope given in the request is a true subset of
-        # the one specified in the AuthorizationRequest
-
-        if not self.subset(areq["scope"], _info["scope"]):
-            _log_info("Asked for scope which is not subset of previous defined")
-            err = TokenErrorResponse(error="invalid_scope")
-            return Response(err.to_json(), content="application/json")
-
         if "openid" in _info["scope"]:
-            if areq["scope"] != _info["scope"]:
-                _inf = _info.copy()
-                _inf["scope"] = areq["scope"]
-            else:
-                _inf = _info
-
-            userinfo = self.userinfo_in_id_token_claims(_inf)
-            _idtoken = self.sign_encrypt_id_token(_inf, client_info, areq,
+            userinfo = self.userinfo_in_id_token_claims(_info)
+            _idtoken = self.sign_encrypt_id_token(_info, client_info, areq,
                                                   user_info=userinfo)
             _sdb.update_by_token(_access_code, "id_token", _idtoken)
 
@@ -646,18 +630,22 @@ class Provider(AProvider):
             if "oidreq" in session:
                 oidreq = OpenIDRequest().deserialize(session["oidreq"], "json")
                 logger.debug("OIDREQ: %s" % oidreq.to_dict())
-                if "userinfo" in oidreq:
-                    userinfo_claims = oidreq["userinfo"]
-                    _claim = oidreq["userinfo"]["claims"]
+                try:
+                    _claims = oidreq["claims"]["userinfo"]
+                except KeyError:
+                    pass
+                else:
                     for key, val in uic.items():
-                        if key not in _claim:
-                            _claim[key] = val
-                elif uic:
-                    userinfo_claims = UserInfoClaim(claims=uic)
+                        if key not in _claims:
+                            _claims[key] = val
+                    uic = _claims
+
+                if uic:
+                    userinfo_claims = Claims(**uic)
                 else:
                     userinfo_claims = None
             elif uic:
-                userinfo_claims = UserInfoClaim(claims=uic)
+                userinfo_claims = Claims(**uic)
             else:
                 userinfo_claims = None
 
@@ -1210,6 +1198,16 @@ class Provider(AProvider):
             redirect_uri = self.get_redirect_uri(areq)
         except (RedirectURIError, ParameterError), err:
             return BadRequest("%s" % err)
+
+        # Must not use HTTP unless implicit grant type and native application
+
+        # Use of the nonce is REQUIRED for all requests where an ID Token is
+        # returned directly from the Authorization Endpoint
+        if "id_token" in aresp:
+            try:
+                assert "nonce" in areq
+            except AssertionError:
+                return self._error("invalid_request", "Missing nonce value")
 
         # so everything went well should set a SSO cookie
         headers = [self.authn.create_cookie(user, typ="sso", ttl=self.sso_ttl)]

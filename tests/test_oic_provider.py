@@ -46,11 +46,9 @@ CONSUMER_CONFIG = {
     "response_type": ["code"],
     #"expire_in": 600,
     "user_info": {
-        "claims": {
-            "name": None,
-            "email": None,
-            "nickname": None
-        }
+        "name": None,
+        "email": None,
+        "nickname": None
     },
     "request_method": "param"
 }
@@ -195,7 +193,8 @@ def test_server_authorization_endpoint_request():
            "prompt": ["none"]}
 
     req = AuthorizationRequest(**bib)
-    ic = {"claims": {"sub": {"value": "userX"}}}
+    # want to be someone else !
+    ic = {"sub": {"value": "userX"}}
     _keys = server.keyjar.get_signing_key(key_type="rsa")
     req["request"] = make_openid_request(req, _keys, idtoken_claims=ic,
                                          algorithm="RS256")
@@ -277,7 +276,7 @@ def test_server_authenticated():
     print aresp.keys()
     assert aresp.type() == "AuthorizationResponse"
     assert _eq(aresp.keys(), ['request', 'state', 'redirect_uri',
-                              'response_type', 'client_id', 'scope'])
+                              'response_type', 'client_id', 'claims', 'scope'])
 
     print cons.grant[cons.state].keys()
     assert _eq(cons.grant[cons.state].keys(), ['tokens', 'id_token', 'exp_in',
@@ -302,7 +301,7 @@ def test_server_authenticated_1():
 
     print aresp.keys()
     assert aresp.type() == "AuthorizationResponse"
-    assert _eq(aresp.keys(), ['request', 'state', 'redirect_uri',
+    assert _eq(aresp.keys(), ['request', 'state', 'redirect_uri', 'claims',
                               'response_type', 'client_id', 'scope'])
 
 
@@ -463,7 +462,7 @@ def test_authz_endpoint():
     server = provider_init
 
     cli = Client()
-    cli.redirect_uri = "http://www.example.org/authz"
+    cli.redirect_uris = ["http://www.example.org/authz"]
     cli.client_id = "client0"
     cli.state = "_state_"
     args = {"response_type": ["code", "token"], "scope": ["openid"]}
@@ -473,6 +472,7 @@ def test_authz_endpoint():
     print resp.message
     assert "token_type=Bearer" in resp.message
     assert "code=" in resp.message
+
 
 def test_idtoken():
     server = provider_init
@@ -678,4 +678,4 @@ def test_registered_redirect_uri_with_query_component():
         assert resp is None
 
 if __name__ == "__main__":
-    test_server_authenticated_2()
+    test_userinfo_endpoint()

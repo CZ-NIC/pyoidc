@@ -290,10 +290,10 @@ class Provider(object):
         # assert that the code is valid
         _info = _sdb[areq["code"]]
 
-        if not self.subset(areq["scope"], _info["scope"]):
-            LOG_INFO("Asked for scope which is not subset of previous defined")
-            err = TokenErrorResponse(error="invalid_scope")
-            return Response(err.to_json(), content="application/json")
+        # if not self.subset(areq["scope"], _info["scope"]):
+        #     LOG_INFO("Asked for scope which is not subset of previous defined")
+        #     err = TokenErrorResponse(error="invalid_scope")
+        #     return Response(err.to_json(), content="application/json")
 
         # If redirect_uri was in the initial authorization request
         # verify that the one given here is the correct one.

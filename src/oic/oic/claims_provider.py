@@ -7,7 +7,6 @@ from oic.oauth2 import rndstr
 
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import Claims
-from oic.oic.message import UserInfoClaim
 
 from oic.oic import Server as OicServer
 from oic.oic import Client
@@ -136,7 +135,7 @@ class ClaimsServer(Provider):
         if "claims_names" in ucreq:
             args = dict([(n, {"optional": True}) for n in
                          ucreq["claims_names"]])
-            uic = UserInfoClaim(claims=Claims(**args))
+            uic = Claims(**args)
         else:
             uic = None
 

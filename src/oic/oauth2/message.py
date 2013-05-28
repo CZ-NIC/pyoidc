@@ -696,7 +696,7 @@ class AccessTokenRequest(Message):
     c_param = {"grant_type": SINGLE_REQUIRED_STRING,
                "code": SINGLE_REQUIRED_STRING,
                "redirect_uri": SINGLE_REQUIRED_STRING,
-               "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+               #"scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
                "client_id": SINGLE_OPTIONAL_STRING,
                "client_secret": SINGLE_OPTIONAL_STRING}
     c_default = {"grant_type": "authorization_code"}

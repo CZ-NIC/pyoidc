@@ -7,23 +7,19 @@ import time
 import json
 import urllib
 
-from oic import oic
-
-from oic.oic import Grant, JWT_BEARER
+from oic.oic import Grant
 from oic.oic import Token
 from oic.oic import Client
 from oic.oic import Server
 
-from oic.oic.message import IdToken
+from oic.oic.message import IdToken, ClaimsRequest
 #from oic.oic.message import AuthorizationErrorResponse
 from oic.oic.message import Claims
-from oic.oic.message import UserInfoClaim
 from oic.oic.message import UserInfoRequest
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import RefreshSessionRequest
 from oic.oic.message import CheckSessionRequest
 from oic.oic.message import EndSessionRequest
-from oic.oic.message import IDTokenClaim
 from oic.oic.message import RefreshAccessTokenRequest
 from oic.oic.message import AccessTokenRequest
 from oic.oic.message import OpenIDRequest
@@ -508,22 +504,27 @@ class TestOICClient():
         }
 
         areq = self.client.construct_AuthorizationRequest(
-            request_args={"scope": "openid", "response_type": ["code"]},
-            userinfo_claims={"claims": claims,
-                             "preferred_locale": "en"},
-            idtoken_claims={"claims": {"auth_time": None,
-                                       "acr": {"values": ["2"]}},
-                            "max_age": 86400},
-        )
+            request_args={
+                "scope": "openid",
+                "response_type": ["code"],
+                "claims": ClaimsRequest(userinfo=Claims(**claims),
+                                        id_token=Claims(auth_time=None,
+                                                        acr={"values": ["2"]})),
+                "max_age": 86400,
+            },
+            request_param="request")
 
-        print areq
+        print areq.to_dict()
         assert areq
         assert "request" in areq
 
     def test_openid_request_with_request_2(self):
         areq = self.client.construct_AuthorizationRequest(
-            request_args={"scope": "openid", "response_type": ["code"]},
-            idtoken_claims={"claims": {"sub": {"value": "248289761001"}}},
+            request_args={"scope": "openid",
+                          "response_type": ["code"],
+                          "claims": {
+                              "id_token": {"sub": {"value": "248289761001"}}}},
+            request_param="request"
         )
 
         print areq
@@ -535,7 +536,7 @@ class TestOICClient():
         print
         print jwtreq
         print jwtreq.keys()
-        assert _eq(jwtreq.keys(), ['id_token', 'state',
+        assert _eq(jwtreq.keys(), ['claims', 'state',
                                    'redirect_uri', 'response_type',
                                    'client_id', 'scope'])
 
@@ -988,18 +989,19 @@ ESREQ = EndSessionRequest(id_token=IDTOKEN.to_jwt(key=KC_HMAC_S),
                           redirect_url="http://example.org/jqauthz",
                           state="state0")
 
-IDT2 = IDTokenClaim(max_age=86400)
-
-CLAIM = Claims(name={"essential": True}, nickname=None,
+UINFO = Claims(name={"essential": True}, nickname=None,
                email={"essential": True},
                email_verified={"essential": True}, picture=None)
 
-USRINFO = UserInfoClaim(claims=CLAIM, sformat="signed")
+IDT2 = Claims(auth_time={"essential": True,
+                         "acr": {"values": ["urn:mace:incommon:iap:silver"]}})
+
+CLAIMS = ClaimsRequest(userinfo=UINFO, id_token=IDT2)
 
 OIDREQ = OpenIDRequest(response_type=["code", "id_token"], client_id=CLIENT_ID,
                        redirect_uri="https://client.example.com/cb",
                        scope="openid profile", state="n-0S6_WzA2Mj",
-                       nonce="af0ifjsldkj", userinfo=USRINFO, id_token=IDT2)
+                       nonce="af0ifjsldkj", max_age=86400, claims=CLAIMS)
 
 
 def test_server_init():
@@ -1106,16 +1108,16 @@ def test_parse_open_id_request():
     request = srv.parse_open_id_request(data=OIDREQ.to_json(), sformat="json")
     assert request.type() == "OpenIDRequest"
     print request.keys()
-    assert _eq(request.keys(), ['nonce', 'id_token', 'userinfo', 'state',
-                                'redirect_uri', 'response_type', 'client_id',
-                                'scope'])
+    assert _eq(request.keys(), ['nonce', 'claims', 'state', 'redirect_uri',
+                                'response_type', 'client_id', 'scope',
+                                'max_age'])
     assert request["nonce"] == "af0ifjsldkj"
 
-    print request["userinfo"]
+    print request["claims"]
 
     #assert request.userinfo.format == "signed"
-    print request["userinfo"]["claims"].to_dict()
-    assert "email" in request["userinfo"]["claims"]
+    print request["claims"]["userinfo"]
+    assert "email" in request["claims"]["userinfo"]
 
 
 def test_make_id_token():
@@ -1152,4 +1154,4 @@ if __name__ == "__main__":
     mfos = MyFakeOICServer()
     mfos.keyjar = KEYJ
     toic.client.http_request = mfos.http_request
-    toic.test_do_registration_request()
+    toic.test_openid_request_with_request_2()

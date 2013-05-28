@@ -7,14 +7,10 @@ from oic.oic.message import ProviderConfigurationResponse, RegistrationResponse,
 from oic.oic.message import msg_ser
 from oic.oic.message import claims_ser
 from oic.oic.message import RegistrationRequest
-from oic.oic.message import IDTokenClaim
-from oic.oic.message import UserInfoClaim
-from oic.oic.message import userinfo_deser
 from oic.oic.message import claims_deser
 from oic.oic.message import AddressClaim
 from oic.oic.message import address_deser
 from oic.oic.message import Claims
-from oic.oic.message import idtokenclaim_deser
 
 
 def _eq(l1, l2):
@@ -184,22 +180,42 @@ def test_authz_request():
     assert req["scope"] == ["openid", "profile"]
 
 
-def test_idtokenclaim_deser():
-    claims = Claims(weather={"acr": "2"})
-    pre = IDTokenClaim(claims=claims, max_age=3600)
-    idt = idtokenclaim_deser(pre.to_json(), sformat="json")
-    assert _eq(idt.keys(), ['claims', "max_age"])
+# def test_idtokenclaim_deser():
+#     claims = Claims(weather={"acr": "2"})
+#     pre = IDTokenClaim(claims=claims, max_age=3600)
+#     idt = idtokenclaim_deser(pre.to_json(), sformat="json")
+#     assert _eq(idt.keys(), ['claims', "max_age"])
+#
+#
+# def test_userinfo_deser():
+#     CLAIM = Claims(name={"essential": True}, nickname=None,
+#                    email={"essential": True},
+#                    email_verified={"essential": True}, picture=None)
+#
+#     pre_uic = UserInfoClaim(claims=CLAIM, format="signed")
+#
+#     uic = userinfo_deser(pre_uic.to_json(), sformat="json")
+#     assert _eq(uic.keys(), ["claims", "format"])
 
 
-def test_userinfo_deser():
-    CLAIM = Claims(name={"essential": True}, nickname=None,
-                   email={"essential": True},
-                   email_verified={"essential": True}, picture=None)
+def test_claims_deser_0():
+    _dic = {
+        "userinfo": {
+            "given_name": {"essential": True},
+            "nickname": None,
+            "email": {"essential": True},
+            "email_verified": {"essential": True},
+            "picture": None,
+            "http://example.info/claims/groups": None
+        },
+        "id_token": {
+            "auth_time": {"essential": True},
+            "acr": {"values": ["urn:mace:incommon:iap:silver"]}
+        }
+    }
 
-    pre_uic = UserInfoClaim(claims=CLAIM, format="signed")
-
-    uic = userinfo_deser(pre_uic.to_json(), sformat="json")
-    assert _eq(uic.keys(), ["claims", "format"])
+    claims = claims_deser(json.dumps(_dic), sformat="json")
+    assert _eq(claims.keys(), ["userinfo", "id_token"])
 
 
 def test_claims_deser():
@@ -303,4 +319,4 @@ def test_registration_request():
 
 
 if __name__ == "__main__":
-    test_authz_request()
+    test_claims_deser_0()
