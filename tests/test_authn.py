@@ -3,14 +3,19 @@ import os
 import urllib
 from urlparse import parse_qs
 import jwkest
-from jwkest.jws import verify
+from jwkest.jwk import SYM_key
+from jwkest.jws import JWS
 from mako.lookup import TemplateLookup
 from oic.oic import JWT_BEARER
-from oic.utils.authn.client import ClientSecretJWT, PrivateKeyJWT
+from oic.utils.authn.client import ClientSecretJWT
+from oic.utils.authn.client import PrivateKeyJWT
 from oic.utils.http_util import Unauthorized
-from oic.oauth2 import rndstr, Client, AccessTokenRequest
+from oic.oauth2 import rndstr
+from oic.oauth2 import Client
+from oic.oauth2 import AccessTokenRequest
 from oic.utils.authn.user import UsernamePasswordMako
-from oic.utils.keyio import KeyBundle, rsa_load
+from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import rsa_load
 
 __author__ = 'rolandh'
 
@@ -22,8 +27,8 @@ tl = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
                     input_encoding='utf-8', output_encoding='utf-8')
 
 _key = rsa_load("../oc3/certs/mycert.key")
-KC_RSA = KeyBundle([{"key": _key, "kty": "rsa", "use": "ver"},
-                    {"key": _key, "kty": "rsa", "use": "sig"}])
+KC_RSA = KeyBundle([{"key": _key, "kty": "RSA", "use": "ver"},
+                    {"key": _key, "kty": "RSA", "use": "sig"}])
 
 
 def create_return_form_env(user, password, query):
@@ -165,8 +170,10 @@ def test_client_secret_jwt():
     print header
     assert header == {'alg': 'HS256'}
 
-    a = verify(cas, {"hmac": [cli.client_secret]})
-    _dict = json.loads(a)
+    _rj = JWS()
+    info = _rj.verify_compact(cas, [SYM_key(key=cli.client_secret)])
+
+    _dict = json.loads(info)
     assert _eq(_dict.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
 
 
@@ -187,4 +194,4 @@ def test_private_key_jwt():
     assert header == {'alg': 'RS256'}
 
 if __name__ == "__main__":
-    test_4()
+    test_private_key_jwt()

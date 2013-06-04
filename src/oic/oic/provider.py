@@ -358,7 +358,10 @@ class Provider(AProvider):
         try:
             return areq["request"]["max_age"]
         except KeyError:
-            return 0
+            try:
+                return areq["max_age"]
+            except KeyError:
+                return 0
 
     def re_authenticate(self, areq):
         if "prompt" in areq and "login" in areq["prompt"]:
@@ -946,9 +949,9 @@ class Provider(AProvider):
 
         # Add the key to the keyjar
         if client_secret:
-            _kc = KeyBundle([{"kty": "hmac", "key": client_secret,
+            _kc = KeyBundle([{"kty": "oct", "key": client_secret,
                               "use": "ver"},
-                             {"kty": "hmac", "key": client_secret,
+                             {"kty": "oct", "key": client_secret,
                               "use": "sig"}])
             try:
                 _keyjar[client_id].append(_kc)

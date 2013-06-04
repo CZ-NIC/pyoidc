@@ -86,7 +86,7 @@ class ClaimsServer(Provider):
 
         for cid, _dic in cdb.items():
             try:
-                keyjar.add_hmac(cid, _dic["client_secret"], ["sig", "ver"])
+                keyjar.add_symmetric(cid, _dic["client_secret"], ["sig", "ver"])
             except KeyError:
                 pass
 

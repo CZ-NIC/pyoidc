@@ -8,6 +8,7 @@ from jwkest import jwe
 from jwkest import b64d
 #from oic.oauth2 import DEF_SIGN_ALG
 import jwkest
+from jwkest.jws import JWS
 
 logger = logging.getLogger(__name__)
 
@@ -394,18 +395,12 @@ class Message(object):
         :return: A signed JWT
         """
 
-        if algorithm:
-            return jws.sign(self.to_json(lev), key, algorithm)
-        else:
-            return jwkest.pack(self.to_json(lev))
+        _jws = JWS(self.to_json(lev), alg=algorithm)
+        return _jws.sign_compact(key)
 
     def _add_key(self, keyjar, item, key):
         try:
-            for t, vs in keyjar.get_verify_key(owner=item).items():
-                try:
-                    key[t].extend(vs)
-                except KeyError:
-                    key[t] = vs
+            key.extend(keyjar.get_verify_key(owner=item))
         except KeyError:
             pass
 
@@ -446,6 +441,7 @@ class Message(object):
                 pass
 
         # assume htype == 'JWS'
+        _jws = JWS()
         if not jso:
             try:
                 jso = jwkest.unpack(txt)[1]
@@ -468,7 +464,7 @@ class Message(object):
                             else:
                                 self._add_key(keyjar, jso[ent], key)
 
-                    jws.verify(txt, key)
+                    _jws.verify_compact(txt, key)
             except Exception:
                 raise
 

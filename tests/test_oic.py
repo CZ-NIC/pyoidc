@@ -49,17 +49,18 @@ def _eq(l1, l2):
     s2 = set(l2)
     return s1 == s2
 
+
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
-KC_HMAC_S = KeyBundle({"kty": "hmac", "key": "abcdefghijklmnop", "use": "sig"})
+KC_SYM_S = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "sig"})
 
 _key = rsa_load("../oc3/certs/mycert.key")
-KC_RSA = KeyBundle({"key":_key, "kty":"rsa", "use":"sig"})
+KC_RSA = KeyBundle({"key": _key, "kty": "RSA", "use": "sig"})
 
 KEYJ = KeyJar()
-KEYJ[""] = [KC_RSA, KC_HMAC_S]
-KEYJ["client_1"] = [KC_HMAC_S]
+KEYJ[""] = [KC_RSA, KC_SYM_S]
+KEYJ["client_1"] = [KC_SYM_S]
 
 IDTOKEN = IdToken(iss="http://oic.example.org/", sub="user_id",
                   aud=CLIENT_ID, exp=utc_time_sans_frac() + 86400,
@@ -216,7 +217,7 @@ class TestOICClient():
 
         self.client.parse_response(AccessTokenResponse,
                                    info="".join([
-                                        x.strip() for x in jso.split("\n")]))
+                                       x.strip() for x in jso.split("\n")]))
 
         assert self.client.grant
         _grant = self.client.grant[""]
@@ -441,9 +442,12 @@ class TestOICClient():
         self.client.client_id = CLIENT_ID
         self.client.check_session_endpoint = "https://example.org/check_session"
 
-        _sign_key = self.client.keyjar.get_signing_key()
+        # RSA signing
+        alg = "RS256"
+        ktyp = alg2keytype(alg)
+        _sign_key = self.client.keyjar.get_signing_key(ktyp)
         print _sign_key
-        args = {"id_token": IDTOKEN.to_jwt(key=_sign_key)}
+        args = {"id_token": IDTOKEN.to_jwt(key=_sign_key, algorithm=alg)}
         print self.client.keyjar.issuer_keys
         resp = self.client.do_check_session_request(request_args=args)
 
@@ -455,8 +459,11 @@ class TestOICClient():
         self.client.client_id = "a1b2c3"
         self.client.end_session_endpoint = "https://example.org/end_session"
 
-        _sign_key = self.client.keyjar.get_signing_key()
-        args = {"id_token": IDTOKEN.to_jwt(key=_sign_key),
+        # RSA signing
+        alg = "RS256"
+        ktyp = alg2keytype(alg)
+        _sign_key = self.client.keyjar.get_signing_key(ktyp)
+        args = {"id_token": IDTOKEN.to_jwt(key=_sign_key, algorithm=alg),
                 "redirect_url": "http://example.com/end"}
 
         resp = self.client.do_end_session_request(request_args=args,
@@ -911,6 +918,7 @@ def test_construct_OpenIDRequest():
     assert _eq(oidr.keys(), ['nonce', 'state', 'redirect_uri', 'response_type',
                              'client_id', 'scope'])
 
+
 ARESP = AuthorizationResponse(code="code", state="state000")
 TRESP = AccessTokenResponse(access_token="access_token", token_type="bearer",
                             expires_in=600, refresh_token="refresh",
@@ -983,9 +991,14 @@ RSREQ = RefreshSessionRequest(id_token="id_token",
 
 #key, type, usage, owner="."
 
-CSREQ = CheckSessionRequest(id_token=IDTOKEN.to_jwt(key=KC_HMAC_S))
+alg = "HS256"
+ktype = alg2keytype(alg)
+keys = KC_SYM_S.get(ktype)
+CSREQ = CheckSessionRequest(id_token=IDTOKEN.to_jwt(key=keys,
+                                                    algorithm="HS256"))
 
-ESREQ = EndSessionRequest(id_token=IDTOKEN.to_jwt(key=KC_HMAC_S),
+ESREQ = EndSessionRequest(id_token=IDTOKEN.to_jwt(key=keys,
+                                                  algorithm="HS256"),
                           redirect_url="http://example.org/jqauthz",
                           state="state0")
 
@@ -1005,7 +1018,6 @@ OIDREQ = OpenIDRequest(response_type=["code", "id_token"], client_id=CLIENT_ID,
 
 
 def test_server_init():
-
     srv = Server()
     assert srv
 
@@ -1148,10 +1160,8 @@ def test_make_id_token():
     atr["code"] = code
     assert atr.verify(keyjar=srv.keyjar)
 
+
 if __name__ == "__main__":
-    toic = TestOICClient()
-    toic.setup_class()
-    mfos = MyFakeOICServer()
-    mfos.keyjar = KEYJ
-    toic.client.http_request = mfos.http_request
-    toic.test_openid_request_with_request_2()
+    t = TestOICClient()
+    t.setup_class()
+    t.test_do_check_session_request()

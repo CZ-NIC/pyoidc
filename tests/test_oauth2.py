@@ -86,7 +86,6 @@ def test_grant_set():
 
 
 def test_grant_add_token():
-
     grant = Grant()
     grant.update(ACC_TOK_RESP)
 
@@ -251,7 +250,7 @@ class TestOAuthClient():
 
         self.client.parse_response(AccessTokenResponse,
                                    info="".join([
-                                   x.strip() for x in jso.split("\n")]))
+                                       x.strip() for x in jso.split("\n")]))
 
         assert self.client.grant
         _grant = self.client.grant[""]
@@ -342,7 +341,7 @@ class TestOAuthClient():
         assert uri == 'https://example.com/authz'
         assert body == "redirect_uri=http%3A%2F%2Fclient.example.com%2Fauthz&response_type=code&client_id=1"
         assert h_args == {'headers': {'content-type':
-                                      'application/x-www-form-urlencoded'}}
+                                          'application/x-www-form-urlencoded'}}
         assert cis.type() == "AuthorizationRequest"
 
     def test_request_info_simple_get(self):
@@ -369,7 +368,7 @@ class TestOAuthClient():
     def test_request_info_simple_get_with_extra_args(self):
         #self.client.authorization_endpoint = "https://example.com/authz"
         uri, body, h_args, cis = self.client.request_info(
-            AuthorizationRequest, method="GET", extra_args={"rock":"little"})
+            AuthorizationRequest, method="GET", extra_args={"rock": "little"})
 
         print uri
         assert uri == 'https://example.com/authz?redirect_uri=http%3A%2F%2Fclient.example.com%2Fauthz&response_type=code&client_id=1&rock=little'
@@ -719,11 +718,11 @@ def test_server_parse_jwt_request():
                               state="cold")
 
     srv.keyjar["foobar"] = KeyBundle([
-        {"kty":"hmac", "key":"A1B2C3D4", "use":"ver"},
-        {"kty":"hmac", "key":"A1B2C3D4", "use":"sig"}])
+        {"kty": "oct", "key": "A1B2C3D4", "use": "ver"},
+        {"kty": "oct", "key": "A1B2C3D4", "use": "sig"}])
     srv.keyjar[""] = KeyBundle([
-        {"kty":"hmac", "key":"A1B2C3D4", "use":"ver"},
-        {"kty":"hmac", "key":"A1B2C3D4", "use":"sig"}])
+        {"kty": "oct", "key": "A1B2C3D4", "use": "ver"},
+        {"kty": "oct", "key": "A1B2C3D4", "use": "sig"}])
 
     keys = srv.keyjar.get_signing_key(owner="foobar")
     _jwt = ar.to_jwt(key=keys, algorithm="HS256")
@@ -931,8 +930,8 @@ def test_bearer_body():
     client.grant["state"] = grant
 
     cis = ResourceRequest()
-    http_args = BearerBody(client).construct(cis,  {}, state="state",
-                                               scope="inner")
+    http_args = BearerBody(client).construct(cis, {}, state="state",
+                                             scope="inner")
     assert cis["access_token"] == "2YotnFZFEjr1zCsicMWpAA"
     print http_args
     assert http_args is None
@@ -958,3 +957,6 @@ def test_bearer_body_get_token():
 
     assert "access_token" in cis
     assert cis["access_token"] == "token1"
+
+if __name__ == "__main__":
+    test_server_parse_jwt_request()

@@ -1,4 +1,5 @@
 import json
+from jwkest.keyio import RedirectStdStreams
 
 __author__ = 'rohe0002'
 
@@ -11,10 +12,9 @@ import traceback
 
 from requests import request
 
-from jwkest.jwk import x509_rsa_loads, base64_to_long
-from jwkest.jwk import long_to_mpi
-from jwkest.jwk import long_to_base64
-from jwkest.jwk import mpi_to_long
+from jwkest.jwk import RSA_key, rsa_load
+from jwkest.jwk import EC_key
+from jwkest.jwk import SYM_key
 from M2Crypto.util import no_passphrase_callback
 
 KEYLOADERR = "Failed to load %s key from '%s' (%s)"
@@ -24,195 +24,21 @@ logger = logging.getLogger(__name__)
 traceback.format_exception(*sys.exc_info())
 
 
-def rsa_eq(key1, key2):
-    # Check if two RSA keys are in fact the same
-    if key1.n == key2.n and key1.e == key2.e:
-        return True
-    else:
-        return False
-
-
-def key_eq(key1, key2):
-    if type(key1) == type(key2):
-        if isinstance(key1, basestring):
-            return key1 == key2
-        elif isinstance(key1, M2Crypto.RSA.RSA):
-            return rsa_eq(key1, key2)
-
-    return False
-
-
-def rsa_load(filename):
-    """Read a PEM-encoded RSA key pair from a file."""
-    return M2Crypto.RSA.load_key(filename, M2Crypto.util.no_passphrase_callback)
-
-
-def rsa_loads(key):
-    """Read a PEM-encoded RSA key pair from a string."""
-    return M2Crypto.RSA.load_key_string(key,
-                                        M2Crypto.util.no_passphrase_callback)
-
-
-def ec_load(filename):
-    return M2Crypto.EC.load_key(filename, M2Crypto.util.no_passphrase_callback)
-
-
-def x509_rsa_load(txt):
-    """ So I get the same output format as loads produces
-    :param txt:
-    :return:
-    """
-    return [("rsa", x509_rsa_loads(txt))]
-
-
-class RedirectStdStreams(object):
-    def __init__(self, stdout=None, stderr=None):
-        self._stdout = stdout or sys.stdout
-        self._stderr = stderr or sys.stderr
-
-    def __enter__(self):
-        self.old_stdout, self.old_stderr = sys.stdout, sys.stderr
-        self.old_stdout.flush()
-        self.old_stderr.flush()
-        sys.stdout, sys.stderr = self._stdout, self._stderr
-
-    #noinspection PyUnusedLocal
-    def __exit__(self, exc_type, exc_value, traceback):
-        self._stdout.flush()
-        self._stderr.flush()
-        sys.stdout = self.old_stdout
-        sys.stderr = self.old_stderr
-
-
-def uniq_ext(lst, keys):
-    rkeys = {}
-    for typ, key in lst:
-        if typ == "rsa":
-            rkeys[(key.n, key.e)] = key
-
-    for typ, item in keys:
-        if typ != "rsa":
-            lst.append((typ, item))
-        else:
-            key = (item.n, item.e)
-            if key not in rkeys:
-                lst.append((typ, item))
-                rkeys[key] = item
-
-    return lst
-
-
-class Key():
-    members = ["kty", "alg", "use", "kid"]
-
-    def __init__(self, kty="", alg="", use="", kid="", key=""):
-        self.key = key
-        self.kty = kty.lower()
-        self.alg = alg
-        self.use = use
-        self.kid = kid
-
-    def to_dict(self):
-        res = {}
-        for key in self.members:
-            try:
-                _val = getattr(self, key)
-                if _val:
-                    res[key] = _val
-            except KeyError:
-                pass
-        return res
-
-    def __str__(self):
-        return str(self.to_dict())
-
-    def comp(self):
-        pass
-
-    def decomp(self):
-        pass
-
-    def dc(self):
-        pass
-
-
-class RSA_key(Key):
-    members = ["kty", "alg", "use", "kid", "n", "e"]
-
-    def __init__(self, kty="rsa", alg="", use="", kid="", n="", e="", key=""):
-        Key.__init__(self, kty, alg, use, kid, key)
-        self.n = n
-        self.e = e
-
-    def comp(self):
-        self.key = M2Crypto.RSA.new_pub_key(
-            (long_to_mpi(base64_to_long(str(self.e))),
-             long_to_mpi(base64_to_long(str(self.n)))))
-
-    def decomp(self):
-        self.n = long_to_base64(mpi_to_long(self.key.n))
-        self.e = long_to_base64(mpi_to_long(self.key.e))
-
-    def load(self, filename):
-        self.key = rsa_load(filename)
-
-    def dc(self):
-        if self.key:
-            self.decomp()
-        elif self.n and self.e:
-            self.comp()
-        else:  # do nothing
-            pass
-
-
-class EC_key(Key):
-    members = ["kty", "alg", "use", "kid", "crv", "x", "y"]
-
-    def __init__(self, kty="rsa", alg="", use="", kid="", crv="", x="", y="",
-                 key=""):
-        Key.__init__(self, kty, alg, use, kid, key)
-        self.crv = crv
-        self.x = x
-        self.y = y
-
-
-class HMAC_key(Key):
+class UnknownKeyType(Exception):
     pass
 
 
-PREFIX = "-----BEGIN CERTIFICATE-----"
-POSTFIX = "-----END CERTIFICATE-----"
-
-
-class PKIX_key(Key):
-    members = ["kty", "alg", "use", "kid", "n", "e"]
-
-    def __init__(self, kty="rsa", alg="", use="", kid="", x5c="", key=""):
-        Key.__init__(self, kty, alg, use, kid, key)
-        self.x5c = x5c
-        self.key = key
-
-    def dc(self):
-        if self.x5c:
-            cert = "\n".join([PREFIX, str(self.x5c[0]), POSTFIX])
-            self.key = x509_rsa_loads(cert)
-        elif self.key:
-            self.x5c = []
-        else:  # do nothing
-            pass
-
-
 K2C = {
-    "rsa": RSA_key,
-    "ec": EC_key,
-    "hmac": HMAC_key,
+    "RSA": RSA_key,
+    "EC": EC_key,
+    "oct": SYM_key,
 #    "pkix": PKIX_key
 }
 
 
 class KeyBundle(object):
     def __init__(self, keys=None, source="", cache_time=300, verify_ssl=True,
-                 fileformat="jwk", keytype="rsa", keyusage=None):
+                 fileformat="jwk", keytype="RSA", keyusage=None):
         """
 
         :param keys: A list of dictionaries of the format
@@ -232,7 +58,7 @@ class KeyBundle(object):
         self.cache_control = None
         self.source = None
         self.fileformat = fileformat.lower()
-        self.keytype = keytype.lower()
+        self.keytype = keytype
         self.keyusage = keyusage
 
         if keys:
@@ -266,14 +92,20 @@ class KeyBundle(object):
         :return:
         """
         for inst in keys:
-            typ = inst["kty"].lower()
-            try:
-                _key = K2C[typ](**inst)
-            except KeyError:
-                continue
-            else:
-                _key.dc()
-                self._keys.append(_key)
+            typ = inst["kty"]
+            flag = 0
+            for _typ in [typ, typ.lower(), typ.upper()]:
+                try:
+                    _key = K2C[_typ](**inst)
+                except KeyError:
+                    continue
+                else:
+                    _key.dc()
+                    self._keys.append(_key)
+                    flag = 1
+                    break
+            if not flag:
+                raise UnknownKeyType(typ)
 
     def do_local_jwk(self, filename):
         self.do_keys(json.loads(open(filename).read())["keys"])
@@ -344,17 +176,16 @@ class KeyBundle(object):
             else:
                 self.do_remote()
 
-    def get(self, typ):
+    def get(self, typ=""):
         """
 
-        :param typ: Type of key (rsa, ec, hmac, ..)
+        :param typ: Type of key (rsa, ec, oct, ..)
         :return: If typ is undefined all the keys as a dictionary
             otherwise the appropriate keys in a list
         """
         self._uptodate()
 
         if typ:
-            typ = typ.lower()
             return [k for k in self._keys if k.kty == typ]
         else:
             return self._keys
@@ -367,14 +198,12 @@ class KeyBundle(object):
     def remove(self, typ, val=None):
         """
 
-        :param typ: Type of key (rsa, ec, hmac, ..)
+        :param typ: Type of key (rsa, ec, oct, ..)
         :param val: The key itself
         """
-        typ = typ.lower()
-
         if val:
             self._keys = [k for k in self._keys if
-                          not (k.kty == typ and k.key == val)]
+                          not (k.kty == typ and k.key == val.key)]
         else:
             self._keys = [k for k in self._keys if not k.kty == typ]
 
@@ -393,7 +222,7 @@ class KeyBundle(object):
 
 
 def keybundle_from_local_file(filename, typ, usage):
-    if typ.lower() == "rsa":
+    if typ.upper() == "RSA":
         kb = KeyBundle()
         k = RSA_key()
         k.load(filename)
@@ -401,8 +230,9 @@ def keybundle_from_local_file(filename, typ, usage):
         kb.append(k)
         for use in usage[1:]:
             _k = RSA_key()
-            _k.key = k.key
             _k.use = use
+            _k.key = k.key
+            _k._keytype = k._keytype
             kb.append(_k)
     elif typ.lower() == "jwk":
         kb = KeyBundle(source=filename, fileformat="jwk", keyusage=usage)
@@ -475,12 +305,12 @@ class KeyJar(object):
 
         return kc
 
-    def add_hmac(self, issuer, key, usage):
+    def add_symmetric(self, issuer, key, usage):
         if not issuer in self.issuer_keys:
             self.issuer_keys[issuer] = []
 
         for use in usage:
-            self.issuer_keys[""].append(KeyBundle([{"kty": "hmac",
+            self.issuer_keys[""].append(KeyBundle([{"kty": "oct",
                                                     "key": key,
                                                     "use": use}]))
 
@@ -502,7 +332,7 @@ class KeyJar(object):
         """
 
         :param use: A key useful for this usage (enc, dec, sig, ver)
-        :param key_type: Type of key (rsa, ec, hmac, ..)
+        :param key_type: Type of key (rsa, ec, symmetric, ..)
         :param issuer: Who is responsible for the keys, "" == me
         :return: A possibly empty list of keys
         """
@@ -529,29 +359,17 @@ class KeyJar(object):
         else:
             _keys = self.issuer_keys[issuer]
 
-        res = {}
+        lst = []
         if _keys:
-            if key_type:
-                lst = []
-                for bundles in _keys:
-                    for key in bundles.get(key_type):
-                        if use == key.use:
-                            lst.append(key.key)
-                res[key_type] = lst
-            else:
-                for bundles in _keys:
-                    for key in bundles.keys():
-                        if use == key.use:
-                            if key.kid:
-                                _id = "%s:%s" % (key.kty, key.kid)
-                            else:
-                                _id = key.kty
-                            try:
-                                res[_id].append(key.key)
-                            except KeyError:
-                                res[_id] = [key.key]
-
-        return res
+            for bundles in _keys:
+                if key_type:
+                    _keys = bundles.get(key_type)
+                else:
+                    _keys = bundles.keys()
+                for key in _keys:
+                    if use == key.use:
+                        lst.append(key)
+        return lst
 
     def get_signing_key(self, key_type="", owner=""):
         return self.get("sig", key_type, owner)
@@ -575,13 +393,7 @@ class KeyJar(object):
         _func = getattr(self, "get_%s_key" % var)
 
         keys = _func(key_type="", owner=part)
-        for kty, val in _func(key_type="", owner="").items():
-            if not val:
-                continue
-            try:
-                keys[kty].extend(val)
-            except KeyError:
-                keys[kty] = val
+        keys.extend(_func(key_type="", owner=""))
         return keys
 
     def verify_keys(self, part):
@@ -754,7 +566,13 @@ def key_export(baseurl, local_path, vault, keyjar, **kwargs):
 
 
 def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=1024):
-    #Seed the random number generator with 1024 random bytes (8192 bits)
+    """
+    :param name: Name of the key file
+    :param path: Path to where the key files are stored
+    :param size: Seed the random number generator with <size> random bytes
+    :return: RSA key
+    """
+
     M2Crypto.Rand.rand_seed(os.urandom(size))
 
     key = M2Crypto.RSA.gen_key(size, 65537, lambda: None)

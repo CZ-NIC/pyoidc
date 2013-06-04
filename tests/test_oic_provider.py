@@ -70,17 +70,17 @@ SERVER_INFO = {
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
-KC_HMAC = KeyBundle([{"kty": "hmac", "key": CLIENT_SECRET, "use": "ver"},
-                     {"kty": "hmac", "key": CLIENT_SECRET, "use": "sig"}])
-KC_HMAC2 = KeyBundle([{"kty": "hmac", "key": "drickyoughurt", "use": "sig"},
-                      {"kty": "hmac", "key": "drickyoughurt", "use": "ver"}])
+KC_SYM = KeyBundle([{"kty": "oct", "key": CLIENT_SECRET, "use": "ver"},
+                     {"kty": "oct", "key": CLIENT_SECRET, "use": "sig"}])
+KC_SYM2 = KeyBundle([{"kty": "oct", "key": "drickyoughurt", "use": "sig"},
+                      {"kty": "oct", "key": "drickyoughurt", "use": "ver"}])
 
-KC_RSA = keybundle_from_local_file("../oc3/certs/mycert.key", "rsa",
+KC_RSA = keybundle_from_local_file("../oc3/certs/mycert.key", "RSA",
                                    ["ver", "sig"])
 
 KEYJAR = KeyJar()
-KEYJAR[CLIENT_ID] = [KC_HMAC, KC_RSA]
-KEYJAR["number5"] = [KC_HMAC2, KC_RSA]
+KEYJAR[CLIENT_ID] = [KC_SYM, KC_RSA]
+KEYJAR["number5"] = [KC_SYM2, KC_RSA]
 KEYJAR[""] = KC_RSA
 
 CDB = {
@@ -195,7 +195,7 @@ def test_server_authorization_endpoint_request():
     req = AuthorizationRequest(**bib)
     # want to be someone else !
     ic = {"sub": {"value": "userX"}}
-    _keys = server.keyjar.get_signing_key(key_type="rsa")
+    _keys = server.keyjar.get_signing_key(key_type="RSA")
     req["request"] = make_openid_request(req, _keys, idtoken_claims=ic,
                                          algorithm="RS256")
 
@@ -566,7 +566,7 @@ def test_provider_key_setup():
     provider.baseurl = "http://www.example.com/"
     provider.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
 
-    keys = provider.keyjar.get_signing_key("rsa")
+    keys = provider.keyjar.get_signing_key("RSA")
     assert len(keys) == 1
     assert provider.jwks_uri == "http://www.example.com/static/jwks"
 
