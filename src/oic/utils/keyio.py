@@ -112,7 +112,7 @@ class KeyBundle(object):
 
     def do_local_der(self, filename, keytype, keyusage):
         _bkey = None
-        if keytype == "rsa":
+        if keytype == "RSA":
             _bkey = rsa_load(filename)
 
         if not keyusage:
@@ -232,7 +232,6 @@ def keybundle_from_local_file(filename, typ, usage):
             _k = RSA_key()
             _k.use = use
             _k.key = k.key
-            _k._keytype = k._keytype
             kb.append(_k)
     elif typ.lower() == "jwk":
         kb = KeyBundle(source=filename, fileformat="jwk", keyusage=usage)
@@ -503,7 +502,7 @@ def key_setup(vault, **kwargs):
                 continue
 
             _args = kwargs[usage]
-            if _args["alg"] == "rsa":
+            if _args["alg"] == "RSA":
                 try:
                     _key = rsa_load('%s%s' % (vault_path, "pyoidc"))
                 except Exception:

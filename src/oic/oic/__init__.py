@@ -45,7 +45,7 @@ from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.webfinger import WebFinger
 
 from jwkest import jws
-from jwkest.jws import alg2keytype
+from jwkest.jws import alg2keytype, JWS
 
 logger = logging.getLogger(__name__)
 
@@ -779,7 +779,7 @@ class Client(oauth2.Client):
                         except KeyError:
                             keycol[typ] = keyl
 
-                    info = json.loads(jws.verify(str(spec["JWT"]), keycol))
+                    info = json.loads(JWS().verify(str(spec["JWT"]), keycol))
                     attr = [n for n, s in
                             userinfo._claim_names.items() if s == csrc]
                     assert attr == info.keys()

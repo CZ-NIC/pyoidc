@@ -396,7 +396,7 @@ class Client(PBase):
         # client uses it for signing
         # Server might also use it for signing which means the
         # client uses it for verifying server signatures
-        self.keyjar.add_symmetric("", val, ["sig"])
+        self.keyjar.add_symmetric("", str(val), ["sig"])
 
     client_secret = property(get_client_secret, set_client_secret)
 

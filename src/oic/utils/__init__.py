@@ -4,6 +4,7 @@ __author__ = 'rohe0002'
 import sys
 import traceback
 
+
 def exception_trace(tag, exc, log=None):
     message = traceback.format_exception(*sys.exc_info())
     if log:

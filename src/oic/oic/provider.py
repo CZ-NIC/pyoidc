@@ -3,6 +3,7 @@ import json
 import traceback
 import urllib
 import sys
+from jwkest.jwe import JWE
 from oic.utils.authn.user import NoSuchAuthentication, ToOld, TamperAllert
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.keyio import KeyBundle, key_export
@@ -501,7 +502,8 @@ class Provider(AProvider):
         logger.debug("Encryption keys for %s: %s" % (cid, keys))
 
         # use the clients public key for encryption
-        return jwe.encrypt(payload, keys, alg, enc, context="public")
+        _jwe = JWE(payload, alg=alg, enc=enc)
+        return _jwe.encrypt(keys, context="public")
 
     def sign_encrypt_id_token(self, sinfo, client_info, areq, code=None,
                               access_token=None, user_info=None):

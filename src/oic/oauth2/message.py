@@ -8,6 +8,7 @@ from jwkest import jwe
 from jwkest import b64d
 #from oic.oauth2 import DEF_SIGN_ALG
 import jwkest
+from jwkest.jwe import JWE
 from jwkest.jws import JWS
 
 logger = logging.getLogger(__name__)
@@ -434,7 +435,7 @@ class Message(object):
                 dkeys = keyjar.get_decrypt_key(owner="")
             else:
                 dkeys = {}
-            txt = jwe.decrypt(txt, dkeys, "private")
+            txt = JWE().decrypt(txt, dkeys, "private")
             try:
                 jso = json.loads(txt)
             except Exception:
