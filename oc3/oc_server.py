@@ -577,6 +577,7 @@ if __name__ == '__main__':
         for b in OAS.keyjar[""]:
             LOGGER.info("OC3 server keys: %s" % b)
     except Exception, err:
+        LOGGER.error("Key setup failed: %s" % err)
         OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
 
     if config.USERINFO == "LDAP":
