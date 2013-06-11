@@ -3,7 +3,7 @@
 #issuer= "https://www.kodtest.se/rolandsOP"
 baseurl = "https://localhost"
 #baseurl = "https://lingon.ladok.umu.se"
-issuer = "%s:8092" % baseurl
+issuer = "%s:%%d" % baseurl
 keys = {
     "rsa": {
         "key": "cp_keys/key.pem",
@@ -105,5 +105,6 @@ LDAP_EXTRAVALIDATION = {
     "verifyAttrValid": ['employee', 'staff', 'student']
 }
 
-#USERINFO = "LDAP"
 USERINFO = "SIMPLE"
+#USERINFO = "DISTRIBUTED"
+#USERINFO = "LDAP"
