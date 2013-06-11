@@ -10,7 +10,6 @@ from exceptions import OSError
 from exceptions import IndexError
 from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
-from XpressConnect import XpressConnectProvider
 from oic.utils.authn.client import verify_client
 
 from oic.utils.authz import AuthzHandling
@@ -492,12 +491,15 @@ if __name__ == '__main__':
 
     # dealing with authorization
     authz = AuthzHandling()
+    # authz = UserInfoConsent()
     # User info database
     if args.test:
         URLS.append((r'tracelog', trace_log))
         OAS = TestProvider(config.issuer, SessionDB(), cdb, authn, None,
                            authz, config.SYM_KEY)
     elif args.XpressConnect:
+        from XpressConnect import XpressConnectProvider
+
         OAS = XpressConnectProvider(config.issuer, SessionDB(), cdb, authn,
                                     None, authz, verify_client, config.SYM_KEY)
     else:
