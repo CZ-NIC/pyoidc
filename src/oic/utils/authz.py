@@ -6,3 +6,8 @@ class AuthzHandling(object):
 
     def __call__(self, *args, **kwargs):
         return ""
+
+
+class UserInfoConsent(AuthzHandling):
+    def __call__(self, user, userinfo, **kwargs):
+        pass

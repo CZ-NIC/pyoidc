@@ -8,10 +8,10 @@ import urllib
 import json
 import logging
 
-from oic.oauth2 import message
+from oic.oauth2 import message, MissingRequiredValue
 from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2 import VerificationError
-from oic.oauth2.message import Message
+from oic.oauth2.message import Message, REQUIRED_LIST_OF_SP_SEP_STRINGS
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
@@ -294,6 +294,8 @@ class AuthorizationRequest(message.AuthorizationRequest):
     c_param = message.AuthorizationRequest.c_param.copy()
     c_param.update(
         {
+            "scope": REQUIRED_LIST_OF_SP_SEP_STRINGS,
+            "redirect_uri": SINGLE_REQUIRED_STRING,
             "nonce": SINGLE_OPTIONAL_STRING,
             "display": SINGLE_OPTIONAL_STRING,
             "prompt": OPTIONAL_LIST_OF_STRINGS,
@@ -307,6 +309,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
             "registration": SINGLE_OPTIONAL_JSON,
             "request": SINGLE_OPTIONAL_STRING,
             "request_uri": SINGLE_OPTIONAL_STRING,
+            "session_state": SINGLE_OPTIONAL_STRING,
         }
     )
     c_allowed_values = message.AuthorizationRequest.c_allowed_values.copy()
@@ -357,6 +360,17 @@ class AuthorizationRequest(message.AuthorizationRequest):
                 assert "nonce" in self
             except AssertionError:
                 raise MissingRequiredAttribute("Nonce missing")
+
+        try:
+            assert "openid" in self["scope"]
+        except AssertionError:
+            raise MissingRequiredValue("openid in scope")
+
+        if "offline_access" in self["scope"]:
+            try:
+                assert "consent" in self["prompt"]
+            except AssertionError:
+                raise MissingRequiredValue("consent in prompt")
 
         if "prompt" in self:
             if "none" in self["prompt"] and len(self["prompt"]) > 1:

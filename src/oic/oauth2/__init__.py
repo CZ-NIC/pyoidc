@@ -705,6 +705,8 @@ class Client(PBase):
                     info = query
                 else:
                     info = fragment
+            else:  # No query of fragment => no message
+                return None
 
         err = None
         try:
@@ -727,6 +729,8 @@ class Client(PBase):
                             err = aerr
                 except KeyError:
                     pass
+            elif resp.only_extras():
+                resp = None
             else:
                 verf = resp.verify(**kwargs)
                 if not verf:

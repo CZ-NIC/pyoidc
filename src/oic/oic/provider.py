@@ -10,7 +10,10 @@ from oic.utils.keyio import KeyBundle, key_export
 
 from requests import ConnectionError
 
-from oic.oauth2.message import ErrorResponse, by_schema, MessageException
+from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import by_schema
+from oic.oauth2.message import MessageException
+from oic.oic.message import RefreshAccessTokenRequest
 from oic.oic.message import AuthorizationRequest, Claims
 from oic.oic.message import IdToken
 from oic.oic.message import OpenIDSchema
@@ -536,47 +539,16 @@ class Provider(AProvider):
 
         return id_token
 
-    #noinspection PyUnusedLocal
-    def token_endpoint(self, request="", authn=None, **kwargs):
-        """
-        This is where clients come to get their access tokens
+    def _access_token_endpoint(self, req, **kwargs):
 
-        :param request: The request
-        :param authn: Authentication info, comes from HTTP header
-        :returns:
-        """
-
-        try:
-            _log_debug = kwargs["logger"].debug
-            _log_info = kwargs["logger"].info
-        except KeyError:
-            _log_debug = logger.debug
-            _log_info = logger.info
         _sdb = self.sdb
+        _log_debug = logger.debug
 
-        _log_debug("- token -")
+        client_info = self.cdb[req["client_id"]]
 
-        _log_info("token_request: %s" % request)
+        assert req["grant_type"] == "authorization_code"
 
-        areq = AccessTokenRequest().deserialize(request, "urlencoded")
-
-        try:
-            resp = self.client_authn(self, areq, authn)
-        except Exception, err:
-            _log_info("Failed to verify client due to: %s" % err)
-            resp = False
-
-        if not resp:
-            _log_info("could not verify client")
-            err = TokenErrorResponse(error="unathorized_client")
-            return Unauthorized(err.to_json(), content="application/json")
-
-        _log_debug("AccessTokenRequest: %s" % areq)
-        client_info = self.cdb[areq["client_id"]]
-
-        assert areq["grant_type"] == "authorization_code"
-
-        _access_code = areq["code"]
+        _access_code = req["code"]
         # assert that the code is valid
         if self.sdb.is_revoked(_access_code):
             return self._error(error="access_denied", descr="Token is revoked")
@@ -586,21 +558,21 @@ class Provider(AProvider):
         # If redirect_uri was in the initial authorization request
         # verify that the one given here is the correct one.
         if "redirect_uri" in _info:
-            assert areq["redirect_uri"] == _info["redirect_uri"]
+            assert req["redirect_uri"] == _info["redirect_uri"]
 
         _log_debug("All checks OK")
 
         try:
             _tinfo = _sdb.update_to_token(_access_code)
         except Exception, err:
-            _log_info("Error: %s" % err)
+            logger.error("%s" % err)
             # Should revoke the token issued to this access code
             _sdb.revoke_all_tokens(_access_code)
             return self._error(error="access_denied", descr="%s" % err)
 
         if "openid" in _info["scope"]:
             userinfo = self.userinfo_in_id_token_claims(_info)
-            _idtoken = self.sign_encrypt_id_token(_info, client_info, areq,
+            _idtoken = self.sign_encrypt_id_token(_info, client_info, req,
                                                   user_info=userinfo)
             _sdb.update_by_token(_access_code, "id_token", _idtoken)
 
@@ -611,6 +583,65 @@ class Provider(AProvider):
         _log_debug("access_token_response: %s" % atr.to_dict())
 
         return Response(atr.to_json(), content="application/json")
+
+    def _refresh_access_token_endpoint(self, req, **kwargs):
+        _sdb = self.sdb
+        _log_debug = logger.debug
+
+        client_info = self.cdb[req["client_id"]]
+
+        assert req["grant_type"] == "refresh_token"
+        rtoken = req["refresh_token"]
+        _info = _sdb.refresh_token(rtoken)
+
+        if "openid" in _info["scope"]:
+            userinfo = self.userinfo_in_id_token_claims(_info)
+            _idtoken = self.sign_encrypt_id_token(_info, client_info, req,
+                                                  user_info=userinfo)
+            sid = _sdb.token.get_key(rtoken)
+            _sdb.update(sid, "id_token", _idtoken)
+
+        _log_debug("_info: %s" % _info)
+
+        atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_info))
+
+        _log_debug("access_token_response: %s" % atr.to_dict())
+
+        return Response(atr.to_json(), content="application/json")
+
+    #noinspection PyUnusedLocal
+    def token_endpoint(self, request="", authn=None, **kwargs):
+        """
+        This is where clients come to get their access tokens
+
+        :param request: The request
+        :param authn: Authentication info, comes from HTTP header
+        :returns:
+        """
+        logger.debug("- token -")
+        logger.info("token_request: %s" % request)
+
+        req = AccessTokenRequest().deserialize(request, "urlencoded")
+        if "refresh_token" in req:
+            req = RefreshAccessTokenRequest().deserialize(request, "urlencoded")
+
+        logger.debug("%s: %s" % (req.__class__.__name__, req))
+
+        try:
+            resp = self.client_authn(self, req, authn)
+        except Exception, err:
+            logger.error("Failed to verify client due to: %s" % err)
+            resp = False
+
+        if not resp:
+            err = TokenErrorResponse(error="unathorized_client")
+            return Unauthorized(err.to_json(), content="application/json")
+
+        if isinstance(req, AccessTokenRequest):
+            return self._access_token_endpoint(req, **kwargs)
+        else:
+            return self._refresh_access_token_endpoint(req, **kwargs)
+
 
     def _collect_user_info(self, session, userinfo_claims=None):
         """
@@ -1125,6 +1156,7 @@ class Provider(AProvider):
 
         # Do the authorization
         try:
+            info = OpenIDSchema(**self._collect_user_info(self.sdb[sid]))
             permission = self.authz(user)
             self.sdb.update(sid, "permission", permission)
         except Exception:

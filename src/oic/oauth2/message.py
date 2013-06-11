@@ -27,6 +27,10 @@ class MissingRequiredAttribute(MessageException):
         return "Missing required attribute '%s'" % self.attr
 
 
+class MissingRequiredValue(MessageException):
+    pass
+
+
 class TooManyValues(MessageException):
     pass
 
@@ -581,6 +585,13 @@ class Message(object):
     def extra(self):
         return dict([(key, val) for key, val in
                      self._dict.items() if key not in self.c_param])
+
+    def only_extras(self):
+        l = [key for key in self._dict.keys() if key in self.c_param]
+        if not l:
+            return True
+        else:
+            return False
 
 # =============================================================================
 
