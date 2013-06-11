@@ -309,6 +309,7 @@ URLS = [
     (r'^.well-known/openid-configuration', op_info),
     (r'^.well-known/simple-web-discovery', swd_info),
     (r'^.well-known/host-meta.json', meta_info),
+#    (r'^.well-known/webfinger', webfinger),
     (r'.+\.css$', css),
     (r'safe', safe),
 #    (r'tracelog', trace_log),
@@ -559,6 +560,7 @@ if __name__ == '__main__':
         OAS.keyjar[""] = []
         kbl = []
         for typ, info in config.keys.items():
+            typ = typ.upper()
             LOGGER.info("OC server key init: %s, %s" % (typ, info))
             kb = KeyBundle(source="file://%s" % info["key"], fileformat="der",
                            keytype=typ)

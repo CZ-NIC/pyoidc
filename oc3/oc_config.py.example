@@ -5,7 +5,7 @@ baseurl = "https://localhost"
 #baseurl = "https://lingon.ladok.umu.se"
 issuer = "%s:%%d" % baseurl
 keys = {
-    "rsa": {
+    "RSA": {
         "key": "cp_keys/key.pem",
         "usage": ["enc", "sig"]
     }
