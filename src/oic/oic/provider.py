@@ -286,7 +286,7 @@ class Provider(AProvider):
             uri = areq["redirect_uri"]
         else:
             raise ParameterError(
-                "Missing redirect_uri and more than one registered")
+                "Missing redirect_uri and more than one or none registered")
 
         return uri
 
