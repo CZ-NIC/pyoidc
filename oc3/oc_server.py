@@ -471,6 +471,7 @@ if __name__ == '__main__':
     # Client data base
     cdb = shelve.open("client_db", writeback=True)
 
+    sys.path.insert(0, ".")
     config = importlib.import_module(args.config)
     config.issuer = config.issuer % args.port
     config.SERVICE_URL = config.SERVICE_URL % args.port
@@ -580,7 +581,7 @@ if __name__ == '__main__':
         from oic.utils.userinfo.ldap_info import UserInfoLDAP
         OAS.userinfo = UserInfoLDAP(**config.LDAP)
     elif config.USERINFO == "SIMPLE":
-        OAS.userinfo = UserInfo(config.DISTDB)
+        OAS.userinfo = UserInfo(config.USERDB)
     elif config.USERINFO == "DISTRIBUTED":
         from oic.utils.userinfo.distaggr import DistributedAggregatedUserInfo
         OAS.userinfo = DistributedAggregatedUserInfo(config.USERDB, OAS,
