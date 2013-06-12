@@ -7,23 +7,19 @@ import time
 import json
 import urllib
 
-from oic import oic
-
-from oic.oic import Grant, JWT_BEARER
+from oic.oic import Grant
 from oic.oic import Token
 from oic.oic import Client
 from oic.oic import Server
 
-from oic.oic.message import IdToken
+from oic.oic.message import IdToken, ClaimsRequest
 #from oic.oic.message import AuthorizationErrorResponse
 from oic.oic.message import Claims
-from oic.oic.message import UserInfoClaim
 from oic.oic.message import UserInfoRequest
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import RefreshSessionRequest
 from oic.oic.message import CheckSessionRequest
 from oic.oic.message import EndSessionRequest
-from oic.oic.message import IDTokenClaim
 from oic.oic.message import RefreshAccessTokenRequest
 from oic.oic.message import AccessTokenRequest
 from oic.oic.message import OpenIDRequest
@@ -53,17 +49,18 @@ def _eq(l1, l2):
     s2 = set(l2)
     return s1 == s2
 
+
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
-KC_HMAC_S = KeyBundle({"kty": "hmac", "key": "abcdefghijklmnop", "use": "sig"})
+KC_SYM_S = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "sig"})
 
 _key = rsa_load("../oc3/certs/mycert.key")
-KC_RSA = KeyBundle({"key":_key, "kty":"rsa", "use":"sig"})
+KC_RSA = KeyBundle({"key": _key, "kty": "RSA", "use": "sig"})
 
 KEYJ = KeyJar()
-KEYJ[""] = [KC_RSA, KC_HMAC_S]
-KEYJ["client_1"] = [KC_HMAC_S]
+KEYJ[""] = [KC_RSA, KC_SYM_S]
+KEYJ["client_1"] = [KC_SYM_S]
 
 IDTOKEN = IdToken(iss="http://oic.example.org/", sub="user_id",
                   aud=CLIENT_ID, exp=utc_time_sans_frac() + 86400,
@@ -220,7 +217,7 @@ class TestOICClient():
 
         self.client.parse_response(AccessTokenResponse,
                                    info="".join([
-                                        x.strip() for x in jso.split("\n")]))
+                                       x.strip() for x in jso.split("\n")]))
 
         assert self.client.grant
         _grant = self.client.grant[""]
@@ -445,9 +442,12 @@ class TestOICClient():
         self.client.client_id = CLIENT_ID
         self.client.check_session_endpoint = "https://example.org/check_session"
 
-        _sign_key = self.client.keyjar.get_signing_key()
+        # RSA signing
+        alg = "RS256"
+        ktyp = alg2keytype(alg)
+        _sign_key = self.client.keyjar.get_signing_key(ktyp)
         print _sign_key
-        args = {"id_token": IDTOKEN.to_jwt(key=_sign_key)}
+        args = {"id_token": IDTOKEN.to_jwt(key=_sign_key, algorithm=alg)}
         print self.client.keyjar.issuer_keys
         resp = self.client.do_check_session_request(request_args=args)
 
@@ -459,8 +459,11 @@ class TestOICClient():
         self.client.client_id = "a1b2c3"
         self.client.end_session_endpoint = "https://example.org/end_session"
 
-        _sign_key = self.client.keyjar.get_signing_key()
-        args = {"id_token": IDTOKEN.to_jwt(key=_sign_key),
+        # RSA signing
+        alg = "RS256"
+        ktyp = alg2keytype(alg)
+        _sign_key = self.client.keyjar.get_signing_key(ktyp)
+        args = {"id_token": IDTOKEN.to_jwt(key=_sign_key, algorithm=alg),
                 "redirect_url": "http://example.com/end"}
 
         resp = self.client.do_end_session_request(request_args=args,
@@ -481,9 +484,9 @@ class TestOICClient():
         print resp.keys()
         assert _eq(resp.keys(), ['redirect_uris', u'redirect_uri',
                                  'application_type', 'registration_client_uri',
-                                 'expires_at', 'registration_access_token',
-                                 'response_type', 'client_id',
-                                 u'application_name', 'client_secret'])
+                                 'client_secret_expires_at',
+                                 'registration_access_token', 'client_id',
+                                 'application_name', 'client_secret'])
 
     def test_do_user_info_request_with_access_token_refresh(self):
         self.client.userinfo_endpoint = "http://oic.example.org/userinfo"
@@ -508,22 +511,27 @@ class TestOICClient():
         }
 
         areq = self.client.construct_AuthorizationRequest(
-            request_args={"scope": "openid", "response_type": ["code"]},
-            userinfo_claims={"claims": claims,
-                             "preferred_locale": "en"},
-            idtoken_claims={"claims": {"auth_time": None,
-                                       "acr": {"values": ["2"]}},
-                            "max_age": 86400},
-        )
+            request_args={
+                "scope": "openid",
+                "response_type": ["code"],
+                "claims": ClaimsRequest(userinfo=Claims(**claims),
+                                        id_token=Claims(auth_time=None,
+                                                        acr={"values": ["2"]})),
+                "max_age": 86400,
+            },
+            request_param="request")
 
-        print areq
+        print areq.to_dict()
         assert areq
         assert "request" in areq
 
     def test_openid_request_with_request_2(self):
         areq = self.client.construct_AuthorizationRequest(
-            request_args={"scope": "openid", "response_type": ["code"]},
-            idtoken_claims={"claims": {"sub": {"value": "248289761001"}}},
+            request_args={"scope": "openid",
+                          "response_type": ["code"],
+                          "claims": {
+                              "id_token": {"sub": {"value": "248289761001"}}}},
+            request_param="request"
         )
 
         print areq
@@ -535,7 +543,7 @@ class TestOICClient():
         print
         print jwtreq
         print jwtreq.keys()
-        assert _eq(jwtreq.keys(), ['id_token', 'state',
+        assert _eq(jwtreq.keys(), ['claims', 'state',
                                    'redirect_uri', 'response_type',
                                    'client_id', 'scope'])
 
@@ -910,6 +918,7 @@ def test_construct_OpenIDRequest():
     assert _eq(oidr.keys(), ['nonce', 'state', 'redirect_uri', 'response_type',
                              'client_id', 'scope'])
 
+
 ARESP = AuthorizationResponse(code="code", state="state000")
 TRESP = AccessTokenResponse(access_token="access_token", token_type="bearer",
                             expires_in=600, refresh_token="refresh",
@@ -982,28 +991,33 @@ RSREQ = RefreshSessionRequest(id_token="id_token",
 
 #key, type, usage, owner="."
 
-CSREQ = CheckSessionRequest(id_token=IDTOKEN.to_jwt(key=KC_HMAC_S))
+alg = "HS256"
+ktype = alg2keytype(alg)
+keys = KC_SYM_S.get(ktype)
+CSREQ = CheckSessionRequest(id_token=IDTOKEN.to_jwt(key=keys,
+                                                    algorithm="HS256"))
 
-ESREQ = EndSessionRequest(id_token=IDTOKEN.to_jwt(key=KC_HMAC_S),
+ESREQ = EndSessionRequest(id_token=IDTOKEN.to_jwt(key=keys,
+                                                  algorithm="HS256"),
                           redirect_url="http://example.org/jqauthz",
                           state="state0")
 
-IDT2 = IDTokenClaim(max_age=86400)
-
-CLAIM = Claims(name={"essential": True}, nickname=None,
+UINFO = Claims(name={"essential": True}, nickname=None,
                email={"essential": True},
                email_verified={"essential": True}, picture=None)
 
-USRINFO = UserInfoClaim(claims=CLAIM, sformat="signed")
+IDT2 = Claims(auth_time={"essential": True,
+                         "acr": {"values": ["urn:mace:incommon:iap:silver"]}})
+
+CLAIMS = ClaimsRequest(userinfo=UINFO, id_token=IDT2)
 
 OIDREQ = OpenIDRequest(response_type=["code", "id_token"], client_id=CLIENT_ID,
                        redirect_uri="https://client.example.com/cb",
                        scope="openid profile", state="n-0S6_WzA2Mj",
-                       nonce="af0ifjsldkj", userinfo=USRINFO, id_token=IDT2)
+                       nonce="af0ifjsldkj", max_age=86400, claims=CLAIMS)
 
 
 def test_server_init():
-
     srv = Server()
     assert srv
 
@@ -1106,16 +1120,16 @@ def test_parse_open_id_request():
     request = srv.parse_open_id_request(data=OIDREQ.to_json(), sformat="json")
     assert request.type() == "OpenIDRequest"
     print request.keys()
-    assert _eq(request.keys(), ['nonce', 'id_token', 'userinfo', 'state',
-                                'redirect_uri', 'response_type', 'client_id',
-                                'scope'])
+    assert _eq(request.keys(), ['nonce', 'claims', 'state', 'redirect_uri',
+                                'response_type', 'client_id', 'scope',
+                                'max_age'])
     assert request["nonce"] == "af0ifjsldkj"
 
-    print request["userinfo"]
+    print request["claims"]
 
     #assert request.userinfo.format == "signed"
-    print request["userinfo"]["claims"].to_dict()
-    assert "email" in request["userinfo"]["claims"]
+    print request["claims"]["userinfo"]
+    assert "email" in request["claims"]["userinfo"]
 
 
 def test_make_id_token():
@@ -1146,10 +1160,8 @@ def test_make_id_token():
     atr["code"] = code
     assert atr.verify(keyjar=srv.keyjar)
 
+
 if __name__ == "__main__":
-    toic = TestOICClient()
-    toic.setup_class()
-    mfos = MyFakeOICServer()
-    mfos.keyjar = KEYJ
-    toic.client.http_request = mfos.http_request
-    toic.test_do_registration_request()
+    t = TestOICClient()
+    t.setup_class()
+    t.test_do_check_session_request()

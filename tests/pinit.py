@@ -42,17 +42,17 @@ SERVER_INFO = {
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
-KC_HMAC = KeyBundle([{"kty": "hmac", "key": CLIENT_SECRET, "use": "ver"},
-                     {"kty": "hmac", "key": CLIENT_SECRET, "use": "sig"}])
-KC_HMAC2 = KeyBundle([{"kty": "hmac", "key": "drickyoughurt", "use": "sig"},
-                      {"kty": "hmac", "key": "drickyoughurt", "use": "ver"}])
+KC_SYM = KeyBundle([{"kty": "oct", "key": CLIENT_SECRET, "use": "ver"},
+                     {"kty": "oct", "key": CLIENT_SECRET, "use": "sig"}])
+KC_SYM2 = KeyBundle([{"kty": "oct", "key": "drickyoughurt", "use": "sig"},
+                      {"kty": "oct", "key": "drickyoughurt", "use": "ver"}])
 
 KC_RSA = keybundle_from_local_file("../oc3/certs/mycert.key", "rsa",
                                    ["ver", "sig"])
 
 KEYJAR = KeyJar()
-KEYJAR[CLIENT_ID] = [KC_HMAC, KC_RSA]
-KEYJAR["number5"] = [KC_HMAC2, KC_RSA]
+KEYJAR[CLIENT_ID] = [KC_SYM, KC_RSA]
+KEYJAR["number5"] = [KC_SYM2, KC_RSA]
 KEYJAR[""] = KC_RSA
 
 CDB = {

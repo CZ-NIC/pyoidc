@@ -1,6 +1,5 @@
 import logging
 from oic.utils.userinfo.ldap_info import UserInfoLDAP
-from oic.oic.message import UserInfoClaim
 
 __author__ = 'haho0032'
 
@@ -14,7 +13,7 @@ class UserLDAPMemberValidation(UserInfoLDAP):
         self.verifyAttr = verifyAttr
         self.verifyAttrValid = verifyAttrValid
 
-    def __call__(self, userid):
+    def __call__(self, userid, **kwargs):
         result = UserInfoLDAP.__call__(self, userid, None, False)
         if self.verifyAttr in result:
             for field in result[self.verifyAttr]:

@@ -13,7 +13,6 @@ from exceptions import KeyboardInterrupt
 from oic.utils.authn.client import verify_client
 
 from oic.utils.authz import AuthzHandling
-from oic.utils.keyio import KeyBundle, dump_jwks
 from oic.utils.userinfo import UserInfo
 
 __author__ = 'rohe0002'
@@ -21,39 +20,23 @@ __author__ = 'rohe0002'
 import logging
 import re
 
-from logging.handlers import BufferingHandler
-
 from oic.utils import http_util
-from oic.oic.provider import Provider
+from oic.oauth2.provider import Provider
 
 from oic.utils.http_util import *
-from oic.oic.message import ProviderConfigurationResponse
 
 from mako.lookup import TemplateLookup
 
 LOGGER = logging.getLogger("")
-LOGFILE_NAME = 'oc.log'
+LOGFILE_NAME = 'oa.log'
 hdlr = logging.FileHandler(LOGFILE_NAME)
 base_formatter = logging.Formatter(
     "%(asctime)s %(name)s:%(levelname)s %(message)s")
-
-CPC = ('%(asctime)s %(name)s:%(levelname)s '
-       '[%(client)s,%(path)s,%(cid)s] %(message)s')
-cpc_formatter = logging.Formatter(CPC)
 
 hdlr.setFormatter(base_formatter)
 LOGGER.addHandler(hdlr)
 LOGGER.setLevel(logging.DEBUG)
 
-_formatter = logging.Formatter(CPC)
-fil_handl = logging.FileHandler(LOGFILE_NAME)
-fil_handl.setFormatter(_formatter)
-
-buf_handl = BufferingHandler(10000)
-buf_handl.setFormatter(_formatter)
-
-HANDLER = {"CPC-file": fil_handl, "CPC-buffer": buf_handl}
-ACTIVE_HANDLER = "BASE"
 URLMAP = {}
 
 NAME = "pyoic"
@@ -71,55 +54,6 @@ PASSWD = {"diana": "krall",
 def devnull(txt):
     pass
 
-
-def create_session_logger(log_format="CPC"):
-    global HANDLER
-
-    logger = logging.getLogger("")
-    try:
-        logger.addHandler(HANDLER["%s-buffer" % log_format])
-    except KeyError:
-        _formatter = logging.Formatter(log_format)
-        handl = BufferingHandler(10000)
-        handl.setFormatter(_formatter)
-        logger.addHandler(handl)
-
-    logger.setLevel(logging.INFO)
-
-    return logger
-
-
-def replace_format_handler(logger, log_format="CPC"):
-    global ACTIVE_HANDLER
-    global HANDLER
-    global LOGFILE_NAME
-
-    if ACTIVE_HANDLER == log_format:
-        return logger
-
-    _handler = HANDLER["%s-file" % log_format]
-    if _handler in logger.handlers:
-        return logger
-
-    # remove all present handler
-    logger.handlers = []
-
-    try:
-        logger.addHandler(HANDLER["%s-file" % log_format])
-    except KeyError:
-        _formatter = logging.Formatter(log_format)
-        handl = logging.FileHandler(LOGFILE_NAME)
-        handl.setFormatter(_formatter)
-        logger.addHandler(handl)
-
-    ACTIVE_HANDLER = format
-    return logger
-
-# #noinspection PyUnusedLocal
-# def simple_user_info(oicsrv, userdb, user_id, client_id="",
-#                      user_info_claims=None):
-#     result = {"user_id": "diana"}
-#     return OpenIDSchema(**result)
 
 # ----------------------------------------------------------------------------
 
@@ -183,75 +117,6 @@ def authorization(environ, start_response, logger):
 
 
 #noinspection PyUnusedLocal
-def userinfo(environ, start_response, logger):
-    _oas = environ["oic.oas"]
-
-    return wsgi_wrapper(environ, start_response, _oas.userinfo_endpoint,
-                        logger=logger)
-
-
-#noinspection PyUnusedLocal
-def op_info(environ, start_response, logger):
-    _oas = environ["oic.oas"]
-    LOGGER.info("op_info")
-    return wsgi_wrapper(environ, start_response, _oas.providerinfo_endpoint,
-                        logger=logger)
-
-
-#noinspection PyUnusedLocal
-def registration(environ, start_response, logger):
-    _oas = environ["oic.oas"]
-
-    if environ["REQUEST_METHOD"] == "POST":
-        return wsgi_wrapper(environ, start_response, _oas.registration_endpoint,
-                            logger=logger)
-    elif environ["REQUEST_METHOD"] == "GET":
-        return wsgi_wrapper(environ, start_response, _oas.read_registration,
-                            logger=logger)
-    else:
-        resp = ServiceError("Method not supported")
-        return resp(environ, start_response)
-
-
-#noinspection PyUnusedLocal
-def check_id(environ, start_response, logger):
-    _oas = environ["oic.oas"]
-
-    return wsgi_wrapper(environ, start_response, _oas.check_id_endpoint,
-                        logger=logger)
-
-
-#noinspection PyUnusedLocal
-def swd_info(environ, start_response, logger):
-    _oas = environ["oic.oas"]
-
-    return wsgi_wrapper(environ, start_response, _oas.discovery_endpoint,
-                        logger=logger)
-
-
-#noinspection PyUnusedLocal
-def trace_log(environ, start_response, logger):
-    _oas = environ["oic.oas"]
-
-    return wsgi_wrapper(environ, start_response, _oas.tracelog_endpoint,
-                        logger=logger)
-
-
-#noinspection PyUnusedLocal
-def meta_info(environ, start_response, logger):
-    """
-    Returns something like this
-     {"links":[
-        {
-            "rel":"http://openid.net/specs/connect/1.0/issuer",
-            "href":"https://openidconnect.info/"
-        }
-     ]}
-    """
-    pass
-
-
-#noinspection PyUnusedLocal
 def verify(environ, start_response, logger):
     _oas = environ["oic.oas"]
     return wsgi_wrapper(environ, start_response, _oas.authn.verify,
@@ -292,24 +157,14 @@ def static(environ, start_response, logger, path):
 # ----------------------------------------------------------------------------
 from oic.oic.provider import AuthorizationEndpoint
 from oic.oic.provider import TokenEndpoint
-from oic.oic.provider import UserinfoEndpoint
-#from oic.oic.provider import CheckIDEndpoint
-from oic.oic.provider import RegistrationEndpoint
 
 ENDPOINTS = [
     AuthorizationEndpoint(authorization),
     TokenEndpoint(token),
-    UserinfoEndpoint(userinfo),
-    #CheckIDEndpoint(check_id),
-    RegistrationEndpoint(registration)
 ]
 
 URLS = [
     (r'^verify', verify),
-    (r'^.well-known/openid-configuration', op_info),
-    (r'^.well-known/simple-web-discovery', swd_info),
-    (r'^.well-known/host-meta.json', meta_info),
-#    (r'^.well-known/webfinger', webfinger),
     (r'.+\.css$', css),
     (r'safe', safe),
 #    (r'tracelog', trace_log),
@@ -358,7 +213,7 @@ def application(environ, start_response):
         return static(environ, start_response, logger, "static/robots.txt")
 
     environ["oic.oas"] = OAS
-    
+
     #remote = environ.get("REMOTE_ADDR")
     #kaka = environ.get("HTTP_COOKIE", '')
 
@@ -393,60 +248,6 @@ def application(environ, start_response):
 
 # ----------------------------------------------------------------------------
 
-class TestProvider(Provider):
-    #noinspection PyUnusedLocal
-    def __init__(self, name, sdb, cdb, function, userdb, urlmap=None,
-                 debug=0, ca_certs="", jwt_keys=None):
-        Provider.__init__(self, name, sdb, cdb, function, userdb, urlmap,
-                          ca_certs, jwt_keys)
-        self.test_mode = True
-        self.trace_log = {}
-        self.sessions = []
-        self.max_sessions = 100
-
-    def dump_tracelog(self, key):
-        tlog = self.trace_log[key]
-        for handler in tlog.handlers:
-            if isinstance(handler, BufferingHandler):
-                arr = []
-                for record in handler.buffer:
-                    arr.append(handler.format(record))
-
-                return "\n".join(arr)
-        return ""
-
-    #noinspection PyUnusedLocal
-    def tracelog_endpoint(self, environ, start_response, logger, **kwargs):
-        handle = kwargs["handle"]
-        tlog = self.trace_log[handle[0]]
-        for handler in tlog.handlers:
-            if isinstance(handler, BufferingHandler):
-                arr = []
-                for record in handler.buffer:
-                    arr.append(handler.format(record))
-
-                resp = Response("\n".join(arr), content="text/plain")
-                return resp(environ, start_response)
-
-        del self.trace_log[handle[0]]
-        self.sessions.remove(handle[0])
-        resp = Response("no info", content="text/plain")
-        return resp(environ, start_response)
-
-    def re_link_log(self, old, new):
-        self.trace_log[new] = self.trace_log[old]
-
-    def new_trace_log(self, key):
-        _log = create_session_logger(key)
-        if len(self.trace_log) > self.max_sessions:
-            # remove the oldest
-            oldest = self.sessions[0]
-            del self.trace_log[oldest]
-            self.sessions = self.sessions[1:]
-        self.trace_log[key] = _log
-        return _log
-
-
 if __name__ == '__main__':
     import argparse
     import shelve
@@ -472,7 +273,6 @@ if __name__ == '__main__':
     # Client data base
     cdb = shelve.open("client_db", writeback=True)
 
-    sys.path.insert(0, ".")
     config = importlib.import_module(args.config)
     config.issuer = config.issuer % args.port
     config.SERVICE_URL = config.SERVICE_URL % args.port
@@ -493,20 +293,9 @@ if __name__ == '__main__':
 
     # dealing with authorization
     authz = AuthzHandling()
-    # authz = UserInfoConsent()
     # User info database
-    if args.test:
-        URLS.append((r'tracelog', trace_log))
-        OAS = TestProvider(config.issuer, SessionDB(), cdb, authn, None,
-                           authz, config.SYM_KEY)
-    elif args.XpressConnect:
-        from XpressConnect import XpressConnectProvider
-
-        OAS = XpressConnectProvider(config.issuer, SessionDB(), cdb, authn,
-                                    None, authz, verify_client, config.SYM_KEY)
-    else:
-        OAS = Provider(config.issuer, SessionDB(), cdb, authn, None, authz,
-                       verify_client, config.SYM_KEY)
+    OAS = Provider(config.issuer, SessionDB(), cdb, authn, authz,
+                   verify_client, config.SYM_KEY)
 
     authn.srv = OAS
 
@@ -521,7 +310,6 @@ if __name__ == '__main__':
         pass
 
     OAS.cookie_func = http_util.make_cookie
-
     #print URLS
     if args.debug:
         OAS.debug = True
@@ -533,15 +321,7 @@ if __name__ == '__main__':
     if args.authn_as:
         OAS.authn_as = args.authn_as
 
-    if args.provider_conf:
-        prc = ProviderConfigurationResponse().from_json(
-            open(args.provider_conf).read())
-        endpoints = []
-        for key in prc.keys():
-            if key.endswith("_endpoint"):
-                endpoints.append(key)
-    else:
-        endpoints = ENDPOINTS
+    endpoints = ENDPOINTS
 
     add_endpoints(endpoints)
     OAS.endpoints = endpoints
@@ -556,35 +336,11 @@ if __name__ == '__main__':
     if not OAS.baseurl.endswith("/"):
         OAS.baseurl += "/"
 
-    try:
-        OAS.keyjar[""] = []
-        kbl = []
-        for typ, info in config.keys.items():
-            typ = typ.upper()
-            LOGGER.info("OC server key init: %s, %s" % (typ, info))
-            kb = KeyBundle(source="file://%s" % info["key"], fileformat="der",
-                           keytype=typ)
-            OAS.keyjar.add_kb("", kb)
-            kbl.append(kb)
-
-        try:
-            new_name = "static/jwks.json"
-            dump_jwks(kbl, new_name)
-            OAS.jwks_uri.append("%s%s" % (OAS.baseurl, new_name))
-        except KeyError:
-            pass
-
-        for b in OAS.keyjar[""]:
-            LOGGER.info("OC3 server keys: %s" % b)
-    except Exception, err:
-        LOGGER.error("Key setup failed: %s" % err)
-        OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
-
     if config.USERINFO == "LDAP":
         from oic.utils.userinfo.ldap_info import UserInfoLDAP
         OAS.userinfo = UserInfoLDAP(**config.LDAP)
     elif config.USERINFO == "SIMPLE":
-        OAS.userinfo = UserInfo(config.USERDB)
+        OAS.userinfo = UserInfo(config.DISTDB)
     elif config.USERINFO == "DISTRIBUTED":
         from oic.utils.userinfo.distaggr import DistributedAggregatedUserInfo
         OAS.userinfo = DistributedAggregatedUserInfo(config.USERDB, OAS,
@@ -599,7 +355,6 @@ if __name__ == '__main__':
                                                      config.CERT_CHAIN)
 
     LOGGER.info("OC server starting listening on port:%s" % args.port)
-    print "OC server starting listening on port:%s" % args.port
     try:
         SRV.start()
     except KeyboardInterrupt:

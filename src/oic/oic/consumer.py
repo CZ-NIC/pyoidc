@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import logging
+from oic.oauth2.exception import PyoidcError
 
 __author__ = 'rohe0002'
 
@@ -14,10 +15,9 @@ from oic.oic import Client
 from oic.oic import ENDPOINTS
 
 
-from oic.oic.message import Claims
+from oic.oic.message import Claims, ClaimsRequest
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AuthorizationResponse
-from oic.oic.message import UserInfoClaim
 from oic.oic.message import AccessTokenResponse
 
 from oic.oauth2 import Grant
@@ -67,21 +67,17 @@ def factory(kaka, sdb, config):
 def build_userinfo_claims(claims, sformat="signed", locale="us-en"):
     """
     config example:
-    "userinfo_claims":{
-        "format": "signed",
-        "locale": "sv-se",
-        "claims": {
-             "name": {"essential": true},
-             "nickname": null,
-             "email": {"essential": true},
-             "email_verified": {"essential": true},
-             "picture": null
-        }
+    "userinfo":{
+         "name": {"essential": true},
+         "nickname": null,
+         "email": {"essential": true},
+         "email_verified": {"essential": true},
+         "picture": null
     }
     """
-    claim = Claims(**claims)
+    #return UserInfoClaim(claims=claim, format=sformat, locale=locale)
+    return Claims(format=sformat, **claims)
 
-    return UserInfoClaim(claims=claim, format=sformat, locale=locale)
 
 
 def clean_response(aresp):
@@ -103,7 +99,7 @@ def clean_response(aresp):
 IGNORE = ["request2endpoint", "response2error", "grant_class", "token_class"]
 
 CONSUMER_PREF_ARGS = [
-    "token_endpoint_auth_type",
+    "token_endpoint_auth_method",
     "subject_type",
     "require_signed_request_object",
     "userinfo_signed_response_algs",
@@ -264,14 +260,26 @@ class Consumer(Client):
             args["nonce"] = self.nonce
 
         if "max_age" in self.config:
-            args["idtoken_claims"] = {"max_age": self.config["max_age"]}
+            args["max_age"] = self.config["max_age"]
 
+        _claims = None
         if "user_info" in self.config:
-            args["userinfo_claims"] = self.config["user_info"]
+            _claims = ClaimsRequest(
+                userinfo=Claims(**self.config["user_info"]))
+        if "id_token" in self.config:
+            if _claims:
+                _claims["id_token"] = Claims(**self.config["id_token"])
+            else:
+                _claims = ClaimsRequest(
+                    id_token=Claims(**self.config["id_token"]))
+
+        if _claims:
+            args["claims"] = _claims
 
         if "request_method" in self.config:
-            areq = self.construct_AuthorizationRequest(request_args=args,
-                                                       extra_args=None)
+            areq = self.construct_AuthorizationRequest(
+                request_args=args, extra_args=None,
+                request_param="request")
 
             if self.config["request_method"] == "file":
                 id_request = areq["request"]
@@ -292,7 +300,7 @@ class Consumer(Client):
                 self._backup(sid)
         else:
             if "userinfo_claims" in args:  # can only be carried in an IDRequest
-                raise Exception("Need a request method")
+                raise PyoidcError("Need a request method")
 
             areq = self.construct_AuthorizationRequest(AuthorizationRequest,
                                                        request_args=args)
@@ -386,7 +394,7 @@ class Consumer(Client):
                          "client_id": self.client_id,
                          "secret_type": self.secret_type})
         else:
-            raise Exception("Nothing to authenticate with")
+            raise PyoidcError("Nothing to authenticate with")
 
         resp = self.do_access_token_request(state=self.state,
                                             request_args=args,

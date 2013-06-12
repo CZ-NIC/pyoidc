@@ -1,63 +1,63 @@
 __author__ = 'rohe0002'
 
 
-class OauthError(Exception):
+class PyoidcError(Exception):
     pass
 
 
-class MissingAttribute(OauthError):
+class MissingAttribute(PyoidcError):
     pass
 
 
-class UnsupportedMethod(OauthError):
+class UnsupportedMethod(PyoidcError):
     pass
 
 
-class AccessDenied(OauthError):
+class AccessDenied(PyoidcError):
     pass
 
 
-class UnknownClient(OauthError):
+class UnknownClient(PyoidcError):
     pass
 
 
-class MissingParameter(OauthError):
+class MissingParameter(PyoidcError):
     pass
 
 
-class UnknownAssertionType(OauthError):
+class UnknownAssertionType(PyoidcError):
     pass
 
 
-class ParameterError(OauthError):
+class ParameterError(PyoidcError):
     pass
 
 
-class URIError(OauthError):
+class URIError(PyoidcError):
     pass
 
 
-class InvalidRequest(OauthError):
+class InvalidRequest(PyoidcError):
     pass
 
 
-class RedirectURIError(OauthError):
+class RedirectURIError(PyoidcError):
     pass
 
 
-class ParseError(OauthError):
+class ParseError(PyoidcError):
     pass
 
 
-class FailedAuthentication(OauthError):
+class FailedAuthentication(PyoidcError):
     pass
 
 
-class MissingSession(OauthError):
+class MissingSession(PyoidcError):
     pass
 
 
-class NotForMe(OauthError):
+class NotForMe(PyoidcError):
     pass
 
 

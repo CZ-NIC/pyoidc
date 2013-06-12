@@ -46,11 +46,9 @@ CONSUMER_CONFIG = {
     "response_type": ["code"],
     #"expire_in": 600,
     "user_info": {
-        "claims": {
-            "name": None,
-            "email": None,
-            "nickname": None
-        }
+        "name": None,
+        "email": None,
+        "nickname": None
     },
     "request_method": "param"
 }
@@ -72,17 +70,17 @@ SERVER_INFO = {
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
-KC_HMAC = KeyBundle([{"kty": "hmac", "key": CLIENT_SECRET, "use": "ver"},
-                     {"kty": "hmac", "key": CLIENT_SECRET, "use": "sig"}])
-KC_HMAC2 = KeyBundle([{"kty": "hmac", "key": "drickyoughurt", "use": "sig"},
-                      {"kty": "hmac", "key": "drickyoughurt", "use": "ver"}])
+KC_SYM = KeyBundle([{"kty": "oct", "key": CLIENT_SECRET, "use": "ver"},
+                     {"kty": "oct", "key": CLIENT_SECRET, "use": "sig"}])
+KC_SYM2 = KeyBundle([{"kty": "oct", "key": "drickyoughurt", "use": "sig"},
+                      {"kty": "oct", "key": "drickyoughurt", "use": "ver"}])
 
-KC_RSA = keybundle_from_local_file("../oc3/certs/mycert.key", "rsa",
+KC_RSA = keybundle_from_local_file("../oc3/certs/mycert.key", "RSA",
                                    ["ver", "sig"])
 
 KEYJAR = KeyJar()
-KEYJAR[CLIENT_ID] = [KC_HMAC, KC_RSA]
-KEYJAR["number5"] = [KC_HMAC2, KC_RSA]
+KEYJAR[CLIENT_ID] = [KC_SYM, KC_RSA]
+KEYJAR["number5"] = [KC_SYM2, KC_RSA]
 KEYJAR[""] = KC_RSA
 
 CDB = {
@@ -195,8 +193,9 @@ def test_server_authorization_endpoint_request():
            "prompt": ["none"]}
 
     req = AuthorizationRequest(**bib)
-    ic = {"claims": {"sub": {"value": "userX"}}}
-    _keys = server.keyjar.get_signing_key(key_type="rsa")
+    # want to be someone else !
+    ic = {"sub": {"value": "userX"}}
+    _keys = server.keyjar.get_signing_key(key_type="RSA")
     req["request"] = make_openid_request(req, _keys, idtoken_claims=ic,
                                          algorithm="RS256")
 
@@ -277,7 +276,7 @@ def test_server_authenticated():
     print aresp.keys()
     assert aresp.type() == "AuthorizationResponse"
     assert _eq(aresp.keys(), ['request', 'state', 'redirect_uri',
-                              'response_type', 'client_id', 'scope'])
+                              'response_type', 'client_id', 'claims', 'scope'])
 
     print cons.grant[cons.state].keys()
     assert _eq(cons.grant[cons.state].keys(), ['tokens', 'id_token', 'exp_in',
@@ -302,7 +301,7 @@ def test_server_authenticated_1():
 
     print aresp.keys()
     assert aresp.type() == "AuthorizationResponse"
-    assert _eq(aresp.keys(), ['request', 'state', 'redirect_uri',
+    assert _eq(aresp.keys(), ['request', 'state', 'redirect_uri', 'claims',
                               'response_type', 'client_id', 'scope'])
 
 
@@ -463,7 +462,7 @@ def test_authz_endpoint():
     server = provider_init
 
     cli = Client()
-    cli.redirect_uri = "http://www.example.org/authz"
+    cli.redirect_uris = ["http://www.example.org/authz"]
     cli.client_id = "client0"
     cli.state = "_state_"
     args = {"response_type": ["code", "token"], "scope": ["openid"]}
@@ -473,6 +472,7 @@ def test_authz_endpoint():
     print resp.message
     assert "token_type=Bearer" in resp.message
     assert "code=" in resp.message
+
 
 def test_idtoken():
     server = provider_init
@@ -515,7 +515,7 @@ def test_userinfo_endpoint():
     resp3 = server.userinfo_endpoint(request=uir.to_urlencoded())
     ident = OpenIDSchema().deserialize(resp3.message, "json")
     print ident.keys()
-    assert _eq(ident.keys(), ['nickname', 'sub', 'name', 'email', 'verified'])
+    assert _eq(ident.keys(), ['nickname', 'sub', 'name', 'email'])
     assert ident["sub"] == USERDB["username"]["sub"]
 
 
@@ -554,17 +554,19 @@ def test_registration_endpoint():
     print regresp.keys()
     assert _eq(regresp.keys(), ['redirect_uris', 'contacts', 'application_type',
                                 'client_name', 'registration_client_uri',
-                                'expires_at', 'registration_access_token',
-                                'client_id', 'client_secret'])
+                                'client_secret_expires_at',
+                                'registration_access_token',
+                                'client_id', 'client_secret',
+                                'client_id_issued_at'])
 
 
 def test_provider_key_setup():
     provider = Provider("pyoicserv", SessionDB(), None, None, None, None, None,
                         "")
     provider.baseurl = "http://www.example.com/"
-    provider.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
+    provider.key_setup("static", sig={"format": "jwk", "alg": "RSA"})
 
-    keys = provider.keyjar.get_signing_key("rsa")
+    keys = provider.keyjar.get_signing_key("RSA")
     assert len(keys) == 1
     assert provider.jwks_uri == "http://www.example.com/static/jwks"
 
@@ -676,4 +678,4 @@ def test_registered_redirect_uri_with_query_component():
         assert resp is None
 
 if __name__ == "__main__":
-    test_server_authenticated_2()
+    test_userinfo_endpoint()

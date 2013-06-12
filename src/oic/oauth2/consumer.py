@@ -54,19 +54,23 @@ def factory(kaka, sdb, client_id, **kwargs):
     return cons
 
 
-class UnknownState(Exception):
+class UnknownState(PyoidcError):
     pass
 
 
-class TokenError(Exception):
+class TokenError(PyoidcError):
     pass
 
 
-class AuthzError(Exception):
+class AuthzError(PyoidcError):
     pass
 
 
-class ConfigurationError(Exception):
+class ConfigurationError(PyoidcError):
+    pass
+
+
+class MissingAuthenticationInfo(PyoidcError):
     pass
 
 
@@ -279,7 +283,7 @@ class Consumer(Client):
                             "client_id": self.client_id}
             extra_args = {"auth_method": "bearer_body"}
         else:
-            raise Exception("Nothing to authenticate with")
+            raise MissingAuthenticationInfo("Nothing to authenticate with")
 
         return request_args, http_args, extra_args
 

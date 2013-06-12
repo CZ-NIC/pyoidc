@@ -7,14 +7,10 @@ from oic.oic.message import ProviderConfigurationResponse, RegistrationResponse,
 from oic.oic.message import msg_ser
 from oic.oic.message import claims_ser
 from oic.oic.message import RegistrationRequest
-from oic.oic.message import IDTokenClaim
-from oic.oic.message import UserInfoClaim
-from oic.oic.message import userinfo_deser
 from oic.oic.message import claims_deser
 from oic.oic.message import AddressClaim
 from oic.oic.message import address_deser
 from oic.oic.message import Claims
-from oic.oic.message import idtokenclaim_deser
 
 
 def _eq(l1, l2):
@@ -26,8 +22,8 @@ def test_ProviderConfigurationResponse():
         "authorization_endpoint": "https://server.example.com/connect/authorize",
         "issuer": "https://server.example.com",
         "token_endpoint": "https://server.example.com/connect/token",
-        "token_endpoint_auth_types_supported": ["client_secret_basic",
-                                                "private_key_jwt"],
+        "token_endpoint_auth_methods_supported": ["client_secret_basic",
+                                                  "private_key_jwt"],
         "userinfo_endpoint": "https://server.example.com/connect/user",
         "check_id_endpoint": "https://server.example.com/connect/check_id",
         "refresh_session_endpoint": "https://server.example.com/connect/refresh_session",
@@ -143,7 +139,7 @@ def test_client_response():
     msg = {
         "client_id": "s6BhdRkqt3",
         "client_secret": "ZJYCqe3GGRvdrudKyZS0XhGv_Z45DuKhCUk0gBR1vZk",
-        "expires_at": 1577858400,
+        "client_secret_expires_at": 1577858400,
         "registration_access_token": "this.is.an.access.token.value.ffx83",
         "registration_client_uri":
             "https://server.example.com/connect/register?client_id=s6BhdRkqt3",
@@ -184,22 +180,42 @@ def test_authz_request():
     assert req["scope"] == ["openid", "profile"]
 
 
-def test_idtokenclaim_deser():
-    claims = Claims(weather={"acr": "2"})
-    pre = IDTokenClaim(claims=claims, max_age=3600)
-    idt = idtokenclaim_deser(pre.to_json(), sformat="json")
-    assert _eq(idt.keys(), ['claims', "max_age"])
+# def test_idtokenclaim_deser():
+#     claims = Claims(weather={"acr": "2"})
+#     pre = IDTokenClaim(claims=claims, max_age=3600)
+#     idt = idtokenclaim_deser(pre.to_json(), sformat="json")
+#     assert _eq(idt.keys(), ['claims', "max_age"])
+#
+#
+# def test_userinfo_deser():
+#     CLAIM = Claims(name={"essential": True}, nickname=None,
+#                    email={"essential": True},
+#                    email_verified={"essential": True}, picture=None)
+#
+#     pre_uic = UserInfoClaim(claims=CLAIM, format="signed")
+#
+#     uic = userinfo_deser(pre_uic.to_json(), sformat="json")
+#     assert _eq(uic.keys(), ["claims", "format"])
 
 
-def test_userinfo_deser():
-    CLAIM = Claims(name={"essential": True}, nickname=None,
-                   email={"essential": True},
-                   email_verified={"essential": True}, picture=None)
+def test_claims_deser_0():
+    _dic = {
+        "userinfo": {
+            "given_name": {"essential": True},
+            "nickname": None,
+            "email": {"essential": True},
+            "email_verified": {"essential": True},
+            "picture": None,
+            "http://example.info/claims/groups": None
+        },
+        "id_token": {
+            "auth_time": {"essential": True},
+            "acr": {"values": ["urn:mace:incommon:iap:silver"]}
+        }
+    }
 
-    pre_uic = UserInfoClaim(claims=CLAIM, format="signed")
-
-    uic = userinfo_deser(pre_uic.to_json(), sformat="json")
-    assert _eq(uic.keys(), ["claims", "format"])
+    claims = claims_deser(json.dumps(_dic), sformat="json")
+    assert _eq(claims.keys(), ["userinfo", "id_token"])
 
 
 def test_claims_deser():
@@ -303,4 +319,4 @@ def test_registration_request():
 
 
 if __name__ == "__main__":
-    test_authz_request()
+    test_claims_deser_0()

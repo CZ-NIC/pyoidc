@@ -26,15 +26,14 @@ class UserInfo(object):
             result = {}
             missing = []
             optional = []
-            if "claims" in user_info_claims:
-                for key, restr in user_info_claims["claims"].items():
-                    try:
-                        result[key] = userinfo[key]
-                    except KeyError:
-                        if restr == {"essential": True}:
-                            missing.append(key)
-                        else:
-                            optional.append(key)
+            for key, restr in user_info_claims.items():
+                try:
+                    result[key] = userinfo[key]
+                except KeyError:
+                    if restr == {"essential": True}:
+                        missing.append(key)
+                    else:
+                        optional.append(key)
             return result
 
     def __call__(self, userid, user_info_claims=None, **kwargs):

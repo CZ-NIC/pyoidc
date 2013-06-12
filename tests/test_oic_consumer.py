@@ -19,44 +19,45 @@ from fakeoicsrv import MyFakeOICServer
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
-KC_HMAC_VS = KeyBundle({"kty": "hmac", "key": "abcdefghijklmnop", "use": "ver"})
-KC_HMAC_S = KeyBundle({"kty": "hmac", "key": "abcdefghijklmnop", "use": "sig"})
+KC_SYM_VS = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "ver"})
+KC_SYM_S = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "sig"})
 
 KC_RSA = keybundle_from_local_file("../oc3/certs/mycert.key", "rsa",
                                    ["ver", "sig"])
 
 SRVKEYS = KeyJar()
 SRVKEYS[""] = [KC_RSA]
-SRVKEYS["client_1"] = [KC_HMAC_VS, KC_RSA]
+SRVKEYS["client_1"] = [KC_SYM_VS, KC_RSA]
 
 CLIKEYS = KeyJar()
 CLIKEYS["http://localhost:8088"] = [KC_RSA]
-CLIKEYS[""] = [KC_HMAC_VS]
+CLIKEYS[""] = [KC_SYM_VS]
 CLIKEYS["http://example.com"] = [KC_RSA]
 
 BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',
-               'REQUEST_METHOD': 'GET',
-               'QUERY_STRING': '',
-               'HTTP_CONNECTION': 'keep-alive',
-               'REMOTE_ADDR': '127.0.0.1',
-               'wsgi.url_scheme': 'http',
-               'SERVER_PORT': '8087',
-               'PATH_INFO': '/register',
-               'HTTP_HOST': 'localhost:8087',
-               'HTTP_ACCEPT': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-               'HTTP_ACCEPT_LANGUAGE': 'sv-se',
-               'CONTENT_TYPE': 'text/plain',
-               'REMOTE_HOST': '1.0.0.127.in-addr.arpa',
-               'HTTP_ACCEPT_ENCODING': 'gzip, deflate',
-               'COMMAND_MODE': 'unix2003'}
+                'REQUEST_METHOD': 'GET',
+                'QUERY_STRING': '',
+                'HTTP_CONNECTION': 'keep-alive',
+                'REMOTE_ADDR': '127.0.0.1',
+                'wsgi.url_scheme': 'http',
+                'SERVER_PORT': '8087',
+                'PATH_INFO': '/register',
+                'HTTP_HOST': 'localhost:8087',
+                'HTTP_ACCEPT': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
 
-SERVER_INFO ={
-    "version":"3.0",
-    "issuer":"https://localhost:8088",
-    "authorization_endpoint":"http://localhost:8088/authorization",
-    "token_endpoint":"http://localhost:8088/token",
-    "userinfo_endpoint":"http://localhost:8088/userinfo",
-    "flows_supported":["code","token"],
+                'HTTP_ACCEPT_LANGUAGE': 'sv-se',
+                'CONTENT_TYPE': 'text/plain',
+                'REMOTE_HOST': '1.0.0.127.in-addr.arpa',
+                'HTTP_ACCEPT_ENCODING': 'gzip, deflate',
+                'COMMAND_MODE': 'unix2003'}
+
+SERVER_INFO = {
+    "version": "3.0",
+    "issuer": "https://localhost:8088",
+    "authorization_endpoint": "http://localhost:8088/authorization",
+    "token_endpoint": "http://localhost:8088/token",
+    "userinfo_endpoint": "http://localhost:8088/userinfo",
+    "flows_supported": ["code", "token"],
 }
 
 CONFIG = {
@@ -66,18 +67,16 @@ CONFIG = {
     "request_method": "parameter",
     #"temp_dir": "./tmp",
     #"flow_type":
-    "password":"hemligt",
+    "password": "hemligt",
     "max_age": 3600,
     #client_secret
-    "user_info":{
-        "claims": {
-            "name":None,
-            },
-        "format": "signed"
+    "user_info": {
+        "name": None,
     }
 }
 
 CLIENT_CONFIG = {"client_id": CLIENT_ID, "jwt_keys": CLIKEYS}
+
 
 def start_response(status=200, headers=None):
     if headers is None:
@@ -85,14 +84,15 @@ def start_response(status=200, headers=None):
     else:
         return "status=%s, headers=%s" % (status, headers)
 
+
 def _eq(l1, l2):
     return set(l1) == set(l2)
 
 
 def test_clean_response():
     atr = AccessTokenResponse(access_token="access_token",
-                            token_type="bearer", expires_in=600,
-                            refresh_token="refresh", steps=39, stalls="yes")
+                              token_type="bearer", expires_in=600,
+                              refresh_token="refresh", steps=39, stalls="yes")
 
     catr = clean_response(atr)
     atr_keys = atr.keys()
@@ -100,11 +100,14 @@ def test_clean_response():
     assert _eq(atr_keys, ['token_type', 'access_token', 'expires_in',
                           'refresh_token', 'steps', 'stalls'])
     assert _eq(catr_keys, ['token_type', 'access_token', 'expires_in',
-                          'refresh_token'])
+                           'refresh_token'])
+
+
+AUTHZ_URL = "http://example.com/authorization"
+AUTHZ_ORG_URL = "http://example.org/authorization"
 
 
 class TestOICConsumer():
-
     def setup_class(self):
         self.consumer = Consumer(SessionDB(), CONFIG, CLIENT_CONFIG,
                                  SERVER_INFO)
@@ -123,7 +126,6 @@ class TestOICConsumer():
         assert _eq(dkeys, IGNORE)
 
     def test_backup_restore(self):
-
         _dict = self.consumer.__dict__.items()
 
         self.consumer._backup("sid")
@@ -131,7 +133,7 @@ class TestOICConsumer():
 
         assert _dict == self.consumer.__dict__.items()
 
-        self.consumer.authorization_endpoint = "http://example.com/authorization"
+        self.consumer.authorization_endpoint = AUTHZ_URL
 
         assert _dict != self.consumer.__dict__.items()
 
@@ -140,49 +142,47 @@ class TestOICConsumer():
         assert _dict == self.consumer.__dict__.items()
 
     def test_backup_restore_update(self):
-
-        self.consumer.authorization_endpoint = "http://example.com/authorization"
+        self.consumer.authorization_endpoint = AUTHZ_URL
         self.consumer.token_endpoint = "http://example.com/token"
         self.consumer.userinfo_endpoint = "http://example.com/userinfo"
 
         self.consumer._backup("sid")
 
-        self.consumer.authorization_endpoint = "http://example.org/authorization"
+        self.consumer.authorization_endpoint = AUTHZ_ORG_URL
         self.consumer.token_endpoint = "http://example.org/token"
         self.consumer.userinfo_endpoint = ""
 
-        assert self.consumer.authorization_endpoint == "http://example.org/authorization"
+        assert self.consumer.authorization_endpoint == AUTHZ_ORG_URL
         assert self.consumer.token_endpoint == "http://example.org/token"
         assert self.consumer.userinfo_endpoint == ""
 
         self.consumer.update("sid")
 
-        assert self.consumer.authorization_endpoint == "http://example.org/authorization"
+        assert self.consumer.authorization_endpoint == AUTHZ_ORG_URL
         assert self.consumer.token_endpoint == "http://example.org/token"
         assert self.consumer.userinfo_endpoint == "http://example.com/userinfo"
 
     def test_begin(self):
-        self.consumer.authorization_endpoint = "http://example.com/authorization"
+        self.consumer.authorization_endpoint = AUTHZ_URL
         self.consumer.keyjar[""].append(KC_RSA)
         #self.consumer.keyjar.set_sign_key(rsapub, "rsa")
         #self.consumer.keyjar.set_verify_key(rsapub, "rsa")
 
         srv = Server()
         srv.keyjar = SRVKEYS
-        print "redirect_uris",self.consumer.redirect_uris
+        print "redirect_uris", self.consumer.redirect_uris
         print "config", self.consumer.config
         location = self.consumer.begin("openid", "code")
         print location
         authreq = srv.parse_authorization_request(url=location)
         print authreq.keys()
-        assert _eq(authreq.keys(), ['request', 'state',
-                                    'redirect_uri', 'response_type',
-                                    'client_id', 'scope'])
-        
+        assert _eq(authreq.keys(), ['request', 'state', 'max_age', 'claims',
+                                    'response_type', 'client_id', 'scope',
+                                    'redirect_uri'])
+
         assert authreq["state"] == self.consumer.state
         assert authreq["scope"] == self.consumer.config["scope"]
         assert authreq["client_id"] == self.consumer.client_id
-
 
     def test_begin_file(self):
         self.consumer.config["request_method"] = "file"
@@ -198,9 +198,9 @@ class TestOICConsumer():
         #vkeys = {".":srv.keyjar.get_verify_key()}
         authreq = srv.parse_authorization_request(url=location)
         print authreq.keys()
-        assert _eq(authreq.keys(), ['state', 'redirect_uri',
+        assert _eq(authreq.keys(), ['max_age', 'state', 'redirect_uri',
                                     'response_type', 'client_id', 'scope',
-                                    'request_uri'])
+                                    'claims', 'request_uri'])
 
         assert authreq["state"] == self.consumer.state
         assert authreq["scope"] == self.consumer.config["scope"]
@@ -259,7 +259,7 @@ class TestOICConsumer():
         }
 
         result = self.consumer.do_authorization_request(
-            state=self.consumer.state,request_args=args)
+            state=self.consumer.state, request_args=args)
 
         print self.consumer.sdb.keys()
         print self.consumer.sdb["state0"].keys()
@@ -269,13 +269,13 @@ class TestOICConsumer():
         assert part[1] is None
         assert part[2] is None
 
-        assert atr.type() ==  "AuthorizationResponse"
+        assert atr.type() == "AuthorizationResponse"
         assert atr["state"] == "state0"
         assert "code" in atr
 
     def test_parse_authz_implicit(self):
         self.consumer.config["response_type"] = "implicit"
-        
+
         args = {
             "client_id": self.consumer.client_id,
             "response_type": "implicit",
@@ -294,6 +294,7 @@ class TestOICConsumer():
         assert atr.type() == "AccessTokenResponse"
         assert atr["state"] == "state0"
         assert "access_token" in atr
+
 
 def test_complete_secret_auth():
     consumer = Consumer(SessionDB(), CONFIG, CLIENT_CONFIG, SERVER_INFO)
@@ -331,6 +332,7 @@ def test_complete_secret_auth():
 
     assert resp["state"] == consumer.state
 
+
 def test_complete_auth_token():
     consumer = Consumer(SessionDB(), CONFIG, CLIENT_CONFIG, SERVER_INFO)
     mfos = MyFakeOICServer("http://localhost:8088")
@@ -342,7 +344,7 @@ def test_complete_auth_token():
     consumer.client_secret = "hemlig"
     consumer.secret_type = "basic"
     consumer.config["response_type"] = ["code", "token"]
-    
+
     args = {
         "client_id": consumer.client_id,
         "response_type": consumer.config["response_type"],
@@ -373,6 +375,7 @@ def test_complete_auth_token():
     assert _eq(acc.keys(), ['token_type', 'state', 'access_token', 'scope',
                             'expires_in', 'refresh_token'])
 
+
 def test_complete_auth_token_idtoken():
     consumer = Consumer(SessionDB(), CONFIG, CLIENT_CONFIG, SERVER_INFO)
     consumer.keyjar = CLIKEYS
@@ -390,7 +393,7 @@ def test_complete_auth_token_idtoken():
         "client_id": consumer.client_id,
         "response_type": consumer.config["response_type"],
         "scope": ["openid"],
-        }
+    }
 
     result = consumer.do_authorization_request(state=consumer.state,
                                                request_args=args)
@@ -412,6 +415,7 @@ def test_complete_auth_token_idtoken():
     assert acc.type() == "AccessTokenResponse"
     assert _eq(acc.keys(), ['access_token', 'id_token', 'expires_in',
                             'token_type', 'state', 'scope'])
+
 
 def test_userinfo():
     consumer = Consumer(SessionDB(), CONFIG, CLIENT_CONFIG, SERVER_INFO)
@@ -448,6 +452,7 @@ def test_userinfo():
     assert result.type() == "OpenIDSchema"
     assert _eq(result.keys(), ['name', 'email', 'verified', 'nickname', 'sub'])
 
+
 def real_test_discover():
     c = Consumer(None, None)
 
@@ -466,6 +471,7 @@ def real_test_discover():
     assert _eq(res.flows_supported, ['code', 'token', 'id_token',
                                      'code token', 'code id_token',
                                      'id_token token'])
+
 
 def test_discover():
     c = Consumer(None, None)
@@ -487,6 +493,7 @@ def test_discover():
 #
 #    res = c.discover(principal)
 #    assert res == "http://example.net/providerconf"
+
 
 def test_provider_config():
     c = Consumer(None, None)
@@ -519,6 +526,7 @@ def test_provider_config():
 
     assert info["end_session_endpoint"] == "http://example.com/end_session"
 
+
 def test_client_register():
     c = Consumer(None, None)
 
@@ -537,3 +545,9 @@ def test_client_register():
     assert c.client_id is not None
     assert c.client_secret is not None
     assert c.registration_expires > utc_time_sans_frac()
+
+
+if __name__ == "__main__":
+    t = TestOICConsumer()
+    t.setup_class()
+    t.test_begin()

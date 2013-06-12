@@ -212,7 +212,7 @@ class MyFakeOICServer(Server):
 
         resp = RegistrationResponse(client_id=client_id,
                                     client_secret=client_secret,
-                                    expires_at=expires,
+                                    client_secret_expires_at=expires,
                                     **kwargs)
 
         response = Response()

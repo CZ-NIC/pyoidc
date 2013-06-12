@@ -66,7 +66,7 @@ class DummyAuthn(UserAuthnMethod):
         UserAuthnMethod.__init__(self, srv)
         self.user = user
 
-    def authenticated_as(self, **kwargs):
+    def authenticated_as(self, cookie=None, **kwargs):
         return {"uid": self.user}
 
 AUTHN = DummyAuthn(None, "dummy")
@@ -106,7 +106,7 @@ def test_provider_authorization_endpoint():
 
     QUERY_STRING = arq.to_urlencoded()
 
-    resp = provider.authorization_endpoint(query=QUERY_STRING)
+    resp = provider.authorization_endpoint(request=QUERY_STRING)
 
     assert isinstance(resp, Response)
 
@@ -175,7 +175,7 @@ def test_provider_authenticated_none():
 
     QUERY_STRING = location.split("?")[1]
 
-    resp2 = provider.authorization_endpoint(query=QUERY_STRING)
+    resp2 = provider.authorization_endpoint(request=QUERY_STRING)
 
     location = resp2.message
     print location
@@ -213,7 +213,7 @@ def test_token_endpoint():
                               client_id="client1", client_secret="hemlighet",)
 
     print areq.to_dict()
-    resp = provider.token_endpoint(post=areq.to_urlencoded())
+    resp = provider.token_endpoint(request=areq.to_urlencoded())
     print resp.message
     atr = AccessTokenResponse().deserialize(resp.message, "json")
 
@@ -249,8 +249,11 @@ def test_token_endpoint_unauth():
                               client_id="client2", client_secret="hemlighet",)
 
     print areq.to_dict()
-    resp = provider.token_endpoint(post=areq.to_urlencoded())
+    resp = provider.token_endpoint(request=areq.to_urlencoded())
     print resp.message
     atr = TokenErrorResponse().deserialize(resp.message, "json")
     print atr.keys()
     assert _eq(atr.keys(), ['error_description', 'error'])
+
+if __name__ == "__main__":
+    test_token_endpoint()

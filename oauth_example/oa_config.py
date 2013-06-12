@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 
-#issuer= "https://www.kodtest.se/rolandsOP"
 baseurl = "https://localhost"
 #baseurl = "https://lingon.ladok.umu.se"
 issuer = "%s:%%d" % baseurl
-keys = {
-    "RSA": {
-        "key": "cp_keys/key.pem",
-        "usage": ["enc", "sig"]
-    }
-}
+# keys = {
+#     "rsa": {
+#         "key": "oc_keys/key.pem",
+#         "usage": ["enc", "sig"]
+#     }
+# }
 
 # ..... If you want to use CAS authentication ....
 #AUTHN = "CasAuthnMethod"
-CAS_SERVER  = "https://cas.umu.se"
+CAS_SERVER = "https://cas.umu.se"
 SERVICE_URL = "%s/verify" % issuer
+
 # ..... Otherwise
 AUTHN = "Simple"
 
@@ -71,23 +71,7 @@ USERDB = {
     }
 }
 
-# =======  DISTRIBUTED CLAIMS ===========
-
-CLAIMS_PROVIDER = "https://localhost:8093/"
-
-CLIENT_INFO = {
-    CLAIMS_PROVIDER: {
-        "userclaims_endpoint":"%suserclaims" % CLAIMS_PROVIDER,
-        "client_id": "client_1",
-        "client_secret": "hemlig",
-        "x509_url": "%scp_keys/cert.pem" % CLAIMS_PROVIDER,
-        "jwk_url": "%scp_keys/pub.jwk" % CLAIMS_PROVIDER,
-    }
-}
-
 DISTDB = USERDB.copy()
-DISTDB["babs"]["_external_"] = {CLAIMS_PROVIDER: ["geolocation"]}
-DISTDB["upper"]["_external_"] = {CLAIMS_PROVIDER: ["geolocation"]}
 
 # ============= LDAP ==============
 
@@ -105,6 +89,5 @@ LDAP_EXTRAVALIDATION = {
     "verifyAttrValid": ['employee', 'staff', 'student']
 }
 
-USERINFO = "SIMPLE"
-#USERINFO = "DISTRIBUTED"
 #USERINFO = "LDAP"
+USERINFO = "SIMPLE"

@@ -3,16 +3,16 @@ import urllib
 import urlparse
 import json
 
-from jwkest import jws
-from jwkest import jwe
 from jwkest import b64d
-#from oic.oauth2 import DEF_SIGN_ALG
 import jwkest
+from jwkest.jwe import JWE
+from jwkest.jws import JWS
+from oic.oauth2.exception import PyoidcError
 
 logger = logging.getLogger(__name__)
 
 
-class MessageException(Exception):
+class MessageException(PyoidcError):
     pass
 
 
@@ -25,6 +25,10 @@ class MissingRequiredAttribute(MessageException):
         return "Missing required attribute '%s'" % self.attr
 
 
+class MissingRequiredValue(MessageException):
+    pass
+
+
 class TooManyValues(MessageException):
     pass
 
@@ -33,11 +37,11 @@ class DecodeError(MessageException):
     pass
 
 
-class GrantExpired(Exception):
+class GrantExpired(PyoidcError):
     pass
 
 
-class OldAccessToken(Exception):
+class OldAccessToken(PyoidcError):
     pass
 
 
@@ -165,7 +169,7 @@ class Message(object):
         try:
             return getattr(self, "from_%s" % method)(info, **kwargs)
         except AttributeError, err:
-            raise Exception("Unknown method (%s)" % err)
+            raise Exception("Unknown method (%s)" % method)
 
     def from_urlencoded(self, urlencoded, **kwargs):
         """
@@ -394,18 +398,12 @@ class Message(object):
         :return: A signed JWT
         """
 
-        if algorithm:
-            return jws.sign(self.to_json(lev), key, algorithm)
-        else:
-            return jwkest.pack(self.to_json(lev))
+        _jws = JWS(self.to_json(lev), alg=algorithm)
+        return _jws.sign_compact(key)
 
     def _add_key(self, keyjar, item, key):
         try:
-            for t, vs in keyjar.get_verify_key(owner=item).items():
-                try:
-                    key[t].extend(vs)
-                except KeyError:
-                    key[t] = vs
+            key.extend(keyjar.get_verify_key(owner=item))
         except KeyError:
             pass
 
@@ -439,13 +437,14 @@ class Message(object):
                 dkeys = keyjar.get_decrypt_key(owner="")
             else:
                 dkeys = {}
-            txt = jwe.decrypt(txt, dkeys, "private")
+            txt = JWE().decrypt(txt, dkeys, "private")
             try:
                 jso = json.loads(txt)
             except Exception:
                 pass
 
         # assume htype == 'JWS'
+        _jws = JWS()
         if not jso:
             try:
                 jso = jwkest.unpack(txt)[1]
@@ -468,7 +467,7 @@ class Message(object):
                             else:
                                 self._add_key(keyjar, jso[ent], key)
 
-                    jws.verify(txt, key)
+                    _jws.verify_compact(txt, key)
             except Exception:
                 raise
 
@@ -585,6 +584,13 @@ class Message(object):
         return dict([(key, val) for key, val in
                      self._dict.items() if key not in self.c_param])
 
+    def only_extras(self):
+        l = [key for key in self._dict.keys() if key in self.c_param]
+        if not l:
+            return True
+        else:
+            return False
+
 # =============================================================================
 
 
@@ -593,7 +599,7 @@ def by_schema(cls, **kwa):
 
 
 def add_non_standard(msg1, msg2):
-    for key, val in msg2.extra():
+    for key, val in msg2.extra().items():
         if key not in msg1.c_param:
             msg1[key] = val
 
@@ -696,7 +702,7 @@ class AccessTokenRequest(Message):
     c_param = {"grant_type": SINGLE_REQUIRED_STRING,
                "code": SINGLE_REQUIRED_STRING,
                "redirect_uri": SINGLE_REQUIRED_STRING,
-               "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+               #"scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
                "client_id": SINGLE_OPTIONAL_STRING,
                "client_secret": SINGLE_OPTIONAL_STRING}
     c_default = {"grant_type": "authorization_code"}

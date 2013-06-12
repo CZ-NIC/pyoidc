@@ -1,5 +1,6 @@
 import time
 from urlparse import urlparse
+from oic.oauth2.exception import InvalidRequest, PyoidcError
 
 __author__ = 'rohe0002'
 
@@ -7,10 +8,10 @@ import urllib
 import json
 import logging
 
-from oic.oauth2 import message
+from oic.oauth2 import message, MissingRequiredValue
 from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2 import VerificationError
-from oic.oauth2.message import Message
+from oic.oauth2.message import Message, REQUIRED_LIST_OF_SP_SEP_STRINGS
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
@@ -37,28 +38,26 @@ SINGLE_OPTIONAL_BOOLEAN = (bool, False, None, None)
 SINGLE_OPTIONAL_JSON = (dict, False, json_ser, json_deser)
 SINGLE_REQUIRED_INT = (int, True, None, None)
 
-
 #noinspection PyUnusedLocal
 def idtoken_deser(val, sformat="urlencoded"):
     # id_token are always serialized as a JWT
     return IdToken().deserialize(val, "jwt")
 
 
-def idtokenclaim_deser(val, sformat="urlencoded"):
-    if sformat in ["dict", "json"]:
-        if not isinstance(val, basestring):
-            val = json.dumps(val)
-            sformat = "json"
-    return IDTokenClaim().deserialize(val, sformat)
-
-
-def userinfo_deser(val, sformat="urlencoded"):
-    if sformat in ["dict", "json"]:
-        if not isinstance(val, basestring):
-            val = json.dumps(val)
-            sformat = "json"
-    return UserInfoClaim().deserialize(val, sformat)
-
+# def idtokenclaim_deser(val, sformat="urlencoded"):
+#     if sformat in ["dict", "json"]:
+#         if not isinstance(val, basestring):
+#             val = json.dumps(val)
+#             sformat = "json"
+#     return IDTokenClaim().deserialize(val, sformat)
+#
+#
+# def userinfo_deser(val, sformat="urlencoded"):
+#     if sformat in ["dict", "json"]:
+#         if not isinstance(val, basestring):
+#             val = json.dumps(val)
+#             sformat = "json"
+#     return UserInfoClaim().deserialize(val, sformat)
 
 def address_deser(val, sformat="urlencoded"):
     if sformat in ["dict", "json"]:
@@ -90,7 +89,7 @@ def msg_ser(inst, sformat, lev=0):
         else:
             raise ValueError("%s" % type(inst))
     else:
-        raise Exception("Unknown sformat")
+        raise PyoidcError("Unknown sformat")
 
     return res
 
@@ -124,7 +123,7 @@ def claims_ser(val, sformat="urlencoded", lev=0):
         else:
             raise ValueError("%s" % type(item))
     else:
-        raise Exception("Unknown sformat")
+        raise PyoidcError("Unknown sformat")
 
     return res
 
@@ -136,17 +135,27 @@ def registration_request_deser(val, sformat="urlencoded"):
             sformat = "json"
     return RegistrationRequest().deserialize(val, sformat)
 
+
+def claims_request_deser(val, sformat="urlencoded"):
+    if sformat in ["dict", "json"]:
+        if not isinstance(val, basestring):
+            val = json.dumps(val)
+            sformat = "json"
+    return ClaimsRequest().deserialize(val, sformat)
+
+
 OPTIONAL_ADDRESS = (Message, False, msg_ser, address_deser)
 OPTIONAL_LOGICAL = (bool, False, None, None)
 OPTIONAL_MULTIPLE_Claims = (Message, False, claims_ser, claims_deser)
-SINGLE_OPTIONAL_USERINFO_CLAIM = (Message, False, msg_ser, userinfo_deser)
-SINGLE_OPTIONAL_ID_TOKEN_CLAIM = (Message, False, msg_ser, idtokenclaim_deser)
+# SINGLE_OPTIONAL_USERINFO_CLAIM = (Message, False, msg_ser, userinfo_deser)
+# SINGLE_OPTIONAL_ID_TOKEN_CLAIM = (Message, False, msg_ser, idtokenclaim_deser)
 
 SINGLE_OPTIONAL_JWT = (basestring, False, msg_ser, None)
 SINGLE_OPTIONAL_IDTOKEN = (basestring, False, msg_ser, None)
 
 SINGLE_OPTIONAL_REGISTRATION_REQUEST = (Message, False, msg_ser,
                                         registration_request_deser)
+SINGLE_OPTIONAL_CLAIMSREQ = (Message, False, msg_ser, claims_request_deser)
 
 # ----------------------------------------------------------------------------
 
@@ -203,8 +212,9 @@ class AccessTokenResponse(message.AccessTokenResponse):
 
 class UserInfoRequest(Message):
     c_param = {"access_token": SINGLE_OPTIONAL_STRING,
-               "schema": SINGLE_REQUIRED_STRING,
-               "id": SINGLE_OPTIONAL_STRING}
+               #"schema": SINGLE_REQUIRED_STRING,
+               #"id": SINGLE_OPTIONAL_STRING
+               }
 
 
 class AuthorizationResponse(message.AuthorizationResponse,
@@ -284,6 +294,8 @@ class AuthorizationRequest(message.AuthorizationRequest):
     c_param = message.AuthorizationRequest.c_param.copy()
     c_param.update(
         {
+            "scope": REQUIRED_LIST_OF_SP_SEP_STRINGS,
+            "redirect_uri": SINGLE_REQUIRED_STRING,
             "nonce": SINGLE_OPTIONAL_STRING,
             "display": SINGLE_OPTIONAL_STRING,
             "prompt": OPTIONAL_LIST_OF_STRINGS,
@@ -293,10 +305,11 @@ class AuthorizationRequest(message.AuthorizationRequest):
             "id_token_hint": SINGLE_OPTIONAL_STRING,
             "login_hint": SINGLE_OPTIONAL_STRING,
             "acr_values": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-            "claims": SINGLE_OPTIONAL_JSON,
+            "claims": SINGLE_OPTIONAL_CLAIMSREQ,
             "registration": SINGLE_OPTIONAL_JSON,
             "request": SINGLE_OPTIONAL_STRING,
             "request_uri": SINGLE_OPTIONAL_STRING,
+            "session_state": SINGLE_OPTIONAL_STRING,
         }
     )
     c_allowed_values = message.AuthorizationRequest.c_allowed_values.copy()
@@ -348,6 +361,21 @@ class AuthorizationRequest(message.AuthorizationRequest):
             except AssertionError:
                 raise MissingRequiredAttribute("Nonce missing")
 
+        try:
+            assert "openid" in self["scope"]
+        except AssertionError:
+            raise MissingRequiredValue("openid in scope")
+
+        if "offline_access" in self["scope"]:
+            try:
+                assert "consent" in self["prompt"]
+            except AssertionError:
+                raise MissingRequiredValue("consent in prompt")
+
+        if "prompt" in self:
+            if "none" in self["prompt"] and len(self["prompt"]) > 1:
+                raise InvalidRequest("prompt none combined with other value")
+
         return super(AuthorizationRequest, self).verify(**kwargs)
 
 
@@ -391,6 +419,7 @@ class OpenIDSchema(Message):
                "zoneinfo": SINGLE_OPTIONAL_STRING,
                "locale": SINGLE_OPTIONAL_STRING,
                "phone_number": SINGLE_OPTIONAL_STRING,
+               "phone_number_verified": SINGLE_OPTIONAL_STRING,
                "address": OPTIONAL_ADDRESS,
                "updated_at": SINGLE_OPTIONAL_INT,
                "_claim_names": SINGLE_OPTIONAL_JSON,
@@ -462,8 +491,8 @@ class RegistrationResponse(Message):
         "client_secret": SINGLE_OPTIONAL_STRING,
         "registration_access_token": SINGLE_REQUIRED_STRING,
         "registration_client_uri": SINGLE_REQUIRED_STRING,
-        "issued_at": SINGLE_OPTIONAL_INT,
-        "expires_at": SINGLE_OPTIONAL_INT,
+        "client_id_issued_at": SINGLE_OPTIONAL_INT,
+        "client_secret_expires_at": SINGLE_OPTIONAL_INT,
     }
     c_param.update(RegistrationRequest.c_param)
 
@@ -479,7 +508,6 @@ class IdToken(OpenIDSchema):
         "iss": SINGLE_REQUIRED_STRING,
         "sub": SINGLE_REQUIRED_STRING,
         "aud": REQUIRED_LIST_OF_STRINGS,  # Array of strings or string
-        "azp": SINGLE_OPTIONAL_STRING,
         "exp": SINGLE_REQUIRED_INT,
         "iat": SINGLE_REQUIRED_INT,
         "auth_time": SINGLE_OPTIONAL_INT,
@@ -488,6 +516,7 @@ class IdToken(OpenIDSchema):
         "c_hash": SINGLE_OPTIONAL_STRING,
         "acr": SINGLE_OPTIONAL_STRING,
         "amr": OPTIONAL_LIST_OF_STRINGS,
+        "azp": OPTIONAL_LIST_OF_STRINGS,  # Array of strings or string
         "sub_jwk": SINGLE_OPTIONAL_STRING
     })
 
@@ -534,28 +563,25 @@ class Claims(Message):
     c_param = {"*": SINGLE_OPTIONAL_JSON}
 
 
-class UserInfoClaim(Message):
-    c_param = {"claims": OPTIONAL_MULTIPLE_Claims,
-               "preferred_locale": SINGLE_OPTIONAL_STRING}
+class ClaimsRequest(Message):
+    c_param = {
+        "userinfo": OPTIONAL_MULTIPLE_Claims,
+        "id_token": OPTIONAL_MULTIPLE_Claims
+    }
 
 
-class IDTokenClaim(Message):
-    c_param = {"claims": OPTIONAL_MULTIPLE_Claims,
-               "max_age": SINGLE_OPTIONAL_INT}
+# class UserInfoClaim(Message):
+#     c_param = {"claims": OPTIONAL_MULTIPLE_Claims,
+#                "preferred_locale": SINGLE_OPTIONAL_STRING}
+#
+#
+# class IDTokenClaim(Message):
+#     c_param = {"claims": OPTIONAL_MULTIPLE_Claims,
+#                "max_age": SINGLE_OPTIONAL_INT}
 
 
-class OpenIDRequest(message.AuthorizationRequest):
-    c_param = message.AuthorizationRequest.c_param.copy()
-    c_param.update(
-        {
-            "userinfo": SINGLE_OPTIONAL_USERINFO_CLAIM,
-            "id_token": SINGLE_OPTIONAL_ID_TOKEN_CLAIM,
-            #"iss": SINGLE_OPTIONAL_STRING,
-            #"aud": OPTIONAL_LIST_OF_STRINGS,
-            #"nonce": SINGLE_OPTIONAL_STRING,
-            #"registration": SINGLE_OPTIONAL_REGISTRATION_REQUEST
-        }
-    )
+class OpenIDRequest(AuthorizationRequest):
+    pass
 
 
 class ProviderConfigurationResponse(Message):
@@ -590,7 +616,7 @@ class ProviderConfigurationResponse(Message):
             OPTIONAL_LIST_OF_STRINGS,
         "token_endpoint_auth_methods_supported": OPTIONAL_LIST_OF_STRINGS,
         "token_endpoint_auth_signing_alg_values_supported":
-            OPTIONAL_LIST_OF_STRINGS,
+                OPTIONAL_LIST_OF_STRINGS,
         "display_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "claim_types_supported": OPTIONAL_LIST_OF_STRINGS,
         "claims_supported": OPTIONAL_LIST_OF_STRINGS,
@@ -687,8 +713,8 @@ MSG = {
     "EndSessionRequest": EndSessionRequest,
     "EndSessionResponse": EndSessionResponse,
     "Claims": Claims,
-    "UserInfoClaim": UserInfoClaim,
-    "IDTokenClaim": IDTokenClaim,
+    # "UserInfoClaim": UserInfoClaim,
+    # "IDTokenClaim": IDTokenClaim,
     "OpenIDRequest": OpenIDRequest,
     "ProviderConfigurationResponse": ProviderConfigurationResponse,
     "AuthnToken": AuthnToken,
@@ -706,7 +732,7 @@ def factory(msgtype):
         if msgtype == "ErrorResponse":
             return message.ErrorResponse
         else:
-            raise Exception("Unknown message type: %s" % msgtype)
+            raise PyoidcError("Unknown message type: %s" % msgtype)
 
 if __name__ == "__main__":
     atr = AccessTokenResponse(access_token="access_token",

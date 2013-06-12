@@ -46,15 +46,19 @@ ENDPOINTS = ["authorization_endpoint", "token_endpoint",
 logger = logging.getLogger(__name__)
 
 
-class HTTP_ERROR(Exception):
+class HTTP_ERROR(PyoidcError):
     pass
 
 
-class MISSING_REQUIRED_ATTRIBUTE(Exception):
+class MISSING_REQUIRED_ATTRIBUTE(PyoidcError):
     pass
 
 
-class VerificationError(Exception):
+class VerificationError(PyoidcError):
+    pass
+
+
+class ResponseError(PyoidcError):
     pass
 
 
@@ -72,7 +76,7 @@ def rndstr(size=16):
 # -----------------------------------------------------------------------------
 
 
-class ExpiredToken(Exception):
+class ExpiredToken(PyoidcError):
     pass
 
 # -----------------------------------------------------------------------------
@@ -396,7 +400,7 @@ class Client(PBase):
         # client uses it for signing
         # Server might also use it for signing which means the
         # client uses it for verifying server signatures
-        self.keyjar.add_hmac("", val, ["sig"])
+        self.keyjar.add_symmetric("", str(val), ["sig"])
 
     client_secret = property(get_client_secret, set_client_secret)
 
@@ -685,8 +689,8 @@ class Client(PBase):
         Parse a response
 
         :param response: Response type
-        :param info: The response, can be either an JSON code or an urlencoded
-            form:
+        :param info: The response, can be either in a JSON or an urlencoded
+            format
         :param sformat: Which serialization that was used
         :param state:
         :param kwargs: Extra key word arguments
@@ -726,10 +730,12 @@ class Client(PBase):
                             err = aerr
                 except KeyError:
                     pass
+            elif resp.only_extras():
+                resp = None
             else:
                 verf = resp.verify(**kwargs)
                 if not verf:
-                    raise Exception("Verification of the response failed")
+                    raise PyoidcError("Verification of the response failed")
                 if resp.type() == "AuthorizationResponse" and \
                         "scope" not in resp:
                     try:
@@ -744,7 +750,7 @@ class Client(PBase):
             if err:
                 raise err
             else:
-                raise Exception()
+                raise ResponseError("Missing or faulty response")
 
         if resp.type() in ["AuthorizationResponse", "AccessTokenResponse"]:
             try:
