@@ -1046,10 +1046,9 @@ class Provider(AProvider):
         try:
             _response = ProviderConfigurationResponse(
                 issuer=self.baseurl,
-                token_endpoint_auth_types_supported=["client_secret_post",
-                                                     "client_secret_basic",
-                                                     "client_secret_jwt",
-                                                     "private_key_jwt"],
+                token_endpoint_auth_methods_supported=[
+                    "client_secret_post", "client_secret_basic",
+                    "client_secret_jwt", "private_key_jwt"],
                 scopes_supported=["openid"],
                 response_types_supported=["code", "token", "id_token",
                                           "code token", "code id_token",

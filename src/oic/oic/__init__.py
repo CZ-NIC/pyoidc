@@ -186,7 +186,7 @@ class Grant(oauth2.Grant):
                 self.tokens.append(tok)
 
 PREFERENCE2PROVIDER = {
-    "token_endpoint_auth_type": "token_endpoint_auth_types_supported",
+    "token_endpoint_auth_method": "token_endpoint_auth_methods_supported",
     "require_signed_request_object": "request_object_algs_supported",
     "userinfo_signed_response_algs": "userinfo_signing_alg_values_supported",
     "userinfo_encrypted_response_alg":
@@ -205,7 +205,7 @@ PREFERENCE2PROVIDER = {
 }
 
 PROVIDER_DEFAULT = {
-    "token_endpoint_auth_type": "client_secret_basic",
+    "token_endpoint_auth_method": "client_secret_basic",
     "id_token_signed_response_alg": "RS256",
 }
 
