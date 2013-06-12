@@ -564,7 +564,7 @@ def test_provider_key_setup():
     provider = Provider("pyoicserv", SessionDB(), None, None, None, None, None,
                         "")
     provider.baseurl = "http://www.example.com/"
-    provider.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
+    provider.key_setup("static", sig={"format": "jwk", "alg": "RSA"})
 
     keys = provider.keyjar.get_signing_key("RSA")
     assert len(keys) == 1
