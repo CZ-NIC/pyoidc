@@ -6,7 +6,7 @@ from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import keybundle_from_local_file
 from oic.utils.keyio import RSA_key
 
-from jwkest.jws import JWS, NoSuitableSigningKeys
+from jwkest.jws import JWS, NoSuitableSigningKeys, WrongTypeOfKey
 
 
 RSAKEY = "../oc3/certs/mycert.key"
@@ -134,9 +134,9 @@ def test_signing():
     try:
         _jwt = _jws.sign_compact(keys)
         assert False
-    except NoSuitableSigningKeys:
+    except (NoSuitableSigningKeys, WrongTypeOfKey):
         assert True
 
 
 if __name__ == "__main__":
-    test_keyjar_remove_key()
+    test_signing()
