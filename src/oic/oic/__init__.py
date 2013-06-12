@@ -37,7 +37,7 @@ from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import rndstr
 from oic.oauth2.consumer import ConfigurationError
 
-from oic.oauth2.exception import AccessDenied
+from oic.oauth2.exception import AccessDenied, PyoidcError
 
 from oic.utils import time_util
 
@@ -362,7 +362,7 @@ class Client(oauth2.Client):
                 kwargs["scope"] = "openid"
             token = self.get_token(**kwargs)
             if token is None:
-                raise Exception("No valid token available")
+                raise PyoidcError("No valid token available")
 
             request_args["access_token"] = token.access_token
 
@@ -399,7 +399,7 @@ class Client(oauth2.Client):
         else:
             id_token = self._get_id_token(**kwargs)
             if id_token is None:
-                raise Exception("No valid id token available")
+                raise PyoidcError("No valid id token available")
 
             request_args[_prop] = id_token
 
@@ -654,9 +654,9 @@ class Client(oauth2.Client):
                 assert "application/jwt" in resp.headers["content-type"]
                 sformat = "jwt"
         elif resp.status_code == 500:
-            raise Exception("ERROR: Something went wrong: %s" % resp.text)
+            raise PyoidcError("ERROR: Something went wrong: %s" % resp.text)
         else:
-            raise Exception("ERROR: Something went wrong [%s]: %s" % (
+            raise PyoidcError("ERROR: Something went wrong [%s]: %s" % (
                 resp.status_code, resp.text))
 
         try:
@@ -703,9 +703,9 @@ class Client(oauth2.Client):
         if resp.status_code == 200:
             assert "application/json" in resp.headers["content-type"]
         elif resp.status_code == 500:
-            raise Exception("ERROR: Something went wrong: %s" % resp.text)
+            raise PyoidcError("ERROR: Something went wrong: %s" % resp.text)
         else:
-            raise Exception(
+            raise PyoidcError(
                 "ERROR: Something went wrong [%s]" % resp.status_code)
 
         return schema_class().from_json(txt=resp.text)
@@ -730,7 +730,7 @@ class Client(oauth2.Client):
                     break
 
         if pcr is None:
-            raise Exception("Trying '%s', status %s" % (url, r.status_code))
+            raise PyoidcError("Trying '%s', status %s" % (url, r.status_code))
 
         if "issuer" in pcr:
             _pcr_issuer = pcr["issuer"]
@@ -748,7 +748,7 @@ class Client(oauth2.Client):
             try:
                 assert _issuer == _pcr_issuer
             except AssertionError:
-                raise Exception("provider info issuer mismatch '%s' != '%s'" % (
+                raise PyoidcError("provider info issuer mismatch '%s' != '%s'" % (
                     _issuer, _pcr_issuer))
 
             self.provider_info[_pcr_issuer] = pcr
@@ -893,7 +893,7 @@ class Client(oauth2.Client):
             self.registration_access_token = resp["registration_access_token"]
         else:
             err = ErrorResponse().deserialize(response.text, "json")
-            raise Exception("Registration failed: %s" % err.get_json())
+            raise PyoidcError("Registration failed: %s" % err.get_json())
 
         return resp
 
@@ -1023,7 +1023,7 @@ class Server(oauth2.Server):
                 query = data
             request = request().from_urlencoded(query)
         else:
-            raise Exception("Unknown package format: '%s'" % sformat)
+            raise PyoidcError("Unknown package format: '%s'" % sformat)
 
         # get the verification keys
         if client_id:

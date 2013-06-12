@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import logging
+from oic.oauth2.exception import PyoidcError
 
 __author__ = 'rohe0002'
 
@@ -299,7 +300,7 @@ class Consumer(Client):
                 self._backup(sid)
         else:
             if "userinfo_claims" in args:  # can only be carried in an IDRequest
-                raise Exception("Need a request method")
+                raise PyoidcError("Need a request method")
 
             areq = self.construct_AuthorizationRequest(AuthorizationRequest,
                                                        request_args=args)
@@ -393,7 +394,7 @@ class Consumer(Client):
                          "client_id": self.client_id,
                          "secret_type": self.secret_type})
         else:
-            raise Exception("Nothing to authenticate with")
+            raise PyoidcError("Nothing to authenticate with")
 
         resp = self.do_access_token_request(state=self.state,
                                             request_args=args,

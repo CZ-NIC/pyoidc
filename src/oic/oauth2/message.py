@@ -3,18 +3,16 @@ import urllib
 import urlparse
 import json
 
-from jwkest import jws
-from jwkest import jwe
 from jwkest import b64d
-#from oic.oauth2 import DEF_SIGN_ALG
 import jwkest
 from jwkest.jwe import JWE
 from jwkest.jws import JWS
+from oic.oauth2.exception import PyoidcError
 
 logger = logging.getLogger(__name__)
 
 
-class MessageException(Exception):
+class MessageException(PyoidcError):
     pass
 
 
@@ -39,11 +37,11 @@ class DecodeError(MessageException):
     pass
 
 
-class GrantExpired(Exception):
+class GrantExpired(PyoidcError):
     pass
 
 
-class OldAccessToken(Exception):
+class OldAccessToken(PyoidcError):
     pass
 
 
@@ -171,7 +169,7 @@ class Message(object):
         try:
             return getattr(self, "from_%s" % method)(info, **kwargs)
         except AttributeError, err:
-            raise Exception("Unknown method (%s)" % err)
+            raise Exception("Unknown method (%s)" % method)
 
     def from_urlencoded(self, urlencoded, **kwargs):
         """

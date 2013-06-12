@@ -1,6 +1,6 @@
 import time
 from urlparse import urlparse
-from oic.oauth2.exception import InvalidRequest
+from oic.oauth2.exception import InvalidRequest, PyoidcError
 
 __author__ = 'rohe0002'
 
@@ -89,7 +89,7 @@ def msg_ser(inst, sformat, lev=0):
         else:
             raise ValueError("%s" % type(inst))
     else:
-        raise Exception("Unknown sformat")
+        raise PyoidcError("Unknown sformat")
 
     return res
 
@@ -123,7 +123,7 @@ def claims_ser(val, sformat="urlencoded", lev=0):
         else:
             raise ValueError("%s" % type(item))
     else:
-        raise Exception("Unknown sformat")
+        raise PyoidcError("Unknown sformat")
 
     return res
 
@@ -732,7 +732,7 @@ def factory(msgtype):
         if msgtype == "ErrorResponse":
             return message.ErrorResponse
         else:
-            raise Exception("Unknown message type: %s" % msgtype)
+            raise PyoidcError("Unknown message type: %s" % msgtype)
 
 if __name__ == "__main__":
     atr = AccessTokenResponse(access_token="access_token",
