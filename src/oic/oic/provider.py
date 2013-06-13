@@ -397,6 +397,10 @@ class Provider(AProvider):
             logger.debug("Bad request: %s (%s)" % (err, err.__class__.__name__))
             return BadRequest("%s" % err)
 
+        if not areq:
+            logger.debug("No AuthzRequest")
+            return self._error("invalid_request", "No parsable AuthzRequest")
+
         logger.debug("AuthzRequest: %s" % (areq.to_dict(),))
         try:
             redirect_uri = self.get_redirect_uri(areq)
