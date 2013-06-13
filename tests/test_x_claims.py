@@ -5,7 +5,7 @@ from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
 from oic.utils.userinfo import UserInfo
-from tests.pinit import KEYJAR
+from pinit import KEYJAR
 
 __author__ = 'rohe0002'
 
