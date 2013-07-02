@@ -364,7 +364,7 @@ class PBase(object):
         try:
             logger.info("RECEIVED COOKIEs: %s" % (r.headers["set-cookie"],))
             self.set_cookie(SimpleCookie(r.headers["set-cookie"]), r)
-        except AttributeError:
+        except (AttributeError, KeyError):
             pass
 
         return r
