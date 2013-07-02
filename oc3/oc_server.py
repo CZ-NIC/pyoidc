@@ -158,7 +158,7 @@ def css(environ, start_response, logger):
     try:
         info = open(environ["PATH_INFO"]).read()
         resp = Response(info)
-    except OSError:
+    except (OSError, IOError):
         resp = NotFound(environ["PATH_INFO"])
 
     return resp(environ, start_response)
