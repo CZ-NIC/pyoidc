@@ -384,7 +384,10 @@ class Provider(AProvider):
         # Same serialization used for GET and POST
         try:
             areq = self.server.parse_authorization_request(query=request)
-        except (MissingRequiredAttribute, KeyError):
+        except MissingRequiredAttribute, err:
+            logger.debug("%s" % err)
+            return self._error("invalid_request", "%s" % err)
+        except KeyError:
             areq = AuthorizationRequest().deserialize(request, "urlencoded")
             # verify the redirect_uri
             try:
@@ -404,7 +407,7 @@ class Provider(AProvider):
         logger.debug("AuthzRequest: %s" % (areq.to_dict(),))
         try:
             redirect_uri = self.get_redirect_uri(areq)
-        except (RedirectURIError, ParameterError), err:
+        except (RedirectURIError, ParameterError, UnknownClient), err:
             return self._error("invalid_request", "%s" % err)
 
         try:
