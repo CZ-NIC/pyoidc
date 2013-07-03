@@ -211,10 +211,9 @@ class AccessTokenResponse(message.AccessTokenResponse):
 
 
 class UserInfoRequest(Message):
-    c_param = {"access_token": SINGLE_OPTIONAL_STRING,
-               #"schema": SINGLE_REQUIRED_STRING,
-               #"id": SINGLE_OPTIONAL_STRING
-               }
+    c_param = {
+        "access_token": SINGLE_OPTIONAL_STRING,
+    }
 
 
 class AuthorizationResponse(message.AuthorizationResponse,
