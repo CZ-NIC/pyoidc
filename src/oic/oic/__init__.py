@@ -600,11 +600,6 @@ class Client(oauth2.Client):
                 except Exception:
                     raise
 
-        try:
-            uir["schema"] = kwargs["schema"]
-        except KeyError:
-            pass
-
         uri = self._endpoint("userinfo_endpoint", **kwargs)
         # If access token is a bearer token it might be sent in the
         # authorization header
@@ -678,10 +673,6 @@ class Client(oauth2.Client):
                             schema_class=OpenIDSchema, **kwargs):
 
         uir = UserInfoRequest(access_token=access_token)
-        try:
-            uir["schema"] = kwargs["schema"]
-        except KeyError:
-            pass
 
         h_args = dict([(k, v) for k, v in kwargs.items() if k in HTTP_ARGS])
 
