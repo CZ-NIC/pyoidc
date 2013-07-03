@@ -462,7 +462,12 @@ class Message(object):
                             if ent not in jso:
                                 continue
                             if ent == "aud":
-                                for _e in jso[ent]:
+                                # list or basestring
+                                if isinstance(jso["aud"], basestring):
+                                    _aud = [jso["aud"]]
+                                else:
+                                    _aud = jso["aud"]
+                                for _e in _aud:
                                     self._add_key(keyjar, _e, key)
                             else:
                                 self._add_key(keyjar, jso[ent], key)
