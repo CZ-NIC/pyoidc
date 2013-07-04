@@ -752,14 +752,14 @@ class ROPCAccessTokenRequest(Message):
         "grant_type": SINGLE_REQUIRED_STRING,
         "username": SINGLE_OPTIONAL_STRING,
         "password": SINGLE_OPTIONAL_STRING,
-        "scope": SINGLE_OPTIONAL_STRING
+        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS
     }
 
 
 class CCAccessTokenRequest(Message):
     c_param = {
         "grant_type": SINGLE_REQUIRED_STRING,
-        "scope": SINGLE_OPTIONAL_STRING
+        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS
     }
     c_default = {"grant_type": "client_credentials"}
     c_allowed_values = {"grant_type": ["client_credentials"]}
@@ -770,7 +770,7 @@ class RefreshAccessTokenRequest(Message):
         "grant_type": SINGLE_REQUIRED_STRING,
         "refresh_token": SINGLE_REQUIRED_STRING,
         "client_id": SINGLE_REQUIRED_STRING,
-        "scope": SINGLE_OPTIONAL_STRING,
+        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
         "client_secret": SINGLE_OPTIONAL_STRING
     }
     c_default = {"grant_type": "refresh_token"}
