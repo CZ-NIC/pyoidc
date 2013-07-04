@@ -132,8 +132,10 @@ class Message(object):
                     except KeyError:
                         _ser = None
 
-            # Should I allow parameters with "" as value ???
-            if isinstance(val, basestring):
+            if val is None:
+                continue
+            elif isinstance(val, basestring):
+                # Should I allow parameters with "" as value ???
                 params.append((key, unicode(val)))
             elif isinstance(val, list):
                 if _ser:
