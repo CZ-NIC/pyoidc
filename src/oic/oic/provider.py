@@ -830,29 +830,29 @@ class Provider(AProvider):
                     ruri.append((base, query))
             _cinfo["redirect_uris"] = ruri
 
-        if "sector_identifier_url" in request:
-            si_url = request["sector_identifier_url"]
+        if "sector_identifier_uri" in request:
+            si_url = request["sector_identifier_uri"]
             try:
                 res = self.server.http_request(si_url)
             except ConnectionError, err:
                 logger.error("%s" % err)
                 return self._error_response(
                     "invalid_configuration_parameter",
-                    descr="Couldn't open sector_identifier_url")
+                    descr="Couldn't open sector_identifier_uri")
 
             if not res:
                 return self._error_response(
                     "invalid_configuration_parameter",
-                    descr="Couldn't open sector_identifier_url")
+                    descr="Couldn't open sector_identifier_uri")
 
-            logger.debug("sector_identifier_url => %s" % res.text)
+            logger.debug("sector_identifier_uri => %s" % res.text)
 
             try:
                 si_redirects = json.loads(res.text)
             except ValueError:
                 return self._error_response(
                     "invalid_configuration_parameter",
-                    descr="Error deserializing sector_identifier_url content")
+                    descr="Error deserializing sector_identifier_uri content")
 
             if "redirect_uris" in request:
                 logger.debug("redirect_uris: %s" % request["redirect_uris"])
@@ -883,7 +883,7 @@ class Provider(AProvider):
                             return self._error_response(
                                 "invalid_configuration_parameter",
                                 descr=
-                                "'sector_identifier_url' must be registered")
+                                "'sector_identifier_uri' must be registered")
 
         for item in ["policy_url", "logo_url"]:
             if item in request:
