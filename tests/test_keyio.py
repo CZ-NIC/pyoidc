@@ -138,5 +138,15 @@ def test_signing():
         assert True
 
 
+def test_kid_usage():
+    kb = keybundle_from_local_file("file://jwk.json", "jwk", ["ver", "sig"])
+    kj = KeyJar()
+    kj.issuer_keys["https://example.com"] = [kb]
+
+    _key = kj.get_key_by_kid("abc", "https://example.com")
+    assert _key
+    assert _key.kid == "abc"
+
+
 if __name__ == "__main__":
-    test_signing()
+    test_kid_usage()

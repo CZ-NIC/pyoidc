@@ -433,6 +433,11 @@ class Message(object):
         except KeyError:
             htype = None
 
+        try:
+            _kid = header["kid"]
+        except KeyError:
+            _kid = ""
+
         jso = None
         if htype == "JWE" or ("alg" in header and "enc" in header):  # encrypted
             if keyjar:
@@ -450,6 +455,20 @@ class Message(object):
         if not jso:
             try:
                 jso = jwkest.unpack(txt)[1]
+
+                if "jku" in header:
+                    if not keyjar.find(header["jku"], jso["iss"]):
+                        # This is really questionable
+                        try:
+                            if kwargs["trusting"]:
+                                keyjar.add(jso["iss"], header["jku"])
+                        except KeyError:
+                            pass
+
+                if _kid:
+                    _key = keyjar.get_key_by_kid(_kid, jso["iss"])
+                    if _key:
+                        key.append(_key)
 
                 try:
                     self._add_key(keyjar, kwargs["opponent_id"], key)

@@ -1,4 +1,5 @@
 import json
+import time
 
 __author__ = 'rohe0002'
 
@@ -219,6 +220,12 @@ class KeyBundle(object):
     def __len__(self):
         return len(self._keys)
 
+    def get_key_with_kid(self, kid):
+        for key in self._keys:
+            if key.kid == kid:
+                return key
+        return None
+
 
 def keybundle_from_local_file(filename, typ, usage):
     if typ.upper() == "RSA":
@@ -381,6 +388,20 @@ class KeyJar(object):
     def get_decrypt_key(self, key_type="", owner=""):
         return self.get("dec", key_type, owner)
 
+    def get_key_by_kid(self, kid, owner=""):
+        """
+        Return the key from a specific owner that has a specific kid
+
+        :param kid: The key identifier
+        :param owner: The owner of the key
+        :return: a specific key instance or None
+        """
+        for kb in self.issuer_keys[owner]:
+            _key = kb.get_key_with_kid(kid)
+            if _key:
+                return _key
+        return None
+
     def __contains__(self, item):
         if item in self.issuer_keys:
             return True
@@ -477,6 +498,20 @@ class KeyJar(object):
             self.add(issuer, pcr["jwks_uri"])
         except KeyError:
             pass
+
+    def find(self, source, issuer):
+        """
+        Find a key bundle
+        :param source: A url
+        :param issuer: The issuer of keys
+        """
+        try:
+            for kb in self.issuer_keys[issuer]:
+                if kb.source == source:
+                    return kb
+        except KeyError:
+            return None
+
 
 
 # =============================================================================
@@ -626,7 +661,6 @@ def proper_path(path):
 # heavily influenced by
 # http://svn.osafoundation.org/m2crypto/trunk/tests/test_x509.py
 
-import time
 from M2Crypto import EVP
 from M2Crypto import X509
 from M2Crypto import RSA
