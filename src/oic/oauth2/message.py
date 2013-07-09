@@ -455,6 +455,8 @@ class Message(object):
         if not jso:
             try:
                 jso = jwkest.unpack(txt)[1]
+                if isinstance(jso, basestring):
+                    jso = json.loads(jso)
 
                 if "jku" in header:
                     if not keyjar.find(header["jku"], jso["iss"]):
@@ -475,8 +477,6 @@ class Message(object):
                 except KeyError:
                     pass
 
-                if isinstance(jso, basestring):
-                    jso = json.loads(jso)
                 if verify:
                     if keyjar:
                         for ent in ["iss", "aud", "client_id"]:
