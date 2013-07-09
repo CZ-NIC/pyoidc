@@ -346,6 +346,13 @@ class PBase(object):
                 except ValueError:
                     pass
             else:
+                # Fix for Microsoft cookie error
+                if "version" in std_attr:
+                    try:
+                        std_attr["version"] = std_attr["version"].split(",")[0]
+                    except (TypeError, AttributeError):
+                        pass
+                    
                 new_cookie = cookielib.Cookie(**std_attr)
 
                 self.cookiejar.set_cookie(new_cookie)
@@ -364,7 +371,7 @@ class PBase(object):
         try:
             logger.info("RECEIVED COOKIEs: %s" % (r.headers["set-cookie"],))
             self.set_cookie(SimpleCookie(r.headers["set-cookie"]), r)
-        except (AttributeError, KeyError):
+        except (AttributeError, KeyError), err:
             pass
 
         return r
