@@ -62,6 +62,10 @@ class ResponseError(PyoidcError):
     pass
 
 
+class TimeFormatError(Exception):
+    pass
+
+
 def rndstr(size=16):
     """
     Returns a string of random ascii characters or digits
@@ -255,11 +259,15 @@ import time
 
 def _since_epoch(cdate):
     # date format 'Wed, 06-Jun-2012 01:34:34 GMT'
-    cdate = cdate[5:-4]
     try:
-        t = time.strptime(cdate, "%d-%b-%Y %H:%M:%S")
-    except ValueError:
-        t = time.strptime(cdate, "%d-%b-%y %H:%M:%S")
+        _cdate = cdate[5:-4]
+        try:
+            t = time.strptime(_cdate, "%d-%b-%Y %H:%M:%S")
+        except ValueError:
+            t = time.strptime(_cdate, "%d-%b-%y %H:%M:%S")
+    except Exception:
+        raise TimeFormatError(cdate)
+
     return int(time.mktime(t))
 
 
@@ -303,17 +311,25 @@ class PBase(object):
                 std_attr["value"] = _tmp
 
             std_attr["version"] = 0
+            attr = ""
             # copy attributes that have values
-            for attr in morsel.keys():
-                if attr in ATTRS:
-                    if morsel[attr]:
-                        if attr == "expires":
-                            std_attr[attr] = _since_epoch(morsel[attr])
-                        else:
-                            std_attr[attr] = morsel[attr]
-                elif attr == "max-age":
-                    if morsel["max-age"]:
-                        std_attr["expires"] = _since_epoch(morsel["max-age"])
+            try:
+                for attr in morsel.keys():
+                    if attr in ATTRS:
+                        if morsel[attr]:
+                            if attr == "expires":
+                                std_attr[attr] = _since_epoch(morsel[attr])
+                            else:
+                                std_attr[attr] = morsel[attr]
+                    elif attr == "max-age":
+                        if morsel[attr]:
+                            std_attr["expires"] = _since_epoch(morsel[attr])
+            except TimeFormatError:
+                # Ignore cookie
+                logger.info(
+                    "Time format error on %s parameter in received cookie" % (
+                        attr,))
+                continue
 
             for att, spec in PAIRS.items():
                 if std_attr[att]:
@@ -330,6 +346,13 @@ class PBase(object):
                 except ValueError:
                     pass
             else:
+                # Fix for Microsoft cookie error
+                if "version" in std_attr:
+                    try:
+                        std_attr["version"] = std_attr["version"].split(",")[0]
+                    except (TypeError, AttributeError):
+                        pass
+                    
                 new_cookie = cookielib.Cookie(**std_attr)
 
                 self.cookiejar.set_cookie(new_cookie)
@@ -348,7 +371,7 @@ class PBase(object):
         try:
             logger.info("RECEIVED COOKIEs: %s" % (r.headers["set-cookie"],))
             self.set_cookie(SimpleCookie(r.headers["set-cookie"]), r)
-        except AttributeError:
+        except (AttributeError, KeyError), err:
             pass
 
         return r

@@ -211,10 +211,9 @@ class AccessTokenResponse(message.AccessTokenResponse):
 
 
 class UserInfoRequest(Message):
-    c_param = {"access_token": SINGLE_OPTIONAL_STRING,
-               #"schema": SINGLE_REQUIRED_STRING,
-               #"id": SINGLE_OPTIONAL_STRING
-               }
+    c_param = {
+        "access_token": SINGLE_OPTIONAL_STRING,
+    }
 
 
 class AuthorizationResponse(message.AuthorizationResponse,
@@ -445,7 +444,7 @@ class RegistrationRequest(Message):
         "response_types": OPTIONAL_LIST_OF_STRINGS,
         "grant_types": OPTIONAL_LIST_OF_STRINGS,
         "application_type": SINGLE_OPTIONAL_STRING,
-        "contacts": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+        "contacts": OPTIONAL_LIST_OF_STRINGS,
         "client_name": SINGLE_OPTIONAL_STRING,
         "logo_uri": SINGLE_OPTIONAL_STRING,
         "token_endpoint_auth_method": SINGLE_OPTIONAL_STRING,
@@ -463,7 +462,7 @@ class RegistrationRequest(Message):
         "id_token_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
         "default_max_age": SINGLE_OPTIONAL_INT,
         "require_auth_time": OPTIONAL_LOGICAL,
-        "default_acr_values": SINGLE_OPTIONAL_STRING,
+        "default_acr_values": OPTIONAL_LIST_OF_STRINGS,
         "initiate_login_uri": SINGLE_OPTIONAL_STRING,
         "post_logout_redirect_url": SINGLE_OPTIONAL_STRING,
         "request_uris": OPTIONAL_LIST_OF_STRINGS,

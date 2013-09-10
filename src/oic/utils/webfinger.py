@@ -1,5 +1,8 @@
+# coding=utf-8
 import json
+import re
 from urllib import urlencode
+import urlparse
 import requests
 from oic.utils.time_util import in_a_while
 
@@ -7,6 +10,7 @@ __author__ = 'rolandh'
 
 WF_URL = "https://%s/.well-known/webfinger"
 OIC_ISSUER = "http://openid.net/specs/connect/1.0/issuer"
+
 
 class Base(object):
     c_param = {}
@@ -19,8 +23,8 @@ class Base(object):
     def __setitem__(self, item, val):
         spec = self.c_param[item]
         try:
-            t1,t2 = spec["type"]
-            if t1 == list: # Should always be
+            t1, t2 = spec["type"]
+            if t1 == list:  # Should always be
                 assert not isinstance(val, basestring)
                 assert isinstance(val, list)
                 res = []
@@ -43,10 +47,9 @@ class Base(object):
             except AssertionError:
                 pass
 
-
     def load(self, dictionary):
-        for key,spec in self.c_param.items():
-            if key not in dictionary and spec["required"] == True:
+        for key, spec in self.c_param.items():
+            if key not in dictionary and spec["required"] is True:
                 raise AttributeError("Required attribute '%s' missing" % key)
 
         for key, val in dictionary.items():
@@ -102,25 +105,28 @@ class Base(object):
     def __contains__(self, item):
         return item in self._ava
 
+
 class LINK(Base):
     c_param = {
-        "rel": {"type":basestring, "required":True},
-        "type": {"type":basestring, "required":False},
-        "href": {"type":basestring, "required":False},
-        "titles": {"type":dict, "required":False},
-        "properties": {"type":dict, "required":False},
-        }
+        "rel": {"type": basestring, "required": True},
+        "type": {"type": basestring, "required": False},
+        "href": {"type": basestring, "required": False},
+        "titles": {"type": dict, "required": False},
+        "properties": {"type": dict, "required": False},
+    }
+
 
 class JRD(Base):
     c_param = {
-        "expires": {"type":basestring, "required":False},
-        "subject": {"type":basestring, "required":True},
-        "aliases": {"type":(list,basestring), "required":False},
-        "properties": {"type":dict, "required":False},
-        "links": {"type":(list, LINK), "required":False},
+        "expires": {"type": basestring, "required": False},
+        "subject": {"type": basestring, "required": True},
+        "aliases": {"type": (list, basestring), "required": False},
+        "properties": {"type": dict, "required": False},
+        "links": {"type": (list, LINK), "required": False},
     }
 
-    def __init__(self, dic=None, days=0, seconds=0, minutes=0, hours=0, weeks=0):
+    def __init__(self, dic=None, days=0, seconds=0, minutes=0, hours=0,
+                 weeks=0):
         Base.__init__(self, dic)
         self.expires_in(days, seconds, minutes, hours, weeks)
 
@@ -139,13 +145,77 @@ class JRD(Base):
         return res
 
 
+# -- Normalization --
+# A string of any other type is interpreted as a URI either the form of scheme
+# "://" authority path-abempty [ "?" query ] [ "#" fragment ] or authority
+# path-abempty [ "?" query ] [ "#" fragment ] per RFC 3986 [RFC3986] and is
+# normalized according to the following rules:
+#
+# If the user input Identifier does not have an RFC 3986 [RFC3986] scheme
+# portion, the string is interpreted as [userinfo "@"] host [":" port]
+# path-abempty [ "?" query ] [ "#" fragment ] per RFC 3986 [RFC3986].
+# If the userinfo component is present and all of the path component, query
+# component, and port component are empty, the acct scheme is assumed. In this
+# case, the normalized URI is formed by prefixing acct: to the string as the
+# scheme. Per the 'acct' URI Scheme [I‑D.ietf‑appsawg‑acct‑uri], if there is an
+# at-sign character ('@') in the userinfo component, it needs to be
+# percent-encoded as described in RFC 3986 [RFC3986].
+# For all other inputs without a scheme portion, the https scheme is assumed,
+# and the normalized URI is formed by prefixing https:// to the string as the
+# scheme.
+# If the resulting URI contains a fragment portion, it MUST be stripped off
+# together with the fragment delimiter character "#".
+# The WebFinger [I‑D.ietf‑appsawg‑webfinger] Resource in this case is the
+# resulting URI, and the WebFinger Host is the authority component.
+#
+# Note: Since the definition of authority in RFC 3986 [RFC3986] is
+# [ userinfo "@" ] host [ ":" port ], it is legal to have a user input
+# identifier like userinfo@host:port, e.g., alice@example.com:8080.
+
+class URINormalizer(object):
+    def has_scheme(self, inp):
+        if "://" in inp:
+            return True
+        else:
+            authority = inp.replace('/', '#').replace('?', '#').split("#")[0]
+
+            if ':' in authority:
+                scheme_or_host, host_or_port = authority.split(':', 1)
+                try:
+                    # Assert it's not a port number
+                    assert not re.match('^\d+$', host_or_port)
+                except AssertionError:
+                    return False
+            else:
+                return False
+        return True
+
+    def acct_scheme_assumed(self, inp):
+        if '@' in inp:
+            host = inp.split('@')[-1]
+            return not (':' in host or '/' in host or '?' in host)
+        else:
+            return False
+
+    def normalize(self, inp):
+        if self.has_scheme(inp):
+            pass
+        elif self.acct_scheme_assumed(inp):
+            inp = "acct:%s" % inp
+        else:
+            inp = "https://%s" % inp
+        return inp.split("#")[0]  # strip fragment
+
+
 class WebFinger(object):
     def __init__(self, default_rel=None, httpd=None):
         self.default_rel = default_rel
         self.httpd = httpd
         self.jrd = None
 
-    def query(self, base, resource, rel=None):
+    def query(self, resource, rel=None):
+        resource = URINormalizer().normalize(resource)
+
         info = [("resource", resource)]
 
         if rel is None:
@@ -157,10 +227,18 @@ class WebFinger(object):
             for val in rel:
                 info.append(("rel", val))
 
-        if base.endswith("/"):
-            base = base[:-1]
+        if resource.startswith("http"):
+            part = urlparse.urlparse(resource)
+            host = part.hostname
+        elif resource.startswith("acct:"):
+            host = resource.split('@')[-1]
+            host = host.replace('/', '#').replace('?', '#').split("#")[0]
+        elif resource.startswith("device:"):
+            host = resource.split(':')[1]
+        else:
+            raise Exception("Unknown schema")
 
-        return "%s?%s" % (WF_URL % base, urlencode(info))
+        return "%s?%s" % (WF_URL % host, urlencode(info))
 
     def load(self, item):
         return JRD(json.loads(item))
@@ -199,7 +277,7 @@ class WebFinger(object):
                 if link["rel"] == OIC_ISSUER:
                     return link["href"]
             return None
-        elif rsp.status_code in [302,301,307]:
+        elif rsp.status_code in [302, 301, 307]:
             return self.discovery_query(rsp.headers["location"], resource)
         else:
             raise Exception(rsp.status_code)

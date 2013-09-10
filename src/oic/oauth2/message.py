@@ -132,8 +132,10 @@ class Message(object):
                     except KeyError:
                         _ser = None
 
-            # Should I allow parameters with "" as value ???
-            if isinstance(val, basestring):
+            if val is None:
+                continue
+            elif isinstance(val, basestring):
+                # Should I allow parameters with "" as value ???
                 params.append((key, unicode(val)))
             elif isinstance(val, list):
                 if _ser:
@@ -431,6 +433,11 @@ class Message(object):
         except KeyError:
             htype = None
 
+        try:
+            _kid = header["kid"]
+        except KeyError:
+            _kid = ""
+
         jso = None
         if htype == "JWE" or ("alg" in header and "enc" in header):  # encrypted
             if keyjar:
@@ -448,21 +455,40 @@ class Message(object):
         if not jso:
             try:
                 jso = jwkest.unpack(txt)[1]
+                if isinstance(jso, basestring):
+                    jso = json.loads(jso)
+
+                if "jku" in header:
+                    if not keyjar.find(header["jku"], jso["iss"]):
+                        # This is really questionable
+                        try:
+                            if kwargs["trusting"]:
+                                keyjar.add(jso["iss"], header["jku"])
+                        except KeyError:
+                            pass
+
+                if _kid:
+                    _key = keyjar.get_key_by_kid(_kid, jso["iss"])
+                    if _key:
+                        key.append(_key)
 
                 try:
                     self._add_key(keyjar, kwargs["opponent_id"], key)
                 except KeyError:
                     pass
 
-                if isinstance(jso, basestring):
-                    jso = json.loads(jso)
                 if verify:
                     if keyjar:
                         for ent in ["iss", "aud", "client_id"]:
                             if ent not in jso:
                                 continue
                             if ent == "aud":
-                                for _e in jso[ent]:
+                                # list or basestring
+                                if isinstance(jso["aud"], basestring):
+                                    _aud = [jso["aud"]]
+                                else:
+                                    _aud = jso["aud"]
+                                for _e in _aud:
                                     self._add_key(keyjar, _e, key)
                             else:
                                 self._add_key(keyjar, jso[ent], key)
@@ -747,14 +773,14 @@ class ROPCAccessTokenRequest(Message):
         "grant_type": SINGLE_REQUIRED_STRING,
         "username": SINGLE_OPTIONAL_STRING,
         "password": SINGLE_OPTIONAL_STRING,
-        "scope": SINGLE_OPTIONAL_STRING
+        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS
     }
 
 
 class CCAccessTokenRequest(Message):
     c_param = {
         "grant_type": SINGLE_REQUIRED_STRING,
-        "scope": SINGLE_OPTIONAL_STRING
+        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS
     }
     c_default = {"grant_type": "client_credentials"}
     c_allowed_values = {"grant_type": ["client_credentials"]}
@@ -765,7 +791,7 @@ class RefreshAccessTokenRequest(Message):
         "grant_type": SINGLE_REQUIRED_STRING,
         "refresh_token": SINGLE_REQUIRED_STRING,
         "client_id": SINGLE_REQUIRED_STRING,
-        "scope": SINGLE_OPTIONAL_STRING,
+        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
         "client_secret": SINGLE_OPTIONAL_STRING
     }
     c_default = {"grant_type": "refresh_token"}
