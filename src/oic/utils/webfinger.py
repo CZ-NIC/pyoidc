@@ -230,6 +230,8 @@ class WebFinger(object):
         if resource.startswith("http"):
             part = urlparse.urlparse(resource)
             host = part.hostname
+            if part.port is not None:
+                host += ":" + str(part.port)
         elif resource.startswith("acct:"):
             host = resource.split('@')[-1]
             host = host.replace('/', '#').replace('?', '#').split("#")[0]
