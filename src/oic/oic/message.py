@@ -380,9 +380,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
 
 class AccessTokenRequest(message.AccessTokenRequest):
     c_param = message.AccessTokenRequest.c_param.copy()
-    c_param.update({"client_id": SINGLE_REQUIRED_STRING,
-                    "client_secret": SINGLE_OPTIONAL_STRING,
-                    "client_assertion_type": SINGLE_OPTIONAL_STRING,
+    c_param.update({"client_assertion_type": SINGLE_OPTIONAL_STRING,
                     "client_assertion": SINGLE_OPTIONAL_STRING})
 
     c_allowed_values = {

@@ -258,16 +258,15 @@ class WebFinger(object):
             "body": json.dumps(jrd.export())
         }
 
-    def discovery_query(self, base, resource):
+    def discovery_query(self, resource):
         """
         Given a resource find a OpenID connect OP to use
 
-        :param base: The base URL for the query
         :param resource: An identifier of an entity
         :return: A URL if a there is an OpenID Connect OP that
         """
 
-        url = self.query(base, resource)
+        url = self.query(resource)
         try:
             rsp = self.httpd.http_request(url)
         except requests.ConnectionError:
@@ -280,7 +279,7 @@ class WebFinger(object):
                     return link["href"]
             return None
         elif rsp.status_code in [302, 301, 307]:
-            return self.discovery_query(rsp.headers["location"], resource)
+            return self.discovery_query(rsp.headers["location"])
         else:
             raise Exception(rsp.status_code)
 
