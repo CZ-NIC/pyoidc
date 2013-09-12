@@ -604,6 +604,22 @@ def application(environ, start_response):
 CLAIMS_PROVIDER = "https://localhost:8093/"
 
 USERDB = {
+    "haho0032": {
+        "user_id": "haho0032",
+        "name": "Hans Hörberg",
+        "given_name": "Hans",
+        "family_name": "Hörberg",
+        "nickname": "Hasse",
+        "email": "hans@example.org",
+        "email_verified": False,
+        "phone_number": "+46 90 7865000",
+        "address": {
+            "street_address": "Umeå Universitet",
+            "locality": "Umeå",
+            "postal_code": "SE-90187",
+            "country": "Sweden"
+        },
+    },
     "diana":{
         "user_id": "dikr0001",
         "name": "Diana Krall",

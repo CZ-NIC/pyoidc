@@ -584,7 +584,6 @@ class Client(PBase):
             request_args["client_id"] = self.client_id
         elif not request_args["client_id"]:
             request_args["client_id"] = self.client_id
-
         return self.construct_request(request, request_args, extra_args)
 
     def construct_RefreshAccessTokenRequest(self,
