@@ -251,6 +251,9 @@ def meta_info(environ, start_response, logger):
     pass
 
 
+def webfinger(environ, start_response, logger):
+    pass
+
 #noinspection PyUnusedLocal
 def verify(environ, start_response, logger):
     _oas = environ["oic.oas"]
@@ -309,6 +312,7 @@ URLS = [
     (r'^.well-known/openid-configuration', op_info),
     (r'^.well-known/simple-web-discovery', swd_info),
     (r'^.well-known/host-meta.json', meta_info),
+    (r'^.well-known/webfinger', webfinger),
 #    (r'^.well-known/webfinger', webfinger),
     (r'.+\.css$', css),
     (r'safe', safe),
