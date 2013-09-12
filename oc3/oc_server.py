@@ -10,11 +10,13 @@ from exceptions import OSError
 from exceptions import IndexError
 from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
+from urlparse import parse_qs
 from oic.utils.authn.client import verify_client
 
 from oic.utils.authz import AuthzHandling
 from oic.utils.keyio import KeyBundle, dump_jwks
 from oic.utils.userinfo import UserInfo
+from oic.utils.webfinger import WebFinger, OIC_ISSUER
 
 __author__ = 'rohe0002'
 
@@ -251,8 +253,17 @@ def meta_info(environ, start_response, logger):
     pass
 
 
-def webfinger(environ, start_response, logger):
-    pass
+def webfinger(environ, start_response, _):
+    query = parse_qs(environ["QUERY_STRING"])
+    try:
+        assert query["rel"] == [OIC_ISSUER]
+        resource = query["resource"]
+    except KeyError:
+        resp = BadRequest("Missing parameter in request")
+    else:
+        wf = WebFinger()
+        resp = Response(wf.response(subject=resource, base=OAS.baseurl))
+    return resp(environ, start_response)
 
 #noinspection PyUnusedLocal
 def verify(environ, start_response, logger):
