@@ -266,7 +266,7 @@ class WebFinger(object):
         :return: A URL if a there is an OpenID Connect OP that
         """
 
-        url = self.query(resource)
+        url = self.query(resource, OIC_ISSUER)
         try:
             rsp = self.httpd.http_request(url)
         except requests.ConnectionError:
