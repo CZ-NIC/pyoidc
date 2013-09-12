@@ -257,7 +257,7 @@ def webfinger(environ, start_response, _):
     query = parse_qs(environ["QUERY_STRING"])
     try:
         assert query["rel"] == [OIC_ISSUER]
-        resource = query["resource"]
+        resource = query["resource"][0]
     except KeyError:
         resp = BadRequest("Missing parameter in request")
     else:
