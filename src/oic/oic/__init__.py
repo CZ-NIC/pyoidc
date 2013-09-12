@@ -947,8 +947,8 @@ class Client(oauth2.Client):
         return subject, domain
 
     def discover(self, principal):
-        subject, host = self.normalization(principal)
-        return self.wf.discovery_query(host, subject)
+        #subject, host = self.normalization(principal)
+        return self.wf.discovery_query(principal)
 
 
 #noinspection PyMethodOverriding
