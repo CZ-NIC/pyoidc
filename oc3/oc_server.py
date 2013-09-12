@@ -66,7 +66,7 @@ PASSWD = {"diana": "krall",
           "babs": "howes",
           "upper": "crust",
           "rohe0002": "StevieRay",
-          "haho0032": "qwerty"}
+          "haho0032": "qwerty"} #haho0032@hashog.umdc.umu.se
 
 
 #noinspection PyUnusedLocal
@@ -257,7 +257,7 @@ def webfinger(environ, start_response, _):
     query = parse_qs(environ["QUERY_STRING"])
     try:
         assert query["rel"] == [OIC_ISSUER]
-        resource = query["resource"]
+        resource = query["resource"][0]
     except KeyError:
         resp = BadRequest("Missing parameter in request")
     else:
@@ -489,8 +489,8 @@ if __name__ == '__main__':
 
     sys.path.insert(0, ".")
     config = importlib.import_module(args.config)
-    config.issuer = config.issuer % args.port
-    config.SERVICE_URL = config.SERVICE_URL % args.port
+    #config.issuer = config.issuer % args.port
+    #config.SERVICE_URL = config.SERVICE_URL % args.port
 
     if config.AUTHN == 'CasAuthnMethod':
         from oic.utils.authn.user_cas import CasAuthnMethod
