@@ -230,8 +230,8 @@ class WebFinger(object):
         if resource.startswith("http"):
             part = urlparse.urlparse(resource)
             host = part.hostname
-            if part.port:
-                host = "%s:%s" % (host, part.port)
+            if part.port is not None:
+                host += ":" + str(part.port)
         elif resource.startswith("acct:"):
             host = resource.split('@')[-1]
             host = host.replace('/', '#').replace('?', '#').split("#")[0]
@@ -279,7 +279,7 @@ class WebFinger(object):
                     return link["href"]
             return None
         elif rsp.status_code in [302, 301, 307]:
-            return self.discovery_query(rsp.headers["location"], resource)
+            return self.discovery_query(rsp.headers["location"])
         else:
             raise Exception(rsp.status_code)
 

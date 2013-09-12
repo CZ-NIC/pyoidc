@@ -74,7 +74,6 @@ def test_wf0():
     assert query == 'https://p1.example.com/.well-known/webfinger?resource=device%3Ap1.example.com'
 
 
-
 def test_wf1():
     wf = WebFinger()
     query = wf.query("acct:bob@example.com",
