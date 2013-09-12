@@ -74,10 +74,11 @@ class ClientSecretBasic(ClientAuthnMethod):
             except KeyError:
                 http_args["auth"] = (self.cli.client_id, self.cli.client_secret)
 
-        try:
-            del cis["client_secret"]
-        except KeyError:
-            pass
+        for param in ["client_secret", "client_id"]:
+            try:
+                del cis[param]
+            except KeyError:
+                pass
 
         return http_args
 
