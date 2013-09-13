@@ -214,12 +214,10 @@ PROVIDER_DEFAULT = {
 class Client(oauth2.Client):
     _endpoints = ENDPOINTS
 
-    def __init__(self, client_id=None, ca_certs=None, grant_expire_in=600,
-                 jwt_keys=None, client_timeout=0, client_prefs=None,
-                 client_authn_method=None):
+    def __init__(self, client_id=None, ca_certs=None,
+                 client_prefs=None, client_authn_method=None):
 
-        oauth2.Client.__init__(self, client_id, ca_certs, grant_expire_in,
-                               client_timeout=client_timeout,
+        oauth2.Client.__init__(self, client_id, ca_certs,
                                client_authn_method=client_authn_method)
 
         self.file_store = "./file/"

@@ -177,11 +177,9 @@ class ClaimsServer(Provider):
 
 class ClaimsClient(Client):
 
-    def __init__(self, client_id=None, ca_certs="",
-                 client_timeout=0, jwt_keys=None):
+    def __init__(self, client_id=None, ca_certs=""):
 
-        Client.__init__(self, client_id, ca_certs, jwt_keys=jwt_keys,
-                        client_timeout=client_timeout)
+        Client.__init__(self, client_id, ca_certs)
 
         self.request2endpoint = REQUEST2ENDPOINT.copy()
         self.request2endpoint["UserClaimsRequest"] = "userclaims_endpoint"

@@ -16,8 +16,6 @@ from oic.oauth2.provider import Provider
 CLIENT_CONFIG = {
     "client_id": "number5",
     "ca_certs": "/usr/local/etc/oic/ca_certs.txt",
-    "grant_expire_in": 600,
-    "client_timeout": 0
 }
 
 CONSUMER_CONFIG = {

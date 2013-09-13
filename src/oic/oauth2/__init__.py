@@ -387,19 +387,23 @@ class PBase(object):
 class Client(PBase):
     _endpoints = ENDPOINTS
 
-    def __init__(self, client_id=None, ca_certs=None, grant_expire_in=600,
-                 client_timeout=0, client_authn_method=None):
+    def __init__(self, client_id=None, ca_certs=None, client_authn_method=None):
+        """
+
+        :param client_id: The client identifier
+        :param ca_certs: Certificates used to verify HTTPS certificates
+        :param client_authn_method:
+        :return: Client instance
+        """
 
         PBase.__init__(self, ca_certs)
 
         self.client_id = client_id
-        self.client_timeout = client_timeout
         #self.secret_type = "basic "
 
         self.state = None
         self.nonce = None
 
-        self.grant_expire_in = grant_expire_in
         self.grant = {}
 
         # own endpoint

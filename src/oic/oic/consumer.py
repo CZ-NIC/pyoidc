@@ -79,7 +79,6 @@ def build_userinfo_claims(claims, sformat="signed", locale="us-en"):
     return Claims(format=sformat, **claims)
 
 
-
 def clean_response(aresp):
     """
     Creates a new instance with only the standard attributes
