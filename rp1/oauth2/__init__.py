@@ -2,7 +2,7 @@ __author__ = 'haho0032'
 import json
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
-from rp import Social
+from rp1 import Social
 
 from oic.oauth2 import rndstr
 from oic.oauth2 import Client

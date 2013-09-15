@@ -1,10 +1,7 @@
-import uuid
-
 __author__ = 'haho0032'
-import copy
 import traceback
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
-from rp import Social
+from rp1 import Social
 from oic import oic
 #from oic.oic import consumer
 from oic.oauth2 import rndstr
@@ -104,11 +101,9 @@ class OpenIDConnect(Social):
         """Step 1: Get a access grant.
 
         :param environ:
-        :param start_response:
         :param server_env:
-        :param cookie:
-        :param sid:
-        :param info:
+        :param start_response:
+        :param session:
         """
         try:
             logger.debug("FLOW type: %s" % self.flow_type)

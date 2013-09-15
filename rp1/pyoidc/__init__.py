@@ -1,5 +1,5 @@
-from rp.openidconnect import OpenIDConnect
-from rp.oauth2 import OAuth2
+from rp1.openidconnect import OpenIDConnect
+from rp1.oauth2 import OAuth2
 
 __author__ = 'haho0032'
 __author__ = 'haho0032'

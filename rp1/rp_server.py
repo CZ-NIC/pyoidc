@@ -1,6 +1,6 @@
 import uuid
-from rp import rp_conf
-from rp.pyoidc import pyoidcOIC
+from rp1 import rp_conf
+from rp1.pyoidc import pyoidcOIC
 from cherrypy import wsgiserver
 import logging
 from logging.handlers import BufferingHandler
@@ -10,11 +10,11 @@ from mako.lookup import TemplateLookup
 from urlparse import parse_qs
 from oic.utils.webfinger import URINormalizer
 from oic.utils.webfinger import WebFinger
-from oic.utils.webfinger import OIC_ISSUER
 import requests
 import hashlib
 import base64
-from beaker.middleware import SessionMiddleware  #https://pypi.python.org/pypi/Beaker
+#https://pypi.python.org/pypi/Beaker
+from beaker.middleware import SessionMiddleware
 
 __author__ = 'haho0032'
 
@@ -32,7 +32,6 @@ hdlr.setFormatter(base_formatter)
 LOGGER.addHandler(hdlr)
 LOGGER.setLevel(logging.DEBUG)
 
-
 _formatter = logging.Formatter(CPC)
 fil_handl = logging.FileHandler(LOGFILE_NAME)
 fil_handl.setFormatter(_formatter)
@@ -47,6 +46,7 @@ LOOKUP = TemplateLookup(directories=['templates', 'htdocs'],
 
 SERVER_ENV = {}
 
+
 def setup_server_env(rp_conf):
     global SERVER_ENV
     global logger
@@ -59,9 +59,11 @@ def setup_server_env(rp_conf):
     #SERVER_ENV["CACHE"] = {}
     SERVER_ENV["OIC_CLIENT"] = {}
 
+
 class Httpd(object):
     def http_request(self, url):
         return requests.get(url, verify=False)
+
 
 class RpSession(object):
     def __init__(self, session):
@@ -118,39 +120,44 @@ def static(environ, start_response, logger, path):
         resp = NotFound()
         return resp(environ, start_response)
 
+
 def start(environ, start_response):
-        resp = Response(mako_template="start.mako",
-                        template_lookup=LOOKUP,
-                        headers=[])
-        argv = {
-            "service": rp_conf.SERVICE
-        }
-        return resp(environ, start_response, **argv)
+    resp = Response(mako_template="start.mako",
+                    template_lookup=LOOKUP,
+                    headers=[])
+    argv = {
+        "service": rp_conf.SERVICE
+    }
+    return resp(environ, start_response, **argv)
+
 
 def oplist(environ, start_response):
-        resp = Response(mako_template="oplist.mako",
-                        template_lookup=LOOKUP,
-                        headers=[])
-        argv = {
-            "service": rp_conf.SERVICE
-        }
-        return resp(environ, start_response, **argv)
+    resp = Response(mako_template="oplist.mako",
+                    template_lookup=LOOKUP,
+                    headers=[])
+    argv = {
+        "service": rp_conf.SERVICE
+    }
+    return resp(environ, start_response, **argv)
+
 
 def about(environ, start_response):
-        resp = Response(mako_template="about.mako",
-                        template_lookup=LOOKUP,
-                        headers=[])
-        argv = {
-        }
-        return resp(environ, start_response, **argv)
+    resp = Response(mako_template="about.mako",
+                    template_lookup=LOOKUP,
+                    headers=[])
+    argv = {
+    }
+    return resp(environ, start_response, **argv)
+
 
 def opbyuid(environ, start_response):
-        resp = Response(mako_template="opbyuid.mako",
-                        template_lookup=LOOKUP,
-                        headers=[])
-        argv = {
-        }
-        return resp(environ, start_response, **argv)
+    resp = Response(mako_template="opbyuid.mako",
+                    template_lookup=LOOKUP,
+                    headers=[])
+    argv = {
+    }
+    return resp(environ, start_response, **argv)
+
 
 def application(environ, start_response):
     session = environ['beaker.session']
@@ -175,12 +182,12 @@ def application(environ, start_response):
             key = query["key"][0]
             if key in rp_conf.SERVICE:
                 func = getattr(rp_conf.SERVICE[key]["instance"], "begin")
-                return func(environ,SERVER_ENV, start_response, rpSession)
+                return func(environ, SERVER_ENV, start_response, rpSession)
 
         if "uid" in query:
             print "uid"
             _val = URINormalizer().normalize(query["uid"][0])
-            wf = WebFinger(httpd = Httpd())
+            wf = WebFinger(httpd=Httpd())
             link = wf.discovery_query(resource=_val)
             #requests.get(url, verify=True)
             md5 = hashlib.md5()
@@ -190,14 +197,13 @@ def application(environ, start_response):
                       'description': 'OIDC server with discovery url: ' + link,
                       'class': pyoidcOIC,
                       'srv_discovery_url': link,
-                      'scope': ["openid", "profile", "email", "address", "phone"],
+                      'scope': ["openid", "profile", "email", "address",
+                                "phone"],
                       'name': link}
             rp_conf.SERVICE[opkey] = kwargs
             rp_conf.SERVICE[opkey]["instance"] = pyoidcOIC(None, None, **kwargs)
             func = getattr(rp_conf.SERVICE[opkey]["instance"], "begin")
-            return func(environ,SERVER_ENV, start_response, rpSession)
-
-
+            return func(environ, SERVER_ENV, start_response, rpSession)
 
     if path == "opbyuid":
         return opbyuid(environ, start_response)
@@ -206,6 +212,7 @@ def application(environ, start_response):
     if path == "about":
         return about(environ, start_response)
     return start(environ, start_response)
+
 
 if __name__ == '__main__':
     setup_server_env(rp_conf)
@@ -218,10 +225,12 @@ if __name__ == '__main__':
         'session.cookie_expires': True,
         #'session.data_dir': './data',
         'session.auto': True,
-        'session.timeout' : 900
+        'session.timeout': 900
     }
 
-    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', rp_conf.PORT), SessionMiddleware(application, session_opts))
+    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', rp_conf.PORT),
+                                        SessionMiddleware(application,
+                                                          session_opts))
 
     LOGGER.info("RP server starting listening on port:%s" % rp_conf.PORT)
     print "RP server starting listening on port:%s" % rp_conf.PORT
