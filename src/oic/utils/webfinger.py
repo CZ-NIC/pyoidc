@@ -1,5 +1,6 @@
 # coding=utf-8
 import json
+import logging
 import re
 from urllib import urlencode
 import urlparse
@@ -7,6 +8,8 @@ import requests
 from oic.utils.time_util import in_a_while
 
 __author__ = 'rolandh'
+
+logger = logging.getLogger(__name__)
 
 WF_URL = "https://%s/.well-known/webfinger"
 OIC_ISSUER = "http://openid.net/specs/connect/1.0/issuer"
@@ -263,9 +266,10 @@ class WebFinger(object):
         Given a resource find a OpenID connect OP to use
 
         :param resource: An identifier of an entity
-        :return: A URL if a there is an OpenID Connect OP that
+        :return: A URL if an OpenID Connect OP could be found
         """
 
+        logger.debug("Looking for OIDC OP for '%s'" % resource)
         url = self.query(resource, OIC_ISSUER)
         try:
             rsp = self.httpd.http_request(url)
