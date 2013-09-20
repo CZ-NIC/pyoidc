@@ -220,8 +220,8 @@ class SessionDB(object):
             "authzreq": areq.to_json(),
             "client_id": areq["client_id"],
             #"expires_in": self.grant_expires_in,
-            "client_secret_expires_at": utc_time_sans_frac() + self.grant_expires_in,
-            "client_id_issued_at": utc_time_sans_frac(),
+            #"client_secret_expires_at": utc_time_sans_frac() + self.grant_expires_in,
+            #"client_id_issued_at": utc_time_sans_frac(),
             "revoked": False,
         }
 
@@ -278,9 +278,8 @@ class SessionDB(object):
         dic["access_token_scope"] = "?"
         dic["oauth_state"] = "token"
         dic["token_type"] = "Bearer"
-        dic["client_secret_expires_at"] = utc_time_sans_frac() + self.token_expires_in
         dic["expires_in"] = self.token_expires_in
-        dic["client_id_issued_at"] = utc_time_sans_frac()
+        dic["token_expires_at"] = utc_time_sans_frac() + self.token_expires_in
         if id_token:
             dic["id_token"] = id_token
         if oidreq:
@@ -306,8 +305,8 @@ class SessionDB(object):
 
             access_token = self.token("T", prev=rtoken)
 
-            dic["client_secret_expires_at"] = utc_time_sans_frac() + self.token_expires_in
-            dic["client_id_issued_at"] = utc_time_sans_frac()
+            dic["token_expires_at"] = utc_time_sans_frac() + self.token_expires_in
+            #dic["client_id_issued_at"] = utc_time_sans_frac()
             dic["access_token"] = access_token
             self._db[sid] = dic
             #self._db[dic["xxxx"]] = dic
@@ -316,8 +315,8 @@ class SessionDB(object):
             raise WrongTokenType("Not a refresh token!")
 
     def is_expired(self, sess):
-        if "client_secret_expires_at" in sess:
-            if sess["client_secret_expires_at"] < utc_time_sans_frac():
+        if "token_expires_at" in sess:
+            if sess["token_expires_at"] < utc_time_sans_frac():
                 return True
 
         return False
@@ -394,7 +393,7 @@ class SessionDB(object):
         _dic["code_used"] = False
 
         for key in ["access_token", "access_token_scope", "oauth_state",
-                    "token_type", "client_secret_expires_at", "expires_in",
+                    "token_type", "token_expires_at", "expires_in",
                     "client_id_issued_at", "id_token", "oidreq",
                     "refresh_token"]:
             try:
@@ -405,3 +404,11 @@ class SessionDB(object):
         self._db[sid] = _dic
         self.uid2sid[_dic["sub"]] = sid
         return sid
+
+    def read(self, token):
+        (typ, key) = self.token.type_and_key(token)
+
+        if typ != "T":  # not a access grant
+            raise WrongTokenType("Not a grant token")
+
+        return self._db[key]
