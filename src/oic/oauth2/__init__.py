@@ -369,10 +369,10 @@ class PBase(object):
             logger.info("SENT COOKIEs: %s" % (_kwargs["cookies"],))
         r = requests.request(method, url, **_kwargs)
         try:
-            # Telekom fix
             set_cookie = r.headers["set-cookie"]
-            set_cookie = set_cookie.replace(
-                "=;Path=/;Expires=Thu, 01-Jan-1970 00:00:01 GMT;HttpOnly,", "")
+            # Telekom fix
+            # set_cookie = set_cookie.replace(
+            #     "=;Path=/;Expires=Thu, 01-Jan-1970 00:00:01 GMT;HttpOnly,", "")
             logger.info("RECEIVED COOKIEs: %s" % set_cookie)
             self.set_cookie(SimpleCookie(set_cookie), r)
         except (AttributeError, KeyError), err:
@@ -419,6 +419,8 @@ class Client(PBase):
         self.client_authn_method = client_authn_method
         self.grant_class = Grant
         self.token_class = Token
+
+        self.provider_info = {}
 
     def get_client_secret(self):
         return self._c_secret

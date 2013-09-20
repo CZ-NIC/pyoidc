@@ -10,7 +10,6 @@ from oic.utils.keyio import KeyBundle, key_export
 
 from requests import ConnectionError
 
-from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import by_schema
 from oic.oauth2.message import MessageException
 from oic.oic.message import RefreshAccessTokenRequest
@@ -19,7 +18,6 @@ from oic.oic.message import IdToken
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import AuthorizationResponse
-from oic.oic.message import AuthorizationErrorResponse
 from oic.oic.message import OpenIDRequest
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AccessTokenRequest
@@ -131,11 +129,11 @@ import socket
 
 
 class Provider(AProvider):
-    def __init__(self, name, sdb, cdb, authn_method, userinfo, authz,
+    def __init__(self, name, sdb, cdb, authn_broker, userinfo, authz,
                  client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
                  hostname=""):
 
-        AProvider.__init__(self, name, sdb, cdb, authn_method, authz,
+        AProvider.__init__(self, name, sdb, cdb, authn_broker, authz,
                            client_authn, symkey, urlmap)
         self.userinfo = userinfo
         self.server = Server(ca_certs=ca_certs)
@@ -148,11 +146,6 @@ class Provider(AProvider):
         self.baseurl = ""
         self.cert = []
         self.cert_encryption = []
-
-        if authn_method:
-            self.cookie_func = authn_method.create_cookie
-        else:
-            self.cookie_func = None
 
         self.cookie_name = "pyoidc"
         self.seed = ""
@@ -187,79 +180,6 @@ class Provider(AProvider):
 
         return _signed_jwt
 
-    def _error_response(self, error, descr=None):
-        logger.error("%s" % error)
-        response = ErrorResponse(error=error, error_description=descr)
-        return Response(response.to_json(), content="application/json",
-                        status="400 Bad Request")
-
-    def _error(self, error, descr=None):
-        response = ErrorResponse(error=error, error_description=descr)
-        return Response(response.to_json(), content="application/json",
-                        status="400 Bad Request")
-
-    def _authz_error(self, error, descr=None):
-
-        response = AuthorizationErrorResponse(error=error)
-        if descr:
-            response["error_description"] = descr
-
-        return Response(response.to_json(), content="application/json",
-                        status="400 Bad Request")
-
-    def _redirect_authz_error(self, error, redirect_uri, descr=None):
-        err = ErrorResponse(error=error)
-        if descr:
-            err["error_description"] = descr
-        location = err.request(redirect_uri)
-        return Redirect(location)
-
-    def _verify_redirect_uri(self, areq):
-        """
-        MUST NOT contain a fragment
-        MAY contain query component
-
-        :return: An error response if the redirect URI is faulty otherwise
-            None
-        """
-        try:
-            _redirect_uri = urlparse.unquote(areq["redirect_uri"])
-
-            part = urlparse.urlparse(_redirect_uri)
-            if part.fragment:
-                raise URIError("Contains fragment")
-
-            (_base, _query) = urllib.splitquery(_redirect_uri)
-            if _query:
-                _query = urlparse.parse_qs(_query)
-
-            match = False
-            for regbase, rquery in self.cdb[areq["client_id"]]["redirect_uris"]:
-                if _base == regbase or _redirect_uri.startswith(regbase):
-                    # every registered query component must exist in the
-                    # redirect_uri
-                    if rquery:
-                        for key, vals in rquery.items():
-                            assert key in _query
-                            for val in vals:
-                                assert val in _query[key]
-                    match = True
-                    break
-            if not match:
-                raise RedirectURIError("Doesn't match any registered uris")
-            # ignore query components that are not registered
-            return None
-        except Exception, err:
-            logger.error("Faulty redirect_uri: %s" % areq["redirect_uri"])
-            try:
-                _cinfo = self.cdb[areq["client_id"]]
-            except KeyError:
-                logger.info("Unknown client: %s" % areq["client_id"])
-                raise UnknownClient(areq["client_id"])
-            else:
-                logger.info("Registered redirect_uris: %s" % _cinfo)
-                raise RedirectURIError("Faulty redirect_uri: %s" % err)
-
     def _parse_openid_request(self, request):
         return OpenIDRequest().from_jwt(request, keyjar=self.keyjar)
 
@@ -273,22 +193,6 @@ class Provider(AProvider):
             logger.error("IdToken: %s" % id_token.to_dict())
             return self._redirect_authz_error("invalid_id_token_object",
                                               redirect_uri)
-
-    def get_redirect_uri(self, areq):
-        """ verify that the redirect URI is reasonable
-
-        :param areq: The Authorization request
-        :return: Tuple of (redirect_uri, Response instance)
-            Response instance is not None of matching redirect_uri failed
-        """
-        if 'redirect_uri' in areq:
-            self._verify_redirect_uri(areq)
-            uri = areq["redirect_uri"]
-        else:
-            raise ParameterError(
-                "Missing redirect_uri and more than one or none registered")
-
-        return uri
 
     def get_sector_id(self, redirect_uri, client_info):
         """
@@ -367,12 +271,24 @@ class Provider(AProvider):
             except KeyError:
                 return 0
 
-    def re_authenticate(self, areq):
+    def re_authenticate(self, areq, authn):
         if "prompt" in areq and "login" in areq["prompt"]:
-            if self.authn.done(areq):
+            if authn.done(areq):
                 return True
 
         return False
+
+    def pick_auth(self, areq, user="", **kwargs):
+        try:
+            for acr in areq["request"]["acr_values"]:
+                res = self.authn_broker.pick(acr)
+                if res:
+                    return res
+        except KeyError:
+            pass
+
+        # return the best I have
+        return self.authn_broker[0]
 
     def authorization_endpoint(self, request="", cookie=None, **kwargs):
         """ The AuthorizationRequest endpoint
@@ -422,10 +338,12 @@ class Provider(AProvider):
 
         req_user = self.required_user(areq)
 
+        authn = self.pick_auth(areq, user=req_user)
+
         logger.debug("Cookie: %s" % cookie)
         try:
-            identity = self.authn.authenticated_as(cookie,
-                                                   max_age=self.max_age(areq))
+            identity = authn.authenticated_as(cookie,
+                                              max_age=self.max_age(areq))
         except (NoSuchAuthentication, ToOld, TamperAllert):
             identity = None
 
@@ -445,11 +363,11 @@ class Provider(AProvider):
                 return self._redirect_authz_error("login_required",
                                                   redirect_uri)
             else:
-                return self.authn(**authn_args)
+                return authn(**authn_args)
         else:
-            if self.re_authenticate(areq):
+            if self.re_authenticate(areq, authn):
                 # demand re-authentication
-                return self.authn(**authn_args)
+                return authn(**authn_args)
             else:
                 # I get back a dictionary
                 user = identity["uid"]
@@ -460,7 +378,7 @@ class Provider(AProvider):
                         return self._redirect_authz_error("login_required",
                                                           redirect_uri)
                     else:
-                        return self.authn(**authn_args)
+                        return authn(**authn_args)
 
         logger.debug("- authenticated -")
         logger.debug("AREQ keys: %s" % areq.keys())
@@ -648,7 +566,6 @@ class Provider(AProvider):
             return self._access_token_endpoint(req, **kwargs)
         else:
             return self._refresh_access_token_endpoint(req, **kwargs)
-
 
     def _collect_user_info(self, session, userinfo_claims=None):
         """
@@ -1253,7 +1170,7 @@ class Provider(AProvider):
                 return self._error("invalid_request", "Missing nonce value")
 
         # so everything went well should set a SSO cookie
-        headers = [self.authn.create_cookie(user, typ="sso", ttl=self.sso_ttl)]
+        headers = [self.cookie_func(user, typ="sso", ttl=self.sso_ttl)]
         location = aresp.request(redirect_uri)
         logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
         return Redirect(str(location), headers=headers)
