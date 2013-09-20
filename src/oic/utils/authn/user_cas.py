@@ -12,6 +12,7 @@ from oic.utils.http_util import Unauthorized
 
 logger = logging.getLogger(__name__)
 
+
 #This class handles user authentication with CAS.
 class CasAuthnMethod(UserAuthnMethod):
     #Standard login url for a CAS server.
@@ -90,7 +91,6 @@ class CasAuthnMethod(UserAuthnMethod):
 
     def __call__(self, query, *args, **kwargs):
         return self.createRedirect(query)
-
 
     def getServiceUrl(self, nonce):
         """

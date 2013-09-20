@@ -1,4 +1,6 @@
 from oic.oauth2.exception import UnsupportedMethod
+from oic.utils.aes_m2c import AES_encrypt
+from oic.utils.aes_m2c import AES_decrypt
 
 __author__ = 'rohe0002'
 
@@ -314,3 +316,46 @@ def wsgi_wrapper(environ, start_response, func, **kwargs):
 
     resp = func(**kwargs)
     return resp(environ, start_response)
+
+
+class CookieDealer(object):
+    def __init__(self, srv, ttl=5):
+        self.srv = srv
+        # minutes before the interaction should be completed
+        self.cookie_ttl = ttl  # N minutes
+
+    def create_cookie(self, value, typ, cookie_name=None, ttl=-1):
+        if ttl < 0:
+            ttl = self.cookie_ttl
+        if cookie_name is None:
+            cookie_name = self.srv.cookie_name
+        timestamp = str(int(time.mktime(time.gmtime())))
+        info = AES_encrypt(self.srv.symkey,
+                           "::".join([value, timestamp, typ]),
+                           self.srv.iv)
+        cookie = make_cookie(cookie_name, info, self.srv.seed,
+                             expire=ttl, domain="", path="")
+        return cookie
+
+    def getCookieValue(self, cookie=None, cookie_name=None):
+        """
+        Return information stored in the Cookie
+
+        :param cookie:
+        :param cookie_name: The name of the cookie I'm looking for
+        :return: tuple (value, timestamp, type)
+        """
+        if cookie is None or cookie_name is None:
+            return None
+        else:
+            try:
+                info, timestamp = parse_cookie(cookie_name,
+                                               self.srv.seed, cookie)
+                value, _ts, typ = AES_decrypt(self.srv.symkey, info,
+                                              self.srv.iv).split("::")
+                if timestamp == _ts:
+                    return value, _ts, typ
+            except Exception:
+                pass
+        return None
+

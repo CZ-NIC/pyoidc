@@ -1,13 +1,12 @@
+import base64
 import logging
 import time
 from urllib import urlencode
+import urllib
 from urlparse import parse_qs
 from urlparse import urlsplit
-from oic.utils.aes_m2c import AES_encrypt
 from oic.utils.aes_m2c import AES_decrypt
-from oic.utils.http_util import Response
-from oic.utils.http_util import parse_cookie
-from oic.utils.http_util import make_cookie
+from oic.utils.http_util import Response, CookieDealer
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import Unauthorized
 
@@ -28,50 +27,17 @@ class ToOld(Exception):
     pass
 
 
-class UserAuthnMethod(object):
-    def __init__(self, srv):
-        self.srv = srv
+class FailedAuthentication(Exception):
+    pass
+
+
+class UserAuthnMethod(CookieDealer):
+    def __init__(self, srv, ttl=5):
+        CookieDealer.__init__(self, srv, ttl)
         self.query_param = "upm_answer"
-        # minutes before the authentication should be completed
-        self.cookie_ttl = 5  # 5 minutes
 
     def __call__(self, *args, **kwargs):
         raise NotImplemented
-
-    def create_cookie(self, value, cookie_name=None, typ="uam", ttl=-1):
-        if ttl < 0:
-            ttl = self.cookie_ttl
-        if cookie_name is None:
-            cookie_name = self.srv.cookie_name
-        timestamp = str(int(time.mktime(time.gmtime())))
-        info = AES_encrypt(self.srv.symkey,
-                           "::".join([value, timestamp, typ]),
-                           self.srv.iv)
-        cookie = make_cookie(cookie_name, info, self.srv.seed,
-                             expire=ttl, domain="", path="")
-        return cookie
-
-    def getCookieValue(self, cookie=None, cookie_name=None):
-        """
-        Return information stored in the Cookie
-
-        :param cookie:
-        :param cookie_name: The name of the cookie I'm looking for
-        :return: tuple (value, timestamp, type)
-        """
-        if cookie is None or cookie_name is None:
-            return None
-        else:
-            try:
-                info, timestamp = parse_cookie(cookie_name,
-                                               self.srv.seed, cookie)
-                value, _ts, typ = AES_decrypt(self.srv.symkey, info,
-                                              self.srv.iv).split("::")
-                if timestamp == _ts:
-                    return value, _ts, typ
-            except Exception:
-                pass
-        return None
 
     def authenticated_as(self, cookie=None, **kwargs):
         if cookie is None:
@@ -246,15 +212,50 @@ class UsernamePasswordMako(UserAuthnMethod):
             return True
 
 
-class AuthnMethodChooser(object):
-    def __init__(self, methods=None):
-        self.methods = methods
+class BasicAuthn(UserAuthnMethod):
 
-    def __call__(self, **kwargs):
-        if not self.methods:
-            raise Exception("No authentication methods defined")
-        elif len(self.methods) == 1:
-            return self.methods[0]
-        else:
-            pass  # TODO
+    def __init__(self, srv, pwd, ttl=5):
+        UserAuthnMethod.__init__(self, srv, ttl)
+        self.passwd = pwd
 
+    def authenticated_as(self, cookie=None, authorization="", **kwargs):
+        """
+
+        :param cookie: A HTTP Cookie
+        :param authorization: The HTTP Authorization header
+        :param args: extra args
+        :param kwargs: extra key word arguments
+        :return:
+        """
+        (user, pwd) = base64.b64decode(authorization).split(":")
+        user = urllib.unquote(user)
+        try:
+            assert pwd == self.passwd[user]
+        except (AssertionError, KeyError):
+            raise FailedAuthentication()
+
+        return {"uid": user}
+
+
+class SymKeyAuthn(UserAuthnMethod):
+
+    def __init__(self, srv, ttl, symkey):
+        UserAuthnMethod.__init__(self, srv, ttl)
+        self.symkey = symkey
+
+    def authenticated_as(self, cookie=None, authorization="", **kwargs):
+        """
+
+        :param cookie: A HTTP Cookie
+        :param authorization: The HTTP Authorization header
+        :param args: extra args
+        :param kwargs: extra key word arguments
+        :return:
+        """
+        (encmsg, iv) = base64.b64decode(authorization).split(":")
+        try:
+            user = AES_decrypt(self.symkey, encmsg, iv)
+        except (AssertionError, KeyError):
+            raise FailedAuthentication()
+
+        return {"uid": user}

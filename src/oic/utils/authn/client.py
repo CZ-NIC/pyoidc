@@ -22,9 +22,7 @@ class AuthnFailure(Exception):
     pass
 
 
-
 # ========================================================================
-
 def assertion_jwt(cli, keys, audience, algorithm):
     _now = utc_now()
 
