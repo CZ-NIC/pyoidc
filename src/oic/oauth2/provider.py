@@ -330,7 +330,7 @@ class Provider(object):
         :param kwargs: Extra key word arguments
         :return: Authentication method
         """
-        return self.authn_broker.pick()[0]
+        return self.authn_broker[0]
 
     def authorization_endpoint(self, request="", cookie=None, **kwargs):
         """ The AuthorizationRequest endpoint
@@ -496,6 +496,8 @@ class Provider(object):
             if "token" in rtype:
                 _dic = self.sdb.update_to_token(issue_refresh=False, key=sid)
 
+                atr = AccessTokenResponse(**aresp.to_dict())
+                aresp = atr
                 _log_debug("_dic: %s" % _dic)
                 for key, val in _dic.items():
                     if key in aresp.parameters() and val is not None:
@@ -511,21 +513,19 @@ class Provider(object):
         except (RedirectURIError, ParameterError), err:
             return BadRequest("%s" % err)
 
-        # Must not use HTTP unless implicit grant type and native application
-
-        # Use of the nonce is REQUIRED for all requests where an ID Token is
-        # returned directly from the Authorization Endpoint
-        if "id_token" in aresp:
-            try:
-                assert "nonce" in areq
-            except AssertionError:
-                return self._error("invalid_request", "Missing nonce value")
-
         # so everything went well should set a SSO cookie
         headers = [authn.create_cookie(user, typ="sso", ttl=self.sso_ttl)]
         location = aresp.request(redirect_uri)
         logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
         return Redirect(str(location), headers=headers)
+
+    def token_scope_check(self, areq, info):
+        """ Not implemented here """
+        # if not self.subset(areq["scope"], _info["scope"]):
+        #     LOG_INFO("Asked for scope which is not subset of previous defined")
+        #     err = TokenErrorResponse(error="invalid_scope")
+        #     return Response(err.to_json(), content="application/json")
+        return None
 
     def token_endpoint(self, auth_header="", **kwargs):
         """
@@ -555,10 +555,9 @@ class Provider(object):
         # assert that the code is valid
         _info = _sdb[areq["code"]]
 
-        # if not self.subset(areq["scope"], _info["scope"]):
-        #     LOG_INFO("Asked for scope which is not subset of previous defined")
-        #     err = TokenErrorResponse(error="invalid_scope")
-        #     return Response(err.to_json(), content="application/json")
+        resp = self.token_scope_check(areq, _info)
+        if resp:
+            return resp
 
         # If redirect_uri was in the initial authorization request
         # verify that the one given here is the correct one.

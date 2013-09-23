@@ -34,9 +34,11 @@ def json_ser(val, sformat=None, lev=0):
 def json_deser(val, sformat=None, lev=0):
     return json.loads(val)
 
-SINGLE_OPTIONAL_BOOLEAN = (bool, False, None, None)
-SINGLE_OPTIONAL_JSON = (dict, False, json_ser, json_deser)
-SINGLE_REQUIRED_INT = (int, True, None, None)
+# value type, required, serializer, deserializer, null value allowed
+SINGLE_OPTIONAL_BOOLEAN = (bool, False, None, None, False)
+SINGLE_OPTIONAL_JSON_WN = (dict, False, json_ser, json_deser, True)
+SINGLE_OPTIONAL_JSON = (dict, False, json_ser, json_deser, False)
+SINGLE_REQUIRED_INT = (int, True, None, None, False)
 
 #noinspection PyUnusedLocal
 def idtoken_deser(val, sformat="urlencoded"):
@@ -94,6 +96,25 @@ def msg_ser(inst, sformat, lev=0):
     return res
 
 
+def msg_ser_json(inst, sformat="json", lev=0):
+    # sformat = "json" always except when dict
+    if sformat == "dict":
+        if isinstance(inst, Message):
+            res = inst.serialize(sformat, lev)
+        elif isinstance(inst, dict):
+            res = inst
+        else:
+            raise ValueError("%s" % type(inst))
+    else:
+        sformat = "json"
+        if isinstance(inst, dict) or isinstance(inst, Message):
+            res = inst.serialize(sformat, lev)
+        else:
+            res = inst
+
+    return res
+
+
 def msg_list_ser(insts, sformat, lev=0):
     return [msg_ser(inst, sformat, lev) for inst in insts]
 
@@ -136,7 +157,10 @@ def registration_request_deser(val, sformat="urlencoded"):
     return RegistrationRequest().deserialize(val, sformat)
 
 
-def claims_request_deser(val, sformat="urlencoded"):
+def claims_request_deser(val, sformat="json"):
+    # never 'urlencoded'
+    if sformat == "urlencoded":
+        sformat = "json"
     if sformat in ["dict", "json"]:
         if not isinstance(val, basestring):
             val = json.dumps(val)
@@ -144,18 +168,19 @@ def claims_request_deser(val, sformat="urlencoded"):
     return ClaimsRequest().deserialize(val, sformat)
 
 
-OPTIONAL_ADDRESS = (Message, False, msg_ser, address_deser)
-OPTIONAL_LOGICAL = (bool, False, None, None)
-OPTIONAL_MULTIPLE_Claims = (Message, False, claims_ser, claims_deser)
+OPTIONAL_ADDRESS = (Message, False, msg_ser, address_deser, False)
+OPTIONAL_LOGICAL = (bool, False, None, None, False)
+OPTIONAL_MULTIPLE_Claims = (Message, False, claims_ser, claims_deser, False)
 # SINGLE_OPTIONAL_USERINFO_CLAIM = (Message, False, msg_ser, userinfo_deser)
 # SINGLE_OPTIONAL_ID_TOKEN_CLAIM = (Message, False, msg_ser, idtokenclaim_deser)
 
-SINGLE_OPTIONAL_JWT = (basestring, False, msg_ser, None)
-SINGLE_OPTIONAL_IDTOKEN = (basestring, False, msg_ser, None)
+SINGLE_OPTIONAL_JWT = (basestring, False, msg_ser, None, False)
+SINGLE_OPTIONAL_IDTOKEN = (basestring, False, msg_ser, None, False)
 
 SINGLE_OPTIONAL_REGISTRATION_REQUEST = (Message, False, msg_ser,
-                                        registration_request_deser)
-SINGLE_OPTIONAL_CLAIMSREQ = (Message, False, msg_ser, claims_request_deser)
+                                        registration_request_deser, False)
+SINGLE_OPTIONAL_CLAIMSREQ = (Message, False, msg_ser_json, claims_request_deser,
+                             False)
 
 # ----------------------------------------------------------------------------
 
@@ -557,7 +582,7 @@ class EndSessionResponse(Message):
 
 
 class Claims(Message):
-    c_param = {"*": SINGLE_OPTIONAL_JSON}
+    c_param = {"*": SINGLE_OPTIONAL_JSON_WN}
 
 
 class ClaimsRequest(Message):

@@ -173,13 +173,11 @@ def test_update_to_token():
     _dict = sdb.update_to_token(grant)
 
     print _dict.keys()
-    assert _eq(_dict.keys(), ['code', 'authzreq', 'client_id_issued_at',
-                              'client_secret_expires_at',
-                              'token_type', 'local_sub', 'client_id',
-                              'client_id_issued_at', 'oauth_state',
-                              'refresh_token',
-                              'revoked', 'sub', 'access_token', 'expires_in',
-                              'state', 'redirect_uri', 'code_used', 'scope',
+    assert _eq(_dict.keys(), ['code', 'authzreq', 'token_type', 'local_sub',
+                              'client_id', 'oauth_state', 'refresh_token',
+                              'revoked', 'sub', 'access_token',
+                              'token_expires_at', 'expires_in', 'state',
+                              'redirect_uri', 'code_used', 'scope',
                               'access_token_scope'])
 
     raises(Exception, 'sdb.update_to_token(grant)')
@@ -192,14 +190,11 @@ def test_update_to_token():
 
     _dict = sdb.update_to_token(grant, id_token="id_token", oidreq=OIDR)
     print _dict.keys()
-    assert _eq(_dict.keys(), ['code', 'authzreq', 'client_id_issued_at',
-                              'client_secret_expires_at',
-                              'token_type', 'local_sub', 'client_id',
-                              'client_id_issued_at', 'oauth_state',
-                              'refresh_token',
-                              'revoked', 'sub', 'oidreq', 'access_token',
-                              'expires_in', 'state', 'redirect_uri',
-                              'code_used', 'id_token', 'scope',
+    assert _eq(_dict.keys(), ['code', 'authzreq', 'id_token', 'token_type',
+                              'local_sub', 'client_id', 'oauth_state',
+                              'refresh_token', 'revoked', 'sub', 'oidreq',
+                              'access_token', 'token_expires_at', 'expires_in',
+                              'state', 'redirect_uri', 'code_used', 'scope',
                               'access_token_scope'])
 
     assert _dict["id_token"] == "id_token"
@@ -220,7 +215,7 @@ def test_refresh_token():
     dict2 = sdb.refresh_token(rtoken)
     print dict2
     
-    assert dict1["client_id_issued_at"] != dict2["client_id_issued_at"]
+    assert dict1["token_expires_at"] != dict2["token_expires_at"]
     assert dict1["access_token"] != dict2["access_token"]
 
     raises(Exception, 'sdb.refresh_token(dict2["access_token"])')
@@ -252,7 +247,7 @@ def test_is_valid():
     
     # mess with the time-line
 
-    dict2["client_secret_expires_at"] = utc_time_sans_frac() - 86400
+    dict2["token_expires_at"] = utc_time_sans_frac() - 86400
     assert sdb.is_valid(token2) is False
 
     # replace access_token
@@ -264,7 +259,7 @@ def test_is_valid():
     grant = sdb[sid]["code"]
 
     gdict = sdb[grant]
-    gdict["client_secret_expires_at"] = utc_time_sans_frac() - 86400
+    gdict["token_expires_at"] = utc_time_sans_frac() - 86400
     assert sdb.is_valid(grant) is False
 
 

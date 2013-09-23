@@ -75,7 +75,7 @@ CONFIG = {
     }
 }
 
-CLIENT_CONFIG = {"client_id": CLIENT_ID, "jwt_keys": CLIKEYS}
+CLIENT_CONFIG = {"client_id": CLIENT_ID}
 
 
 def start_response(status=200, headers=None):

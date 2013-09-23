@@ -421,8 +421,7 @@ class TestOICClient():
         self.client.userinfo_endpoint = "http://oic.example.org/userinfo"
         print self.client.grant.keys()
         print self.client.grant[self.client.state]
-        resp = self.client.do_user_info_request(state=self.client.state,
-                                                schema=["openid"])
+        resp = self.client.do_user_info_request(state=self.client.state)
         assert resp.type() == "OpenIDSchema"
         assert _eq(resp.keys(),
                    ['name', 'email', 'verified', 'nickname', 'sub'])
@@ -494,8 +493,7 @@ class TestOICClient():
         token = self.client.get_token(state=self.client.state, scope="openid")
         token.token_expiration_time = utc_time_sans_frac() - 86400
 
-        resp = self.client.do_user_info_request(state=self.client.state,
-                                                schema=["openid"])
+        resp = self.client.do_user_info_request(state=self.client.state)
         assert resp.type() == "OpenIDSchema"
         assert _eq(resp.keys(), ['name', 'email', 'verified', 'nickname',
                                  'sub'])
@@ -816,9 +814,9 @@ def test_construct_UserInfoRequest():
     cli.userinfo_endpoint = "https://example.org/oauth2/userinfo"
 
     uir = cli.construct_UserInfoRequest(
-        request_args={"access_token": "access_token", "schema": ["openid"]})
+        request_args={"access_token": "access_token"})
     print uir
-    assert ("%s" % uir) == "access_token=access_token&schema=openid"
+    assert ("%s" % uir) == "access_token=access_token"
 
 
 def test_construct_UserInfoRequest_2():
@@ -834,10 +832,9 @@ def test_construct_UserInfoRequest_2():
 
     cli.grant["foo"].tokens.append(Token(resp))
 
-    uir = cli.construct_UserInfoRequest(state="foo", scope=["openid"],
-                                        request_args={"schema": ["openid"]})
+    uir = cli.construct_UserInfoRequest(state="foo", scope=["openid"])
     print uir
-    assert uir.keys() == ["access_token", "schema"]
+    assert uir.keys() == ["access_token"]
 
 
 def test_construct_CheckSessionRequest():
@@ -935,31 +932,28 @@ def test_userinfo_request():
 
     cli.parse_response(AccessTokenResponse, TRESP.to_json(), state="state0")
 
-    path, body, method, h_args = cli.user_info_request(state="state0",
-                                                       schema="openid")
+    path, body, method, h_args = cli.user_info_request(state="state0")
 
-    assert path == "http://example.com/userinfo?access_token=access_token&schema=openid"
+    assert path == "http://example.com/userinfo?access_token=access_token"
     assert method == "GET"
     assert body is None
     assert h_args == {}
 
     path, body, method, h_args = cli.user_info_request(method="POST",
-                                                       state="state0",
-                                                       schema="openid")
+                                                       state="state0")
 
     assert path == "http://example.com/userinfo"
     assert method == "POST"
-    assert body == "access_token=access_token&schema=openid"
+    assert body == "access_token=access_token"
     assert h_args == {'headers': {
         'content-type': 'application/x-www-form-urlencoded'}}
 
     path, body, method, h_args = cli.user_info_request(method="POST",
-                                                       state="state0",
-                                                       schema=["openid"])
+                                                       state="state0")
 
     assert path == "http://example.com/userinfo"
     assert method == "POST"
-    assert body == "access_token=access_token&schema=openid"
+    assert body == "access_token=access_token"
     assert h_args == {'headers': {
         'content-type': 'application/x-www-form-urlencoded'}}
 
@@ -978,7 +972,7 @@ AREQ = AuthorizationRequest(response_type="code", client_id="client_id",
                             redirect_uri="http://example.com/authz",
                             scope=["openid"], state="state0", nonce="N0nce")
 
-UIREQ = UserInfoRequest(access_token="access_token", schema="openid")
+UIREQ = UserInfoRequest(access_token="access_token")
 
 REGREQ = RegistrationRequest(contacts=["roland.hedberg@adm.umu.se"],
                              redirect_uris=["http://example.org/jqauthz"],
@@ -1026,12 +1020,11 @@ def test_server_init():
 
 
 def test_parse_urlencoded():
-    loc = "http://example.com/userinfo?access_token=access_token&schema=openid"
+    loc = "http://example.com/userinfo?access_token=access_token"
     srv = Server()
     qdict = srv._parse_urlencoded(loc)
-    assert _eq(qdict.keys(), ["access_token", "schema"])
+    assert _eq(qdict.keys(), ["access_token"])
     # all values as lists
-    assert qdict["schema"] == ["openid"]
     assert qdict["access_token"] == ["access_token"]
 
 
@@ -1056,15 +1049,13 @@ def test_parse_token_request():
 def test_parse_userinfo_request():
     srv = Server()
     qdict = srv.parse_user_info_request(data=UIREQ.to_urlencoded())
-    assert _eq(qdict.keys(), ['access_token', 'schema'])
+    assert _eq(qdict.keys(), ['access_token'])
     assert qdict["access_token"] == "access_token"
-    assert qdict["schema"] == "openid"
 
     url = "https://example.org/userinfo?%s" % UIREQ.to_urlencoded()
     qdict = srv.parse_user_info_request(data=url)
-    assert _eq(qdict.keys(), ['access_token', 'schema'])
+    assert _eq(qdict.keys(), ['access_token'])
     assert qdict["access_token"] == "access_token"
-    assert qdict["schema"] == "openid"
 
 
 def test_parse_registration_request():
@@ -1162,6 +1153,8 @@ def test_make_id_token():
 
 
 if __name__ == "__main__":
-    t = TestOICClient()
-    t.setup_class()
-    t.test_do_check_session_request()
+    #t = TestOICClient()
+    #t.setup_class()
+    #t.test_do_check_session_request()
+
+    test_userinfo_request()

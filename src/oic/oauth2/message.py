@@ -113,7 +113,7 @@ class Message(object):
 
         _spec = self.c_param
         if not self.lax:
-            for attribute, (_, req, _ser, _) in _spec.items():
+            for attribute, (_, req, _ser, _, na) in _spec.items():
                 if req and attribute not in self._dict:
                     raise MissingRequiredAttribute("%s" % attribute)
 
@@ -121,18 +121,19 @@ class Message(object):
 
         for key, val in self._dict.items():
             try:
-                (_, req, _ser, _) = _spec[key]
+                (_, req, _ser, _, null_allowed) = _spec[key]
             except KeyError:  # extra attribute
                 try:
                     _key, lang = key.split("#")
-                    (_, req, _ser, _deser) = _spec[_key]
+                    (_, req, _ser, _deser, null_allowed) = _spec[_key]
                 except (ValueError, KeyError):
                     try:
-                        (_, req, _ser, _) = _spec['*']
+                        (_, req, _ser, _, null_allowed) = _spec['*']
                     except KeyError:
                         _ser = None
+                        null_allowed = False
 
-            if val is None:
+            if val is None and null_allowed is False:
                 continue
             elif isinstance(val, basestring):
                 # Should I allow parameters with "" as value ???
@@ -147,6 +148,8 @@ class Message(object):
             elif isinstance(val, Message):
                 params.append((key, str(_ser(val, sformat="urlencoded",
                                              lev=lev))))
+            elif val is None:
+                params.append((key, val))
             else:
                 try:
                     params.append((key, _ser(val, lev=lev)))
@@ -195,14 +198,14 @@ class Message(object):
 
         for key, val in urlparse.parse_qs(urlencoded).items():
             try:
-                (typ, _, _, _deser) = _spec[key]
+                (typ, _, _, _deser, null_allowed) = _spec[key]
             except KeyError:
                 try:
                     _key, lang = key.split("#")
-                    (typ, _, _, _deser) = _spec[_key]
+                    (typ, _, _, _deser, null_allowed) = _spec[_key]
                 except (ValueError, KeyError):
                     try:
-                        (typ, _, _, _deser) = _spec['*']
+                        (typ, _, _, _deser, null_allowed) = _spec['*']
                     except KeyError:
                         if len(val) == 1:
                             val = val[0]
@@ -244,14 +247,14 @@ class Message(object):
         lev += 1
         for key, val in self._dict.items():
             try:
-                (_, req, _ser, _) = _spec[str(key)]
+                (_, req, _ser, _, null_allowed) = _spec[str(key)]
             except KeyError:
                 try:
                     _key, lang = key.split("#")
-                    (_, req, _ser, _) = _spec[_key]
+                    (_, req, _ser, _, null_allowed) = _spec[_key]
                 except (ValueError, KeyError):
                     try:
-                        (_, req, _ser, _) = _spec['*']
+                        (_, req, _ser, _, null_allowed) = _spec['*']
                     except KeyError:
                         _ser = None
 
@@ -287,14 +290,14 @@ class Message(object):
             skey = str(key)
             try:
 
-                (vtyp, req, _, _deser) = _spec[key]
+                (vtyp, req, _, _deser, null_allowed) = _spec[key]
             except KeyError:
                 # might be a parameter with a lang tag
                 try:
                     _key, lang = skey.split("#")
                 except ValueError:
                     try:
-                        (vtyp, _, _, _deser) = _spec['*']
+                        (vtyp, _, _, _deser, null_allowed) = _spec['*']
                         if val is None:
                             self._dict[key] = val
                             continue
@@ -303,10 +306,10 @@ class Message(object):
                         continue
                 else:
                     try:
-                        (vtyp, req, _, _deser) = _spec[_key]
+                        (vtyp, req, _, _deser, null_allowed) = _spec[_key]
                     except KeyError:
                         try:
-                            (vtyp, _, _, _deser) = _spec['*']
+                            (vtyp, _, _, _deser, null_allowed) = _spec['*']
                             if val is None:
                                 self._dict[key] = val
                                 continue
@@ -314,15 +317,15 @@ class Message(object):
                             self._dict[key] = val
                             continue
 
-            self._add_value(skey, vtyp, key, val, _deser)
+            self._add_value(skey, vtyp, key, val, _deser, null_allowed)
         return self
 
-    def _add_value(self, skey, vtyp, key, val, _deser):
+    def _add_value(self, skey, vtyp, key, val, _deser, null_allowed):
 #        if not val:
 #            return
 
         if isinstance(val, list):
-            if len(val) == 0 or val[0] is None:
+            if (len(val) == 0 or val[0] is None) and null_allowed is False:
                 return
 
         if isinstance(vtyp, list):
@@ -361,7 +364,9 @@ class Message(object):
             else:
                 raise DecodeError(ERRTXT % (key, "type != %s" % vtype))
         else:
-            if isinstance(val, vtyp):  # Not necessary to do anything
+            if val is None:
+                self._dict[skey] = None
+            elif isinstance(val, vtyp):  # Not necessary to do anything
                 self._dict[skey] = val
             else:
                 if _deser:
@@ -502,7 +507,7 @@ class Message(object):
     def __str__(self):
         return self.to_urlencoded()
 
-    def _type_check(self, typ, _allowed, val):
+    def _type_check(self, typ, _allowed, val, na):
         if typ is basestring:
             if val not in _allowed:
                 raise ValueError("Not allowed value '%s'" % val)
@@ -515,6 +520,8 @@ class Message(object):
                 for item in val:
                     if item not in _allowed:
                         raise ValueError("Not allowed value '%s'" % val)
+        elif val is None and na is False:
+            raise ValueError("Not allowed value '%s'" % val)
 
     #noinspection PyUnusedLocal
     def verify(self, **kwargs):
@@ -528,7 +535,7 @@ class Message(object):
         except KeyError:
             _allowed = {}
 
-        for (attribute, (typ, required, _, _)) in _spec.items():
+        for (attribute, (typ, required, _, _, na)) in _spec.items():
             if attribute == "*":
                 continue
 
@@ -554,7 +561,7 @@ class Message(object):
                 if _ityp is None:
                     raise ValueError("Not allowed value '%s'" % val)
             else:
-                self._type_check(typ, _allowed[attribute], val)
+                self._type_check(typ, _allowed[attribute], val, na)
 
         return True
 
@@ -584,8 +591,8 @@ class Message(object):
 
     def __setitem__(self, key, value):
         try:
-            (vtyp, req, _, _deser) = self.c_param[key]
-            self._add_value(str(key), vtyp, key, value, _deser)
+            (vtyp, req, _, _deser, na) = self.c_param[key]
+            self._add_value(str(key), vtyp, key, value, _deser, na)
         except KeyError:
             self._dict[key] = value
 
@@ -678,18 +685,19 @@ def json_serializer(obj, sformat="urlencoded", lev=0):
 def json_deserializer(txt, sformat="urlencoded"):
     return json.loads(txt)
 
-SINGLE_REQUIRED_STRING = (basestring, True, None, None)
-SINGLE_OPTIONAL_STRING = (basestring, False, None, None)
-SINGLE_OPTIONAL_INT = (int, False, None, None)
+SINGLE_REQUIRED_STRING = (basestring, True, None, None, False)
+SINGLE_OPTIONAL_STRING = (basestring, False, None, None, False)
+SINGLE_OPTIONAL_INT = (int, False, None, None, False)
 OPTIONAL_LIST_OF_STRINGS = ([basestring], False, list_serializer,
-                            list_deserializer)
+                            list_deserializer, False)
 REQUIRED_LIST_OF_STRINGS = ([basestring], True, list_serializer,
-                            list_deserializer)
+                            list_deserializer, False)
 OPTIONAL_LIST_OF_SP_SEP_STRINGS = ([basestring], False, sp_sep_list_serializer,
-                                   sp_sep_list_deserializer)
+                                   sp_sep_list_deserializer, False)
 REQUIRED_LIST_OF_SP_SEP_STRINGS = ([basestring], True, sp_sep_list_serializer,
-                                   sp_sep_list_deserializer)
-SINGLE_OPTIONAL_JSON = (basestring, False, json_serializer, json_deserializer)
+                                   sp_sep_list_deserializer, False)
+SINGLE_OPTIONAL_JSON = (basestring, False, json_serializer, json_deserializer,
+                        False)
 
 REQUIRED = [SINGLE_REQUIRED_STRING, REQUIRED_LIST_OF_STRINGS,
             REQUIRED_LIST_OF_SP_SEP_STRINGS]

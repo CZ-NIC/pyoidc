@@ -294,17 +294,6 @@ def test_claims_ser_json():
                                'picture'])
 
 
-def test_claims_ser_urlencoded():
-    claims = claims_deser(claims_ser(CLAIMS, "urlencoded"),
-                          sformat="urlencoded")
-    assert _eq(claims.keys(), ['name', 'nickname', 'email', 'email_verified',
-                               'picture'])
-
-
-def test_claims_ser_urlencoded_dict():
-    pass
-
-
 def test_registration_request():
     req = RegistrationRequest(operation="register", default_max_age=10,
                               require_auth_time=True, default_acr="foo",

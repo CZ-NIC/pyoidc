@@ -241,6 +241,7 @@ class Client(oauth2.Client):
 
         self.wf = WebFinger(OIC_ISSUER)
         self.wf.httpd = self
+        self.allow = {}
 
     def _get_id_token(self, **kwargs):
         try:
@@ -735,10 +736,14 @@ class Client(oauth2.Client):
                     _issuer = issuer
 
             try:
-                assert _issuer == _pcr_issuer
-            except AssertionError:
-                raise PyoidcError("provider info issuer mismatch '%s' != '%s'" % (
-                    _issuer, _pcr_issuer))
+                _ = self.allow["issuer_mismatch"]
+            except KeyError:
+                try:
+                    assert _issuer == _pcr_issuer
+                except AssertionError:
+                    raise PyoidcError(
+                        "provider info issuer mismatch '%s' != '%s'" % (
+                        _issuer, _pcr_issuer))
 
             self.provider_info[_pcr_issuer] = pcr
         else:

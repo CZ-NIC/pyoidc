@@ -1,4 +1,6 @@
 from mako.lookup import TemplateLookup
+from mako.runtime import UNDEFINED
+from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
@@ -137,14 +139,15 @@ class DummyAuthn(UserAuthnMethod):
         return {"uid": self.user}
 
 #AUTHN = UsernamePasswordMako(None, "login.mako", tl, PASSWD, "authenticated")
-AUTHN = DummyAuthn(None, "username")
+AUTHN_BROKER = AuthnBroker()
+AUTHN_BROKER.add(UNDEFINED, DummyAuthn(None, "username"))
 
 # dealing with authorization
 AUTHZ = AuthzHandling()
 SYMKEY = "symmetric key used to encrypt cookie info"
 USERINFO = UserInfo(USERDB)
 
-provider_init = Provider("pyoicserv", SessionDB(), CDB, AUTHN, USERINFO,
+provider_init = Provider("pyoicserv", SessionDB(), CDB, AUTHN_BROKER, USERINFO,
                          AUTHZ, verify_client, SYMKEY, urlmap=URLMAP,
                          keyjar=KEYJAR)
 
@@ -157,7 +160,7 @@ def test_server_init():
     server = provider_init
 
     assert server
-    assert server.authn == AUTHN
+    assert server.authn_broker == AUTHN_BROKER
     print server.urlmap
     assert server.urlmap["client_1"] == ["https://example.com/authz"]
 

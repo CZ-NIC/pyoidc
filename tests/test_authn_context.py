@@ -58,7 +58,7 @@ def test():
     res = ac.pick(PASSWORD)
 
     assert res
-    assert len(res) == 3
+    assert len(res) == 2
     assert res[0].__class__.__name__ == "CasAuthnMethod"
     assert res[1].__class__.__name__ == "UsernamePasswordMako"
 

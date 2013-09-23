@@ -276,7 +276,7 @@ def test_cc_acc_token_req():
     cc = CCAccessTokenRequest(scope="/foo")
 
     assert cc["grant_type"] == "client_credentials"
-    assert cc["scope"] == "/foo"
+    assert cc["scope"] == ["/foo"]
 
 # RefreshAccessTokenRequest
 

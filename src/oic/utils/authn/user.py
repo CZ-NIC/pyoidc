@@ -192,7 +192,7 @@ class UsernamePasswordMako(UserAuthnMethod):
         # verify username and password
         try:
             assert _dict["password"][0] == self.passwd[_dict["login"][0]]
-            cookie = self.create_cookie(_dict["login"][0])
+            cookie = self.create_cookie(_dict["login"][0], "upm")
             try:
                 _qp = _dict["query"][0]
             except KeyError:

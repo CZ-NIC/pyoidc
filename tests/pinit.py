@@ -1,4 +1,6 @@
 from mako.lookup import TemplateLookup
+from mako.runtime import UNDEFINED
+from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.authn.client import verify_client
 from oic.utils.authz import AuthzHandling
@@ -93,13 +95,16 @@ tl = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
                     module_directory=ROOT + 'modules',
                     input_encoding='utf-8', output_encoding='utf-8')
 
-AUTHN = UsernamePasswordMako(None, "login.mako", tl, PASSWD, "authenticated")
+AUTHN_BROKER = AuthnBroker()
+AUTHN_BROKER.add(UNDEFINED,
+                 UsernamePasswordMako(None, "login.mako", tl, PASSWD,
+                                      "authenticated"))
 
 # dealing with authorization
 AUTHZ = AuthzHandling()
 SYMKEY = "symmetric key used to encrypt cookie info"
 USERINFO = UserInfo(USERDB)
 
-provider_init = Provider("pyoicserv", SessionDB(), CDB, AUTHN, USERINFO,
+provider_init = Provider("pyoicserv", SessionDB(), CDB, AUTHN_BROKER, USERINFO,
                          AUTHZ, verify_client, SYMKEY, urlmap=URLMAP,
                          keyjar=KEYJAR)

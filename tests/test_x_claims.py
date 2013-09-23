@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from mako.runtime import UNDEFINED
+from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.claims import ClaimsMode
 from oic.utils.sdb import SessionDB
 from oic.utils.authn.client import verify_client
@@ -75,7 +77,8 @@ class DummyAuthn(UserAuthnMethod):
     def authenticated_as(self, **kwargs):
         return {"uid": self.user}
 
-AUTHN = DummyAuthn(None, "username")
+AUTHN_BROKER = AuthnBroker()
+AUTHN_BROKER.add(UNDEFINED, DummyAuthn(None, "username"))
 
 # dealing with authorization
 AUTHZ = AuthzHandling()
@@ -157,3 +160,6 @@ def test_srv2():
     print ucr
     assert _eq(ucr["claims_names"], ["gender", "birthdate"])
     assert "jwt" in ucr
+
+if __name__ == "__main__":
+    test_1()
