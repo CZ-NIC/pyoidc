@@ -78,7 +78,6 @@ class OpenIDConnect(object):
                 server_env["OIC_CLIENT"][key] = client
             except KeyError:
                 server_env["OIC_CLIENT"] = {key: client}
-
         return client
 
     def static(self, server_env, callback, key):
@@ -124,12 +123,39 @@ class OpenIDConnect(object):
             else:
                 client = self.static(server_env, callback, key)
             client.state = session.getState()
+            session.setClient(client)
+            acr_value = None
+            try:
+                acr_values = client.provider_info[self.srv_discovery_url]["acr_values"].split()
+                session.setAcrvalues(acr_values)
+            except:
+                pass
+            if acr_values is not None and len(acr_values) > 1:
+                resp_headers = [("Location", str("/rpAcr"))]
+                start_response("302 Found", resp_headers)
+                return []
+            elif acr_values is not None and len(acr_values) == 1:
+                    acr_value = acr_values[0]
+            return self.create_authnrequest(environ, server_env, start_response, session, acr_value)
+        except Exception:
+            message = traceback.format_exception(*sys.exc_info())
+            logger.error(message)
+            return self.result(
+                environ, start_response, server_env,
+                (False, "Cannot find the OP! Please view your configuration."))
 
+    #noinspection PyUnusedLocal
+    def create_authnrequest(self, environ, server_env, start_response, session, acr_value):
+        try:
+            client = session.getClient()
             request_args = {
                 "response_type": self.flow_type,
                 "scope": server_env["SCOPE"],
                 "state": client.state,
             }
+
+            if acr_value is not None:
+                request_args["acr_values"] = acr_value
 
             if self.flow_type == "token":
                 request_args["nonce"] = rndstr(16)

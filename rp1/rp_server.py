@@ -72,6 +72,7 @@ class RpSession(object):
         self.getService()
         self.getNonce()
         self.getClient()
+        self.getAcrvalues()
 
     def getState(self):
         return self.session.get("state", uuid.uuid4().urn)
@@ -96,6 +97,12 @@ class RpSession(object):
 
     def setClient(self, value):
         self.session["client"] = value
+
+    def getAcrvalues(self):
+        return self.session.get("acrvalues", None)
+
+    def setAcrvalues(self, value):
+        self.session["acrvalues"] = value
 
 #noinspection PyUnresolvedReferences
 def static(environ, start_response, logger, path):
@@ -158,6 +165,15 @@ def opbyuid(environ, start_response):
     }
     return resp(environ, start_response, **argv)
 
+def chooseAcrValue(environ, start_response, session, key):
+    resp = Response(mako_template="acrvalue.mako",
+                    template_lookup=LOOKUP,
+                    headers=[])
+    argv = {
+        "acrvalues": session.getAcrvalues(),
+        "key": key
+    }
+    return resp(environ, start_response, **argv)
 
 def application(environ, start_response):
     session = environ['beaker.session']
@@ -204,6 +220,15 @@ def application(environ, start_response):
             rp_conf.SERVICE[opkey]["instance"] = pyoidcOIC(None, None, **kwargs)
             func = getattr(rp_conf.SERVICE[opkey]["instance"], "begin")
             return func(environ, SERVER_ENV, start_response, rpSession)
+
+    if path == "rpAcr" and "key" in query and query["key"][0] in rp_conf.SERVICE:
+        return chooseAcrValue(environ, start_response, rpSession, query["key"][0])
+
+    if path == "rpAuth":    #Only called if multiple arc_values (that is authentications) exists.
+        if "acr" in query and query["acr"][0] in rpSession.getAcrvalues() and \
+                        "key" in query and query["key"][0] in rp_conf.SERVICE:
+            func = getattr(rp_conf.SERVICE[query["key"][0]]["instance"], "create_authnrequest")
+            return func(environ, SERVER_ENV, start_response, rpSession, query["acr"][0])
 
     if path == "opbyuid":
         return opbyuid(environ, start_response)

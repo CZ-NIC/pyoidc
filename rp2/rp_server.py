@@ -61,6 +61,7 @@ class Session(object):
         self.getState()
         self.getNonce()
         self.getClient()
+        self.getAcrvalues()
 
     def getState(self):
         return self.session.get("state", uuid.uuid4().urn)
@@ -85,6 +86,12 @@ class Session(object):
 
     def setProvider(self, value):
         self.session["provider"] = value
+
+    def getAcrvalues(self):
+        return self.session.get("acrvalues", None)
+
+    def setAcrvalues(self, value):
+        self.session["acrvalues"] = value
 
 #noinspection PyUnresolvedReferences
 def static(environ, start_response, logger, path):
@@ -119,6 +126,15 @@ def opbyuid(environ, start_response):
     return resp(environ, start_response, **argv)
 
 
+def chooseAcrValue(environ, start_response, session):
+    resp = Response(mako_template="acrvalue.mako",
+                    template_lookup=LOOKUP,
+                    headers=[])
+    argv = {
+        "acrvalues": session.getAcrvalues()
+    }
+    return resp(environ, start_response, **argv)
+
 def application(environ, start_response):
     session = Session(environ['beaker.session'])
 
@@ -150,6 +166,14 @@ def application(environ, start_response):
             opkey = base64.b16encode(md5.digest())
             func = getattr(RP, "begin")
             return func(environ, SERVER_ENV, start_response, session, opkey)
+
+    if path == "rpAcr":
+        return chooseAcrValue(environ, start_response, session)
+
+    if path == "rpAuth":    #Only called if multiple arc_values (that is authentications) exists.
+        if "acr" in query and query["acr"][0] in session.getAcrvalues():
+            func = getattr(RP, "create_authnrequest")
+            return func(environ, SERVER_ENV, start_response, session, query["acr"][0])
 
     return opbyuid(environ, start_response)
 

@@ -4,6 +4,7 @@
 <div class="login_form" class="block">
     <form action="${action}" method="post" class="login form">
         <input type="hidden" name="query" value="${query}"/>
+        <input type="hidden" name="acr_values" value="${acr}"/>
         <table>
             <tr>
                 <td>Username</td>
