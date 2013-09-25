@@ -1,5 +1,6 @@
 import json
 import urllib
+import urlparse
 import uuid
 import logging
 import requests
@@ -57,11 +58,19 @@ class CasAuthnMethod(UserAuthnMethod):
         :param query: All query parameters to be added to the return_to URL after successful authentication.
         :return: A redirect response to the CAS server.
         """
+        acr = None
+        try:
+            req = urlparse.parse_qs(query)
+            acr = req['acr_values'][0]
+        except:
+            pass
+
         nonce = uuid.uuid4().get_urn()
-        service_url = urllib.urlencode({self.CONST_SERVICE: self.getServiceUrl(nonce)})
+        service_url = urllib.urlencode({self.CONST_SERVICE: self.getServiceUrl(nonce, acr)})
         cas_url = self.cas_server + self.CONST_CASLOGIN + service_url
         cookie = self.create_cookie('{"' + self.CONST_NONCE + '": "' + base64.b64encode(nonce) + '", "' +
-                                    self.CONST_QUERY + '": "' + base64.b64encode(query) + '"}', self.CONST_CAS_COOKIE)
+                                    self.CONST_QUERY + '": "' + base64.b64encode(query) + '"}', self.CONST_CAS_COOKIE,
+                                    self.CONST_CAS_COOKIE)
         return Redirect(cas_url, headers=[cookie])
 
     def handleCallback(self, ticket, service_url):
@@ -92,7 +101,7 @@ class CasAuthnMethod(UserAuthnMethod):
     def __call__(self, query, *args, **kwargs):
         return self.createRedirect(query)
 
-    def getServiceUrl(self, nonce):
+    def getServiceUrl(self, nonce, acr):
         """
         Creates the service url for the CAS server.
 
@@ -100,7 +109,7 @@ class CasAuthnMethod(UserAuthnMethod):
         :param nonce: The nonce to be added to the service url.
         :return: A service url with a nonce.
         """
-        return self.service_url + "?" + self.CONST_NONCE + "=" + nonce
+        return self.service_url + "?" + self.CONST_NONCE + "=" + nonce + "&acr_values=" + acr
 
     def verify(self, request, cookie, **kwargs):
         """
@@ -129,11 +138,16 @@ class CasAuthnMethod(UserAuthnMethod):
             if nonce != _dict[self.CONST_NONCE][0]:
                 logger.warning('Someone tried to login without a correct nonce!')
                 return Unauthorized("You are not authorized!")
-            uid = self.handleCallback(_dict[self.CONST_TICKET], self.getServiceUrl(nonce))
+            acr = None
+            try:
+                acr = _dict["acr_values"][0]
+            except:
+                pass
+            uid = self.handleCallback(_dict[self.CONST_TICKET], self.getServiceUrl(nonce, acr))
             if uid is None or len(uid) == 0:
                 logger.info('Someone tried to login, but was denied by CAS!')
                 return Unauthorized("You are not authorized!")
-            cookie = self.create_cookie(uid)
+            cookie = self.create_cookie(uid, "casm")
             return_to = self.generateReturnUrl(self.return_to, uid)
             if '?' in return_to:
                 return_to += "&"

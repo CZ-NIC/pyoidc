@@ -5,6 +5,7 @@ from urllib import urlencode
 import urllib
 from urlparse import parse_qs
 from urlparse import urlsplit
+import urlparse
 from oic.utils.aes_m2c import AES_decrypt
 from oic.utils.http_util import Response, CookieDealer
 from oic.utils.http_util import Redirect
@@ -158,12 +159,20 @@ class UsernamePasswordMako(UserAuthnMethod):
 
         resp = Response(headers=headers)
 
+        acr = None
+        try:
+            req = urlparse.parse_qs(query)
+            acr = req["acr_values"][0]
+        except:
+            pass
+
         argv = {"login": "",
                 "password": "",
                 "action": "verify",
                 "policy_url": policy_url,
                 "logo_url": logo_url,
-                "query": query}
+                "query": query,
+                "acr" : acr}
         logger.info("do_authentication argv: %s" % argv)
         mte = self.template_lookup.get_template(self.mako_template)
         resp.message = mte.render(**argv)

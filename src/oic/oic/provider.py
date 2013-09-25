@@ -280,15 +280,30 @@ class Provider(AProvider):
 
     def pick_auth(self, areq, user="", **kwargs):
         try:
-            for acr in areq["request"]["acr_values"]:
-                res = self.authn_broker.pick(acr)
-                if res:
-                    return res
+            if len(self.authn_broker) == 1:
+                    return self.authn_broker[0]
+            else:
+                for acr in areq["acr_values"]:
+                    res = self.authn_broker.pick(acr)
+                    if res:
+                        #Return the best gues by pick.
+                        return res[0]
         except KeyError:
             pass
 
         # return the best I have
         return self.authn_broker[0]
+
+
+    def verify_endpoint(self, request="", cookie=None, **kwargs):
+        areq = None
+        try:
+            areq = urlparse.parse_qs(request)
+        except:
+            pass
+        authn = self.pick_auth(areq)
+        kwargs["cookie"] = cookie
+        return authn.verify(request, **kwargs)
 
     def authorization_endpoint(self, request="", cookie=None, **kwargs):
         """ The AuthorizationRequest endpoint
@@ -1010,6 +1025,13 @@ class Provider(AProvider):
             #keys = self.keyjar.keys_by_owner(owner=".")
             if self.jwks_uri:
                 _response["jwks_uri"] = self.jwks_uri
+
+            #acr_values
+            acr_values = None
+            if self.authn_broker:
+                acr_values = self.authn_broker.getAcrValuesString()
+                if acr_values is not None:
+                    _response["acr_values"] = acr_values
 
             #_log_info("endpoints: %s" % self.endpoints)
             for endp in self.endpoints:
