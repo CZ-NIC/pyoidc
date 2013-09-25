@@ -158,6 +158,15 @@ class AuthnBroker(object):
 
         raise IndexError()
 
+    def getAcrValuesString(self):
+        acr_values = None
+        for item in self.db["info"].values():
+            if acr_values is None:
+                acr_values = item["ref"]
+            else:
+                acr_values += " " + item["ref"]
+        return acr_values
+
     def __iter__(self):
         for item in self.db["info"].values():
             yield item["method"]

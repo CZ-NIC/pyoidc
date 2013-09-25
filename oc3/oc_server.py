@@ -17,7 +17,7 @@ from oic.utils.authz import AuthzHandling
 from oic.utils.keyio import KeyBundle, dump_jwks
 from oic.utils.userinfo import UserInfo
 from oic.utils.webfinger import WebFinger, OIC_ISSUER
-
+from oic.utils.authn.authn_context import AuthnBroker
 __author__ = 'rohe0002'
 
 import logging
@@ -268,7 +268,7 @@ def webfinger(environ, start_response, _):
 #noinspection PyUnusedLocal
 def verify(environ, start_response, logger):
     _oas = environ["oic.oas"]
-    return wsgi_wrapper(environ, start_response, _oas.authn.verify,
+    return wsgi_wrapper(environ, start_response, _oas.verify_endpoint,
                         logger=logger)
 
 
@@ -489,22 +489,28 @@ if __name__ == '__main__':
 
     sys.path.insert(0, ".")
     config = importlib.import_module(args.config)
-    #config.issuer = config.issuer % args.port
-    #config.SERVICE_URL = config.SERVICE_URL % args.port
+    config.issuer = config.issuer % args.port
+    config.SERVICE_URL = config.SERVICE_URL % args.port
 
-    if config.AUTHN == 'CasAuthnMethod':
-        from oic.utils.authn.user_cas import CasAuthnMethod
-        from oic.utils.authn.ldap_member import UserLDAPMemberValidation
+    ac = AuthnBroker()
 
-        config.LDAP_EXTRAVALIDATION.update(config.LDAP)
-        authn = CasAuthnMethod(
-            None, config.CAS_SERVER, config.SERVICE_URL,
-            "%s/authorization" % config.issuer,
-            UserLDAPMemberValidation(**config.LDAP_EXTRAVALIDATION))
-    else:
-        from oic.utils.authn.user import UsernamePasswordMako
-        authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
+    for authkey, value in config.AUTHORIZATION.items():
+        authn = None
+        if "CAS" == authkey:
+           from oic.utils.authn.user_cas import CasAuthnMethod
+           from oic.utils.authn.ldap_member import UserLDAPMemberValidation
+           config.LDAP_EXTRAVALIDATION.update(config.LDAP)
+           authn = CasAuthnMethod(None, config.CAS_SERVER, config.SERVICE_URL,"%s/authorization" % config.issuer,
+                                  UserLDAPMemberValidation(**config.LDAP_EXTRAVALIDATION))
+        if "UserPassword" == authkey:
+            from oic.utils.authn.user import UsernamePasswordMako
+            authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
                                      "%s/authorization" % config.issuer)
+        if authn is not None:
+            ac.add(config.AUTHORIZATION[authkey]["ACR"],
+                   authn,
+                   config.AUTHORIZATION[authkey]["WEIGHT"],
+                   config.AUTHORIZATION[authkey]["URL"])
 
     # dealing with authorization
     authz = AuthzHandling()
@@ -512,15 +518,15 @@ if __name__ == '__main__':
     # User info database
     if args.test:
         URLS.append((r'tracelog', trace_log))
-        OAS = TestProvider(config.issuer, SessionDB(), cdb, authn, None,
+        OAS = TestProvider(config.issuer, SessionDB(), cdb, ac, None,
                            authz, config.SYM_KEY)
     elif args.XpressConnect:
         from XpressConnect import XpressConnectProvider
 
-        OAS = XpressConnectProvider(config.issuer, SessionDB(), cdb, authn,
+        OAS = XpressConnectProvider(config.issuer, SessionDB(), cdb, ac,
                                     None, authz, verify_client, config.SYM_KEY)
     else:
-        OAS = Provider(config.issuer, SessionDB(), cdb, authn, None, authz,
+        OAS = Provider(config.issuer, SessionDB(), cdb, ac, None, authz,
                        verify_client, config.SYM_KEY)
 
     authn.srv = OAS
@@ -534,8 +540,6 @@ if __name__ == '__main__':
         OAS.cookie_name = config.COOKIENAME
     except AttributeError:
         pass
-
-    OAS.cookie_func = http_util.make_cookie
 
     #print URLS
     if args.debug:

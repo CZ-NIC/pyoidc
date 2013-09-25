@@ -11,12 +11,15 @@ keys = {
     }
 }
 
-# ..... If you want to use CAS authentication ....
-#AUTHN = "CasAuthnMethod"
 CAS_SERVER  = "https://cas.umu.se"
 SERVICE_URL = "%s/verify" % issuer
-# ..... Otherwise
-AUTHN = "Simple"
+
+#Only Username and password.
+AUTHORIZATION = {
+    #"CAS" : {"ACR": "CAS", "WEIGHT": 1, "URL": SERVICE_URL},
+    "UserPassword" : {"ACR": "PASSWORD", "WEIGHT": 1, "URL": SERVICE_URL}
+}
+
 
 COOKIENAME= 'pyoic'
 COOKIETTL = 4*60 # 4 hours
