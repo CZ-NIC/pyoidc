@@ -624,6 +624,15 @@ class Message(object):
         else:
             return False
 
+    def update(self, item):
+        if isinstance(item, dict):
+            self._dict.update(item)
+        elif isinstance(item, Message):
+            for key, val in item.items():
+                self._dict[key] = val
+        else:
+            raise ValueError("Wrong type of value")
+
 # =============================================================================
 
 
@@ -842,29 +851,3 @@ if __name__ == "__main__":
                              code="foo",
                              redirect_uri="http://example.com/cb")
     print foo
-#    bar = Message("CCAccessTokenRequest",SCHEMA["CCAccessTokenRequest"],
-#                  grant_type="client_credentials")
-#    print bar
-#    print bar.verify()
-#    xyz = Message("AuthorizationErrorResponse",
-#                  SCHEMA["AuthorizationErrorResponse"],
-#                  error="invalid_request",
-#                  state="foxbar")
-#    print xyz
-#    print xyz.verify()
-#
-#    urlencoded = foo.to_urlencoded()
-#    atr = Message("AccessTokenRequest",
-#                  SCHEMA["AccessTokenRequest"]).from_urlencoded(urlencoded)
-#    print atr
-#
-#    atr = Message("AccessTokenRequest",
-#                  SCHEMA["AccessTokenRequest"]).deserialize(urlencoded)
-#    print atr
-#
-#    atr = message("AccessTokenRequest").deserialize(urlencoded)
-#    print atr
-#
-#    areq = message("accesstokenrequest", grant_type="authorization_code",
-#                  code="foo", redirect_uri="http://example.com/cb")
-#    print areq
