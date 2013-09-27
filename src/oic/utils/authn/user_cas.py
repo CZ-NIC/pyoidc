@@ -109,6 +109,8 @@ class CasAuthnMethod(UserAuthnMethod):
         :param nonce: The nonce to be added to the service url.
         :return: A service url with a nonce.
         """
+        if acr is None:
+            acr = ""
         return self.service_url + "?" + self.CONST_NONCE + "=" + nonce + "&acr_values=" + acr
 
     def verify(self, request, cookie, **kwargs):

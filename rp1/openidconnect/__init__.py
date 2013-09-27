@@ -45,12 +45,13 @@ class OpenIDConnect(Social):
         self.client_cls = oic.Client
         self.authn_method = None
 
-    def dynamic(self, server_env, callback, session):
+    def dynamic(self, server_env, callback, logoutCallback, session):
         try:
             client = server_env["OIC_CLIENT"][self.opKey]
         except KeyError:
             client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD)
             client.redirect_uris = [callback]
+            client.post_logout_redirect_uris = [logoutCallback]
             _me = ME.copy()
             _me["redirect_uris"] = [callback]
 
@@ -73,13 +74,14 @@ class OpenIDConnect(Social):
 
         return client
 
-    def static(self, server_env, callback):
+    def static(self, server_env, callback, logoutCallback):
         try:
             client = server_env["OIC_CLIENT"][self.opKey]
             logger.debug("Static client: %s" % server_env["OIC_CLIENT"])
         except KeyError:
             client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD)
             client.redirect_uris = [callback]
+            client.post_logout_redirect_uris = [logoutCallback]
             for typ in ["authorization", "token", "userinfo"]:
                 endpoint = "%s_endpoint" % typ
                 setattr(client, endpoint, self.extra[endpoint])
@@ -110,24 +112,26 @@ class OpenIDConnect(Social):
             logger.debug("begin environ: %s" % server_env)
 
             callback = server_env["base_url"] + self.opKey
+            logoutCallback = server_env["base_url"]
 
             if self.srv_discovery_url:
-                client = self.dynamic(server_env, callback, session)
+                client = self.dynamic(server_env, callback, logoutCallback, session)
             else:
-                client = self.static(server_env, callback)
+                client = self.static(server_env, callback, logoutCallback)
             client.state = session.getState()
             session.setClient(client)
-            acr_value = None
+            acr_value = session.getAcrValue(client.authorization_endpoint)
             try:
                 acr_values = client.provider_info[self.srv_discovery_url]["acr_values"].split()
                 session.setAcrvalues(acr_values)
             except:
                 pass
-            if acr_values is not None and len(acr_values) > 1:
+
+            if acr_value is None and acr_values is not None and len(acr_values) > 1:
                 resp_headers = [("Location", str("/rpAcr?key="+self.opKey))]
                 start_response("302 Found", resp_headers)
                 return []
-            elif acr_values is not None and len(acr_values) == 1:
+            elif acr_value is None and acr_values is not None and len(acr_values) == 1:
                     acr_value = acr_values[0]
             return self.create_authnrequest(environ, server_env, start_response, session, acr_value)
         except Exception:
@@ -141,7 +145,7 @@ class OpenIDConnect(Social):
     def create_authnrequest(self, environ, server_env, start_response, session, acr_value):
         try:
             client = session.getClient()
-
+            session.setAcrValue(client.authorization_endpoint, acr_value)
             request_args = {
                 "response_type": self.flow_type,
                 "scope": self.extra["scope"],

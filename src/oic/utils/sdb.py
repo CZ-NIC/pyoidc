@@ -1,4 +1,5 @@
 import copy
+import uuid
 from oic.oic import AuthorizationRequest
 
 __author__ = 'rohe0002'
@@ -380,6 +381,30 @@ class SessionDB(object):
         typ, sid = self.token.type_and_key(token)
 
         self._db[sid]["revoked"] = True
+
+    def getClient_id(self, uid):
+        _dict = self._db[self.uid2sid[uid]]
+        return _dict["client_id"]
+
+    def getVerifyLogout(self, uid):
+        _dict = self._db[self.uid2sid[uid]]
+        if "verify_logout" not in _dict:
+            return None
+        return _dict["verify_logout"]
+
+    def setVerifyLogout(self, uid):
+        _dict = self._db[self.uid2sid[uid]]
+        _dict["verify_logout"] = uuid.uuid4().urn
+
+    def getToken_id(self, uid):
+        _dict = self._db[self.uid2sid[uid]]
+        return _dict["id_token"]
+
+    def is_revoke_uid(self, uid):
+        return self._db[self.uid2sid[uid]]["revoked"]
+
+    def revoke_uid(self, uid):
+        self._db[self.uid2sid[uid]]["revoked"] = True
 
     def get_sid_from_userid(self, uid):
         return self.uid2sid[uid]

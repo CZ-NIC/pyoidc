@@ -463,6 +463,7 @@ class OpenIDSchema(Message):
 
 class RegistrationRequest(Message):
     c_param = {
+        "post_logout_redirect_uris": OPTIONAL_LIST_OF_STRINGS,
         "redirect_uris": OPTIONAL_LIST_OF_STRINGS,
         "response_types": OPTIONAL_LIST_OF_STRINGS,
         "grant_types": OPTIONAL_LIST_OF_STRINGS,
