@@ -387,7 +387,8 @@ class PBase(object):
 class Client(PBase):
     _endpoints = ENDPOINTS
 
-    def __init__(self, client_id=None, ca_certs=None, client_authn_method=None):
+    def __init__(self, client_id=None, ca_certs=None, client_authn_method=None,
+                 keyjar=None):
         """
 
         :param client_id: The client identifier
@@ -399,6 +400,8 @@ class Client(PBase):
         PBase.__init__(self, ca_certs)
 
         self.client_id = client_id
+        self.client_authn_method = client_authn_method
+        self.keyjar = keyjar
         #self.secret_type = "basic "
 
         self.state = None
@@ -416,24 +419,24 @@ class Client(PBase):
 
         self.request2endpoint = REQUEST2ENDPOINT
         self.response2error = RESPONSE2ERROR
-        self.client_authn_method = client_authn_method
         self.grant_class = Grant
         self.token_class = Token
 
         self.provider_info = {}
+        self._c_secret = None
 
     def get_client_secret(self):
         return self._c_secret
 
     def set_client_secret(self, val):
         if not val:
-            return
-
-        self._c_secret = val
-        # client uses it for signing
-        # Server might also use it for signing which means the
-        # client uses it for verifying server signatures
-        self.keyjar.add_symmetric("", str(val), ["sig"])
+            self._c_secret = ""
+        else:
+            self._c_secret = val
+            # client uses it for signing
+            # Server might also use it for signing which means the
+            # client uses it for verifying server signatures
+            self.keyjar.add_symmetric("", str(val), ["sig"])
 
     client_secret = property(get_client_secret, set_client_secret)
 
@@ -542,6 +545,11 @@ class Client(PBase):
             #logger.debug("kwargs: %s" % kwargs)
         #logger.debug("request: %s" % request)
         return request(**kwargs)
+
+    def construct_Message(self, request=Message, request_args=None,
+                          extra_args=None, **kwargs):
+
+        return self.construct_request(request, request_args, extra_args)
 
     #noinspection PyUnusedLocal
     def construct_AuthorizationRequest(self, request=AuthorizationRequest,

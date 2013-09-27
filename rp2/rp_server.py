@@ -135,6 +135,7 @@ def chooseAcrValue(environ, start_response, session):
     }
     return resp(environ, start_response, **argv)
 
+
 def application(environ, start_response):
     session = Session(environ['beaker.session'])
 
@@ -170,12 +171,15 @@ def application(environ, start_response):
     if path == "rpAcr":
         return chooseAcrValue(environ, start_response, session)
 
-    if path == "rpAuth":    #Only called if multiple arc_values (that is authentications) exists.
+    if path == "rpAuth":
+    #Only called if multiple arc_values (that is authentications) exists.
         if "acr" in query and query["acr"][0] in session.getAcrvalues():
             func = getattr(RP, "create_authnrequest")
-            return func(environ, SERVER_ENV, start_response, session, query["acr"][0])
+            return func(environ, SERVER_ENV, start_response, session,
+                        query["acr"][0])
 
     return opbyuid(environ, start_response)
+
 
 if __name__ == '__main__':
     setup_server_env(rp_conf)
