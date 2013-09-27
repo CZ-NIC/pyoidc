@@ -753,6 +753,8 @@ def factory(msgtype):
     except KeyError:
         if msgtype == "ErrorResponse":
             return message.ErrorResponse
+        elif msgtype == "Message":
+            return message.Message
         else:
             raise PyoidcError("Unknown message type: %s" % msgtype)
 
