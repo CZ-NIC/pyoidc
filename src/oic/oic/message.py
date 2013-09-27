@@ -187,7 +187,7 @@ SINGLE_OPTIONAL_CLAIMSREQ = (Message, False, msg_ser_json, claims_request_deser,
 
 SCOPE_CHARSET = []
 for char in ['\x21', ('\x23', '\x5b'), ('\x5d', '\x7E')]:
-    if isinstance(set, tuple):
+    if isinstance(char, tuple):
         c = char[0]
         while c <= char[1]:
             SCOPE_CHARSET.append(c)
