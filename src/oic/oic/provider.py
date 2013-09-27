@@ -1023,7 +1023,7 @@ class Provider(AProvider):
                 self.baseurl += "/"
 
             #keys = self.keyjar.keys_by_owner(owner=".")
-            if self.jwks_uri:
+            if self.jwks_uri and self.keyjar:
                 _response["jwks_uri"] = self.jwks_uri
 
             #acr_values
@@ -1031,7 +1031,7 @@ class Provider(AProvider):
             if self.authn_broker:
                 acr_values = self.authn_broker.getAcrValuesString()
                 if acr_values is not None:
-                    _response["acr_values"] = acr_values
+                    _response["acr_values_supported"] = acr_values
 
             #_log_info("endpoints: %s" % self.endpoints)
             for endp in self.endpoints:
