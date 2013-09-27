@@ -100,7 +100,10 @@ class ClientSecretPost(ClientSecretBasic):
                 cis["client_secret"] = http_args["client_secret"]
                 del http_args["client_secret"]
             except (KeyError, TypeError):
-                cis["client_secret"] = self.cli.client_secret
+                if self.cli.client_secret:
+                    cis["client_secret"] = self.cli.client_secret
+                else:
+                    raise AuthnFailure("Missing client secret")
 
         cis["client_id"] = self.cli.client_id
 
