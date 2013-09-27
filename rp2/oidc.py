@@ -23,7 +23,7 @@ def token_secret_key(sid):
 
 
 SERVICE_NAME = "OIC"
-FLOW_TYPE = "code"  # or "token"
+FLOW_TYPE = "id_token token" #or "code"  # or "token" or id_token code
 
 CLIENT_CONFIG = {}
 
@@ -53,12 +53,14 @@ class OpenIDConnect(object):
         self.authn_method = None
         self.registration_info = registration_info
 
-    def dynamic(self, server_env, callback, session, key):
+    def dynamic(self, server_env, callback, logoutCallback, session, key):
         try:
             client = server_env["OIC_CLIENT"][key]
         except KeyError:
             client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD)
             client.redirect_uris = [callback]
+            client.post_logout_redirect_uris = [logoutCallback]
+
             _me = self.registration_info.copy()
             _me["redirect_uris"] = [callback]
 
@@ -80,13 +82,14 @@ class OpenIDConnect(object):
                 server_env["OIC_CLIENT"] = {key: client}
         return client
 
-    def static(self, server_env, callback, key):
+    def static(self, server_env, callback, logoutCallback, key):
         try:
             client = server_env["OIC_CLIENT"][key]
             logger.debug("Static client: %s" % server_env["OIC_CLIENT"])
         except KeyError:
             client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD)
             client.redirect_uris = [callback]
+            client.post_logout_redirect_uris = [logoutCallback]
             for typ in ["authorization", "token", "userinfo"]:
                 endpoint = "%s_endpoint" % typ
                 setattr(client, endpoint, self.extra[endpoint])
@@ -117,20 +120,20 @@ class OpenIDConnect(object):
             logger.debug("begin environ: %s" % server_env)
 
             callback = server_env["base_url"] + key
-
+            logoutCallback = server_env["base_url"]
             if self.srv_discovery_url:
-                client = self.dynamic(server_env, callback, session, key)
+                client = self.dynamic(server_env, callback, logoutCallback, session, key)
             else:
-                client = self.static(server_env, callback, key)
+                client = self.static(server_env, callback, logoutCallback, key)
             client.state = session.getState()
             session.setClient(client)
-            acr_value = None
+            acr_value = session.getAcrValue(client.authorization_endpoint)
             try:
                 acr_values = client.provider_info[self.srv_discovery_url]["acr_values"].split()
                 session.setAcrvalues(acr_values)
             except:
                 pass
-            if acr_values is not None and len(acr_values) > 1:
+            if acr_value is None and acr_values is not None and len(acr_values) > 1:
                 resp_headers = [("Location", str("/rpAcr"))]
                 start_response("302 Found", resp_headers)
                 return []
@@ -148,6 +151,7 @@ class OpenIDConnect(object):
     def create_authnrequest(self, environ, server_env, start_response, session, acr_value):
         try:
             client = session.getClient()
+            session.setAcrValue(client.authorization_endpoint, acr_value)
             request_args = {
                 "response_type": self.flow_type,
                 "scope": server_env["SCOPE"],
@@ -246,11 +250,14 @@ class OpenIDConnect(object):
         logger.debug("keyjar: %s" % client.keyjar)
 
         authresp = client.parse_response(AuthorizationResponse, query,
-                                         sformat="dict")
+                                         sformat="dict", keyjar=client.keyjar)
 
         if isinstance(authresp, ErrorResponse):
             return False, "Access denied"
-
+        try:
+            client.id_token = authresp["id_token"]
+        except:
+            pass
         #session.session_id = msg["state"]
 
         logger.debug("callback environ: %s" % environ)
@@ -303,6 +310,7 @@ class OpenIDConnect(object):
 
         try:
             result = self.phaseN(environ, query, server_env, session)
+            session.setLogin(True)
             logger.debug("[do_%s] response: %s" % (_service, result))
         except Exception:
             message = traceback.format_exception(*sys.exc_info())

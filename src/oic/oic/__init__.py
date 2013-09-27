@@ -922,6 +922,12 @@ class Client(oauth2.Client):
                 except KeyError:
                     pass
 
+        if "post_logout_redirect_uris" not in req:
+            try:
+                req["post_logout_redirect_uris"] = self.post_logout_redirect_uris
+            except AttributeError:
+                pass
+
         if "redirect_uris" not in req:
             try:
                 req["redirect_uris"] = self.redirect_uris

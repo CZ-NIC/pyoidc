@@ -270,7 +270,7 @@ class Message(object):
 
         return _res
 
-    def from_dict(self, dictionary):
+    def from_dict(self, dictionary, **kwargs):
         """
         Direct translation so the value for one key might be a list or a
         single value.

@@ -1,6 +1,7 @@
 PORT = 8666
 #BASE = "http://lingon.catalogix.se:" + str(PORT) + "/"
-BASE = "http://localhost:" + str(PORT) + "/"
+BASE = "http://hashog.umdc.umu.se:" + str(PORT) + "/"
+#BASE = "http://localhost:" + str(PORT) + "/"
 
 # If BASE is https these has to be specified
 SERVER_KEY = ''
