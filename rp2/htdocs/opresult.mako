@@ -106,8 +106,9 @@
         </div>
         <div class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
-            <li><a href="/">Home</a></li>
-            <li><a href="opbyuid">OP by unique id</a></li>
+          </ul>
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="logout">Logout</a></li>
           </ul>
         </div><!--/.nav-collapse -->
     </div>

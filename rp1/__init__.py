@@ -56,6 +56,7 @@ class Social(object):
 
         try:
             result = self.phaseN(environ, query, server_env, session)
+            session.setLogin(True)
             logger.debug("[do_%s] response: %s" % (_service, result))
 
         except Exception:

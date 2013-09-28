@@ -1,14 +1,15 @@
+import urllib
 import uuid
 import requests
 import hashlib
 import base64
-
+from jwkest.jws import alg2keytype
 from beaker.middleware import SessionMiddleware
 from cherrypy import wsgiserver
 from mako.lookup import TemplateLookup
 from urlparse import parse_qs
 
-from oic.utils.http_util import NotFound, Response, ServiceError
+from oic.utils.http_util import NotFound, Response, ServiceError, Redirect
 from oidc import OpenIDConnect
 
 import rp_conf
@@ -63,6 +64,11 @@ class Session(object):
         self.getClient()
         self.getAcrvalues()
 
+
+    def clearSession(self):
+        for key in self.session:
+            self.session[key] = None
+
     def getState(self):
         return self.session.get("state", uuid.uuid4().urn)
 
@@ -81,6 +87,12 @@ class Session(object):
     def setClient(self, value):
         self.session["client"] = value
 
+    def getLogin(self):
+        return self.session.get("login", None)
+
+    def setLogin(self, value):
+        self.session["login"] = value
+
     def getProvider(self):
         return self.session.get("provider", None)
 
@@ -92,6 +104,12 @@ class Session(object):
 
     def setAcrvalues(self, value):
         self.session["acrvalues"] = value
+
+    def getAcrValue(self, server):
+        return self.session.get(server+"ACR_VALUE", None)
+
+    def setAcrValue(self, server, acr):
+        self.session[server+"ACR_VALUE"] = acr
 
 #noinspection PyUnresolvedReferences
 def static(environ, start_response, logger, path):
@@ -136,6 +154,14 @@ def chooseAcrValue(environ, start_response, session):
     return resp(environ, start_response, **argv)
 
 
+def id_token_as_signed_jwt(client, alg="RS256"):
+    if alg.startswith("HS"):
+        ckey = client.keyjar.get_signing_key(alg2keytype(alg), "")
+    else:
+        ckey = client.keyjar.get_signing_key(alg2keytype(alg), "")
+    _signed_jwt = client.id_token.to_jwt(key=ckey, algorithm=alg)
+    return _signed_jwt
+
 def application(environ, start_response):
     session = Session(environ['beaker.session'])
 
@@ -147,6 +173,21 @@ def application(environ, start_response):
         return static(environ, start_response, LOGGER, path)
 
     query = parse_qs(environ["QUERY_STRING"])
+
+    if path == "logout" or session.getLogin():
+        try:
+            logoutUrl = session.getClient().endsession_endpoint
+            logoutUrl += "?" + urllib.urlencode({"post_logout_redirect_uri": SERVER_ENV["base_url"]})
+            try:
+                logoutUrl += "&" + urllib.urlencode({"id_token_hint": id_token_as_signed_jwt(session.getClient(), "HS256")})
+            except:
+                pass
+            session.clearSession()
+            resp = Redirect(str(logoutUrl))
+            return resp(environ, start_response)
+        except:
+            pass
+
     _uri = "%s%s" % (rp_conf.BASE, path)
     for _cli in SERVER_ENV["OIC_CLIENT"].values():
         if _uri in _cli.redirect_uris:

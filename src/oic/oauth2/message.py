@@ -270,7 +270,7 @@ class Message(object):
 
         return _res
 
-    def from_dict(self, dictionary):
+    def from_dict(self, dictionary, **kwargs):
         """
         Direct translation so the value for one key might be a list or a
         single value.
@@ -507,7 +507,7 @@ class Message(object):
     def __str__(self):
         return self.to_urlencoded()
 
-    def _type_check(self, typ, _allowed, val, na):
+    def _type_check(self, typ, _allowed, val, na=False):
         if typ is basestring:
             if val not in _allowed:
                 raise ValueError("Not allowed value '%s'" % val)

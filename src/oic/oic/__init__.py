@@ -245,6 +245,7 @@ class Client(oauth2.Client):
         self.wf = WebFinger(OIC_ISSUER)
         self.wf.httpd = self
         self.allow = {}
+        self.post_logout_redirect_uris = []
 
     def _get_id_token(self, **kwargs):
         try:
@@ -939,6 +940,12 @@ class Client(oauth2.Client):
                     req[prop] = self.behaviour[prop]
                 except KeyError:
                     pass
+
+        if "post_logout_redirect_uris" not in req:
+            try:
+                req["post_logout_redirect_uris"] = self.post_logout_redirect_uris
+            except AttributeError:
+                pass
 
         if "redirect_uris" not in req:
             try:

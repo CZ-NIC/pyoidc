@@ -1,3 +1,4 @@
+import urllib
 import uuid
 from rp1 import rp_conf
 from rp1.pyoidc import pyoidcOIC
@@ -5,6 +6,7 @@ from cherrypy import wsgiserver
 import logging
 from logging.handlers import BufferingHandler
 from oic.utils.http_util import NotFound
+from oic.utils.http_util import Redirect
 from saml2.httputil import Response
 from mako.lookup import TemplateLookup
 from urlparse import parse_qs
@@ -74,6 +76,10 @@ class RpSession(object):
         self.getClient()
         self.getAcrvalues()
 
+    def clearSession(self):
+        for key in self.session:
+            self.session[key] = None
+
     def getState(self):
         return self.session.get("state", uuid.uuid4().urn)
 
@@ -98,11 +104,23 @@ class RpSession(object):
     def setClient(self, value):
         self.session["client"] = value
 
+    def getLogin(self):
+        return self.session.get("login", None)
+
+    def setLogin(self, value):
+        self.session["login"] = value
+
     def getAcrvalues(self):
         return self.session.get("acrvalues", None)
 
     def setAcrvalues(self, value):
         self.session["acrvalues"] = value
+
+    def getAcrValue(self, server):
+        return self.session.get(server+"ACR_VALUE", None)
+
+    def setAcrValue(self, server, acr):
+        self.session[server+"ACR_VALUE"] = acr
 
 #noinspection PyUnresolvedReferences
 def static(environ, start_response, logger, path):
@@ -189,6 +207,14 @@ def application(environ, start_response):
         return static(environ, start_response, LOGGER, path)
 
     query = parse_qs(environ["QUERY_STRING"])
+
+    if path == "logout" or rpSession.getLogin():
+        logoutUrl = rpSession.getClient().endsession_endpoint
+        logoutUrl += "?" + urllib.urlencode({"post_logout_redirect_uri" :SERVER_ENV["base_url"]})
+        rpSession.clearSession()
+        resp = Redirect(str(logoutUrl))
+        return resp(environ, start_response)
+
     for key, _dict in rp_conf.SERVICE.items():
         if "opKey" in _dict and _dict["opKey"] == path:
             func = getattr(rp_conf.SERVICE[key]["instance"], "callback")
@@ -243,6 +269,7 @@ def application(environ, start_response):
         return oplist(environ, start_response)
     if path == "about":
         return about(environ, start_response)
+
     return start(environ, start_response)
 
 

@@ -324,8 +324,16 @@ class CookieDealer(object):
         # minutes before the interaction should be completed
         self.cookie_ttl = ttl  # N minutes
 
-    def create_cookie(self, value, typ, cookie_name=None, ttl=-1):
-        if ttl < 0:
+    def delete_cookie(self, cookie_name=None):
+        if cookie_name is None:
+            cookie_name = self.srv.cookie_name
+        return self.create_cookie("", "", cookie_name=cookie_name, ttl=-1, kill=True)
+
+
+    def create_cookie(self, value, typ, cookie_name=None, ttl=-1, kill=False):
+        if kill:
+            ttl = -1
+        elif ttl < 0:
             ttl = self.cookie_ttl
         if cookie_name is None:
             cookie_name = self.srv.cookie_name

@@ -131,7 +131,7 @@ import socket
 class Provider(AProvider):
     def __init__(self, name, sdb, cdb, authn_broker, userinfo, authz,
                  client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
-                 hostname=""):
+                 hostname="", template_lookup=None, verify_login_template=None):
 
         AProvider.__init__(self, name, sdb, cdb, authn_broker, authz,
                            client_authn, symkey, urlmap)
@@ -140,7 +140,8 @@ class Provider(AProvider):
 
         if keyjar:
             self.server.keyjar = keyjar
-
+        self.template_lookup = template_lookup
+        self.verify_login_template = verify_login_template
         self.keyjar = self.server.keyjar
         self.endpoints = []
         self.baseurl = ""
@@ -294,6 +295,104 @@ class Provider(AProvider):
         # return the best I have
         return self.authn_broker[0]
 
+    def verify_post_logout_redirect_uri(self, areq, cookie):
+        try:
+            redirect_uri = areq["post_logout_redirect_uri"]
+            authn = self.pick_auth(areq)
+            uid = authn.authenticated_as(cookie)["uid"]
+            client_info = self.cdb[self.sdb.getClient_id(uid)]
+            for tmpUri1 in redirect_uri:
+                for tmpUri2 in client_info["post_logout_redirect_uris"]:
+                    if str(tmpUri1) == str(tmpUri2[0]):
+                        return tmpUri1
+        except:
+            pass
+        return None
+
+    def is_session_revoked(self, request="", cookie=None):
+        areq = urlparse.parse_qs(request)
+        redirect_uri = self.verify_post_logout_redirect_uri(areq, cookie)
+        authn = self.pick_auth(areq)
+        identity = authn.authenticated_as(cookie)
+        return self.sdb.is_revoke_uid(identity["uid"])
+
+    def end_session_endpoint(self, request="", cookie=None, **kwargs):
+        #TODO ADD CONFIRM LOGOUT PAGE
+        areq = None
+        redirect_uri = None
+        try:
+            areq = urlparse.parse_qs(request)
+            redirect_uri = self.verify_post_logout_redirect_uri(areq, cookie)
+            authn = self.pick_auth(areq)
+            identity = authn.authenticated_as(cookie)
+            if "uid" not in identity:
+                return self._error_response("Not allowed!")
+        except:
+            return self._error_response("Not allowed!")
+
+        verify = self.sdb.getVerifyLogout(identity["uid"])
+        if (verify is None or "key" not in areq or verify != areq["key"][0]) and \
+                (self.template_lookup is not None and self.verify_login_template is not None):
+            if cookie:
+                headers = [cookie]
+            else:
+                headers = []
+            #resp = Response(headers=headers)
+            mte = self.template_lookup.get_template(self.verify_login_template)
+            self.sdb.setVerifyLogout(identity["uid"])
+            if redirect_uri is not None:
+                redirect = redirect_uri
+            else:
+                redirect = "/"
+            argv = {
+                "id_token_hint": areq["id_token_hint"][0],
+                "post_logout_redirect_uri": areq["post_logout_redirect_uri"][0],
+                "key": self.sdb.getVerifyLogout(identity["uid"]),
+                "redirect": redirect,
+                "action": "/"+EndSessionEndpoint("").etype
+            }
+            #resp.message = mte.render(**argv)
+            return Response(mte.render(**argv), headers=[])
+
+        id_token = None
+        try:
+            id_token = self.sdb.getToken_id(identity["uid"])
+        except:
+            pass
+
+        if id_token is not None and "id_token_hint" in areq:
+            try:
+                id_token_hint = OpenIDRequest().from_jwt(areq["id_token_hint"][0], keyjar=self.keyjar, verify=True)
+                id_token = OpenIDRequest().from_jwt(id_token, keyjar=self.keyjar, verify=True)
+                id_token_hint_dict = id_token_hint.to_dict()
+                id_token_dict = id_token.to_dict()
+                for key in id_token_dict:
+                    if key in id_token_hint_dict:
+                        if id_token_dict[key] != id_token_hint_dict[key]:
+                            return self._error_response("Not allowed!")
+                    else:
+                        return self._error_response("Not allowed!")
+                for key in id_token_hint_dict:
+                    if key in id_token_dict:
+                        if id_token_dict[key] != id_token_hint_dict[key]:
+                            return self._error_response("Not allowed!")
+                    else:
+                        return self._error_response("Not allowed!")
+            except:
+                self._error_response("Not allowed!")
+        elif id_token is not None:
+            self._error_response("Not allowed!")
+
+        try:
+            self.sdb.revoke_uid(identity["uid"])
+        except:
+            pass
+            #If cleanup cannot be performed we will still invalidate the cookie.
+
+        if redirect_uri is not None:
+            return Redirect(str(redirect_uri), headers=[authn.delete_cookie()])
+
+        return Response("", headers=[authn.delete_cookie()])
 
     def verify_endpoint(self, request="", cookie=None, **kwargs):
         areq = None
@@ -745,6 +844,23 @@ class Provider(AProvider):
             if key not in ignore:
                 _cinfo[key] = val
 
+        if "post_logout_redirect_uris" in request:
+            plruri = []
+            for uri in request["post_logout_redirect_uris"]:
+                if urlparse.urlparse(uri).fragment:
+                    err = ClientRegistrationErrorResponse(
+                        error="invalid_configuration_parameter",
+                        error_description="post_logout_redirect_uris contains fragment")
+                    return Response(err.to_json(),
+                                    content="application/json",
+                                    status="400 Bad Request")
+                base, query = urllib.splitquery(uri)
+                if query:
+                    plruri.append((base, urlparse.parse_qs(query)))
+                else:
+                    plruri.append((base, query))
+            _cinfo["post_logout_redirect_uris"] = plruri
+
         if "redirect_uris" in request:
             ruri = []
             for uri in request["redirect_uris"]:
@@ -844,6 +960,19 @@ class Provider(AProvider):
 
         return _cinfo
 
+    def comb_post_logout_redirect_uris(self, args):
+        if "post_logout_redirect_uris" not in args:
+            return
+
+        val = []
+        for base, query in args["post_logout_redirect_uris"]:
+            if query:
+                val.append("%s?%s" % (base, query))
+            else:
+                val.append(base)
+
+        args["post_logout_redirect_uris"] = val
+
     def comb_redirect_uris(self, args):
         if "redirect_uris" not in args:
             return
@@ -915,6 +1044,7 @@ class Provider(AProvider):
                      if k in RegistrationResponse.c_param])
 
         self.comb_redirect_uris(args)
+        self.comb_post_logout_redirect_uris(args)
         response = RegistrationResponse(**args)
 
         self.keyjar.load_keys(request, client_id)
@@ -1232,7 +1362,6 @@ class Endpoint(object):
 class AuthorizationEndpoint(Endpoint):
     etype = "authorization"
 
-
 class TokenEndpoint(Endpoint):
     etype = "token"
 
@@ -1243,3 +1372,7 @@ class UserinfoEndpoint(Endpoint):
 
 class RegistrationEndpoint(Endpoint) :
     etype = "registration"
+
+
+class EndSessionEndpoint(Endpoint) :
+    etype = "endsession"
