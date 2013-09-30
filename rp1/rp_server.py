@@ -1,5 +1,6 @@
 import urllib
 import uuid
+from jwkest.jws import alg2keytype
 from rp1 import rp_conf
 from rp1.pyoidc import pyoidcOIC
 from cherrypy import wsgiserver
@@ -70,6 +71,7 @@ class Httpd(object):
 class RpSession(object):
     def __init__(self, session):
         self.session = session
+        self.getCallback()
         self.getState()
         self.getService()
         self.getNonce()
@@ -78,7 +80,15 @@ class RpSession(object):
 
     def clearSession(self):
         for key in self.session:
-            self.session[key] = None
+            self.session.pop(key, None)
+        self.session.invalidate()
+
+
+    def getCallback(self):
+        return self.session.get("callback", False)
+
+    def setCallback(self, value):
+        self.session["callback"] = value
 
     def getState(self):
         return self.session.get("state", uuid.uuid4().urn)
@@ -183,7 +193,6 @@ def opbyuid(environ, start_response):
     }
     return resp(environ, start_response, **argv)
 
-
 def chooseAcrValue(environ, start_response, session, key):
     resp = Response(mako_template="acrvalue.mako",
                     template_lookup=LOOKUP,
@@ -194,6 +203,13 @@ def chooseAcrValue(environ, start_response, session, key):
     }
     return resp(environ, start_response, **argv)
 
+def id_token_as_signed_jwt(client, alg="RS256"):
+    if alg.startswith("HS"):
+        ckey = client.keyjar.get_signing_key(alg2keytype(alg), "")
+    else:
+        ckey = client.keyjar.get_signing_key(alg2keytype(alg), "")
+    _signed_jwt = client.id_token.to_jwt(key=ckey, algorithm=alg)
+    return _signed_jwt
 
 def application(environ, start_response):
     session = environ['beaker.session']
@@ -208,23 +224,47 @@ def application(environ, start_response):
 
     query = parse_qs(environ["QUERY_STRING"])
 
-    if path == "logout" or rpSession.getLogin():
-        logoutUrl = rpSession.getClient().endsession_endpoint
-        logoutUrl += "?" + urllib.urlencode({"post_logout_redirect_uri" :SERVER_ENV["base_url"]})
-        rpSession.clearSession()
-        resp = Redirect(str(logoutUrl))
-        return resp(environ, start_response)
+    if path == "logout":
+        try:
+            logoutUrl = rpSession.getClient().endsession_endpoint
+            logoutUrl += "?" + urllib.urlencode({"post_logout_redirect_uri": SERVER_ENV["base_url"]})
+            try:
+                logoutUrl += "&" + urllib.urlencode({"id_token_hint": id_token_as_signed_jwt(rpSession.getClient(), "HS256")})
+            except:
+                pass
+            rpSession.clearSession()
+            resp = Redirect(str(logoutUrl))
+            return resp(environ, start_response)
+        except:
+            pass
 
-    for key, _dict in rp_conf.SERVICE.items():
-        if "opKey" in _dict and _dict["opKey"] == path:
-            func = getattr(rp_conf.SERVICE[key]["instance"], "callback")
-            return func(environ, SERVER_ENV, start_response, query, rpSession)
+    if rpSession.getCallback():
+        for key, _dict in rp_conf.SERVICE.items():
+            if "opKey" in _dict and _dict["opKey"] == path:
+                rpSession.setCallback(False)
+                func = getattr(rp_conf.SERVICE[key]["instance"], "callback")
+                return func(environ, SERVER_ENV, start_response, query, rpSession)
+
+    if path == "rpAcr" and "key" in query and query["key"][0] in rp_conf.SERVICE:
+        return chooseAcrValue(environ, start_response, rpSession, query["key"][0])
+
+    if path == "rpAuth":    #Only called if multiple arc_values (that is authentications) exists.
+        if "acr" in query and query["acr"][0] in rpSession.getAcrvalues() and \
+                        "key" in query and query["key"][0] in rp_conf.SERVICE:
+            func = getattr(rp_conf.SERVICE[query["key"][0]]["instance"], "create_authnrequest")
+            return func(environ, SERVER_ENV, start_response, rpSession, query["acr"][0])
+
+    if rpSession.getClient() is not None:
+        rpSession.setCallback(True)
+        func = getattr(rp_conf.SERVICE[rpSession.getService()]["instance"], "begin")
+        return func(environ, SERVER_ENV, start_response, rpSession)
 
     if path == "rp":
         if "key" in query:
             print "key"
             key = query["key"][0]
             if key in rp_conf.SERVICE:
+                rpSession.setCallback(True)
                 func = getattr(rp_conf.SERVICE[key]["instance"], "begin")
                 return func(environ, SERVER_ENV, start_response, rpSession)
 
@@ -246,22 +286,9 @@ def application(environ, start_response):
                       'name': link}
             rp_conf.SERVICE[opkey] = kwargs
             rp_conf.SERVICE[opkey]["instance"] = pyoidcOIC(None, None, **kwargs)
+            rpSession.setCallback(True)
             func = getattr(rp_conf.SERVICE[opkey]["instance"], "begin")
             return func(environ, SERVER_ENV, start_response, rpSession)
-
-    if path == "rpAcr" and "key" in query and query["key"][
-        0] in rp_conf.SERVICE:
-        return chooseAcrValue(environ, start_response, rpSession,
-                              query["key"][0])
-
-    if path == "rpAuth":    #Only called if multiple arc_values (that is
-    # authentications) exists.
-        if "acr" in query and query["acr"][0] in rpSession.getAcrvalues() and \
-                        "key" in query and query["key"][0] in rp_conf.SERVICE:
-            func = getattr(rp_conf.SERVICE[query["key"][0]]["instance"],
-                           "create_authnrequest")
-            return func(environ, SERVER_ENV, start_response, rpSession,
-                        query["acr"][0])
 
     if path == "opbyuid":
         return opbyuid(environ, start_response)

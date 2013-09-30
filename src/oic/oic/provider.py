@@ -317,7 +317,6 @@ class Provider(AProvider):
         return self.sdb.is_revoke_uid(identity["uid"])
 
     def end_session_endpoint(self, request="", cookie=None, **kwargs):
-        #TODO ADD CONFIRM LOGOUT PAGE
         areq = None
         redirect_uri = None
         try:
@@ -337,15 +336,18 @@ class Provider(AProvider):
                 headers = [cookie]
             else:
                 headers = []
-            #resp = Response(headers=headers)
             mte = self.template_lookup.get_template(self.verify_login_template)
             self.sdb.setVerifyLogout(identity["uid"])
             if redirect_uri is not None:
                 redirect = redirect_uri
             else:
                 redirect = "/"
+            try:
+                tmp_id_token_hint = areq["id_token_hint"][0]
+            except:
+                tmp_id_token_hint = ""
             argv = {
-                "id_token_hint": areq["id_token_hint"][0],
+                "id_token_hint": tmp_id_token_hint,
                 "post_logout_redirect_uri": areq["post_logout_redirect_uri"][0],
                 "key": self.sdb.getVerifyLogout(identity["uid"]),
                 "redirect": redirect,

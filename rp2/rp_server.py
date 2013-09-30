@@ -59,6 +59,7 @@ class Httpd(object):
 class Session(object):
     def __init__(self, session):
         self.session = session
+        self.getCallback()
         self.getState()
         self.getNonce()
         self.getClient()
@@ -67,7 +68,14 @@ class Session(object):
 
     def clearSession(self):
         for key in self.session:
-            self.session[key] = None
+            self.session.pop(key, None)
+        self.session.invalidate()
+
+    def getCallback(self):
+        return self.session.get("callback", False)
+
+    def setCallback(self, value):
+        self.session["callback"] = value
 
     def getState(self):
         return self.session.get("state", uuid.uuid4().urn)
@@ -174,7 +182,7 @@ def application(environ, start_response):
 
     query = parse_qs(environ["QUERY_STRING"])
 
-    if path == "logout" or session.getLogin():
+    if path == "logout":
         try:
             logoutUrl = session.getClient().endsession_endpoint
             logoutUrl += "?" + urllib.urlencode({"post_logout_redirect_uri": SERVER_ENV["base_url"]})
@@ -188,11 +196,27 @@ def application(environ, start_response):
         except:
             pass
 
-    _uri = "%s%s" % (rp_conf.BASE, path)
-    for _cli in SERVER_ENV["OIC_CLIENT"].values():
-        if _uri in _cli.redirect_uris:
-            func = getattr(RP, "callback")
-            return func(environ, SERVER_ENV, start_response, query, session)
+
+    if session.getCallback():
+        _uri = "%s%s" % (rp_conf.BASE, path)
+        for _cli in SERVER_ENV["OIC_CLIENT"].values():
+            if _uri in _cli.redirect_uris:
+                session.setCallback(False)
+                func = getattr(RP, "callback")
+                return func(environ, SERVER_ENV, start_response, query, session)
+
+    if path == "rpAcr":
+        return chooseAcrValue(environ, start_response, session)
+
+    if path == "rpAuth":    #Only called if multiple arc_values (that is authentications) exists.
+        if "acr" in query and query["acr"][0] in session.getAcrvalues():
+            func = getattr(RP, "create_authnrequest")
+            return func(environ, SERVER_ENV, start_response, session, query["acr"][0])
+
+    if session.getClient() is not None:
+        session.setCallback(True)
+        func = getattr(RP, "begin")
+        return func(environ, SERVER_ENV, start_response, session, "")
 
     if path == "rp":
         if "uid" in query:
@@ -206,21 +230,11 @@ def application(environ, start_response):
             md5 = hashlib.md5()
             md5.update(link)
             opkey = base64.b16encode(md5.digest())
+            session.setCallback(True)
             func = getattr(RP, "begin")
             return func(environ, SERVER_ENV, start_response, session, opkey)
 
-    if path == "rpAcr":
-        return chooseAcrValue(environ, start_response, session)
-
-    if path == "rpAuth":
-    #Only called if multiple arc_values (that is authentications) exists.
-        if "acr" in query and query["acr"][0] in session.getAcrvalues():
-            func = getattr(RP, "create_authnrequest")
-            return func(environ, SERVER_ENV, start_response, session,
-                        query["acr"][0])
-
     return opbyuid(environ, start_response)
-
 
 if __name__ == '__main__':
     setup_server_env(rp_conf)
