@@ -401,7 +401,7 @@ class Client(PBase):
 
         self.client_id = client_id
         self.client_authn_method = client_authn_method
-        self.keyjar = keyjar
+        self.keyjar = keyjar or KeyJar()
         #self.secret_type = "basic "
 
         self.state = None
