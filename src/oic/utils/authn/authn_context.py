@@ -109,6 +109,7 @@ class AuthnBroker(object):
                 res.append((item["method"], item["level"]))
                 if func(_level, item["level"]):
                     _level = item["level"]
+            res_other = []
             for ref, _dic in _info.items():
                 if ref in _refs:
                     continue
@@ -116,9 +117,12 @@ class AuthnBroker(object):
                     if _dic["method"]:
                         _val = (_dic["method"], _dic["level"])
                         if _val not in res:
-                            res.append(_val)
+                            res_other.append(_val)
             # sort on level
             res.sort(self._cmp, reverse=True)
+            res_other.sort(self._cmp, reverse=True)
+            for x in res_other:
+                res.append(x)
 
             return [a for a, b in res]
 

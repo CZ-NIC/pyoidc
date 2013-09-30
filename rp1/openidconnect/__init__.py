@@ -1,3 +1,5 @@
+import requests
+
 __author__ = 'haho0032'
 import traceback
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
@@ -19,7 +21,6 @@ logger = logging.getLogger(__name__)
 
 def token_secret_key(sid):
     return "token_secret_%s" % sid
-
 
 SERVICE_NAME = "OIC"
 #CLIENT_REDIRECT_URIS = ["http://lingon.catalogix.se:8091/oic"]
@@ -58,7 +59,6 @@ class OpenIDConnect(Social):
 
             provider_conf = client.provider_config(self.srv_discovery_url)
             logger.debug("Got provider config: %s" % provider_conf)
-            session.setService(provider_conf["issuer"])
             logger.debug("Registering RP")
             reg_info = client.register(provider_conf["registration_endpoint"],
                                        **_me)
@@ -91,7 +91,7 @@ class OpenIDConnect(Social):
             client.client_secret = self.client_secret
 
             if "keys" in self.extra:
-                client.keyjar.add(self.extra["keys"][0], self.extra["keys"][1])
+                client.keyjar.add(self.extra["keys"][0],self.extra["keys"][1])
 
             try:
                 server_env["OIC_CLIENT"][self.opKey] = client
@@ -111,35 +111,39 @@ class OpenIDConnect(Social):
         try:
             logger.debug("FLOW type: %s" % self.flow_type)
             logger.debug("begin environ: %s" % server_env)
+            client = session.getClient()
+            if client is not None and self.srv_discovery_url:
+                data = {"client_id": client.client_id}
+                resp = requests.get(self.srv_discovery_url + "verifyClientId",
+                            params=data, verify=False)
+                if not resp.ok and resp.status_code == 400:
+                    client = None
+                    server_env["OIC_CLIENT"].pop(self.opKey, None)
+            if client is None:
+                callback = server_env["base_url"] + self.opKey
+                logoutCallback = server_env["base_url"]
 
-            callback = server_env["base_url"] + self.opKey
-            logoutCallback = server_env["base_url"]
-
-            if self.srv_discovery_url:
-                client = self.dynamic(server_env, callback, logoutCallback,
-                                      session)
-            else:
-                client = self.static(server_env, callback, logoutCallback)
-            client.state = session.getState()
-            session.setClient(client)
+                if self.srv_discovery_url:
+                    client = self.dynamic(server_env, callback, logoutCallback, session)
+                else:
+                    client = self.static(server_env, callback, logoutCallback)
+                client.state = session.getState()
+                session.setClient(client)
+                session.setService(self.opKey)
             acr_value = session.getAcrValue(client.authorization_endpoint)
             try:
-                acr_values = client.provider_info[self.srv_discovery_url][
-                    "acr_values"].split()
+                acr_values = client.provider_info[self.srv_discovery_url]["acr_values"].split()
                 session.setAcrvalues(acr_values)
             except:
-                acr_values = []
+                pass
 
-            if acr_value is None and acr_values is not None and len(
-                    acr_values) > 1:
-                resp_headers = [("Location", str("/rpAcr?key=" + self.opKey))]
+            if acr_value is None and acr_values is not None and len(acr_values) > 1:
+                resp_headers = [("Location", str("/rpAcr?key="+self.opKey))]
                 start_response("302 Found", resp_headers)
                 return []
-            elif acr_value is None and acr_values is not None and len(
-                    acr_values) == 1:
-                acr_value = acr_values[0]
-            return self.create_authnrequest(environ, server_env, start_response,
-                                            session, acr_value)
+            elif acr_value is None and acr_values is not None and len(acr_values) == 1:
+                    acr_value = acr_values[0]
+            return self.create_authnrequest(environ, server_env, start_response, session, acr_value)
         except Exception:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
@@ -148,15 +152,14 @@ class OpenIDConnect(Social):
                 (False, "Cannot find the OP! Please view your configuration."))
 
     #noinspection PyUnusedLocal
-    def create_authnrequest(self, environ, server_env, start_response, session,
-                            acr_value):
+    def create_authnrequest(self, environ, server_env, start_response, session, acr_value):
         try:
             client = session.getClient()
             session.setAcrValue(client.authorization_endpoint, acr_value)
             request_args = {
                 "response_type": self.flow_type,
                 "scope": self.extra["scope"],
-                "state": client.state,
+                "state":  client.state,
             }
 
             if acr_value is not None:
@@ -171,15 +174,15 @@ class OpenIDConnect(Social):
                     request_args["nonce"] = rndstr(16)
                     session.setNonce(request_args["nonce"])
 
-            logger.info("client args: %s" % client.__dict__.items(), )
+
+            logger.info("client args: %s" % client.__dict__.items(),)
             logger.info("request_args: %s" % (request_args,))
             # User info claims
         except Exception:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
-            return self.result(environ, start_response, server_env,
-                               (False, "Cannot find the OP! Please view your "
-                                       "configuration of pyoidc RP."))
+            return self.result(environ, start_response, server_env,(False, "Cannot find the OP! Please view your configuration of pyoidc RP."))
+
 
         try:
             cis = client.construct_AuthorizationRequest(
@@ -193,8 +196,7 @@ class OpenIDConnect(Social):
         except Exception:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
-            return self.result(environ, start_response, server_env, (
-            False, "Authorization request can not be performed!"))
+            return self.result(environ, start_response, server_env,(False, "Authorization request can not be performed!"))
 
         logger.info("URL: %s" % url)
         logger.debug("ht_args: %s" % ht_args)

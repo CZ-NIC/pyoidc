@@ -62,7 +62,7 @@
     <div class="container">
      <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
-        <h1>Choose authentication method to use: </h1>
+        <h2>Choose authentication method to use: </h2>
         ${createResult(acrvalues)}
       </div>
 
