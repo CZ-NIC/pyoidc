@@ -1,3 +1,5 @@
+from oic.utils.keyio import KeyJar
+
 __author__ = 'rohe0002'
 
 import urlparse
@@ -215,10 +217,11 @@ class Client(oauth2.Client):
     _endpoints = ENDPOINTS
 
     def __init__(self, client_id=None, ca_certs=None,
-                 client_prefs=None, client_authn_method=None):
+                 client_prefs=None, client_authn_method=None, keyjar=None):
 
         oauth2.Client.__init__(self, client_id, ca_certs,
-                               client_authn_method=client_authn_method)
+                               client_authn_method=client_authn_method,
+                               keyjar=keyjar)
 
         self.file_store = "./file/"
         self.file_uri = "http://localhost/"
@@ -242,6 +245,7 @@ class Client(oauth2.Client):
         self.wf = WebFinger(OIC_ISSUER)
         self.wf.httpd = self
         self.allow = {}
+        self.post_logout_redirect_uris = []
 
     def _get_id_token(self, **kwargs):
         try:
@@ -700,27 +704,15 @@ class Client(oauth2.Client):
 
         return schema_class().from_json(txt=resp.text)
 
-    def provider_config(self, issuer, keys=True, endpoints=True):
-        if issuer.endswith("/"):
-            _issuer = issuer[:-1]
-        else:
-            _issuer = issuer
-
-        url = OIDCONF_PATTERN % _issuer
-
-        pcr = None
-        r = self.http_request(url)
-        if r.status_code == 200:
-            pcr = ProviderConfigurationResponse().from_json(r.text)
-        elif r.status_code == 302:
-            while r.status_code == 302:
-                r = self.http_request(r.headers["location"])
-                if r.status_code == 200:
-                    pcr = ProviderConfigurationResponse().from_json(r.text)
-                    break
-
-        if pcr is None:
-            raise PyoidcError("Trying '%s', status %s" % (url, r.status_code))
+    def handle_provider_config(self, pcr, issuer, keys=True, endpoints=True):
+        """
+        Deal with Provider Config Response
+        :param pcr: The ProviderConfigResponse instance
+        :param issuer: The one I thought should be the issuer of the config
+        :param keys: Should I deal with keys
+        :param endpoints: Should I deal with endpoints, that is store them
+            as attributes in self.
+        """
 
         if "issuer" in pcr:
             _pcr_issuer = pcr["issuer"]
@@ -755,7 +747,34 @@ class Client(oauth2.Client):
                     setattr(self, key, val)
 
         if keys:
+            if self.keyjar is None:
+                self.keyjar = KeyJar()
+
             self.keyjar.load_keys(pcr, _pcr_issuer)
+
+    def provider_config(self, issuer, keys=True, endpoints=True):
+        if issuer.endswith("/"):
+            _issuer = issuer[:-1]
+        else:
+            _issuer = issuer
+
+        url = OIDCONF_PATTERN % _issuer
+
+        pcr = None
+        r = self.http_request(url)
+        if r.status_code == 200:
+            pcr = ProviderConfigurationResponse().from_json(r.text)
+        elif r.status_code == 302:
+            while r.status_code == 302:
+                r = self.http_request(r.headers["location"])
+                if r.status_code == 200:
+                    pcr = ProviderConfigurationResponse().from_json(r.text)
+                    break
+
+        if pcr is None:
+            raise PyoidcError("Trying '%s', status %s" % (url, r.status_code))
+
+        self.handle_provider_config(pcr, issuer, keys, endpoints)
 
         return pcr
 

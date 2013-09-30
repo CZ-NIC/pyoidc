@@ -337,10 +337,10 @@ class AuthorizationRequest(message.AuthorizationRequest):
         }
     )
     c_allowed_values = message.AuthorizationRequest.c_allowed_values.copy()
-    c_allowed_values = {
+    c_allowed_values.update({
         "display": ["page", "popup", "touch", "wap"],
         "prompt": ["none", "login", "consent", "select_account"]
-    }
+    })
 
     def verify(self, **kwargs):
         """Authorization Request parameters that are OPTIONAL in the OAuth 2.0
@@ -754,6 +754,8 @@ def factory(msgtype):
     except KeyError:
         if msgtype == "ErrorResponse":
             return message.ErrorResponse
+        elif msgtype == "Message":
+            return message.Message
         else:
             raise PyoidcError("Unknown message type: %s" % msgtype)
 
