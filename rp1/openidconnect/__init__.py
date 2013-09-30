@@ -1,3 +1,5 @@
+import requests
+
 __author__ = 'haho0032'
 import traceback
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
@@ -57,7 +59,6 @@ class OpenIDConnect(Social):
 
             provider_conf = client.provider_config(self.srv_discovery_url)
             logger.debug("Got provider config: %s" % provider_conf)
-            session.setService(provider_conf["issuer"])
             logger.debug("Registering RP")
             reg_info = client.register(provider_conf["registration_endpoint"],
                                        **_me)
@@ -110,16 +111,25 @@ class OpenIDConnect(Social):
         try:
             logger.debug("FLOW type: %s" % self.flow_type)
             logger.debug("begin environ: %s" % server_env)
+            client = session.getClient()
+            if client is not None and self.srv_discovery_url:
+                data = {"client_id": client.client_id}
+                resp = requests.get(self.srv_discovery_url + "verifyClientId",
+                            params=data, verify=False)
+                if not resp.ok and resp.status_code == 400:
+                    client = None
+                    server_env["OIC_CLIENT"].pop(self.opKey, None)
+            if client is None:
+                callback = server_env["base_url"] + self.opKey
+                logoutCallback = server_env["base_url"]
 
-            callback = server_env["base_url"] + self.opKey
-            logoutCallback = server_env["base_url"]
-
-            if self.srv_discovery_url:
-                client = self.dynamic(server_env, callback, logoutCallback, session)
-            else:
-                client = self.static(server_env, callback, logoutCallback)
-            client.state = session.getState()
-            session.setClient(client)
+                if self.srv_discovery_url:
+                    client = self.dynamic(server_env, callback, logoutCallback, session)
+                else:
+                    client = self.static(server_env, callback, logoutCallback)
+                client.state = session.getState()
+                session.setClient(client)
+                session.setService(self.opKey)
             acr_value = session.getAcrValue(client.authorization_endpoint)
             try:
                 acr_values = client.provider_info[self.srv_discovery_url]["acr_values"].split()

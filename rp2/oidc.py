@@ -1,6 +1,7 @@
 import logging
 import traceback
 import sys
+import requests
 from oic.utils.http_util import Response
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic import oic
@@ -11,6 +12,7 @@ from oic.oic.message import AuthorizationResponse
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AccessTokenResponse
 from oic.utils.webfinger import WebFinger
+
 
 
 __author__ = 'rolandh'
@@ -118,15 +120,23 @@ class OpenIDConnect(object):
         try:
             logger.debug("FLOW type: %s" % self.flow_type)
             logger.debug("begin environ: %s" % server_env)
-
-            callback = server_env["base_url"] + key
-            logoutCallback = server_env["base_url"]
-            if self.srv_discovery_url:
-                client = self.dynamic(server_env, callback, logoutCallback, session, key)
-            else:
-                client = self.static(server_env, callback, logoutCallback, key)
-            client.state = session.getState()
-            session.setClient(client)
+            client = session.getClient()
+            if client is not None and self.srv_discovery_url:
+                data = {"client_id": client.client_id}
+                resp = requests.get(self.srv_discovery_url + "verifyClientId",
+                            params=data, verify=False)
+                if not resp.ok and resp.status_code == 400:
+                    client = None
+                    server_env["OIC_CLIENT"].pop(key, None)
+            if client is None:
+                callback = server_env["base_url"] + key
+                logoutCallback = server_env["base_url"]
+                if self.srv_discovery_url:
+                    client = self.dynamic(server_env, callback, logoutCallback, session, key)
+                else:
+                    client = self.static(server_env, callback, logoutCallback, key)
+                client.state = session.getState()
+                session.setClient(client)
             acr_value = session.getAcrValue(client.authorization_endpoint)
             try:
                 acr_values = client.provider_info[self.srv_discovery_url]["acr_values"].split()
