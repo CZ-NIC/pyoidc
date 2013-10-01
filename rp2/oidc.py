@@ -288,7 +288,8 @@ class OpenIDConnect(object):
             access_token = authresp["access_token"]
 
         userinfo = self.verify_token(client, access_token)
-
+        session.setState(authresp["state"])
+        session.setAccesstoken(access_token)
         inforesp = self.get_userinfo(client, authresp, access_token)
 
         if isinstance(inforesp, ErrorResponse):
@@ -299,6 +300,19 @@ class OpenIDConnect(object):
         logger.debug("UserInfo: %s" % inforesp)
 
         return True, userinfo, access_token, client
+
+    def updateUserInfo(self, environ, server_env, start_response, session, key):
+        client = session.getClient()
+        try:
+            userinfo = client.do_user_info_request(state=session.getState(),
+                                               schema="openid",
+                                               access_token=session.getAccesstoken())
+        except:
+            resp = self.begin(environ, server_env, start_response, session, key)
+            return resp
+
+        result = (True, userinfo, session.getAccesstoken(), client)
+        return self.result(environ, start_response, server_env, result)
 
     #noinspection PyUnusedLocal
     def callback(self, environ, server_env, start_response, query, session):

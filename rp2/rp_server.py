@@ -64,12 +64,26 @@ class Session(object):
         self.getNonce()
         self.getClient()
         self.getAcrvalues()
+        self.getAccesstoken()
+        self.getKey()
 
 
     def clearSession(self):
         for key in self.session:
             self.session.pop(key, None)
         self.session.invalidate()
+
+    def getKey(self):
+        return self.session.get("key", None)
+
+    def setKey(self, value):
+        self.session["key"] = value
+
+    def getAccesstoken(self):
+        return self.session.get("Accesstoken", None)
+
+    def setAccesstoken(self, value):
+        self.session["Accesstoken"] = value
 
     def getCallback(self):
         return self.session.get("callback", False)
@@ -190,6 +204,7 @@ def application(environ, start_response):
                 logoutUrl += "&" + urllib.urlencode({"id_token_hint": id_token_as_signed_jwt(session.getClient(), "HS256")})
             except:
                 pass
+            SERVER_ENV["OIC_CLIENT"].pop(session.getKey(), None)
             session.clearSession()
             resp = Redirect(str(logoutUrl))
             return resp(environ, start_response)
@@ -213,10 +228,14 @@ def application(environ, start_response):
             func = getattr(RP, "create_authnrequest")
             return func(environ, SERVER_ENV, start_response, session, query["acr"][0])
 
+    if path == "updateUserInfo":
+        func = getattr(RP, "updateUserInfo")
+        return func(environ, SERVER_ENV, start_response, session, session.getKey())
+
     if session.getClient() is not None:
         session.setCallback(True)
         func = getattr(RP, "begin")
-        return func(environ, SERVER_ENV, start_response, session, "")
+        return func(environ, SERVER_ENV, start_response, session, session.getKey())
 
     if path == "rp":
         if "uid" in query:
@@ -231,6 +250,7 @@ def application(environ, start_response):
             md5.update(link)
             opkey = base64.b16encode(md5.digest())
             session.setCallback(True)
+            session.setKey(opkey)
             func = getattr(RP, "begin")
             return func(environ, SERVER_ENV, start_response, session, opkey)
 
