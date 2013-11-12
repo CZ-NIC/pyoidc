@@ -114,10 +114,10 @@ class Session(object):
         self.session["acrvalues"] = value
 
     def getAcrValue(self, server):
-        return self.session.get(server+"ACR_VALUE", None)
+        return self.session.get(server + "ACR_VALUE", None)
 
     def setAcrValue(self, server, acr):
-        self.session[server+"ACR_VALUE"] = acr
+        self.session[server + "ACR_VALUE"] = acr
 
 #noinspection PyUnresolvedReferences
 def static(environ, start_response, logger, path):
@@ -170,6 +170,7 @@ def id_token_as_signed_jwt(client, alg="RS256"):
     _signed_jwt = client.id_token.to_jwt(key=ckey, algorithm=alg)
     return _signed_jwt
 
+
 def application(environ, start_response):
     session = Session(environ['beaker.session'])
 
@@ -185,9 +186,12 @@ def application(environ, start_response):
     if path == "logout":
         try:
             logoutUrl = session.getClient().endsession_endpoint
-            logoutUrl += "?" + urllib.urlencode({"post_logout_redirect_uri": SERVER_ENV["base_url"]})
+            logoutUrl += "?" + urllib.urlencode(
+                {"post_logout_redirect_uri": SERVER_ENV["base_url"]})
             try:
-                logoutUrl += "&" + urllib.urlencode({"id_token_hint": id_token_as_signed_jwt(session.getClient(), "HS256")})
+                logoutUrl += "&" + urllib.urlencode({
+                    "id_token_hint": id_token_as_signed_jwt(
+                        session.getClient(), "HS256")})
             except:
                 pass
             session.clearSession()
@@ -195,7 +199,6 @@ def application(environ, start_response):
             return resp(environ, start_response)
         except:
             pass
-
 
     if session.getCallback():
         _uri = "%s%s" % (rp_conf.BASE, path)
@@ -208,10 +211,12 @@ def application(environ, start_response):
     if path == "rpAcr":
         return chooseAcrValue(environ, start_response, session)
 
-    if path == "rpAuth":    #Only called if multiple arc_values (that is authentications) exists.
+    if path == "rpAuth":    #Only called if multiple arc_values (that is
+    # authentications) exists.
         if "acr" in query and query["acr"][0] in session.getAcrvalues():
             func = getattr(RP, "create_authnrequest")
-            return func(environ, SERVER_ENV, start_response, session, query["acr"][0])
+            return func(environ, SERVER_ENV, start_response, session,
+                        query["acr"][0])
 
     if session.getClient() is not None:
         session.setCallback(True)
@@ -235,6 +240,7 @@ def application(environ, start_response):
             return func(environ, SERVER_ENV, start_response, session, opkey)
 
     return opbyuid(environ, start_response)
+
 
 if __name__ == '__main__':
     setup_server_env(rp_conf)
