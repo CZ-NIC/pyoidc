@@ -331,7 +331,9 @@ class Message(object):
         if isinstance(vtyp, list):
             vtype = vtyp[0]
             if isinstance(val, vtype):
-                if _deser:
+                if issubclass(vtype, Message):
+                    self._dict[skey] = [val]
+                elif _deser:
                     try:
                         self._dict[skey] = _deser(val, sformat="urlencoded")
                     except Exception, exc:
@@ -391,7 +393,7 @@ class Message(object):
         if lev:
             return self.to_dict(lev + 1)
         else:
-            return json.dumps(self.to_dict(lev + 1))
+            return json.dumps(self.to_dict(1))
 
     def from_json(self, txt, **kwargs):
         return self.from_dict(json.loads(txt))
