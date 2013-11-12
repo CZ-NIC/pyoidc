@@ -63,3 +63,4 @@ class NotForMe(PyoidcError):
 
 class UnSupported(Exception):
     pass
+
