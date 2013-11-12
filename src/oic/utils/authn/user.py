@@ -227,6 +227,12 @@ class BasicAuthn(UserAuthnMethod):
         UserAuthnMethod.__init__(self, srv, ttl)
         self.passwd = pwd
 
+    def verify_password(self, user, password):
+        try:
+            assert password == self.passwd[user]
+        except (AssertionError, KeyError):
+            raise FailedAuthentication()
+
     def authenticated_as(self, cookie=None, authorization="", **kwargs):
         """
 
@@ -236,13 +242,12 @@ class BasicAuthn(UserAuthnMethod):
         :param kwargs: extra key word arguments
         :return:
         """
+        if authorization.startswith("Basic"):
+            authorization = authorization[6:]
+
         (user, pwd) = base64.b64decode(authorization).split(":")
         user = urllib.unquote(user)
-        try:
-            assert pwd == self.passwd[user]
-        except (AssertionError, KeyError):
-            raise FailedAuthentication()
-
+        self.verify_password(user, pwd)
         return {"uid": user}
 
 
