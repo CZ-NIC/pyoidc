@@ -4,9 +4,12 @@ import traceback
 import urllib
 import sys
 from jwkest.jwe import JWE
-from oic.utils.authn.user import NoSuchAuthentication, ToOld, TamperAllert
+from oic.utils.authn.user import NoSuchAuthentication
+from oic.utils.authn.user import ToOld
+from oic.utils.authn.user import TamperAllert
 from oic.utils.time_util import utc_time_sans_frac
-from oic.utils.keyio import KeyBundle, key_export
+from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import key_export
 
 from requests import ConnectionError
 
@@ -40,8 +43,10 @@ import hmac
 import time
 import hashlib
 import logging
+import socket
 
 from oic.oauth2.provider import Provider as AProvider
+from oic.oauth2.provider import Endpoint
 
 from oic.utils.http_util import Response
 from oic.utils.http_util import Redirect
@@ -125,7 +130,24 @@ def construct_uri(item):
     else:
         return base_url
 
-import socket
+
+class AuthorizationEndpoint(Endpoint):
+    etype = "authorization"
+
+class TokenEndpoint(Endpoint):
+    etype = "token"
+
+
+class UserinfoEndpoint(Endpoint):
+    etype = "userinfo"
+
+
+class RegistrationEndpoint(Endpoint) :
+    etype = "registration"
+
+
+class EndSessionEndpoint(Endpoint) :
+    etype = "endsession"
 
 
 class Provider(AProvider):
@@ -135,6 +157,10 @@ class Provider(AProvider):
 
         AProvider.__init__(self, name, sdb, cdb, authn_broker, authz,
                            client_authn, symkey, urlmap)
+
+        self.endp.extend([UserinfoEndpoint, RegistrationEndpoint,
+                          EndSessionEndpoint])
+
         self.userinfo = userinfo
         self.server = Server(ca_certs=ca_certs)
 
@@ -143,7 +169,6 @@ class Provider(AProvider):
         self.template_lookup = template_lookup
         self.verify_login_template = verify_login_template
         self.keyjar = self.server.keyjar
-        self.endpoints = []
         self.baseurl = ""
         self.cert = []
         self.cert_encryption = []
@@ -173,9 +198,10 @@ class Provider(AProvider):
             ckey = self.keyjar.get_signing_key(alg2keytype(alg),
                                                session["client_id"])
         else:
-            for b in self.keyjar[""]:
-                logger.debug("OC3 server keys: %s" % b)
-            ckey = self.keyjar.get_signing_key(alg2keytype(alg), "")
+            if "" in self.keyjar:
+                for b in self.keyjar[""]:
+                    logger.debug("OC3 server keys: %s" % b)
+                ckey = self.keyjar.get_signing_key(alg2keytype(alg), "")
         logger.debug("ckey: %s" % ckey)
         _signed_jwt = _idt.to_jwt(key=ckey, algorithm=alg)
 
@@ -287,7 +313,7 @@ class Provider(AProvider):
                 for acr in areq["acr_values"]:
                     res = self.authn_broker.pick(acr)
                     if res:
-                        #Return the best gues by pick.
+                        #Return the best guess by pick.
                         return res[0]
         except KeyError:
             pass
@@ -458,7 +484,12 @@ class Provider(AProvider):
 
         logger.debug("Cookie: %s" % cookie)
         try:
+            try:
+                _auth_info = kwargs["authn"]
+            except KeyError:
+                _auth_info = ""
             identity = authn.authenticated_as(cookie,
+                                              authorization=_auth_info,
                                               max_age=self.max_age(areq))
         except (NoSuchAuthentication, ToOld, TamperAllert):
             identity = None
@@ -825,7 +856,8 @@ class Provider(AProvider):
 
         return Response(idt.to_json(), content="application/json")
 
-    def _verify_url(self, url, urlset):
+    @staticmethod
+    def _verify_url(url, urlset):
         part = urlparse.urlparse(url)
 
         for reg, qp in urlset:
@@ -962,7 +994,8 @@ class Provider(AProvider):
 
         return _cinfo
 
-    def comb_post_logout_redirect_uris(self, args):
+    @staticmethod
+    def comb_post_logout_redirect_uris(args):
         if "post_logout_redirect_uris" not in args:
             return
 
@@ -975,7 +1008,8 @@ class Provider(AProvider):
 
         args["post_logout_redirect_uris"] = val
 
-    def comb_redirect_uris(self, args):
+    @staticmethod
+    def comb_redirect_uris(args):
         if "redirect_uris" not in args:
             return
 
@@ -1021,7 +1055,7 @@ class Provider(AProvider):
 
         _rat = rndstr(32)
         reg_enp = ""
-        for endp in self.endpoints:
+        for endp in self.endp:
             if isinstance(endp, RegistrationEndpoint):
                 reg_enp = "%s%s" % (self.baseurl, endp.etype)
 
@@ -1108,6 +1142,61 @@ class Provider(AProvider):
         return Response(response.to_json(), content="application/json",
                         headers=[("Cache-Control", "no-store")])
 
+    def create_providerinfo(self, pcr_class=ProviderConfigurationResponse):
+        _response = pcr_class(
+            issuer=self.baseurl,
+            token_endpoint_auth_methods_supported=[
+                "client_secret_post", "client_secret_basic",
+                "client_secret_jwt", "private_key_jwt"],
+            scopes_supported=["openid"],
+            response_types_supported=["code", "token", "id_token",
+                                      "code token", "code id_token",
+                                      "token id_token",
+                                      "code token id_token"],
+            subject_types_supported=["public", "pairwise"],
+            grant_types_supported=[
+                "authorization_code", "implicit",
+                "urn:ietf:params:oauth:grant-type:jwt-bearer"],
+            claim_types_supported=["normal", "aggregated", "distributed"],
+            claims_supported=SCOPE2CLAIMS.keys(),
+            claims_parameter_supported="true",
+            request_parameter_supported="true",
+            request_uri_parameter_supported="true",
+        )
+
+        sign_algs = jws.SIGNER_ALGS.keys()
+
+        for typ in ["userinfo", "id_token", "request_object",
+                    "token_endpoint_auth"]:
+            _response["%s_signing_alg_values_supported" % typ] = sign_algs
+
+        algs = jwe.SUPPORTED["alg"]
+        for typ in ["userinfo", "id_token", "request_object"]:
+            _response["%s_encryption_alg_values_supported" % typ] = algs
+
+        encs = jwe.SUPPORTED["enc"]
+        for typ in ["userinfo", "id_token", "request_object"]:
+            _response["%s_encryption_enc_values_supported" % typ] = encs
+
+        if not self.baseurl.endswith("/"):
+            self.baseurl += "/"
+
+        #keys = self.keyjar.keys_by_owner(owner=".")
+        if self.jwks_uri and self.keyjar:
+            _response["jwks_uri"] = self.jwks_uri
+
+        #acr_values
+        if self.authn_broker:
+            acr_values = self.authn_broker.getAcrValuesString()
+            if acr_values is not None:
+                _response["acr_values_supported"] = acr_values
+
+        for endp in self.endp:
+            #_log_info("# %s, %s" % (endp, endp.name))
+            _response[endp(None).name] = "%s%s" % (self.baseurl, endp.etype)
+
+        return _response
+
     #noinspection PyUnusedLocal
     def providerinfo_endpoint(self, handle="", **kwargs):
         _log_debug = logger.debug
@@ -1115,61 +1204,7 @@ class Provider(AProvider):
 
         _log_info("@providerinfo_endpoint")
         try:
-            _response = ProviderConfigurationResponse(
-                issuer=self.baseurl,
-                token_endpoint_auth_methods_supported=[
-                    "client_secret_post", "client_secret_basic",
-                    "client_secret_jwt", "private_key_jwt"],
-                scopes_supported=["openid"],
-                response_types_supported=["code", "token", "id_token",
-                                          "code token", "code id_token",
-                                          "token id_token",
-                                          "code token id_token"],
-                subject_types_supported=["public", "pairwise"],
-                grant_types_supported=[
-                    "authorization_code", "implicit",
-                    "urn:ietf:params:oauth:grant-type:jwt-bearer"],
-                claim_types_supported=["normal", "aggregated", "distributed"],
-                claims_supported=SCOPE2CLAIMS.keys(),
-                claims_parameter_supported="true",
-                request_parameter_supported="true",
-                request_uri_parameter_supported="true",
-                #request_object_algs_supported=["HS256"]
-            )
-
-            sign_algs = jws.SIGNER_ALGS.keys()
-
-            for typ in ["userinfo", "id_token", "request_object",
-                        "token_endpoint_auth"]:
-                _response["%s_signing_alg_values_supported" % typ] = sign_algs
-
-            algs = jwe.SUPPORTED["alg"]
-            for typ in ["userinfo", "id_token", "request_object"]:
-                _response["%s_encryption_alg_values_supported" % typ] = algs
-
-            encs = jwe.SUPPORTED["enc"]
-            for typ in ["userinfo", "id_token", "request_object"]:
-                _response["%s_encryption_enc_values_supported" % typ] = encs
-
-            if not self.baseurl.endswith("/"):
-                self.baseurl += "/"
-
-            #keys = self.keyjar.keys_by_owner(owner=".")
-            if self.jwks_uri and self.keyjar:
-                _response["jwks_uri"] = self.jwks_uri
-
-            #acr_values
-            acr_values = None
-            if self.authn_broker:
-                acr_values = self.authn_broker.getAcrValuesString()
-                if acr_values is not None:
-                    _response["acr_values_supported"] = acr_values
-
-            #_log_info("endpoints: %s" % self.endpoints)
-            for endp in self.endpoints:
-                #_log_info("# %s, %s" % (endp, endp.name))
-                _response[endp.name] = "%s%s" % (self.baseurl, endp.etype)
-
+            _response = self.create_providerinfo()
             _log_info("provider_info_response: %s" % (_response.to_dict(),))
 
             headers = [("Cache-Control", "no-store"), ("x-ffo", "bar")]
@@ -1361,20 +1396,3 @@ class Endpoint(object):
         return self.func(*args, **kwargs)
 
 
-class AuthorizationEndpoint(Endpoint):
-    etype = "authorization"
-
-class TokenEndpoint(Endpoint):
-    etype = "token"
-
-
-class UserinfoEndpoint(Endpoint):
-    etype = "userinfo"
-
-
-class RegistrationEndpoint(Endpoint) :
-    etype = "registration"
-
-
-class EndSessionEndpoint(Endpoint) :
-    etype = "endsession"
