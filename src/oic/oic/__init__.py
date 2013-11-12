@@ -39,7 +39,7 @@ from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import rndstr
 from oic.oauth2.consumer import ConfigurationError
 
-from oic.oauth2.exception import AccessDenied, PyoidcError
+from oic.oauth2.exception import AccessDenied, PyoidcError, MissingParameter
 
 from oic.utils import time_util
 
@@ -612,13 +612,23 @@ class Client(oauth2.Client):
         # - GET with token in authorization header
         if "behavior" in kwargs:
             _behav = kwargs["behavior"]
+            _token = uir["access_token"]
+            try:
+                _ttype = kwargs["token_type"]
+            except KeyError:
+                try:
+                    _ttype = token.type
+                except AttributeError:
+                    raise MissingParameter("Unspecified token type")
+
             # use_authorization_header, token_in_message_body
-            if "use_authorization_header" in _behav and token.type == "Bearer":
-                bh = "Bearer %s" % token.access_token
+            if "use_authorization_header" in _behav and _ttype == "Bearer":
+                bh = "Bearer %s" % _token
                 if "headers" in kwargs:
-                    kwargs["headers"] = {"Authorization": bh}
+                    kwargs["headers"].update({"Authorization": bh})
                 else:
                     kwargs["headers"] = {"Authorization": bh}
+
             if not "token_in_message_body" in _behav:
                 # remove the token from the request
                 del uir["access_token"]
@@ -752,23 +762,25 @@ class Client(oauth2.Client):
 
             self.keyjar.load_keys(pcr, _pcr_issuer)
 
-    def provider_config(self, issuer, keys=True, endpoints=True):
+    def provider_config(self, issuer, keys=True, endpoints=True,
+                        response_cls=ProviderConfigurationResponse,
+                        serv_pattern=OIDCONF_PATTERN):
         if issuer.endswith("/"):
             _issuer = issuer[:-1]
         else:
             _issuer = issuer
 
-        url = OIDCONF_PATTERN % _issuer
+        url = serv_pattern % _issuer
 
         pcr = None
         r = self.http_request(url)
         if r.status_code == 200:
-            pcr = ProviderConfigurationResponse().from_json(r.text)
+            pcr = response_cls().from_json(r.text)
         elif r.status_code == 302:
             while r.status_code == 302:
                 r = self.http_request(r.headers["location"])
                 if r.status_code == 200:
-                    pcr = ProviderConfigurationResponse().from_json(r.text)
+                    pcr = response_cls().from_json(r.text)
                     break
 
         if pcr is None:
