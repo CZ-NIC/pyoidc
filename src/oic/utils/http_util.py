@@ -1,3 +1,4 @@
+from oic.oauth2 import rndstr
 from oic.oauth2.exception import UnsupportedMethod
 from oic.utils.aes_m2c import AES_encrypt
 from oic.utils.aes_m2c import AES_decrypt
@@ -109,6 +110,11 @@ class NotAcceptable(Response):
 class ServiceError(Response):
     _status = '500 Internal Service Error'
 
+
+class InvalidCookieSign(Exception):
+    pass
+
+
 R2C = {
     200: Response,
     201: Created,
@@ -117,7 +123,7 @@ R2C = {
     400: BadRequest,
     401: Unauthorized,
     403: Forbidden,
-    404: NotAcceptable,
+    404: NotFound,
     406: NotAcceptable,
     500: ServiceError,
 }
@@ -238,7 +244,7 @@ def parse_cookie(name, seed, kaka):
         # verify the cookie signature
         sig = cookie_signature(seed, parts[0], parts[1])
         if sig != parts[2]:
-            raise Exception("Invalid cookie signature")
+            raise InvalidCookieSign()
 
         try:
             return parts[0].strip(), parts[1]
@@ -320,15 +326,24 @@ def wsgi_wrapper(environ, start_response, func, **kwargs):
 
 class CookieDealer(object):
     def __init__(self, srv, ttl=5):
-        self.srv = srv
+        self.srv = None
+        self.init_srv(srv)
         # minutes before the interaction should be completed
         self.cookie_ttl = ttl  # N minutes
+
+    def init_srv(self, srv):
+        if srv:
+            self.srv = srv
+
+            for param in ["seed", "iv"]:
+                if not getattr(srv, param, None):
+                    setattr(srv, param, rndstr())
 
     def delete_cookie(self, cookie_name=None):
         if cookie_name is None:
             cookie_name = self.srv.cookie_name
-        return self.create_cookie("", "", cookie_name=cookie_name, ttl=-1, kill=True)
-
+        return self.create_cookie("", "", cookie_name=cookie_name, ttl=-1,
+                                  kill=True)
 
     def create_cookie(self, value, typ, cookie_name=None, ttl=-1, kill=False):
         if kill:
@@ -346,6 +361,9 @@ class CookieDealer(object):
         return cookie
 
     def getCookieValue(self, cookie=None, cookie_name=None):
+        return self.get_cookie_value(cookie, cookie_name)
+
+    def get_cookie_value(self, cookie=None, cookie_name=None):
         """
         Return information stored in the Cookie
 
@@ -363,7 +381,7 @@ class CookieDealer(object):
                                               self.srv.iv).split("::")
                 if timestamp == _ts:
                     return value, _ts, typ
-            except Exception:
+            except TypeError:
                 pass
         return None
 
