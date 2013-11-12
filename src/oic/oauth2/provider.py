@@ -28,7 +28,7 @@ from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.message import AccessTokenRequest
 
-from oic.utils.http_util import BadRequest
+from oic.utils.http_util import BadRequest, CookieDealer
 from oic.utils.http_util import make_cookie
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import Response
@@ -43,6 +43,28 @@ from oic.oauth2 import Server
 logger = logging.getLogger(__name__)
 LOG_INFO = logger.info
 LOG_DEBUG = logger.debug
+
+
+class Endpoint(object):
+    etype = ""
+
+    def __init__(self, func):
+        self.func = func
+
+    @property
+    def name(self):
+        return "%s_endpoint" % self.etype
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+
+
+class AuthorizationEndpoint(Endpoint):
+    etype = "authorization"
+
+
+class TokenEndpoint(Endpoint):
+    etype = "token"
 
 
 def code_response(**kwargs):
@@ -87,6 +109,8 @@ def location_url(response_type, redirect_uri, query):
 
 
 class Provider(object):
+    endp = [AuthorizationEndpoint, TokenEndpoint]
+
     def __init__(self, name, sdb, cdb, authn_broker, authz, client_authn,
                  symkey="", urlmap=None, iv=0, default_scope="",
                  ca_bundle=None):
@@ -102,7 +126,8 @@ class Provider(object):
                 item.srv = self
         else:
             self.authn_broker = None
-            self.cookie_func = None
+            # default cookie function
+            self.cookie_func = CookieDealer(srv=self).create_cookie
 
         self.authz = authz
         self.client_authn = client_authn
@@ -123,6 +148,10 @@ class Provider(object):
             "token": token_response,
             "none": none_response,
         }
+
+    def endpoints(self):
+        for endp in self.endp:
+            yield endp(None).name
 
     def subset(self, li1, li2):
         """
@@ -574,26 +603,3 @@ class Provider(object):
 
         return Response(atr.to_json(), content="application/json")
 
-# =============================================================================
-
-
-class Endpoint(object):
-    etype = ""
-
-    def __init__(self, func):
-        self.func = func
-
-    @property
-    def name(self):
-        return "%s_endpoint" % self.etype
-
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
-
-
-class AuthorizationEndpoint(Endpoint):
-    etype = "authorization"
-
-
-class TokenEndpoint(Endpoint):
-    etype = "token"
