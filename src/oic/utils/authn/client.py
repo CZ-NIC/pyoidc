@@ -64,13 +64,24 @@ class ClientSecretBasic(ClientAuthnMethod):
         # Basic HTTP Authentication
         if http_args is None:
             http_args = {}
+
         try:
-            http_args["auth"] = (self.cli.client_id, http_args["password"])
+            passwd = kwargs["password"]
         except KeyError:
             try:
-                http_args["auth"] = (self.cli.client_id, cis["client_secret"])
+                passwd = http_args["password"]
             except KeyError:
-                http_args["auth"] = (self.cli.client_id, self.cli.client_secret)
+                try:
+                    passwd = cis["client_secret"]
+                except KeyError:
+                    passwd = self.cli.client_secret
+
+        try:
+            user = kwargs["user"]
+        except KeyError:
+            user = self.cli.client_id
+
+        http_args["auth"] = (user, passwd)
 
         for param in ["client_secret", "client_id"]:
             try:
