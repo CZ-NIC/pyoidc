@@ -25,7 +25,6 @@ import re
 
 from logging.handlers import BufferingHandler
 
-from oic.utils import http_util
 from oic.oic.provider import Provider
 
 from oic.utils.http_util import *
@@ -529,7 +528,6 @@ if __name__ == '__main__':
         OAS = Provider(config.issuer, SessionDB(), cdb, ac, None, authz,
                        verify_client, config.SYM_KEY)
 
-    authn.srv = OAS
 
     try:
         OAS.cookie_ttl = config.COOKIETTL
