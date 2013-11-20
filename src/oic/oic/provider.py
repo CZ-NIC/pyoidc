@@ -202,6 +202,8 @@ class Provider(AProvider):
                 for b in self.keyjar[""]:
                     logger.debug("OC3 server keys: %s" % b)
                 ckey = self.keyjar.get_signing_key(alg2keytype(alg), "")
+            else:
+                ckey = None
         logger.debug("ckey: %s" % ckey)
         _signed_jwt = _idt.to_jwt(key=ckey, algorithm=alg)
 
@@ -273,7 +275,8 @@ class Provider(AProvider):
 
         return areq
 
-    def required_user(self, areq):
+    @staticmethod
+    def required_user(areq):
         req_user = ""
         try:
             oidc_req = areq["request"]
@@ -289,7 +292,8 @@ class Provider(AProvider):
 
         return req_user
 
-    def max_age(self, areq):
+    @staticmethod
+    def max_age(areq):
         try:
             return areq["request"]["max_age"]
         except KeyError:
@@ -298,20 +302,34 @@ class Provider(AProvider):
             except KeyError:
                 return 0
 
-    def re_authenticate(self, areq, authn):
+    @staticmethod
+    def re_authenticate(areq, authn):
         if "prompt" in areq and "login" in areq["prompt"]:
             if authn.done(areq):
                 return True
 
         return False
 
-    def pick_auth(self, areq, user="", **kwargs):
+    def pick_auth(self, areq, comparision_type=""):
+        """
+
+        :param areq: AuthorizationRequest instance
+        :param comparision_type: How to pick the authentication method
+        :return: An authentication method and its authn class ref
+        """
+        if comparision_type == "any":
+            return self.authn_broker[0]
+
         try:
             if len(self.authn_broker) == 1:
                     return self.authn_broker[0]
             else:
+                if areq["acr_values"]:
+                    if not comparision_type:
+                        comparision_type = "exact"
+
                 for acr in areq["acr_values"]:
-                    res = self.authn_broker.pick(acr)
+                    res = self.authn_broker.pick(acr, comparision_type)
                     if res:
                         #Return the best guess by pick.
                         return res[0]
@@ -319,7 +337,7 @@ class Provider(AProvider):
             pass
 
         # return the best I have
-        return self.authn_broker[0]
+        return None, None
 
     def verify_post_logout_redirect_uri(self, areq, cookie):
         try:
@@ -480,7 +498,11 @@ class Provider(AProvider):
 
         req_user = self.required_user(areq)
 
-        authn = self.pick_auth(areq, user=req_user)
+        authn, authn_class_ref = self.pick_auth(areq)
+        if not authn:
+            authn = self.pick_auth(areq, "better")
+            if not authn:
+                authn = self.pick_auth(areq, "better")
 
         logger.debug("Cookie: %s" % cookie)
         try:

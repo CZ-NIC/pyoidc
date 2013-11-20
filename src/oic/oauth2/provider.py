@@ -352,10 +352,9 @@ class Provider(object):
 
         return uri
 
-    def pick_auth(self, areq, user="", **kwargs):
+    def pick_auth(self, **kwargs):
         """
         Pick authentication method to be used
-        :param areq: The Authorization Request
         :param kwargs: Extra key word arguments
         :return: Authentication method
         """
