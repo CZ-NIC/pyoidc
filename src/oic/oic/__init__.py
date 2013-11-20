@@ -934,11 +934,10 @@ class Client(oauth2.Client):
 
         return self.handle_registration_info(rsp)
 
-    def register(self, url, **kwargs):
+    def create_registration_request(self, **kwargs):
         """
-        Register the client at an OP
+        Create a registration request
 
-        :param url: The OPs registration endpoint
         :param kwargs: parameters to the registration request
         :return:
         """
@@ -964,6 +963,18 @@ class Client(oauth2.Client):
                 req["redirect_uris"] = self.redirect_uris
             except AttributeError:
                 raise MissingRequiredAttribute("redirect_uris")
+
+        return req
+
+    def register(self, url, **kwargs):
+        """
+        Register the client at an OP
+
+        :param url: The OPs registration endpoint
+        :param kwargs: parameters to the registration request
+        :return:
+        """
+        req = self.create_registration_request(**kwargs)
 
         headers = {"content-type": "application/json"}
 
