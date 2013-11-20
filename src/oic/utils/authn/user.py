@@ -133,7 +133,8 @@ class UsernamePasswordMako(UserAuthnMethod):
     """Do user authentication using the normal username password form in a
     WSGI environment using Mako as template system"""
 
-    def __init__(self, srv, mako_template, template_lookup, pwd, return_to):
+    def __init__(self, srv, mako_template, template_lookup, pwd, return_to="",
+                 templ_arg_func=None):
         """
         :param srv: The server instance
         :param mako_template: Which Mako template to use
@@ -146,9 +147,41 @@ class UsernamePasswordMako(UserAuthnMethod):
         self.template_lookup = template_lookup
         self.passwd = pwd
         self.return_to = return_to
+        if templ_arg_func:
+            self.templ_arg_func = templ_arg_func
+        else:
+            self.templ_arg_func = self.template_args
 
-    def __call__(self, cookie=None, policy_url=None, logo_url=None,
-                 query="", **kwargs):
+    @staticmethod
+    def template_args(**kwargs):
+        """
+        Method to override if necessary, dependent on the page layout
+        and context
+
+        :param kwargs:
+        :return:
+        """
+        acr = None
+        try:
+            req = urlparse.parse_qs(kwargs["query"])
+            acr = req["acr_values"][0]
+        except:
+            pass
+
+        argv = {"login": "",
+                "password": "",
+                "action": "verify",
+                "acr": acr}
+
+        for param in ["policy_url", "logo_url", "query"]:
+            try:
+                argv[param] = kwargs[param]
+            except KeyError:
+                argv[param] = ""
+
+        return argv
+
+    def __call__(self, cookie=None, **kwargs):
         """
         Put up the login form
         """
@@ -159,20 +192,7 @@ class UsernamePasswordMako(UserAuthnMethod):
 
         resp = Response(headers=headers)
 
-        acr = None
-        try:
-            req = urlparse.parse_qs(query)
-            acr = req["acr_values"][0]
-        except:
-            pass
-
-        argv = {"login": "",
-                "password": "",
-                "action": "verify",
-                "policy_url": policy_url,
-                "logo_url": logo_url,
-                "query": query,
-                "acr" : acr}
+        argv = self.templ_arg_func(**kwargs)
         logger.info("do_authentication argv: %s" % argv)
         mte = self.template_lookup.get_template(self.mako_template)
         resp.message = mte.render(**argv)
@@ -201,6 +221,9 @@ class UsernamePasswordMako(UserAuthnMethod):
         # verify username and password
         try:
             assert _dict["password"][0] == self.passwd[_dict["login"][0]]
+        except (AssertionError, KeyError):
+            resp = Unauthorized("Unknown user or wrong password")
+        else:
             cookie = self.create_cookie(_dict["login"][0], "upm")
             try:
                 _qp = _dict["query"][0]
@@ -208,8 +231,6 @@ class UsernamePasswordMako(UserAuthnMethod):
                 _qp = ""
             return_to = self.generateReturnUrl(self.return_to, _qp)
             resp = Redirect(return_to, headers=[cookie])
-        except (AssertionError, KeyError):
-            resp = Unauthorized("Unknown user or wrong password")
 
         return resp
 
