@@ -1,7 +1,7 @@
 from oic.oauth2 import rndstr
 from oic.oauth2.exception import UnsupportedMethod
-from oic.utils.aes_m2c import AES_encrypt
-from oic.utils.aes_m2c import AES_decrypt
+from oic.utils.aes import encrypt
+from oic.utils.aes import decrypt
 
 __author__ = 'rohe0002'
 
@@ -330,6 +330,7 @@ class CookieDealer(object):
         self.init_srv(srv)
         # minutes before the interaction should be completed
         self.cookie_ttl = ttl  # N minutes
+        self.pad_chr = " "
 
     def init_srv(self, srv):
         if srv:
@@ -353,9 +354,14 @@ class CookieDealer(object):
         if cookie_name is None:
             cookie_name = self.srv.cookie_name
         timestamp = str(int(time.mktime(time.gmtime())))
-        info = AES_encrypt(self.srv.symkey,
-                           "::".join([value, timestamp, typ]),
-                           self.srv.iv)
+        _msg = "::".join([value, timestamp, typ])
+        if self.srv.symkey:
+            # Pad the message to be multiples of 16 bytes in length
+            lm = len(_msg)
+            _msg = _msg.ljust(lm + 16 - lm % 16, self.pad_chr)
+            info = encrypt(self.srv.symkey, _msg, self.srv.iv)
+        else:
+            info = _msg
         cookie = make_cookie(cookie_name, info, self.srv.seed,
                              expire=ttl, domain="", path="")
         return cookie
@@ -377,8 +383,14 @@ class CookieDealer(object):
             try:
                 info, timestamp = parse_cookie(cookie_name,
                                                self.srv.seed, cookie)
-                value, _ts, typ = AES_decrypt(self.srv.symkey, info,
-                                              self.srv.iv).split("::")
+                if self.srv.symkey:
+                    txt = decrypt(self.srv.symkey, info, self.srv.iv)
+                    # strip spaces at the end
+                    txt = txt.rstrip(self.pad_chr)
+                else:
+                    txt = info
+
+                value, _ts, typ = txt.split("::")
                 if timestamp == _ts:
                     return value, _ts, typ
             except TypeError:

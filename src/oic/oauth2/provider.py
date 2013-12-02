@@ -414,7 +414,7 @@ class Provider(object):
                 pass
 
         # Pick authentication method
-        _authn = self.pick_auth(areq)
+        _authn, acr = self.pick_auth(areq=areq)
 
         try:
             identity = _authn.authenticated_as(**a_args)

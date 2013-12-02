@@ -12,9 +12,9 @@ import traceback
 
 from requests import request
 
-from jwkest.jwk import RSA_key, rsa_load
-from jwkest.jwk import EC_key
-from jwkest.jwk import SYM_key
+from jwkest.jwk import RSAKey, rsa_load
+#from jwkest.jwk import ECKey
+from jwkest.jwk import SYMKey
 from M2Crypto.util import no_passphrase_callback
 
 KEYLOADERR = "Failed to load %s key from '%s' (%s)"
@@ -29,9 +29,9 @@ class UnknownKeyType(Exception):
 
 
 K2C = {
-    "RSA": RSA_key,
-    "EC": EC_key,
-    "oct": SYM_key,
+    "RSA": RSAKey,
+    #"EC": EC_key,
+    "oct": SYMKey,
 #    "pkix": PKIX_key
 }
 
@@ -230,12 +230,12 @@ class KeyBundle(object):
 def keybundle_from_local_file(filename, typ, usage):
     if typ.upper() == "RSA":
         kb = KeyBundle()
-        k = RSA_key()
+        k = RSAKey()
         k.load(filename)
         k.use = usage[0]
         kb.append(k)
         for use in usage[1:]:
-            _k = RSA_key()
+            _k = RSAKey()
             _k.use = use
             _k.key = k.key
             kb.append(_k)
@@ -561,10 +561,10 @@ def key_setup(vault, **kwargs):
                         _key = create_and_store_rsa_key_pair(
                             path=vault_path)
 
-                kb.append(RSA_key(key=_key, use=usage, kid=kid))
+                kb.append(RSAKey(key=_key, use=usage, kid=kid))
                 kid += 1
                 if usage == "sig" and "enc" not in kwargs:
-                    kb.append(RSA_key(key=_key, use="enc", kid=kid))
+                    kb.append(RSAKey(key=_key, use="enc", kid=kid))
                     kid += 1
 
     return kb
