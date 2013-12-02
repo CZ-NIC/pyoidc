@@ -119,15 +119,14 @@ class Provider(object):
         self.cdb = cdb
         self.server = Server(ca_certs=ca_bundle)
 
-        if authn_broker:
-            self.authn_broker = authn_broker
-            self.cookie_func = self.authn_broker[0].create_cookie
-            for item in self.authn_broker:
-                item.srv = self
-        else:
-            self.authn_broker = None
+        self.authn_broker = authn_broker
+        if authn_broker is None:
             # default cookie function
             self.cookie_func = CookieDealer(srv=self).create_cookie
+        else:
+            self.cookie_func = self.authn_broker[0][0].create_cookie
+            for item in self.authn_broker:
+                item.srv = self
 
         self.authz = authz
         self.client_authn = client_authn
