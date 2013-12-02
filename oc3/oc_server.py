@@ -264,6 +264,7 @@ def webfinger(environ, start_response, _):
         resp = Response(wf.response(subject=resource, base=OAS.baseurl))
     return resp(environ, start_response)
 
+
 #noinspection PyUnusedLocal
 def verify(environ, start_response, logger):
     _oas = environ["oic.oas"]

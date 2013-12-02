@@ -7,7 +7,7 @@ from urlparse import parse_qs
 from urlparse import urlsplit
 import urlparse
 from oic.utils.aes_m2c import AES_decrypt
-from oic.utils.http_util import Response, CookieDealer
+from oic.utils.http_util import Response, CookieDealer, InvalidCookieSign
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import Unauthorized
 
@@ -46,7 +46,11 @@ class UserAuthnMethod(CookieDealer):
         else:
             logger.debug("kwargs: %s" % kwargs)
 
-            val = self.getCookieValue(cookie, self.srv.cookie_name)
+            try:
+                val = self.getCookieValue(cookie, self.srv.cookie_name)
+            except InvalidCookieSign:
+                val = None
+
             if val is None:
                 return None
             else:
@@ -168,10 +172,14 @@ class UsernamePasswordMako(UserAuthnMethod):
         except:
             pass
 
-        argv = {"login": "",
-                "password": "",
+        argv = {"password": "",
                 "action": "verify",
                 "acr": acr}
+
+        try:
+            argv["login"] = kwargs["as_user"]
+        except KeyError:
+            argv["login"] = ""
 
         for param in ["policy_url", "logo_url", "query"]:
             try:

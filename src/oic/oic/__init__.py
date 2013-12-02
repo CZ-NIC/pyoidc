@@ -908,14 +908,17 @@ class Client(oauth2.Client):
             if key not in PREFERENCE2PROVIDER:
                 self.behaviour[key] = val
 
+    def store_registration_info(self, reginfo):
+        self.registration_response = reginfo
+        self.client_secret = reginfo["client_secret"]
+        self.client_id = reginfo["client_id"]
+        self.registration_expires = reginfo["client_secret_expires_at"]
+        self.registration_access_token = reginfo["registration_access_token"]
+
     def handle_registration_info(self, response):
         if response.status_code == 200:
             resp = RegistrationResponse().deserialize(response.text, "json")
-            self.registration_response = resp
-            self.client_secret = resp["client_secret"]
-            self.client_id = resp["client_id"]
-            self.registration_expires = resp["client_secret_expires_at"]
-            self.registration_access_token = resp["registration_access_token"]
+            self.store_registration_info(resp)
         else:
             err = ErrorResponse().deserialize(response.text, "json")
             raise PyoidcError("Registration failed: %s" % err.get_json())

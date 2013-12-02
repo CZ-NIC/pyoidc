@@ -324,7 +324,7 @@ class Provider(AProvider):
             if len(self.authn_broker) == 1:
                     return self.authn_broker[0]
             else:
-                if areq["acr_values"]:
+                if "acr_values" in areq:
                     if not comparision_type:
                         comparision_type = "exact"
 
@@ -441,14 +441,15 @@ class Provider(AProvider):
         return Response("", headers=[authn.delete_cookie()])
 
     def verify_endpoint(self, request="", cookie=None, **kwargs):
-        areq = None
+        _req = urlparse.parse_qs(request)
         try:
-            areq = urlparse.parse_qs(request)
-        except:
-            pass
-        authn = self.pick_auth(areq)
+            areq = urlparse.parse_qs(_req["query"][0])
+        except KeyError:
+            return BadRequest()
+
+        authn, acr = self.pick_auth(areq, "exact")
         kwargs["cookie"] = cookie
-        return authn.verify(request, **kwargs)
+        return authn.verify(_req, **kwargs)
 
     def authorization_endpoint(self, request="", cookie=None, **kwargs):
         """ The AuthorizationRequest endpoint
@@ -500,9 +501,9 @@ class Provider(AProvider):
 
         authn, authn_class_ref = self.pick_auth(areq)
         if not authn:
-            authn = self.pick_auth(areq, "better")
+            authn, authn_class_ref = self.pick_auth(areq, "better")
             if not authn:
-                authn = self.pick_auth(areq, "better")
+                authn, authn_class_ref = self.pick_auth(areq, "any")
 
         logger.debug("Cookie: %s" % cookie)
         try:
@@ -516,7 +517,10 @@ class Provider(AProvider):
         except (NoSuchAuthentication, ToOld, TamperAllert):
             identity = None
 
-        authn_args = {"query": request, "as_user": req_user}
+        # gather information to be used by the authentication method
+        authn_args = {"query": request,
+                      "as_user": req_user,
+                      "authn_class_ref": authn_class_ref}
 
         cinfo = self.cdb[areq["client_id"]]
         for attr in ["policy_url", "logo_url"]:
