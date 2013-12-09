@@ -505,7 +505,7 @@ if __name__ == '__main__':
         if "UserPassword" == authkey:
             from oic.utils.authn.user import UsernamePasswordMako
             authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
-                                     "%s/authorization" % config.issuer)
+                                         "%s/authorization" % config.issuer)
         if authn is not None:
             ac.add(config.AUTHORIZATION[authkey]["ACR"],
                    authn,

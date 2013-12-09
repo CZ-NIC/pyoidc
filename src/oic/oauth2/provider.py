@@ -601,3 +601,13 @@ class Provider(object):
 
         return Response(atr.to_json(), content="application/json")
 
+    def verify_endpoint(self, request="", cookie=None, **kwargs):
+        _req = urlparse.parse_qs(request)
+        try:
+            areq = urlparse.parse_qs(_req["query"][0])
+        except KeyError:
+            return BadRequest()
+
+        authn, acr = self.pick_auth(areq=areq)
+        kwargs["cookie"] = cookie
+        return authn.verify(_req, **kwargs)

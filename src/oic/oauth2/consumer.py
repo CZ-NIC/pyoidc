@@ -171,7 +171,7 @@ class Consumer(Client):
         self.sdb[sid] = res
 
     #noinspection PyUnusedLocal,PyArgumentEqualDefault
-    def begin(self, baseurl, request, response_type="code", **kwargs):
+    def begin(self, baseurl, request, response_type="", **kwargs):
         """ Begin the OAuth2 flow
 
         :param baseurl: The RPs base
@@ -196,6 +196,12 @@ class Consumer(Client):
         self.grant[sid] = Grant(seed=self.seed)
         self._backup(sid)
         self.sdb["seed:%s" % self.seed] = sid
+
+        if not response_type:
+            if self.response_type:
+                response_type = self.response_type
+            else:
+                self.response_type = response_type = "code"
 
         location = self.request_info(
             AuthorizationRequest, method="GET", scope=self.scope,

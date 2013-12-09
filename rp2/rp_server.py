@@ -211,8 +211,8 @@ def application(environ, start_response):
     if path == "rpAcr":
         return chooseAcrValue(environ, start_response, session)
 
-    if path == "rpAuth":    #Only called if multiple arc_values (that is
-    # authentications) exists.
+    if path == "rpAuth":
+    # Only called if multiple arc_values (that is authentications) exists.
         if "acr" in query and query["acr"][0] in session.getAcrvalues():
             func = getattr(RP, "create_authnrequest")
             return func(environ, SERVER_ENV, start_response, session,

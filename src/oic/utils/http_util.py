@@ -280,7 +280,7 @@ def get_or_post(environ):
     _method = environ["REQUEST_METHOD"]
 
     if _method == "GET":
-        data = environ.get["QUERY_STRING"]
+        data = environ.get("QUERY_STRING", "")
     elif _method == "POST":
         data = get_post(environ)
     else:
