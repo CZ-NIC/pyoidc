@@ -6,6 +6,7 @@ import json
 from jwkest import b64d
 import jwkest
 from jwkest.jwe import JWE
+from jwkest.jwk import keyitems2keyreps
 from jwkest.jws import JWS
 from oic.oauth2.exception import PyoidcError
 
@@ -634,6 +635,24 @@ class Message(object):
                 self._dict[key] = val
         else:
             raise ValueError("Wrong type of value")
+
+    def to_jwe(self, keys, enc, alg, lev=0):
+        """
+
+        :param keys: Dictionary, keys are key type and key is the value
+        :param enc: The encryption method to use
+        :param alg: Encryption algorithm
+        :param lev: Used for JSON construction
+        :return: A JWE
+        """
+        krs = keyitems2keyreps(keys)
+        _jwe = JWE(self.to_json(lev), alg=alg, enc=enc)
+        return _jwe.encrypt(krs)
+
+    def from_jwe(self, msg, keys):
+        krs = keyitems2keyreps(keys)
+        jwe = JWE()
+        return self.from_json(jwe.decrypt(msg, krs))
 
 # =============================================================================
 
