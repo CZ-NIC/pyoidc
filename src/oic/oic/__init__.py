@@ -188,7 +188,6 @@ class Grant(oauth2.Grant):
                 self.tokens.append(tok)
 
 PREFERENCE2PROVIDER = {
-    "token_endpoint_auth_method": "token_endpoint_auth_methods_supported",
     "require_signed_request_object": "request_object_algs_supported",
     "userinfo_signed_response_algs": "userinfo_signing_alg_values_supported",
     "userinfo_encrypted_response_alg":
@@ -200,9 +199,12 @@ PREFERENCE2PROVIDER = {
         "id_token_encryption_alg_values_supported",
     "id_token_encrypted_response_enc":
         "id_token_encryption_enc_values_supported",
-    "default_acr": "acrs_supported",
-    "subbject_type": "subbject_types_supported",
-    "token_endpoint_auth_alg": "token_endpoint_auth_algs_supported",
+    "default_acr_values": "acr_values_supported",
+    #"require_auth_time":"",
+    "subject_type": "subject_types_supported",
+    "token_endpoint_auth_method": "token_endpoint_auth_methods_supported",
+    "token_endpoint_auth_signing_alg":
+        "token_endpoint_auth_signing_alg_values_supported"
     #"request_object_signing_alg": "request_object_signing_alg_values_supported
 }
 

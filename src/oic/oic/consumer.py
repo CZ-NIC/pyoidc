@@ -111,7 +111,7 @@ CONSUMER_PREF_ARGS = [
     "id_token_encrypted_response_int",
     "default_max_age",
     "require_auth_time",
-    "default_acr"
+    "default_acr_values"
 ]
 
 
