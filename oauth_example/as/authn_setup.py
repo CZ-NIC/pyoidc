@@ -38,9 +38,18 @@ def userpwd_setup(item):
                                 _conf["passwd"], _conf["return_to"])
 
 
+def ldap_setup(item):
+    from oic.utils.authn.user import LDAPAuthn
+
+    _conf = item["config"]
+    return LDAPAuthn(None, _conf["ldap_server"], _conf["return_to"],
+                     _conf["dn_pattern"], "login.mako", _conf["lookup"])
+
+
 AUTH_METHOD = {
     "UserPassword": userpwd_setup,
-    "CAS": cas_setup
+    "CAS": cas_setup,
+    "LDAP": ldap_setup,
 }
 
 
@@ -48,12 +57,13 @@ def authn_setup(config):
     broker = AuthnBroker()
 
     # Which methods to use is defined in the configuration file
-    for authkey, item in config.AUTHN_METHOD.items():
+    for authkey, method_conf in config.AUTHN_METHOD.items():
         try:
             func = AUTH_METHOD[authkey]
         except KeyError:
             pass
         else:
-            broker.add(item["ACR"], func(item), item["WEIGHT"], item["URL"])
+            broker.add(method_conf["ACR"], func(method_conf),
+                       method_conf["WEIGHT"], method_conf["URL"])
 
     return broker
