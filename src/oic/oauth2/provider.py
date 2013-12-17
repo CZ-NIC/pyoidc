@@ -451,26 +451,26 @@ class Provider(object):
         except KeyError:
             oidc_req = None
 
-        sid = self.sdb.create_authz_session(user, areq, oidreq=oidc_req)
+        sinfo = self.sdb.create_authz_session(user, areq, oidreq=oidc_req)
 
         # Now about the authorization step.
         try:
             permissions = self.authz.permissions(cookie)
             if not permissions:
-                return self.authz(user, sid)
+                return self.authz(user, sinfo)
         except (ToOld, TamperAllert):
-            return self.authz(user, areq, sid)
+            return self.authz(user, areq, sinfo)
 
-        return self.authz_part2(user, areq, sid, permissions, _authn)
+        return self.authz_part2(user, areq, sinfo, permissions, _authn)
 
-    def authz_part2(self, user, areq, sid, permission=None, authn=None,
+    def authz_part2(self, user, areq, sinfo, permission=None, authn=None,
                     **kwargs):
         """
         After the authentication this is where you should end up
 
         :param user:
         :param areq: The Authorization Request
-        :param sid: Session identifier
+        :param sinfo: Session information
         :param permission: A permission specification
         :param authn: The Authentication Method used
         :param kwargs: possible other parameters
@@ -479,7 +479,7 @@ class Provider(object):
         _log_debug = logger.debug
         _log_debug("- in authenticated() -")
 
-        self.sdb.update(sid, "permission", permission)
+        sinfo["auz"] = permission
 
         _log_debug("response type: %s" % areq["response_type"])
 
@@ -495,18 +495,16 @@ class Provider(object):
                 "none" in areq["response_type"]:
             pass
         else:
-            if self.sdb.is_revoked(sid):
-                return self._error(error="access_denied",
-                                   descr="Token is revoked")
-
-            _sinfo = self.sdb[sid]
+            #if self.sdb.is_revoked(sinfo):
+            #    return self._error(error="access_denied",
+            #                       descr="Token is revoked")
 
             try:
                 aresp["scope"] = areq["scope"]
             except KeyError:
                 pass
 
-            _log_debug("_dic: %s" % _sinfo)
+            _log_debug("_dic: %s" % sinfo)
 
             rtype = set(areq["response_type"][:])
             if "code" in areq["response_type"]:
@@ -514,14 +512,14 @@ class Provider(object):
                 #    scode = self.sdb.duplicate(_sinfo)
                 #    _sinfo = self.sdb[scode]
 
-                _code = aresp["code"] = _sinfo["code"]
+                _code = aresp["code"] = self.sdb.get_token(sinfo)
                 rtype.remove("code")
             else:
-                self.sdb[sid]["code"] = None
+                sinfo["code"] = None
                 _code = None
 
             if "token" in rtype:
-                _dic = self.sdb.update_to_token(issue_refresh=False, key=sid)
+                _dic = self.sdb.upgrade_to_token(sinfo, issue_refresh=False)
 
                 atr = AccessTokenResponse(**aresp.to_dict())
                 aresp = atr
@@ -539,6 +537,8 @@ class Provider(object):
             redirect_uri = self.get_redirect_uri(areq)
         except (RedirectURIError, ParameterError), err:
             return BadRequest("%s" % err)
+
+        self.sdb.store_session(sinfo)
 
         # so everything went well should set a SSO cookie
         headers = [authn.create_cookie(user, typ="sso", ttl=self.sso_ttl)]
