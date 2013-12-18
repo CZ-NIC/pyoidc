@@ -90,7 +90,7 @@ OIDCONF_PATTERN = "%s/.well-known/openid-configuration"
 DEF_SIGN_ALG = {"id_token": "RS256",
                 "openid_request_object": "RS256",
                 "client_secret_jwt": "HS256",
-                "private_key_jwt": "HS256"}
+                "private_key_jwt": "RS256"}
 
 SAML2_BEARER_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:saml2-bearer"
 
