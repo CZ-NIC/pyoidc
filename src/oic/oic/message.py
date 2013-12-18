@@ -733,7 +733,7 @@ SCOPE2CLAIMS = {
                 "preferred_username"],
     "email": ["email", "email_verified"],
     "address": ["address"],
-    "phone": ["phone_number"],
+    "phone": ["phone_number", "phone_number_verified"],
     "offline_access": []
 }
 
