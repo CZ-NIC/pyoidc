@@ -4,7 +4,7 @@ from jwkest import MissingKey
 from jwkest.jws import alg2keytype
 from oic.oauth2.exception import UnknownAssertionType
 from oic.oauth2.exception import NotForMe
-from oic.oauth2 import rndstr
+from oic.oauth2 import rndstr, VREQUIRED
 from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.oic import REQUEST2ENDPOINT
 from oic.oic import DEF_SIGN_ALG
@@ -83,11 +83,13 @@ class ClientSecretBasic(ClientAuthnMethod):
 
         http_args["auth"] = (user, passwd)
 
-        for param in ["client_secret", "client_id"]:
-            try:
-                del cis[param]
-            except KeyError:
-                pass
+        try:
+            del cis["client_secret"]
+        except KeyError:
+            pass
+
+        if not cis.c_param["client_id"][VREQUIRED]:
+            del cis["client_id"]
 
         return http_args
 
