@@ -187,14 +187,20 @@ class Grant(oauth2.Grant):
             if _tmp:
                 self.tokens.append(tok)
 
+
 PREFERENCE2PROVIDER = {
     "require_signed_request_object": "request_object_algs_supported",
-    "userinfo_signed_response_algs": "userinfo_signing_alg_values_supported",
+    "request_object_signing_alg": "request_object_signing_alg_values_supported",
+    "request_object_encryption_alg":
+        "request_object_encryption_alg_values_supported",
+    "request_object_encryption_enc":
+        "request_object_encryption_enc_values_supported",
+    "userinfo_signed_response_alg": "userinfo_signing_alg_values_supported",
     "userinfo_encrypted_response_alg":
         "userinfo_encryption_enc_values_supported",
     "userinfo_encrypted_response_enc":
         "userinfo_encryption_enc_values_supported",
-    "id_token_signed_response_algs": "id_token_signing_alg_values_supported",
+    "id_token_signed_response_alg": "id_token_signing_alg_values_supported",
     "id_token_encrypted_response_alg":
         "id_token_encryption_alg_values_supported",
     "id_token_encrypted_response_enc":
@@ -242,7 +248,7 @@ class Client(oauth2.Client):
         self.provider_info = {}
         self.client_prefs = client_prefs or {}
         self.behaviour = {"require_signed_request_object":
-                          DEF_SIGN_ALG["openid_request_object"]}
+                              DEF_SIGN_ALG["openid_request_object"]}
 
         self.wf = WebFinger(OIC_ISSUER)
         self.wf.httpd = self
@@ -439,7 +445,7 @@ class Client(oauth2.Client):
         #        if "redirect_url" not in request_args:
         #            request_args["redirect_url"] = self.redirect_url
 
-        return self._id_token_based(request, request_args, extra_args, 
+        return self._id_token_based(request, request_args, extra_args,
                                     **kwargs)
 
     # ------------------------------------------------------------------------
@@ -747,7 +753,7 @@ class Client(oauth2.Client):
                 except AssertionError:
                     raise PyoidcError(
                         "provider info issuer mismatch '%s' != '%s'" % (
-                        _issuer, _pcr_issuer))
+                            _issuer, _pcr_issuer))
 
             self.provider_info[_pcr_issuer] = pcr
         else:
@@ -906,7 +912,19 @@ class Client(oauth2.Client):
                 raise ConfigurationError(
                     "OP couldn't match preferences", "%s" % _pref)
 
+        regreq = RegistrationRequest
         for key, val in self.client_prefs.items():
+            if key in self.behaviour:
+                continue
+
+            try:
+                vtyp = regreq.c_param[key]
+                if isinstance(vtyp, list):
+                    pass
+                elif isinstance(val, list) and not isinstance(val, basestring):
+                    val = val[0]
+            except KeyError:
+                pass
             if key not in PREFERENCE2PROVIDER:
                 self.behaviour[key] = val
 
@@ -959,7 +977,8 @@ class Client(oauth2.Client):
 
         if "post_logout_redirect_uris" not in req:
             try:
-                req["post_logout_redirect_uris"] = self.post_logout_redirect_uris
+                req[
+                    "post_logout_redirect_uris"] = self.post_logout_redirect_uris
             except AttributeError:
                 pass
 
@@ -1104,8 +1123,8 @@ class Server(oauth2.Server):
         esr["id_token"] = deser_id_token(self, esr["id_token"])
         return esr
 
-#    def parse_issuer_request(self, info, sformat="urlencoded"):
-#        return self._parse_request(IssuerRequest, info, sformat)
+    #    def parse_issuer_request(self, info, sformat="urlencoded"):
+    #        return self._parse_request(IssuerRequest, info, sformat)
 
     def id_token_claims(self, session):
         """
