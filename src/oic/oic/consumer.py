@@ -109,6 +109,9 @@ CONSUMER_PREF_ARGS = [
     "id_token_encrypted_response_alg",
     "id_token_encrypted_response_enc",
     "id_token_encrypted_response_int",
+    "request_object_signing_alg",
+    "request_object_encryption_alg",
+    "request_object_encryption_enc",
     "default_max_age",
     "require_auth_time",
     "default_acr_values"
