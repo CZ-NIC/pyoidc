@@ -715,6 +715,12 @@ def json_serializer(obj, sformat="urlencoded", lev=0):
 def json_deserializer(txt, sformat="urlencoded"):
     return json.loads(txt)
 
+VTYPE = 0
+VREQUIRED = 1
+VSER = 2
+VDESER = 3
+VNULLALLOWED = 4
+
 SINGLE_REQUIRED_STRING = (basestring, True, None, None, False)
 SINGLE_OPTIONAL_STRING = (basestring, False, None, None, False)
 SINGLE_OPTIONAL_INT = (int, False, None, None, False)
