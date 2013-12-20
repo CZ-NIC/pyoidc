@@ -22,10 +22,10 @@
             </tr>
         </table>
     </form>
-    % if logo_url:
+    % if logo_uri:
         <img src="${logo_uri}" alt="Client logo">
     % endif
-    % if policy_url:
+    % if policy_uri:
         <a href="${policy_uri}"><b>Client policy</b></a>
     % endif
 </div>

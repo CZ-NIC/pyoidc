@@ -424,7 +424,7 @@ class Provider(object):
         authn_args = {"query": request}
 
         cinfo = self.cdb[areq["client_id"]]
-        for attr in ["policy_url", "logo_url"]:
+        for attr in ["policy_uri", "logo_uri"]:
             try:
                 authn_args[attr] = cinfo[attr]
             except KeyError:

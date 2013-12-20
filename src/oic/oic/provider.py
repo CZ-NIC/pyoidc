@@ -656,7 +656,11 @@ class Provider(AProvider):
         # If redirect_uri was in the initial authorization request
         # verify that the one given here is the correct one.
         if "redirect_uri" in _info:
-            assert req["redirect_uri"] == _info["redirect_uri"]
+            try:
+                assert req["redirect_uri"] == _info["redirect_uri"]
+            except AssertionError:
+                return self._error(error="access_denied",
+                                   descr="redirect_uri mismatch")
 
         _log_debug("All checks OK")
 
@@ -1085,8 +1089,9 @@ class Provider(AProvider):
         _rat = rndstr(32)
         reg_enp = ""
         for endp in self.endp:
-            if isinstance(endp, RegistrationEndpoint):
+            if endp == RegistrationEndpoint:
                 reg_enp = "%s%s" % (self.baseurl, endp.etype)
+                break
 
         self.cdb[client_id] = {
             "client_id": client_id,

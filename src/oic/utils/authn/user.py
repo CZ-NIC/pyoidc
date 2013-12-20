@@ -184,7 +184,7 @@ class UsernamePasswordMako(UserAuthnMethod):
         except KeyError:
             argv["login"] = ""
 
-        for param in ["policy_url", "logo_url", "query"]:
+        for param in ["policy_uri", "logo_uri", "query"]:
             try:
                 argv[param] = kwargs[param]
             except KeyError:
