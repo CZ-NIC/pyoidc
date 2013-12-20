@@ -234,7 +234,7 @@ class UsernamePasswordMako(UserAuthnMethod):
         logger.debug("passwd: %s" % self.passwd)
         # verify username and password
         try:
-            assert self._verify(_dict["password"][0], _dict["login"][0])
+            self._verify(_dict["password"][0], _dict["login"][0])
         except (AssertionError, KeyError):
             resp = Unauthorized("Unknown user or wrong password")
         else:
