@@ -523,7 +523,7 @@ class Provider(AProvider):
                       "authn_class_ref": authn_class_ref}
 
         cinfo = self.cdb[areq["client_id"]]
-        for attr in ["policy_url", "logo_url"]:
+        for attr in ["policy_uri", "logo_uri"]:
             try:
                 authn_args[attr] = cinfo[attr]
             except KeyError:
@@ -726,14 +726,17 @@ class Provider(AProvider):
         logger.debug("%s: %s" % (req.__class__.__name__, req))
 
         try:
-            resp = self.client_authn(self, req, authn)
+            client_id = self.client_authn(self, req, authn)
         except Exception, err:
             logger.error("Failed to verify client due to: %s" % err)
-            resp = False
+            client_id = ""
 
-        if not resp:
+        if not client_id:
             err = TokenErrorResponse(error="unathorized_client")
             return Unauthorized(err.to_json(), content="application/json")
+
+        if not "client_id" in req:  # Optional for access token request
+            req["client_id"] = client_id
 
         if isinstance(req, AccessTokenRequest):
             return self._access_token_endpoint(req, **kwargs)
@@ -993,7 +996,7 @@ class Provider(AProvider):
                                 descr=
                                 "'sector_identifier_uri' must be registered")
 
-        for item in ["policy_url", "logo_url"]:
+        for item in ["policy_uri", "logo_uri"]:
             if item in request:
                 if self._verify_url(request[item], _cinfo["redirect_uris"]):
                     _cinfo[item] = request[item]
@@ -1097,8 +1100,8 @@ class Provider(AProvider):
 
         _cinfo = self.do_client_registration(request, client_id,
                                              ignore=["redirect_uris",
-                                                     "policy_url",
-                                                     "logo_url"])
+                                                     "policy_uri",
+                                                     "logo_uri"])
         if isinstance(_cinfo, Response):
             return _cinfo
 

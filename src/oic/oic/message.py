@@ -484,6 +484,8 @@ class RegistrationRequest(Message):
         "userinfo_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
         "userinfo_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
         "request_object_signing_alg": SINGLE_OPTIONAL_STRING,
+        "request_object_encryption_alg": SINGLE_OPTIONAL_STRING,
+        "request_object_encryption_enc": SINGLE_OPTIONAL_STRING,
         "token_endpoint_auth_method": SINGLE_OPTIONAL_STRING,
         "token_endpoint_auth_signing_alg": SINGLE_OPTIONAL_STRING,
         "default_max_age": SINGLE_OPTIONAL_INT,
