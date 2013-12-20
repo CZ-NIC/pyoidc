@@ -95,9 +95,9 @@ class ClientSecretBasic(ClientAuthnMethod):
 
     def verify(self, areq, client_id, **kwargs):
         if self.cli.cdb[client_id]["client_secret"] == areq["client_secret"]:
-            return True
+            return client_id
         else:
-            return False
+            raise AuthnFailure()
 
 
 class ClientSecretPost(ClientSecretBasic):
@@ -357,4 +357,4 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
         else:
             raise UnknownAssertionType(areq["client_assertion_type"])
     else:
-        return True
+        return client_id
