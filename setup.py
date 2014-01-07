@@ -21,11 +21,12 @@ __author__ = 'rohe0002'
 
 setup(
     name="oic",
-    version="0.4.0",
+    version="0.5.0beta",
     description="Python implementation of OAuth2 and OpenID Connect",
     author = "Roland Hedberg",
     author_email = "roland.hedberg@adm.umu.se",
     license="Apache 2.0",
+    url='https://github.com/rohe/pyoidc',
     packages=["oic", "oic/oauth2", "oic/oic", "oic/utils", "oic/utils/authn",
               "oic/utils/userinfo"],
     package_dir = {"": "src"},
