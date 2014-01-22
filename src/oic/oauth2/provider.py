@@ -3,6 +3,7 @@ import traceback
 import sys
 import urllib
 import urlparse
+from oic.utils.sdb import AccessCodeUsed
 
 __author__ = 'rohe0002'
 
@@ -10,11 +11,12 @@ import base64
 import logging
 import os
 
-from oic.oauth2.exception import MissingParameter, URIError
-from oic.oauth2.exception import RedirectURIError
-from oic.oauth2.exception import ParameterError
-from oic.oauth2.exception import FailedAuthentication
-from oic.oauth2.exception import UnknownClient
+from oic.exception import MissingParameter
+from oic.exception import URIError
+from oic.exception import RedirectURIError
+from oic.exception import ParameterError
+from oic.exception import FailedAuthentication
+from oic.exception import UnknownClient
 
 from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import ErrorResponse
@@ -28,7 +30,8 @@ from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.message import AccessTokenRequest
 
-from oic.utils.http_util import BadRequest, CookieDealer
+from oic.utils.http_util import BadRequest
+from oic.utils.http_util import CookieDealer
 from oic.utils.http_util import make_cookie
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import Response
@@ -82,7 +85,7 @@ def token_response(**kwargs):
     _areq = kwargs["areq"]
     _scode = kwargs["scode"]
     _sdb = kwargs["sdb"]
-    _dic = _sdb.update_to_token(_scode, issue_refresh=False)
+    _dic = _sdb.upgrade_to_token(_scode, issue_refresh=False)
 
     aresp = AccessTokenResponse(**by_schema(AccessTokenResponse, **_dic))
     if "state" in _areq:
@@ -217,10 +220,10 @@ class Provider(object):
     def authn_reply(self, areq, aresp, bsid, **kwargs):
         """
 
-        :param areq:
-        :param aresp:
-        :param bsid:
-        :param kwargs:
+        :param areq: Authorization Request
+        :param aresp: Authorization Response
+        :param bsid: Session id
+        :param kwargs: Additional keyword args
         :return:
         """
         if "redirect_uri" in areq:
@@ -253,7 +256,8 @@ class Provider(object):
         return self.response_type_map[_rtype](areq=areq, scode=scode,
                                               sdb=self.sdb)
 
-    def input(self, query="", post=None):
+    @staticmethod
+    def input(query="", post=None):
         # Support GET and POST
         if query:
             return query
@@ -262,18 +266,21 @@ class Provider(object):
         else:
             raise MissingParameter("No input")
 
-    def _error_response(self, error, descr=None):
+    @staticmethod
+    def _error_response(error, descr=None):
         logger.error("%s" % error)
         response = ErrorResponse(error=error, error_description=descr)
         return Response(response.to_json(), content="application/json",
                         status="400 Bad Request")
 
-    def _error(self, error, descr=None):
+    @staticmethod
+    def _error(error, descr=None):
         response = ErrorResponse(error=error, error_description=descr)
         return Response(response.to_json(), content="application/json",
                         status="400 Bad Request")
 
-    def _authz_error(self, error, descr=None):
+    @staticmethod
+    def _authz_error(error, descr=None):
 
         response = AuthorizationErrorResponse(error=error)
         if descr:
@@ -282,7 +289,8 @@ class Provider(object):
         return Response(response.to_json(), content="application/json",
                         status="400 Bad Request")
 
-    def _redirect_authz_error(self, error, redirect_uri, descr=None):
+    @staticmethod
+    def _redirect_authz_error(error, redirect_uri, descr=None):
         err = ErrorResponse(error=error)
         if descr:
             err["error_description"] = descr
@@ -451,26 +459,26 @@ class Provider(object):
         except KeyError:
             oidc_req = None
 
-        sinfo = self.sdb.create_authz_session(user, areq, oidreq=oidc_req)
+        skey = self.sdb.create_authz_session(user, areq, oidreq=oidc_req)
 
         # Now about the authorization step.
         try:
             permissions = self.authz.permissions(cookie)
             if not permissions:
-                return self.authz(user, sinfo)
+                return self.authz(user, skey)
         except (ToOld, TamperAllert):
-            return self.authz(user, areq, sinfo)
+            return self.authz(user, areq, skey)
 
-        return self.authz_part2(user, areq, sinfo, permissions, _authn)
+        return self.authz_part2(user, areq, skey, permissions, _authn)
 
-    def authz_part2(self, user, areq, sinfo, permission=None, authn=None,
+    def authz_part2(self, user, areq, skey, permission=None, authn=None,
                     **kwargs):
         """
         After the authentication this is where you should end up
 
         :param user:
         :param areq: The Authorization Request
-        :param sinfo: Session information
+        :param skey: Session key
         :param permission: A permission specification
         :param authn: The Authentication Method used
         :param kwargs: possible other parameters
@@ -479,7 +487,7 @@ class Provider(object):
         _log_debug = logger.debug
         _log_debug("- in authenticated() -")
 
-        sinfo["auz"] = permission
+        self.sdb.update(skey, "auz", permission)
 
         _log_debug("response type: %s" % areq["response_type"])
 
@@ -504,7 +512,7 @@ class Provider(object):
             except KeyError:
                 pass
 
-            _log_debug("_dic: %s" % sinfo)
+            _log_debug("_dic: %s" % self.sdb[skey])
 
             rtype = set(areq["response_type"][:])
             if "code" in areq["response_type"]:
@@ -512,19 +520,20 @@ class Provider(object):
                 #    scode = self.sdb.duplicate(_sinfo)
                 #    _sinfo = self.sdb[scode]
 
-                _code = aresp["code"] = self.sdb.get_token(sinfo)
+                _code = aresp["code"] = self.sdb.get_token(skey)
                 rtype.remove("code")
             else:
-                sinfo["code"] = None
-                _code = None
+                _code = self.sdb[skey]["code"]
+                self.sdb.update(skey, "code", None)
 
             if "token" in rtype:
-                _dic = self.sdb.upgrade_to_token(sinfo, issue_refresh=False)
-
+                self.sdb.upgrade_to_token(skey, issue_refresh=False,
+                                          access_grant=_code)
                 atr = AccessTokenResponse(**aresp.to_dict())
                 aresp = atr
-                _log_debug("_dic: %s" % _dic)
-                for key, val in _dic.items():
+                _cont = self.sdb[skey]
+                _log_debug("_dic: %s" % _cont)
+                for key, val in _cont.items():
                     if key in aresp.parameters() and val is not None:
                         aresp[key] = val
 
@@ -538,7 +547,7 @@ class Provider(object):
         except (RedirectURIError, ParameterError), err:
             return BadRequest("%s" % err)
 
-        self.sdb.store_session(sinfo)
+        #self.sdb.store_session(skey)
 
         # so everything went well should set a SSO cookie
         headers = [authn.create_cookie(user, typ="sso", ttl=self.sso_ttl)]
@@ -577,7 +586,14 @@ class Provider(object):
 
         LOG_DEBUG("AccessTokenRequest: %s" % areq)
 
-        assert areq["grant_type"] == "authorization_code"
+        try:
+            assert areq["grant_type"] == "authorization_code"
+        except AssertionError:
+            err = TokenErrorResponse(error="invalid_request",
+                                     error_description="Wrong grant type")
+            return Response(err.to_json(), content="application/json",
+                            status="401 Unauthorized")
+
 
         # assert that the code is valid
         _info = _sdb[areq["code"]]
@@ -591,7 +607,14 @@ class Provider(object):
         if "redirect_uri" in _info:
             assert areq["redirect_uri"] == _info["redirect_uri"]
 
-        _tinfo = _sdb.update_to_token(areq["code"])
+        try:
+            _tinfo = _sdb.upgrade_to_token(areq["code"])
+        except AccessCodeUsed:
+            err = TokenErrorResponse(error="invalid_grant",
+                                     error_description="Access grant used")
+            return Response(err.to_json(), content="application/json",
+                            status="401 Unauthorized")
+
 
         LOG_DEBUG("_tinfo: %s" % _tinfo)
             

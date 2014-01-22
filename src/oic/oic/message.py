@@ -1,6 +1,5 @@
 import time
 from urlparse import urlparse
-from oic.oauth2.exception import InvalidRequest, PyoidcError
 
 __author__ = 'rohe0002'
 
@@ -11,6 +10,8 @@ import logging
 from oic.oauth2 import message, MissingRequiredValue
 from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2 import VerificationError
+from oic.exception import InvalidRequest
+from oic.exception import PyoidcError
 from oic.oauth2.message import Message, REQUIRED_LIST_OF_SP_SEP_STRINGS
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS

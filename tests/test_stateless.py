@@ -12,7 +12,7 @@ def test_access_code():
     st = StateLess(keys, enc_alg="A128KW", enc_method="A128CBC-HS256")
     con = st.create_authz_session("subject",
                                   {"redirect_uri": "https://example.com"})
-    tok = st.encrypt(con)
+    tok = st.get_token(con)
 
     _info = st[tok]
     print _info

@@ -2,8 +2,8 @@ import logging
 from jwkest import Invalid
 from jwkest import MissingKey
 from jwkest.jws import alg2keytype
-from oic.oauth2.exception import UnknownAssertionType
-from oic.oauth2.exception import NotForMe
+from oic.exception import UnknownAssertionType
+from oic.exception import NotForMe
 from oic.oauth2 import rndstr, VREQUIRED
 from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.oic import REQUEST2ENDPOINT
@@ -61,7 +61,13 @@ class ClientSecretBasic(ClientAuthnMethod):
     Section 3.2.1 of OAuth 2.0 [RFC6749] using HTTP Basic authentication scheme.
     """
     def construct(self, cis, request_args=None, http_args=None, **kwargs):
-        # Basic HTTP Authentication
+        """
+        :param cis: Request class instance
+        :param request_args: Request arguments
+        :param http_args: HTTP arguments
+        :return: dictionary of HTTP arguments
+        """
+
         if http_args is None:
             http_args = {}
 
@@ -89,7 +95,10 @@ class ClientSecretBasic(ClientAuthnMethod):
             pass
 
         if not cis.c_param["client_id"][VREQUIRED]:
-            del cis["client_id"]
+            try:
+                del cis["client_id"]
+            except KeyError:
+                pass
 
         return http_args
 
@@ -178,6 +187,20 @@ class BearerHeader(ClientAuthnMethod):
                 http_args["headers"] = {"Authorization": _bearer}
 
         return http_args
+
+    def verify(self, environ, **kwargs):
+        try:
+            cred = environ["HTTP_AUTHORIZATION"]
+        except KeyError:
+            raise AuthnFailure("missing authorization info")
+
+        try:
+            assert cred.startswith("Bearer ")
+        except AssertionError:
+            raise AuthnFailure("Wrong type of authorization token")
+
+        label, token = cred.split(" ")
+        return token
 
 
 class BearerBody(ClientAuthnMethod):

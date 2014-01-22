@@ -14,7 +14,6 @@ from oic.utils.keyio import key_export
 from requests import ConnectionError
 
 from oic.oauth2.message import by_schema
-from oic.oauth2.message import MessageException
 from oic.oic.message import RefreshAccessTokenRequest
 from oic.oic.message import AuthorizationRequest, Claims
 from oic.oic.message import IdToken
@@ -58,7 +57,7 @@ from oic.oauth2 import rndstr
 
 from oic.oic import Server
 
-from oic.oauth2.exception import *
+from oic.exception import *
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +105,7 @@ def code_token_response(**kwargs):
 
     aresp["code"] = _scode
 
-    _dic = _sdb.update_to_token(_scode, issue_refresh=False)
+    _dic = _sdb.upgrade_to_token(_scode, issue_refresh=False)
     for prop in AccessTokenResponse.c_param.keys():
         try:
             aresp[prop] = _dic[prop]
@@ -441,13 +440,32 @@ class Provider(AProvider):
         return Response("", headers=[authn.delete_cookie()])
 
     def verify_endpoint(self, request="", cookie=None, **kwargs):
-        _req = urlparse.parse_qs(request)
-        try:
-            areq = urlparse.parse_qs(_req["query"][0])
-        except KeyError:
-            return BadRequest()
+        """
 
-        authn, acr = self.pick_auth(areq, "exact")
+        :param request:
+        :param cookie:
+        :param kwargs:
+        :return:
+        """
+        logger.debug("verify request: %s" % request)
+
+        _req = urlparse.parse_qs(request)
+        if "query" in _req:
+            try:
+                # TODO FIX THIS !!! Why query ?
+                areq = urlparse.parse_qs(_req["query"][0])
+            except KeyError:
+                return BadRequest()
+        else:
+            areq = _req
+
+        logger.debug("REQ: %s" % areq)
+        try:
+            authn, acr = self.pick_auth(areq, "exact")
+        except Exception, err:
+            logger.exception("%s", err)
+            raise
+
         kwargs["cookie"] = cookie
         return authn.verify(_req, **kwargs)
 
@@ -665,7 +683,7 @@ class Provider(AProvider):
         _log_debug("All checks OK")
 
         try:
-            _tinfo = _sdb.update_to_token(_access_code)
+            _tinfo = _sdb.upgrade_to_token(_access_code)
         except Exception, err:
             logger.error("%s" % err)
             # Should revoke the token issued to this access code
@@ -1348,7 +1366,7 @@ class Provider(AProvider):
                 _code = None
 
             if "token" in rtype:
-                _dic = self.sdb.update_to_token(issue_refresh=False, key=sid)
+                _dic = self.sdb.upgrade_to_token(issue_refresh=False, key=sid)
 
                 _log_debug("_dic: %s" % _dic)
                 for key, val in _dic.items():

@@ -1,10 +1,9 @@
 from mako.lookup import TemplateLookup
-from mako.runtime import UNDEFINED
 from oic.oauth2 import rndstr
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
-from oic.utils.authz import AuthzHandling, Implicit
+from oic.utils.authz import Implicit
 from oic.utils.http_util import Response
 
 from oic.oauth2.message import AuthorizationRequest
@@ -270,4 +269,4 @@ def test_token_endpoint_unauth():
     assert _eq(atr.keys(), ['error_description', 'error'])
 
 if __name__ == "__main__":
-    test_provider_authenticated()
+    test_provider_authenticated_token()

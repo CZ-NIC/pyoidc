@@ -103,7 +103,7 @@ class MyFakeOICServer(Server):
         if "code" in req["response_type"]:
             if "token" in req["response_type"]:
                 grant = _info["code"]
-                _dict = self.sdb.update_to_token(grant)
+                _dict = self.sdb.upgrade_to_token(grant)
                 _dict["oauth_state"] = "authz",
 
                 _dict = by_schema(AuthorizationResponse(), **_dict)
@@ -118,7 +118,7 @@ class MyFakeOICServer(Server):
             params = AccessTokenResponse.c_param.keys()
 
             _dict = dict([(k, v) for k, v in
-                          self.sdb.update_to_token(grant).items() if k in
+                          self.sdb.upgrade_to_token(grant).items() if k in
                                                                      params])
             try:
                 del _dict["refresh_token"]
@@ -148,7 +148,7 @@ class MyFakeOICServer(Server):
             _info = self.sdb.refresh_token(req["refresh_token"])
         elif "grant_type=authorization_code":
             req = self.parse_token_request(body=data)
-            _info = self.sdb.update_to_token(req["code"])
+            _info = self.sdb.upgrade_to_token(req["code"])
         else:
             response = TokenErrorResponse(error="unsupported_grant_type")
             return response, ""
@@ -179,7 +179,10 @@ class MyFakeOICServer(Server):
         return response
 
     def registration_endpoint(self, data):
-        req = self.parse_registration_request(data)
+        try:
+            req = self.parse_registration_request(data, "json")
+        except ValueError:
+            req = self.parse_registration_request(data)
 
         client_secret = rndstr()
         expires = utc_time_sans_frac() + self.registration_expires_in

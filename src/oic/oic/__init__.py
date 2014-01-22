@@ -39,7 +39,9 @@ from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import rndstr
 from oic.oauth2.consumer import ConfigurationError
 
-from oic.oauth2.exception import AccessDenied, PyoidcError, MissingParameter
+from oic.exception import AccessDenied
+from oic.exception import PyoidcError
+from oic.exception import MissingParameter
 
 from oic.utils import time_util
 
@@ -904,10 +906,14 @@ class Client(oauth2.Client):
                     self.behaviour[_pref] = None
                 continue
 
-            for val in vals:
-                if val in _pvals:
-                    self.behaviour[_pref] = val
-                    break
+            if isinstance(vals, basestring):
+                if vals in _pvals:
+                    self.behaviour[_pref] = vals
+            else:
+                for val in vals:
+                    if val in _pvals:
+                        self.behaviour[_pref] = val
+                        break
 
             if _pref not in self.behaviour:
                 raise ConfigurationError(
