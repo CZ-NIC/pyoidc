@@ -1,5 +1,6 @@
 from mako.lookup import TemplateLookup
 from mako.runtime import UNDEFINED
+from oic.oauth2 import rndstr
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
@@ -71,7 +72,7 @@ class DummyAuthn(UserAuthnMethod):
         return {"uid": self.user}
 
 AUTHN_BROKER = AuthnBroker()
-AUTHN_BROKER.add(UNDEFINED, DummyAuthn(None, "username"))
+AUTHN_BROKER.add("UNDEFINED", DummyAuthn(None, "username"))
 
 # dealing with authorization
 AUTHZ = Implicit()
@@ -122,7 +123,7 @@ def test_provider_authorization_endpoint():
 
 def test_provider_authenticated():
     provider = Provider("pyoicserv", sdb.SessionDB(), CDB, AUTHN_BROKER, AUTHZ,
-                        verify_client)
+                        verify_client, symkey=rndstr(16))
     _session_db = {}
     cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
@@ -131,9 +132,9 @@ def test_provider_authenticated():
     location = cons.begin("http://localhost:8087",
                           "http://localhost:8088/authorization")
 
-    QUERY_STRING = location.split("?")[1]
+    query_string = location.split("?")[1]
 
-    resp = provider.authorization_endpoint(QUERY_STRING)
+    resp = provider.authorization_endpoint(query_string)
     assert resp.status == "302 Found"
     print resp.headers
     print resp.message
@@ -155,7 +156,7 @@ def test_provider_authenticated():
 
 def test_provider_authenticated_token():
     provider = Provider("pyoicserv", sdb.SessionDB(), CDB, AUTHN_BROKER, AUTHZ,
-                        verify_client)
+                        verify_client, symkey=rndstr(16))
     _session_db = {}
     cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
@@ -201,7 +202,7 @@ def test_provider_authenticated_token():
 
 def test_token_endpoint():
     provider = Provider("pyoicserv", sdb.SessionDB(), CDB, AUTHN_BROKER, AUTHZ,
-                        verify_client)
+                        verify_client, symkey=rndstr(16))
 
     authreq = AuthorizationRequest(state="state",
                                    redirect_uri="http://example.com/authz",
@@ -237,7 +238,7 @@ def test_token_endpoint():
 
 def test_token_endpoint_unauth():
     provider = Provider("pyoicserv", sdb.SessionDB(), CDB, AUTHN_BROKER, AUTHZ,
-                        verify_client)
+                        verify_client, symkey=rndstr(16))
 
     authreq = AuthorizationRequest(state="state",
                                    redirect_uri="http://example.com/authz",
@@ -269,4 +270,4 @@ def test_token_endpoint_unauth():
     assert _eq(atr.keys(), ['error_description', 'error'])
 
 if __name__ == "__main__":
-    test_provider_authenticated_none()
+    test_provider_authenticated()

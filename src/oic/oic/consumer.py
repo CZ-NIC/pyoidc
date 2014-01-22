@@ -109,9 +109,12 @@ CONSUMER_PREF_ARGS = [
     "id_token_encrypted_response_alg",
     "id_token_encrypted_response_enc",
     "id_token_encrypted_response_int",
+    "request_object_signing_alg",
+    "request_object_encryption_alg",
+    "request_object_encryption_enc",
     "default_max_age",
     "require_auth_time",
-    "default_acr"
+    "default_acr_values"
 ]
 
 
@@ -428,6 +431,21 @@ class Consumer(Client):
         pass
 
     def check_session(self):
+        """
+        With python you could use PyQuery to get the onclick attribute of each
+        anchor tag, parse that with a regular expression to get the placeId,
+        build the /places/duplicates.jsp?inPID= URL yourself, use requests to
+        load the content at that URL, then PyQuery again on the content to get
+        the data you need.
+
+        for iframe in mosoup("iframe"):
+            mosoup.iframe.extract()
+
+        It accepts postMessage requests from the relevant RP iframe and uses
+        postMessage to post back the login status of the End-User at the OP.
+
+        :return:
+        """
         pass
 
     def end_session(self):

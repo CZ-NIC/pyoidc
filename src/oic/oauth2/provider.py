@@ -28,7 +28,7 @@ from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.message import AccessTokenRequest
 
-from oic.utils.http_util import BadRequest
+from oic.utils.http_util import BadRequest, CookieDealer
 from oic.utils.http_util import make_cookie
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import Response
@@ -43,6 +43,28 @@ from oic.oauth2 import Server
 logger = logging.getLogger(__name__)
 LOG_INFO = logger.info
 LOG_DEBUG = logger.debug
+
+
+class Endpoint(object):
+    etype = ""
+
+    def __init__(self, func):
+        self.func = func
+
+    @property
+    def name(self):
+        return "%s_endpoint" % self.etype
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+
+
+class AuthorizationEndpoint(Endpoint):
+    etype = "authorization"
+
+
+class TokenEndpoint(Endpoint):
+    etype = "token"
 
 
 def code_response(**kwargs):
@@ -87,6 +109,8 @@ def location_url(response_type, redirect_uri, query):
 
 
 class Provider(object):
+    endp = [AuthorizationEndpoint, TokenEndpoint]
+
     def __init__(self, name, sdb, cdb, authn_broker, authz, client_authn,
                  symkey="", urlmap=None, iv=0, default_scope="",
                  ca_bundle=None):
@@ -95,14 +119,14 @@ class Provider(object):
         self.cdb = cdb
         self.server = Server(ca_certs=ca_bundle)
 
-        if authn_broker:
-            self.authn_broker = authn_broker
-            self.cookie_func = self.authn_broker[0].create_cookie
+        self.authn_broker = authn_broker
+        if authn_broker is None:
+            # default cookie function
+            self.cookie_func = CookieDealer(srv=self).create_cookie
+        else:
+            self.cookie_func = self.authn_broker[0][0].create_cookie
             for item in self.authn_broker:
                 item.srv = self
-        else:
-            self.authn_broker = None
-            self.cookie_func = None
 
         self.authz = authz
         self.client_authn = client_authn
@@ -123,6 +147,10 @@ class Provider(object):
             "token": token_response,
             "none": none_response,
         }
+
+    def endpoints(self):
+        for endp in self.endp:
+            yield endp(None).name
 
     def subset(self, li1, li2):
         """
@@ -323,10 +351,9 @@ class Provider(object):
 
         return uri
 
-    def pick_auth(self, areq, user="", **kwargs):
+    def pick_auth(self, **kwargs):
         """
         Pick authentication method to be used
-        :param areq: The Authorization Request
         :param kwargs: Extra key word arguments
         :return: Authentication method
         """
@@ -387,7 +414,7 @@ class Provider(object):
                 pass
 
         # Pick authentication method
-        _authn = self.pick_auth(areq)
+        _authn, acr = self.pick_auth(areq=areq)
 
         try:
             identity = _authn.authenticated_as(**a_args)
@@ -397,7 +424,7 @@ class Provider(object):
         authn_args = {"query": request}
 
         cinfo = self.cdb[areq["client_id"]]
-        for attr in ["policy_url", "logo_url"]:
+        for attr in ["policy_uri", "logo_uri"]:
             try:
                 authn_args[attr] = cinfo[attr]
             except KeyError:
@@ -424,26 +451,26 @@ class Provider(object):
         except KeyError:
             oidc_req = None
 
-        sid = self.sdb.create_authz_session(user, areq, oidreq=oidc_req)
+        sinfo = self.sdb.create_authz_session(user, areq, oidreq=oidc_req)
 
         # Now about the authorization step.
         try:
             permissions = self.authz.permissions(cookie)
             if not permissions:
-                return self.authz(user, sid)
+                return self.authz(user, sinfo)
         except (ToOld, TamperAllert):
-            return self.authz(user, areq, sid)
+            return self.authz(user, areq, sinfo)
 
-        return self.authz_part2(user, areq, sid, permissions, _authn)
+        return self.authz_part2(user, areq, sinfo, permissions, _authn)
 
-    def authz_part2(self, user, areq, sid, permission=None, authn=None,
+    def authz_part2(self, user, areq, sinfo, permission=None, authn=None,
                     **kwargs):
         """
         After the authentication this is where you should end up
 
         :param user:
         :param areq: The Authorization Request
-        :param sid: Session identifier
+        :param sinfo: Session information
         :param permission: A permission specification
         :param authn: The Authentication Method used
         :param kwargs: possible other parameters
@@ -452,7 +479,7 @@ class Provider(object):
         _log_debug = logger.debug
         _log_debug("- in authenticated() -")
 
-        self.sdb.update(sid, "permission", permission)
+        sinfo["auz"] = permission
 
         _log_debug("response type: %s" % areq["response_type"])
 
@@ -468,18 +495,16 @@ class Provider(object):
                 "none" in areq["response_type"]:
             pass
         else:
-            if self.sdb.is_revoked(sid):
-                return self._error(error="access_denied",
-                                   descr="Token is revoked")
-
-            _sinfo = self.sdb[sid]
+            #if self.sdb.is_revoked(sinfo):
+            #    return self._error(error="access_denied",
+            #                       descr="Token is revoked")
 
             try:
                 aresp["scope"] = areq["scope"]
             except KeyError:
                 pass
 
-            _log_debug("_dic: %s" % _sinfo)
+            _log_debug("_dic: %s" % sinfo)
 
             rtype = set(areq["response_type"][:])
             if "code" in areq["response_type"]:
@@ -487,14 +512,14 @@ class Provider(object):
                 #    scode = self.sdb.duplicate(_sinfo)
                 #    _sinfo = self.sdb[scode]
 
-                _code = aresp["code"] = _sinfo["code"]
+                _code = aresp["code"] = self.sdb.get_token(sinfo)
                 rtype.remove("code")
             else:
-                self.sdb[sid]["code"] = None
+                sinfo["code"] = None
                 _code = None
 
             if "token" in rtype:
-                _dic = self.sdb.update_to_token(issue_refresh=False, key=sid)
+                _dic = self.sdb.upgrade_to_token(sinfo, issue_refresh=False)
 
                 atr = AccessTokenResponse(**aresp.to_dict())
                 aresp = atr
@@ -512,6 +537,8 @@ class Provider(object):
             redirect_uri = self.get_redirect_uri(areq)
         except (RedirectURIError, ParameterError), err:
             return BadRequest("%s" % err)
+
+        self.sdb.store_session(sinfo)
 
         # so everything went well should set a SSO cookie
         headers = [authn.create_cookie(user, typ="sso", ttl=self.sso_ttl)]
@@ -574,26 +601,13 @@ class Provider(object):
 
         return Response(atr.to_json(), content="application/json")
 
-# =============================================================================
+    def verify_endpoint(self, request="", cookie=None, **kwargs):
+        _req = urlparse.parse_qs(request)
+        try:
+            areq = urlparse.parse_qs(_req["query"][0])
+        except KeyError:
+            return BadRequest()
 
-
-class Endpoint(object):
-    etype = ""
-
-    def __init__(self, func):
-        self.func = func
-
-    @property
-    def name(self):
-        return "%s_endpoint" % self.etype
-
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
-
-
-class AuthorizationEndpoint(Endpoint):
-    etype = "authorization"
-
-
-class TokenEndpoint(Endpoint):
-    etype = "token"
+        authn, acr = self.pick_auth(areq=areq)
+        kwargs["cookie"] = cookie
+        return authn.verify(_req, **kwargs)

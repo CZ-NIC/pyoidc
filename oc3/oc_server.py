@@ -25,7 +25,6 @@ import re
 
 from logging.handlers import BufferingHandler
 
-from oic.utils import http_util
 from oic.oic.provider import Provider
 
 from oic.utils.http_util import *
@@ -264,6 +263,7 @@ def webfinger(environ, start_response, _):
         wf = WebFinger()
         resp = Response(wf.response(subject=resource, base=OAS.baseurl))
     return resp(environ, start_response)
+
 
 #noinspection PyUnusedLocal
 def verify(environ, start_response, logger):
@@ -505,7 +505,7 @@ if __name__ == '__main__':
         if "UserPassword" == authkey:
             from oic.utils.authn.user import UsernamePasswordMako
             authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
-                                     "%s/authorization" % config.issuer)
+                                         "%s/authorization" % config.issuer)
         if authn is not None:
             ac.add(config.AUTHORIZATION[authkey]["ACR"],
                    authn,
@@ -529,7 +529,6 @@ if __name__ == '__main__':
         OAS = Provider(config.issuer, SessionDB(), cdb, ac, None, authz,
                        verify_client, config.SYM_KEY)
 
-    authn.srv = OAS
 
     try:
         OAS.cookie_ttl = config.COOKIETTL

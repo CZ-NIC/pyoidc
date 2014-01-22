@@ -1,8 +1,7 @@
-from jwkest.jwk import SYM_key
-
 __author__ = 'rohe0002'
 
 from oic.oauth2.message import *
+from jwkest.jwk import SYMKey
 
 from pytest import raises
 
@@ -479,7 +478,7 @@ def test_to_from_jwt():
                          req_str_list=["spike", "lee"],
                          opt_json='{"ford": "green"}')
 
-    keys = [SYM_key(key="A1B2C3D4")]
+    keys = [SYMKey(key="A1B2C3D4")]
     jws = item.to_jwt(keys, "HS256")
 
     print jws

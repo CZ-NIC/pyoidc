@@ -17,8 +17,8 @@ SERVICE = {
     "pyoidcOICStatic": {
     #{'client_secret':
     # '1e1254a35bf2000dff6daaef35660a85f7f17b5a0d5192da7838dfb1',
-    # 'policy_url': '', 'redirect_uris': [('http://hashog.umdc.umu
-    # .se:8666/pyoidcOICStatic', None)], 'logo_url': '', 'client_id':
+    # 'policy_uri': '', 'redirect_uris': [('http://hashog.umdc.umu
+    # .se:8666/pyoidcOICStatic', None)], 'logo_uri': '', 'client_id':
     # 'VJNL62bPdOnn'}
     "opKey": "pyoidcOICStatic",
     "client_id": "VJNL62bPdOnn",

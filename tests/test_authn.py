@@ -3,7 +3,7 @@ import os
 import urllib
 from urlparse import parse_qs
 import jwkest
-from jwkest.jwk import SYM_key
+from jwkest.jwk import SYMKey
 from jwkest.jws import JWS
 from mako.lookup import TemplateLookup
 from oic.oic import JWT_BEARER
@@ -68,7 +68,7 @@ def test_2():
 def test_3():
     form = create_return_form_env("user", "hemligt", "query=foo")
     srv = SRV()
-    srv.symkey = "symkey"
+    srv.symkey = rndstr(16)
     srv.seed = rndstr()
     srv.iv = os.urandom(16)
     srv.cookie_name = "xyzxyz"
@@ -114,7 +114,7 @@ def test_3():
 def test_5():
     form = create_return_form_env("user", "hemligt", "QUERY")
     srv = SRV()
-    srv.symkey = "symkey"
+    srv.symkey = rndstr(16)
     srv.seed = rndstr()
     srv.iv = os.urandom(16)
     srv.cookie_name = "xyzxyz"
@@ -140,7 +140,7 @@ def test_5():
 def test_6():
     form = create_return_form_env("user", "secret", "QUERY")
     srv = SRV()
-    srv.symkey = "symkey"
+    srv.symkey = rndstr(16)
     srv.seed = rndstr()
     srv.iv = os.urandom(16)
     srv.cookie_name = "xyzxyz"
@@ -171,7 +171,7 @@ def test_client_secret_jwt():
     assert header == {'alg': 'HS256'}
 
     _rj = JWS()
-    info = _rj.verify_compact(cas, [SYM_key(key=cli.client_secret)])
+    info = _rj.verify_compact(cas, [SYMKey(key=cli.client_secret)])
 
     _dict = json.loads(info)
     assert _eq(_dict.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])

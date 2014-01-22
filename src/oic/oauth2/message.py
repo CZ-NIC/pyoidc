@@ -6,6 +6,7 @@ import json
 from jwkest import b64d
 import jwkest
 from jwkest.jwe import JWE
+from jwkest.jwk import keyitems2keyreps
 from jwkest.jws import JWS
 from oic.oauth2.exception import PyoidcError
 
@@ -331,7 +332,9 @@ class Message(object):
         if isinstance(vtyp, list):
             vtype = vtyp[0]
             if isinstance(val, vtype):
-                if _deser:
+                if issubclass(vtype, Message):
+                    self._dict[skey] = [val]
+                elif _deser:
                     try:
                         self._dict[skey] = _deser(val, sformat="urlencoded")
                     except Exception, exc:
@@ -391,7 +394,7 @@ class Message(object):
         if lev:
             return self.to_dict(lev + 1)
         else:
-            return json.dumps(self.to_dict(lev + 1))
+            return json.dumps(self.to_dict(1))
 
     def from_json(self, txt, **kwargs):
         return self.from_dict(json.loads(txt))
@@ -633,6 +636,24 @@ class Message(object):
         else:
             raise ValueError("Wrong type of value")
 
+    def to_jwe(self, keys, enc, alg, lev=0):
+        """
+
+        :param keys: Dictionary, keys are key type and key is the value
+        :param enc: The encryption method to use
+        :param alg: Encryption algorithm
+        :param lev: Used for JSON construction
+        :return: A JWE
+        """
+        krs = keyitems2keyreps(keys)
+        _jwe = JWE(self.to_json(lev), alg=alg, enc=enc)
+        return _jwe.encrypt(krs)
+
+    def from_jwe(self, msg, keys):
+        krs = keyitems2keyreps(keys)
+        jwe = JWE()
+        return self.from_json(jwe.decrypt(msg, krs))
+
 # =============================================================================
 
 
@@ -693,6 +714,12 @@ def json_serializer(obj, sformat="urlencoded", lev=0):
 #noinspection PyUnusedLocal
 def json_deserializer(txt, sformat="urlencoded"):
     return json.loads(txt)
+
+VTYPE = 0
+VREQUIRED = 1
+VSER = 2
+VDESER = 3
+VNULLALLOWED = 4
 
 SINGLE_REQUIRED_STRING = (basestring, True, None, None, False)
 SINGLE_OPTIONAL_STRING = (basestring, False, None, None, False)

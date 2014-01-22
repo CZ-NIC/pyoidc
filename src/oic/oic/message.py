@@ -40,6 +40,7 @@ SINGLE_OPTIONAL_JSON_WN = (dict, False, json_ser, json_deser, True)
 SINGLE_OPTIONAL_JSON = (dict, False, json_ser, json_deser, False)
 SINGLE_REQUIRED_INT = (int, True, None, None, False)
 
+
 #noinspection PyUnusedLocal
 def idtoken_deser(val, sformat="urlencoded"):
     # id_token are always serialized as a JWT
@@ -463,36 +464,39 @@ class OpenIDSchema(Message):
 
 class RegistrationRequest(Message):
     c_param = {
-        "post_logout_redirect_uris": OPTIONAL_LIST_OF_STRINGS,
-        "redirect_uris": OPTIONAL_LIST_OF_STRINGS,
+        "redirect_uris": REQUIRED_LIST_OF_STRINGS,
         "response_types": OPTIONAL_LIST_OF_STRINGS,
         "grant_types": OPTIONAL_LIST_OF_STRINGS,
         "application_type": SINGLE_OPTIONAL_STRING,
         "contacts": OPTIONAL_LIST_OF_STRINGS,
         "client_name": SINGLE_OPTIONAL_STRING,
         "logo_uri": SINGLE_OPTIONAL_STRING,
-        "token_endpoint_auth_method": SINGLE_OPTIONAL_STRING,
+        "client_uri": SINGLE_OPTIONAL_STRING,
         "policy_uri": SINGLE_OPTIONAL_STRING,
         "tos_uri": SINGLE_OPTIONAL_STRING,
         "jwks_uri": SINGLE_OPTIONAL_STRING,
         "sector_identifier_uri": SINGLE_OPTIONAL_STRING,
         "subject_type": SINGLE_OPTIONAL_STRING,
-        "request_object_signing_alg": SINGLE_OPTIONAL_STRING,
-        "userinfo_signed_response_alg": SINGLE_OPTIONAL_STRING,
-        "userinfo_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
-        "userinfo_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
         "id_token_signed_response_alg": SINGLE_OPTIONAL_STRING,
         "id_token_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
         "id_token_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
+        "userinfo_signed_response_alg": SINGLE_OPTIONAL_STRING,
+        "userinfo_encrypted_response_alg": SINGLE_OPTIONAL_STRING,
+        "userinfo_encrypted_response_enc": SINGLE_OPTIONAL_STRING,
+        "request_object_signing_alg": SINGLE_OPTIONAL_STRING,
+        "request_object_encryption_alg": SINGLE_OPTIONAL_STRING,
+        "request_object_encryption_enc": SINGLE_OPTIONAL_STRING,
+        "token_endpoint_auth_method": SINGLE_OPTIONAL_STRING,
+        "token_endpoint_auth_signing_alg": SINGLE_OPTIONAL_STRING,
         "default_max_age": SINGLE_OPTIONAL_INT,
         "require_auth_time": OPTIONAL_LOGICAL,
         "default_acr_values": OPTIONAL_LIST_OF_STRINGS,
         "initiate_login_uri": SINGLE_OPTIONAL_STRING,
-        "post_logout_redirect_url": SINGLE_OPTIONAL_STRING,
         "request_uris": OPTIONAL_LIST_OF_STRINGS,
         #"client_id": SINGLE_OPTIONAL_STRING,
         #"client_secret": SINGLE_OPTIONAL_STRING,
         "access_token": SINGLE_OPTIONAL_STRING,
+        "post_logout_redirect_uris": OPTIONAL_LIST_OF_STRINGS,
     }
     c_default = {"application_type": "web"}
     c_allowed_values = {"application_type": ["native", "web"],
@@ -513,11 +517,31 @@ class RegistrationResponse(Message):
         "client_id": SINGLE_REQUIRED_STRING,
         "client_secret": SINGLE_OPTIONAL_STRING,
         "registration_access_token": SINGLE_REQUIRED_STRING,
-        "registration_client_uri": SINGLE_REQUIRED_STRING,
+        "registration_client_uri": SINGLE_OPTIONAL_STRING,
         "client_id_issued_at": SINGLE_OPTIONAL_INT,
         "client_secret_expires_at": SINGLE_OPTIONAL_INT,
     }
     c_param.update(RegistrationRequest.c_param)
+
+    def verify(self, **kwargs):
+        """
+        Implementations MUST either return both a Client Configuration Endpoint
+        and a Registration Access Token or neither of them.
+        :param kwargs:
+        :return: True if the message is OK otherwise False
+        """
+
+        if "registration_client_uri" in self:
+            if not "registration_access_token":
+                raise VerificationError((
+                    "Only one of registration_client_uri"
+                    " and registration_access_token present"))
+        elif "registration_access_token" in self:
+            raise VerificationError((
+                "Only one of registration_client_uri"
+                " and registration_access_token present"))
+
+        return super(RegistrationResponse, self).verify(**kwargs)
 
 
 class ClientRegistrationErrorResponse(message.ErrorResponse):
@@ -614,32 +638,28 @@ class ProviderConfigurationResponse(Message):
         "authorization_endpoint": SINGLE_OPTIONAL_STRING,
         "token_endpoint": SINGLE_OPTIONAL_STRING,
         "userinfo_endpoint": SINGLE_OPTIONAL_STRING,
-        "check_session_iframe": SINGLE_OPTIONAL_STRING,
-        "end_session_endpoint": SINGLE_OPTIONAL_STRING,
         "jwks_uri": SINGLE_OPTIONAL_STRING,
-        #"jwk_encryption_url": SINGLE_OPTIONAL_STRING,
-        #"x509_url": SINGLE_REQUIRED_STRING,
-        #"x509_encryption_url": SINGLE_OPTIONAL_STRING,
         "registration_endpoint": SINGLE_OPTIONAL_STRING,
         "scopes_supported": OPTIONAL_LIST_OF_STRINGS,
         "response_types_supported": REQUIRED_LIST_OF_STRINGS,
+        "response_modes_supported": OPTIONAL_LIST_OF_STRINGS,
         "grant_types_supported": REQUIRED_LIST_OF_STRINGS,
         "acr_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "subject_types_supported": REQUIRED_LIST_OF_STRINGS,
-        "userinfo_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
-        "userinfo_encryption_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
-        "userinfo_encryption_enc_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "id_token_signing_alg_values_supported": REQUIRED_LIST_OF_STRINGS,
         "id_token_encryption_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "id_token_encryption_enc_values_supported": OPTIONAL_LIST_OF_STRINGS,
+        "userinfo_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
+        "userinfo_encryption_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
+        "userinfo_encryption_enc_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "request_object_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "request_object_encryption_alg_values_supported":
-            OPTIONAL_LIST_OF_STRINGS,
+        OPTIONAL_LIST_OF_STRINGS,
         "request_object_encryption_enc_values_supported":
-            OPTIONAL_LIST_OF_STRINGS,
+        OPTIONAL_LIST_OF_STRINGS,
         "token_endpoint_auth_methods_supported": OPTIONAL_LIST_OF_STRINGS,
         "token_endpoint_auth_signing_alg_values_supported":
-                OPTIONAL_LIST_OF_STRINGS,
+        OPTIONAL_LIST_OF_STRINGS,
         "display_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "claim_types_supported": OPTIONAL_LIST_OF_STRINGS,
         "claims_supported": OPTIONAL_LIST_OF_STRINGS,
@@ -652,6 +672,11 @@ class ProviderConfigurationResponse(Message):
         "require_request_uri_registration": SINGLE_OPTIONAL_STRING,
         "op_policy_uri": SINGLE_OPTIONAL_STRING,
         "op_tos_uri": SINGLE_OPTIONAL_STRING
+        #"check_session_iframe": SINGLE_OPTIONAL_STRING,
+        #"end_session_endpoint": SINGLE_OPTIONAL_STRING,
+        #"jwk_encryption_url": SINGLE_OPTIONAL_STRING,
+        #"x509_url": SINGLE_REQUIRED_STRING,
+        #"x509_encryption_url": SINGLE_OPTIONAL_STRING,
     }
     c_default = {"version": "3.0",
                  "token_endpoint_auth_methods_supported": "client_secret_basic",
@@ -710,7 +735,7 @@ SCOPE2CLAIMS = {
                 "preferred_username"],
     "email": ["email", "email_verified"],
     "address": ["address"],
-    "phone": ["phone_number"],
+    "phone": ["phone_number", "phone_number_verified"],
     "offline_access": []
 }
 

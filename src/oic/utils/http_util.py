@@ -1,6 +1,7 @@
+from oic.oauth2 import rndstr
 from oic.oauth2.exception import UnsupportedMethod
-from oic.utils.aes_m2c import AES_encrypt
-from oic.utils.aes_m2c import AES_decrypt
+from oic.utils.aes import encrypt
+from oic.utils.aes import decrypt
 
 __author__ = 'rohe0002'
 
@@ -109,6 +110,11 @@ class NotAcceptable(Response):
 class ServiceError(Response):
     _status = '500 Internal Service Error'
 
+
+class InvalidCookieSign(Exception):
+    pass
+
+
 R2C = {
     200: Response,
     201: Created,
@@ -117,7 +123,7 @@ R2C = {
     400: BadRequest,
     401: Unauthorized,
     403: Forbidden,
-    404: NotAcceptable,
+    404: NotFound,
     406: NotAcceptable,
     500: ServiceError,
 }
@@ -238,7 +244,7 @@ def parse_cookie(name, seed, kaka):
         # verify the cookie signature
         sig = cookie_signature(seed, parts[0], parts[1])
         if sig != parts[2]:
-            raise Exception("Invalid cookie signature")
+            raise InvalidCookieSign()
 
         try:
             return parts[0].strip(), parts[1]
@@ -274,7 +280,7 @@ def get_or_post(environ):
     _method = environ["REQUEST_METHOD"]
 
     if _method == "GET":
-        data = environ.get["QUERY_STRING"]
+        data = environ.get("QUERY_STRING", "")
     elif _method == "POST":
         data = get_post(environ)
     else:
@@ -320,15 +326,25 @@ def wsgi_wrapper(environ, start_response, func, **kwargs):
 
 class CookieDealer(object):
     def __init__(self, srv, ttl=5):
-        self.srv = srv
+        self.srv = None
+        self.init_srv(srv)
         # minutes before the interaction should be completed
         self.cookie_ttl = ttl  # N minutes
+        self.pad_chr = " "
+
+    def init_srv(self, srv):
+        if srv:
+            self.srv = srv
+
+            for param in ["seed", "iv"]:
+                if not getattr(srv, param, None):
+                    setattr(srv, param, rndstr())
 
     def delete_cookie(self, cookie_name=None):
         if cookie_name is None:
             cookie_name = self.srv.cookie_name
-        return self.create_cookie("", "", cookie_name=cookie_name, ttl=-1, kill=True)
-
+        return self.create_cookie("", "", cookie_name=cookie_name, ttl=-1,
+                                  kill=True)
 
     def create_cookie(self, value, typ, cookie_name=None, ttl=-1, kill=False):
         if kill:
@@ -338,14 +354,22 @@ class CookieDealer(object):
         if cookie_name is None:
             cookie_name = self.srv.cookie_name
         timestamp = str(int(time.mktime(time.gmtime())))
-        info = AES_encrypt(self.srv.symkey,
-                           "::".join([value, timestamp, typ]),
-                           self.srv.iv)
+        _msg = "::".join([value, timestamp, typ])
+        if self.srv.symkey:
+            # Pad the message to be multiples of 16 bytes in length
+            lm = len(_msg)
+            _msg = _msg.ljust(lm + 16 - lm % 16, self.pad_chr)
+            info = encrypt(self.srv.symkey, _msg, self.srv.iv)
+        else:
+            info = _msg
         cookie = make_cookie(cookie_name, info, self.srv.seed,
                              expire=ttl, domain="", path="")
         return cookie
 
     def getCookieValue(self, cookie=None, cookie_name=None):
+        return self.get_cookie_value(cookie, cookie_name)
+
+    def get_cookie_value(self, cookie=None, cookie_name=None):
         """
         Return information stored in the Cookie
 
@@ -359,11 +383,17 @@ class CookieDealer(object):
             try:
                 info, timestamp = parse_cookie(cookie_name,
                                                self.srv.seed, cookie)
-                value, _ts, typ = AES_decrypt(self.srv.symkey, info,
-                                              self.srv.iv).split("::")
+                if self.srv.symkey:
+                    txt = decrypt(self.srv.symkey, info, self.srv.iv)
+                    # strip spaces at the end
+                    txt = txt.rstrip(self.pad_chr)
+                else:
+                    txt = info
+
+                value, _ts, typ = txt.split("::")
                 if timestamp == _ts:
                     return value, _ts, typ
-            except Exception:
+            except TypeError:
                 pass
         return None
 

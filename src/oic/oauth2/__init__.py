@@ -166,7 +166,7 @@ class Grant(object):
 
     def add_token(self, resp):
         """
-        :param resp: A Authorization Response instance
+        :param resp: An Authorization Response instance
         """
 
         if "access_token" in resp:
@@ -401,7 +401,7 @@ class Client(PBase):
 
         self.client_id = client_id
         self.client_authn_method = client_authn_method
-        self.keyjar = keyjar
+        self.keyjar = keyjar or KeyJar()
         #self.secret_type = "basic "
 
         self.state = None
@@ -436,6 +436,8 @@ class Client(PBase):
             # client uses it for signing
             # Server might also use it for signing which means the
             # client uses it for verifying server signatures
+            if self.keyjar is None:
+                self.keyjar = KeyJar()
             self.keyjar.add_symmetric("", str(val), ["sig"])
 
     client_secret = property(get_client_secret, set_client_secret)
@@ -846,7 +848,7 @@ class Client(PBase):
         except Exception:
             raise
 
-        if resp.status_code == 200:
+        if resp.status_code in [200, 201]:
             logger.debug("resp.headers: %s" % (resp.headers,))
             logger.debug("resp.txt: %s" % (resp.text,))
             if body_type == "":
@@ -882,10 +884,12 @@ class Client(PBase):
                                  state="", body_type="", method="GET",
                                  request_args=None, extra_args=None,
                                  http_args=None,
-                                 response_cls=AuthorizationResponse):
+                                 response_cls=AuthorizationResponse,
+                                 **kwargs):
 
         url, body, ht_args, csi = self.request_info(request, method,
-                                                    request_args, extra_args)
+                                                    request_args, extra_args,
+                                                    **kwargs)
 
         if http_args is None:
             http_args = ht_args

@@ -4,7 +4,7 @@ from jwkest import MissingKey
 from jwkest.jws import alg2keytype
 from oic.oauth2.exception import UnknownAssertionType
 from oic.oauth2.exception import NotForMe
-from oic.oauth2 import rndstr
+from oic.oauth2 import rndstr, VREQUIRED
 from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.oic import REQUEST2ENDPOINT
 from oic.oic import DEF_SIGN_ALG
@@ -64,27 +64,40 @@ class ClientSecretBasic(ClientAuthnMethod):
         # Basic HTTP Authentication
         if http_args is None:
             http_args = {}
+
         try:
-            http_args["auth"] = (self.cli.client_id, http_args["password"])
+            passwd = kwargs["password"]
         except KeyError:
             try:
-                http_args["auth"] = (self.cli.client_id, cis["client_secret"])
+                passwd = http_args["password"]
             except KeyError:
-                http_args["auth"] = (self.cli.client_id, self.cli.client_secret)
+                try:
+                    passwd = cis["client_secret"]
+                except KeyError:
+                    passwd = self.cli.client_secret
 
-        for param in ["client_secret", "client_id"]:
-            try:
-                del cis[param]
-            except KeyError:
-                pass
+        try:
+            user = kwargs["user"]
+        except KeyError:
+            user = self.cli.client_id
+
+        http_args["auth"] = (user, passwd)
+
+        try:
+            del cis["client_secret"]
+        except KeyError:
+            pass
+
+        if not cis.c_param["client_id"][VREQUIRED]:
+            del cis["client_id"]
 
         return http_args
 
     def verify(self, areq, client_id, **kwargs):
         if self.cli.cdb[client_id]["client_secret"] == areq["client_secret"]:
-            return True
+            return client_id
         else:
-            return False
+            raise AuthnFailure()
 
 
 class ClientSecretPost(ClientSecretBasic):
@@ -344,4 +357,4 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
         else:
             raise UnknownAssertionType(areq["client_assertion_type"])
     else:
-        return True
+        return client_id

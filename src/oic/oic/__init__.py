@@ -39,7 +39,7 @@ from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import rndstr
 from oic.oauth2.consumer import ConfigurationError
 
-from oic.oauth2.exception import AccessDenied, PyoidcError
+from oic.oauth2.exception import AccessDenied, PyoidcError, MissingParameter
 
 from oic.utils import time_util
 
@@ -90,7 +90,7 @@ OIDCONF_PATTERN = "%s/.well-known/openid-configuration"
 DEF_SIGN_ALG = {"id_token": "RS256",
                 "openid_request_object": "RS256",
                 "client_secret_jwt": "HS256",
-                "private_key_jwt": "HS256"}
+                "private_key_jwt": "RS256"}
 
 SAML2_BEARER_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:saml2-bearer"
 
@@ -187,22 +187,30 @@ class Grant(oauth2.Grant):
             if _tmp:
                 self.tokens.append(tok)
 
+
 PREFERENCE2PROVIDER = {
-    "token_endpoint_auth_method": "token_endpoint_auth_methods_supported",
     "require_signed_request_object": "request_object_algs_supported",
-    "userinfo_signed_response_algs": "userinfo_signing_alg_values_supported",
+    "request_object_signing_alg": "request_object_signing_alg_values_supported",
+    "request_object_encryption_alg":
+        "request_object_encryption_alg_values_supported",
+    "request_object_encryption_enc":
+        "request_object_encryption_enc_values_supported",
+    "userinfo_signed_response_alg": "userinfo_signing_alg_values_supported",
     "userinfo_encrypted_response_alg":
         "userinfo_encryption_enc_values_supported",
     "userinfo_encrypted_response_enc":
         "userinfo_encryption_enc_values_supported",
-    "id_token_signed_response_algs": "id_token_signing_alg_values_supported",
+    "id_token_signed_response_alg": "id_token_signing_alg_values_supported",
     "id_token_encrypted_response_alg":
         "id_token_encryption_alg_values_supported",
     "id_token_encrypted_response_enc":
         "id_token_encryption_enc_values_supported",
-    "default_acr": "acrs_supported",
-    "subbject_type": "subbject_types_supported",
-    "token_endpoint_auth_alg": "token_endpoint_auth_algs_supported",
+    "default_acr_values": "acr_values_supported",
+    #"require_auth_time":"",
+    "subject_type": "subject_types_supported",
+    "token_endpoint_auth_method": "token_endpoint_auth_methods_supported",
+    "token_endpoint_auth_signing_alg":
+        "token_endpoint_auth_signing_alg_values_supported"
     #"request_object_signing_alg": "request_object_signing_alg_values_supported
 }
 
@@ -239,8 +247,9 @@ class Client(oauth2.Client):
         self.token_class = Token
         self.provider_info = {}
         self.client_prefs = client_prefs or {}
-        self.behaviour = {"require_signed_request_object":
-                          DEF_SIGN_ALG["openid_request_object"]}
+        self.behaviour = {
+            "require_signed_request_object":
+            DEF_SIGN_ALG["openid_request_object"]}
 
         self.wf = WebFinger(OIC_ISSUER)
         self.wf.httpd = self
@@ -437,7 +446,7 @@ class Client(oauth2.Client):
         #        if "redirect_url" not in request_args:
         #            request_args["redirect_url"] = self.redirect_url
 
-        return self._id_token_based(request, request_args, extra_args, 
+        return self._id_token_based(request, request_args, extra_args,
                                     **kwargs)
 
     # ------------------------------------------------------------------------
@@ -612,13 +621,23 @@ class Client(oauth2.Client):
         # - GET with token in authorization header
         if "behavior" in kwargs:
             _behav = kwargs["behavior"]
+            _token = uir["access_token"]
+            try:
+                _ttype = kwargs["token_type"]
+            except KeyError:
+                try:
+                    _ttype = token.type
+                except AttributeError:
+                    raise MissingParameter("Unspecified token type")
+
             # use_authorization_header, token_in_message_body
-            if "use_authorization_header" in _behav and token.type == "Bearer":
-                bh = "Bearer %s" % token.access_token
+            if "use_authorization_header" in _behav and _ttype == "Bearer":
+                bh = "Bearer %s" % _token
                 if "headers" in kwargs:
-                    kwargs["headers"] = {"Authorization": bh}
+                    kwargs["headers"].update({"Authorization": bh})
                 else:
                     kwargs["headers"] = {"Authorization": bh}
+
             if not "token_in_message_body" in _behav:
                 # remove the token from the request
                 del uir["access_token"]
@@ -735,7 +754,7 @@ class Client(oauth2.Client):
                 except AssertionError:
                     raise PyoidcError(
                         "provider info issuer mismatch '%s' != '%s'" % (
-                        _issuer, _pcr_issuer))
+                            _issuer, _pcr_issuer))
 
             self.provider_info[_pcr_issuer] = pcr
         else:
@@ -752,23 +771,25 @@ class Client(oauth2.Client):
 
             self.keyjar.load_keys(pcr, _pcr_issuer)
 
-    def provider_config(self, issuer, keys=True, endpoints=True):
+    def provider_config(self, issuer, keys=True, endpoints=True,
+                        response_cls=ProviderConfigurationResponse,
+                        serv_pattern=OIDCONF_PATTERN):
         if issuer.endswith("/"):
             _issuer = issuer[:-1]
         else:
             _issuer = issuer
 
-        url = OIDCONF_PATTERN % _issuer
+        url = serv_pattern % _issuer
 
         pcr = None
         r = self.http_request(url)
         if r.status_code == 200:
-            pcr = ProviderConfigurationResponse().from_json(r.text)
+            pcr = response_cls().from_json(r.text)
         elif r.status_code == 302:
             while r.status_code == 302:
                 r = self.http_request(r.headers["location"])
                 if r.status_code == 200:
-                    pcr = ProviderConfigurationResponse().from_json(r.text)
+                    pcr = response_cls().from_json(r.text)
                     break
 
         if pcr is None:
@@ -892,18 +913,33 @@ class Client(oauth2.Client):
                 raise ConfigurationError(
                     "OP couldn't match preferences", "%s" % _pref)
 
+        regreq = RegistrationRequest
         for key, val in self.client_prefs.items():
+            if key in self.behaviour:
+                continue
+
+            try:
+                vtyp = regreq.c_param[key]
+                if isinstance(vtyp, list):
+                    pass
+                elif isinstance(val, list) and not isinstance(val, basestring):
+                    val = val[0]
+            except KeyError:
+                pass
             if key not in PREFERENCE2PROVIDER:
                 self.behaviour[key] = val
+
+    def store_registration_info(self, reginfo):
+        self.registration_response = reginfo
+        self.client_secret = reginfo["client_secret"]
+        self.client_id = reginfo["client_id"]
+        self.registration_expires = reginfo["client_secret_expires_at"]
+        self.registration_access_token = reginfo["registration_access_token"]
 
     def handle_registration_info(self, response):
         if response.status_code == 200:
             resp = RegistrationResponse().deserialize(response.text, "json")
-            self.registration_response = resp
-            self.client_secret = resp["client_secret"]
-            self.client_id = resp["client_id"]
-            self.registration_expires = resp["client_secret_expires_at"]
-            self.registration_access_token = resp["registration_access_token"]
+            self.store_registration_info(resp)
         else:
             err = ErrorResponse().deserialize(response.text, "json")
             raise PyoidcError("Registration failed: %s" % err.get_json())
@@ -922,11 +958,10 @@ class Client(oauth2.Client):
 
         return self.handle_registration_info(rsp)
 
-    def register(self, url, **kwargs):
+    def create_registration_request(self, **kwargs):
         """
-        Register the client at an OP
+        Create a registration request
 
-        :param url: The OPs registration endpoint
         :param kwargs: parameters to the registration request
         :return:
         """
@@ -943,7 +978,8 @@ class Client(oauth2.Client):
 
         if "post_logout_redirect_uris" not in req:
             try:
-                req["post_logout_redirect_uris"] = self.post_logout_redirect_uris
+                req[
+                    "post_logout_redirect_uris"] = self.post_logout_redirect_uris
             except AttributeError:
                 pass
 
@@ -952,6 +988,18 @@ class Client(oauth2.Client):
                 req["redirect_uris"] = self.redirect_uris
             except AttributeError:
                 raise MissingRequiredAttribute("redirect_uris")
+
+        return req
+
+    def register(self, url, **kwargs):
+        """
+        Register the client at an OP
+
+        :param url: The OPs registration endpoint
+        :param kwargs: parameters to the registration request
+        :return:
+        """
+        req = self.create_registration_request(**kwargs)
 
         headers = {"content-type": "application/json"}
 
@@ -1076,8 +1124,8 @@ class Server(oauth2.Server):
         esr["id_token"] = deser_id_token(self, esr["id_token"])
         return esr
 
-#    def parse_issuer_request(self, info, sformat="urlencoded"):
-#        return self._parse_request(IssuerRequest, info, sformat)
+    #    def parse_issuer_request(self, info, sformat="urlencoded"):
+    #        return self._parse_request(IssuerRequest, info, sformat)
 
     def id_token_claims(self, session):
         """

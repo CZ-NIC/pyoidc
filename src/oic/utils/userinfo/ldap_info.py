@@ -49,13 +49,15 @@ class UserInfoLDAP(UserInfo):
         self.ldapuser = user
         self.ldappasswd = passwd
         self.bind()
+        self.ld = None
 
     def bind(self):
         self.ld = ldap.initialize(self.ldapuri)
         self.ld.protocol_version = ldap.VERSION3
         self.ld.simple_bind_s(self.ldapuser, self.ldappasswd)
 
-    def __call__(self, userid, user_info_claims=None, firstOnly=True, **kwargs):
+    def __call__(self, userid, user_info_claims=None, first_only=True,
+                 **kwargs):
         _filter = self.filter_pattern % userid
         logger.debug("CLAIMS: %s" % user_info_claims)
         _attr = self.attr
@@ -94,7 +96,7 @@ class UserInfoLDAP(UserInfo):
             # the tuple (dn, ava)
             newres = {}
             for key, val in res[0][1].items():
-                if firstOnly:
+                if first_only:
                     val = val[0]  # if more than one just return the first
                 try:
                     newres[LDAP2USERINFO[key]] = val

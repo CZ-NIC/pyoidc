@@ -19,16 +19,20 @@ class AuthnBroker(object):
         self.db = {"info": {}, "key": {}}
         self.next = 0
 
-    def exact(self, a, b):
+    @staticmethod
+    def exact(a, b):
         return a == b
 
-    def minimum(self, a, b):
+    @staticmethod
+    def minimum(a, b):
         return b >= a
 
-    def maximum(self, a, b):
+    @staticmethod
+    def maximum(a, b):
         return b <= a
 
-    def better(self, a, b):
+    @staticmethod
+    def better(a, b):
         return b > a
 
     def add(self, acr, method, level=0, authn_authority=""):
@@ -76,9 +80,10 @@ class AuthnBroker(object):
             if _remain:
                 self.db[acr] = _remain
 
-    def _cmp(self, item0, item1):
-        v0 = item0[1]
-        v1 = item1[1]
+    @staticmethod
+    def _cmp(item0, item1):
+        v0 = item0[0]
+        v1 = item1[0]
         if v0 > v1:
             return 1
         elif v0 == v1:
@@ -98,7 +103,7 @@ class AuthnBroker(object):
             _level = _item["level"]
             if comparision_type != "better":
                 if _item["method"]:
-                    res = [(_item["method"], _level)]
+                    res = [(_level, _item["method"], _item["ref"])]
                 else:
                     res = []
             else:
@@ -106,7 +111,7 @@ class AuthnBroker(object):
 
             for ref in _refs[1:]:
                 item = _info[ref]
-                res.append((item["method"], item["level"]))
+                res.append((item["level"], item["method"], item["ref"]))
                 if func(_level, item["level"]):
                     _level = item["level"]
             res_other = []
@@ -115,16 +120,15 @@ class AuthnBroker(object):
                     continue
                 elif func(_level, _dic["level"]):
                     if _dic["method"]:
-                        _val = (_dic["method"], _dic["level"])
+                        _val = (_dic["level"], _dic["method"], _dic["ref"])
                         if _val not in res:
                             res_other.append(_val)
             # sort on level
             res.sort(self._cmp, reverse=True)
             res_other.sort(self._cmp, reverse=True)
-            for x in res_other:
-                res.append(x)
+            res.extend(res_other)
 
-            return [a for a, b in res]
+            return [(b, c) for a, b, c in res]
 
     def get_method(self, name):
         for key, item in self.db["info"].items():
@@ -132,22 +136,28 @@ class AuthnBroker(object):
                 return item["method"]
         raise KeyError("No method by that name")
 
-    def pick(self, acr=None, want="minimum"):
+    def pick(self, acr=None, comparision_type="minimum"):
         """
         Given the authentication context find zero or more places where
         the user could be sent next. Ordered according to security level.
 
         :param acr: The authentication class reference requested
-        :param want: If teh caller wants exact, at a minimum, ... this level
+        :param comparision_type: If the caller wants exact, at a minimum,
+            ... this level
         :return: An URL
         """
 
+        if not comparision_type:
+            comparision_type = "minimum"
+
         if acr is None:
+            # Anything else doesn't make sense
             return self._pick_by_class_ref(UNSPECIFIED, "minimum")
         else:
-            return self._pick_by_class_ref(acr, want)
+            return self._pick_by_class_ref(acr, comparision_type)
 
-    def match(self, requested, provided):
+    @staticmethod
+    def match(requested, provided):
         if requested == provided:
             return True
         else:
@@ -157,7 +167,7 @@ class AuthnBroker(object):
         i = 0
         for key, info in self.db["info"].items():
             if i == item:
-                return info["method"]
+                return info["method"], info["ref"]
             i += 1
 
         raise IndexError()

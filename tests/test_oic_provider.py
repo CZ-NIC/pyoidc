@@ -1,12 +1,10 @@
 from mako.lookup import TemplateLookup
-from mako.runtime import UNDEFINED
+from oic.oauth2 import rndstr
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
 from oic.utils.userinfo import UserInfo
-
-__author__ = 'rohe0002'
 
 from oic.oauth2.exception import RedirectURIError
 
@@ -34,6 +32,8 @@ from oic.oic.consumer import Consumer
 from oic.oic.provider import Provider
 
 from oic.utils.time_util import epoch_in_a_while
+
+__author__ = 'rohe0002'
 
 CLIENT_CONFIG = {
     "client_id": "number5",
@@ -140,11 +140,11 @@ class DummyAuthn(UserAuthnMethod):
 
 #AUTHN = UsernamePasswordMako(None, "login.mako", tl, PASSWD, "authenticated")
 AUTHN_BROKER = AuthnBroker()
-AUTHN_BROKER.add(UNDEFINED, DummyAuthn(None, "username"))
+AUTHN_BROKER.add("UNDEFINED", DummyAuthn(None, "username"))
 
 # dealing with authorization
 AUTHZ = AuthzHandling()
-SYMKEY = "symmetric key used to encrypt cookie info"
+SYMKEY = rndstr(16)  # symmetric key used to encrypt cookie info
 USERINFO = UserInfo(USERDB)
 
 provider_init = Provider("pyoicserv", SessionDB(), CDB, AUTHN_BROKER, USERINFO,

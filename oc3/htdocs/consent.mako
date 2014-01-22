@@ -4,8 +4,8 @@
 <div class="consent" class="block">
     Allow access to ${relaying_party}<br>
     Select the information you want to share with ${relaying_party}.
-    % if policy_url:
-        Please review the ${relaying_part} <a href="${policy_url}"><b>privacy policy</b></a>
+    % if policy_uri:
+        Please review the ${relaying_part} <a href="${policy_uri}"><b>privacy policy</b></a>
     % endif
 
     <form action="${action}" method="post" class="consent form">
@@ -27,6 +27,6 @@
         </table>
     </form>
     % if logo_url:
-        <img src="${logo_url}" alt="Client logo">
+        <img src="${logo_uri}" alt="Client logo">
     % endif
 </div>

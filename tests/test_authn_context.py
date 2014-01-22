@@ -36,8 +36,8 @@ def test():
     }
 
     LDAP_EXTRAVALIDATION = {
-        "verifyAttr": "eduPersonAffiliation",
-        "verifyAttrValid": ['employee', 'staff', 'student']
+        "verify_attr": "eduPersonAffiliation",
+        "verify_attr_valid": ['employee', 'staff', 'student']
     }
     LDAP_EXTRAVALIDATION.update(LDAP)
 
@@ -58,9 +58,10 @@ def test():
     res = ac.pick(PASSWORD)
 
     assert res
+    # list of two 2-tuples
     assert len(res) == 2
-    assert res[0].__class__.__name__ == "CasAuthnMethod"
-    assert res[1].__class__.__name__ == "UsernamePasswordMako"
+    assert res[0][0].__class__.__name__ == "CasAuthnMethod"
+    assert res[1][0].__class__.__name__ == "UsernamePasswordMako"
 
 
 if __name__ == "__main__":

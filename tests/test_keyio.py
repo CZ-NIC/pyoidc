@@ -4,7 +4,7 @@ from oic.utils.keyio import key_export
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import keybundle_from_local_file
-from oic.utils.keyio import RSA_key
+from oic.utils.keyio import RSAKey
 
 from jwkest.jws import JWS, NoSuitableSigningKeys, WrongTypeOfKey
 
@@ -38,7 +38,7 @@ def test_chain_2():
     assert len(kc.get("RSA")) == 2
 
     key = kc.get("RSA")[0]
-    assert isinstance(key, RSA_key)
+    assert isinstance(key, RSAKey)
 
     kc.update()
     assert kc.remote is False
@@ -46,7 +46,7 @@ def test_chain_2():
     assert len(kc.get("RSA")) == 2
 
     key = kc.get("RSA")[0]
-    assert isinstance(key, RSA_key)
+    assert isinstance(key, RSAKey)
 
 
 # remote testing is tricky
@@ -119,13 +119,14 @@ def test_local_jwk_file():
     keys = kj.get_signing_key()
     assert len(keys) == 1
     key = keys[0]
-    assert isinstance(key, RSA_key)
+    assert isinstance(key, RSAKey)
     assert key.kid == "abc"
 
 
 def test_signing():
-    kb = keybundle_from_local_file("file://jwk.json", "jwk", ["ver", "sig"])
-    assert len(kb) == 1
+    # Signing is only possible if key is a private RSA key
+    kb = keybundle_from_local_file("rsa.key", "rsa", ["ver", "sig"])
+    assert len(kb) == 2
     kj = KeyJar()
     kj.issuer_keys[""] = [kb]
     keys = kj.get_signing_key()
@@ -133,9 +134,9 @@ def test_signing():
     _jws = JWS(payload, alg="RS512")
     try:
         _jwt = _jws.sign_compact(keys)
-        assert False
-    except (NoSuitableSigningKeys, WrongTypeOfKey):
         assert True
+    except (NoSuitableSigningKeys, WrongTypeOfKey):
+        assert False
 
 
 def test_kid_usage():
@@ -149,4 +150,4 @@ def test_kid_usage():
 
 
 if __name__ == "__main__":
-    test_kid_usage()
+    test_signing()

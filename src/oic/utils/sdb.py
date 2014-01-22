@@ -220,9 +220,6 @@ class SessionDB(object):
             "code_used": False,
             "authzreq": areq.to_json(),
             "client_id": areq["client_id"],
-            #"expires_in": self.grant_expires_in,
-            #"client_secret_expires_at": utc_time_sans_frac() + self.grant_expires_in,
-            #"client_id_issued_at": utc_time_sans_frac(),
             "revoked": False,
         }
 

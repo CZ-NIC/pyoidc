@@ -6,8 +6,11 @@ import urllib
 from urlparse import parse_qs
 from urlparse import urlsplit
 import urlparse
+import ldap
 from oic.utils.aes_m2c import AES_decrypt
-from oic.utils.http_util import Response, CookieDealer
+from oic.utils.http_util import Response
+from oic.utils.http_util import CookieDealer
+from oic.utils.http_util import InvalidCookieSign
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import Unauthorized
 
@@ -46,7 +49,11 @@ class UserAuthnMethod(CookieDealer):
         else:
             logger.debug("kwargs: %s" % kwargs)
 
-            val = self.getCookieValue(cookie, self.srv.cookie_name)
+            try:
+                val = self.getCookieValue(cookie, self.srv.cookie_name)
+            except InvalidCookieSign:
+                val = None
+
             if val is None:
                 return None
             else:
@@ -133,7 +140,8 @@ class UsernamePasswordMako(UserAuthnMethod):
     """Do user authentication using the normal username password form in a
     WSGI environment using Mako as template system"""
 
-    def __init__(self, srv, mako_template, template_lookup, pwd, return_to):
+    def __init__(self, srv, mako_template, template_lookup, pwd, return_to="",
+                 templ_arg_func=None):
         """
         :param srv: The server instance
         :param mako_template: Which Mako template to use
@@ -146,9 +154,45 @@ class UsernamePasswordMako(UserAuthnMethod):
         self.template_lookup = template_lookup
         self.passwd = pwd
         self.return_to = return_to
+        if templ_arg_func:
+            self.templ_arg_func = templ_arg_func
+        else:
+            self.templ_arg_func = self.template_args
 
-    def __call__(self, cookie=None, policy_url=None, logo_url=None,
-                 query="", **kwargs):
+    @staticmethod
+    def template_args(**kwargs):
+        """
+        Method to override if necessary, dependent on the page layout
+        and context
+
+        :param kwargs:
+        :return:
+        """
+        acr = None
+        try:
+            req = urlparse.parse_qs(kwargs["query"])
+            acr = req["acr_values"][0]
+        except:
+            pass
+
+        argv = {"password": "",
+                "action": "verify",
+                "acr": acr}
+
+        try:
+            argv["login"] = kwargs["as_user"]
+        except KeyError:
+            argv["login"] = ""
+
+        for param in ["policy_uri", "logo_uri", "query"]:
+            try:
+                argv[param] = kwargs[param]
+            except KeyError:
+                argv[param] = ""
+
+        return argv
+
+    def __call__(self, cookie=None, **kwargs):
         """
         Put up the login form
         """
@@ -159,24 +203,14 @@ class UsernamePasswordMako(UserAuthnMethod):
 
         resp = Response(headers=headers)
 
-        acr = None
-        try:
-            req = urlparse.parse_qs(query)
-            acr = req["acr_values"][0]
-        except:
-            pass
-
-        argv = {"login": "",
-                "password": "",
-                "action": "verify",
-                "policy_url": policy_url,
-                "logo_url": logo_url,
-                "query": query,
-                "acr" : acr}
+        argv = self.templ_arg_func(**kwargs)
         logger.info("do_authentication argv: %s" % argv)
         mte = self.template_lookup.get_template(self.mako_template)
         resp.message = mte.render(**argv)
         return resp
+
+    def _verify(self, pwd, user):
+        assert pwd == self.passwd[user]
 
     def verify(self, request, **kwargs):
         """
@@ -200,7 +234,10 @@ class UsernamePasswordMako(UserAuthnMethod):
         logger.debug("passwd: %s" % self.passwd)
         # verify username and password
         try:
-            assert _dict["password"][0] == self.passwd[_dict["login"][0]]
+            self._verify(_dict["password"][0], _dict["login"][0])
+        except (AssertionError, KeyError):
+            resp = Unauthorized("Unknown user or wrong password")
+        else:
             cookie = self.create_cookie(_dict["login"][0], "upm")
             try:
                 _qp = _dict["query"][0]
@@ -208,8 +245,6 @@ class UsernamePasswordMako(UserAuthnMethod):
                 _qp = ""
             return_to = self.generateReturnUrl(self.return_to, _qp)
             resp = Redirect(return_to, headers=[cookie])
-        except (AssertionError, KeyError):
-            resp = Unauthorized("Unknown user or wrong password")
 
         return resp
 
@@ -227,6 +262,12 @@ class BasicAuthn(UserAuthnMethod):
         UserAuthnMethod.__init__(self, srv, ttl)
         self.passwd = pwd
 
+    def verify_password(self, user, password):
+        try:
+            assert password == self.passwd[user]
+        except (AssertionError, KeyError):
+            raise FailedAuthentication()
+
     def authenticated_as(self, cookie=None, authorization="", **kwargs):
         """
 
@@ -236,13 +277,12 @@ class BasicAuthn(UserAuthnMethod):
         :param kwargs: extra key word arguments
         :return:
         """
+        if authorization.startswith("Basic"):
+            authorization = authorization[6:]
+
         (user, pwd) = base64.b64decode(authorization).split(":")
         user = urllib.unquote(user)
-        try:
-            assert pwd == self.passwd[user]
-        except (AssertionError, KeyError):
-            raise FailedAuthentication()
-
+        self.verify_password(user, pwd)
         return {"uid": user}
 
 
@@ -268,3 +308,78 @@ class SymKeyAuthn(UserAuthnMethod):
             raise FailedAuthentication()
 
         return {"uid": user}
+
+
+SCOPE_MAP = {
+    "base": ldap.SCOPE_BASE,
+    "onelevel": ldap.SCOPE_ONELEVEL,
+    "subtree": ldap.SCOPE_SUBTREE
+}
+
+
+class LDAPAuthn(UsernamePasswordMako):
+    def __init__(self, srv, ldapsrv, return_to,
+                 pattern, mako_template, template_lookup, ldap_user="",
+                 ldap_pwd=""):
+        """
+        :param srv: The server instance
+        :param ldapsrv: Which LDAP server to us
+        :param return_to: Where to send the user after authentication
+        :param pattern: How to find the entry to log in to.
+            Expected to be a dictionary where key is one of "dn" or "search".
+            Anf the value a dictionary with values depends on the key:
+            If "dn" only "pattern".
+            If "search": "base", "filterstr", "scope"
+                "base" and "filterstr" MUST be present
+        :param ldap_user: If a search has to be done first which user to do
+            that as. "" is a anonymous user
+        :param ldap_pwd: The password for the ldap_user
+        """
+        UsernamePasswordMako.__init__(self, srv, mako_template, template_lookup,
+                                      None, return_to)
+
+        self.ldap = ldap.initialize(ldapsrv)
+        self.ldap.protocol_version = 3
+        self.ldap.set_option(ldap.OPT_REFERRALS, 0)
+        self.pattern = pattern
+        self.ldap_user = ldap_user
+        self.ldap_pwd = ldap_pwd
+
+    def _verify(self, pwd, user):
+        """
+        Verifies the username and password against a LDAP server
+        :param pwd: The password
+        :param user: The username
+        :return: AssertionError if the LDAP verification failed.
+        """
+        try:
+            _dn = self.pattern["dn"]["pattern"] % user
+        except KeyError:
+            try:
+                _pat = self.pattern["search"]
+            except:
+                raise Exception("unknown pattern")
+            else:
+                args = {
+                    "filterstr": _pat["filterstr"] % user,
+                    "base": _pat["base"]}
+                if not "scope" in args:
+                    args["scope"] = ldap.SCOPE_SUBTREE
+                else:
+                    args["scope"] = SCOPE_MAP[args["scope"]]
+
+                self.ldap.simple_bind_s(self.ldap_user, self.ldap_pwd)
+
+                result = self.ldap.search_s(**args)
+                # result is a list of tuples (dn, entry)
+                if not result:
+                    raise AssertionError()
+                elif len(result) > 1:
+                    raise AssertionError()
+                else:
+                    _dn = result[0][0]
+
+        try:
+            self.ldap.simple_bind_s(_dn, pwd)
+        except Exception:
+            raise AssertionError()

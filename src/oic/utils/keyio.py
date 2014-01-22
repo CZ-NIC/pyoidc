@@ -1,9 +1,9 @@
 import json
 import time
+from Crypto.PublicKey import RSA
 
 __author__ = 'rohe0002'
 
-import M2Crypto
 import logging
 import os
 import urlparse
@@ -12,10 +12,10 @@ import traceback
 
 from requests import request
 
-from jwkest.jwk import RSA_key, rsa_load
-from jwkest.jwk import EC_key
-from jwkest.jwk import SYM_key
-from M2Crypto.util import no_passphrase_callback
+from jwkest.jwk import rsa_load
+from jwkest.jwk import RSAKey
+from jwkest.jwk import ECKey
+from jwkest.jwk import SYMKey
 
 KEYLOADERR = "Failed to load %s key from '%s' (%s)"
 logger = logging.getLogger(__name__)
@@ -29,9 +29,9 @@ class UnknownKeyType(Exception):
 
 
 K2C = {
-    "RSA": RSA_key,
-    "EC": EC_key,
-    "oct": SYM_key,
+    "RSA": RSAKey,
+    "EC": ECKey,
+    "oct": SYMKey,
 #    "pkix": PKIX_key
 }
 
@@ -121,7 +121,7 @@ class KeyBundle(object):
         for use in keyusage:
             _key = K2C[keytype]()
             _key.key = _bkey
-            _key.decomp()
+            _key.deserialize()
             _key.use = use
             self._keys.append(_key)
 
@@ -184,9 +184,10 @@ class KeyBundle(object):
             otherwise the appropriate keys in a list
         """
         self._uptodate()
+        _typs = [typ.lower(), typ.upper()]
 
         if typ:
-            return [k for k in self._keys if k.kty == typ]
+            return [k for k in self._keys if k.kty in _typs]
         else:
             return self._keys
 
@@ -230,12 +231,12 @@ class KeyBundle(object):
 def keybundle_from_local_file(filename, typ, usage):
     if typ.upper() == "RSA":
         kb = KeyBundle()
-        k = RSA_key()
+        k = RSAKey()
         k.load(filename)
         k.use = usage[0]
         kb.append(k)
         for use in usage[1:]:
-            _k = RSA_key()
+            _k = RSAKey()
             _k.use = use
             _k.key = k.key
             kb.append(_k)
@@ -561,10 +562,10 @@ def key_setup(vault, **kwargs):
                         _key = create_and_store_rsa_key_pair(
                             path=vault_path)
 
-                kb.append(RSA_key(key=_key, use=usage, kid=kid))
+                kb.append(RSAKey(key=_key, use=usage, kid=kid))
                 kid += 1
                 if usage == "sig" and "enc" not in kwargs:
-                    kb.append(RSA_key(key=_key, use="enc", kid=kid))
+                    kb.append(RSAKey(key=_key, use="enc", kid=kid))
                     kid += 1
 
     return kb
@@ -622,15 +623,19 @@ def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=1024):
     :return: RSA key
     """
 
-    M2Crypto.Rand.rand_seed(os.urandom(size))
-
-    key = M2Crypto.RSA.gen_key(size, 65537, lambda: None)
+    key = RSA.generate(size)
 
     if not path.endswith("/"):
         path += "/"
 
-    key.save_key('%s%s' % (path, name), None, callback=no_passphrase_callback)
-    key.save_pub_key('%s%s.pub' % (path, name))
+    f = open('%s%s' % (path, name),'w')
+    f.write(key.exportKey('PEM'))
+    f.close()
+
+    _pub_key = key.publickey()
+    f = open('%s%s.pub' % (path, name), 'w')
+    f.write(_pub_key.exportKey('PEM'))
+    f.close()
 
     return key
 
@@ -661,52 +666,48 @@ def proper_path(path):
 # heavily influenced by
 # http://svn.osafoundation.org/m2crypto/trunk/tests/test_x509.py
 
-from M2Crypto import EVP
-from M2Crypto import X509
-from M2Crypto import RSA
-from M2Crypto import ASN1
-
-
-def make_req(bits, fqdn="example.com", rsa=None):
-    pk = EVP.PKey()
-    x = X509.Request()
-    if not rsa:
-        rsa = RSA.gen_key(bits, 65537, lambda: None)
-    pk.assign_rsa(rsa)
-    # Because rsa is messed with
-    rsa = pk.get_rsa()
-    x.set_pubkey(pk)
-    name = x.get_subject()
-    name.C = "SE"
-    name.CN = "OpenID Connect Test Server"
-    if fqdn:
-        ext1 = X509.new_extension('subjectAltName', fqdn)
-        extstack = X509.X509_Extension_Stack()
-        extstack.push(ext1)
-        x.add_extensions(extstack)
-    x.sign(pk, 'sha1')
-    return x, pk, rsa
-
-
-def make_cert(bits, fqdn="example.com", rsa=None):
-    req, pk, rsa = make_req(bits, fqdn=fqdn, rsa=rsa)
-    pkey = req.get_pubkey()
-    sub = req.get_subject()
-    cert = X509.X509()
-    cert.set_serial_number(1)
-    cert.set_version(2)
-    cert.set_subject(sub)
-    t = long(time.time()) + time.timezone
-    now = ASN1.ASN1_UTCTIME()
-    now.set_time(t)
-    nowPlusYear = ASN1.ASN1_UTCTIME()
-    nowPlusYear.set_time(t + 60 * 60 * 24 * 365)
-    cert.set_not_before(now)
-    cert.set_not_after(nowPlusYear)
-    issuer = X509.X509_Name()
-    issuer.CN = 'The code tester'
-    issuer.O = 'Umea University'
-    cert.set_issuer(issuer)
-    cert.set_pubkey(pkey)
-    cert.sign(pk, 'sha1')
-    return cert, rsa
+#
+#
+# def make_req(bits, fqdn="example.com", rsa=None):
+#     pk = EVP.PKey()
+#     x = X509.Request()
+#     if not rsa:
+#         rsa = RSA.gen_key(bits, 65537, lambda: None)
+#     pk.assign_rsa(rsa)
+#     # Because rsa is messed with
+#     rsa = pk.get_rsa()
+#     x.set_pubkey(pk)
+#     name = x.get_subject()
+#     name.C = "SE"
+#     name.CN = "OpenID Connect Test Server"
+#     if fqdn:
+#         ext1 = X509.new_extension('subjectAltName', fqdn)
+#         extstack = X509.X509_Extension_Stack()
+#         extstack.push(ext1)
+#         x.add_extensions(extstack)
+#     x.sign(pk, 'sha1')
+#     return x, pk, rsa
+#
+#
+# def make_cert(bits, fqdn="example.com", rsa=None):
+#     req, pk, rsa = make_req(bits, fqdn=fqdn, rsa=rsa)
+#     pkey = req.get_pubkey()
+#     sub = req.get_subject()
+#     cert = X509.X509()
+#     cert.set_serial_number(1)
+#     cert.set_version(2)
+#     cert.set_subject(sub)
+#     t = long(time.time()) + time.timezone
+#     now = ASN1.ASN1_UTCTIME()
+#     now.set_time(t)
+#     nowPlusYear = ASN1.ASN1_UTCTIME()
+#     nowPlusYear.set_time(t + 60 * 60 * 24 * 365)
+#     cert.set_not_before(now)
+#     cert.set_not_after(nowPlusYear)
+#     issuer = X509.X509_Name()
+#     issuer.CN = 'The code tester'
+#     issuer.O = 'Umea University'
+#     cert.set_issuer(issuer)
+#     cert.set_pubkey(pkey)
+#     cert.sign(pk, 'sha1')
+#     return cert, rsa
