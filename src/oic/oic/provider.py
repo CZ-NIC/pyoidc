@@ -1078,7 +1078,7 @@ class Provider(AProvider):
         _log_debug = logger.debug
         _log_info = logger.info
 
-        _log_debug("@registration_endpoint")
+        _log_debug("@registration_endpoint: [%s]" % request)
 
         try:
             request = RegistrationRequest().deserialize(request, "json")
