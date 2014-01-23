@@ -548,6 +548,7 @@ def test_client_register():
 
 
 if __name__ == "__main__":
-    t = TestOICConsumer()
-    t.setup_class()
-    t.test_begin()
+    #t = TestOICConsumer()
+    #t.setup_class()
+    #t.test_begin()
+    test_client_register()

@@ -1,5 +1,5 @@
 from oic.oauth2 import rndstr
-from oic.oauth2.exception import UnsupportedMethod
+from oic.exception import UnsupportedMethod
 from oic.utils.aes import encrypt
 from oic.utils.aes import decrypt
 
@@ -58,6 +58,18 @@ class Created(Response):
     _status = "201 Created"
 
 
+class Accepted(Response):
+    _status = "202 Accepted"
+
+
+class NonAuthoritativeInformation(Response):
+    _status = "203 Non Authoritative Information"
+
+
+class NoContent(Response):
+    _status = "204 No Content"
+
+
 class Redirect(Response):
     _template = '<html>\n<head><title>Redirecting to %s</title></head>\n' \
         '<body>\nYou are being redirected to <a href="%s">%s</a>\n' \
@@ -103,6 +115,10 @@ class NotFound(Response):
     _status = '404 NOT FOUND'
 
 
+class NotSupported(Response):
+    _status = '405 Not Support'
+
+
 class NotAcceptable(Response):
     _status = '406 Not Acceptable'
 
@@ -118,19 +134,23 @@ class InvalidCookieSign(Exception):
 R2C = {
     200: Response,
     201: Created,
+    202: Accepted,
+    203: NonAuthoritativeInformation,
+    204: NoContent,
     302: Redirect,
     303: SeeOther,
     400: BadRequest,
     401: Unauthorized,
     403: Forbidden,
     404: NotFound,
+    405: NotSupported,
     406: NotAcceptable,
     500: ServiceError,
 }
 
 
-def factory(code, message):
-    return R2C[code](message)
+def factory(code, message, **kwargs):
+    return R2C[code](message, **kwargs)
 
 
 def extract(environ, empty=False, err=False):
@@ -393,7 +413,7 @@ class CookieDealer(object):
                 value, _ts, typ = txt.split("::")
                 if timestamp == _ts:
                     return value, _ts, typ
-            except TypeError:
+            except (TypeError, AssertionError):
                 pass
         return None
 

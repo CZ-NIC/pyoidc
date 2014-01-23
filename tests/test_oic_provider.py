@@ -6,7 +6,7 @@ from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
 from oic.utils.userinfo import UserInfo
 
-from oic.oauth2.exception import RedirectURIError
+from oic.exception import RedirectURIError
 
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
@@ -680,4 +680,4 @@ def test_registered_redirect_uri_with_query_component():
         assert resp is None
 
 if __name__ == "__main__":
-    test_userinfo_endpoint()
+    test_token_endpoint()

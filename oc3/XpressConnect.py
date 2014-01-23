@@ -1,4 +1,4 @@
-from oic.oauth2.exception import FailedAuthentication
+from oic.exception import FailedAuthentication
 from oic.oic import OpenIDSchema
 from oic.utils.http_util import Response
 

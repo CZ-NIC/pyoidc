@@ -62,7 +62,7 @@ class MyFakeOAuth2Server(Server):
         if "code" in req["response_type"]:
             if "token" in req["response_type"]:
                 grant = _info["code"]
-                _dict = self.sdb.update_to_token(grant)
+                _dict = self.sdb.upgrade_to_token(grant)
                 _dict["oauth_state"]="authz",
 
                 _dict = by_schema(AuthorizationResponse(), **_dict)
@@ -77,7 +77,7 @@ class MyFakeOAuth2Server(Server):
             params = AccessTokenResponse.c_param.keys()
 
             _dict = dict([(k,v) for k,
-                                    v in self.sdb.update_to_token(grant).items() if k in
+                                    v in self.sdb.upgrade_to_token(grant).items() if k in
                                                                                     params])
             try:
                 del _dict["refresh_token"]

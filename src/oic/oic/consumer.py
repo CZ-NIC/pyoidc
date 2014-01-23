@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import logging
-from oic.oauth2.exception import PyoidcError
 
 __author__ = 'rohe0002'
 
@@ -9,11 +8,11 @@ import os.path
 
 from hashlib import md5
 
+from oic.exception import PyoidcError
 from oic.utils import http_util
 
 from oic.oic import Client
 from oic.oic import ENDPOINTS
-
 
 from oic.oic.message import Claims, ClaimsRequest
 from oic.oic.message import AuthorizationRequest

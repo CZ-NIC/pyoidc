@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import urllib
 import uuid
 import requests
@@ -12,7 +13,7 @@ from urlparse import parse_qs
 from oic.utils.http_util import NotFound, Response, ServiceError, Redirect
 from oidc import OpenIDConnect
 
-import rp_conf
+import conf
 
 import logging
 
@@ -39,14 +40,14 @@ SERVER_ENV = {}
 RP = None
 
 
-def setup_server_env(rp_conf):
+def setup_server_env(conf):
     global SERVER_ENV
     global logger
 
-    SERVER_ENV = dict([(k, v) for k, v in rp_conf.__dict__.items()
+    SERVER_ENV = dict([(k, v) for k, v in conf.__dict__.items()
                        if not k.startswith("__")])
     SERVER_ENV["template_lookup"] = LOOKUP
-    SERVER_ENV["base_url"] = rp_conf.BASE
+    SERVER_ENV["base_url"] = conf.BASE
     #SERVER_ENV["CACHE"] = {}
     SERVER_ENV["OIC_CLIENT"] = {}
 
@@ -216,7 +217,7 @@ def application(environ, start_response):
             pass
 
     if session.getCallback():
-        _uri = "%s%s" % (rp_conf.BASE, path)
+        _uri = "%s%s" % (conf.BASE, path)
         for _cli in SERVER_ENV["OIC_CLIENT"].values():
             if _uri in _cli.redirect_uris:
                 session.setCallback(False)
@@ -263,7 +264,7 @@ def application(environ, start_response):
 
 
 if __name__ == '__main__':
-    setup_server_env(rp_conf)
+    setup_server_env(conf)
 
     session_opts = {
         'session.type': 'memory',
@@ -273,21 +274,21 @@ if __name__ == '__main__':
         'session.timeout': 900
     }
 
-    RP = OpenIDConnect(registration_info=rp_conf.ME,
-                       ca_bundle=rp_conf.CA_BUNDLE)
+    RP = OpenIDConnect(registration_info=conf.ME,
+                       ca_bundle=conf.CA_BUNDLE)
 
-    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', rp_conf.PORT),
+    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', conf.PORT),
                                         SessionMiddleware(application,
                                                           session_opts))
 
-    if rp_conf.BASE.startswith("https"):
+    if conf.BASE.startswith("https"):
         from cherrypy.wsgiserver import ssl_pyopenssl
 
         SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
-            rp_conf.SERVER_CERT, rp_conf.SERVER_KEY, rp_conf.CA_BUNDLE)
+            conf.SERVER_CERT, conf.SERVER_KEY, conf.CA_BUNDLE)
 
-    LOGGER.info("RP server starting listening on port:%s" % rp_conf.PORT)
-    print "RP server starting listening on port:%s" % rp_conf.PORT
+    LOGGER.info("RP server starting listening on port:%s" % conf.PORT)
+    print "RP server starting listening on port:%s" % conf.PORT
     try:
         SRV.start()
     except KeyboardInterrupt:

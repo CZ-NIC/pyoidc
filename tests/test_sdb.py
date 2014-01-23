@@ -166,11 +166,11 @@ def test_create_authz_session_with_sector_id():
     assert info_2["sub"] != user_id1
 
 
-def test_update_to_token():
+def test_upgrade_to_token():
     sdb = SessionDB()
     sid = sdb.create_authz_session("user_id", AREQ)
     grant = sdb[sid]["code"]
-    _dict = sdb.update_to_token(grant)
+    _dict = sdb.upgrade_to_token(grant)
 
     print _dict.keys()
     assert _eq(_dict.keys(), ['code', 'authzreq', 'token_type', 'local_sub',
@@ -180,15 +180,15 @@ def test_update_to_token():
                               'redirect_uri', 'code_used', 'scope',
                               'access_token_scope'])
 
-    raises(Exception, 'sdb.update_to_token(grant)')
+    raises(Exception, 'sdb.upgrade_to_token(grant)')
 
-    raises(Exception, 'sdb.update_to_token(_dict["access_token"]')
+    raises(Exception, 'sdb.upgrade_to_token(_dict["access_token"]')
 
     sdb = SessionDB()
     sid = sdb.create_authz_session("another_user_id", AREQ)
     grant = sdb[sid]["code"]
 
-    _dict = sdb.update_to_token(grant, id_token="id_token", oidreq=OIDR)
+    _dict = sdb.upgrade_to_token(grant, id_token="id_token", oidreq=OIDR)
     print _dict.keys()
     assert _eq(_dict.keys(), ['code', 'authzreq', 'id_token', 'token_type',
                               'local_sub', 'client_id', 'oauth_state',
@@ -200,14 +200,14 @@ def test_update_to_token():
     assert _dict["id_token"] == "id_token"
     assert _dict["oidreq"].type() == "OpenIDRequest"
     _ = _dict["access_token"]
-    raises(Exception, 'sdb.update_to_token(token)')
+    raises(Exception, 'sdb.upgrade_to_token(token)')
 
 
 def test_refresh_token():
     sdb = SessionDB()
     sid = sdb.create_authz_session("user_id", AREQ)
     grant = sdb[sid]["code"]
-    _dict = sdb.update_to_token(grant)
+    _dict = sdb.upgrade_to_token(grant)
     dict1 = _dict.copy()
 
     rtoken = _dict["refresh_token"]
@@ -228,7 +228,7 @@ def test_is_valid():
 
     assert sdb.is_valid(grant)
 
-    _dict = sdb.update_to_token(grant)
+    _dict = sdb.upgrade_to_token(grant)
     assert sdb.is_valid(grant) is False
     token1 = _dict["access_token"]
     assert sdb.is_valid(token1)
@@ -268,7 +268,7 @@ def test_revoke_token():
     sid = sdb.create_authz_session("user_id", AREQ)
 
     grant = sdb[sid]["code"]
-    _dict = sdb.update_to_token(grant)
+    _dict = sdb.upgrade_to_token(grant)
 
     token = _dict["access_token"]
     rtoken = _dict["refresh_token"]

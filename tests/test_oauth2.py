@@ -959,4 +959,4 @@ def test_bearer_body_get_token():
     assert cis["access_token"] == "token1"
 
 if __name__ == "__main__":
-    test_server_parse_jwt_request()
+    test_client_secret_basic()

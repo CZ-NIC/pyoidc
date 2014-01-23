@@ -8,13 +8,10 @@ import jwkest
 from jwkest.jwe import JWE
 from jwkest.jwk import keyitems2keyreps
 from jwkest.jws import JWS
-from oic.oauth2.exception import PyoidcError
+from oic.exception import PyoidcError
+from oic.exception import MessageException
 
 logger = logging.getLogger(__name__)
-
-
-class MessageException(PyoidcError):
-    pass
 
 
 class MissingRequiredAttribute(MessageException):
@@ -652,7 +649,8 @@ class Message(object):
     def from_jwe(self, msg, keys):
         krs = keyitems2keyreps(keys)
         jwe = JWE()
-        return self.from_json(jwe.decrypt(msg, krs))
+        _res = jwe.decrypt(msg, krs)
+        return self.from_json(_res[0])
 
 # =============================================================================
 

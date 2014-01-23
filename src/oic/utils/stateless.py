@@ -54,34 +54,6 @@ class StateLess(object):
         #return _cont.to_jwe(self.keys, self.enc, self.alg)
         return _cont
 
-    #def update_to_token(self, token=None, issue_refresh=True, **kwargs):
-    #    """
-    #
-    #    :param token: The access grant
-    #    :param issue_refresh: If a refresh token should be issued
-    #    :return: A new token
-    #    """
-    #    if token in self.used_grants:
-    #        raise Exception("Grant already used")
-    #
-    #    _cont = Content().from_jwe(token, self.keys)
-    #
-    #    try:
-    #        assert _cont["typ"] == "code"
-    #    except AssertionError:
-    #        raise Exception("Not a access grant")
-    #
-    #    self.used_grants.append(token)
-    #
-    #    _cont["typ"] = "access"
-    #    _cont["val"] = epoch_in_a_while(self.validity["access"])
-    #    if issue_refresh:
-    #        _c = Content(sub=_cont["sub"], aud=_cont["aud"], typ="refresh",
-    #                     val=epoch_in_a_while(self.validity["refresh"]))
-    #        _cont["ref"] = _c.to_jwe(self.keys, self.enc, self.alg)
-    #
-    #    return _cont.to_jwe(self.keys, self.enc, self.alg)
-
     def upgrade_to_token(self, cont, issue_refresh=False):
         cont["typ"] = "access"
         cont["val"] = epoch_in_a_while(self.validity["access"])

@@ -1,6 +1,7 @@
 import json
 import time
 from Crypto.PublicKey import RSA
+from oic.exception import MessageException
 
 __author__ = 'rohe0002'
 
@@ -489,7 +490,11 @@ class KeyJar(object):
         """
 
         logger.debug("loading keys for issuer: %s" % issuer)
-        logger.debug("pcr: %s" % pcr)
+        try:
+            logger.debug("pcr: %s" % pcr)
+        except MessageException:
+            pass
+
         if issuer not in self.issuer_keys:
             self.issuer_keys[issuer] = []
         elif replace:

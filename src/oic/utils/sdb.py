@@ -26,6 +26,10 @@ class WrongTokenType(Exception):
     pass
 
 
+class AccessCodeUsed(Exception):
+    pass
+
+
 def pairwise_id(sub, sector_identifier, seed):
     return hashlib.sha256("%s%s%s" % (sub, sector_identifier, seed)).hexdigest()
 
@@ -245,8 +249,14 @@ class SessionDB(object):
         self.uid2sid[sub] = sid
         return sid
 
-    def update_to_token(self, token=None, issue_refresh=True, id_token="",
-                        oidreq=None, key=None):
+    def get_token(self, key):
+        if self._db[key]["oauth_state"] == "authz":
+            return self._db[key]["code"]
+        elif self._db[key]["oauth_state"] == "token":
+            return self._db[key]["access_token"]
+
+    def upgrade_to_token(self, token=None, issue_refresh=True, id_token="",
+                         oidreq=None, key=None, access_grant=""):
         """
 
         :param token: The access grant
@@ -257,7 +267,11 @@ class SessionDB(object):
         :return: The session information as a dictionary
         """
         if token:
-            (typ, key) = self.token.type_and_key(token)
+            try:
+                (typ, key) = self.token.type_and_key(token)
+            except (ValueError, TypeError):
+                (typ, key) = self.token.type_and_key(access_grant)
+                token = access_grant
 
             if typ != "A":  # not a access grant
                 raise WrongTokenType("Not a grant token")
@@ -265,7 +279,7 @@ class SessionDB(object):
             dic = self._db[key]
 
             if dic["code_used"]:
-                raise Exception("Access code already used!!")
+                raise AccessCodeUsed()
             _at = self.token("T", token)
             dic["code_used"] = True
         else:
