@@ -133,7 +133,7 @@ class OpenIDConnect(Social):
             acr_value = session.getAcrValue(client.authorization_endpoint)
             try:
                 acr_values = client.provider_info[
-                    self.srv_discovery_url]["acr_values_supported"].split()
+                    self.srv_discovery_url]["acr_values_supported"]
                 session.setAcrvalues(acr_values)
             except:
                 pass
