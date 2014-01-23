@@ -413,7 +413,7 @@ class CookieDealer(object):
                 value, _ts, typ = txt.split("::")
                 if timestamp == _ts:
                     return value, _ts, typ
-            except TypeError:
+            except (TypeError, AssertionError):
                 pass
         return None
 
