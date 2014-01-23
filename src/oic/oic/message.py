@@ -598,9 +598,10 @@ class CheckIDRequest(Message):
 
 
 class EndSessionRequest(Message):
-    c_param = {"id_token": SINGLE_REQUIRED_STRING,
-               "redirect_url": SINGLE_REQUIRED_STRING,
-               "state": SINGLE_REQUIRED_STRING}
+    c_param = {
+        "id_token_hint": SINGLE_OPTIONAL_STRING,
+        "post_logout_redirect_uri": SINGLE_OPTIONAL_STRING
+    }
 
 
 class EndSessionResponse(Message):

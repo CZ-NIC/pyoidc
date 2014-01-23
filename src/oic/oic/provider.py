@@ -1078,7 +1078,7 @@ class Provider(AProvider):
         _log_debug = logger.debug
         _log_info = logger.info
 
-        _log_debug("@registration_endpoint: [%s]" % request)
+        _log_debug("@registration_endpoint: <<%s>>" % request)
 
         try:
             request = RegistrationRequest().deserialize(request, "json")
@@ -1433,6 +1433,10 @@ class Provider(AProvider):
 
     def register_endpoint(self, request="", **kwargs):
         pass
+
+    def endsession_endpoint(self, request="", **kwargs):
+        pass
+
 
 # -----------------------------------------------------------------------------
 
