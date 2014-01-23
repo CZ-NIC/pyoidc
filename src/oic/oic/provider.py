@@ -1080,7 +1080,10 @@ class Provider(AProvider):
 
         _log_debug("@registration_endpoint")
 
-        request = RegistrationRequest().deserialize(request, "json")
+        try:
+            request = RegistrationRequest().deserialize(request, "json")
+        except ValueError:
+            request = RegistrationRequest().deserialize(request)
 
         _log_info("registration_request:%s" % request.to_dict())
         resp_keys = request.keys()
