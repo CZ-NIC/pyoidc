@@ -122,7 +122,10 @@ class KeyBundle(object):
         for use in keyusage:
             _key = K2C[keytype]()
             _key.key = _bkey
-            _key.deserialize()
+
+            if _bkey:
+                _key.serialize()
+
             _key.use = use
             self._keys.append(_key)
 
