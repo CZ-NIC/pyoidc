@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import urllib
 import uuid
 import requests
