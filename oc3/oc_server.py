@@ -26,6 +26,7 @@ import re
 from logging.handlers import BufferingHandler
 
 from oic.oic.provider import Provider
+from oic.oic.provider import EndSessionEndpoint
 
 from oic.utils.http_util import *
 from oic.oic.message import ProviderConfigurationResponse
@@ -239,6 +240,13 @@ def trace_log(environ, start_response, logger):
 
 
 #noinspection PyUnusedLocal
+def endsession(environ, start_response, logger):
+    _oas = environ["oic.oas"]
+
+    return wsgi_wrapper(environ, start_response, _oas.endsession_endpoint,
+                        logger=logger)
+
+#noinspection PyUnusedLocal
 def meta_info(environ, start_response, logger):
     """
     Returns something like this
@@ -315,7 +323,8 @@ ENDPOINTS = [
     TokenEndpoint(token),
     UserinfoEndpoint(userinfo),
     #CheckIDEndpoint(check_id),
-    RegistrationEndpoint(registration)
+    RegistrationEndpoint(registration),
+    EndSessionEndpoint(endsession),
 ]
 
 URLS = [

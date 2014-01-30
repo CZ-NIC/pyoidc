@@ -7,10 +7,11 @@ import urllib
 import json
 import logging
 
-from oic.oauth2 import message, MissingRequiredValue
+from oic.oauth2 import message
+from oic.oauth2 import MissingRequiredValue
 from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2 import VerificationError
-from oic.exception import InvalidRequest
+from oic.exception import InvalidRequest, NotForMe
 from oic.exception import PyoidcError
 from oic.oauth2.message import Message, REQUIRED_LIST_OF_SP_SEP_STRINGS
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
@@ -573,7 +574,25 @@ class IdToken(OpenIDSchema):
             if "client_id" in kwargs:
                 # check that I'm among the recipients
                 if kwargs["client_id"] not in self["aud"]:
-                    return False
+                    raise NotForMe()
+
+            if len(self["aud"]) > 1:  # Then azr has to be present and be one of
+                                      # the values
+                try:
+                    assert "azr" in self
+                except AssertionError:
+                    raise VerificationError("azr missing")
+                else:
+                    try:
+                        assert self["azr"] in self["aud"]
+                    except AssertionError:
+                        raise VerificationError(
+                            "Missmatch between azr and aud claims")
+
+        if "azr" in self:
+            if "client_id" in kwargs:
+                if kwargs["client_id"] != self["azp"]:
+                    raise NotForMe()
 
         return super(IdToken, self).verify(**kwargs)
 
@@ -598,9 +617,10 @@ class CheckIDRequest(Message):
 
 
 class EndSessionRequest(Message):
-    c_param = {"id_token": SINGLE_REQUIRED_STRING,
-               "redirect_url": SINGLE_REQUIRED_STRING,
-               "state": SINGLE_REQUIRED_STRING}
+    c_param = {
+        "id_token_hint": SINGLE_OPTIONAL_STRING,
+        "post_logout_redirect_uri": SINGLE_OPTIONAL_STRING
+    }
 
 
 class EndSessionResponse(Message):

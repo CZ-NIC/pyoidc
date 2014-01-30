@@ -393,7 +393,9 @@ class Client(PBase):
 
         :param client_id: The client identifier
         :param ca_certs: Certificates used to verify HTTPS certificates
-        :param client_authn_method:
+        :param client_authn_method: Methods that this client can use to
+            authenticate itself. It's a dictionary with method names as
+            keys and method classes as values.
         :return: Client instance
         """
 
