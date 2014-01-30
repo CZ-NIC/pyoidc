@@ -138,7 +138,8 @@ class DummyAuthn(UserAuthnMethod):
     def authenticated_as(self, cookie=None,  **kwargs):
         return {"uid": self.user}
 
-#AUTHN = UsernamePasswordMako(None, "login.mako", tl, PASSWD, "authenticated")
+#AUTHN = UsernamePasswordMako("login", None, "login.mako", tl, PASSWD, "authenticated", password_query_key="password")
+
 AUTHN_BROKER = AuthnBroker()
 AUTHN_BROKER.add("UNDEFINED", DummyAuthn(None, "username"))
 

@@ -34,9 +34,8 @@ def userpwd_setup(item):
     from oic.utils.authn.user import UsernamePasswordMako
 
     _conf = item["config"]
-    return UsernamePasswordMako(None, "login.mako", _conf["lookup"],
-                                _conf["passwd"], _conf["return_to"])
-
+    return UsernamePasswordMako("login", None, "login.mako", _conf["lookup"],
+                                _conf["passwd"], _conf["return_to"], password_query_key ="password")
 
 def ldap_setup(item):
     from oic.utils.authn.user import LDAPAuthn

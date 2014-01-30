@@ -497,15 +497,17 @@ if __name__ == '__main__':
     for authkey, value in config.AUTHORIZATION.items():
         authn = None
         if "CAS" == authkey:
-           from oic.utils.authn.user_cas import CasAuthnMethod
-           from oic.utils.authn.ldap_member import UserLDAPMemberValidation
-           config.LDAP_EXTRAVALIDATION.update(config.LDAP)
-           authn = CasAuthnMethod(None, config.CAS_SERVER, config.SERVICE_URL,"%s/authorization" % config.issuer,
-                                  UserLDAPMemberValidation(**config.LDAP_EXTRAVALIDATION))
+            from oic.utils.authn.user_cas import CasAuthnMethod
+            from oic.utils.authn.ldap_member import UserLDAPMemberValidation
+            config.LDAP_EXTRAVALIDATION.update(config.LDAP)
+            authn = CasAuthnMethod(None, config.CAS_SERVER, config.SERVICE_URL,"%s/authorization" % config.issuer,
+                                   UserLDAPMemberValidation(**config.LDAP_EXTRAVALIDATION))
         if "UserPassword" == authkey:
             from oic.utils.authn.user import UsernamePasswordMako
-            authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
-                                         "%s/authorization" % config.issuer)
+            authn = UsernamePasswordMako("login", None, "login.mako", LOOKUP, PASSWD,
+                                         "%s/authorization" % config.issuer, cookie_dict=None,
+                                         password_query_key="password")
+
         if authn is not None:
             ac.add(config.AUTHORIZATION[authkey]["ACR"],
                    authn,

@@ -1410,8 +1410,11 @@ class Provider(AProvider):
             except AssertionError:
                 return self._error("invalid_request", "Missing nonce value")
 
-        # so everything went well should set a SSO cookie
+        # so everything went well should set a SSO cookie if do not have a broker
+        #if self.authn_broker is None:
         headers = [self.cookie_func(user, typ="sso", ttl=self.sso_ttl)]
+        #else:
+        #    headers = [] #Cookie is already handled by authn broker.
         location = aresp.request(redirect_uri)
         logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
         return Redirect(str(location), headers=headers)

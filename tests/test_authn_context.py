@@ -42,9 +42,9 @@ def test():
     LDAP_EXTRAVALIDATION.update(LDAP)
 
     ac.add(PASSWORD,
-           UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
+           UsernamePasswordMako("login", None, "login.mako", LOOKUP, PASSWD,
                                 "%s/authorization" % issuer),
-           10, "http://%s" % socket.gethostname())
+           10, "http://%s" % socket.gethostname(), password_query_key="password")
 
     ac.add(PASSWORD,
            CasAuthnMethod(
