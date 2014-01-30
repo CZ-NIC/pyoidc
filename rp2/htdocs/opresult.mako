@@ -106,6 +106,7 @@
         </div>
         <div class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
+              <li><a href="updateUserInfo">Refresh</a></li>
           </ul>
           <ul class="nav navbar-nav navbar-right">
             <li><a href="logout">Logout</a></li>

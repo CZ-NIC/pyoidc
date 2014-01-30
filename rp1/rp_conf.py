@@ -11,7 +11,7 @@ SERVICE = {
                        "OpenId connect.",
         "class": pyoidcOIC,
         "srv_discovery_url": "https://localhost:8092/",
-        "scope": ["openid", "profile"],
+        "scope": ["openid", "profile", "email", "address", "phone"],
         "name": "pyoidcOIC",
     },
     "pyoidcOICStatic": {
@@ -31,7 +31,7 @@ SERVICE = {
     "userinfo_endpoint": "https://localhost:8092/userinfo",
     "keys": ["https://localhost:8092/",
              "https://localhost:8092/static/jwks.json"],
-    "scope": ["openid", "profile"],
+    "scope": ["openid", "profile", "email", "address", "phone"],
     "name": "pyoidcOIC",
     },
     "pyoidcOAuth": {
@@ -48,7 +48,7 @@ SERVICE = {
     "authorization_endpoint": 'https://localhost:8092/authorization',
     "token_endpoint": "https://localhost:8092/token",
     "userinfo_endpoint": "https://localhost:8092/userinfo",
-    "scope": ["openid", "profile"],
+    "scope": ["openid", "profile", "email", "address", "phone"],
     "name": "pyoidcOAuth",
     }
 
