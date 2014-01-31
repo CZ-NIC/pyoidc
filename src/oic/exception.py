@@ -68,3 +68,7 @@ class UnSupported(Exception):
 class MessageException(PyoidcError):
     pass
 
+
+class AuthzError(PyoidcError):
+    pass
+
