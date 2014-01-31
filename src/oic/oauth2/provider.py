@@ -367,7 +367,8 @@ class Provider(object):
         """
         return self.authn_broker[0]
 
-    def authorization_endpoint(self, request="", cookie=None, **kwargs):
+    def authorization_endpoint(self, request="", cookie=None, authn="",
+                               **kwargs):
         """ The AuthorizationRequest endpoint
 
         :param request: The client request
@@ -415,9 +416,9 @@ class Provider(object):
         if cookie:
             logger.debug("Cookie: %s" % cookie)
             a_args["cookie"] = cookie
-        if "authn" in kwargs:
+        if authn:
             try:
-                a_args["authorization"] = kwargs["authn"]
+                a_args["authorization"] = authn
             except KeyError:
                 pass
 

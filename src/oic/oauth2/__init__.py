@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-#
-
 __author__ = 'rohe0002'
 
 import requests
@@ -8,12 +6,14 @@ import random
 import string
 import copy
 import cookielib
-from Cookie import SimpleCookie
 import logging
+from Cookie import SimpleCookie
 
 from oic.utils.keyio import KeyJar
 from oic.utils.time_util import utc_time_sans_frac
 from oic.exception import UnSupported
+
+logger = logging.getLogger(__name__)
 
 DEF_SIGN_ALG = "HS256"
 
@@ -42,8 +42,6 @@ RESPONSE2ERROR = {
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint",
              "token_revocation_endpoint"]
-
-logger = logging.getLogger(__name__)
 
 
 class HTTP_ERROR(PyoidcError):
@@ -388,7 +386,7 @@ class Client(PBase):
     _endpoints = ENDPOINTS
 
     def __init__(self, client_id=None, ca_certs=None, client_authn_method=None,
-                 keyjar=None):
+                 keyjar=None, verify_ssl=True):
         """
 
         :param client_id: The client identifier
@@ -396,6 +394,7 @@ class Client(PBase):
         :param client_authn_method: Methods that this client can use to
             authenticate itself. It's a dictionary with method names as
             keys and method classes as values.
+        :param verify_ssl: Whether the SSL certificate should be verfied.
         :return: Client instance
         """
 
@@ -404,6 +403,7 @@ class Client(PBase):
         self.client_id = client_id
         self.client_authn_method = client_authn_method
         self.keyjar = keyjar or KeyJar()
+        self.verify_ssl = verify_ssl
         #self.secret_type = "basic "
 
         self.state = None
@@ -828,6 +828,42 @@ class Client(PBase):
         else:
             return http_args
 
+    def parse_request_response(self, reqresp, response, body_type, state="",
+                               **kwargs):
+
+        if reqresp.status_code in [200, 201]:
+            logger.debug("resp.headers: %s" % (reqresp.headers,))
+            logger.debug("resp.txt: %s" % (reqresp.text,))
+            if body_type == "":
+                pass
+            elif body_type == "json":
+                assert "application/json" in reqresp.headers["content-type"]
+            elif body_type == "urlencoded":
+                try:
+                    assert DEFAULT_POST_CONTENT_TYPE in reqresp.headers[
+                        "content-type"]
+                except AssertionError:
+                    assert "text/plain" in reqresp.headers["content-type"]
+            else:
+                raise ValueError("Unknown return format: %s" % body_type)
+        elif reqresp.status_code == 302:  # redirect
+            pass
+        elif reqresp.status_code == 500:
+            raise Exception("ERROR: Something went wrong: %s" % reqresp.text)
+        else:
+            raise Exception("ERROR: Something went wrong: %s [%s]" % (
+                reqresp.text, reqresp.status_code))
+
+        if body_type:
+            if response:
+                return self.parse_response(response, reqresp.text, body_type,
+                                           state, **kwargs)
+            else:
+                raise Exception("Didn't expect a response body")
+        else:
+            return reqresp
+
+
     def request_and_return(self, url, response=None, method="GET", body=None,
                            body_type="json", state="", http_args=None,
                            **kwargs):
@@ -850,37 +886,8 @@ class Client(PBase):
         except Exception:
             raise
 
-        if resp.status_code in [200, 201]:
-            logger.debug("resp.headers: %s" % (resp.headers,))
-            logger.debug("resp.txt: %s" % (resp.text,))
-            if body_type == "":
-                pass
-            elif body_type == "json":
-                assert "application/json" in resp.headers["content-type"]
-            elif body_type == "urlencoded":
-                try:
-                    assert DEFAULT_POST_CONTENT_TYPE in resp.headers[
-                        "content-type"]
-                except AssertionError:
-                    assert "text/plain" in resp.headers["content-type"]
-            else:
-                raise ValueError("Unknown return format: %s" % body_type)
-        elif resp.status_code == 302:  # redirect
-            pass
-        elif resp.status_code == 500:
-            raise Exception("ERROR: Something went wrong: %s" % resp.text)
-        else:
-            raise Exception("ERROR: Something went wrong: %s [%s]" % (
-                resp.text, resp.status_code))
-
-        if body_type:
-            if response:
-                return self.parse_response(response, resp.text, body_type,
-                                           state, **kwargs)
-            else:
-                raise Exception("Didn't expect a response body")
-        else:
-            return resp
+        return self.parse_request_response(resp, response, body_type, state,
+                                           **kwargs)
 
     def do_authorization_request(self, request=AuthorizationRequest,
                                  state="", body_type="", method="GET",
