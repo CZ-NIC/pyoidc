@@ -364,14 +364,14 @@ class PBase(object):
 
         if self.cookiejar:
             _kwargs["cookies"] = self._cookies()
-            logger.info("SENT COOKIEs: %s" % (_kwargs["cookies"],))
+            logger.debug("SENT COOKIEs: %s" % (_kwargs["cookies"],))
         r = requests.request(method, url, **_kwargs)
         try:
             set_cookie = r.headers["set-cookie"]
             # Telekom fix
             # set_cookie = set_cookie.replace(
             #     "=;Path=/;Expires=Thu, 01-Jan-1970 00:00:01 GMT;HttpOnly,", "")
-            logger.info("RECEIVED COOKIEs: %s" % set_cookie)
+            logger.debug("RECEIVED COOKIEs: %s" % set_cookie)
             self.set_cookie(SimpleCookie(set_cookie), r)
         except (AttributeError, KeyError), err:
             pass

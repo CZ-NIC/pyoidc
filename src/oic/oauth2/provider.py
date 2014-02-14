@@ -367,8 +367,7 @@ class Provider(object):
         """
         return self.authn_broker[0]
 
-    def authorization_endpoint(self, request="", cookie=None, authn="",
-                               **kwargs):
+    def authorization_endpoint(self, request="", cookie="", authn="", **kwargs):
         """ The AuthorizationRequest endpoint
 
         :param request: The client request
@@ -564,7 +563,7 @@ class Provider(object):
         #     return Response(err.to_json(), content="application/json")
         return None
 
-    def token_endpoint(self, auth_header="", **kwargs):
+    def token_endpoint(self, authn="", **kwargs):
         """
         This is where clients come to get their access tokens
         """
@@ -578,7 +577,7 @@ class Provider(object):
         areq = AccessTokenRequest().deserialize(body, "urlencoded")
 
         try:
-            client = self.client_authn(self, areq, auth_header)
+            client = self.client_authn(self, areq, authn)
         except FailedAuthentication, err:
             err = TokenErrorResponse(error="unathorized_client",
                                      error_description="%s" % err)

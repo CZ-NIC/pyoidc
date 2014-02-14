@@ -303,6 +303,7 @@ class Provider(provider.Provider):
     def verify_client(self, environ, areq, authn_method, client_id=""):
         """
 
+        :param environ: WSGI environ
         :param areq: The request
         :param authn_method: client authentication method
         :return:
