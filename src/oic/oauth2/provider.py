@@ -373,14 +373,22 @@ class Provider(object):
             if len(self.authn_broker) == 1:
                     return self.authn_broker[0]
             else:
-                if "acr" in areq:
+                try:
+                    _values = areq["acr_values"]
+                except KeyError:
+                    pass
+                else:
+                    if isinstance(_values, basestring):
+                        _values = [_values]
+
                     if not comparision_type:
                         comparision_type = "exact"
 
-                res = self.authn_broker.pick(areq["acr"], comparision_type)
-                if res:
-                    #Return the best guess by pick.
-                    return res[0]
+                    for _acr in _values:
+                        res = self.authn_broker.pick(_acr, comparision_type)
+                        if res:
+                            #Return the best guess by pick.
+                            return res[0]
         except KeyError:
             pass
 
