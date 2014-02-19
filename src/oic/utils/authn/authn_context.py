@@ -115,14 +115,15 @@ class AuthnBroker(object):
                 if func(_level, item["level"]):
                     _level = item["level"]
             res_other = []
-            for ref, _dic in _info.items():
-                if ref in _refs:
-                    continue
-                elif func(_level, _dic["level"]):
-                    if _dic["method"]:
-                        _val = (_dic["level"], _dic["method"], _dic["ref"])
-                        if _val not in res:
-                            res_other.append(_val)
+            if comparision_type != "exact":
+                for ref, _dic in _info.items():
+                    if ref in _refs:
+                        continue
+                    elif func(_level, _dic["level"]):
+                        if _dic["method"]:
+                            _val = (_dic["level"], _dic["method"], _dic["ref"])
+                            if _val not in res:
+                                res_other.append(_val)
             # sort on level
             res.sort(self._cmp, reverse=True)
             res_other.sort(self._cmp, reverse=True)
