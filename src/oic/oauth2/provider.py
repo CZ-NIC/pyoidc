@@ -359,13 +359,33 @@ class Provider(object):
 
         return uri
 
-    def pick_auth(self, **kwargs):
+    def pick_auth(self, areq, comparision_type=""):
         """
-        Pick authentication method to be used
-        :param kwargs: Extra key word arguments
-        :return: Authentication method
+
+        :param areq: AuthorizationRequest instance
+        :param comparision_type: How to pick the authentication method
+        :return: An authentication method and its authn class ref
         """
-        return self.authn_broker[0]
+        if comparision_type == "any":
+            return self.authn_broker[0]
+
+        try:
+            if len(self.authn_broker) == 1:
+                    return self.authn_broker[0]
+            else:
+                if "acr" in areq:
+                    if not comparision_type:
+                        comparision_type = "exact"
+
+                res = self.authn_broker.pick(areq["acr"], comparision_type)
+                if res:
+                    #Return the best guess by pick.
+                    return res[0]
+        except KeyError:
+            pass
+
+        # return the best I have
+        return None, None
 
     def authorization_endpoint(self, request="", cookie="", authn="", **kwargs):
         """ The AuthorizationRequest endpoint
