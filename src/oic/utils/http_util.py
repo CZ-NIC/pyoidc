@@ -38,7 +38,7 @@ class Response(object):
 
     def __call__(self, environ, start_response, **kwargs):
         start_response(self.status, self.headers)
-        return self.response(self.message or geturl(environ), **kwargs)
+        return self.response(self.message, **kwargs)
 
     def _response(self, message="", **argv):
         if self.template:
