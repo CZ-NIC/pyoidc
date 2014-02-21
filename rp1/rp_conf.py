@@ -1,7 +1,8 @@
 from rp1.pyoidc import pyoidcOAuth2, pyoidcOIC
 
 PORT = 8666
-BASE = "http://hashog.umdc.umu.se:" + str(PORT) + "/"
+BASE = "http://localhost:" + str(PORT) + "/"
+
 SERVICE = {
     "pyoidcOICDyn": {
         "opKey": "pyoidcOICDyn",

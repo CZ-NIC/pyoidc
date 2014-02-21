@@ -111,7 +111,7 @@ class OpenIDConnect(Social):
         try:
             logger.debug("FLOW type: %s" % self.flow_type)
             logger.debug("begin environ: %s" % server_env)
-            client = session.getClient()
+            client = session.get_client()
             if client is not None and self.srv_discovery_url:
                 data = {"client_id": client.client_id}
                 resp = requests.get(self.srv_discovery_url + "verifyClientId",
@@ -127,14 +127,14 @@ class OpenIDConnect(Social):
                     client = self.dynamic(server_env, callback, logoutCallback, session)
                 else:
                     client = self.static(server_env, callback, logoutCallback)
-                client.state = session.getState()
-                session.setClient(client)
-                session.setService(self.opKey)
-            acr_value = session.getAcrValue(client.authorization_endpoint)
+                client.state = session.get_state()
+                session.set_client(client)
+                session.set_service(self.opKey)
+            acr_value = session.get_acrvalue(client.authorization_endpoint)
             try:
                 acr_values = client.provider_info[
                     self.srv_discovery_url]["acr_values_supported"]
-                session.setAcrvalues(acr_values)
+                session.set_acrvalues(acr_values)
             except:
                 pass
 
@@ -155,8 +155,8 @@ class OpenIDConnect(Social):
     #noinspection PyUnusedLocal
     def create_authnrequest(self, environ, server_env, start_response, session, acr_value):
         try:
-            client = session.getClient()
-            session.setAcrValue(client.authorization_endpoint, acr_value)
+            client = session.get_client()
+            session.set_acrvalue(client.authorization_endpoint, acr_value)
             request_args = {
                 "response_type": self.flow_type,
                 "scope": self.extra["scope"],
@@ -168,12 +168,12 @@ class OpenIDConnect(Social):
 
             if self.flow_type == "token":
                 request_args["nonce"] = rndstr(16)
-                session.setNonce(request_args["nonce"])
+                session.set_nonce(request_args["nonce"])
             else:
                 use_nonce = getattr(self, "use_nonce", None)
                 if use_nonce:
                     request_args["nonce"] = rndstr(16)
-                    session.setNonce(request_args["nonce"])
+                    session.set_nonce(request_args["nonce"])
 
 
             logger.info("client args: %s" % client.__dict__.items(),)
@@ -206,7 +206,7 @@ class OpenIDConnect(Social):
         #session.setAuthentication("VERIFY")
 
         #server_env["CACHE"][sid] = session
-        session.setClient(client)
+        session.set_client(client)
         resp_headers = [("Location", str(url))]
         if ht_args:
             resp_headers.extend([(a, b) for a, b in ht_args.items()])
@@ -249,7 +249,7 @@ class OpenIDConnect(Social):
         callback URL you can request the access token the user has
         approved."""
 
-        client = session.getClient()
+        client = session.get_client()
         logger.debug("info: %s" % query)
         logger.debug("keyjar: %s" % client.keyjar)
 

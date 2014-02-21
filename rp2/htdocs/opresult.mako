@@ -23,7 +23,7 @@
     def escape(string):
         return pattern.sub(escape_entity, string)
 
-    def createResult(result):
+    def create_result(result):
       """
       Creates a dropdown based on the service configurtion.
       """
@@ -118,7 +118,7 @@
      <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
         <h1>OP result</h1>
-        ${createResult(result)}
+        ${create_result(result)}
       </div>
 
     </div> <!-- /container -->

@@ -60,79 +60,79 @@ class Httpd(object):
 class Session(object):
     def __init__(self, session):
         self.session = session
-        self.getCallback()
-        self.getState()
-        self.getNonce()
-        self.getClient()
-        self.getAcrvalues()
-        self.getAccesstoken()
-        self.getKey()
+        self.get_callback()
+        self.get_state()
+        self.get_nonce()
+        self.get_client()
+        self.get_acrvalues()
+        self.get_accesstoken()
+        self.get_key()
 
-
-    def clearSession(self):
+    def clear_session(self):
         for key in self.session:
             self.session.pop(key, None)
         self.session.invalidate()
 
-    def getKey(self):
+    def get_key(self):
         return self.session.get("key", None)
 
-    def setKey(self, value):
+    def set_key(self, value):
         self.session["key"] = value
 
-    def getAccesstoken(self):
+    def get_accesstoken(self):
         return self.session.get("Accesstoken", None)
 
-    def setAccesstoken(self, value):
+    def set_accesstoken(self, value):
         self.session["Accesstoken"] = value
 
-    def getCallback(self):
+    def get_callback(self):
         return self.session.get("callback", False)
 
-    def setCallback(self, value):
+    def set_callback(self, value):
         self.session["callback"] = value
 
-    def getState(self):
+    def get_state(self):
         return self.session.get("state", uuid.uuid4().urn)
 
-    def setState(self, value):
+    def set_state(self, value):
         self.session["state"] = value
 
-    def getNonce(self):
+    def get_nonce(self):
         return self.session.get("nonce", None)
 
-    def setNonce(self, value):
+    def set_nonce(self, value):
         self.session["nonce"] = value
 
-    def getClient(self):
+    def get_client(self):
         return self.session.get("client", None)
 
-    def setClient(self, value):
+    def set_client(self, value):
         self.session["client"] = value
 
-    def getLogin(self):
+    def get_login(self):
         return self.session.get("login", None)
 
-    def setLogin(self, value):
+    def set_login(self, value):
         self.session["login"] = value
 
-    def getProvider(self):
+    def get_provider(self):
         return self.session.get("provider", None)
 
-    def setProvider(self, value):
+    def set_provider(self, value):
         self.session["provider"] = value
 
-    def getAcrvalues(self):
+    def get_acrvalues(self):
         return self.session.get("acrvalues", None)
 
-    def setAcrvalues(self, value):
+    def set_acrvalues(self, value):
         self.session["acrvalues"] = value
 
-    def getAcrValue(self, server):
+    def get_acrvalue(self, server):
         return self.session.get(server + "ACR_VALUE", None)
 
-    def setAcrValue(self, server, acr):
+    def set_acrvalue(self, server, acr):
         self.session[server + "ACR_VALUE"] = acr
+
 
 #noinspection PyUnresolvedReferences
 def static(environ, start_response, logger, path):
@@ -167,12 +167,12 @@ def opbyuid(environ, start_response):
     return resp(environ, start_response, **argv)
 
 
-def chooseAcrValue(environ, start_response, session):
+def choose_acrvalue(environ, start_response, session):
     resp = Response(mako_template="acrvalue.mako",
                     template_lookup=LOOKUP,
                     headers=[])
     argv = {
-        "acrvalues": session.getAcrvalues()
+        "acrvalues": session.get_acrvalues()
     }
     return resp(environ, start_response, **argv)
 
@@ -200,48 +200,51 @@ def application(environ, start_response):
 
     if path == "logout":
         try:
-            logoutUrl = session.getClient().endsession_endpoint
-            logoutUrl += "?" + urllib.urlencode(
-                {"post_logout_redirect_uri": SERVER_ENV["base_url"]})
+
+            arc_value = session.get_acrvalue(session.get_client().authorization_endpoint)
+
+            logouturl = session.get_client().endsession_endpoint
+            logouturl += "?" + urllib.urlencode(
+                {"post_logout_redirect_uri": SERVER_ENV["base_url"], "acr_values": arc_value})
             try:
-                logoutUrl += "&" + urllib.urlencode({
+                logouturl += "&" + urllib.urlencode({
                     "id_token_hint": id_token_as_signed_jwt(
-                        session.getClient(), "HS256")})
+                        session.get_client(), "HS256")})
             except:
                 pass
-            SERVER_ENV["OIC_CLIENT"].pop(session.getKey(), None)
-            session.clearSession()
-            resp = Redirect(str(logoutUrl))
+            SERVER_ENV["OIC_CLIENT"].pop(session.get_key(), None)
+            session.clear_session()
+            resp = Redirect(str(logouturl))
             return resp(environ, start_response)
         except:
             pass
 
-    if session.getCallback():
+    if session.get_callback():
         _uri = "%s%s" % (conf.BASE, path)
         for _cli in SERVER_ENV["OIC_CLIENT"].values():
             if _uri in _cli.redirect_uris:
-                session.setCallback(False)
+                session.set_callback(False)
                 func = getattr(RP, "callback")
                 return func(environ, SERVER_ENV, start_response, query, session)
 
     if path == "rpAcr":
-        return chooseAcrValue(environ, start_response, session)
+        return choose_acrvalue(environ, start_response, session)
 
     if path == "rpAuth":
     # Only called if multiple arc_values (that is authentications) exists.
-        if "acr" in query and query["acr"][0] in session.getAcrvalues():
+        if "acr" in query and query["acr"][0] in session.get_acrvalues():
             func = getattr(RP, "create_authnrequest")
             return func(environ, SERVER_ENV, start_response, session,
                         query["acr"][0])
 
     if path == "updateUserInfo":
         func = getattr(RP, "updateUserInfo")
-        return func(environ, SERVER_ENV, start_response, session, session.getKey())
+        return func(environ, SERVER_ENV, start_response, session, session.get_key())
 
-    if session.getClient() is not None:
-        session.setCallback(True)
+    if session.get_client() is not None:
+        session.set_callback(True)
         func = getattr(RP, "begin")
-        return func(environ, SERVER_ENV, start_response, session, session.getKey())
+        return func(environ, SERVER_ENV, start_response, session, session.get_key())
 
     if path == "rp":
         if "uid" in query:
@@ -255,8 +258,8 @@ def application(environ, start_response):
             md5 = hashlib.md5()
             md5.update(link)
             opkey = base64.b16encode(md5.digest())
-            session.setCallback(True)
-            session.setKey(opkey)
+            session.set_callback(True)
+            session.set_key(opkey)
             func = getattr(RP, "begin")
             return func(environ, SERVER_ENV, start_response, session, opkey)
 
