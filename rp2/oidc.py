@@ -13,8 +13,6 @@ from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AccessTokenResponse
 from oic.utils.webfinger import WebFinger
 
-
-
 __author__ = 'rolandh'
 
 logger = logging.getLogger(__name__)
@@ -25,7 +23,8 @@ def token_secret_key(sid):
 
 
 SERVICE_NAME = "OIC"
-FLOW_TYPE = "id_token token" #or "code"  # or "token" or id_token code
+#or "code"  # or "token" or id_token code
+FLOW_TYPE = "id_token token"
 
 CLIENT_CONFIG = {}
 
@@ -55,20 +54,20 @@ class OpenIDConnect(object):
         self.authn_method = None
         self.registration_info = registration_info
 
-    def dynamic(self, server_env, callback, logoutCallback, session, key):
+    def dynamic(self, server_env, callback, logoutcallback, session, key):
         try:
             client = server_env["OIC_CLIENT"][key]
         except KeyError:
             client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD)
             client.redirect_uris = [callback]
-            client.post_logout_redirect_uris = [logoutCallback]
+            client.post_logout_redirect_uris = [logoutcallback]
 
             _me = self.registration_info.copy()
             _me["redirect_uris"] = [callback]
 
             provider_conf = client.provider_config(self.srv_discovery_url)
             logger.debug("Got provider config: %s" % provider_conf)
-            session.setProvider(provider_conf["issuer"])
+            session.set_provider(provider_conf["issuer"])
             logger.debug("Registering RP")
             reg_info = client.register(provider_conf["registration_endpoint"],
                                        **_me)
@@ -120,28 +119,27 @@ class OpenIDConnect(object):
         try:
             logger.debug("FLOW type: %s" % self.flow_type)
             logger.debug("begin environ: %s" % server_env)
-            client = session.getClient()
+            client = session.get_client()
             if client is not None and self.srv_discovery_url:
                 data = {"client_id": client.client_id}
-                resp = requests.get(self.srv_discovery_url + "verifyClientId",
-                            params=data, verify=False)
+                resp = requests.get(self.srv_discovery_url + "verifyClientId", params=data, verify=False)
                 if not resp.ok and resp.status_code == 400:
                     client = None
                     server_env["OIC_CLIENT"].pop(key, None)
             if client is None:
                 callback = server_env["base_url"] + key
-                logoutCallback = server_env["base_url"]
+                logoutcallback = server_env["base_url"]
                 if self.srv_discovery_url:
-                    client = self.dynamic(server_env, callback, logoutCallback, session, key)
+                    client = self.dynamic(server_env, callback, logoutcallback, session, key)
                 else:
-                    client = self.static(server_env, callback, logoutCallback, key)
-                client.state = session.getState()
-                session.setClient(client)
-            acr_value = session.getAcrValue(client.authorization_endpoint)
+                    client = self.static(server_env, callback, logoutcallback, key)
+                client.state = session.get_state()
+                session.set_client(client)
+            acr_value = session.get_acrvalue(client.authorization_endpoint)
             try:
                 acr_values = client.provider_info[
                     self.srv_discovery_url]["acr_values_supported"]
-                session.setAcrvalues(acr_values)
+                session.set_acrvalues(acr_values)
             except:
                 pass
             if acr_value is None and acr_values is not None and len(acr_values) > 1:
@@ -161,8 +159,8 @@ class OpenIDConnect(object):
     #noinspection PyUnusedLocal
     def create_authnrequest(self, environ, server_env, start_response, session, acr_value):
         try:
-            client = session.getClient()
-            session.setAcrValue(client.authorization_endpoint, acr_value)
+            client = session.get_client()
+            session.set_acrvalue(client.authorization_endpoint, acr_value)
             request_args = {
                 "response_type": self.flow_type,
                 "scope": server_env["SCOPE"],
@@ -174,12 +172,12 @@ class OpenIDConnect(object):
 
             if self.flow_type == "token":
                 request_args["nonce"] = rndstr(16)
-                session.setNonce(request_args["nonce"])
+                session.set_nonce(request_args["nonce"])
             else:
                 use_nonce = getattr(self, "use_nonce", None)
                 if use_nonce:
                     request_args["nonce"] = rndstr(16)
-                    session.setNonce(request_args["nonce"])
+                    session.set_nonce(request_args["nonce"])
 
             logger.info("client args: %s" % client.__dict__.items(), )
             logger.info("request_args: %s" % (request_args,))
@@ -213,7 +211,7 @@ class OpenIDConnect(object):
         #session.setAuthentication("VERIFY")
 
         #server_env["CACHE"][sid] = session
-        session.setClient(client)
+        session.set_client(client)
         resp_headers = [("Location", str(url))]
         if ht_args:
             resp_headers.extend([(a, b) for a, b in ht_args.items()])
@@ -256,7 +254,7 @@ class OpenIDConnect(object):
         callback URL you can request the access token the user has
         approved."""
 
-        client = session.getClient()
+        client = session.get_client()
         logger.debug("info: %s" % query)
         logger.debug("keyjar: %s" % client.keyjar)
 
@@ -289,7 +287,8 @@ class OpenIDConnect(object):
             access_token = authresp["access_token"]
 
         userinfo = self.verify_token(client, access_token)
-
+        session.set_state(authresp["state"])
+        session.set_accesstoken(access_token)
         inforesp = self.get_userinfo(client, authresp, access_token)
 
         if isinstance(inforesp, ErrorResponse):
@@ -300,6 +299,18 @@ class OpenIDConnect(object):
         logger.debug("UserInfo: %s" % inforesp)
 
         return True, userinfo, access_token, client
+
+    def updateUserInfo(self, environ, server_env, start_response, session, key):
+        client = session.get_client()
+        try:
+            userinfo = client.do_user_info_request(state=session.get_state(), schema="openid",
+                                                   access_token=session.get_accesstoken())
+        except:
+            resp = self.begin(environ, server_env, start_response, session, key)
+            return resp
+
+        result = (True, userinfo, session.get_accesstoken(), client)
+        return self.result(environ, start_response, server_env, result)
 
     #noinspection PyUnusedLocal
     def callback(self, environ, server_env, start_response, query, session):
@@ -321,7 +332,7 @@ class OpenIDConnect(object):
 
         try:
             result = self.phaseN(environ, query, server_env, session)
-            session.setLogin(True)
+            session.set_login(True)
             logger.debug("[do_%s] response: %s" % (_service, result))
         except Exception:
             message = traceback.format_exception(*sys.exc_info())

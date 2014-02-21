@@ -51,14 +51,15 @@ def _eq(l1, l2):
 
 
 def test_1():
-    authn = UsernamePasswordMako(None, "login.mako", tl, PASSWD,
-                                 "authorization_endpoint")
+    authn = UsernamePasswordMako("login", None, "login.mako", tl, PASSWD,
+                                 "authorization_endpoint", password_query_key="password")
+
     assert authn.authenticated_as() is None
 
 
 def test_2():
-    authn = UsernamePasswordMako(None, "login.mako", tl, PASSWD,
-                                 "authorization_endpoint")
+    authn = UsernamePasswordMako("login", None, "login.mako", tl, PASSWD,
+                                 "authorization_endpoint", password_query_key="password")
     resp = authn(query="QUERY")
     print resp.message
     assert 'name="query" value="QUERY"' in resp.message
@@ -73,8 +74,8 @@ def test_3():
     srv.iv = os.urandom(16)
     srv.cookie_name = "xyzxyz"
 
-    authn = UsernamePasswordMako(srv, "login.mako", tl, PASSWD,
-                                 "authorization_endpoint")
+    authn = UsernamePasswordMako("login", None, "login.mako", tl, PASSWD,
+                                 "authorization_endpoint", password_query_key="password")
     response = authn.verify(parse_qs(form))
     assert response.message == "authorization_endpoint?query=foo&upm_answer=true"
     print len(response.headers) == 2
@@ -94,8 +95,8 @@ def test_3():
 #     srv.iv = os.urandom(16)
 #     srv.cookie_name = "xyzxyz"
 #
-#     authn = UsernamePasswordMako(srv, "login.mako", tl, PASSWD,
-#                                  "authorization_endpoint")
+#         authn = UsernamePasswordMako("login", None, "login.mako", tl, PASSWD,
+#                                      "authorization_endpoint", password_query_key="password")
 #     response = authn.verify(parse_qs(form))
 #
 #     kaka = None
@@ -119,8 +120,8 @@ def test_5():
     srv.iv = os.urandom(16)
     srv.cookie_name = "xyzxyz"
 
-    authn = UsernamePasswordMako(srv, "login.mako", tl, PASSWD,
-                                 "authorization_endpoint")
+    authn = UsernamePasswordMako("login", None, "login.mako", tl, PASSWD,
+                                 "authorization_endpoint", password_query_key="password")
     response = authn.verify(parse_qs(form))
 
     kaka = ""
@@ -145,8 +146,8 @@ def test_6():
     srv.iv = os.urandom(16)
     srv.cookie_name = "xyzxyz"
 
-    authn = UsernamePasswordMako(srv, "login.mako", tl, PASSWD,
-                                 "authorization_endpoint")
+    authn = UsernamePasswordMako("login", None, "login.mako", tl, PASSWD,
+                                 "authorization_endpoint", password_query_key="password")
     response = authn.verify(parse_qs(form))
     assert isinstance(response, Unauthorized)
 

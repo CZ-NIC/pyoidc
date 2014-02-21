@@ -342,6 +342,8 @@ class Provider(AProvider):
         try:
             redirect_uri = areq["post_logout_redirect_uri"]
             authn = self.pick_auth(areq)
+            if isinstance(authn, tuple):
+                authn = authn[0]
             uid = authn.authenticated_as(cookie)["uid"]
             client_info = self.cdb[self.sdb.getClient_id(uid)]
             for tmpUri1 in redirect_uri:
@@ -356,6 +358,8 @@ class Provider(AProvider):
         areq = urlparse.parse_qs(request)
         redirect_uri = self.verify_post_logout_redirect_uri(areq, cookie)
         authn = self.pick_auth(areq)
+        if isinstance(authn, tuple):
+            authn = authn[0]
         identity = authn.authenticated_as(cookie)
         return self.sdb.is_revoke_uid(identity["uid"])
 
@@ -366,6 +370,8 @@ class Provider(AProvider):
             areq = urlparse.parse_qs(request)
             redirect_uri = self.verify_post_logout_redirect_uri(areq, cookie)
             authn = self.pick_auth(areq)
+            if isinstance(authn, tuple):
+                authn = authn[0]
             identity = authn.authenticated_as(cookie)
             if "uid" not in identity:
                 return self._error_response("Not allowed!")
@@ -390,6 +396,7 @@ class Provider(AProvider):
             except:
                 tmp_id_token_hint = ""
             argv = {
+                "acr_values": areq["acr_values"][0],
                 "id_token_hint": tmp_id_token_hint,
                 "post_logout_redirect_uri": areq["post_logout_redirect_uri"][0],
                 "key": self.sdb.getVerifyLogout(identity["uid"]),
@@ -1413,8 +1420,11 @@ class Provider(AProvider):
             except AssertionError:
                 return self._error("invalid_request", "Missing nonce value")
 
-        # so everything went well should set a SSO cookie
+        # so everything went well should set a SSO cookie if do not have a broker
+        #if self.authn_broker is None:
         headers = [self.cookie_func(user, typ="sso", ttl=self.sso_ttl)]
+        #else:
+        #    headers = [] #Cookie is already handled by authn broker.
         location = aresp.request(redirect_uri)
         logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
         return Redirect(str(location), headers=headers)

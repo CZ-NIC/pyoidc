@@ -129,7 +129,10 @@ class Provider(object):
         else:
             self.cookie_func = self.authn_broker[0][0].create_cookie
             for item in self.authn_broker:
-                item.srv = self
+                if "set_srv" in dir(item):
+                    item.set_srv(self)
+                else:
+                    item.srv = self
 
         self.authz = authz
         self.client_authn = client_authn

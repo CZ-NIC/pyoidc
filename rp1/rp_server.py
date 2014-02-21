@@ -71,66 +71,66 @@ class Httpd(object):
 class RpSession(object):
     def __init__(self, session):
         self.session = session
-        self.getCallback()
-        self.getState()
-        self.getService()
-        self.getNonce()
-        self.getClient()
-        self.getAcrvalues()
+        self.get_callback()
+        self.get_state()
+        self.get_service()
+        self.get_nonce()
+        self.get_client()
+        self.get_acrvalues()
 
-    def clearSession(self):
+    def clear_session(self):
         for key in self.session:
             self.session.pop(key, None)
         self.session.invalidate()
 
-
-    def getCallback(self):
+    def get_callback(self):
         return self.session.get("callback", False)
 
-    def setCallback(self, value):
+    def set_callback(self, value):
         self.session["callback"] = value
 
-    def getState(self):
+    def get_state(self):
         return self.session.get("state", uuid.uuid4().urn)
 
-    def setState(self, value):
+    def set_state(self, value):
         self.session["state"] = value
 
-    def getService(self):
+    def get_service(self):
         return self.session.get("service", None)
 
-    def setService(self, value):
+    def set_service(self, value):
         self.session["service"] = value
 
-    def getNonce(self):
+    def get_nonce(self):
         return self.session.get("nonce", None)
 
-    def setNonce(self, value):
+    def set_nonce(self, value):
         self.session["nonce"] = value
 
-    def getClient(self):
+    def get_client(self):
         return self.session.get("client", None)
 
-    def setClient(self, value):
+    def set_client(self, value):
         self.session["client"] = value
 
-    def getLogin(self):
+    def get_login(self):
         return self.session.get("login", None)
 
-    def setLogin(self, value):
+    def set_login(self, value):
         self.session["login"] = value
 
-    def getAcrvalues(self):
+    def get_acrvalues(self):
         return self.session.get("acrvalues", None)
 
-    def setAcrvalues(self, value):
+    def set_acrvalues(self, value):
         self.session["acrvalues"] = value
 
-    def getAcrValue(self, server):
+    def get_acrvalue(self, server):
         return self.session.get(server+"ACR_VALUE", None)
 
-    def setAcrValue(self, server, acr):
+    def set_acrvalue(self, server, acr):
         self.session[server+"ACR_VALUE"] = acr
+
 
 #noinspection PyUnresolvedReferences
 def static(environ, start_response, logger, path):
@@ -193,12 +193,13 @@ def opbyuid(environ, start_response):
     }
     return resp(environ, start_response, **argv)
 
-def chooseAcrValue(environ, start_response, session, key):
+
+def choose_acrvalue(environ, start_response, session, key):
     resp = Response(mako_template="acrvalue.mako",
                     template_lookup=LOOKUP,
                     headers=[])
     argv = {
-        "acrvalues": session.getAcrvalues(),
+        "acrvalues": session.get_acrvalues(),
         "key": key
     }
     return resp(environ, start_response, **argv)
@@ -211,9 +212,10 @@ def id_token_as_signed_jwt(client, alg="RS256"):
     _signed_jwt = client.id_token.to_jwt(key=ckey, algorithm=alg)
     return _signed_jwt
 
+
 def application(environ, start_response):
     session = environ['beaker.session']
-    rpSession = RpSession(session)
+    rpsession = RpSession(session)
 
     path = environ.get('PATH_INFO', '').lstrip('/')
     if path == "robots.txt":
@@ -226,47 +228,51 @@ def application(environ, start_response):
 
     if path == "logout":
         try:
-            logoutUrl = rpSession.getClient().endsession_endpoint
-            logoutUrl += "?" + urllib.urlencode({"post_logout_redirect_uri": SERVER_ENV["base_url"]})
+            arc_value = rpsession.get_acrvalue(rpsession.get_client().authorization_endpoint)
+            logouturl = rpsession.get_client().endsession_endpoint
+            logouturl += "?" + urllib.urlencode({"post_logout_redirect_uri": SERVER_ENV["base_url"],
+                                                 "acr_values": arc_value})
             try:
-                logoutUrl += "&" + urllib.urlencode({"id_token_hint": id_token_as_signed_jwt(rpSession.getClient(), "HS256")})
+                logouturl += "&" + urllib.urlencode({"id_token_hint": id_token_as_signed_jwt(rpsession.get_client(),
+                                                                                             "HS256")})
             except:
                 pass
-            rpSession.clearSession()
-            resp = Redirect(str(logoutUrl))
+            rpsession.clear_session()
+            resp = Redirect(str(logouturl))
             return resp(environ, start_response)
         except:
             pass
 
-    if rpSession.getCallback():
+    if rpsession.get_callback():
         for key, _dict in rp_conf.SERVICE.items():
             if "opKey" in _dict and _dict["opKey"] == path:
-                rpSession.setCallback(False)
+                rpsession.set_callback(False)
                 func = getattr(rp_conf.SERVICE[key]["instance"], "callback")
-                return func(environ, SERVER_ENV, start_response, query, rpSession)
+                return func(environ, SERVER_ENV, start_response, query, rpsession)
 
     if path == "rpAcr" and "key" in query and query["key"][0] in rp_conf.SERVICE:
-        return chooseAcrValue(environ, start_response, rpSession, query["key"][0])
-
-    if path == "rpAuth":    #Only called if multiple arc_values (that is authentications) exists.
-        if "acr" in query and query["acr"][0] in rpSession.getAcrvalues() and \
-                        "key" in query and query["key"][0] in rp_conf.SERVICE:
+        return choose_acrvalue(environ, start_response, rpsession, query["key"][0])
+    #Only called if multiple arc_values (that is authentications) exists.
+    if path == "rpAuth":
+        if "acr" in query and query["acr"][0] in rpsession.get_acrvalues() \
+                and "key" in query and query["key"][0] in rp_conf.SERVICE:
             func = getattr(rp_conf.SERVICE[query["key"][0]]["instance"], "create_authnrequest")
-            return func(environ, SERVER_ENV, start_response, rpSession, query["acr"][0])
+            rpsession.set_acrvalue(rpsession.get_client().authorization_endpoint, query["acr"][0])
+            return func(environ, SERVER_ENV, start_response, rpsession, query["acr"][0])
 
-    if rpSession.getClient() is not None:
-        rpSession.setCallback(True)
-        func = getattr(rp_conf.SERVICE[rpSession.getService()]["instance"], "begin")
-        return func(environ, SERVER_ENV, start_response, rpSession)
+    if rpsession.get_client() is not None:
+        rpsession.set_callback(True)
+        func = getattr(rp_conf.SERVICE[rpsession.get_service()]["instance"], "begin")
+        return func(environ, SERVER_ENV, start_response, rpsession)
 
     if path == "rp":
         if "key" in query:
             print "key"
             key = query["key"][0]
             if key in rp_conf.SERVICE:
-                rpSession.setCallback(True)
+                rpsession.set_callback(True)
                 func = getattr(rp_conf.SERVICE[key]["instance"], "begin")
-                return func(environ, SERVER_ENV, start_response, rpSession)
+                return func(environ, SERVER_ENV, start_response, rpsession)
 
         if "uid" in query:
             print "uid"
@@ -286,9 +292,9 @@ def application(environ, start_response):
                       'name': link}
             rp_conf.SERVICE[opkey] = kwargs
             rp_conf.SERVICE[opkey]["instance"] = pyoidcOIC(None, None, **kwargs)
-            rpSession.setCallback(True)
+            rpsession.set_callback(True)
             func = getattr(rp_conf.SERVICE[opkey]["instance"], "begin")
-            return func(environ, SERVER_ENV, start_response, rpSession)
+            return func(environ, SERVER_ENV, start_response, rpsession)
 
     if path == "opbyuid":
         return opbyuid(environ, start_response)
