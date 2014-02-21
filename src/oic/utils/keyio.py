@@ -47,7 +47,7 @@ class KeyBundle(object):
         :param source: Where the key set can be fetch from
         :param verify_ssl: Verify the SSL cert used by the server
         :param fileformat: For a local file either "jwk" or "der"
-        :param keytype: Iff local file and 'der' format what kind of key is it.
+        :param keytype: Iff local file and 'der' format what kind of key it is.
         """
 
         self._keys = []
@@ -102,6 +102,8 @@ class KeyBundle(object):
                     continue
                 else:
                     _key.dc()
+                    if _typ == "EC":
+                        _key.ser = True
                     self._keys.append(_key)
                     flag = 1
                     break
@@ -278,10 +280,17 @@ def dump_jwks(kbl, target):
 class KeyJar(object):
     """ A keyjar contains a number of KeyBundles """
 
-    def __init__(self, ca_certs=None):
+    def __init__(self, ca_certs=None, verify_ssl=True):
+        """
+
+        :param ca_certs:
+        :param verify_ssl: Attempting SSL certificate verification
+        :return:
+        """
         self.spec2key = {}
         self.issuer_keys = {}
         self.ca_certs = ca_certs
+        self.verify_ssl = verify_ssl
 
     def add_if_unique(self, issuer, use, keys):
         if use in self.issuer_keys[issuer] and self.issuer_keys[issuer][use]:
@@ -306,7 +315,7 @@ class KeyJar(object):
         if "/localhost:" in url or "/localhost/" in url:
             kc = KeyBundle(source=url, verify_ssl=False)
         else:
-            kc = KeyBundle(source=url)
+            kc = KeyBundle(source=url, verify_ssl=self.verify_ssl)
 
         try:
             self.issuer_keys[issuer].append(kc)

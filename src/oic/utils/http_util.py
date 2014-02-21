@@ -38,7 +38,7 @@ class Response(object):
 
     def __call__(self, environ, start_response, **kwargs):
         start_response(self.status, self.headers)
-        return self.response(self.message or geturl(environ), **kwargs)
+        return self.response(self.message, **kwargs)
 
     def _response(self, message="", **argv):
         if self.template:
@@ -403,6 +403,9 @@ class CookieDealer(object):
             try:
                 info, timestamp = parse_cookie(cookie_name,
                                                self.srv.seed, cookie)
+            except (TypeError, AssertionError):
+                return None
+            else:
                 if self.srv.symkey:
                     txt = decrypt(self.srv.symkey, info, self.srv.iv)
                     # strip spaces at the end
@@ -413,7 +416,5 @@ class CookieDealer(object):
                 value, _ts, typ = txt.split("::")
                 if timestamp == _ts:
                     return value, _ts, typ
-            except (TypeError, AssertionError):
-                pass
         return None
 

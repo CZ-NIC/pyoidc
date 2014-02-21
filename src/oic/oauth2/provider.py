@@ -362,15 +362,43 @@ class Provider(object):
 
         return uri
 
-    def pick_auth(self, **kwargs):
+    def pick_auth(self, areq, comparision_type=""):
         """
-        Pick authentication method to be used
-        :param kwargs: Extra key word arguments
-        :return: Authentication method
-        """
-        return self.authn_broker[0]
 
-    def authorization_endpoint(self, request="", cookie=None, **kwargs):
+        :param areq: AuthorizationRequest instance
+        :param comparision_type: How to pick the authentication method
+        :return: An authentication method and its authn class ref
+        """
+        if comparision_type == "any":
+            return self.authn_broker[0]
+
+        try:
+            if len(self.authn_broker) == 1:
+                    return self.authn_broker[0]
+            else:
+                try:
+                    _values = areq["acr_values"]
+                except KeyError:
+                    pass
+                else:
+                    if isinstance(_values, basestring):
+                        _values = [_values]
+
+                    if not comparision_type:
+                        comparision_type = "exact"
+
+                    for _acr in _values:
+                        res = self.authn_broker.pick(_acr, comparision_type)
+                        if res:
+                            #Return the best guess by pick.
+                            return res[0]
+        except KeyError:
+            pass
+
+        # return the best I have
+        return None, None
+
+    def authorization_endpoint(self, request="", cookie="", authn="", **kwargs):
         """ The AuthorizationRequest endpoint
 
         :param request: The client request
@@ -418,9 +446,9 @@ class Provider(object):
         if cookie:
             logger.debug("Cookie: %s" % cookie)
             a_args["cookie"] = cookie
-        if "authn" in kwargs:
+        if authn:
             try:
-                a_args["authorization"] = kwargs["authn"]
+                a_args["authorization"] = authn
             except KeyError:
                 pass
 
@@ -566,7 +594,7 @@ class Provider(object):
         #     return Response(err.to_json(), content="application/json")
         return None
 
-    def token_endpoint(self, auth_header="", **kwargs):
+    def token_endpoint(self, authn="", **kwargs):
         """
         This is where clients come to get their access tokens
         """
@@ -580,7 +608,7 @@ class Provider(object):
         areq = AccessTokenRequest().deserialize(body, "urlencoded")
 
         try:
-            client = self.client_authn(self, areq, auth_header)
+            client = self.client_authn(self, areq, authn)
         except FailedAuthentication, err:
             err = TokenErrorResponse(error="unathorized_client",
                                      error_description="%s" % err)

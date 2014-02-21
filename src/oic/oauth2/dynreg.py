@@ -2,7 +2,7 @@ import logging
 import urllib
 import urlparse
 from oic.oic import OIDCONF_PATTERN
-from oic.oic.message import ProviderConfigurationResponse
+from oic.oic.message import ProviderConfigurationResponse, AuthorizationResponse
 import requests
 from oic.utils.keyio import KeyJar
 from oic.utils.time_util import utc_time_sans_frac
@@ -24,7 +24,9 @@ from oic.oauth2 import REQUIRED_LIST_OF_STRINGS
 from oic.oauth2 import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.oauth2 import SINGLE_OPTIONAL_INT
-from oic.exception import UnknownAssertionType, PyoidcError
+from oic.exception import UnknownAssertionType
+from oic.exception import PyoidcError
+from oic.exception import AuthzError
 
 from oic.utils.authn.client import AuthnFailure
 from oic.utils.http_util import Unauthorized, NoContent
@@ -301,6 +303,7 @@ class Provider(provider.Provider):
     def verify_client(self, environ, areq, authn_method, client_id=""):
         """
 
+        :param environ: WSGI environ
         :param areq: The request
         :param authn_method: client authentication method
         :return:
@@ -629,7 +632,7 @@ class Client(oauth2.Client):
         :param kwargs: parameters to the registration request
         :return:
         """
-        req = self.construct_RegistrationRequest(**kwargs)
+        req = self.construct_RegistrationRequest(request_args=kwargs)
 
         headers = {"content-type": "application/json"}
 
@@ -637,3 +640,16 @@ class Client(oauth2.Client):
                                 headers=headers)
 
         return self.handle_registration_info(rsp)
+
+    def parse_authz_response(self, query):
+        aresp = self.parse_response(AuthorizationResponse,
+                                    info=query,
+                                    sformat="urlencoded",
+                                    keyjar=self.keyjar)
+        if aresp.type() == "ErrorResponse":
+            logger.info("ErrorResponse: %s" % aresp)
+            raise AuthzError(aresp.error)
+
+        logger.info("Aresp: %s" % aresp)
+
+        return aresp

@@ -227,11 +227,12 @@ class Client(oauth2.Client):
     _endpoints = ENDPOINTS
 
     def __init__(self, client_id=None, ca_certs=None,
-                 client_prefs=None, client_authn_method=None, keyjar=None):
+                 client_prefs=None, client_authn_method=None, keyjar=None,
+                 verify_ssl=True):
 
         oauth2.Client.__init__(self, client_id, ca_certs,
                                client_authn_method=client_authn_method,
-                               keyjar=keyjar)
+                               keyjar=keyjar, verify_ssl=verify_ssl)
 
         self.file_store = "./file/"
         self.file_uri = "http://localhost/"
@@ -769,7 +770,7 @@ class Client(oauth2.Client):
 
         if keys:
             if self.keyjar is None:
-                self.keyjar = KeyJar()
+                self.keyjar = KeyJar(verify_ssl=self.verify_ssl)
 
             self.keyjar.load_keys(pcr, _pcr_issuer)
 

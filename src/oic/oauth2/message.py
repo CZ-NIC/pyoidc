@@ -170,9 +170,11 @@ class Message(object):
 
     def deserialize(self, info, method="urlencoded", **kwargs):
         try:
-            return getattr(self, "from_%s" % method)(info, **kwargs)
+            func = getattr(self, "from_%s" % method)
         except AttributeError, err:
             raise Exception("Unknown method (%s)" % method)
+        else:
+            return func(info, **kwargs)
 
     def from_urlencoded(self, urlencoded, **kwargs):
         """
