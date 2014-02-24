@@ -7,7 +7,8 @@ from urlparse import parse_qs
 from urlparse import urlsplit
 import urlparse
 import ldap
-from oic.utils.aes_m2c import AES_decrypt
+#from oic.utils.aes_m2c import AES_decrypt
+from oic.utils import aes
 from oic.utils.http_util import Response
 from oic.utils.http_util import CookieDealer
 from oic.utils.http_util import InvalidCookieSign
@@ -303,7 +304,7 @@ class SymKeyAuthn(UserAuthnMethod):
         """
         (encmsg, iv) = base64.b64decode(authorization).split(":")
         try:
-            user = AES_decrypt(self.symkey, encmsg, iv)
+            user = aes.decrypt(self.symkey, encmsg, iv)
         except (AssertionError, KeyError):
             raise FailedAuthentication()
 
