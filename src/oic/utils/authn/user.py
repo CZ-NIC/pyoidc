@@ -52,7 +52,7 @@ class UserAuthnMethod(CookieDealer):
 
             try:
                 val = self.getCookieValue(cookie, self.srv.cookie_name)
-            except InvalidCookieSign:
+            except (InvalidCookieSign, AssertionError):
                 val = None
 
             if val is None:

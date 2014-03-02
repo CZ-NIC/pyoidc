@@ -16,8 +16,10 @@ from oic.utils.authn.client import verify_client
 from oic.utils.authz import AuthzHandling
 from oic.utils.keyio import KeyBundle, dump_jwks
 from oic.utils.userinfo import UserInfo
-from oic.utils.webfinger import WebFinger, OIC_ISSUER
+from oic.utils.webfinger import WebFinger
+from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.authn.authn_context import AuthnBroker
+
 __author__ = 'rohe0002'
 
 import logging
