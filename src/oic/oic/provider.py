@@ -152,16 +152,20 @@ class EndSessionEndpoint(Endpoint) :
 class Provider(AProvider):
     def __init__(self, name, sdb, cdb, authn_broker, userinfo, authz,
                  client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
-                 hostname="", template_lookup=None, verify_login_template=None):
+                 hostname="", template_lookup=None, verify_login_template=None,
+                 verify_ssl=True):
 
         AProvider.__init__(self, name, sdb, cdb, authn_broker, authz,
-                           client_authn, symkey, urlmap)
+                           client_authn, symkey, urlmap, ca_bundle=ca_certs,
+                           verify_ssl=verify_ssl)
+
+        # Should be a OIC Server not an OAuth2 server
+        self.server = Server(ca_certs=ca_certs, verify_ssl=verify_ssl)
 
         self.endp.extend([UserinfoEndpoint, RegistrationEndpoint,
                           EndSessionEndpoint])
 
         self.userinfo = userinfo
-        self.server = Server(ca_certs=ca_certs)
 
         if keyjar:
             self.server.keyjar = keyjar
@@ -1341,7 +1345,7 @@ class Provider(AProvider):
         if "response_type" in areq and \
                 len(areq["response_type"]) == 1 and \
                 "none" in areq["response_type"]:
-            pass
+            fragment_enc = False
         else:
             if self.sdb.is_revoked(sid):
                 return self._error(error="access_denied",
@@ -1357,6 +1361,11 @@ class Provider(AProvider):
             _log_debug("_dic: %s" % _sinfo)
 
             rtype = set(areq["response_type"][:])
+            if len(rtype) == 1 and "code" in rtype:
+                fragment_enc = False
+            else:
+                fragment_enc = True
+
             if "code" in areq["response_type"]:
                 #if issue_new_code:
                 #    scode = self.sdb.duplicate(_sinfo)
@@ -1415,7 +1424,7 @@ class Provider(AProvider):
 
         # so everything went well should set a SSO cookie
         headers = [self.cookie_func(user, typ="sso", ttl=self.sso_ttl)]
-        location = aresp.request(redirect_uri)
+        location = aresp.request(redirect_uri, fragment_enc)
         logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
         return Redirect(str(location), headers=headers)
 

@@ -270,9 +270,9 @@ def _since_epoch(cdate):
 
 
 class PBase(object):
-    def __init__(self, ca_certs=None):
+    def __init__(self, ca_certs=None, verify_ssl=True):
 
-        self.keyjar = KeyJar()
+        self.keyjar = KeyJar(verify_ssl=verify_ssl)
 
         self.request_args = {"allow_redirects": False}
         #self.cookies = cookielib.CookieJar()
@@ -1038,10 +1038,11 @@ class Client(PBase):
 
 
 class Server(PBase):
-    def __init__(self, keys=None, ca_certs=None):
-        PBase.__init__(self, ca_certs)
+    def __init__(self, keys=None, ca_certs=None, verify_ssl=True):
+        PBase.__init__(self, ca_certs, verify_ssl)
 
-    def parse_url_request(self, request, url=None, query=None):
+    @staticmethod
+    def parse_url_request(request, url=None, query=None):
         if url:
             parts = urlparse.urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]

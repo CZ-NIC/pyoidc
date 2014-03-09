@@ -492,6 +492,7 @@ if __name__ == '__main__':
     parser.add_argument('-X', dest='XpressConnect', action='store_true')
     parser.add_argument('-A', dest='authn_as', default="")
     parser.add_argument('-P', dest='provider_conf')
+    parser.add_argument('-k', dest='insecure', action='store_true')
     parser.add_argument(dest="config")
     args = parser.parse_args()
 
@@ -527,6 +528,11 @@ if __name__ == '__main__':
     authz = AuthzHandling()
     # authz = UserInfoConsent()
     # User info database
+    if args.insecure:
+        kwargs = {"verify_ssl": False}
+    else:
+        kwargs = {"verify_ssl": True}
+
     if args.test:
         URLS.append((r'tracelog', trace_log))
         OAS = TestProvider(config.issuer, SessionDB(), cdb, ac, None,
@@ -538,7 +544,7 @@ if __name__ == '__main__':
                                     None, authz, verify_client, config.SYM_KEY)
     else:
         OAS = Provider(config.issuer, SessionDB(), cdb, ac, None, authz,
-                       verify_client, config.SYM_KEY)
+                       verify_client, config.SYM_KEY, **kwargs)
 
 
     try:

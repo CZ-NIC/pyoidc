@@ -585,11 +585,14 @@ class Message(object):
     def __contains__(self, item):
         return item in self._dict
 
-    def request(self, location):
-        if "?" in location:
-            return "%s&%s" % (location, self.to_urlencoded())
+    def request(self, location, fragment_enc=False):
+        if fragment_enc:
+            return "%s#%s" % (location, self.to_urlencoded())
         else:
-            return "%s?%s" % (location, self.to_urlencoded())
+            if "?" in location:
+                return "%s&%s" % (location, self.to_urlencoded())
+            else:
+                return "%s?%s" % (location, self.to_urlencoded())
 
     def __setitem__(self, key, value):
         try:

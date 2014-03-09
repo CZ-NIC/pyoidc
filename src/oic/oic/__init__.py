@@ -1036,8 +1036,8 @@ class Client(oauth2.Client):
 
 #noinspection PyMethodOverriding
 class Server(oauth2.Server):
-    def __init__(self, keyjar=None, ca_certs=None):
-        oauth2.Server.__init__(self, keyjar, ca_certs)
+    def __init__(self, keyjar=None, ca_certs=None, verify_ssl=True):
+        oauth2.Server.__init__(self, keyjar, ca_certs, verify_ssl)
 
     def _parse_urlencoded(self, url=None, query=None):
         if url:
@@ -1213,6 +1213,6 @@ class Server(oauth2.Server):
             idt[key] = val
 
         if "nonce" in session:
-            idt.nonce = session["nonce"]
+            idt["nonce"] = session["nonce"]
 
         return idt
