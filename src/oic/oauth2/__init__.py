@@ -278,8 +278,9 @@ class PBase(object):
         #self.cookies = cookielib.CookieJar()
         self.cookies = {}
         self.cookiejar = cookielib.CookieJar()
+        self.ca_certs = ca_certs
         if ca_certs:
-            self.request_args["verify"] = True
+            self.request_args["verify"] = verify_ssl
         else:
             self.request_args["verify"] = False
 
@@ -398,7 +399,7 @@ class Client(PBase):
         :return: Client instance
         """
 
-        PBase.__init__(self, ca_certs)
+        PBase.__init__(self, ca_certs, verify_ssl=verify_ssl)
 
         self.client_id = client_id
         self.client_authn_method = client_authn_method
@@ -849,8 +850,10 @@ class Client(PBase):
         elif reqresp.status_code == 302:  # redirect
             pass
         elif reqresp.status_code == 500:
+            logger.error("(%d) %s" % (reqresp.status_code, reqresp.text))
             raise Exception("ERROR: Something went wrong: %s" % reqresp.text)
         else:
+            logger.error("(%d) %s" % (reqresp.status_code, reqresp.text))
             raise Exception("ERROR: Something went wrong: %s [%s]" % (
                 reqresp.text, reqresp.status_code))
 
