@@ -6,26 +6,23 @@ baseurl = "https://localhost"
 issuer = "%s:%%d" % baseurl
 keys = {
     "RSA": {
-        "key": "oc_keys/key.pem",
+        "key": "cp_keys/key.pem",
         "usage": ["enc", "sig"]
     }
 }
 
-# ..... If you want to use CAS authentication ....
-#AUTHN = "CasAuthnMethod"
-CAS_SERVER = "https://cas.umu.se"
+CAS_SERVER  = "https://cas.umu.se"
 SERVICE_URL = "%s/verify" % issuer
 
+#Only Username and password.
 AUTHORIZATION = {
     #"CAS" : {"ACR": "CAS", "WEIGHT": 1, "URL": SERVICE_URL},
     "UserPassword" : {"ACR": "PASSWORD", "WEIGHT": 1, "URL": SERVICE_URL}
 }
-# ..... Otherwise
-#AUTHN = "Simple"
 
-COOKIENAME = 'pyoic'
-COOKIETTL = 4 * 60  # 4 hours
-SYM_KEY = "So Little-Time,G"  # len must be 16 if AES 128 which is default
+COOKIENAME= 'pyoic'
+COOKIETTL = 4*60 # 4 hours
+SYM_KEY = "SoLittleTime,Got"
 SERVER_CERT = "certs/server.crt"
 SERVER_KEY = "certs/server.key"
 #CERT_CHAIN="certs/chain.pem"
@@ -78,12 +75,11 @@ USERDB = {
 
 # =======  DISTRIBUTED CLAIMS ===========
 
-#CLAIMS_PROVIDER = "https://localhost:8093/"
-CLAIMS_PROVIDER = ""
+CLAIMS_PROVIDER = "https://localhost:8093/"
 
 CLIENT_INFO = {
     CLAIMS_PROVIDER: {
-        "userclaims_endpoint": "%suserclaims" % CLAIMS_PROVIDER,
+        "userclaims_endpoint":"%suserclaims" % CLAIMS_PROVIDER,
         "client_id": "client_1",
         "client_secret": "hemlig",
         "x509_url": "%scp_keys/cert.pem" % CLAIMS_PROVIDER,
@@ -107,8 +103,8 @@ LDAP = {
 }
 
 LDAP_EXTRAVALIDATION = {
-    "verifyAttr": "eduPersonAffiliation",
-    "verifyAttrValid": ['employee', 'staff', 'student']
+    "verify_attr": "eduPersonAffiliation",
+    "verify_attr_valid": ['employee', 'staff', 'student']
 }
 
 USERINFO = "SIMPLE"
