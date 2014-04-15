@@ -1,0 +1,39 @@
+
+provider_init = Provider("pyoicserv", SessionDB(), CDB, FUNCTIONS,
+                         userdb=USERDB, urlmap=URLMAP, keyjar=KEYJAR)
+
+
+SessionDB() handles all the session information
+
+CDB: client database. Has to look like a dictionary.
+
+FUNCTIONS: A map of function names to actual functions
+
+typically:
+
+FUNCTIONS = {
+    "authenticate": do_authentication,
+    "authorize": do_authorization,
+    "verify_user": verify_username_and_password,
+    "verify_client": verify_client,
+    "userinfo": user_info,
+}
+
+def do_authentication(sid, cookie=None, policy_uri=None, logo_uri=None):
+    """
+    :param sid: session identifier
+    :param cookie:
+    :param policy_uri: A URL that points to the Identity providers policy
+    :param logo_uri: A URL that points to the Identity providers Logo
+    """
+    pass
+
+def do_authorization(user, session=None):
+    """
+    """
+    pass
+
+def verify_username_and_password(dic):
+    """
+    """
+
