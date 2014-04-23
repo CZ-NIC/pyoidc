@@ -208,7 +208,14 @@ class Grant(object):
         return token
 
     def get_id_token(self):
-        return self.id_token
+        if self.id_token:
+            return self.id_token
+        else:
+            for tok in self.tokens:
+                if tok.id_token:
+                    if tok.id_token["exp"] >= time.time():
+                        return tok.id_token
+        return None
 
     def join(self, grant):
         if not self.exp_in:
@@ -403,7 +410,7 @@ class Client(PBase):
 
         self.client_id = client_id
         self.client_authn_method = client_authn_method
-        self.keyjar = keyjar or KeyJar()
+        self.keyjar = keyjar or KeyJar(verify_ssl=verify_ssl)
         self.verify_ssl = verify_ssl
         #self.secret_type = "basic "
 
@@ -866,7 +873,6 @@ class Client(PBase):
         else:
             return reqresp
 
-
     def request_and_return(self, url, response=None, method="GET", body=None,
                            body_type="json", state="", http_args=None,
                            **kwargs):
@@ -888,6 +894,9 @@ class Client(PBase):
             resp = self.http_request(url, method, data=body, **http_args)
         except Exception:
             raise
+
+        if not "keyjar" in kwargs:
+            kwargs["keyjar"] = self.keyjar
 
         return self.parse_request_response(resp, response, body_type, state,
                                            **kwargs)
