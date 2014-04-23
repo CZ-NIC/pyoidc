@@ -13,7 +13,9 @@ from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2 import VerificationError
 from oic.exception import InvalidRequest, NotForMe
 from oic.exception import PyoidcError
-from oic.oauth2.message import Message, REQUIRED_LIST_OF_SP_SEP_STRINGS
+from oic.oauth2.message import Message
+from oic.oauth2.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
+from oic.oauth2.message import SINGLE_OPTIONAL_JSON
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
@@ -39,7 +41,6 @@ def json_deser(val, sformat=None, lev=0):
 # value type, required, serializer, deserializer, null value allowed
 SINGLE_OPTIONAL_BOOLEAN = (bool, False, None, None, False)
 SINGLE_OPTIONAL_JSON_WN = (dict, False, json_ser, json_deser, True)
-SINGLE_OPTIONAL_JSON = (dict, False, json_ser, json_deser, False)
 SINGLE_REQUIRED_INT = (int, True, None, None, False)
 
 
