@@ -116,7 +116,7 @@ class Provider(object):
 
     def __init__(self, name, sdb, cdb, authn_broker, authz, client_authn,
                  symkey="", urlmap=None, iv=0, default_scope="",
-                 ca_bundle=None, verify_ssl=True):
+                 ca_bundle=None, verify_ssl=True, default_acr=""):
         self.name = name
         self.sdb = sdb
         self.cdb = cdb
@@ -139,6 +139,7 @@ class Provider(object):
         self.cookie_name = "pyoidc"
         self.default_scope = default_scope
         self.sso_ttl = 0
+        self.default_acr = default_acr
 
         if urlmap is None:
             self.urlmap = {}
@@ -376,19 +377,19 @@ class Provider(object):
                 try:
                     _values = areq["acr_values"]
                 except KeyError:
-                    pass
-                else:
-                    if isinstance(_values, basestring):
-                        _values = [_values]
+                    _values = self.default_acr
 
-                    if not comparision_type:
-                        comparision_type = "exact"
+                if isinstance(_values, basestring):
+                    _values = [_values]
 
-                    for _acr in _values:
-                        res = self.authn_broker.pick(_acr, comparision_type)
-                        if res:
-                            #Return the best guess by pick.
-                            return res[0]
+                if not comparision_type:
+                    comparision_type = "exact"
+
+                for _acr in _values:
+                    res = self.authn_broker.pick(_acr, comparision_type)
+                    if res:
+                        #Return the best guess by pick.
+                        return res[0]
         except KeyError:
             pass
 
@@ -428,8 +429,10 @@ class Provider(object):
         logger.debug("AuthzRequest: %s" % (areq.to_dict(),))
         try:
             redirect_uri = self.get_redirect_uri(areq)
-        except (RedirectURIError, ParameterError, UnknownClient), err:
+        except (RedirectURIError, ParameterError), err:
             return self._error("invalid_request", "%s" % err)
+        except UnknownClient, err:
+            return self._error("unauthorized_client", "%s" % err)
 
         try:
             # verify that the request message is correct
@@ -451,6 +454,9 @@ class Provider(object):
 
         # Pick authentication method
         _authn, acr = self.pick_auth(areq=areq)
+
+        if authn is None:
+            return self._redirect_authz_error("invalid_request", redirect_uri)
 
         try:
             identity = _authn.authenticated_as(**a_args)
