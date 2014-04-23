@@ -14,8 +14,9 @@ from oic.utils.keyio import key_export
 from requests import ConnectionError
 
 from oic.oauth2.message import by_schema
-from oic.oic.message import RefreshAccessTokenRequest
-from oic.oic.message import AuthorizationRequest, Claims
+from oic.oic.message import RefreshAccessTokenRequest, EndSessionRequest
+from oic.oic.message import AuthorizationRequest
+from oic.oic.message import Claims
 from oic.oic.message import IdToken
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import RegistrationResponse
@@ -345,98 +346,76 @@ class Provider(AProvider):
     def verify_post_logout_redirect_uri(self, areq, cookie):
         try:
             redirect_uri = areq["post_logout_redirect_uri"]
-            authn = self.pick_auth(areq)
+            authn, acr = self.pick_auth(areq)
             uid = authn.authenticated_as(cookie)["uid"]
             client_info = self.cdb[self.sdb.getClient_id(uid)]
-            for tmpUri1 in redirect_uri:
-                for tmpUri2 in client_info["post_logout_redirect_uris"]:
-                    if str(tmpUri1) == str(tmpUri2[0]):
-                        return tmpUri1
+            if redirect_uri in client_info["post_logout_redirect_uris"]:
+                return redirect_uri
         except:
             pass
         return None
 
     def is_session_revoked(self, request="", cookie=None):
         areq = urlparse.parse_qs(request)
-        redirect_uri = self.verify_post_logout_redirect_uri(areq, cookie)
-        authn = self.pick_auth(areq)
+        authn, acr = self.pick_auth(areq)
         identity = authn.authenticated_as(cookie)
         return self.sdb.is_revoke_uid(identity["uid"])
 
-    def end_session_endpoint(self, request="", cookie=None, **kwargs):
-        areq = None
-        redirect_uri = None
+    def let_user_verify_logout(self, uid, esr, cookie, redirect_uri):
+        if cookie:
+            headers = [cookie]
+        else:
+            headers = []
+        mte = self.template_lookup.get_template(self.verify_login_template)
+        self.sdb.set_verified_logout(uid)
+        if redirect_uri is not None:
+            redirect = redirect_uri
+        else:
+            redirect = "/"
         try:
-            areq = urlparse.parse_qs(request)
-            redirect_uri = self.verify_post_logout_redirect_uri(areq, cookie)
-            authn = self.pick_auth(areq)
-            identity = authn.authenticated_as(cookie)
-            if "uid" not in identity:
-                return self._error_response("Not allowed!")
+            tmp_id_token_hint = esr["id_token_hint"]
         except:
+            tmp_id_token_hint = ""
+        argv = {
+            "id_token_hint": tmp_id_token_hint,
+            "post_logout_redirect_uri": esr["post_logout_redirect_uri"],
+            "key": self.sdb.get_verify_logout(uid),
+            "redirect": redirect,
+            "action": "/"+EndSessionEndpoint("").etype
+        }
+        #resp.message = mte.render(**argv)
+        return Response(mte.render(**argv), headers=[])
+
+    def end_session_endpoint(self, request="", cookie=None, **kwargs):
+        esr = EndSessionRequest().from_urlencoded(request)
+        redirect_uri = self.verify_post_logout_redirect_uri(esr, cookie)
+        if not redirect_uri:
             return self._error_response("Not allowed!")
 
-        verify = self.sdb.getVerifyLogout(identity["uid"])
-        if (verify is None or "key" not in areq or verify != areq["key"][0]) and \
-                (self.template_lookup is not None and self.verify_login_template is not None):
-            if cookie:
-                headers = [cookie]
-            else:
-                headers = []
-            mte = self.template_lookup.get_template(self.verify_login_template)
-            self.sdb.setVerifyLogout(identity["uid"])
-            if redirect_uri is not None:
-                redirect = redirect_uri
-            else:
-                redirect = "/"
-            try:
-                tmp_id_token_hint = areq["id_token_hint"][0]
-            except:
-                tmp_id_token_hint = ""
-            argv = {
-                "id_token_hint": tmp_id_token_hint,
-                "post_logout_redirect_uri": areq["post_logout_redirect_uri"][0],
-                "key": self.sdb.getVerifyLogout(identity["uid"]),
-                "redirect": redirect,
-                "action": "/"+EndSessionEndpoint("").etype
-            }
-            #resp.message = mte.render(**argv)
-            return Response(mte.render(**argv), headers=[])
+        authn, acr = self.pick_auth(esr)
 
-        id_token = None
-        try:
-            id_token = self.sdb.getToken_id(identity["uid"])
-        except:
-            pass
-
-        if id_token is not None and "id_token_hint" in areq:
+        if "id_token_hint" in esr:
+            id_token_hint = OpenIDRequest().from_jwt(esr["id_token_hint"],
+                                                     keyjar=self.keyjar,
+                                                         verify=True)
+            uid = id_token_hint["sub"]
+        else:
+            identity = authn.authenticated_as(cookie)
             try:
-                id_token_hint = OpenIDRequest().from_jwt(areq["id_token_hint"][0], keyjar=self.keyjar, verify=True)
-                id_token = OpenIDRequest().from_jwt(id_token, keyjar=self.keyjar, verify=True)
-                id_token_hint_dict = id_token_hint.to_dict()
-                id_token_dict = id_token.to_dict()
-                for key in id_token_dict:
-                    if key in id_token_hint_dict:
-                        if id_token_dict[key] != id_token_hint_dict[key]:
-                            return self._error_response("Not allowed!")
-                    else:
-                        return self._error_response("Not allowed!")
-                for key in id_token_hint_dict:
-                    if key in id_token_dict:
-                        if id_token_dict[key] != id_token_hint_dict[key]:
-                            return self._error_response("Not allowed!")
-                    else:
-                        return self._error_response("Not allowed!")
-            except:
-                self._error_response("Not allowed!")
-        elif id_token is not None:
-            self._error_response("Not allowed!")
+                uid = identity["uid"]
+            except KeyError:
+                return self._error_response("Not allowed!")
+
+        #if self.sdb.get_verified_logout(uid):
+        #    return self.let_user_verify_logout(uid, esr, cookie, redirect_uri)
 
         try:
-            self.sdb.revoke_uid(identity["uid"])
-        except:
+            sid = self.sdb.get_sid_from_userid(uid)
+        except KeyError:
             pass
             #If cleanup cannot be performed we will still invalidate the cookie.
+        else:
+            del self.sdb[sid]
 
         if redirect_uri is not None:
             return Redirect(str(redirect_uri), headers=[authn.delete_cookie()])
@@ -1444,8 +1423,7 @@ class Provider(AProvider):
         pass
 
     def endsession_endpoint(self, request="", **kwargs):
-        pass
-
+        return self.end_session_endpoint(request, **kwargs)
 
 # -----------------------------------------------------------------------------
 
