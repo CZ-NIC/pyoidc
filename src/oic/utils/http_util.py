@@ -34,6 +34,7 @@ class Response(object):
 
         self.headers = kwargs.get('headers', [])
         _content_type = kwargs.get('content', self._content_type)
+
         self.headers.append(('Content-type', _content_type))
 
     def __call__(self, environ, start_response, **kwargs):

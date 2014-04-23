@@ -393,21 +393,21 @@ class SessionDB(object):
 
         self._db[sid]["revoked"] = True
 
-    def getClient_id(self, uid):
+    def get_client_id(self, uid):
         _dict = self._db[self.uid2sid[uid]]
         return _dict["client_id"]
 
-    def getVerifyLogout(self, uid):
+    def get_verified_Logout(self, uid):
         _dict = self._db[self.uid2sid[uid]]
-        if "verify_logout" not in _dict:
+        if "verified_logout" not in _dict:
             return None
-        return _dict["verify_logout"]
+        return _dict["verified_logout"]
 
-    def setVerifyLogout(self, uid):
+    def set_verify_logout(self, uid):
         _dict = self._db[self.uid2sid[uid]]
-        _dict["verify_logout"] = uuid.uuid4().urn
+        _dict["verified_logout"] = uuid.uuid4().urn
 
-    def getToken_id(self, uid):
+    def get_token_id(self, uid):
         _dict = self._db[self.uid2sid[uid]]
         return _dict["id_token"]
 
