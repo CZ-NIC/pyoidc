@@ -246,10 +246,13 @@ class Client(oauth2.Client):
 
         self.request2endpoint = REQUEST2ENDPOINT
         self.response2error = RESPONSE2ERROR
+
         self.grant_class = Grant
         self.token_class = Token
-        self.provider_info = {}
+        self.provider_info = None
+        self.registration_response = None
         self.client_prefs = client_prefs or {}
+
         self.behaviour = {
             "require_signed_request_object":
             DEF_SIGN_ALG["openid_request_object"]}
@@ -258,6 +261,8 @@ class Client(oauth2.Client):
         self.wf.httpd = self
         self.allow = {}
         self.post_logout_redirect_uris = []
+        self.registration_expires = 0
+        self.registration_access_token = None
 
     def _get_id_token(self, **kwargs):
         try:
@@ -759,7 +764,7 @@ class Client(oauth2.Client):
                         "provider info issuer mismatch '%s' != '%s'" % (
                             _issuer, _pcr_issuer))
 
-            self.provider_info[_pcr_issuer] = pcr
+            self.provider_info = pcr
         else:
             _pcr_issuer = issuer
 
@@ -865,7 +870,7 @@ class Client(oauth2.Client):
         """
 
         try:
-            _pcr = self.provider_info[other]
+            _pcr = self.provider_info
             supported = _pcr["%s_algs_supported" % usage]
         except KeyError:
             try:
@@ -889,7 +894,7 @@ class Client(oauth2.Client):
         :param issuer: The issuer identifier
         """
         if not pcr:
-            pcr = self.provider_info[issuer]
+            pcr = self.provider_info
 
         for _pref, _prov in PREFERENCE2PROVIDER.items():
             try:
@@ -940,8 +945,15 @@ class Client(oauth2.Client):
         self.registration_response = reginfo
         self.client_secret = reginfo["client_secret"]
         self.client_id = reginfo["client_id"]
-        self.registration_expires = reginfo["client_secret_expires_at"]
-        self.registration_access_token = reginfo["registration_access_token"]
+        try:
+            self.registration_expires = reginfo["client_secret_expires_at"]
+        except KeyError:
+            pass
+        try:
+            self.registration_access_token = reginfo[
+                "registration_access_token"]
+        except KeyError:
+            pass
 
     def handle_registration_info(self, response):
         if response.status_code == 200:
