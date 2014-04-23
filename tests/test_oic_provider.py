@@ -346,7 +346,7 @@ def test_server_authenticated_2():
     assert isinstance(id_token, IdToken)
     print id_token.keys()
     assert _eq(id_token.keys(), ['c_hash', 'sub', 'iss', 'acr', 'exp', 'iat',
-                                 'aud'])
+                                 'aud', 'nonce'])
 
 
 def test_server_authenticated_token():
@@ -507,7 +507,7 @@ def test_userinfo_endpoint():
     resp = server.authorization_endpoint(request=location.split("?")[1])
 
     line = resp.message
-    path, query = line.split("?")
+    path, query = line.split("#")
 
     # redirect
     atr = AuthorizationResponse().deserialize(query, "urlencoded")
@@ -680,4 +680,4 @@ def test_registered_redirect_uri_with_query_component():
         assert resp is None
 
 if __name__ == "__main__":
-    test_token_endpoint()
+    test_userinfo_endpoint()
