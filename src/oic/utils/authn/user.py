@@ -76,7 +76,7 @@ class UserAuthnMethod(CookieDealer):
 
             return {"uid": uid}
 
-    def generateReturnUrl(self, return_to, uid):
+    def generate_return_url(self, return_to, uid):
         return create_return_url(return_to, uid, **{self.query_param: "true"})
 
     def verify(self, **kwargs):
@@ -142,7 +142,7 @@ class UsernamePasswordMako(UserAuthnMethod):
     WSGI environment using Mako as template system"""
 
     def __init__(self, srv, mako_template, template_lookup, pwd, return_to="",
-                 templ_arg_func=None):
+                 templ_arg_func=None, verification_endpoint="verify"):
         """
         :param srv: The server instance
         :param mako_template: Which Mako template to use
@@ -155,29 +155,34 @@ class UsernamePasswordMako(UserAuthnMethod):
         self.template_lookup = template_lookup
         self.passwd = pwd
         self.return_to = return_to
+        self.verification_endpoint = verification_endpoint
         if templ_arg_func:
             self.templ_arg_func = templ_arg_func
         else:
             self.templ_arg_func = self.template_args
 
-    @staticmethod
-    def template_args(**kwargs):
+    def template_args(self, **kwargs):
         """
         Method to override if necessary, dependent on the page layout
         and context
 
         :param kwargs:
-        :return:
+        :return: dictionary of parameters used to build the Authn page
         """
         acr = None
         try:
             req = urlparse.parse_qs(kwargs["query"])
             acr = req["acr_values"][0]
-        except:
+        except KeyError:
             pass
 
+        try:
+            action = kwargs["action"]
+        except KeyError:
+            action = self.verification_endpoint
+
         argv = {"password": "",
-                "action": "verify",
+                "action": action,
                 "acr": acr}
 
         try:
@@ -190,6 +195,13 @@ class UsernamePasswordMako(UserAuthnMethod):
                 argv[param] = kwargs[param]
             except KeyError:
                 argv[param] = ""
+
+        if "extra" in kwargs:
+            for param in kwargs["extra"]:
+                try:
+                    argv[param] = kwargs[param]
+                except KeyError:
+                    argv[param] = ""
 
         return argv
 
@@ -244,7 +256,10 @@ class UsernamePasswordMako(UserAuthnMethod):
                 _qp = _dict["query"][0]
             except KeyError:
                 _qp = ""
-            return_to = self.generateReturnUrl(self.return_to, _qp)
+            try:
+                return_to = self.generate_return_url(kwargs["return_to"], _qp)
+            except KeyError:
+                return_to = self.generate_return_url(self.return_to, _qp)
             resp = Redirect(return_to, headers=[cookie])
 
         return resp

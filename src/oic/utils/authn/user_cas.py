@@ -160,11 +160,11 @@ class CasAuthnMethod(UserAuthnMethod):
                 pass
             uid = self.handle_callback(_dict[self.CONST_TICKET],
                                        self.get_service_url(nonce, acr))
-            if uid is None or len(uid) == 0:
+            if uid is None or uid == "":
                 logger.info('Someone tried to login, but was denied by CAS!')
                 return Unauthorized("You are not authorized!")
             cookie = self.create_cookie(uid, "casm")
-            return_to = self.generateReturnUrl(self.return_to, uid)
+            return_to = self.generate_return_url(self.return_to, uid)
             if '?' in return_to:
                 return_to += "&"
             else:
