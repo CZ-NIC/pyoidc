@@ -4,6 +4,7 @@
 baseurl = "https://localhost"
 #baseurl = "https://lingon.ladok.umu.se"
 issuer = "%s:%%d" % baseurl
+
 keys = {
     "RSA": {
         "key": "cp_keys/key.pem",
@@ -11,24 +12,25 @@ keys = {
     }
 }
 
-CAS_SERVER  = "https://cas.umu.se"
 SERVICE_URL = "%s/verify" % issuer
 
 #Only Username and password.
-AUTHORIZATION = {
-    #"CAS" : {"ACR": "CAS", "WEIGHT": 1, "URL": SERVICE_URL},
+AUTHENTICATION = {
     "UserPassword" : {"ACR": "PASSWORD", "WEIGHT": 1, "URL": SERVICE_URL}
 }
 
 COOKIENAME= 'pyoic'
 COOKIETTL = 4*60 # 4 hours
 SYM_KEY = "SoLittleTime,Got"
+
 SERVER_CERT = "certs/server.crt"
 SERVER_KEY = "certs/server.key"
 #CERT_CHAIN="certs/chain.pem"
 CERT_CHAIN = None
 
 # =======  SIMPLE DATABASE ==============
+
+USERINFO = "SIMPLE"
 
 USERDB = {
     "diana": {
@@ -73,40 +75,3 @@ USERDB = {
     }
 }
 
-# =======  DISTRIBUTED CLAIMS ===========
-
-#CLAIMS_PROVIDER = "https://localhost:8093/"
-#
-#CLIENT_INFO = {
-#    CLAIMS_PROVIDER: {
-#        "userclaims_endpoint":"%suserclaims" % CLAIMS_PROVIDER,
-#        "client_id": "client_1",
-#        "client_secret": "hemlig",
-#        "x509_url": "%scp_keys/cert.pem" % CLAIMS_PROVIDER,
-#        "jwk_url": "%scp_keys/pub.jwk" % CLAIMS_PROVIDER,
-#    }
-#}
-#
-#DISTDB = USERDB.copy()
-#DISTDB["babs"]["_external_"] = {CLAIMS_PROVIDER: ["geolocation"]}
-#DISTDB["upper"]["_external_"] = {CLAIMS_PROVIDER: ["geolocation"]}
-
-# ============= LDAP ==============
-
-LDAP = {
-    "uri": "ldaps://ldap.umu.se",
-    "base": "dc=umu, dc=se",
-    "filter_pattern": "(uid=%s)",
-    "user": "",
-    "passwd": "",
-    "attr": ["eduPersonScopedAffiliation", "eduPersonAffiliation"],
-}
-
-LDAP_EXTRAVALIDATION = {
-    "verify_attr": "eduPersonAffiliation",
-    "verify_attr_valid": ['employee', 'staff', 'student']
-}
-
-USERINFO = "SIMPLE"
-#USERINFO = "DISTRIBUTED"
-#USERINFO = "LDAP"
