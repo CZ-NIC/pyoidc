@@ -1,0 +1,10 @@
+{
+    "baseurl":"https://localhost:8093",
+    "issuer": "https://www.kodtest.se/rolandsCP",
+    "keys": {
+        "rsa": {
+            "key":"cp_keys/key.pem",
+            "jwk": "cp_keys/pub.jwk",
+            "cert": "cp_keys/cert.pem"
+    }}
+}
