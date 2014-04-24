@@ -34,7 +34,7 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires = ['requests', "pycrypto", "cherrypy", "mako",
-                        "pyjwkest", "beaker"],
+                        "pyjwkest", "beaker", "alabaster"],
 
     zip_safe=False,
 )
