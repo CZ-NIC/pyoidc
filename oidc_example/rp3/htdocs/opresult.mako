@@ -4,24 +4,36 @@
     import htmlentitydefs
     import re, string
 
-    def createResult(acrvalues, key):
+    # this pattern matches substrings of reserved and non-ASCII characters
+    pattern = re.compile(r"[&<>\"\x80-\xff]+")
+
+    # create character map
+    entity_map = {}
+
+    for i in range(256):
+        entity_map[chr(i)] = "&#%d;" % i
+
+    for entity, char in htmlentitydefs.entitydefs.items():
+        if entity_map.has_key(char):
+            entity_map[char] = "&%s;" % entity
+
+    def escape_entity(m, get=entity_map.get):
+        return string.join(map(get, m.group()), "")
+
+    def escape(string):
+        return pattern.sub(escape_entity, string)
+
+    def create_result(userinfo):
       """
-      Creates a dropdown based on the service configurtion.
+      Creates a display of user information.
       """
-      element = ""
-      for acr in acrvalues:
-        name = acr
-        if acr == "PASSWORD":
-            name = "Username password authentication"
-        elif acr == "CAS":
-            name = "CAS authentication"
-        elif acr == "SAML":
-            name = "SAML IdP authentication"
-        element += "<div class='col-md-12'>"
-        element += "<a href='rpAuth?acr=" + acr + "&key=" + key + "'>"
-        element += name
-        element += "</a>"
-        element += "</div>"
+      element = "<p>You have successfully authenticated!</p>"
+
+      for key, value in userinfo.items():
+          element += "<div class='row'>"
+          element += "<div class='col-md-3'>" +  escape(unicode(key).encode("utf-8")) + "</div>"
+          element += "<div class='col-md-7'>" + escape(unicode(value).encode("utf-8")) + "</div>"
+          element += "</div>"
       return element
 %>
 
@@ -53,8 +65,9 @@
         </div>
         <div class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
-            <li><a href="/">Home</a></li>
-            <li><a href="opbyuid">OP by unique id</a></li>
+          </ul>
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="logout">Logout</a></li>
           </ul>
         </div><!--/.nav-collapse -->
     </div>
@@ -62,8 +75,8 @@
     <div class="container">
      <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
-        <h2>Choose authentication method to use: </h2>
-        ${createResult(acrvalues, key)}
+        <h1>OP result</h1>
+        ${create_result(userinfo)}
       </div>
 
     </div> <!-- /container -->

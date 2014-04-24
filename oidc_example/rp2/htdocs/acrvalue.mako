@@ -1,5 +1,30 @@
 <!DOCTYPE html>
 
+<%!
+    import htmlentitydefs
+    import re, string
+
+    def createResult(acrvalues):
+      """
+      Creates a dropdown based on the service configurtion.
+      """
+      element = ""
+      for acr in acrvalues:
+        name = acr
+        if acr == "PASSWORD":
+            name = "Username password authentication"
+        elif acr == "CAS":
+            name = "CAS authentication"
+        elif acr == "SAML":
+            name = "SAML IdP authentication"
+        element += "<div class='col-md-12'>"
+        element += "<a href='rpAuth?acr=" + acr + "'>"
+        element += name
+        element += "</a>"
+        element += "</div>"
+      return element
+%>
+
 <html>
   <head>
     <title>pyoidc RP</title>
@@ -29,11 +54,7 @@
         <div class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
             <li><a href="/">Home</a></li>
-            <li><a href="oplist">OP list</a></li>
-            <li class="active"><a href="opbyuid">OP by unique id</a></li>
-          </ul>
-          <ul class="nav navbar-nav navbar-right">
-            <li><a href="about">About</a></li>
+            <li><a href="opbyuid">OP by unique id</a></li>
           </ul>
         </div><!--/.nav-collapse -->
     </div>
@@ -41,18 +62,8 @@
     <div class="container">
      <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
-        <h1>OP by UID</h1>
-        <p>
-            You can perform a login to an OP's by using your unique identifier at the OP.
-            A unique identifier is defined as your username@opserver, this may be equal to an e-mail address.
-            A unique identifier is only equal to an e-mail address if the op server is published at the same
-            server address as your e-mail provider.
-        </p>
-        <form class="form-signin" action="rp" method="get">
-            <h2 class="form-signin-heading">Start sign in flow</h2>
-            <input type="text" id="uid" name="uid" class="form-control" placeholder="UID" autofocus>
-            <button class="btn btn-lg btn-primary btn-block" type="submit">Start</button>
-        </form>
+        <h2>Choose authentication method to use: </h2>
+        ${createResult(acrvalues)}
       </div>
 
     </div> <!-- /container -->

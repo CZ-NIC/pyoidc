@@ -1,5 +1,16 @@
-<!DOCTYPE html>
+<%!
+def op_choice(op_list):
+    """
+    Creates a dropdown list of OpenID Connect providers
+    """
+    element = "<select name=\"op\">"
+    for name in op_list:
+        element += "<option value=\"%s\">%s</option>" % (name, name)
+    element += "</select>"
+    return element
+%>
 
+<!DOCTYPE html>
 
 <html>
   <head>
@@ -20,30 +31,22 @@
     <!-- Static navbar -->
     <div class="navbar navbar-default navbar-fixed-top">
         <div class="navbar-header">
-          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
           <a class="navbar-brand" href="#">pyoidc RP</a>
         </div>
-        <div class="navbar-collapse collapse">
-          <ul class="nav navbar-nav">
-            <li><a href="#">Home</a></li>
-            <li><a href="oplist">OP list</a></li>
-            <li><a href="opbyuid">OP by unique id</a></li>
-          </ul>
-          <ul class="nav navbar-nav navbar-right">
-            <li><a class="active" href="about">About</a></li>
-          </ul>
-        </div><!--/.nav-collapse -->
     </div>
 
     <div class="container">
      <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
-        <h1>About</h1>
-        <p>Written for pyoidc for test purposes.</p>
+        <form class="form-signin" action="rp" method="get">
+        <h1>OP by UID</h1>
+          <h3>Chose the OpenID Connect Provider: </h3>
+            <p>From this list</p>
+            ${op_choice(op_list)}
+            <p> OR by providing your unique identifier at the OP. </p>
+            <input type="text" id="uid" name="uid" class="form-control" placeholder="UID" autofocus>
+            <button class="btn btn-lg btn-primary btn-block" type="submit">Start</button>
+        </form>
       </div>
 
     </div> <!-- /container -->
@@ -51,7 +54,6 @@
     <script src="/static/jquery.min.1.9.1.js"></script>
     <!-- Include all compiled plugins (below), or include individual files as needed -->
     <script src="/static/bootstrap/js/bootstrap.min.js"></script>
-
 
   </body>
 </html>

@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html>
   <head>
     <title>pyoidc RP</title>
@@ -27,12 +28,8 @@
         </div>
         <div class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
-            <li class="active"><a href="#">Home</a></li>
-            <li><a href="oplist">OP list</a></li>
-            <li><a href="opbyuid">OP by unique id</a></li>
-          </ul>
-          <ul class="nav navbar-nav navbar-right">
-            <li><a href="about">About</a></li>
+            <li><a href="/">Home</a></li>
+            <li class="active"><a href="opbyuid">OP by unique id</a></li>
           </ul>
         </div><!--/.nav-collapse -->
     </div>
@@ -40,9 +37,18 @@
     <div class="container">
      <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
-        <h1>pyoidc RP</h1>
-        <p>This is a RP that can connect to any kind of OP that supports discovery or one of the
-        OP's configured for this RP.</p>
+        <h1>OP by UID</h1>
+        <p>
+            You can perform a login to an OP's by using your unique identifier at the OP.
+            A unique identifier is defined as your username@opserver, this may be equal to an e-mail address.
+            A unique identifier is only equal to an e-mail address if the op server is published at the same
+            server address as your e-mail provider.
+        </p>
+        <form class="form-signin" action="rp" method="get">
+            <h2 class="form-signin-heading">Start sign in flow</h2>
+            <input type="text" id="uid" name="uid" class="form-control" placeholder="UID" autofocus>
+            <button class="btn btn-lg btn-primary btn-block" type="submit">Start</button>
+        </form>
       </div>
 
     </div> <!-- /container -->
