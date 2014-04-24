@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 import urllib
 from jwkest.jws import alg2keytype
-from beaker.middleware import SessionMiddleware
-from cherrypy import wsgiserver
 from mako.lookup import TemplateLookup
 from urlparse import parse_qs
 
@@ -88,20 +86,12 @@ def operror(environ, start_response, error=None):
     return resp(environ, start_response, **argv)
 
 
-def choose_acr_value(environ, start_response, session):
-    resp = Response(mako_template="acrvalue.mako",
-                    template_lookup=LOOKUP,
-                    headers=[])
-    argv = {
-        "acrvalues": session.getAcrvalues()
-    }
-    return resp(environ, start_response, **argv)
-
-
+#
 def get_id_token(client, session):
     return client.grant[session["state"]].get_id_token()
 
 
+# Produce a JWS, a signed JWT, containing a previously received ID token
 def id_token_as_signed_jwt(client, id_token, alg="RS256"):
     ckey = client.keyjar.get_signing_key(alg2keytype(alg), "")
     _signed_jwt = id_token.to_jwt(key=ckey, algorithm=alg)
@@ -126,26 +116,7 @@ def application(environ, start_response):
 
     query = parse_qs(environ["QUERY_STRING"])
 
-    if path == "logout":
-        client = CLIENTS[session["op"]]
-        logout_url = client.endsession_endpoint
-        try:
-            logout_url += "?" + urllib.urlencode(
-                {"post_logout_redirect_uri": client.registration_response[
-                    "post_logout_redirect_uris"][0]})
-        except KeyError:
-            pass
-        else:
-            _idtoken = get_id_token(client, session)
-            if _idtoken:
-                logout_url += "&" + urllib.urlencode({
-                    "id_token_hint": id_token_as_signed_jwt(client, _idtoken,
-                                                            "HS256")})
-
-        clear_session(session)
-        resp = Redirect(str(logout_url))
-        return resp(environ, start_response)
-    elif path == "rp":
+    if path == "rp":  # After having chosen which OP to authenticate at
         if "uid" in query:
             client = CLIENTS.dynamic_client(query["uid"][0])
             session["op"] = client.provider_info["issuer"]
@@ -159,7 +130,7 @@ def application(environ, start_response):
             raise
         else:
             return resp(environ, start_response)
-    elif path == "authz_cb":
+    elif path == "authz_cb":  # After having authenticated at the OP
         client = CLIENTS[session["op"]]
         try:
             userinfo = client.callback(query)
@@ -169,18 +140,43 @@ def application(environ, start_response):
             raise
         else:
             return opresult(environ, start_response, userinfo)
+    elif path == "logout":  # After the user has pressed the logout button
+        client = CLIENTS[session["op"]]
+        logout_url = client.endsession_endpoint
+        try:
+            # Specify to which URL the OP should return the user after
+            # log out. That URL must be registered with the OP at client
+            # registration.
+            logout_url += "?" + urllib.urlencode(
+                {"post_logout_redirect_uri": client.registration_response[
+                    "post_logout_redirect_uris"][0]})
+        except KeyError:
+            pass
+        else:
+            # If there is an ID token send it along as a id_token_hint
+            _idtoken = get_id_token(client, session)
+            if _idtoken:
+                logout_url += "&" + urllib.urlencode({
+                    "id_token_hint": id_token_as_signed_jwt(client, _idtoken,
+                                                            "HS256")})
+
+        clear_session(session)
+        resp = Redirect(str(logout_url))
+        return resp(environ, start_response)
 
     return opchoice(environ, start_response, CLIENTS)
 
 
 if __name__ == '__main__':
-    from oidc import OIDCClients, OIDCError
+    from oidc import OIDCClients
+    from oidc import OIDCError
+    from beaker.middleware import SessionMiddleware
+    from cherrypy import wsgiserver
     import conf
 
     session_opts = {
         'session.type': 'memory',
         'session.cookie_expires': True,
-        #'session.data_dir': './data',
         'session.auto': True,
         'session.timeout': 900
     }

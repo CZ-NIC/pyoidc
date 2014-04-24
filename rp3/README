@@ -1,0 +1,43 @@
+A simple but fully functioning OpenID Connect Relying Party implementation.
+
+Configuration
+=============
+
+This is the first thing you have to deal with. conf.py.example contains a
+boilerplate for you to modify to your liking.
+
+BASE and PORT should be obvious, it's where the RP resides.
+
+SERVER_KEY, SERVER_CERT and CA_BUNDLE are used for TLS/SSL.
+
+ME is information that is registered with the OP on dynamic client
+registration. There are lots more values that you can register, a list can be
+found in the standard
+http://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
+redirect_uris is the only one that is required all the rest are optional.
+
+BEHAVIOUR specifies parameters to the Authentication Request.
+If response_types are omitted in ME (which it is in the example) then the
+default is that the RP will only use the code response type.
+
+CLIENTS is a list of known OPs with their behaviour and one entry for
+uknown OPs. For unknown OPs it is assumed that discovery and registration can
+be performed dynamically.
+If everything is done dynamically then there are three stages that are performed:
+
+1) Using webfinger to find the publisher of the Provider Information
+2) Asking for the Provider Information
+3) Registering the Client with the OP
+
+For different reasons OPs can decide not to support one or more of these.
+If they don't the the information has to be found in some out-of-band way
+and entered into the configuration.
+
+If (1) is not supported a srv_discovery_url has to be provided.
+If (2) is not supported provider_info has to be provided.
+If (3) is not supported client_registration has to be provided.
+
+If (3) is supported you have to provide client_info which is the information
+that is going to be registered with the OP. This allows you to register
+different information with different OPs.
+
