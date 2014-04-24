@@ -62,7 +62,7 @@ class CasAuthnMethod(UserAuthnMethod):
 
         :rtype : Response
         :param query: All query parameters to be added to the return_to URL
-            after successful authentication.
+        after successful authentication.
         :return: A redirect response to the CAS server.
         """
         try:
@@ -133,8 +133,7 @@ class CasAuthnMethod(UserAuthnMethod):
         :param cookie: Cookies sent with the request.
         :param kwargs: Any other parameters.
         :return: If the authentication was successful: a redirect to the
-        return_to url.
-                 Otherwise a unauthorized response.
+        return_to url. Otherwise a unauthorized response.
         :raise: ValueError
         """
         logger.debug("verify(%s)" % request)

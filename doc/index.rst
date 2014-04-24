@@ -12,7 +12,14 @@ And as a side effect a fairly complete implementation of OAuth2.0.
 .. toctree::
    :maxdepth: 1
 
+   howto/index
+   install
    oic
+   oic.oic
+   oic.oauth2
+   oic.utils.authn
+   oic.utils
+   oic.utils.userinfo
 
 
 Indices and tables

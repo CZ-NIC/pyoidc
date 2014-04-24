@@ -232,7 +232,7 @@ class Provider(AProvider):
         Pick the sector id given a number of factors
         :param redirect_uri: The redirect_uri used
         :param client_info: Information provided by the client in the
-          client registration
+        client registration
         :return: A sector_id or None
         """
 

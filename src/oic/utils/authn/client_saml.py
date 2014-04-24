@@ -1,3 +1,7 @@
+import base64
+from oic.utils.authn.client import ClientAuthnMethod
+from oic.utils.authn.client import CLIENT_AUTHN_METHOD
+
 __author__ = 'rolandh'
 
 SAML2_BEARER_ASSERTION_TYPE = \
@@ -5,7 +9,9 @@ SAML2_BEARER_ASSERTION_TYPE = \
 
 try:
     from saml2.saml import assertion_from_string
-
+except ImportError:
+    pass
+else:
     class SAML2AuthnMethod(ClientAuthnMethod):
         """
         Authenticating clients using the SAML2 assertion profile
@@ -41,5 +47,3 @@ try:
                     audience.append(aud)
 
     CLIENT_AUTHN_METHOD["saml2_bearer"] = SAML2AuthnMethod
-except ImportError:
-    pass

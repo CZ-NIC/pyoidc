@@ -65,16 +65,17 @@ def factory(kaka, sdb, config):
 
 def build_userinfo_claims(claims, sformat="signed", locale="us-en"):
     """
-    config example:
-    "userinfo":{
-         "name": {"essential": true},
-         "nickname": null,
-         "email": {"essential": true},
-         "email_verified": {"essential": true},
-         "picture": null
-    }
+    config example::
+
+        "userinfo":{
+            "name": {"essential": true},
+            "nickname": null,
+            "email": {"essential": true},
+            "email_verified": {"essential": true},
+            "picture": null
+        }
+
     """
-    #return UserInfoClaim(claims=claim, format=sformat, locale=locale)
     return Claims(format=sformat, **claims)
 
 

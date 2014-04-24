@@ -738,7 +738,7 @@ class Client(oauth2.Client):
         :param issuer: The one I thought should be the issuer of the config
         :param keys: Should I deal with keys
         :param endpoints: Should I deal with endpoints, that is store them
-            as attributes in self.
+        as attributes in self.
         """
 
         if "issuer" in pcr:

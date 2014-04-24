@@ -172,9 +172,10 @@ def add_duration(tid, duration):
 def time_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
                     minutes=0, hours=0, weeks=0):
     """
-    format of timedelta:
+    format of timedelta::
         timedelta([days[, seconds[, microseconds[, milliseconds[,
-                    minutes[, hours[, weeks]]]]]]])
+        minutes[, hours[, weeks]]]]]]])
+
     :return: UTC time
     """
     delta = timedelta(days, seconds, microseconds, milliseconds,
@@ -185,9 +186,9 @@ def time_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
 def time_a_while_ago(days=0, seconds=0, microseconds=0, milliseconds=0,
                      minutes=0, hours=0, weeks=0):
     """
-    format of timedelta:
+    format of timedelta::
         timedelta([days[, seconds[, microseconds[, milliseconds[,
-                    minutes[, hours[, weeks]]]]]]])
+        minutes[, hours[, weeks]]]]]]])
     """
     delta = timedelta(days, seconds, microseconds, milliseconds,
                       minutes, hours, weeks)
@@ -197,9 +198,9 @@ def time_a_while_ago(days=0, seconds=0, microseconds=0, milliseconds=0,
 def in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
                minutes=0, hours=0, weeks=0, time_format=TIME_FORMAT):
     """
-    format of timedelta:
+    format of timedelta::
         timedelta([days[, seconds[, microseconds[, milliseconds[,
-                    minutes[, hours[, weeks]]]]]]])
+        minutes[, hours[, weeks]]]]]]])
     """
     if not time_format:
         time_format = TIME_FORMAT

@@ -229,10 +229,10 @@ class UsernamePasswordMako(UserAuthnMethod):
         """
         Verifies that the given username and password was correct
         :param request: Either the query part of a URL a urlencoded
-            body of a HTTP message or a parse such.
+        body of a HTTP message or a parse such.
         :param kwargs: Catch whatever else is sent.
         :return: redirect back to where ever the base applications
-            wants the user after authentication.
+        wants the user after authentication.
         """
 
         logger.debug("verify(%s)" % request)
