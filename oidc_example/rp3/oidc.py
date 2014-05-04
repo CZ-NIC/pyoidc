@@ -187,12 +187,12 @@ class OIDCClients(object):
         elif _key_set == {"provider_info", "client_registration"}:
             client.provider_info = ProviderConfigurationResponse(
                 **kwargs["provider_info"])
-            client.store_registration_info = RegistrationResponse(
-                **kwargs["client_registration"])
+            client.store_registration_info(RegistrationResponse(
+                    **kwargs["client_registration"]))
         elif _key_set == {"srv_discovery_url", "client_registration"}:
             _ = client.provider_config(kwargs["srv_discovery_url"])
-            client.store_registration_info = RegistrationResponse(
-                **kwargs["client_registration"])
+            client.store_registration_info(RegistrationResponse(
+                    **kwargs["client_registration"]))
         else:
             raise Exception("Configuration error ?")
 
