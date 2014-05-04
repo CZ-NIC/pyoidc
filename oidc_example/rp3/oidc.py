@@ -180,13 +180,15 @@ class OIDCClients(object):
             _ = client.register(client.provider_info["registration_endpoint"],
                                 **kwargs["client_info"])
         elif _key_set == {"provider_info", "client_info"}:
-            client.provider_info = ProviderConfigurationResponse(
-                **kwargs["provider_info"])
+            client.handle_provider_config(
+                ProviderConfigurationResponse(**kwargs["provider_info"]),
+                kwargs["provider_info"]["issuer"])
             _ = client.register(client.provider_info["registration_endpoint"],
                                 **kwargs["client_info"])
         elif _key_set == {"provider_info", "client_registration"}:
-            client.provider_info = ProviderConfigurationResponse(
-                **kwargs["provider_info"])
+            client.handle_provider_config(
+                ProviderConfigurationResponse(**kwargs["provider_info"]),
+                kwargs["provider_info"]["issuer"])
             client.store_registration_info(RegistrationResponse(
                     **kwargs["client_registration"]))
         elif _key_set == {"srv_discovery_url", "client_registration"}:
