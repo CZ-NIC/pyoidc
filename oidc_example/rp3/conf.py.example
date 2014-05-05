@@ -39,6 +39,7 @@ CLIENTS = {
             "client_id": "abcdefgh",
             "client_secret": "123456789",
             "redirect_uris": ["https://rp.example.com/authn_cb"],
+            "token_endpoint_auth_method": "client_secret_post",
         }
     },
     # Does not support OP information lookup but dynamic client registration
@@ -77,6 +78,7 @@ CLIENTS = {
             "client_id": "abcdefg",
             "client_secret": "123456789",
             "redirect_uris": ["https://rp.example.com/authn_cb"],
+            "token_endpoint_auth_method": "client_secret_post",
         }
     },
 }

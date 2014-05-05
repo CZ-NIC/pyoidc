@@ -89,7 +89,7 @@ class Client(oic.Client):
 
                 atresp = self.do_access_token_request(
                     scope="openid", state=authresp["state"], request_args=args,
-                    authn_method="client_secret_post")
+                    authn_method=self.registration_response["token_endpoint_auth_method"])
             except Exception as err:
                 logger.error("%s" % err)
                 raise
