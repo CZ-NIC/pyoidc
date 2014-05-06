@@ -814,7 +814,8 @@ def test_client_secret_basic():
     csb = ClientSecretBasic(client)
     http_args = csb.construct(cis)
 
-    assert http_args == {"auth": ("A", "boarding pass")}
+    assert http_args == {"headers": {'Authorization': 'Basic %s'
+                                     % base64.b64encode('A:boarding pass')}}
 
 
 def test_bearer_header():
