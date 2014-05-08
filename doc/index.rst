@@ -14,6 +14,7 @@ And as a side effect a fairly complete implementation of OAuth2.0.
 
    howto/index
    install
+   examples/index
    oic
    oic.oic
    oic.oauth2

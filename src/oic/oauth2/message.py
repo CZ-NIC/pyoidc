@@ -587,7 +587,7 @@ class Message(object):
 
     def request(self, location, fragment_enc=False):
         if fragment_enc:
-            return "%s#%s" % (location, self.to_urlencoded())
+            return "%s?%s" % (location, self.to_urlencoded())
         else:
             if "?" in location:
                 return "%s&%s" % (location, self.to_urlencoded())
