@@ -5,7 +5,7 @@ from oic.utils.keystore import KeyStore, x509_rsa_loads
 
 __author__ = 'rohe0002'
 
-def main(x509_file, out="keys.jwk"):
+def main(x509_file, out="cp_keys.jwk"):
     pb = PBase()
     ks = KeyStore(pb.http_request)
 

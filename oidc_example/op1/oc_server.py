@@ -610,7 +610,7 @@ if __name__ == '__main__':
             pass
 
         for b in OAS.keyjar[""]:
-            LOGGER.info("OC3 server keys: %s" % b)
+            LOGGER.info("OC3 server cp_keys: %s" % b)
     except Exception, err:
         LOGGER.error("Key setup failed: %s" % err)
         OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
@@ -626,7 +626,7 @@ if __name__ == '__main__':
                                                      config.CLIENT_INFO)
 
     LOGGER.debug("URLS: '%s" % (URLS,))
-    # Add the claims providers keys
+    # Add the claims providers cp_keys
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
 
     SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(config.SERVER_CERT,

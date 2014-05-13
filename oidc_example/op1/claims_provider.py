@@ -243,8 +243,8 @@ if __name__ == '__main__':
     OAS = ClaimsServer(config["issuer"], SessionDB(), cdb, userinfo,
                        verify_client)
 
-    if "keys" in config:
-        for typ, info in config["keys"].items():
+    if "cp_keys" in config:
+        for typ, info in config["cp_keys"].items():
             OAS.keyjar.add_kb("", keybundle_from_local_file(info["key"], "rsa",
                                                             ["ver", "sig"]))
             try:
