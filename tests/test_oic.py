@@ -55,14 +55,14 @@ CLIENT_ID = "client_1"
 
 KC_SYM_S = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "sig"})
 
-_key = rsa_load("../oc3/certs/mycert.key")
+_key = rsa_load("../oidc_example/op1/certs/mycert.key")
 KC_RSA = KeyBundle({"key": _key, "kty": "RSA", "use": "sig"})
 
 KEYJ = KeyJar()
 KEYJ[""] = [KC_RSA, KC_SYM_S]
 KEYJ["client_1"] = [KC_SYM_S]
 
-IDTOKEN = IdToken(iss="http://oic.example.org/", sub="user_id",
+IDTOKEN = IdToken(iss="http://oic.example.org/", sub="sub",
                   aud=CLIENT_ID, exp=utc_time_sans_frac() + 86400,
                   nonce="N0nce",
                   iat=time.time())

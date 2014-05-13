@@ -120,9 +120,9 @@ def replace_format_handler(logger, log_format="CPC"):
     return logger
 
 # #noinspection PyUnusedLocal
-# def simple_user_info(oicsrv, userdb, user_id, client_id="",
+# def simple_user_info(oicsrv, userdb, sub, client_id="",
 #                      user_info_claims=None):
-#     result = {"user_id": "diana"}
+#     result = {"sub": "diana"}
 #     return OpenIDSchema(**result)
 
 # ----------------------------------------------------------------------------
@@ -152,7 +152,7 @@ def safe(environ, start_response, logger):
         resp = Unauthorized("Not authorized")
         return resp(environ, start_response)
 
-    info = "'%s' secrets" % _sinfo["user_id"]
+    info = "'%s' secrets" % _sinfo["sub"]
     resp = Response(info)
     return resp(environ, start_response)
 

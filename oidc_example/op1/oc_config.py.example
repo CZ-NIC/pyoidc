@@ -32,7 +32,7 @@ CERT_CHAIN = None
 
 USERDB = {
     "diana": {
-        "user_id": "dikr0001",
+        "sub": "dikr0001",
         "name": "Diana Krall",
         "given_name": "Diana",
         "family_name": "Krall",
@@ -48,7 +48,7 @@ USERDB = {
         },
     },
     "babs": {
-        "user_id": "babs0001",
+        "sub": "babs0001",
         "name": "Barbara J Jensen",
         "given_name": "Barbara",
         "family_name": "Jensen",
@@ -64,7 +64,7 @@ USERDB = {
         },
     },
     "upper": {
-        "user_id": "uppe0001",
+        "sub": "uppe0001",
         "name": "Upper Crust",
         "given_name": "Upper",
         "family_name": "Crust",

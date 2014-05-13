@@ -83,7 +83,7 @@ def safe(environ, start_response, logger):
         resp = Unauthorized("Not authorized")
         return resp(environ, start_response)
 
-    info = "'%s' secrets" % _sinfo["user_id"]
+    info = "'%s' secrets" % _sinfo["sub"]
     resp = Response(info)
     return resp(environ, start_response)
 

@@ -64,7 +64,7 @@ class Session(object):
         self.getState()
         self.getNonce()
         self.getClient()
-        self.getAcrvalues()
+        self.get_acr_values()
 
 
     def clearSession(self):
@@ -108,16 +108,16 @@ class Session(object):
     def setProvider(self, value):
         self.session["provider"] = value
 
-    def getAcrvalues(self):
+    def get_acr_values(self):
         return self.session.get("acrvalues", None)
 
-    def setAcrvalues(self, value):
+    def set_acr_values(self, value):
         self.session["acrvalues"] = value
 
-    def getAcrValue(self, server):
+    def get_acr_value(self, server):
         return self.session.get(server + "ACR_VALUE", None)
 
-    def setAcrValue(self, server, acr):
+    def set_acr_value(self, server, acr):
         self.session[server + "ACR_VALUE"] = acr
 
 #noinspection PyUnresolvedReferences
@@ -158,7 +158,7 @@ def chooseAcrValue(environ, start_response, session):
                     template_lookup=LOOKUP,
                     headers=[])
     argv = {
-        "acrvalues": session.getAcrvalues()
+        "acrvalues": session.get_acr_values()
     }
     return resp(environ, start_response, **argv)
 
@@ -214,7 +214,7 @@ def application(environ, start_response):
 
     if path == "rpAuth":
     # Only called if multiple arc_values (that is authentications) exists.
-        if "acr" in query and query["acr"][0] in session.getAcrvalues():
+        if "acr" in query and query["acr"][0] in session.get_acr_values():
             func = getattr(RP, "create_authnrequest")
             return func(environ, SERVER_ENV, start_response, session,
                         query["acr"][0])
