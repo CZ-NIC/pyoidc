@@ -24,7 +24,8 @@ class Client(oic.Client):
                  verify_ssl=True, behaviour=None):
         oic.Client.__init__(self, client_id, ca_certs, client_prefs,
                             client_authn_method, keyjar, verify_ssl)
-        self.behaviour = behaviour
+        if behaviour:
+            self.behaviour = behaviour
 
     def create_authn_request(self, session, acr_value=None):
         session["state"] = rndstr()
@@ -194,7 +195,7 @@ class OIDCClients(object):
         elif _key_set == {"srv_discovery_url", "client_registration"}:
             _ = client.provider_config(kwargs["srv_discovery_url"])
             client.store_registration_info(RegistrationResponse(
-                    **kwargs["client_registration"]))
+                **kwargs["client_registration"]))
         else:
             raise Exception("Configuration error ?")
 
@@ -207,9 +208,15 @@ class OIDCClients(object):
             return self.client[issuer]
         else:
             # Gather OP information
-            _ = client.provider_config(issuer)
+            _pcr = client.provider_config(issuer)
             # register the client
-            _ = client.register(**self.config.CLIENTS[""]["client_info"])
+            _ = client.register(_pcr["registration_endpoint"],
+                                **self.config.CLIENTS[""]["client_info"])
+            try:
+                client.behaviour.update(**self.config.CLIENTS[""]["behaviour"])
+            except KeyError:
+                pass
+
             self.client[issuer] = client
             return client
 
