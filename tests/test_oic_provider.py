@@ -76,8 +76,8 @@ KC_SYM = KeyBundle([{"kty": "oct", "key": CLIENT_SECRET, "use": "ver"},
 KC_SYM2 = KeyBundle([{"kty": "oct", "key": "drickyoughurt", "use": "sig"},
                       {"kty": "oct", "key": "drickyoughurt", "use": "ver"}])
 
-KC_RSA = keybundle_from_local_file("../oc3/certs/mycert.key", "RSA",
-                                   ["ver", "sig"])
+KC_RSA = keybundle_from_local_file("../oidc_example/op1/certs/mycert.key",
+                                   "RSA", ["ver", "sig"])
 
 KEYJAR = KeyJar()
 KEYJAR[CLIENT_ID] = [KC_SYM, KC_RSA]
@@ -395,11 +395,11 @@ def test_token_endpoint():
                                    client_id=CLIENT_ID)
 
     _sdb = server.sdb
-    sid = _sdb.token.key(user="user_id", areq=authreq)
+    sid = _sdb.token.key(user="sub", areq=authreq)
     access_grant = _sdb.token(sid=sid)
     _sdb[sid] = {
         "oauth_state": "authz",
-        "sub": "user_id",
+        "sub": "sub",
         "authzreq": "",
         "client_id": CLIENT_ID,
         "code": access_grant,
@@ -431,11 +431,11 @@ def test_token_endpoint_unauth():
                                    client_id="client_1")
 
     _sdb = server.sdb
-    sid = _sdb.token.key(user="user_id", areq=authreq)
+    sid = _sdb.token.key(user="sub", areq=authreq)
     access_grant = _sdb.token(sid=sid)
     _sdb[sid] = {
         "oauth_state": "authz",
-        "sub": "user_id",
+        "sub": "sub",
         "authzreq": "",
         "client_id": "client_1",
         "code": access_grant,
@@ -482,7 +482,7 @@ def test_idtoken():
                                 redirect_uri="http://example.com/authz",
                                 scope=["openid"], state="state000")
 
-    sid = server.sdb.create_authz_session("user_id", AREQ)
+    sid = server.sdb.create_authz_session("sub", AREQ)
     session = server.sdb[sid]
 
     id_token = server.id_token_as_signed_jwt(session)

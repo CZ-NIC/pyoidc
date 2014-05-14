@@ -25,13 +25,9 @@ __author__ = 'rohe0002'
 import logging
 import re
 
-from logging.handlers import BufferingHandler
-
 from oic.oic.provider import Provider
 from oic.oic.provider import EndSessionEndpoint
-
 from oic.utils.http_util import *
-from oic.oic.message import ProviderConfigurationResponse
 
 from mako.lookup import TemplateLookup
 
@@ -49,81 +45,16 @@ hdlr.setFormatter(base_formatter)
 LOGGER.addHandler(hdlr)
 LOGGER.setLevel(logging.DEBUG)
 
-_formatter = logging.Formatter(CPC)
-fil_handl = logging.FileHandler(LOGFILE_NAME)
-fil_handl.setFormatter(_formatter)
-
-buf_handl = BufferingHandler(10000)
-buf_handl.setFormatter(_formatter)
-
-HANDLER = {"CPC-file": fil_handl, "CPC-buffer": buf_handl}
-ACTIVE_HANDLER = "BASE"
 URLMAP = {}
-
 NAME = "pyoic"
-
 OAS = None
 
-PASSWD = {"diana": "krall",
-          "babs": "howes",
-          "upper": "crust",
-          "rohe0002": "StevieRay",
-          "haho0032": "qwerty"} #haho0032@hashog.umdc.umu.se
+PASSWD = {
+    "diana": "krall",
+    "babs": "howes",
+    "upper": "crust"
+}
 
-
-#noinspection PyUnusedLocal
-def devnull(txt):
-    pass
-
-
-def create_session_logger(log_format="CPC"):
-    global HANDLER
-
-    logger = logging.getLogger("")
-    try:
-        logger.addHandler(HANDLER["%s-buffer" % log_format])
-    except KeyError:
-        _formatter = logging.Formatter(log_format)
-        handl = BufferingHandler(10000)
-        handl.setFormatter(_formatter)
-        logger.addHandler(handl)
-
-    logger.setLevel(logging.INFO)
-
-    return logger
-
-
-def replace_format_handler(logger, log_format="CPC"):
-    global ACTIVE_HANDLER
-    global HANDLER
-    global LOGFILE_NAME
-
-    if ACTIVE_HANDLER == log_format:
-        return logger
-
-    _handler = HANDLER["%s-file" % log_format]
-    if _handler in logger.handlers:
-        return logger
-
-    # remove all present handler
-    logger.handlers = []
-
-    try:
-        logger.addHandler(HANDLER["%s-file" % log_format])
-    except KeyError:
-        _formatter = logging.Formatter(log_format)
-        handl = logging.FileHandler(LOGFILE_NAME)
-        handl.setFormatter(_formatter)
-        logger.addHandler(handl)
-
-    ACTIVE_HANDLER = format
-    return logger
-
-# #noinspection PyUnusedLocal
-# def simple_user_info(oicsrv, userdb, sub, client_id="",
-#                      user_info_claims=None):
-#     result = {"sub": "diana"}
-#     return OpenIDSchema(**result)
 
 # ----------------------------------------------------------------------------
 
@@ -248,16 +179,19 @@ def endsession(environ, start_response, logger):
     return wsgi_wrapper(environ, start_response, _oas.endsession_endpoint,
                         logger=logger)
 
+
 #noinspection PyUnusedLocal
 def meta_info(environ, start_response, logger):
     """
-    Returns something like this
-     {"links":[
-        {
-            "rel":"http://openid.net/specs/connect/1.0/issuer",
-            "href":"https://openidconnect.info/"
-        }
-     ]}
+    Returns something like this::
+
+         {"links":[
+             {
+                "rel":"http://openid.net/specs/connect/1.0/issuer",
+                "href":"https://openidconnect.info/"
+             }
+         ]}
+
     """
     pass
 
@@ -317,14 +251,12 @@ def static(environ, start_response, logger, path):
 from oic.oic.provider import AuthorizationEndpoint
 from oic.oic.provider import TokenEndpoint
 from oic.oic.provider import UserinfoEndpoint
-#from oic.oic.provider import CheckIDEndpoint
 from oic.oic.provider import RegistrationEndpoint
 
 ENDPOINTS = [
     AuthorizationEndpoint(authorization),
     TokenEndpoint(token),
     UserinfoEndpoint(userinfo),
-    #CheckIDEndpoint(check_id),
     RegistrationEndpoint(registration),
     EndSessionEndpoint(endsession),
 ]
@@ -419,59 +351,6 @@ def application(environ, start_response):
 
 # ----------------------------------------------------------------------------
 
-class TestProvider(Provider):
-    #noinspection PyUnusedLocal
-    def __init__(self, name, sdb, cdb, function, userdb, urlmap=None,
-                 debug=0, ca_certs="", jwt_keys=None):
-        Provider.__init__(self, name, sdb, cdb, function, userdb, urlmap,
-                          ca_certs, jwt_keys)
-        self.test_mode = True
-        self.trace_log = {}
-        self.sessions = []
-        self.max_sessions = 100
-
-    def dump_tracelog(self, key):
-        tlog = self.trace_log[key]
-        for handler in tlog.handlers:
-            if isinstance(handler, BufferingHandler):
-                arr = []
-                for record in handler.buffer:
-                    arr.append(handler.format(record))
-
-                return "\n".join(arr)
-        return ""
-
-    #noinspection PyUnusedLocal
-    def tracelog_endpoint(self, environ, start_response, logger, **kwargs):
-        handle = kwargs["handle"]
-        tlog = self.trace_log[handle[0]]
-        for handler in tlog.handlers:
-            if isinstance(handler, BufferingHandler):
-                arr = []
-                for record in handler.buffer:
-                    arr.append(handler.format(record))
-
-                resp = Response("\n".join(arr), content="text/plain")
-                return resp(environ, start_response)
-
-        del self.trace_log[handle[0]]
-        self.sessions.remove(handle[0])
-        resp = Response("no info", content="text/plain")
-        return resp(environ, start_response)
-
-    def re_link_log(self, old, new):
-        self.trace_log[new] = self.trace_log[old]
-
-    def new_trace_log(self, key):
-        _log = create_session_logger(key)
-        if len(self.trace_log) > self.max_sessions:
-            # remove the oldest
-            oldest = self.sessions[0]
-            del self.trace_log[oldest]
-            self.sessions = self.sessions[1:]
-        self.trace_log[key] = _log
-        return _log
-
 
 if __name__ == '__main__':
     import argparse
@@ -479,7 +358,6 @@ if __name__ == '__main__':
     import importlib
 
     from cherrypy import wsgiserver
-    #from cherrypy.wsgiserver import ssl_builtin
     from cherrypy.wsgiserver import ssl_pyopenssl
 
     from oic.utils.sdb import SessionDB
@@ -488,10 +366,6 @@ if __name__ == '__main__':
     parser.add_argument('-v', dest='verbose', action='store_true')
     parser.add_argument('-d', dest='debug', action='store_true')
     parser.add_argument('-p', dest='port', default=80, type=int)
-    parser.add_argument('-t', dest='test', action='store_true')
-    parser.add_argument('-X', dest='XpressConnect', action='store_true')
-    parser.add_argument('-A', dest='authn_as', default="")
-    parser.add_argument('-P', dest='provider_conf')
     parser.add_argument('-k', dest='insecure', action='store_true')
     parser.add_argument(dest="config")
     args = parser.parse_args()
@@ -506,46 +380,38 @@ if __name__ == '__main__':
 
     ac = AuthnBroker()
 
-    for authkey, value in config.AUTHORIZATION.items():
+    for authkey, value in config.AUTHENTICATION.items():
         authn = None
-        if "CAS" == authkey:
-           from oic.utils.authn.user_cas import CasAuthnMethod
-           from oic.utils.authn.ldap_member import UserLDAPMemberValidation
-           config.LDAP_EXTRAVALIDATION.update(config.LDAP)
-           authn = CasAuthnMethod(None, config.CAS_SERVER, config.SERVICE_URL,"%s/authorization" % config.issuer,
-                                  UserLDAPMemberValidation(**config.LDAP_EXTRAVALIDATION))
         if "UserPassword" == authkey:
             from oic.utils.authn.user import UsernamePasswordMako
             authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
                                          "%s/authorization" % config.issuer)
         if authn is not None:
-            ac.add(config.AUTHORIZATION[authkey]["ACR"],
-                   authn,
-                   config.AUTHORIZATION[authkey]["WEIGHT"],
-                   config.AUTHORIZATION[authkey]["URL"])
+            ac.add(config.AUTHENTICATION[authkey]["ACR"], authn,
+                   config.AUTHENTICATION[authkey]["WEIGHT"],
+                   config.AUTHENTICATION[authkey]["URL"])
 
     # dealing with authorization
     authz = AuthzHandling()
-    # authz = UserInfoConsent()
-    # User info database
+
+    # Should I care about verifying the certificates used other entities
     if args.insecure:
         kwargs = {"verify_ssl": False}
     else:
         kwargs = {"verify_ssl": True}
 
-    if args.test:
-        URLS.append((r'tracelog', trace_log))
-        OAS = TestProvider(config.issuer, SessionDB(), cdb, ac, None,
-                           authz, config.SYM_KEY)
-    elif args.XpressConnect:
-        from XpressConnect import XpressConnectProvider
+    OAS = Provider(config.issuer, SessionDB(), cdb, ac, None, authz,
+                   verify_client, config.SYM_KEY, **kwargs)
 
-        OAS = XpressConnectProvider(config.issuer, SessionDB(), cdb, ac,
-                                    None, authz, verify_client, config.SYM_KEY)
+    for authn in ac:
+        authn.srv = OAS
+
+    if config.USERINFO == "SIMPLE":
+        # User info is a simple dictionary in this case statically defined in
+        # the configuration file
+        OAS.userinfo = UserInfo(config.USERDB)
     else:
-        OAS = Provider(config.issuer, SessionDB(), cdb, ac, None, authz,
-                       verify_client, config.SYM_KEY, **kwargs)
-
+        raise Exception("Unsupported userinfo source")
 
     try:
         OAS.cookie_ttl = config.COOKIETTL
@@ -560,26 +426,10 @@ if __name__ == '__main__':
     #print URLS
     if args.debug:
         OAS.debug = True
-    if args.test:
-        OAS.test_mode = True
-    else:
-        OAS.test_mode = False
 
-    if args.authn_as:
-        OAS.authn_as = args.authn_as
-
-    if args.provider_conf:
-        prc = ProviderConfigurationResponse().from_json(
-            open(args.provider_conf).read())
-        endpoints = []
-        for key in prc.keys():
-            if key.endswith("_endpoint"):
-                endpoints.append(key)
-    else:
-        endpoints = ENDPOINTS
-
-    add_endpoints(endpoints)
-    OAS.endpoints = endpoints
+    # All endpoints the OpenID Connect Provider should answer on
+    add_endpoints(ENDPOINTS)
+    OAS.endpoints = ENDPOINTS
 
     if args.port == 80:
         OAS.baseurl = config.baseurl
@@ -591,6 +441,7 @@ if __name__ == '__main__':
     if not OAS.baseurl.endswith("/"):
         OAS.baseurl += "/"
 
+    # Add own keys for signing/encrypting JWTs
     try:
         OAS.keyjar[""] = []
         kbl = []
@@ -615,18 +466,7 @@ if __name__ == '__main__':
         LOGGER.error("Key setup failed: %s" % err)
         OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
 
-    if config.USERINFO == "LDAP":
-        from oic.utils.userinfo.ldap_info import UserInfoLDAP
-        OAS.userinfo = UserInfoLDAP(**config.LDAP)
-    elif config.USERINFO == "SIMPLE":
-        OAS.userinfo = UserInfo(config.USERDB)
-    elif config.USERINFO == "DISTRIBUTED":
-        from oic.utils.userinfo.distaggr import DistributedAggregatedUserInfo
-        OAS.userinfo = DistributedAggregatedUserInfo(config.USERDB, OAS,
-                                                     config.CLIENT_INFO)
-
-    LOGGER.debug("URLS: '%s" % (URLS,))
-    # Add the claims providers keys
+    # Setup the web server
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
 
     SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(config.SERVER_CERT,

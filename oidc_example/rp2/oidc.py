@@ -25,7 +25,7 @@ def token_secret_key(sid):
 
 
 SERVICE_NAME = "OIC"
-FLOW_TYPE = "id_token token" #or "code"  # or "token" or id_token code
+FLOW_TYPE = "code"
 
 CLIENT_CONFIG = {}
 
@@ -137,13 +137,14 @@ class OpenIDConnect(object):
                     client = self.static(server_env, callback, logoutCallback, key)
                 client.state = session.getState()
                 session.setClient(client)
-            acr_value = session.getAcrValue(client.authorization_endpoint)
+
+            acr_value = session.get_acr_value(client.authorization_endpoint)
             try:
-                acr_values = client.provider_info[
-                    self.srv_discovery_url]["acr_values_supported"]
-                session.setAcrvalues(acr_values)
+                acr_values = client.provider_info["acr_values_supported"]
+                session.set_acr_values(acr_values)
             except:
-                pass
+                acr_values = None
+
             if acr_value is None and acr_values is not None and len(acr_values) > 1:
                 resp_headers = [("Location", str("/rpAcr"))]
                 start_response("302 Found", resp_headers)
@@ -162,7 +163,7 @@ class OpenIDConnect(object):
     def create_authnrequest(self, environ, server_env, start_response, session, acr_value):
         try:
             client = session.getClient()
-            session.setAcrValue(client.authorization_endpoint, acr_value)
+            session.set_acr_value(client.authorization_endpoint, acr_value)
             request_args = {
                 "response_type": self.flow_type,
                 "scope": server_env["SCOPE"],

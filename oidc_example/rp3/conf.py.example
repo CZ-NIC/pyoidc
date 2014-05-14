@@ -21,11 +21,17 @@ BEHAVIOUR = {
     "scope": ["openid", "profile", "email", "address", "phone"],
 }
 
+# The keys in this dictionary are the OPs short user friendly name
+# not the issuer (iss) name.
+
 CLIENTS = {
     # The ones that support webfinger, OP discovery and client registration
     # This is the default, any client that is not listed here is expected to
     # support dynamic discovery and registration.
-    "": {"client_info": ME},
+    "": {
+        "client_info": ME,
+        "behaviour": BEHAVIOUR
+    },
     # No webfinger support, but OP information lookup and client registration
     "xenosmilus": {
         "srv_discovery_url": "https://xenosmilus2.umdc.umu.se:8091/",

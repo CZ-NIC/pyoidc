@@ -112,7 +112,7 @@ def test_update():
 
 def test_create_authz_session():
     sdb = SessionDB()
-    sid = sdb.create_authz_session("user_id", AREQ)
+    sid = sdb.create_authz_session("sub", AREQ)
 
     info = sdb[sid]
     print info
@@ -120,24 +120,24 @@ def test_create_authz_session():
 
     sdb = SessionDB()
     # Missing nonce property
-    sid = sdb.create_authz_session("user_id", OAUTH2_AREQ)
+    sid = sdb.create_authz_session("sub", OAUTH2_AREQ)
     info = sdb[sid]
     print info
     assert info["oauth_state"] == "authz"
 
-    sid2 = sdb.create_authz_session("user_id", AREQN)
+    sid2 = sdb.create_authz_session("sub", AREQN)
 
     info = sdb[sid2]
     print info
     assert info["nonce"] == "something"
 
-    sid3 = sdb.create_authz_session("user_id", AREQN, id_token="id_token")
+    sid3 = sdb.create_authz_session("sub", AREQN, id_token="id_token")
 
     info = sdb[sid3]
     print info
     assert info["id_token"] == "id_token"
 
-    sid4 = sdb.create_authz_session("user_id", AREQN, oidreq=OIDR)
+    sid4 = sdb.create_authz_session("sub", AREQN, oidreq=OIDR)
 
     info = sdb[sid4]
     print info
@@ -147,7 +147,7 @@ def test_create_authz_session():
 
 def test_create_authz_session_with_sector_id():
     sdb = SessionDB(seed="foo")
-    uid = "user_id"
+    uid = "sub"
     sid5 = sdb.create_authz_session(uid, AREQN, oidreq=OIDR)
     sdb.do_userid(sid5, uid, "http://example.com/si.jwt", "pairwise")
 
@@ -155,20 +155,20 @@ def test_create_authz_session_with_sector_id():
     print info_1
     assert "id_token" not in info_1
     assert "oidreq" in info_1
-    assert info_1["sub"] != "user_id"
+    assert info_1["sub"] != "sub"
     user_id1 = info_1["sub"]
 
     sdb.do_userid(sid5, uid, "http://example.net/si.jwt", "pairwise")
 
     info_2 = sdb[sid5]
     print info_2
-    assert info_2["sub"] != "user_id"
+    assert info_2["sub"] != "sub"
     assert info_2["sub"] != user_id1
 
 
 def test_upgrade_to_token():
     sdb = SessionDB()
-    sid = sdb.create_authz_session("user_id", AREQ)
+    sid = sdb.create_authz_session("sub", AREQ)
     grant = sdb[sid]["code"]
     _dict = sdb.upgrade_to_token(grant)
 
@@ -205,7 +205,7 @@ def test_upgrade_to_token():
 
 def test_refresh_token():
     sdb = SessionDB()
-    sid = sdb.create_authz_session("user_id", AREQ)
+    sid = sdb.create_authz_session("sub", AREQ)
     grant = sdb[sid]["code"]
     _dict = sdb.upgrade_to_token(grant)
     dict1 = _dict.copy()
@@ -223,7 +223,7 @@ def test_refresh_token():
 
 def test_is_valid():
     sdb = SessionDB()
-    sid = sdb.create_authz_session("user_id", AREQ)
+    sid = sdb.create_authz_session("sub", AREQ)
     grant = sdb[sid]["code"]
 
     assert sdb.is_valid(grant)
@@ -265,7 +265,7 @@ def test_is_valid():
 
 def test_revoke_token():
     sdb = SessionDB()
-    sid = sdb.create_authz_session("user_id", AREQ)
+    sid = sdb.create_authz_session("sub", AREQ)
 
     grant = sdb[sid]["code"]
     _dict = sdb.upgrade_to_token(grant)
@@ -292,7 +292,7 @@ def test_revoke_token():
     # --- new token ----
 
     sdb = SessionDB()
-    sid = sdb.create_authz_session("user_id", AREQ)
+    sid = sdb.create_authz_session("sub", AREQ)
 
     grant = sdb[sid]["code"]
     sdb.revoke_token(grant)

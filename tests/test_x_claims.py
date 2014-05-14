@@ -23,9 +23,9 @@ from oic.oic.claims_provider import ClaimsServer
 
 
 #noinspection PyUnusedLocal
-def user_info(oicsrv, userdb, user_id, client_id="", user_info_claims=None):
+def user_info(oicsrv, userdb, sub, client_id="", user_info_claims=None):
     #print >> sys.stderr, "claims: %s" % user_info_claims
-    identity = userdb[user_id]
+    identity = userdb[sub]
     if user_info_claims:
         result = {}
         for key, restr in user_info_claims["claims"].items():

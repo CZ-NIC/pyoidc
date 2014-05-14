@@ -47,10 +47,10 @@ class DistributedAggregatedUserInfo(UserInfo):
             res[cid] = cc
         return res
 
-    def _collect_distributed(self, srv, cc, user_id, what, alias=""):
+    def _collect_distributed(self, srv, cc, sub, what, alias=""):
 
         try:
-            resp = cc.do_claims_request(request_args={"user_id": user_id,
+            resp = cc.do_claims_request(request_args={"sub": sub,
                                                       "claims_names": what})
         except Exception:
             raise
@@ -129,8 +129,8 @@ class DistributedAggregatedUserInfo(UserInfo):
                             result[key] = val
 
         else:
-            # default is what "openid" demands which is user_id
+            # default is what "openid" demands which is sub
             #result = identity
-            result = {"user_id": userid}
+            result = {"sub": userid}
 
         return OpenIDSchema(**result)

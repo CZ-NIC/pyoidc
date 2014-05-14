@@ -22,8 +22,8 @@ CLIENT_ID = "client_1"
 KC_SYM_VS = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "ver"})
 KC_SYM_S = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "sig"})
 
-KC_RSA = keybundle_from_local_file("../oc3/certs/mycert.key", "rsa",
-                                   ["ver", "sig"])
+KC_RSA = keybundle_from_local_file("../oidc_example/op1/certs/mycert.key",
+                                   "rsa", ["ver", "sig"])
 
 SRVKEYS = KeyJar()
 SRVKEYS[""] = [KC_RSA]

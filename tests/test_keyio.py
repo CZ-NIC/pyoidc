@@ -9,7 +9,7 @@ from oic.utils.keyio import RSAKey
 from jwkest.jws import JWS, NoSuitableSigningKeys, WrongTypeOfKey
 
 
-RSAKEY = "../oc3/certs/mycert.key"
+RSAKEY = "../oidc_example/op1/certs/mycert.key"
 RSA0 = "rsa.key"
 
 
