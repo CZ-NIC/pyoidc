@@ -1181,7 +1181,7 @@ class Provider(AProvider):
                         headers=[("Cache-Control", "no-store")])
 
     def create_providerinfo(self, pcr_class=ProviderConfigurationResponse):
-        _response = pcr_class(
+        _provider_info = pcr_class(
             issuer=self.baseurl,
             token_endpoint_auth_methods_supported=[
                 "client_secret_post", "client_secret_basic",
@@ -1191,6 +1191,7 @@ class Provider(AProvider):
                                       "code token", "code id_token",
                                       "token id_token",
                                       "code token id_token"],
+            response_modes_supported=['query', 'fragment', 'form_post'],
             subject_types_supported=["public", "pairwise"],
             grant_types_supported=[
                 "authorization_code", "implicit",
@@ -1206,34 +1207,34 @@ class Provider(AProvider):
 
         for typ in ["userinfo", "id_token", "request_object",
                     "token_endpoint_auth"]:
-            _response["%s_signing_alg_values_supported" % typ] = sign_algs
+            _provider_info["%s_signing_alg_values_supported" % typ] = sign_algs
 
         algs = jwe.SUPPORTED["alg"]
         for typ in ["userinfo", "id_token", "request_object"]:
-            _response["%s_encryption_alg_values_supported" % typ] = algs
+            _provider_info["%s_encryption_alg_values_supported" % typ] = algs
 
         encs = jwe.SUPPORTED["enc"]
         for typ in ["userinfo", "id_token", "request_object"]:
-            _response["%s_encryption_enc_values_supported" % typ] = encs
+            _provider_info["%s_encryption_enc_values_supported" % typ] = encs
 
         if not self.baseurl.endswith("/"):
             self.baseurl += "/"
 
         #keys = self.keyjar.keys_by_owner(owner=".")
         if self.jwks_uri and self.keyjar:
-            _response["jwks_uri"] = self.jwks_uri
+            _provider_info["jwks_uri"] = self.jwks_uri
 
         #acr_values
         if self.authn_broker:
             acr_values = self.authn_broker.getAcrValuesString()
             if acr_values is not None:
-                _response["acr_values_supported"] = acr_values
+                _provider_info["acr_values_supported"] = acr_values
 
         for endp in self.endp:
             #_log_info("# %s, %s" % (endp, endp.name))
-            _response[endp(None).name] = "%s%s" % (self.baseurl, endp.etype)
+            _provider_info[endp(None).name] = "%s%s" % (self.baseurl, endp.etype)
 
-        return _response
+        return _provider_info
 
     #noinspection PyUnusedLocal
     def providerinfo_endpoint(self, handle="", **kwargs):
