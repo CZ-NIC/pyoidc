@@ -1,20 +1,43 @@
 Setup and run simple RP.
 ========================
 
-Setup:
-******
+Setup RP2:
+**************
 The folder [your path]/pysaml2/oidc_example/rp2 contains a file named conf.py.example
 
-Take the file named **conf.py.example** and rename it **conf.py**
+#. Take the file named **conf.py.example** and rename it **conf.py**
+#. Edit the conf.py
+    #. The most important attributes are BASE and PORT
 
-Run RP:
+Run RP2:
 ********
 Open a Terminal::
 
-    cd [your path]/pyoidc/oidc_example/op1
+    cd [your path]/pyoidc/oidc_example/rp2
     python rp_server.py conf
 
 Note that you should not have the .py extension on the conf.py while running the program
+
+
+Setup RP3:
+**************
+The folder [your path]/pysaml2/oidc_example/rp3 contains a file named conf.py.example
+
+#. Take the file named **conf.py.example** and rename it **conf.py**
+#. Edit the conf.py
+    #. The most important attributes are BASE and PORT
+
+Note: RP3 contains a example of CLIENTS which is a list of known OPs with their behaviour, `read more here <https://github.com/rohe/pyoidc/blob/master/oidc_example/rp3/README>`_
+
+Run RP3:
+********
+Open a Terminal::
+
+    cd [your path]/pyoidc/oidc_example/rp3
+    python rp.py conf
+
+Note that you should not have the .py extension on the conf.py while running the program
+
 
 
 Test the RP and OP:
