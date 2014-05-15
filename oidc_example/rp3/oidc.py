@@ -149,7 +149,7 @@ class OIDCClients(object):
                 _key_set.discard(param)
 
         client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
-                                 behaviour=kwargs["behaviour"], **args)
+                                 behaviour=kwargs["behaviour"], verify_ssl=self.config.VERIFY_SSL, **args)
 
         # The behaviour parameter is not significant for the election process
         _key_set.discard("behaviour")
@@ -202,7 +202,7 @@ class OIDCClients(object):
         return client
 
     def dynamic_client(self, userid):
-        client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD)
+        client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD, verify_ssl=self.config.VERIFY_SSL)
         issuer = client.wf.discovery_query(userid)
         if issuer in self.client:
             return self.client[issuer]

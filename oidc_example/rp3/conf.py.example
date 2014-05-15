@@ -8,6 +8,8 @@ SERVER_KEY = ''
 SERVER_CERT = ''
 CA_BUNDLE = None
 
+VERIFY_SSL = False
+
 # information used when registering the client, this may be the same for all OPs
 ME = {
     "application_type": "web",
