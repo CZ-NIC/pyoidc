@@ -1,14 +1,14 @@
-# -*- encoding:utf-8 -*-
+# -*- coding:utf-8 -*-
 from mako import runtime, filters, cache
 UNDEFINED = runtime.UNDEFINED
 __M_dict_builtin = dict
 __M_locals_builtin = locals
-_magic_number = 6
-_modified_time = 1398246781.532818
-_template_filename='htdocs/opchoice.mako'
-_template_uri='opchoice.mako'
-_template_cache=cache.Cache(__name__, _modified_time)
-_source_encoding='utf-8'
+_magic_number = 9
+_modified_time = 1400148619.346786
+_enable_loop = True
+_template_filename = 'htdocs/opchoice.mako'
+_template_uri = 'opchoice.mako'
+_source_encoding = 'utf-8'
 _exports = []
 
 
@@ -26,7 +26,7 @@ def op_choice(op_list):
 
 
 def render_body(context,**pageargs):
-    context.caller_stack._push_frame()
+    __M_caller = context.caller_stack._push_frame()
     try:
         __M_locals = __M_dict_builtin(pageargs=pageargs)
         op_list = context.get('op_list', UNDEFINED)
