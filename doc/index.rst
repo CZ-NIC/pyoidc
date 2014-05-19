@@ -14,6 +14,7 @@ And as a side effect a fairly complete implementation of OAuth2.0.
 
    howto/index
    install
+   examples/index
    oic
    oic.oic
    oic.oauth2
@@ -35,4 +36,3 @@ Indices and tables
     <a href="https://github.com/rohe/pyoidc" class="github" target="_blank">
         <img style="position: absolute; top: 0; right: 0; border: 0;" src="_static/ViewmeonGitHub.png" alt="Fork me on GitHub"  class="github"/>
     </a>
-
