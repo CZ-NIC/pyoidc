@@ -1,8 +1,3 @@
-from oic.oauth2 import rndstr
-from oic.exception import UnsupportedMethod
-from oic.utils.aes import encrypt
-from oic.utils.aes import decrypt
-
 __author__ = 'rohe0002'
 
 import cgi
@@ -10,10 +5,15 @@ import time
 import hashlib
 import hmac
 
-from Cookie import SimpleCookie
-
-from oic.utils import time_util
 from urllib import quote
+
+from oic.oauth2 import rndstr
+from oic.exception import UnsupportedMethod
+from oic.utils import time_util
+from oic.utils.aes import encrypt
+from oic.utils.aes import decrypt
+
+from Cookie import SimpleCookie
 
 
 class Response(object):
@@ -341,8 +341,16 @@ def wsgi_wrapper(environ, start_response, func, **kwargs):
     kwargs["baseurl"] = geturl(environ, query=False, path=False)
     kwargs["path"] = getpath(environ)
 
-    resp = func(**kwargs)
-    return resp(environ, start_response)
+    args = func(**kwargs)
+    try:
+        resp, argv = args
+        return resp(environ, start_response, **argv)
+    except TypeError:
+        resp = args
+        return resp(environ, start_response)
+    except Exception as err:
+        #logger.error("%s" % err)
+        raise
 
 
 class CookieDealer(object):
