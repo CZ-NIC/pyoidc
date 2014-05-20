@@ -338,6 +338,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
             "request": SINGLE_OPTIONAL_STRING,
             "request_uri": SINGLE_OPTIONAL_STRING,
             "session_state": SINGLE_OPTIONAL_STRING,
+            "response_mode": SINGLE_OPTIONAL_STRING,
         }
     )
     c_allowed_values = message.AuthorizationRequest.c_allowed_values.copy()

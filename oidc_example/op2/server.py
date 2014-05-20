@@ -22,7 +22,6 @@ from oic.utils.authn.authn_context import AuthnBroker
 
 __author__ = 'rohe0002'
 
-import logging
 import re
 
 from oic.oic.provider import Provider
@@ -394,11 +393,17 @@ if __name__ == '__main__':
     # dealing with authorization
     authz = AuthzHandling()
 
+    kwargs = {
+        "template_lookup": LOOKUP,
+        "template": {"form_post": "form_response.mako"},
+        #"template_args": {"form_post": {"action": "form_post"}}
+    }
+
     # Should I care about verifying the certificates used other entities
     if args.insecure:
-        kwargs = {"verify_ssl": False}
+        kwargs["verify_ssl"] = False
     else:
-        kwargs = {"verify_ssl": True}
+        kwargs["verify_ssl"] = True
 
     OAS = Provider(config.issuer, SessionDB(), cdb, ac, None, authz,
                    verify_client, config.SYM_KEY, **kwargs)

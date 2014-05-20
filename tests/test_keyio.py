@@ -149,5 +149,21 @@ def test_kid_usage():
     assert _key.kid == "abc"
 
 
+def test_dump_own_keys():
+    kb = keybundle_from_local_file("file://jwk.json", "jwk", ["ver", "sig"])
+    assert len(kb) == 1
+    kj = KeyJar()
+    kj.issuer_keys[""] = [kb]
+    res = kj.dump_issuer_keys("")
+
+    assert len(res) == 1
+    assert res[0] == {
+        'use': u'sig',
+        'e': u'AQAB',
+        'kty': u'RSA',
+        'alg': u'RS256',
+        'n': u'pKybs0WaHU_y4cHxWbm8Wzj66HtcyFn7Fh3n-99qTXu5yNa30MRYIYfSDwe9JVc1JUoGw41yq2StdGBJ40HxichjE-Yopfu3B58QlgJvToUbWD4gmTDGgMGxQxtv1En2yedaynQ73sDpIK-12JJDY55pvf-PCiSQ9OjxZLiVGKlClDus44_uv2370b9IN2JiEOF-a7JBqaTEYLPpXaoKWDSnJNonr79tL0T7iuJmO1l705oO3Y0TQ-INLY6jnKG_RpsvyvGNnwP9pMvcP1phKsWZ10ofuuhJGRp8IxQL9RfzT87OvF0RBSO1U73h09YP-corWDsnKIi6TbzRpN5YDw',
+        'kid': u'abc'}
+
 if __name__ == "__main__":
-    test_signing()
+    test_dump_own_keys()

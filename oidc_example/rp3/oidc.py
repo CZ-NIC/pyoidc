@@ -161,7 +161,7 @@ class OIDCClients(object):
             else:
                 _key_set.discard(param)
 
-        if _key_set == {"client_info"}:  # Everything dynamic
+        if _key_set == set(["client_info"]):  # Everything dynamic
             # There has to be a userid
             if not userid:
                 raise MissingAttribute("Missing userid specification")
@@ -173,26 +173,26 @@ class OIDCClients(object):
             # register the client
             _ = client.register(client.provider_info["registration_endpoint"],
                                 **kwargs["client_info"])
-        elif _key_set == {"client_info", "srv_discovery_url"}:
+        elif _key_set == set(["client_info", "srv_discovery_url"]):
             # Ship the webfinger part
             # Gather OP information
             _ = client.provider_config(kwargs["srv_discovery_url"])
             # register the client
             _ = client.register(client.provider_info["registration_endpoint"],
                                 **kwargs["client_info"])
-        elif _key_set == {"provider_info", "client_info"}:
+        elif _key_set == set(["provider_info", "client_info"]):
             client.handle_provider_config(
                 ProviderConfigurationResponse(**kwargs["provider_info"]),
                 kwargs["provider_info"]["issuer"])
             _ = client.register(client.provider_info["registration_endpoint"],
                                 **kwargs["client_info"])
-        elif _key_set == {"provider_info", "client_registration"}:
+        elif _key_set == set(["provider_info", "client_registration"]):
             client.handle_provider_config(
                 ProviderConfigurationResponse(**kwargs["provider_info"]),
                 kwargs["provider_info"]["issuer"])
             client.store_registration_info(RegistrationResponse(
                     **kwargs["client_registration"]))
-        elif _key_set == {"srv_discovery_url", "client_registration"}:
+        elif _key_set == set(["srv_discovery_url", "client_registration"]):
             _ = client.provider_config(kwargs["srv_discovery_url"])
             client.store_registration_info(RegistrationResponse(
                 **kwargs["client_registration"]))

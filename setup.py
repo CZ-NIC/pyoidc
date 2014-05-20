@@ -33,8 +33,9 @@ setup(
     classifiers = ["Development Status :: 4 - Beta",
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Libraries :: Python Modules"],
-    install_requires = ['requests', "pycrypto", "cherrypy==3.2.4", "mako",
-                        "pyjwkest", "beaker", "alabaster", "pyOpenSSL"],
+    install_requires = ['requests', "pycrypto", "cherrypy", "mako",
+                        "pyjwkest", "beaker", "alabaster", "importlib",
+                        "argparse"],
 
     zip_safe=False,
 )
