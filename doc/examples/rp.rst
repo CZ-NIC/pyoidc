@@ -27,7 +27,12 @@ The folder [your path]/pysaml2/oidc_example/rp3 contains a file named conf.py.ex
 #. Edit the conf.py
     #. The most important attributes are BASE and PORT
 
-Note: The RP3 configuration file contains a example of CLIENTS which is a list of known OPs with their behaviour, `read more here <https://github.com/rohe/pyoidc/blob/master/oidc_example/rp3/README>`_
+Note: In the RP configuration file there is a dictionary named CLIENTS which in this quick example only should have one element:
+"": {
+     "client_info": ME,
+     "behaviour": BEHAVIOUR
+}
+All the other elements should be removed, `read more here <https://github.com/rohe/pyoidc/blob/master/oidc_example/rp3/README>`_
 
 Run RP3:
 ********
