@@ -153,7 +153,7 @@ class EndSessionEndpoint(Endpoint) :
 class Provider(AProvider):
     def __init__(self, name, sdb, cdb, authn_broker, userinfo, authz,
                  client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
-                 hostname="", template_lookup=None, verify_login_template=None,
+                 hostname="", template_lookup=None, template=None,
                  verify_ssl=True):
 
         AProvider.__init__(self, name, sdb, cdb, authn_broker, authz,
@@ -171,7 +171,7 @@ class Provider(AProvider):
         if keyjar:
             self.server.keyjar = keyjar
         self.template_lookup = template_lookup
-        self.verify_login_template = verify_login_template
+        self.template = template or {}
         self.keyjar = self.server.keyjar
         self.baseurl = ""
         self.cert = []
@@ -192,7 +192,7 @@ class Provider(AProvider):
                                access_token=None, user_info=None):
 
         logger.debug("Signing alg: %s [%s]" % (alg, alg2keytype(alg)))
-        _idt = self.server.make_id_token(session, loa, self.name, alg, code,
+        _idt = self.server.make_id_token(session, loa, self.baseurl, alg, code,
                                          access_token, user_info)
 
         logger.debug("id_token: %s" % _idt.to_dict())
@@ -366,7 +366,7 @@ class Provider(AProvider):
             headers = [cookie]
         else:
             headers = []
-        mte = self.template_lookup.get_template(self.verify_login_template)
+        mte = self.template_lookup.get_template(self.template["verify_logout"])
         self.sdb.set_verified_logout(uid)
         if redirect_uri is not None:
             redirect = redirect_uri
@@ -383,7 +383,6 @@ class Provider(AProvider):
             "redirect": redirect,
             "action": "/"+EndSessionEndpoint("").etype
         }
-        #resp.message = mte.render(**argv)
         return Response(mte.render(**argv), headers=[])
 
     def end_session_endpoint(self, request="", cookie=None, **kwargs):
@@ -1121,9 +1120,7 @@ class Provider(AProvider):
         self.comb_post_logout_redirect_uris(args)
         response = RegistrationResponse(**args)
 
-        self.keyjar.load_keys(request, client_id)
-
-        # Add the key to the keyjar
+        # Add the client_secret as a symmetric key to the keyjar
         if client_secret:
             _kc = KeyBundle([{"kty": "oct", "key": client_secret,
                               "use": "ver"},
@@ -1404,6 +1401,27 @@ class Provider(AProvider):
 
         # so everything went well should set a SSO cookie
         headers = [self.cookie_func(user, typ="sso", ttl=self.sso_ttl)]
+
+        # Now about the response_mode. Should not be set if it's obvious
+        # from the response_type. Knows about 'query', 'fragment' and
+        # 'form_post'.
+
+        if "response_mode" in areq:
+            resp_mode = areq["response_mode"]
+            if resp_mode == "form_post":
+                argv = {"form_args": aresp.to_dict(),
+                        "action": redirect_uri}
+                mte = self.template_lookup.get_template(
+                    self.template["form_post"])
+                return Response(mte.render(**argv), headers=headers)
+            elif resp_mode == 'fragment' and not fragment_enc:
+                # Can't be done
+                return self._error("invalid_request", "wrong response_mode")
+            elif resp_mode == 'query' and fragment_enc:
+                # Can't be done
+                return self._error("invalid_request", "wrong response_mode")
+
+        # Just do whatever is the default
         location = aresp.request(redirect_uri, fragment_enc)
         logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
         return Redirect(str(location), headers=headers)
@@ -1424,6 +1442,12 @@ class Provider(AProvider):
         pass
 
     def endsession_endpoint(self, request="", **kwargs):
+        """
+
+        :param request:
+        :param kwargs:
+        :return: Either a Response instance or a tuple (Response, args)
+        """
         return self.end_session_endpoint(request, **kwargs)
 
 # -----------------------------------------------------------------------------

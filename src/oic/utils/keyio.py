@@ -42,7 +42,7 @@ class KeyBundle(object):
                  fileformat="jwk", keytype="RSA", keyusage=None):
         """
 
-        :param keys: A list of dictionaries of the format
+        :param keys: A list of dictionaries
             with the keys ["kty", "key", "alg", "use", "kid"]
         :param source: Where the key set can be fetch from
         :param verify_ssl: Verify the SSL cert used by the server
@@ -515,7 +515,12 @@ class KeyJar(object):
         try:
             self.add(issuer, pcr["jwks_uri"])
         except KeyError:
-            pass
+            #  jwks should only be considered if no jwks_uri is present
+            try:
+                _keys = pcr["jwks"]["keys"]
+                self.issuer_keys[issuer].append(KeyBundle(_keys))
+            except KeyError:
+                pass
 
     def find(self, source, issuer):
         """
@@ -530,9 +535,18 @@ class KeyJar(object):
         except KeyError:
             return None
 
+    def dump_issuer_keys(self, issuer):
+        res = []
+        try:
+            for kb in self.issuer_keys[issuer]:
+                res.extend([k.to_dict() for k in kb.keys()])
+        except KeyError:
+            pass
 
+        return res
 
 # =============================================================================
+
 
 class RedirectStdStreams(object):
     def __init__(self, stdout=None, stderr=None):
