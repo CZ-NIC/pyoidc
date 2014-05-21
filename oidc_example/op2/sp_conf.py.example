@@ -1,0 +1,139 @@
+import os
+from saml2 import BINDING_HTTP_REDIRECT
+from saml2 import BINDING_HTTP_POST
+from saml2.extension.idpdisc import BINDING_DISCO
+from saml2.saml import NAME_FORMAT_URI
+from saml2.entity_category.edugain import COC
+from saml2.entity_category.swamid import RESEARCH_AND_EDUCATION
+from saml2.entity_category.swamid import HEI
+from saml2.entity_category.swamid import SFS_1993_1153
+from saml2.entity_category.swamid import NREN
+from saml2.entity_category.swamid import EU
+
+try:
+    from saml2.sigver import get_xmlsec_binary
+except ImportError:
+    get_xmlsec_binary = None
+if get_xmlsec_binary:
+    xmlsec_path = get_xmlsec_binary(["/opt/local/bin", "/usr/local/bin"])
+else:
+    xmlsec_path = '/usr/local/bin/xmlsec1'
+
+#Url to a discovery server for SAML. None implies not using one.
+DISCOSRV = None
+#Url to a wayf for SAML. None implies not using one.
+WAYF = None
+
+#Full URL to the SP. You must have the same base as the OP.
+BASE = "https://localhost:8092"#"%s"
+
+#Discovery endpoint
+DISCOENDPOINT = "disco"
+
+#The BASE url where the Idp performs the redirect after a authn request from the SP.
+#For the cookies to work do not use subfolders.
+ASCREDIRECT = 'verify_redirect'
+#The BASE url where the Idp performs a post after a authn request from the SP.
+#For the cookies to work do not use subfolders.
+ASCPOST = 'verify_post'
+
+#Must point to the complete path on disk to this file!
+#Needed by the script create_metadata.sh and the SP to find all configurations.
+#No need to change this!
+FULL_PATH = os.path.dirname(os.path.abspath(__file__))
+
+#This is the directory for the SP.
+WORKING_DIR = FULL_PATH + "/"
+
+#This is a map for Open Id connect to Saml2.
+#The proxy will give the same response for OAuth2.
+OPENID2SAMLMAP = {
+    "sub": "uid",
+    "name": "displayName",
+    "given_name": "givenname",
+    "family_name": "sn",
+    "middle_name": "",
+    "nickname":	"eduPersonNickname",
+    "preferred_username": "uid",
+    "profile": "member",
+    #Example for studentness
+    #"profile": "eduPersonScopedAffiliation",
+    "picture": "jpegPhoto",
+    "website": "labeledURI",
+    "email": "email",
+    #"email_verified": "Missing
+    "gender": "",
+    "birthdate": "norEduPersonNIN",
+    #zoneinfo timezone
+    "locale": "c",
+    "phone_number":	"telephoneNumber",
+    #phone_number_verified
+    "address": "registeredAddress",
+    "updated_at": ""  # When information was updated
+}
+
+#Traditional pysaml2 configuration for a SP. View more documentation for pysaml2.
+CONFIG = {
+    "entityid": "%s/%testidproxy.xml" % (BASE, ""),
+    "description": "Test local IdProxy SP",
+    "entity_category": [COC, RESEARCH_AND_EDUCATION, HEI, SFS_1993_1153, NREN, EU],
+    "service": {
+        "sp": {
+            "name": "Test local IdProxy SP",
+            "authn_requests_signed": "true",
+            "want_response_signed": "true",
+            "endpoints": {
+                "assertion_consumer_service": [
+                    (BASE + "/" + ASCREDIRECT, BINDING_HTTP_REDIRECT),
+                    (BASE + "/" + ASCPOST, BINDING_HTTP_POST)
+                ],
+                "required_attributes": ["uid"],
+                "discovery_response": [
+                    ("%s/%s" % (BASE, DISCOENDPOINT), BINDING_DISCO)
+                ],
+            }
+        },
+    },
+    "key_file": WORKING_DIR+"sp_cert/localhost.key",
+    "cert_file": WORKING_DIR+"sp_cert/localhost.crt",
+    "xmlsec_binary": xmlsec_path,
+    "metadata": {
+        "local": ["[..]/pysaml2/example/idp2/lidp.xml"]
+    },
+    "name_form": NAME_FORMAT_URI,
+    "organization": {
+        "name": "Test local IdProxy SP",
+        "display_name": [("Test local IdProxy SP", "en")],
+        "url": BASE,
+    },
+    "contact_person": [
+        {
+            "contact_type": "technical",
+            "given_name": "Test",
+            "sur_name": "Testsson",
+            "email_address": "test.testsson@test.se"
+        },
+    ],
+    "logger": {
+        "rotating": {
+            "filename": "sp.log",
+            "maxBytes": 100000,
+            "backupCount": 5,
+        },
+        "loglevel": "debug",
+    }
+}
+
+#Contains all valid attributes and valid values for that attribute.
+VALID_ATTRIBUTE_RESPONSE=None
+#Example configuration for studentness
+#VALID_ATTRIBUTE_RESPONSE = {
+#    "eduPersonAffiliation": ["student"]
+#}
+
+#Contains all attributes that will be returned.
+#Only value that contains the values in the value list will be returned. If None will all values be returned.
+ATTRIBUTE_WHITELIST=None
+#ATTRIBUTE_WHITELIST = {
+#    "eduPersonScopedAffiliation": ["student"]
+#}
