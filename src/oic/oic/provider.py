@@ -14,7 +14,8 @@ from oic.utils.keyio import key_export
 from requests import ConnectionError
 
 from oic.oauth2.message import by_schema
-from oic.oic.message import RefreshAccessTokenRequest, EndSessionRequest
+from oic.oic.message import RefreshAccessTokenRequest
+from oic.oic.message import EndSessionRequest
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import Claims
 from oic.oic.message import IdToken
@@ -59,6 +60,7 @@ from oic.oauth2 import rndstr
 from oic.oic import Server
 
 from oic.exception import *
+from jwkest.jwe import JWEException
 
 logger = logging.getLogger(__name__)
 
@@ -148,6 +150,7 @@ class RegistrationEndpoint(Endpoint) :
 
 class EndSessionEndpoint(Endpoint) :
     etype = "endsession"
+
 
 
 class Provider(AProvider):
@@ -744,7 +747,12 @@ class Provider(AProvider):
             req["client_id"] = client_id
 
         if isinstance(req, AccessTokenRequest):
-            return self._access_token_endpoint(req, **kwargs)
+            try:
+                return self._access_token_endpoint(req, **kwargs)
+            except JWEException as err:
+                return self._error_response("invalid_request",
+                                            descr="%s" % err)
+
         else:
             return self._refresh_access_token_endpoint(req, **kwargs)
 
