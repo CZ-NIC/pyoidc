@@ -1020,6 +1020,7 @@ class Provider(AProvider):
                 pass
         except Exception, err:
             logger.error("Failed to load client keys: %s" % request.to_dict())
+            logger.error("%s", err)
             err = ClientRegistrationErrorResponse(
                 error="invalid_configuration_parameter",
                 error_description="%s" % err)
