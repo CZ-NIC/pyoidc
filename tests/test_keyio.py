@@ -1,3 +1,6 @@
+import json
+from jwkest.jwe import JWE
+
 __author__ = 'rohe0002'
 
 from oic.utils.keyio import key_export
@@ -17,6 +20,10 @@ JWK0 = {"keys": [
      'n': 'wf-wiusGhA-gleZYQAOPQlNUIucPiqXdPVyieDqQbXXOPBe3nuggtVzeq7pVFH1dZz4dY2Q2LA5DaegvP8kRvoSB_87ds3dy3Rfym_GUSc5B0l1TgEobcyaep8jguRoHto6GWHfCfKqoUYZq4N8vh4LLMQwLR6zi6Jtu82nB5k8'}
 ]}
 
+JWK1 = {"keys": [
+    {"n": "zkpUgEgXICI54blf6iWiD2RbMDCOO1jV0VSff1MFFnujM4othfMsad7H1kRo50YM5S_X9TdvrpdOfpz5aBaKFhT6Ziv0nhtcekq1eRl8mjBlvGKCE5XGk-0LFSDwvqgkJoFYInq7bu0a4JEzKs5AyJY75YlGh879k1Uu2Sv3ZZOunfV1O1Orta-NvS-aG_jN5cstVbCGWE20H0vFVrJKNx0Zf-u-aA-syM4uX7wdWgQ-owoEMHge0GmGgzso2lwOYf_4znanLwEuO3p5aabEaFoKNR4K6GjQcjBcYmDEE4CtfRU9AEmhcD1kleiTB9TjPWkgDmT9MXsGxBHf3AKT5w", "e": "AQAB", "kty": "RSA", "kid": "5-VBFv40P8D4I-7SFz7hMugTbPs"},
+    {"k": "YTEyZjBlMDgxMGI4YWU4Y2JjZDFiYTFlZTBjYzljNDU3YWM0ZWNiNzhmNmFlYTNkNTY0NzMzYjE", "kty": "oct"},
+    ]}
 
 
 def _eq(l1, l2):
@@ -180,5 +187,30 @@ def test_no_use():
     assert enc_key != []
 
 
+def test_enc_hmac():
+    payload = {'nonce': 'CYeHPyA6Kmr_jy5HDHXykznu2BpDLm8ngbIJvhBoupI,',
+               'sub': 'diana', 'iss': 'https://xenosmilus2.umdc.umu.se:8091/',
+               'acr': '2', 'exp': 1401176001, 'iat': 1401096801,
+               'aud': ['ApB7TBoKV1tV']}
+
+    _jwe = JWE(json.dumps(payload), alg="A128KW", enc="A128CBC-HS256")
+
+    kb = KeyBundle(JWK1["keys"])
+    kj = KeyJar()
+    kj.issuer_keys["abcdefgh"] = [kb]
+    keys = kj.get_encrypt_key(owner="abcdefgh")
+
+    for key in keys:
+        key.deserialize()
+
+    _enctxt = _jwe.encrypt(keys, context="public")
+    assert _enctxt
+
+    # and now for decryption
+
+    msg, state = _jwe.decrypt(_enctxt, keys)
+
+    assert json.loads(msg) == payload
+
 if __name__ == "__main__":
-    test_no_use()
+    test_enc_hmac()
