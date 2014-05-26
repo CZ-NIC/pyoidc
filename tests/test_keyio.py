@@ -12,6 +12,12 @@ from jwkest.jws import JWS, NoSuitableSigningKeys, WrongTypeOfKey
 RSAKEY = "../oidc_example/op1/certs/mycert.key"
 RSA0 = "rsa.key"
 
+JWK0 = {"keys": [
+    {'kty': 'RSA', 'e': 'AQAB', 'kid': "abc",
+     'n': 'wf-wiusGhA-gleZYQAOPQlNUIucPiqXdPVyieDqQbXXOPBe3nuggtVzeq7pVFH1dZz4dY2Q2LA5DaegvP8kRvoSB_87ds3dy3Rfym_GUSc5B0l1TgEobcyaep8jguRoHto6GWHfCfKqoUYZq4N8vh4LLMQwLR6zi6Jtu82nB5k8'}
+]}
+
+
 
 def _eq(l1, l2):
     return set(l1) == set(l2)
@@ -165,5 +171,14 @@ def test_dump_own_keys():
         'n': u'pKybs0WaHU_y4cHxWbm8Wzj66HtcyFn7Fh3n-99qTXu5yNa30MRYIYfSDwe9JVc1JUoGw41yq2StdGBJ40HxichjE-Yopfu3B58QlgJvToUbWD4gmTDGgMGxQxtv1En2yedaynQ73sDpIK-12JJDY55pvf-PCiSQ9OjxZLiVGKlClDus44_uv2370b9IN2JiEOF-a7JBqaTEYLPpXaoKWDSnJNonr79tL0T7iuJmO1l705oO3Y0TQ-INLY6jnKG_RpsvyvGNnwP9pMvcP1phKsWZ10ofuuhJGRp8IxQL9RfzT87OvF0RBSO1U73h09YP-corWDsnKIi6TbzRpN5YDw',
         'kid': u'abc'}
 
+
+def test_no_use():
+    kb = KeyBundle(JWK0["keys"])
+    kj = KeyJar()
+    kj.issuer_keys["abcdefgh"] = [kb]
+    enc_key = kj.get_encrypt_key("RSA", "abcdefgh")
+    assert enc_key != []
+
+
 if __name__ == "__main__":
-    test_dump_own_keys()
+    test_no_use()

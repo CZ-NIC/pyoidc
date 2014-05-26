@@ -386,7 +386,7 @@ class KeyJar(object):
                 else:
                     _keys = bundles.keys()
                 for key in _keys:
-                    if use == key.use:
+                    if not key.use or use == key.use:
                         lst.append(key)
         return lst
 
