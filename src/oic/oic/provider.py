@@ -852,23 +852,30 @@ class Provider(AProvider):
 
         # Should I return a JSON or a JWT ?
         _cinfo = self.cdb[session["client_id"]]
-        if "userinfo_signed_response_alg" in _cinfo:
-            algo = _cinfo["userinfo_signed_response_alg"]
-            # Use my key for signing
-            key = self.keyjar.get_signing_key(alg2keytype(algo), "")
-            jinfo = info.to_jwt(key, algo)
-            content_type = "application/jwt"
-            if "userinfo_encrypted_response_alg" in _cinfo:
-                # encrypt with clients public key
-                jinfo = self.encrypt(jinfo, _cinfo, session["client_id"],
+        try:
+            if "userinfo_signed_response_alg" in _cinfo:
+                algo = _cinfo["userinfo_signed_response_alg"]
+                # Use my key for signing
+                key = self.keyjar.get_signing_key(alg2keytype(algo), "")
+                if not key:
+                    return self._error(error="access_denied",
+                                       descr="Missing signing key")
+                jinfo = info.to_jwt(key, algo)
+                content_type = "application/jwt"
+                if "userinfo_encrypted_response_alg" in _cinfo:
+                    # encrypt with clients public key
+                    jinfo = self.encrypt(jinfo, _cinfo, session["client_id"],
+                                         "userinfo")
+            elif "userinfo_encrypted_response_alg" in _cinfo:
+                jinfo = self.encrypt(info.to_json(), _cinfo, session["client_id"],
                                      "userinfo")
-        elif "userinfo_encrypted_response_alg" in _cinfo:
-            jinfo = self.encrypt(info.to_json(), _cinfo, session["client_id"],
-                                 "userinfo")
-            content_type = "application/jwt"
-        else:
-            jinfo = info.to_json()
-            content_type = "application/json"
+                content_type = "application/jwt"
+            else:
+                jinfo = info.to_json()
+                content_type = "application/json"
+        except JWEException:
+            return self._error(error="access_denied",
+                               descr="Could not encrypt")
 
         return Response(jinfo, content=content_type)
 
@@ -1208,10 +1215,10 @@ class Provider(AProvider):
             claims_parameter_supported="true",
             request_parameter_supported="true",
             request_uri_parameter_supported="true",
+            version="3.0"
         )
 
         sign_algs = jws.SIGNER_ALGS.keys()
-
         for typ in ["userinfo", "id_token", "request_object",
                     "token_endpoint_auth"]:
             _provider_info["%s_signing_alg_values_supported" % typ] = sign_algs
