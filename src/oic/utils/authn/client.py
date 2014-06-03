@@ -1,4 +1,5 @@
 import logging
+import base64
 from jwkest import Invalid
 from jwkest import MissingKey
 from jwkest.jws import alg2keytype
@@ -87,7 +88,11 @@ class ClientSecretBasic(ClientAuthnMethod):
         except KeyError:
             user = self.cli.client_id
 
-        http_args["auth"] = (user, passwd)
+        if "headers" not in http_args:
+            http_args["headers"] = {}
+
+        http_args["headers"]["Authorization"] = "Basic %s" % base64.b64encode(
+            "%s:%s" % (user, passwd))
 
         try:
             del cis["client_secret"]

@@ -724,9 +724,9 @@ class Client(PBase):
 
         if h_arg:
             if "headers" in kwargs.keys():
-                kwargs["headers"].update(h_arg)
+                kwargs["headers"].update(h_arg["headers"])
             else:
-                kwargs["headers"] = h_arg
+                kwargs["headers"] = h_arg["headers"]
 
         return self.uri_and_body(request, cis, method, request_args,
                                  **kwargs)

@@ -945,6 +945,8 @@ class Client(oauth2.Client):
 
     def store_registration_info(self, reginfo):
         self.registration_response = reginfo
+        if "token_endpoint_auth_method" not in self.registration_response:
+            self.registration_response["token_endpoint_auth_method"] = "client_secret_post"
         self.client_secret = reginfo["client_secret"]
         self.client_id = reginfo["client_id"]
         try:
