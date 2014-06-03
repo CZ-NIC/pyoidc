@@ -28,7 +28,7 @@ WAYF = None
 BASE = "https://localhost:8092"#"%s"
 
 #Discovery endpoint
-DISCOENDPOINT = "disco"
+DISCOENDPOINT = "verify"
 
 #The BASE url where the Idp performs the redirect after a authn request from the SP.
 #For the cookies to work do not use subfolders.

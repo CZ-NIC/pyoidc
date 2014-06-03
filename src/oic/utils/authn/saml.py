@@ -2,6 +2,7 @@ import importlib
 import json
 from tempfile import NamedTemporaryFile
 import urllib
+from urllib import urlencode
 import urlparse
 import uuid
 import logging
@@ -67,7 +68,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
 
 
     def __call__(self, query, *args, **kwargs):
-        (done, response) = self._pick_idp(None)
+        (done, response) = self._pick_idp(query)
         if done == 0:
             entity_id = response
             # Do the AuthnRequest
@@ -101,7 +102,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
             if done == 0:
                 entity_id = response
                 # Do the AuthnRequest
-                resp = self._redirect_to_auth(self.sp, entity_id, data[self.CONST_QUERY] )
+                resp = self._redirect_to_auth(self.sp, entity_id, base64.b64decode(data[self.CONST_QUERY]) )
                 return resp
             return response
 
@@ -182,6 +183,16 @@ class SAMLAuthnMethod(UserAuthnMethod):
         If more than one idp and if none is selected, I have to do wayf or
         disco
         """
+        query_dict = {}
+        if isinstance(query, basestring):
+            query_dict = dict(parse_qs(query))
+        else:
+            for key, value in query.iteritems():
+                if isinstance(value, list):
+                    query_dict[key] = value[0]
+                else:
+                    query_dict[key] = value
+            query = urlencode(query_dict)
 
         _cli = self.sp
         # Find all IdPs
@@ -195,7 +206,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
 
         if not idp_entity_id and query:
             try:
-                _idp_entity_id = dict(parse_qs(query))[self.idp_query_param][0]
+                _idp_entity_id = query_dict[self.idp_query_param][0]
                 if _idp_entity_id in idps:
                     idp_entity_id = _idp_entity_id
             except KeyError:
@@ -209,8 +220,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
             if self.sp_conf.WAYF:
                 if query:
                     try:
-                        wayf_selected = dict(parse_qs(query))[
-                            "wayf_selected"][0]
+                        wayf_selected = query_dict["wayf_selected"][0]
                     except KeyError:
                         return self._wayf_redirect(cookie)
                     idp_entity_id = wayf_selected
@@ -231,7 +241,6 @@ class SAMLAuthnMethod(UserAuthnMethod):
                 raise ServiceErrorException('Misconfiguration for the SAML Service Provider!')
             else:
                 return -1, NotImplemented("No WAYF or DS present!")
-
         return 0, idp_entity_id
 
     def _wayf_redirect(self, cookie):
