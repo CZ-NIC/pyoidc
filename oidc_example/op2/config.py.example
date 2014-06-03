@@ -17,6 +17,7 @@ SERVICE_URL = "%s/verify" % issuer
 #Only Username and password.
 AUTHENTICATION = {
     "UserPassword" : {"ACR": "PASSWORD", "WEIGHT": 1, "URL": SERVICE_URL}
+    #"SAML" : {"ACR": "SAML", "WEIGHT": 1, "URL": SERVICE_URL}
 }
 
 COOKIENAME= 'pyoic'
@@ -28,7 +29,16 @@ SERVER_KEY = "certs/server.key"
 #CERT_CHAIN="certs/chain.pem"
 CERT_CHAIN = None
 
+# =======  SAML ==============
+#User information is collected with SAML
+#USERINFO = "SAML"
+#Name of the Service Provider configuration file.
+SP_CONFIG="sp_conf"
+#Dictionary with userinformation for the SAML users. Must be empty.
+SAML = {}
+
 # =======  SIMPLE DATABASE ==============
+
 
 USERINFO = "SIMPLE"
 

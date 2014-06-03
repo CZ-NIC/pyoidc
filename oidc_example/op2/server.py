@@ -386,6 +386,10 @@ if __name__ == '__main__':
             from oic.utils.authn.user import UsernamePasswordMako
             authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
                                          "%s/authorization" % config.issuer)
+        if "SAML" == authkey:
+            from oic.utils.authn.saml import SAMLAuthnMethod
+            authn = SAMLAuthnMethod(None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
+                                    "%s/authorization" % config.issuer, config.SERVICE_URL)
         if authn is not None:
             ac.add(config.AUTHENTICATION[authkey]["ACR"], authn,
                    config.AUTHENTICATION[authkey]["WEIGHT"],
@@ -416,6 +420,8 @@ if __name__ == '__main__':
         # User info is a simple dictionary in this case statically defined in
         # the configuration file
         OAS.userinfo = UserInfo(config.USERDB)
+    elif config.USERINFO == "SAML":
+        OAS.userinfo = UserInfo(config.SAML)
     else:
         raise Exception("Unsupported userinfo source")
 
