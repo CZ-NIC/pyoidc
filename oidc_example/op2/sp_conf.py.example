@@ -128,7 +128,8 @@ CONFIG = {
 VALID_ATTRIBUTE_RESPONSE=None
 #Example configuration for studentness
 #VALID_ATTRIBUTE_RESPONSE = {
-#    "eduPersonAffiliation": ["student"]
+#    "eduPersonAffiliation": ["student"],
+#    "eduPersonScopedAffiliation": ["student"]
 #}
 
 #Contains all attributes that will be returned.

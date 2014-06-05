@@ -133,7 +133,12 @@ class SAMLAuthnMethod(UserAuthnMethod):
                 else:
                     allowed = False
                     for allowed_attr_value in v:
-                        if allowed_attr_value == response.ava[k] or allowed_attr_value in response.ava[k]:
+                        if isinstance(response.ava[k], list):
+                            for resp_value in response.ava[k]:
+                                if allowed_attr_value in resp_value:
+                                    allowed = True
+                                    break
+                        elif allowed_attr_value in response.ava[k]:
                             allowed = True
                             break
                     if not allowed:
