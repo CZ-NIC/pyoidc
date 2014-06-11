@@ -1,22 +1,25 @@
 import importlib
 import json
 from tempfile import NamedTemporaryFile
-import urllib
 from urllib import urlencode
-import urlparse
-import uuid
 import logging
-import requests
 import base64
-import xml.etree.ElementTree as ET
-from saml2 import BINDING_HTTP_ARTIFACT, BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
+from saml2 import BINDING_HTTP_ARTIFACT
+from saml2 import BINDING_HTTP_REDIRECT
+from saml2 import BINDING_HTTP_POST
 import saml2
 from saml2.client import Saml2Client
-from saml2.s_utils import sid, rndstr, UnknownPrincipal, UnsupportedBinding
+from saml2.s_utils import sid
+from saml2.s_utils import rndstr
+from saml2.s_utils import UnknownPrincipal
+from saml2.s_utils import UnsupportedBinding
 from oic.oauth2 import VerificationError
-from oic.utils.authn.user import UserAuthnMethod, create_return_url
+from oic.utils.authn.user import UserAuthnMethod
+from oic.utils.authn.user import create_return_url
 from urlparse import parse_qs
-from oic.utils.http_util import Redirect, SeeOther, Response
+from oic.utils.http_util import Redirect
+from oic.utils.http_util import SeeOther
+from oic.utils.http_util import Response
 from oic.utils.http_util import Unauthorized
 
 logger = logging.getLogger(__name__)
@@ -32,7 +35,8 @@ class SAMLAuthnMethod(UserAuthnMethod):
     CONST_SAML_COOKIE = "samlauthc"
     CONST_HASIDP = "hasidp"
 
-    def __init__(self, srv, lookup, userdb, spconf, url, return_to, verification_endpoint="verify", cache=None,
+    def __init__(self, srv, lookup, userdb, spconf, url, return_to,
+                 verification_endpoint="verify", cache=None,
                  bindings=None, userinfo=None):
         """
         Constructor for the class.
