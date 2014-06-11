@@ -138,3 +138,12 @@ ATTRIBUTE_WHITELIST=None
 #ATTRIBUTE_WHITELIST = {
 #    "eduPersonScopedAffiliation": ["student"]
 #}
+
+#Attribute authority only used if USERINFO = "AA" in config.py
+AA_ENTITY_ID = None
+
+# If None name id is used otherwise the first value for the given attribute name in the SAML response will be used.
+AA_NAMEID_ATTRIBUTE = None
+#AA_NAMEID_ATTRIBUTE = "eduPersonTargetedID"
+
+AA_NAMEID_FORMAT = saml.NAMEID_FORMAT_PERSISTENT

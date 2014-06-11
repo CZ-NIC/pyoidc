@@ -32,13 +32,14 @@ CERT_CHAIN = None
 # =======  SAML ==============
 #User information is collected with SAML
 #USERINFO = "SAML"
+#User information is collected with a SAML attribute authority
+#USERINFO = "AA"
 #Name of the Service Provider configuration file.
 SP_CONFIG="sp_conf"
 #Dictionary with userinformation for the SAML users. Must be empty.
 SAML = {}
 
 # =======  SIMPLE DATABASE ==============
-
 
 USERINFO = "SIMPLE"
 

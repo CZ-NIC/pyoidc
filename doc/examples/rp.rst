@@ -3,9 +3,9 @@ Setup and run simple RP.
 
 Setup RP2:
 **************
-The folder [your path]/pysaml2/oidc_example/rp2 contains a file named conf.py.example
+The folder [your path]/pyoidc/oidc_example/rp2 contains a file named conf.py.example
 
-#. Take the file named **conf.py.example** and rename it **conf.py**
+#. Take the file named **conf.py.example** and copy it to a new file named **conf.py**
 #. Edit the conf.py
     #. The most important attributes are BASE and PORT
 
@@ -21,11 +21,11 @@ Note that you should not have the .py extension on the conf.py while running the
 
 Setup RP3:
 **************
-The folder [your path]/pysaml2/oidc_example/rp3 contains a file named conf.py.example
+The folder [your path]/pyoidc/oidc_example/rp3 contains a file named conf.py.example
 
-#. Take the file named **conf.py.example** and rename it **conf.py**
+#. Take the file named **conf.py.example** and copy it to a new file named  **conf.py**
 #. Edit the conf.py
-    #. The most important attributes are BASE and PORT
+    #. The most important attributes are BASE (use the IP address of your local machine) and PORT (use predefined in conf.py)
 
 Note: In the RP configuration file there is a dictionary named CLIENTS which in this quick example only should have one element:
 "": {
@@ -50,7 +50,7 @@ Test the RP and OP:
 
 Open a browser and go to localhost:8666 (the url and port specified in [your path]/pyoidc/oidc_example/rp2/conf.py)
 
-As a UID enter username@localhost:8666
+As a UID enter username@localhost:8092 (important: the port must match the port specified when starting the OP)
 
 Now you should be redirected to the OP and asked to login.
 
