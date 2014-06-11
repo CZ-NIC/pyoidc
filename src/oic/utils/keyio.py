@@ -171,7 +171,6 @@ class KeyBundle(object):
         """
         if self.source:
             # reread everything
-
             self._keys = []
 
             if self.remote is False:
@@ -231,6 +230,14 @@ class KeyBundle(object):
         for key in self._keys:
             if key.kid == kid:
                 return key
+
+        # Try updating since there might have been an update to the key file
+        self.update()
+
+        for key in self._keys:
+            if key.kid == kid:
+                return key
+
         return None
 
 
@@ -263,7 +270,8 @@ def dump_jwks(kbl, target):
     """
     res = {"keys": []}
     for kb in kbl:
-        res["keys"].extend([k.to_dict() for k in kb.keys()])
+        # ignore simple keys
+        res["keys"].extend([k.to_dict() for k in kb.keys() if k.kty != 'oct'])
 
     try:
         f = open(target, 'w')
@@ -347,12 +355,13 @@ class KeyJar(object):
 
         self.issuer_keys[issuer] = val
 
-    def get(self, use, key_type="", issuer=""):
+    def get(self, use, key_type="", issuer="", kid=None):
         """
 
         :param use: A key useful for this usage (enc, dec, sig, ver)
         :param key_type: Type of key (rsa, ec, symmetric, ..)
         :param issuer: Who is responsible for the keys, "" == me
+        :param kid: A Key Identifier
         :return: A possibly empty list of keys
         """
 
@@ -386,21 +395,26 @@ class KeyJar(object):
                 else:
                     _keys = bundles.keys()
                 for key in _keys:
+                    if kid and key.kid == kid:
+                        lst = [key]
+                        break
                     if not key.use or use == key.use:
                         lst.append(key)
+                if kid and lst:
+                    break
         return lst
 
-    def get_signing_key(self, key_type="", owner=""):
-        return self.get("sig", key_type, owner)
+    def get_signing_key(self, key_type="", owner="", kid=None):
+        return self.get("sig", key_type, owner, kid)
 
-    def get_verify_key(self, key_type="", owner=""):
-        return self.get("ver", key_type, owner)
+    def get_verify_key(self, key_type="", owner="", kid=None):
+        return self.get("ver", key_type, owner, kid)
 
-    def get_encrypt_key(self, key_type="", owner=""):
-        return self.get("enc", key_type, owner)
+    def get_encrypt_key(self, key_type="", owner="", kid=None):
+        return self.get("enc", key_type, owner, kid)
 
-    def get_decrypt_key(self, key_type="", owner=""):
-        return self.get("dec", key_type, owner)
+    def get_decrypt_key(self, key_type="", owner="", kid=None):
+        return self.get("dec", key_type, owner, kid)
 
     def get_key_by_kid(self, kid, owner=""):
         """
