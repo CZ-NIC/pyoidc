@@ -23,6 +23,10 @@ class AuthnFailure(Exception):
     pass
 
 
+class NoMatchingKey(Exception):
+    pass
+
+
 # ========================================================================
 def assertion_jwt(cli, keys, audience, algorithm):
     _now = utc_now()
@@ -262,6 +266,19 @@ class JWSAuthnMethod(ClientAuthnMethod):
     def get_signing_key(self, algorithm):
         return self.cli.keyjar.get_signing_key(alg2keytype(algorithm))
 
+    def get_key_by_kid(self, kid, algorithm):
+        _key = self.cli.keyjar.get_key_by_kid(kid)
+        if _key:
+            ktype = alg2keytype(algorithm)
+            try:
+                assert _key.kty == ktype
+            except AssertionError:
+                raise NoMatchingKey("Wrong key type")
+            else:
+                return _key
+        else:
+            raise NoMatchingKey("No key with kid:%s" % kid)
+
     def construct(self, cis, request_args=None, http_args=None, **kwargs):
         """
         Constructs a client assertion and signs it with a key.
@@ -278,7 +295,21 @@ class JWSAuthnMethod(ClientAuthnMethod):
         audience = self.cli._endpoint(REQUEST2ENDPOINT[cis.type()])
 
         algorithm = self.choose_algorithm(**kwargs)
-        signing_key = self.get_signing_key(algorithm)
+        ktype = alg2keytype(algorithm)
+        try:
+            if 'kid' in kwargs:
+                signing_key = [self.get_key_by_kid(kwargs["kid"], algorithm)]
+            elif ktype in self.cli.kid["sig"]:
+                try:
+                    signing_key = [self.get_key_by_kid(
+                        self.cli.kid["sig"][ktype], algorithm)]
+                except KeyError:
+                    signing_key = self.get_signing_key(algorithm)
+            else:
+                signing_key = self.get_signing_key(algorithm)
+        except NoMatchingKey as err:
+            logger.error("%s" % err)
+            raise SystemError()
 
         cis["client_assertion"] = assertion_jwt(self.cli, signing_key, audience,
                                                 algorithm)
