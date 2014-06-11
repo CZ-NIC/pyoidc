@@ -72,3 +72,6 @@ class MessageException(PyoidcError):
 class AuthzError(PyoidcError):
     pass
 
+
+class IssuerMismatch(PyoidcError):
+    pass
