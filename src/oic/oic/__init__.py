@@ -40,6 +40,7 @@ from oic.oauth2 import rndstr
 from oic.oauth2.consumer import ConfigurationError
 
 from oic.exception import AccessDenied
+from oic.exception import IssuerMismatch
 from oic.exception import PyoidcError
 from oic.exception import MissingParameter
 
@@ -263,6 +264,10 @@ class Client(oauth2.Client):
         self.post_logout_redirect_uris = []
         self.registration_expires = 0
         self.registration_access_token = None
+
+        # Default key by kid for different key types
+        # For instance {"RSA":"abc"}
+        self.kid = {"sig": {}, "enc": {}}
 
     def _get_id_token(self, **kwargs):
         try:
@@ -762,9 +767,8 @@ class Client(oauth2.Client):
                 try:
                     assert _issuer == _pcr_issuer
                 except AssertionError:
-                    raise PyoidcError(
-                        "provider info issuer mismatch '%s' != '%s'" % (
-                            _issuer, _pcr_issuer))
+                    raise IssuerMismatch("'%s' != '%s'" % (_issuer,
+                                                           _pcr_issuer))
 
             self.provider_info = pcr
         else:
