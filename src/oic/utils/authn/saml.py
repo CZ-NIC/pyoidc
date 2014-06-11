@@ -32,7 +32,8 @@ class SAMLAuthnMethod(UserAuthnMethod):
     CONST_SAML_COOKIE = "samlauthc"
     CONST_HASIDP = "hasidp"
 
-    def __init__(self, srv, lookup, userdb, spconf, url, return_to, verification_endpoint="verify", cache=None, bindings=None):
+    def __init__(self, srv, lookup, userdb, spconf, url, return_to, verification_endpoint="verify", cache=None,
+                 bindings=None, userinfo=None):
         """
         Constructor for the class.
         :param srv: Usually none, but otherwise the oic server.
@@ -40,6 +41,8 @@ class SAMLAuthnMethod(UserAuthnMethod):
         authentication.
         """
         self.userdb = userdb
+        self.userinfo = userinfo
+
         if cache is None:
             self.cache_outstanding_queries = {}
         else:
@@ -146,7 +149,10 @@ class SAMLAuthnMethod(UserAuthnMethod):
 
         #logger.info("parsed OK")'
         uid = response.assertion.subject.name_id.text
-        self.setup_userdb(uid, response.ava)
+        entity_id = None
+        if self.userinfo == "AA":
+            entity_id = response.entity_id
+        self.setup_userdb(uid, response.ava, entity_id)
 
         return_to = create_return_url(self.return_to, uid, **{self.query_param: "true"})
         if '?' in return_to:
@@ -159,7 +165,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
         resp = Redirect(return_to, headers=[auth_cookie])
         return resp
 
-    def setup_userdb(self, uid, samldata):
+    def setup_userdb(self, uid, samldata, entity_id=None):
         attributes = {}
         if self.sp_conf.ATTRIBUTE_WHITELIST is not None:
             for attr, allowed in self.sp_conf.ATTRIBUTE_WHITELIST.iteritems():
@@ -177,9 +183,15 @@ class SAMLAuthnMethod(UserAuthnMethod):
         else:
             attributes = samldata
         userdb = {}
-        for oic, saml in self.sp_conf.OPENID2SAMLMAP.iteritems():
-            if saml in attributes:
-                userdb[oic] = attributes[saml]
+
+        if self.sp_conf.OPENID2SAMLMAP is None:
+            userdb = attributes.copy()
+        else:
+            for oic, saml in self.sp_conf.OPENID2SAMLMAP.iteritems():
+                if saml in attributes:
+                    userdb[oic] = attributes[saml]
+        if entity_id is not None:
+            userdb["AA_ENTITYID"] = entity_id
         self.userdb[uid] = userdb
 
 

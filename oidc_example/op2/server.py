@@ -17,6 +17,7 @@ from oic.utils.authn.client import verify_client
 from oic.utils.authz import AuthzHandling
 from oic.utils.keyio import KeyBundle, dump_jwks
 from oic.utils.userinfo import UserInfo
+from oic.utils.userinfo.aa_info import AaUserInfo
 from oic.utils.webfinger import WebFinger
 from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.authn.authn_context import AuthnBroker
@@ -389,7 +390,8 @@ if __name__ == '__main__':
         if "SAML" == authkey:
             from oic.utils.authn.saml import SAMLAuthnMethod
             authn = SAMLAuthnMethod(None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
-                                    "%s/authorization" % config.issuer, config.SERVICE_URL)
+                                    "%s/authorization" % config.issuer, config.SERVICE_URL,
+                                    userinfo=config.USERINFO)
         if authn is not None:
             ac.add(config.AUTHENTICATION[authkey]["ACR"], authn,
                    config.AUTHENTICATION[authkey]["WEIGHT"],
@@ -422,6 +424,8 @@ if __name__ == '__main__':
         OAS.userinfo = UserInfo(config.USERDB)
     elif config.USERINFO == "SAML":
         OAS.userinfo = UserInfo(config.SAML)
+    elif config.USERINFO == "AA":
+        OAS.userinfo = AaUserInfo(config.SP_CONFIG, config.issuer, config.SAML)
     else:
         raise Exception("Unsupported userinfo source")
 
