@@ -806,6 +806,7 @@ class Client(oauth2.Client):
                     pcr = response_cls().from_json(r.text)
                     break
 
+        #logger.debug("Provider info: %s" % pcr)
         if pcr is None:
             raise PyoidcError("Trying '%s', status %s" % (url, r.status_code))
 

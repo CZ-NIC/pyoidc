@@ -20,19 +20,22 @@ class ServiceErrorException(Exception):
     pass
 
 try:
-    from saml2 import BINDING_HTTP_ARTIFACT
-    from saml2 import BINDING_HTTP_REDIRECT
-    from saml2 import BINDING_HTTP_POST
     import saml2
+except ImportError:
+    saml2 = None
+
+    class SAMLAuthnMethod(UserAuthnMethod):
+        pass
+else:
+    from saml2 import BINDING_HTTP_REDIRECT
+    from saml2 import BINDING_HTTP_ARTIFACT
+    from saml2 import BINDING_HTTP_POST
     from saml2.client import Saml2Client
     from saml2.s_utils import sid
     from saml2.s_utils import rndstr
     from saml2.s_utils import UnknownPrincipal
     from saml2.s_utils import UnsupportedBinding
-except ImportError:
-    class SAMLAuthnMethod(UserAuthnMethod):
-        pass
-else:
+
     #This class handles user authentication with CAS.
     class SAMLAuthnMethod(UserAuthnMethod):
         CONST_QUERY = "query"
@@ -41,7 +44,7 @@ else:
 
         def __init__(self, srv, lookup, userdb, spconf, url, return_to,
                      verification_endpoint="verify", cache=None,
-                     bindings=None, userinfo=None):
+                     bindings=None, userinfo=None, samlcache=None):
             """
             Constructor for the class.
             :param srv: Usually none, but otherwise the oic server.
@@ -76,6 +79,7 @@ else:
                 "message": "You are not authorized!",
             }
             self.not_authorized = mte.render(**argv)
+            self.samlcache = self.sp_conf.SAML_CACHE
 
 
         def __call__(self, query, *args, **kwargs):
@@ -115,8 +119,8 @@ else:
                     entity_id = response
                     # Do the AuthnRequest
                     resp = self._redirect_to_auth(
-                        self.sp, entity_id, base64.b64decode(
-                            data[self.CONST_QUERY]) )
+                        self.sp, entity_id,
+                        base64.b64decode(data[self.CONST_QUERY]) )
                     return resp
                 return response
 
@@ -161,10 +165,10 @@ else:
 
             #logger.info("parsed OK")'
             uid = response.assertion.subject.name_id.text
-            entity_id = None
             if self.userinfo == "AA":
-                entity_id = response.entity_id
-            self.setup_userdb(uid, response.ava, entity_id)
+                if response.entity_id is not None and self.samlcache is not None:
+                    self.samlcache["AA_ENTITYID"] = response.entity_id
+            self.setup_userdb(uid, response.ava)
 
             return_to = create_return_url(self.return_to, uid,
                                           **{self.query_param: "true"})
@@ -178,7 +182,7 @@ else:
             resp = Redirect(return_to, headers=[auth_cookie])
             return resp
 
-        def setup_userdb(self, uid, samldata, entity_id=None):
+        def setup_userdb(self, uid, samldata):
             attributes = {}
             if self.sp_conf.ATTRIBUTE_WHITELIST is not None:
                 for attr, allowed in self.sp_conf.ATTRIBUTE_WHITELIST.iteritems():
@@ -203,8 +207,6 @@ else:
                 for oic, saml in self.sp_conf.OPENID2SAMLMAP.iteritems():
                     if saml in attributes:
                         userdb[oic] = attributes[saml]
-            if entity_id is not None:
-                userdb["AA_ENTITYID"] = entity_id
             self.userdb[uid] = userdb
 
 
@@ -259,8 +261,7 @@ else:
                         return self._wayf_redirect(cookie)
                 elif self.sp_conf.DISCOSRV:
                     if query:
-                        idp_entity_id = _cli.parse_discovery_service_response(
-                            query=query)
+                        idp_entity_id = _cli.parse_discovery_service_response(query=query)
                     if not idp_entity_id:
                         sid_ = sid()
                         self.cache_outstanding_queries[sid_] = self.verification_endpoint
@@ -281,9 +282,8 @@ else:
         def _wayf_redirect(self, cookie):
             sid_ = sid()
             self.cache_outstanding_queries[sid_] = self.verification_endpoint
-            return -1, SeeOther(
-                headers=[('Location', "%s?%s" % (self.sp_conf.WAYF, sid_)),
-                         cookie])
+            return -1, SeeOther(headers=[
+                ('Location', "%s?%s" % (self.sp_conf.WAYF, sid_)), cookie])
 
         def _redirect_to_auth(self, _cli, entity_id, query, vorg_name=""):
             try:
@@ -299,8 +299,8 @@ else:
                     _sid = saml2.s_utils.sid(_cli.seed)
                     req_id, msg_str = _cli.create_authn_request(
                         destination, vorg=vorg_name,
-                        sign=_cli.authn_requests_signed,
-                        message_id=_sid, extensions=extensions)
+                        sign=_cli.authn_requests_signed, message_id=_sid,
+                        extensions=extensions)
                     _sid = req_id
                 else:
                     req_id, req = _cli.create_authn_request(destination,
