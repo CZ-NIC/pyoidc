@@ -33,7 +33,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
     CONST_HASIDP = "hasidp"
 
     def __init__(self, srv, lookup, userdb, spconf, url, return_to, verification_endpoint="verify", cache=None,
-                 bindings=None, userinfo=None):
+                 bindings=None, userinfo=None, samlcache=None):
         """
         Constructor for the class.
         :param srv: Usually none, but otherwise the oic server.
@@ -68,6 +68,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
             "message": "You are not authorized!",
         }
         self.not_authorized = mte.render(**argv)
+        self.samlcache = self.sp_conf.SAML_CACHE
 
 
     def __call__(self, query, *args, **kwargs):
@@ -149,10 +150,10 @@ class SAMLAuthnMethod(UserAuthnMethod):
 
         #logger.info("parsed OK")'
         uid = response.assertion.subject.name_id.text
-        entity_id = None
         if self.userinfo == "AA":
-            entity_id = response.entity_id
-        self.setup_userdb(uid, response.ava, entity_id)
+            if response.entity_id is not None and self.samlcache is not None:
+                self.samlcache["AA_ENTITYID"] = response.entity_id
+        self.setup_userdb(uid, response.ava)
 
         return_to = create_return_url(self.return_to, uid, **{self.query_param: "true"})
         if '?' in return_to:
@@ -165,7 +166,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
         resp = Redirect(return_to, headers=[auth_cookie])
         return resp
 
-    def setup_userdb(self, uid, samldata, entity_id=None):
+    def setup_userdb(self, uid, samldata):
         attributes = {}
         if self.sp_conf.ATTRIBUTE_WHITELIST is not None:
             for attr, allowed in self.sp_conf.ATTRIBUTE_WHITELIST.iteritems():
@@ -190,8 +191,6 @@ class SAMLAuthnMethod(UserAuthnMethod):
             for oic, saml in self.sp_conf.OPENID2SAMLMAP.iteritems():
                 if saml in attributes:
                     userdb[oic] = attributes[saml]
-        if entity_id is not None:
-            userdb["AA_ENTITYID"] = entity_id
         self.userdb[uid] = userdb
 
 

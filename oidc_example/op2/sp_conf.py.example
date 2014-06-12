@@ -124,6 +124,18 @@ CONFIG = {
     }
 }
 
+#Cache for transferring information between SAML authn and user info AA
+SAML_CACHE = {}
+
+# If AA_ATTRIBUTE_SAML_IDP is true the AA attributes and the IDP attributes will be concatenated. Else only the
+# attributes listed in AA_ATTRIBUTE_SAML_IDP_WHITELIST will be returned. If AA_ATTRIBUTE_SAML_IDP_WHITELIST is None all
+# attributes will be returned
+AA_ATTRIBUTE_SAML_IDP = True
+#AA_ATTRIBUTE_SAML_IDP_WHITELIST = None
+AA_ATTRIBUTE_SAML_IDP_WHITELIST = ["eduPersonScopedAffiliation"]
+
+AA_REQUEST_ATTRIBUTES = None
+
 #Contains all valid attributes and valid values for that attribute.
 VALID_ATTRIBUTE_RESPONSE=None
 #Example configuration for studentness
