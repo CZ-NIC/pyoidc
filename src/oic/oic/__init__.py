@@ -331,8 +331,12 @@ class Client(oauth2.Client):
                 kwargs["algorithm"] = alg
 
             if "keys" not in kwargs and alg:
-                atype = alg2keytype(alg)
-                kwargs["keys"] = self.keyjar.get_signing_key(atype)
+                _kty = alg2keytype(alg)
+                try:
+                    kwargs["keys"] = self.keyjar.get_signing_key(
+                        _kty, kid=self.kid["sig"][_kty])
+                except KeyError:
+                    kwargs["keys"] = self.keyjar.get_signing_key(_kty)
 
             _req = make_openid_request(areq, **kwargs)
 
@@ -702,8 +706,13 @@ class Client(oauth2.Client):
             return _schema().from_json(txt=resp.text)
         else:
             algo = self.client_prefs["userinfo_signed_response_alg"]
+            _kty = alg2keytype(algo)
             # Keys of the OP ?
-            keys = self.keyjar.get_signing_key(alg2keytype(algo))
+            try:
+                keys = self.keyjar.get_signing_key(_kty, self.kid["sig"][_kty])
+            except KeyError:
+                keys = self.keyjar.get_signing_key(_kty)
+
             return _schema().from_jwt(resp.text, keys)
 
     def get_userinfo_claims(self, access_token, endpoint, method="POST",
@@ -1124,7 +1133,10 @@ class Server(oauth2.Server):
         if client_id:
             keys = self.keyjar.verify_keys(client_id)
         else:
-            keys = None
+            try:
+                keys = self.keyjar.verify_keys(request["client_id"])
+            except KeyError:
+                keys = None
 
         request.verify(key=keys, keyjar=self.keyjar)
         return request
