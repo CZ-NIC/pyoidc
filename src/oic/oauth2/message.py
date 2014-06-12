@@ -475,9 +475,12 @@ class Message(object):
                             pass
 
                 if _kid:
-                    _key = keyjar.get_key_by_kid(_kid, jso["iss"])
-                    if _key:
-                        key.append(_key)
+                    try:
+                        _key = keyjar.get_key_by_kid(_kid, jso["iss"])
+                        if _key:
+                            key.append(_key)
+                    except KeyError:
+                        pass
 
                 try:
                     self._add_key(keyjar, kwargs["opponent_id"], key)
