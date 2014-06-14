@@ -340,7 +340,7 @@ class Consumer(Client):
                                         keyjar=self.keyjar)
             if aresp.type() == "ErrorResponse":
                 _log_info("ErrorResponse: %s" % aresp)
-                raise AuthzError(aresp.error)
+                raise AuthzError(aresp.error, aresp)
 
             _log_info("Aresp: %s" % aresp)
 
@@ -348,7 +348,7 @@ class Consumer(Client):
             try:
                 self.update(_state)
             except KeyError:
-                raise UnknownState(_state)
+                raise UnknownState(_state, aresp)
 
             self.redirect_uris = [self.sdb[_state]["redirect_uris"]]
 
@@ -375,7 +375,7 @@ class Consumer(Client):
                                       sformat="urlencoded",
                                       keyjar=self.keyjar)
             if atr.type() == "ErrorResponse":
-                raise TokenError(atr["error"])
+                raise TokenError(atr["error"], atr)
 
             idt = None
             return None, atr, idt
@@ -405,7 +405,7 @@ class Consumer(Client):
         logger.info("Access Token Response: %s" % resp)
 
         if resp.type() == "ErrorResponse":
-            raise TokenError(resp.error)
+            raise TokenError(resp.error, resp)
 
         #self._backup(self.sdb["seed:%s" % _cli.seed])
         self._backup(self.state)
@@ -420,7 +420,7 @@ class Consumer(Client):
         uinfo = self.do_user_info_request(state=self.state, schema="openid")
 
         if uinfo.type() == "ErrorResponse":
-            raise TokenError(uinfo.error)
+            raise TokenError(uinfo.error, uinfo)
 
         self.user_info = uinfo
         self._backup(self.state)

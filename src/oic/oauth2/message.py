@@ -15,12 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 class MissingRequiredAttribute(MessageException):
-    def __init__(self, attr):
-        Exception.__init__(self)
-        self.attr = attr
+    def __init__(self, attr, message=""):
+        Exception.__init__(self, attr)
+        self.message = message
 
     def __str__(self):
-        return "Missing required attribute '%s'" % self.attr
+        return "Missing required attribute '%s'" % self.args[0]
 
 
 class MissingRequiredValue(MessageException):
@@ -113,7 +113,7 @@ class Message(object):
         if not self.lax:
             for attribute, (_, req, _ser, _, na) in _spec.items():
                 if req and attribute not in self._dict:
-                    raise MissingRequiredAttribute("%s" % attribute)
+                    raise MissingRequiredAttribute("%s" % attribute, self)
 
         params = []
 
@@ -228,7 +228,7 @@ class Message(object):
                         try:
                             self._dict[key] = typ(val[0])
                         except KeyError:
-                            raise ValueError
+                            raise ValueError()
                 else:
                     raise TooManyValues
 

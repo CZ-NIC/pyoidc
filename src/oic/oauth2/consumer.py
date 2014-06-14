@@ -2,7 +2,6 @@
 __author__ = 'rohe0002'
 
 import time
-import logging
 
 from hashlib import md5
 

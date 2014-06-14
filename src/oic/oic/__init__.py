@@ -118,7 +118,7 @@ def verify_acr_level(req, level):
     else:  # Required or Optional
         return level
 
-    raise AccessDenied
+    raise AccessDenied("", req)
 
 
 def deser_id_token(inst, txt=""):
@@ -777,7 +777,8 @@ class Client(oauth2.Client):
                     assert _issuer == _pcr_issuer
                 except AssertionError:
                     raise IssuerMismatch("'%s' != '%s'" % (_issuer,
-                                                           _pcr_issuer))
+                                                           _pcr_issuer),
+                                         pcr)
 
             self.provider_info = pcr
         else:
@@ -939,7 +940,7 @@ class Client(oauth2.Client):
 
             if _pref not in self.behaviour:
                 raise ConfigurationError(
-                    "OP couldn't match preferences", "%s" % _pref)
+                    "OP couldn't match preference:%s" % _pref, pcr)
 
         regreq = RegistrationRequest
         for key, val in self.client_prefs.items():
@@ -1024,7 +1025,7 @@ class Client(oauth2.Client):
             try:
                 req["redirect_uris"] = self.redirect_uris
             except AttributeError:
-                raise MissingRequiredAttribute("redirect_uris")
+                raise MissingRequiredAttribute("redirect_uris", req)
 
         return req
 
@@ -1127,7 +1128,8 @@ class Server(oauth2.Server):
                 query = data
             request = request().from_urlencoded(query)
         else:
-            raise PyoidcError("Unknown package format: '%s'" % sformat)
+            raise PyoidcError("Unknown package format: '%s'" % sformat,
+                              request)
 
         # get the verification keys
         if client_id:

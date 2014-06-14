@@ -95,7 +95,7 @@ def msg_ser(inst, sformat, lev=0):
         else:
             raise ValueError("%s" % type(inst))
     else:
-        raise PyoidcError("Unknown sformat")
+        raise PyoidcError("Unknown sformat", inst)
 
     return res
 
@@ -108,7 +108,7 @@ def msg_ser_json(inst, sformat="json", lev=0):
         elif isinstance(inst, dict):
             res = inst
         else:
-            raise ValueError("%s" % type(inst))
+            raise ValueError("%s" % type(inst), inst)
     else:
         sformat = "json"
         if isinstance(inst, dict) or isinstance(inst, Message):
@@ -148,7 +148,7 @@ def claims_ser(val, sformat="urlencoded", lev=0):
         else:
             raise ValueError("%s" % type(item))
     else:
-        raise PyoidcError("Unknown sformat")
+        raise PyoidcError("Unknown sformat: %s" % sformat, val)
 
     return res
 
@@ -275,7 +275,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
                     pass
             idt = IdToken().from_jwt(str(self["id_token"]), **args)
             if not idt.verify(**kwargs):
-                raise VerificationError("Could not verify id_token")
+                raise VerificationError("Could not verify id_token", idt)
 
             hfunc = "HS" + jwkest.unpack(self["id_token"])[0]["alg"][-3:]
 
@@ -283,23 +283,25 @@ class AuthorizationResponse(message.AuthorizationResponse,
                 try:
                     assert "at_hash" in idt
                 except AssertionError:
-                    raise MissingRequiredAttribute("Missing at_hash property")
+                    raise MissingRequiredAttribute("Missing at_hash property",
+                                                   idt)
                 try:
                     assert idt["at_hash"] == jws.left_hash(
                         self["access_token"], hfunc)
                 except AssertionError:
                     raise VerificationError(
-                        "Failed to verify access_token hash")
+                        "Failed to verify access_token hash", idt)
 
             if "code" in self:
                 try:
                     assert "c_hash" in idt
                 except AssertionError:
-                    raise MissingRequiredAttribute("Missing c_hash property")
+                    raise MissingRequiredAttribute("Missing c_hash property",
+                                                   idt)
                 try:
                     assert idt["c_hash"] == jws.left_hash(self["code"], hfunc)
                 except AssertionError:
-                    raise VerificationError("Failed to verify code hash")
+                    raise VerificationError("Failed to verify code hash", idt)
 
             self["id_token"] = idt
 
@@ -381,29 +383,30 @@ class AuthorizationRequest(message.AuthorizationRequest):
                 self["id_token"] = idt
 
         if "response_type" not in self:
-            raise MissingRequiredAttribute("response_type missing")
+            raise MissingRequiredAttribute("response_type missing", self)
 
         _rt = self["response_type"]
         if "token" in _rt or "id_token" in _rt:
             try:
                 assert "nonce" in self
             except AssertionError:
-                raise MissingRequiredAttribute("Nonce missing")
+                raise MissingRequiredAttribute("Nonce missing", self)
 
         try:
             assert "openid" in self["scope"]
         except AssertionError:
-            raise MissingRequiredValue("openid in scope")
+            raise MissingRequiredValue("openid in scope", self)
 
         if "offline_access" in self["scope"]:
             try:
                 assert "consent" in self["prompt"]
             except AssertionError:
-                raise MissingRequiredValue("consent in prompt")
+                raise MissingRequiredValue("consent in prompt", self)
 
         if "prompt" in self:
             if "none" in self["prompt"] and len(self["prompt"]) > 1:
-                raise InvalidRequest("prompt none combined with other value")
+                raise InvalidRequest("prompt none combined with other value",
+                                     self)
 
         return super(AuthorizationRequest, self).verify(**kwargs)
 
@@ -461,7 +464,7 @@ class OpenIDSchema(Message):
                 try:
                     _ = time.strptime(self["birthdate"], "%Y")
                 except ValueError:
-                    raise VerificationError("Birthdate format error")
+                    raise VerificationError("Birthdate format error", self)
 
         return super(OpenIDSchema, self).verify(**kwargs)
 
@@ -539,11 +542,11 @@ class RegistrationResponse(Message):
             if not "registration_access_token":
                 raise VerificationError((
                     "Only one of registration_client_uri"
-                    " and registration_access_token present"))
+                    " and registration_access_token present"), self)
         elif "registration_access_token" in self:
             raise VerificationError((
                 "Only one of registration_client_uri"
-                " and registration_access_token present"))
+                " and registration_access_token present"), self)
 
         return super(RegistrationResponse, self).verify(**kwargs)
 
@@ -576,25 +579,25 @@ class IdToken(OpenIDSchema):
             if "client_id" in kwargs:
                 # check that I'm among the recipients
                 if kwargs["client_id"] not in self["aud"]:
-                    raise NotForMe()
+                    raise NotForMe("", self)
 
             if len(self["aud"]) > 1:  # Then azr has to be present and be one of
                                       # the values
                 try:
                     assert "azr" in self
                 except AssertionError:
-                    raise VerificationError("azr missing")
+                    raise VerificationError("azr missing", self)
                 else:
                     try:
                         assert self["azr"] in self["aud"]
                     except AssertionError:
                         raise VerificationError(
-                            "Missmatch between azr and aud claims")
+                            "Missmatch between azr and aud claims", self)
 
         if "azr" in self:
             if "client_id" in kwargs:
                 if kwargs["client_id"] != self["azp"]:
-                    raise NotForMe()
+                    raise NotForMe("", self)
 
         return super(IdToken, self).verify(**kwargs)
 

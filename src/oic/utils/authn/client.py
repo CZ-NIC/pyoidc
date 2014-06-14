@@ -414,6 +414,6 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
             if areq["client_assertion_type"] == typ:
                 return method(inst).verify(areq)
         else:
-            raise UnknownAssertionType(areq["client_assertion_type"])
+            raise UnknownAssertionType(areq["client_assertion_type"], areq)
     else:
         return client_id
