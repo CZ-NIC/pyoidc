@@ -6,7 +6,7 @@
 Pyoidc
 ======
 
-This will eventually be a complete implementation of OpenID Connect.
+One of the most complete implementations of OpenID Connect.
 And as a side effect a fairly complete implementation of OAuth2.0.
 
 .. toctree::
