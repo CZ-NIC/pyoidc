@@ -926,7 +926,10 @@ class Client(oauth2.Client):
                     self.behaviour[_pref] = PROVIDER_DEFAULT[_pref]
                 except KeyError:
                     #self.behaviour[_pref]= vals[0]
-                    self.behaviour[_pref] = None
+                    if isinstance(pcr.c_param[_prov][0], list):
+                        self.behaviour[_pref] = []
+                    else:
+                        self.behaviour[_pref] = None
                 continue
 
             if isinstance(vals, basestring):
@@ -1169,20 +1172,34 @@ class Server(oauth2.Server):
     #    def parse_issuer_request(self, info, sformat="urlencoded"):
     #        return self._parse_request(IssuerRequest, info, sformat)
 
-    def id_token_claims(self, session):
+    @staticmethod
+    def id_token_claims(session):
         """
         Pick the IdToken claims from the request
 
         :param session: Session information
         :return: The IdToken claims
         """
+        itc = None
+
+        try:
+            authzreq = AuthorizationRequest().deserialize(session["authzreq"],
+                                                          'json')
+            itc = authzreq["claims"]["id_token"]
+            logger.debug("ID Token claims: %s" % itc)
+        except KeyError:
+            pass
+
         try:
             oidreq = OpenIDRequest().deserialize(session["oidreq"], "json")
-            itc = oidreq["claims"]["id_token"]
+            itc_or = oidreq["claims"]["id_token"]
+            if itc:
+                itc.update(itc_or)
             logger.debug("ID Token claims: %s" % itc)
-            return itc
         except KeyError:
-            return None
+            pass
+
+        return itc
 
     def make_id_token(self, session, loa="2", issuer="",
                       alg="RS256", code=None, access_token=None,
