@@ -252,7 +252,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
     c_param.update(message.AccessTokenResponse.c_param)
     c_param.update({
         "code": SINGLE_OPTIONAL_STRING,
-        "nonce": SINGLE_OPTIONAL_STRING,
+        #"nonce": SINGLE_OPTIONAL_STRING,
         "access_token": SINGLE_OPTIONAL_STRING,
         "token_type": SINGLE_OPTIONAL_STRING,
         "id_token": SINGLE_OPTIONAL_IDTOKEN
@@ -339,7 +339,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
             "registration": SINGLE_OPTIONAL_JSON,
             "request": SINGLE_OPTIONAL_STRING,
             "request_uri": SINGLE_OPTIONAL_STRING,
-            "session_state": SINGLE_OPTIONAL_STRING,
+            #"session_state": SINGLE_OPTIONAL_STRING,
             "response_mode": SINGLE_OPTIONAL_STRING,
         }
     )
@@ -481,6 +481,7 @@ class RegistrationRequest(Message):
         "client_uri": SINGLE_OPTIONAL_STRING,
         "policy_uri": SINGLE_OPTIONAL_STRING,
         "tos_uri": SINGLE_OPTIONAL_STRING,
+        "jwks": SINGLE_OPTIONAL_STRING,
         "jwks_uri": SINGLE_OPTIONAL_STRING,
         "sector_identifier_uri": SINGLE_OPTIONAL_STRING,
         "subject_type": SINGLE_OPTIONAL_STRING,
@@ -502,7 +503,7 @@ class RegistrationRequest(Message):
         "request_uris": OPTIONAL_LIST_OF_STRINGS,
         #"client_id": SINGLE_OPTIONAL_STRING,
         #"client_secret": SINGLE_OPTIONAL_STRING,
-        "access_token": SINGLE_OPTIONAL_STRING,
+        #"access_token": SINGLE_OPTIONAL_STRING,
         "post_logout_redirect_uris": OPTIONAL_LIST_OF_STRINGS,
     }
     c_default = {"application_type": "web"}
@@ -659,7 +660,6 @@ class OpenIDRequest(AuthorizationRequest):
 
 class ProviderConfigurationResponse(Message):
     c_param = {
-        "version": SINGLE_REQUIRED_STRING,
         "issuer": SINGLE_REQUIRED_STRING,
         "authorization_endpoint": SINGLE_OPTIONAL_STRING,
         "token_endpoint": SINGLE_OPTIONAL_STRING,
