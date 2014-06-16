@@ -677,6 +677,8 @@ def add_non_standard(msg1, msg2):
 
 #noinspection PyUnusedLocal
 def list_serializer(vals, sformat="urlencoded", lev=0):
+    if isinstance(vals, basestring) or not isinstance(vals, list):
+        raise ValueError("Expected list: %s" % vals)
     if sformat == "urlencoded":
         return " ".join(vals)
     else:
