@@ -13,7 +13,7 @@ from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2 import VerificationError
 from oic.exception import InvalidRequest, NotForMe
 from oic.exception import PyoidcError
-from oic.oauth2.message import Message
+from oic.oauth2.message import Message, SchemeError
 from oic.oauth2.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
 from oic.oauth2.message import SINGLE_OPTIONAL_JSON
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
@@ -719,7 +719,11 @@ class ProviderConfigurationResponse(Message):
                 check_char_set(scope, SCOPE_CHARSET)
 
         parts = urlparse(self["issuer"])
-        assert parts.scheme == "https"
+        try:
+            assert parts.scheme == "https"
+        except AssertionError:
+            raise SchemeError("Not HTTPS")
+
         assert not parts.query and not parts.fragment
 
         return super(ProviderConfigurationResponse, self).verify(**kwargs)

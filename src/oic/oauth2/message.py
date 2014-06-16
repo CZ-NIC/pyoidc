@@ -43,6 +43,8 @@ class OldAccessToken(PyoidcError):
     pass
 
 
+class SchemeError(MessageException):
+    pass
 
 
 ERRTXT = "On '%s': %s"
