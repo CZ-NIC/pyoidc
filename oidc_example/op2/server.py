@@ -485,9 +485,9 @@ if __name__ == '__main__':
     # Setup the web server
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
 
-    SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(config.SERVER_CERT,
-                                                     config.SERVER_KEY,
-                                                     config.CERT_CHAIN)
+    if config.SERVICE_URL.startswith("https"):
+        SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
+            config.SERVER_CERT, config.SERVER_KEY, config.CERT_CHAIN)
 
     LOGGER.info("OC server starting listening on port:%s" % args.port)
     print "OC server starting listening on port:%s" % args.port
