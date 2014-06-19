@@ -657,7 +657,7 @@ class Client(PBase):
         return self.construct_request(request, request_args, extra_args)
 
     def get_or_post(self, uri, method, req,
-                    content_type=DEFAULT_POST_CONTENT_TYPE, **kwargs):
+                    content_type=DEFAULT_POST_CONTENT_TYPE, accept=None, **kwargs):
         if method == "GET":
             _qp = req.to_urlencoded()
             if _qp:
@@ -675,7 +675,10 @@ class Client(PBase):
                 raise UnSupported(
                     "Unsupported content type: '%s'" % content_type)
 
-            header_ext = {"content-type": content_type}
+            header_ext = {"Content-type": content_type}
+            if (accept):
+                header_ext = {"Accept": accept}
+            
             if "headers" in kwargs.keys():
                 kwargs["headers"].update(header_ext)
             else:
