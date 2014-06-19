@@ -1203,7 +1203,7 @@ class Server(oauth2.Server):
 
     def make_id_token(self, session, loa="2", issuer="",
                       alg="RS256", code=None, access_token=None,
-                      user_info=None):
+                      user_info=None, auth_time=0):
         """
 
         :param session: Session information
@@ -1227,7 +1227,7 @@ class Server(oauth2.Server):
                 inawhile = {}
             for key, val in itc.items():
                 if key == "auth_time":
-                    extra["auth_time"] = time_util.utc_time_sans_frac()
+                    extra["auth_time"] = auth_time
                 elif key == "acr":
                     #["2","http://id.incommon.org/assurance/bronze"]
                     extra["acr"] = verify_acr_level(val, loa)

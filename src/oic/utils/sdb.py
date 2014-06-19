@@ -203,7 +203,8 @@ class SessionDB(object):
 
         return uid
 
-    def create_authz_session(self, sub, areq, id_token=None, oidreq=None):
+    def create_authz_session(self, sub, areq, id_token=None, oidreq=None,
+                             **kwargs):
         """
 
         :param sub: Identifier for the user, this is the real identifier
@@ -226,6 +227,8 @@ class SessionDB(object):
             "client_id": areq["client_id"],
             "revoked": False,
         }
+
+        _dic.update(kwargs)
 
         try:
             _val = areq["nonce"]

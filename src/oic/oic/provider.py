@@ -5,6 +5,7 @@ import traceback
 import urllib
 import sys
 from jwkest.jwe import JWE
+from oic.utils import time_util
 from oic.utils.authn.user import NoSuchAuthentication
 from oic.utils.authn.user import ToOld
 from oic.utils.authn.user import TamperAllert
@@ -194,11 +195,11 @@ class Provider(AProvider):
         self.capabilities = self.provider_features()
 
     def id_token_as_signed_jwt(self, session, loa="2", alg="RS256", code=None,
-                               access_token=None, user_info=None):
+                               access_token=None, user_info=None, auth_time=0):
 
         logger.debug("Signing alg: %s [%s]" % (alg, alg2keytype(alg)))
         _idt = self.server.make_id_token(session, loa, self.baseurl, alg, code,
-                                         access_token, user_info)
+                                         access_token, user_info, auth_time)
 
         logger.debug("id_token: %s" % _idt.to_dict())
         # My signing key if its RS*, can use client secret if HS*
@@ -519,6 +520,7 @@ class Provider(AProvider):
             identity = authn.authenticated_as(cookie,
                                               authorization=_auth_info,
                                               max_age=self.max_age(areq))
+            auth_time = time_util.utc_now()
         except (NoSuchAuthentication, ToOld, TamperAllert):
             identity = None
 
@@ -566,7 +568,8 @@ class Provider(AProvider):
         except KeyError:
             oidc_req = None
 
-        sid = self.sdb.create_authz_session(user, areq, oidreq=oidc_req)
+        sid = self.sdb.create_authz_session(user, areq, oidreq=oidc_req,
+                                            auth_time=auth_time)
         return self.authz_part2(user, areq, sid)
 
     def userinfo_in_id_token_claims(self, session):
@@ -613,7 +616,7 @@ class Provider(AProvider):
         return _jwe.encrypt(keys, context="public")
 
     def sign_encrypt_id_token(self, sinfo, client_info, areq, code=None,
-                              access_token=None, user_info=None):
+                              access_token=None, user_info=None, auth_time=0):
         """
         Signed and or encrypt a IDToken
 
@@ -634,7 +637,8 @@ class Provider(AProvider):
         id_token = self.id_token_as_signed_jwt(sinfo, alg=alg,
                                                code=code,
                                                access_token=access_token,
-                                               user_info=user_info)
+                                               user_info=user_info,
+                                               auth_time=auth_time)
 
         # Then encrypt
         if "id_token_encrypted_response_alg" in client_info:
@@ -681,7 +685,8 @@ class Provider(AProvider):
         if "openid" in _info["scope"]:
             userinfo = self.userinfo_in_id_token_claims(_info)
             _idtoken = self.sign_encrypt_id_token(_info, client_info, req,
-                                                  user_info=userinfo)
+                                                  user_info=userinfo,
+                                                  auth_time=_info["auth_time"])
             _sdb.update_by_token(_access_code, "id_token", _idtoken)
 
         _log_debug("_tinfo: %s" % _tinfo)
@@ -705,7 +710,8 @@ class Provider(AProvider):
         if "openid" in _info["scope"]:
             userinfo = self.userinfo_in_id_token_claims(_info)
             _idtoken = self.sign_encrypt_id_token(_info, client_info, req,
-                                                  user_info=userinfo)
+                                                  user_info=userinfo,
+                                                  auth_time=_info["auth_time"])
             sid = _sdb.token.get_key(rtoken)
             _sdb.update(sid, "id_token", _idtoken)
 
@@ -1429,7 +1435,8 @@ class Provider(AProvider):
 
                 id_token = self.sign_encrypt_id_token(
                     _sinfo, client_info, areq, code=_code,
-                    access_token=_access_token, user_info=user_info)
+                    access_token=_access_token, user_info=user_info,
+                    auth_time=_sinfo["auth_time"])
 
                 aresp["id_token"] = id_token
                 _sinfo["id_token"] = id_token
