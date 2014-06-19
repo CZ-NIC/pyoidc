@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import copy
 import json
 import traceback
 import urllib
@@ -190,6 +191,7 @@ class Provider(AProvider):
         self.preferred_id_type = "public"
         self.hostname = hostname or socket.gethostname
         self.register_endpoint = "%s%s" % (self.baseurl, "register")
+        self.capabilities = self.provider_features()
 
     def id_token_as_signed_jwt(self, session, loa="2", alg="RS256", code=None,
                                access_token=None, user_info=None):
@@ -1194,9 +1196,56 @@ class Provider(AProvider):
         return Response(response.to_json(), content="application/json",
                         headers=[("Cache-Control", "no-store")])
 
-    def create_providerinfo(self, pcr_class=ProviderConfigurationResponse):
+    def create_providerinfo(self, pcr_class=ProviderConfigurationResponse,
+                            setup=None):
+        """
+        Dynamically create the provider info response
+        :param pcr_class:
+        :param setup:
+        :return:
+        """
+
+        _provider_info = copy.deepcopy(self.capabilities)
+
+        if setup:
+            # sort of placeholder tight now
+            # for key, spec in pcr_class.c_param.items():
+            #     if isinstance(setup[0], list) and setup[0] != basestring:
+            #         # dealing with lists
+            #         if key in setup:
+            #             if key in _provider_info:
+            #                 _provider_info[key] = [x for x in setup[key]
+            #                                        if x in _provider_info[key]]
+            #             else:
+            #                 _provider_info[key] = setup[key]
+            #     else:
+            pass
+        else:
+            #keys = self.keyjar.keys_by_owner(owner=".")
+            if self.jwks_uri and self.keyjar:
+                _provider_info["jwks_uri"] = self.jwks_uri
+
+            for endp in self.endp:
+                #_log_info("# %s, %s" % (endp, endp.name))
+                _provider_info[endp(None).name] = "%s%s" % (self.baseurl,
+                                                            endp.etype)
+
+        _provider_info["issuer"] = self.baseurl
+        _provider_info["version"] = "3.0"
+
+        if not self.baseurl.endswith("/"):
+            self.baseurl += "/"
+
+        return _provider_info
+
+    def provider_features(self, pcr_class=ProviderConfigurationResponse):
+        """
+        Specifies what the server capabilities are.
+
+        :param pcr_class:
+        :return: ProviderConfigurationResponse instance
+        """
         _provider_info = pcr_class(
-            issuer=self.baseurl,
             token_endpoint_auth_methods_supported=[
                 "client_secret_post", "client_secret_basic",
                 "client_secret_jwt", "private_key_jwt"],
@@ -1215,7 +1264,6 @@ class Provider(AProvider):
             claims_parameter_supported="true",
             request_parameter_supported="true",
             request_uri_parameter_supported="true",
-            version="3.0"
         )
 
         sign_algs = jws.SIGNER_ALGS.keys()
@@ -1231,22 +1279,11 @@ class Provider(AProvider):
         for typ in ["userinfo", "id_token", "request_object"]:
             _provider_info["%s_encryption_enc_values_supported" % typ] = encs
 
-        if not self.baseurl.endswith("/"):
-            self.baseurl += "/"
-
-        #keys = self.keyjar.keys_by_owner(owner=".")
-        if self.jwks_uri and self.keyjar:
-            _provider_info["jwks_uri"] = self.jwks_uri
-
         #acr_values
         if self.authn_broker:
             acr_values = self.authn_broker.getAcrValuesString()
             if acr_values is not None:
                 _provider_info["acr_values_supported"] = acr_values
-
-        for endp in self.endp:
-            #_log_info("# %s, %s" % (endp, endp.name))
-            _provider_info[endp(None).name] = "%s%s" % (self.baseurl, endp.etype)
 
         return _provider_info
 
