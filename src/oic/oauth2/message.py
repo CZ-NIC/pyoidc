@@ -453,7 +453,7 @@ class Message(object):
                 dkeys = keyjar.get_decrypt_key(owner="")
             else:
                 dkeys = {}
-            txt = JWE().decrypt(txt, dkeys, "private")
+            txt = JWE().decrypt(txt, dkeys)
             try:
                 jso = json.loads(txt)
             except Exception:
