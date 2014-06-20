@@ -370,7 +370,7 @@ def test_complete_auth_token():
     assert auth.type() == "AuthorizationResponse"
     assert acc.type() == "AccessTokenResponse"
     print auth.keys()
-    assert _eq(auth.keys(), ['nonce', 'code', 'access_token', 'expires_in',
+    assert _eq(auth.keys(), ['code', 'access_token', 'expires_in',
                              'token_type', 'state', 'scope', 'refresh_token'])
     assert _eq(acc.keys(), ['token_type', 'state', 'access_token', 'scope',
                             'expires_in', 'refresh_token'])
@@ -551,4 +551,4 @@ if __name__ == "__main__":
     #t = TestOICConsumer()
     #t.setup_class()
     #t.test_begin()
-    test_client_register()
+    test_provider_config()

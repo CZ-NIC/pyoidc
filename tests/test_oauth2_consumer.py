@@ -271,5 +271,5 @@ def test_consumer_client_get_access_token_reques():
                     "grant_type=authorization_code&client_id=number5&"
                     "redirect_uri=https%3A%2F%2Fwww.example.com%2Foic%2Fcb")
     assert http_args == {'headers': {
-        'content-type': 'application/x-www-form-urlencoded'}}
+        'Content-type': 'application/x-www-form-urlencoded'}}
 

@@ -434,6 +434,7 @@ class Client(PBase):
 
         self.provider_info = {}
         self._c_secret = None
+        self.kid = {"sig": {}, "enc": {}}
 
     def get_client_secret(self):
         return self._c_secret

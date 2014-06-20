@@ -311,7 +311,7 @@ class TestOICClient():
         assert _eq(areq.keys(), ["nonce", "redirect_uri", "response_type",
                                  "client_id", "scope"])
         assert h_args == {'headers': {
-            'content-type': 'application/x-www-form-urlencoded'}}
+            'Content-type': 'application/x-www-form-urlencoded'}}
         assert cis.type() == "AuthorizationRequest"
 
     def test_request_info_simple_get(self):
@@ -946,7 +946,7 @@ def test_userinfo_request():
     assert method == "POST"
     assert body == "access_token=access_token"
     assert h_args == {'headers': {
-        'content-type': 'application/x-www-form-urlencoded'}}
+        'Content-type': 'application/x-www-form-urlencoded'}}
 
     path, body, method, h_args = cli.user_info_request(method="POST",
                                                        state="state0")
@@ -955,7 +955,7 @@ def test_userinfo_request():
     assert method == "POST"
     assert body == "access_token=access_token"
     assert h_args == {'headers': {
-        'content-type': 'application/x-www-form-urlencoded'}}
+        'Content-type': 'application/x-www-form-urlencoded'}}
 
 #def test_do_user_indo_request():
 #    cli = Client()

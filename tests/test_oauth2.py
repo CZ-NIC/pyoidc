@@ -340,8 +340,8 @@ class TestOAuthClient():
         # default == "POST"
         assert uri == 'https://example.com/authz'
         assert body == "redirect_uri=http%3A%2F%2Fclient.example.com%2Fauthz&response_type=code&client_id=1"
-        assert h_args == {'headers': {'content-type':
-                                          'application/x-www-form-urlencoded'}}
+        assert h_args == {'headers': {'Content-type':
+                                      'application/x-www-form-urlencoded'}}
         assert cis.type() == "AuthorizationRequest"
 
     def test_request_info_simple_get(self):

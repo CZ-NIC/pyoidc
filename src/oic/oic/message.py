@@ -705,7 +705,7 @@ class ProviderConfigurationResponse(Message):
         #"x509_encryption_url": SINGLE_OPTIONAL_STRING,
     }
     c_default = {"version": "3.0",
-                 "token_endpoint_auth_methods_supported": "client_secret_basic",
+                 "token_endpoint_auth_methods_supported": ["client_secret_basic"],
                  "claims_parameter_supported": "false",
                  "request_parameter_supported": "false",
                  "request_uri_parameter_supported": "true",

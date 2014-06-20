@@ -96,9 +96,8 @@ tl = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
                     input_encoding='utf-8', output_encoding='utf-8')
 
 AUTHN_BROKER = AuthnBroker()
-AUTHN_BROKER.add(UNDEFINED,
-                 UsernamePasswordMako(None, "login.mako", tl, PASSWD,
-                                      "authenticated"))
+AUTHN_BROKER.add("1", UsernamePasswordMako(None, "login.mako", tl, PASSWD,
+                                           "authenticated"))
 
 # dealing with authorization
 AUTHZ = AuthzHandling()

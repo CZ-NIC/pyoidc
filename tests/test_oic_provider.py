@@ -309,6 +309,7 @@ def test_server_authenticated_1():
 
 def test_server_authenticated_2():
     server = provider_init
+    server.baseurl = server.name
     _session_db = {}
     cons = Consumer(_session_db, CONSUMER_CONFIG, CLIENT_CONFIG,
                     server_info=SERVER_INFO, )
@@ -392,7 +393,9 @@ def test_token_endpoint():
 
     authreq = AuthorizationRequest(state="state",
                                    redirect_uri="http://example.com/authz",
-                                   client_id=CLIENT_ID)
+                                   client_id=CLIENT_ID,
+                                   response_type="code",
+                                   scope=["openid"])
 
     _sdb = server.sdb
     sid = _sdb.token.key(user="sub", areq=authreq)
@@ -400,12 +403,13 @@ def test_token_endpoint():
     _sdb[sid] = {
         "oauth_state": "authz",
         "sub": "sub",
-        "authzreq": "",
+        "authzreq": authreq.to_json(),
         "client_id": CLIENT_ID,
         "code": access_grant,
         "code_used": False,
         "scope": ["openid"],
-        "redirect_uri": "http://example.com/authz"
+        "redirect_uri": "http://example.com/authz",
+        "auth_time": 1000000
     }
 
     # Construct Access token request
@@ -680,4 +684,4 @@ def test_registered_redirect_uri_with_query_component():
         assert resp is None
 
 if __name__ == "__main__":
-    test_userinfo_endpoint()
+    test_token_endpoint()

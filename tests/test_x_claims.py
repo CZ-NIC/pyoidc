@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from jwkest.jwk import SYMKey
 from mako.runtime import UNDEFINED
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.claims import ClaimsMode
@@ -126,8 +127,8 @@ def test_srv1():
 
     info = user_info(None, USERDB, "diana")
 
-    keys = {"hmac": "hemlig"}
-    cresp = UserClaimsResponse(jwt=info.to_jwt(key=keys),
+    keys = [SYMKey(key="hemlig")]
+    cresp = UserClaimsResponse(jwt=info.to_jwt(key=keys, algorithm="HS256"),
                                claims_names=info.keys())
 
     print cresp
@@ -162,4 +163,4 @@ def test_srv2():
     assert "jwt" in ucr
 
 if __name__ == "__main__":
-    test_1()
+    test_srv1()
