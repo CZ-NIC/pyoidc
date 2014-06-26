@@ -85,17 +85,19 @@ REQUEST2ENDPOINT = {
 }
 
 # -----------------------------------------------------------------------------
-MAX_AUTHENTICATION_AGE = 86400
+
 JWT_BEARER = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+SAML2_BEARER_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:saml2-bearer"
 
 OIDCONF_PATTERN = "%s/.well-known/openid-configuration"
 
+# This should probably be part of the configuration
+MAX_AUTHENTICATION_AGE = 86400
 DEF_SIGN_ALG = {"id_token": "RS256",
                 "openid_request_object": "RS256",
                 "client_secret_jwt": "HS256",
                 "private_key_jwt": "RS256"}
 
-SAML2_BEARER_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:saml2-bearer"
 
 
 # -----------------------------------------------------------------------------
@@ -192,7 +194,7 @@ class Grant(oauth2.Grant):
 
 
 PREFERENCE2PROVIDER = {
-    "require_signed_request_object": "request_object_algs_supported",
+    #"require_signed_request_object": "request_object_algs_supported",
     "request_object_signing_alg": "request_object_signing_alg_values_supported",
     "request_object_encryption_alg":
         "request_object_encryption_alg_values_supported",
@@ -255,7 +257,7 @@ class Client(oauth2.Client):
         self.client_prefs = client_prefs or {}
 
         self.behaviour = {
-            "require_signed_request_object":
+            "request_object_signing_alg":
             DEF_SIGN_ALG["openid_request_object"]}
 
         self.wf = WebFinger(OIC_ISSUER)
@@ -326,7 +328,7 @@ class Client(oauth2.Client):
                                                             **kwargs)
 
         if request_param:
-            alg = self.behaviour["require_signed_request_object"]
+            alg = self.behaviour["request_object_signing_alg"]
             if "algorithm" not in kwargs:
                 kwargs["algorithm"] = alg
 
