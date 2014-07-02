@@ -215,7 +215,8 @@ PREFERENCE2PROVIDER = {
     "subject_type": "subject_types_supported",
     "token_endpoint_auth_method": "token_endpoint_auth_methods_supported",
     "token_endpoint_auth_signing_alg":
-        "token_endpoint_auth_signing_alg_values_supported"
+        "token_endpoint_auth_signing_alg_values_supported",
+    "response_types": "response_types_supported"
     #"request_object_signing_alg": "request_object_signing_alg_values_supported
 }
 
@@ -915,6 +916,8 @@ class Client(oauth2.Client):
         if not pcr:
             pcr = self.provider_info
 
+        regreq = RegistrationRequest
+
         for _pref, _prov in PREFERENCE2PROVIDER.items():
             try:
                 vals = self.client_prefs[_pref]
@@ -938,23 +941,35 @@ class Client(oauth2.Client):
                 if vals in _pvals:
                     self.behaviour[_pref] = vals
             else:
+                vtyp = regreq.c_param[_pref]
+                if isinstance(vtyp[0], list):
+                    _list = True
+                else:
+                    _list = False
+
                 for val in vals:
                     if val in _pvals:
-                        self.behaviour[_pref] = val
-                        break
+                        if not _list:
+                            self.behaviour[_pref] = val
+                            break
+                        else:
+                            try:
+                                self.behaviour[_pref].append(val)
+                            except KeyError:
+                                self.behaviour[_pref] = [val]
+
 
             if _pref not in self.behaviour:
                 raise ConfigurationError(
                     "OP couldn't match preference:%s" % _pref, pcr)
 
-        regreq = RegistrationRequest
         for key, val in self.client_prefs.items():
             if key in self.behaviour:
                 continue
 
             try:
                 vtyp = regreq.c_param[key]
-                if isinstance(vtyp, list):
+                if isinstance(vtyp[0], list):
                     pass
                 elif isinstance(val, list) and not isinstance(val, basestring):
                     val = val[0]
