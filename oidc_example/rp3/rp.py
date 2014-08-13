@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import importlib
+import argparse
 import urllib
 from jwkest.jws import alg2keytype
 from mako.lookup import TemplateLookup
@@ -172,7 +174,11 @@ if __name__ == '__main__':
     from oidc import OIDCError
     from beaker.middleware import SessionMiddleware
     from cherrypy import wsgiserver
-    import conf
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(dest="config")
+    args = parser.parse_args()
+    conf = importlib.import_module(args.config)
 
     session_opts = {
         'session.type': 'memory',
