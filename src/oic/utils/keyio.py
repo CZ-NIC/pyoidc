@@ -559,6 +559,16 @@ class KeyJar(object):
 
         return res
 
+    def dump(self):
+        res = {}
+        for issuer in self.issuer_keys.keys():
+            res[issuer] = self.dump_issuer_keys(issuer)
+        return res
+
+    def restore(self, info):
+        for issuer, keys in info.items():
+            self.issuer_keys[issuer] = [KeyBundle(keys)]
+
 # =============================================================================
 
 
