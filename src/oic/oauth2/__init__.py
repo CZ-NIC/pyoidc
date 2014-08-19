@@ -390,6 +390,15 @@ class PBase(object):
     def send(self, url, method="GET", **kwargs):
         return self.http_request(url, method, **kwargs)
 
+    def load_cookies_from_file(self, filename, ignore_discard=False,
+                               ignore_expires=False):
+        self.cookiejar.load(filename, ignore_discard, ignore_expires)
+
+    def save_cookies_to_file(self, filename, ignore_discard=False,
+                             ignore_expires=False):
+
+        self.cookiejar.save(filename, ignore_discard, ignore_expires)
+
 
 class Client(PBase):
     _endpoints = ENDPOINTS
