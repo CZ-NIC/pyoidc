@@ -216,6 +216,12 @@ def verify(environ, start_response, logger):
     return wsgi_wrapper(environ, start_response, _oas.verify_endpoint,
                         logger=logger)
 
+def make_auth_verify(callback_endpoint):
+    def auth_verify(environ, start_response, logger):
+        return wsgi_wrapper(environ, start_response, callback_endpoint,
+                        logger=logger)
+    return auth_verify
+
 
 def static_file(path):
     try:
@@ -386,12 +392,14 @@ if __name__ == '__main__':
         if "UserPassword" == authkey:
             from oic.utils.authn.user import UsernamePasswordMako
             authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
-                                         "%s/authorization" % config.issuer)
+                                         "%s/authorization" % config.issuer, None, "%s/user_password_verify" % config.issuer)
+            URLS.append((r'^user_password_verify', make_auth_verify(authn.verify)))
         if "SAML" == authkey:
             from oic.utils.authn.saml import SAMLAuthnMethod
             authn = SAMLAuthnMethod(None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
-                                    "%s/authorization" % config.issuer, config.SERVICE_URL,
+                                    "%s/authorization" % config.issuer, "%s/saml_verify" % config.issuer,
                                     userinfo=config.USERINFO)
+            URLS.append((r'^saml_verify', make_auth_verify(authn.verify)))
         if authn is not None:
             ac.add(config.AUTHENTICATION[authkey]["ACR"], authn,
                    config.AUTHENTICATION[authkey]["WEIGHT"],
