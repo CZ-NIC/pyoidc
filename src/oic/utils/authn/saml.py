@@ -103,6 +103,13 @@ else:
             return_to url. Otherwise a unauthorized response.
             :raise: ValueError
             """
+            if isinstance(request, basestring):
+                request = parse_qs(request)
+            elif isinstance(request, dict):
+                pass
+            else:
+                raise ValueError("Wrong type of input")
+
             binding = None
             if path == "/" + self.sp_conf.ASCPOST:
                 binding = BINDING_HTTP_POST

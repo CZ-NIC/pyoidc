@@ -127,7 +127,8 @@ def application(environ, start_response):
             session["op"] = query["op"][0]
 
         try:
-            resp = client.create_authn_request(session)
+            config = globals()['config']
+            resp = client.create_authn_request(session, config.ACR_VALUES)
         except Exception:
             raise
         else:
@@ -168,7 +169,6 @@ def application(environ, start_response):
 
     return opchoice(environ, start_response, CLIENTS)
 
-
 if __name__ == '__main__':
     from oidc import OIDCClients
     from oidc import OIDCError
@@ -179,6 +179,8 @@ if __name__ == '__main__':
     parser.add_argument(dest="config")
     args = parser.parse_args()
     conf = importlib.import_module(args.config)
+
+    globals()['config'] = conf
 
     session_opts = {
         'session.type': 'memory',
