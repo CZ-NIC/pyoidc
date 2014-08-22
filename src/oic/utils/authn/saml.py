@@ -128,12 +128,12 @@ else:
                     resp = self._redirect_to_auth(
                         self.sp, entity_id,
                         base64.b64decode(data[self.CONST_QUERY]) )
-                    return resp
-                return response
+                    return resp, False
+                return response, False
 
             if not request:
                 logger.info("Missing Response")
-                return Unauthorized("You are not authorized!")
+                return Unauthorized("You are not authorized!"), False
 
             try:
                 response = self.sp.parse_authn_request_response(
@@ -141,21 +141,21 @@ else:
                     self.cache_outstanding_queries)
             except UnknownPrincipal, excp:
                 logger.error("UnknownPrincipal: %s" % (excp,))
-                return Unauthorized(self.not_authorized)
+                return Unauthorized(self.not_authorized), False
             except UnsupportedBinding, excp:
                 logger.error("UnsupportedBinding: %s" % (excp,))
-                return Unauthorized(self.not_authorized)
+                return Unauthorized(self.not_authorized), False
             except VerificationError, err:
                 logger.error("Verification error: %s" % (err,))
-                return Unauthorized(self.not_authorized)
+                return Unauthorized(self.not_authorized), False
             except Exception, err:
                 logger.error("Other error: %s" % (err,))
-                return Unauthorized(self.not_authorized)
+                return Unauthorized(self.not_authorized), False
 
             if self.sp_conf.VALID_ATTRIBUTE_RESPONSE is not None:
                 for k, v in self.sp_conf.VALID_ATTRIBUTE_RESPONSE.iteritems():
                     if k not in response.ava:
-                        return Unauthorized(self.not_authorized)
+                        return Unauthorized(self.not_authorized), False
                     else:
                         allowed = False
                         for allowed_attr_value in v:
@@ -168,7 +168,7 @@ else:
                                 allowed = True
                                 break
                         if not allowed:
-                            return Unauthorized(self.not_authorized)
+                            return Unauthorized(self.not_authorized), False
 
             #logger.info("parsed OK")'
             uid = response.assertion.subject.name_id.text
@@ -187,7 +187,7 @@ else:
 
             auth_cookie = self.create_cookie(uid, "samlm")
             resp = Redirect(return_to, headers=[auth_cookie])
-            return resp
+            return resp, True
 
         def setup_userdb(self, uid, samldata):
             attributes = {}

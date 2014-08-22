@@ -76,8 +76,9 @@ class UserAuthnMethod(CookieDealer):
 
             return {"uid": uid}
 
-    def generate_return_url(self, return_to, uid):
-        return create_return_url(return_to, uid, **{self.query_param: "true"})
+    def generate_return_url(self, return_to, uid, query_parameters={}):
+        query_parameters['self.query_param'] = "true"
+        return create_return_url(return_to, uid, **query_parameters)
 
     def verify(self, **kwargs):
         raise NotImplemented
@@ -235,6 +236,12 @@ class UsernamePasswordMako(UserAuthnMethod):
         wants the user after authentication.
         """
 
+        cookie = kwargs['cookie']
+
+        rp_cookie = self.get_cookie_value(cookie, "rp_query_cookie")
+        query = parse_qs(rp_cookie[0])
+        kwargs.update(query)
+
         logger.debug("verify(%s)" % request)
         if isinstance(request, basestring):
             _dict = parse_qs(request)
@@ -257,12 +264,12 @@ class UsernamePasswordMako(UserAuthnMethod):
             except KeyError:
                 _qp = ""
             try:
-                return_to = self.generate_return_url(kwargs["return_to"], _qp)
+                return_to = self.generate_return_url(kwargs["return_to"], _qp, query)
             except KeyError:
-                return_to = self.generate_return_url(self.return_to, _qp)
+                return_to = self.generate_return_url(self.return_to, _qp, query)
             resp = Redirect(return_to, headers=[cookie])
 
-        return resp
+        return resp, True
 
     def done(self, areq):
         try:

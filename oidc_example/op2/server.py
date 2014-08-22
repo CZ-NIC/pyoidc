@@ -13,6 +13,9 @@ from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
 from urlparse import parse_qs
 from oic.utils.authn.client import verify_client
+from oic.utils.authn.multiple_auth import MultipleAuth
+from oic.utils.authn.saml import SAMLAuthnMethod
+from oic.utils.authn.user import UsernamePasswordMako
 
 from oic.utils.authz import AuthzHandling
 from oic.utils.keyio import KeyBundle, dump_jwks
@@ -216,10 +219,16 @@ def verify(environ, start_response, logger):
     return wsgi_wrapper(environ, start_response, _oas.verify_endpoint,
                         logger=logger)
 
-def make_auth_verify(callback_endpoint):
+def make_auth_verify(callback_endpoint, next_module_obj=None):
     def auth_verify(environ, start_response, logger):
-        return wsgi_wrapper(environ, start_response, callback_endpoint,
-                        logger=logger)
+        kwargs = extract_from_request(environ)
+
+        response, isFinished = callback_endpoint(**kwargs)
+
+        if isFinished and next_module_obj:
+            response = next_module_obj()
+
+        return response(environ, start_response)
     return auth_verify
 
 
@@ -390,16 +399,41 @@ if __name__ == '__main__':
     for authkey, value in config.AUTHENTICATION.items():
         authn = None
         if "UserPassword" == authkey:
-            from oic.utils.authn.user import UsernamePasswordMako
-            authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
-                                         "%s/authorization" % config.issuer, None, "%s/user_password_verify" % config.issuer)
+            authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,"%s/authorization" % config.issuer,
+                                            None, "%s/user_password_verify" % config.issuer)
             URLS.append((r'^user_password_verify', make_auth_verify(authn.verify)))
         if "SAML" == authkey:
-            from oic.utils.authn.saml import SAMLAuthnMethod
             authn = SAMLAuthnMethod(None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
                                     "%s/authorization" % config.issuer, "%s/saml_verify" % config.issuer,
                                     userinfo=config.USERINFO)
             URLS.append((r'^saml_verify', make_auth_verify(authn.verify)))
+        if "SAML_PASS" == authkey:
+            saml_authn = SAMLAuthnMethod(None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
+                                    "%s/authorization" % config.issuer, "%s/saml_pass_verify" % config.issuer,
+                                    userinfo=config.USERINFO)
+            ac.add("", saml_authn,0,"")
+
+            username_password = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,"%s/authorization" % config.issuer,
+                                            None, "%s/user_password_verify" % config.issuer)
+            ac.add("", username_password,0,"")
+
+            authn = MultipleAuth(saml_authn)
+            URLS.append((r'^saml_pass_verify', make_auth_verify(saml_authn.verify, username_password)))
+
+        if "SAML_multi" == authkey:
+            saml_authn = SAMLAuthnMethod(None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
+                                    "%s/authorization" % config.issuer, "%s/saml_pass_verify" % config.issuer,
+                                    userinfo=config.USERINFO)
+            ac.add("", saml_authn,0,"")
+
+            usernamePass = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,"%s/authorization" % config.issuer,
+                                            None, "%s/user_password_verify" % config.issuer)
+            ac.add("", usernamePass,0,"")
+
+            authn = MultipleAuth(saml_authn)
+            URLS.append((r'^saml_verify', make_auth_verify(saml_authn.verify, usernamePass)))
+            URLS.append((r'^user_password_verify', make_auth_verify(usernamePass.verify)))
+
         if authn is not None:
             ac.add(config.AUTHENTICATION[authkey]["ACR"], authn,
                    config.AUTHENTICATION[authkey]["WEIGHT"],
