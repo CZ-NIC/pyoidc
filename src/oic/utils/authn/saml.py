@@ -82,7 +82,8 @@ else:
             self.samlcache = self.sp_conf.SAML_CACHE
 
 
-        def __call__(self, query, *args, **kwargs):
+        def __call__(self, query="", *args, **kwargs):
+
             (done, response) = self._pick_idp(query)
             if done == 0:
                 entity_id = response
@@ -120,6 +121,8 @@ else:
                                                          self.CONST_SAML_COOKIE)
             data = json.loads(saml_cookie)
 
+            rp_query_cookie = self.get_multi_auth_cookie(cookie)
+
             if data[self.CONST_HASIDP] == 'False':
                 (done, response) = self._pick_idp(request)
                 if done == 0:
@@ -127,7 +130,7 @@ else:
                     # Do the AuthnRequest
                     resp = self._redirect_to_auth(
                         self.sp, entity_id,
-                        base64.b64decode(data[self.CONST_QUERY]) )
+                        rp_query_cookie)
                     return resp, False
                 return response, False
 
@@ -183,7 +186,7 @@ else:
                 return_to += "&"
             else:
                 return_to += "?"
-            return_to += base64.b64decode(data[self.CONST_QUERY])
+            return_to += rp_query_cookie
 
             auth_cookie = self.create_cookie(uid, "samlm")
             resp = Redirect(return_to, headers=[auth_cookie])

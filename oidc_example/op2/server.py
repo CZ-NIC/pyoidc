@@ -13,7 +13,7 @@ from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
 from urlparse import parse_qs
 from oic.utils.authn.client import verify_client
-from oic.utils.authn.multiple_auth import MultipleAuth
+from oic.utils.authn.multiple_auth import MultipleAuth, setup_multi_auth
 from oic.utils.authn.saml import SAMLAuthnMethod
 from oic.utils.authn.user import UsernamePasswordMako
 
@@ -23,7 +23,7 @@ from oic.utils.userinfo import UserInfo
 from oic.utils.userinfo.aa_info import AaUserInfo
 from oic.utils.webfinger import WebFinger
 from oic.utils.webfinger import OIC_ISSUER
-from oic.utils.authn.authn_context import AuthnBroker
+from oic.utils.authn.authn_context import AuthnBroker, make_auth_verify
 
 __author__ = 'rohe0002'
 
@@ -219,18 +219,6 @@ def verify(environ, start_response, logger):
     return wsgi_wrapper(environ, start_response, _oas.verify_endpoint,
                         logger=logger)
 
-def make_auth_verify(callback_endpoint, next_module_obj=None):
-    def auth_verify(environ, start_response, logger):
-        kwargs = extract_from_request(environ)
-
-        response, isFinished = callback_endpoint(**kwargs)
-
-        if isFinished and next_module_obj:
-            response = next_module_obj()
-
-        return response(environ, start_response)
-    return auth_verify
-
 
 def static_file(path):
     try:
@@ -367,7 +355,6 @@ def application(environ, start_response):
 
 # ----------------------------------------------------------------------------
 
-
 if __name__ == '__main__':
     import argparse
     import shelve
@@ -407,33 +394,18 @@ if __name__ == '__main__':
                                     "%s/authorization" % config.issuer, "%s/saml_verify" % config.issuer,
                                     userinfo=config.USERINFO)
             URLS.append((r'^saml_verify', make_auth_verify(authn.verify)))
-        if "SAML_PASS" == authkey:
-            saml_authn = SAMLAuthnMethod(None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
-                                    "%s/authorization" % config.issuer, "%s/saml_pass_verify" % config.issuer,
-                                    userinfo=config.USERINFO)
-            ac.add("", saml_authn,0,"")
-
-            username_password = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,"%s/authorization" % config.issuer,
-                                            None, "%s/user_password_verify" % config.issuer)
-            ac.add("", username_password,0,"")
-
-            authn = MultipleAuth(saml_authn)
-            URLS.append((r'^saml_pass_verify', make_auth_verify(saml_authn.verify, username_password)))
 
         if "SAML_multi" == authkey:
             saml_authn = SAMLAuthnMethod(None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
                                     "%s/authorization" % config.issuer, "%s/saml_pass_verify" % config.issuer,
                                     userinfo=config.USERINFO)
-            ac.add("", saml_authn,0,"")
 
             usernamePass = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,"%s/authorization" % config.issuer,
                                             None, "%s/user_password_verify" % config.issuer)
-            ac.add("", usernamePass,0,"")
 
-            authn = MultipleAuth(saml_authn)
-            URLS.append((r'^saml_verify', make_auth_verify(saml_authn.verify, usernamePass)))
-            URLS.append((r'^user_password_verify', make_auth_verify(usernamePass.verify)))
-
+            auth_modules = [(usernamePass, r'^user_password_verify'), (saml_authn, r'^saml_verify')]
+            authn = setup_multi_auth(ac, URLS, auth_modules)
+            
         if authn is not None:
             ac.add(config.AUTHENTICATION[authkey]["ACR"], authn,
                    config.AUTHENTICATION[authkey]["WEIGHT"],

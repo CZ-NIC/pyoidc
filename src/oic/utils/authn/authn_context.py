@@ -1,3 +1,5 @@
+from oic.utils.http_util import extract_from_request
+
 __author__ = 'rolandh'
 
 UNSPECIFIED = "urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified"
@@ -189,3 +191,16 @@ class AuthnBroker(object):
 
     def __len__(self):
         return len(self.db["info"].keys())
+
+
+def make_auth_verify(callback_endpoint, next_module_obj=None):
+    def auth_verify(environ, start_response, logger):
+        kwargs = extract_from_request(environ)
+
+        response, isFinished = callback_endpoint(**kwargs)
+
+        if isFinished and next_module_obj:
+            response = next_module_obj(**kwargs)
+
+        return response(environ, start_response)
+    return auth_verify

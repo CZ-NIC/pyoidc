@@ -37,6 +37,8 @@ class FailedAuthentication(Exception):
 
 
 class UserAuthnMethod(CookieDealer):
+    MULTI_AUTH_COOKIE = "rp_query_cookie"
+
     def __init__(self, srv, ttl=5):
         CookieDealer.__init__(self, srv, ttl)
         self.query_param = "upm_answer"
@@ -83,6 +85,9 @@ class UserAuthnMethod(CookieDealer):
     def verify(self, **kwargs):
         raise NotImplemented
 
+    def get_multi_auth_cookie(self, cookie):
+        rp_query_cookie, _, _ = self.getCookieValue(cookie, UserAuthnMethod.MULTI_AUTH_COOKIE)
+        return rp_query_cookie
 
 def url_encode_params(params=None):
     if not isinstance(params, dict):
@@ -238,8 +243,8 @@ class UsernamePasswordMako(UserAuthnMethod):
 
         cookie = kwargs['cookie']
 
-        rp_cookie = self.get_cookie_value(cookie, "rp_query_cookie")
-        query = parse_qs(rp_cookie[0])
+        rp_cookie = self.get_multi_auth_cookie(cookie)
+        query = parse_qs(rp_cookie)
         kwargs.update(query)
 
         logger.debug("verify(%s)" % request)
