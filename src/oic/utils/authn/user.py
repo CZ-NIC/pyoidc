@@ -86,8 +86,11 @@ class UserAuthnMethod(CookieDealer):
         raise NotImplemented
 
     def get_multi_auth_cookie(self, cookie):
-        rp_query_cookie, _, _ = self.getCookieValue(cookie, UserAuthnMethod.MULTI_AUTH_COOKIE)
-        return rp_query_cookie
+        rp_query_cookie = self.getCookieValue(cookie, UserAuthnMethod.MULTI_AUTH_COOKIE)
+
+        if rp_query_cookie:
+            return rp_query_cookie[0]
+        return ""
 
 def url_encode_params(params=None):
     if not isinstance(params, dict):
@@ -215,12 +218,12 @@ class UsernamePasswordMako(UserAuthnMethod):
         """
         Put up the login form
         """
-        if cookie:
-            headers = [cookie]
-        else:
-            headers = []
+        # if cookie:
+        #     headers = [cookie]
+        # else:
+        #     headers = []
 
-        resp = Response(headers=headers)
+        resp = Response()
 
         argv = self.templ_arg_func(**kwargs)
         logger.info("do_authentication argv: %s" % argv)
@@ -262,6 +265,7 @@ class UsernamePasswordMako(UserAuthnMethod):
             self._verify(_dict["password"][0], _dict["login"][0])
         except (AssertionError, KeyError):
             resp = Unauthorized("Unknown user or wrong password")
+            return resp, False
         else:
             cookie = self.create_cookie(_dict["login"][0], "upm")
             try:

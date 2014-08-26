@@ -15,6 +15,7 @@ from urlparse import parse_qs
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.multiple_auth import MultipleAuth, setup_multi_auth
 from oic.utils.authn.saml import SAMLAuthnMethod
+from oic.utils.authn.superauthn import SuperAuthn
 from oic.utils.authn.user import UsernamePasswordMako
 
 from oic.utils.authz import AuthzHandling
@@ -403,9 +404,12 @@ if __name__ == '__main__':
             usernamePass = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,"%s/authorization" % config.issuer,
                                             None, "%s/user_password_verify" % config.issuer)
 
-            auth_modules = [(usernamePass, r'^user_password_verify'), (saml_authn, r'^saml_verify')]
+            super_authn = SuperAuthn(None, "login.mako", LOOKUP,"%s/authorization" % config.issuer,
+                                            None, "%s/super_authn_verify" % config.issuer)
+
+            auth_modules = [(usernamePass, r'^user_password_verify'), (saml_authn, r'^saml_verify'), (super_authn, r'^super_authn_verify')]
             authn = setup_multi_auth(ac, URLS, auth_modules)
-            
+
         if authn is not None:
             ac.add(config.AUTHENTICATION[authkey]["ACR"], authn,
                    config.AUTHENTICATION[authkey]["WEIGHT"],

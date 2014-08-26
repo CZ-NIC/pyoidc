@@ -123,14 +123,17 @@ else:
 
             rp_query_cookie = self.get_multi_auth_cookie(cookie)
 
+            query = rp_query_cookie
+
+            if not query:
+                query = base64.b64decode(data[self.CONST_QUERY])
+
             if data[self.CONST_HASIDP] == 'False':
                 (done, response) = self._pick_idp(request)
                 if done == 0:
                     entity_id = response
                     # Do the AuthnRequest
-                    resp = self._redirect_to_auth(
-                        self.sp, entity_id,
-                        rp_query_cookie)
+                    resp = self._redirect_to_auth(self.sp, entity_id, query)
                     return resp, False
                 return response, False
 
@@ -186,7 +189,7 @@ else:
                 return_to += "&"
             else:
                 return_to += "?"
-            return_to += rp_query_cookie
+            return_to += query
 
             auth_cookie = self.create_cookie(uid, "samlm")
             resp = Redirect(return_to, headers=[auth_cookie])
