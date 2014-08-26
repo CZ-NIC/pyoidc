@@ -958,7 +958,6 @@ class Client(oauth2.Client):
                             except KeyError:
                                 self.behaviour[_pref] = [val]
 
-
             if _pref not in self.behaviour:
                 raise ConfigurationError(
                     "OP couldn't match preference:%s" % _pref, pcr)

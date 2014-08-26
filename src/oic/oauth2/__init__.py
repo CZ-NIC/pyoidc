@@ -145,6 +145,7 @@ class Grant(object):
         self.seed = seed
         self.tokens = []
         self.id_token = None
+        self.code = None
         if resp:
             self.add_code(resp)
             self.add_token(resp)
@@ -282,9 +283,8 @@ class PBase(object):
         self.keyjar = KeyJar(verify_ssl=verify_ssl)
 
         self.request_args = {"allow_redirects": False}
-        #self.cookies = cookielib.CookieJar()
-        self.cookies = {}
-        self.cookiejar = cookielib.CookieJar()
+        #self.cookies = {}
+        self.cookiejar = cookielib.FileCookieJar()
         self.ca_certs = ca_certs
         if ca_certs:
             self.request_args["verify"] = verify_ssl
@@ -302,8 +302,9 @@ class PBase(object):
 
         return cookie_dict
 
-    def set_cookie(self, kaka, request):
-        """Returns a cookielib.Cookie based on a set-cookie header line"""
+    def set_cookie(self, kaka):
+        """PLaces a cookie (a cookielib.Cookie based on a set-cookie header
+        line) in the cookie jar. """
 
         # default rfc2109=False
         # max-age, httponly
@@ -380,7 +381,7 @@ class PBase(object):
             # set_cookie = set_cookie.replace(
             #     "=;Path=/;Expires=Thu, 01-Jan-1970 00:00:01 GMT;HttpOnly,", "")
             logger.debug("RECEIVED COOKIEs: %s" % set_cookie)
-            self.set_cookie(SimpleCookie(set_cookie), r)
+            self.set_cookie(SimpleCookie(set_cookie))
         except (AttributeError, KeyError), err:
             pass
 
@@ -388,6 +389,15 @@ class PBase(object):
 
     def send(self, url, method="GET", **kwargs):
         return self.http_request(url, method, **kwargs)
+
+    def load_cookies_from_file(self, filename, ignore_discard=False,
+                               ignore_expires=False):
+        self.cookiejar.load(filename, ignore_discard, ignore_expires)
+
+    def save_cookies_to_file(self, filename, ignore_discard=False,
+                             ignore_expires=False):
+
+        self.cookiejar.save(filename, ignore_discard, ignore_expires)
 
 
 class Client(PBase):
