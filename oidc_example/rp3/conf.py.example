@@ -10,6 +10,9 @@ CA_BUNDLE = None
 
 VERIFY_SSL = False
 
+# Prioritized list of auth class ref, None means the RP will not send any acr values
+ACR_VALUES = None
+
 # information used when registering the client, this may be the same for all OPs
 ME = {
     "application_type": "web",

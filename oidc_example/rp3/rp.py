@@ -127,8 +127,7 @@ def application(environ, start_response):
             session["op"] = query["op"][0]
 
         try:
-            config = globals()['config']
-            resp = client.create_authn_request(session, config.ACR_VALUES)
+            resp = client.create_authn_request(session, ACR_VALUES)
         except Exception:
             raise
         else:
@@ -180,7 +179,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     conf = importlib.import_module(args.config)
 
-    globals()['config'] = conf
+    global ACR_VALUES
+    ACR_VALUES = conf.ACR_VALUES
 
     session_opts = {
         'session.type': 'memory',
