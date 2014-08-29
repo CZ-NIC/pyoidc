@@ -78,7 +78,9 @@ class UserAuthnMethod(CookieDealer):
 
             return {"uid": uid}
 
-    def generate_return_url(self, return_to, uid, query_parameters={}):
+    def generate_return_url(self, return_to, uid, query_parameters=None):
+        if query_parameters is None:
+            query_parameters = {}
         query_parameters['self.query_param'] = "true"
         return create_return_url(return_to, uid, **query_parameters)
 
