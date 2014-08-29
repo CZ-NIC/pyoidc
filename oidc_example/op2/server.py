@@ -4,7 +4,6 @@ import logging
 import sys
 import os
 import traceback
-
 from exceptions import KeyError
 from exceptions import Exception
 from exceptions import OSError
@@ -12,12 +11,11 @@ from exceptions import IndexError
 from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
 from urlparse import parse_qs
-from oic.utils.authn.client import verify_client
-from oic.utils.authn.multiple_auth import MultipleAuth, setup_multi_auth
-from oic.utils.authn.saml import SAMLAuthnMethod
-from oic.utils.authn.superauthn import SuperAuthn
-from oic.utils.authn.user import UsernamePasswordMako
 
+from oic.utils.authn.client import verify_client
+from oic.utils.authn.multi_auth import setup_multi_auth
+from oic.utils.authn.saml import SAMLAuthnMethod
+from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.authz import AuthzHandling
 from oic.utils.keyio import KeyBundle, dump_jwks
 from oic.utils.userinfo import UserInfo
@@ -25,6 +23,7 @@ from oic.utils.userinfo.aa_info import AaUserInfo
 from oic.utils.webfinger import WebFinger
 from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.authn.authn_context import AuthnBroker, make_auth_verify
+
 
 __author__ = 'rohe0002'
 
@@ -404,10 +403,7 @@ if __name__ == '__main__':
             usernamePass = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,"%s/authorization" % config.issuer,
                                             None, "%s/user_password_verify" % config.issuer)
 
-            super_authn = SuperAuthn(None, "login.mako", LOOKUP,"%s/authorization" % config.issuer,
-                                            None, "%s/super_authn_verify" % config.issuer)
-
-            auth_modules = [(usernamePass, r'^user_password_verify'), (saml_authn, r'^saml_verify'), (super_authn, r'^super_authn_verify')]
+            auth_modules = [(usernamePass, r'^user_password_verify'), (saml_authn, r'^saml_verify')]
             authn = setup_multi_auth(ac, URLS, auth_modules)
 
         if authn is not None:
