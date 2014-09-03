@@ -13,7 +13,7 @@ from exceptions import KeyboardInterrupt
 from urlparse import parse_qs
 
 from oic.utils.authn.client import verify_client
-from oic.utils.authn.multi_auth import setup_multi_auth
+from oic.utils.authn.multi_auth import setup_multi_auth, AuthnIndexedEndpointWrapper
 from oic.utils.authn.saml import SAMLAuthnMethod
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.authz import AuthzHandling
@@ -213,13 +213,6 @@ def webfinger(environ, start_response, _):
     return resp(environ, start_response)
 
 
-#noinspection PyUnusedLocal
-def verify(environ, start_response, logger):
-    _oas = environ["oic.oas"]
-    return wsgi_wrapper(environ, start_response, _oas.verify_endpoint,
-                        logger=logger)
-
-
 def static_file(path):
     try:
         os.stat(path)
@@ -266,7 +259,6 @@ ENDPOINTS = [
 ]
 
 URLS = [
-    (r'^verify', verify),
     (r'^.well-known/openid-configuration', op_info),
     (r'^.well-known/simple-web-discovery', swd_info),
     (r'^.well-known/host-meta.json', meta_info),
@@ -383,33 +375,48 @@ if __name__ == '__main__':
 
     ac = AuthnBroker()
 
+    saml_authn = SAMLAuthnMethod(None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
+                                    "%s/authorization" % config.issuer,
+                                    userinfo=config.USERINFO)
+    ac.add("", saml_authn,"","")
+
+
+    end_points = config.AUTHENTICATION["UserPassword"]["END_POINTS"]
+    full_end_point_paths = ["%s/%s" % (config.issuer, ep) for ep in end_points]
+    username_password_authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,"%s/authorization" % config.issuer,
+                                        None, full_end_point_paths)
+    ac.add("", username_password_authn,"","")
+
     for authkey, value in config.AUTHENTICATION.items():
         authn = None
+
         if "UserPassword" == authkey:
-            authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,"%s/authorization" % config.issuer,
-                                            None, "%s/user_password_verify" % config.issuer)
-            URLS.append((r'^user_password_verify', make_auth_verify(authn.verify)))
+            PASSWORD_END_POINT_INDEX = 0
+            end_point = config.AUTHENTICATION[authkey]["END_POINTS"][PASSWORD_END_POINT_INDEX]
+            authn = AuthnIndexedEndpointWrapper(username_password_authn, PASSWORD_END_POINT_INDEX)
+            URLS.append((r'^' + end_point, make_auth_verify(authn.verify)))
+
         if "SAML" == authkey:
-            authn = SAMLAuthnMethod(None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
-                                    "%s/authorization" % config.issuer, "%s/saml_verify" % config.issuer,
-                                    userinfo=config.USERINFO)
-            URLS.append((r'^saml_verify', make_auth_verify(authn.verify)))
+            SAML_END_POINT_INDEX = 0
+            end_point = config.AUTHENTICATION[authkey]["END_POINTS"][SAML_END_POINT_INDEX]
+            authn = AuthnIndexedEndpointWrapper(saml_authn, SAML_END_POINT_INDEX)
+            URLS.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
-        if "SAML_multi" == authkey:
-            saml_authn = SAMLAuthnMethod(None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
-                                    "%s/authorization" % config.issuer, "%s/saml_pass_verify" % config.issuer,
-                                    userinfo=config.USERINFO)
+        if "SamlPass" == authkey:
+            PASSWORD_END_POINT_INDEX = 1
+            SAML_END_POINT_INDEX = 1
+            multi_saml = AuthnIndexedEndpointWrapper(saml_authn, 0)
+            multi_password = AuthnIndexedEndpointWrapper(username_password_authn, 0)
+            password_end_point = config.AUTHENTICATION["UserPassword"]["END_POINTS"][PASSWORD_END_POINT_INDEX]
+            saml_endpoint = config.AUTHENTICATION["SAML"]["END_POINTS"][SAML_END_POINT_INDEX]
 
-            usernamePass = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,"%s/authorization" % config.issuer,
-                                            None, "%s/user_password_verify" % config.issuer)
-
-            auth_modules = [(usernamePass, r'^user_password_verify'), (saml_authn, r'^saml_verify')]
+            auth_modules = [(multi_saml, r'^' + saml_endpoint), (multi_password, r'^' + password_end_point)]
             authn = setup_multi_auth(ac, URLS, auth_modules)
 
         if authn is not None:
             ac.add(config.AUTHENTICATION[authkey]["ACR"], authn,
                    config.AUTHENTICATION[authkey]["WEIGHT"],
-                   config.AUTHENTICATION[authkey]["URL"])
+                   "")
 
     # dealing with authorization
     authz = AuthzHandling()

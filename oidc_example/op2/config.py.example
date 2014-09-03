@@ -14,10 +14,13 @@ keys = {
 
 SERVICE_URL = "%s/verify" % issuer
 
-#Only Username and password.
+USER_PASSWORD_END_POINTS = ["user_password", "multi_user_password_verify"]
+SAML_END_POINTS = ['saml', "multi_saml_pass_verify"]
+
 AUTHENTICATION = {
-    "UserPassword" : {"ACR": "PASSWORD", "WEIGHT": 1, "URL": SERVICE_URL}
-    #"SAML" : {"ACR": "SAML", "WEIGHT": 1, "URL": SERVICE_URL}
+    "SAML" : {"ACR": "SAML", "WEIGHT": 1, "END_POINTS": SAML_END_POINTS},
+    "UserPassword" : {"ACR": "PASSWORD", "WEIGHT": 2, "END_POINTS": USER_PASSWORD_END_POINTS},
+    "SamlPass": {"ACR": "SAML_PASS", "WEIGHT": 3}
 }
 
 COOKIENAME= 'pyoic'

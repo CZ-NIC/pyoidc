@@ -42,3 +42,21 @@ def setup_multi_auth(auth_broker, urls, auth_modules):
         urls.append((callback_regexp, make_auth_verify(module_instance.verify, next_module_instance)))
 
     return multi_auth
+
+
+class AuthnIndexedEndpointWrapper(UserAuthnMethod):
+    """
+    Wrapper class for using an authn module with multiple endpoints.
+    Encapsulates the desired index of the endpoint.
+    """
+    def __init__(self, authn_instance, end_point_index):
+        UserAuthnMethod.__init__(self, None)
+
+        self.authn_instance = authn_instance
+        self.end_point_index = end_point_index
+
+    def __call__(self, **kwargs):
+        return self.authn_instance(end_point_index=self.end_point_index, **kwargs)
+
+    def verify(self, **kwargs):
+        return self.authn_instance.verify(end_point_index=self.end_point_index, **kwargs)
