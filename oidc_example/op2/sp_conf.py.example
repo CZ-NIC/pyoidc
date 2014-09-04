@@ -38,6 +38,10 @@ ASCREDIRECT = 'verify_redirect'
 #For the cookies to work do not use subfolders.
 ASCPOST = 'verify_post'
 
+MULTI_AUTH_POST = "multi_saml_pass_verify"
+MULTI_AUTH_DISCO_END_POINT = "multi_saml_pass_disco"
+MULTI_ASC_REDIRECT = "multi_saml_pass_redirect"
+
 #Must point to the complete path on disk to this file!
 #Needed by the script create_metadata.sh and the SP to find all configurations.
 #No need to change this!
@@ -85,11 +89,15 @@ CONFIG = {
             "want_response_signed": "true",
             "endpoints": {
                 "assertion_consumer_service": [
-                    (BASE + "/" + ASCREDIRECT, BINDING_HTTP_REDIRECT),
-                    (BASE + "/" + ASCPOST, BINDING_HTTP_POST)
+                    (BASE + "/" + MULTI_ASC_REDIRECT, BINDING_HTTP_REDIRECT, 1),
+                    (BASE + "/" + ASCREDIRECT, BINDING_HTTP_REDIRECT, 2),
+
+                    (BASE + "/" + MULTI_AUTH_POST, BINDING_HTTP_POST, 3),
+                    (BASE + "/" + ASCPOST, BINDING_HTTP_POST, 4)
                 ],
                 "required_attributes": ["uid"],
                 "discovery_response": [
+                    ("%s/%s" % (BASE, MULTI_AUTH_DISCO_END_POINT), BINDING_DISCO),
                     ("%s/%s" % (BASE, DISCOENDPOINT), BINDING_DISCO)
                 ],
             }
@@ -124,6 +132,7 @@ CONFIG = {
         "loglevel": "debug",
     }
 }
+
 
 #Cache for transferring information between SAML authn and user info AA
 SAML_CACHE = {}
