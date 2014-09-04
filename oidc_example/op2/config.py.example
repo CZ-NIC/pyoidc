@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-#issuer= "https://www.kodtest.se/rolandsOP"
 baseurl = "https://localhost"
-#baseurl = "https://lingon.ladok.umu.se"
 issuer = "%s:%%d" % baseurl
 
 keys = {

@@ -1,5 +1,5 @@
 import os
-from saml2 import BINDING_HTTP_REDIRECT
+from saml2 import BINDING_HTTP_REDIRECT, saml
 from saml2 import BINDING_HTTP_POST
 from saml2.extension.idpdisc import BINDING_DISCO
 from saml2.saml import NAME_FORMAT_URI
@@ -28,7 +28,7 @@ WAYF = None
 BASE = "https://localhost:8092"#"%s"
 
 #Discovery endpoint
-DISCOENDPOINT = "verify"
+DISCOENDPOINT = "verify_disco"
 
 #The BASE url where the Idp performs the redirect after a authn request from the SP.
 #For the cookies to work do not use subfolders.
@@ -74,7 +74,7 @@ OPENID2SAMLMAP = {
 
 #Traditional pysaml2 configuration for a SP. View more documentation for pysaml2.
 CONFIG = {
-    "entityid": "%s/%testidproxy.xml" % (BASE, ""),
+    "entityid": "%s/testidproxy.xml" % BASE,
     "description": "Test local IdProxy SP",
     "entity_category": [COC, RESEARCH_AND_EDUCATION, HEI, SFS_1993_1153, NREN, EU],
     "service": {
