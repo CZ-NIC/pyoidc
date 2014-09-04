@@ -154,12 +154,11 @@ class EndSessionEndpoint(Endpoint) :
     etype = "endsession"
 
 
-
 class Provider(AProvider):
     def __init__(self, name, sdb, cdb, authn_broker, userinfo, authz,
                  client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
                  hostname="", template_lookup=None, template=None,
-                 verify_ssl=True):
+                 verify_ssl=True, capabilities=None):
 
         AProvider.__init__(self, name, sdb, cdb, authn_broker, authz,
                            client_authn, symkey, urlmap, ca_bundle=ca_certs,
@@ -192,7 +191,12 @@ class Provider(AProvider):
         self.preferred_id_type = "public"
         self.hostname = hostname or socket.gethostname
         self.register_endpoint = "%s%s" % (self.baseurl, "register")
-        self.capabilities = self.provider_features()
+
+        if capabilities:
+            self.verify_capabilities(capabilities)
+            self.capabilities = capabilities
+        else:
+            self.capabilities = self.provider_features()
 
     def id_token_as_signed_jwt(self, session, loa="2", alg="RS256", code=None,
                                access_token=None, user_info=None, auth_time=0):
@@ -1292,6 +1296,29 @@ class Provider(AProvider):
                 _provider_info["acr_values_supported"] = acr_values
 
         return _provider_info
+
+    def verify_capabilities(self, capabilities):
+        """
+        Verify that what the admin wants the server to do actually
+        can be done by this implementation.
+
+        :param capabilities: The asked for capabilities as a dictionary
+        or a ProviderConfigurationResponse instance. The later can be
+        treated as a dictionary.
+        :return: True or False
+        """
+        _pinfo = self.provider_features()
+        for key, val in capabilities:
+            if isinstance(val, basestring):
+                try:
+                    if val in _pinfo[key]:
+                        continue
+                    else:
+                        return False
+                except KeyError:
+                    return False
+
+        return True
 
     #noinspection PyUnusedLocal
     def providerinfo_endpoint(self, handle="", **kwargs):

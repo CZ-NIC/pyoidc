@@ -13,6 +13,7 @@ from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
 from urlparse import parse_qs
 from oic.utils.authn.client import verify_client
+from oic.utils.authn.javascript_login import JavascriptFormMako
 
 from oic.utils.authz import AuthzHandling
 from oic.utils.keyio import KeyBundle, dump_jwks
@@ -387,6 +388,9 @@ if __name__ == '__main__':
             from oic.utils.authn.user import UsernamePasswordMako
             authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
                                          "%s/authorization" % config.issuer)
+        if "JavascriptLogin" == authkey:
+            authn = JavascriptFormMako(None, "javascript_login.mako", LOOKUP, PASSWD,
+                             "%s/authorization" % config.issuer)
         if "SAML" == authkey:
             from oic.utils.authn.saml import SAMLAuthnMethod
             authn = SAMLAuthnMethod(None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
