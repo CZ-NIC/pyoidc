@@ -83,7 +83,7 @@ else:
             self.samlcache = self.sp_conf.SAML_CACHE
 
 
-        def __call__(self, query="", end_point_index=0, *args, **kwargs):
+        def __call__(self, query="", end_point_index=None, *args, **kwargs):
 
             (done, response) = self._pick_idp(query, end_point_index)
             if done == 0:
@@ -93,7 +93,7 @@ else:
                 return resp
             return response
 
-        def verify(self, request, cookie, path, requrl, end_point_index=0, **kwargs):
+        def verify(self, request, cookie, path, requrl, end_point_index=None, **kwargs):
             """
             Verifies if the authentication was successful.
 
@@ -112,9 +112,14 @@ else:
             else:
                 raise ValueError("Wrong type of input")
 
-            binding = BINDING_HTTP_POST
-            if path[1:] == self.sp_conf.ASCREDIRECT:
-                binding = BINDING_HTTP_REDIRECT
+            acs = self.sp.config.getattr("endpoints", "sp")["assertion_consumer_service"]
+            acs_endpoints = [(ep[0].rsplit("/", 1)[1], ep[1]) for ep in acs]
+            binding = None
+            path = path[1:]
+            for endp in acs_endpoints:
+                if path == endp[0]:
+                    binding = endp[1]
+                    break
 
             saml_cookie, _ts, _typ = self.getCookieValue(cookie,
                                                          self.CONST_SAML_COOKIE)
@@ -222,7 +227,7 @@ else:
             self.userdb[uid] = userdb
 
 
-        def _pick_idp(self, query, end_point_index=0):
+        def _pick_idp(self, query, end_point_index):
             """
             If more than one idp and if none is selected, I have to do wayf or
             disco
@@ -278,8 +283,10 @@ else:
                         sid_ = sid()
                         self.cache_outstanding_queries[sid_] = self.verification_endpoint
                         eid = _cli.config.entityid
+
+                        disco_end_point_index = end_point_index["disco_end_point_index"]
                         ret = _cli.config.getattr("endpoints", "sp")[
-                            "discovery_response"][end_point_index][0]
+                            "discovery_response"][disco_end_point_index][0]
                         ret += "?sid=%s" % sid_
                         loc = _cli.create_discovery_service_request(
                             self.sp_conf.DISCOSRV, eid, **{"return": ret})
@@ -306,18 +313,22 @@ else:
                                                                destination))
 
                 extensions = None
+                kwargs = {}
+
+                if end_point_index:
+                    kwargs["attribute_consuming_service_index"] = end_point_index[binding]
 
                 if _cli.authn_requests_signed:
                     _sid = saml2.s_utils.sid(_cli.seed)
                     req_id, msg_str = _cli.create_authn_request(
                         destination, vorg=vorg_name,
                         sign=_cli.authn_requests_signed, message_id=_sid,
-                        extensions=extensions, end_point_index=end_point_index)
+                        extensions=extensions, **kwargs)
                     _sid = req_id
                 else:
                     req_id, req = _cli.create_authn_request(destination,
                                                             vorg=vorg_name,
-                                                            sign=False, end_point_index=end_point_index)
+                                                            sign=False, **kwargs)
                     msg_str = "%s" % req
                     _sid = req_id
 

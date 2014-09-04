@@ -11,6 +11,8 @@ from exceptions import IndexError
 from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
 from urlparse import parse_qs
+from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
+from saml2.extension.idpdisc import BINDING_DISCO
 
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.multi_auth import setup_multi_auth, AuthnIndexedEndpointWrapper
@@ -399,16 +401,19 @@ if __name__ == '__main__':
         if "SAML" == authkey:
             SAML_END_POINT_INDEX = 0
             end_point = config.AUTHENTICATION[authkey]["END_POINTS"][SAML_END_POINT_INDEX]
-            authn = AuthnIndexedEndpointWrapper(saml_authn, SAML_END_POINT_INDEX)
+            end_point_indexes = {BINDING_HTTP_REDIRECT: 2, BINDING_HTTP_POST: 4, "disco_end_point_index": 1}
+            authn = AuthnIndexedEndpointWrapper(saml_authn, end_point_indexes)
             URLS.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
         if "SamlPass" == authkey:
             PASSWORD_END_POINT_INDEX = 1
             SAML_END_POINT_INDEX = 1
-            multi_saml = AuthnIndexedEndpointWrapper(saml_authn, 0)
-            multi_password = AuthnIndexedEndpointWrapper(username_password_authn, 0)
             password_end_point = config.AUTHENTICATION["UserPassword"]["END_POINTS"][PASSWORD_END_POINT_INDEX]
             saml_endpoint = config.AUTHENTICATION["SAML"]["END_POINTS"][SAML_END_POINT_INDEX]
+
+            end_point_indexes = {BINDING_HTTP_REDIRECT: 1, BINDING_HTTP_POST: 3, "disco_end_point_index": 0}
+            multi_saml = AuthnIndexedEndpointWrapper(saml_authn, end_point_indexes)
+            multi_password = AuthnIndexedEndpointWrapper(username_password_authn, PASSWORD_END_POINT_INDEX)
 
             auth_modules = [(multi_saml, r'^' + saml_endpoint), (multi_password, r'^' + password_end_point)]
             authn = setup_multi_auth(ac, URLS, auth_modules)

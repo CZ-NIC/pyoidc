@@ -37,8 +37,8 @@ ASCREDIRECT = 'verify_redirect'
 #For the cookies to work do not use subfolders.
 ASCPOST = 'verify_post'
 
-MULTI_AUTH = "multi_saml_pass_verify"
-MULTI_AUTH_DISCO_END_POINT = "multi_saml_pass_verify"
+MULTI_AUTH_POST = "multi_saml_pass_verify"
+MULTI_AUTH_DISCO_END_POINT = "multi_saml_pass_disco"
 MULTI_ASC_REDIRECT = "multi_saml_pass_redirect"
 
 #Must point to the complete path on disk to this file!
@@ -87,11 +87,11 @@ CONFIG = {
             "endpoints": {
                 #The index for post- and discovery endpoint must be the same
                 "assertion_consumer_service": [
-                    (BASE + "/" + MULTI_ASC_REDIRECT, BINDING_HTTP_REDIRECT),
-                    (BASE + "/" + ASCREDIRECT, BINDING_HTTP_REDIRECT),
+                    (BASE + "/" + MULTI_ASC_REDIRECT, BINDING_HTTP_REDIRECT, 1),
+                    (BASE + "/" + ASCREDIRECT, BINDING_HTTP_REDIRECT, 2),
 
-                    (BASE + "/" + MULTI_AUTH, BINDING_HTTP_POST),
-                    (BASE + "/" + ASCPOST, BINDING_HTTP_POST)
+                    (BASE + "/" + MULTI_AUTH_POST, BINDING_HTTP_POST, 3),
+                    (BASE + "/" + ASCPOST, BINDING_HTTP_POST, 4)
                 ],
                 "required_attributes": ["uid"],
                 "discovery_response": [
@@ -130,6 +130,7 @@ CONFIG = {
         "loglevel": "debug",
     }
 }
+
 
 #Cache for transferring information between SAML authn and user info AA
 SAML_CACHE = {}
