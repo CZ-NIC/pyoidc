@@ -390,6 +390,12 @@ if __name__ == '__main__':
                                         None, full_end_point_paths)
     ac.add("", username_password_authn,"","")
 
+    end_points = config.AUTHENTICATION["JavascriptLogin"]["END_POINTS"]
+    full_end_point_paths = ["%s/%s" % (config.issuer, ep) for ep in end_points]
+    javascript_login_authn = JavascriptFormMako(None, "javascript_login.mako", LOOKUP, PASSWD,"%s/authorization" % config.issuer,
+                                        None, full_end_point_paths)
+    ac.add("", javascript_login_authn,"","")
+
     for authkey, value in config.AUTHENTICATION.items():
         authn = None
 
@@ -399,9 +405,11 @@ if __name__ == '__main__':
             authn = AuthnIndexedEndpointWrapper(username_password_authn, PASSWORD_END_POINT_INDEX)
             URLS.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
-        # if "JavascriptLogin" == authkey:
-        #     authn = JavascriptFormMako(None, "javascript_login.mako", LOOKUP, PASSWD,
-        #                      "%s/authorization" % config.issuer)
+        if "JavascriptLogin" == authkey:
+            JAVASCRIPT_END_POINT_INDEX = 0
+            end_point = config.AUTHENTICATION[authkey]["END_POINTS"][JAVASCRIPT_END_POINT_INDEX]
+            authn = AuthnIndexedEndpointWrapper(javascript_login_authn, JAVASCRIPT_END_POINT_INDEX)
+            URLS.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
         if "SAML" == authkey:
             SAML_END_POINT_INDEX = 0
@@ -421,6 +429,19 @@ if __name__ == '__main__':
             multi_password = AuthnIndexedEndpointWrapper(username_password_authn, PASSWORD_END_POINT_INDEX)
 
             auth_modules = [(multi_saml, r'^' + saml_endpoint), (multi_password, r'^' + password_end_point)]
+            authn = setup_multi_auth(ac, URLS, auth_modules)
+
+        if "JavascriptPass" == authkey:
+            PASSWORD_END_POINT_INDEX = 1
+            JAVASCRIPT_POINT_INDEX = 1
+
+            password_end_point = config.AUTHENTICATION["UserPassword"]["END_POINTS"][PASSWORD_END_POINT_INDEX]
+            javascript_end_point = config.AUTHENTICATION["JavascriptLogin"]["END_POINTS"][JAVASCRIPT_POINT_INDEX]
+
+            multi_password = AuthnIndexedEndpointWrapper(username_password_authn, PASSWORD_END_POINT_INDEX)
+            multi_javascript = AuthnIndexedEndpointWrapper(javascript_login_authn, JAVASCRIPT_POINT_INDEX)
+
+            auth_modules = [(multi_password, r'^' + password_end_point), (multi_javascript, r'^' + javascript_end_point)]
             authn = setup_multi_auth(ac, URLS, auth_modules)
 
         if authn is not None:
