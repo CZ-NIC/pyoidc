@@ -37,6 +37,8 @@ class FailedAuthentication(Exception):
 
 
 class UserAuthnMethod(CookieDealer):
+    MULTI_AUTH_COOKIE = "rp_query_cookie"
+
     def __init__(self, srv, ttl=5):
         CookieDealer.__init__(self, srv, ttl)
         self.query_param = "upm_answer"
@@ -82,6 +84,12 @@ class UserAuthnMethod(CookieDealer):
     def verify(self, **kwargs):
         raise NotImplemented
 
+    def get_multi_auth_cookie(self, cookie):
+        rp_query_cookie = self.getCookieValue(cookie, UserAuthnMethod.MULTI_AUTH_COOKIE)
+
+        if rp_query_cookie:
+            return rp_query_cookie[0]
+        return ""
 
 def url_encode_params(params=None):
     if not isinstance(params, dict):
@@ -142,7 +150,7 @@ class UsernamePasswordMako(UserAuthnMethod):
     WSGI environment using Mako as template system"""
 
     def __init__(self, srv, mako_template, template_lookup, pwd, return_to="",
-                 templ_arg_func=None, verification_endpoint="verify"):
+                 templ_arg_func=None, verification_endpoints=["verify"]):
         """
         :param srv: The server instance
         :param mako_template: Which Mako template to use
@@ -155,13 +163,13 @@ class UsernamePasswordMako(UserAuthnMethod):
         self.template_lookup = template_lookup
         self.passwd = pwd
         self.return_to = return_to
-        self.verification_endpoint = verification_endpoint
+        self.verification_endpoints = verification_endpoints
         if templ_arg_func:
             self.templ_arg_func = templ_arg_func
         else:
             self.templ_arg_func = self.template_args
 
-    def template_args(self, **kwargs):
+    def template_args(self, end_point_index=0, **kwargs):
         """
         Method to override if necessary, dependent on the page layout
         and context
@@ -179,7 +187,7 @@ class UsernamePasswordMako(UserAuthnMethod):
         try:
             action = kwargs["action"]
         except KeyError:
-            action = self.verification_endpoint
+            action = self.verification_endpoints[end_point_index]
 
         argv = {"password": "",
                 "action": action,
@@ -205,18 +213,18 @@ class UsernamePasswordMako(UserAuthnMethod):
 
         return argv
 
-    def __call__(self, cookie=None, **kwargs):
+    def __call__(self, cookie=None, end_point_index=0, **kwargs):
         """
         Put up the login form
         """
-        if cookie:
-            headers = [cookie]
-        else:
-            headers = []
+        # if cookie:
+        #     headers = [cookie]
+        # else:
+        #     headers = []
 
-        resp = Response(headers=headers)
+        resp = Response()
 
-        argv = self.templ_arg_func(**kwargs)
+        argv = self.templ_arg_func(end_point_index, **kwargs)
         logger.info("do_authentication argv: %s" % argv)
         mte = self.template_lookup.get_template(self.mako_template)
         resp.message = mte.render(**argv)
@@ -250,19 +258,18 @@ class UsernamePasswordMako(UserAuthnMethod):
             self._verify(_dict["password"][0], _dict["login"][0])
         except (AssertionError, KeyError):
             resp = Unauthorized("Unknown user or wrong password")
+            return resp, False
         else:
             cookie = self.create_cookie(_dict["login"][0], "upm")
             try:
                 _qp = _dict["query"][0]
             except KeyError:
-                _qp = ""
+                _qp = self.get_multi_auth_cookie(kwargs['cookie'])
             try:
                 return_to = self.generate_return_url(kwargs["return_to"], _qp)
             except KeyError:
                 return_to = self.generate_return_url(self.return_to, _qp)
-            resp = Redirect(return_to, headers=[cookie])
-
-        return resp
+            return Redirect(return_to, headers=[cookie]), True
 
     def done(self, areq):
         try:
