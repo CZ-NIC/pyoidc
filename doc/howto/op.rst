@@ -14,6 +14,27 @@ library.
 An OP provides a couple of endpoints to which RPs can send requests.
 
 
+Authentication
+--------------
+In general any authentication method can be used as long as the class implementing it includes the following interface:
+  * Inherit from :code:`oic.utils.authn.user.UserAuthnMethod`
+  * Override :code:`UserAuthnMethod.__call__`: should return a HTTP response containing either the login page
+    (see the simple username/password login authentication class :code:`UsernamePasswordMako`) or a redirect
+    to a login page hosted elsewhere (see the SAML authentication class :code:`SAMLAuthnMethod`).
+  * Override :code:`UserAuthnMethod.verify`: should verify the authentication parameters from the associated login
+    page (served by :code:`__call__`). Must return a tuple :code:`(a, b)` where :code:`a` is a HTTP Response (most likely 200 OK
+    or a redirect to collect more information necessary to authenticate) and :code:`b` is a boolean value indicating
+    whether the authentication is complete.
+
+    The input to :code:`verify` will contain any cookies received. If the authentication is part of a multi auth chain,
+    see below, the cookie returned by
+    :code:`UserAuthnMethod.get_multi_auth_cookie` should be used to retrieve the original query from the RP.
+
+To properly register the implemented verify method as the callback function at an endpoint of the OP, use
+:code:`oic.utils.authn.authn_context.make_auth_verify` (which wraps the specified callback to properly parse the request
+before it is passed along and handles the case of multi auth chains, see below).
+
+
 SAML authentication
 -------------------
 
@@ -71,4 +92,31 @@ AA_NAMEID_FORMAT must be the format of the name id. You can use the defines form
 pysaml2.
 
 
+Multi auth
+----------
+All modules currently included in pyoidc can be combined to form multi authentication chains, where two or more
+authentication methods must be completed before the user is authenticated.
+
+To setup a multi authentication chain the following steps must be completed:
+  #) Specify the multi authentication in the OP configuration, see e.g.
+     <pyoidc path>/oidc_example/op2/config_student.py.example with the dictionary :code:`AUTHENTICATION` containing
+     the key "SamlPass" for a multi auth chain containing both SAML login combined with username/password login. Give it
+     an Authentication Context Class Reference (ACR) to be used by the RP.
+
+  #) Instantiate the classes that are part of the chain. If the OP supplies multiple authentication methods, the objects
+     should be treated as singletons -- only instantiate one object for each authentication method.
+
+     Tip: to make it possible to include SAML in multiple authentication methods (e.g., both multi auth and just single
+     auth), the endpoints in the backend SP must be given indices to separate between multi auth chain(s) and
+     single auth (see e.g. <pyoidc path>/oidc_example/op2/sp_conf_student.py.example and the
+     `pysaml2 documentation <https://dirg.org.umu.se/static/pysaml2/howto/config.html#endpoints>`_).
+     Use the :code:`AuthnIndexedEndpointWrapper` to apply the indices correctly in the OP.
+
+  #) Create the chain and setup all endpoints at the OP using :code:`oic.utils.authn.multi_auth.setup_multi_auth`.
+     The input should be a list :code:`[(m1, e1), (m2, e2), ...]`, specifying the ordered chain of authentication, where
+     each tuple contains the authentication method instance and the callback endpoint at the OP (specified in the form of
+     a regular expression matching the path in the HTTP request) the login page returns to. The object returned from
+     :code:`setup_multi_auth` must be added to the :code:`AuthnBroker` instance.
+
+  #) The RP can now ask for the multi auth chain using the ACR value specified in the OP config.
 
