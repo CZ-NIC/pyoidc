@@ -43,7 +43,7 @@ else:
         CONST_HASIDP = "hasidp"
 
         def __init__(self, srv, lookup, userdb, spconf, url, return_to,
-                     verification_endpoint="verify", cache=None,
+                     cache=None,
                      bindings=None, userinfo=None, samlcache=None):
             """
             Constructor for the class.
@@ -66,7 +66,8 @@ else:
             else:
                 self.bindings = [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST,
                                  BINDING_HTTP_ARTIFACT]
-            self.verification_endpoint = verification_endpoint
+            #TODO Why does this exist?
+            self.verification_endpoint = ""
             #Configurations for the SP handler. (pyOpSamlProxy.client.sp.conf)
             self.sp_conf = importlib.import_module(spconf)
             #self.sp_conf.BASE = self.sp_conf.BASE % url
@@ -82,16 +83,17 @@ else:
             self.samlcache = self.sp_conf.SAML_CACHE
 
 
-        def __call__(self, query, *args, **kwargs):
-            (done, response) = self._pick_idp(query)
+        def __call__(self, query="", end_point_index=None, *args, **kwargs):
+
+            (done, response) = self._pick_idp(query, end_point_index)
             if done == 0:
                 entity_id = response
                 # Do the AuthnRequest
-                resp = self._redirect_to_auth(self.sp, entity_id, query)
+                resp = self._redirect_to_auth(self.sp, entity_id, query, end_point_index)
                 return resp
             return response
 
-        def verify(self, request, cookie, path, requrl, **kwargs):
+        def verify(self, request, cookie, path, requrl, end_point_index=None, **kwargs):
             """
             Verifies if the authentication was successful.
 
@@ -103,30 +105,45 @@ else:
             return_to url. Otherwise a unauthorized response.
             :raise: ValueError
             """
+            if isinstance(request, basestring):
+                request = parse_qs(request)
+            elif isinstance(request, dict):
+                pass
+            else:
+                raise ValueError("Wrong type of input")
+
+            acs = self.sp.config.getattr("endpoints", "sp")["assertion_consumer_service"]
+            acs_endpoints = [(ep[0].rsplit("/", 1)[1], ep[1]) for ep in acs]
             binding = None
-            if path == "/" + self.sp_conf.ASCPOST:
-                binding = BINDING_HTTP_POST
-            if path == "/" + self.sp_conf.ASCREDIRECT:
-                binding = BINDING_HTTP_REDIRECT
+            path = path[1:]
+            for endp in acs_endpoints:
+                if path == endp[0]:
+                    binding = endp[1]
+                    break
 
             saml_cookie, _ts, _typ = self.getCookieValue(cookie,
                                                          self.CONST_SAML_COOKIE)
             data = json.loads(saml_cookie)
 
+            rp_query_cookie = self.get_multi_auth_cookie(cookie)
+
+            query = rp_query_cookie
+
+            if not query:
+                query = base64.b64decode(data[self.CONST_QUERY])
+
             if data[self.CONST_HASIDP] == 'False':
-                (done, response) = self._pick_idp(request)
+                (done, response) = self._pick_idp(request, end_point_index)
                 if done == 0:
                     entity_id = response
                     # Do the AuthnRequest
-                    resp = self._redirect_to_auth(
-                        self.sp, entity_id,
-                        base64.b64decode(data[self.CONST_QUERY]) )
-                    return resp
-                return response
+                    resp = self._redirect_to_auth(self.sp, entity_id, query, end_point_index)
+                    return resp, False
+                return response, False
 
             if not request:
                 logger.info("Missing Response")
-                return Unauthorized("You are not authorized!")
+                return Unauthorized("You are not authorized!"), False
 
             try:
                 response = self.sp.parse_authn_request_response(
@@ -134,21 +151,21 @@ else:
                     self.cache_outstanding_queries)
             except UnknownPrincipal, excp:
                 logger.error("UnknownPrincipal: %s" % (excp,))
-                return Unauthorized(self.not_authorized)
+                return Unauthorized(self.not_authorized), False
             except UnsupportedBinding, excp:
                 logger.error("UnsupportedBinding: %s" % (excp,))
-                return Unauthorized(self.not_authorized)
+                return Unauthorized(self.not_authorized), False
             except VerificationError, err:
                 logger.error("Verification error: %s" % (err,))
-                return Unauthorized(self.not_authorized)
+                return Unauthorized(self.not_authorized), False
             except Exception, err:
                 logger.error("Other error: %s" % (err,))
-                return Unauthorized(self.not_authorized)
+                return Unauthorized(self.not_authorized), False
 
             if self.sp_conf.VALID_ATTRIBUTE_RESPONSE is not None:
                 for k, v in self.sp_conf.VALID_ATTRIBUTE_RESPONSE.iteritems():
                     if k not in response.ava:
-                        return Unauthorized(self.not_authorized)
+                        return Unauthorized(self.not_authorized), False
                     else:
                         allowed = False
                         for allowed_attr_value in v:
@@ -161,7 +178,7 @@ else:
                                 allowed = True
                                 break
                         if not allowed:
-                            return Unauthorized(self.not_authorized)
+                            return Unauthorized(self.not_authorized), False
 
             #logger.info("parsed OK")'
             uid = response.assertion.subject.name_id.text
@@ -176,11 +193,11 @@ else:
                 return_to += "&"
             else:
                 return_to += "?"
-            return_to += base64.b64decode(data[self.CONST_QUERY])
+            return_to += query
 
             auth_cookie = self.create_cookie(uid, "samlm")
             resp = Redirect(return_to, headers=[auth_cookie])
-            return resp
+            return resp, True
 
         def setup_userdb(self, uid, samldata):
             attributes = {}
@@ -210,7 +227,7 @@ else:
             self.userdb[uid] = userdb
 
 
-        def _pick_idp(self, query):
+        def _pick_idp(self, query, end_point_index):
             """
             If more than one idp and if none is selected, I have to do wayf or
             disco
@@ -266,8 +283,10 @@ else:
                         sid_ = sid()
                         self.cache_outstanding_queries[sid_] = self.verification_endpoint
                         eid = _cli.config.entityid
+
+                        disco_end_point_index = end_point_index["disco_end_point_index"]
                         ret = _cli.config.getattr("endpoints", "sp")[
-                            "discovery_response"][0][0]
+                            "discovery_response"][disco_end_point_index][0]
                         ret += "?sid=%s" % sid_
                         loc = _cli.create_discovery_service_request(
                             self.sp_conf.DISCOSRV, eid, **{"return": ret})
@@ -285,7 +304,7 @@ else:
             return -1, SeeOther(headers=[
                 ('Location', "%s?%s" % (self.sp_conf.WAYF, sid_)), cookie])
 
-        def _redirect_to_auth(self, _cli, entity_id, query, vorg_name=""):
+        def _redirect_to_auth(self, _cli, entity_id, query, end_point_index, vorg_name=""):
             try:
                 binding, destination = _cli.pick_binding(
                     "single_sign_on_service", self.bindings, "idpsso",
@@ -294,18 +313,22 @@ else:
                                                                destination))
 
                 extensions = None
+                kwargs = {}
+
+                if end_point_index:
+                    kwargs["attribute_consuming_service_index"] = end_point_index[binding]
 
                 if _cli.authn_requests_signed:
                     _sid = saml2.s_utils.sid(_cli.seed)
                     req_id, msg_str = _cli.create_authn_request(
                         destination, vorg=vorg_name,
                         sign=_cli.authn_requests_signed, message_id=_sid,
-                        extensions=extensions)
+                        extensions=extensions, **kwargs)
                     _sid = req_id
                 else:
                     req_id, req = _cli.create_authn_request(destination,
                                                             vorg=vorg_name,
-                                                            sign=False)
+                                                            sign=False, **kwargs)
                     msg_str = "%s" % req
                     _sid = req_id
 

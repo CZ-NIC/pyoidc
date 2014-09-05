@@ -310,26 +310,23 @@ def get_or_post(environ):
     return data
 
 
-def wsgi_wrapper(environ, start_response, func, **kwargs):
+def extract_from_request(environ, kwargs={}):
     request = None
     try:
         request = environ["QUERY_STRING"]
     except KeyError:
         pass
-
     if not request:
         try:
             request = get_post(environ)
         except KeyError:
             pass
-
     kwargs["request"] = request
     # authentication information
     try:
         kwargs["authn"] = environ["HTTP_AUTHORIZATION"]
     except KeyError:
         pass
-
     try:
         kwargs["cookie"] = environ["HTTP_COOKIE"]
     except KeyError:
@@ -340,8 +337,13 @@ def wsgi_wrapper(environ, start_response, func, **kwargs):
     kwargs["url"] = geturl(environ, query=False)
     kwargs["baseurl"] = geturl(environ, query=False, path=False)
     kwargs["path"] = getpath(environ)
+    return kwargs
 
+
+def wsgi_wrapper(environ, start_response, func, **kwargs):
+    kwargs = extract_from_request(environ, kwargs)
     args = func(**kwargs)
+
     try:
         resp, argv = args
         return resp(environ, start_response, **argv)
@@ -354,6 +356,15 @@ def wsgi_wrapper(environ, start_response, func, **kwargs):
 
 
 class CookieDealer(object):
+
+    def getServer(self):
+        return self._srv
+
+    def setServer(self, server):
+        self._srv = server
+
+    srv = property(getServer, setServer)
+
     def __init__(self, srv, ttl=5):
         self.srv = None
         self.init_srv(srv)

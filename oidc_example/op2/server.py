@@ -12,16 +12,21 @@ from exceptions import IndexError
 from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
 from urlparse import parse_qs
-from oic.utils.authn.client import verify_client
+from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
+from saml2.extension.idpdisc import BINDING_DISCO
 from oic.utils.authn.javascript_login import JavascriptFormMako
 
+from oic.utils.authn.client import verify_client
+from oic.utils.authn.multi_auth import setup_multi_auth, AuthnIndexedEndpointWrapper
+from oic.utils.authn.saml import SAMLAuthnMethod
+from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.authz import AuthzHandling
 from oic.utils.keyio import KeyBundle, dump_jwks
 from oic.utils.userinfo import UserInfo
 from oic.utils.userinfo.aa_info import AaUserInfo
 from oic.utils.webfinger import WebFinger
 from oic.utils.webfinger import OIC_ISSUER
-from oic.utils.authn.authn_context import AuthnBroker
+from oic.utils.authn.authn_context import AuthnBroker, make_auth_verify
 
 __author__ = 'rohe0002'
 
@@ -211,13 +216,6 @@ def webfinger(environ, start_response, _):
     return resp(environ, start_response)
 
 
-#noinspection PyUnusedLocal
-def verify(environ, start_response, logger):
-    _oas = environ["oic.oas"]
-    return wsgi_wrapper(environ, start_response, _oas.verify_endpoint,
-                        logger=logger)
-
-
 def static_file(path):
     try:
         os.stat(path)
@@ -264,7 +262,6 @@ ENDPOINTS = [
 ]
 
 URLS = [
-    (r'^verify', verify),
     (r'^.well-known/openid-configuration', op_info),
     (r'^.well-known/simple-web-discovery', swd_info),
     (r'^.well-known/host-meta.json', meta_info),
@@ -353,7 +350,6 @@ def application(environ, start_response):
 
 # ----------------------------------------------------------------------------
 
-
 if __name__ == '__main__':
     import argparse
     import shelve
@@ -382,24 +378,76 @@ if __name__ == '__main__':
 
     ac = AuthnBroker()
 
+    saml_authn = SAMLAuthnMethod(None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
+                                    "%s/authorization" % config.issuer,
+                                    userinfo=config.USERINFO)
+    ac.add("", saml_authn,"","")
+
+
+    end_points = config.AUTHENTICATION["UserPassword"]["END_POINTS"]
+    full_end_point_paths = ["%s/%s" % (config.issuer, ep) for ep in end_points]
+    username_password_authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,"%s/authorization" % config.issuer,
+                                        None, full_end_point_paths)
+    ac.add("", username_password_authn,"","")
+
+    end_points = config.AUTHENTICATION["JavascriptLogin"]["END_POINTS"]
+    full_end_point_paths = ["%s/%s" % (config.issuer, ep) for ep in end_points]
+    javascript_login_authn = JavascriptFormMako(None, "javascript_login.mako", LOOKUP, PASSWD,"%s/authorization" % config.issuer,
+                                        None, full_end_point_paths)
+    ac.add("", javascript_login_authn,"","")
+
     for authkey, value in config.AUTHENTICATION.items():
         authn = None
+
         if "UserPassword" == authkey:
-            from oic.utils.authn.user import UsernamePasswordMako
-            authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
-                                         "%s/authorization" % config.issuer)
+            PASSWORD_END_POINT_INDEX = 0
+            end_point = config.AUTHENTICATION[authkey]["END_POINTS"][PASSWORD_END_POINT_INDEX]
+            authn = AuthnIndexedEndpointWrapper(username_password_authn, PASSWORD_END_POINT_INDEX)
+            URLS.append((r'^' + end_point, make_auth_verify(authn.verify)))
+
         if "JavascriptLogin" == authkey:
-            authn = JavascriptFormMako(None, "javascript_login.mako", LOOKUP, PASSWD,
-                             "%s/authorization" % config.issuer)
+            JAVASCRIPT_END_POINT_INDEX = 0
+            end_point = config.AUTHENTICATION[authkey]["END_POINTS"][JAVASCRIPT_END_POINT_INDEX]
+            authn = AuthnIndexedEndpointWrapper(javascript_login_authn, JAVASCRIPT_END_POINT_INDEX)
+            URLS.append((r'^' + end_point, make_auth_verify(authn.verify)))
+
         if "SAML" == authkey:
-            from oic.utils.authn.saml import SAMLAuthnMethod
-            authn = SAMLAuthnMethod(None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
-                                    "%s/authorization" % config.issuer, config.SERVICE_URL,
-                                    userinfo=config.USERINFO)
+            SAML_END_POINT_INDEX = 0
+            end_point = config.AUTHENTICATION[authkey]["END_POINTS"][SAML_END_POINT_INDEX]
+            end_point_indexes = {BINDING_HTTP_REDIRECT: 2, BINDING_HTTP_POST: 4, "disco_end_point_index": 1}
+            authn = AuthnIndexedEndpointWrapper(saml_authn, end_point_indexes)
+            URLS.append((r'^' + end_point, make_auth_verify(authn.verify)))
+
+        if "SamlPass" == authkey:
+            PASSWORD_END_POINT_INDEX = 1
+            SAML_END_POINT_INDEX = 1
+            password_end_point = config.AUTHENTICATION["UserPassword"]["END_POINTS"][PASSWORD_END_POINT_INDEX]
+            saml_endpoint = config.AUTHENTICATION["SAML"]["END_POINTS"][SAML_END_POINT_INDEX]
+
+            end_point_indexes = {BINDING_HTTP_REDIRECT: 1, BINDING_HTTP_POST: 3, "disco_end_point_index": 0}
+            multi_saml = AuthnIndexedEndpointWrapper(saml_authn, end_point_indexes)
+            multi_password = AuthnIndexedEndpointWrapper(username_password_authn, PASSWORD_END_POINT_INDEX)
+
+            auth_modules = [(multi_saml, r'^' + saml_endpoint), (multi_password, r'^' + password_end_point)]
+            authn = setup_multi_auth(ac, URLS, auth_modules)
+
+        if "JavascriptPass" == authkey:
+            PASSWORD_END_POINT_INDEX = 1
+            JAVASCRIPT_POINT_INDEX = 1
+
+            password_end_point = config.AUTHENTICATION["UserPassword"]["END_POINTS"][PASSWORD_END_POINT_INDEX]
+            javascript_end_point = config.AUTHENTICATION["JavascriptLogin"]["END_POINTS"][JAVASCRIPT_POINT_INDEX]
+
+            multi_password = AuthnIndexedEndpointWrapper(username_password_authn, PASSWORD_END_POINT_INDEX)
+            multi_javascript = AuthnIndexedEndpointWrapper(javascript_login_authn, JAVASCRIPT_POINT_INDEX)
+
+            auth_modules = [(multi_password, r'^' + password_end_point), (multi_javascript, r'^' + javascript_end_point)]
+            authn = setup_multi_auth(ac, URLS, auth_modules)
+
         if authn is not None:
             ac.add(config.AUTHENTICATION[authkey]["ACR"], authn,
                    config.AUTHENTICATION[authkey]["WEIGHT"],
-                   config.AUTHENTICATION[authkey]["URL"])
+                   "")
 
     # dealing with authorization
     authz = AuthzHandling()
