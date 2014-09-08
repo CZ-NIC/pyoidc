@@ -99,7 +99,10 @@ authentication methods must be completed before the user is authenticated.
 
 To setup a multi authentication chain the following steps must be completed:
   #) Specify the multi authentication in the OP configuration, see e.g.
-     <pyoidc path>/oidc_example/op2/config_student.py.example with the dictionary :code:`AUTHENTICATION` containing
+
+     `<pyoidc path>/oidc_example/op2/config_student.py.example`
+
+     with the dictionary :code:`AUTHENTICATION` containing
      the key "SamlPass" for a multi auth chain containing both SAML login combined with username/password login. Give it
      an Authentication Context Class Reference (ACR) to be used by the RP.
 
@@ -108,9 +111,9 @@ To setup a multi authentication chain the following steps must be completed:
 
      Tip: to make it possible to include SAML in multiple authentication methods (e.g., both multi auth and just single
      auth), the endpoints in the backend SP must be given indices to separate between multi auth chain(s) and
-     single auth (see e.g. <pyoidc path>/oidc_example/op2/sp_conf_student.py.example and the
+     single auth (see e.g. `<pyoidc path>/oidc_example/op2/sp_conf_student.py.example` and the
      `pysaml2 documentation <https://dirg.org.umu.se/static/pysaml2/howto/config.html#endpoints>`_).
-     Use the :code:`AuthnIndexedEndpointWrapper` to apply the indices correctly in the OP.
+     Use :code:`AuthnIndexedEndpointWrapper` to apply the indices correctly in the OP.
 
   #) Create the chain and setup all endpoints at the OP using :code:`oic.utils.authn.multi_auth.setup_multi_auth`.
      The input should be a list :code:`[(m1, e1), (m2, e2), ...]`, specifying the ordered chain of authentication, where
