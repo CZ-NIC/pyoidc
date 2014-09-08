@@ -414,7 +414,7 @@ if __name__ == '__main__':
         if "SAML" == authkey:
             SAML_END_POINT_INDEX = 0
             end_point = config.AUTHENTICATION[authkey]["END_POINTS"][SAML_END_POINT_INDEX]
-            end_point_indexes = {BINDING_HTTP_REDIRECT: 2, BINDING_HTTP_POST: 4, "disco_end_point_index": 1}
+            end_point_indexes = {BINDING_HTTP_REDIRECT: 0, BINDING_HTTP_POST: 0, "disco_end_point_index": 0}
             authn = AuthnIndexedEndpointWrapper(saml_authn, end_point_indexes)
             URLS.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
@@ -424,7 +424,7 @@ if __name__ == '__main__':
             password_end_point = config.AUTHENTICATION["UserPassword"]["END_POINTS"][PASSWORD_END_POINT_INDEX]
             saml_endpoint = config.AUTHENTICATION["SAML"]["END_POINTS"][SAML_END_POINT_INDEX]
 
-            end_point_indexes = {BINDING_HTTP_REDIRECT: 1, BINDING_HTTP_POST: 3, "disco_end_point_index": 0}
+            end_point_indexes = {BINDING_HTTP_REDIRECT: 1, BINDING_HTTP_POST: 1, "disco_end_point_index": 1}
             multi_saml = AuthnIndexedEndpointWrapper(saml_authn, end_point_indexes)
             multi_password = AuthnIndexedEndpointWrapper(username_password_authn, PASSWORD_END_POINT_INDEX)
 
@@ -432,7 +432,7 @@ if __name__ == '__main__':
             authn = setup_multi_auth(ac, URLS, auth_modules)
 
         if "JavascriptPass" == authkey:
-            PASSWORD_END_POINT_INDEX = 1
+            PASSWORD_END_POINT_INDEX = 2
             JAVASCRIPT_POINT_INDEX = 1
 
             password_end_point = config.AUTHENTICATION["UserPassword"]["END_POINTS"][PASSWORD_END_POINT_INDEX]

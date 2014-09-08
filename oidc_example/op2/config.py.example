@@ -12,7 +12,7 @@ keys = {
 
 SERVICE_URL = "%s/verify" % issuer
 
-USER_PASSWORD_END_POINTS = ["user_password", "multi_user_password_verify"]
+USER_PASSWORD_END_POINTS = ["user_password", "multi_user_password_saml_verify", "multi_user_password_js_verify"]
 SAML_END_POINTS = ['saml', "multi_saml_pass"]
 JAVASCRIPT_END_POINTS = ['javascript_login', "multi_javascript_login"]
 

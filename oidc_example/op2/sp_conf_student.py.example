@@ -106,6 +106,7 @@ CONFIG = {
     "xmlsec_binary": xmlsec_path,
     "metadata": {
         "remote": [{"url": "http://localhost/idp.xml", "cert": None}],
+        # "local": ["http://localhost/idp.xml"]
     },
     "name_form": NAME_FORMAT_URI,
     "organization": {
