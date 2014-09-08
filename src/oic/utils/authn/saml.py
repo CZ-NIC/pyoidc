@@ -316,7 +316,7 @@ else:
                 kwargs = {}
 
                 if end_point_index:
-                    kwargs["attribute_consuming_service_index"] = end_point_index[binding]
+                    kwargs["assertion_consumer_service_index"] = end_point_index[binding]
 
                 if _cli.authn_requests_signed:
                     _sid = saml2.s_utils.sid(_cli.seed)
