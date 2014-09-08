@@ -11,6 +11,7 @@ from Cookie import SimpleCookie
 
 from oic.utils.keyio import KeyJar
 from oic.utils.time_util import utc_time_sans_frac
+from oic.utils.time_util import utc_now
 from oic.exception import UnSupported
 
 logger = logging.getLogger(__name__)
@@ -304,7 +305,9 @@ class PBase(object):
 
     def set_cookie(self, kaka):
         """PLaces a cookie (a cookielib.Cookie based on a set-cookie header
-        line) in the cookie jar. """
+        line) in the cookie jar.
+        Always chose the shortest expires time.
+        """
 
         # default rfc2109=False
         # max-age, httponly
@@ -325,12 +328,22 @@ class PBase(object):
                     if attr in ATTRS:
                         if morsel[attr]:
                             if attr == "expires":
-                                std_attr[attr] = _since_epoch(morsel[attr])
+                                _expires = _since_epoch(morsel[attr])
+                                if std_attr["expires"] > _expires:
+                                    std_attr["expires"] = _expires
+                                else:
+                                    std_attr["expires"] = _expires
                             else:
                                 std_attr[attr] = morsel[attr]
                     elif attr == "max-age":
                         if morsel[attr]:
-                            std_attr["expires"] = _since_epoch(morsel[attr])
+                            # max-age is in seconds since received
+                            now = utc_now()
+                            _expires = now + int(morsel[attr])
+                            if std_attr["expires"] > _expires:
+                                std_attr["expires"] = _expires
+                            else:
+                                std_attr["expires"] = _expires
             except TimeFormatError:
                 # Ignore cookie
                 logger.info(
