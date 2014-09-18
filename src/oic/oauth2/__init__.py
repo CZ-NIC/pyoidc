@@ -11,6 +11,7 @@ from Cookie import SimpleCookie
 
 from oic.utils.keyio import KeyJar
 from oic.utils.time_util import utc_time_sans_frac
+from oic.utils.time_util import utc_now
 from oic.exception import UnSupported
 
 logger = logging.getLogger(__name__)
@@ -288,7 +289,9 @@ class PBase(object):
 
     def set_cookie(self, kaka):
         """PLaces a cookie (a cookielib.Cookie based on a set-cookie header
-        line) in the cookie jar. """
+        line) in the cookie jar.
+        Always chose the shortest expires time.
+        """
 
         # default rfc2109=False
         # max-age, httponly

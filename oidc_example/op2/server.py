@@ -458,7 +458,7 @@ if __name__ == '__main__':
         #"template_args": {"form_post": {"action": "form_post"}}
     }
 
-    # Should I care about verifying the certificates used other entities
+    # Should I care about verifying the certificates used by other entities
     if args.insecure:
         kwargs["verify_ssl"] = False
     else:
