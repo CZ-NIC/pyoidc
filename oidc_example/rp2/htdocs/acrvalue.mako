@@ -6,7 +6,7 @@
 
     def createResult(acrvalues):
       """
-      Creates a dropdown based on the service configurtion.
+      Creates a drop-down based on the service configuration.
       """
       element = ""
       for acr in acrvalues:

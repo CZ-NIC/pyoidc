@@ -42,7 +42,6 @@ RP = None
 
 def setup_server_env(conf):
     global SERVER_ENV
-    global logger
 
     SERVER_ENV = dict([(k, v) for k, v in conf.__dict__.items()
                        if not k.startswith("__")])
