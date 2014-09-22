@@ -194,7 +194,7 @@ class Provider(AProvider):
 
         if capabilities:
             self.verify_capabilities(capabilities)
-            self.capabilities = capabilities
+            self.capabilities = ProviderConfigurationResponse(**capabilities)
         else:
             self.capabilities = self.provider_features()
 
@@ -1215,10 +1215,10 @@ class Provider(AProvider):
         :return:
         """
 
-        _provider_info = copy.deepcopy(self.capabilities)
+        _provider_info = self.capabilities
 
         if setup:
-            # sort of placeholder tight now
+            # sort of placeholder right now
             # for key, spec in pcr_class.c_param.items():
             #     if isinstance(setup[0], list) and setup[0] != basestring:
             #         # dealing with lists
@@ -1308,7 +1308,7 @@ class Provider(AProvider):
         :return: True or False
         """
         _pinfo = self.provider_features()
-        for key, val in capabilities:
+        for key, val in capabilities.items():
             if isinstance(val, basestring):
                 try:
                     if val in _pinfo[key]:
