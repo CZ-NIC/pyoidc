@@ -29,6 +29,10 @@ class UnknownKeyType(Exception):
     pass
 
 
+class UpdateFailed(Exception):
+    pass
+
+
 K2C = {
     "RSA": RSAKey,
     "EC": ECKey,
@@ -82,7 +86,7 @@ class KeyBundle(object):
             if not self.remote:  # local file
                 if self.fileformat == "jwk":
                     self.do_local_jwk(self.source)
-                elif self.fileformat == "der":
+                elif self.fileformat == "der":  # Only valid for RSA keys
                     self.do_local_der(self.source, self.keytype, self.keyusage)
 
     def do_keys(self, keys):
@@ -142,6 +146,7 @@ class KeyBundle(object):
 
         if r.status_code == 304:  # file has not changed
             self.time_out = time.time() + self.cache_time
+            return False
         elif r.status_code == 200:  # New content
             self.time_out = time.time() + self.cache_time
 
@@ -155,20 +160,28 @@ class KeyBundle(object):
                 self.cache_control = r.headers["Cache-Control"]
             except KeyError:
                 pass
+            return True
+        else:
+            raise UpdateFailed()
 
     def _uptodate(self):
+        res = False
         if self._keys is not []:
             if self.remote:  # verify that it's not to old
                 if time.time() > self.time_out:
-                    self.update()
+                    if self.update():
+                        res = True
         elif self.remote:
-            self.update()
+            if self.update():
+                res = True
+        return res
 
     def update(self):
         """
         Reload the key if necessary
         This is a forced update, will happen even if cache time has not elapsed
         """
+        res = True  # An update was successful
         if self.source:
             # reread everything
             self._keys = []
@@ -179,7 +192,8 @@ class KeyBundle(object):
                 elif self.fileformat == "der":
                     self.do_local_der(self.source, self.keytype, self.keyusage)
             else:
-                self.do_remote()
+                res = self.do_remote()
+        return res
 
     def get(self, typ=""):
         """
@@ -239,6 +253,9 @@ class KeyBundle(object):
                 return key
 
         return None
+
+    def kids(self):
+        return [key.kid for key in self._keys if key.kid != ""]
 
 
 def keybundle_from_local_file(filename, typ, usage):
@@ -683,7 +700,7 @@ def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=1024):
     if not path.endswith("/"):
         path += "/"
 
-    f = open('%s%s' % (path, name),'w')
+    f = open('%s%s' % (path, name), 'w')
     f.write(key.exportKey('PEM'))
     f.close()
 

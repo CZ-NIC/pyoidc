@@ -331,7 +331,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
             return False
 
         logger.debug("authntoken: %s" % bjwt.to_dict())
-        logger.debug("known clients: %s" % self.cli.cdb.keys())
+        #logger.debug("known clients: %s" % self.cli.cdb.keys())
         try:
             # There might not be a client_id in the request
             assert str(bjwt["iss"]) in self.cli.cdb  # It's a client I know

@@ -1247,6 +1247,11 @@ class Server(oauth2.Server):
                 elif key == "acr":
                     #["2","http://id.incommon.org/assurance/bronze"]
                     extra["acr"] = verify_acr_level(val, loa)
+        else:
+            if auth_time:
+                extra["auth_time"] = auth_time
+            if loa:
+                extra["acr"] = loa
 
         if user_info is None:
             _args = {}
