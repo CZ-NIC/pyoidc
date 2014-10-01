@@ -1,3 +1,5 @@
+from oic.utils.http_util import extract_from_request
+
 __author__ = 'rolandh'
 
 UNSPECIFIED = "urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified"
@@ -189,3 +191,27 @@ class AuthnBroker(object):
 
     def __len__(self):
         return len(self.db["info"].keys())
+
+
+def make_auth_verify(callback, next_module_instance=None):
+    """
+    Closure encapsulating the next module (if any exist) in a multi auth chain.
+
+    :param callback: function to execute for the callback URL at the OP, see UserAuthnMethod.verify and its subclasses
+    (e.g. SAMLAuthnMethod) for signature
+    :param next_module_instance: an object instance of the module next in the chain after the module whose verify method
+    is the callback -- do not use this parameter!! If you want a multi auth chain see the convenience function
+    setup_multi_auth (in multi_auth.py)
+    :return: function encapsulating the specified callback which properly handles a multi auth chain.
+    """
+    def auth_verify(environ, start_response, logger):
+        kwargs = extract_from_request(environ)
+
+        response, auth_is_complete = callback(**kwargs)
+
+        if auth_is_complete and next_module_instance:
+            response = next_module_instance(**kwargs)
+
+        return response(environ, start_response)
+
+    return auth_verify

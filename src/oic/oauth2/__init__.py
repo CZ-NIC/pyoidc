@@ -261,22 +261,6 @@ PAIRS = {
     "path": "path_specified"
 }
 
-import time
-
-
-def _since_epoch(cdate):
-    # date format 'Wed, 06-Jun-2012 01:34:34 GMT'
-    try:
-        _cdate = cdate[5:-4]
-        try:
-            t = time.strptime(_cdate, "%d-%b-%Y %H:%M:%S")
-        except ValueError:
-            t = time.strptime(_cdate, "%d-%b-%y %H:%M:%S")
-    except Exception:
-        raise TimeFormatError(cdate)
-
-    return int(time.mktime(t))
-
 
 class PBase(object):
     def __init__(self, ca_certs=None, verify_ssl=True):
@@ -328,22 +312,12 @@ class PBase(object):
                     if attr in ATTRS:
                         if morsel[attr]:
                             if attr == "expires":
-                                _expires = _since_epoch(morsel[attr])
-                                if std_attr["expires"] > _expires:
-                                    std_attr["expires"] = _expires
-                                else:
-                                    std_attr["expires"] = _expires
+                                std_attr[attr] = cookielib.http2time(morsel[attr])
                             else:
                                 std_attr[attr] = morsel[attr]
                     elif attr == "max-age":
                         if morsel[attr]:
-                            # max-age is in seconds since received
-                            now = utc_now()
-                            _expires = now + int(morsel[attr])
-                            if std_attr["expires"] > _expires:
-                                std_attr["expires"] = _expires
-                            else:
-                                std_attr["expires"] = _expires
+                            std_attr["expires"] = cookielib.http2time(morsel[attr])
             except TimeFormatError:
                 # Ignore cookie
                 logger.info(

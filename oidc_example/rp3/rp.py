@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import importlib
+import argparse
 import urllib
 from jwkest.jws import alg2keytype
 from mako.lookup import TemplateLookup
@@ -125,7 +127,7 @@ def application(environ, start_response):
             session["op"] = query["op"][0]
 
         try:
-            resp = client.create_authn_request(session)
+            resp = client.create_authn_request(session, ACR_VALUES)
         except Exception:
             raise
         else:
@@ -166,13 +168,19 @@ def application(environ, start_response):
 
     return opchoice(environ, start_response, CLIENTS)
 
-
 if __name__ == '__main__':
     from oidc import OIDCClients
     from oidc import OIDCError
     from beaker.middleware import SessionMiddleware
     from cherrypy import wsgiserver
-    import conf
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(dest="config")
+    args = parser.parse_args()
+    conf = importlib.import_module(args.config)
+
+    global ACR_VALUES
+    ACR_VALUES = conf.ACR_VALUES
 
     session_opts = {
         'session.type': 'memory',

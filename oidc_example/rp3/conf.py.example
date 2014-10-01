@@ -23,6 +23,8 @@ BEHAVIOUR = {
     "scope": ["openid", "profile", "email", "address", "phone"],
 }
 
+ACR_VALUES = ["SAML"]
+
 # The keys in this dictionary are the OPs short user friendly name
 # not the issuer (iss) name.
 
@@ -34,59 +36,59 @@ CLIENTS = {
         "client_info": ME,
         "behaviour": BEHAVIOUR
     },
-    # No webfinger support, but OP information lookup and client registration
-    "xenosmilus": {
-        "srv_discovery_url": "https://xenosmilus2.umdc.umu.se:8091/",
-        "client_info": ME,
-        "behaviour": BEHAVIOUR
-    },
-    # Supports OP information lookup but not client registration
-    "op.example.org": {
-        "srv_discovery_url": "https://example.org/op/discovery_endpoint",
-        "client_registration": {
-            "client_id": "abcdefgh",
-            "client_secret": "123456789",
-            "redirect_uris": ["https://rp.example.com/authn_cb"],
-            "token_endpoint_auth_method": "client_secret_post",
-        }
-    },
-    # Does not support OP information lookup but dynamic client registration
-    "noop.example.com": {
-        "provider_info": {
-            "issuer": "",
-            "authorization_endpoint": "",
-            "token_endpoint": "",
-            "userinfo_endpoint": "",
-            "registration_endpoint": "",
-            "jwks_uri": "",
-            "scopes_supported": "",
-            "response_types_supported": "",
-            "subject_types_supported": "",
-            "id_token_signing_alg_values_supported": "",
-            "claims_supported": "",
-        },
-        "client_info": ME,
-    },
-    # Does not support any dynamic functionality
-    "nodyn.example.com": {
-        "provider_info": {
-            "issuer": "",
-            "authorization_endpoint": "",
-            "token_endpoint": "",
-            "userinfo_endpoint": "",
-            "registration_endpoint": "",
-            "jwks_uri": "",
-            "scopes_supported": "",
-            "response_types_supported": "",
-            "subject_types_supported": "",
-            "id_token_signing_alg_values_supported": "",
-            "claims_supported": "",
-        },
-        "client_registration": {
-            "client_id": "abcdefg",
-            "client_secret": "123456789",
-            "redirect_uris": ["https://rp.example.com/authn_cb"],
-            "token_endpoint_auth_method": "client_secret_post",
-        }
-    },
+    # # No webfinger support, but OP information lookup and client registration
+    # "xenosmilus": {
+    #     "srv_discovery_url": "https://xenosmilus2.umdc.umu.se:8091/",
+    #     "client_info": ME,
+    #     "behaviour": BEHAVIOUR
+    # },
+    # # Supports OP information lookup but not client registration
+    # "op.example.org": {
+    #     "srv_discovery_url": "https://example.org/op/discovery_endpoint",
+    #     "client_registration": {
+    #         "client_id": "abcdefgh",
+    #         "client_secret": "123456789",
+    #         "redirect_uris": ["https://rp.example.com/authn_cb"],
+    #         "token_endpoint_auth_method": "client_secret_post",
+    #     }
+    # },
+    # # Does not support OP information lookup but dynamic client registration
+    # "noop.example.com": {
+    #     "provider_info": {
+    #         "issuer": "",
+    #         "authorization_endpoint": "",
+    #         "token_endpoint": "",
+    #         "userinfo_endpoint": "",
+    #         "registration_endpoint": "",
+    #         "jwks_uri": "",
+    #         "scopes_supported": "",
+    #         "response_types_supported": "",
+    #         "subject_types_supported": "",
+    #         "id_token_signing_alg_values_supported": "",
+    #         "claims_supported": "",
+    #     },
+    #     "client_info": ME,
+    # },
+    # # Does not support any dynamic functionality
+    # "nodyn.example.com": {
+    #     "provider_info": {
+    #         "issuer": "",
+    #         "authorization_endpoint": "",
+    #         "token_endpoint": "",
+    #         "userinfo_endpoint": "",
+    #         "registration_endpoint": "",
+    #         "jwks_uri": "",
+    #         "scopes_supported": "",
+    #         "response_types_supported": "",
+    #         "subject_types_supported": "",
+    #         "id_token_signing_alg_values_supported": "",
+    #         "claims_supported": "",
+    #     },
+    #     "client_registration": {
+    #         "client_id": "abcdefg",
+    #         "client_secret": "123456789",
+    #         "redirect_uris": ["https://rp.example.com/authn_cb"],
+    #         "token_endpoint_auth_method": "client_secret_post",
+    #     }
+    # },
 }

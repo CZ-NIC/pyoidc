@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-#issuer= "https://www.kodtest.se/rolandsOP"
 baseurl = "https://localhost"
-#baseurl = "https://lingon.ladok.umu.se"
 issuer = "%s:%%d" % baseurl
 
 keys = {
@@ -14,10 +12,16 @@ keys = {
 
 SERVICE_URL = "%s/verify" % issuer
 
-#Only Username and password.
+USER_PASSWORD_END_POINTS = ["user_password", "multi_user_password_saml_verify", "multi_user_password_js_verify"]
+SAML_END_POINTS = ['saml', "multi_saml_pass"]
+JAVASCRIPT_END_POINTS = ['javascript_login', "multi_javascript_login"]
+
 AUTHENTICATION = {
-    "UserPassword" : {"ACR": "PASSWORD", "WEIGHT": 1, "URL": SERVICE_URL}
-    #"SAML" : {"ACR": "SAML", "WEIGHT": 1, "URL": SERVICE_URL}
+    "SAML" : {"ACR": "SAML", "WEIGHT": 1, "END_POINTS": SAML_END_POINTS},
+    "UserPassword" : {"ACR": "PASSWORD", "WEIGHT": 2, "END_POINTS": USER_PASSWORD_END_POINTS},
+    "SamlPass": {"ACR": "SAML_PASS", "WEIGHT": 3},
+    "JavascriptLogin": {"ACR": "JAVASCRIPT_LOGIN", "WEIGHT": 4, "END_POINTS": JAVASCRIPT_END_POINTS},
+    "JavascriptPass": {"ACR": "JAVASCRIPT_PASS", "WEIGHT": 5},
 }
 
 COOKIENAME= 'pyoic'
