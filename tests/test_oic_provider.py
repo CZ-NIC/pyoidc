@@ -255,7 +255,8 @@ def test_server_authenticated():
     cons.debug = True
     cons.keyjar[""] = KC_RSA
 
-    location = cons.begin("openid", "code", path="http://localhost:8087")
+    _state, location = cons.begin("openid", "code",
+                                  path="http://localhost:8087")
 
     QUERY_STRING = location.split("?")[1]
     print QUERY_STRING
@@ -280,9 +281,10 @@ def test_server_authenticated():
     assert _eq(aresp.keys(), ['request', 'state', 'redirect_uri',
                               'response_type', 'client_id', 'claims', 'scope'])
 
-    print cons.grant[cons.state].keys()
-    assert _eq(cons.grant[cons.state].keys(), ['tokens', 'id_token', 'exp_in',
-                                               'seed', 'grant_expiration_time'])
+    print cons.grant[_state].keys()
+    assert _eq(cons.grant[_state].keys(),
+               ['code', 'tokens', 'id_token', 'exp_in', 'seed',
+                'grant_expiration_time'])
 
 
 def test_server_authenticated_1():
@@ -293,7 +295,7 @@ def test_server_authenticated_1():
     cons.debug = True
     cons.keyjar[""] = KC_RSA
 
-    location = cons.begin("openid", "code", path="http://localhost:8087")
+    state, location = cons.begin("openid", "code", path="http://localhost:8087")
 
     resp = server.authorization_endpoint(request=location.split("?")[1])
 
@@ -316,9 +318,9 @@ def test_server_authenticated_2():
     cons.debug = True
     cons.keyjar[""] = KC_RSA
 
-    location = cons.begin(scope="openid email claims_in_id_token",
-                          response_type="code id_token",
-                          path="http://localhost:8087")
+    _state, location = cons.begin(scope="openid email claims_in_id_token",
+                                  response_type="code id_token",
+                                  path="http://localhost:8087")
 
     print location
     resp = server.authorization_endpoint(request=location.split("?")[1])
@@ -339,15 +341,16 @@ def test_server_authenticated_2():
     assert aresp.type() == "AuthorizationResponse"
     assert _eq(aresp.keys(), ['scope', 'state', 'code', 'id_token'])
 
-    print cons.grant[cons.state].keys()
-    assert _eq(cons.grant[cons.state].keys(), ['code', 'id_token', 'tokens',
+    print cons.grant[_state].keys()
+    assert _eq(cons.grant[_state].keys(), ['code', 'id_token', 'tokens',
                                                'exp_in',
                                                'grant_expiration_time', 'seed'])
     id_token = part[2]
     assert isinstance(id_token, IdToken)
     print id_token.keys()
-    assert _eq(id_token.keys(), ['c_hash', 'sub', 'iss', 'acr', 'exp', 'iat',
-                                 'aud', 'nonce'])
+    assert _eq(id_token.keys(),
+               ['nonce', 'c_hash', 'sub', 'iss', 'acr', 'exp', 'auth_time',
+                'iat', 'aud'])
 
 
 def test_server_authenticated_token():
@@ -359,8 +362,8 @@ def test_server_authenticated_token():
     cons.debug = True
     cons.keyjar[""] = KC_RSA
 
-    location = cons.begin("openid", response_type="token",
-                          path="http://localhost:8087")
+    _state, location = cons.begin("openid", response_type="token",
+                                  path="http://localhost:8087")
 
     resp = server.authorization_endpoint(request=location.split("?")[1])
 
@@ -377,8 +380,8 @@ def test_server_authenticated_none():
     cons.debug = True
     cons.keyjar[""] = KC_RSA
 
-    location = cons.begin("openid", response_type="none",
-                          path="http://localhost:8087")
+    _state, location = cons.begin("openid", response_type="none",
+                                  path="http://localhost:8087")
 
     resp = server.authorization_endpoint(request=location.split("?")[1])
 
@@ -506,7 +509,7 @@ def test_userinfo_endpoint():
     cons.config["request_method"] = "parameter"
     cons.keyjar[""] = KC_RSA
 
-    location = cons.begin("openid", "token", path="http://localhost:8087")
+    state, location = cons.begin("openid", "token", path="http://localhost:8087")
 
     resp = server.authorization_endpoint(request=location.split("?")[1])
 
@@ -684,4 +687,4 @@ def test_registered_redirect_uri_with_query_component():
         assert resp is None
 
 if __name__ == "__main__":
-    test_token_endpoint()
+    test_registration_endpoint()

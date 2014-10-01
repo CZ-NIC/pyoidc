@@ -76,6 +76,7 @@ class TestOICClient():
         self.client.redirect_uris = ["http://example.com/redirect"]
         self.client.client_secret = CLIENT_SECRET
         self.client.keyjar[""] = KC_RSA
+        self._state = ""
 
     def test_areq_1(self):
         ar = self.client.construct_AuthorizationRequest(
@@ -308,8 +309,8 @@ class TestOICClient():
         # default == "POST"
         assert uri == 'https://example.com/authz'
         areq = AuthorizationRequest().from_urlencoded(body)
-        assert _eq(areq.keys(), ["nonce", "redirect_uri", "response_type",
-                                 "client_id", "scope"])
+        assert _eq(areq.keys(), ["nonce", "state", "redirect_uri",
+                                 "response_type", "client_id", "scope"])
         assert h_args == {'headers': {
             'Content-type': 'application/x-www-form-urlencoded'}}
         assert cis.type() == "AuthorizationRequest"
@@ -322,7 +323,7 @@ class TestOICClient():
         (url, query) = uri.split("?")
         areq = AuthorizationRequest().from_urlencoded(query)
         assert _eq(areq.keys(), ["nonce", "redirect_uri", "response_type",
-                                 "client_id", "scope"])
+                                 "client_id", "scope", "state"])
         assert areq["redirect_uri"] == "http://client.example.com/authz"
 
         assert body is None
@@ -357,7 +358,7 @@ class TestOICClient():
         (url, query) = uri.split("?")
         areq = AuthorizationRequest().from_urlencoded(query)
         assert _eq(areq.keys(), ["redirect_uri", "response_type",
-                                 "client_id", "rock", "scope"])
+                                 "client_id", "rock", "scope", "state"])
         assert body is None
         assert h_args == {}
         assert cis.type() == "AuthorizationRequest"
@@ -405,23 +406,25 @@ class TestOICClient():
     def test_access_token_request(self):
         self.client.token_endpoint = "http://oic.example.org/token"
 
+        self._state = "state0"
         print self.client.grant.keys()
-        print self.client.state
-        print self.client.grant[self.client.state]
+        print self.client.grant[self._state]
 
-        resp = self.client.do_access_token_request(scope="openid")
+        resp = self.client.do_access_token_request(scope="openid",
+                                                   state=self._state)
         print resp
         print resp.keys()
-        self.client.grant[self.client.state].add_token(resp)
+        self.client.grant[self._state].add_token(resp)
         assert resp.type() == "AccessTokenResponse"
         assert _eq(resp.keys(), ['token_type', 'state', 'access_token',
                                  'expires_in', 'refresh_token', 'scope'])
 
     def test_do_user_info_request(self):
         self.client.userinfo_endpoint = "http://oic.example.org/userinfo"
+        self._state = "state0"
         print self.client.grant.keys()
-        print self.client.grant[self.client.state]
-        resp = self.client.do_user_info_request(state=self.client.state)
+        print self.client.grant[self._state]
+        resp = self.client.do_user_info_request(state=self._state)
         assert resp.type() == "OpenIDSchema"
         assert _eq(resp.keys(),
                    ['name', 'email', 'verified', 'nickname', 'sub'])
@@ -429,8 +432,10 @@ class TestOICClient():
 
     def test_do_access_token_refresh(self):
         #token = self.client.get_token(scope="openid")
+        _state = "state0"
 
-        resp = self.client.do_access_token_refresh(scope="openid")
+        resp = self.client.do_access_token_refresh(scope="openid",
+                                                   state=_state)
         print resp
         assert resp.type() == "AccessTokenResponse"
         assert _eq(resp.keys(), ['token_type', 'state', 'access_token',
@@ -1153,8 +1158,8 @@ def test_make_id_token():
 
 
 if __name__ == "__main__":
-    #t = TestOICClient()
-    #t.setup_class()
-    #t.test_do_check_session_request()
+    t = TestOICClient()
+    t.setup_class()
+    t.test_access_token_request()
 
-    test_userinfo_request()
+    #test_userinfo_request()

@@ -391,11 +391,11 @@ class Message(object):
                 else:
                     self._dict[skey] = val
 
-    def to_json(self, lev=0):
+    def to_json(self, lev=0, indent=None):
         if lev:
             return self.to_dict(lev + 1)
         else:
-            return json.dumps(self.to_dict(1))
+            return json.dumps(self.to_dict(1), indent=indent)
 
     def from_json(self, txt, **kwargs):
         return self.from_dict(json.loads(txt))

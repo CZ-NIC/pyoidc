@@ -110,7 +110,8 @@ class MyFakeOICServer(Server):
                 resp = AuthorizationResponse(**_dict)
                 #resp.code = grant
             else:
-                resp = AuthorizationResponse(state=req["state"],
+                _state = req["state"]
+                resp = AuthorizationResponse(state=_state,
                                              code=_info["code"])
 
         else:  # "implicit" in req.response_type:

@@ -615,12 +615,12 @@ class Client(oauth2.Client):
         self.redirect_uris = reginfo["redirect_uris"]
 
     def handle_registration_info(self, response):
-        if response.status_code == 200:
+        if response.status_code in [200, 201]:
             resp = ClientInfoResponse().deserialize(response.text, "json")
             self.store_registration_info(resp)
         else:
             err = ErrorResponse().deserialize(response.text, "json")
-            raise PyoidcError("Registration failed: %s" % err.get_json())
+            raise PyoidcError("Registration failed: %s" % err.to_json())
 
         return resp
 

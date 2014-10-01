@@ -169,13 +169,6 @@ class BearerHeader(ClientAuthnMethod):
                     try:
                         _acc_token = kwargs["access_token"]
                     except KeyError:
-                        try:
-                            _ = kwargs["state"]
-                        except KeyError:
-                            if not self.cli.state:
-                                raise Exception("Missing state specification")
-                            kwargs["state"] = self.cli.state
-
                         _acc_token = self.cli.get_token(**kwargs).access_token
         else:
             try:

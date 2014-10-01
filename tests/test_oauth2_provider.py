@@ -128,8 +128,8 @@ def test_provider_authenticated():
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
     cons.debug = True
 
-    location = cons.begin("http://localhost:8087",
-                          "http://localhost:8088/authorization")
+    sid, location = cons.begin("http://localhost:8087",
+                               "http://localhost:8088/authorization")
 
     query_string = location.split("?")[1]
 
@@ -147,8 +147,8 @@ def test_provider_authenticated():
     assert aresp.type() == "AuthorizationResponse"
     assert _eq(aresp.keys(), ['state', 'code'])
 
-    print cons.grant[cons.state].keys()
-    assert _eq(cons.grant[cons.state].keys(), ['tokens', 'code', 'exp_in',
+    print cons.grant[sid].keys()
+    assert _eq(cons.grant[sid].keys(), ['tokens', 'code', 'exp_in',
                                                'seed', 'id_token',
                                                'grant_expiration_time'])
 
@@ -161,9 +161,9 @@ def test_provider_authenticated_token():
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
     cons.debug = True
 
-    location = cons.begin("http://localhost:8087",
-                          "http://localhost:8088/authorization",
-                          "token")
+    sid, location = cons.begin("http://localhost:8087",
+                               "http://localhost:8088/authorization",
+                               "token")
 
     QUERY_STRING = location.split("?")[1]
     resp = provider.authorization_endpoint(QUERY_STRING)
@@ -173,30 +173,6 @@ def test_provider_authenticated_token():
     assert "access_token=" in txt
     assert "token_type=Bearer" in txt
 
-
-# def test_provider_authenticated_none():
-#     provider = Provider("pyoicserv", sdb.SessionDB(), CDB, AUTHN_BROKER, AUTHZ,
-#                         verify_client)
-#     _session_db = {}
-#     cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
-#                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
-#     cons.debug = True
-#
-#     location = cons.begin("http://localhost:8087",
-#                           "http://localhost:8088/authorization",
-#                           "none")
-#
-#     QUERY_STRING = location.split("?")[1]
-#
-#     resp2 = provider.authorization_endpoint(request=QUERY_STRING)
-#
-#     location = resp2.message
-#     print location
-#
-#     assert location.startswith("http://localhost:8087/authz")
-#     query = location.split("?")[1]
-#     assert query.startswith("state=")
-#     assert "&" not in query
 
 
 def test_token_endpoint():
@@ -269,4 +245,4 @@ def test_token_endpoint_unauth():
     assert _eq(atr.keys(), ['error_description', 'error'])
 
 if __name__ == "__main__":
-    test_provider_authenticated_token()
+    test_provider_authenticated()

@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import time
+
 __author__ = 'rohe0002'
 
 import requests
@@ -411,7 +413,7 @@ class Client(PBase):
         self.verify_ssl = verify_ssl
         #self.secret_type = "basic "
 
-        self.state = None
+        #self.state = None
         self.nonce = None
 
         self.grant = {}
@@ -451,7 +453,7 @@ class Client(PBase):
     client_secret = property(get_client_secret, set_client_secret)
 
     def reset(self):
-        self.state = None
+        #self.state = None
         self.nonce = None
 
         self.grant = {}
@@ -504,18 +506,18 @@ class Client(PBase):
 
         return uri
 
-    def get_grant(self, **kwargs):
-        try:
-            _state = kwargs["state"]
-            if not _state:
-                _state = self.state
-        except KeyError:
-            _state = self.state
+    def get_grant(self, state, **kwargs):
+        # try:
+        #     _state = kwargs["state"]
+        #     if not _state:
+        #         _state = self.state
+        # except KeyError:
+        #     _state = self.state
 
         try:
-            return self.grant[_state]
+            return self.grant[state]
         except:
-            raise Exception("No grant found for state:'%s'" % _state)
+            raise Exception("No grant found for state:'%s'" % state)
 
     def get_token(self, also_expired=False, **kwargs):
         try:
@@ -908,6 +910,9 @@ class Client(PBase):
                                  http_args=None,
                                  response_cls=AuthorizationResponse,
                                  **kwargs):
+
+        if state:
+            request_args["state"] = state
 
         url, body, ht_args, csi = self.request_info(request, method,
                                                     request_args, extra_args,

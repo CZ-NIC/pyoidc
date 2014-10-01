@@ -192,14 +192,19 @@ class Provider(AProvider):
         self.hostname = hostname or socket.gethostname
         self.register_endpoint = "%s%s" % (self.baseurl, "register")
 
+        self.default_sign_alg = {"id_token": "RS256", "userinfo": "RS256"}
+
         if capabilities:
             self.verify_capabilities(capabilities)
             self.capabilities = ProviderConfigurationResponse(**capabilities)
         else:
             self.capabilities = self.provider_features()
 
-    def id_token_as_signed_jwt(self, session, loa="2", alg="RS256", code=None,
+    def id_token_as_signed_jwt(self, session, loa="2", alg="", code=None,
                                access_token=None, user_info=None, auth_time=0):
+
+        if alg == "":
+            alg = self.default_sign_alg["id_token"]
 
         logger.debug("Signing alg: %s [%s]" % (alg, alg2keytype(alg)))
         _idt = self.server.make_id_token(session, loa, self.baseurl, alg, code,
@@ -866,7 +871,12 @@ class Provider(AProvider):
         _cinfo = self.cdb[session["client_id"]]
         try:
             if "userinfo_signed_response_alg" in _cinfo:
-                algo = _cinfo["userinfo_signed_response_alg"]
+
+                try:
+                    algo = _cinfo["userinfo_signed_response_alg"]
+                except KeyError:  # Fall back to default
+                    algo = self.default_sign_alg["userinfo"]
+
                 # Use my key for signing
                 key = self.keyjar.get_signing_key(alg2keytype(algo), "")
                 if not key:

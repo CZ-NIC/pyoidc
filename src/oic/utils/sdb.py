@@ -59,7 +59,7 @@ class Token(object):
     def __init__(self, secret, password):
         self.secret = secret
         self._rndlen = 19
-        self._sidlen = 28
+        self._sidlen = 56
         self.crypt = Crypt(password)
 
     def __call__(self, ttype="A", prev="", sid=None):
@@ -102,7 +102,7 @@ class Token(object):
             except KeyError:
                 pass
 
-        return csum.digest()  # 28 bytes long, 224 bits
+        return csum.hexdigest()  # 56 bytes long, 224 bits
 
     def _split_token(self, token):
         plain = self.crypt.decrypt(base64.b64decode(token))

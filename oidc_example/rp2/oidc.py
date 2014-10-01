@@ -36,13 +36,15 @@ class OpenIDConnect(object):
         self.attribute_map = attribute_map
         self.authenticating_authority = authenticating_authority
         self.name = name
+        self.client_id = ""
+        self.client_secret = ""
 
         for param in ["client_id", "client_secret"]:
             try:
                 setattr(self, param, kwargs[param])
                 del kwargs[param]
             except KeyError:
-                setattr(self, param, "")
+                pass
 
         self.extra = kwargs
         try:
@@ -135,7 +137,7 @@ class OpenIDConnect(object):
                     client = self.dynamic(server_env, callback, logoutCallback, session, key)
                 else:
                     client = self.static(server_env, callback, logoutCallback, key)
-                client.state = session.getState()
+                _state = session.getState()
                 session.setClient(client)
 
             acr_value = session.get_acr_value(client.authorization_endpoint)
@@ -151,7 +153,8 @@ class OpenIDConnect(object):
                 return []
             elif acr_values is not None and len(acr_values) == 1:
                     acr_value = acr_values[0]
-            return self.create_authnrequest(environ, server_env, start_response, session, acr_value)
+            return self.create_authnrequest(environ, server_env, start_response,
+                                            session, acr_value, _state)
         except Exception:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
@@ -160,14 +163,15 @@ class OpenIDConnect(object):
                 (False, "Cannot find the OP! Please view your configuration."))
 
     #noinspection PyUnusedLocal
-    def create_authnrequest(self, environ, server_env, start_response, session, acr_value):
+    def create_authnrequest(self, environ, server_env, start_response, session,
+                            acr_value, state):
         try:
             client = session.getClient()
             session.set_acr_value(client.authorization_endpoint, acr_value)
             request_args = {
                 "response_type": self.flow_type,
                 "scope": server_env["SCOPE"],
-                "state": client.state,
+                "state": state,
             }
 
             if acr_value is not None:

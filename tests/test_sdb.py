@@ -39,26 +39,26 @@ def _eq(l1, l2):
 def test_token():
     sdb = SessionDB()
     sid = sdb.token.key(areq=AREQ)
-    assert len(sid) == 28
+    assert len(sid) == 56
 
     sdb = SessionDB({"a": "b"})
     sid = sdb.token.key(areq=AREQ)
-    assert len(sid) == 28
+    assert len(sid) == 56
 
 
 def test_new_token():
     sdb = SessionDB()
     sid = sdb.token.key(areq=AREQ)
-    assert len(sid) == 28
+    assert len(sid) == 56
 
     code2 = sdb.token('T', sid=sid)
-    assert len(sid) == 28
+    assert len(sid) == 56
 
     code3 = sdb.token(ttype="", prev=code2)
     assert code2 != code3
     
     sid2 = sdb.token.key(areq=AREQ, user="jones")
-    assert len(sid2) == 28
+    assert len(sid2) == 56
     assert sid != sid2
 
 

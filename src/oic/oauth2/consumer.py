@@ -158,7 +158,6 @@ class Consumer(Client):
         """
 
         res = {
-            "state": self.state,
             "grant": self.grant,
             "seed": self.seed,
             "redirect_uris": self.redirect_uris,
@@ -191,7 +190,7 @@ class Consumer(Client):
             self.seed = rndstr()
 
         sid = stateID(request, self.seed)
-        self.state = sid
+        #self.state = sid
         self.grant[sid] = Grant(seed=self.seed)
         self._backup(sid)
         self.sdb["seed:%s" % self.seed] = sid
@@ -208,7 +207,7 @@ class Consumer(Client):
 
         LOG_DEBUG("Redirecting to: %s" % (location,))
 
-        return location
+        return sid, location
 
     #noinspection PyUnusedLocal
     def handle_authorization_response(self, query="", **kwargs):
@@ -258,20 +257,21 @@ class Consumer(Client):
             except KeyError:
                 raise UnknownState(atr["state"])
 
-            self.seed = self.grant[self.state].seed
+            self.seed = self.grant[atr["state"]].seed
 
             return atr
 
-    def complete(self, query="", **kwargs):
+    def complete(self, query, state, **kwargs):
         """
         :param query: The query part of the request URL
+        :param state:
         """
 
         resp = self.handle_authorization_response(query, **kwargs)
 
         if resp.type() == "AuthorizationResponse":
             # Go get the access token
-            resp = self.do_access_token_request(state=self.state)
+            resp = self.do_access_token_request(state=state)
 
         return resp
 
@@ -294,13 +294,13 @@ class Consumer(Client):
         return request_args, http_args, extra_args
 
     #noinspection PyUnusedLocal
-    def get_access_token_request(self, **kwargs):
+    def get_access_token_request(self, state, **kwargs):
 
         request_args, http_args, extra_args = self.client_auth_info()
 
         url, body, ht_args, csi = self.request_info(AccessTokenRequest,
                                                     request_args=request_args,
-                                                    state=self.state,
+                                                    state=state,
                                                     **extra_args)
 
         if not http_args:

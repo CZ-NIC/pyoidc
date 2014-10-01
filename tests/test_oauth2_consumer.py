@@ -99,11 +99,11 @@ def test_factory():
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
 
     sid = stateID("https://example.org/", cons.seed)
-    cons.state = sid
+    _state = sid
     cons._backup(sid)
     cons.sdb["seed:%s" % cons.seed] = sid
 
-    kaka = make_cookie(CLIENT_CONFIG["client_id"], cons.state, cons.seed,
+    kaka = make_cookie(CLIENT_CONFIG["client_id"], _state, cons.seed,
                        expire=360, path="/")
 
     _oac = factory(kaka[1], _session_db, CLIENT_CONFIG["client_id"],
@@ -111,7 +111,7 @@ def test_factory():
                    **CONSUMER_CONFIG)
 
     assert _oac
-    assert _oac.state == cons.state
+    assert _oac.client_id == cons.client_id
     assert _oac.seed == cons.seed
 
 
@@ -120,12 +120,12 @@ def test_consumer_begin():
     cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
 
-    loc = cons.begin("http://localhost:8087",
-                     "http://localhost:8088/authorization")
+    sid, loc = cons.begin("http://localhost:8087",
+                          "http://localhost:8088/authorization")
 
     # state is dynamic
     params = {"scope": "openid",
-              "state": cons.state,
+              "state": sid,
               "redirect_uri": "http://localhost:8087/authz",
               "response_type": "code",
               "client_id": "number5"}
@@ -141,17 +141,17 @@ def test_consumer_handle_authorization_response():
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
     cons.debug = True
 
-    _ = cons.begin("http://localhost:8087",
-                   "http://localhost:8088/authorization")
+    sid, loc = cons.begin("http://localhost:8087",
+                          "http://localhost:8088/authorization")
 
     atr = AuthorizationResponse(code="SplxlOBeZQQYbYS6WxSbIA",
-                                state=cons.state)
+                                state=sid)
 
     res = cons.handle_authorization_response(query=atr.to_urlencoded())
 
     assert res.type() == "AuthorizationResponse"
-    print cons.grant[cons.state]
-    grant = cons.grant[cons.state]
+    print cons.grant[sid]
+    grant = cons.grant[sid]
     assert grant.code == "SplxlOBeZQQYbYS6WxSbIA"
 
 
@@ -161,11 +161,11 @@ def test_consumer_parse_authz_exception():
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
     cons.debug = True
 
-    _ = cons.begin("http://localhost:8087",
-                   "http://localhost:8088/authorization")
+    sid, loc = cons.begin("http://localhost:8087",
+                          "http://localhost:8088/authorization")
 
     atr = AuthorizationResponse(code="SplxlOBeZQQYbYS6WxSbIA",
-                                state=cons.state)
+                                state=sid)
 
     adict = atr.to_dict()
     del adict["code"]
@@ -181,10 +181,10 @@ def test_consumer_parse_authz_error():
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
     cons.debug = True
 
-    _ = cons.begin("http://localhost:8087",
-                   "http://localhost:8088/authorization")
+    sid, loc = cons.begin("http://localhost:8087",
+                          "http://localhost:8088/authorization")
 
-    atr = AuthorizationErrorResponse(error="access_denied", state=cons.state)
+    atr = AuthorizationErrorResponse(error="access_denied", state=sid)
 
     QUERY_STRING = atr.to_urlencoded()
 
@@ -201,20 +201,20 @@ def test_consumer_parse_access_token():
     environ = BASE_ENVIRON
 
     cons.response_type = ["token"]
-    _ = cons.begin("http://localhost:8087",
-                   "http://localhost:8088/authorization")
+    sid, loc = cons.begin("http://localhost:8087",
+                          "http://localhost:8088/authorization")
 
     atr = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
                               token_type="example",
                               refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
                               example_parameter="example_value",
-                              state=cons.state)
+                              state=sid)
 
     res = cons.handle_authorization_response(query=atr.to_urlencoded())
 
     assert res.type() == "AccessTokenResponse"
-    print cons.grant[cons.state]
-    grant = cons.grant[cons.state]
+    print cons.grant[sid]
+    grant = cons.grant[sid]
     assert len(grant.tokens) == 1
     token = grant.tokens[0]
     assert token.access_token == "2YotnFZFEjr1zCsicMWpAA"
@@ -252,19 +252,19 @@ def test_consumer_client_get_access_token_reques():
     cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
     cons.client_secret = "secret0"
-    cons.state = "state"
+    _state = "state"
     cons.redirect_uris = ["https://www.example.com/oic/cb"]
 
-    resp1 = AuthorizationResponse(code="auth_grant", state="state")
+    resp1 = AuthorizationResponse(code="auth_grant", state=_state)
     cons.parse_response(AuthorizationResponse, resp1.to_urlencoded(),
                         "urlencoded")
     resp2 = AccessTokenResponse(access_token="token1",
                                 token_type="Bearer", expires_in=0,
-                                state="state")
+                                state=_state)
     cons.parse_response(AccessTokenResponse, resp2.to_urlencoded(),
                         "urlencoded")
 
-    url, body, http_args = cons.get_access_token_request()
+    url, body, http_args = cons.get_access_token_request(_state)
     assert url == "http://localhost:8088/token"
     print body
     assert body == ("code=auth_grant&client_secret=secret0&"
@@ -273,3 +273,5 @@ def test_consumer_client_get_access_token_reques():
     assert http_args == {'headers': {
         'Content-type': 'application/x-www-form-urlencoded'}}
 
+if __name__ == "__main__":
+    test_consumer_parse_access_token()

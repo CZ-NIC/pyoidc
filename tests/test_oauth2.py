@@ -110,6 +110,7 @@ class TestOAuthClient():
     def setup_class(self):
         self.client = Client("1")
         self.client.redirect_uris = ["http://example.com/redirect"]
+        self.client.response_type = "code"
 
     def test_areq_1(self):
         ar = self.client.construct_AuthorizationRequest(
@@ -122,8 +123,8 @@ class TestOAuthClient():
         assert "scope" not in ar
 
     def test_areq_2(self):
-        self.client.state = "abc"
-        req_args = {"response_type": ["code"], "scope": ["foo", "bar"]}
+        req_args = {"response_type": ["code"], "scope": ["foo", "bar"],
+                    "state": "abc"}
         ar = self.client.construct_AuthorizationRequest(request_args=req_args)
 
         assert ar["redirect_uri"] == "http://example.com/redirect"
@@ -133,8 +134,8 @@ class TestOAuthClient():
         assert ar["scope"] == ["foo", "bar"]
 
     def test_areq_replace_default_state(self):
-        self.client.state = "efg"
-        req_args = {"response_type": ["code"], "scope": ["foo", "bar"]}
+        req_args = {"response_type": ["code"], "scope": ["foo", "bar"],
+                    "state": "efg"}
         ar = self.client.construct_AuthorizationRequest(request_args=req_args)
 
         assert ar["redirect_uri"] == "http://example.com/redirect"
@@ -335,17 +336,20 @@ class TestOAuthClient():
 
     def test_request_info_simple(self):
         self.client.authorization_endpoint = "https://example.com/authz"
-        uri, body, h_args, cis = self.client.request_info(AuthorizationRequest)
+        req_args = {"state": "hmm", "response_type": "code"}
+        uri, body, h_args, cis = self.client.request_info(AuthorizationRequest,
+                                                          request_args=req_args)
 
         # default == "POST"
         assert uri == 'https://example.com/authz'
-        assert body == "redirect_uri=http%3A%2F%2Fclient.example.com%2Fauthz&response_type=code&client_id=1"
+        print body
+        assert body == "state=hmm&redirect_uri=http%3A%2F%2Fclient.example.com%2Fauthz&response_type=code&client_id=1"
         assert h_args == {'headers': {'Content-type':
                                       'application/x-www-form-urlencoded'}}
         assert cis.type() == "AuthorizationRequest"
 
     def test_request_info_simple_get(self):
-        #self.client.authorization_endpoint = "https://example.com/authz"
+        self.client.authorization_endpoint = "https://example.com/authz"
         uri, body, h_args, cis = self.client.request_info(AuthorizationRequest,
                                                           method="GET")
 
@@ -883,7 +887,6 @@ def test_bearer_header_2():
 def test_bearer_header_3():
     client = Client("A")
     client.client_secret = "boarding pass"
-    client.state = "state"
 
     resp1 = AuthorizationResponse(code="auth_grant", state="state")
     client.parse_response(AuthorizationResponse, resp1.to_urlencoded(),
@@ -896,7 +899,7 @@ def test_bearer_header_3():
 
     cis = ResourceRequest()
 
-    http_args = BearerHeader(client).construct(cis)
+    http_args = BearerHeader(client).construct(cis, state="state")
 
     print cis
     assert "access_token" not in cis
@@ -941,7 +944,6 @@ def test_bearer_body():
 def test_bearer_body_get_token():
     client = Client("A")
     client.client_secret = "boarding pass"
-    client.state = "state"
 
     resp1 = AuthorizationResponse(code="auth_grant", state="state")
     client.parse_response(AuthorizationResponse, resp1.to_urlencoded(),
@@ -954,10 +956,14 @@ def test_bearer_body_get_token():
 
     cis = ResourceRequest()
 
-    _ = BearerBody(client).construct(cis)
+    _ = BearerBody(client).construct(cis, state="state")
 
     assert "access_token" in cis
     assert cis["access_token"] == "token1"
 
 if __name__ == "__main__":
-    test_client_secret_basic()
+    # tc = TestOAuthClient()
+    # tc.setup_class()
+    # tc.test_request_info_simple_get()
+
+    test_bearer_body()

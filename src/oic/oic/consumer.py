@@ -200,7 +200,7 @@ class Consumer(Client):
 
     #noinspection PyUnusedLocal,PyArgumentEqualDefault
     def begin(self, scope="", response_type="", use_nonce=False, path="",
-              requrl="", **kwargs):
+              **kwargs):
         """ Begin the OIDC flow
 
         :param scope: Defines which user info claims is wanted
@@ -209,8 +209,8 @@ class Consumer(Client):
         :param use_nonce: If not implicit flow nonce is optional.
             This defines if it should be used anyway.
         :param path: The path part of the redirect URL
-        :param requrl: Request URL
-        :return: A URL to which the user should be redirected
+        :return: A 2-tuple, session identifier and URL to which the user
+        should be redirected
         """
         _log_info = logger.info
 
@@ -239,14 +239,10 @@ class Consumer(Client):
             response_type = self.config["response_type"]
 
         sid = stateID(path, self.seed)
-        self.state = sid
         self.grant[sid] = Grant(seed=self.seed)
 
         self._backup(sid)
         self.sdb["seed:%s" % self.seed] = sid
-
-        # Store the request and the redirect uri used
-        self._request = requrl
 
         args = {
             "client_id": self.client_id,
@@ -312,7 +308,7 @@ class Consumer(Client):
         if self.debug:
             _log_info("Redirecting to: %s" % location)
 
-        return location
+        return sid, location
 
     #noinspection PyUnusedLocal
     def parse_authz(self, query="", **kwargs):
@@ -380,7 +376,7 @@ class Consumer(Client):
             idt = None
             return None, atr, idt
 
-    def complete(self):
+    def complete(self, state):
         """
         Do the access token request, the last step in a code flow.
         If Implicit flow was used then this method is never used.
@@ -398,7 +394,7 @@ class Consumer(Client):
         else:
             raise PyoidcError("Nothing to authenticate with")
 
-        resp = self.do_access_token_request(state=self.state,
+        resp = self.do_access_token_request(state=state,
                                             request_args=args,
                                             http_args=http_args)
 
@@ -408,7 +404,7 @@ class Consumer(Client):
             raise TokenError(resp.error, resp)
 
         #self._backup(self.sdb["seed:%s" % _cli.seed])
-        self._backup(self.state)
+        self._backup(state)
 
         return resp
 
@@ -416,14 +412,14 @@ class Consumer(Client):
         pass
     
     #noinspection PyUnusedLocal
-    def get_user_info(self):
-        uinfo = self.do_user_info_request(state=self.state, schema="openid")
+    def get_user_info(self, state):
+        uinfo = self.do_user_info_request(state=state, schema="openid")
 
         if uinfo.type() == "ErrorResponse":
             raise TokenError(uinfo.error, uinfo)
 
         self.user_info = uinfo
-        self._backup(self.state)
+        self._backup(state)
 
         return uinfo
 
