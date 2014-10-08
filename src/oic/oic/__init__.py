@@ -1219,7 +1219,7 @@ class Server(oauth2.Server):
 
     def make_id_token(self, session, loa="2", issuer="",
                       alg="RS256", code=None, access_token=None,
-                      user_info=None, auth_time=0):
+                      user_info=None, auth_time=0, exp=None):
         """
 
         :param session: Session information
@@ -1232,7 +1232,10 @@ class Server(oauth2.Server):
         :return: IDToken instance
         """
         #defaults
-        inawhile = {"days": 1}
+        if exp is None:
+            inawhile = {"days": 1}
+        else:
+            inawhile = exp
         # Handle the idtoken_claims
         extra = {}
         itc = self.id_token_claims(session)
