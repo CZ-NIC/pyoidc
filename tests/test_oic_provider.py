@@ -76,7 +76,7 @@ KC_SYM = KeyBundle([{"kty": "oct", "key": CLIENT_SECRET, "use": "ver"},
 KC_SYM2 = KeyBundle([{"kty": "oct", "key": "drickyoughurt", "use": "sig"},
                       {"kty": "oct", "key": "drickyoughurt", "use": "ver"}])
 
-KC_RSA = keybundle_from_local_file("../oidc_example/op1/certs/mycert.key",
+KC_RSA = keybundle_from_local_file("../oidc_example/op2/certs/server.key",
                                    "RSA", ["ver", "sig"])
 
 KEYJAR = KeyJar()
@@ -266,7 +266,7 @@ def test_server_authenticated():
     assert resp.message.startswith("http://localhost:8087/authz")
 
     part = cons.parse_authz(query=location)
-    
+
     aresp = part[0]
     assert part[1] is None
     assert part[2] is None
@@ -386,7 +386,7 @@ def test_server_authenticated_none():
     query_part = resp.message.split("?")[1]
     print query_part
     assert "state" in query_part
-    
+
 
 def test_token_endpoint():
     server = provider_init
@@ -492,6 +492,28 @@ def test_idtoken():
     id_token = server.id_token_as_signed_jwt(session)
     print id_token
     assert len(id_token.split(".")) == 3
+
+
+def test_idtoken_with_extra_claims():
+    server = provider_init
+    AREQ = AuthorizationRequest(response_type="code", client_id=CLIENT_ID,
+                                redirect_uri="http://example.com/authz",
+                                scope=["openid"], state="state000")
+
+    sid = server.sdb.create_authz_session("sub", AREQ)
+    session = server.sdb[sid]
+
+    claims = {
+        'k1': 'v1',
+        'k2': 32
+    }
+
+    id_token = server.id_token_as_signed_jwt(session, extra_claims=claims)
+    parsed = IdToken().from_jwt(id_token, keyjar=server.keyjar)
+
+    print id_token
+    for key, value in claims.iteritems():
+        assert parsed[key] == value
 
 
 def test_userinfo_endpoint():

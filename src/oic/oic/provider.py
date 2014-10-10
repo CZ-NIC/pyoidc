@@ -199,11 +199,12 @@ class Provider(AProvider):
             self.capabilities = self.provider_features()
 
     def id_token_as_signed_jwt(self, session, loa="2", alg="RS256", code=None,
-                               access_token=None, user_info=None, auth_time=0, exp=None):
+                               access_token=None, user_info=None, auth_time=0,
+                               exp=None, extra_claims=None):
 
         logger.debug("Signing alg: %s [%s]" % (alg, alg2keytype(alg)))
         _idt = self.server.make_id_token(session, loa, self.baseurl, alg, code,
-                                         access_token, user_info, auth_time, exp)
+                                         access_token, user_info, auth_time, exp, extra_claims)
 
         logger.debug("id_token: %s" % _idt.to_dict())
         # My signing key if its RS*, can use client secret if HS*
@@ -1103,7 +1104,7 @@ class Provider(AProvider):
             request.verify()
         except MessageException, err:
             if "type" not in request:
-                return self._error(error="invalid_type", 
+                return self._error(error="invalid_type",
                                    descr="%s" % err)
             else:
                 return self._error(error="invalid_configuration_parameter",
