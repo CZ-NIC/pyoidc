@@ -1219,7 +1219,7 @@ class Server(oauth2.Server):
 
     def make_id_token(self, session, loa="2", issuer="",
                       alg="RS256", code=None, access_token=None,
-                      user_info=None, auth_time=0, exp=None):
+                      user_info=None, auth_time=0, exp=None, extra_claims=None):
         """
 
         :param session: Session information
@@ -1278,6 +1278,9 @@ class Server(oauth2.Server):
             _args["c_hash"] = jws.left_hash(code, halg)
         if access_token:
             _args["at_hash"] = jws.left_hash(access_token, halg)
+
+        if extra_claims is not None:
+            _args.update(extra_claims)
 
         idt = IdToken(iss=issuer, sub=session["sub"],
                       aud=session["client_id"],
