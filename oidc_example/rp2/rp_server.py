@@ -152,7 +152,7 @@ def opbyuid(environ, start_response):
     return resp(environ, start_response, **argv)
 
 
-def chooseAcrValue(environ, start_response, session):
+def choose_acr_value(environ, start_response, session):
     resp = Response(mako_template="acrvalue.mako",
                     template_lookup=LOOKUP,
                     headers=[])
@@ -209,7 +209,7 @@ def application(environ, start_response):
                 return func(environ, SERVER_ENV, start_response, query, session)
 
     if path == "rpAcr":
-        return chooseAcrValue(environ, start_response, session)
+        return choose_acr_value(environ, start_response, session)
 
     if path == "rpAuth":
     # Only called if multiple arc_values (that is authentications) exists.
