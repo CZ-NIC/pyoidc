@@ -687,4 +687,4 @@ def test_registered_redirect_uri_with_query_component():
         assert resp is None
 
 if __name__ == "__main__":
-    test_registration_endpoint()
+    test_server_authenticated_2()

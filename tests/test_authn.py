@@ -76,7 +76,7 @@ def test_3():
 
     authn = UsernamePasswordMako(srv, "login.mako", tl, PASSWD,
                                  "authorization_endpoint")
-    response = authn.verify(parse_qs(form))
+    response, success = authn.verify(parse_qs(form))
     assert response.message == "authorization_endpoint?query=foo&upm_answer=true"
     print len(response.headers) == 2
     flag = 0
@@ -122,7 +122,7 @@ def test_5():
 
     authn = UsernamePasswordMako(srv, "login.mako", tl, PASSWD,
                                  "authorization_endpoint")
-    response = authn.verify(parse_qs(form))
+    response, state = authn.verify(parse_qs(form))
 
     kaka = ""
     for param, val in response.headers:
@@ -148,7 +148,7 @@ def test_6():
 
     authn = UsernamePasswordMako(srv, "login.mako", tl, PASSWD,
                                  "authorization_endpoint")
-    response = authn.verify(parse_qs(form))
+    response, state = authn.verify(parse_qs(form))
     assert isinstance(response, Unauthorized)
 
 
@@ -195,4 +195,4 @@ def test_private_key_jwt():
     assert header == {'alg': 'RS256'}
 
 if __name__ == "__main__":
-    test_client_secret_jwt()
+    test_3()
