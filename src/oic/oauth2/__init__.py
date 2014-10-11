@@ -67,6 +67,10 @@ class TimeFormatError(Exception):
     pass
 
 
+class CapabilitiesMisMatch(Exception):
+    pass
+
+
 def rndstr(size=16):
     """
     Returns a string of random ascii characters or digits
@@ -748,7 +752,7 @@ class Client(PBase):
         :param info: The response, can be either in a JSON or an urlencoded
             format
         :param sformat: Which serialization that was used
-        :param state:
+        :param state: The state
         :param kwargs: Extra key word arguments
         :return: The parsed and to some extend verified response
         """
@@ -839,29 +843,49 @@ class Client(PBase):
         else:
             return http_args
 
+    @staticmethod
+    def verify_header(reqresp, body_type):
+        logger.debug("resp.headers: %s" % (reqresp.headers,))
+        logger.debug("resp.txt: %s" % (reqresp.text,))
+
+        # This might be a tad to strict
+        if body_type == "":
+            pass
+        elif body_type == "json":
+            try:
+                assert "application/json" in reqresp.headers["content-type"]
+            except AssertionError:
+                try:
+                    assert "application/jwt" in reqresp.headers[
+                        "content-type"]
+                    body_type = "jwt"
+                except AssertionError:
+                    raise AssertionError("Wrong content-type in header")
+        elif body_type == "urlencoded":
+            try:
+                assert DEFAULT_POST_CONTENT_TYPE in reqresp.headers[
+                    "content-type"]
+            except AssertionError:
+                assert "text/plain" in reqresp.headers["content-type"]
+        else:
+            raise ValueError("Unknown return format: %s" % body_type)
+
+        return body_type
+
     def parse_request_response(self, reqresp, response, body_type, state="",
                                **kwargs):
 
         if reqresp.status_code in [200, 201]:
-            logger.debug("resp.headers: %s" % (reqresp.headers,))
-            logger.debug("resp.txt: %s" % (reqresp.text,))
-            if body_type == "":
-                pass
-            elif body_type == "json":
-                assert "application/json" in reqresp.headers["content-type"]
-            elif body_type == "urlencoded":
-                try:
-                    assert DEFAULT_POST_CONTENT_TYPE in reqresp.headers[
-                        "content-type"]
-                except AssertionError:
-                    assert "text/plain" in reqresp.headers["content-type"]
-            else:
-                raise ValueError("Unknown return format: %s" % body_type)
+            body_type = self.verify_header(reqresp, body_type)
         elif reqresp.status_code == 302:  # redirect
             pass
         elif reqresp.status_code == 500:
             logger.error("(%d) %s" % (reqresp.status_code, reqresp.text))
             raise Exception("ERROR: Something went wrong: %s" % reqresp.text)
+        elif reqresp.status_code == 400:
+            #expecting an error response
+            if issubclass(response, ErrorResponse):
+                pass
         else:
             logger.error("(%d) %s" % (reqresp.status_code, reqresp.text))
             raise Exception("ERROR: Something went wrong: %s [%s]" % (
