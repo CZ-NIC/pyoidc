@@ -1,3 +1,4 @@
+import copy
 import logging
 import urllib
 import urlparse
@@ -361,8 +362,9 @@ class Message(object):
                 else:
                     for v in val:
                         if not isinstance(v, vtype):
-                            raise DecodeError(ERRTXT % (key,
-                                                        "type != %s" % vtype))
+                            raise DecodeError(
+                                ERRTXT % (key, "type != %s (%s)" % (
+                                    vtype, type(v))))
 
                 self._dict[skey] = val
             else:
@@ -662,6 +664,9 @@ class Message(object):
         _res = jwe.decrypt(msg, krs)
         return self.from_json(_res[0])
 
+    def copy(self):
+            return copy.deepcopy(self)
+
 # =============================================================================
 
 
@@ -764,7 +769,7 @@ class AuthorizationErrorResponse(ErrorResponse):
     c_param.update({"state": SINGLE_OPTIONAL_STRING})
     c_allowed_values = ErrorResponse.c_allowed_values.copy()
     c_allowed_values.update({"error": ["invalid_request",
-                                       "unathorized_client",
+                                       "unauthorized_client",
                                        "access_denied",
                                        "unsupported_response_type",
                                        "invalid_scope", "server_error",

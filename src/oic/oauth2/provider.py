@@ -613,7 +613,7 @@ class Provider(object):
         try:
             client = self.client_authn(self, areq, authn)
         except FailedAuthentication, err:
-            err = TokenErrorResponse(error="unathorized_client",
+            err = TokenErrorResponse(error="unauthorized_client",
                                      error_description="%s" % err)
             return Response(err.to_json(), content="application/json",
                             status="401 Unauthorized")
@@ -627,7 +627,6 @@ class Provider(object):
                                      error_description="Wrong grant type")
             return Response(err.to_json(), content="application/json",
                             status="401 Unauthorized")
-
 
         # assert that the code is valid
         _info = _sdb[areq["code"]]
