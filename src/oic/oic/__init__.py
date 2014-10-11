@@ -202,7 +202,7 @@ PREFERENCE2PROVIDER = {
         "request_object_encryption_enc_values_supported",
     "userinfo_signed_response_alg": "userinfo_signing_alg_values_supported",
     "userinfo_encrypted_response_alg":
-        "userinfo_encryption_enc_values_supported",
+        "userinfo_encryption_alg_values_supported",
     "userinfo_encrypted_response_enc":
         "userinfo_encryption_enc_values_supported",
     "id_token_signed_response_alg": "id_token_signing_alg_values_supported",
@@ -219,6 +219,8 @@ PREFERENCE2PROVIDER = {
     "response_types": "response_types_supported"
     #"request_object_signing_alg": "request_object_signing_alg_values_supported
 }
+
+PROVIDER2PREFERENCE = dict([(v,k) for k,v in PREFERENCE2PROVIDER.items()])
 
 PROVIDER_DEFAULT = {
     "token_endpoint_auth_method": "client_secret_basic",
@@ -348,7 +350,7 @@ class Client(oauth2.Client):
             else:
                 _filedir = kwargs["local_dir"]
                 _webpath = kwargs["base_path"]
-                _name = rndstr(10)
+                _name = rndstr(10) + ".jwt"
                 filename = os.path.join(_filedir, _name)
                 while os.path.exists(filename):
                     _name = rndstr(10)
@@ -942,21 +944,17 @@ class Client(oauth2.Client):
                     self.behaviour[_pref] = vals
             else:
                 vtyp = regreq.c_param[_pref]
-                if isinstance(vtyp[0], list):
-                    _list = True
-                else:
-                    _list = False
 
-                for val in vals:
-                    if val in _pvals:
-                        if not _list:
+                if isinstance(vtyp[0], list):
+                    self.behaviour[_pref] = []
+                    for val in vals:
+                        if val in _pvals:
+                            self.behaviour[_pref].append(val)
+                else:
+                    for val in vals:
+                        if val in _pvals:
                             self.behaviour[_pref] = val
                             break
-                        else:
-                            try:
-                                self.behaviour[_pref].append(val)
-                            except KeyError:
-                                self.behaviour[_pref] = [val]
 
             if _pref not in self.behaviour:
                 raise ConfigurationError(
@@ -1188,33 +1186,58 @@ class Server(oauth2.Server):
     #    def parse_issuer_request(self, info, sformat="urlencoded"):
     #        return self._parse_request(IssuerRequest, info, sformat)
 
+
     @staticmethod
-    def id_token_claims(session):
+    def update_claims(session, where, about, old_claims=None):
+        """
+
+        :param session:
+        :param where: Which request
+        :param about: userinfo or id_token
+        :param old_claims:
+        :return: claims or None
+        """
+
+        if old_claims is None:
+            old_claims = {}
+
+        req = None
+        if where == "oidreq":
+            try:
+                req = OpenIDRequest().deserialize(session[where], "json")
+            except KeyError:
+                pass
+        else:  # where == "authzreq"
+            try:
+                req = AuthorizationRequest().deserialize(session[where], "json")
+            except KeyError:
+                pass
+
+        if req:
+            logger.debug("%s: %s" % (where, req.to_dict()))
+            try:
+                _claims = req["claims"][about]
+                if _claims:
+                    # update with old claims, do not overwrite
+                    for key, val in old_claims.items():
+                        if key not in _claims:
+                            _claims[key] = val
+                    return _claims
+            except KeyError:
+                pass
+
+        return old_claims
+
+    def id_token_claims(self, session):
         """
         Pick the IdToken claims from the request
 
         :param session: Session information
         :return: The IdToken claims
         """
-        itc = None
-
-        try:
-            authzreq = AuthorizationRequest().deserialize(session["authzreq"],
-                                                          'json')
-            itc = authzreq["claims"]["id_token"]
-            logger.debug("ID Token claims: %s" % itc)
-        except KeyError:
-            pass
-
-        try:
-            oidreq = OpenIDRequest().deserialize(session["oidreq"], "json")
-            itc_or = oidreq["claims"]["id_token"]
-            if itc:
-                itc.update(itc_or)
-            logger.debug("ID Token claims: %s" % itc)
-        except KeyError:
-            pass
-
+        itc = {}
+        itc = self.update_claims(session, "authzreq", "id_token", itc)
+        itc = self.update_claims(session, "oidreq", "id_token", itc)
         return itc
 
     def make_id_token(self, session, loa="2", issuer="",

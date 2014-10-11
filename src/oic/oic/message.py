@@ -517,6 +517,18 @@ class RegistrationRequest(Message):
         if "initiate_login_uri" in self:
             assert self["initiate_login_uri"].startswith("https:")
 
+        for param in ["request_object", "id_token", "userinfo"]:
+            if "%s_encryption_alg" % param in self:
+                if "%s_encryption_enc" % param not in self:
+                    self["%s_encryption_enc" % param] = "A128CBC-HS256"
+
+            # both or none
+            if "%s_encryption_enc" % param in self:
+                assert "%s_encryption_alg" % param in self
+
+        if "token_endpoint_auth_signing_alg" in self:
+            assert self["token_endpoint_auth_signing_alg"] != "none"
+
         return super(RegistrationRequest, self).verify(**kwargs)
 
 
@@ -557,7 +569,8 @@ class RegistrationResponse(Message):
 
 class ClientRegistrationErrorResponse(message.ErrorResponse):
     c_allowed_values = {"error": ["invalid_redirect_uri",
-                                  "invalid_client_metadata"]}
+                                  "invalid_client_metadata",
+                                  "invalid_configuration_parameter"]}
 
 
 class IdToken(OpenIDSchema):
