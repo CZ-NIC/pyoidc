@@ -56,10 +56,10 @@ from oic.utils.http_util import Redirect
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Unauthorized
 
-from oic.oauth2 import MissingRequiredAttribute
+from oic.oauth2 import MissingRequiredAttribute, CapabilitiesMisMatch
 from oic.oauth2 import rndstr
 
-from oic.oic import Server
+from oic.oic import Server, PREFERENCE2PROVIDER
 
 from oic.exception import *
 from jwkest.jwe import JWEException
@@ -192,19 +192,75 @@ class Provider(AProvider):
         self.hostname = hostname or socket.gethostname
         self.register_endpoint = "%s%s" % (self.baseurl, "register")
 
-        self.default_sign_alg = {"id_token": "RS256", "userinfo": "RS256"}
+        self.jwx_def = {}
+        for _typ in ["sign_alg", "enc_alg", "enc_enc"]:
+            self.jwx_def[_typ] = {}
+            for item in ["request_object", "id_token", "userinfo"]:
+                self.jwx_def[_typ][item] = ""
+
+        self.jwx_def["sign_alg"]["id_token"] = "RS256"
+
+        self.force_jws = {}
+        for item in ["request_object", "id_token", "userinfo"]:
+            self.force_jws[item] = False
 
         if capabilities:
             self.verify_capabilities(capabilities)
             self.capabilities = ProviderConfigurationResponse(**capabilities)
         else:
             self.capabilities = self.provider_features()
+        self.capabilities["issuer"] = self.name
+
+    def set_mode(self, mode):
+        """
+        The mode is a set of parameters that govern how this OP will behave.
+
+        :param mode:
+        :return:
+        """
+
+        # Is there a signing algorithm I should use
+        try:
+            self.jwx_def["sign_alg"]["id_token"] = mode["sign"]
+            self.jwx_def["sign_alg"]["userinfo"] = mode["sign"]
+        except KeyError:
+            pass
+        else:
+        # make sure id_token_signed_response_alg is set in client register
+        # response. This will make it happen in match_preferences()
+            for val in PREFERENCE2PROVIDER.values():
+                if val.endswith("signing_alg_values_supported"):
+                    self.capabilities[val] = [mode["sign"]]
+
+        # Is there a encryption algorithm I should use
+        try:
+            _enc_alg = mode["enc_alg"]
+        except KeyError:
+            pass
+        else:
+        # make sure id_token_signed_response_alg is set in client register
+        # response. This will make it happen in match_preferences()
+            for val in PREFERENCE2PROVIDER.values():
+                if val.endswith("encryption_alg_values_supported"):
+                    self.capabilities[val] = [_enc_alg]
+
+        # Is there a encryption enc algorithm I should use
+        try:
+            _enc_enc = mode["enc_enc"]
+        except KeyError:
+            pass
+        else:
+        # make sure id_token_signed_response_alg is set in client register
+        # response. This will make it happen in match_preferences()
+            for val in PREFERENCE2PROVIDER.values():
+                if val.endswith("encryption_enc_values_supported"):
+                    self.capabilities[val] = [_enc_enc]
 
     def id_token_as_signed_jwt(self, session, loa="2", alg="", code=None,
                                access_token=None, user_info=None, auth_time=0):
 
         if alg == "":
-            alg = self.default_sign_alg["id_token"]
+            alg = self.jwx_def["sign_alg"]["id_token"]
 
         logger.debug("Signing alg: %s [%s]" % (alg, alg2keytype(alg)))
         _idt = self.server.make_id_token(session, loa, self.baseurl, alg, code,
@@ -510,6 +566,8 @@ class Provider(AProvider):
                                               "%s" % err)
 
         areq = self.handle_oidc_request(areq, redirect_uri)
+        if isinstance(areq, Response):
+            return areq
         logger.debug("AuthzRequest+oidc_request: %s" % (areq.to_dict(),))
 
         req_user = self.required_user(areq)
@@ -594,13 +652,14 @@ class Provider(AProvider):
         _claims = by_schema(OpenIDSchema, **itc)
 
         if _claims:
-            return self._collect_user_info(session, {"claims": _claims})
+            return self._collect_user_info(session, _claims)
         else:
             return None
 
     def encrypt(self, payload, client_info, cid, val_type="id_token"):
         """
-        Handles the encryption of a payload
+        Handles the encryption of a payload.
+        Shouldn't get here unless there are encrypt parameters in client info
 
         :param payload: The information to be encrypted
         :param client_info: Client information
@@ -608,11 +667,12 @@ class Provider(AProvider):
         :return: The encrypted information as a JWT
         """
 
-        alg = client_info["%s_encrypted_response_alg" % val_type]
         try:
+            alg = client_info["%s_encrypted_response_alg" % val_type]
             enc = client_info["%s_encrypted_response_enc" % val_type]
-        except KeyError:
-            enc = "A128CBC"
+        except KeyError, err:  # both must be defined
+            logger.warning("undefined parameter: %s" % err)
+            raise JWEException("%s undefined" % err)
 
         keys = self.keyjar.get_encrypt_key(owner=cid)
         logger.debug("keys for %s: %s" % (
@@ -641,7 +701,7 @@ class Provider(AProvider):
         try:
             alg = client_info["id_token_signed_response_alg"]
         except KeyError:
-            alg = "RS256"
+            alg = self.jwx_def["sign_alg"]["id_token"]
 
         id_token = self.id_token_as_signed_jwt(sinfo, alg=alg,
                                                code=code,
@@ -693,9 +753,14 @@ class Provider(AProvider):
 
         if "openid" in _info["scope"]:
             userinfo = self.userinfo_in_id_token_claims(_info)
-            _idtoken = self.sign_encrypt_id_token(_info, client_info, req,
-                                                  user_info=userinfo,
-                                                  auth_time=_info["auth_time"])
+            try:
+                _idtoken = self.sign_encrypt_id_token(
+                    _info, client_info, req, user_info=userinfo,
+                    auth_time=_info["auth_time"])
+            except JWEException:
+                return self._error(error="access_denied",
+                                   descr="Could not encrypt id_token")
+
             _sdb.update_by_token(_access_code, "id_token", _idtoken)
 
         _log_debug("_tinfo: %s" % _tinfo)
@@ -757,7 +822,7 @@ class Provider(AProvider):
             client_id = ""
 
         if not client_id:
-            err = TokenErrorResponse(error="unathorized_client")
+            err = TokenErrorResponse(error="unauthorized_client")
             return Unauthorized(err.to_json(), content="application/json")
 
         if not "client_id" in req:  # Optional for access token request
@@ -794,23 +859,12 @@ class Provider(AProvider):
                     pass
 
             if "oidreq" in session:
-                oidreq = OpenIDRequest().deserialize(session["oidreq"], "json")
-                logger.debug("OIDREQ: %s" % oidreq.to_dict())
-                try:
-                    _claims = oidreq["claims"]["userinfo"]
-                except KeyError:
-                    pass
-                else:
-                    for key, val in uic.items():
-                        if key not in _claims:
-                            _claims[key] = val
-                    uic = _claims
-
-                if uic:
-                    userinfo_claims = Claims(**uic)
-                else:
-                    userinfo_claims = None
-            elif uic:
+                uic = self.server.update_claims(session, "oidreq", "userinfo",
+                                                uic)
+            else:
+                uic = self.server.update_claims(session, "authzreq", "userinfo",
+                                                uic)
+            if uic:
                 userinfo_claims = Claims(**uic)
             else:
                 userinfo_claims = None
@@ -824,6 +878,32 @@ class Provider(AProvider):
         logger.debug("user_info_response: %s" % (info,))
 
         return info
+
+    def signed_userinfo(self, client_info, userinfo, session):
+        """
+        Will create a JWS with the userinfo as payload.
+
+        :param client_info: Client registration information
+        :param userinfo: An OpenIDSchema instance
+        :param session: Session information
+        :return: A JWS containing the userinfo as a JWT
+        """
+        try:
+            algo = client_info["userinfo_signed_response_alg"]
+        except KeyError:  # Fall back to default
+            algo = self.jwx_def["sign_alg"]["userinfo"]
+
+        # Use my key for signing
+        key = self.keyjar.get_signing_key(alg2keytype(algo), "")
+        if not key:
+            return self._error(error="access_denied",
+                               descr="Missing signing key")
+        jinfo = userinfo.to_jwt(key, algo)
+        if "userinfo_encrypted_response_alg" in client_info:
+            # encrypt with clients public key
+            jinfo = self.encrypt(jinfo, client_info, session["client_id"],
+                                 "userinfo")
+        return jinfo
 
     #noinspection PyUnusedLocal
     def userinfo_endpoint(self, request="", **kwargs):
@@ -871,23 +951,8 @@ class Provider(AProvider):
         _cinfo = self.cdb[session["client_id"]]
         try:
             if "userinfo_signed_response_alg" in _cinfo:
-
-                try:
-                    algo = _cinfo["userinfo_signed_response_alg"]
-                except KeyError:  # Fall back to default
-                    algo = self.default_sign_alg["userinfo"]
-
-                # Use my key for signing
-                key = self.keyjar.get_signing_key(alg2keytype(algo), "")
-                if not key:
-                    return self._error(error="access_denied",
-                                       descr="Missing signing key")
-                jinfo = info.to_jwt(key, algo)
+                jinfo = self.signed_userinfo(_cinfo, info, session)
                 content_type = "application/jwt"
-                if "userinfo_encrypted_response_alg" in _cinfo:
-                    # encrypt with clients public key
-                    jinfo = self.encrypt(jinfo, _cinfo, session["client_id"],
-                                         "userinfo")
             elif "userinfo_encrypted_response_alg" in _cinfo:
                 jinfo = self.encrypt(info.to_json(), _cinfo, session["client_id"],
                                      "userinfo")
@@ -937,6 +1002,19 @@ class Provider(AProvider):
                     return True
 
         return False
+
+    def match_client_request(self, request):
+        for _pref, _prov in PREFERENCE2PROVIDER.items():
+            if _pref in request:
+                if isinstance(request[_pref], basestring):
+                    try:
+                        assert request[_pref] in self.capabilities[_prov]
+                    except AssertionError:
+                        raise CapabilitiesMisMatch(_pref)
+                else:
+                    if not set(request[_pref]).issubset(
+                            set(self.capabilities[_prov])):
+                        raise CapabilitiesMisMatch(_pref)
 
     def do_client_registration(self, request, client_id, ignore=None):
         if ignore is None:
@@ -1067,32 +1145,19 @@ class Provider(AProvider):
         return _cinfo
 
     @staticmethod
-    def comb_post_logout_redirect_uris(args):
-        if "post_logout_redirect_uris" not in args:
-            return
+    def comb_uri(args):
+        for param in ["redirect_uris", "post_logout_redirect_uris"]:
+            if param not in args:
+                continue
 
-        val = []
-        for base, query in args["post_logout_redirect_uris"]:
-            if query:
-                val.append("%s?%s" % (base, query))
-            else:
-                val.append(base)
+            val = []
+            for base, query in args[param]:
+                if query:
+                    val.append("%s?%s" % (base, query))
+                else:
+                    val.append(base)
 
-        args["post_logout_redirect_uris"] = val
-
-    @staticmethod
-    def comb_redirect_uris(args):
-        if "redirect_uris" not in args:
-            return
-
-        val = []
-        for base, query in args["redirect_uris"]:
-            if query:
-                val.append("%s?%s" % (base, query))
-            else:
-                val.append(base)
-
-        args["redirect_uris"] = val
+            args[param] = val
 
     #noinspection PyUnusedLocal
     def l_registration_endpoint(self, request, authn=None, **kwargs):
@@ -1118,6 +1183,12 @@ class Provider(AProvider):
             else:
                 return self._error(error="invalid_configuration_parameter",
                                    descr="%s" % err)
+
+        try:
+            self.match_client_request(request)
+        except CapabilitiesMisMatch, err:
+            return self._error(error="invalid_request",
+                               descr="Don't support proposed %s" % err)
 
         _keyjar = self.server.keyjar
 
@@ -1155,8 +1226,7 @@ class Provider(AProvider):
         args = dict([(k, v) for k, v in _cinfo.items()
                      if k in RegistrationResponse.c_param])
 
-        self.comb_redirect_uris(args)
-        self.comb_post_logout_redirect_uris(args)
+        self.comb_uri(args)
         response = RegistrationResponse(**args)
 
         # Add the client_secret as a symmetric key to the keyjar
@@ -1210,7 +1280,7 @@ class Provider(AProvider):
         args = dict([(k, v) for k, v in self.cdb[client_id].items()
                      if k in RegistrationResponse.c_param])
 
-        self.comb_redirect_uris(args)
+        self.comb_uri(args)
         response = RegistrationResponse(**args)
 
         return Response(response.to_json(), content="application/json",
@@ -1224,6 +1294,9 @@ class Provider(AProvider):
         :param setup:
         :return:
         """
+
+        if not self.baseurl.endswith("/"):
+            self.baseurl += "/"
 
         _provider_info = self.capabilities
 
@@ -1252,9 +1325,6 @@ class Provider(AProvider):
 
         _provider_info["issuer"] = self.baseurl
         _provider_info["version"] = "3.0"
-
-        if not self.baseurl.endswith("/"):
-            self.baseurl += "/"
 
         return _provider_info
 
@@ -1401,7 +1471,6 @@ class Provider(AProvider):
 
         # Do the authorization
         try:
-            info = OpenIDSchema(**self._collect_user_info(self.sdb[sid]))
             permission = self.authz(user)
             self.sdb.update(sid, "permission", permission)
         except Exception:
@@ -1470,10 +1539,16 @@ class Provider(AProvider):
                 user_info = self.userinfo_in_id_token_claims(_sinfo)
                 client_info = self.cdb[areq["client_id"]]
 
+                hargs = {}
+                if areq["response_type"] == 'code id_token token':
+                    hargs = {"code": _code, "access_token": _access_token}
+                elif areq["response_type"] == 'code id_token':
+                    hargs = {"code": _code}
+
+                # or 'code id_token'
                 id_token = self.sign_encrypt_id_token(
-                    _sinfo, client_info, areq, code=_code,
-                    access_token=_access_token, user_info=user_info,
-                    auth_time=_sinfo["auth_time"])
+                    _sinfo, client_info, areq, user_info=user_info,
+                    auth_time=_sinfo["auth_time"], **hargs)
 
                 aresp["id_token"] = id_token
                 _sinfo["id_token"] = id_token
