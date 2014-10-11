@@ -378,70 +378,107 @@ if __name__ == '__main__':
 
     ac = AuthnBroker()
 
-    saml_authn = SAMLAuthnMethod(None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
-                                    "%s/authorization" % config.issuer,
-                                    userinfo=config.USERINFO)
-    ac.add("", saml_authn,"","")
-
+    saml_authn = None
 
     end_points = config.AUTHENTICATION["UserPassword"]["END_POINTS"]
     full_end_point_paths = ["%s/%s" % (config.issuer, ep) for ep in end_points]
-    username_password_authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,"%s/authorization" % config.issuer,
-                                        None, full_end_point_paths)
+    username_password_authn = UsernamePasswordMako(
+        None, "login.mako", LOOKUP, PASSWD,"%s/authorization" % config.issuer,
+        None, full_end_point_paths)
     ac.add("", username_password_authn,"","")
-
-    end_points = config.AUTHENTICATION["JavascriptLogin"]["END_POINTS"]
-    full_end_point_paths = ["%s/%s" % (config.issuer, ep) for ep in end_points]
-    javascript_login_authn = JavascriptFormMako(None, "javascript_login.mako", LOOKUP, PASSWD,"%s/authorization" % config.issuer,
-                                        None, full_end_point_paths)
-    ac.add("", javascript_login_authn,"","")
 
     for authkey, value in config.AUTHENTICATION.items():
         authn = None
 
         if "UserPassword" == authkey:
             PASSWORD_END_POINT_INDEX = 0
-            end_point = config.AUTHENTICATION[authkey]["END_POINTS"][PASSWORD_END_POINT_INDEX]
-            authn = AuthnIndexedEndpointWrapper(username_password_authn, PASSWORD_END_POINT_INDEX)
+            end_point = config.AUTHENTICATION[authkey]["END_POINTS"][
+                PASSWORD_END_POINT_INDEX]
+            authn = AuthnIndexedEndpointWrapper(username_password_authn,
+                                                PASSWORD_END_POINT_INDEX)
             URLS.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
         if "JavascriptLogin" == authkey:
+            if not javascript_login_authn:
+                end_points = config.AUTHENTICATION[
+                    "JavascriptLogin"]["END_POINTS"]
+                full_end_point_paths = [
+                    "%s/%s" % (config.issuer, ep) for ep in end_points]
+                javascript_login_authn = JavascriptFormMako(
+                    None, "javascript_login.mako", LOOKUP, PASSWD,
+                    "%s/authorization" % config.issuer, None,
+                    full_end_point_paths)
+            ac.add("", javascript_login_authn,"","")
             JAVASCRIPT_END_POINT_INDEX = 0
-            end_point = config.AUTHENTICATION[authkey]["END_POINTS"][JAVASCRIPT_END_POINT_INDEX]
-            authn = AuthnIndexedEndpointWrapper(javascript_login_authn, JAVASCRIPT_END_POINT_INDEX)
+            end_point = config.AUTHENTICATION[authkey]["END_POINTS"][
+                JAVASCRIPT_END_POINT_INDEX]
+            authn = AuthnIndexedEndpointWrapper(javascript_login_authn,
+                                                JAVASCRIPT_END_POINT_INDEX)
             URLS.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
         if "SAML" == authkey:
+            if not saml_authn:
+                saml_authn = SAMLAuthnMethod(
+                    None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
+                    "%s/authorization" % config.issuer, userinfo=config.USERINFO)
+            ac.add("", saml_authn,"","")
             SAML_END_POINT_INDEX = 0
-            end_point = config.AUTHENTICATION[authkey]["END_POINTS"][SAML_END_POINT_INDEX]
-            end_point_indexes = {BINDING_HTTP_REDIRECT: 0, BINDING_HTTP_POST: 0, "disco_end_point_index": 0}
+            end_point = config.AUTHENTICATION[authkey]["END_POINTS"][
+                SAML_END_POINT_INDEX]
+            end_point_indexes = {BINDING_HTTP_REDIRECT: 0, BINDING_HTTP_POST: 0,
+                                 "disco_end_point_index": 0}
             authn = AuthnIndexedEndpointWrapper(saml_authn, end_point_indexes)
             URLS.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
         if "SamlPass" == authkey:
+            if not saml_authn:
+                saml_authn = SAMLAuthnMethod(
+                    None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
+                    "%s/authorization" % config.issuer, userinfo=config.USERINFO)
             PASSWORD_END_POINT_INDEX = 1
             SAML_END_POINT_INDEX = 1
-            password_end_point = config.AUTHENTICATION["UserPassword"]["END_POINTS"][PASSWORD_END_POINT_INDEX]
-            saml_endpoint = config.AUTHENTICATION["SAML"]["END_POINTS"][SAML_END_POINT_INDEX]
+            password_end_point = config.AUTHENTICATION["UserPassword"][
+                "END_POINTS"][PASSWORD_END_POINT_INDEX]
+            saml_endpoint = config.AUTHENTICATION["SAML"]["END_POINTS"][
+                SAML_END_POINT_INDEX]
 
-            end_point_indexes = {BINDING_HTTP_REDIRECT: 1, BINDING_HTTP_POST: 1, "disco_end_point_index": 1}
-            multi_saml = AuthnIndexedEndpointWrapper(saml_authn, end_point_indexes)
-            multi_password = AuthnIndexedEndpointWrapper(username_password_authn, PASSWORD_END_POINT_INDEX)
+            end_point_indexes = {BINDING_HTTP_REDIRECT: 1, BINDING_HTTP_POST: 1,
+                                 "disco_end_point_index": 1}
+            multi_saml = AuthnIndexedEndpointWrapper(saml_authn,
+                                                     end_point_indexes)
+            multi_password = AuthnIndexedEndpointWrapper(
+                username_password_authn, PASSWORD_END_POINT_INDEX)
 
-            auth_modules = [(multi_saml, r'^' + saml_endpoint), (multi_password, r'^' + password_end_point)]
+            auth_modules = [(multi_saml, r'^' + saml_endpoint),
+                            (multi_password, r'^' + password_end_point)]
             authn = setup_multi_auth(ac, URLS, auth_modules)
 
         if "JavascriptPass" == authkey:
+            if not javascript_login_authn:
+                end_points = config.AUTHENTICATION[
+                    "JavascriptLogin"]["END_POINTS"]
+                full_end_point_paths = [
+                    "%s/%s" % (config.issuer, ep) for ep in end_points]
+                javascript_login_authn = JavascriptFormMako(
+                    None, "javascript_login.mako", LOOKUP, PASSWD,
+                    "%s/authorization" % config.issuer, None,
+                    full_end_point_paths)
+
             PASSWORD_END_POINT_INDEX = 2
             JAVASCRIPT_POINT_INDEX = 1
 
-            password_end_point = config.AUTHENTICATION["UserPassword"]["END_POINTS"][PASSWORD_END_POINT_INDEX]
-            javascript_end_point = config.AUTHENTICATION["JavascriptLogin"]["END_POINTS"][JAVASCRIPT_POINT_INDEX]
+            password_end_point = config.AUTHENTICATION["UserPassword"][
+                "END_POINTS"][PASSWORD_END_POINT_INDEX]
+            javascript_end_point = config.AUTHENTICATION["JavascriptLogin"][
+                "END_POINTS"][JAVASCRIPT_POINT_INDEX]
 
-            multi_password = AuthnIndexedEndpointWrapper(username_password_authn, PASSWORD_END_POINT_INDEX)
-            multi_javascript = AuthnIndexedEndpointWrapper(javascript_login_authn, JAVASCRIPT_POINT_INDEX)
+            multi_password = AuthnIndexedEndpointWrapper(
+                username_password_authn, PASSWORD_END_POINT_INDEX)
+            multi_javascript = AuthnIndexedEndpointWrapper(
+                javascript_login_authn, JAVASCRIPT_POINT_INDEX)
 
-            auth_modules = [(multi_password, r'^' + password_end_point), (multi_javascript, r'^' + javascript_end_point)]
+            auth_modules = [(multi_password, r'^' + password_end_point),
+                            (multi_javascript, r'^' + javascript_end_point)]
             authn = setup_multi_auth(ac, URLS, auth_modules)
 
         if authn is not None:
@@ -537,12 +574,15 @@ if __name__ == '__main__':
     # Setup the web server
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
 
+    https = ""
     if config.SERVICE_URL.startswith("https"):
+        https = "using HTTPS"
         SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
             config.SERVER_CERT, config.SERVER_KEY, config.CERT_CHAIN)
 
-    LOGGER.info("OC server starting listening on port:%s" % args.port)
-    print "OC server starting listening on port:%s" % args.port
+    LOGGER.info("OC server starting listening on port:%s %s" % (args.port,
+                                                                https))
+    print "OC server starting listening on port:%s %s" % (args.port, https)
     try:
         SRV.start()
     except KeyboardInterrupt:
