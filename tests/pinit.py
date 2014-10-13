@@ -49,7 +49,7 @@ KC_SYM = KeyBundle([{"kty": "oct", "key": CLIENT_SECRET, "use": "ver"},
 KC_SYM2 = KeyBundle([{"kty": "oct", "key": "drickyoughurt", "use": "sig"},
                       {"kty": "oct", "key": "drickyoughurt", "use": "ver"}])
 
-KC_RSA = keybundle_from_local_file("../oidc_example/op1/certs/mycert.key",
+KC_RSA = keybundle_from_local_file("rsa.key",
                                    "rsa", ["ver", "sig"])
 
 KEYJAR = KeyJar()

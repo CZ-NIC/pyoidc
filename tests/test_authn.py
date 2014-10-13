@@ -26,7 +26,7 @@ tl = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
                     module_directory=ROOT + 'modules',
                     input_encoding='utf-8', output_encoding='utf-8')
 
-_key = rsa_load("%s/certs/mycert.key" % ROOT)
+_key = rsa_load("rsa.key")
 
 KC_RSA = KeyBundle([{"key": _key, "kty": "RSA", "use": "ver"},
                     {"key": _key, "kty": "RSA", "use": "sig"}])
