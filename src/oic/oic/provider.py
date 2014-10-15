@@ -1540,10 +1540,12 @@ class Provider(AProvider):
                 client_info = self.cdb[areq["client_id"]]
 
                 hargs = {}
-                if areq["response_type"] == 'code id_token token':
+                if set(areq["response_type"]) == {'code', 'id_token', 'token'}:
                     hargs = {"code": _code, "access_token": _access_token}
-                elif areq["response_type"] == 'code id_token':
+                elif set(areq["response_type"]) == {'code', 'id_token'}:
                     hargs = {"code": _code}
+                elif set(areq["response_type"]) == {'id_token', 'token'}:
+                    hargs = {"access_token": _access_token}
 
                 # or 'code id_token'
                 id_token = self.sign_encrypt_id_token(
