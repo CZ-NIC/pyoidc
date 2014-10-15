@@ -55,7 +55,7 @@ CLIENT_ID = "client_1"
 
 KC_SYM_S = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "sig"})
 
-_key = rsa_load("../oidc_example/op1/certs/mycert.key")
+_key = rsa_load("rsa.key")
 KC_RSA = KeyBundle({"key": _key, "kty": "RSA", "use": "sig"})
 
 KEYJ = KeyJar()
