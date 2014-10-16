@@ -888,8 +888,8 @@ class Client(PBase):
                 pass
         else:
             logger.error("(%d) %s" % (reqresp.status_code, reqresp.text))
-            raise Exception("HTTP ERROR: %s [%s]" % (reqresp.text,
-                                                     reqresp.status_code))
+            raise Exception("HTTP ERROR: %s [%s] on %s" % (
+                reqresp.text, reqresp.status_code, reqresp.url))
 
         if body_type:
             if response:
