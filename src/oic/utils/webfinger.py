@@ -245,7 +245,8 @@ class WebFinger(object):
 
         return "%s?%s" % (WF_URL % host, urlencode(info))
 
-    def load(self, item):
+    @staticmethod
+    def load(item):
         return JRD(json.loads(item))
 
     def http_args(self, jrd=None):
