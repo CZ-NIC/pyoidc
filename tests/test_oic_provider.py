@@ -1,3 +1,5 @@
+import os
+
 from mako.lookup import TemplateLookup
 from oic.oauth2 import rndstr
 from oic.utils.authn.authn_context import AuthnBroker
@@ -68,6 +70,8 @@ SERVER_INFO = {
     #"x509_url":"https://connect-op.heroku.com/cert.pem"
 }
 
+BASE_PATH = os.path.dirname(__file__)
+
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
@@ -76,7 +80,7 @@ KC_SYM = KeyBundle([{"kty": "oct", "key": CLIENT_SECRET, "use": "ver"},
 KC_SYM2 = KeyBundle([{"kty": "oct", "key": "drickyoughurt", "use": "sig"},
                       {"kty": "oct", "key": "drickyoughurt", "use": "ver"}])
 
-KC_RSA = keybundle_from_local_file("rsa.key",
+KC_RSA = keybundle_from_local_file("%s/rsa.key" % BASE_PATH,
                                    "RSA", ["ver", "sig"])
 
 KEYJAR = KeyJar()

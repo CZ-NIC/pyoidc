@@ -1,3 +1,7 @@
+import os
+import shutil
+import tempfile
+
 from oic.oic.message import AccessTokenResponse, AuthorizationResponse
 from oic.utils.keyio import KeyBundle, keybundle_from_local_file
 from oic.utils.keyio import KeyJar
@@ -22,7 +26,9 @@ CLIENT_ID = "client_1"
 KC_SYM_VS = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "ver"})
 KC_SYM_S = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "sig"})
 
-KC_RSA = keybundle_from_local_file("rsa.key",
+BASE_PATH = os.path.dirname(__file__)
+
+KC_RSA = keybundle_from_local_file("%s/rsa.key" % BASE_PATH,
                                    "rsa", ["ver", "sig"])
 
 SRVKEYS = KeyJar()
@@ -185,9 +191,10 @@ class TestOICConsumer():
         assert authreq["client_id"] == self.consumer.client_id
 
     def test_begin_file(self):
+        tempdir = tempfile.mkdtemp()
         self.consumer.config["request_method"] = "file"
-        self.consumer.config["temp_dir"] = "./file"
-        self.consumer.config["temp_path"] = "/tmp/"
+        self.consumer.config["temp_dir"] = tempdir
+        self.consumer.config["temp_path"] = tempdir
         self.consumer.config["authz_page"] = "/authz"
         srv = Server()
         srv.keyjar = SRVKEYS
@@ -206,6 +213,8 @@ class TestOICConsumer():
         assert authreq["scope"] == self.consumer.config["scope"]
         assert authreq["client_id"] == self.consumer.client_id
         assert authreq["redirect_uri"].startswith("http://localhost:8087/authz")
+        # Cleanup the file we have created
+        shutil.rmtree(tempdir)
 
     def test_complete(self):
         mfos = MyFakeOICServer("http://localhost:8088")

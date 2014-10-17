@@ -1,3 +1,5 @@
+import os
+
 from mako.lookup import TemplateLookup
 from mako.runtime import UNDEFINED
 from oic.utils.authn.authn_context import AuthnBroker
@@ -12,6 +14,9 @@ from oic.utils.sdb import SessionDB
 from oic.oic.provider import Provider
 from oic.utils.keyio import KeyBundle, keybundle_from_local_file
 from oic.utils.keyio import KeyJar
+
+
+BASE_PATH = os.path.dirname(__file__)
 
 CLIENT_CONFIG = {
     "client_id": "number5",
@@ -49,7 +54,7 @@ KC_SYM = KeyBundle([{"kty": "oct", "key": CLIENT_SECRET, "use": "ver"},
 KC_SYM2 = KeyBundle([{"kty": "oct", "key": "drickyoughurt", "use": "sig"},
                       {"kty": "oct", "key": "drickyoughurt", "use": "ver"}])
 
-KC_RSA = keybundle_from_local_file("rsa.key",
+KC_RSA = keybundle_from_local_file("%s/rsa.key" % BASE_PATH,
                                    "rsa", ["ver", "sig"])
 
 KEYJAR = KeyJar()

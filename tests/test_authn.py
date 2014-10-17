@@ -21,12 +21,14 @@ __author__ = 'rolandh'
 
 PASSWD = {"user": "hemligt"}
 
-ROOT = '../oidc_example/op1/'
+BASE_PATH = os.path.dirname(__file__)
+
+ROOT = '%s/../oidc_example/op1/' % BASE_PATH
 tl = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
                     module_directory=ROOT + 'modules',
                     input_encoding='utf-8', output_encoding='utf-8')
 
-_key = rsa_load("rsa.key")
+_key = rsa_load("%s/rsa.key" % BASE_PATH)
 
 KC_RSA = KeyBundle([{"key": _key, "kty": "RSA", "use": "ver"},
                     {"key": _key, "kty": "RSA", "use": "sig"}])
