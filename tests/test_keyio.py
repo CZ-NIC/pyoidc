@@ -1,3 +1,4 @@
+import os
 import json
 from jwkest.jwe import JWE
 
@@ -12,8 +13,10 @@ from oic.utils.keyio import RSAKey
 from jwkest.jws import JWS, NoSuitableSigningKeys, WrongTypeOfKey
 
 
-RSAKEY = "../oidc_example/op1/certs/mycert.key"
-RSA0 = "rsa.key"
+BASE_PATH = os.path.dirname(__file__)
+
+RSAKEY = "%s/cert.key" % BASE_PATH
+RSA0 = "%s/rsa.key" % BASE_PATH
 
 JWK0 = {"keys": [
     {'kty': 'RSA', 'e': 'AQAB', 'kid': "abc",
@@ -125,7 +128,7 @@ def test_keyjar_remove_key():
 
 
 def test_local_jwk_file():
-    kb = keybundle_from_local_file("file://jwk.json", "jwk", ["ver", "sig"])
+    kb = keybundle_from_local_file("file://%s/jwk.json" % BASE_PATH, "jwk", ["ver", "sig"])
     assert len(kb) == 1
     kj = KeyJar()
     kj.issuer_keys[""] = [kb]
@@ -138,7 +141,7 @@ def test_local_jwk_file():
 
 def test_signing():
     # Signing is only possible if key is a private RSA key
-    kb = keybundle_from_local_file("rsa.key", "rsa", ["ver", "sig"])
+    kb = keybundle_from_local_file("%s/rsa.key" % BASE_PATH, "rsa", ["ver", "sig"])
     assert len(kb) == 2
     kj = KeyJar()
     kj.issuer_keys[""] = [kb]
@@ -153,7 +156,7 @@ def test_signing():
 
 
 def test_kid_usage():
-    kb = keybundle_from_local_file("file://jwk.json", "jwk", ["ver", "sig"])
+    kb = keybundle_from_local_file("file://%s/jwk.json" % BASE_PATH, "jwk", ["ver", "sig"])
     kj = KeyJar()
     kj.issuer_keys["https://example.com"] = [kb]
 
@@ -163,7 +166,7 @@ def test_kid_usage():
 
 
 def test_dump_own_keys():
-    kb = keybundle_from_local_file("file://jwk.json", "jwk", ["ver", "sig"])
+    kb = keybundle_from_local_file("file://%s/jwk.json" % BASE_PATH, "jwk", ["ver", "sig"])
     assert len(kb) == 1
     kj = KeyJar()
     kj.issuer_keys[""] = [kb]

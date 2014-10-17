@@ -8,7 +8,7 @@ from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
 from oic.utils.userinfo import UserInfo
-from pinit import KEYJAR
+from pinit import BASE_PATH, KEYJAR
 
 __author__ = 'rohe0002'
 
@@ -147,7 +147,7 @@ def test_srv2():
     srv = ClaimsServer("pyoicserv", SessionDB(), CDB, USERINFO, verify_client,
                        keyjar=KEYJAR, dist_claims_mode=ClaimsMode(USER2MODE))
 
-    srv.keyjar[""] = keybundle_from_local_file("rsa.key", "rsa", ["ver", "sig"])
+    srv.keyjar[""] = keybundle_from_local_file("%s/rsa.key" % BASE_PATH, "rsa", ["ver", "sig"])
 
     assert srv
 

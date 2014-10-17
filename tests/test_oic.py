@@ -3,6 +3,7 @@
 
 __author__ = 'rohe0002'
 
+import os
 import time
 import json
 import urllib
@@ -55,7 +56,9 @@ CLIENT_ID = "client_1"
 
 KC_SYM_S = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "sig"})
 
-_key = rsa_load("rsa.key")
+BASE_PATH = os.path.dirname(__file__)
+
+_key = rsa_load("%s/rsa.key" % BASE_PATH)
 KC_RSA = KeyBundle({"key": _key, "kty": "RSA", "use": "sig"})
 
 KEYJ = KeyJar()
