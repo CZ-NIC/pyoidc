@@ -367,7 +367,11 @@ class PBase(object):
         if self.cookiejar:
             _kwargs["cookies"] = self._cookies()
             logger.debug("SENT COOKIEs: %s" % (_kwargs["cookies"],))
-        r = requests.request(method, url, **_kwargs)
+        try:
+            r = requests.request(method, url, **_kwargs)
+        except Exception as err:
+            logger.error("http_request failed: %s, url: %s, htargs: %s" % (
+                err, url, _kwargs))
         try:
             set_cookie = r.headers["set-cookie"]
             # Telekom fix
