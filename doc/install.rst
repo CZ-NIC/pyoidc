@@ -32,6 +32,14 @@ and for running the examples:
 * cherrypy
 * beaker
 
+For running the tests you will additionally need to install:
+
+* pytest
+
+If you wish your LDAP tests to pass, ensure you have installed the following package as well:
+
+* python-ldap
+
 Quick build instructions
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
