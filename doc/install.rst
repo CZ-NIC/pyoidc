@@ -17,14 +17,17 @@ Prerequisites
 ^^^^^^^^^^^^^
 
 For installing pyOIDC you will need
+
 * requests
 * pycrypto
 * pyjwkest
 
 To build the documentation you will need
+
 * alabaster
 
 and for running the examples:
+
 * mako
 * cherrypy
 * beaker
