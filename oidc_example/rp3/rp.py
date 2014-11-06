@@ -161,7 +161,12 @@ def application(environ, start_response):
                 logout_url += "&" + urllib.urlencode({
                     "id_token_hint": id_token_as_signed_jwt(client, _idtoken,
                                                             "HS256")})
+            # Also append the ACR values
+            logout_url += "&" + urllib.urlencode({"acr_values": ACR_VALUES},
+                                                 True)
 
+        LOGGER.debug("Logout URL: %s" % str(logout_url))
+        LOGGER.debug("Logging out from session: %s" % str(session))
         clear_session(session)
         resp = Redirect(str(logout_url))
         return resp(environ, start_response)
