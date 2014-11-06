@@ -1,3 +1,4 @@
+from jwkest.jwe import JWE
 from oic.utils.keyio import KeyJar
 
 __author__ = 'rohe0002'
@@ -50,7 +51,8 @@ from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.webfinger import WebFinger
 
 from jwkest import jws
-from jwkest.jws import alg2keytype, JWS
+from jwkest import jwe
+from jwkest.jws import JWS
 
 logger = logging.getLogger(__name__)
 
@@ -302,6 +304,32 @@ class Client(oauth2.Client):
 
         return None
 
+    def request_object_encryption(self, msg, **kwargs):
+        try:
+            encalg = self.behaviour["request_object_encryption_alg"]
+        except KeyError:
+            return msg
+        else:
+            encenc = self.behaviour["request_object_encryption_enc"]
+            _jwe = JWE(msg, alg=encalg, enc=encenc)
+            _kty = jwe.alg2keytype(encalg)
+
+            try:
+                _kid = kwargs["enc_kid"]
+            except KeyError:
+                try:
+                    _kid = self.kid["enc"][_kty]
+                except KeyError:
+                    _kid = ""
+
+            if _kid:
+                _jwe["keys"] = self.keyjar.get_encrypt_key(_kty, kid=_kid)
+                _jwe["kid"] = _kid
+            else:
+                _jwe["keys"] = self.keyjar.get_signing_key(_kty)
+
+        return _jwe.encrypt(self.keyjar)
+
     def construct_AuthorizationRequest(self, request=AuthorizationRequest,
                                        request_args=None, extra_args=None,
                                        request_param=None, **kwargs):
@@ -323,7 +351,9 @@ class Client(oauth2.Client):
         if "request_method" in kwargs:
             if kwargs["request_method"] == "file":
                 request_param = "request_uri"
-                del kwargs["request_method"]
+            else:
+                request_param = "request"
+            del kwargs["request_method"]
 
         areq = oauth2.Client.construct_AuthorizationRequest(self, request,
                                                             request_args,
@@ -331,12 +361,16 @@ class Client(oauth2.Client):
                                                             **kwargs)
 
         if request_param:
-            alg = self.behaviour["request_object_signing_alg"]
-            if "algorithm" not in kwargs:
-                kwargs["algorithm"] = alg
+            try:
+                alg = self.behaviour["request_object_signing_alg"]
+            except KeyError:
+                alg = None
+            else:
+                if "algorithm" not in kwargs:
+                    kwargs["algorithm"] = alg
 
             if "keys" not in kwargs and alg:
-                _kty = alg2keytype(alg)
+                _kty = jws.alg2keytype(alg)
                 try:
                     kwargs["keys"] = self.keyjar.get_signing_key(
                         _kty, kid=self.kid["sig"][_kty])
@@ -344,6 +378,9 @@ class Client(oauth2.Client):
                     kwargs["keys"] = self.keyjar.get_signing_key(_kty)
 
             _req = make_openid_request(areq, **kwargs)
+
+            # Should the request be encrypted
+            _req = self.request_object_encryption(_req, **kwargs)
 
             if request_param == "request":
                 areq["request"] = _req
@@ -711,7 +748,7 @@ class Client(oauth2.Client):
             return _schema().from_json(txt=resp.text)
         else:
             algo = self.client_prefs["userinfo_signed_response_alg"]
-            _kty = alg2keytype(algo)
+            _kty = jws.alg2keytype(algo)
             # Keys of the OP ?
             try:
                 keys = self.keyjar.get_signing_key(_kty, self.kid["sig"][_kty])
