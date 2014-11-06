@@ -371,8 +371,9 @@ class PBase(object):
         try:
             r = requests.request(method, url, **_kwargs)
         except Exception as err:
-            logger.error("http_request failed: %s, url: %s, htargs: %s" % (
-                err, url, _kwargs))
+            logger.error(
+                "http_request failed: %s, url: %s, htargs: %s, method: %s" % (
+                err, url, _kwargs, method))
             raise
 
         try:
