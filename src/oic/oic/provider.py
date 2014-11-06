@@ -403,13 +403,20 @@ class Provider(AProvider):
                     if not comparision_type:
                         comparision_type = "exact"
 
+                if not isinstance(areq["acr_values"], list):
+                    areq["acr_values"] = [areq["acr_values"]]
+
                 for acr in areq["acr_values"]:
                     res = self.authn_broker.pick(acr, comparision_type)
+                    logger.debug("Picked AuthN broker for ACR %s: %s" % (
+                        str(acr), str(res)))
                     if res:
                         #Return the best guess by pick.
                         return res[0]
-        except KeyError:
-            pass
+        except KeyError as exc:
+            logger.debug(
+                "An error occured while picking the authN broker: %s" % str(
+                    exc))
 
         # return the best I have
         return None, None
@@ -422,8 +429,10 @@ class Provider(AProvider):
             client_info = self.cdb[self.sdb.getClient_id(uid)]
             if redirect_uri in client_info["post_logout_redirect_uris"]:
                 return redirect_uri
-        except:
-            pass
+        except Exception as exc:
+            logger.debug(
+                "An error occurred while verifying redir URI: %s" % str(exc))
+
         return None
 
     def is_session_revoked(self, request="", cookie=None):
@@ -460,7 +469,8 @@ class Provider(AProvider):
         esr = EndSessionRequest().from_urlencoded(request)
         redirect_uri = self.verify_post_logout_redirect_uri(esr, cookie)
         if not redirect_uri:
-            return self._error_response("Not allowed!")
+            return self._error_response(
+                "Not allowed (Post logout redirect URI verification failed)!")
 
         authn, acr = self.pick_auth(esr)
 
@@ -474,7 +484,8 @@ class Provider(AProvider):
             try:
                 uid = identity["uid"]
             except KeyError:
-                return self._error_response("Not allowed!")
+                return self._error_response(
+                    "Not allowed (UID could not be retrieved)!")
 
         #if self.sdb.get_verified_logout(uid):
         #    return self.let_user_verify_logout(uid, esr, cookie, redirect_uri)
@@ -1335,11 +1346,19 @@ class Provider(AProvider):
         :param pcr_class:
         :return: ProviderConfigurationResponse instance
         """
+        _scopes = SCOPE2CLAIMS.keys()
+        _scopes.append("openid")
+
+        _claims = []
+        for _cl in SCOPE2CLAIMS.values():
+            _claims.extend(_cl)
+        _claims = list(set(_claims))
+
         _provider_info = pcr_class(
             token_endpoint_auth_methods_supported=[
                 "client_secret_post", "client_secret_basic",
                 "client_secret_jwt", "private_key_jwt"],
-            scopes_supported=["openid"],
+            scopes_supported=_scopes,
             response_types_supported=["code", "token", "id_token",
                                       "code token", "code id_token",
                                       "token id_token",
@@ -1350,7 +1369,7 @@ class Provider(AProvider):
                 "authorization_code", "implicit",
                 "urn:ietf:params:oauth:grant-type:jwt-bearer"],
             claim_types_supported=["normal", "aggregated", "distributed"],
-            claims_supported=SCOPE2CLAIMS.keys(),
+            claims_supported=_claims,
             claims_parameter_supported="true",
             request_parameter_supported="true",
             request_uri_parameter_supported="true",
