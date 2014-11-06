@@ -10,7 +10,8 @@ SCOPE_MAP = {
 
 class LDAPAuthn(UsernamePasswordMako):
     def __init__(self, srv, ldapsrv, return_to, pattern, mako_template,
-                 template_lookup, ldap_user="", ldap_pwd=""):
+                 template_lookup, ldap_user="", ldap_pwd="",
+                 verification_endpoints=["verify"]):
         """
         :param srv: The server instance
         :param ldapsrv: Which LDAP server to us
@@ -25,8 +26,9 @@ class LDAPAuthn(UsernamePasswordMako):
             that as. "" is a anonymous user
         :param ldap_pwd: The password for the ldap_user
         """
-        UsernamePasswordMako.__init__(self, srv, mako_template, template_lookup,
-                                      None, return_to)
+        UsernamePasswordMako.__init__(
+            self, srv, mako_template, template_lookup, None, return_to,
+            verification_endpoints=verification_endpoints)
 
         self.ldap = ldap.initialize(ldapsrv)
         self.ldap.protocol_version = 3
