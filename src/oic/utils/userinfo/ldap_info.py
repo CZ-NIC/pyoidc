@@ -23,7 +23,7 @@ OPENID2LDAP = {
     # "email_verified":
     "gender": "schacGender",
     "birthdate": "schacDateOfBirth",
-    #zoneinfo
+    # zoneinfo
     "locale": "preferredLanguage",
     "phone_number": "telephoneNumber",
     #phone_number_verified

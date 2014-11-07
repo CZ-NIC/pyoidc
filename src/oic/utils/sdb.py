@@ -333,7 +333,7 @@ class SessionDB(object):
             # dic["client_id_issued_at"] = utc_time_sans_frac()
             dic["access_token"] = access_token
             self._db[sid] = dic
-            #self._db[dic["xxxx"]] = dic
+            # self._db[dic["xxxx"]] = dic
             return dic
         else:
             raise WrongTokenType("Not a refresh token!")
@@ -377,11 +377,11 @@ class SessionDB(object):
         except KeyError:
             return False
 
-        #    def set_oir(self, key, oir):
-        #        self._db[key] = oir.dictionary()
-        #
-        #    def get_oir(self, key):
-        #        return OpenIDRequest(**self._db[key])
+            # def set_oir(self, key, oir):
+            #        self._db[key] = oir.dictionary()
+            #
+            #    def get_oir(self, key):
+            #        return OpenIDRequest(**self._db[key])
 
     def revoke_token(self, token):
         # revokes either the refresh token or the access token

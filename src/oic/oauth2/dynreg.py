@@ -181,7 +181,7 @@ class Provider(provider.Provider):
     # @staticmethod
     # def _uris_to_dict(uris):
     # ruri = {}
-    #     for uri in uris:
+    # for uri in uris:
     #         base, query = urllib.splitquery(uri)
     #         if query:
     #             try:

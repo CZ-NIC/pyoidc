@@ -26,7 +26,7 @@ from oic.utils.authn.client import bearer_auth
 
 # Used in claims.py
 # from oic.oic.message import RegistrationRequest
-#from oic.oic.message import RegistrationResponse
+# from oic.oic.message import RegistrationResponse
 
 logger = logging.getLogger(__name__)
 

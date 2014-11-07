@@ -748,7 +748,7 @@ def proper_path(path):
 #
 # def make_req(bits, fqdn="example.com", rsa=None):
 # pk = EVP.PKey()
-#     x = X509.Request()
+# x = X509.Request()
 #     if not rsa:
 #         rsa = RSA.gen_key(bits, 65537, lambda: None)
 #     pk.assign_rsa(rsa)

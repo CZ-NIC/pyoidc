@@ -1,6 +1,7 @@
 from urlparse import parse_qs
 
 from oic.utils.authn.user import logger, UsernamePasswordMako
+
 from oic.utils.http_util import Unauthorized, Redirect
 
 

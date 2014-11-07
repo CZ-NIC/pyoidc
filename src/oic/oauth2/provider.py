@@ -390,7 +390,7 @@ class Provider(object):
                 for _acr in _values:
                     res = self.authn_broker.pick(_acr, comparision_type)
                     if res:
-                        #Return the best guess by pick.
+                        # Return the best guess by pick.
                         return res[0]
         except KeyError:
             pass
@@ -539,7 +539,7 @@ class Provider(object):
                         "none" in areq["response_type"]:
             pass
         else:
-            #if self.sdb.is_revoked(sinfo):
+            # if self.sdb.is_revoked(sinfo):
             #    return self._error(error="access_denied",
             #                       descr="Token is revoked")
 
@@ -583,7 +583,7 @@ class Provider(object):
         except (RedirectURIError, ParameterError), err:
             return BadRequest("%s" % err)
 
-        #self.sdb.store_session(skey)
+        # self.sdb.store_session(skey)
 
         # so everything went well should set a SSO cookie
         headers = [authn.create_cookie(user, typ="sso", ttl=self.sso_ttl)]
@@ -594,7 +594,7 @@ class Provider(object):
     def token_scope_check(self, areq, info):
         """ Not implemented here """
         # if not self.subset(areq["scope"], _info["scope"]):
-        #     LOG_INFO("Asked for scope which is not subset of previous defined")
+        # LOG_INFO("Asked for scope which is not subset of previous defined")
         #     err = TokenErrorResponse(error="invalid_scope")
         #     return Response(err.to_json(), content="application/json")
         return None

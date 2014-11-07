@@ -219,7 +219,7 @@ class UsernamePasswordMako(UserAuthnMethod):
         Put up the login form
         """
         # if cookie:
-        #     headers = [cookie]
+        # headers = [cookie]
         # else:
         #     headers = []
 

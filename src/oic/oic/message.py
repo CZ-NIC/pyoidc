@@ -34,7 +34,7 @@ def json_ser(val, sformat=None, lev=0):
     return json.dumps(val)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def json_deser(val, sformat=None, lev=0):
     return json.loads(val)
 

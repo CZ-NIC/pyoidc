@@ -1,5 +1,7 @@
 from jwkest.jwe import JWE
+
 from oic.utils.keyio import KeyJar
+
 
 __author__ = 'rohe0002'
 
@@ -213,7 +215,7 @@ PREFERENCE2PROVIDER = {
     "id_token_encrypted_response_enc":
         "id_token_encryption_enc_values_supported",
     "default_acr_values": "acr_values_supported",
-    #"require_auth_time":"",
+    # "require_auth_time":"",
     "subject_type": "subject_types_supported",
     "token_endpoint_auth_method": "token_endpoint_auth_methods_supported",
     "token_endpoint_auth_signing_alg":
@@ -336,7 +338,7 @@ class Client(oauth2.Client):
 
         if request_args is not None:
             # if "claims" in request_args:
-            #     kwargs["claims"] = request_args["claims"]
+            # kwargs["claims"] = request_args["claims"]
             #     del request_args["claims"]
             if "nonce" not in request_args:
                 _rt = request_args["response_type"]
@@ -400,7 +402,7 @@ class Client(oauth2.Client):
 
         return areq
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def construct_AccessTokenRequest(self, request=AccessTokenRequest,
                                      request_args=None, extra_args=None,
                                      **kwargs):
@@ -1119,7 +1121,7 @@ class Client(oauth2.Client):
         return self.wf.discovery_query(principal)
 
 
-#noinspection PyMethodOverriding
+# noinspection PyMethodOverriding
 class Server(oauth2.Server):
     def __init__(self, keyjar=None, ca_certs=None, verify_ssl=True):
         oauth2.Server.__init__(self, keyjar, ca_certs, verify_ssl)

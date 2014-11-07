@@ -10,6 +10,7 @@ from oic.oauth2 import Grant
 from oic.oauth2 import rndstr
 from oic.oauth2.message import *
 
+
 ENDPOINTS = ["authorization_endpoint", "token_endpoint", "userinfo_endpoint",
              "check_id_endpoint", "registration_endpoint",
              "token_revokation_endpoint"]
@@ -167,7 +168,7 @@ class Consumer(Client):
 
         self.sdb[sid] = res
 
-    #noinspection PyUnusedLocal,PyArgumentEqualDefault
+    # noinspection PyUnusedLocal,PyArgumentEqualDefault
     def begin(self, baseurl, request, response_type="", **kwargs):
         """ Begin the OAuth2 flow
 

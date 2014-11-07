@@ -32,7 +32,7 @@ REQUEST2ENDPOINT = {
     "AuthorizationRequest": "authorization_endpoint",
     "AccessTokenRequest": "token_endpoint",
     # ROPCAccessTokenRequest: "authorization_endpoint",
-    #    CCAccessTokenRequest: "authorization_endpoint",
+    # CCAccessTokenRequest: "authorization_endpoint",
     "RefreshAccessTokenRequest": "token_endpoint",
     "TokenRevocationRequest": "token_endpoint"}
 
@@ -424,7 +424,7 @@ class Client(PBase):
         self.verify_ssl = verify_ssl
         # self.secret_type = "basic "
 
-        #self.state = None
+        # self.state = None
         self.nonce = None
 
         self.grant = {}
@@ -520,7 +520,7 @@ class Client(PBase):
     def get_grant(self, state, **kwargs):
         # try:
         # _state = kwargs["state"]
-        #     if not _state:
+        # if not _state:
         #         _state = self.state
         # except KeyError:
         #     _state = self.state
@@ -565,8 +565,8 @@ class Client(PBase):
 
         if extra_args:
             kwargs.update(extra_args)
-            #logger.debug("kwargs: %s" % kwargs)
-        #logger.debug("request: %s" % request)
+            # logger.debug("kwargs: %s" % kwargs)
+        # logger.debug("request: %s" % request)
         return request(**kwargs)
 
     def construct_Message(self, request=Message, request_args=None,
@@ -596,7 +596,7 @@ class Client(PBase):
 
         return self.construct_request(request, request_args, extra_args)
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def construct_AccessTokenRequest(self,
                                      request=AccessTokenRequest,
                                      request_args=None, extra_args=None,

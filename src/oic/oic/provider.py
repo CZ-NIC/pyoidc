@@ -73,7 +73,7 @@ def devnull(txt):
     pass
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def do_authorization(user):
     return ""
 

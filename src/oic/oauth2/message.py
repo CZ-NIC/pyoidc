@@ -193,7 +193,7 @@ class Message(object):
         """
 
         # parse_qs returns a dictionary with keys and values. The values are
-        #always lists even if there is only one value in the list.
+        # always lists even if there is only one value in the list.
         #keys only appears once.
 
         if isinstance(urlencoded, basestring):
@@ -329,7 +329,7 @@ class Message(object):
 
     def _add_value(self, skey, vtyp, key, val, _deser, null_allowed):
         # if not val:
-        #            return
+        # return
 
         if isinstance(val, list):
             if (len(val) == 0 or val[0] is None) and null_allowed is False:
@@ -623,7 +623,7 @@ class Message(object):
 
         return True
 
-    #    def __getattr__(self, item):
+    # def __getattr__(self, item):
     #        return self._dict[item]
 
     def __delitem__(self, key):
@@ -698,7 +698,7 @@ def list_serializer(vals, sformat="urlencoded", lev=0):
         return vals
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def list_deserializer(val, sformat="urlencoded"):
     if sformat == "urlencoded":
         if isinstance(val, basestring):

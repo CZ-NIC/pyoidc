@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 # This class handles user authentication with CAS.
 class CasAuthnMethod(UserAuthnMethod):
-    #Standard login url for a CAS server.
+    # Standard login url for a CAS server.
     CONST_CASLOGIN = "/cas/login?"
     #Standard URL for validation of a ticket for a CAS server.
     CONST_CAS_VERIFY_TICKET = "/serviceValidate"

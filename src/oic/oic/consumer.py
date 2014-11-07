@@ -200,7 +200,7 @@ class Consumer(Client):
         """
         self.sdb[sid] = self.dictionary()
 
-    #noinspection PyUnusedLocal,PyArgumentEqualDefault
+    # noinspection PyUnusedLocal,PyArgumentEqualDefault
     def begin(self, scope="", response_type="", use_nonce=False, path="",
               **kwargs):
         """ Begin the OIDC flow

@@ -34,7 +34,7 @@ TIME_FORMAT_WITH_FRAGMENT = re.compile(
 # ---------------------------------------------------------------------------
 # I'm sure this is implemented somewhere else can't find it now though, so I
 # made an attempt.
-#Implemented according to
+# Implemented according to
 #http://www.w3.org/TR/2001/REC-xmlschema-2-20010502/
 #adding-durations-to-dateTimes
 

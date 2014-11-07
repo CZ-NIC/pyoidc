@@ -42,7 +42,7 @@ else:
         def _verify_saml2_assertion(self, assertion):
             subject = assertion.subject
             # client_id = subject.name_id.text
-            #who_ever_issued_it = assertion.issuer.text
+            # who_ever_issued_it = assertion.issuer.text
 
             audience = []
             for ar in subject.audience_restiction:
