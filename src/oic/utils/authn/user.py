@@ -7,7 +7,7 @@ from urlparse import parse_qs
 from urlparse import urlsplit
 import urlparse
 
-#from oic.utils.aes_m2c import AES_decrypt
+# from oic.utils.aes_m2c import AES_decrypt
 from oic.utils import aes
 from oic.utils.http_util import Response
 from oic.utils.http_util import CookieDealer
@@ -90,6 +90,7 @@ class UserAuthnMethod(CookieDealer):
         if rp_query_cookie:
             return rp_query_cookie[0]
         return ""
+
 
 def url_encode_params(params=None):
     if not isinstance(params, dict):
@@ -280,7 +281,6 @@ class UsernamePasswordMako(UserAuthnMethod):
 
 
 class BasicAuthn(UserAuthnMethod):
-
     def __init__(self, srv, pwd, ttl=5):
         UserAuthnMethod.__init__(self, srv, ttl)
         self.passwd = pwd
@@ -310,7 +310,6 @@ class BasicAuthn(UserAuthnMethod):
 
 
 class SymKeyAuthn(UserAuthnMethod):
-
     def __init__(self, srv, ttl, symkey):
         UserAuthnMethod.__init__(self, srv, ttl)
         self.symkey = symkey

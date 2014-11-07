@@ -77,7 +77,7 @@ class AuthnBroker(object):
                 if level and level != item["level"]:
                     _remain.append(_ref)
                 if authn_authority and \
-                        authn_authority != item["authn_authority"]:
+                                authn_authority != item["authn_authority"]:
                     _remain.append(_ref)
             if _remain:
                 self.db[acr] = _remain
@@ -204,6 +204,7 @@ def make_auth_verify(callback, next_module_instance=None):
     setup_multi_auth (in multi_auth.py)
     :return: function encapsulating the specified callback which properly handles a multi auth chain.
     """
+
     def auth_verify(environ, start_response, logger):
         kwargs = extract_from_request(environ)
 

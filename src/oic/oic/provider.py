@@ -1,10 +1,13 @@
 #!/usr/bin/env python
-import copy
 import json
 import traceback
 import urllib
 import sys
 from jwkest.jwe import JWE
+from requests import ConnectionError
+from jwkest import jws, jwe
+from jwkest.jws import alg2keytype
+
 from oic.utils import time_util
 from oic.utils.authn.user import NoSuchAuthentication
 from oic.utils.authn.user import ToOld
@@ -12,9 +15,6 @@ from oic.utils.authn.user import TamperAllert
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import key_export
-
-from requests import ConnectionError
-
 from oic.oauth2.message import by_schema
 from oic.oic.message import RefreshAccessTokenRequest
 from oic.oic.message import EndSessionRequest
@@ -35,8 +35,6 @@ from oic.oic.message import DiscoveryRequest
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import DiscoveryResponse
 
-from jwkest import jws, jwe
-from jwkest.jws import alg2keytype
 
 __author__ = 'rohe0002'
 
@@ -70,7 +68,7 @@ SWD_ISSUER = "http://openid.net/specs/connect/1.0/issuer"
 STR = 5 * "_"
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def devnull(txt):
     pass
 
@@ -86,6 +84,7 @@ def secret(seed, sid):
     csum.update("%f" % random.random())
     csum.update(sid)
     return csum.hexdigest()
+
 
 #def update_info(aresp, sdict):
 #    for prop in aresp._schema["param"].keys():
@@ -138,6 +137,7 @@ def construct_uri(item):
 class AuthorizationEndpoint(Endpoint):
     etype = "authorization"
 
+
 class TokenEndpoint(Endpoint):
     etype = "token"
 
@@ -146,11 +146,11 @@ class UserinfoEndpoint(Endpoint):
     etype = "userinfo"
 
 
-class RegistrationEndpoint(Endpoint) :
+class RegistrationEndpoint(Endpoint):
     etype = "registration"
 
 
-class EndSessionEndpoint(Endpoint) :
+class EndSessionEndpoint(Endpoint):
     etype = "endsession"
 
 
@@ -226,8 +226,8 @@ class Provider(AProvider):
         except KeyError:
             pass
         else:
-        # make sure id_token_signed_response_alg is set in client register
-        # response. This will make it happen in match_preferences()
+            # make sure id_token_signed_response_alg is set in client register
+            # response. This will make it happen in match_preferences()
             for val in PREFERENCE2PROVIDER.values():
                 if val.endswith("signing_alg_values_supported"):
                     self.capabilities[val] = [mode["sign"]]
@@ -238,8 +238,8 @@ class Provider(AProvider):
         except KeyError:
             pass
         else:
-        # make sure id_token_signed_response_alg is set in client register
-        # response. This will make it happen in match_preferences()
+            # make sure id_token_signed_response_alg is set in client register
+            # response. This will make it happen in match_preferences()
             for val in PREFERENCE2PROVIDER.values():
                 if val.endswith("encryption_alg_values_supported"):
                     self.capabilities[val] = [_enc_alg]
@@ -250,8 +250,8 @@ class Provider(AProvider):
         except KeyError:
             pass
         else:
-        # make sure id_token_signed_response_alg is set in client register
-        # response. This will make it happen in match_preferences()
+            # make sure id_token_signed_response_alg is set in client register
+            # response. This will make it happen in match_preferences()
             for val in PREFERENCE2PROVIDER.values():
                 if val.endswith("encryption_enc_values_supported"):
                     self.capabilities[val] = [_enc_enc]
@@ -397,7 +397,7 @@ class Provider(AProvider):
 
         try:
             if len(self.authn_broker) == 1:
-                    return self.authn_broker[0]
+                return self.authn_broker[0]
             else:
                 if "acr_values" in areq:
                     if not comparision_type:
@@ -452,7 +452,7 @@ class Provider(AProvider):
             "post_logout_redirect_uri": esr["post_logout_redirect_uri"],
             "key": self.sdb.get_verify_logout(uid),
             "redirect": redirect,
-            "action": "/"+EndSessionEndpoint("").etype
+            "action": "/" + EndSessionEndpoint("").etype
         }
         return Response(mte.render(**argv), headers=[])
 
@@ -467,7 +467,7 @@ class Provider(AProvider):
         if "id_token_hint" in esr:
             id_token_hint = OpenIDRequest().from_jwt(esr["id_token_hint"],
                                                      keyjar=self.keyjar,
-                                                         verify=True)
+                                                     verify=True)
             uid = id_token_hint["sub"]
         else:
             identity = authn.authenticated_as(cookie)
@@ -676,7 +676,7 @@ class Provider(AProvider):
 
         keys = self.keyjar.get_encrypt_key(owner=cid)
         logger.debug("keys for %s: %s" % (
-            cid, "["+", ".join([str(x) for x in self.keyjar[cid]]))+"]")
+            cid, "[" + ", ".join([str(x) for x in self.keyjar[cid]])) + "]")
         logger.debug("alg=%s, enc=%s, val_type=%s" % (alg, enc, val_type))
         logger.debug("Encryption keys for %s: %s" % (cid, keys))
 
@@ -999,7 +999,7 @@ class Provider(AProvider):
         for reg, qp in urlset:
             _part = urlparse.urlparse(reg)
             if part.scheme == _part.scheme and part.netloc == _part.netloc:
-                    return True
+                return True
 
         return False
 
@@ -1178,7 +1178,7 @@ class Provider(AProvider):
             request.verify()
         except MessageException, err:
             if "type" not in request:
-                return self._error(error="invalid_type", 
+                return self._error(error="invalid_type",
                                    descr="%s" % err)
             else:
                 return self._error(error="invalid_configuration_parameter",
@@ -1486,8 +1486,8 @@ class Provider(AProvider):
             pass
 
         if "response_type" in areq and \
-                len(areq["response_type"]) == 1 and \
-                "none" in areq["response_type"]:
+                        len(areq["response_type"]) == 1 and \
+                        "none" in areq["response_type"]:
             fragment_enc = False
         else:
             if self.sdb.is_revoked(sid):
@@ -1624,6 +1624,7 @@ class Provider(AProvider):
         :return: Either a Response instance or a tuple (Response, args)
         """
         return self.end_session_endpoint(request, **kwargs)
+
 
 # -----------------------------------------------------------------------------
 

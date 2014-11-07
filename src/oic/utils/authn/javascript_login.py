@@ -1,9 +1,11 @@
-import urlparse
 from urlparse import parse_qs
-from oic.utils.authn.user import UserAuthnMethod, logger, UsernamePasswordMako
-from oic.utils.http_util import Response, Unauthorized, Redirect
+
+from oic.utils.authn.user import logger, UsernamePasswordMako
+from oic.utils.http_util import Unauthorized, Redirect
+
 
 __author__ = 'danielevertsson'
+
 
 class JavascriptFormMako(UsernamePasswordMako):
     """Do user authentication using the normal username password form in a

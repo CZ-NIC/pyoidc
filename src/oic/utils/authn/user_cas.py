@@ -6,15 +6,17 @@ import logging
 import requests
 import base64
 import xml.etree.ElementTree as ET
-from oic.utils.authn.user import UserAuthnMethod
 from urlparse import parse_qs
+
+from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import Unauthorized
+
 
 logger = logging.getLogger(__name__)
 
 
-#This class handles user authentication with CAS.
+# This class handles user authentication with CAS.
 class CasAuthnMethod(UserAuthnMethod):
     #Standard login url for a CAS server.
     CONST_CASLOGIN = "/cas/login?"
@@ -122,7 +124,7 @@ class CasAuthnMethod(UserAuthnMethod):
         if acr is None:
             acr = ""
         return self.service_url + "?" + self.CONST_NONCE + "=" + nonce + \
-            "&acr_values=" + acr
+               "&acr_values=" + acr
 
     def verify(self, request, cookie, **kwargs):
         """

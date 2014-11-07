@@ -1,7 +1,9 @@
 import json
 import time
 from Crypto.PublicKey import RSA
+
 from oic.exception import MessageException
+
 
 __author__ = 'rohe0002'
 
@@ -37,7 +39,7 @@ K2C = {
     "RSA": RSAKey,
     "EC": ECKey,
     "oct": SYMKey,
-#    "pkix": PKIX_key
+    # "pkix": PKIX_key
 }
 
 
@@ -546,7 +548,7 @@ class KeyJar(object):
         try:
             self.add(issuer, pcr["jwks_uri"])
         except KeyError:
-            #  jwks should only be considered if no jwks_uri is present
+            # jwks should only be considered if no jwks_uri is present
             try:
                 _keys = pcr["jwks"]["keys"]
                 self.issuer_keys[issuer].append(KeyBundle(_keys))
@@ -586,6 +588,7 @@ class KeyJar(object):
         for issuer, keys in info.items():
             self.issuer_keys[issuer] = [KeyBundle(keys)]
 
+
 # =============================================================================
 
 
@@ -596,12 +599,14 @@ class RedirectStdStreams(object):
 
     def __enter__(self):
         self.old_stdout, self.old_stderr = sys.stdout, sys.stderr
-        self.old_stdout.flush(); self.old_stderr.flush()
+        self.old_stdout.flush();
+        self.old_stderr.flush()
         sys.stdout, sys.stderr = self._stdout, self._stderr
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def __exit__(self, exc_type, exc_value, traceback):
-        self._stdout.flush(); self._stderr.flush()
+        self._stdout.flush();
+        self._stderr.flush()
         sys.stdout = self.old_stdout
         sys.stderr = self.old_stderr
 
@@ -684,6 +689,7 @@ def key_export(baseurl, local_path, vault, keyjar, **kwargs):
 
     return _url
 
+
 # ================= create RSA key ======================
 
 
@@ -741,7 +747,7 @@ def proper_path(path):
 #
 #
 # def make_req(bits, fqdn="example.com", rsa=None):
-#     pk = EVP.PKey()
+# pk = EVP.PKey()
 #     x = X509.Request()
 #     if not rsa:
 #         rsa = RSA.gen_key(bits, 65537, lambda: None)

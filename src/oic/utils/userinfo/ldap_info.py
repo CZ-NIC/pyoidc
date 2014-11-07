@@ -1,13 +1,12 @@
 import logging
 import ldap
-from ldap import SCOPE_SUBTREE
 
 from oic.utils.userinfo import UserInfo
+
 
 __author__ = 'rolandh'
 
 logger = logging.getLogger(__name__)
-
 
 OPENID2LDAP = {
     "sub": "uid",
@@ -15,18 +14,18 @@ OPENID2LDAP = {
     "given_name": "givenname",
     "family_name": "sn",
     "middle_name": "",
-    "nickname":	"eduPersonNickname",
+    "nickname": "eduPersonNickname",
     "preferred_username": "uid",
     "profile": "labeledURI",
     "picture": "jpegPhoto",
     "website": "labeledURI",
     "email": "mail",
-    #"email_verified":
+    # "email_verified":
     "gender": "schacGender",
     "birthdate": "schacDateOfBirth",
     #zoneinfo
     "locale": "preferredLanguage",
-    "phone_number":	"telephoneNumber",
+    "phone_number": "telephoneNumber",
     #phone_number_verified
     "address": "postalAddress",
     "updated_at": ""  # Nothing equivalent
@@ -36,9 +35,9 @@ LDAP2USERINFO = dict([(v, k) for k, v in OPENID2LDAP.items()])
 
 
 class UserInfoLDAP(UserInfo):
-    def __init__(self, uri, base, filter_pattern, scope=SCOPE_SUBTREE,
+    def __init__(self, uri, base, filter_pattern, scope=ldap.SCOPE_SUBTREE,
                  tls=False, user="", passwd="", attr=None, attrsonly=False):
-        UserInfo.__init__(self, None)
+        super(UserInfoLDAP, self).__init__(self, None)
         self.ldapuri = uri
         self.base = base
         self.filter_pattern = filter_pattern

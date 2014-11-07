@@ -4,20 +4,23 @@ from tempfile import NamedTemporaryFile
 from urllib import urlencode
 import logging
 import base64
+from urlparse import parse_qs
+
 from oic.oauth2 import VerificationError
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authn.user import create_return_url
-from urlparse import parse_qs
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Response
 from oic.utils.http_util import Unauthorized
+
 
 logger = logging.getLogger(__name__)
 
 
 class ServiceErrorException(Exception):
     pass
+
 
 try:
     import saml2
@@ -36,7 +39,7 @@ else:
     from saml2.s_utils import UnknownPrincipal
     from saml2.s_utils import UnsupportedBinding
 
-    #This class handles user authentication with CAS.
+    # This class handles user authentication with CAS.
     class SAMLAuthnMethod(UserAuthnMethod):
         CONST_QUERY = "query"
         CONST_SAML_COOKIE = "samlauthc"
@@ -348,22 +351,22 @@ else:
             return self.response(binding, ht_args, query)
 
         def response(self, binding, http_args, query):
-                cookie = self.create_cookie(
-                    '{"' + self.CONST_QUERY + '": "' + base64.b64encode(query) +
-                    '" , "' + self.CONST_HASIDP + '": "True" }',
-                    self.CONST_SAML_COOKIE, self.CONST_SAML_COOKIE)
-                if binding == BINDING_HTTP_ARTIFACT:
-                    resp = Redirect()
-                elif binding == BINDING_HTTP_REDIRECT:
-                    for param, value in http_args["headers"]:
-                        if param == "Location":
-                            resp = SeeOther(str(value), headers=[cookie])
-                            break
-                    else:
-                        raise ServiceErrorException("Parameter error")
+            cookie = self.create_cookie(
+                '{"' + self.CONST_QUERY + '": "' + base64.b64encode(query) +
+                '" , "' + self.CONST_HASIDP + '": "True" }',
+                self.CONST_SAML_COOKIE, self.CONST_SAML_COOKIE)
+            if binding == BINDING_HTTP_ARTIFACT:
+                resp = Redirect()
+            elif binding == BINDING_HTTP_REDIRECT:
+                for param, value in http_args["headers"]:
+                    if param == "Location":
+                        resp = SeeOther(str(value), headers=[cookie])
+                        break
                 else:
-                    http_args["headers"].append(cookie)
-                    resp = Response(http_args["data"],
-                                    headers=http_args["headers"])
+                    raise ServiceErrorException("Parameter error")
+            else:
+                http_args["headers"].append(cookie)
+                resp = Response(http_args["data"],
+                                headers=http_args["headers"])
 
-                return resp
+            return resp

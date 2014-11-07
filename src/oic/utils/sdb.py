@@ -1,6 +1,8 @@
 import copy
 import uuid
+
 from oic.oic import AuthorizationRequest
+
 
 __author__ = 'rohe0002'
 
@@ -168,7 +170,7 @@ class SessionDB(object):
                 sid = self.token.get_key(key)
             except Exception:
                 raise KeyError
-            
+
             if sid not in self._db:
                 raise KeyError
             else:
@@ -321,7 +323,7 @@ class SessionDB(object):
             access_token = self.token("T", prev=rtoken)
 
             dic["token_expires_at"] = utc_time_sans_frac() + self.token_expires_in
-            #dic["client_id_issued_at"] = utc_time_sans_frac()
+            # dic["client_id_issued_at"] = utc_time_sans_frac()
             dic["access_token"] = access_token
             self._db[sid] = dic
             #self._db[dic["xxxx"]] = dic
@@ -362,17 +364,17 @@ class SessionDB(object):
         return True
 
     def is_revoked(self, sid):
-        #typ, sid = self.token.type_and_key(token)
+        # typ, sid = self.token.type_and_key(token)
         try:
             return self[sid]["revoked"]
         except KeyError:
             return False
 
-#    def set_oir(self, key, oir):
-#        self._db[key] = oir.dictionary()
-#
-#    def get_oir(self, key):
-#        return OpenIDRequest(**self._db[key])
+        #    def set_oir(self, key, oir):
+        #        self._db[key] = oir.dictionary()
+        #
+        #    def get_oir(self, key):
+        #        return OpenIDRequest(**self._db[key])
 
     def revoke_token(self, token):
         # revokes either the refresh token or the access token

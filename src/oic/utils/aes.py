@@ -64,7 +64,7 @@ def encrypt(key, msg, iv=None, alg="aes_128_cbc", padding="PKCS#7",
     if _block_size:
         plen = _block_size - (len(msg) % _block_size)
         c = chr(plen)
-        msg += c*plen
+        msg += c * plen
 
     cipher, iv = build_cipher(key, iv, alg)
     cmsg = iv + cipher.encrypt(msg)
@@ -94,6 +94,7 @@ def decrypt(key, msg, iv=None, padding="PKCS#7", b64dec=True):
     if padding in ["PKCS#5", "PKCS#7"]:
         res = res[:-ord(res[-1])]
     return res
+
 
 if __name__ == "__main__":
     key_ = "1234523451234545"  # 16 byte key

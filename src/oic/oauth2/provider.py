@@ -3,7 +3,9 @@ import traceback
 import sys
 import urllib
 import urlparse
+
 from oic.utils.sdb import AccessCodeUsed
+
 
 __author__ = 'rohe0002'
 
@@ -94,7 +96,7 @@ def token_response(**kwargs):
     return aresp
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def none_response(**kwargs):
     _areq = kwargs["areq"]
     aresp = NoneResponse()
@@ -372,7 +374,7 @@ class Provider(object):
 
         try:
             if len(self.authn_broker) == 1:
-                    return self.authn_broker[0]
+                return self.authn_broker[0]
             else:
                 try:
                     _values = areq["acr_values"]
@@ -533,8 +535,8 @@ class Provider(object):
             pass
 
         if "response_type" in areq and \
-                len(areq["response_type"]) == 1 and \
-                "none" in areq["response_type"]:
+                        len(areq["response_type"]) == 1 and \
+                        "none" in areq["response_type"]:
             pass
         else:
             #if self.sdb.is_revoked(sinfo):
@@ -648,9 +650,8 @@ class Provider(object):
             return Response(err.to_json(), content="application/json",
                             status="401 Unauthorized")
 
-
         LOG_DEBUG("_tinfo: %s" % _tinfo)
-            
+
         atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
 
         LOG_DEBUG("AccessTokenResponse: %s" % atr)

@@ -1,5 +1,7 @@
 import logging
+
 from oic.utils.userinfo.ldap_info import UserInfoLDAP
+
 
 __author__ = 'haho0032'
 
@@ -7,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 
 class UserLDAPMemberValidation(UserInfoLDAP):
-
     def __init__(self, verify_attr=None, verify_attr_valid=None, **kwargs):
         UserInfoLDAP.__init__(self, **kwargs)
         self.verify_attr = verify_attr

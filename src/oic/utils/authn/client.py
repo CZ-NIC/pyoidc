@@ -3,6 +3,7 @@ import base64
 from jwkest import Invalid
 from jwkest import MissingKey
 from jwkest.jws import alg2keytype
+
 from oic.exception import UnknownAssertionType
 from oic.exception import NotForMe
 from oic.oauth2 import rndstr, VREQUIRED
@@ -65,6 +66,7 @@ class ClientSecretBasic(ClientAuthnMethod):
     Server, authenticate with the Authorization Server in accordance with
     Section 3.2.1 of OAuth 2.0 [RFC6749] using HTTP Basic authentication scheme.
     """
+
     def construct(self, cis, request_args=None, http_args=None, **kwargs):
         """
         :param cis: Request class instance
@@ -125,6 +127,7 @@ class ClientSecretPost(ClientSecretBasic):
     Section 3.2.1 of OAuth 2.0 [RFC6749] by including the Client Credentials in
     the request body.
     """
+
     def construct(self, cis, request_args=None, http_args=None, **kwargs):
         if "client_secret" not in cis:
             try:
@@ -177,7 +180,7 @@ class BearerHeader(ClientAuthnMethod):
                 _acc_token = request_args["access_token"]
 
         # Do I need to base64 encode the access token ? Probably !
-        #_bearer = "Bearer %s" % base64.b64encode(_acc_token)
+        # _bearer = "Bearer %s" % base64.b64encode(_acc_token)
         _bearer = "Bearer %s" % _acc_token
         if http_args is None:
             http_args = {"headers": {}}
@@ -246,7 +249,6 @@ def bearer_auth(req, authn):
 
 
 class JWSAuthnMethod(ClientAuthnMethod):
-
     def choose_algorithm(self, entity, **kwargs):
         try:
             algorithm = kwargs["algorithm"]
@@ -324,7 +326,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
             return False
 
         logger.debug("authntoken: %s" % bjwt.to_dict())
-        #logger.debug("known clients: %s" % self.cli.cdb.keys())
+        # logger.debug("known clients: %s" % self.cli.cdb.keys())
         try:
             # There might not be a client_id in the request
             assert str(bjwt["iss"]) in self.cli.cdb  # It's a client I know
@@ -355,6 +357,7 @@ class ClientSecretJWT(JWSAuthnMethod):
     The HMAC (Hash-based Message Authentication Code) is calculated using the
     bytes of the UTF-8 representation of the client_secret as the shared key.
     """
+
     def choose_algorithm(self, entity="client_secret_jwt", **kwargs):
         return JWSAuthnMethod.choose_algorithm(self, entity, **kwargs)
 
@@ -366,6 +369,7 @@ class PrivateKeyJWT(JWSAuthnMethod):
     """
     Clients that have registered a public key sign a JWT using that key.
     """
+
     def choose_algorithm(self, entity="private_key_jwt", **kwargs):
         return JWSAuthnMethod.choose_algorithm(self, entity, **kwargs)
 
@@ -373,7 +377,7 @@ class PrivateKeyJWT(JWSAuthnMethod):
         return self.cli.keyjar.get_signing_key(alg2keytype(algorithm), "")
 
 
-#from oic.utils.authn.client_saml import SAML2_BEARER_ASSERTION_TYPE
+# from oic.utils.authn.client_saml import SAML2_BEARER_ASSERTION_TYPE
 
 
 CLIENT_AUTHN_METHOD = {

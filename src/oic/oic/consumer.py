@@ -95,6 +95,7 @@ def clean_response(aresp):
 
     return atr
 
+
 IGNORE = ["request2endpoint", "response2error", "grant_class", "token_class"]
 
 CONSUMER_PREF_ARGS = [
@@ -122,7 +123,7 @@ class Consumer(Client):
     """ An OpenID Connect consumer implementation
 
     """
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def __init__(self, session_db, config, client_config=None,
                  server_info=None, debug=False, client_prefs=None):
         """ Initializes a Consumer instance.
@@ -326,7 +327,7 @@ class Consumer(Client):
             return http_util.BadRequest("Missing query")
 
         _log_info("response: %s" % query)
-        
+
         if "code" in self.config["response_type"]:
             # Might be an error response
             _log_info("Expect Authorization Response")
@@ -410,7 +411,7 @@ class Consumer(Client):
 
     def refresh_token(self):
         pass
-    
+
     #noinspection PyUnusedLocal
     def get_user_info(self, state):
         uinfo = self.do_user_info_request(state=state, schema="openid")

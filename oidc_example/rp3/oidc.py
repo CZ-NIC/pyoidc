@@ -22,7 +22,7 @@ class Client(oic.Client):
     def __init__(self, client_id=None, ca_certs=None,
                  client_prefs=None, client_authn_method=None, keyjar=None,
                  verify_ssl=True, behaviour=None):
-        oic.Client.__init__(self, client_id, ca_certs, client_prefs,
+        super(Client, self).__init__(self, client_id, ca_certs, client_prefs,
                             client_authn_method, keyjar, verify_ssl)
         if behaviour:
             self.behaviour = behaviour
@@ -191,7 +191,7 @@ class OIDCClients(object):
                 ProviderConfigurationResponse(**kwargs["provider_info"]),
                 kwargs["provider_info"]["issuer"])
             client.store_registration_info(RegistrationResponse(
-                    **kwargs["client_registration"]))
+                **kwargs["client_registration"]))
         elif _key_set == set(["srv_discovery_url", "client_registration"]):
             _ = client.provider_config(kwargs["srv_discovery_url"])
             client.store_registration_info(RegistrationResponse(

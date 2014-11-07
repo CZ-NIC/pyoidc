@@ -2,7 +2,6 @@
 __author__ = 'rohe0002'
 
 import time
-
 from hashlib import md5
 
 from oic.utils import http_util
@@ -77,7 +76,7 @@ class Consumer(Client):
     """ An OAuth2 consumer implementation
 
     """
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def __init__(self, session_db, client_config=None,
                  server_info=None, authz_page="", response_type="",
                  scope="", flow_type="", password=None):

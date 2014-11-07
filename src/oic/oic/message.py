@@ -29,7 +29,7 @@ from jwkest import jws
 logger = logging.getLogger(__name__)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def json_ser(val, sformat=None, lev=0):
     return json.dumps(val)
 
@@ -247,7 +247,6 @@ class UserInfoRequest(Message):
 
 class AuthorizationResponse(message.AuthorizationResponse,
                             message.AccessTokenResponse):
-
     c_param = message.AuthorizationResponse.c_param.copy()
     c_param.update(message.AccessTokenResponse.c_param)
     c_param.update({
@@ -557,12 +556,12 @@ class RegistrationResponse(Message):
         if "registration_client_uri" in self:
             if not "registration_access_token":
                 raise VerificationError((
-                    "Only one of registration_client_uri"
-                    " and registration_access_token present"), self)
+                                            "Only one of registration_client_uri"
+                                            " and registration_access_token present"), self)
         elif "registration_access_token" in self:
             raise VerificationError((
-                "Only one of registration_client_uri"
-                " and registration_access_token present"), self)
+                                        "Only one of registration_client_uri"
+                                        " and registration_access_token present"), self)
 
         return super(RegistrationResponse, self).verify(**kwargs)
 
@@ -599,7 +598,7 @@ class IdToken(OpenIDSchema):
                     raise NotForMe("", self)
 
             if len(self["aud"]) > 1:  # Then azr has to be present and be one of
-                                      # the values
+                # the values
                 try:
                     assert "azr" in self
                 except AssertionError:
@@ -696,12 +695,12 @@ class ProviderConfigurationResponse(Message):
         "userinfo_encryption_enc_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "request_object_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "request_object_encryption_alg_values_supported":
-        OPTIONAL_LIST_OF_STRINGS,
+            OPTIONAL_LIST_OF_STRINGS,
         "request_object_encryption_enc_values_supported":
-        OPTIONAL_LIST_OF_STRINGS,
+            OPTIONAL_LIST_OF_STRINGS,
         "token_endpoint_auth_methods_supported": OPTIONAL_LIST_OF_STRINGS,
         "token_endpoint_auth_signing_alg_values_supported":
-        OPTIONAL_LIST_OF_STRINGS,
+            OPTIONAL_LIST_OF_STRINGS,
         "display_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "claim_types_supported": OPTIONAL_LIST_OF_STRINGS,
         "claims_supported": OPTIONAL_LIST_OF_STRINGS,
@@ -773,6 +772,7 @@ class DiscoveryResponse(Message):
 class ResourceRequest(Message):
     c_param = {"access_token": SINGLE_OPTIONAL_STRING}
 
+
 SCOPE2CLAIMS = {
     "openid": ["sub"],
     "profile": ["name", "given_name", "family_name", "middle_name",
@@ -829,6 +829,7 @@ def factory(msgtype):
             return message.Message
         else:
             raise PyoidcError("Unknown message type: %s" % msgtype)
+
 
 if __name__ == "__main__":
     atr = AccessTokenResponse(access_token="access_token",

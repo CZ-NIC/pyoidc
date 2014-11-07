@@ -1,8 +1,10 @@
 import copy
 import logging
+
 from oic.oic import OpenIDSchema
 from oic.oic.claims_provider import ClaimsClient
 from oic.utils.userinfo import UserInfo
+
 
 __author__ = 'rolandh'
 
@@ -10,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 
 class DistributedAggregatedUserInfo(UserInfo):
-
     def __init__(self, db, oidcsrv, client_info=None):
         UserInfo.__init__(self, db)
         self.oidcsrv = oidcsrv
@@ -130,7 +131,7 @@ class DistributedAggregatedUserInfo(UserInfo):
 
         else:
             # default is what "openid" demands which is sub
-            #result = identity
+            # result = identity
             result = {"sub": userid}
 
         return OpenIDSchema(**result)
