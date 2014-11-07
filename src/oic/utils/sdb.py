@@ -149,7 +149,7 @@ class SessionDB(object):
             try:
                 sid = self.token.get_key(item)
             except Exception:
-                raise KeyError
+                raise KeyError("item '%s' could not be found" % str(item))
             return self._db[sid]
 
     def __setitem__(self, key, value):
@@ -158,6 +158,13 @@ class SessionDB(object):
         """
 
         self._db[key] = value
+
+    def __delitem__(self, key):
+        """
+        Actually delete the pointed session from this SessionDB instance
+        :param key: session identifier
+        """
+        del self._db[key]
 
     def keys(self):
         return self._db.keys()

@@ -398,6 +398,12 @@ if __name__ == '__main__':
                                                 PASSWORD_END_POINT_INDEX)
             URLS.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
+        # Ensure javascript_login_authn to be defined
+        try:
+            javascript_login_authn
+        except NameError:
+            javascript_login_authn = None
+
         if "JavascriptLogin" == authkey:
             if not javascript_login_authn:
                 end_points = config.AUTHENTICATION[
