@@ -1,3 +1,5 @@
+import logging
+
 __author__ = 'rohe0002'
 
 import cgi
@@ -14,6 +16,8 @@ from oic.utils.aes import encrypt
 from oic.utils.aes import decrypt
 
 from Cookie import SimpleCookie
+
+logger = logging.getLogger(__name__)
 
 
 class Response(object):
@@ -345,13 +349,13 @@ def wsgi_wrapper(environ, start_response, func, **kwargs):
     args = func(**kwargs)
 
     try:
-        resp, argv = args
-        return resp(environ, start_response, **argv)
+        resp, state = args
+        return resp(environ, start_response)
     except TypeError:
         resp = args
         return resp(environ, start_response)
     except Exception as err:
-        #logger.error("%s" % err)
+        logger.error("%s" % err)
         raise
 
 

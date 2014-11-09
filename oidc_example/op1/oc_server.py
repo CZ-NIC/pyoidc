@@ -404,7 +404,7 @@ def application(environ, start_response):
             logger.info("callback: %s" % callback)
             try:
                 return callback(environ, start_response, logger)
-            except Exception, err:
+            except Exception as err:
                 print >> sys.stderr, "%s" % err
                 message = traceback.format_exception(*sys.exc_info())
                 print >> sys.stderr, message

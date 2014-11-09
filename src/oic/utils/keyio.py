@@ -66,6 +66,11 @@ class KeyBundle(object):
         self.keytype = keytype
         self.keyusage = keyusage
 
+        # This key bundle should not be actively used, it should only
+        # be used if someone sent something signed/encrypted with these keys
+        # to you.
+        self.inactive = False
+
         if keys:
             self.source = None
             if isinstance(keys, dict):
@@ -287,6 +292,8 @@ def dump_jwks(kbl, target):
     """
     res = {"keys": []}
     for kb in kbl:
+        if kb.inactive:
+            continue
         # ignore simple keys
         res["keys"].extend([k.to_dict() for k in kb.keys() if k.kty != 'oct'])
 
