@@ -36,7 +36,7 @@ from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import DiscoveryResponse
 
 from jwkest import jws, jwe
-from jwkest.jws import alg2keytype
+from jwkest.jws import alg2keytype, NoSuitableSigningKeys
 
 __author__ = 'rohe0002'
 
@@ -210,6 +210,7 @@ class Provider(AProvider):
         else:
             self.capabilities = self.provider_features()
         self.capabilities["issuer"] = self.name
+        self.kid = {"sig": {}, "enc": {}}
 
     def set_mode(self, mode):
         """
@@ -276,7 +277,8 @@ class Provider(AProvider):
             if "" in self.keyjar:
                 for b in self.keyjar[""]:
                     logger.debug("OC3 server keys: %s" % b)
-                ckey = self.keyjar.get_signing_key(alg2keytype(alg), "")
+                ckey = self.keyjar.get_signing_key(alg2keytype(alg), "",
+                                                   alg=alg)
             else:
                 ckey = None
         logger.debug("ckey: %s" % ckey)
@@ -768,9 +770,10 @@ class Provider(AProvider):
                 _idtoken = self.sign_encrypt_id_token(
                     _info, client_info, req, user_info=userinfo,
                     auth_time=_info["auth_time"])
-            except JWEException:
+            except (JWEException, NoSuitableSigningKeys) as err:
+                logger.warning(str(err))
                 return self._error(error="access_denied",
-                                   descr="Could not encrypt id_token")
+                                   descr="Could not sign/encrypt id_token")
 
             _sdb.update_by_token(_access_code, "id_token", _idtoken)
 
@@ -905,7 +908,7 @@ class Provider(AProvider):
             algo = self.jwx_def["sign_alg"]["userinfo"]
 
         # Use my key for signing
-        key = self.keyjar.get_signing_key(alg2keytype(algo), "")
+        key = self.keyjar.get_signing_key(alg2keytype(algo), "", alg=algo)
         if not key:
             return self._error(error="access_denied",
                                descr="Missing signing key")
@@ -1135,6 +1138,17 @@ class Provider(AProvider):
                     return self._error_response(
                         "invalid_configuration_parameter",
                         descr="%s pointed to illegal URL" % item)
+
+        # necessary keys ?
+        for item in ["id_token_signed_response_alg",
+                     "userinfo_signed_response_alg"]:
+            if item in request:
+                if request[item] in self.capabilities[PREFERENCE2PROVIDER[item]]:
+                    ktyp = jws.alg2keytype(request[item])
+                    # do I have this ktyp and for EC type keys the curve
+                    _k = self.keyjar.get_signing_key(ktyp, alg=request[item])
+                    if not _k:
+                        del _cinfo[item]
 
         try:
             self.keyjar.load_keys(request, client_id)

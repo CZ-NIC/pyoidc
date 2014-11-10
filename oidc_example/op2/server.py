@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import logging
+import json
 import sys
 import os
 import traceback
@@ -13,20 +13,21 @@ from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
 from urlparse import parse_qs
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
-from saml2.extension.idpdisc import BINDING_DISCO
 from oic.utils.authn.javascript_login import JavascriptFormMako
 
 from oic.utils.authn.client import verify_client
-from oic.utils.authn.multi_auth import setup_multi_auth, AuthnIndexedEndpointWrapper
+from oic.utils.authn.multi_auth import setup_multi_auth
+from oic.utils.authn.multi_auth import AuthnIndexedEndpointWrapper
 from oic.utils.authn.saml import SAMLAuthnMethod
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.authz import AuthzHandling
-from oic.utils.keyio import KeyBundle, dump_jwks
+from oic.utils.keyio import keyjar_init
 from oic.utils.userinfo import UserInfo
 from oic.utils.userinfo.aa_info import AaUserInfo
 from oic.utils.webfinger import WebFinger
 from oic.utils.webfinger import OIC_ISSUER
-from oic.utils.authn.authn_context import AuthnBroker, make_auth_verify
+from oic.utils.authn.authn_context import AuthnBroker
+from oic.utils.authn.authn_context import make_auth_verify
 
 __author__ = 'rohe0002'
 
@@ -552,30 +553,19 @@ if __name__ == '__main__':
     if not OAS.baseurl.endswith("/"):
         OAS.baseurl += "/"
 
-    # Add own keys for signing/encrypting JWTs
+    jwks = keyjar_init(OAS, config.keys)
+
     try:
-        OAS.keyjar[""] = []
-        kbl = []
-        for typ, info in config.keys.items():
-            typ = typ.upper()
-            LOGGER.info("OC server key init: %s, %s" % (typ, info))
-            kb = KeyBundle(source="file://%s" % info["key"], fileformat="der",
-                           keytype=typ)
-            OAS.keyjar.add_kb("", kb)
-            kbl.append(kb)
+        new_name = "static/jwks.json"
+        f = open(new_name, "w")
+        f.write(json.dumps(jwks))
+        f.close()
+        OAS.jwks_uri.append("%s%s" % (OAS.baseurl, new_name))
+    except KeyError:
+        pass
 
-        try:
-            new_name = "static/jwks.json"
-            dump_jwks(kbl, new_name)
-            OAS.jwks_uri.append("%s%s" % (OAS.baseurl, new_name))
-        except KeyError:
-            pass
-
-        for b in OAS.keyjar[""]:
-            LOGGER.info("OC3 server keys: %s" % b)
-    except Exception, err:
-        LOGGER.error("Key setup failed: %s" % err)
-        OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
+    for b in OAS.keyjar[""]:
+        LOGGER.info("OC3 server keys: %s" % b)
 
     # Setup the web server
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
