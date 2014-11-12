@@ -21,7 +21,7 @@ __author__ = 'rolandh'
 
 PASSWD = {"user": "hemligt"}
 
-BASE_PATH = os.path.dirname(__file__)
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 ROOT = '%s/../oidc_example/op2/' % BASE_PATH
 tl = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
