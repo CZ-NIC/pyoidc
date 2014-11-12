@@ -1,4 +1,6 @@
+import json
 import os
+from time import sleep
 
 from mako.lookup import TemplateLookup
 from oic.oauth2 import rndstr
@@ -10,7 +12,7 @@ from oic.utils.userinfo import UserInfo
 
 from oic.exception import RedirectURIError
 
-from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import KeyBundle, ec_init
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import keybundle_from_local_file
 
@@ -690,5 +692,23 @@ def test_registered_redirect_uri_with_query_component():
         print resp
         assert resp is None
 
+
+def test_key_rollover():
+    provider2 = Provider("FOOP", {}, {}, None, None, None, None, "")
+    provider2.keyjar = KEYJAR
+    # Number of KeyBundles
+    assert len(provider2.keyjar.issuer_keys[""]) == 1
+    kb = ec_init({"type": "EC", "crv": "P-256", "use": ["sig"]})
+    provider2.do_key_rollover(json.loads(kb.jwks()), "b%d")
+    print provider2.keyjar
+    assert len(provider2.keyjar.issuer_keys[""]) == 2
+    kb = ec_init({"type": "EC", "crv": "P-256", "use": ["sig"]})
+    provider2.do_key_rollover(json.loads(kb.jwks()), "b%d")
+    print provider2.keyjar
+    assert len(provider2.keyjar.issuer_keys[""]) == 3
+    sleep(1)
+    provider2.remove_inactive_keys(0)
+    assert len(provider2.keyjar.issuer_keys[""]) == 2
+
 if __name__ == "__main__":
-    test_server_authenticated_2()
+    test_key_rollover()

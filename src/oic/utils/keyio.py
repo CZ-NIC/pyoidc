@@ -38,7 +38,6 @@ K2C = {
     "RSA": RSAKey,
     "EC": ECKey,
     "oct": SYMKey,
-#    "pkix": PKIX_key
 }
 
 
@@ -66,11 +65,6 @@ class KeyBundle(object):
         self.fileformat = fileformat.lower()
         self.keytype = keytype
         self.keyusage = keyusage
-
-        # This key bundle should not be actively used, it should only
-        # be used if someone sent something signed/encrypted with these keys
-        # to you.
-        self.inactive = False
 
         if keys:
             self.source = None
@@ -221,7 +215,7 @@ class KeyBundle(object):
 
         return self._keys
 
-    def remove(self, typ, val=None):
+    def remove_key(self, typ, val=None):
         """
 
         :param typ: Type of key (rsa, ec, oct, ..)
@@ -242,6 +236,9 @@ class KeyBundle(object):
 
     def append(self, key):
         self._keys.append(key)
+
+    def remove(self, key):
+        self._keys.remove(key)
 
     def __len__(self):
         return len(self._keys)
@@ -295,7 +292,7 @@ def dump_jwks(kbl, target):
     for kb in kbl:
         # ignore simple keys
         res["keys"].extend([k.to_dict() for k in kb.keys() if
-                            k.kty != 'oct' and not k.inactive])
+                            k.kty != 'oct' and not k.inactive_since])
 
     try:
         f = open(target, 'w')
@@ -431,7 +428,6 @@ class KeyJar(object):
         if key_type == "EC" and "alg" in kwargs:
             name = "P-{}".format(kwargs["alg"][2:])  # the type
             _lst = []
-            match = False
             for key in lst:
                 try:
                     assert name == key.crv
@@ -511,8 +507,8 @@ class KeyJar(object):
             return
 
         for kc in kcs:
-            kc.remove(key_type, key)
-            if len(kc._keys) == 0:
+            kc.remove_key(key_type, key)
+            if len(kc) == 0:
                 self.issuer_keys[issuer].remove(kc)
 
     def update(self, kj):
@@ -536,8 +532,11 @@ class KeyJar(object):
 
     def __str__(self):
         _res = {}
-        for k, vs in self.issuer_keys.items():
-            _res[k] = [str(v) for v in vs]
+        for _id, kbs in self.issuer_keys.items():
+            _l = []
+            for kb in kbs:
+                _l.extend(json.loads(kb.jwks())["keys"])
+            _res[_id] = {"keys": _l}
         return "%s" % (_res,)
 
     def keys(self):
@@ -618,12 +617,14 @@ class RedirectStdStreams(object):
 
     def __enter__(self):
         self.old_stdout, self.old_stderr = sys.stdout, sys.stderr
-        self.old_stdout.flush(); self.old_stderr.flush()
+        self.old_stdout.flush()
+        self.old_stderr.flush()
         sys.stdout, sys.stderr = self._stdout, self._stderr
 
     #noinspection PyUnusedLocal
-    def __exit__(self, exc_type, exc_value, traceback):
-        self._stdout.flush(); self._stderr.flush()
+    def __exit__(self, exc_type, exc_value, trace_back):
+        self._stdout.flush()
+        self._stderr.flush()
         sys.stdout = self.old_stdout
         sys.stderr = self.old_stderr
 
@@ -757,6 +758,25 @@ def proper_path(path):
     return path
 
 
+def ec_init(spec):
+    """
+
+    :param spec: Key specifics of the form
+    {"type": "EC", "crv": "P-256", "use": ["sig"]},
+    :return: A KeyBundle instance
+    """
+    typ = spec["type"].upper()
+    _key = NISTEllipticCurve.by_name(spec["crv"])
+    kb = KeyBundle(keytype=typ, keyusage=spec["use"])
+    for use in spec["use"]:
+        priv, pub = _key.key_pair()
+        ec = ECKey(x=pub[0], y=pub[1], d=priv, crv=spec["crv"])
+        ec.serialize()
+        ec.use = use
+        kb.append(ec)
+    return kb
+
+
 def keyjar_init(instance, key_conf, kid_template="a%d"):
     """
     Configuration of the type:
@@ -775,7 +795,6 @@ def keyjar_init(instance, key_conf, kid_template="a%d"):
     if instance.keyjar is None:
         instance.keyjar = KeyJar()
 
-    kbl = []
     kid = 0
     jwks = {"keys": []}
 
@@ -787,14 +806,7 @@ def keyjar_init(instance, key_conf, kid_template="a%d"):
                            fileformat="der",
                            keytype=typ, keyusage=spec["use"])
         elif typ == "EC":
-            _key = NISTEllipticCurve.by_name(spec["crv"])
-            kb = KeyBundle(keytype=typ, keyusage=spec["use"])
-            for use in spec["use"]:
-                priv, pub = _key.key_pair()
-                ec = ECKey(x=pub[0], y=pub[1], d=priv, crv=spec["crv"])
-                ec.serialize()
-                ec.use = use
-                kb.append(ec)
+            kb = ec_init(spec)
 
         for k in kb.keys():
             k.serialize()
