@@ -70,7 +70,7 @@ SERVER_INFO = {
     #"x509_url":"https://connect-op.heroku.com/cert.pem"
 }
 
-BASE_PATH = os.path.dirname(__file__)
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"

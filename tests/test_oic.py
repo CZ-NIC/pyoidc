@@ -56,7 +56,7 @@ CLIENT_ID = "client_1"
 
 KC_SYM_S = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "sig"})
 
-BASE_PATH = os.path.dirname(__file__)
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 _key = rsa_load("%s/rsa.key" % BASE_PATH)
 KC_RSA = KeyBundle({"key": _key, "kty": "RSA", "use": "sig"})
