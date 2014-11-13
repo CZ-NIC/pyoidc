@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import json
 import sys
 import os
 import traceback
@@ -14,7 +15,7 @@ from urlparse import parse_qs
 from oic.utils.authn.client import verify_client
 
 from oic.utils.authz import AuthzHandling
-from oic.utils.keyio import KeyBundle, dump_jwks
+from oic.utils.keyio import KeyBundle, dump_jwks, keyjar_init
 from oic.utils.userinfo import UserInfo
 from oic.utils.webfinger import WebFinger
 from oic.utils.webfinger import OIC_ISSUER
@@ -592,28 +593,19 @@ if __name__ == '__main__':
         OAS.baseurl += "/"
 
     try:
-        OAS.keyjar[""] = []
-        kbl = []
-        for typ, info in config.keys.items():
-            typ = typ.upper()
-            LOGGER.info("OC server key init: %s, %s" % (typ, info))
-            kb = KeyBundle(source="file://%s" % info["key"], fileformat="der",
-                           keytype=typ)
-            OAS.keyjar.add_kb("", kb)
-            kbl.append(kb)
-
-        try:
-            new_name = "static/jwks.json"
-            dump_jwks(kbl, new_name)
-            OAS.jwks_uri.append("%s%s" % (OAS.baseurl, new_name))
-        except KeyError:
-            pass
-
-        for b in OAS.keyjar[""]:
-            LOGGER.info("OC3 server keys: %s" % b)
+        jwks = keyjar_init(OAS, config.keys)
     except Exception, err:
         LOGGER.error("Key setup failed: %s" % err)
         OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
+    else:
+        new_name = "static/jwks.json"
+        f = open(new_name, "w")
+        f.write(json.dumps(jwks))
+        f.close()
+        OAS.jwks_uri.append("%s%s" % (OAS.baseurl, new_name))
+
+    for b in OAS.keyjar[""]:
+        LOGGER.info("OC3 server keys: %s" % b)
 
     if config.USERINFO == "LDAP":
         from oic.utils.userinfo.ldap_info import UserInfoLDAP

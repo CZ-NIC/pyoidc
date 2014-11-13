@@ -4,12 +4,11 @@
 baseurl = "https://localhost"
 #baseurl = "https://lingon.ladok.umu.se"
 issuer = "%s:%%d" % baseurl
-keys = {
-    "RSA": {
-        "key": "cp_keys/key.pem",
-        "usage": ["enc", "sig"]
-    }
-}
+keys = [
+    {"type": "RSA", "key": "cp_keys/key.pem", "use": ["enc", "sig"]},
+    {"type": "EC", "crv": "P-256", "use": ["sig"]},
+    {"type": "EC", "crv": "P-256", "use": ["enc"]}
+]
 
 CAS_SERVER  = "https://cas.umu.se"
 SERVICE_URL = "%s/verify" % issuer

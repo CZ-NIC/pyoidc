@@ -553,16 +553,17 @@ if __name__ == '__main__':
     if not OAS.baseurl.endswith("/"):
         OAS.baseurl += "/"
 
-    jwks = keyjar_init(OAS, config.keys)
-
     try:
+        jwks = keyjar_init(OAS, config.keys)
+    except Exception, err:
+        LOGGER.error("Key setup failed: %s" % err)
+        OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
+    else:
         new_name = "static/jwks.json"
         f = open(new_name, "w")
         f.write(json.dumps(jwks))
         f.close()
         OAS.jwks_uri.append("%s%s" % (OAS.baseurl, new_name))
-    except KeyError:
-        pass
 
     for b in OAS.keyjar[""]:
         LOGGER.info("OC3 server keys: %s" % b)
