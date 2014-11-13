@@ -105,7 +105,6 @@ class KeyBundle(object):
                 except KeyError:
                     continue
                 else:
-                    _key.dc()
                     if _typ == "EC":
                         _key.ser = True
                     self._keys.append(_key)

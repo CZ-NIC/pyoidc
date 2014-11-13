@@ -166,12 +166,14 @@ def test_kid_usage():
 
 
 def test_dump_own_keys():
-    kb = keybundle_from_local_file("file://%s/jwk.json" % BASE_PATH, "jwk", ["ver", "sig"])
+    kb = keybundle_from_local_file("file://%s/jwk.json" % BASE_PATH, "jwk",
+                                   ["ver", "sig"])
     assert len(kb) == 1
     kj = KeyJar()
     kj.issuer_keys[""] = [kb]
     res = kj.dump_issuer_keys("")
 
+    print res
     assert len(res) == 1
     assert res[0] == {
         'use': u'sig',
@@ -203,9 +205,6 @@ def test_enc_hmac():
     kj.issuer_keys["abcdefgh"] = [kb]
     keys = kj.get_encrypt_key(owner="abcdefgh")
 
-    for key in keys:
-        key.deserialize()
-
     _enctxt = _jwe.encrypt(keys, context="public")
     assert _enctxt
 
@@ -216,4 +215,4 @@ def test_enc_hmac():
     assert json.loads(msg) == payload
 
 if __name__ == "__main__":
-    test_enc_hmac()
+    test_dump_own_keys()

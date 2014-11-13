@@ -54,7 +54,8 @@ def _eq(l1, l2):
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
-KC_SYM_S = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "sig"})
+KC_SYM_S = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "sig",
+                      "alg": "HS256"})
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -1161,8 +1162,8 @@ def test_make_id_token():
 
 
 if __name__ == "__main__":
-    t = TestOICClient()
-    t.setup_class()
-    t.test_access_token_request()
+    # t = TestOICClient()
+    # t.setup_class()
+    # t.test_access_token_request()
 
-    #test_userinfo_request()
+    test_client_secret_jwt()

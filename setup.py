@@ -16,8 +16,24 @@
 #
 
 from setuptools import setup
+from setuptools.command.test import test as TestCommand
+import sys
 
 __author__ = 'rohe0002'
+
+
+class PyTest(TestCommand):
+
+    def finalize_options(self):
+        TestCommand.finalize_options(self)
+        self.test_args = []
+        self.test_suite = True
+
+    def run_tests(self):
+        #import here, cause outside the eggs aren't loaded
+        import pytest
+        errno = pytest.main(self.test_args)
+        sys.exit(errno)
 
 setup(
     name="oic",
@@ -36,6 +52,7 @@ setup(
     install_requires = ['requests', "pycrypto>=2.6.1", "cherrypy==3.2.4",
                         "mako", "pyjwkest", "beaker", "alabaster", "importlib",
                         "argparse", "pyOpenSSL"],
-
+    tests_require=['pytest'],
     zip_safe=False,
+    cmdclass={'test': PyTest},
 )

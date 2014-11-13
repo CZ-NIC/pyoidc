@@ -197,4 +197,4 @@ def test_private_key_jwt():
     assert header == {'alg': 'RS256'}
 
 if __name__ == "__main__":
-    test_3()
+    test_client_secret_jwt()
