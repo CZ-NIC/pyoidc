@@ -559,6 +559,7 @@ def test_registration_endpoint():
     req["client_name"] = "My super service"
     req["redirect_uris"] = ["http://example.com/authz"]
     req["contacts"] = ["foo@example.com"]
+    req["response_types"] = ["code"]
 
     print req.to_dict()
 
@@ -572,7 +573,7 @@ def test_registration_endpoint():
                                 'client_secret_expires_at',
                                 'registration_access_token',
                                 'client_id', 'client_secret',
-                                'client_id_issued_at'])
+                                'client_id_issued_at', 'response_types'])
 
 
 def test_provider_key_setup():
@@ -599,7 +600,8 @@ def _client_id(cdb):
 def test_registered_redirect_uri_without_query_component():
     provider = Provider("FOO", {}, {}, None, None, None, None, "")
     rr = RegistrationRequest(operation="register",
-                             redirect_uris=["http://example.org/cb"])
+                             redirect_uris=["http://example.org/cb"],
+                             response_types=["code"])
 
     registration_req = rr.to_json()
 
@@ -648,7 +650,8 @@ def test_registered_redirect_uri_with_query_component():
     provider2 = Provider("FOOP", {}, {}, None, None, None, None, "")
 
     rr = RegistrationRequest(operation="register",
-                             redirect_uris=["http://example.org/cb?foo=bar"])
+                             redirect_uris=["http://example.org/cb?foo=bar"],
+                             response_types=["code"])
 
     registration_req = rr.to_json()
     resp = provider2.registration_endpoint(request=registration_req)
