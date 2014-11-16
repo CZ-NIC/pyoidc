@@ -105,8 +105,6 @@ class KeyBundle(object):
                 except KeyError:
                     continue
                 else:
-                    if _typ == "EC":
-                        _key.ser = True
                     self._keys.append(_key)
                     flag = 1
                     break
@@ -117,20 +115,14 @@ class KeyBundle(object):
         self.do_keys(json.loads(open(filename).read())["keys"])
 
     def do_local_der(self, filename, keytype, keyusage):
-        _bkey = None
-        if keytype == "RSA":
-            _bkey = rsa_load(filename)
+        # This is only for RSA keys
+        _bkey = rsa_load(filename)
 
         if not keyusage:
             keyusage = ["enc", "sig"]
 
         for use in keyusage:
-            _key = K2C[keytype]()
-            _key.key = _bkey
-
-            if _bkey:
-                _key.serialize()
-
+            _key = RSAKey().load_key(_bkey)
             _key.use = use
             self._keys.append(_key)
 
@@ -808,7 +800,6 @@ def keyjar_init(instance, key_conf, kid_template="a%d"):
             kb = ec_init(spec)
 
         for k in kb.keys():
-            k.serialize()
             k.kid = kid_template % kid
             kid += 1
             instance.kid[k.use][k.kty] = k.kid
@@ -816,8 +807,8 @@ def keyjar_init(instance, key_conf, kid_template="a%d"):
         jwks["keys"].extend([k.to_dict()
                              for k in kb.keys() if k.kty != 'oct'])
 
-        for k in kb.keys():
-            k.deserialize()
+        # for k in kb.keys():
+        #     k.deserialize()
 
         instance.keyjar.add_kb("", kb)
 

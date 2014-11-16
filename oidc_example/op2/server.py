@@ -249,6 +249,22 @@ def static(environ, start_response, logger, path):
         return resp(environ, start_response)
 
 # ----------------------------------------------------------------------------
+
+
+def key_rollover(environ, start_response, _):
+    # expects a post containing the necessary information
+    _jwks = json.loads(get_post(environ))
+    OAS.do_key_rollover(_jwks, "key_%d_%%d" % int(time.time()))
+    resp = Response("OK")
+    return resp(environ, start_response)
+
+
+def clear_keys(environ, start_response, _):
+    OAS.remove_inactive_keys()
+    resp = Response("OK")
+    return resp(environ, start_response)
+
+# ----------------------------------------------------------------------------
 from oic.oic.provider import AuthorizationEndpoint
 from oic.oic.provider import TokenEndpoint
 from oic.oic.provider import UserinfoEndpoint
@@ -270,6 +286,8 @@ URLS = [
 #    (r'^.well-known/webfinger', webfinger),
     (r'.+\.css$', css),
     (r'safe', safe),
+    (r'^keyrollover', key_rollover),
+    (r'^clearkeys', clear_keys)
 #    (r'tracelog', trace_log),
 ]
 

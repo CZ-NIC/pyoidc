@@ -1691,7 +1691,7 @@ class Provider(AProvider):
         """
         return self.end_session_endpoint(request, **kwargs)
 
-    def do_key_rollover(self, jwk, kid_template):
+    def do_key_rollover(self, jwks, kid_template):
         """
         Handle key roll-over by importing new keys and inactivating the
         ones in the keyjar that are of the same type and usage.
@@ -1700,13 +1700,13 @@ class Provider(AProvider):
         """
 
         kb = KeyBundle()
-        kb.do_keys(jwk["keys"])
+        kb.do_keys(jwks["keys"])
 
         kid = 0
         for k in kb.keys():
-            k.serialize()
-            k.kid = kid_template % kid
-            kid += 1
+            if not k.kid:
+                k.kid = kid_template % kid
+                kid += 1
             self.kid[k.use][k.kty] = k.kid
 
             # find the old key for this key type and usage and mark that
@@ -1730,7 +1730,7 @@ class Provider(AProvider):
         """
         Remove all keys that has been inactive 'more_then' seconds
 
-        :param more_then: An integer
+        :param more_then: An integer (default = 3600 seconds == 1 hour)
         """
         now = time.time()
         for kb in self.keyjar.issuer_keys[""]:
