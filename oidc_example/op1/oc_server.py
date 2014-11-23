@@ -4,6 +4,7 @@ import json
 import sys
 import os
 import traceback
+import pdb
 
 from exceptions import KeyError
 from exceptions import Exception
@@ -263,6 +264,10 @@ def meta_info(environ, start_response, logger):
 
 
 def webfinger(environ, start_response, _):
+    """
+    In this method it will extract the domain from the email
+    Is not clear how it does it
+    """
     query = parse_qs(environ["QUERY_STRING"])
     try:
         assert query["rel"] == [OIC_ISSUER]
@@ -373,6 +378,7 @@ def application(environ, start_response):
         request is done
     :return: The response as a list of lines
     """
+
     global OAS
 
     #user = environ.get("REMOTE_USER", "")
@@ -384,7 +390,7 @@ def application(environ, start_response):
         return static(environ, start_response, logger, "static/robots.txt")
 
     environ["oic.oas"] = OAS
-    
+
     #remote = environ.get("REMOTE_ADDR")
     #kaka = environ.get("HTTP_COOKIE", '')
 
@@ -392,7 +398,6 @@ def application(environ, start_response):
         return static(environ, start_response, logger, path)
 #    elif path.startswith("oc_keys/"):
 #        return static(environ, start_response, logger, path)
-
     for regex, callback in URLS:
         match = re.search(regex, path)
         if match is not None:
@@ -400,8 +405,6 @@ def application(environ, start_response):
                 environ['oic.url_args'] = match.groups()[0]
             except IndexError:
                 environ['oic.url_args'] = path
-
-            logger.info("callback: %s" % callback)
             try:
                 return callback(environ, start_response, logger)
             except Exception as err:

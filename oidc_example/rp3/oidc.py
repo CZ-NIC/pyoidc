@@ -202,8 +202,11 @@ class OIDCClients(object):
         return client
 
     def dynamic_client(self, userid):
-        client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD, verify_ssl=self.config.VERIFY_SSL)
-        issuer = client.wf.discovery_query(userid)
+        client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
+                                 verify_ssl=self.config.VERIFY_SSL)
+        # The discovery method is just extracing the hostname from the email
+        # issuer = client.wf.discovery_query(userid)
+        issuer = "https://localhost:8092/"
         if issuer in self.client:
             return self.client[issuer]
         else:
