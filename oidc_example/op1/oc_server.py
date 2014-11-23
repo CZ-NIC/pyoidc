@@ -4,7 +4,7 @@ import json
 import sys
 import os
 import traceback
-import pdb
+
 
 from exceptions import KeyError
 from exceptions import Exception
@@ -264,10 +264,6 @@ def meta_info(environ, start_response, logger):
 
 
 def webfinger(environ, start_response, _):
-    """
-    In this method it will extract the domain from the email
-    Is not clear how it does it
-    """
     query = parse_qs(environ["QUERY_STRING"])
     try:
         assert query["rel"] == [OIC_ISSUER]
