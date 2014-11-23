@@ -5,7 +5,6 @@ import sys
 import os
 import traceback
 
-
 from exceptions import KeyError
 from exceptions import Exception
 from exceptions import OSError
@@ -384,7 +383,6 @@ def application(environ, start_response):
 
     if path == "robots.txt":
         return static(environ, start_response, logger, "static/robots.txt")
-
     environ["oic.oas"] = OAS
 
     #remote = environ.get("REMOTE_ADDR")
@@ -394,6 +392,7 @@ def application(environ, start_response):
         return static(environ, start_response, logger, path)
 #    elif path.startswith("oc_keys/"):
 #        return static(environ, start_response, logger, path)
+
     for regex, callback in URLS:
         match = re.search(regex, path)
         if match is not None:
@@ -401,6 +400,8 @@ def application(environ, start_response):
                 environ['oic.url_args'] = match.groups()[0]
             except IndexError:
                 environ['oic.url_args'] = path
+
+            logger.info("callback: %s" % callback)
             try:
                 return callback(environ, start_response, logger)
             except Exception as err:
