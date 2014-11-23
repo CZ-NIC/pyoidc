@@ -13,8 +13,6 @@ from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AccessTokenResponse
 from oic.utils.webfinger import WebFinger
 
-
-
 __author__ = 'rolandh'
 
 logger = logging.getLogger(__name__)
@@ -57,13 +55,13 @@ class OpenIDConnect(object):
         self.authn_method = None
         self.registration_info = registration_info
 
-    def dynamic(self, server_env, callback, logoutCallback, session, key):
+    def dynamic(self, server_env, callback, logout_callback, session, key):
         try:
             client = server_env["OIC_CLIENT"][key]
         except KeyError:
             client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD)
             client.redirect_uris = [callback]
-            client.post_logout_redirect_uris = [logoutCallback]
+            client.post_logout_redirect_uris = [logout_callback]
 
             _me = self.registration_info.copy()
             _me["redirect_uris"] = [callback]
@@ -86,14 +84,14 @@ class OpenIDConnect(object):
                 server_env["OIC_CLIENT"] = {key: client}
         return client
 
-    def static(self, server_env, callback, logoutCallback, key):
+    def static(self, server_env, callback, logout_callback, key):
         try:
             client = server_env["OIC_CLIENT"][key]
             logger.debug("Static client: %s" % server_env["OIC_CLIENT"])
         except KeyError:
             client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD)
             client.redirect_uris = [callback]
-            client.post_logout_redirect_uris = [logoutCallback]
+            client.post_logout_redirect_uris = [logout_callback]
             for typ in ["authorization", "token", "userinfo"]:
                 endpoint = "%s_endpoint" % typ
                 setattr(client, endpoint, self.extra[endpoint])
@@ -130,13 +128,17 @@ class OpenIDConnect(object):
                 if not resp.ok and resp.status_code == 400:
                     client = None
                     server_env["OIC_CLIENT"].pop(key, None)
+
+            _state = ""
             if client is None:
                 callback = server_env["base_url"] + key
-                logoutCallback = server_env["base_url"]
+                logout_callback = server_env["base_url"]
                 if self.srv_discovery_url:
-                    client = self.dynamic(server_env, callback, logoutCallback, session, key)
+                    client = self.dynamic(server_env, callback, logout_callback,
+                                          session, key)
                 else:
-                    client = self.static(server_env, callback, logoutCallback, key)
+                    client = self.static(server_env, callback, logout_callback,
+                                         key)
                 _state = session.getState()
                 session.setClient(client)
 
@@ -144,10 +146,11 @@ class OpenIDConnect(object):
             try:
                 acr_values = client.provider_info["acr_values_supported"]
                 session.set_acr_values(acr_values)
-            except:
+            except KeyError:
                 acr_values = None
 
-            if acr_value is None and acr_values is not None and len(acr_values) > 1:
+            if acr_value is None and acr_values is not None and \
+                    len(acr_values) > 1:
                 resp_headers = [("Location", str("/rpAcr"))]
                 start_response("302 Found", resp_headers)
                 return []

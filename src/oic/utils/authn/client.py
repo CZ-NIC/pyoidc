@@ -259,7 +259,8 @@ class JWSAuthnMethod(ClientAuthnMethod):
         return algorithm
 
     def get_signing_key(self, algorithm):
-        return self.cli.keyjar.get_signing_key(alg2keytype(algorithm))
+        return self.cli.keyjar.get_signing_key(alg2keytype(algorithm),
+                                               alg=algorithm)
 
     def get_key_by_kid(self, kid, algorithm):
         _key = self.cli.keyjar.get_key_by_kid(kid)
@@ -328,8 +329,13 @@ class JWSAuthnMethod(ClientAuthnMethod):
         logger.debug("authntoken: %s" % bjwt.to_dict())
         # logger.debug("known clients: %s" % self.cli.cdb.keys())
         try:
+            cid = kwargs["client_id"]
+        except KeyError:
+            cid = bjwt["iss"]
+
+        try:
             # There might not be a client_id in the request
-            assert str(bjwt["iss"]) in self.cli.cdb  # It's a client I know
+            assert str(cid) in self.cli.cdb  # It's a client I know
         except KeyError:
             pass
 
@@ -347,7 +353,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
         except AssertionError:
             raise NotForMe("Not for me!")
 
-        return True
+        return cid
 
 
 class ClientSecretJWT(JWSAuthnMethod):
@@ -362,7 +368,8 @@ class ClientSecretJWT(JWSAuthnMethod):
         return JWSAuthnMethod.choose_algorithm(self, entity, **kwargs)
 
     def get_signing_key(self, algorithm):
-        return self.cli.keyjar.get_signing_key(alg2keytype(algorithm))
+        return self.cli.keyjar.get_signing_key(alg2keytype(algorithm),
+                                               alg=algorithm)
 
 
 class PrivateKeyJWT(JWSAuthnMethod):
@@ -374,7 +381,8 @@ class PrivateKeyJWT(JWSAuthnMethod):
         return JWSAuthnMethod.choose_algorithm(self, entity, **kwargs)
 
     def get_signing_key(self, algorithm):
-        return self.cli.keyjar.get_signing_key(alg2keytype(algorithm), "")
+        return self.cli.keyjar.get_signing_key(alg2keytype(algorithm), "",
+                                               alg=algorithm)
 
 
 # from oic.utils.authn.client_saml import SAML2_BEARER_ASSERTION_TYPE
@@ -409,7 +417,7 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
     elif "client_assertion" in areq:  # client_secret_jwt or public_key_jwt
         for typ, method in type_method:
             if areq["client_assertion_type"] == typ:
-                return method(inst).verify(areq)
+                return method(inst).verify(areq, client_id=client_id)
         else:
             raise UnknownAssertionType(areq["client_assertion_type"], areq)
     else:

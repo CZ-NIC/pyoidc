@@ -26,7 +26,7 @@ CLIENT_ID = "client_1"
 KC_SYM_VS = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "ver"})
 KC_SYM_S = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "sig"})
 
-BASE_PATH = os.path.dirname(__file__)
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 KC_RSA = keybundle_from_local_file("%s/rsa.key" % BASE_PATH,
                                    "rsa", ["ver", "sig"])

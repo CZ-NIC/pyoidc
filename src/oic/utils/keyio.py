@@ -1,7 +1,7 @@
 import json
 import time
 from Crypto.PublicKey import RSA
-
+from cryptlib.ecc import NISTEllipticCurve
 from oic.exception import MessageException
 
 
@@ -39,7 +39,6 @@ K2C = {
     "RSA": RSAKey,
     "EC": ECKey,
     "oct": SYMKey,
-    # "pkix": PKIX_key
 }
 
 
@@ -107,9 +106,6 @@ class KeyBundle(object):
                 except KeyError:
                     continue
                 else:
-                    _key.dc()
-                    if _typ == "EC":
-                        _key.ser = True
                     self._keys.append(_key)
                     flag = 1
                     break
@@ -120,20 +116,14 @@ class KeyBundle(object):
         self.do_keys(json.loads(open(filename).read())["keys"])
 
     def do_local_der(self, filename, keytype, keyusage):
-        _bkey = None
-        if keytype == "RSA":
-            _bkey = rsa_load(filename)
+        # This is only for RSA keys
+        _bkey = rsa_load(filename)
 
         if not keyusage:
             keyusage = ["enc", "sig"]
 
         for use in keyusage:
-            _key = K2C[keytype]()
-            _key.key = _bkey
-
-            if _bkey:
-                _key.serialize()
-
+            _key = RSAKey().load_key(_bkey)
             _key.use = use
             self._keys.append(_key)
 
@@ -217,7 +207,7 @@ class KeyBundle(object):
 
         return self._keys
 
-    def remove(self, typ, val=None):
+    def remove_key(self, typ, val=None):
         """
 
         :param typ: Type of key (rsa, ec, oct, ..)
@@ -238,6 +228,9 @@ class KeyBundle(object):
 
     def append(self, key):
         self._keys.append(key)
+
+    def remove(self, key):
+        self._keys.remove(key)
 
     def __len__(self):
         return len(self._keys)
@@ -290,7 +283,8 @@ def dump_jwks(kbl, target):
     res = {"keys": []}
     for kb in kbl:
         # ignore simple keys
-        res["keys"].extend([k.to_dict() for k in kb.keys() if k.kty != 'oct'])
+        res["keys"].extend([k.to_dict() for k in kb.keys() if
+                            k.kty != 'oct' and not k.inactive_since])
 
     try:
         f = open(target, 'w')
@@ -374,7 +368,7 @@ class KeyJar(object):
 
         self.issuer_keys[issuer] = val
 
-    def get(self, use, key_type="", issuer="", kid=None):
+    def get(self, use, key_type="", issuer="", kid=None, **kwargs):
         """
 
         :param use: A key useful for this usage (enc, dec, sig, ver)
@@ -421,19 +415,33 @@ class KeyJar(object):
                         lst.append(key)
                 if kid and lst:
                     break
+
+        # if elliptic curve have to check I have a key of the right curve
+        if key_type == "EC" and "alg" in kwargs:
+            name = "P-{}".format(kwargs["alg"][2:])  # the type
+            _lst = []
+            for key in lst:
+                try:
+                    assert name == key.crv
+                except AssertionError:
+                    pass
+                else:
+                    _lst.append(key)
+            lst = _lst
+
         return lst
 
-    def get_signing_key(self, key_type="", owner="", kid=None):
-        return self.get("sig", key_type, owner, kid)
+    def get_signing_key(self, key_type="", owner="", kid=None, **kwargs):
+        return self.get("sig", key_type, owner, kid, **kwargs)
 
-    def get_verify_key(self, key_type="", owner="", kid=None):
-        return self.get("ver", key_type, owner, kid)
+    def get_verify_key(self, key_type="", owner="", kid=None, **kwargs):
+        return self.get("ver", key_type, owner, kid, **kwargs)
 
-    def get_encrypt_key(self, key_type="", owner="", kid=None):
-        return self.get("enc", key_type, owner, kid)
+    def get_encrypt_key(self, key_type="", owner="", kid=None, **kwargs):
+        return self.get("enc", key_type, owner, kid, **kwargs)
 
-    def get_decrypt_key(self, key_type="", owner="", kid=None):
-        return self.get("dec", key_type, owner, kid)
+    def get_decrypt_key(self, key_type="", owner="", kid=None, **kwargs):
+        return self.get("dec", key_type, owner, kid, **kwargs)
 
     def get_key_by_kid(self, kid, owner=""):
         """
@@ -491,8 +499,8 @@ class KeyJar(object):
             return
 
         for kc in kcs:
-            kc.remove(key_type, key)
-            if len(kc._keys) == 0:
+            kc.remove_key(key_type, key)
+            if len(kc) == 0:
                 self.issuer_keys[issuer].remove(kc)
 
     def update(self, kj):
@@ -516,8 +524,11 @@ class KeyJar(object):
 
     def __str__(self):
         _res = {}
-        for k, vs in self.issuer_keys.items():
-            _res[k] = [str(v) for v in vs]
+        for _id, kbs in self.issuer_keys.items():
+            _l = []
+            for kb in kbs:
+                _l.extend(json.loads(kb.jwks())["keys"])
+            _res[_id] = {"keys": _l}
         return "%s" % (_res,)
 
     def keys(self):
@@ -599,13 +610,13 @@ class RedirectStdStreams(object):
 
     def __enter__(self):
         self.old_stdout, self.old_stderr = sys.stdout, sys.stderr
-        self.old_stdout.flush();
+        self.old_stdout.flush()
         self.old_stderr.flush()
         sys.stdout, sys.stderr = self._stdout, self._stderr
 
-    # noinspection PyUnusedLocal
-    def __exit__(self, exc_type, exc_value, traceback):
-        self._stdout.flush();
+    #noinspection PyUnusedLocal
+    def __exit__(self, exc_type, exc_value, trace_back):
+        self._stdout.flush()
         self._stderr.flush()
         sys.stdout = self.old_stdout
         sys.stderr = self.old_stderr
@@ -740,52 +751,68 @@ def proper_path(path):
 
     return path
 
-# ================= create certificate ======================
-# heavily influenced by
-# http://svn.osafoundation.org/m2crypto/trunk/tests/test_x509.py
 
-#
-#
-# def make_req(bits, fqdn="example.com", rsa=None):
-# pk = EVP.PKey()
-# x = X509.Request()
-#     if not rsa:
-#         rsa = RSA.gen_key(bits, 65537, lambda: None)
-#     pk.assign_rsa(rsa)
-#     # Because rsa is messed with
-#     rsa = pk.get_rsa()
-#     x.set_pubkey(pk)
-#     name = x.get_subject()
-#     name.C = "SE"
-#     name.CN = "OpenID Connect Test Server"
-#     if fqdn:
-#         ext1 = X509.new_extension('subjectAltName', fqdn)
-#         extstack = X509.X509_Extension_Stack()
-#         extstack.push(ext1)
-#         x.add_extensions(extstack)
-#     x.sign(pk, 'sha1')
-#     return x, pk, rsa
-#
-#
-# def make_cert(bits, fqdn="example.com", rsa=None):
-#     req, pk, rsa = make_req(bits, fqdn=fqdn, rsa=rsa)
-#     pkey = req.get_pubkey()
-#     sub = req.get_subject()
-#     cert = X509.X509()
-#     cert.set_serial_number(1)
-#     cert.set_version(2)
-#     cert.set_subject(sub)
-#     t = long(time.time()) + time.timezone
-#     now = ASN1.ASN1_UTCTIME()
-#     now.set_time(t)
-#     nowPlusYear = ASN1.ASN1_UTCTIME()
-#     nowPlusYear.set_time(t + 60 * 60 * 24 * 365)
-#     cert.set_not_before(now)
-#     cert.set_not_after(nowPlusYear)
-#     issuer = X509.X509_Name()
-#     issuer.CN = 'The code tester'
-#     issuer.O = 'Umea University'
-#     cert.set_issuer(issuer)
-#     cert.set_pubkey(pkey)
-#     cert.sign(pk, 'sha1')
-#     return cert, rsa
+def ec_init(spec):
+    """
+
+    :param spec: Key specifics of the form
+    {"type": "EC", "crv": "P-256", "use": ["sig"]},
+    :return: A KeyBundle instance
+    """
+    typ = spec["type"].upper()
+    _key = NISTEllipticCurve.by_name(spec["crv"])
+    kb = KeyBundle(keytype=typ, keyusage=spec["use"])
+    for use in spec["use"]:
+        priv, pub = _key.key_pair()
+        ec = ECKey(x=pub[0], y=pub[1], d=priv, crv=spec["crv"])
+        ec.serialize()
+        ec.use = use
+        kb.append(ec)
+    return kb
+
+
+def keyjar_init(instance, key_conf, kid_template="a%d"):
+    """
+    Configuration of the type:
+    keys = [
+        {"type": "RSA", "key": "cp_keys/key.pem", "use": ["enc", "sig"]},
+        {"type": "EC", "crv": "P-256", "use": ["sig"]},
+        {"type": "EC", "crv": "P-256", "use": ["enc"]}
+    ]
+
+    :param instance: server/client instance
+    :param key_conf: The key configuration
+    :param kid_template: A template by which to build the kids
+    :return: a JWKS
+    """
+
+    if instance.keyjar is None:
+        instance.keyjar = KeyJar()
+
+    kid = 0
+    jwks = {"keys": []}
+
+    for spec in key_conf:
+        typ = spec["type"].upper()
+
+        if typ == "RSA":
+            kb = KeyBundle(source="file://%s" % spec["key"],
+                           fileformat="der",
+                           keytype=typ, keyusage=spec["use"])
+        elif typ == "EC":
+            kb = ec_init(spec)
+
+        for k in kb.keys():
+            k.kid = kid_template % kid
+            kid += 1
+            instance.kid[k.use][k.kty] = k.kid
+
+        jwks["keys"].extend([k.to_dict()
+                             for k in kb.keys() if k.kty != 'oct'])
+
+        # for k in kb.keys():
+        #     k.deserialize()
+
+        instance.keyjar.add_kb("", kb)
+
+    return jwks

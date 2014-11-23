@@ -70,6 +70,8 @@ def address_deser(val, sformat="urlencoded"):
         if not isinstance(val, basestring):
             val = json.dumps(val)
             sformat = "json"
+        elif sformat == "dict":
+            sformat = "json"
     return AddressClaim().deserialize(val, sformat)
 
 

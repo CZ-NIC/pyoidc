@@ -16,7 +16,7 @@ from oic.utils.keyio import KeyBundle, keybundle_from_local_file
 from oic.utils.keyio import KeyJar
 
 
-BASE_PATH = os.path.dirname(__file__)
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 CLIENT_CONFIG = {
     "client_id": "number5",

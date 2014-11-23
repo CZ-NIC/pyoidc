@@ -21,7 +21,7 @@ __author__ = 'rolandh'
 
 PASSWD = {"user": "hemligt"}
 
-BASE_PATH = os.path.dirname(__file__)
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 ROOT = '%s/../oidc_example/op2/' % BASE_PATH
 tl = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
@@ -197,4 +197,4 @@ def test_private_key_jwt():
     assert header == {'alg': 'RS256'}
 
 if __name__ == "__main__":
-    test_3()
+    test_client_secret_jwt()

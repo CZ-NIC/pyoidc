@@ -1,4 +1,6 @@
+import json
 import os
+from time import sleep
 
 from mako.lookup import TemplateLookup
 from oic.oauth2 import rndstr
@@ -10,7 +12,7 @@ from oic.utils.userinfo import UserInfo
 
 from oic.exception import RedirectURIError
 
-from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import KeyBundle, ec_init
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import keybundle_from_local_file
 
@@ -70,7 +72,7 @@ SERVER_INFO = {
     #"x509_url":"https://connect-op.heroku.com/cert.pem"
 }
 
-BASE_PATH = os.path.dirname(__file__)
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
@@ -557,6 +559,7 @@ def test_registration_endpoint():
     req["client_name"] = "My super service"
     req["redirect_uris"] = ["http://example.com/authz"]
     req["contacts"] = ["foo@example.com"]
+    req["response_types"] = ["code"]
 
     print req.to_dict()
 
@@ -570,7 +573,7 @@ def test_registration_endpoint():
                                 'client_secret_expires_at',
                                 'registration_access_token',
                                 'client_id', 'client_secret',
-                                'client_id_issued_at'])
+                                'client_id_issued_at', 'response_types'])
 
 
 def test_provider_key_setup():
@@ -597,7 +600,8 @@ def _client_id(cdb):
 def test_registered_redirect_uri_without_query_component():
     provider = Provider("FOO", {}, {}, None, None, None, None, "")
     rr = RegistrationRequest(operation="register",
-                             redirect_uris=["http://example.org/cb"])
+                             redirect_uris=["http://example.org/cb"],
+                             response_types=["code"])
 
     registration_req = rr.to_json()
 
@@ -646,7 +650,8 @@ def test_registered_redirect_uri_with_query_component():
     provider2 = Provider("FOOP", {}, {}, None, None, None, None, "")
 
     rr = RegistrationRequest(operation="register",
-                             redirect_uris=["http://example.org/cb?foo=bar"])
+                             redirect_uris=["http://example.org/cb?foo=bar"],
+                             response_types=["code"])
 
     registration_req = rr.to_json()
     resp = provider2.registration_endpoint(request=registration_req)
@@ -690,5 +695,23 @@ def test_registered_redirect_uri_with_query_component():
         print resp
         assert resp is None
 
+
+def test_key_rollover():
+    provider2 = Provider("FOOP", {}, {}, None, None, None, None, "")
+    provider2.keyjar = KEYJAR
+    # Number of KeyBundles
+    assert len(provider2.keyjar.issuer_keys[""]) == 1
+    kb = ec_init({"type": "EC", "crv": "P-256", "use": ["sig"]})
+    provider2.do_key_rollover(json.loads(kb.jwks()), "b%d")
+    print provider2.keyjar
+    assert len(provider2.keyjar.issuer_keys[""]) == 2
+    kb = ec_init({"type": "EC", "crv": "P-256", "use": ["sig"]})
+    provider2.do_key_rollover(json.loads(kb.jwks()), "b%d")
+    print provider2.keyjar
+    assert len(provider2.keyjar.issuer_keys[""]) == 3
+    sleep(1)
+    provider2.remove_inactive_keys(0)
+    assert len(provider2.keyjar.issuer_keys[""]) == 2
+
 if __name__ == "__main__":
-    test_server_authenticated_2()
+    test_key_rollover()

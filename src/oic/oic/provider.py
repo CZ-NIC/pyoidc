@@ -13,7 +13,7 @@ from oic.utils.authn.user import NoSuchAuthentication
 from oic.utils.authn.user import ToOld
 from oic.utils.authn.user import TamperAllert
 from oic.utils.time_util import utc_time_sans_frac
-from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import KeyBundle, dump_jwks
 from oic.utils.keyio import key_export
 from oic.oauth2.message import by_schema
 from oic.oic.message import RefreshAccessTokenRequest
@@ -35,6 +35,9 @@ from oic.oic.message import DiscoveryRequest
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import DiscoveryResponse
 
+from jwkest import jws, jwe
+from jwkest.jws import alg2keytype
+from jwkest.jws import NoSuitableSigningKeys
 
 __author__ = 'rohe0002'
 
@@ -185,7 +188,11 @@ class Provider(AProvider):
         self.seed = ""
         self.sso_ttl = 0
         self.test_mode = False
+
+        # where the jwks file kan be found by outsiders
         self.jwks_uri = []
+        # Local filename
+        self.jwks_name = ""
 
         self.authn_as = None
         self.preferred_id_type = "public"
@@ -210,6 +217,7 @@ class Provider(AProvider):
         else:
             self.capabilities = self.provider_features()
         self.capabilities["issuer"] = self.name
+        self.kid = {"sig": {}, "enc": {}}
 
     def set_mode(self, mode):
         """
@@ -276,7 +284,8 @@ class Provider(AProvider):
             if "" in self.keyjar:
                 for b in self.keyjar[""]:
                     logger.debug("OC3 server keys: %s" % b)
-                ckey = self.keyjar.get_signing_key(alg2keytype(alg), "")
+                ckey = self.keyjar.get_signing_key(alg2keytype(alg), "",
+                                                   alg=alg)
             else:
                 ckey = None
         logger.debug("ckey: %s" % ckey)
@@ -768,9 +777,10 @@ class Provider(AProvider):
                 _idtoken = self.sign_encrypt_id_token(
                     _info, client_info, req, user_info=userinfo,
                     auth_time=_info["auth_time"])
-            except JWEException:
+            except (JWEException, NoSuitableSigningKeys) as err:
+                logger.warning(str(err))
                 return self._error(error="access_denied",
-                                   descr="Could not encrypt id_token")
+                                   descr="Could not sign/encrypt id_token")
 
             _sdb.update_by_token(_access_code, "id_token", _idtoken)
 
@@ -905,7 +915,7 @@ class Provider(AProvider):
             algo = self.jwx_def["sign_alg"]["userinfo"]
 
         # Use my key for signing
-        key = self.keyjar.get_signing_key(alg2keytype(algo), "")
+        key = self.keyjar.get_signing_key(alg2keytype(algo), "", alg=algo)
         if not key:
             return self._error(error="access_denied",
                                descr="Missing signing key")
@@ -1057,14 +1067,43 @@ class Provider(AProvider):
 
         if "redirect_uris" in request:
             ruri = []
+            client_type = request["application_type"]
+
+            if client_type == "web":
+                if request["response_types"] == ["code"]:
+                    must_https = False
+                else:  # one has to be implicit or hybrid
+                    must_https = True
+            else:
+                must_https = False
+
             for uri in request["redirect_uris"]:
-                if urlparse.urlparse(uri).fragment:
+                p = urlparse.urlparse(uri)
+                err = None
+                if client_type == "native" and p.scheme == "http":
+                    if p.hostname != "localhost":
+                        err = ClientRegistrationErrorResponse(
+                            error="invalid_configuration_parameter",
+                            error_description="Http redirect_uri must use localhost")
+                elif must_https and p.scheme != "https":
+                    err = ClientRegistrationErrorResponse(
+                        error="invalid_configuration_parameter",
+                        error_description="None https redirect_uri not allowed")
+                elif p.fragment:
                     err = ClientRegistrationErrorResponse(
                         error="invalid_configuration_parameter",
                         error_description="redirect_uri contains fragment")
+                # This rule will break local testing.
+                # elif must_https and p.hostname == "localhost":
+                #     err = ClientRegistrationErrorResponse(
+                #         error="invalid_configuration_parameter",
+                #         error_description="https redirect_uri with host localhost")
+
+                if err:
                     return Response(err.to_json(),
                                     content="application/json",
                                     status="400 Bad Request")
+
                 base, query = urllib.splitquery(uri)
                 if query:
                     ruri.append((base, urlparse.parse_qs(query)))
@@ -1135,6 +1174,17 @@ class Provider(AProvider):
                     return self._error_response(
                         "invalid_configuration_parameter",
                         descr="%s pointed to illegal URL" % item)
+
+        # necessary keys ?
+        for item in ["id_token_signed_response_alg",
+                     "userinfo_signed_response_alg"]:
+            if item in request:
+                if request[item] in self.capabilities[PREFERENCE2PROVIDER[item]]:
+                    ktyp = jws.alg2keytype(request[item])
+                    # do I have this ktyp and for EC type keys the curve
+                    _k = self.keyjar.get_signing_key(ktyp, alg=request[item])
+                    if not _k:
+                        del _cinfo[item]
 
         try:
             self.keyjar.load_keys(request, client_id)
@@ -1644,6 +1694,56 @@ class Provider(AProvider):
         """
         return self.end_session_endpoint(request, **kwargs)
 
+    def do_key_rollover(self, jwks, kid_template):
+        """
+        Handle key roll-over by importing new keys and inactivating the
+        ones in the keyjar that are of the same type and usage.
+
+        :param jwk: A JWK
+        """
+
+        kb = KeyBundle()
+        kb.do_keys(jwks["keys"])
+
+        kid = 0
+        for k in kb.keys():
+            if not k.kid:
+                k.kid = kid_template % kid
+                kid += 1
+            self.kid[k.use][k.kty] = k.kid
+
+            # find the old key for this key type and usage and mark that
+            # as inactive
+            for _kb in self.keyjar.issuer_keys[""]:
+                for key in _kb.keys():
+                    if key.kty == k.kty and key.use == k.use:
+                        if k.kty == "EC":
+                            if key.crv == k.crv:
+                                key.inactive_since = time.time()
+                        else:
+                            key.inactive_since = time.time()
+
+        self.keyjar.add_kb("", kb)
+
+        if self.jwks_name:
+            # print to the jwks file
+            dump_jwks(self.keyjar[""], self.jwks_name)
+
+    def remove_inactive_keys(self, more_then=3600):
+        """
+        Remove all keys that has been inactive 'more_then' seconds
+
+        :param more_then: An integer (default = 3600 seconds == 1 hour)
+        """
+        now = time.time()
+        for kb in self.keyjar.issuer_keys[""]:
+            for key in kb.keys():
+                if key.inactive_since:
+                    if now - key.inactive_since > more_then:
+                        kb.remove(key)
+            if len(kb) == 0:
+                self.keyjar.issuer_keys[""].remove(kb)
+
 
 # -----------------------------------------------------------------------------
 
@@ -1660,5 +1760,3 @@ class Endpoint(object):
 
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
-
-
