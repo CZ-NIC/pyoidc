@@ -1,4 +1,12 @@
 language: python
+python: "2.7"
+
+env:
+  - TOX_ENV=py27
+
+install:
+  - pip install -U tox
+  - sudo apt-get install libffi-dev libsasl2-dev libldap2-dev
 
 script:
-  - ./setup.py test
+  - tox -e $TOX_ENV

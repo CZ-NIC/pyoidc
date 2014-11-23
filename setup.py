@@ -51,7 +51,7 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires = ['requests', "pycrypto>=2.6.1", "cherrypy==3.2.4",
                         "mako", "pyjwkest", "beaker", "alabaster", "importlib",
-                        "argparse", "pyOpenSSL"],
+                        "argparse", "pyOpenSSL", "python-ldap"],
     tests_require=['pytest'],
     zip_safe=False,
     cmdclass={'test': PyTest},

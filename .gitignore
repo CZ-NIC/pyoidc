@@ -9,6 +9,7 @@ Vagrantfile
 build
 dist
 *.egg-info
+*.egg
 
 # Compiled files
 *.pyc
@@ -17,8 +18,13 @@ dist
 *.log
 *.log.*
 
+# Tox testing
+.tox
+
 # Dynamically created doc folders
 doc/_build
+keys
+static
 
 # Remaining stuff
 oidc_example/op2/client_db.db
