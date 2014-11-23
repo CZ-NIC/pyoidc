@@ -23,7 +23,7 @@ from oic.utils.authn.authn_context import AuthnBroker
 
 __author__ = 'rohe0002'
 
-Rmeoveimport re
+import re
 
 from logging.handlers import BufferingHandler
 
