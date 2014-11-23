@@ -1,3 +1,7 @@
+.. image:: https://travis-ci.org/rohe/pyoidc.svg?branch=master
+    :target: https://travis-ci.org/rohe/pyoidc
+
+
 A complete OpenID Connect implementation
 ========================================
 
@@ -10,5 +14,3 @@ to track them as close as possible.
 Expect a certain time-laps between changes of the documents and the
 corresponding change of the code. I will strive to keep the time lap as
 short as possible.
-
-
