@@ -115,8 +115,8 @@ AUTHZ_ORG_URL = "http://example.org/authorization"
 
 class TestOICConsumer():
     def setup_class(self):
-        self.consumer = Consumer(SessionDB(), CONFIG, CLIENT_CONFIG,
-                                 SERVER_INFO)
+        self.consumer = Consumer(SessionDB(SERVER_INFO["issuer"]),
+                                 CONFIG, CLIENT_CONFIG, SERVER_INFO)
         self.consumer.client_secret = CLIENT_SECRET
 
     def test_init(self):
@@ -306,7 +306,8 @@ class TestOICConsumer():
 
 
 def test_complete_secret_auth():
-    consumer = Consumer(SessionDB(), CONFIG, CLIENT_CONFIG, SERVER_INFO)
+    consumer = Consumer(SessionDB(SERVER_INFO["issuer"]), CONFIG,
+                        CLIENT_CONFIG, SERVER_INFO)
     mfos = MyFakeOICServer("http://localhost:8088")
     mfos.keyjar = SRVKEYS
     consumer.http_request = mfos.http_request
@@ -343,7 +344,8 @@ def test_complete_secret_auth():
 
 
 def test_complete_auth_token():
-    consumer = Consumer(SessionDB(), CONFIG, CLIENT_CONFIG, SERVER_INFO)
+    consumer = Consumer(SessionDB(SERVER_INFO["issuer"]), CONFIG,
+                        CLIENT_CONFIG, SERVER_INFO)
     mfos = MyFakeOICServer("http://localhost:8088")
     mfos.keyjar = SRVKEYS
     consumer.http_request = mfos.http_request
@@ -386,7 +388,8 @@ def test_complete_auth_token():
 
 
 def test_complete_auth_token_idtoken():
-    consumer = Consumer(SessionDB(), CONFIG, CLIENT_CONFIG, SERVER_INFO)
+    consumer = Consumer(SessionDB(SERVER_INFO["issuer"]), CONFIG,
+                        CLIENT_CONFIG, SERVER_INFO)
     consumer.keyjar = CLIKEYS
     mfos = MyFakeOICServer("http://localhost:8088")
     mfos.keyjar = SRVKEYS
@@ -427,7 +430,8 @@ def test_complete_auth_token_idtoken():
 
 
 def test_userinfo():
-    consumer = Consumer(SessionDB(), CONFIG, CLIENT_CONFIG, SERVER_INFO)
+    consumer = Consumer(SessionDB(SERVER_INFO["issuer"]), CONFIG,
+                        CLIENT_CONFIG, SERVER_INFO)
     consumer.keyjar = CLIKEYS
     mfos = MyFakeOICServer("http://localhost:8088")
     mfos.keyjar = SRVKEYS

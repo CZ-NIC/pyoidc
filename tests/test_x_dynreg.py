@@ -89,14 +89,16 @@ def _eq(l1, l2):
 
 
 def test_provider_init():
-    provider = Provider("pyoicserv", sdb.SessionDB(), CDB, AUTHN_BROKER, AUTHZ,
+    provider = Provider("pyoicserv", sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
+                        AUTHN_BROKER, AUTHZ,
                         verify_client, client_info_url="https://example.com/as")
 
     assert provider
 
 
 def test_client_registration():
-    provider = Provider("pyoicserv", sdb.SessionDB(), CDB, AUTHN_BROKER, AUTHZ,
+    provider = Provider("pyoicserv", sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
+                        AUTHN_BROKER, AUTHZ,
                         verify_client,
                         client_info_url="https://example.com/as/")
 
@@ -125,8 +127,8 @@ def test_client_registration_uri_error():
         "jwks_uri": "https://client.example.org/my_public_keys.jwks"
     }
 
-    provider = Provider("pyoicserv", sdb.SessionDB(), CDB, AUTHN_BROKER, AUTHZ,
-                        verify_client,
+    provider = Provider("pyoicserv", sdb.SessionDB("https://example.org/"),
+                        CDB, AUTHN_BROKER, AUTHZ, verify_client,
                         client_info_url="https://example.com/as/")
 
     request = RegistrationRequest(**args)
@@ -152,8 +154,8 @@ def test_client_registration_2():
         "scope": "read write dolphin",
     }
 
-    provider = Provider("pyoicserv", sdb.SessionDB(), CDB, AUTHN_BROKER, AUTHZ,
-                        verify_client,
+    provider = Provider("pyoicserv", sdb.SessionDB("https://example.org/"),
+                        CDB, AUTHN_BROKER, AUTHZ, verify_client,
                         client_info_url="https://example.com/as/",
                         client_authn_methods={
                             "client_secret_post": ClientSecretPost,
@@ -183,8 +185,8 @@ def test_client_user_info_get():
         "scope": "read write dolphin",
     }
 
-    provider = Provider("pyoicserv", sdb.SessionDB(), CDB, AUTHN_BROKER, AUTHZ,
-                        verify_client,
+    provider = Provider("pyoicserv", sdb.SessionDB("https://example.org/"),
+                        CDB, AUTHN_BROKER, AUTHZ, verify_client,
                         client_info_url="https://example.com/as/",
                         client_authn_methods={
                             "client_secret_post": ClientSecretPost,
@@ -225,8 +227,8 @@ def test_client_registration_update():
         "scope": "read write dolphin",
     }
 
-    provider = Provider("pyoicserv", sdb.SessionDB(), CDB, AUTHN_BROKER, AUTHZ,
-                        verify_client,
+    provider = Provider("pyoicserv", sdb.SessionDB("https://example.org/"),
+                        CDB, AUTHN_BROKER, AUTHZ, verify_client,
                         client_info_url="https://example.com/as/",
                         client_authn_methods={
                             "client_secret_post": ClientSecretPost,
@@ -283,7 +285,8 @@ def test_client_registration_delete():
         "scope": "read write dolphin",
     }
 
-    provider = Provider("pyoicserv", sdb.SessionDB(), CDB, AUTHN_BROKER, AUTHZ,
+    provider = Provider("pyoicserv", sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
+                        AUTHN_BROKER, AUTHZ,
                         verify_client,
                         client_info_url="https://example.com/as/",
                         client_authn_methods={

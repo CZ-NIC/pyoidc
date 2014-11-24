@@ -109,6 +109,7 @@ AUTHZ = AuthzHandling()
 SYMKEY = "symmetric key used to encrypt cookie info"
 USERINFO = UserInfo(USERDB)
 
-provider_init = Provider("pyoicserv", SessionDB(), CDB, AUTHN_BROKER, USERINFO,
+provider_init = Provider("pyoicserv", SessionDB(SERVER_INFO["issuer"]), CDB,
+                         AUTHN_BROKER, USERINFO,
                          AUTHZ, verify_client, SYMKEY, urlmap=URLMAP,
                          keyjar=KEYJAR)
