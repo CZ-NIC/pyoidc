@@ -3,7 +3,7 @@ import traceback
 import sys
 import urllib
 import urlparse
-from oic.utils.sdb import AccessCodeUsed
+from oic.utils.sdb import AccessCodeUsed, AuthnEvent
 
 __author__ = 'rohe0002'
 
@@ -483,6 +483,7 @@ class Provider(object):
                 return _authn(**authn_args)
         else:
             user = identity["uid"]
+            aevent = AuthnEvent(user, authn_info=acr)
 
         # If I get this far the person is already authenticated
         logger.debug("- authenticated -")
@@ -493,7 +494,7 @@ class Provider(object):
         except KeyError:
             oidc_req = None
 
-        skey = self.sdb.create_authz_session(user, areq, oidreq=oidc_req)
+        skey = self.sdb.create_authz_session(aevent, areq, oidreq=oidc_req)
 
         # Now about the authorization step.
         try:

@@ -1,5 +1,6 @@
 import copy
 import uuid
+import time
 from oic.oic import AuthorizationRequest
 
 __author__ = 'rohe0002'
@@ -123,10 +124,33 @@ class Token(object):
         return self._split_token(token)[0]
 
 
+class AuthnEvent(object):
+    def __init__(self, uid, valid=3600, authn_info=None):
+        """
+        Creates a representation of an authentication event.
+
+        :param uid: The local user identifier
+        :param valid: How long the authentication is expected to be valid
+        :param authn_info: Info about the authentication event
+        :return:
+        """
+        self.uid = uid
+        self.authn_time = int(time.time())
+        self.valid_until = self.authn_time + int(valid)
+        self.authn_info = authn_info
+
+    def valid(self):
+        return self.valid_until > int(time.time())
+
+    def valid_for(self):
+        return self.valid_until - int(time.time())
+
+
 class SessionDB(object):
-    def __init__(self, db=None, secret="Ab01FG65", token_expires_in=3600,
-                 password="4-amino-1H-pyrimidine-2-one",
+    def __init__(self, base_url, db=None, secret="Ab01FG65",
+                 token_expires_in=3600, password="4-amino-1H-pyrimidine-2-one",
                  grant_expires_in=600, seed=""):
+        self.base_url = base_url
         if db:
             self._db = db
         else:
@@ -134,7 +158,7 @@ class SessionDB(object):
         self.token = Token(secret, password)
         self.token_expires_in = token_expires_in
         self.grant_expires_in = grant_expires_in
-        self.uid2sid = {}
+        self.sub2sid = {}
         self.seed = seed or secret
 
     def __getitem__(self, item):
@@ -187,52 +211,67 @@ class SessionDB(object):
         (typ, key) = self.token.type_and_key(token)
         return self.update(key, attribute, value)
 
-    def do_userid(self, sid, sub, sector_id, preferred_id_type):
+    def do_sub(self, sid, sector_id="", preferred_id_type="public"):
+        """
+        Construct a sub (subject identifier)
+
+        :param sid: Session identifier
+        :param uid: The local user identifier
+        :param sector_id: Possible sector identifier
+        :param preferred_id_type: 'public'/'pairwise'
+        :return:
+        """
+        uid = self._db[sid]["authn_event"].uid
+        
         old = [""]
         if preferred_id_type == "public":
-            uid = sub
+            sub = "%x" % hash(uid+self.base_url)
         else:
-            uid = pairwise_id(sub, sector_id, self.seed)
+            sub = pairwise_id(uid, sector_id, self.seed)
             old.append(sub)
 
-        logger.debug("uid: %s, old: %s" % (uid, old))
-        self.uid2sid[uid] = sid
+        logger.debug("sub: %s, old: %s" % (sub, old))
+
+        # since sub can be public, there can be more then one session
+        # that uses the same subject identifier
+        try:
+            self.sub2sid[sub].append(sid)
+        except KeyError:
+            self.sub2sid[sub] = [sid]
 
         for old_id in old:
             try:
-                del self.uid2sid[old_id]
+                del self.sub2sid[old_id]
             except KeyError:
                 pass
 
-        logger.debug("uid2sid: %s" % self.uid2sid)
-        self._db[sid]["local_sub"] = sub
-        self._db[sid]["sub"] = uid
+        logger.debug("sub2sid: %s" % self.sub2sid)
+        self._db[sid]["sub"] = sub
 
-        return uid
+        return sub
 
-    def create_authz_session(self, sub, areq, id_token=None, oidreq=None,
+    def create_authz_session(self, aevent, areq, id_token=None, oidreq=None,
                              **kwargs):
         """
 
-        :param sub: Identifier for the user, this is the real identifier
+        :param aevent: An AuthnEvent instance
         :param areq: The AuthorizationRequest instance
         :param id_token: An IDToken instance
         :param oidreq: An OpenIDRequest instance
         :return: The session identifier, which is the database key
         """
 
-        sid = self.token.key(user=sub, areq=areq)
+        sid = self.token.key(user=aevent.uid, areq=areq)
         access_grant = self.token(sid=sid)
 
         _dic = {
             "oauth_state": "authz",
-            "local_sub": sub,
-            "sub": sub,
             "code": access_grant,
             "code_used": False,
             "authzreq": areq.to_json(),
             "client_id": areq["client_id"],
             "revoked": False,
+            "authn_event": aevent
         }
 
         _dic.update(kwargs)
@@ -256,8 +295,11 @@ class SessionDB(object):
             _dic["oidreq"] = oidreq.to_json()
 
         self._db[sid] = _dic
-        self.uid2sid[sub] = sid
+
         return sid
+
+    def get_authentication_event(self, sid):
+        return self._db[sid]["authn_event"]
 
     def get_token(self, key):
         if self._db[key]["oauth_state"] == "authz":
@@ -336,7 +378,8 @@ class SessionDB(object):
         else:
             raise WrongTokenType("Not a refresh token!")
 
-    def is_expired(self, sess):
+    @staticmethod
+    def is_expired(sess):
         if "token_expires_at" in sess:
             if sess["token_expires_at"] < utc_time_sans_frac():
                 return True
@@ -375,12 +418,6 @@ class SessionDB(object):
         except KeyError:
             return False
 
-#    def set_oir(self, key, oir):
-#        self._db[key] = oir.dictionary()
-#
-#    def get_oir(self, key):
-#        return OpenIDRequest(**self._db[key])
-
     def revoke_token(self, token):
         # revokes either the refresh token or the access token
 
@@ -403,32 +440,39 @@ class SessionDB(object):
 
         self._db[sid]["revoked"] = True
 
-    def get_client_id(self, uid):
-        _dict = self._db[self.uid2sid[uid]]
+    def get_client_id(self, sub):
+        _dict = self._db[self.sub2sid[sub]]
         return _dict["client_id"]
 
-    def get_verified_Logout(self, uid):
-        _dict = self._db[self.uid2sid[uid]]
+    def get_verified_Logout(self, sub):
+        _dict = self._db[self.sub2sid[sub]]
         if "verified_logout" not in _dict:
             return None
         return _dict["verified_logout"]
 
-    def set_verify_logout(self, uid):
-        _dict = self._db[self.uid2sid[uid]]
+    def set_verify_logout(self, sub):
+        _dict = self._db[self.sub2sid[sub]]
         _dict["verified_logout"] = uuid.uuid4().urn
 
-    def get_token_id(self, uid):
-        _dict = self._db[self.uid2sid[uid]]
+    def get_token_id(self, sub):
+        _dict = self._db[self.sub2sid[sub]]
         return _dict["id_token"]
 
-    def is_revoke_uid(self, uid):
-        return self._db[self.uid2sid[uid]]["revoked"]
+    def is_revoke_uid(self, sub):
+        return self._db[self.sub2sid[sub]]["revoked"]
 
-    def revoke_uid(self, uid):
-        self._db[self.uid2sid[uid]]["revoked"] = True
+    def revoke_uid(self, sub):
+        self._db[self.sub2sid[sub]]["revoked"] = True
 
-    def get_sid_from_userid(self, uid):
-        return self.uid2sid[uid]
+    def get_sids_from_sub(self, sub):
+        """
+        Returns list of identifiers for sessions that are connected to this
+        subject identifier
+
+        :param sub: subject identifier
+        :return: list of session identifiers
+        """
+        return self.sub2sid[sub]
 
     def duplicate(self, sinfo):
         _dic = copy.copy(sinfo)
@@ -448,7 +492,7 @@ class SessionDB(object):
                 pass
 
         self._db[sid] = _dic
-        self.uid2sid[_dic["sub"]] = sid
+        self.sub2sid[_dic["sub"]] = sid
         return sid
 
     def read(self, token):
