@@ -6,7 +6,7 @@ from oic.utils.webfinger import WebFinger
 
 __author__ = 'rohe0002'
 
-from oic.utils.sdb import SessionDB
+from oic.utils.sdb import SessionDB, AuthnEvent
 from oic.utils.time_util import utc_time_sans_frac
 
 from oic.oic import Server
@@ -43,7 +43,7 @@ ENDPOINT = {
 class MyFakeOICServer(Server):
     def __init__(self, name=""):
         Server.__init__(self)
-        self.sdb = SessionDB()
+        self.sdb = SessionDB(name)
         self.name = name
         self.client = {}
         self.registration_expires_in = 3600
@@ -96,9 +96,10 @@ class MyFakeOICServer(Server):
 
     def authorization_endpoint(self, query):
         req = self.parse_authorization_request(query=query)
-        sid = self.sdb.create_authz_session(sub="user", areq=req)
+        aevent = AuthnEvent("user", authn_info="acr")
+        sid = self.sdb.create_authz_session(aevent, areq=req)
+        sub = self.sdb.do_sub(sid)
         _info = self.sdb[sid]
-        _info["sub"] = _info["local_sub"]
 
         if "code" in req["response_type"]:
             if "token" in req["response_type"]:

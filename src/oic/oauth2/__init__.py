@@ -7,12 +7,12 @@ import requests
 import random
 import string
 import cookielib
-import logging
 from Cookie import SimpleCookie
 
 from oic.utils.keyio import KeyJar
 from oic.utils.time_util import utc_time_sans_frac
 from oic.exception import UnSupported
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -667,8 +667,9 @@ class Client(PBase):
         request_args["access_token"] = token.access_token
         return self.construct_request(request, request_args, extra_args)
 
-    def get_or_post(self, uri, method, req,
-                    content_type=DEFAULT_POST_CONTENT_TYPE, accept=None, **kwargs):
+    @staticmethod
+    def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE,
+                    accept=None, **kwargs):
         if method == "GET":
             _qp = req.to_urlencoded()
             if _qp:
@@ -687,7 +688,7 @@ class Client(PBase):
                     "Unsupported content type: '%s'" % content_type)
 
             header_ext = {"Content-type": content_type}
-            if (accept):
+            if accept:
                 header_ext = {"Accept": accept}
 
             if "headers" in kwargs.keys():

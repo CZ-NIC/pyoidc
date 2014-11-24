@@ -8,6 +8,7 @@ from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
+from oic.utils.http_util import Response
 from oic.utils.userinfo import UserInfo
 
 from oic.exception import RedirectURIError
@@ -28,7 +29,7 @@ from oic.oic.message import CheckSessionRequest
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import IdToken
 
-from oic.utils.sdb import SessionDB
+from oic.utils.sdb import SessionDB, AuthnEvent
 from oic.oic import Client
 from oic.oic import make_openid_request
 
@@ -105,8 +106,8 @@ CDB = {
     },
     CLIENT_ID: {
         "client_secret": CLIENT_SECRET,
+        "redirect_uris": [("http://localhost:8087/authz", None)]
     }
-
 }
 
 USERDB = {
@@ -142,7 +143,11 @@ class DummyAuthn(UserAuthnMethod):
         self.user = user
 
     def authenticated_as(self, cookie=None,  **kwargs):
-        return {"uid": self.user}
+        if cookie == "FAIL":
+            return None
+        else:
+            return {"uid": self.user}
+
 
 #AUTHN = UsernamePasswordMako(None, "login.mako", tl, PASSWD, "authenticated")
 AUTHN_BROKER = AuthnBroker()
@@ -153,7 +158,8 @@ AUTHZ = AuthzHandling()
 SYMKEY = rndstr(16)  # symmetric key used to encrypt cookie info
 USERINFO = UserInfo(USERDB)
 
-provider_init = Provider("pyoicserv", SessionDB(), CDB, AUTHN_BROKER, USERINFO,
+provider_init = Provider("pyoicserv", SessionDB(SERVER_INFO["issuer"]), CDB,
+                         AUTHN_BROKER, USERINFO,
                          AUTHZ, verify_client, SYMKEY, urlmap=URLMAP,
                          keyjar=KEYJAR)
 
@@ -230,10 +236,13 @@ def test_server_authorization_endpoint_id_token():
                                 redirect_uri="http://example.com/authz",
                                 scope=["openid"], state="state000")
 
-    sdb = SessionDB()
-    sid = sdb.create_authz_session("userX", AREQ)
-
+    sdb = provider.sdb
+    ae = AuthnEvent("userX")
+    sid = sdb.create_authz_session(ae, AREQ)
+    sdb.do_sub(sid)
     _info = sdb[sid]
+    # All this is jut removed when the id_token is constructed
+    # The proper information comes from the session information
     _user_info = IdToken(iss="https://foo.example.om", sub="foo",
                          aud=bib["client_id"], exp=epoch_in_a_while(minutes=10),
                          acr="2", nonce=bib["nonce"])
@@ -244,13 +253,22 @@ def test_server_authorization_endpoint_id_token():
                                           user_info=_user_info)
 
     req["id_token"] = idt
+    query_string = req.to_urlencoded()
 
-    QUERY_STRING = req.to_urlencoded()
-
-    resp = provider.authorization_endpoint(request=QUERY_STRING)
+    # client_id not in id_token["aud"] so login required
+    resp = provider.authorization_endpoint(request=query_string, cookie="FAIL")
 
     print resp
     assert "error=login_required" in resp.message
+
+    req["client_id"] = "client_1"
+    query_string = req.to_urlencoded()
+
+    # client_id is in id_token["aud"] so no login required
+    resp = provider.authorization_endpoint(request=query_string, cookie="FAIL")
+
+    print resp.message
+    assert resp.message.startswith("http://localhost:8087/authz")
 
 
 def test_server_authenticated():
@@ -409,17 +427,18 @@ def test_token_endpoint():
     _sdb = server.sdb
     sid = _sdb.token.key(user="sub", areq=authreq)
     access_grant = _sdb.token(sid=sid)
+    ae = AuthnEvent("user")
     _sdb[sid] = {
         "oauth_state": "authz",
-        "sub": "sub",
+        "authn_event": ae,
         "authzreq": authreq.to_json(),
         "client_id": CLIENT_ID,
         "code": access_grant,
         "code_used": False,
         "scope": ["openid"],
         "redirect_uri": "http://example.com/authz",
-        "auth_time": 1000000
     }
+    _sdb.do_sub(sid)
 
     # Construct Access token request
     areq = AccessTokenRequest(code=access_grant, client_id=CLIENT_ID,
@@ -446,9 +465,10 @@ def test_token_endpoint_unauth():
     _sdb = server.sdb
     sid = _sdb.token.key(user="sub", areq=authreq)
     access_grant = _sdb.token(sid=sid)
+    ae = AuthnEvent("user")
     _sdb[sid] = {
+        "authn_event": ae,
         "oauth_state": "authz",
-        "sub": "sub",
         "authzreq": "",
         "client_id": "client_1",
         "code": access_grant,
@@ -456,6 +476,7 @@ def test_token_endpoint_unauth():
         "scope": ["openid"],
         "redirect_uri": "http://example.com/authz"
     }
+    _sdb.do_sub(sid)
 
     # Construct Access token request
     areq = AccessTokenRequest(code=access_grant,
@@ -495,7 +516,9 @@ def test_idtoken():
                                 redirect_uri="http://example.com/authz",
                                 scope=["openid"], state="state000")
 
-    sid = server.sdb.create_authz_session("sub", AREQ)
+    ae = AuthnEvent("sub")
+    sid = server.sdb.create_authz_session(ae, AREQ)
+    server.sdb.do_sub(sid)
     session = server.sdb[sid]
 
     id_token = server.id_token_as_signed_jwt(session)
@@ -531,7 +554,7 @@ def test_userinfo_endpoint():
     ident = OpenIDSchema().deserialize(resp3.message, "json")
     print ident.keys()
     assert _eq(ident.keys(), ['nickname', 'sub', 'name', 'email'])
-    assert ident["sub"] == USERDB["username"]["sub"]
+    assert ident["sub"] == hash(USERDB["username"]["sub"]+server.sdb.base_url)
 
 
 def test_check_session_endpoint():
@@ -577,8 +600,8 @@ def test_registration_endpoint():
 
 
 def test_provider_key_setup():
-    provider = Provider("pyoicserv", SessionDB(), None, None, None, None, None,
-                        "")
+    provider = Provider("pyoicserv", SessionDB(SERVER_INFO["issuer"]), None,
+                        None, None, None, None, "")
     provider.baseurl = "http://www.example.com/"
     provider.key_setup("static", sig={"format": "jwk", "alg": "RSA"})
 
@@ -714,4 +737,4 @@ def test_key_rollover():
     assert len(provider2.keyjar.issuer_keys[""]) == 2
 
 if __name__ == "__main__":
-    test_key_rollover()
+    test_server_authorization_endpoint_id_token()

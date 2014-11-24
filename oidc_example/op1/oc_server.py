@@ -373,6 +373,7 @@ def application(environ, start_response):
         request is done
     :return: The response as a list of lines
     """
+
     global OAS
 
     #user = environ.get("REMOTE_USER", "")
@@ -382,9 +383,8 @@ def application(environ, start_response):
 
     if path == "robots.txt":
         return static(environ, start_response, logger, "static/robots.txt")
-
     environ["oic.oas"] = OAS
-    
+
     #remote = environ.get("REMOTE_ADDR")
     #kaka = environ.get("HTTP_COOKIE", '')
 

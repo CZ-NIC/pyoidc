@@ -89,21 +89,21 @@ def _eq(l1, l2):
 
 
 def test_provider_init():
-    provider = Provider("pyoicserv", sdb.SessionDB(), CDB, AUTHN_BROKER, AUTHZ,
-                        verify_client)
+    provider = Provider("pyoicserv", sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
+                        AUTHN_BROKER, AUTHZ, verify_client)
 
     assert provider
 
-    provider = Provider("pyoicserv", sdb.SessionDB(), CDB, AUTHN_BROKER, AUTHZ,
-                        verify_client,
+    provider = Provider("pyoicserv", sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
+                        AUTHN_BROKER, AUTHZ, verify_client,
                         urlmap={"client1": ["https://example.com/authz"]})
 
     assert provider.urlmap["client1"] == ["https://example.com/authz"]
 
 
 def test_provider_authorization_endpoint():
-    provider = Provider("pyoicserv", sdb.SessionDB(), CDB, AUTHN_BROKER, AUTHZ,
-                        verify_client)
+    provider = Provider("pyoicserv", sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
+                        AUTHN_BROKER, AUTHZ, verify_client)
 
     bib = {"scope": ["openid"],
            "state": "id-6da9ca0cc23959f5f33e8becd9b08cae",
@@ -121,8 +121,8 @@ def test_provider_authorization_endpoint():
 
 
 def test_provider_authenticated():
-    provider = Provider("pyoicserv", sdb.SessionDB(), CDB, AUTHN_BROKER, AUTHZ,
-                        verify_client, symkey=rndstr(16))
+    provider = Provider("pyoicserv", sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
+                        AUTHN_BROKER, AUTHZ, verify_client, symkey=rndstr(16))
     _session_db = {}
     cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
@@ -154,8 +154,8 @@ def test_provider_authenticated():
 
 
 def test_provider_authenticated_token():
-    provider = Provider("pyoicserv", sdb.SessionDB(), CDB, AUTHN_BROKER, AUTHZ,
-                        verify_client, symkey=rndstr(16))
+    provider = Provider("pyoicserv", sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
+                        AUTHN_BROKER, AUTHZ, verify_client, symkey=rndstr(16))
     _session_db = {}
     cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
                     server_info=SERVER_INFO, **CONSUMER_CONFIG)
@@ -176,8 +176,8 @@ def test_provider_authenticated_token():
 
 
 def test_token_endpoint():
-    provider = Provider("pyoicserv", sdb.SessionDB(), CDB, AUTHN_BROKER, AUTHZ,
-                        verify_client, symkey=rndstr(16))
+    provider = Provider("pyoicserv", sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
+                        AUTHN_BROKER, AUTHZ, verify_client, symkey=rndstr(16))
 
     authreq = AuthorizationRequest(state="state",
                                    redirect_uri="http://example.com/authz",
@@ -212,7 +212,8 @@ def test_token_endpoint():
 
 
 def test_token_endpoint_unauth():
-    provider = Provider("pyoicserv", sdb.SessionDB(), CDB, AUTHN_BROKER, AUTHZ,
+    provider = Provider("pyoicserv", sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
+                        AUTHN_BROKER, AUTHZ,
                         verify_client, symkey=rndstr(16))
 
     authreq = AuthorizationRequest(state="state",

@@ -526,8 +526,8 @@ if __name__ == '__main__':
     else:
         kwargs["verify_ssl"] = True
 
-    OAS = Provider(config.issuer, SessionDB(), cdb, ac, None, authz,
-                   verify_client, config.SYM_KEY, **kwargs)
+    OAS = Provider(config.issuer, SessionDB(config.baseurl), cdb, ac, None,
+                   authz, verify_client, config.SYM_KEY, **kwargs)
 
     for authn in ac:
         authn.srv = OAS

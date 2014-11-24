@@ -5,13 +5,11 @@ import urllib
 import sys
 from jwkest.jwe import JWE
 from requests import ConnectionError
-from jwkest import jws, jwe
-from jwkest.jws import alg2keytype
 
-from oic.utils import time_util
 from oic.utils.authn.user import NoSuchAuthentication
 from oic.utils.authn.user import ToOld
 from oic.utils.authn.user import TamperAllert
+from oic.utils.sdb import AuthnEvent
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.keyio import KeyBundle, dump_jwks
 from oic.utils.keyio import key_export
@@ -373,6 +371,11 @@ class Provider(AProvider):
                 req_user = areq["id_token"]["sub"]
             except KeyError:
                 pass
+            else:
+                try:
+                    assert areq["client_id"] in areq["id_token"]["aud"]
+                except AssertionError:
+                    req_user = ""  # Not allow to use
 
         return req_user
 
@@ -542,6 +545,23 @@ class Provider(AProvider):
         kwargs["cookie"] = cookie
         return authn.verify(_req, **kwargs)
 
+    def setup_session(self, areq, authn_event, cinfo):
+        try:
+            oidc_req = areq["request"]
+        except KeyError:
+            oidc_req = None
+
+        sid = self.sdb.create_authz_session(authn_event, areq, oidreq=oidc_req)
+        kwargs = {}
+        for param in ["sector_id", "preferred_id_type"]:
+            try:
+                kwargs[param] = cinfo[param]
+            except KeyError:
+                pass
+
+        self.sdb.do_sub(sid, **kwargs)
+        return sid
+
     def authorization_endpoint(self, request="", cookie=None, **kwargs):
         """ The AuthorizationRequest endpoint
 
@@ -590,7 +610,20 @@ class Provider(AProvider):
             return areq
         logger.debug("AuthzRequest+oidc_request: %s" % (areq.to_dict(),))
 
+        cinfo = self.cdb[areq["client_id"]]
         req_user = self.required_user(areq)
+        if req_user:
+            try:
+                sids = self.sdb.sub2sid[req_user]
+            except KeyError:
+                pass
+            else:
+                # anyone will do
+                authn_event = self.sdb[sids[0]]["authn_event"]
+                # Is the authentication event to be regarded as valid ?
+                if authn_event.valid():
+                    sid = self.setup_session(areq, authn_event, cinfo)
+                    return self.authz_part2(authn_event.uid, areq, sid)
 
         authn, authn_class_ref = self.pick_auth(areq)
         if not authn:
@@ -598,7 +631,6 @@ class Provider(AProvider):
             if not authn:
                 authn, authn_class_ref = self.pick_auth(areq, "any")
 
-        logger.debug("Cookie: %s" % cookie)
         try:
             try:
                 _auth_info = kwargs["authn"]
@@ -607,7 +639,6 @@ class Provider(AProvider):
             identity = authn.authenticated_as(cookie,
                                               authorization=_auth_info,
                                               max_age=self.max_age(areq))
-            auth_time = time_util.utc_now()
         except (NoSuchAuthentication, ToOld, TamperAllert):
             identity = None
 
@@ -616,7 +647,6 @@ class Provider(AProvider):
                       "as_user": req_user,
                       "authn_class_ref": authn_class_ref}
 
-        cinfo = self.cdb[areq["client_id"]]
         for attr in ["policy_uri", "logo_uri"]:
             try:
                 authn_args[attr] = cinfo[attr]
@@ -647,16 +677,12 @@ class Provider(AProvider):
                     else:
                         return authn(**authn_args)
 
+        authn_event = AuthnEvent(identity["uid"], authn_info=authn_class_ref)
+
         logger.debug("- authenticated -")
         logger.debug("AREQ keys: %s" % areq.keys())
 
-        try:
-            oidc_req = areq["request"]
-        except KeyError:
-            oidc_req = None
-
-        sid = self.sdb.create_authz_session(user, areq, oidreq=oidc_req,
-                                            auth_time=auth_time)
+        sid = self.setup_session(areq, authn_event, cinfo)
         return self.authz_part2(user, areq, sid)
 
     def userinfo_in_id_token_claims(self, session):
@@ -776,7 +802,7 @@ class Provider(AProvider):
             try:
                 _idtoken = self.sign_encrypt_id_token(
                     _info, client_info, req, user_info=userinfo,
-                    auth_time=_info["auth_time"])
+                    auth_time=_info["authn_event"].authn_time)
             except (JWEException, NoSuitableSigningKeys) as err:
                 logger.warning(str(err))
                 return self._error(error="access_denied",
@@ -804,9 +830,9 @@ class Provider(AProvider):
 
         if "openid" in _info["scope"]:
             userinfo = self.userinfo_in_id_token_claims(_info)
-            _idtoken = self.sign_encrypt_id_token(_info, client_info, req,
-                                                  user_info=userinfo,
-                                                  auth_time=_info["auth_time"])
+            _idtoken = self.sign_encrypt_id_token(
+                _info, client_info, req, user_info=userinfo,
+                auth_time=_info["authn_event"].authn_time)
             sid = _sdb.token.get_key(rtoken)
             _sdb.update(sid, "id_token", _idtoken)
 
@@ -893,7 +919,7 @@ class Provider(AProvider):
             logger.debug("userinfo_claim: %s" % userinfo_claims.to_dict())
 
         logger.debug("Session info: %s" % session)
-        info = self.userinfo(session["local_sub"], userinfo_claims)
+        info = self.userinfo(session["authn_event"].uid, userinfo_claims)
 
         info["sub"] = session["sub"]
         logger.debug("user_info_response: %s" % (info,))
@@ -914,11 +940,15 @@ class Provider(AProvider):
         except KeyError:  # Fall back to default
             algo = self.jwx_def["sign_alg"]["userinfo"]
 
-        # Use my key for signing
-        key = self.keyjar.get_signing_key(alg2keytype(algo), "", alg=algo)
-        if not key:
-            return self._error(error="access_denied",
-                               descr="Missing signing key")
+        if algo == "none":
+            key = []
+        else:
+            # Use my key for signing
+            key = self.keyjar.get_signing_key(alg2keytype(algo), "", alg=algo)
+            if not key:
+                return self._error(error="access_denied",
+                                   descr="Missing signing key")
+
         jinfo = userinfo.to_jwt(key, algo)
         if "userinfo_encrypted_response_alg" in client_info:
             # encrypt with clients public key
@@ -1175,16 +1205,18 @@ class Provider(AProvider):
                         "invalid_configuration_parameter",
                         descr="%s pointed to illegal URL" % item)
 
-        # necessary keys ?
+        # Do I have the necessary keys
         for item in ["id_token_signed_response_alg",
                      "userinfo_signed_response_alg"]:
             if item in request:
                 if request[item] in self.capabilities[PREFERENCE2PROVIDER[item]]:
                     ktyp = jws.alg2keytype(request[item])
                     # do I have this ktyp and for EC type keys the curve
-                    _k = self.keyjar.get_signing_key(ktyp, alg=request[item])
-                    if not _k:
-                        del _cinfo[item]
+                    if ktyp not in ["none", "OCT"]:
+                        _k = self.keyjar.get_signing_key(ktyp,
+                                                         alg=request[item])
+                        if not _k:
+                            del _cinfo[item]
 
         try:
             self.keyjar.load_keys(request, client_id)
@@ -1619,7 +1651,7 @@ class Provider(AProvider):
                 # or 'code id_token'
                 id_token = self.sign_encrypt_id_token(
                     _sinfo, client_info, areq, user_info=user_info,
-                    auth_time=_sinfo["auth_time"], **hargs)
+                    auth_time=_sinfo["authn_event"].authn_time, **hargs)
 
                 aresp["id_token"] = id_token
                 _sinfo["id_token"] = id_token

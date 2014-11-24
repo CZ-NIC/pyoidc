@@ -37,7 +37,7 @@ class PyTest(TestCommand):
 
 setup(
     name="oic",
-    version="0.6.gamma",
+    version="0.6.0",
     description="Python implementation of OAuth2 and OpenID Connect",
     author = "Roland Hedberg",
     author_email = "roland.hedberg@adm.umu.se",
@@ -50,8 +50,8 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires = ['requests', "pycrypto>=2.6.1", "cherrypy==3.2.4",
-                        "mako", "pyjwkest", "beaker", "alabaster", "importlib",
-                        "argparse", "pyOpenSSL", "python-ldap"],
+                        "mako", "pyjwkest>=0.5.1", "beaker", "alabaster",
+                        "importlib", "argparse", "pyOpenSSL", "python-ldap"],
     tests_require=['pytest'],
     zip_safe=False,
     cmdclass={'test': PyTest},

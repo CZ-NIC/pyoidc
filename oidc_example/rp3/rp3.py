@@ -108,7 +108,6 @@ def clear_session(session):
 
 def application(environ, start_response):
     session = environ['beaker.session']
-
     path = environ.get('PATH_INFO', '').lstrip('/')
     if path == "robots.txt":
         return static(environ, start_response, LOGGER, "static/robots.txt")

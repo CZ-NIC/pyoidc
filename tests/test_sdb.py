@@ -6,7 +6,7 @@ import time
 
 from pytest import raises
 
-from oic.utils.sdb import SessionDB
+from oic.utils.sdb import SessionDB, AuthnEvent
 from oic.utils.sdb import ExpiredToken
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import OpenIDRequest
@@ -31,23 +31,25 @@ OAUTH2_AREQ = AuthorizationRequest(response_type="code",
                                    redirect_uri="http://example.com/authz",
                                    scope=["openid"], state="state000")
 
+BASE_URL = "https://exampl.com/"
+
 
 def _eq(l1, l2):
     return set(l1) == set(l2)
 
 
 def test_token():
-    sdb = SessionDB()
+    sdb = SessionDB(BASE_URL)
     sid = sdb.token.key(areq=AREQ)
     assert len(sid) == 56
 
-    sdb = SessionDB({"a": "b"})
+    sdb = SessionDB(BASE_URL, {"a": "b"})
     sid = sdb.token.key(areq=AREQ)
     assert len(sid) == 56
 
 
 def test_new_token():
-    sdb = SessionDB()
+    sdb = SessionDB(BASE_URL)
     sid = sdb.token.key(areq=AREQ)
     assert len(sid) == 56
 
@@ -63,7 +65,7 @@ def test_new_token():
 
 
 def test_type_and_key():
-    sdb = SessionDB()
+    sdb = SessionDB(BASE_URL)
     sid = sdb.token.key(areq=AREQ)
     code = sdb.token(sid=sid)
     print sid
@@ -74,7 +76,7 @@ def test_type_and_key():
 
 
 def test_setitem():
-    sdb = SessionDB()
+    sdb = SessionDB(BASE_URL)
     sid = sdb.token.key(areq=AREQ)
     code = sdb.token(sid=sid)
 
@@ -90,7 +92,7 @@ def test_setitem():
 
 
 def test_update():
-    sdb = SessionDB()
+    sdb = SessionDB(BASE_URL)
     sid = sdb.token.key(areq=AREQ)
     code = sdb.token(sid=sid)
 
@@ -111,33 +113,37 @@ def test_update():
 
 
 def test_create_authz_session():
-    sdb = SessionDB()
-    sid = sdb.create_authz_session("sub", AREQ)
+    sdb = SessionDB(BASE_URL)
+    ae = AuthnEvent("uid")
+    sid = sdb.create_authz_session(ae, AREQ)
+    sdb.do_sub(sid)
 
     info = sdb[sid]
     print info
     assert info["oauth_state"] == "authz"
 
-    sdb = SessionDB()
+    sdb = SessionDB(BASE_URL)
+    ae = AuthnEvent("sub")
     # Missing nonce property
-    sid = sdb.create_authz_session("sub", OAUTH2_AREQ)
+    sid = sdb.create_authz_session(ae, OAUTH2_AREQ)
     info = sdb[sid]
     print info
     assert info["oauth_state"] == "authz"
 
-    sid2 = sdb.create_authz_session("sub", AREQN)
+    ae = AuthnEvent("sub")
+    sid2 = sdb.create_authz_session(ae, AREQN)
 
     info = sdb[sid2]
     print info
     assert info["nonce"] == "something"
 
-    sid3 = sdb.create_authz_session("sub", AREQN, id_token="id_token")
+    sid3 = sdb.create_authz_session(ae, AREQN, id_token="id_token")
 
     info = sdb[sid3]
     print info
     assert info["id_token"] == "id_token"
 
-    sid4 = sdb.create_authz_session("sub", AREQN, oidreq=OIDR)
+    sid4 = sdb.create_authz_session(ae, AREQN, oidreq=OIDR)
 
     info = sdb[sid4]
     print info
@@ -146,10 +152,10 @@ def test_create_authz_session():
 
 
 def test_create_authz_session_with_sector_id():
-    sdb = SessionDB(seed="foo")
-    uid = "sub"
-    sid5 = sdb.create_authz_session(uid, AREQN, oidreq=OIDR)
-    sdb.do_userid(sid5, uid, "http://example.com/si.jwt", "pairwise")
+    sdb = SessionDB(BASE_URL, seed="foo")
+    ae = AuthnEvent("sub")
+    sid5 = sdb.create_authz_session(ae, AREQN, oidreq=OIDR)
+    sdb.do_sub(sid5, "http://example.com/si.jwt", "pairwise")
 
     info_1 = sdb[sid5]
     print info_1
@@ -158,7 +164,7 @@ def test_create_authz_session_with_sector_id():
     assert info_1["sub"] != "sub"
     user_id1 = info_1["sub"]
 
-    sdb.do_userid(sid5, uid, "http://example.net/si.jwt", "pairwise")
+    sdb.do_sub(sid5, "http://example.net/si.jwt", "pairwise")
 
     info_2 = sdb[sid5]
     print info_2
@@ -167,34 +173,35 @@ def test_create_authz_session_with_sector_id():
 
 
 def test_upgrade_to_token():
-    sdb = SessionDB()
-    sid = sdb.create_authz_session("sub", AREQ)
+    sdb = SessionDB(BASE_URL)
+    ae1 = AuthnEvent("sub")
+    sid = sdb.create_authz_session(ae1, AREQ)
     grant = sdb[sid]["code"]
     _dict = sdb.upgrade_to_token(grant)
 
     print _dict.keys()
-    assert _eq(_dict.keys(), ['code', 'authzreq', 'token_type', 'local_sub',
-                              'client_id', 'oauth_state', 'refresh_token',
-                              'revoked', 'sub', 'access_token',
-                              'token_expires_at', 'expires_in', 'state',
-                              'redirect_uri', 'code_used', 'scope',
-                              'access_token_scope'])
+    assert _eq(_dict.keys(), ['authn_event', 'code', 'authzreq', 'revoked',
+                              'access_token', 'token_expires_at', 'expires_in',
+                              'token_type', 'state', 'redirect_uri',
+                              'code_used', 'client_id', 'scope', 'oauth_state',
+                              'refresh_token', 'access_token_scope'])
 
     raises(Exception, 'sdb.upgrade_to_token(grant)')
 
     raises(Exception, 'sdb.upgrade_to_token(_dict["access_token"]')
 
-    sdb = SessionDB()
-    sid = sdb.create_authz_session("another_user_id", AREQ)
+    sdb = SessionDB(BASE_URL)
+    ae2 = AuthnEvent("another_user_id")
+    sid = sdb.create_authz_session(ae2, AREQ)
     grant = sdb[sid]["code"]
 
     _dict = sdb.upgrade_to_token(grant, id_token="id_token", oidreq=OIDR)
     print _dict.keys()
-    assert _eq(_dict.keys(), ['code', 'authzreq', 'id_token', 'token_type',
-                              'local_sub', 'client_id', 'oauth_state',
-                              'refresh_token', 'revoked', 'sub', 'oidreq',
-                              'access_token', 'token_expires_at', 'expires_in',
-                              'state', 'redirect_uri', 'code_used', 'scope',
+    assert _eq(_dict.keys(), ['authn_event', 'code', 'authzreq', 'revoked',
+                              'oidreq', 'access_token', 'id_token',
+                              'token_expires_at', 'expires_in', 'token_type',
+                              'state', 'redirect_uri', 'code_used', 'client_id',
+                              'scope', 'oauth_state', 'refresh_token',
                               'access_token_scope'])
 
     assert _dict["id_token"] == "id_token"
@@ -204,8 +211,9 @@ def test_upgrade_to_token():
 
 
 def test_refresh_token():
-    sdb = SessionDB()
-    sid = sdb.create_authz_session("sub", AREQ)
+    sdb = SessionDB(BASE_URL)
+    ae = AuthnEvent("sub")
+    sid = sdb.create_authz_session(ae, AREQ)
     grant = sdb[sid]["code"]
     _dict = sdb.upgrade_to_token(grant)
     dict1 = _dict.copy()
@@ -222,8 +230,9 @@ def test_refresh_token():
 
 
 def test_is_valid():
-    sdb = SessionDB()
-    sid = sdb.create_authz_session("sub", AREQ)
+    sdb = SessionDB(BASE_URL)
+    ae1 = AuthnEvent("sub")
+    sid = sdb.create_authz_session(ae1, AREQ)
     grant = sdb[sid]["code"]
 
     assert sdb.is_valid(grant)
@@ -255,7 +264,8 @@ def test_is_valid():
     dict2["access_token"] = token1
     assert sdb.is_valid(token2) is False
 
-    sid = sdb.create_authz_session("another:user", AREQ)
+    ae = AuthnEvent("another:user")
+    sid = sdb.create_authz_session(ae, AREQ)
     grant = sdb[sid]["code"]
 
     gdict = sdb[grant]
@@ -264,8 +274,9 @@ def test_is_valid():
 
 
 def test_revoke_token():
-    sdb = SessionDB()
-    sid = sdb.create_authz_session("sub", AREQ)
+    sdb = SessionDB(BASE_URL)
+    ae1 = AuthnEvent("sub")
+    sid = sdb.create_authz_session(ae1, AREQ)
 
     grant = sdb[sid]["code"]
     _dict = sdb.upgrade_to_token(grant)
@@ -291,9 +302,26 @@ def test_revoke_token():
 
     # --- new token ----
 
-    sdb = SessionDB()
-    sid = sdb.create_authz_session("sub", AREQ)
+    sdb = SessionDB(BASE_URL)
+    ae2 = AuthnEvent("sub")
+    sid = sdb.create_authz_session(ae2, AREQ)
 
     grant = sdb[sid]["code"]
     sdb.revoke_token(grant)
     assert sdb.is_valid(grant) is False
+
+
+def test_sub_to_authn_event():
+    sdb = SessionDB(BASE_URL)
+    ae2 = AuthnEvent("sub")
+    sid = sdb.create_authz_session(ae2, AREQ)
+    sub = sdb.do_sub(sid)
+
+    # given the sub find out weather the authn event is still valid
+
+    sids = sdb.sub2sid[sub]
+    ae = sdb[sids[0]]["authn_event"]
+    assert ae.valid()
+
+if __name__ == "__main__":
+    test_sub_to_authn_event()

@@ -202,7 +202,9 @@ class OIDCClients(object):
         return client
 
     def dynamic_client(self, userid):
-        client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD, verify_ssl=self.config.VERIFY_SSL)
+        client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
+                                 verify_ssl=self.config.VERIFY_SSL)
+
         issuer = client.wf.discovery_query(userid)
         if issuer in self.client:
             return self.client[issuer]
