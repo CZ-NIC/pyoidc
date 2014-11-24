@@ -37,7 +37,7 @@ class PyTest(TestCommand):
 
 setup(
     name="oic",
-    version="0.6.gamma",
+    version="0.6.0",
     description="Python implementation of OAuth2 and OpenID Connect",
     author = "Roland Hedberg",
     author_email = "roland.hedberg@adm.umu.se",
