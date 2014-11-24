@@ -18,6 +18,8 @@ from oic.oauth2.message import TokenErrorResponse
 
 from oic.oauth2.consumer import AuthzError
 
+from utils_for_tests import URLObject
+
 #from oic.oauth2.message import
 
 # client_id=None, ca_certs=None,grant_expire_in=600, client_timeout=0,
@@ -132,7 +134,9 @@ def test_consumer_begin():
 
     url = "http://localhost:8088/authorization?%s" % urllib.urlencode(params)
 
-    assert loc == url
+    loc_obj = URLObject.create(loc)
+    url_obj = URLObject.create(url)
+    assert loc_obj == url_obj
 
 
 def test_consumer_handle_authorization_response():
@@ -265,11 +269,14 @@ def test_consumer_client_get_access_token_reques():
                         "urlencoded")
 
     url, body, http_args = cons.get_access_token_request(_state)
-    assert url == "http://localhost:8088/token"
-    print body
-    assert body == ("code=auth_grant&client_secret=secret0&"
-                    "grant_type=authorization_code&client_id=number5&"
-                    "redirect_uri=https%3A%2F%2Fwww.example.com%2Foic%2Fcb")
+    url_obj = URLObject.create(url)
+    expected_url_obj = URLObject.create("http://localhost:8088/token")
+    assert url_obj == expected_url_obj
+    body_splits = body.split('&')
+    expected_body_splits = "code=auth_grant&client_secret=secret0&" \
+                    "grant_type=authorization_code&client_id=number5&" \
+                    "redirect_uri=https%3A%2F%2Fwww.example.com%2Foic%2Fcb".split('&')
+    assert set(body_splits) == set(expected_body_splits)
     assert http_args == {'headers': {
         'Content-type': 'application/x-www-form-urlencoded'}}
 

@@ -1,10 +1,8 @@
 from oic.utils.stateless import StateLess
 
+from utils_for_tests import _eq
+
 __author__ = 'roland'
-
-
-def _eq(l1, l2):
-    return set(l1) == set(l2)
 
 
 def test_access_code():

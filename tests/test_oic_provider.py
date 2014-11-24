@@ -37,6 +37,7 @@ from oic.oic.consumer import Consumer
 from oic.oic.provider import Provider
 
 from oic.utils.time_util import epoch_in_a_while
+from utils_for_tests import _eq
 
 __author__ = 'rohe0002'
 
@@ -162,10 +163,6 @@ provider_init = Provider("pyoicserv", SessionDB(SERVER_INFO["issuer"]), CDB,
                          AUTHN_BROKER, USERINFO,
                          AUTHZ, verify_client, SYMKEY, urlmap=URLMAP,
                          keyjar=KEYJAR)
-
-
-def _eq(l1, l2):
-    return set(l1) == set(l2)
 
 
 def test_server_init():
@@ -554,7 +551,9 @@ def test_userinfo_endpoint():
     ident = OpenIDSchema().deserialize(resp3.message, "json")
     print ident.keys()
     assert _eq(ident.keys(), ['nickname', 'sub', 'name', 'email'])
-    assert ident["sub"] == hash(USERDB["username"]["sub"]+server.sdb.base_url)
+    print str(ident)
+    expected_sub = "%x" % hash(USERDB["username"]["sub"]+server.sdb.base_url)
+    assert ident["sub"] == expected_sub
 
 
 def test_check_session_endpoint():
