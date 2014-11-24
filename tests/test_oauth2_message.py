@@ -7,7 +7,7 @@ from jwkest.jwk import SYMKey
 
 from pytest import raises
 
-from utils_for_tests import _eq
+from utils_for_tests import URLObject, _eq
 
 
 class Dummy_Message(Message):
@@ -23,8 +23,9 @@ class Dummy_Message(Message):
 def test_authz_req_urlencoded_1():
     ar = AuthorizationRequest(response_type=["code"], client_id="foobar")
     ue = ar.to_urlencoded()
-    print ue
-    assert ue == "response_type=code&client_id=foobar"
+    ue_splits = ue.split('&')
+    expected_ue_splits = "response_type=code&client_id=foobar".split('&')
+    assert _eq(ue_splits, expected_ue_splits)
 
 
 def test_authz_req_urlencoded_2():
@@ -46,8 +47,9 @@ def test_authz_req_urlencoded_3():
                               state="xyz")
 
     ue = ar.to_urlencoded()
-    print ue
-    assert ue == "state=xyz&redirect_uri=https%3A%2F%2Fclient.example.com%2Fcb&response_type=token&client_id=s6BhdRkqt3"
+    ue_splits = ue.split('&')
+    expected_ue_splits = "state=xyz&redirect_uri=https%3A%2F%2Fclient.example.com%2Fcb&response_type=token&client_id=s6BhdRkqt3".split('&')
+    assert _eq(ue_splits, expected_ue_splits)
 
 
 def test_authz_req_urlencoded_4():
@@ -122,7 +124,10 @@ def test_authz_req_json_1():
                               client_id="foobar")
 
     js_obj = json.loads(ar.serialize(method="json"))
-    expected_js_obj = {"response_type": "code", "client_id": "foobar"}
+    expected_js_obj = {
+        "response_type": "code", 
+        "client_id": "foobar"
+        }
     assert js_obj == expected_js_obj
 
 
@@ -149,7 +154,12 @@ def test_authz_req_urlencoded_3():
                               state="xyz")
 
     ue_obj = json.loads(ar.serialize(method="json"))
-    expected_ue_obj = {"state": "xyz", "redirect_uri": "https://client.example.com/cb", "response_type": "token", "client_id": "s6BhdRkqt3"}
+    expected_ue_obj = {
+        "state": "xyz", 
+        "redirect_uri": "https://client.example.com/cb", 
+        "response_type": "token", 
+        "client_id": "s6BhdRkqt3"
+        }
     assert ue_obj == expected_ue_obj
 
 
@@ -233,7 +243,11 @@ def test_accesstokenreponse_1():
     assert at
     atj = at.serialize(method="json")
     atj_obj = json.loads(atj)
-    expected_atj_obj = {"token_type": "Bearer", "access_token": "SlAV32hkKG", "expires_in": 3600}
+    expected_atj_obj = {
+        "token_type": "Bearer", 
+        "access_token": "SlAV32hkKG", 
+        "expires_in": 3600
+        }
     assert atj_obj == expected_atj_obj
 
 # AccessTokenRequest
@@ -347,8 +361,8 @@ def test_sp_sep_list_deserializer():
 
 def test_json_serializer():
     val = json_serializer({"foo": ["bar", "stool"]})
-    print val
-    assert val == '{"foo": ["bar", "stool"]}'
+    val_obj = json.loads(val)
+    assert val_obj == {"foo": ["bar", "stool"]}
 
 
 def test_json_deserializer():
@@ -537,8 +551,9 @@ def test_message():
 def test_request():
     req = Dummy_Message(req_str="Fair",
                         req_str_list=["game"]).request("http://example.com")
-
-    assert req == "http://example.com?req_str=Fair&req_str_list=game"
+    req_url_obj = URLObject.create(req)
+    expected_req_url_obj = URLObject.create("http://example.com?req_str=Fair&req_str_list=game")
+    assert req_url_obj == expected_req_url_obj
 
 
 def test_multiple_response_types_urlencoded():
@@ -573,7 +588,10 @@ def test_multiple_response_types_json():
                               client_id="foobar")
     ue = ar.to_json()
     ue_obj = json.loads(ue)
-    expected_ue_obj = {"response_type": "code token", "client_id": "foobar"}
+    expected_ue_obj = {
+        "response_type": "code token", 
+        "client_id": "foobar"
+        }
     assert ue_obj == expected_ue_obj
 
     are = AuthorizationRequest().deserialize(ue, "json")
@@ -587,7 +605,11 @@ def test_multiple_scopes_json():
                               client_id="foobar", scope=["openid", "foxtrot"])
     ue = ar.to_json()
     ue_obj = json.loads(ue)
-    expected_ue_obj = {"scope": "openid foxtrot", "response_type": "code token", "client_id": "foobar"}
+    expected_ue_obj = {
+        "scope": "openid foxtrot", 
+        "response_type": "code token", 
+        "client_id": "foobar"
+        }
     assert ue_obj == expected_ue_obj
 
     are = AuthorizationRequest().deserialize(ue, "json")
