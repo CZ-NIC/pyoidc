@@ -557,6 +557,11 @@ class Message(object):
                 if required:
                     raise MissingRequiredAttribute("%s" % attribute)
                 continue
+            else:
+                if not val:
+                    if required:
+                        raise MissingRequiredAttribute("%s" % attribute)
+                    continue
 
             if attribute not in _allowed:
                 continue

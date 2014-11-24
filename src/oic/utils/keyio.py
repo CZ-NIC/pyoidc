@@ -332,6 +332,9 @@ class KeyJar(object):
         :param url: Where can the key/-s be found
         """
 
+        if not url:
+            raise KeyError("No jwks_uri")
+
         if "/localhost:" in url or "/localhost/" in url:
             kc = KeyBundle(source=url, verify_ssl=False)
         else:
