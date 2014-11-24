@@ -13,4 +13,4 @@ to track them as close as possible.
 
 Expect a certain time-laps between changes of the documents and the
 corresponding change of the code. I will strive to keep the time lap as
-short as possible.
+short as possible. 
