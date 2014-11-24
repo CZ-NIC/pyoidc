@@ -50,7 +50,7 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires = ['requests', "pycrypto>=2.6.1", "cherrypy==3.2.4",
-                        "mako", "pyjwkest>=5.1.0", "beaker", "alabaster",
+                        "mako", "pyjwkest>=0.5.1", "beaker", "alabaster",
                         "importlib", "argparse", "pyOpenSSL"],
     tests_require=['pytest'],
     zip_safe=False,
