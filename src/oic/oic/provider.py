@@ -356,25 +356,26 @@ class Provider(AProvider):
 
         return areq
 
-    @staticmethod
-    def required_user(areq):
+    def _verify_client(self, areq):
+        if areq["client_id"] in areq["id_token_hint"]["aud"]:
+            return True
+        else:
+            return False
+
+    def required_user(self, areq):
         req_user = ""
         try:
-            oidc_req = areq["request"]
-            try:
-                req_user = oidc_req["claims"]["id_token"]["sub"]["value"]
-            except KeyError:
-                pass
+            _req = areq["request"]
         except KeyError:
-            try:
-                req_user = areq["id_token"]["sub"]
-            except KeyError:
-                pass
-            else:
-                try:
-                    assert areq["client_id"] in areq["id_token"]["aud"]
-                except AssertionError:
-                    req_user = ""  # Not allow to use
+            _req = areq
+
+        try:
+            req_user = _req["id_token_hint"]["sub"]
+        except KeyError:
+            pass
+        else:
+            if not self._verify_client(areq):
+                req_user = ""
 
         return req_user
 
@@ -884,6 +885,21 @@ class Provider(AProvider):
         else:
             return self._refresh_access_token_endpoint(req, **kwargs)
 
+    @staticmethod
+    def claims_match(value, claimspec):
+        if claimspec is None:
+            return True
+
+        for key, val in claimspec:
+            if key == "value":
+                if value != val:
+                    return False
+            elif key == "values":
+                if value not in val:
+                    return False
+            # Whether it's essential or not doesn't change anything here
+        return True
+
     def _collect_user_info(self, session, userinfo_claims=None):
         """
         Collect information about a user.
@@ -919,6 +935,10 @@ class Provider(AProvider):
 
         logger.debug("Session info: %s" % session)
         info = self.userinfo(session["authn_event"].uid, userinfo_claims)
+
+        if "sub" in userinfo_claims:
+            if not self.claims_match(session["sub"], userinfo_claims["sub"]):
+                raise FailedAuthentication("Unmatched sub claim")
 
         info["sub"] = session["sub"]
         logger.debug("user_info_response: %s" % (info,))
