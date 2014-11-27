@@ -2,3 +2,6 @@ language: python
 
 script:
   - ./setup.py test
+
+install:
+  - pip install --upgrade setuptools
