@@ -535,16 +535,17 @@ if __name__ == '__main__':
 
     if args.test:
         URLS.append((r'tracelog', trace_log))
-        OAS = TestProvider(config.issuer, SessionDB(), cdb, ac, None,
-                           authz, config.SYM_KEY)
+        OAS = TestProvider(config.issuer, SessionDB(config.baseurl), cdb, ac,
+                           None, authz, config.SYM_KEY)
     elif args.XpressConnect:
         from XpressConnect import XpressConnectProvider
 
-        OAS = XpressConnectProvider(config.issuer, SessionDB(), cdb, ac,
-                                    None, authz, verify_client, config.SYM_KEY)
+        OAS = XpressConnectProvider(config.issuer, SessionDB(config.baseurl),
+                                    cdb, ac, None, authz, verify_client,
+                                    config.SYM_KEY)
     else:
-        OAS = Provider(config.issuer, SessionDB(), cdb, ac, None, authz,
-                       verify_client, config.SYM_KEY, **kwargs)
+        OAS = Provider(config.issuer, SessionDB(config.baseurl), cdb, ac, None,
+                       authz, verify_client, config.SYM_KEY, **kwargs)
 
 
     try:
