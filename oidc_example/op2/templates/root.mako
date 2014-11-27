@@ -9,9 +9,6 @@
     ${css_link('/css/main.css', 'screen')}
 </%def>
 <%def name="pre()" filter="trim">
-<div class="header">
-    <h1><a href="/">Login</a></h1>
-</div>
 </%def>
 <%def name="post()" filter="trim">
 <div>

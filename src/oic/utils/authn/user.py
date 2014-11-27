@@ -1,3 +1,4 @@
+# coding=utf-8
 import base64
 import logging
 import time
@@ -5,9 +6,7 @@ from urllib import urlencode
 import urllib
 from urlparse import parse_qs
 from urlparse import urlsplit
-import urlparse
 
-#from oic.utils.aes_m2c import AES_decrypt
 from oic.utils import aes
 from oic.utils.http_util import Response
 from oic.utils.http_util import CookieDealer
@@ -18,6 +17,23 @@ from oic.utils.http_util import Unauthorized
 __author__ = 'rolandh'
 
 logger = logging.getLogger(__name__)
+
+
+LOC = {
+    "en": {
+        "title": "User log in",
+        "login_title": "Username",
+        "passwd_title": "Password",
+        "submit_text": "Submit",
+        "client_policy_title": "Client Policy"},
+    "se": {
+        "title": "Logga in",
+        "login_title": u"Användarnamn",
+        "passwd_title": u"Lösenord",
+        "submit_text": u"Sänd",
+        "client_policy_title": "Klientens sekretesspolicy"
+    }
+}
 
 
 class NoSuchAuthentication(Exception):
@@ -91,6 +107,7 @@ class UserAuthnMethod(CookieDealer):
             return rp_query_cookie[0]
         return ""
 
+
 def url_encode_params(params=None):
     if not isinstance(params, dict):
         raise Exception("You must pass in a dictionary!")
@@ -149,8 +166,12 @@ class UsernamePasswordMako(UserAuthnMethod):
     """Do user authentication using the normal username password form in a
     WSGI environment using Mako as template system"""
 
+    param_map = {"as_user": "login", "acr_values": "acr",
+                 "policy_uri": "policy_uri", "logo_uri": "logo_uri",
+                 "query": "query"}
+
     def __init__(self, srv, mako_template, template_lookup, pwd, return_to="",
-                 templ_arg_func=None, verification_endpoints=["verify"]):
+                 templ_arg_func=None, verification_endpoints=None):
         """
         :param srv: The server instance
         :param mako_template: Which Mako template to use
@@ -163,7 +184,7 @@ class UsernamePasswordMako(UserAuthnMethod):
         self.template_lookup = template_lookup
         self.passwd = pwd
         self.return_to = return_to
-        self.verification_endpoints = verification_endpoints
+        self.verification_endpoints = verification_endpoints or ["verify"]
         if templ_arg_func:
             self.templ_arg_func = templ_arg_func
         else:
@@ -177,32 +198,19 @@ class UsernamePasswordMako(UserAuthnMethod):
         :param kwargs:
         :return: dictionary of parameters used to build the Authn page
         """
-        acr = None
-        try:
-            req = urlparse.parse_qs(kwargs["query"])
-            acr = req["acr_values"][0]
-        except KeyError:
-            pass
 
         try:
             action = kwargs["action"]
         except KeyError:
             action = self.verification_endpoints[end_point_index]
 
-        argv = {"password": "",
-                "action": action,
-                "acr": acr}
+        argv = {"password": "", "action": action}
 
-        try:
-            argv["login"] = kwargs["as_user"]
-        except KeyError:
-            argv["login"] = ""
-
-        for param in ["policy_uri", "logo_uri", "query"]:
+        for fro, to in self.param_map.items():
             try:
-                argv[param] = kwargs[param]
+                argv[to] = kwargs[fro]
             except KeyError:
-                argv[param] = ""
+                argv[to] = ""
 
         if "extra" in kwargs:
             for param in kwargs["extra"]:
@@ -210,6 +218,19 @@ class UsernamePasswordMako(UserAuthnMethod):
                     argv[param] = kwargs[param]
                 except KeyError:
                     argv[param] = ""
+
+        try:
+            _locs = kwargs["ui_locales"]
+        except KeyError:
+            argv.update(LOC["en"])
+        else:
+            for loc in _locs:
+                try:
+                    argv.update(LOC[loc])
+                except KeyError:
+                    pass
+                else:
+                    break
 
         return argv
 

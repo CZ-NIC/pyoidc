@@ -653,6 +653,12 @@ class Provider(AProvider):
             except KeyError:
                 pass
 
+        for attr in ["ui_locales", "acr_values"]:
+            try:
+                authn_args[attr] = areq[attr]
+            except KeyError:
+                pass
+
         # To authenticate or Not
         if identity is None:  # No!
             if "prompt" in areq and "none" in areq["prompt"]:
