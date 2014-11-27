@@ -6,7 +6,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,7 +23,6 @@ __author__ = 'rohe0002'
 
 
 class PyTest(TestCommand):
-
     def finalize_options(self):
         TestCommand.finalize_options(self)
         self.test_args = []
@@ -32,26 +31,29 @@ class PyTest(TestCommand):
     def run_tests(self):
         #import here, cause outside the eggs aren't loaded
         import pytest
+
         errno = pytest.main(self.test_args)
         sys.exit(errno)
+
 
 setup(
     name="oic",
     version="0.6.0",
     description="Python implementation of OAuth2 and OpenID Connect",
-    author = "Roland Hedberg",
-    author_email = "roland.hedberg@adm.umu.se",
+    author="Roland Hedberg",
+    author_email="roland.hedberg@adm.umu.se",
     license="Apache 2.0",
     url='https://github.com/rohe/pyoidc',
     packages=["oic", "oic/oauth2", "oic/oic", "oic/utils", "oic/utils/authn",
               "oic/utils/userinfo"],
-    package_dir = {"": "src"},
-    classifiers = ["Development Status :: 4 - Beta",
-        "License :: OSI Approved :: Apache Software License",
-        "Topic :: Software Development :: Libraries :: Python Modules"],
-    install_requires = ['requests', "pycrypto>=2.6.1", "cherrypy==3.2.4",
-                        "mako", "pyjwkest>=0.5.1", "beaker", "alabaster",
-                        "importlib", "argparse", "pyOpenSSL"],
+    package_dir={"": "src"},
+    classifiers=["Development Status :: 4 - Beta",
+                 "License :: OSI Approved :: Apache Software License",
+                 "Topic :: Software Development :: Libraries :: Python "
+                 "Modules"],
+    install_requires=['requests', "pycrypto>=2.6.1", "cherrypy==3.2.4",
+                      "mako", "pyjwkest>=0.5.1", "beaker", "alabaster",
+                      "importlib", "argparse", "pyOpenSSL"],
     tests_require=['pytest'],
     zip_safe=False,
     cmdclass={'test': PyTest},
