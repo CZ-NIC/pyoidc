@@ -65,6 +65,7 @@ class KeyBundle(object):
         self.fileformat = fileformat.lower()
         self.keytype = keytype
         self.keyusage = keyusage
+        self.imp_jwks = None
 
         if keys:
             self.source = None
@@ -141,7 +142,9 @@ class KeyBundle(object):
         elif r.status_code == 200:  # New content
             self.time_out = time.time() + self.cache_time
 
-            self.do_keys(json.loads(r.text)["keys"])
+            logger.debug("Loaded JWKS: %s from %s" % (r.text, self.source))
+            self.imp_jwks = json.loads(r.text)  # For use else where
+            self.do_keys(self.imp_jwks["keys"])
 
             try:
                 self.etag = r.headers["Etag"]
@@ -348,7 +351,7 @@ class KeyJar(object):
         return kc
 
     def add_symmetric(self, issuer, key, usage):
-        if not issuer in self.issuer_keys:
+        if issuer not in self.issuer_keys:
             self.issuer_keys[issuer] = []
 
         for use in usage:
@@ -561,7 +564,7 @@ class KeyJar(object):
         try:
             self.add(issuer, pcr["jwks_uri"])
         except KeyError:
-            #  jwks should only be considered if no jwks_uri is present
+            # jwks should only be considered if no jwks_uri is present
             try:
                 _keys = pcr["jwks"]["keys"]
                 self.issuer_keys[issuer].append(KeyBundle(_keys))
@@ -601,6 +604,7 @@ class KeyJar(object):
         for issuer, keys in info.items():
             self.issuer_keys[issuer] = [KeyBundle(keys)]
 
+
 # =============================================================================
 
 
@@ -615,7 +619,7 @@ class RedirectStdStreams(object):
         self.old_stderr.flush()
         sys.stdout, sys.stderr = self._stdout, self._stderr
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def __exit__(self, exc_type, exc_value, trace_back):
         self._stdout.flush()
         self._stderr.flush()
@@ -700,6 +704,7 @@ def key_export(baseurl, local_path, vault, keyjar, **kwargs):
                           _export_filename[1:])
 
     return _url
+
 
 # ================= create RSA key ======================
 
@@ -811,7 +816,7 @@ def keyjar_init(instance, key_conf, kid_template="a%d"):
                              for k in kb.keys() if k.kty != 'oct'])
 
         # for k in kb.keys():
-        #     k.deserialize()
+        # k.deserialize()
 
         instance.keyjar.add_kb("", kb)
 
