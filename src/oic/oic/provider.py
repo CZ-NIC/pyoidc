@@ -409,11 +409,10 @@ class Provider(AProvider):
 
         try:
             if len(self.authn_broker) == 1:
-                    return self.authn_broker[0]
-            else:
-                if "acr_values" in areq:
-                    if not comparision_type:
-                        comparision_type = "exact"
+                return self.authn_broker[0]
+            elif "acr_values" in areq:
+                if not comparision_type:
+                    comparision_type = "exact"
 
                 if not isinstance(areq["acr_values"], list):
                     areq["acr_values"] = [areq["acr_values"]]
@@ -425,6 +424,8 @@ class Provider(AProvider):
                     if res:
                         #Return the best guess by pick.
                         return res[0]
+            else:  # same as any
+                return self.authn_broker[0]
         except KeyError as exc:
             logger.debug(
                 "An error occured while picking the authN broker: %s" % str(
@@ -1359,6 +1360,7 @@ class Provider(AProvider):
                 _keyjar[client_id] = [_kc]
 
         self.cdb[client_id] = _cinfo
+        self.cdb.sync()
         _log_info("Client info: %s" % _cinfo)
 
         logger.debug("registration_response: %s" % response.to_dict())
