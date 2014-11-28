@@ -1,13 +1,27 @@
 #!/usr/bin/env python
+import copy
+import json
 import shelve
 import urllib
 import urlparse
 import argparse
 import sys
+from oic.oic import RegistrationResponse
 from oic.oic.provider import secret
 from oic.oauth2 import rndstr
 
 __author__ = 'rolandh'
+
+
+def unpack_redirect_uri(redirect_uris):
+    res = []
+    for item in redirect_uris:
+        (base, query) = item
+        if query:
+            res.append("%s?%s" % (base, query))
+        else:
+            res.append(base)
+    return res
 
 
 def pack_redirect_uri(redirect_uris):
@@ -59,13 +73,18 @@ class CDB(object):
 
         client_secret = secret(self.seed, client_id)
 
-        self.cdb[client_id] = {
+        info = {
             "client_secret": client_secret,
             "client_id": client_id,
             "redirect_uris": pack_redirect_uri(redirect_uris),
-            "policy_uri": policy_uri,
-            "logo_uri": logo_uri,
         }
+
+        if policy_uri:
+            info["policy_uri"] = policy_uri
+        if logo_uri:
+            info["logo_uri"] = logo_uri
+
+        self.cdb[client_id] = info
 
         return self.cdb[client_id]
 
@@ -74,6 +93,37 @@ class CDB(object):
 
     def __setitem__(self, key, value):
         self.cdb[key] = eval(value)
+
+    def load(self, filename):
+        info = json.loads(open(filename).read())
+        for item in info:
+            if isinstance(item, list):
+                self.cdb[str(item[0])] = item[1]
+            else:
+                _tmp = copy.copy(item)
+                try:
+                    for uris in ["redirect_uris", "post_logout_redirect_uris"]:
+                        try:
+                            _tmp[uris] = unpack_redirect_uri(_tmp[uris])
+                        except KeyError:
+                            pass
+                    rr = RegistrationResponse(**_tmp)
+                except Exception as err:
+                    print "Faulty specification: %s" % (item,)
+                else:
+                    self.cdb[str(item["client_id"])] = item
+
+    def dump(self, filename):
+        res = []
+        for key, val in self.cdb.items():
+            if isinstance(val, dict):
+                res.append(val)
+            else:
+                res.append([key, val])
+
+        fp = open(filename, 'w')
+        json.dump(res, fp)
+        fp.close()
 
 
 if __name__ == "__main__":
@@ -93,6 +143,10 @@ if __name__ == "__main__":
     parser.add_argument('-r', dest='replace',
                         help=("information that should replace what's there"
                               "about a specific client_id"))
+    parser.add_argument('-I', dest='input_file',
+                        help="Import client information from a file")
+    parser.add_argument('-D', dest='output_file',
+                        help="Dump client information to a file")
     parser.add_argument(dest="filename")
     args = parser.parse_args()
 
@@ -110,3 +164,7 @@ if __name__ == "__main__":
         print cdb.create()
     elif args.delete or args.show or args.replace:
         print "You have to specify a client_id !"
+    elif args.input_file:
+        cdb.load(args.input_file)
+    elif args.output_file:
+        cdb.dump(args.output_file)
