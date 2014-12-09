@@ -889,7 +889,7 @@ class Client(PBase):
         elif reqresp.status_code == 500:
             logger.error("(%d) %s" % (reqresp.status_code, reqresp.text))
             raise Exception("ERROR: Something went wrong: %s" % reqresp.text)
-        elif reqresp.status_code == 400:
+        elif reqresp.status_code in [400, 401]:
             #expecting an error response
             if issubclass(response, ErrorResponse):
                 pass

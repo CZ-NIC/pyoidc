@@ -601,7 +601,7 @@ class IdToken(OpenIDSchema):
                     raise NotForMe("", self)
 
             if len(self["aud"]) > 1:  # Then azr has to be present and be one of
-                                      # the values
+                                      # the aud ∫values
                 try:
                     assert "azr" in self
                 except AssertionError:

@@ -398,6 +398,7 @@ TYPE_METHOD = [(JWT_BEARER, JWSAuthnMethod)]
 
 def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
     """
+    Initiated Guessing !
 
     :param areq: The request
     :param authn: client authentication information
