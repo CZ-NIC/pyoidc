@@ -133,7 +133,7 @@ if __name__ == "__main__":
     parser.add_argument('-d', dest='delete', action='store_true',
                         help="delete the entity with the given client_id")
     parser.add_argument('-c', dest='create', action='store_true',
-                        help=("create a new client, returns the stored" ""
+                        help=("create a new client, returns the stored "
                               "information"))
     parser.add_argument('-s', dest='show', action='store_true',
                         help=("show information connected to a specific"

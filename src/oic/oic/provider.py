@@ -267,7 +267,11 @@ class Provider(AProvider):
         if alg == "":
             alg = self.jwx_def["sign_alg"]["id_token"]
 
-        logger.debug("Signing alg: %s [%s]" % (alg, alg2keytype(alg)))
+        if alg:
+            logger.debug("Signing alg: %s [%s]" % (alg, alg2keytype(alg)))
+        else:
+            alg = "none"
+
         _idt = self.server.make_id_token(session, loa, self.baseurl, alg, code,
                                          access_token, user_info, auth_time)
 
@@ -754,7 +758,10 @@ class Provider(AProvider):
         try:
             alg = client_info["id_token_signed_response_alg"]
         except KeyError:
-            alg = self.jwx_def["sign_alg"]["id_token"]
+            try:
+                alg = self.jwx_def["sign_alg"]["id_token"]
+            except KeyError:
+                alg = "none"
 
         id_token = self.id_token_as_signed_jwt(sinfo, alg=alg,
                                                code=code,
@@ -1123,12 +1130,18 @@ class Provider(AProvider):
 
         if "redirect_uris" in request:
             ruri = []
-            client_type = request["application_type"]
+            try:
+                client_type = request["application_type"]
+            except KeyError:  # default
+                client_type = "web"
 
             if client_type == "web":
-                if request["response_types"] == ["code"]:
-                    must_https = False
-                else:  # one has to be implicit or hybrid
+                try:
+                    if request["response_types"] == ["code"]:
+                        must_https = False
+                    else:  # one has to be implicit or hybrid
+                        must_https = True
+                except KeyError:
                     must_https = True
             else:
                 must_https = False

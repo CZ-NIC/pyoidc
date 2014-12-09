@@ -94,7 +94,18 @@ class UserAuthnMethod(CookieDealer):
 
             return {"uid": uid}
 
-    def generate_return_url(self, return_to, uid):
+    def generate_return_url(self, return_to, uid, path=""):
+        """
+        :param return_to: If it starts with '/' it's an absolute path otherwise
+        a relative path.
+        :param uid:
+        :param path: The verify path
+        """
+        if not return_to.startswith("/"):
+            p = path.split("/")
+            p[-1] = return_to
+            return_to = "/".join(p)
+
         return create_return_url(return_to, uid, **{self.query_param: "true"})
 
     def verify(self, **kwargs):
@@ -289,7 +300,8 @@ class UsernamePasswordMako(UserAuthnMethod):
             try:
                 return_to = self.generate_return_url(kwargs["return_to"], _qp)
             except KeyError:
-                return_to = self.generate_return_url(self.return_to, _qp)
+                return_to = self.generate_return_url(self.return_to, _qp,
+                                                     kwargs["path"])
             return Redirect(return_to, headers=[cookie]), True
 
     def done(self, areq):

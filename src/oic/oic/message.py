@@ -611,7 +611,7 @@ class IdToken(OpenIDSchema):
                         assert self["azr"] in self["aud"]
                     except AssertionError:
                         raise VerificationError(
-                            "Missmatch between azr and aud claims", self)
+                            "Mismatch between azr and aud claims", self)
 
         if "azr" in self:
             if "client_id" in kwargs:
