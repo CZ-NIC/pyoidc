@@ -825,7 +825,7 @@ def test_construct_UserInfoRequest():
     uir = cli.construct_UserInfoRequest(
         request_args={"access_token": "access_token"})
     print uir
-    assert ("%s" % uir) == "access_token=access_token"
+    assert ("%s" % uir) == "{'access_token': 'access_token'}"
 
 
 def test_construct_UserInfoRequest_2():
@@ -853,7 +853,7 @@ def test_construct_CheckSessionRequest():
     csr = cli.construct_CheckSessionRequest(
         request_args={"id_token": "id_token"})
     print csr
-    assert ("%s" % csr) == 'id_token=id_token'
+    assert ("%s" % csr) == "{'id_token': 'id_token'}"
 
 
 def test_construct_CheckSessionRequest_2():
@@ -870,7 +870,7 @@ def test_construct_CheckSessionRequest_2():
 
     uir = cli.construct_CheckSessionRequest(state="foo", scope=["openid"])
     print uir
-    assert ("%s" % uir) == "id_token=id_id_id_id"
+    assert ("%s" % uir) == "{'id_token': 'id_id_id_id'}"
 
 
 def test_construct_RegistrationRequest():

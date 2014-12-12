@@ -517,7 +517,8 @@ class Message(object):
         return self.from_dict(jso)
 
     def __str__(self):
-        return self.to_urlencoded()
+        #return self.to_urlencoded()
+        return '{}'.format(self.to_dict())
 
     def _type_check(self, typ, _allowed, val, na=False):
         if typ is basestring:
