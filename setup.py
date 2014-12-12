@@ -35,6 +35,11 @@ class PyTest(TestCommand):
         errno = pytest.main(self.test_args)
         sys.exit(errno)
 
+# Python 2.7 and later ship with importlib and argparse
+if sys.version_info.major == 2 and sys.version_info.minor == 6:
+    extra_install_requires = ["importlib", "argparse"]
+else:
+    extra_install_requires = []
 
 setup(
     name="oic",
@@ -51,9 +56,12 @@ setup(
                  "License :: OSI Approved :: Apache Software License",
                  "Topic :: Software Development :: Libraries :: Python "
                  "Modules"],
-    install_requires=['requests', "pycrypto>=2.6.1", "cherrypy==3.2.4",
-                      "mako", "pyjwkest>=0.5.1", "beaker", "alabaster",
-                      "importlib", "argparse", "pyOpenSSL"],
+    extras_require={
+        'develop': ["cherrypy==3.2.4"],
+    },
+    install_requires=[
+        "requests", "pycrypto>=2.6.1", "pyjwkest>=0.5.1",
+        "mako", "beaker", "alabaster", "pyOpenSSL"] + extra_install_requires,
     tests_require=['pytest'],
     zip_safe=False,
     cmdclass={'test': PyTest},
