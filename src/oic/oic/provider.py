@@ -904,7 +904,7 @@ class Provider(AProvider):
         if claimspec is None:
             return True
 
-        for key, val in claimspec:
+        for key, val in claimspec.items():
             if key == "value":
                 if value != val:
                     return False
@@ -1373,7 +1373,12 @@ class Provider(AProvider):
                 _keyjar[client_id] = [_kc]
 
         self.cdb[client_id] = _cinfo
-        self.cdb.sync()
+
+        try:
+            self.cdb.sync()
+        except AttributeError:  # Not all databases can be sync'ed
+            pass
+
         _log_info("Client info: %s" % _cinfo)
 
         logger.debug("registration_response: %s" % response.to_dict())
