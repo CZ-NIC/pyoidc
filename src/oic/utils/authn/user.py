@@ -300,8 +300,12 @@ class UsernamePasswordMako(UserAuthnMethod):
             try:
                 return_to = self.generate_return_url(kwargs["return_to"], _qp)
             except KeyError:
-                return_to = self.generate_return_url(self.return_to, _qp,
-                                                     kwargs["path"])
+                try:
+                    return_to = self.generate_return_url(self.return_to, _qp,
+                                                         kwargs["path"])
+                except KeyError:
+                    return_to = self.generate_return_url(self.return_to, _qp)
+
             return Redirect(return_to, headers=[cookie]), True
 
     def done(self, areq):
