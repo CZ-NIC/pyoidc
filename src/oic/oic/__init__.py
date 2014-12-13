@@ -751,9 +751,12 @@ class Client(oauth2.Client):
             _kty = jws.alg2keytype(algo)
             # Keys of the OP ?
             try:
-                keys = self.keyjar.get_signing_key(_kty, self.kid["sig"][_kty])
+                args = {"kid": self.kid["sig"][_kty]}
             except KeyError:
-                keys = self.keyjar.get_signing_key(_kty)
+                args = {}
+
+            owner = self.keyjar.match_owner(path)
+            keys = self.keyjar.get_signing_key(_kty, owner, **args)
 
             return _schema().from_jwt(resp.text, keys)
 
