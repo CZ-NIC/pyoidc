@@ -17,21 +17,21 @@ An OP provides a couple of endpoints to which RPs can send requests.
 Authentication
 --------------
 In general any authentication method can be used as long as the class implementing it includes the following interface:
-  * Inherit from :code:`oic.utils.authn.user.UserAuthnMethod`
-  * Override :code:`UserAuthnMethod.__call__`: should return a HTTP response containing either the login page
-    (see the simple username/password login authentication class :code:`UsernamePasswordMako`) or a redirect
-    to a login page hosted elsewhere (see the SAML authentication class :code:`SAMLAuthnMethod`).
-  * Override :code:`UserAuthnMethod.verify`: should verify the authentication parameters from the associated login
-    page (served by :code:`__call__`). Must return a tuple :code:`(a, b)` where :code:`a` is a HTTP Response (most likely 200 OK
-    or a redirect to collect more information necessary to authenticate) and :code:`b` is a boolean value indicating
+  * Inherit from `oic.utils.authn.user.UserAuthnMethod`
+  * Override `UserAuthnMethod.__call__`: should return a HTTP response containing either the login page
+    (see the simple username/password login authentication class `UsernamePasswordMako`) or a redirect
+    to a login page hosted elsewhere (see the SAML authentication class `SAMLAuthnMethod`).
+  * Override `UserAuthnMethod.verify`: should verify the authentication parameters from the associated login
+    page (served by `__call__`). Must return a tuple `(a, b)` where `a` is a HTTP Response (most likely 200 OK
+    or a redirect to collect more information necessary to authenticate) and `b` is a boolean value indicating
     whether the authentication is complete.
 
-    The input to :code:`verify` will contain any cookies received. If the authentication is part of a multi auth chain,
+    The input to `verify` will contain any cookies received. If the authentication is part of a multi auth chain,
     see below, the cookie returned by
-    :code:`UserAuthnMethod.get_multi_auth_cookie` should be used to retrieve the original query from the RP.
+    `UserAuthnMethod.get_multi_auth_cookie` should be used to retrieve the original query from the RP.
 
 To properly register the implemented verify method as the callback function at an endpoint of the OP, use
-:code:`oic.utils.authn.authn_context.make_auth_verify` (which wraps the specified callback to properly parse the request
+`oic.utils.authn.authn_context.make_auth_verify` (which wraps the specified callback to properly parse the request
 before it is passed along and handles the case of multi auth chains, see below).
 
 
@@ -102,7 +102,7 @@ To setup a multi authentication chain the following steps must be completed:
 
      `<pyoidc path>/oidc_example/op2/config_student.py.example`
 
-     with the dictionary :code:`AUTHENTICATION` containing
+     with the dictionary `AUTHENTICATION` containing
      the key "SamlPass" for a multi auth chain containing both SAML login combined with username/password login. Give it
      an Authentication Context Class Reference (ACR) to be used by the RP.
 
@@ -113,13 +113,13 @@ To setup a multi authentication chain the following steps must be completed:
      auth), the endpoints in the backend SP must be given indices to separate between multi auth chain(s) and
      single auth (see e.g. `<pyoidc path>/oidc_example/op2/sp_conf_student.py.example` and the
      `pysaml2 documentation <https://dirg.org.umu.se/static/pysaml2/howto/config.html#endpoints>`_).
-     Use :code:`AuthnIndexedEndpointWrapper` to apply the indices correctly in the OP.
+     Use `AuthnIndexedEndpointWrapper` to apply the indices correctly in the OP.
 
-  #) Create the chain and setup all endpoints at the OP using :code:`oic.utils.authn.multi_auth.setup_multi_auth`.
-     The input should be a list :code:`[(m1, e1), (m2, e2), ...]`, specifying the ordered chain of authentication, where
+  #) Create the chain and setup all endpoints at the OP using `oic.utils.authn.multi_auth.setup_multi_auth`.
+     The input should be a list `[(m1, e1), (m2, e2), ...]`, specifying the ordered chain of authentication, where
      each tuple contains the authentication method instance and the callback endpoint at the OP (specified in the form of
      a regular expression matching the path in the HTTP request) the login page returns to. The object returned from
-     :code:`setup_multi_auth` must be added to the :code:`AuthnBroker` instance.
+     `setup_multi_auth` must be added to the `AuthnBroker` instance.
 
   #) The RP can now ask for the multi auth chain using the ACR value specified in the OP config.
 
