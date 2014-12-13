@@ -1,7 +1,7 @@
 .. _howto_rp:
 
-How to set up an OpenID Connect Relying Party (RP)
-==================================================
+Python Cookbook for OpenID Connect Public Client
+================================================
 
 According to the OpenID Connect (OIDC) Core document
 a Relying Party is an 'OAuth 2.0 Client application requiring End-User
@@ -13,26 +13,43 @@ library.
 There are a couple of choices you have to make, but we'll take that as
 we walk through the message flow.
 
-Client registration and Provider information
-::::::::::::::::::::::::::::::::::::::::::::
+Before I start you should now that the basic code flow in OpenID Connect
+consists of a sequence of request-responses, namely these:
 
-The first choice is really not yours it's the OpenID Connect Provider (OP)
+* Issuer discovery using WebFinger
+* Provider Info discovery
+* Client registration
+* Authorization Request
+* Access Token Request
+* Userinfo Request
+
+
+In the example below I will go through all the steps and I will use the basic
+Client class because it will provide interfaces to all of them.
+So lets start with instantiating a client::
+
+    from oic.oic import Client
+
+    c = Client()
+
+
+The first choices is really not yours it's the OpenID Connect Provider (OP)
 that has to decide on whether it supports dynamic provider information
 gathering and/or dynamic client registration.
 
 If the OP doesn't support client registration then you have to static register
 your client with the provider. Typically this is accomplished using a web
-page and form provider by the organization that runs the OP. Can't help
+page provided by the organization that runs the OP. Can't help
 you with this since each provider does it differently. What you eventually
 must get from the service provide is a client id and a client secret.
 
 If the service provider does not support dynamic OP information lookup, then
-the necessary information will probably appear on some webpage somewhere.
+the necessary information will probably appear on some web page somewhere.
 Again look to the service provider. Going through the dynamic process below
 you will learn what information to look for.
 
-OP discovery and RP registration
---------------------------------
+Issuer discovery
+----------------
 
 OIDC uses webfinger (http://tools.ietf.org/html/rfc7033)to do the OP discovery.
 In very general terms this means
@@ -45,30 +62,39 @@ At this point in time let us assume that you will instantiated a OIDC RP.
 .. Note::Oh, by the way I will probably alternate between talking about the RP
     and the client, don't get caught up on that, they are the same thing.
 
-Instantiation at it's simplest can look like this::
 
-    from oic.oic.consumer import Consumer
+As stated above depending on depending on the OP and the return_type you
+will use some of these steps may be left out or replaced with an out-of-band
+process.
 
-    client = Consumer()
-
-Now what about the users identifier how to get from that to knowing where the
-OP are and what the OP can do. To find out where it is you can do this::
+Using pyoidc this is how you would do it::
 
     uid = "foo@example.com"
     issuer = client.discover(uid)
 
 The discover method will use webfinger to find the OIDC OP given the user
 identifier provided. If the user identifier follows another syntax/scheme
-the same method can still be used.
+the same method can still be used, you just have to preface the 'uid'
+value with the scheme used.
 The returned issuer must according to the standard be a https url, but some
 implementers have decided differently on this, so you may get a http url.
-Anyway once you have the URL you want to get information about the OP, so
+
+Provider Info discovery
+-----------------------
+
+When you have the provider info URL you want to get information about the OP, so
 you query for that::
 
     provider_info = client.provider_config(issuer)
 
 A description of the whole set of metadata can be found here:
 http://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
+
+.. Note::One parameter of the provider info is the issuer parameter this
+     is supposed to be *exactly* the same as the URL you used to fetch the
+     information. Now, this isn't valid for some providers. You can tell the
+     client to not care about this by setting
+     client.allow["issuer_mismatch"] = True
 
 The resulting provider_info is a dictionary, hence you can easily find the
 necessary information::
@@ -89,7 +115,13 @@ the provider information is store using the issuer name as the key::
 
 
 Now, you know all about the OP. The next step would be to register the
-client with the OP. To do that you need to know the 'registration_endpoint'.
+client with the OP.
+
+
+Client registration
+-------------------
+
+To do that you need to know the 'registration_endpoint'.
 And you have to decide on a couple of things about the RP.
 
 Things like:
@@ -114,11 +146,26 @@ So, registering a client could then be accomplished doing::
     client.redirect_uris = ['https://example.com/rp/authz_cb']
     registration_response = client.register(provider_info["registration_endpoint"])
 
+You have two choices here, you can either assign the parameters with value to
+the client instance as in the example above or you can provide them as an
+argument to the method::
+
+    args = {
+        "redirect_uris": ['https://example.com/rp/authz_cb'],
+        "contacts": ["foo@example.com"]
+        }
+
+    registration_response = client.register(
+        provider_info["registration_endpoint"], **args)
+
+or a combination of the two.
+
 Provided the registration went flawlessly you will get the registration response
 (an instance of a RegistrationResponse) as a result. But at the same time
-tha response will be stored in the client instance (client_info parameter).
+automatically the response will be stored in the client instance
+(client_info parameter).
 
-.. Note:: The basic Client class is made to only talk to one OP. If your service
+.. Note:: The basic Client class is expected to only talk to one OP. If your service
     needs to talk to several OPs that are a couple of patterns you could use.
     One is to instantiate one RP per OP another to keep the OP specific information
     like provider information and client registration information outside the
@@ -136,14 +183,18 @@ the RP accordingly. And this is how you would do that::
         token_endpoint="https://example.org/OP/1/token",
         ... and so on )
 
+    # or
+    # op_info = ProviderConfigurationResponse(**info)
+    # if you have the provider info in the form of a dictionary
+
     client.provider_info = op_info
 
 Likewise if the client registration has been done out-of-band::
 
     from oic.oic.message import RegistrationResponse
 
-    client_reg = RegistrationResponse(
-        client_id="1234567890", client_secret="abcdefghijklmnop")
+    info = {"client_id": "1234567890", "client_secret": "abcdefghijklmnop"}
+    client_reg = RegistrationResponse(**info)
 
     client.client_info = client_reg
 
@@ -167,30 +218,30 @@ Before doing the request you have to decided on a couple of things:
 * which response type you want to use.
     You can read up on response types in the OAuth2 RFC.
 * the scope. The list of scopes must contain 'openid'. There is a list of
-    extra scopes that OIDC defines those can be found in the specification.
+    extra scopes that OIDC defines which can be found in the specification.
 * whether to use HTTP 'GET' or 'POST'. Either one is allowed. 'GET' is default.
 
 Authorization Code Flow
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 From the list redirect_uris you have to pick one to use for this request.
-Given you have all that you now can send the request::
+Given you have all that, you now can send the request::
 
     import hashlib
     import hmac
     from oic.oauth2 import rndstr
 
-    client.state = rndstr()
-    _nonce = rndstr()
+    session["state"] = rndstr()
+    session["nonce"] = rndstr()
     args = {
         "client_id": client.client_id,
         "response_type": "code",
         "scope": ["openid"],
-        "nonce": hmac.new(_nonce, digestmod=hashlib.sha224),
+        "nonce": session["nonce"],
         "redirect_uri": client.redirect_uris[0]
     }
 
-    result = client.do_authorization_request(state=client.state,
+    result = client.do_authorization_request(state=session["state"],
                                              request_args=args)
 
 The arguments *state* are use to keep track on responses to
@@ -198,6 +249,9 @@ outstanding requests (state).
 
 *nonce* is a string value used to associate a Client session with an ID Token,
 and to mitigate replay attacks.
+
+Since you will need both these arguments later in the process you probably
+want to store them in a session object (assumed to look like a dictionary).
 
 Most probable the response to this request will be a redirect to some other
 URL where the authentication is performed.
@@ -208,11 +262,14 @@ You can parse this response by doing::
 
     from oic.oic.message import AuthorizationResponse
 
+    # If you're in a WSGI environment
+    response = environ["QUERY_STRING"]
+
     aresp = client.parse_response(AuthorizationResponse, info=response,
                                   sformat="urlencoded")
 
     code = aresp["code"]
-    assert aresp["state"] == client.state
+    assert aresp["state"] == session["state"]
 
 *aresp* is an instance of an AuthorizationResponse or an ErrorResponse.
 The later if an error was return from the OP.
@@ -237,8 +294,12 @@ token::
 
 
 'scope' has to be the same as in the authorization request.
+
 If you don't specify a specific client authentication method, then
 *client_secret_basic* is used.
+
+You have to provide client_id and client_secret as arguments, how they are used
+depends on the authentication method used.
 
 The resp you get back is an instance of an AccessTokenResponse or again possibly
 an ErrorResponse instance.
@@ -247,6 +308,9 @@ If it's an AccessTokenResponse the information in the response will be stored
 in the client instance with *state* as the key for future use.
 One if the items in the response will be the ID Token which contains information
 about the authentication.
+One parameter (or claim as its also called) is the nonce you provider with
+the authroization request.
+
 And then the final request, the user info request::
 
     userinfo = client.do_user_info_request(state=aresp["state"])
@@ -255,7 +319,7 @@ Using the *state* the client library will find the appropriate access token
 and based on the token type chose the authentication method.
 
 *userinfo* in an instance of OpenIDSchema or ErrorResponse. Given that you have
-used openid as the scope *userinfo* will not contain a lot of information.
+used openid as the scope, *userinfo* will not contain a lot of information.
 actually only the *sub* parameter.
 
 Implicit Flow
@@ -266,27 +330,28 @@ Endpoint; the Token Endpoint is not used.
 
 So::
 
-    import hashlib
-    import hmac
     from oic.oauth2 import rndstr
 
-    client.state = rndstr()
-    _nonce = rndstr()
+    seession["state"] = rndstr()
+    session["nonce"] = rndstr()
     args = {
         "client_id": client.client_id,
-        "response_type": "token",
+        "response_type": ["id_token", "token"],
         "scope": ["openid"],
-        "nonce": hmac.new(_nonce, digestmod=hashlib.sha224),
+        "nonce": session["nonce"],
         "redirect_uri": client.redirect_uris[0]
     }
 
-    result = client.do_authorization_request(state=client.state,
+    result = client.do_authorization_request(state=session["state"],
                                              request_args=args)
 
 
 As for the Authorization Code Flow the authentication part will begin
 with a redirect to a login page and end with a redirect back to the
 registered redirect_uri.
+
+Since the response will be return as a fragment you need some special code
+to catch that information. How you do that depends on your setup.
 
 Again the response can be parse by doing::
 
