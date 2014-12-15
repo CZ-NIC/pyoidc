@@ -200,7 +200,7 @@ class TestOICConsumer():
         srv.keyjar = SRVKEYS
 
         sid, location = self.consumer.begin("openid", "code",
-                                       path="http://localhost:8087")
+                                            path="http://localhost:8087")
         print location
         #vkeys = {".":srv.keyjar.get_verify_key()}
         authreq = srv.parse_authorization_request(url=location)
@@ -466,6 +466,54 @@ def test_userinfo():
     assert _eq(result.keys(), ['name', 'email', 'verified', 'nickname', 'sub'])
 
 
+def test_sign_userinfo():
+    consumer = Consumer(SessionDB(SERVER_INFO["issuer"]), CONFIG,
+                        CLIENT_CONFIG, SERVER_INFO)
+    consumer.keyjar = CLIKEYS
+
+    mfos = MyFakeOICServer("http://localhost:8088")
+    mfos.keyjar = SRVKEYS
+    mfos.userinfo_signed_response_alg = "RS256"
+
+    consumer.http_request = mfos.http_request
+    consumer.redirect_uris = ["http://example.com/authz"]
+    _state = "state0"
+    consumer.nonce = rndstr()
+    consumer.secret_type = "basic"
+    consumer.set_client_secret("hemligt")
+    consumer.keyjar = CLIKEYS
+    consumer.client_prefs = {"userinfo_signed_response_alg": "RS256"}
+    consumer.provider_info = {"http://localhost:8088": {
+        "userinfo_endpoint": "http://localhost:8088/userinfo"
+    }}
+    del consumer.config["request_method"]
+
+    args = {
+        "client_id": consumer.client_id,
+        "response_type": "code",
+        "scope": ["openid"],
+    }
+
+    sid, location = consumer.begin("openid", "code")
+    print location
+
+    result = consumer.do_authorization_request(state=_state,
+                                               request_args=args)
+    assert result.status_code == 302
+    assert result.headers["location"].startswith(consumer.redirect_uris[0])
+    _, query = result.headers["location"].split("?")
+
+    consumer.parse_response(AuthorizationResponse, info=query,
+                            sformat="urlencoded")
+
+    consumer.complete(_state)
+
+    result = consumer.get_user_info(_state)
+    print result
+    assert result.type() == "OpenIDSchema"
+    assert _eq(result.keys(), ['name', 'email', 'verified', 'nickname', 'sub'])
+
+
 def real_test_discover():
     c = Consumer(None, None)
 
@@ -561,7 +609,7 @@ def test_client_register():
 
 
 if __name__ == "__main__":
-    t = TestOICConsumer()
-    t.setup_class()
-    t.test_complete()
-    #test_provider_config()
+    # t = TestOICConsumer()
+    # t.setup_class()
+    # t.test_complete()
+    test_sign_userinfo()
