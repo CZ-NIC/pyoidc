@@ -745,6 +745,14 @@ VSER = 2
 VDESER = 3
 VNULLALLOWED = 4
 
+def is_message_field_list(messageField):
+    """
+    Checks if the incoming messageField is a list.
+    :param messageField: A tuple with five elements, which is defined bellow.
+    :return Returns true if the messageField is a list else false
+    """
+    return not isinstance(messageField[0], basestring)
+
 SINGLE_REQUIRED_STRING = (basestring, True, None, None, False)
 SINGLE_OPTIONAL_STRING = (basestring, False, None, None, False)
 SINGLE_OPTIONAL_INT = (int, False, None, None, False)
