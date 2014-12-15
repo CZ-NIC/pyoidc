@@ -755,7 +755,7 @@ class Client(oauth2.Client):
             except KeyError:
                 args = {}
 
-            owner = self.keyjar.match_owner(path)
+            owner = self.endpoint2issuer(path, "userinfo_endpoint")
             keys = self.keyjar.get_signing_key(_kty, owner, **args)
 
             return _schema().from_jwt(resp.text, keys)
