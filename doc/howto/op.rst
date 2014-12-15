@@ -16,22 +16,32 @@ An OP provides a couple of endpoints to which RPs can send requests.
 
 Authentication
 --------------
-In general any authentication method can be used as long as the class implementing it includes the following interface:
-  * Inherit from `oic.utils.authn.user.UserAuthnMethod`
-  * Override `UserAuthnMethod.__call__`: should return a HTTP response containing either the login page
-    (see the simple username/password login authentication class `UsernamePasswordMako`) or a redirect
-    to a login page hosted elsewhere (see the SAML authentication class `SAMLAuthnMethod`).
-  * Override `UserAuthnMethod.verify`: should verify the authentication parameters from the associated login
-    page (served by `__call__`). Must return a tuple `(a, b)` where `a` is a HTTP Response (most likely 200 OK
+In general any authentication method can be used as long as the class implementing
+it includes the following interface:
+
+  * Inherit from :py:class:`oic.utils.authn.user.UserAuthnMethod`
+  * Override :py:meth:`oic.utils.authn.user.UserAuthnMethod.__call__`: should
+    return a HTTP response containing either the login page
+    (see the simple username/password login authentication
+    class :py:class:`oic.utils.authn.user.UsernamePasswordMako` ) or a redirect
+    to a login page hosted elsewhere (see the SAML
+    authentication class :py:class:`oic.utils.authn.user.SAMLAuthnMethod`).
+  * Override :py:meth:`oic.utils.authn.user.UserAuthnMethod.verify`: should verify
+    the authentication parameters from the associated login
+    page (served by :py:meth:`oic.utils.authn.user.UserAuthMethod.__call__`).
+    Must return a tuple `(a, b)` where `a` is a HTTP Response (most likely 200 OK
     or a redirect to collect more information necessary to authenticate) and `b` is a boolean value indicating
     whether the authentication is complete.
 
-    The input to `verify` will contain any cookies received. If the authentication is part of a multi auth chain,
-    see below, the cookie returned by
-    `UserAuthnMethod.get_multi_auth_cookie` should be used to retrieve the original query from the RP.
+    The input to :py:meth:`verify` will contain any cookies received. If the
+    authentication is part of a multi auth chain, see below, the cookie returned
+    by :py:meth:`oic.utils.authn.user.UserAuthnMethod.get_multi_auth_cookie`
+    should be used to retrieve the original query from the RP.
 
-To properly register the implemented verify method as the callback function at an endpoint of the OP, use
-`oic.utils.authn.authn_context.make_auth_verify` (which wraps the specified callback to properly parse the request
+To properly register the implemented verify method as the callback function at
+an endpoint of the OP,
+use :py:meth:`oic.utils.authn.authn_context.make_auth_verify`
+(which wraps the specified callback to properly parse the request
 before it is passed along and handles the case of multi auth chains, see below).
 
 

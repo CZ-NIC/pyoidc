@@ -29,9 +29,7 @@ Client class because it will provide interfaces to all of them.
 So lets start with instantiating a client::
 
     from oic.oic import Client
-
     c = Client()
-
 
 The first choices is really not yours it's the OpenID Connect Provider (OP)
 that has to decide on whether it supports dynamic provider information
@@ -59,9 +57,9 @@ probably the e-mail address syntax. It's something the looks like an e-mail
 address (local@domain) but not necessarily is one.
 
 At this point in time let us assume that you will instantiated a OIDC RP.
+
 .. Note::Oh, by the way I will probably alternate between talking about the RP
     and the client, don't get caught up on that, they are the same thing.
-
 
 As stated above depending on depending on the OP and the return_type you
 will use some of these steps may be left out or replaced with an out-of-band
