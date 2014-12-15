@@ -22,6 +22,7 @@ from oic.oic.claims_provider import UserClaimsResponse
 from oic.oic.claims_provider import UserClaimsRequest
 from oic.oic.claims_provider import ClaimsServer
 
+from utils_for_tests import _eq
 
 #noinspection PyUnusedLocal
 def user_info(oicsrv, userdb, sub, client_id="", user_info_claims=None):
@@ -90,10 +91,6 @@ USER2MODE = {"diana": "aggregate",
              "babs": "aggregate"}
 
 # ============================================================================
-
-
-def _eq(l1, l2):
-    return set(l1) == set(l2)
 
 
 def test_1():

@@ -3,14 +3,15 @@ import logging
 import urllib
 import urlparse
 import json
-
 from jwkest import b64d
 import jwkest
 from jwkest.jwe import JWE
 from jwkest.jwk import keyitems2keyreps
 from jwkest.jws import JWS
+
 from oic.exception import PyoidcError
 from oic.exception import MessageException
+
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +150,7 @@ class Message(object):
             elif isinstance(val, Message):
                 try:
                     params.append((key, str(_ser(val, sformat="urlencoded",
-                                             lev=lev))))
+                                                 lev=lev))))
                 except TypeError:
                     params.append((key, val))
             elif val is None:
@@ -191,8 +192,8 @@ class Message(object):
         :return: An instance of the cls class
         """
 
-        #parse_qs returns a dictionary with keys and values. The values are
-        #always lists even if there is only one value in the list.
+        # parse_qs returns a dictionary with keys and values. The values are
+        # always lists even if there is only one value in the list.
         #keys only appears once.
 
         if isinstance(urlencoded, basestring):
@@ -327,8 +328,8 @@ class Message(object):
         return self
 
     def _add_value(self, skey, vtyp, key, val, _deser, null_allowed):
-#        if not val:
-#            return
+        # if not val:
+        # return
 
         if isinstance(val, list):
             if (len(val) == 0 or val[0] is None) and null_allowed is False:
@@ -529,14 +530,14 @@ class Message(object):
                 raise ValueError("Not allowed value '%s'" % val)
         elif isinstance(typ, list):
             if isinstance(val, list):
-                #_typ = typ[0]
+                # _typ = typ[0]
                 for item in val:
                     if item not in _allowed:
                         raise ValueError("Not allowed value '%s'" % val)
         elif val is None and na is False:
             raise ValueError("Not allowed value '%s'" % val)
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def verify(self, **kwargs):
         """
         Make sure all the required values are there and that the values are
@@ -628,8 +629,8 @@ class Message(object):
 
         return True
 
-#    def __getattr__(self, item):
-#        return self._dict[item]
+    # def __getattr__(self, item):
+    #        return self._dict[item]
 
     def __delitem__(self, key):
         del self._dict[key]
@@ -674,7 +675,8 @@ class Message(object):
         return self.from_json(_res[0])
 
     def copy(self):
-            return copy.deepcopy(self)
+        return copy.deepcopy(self)
+
 
 # =============================================================================
 
@@ -688,10 +690,11 @@ def add_non_standard(msg1, msg2):
         if key not in msg1.c_param:
             msg1[key] = val
 
+
 # =============================================================================
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def list_serializer(vals, sformat="urlencoded", lev=0):
     if isinstance(vals, basestring) or not isinstance(vals, list):
         raise ValueError("Expected list: %s" % vals)
@@ -701,7 +704,7 @@ def list_serializer(vals, sformat="urlencoded", lev=0):
         return vals
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def list_deserializer(val, sformat="urlencoded"):
     if sformat == "urlencoded":
         if isinstance(val, basestring):
@@ -738,6 +741,7 @@ def json_serializer(obj, sformat="urlencoded", lev=0):
 #noinspection PyUnusedLocal
 def json_deserializer(txt, sformat="urlencoded"):
     return json.loads(txt)
+
 
 VTYPE = 0
 VREQUIRED = 1
@@ -873,6 +877,7 @@ class TokenRevocationRequest(Message):
 class ResourceRequest(Message):
     c_param = {"access_token": SINGLE_OPTIONAL_STRING}
 
+
 MSG = {
     "Message": Message,
     "ErrorResponse": ErrorResponse,
@@ -896,6 +901,7 @@ def factory(msgtype):
         return MSG[msgtype]
     except KeyError:
         raise Exception("Unknown message type: %s" % msgtype)
+
 
 if __name__ == "__main__":
     foo = AccessTokenRequest(grant_type="authorization_code",

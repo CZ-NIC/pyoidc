@@ -12,9 +12,7 @@ from oic.oic.message import AddressClaim
 from oic.oic.message import address_deser
 from oic.oic.message import Claims
 
-
-def _eq(l1, l2):
-    return set(l1) == set(l2)
+from utils_for_tests import _eq
 
 
 def test_ProviderConfigurationResponse():
@@ -300,11 +298,13 @@ def test_registration_request():
                               application_type="web",
                               redirect_uris=["https://example.com/authz_cb"])
     js = req.to_json()
-    print js
-    assert js == '{"redirect_uris": ["https://example.com/authz_cb"], "application_type": "web", "default_acr": "foo", "require_auth_time": true, "operation": "register", "default_max_age": 10}'
+    js_obj = json.loads(js)
+    expected_js_obj = {"redirect_uris": ["https://example.com/authz_cb"], "application_type": "web", "default_acr": "foo", "require_auth_time": True, "operation": "register", "default_max_age": 10}
+    assert js_obj == expected_js_obj
     ue = req.to_urlencoded()
-    print ue
-    assert ue == 'redirect_uris=https%3A%2F%2Fexample.com%2Fauthz_cb&application_type=web&default_acr=foo&require_auth_time=True&operation=register&default_max_age=10'
+    ue_splits = ue.split('&')
+    expected_ue_splits = 'redirect_uris=https%3A%2F%2Fexample.com%2Fauthz_cb&application_type=web&default_acr=foo&require_auth_time=True&operation=register&default_max_age=10'.split('&')
+    assert _eq(ue_splits, expected_ue_splits)
 
 
 if __name__ == "__main__":

@@ -5,7 +5,9 @@ import re
 from urllib import urlencode
 import urlparse
 import requests
+
 from oic.utils.time_util import in_a_while
+
 
 __author__ = 'rolandh'
 

@@ -9,6 +9,7 @@ class MultiAuthnMethod(UserAuthnMethod):
     Small auth module just to kick off multi auth chains (it must be the first module in the chain).
     Do no instantiate this object, use setup_multi_auth instead!
     """
+
     def __init__(self, auth_module):
         UserAuthnMethod.__init__(self, None)
         self.auth_module = auth_module
@@ -49,6 +50,7 @@ class AuthnIndexedEndpointWrapper(UserAuthnMethod):
     Wrapper class for using an authn module with multiple endpoints.
     Encapsulates the desired index of the endpoint.
     """
+
     def __init__(self, authn_instance, end_point_index):
         UserAuthnMethod.__init__(self, None)
 

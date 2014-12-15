@@ -1,6 +1,8 @@
 import base64
+
 from oic.utils.authn.client import ClientAuthnMethod
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
+
 
 __author__ = 'rolandh'
 
@@ -16,6 +18,7 @@ else:
         """
         Authenticating clients using the SAML2 assertion profile
         """
+
         def construct(self, cis, assertion=None, **kwargs):
             """
 
@@ -38,8 +41,8 @@ else:
 
         def _verify_saml2_assertion(self, assertion):
             subject = assertion.subject
-            #client_id = subject.name_id.text
-            #who_ever_issued_it = assertion.issuer.text
+            # client_id = subject.name_id.text
+            # who_ever_issued_it = assertion.issuer.text
 
             audience = []
             for ar in subject.audience_restiction:

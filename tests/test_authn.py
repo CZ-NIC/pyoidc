@@ -16,6 +16,7 @@ from oic.oauth2 import AccessTokenRequest
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import rsa_load
+from utils_for_tests import URLObject, _eq
 
 __author__ = 'rolandh'
 
@@ -49,10 +50,6 @@ class SRV(object):
         pass
 
 
-def _eq(l1, l2):
-    return set(l1) == set(l2)
-
-
 def test_1():
     authn = UsernamePasswordMako(None, "login.mako", tl, PASSWD,
                                  "authorization_endpoint")
@@ -79,7 +76,9 @@ def test_3():
     authn = UsernamePasswordMako(srv, "login.mako", tl, PASSWD,
                                  "authorization_endpoint")
     response, success = authn.verify(parse_qs(form))
-    assert response.message == "authorization_endpoint?query=foo&upm_answer=true"
+    url_in_response_msg = URLObject.create(response.message)
+    expected_url_obj = URLObject.create("authorization_endpoint?query=foo&upm_answer=true")
+    assert url_in_response_msg == expected_url_obj
     print len(response.headers) == 2
     flag = 0
     for param, val in response.headers:

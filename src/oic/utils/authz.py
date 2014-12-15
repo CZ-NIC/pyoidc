@@ -1,7 +1,9 @@
 import logging
 import time
+
 from oic.utils.http_util import CookieDealer
 from oic.utils.authn.user import ToOld
+
 
 logger = logging.getLogger(__name__)
 

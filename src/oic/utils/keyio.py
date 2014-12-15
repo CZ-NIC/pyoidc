@@ -4,6 +4,7 @@ from Crypto.PublicKey import RSA
 from cryptlib.ecc import NISTEllipticCurve
 from oic.exception import MessageException
 
+
 __author__ = 'rohe0002'
 
 import logging

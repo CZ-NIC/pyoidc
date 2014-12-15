@@ -7,7 +7,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#            http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,7 +34,7 @@ TIME_FORMAT_WITH_FRAGMENT = re.compile(
 # ---------------------------------------------------------------------------
 # I'm sure this is implemented somewhere else can't find it now though, so I
 # made an attempt.
-#Implemented according to
+# Implemented according to
 #http://www.w3.org/TR/2001/REC-xmlschema-2-20010502/
 #adding-durations-to-dateTimes
 
@@ -119,7 +119,6 @@ def parse_duration(duration):
 
 
 def add_duration(tid, duration):
-
     (sign, dur) = parse_duration(duration)
 
     if sign == '+':
@@ -165,6 +164,7 @@ def add_duration(tid, duration):
                                            secs, 0, 0, -1)))
     else:
         pass
+
 
 # ---------------------------------------------------------------------------
 
@@ -214,6 +214,7 @@ def a_while_ago(days=0, seconds=0, microseconds=0, milliseconds=0,
     return time_a_while_ago(days, seconds, microseconds, milliseconds,
                             minutes, hours, weeks).strftime(time_format)
 
+
 # ---------------------------------------------------------------------------
 
 
@@ -225,6 +226,7 @@ def shift_time(dtime, shift):
     :return: A shifted datatime specification
     """
     return dtime + timedelta(seconds=shift)
+
 
 # ---------------------------------------------------------------------------
 
@@ -254,11 +256,13 @@ def str_to_time(timestr, time_format=TIME_FORMAT):
 def instant(time_format=TIME_FORMAT):
     return time.strftime(time_format, time.gmtime())
 
+
 # ---------------------------------------------------------------------------
 
 
 def utc_now():
     return calendar.timegm(time.gmtime())
+
 
 # ---------------------------------------------------------------------------
 
@@ -315,6 +319,7 @@ def utc_time_sans_frac():
 
 def time_sans_frac():
     return int("%d" % time.time())
+
 
 def epoch_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
                      minutes=0, hours=0, weeks=0):
