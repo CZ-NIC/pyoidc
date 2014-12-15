@@ -262,7 +262,8 @@ class Provider(AProvider):
                     self.capabilities[val] = [_enc_enc]
 
     def id_token_as_signed_jwt(self, session, loa="2", alg="", code=None,
-                               access_token=None, user_info=None, auth_time=0):
+                               access_token=None, user_info=None, auth_time=0,
+                               exp=None, extra_claims=None):
 
         if alg == "":
             alg = self.jwx_def["sign_alg"]["id_token"]
@@ -273,7 +274,8 @@ class Provider(AProvider):
             alg = "none"
 
         _idt = self.server.make_id_token(session, loa, self.baseurl, alg, code,
-                                         access_token, user_info, auth_time)
+                                         access_token, user_info, auth_time,
+                                         exp, extra_claims)
 
         logger.debug("id_token: %s" % _idt.to_dict())
         # My signing key if its RS*, can use client secret if HS*

@@ -233,14 +233,14 @@ def test_server_authorization_endpoint_id_token():
            "prompt": ["none"]}
 
     req = AuthorizationRequest(**bib)
-    AREQ = AuthorizationRequest(response_type="code",
+    areq = AuthorizationRequest(response_type="code",
                                 client_id="client_1",
                                 redirect_uri="http://example.com/authz",
                                 scope=["openid"], state="state000")
 
     sdb = provider.sdb
     ae = AuthnEvent("userX")
-    sid = sdb.create_authz_session(ae, AREQ)
+    sid = sdb.create_authz_session(ae, areq)
     sdb.do_sub(sid)
     _info = sdb[sid]
     # All this is jut removed when the id_token is constructed
@@ -526,6 +526,26 @@ def test_idtoken():
     id_token = server.id_token_as_signed_jwt(session)
     print id_token
     assert len(id_token.split(".")) == 3
+
+
+def test_idtoken_with_extra_claims():
+    server = provider_init
+    areq = AuthorizationRequest(response_type="code", client_id=CLIENT_ID,
+                                redirect_uri="http://example.com/authz",
+                                scope=["openid"], state="state000")
+    aevent = AuthnEvent("sub")
+    sid = server.sdb.create_authz_session(aevent, areq)
+    server.sdb.do_sub(sid)
+    session = server.sdb[sid]
+
+    claims = {'k1': 'v1', 'k2': 32}
+
+    id_token = server.id_token_as_signed_jwt(session, extra_claims=claims)
+    parsed = IdToken().from_jwt(id_token, keyjar=server.keyjar)
+
+    print id_token
+    for key, value in claims.iteritems():
+        assert parsed[key] == value
 
 
 def test_userinfo_endpoint():

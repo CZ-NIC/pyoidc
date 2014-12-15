@@ -1311,7 +1311,7 @@ class Server(oauth2.Server):
 
     def make_id_token(self, session, loa="2", issuer="",
                       alg="RS256", code=None, access_token=None,
-                      user_info=None, auth_time=0, exp=None):
+                      user_info=None, auth_time=0, exp=None, extra_claims=None):
         """
 
         :param session: Session information
@@ -1366,6 +1366,8 @@ class Server(oauth2.Server):
 
         halg = "HS%s" % alg[-3:]
 
+        if extra_claims is not None:
+            _args.update(extra_claims)
         if code:
             _args["c_hash"] = jws.left_hash(code, halg)
         if access_token:
