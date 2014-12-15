@@ -74,7 +74,6 @@ def build_userinfo_claims(claims, sformat="signed", locale="us-en"):
             "email_verified": {"essential": true},
             "picture": null
         }
-
     """
     return Claims(format=sformat, **claims)
 
@@ -131,8 +130,8 @@ class Consumer(Client):
         :param config: Configuration of the consumer
         :param client_config: Client configuration
         :param server_info: Information about the server
-        :param client_prefs: Run time preferences, which are chosen
-            depends on what the server can do.
+        :param client_prefs: Run time preferences, which are chosen depends
+        on what the server can do.
         """
         if client_config is None:
             client_config = {}
@@ -211,7 +210,7 @@ class Consumer(Client):
             This defines if it should be used anyway.
         :param path: The path part of the redirect URL
         :return: A 2-tuple, session identifier and URL to which the user
-        should be redirected
+            should be redirected
         """
         _log_info = logger.info
 

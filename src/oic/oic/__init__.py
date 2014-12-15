@@ -1121,13 +1121,42 @@ class Client(oauth2.Client):
         #subject, host = self.normalization(principal)
         return self.wf.discovery_query(principal)
 
+    def endpoint2issuer(self, url, endpoint=""):
+        """
+        Given that I know which endpoint it's about and which URL was used
+        which issuer was it.
+
+        :param str endpoint: Which endpoint
+        :param str url: The endpoint url
+        :return: Issuer identifier if one matched otherwise ""
+        """
+
+        if endpoint:
+            for issuer, pi in self.provider_info.items():
+                try:
+                    if pi[endpoint] == url:
+                        return issuer
+                except KeyError:
+                    pass
+        else:
+            for issuer, pi in self.provider_info.items():
+                for endpoint in ENDPOINTS:
+                    try:
+                        if pi[endpoint] == url:
+                            return issuer
+                    except KeyError:
+                        pass
+
+        return ""
+
 
 #noinspection PyMethodOverriding
 class Server(oauth2.Server):
     def __init__(self, keyjar=None, ca_certs=None, verify_ssl=True):
         oauth2.Server.__init__(self, keyjar, ca_certs, verify_ssl)
 
-    def _parse_urlencoded(self, url=None, query=None):
+    @staticmethod
+    def _parse_urlencoded(url=None, query=None):
         if url:
             parts = urlparse.urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]

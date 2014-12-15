@@ -1161,9 +1161,17 @@ def test_make_id_token():
     assert atr.verify(keyjar=srv.keyjar)
 
 
+def test_endpoint2issuer():
+    from pinit import provider_init
+    client = Client()
+    client.provider_info = {"/": provider_init.create_providerinfo()}
+    issuer = client.endpoint2issuer("/registration")
+    assert issuer == "/"
+
+
 if __name__ == "__main__":
     # t = TestOICClient()
     # t.setup_class()
     # t.test_access_token_request()
 
-    test_client_secret_jwt()
+    test_endpoint2issuer()
