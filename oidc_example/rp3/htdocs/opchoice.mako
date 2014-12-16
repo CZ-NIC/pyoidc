@@ -1,13 +1,11 @@
 <%!
     def op_choice(op_list):
-    """
-    Creates a dropdown list of OpenID Connect providers
-    """
-    element = "<select name=\"op\">"
-    for name in op_list:
-        element += "<option value=\"%s\">%s</option>" % (name, name)
-    element += "</select>"
-    return element
+        #Creates a dropdown list of OpenID Connect providers
+        element = "<select name=\"op\">"
+        for name in op_list:
+            element += "<option value=\"%s\">%s</option>" % (name, name)
+        element += "</select>"
+        return element
 %>
 
 <!DOCTYPE html>
