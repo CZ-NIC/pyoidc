@@ -194,7 +194,7 @@ Likewise if the client registration has been done out-of-band::
     info = {"client_id": "1234567890", "client_secret": "abcdefghijklmnop"}
     client_reg = RegistrationResponse(**info)
 
-    client.client_info = client_reg
+    client.store_registration_info(client_reg)
 
 
 Authorization query
