@@ -57,7 +57,7 @@ setup(
                  "Topic :: Software Development :: Libraries :: Python "
                  "Modules"],
     extras_require={
-        'develop': ["cherrypy==3.2.4"],
+        'develop': ["cherrypy==3.2.4", "python-ldap"],
     },
     install_requires=[
         "requests", "pycrypto>=2.6.1", "pyjwkest>=0.5.1",
