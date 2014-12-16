@@ -581,7 +581,18 @@ class Provider(AProvider):
             areq = self.server.parse_authorization_request(query=request)
         except MissingRequiredAttribute, err:
             logger.debug("%s" % err)
-            return self._error("invalid_request", "%s" % err)
+            areq = AuthorizationRequest().deserialize(request, "urlencoded")
+            try:
+                redirect_uri = self.get_redirect_uri(areq)
+            except (RedirectURIError, ParameterError), err:
+                return self._error("invalid_request", "%s" % err)
+            try:
+                _rtype = areq["response_type"]
+            except:
+                _rtype = ["code"]
+            return self._redirect_authz_error("invalid_request", redirect_uri,
+                                              "%s" % err, areq["state"],
+                                              _rtype)
         except KeyError:
             areq = AuthorizationRequest().deserialize(request, "urlencoded")
             # verify the redirect_uri
@@ -597,7 +608,7 @@ class Provider(AProvider):
 
         if not areq:
             logger.debug("No AuthzRequest")
-            return self._error("invalid_request", "No parsable AuthzRequest")
+            return self._error("invalid_request", "Can not parse AuthzRequest")
 
         logger.debug("AuthzRequest: %s" % (areq.to_dict(),))
         try:

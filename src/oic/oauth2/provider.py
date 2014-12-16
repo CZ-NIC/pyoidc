@@ -292,11 +292,17 @@ class Provider(object):
                         status="400 Bad Request")
 
     @staticmethod
-    def _redirect_authz_error(error, redirect_uri, descr=None):
-        err = ErrorResponse(error=error)
+    def _redirect_authz_error(error, redirect_uri, descr=None, state="",
+                              return_type=None):
+        err = AuthorizationErrorResponse(error=error)
         if descr:
             err["error_description"] = descr
-        location = err.request(redirect_uri)
+        if state:
+            err["state"] = state
+        if return_type is None or return_type == ["code"]:
+            location = err.request(redirect_uri)
+        else:
+            location = err.request(redirect_uri, True)
         return Redirect(location)
 
     def _verify_redirect_uri(self, areq):
