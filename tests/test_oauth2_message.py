@@ -62,8 +62,10 @@ def test_authz_req_urlencoded_4():
     print ar
     print ar2
 
-    for attr in ar.c_param.keys():
-        assert getattr(ar, attr) == getattr(ar2, attr)
+    assert ar.keys() == ar2.keys()
+
+    for attr in ar.keys():
+        assert ar[attr] == ar2[attr]
 
 
 def test_authz_req_urlencoded_5():
@@ -618,4 +620,4 @@ def test_multiple_scopes_json():
     assert _eq(are["scope"], ["openid", "foxtrot"])
 
 if __name__ == "__main__":
-    test_to_from_jwt()
+    test_authz_req_urlencoded_4()
