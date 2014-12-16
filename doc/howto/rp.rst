@@ -250,6 +250,9 @@ and to mitigate replay attacks.
 
 Since you will need both these arguments later in the process you probably
 want to store them in a session object (assumed to look like a dictionary).
+Also even if you initiate one Client instance per OP you probably won't do it
+per user so you have to keep the state and nonce variables that belongs to
+an user together and separate from other users.
 
 Most probable the response to this request will be a redirect to some other
 URL where the authentication is performed.
