@@ -5,6 +5,7 @@ import urllib
 import urlparse
 from oic.utils.sdb import AccessCodeUsed, AuthnEvent
 
+
 __author__ = 'rohe0002'
 
 import base64
@@ -94,7 +95,7 @@ def token_response(**kwargs):
     return aresp
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def none_response(**kwargs):
     _areq = kwargs["areq"]
     aresp = NoneResponse()
@@ -372,7 +373,7 @@ class Provider(object):
 
         try:
             if len(self.authn_broker) == 1:
-                    return self.authn_broker[0]
+                return self.authn_broker[0]
             else:
                 try:
                     _values = areq["acr_values"]
@@ -388,7 +389,7 @@ class Provider(object):
                 for _acr in _values:
                     res = self.authn_broker.pick(_acr, comparision_type)
                     if res:
-                        #Return the best guess by pick.
+                        # Return the best guess by pick.
                         return res[0]
         except KeyError:
             pass
@@ -534,11 +535,11 @@ class Provider(object):
             pass
 
         if "response_type" in areq and \
-                len(areq["response_type"]) == 1 and \
-                "none" in areq["response_type"]:
+                        len(areq["response_type"]) == 1 and \
+                        "none" in areq["response_type"]:
             pass
         else:
-            #if self.sdb.is_revoked(sinfo):
+            # if self.sdb.is_revoked(sinfo):
             #    return self._error(error="access_denied",
             #                       descr="Token is revoked")
 
@@ -582,7 +583,7 @@ class Provider(object):
         except (RedirectURIError, ParameterError), err:
             return BadRequest("%s" % err)
 
-        #self.sdb.store_session(skey)
+        # self.sdb.store_session(skey)
 
         # so everything went well should set a SSO cookie
         headers = [authn.create_cookie(user, typ="sso", ttl=self.sso_ttl)]
@@ -593,7 +594,7 @@ class Provider(object):
     def token_scope_check(self, areq, info):
         """ Not implemented here """
         # if not self.subset(areq["scope"], _info["scope"]):
-        #     LOG_INFO("Asked for scope which is not subset of previous defined")
+        # LOG_INFO("Asked for scope which is not subset of previous defined")
         #     err = TokenErrorResponse(error="invalid_scope")
         #     return Response(err.to_json(), content="application/json")
         return None
@@ -649,9 +650,8 @@ class Provider(object):
             return Response(err.to_json(), content="application/json",
                             status="401 Unauthorized")
 
-
         LOG_DEBUG("_tinfo: %s" % _tinfo)
-            
+
         atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
 
         LOG_DEBUG("AccessTokenResponse: %s" % atr)

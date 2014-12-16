@@ -1,15 +1,15 @@
 import logging
 import urllib
 import urlparse
+import requests
+
 from oic.oic import OIDCONF_PATTERN
 from oic.oic.message import ProviderConfigurationResponse, AuthorizationResponse
-import requests
 from oic.utils.keyio import KeyJar
 from oic.utils.time_util import utc_time_sans_frac
 from oic.oic.provider import secret
 from oic.oic.provider import RegistrationEndpoint
 from oic.oic.provider import Endpoint
-
 from oic import oauth2
 from oic.oauth2 import provider
 from oic.oauth2 import VerificationError
@@ -27,12 +27,12 @@ from oic.oauth2 import SINGLE_OPTIONAL_INT
 from oic.exception import UnknownAssertionType
 from oic.exception import PyoidcError
 from oic.exception import AuthzError
-
 from oic.utils.authn.client import AuthnFailure
 from oic.utils.http_util import Unauthorized, NoContent
 from oic.utils.http_util import Response
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Forbidden
+
 
 logger = logging.getLogger(__name__)
 
@@ -180,8 +180,8 @@ class Provider(provider.Provider):
 
     # @staticmethod
     # def _uris_to_dict(uris):
-    #     ruri = {}
-    #     for uri in uris:
+    # ruri = {}
+    # for uri in uris:
     #         base, query = urllib.splitquery(uri)
     #         if query:
     #             try:
@@ -211,7 +211,7 @@ class Provider(provider.Provider):
             if query:
                 tup.append((base, query))
             else:
-                tup.append((base,""))
+                tup.append((base, ""))
         return tup
 
     @staticmethod
@@ -242,7 +242,7 @@ class Provider(provider.Provider):
         _cinfo["client_secret"] = secret(self.seed, _id)
         _cinfo["client_id_issued_at"] = utc_time_sans_frac()
         _cinfo["client_secret_expires_at"] = utc_time_sans_frac() + \
-            self.secret_lifetime
+                                             self.secret_lifetime
 
         # If I support client info endpoint
         if ClientInfoEndpoint in self.endp:
@@ -289,7 +289,7 @@ class Provider(provider.Provider):
 
         for key in _cinfo.keys():
             if key in ["client_id_issued_at", "client_secret_expires_at",
-                       "registration_access_token","registration_client_uri"]:
+                       "registration_access_token", "registration_client_uri"]:
                 continue
             if key not in request:
                 del _cinfo[key]
@@ -352,7 +352,7 @@ class Provider(provider.Provider):
         return self.client_info(client_id)
 
     def client_info_endpoint(self, request, environ,
-                                           method="GET", query="", **kwargs):
+                             method="GET", query="", **kwargs):
         """
         Operations on this endpoint are switched through the use of different
         HTTP methods

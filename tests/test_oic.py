@@ -44,11 +44,7 @@ from pytest import raises
 
 from fakeoicsrv import MyFakeOICServer
 
-
-def _eq(l1, l2):
-    s1 = set(l1)
-    s2 = set(l2)
-    return s1 == s2
+from utils_for_tests import _eq
 
 
 CLIENT_SECRET = "abcdefghijklmnop"

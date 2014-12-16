@@ -5,12 +5,12 @@ import urllib
 from jwkest.jws import alg2keytype
 from mako.lookup import TemplateLookup
 from urlparse import parse_qs
+import logging
 
 from oic.utils.http_util import NotFound
 from oic.utils.http_util import Response
 from oic.utils.http_util import Redirect
 
-import logging
 
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = 'rp.log'
@@ -34,7 +34,7 @@ LOOKUP = TemplateLookup(directories=['templates', 'htdocs'],
 SERVER_ENV = {}
 
 
-#noinspection PyUnresolvedReferences
+# noinspection PyUnresolvedReferences
 def static(environ, start_response, logger, path):
     logger.info("[static]sending: %s" % (path,))
 
@@ -171,6 +171,7 @@ def application(environ, start_response):
         return resp(environ, start_response)
 
     return opchoice(environ, start_response, CLIENTS)
+
 
 if __name__ == '__main__':
     from oidc import OIDCClients

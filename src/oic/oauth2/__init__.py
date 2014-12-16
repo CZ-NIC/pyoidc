@@ -31,8 +31,8 @@ DEFAULT_POST_CONTENT_TYPE = URL_ENCODED
 REQUEST2ENDPOINT = {
     "AuthorizationRequest": "authorization_endpoint",
     "AccessTokenRequest": "token_endpoint",
-    #    ROPCAccessTokenRequest: "authorization_endpoint",
-    #    CCAccessTokenRequest: "authorization_endpoint",
+    # ROPCAccessTokenRequest: "authorization_endpoint",
+    # CCAccessTokenRequest: "authorization_endpoint",
     "RefreshAccessTokenRequest": "token_endpoint",
     "TokenRevocationRequest": "token_endpoint"}
 
@@ -85,6 +85,7 @@ def rndstr(size=16):
 
 class ExpiredToken(PyoidcError):
     pass
+
 
 # -----------------------------------------------------------------------------
 
@@ -272,7 +273,7 @@ class PBase(object):
         self.keyjar = KeyJar(verify_ssl=verify_ssl)
 
         self.request_args = {"allow_redirects": False}
-        #self.cookies = {}
+        # self.cookies = {}
         self.cookiejar = cookielib.FileCookieJar()
         self.ca_certs = ca_certs
         if ca_certs:
@@ -350,12 +351,12 @@ class PBase(object):
                         std_attr["version"] = std_attr["version"].split(",")[0]
                     except (TypeError, AttributeError):
                         pass
-                    
+
                 new_cookie = cookielib.Cookie(**std_attr)
 
                 self.cookiejar.set_cookie(new_cookie)
 
-                #return cookiejar
+                # return cookiejar
 
     def http_request(self, url, method="GET", **kwargs):
         _kwargs = copy.copy(self.request_args)
@@ -371,14 +372,14 @@ class PBase(object):
         except Exception as err:
             logger.error(
                 "http_request failed: %s, url: %s, htargs: %s, method: %s" % (
-                err, url, _kwargs, method))
+                    err, url, _kwargs, method))
             raise
 
         try:
             set_cookie = r.headers["set-cookie"]
             # Telekom fix
             # set_cookie = set_cookie.replace(
-            #     "=;Path=/;Expires=Thu, 01-Jan-1970 00:00:01 GMT;HttpOnly,", "")
+            # "=;Path=/;Expires=Thu, 01-Jan-1970 00:00:01 GMT;HttpOnly,", "")
             logger.debug("RECEIVED COOKIEs: %s" % set_cookie)
             self.set_cookie(SimpleCookie(set_cookie))
         except (AttributeError, KeyError), err:
@@ -421,9 +422,9 @@ class Client(PBase):
         self.client_authn_method = client_authn_method
         self.keyjar = keyjar or KeyJar(verify_ssl=verify_ssl)
         self.verify_ssl = verify_ssl
-        #self.secret_type = "basic "
+        # self.secret_type = "basic "
 
-        #self.state = None
+        # self.state = None
         self.nonce = None
 
         self.grant = {}
@@ -463,7 +464,7 @@ class Client(PBase):
     client_secret = property(get_client_secret, set_client_secret)
 
     def reset(self):
-        #self.state = None
+        # self.state = None
         self.nonce = None
 
         self.grant = {}
@@ -518,8 +519,8 @@ class Client(PBase):
 
     def get_grant(self, state, **kwargs):
         # try:
-        #     _state = kwargs["state"]
-        #     if not _state:
+        # _state = kwargs["state"]
+        # if not _state:
         #         _state = self.state
         # except KeyError:
         #     _state = self.state
@@ -553,19 +554,19 @@ class Client(PBase):
         elif token.is_valid():
             return token
         else:
-            raise ExpiredToken()
+            raise ExpiredToken("Token has expired")
 
     def construct_request(self, request, request_args=None, extra_args=None):
         if request_args is None:
             request_args = {}
 
-        #logger.debug("request_args: %s" % request_args)
+        # logger.debug("request_args: %s" % request_args)
         kwargs = self._parse_args(request, **request_args)
 
         if extra_args:
             kwargs.update(extra_args)
-            #logger.debug("kwargs: %s" % kwargs)
-        #logger.debug("request: %s" % request)
+            # logger.debug("kwargs: %s" % kwargs)
+        # logger.debug("request: %s" % request)
         return request(**kwargs)
 
     def construct_Message(self, request=Message, request_args=None,
@@ -573,7 +574,7 @@ class Client(PBase):
 
         return self.construct_request(request, request_args, extra_args)
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def construct_AuthorizationRequest(self, request=AuthorizationRequest,
                                        request_args=None, extra_args=None,
                                        **kwargs):
@@ -595,7 +596,7 @@ class Client(PBase):
 
         return self.construct_request(request, request_args, extra_args)
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def construct_AccessTokenRequest(self,
                                      request=AccessTokenRequest,
                                      request_args=None, extra_args=None,
@@ -689,7 +690,7 @@ class Client(PBase):
             header_ext = {"Content-type": content_type}
             if accept:
                 header_ext = {"Accept": accept}
-            
+
             if "headers" in kwargs.keys():
                 kwargs["headers"].update(header_ext)
             else:
@@ -804,7 +805,7 @@ class Client(PBase):
                 if not verf:
                     raise PyoidcError("Verification of the response failed")
                 if resp.type() == "AuthorizationResponse" and \
-                        "scope" not in resp:
+                                "scope" not in resp:
                     try:
                         resp["scope"] = kwargs["scope"]
                     except KeyError:
@@ -1111,14 +1112,14 @@ class Server(PBase):
         if not keyjar:
             keyjar = self.keyjar
 
-        #areq = message().from_(txt, keys, verify)
+        # areq = message().from_(txt, keys, verify)
         areq = request().deserialize(txt, "jwt", keyjar=keyjar,
                                      verify=verify)
         areq.verify()
         return areq
 
     def parse_body_request(self, request=AccessTokenRequest, body=None):
-        #req = message(reqmsg).from_urlencoded(body)
+        # req = message(reqmsg).from_urlencoded(body)
         req = request().deserialize(body, "urlencoded")
         req.verify()
         return req

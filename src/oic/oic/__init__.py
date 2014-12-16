@@ -1,5 +1,7 @@
 from jwkest.jwe import JWE
+
 from oic.utils.keyio import KeyJar
+
 
 __author__ = 'rohe0002'
 
@@ -165,7 +167,7 @@ def make_openid_request(arq, keys=None, userinfo_claims=None,
         c_args["userinfo"] = Claims(**userinfo_claims)
 
     if idtoken_claims is not None:
-        #IdTokenClaims
+        # IdTokenClaims
         c_args["id_token"] = Claims(**idtoken_claims)
 
     if c_args:
@@ -196,7 +198,7 @@ class Grant(oauth2.Grant):
 
 
 PREFERENCE2PROVIDER = {
-    #"require_signed_request_object": "request_object_algs_supported",
+    # "require_signed_request_object": "request_object_algs_supported",
     "request_object_signing_alg": "request_object_signing_alg_values_supported",
     "request_object_encryption_alg":
         "request_object_encryption_alg_values_supported",
@@ -213,7 +215,7 @@ PREFERENCE2PROVIDER = {
     "id_token_encrypted_response_enc":
         "id_token_encryption_enc_values_supported",
     "default_acr_values": "acr_values_supported",
-    #"require_auth_time":"",
+    # "require_auth_time":"",
     "subject_type": "subject_types_supported",
     "token_endpoint_auth_method": "token_endpoint_auth_methods_supported",
     "token_endpoint_auth_signing_alg":
@@ -222,7 +224,7 @@ PREFERENCE2PROVIDER = {
     #"request_object_signing_alg": "request_object_signing_alg_values_supported
 }
 
-PROVIDER2PREFERENCE = dict([(v,k) for k,v in PREFERENCE2PROVIDER.items()])
+PROVIDER2PREFERENCE = dict([(v, k) for k, v in PREFERENCE2PROVIDER.items()])
 
 PROVIDER_DEFAULT = {
     "token_endpoint_auth_method": "client_secret_basic",
@@ -230,7 +232,7 @@ PROVIDER_DEFAULT = {
 }
 
 
-#noinspection PyMethodOverriding
+# noinspection PyMethodOverriding
 class Client(oauth2.Client):
     _endpoints = ENDPOINTS
 
@@ -263,7 +265,7 @@ class Client(oauth2.Client):
 
         self.behaviour = {
             "request_object_signing_alg":
-            DEF_SIGN_ALG["openid_request_object"]}
+                DEF_SIGN_ALG["openid_request_object"]}
 
         self.wf = WebFinger(OIC_ISSUER)
         self.wf.httpd = self
@@ -336,7 +338,7 @@ class Client(oauth2.Client):
 
         if request_args is not None:
             # if "claims" in request_args:
-            #     kwargs["claims"] = request_args["claims"]
+            # kwargs["claims"] = request_args["claims"]
             #     del request_args["claims"]
             if "nonce" not in request_args:
                 _rt = request_args["response_type"]
@@ -400,7 +402,7 @@ class Client(oauth2.Client):
 
         return areq
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def construct_AccessTokenRequest(self, request=AccessTokenRequest,
                                      request_args=None, extra_args=None,
                                      **kwargs):
@@ -1150,7 +1152,7 @@ class Client(oauth2.Client):
         return ""
 
 
-#noinspection PyMethodOverriding
+# noinspection PyMethodOverriding
 class Server(oauth2.Server):
     def __init__(self, keyjar=None, ca_certs=None, verify_ssl=True):
         oauth2.Server.__init__(self, keyjar, ca_certs, verify_ssl)
@@ -1198,7 +1200,7 @@ class Server(oauth2.Server):
 
         """
         param = self._parse_urlencoded(url, query)
-        assert "access_token" in param # ignore the rest
+        assert "access_token" in param  # ignore the rest
         return deser_id_token(self, param["access_token"][0])
 
     def _parse_request(self, request, data, sformat, client_id=None):

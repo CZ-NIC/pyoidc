@@ -25,8 +25,8 @@ from oic.utils.http_util import Response
 from oic.utils.authn.client import bearer_auth
 
 # Used in claims.py
-#from oic.oic.message import RegistrationRequest
-#from oic.oic.message import RegistrationResponse
+# from oic.oic.message import RegistrationRequest
+# from oic.oic.message import RegistrationResponse
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +43,7 @@ class UserClaimsResponse(Message):
                "jwt": SINGLE_OPTIONAL_STRING,
                "endpoint": SINGLE_OPTIONAL_STRING,
                "access_token": SINGLE_OPTIONAL_STRING}
+
 
 #    def verify(self, **kwargs):
 #        if "jwt" in self:
@@ -65,7 +66,6 @@ class UserInfoClaimsRequest(Message):
 
 
 class OICCServer(OicServer):
-
     def parse_user_claims_request(self, info, sformat="urlencoded"):
         return self._parse_request(UserClaimsRequest, info, sformat)
 
@@ -74,7 +74,6 @@ class OICCServer(OicServer):
 
 
 class ClaimsServer(Provider):
-
     def __init__(self, name, sdb, cdb, userinfo, client_authn, urlmap=None,
                  ca_certs="", keyjar=None, hostname="", dist_claims_mode=None):
         Provider.__init__(self, name, sdb, cdb, None, userinfo, None,
@@ -176,7 +175,6 @@ class ClaimsServer(Provider):
 
 
 class ClaimsClient(Client):
-
     def __init__(self, client_id=None, ca_certs=""):
 
         Client.__init__(self, client_id, ca_certs)
@@ -208,8 +206,8 @@ class ClaimsClient(Client):
         else:
             http_args.update(http_args)
 
-#        http_args = self.init_authentication_method(csi, "bearer_header",
-#                                                    request_args)
+        #        http_args = self.init_authentication_method(csi, "bearer_header",
+        #                                                    request_args)
 
         return self.request_and_return(url, request_resp, method, body,
                                        body_type, extended=False,

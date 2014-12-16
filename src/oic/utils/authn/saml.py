@@ -4,20 +4,23 @@ from tempfile import NamedTemporaryFile
 from urllib import urlencode
 import logging
 import base64
+from urlparse import parse_qs
+
 from oic.oauth2 import VerificationError
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authn.user import create_return_url
-from urlparse import parse_qs
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Response
 from oic.utils.http_util import Unauthorized
+
 
 logger = logging.getLogger(__name__)
 
 
 class ServiceErrorException(Exception):
     pass
+
 
 try:
     import saml2
@@ -36,7 +39,7 @@ else:
     from saml2.s_utils import UnknownPrincipal
     from saml2.s_utils import UnsupportedBinding
 
-    #This class handles user authentication with CAS.
+    # This class handles user authentication with CAS.
     class SAMLAuthnMethod(UserAuthnMethod):
         CONST_QUERY = "query"
         CONST_SAML_COOKIE = "samlauthc"
@@ -66,7 +69,7 @@ else:
             else:
                 self.bindings = [BINDING_HTTP_REDIRECT, BINDING_HTTP_POST,
                                  BINDING_HTTP_ARTIFACT]
-            #TODO Why does this exist?
+            # TODO Why does this exist?
             self.verification_endpoint = ""
             #Configurations for the SP handler. (pyOpSamlProxy.client.sp.conf)
             self.sp_conf = importlib.import_module(spconf)
@@ -180,7 +183,7 @@ else:
                         if not allowed:
                             return Unauthorized(self.not_authorized), False
 
-            #logger.info("parsed OK")'
+            # logger.info("parsed OK")'
             uid = response.assertion.subject.name_id.text
             if self.userinfo == "AA":
                 if response.entity_id is not None and self.samlcache is not None:
@@ -333,7 +336,7 @@ else:
                     _sid = req_id
 
                 _rstate = rndstr()
-                #self.cache.relay_state[_rstate] = came_from
+                # self.cache.relay_state[_rstate] = came_from
                 ht_args = _cli.apply_binding(binding, msg_str, destination,
                                              relay_state=_rstate)
 
@@ -348,22 +351,22 @@ else:
             return self.response(binding, ht_args, query)
 
         def response(self, binding, http_args, query):
-                cookie = self.create_cookie(
-                    '{"' + self.CONST_QUERY + '": "' + base64.b64encode(query) +
-                    '" , "' + self.CONST_HASIDP + '": "True" }',
-                    self.CONST_SAML_COOKIE, self.CONST_SAML_COOKIE)
-                if binding == BINDING_HTTP_ARTIFACT:
-                    resp = Redirect()
-                elif binding == BINDING_HTTP_REDIRECT:
-                    for param, value in http_args["headers"]:
-                        if param == "Location":
-                            resp = SeeOther(str(value), headers=[cookie])
-                            break
-                    else:
-                        raise ServiceErrorException("Parameter error")
+            cookie = self.create_cookie(
+                '{"' + self.CONST_QUERY + '": "' + base64.b64encode(query) +
+                '" , "' + self.CONST_HASIDP + '": "True" }',
+                self.CONST_SAML_COOKIE, self.CONST_SAML_COOKIE)
+            if binding == BINDING_HTTP_ARTIFACT:
+                resp = Redirect()
+            elif binding == BINDING_HTTP_REDIRECT:
+                for param, value in http_args["headers"]:
+                    if param == "Location":
+                        resp = SeeOther(str(value), headers=[cookie])
+                        break
                 else:
-                    http_args["headers"].append(cookie)
-                    resp = Response(http_args["data"],
-                                    headers=http_args["headers"])
+                    raise ServiceErrorException("Parameter error")
+            else:
+                http_args["headers"].append(cookie)
+                resp = Response(http_args["data"],
+                                headers=http_args["headers"])
 
-                return resp
+            return resp

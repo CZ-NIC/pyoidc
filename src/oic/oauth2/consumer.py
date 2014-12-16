@@ -2,7 +2,6 @@
 __author__ = 'rohe0002'
 
 import time
-
 from hashlib import md5
 
 from oic.utils import http_util
@@ -10,6 +9,7 @@ from oic.oauth2 import Client
 from oic.oauth2 import Grant
 from oic.oauth2 import rndstr
 from oic.oauth2.message import *
+
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint", "userinfo_endpoint",
              "check_id_endpoint", "registration_endpoint",
@@ -77,7 +77,7 @@ class Consumer(Client):
     """ An OAuth2 consumer implementation
 
     """
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def __init__(self, session_db, client_config=None,
                  server_info=None, authz_page="", response_type="",
                  scope="", flow_type="", password=None):
@@ -168,7 +168,7 @@ class Consumer(Client):
 
         self.sdb[sid] = res
 
-    #noinspection PyUnusedLocal,PyArgumentEqualDefault
+    # noinspection PyUnusedLocal,PyArgumentEqualDefault
     def begin(self, baseurl, request, response_type="", **kwargs):
         """ Begin the OAuth2 flow
 

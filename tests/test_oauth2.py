@@ -7,8 +7,6 @@ import base64
 import random
 import hmac
 import hashlib
-import json
-import urllib
 
 from oic.oauth2 import Grant
 from oic.utils import time_util
@@ -25,10 +23,7 @@ from oic.utils.authn.client import BearerHeader
 from oic.utils.keyio import KeyBundle
 
 from pytest import raises
-
-
-def _eq(l1, l2):
-    return set(l1) == set(l2)
+from utils_for_tests import URLObject, _eq
 
 # ----------------- GRANT --------------------
 
@@ -343,7 +338,10 @@ class TestOAuthClient():
         # default == "POST"
         assert uri == 'https://example.com/authz'
         print body
-        assert body == "state=hmm&redirect_uri=http%3A%2F%2Fclient.example.com%2Fauthz&response_type=code&client_id=1"
+        body_elts = body.split('&')
+        expected_body = "state=hmm&redirect_uri=http%3A%2F%2Fclient.example.com%2Fauthz&response_type=code&client_id=1"
+        expected_body_elts = expected_body.split('&')
+        assert set(body_elts) == set(expected_body_elts)
         assert h_args == {'headers': {'Content-type':
                                       'application/x-www-form-urlencoded'}}
         assert cis.type() == "AuthorizationRequest"
@@ -352,8 +350,9 @@ class TestOAuthClient():
         self.client.authorization_endpoint = "https://example.com/authz"
         uri, body, h_args, cis = self.client.request_info(AuthorizationRequest,
                                                           method="GET")
-
-        assert uri == 'https://example.com/authz?redirect_uri=http%3A%2F%2Fclient.example.com%2Fauthz&response_type=code&client_id=1'
+        uri_obj = URLObject.create(uri)
+        expected_uri_obj = URLObject.create('https://example.com/authz?redirect_uri=http%3A%2F%2Fclient.example.com%2Fauthz&response_type=code&client_id=1')
+        assert uri_obj == expected_uri_obj
         assert body is None
         assert h_args == {}
         assert cis.type() == "AuthorizationRequest"
@@ -363,8 +362,9 @@ class TestOAuthClient():
         uri, body, h_args, cis = self.client.request_info(
             AuthorizationRequest, method="GET", request_args={"state": "init"})
 
-        print uri
-        assert uri == 'https://example.com/authz?state=init&redirect_uri=http%3A%2F%2Fclient.example.com%2Fauthz&response_type=code&client_id=1'
+        uri_obj = URLObject.create(uri)
+        expected_uri_obj = URLObject.create('https://example.com/authz?state=init&redirect_uri=http%3A%2F%2Fclient.example.com%2Fauthz&response_type=code&client_id=1')
+        assert uri_obj == expected_uri_obj
         assert body is None
         assert h_args == {}
         assert cis.type() == "AuthorizationRequest"
@@ -374,8 +374,10 @@ class TestOAuthClient():
         uri, body, h_args, cis = self.client.request_info(
             AuthorizationRequest, method="GET", extra_args={"rock": "little"})
 
-        print uri
-        assert uri == 'https://example.com/authz?redirect_uri=http%3A%2F%2Fclient.example.com%2Fauthz&response_type=code&client_id=1&rock=little'
+        
+        uri_obj = URLObject.create(uri)
+        expected_uri_obj = URLObject.create('https://example.com/authz?redirect_uri=http%3A%2F%2Fclient.example.com%2Fauthz&response_type=code&client_id=1&rock=little')
+        assert uri_obj == expected_uri_obj
         assert body is None
         assert h_args == {}
         assert cis.type() == "AuthorizationRequest"
@@ -388,8 +390,9 @@ class TestOAuthClient():
             request_args={"state": "init"},
             extra_args={"rock": "little"})
 
-        print uri
-        assert uri == 'https://example.com/authz?state=init&redirect_uri=http%3A%2F%2Fclient.example.com%2Fauthz&response_type=code&client_id=1&rock=little'
+        uri_obj = URLObject.create(uri)
+        expected_uri_obj = URLObject.create('https://example.com/authz?state=init&redirect_uri=http%3A%2F%2Fclient.example.com%2Fauthz&response_type=code&client_id=1&rock=little')
+        assert uri_obj == expected_uri_obj
         assert body is None
         assert h_args == {}
         assert cis.type() == "AuthorizationRequest"

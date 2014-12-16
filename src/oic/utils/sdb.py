@@ -1,7 +1,9 @@
 import copy
 import uuid
+
 import time
 from oic.oic import AuthorizationRequest
+
 
 __author__ = 'rohe0002'
 
@@ -199,7 +201,7 @@ class SessionDB(object):
                 sid = self.token.get_key(key)
             except Exception:
                 raise KeyError
-            
+
             if sid not in self._db:
                 raise KeyError
             else:
@@ -216,7 +218,6 @@ class SessionDB(object):
         Construct a sub (subject identifier)
 
         :param sid: Session identifier
-        :param uid: The local user identifier
         :param sector_id: Possible sector identifier
         :param preferred_id_type: 'public'/'pairwise'
         :return:
@@ -370,10 +371,10 @@ class SessionDB(object):
             access_token = self.token("T", prev=rtoken)
 
             dic["token_expires_at"] = utc_time_sans_frac() + self.token_expires_in
-            #dic["client_id_issued_at"] = utc_time_sans_frac()
+            # dic["client_id_issued_at"] = utc_time_sans_frac()
             dic["access_token"] = access_token
             self._db[sid] = dic
-            #self._db[dic["xxxx"]] = dic
+            # self._db[dic["xxxx"]] = dic
             return dic
         else:
             raise WrongTokenType("Not a refresh token!")
@@ -412,7 +413,7 @@ class SessionDB(object):
         return True
 
     def is_revoked(self, sid):
-        #typ, sid = self.token.type_and_key(token)
+        # typ, sid = self.token.type_and_key(token)
         try:
             return self[sid]["revoked"]
         except KeyError:

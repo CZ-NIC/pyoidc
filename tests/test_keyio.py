@@ -12,7 +12,6 @@ from oic.utils.keyio import RSAKey
 
 from jwkest.jws import JWS, NoSuitableSigningKeys, WrongTypeOfKey
 
-
 BASE_PATH = os.path.dirname(__file__)
 
 RSAKEY = "%s/cert.key" % BASE_PATH
@@ -27,10 +26,6 @@ JWK1 = {"keys": [
     {"n": "zkpUgEgXICI54blf6iWiD2RbMDCOO1jV0VSff1MFFnujM4othfMsad7H1kRo50YM5S_X9TdvrpdOfpz5aBaKFhT6Ziv0nhtcekq1eRl8mjBlvGKCE5XGk-0LFSDwvqgkJoFYInq7bu0a4JEzKs5AyJY75YlGh879k1Uu2Sv3ZZOunfV1O1Orta-NvS-aG_jN5cstVbCGWE20H0vFVrJKNx0Zf-u-aA-syM4uX7wdWgQ-owoEMHge0GmGgzso2lwOYf_4znanLwEuO3p5aabEaFoKNR4K6GjQcjBcYmDEE4CtfRU9AEmhcD1kleiTB9TjPWkgDmT9MXsGxBHf3AKT5w", "e": "AQAB", "kty": "RSA", "kid": "5-VBFv40P8D4I-7SFz7hMugTbPs"},
     {"k": "YTEyZjBlMDgxMGI4YWU4Y2JjZDFiYTFlZTBjYzljNDU3YWM0ZWNiNzhmNmFlYTNkNTY0NzMzYjE", "kty": "oct"},
     ]}
-
-
-def _eq(l1, l2):
-    return set(l1) == set(l2)
 
 
 def test_chain_1():

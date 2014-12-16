@@ -11,6 +11,8 @@ from oic.utils.sdb import ExpiredToken
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import OpenIDRequest
 
+from utils_for_tests import _eq
+
 #from oic.oauth2 import message
 
 AREQ = AuthorizationRequest(response_type="code", client_id="client1",
@@ -32,10 +34,6 @@ OAUTH2_AREQ = AuthorizationRequest(response_type="code",
                                    scope=["openid"], state="state000")
 
 BASE_URL = "https://exampl.com/"
-
-
-def _eq(l1, l2):
-    return set(l1) == set(l2)
 
 
 def test_token():

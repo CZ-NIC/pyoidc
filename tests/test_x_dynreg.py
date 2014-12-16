@@ -84,10 +84,6 @@ def content_type(headers):
                 return "json"
 
 
-def _eq(l1, l2):
-    return set(l1) == set(l2)
-
-
 def test_provider_init():
     provider = Provider("pyoicserv", sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
                         AUTHN_BROKER, AUTHZ,

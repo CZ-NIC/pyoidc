@@ -1,5 +1,7 @@
 import ldap
+
 from oic.utils.authn.user import UsernamePasswordMako
+
 
 SCOPE_MAP = {
     "base": ldap.SCOPE_BASE,

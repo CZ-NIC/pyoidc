@@ -6,8 +6,8 @@ import cgi
 import time
 import hashlib
 import hmac
-
 from urllib import quote
+from Cookie import SimpleCookie
 
 from oic.oauth2 import rndstr
 from oic.exception import UnsupportedMethod
@@ -77,8 +77,8 @@ class NoContent(Response):
 
 class Redirect(Response):
     _template = '<html>\n<head><title>Redirecting to %s</title></head>\n' \
-        '<body>\nYou are being redirected to <a href="%s">%s</a>\n' \
-        '</body>\n</html>'
+                '<body>\nYou are being redirected to <a href="%s">%s</a>\n' \
+                '</body>\n</html>'
     _status = '302 Found'
 
     def __call__(self, environ, start_response, **kwargs):
@@ -90,8 +90,8 @@ class Redirect(Response):
 
 class SeeOther(Response):
     _template = '<html>\n<head><title>Redirecting to %s</title></head>\n' \
-        '<body>\nYou are being redirected to <a href="%s">%s</a>\n' \
-        '</body>\n</html>'
+                '<body>\nYou are being redirected to <a href="%s">%s</a>\n' \
+                '</body>\n</html>'
     _status = '303 See Other'
 
     def __call__(self, environ, start_response, **kwargs):
@@ -220,7 +220,7 @@ def cookie_signature(seed, *parts):
     return sha1.hexdigest()
 
 
-def make_cookie(name, load, seed, expire=0, domain="",  path="", timestamp=""):
+def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp=""):
     """
     Create and return a cookie
 
@@ -314,7 +314,10 @@ def get_or_post(environ):
     return data
 
 
-def extract_from_request(environ, kwargs={}):
+def extract_from_request(environ, kwargs=None):
+    if kwargs is None:
+        kwargs = {}
+
     request = None
     try:
         request = environ["QUERY_STRING"]
@@ -360,7 +363,6 @@ def wsgi_wrapper(environ, start_response, func, **kwargs):
 
 
 class CookieDealer(object):
-
     def getServer(self):
         return self._srv
 

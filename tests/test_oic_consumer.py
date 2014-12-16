@@ -20,6 +20,8 @@ from oic.utils.sdb import SessionDB
 
 from fakeoicsrv import MyFakeOICServer
 
+from utils_for_tests import _eq
+
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
@@ -89,10 +91,6 @@ def start_response(status=200, headers=None):
         return "status=%s, headers={}" % (status, )
     else:
         return "status=%s, headers=%s" % (status, headers)
-
-
-def _eq(l1, l2):
-    return set(l1) == set(l2)
 
 
 def test_clean_response():

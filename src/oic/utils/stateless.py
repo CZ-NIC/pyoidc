@@ -1,9 +1,11 @@
 import time
+
 from oic.oic.message import SINGLE_REQUIRED_INT
 from oic.oauth2 import Message
 from oic.oauth2 import SINGLE_REQUIRED_STRING
 from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.utils.time_util import epoch_in_a_while
+
 
 __author__ = 'roland'
 
@@ -14,8 +16,8 @@ class Content(Message):
         "sub": SINGLE_REQUIRED_STRING,  # Which subject that authenticated
         "auz": SINGLE_OPTIONAL_STRING,  # Authorization information
         "aud": SINGLE_OPTIONAL_STRING,  # The intended receiver
-        "val": SINGLE_REQUIRED_INT,     # Valid until
-        "ref": SINGLE_OPTIONAL_STRING   # Refresh token
+        "val": SINGLE_REQUIRED_INT,  # Valid until
+        "ref": SINGLE_OPTIONAL_STRING  # Refresh token
     }
     c_allowed_values = {"type": ["code", "access", "refresh"]}
 
@@ -51,7 +53,7 @@ class StateLess(object):
         _cont = Content(typ="code", sub=sub, aud=areq["redirect_uri"],
                         val=epoch_in_a_while(self.validity["grant"]))
 
-        #return _cont.to_jwe(self.keys, self.enc, self.alg)
+        # return _cont.to_jwe(self.keys, self.enc, self.alg)
         return _cont
 
     def upgrade_to_token(self, cont, issue_refresh=False):
