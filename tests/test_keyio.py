@@ -12,8 +12,6 @@ from oic.utils.keyio import RSAKey
 
 from jwkest.jws import JWS, NoSuitableSigningKeys, WrongTypeOfKey
 
-from utils_for_tests import _eq
-
 BASE_PATH = os.path.dirname(__file__)
 
 RSAKEY = "%s/cert.key" % BASE_PATH

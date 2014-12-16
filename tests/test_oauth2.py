@@ -7,8 +7,6 @@ import base64
 import random
 import hmac
 import hashlib
-import json
-import urllib
 
 from oic.oauth2 import Grant
 from oic.utils import time_util

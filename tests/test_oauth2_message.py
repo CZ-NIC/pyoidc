@@ -147,7 +147,7 @@ def test_authz_req_json_2():
     assert ue_obj == expected_ue_obj
 
 
-def test_authz_req_urlencoded_3():
+def test_authz_req_urlencoded_3b():
     ar = AuthorizationRequest(response_type=["token"],
                               client_id="s6BhdRkqt3",
                               redirect_uri="https://client.example.com/cb",
@@ -163,7 +163,7 @@ def test_authz_req_urlencoded_3():
     assert ue_obj == expected_ue_obj
 
 
-def test_authz_req_urlencoded_4():
+def test_authz_req_urlencoded_4b():
     ar = AuthorizationRequest(response_type=["code"],
                               client_id="foobar")
 
@@ -210,7 +210,7 @@ def test_authz_err_resp_2():
 
 # TokenErrorResponse
 
-def test_authz_err_resp_1():
+def test_authz_err_resp_1b():
     ter = TokenErrorResponse(error="access_denied", state="xyz")
 
     assert ter
@@ -219,7 +219,7 @@ def test_authz_err_resp_1():
     assert _eq(ter.keys(), ['state', 'error'])
 
 
-def test_authz_err_resp_2():
+def test_authz_err_resp_2b():
     ter = TokenErrorResponse(error="access_denied",
                              error_description="brewers has a four game series",
                              foo="bar")

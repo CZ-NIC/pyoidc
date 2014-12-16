@@ -14,8 +14,6 @@ from oic.oauth2.dynreg import RegistrationRequest
 from oic.oauth2.dynreg import ClientInfoResponse
 from oic.oauth2.dynreg import ClientRegistrationError
 
-from utils_for_tests import _eq
-
 CLIENT_CONFIG = {
     "client_id": "client1",
     "ca_certs": "/usr/local/etc/oic/ca_certs.txt",
