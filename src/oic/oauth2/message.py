@@ -117,7 +117,8 @@ class Message(object):
         if not self.lax:
             for attribute, (_, req, _ser, _, na) in _spec.items():
                 if req and attribute not in self._dict:
-                    raise MissingRequiredAttribute("%s" % attribute, self)
+                    raise MissingRequiredAttribute("%s" % attribute,
+                                                   "%s" % self)
 
         params = []
 

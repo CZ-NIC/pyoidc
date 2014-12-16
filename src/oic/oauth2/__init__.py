@@ -554,7 +554,7 @@ class Client(PBase):
         elif token.is_valid():
             return token
         else:
-            raise ExpiredToken()
+            raise ExpiredToken("Token has expired")
 
     def construct_request(self, request, request_args=None, extra_args=None):
         if request_args is None:

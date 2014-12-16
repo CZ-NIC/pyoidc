@@ -314,7 +314,10 @@ def get_or_post(environ):
     return data
 
 
-def extract_from_request(environ, kwargs={}):
+def extract_from_request(environ, kwargs=None):
+    if kwargs is None:
+        kwargs = {}
+
     request = None
     try:
         request = environ["QUERY_STRING"]

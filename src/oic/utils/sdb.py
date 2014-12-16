@@ -218,7 +218,6 @@ class SessionDB(object):
         Construct a sub (subject identifier)
 
         :param sid: Session identifier
-        :param uid: The local user identifier
         :param sector_id: Possible sector identifier
         :param preferred_id_type: 'public'/'pairwise'
         :return:
