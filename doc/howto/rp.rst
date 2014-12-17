@@ -102,15 +102,14 @@ necessary information::
     >> provider_info["authorization_endpoint"]
     'https://example.com/op/authz_endp'
 
-The provider info is also automatically stored in the client instance.
-Since a RP can potentially talk to more than one OP during it's life time
-the provider information is store using the issuer name as the key::
+The provider info is also automatically stored in the client instance.::
 
-    >> client.provider_info.keys()
-    ['https://example.com/op']
-    >> client.provider_info["https://example.com/op"]["scopes_supported"]
+    >> client.provider_info["scopes_supported"]
     ['openid', 'profile', 'email']
 
+
+For the simple Client it is expected it will only talk to one OP during its
+lifetime.
 
 Now, you know all about the OP. The next step would be to register the
 client with the OP.
@@ -309,8 +308,8 @@ If it's an AccessTokenResponse the information in the response will be stored
 in the client instance with *state* as the key for future use.
 One if the items in the response will be the ID Token which contains information
 about the authentication.
-One parameter (or claim as its also called) is the nonce you provider with
-the authroization request.
+One parameter (or claim as its also called) is the nonce you provide with
+the authorization request.
 
 And then the final request, the user info request::
 

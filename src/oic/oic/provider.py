@@ -4,6 +4,7 @@ import traceback
 import urllib
 import sys
 from jwkest.jwe import JWE
+from jwkest.jwk import SYMKey
 from oic.utils.authn.user import NoSuchAuthentication
 from oic.utils.authn.user import ToOld
 from oic.utils.authn.user import TamperAllert
@@ -35,7 +36,7 @@ from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import DiscoveryResponse
 
 from jwkest import jws, jwe
-from jwkest.jws import alg2keytype
+from jwkest.jws import alg2keytype, left_hash
 from jwkest.jws import NoSuitableSigningKeys
 
 __author__ = 'rohe0002'
@@ -283,6 +284,9 @@ class Provider(AProvider):
             logger.debug("client_id: %s" % session["client_id"])
             ckey = self.keyjar.get_signing_key(alg2keytype(alg),
                                                session["client_id"])
+            if not ckey:  # create a new key
+                _secret = self.cdb[session["client_id"]]["client_secret"]
+                ckey = [SYMKey(key=_secret)]
         else:
             if "" in self.keyjar:
                 for b in self.keyjar[""]:
@@ -1510,9 +1514,9 @@ class Provider(AProvider):
                 "urn:ietf:params:oauth:grant-type:jwt-bearer"],
             claim_types_supported=["normal", "aggregated", "distributed"],
             claims_supported=_claims,
-            claims_parameter_supported="true",
-            request_parameter_supported="true",
-            request_uri_parameter_supported="true",
+            claims_parameter_supported=True,
+            request_parameter_supported=True,
+            request_uri_parameter_supported=True,
         )
 
         sign_algs = jws.SIGNER_ALGS.keys()

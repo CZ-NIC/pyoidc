@@ -757,7 +757,8 @@ class Client(oauth2.Client):
             except KeyError:
                 args = {}
 
-            owner = self.endpoint2issuer(path, "userinfo_endpoint")
+            #owner = self.endpoint2issuer(path, "userinfo_endpoint")
+            owner = self.provider_info["issuer"]
             keys = self.keyjar.get_signing_key(_kty, owner, **args)
 
             return _schema().from_jwt(resp.text, keys)
@@ -1123,34 +1124,6 @@ class Client(oauth2.Client):
         #subject, host = self.normalization(principal)
         return self.wf.discovery_query(principal)
 
-    def endpoint2issuer(self, url, endpoint=""):
-        """
-        Given that I know which endpoint it's about and which URL was used
-        which issuer was it.
-
-        :param str endpoint: Which endpoint
-        :param str url: The endpoint url
-        :return: Issuer identifier if one matched otherwise ""
-        """
-
-        if endpoint:
-            for issuer, pi in self.provider_info.items():
-                try:
-                    if pi[endpoint] == url:
-                        return issuer
-                except KeyError:
-                    pass
-        else:
-            for issuer, pi in self.provider_info.items():
-                for endpoint in ENDPOINTS:
-                    try:
-                        if pi[endpoint] == url:
-                            return issuer
-                    except KeyError:
-                        pass
-
-        return ""
-
 
 # noinspection PyMethodOverriding
 class Server(oauth2.Server):
@@ -1374,6 +1347,10 @@ class Server(oauth2.Server):
             _args["c_hash"] = jws.left_hash(code, halg)
         if access_token:
             _args["at_hash"] = jws.left_hash(access_token, halg)
+
+        # Should better be done elsewhere
+        if not issuer.endswith("/"):
+            issuer += "/"
 
         idt = IdToken(iss=issuer, sub=session["sub"],
                       aud=session["client_id"],
