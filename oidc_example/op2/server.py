@@ -384,6 +384,9 @@ if __name__ == '__main__':
     parser.add_argument('-d', dest='debug', action='store_true')
     parser.add_argument('-p', dest='port', default=80, type=int)
     parser.add_argument('-k', dest='insecure', action='store_true')
+    parser.add_argument(
+        '-c', dest='capabilities',
+        help="A file containing a JSON representation of the capabilities")
     parser.add_argument(dest="config")
     args = parser.parse_args()
 
@@ -525,6 +528,11 @@ if __name__ == '__main__':
         kwargs["verify_ssl"] = False
     else:
         kwargs["verify_ssl"] = True
+
+    if args.capabilities:
+        kwargs["capabilities"] = json.loads(open(args.capabilities).read())
+    else:
+        pass
 
     OAS = Provider(config.issuer, SessionDB(config.baseurl), cdb, ac, None,
                    authz, verify_client, config.SYM_KEY, **kwargs)
