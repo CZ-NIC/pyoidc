@@ -4,6 +4,7 @@ import logging
 import re
 from urllib import urlencode
 import urlparse
+from oic.exception import PyoidcError
 import requests
 
 from oic.utils.time_util import in_a_while
@@ -15,6 +16,9 @@ logger = logging.getLogger(__name__)
 
 WF_URL = "https://%s/.well-known/webfinger"
 OIC_ISSUER = "http://openid.net/specs/connect/1.0/issuer"
+
+class WebFingerError(PyoidcError):
+    pass
 
 
 class Base(object):
@@ -243,7 +247,7 @@ class WebFinger(object):
         elif resource.startswith("device:"):
             host = resource.split(':')[1]
         else:
-            raise Exception("Unknown schema")
+            raise WebFingerError("Unknown schema")
 
         return "%s?%s" % (WF_URL % host, urlencode(info))
 
@@ -288,7 +292,7 @@ class WebFinger(object):
         elif rsp.status_code in [302, 301, 307]:
             return self.discovery_query(rsp.headers["location"])
         else:
-            raise Exception(rsp.status_code)
+            raise WebFingerError(rsp.status_code)
 
     def response(self, subject, base):
         self.jrd = JRD()

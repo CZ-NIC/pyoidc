@@ -223,7 +223,7 @@ class BearerBody(ClientAuthnMethod):
                     _ = kwargs["state"]
                 except KeyError:
                     if not self.cli.state:
-                        raise Exception("Missing state specification")
+                        raise AuthnFailure("Missing state specification")
                     kwargs["state"] = self.cli.state
 
                 cis["access_token"] = self.cli.get_token(**kwargs).access_token
@@ -255,7 +255,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
         except KeyError:
             algorithm = DEF_SIGN_ALG[entity]
         if not algorithm:
-            raise Exception("Missing algorithm specification")
+            raise AuthnFailure("Missing algorithm specification")
         return algorithm
 
     def get_signing_key(self, algorithm):

@@ -6,6 +6,7 @@ from urllib import urlencode
 import urllib
 from urlparse import parse_qs
 from urlparse import urlsplit
+from oic.exception import PyoidcError
 
 from oic.utils import aes
 from oic.utils.http_util import Response
@@ -36,19 +37,23 @@ LOC = {
 }
 
 
-class NoSuchAuthentication(Exception):
+class NoSuchAuthentication(PyoidcError):
     pass
 
 
-class TamperAllert(Exception):
+class TamperAllert(PyoidcError):
     pass
 
 
-class ToOld(Exception):
+class ToOld(PyoidcError):
     pass
 
 
-class FailedAuthentication(Exception):
+class FailedAuthentication(PyoidcError):
+    pass
+
+
+class InstantiationError(PyoidcError):
     pass
 
 
@@ -121,7 +126,7 @@ class UserAuthnMethod(CookieDealer):
 
 def url_encode_params(params=None):
     if not isinstance(params, dict):
-        raise Exception("You must pass in a dictionary!")
+        raise InstantiationError("You must pass in a dictionary!")
     params_list = []
     for k, v in params.items():
         if isinstance(v, list):
@@ -368,3 +373,23 @@ class SymKeyAuthn(UserAuthnMethod):
             raise FailedAuthentication()
 
         return {"uid": user}
+
+
+class NoAuthn(UserAuthnMethod):
+    # Just for testing allows anyone it without authentication
+
+    def __init__(self, srv, user):
+        UserAuthnMethod.__init__(self, srv)
+        self.user = user
+
+    def authenticated_as(self, cookie=None, authorization="", **kwargs):
+        """
+
+        :param cookie: A HTTP Cookie
+        :param authorization: The HTTP Authorization header
+        :param args: extra args
+        :param kwargs: extra key word arguments
+        :return:
+        """
+
+        return {"uid": self.user}

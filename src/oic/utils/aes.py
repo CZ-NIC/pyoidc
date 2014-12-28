@@ -15,6 +15,10 @@ POSTFIX_MODE = {
 BLOCK_SIZE = 16
 
 
+class AESError(Exception):
+    pass
+
+
 def build_cipher(key, iv, alg="aes_128_cbc"):
     """
     :param key: encryption key
@@ -30,16 +34,16 @@ def build_cipher(key, iv, alg="aes_128_cbc"):
         assert len(iv) == AES.block_size
 
     if bits not in ["128", "192", "256"]:
-        raise Exception("Unsupported key length")
+        raise AESError("Unsupported key length")
     try:
         assert len(key) == int(bits) >> 3
     except AssertionError:
-        raise Exception("Wrong Key length")
+        raise AESError("Wrong Key length")
 
     try:
         return AES.new(key, POSTFIX_MODE[cmode], iv), iv
     except KeyError:
-        raise Exception("Unsupported chaining mode")
+        raise AESError("Unsupported chaining mode")
 
 
 def encrypt(key, msg, iv=None, alg="aes_128_cbc", padding="PKCS#7",

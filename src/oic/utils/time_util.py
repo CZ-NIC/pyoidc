@@ -31,6 +31,11 @@ TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 TIME_FORMAT_WITH_FRAGMENT = re.compile(
     "^(\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2})\.\d*Z$")
 
+
+class TimeUtilError(Exception):
+    pass
+
+
 # ---------------------------------------------------------------------------
 # I'm sure this is implemented somewhere else can't find it now though, so I
 # made an attempt.
@@ -86,14 +91,14 @@ def parse_duration(duration):
     for code, typ in D_FORMAT:
         #print duration[index:], code
         if duration[index] == '-':
-            raise Exception("Negation not allowed on individual items")
+            raise TimeUtilError("Negation not allowed on individual items")
         if code == "T":
             if duration[index] == "T":
                 index += 1
                 if index == len(duration):
-                    raise Exception("Not allowed to end with 'T'")
+                    raise TimeUtilError("Not allowed to end with 'T'")
             else:
-                raise Exception("Missing T")
+                raise TimeUtilError("Missing T")
         else:
             try:
                 mod = duration[index:].index(code)
@@ -104,9 +109,9 @@ def parse_duration(duration):
                         try:
                             dic[typ] = float(duration[index:index + mod])
                         except ValueError:
-                            raise Exception("Not a float")
+                            raise TimeUtilError("Not a float")
                     else:
-                        raise Exception(
+                        raise TimeUtilError(
                             "Fractions not allow on anything byt seconds")
                 index = mod + index + 1
             except ValueError:

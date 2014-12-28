@@ -30,6 +30,14 @@ from jwkest import jws
 logger = logging.getLogger(__name__)
 
 
+class AtHashError(VerificationError):
+    pass
+
+
+class CHashError(VerificationError):
+    pass
+
+
 #noinspection PyUnusedLocal
 def json_ser(val, sformat=None, lev=0):
     return json.dumps(val)
@@ -292,7 +300,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
                     assert idt["at_hash"] == jws.left_hash(
                         self["access_token"], hfunc)
                 except AssertionError:
-                    raise VerificationError(
+                    raise AtHashError(
                         "Failed to verify access_token hash", idt)
 
             if "code" in self:
@@ -304,7 +312,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
                 try:
                     assert idt["c_hash"] == jws.left_hash(self["code"], hfunc)
                 except AssertionError:
-                    raise VerificationError("Failed to verify code hash", idt)
+                    raise CHashError("Failed to verify code hash", idt)
 
             self["id_token"] = idt
 

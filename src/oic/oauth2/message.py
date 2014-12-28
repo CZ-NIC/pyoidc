@@ -16,6 +16,10 @@ from oic.exception import MessageException
 logger = logging.getLogger(__name__)
 
 
+class FormatError(PyoidcError):
+    pass
+
+
 class MissingRequiredAttribute(MessageException):
     def __init__(self, attr, message=""):
         Exception.__init__(self, attr)
@@ -180,7 +184,7 @@ class Message(object):
         try:
             func = getattr(self, "from_%s" % method)
         except AttributeError, err:
-            raise Exception("Unknown method (%s)" % method)
+            raise FormatError("Unknown serialization method (%s)" % method)
         else:
             return func(info, **kwargs)
 
@@ -474,27 +478,28 @@ class Message(object):
                 if isinstance(jso, basestring):
                     jso = json.loads(jso)
 
-                if "jku" in header:
-                    if not keyjar.find(header["jku"], jso["iss"]):
-                        # This is really questionable
+                if keyjar:
+                    if "jku" in header:
+                        if not keyjar.find(header["jku"], jso["iss"]):
+                            # This is really questionable
+                            try:
+                                if kwargs["trusting"]:
+                                    keyjar.add(jso["iss"], header["jku"])
+                            except KeyError:
+                                pass
+
+                    if _kid:
                         try:
-                            if kwargs["trusting"]:
-                                keyjar.add(jso["iss"], header["jku"])
+                            _key = keyjar.get_key_by_kid(_kid, jso["iss"])
+                            if _key:
+                                key.append(_key)
                         except KeyError:
                             pass
 
-                if _kid:
                     try:
-                        _key = keyjar.get_key_by_kid(_kid, jso["iss"])
-                        if _key:
-                            key.append(_key)
+                        self._add_key(keyjar, kwargs["opponent_id"], key)
                     except KeyError:
                         pass
-
-                try:
-                    self._add_key(keyjar, kwargs["opponent_id"], key)
-                except KeyError:
-                    pass
 
                 if verify:
                     if keyjar:
@@ -901,7 +906,7 @@ def factory(msgtype):
     try:
         return MSG[msgtype]
     except KeyError:
-        raise Exception("Unknown message type: %s" % msgtype)
+        raise FormatError("Unknown message type: %s" % msgtype)
 
 
 if __name__ == "__main__":

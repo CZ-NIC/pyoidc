@@ -61,11 +61,31 @@ class ResponseError(PyoidcError):
     pass
 
 
-class TimeFormatError(Exception):
+class TimeFormatError(PyoidcError):
     pass
 
 
-class CapabilitiesMisMatch(Exception):
+class CapabilitiesMisMatch(PyoidcError):
+    pass
+
+
+class MissingEndpoint(PyoidcError):
+    pass
+
+
+class TokenError(PyoidcError):
+    pass
+
+
+class GrantError(PyoidcError):
+    pass
+
+
+class ParseError(PyoidcError):
+    pass
+
+
+class OtherError(PyoidcError):
     pass
 
 
@@ -510,10 +530,10 @@ class Client(PBase):
             try:
                 uri = getattr(self, endpoint)
             except Exception:
-                raise Exception("No '%s' specified" % endpoint)
+                raise MissingEndpoint("No '%s' specified" % endpoint)
 
         if not uri:
-            raise Exception("No '%s' specified" % endpoint)
+            raise MissingEndpoint("No '%s' specified" % endpoint)
 
         return uri
 
@@ -528,7 +548,7 @@ class Client(PBase):
         try:
             return self.grant[state]
         except:
-            raise Exception("No grant found for state:'%s'" % state)
+            raise GrantError("No grant found for state:'%s'" % state)
 
     def get_token(self, also_expired=False, **kwargs):
         try:
@@ -544,17 +564,17 @@ class Client(PBase):
                     try:
                         token = self.grant[kwargs["state"]].get_token("")
                     except KeyError:
-                        raise Exception("No token found for scope")
+                        raise TokenError("No token found for scope")
 
         if token is None:
-            raise Exception("No suitable token found")
+            raise TokenError("No suitable token found")
 
         if also_expired:
             return token
         elif token.is_valid():
             return token
         else:
-            raise ExpiredToken("Token has expired")
+            raise TokenError("Token has expired")
 
     def construct_request(self, request, request_args=None, extra_args=None):
         if request_args is None:
@@ -696,7 +716,7 @@ class Client(PBase):
             else:
                 kwargs["headers"] = header_ext
         else:
-            raise Exception("Unsupported HTTP method: '%s'" % method)
+            raise UnSupported("Unsupported HTTP method: '%s'" % method)
 
         return path, body, kwargs
 
@@ -889,14 +909,14 @@ class Client(PBase):
             pass
         elif reqresp.status_code == 500:
             logger.error("(%d) %s" % (reqresp.status_code, reqresp.text))
-            raise Exception("ERROR: Something went wrong: %s" % reqresp.text)
+            raise ParseError("ERROR: Something went wrong: %s" % reqresp.text)
         elif reqresp.status_code in [400, 401]:
             #expecting an error response
             if issubclass(response, ErrorResponse):
                 pass
         else:
             logger.error("(%d) %s" % (reqresp.status_code, reqresp.text))
-            raise Exception("HTTP ERROR: %s [%s] on %s" % (
+            raise HTTP_ERROR("HTTP ERROR: %s [%s] on %s" % (
                 reqresp.text, reqresp.status_code, reqresp.url))
 
         if body_type:
@@ -904,7 +924,7 @@ class Client(PBase):
                 return self.parse_response(response, reqresp.text, body_type,
                                            state, **kwargs)
             else:
-                raise Exception("Didn't expect a response body")
+                raise OtherError("Didn't expect a response body")
         else:
             return reqresp
 

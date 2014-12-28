@@ -2,7 +2,7 @@ import json
 import time
 from Crypto.PublicKey import RSA
 from cryptlib.ecc import NISTEllipticCurve
-from oic.exception import MessageException
+from oic.exception import MessageException, PyoidcError
 
 
 __author__ = 'rohe0002'
@@ -27,11 +27,15 @@ logger = logging.getLogger(__name__)
 traceback.format_exception(*sys.exc_info())
 
 
-class UnknownKeyType(Exception):
+class KeyIOError(PyoidcError):
     pass
 
 
-class UpdateFailed(Exception):
+class UnknownKeyType(KeyIOError):
+    pass
+
+
+class UpdateFailed(KeyIOError):
     pass
 
 
@@ -83,7 +87,7 @@ class KeyBundle(object):
             elif source == "":
                 return
             else:
-                raise Exception("Unsupported source type: %s" % source)
+                raise KeyIOError("Unsupported source type: %s" % source)
 
             if not self.remote:  # local file
                 if self.fileformat == "jwk":
@@ -271,7 +275,7 @@ def keybundle_from_local_file(filename, typ, usage):
     elif typ.lower() == "jwk":
         kb = KeyBundle(source=filename, fileformat="jwk", keyusage=usage)
     else:
-        raise Exception("Unsupported key type")
+        raise UnknownKeyType("Unsupported key type")
 
     return kb
 
@@ -526,7 +530,7 @@ class KeyJar(object):
             if url.startswith(owner):
                 return owner
 
-        raise Exception("No keys for '%s'" % url)
+        raise KeyIOError("No keys for '%s'" % url)
 
     def __str__(self):
         _res = {}

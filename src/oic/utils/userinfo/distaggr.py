@@ -1,5 +1,6 @@
 import copy
 import logging
+from oic.exception import MissingAttribute
 
 from oic.oic import OpenIDSchema
 from oic.oic.claims_provider import ClaimsClient
@@ -116,7 +117,8 @@ class DistributedAggregatedUserInfo(UserInfo):
                                 pass
 
                 if remaining:
-                    raise Exception("Missing properties '%s'" % remaining)
+                    raise MissingAttribute(
+                        "Missing properties '%s'" % remaining)
 
                 for srv, what in cpoints.items():
                     cc = self.oidcsrv.claims_clients[srv]
