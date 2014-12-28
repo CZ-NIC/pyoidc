@@ -596,7 +596,7 @@ def test_check_session_endpoint():
     idt = IdToken().deserialize(info.message, "json")
     print idt.keys()
     assert _eq(idt.keys(), ['sub', 'aud', 'iss', 'acr', 'exp', 'iat'])
-    assert idt["iss"] == server.name
+    assert idt["iss"] == server.name + "/"
 
 
 def test_registration_endpoint():

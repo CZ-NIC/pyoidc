@@ -481,9 +481,9 @@ def test_sign_userinfo():
     consumer.set_client_secret("hemligt")
     consumer.keyjar = CLIKEYS
     consumer.client_prefs = {"userinfo_signed_response_alg": "RS256"}
-    consumer.provider_info = {"http://localhost:8088": {
-        "userinfo_endpoint": "http://localhost:8088/userinfo"
-    }}
+    consumer.provider_info = {
+        "userinfo_endpoint": "http://localhost:8088/userinfo",
+        "issuer": "http://localhost:8088/"}
     del consumer.config["request_method"]
 
     args = {

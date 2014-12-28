@@ -791,7 +791,8 @@ class Client(oauth2.Client):
             raise PyoidcError("ERROR: Something went wrong: %s" % resp.text)
         else:
             raise PyoidcError(
-                "ERROR: Something went wrong [%s]" % resp.status_code)
+                "ERROR: Something went wrong [%s]: %s" % (resp.status_code,
+                                                          resp.text))
 
         return schema_class().from_json(txt=resp.text)
 
