@@ -1520,9 +1520,14 @@ class Provider(AProvider):
         )
 
         sign_algs = jws.SIGNER_ALGS.keys()
-        for typ in ["userinfo", "id_token", "request_object",
-                    "token_endpoint_auth"]:
+        for typ in ["userinfo", "id_token", "request_object"]:
             _provider_info["%s_signing_alg_values_supported" % typ] = sign_algs
+
+        # Remove 'none' for token_endpoint_auth_signing_alg_values_supported since it is not allowed
+        sign_algs = list(sign_algs)
+        sign_algs.remove('none')
+        _provider_info["token_endpoint_auth_signing_alg_values_supported"] = sign_algs
+
 
         algs = jwe.SUPPORTED["alg"]
         for typ in ["userinfo", "id_token", "request_object"]:
