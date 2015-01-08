@@ -733,10 +733,10 @@ class ProviderConfigurationResponse(Message):
     }
     c_default = {"version": "3.0",
                  "token_endpoint_auth_methods_supported": ["client_secret_basic"],
-                 "claims_parameter_supported": "false",
-                 "request_parameter_supported": "false",
-                 "request_uri_parameter_supported": "true",
-                 "require_request_uri_registration": "true",
+                 "claims_parameter_supported": False,
+                 "request_parameter_supported": False,
+                 "request_uri_parameter_supported": True,
+                 "require_request_uri_registration": True,
                  "grant_types_supported": ["authorization_code", "implicit"]}
 
     def verify(self, **kwargs):
