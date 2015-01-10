@@ -821,11 +821,13 @@ class Client(PBase):
             elif resp.only_extras():
                 resp = None
             else:
+                if "key" not in kwargs and "keyjar" not in kwargs:
+                    kwargs["keyjar"] = self.keyjar
                 verf = resp.verify(**kwargs)
                 if not verf:
                     raise PyoidcError("Verification of the response failed")
                 if resp.type() == "AuthorizationResponse" and \
-                                "scope" not in resp:
+                        "scope" not in resp:
                     try:
                         resp["scope"] = kwargs["scope"]
                     except KeyError:
@@ -950,7 +952,7 @@ class Client(PBase):
         except Exception:
             raise
 
-        if not "keyjar" in kwargs:
+        if "keyjar" not in kwargs:
             kwargs["keyjar"] = self.keyjar
 
         return self.parse_request_response(resp, response, body_type, state,

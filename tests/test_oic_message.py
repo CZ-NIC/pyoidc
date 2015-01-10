@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
+from jwkest import BadSignature
+from jwkest.jwk import SYMKey
+
 __author__ = 'rohe0002'
 
 import json
 
-from oic.oic.message import ProviderConfigurationResponse, RegistrationResponse, AuthorizationRequest
+from oic.oic.message import ProviderConfigurationResponse, RegistrationResponse, AuthorizationRequest, \
+    IdToken, AccessTokenResponse
 from oic.oic.message import msg_ser
 from oic.oic.message import claims_ser
 from oic.oic.message import RegistrationRequest
@@ -178,24 +182,6 @@ def test_authz_request():
     assert req["scope"] == ["openid", "profile"]
 
 
-# def test_idtokenclaim_deser():
-#     claims = Claims(weather={"acr": "2"})
-#     pre = IDTokenClaim(claims=claims, max_age=3600)
-#     idt = idtokenclaim_deser(pre.to_json(), sformat="json")
-#     assert _eq(idt.keys(), ['claims', "max_age"])
-#
-#
-# def test_userinfo_deser():
-#     CLAIM = Claims(name={"essential": True}, nickname=None,
-#                    email={"essential": True},
-#                    email_verified={"essential": True}, picture=None)
-#
-#     pre_uic = UserInfoClaim(claims=CLAIM, format="signed")
-#
-#     uic = userinfo_deser(pre_uic.to_json(), sformat="json")
-#     assert _eq(uic.keys(), ["claims", "format"])
-
-
 def test_claims_deser_0():
     _dic = {
         "userinfo": {
@@ -307,5 +293,31 @@ def test_registration_request():
     assert _eq(ue_splits, expected_ue_splits)
 
 
+def test_faulty_idtoken():
+    idval = {'nonce': 'KUEYfRM2VzKDaaKD', 'sub': 'EndUserSubject',
+             'iss': 'https://alpha.cloud.nds.rub.de', 'exp': 1420823073,
+             'iat': 1420822473, 'aud': 'TestClient'}
+    idts = IdToken(**idval)
+    key = SYMKey(key="TestPassword")
+    _signed_jwt = idts.to_jwt(key=[key], algorithm="HS256")
+
+    #Mess with the signed id_token
+    p = _signed_jwt.split(".")
+    p[2] = "aaa"
+    _faulty_signed_jwt = ".".join(p)
+
+    _info = {"access_token": "accessTok", "id_token": _faulty_signed_jwt,
+             "token_type": "Bearer", "expires_in": 3600}
+
+    # Should fail
+    at = AccessTokenResponse(**_info)
+    try:
+        at.verify(key=[key])
+    except BadSignature:
+        pass
+    else:
+        raise
+
+
 if __name__ == "__main__":
-    test_claims_deser_0()
+    test_faulty_idtoken()

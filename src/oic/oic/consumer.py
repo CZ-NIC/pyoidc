@@ -311,11 +311,41 @@ class Consumer(Client):
 
         return sid, location
 
+    def _parse_authz(self, query="", **kwargs):
+        _log_info = logger.info
+        # Might be an error response
+        _log_info("Expect Authorization Response")
+        aresp = self.parse_response(AuthorizationResponse,
+                                    info=query,
+                                    sformat="urlencoded",
+                                    keyjar=self.keyjar)
+        if aresp.type() == "ErrorResponse":
+            _log_info("ErrorResponse: %s" % aresp)
+            raise AuthzError(aresp.error, aresp)
+
+        _log_info("Aresp: %s" % aresp)
+
+        _state = aresp["state"]
+        try:
+            self.update(_state)
+        except KeyError:
+            raise UnknownState(_state, aresp)
+
+        self.redirect_uris = [self.sdb[_state]["redirect_uris"]]
+        return aresp, _state
+
     #noinspection PyUnusedLocal
     def parse_authz(self, query="", **kwargs):
         """
         This is where we get redirect back to after authorization at the
         authorization server has happened.
+        Couple of cases
+        ["code"]
+        ["code", "token"]
+        ["code", "id_token", "token"]
+        ["id_token"]
+        ["id_token", "token"]
+        ["token"]
 
         :return: A AccessTokenResponse instance
         """
@@ -329,25 +359,7 @@ class Consumer(Client):
         _log_info("response: %s" % query)
 
         if "code" in self.config["response_type"]:
-            # Might be an error response
-            _log_info("Expect Authorization Response")
-            aresp = self.parse_response(AuthorizationResponse,
-                                        info=query,
-                                        sformat="urlencoded",
-                                        keyjar=self.keyjar)
-            if aresp.type() == "ErrorResponse":
-                _log_info("ErrorResponse: %s" % aresp)
-                raise AuthzError(aresp.error, aresp)
-
-            _log_info("Aresp: %s" % aresp)
-
-            _state = aresp["state"]
-            try:
-                self.update(_state)
-            except KeyError:
-                raise UnknownState(_state, aresp)
-
-            self.redirect_uris = [self.sdb[_state]["redirect_uris"]]
+            aresp, _state = self._parse_authz(query, **kwargs)
 
             # May have token and id_token information too
             if "access_token" in aresp:
@@ -366,7 +378,7 @@ class Consumer(Client):
                 idt = None
 
             return aresp, atr, idt
-        else:  # implicit flow
+        elif "token" in self.config["response_type"]:  # implicit flow
             _log_info("Expect Access Token Response")
             atr = self.parse_response(AccessTokenResponse, info=query,
                                       sformat="urlencoded",
@@ -376,6 +388,14 @@ class Consumer(Client):
 
             idt = None
             return None, atr, idt
+        else:  # only id_token
+            aresp, _state = self._parse_authz(query, **kwargs)
+
+            try:
+                idt = aresp["id_token"]
+            except KeyError:
+                idt = None
+            return None, None, idt
 
     def complete(self, state):
         """

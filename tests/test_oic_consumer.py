@@ -1,8 +1,12 @@
+import json
 import os
 import shutil
 import tempfile
+from jwkest import BadSignature
+from jwkest.jwk import SYMKey
+from oic.oauth2.message import MissingSigningKey
 
-from oic.oic.message import AccessTokenResponse, AuthorizationResponse
+from oic.oic.message import AccessTokenResponse, AuthorizationResponse, IdToken
 from oic.utils.keyio import KeyBundle, keybundle_from_local_file
 from oic.utils.keyio import KeyJar
 
@@ -19,6 +23,7 @@ from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.sdb import SessionDB
 
 from fakeoicsrv import MyFakeOICServer
+from mitmsrv import MITMServer
 
 from utils_for_tests import _eq
 
@@ -543,16 +548,6 @@ def test_discover():
     res = c.discover(principal)
     assert res == "http://localhost:8088/"
 
-#def test_discover_redirect():
-#    c = Consumer(None, None)
-#    mfos = MyFakeOICServer(name="http://example.com/")
-#    c.http_request = mfos.http_request
-#
-#    principal = "bar@example.org"
-#
-#    res = c.discover(principal)
-#    assert res == "http://example.net/providerconf"
-
 
 def test_provider_config():
     c = Consumer(None, None)
@@ -606,8 +601,103 @@ def test_client_register():
     assert c.registration_expires > utc_time_sans_frac()
 
 
+SYMKEY = SYMKey(key="TestPassword")
+
+
+def _faulty_id_token():
+    idval = {'nonce': 'KUEYfRM2VzKDaaKD', 'sub': 'EndUserSubject',
+             'iss': 'https://alpha.cloud.nds.rub.de', 'exp': 1420823073,
+             'iat': 1420822473, 'aud': 'TestClient'}
+    idts = IdToken(**idval)
+
+    _signed_jwt = idts.to_jwt(key=[SYMKEY], algorithm="HS256")
+
+    #Mess with the signed id_token
+    p = _signed_jwt.split(".")
+    p[2] = "aaa"
+
+    return ".".join(p)
+
+
+def test_faulty_id_token():
+    _faulty_signed_jwt = _faulty_id_token()
+    try:
+        _ = IdToken().from_jwt(_faulty_signed_jwt, key=[SYMKEY])
+    except BadSignature:
+        pass
+    else:
+        assert False
+
+    # What if no verification key is given ?
+    # Should also result in an exception
+    try:
+        _ = IdToken().from_jwt(_faulty_signed_jwt)
+    except MissingSigningKey:
+        pass
+    else:
+        assert False
+
+
+def test_faulty_id_token_in_access_token_response():
+    c = Consumer(None, None)
+    c.keyjar.add_symmetric("", "TestPassword", ["sig"])
+
+    _info = {"access_token": "accessTok", "id_token": _faulty_id_token(),
+             "token_type": "Bearer", "expires_in": 3600}
+
+    _json = json.dumps(_info)
+    try:
+        resp = c.parse_response(AccessTokenResponse, _json, sformat="json")
+    except BadSignature:
+        pass
+    else:
+        assert False
+
+
+def test_faulty_idtoken_from_accesstoken_endpoint():
+    consumer = Consumer(SessionDB(SERVER_INFO["issuer"]), CONFIG,
+                        CLIENT_CONFIG, SERVER_INFO)
+    consumer.keyjar = CLIKEYS
+    mfos = MITMServer("http://localhost:8088")
+    mfos.keyjar = SRVKEYS
+    consumer.http_request = mfos.http_request
+    consumer.redirect_uris = ["http://example.com/authz"]
+    _state = "state0"
+    consumer.nonce = rndstr()
+    consumer.client_secret = "hemlig"
+    consumer.secret_type = "basic"
+    consumer.config["response_type"] = ["id_token"]
+
+    args = {
+        "client_id": consumer.client_id,
+        "response_type": consumer.config["response_type"],
+        "scope": ["openid"],
+    }
+
+    result = consumer.do_authorization_request(state=_state,
+                                               request_args=args)
+    consumer._backup("state0")
+
+    assert result.status_code == 302
+    #assert result.location.startswith(consumer.redirect_uri[0])
+    _, query = result.headers["location"].split("?")
+    print query
+    part = consumer.parse_authz(query=query)
+    print part
+    auth = part[0]
+    acc = part[1]
+    assert part[2] is None
+
+    #print auth.dictionary()
+    #print acc.dictionary()
+    assert auth is None
+    assert acc.type() == "AccessTokenResponse"
+    assert _eq(acc.keys(), ['access_token', 'id_token', 'expires_in',
+                            'token_type', 'state', 'scope'])
+
+
 if __name__ == "__main__":
     # t = TestOICConsumer()
     # t.setup_class()
     # t.test_complete()
-    test_sign_userinfo()
+    test_faulty_idtoken_from_accesstoken_endpoint()
