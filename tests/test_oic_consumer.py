@@ -286,12 +286,17 @@ class TestOICConsumer():
         assert "code" in atr
 
     def test_parse_authz_implicit(self):
-        self.consumer.config["response_type"] = "implicit"
+        mfos = MyFakeOICServer("http://localhost:8088")
+        mfos.keyjar = SRVKEYS
+
+        self.consumer.http_request = mfos.http_request
+        self.consumer.config["response_type"] = "id_token"
         _state = "statxxx"
         args = {
             "client_id": self.consumer.client_id,
             "response_type": "implicit",
             "scope": ["openid"],
+            "redirect_uri": "http://localhost:8088/cb"
         }
 
         result = self.consumer.do_authorization_request(
@@ -682,22 +687,16 @@ def test_faulty_idtoken_from_accesstoken_endpoint():
     #assert result.location.startswith(consumer.redirect_uri[0])
     _, query = result.headers["location"].split("?")
     print query
-    part = consumer.parse_authz(query=query)
-    print part
-    auth = part[0]
-    acc = part[1]
-    assert part[2] is None
-
-    #print auth.dictionary()
-    #print acc.dictionary()
-    assert auth is None
-    assert acc.type() == "AccessTokenResponse"
-    assert _eq(acc.keys(), ['access_token', 'id_token', 'expires_in',
-                            'token_type', 'state', 'scope'])
+    try:
+        consumer.parse_authz(query=query)
+    except BadSignature:
+        pass
+    else:
+        assert False
 
 
 if __name__ == "__main__":
-    # t = TestOICConsumer()
-    # t.setup_class()
-    # t.test_complete()
-    test_faulty_idtoken_from_accesstoken_endpoint()
+    t = TestOICConsumer()
+    t.setup_class()
+    t.test_parse_authz_implicit()
+    # test_faulty_idtoken_from_accesstoken_endpoint()
