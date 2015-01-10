@@ -12,9 +12,13 @@ from oic.oauth2 import message
 from oic.oauth2 import MissingRequiredValue
 from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2 import VerificationError
-from oic.exception import InvalidRequest, NotForMe
+from oic.exception import InvalidRequest
+from oic.exception import NotForMe
+from oic.exception import MessageException
 from oic.exception import PyoidcError
-from oic.oauth2.message import Message, SchemeError
+from oic.oauth2.message import Message
+from oic.oauth2.message import SchemeError
+from oic.oauth2.message import NotAllowedValue
 from oic.oauth2.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
 from oic.oauth2.message import SINGLE_OPTIONAL_JSON
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
@@ -104,7 +108,7 @@ def msg_ser(inst, sformat, lev=0):
         elif isinstance(inst, dict):
             res = inst
         else:
-            raise ValueError("%s" % type(inst))
+            raise MessageException("Wrong type: %s" % type(inst))
     else:
         raise PyoidcError("Unknown sformat", inst)
 
@@ -119,7 +123,7 @@ def msg_ser_json(inst, sformat="json", lev=0):
         elif isinstance(inst, dict):
             res = inst
         else:
-            raise ValueError("%s" % type(inst), inst)
+            raise MessageException("Wrong type: %s" % type(inst))
     else:
         sformat = "json"
         if isinstance(inst, dict) or isinstance(inst, Message):
@@ -157,7 +161,7 @@ def claims_ser(val, sformat="urlencoded", lev=0):
         if isinstance(item, dict):
             res = item
         else:
-            raise ValueError("%s" % type(item))
+            raise MessageException("Wrong type: %s" % type(item))
     else:
         raise PyoidcError("Unknown sformat: %s" % sformat, val)
 
@@ -214,7 +218,7 @@ for char in ['\x21', ('\x23', '\x5b'), ('\x5d', '\x7E')]:
 def check_char_set(string, allowed):
     for c in string:
         if c not in allowed:
-            raise ValueError("'%c' not in the allowed character set" % c)
+            raise NotAllowedValue("'%c' not in the allowed character set" % c)
 
 
 # -----------------------------------------------------------------------------

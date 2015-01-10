@@ -33,6 +33,10 @@ class MissingRequiredValue(MessageException):
     pass
 
 
+class MissingSigningKey(PyoidcError):
+    pass
+
+
 class TooManyValues(MessageException):
     pass
 
@@ -51,6 +55,15 @@ class OldAccessToken(PyoidcError):
 
 class SchemeError(MessageException):
     pass
+
+
+class ParameterError(MessageException):
+    pass
+
+
+class NotAllowedValue(MessageException):
+    pass
+
 
 
 ERRTXT = "On '%s': %s"
@@ -240,7 +253,7 @@ class Message(object):
                         try:
                             self._dict[key] = typ(val[0])
                         except KeyError:
-                            raise ValueError()
+                            raise ParameterError(key)
                 else:
                     raise TooManyValues
 
@@ -517,6 +530,10 @@ class Message(object):
                             else:
                                 self._add_key(keyjar, jso[ent], key)
 
+                    if "alg" in header and header["alg"] != "none":
+                        if not key:
+                            raise MissingSigningKey()
+
                     _jws.verify_compact(txt, key)
             except Exception:
                 raise
@@ -530,18 +547,18 @@ class Message(object):
     def _type_check(self, typ, _allowed, val, na=False):
         if typ is basestring:
             if val not in _allowed:
-                raise ValueError("Not allowed value '%s'" % val)
+                raise NotAllowedValue(val)
         elif typ is int:
             if val not in _allowed:
-                raise ValueError("Not allowed value '%s'" % val)
+                raise NotAllowedValue(val)
         elif isinstance(typ, list):
             if isinstance(val, list):
                 # _typ = typ[0]
                 for item in val:
                     if item not in _allowed:
-                        raise ValueError("Not allowed value '%s'" % val)
+                        raise NotAllowedValue(val)
         elif val is None and na is False:
-            raise ValueError("Not allowed value '%s'" % val)
+            raise NotAllowedValue(val)
 
     # noinspection PyUnusedLocal
     def verify(self, **kwargs):
@@ -584,7 +601,7 @@ class Message(object):
                     except ValueError:
                         pass
                 if _ityp is None:
-                    raise ValueError("Not allowed value '%s'" % val)
+                    raise NotAllowedValue(val)
             else:
                 self._type_check(typ, _allowed[attribute], val, na)
 
@@ -659,7 +676,7 @@ class Message(object):
             for key, val in item.items():
                 self._dict[key] = val
         else:
-            raise ValueError("Wrong type of value")
+            raise ValueError("Can't update message using: '%s'" % (item,))
 
     def to_jwe(self, keys, enc, alg, lev=0):
         """
