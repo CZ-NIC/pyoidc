@@ -532,7 +532,7 @@ class Message(object):
 
                     if "alg" in header and header["alg"] != "none":
                         if not key:
-                            raise MissingSigningKey()
+                            raise MissingSigningKey("alg=%s" % header["alg"])
 
                     _jws.verify_compact(txt, key)
             except Exception:
