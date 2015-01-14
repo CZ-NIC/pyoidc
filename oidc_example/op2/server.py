@@ -407,7 +407,6 @@ if __name__ == '__main__':
     username_password_authn = UsernamePasswordMako(
         None, "login.mako", LOOKUP, PASSWD,"%s/authorization" % config.issuer,
         None, full_end_point_paths)
-    ac.add("", username_password_authn,"","")
 
     for authkey, value in config.AUTHENTICATION.items():
         authn = None
