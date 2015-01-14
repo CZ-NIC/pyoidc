@@ -886,11 +886,15 @@ class Client(PBase):
                 assert "application/json" in reqresp.headers["content-type"]
             except AssertionError:
                 try:
-                    assert "application/jwt" in reqresp.headers[
-                        "content-type"]
+                    assert "application/jwt" in reqresp.headers["content-type"]
                     body_type = "jwt"
                 except AssertionError:
                     raise AssertionError("Wrong content-type in header")
+        elif body_type == "jwt":
+            try:
+                assert "application/jwt" in reqresp.headers["content-type"]
+            except AssertionError:
+                raise AssertionError("Wrong content-type in header")
         elif body_type == "urlencoded":
             try:
                 assert DEFAULT_POST_CONTENT_TYPE in reqresp.headers[
