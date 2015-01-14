@@ -1054,13 +1054,15 @@ class Provider(AProvider):
             if "userinfo_signed_response_alg" in _cinfo:
                 jinfo = self.signed_userinfo(_cinfo, info, session)
                 content_type = "application/jwt"
-            elif "userinfo_encrypted_response_alg" in _cinfo:
-                jinfo = self.encrypt(info.to_json(), _cinfo, session["client_id"],
-                                     "userinfo")
-                content_type = "application/jwt"
             else:
                 jinfo = info.to_json()
                 content_type = "application/json"
+
+            if "userinfo_encrypted_response_alg" in _cinfo:
+                jinfo = self.encrypt(jinfo, _cinfo, session["client_id"],
+                                    "userinfo")
+                content_type = "application/jwt"
+
         except JWEException:
             return self._error(error="access_denied",
                                descr="Could not encrypt")
