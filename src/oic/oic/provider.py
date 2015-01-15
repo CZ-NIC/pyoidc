@@ -1743,7 +1743,7 @@ class Provider(AProvider):
                 rtype.remove("id_token")
 
             if len(rtype):
-                return BadRequest("Unknown response type")
+                return BadRequest("Unknown response type: %s" % rtype)
 
         try:
             redirect_uri = self.get_redirect_uri(areq)
