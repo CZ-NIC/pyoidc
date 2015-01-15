@@ -723,10 +723,10 @@ class ProviderConfigurationResponse(Message):
         "service_documentation": SINGLE_OPTIONAL_STRING,
         "claims_locales_supported": OPTIONAL_LIST_OF_STRINGS,
         "ui_locales_supported": OPTIONAL_LIST_OF_STRINGS,
-        "claims_parameter_supported": SINGLE_OPTIONAL_STRING,
-        "request_parameter_supported": SINGLE_OPTIONAL_STRING,
-        "request_uri_parameter_supported": SINGLE_OPTIONAL_STRING,
-        "require_request_uri_registration": SINGLE_OPTIONAL_STRING,
+        "claims_parameter_supported": SINGLE_OPTIONAL_BOOLEAN,
+        "request_parameter_supported": SINGLE_OPTIONAL_BOOLEAN,
+        "request_uri_parameter_supported": SINGLE_OPTIONAL_BOOLEAN,
+        "require_request_uri_registration": SINGLE_OPTIONAL_BOOLEAN,
         "op_policy_uri": SINGLE_OPTIONAL_STRING,
         "op_tos_uri": SINGLE_OPTIONAL_STRING
         #"check_session_iframe": SINGLE_OPTIONAL_STRING,
@@ -737,10 +737,10 @@ class ProviderConfigurationResponse(Message):
     }
     c_default = {"version": "3.0",
                  "token_endpoint_auth_methods_supported": ["client_secret_basic"],
-                 "claims_parameter_supported": "false",
-                 "request_parameter_supported": "false",
-                 "request_uri_parameter_supported": "true",
-                 "require_request_uri_registration": "true",
+                 "claims_parameter_supported": False,
+                 "request_parameter_supported": False,
+                 "request_uri_parameter_supported": True,
+                 "require_request_uri_registration": True,
                  "grant_types_supported": ["authorization_code", "implicit"]}
 
     def verify(self, **kwargs):

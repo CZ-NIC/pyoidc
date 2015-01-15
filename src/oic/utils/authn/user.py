@@ -184,7 +184,7 @@ class UsernamePasswordMako(UserAuthnMethod):
 
     param_map = {"as_user": "login", "acr_values": "acr",
                  "policy_uri": "policy_uri", "logo_uri": "logo_uri",
-                 "query": "query"}
+                 "tos_uri": "tos_uri", "query": "query"}
 
     def __init__(self, srv, mako_template, template_lookup, pwd, return_to="",
                  templ_arg_func=None, verification_endpoints=None):

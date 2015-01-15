@@ -27,7 +27,10 @@
         <img src="${logo_uri}" alt="Client logo">
     % endif
     % if policy_uri:
-        <a href="${policy_uri}"><b>${client_policy_title}</b></a>
+        <a href="${policy_uri}"><strong>Client&#39;s Policy</strong></a>
+    % endif
+    % if tos_uri:
+        <a href="${tos_uri}"><strong>Client&#39;s Terms of Service</strong></a>
     % endif
 </div>
 

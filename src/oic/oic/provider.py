@@ -669,7 +669,7 @@ class Provider(AProvider):
                       "as_user": req_user,
                       "authn_class_ref": authn_class_ref}
 
-        for attr in ["policy_uri", "logo_uri"]:
+        for attr in ["policy_uri", "logo_uri", "tos_uri"]:
             try:
                 authn_args[attr] = cinfo[attr]
             except KeyError:
@@ -1254,7 +1254,7 @@ class Provider(AProvider):
                                 descr=
                                 "'sector_identifier_uri' must be registered")
 
-        for item in ["policy_uri", "logo_uri"]:
+        for item in ["policy_uri", "logo_uri", "tos_uri"]:
             if item in request:
                 if self._verify_url(request[item], _cinfo["redirect_uris"]):
                     _cinfo[item] = request[item]
@@ -1369,8 +1369,8 @@ class Provider(AProvider):
 
         _cinfo = self.do_client_registration(request, client_id,
                                              ignore=["redirect_uris",
-                                                     "policy_uri",
-                                                     "logo_uri"])
+                                                     "policy_uri", "logo_uri",
+                                                     "tos_uri"])
         if isinstance(_cinfo, Response):
             return _cinfo
 
