@@ -35,7 +35,7 @@ from oic.oic.message import DiscoveryRequest
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import DiscoveryResponse
 
-from jwkest import jws, jwe
+from jwkest import jws, jwe, b64d
 from jwkest.jws import alg2keytype, left_hash
 from jwkest.jws import NoSuitableSigningKeys
 
@@ -388,8 +388,8 @@ class Provider(AProvider):
 
         return areq
 
-    def _verify_client(self, areq):
-        if areq["client_id"] in areq["id_token_hint"]["aud"]:
+    def _verify_client(self, areq, aud):
+        if areq["client_id"] in aud:
             return True
         else:
             return False
@@ -401,12 +401,17 @@ class Provider(AProvider):
         except KeyError:
             _req = areq
 
-        try:
-            req_user = _req["id_token_hint"]["sub"]
-        except KeyError:
-            pass
-        else:
-            if not self._verify_client(areq):
+        if "id_token_hint" in _req:
+            try:
+                req_user = _req["id_token_hint"]["sub"]
+                aud = _req["id_token_hint"]["aud"]
+            except (KeyError, TypeError):
+                # A signed jwt, should verify signature if I can
+                jso = json.loads(b64d(str(_req["id_token_hint"].split(".")[1])))
+                req_user = jso["sub"]
+                aud = jso["aud"]
+
+            if not self._verify_client(areq, aud):
                 req_user = ""
 
         return req_user
@@ -707,8 +712,9 @@ class Provider(AProvider):
         if identity is None:  # No!
             if "prompt" in areq and "none" in areq["prompt"]:
                 # Need to authenticate but not allowed
-                return self._redirect_authz_error("login_required",
-                                                  redirect_uri)
+                return self._redirect_authz_error(
+                    "login_required", redirect_uri,
+                    return_type=areq["response_type"])
             else:
                 return authn(**authn_args)
         else:

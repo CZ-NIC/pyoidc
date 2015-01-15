@@ -763,4 +763,4 @@ def test_key_rollover():
     assert len(provider2.keyjar.issuer_keys[""]) == 2
 
 if __name__ == "__main__":
-    test_registration_endpoint()
+    test_server_authorization_endpoint()
