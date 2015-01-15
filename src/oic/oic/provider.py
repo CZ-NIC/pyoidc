@@ -71,7 +71,7 @@ SWD_ISSUER = "http://openid.net/specs/connect/1.0/issuer"
 STR = 5 * "_"
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def devnull(txt):
     pass
 
@@ -87,6 +87,7 @@ def secret(seed, sid):
     csum.update("%f" % random.random())
     csum.update(sid)
     return csum.hexdigest()
+
 
 #def update_info(aresp, sdict):
 #    for prop in aresp._schema["param"].keys():
@@ -139,6 +140,7 @@ def construct_uri(item):
 class AuthorizationEndpoint(Endpoint):
     etype = "authorization"
 
+
 class TokenEndpoint(Endpoint):
     etype = "token"
 
@@ -147,12 +149,32 @@ class UserinfoEndpoint(Endpoint):
     etype = "userinfo"
 
 
-class RegistrationEndpoint(Endpoint) :
+class RegistrationEndpoint(Endpoint):
     etype = "registration"
 
 
-class EndSessionEndpoint(Endpoint) :
+class EndSessionEndpoint(Endpoint):
     etype = "endsession"
+
+RESPONSE_TYPES_SUPPORTED = [
+    ["code"], ["token"], ["id_token"], ["code", "token"], ["code", "id_token"],
+    ["id_token", "token"], ["code", "token", "id_token"]]
+
+CAPABILITIES = {
+    "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
+    "token_endpoint_auth_methods_supported": [
+        "client_secret_post", "client_secret_basic",
+        "client_secret_jwt", "private_key_jwt"],
+    "response_modes_supported": ['query', 'fragment', 'form_post'],
+    "subject_types_supported": ["public", "pairwise"],
+    "grant_types_supported": [
+        "authorization_code", "implicit",
+        "urn:ietf:params:oauth:grant-type:jwt-bearer"],
+    "claim_types_supported": ["normal", "aggregated", "distributed"],
+    "claims_parameter_supported": True,
+    "request_parameter_supported": True,
+    "request_uri_parameter_supported": True,
+}
 
 
 class Provider(AProvider):
@@ -232,8 +254,8 @@ class Provider(AProvider):
         except KeyError:
             pass
         else:
-        # make sure id_token_signed_response_alg is set in client register
-        # response. This will make it happen in match_preferences()
+            # make sure id_token_signed_response_alg is set in client register
+            # response. This will make it happen in match_preferences()
             for val in PREFERENCE2PROVIDER.values():
                 if val.endswith("signing_alg_values_supported"):
                     self.capabilities[val] = [mode["sign"]]
@@ -244,8 +266,8 @@ class Provider(AProvider):
         except KeyError:
             pass
         else:
-        # make sure id_token_signed_response_alg is set in client register
-        # response. This will make it happen in match_preferences()
+            # make sure id_token_signed_response_alg is set in client register
+            # response. This will make it happen in match_preferences()
             for val in PREFERENCE2PROVIDER.values():
                 if val.endswith("encryption_alg_values_supported"):
                     self.capabilities[val] = [_enc_alg]
@@ -256,8 +278,8 @@ class Provider(AProvider):
         except KeyError:
             pass
         else:
-        # make sure id_token_signed_response_alg is set in client register
-        # response. This will make it happen in match_preferences()
+            # make sure id_token_signed_response_alg is set in client register
+            # response. This will make it happen in match_preferences()
             for val in PREFERENCE2PROVIDER.values():
                 if val.endswith("encryption_enc_values_supported"):
                     self.capabilities[val] = [_enc_enc]
@@ -484,7 +506,7 @@ class Provider(AProvider):
             "post_logout_redirect_uri": esr["post_logout_redirect_uri"],
             "key": self.sdb.get_verify_logout(uid),
             "redirect": redirect,
-            "action": "/"+EndSessionEndpoint("").etype
+            "action": "/" + EndSessionEndpoint("").etype
         }
         return Response(mte.render(**argv), headers=[])
 
@@ -500,7 +522,7 @@ class Provider(AProvider):
         if "id_token_hint" in esr:
             id_token_hint = OpenIDRequest().from_jwt(esr["id_token_hint"],
                                                      keyjar=self.keyjar,
-                                                         verify=True)
+                                                     verify=True)
             uid = id_token_hint["sub"]
         else:
             identity = authn.authenticated_as(cookie)
@@ -750,7 +772,7 @@ class Provider(AProvider):
 
         keys = self.keyjar.get_encrypt_key(owner=cid)
         logger.debug("keys for %s: %s" % (
-            cid, "["+", ".join([str(x) for x in self.keyjar[cid]]))+"]")
+            cid, "[" + ", ".join([str(x) for x in self.keyjar[cid]])) + "]")
         logger.debug("alg=%s, enc=%s, val_type=%s" % (alg, enc, val_type))
         logger.debug("Encryption keys for %s: %s" % (cid, keys))
 
@@ -928,7 +950,7 @@ class Provider(AProvider):
             elif key == "values":
                 if value not in val:
                     return False
-            # Whether it's essential or not doesn't change anything here
+                    # Whether it's essential or not doesn't change anything here
         return True
 
     def _collect_user_info(self, session, userinfo_claims=None):
@@ -1060,7 +1082,7 @@ class Provider(AProvider):
 
             if "userinfo_encrypted_response_alg" in _cinfo:
                 jinfo = self.encrypt(jinfo, _cinfo, session["client_id"],
-                                    "userinfo")
+                                     "userinfo")
                 content_type = "application/jwt"
 
         except JWEException:
@@ -1102,22 +1124,33 @@ class Provider(AProvider):
         for reg, qp in urlset:
             _part = urlparse.urlparse(reg)
             if part.scheme == _part.scheme and part.netloc == _part.netloc:
-                    return True
+                return True
 
         return False
 
     def match_client_request(self, request):
         for _pref, _prov in PREFERENCE2PROVIDER.items():
             if _pref in request:
-                if isinstance(request[_pref], basestring):
-                    try:
-                        assert request[_pref] in self.capabilities[_prov]
-                    except AssertionError:
-                        raise CapabilitiesMisMatch(_pref)
+                if _pref == "response_types":
+                    for val in request[_pref]:
+                        match = False
+                        p = set(val.split(" "))
+                        for cv in RESPONSE_TYPES_SUPPORTED:
+                            if p == set(cv):
+                                match = True
+                                break
+                        if not match:
+                            raise CapabilitiesMisMatch(_pref)
                 else:
-                    if not set(request[_pref]).issubset(
-                            set(self.capabilities[_prov])):
-                        raise CapabilitiesMisMatch(_pref)
+                    if isinstance(request[_pref], basestring):
+                        try:
+                            assert request[_pref] in self.capabilities[_prov]
+                        except AssertionError:
+                            raise CapabilitiesMisMatch(_pref)
+                    else:
+                        if not set(request[_pref]).issubset(
+                                set(self.capabilities[_prov])):
+                            raise CapabilitiesMisMatch(_pref)
 
     def do_client_registration(self, request, client_id, ignore=None):
         if ignore is None:
@@ -1136,7 +1169,8 @@ class Provider(AProvider):
                 if urlparse.urlparse(uri).fragment:
                     err = ClientRegistrationErrorResponse(
                         error="invalid_configuration_parameter",
-                        error_description="post_logout_redirect_uris contains fragment")
+                        error_description="post_logout_redirect_uris contains "
+                                          "fragment")
                     return Response(err.to_json(),
                                     content="application/json",
                                     status="400 Bad Request")
@@ -1172,7 +1206,8 @@ class Provider(AProvider):
                     if p.hostname != "localhost":
                         err = ClientRegistrationErrorResponse(
                             error="invalid_configuration_parameter",
-                            error_description="Http redirect_uri must use localhost")
+                            error_description="Http redirect_uri must use "
+                                              "localhost")
                 elif must_https and p.scheme != "https":
                     err = ClientRegistrationErrorResponse(
                         error="invalid_configuration_parameter",
@@ -1185,7 +1220,8 @@ class Provider(AProvider):
                 # elif must_https and p.hostname == "localhost":
                 #     err = ClientRegistrationErrorResponse(
                 #         error="invalid_configuration_parameter",
-                #         error_description="https redirect_uri with host localhost")
+                #         error_description="https redirect_uri with host
+                # localhost")
 
                 if err:
                     return Response(err.to_json(),
@@ -1267,7 +1303,8 @@ class Provider(AProvider):
         for item in ["id_token_signed_response_alg",
                      "userinfo_signed_response_alg"]:
             if item in request:
-                if request[item] in self.capabilities[PREFERENCE2PROVIDER[item]]:
+                if request[item] in self.capabilities[
+                    PREFERENCE2PROVIDER[item]]:
                     ktyp = jws.alg2keytype(request[item])
                     # do I have this ktyp and for EC type keys the curve
                     if ktyp not in ["none", "OCT"]:
@@ -1329,7 +1366,7 @@ class Provider(AProvider):
             request.verify()
         except MessageException, err:
             if "type" not in request:
-                return self._error(error="invalid_type", 
+                return self._error(error="invalid_type",
                                    descr="%s" % err)
             else:
                 return self._error(error="invalid_configuration_parameter",
@@ -1465,7 +1502,8 @@ class Provider(AProvider):
             #         if key in setup:
             #             if key in _provider_info:
             #                 _provider_info[key] = [x for x in setup[key]
-            #                                        if x in _provider_info[key]]
+            #                                        if x in _provider_info[
+            # key]]
             #             else:
             #                 _provider_info[key] = setup[key]
             #     else:
@@ -1492,34 +1530,17 @@ class Provider(AProvider):
         :param pcr_class:
         :return: ProviderConfigurationResponse instance
         """
-        _scopes = SCOPE2CLAIMS.keys()
-        _scopes.append("openid")
+
+        _provider_info = pcr_class(**CAPABILITIES)
 
         _claims = []
         for _cl in SCOPE2CLAIMS.values():
             _claims.extend(_cl)
-        _claims = list(set(_claims))
+        _provider_info["claims_supported"] = list(set(_claims))
 
-        _provider_info = pcr_class(
-            token_endpoint_auth_methods_supported=[
-                "client_secret_post", "client_secret_basic",
-                "client_secret_jwt", "private_key_jwt"],
-            scopes_supported=_scopes,
-            response_types_supported=["code", "token", "id_token",
-                                      "code token", "code id_token",
-                                      "token id_token",
-                                      "code token id_token"],
-            response_modes_supported=['query', 'fragment', 'form_post'],
-            subject_types_supported=["public", "pairwise"],
-            grant_types_supported=[
-                "authorization_code", "implicit",
-                "urn:ietf:params:oauth:grant-type:jwt-bearer"],
-            claim_types_supported=["normal", "aggregated", "distributed"],
-            claims_supported=_claims,
-            claims_parameter_supported=True,
-            request_parameter_supported=True,
-            request_uri_parameter_supported=True,
-        )
+        _scopes = SCOPE2CLAIMS.keys()
+        _scopes.append("openid")
+        _provider_info["scopes_supported"] = _scopes
 
         sign_algs = jws.SIGNER_ALGS.keys()
         for typ in ["userinfo", "id_token", "request_object",
@@ -1651,8 +1672,8 @@ class Provider(AProvider):
             pass
 
         if "response_type" in areq and \
-                len(areq["response_type"]) == 1 and \
-                "none" in areq["response_type"]:
+                        len(areq["response_type"]) == 1 and \
+                        "none" in areq["response_type"]:
             fragment_enc = False
         else:
             if self.sdb.is_revoked(sid):
