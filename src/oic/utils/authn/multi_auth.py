@@ -52,13 +52,21 @@ class AuthnIndexedEndpointWrapper(UserAuthnMethod):
     """
 
     def __init__(self, authn_instance, end_point_index):
+        self.authn_instance = authn_instance  # Must be initiated before super constructor is called
         UserAuthnMethod.__init__(self, None)
-
-        self.authn_instance = authn_instance
         self.end_point_index = end_point_index
+
 
     def __call__(self, **kwargs):
         return self.authn_instance(end_point_index=self.end_point_index, **kwargs)
 
     def verify(self, **kwargs):
         return self.authn_instance.verify(end_point_index=self.end_point_index, **kwargs)
+
+    @property
+    def srv(self):
+        return self.authn_instance.srv
+
+    @srv.setter
+    def srv(self, v):
+        self.authn_instance.srv = v
