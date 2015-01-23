@@ -227,6 +227,7 @@ Given you have all that, you now can send the request::
     import hashlib
     import hmac
     from oic.oauth2 import rndstr
+    from oic.utils.http_util import Redirect
 
     session["state"] = rndstr()
     session["nonce"] = rndstr()
@@ -238,8 +239,11 @@ Given you have all that, you now can send the request::
         "redirect_uri": client.redirect_uris[0]
     }
 
-    result = client.do_authorization_request(state=session["state"],
-                                             request_args=args)
+    auth_req = self.client.construct_AuthorizationRequest(state=session["state"],
+                                                          request_args=request_args)
+    login_url = client.authorization_endpoint + "?" + auth_req.to_urlencoded()
+
+    return Redirect(login_url)
 
 The arguments *state* are use to keep track on responses to
 outstanding requests (state).
@@ -252,9 +256,6 @@ want to store them in a session object (assumed to look like a dictionary).
 Also even if you initiate one Client instance per OP you probably won't do it
 per user so you have to keep the state and nonce variables that belongs to
 an user together and separate from other users.
-
-Most probable the response to this request will be a redirect to some other
-URL where the authentication is performed.
 
 Eventually a response is sent to the URL given as the redirect_uri.
 
@@ -331,6 +332,7 @@ Endpoint; the Token Endpoint is not used.
 So::
 
     from oic.oauth2 import rndstr
+    from oic.utils.http_util import Redirect
 
     seession["state"] = rndstr()
     session["nonce"] = rndstr()
@@ -342,8 +344,12 @@ So::
         "redirect_uri": client.redirect_uris[0]
     }
 
-    result = client.do_authorization_request(state=session["state"],
-                                             request_args=args)
+
+    auth_req = self.client.construct_AuthorizationRequest(state=session["state"],
+                                                          request_args=request_args)
+    login_url = client.authorization_endpoint + "?" + auth_req.to_urlencoded()
+
+    return Redirect(login_url)
 
 
 As for the Authorization Code Flow the authentication part will begin
