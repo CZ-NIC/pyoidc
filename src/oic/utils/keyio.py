@@ -733,6 +733,7 @@ def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=1024):
 
     _pub_key = key.publickey()
     f = open('%s%s.pub' % (path, name), 'w')
+
     f.write(_pub_key.exportKey('PEM'))
     f.close()
 

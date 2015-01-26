@@ -64,8 +64,6 @@ class ParameterError(MessageException):
 class NotAllowedValue(MessageException):
     pass
 
-
-
 ERRTXT = "On '%s': %s"
 
 

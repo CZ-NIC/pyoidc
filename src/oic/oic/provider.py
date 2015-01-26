@@ -758,7 +758,7 @@ class Provider(AProvider):
         else:
             return None
 
-    def encrypt(self, payload, client_info, cid, val_type="id_token"):
+    def encrypt(self, payload, client_info, cid, val_type="id_token", cty=""):
         """
         Handles the encryption of a payload.
         Shouldn't get here unless there are encrypt parameters in client info
@@ -782,8 +782,12 @@ class Provider(AProvider):
         logger.debug("alg=%s, enc=%s, val_type=%s" % (alg, enc, val_type))
         logger.debug("Encryption keys for %s: %s" % (cid, keys))
 
+        kwargs = {"alg": alg, "enc": enc}
+        if cty:
+            kwargs["cty"] = cty
+
         # use the clients public key for encryption
-        _jwe = JWE(payload, alg=alg, enc=enc)
+        _jwe = JWE(payload, **kwargs)
         return _jwe.encrypt(keys, context="public")
 
     def sign_encrypt_id_token(self, sinfo, client_info, areq, code=None,
@@ -817,7 +821,7 @@ class Provider(AProvider):
         # Then encrypt
         if "id_token_encrypted_response_alg" in client_info:
             id_token = self.encrypt(id_token, client_info, areq["client_id"],
-                                    "id_token")
+                                    "id_token", "JWT")
 
         return id_token
 
@@ -1031,7 +1035,7 @@ class Provider(AProvider):
         if "userinfo_encrypted_response_alg" in client_info:
             # encrypt with clients public key
             jinfo = self.encrypt(jinfo, client_info, session["client_id"],
-                                 "userinfo")
+                                 "userinfo", "JWT")
         return jinfo
 
     #noinspection PyUnusedLocal
@@ -1082,13 +1086,15 @@ class Provider(AProvider):
             if "userinfo_signed_response_alg" in _cinfo:
                 jinfo = self.signed_userinfo(_cinfo, info, session)
                 content_type = "application/jwt"
+                cty = "JWT"
             else:
                 jinfo = info.to_json()
                 content_type = "application/json"
+                cty = ""
 
             if "userinfo_encrypted_response_alg" in _cinfo:
                 jinfo = self.encrypt(jinfo, _cinfo, session["client_id"],
-                                     "userinfo")
+                                     "userinfo", cty)
                 content_type = "application/jwt"
 
         except JWEException:
@@ -1549,9 +1555,14 @@ class Provider(AProvider):
         _provider_info["scopes_supported"] = _scopes
 
         sign_algs = jws.SIGNER_ALGS.keys()
-        for typ in ["userinfo", "id_token", "request_object",
-                    "token_endpoint_auth"]:
+        for typ in ["userinfo", "id_token", "request_object"]:
             _provider_info["%s_signing_alg_values_supported" % typ] = sign_algs
+
+        # Remove 'none' for token_endpoint_auth_signing_alg_values_supported since it is not allowed
+        sign_algs = sign_algs[:]
+        sign_algs.remove('none')
+        _provider_info[
+            "token_endpoint_auth_signing_alg_values_supported"] = sign_algs
 
         algs = jwe.SUPPORTED["alg"]
         for typ in ["userinfo", "id_token", "request_object"]:
