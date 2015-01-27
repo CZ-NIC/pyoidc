@@ -13,6 +13,7 @@ from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
 from urlparse import parse_qs
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
+from oic.utils import shelve_wrapper
 from oic.utils.authn.javascript_login import JavascriptFormMako
 
 from oic.utils.authn.client import verify_client
@@ -391,7 +392,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Client data base
-    cdb = shelve.open("client_db", writeback=True)
+    cdb = shelve_wrapper.open("client_db", writeback=True)
 
     sys.path.insert(0, ".")
     config = importlib.import_module(args.config)
