@@ -363,15 +363,17 @@ class Client(oauth2.Client):
                                                             **kwargs)
 
         if request_param:
-            try:
-                alg = self.behaviour["request_object_signing_alg"]
-            except KeyError:
-                alg = None
+            if "algorithm" in kwargs:  # Trumps everything
+                alg = kwargs["algorithm"]
             else:
-                if "algorithm" not in kwargs:
+                try:
+                    alg = self.behaviour["request_object_signing_alg"]
+                except KeyError:
+                    alg = None
+                else:
                     kwargs["algorithm"] = alg
 
-            if "keys" not in kwargs and alg:
+            if "keys" not in kwargs and alg and alg != "none":
                 _kty = jws.alg2keytype(alg)
                 try:
                     kwargs["keys"] = self.keyjar.get_signing_key(
