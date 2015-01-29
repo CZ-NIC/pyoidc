@@ -101,6 +101,10 @@ def swap_dict(dic):
     return dict([(val, key) for key, val in dic.items()])
 
 
+def jwt_header(txt):
+    return json.loads(b64d(str(txt.split(".")[0])))
+
+
 class Message(object):
     c_param = {}
     c_default = {}
@@ -109,6 +113,7 @@ class Message(object):
     def __init__(self, **kwargs):
         self._dict = self.c_default.copy()
         self.lax = False
+        self.jwt_header = None
         self.from_dict(kwargs)
 
     def type(self):
@@ -456,7 +461,7 @@ class Message(object):
         elif key is None:
             key = {}
 
-        header = json.loads(b64d(str(txt.split(".")[0])))
+        header = jwt_header(txt)
         logger.debug("header: %s" % (header,))
 
         try:
@@ -536,6 +541,7 @@ class Message(object):
             except Exception:
                 raise
 
+        self.jwt_header = header
         return self.from_dict(jso)
 
     def __str__(self):
