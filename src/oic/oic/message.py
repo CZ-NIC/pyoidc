@@ -319,7 +319,6 @@ class AuthorizationResponse(message.AuthorizationResponse,
                     raise CHashError("Failed to verify code hash", idt)
 
             self["id_token"] = idt
-
         return super(AuthorizationResponse, self).verify(**kwargs)
 
 
@@ -392,10 +391,11 @@ class AuthorizationRequest(message.AuthorizationRequest):
 
                 # replace the JWT with the parsed and verified instance
                 self["request"] = oidr
-        if "id_token" in self:
-            if isinstance(self["id_token"], basestring):
-                idt = IdToken().from_jwt(str(self["id_token"]), **args)
-                self["id_token"] = idt
+
+        if "id_token_hint" in self:
+            if isinstance(self["id_token_hint"], basestring):
+                idt = IdToken().from_jwt(str(self["id_token_hint"]), **args)
+                self["id_token_hint"] = idt
 
         if "response_type" not in self:
             raise MissingRequiredAttribute("response_type missing", self)
