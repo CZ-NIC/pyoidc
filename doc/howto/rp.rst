@@ -29,7 +29,9 @@ Client class because it will provide interfaces to all of them.
 So lets start with instantiating a client::
 
     from oic.oic import Client
-    c = Client()
+    import CLIENT_AUTHN_METHOD
+
+    c = Client(client_authn_method=CLIENT_AUTHN_METHOD)
 
 The first choices is really not yours it's the OpenID Connect Provider (OP)
 that has to decide on whether it supports dynamic provider information
@@ -236,11 +238,11 @@ Given you have all that, you now can send the request::
         "response_type": "code",
         "scope": ["openid"],
         "nonce": session["nonce"],
-        "redirect_uri": client.redirect_uris[0]
+        "redirect_uri": client.redirect_uris[0],
+        "state": session["state"]
     }
 
-    auth_req = self.client.construct_AuthorizationRequest(state=session["state"],
-                                                          request_args=request_args)
+    auth_req = self.client.construct_AuthorizationRequest(request_args=request_args)
     login_url = client.authorization_endpoint + "?" + auth_req.to_urlencoded()
 
     return Redirect(login_url)
