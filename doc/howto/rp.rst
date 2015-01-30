@@ -338,17 +338,17 @@ So::
 
     seession["state"] = rndstr()
     session["nonce"] = rndstr()
-    args = {
+    request_args = {
         "client_id": client.client_id,
         "response_type": ["id_token", "token"],
         "scope": ["openid"],
+        "state": session["state"],
         "nonce": session["nonce"],
         "redirect_uri": client.redirect_uris[0]
     }
 
 
-    auth_req = self.client.construct_AuthorizationRequest(state=session["state"],
-                                                          request_args=request_args)
+    auth_req = self.client.construct_AuthorizationRequest(request_args=request_args)
     login_url = client.authorization_endpoint + "?" + auth_req.to_urlencoded()
 
     return Redirect(login_url)
