@@ -791,7 +791,7 @@ class Provider(AProvider):
         return _jwe.encrypt(keys, context="public")
 
     def sign_encrypt_id_token(self, sinfo, client_info, areq, code=None,
-                              access_token=None, user_info=None, auth_time=0):
+                              access_token=None, user_info=None):
         """
         Signed and or encrypt a IDToken
 
@@ -812,11 +812,11 @@ class Provider(AProvider):
             except KeyError:
                 alg = "none"
 
-        id_token = self.id_token_as_signed_jwt(sinfo, alg=alg,
-                                               code=code,
-                                               access_token=access_token,
-                                               user_info=user_info,
-                                               auth_time=auth_time)
+        _authn_event = sinfo["authn_event"]
+        id_token = self.id_token_as_signed_jwt(
+            sinfo, loa=_authn_event.authn_info, alg=alg, code=code,
+            access_token=access_token, user_info=user_info,
+            auth_time=_authn_event.authn_time)
 
         # Then encrypt
         if "id_token_encrypted_response_alg" in client_info:
@@ -862,10 +862,10 @@ class Provider(AProvider):
 
         if "openid" in _info["scope"]:
             userinfo = self.userinfo_in_id_token_claims(_info)
+            _authn_event = _info["authn_event"]
             try:
                 _idtoken = self.sign_encrypt_id_token(
-                    _info, client_info, req, user_info=userinfo,
-                    auth_time=_info["authn_event"].authn_time)
+                    _info, client_info, req, user_info=userinfo)
             except (JWEException, NoSuitableSigningKeys) as err:
                 logger.warning(str(err))
                 return self._error(error="access_denied",
@@ -1752,8 +1752,7 @@ class Provider(AProvider):
 
                 # or 'code id_token'
                 id_token = self.sign_encrypt_id_token(
-                    _sinfo, client_info, areq, user_info=user_info,
-                    auth_time=_sinfo["authn_event"].authn_time, **hargs)
+                    _sinfo, client_info, areq, user_info=user_info, **hargs)
 
                 aresp["id_token"] = id_token
                 _sinfo["id_token"] = id_token
