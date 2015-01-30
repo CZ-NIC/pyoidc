@@ -19,7 +19,7 @@ consists of a sequence of request-responses, namely these:
 * Issuer discovery using WebFinger
 * Provider Info discovery
 * Client registration
-* Authorization Request
+* Authentication Request
 * Access Token Request
 * Userinfo Request
 
@@ -276,7 +276,7 @@ You can parse this response by doing::
 
 *aresp* is an instance of an AuthorizationResponse or an ErrorResponse.
 The later if an error was return from the OP.
-Among other things you should get back in the authorization response is
+Among other things you should get back in the authentication response is
 the same state value as you used
 when sending the request. If you used the response_type='code' then you
 should also receive a grant code which you then can use to get the access
@@ -296,7 +296,7 @@ token::
                                           )
 
 
-'scope' has to be the same as in the authorization request.
+'scope' has to be the same as in the authentication request.
 
 If you don't specify a specific client authentication method, then
 *client_secret_basic* is used.
@@ -312,7 +312,7 @@ in the client instance with *state* as the key for future use.
 One if the items in the response will be the ID Token which contains information
 about the authentication.
 One parameter (or claim as its also called) is the nonce you provide with
-the authorization request.
+the authentication request.
 
 And then the final request, the user info request::
 
@@ -377,4 +377,4 @@ information.
 Using Implicit Flow instead of Authorization Code Flow will save you a
 round trip but at the same time you will get an access token and no
 refresh_token. So in order to get a new access token you have to perform another
-authorization request.
+authentication request.
