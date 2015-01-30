@@ -243,7 +243,7 @@ Given you have all that, you now can send the request::
     }
 
     auth_req = self.client.construct_AuthorizationRequest(request_args=request_args)
-    login_url = client.authorization_endpoint + "?" + auth_req.to_urlencoded()
+    login_url = auth_req.request(client.authorization_endpoint)
 
     return Redirect(login_url)
 
@@ -349,7 +349,7 @@ So::
 
 
     auth_req = self.client.construct_AuthorizationRequest(request_args=request_args)
-    login_url = client.authorization_endpoint + "?" + auth_req.to_urlencoded()
+    login_url = auth_req.request(client.authorization_endpoint)
 
     return Redirect(login_url)
 
