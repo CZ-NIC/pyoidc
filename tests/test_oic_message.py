@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from jwkest import BadSignature
 from jwkest.jwk import SYMKey
+from oic.oauth2 import WrongSigningAlgorithm
 
 __author__ = 'rohe0002'
 
@@ -319,5 +320,25 @@ def test_faulty_idtoken():
         raise
 
 
+def test_wrong_alg():
+    idval = {'nonce': 'KUEYfRM2VzKDaaKD', 'sub': 'EndUserSubject',
+             'iss': 'https://alpha.cloud.nds.rub.de', 'exp': 1420823073,
+             'iat': 1420822473, 'aud': 'TestClient'}
+    idts = IdToken(**idval)
+    key = SYMKey(key="TestPassword")
+    _signed_jwt = idts.to_jwt(key=[key], algorithm="HS256")
+
+    _info = {"access_token": "accessTok", "id_token": _signed_jwt,
+             "token_type": "Bearer", "expires_in": 3600}
+
+    at = AccessTokenResponse(**_info)
+    try:
+        at.verify(key=[key], algs={"sign": "HS512"})
+    except WrongSigningAlgorithm:
+        pass
+    else:
+        raise
+
+
 if __name__ == "__main__":
-    test_faulty_idtoken()
+    test_wrong_alg()
