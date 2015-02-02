@@ -64,6 +64,15 @@ class ParameterError(MessageException):
 class NotAllowedValue(MessageException):
     pass
 
+
+class WrongSigningAlgorithm(MessageException):
+    pass
+
+
+class WrongEncryptionAlgorithm(MessageException):
+    pass
+
+
 ERRTXT = "On '%s': %s"
 
 
@@ -454,6 +463,8 @@ class Message(object):
         :param key: keys that might be used to decrypt and/or verify the
             signature of the JWT
         :param verify: Whether the signature should be verified or not
+        :param keyjar: A KeyJar that might contain the necessary key.
+        :param kwargs: Extra key word arguments
         :return: A class instance
         """
         if key is None and keyjar is not None:
@@ -476,6 +487,23 @@ class Message(object):
 
         jso = None
         if htype == "JWE" or ("alg" in header and "enc" in header):  # encrypted
+            try:
+                assert kwargs["algs"]["alg"] == header["alg"]
+            except AssertionError:
+                raise WrongEncryptionAlgorithm("%s != %s" % (
+                    kwargs["algs"]["alg"], header["alg"]))
+            except KeyError:
+                pass
+            else:
+                try:
+                    assert kwargs["algs"]["enc"] == header["enc"]
+                except AssertionError:
+                    raise WrongEncryptionAlgorithm("%s != %s" % (
+                        kwargs["algs"]["enc"], header["enc"]))
+                except KeyError:
+                    pass
+
+
             if keyjar:
                 dkeys = keyjar.get_decrypt_key(owner="")
             else:
@@ -490,7 +518,17 @@ class Message(object):
         _jws = JWS()
         if not jso:
             try:
-                jso = jwkest.unpack(txt)[1]
+                p = jwkest.unpack(txt)
+                header = p[0]
+                try:
+                    assert kwargs["algs"]["sign"] == header["alg"]
+                except AssertionError:
+                    raise WrongSigningAlgorithm("%s != %s" % (
+                        kwargs["algs"]["sign"], header["alg"]))
+                except KeyError:
+                    pass
+
+                jso = p[1]
                 if isinstance(jso, basestring):
                     jso = json.loads(jso)
 
