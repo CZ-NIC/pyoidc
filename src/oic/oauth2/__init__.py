@@ -89,6 +89,10 @@ class OtherError(PyoidcError):
     pass
 
 
+class AuthnToOld(PyoidcError):
+    pass
+
+
 def rndstr(size=16):
     """
     Returns a string of random ascii characters or digits
@@ -821,6 +825,7 @@ class Client(PBase):
             elif resp.only_extras():
                 resp = None
             else:
+                kwargs["client_id"] = self.client_id
                 if "key" not in kwargs and "keyjar" not in kwargs:
                     kwargs["keyjar"] = self.keyjar
                 verf = resp.verify(**kwargs)
@@ -981,9 +986,14 @@ class Client(PBase):
         else:
             http_args.update(http_args)
 
+        try:
+            algs = kwargs["algs"]
+        except:
+            algs = {}
+
         resp = self.request_and_return(url, response_cls, method, body,
                                        body_type, state=state,
-                                       http_args=http_args)
+                                       http_args=http_args, algs=algs)
 
         if isinstance(resp, Message):
             if resp.type() in RESPONSE2ERROR["AuthorizationRequest"]:
