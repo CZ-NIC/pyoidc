@@ -239,7 +239,7 @@ class AccessTokenResponse(message.AccessTokenResponse):
         if "id_token" in self:
             # Try to decode the JWT, checks the signature
             args = {}
-            for arg in ["key", "keyjar"]:
+            for arg in ["key", "keyjar", "algs"]:
                 try:
                     args[arg] = kwargs[arg]
                 except KeyError:
@@ -283,7 +283,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
         if "id_token" in self:
             # Try to decode the JWT, checks the signature
             args = {}
-            for arg in ["key", "keyjar"]:
+            for arg in ["key", "keyjar", "algs"]:
                 try:
                     args[arg] = kwargs[arg]
                 except KeyError:
@@ -614,7 +614,7 @@ class IdToken(OpenIDSchema):
                     raise NotForMe("", self)
 
             if len(self["aud"]) > 1:  # Then azr has to be present and be one of
-                                      # the aud ∫values
+                                      # the aud values
                 try:
                     assert "azr" in self
                 except AssertionError:

@@ -382,7 +382,7 @@ class Consumer(Client):
             _log_info("Expect Access Token Response")
             atr = self.parse_response(AccessTokenResponse, info=query,
                                       sformat="urlencoded",
-                                      keyjar=self.keyjar)
+                                      keyjar=self.keyjar, **kwargs)
             if atr.type() == "ErrorResponse":
                 raise TokenError(atr["error"], atr)
 

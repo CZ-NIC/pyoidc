@@ -60,7 +60,9 @@ from oic.utils.http_util import Unauthorized
 from oic.oauth2 import MissingRequiredAttribute, CapabilitiesMisMatch
 from oic.oauth2 import rndstr
 
-from oic.oic import Server, PREFERENCE2PROVIDER
+from oic.oic import Server
+from oic.oic import PREFERENCE2PROVIDER
+from oic.oic import claims_match
 
 from oic.exception import *
 from jwkest.jwe import JWEException
@@ -948,21 +950,6 @@ class Provider(AProvider):
         else:
             return self._refresh_access_token_endpoint(req, **kwargs)
 
-    @staticmethod
-    def claims_match(value, claimspec):
-        if claimspec is None:
-            return True
-
-        for key, val in claimspec.items():
-            if key == "value":
-                if value != val:
-                    return False
-            elif key == "values":
-                if value not in val:
-                    return False
-                    # Whether it's essential or not doesn't change anything here
-        return True
-
     def _collect_user_info(self, session, userinfo_claims=None):
         """
         Collect information about a user.
@@ -1000,7 +987,7 @@ class Provider(AProvider):
         info = self.userinfo(session["authn_event"].uid, userinfo_claims)
 
         if "sub" in userinfo_claims:
-            if not self.claims_match(session["sub"], userinfo_claims["sub"]):
+            if not claims_match(session["sub"], userinfo_claims["sub"]):
                 raise FailedAuthentication("Unmatched sub claim")
 
         info["sub"] = session["sub"]
