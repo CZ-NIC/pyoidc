@@ -436,7 +436,7 @@ class Client(PBase):
         :param client_authn_method: Methods that this client can use to
             authenticate itself. It's a dictionary with method names as
             keys and method classes as values.
-        :param verify_ssl: Whether the SSL certificate should be verfied.
+        :param verify_ssl: Whether the SSL certificate should be verified.
         :return: Client instance
         """
 
@@ -469,6 +469,7 @@ class Client(PBase):
         self.provider_info = {}
         self._c_secret = None
         self.kid = {"sig": {}, "enc": {}}
+        self.authz_req = None
 
     def get_client_secret(self):
         return self._c_secret
@@ -980,6 +981,11 @@ class Client(PBase):
         url, body, ht_args, csi = self.request_info(request, method,
                                                     request_args, extra_args,
                                                     **kwargs)
+
+        try:
+            self.authz_req[request_args["state"]] = csi
+        except TypeError:
+            pass
 
         if http_args is None:
             http_args = ht_args

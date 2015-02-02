@@ -411,6 +411,8 @@ def test_complete_auth_token_idtoken():
     consumer.registration_response = {
         "id_token_signed_response_alg": "RS256",
     }
+    consumer.provider_info = {"issuer": "http://localhost:8088/"}  # abs min
+    consumer.authz_req = {}  # Store AuthzReq with state as key
 
     args = {
         "client_id": consumer.client_id,
@@ -420,7 +422,7 @@ def test_complete_auth_token_idtoken():
 
     result = consumer.do_authorization_request(state=_state,
                                                request_args=args)
-    consumer._backup("state0")
+    #consumer._backup("state0")
 
     assert result.status_code == 302
     #assert result.location.startswith(consumer.redirect_uri[0])
@@ -430,17 +432,18 @@ def test_complete_auth_token_idtoken():
                                 algs=consumer.sign_enc_algs("id_token"))
     print part
     auth = part[0]
-    acc = part[1]
+    atr = part[1]
     assert part[2] is None
 
-    #consumer.verify_id_token(acc[""])
+
     #print auth.dictionary()
     #print acc.dictionary()
     assert auth is None
-    assert acc.type() == "AccessTokenResponse"
-    assert _eq(acc.keys(), ['access_token', 'id_token', 'expires_in',
+    assert atr.type() == "AccessTokenResponse"
+    assert _eq(atr.keys(), ['access_token', 'id_token', 'expires_in',
                             'token_type', 'state', 'scope'])
 
+    consumer.verify_id_token(atr["id_token"], consumer.authz_req[atr["state"]])
 
 def test_userinfo():
     consumer = Consumer(SessionDB(SERVER_INFO["issuer"]), CONFIG,
