@@ -38,6 +38,8 @@ from oic.oic.message import AuthorizationErrorResponse
 from oic import oauth2
 
 from oic.oauth2 import MissingRequiredAttribute
+from oic.oauth2 import OtherError
+from oic.oauth2 import AuthnToOld
 from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import rndstr
 from oic.oauth2.consumer import ConfigurationError
@@ -231,6 +233,27 @@ PROVIDER_DEFAULT = {
     "id_token_signed_response_alg": "RS256",
 }
 
+PARAMMAP = {
+    "sign": "%s_signed_response_alg",
+    "alg": "%s_encrypted_response_alg",
+    "enc": "%s_encrypted_response_enc",
+}
+
+
+def claims_match(value, claimspec):
+    if claimspec is None:
+        return True
+
+    for key, val in claimspec.items():
+        if key == "value":
+            if value != val:
+                return False
+        elif key == "values":
+            if value not in val:
+                return False
+                # Whether it's essential or not doesn't change anything here
+    return True
+
 
 # noinspection PyMethodOverriding
 class Client(oauth2.Client):
@@ -273,6 +296,7 @@ class Client(oauth2.Client):
         self.post_logout_redirect_uris = []
         self.registration_expires = 0
         self.registration_access_token = None
+        self.id_token_max_age = 0
 
         # Default key by kid for different key types
         # For instance {"RSA":"abc"}
@@ -525,11 +549,14 @@ class Client(oauth2.Client):
                                  http_args=None,
                                  response_cls=AuthorizationResponse):
 
+        algs = self.sign_enc_algs("id_token")
+
         return oauth2.Client.do_authorization_request(self, request, state,
                                                       body_type, method,
                                                       request_args,
                                                       extra_args, http_args,
-                                                      response_cls)
+                                                      response_cls,
+                                                      algs=algs)
 
     def do_access_token_request(self, request=AccessTokenRequest,
                                 scope="", state="", body_type="json",
@@ -1126,6 +1153,89 @@ class Client(oauth2.Client):
     def discover(self, principal):
         #subject, host = self.normalization(principal)
         return self.wf.discovery_query(principal)
+
+    def sign_enc_algs(self, typ):
+        resp = {}
+        for key, val in PARAMMAP.items():
+            try:
+                resp[key] = self.registration_response[val % typ]
+            except (TypeError, KeyError):
+                if key == "sign":
+                    resp[key] = DEF_SIGN_ALG["id_token"]
+        return resp
+
+    def _verify_id_token(self, id_token, nonce="", acr_values=None, auth_time=0,
+                        max_age=0):
+        """
+        If the JWT alg Header Parameter uses a MAC based algorithm s uch as
+        HS256, HS384, or HS512, the octets of the UTF-8 representation of the
+        client_secret corresponding to the client_id contained in the aud
+        (audience) Claim are used as the key to validate the signature. For MAC
+        based algorithms, the behavior is unspecified if the aud is
+        multi-valued or if an azp value is present that is different than the
+        aud value.
+
+        :param id_token: The ID Token tp check
+        :param nonce: The nonce specified in the authorization request
+        :param acrs: Asked for acr values
+        :param auth_time: An auth_time claim
+        :param max_age: Max age of authentication
+        """
+
+        try:
+            assert self.provider_info["issuer"] == id_token["iss"]
+        except AssertionError:
+            raise OtherError("issuer != iss")
+
+        _now = time_util.utc_now()
+
+        try:
+            assert _now < id_token["exp"]
+        except AssertionError:
+            raise OtherError("Passed best before date")
+
+        if self.id_token_max_age:
+            try:
+                assert _now < id_token["iat"] + self.id_token_max_age
+            except AssertionError:
+                raise OtherError("I think this ID token is to old")
+
+        if nonce:
+            try:
+                assert nonce == id_token["nonce"]
+            except AssertionError:
+                raise OtherError("nonce mismatch")
+
+        if acr_values:
+            try:
+                assert id_token["acr"] in acr_values
+            except AssertionError:
+                raise OtherError("acr mismatch")
+
+        if max_age:
+            try:
+                assert _now < id_token["auth_time"] + max_age
+            except AssertionError:
+                raise AuthnToOld("To old authentication")
+
+        if auth_time:
+            if not claims_match(id_token["auth_time"], {"auth_time": auth_time}):
+                raise AuthnToOld("To old authentication")
+
+    def verify_id_token(self, id_token, authn_req):
+        kwa = {}
+        try:
+            kwa["nonce"] = authn_req["nonce"]
+        except KeyError:
+            pass
+
+        for param in ["acr_values", "max_age"]:
+            try:
+                kwa[param] = authn_req[param]
+            except KeyError:
+                pass
+
+        self._verify_id_token(id_token, **kwa)
 
 
 # noinspection PyMethodOverriding
