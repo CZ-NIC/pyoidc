@@ -290,7 +290,7 @@ class TestOICConsumer():
         mfos.keyjar = SRVKEYS
 
         self.consumer.http_request = mfos.http_request
-        self.consumer.config["response_type"] = "id_token"
+        self.consumer.config["response_type"] = ["token"]
         _state = "statxxx"
         args = {
             "client_id": self.consumer.client_id,
@@ -408,6 +408,9 @@ def test_complete_auth_token_idtoken():
     consumer.client_secret = "hemlig"
     consumer.secret_type = "basic"
     consumer.config["response_type"] = ["id_token", "token"]
+    consumer.registration_response = {
+        "id_token_signed_response_alg": "RS256",
+    }
 
     args = {
         "client_id": consumer.client_id,
@@ -423,12 +426,14 @@ def test_complete_auth_token_idtoken():
     #assert result.location.startswith(consumer.redirect_uri[0])
     _, query = result.headers["location"].split("?")
     print query
-    part = consumer.parse_authz(query=query)
+    part = consumer.parse_authz(query=query,
+                                algs=consumer.sign_enc_algs("id_token"))
     print part
     auth = part[0]
     acc = part[1]
     assert part[2] is None
 
+    consumer.verify_id_token(acc[""])
     #print auth.dictionary()
     #print acc.dictionary()
     assert auth is None
@@ -696,7 +701,8 @@ def test_faulty_idtoken_from_accesstoken_endpoint():
 
 
 if __name__ == "__main__":
-    t = TestOICConsumer()
-    t.setup_class()
-    t.test_parse_authz_implicit()
+    test_complete_auth_token_idtoken()
+    # t = TestOICConsumer()
+    # t.setup_class()
+    # t.test_parse_authz_implicit()
     # test_faulty_idtoken_from_accesstoken_endpoint()
