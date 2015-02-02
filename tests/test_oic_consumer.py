@@ -433,7 +433,7 @@ def test_complete_auth_token_idtoken():
     acc = part[1]
     assert part[2] is None
 
-    consumer.verify_id_token(acc[""])
+    #consumer.verify_id_token(acc[""])
     #print auth.dictionary()
     #print acc.dictionary()
     assert auth is None
