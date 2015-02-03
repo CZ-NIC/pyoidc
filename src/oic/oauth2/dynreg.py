@@ -448,6 +448,15 @@ class Client(oauth2.Client):
 
         return self.construct_request(request, request_args, extra_args)
 
+    def construct_ClientUpdateRequest(self, request=ClientUpdateRequest,
+                                      request_args=None, extra_args=None,
+                                      **kwargs):
+
+        if request_args is None:
+            request_args = {}
+
+        return self.construct_request(request, request_args, extra_args)
+
     def do_client_registration(self, request=RegistrationRequest,
                                body_type="", method="GET",
                                request_args=None, extra_args=None,
