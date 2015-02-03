@@ -969,6 +969,10 @@ class Provider(AProvider):
                     uic.update(claims)
                 except KeyError:
                     pass
+            # Get only keys allowed by user and update the dict if such info is stored in session
+            perm_set = session.get('permission')
+            if perm_set:
+                uic = {key: uic[key] for key in uic if key in perm_set}
 
             if "oidreq" in session:
                 uic = self.server.update_claims(session, "oidreq", "userinfo",
@@ -1661,7 +1665,7 @@ class Provider(AProvider):
 
         # Do the authorization
         try:
-            permission = self.authz(user)
+            permission = self.authz(user, client_id=areq['client_id'])
             self.sdb.update(sid, "permission", permission)
         except Exception:
             raise
