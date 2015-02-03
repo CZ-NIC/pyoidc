@@ -990,7 +990,7 @@ class Client(PBase):
         if http_args is None:
             http_args = ht_args
         else:
-            http_args.update(http_args)
+            http_args.update(ht_args)
 
         try:
             algs = kwargs["algs"]
