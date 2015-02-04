@@ -887,8 +887,8 @@ class Client(oauth2.Client):
         r = self.http_request(url)
         if r.status_code == 200:
             pcr = response_cls().from_json(r.text)
-        elif r.status_code == 302:
-            while r.status_code == 302:
+        elif r.status_code == 302 or r.status_code == 301:
+            while r.status_code == 302 or r.status_code == 301:
                 r = self.http_request(r.headers["location"])
                 if r.status_code == 200:
                     pcr = response_cls().from_json(r.text)
