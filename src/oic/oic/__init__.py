@@ -1423,7 +1423,7 @@ class Server(oauth2.Server):
             try:
                 inawhile = {"seconds": itc["max_age"]}
             except KeyError:
-                inawhile = {}
+                pass
             for key, val in itc.items():
                 if key == "auth_time":
                     extra["auth_time"] = auth_time
