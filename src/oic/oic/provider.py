@@ -661,7 +661,13 @@ class Provider(AProvider):
             return areq
         logger.debug("AuthzRequest+oidc_request: %s" % (areq.to_dict(),))
 
-        cinfo = self.cdb[areq["client_id"]]
+        _cid = areq["client_id"]
+        cinfo = self.cdb[_cid]
+        if _cid not in self.keyjar.issuer_keys:
+            if "jwks_uri" in cinfo:
+                self.keyjar.issuer_keys[_cid] = []
+                self.keyjar.add(_cid, cinfo["jwks_uri"])
+
         req_user = self.required_user(areq)
         if req_user:
             try:
