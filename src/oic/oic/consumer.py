@@ -26,6 +26,7 @@ from oic.oauth2.consumer import TokenError
 from oic.oauth2.consumer import AuthzError
 from oic.oauth2.consumer import UnknownState
 
+from oic.oauth2.message import ErrorResponse
 
 logger = logging.getLogger(__name__)
 
@@ -319,9 +320,9 @@ class Consumer(Client):
                                     info=query,
                                     sformat="urlencoded",
                                     keyjar=self.keyjar)
-        if aresp.type() == "ErrorResponse":
+        if isinstance(aresp, ErrorResponse):
             _log_info("ErrorResponse: %s" % aresp)
-            raise AuthzError(aresp.error, aresp)
+            raise AuthzError(aresp['error'], aresp)
 
         _log_info("Aresp: %s" % aresp)
 
