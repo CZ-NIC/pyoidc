@@ -43,7 +43,7 @@ else:
 
 setup(
     name="oic",
-    version="0.6.1",
+    version="0.7.0",
     description="Python implementation of OAuth2 and OpenID Connect",
     author="Roland Hedberg",
     author_email="roland.hedberg@adm.umu.se",
@@ -61,8 +61,7 @@ setup(
     },
     install_requires=[
         "requests", "pycrypto>=2.6.1", "pyjwkest>=0.5.1",
-        "mako", "beaker", "alabaster", "pyOpenSSL",
-        "python-ldap"] + extra_install_requires,
+        "mako", "beaker", "alabaster", "pyOpenSSL"] + extra_install_requires,
     tests_require=['pytest', 'httpretty'],
     zip_safe=False,
     cmdclass={'test': PyTest},
