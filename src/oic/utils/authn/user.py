@@ -79,7 +79,7 @@ class UserAuthnMethod(CookieDealer):
                 val = None
 
             if val is None:
-                return None
+                return None, 0
             else:
                 uid, _ts, typ = val
 
@@ -97,7 +97,7 @@ class UserAuthnMethod(CookieDealer):
                         raise ToOld("%d > (%d + %d)" % (
                             _now, int(_ts), int(kwargs["max_age"])))
 
-            return {"uid": uid}
+            return {"uid": uid}, _ts
 
     def generate_return_url(self, return_to, uid, path=""):
         """

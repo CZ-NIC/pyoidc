@@ -693,9 +693,8 @@ class Provider(AProvider):
                 _auth_info = kwargs["authn"]
             except KeyError:
                 _auth_info = ""
-            identity = authn.authenticated_as(cookie,
-                                              authorization=_auth_info,
-                                              max_age=self.max_age(areq))
+            identity, _ts = authn.authenticated_as(
+                cookie, authorization=_auth_info, max_age=self.max_age(areq))
         except (NoSuchAuthentication, ToOld, TamperAllert):
             identity = None
 
@@ -741,7 +740,8 @@ class Provider(AProvider):
                     else:
                         return authn(**authn_args)
 
-        authn_event = AuthnEvent(identity["uid"], authn_info=authn_class_ref)
+        authn_event = AuthnEvent(identity["uid"], authn_info=authn_class_ref,
+                                 time_stamp=_ts)
 
         logger.debug("- authenticated -")
         logger.debug("AREQ keys: %s" % areq.keys())

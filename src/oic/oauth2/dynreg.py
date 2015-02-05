@@ -574,7 +574,7 @@ class Client(oauth2.Client):
                         "provider info issuer mismatch '%s' != '%s'" % (
                             _issuer, _pcr_issuer))
 
-            self.provider_info[_pcr_issuer] = pcr
+            self.provider_info = pcr
         else:
             _pcr_issuer = issuer
 
