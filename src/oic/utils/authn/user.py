@@ -70,7 +70,7 @@ class UserAuthnMethod(CookieDealer):
 
     def authenticated_as(self, cookie=None, **kwargs):
         if cookie is None:
-            return None
+            return None, 0
         else:
             logger.debug("kwargs: %s" % kwargs)
 

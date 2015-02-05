@@ -477,7 +477,7 @@ class Provider(AProvider):
         try:
             redirect_uri = areq["post_logout_redirect_uri"]
             authn, acr = self.pick_auth(areq)
-            uid = authn.authenticated_as(cookie)["uid"]
+            uid, _ts = authn.authenticated_as(cookie)["uid"]
             client_info = self.cdb[self.sdb.getClient_id(uid)]
             if redirect_uri in client_info["post_logout_redirect_uris"]:
                 return redirect_uri
@@ -490,7 +490,7 @@ class Provider(AProvider):
     def is_session_revoked(self, request="", cookie=None):
         areq = urlparse.parse_qs(request)
         authn, acr = self.pick_auth(areq)
-        identity = authn.authenticated_as(cookie)
+        identity, _ts = authn.authenticated_as(cookie)
         return self.sdb.is_revoke_uid(identity["uid"])
 
     def let_user_verify_logout(self, uid, esr, cookie, redirect_uri):
@@ -532,7 +532,7 @@ class Provider(AProvider):
                                                      verify=True)
             uid = id_token_hint["sub"]
         else:
-            identity = authn.authenticated_as(cookie)
+            identity, _ts = authn.authenticated_as(cookie)
             try:
                 uid = identity["uid"]
             except KeyError:

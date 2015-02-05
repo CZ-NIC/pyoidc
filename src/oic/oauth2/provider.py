@@ -466,9 +466,10 @@ class Provider(object):
             return self._redirect_authz_error("invalid_request", redirect_uri)
 
         try:
-            identity = _authn.authenticated_as(**a_args)
+            identity, ts = _authn.authenticated_as(**a_args)
         except (NoSuchAuthentication, ToOld, TamperAllert):
             identity = None
+            ts = 0
 
         authn_args = {"query": request}
 
@@ -490,7 +491,7 @@ class Provider(object):
                 return _authn(**authn_args)
         else:
             user = identity["uid"]
-            aevent = AuthnEvent(user, authn_info=acr)
+            aevent = AuthnEvent(user, authn_info=acr, time_stamp=ts)
 
         # If I get this far the person is already authenticated
         logger.debug("- authenticated -")
