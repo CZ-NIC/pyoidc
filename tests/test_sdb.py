@@ -1,4 +1,4 @@
-from oic.utils.time_util import utc_time_sans_frac
+from oic.utils.time_util import utc_time_sans_frac, utc_now
 
 __author__ = 'rohe0002'
 
@@ -311,7 +311,7 @@ def test_revoke_token():
 
 def test_sub_to_authn_event():
     sdb = SessionDB(BASE_URL)
-    ae2 = AuthnEvent("sub")
+    ae2 = AuthnEvent("sub", time_stamp=utc_now())
     sid = sdb.create_authz_session(ae2, AREQ)
     sub = sdb.do_sub(sid)
 
