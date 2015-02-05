@@ -14,7 +14,7 @@ import base64
 import logging
 
 from oic.oauth2 import rndstr
-from oic.utils.time_util import utc_time_sans_frac
+from oic.utils.time_util import utc_time_sans_frac, utc_now
 
 from Crypto.Cipher import AES
 
@@ -137,7 +137,7 @@ class AuthnEvent(object):
         :return:
         """
         self.uid = uid
-        self.authn_time = int(time_stamp)
+        self.authn_time = int(time_stamp) or utc_now()
         self.valid_until = self.authn_time + int(valid)
         self.authn_info = authn_info
 
