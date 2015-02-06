@@ -52,7 +52,7 @@ class CDB(object):
     def items(self):
         return self.cdb.items()
 
-    def create(self, redirect_uris=None, policy_uri="", logo_uri=""):
+    def create(self, redirect_uris=None, policy_uri="", logo_uri="", jwks_uri=""):
         if redirect_uris is None:
             print 'Enter redirect_uris one at the time, end with a blank line: '
             redirect_uris = []
@@ -68,7 +68,7 @@ class CDB(object):
             logo_uri = raw_input("Enter logo_uri or just return: ")
 
         client_id = rndstr(12)
-        while client_id in self.cdb:
+        while client_id in self.cdb.keys():
             client_id = rndstr(12)
 
         client_secret = secret(self.seed, client_id)
@@ -83,6 +83,8 @@ class CDB(object):
             info["policy_uri"] = policy_uri
         if logo_uri:
             info["logo_uri"] = logo_uri
+        if jwks_uri:
+            info['jwks_uri'] = jwks_uri
 
         self.cdb[client_id] = info
 
