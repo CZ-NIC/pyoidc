@@ -747,7 +747,7 @@ class Provider(AProvider):
         logger.debug("AREQ keys: %s" % areq.keys())
 
         sid = self.setup_session(areq, authn_event, cinfo)
-        return self.authz_part2(user, areq, sid)
+        return self.authz_part2(user, areq, sid, cookie=cookie)
 
     def userinfo_in_id_token_claims(self, session):
         """
@@ -1773,8 +1773,16 @@ class Provider(AProvider):
             except AssertionError:
                 return self._error("invalid_request", "Missing nonce value")
 
-        # so everything went well should set a SSO cookie
-        headers = [self.cookie_func(user, typ="sso", ttl=self.sso_ttl)]
+        headers = []
+        try:
+            _kaka = kwargs["cookie"]
+        except KeyError:
+            pass
+        else:
+            if not _kaka:
+                # so everything went well should set a SSO cookie
+                headers.append(self.cookie_func(user, typ="sso",
+                                                ttl=self.sso_ttl))
 
         # Now about the response_mode. Should not be set if it's obvious
         # from the response_type. Knows about 'query', 'fragment' and
