@@ -336,9 +336,9 @@ So::
     from oic.oauth2 import rndstr
     from oic.utils.http_util import Redirect
 
-    seession["state"] = rndstr()
+    session["state"] = rndstr()
     session["nonce"] = rndstr()
-    request_args = {
+    args = {
         "client_id": client.client_id,
         "response_type": ["id_token", "token"],
         "scope": ["openid"],
@@ -348,7 +348,7 @@ So::
     }
 
 
-    auth_req = self.client.construct_AuthorizationRequest(request_args=request_args)
+    auth_req = self.client.construct_AuthorizationRequest(request_args=args)
     login_url = auth_req.request(client.authorization_endpoint)
 
     return Redirect(login_url)

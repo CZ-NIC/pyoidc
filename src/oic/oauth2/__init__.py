@@ -89,6 +89,10 @@ class OtherError(PyoidcError):
     pass
 
 
+class AuthnToOld(PyoidcError):
+    pass
+
+
 def rndstr(size=16):
     """
     Returns a string of random ascii characters or digits
@@ -432,7 +436,7 @@ class Client(PBase):
         :param client_authn_method: Methods that this client can use to
             authenticate itself. It's a dictionary with method names as
             keys and method classes as values.
-        :param verify_ssl: Whether the SSL certificate should be verfied.
+        :param verify_ssl: Whether the SSL certificate should be verified.
         :return: Client instance
         """
 
@@ -465,6 +469,7 @@ class Client(PBase):
         self.provider_info = {}
         self._c_secret = None
         self.kid = {"sig": {}, "enc": {}}
+        self.authz_req = None
 
     def get_client_secret(self):
         return self._c_secret
@@ -821,6 +826,7 @@ class Client(PBase):
             elif resp.only_extras():
                 resp = None
             else:
+                kwargs["client_id"] = self.client_id
                 if "key" not in kwargs and "keyjar" not in kwargs:
                     kwargs["keyjar"] = self.keyjar
                 verf = resp.verify(**kwargs)
@@ -976,14 +982,24 @@ class Client(PBase):
                                                     request_args, extra_args,
                                                     **kwargs)
 
+        try:
+            self.authz_req[request_args["state"]] = csi
+        except TypeError:
+            pass
+
         if http_args is None:
             http_args = ht_args
         else:
-            http_args.update(http_args)
+            http_args.update(ht_args)
+
+        try:
+            algs = kwargs["algs"]
+        except:
+            algs = {}
 
         resp = self.request_and_return(url, response_cls, method, body,
                                        body_type, state=state,
-                                       http_args=http_args)
+                                       http_args=http_args, algs=algs)
 
         if isinstance(resp, Message):
             if resp.type() in RESPONSE2ERROR["AuthorizationRequest"]:

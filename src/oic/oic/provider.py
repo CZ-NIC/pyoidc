@@ -60,7 +60,9 @@ from oic.utils.http_util import Unauthorized
 from oic.oauth2 import MissingRequiredAttribute, CapabilitiesMisMatch
 from oic.oauth2 import rndstr
 
-from oic.oic import Server, PREFERENCE2PROVIDER
+from oic.oic import Server
+from oic.oic import PREFERENCE2PROVIDER
+from oic.oic import claims_match
 
 from oic.exception import *
 from jwkest.jwe import JWEException
@@ -475,7 +477,7 @@ class Provider(AProvider):
         try:
             redirect_uri = areq["post_logout_redirect_uri"]
             authn, acr = self.pick_auth(areq)
-            uid = authn.authenticated_as(cookie)["uid"]
+            uid, _ts = authn.authenticated_as(cookie)["uid"]
             client_info = self.cdb[self.sdb.getClient_id(uid)]
             if redirect_uri in client_info["post_logout_redirect_uris"]:
                 return redirect_uri
@@ -488,7 +490,7 @@ class Provider(AProvider):
     def is_session_revoked(self, request="", cookie=None):
         areq = urlparse.parse_qs(request)
         authn, acr = self.pick_auth(areq)
-        identity = authn.authenticated_as(cookie)
+        identity, _ts = authn.authenticated_as(cookie)
         return self.sdb.is_revoke_uid(identity["uid"])
 
     def let_user_verify_logout(self, uid, esr, cookie, redirect_uri):
@@ -530,7 +532,7 @@ class Provider(AProvider):
                                                      verify=True)
             uid = id_token_hint["sub"]
         else:
-            identity = authn.authenticated_as(cookie)
+            identity, _ts = authn.authenticated_as(cookie)
             try:
                 uid = identity["uid"]
             except KeyError:
@@ -659,7 +661,13 @@ class Provider(AProvider):
             return areq
         logger.debug("AuthzRequest+oidc_request: %s" % (areq.to_dict(),))
 
-        cinfo = self.cdb[areq["client_id"]]
+        _cid = areq["client_id"]
+        cinfo = self.cdb[_cid]
+        if _cid not in self.keyjar.issuer_keys:
+            if "jwks_uri" in cinfo:
+                self.keyjar.issuer_keys[_cid] = []
+                self.keyjar.add(_cid, cinfo["jwks_uri"])
+
         req_user = self.required_user(areq)
         if req_user:
             try:
@@ -685,9 +693,8 @@ class Provider(AProvider):
                 _auth_info = kwargs["authn"]
             except KeyError:
                 _auth_info = ""
-            identity = authn.authenticated_as(cookie,
-                                              authorization=_auth_info,
-                                              max_age=self.max_age(areq))
+            identity, _ts = authn.authenticated_as(
+                cookie, authorization=_auth_info, max_age=self.max_age(areq))
         except (NoSuchAuthentication, ToOld, TamperAllert):
             identity = None
 
@@ -733,7 +740,8 @@ class Provider(AProvider):
                     else:
                         return authn(**authn_args)
 
-        authn_event = AuthnEvent(identity["uid"], authn_info=authn_class_ref)
+        authn_event = AuthnEvent(identity["uid"], authn_info=authn_class_ref,
+                                 time_stamp=_ts)
 
         logger.debug("- authenticated -")
         logger.debug("AREQ keys: %s" % areq.keys())
@@ -948,21 +956,6 @@ class Provider(AProvider):
         else:
             return self._refresh_access_token_endpoint(req, **kwargs)
 
-    @staticmethod
-    def claims_match(value, claimspec):
-        if claimspec is None:
-            return True
-
-        for key, val in claimspec.items():
-            if key == "value":
-                if value != val:
-                    return False
-            elif key == "values":
-                if value not in val:
-                    return False
-                    # Whether it's essential or not doesn't change anything here
-        return True
-
     def _collect_user_info(self, session, userinfo_claims=None):
         """
         Collect information about a user.
@@ -982,6 +975,10 @@ class Provider(AProvider):
                     uic.update(claims)
                 except KeyError:
                     pass
+            # Get only keys allowed by user and update the dict if such info is stored in session
+            perm_set = session.get('permission')
+            if perm_set:
+                uic = {key: uic[key] for key in uic if key in perm_set}
 
             if "oidreq" in session:
                 uic = self.server.update_claims(session, "oidreq", "userinfo",
@@ -1000,7 +997,7 @@ class Provider(AProvider):
         info = self.userinfo(session["authn_event"].uid, userinfo_claims)
 
         if "sub" in userinfo_claims:
-            if not self.claims_match(session["sub"], userinfo_claims["sub"]):
+            if not claims_match(session["sub"], userinfo_claims["sub"]):
                 raise FailedAuthentication("Unmatched sub claim")
 
         info["sub"] = session["sub"]
@@ -1674,7 +1671,7 @@ class Provider(AProvider):
 
         # Do the authorization
         try:
-            permission = self.authz(user)
+            permission = self.authz(user, client_id=areq['client_id'])
             self.sdb.update(sid, "permission", permission)
         except Exception:
             raise

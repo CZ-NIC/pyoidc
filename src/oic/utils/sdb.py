@@ -14,7 +14,7 @@ import base64
 import logging
 
 from oic.oauth2 import rndstr
-from oic.utils.time_util import utc_time_sans_frac
+from oic.utils.time_util import utc_time_sans_frac, utc_now
 
 from Crypto.Cipher import AES
 
@@ -127,7 +127,7 @@ class Token(object):
 
 
 class AuthnEvent(object):
-    def __init__(self, uid, valid=3600, authn_info=None):
+    def __init__(self, uid, valid=3600, authn_info=None, time_stamp=0):
         """
         Creates a representation of an authentication event.
 
@@ -137,7 +137,7 @@ class AuthnEvent(object):
         :return:
         """
         self.uid = uid
-        self.authn_time = int(time.time())
+        self.authn_time = int(time_stamp) or utc_now()
         self.valid_until = self.authn_time + int(valid)
         self.authn_info = authn_info
 

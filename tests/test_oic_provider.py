@@ -36,7 +36,7 @@ from oic.oic import make_openid_request
 from oic.oic.consumer import Consumer
 from oic.oic.provider import Provider
 
-from oic.utils.time_util import epoch_in_a_while
+from oic.utils.time_util import epoch_in_a_while, utc_now
 
 __author__ = 'rohe0002'
 
@@ -144,9 +144,9 @@ class DummyAuthn(UserAuthnMethod):
 
     def authenticated_as(self, cookie=None,  **kwargs):
         if cookie == "FAIL":
-            return None
+            return None, 0
         else:
-            return {"uid": self.user}
+            return {"uid": self.user}, utc_now()
 
 
 #AUTHN = UsernamePasswordMako(None, "login.mako", tl, PASSWD, "authenticated")
@@ -764,4 +764,4 @@ def test_key_rollover():
     assert len(provider2.keyjar.issuer_keys[""]) == 2
 
 if __name__ == "__main__":
-    test_idtoken_with_extra_claims()
+    test_server_authorization_endpoint()

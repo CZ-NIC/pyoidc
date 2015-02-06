@@ -290,7 +290,7 @@ class TestOICConsumer():
         mfos.keyjar = SRVKEYS
 
         self.consumer.http_request = mfos.http_request
-        self.consumer.config["response_type"] = "id_token"
+        self.consumer.config["response_type"] = ["token"]
         _state = "statxxx"
         args = {
             "client_id": self.consumer.client_id,
@@ -408,6 +408,11 @@ def test_complete_auth_token_idtoken():
     consumer.client_secret = "hemlig"
     consumer.secret_type = "basic"
     consumer.config["response_type"] = ["id_token", "token"]
+    consumer.registration_response = {
+        "id_token_signed_response_alg": "RS256",
+    }
+    consumer.provider_info = {"issuer": "http://localhost:8088/"}  # abs min
+    consumer.authz_req = {}  # Store AuthzReq with state as key
 
     args = {
         "client_id": consumer.client_id,
@@ -417,25 +422,28 @@ def test_complete_auth_token_idtoken():
 
     result = consumer.do_authorization_request(state=_state,
                                                request_args=args)
-    consumer._backup("state0")
+    #consumer._backup("state0")
 
     assert result.status_code == 302
     #assert result.location.startswith(consumer.redirect_uri[0])
     _, query = result.headers["location"].split("?")
     print query
-    part = consumer.parse_authz(query=query)
+    part = consumer.parse_authz(query=query,
+                                algs=consumer.sign_enc_algs("id_token"))
     print part
     auth = part[0]
-    acc = part[1]
+    atr = part[1]
     assert part[2] is None
+
 
     #print auth.dictionary()
     #print acc.dictionary()
     assert auth is None
-    assert acc.type() == "AccessTokenResponse"
-    assert _eq(acc.keys(), ['access_token', 'id_token', 'expires_in',
+    assert atr.type() == "AccessTokenResponse"
+    assert _eq(atr.keys(), ['access_token', 'id_token', 'expires_in',
                             'token_type', 'state', 'scope'])
 
+    consumer.verify_id_token(atr["id_token"], consumer.authz_req[atr["state"]])
 
 def test_userinfo():
     consumer = Consumer(SessionDB(SERVER_INFO["issuer"]), CONFIG,
@@ -696,7 +704,8 @@ def test_faulty_idtoken_from_accesstoken_endpoint():
 
 
 if __name__ == "__main__":
-    t = TestOICConsumer()
-    t.setup_class()
-    t.test_parse_authz_implicit()
+    test_complete_auth_token_idtoken()
+    # t = TestOICConsumer()
+    # t.setup_class()
+    # t.test_parse_authz_implicit()
     # test_faulty_idtoken_from_accesstoken_endpoint()

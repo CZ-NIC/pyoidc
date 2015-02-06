@@ -6,6 +6,7 @@ from urllib import urlencode
 import urllib
 from urlparse import parse_qs
 from urlparse import urlsplit
+from oic.utils.time_util import utc_now
 from oic.exception import PyoidcError
 
 from oic.utils import aes
@@ -69,7 +70,7 @@ class UserAuthnMethod(CookieDealer):
 
     def authenticated_as(self, cookie=None, **kwargs):
         if cookie is None:
-            return None
+            return None, 0
         else:
             logger.debug("kwargs: %s" % kwargs)
 
@@ -79,7 +80,7 @@ class UserAuthnMethod(CookieDealer):
                 val = None
 
             if val is None:
-                return None
+                return None, 0
             else:
                 uid, _ts, typ = val
 
@@ -97,7 +98,7 @@ class UserAuthnMethod(CookieDealer):
                         raise ToOld("%d > (%d + %d)" % (
                             _now, int(_ts), int(kwargs["max_age"])))
 
-            return {"uid": uid}
+            return {"uid": uid}, _ts
 
     def generate_return_url(self, return_to, uid, path=""):
         """
@@ -331,7 +332,7 @@ class BasicAuthn(UserAuthnMethod):
         try:
             assert password == self.passwd[user]
         except (AssertionError, KeyError):
-            raise FailedAuthentication()
+            raise FailedAuthentication("Wrong password")
 
     def authenticated_as(self, cookie=None, authorization="", **kwargs):
         """
@@ -348,7 +349,7 @@ class BasicAuthn(UserAuthnMethod):
         (user, pwd) = base64.b64decode(authorization).split(":")
         user = urllib.unquote(user)
         self.verify_password(user, pwd)
-        return {"uid": user}
+        return {"uid": user}, utc_now()
 
 
 class SymKeyAuthn(UserAuthnMethod):
@@ -370,9 +371,9 @@ class SymKeyAuthn(UserAuthnMethod):
         try:
             user = aes.decrypt(self.symkey, encmsg, iv)
         except (AssertionError, KeyError):
-            raise FailedAuthentication()
+            raise FailedAuthentication("Decryption failed")
 
-        return {"uid": user}
+        return {"uid": user}, utc_now()
 
 
 class NoAuthn(UserAuthnMethod):
@@ -392,4 +393,4 @@ class NoAuthn(UserAuthnMethod):
         :return:
         """
 
-        return {"uid": self.user}
+        return {"uid": self.user}, utc_now()

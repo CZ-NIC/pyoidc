@@ -448,6 +448,15 @@ class Client(oauth2.Client):
 
         return self.construct_request(request, request_args, extra_args)
 
+    def construct_ClientUpdateRequest(self, request=ClientUpdateRequest,
+                                      request_args=None, extra_args=None,
+                                      **kwargs):
+
+        if request_args is None:
+            request_args = {}
+
+        return self.construct_request(request, request_args, extra_args)
+
     def do_client_registration(self, request=RegistrationRequest,
                                body_type="", method="GET",
                                request_args=None, extra_args=None,
@@ -565,7 +574,7 @@ class Client(oauth2.Client):
                         "provider info issuer mismatch '%s' != '%s'" % (
                             _issuer, _pcr_issuer))
 
-            self.provider_info[_pcr_issuer] = pcr
+            self.provider_info = pcr
         else:
             _pcr_issuer = issuer
 

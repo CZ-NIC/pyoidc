@@ -372,7 +372,6 @@ def application(environ, start_response):
 
 if __name__ == '__main__':
     import argparse
-    import shelve
     import importlib
 
     from cherrypy import wsgiserver
