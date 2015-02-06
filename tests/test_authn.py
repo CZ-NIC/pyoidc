@@ -53,7 +53,7 @@ class SRV(object):
 def test_1():
     authn = UsernamePasswordMako(None, "login.mako", tl, PASSWD,
                                  "authorization_endpoint")
-    assert authn.authenticated_as() is None
+    assert authn.authenticated_as()[0] is None
 
 
 def test_2():

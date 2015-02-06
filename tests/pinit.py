@@ -1,7 +1,6 @@
 import os
 
 from mako.lookup import TemplateLookup
-from mako.runtime import UNDEFINED
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.authn.client import verify_client
