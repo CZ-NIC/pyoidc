@@ -1025,7 +1025,7 @@ class Client(PBase):
         if http_args is None:
             http_args = ht_args
         else:
-            http_args.update(http_args)
+            http_args.update(ht_args)
 
         logger.debug("<do_access_token> URL: %s, Body: %s" % (url, body))
         logger.debug("<do_access_token> response_cls: %s" % response_cls)
@@ -1052,7 +1052,7 @@ class Client(PBase):
         if http_args is None:
             http_args = ht_args
         else:
-            http_args.update(http_args)
+            http_args.update(ht_args)
 
         return self.request_and_return(url, response_cls, method, body,
                                        body_type, state=state,
@@ -1072,7 +1072,7 @@ class Client(PBase):
         if http_args is None:
             http_args = ht_args
         else:
-            http_args.update(http_args)
+            http_args.update(ht_args)
 
         return self.request_and_return(url, response_cls, method, body,
                                        body_type, state=state,
@@ -1092,7 +1092,7 @@ class Client(PBase):
         if http_args is None:
             http_args = ht_args
         else:
-            http_args.update(http_args)
+            http_args.update(ht_args)
 
         return self.request_and_return(url, response, method, body, body_type,
                                        state=state, http_args=http_args)
