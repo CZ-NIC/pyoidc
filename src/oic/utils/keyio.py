@@ -797,8 +797,33 @@ def keyjar_init(instance, key_conf, kid_template="a%d"):
     :return: a JWKS
     """
 
-    if instance.keyjar is None:
-        instance.keyjar = KeyJar()
+    jwks, keyjar, kdd = build_keyjar(key_conf, kid_template, instance.keyjar,
+                                     instance.kid)
+
+    instance.keyjar = keyjar
+    instance.kid = kdd
+    return jwks
+
+
+def build_keyjar(key_conf, kid_template="a%d", keyjar=None, kidd=None):
+    """
+    Configuration of the type:
+    keys = [
+        {"type": "RSA", "key": "cp_keys/key.pem", "use": ["enc", "sig"]},
+        {"type": "EC", "crv": "P-256", "use": ["sig"]},
+        {"type": "EC", "crv": "P-256", "use": ["enc"]}
+    ]
+
+    :param key_conf: The key configuration
+    :param kid_template: A template by which to build the kids
+    :return: a JWKS
+    """
+
+    if keyjar is None:
+        keyjar = KeyJar()
+
+    if kidd is None:
+        kidd = {"sig": {}, "enc": {}}
 
     kid = 0
     jwks = {"keys": []}
@@ -816,14 +841,11 @@ def keyjar_init(instance, key_conf, kid_template="a%d"):
         for k in kb.keys():
             k.kid = kid_template % kid
             kid += 1
-            instance.kid[k.use][k.kty] = k.kid
+            kidd[k.use][k.kty] = k.kid
 
         jwks["keys"].extend([k.to_dict()
                              for k in kb.keys() if k.kty != 'oct'])
 
-        # for k in kb.keys():
-        # k.deserialize()
+        keyjar.add_kb("", kb)
 
-        instance.keyjar.add_kb("", kb)
-
-    return jwks
+    return jwks, keyjar, kidd
