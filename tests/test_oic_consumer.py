@@ -704,7 +704,7 @@ def test_faulty_idtoken_from_accesstoken_endpoint():
 
 
 if __name__ == "__main__":
-    test_complete_auth_token_idtoken()
+    test_sign_userinfo()
     # t = TestOICConsumer()
     # t.setup_class()
     # t.test_parse_authz_implicit()

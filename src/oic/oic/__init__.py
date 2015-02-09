@@ -786,9 +786,9 @@ class Client(oauth2.Client):
             except KeyError:
                 args = {}
 
-            #owner = self.endpoint2issuer(path, "userinfo_endpoint")
-            owner = self.provider_info["issuer"]
-            return _schema().from_jwt(resp.text, keyjar=self.keyjar)
+            return _schema().from_jwt(resp.text,
+                                      keyjar=self.keyjar,
+                                      sender=self.provider_info["issuer"])
 
     def get_userinfo_claims(self, access_token, endpoint, method="POST",
                             schema_class=OpenIDSchema, **kwargs):

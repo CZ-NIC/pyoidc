@@ -471,7 +471,10 @@ class Message(object):
         if key is None and keyjar is not None:
             key = keyjar.get_verify_key(owner="")
         elif key is None:
-            key = {}
+            key = []
+
+        if keyjar is not None and "sender" in kwargs:
+            key.extend(keyjar.get_verify_key(owner=kwargs["sender"]))
 
         header = jwt_header(txt)
         logger.debug("header: %s" % (header,))
