@@ -124,6 +124,7 @@ class Message(object):
         self.lax = False
         self.jwt_header = None
         self.from_dict(kwargs)
+        self.verify_ssl = True
 
     def type(self):
         return self.__class__.__name__

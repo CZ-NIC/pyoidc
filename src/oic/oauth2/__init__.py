@@ -17,6 +17,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 DEF_SIGN_ALG = "HS256"
+SUCCESSFUL = [200, 201, 202, 203, 204, 205, 206]
 
 from oic.oauth2.message import *
 
@@ -695,14 +696,14 @@ class Client(PBase):
     @staticmethod
     def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE,
                     accept=None, **kwargs):
-        if method == "GET":
+        if method in ["GET", "DELETE"]:
             _qp = req.to_urlencoded()
             if _qp:
                 path = uri + '?' + _qp
             else:
                 path = uri
             body = None
-        elif method == "POST":
+        elif method in ["POST", "PUT"]:
             path = uri
             if content_type == URL_ENCODED:
                 body = req.to_urlencoded()
@@ -915,7 +916,7 @@ class Client(PBase):
     def parse_request_response(self, reqresp, response, body_type, state="",
                                **kwargs):
 
-        if reqresp.status_code in [200, 201]:
+        if reqresp.status_code in SUCCESSFUL:
             body_type = self.verify_header(reqresp, body_type)
         elif reqresp.status_code == 302:  # redirect
             pass
