@@ -1070,7 +1070,7 @@ class Client(oauth2.Client):
             self.store_registration_info(resp)
         else:
             err = ErrorResponse().deserialize(response.text, "json")
-            raise PyoidcError("Registration failed: %s" % err.get_json())
+            raise PyoidcError("Registration failed: %s" % err.to_json())
 
         return resp
 
