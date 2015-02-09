@@ -788,9 +788,7 @@ class Client(oauth2.Client):
 
             #owner = self.endpoint2issuer(path, "userinfo_endpoint")
             owner = self.provider_info["issuer"]
-            keys = self.keyjar.get_signing_key(_kty, owner, **args)
-
-            return _schema().from_jwt(resp.text, keys)
+            return _schema().from_jwt(resp.text, keyjar=self.keyjar)
 
     def get_userinfo_claims(self, access_token, endpoint, method="POST",
                             schema_class=OpenIDSchema, **kwargs):
