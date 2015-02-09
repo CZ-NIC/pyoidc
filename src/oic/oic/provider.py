@@ -1026,8 +1026,14 @@ class Provider(AProvider):
         if algo == "none":
             key = []
         else:
-            # Use my key for signing
-            key = self.keyjar.get_signing_key(alg2keytype(algo), "", alg=algo)
+            if algo.startswith("HS"):
+                key = self.keyjar.get_signing_key(alg2keytype(algo),
+                                                  client_info["client_id"],
+                                                  alg=algo)
+            else:
+                # Use my key for signing
+                key = self.keyjar.get_signing_key(alg2keytype(algo), "",
+                                                  alg=algo)
             if not key:
                 return self._error(error="access_denied",
                                    descr="Missing signing key")
@@ -1392,8 +1398,6 @@ class Provider(AProvider):
             return self._error(error="invalid_request",
                                descr="Don't support proposed %s" % err)
 
-        _keyjar = self.server.keyjar
-
         # create new id och secret
         client_id = rndstr(12)
         while client_id in self.cdb:
@@ -1438,9 +1442,9 @@ class Provider(AProvider):
                              {"kty": "oct", "key": client_secret,
                               "use": "sig"}])
             try:
-                _keyjar[client_id].append(_kc)
+                self.keyjar[client_id].append(_kc)
             except KeyError:
-                _keyjar[client_id] = [_kc]
+                self.keyjar[client_id] = [_kc]
 
         self.cdb[client_id] = _cinfo
 
