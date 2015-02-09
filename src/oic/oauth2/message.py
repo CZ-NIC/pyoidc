@@ -533,50 +533,54 @@ class Message(object):
                 if isinstance(jso, basestring):
                     jso = json.loads(jso)
 
-                if keyjar:
-                    if "jku" in header:
-                        if not keyjar.find(header["jku"], jso["iss"]):
-                            # This is really questionable
+                if header["alg"] == "none":
+                    pass
+                else:
+                    if keyjar:
+                        if "jku" in header:
+                            if not keyjar.find(header["jku"], jso["iss"]):
+                                # This is really questionable
+                                try:
+                                    if kwargs["trusting"]:
+                                        keyjar.add(jso["iss"], header["jku"])
+                                except KeyError:
+                                    pass
+
+                        if _kid:
                             try:
-                                if kwargs["trusting"]:
-                                    keyjar.add(jso["iss"], header["jku"])
+                                _key = keyjar.get_key_by_kid(_kid, jso["iss"])
+                                if _key:
+                                    key.append(_key)
                             except KeyError:
                                 pass
 
-                    if _kid:
                         try:
-                            _key = keyjar.get_key_by_kid(_kid, jso["iss"])
-                            if _key:
-                                key.append(_key)
+                            self._add_key(keyjar, kwargs["opponent_id"], key)
                         except KeyError:
                             pass
 
-                    try:
-                        self._add_key(keyjar, kwargs["opponent_id"], key)
-                    except KeyError:
-                        pass
-
-                if verify:
-                    if keyjar:
-                        for ent in ["iss", "aud", "client_id"]:
-                            if ent not in jso:
-                                continue
-                            if ent == "aud":
-                                # list or basestring
-                                if isinstance(jso["aud"], basestring):
-                                    _aud = [jso["aud"]]
+                    if verify:
+                        if keyjar:
+                            for ent in ["iss", "aud", "client_id"]:
+                                if ent not in jso:
+                                    continue
+                                if ent == "aud":
+                                    # list or basestring
+                                    if isinstance(jso["aud"], basestring):
+                                        _aud = [jso["aud"]]
+                                    else:
+                                        _aud = jso["aud"]
+                                    for _e in _aud:
+                                        self._add_key(keyjar, _e, key)
                                 else:
-                                    _aud = jso["aud"]
-                                for _e in _aud:
-                                    self._add_key(keyjar, _e, key)
-                            else:
-                                self._add_key(keyjar, jso[ent], key)
+                                    self._add_key(keyjar, jso[ent], key)
 
-                    if "alg" in header and header["alg"] != "none":
-                        if not key:
-                            raise MissingSigningKey("alg=%s" % header["alg"])
+                        if "alg" in header and header["alg"] != "none":
+                            if not key:
+                                raise MissingSigningKey(
+                                    "alg=%s" % header["alg"])
 
-                    _jws.verify_compact(txt, key)
+                        _jws.verify_compact(txt, key)
             except Exception:
                 raise
 
