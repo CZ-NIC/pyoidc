@@ -1783,7 +1783,7 @@ class Provider(AProvider):
         except KeyError:
             pass
         else:
-            if not _kaka.startswith("pyoidc="):
+            if _kaka and not _kaka.startswith("pyoidc="):
                 headers = [(self.cookie_func(user, typ="sso",
                                              ttl=self.sso_ttl))]
 
