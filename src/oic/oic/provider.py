@@ -61,6 +61,7 @@ from oic.oauth2 import MissingRequiredAttribute, CapabilitiesMisMatch
 from oic.oauth2 import rndstr
 
 from oic.oic import Server
+from oic.oic import PROVIDER_DEFAULT
 from oic.oic import PREFERENCE2PROVIDER
 from oic.oic import claims_match
 
@@ -818,7 +819,10 @@ class Provider(AProvider):
             try:
                 alg = self.jwx_def["sign_alg"]["id_token"]
             except KeyError:
-                alg = "none"
+                alg = PROVIDER_DEFAULT["id_token_signed_response_alg"]
+            else:
+                if not alg:
+                    alg = PROVIDER_DEFAULT["id_token_signed_response_alg"]
 
         _authn_event = sinfo["authn_event"]
         id_token = self.id_token_as_signed_jwt(
@@ -1779,10 +1783,9 @@ class Provider(AProvider):
         except KeyError:
             pass
         else:
-            if not _kaka:
-                # so everything went well should set a SSO cookie
-                headers.append(self.cookie_func(user, typ="sso",
-                                                ttl=self.sso_ttl))
+            if not _kaka.startswith("pyoidc="):
+                headers = [(self.cookie_func(user, typ="sso",
+                                             ttl=self.sso_ttl))]
 
         # Now about the response_mode. Should not be set if it's obvious
         # from the response_type. Knows about 'query', 'fragment' and

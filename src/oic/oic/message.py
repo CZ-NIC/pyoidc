@@ -292,7 +292,10 @@ class AuthorizationResponse(message.AuthorizationResponse,
             if not idt.verify(**kwargs):
                 raise VerificationError("Could not verify id_token", idt)
 
-            hfunc = "HS" + jwkest.unpack(self["id_token"])[0]["alg"][-3:]
+            _alg = idt.jwt_header["alg"]
+            # What if _alg == 'none'
+
+            hfunc = "HS" + _alg[-3:]
 
             if "access_token" in self:
                 try:
