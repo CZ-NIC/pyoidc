@@ -1621,93 +1621,76 @@ class Provider(AProvider):
             return self._error("invalid_request", "wrong response_mode")
         return None
 
-    # def authz_part2(self, user, areq, sid, **kwargs):
-    #     """
-    #     After the authentication this is where you should end up
-    #     """
-    #     _log_debug = logger.debug
-    #     _log_debug("- in authenticated() -")
-    #
-    #     # Do the authorization
-    #     try:
-    #         permission = self.authz(user, client_id=areq['client_id'])
-    #         self.sdb.update(sid, "permission", permission)
-    #     except Exception:
-    #         raise
-    #
-    #     _log_debug("response type: %s" % areq["response_type"])
-    #
-    #     # create the response
-    #     aresp = AuthorizationResponse()
-    #     try:
-    #         aresp["state"] = areq["state"]
-    #     except KeyError:
-    #         pass
-    #
-    #     if "response_type" in areq and areq["response_type"] == ["none"]:
-    #         fragment_enc = False
-    #     else:
-    #         if self.sdb.is_revoked(sid):
-    #             return self._error(error="access_denied",
-    #                                descr="Token is revoked")
-    #
-    #         try:
-    #             aresp["scope"] = areq["scope"]
-    #         except KeyError:
-    #             pass
-    #
-    #         rtype = set(areq["response_type"][:])
-    #         if len(rtype) == 1 and "code" in rtype:
-    #             fragment_enc = False
-    #         else:
-    #             fragment_enc = True
-    #
-    #         if "token" in rtype:
-    #             _dic = self.sdb.upgrade_to_token(issue_refresh=False, key=sid)
-    #
-    #             _log_debug("_dic: %s" % _dic)
-    #             for key, val in _dic.items():
-    #                 if key in aresp.parameters() and val is not None:
-    #                     aresp[key] = val
-    #
-    #             rtype.remove("token")
-    #
-    #         aresp = self.auth_resp_extension(aresp, areq, sid, rtype)
-    #
-    #         if len(rtype):
-    #             return BadRequest("Unknown response type: %s" % rtype)
-    #
-    #     try:
-    #         redirect_uri = self.get_redirect_uri(areq)
-    #     except (RedirectURIError, ParameterError), err:
-    #         return BadRequest("%s" % err)
-    #
-    #     # Must not use HTTP unless implicit grant type and native application
-    #
-    #     info = self.aresp_check(aresp, areq)
-    #     if isinstance(info, Response):
-    #         return info
-    #
-    #     headers = []
-    #     try:
-    #         _kaka = kwargs["cookie"]
-    #     except KeyError:
-    #         pass
-    #     else:
-    #         if _kaka and not _kaka.startswith("pyoidc="):
-    #             headers = [(self.cookie_func(user, typ="sso",
-    #                                          ttl=self.sso_ttl))]
-    #
-    #     # Now about the response_mode. Should not be set if it's obvious
-    #     # from the response_type. Knows about 'query', 'fragment' and
-    #     # 'form_post'.
-    #
-    #     if "response_mode" in areq:
-    #
-    #     # Just do whatever is the default
-    #     location = aresp.request(redirect_uri, fragment_enc)
-    #     logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
-    #     return Redirect(str(location), headers=headers)
+    def create_authn_response(self, areq, sid):
+        # create the response
+        aresp = AuthorizationResponse()
+        try:
+            aresp["state"] = areq["state"]
+        except KeyError:
+            pass
+
+        if "response_type" in areq and areq["response_type"] == ["none"]:
+            fragment_enc = False
+        else:
+            _sinfo = self.sdb[sid]
+
+            try:
+                aresp["scope"] = areq["scope"]
+            except KeyError:
+                pass
+
+            rtype = set(areq["response_type"][:])
+            if len(rtype) == 1 and "code" in rtype:
+                fragment_enc = False
+            else:
+                fragment_enc = True
+
+            if "code" in areq["response_type"]:
+                _code = aresp["code"] = self.sdb[sid]["code"]
+                rtype.remove("code")
+            else:
+                self.sdb[sid]["code"] = None
+                _code = None
+
+            if "token" in rtype:
+                _dic = self.sdb.upgrade_to_token(issue_refresh=False, key=sid)
+
+                logger.debug("_dic: %s" % _dic)
+                for key, val in _dic.items():
+                    if key in aresp.parameters() and val is not None:
+                        aresp[key] = val
+
+                rtype.remove("token")
+
+            try:
+                _access_token = aresp["access_token"]
+            except KeyError:
+                _access_token = None
+
+            if "id_token" in areq["response_type"]:
+                user_info = self.userinfo_in_id_token_claims(_sinfo)
+                client_info = self.cdb[areq["client_id"]]
+
+                hargs = {}
+                if set(areq["response_type"]) == {'code', 'id_token', 'token'}:
+                    hargs = {"code": _code, "access_token": _access_token}
+                elif set(areq["response_type"]) == {'code', 'id_token'}:
+                    hargs = {"code": _code}
+                elif set(areq["response_type"]) == {'id_token', 'token'}:
+                    hargs = {"access_token": _access_token}
+
+                # or 'code id_token'
+                id_token = self.sign_encrypt_id_token(
+                    _sinfo, client_info, areq, user_info=user_info, **hargs)
+
+                aresp["id_token"] = id_token
+                _sinfo["id_token"] = id_token
+                rtype.remove("id_token")
+
+            if len(rtype):
+                return BadRequest("Unknown response type: %s" % rtype)
+
+        return aresp, fragment_enc
 
     def key_setup(self, local_path, vault="keys", sig=None, enc=None):
         """

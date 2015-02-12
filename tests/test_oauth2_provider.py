@@ -245,4 +245,4 @@ def test_token_endpoint_unauth():
     assert _eq(atr.keys(), ['error_description', 'error'])
 
 if __name__ == "__main__":
-    test_provider_authenticated()
+    test_provider_authenticated_token()

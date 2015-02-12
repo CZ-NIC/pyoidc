@@ -75,8 +75,10 @@ def code_response(**kwargs):
     _areq = kwargs["areq"]
     _scode = kwargs["scode"]
     aresp = AuthorizationResponse()
-    if "state" in _areq:
+    try:
         aresp["state"] = _areq["state"]
+    except KeyError:
+        pass
     aresp["code"] = _scode
     add_non_standard(_areq, aresp)
     return aresp
@@ -89,9 +91,13 @@ def token_response(**kwargs):
     _dic = _sdb.upgrade_to_token(_scode, issue_refresh=False)
 
     aresp = AccessTokenResponse(**by_schema(AccessTokenResponse, **_dic))
-    if "state" in _areq:
-        aresp["state"] = _areq["state"]
 
+    try:
+        aresp["state"] = _areq["state"]
+    except KeyError:
+        pass
+
+    add_non_standard(_areq, aresp)
     return aresp
 
 
@@ -590,18 +596,8 @@ class Provider(object):
         return self.authz_part2(authnres["user"], info["areq"], sid,
                                 cookie=cookie)
 
-    def auth_resp_extension(self, aresp, areq, sid, rtype):
-        _sinfo = self.sdb[sid]
-        if "code" in areq["response_type"]:
-            aresp["code"] = _sinfo["code"]
-            rtype.remove("code")
-        else:
-            _sinfo[sid]["code"] = None
-
-        return aresp
-
     def aresp_check(self, aresp, areq):
-        return None
+        return ""
 
     def response_mode(self, areq, fragment_enc, aresp, redirect_uri, headers):
         resp_mode = areq["response_mode"]
@@ -613,6 +609,18 @@ class Provider(object):
             # Can't be done
             return self._error("invalid_request", "wrong response_mode")
         return None
+
+    def create_authn_response(self, areq, sid):
+        rtype = areq["response_type"][0]
+        _func = self.response_type_map[rtype]
+        aresp = _func(areq=areq, scode=self.sdb[sid]["code"], sdb=self.sdb)
+
+        if rtype == "code":
+            fragment_enc = False
+        else:
+            fragment_enc = True
+
+        return aresp, fragment_enc
 
     def authz_part2(self, user, areq, sid, **kwargs):
         """
@@ -636,45 +644,15 @@ class Provider(object):
 
         _log_debug("response type: %s" % areq["response_type"])
 
-        # create the response
-        aresp = AuthorizationResponse()
-        try:
-            aresp["state"] = areq["state"]
-        except KeyError:
-            pass
+        if self.sdb.is_revoked(sid):
+            return self._error(error="access_denied",
+                               descr="Token is revoked")
 
-        if "response_type" in areq and areq["response_type"] == ["none"]:
-            fragment_enc = False
+        info = self.create_authn_response(areq, sid)
+        if isinstance(info, Response):
+            return info
         else:
-            if self.sdb.is_revoked(sid):
-                return self._error(error="access_denied",
-                                   descr="Token is revoked")
-
-            try:
-                aresp["scope"] = areq["scope"]
-            except KeyError:
-                pass
-
-            rtype = set(areq["response_type"][:])
-            if len(rtype) == 1 and "code" in rtype:
-                fragment_enc = False
-            else:
-                fragment_enc = True
-
-            if "token" in rtype:
-                _dic = self.sdb.upgrade_to_token(issue_refresh=False, key=sid)
-
-                _log_debug("_dic: %s" % _dic)
-                for key, val in _dic.items():
-                    if key in aresp.parameters() and val is not None:
-                        aresp[key] = val
-
-                rtype.remove("token")
-
-            aresp = self.auth_resp_extension(aresp, areq, sid, rtype)
-
-            if len(rtype):
-                return BadRequest("Unknown response type: %s" % rtype)
+            aresp, fragment_enc = info
 
         try:
             redirect_uri = self.get_redirect_uri(areq)
