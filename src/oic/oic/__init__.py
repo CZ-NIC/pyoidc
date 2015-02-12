@@ -1163,7 +1163,7 @@ class Client(oauth2.Client):
         return resp
 
     def _verify_id_token(self, id_token, nonce="", acr_values=None, auth_time=0,
-                        max_age=0):
+                         max_age=0):
         """
         If the JWT alg Header Parameter uses a MAC based algorithm s uch as
         HS256, HS384, or HS512, the octets of the UTF-8 representation of the
@@ -1194,7 +1194,7 @@ class Client(oauth2.Client):
 
         if self.id_token_max_age:
             try:
-                assert _now < id_token["iat"] + self.id_token_max_age
+                assert _now < int(id_token["iat"]) + self.id_token_max_age
             except AssertionError:
                 raise OtherError("I think this ID token is to old")
 
@@ -1212,12 +1212,13 @@ class Client(oauth2.Client):
 
         if max_age:
             try:
-                assert _now < id_token["auth_time"] + max_age
+                assert _now < int(id_token["auth_time"]) + max_age
             except AssertionError:
                 raise AuthnToOld("To old authentication")
 
         if auth_time:
-            if not claims_match(id_token["auth_time"], {"auth_time": auth_time}):
+            if not claims_match(id_token["auth_time"],
+                                {"auth_time": auth_time}):
                 raise AuthnToOld("To old authentication")
 
     def verify_id_token(self, id_token, authn_req):

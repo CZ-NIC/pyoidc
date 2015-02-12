@@ -57,7 +57,7 @@ from oic.utils.http_util import Redirect
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Unauthorized
 
-from oic.oauth2 import MissingRequiredAttribute, CapabilitiesMisMatch
+from oic.oauth2 import CapabilitiesMisMatch
 from oic.oauth2 import rndstr
 
 from oic.oic import Server
@@ -419,24 +419,6 @@ class Provider(AProvider):
 
         return req_user
 
-    @staticmethod
-    def max_age(areq):
-        try:
-            return areq["request"]["max_age"]
-        except KeyError:
-            try:
-                return areq["max_age"]
-            except KeyError:
-                return 0
-
-    @staticmethod
-    def re_authenticate(areq, authn):
-        if "prompt" in areq and "login" in areq["prompt"]:
-            if authn.done(areq):
-                return True
-
-        return False
-
     def pick_auth(self, areq, comparision_type=""):
         """
 
@@ -609,57 +591,14 @@ class Provider(AProvider):
         :param request: The client request
         """
 
-        logger.debug("Request: '%s'" % request)
-        # Same serialization used for GET and POST
-        try:
-            areq = self.server.parse_authorization_request(query=request)
-        except MissingRequiredAttribute, err:
-            logger.debug("%s" % err)
-            areq = AuthorizationRequest().deserialize(request, "urlencoded")
-            try:
-                redirect_uri = self.get_redirect_uri(areq)
-            except (RedirectURIError, ParameterError), err:
-                return self._error("invalid_request", "%s" % err)
-            try:
-                _rtype = areq["response_type"]
-            except:
-                _rtype = ["code"]
-            return self._redirect_authz_error("invalid_request", redirect_uri,
-                                              "%s" % err, areq["state"],
-                                              _rtype)
-        except KeyError:
-            areq = AuthorizationRequest().deserialize(request, "urlencoded")
-            # verify the redirect_uri
-            try:
-                self.get_redirect_uri(areq)
-            except (RedirectURIError, ParameterError), err:
-                return self._error("invalid_request", "%s" % err)
-        except Exception, err:
-            message = traceback.format_exception(*sys.exc_info())
-            logger.error(message)
-            logger.debug("Bad request: %s (%s)" % (err, err.__class__.__name__))
-            return BadRequest("%s" % err)
+        info = self.auth_init(request)
+        if isinstance(info, Response):
+            return info
 
-        if not areq:
-            logger.debug("No AuthzRequest")
-            return self._error("invalid_request", "Can not parse AuthzRequest")
-
-        logger.debug("AuthzRequest: %s" % (areq.to_dict(),))
-        try:
-            redirect_uri = self.get_redirect_uri(areq)
-        except (RedirectURIError, ParameterError, UnknownClient), err:
-            return self._error("invalid_request", "%s" % err)
-
-        try:
-            # verify that the request message is correct
-            areq.verify()
-        except (MissingRequiredAttribute, ValueError), err:
-            return self._redirect_authz_error("invalid_request", redirect_uri,
-                                              "%s" % err)
-
-        areq = self.handle_oidc_request(areq, redirect_uri)
+        areq = self.handle_oidc_request(info["areq"], info["redirect_uri"])
         if isinstance(areq, Response):
             return areq
+
         logger.debug("AuthzRequest+oidc_request: %s" % (areq.to_dict(),))
 
         _cid = areq["client_id"]
@@ -683,72 +622,20 @@ class Provider(AProvider):
                     sid = self.setup_session(areq, authn_event, cinfo)
                     return self.authz_part2(authn_event.uid, areq, sid)
 
-        authn, authn_class_ref = self.pick_auth(areq)
-        if not authn:
-            authn, authn_class_ref = self.pick_auth(areq, "better")
-            if not authn:
-                authn, authn_class_ref = self.pick_auth(areq, "any")
+            kwargs["req_user"] = req_user
 
-        try:
-            try:
-                _auth_info = kwargs["authn"]
-            except KeyError:
-                _auth_info = ""
-            identity, _ts = authn.authenticated_as(
-                cookie, authorization=_auth_info, max_age=self.max_age(areq))
-        except (NoSuchAuthentication, ToOld, TamperAllert):
-            identity = None
+        authnres = self.do_auth(info["areq"], info["redirect_uri"],
+                                cinfo, request, cookie, **kwargs)
 
-        # gather information to be used by the authentication method
-        authn_args = {"query": request,
-                      "as_user": req_user,
-                      "authn_class_ref": authn_class_ref}
+        if isinstance(authnres, Response):
+            return authnres
 
-        for attr in ["policy_uri", "logo_uri", "tos_uri"]:
-            try:
-                authn_args[attr] = cinfo[attr]
-            except KeyError:
-                pass
-
-        for attr in ["ui_locales", "acr_values"]:
-            try:
-                authn_args[attr] = areq[attr]
-            except KeyError:
-                pass
-
-        # To authenticate or Not
-        if identity is None:  # No!
-            if "prompt" in areq and "none" in areq["prompt"]:
-                # Need to authenticate but not allowed
-                return self._redirect_authz_error(
-                    "login_required", redirect_uri,
-                    return_type=areq["response_type"])
-            else:
-                return authn(**authn_args)
-        else:
-            if self.re_authenticate(areq, authn):
-                # demand re-authentication
-                return authn(**authn_args)
-            else:
-                # I get back a dictionary
-                user = identity["uid"]
-                if req_user and req_user != user:
-                    logger.debug("Wanted to be someone else!")
-                    if "prompt" in areq and "none" in areq["prompt"]:
-                        # Need to authenticate but not allowed
-                        return self._redirect_authz_error("login_required",
-                                                          redirect_uri)
-                    else:
-                        return authn(**authn_args)
-
-        authn_event = AuthnEvent(identity["uid"], authn_info=authn_class_ref,
-                                 time_stamp=_ts)
 
         logger.debug("- authenticated -")
         logger.debug("AREQ keys: %s" % areq.keys())
 
-        sid = self.setup_session(areq, authn_event, cinfo)
-        return self.authz_part2(user, areq, sid, cookie=cookie)
+        sid = self.setup_session(areq, authnres["authn_event"], cinfo)
+        return self.authz_part2(authnres["user"], areq, sid, cookie=cookie)
 
     def userinfo_in_id_token_claims(self, session):
         """
@@ -1671,109 +1558,44 @@ class Provider(AProvider):
         return Response(_response.to_json(), content="application/json",
                         headers=headers)
 
-    def authz_part2(self, user, areq, sid, **kwargs):
-        """
-        After the authentication this is where you should end up
-        """
-        _log_debug = logger.debug
-        _log_debug("- in authenticated() -")
-
-        # Do the authorization
-        try:
-            permission = self.authz(user, client_id=areq['client_id'])
-            self.sdb.update(sid, "permission", permission)
-        except Exception:
-            raise
-
-        _log_debug("response type: %s" % areq["response_type"])
-
-        # create the response
-        aresp = AuthorizationResponse()
-        try:
-            aresp["state"] = areq["state"]
-        except KeyError:
-            pass
-
-        if "response_type" in areq and \
-                        len(areq["response_type"]) == 1 and \
-                        "none" in areq["response_type"]:
-            fragment_enc = False
-        else:
-            if self.sdb.is_revoked(sid):
-                return self._error(error="access_denied",
-                                   descr="Token is revoked")
-
+    def auth_resp_extension(self, aresp, areq, sid, rtype):
+        if "id_token" in areq["response_type"]:
             _sinfo = self.sdb[sid]
 
-            try:
-                aresp["scope"] = areq["scope"]
-            except KeyError:
-                pass
-
-            _log_debug("_dic: %s" % _sinfo)
-
-            rtype = set(areq["response_type"][:])
-            if len(rtype) == 1 and "code" in rtype:
-                fragment_enc = False
-            else:
-                fragment_enc = True
-
             if "code" in areq["response_type"]:
-                #if issue_new_code:
-                #    scode = self.sdb.duplicate(_sinfo)
-                #    _sinfo = self.sdb[scode]
-
                 _code = aresp["code"] = _sinfo["code"]
                 rtype.remove("code")
             else:
-                self.sdb[sid]["code"] = None
+                _sinfo[sid]["code"] = None
                 _code = None
-
-            if "token" in rtype:
-                _dic = self.sdb.upgrade_to_token(issue_refresh=False, key=sid)
-
-                _log_debug("_dic: %s" % _dic)
-                for key, val in _dic.items():
-                    if key in aresp.parameters() and val is not None:
-                        aresp[key] = val
-
-                rtype.remove("token")
 
             try:
                 _access_token = aresp["access_token"]
             except KeyError:
                 _access_token = None
 
-            if "id_token" in areq["response_type"]:
-                user_info = self.userinfo_in_id_token_claims(_sinfo)
-                client_info = self.cdb[areq["client_id"]]
+            user_info = self.userinfo_in_id_token_claims(_sinfo)
+            client_info = self.cdb[areq["client_id"]]
 
-                hargs = {}
-                if set(areq["response_type"]) == {'code', 'id_token', 'token'}:
-                    hargs = {"code": _code, "access_token": _access_token}
-                elif set(areq["response_type"]) == {'code', 'id_token'}:
-                    hargs = {"code": _code}
-                elif set(areq["response_type"]) == {'id_token', 'token'}:
-                    hargs = {"access_token": _access_token}
+            hargs = {}
+            if set(areq["response_type"]) == {'code', 'id_token', 'token'}:
+                hargs = {"code": _code, "access_token": _access_token}
+            elif set(areq["response_type"]) == {'code', 'id_token'}:
+                hargs = {"code": _code}
+            elif set(areq["response_type"]) == {'id_token', 'token'}:
+                hargs = {"access_token": _access_token}
 
-                # or 'code id_token'
-                id_token = self.sign_encrypt_id_token(
-                    _sinfo, client_info, areq, user_info=user_info, **hargs)
+            # or 'code id_token'
+            id_token = self.sign_encrypt_id_token(
+                _sinfo, client_info, areq, user_info=user_info, **hargs)
 
-                aresp["id_token"] = id_token
-                _sinfo["id_token"] = id_token
-                rtype.remove("id_token")
+            aresp["id_token"] = id_token
+            _sinfo["id_token"] = id_token
+            rtype.remove("id_token")
 
-            if len(rtype):
-                return BadRequest("Unknown response type: %s" % rtype)
+        return aresp
 
-        try:
-            redirect_uri = self.get_redirect_uri(areq)
-        except (RedirectURIError, ParameterError), err:
-            return BadRequest("%s" % err)
-
-        # Must not use HTTP unless implicit grant type and native application
-
+    def aresp_check(self, aresp, areq):
         # Use of the nonce is REQUIRED for all requests where an ID Token is
         # returned directly from the Authorization Endpoint
         if "id_token" in aresp:
@@ -1781,40 +1603,111 @@ class Provider(AProvider):
                 assert "nonce" in areq
             except AssertionError:
                 return self._error("invalid_request", "Missing nonce value")
+        return None
 
-        headers = []
-        try:
-            _kaka = kwargs["cookie"]
-        except KeyError:
-            pass
-        else:
-            if _kaka and not _kaka.startswith("pyoidc="):
-                headers = [(self.cookie_func(user, typ="sso",
-                                             ttl=self.sso_ttl))]
+    def response_mode(self, areq, fragment_enc, aresp, redirect_uri, headers):
+        resp_mode = areq["response_mode"]
+        if resp_mode == "form_post":
+            argv = {"form_args": aresp.to_dict(),
+                    "action": redirect_uri}
+            mte = self.template_lookup.get_template(
+                self.template["form_post"])
+            return Response(mte.render(**argv), headers=headers)
+        elif resp_mode == 'fragment' and not fragment_enc:
+            # Can't be done
+            return self._error("invalid_request", "wrong response_mode")
+        elif resp_mode == 'query' and fragment_enc:
+            # Can't be done
+            return self._error("invalid_request", "wrong response_mode")
+        return None
 
-        # Now about the response_mode. Should not be set if it's obvious
-        # from the response_type. Knows about 'query', 'fragment' and
-        # 'form_post'.
-
-        if "response_mode" in areq:
-            resp_mode = areq["response_mode"]
-            if resp_mode == "form_post":
-                argv = {"form_args": aresp.to_dict(),
-                        "action": redirect_uri}
-                mte = self.template_lookup.get_template(
-                    self.template["form_post"])
-                return Response(mte.render(**argv), headers=headers)
-            elif resp_mode == 'fragment' and not fragment_enc:
-                # Can't be done
-                return self._error("invalid_request", "wrong response_mode")
-            elif resp_mode == 'query' and fragment_enc:
-                # Can't be done
-                return self._error("invalid_request", "wrong response_mode")
-
-        # Just do whatever is the default
-        location = aresp.request(redirect_uri, fragment_enc)
-        logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
-        return Redirect(str(location), headers=headers)
+    # def authz_part2(self, user, areq, sid, **kwargs):
+    #     """
+    #     After the authentication this is where you should end up
+    #     """
+    #     _log_debug = logger.debug
+    #     _log_debug("- in authenticated() -")
+    #
+    #     # Do the authorization
+    #     try:
+    #         permission = self.authz(user, client_id=areq['client_id'])
+    #         self.sdb.update(sid, "permission", permission)
+    #     except Exception:
+    #         raise
+    #
+    #     _log_debug("response type: %s" % areq["response_type"])
+    #
+    #     # create the response
+    #     aresp = AuthorizationResponse()
+    #     try:
+    #         aresp["state"] = areq["state"]
+    #     except KeyError:
+    #         pass
+    #
+    #     if "response_type" in areq and areq["response_type"] == ["none"]:
+    #         fragment_enc = False
+    #     else:
+    #         if self.sdb.is_revoked(sid):
+    #             return self._error(error="access_denied",
+    #                                descr="Token is revoked")
+    #
+    #         try:
+    #             aresp["scope"] = areq["scope"]
+    #         except KeyError:
+    #             pass
+    #
+    #         rtype = set(areq["response_type"][:])
+    #         if len(rtype) == 1 and "code" in rtype:
+    #             fragment_enc = False
+    #         else:
+    #             fragment_enc = True
+    #
+    #         if "token" in rtype:
+    #             _dic = self.sdb.upgrade_to_token(issue_refresh=False, key=sid)
+    #
+    #             _log_debug("_dic: %s" % _dic)
+    #             for key, val in _dic.items():
+    #                 if key in aresp.parameters() and val is not None:
+    #                     aresp[key] = val
+    #
+    #             rtype.remove("token")
+    #
+    #         aresp = self.auth_resp_extension(aresp, areq, sid, rtype)
+    #
+    #         if len(rtype):
+    #             return BadRequest("Unknown response type: %s" % rtype)
+    #
+    #     try:
+    #         redirect_uri = self.get_redirect_uri(areq)
+    #     except (RedirectURIError, ParameterError), err:
+    #         return BadRequest("%s" % err)
+    #
+    #     # Must not use HTTP unless implicit grant type and native application
+    #
+    #     info = self.aresp_check(aresp, areq)
+    #     if isinstance(info, Response):
+    #         return info
+    #
+    #     headers = []
+    #     try:
+    #         _kaka = kwargs["cookie"]
+    #     except KeyError:
+    #         pass
+    #     else:
+    #         if _kaka and not _kaka.startswith("pyoidc="):
+    #             headers = [(self.cookie_func(user, typ="sso",
+    #                                          ttl=self.sso_ttl))]
+    #
+    #     # Now about the response_mode. Should not be set if it's obvious
+    #     # from the response_type. Knows about 'query', 'fragment' and
+    #     # 'form_post'.
+    #
+    #     if "response_mode" in areq:
+    #
+    #     # Just do whatever is the default
+    #     location = aresp.request(redirect_uri, fragment_enc)
+    #     logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
+    #     return Redirect(str(location), headers=headers)
 
     def key_setup(self, local_path, vault="keys", sig=None, enc=None):
         """
