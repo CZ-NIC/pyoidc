@@ -672,6 +672,9 @@ class Message(object):
     def items(self):
         return self._dict.items()
 
+    def values(self):
+        return self._dict.values()
+
     def __contains__(self, item):
         return item in self._dict
 
