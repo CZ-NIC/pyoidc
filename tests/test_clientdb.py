@@ -4,7 +4,8 @@ import unittest
 import httpretty
 import pytest
 
-from oic.utils.clientdb import MDQClient, NoClientInfoReceived
+from oic.utils.clientdb import MDQClient
+from oic.utils.clientdb import NoClientInfoReceived
 
 
 class TestMDQClient(unittest.TestCase):

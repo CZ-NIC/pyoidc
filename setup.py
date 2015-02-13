@@ -63,7 +63,7 @@ setup(
         "requests", "pycrypto>=2.6.1", "pyjwkest>=0.5.1",
         "mako", "beaker", "alabaster", "pyOpenSSL",
         "python-ldap"] + extra_install_requires,
-    tests_require=['pytest', 'httpretty'],
+    tests_require=['pytest', 'httpretty', 'requests'],
     zip_safe=False,
     cmdclass={'test': PyTest},
 )
