@@ -4,7 +4,7 @@ import urllib
 import requests
 
 
-class NoClientInfoReceived(Exception):
+class NoClientInfoReceivedError(Exception):
     pass
 
 
@@ -14,9 +14,13 @@ class MDQClient(object):
 
     def __getitem__(self, item):
         mdx_url = "{}/entities/{}".format(self.url, urllib.quote(item, safe=''))
-        response = requests.request("GET", mdx_url, headers={'Accept': 'application/json',
-                                                             'Accept-Encoding': 'gzip'})
+        try:
+            response = requests.request("GET", mdx_url, headers={'Accept': 'application/json',
+                                                                 'Accept-Encoding': 'gzip'})
+        except requests.exceptions.RequestException as e:
+            raise NoClientInfoReceivedError(str(e))
+
         if response.status_code == 200:
             return json.loads(response.text)
         else:
-            raise NoClientInfoReceived("{} {}".format(response.status_code, response.reason))
+            raise NoClientInfoReceivedError("{} {}".format(response.status_code, response.reason))
