@@ -206,7 +206,7 @@ class ClaimsClient(Client):
         else:
             http_args.update(http_args)
 
-        #        http_args = self.init_authentication_method(csi, "bearer_header",
+        # http_args = self.init_authentication_method(csi, "bearer_header",
         #                                                    request_args)
 
         return self.request_and_return(url, request_resp, method, body,

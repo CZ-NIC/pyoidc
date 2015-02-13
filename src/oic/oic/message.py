@@ -96,6 +96,14 @@ def claims_deser(val, sformat="urlencoded"):
     return Claims().deserialize(val, sformat)
 
 
+def message_deser(val, sformat="urlencoded"):
+    if sformat in ["dict", "json"]:
+        if not isinstance(val, basestring):
+            val = json.dumps(val)
+            sformat = "json"
+    return Message().deserialize(val, sformat)
+
+
 def msg_ser(inst, sformat, lev=0):
     if sformat in ["urlencoded", "json"]:
         if isinstance(inst, dict) or isinstance(inst, Message):
@@ -200,6 +208,8 @@ SINGLE_OPTIONAL_REGISTRATION_REQUEST = (Message, False, msg_ser,
                                         registration_request_deser, False)
 SINGLE_OPTIONAL_CLAIMSREQ = (Message, False, msg_ser_json, claims_request_deser,
                              False)
+
+OPTIONAL_MESSAGE = (Message, False, msg_ser, message_deser, False)
 
 # ----------------------------------------------------------------------------
 
@@ -470,8 +480,8 @@ class OpenIDSchema(Message):
                "phone_number_verified": SINGLE_OPTIONAL_STRING,
                "address": OPTIONAL_ADDRESS,
                "updated_at": SINGLE_OPTIONAL_INT,
-               "_claim_names": SINGLE_OPTIONAL_JSON,
-               "_claim_sources": SINGLE_OPTIONAL_JSON}
+               "_claim_names": OPTIONAL_MESSAGE,
+               "_claim_sources": OPTIONAL_MESSAGE}
 
     def verify(self, **kwargs):
         if "birthdate" in self:
