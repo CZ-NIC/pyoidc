@@ -94,6 +94,10 @@ class AuthnToOld(PyoidcError):
     pass
 
 
+class NoClientInfoReceivedError(PyoidcError):
+    pass
+
+
 def rndstr(size=16):
     """
     Returns a string of random ascii characters or digits

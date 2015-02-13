@@ -4,8 +4,8 @@ import unittest
 import httpretty
 import pytest
 
+from oic.oauth2 import NoClientInfoReceivedError
 from oic.utils.clientdb import MDQClient
-from oic.utils.clientdb import NoClientInfoReceived
 
 
 class TestMDQClient(unittest.TestCase):
@@ -24,7 +24,8 @@ class TestMDQClient(unittest.TestCase):
         response_body = json.dumps(metadata)
 
         httpretty.register_uri(httpretty.GET,
-                               TestMDQClient.MDX_URL.format(client_id=TestMDQClient.CLIENT_ID),
+                               TestMDQClient.MDX_URL.format(
+                                   client_id=TestMDQClient.CLIENT_ID),
                                body=response_body,
                                content_type="application/json")
 
@@ -38,5 +39,5 @@ class TestMDQClient(unittest.TestCase):
                                TestMDQClient.MDX_URL.format(client_id=TestMDQClient.CLIENT_ID),
                                status=404)
 
-        with pytest.raises(NoClientInfoReceived):
+        with pytest.raises(NoClientInfoReceivedError):
             self.md[TestMDQClient.CLIENT_ID]
