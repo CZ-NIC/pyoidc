@@ -10,13 +10,8 @@ class MDQClient(object):
 
     def __getitem__(self, item):
         mdx_url = "{}/entities/{}".format(self.url, urllib.quote(item, safe=''))
-        try:
-            response = requests.request("GET", mdx_url,
-                                        headers={'Accept': 'application/json',
-                                                 'Accept-Encoding': 'gzip'})
-        except requests.exceptions.RequestException as e:
-            raise NoClientInfoReceivedError(str(e))
-
+        response = requests.request("GET", mdx_url, headers={'Accept': 'application/json',
+                                                             'Accept-Encoding': 'gzip'})
         if response.status_code == 200:
             return json.loads(response.text)
         else:
