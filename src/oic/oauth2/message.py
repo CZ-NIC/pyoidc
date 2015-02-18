@@ -507,11 +507,13 @@ class Message(object):
                 except KeyError:
                     pass
 
-
             if keyjar:
                 dkeys = keyjar.get_decrypt_key(owner="")
+            elif key:
+                dkeys = key
             else:
-                dkeys = {}
+                dkeys = []
+
             txt = JWE().decrypt(txt, dkeys)
             try:
                 jso = json.loads(txt)
