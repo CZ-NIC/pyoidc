@@ -753,6 +753,14 @@ class Message(object):
     def copy(self):
         return copy.deepcopy(self)
 
+    def weed(self):
+        """
+        Get rid of key value pairs that are not standard
+        """
+        _ext = [k for k in self._dict.keys() if k not in self.c_param]
+        for k in _ext:
+            del self._dict[k]
+
 
 # =============================================================================
 
