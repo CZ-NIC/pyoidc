@@ -142,10 +142,10 @@ class AuthnEvent(object):
         self.authn_info = authn_info
 
     def valid(self):
-        return self.valid_until > int(time.time())
+        return self.valid_until > utc_now()
 
     def valid_for(self):
-        return self.valid_until - int(time.time())
+        return self.valid_until - utc_now()
 
 
 class SessionDB(object):
