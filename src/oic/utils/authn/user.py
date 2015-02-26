@@ -6,7 +6,6 @@ from urllib import urlencode
 import urllib
 from urlparse import parse_qs
 from urlparse import urlsplit
-from oic.utils.time_util import utc_now
 from oic.exception import PyoidcError
 
 from oic.utils import aes
@@ -349,7 +348,7 @@ class BasicAuthn(UserAuthnMethod):
         (user, pwd) = base64.b64decode(authorization).split(":")
         user = urllib.unquote(user)
         self.verify_password(user, pwd)
-        return {"uid": user}, utc_now()
+        return {"uid": user}, time.time()
 
 
 class SymKeyAuthn(UserAuthnMethod):
@@ -373,7 +372,7 @@ class SymKeyAuthn(UserAuthnMethod):
         except (AssertionError, KeyError):
             raise FailedAuthentication("Decryption failed")
 
-        return {"uid": user}, utc_now()
+        return {"uid": user}, time.time()
 
 
 class NoAuthn(UserAuthnMethod):
@@ -393,4 +392,4 @@ class NoAuthn(UserAuthnMethod):
         :return:
         """
 
-        return {"uid": self.user}, utc_now()
+        return {"uid": self.user}, time.time()

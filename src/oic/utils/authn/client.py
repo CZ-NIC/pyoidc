@@ -3,6 +3,7 @@ import base64
 from jwkest import Invalid
 from jwkest import MissingKey
 from jwkest.jws import alg2keytype
+import time
 
 from oic.exception import UnknownAssertionType
 from oic.exception import NotForMe
@@ -12,7 +13,6 @@ from oic.oic import REQUEST2ENDPOINT
 from oic.oic import DEF_SIGN_ALG
 from oic.oic import AuthnToken
 from oic.oic import JWT_BEARER
-from oic.utils.time_util import utc_now
 
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ class NoMatchingKey(Exception):
 
 # ========================================================================
 def assertion_jwt(cli, keys, audience, algorithm):
-    _now = utc_now()
+    _now = time.time()
 
     at = AuthnToken(iss=cli.client_id, sub=cli.client_id,
                     aud=audience, jti=rndstr(8),

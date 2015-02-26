@@ -1,5 +1,5 @@
 from mako.lookup import TemplateLookup
-from oic.utils.time_util import utc_now
+import time
 from oic.oauth2 import rndstr
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
@@ -71,7 +71,7 @@ class DummyAuthn(UserAuthnMethod):
         self.user = user
 
     def authenticated_as(self, cookie=None, **kwargs):
-        return {"uid": self.user}, utc_now()
+        return {"uid": self.user}, time.time()
 
 AUTHN_BROKER = AuthnBroker()
 AUTHN_BROKER.add("UNDEFINED", DummyAuthn(None, "username"))

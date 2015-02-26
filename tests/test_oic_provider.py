@@ -36,7 +36,7 @@ from oic.oic import make_openid_request
 from oic.oic.consumer import Consumer
 from oic.oic.provider import Provider
 
-from oic.utils.time_util import epoch_in_a_while, utc_now
+from oic.utils.time_util import epoch_in_a_while
 
 __author__ = 'rohe0002'
 
@@ -146,7 +146,7 @@ class DummyAuthn(UserAuthnMethod):
         if cookie == "FAIL":
             return None, 0
         else:
-            return {"uid": self.user}, utc_now()
+            return {"uid": self.user}, time.time()
 
 
 #AUTHN = UsernamePasswordMako(None, "login.mako", tl, PASSWD, "authenticated")

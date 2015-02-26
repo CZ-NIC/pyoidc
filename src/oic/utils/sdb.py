@@ -14,7 +14,7 @@ import base64
 import logging
 
 from oic.oauth2 import rndstr
-from oic.utils.time_util import utc_time_sans_frac, utc_now
+from oic.utils.time_util import utc_time_sans_frac
 
 from Crypto.Cipher import AES
 
@@ -137,15 +137,15 @@ class AuthnEvent(object):
         :return:
         """
         self.uid = uid
-        self.authn_time = int(time_stamp) or utc_now()
+        self.authn_time = int(time_stamp) or time.time()
         self.valid_until = self.authn_time + int(valid)
         self.authn_info = authn_info
 
     def valid(self):
-        return self.valid_until > utc_now()
+        return self.valid_until > time.time()
 
     def valid_for(self):
-        return self.valid_until - utc_now()
+        return self.valid_until - time.time()
 
 
 class SessionDB(object):
