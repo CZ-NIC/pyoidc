@@ -214,6 +214,9 @@ class KeyBundle(object):
 
         return self._keys
 
+    def available_keys(self):
+        return self._keys
+
     def remove_key(self, typ, val=None):
         """
 
