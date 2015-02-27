@@ -1,6 +1,6 @@
 import json
 import os
-from time import sleep
+from time import sleep, time
 
 from mako.lookup import TemplateLookup
 from oic.oauth2 import rndstr
@@ -146,7 +146,7 @@ class DummyAuthn(UserAuthnMethod):
         if cookie == "FAIL":
             return None, 0
         else:
-            return {"uid": self.user}, time.time()
+            return {"uid": self.user}, time()
 
 
 #AUTHN = UsernamePasswordMako(None, "login.mako", tl, PASSWD, "authenticated")
