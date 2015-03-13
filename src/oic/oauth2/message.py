@@ -122,7 +122,8 @@ class Message(object):
     def __init__(self, **kwargs):
         self._dict = self.c_default.copy()
         self.lax = False
-        self.jwt_header = None
+        self.jws_header = None
+        self.jwe_header = None
         self.from_dict(kwargs)
         self.verify_ssl = True
 
@@ -515,6 +516,7 @@ class Message(object):
                 dkeys = []
 
             txt = JWE().decrypt(txt, dkeys)
+            self.jwe_header = header
             try:
                 jso = json.loads(txt)
             except Exception:
@@ -538,6 +540,7 @@ class Message(object):
                 if isinstance(jso, basestring):
                     jso = json.loads(jso)
 
+                logger.debug("Raw JSON: %s" % jso)
                 if header["alg"] == "none":
                     pass
                 else:
@@ -588,8 +591,8 @@ class Message(object):
                         _jws.verify_compact(txt, key)
             except Exception:
                 raise
-
-        self.jwt_header = header
+            else:
+                self.jws_header = header
         return self.from_dict(jso)
 
     def __str__(self):
