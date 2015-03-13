@@ -235,7 +235,7 @@ def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp=""):
     """
     cookie = SimpleCookie()
     if not timestamp:
-        timestamp = str(int(time.mktime(time.gmtime())))
+        timestamp = str(int(time.time()))
     signature = cookie_signature(seed, load, timestamp)
     cookie[name] = "|".join([load, timestamp, signature])
     if path:
@@ -399,7 +399,7 @@ class CookieDealer(object):
             ttl = self.cookie_ttl
         if cookie_name is None:
             cookie_name = self.srv.cookie_name
-        timestamp = str(int(time.mktime(time.gmtime())))
+        timestamp = str(int(time.time()))
         _msg = "::".join([value, timestamp, typ])
         if self.srv.symkey:
             # Pad the message to be multiples of 16 bytes in length
