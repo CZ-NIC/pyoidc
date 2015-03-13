@@ -161,6 +161,7 @@ class SessionDB(object):
         self.token_expires_in = token_expires_in
         self.grant_expires_in = grant_expires_in
         self.sub2sid = {}
+        self.uid2sid = {}
         self.seed = seed or secret
 
     def __getitem__(self, item):
@@ -296,6 +297,7 @@ class SessionDB(object):
             _dic["oidreq"] = oidreq.to_json()
 
         self._db[sid] = _dic
+        self.uid2sid[aevent.uid] = sid
 
         return sid
 
@@ -443,6 +445,10 @@ class SessionDB(object):
 
     def get_client_id(self, sub):
         _dict = self._db[self.sub2sid[sub]]
+        return _dict["client_id"]
+
+    def get_client_id_from_uid(self, uid):
+        _dict = self._db[self.uid2sid[uid]]
         return _dict["client_id"]
 
     def get_verified_Logout(self, sub):
