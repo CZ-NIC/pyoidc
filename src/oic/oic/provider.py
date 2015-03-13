@@ -157,7 +157,7 @@ class RegistrationEndpoint(Endpoint):
 
 
 class EndSessionEndpoint(Endpoint):
-    etype = "endsession"
+    etype = "end_session"
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"], ["token"], ["id_token"], ["code", "token"], ["code", "id_token"],
