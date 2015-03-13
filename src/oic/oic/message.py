@@ -302,7 +302,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
             if not idt.verify(**kwargs):
                 raise VerificationError("Could not verify id_token", idt)
 
-            _alg = idt.jwt_header["alg"]
+            _alg = idt.jws_header["alg"]
             # What if _alg == 'none'
 
             hfunc = "HS" + _alg[-3:]
