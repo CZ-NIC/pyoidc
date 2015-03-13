@@ -213,19 +213,19 @@ class SessionDB(object):
         (typ, key) = self.token.type_and_key(token)
         return self.update(key, attribute, value)
 
-    def do_sub(self, sid, sector_id="", preferred_id_type="public"):
+    def do_sub(self, sid, sector_id="", subject_type="public"):
         """
         Construct a sub (subject identifier)
 
         :param sid: Session identifier
         :param sector_id: Possible sector identifier
-        :param preferred_id_type: 'public'/'pairwise'
+        :param subject_type: 'public'/'pairwise'
         :return:
         """
         uid = self._db[sid]["authn_event"].uid
         
         old = [""]
-        if preferred_id_type == "public":
+        if subject_type == "public":
             sub = "%x" % hash(uid+self.base_url)
         else:
             sub = pairwise_id(uid, sector_id, self.seed)
