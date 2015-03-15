@@ -127,11 +127,11 @@ class LINK(Base):
 
 class JRD(Base):
     c_param = {
-        "expires": {"type": basestring, "required": False},
-        "subject": {"type": basestring, "required": True},
-        "aliases": {"type": (list, basestring), "required": False},
-        "properties": {"type": dict, "required": False},
-        "links": {"type": (list, LINK), "required": False},
+        "expires": {"type": basestring, "required": False},  # Optional
+        "subject": {"type": basestring, "required": False},  # Should
+        "aliases": {"type": (list, basestring), "required": False},  # Optional
+        "properties": {"type": dict, "required": False},  # Optional
+        "links": {"type": (list, LINK), "required": False},  # Optional
     }
 
     def __init__(self, dic=None, days=0, seconds=0, minutes=0, hours=0,
