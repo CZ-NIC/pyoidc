@@ -1050,12 +1050,16 @@ class Client(oauth2.Client):
         self.registration_response = reginfo
         if "token_endpoint_auth_method" not in self.registration_response:
             self.registration_response["token_endpoint_auth_method"] = "client_secret_post"
-        self.client_secret = reginfo["client_secret"]
         self.client_id = reginfo["client_id"]
         try:
-            self.registration_expires = reginfo["client_secret_expires_at"]
-        except KeyError:
+            self.client_secret = reginfo["client_secret"]
+        except KeyError:  # Not required
             pass
+        else:
+            try:
+                self.registration_expires = reginfo["client_secret_expires_at"]
+            except KeyError:
+                pass
         try:
             self.registration_access_token = reginfo[
                 "registration_access_token"]
