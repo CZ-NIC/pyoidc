@@ -16,7 +16,7 @@ ME = {
     "application_name": "idpproxy",
     "contacts": ["ops@example.com"],
     "redirect_uris": ["%sauthz_cb" % BASE],
-    "post_logout_redirect_uris": ["%slogout" % BASE],
+    "post_logout_redirect_uris": ["%slogout_success" % BASE],
     "response_types": ["code"]
 }
 

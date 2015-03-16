@@ -162,6 +162,8 @@ def application(environ, start_response):
         session.delete()
         resp = Redirect(str(logout_url))
         return resp(environ, start_response)
+    elif path == "logout_success":  # post_logout_redirect_uri
+        return Response("Logout successful!")(environ, start_response)
 
     return opchoice(environ, start_response, CLIENTS)
 
