@@ -190,6 +190,9 @@ class SessionDB(object):
         :param key: session identifier
         """
         del self._db[key]
+        # Delete the mappings for session id
+        self.sub2sid = {k: v for k, v in self.sub2sid.iteritems() if v != key}
+        self.uid2sid = {k: v for k, v in self.uid2sid.iteritems() if v != key}
 
     def keys(self):
         return self._db.keys()
@@ -224,7 +227,7 @@ class SessionDB(object):
         :return:
         """
         uid = self._db[sid]["authn_event"].uid
-        
+
         old = [""]
         if preferred_id_type == "public":
             sub = "%x" % hash(uid+self.base_url)
