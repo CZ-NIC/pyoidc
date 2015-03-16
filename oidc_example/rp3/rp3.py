@@ -99,13 +99,6 @@ def id_token_as_signed_jwt(client, id_token, alg="RS256"):
     _signed_jwt = id_token.to_jwt(key=ckey, algorithm=alg)
     return _signed_jwt
 
-
-def clear_session(session):
-    for key in session:
-        session.pop(key, None)
-    session.invalidate()
-
-
 def application(environ, start_response):
     session = environ['beaker.session']
     path = environ.get('PATH_INFO', '').lstrip('/')
@@ -143,7 +136,7 @@ def application(environ, start_response):
             return opresult(environ, start_response, userinfo)
     elif path == "logout":  # After the user has pressed the logout button
         client = CLIENTS[session["op"]]
-        logout_url = client.endsession_endpoint
+        logout_url = client.end_session_endpoint
         try:
             # Specify to which URL the OP should return the user after
             # log out. That URL must be registered with the OP at client
@@ -166,7 +159,7 @@ def application(environ, start_response):
 
         LOGGER.debug("Logout URL: %s" % str(logout_url))
         LOGGER.debug("Logging out from session: %s" % str(session))
-        clear_session(session)
+        session.delete()
         resp = Redirect(str(logout_url))
         return resp(environ, start_response)
 
@@ -191,7 +184,6 @@ if __name__ == '__main__':
         'session.type': 'memory',
         'session.cookie_expires': True,
         'session.auto': True,
-        'session.timeout': 900
     }
 
     CLIENTS = OIDCClients(conf)
