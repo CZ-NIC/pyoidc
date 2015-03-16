@@ -503,10 +503,13 @@ class Provider(AProvider):
 
     def end_session_endpoint(self, request="", cookie=None, **kwargs):
         esr = EndSessionRequest().from_urlencoded(request)
-        redirect_uri = self.verify_post_logout_redirect_uri(esr, cookie)
-        if not redirect_uri:
-            return self._error_response(
-                "Not allowed (Post logout redirect URI verification failed)!")
+
+        redirect_uri = None
+        if "post_logout_redirect_uri" in esr:
+            redirect_uri = self.verify_post_logout_redirect_uri(esr, cookie)
+            if not redirect_uri:
+                return self._error_response(
+                    "Not allowed (Post logout redirect URI verification failed)!")
 
         authn, acr = self.pick_auth(esr)
 
@@ -541,7 +544,7 @@ class Provider(AProvider):
         if redirect_uri is not None:
             return Redirect(str(redirect_uri), headers=[authn.delete_cookie()])
 
-        return Response("", headers=[authn.delete_cookie()])
+        return Response("Successful logout", headers=[authn.delete_cookie()])
 
     def verify_endpoint(self, request="", cookie=None, **kwargs):
         """
