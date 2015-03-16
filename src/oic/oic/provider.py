@@ -460,9 +460,10 @@ class Provider(AProvider):
         try:
             redirect_uri = areq["post_logout_redirect_uri"]
             authn, acr = self.pick_auth(areq)
-            uid, _ts = authn.authenticated_as(cookie)["uid"]
-            client_info = self.cdb[self.sdb.getClient_id(uid)]
-            if redirect_uri in client_info["post_logout_redirect_uris"]:
+            uid, _ts = authn.authenticated_as(cookie)
+            client_id = self.sdb.get_client_id_from_uid(uid["uid"])
+            client_info = self.cdb[client_id]
+            if self._verify_url(redirect_uri, client_info["post_logout_redirect_uris"]):
                 return redirect_uri
         except Exception as exc:
             logger.debug(
@@ -509,15 +510,24 @@ class Provider(AProvider):
 
         authn, acr = self.pick_auth(esr)
 
+        sid = None
         if "id_token_hint" in esr:
             id_token_hint = OpenIDRequest().from_jwt(esr["id_token_hint"],
                                                      keyjar=self.keyjar,
                                                      verify=True)
-            uid = id_token_hint["sub"]
+            sub = id_token_hint["sub"]
+            try:
+                sid = self.sdb.sub2sid[sub]
+            except KeyError:
+                pass
         else:
             identity, _ts = authn.authenticated_as(cookie)
             try:
                 uid = identity["uid"]
+                try:
+                    sid = self.sdb.uid2sid[uid]
+                except KeyError:
+                    pass
             except KeyError:
                 return self._error_response(
                     "Not allowed (UID could not be retrieved)!")
@@ -525,12 +535,7 @@ class Provider(AProvider):
         #if self.sdb.get_verified_logout(uid):
         #    return self.let_user_verify_logout(uid, esr, cookie, redirect_uri)
 
-        try:
-            sid = self.sdb.get_sid_from_userid(uid)
-        except KeyError:
-            pass
-            #If cleanup cannot be performed we will still invalidate the cookie.
-        else:
+        if sid is not None:
             del self.sdb[sid]
 
         if redirect_uri is not None:
