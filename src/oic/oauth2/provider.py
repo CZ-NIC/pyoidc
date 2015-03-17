@@ -775,3 +775,6 @@ class Provider(object):
         authn, acr = self.pick_auth(areq=areq)
         kwargs["cookie"] = cookie
         return authn.verify(_req, **kwargs)
+
+    def delete_session_cookie(self):
+        return make_cookie(self.session_cookie_name, "", "", path="/", expire=-1)

@@ -520,7 +520,7 @@ class Provider(AProvider):
                                                      verify=True)
             sub = id_token_hint["sub"]
             try:
-                sid = self.sdb.sub2sid[sub]
+                sid = self.sdb.sub2sid[sub][0]
             except KeyError:
                 pass
         else:
@@ -541,10 +541,13 @@ class Provider(AProvider):
         if sid is not None:
             del self.sdb[sid]
 
-        if redirect_uri is not None:
-            return Redirect(str(redirect_uri), headers=[authn.delete_cookie()])
+        # Delete cookies
+        headers = [authn.delete_cookie(), self.delete_session_cookie()]
 
-        return Response("Successful logout", headers=[authn.delete_cookie()])
+        if redirect_uri is not None:
+            return Redirect(str(redirect_uri), headers=headers)
+
+        return Response("Successful logout", headers=headers)
 
     def verify_endpoint(self, request="", cookie=None, **kwargs):
         """
