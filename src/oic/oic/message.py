@@ -344,7 +344,8 @@ class AuthorizationErrorResponse(message.AuthorizationErrorResponse):
                                       "invalid_request_uri",
                                       "invalid_request_object",
                                       "registration_not_supported",
-                                      "request_not_supported"])
+                                      "request_not_supported",
+                                      "request_uri_not_supported"])
 
 
 class AuthorizationRequest(message.AuthorizationRequest):
