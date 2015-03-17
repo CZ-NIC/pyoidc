@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import hashlib
 import traceback
 import sys
 import urllib
@@ -176,6 +177,8 @@ class Provider(object):
             "token": token_response,
             "none": none_response,
         }
+
+        self.session_cookie_name = "pyoic_session"
 
     def endpoints(self):
         for endp in self.endp:
@@ -666,14 +669,19 @@ class Provider(object):
             return info
 
         headers = []
+
+        if "check_session_iframe" in self.capabilities:
+            salt = rndstr()
+            aresp["session_state"] = hashlib.sha256(areq["client_id"] + " " + sid + "." + salt).hexdigest() + "." + salt
+            headers.append(make_cookie(self.session_cookie_name, sid, self.seed, path="/"))
+
         try:
             _kaka = kwargs["cookie"]
         except KeyError:
             pass
         else:
             if _kaka and not _kaka.startswith("pyoidc="):
-                headers = [(self.cookie_func(user, typ="sso",
-                                             ttl=self.sso_ttl))]
+                headers.append(self.cookie_func(user, typ="sso", ttl=self.sso_ttl))
 
         # Now about the response_mode. Should not be set if it's obvious
         # from the response_type. Knows about 'query', 'fragment' and
