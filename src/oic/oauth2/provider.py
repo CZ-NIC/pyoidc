@@ -672,7 +672,10 @@ class Provider(object):
 
         if "check_session_iframe" in self.capabilities:
             salt = rndstr()
-            aresp["session_state"] = hashlib.sha256(areq["client_id"] + " " + sid + "." + salt).hexdigest() + "." + salt
+            parsed_uri = urlparse.urlparse(redirect_uri)
+            rp_origin_url = "{uri.scheme}://{uri.netloc}".format(uri=parsed_uri)
+            aresp["session_state"] = hashlib.sha256(
+                areq["client_id"] + " " + rp_origin_url + " " + sid + " " + salt).hexdigest() + "." + salt
             headers.append(make_cookie(self.session_cookie_name, sid, self.seed, path="/"))
 
         try:
@@ -702,7 +705,7 @@ class Provider(object):
         """ Not implemented here """
         # if not self.subset(areq["scope"], _info["scope"]):
         # LOG_INFO("Asked for scope which is not subset of previous defined")
-        #     err = TokenErrorResponse(error="invalid_scope")
+        # err = TokenErrorResponse(error="invalid_scope")
         #     return Response(err.to_json(), content="application/json")
         return None
 
