@@ -211,7 +211,7 @@ def test_server_authorization_endpoint_request():
     ic = {"sub": {"value": "userX"}}
     _keys = server.keyjar.get_signing_key(key_type="RSA")
     req["request"] = make_openid_request(req, _keys, idtoken_claims=ic,
-                                         algorithm="RS256")
+                                         request_object_signing_alg="RS256")
 
     try:
         resp = server.authorization_endpoint(request=req.to_urlencoded())
@@ -764,4 +764,4 @@ def test_key_rollover():
     assert len(provider2.keyjar.issuer_keys[""]) == 2
 
 if __name__ == "__main__":
-    test_server_authenticated_none()
+    test_server_authorization_endpoint_request()
