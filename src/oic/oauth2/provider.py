@@ -551,7 +551,7 @@ class Provider(object):
             else:
                 # I get back a dictionary
                 user = identity["uid"]
-                if "req_user" in kwargs and kwargs["req_user"] != user:
+                if "req_user" in kwargs and user != self.sdb.get_authentication_event(self.sdb.sub2sid[kwargs["req_user"]][0]).uid:
                     logger.debug("Wanted to be someone else!")
                     if "prompt" in areq and "none" in areq["prompt"]:
                         # Need to authenticate but not allowed
@@ -672,11 +672,9 @@ class Provider(object):
 
         if "check_session_iframe" in self.capabilities:
             salt = rndstr()
-            parsed_uri = urlparse.urlparse(redirect_uri)
-            rp_origin_url = "{uri.scheme}://{uri.netloc}".format(uri=parsed_uri)
-            aresp["session_state"] = hashlib.sha256(
-                areq["client_id"] + " " + rp_origin_url + " " + sid + " " + salt).hexdigest() + "." + salt
-            headers.append(make_cookie(self.session_cookie_name, sid, self.seed, path="/"))
+            state = str(self.sdb.get_authentication_event(self.sdb.uid2sid[user]).authn_time)
+            aresp["session_state"] = self._compute_session_state(state, salt, areq["client_id"], redirect_uri)
+            headers.append(self.write_session_cookie(state))
 
         try:
             _kaka = kwargs["cookie"]
@@ -779,5 +777,14 @@ class Provider(object):
         kwargs["cookie"] = cookie
         return authn.verify(_req, **kwargs)
 
+    def write_session_cookie(self, value):
+        return make_cookie(self.session_cookie_name, value, self.seed, path="/")
+
     def delete_session_cookie(self):
         return make_cookie(self.session_cookie_name, "", "", path="/", expire=-1)
+
+    def _compute_session_state(self, state, salt, client_id, redirect_uri):
+        parsed_uri = urlparse.urlparse(redirect_uri)
+        rp_origin_url = "{uri.scheme}://{uri.netloc}".format(uri=parsed_uri)
+        session_str = client_id + " " + rp_origin_url + " " + state + " " + salt
+        return hashlib.sha256(session_str).hexdigest() + "." + salt
