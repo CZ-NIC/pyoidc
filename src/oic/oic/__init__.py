@@ -1,8 +1,3 @@
-from jwkest.jwe import JWE
-
-from oic.utils.keyio import KeyJar
-
-
 __author__ = 'rohe0002'
 
 import urlparse
@@ -10,6 +5,7 @@ import json
 import logging
 import os
 
+from jwkest.jwe import JWE
 from oic.oauth2.message import ErrorResponse
 
 from oic.oic.message import IdToken, ClaimsRequest
@@ -50,7 +46,7 @@ from oic.exception import PyoidcError
 from oic.exception import MissingParameter
 
 from oic.utils import time_util
-
+from oic.utils.keyio import KeyJar
 from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.webfinger import WebFinger
 
@@ -138,7 +134,7 @@ def deser_id_token(inst, txt=""):
 
 # -----------------------------------------------------------------------------
 def make_openid_request(arq, keys=None, userinfo_claims=None,
-                        idtoken_claims=None, algorithm=None,
+                        idtoken_claims=None, request_object_signing_alg=None,
                         **kwargs):
     """
     Construct the specification of what I want returned.
@@ -148,7 +144,7 @@ def make_openid_request(arq, keys=None, userinfo_claims=None,
     :param keys: Keys to use for signing/encrypting
     :param userinfo_claims: UserInfo claims
     :param idtoken_claims: IdToken claims
-    :param algorithm: Which signing/encrypting algorithm to use
+    :param request_object_signing_alg: Which signing algorithm to use
     :return: JWT encoded OpenID request
     """
 
@@ -177,7 +173,7 @@ def make_openid_request(arq, keys=None, userinfo_claims=None,
 
     oir = OpenIDRequest(**oir_args)
 
-    return oir.to_jwt(key=keys, algorithm=algorithm)
+    return oir.to_jwt(key=keys, algorithm=request_object_signing_alg)
 
 
 class Token(oauth2.Token):
@@ -332,29 +328,41 @@ class Client(oauth2.Client):
 
     def request_object_encryption(self, msg, **kwargs):
         try:
-            encalg = self.behaviour["request_object_encryption_alg"]
+            encalg = kwargs["request_object_encryption_alg"]
         except KeyError:
-            return msg
-        else:
-            encenc = self.behaviour["request_object_encryption_enc"]
-            _jwe = JWE(msg, alg=encalg, enc=encenc)
-            _kty = jwe.alg2keytype(encalg)
-
             try:
-                _kid = kwargs["enc_kid"]
+                encalg = self.behaviour["request_object_encryption_alg"]
             except KeyError:
-                try:
-                    _kid = self.kid["enc"][_kty]
-                except KeyError:
-                    _kid = ""
+                return msg
 
-            if _kid:
-                _jwe["keys"] = self.keyjar.get_encrypt_key(_kty, kid=_kid)
-                _jwe["kid"] = _kid
-            else:
-                _jwe["keys"] = self.keyjar.get_signing_key(_kty)
+        try:
+            encenc = kwargs["request_object_encryption_enc"]
+        except KeyError:
+            try:
+                encenc = self.behaviour["request_object_encryption_enc"]
+            except KeyError:
+                raise MissingRequiredAttribute(
+                    "No request_object_encryption_enc specified")
 
-        return _jwe.encrypt(self.keyjar)
+        _jwe = JWE(msg, alg=encalg, enc=encenc)
+        _kty = jwe.alg2keytype(encalg)
+
+        try:
+            _kid = kwargs["enc_kid"]
+        except KeyError:
+            _kid = ""
+
+        if "target" not in kwargs:
+            raise MissingRequiredAttribute("No target specified")
+
+        if _kid:
+            _keys = self.keyjar.get_encrypt_key(_kty, owner=kwargs["target"],
+                                                kid=_kid)
+            _jwe["kid"] = _kid
+        else:
+            _keys = self.keyjar.get_encrypt_key(_kty, owner=kwargs["target"])
+
+        return _jwe.encrypt(_keys)
 
     def construct_AuthorizationRequest(self, request=AuthorizationRequest,
                                        request_args=None, extra_args=None,
@@ -387,15 +395,22 @@ class Client(oauth2.Client):
                                                             **kwargs)
 
         if request_param:
-            if "algorithm" in kwargs:  # Trumps everything
-                alg = kwargs["algorithm"]
-            else:
+            alg = None
+            for arg in ["request_object_signing_alg", "algorithm"]:
+                try:  # Trumps everything
+                    alg = kwargs[arg]
+                except KeyError:
+                    pass
+                else:
+                    break
+
+            if not alg:
                 try:
                     alg = self.behaviour["request_object_signing_alg"]
                 except KeyError:
-                    alg = None
-                else:
-                    kwargs["algorithm"] = alg
+                    alg = "none"
+
+            kwargs["request_object_signing_alg"] = alg
 
             if "keys" not in kwargs and alg and alg != "none":
                 _kty = jws.alg2keytype(alg)
@@ -1179,7 +1194,7 @@ class Client(oauth2.Client):
 
         :param id_token: The ID Token tp check
         :param nonce: The nonce specified in the authorization request
-        :param acrs: Asked for acr values
+        :param acr_values: Asked for acr values
         :param auth_time: An auth_time claim
         :param max_age: Max age of authentication
         """
