@@ -446,13 +446,12 @@ class SessionDB(object):
 
         self._db[sid]["revoked"] = True
 
-    def get_client_id(self, sub):
-        _dict = self._db[self.sub2sid[sub]]
+    def get_client_id(self, sid):
+        _dict = self._db[sid]
         return _dict["client_id"]
 
     def get_client_id_from_uid(self, uid):
-        _dict = self._db[self.uid2sid[uid]]
-        return _dict["client_id"]
+        return self.get_client_id(self.uid2sid[uid])
 
     def get_verified_Logout(self, sub):
         _dict = self._db[self.sub2sid[sub]]
