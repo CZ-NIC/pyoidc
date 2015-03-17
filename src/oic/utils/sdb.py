@@ -191,8 +191,8 @@ class SessionDB(object):
         """
         del self._db[key]
         # Delete the mappings for session id
-        self.sub2sid = {k: v for k, v in self.sub2sid.iteritems() if v != key}
-        self.uid2sid = {k: v for k, v in self.uid2sid.iteritems() if v != key}
+        self.sub2sid = {k: v for k, v in self.sub2sid.iteritems() if key not in v}
+        self.uid2sid = {k: v for k, v in self.uid2sid.iteritems() if key != v}
 
     def keys(self):
         return self._db.keys()
