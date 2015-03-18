@@ -551,7 +551,8 @@ class Provider(object):
             else:
                 # I get back a dictionary
                 user = identity["uid"]
-                if "req_user" in kwargs and user != self.sdb.get_authentication_event(self.sdb.sub2sid[kwargs["req_user"]][0]).uid:
+                if "req_user" in kwargs and user != self.sdb.get_authentication_event(
+                        self.sdb.get_sids_from_sub(kwargs["req_user"])[-1]).uid:
                     logger.debug("Wanted to be someone else!")
                     if "prompt" in areq and "none" in areq["prompt"]:
                         # Need to authenticate but not allowed
@@ -686,7 +687,7 @@ class Provider(object):
         except KeyError:
             pass
         else:
-            if _kaka and self.cookie_name not in  _kaka: # Don't overwrite cookie
+            if _kaka and self.cookie_name not in _kaka:  # Don't overwrite cookie
                 headers.append(self.cookie_func(user, typ="sso", ttl=self.sso_ttl))
 
         # Now about the response_mode. Should not be set if it's obvious

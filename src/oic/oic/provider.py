@@ -623,7 +623,7 @@ class Provider(AProvider):
         req_user = self.required_user(areq)
         if req_user:
             try:
-                sids = self.sdb.sub2sid[req_user]
+                sids = self.sdb.get_sids_from_sub(req_user)
             except KeyError:
                 pass
             else:
@@ -658,7 +658,7 @@ class Provider(AProvider):
 
         if "check_session_iframe" in self.capabilities:
             salt = rndstr()
-            state = str(self.sdb.get_authentication_event(self.sdb.uid2sid[user][0]).authn_time)
+            state = str(self.sdb.get_authentication_event(self.sdb.uid2sid[user][-1]).authn_time) # use the last session
             aresp["session_state"] = self._compute_session_state(state, salt, areq["client_id"], redirect_uri)
             headers.append(self.write_session_cookie(state))
 
