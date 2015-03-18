@@ -672,7 +672,7 @@ class Provider(object):
 
         if "check_session_iframe" in self.capabilities:
             salt = rndstr()
-            state = str(self.sdb.get_authentication_event(self.sdb.uid2sid[user]).authn_time)
+            state = str(self.sdb.get_authentication_event(self.sdb.uid2sid[user][0]).authn_time)
             aresp["session_state"] = self._compute_session_state(state, salt, areq["client_id"], redirect_uri)
             headers.append(self.write_session_cookie(state))
 
@@ -681,7 +681,7 @@ class Provider(object):
         except KeyError:
             pass
         else:
-            if _kaka and not _kaka.startswith("pyoidc="):
+            if _kaka and self.cookie_name not in  _kaka: # Don't overwrite cookie
                 headers.append(self.cookie_func(user, typ="sso", ttl=self.sso_ttl))
 
         # Now about the response_mode. Should not be set if it's obvious
