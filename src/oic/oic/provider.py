@@ -3,6 +3,7 @@ import json
 import traceback
 import urllib
 import sys
+import itertools
 from jwkest.jwe import JWE
 from jwkest.jwk import SYMKey
 from oic.utils.authn.user import NoSuchAuthentication
@@ -461,9 +462,9 @@ class Provider(AProvider):
             redirect_uri = areq["post_logout_redirect_uri"]
             authn, acr = self.pick_auth(areq)
             uid, _ts = authn.authenticated_as(cookie)
-            client_id = self.sdb.get_client_id_from_uid(uid["uid"])
-            client_info = self.cdb[client_id]
-            if self._verify_url(redirect_uri, client_info["post_logout_redirect_uris"]):
+            client_ids = self.sdb.get_client_ids_for_uid(uid["uid"])
+            accepted_urls = [self.cdb[cid]["post_logout_redirect_uris"] for cid in client_ids]
+            if self._verify_url(redirect_uri, itertools.chain.from_iterable(accepted_urls)):
                 return redirect_uri
         except Exception as exc:
             logger.debug(
@@ -520,8 +521,8 @@ class Provider(AProvider):
                                                      verify=True)
             sub = id_token_hint["sub"]
             try:
-                sid = self.sdb.sub2sid[sub][0]
-            except KeyError:
+                sid = self.sdb.get_sids_from_sub(sub)[0] # any sid will do, choose the first
+            except IndexError:
                 pass
         else:
             identity, _ts = authn.authenticated_as(cookie)
