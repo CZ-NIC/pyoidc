@@ -635,6 +635,18 @@ class Provider(object):
         :param kwargs: possible other parameters
         :return: A redirect to the redirect_uri of the client
         """
+        result = self._complete_authz(user, areq, sid, **kwargs)
+        if isinstance(result, Response):
+            return result
+        else:
+            aresp, headers, redirect_uri, fragment_enc = result
+
+        # Just do whatever is the default
+        location = aresp.request(redirect_uri, fragment_enc)
+        logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
+        return Redirect(str(location), headers=headers)
+
+    def _complete_authz(self, user, areq, sid, **kwargs):
         _log_debug = logger.debug
         _log_debug("- in authenticated() -")
 
@@ -669,13 +681,6 @@ class Provider(object):
             return info
 
         headers = []
-
-        if "check_session_iframe" in self.capabilities:
-            salt = rndstr()
-            state = str(self.sdb.get_authentication_event(self.sdb.uid2sid[user][0]).authn_time)
-            aresp["session_state"] = self._compute_session_state(state, salt, areq["client_id"], redirect_uri)
-            headers.append(self.write_session_cookie(state))
-
         try:
             _kaka = kwargs["cookie"]
         except KeyError:
@@ -694,10 +699,7 @@ class Provider(object):
             if isinstance(resp, Response):
                 return resp
 
-        # Just do whatever is the default
-        location = aresp.request(redirect_uri, fragment_enc)
-        logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
-        return Redirect(str(location), headers=headers)
+        return aresp, headers, redirect_uri, fragment_enc
 
     def token_scope_check(self, areq, info):
         """ Not implemented here """

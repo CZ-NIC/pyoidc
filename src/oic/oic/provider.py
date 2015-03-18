@@ -649,6 +649,23 @@ class Provider(AProvider):
         sid = self.setup_session(areq, authnres["authn_event"], cinfo)
         return self.authz_part2(authnres["user"], areq, sid, cookie=cookie)
 
+    def authz_part2(self, user, areq, sid, **kwargs):
+        result = self._complete_authz(user, areq, sid, **kwargs)
+        if isinstance(result, Response):
+            return result
+        else:
+            aresp, headers, redirect_uri, fragment_enc = result
+
+        if "check_session_iframe" in self.capabilities:
+            salt = rndstr()
+            state = str(self.sdb.get_authentication_event(self.sdb.uid2sid[user][0]).authn_time)
+            aresp["session_state"] = self._compute_session_state(state, salt, areq["client_id"], redirect_uri)
+            headers.append(self.write_session_cookie(state))
+
+        location = aresp.request(redirect_uri, fragment_enc)
+        logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
+        return Redirect(str(location), headers=headers)
+
     def userinfo_in_id_token_claims(self, session):
         """
         Put userinfo claims in the id token
