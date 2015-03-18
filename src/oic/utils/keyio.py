@@ -273,7 +273,7 @@ def keybundle_from_local_file(filename, typ, usage):
         for use in usage[1:]:
             _k = RSAKey()
             _k.use = use
-            _k.key = k.key
+            _k.load_key(k.key)
             kb.append(_k)
     elif typ.lower() == "jwk":
         kb = KeyBundle(source=filename, fileformat="jwk", keyusage=usage)
