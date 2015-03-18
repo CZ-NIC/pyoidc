@@ -587,7 +587,7 @@ class Provider(AProvider):
 
         sid = self.sdb.create_authz_session(authn_event, areq, oidreq=oidc_req)
         kwargs = {}
-        for param in ["sector_id", "preferred_id_type"]:
+        for param in ["sector_id", "subject_type"]:
             try:
                 kwargs[param] = cinfo[param]
             except KeyError:
