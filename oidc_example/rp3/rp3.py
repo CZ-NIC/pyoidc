@@ -68,13 +68,16 @@ def opchoice(environ, start_response, clients):
     return resp(environ, start_response, **argv)
 
 
-def opresult(environ, start_response, userinfo):
+def opresult(environ, start_response, userinfo, check_session_iframe_url=None):
     resp = Response(mako_template="opresult.mako",
                     template_lookup=LOOKUP,
                     headers=[])
     argv = {
         "userinfo": userinfo,
     }
+    if check_session_iframe_url:
+        argv["check_session_iframe_url"] = check_session_iframe_url
+
     return resp(environ, start_response, **argv)
 
 
@@ -127,13 +130,27 @@ def application(environ, start_response):
     elif path == "authz_cb":  # After having authenticated at the OP
         client = CLIENTS[session["op"]]
         try:
-            userinfo = client.callback(query)
+            result = client.callback(query, session)
+            if isinstance(result, Redirect):
+                return result(environ, start_response)
         except OIDCError as err:
             return operror(environ, start_response, "%s" % err)
         except Exception:
             raise
         else:
-            return opresult(environ, start_response, userinfo)
+            check_session_iframe_url = None
+            try:
+                check_session_iframe_url = client.provider_info["check_session_iframe"]
+
+                session["session_management"] = {
+                    "session_state": query["session_state"][0],
+                    "client_id": client.client_id,
+                    "issuer": client.provider_info["issuer"]
+                }
+            except KeyError:
+                pass
+
+            return opresult(environ, start_response, result, check_session_iframe_url)
     elif path == "logout":  # After the user has pressed the logout button
         client = CLIENTS[session["op"]]
         logout_url = client.end_session_endpoint
@@ -164,6 +181,24 @@ def application(environ, start_response):
         return resp(environ, start_response)
     elif path == "logout_success":  # post_logout_redirect_uri
         return Response("Logout successful!")(environ, start_response)
+    elif path == "session_iframe":  # session management
+        kwargs = session["session_management"]
+        resp = Response(mako_template="rp_session_iframe.mako", template_lookup=LOOKUP)
+        return resp(environ, start_response, session_change_url="{}session_change".format(SERVER_ENV["base_url"]),
+                    **kwargs)
+    elif path == "session_change":
+        try:
+            client = CLIENTS[session["op"]]
+        except KeyError:
+            return Response("No valid session.")(environ, start_response)
+
+        kwargs = {"prompt": "none"}
+        # If there is an ID token send it along as a id_token_hint
+        idt = get_id_token(client, session)
+        if idt:
+            kwargs["id_token_hint"] = id_token_as_signed_jwt(client, idt, "HS256")
+        resp = client.create_authn_request(session, ACR_VALUES, **kwargs)
+        return resp(environ, start_response)
 
     return opchoice(environ, start_response, CLIENTS)
 
