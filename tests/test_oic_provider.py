@@ -47,7 +47,7 @@ CLIENT_CONFIG = {
 
 CONSUMER_CONFIG = {
     "authz_page": "/authz",
-    #"password": args.passwd,
+    # "password": args.passwd,
     "scope": ["openid"],
     "response_type": ["code"],
     #"expire_in": 600,
@@ -64,7 +64,7 @@ SERVER_INFO = {
     "issuer": "https://connect-op.heroku.com",
     "authorization_endpoint": "http://localhost:8088/authorization",
     "token_endpoint": "http://localhost:8088/token",
-    #"userinfo_endpoint":"http://localhost:8088/user_info",
+    # "userinfo_endpoint":"http://localhost:8088/user_info",
     #"check_id_endpoint":"http://localhost:8088/id_token",
     #"registration_endpoint":"https://connect-op.heroku.com/connect/client",
     #"scopes_supported":["openid","profile","email","address","PPID"],
@@ -79,9 +79,9 @@ CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
 KC_SYM = KeyBundle([{"kty": "oct", "key": CLIENT_SECRET, "use": "ver"},
-                     {"kty": "oct", "key": CLIENT_SECRET, "use": "sig"}])
+                    {"kty": "oct", "key": CLIENT_SECRET, "use": "sig"}])
 KC_SYM2 = KeyBundle([{"kty": "oct", "key": "drickyoughurt", "use": "sig"},
-                      {"kty": "oct", "key": "drickyoughurt", "use": "ver"}])
+                     {"kty": "oct", "key": "drickyoughurt", "use": "ver"}])
 
 KC_RSA = keybundle_from_local_file("%s/rsa.key" % BASE_PATH,
                                    "RSA", ["ver", "sig"])
@@ -95,7 +95,7 @@ CDB = {
     "number5": {
         "password": "hemligt",
         "client_secret": "drickyoughurt",
-        #"jwk_key": CONSUMER_CONFIG["key"],
+        # "jwk_key": CONSUMER_CONFIG["key"],
         "redirect_uris": [("http://localhost:8087/authz", None)],
     },
     "a1b2c3": {
@@ -142,14 +142,14 @@ class DummyAuthn(UserAuthnMethod):
         UserAuthnMethod.__init__(self, srv)
         self.user = user
 
-    def authenticated_as(self, cookie=None,  **kwargs):
+    def authenticated_as(self, cookie=None, **kwargs):
         if cookie == "FAIL":
             return None, 0
         else:
             return {"uid": self.user}, time()
 
 
-#AUTHN = UsernamePasswordMako(None, "login.mako", tl, PASSWD, "authenticated")
+# AUTHN = UsernamePasswordMako(None, "login.mako", tl, PASSWD, "authenticated")
 AUTHN_BROKER = AuthnBroker()
 AUTHN_BROKER.add("UNDEFINED", DummyAuthn(None, "username"))
 
@@ -293,7 +293,7 @@ def test_server_authenticated():
     assert resp.message.startswith("http://localhost:8087/authz")
 
     part = cons.parse_authz(query=location)
-    
+
     aresp = part[0]
     assert part[1] is None
     assert part[2] is None
@@ -340,7 +340,7 @@ def test_server_authenticated_2():
     server.baseurl = server.name
     _session_db = {}
     cons = Consumer(_session_db, CONSUMER_CONFIG, CLIENT_CONFIG,
-                    server_info=SERVER_INFO, )
+                    server_info=SERVER_INFO)
     cons.debug = True
     cons.keyjar[""] = KC_RSA
 
@@ -369,8 +369,8 @@ def test_server_authenticated_2():
 
     print cons.grant[_state].keys()
     assert _eq(cons.grant[_state].keys(), ['code', 'id_token', 'tokens',
-                                               'exp_in',
-                                               'grant_expiration_time', 'seed'])
+                                           'exp_in',
+                                           'grant_expiration_time', 'seed'])
     id_token = part[2]
     assert isinstance(id_token, IdToken)
     print id_token.keys()
@@ -384,7 +384,7 @@ def test_server_authenticated_token():
 
     _session_db = {}
     cons = Consumer(_session_db, CONSUMER_CONFIG, CLIENT_CONFIG,
-                    server_info=SERVER_INFO, )
+                    server_info=SERVER_INFO)
     cons.debug = True
     cons.keyjar[""] = KC_RSA
 
@@ -402,7 +402,7 @@ def test_server_authenticated_none():
     server = provider_init
     _session_db = {}
     cons = Consumer(_session_db, CONSUMER_CONFIG, CLIENT_CONFIG,
-                    server_info=SERVER_INFO, )
+                    server_info=SERVER_INFO)
     cons.debug = True
     cons.keyjar[""] = KC_RSA
 
@@ -415,7 +415,7 @@ def test_server_authenticated_none():
     query_part = resp.message.split("?")[1]
     print query_part
     assert "state" in query_part
-    
+
 
 def test_token_endpoint():
     server = provider_init
@@ -483,7 +483,7 @@ def test_token_endpoint_unauth():
     # Construct Access token request
     areq = AccessTokenRequest(code=access_grant,
                               redirect_uri="http://example.com/authz",
-                              client_id="client_1", client_secret="secret",)
+                              client_id="client_1", client_secret="secret", )
 
     print areq.to_dict()
     txt = areq.to_urlencoded()
@@ -763,5 +763,40 @@ def test_key_rollover():
     provider2.remove_inactive_keys(0)
     assert len(provider2.keyjar.issuer_keys[""]) == 2
 
+
+def test_sign_enc_request():
+    server = provider_init
+
+    cli = Client()
+    cli.redirect_uris = ["http://www.example.org/authz"]
+    cli.client_id = "client_1"
+
+    for kb in server.keyjar.issuer_keys[""]:
+        _jwks = kb.jwks()
+        _keys = [k for k in json.loads(_jwks)["keys"]
+                 if k["use"] in ["ver"]]
+        _kb = KeyBundle(_keys)
+        cli.keyjar.add_kb(server.name, _kb)
+
+    _kb = keybundle_from_local_file("%s/rsa.pub" % BASE_PATH, "RSA", ["enc"])
+    cli.keyjar.add_kb(server.name, _kb)
+
+    request_args = {"redirect_uri": cli.redirect_uris[0],
+                    "client_id": cli.client_id,
+                    "scope": "openid",
+                    "response_type": "code"}
+
+    kwargs = {"request_object_signing_alg": "none",
+              "request_object_encryption_alg": "RSA1_5",
+              "request_object_encryption_enc": "A128CBC-HS256",
+              "request_method": "parameter",
+              "target": server.name}
+
+    areq = cli.construct_AuthorizationRequest(request_args=request_args,
+                                              **kwargs)
+
+    assert areq
+    assert areq["request"]
+
 if __name__ == "__main__":
-    test_server_authorization_endpoint_request()
+    test_sign_enc_request()
