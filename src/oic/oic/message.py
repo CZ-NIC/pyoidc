@@ -359,7 +359,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
             "prompt": OPTIONAL_LIST_OF_STRINGS,
             "max_age": SINGLE_OPTIONAL_INT,
             "ui_locales": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-            "claims_locale": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+            "claims_locales": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
             "id_token_hint": SINGLE_OPTIONAL_STRING,
             "login_hint": SINGLE_OPTIONAL_STRING,
             "acr_values": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
