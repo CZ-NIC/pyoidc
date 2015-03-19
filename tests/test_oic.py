@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#from oic.oauth2 import KeyStore
+# from oic.oauth2 import KeyStore
 
 __author__ = 'rohe0002'
 
@@ -111,7 +111,8 @@ class TestOICClient():
         assert ar["scope"] == ["foo", "bar"]
 
     def test_parse_authz_resp_url(self):
-        url = "https://client.example.com/cb?code=SplxlOBeZQQYbYS6WxSbIA&state=ghi"
+        url = "https://client.example.com/cb?code=SplxlOBeZQQYbYS6WxSbIA" \
+              "&state=ghi"
         aresp = self.client.parse_response(AuthorizationResponse,
                                            info=url, sformat="urlencoded")
 
@@ -1157,9 +1158,19 @@ def test_make_id_token():
     assert atr.verify(keyjar=srv.keyjar)
 
 
+def test_authz_req():
+    areq = AuthorizationRequest(
+        **{'state': 'vMTF1dV5yyEiPFR6',
+           'redirect_uri': 'https://localhost:8088/authz_cb',
+           'response_type': 'code', 'client_id': u'iSKYyH32tzC5',
+           'scope': 'openid',
+           'claims': {'id_token': {'sub': {"value": "-fdfb4a841dce167"}}}})
+
+    print areq.to_urlencoded()
+
 if __name__ == "__main__":
     # t = TestOICClient()
     # t.setup_class()
     # t.test_access_token_request()
 
-    test_make_id_token()
+    test_authz_req()

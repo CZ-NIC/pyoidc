@@ -51,9 +51,36 @@ def json_ser(val, sformat=None, lev=0):
 def json_deser(val, sformat=None, lev=0):
     return json.loads(val)
 
+
+def json_conv(val, sformat=None, lev=0):
+    if isinstance(val, dict):
+        for key, _val in val.items():
+            if _val is None:
+                val[key] = "none"
+            elif _val is True:
+                val[key] = "true"
+            elif _val is False:
+                val[key] = "false"
+
+    return val
+
+
+def json_rest(val, sformat=None, lev=0):
+    if isinstance(val, dict):
+        for key, _val in val.items():
+            if _val == "none":
+                val[key] = None
+            elif _val == "true":
+                val[key] = True
+            elif _val == "false":
+                val[key] = False
+
+    return val
+
 # value type, required, serializer, deserializer, null value allowed
 SINGLE_OPTIONAL_BOOLEAN = (bool, False, None, None, False)
 SINGLE_OPTIONAL_JSON_WN = (dict, False, json_ser, json_deser, True)
+SINGLE_OPTIONAL_JSON_CONV = (dict, False, json_conv, json_rest, True)
 SINGLE_REQUIRED_INT = (int, True, None, None, False)
 
 
@@ -125,6 +152,9 @@ def msg_ser(inst, sformat, lev=0):
 
 def msg_ser_json(inst, sformat="json", lev=0):
     # sformat = "json" always except when dict
+    if lev:
+        sformat = "dict"
+
     if sformat == "dict":
         if isinstance(inst, Message):
             res = inst.serialize(sformat, lev)
@@ -679,7 +709,8 @@ class EndSessionResponse(Message):
 
 
 class Claims(Message):
-    c_param = {"*": SINGLE_OPTIONAL_JSON_WN}
+    #c_param = {"*": SINGLE_OPTIONAL_JSON_CONV}
+    pass
 
 
 class ClaimsRequest(Message):

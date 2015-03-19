@@ -181,8 +181,8 @@ class Message(object):
                         params.append((key, str((unicode(item)).encode('utf-8'))))
             elif isinstance(val, Message):
                 try:
-                    params.append((key, str(_ser(val, sformat="urlencoded",
-                                                 lev=lev))))
+                    _val = json.dumps(_ser(val, sformat="dict", lev=lev+1))
+                    params.append((key, _val))
                 except TypeError:
                     params.append((key, val))
             elif val is None:
@@ -298,10 +298,10 @@ class Message(object):
                         _ser = None
 
             if _ser:
-                val = _ser(val, "json", lev)
+                val = _ser(val, "dict", lev)
 
             if isinstance(val, Message):
-                _res[key] = val.to_dict(lev)
+                _res[key] = val.to_dict(lev+1)
             elif isinstance(val, list) and isinstance(val[0], Message):
                 _res[key] = [v.to_dict(lev) for v in val]
             else:
