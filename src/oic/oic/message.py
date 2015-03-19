@@ -568,7 +568,7 @@ class RegistrationResponse(Message):
     c_param = {
         "client_id": SINGLE_REQUIRED_STRING,
         "client_secret": SINGLE_OPTIONAL_STRING,
-        "registration_access_token": SINGLE_REQUIRED_STRING,
+        "registration_access_token": SINGLE_OPTIONAL_STRING,
         "registration_client_uri": SINGLE_OPTIONAL_STRING,
         "client_id_issued_at": SINGLE_OPTIONAL_INT,
         "client_secret_expires_at": SINGLE_OPTIONAL_INT,
