@@ -1454,7 +1454,7 @@ class Server(oauth2.Server):
             if loa:
                 extra["acr"] = loa
 
-        if user_info is None:
+        if not user_info:
             _args = {}
         else:
             try:
