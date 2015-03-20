@@ -622,11 +622,8 @@ class Provider(AProvider):
 
         req_user = self.required_user(areq)
         if req_user:
-            try:
-                sids = self.sdb.get_sids_by_sub(req_user)
-            except KeyError:
-                pass
-            else:
+            sids = self.sdb.get_sids_by_sub(req_user)
+            if sids:
                 # anyone will do
                 authn_event = self.sdb[sids[0]]["authn_event"]
                 # Is the authentication event to be regarded as valid ?
