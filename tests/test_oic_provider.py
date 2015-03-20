@@ -747,3 +747,20 @@ class TestOICProvider(object):
         aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
                                          sformat="urlencoded")
         return aresp["id_token"]
+
+    def test_session_state_in_auth_req(self):
+        p = Provider("foo", SessionDB(SERVER_INFO["issuer"]), CDB,
+                     AUTHN_BROKER, USERINFO,
+                     AUTHZ, verify_client, SYMKEY, urlmap=URLMAP,
+                     keyjar=KEYJAR, capabilities={"check_session_iframe": "https://op.example.com/check_session"})
+
+        req_args = {"scope": ["openid"],
+               "redirect_uri": "http://localhost:8087/authz",
+               "response_type": ["code"],
+               "client_id": "a1b2c3"
+        }
+        areq = AuthorizationRequest(**req_args)
+        resp = p.authorization_endpoint(request=areq.to_urlencoded())
+        aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
+                                         sformat="urlencoded")
+        assert "session_state" in aresp
