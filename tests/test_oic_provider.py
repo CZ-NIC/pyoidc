@@ -1,6 +1,10 @@
+from Cookie import SimpleCookie
 import json
+import locale
 import os
 from time import sleep, time
+import datetime
+import urllib
 
 from mako.lookup import TemplateLookup
 
@@ -9,6 +13,7 @@ from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
+from oic.utils.http_util import Redirect
 from oic.utils.userinfo import UserInfo
 from oic.exception import RedirectURIError
 from oic.exception import FailedAuthentication
@@ -93,6 +98,7 @@ CDB = {
         "client_secret": "drickyoughurt",
         # "jwk_key": CONSUMER_CONFIG["key"],
         "redirect_uris": [("http://localhost:8087/authz", None)],
+        "post_logout_redirect_uris": [("https://example.com/post_logout", None)]
     },
     "a1b2c3": {
         "redirect_uris": [("http://localhost:8087/authz", None)]
@@ -306,7 +312,7 @@ class TestOICProvider(object):
         resp = self.server.authorization_endpoint(request=location.split("?")[1])
 
         print resp
-        aresp = self.cons.parse_response(AuthorizationResponse, location,
+        aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
                                          sformat="urlencoded")
 
         print aresp.keys()
@@ -696,3 +702,49 @@ class TestOICProvider(object):
         sleep(1)
         provider2.remove_inactive_keys(0)
         assert len(provider2.keyjar.issuer_keys[""]) == 2
+
+
+    def test_endsession_endpoint(self):
+        resp = self.server.endsession_endpoint("")
+        self._assert_cookies_expired(resp.headers)
+
+    def test_endsession_endpoint_with_id_token_hint(self):
+        id_token = self._auth_with_id_token()
+        assert self.server.sdb.get_sids_from_sub(id_token["sub"])  # verify we got valid session
+
+        id_token_hint = id_token.to_jwt(algorithm="none")
+        resp = self.server.endsession_endpoint(urllib.urlencode({"id_token_hint": id_token_hint}))
+        assert not self.server.sdb.get_sids_from_sub(id_token["sub"])  # verify session has been removed
+        self._assert_cookies_expired(resp.headers)
+
+    def test_endsession_endpoint_with_post_logout_redirect_uri(self):
+        id_token = self._auth_with_id_token()
+        assert self.server.sdb.get_sids_from_sub(id_token["sub"])  # verify we got valid session
+
+        post_logout_redirect_uri = CDB[CLIENT_CONFIG["client_id"]]["post_logout_redirect_uris"][0][0]
+        resp = self.server.endsession_endpoint(urllib.urlencode({"post_logout_redirect_uri": post_logout_redirect_uri}))
+        assert isinstance(resp, Redirect)
+        assert not self.server.sdb.get_sids_from_sub(id_token["sub"])  # verify session has been removed
+        self._assert_cookies_expired(resp.headers)
+
+    def _assert_cookies_expired(self, http_headers):
+        cookies_string = ";".join([c[1] for c in http_headers if c[0] == "Set-Cookie"])
+        all_cookies = SimpleCookie()
+        all_cookies.load(cookies_string)
+
+        loc = locale.getlocale()
+        locale.setlocale(locale.LC_ALL, 'C')  # strptime depends on locale, use default (C) locale
+
+        now = datetime.datetime.now()
+        for c in [self.server.cookie_name, self.server.session_cookie_name]:
+            dt = datetime.datetime.strptime(all_cookies[c]["expires"], "%a, %d-%b-%Y %H:%M:%S GMT")
+            assert dt < now  # make sure the cookies have expired to be cleared
+
+        locale.setlocale(locale.LC_ALL, loc)  # restore saved locale
+
+    def _auth_with_id_token(self):
+        state, location = self.cons.begin("openid", "id_token", path="http://localhost:8087")
+        resp = self.server.authorization_endpoint(request=location.split("?")[1])
+        aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
+                                         sformat="urlencoded")
+        return aresp["id_token"]
