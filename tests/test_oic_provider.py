@@ -32,7 +32,7 @@ from oic.oic.message import CheckSessionRequest
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import IdToken
 from oic.utils.sdb import SessionDB, AuthnEvent
-from oic.oic import DEF_SIGN_ALG
+from oic.oic import DEF_SIGN_ALG, Client
 from oic.oic import make_openid_request
 from oic.oic.consumer import Consumer
 from oic.oic.provider import Provider
@@ -213,7 +213,7 @@ class TestOICProvider(object):
         ic = {"sub": {"value": "userX"}}
         _keys = self.server.keyjar.get_signing_key(key_type="RSA")
         req["request"] = make_openid_request(req, _keys, idtoken_claims=ic,
-                                             algorithm="RS256")
+                                             request_object_signing_alg="RS256")
 
         try:
             resp = self.server.authorization_endpoint(request=req.to_urlencoded())
@@ -285,7 +285,7 @@ class TestOICProvider(object):
 
         assert resp.message.startswith("http://localhost:8087/authz")
 
-        part = self.cons.parse_authz(query=location)
+        part = self.cons.parse_authz(query=resp.message)
 
         aresp = part[0]
         assert part[1] is None
@@ -297,8 +297,7 @@ class TestOICProvider(object):
 
         print aresp.keys()
         assert aresp.type() == "AuthorizationResponse"
-        assert _eq(aresp.keys(), ['request', 'state', 'redirect_uri',
-                                  'response_type', 'client_id', 'claims', 'scope'])
+        assert _eq(aresp.keys(), ['code', 'state', 'scope'])
 
         print self.cons.grant[_state].keys()
         assert _eq(self.cons.grant[_state].keys(),
@@ -764,3 +763,35 @@ class TestOICProvider(object):
         aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
                                          sformat="urlencoded")
         assert "session_state" in aresp
+        
+    def test_sign_enc_request(self):
+        cli = Client()
+        cli.redirect_uris = ["http://www.example.org/authz"]
+        cli.client_id = "client_1"
+
+        for kb in self.server.keyjar.issuer_keys[""]:
+            _jwks = kb.jwks()
+            _keys = [k for k in json.loads(_jwks)["keys"]
+                     if k["use"] in ["ver"]]
+            _kb = KeyBundle(_keys)
+            cli.keyjar.add_kb(self.server.name, _kb)
+    
+        _kb = keybundle_from_local_file("%s/rsa.pub" % BASE_PATH, "RSA", ["enc"])
+        cli.keyjar.add_kb(self.server.name, _kb)
+    
+        request_args = {"redirect_uri": cli.redirect_uris[0],
+                        "client_id": cli.client_id,
+                        "scope": "openid",
+                        "response_type": "code"}
+    
+        kwargs = {"request_object_signing_alg": "none",
+                  "request_object_encryption_alg": "RSA1_5",
+                  "request_object_encryption_enc": "A128CBC-HS256",
+                  "request_method": "parameter",
+                  "target": self.server.name}
+    
+        areq = cli.construct_AuthorizationRequest(request_args=request_args,
+                                                  **kwargs)
+    
+        assert areq
+        assert areq["request"]

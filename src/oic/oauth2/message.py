@@ -122,7 +122,8 @@ class Message(object):
     def __init__(self, **kwargs):
         self._dict = self.c_default.copy()
         self.lax = False
-        self.jwt_header = None
+        self.jws_header = None
+        self.jwe_header = None
         self.from_dict(kwargs)
         self.verify_ssl = True
 
@@ -180,8 +181,8 @@ class Message(object):
                         params.append((key, str((unicode(item)).encode('utf-8'))))
             elif isinstance(val, Message):
                 try:
-                    params.append((key, str(_ser(val, sformat="urlencoded",
-                                                 lev=lev))))
+                    _val = json.dumps(_ser(val, sformat="dict", lev=lev+1))
+                    params.append((key, _val))
                 except TypeError:
                     params.append((key, val))
             elif val is None:
@@ -297,10 +298,10 @@ class Message(object):
                         _ser = None
 
             if _ser:
-                val = _ser(val, "json", lev)
+                val = _ser(val, "dict", lev)
 
             if isinstance(val, Message):
-                _res[key] = val.to_dict(lev)
+                _res[key] = val.to_dict(lev+1)
             elif isinstance(val, list) and isinstance(val[0], Message):
                 _res[key] = [v.to_dict(lev) for v in val]
             else:
@@ -515,6 +516,7 @@ class Message(object):
                 dkeys = []
 
             txt = JWE().decrypt(txt, dkeys)
+            self.jwe_header = header
             try:
                 jso = json.loads(txt)
             except Exception:
@@ -538,6 +540,7 @@ class Message(object):
                 if isinstance(jso, basestring):
                     jso = json.loads(jso)
 
+                logger.debug("Raw JSON: %s" % jso)
                 if header["alg"] == "none":
                     pass
                 else:
@@ -588,8 +591,8 @@ class Message(object):
                         _jws.verify_compact(txt, key)
             except Exception:
                 raise
-
-        self.jwt_header = header
+            else:
+                self.jws_header = header
         return self.from_dict(jso)
 
     def __str__(self):

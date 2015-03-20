@@ -427,13 +427,12 @@ class Provider(AProvider):
         :param comparision_type: How to pick the authentication method
         :return: An authentication method and its authn class ref
         """
+
         if comparision_type == "any":
             return self.authn_broker[0]
 
         try:
-            if len(self.authn_broker) == 1:
-                return self.authn_broker[0]
-            elif "acr_values" in areq:
+            if "acr_values" in areq:
                 if not comparision_type:
                     comparision_type = "exact"
 
@@ -819,8 +818,7 @@ class Provider(AProvider):
         if "openid" in _info["scope"]:
             userinfo = self.userinfo_in_id_token_claims(_info)
             _idtoken = self.sign_encrypt_id_token(
-                _info, client_info, req, user_info=userinfo,
-                auth_time=_info["authn_event"].authn_time)
+                _info, client_info, req, user_info=userinfo)
             sid = _sdb.token.get_key(rtoken)
             _sdb.update(sid, "id_token", _idtoken)
 
@@ -884,15 +882,10 @@ class Provider(AProvider):
         :return: User info
         """
         if userinfo_claims is None:
-            uic = {}
-            for scope in session["scope"]:
-                try:
-                    claims = dict([(name, None) for name in
-                                   SCOPE2CLAIMS[scope]])
-                    uic.update(claims)
-                except KeyError:
-                    pass
-            # Get only keys allowed by user and update the dict if such info is stored in session
+            uic = self._scope2claims(session["scope"])
+
+            # Get only keys allowed by user and update the dict if such info
+            # is stored in session
             perm_set = session.get('permission')
             if perm_set:
                 uic = {key: uic[key] for key in uic if key in perm_set}
@@ -1647,6 +1640,17 @@ class Provider(AProvider):
             return self._error("invalid_request", "wrong response_mode")
         return None
 
+    @staticmethod
+    def _scope2claims(scopes):
+        res = {}
+        for scope in scopes:
+            try:
+                claims = dict([(name, None) for name in SCOPE2CLAIMS[scope]])
+                res.update(claims)
+            except KeyError:
+                pass
+        return res
+
     def create_authn_response(self, areq, sid):
         # create the response
         aresp = AuthorizationResponse()
@@ -1695,6 +1699,15 @@ class Provider(AProvider):
 
             if "id_token" in areq["response_type"]:
                 user_info = self.userinfo_in_id_token_claims(_sinfo)
+                if areq["response_type"] == ["id_token"]:
+                    #  scopes should be returned here
+                    info = self.userinfo(_sinfo["authn_event"].uid,
+                                         self._scope2claims(areq["scope"]))
+                    if user_info is None:
+                        user_info = info
+                    else:
+                        user_info.update(info)
+
                 client_info = self.cdb[areq["client_id"]]
 
                 hargs = {}

@@ -51,9 +51,36 @@ def json_ser(val, sformat=None, lev=0):
 def json_deser(val, sformat=None, lev=0):
     return json.loads(val)
 
+
+def json_conv(val, sformat=None, lev=0):
+    if isinstance(val, dict):
+        for key, _val in val.items():
+            if _val is None:
+                val[key] = "none"
+            elif _val is True:
+                val[key] = "true"
+            elif _val is False:
+                val[key] = "false"
+
+    return val
+
+
+def json_rest(val, sformat=None, lev=0):
+    if isinstance(val, dict):
+        for key, _val in val.items():
+            if _val == "none":
+                val[key] = None
+            elif _val == "true":
+                val[key] = True
+            elif _val == "false":
+                val[key] = False
+
+    return val
+
 # value type, required, serializer, deserializer, null value allowed
 SINGLE_OPTIONAL_BOOLEAN = (bool, False, None, None, False)
 SINGLE_OPTIONAL_JSON_WN = (dict, False, json_ser, json_deser, True)
+SINGLE_OPTIONAL_JSON_CONV = (dict, False, json_conv, json_rest, True)
 SINGLE_REQUIRED_INT = (int, True, None, None, False)
 
 
@@ -125,6 +152,9 @@ def msg_ser(inst, sformat, lev=0):
 
 def msg_ser_json(inst, sformat="json", lev=0):
     # sformat = "json" always except when dict
+    if lev:
+        sformat = "dict"
+
     if sformat == "dict":
         if isinstance(inst, Message):
             res = inst.serialize(sformat, lev)
@@ -302,7 +332,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
             if not idt.verify(**kwargs):
                 raise VerificationError("Could not verify id_token", idt)
 
-            _alg = idt.jwt_header["alg"]
+            _alg = idt.jws_header["alg"]
             # What if _alg == 'none'
 
             hfunc = "HS" + _alg[-3:]
@@ -344,7 +374,8 @@ class AuthorizationErrorResponse(message.AuthorizationErrorResponse):
                                       "invalid_request_uri",
                                       "invalid_request_object",
                                       "registration_not_supported",
-                                      "request_not_supported"])
+                                      "request_not_supported",
+                                      "request_uri_not_supported"])
 
 
 class AuthorizationRequest(message.AuthorizationRequest):
@@ -358,7 +389,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
             "prompt": OPTIONAL_LIST_OF_STRINGS,
             "max_age": SINGLE_OPTIONAL_INT,
             "ui_locales": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-            "claims_locale": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+            "claims_locales": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
             "id_token_hint": SINGLE_OPTIONAL_STRING,
             "login_hint": SINGLE_OPTIONAL_STRING,
             "acr_values": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
@@ -567,7 +598,7 @@ class RegistrationResponse(Message):
     c_param = {
         "client_id": SINGLE_REQUIRED_STRING,
         "client_secret": SINGLE_OPTIONAL_STRING,
-        "registration_access_token": SINGLE_REQUIRED_STRING,
+        "registration_access_token": SINGLE_OPTIONAL_STRING,
         "registration_client_uri": SINGLE_OPTIONAL_STRING,
         "client_id_issued_at": SINGLE_OPTIONAL_INT,
         "client_secret_expires_at": SINGLE_OPTIONAL_INT,
@@ -678,7 +709,8 @@ class EndSessionResponse(Message):
 
 
 class Claims(Message):
-    c_param = {"*": SINGLE_OPTIONAL_JSON_WN}
+    #c_param = {"*": SINGLE_OPTIONAL_JSON_CONV}
+    pass
 
 
 class ClaimsRequest(Message):

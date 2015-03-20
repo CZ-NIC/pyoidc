@@ -422,7 +422,19 @@ class Provider(object):
                         #Return the best guess by pick.
                         return res[0]
             else:  # same as any
-                return self.authn_broker[0]
+                try:
+                    acrs = areq["claims"]["id_token"]["acr"]["values"]
+                except KeyError:
+                    return self.authn_broker[0]
+                else:
+                    for acr in acrs:
+                        res = self.authn_broker.pick(acr, comparision_type)
+                        logger.debug("Picked AuthN broker for ACR %s: %s" % (
+                            str(acr), str(res)))
+                        if res:
+                            #Return the best guess by pick.
+                            return res[0]
+
         except KeyError as exc:
             logger.debug(
                 "An error occured while picking the authN broker: %s" % str(
@@ -487,6 +499,24 @@ class Provider(object):
 
         return {"areq": areq, "redirect_uri": redirect_uri}
 
+    @staticmethod
+    def _acr_claims(areq):
+        try:
+            acrdef = areq["claims"]["id_token"]["acr"]
+        except KeyError:
+            return None
+        else:
+            if isinstance(acrdef, dict):
+                try:
+                    return [acrdef["value"]]
+                except KeyError:
+                    try:
+                        return acrdef["values"]
+                    except KeyError:
+                        pass
+
+        return None
+
     def do_auth(self, areq, redirect_uri, cinfo, request, cookie, **kwargs):
         """
 
@@ -499,11 +529,29 @@ class Provider(object):
         :param kwargs:
         :return:
         """
-        authn, authn_class_ref = self.pick_auth(areq)
-        if not authn:
-            authn, authn_class_ref = self.pick_auth(areq, "better")
+        acrs = self._acr_claims(areq)
+        if acrs:
+            # If acr claims are present the picked acr value MUST match
+            # one of the given
+            tup = (None, None)
+            for acr in acrs:
+                res = self.authn_broker.pick(acr, "exact")
+                logger.debug("Picked AuthN broker for ACR %s: %s" % (
+                    str(acr), str(res)))
+                if res:  # Return the best guess by pick.
+                    tup = res[0]
+                    break
+            authn, authn_class_ref = tup
+        else:
+            authn, authn_class_ref = self.pick_auth(areq)
             if not authn:
-                authn, authn_class_ref = self.pick_auth(areq, "any")
+                authn, authn_class_ref = self.pick_auth(areq, "better")
+                if not authn:
+                    authn, authn_class_ref = self.pick_auth(areq, "any")
+
+        if authn is None:
+            return self._redirect_authz_error("access_denied", redirect_uri,
+                                              return_type=areq["response_type"])
 
         try:
             try:

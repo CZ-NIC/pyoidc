@@ -84,14 +84,14 @@ class UserAuthnMethod(CookieDealer):
                 uid, _ts, typ = val
 
             if typ == "uam":  # shortlived
-                _now = int(time.mktime(time.gmtime()))
+                _now = int(time.time())
                 if _now > (int(_ts) + int(self.cookie_ttl * 60)):
                     logger.debug("Authentication timed out")
                     raise ToOld("%d > (%d + %d)" % (_now, int(_ts),
                                                     int(self.cookie_ttl * 60)))
             else:
                 if "max_age" in kwargs and kwargs["max_age"]:
-                    _now = int(time.mktime(time.gmtime()))
+                    _now = int(time.time())
                     if _now > (int(_ts) + int(kwargs["max_age"])):
                         logger.debug("Authentication too old")
                         raise ToOld("%d > (%d + %d)" % (
@@ -117,7 +117,8 @@ class UserAuthnMethod(CookieDealer):
         raise NotImplemented
 
     def get_multi_auth_cookie(self, cookie):
-        rp_query_cookie = self.getCookieValue(cookie, UserAuthnMethod.MULTI_AUTH_COOKIE)
+        rp_query_cookie = self.getCookieValue(cookie,
+                                              UserAuthnMethod.MULTI_AUTH_COOKIE)
 
         if rp_query_cookie:
             return rp_query_cookie[0]
