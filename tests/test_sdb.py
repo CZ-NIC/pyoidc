@@ -317,7 +317,7 @@ def test_sub_to_authn_event():
 
     # given the sub find out weather the authn event is still valid
 
-    sids = sdb.get_sids_from_sub(sub)
+    sids = sdb.get_sids_by_sub(sub)
     ae = sdb[sids[0]]["authn_event"]
     assert ae.valid()
 

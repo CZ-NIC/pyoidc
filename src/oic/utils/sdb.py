@@ -2,6 +2,7 @@ import copy
 import uuid
 
 import time
+import itertools
 from oic.oic import AuthorizationRequest
 
 
@@ -471,8 +472,9 @@ class SessionDB(object):
         """
         return self.uid2sid[uid]
 
-    def get_sids_from_sub(self, sub):
-        return [sid for sid, e in self._db.iteritems() if e["sub"] == sub]
+    def get_sids_by_sub(self, sub):
+        sids = itertools.chain.from_iterable(self.uid2sid.values())
+        return [sid for sid in sids if self._db[sid]["sub"] == sub]
 
     def duplicate(self, sinfo):
         _dic = copy.copy(sinfo)

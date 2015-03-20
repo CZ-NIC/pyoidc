@@ -552,7 +552,7 @@ class Provider(object):
                 # I get back a dictionary
                 user = identity["uid"]
                 if "req_user" in kwargs and user != self.sdb.get_authentication_event(
-                        self.sdb.get_sids_from_sub(kwargs["req_user"])[-1]).uid:
+                        self.sdb.get_sids_by_sub(kwargs["req_user"])[-1]).uid:
                     logger.debug("Wanted to be someone else!")
                     if "prompt" in areq and "none" in areq["prompt"]:
                         # Need to authenticate but not allowed

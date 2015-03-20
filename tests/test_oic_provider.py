@@ -317,8 +317,7 @@ class TestOICProvider(object):
 
         print aresp.keys()
         assert aresp.type() == "AuthorizationResponse"
-        assert _eq(aresp.keys(), ['request', 'state', 'redirect_uri', 'claims',
-                                  'response_type', 'client_id', 'scope'])
+        assert _eq(aresp.keys(), ['code', 'state', 'scope'])
 
 
     def test_server_authenticated_2(self):
@@ -710,21 +709,21 @@ class TestOICProvider(object):
 
     def test_endsession_endpoint_with_id_token_hint(self):
         id_token = self._auth_with_id_token()
-        assert self.server.sdb.get_sids_from_sub(id_token["sub"])  # verify we got valid session
+        assert self.server.sdb.get_sids_by_sub(id_token["sub"])  # verify we got valid session
 
         id_token_hint = id_token.to_jwt(algorithm="none")
         resp = self.server.endsession_endpoint(urllib.urlencode({"id_token_hint": id_token_hint}))
-        assert not self.server.sdb.get_sids_from_sub(id_token["sub"])  # verify session has been removed
+        assert not self.server.sdb.get_sids_by_sub(id_token["sub"])  # verify session has been removed
         self._assert_cookies_expired(resp.headers)
 
     def test_endsession_endpoint_with_post_logout_redirect_uri(self):
         id_token = self._auth_with_id_token()
-        assert self.server.sdb.get_sids_from_sub(id_token["sub"])  # verify we got valid session
+        assert self.server.sdb.get_sids_by_sub(id_token["sub"])  # verify we got valid session
 
         post_logout_redirect_uri = CDB[CLIENT_CONFIG["client_id"]]["post_logout_redirect_uris"][0][0]
         resp = self.server.endsession_endpoint(urllib.urlencode({"post_logout_redirect_uri": post_logout_redirect_uri}))
         assert isinstance(resp, Redirect)
-        assert not self.server.sdb.get_sids_from_sub(id_token["sub"])  # verify session has been removed
+        assert not self.server.sdb.get_sids_by_sub(id_token["sub"])  # verify session has been removed
         self._assert_cookies_expired(resp.headers)
 
     def _assert_cookies_expired(self, http_headers):

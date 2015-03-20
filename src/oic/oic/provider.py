@@ -521,7 +521,7 @@ class Provider(AProvider):
                                                      verify=True)
             sub = id_token_hint["sub"]
             try:
-                sid = self.sdb.get_sids_from_sub(sub)[0] # any sid will do, choose the first
+                sid = self.sdb.get_sids_by_sub(sub)[0] # any sid will do, choose the first
             except IndexError:
                 pass
         else:
@@ -623,7 +623,7 @@ class Provider(AProvider):
         req_user = self.required_user(areq)
         if req_user:
             try:
-                sids = self.sdb.get_sids_from_sub(req_user)
+                sids = self.sdb.get_sids_by_sub(req_user)
             except KeyError:
                 pass
             else:
