@@ -529,8 +529,8 @@ class Provider(AProvider):
             try:
                 uid = identity["uid"]
                 try:
-                    sid = self.sdb.uid2sid[uid]
-                except KeyError:
+                    sid = self.sdb.uid2sid[uid][0] # any sid will do, choose the first
+                except (KeyError, IndexError):
                     pass
             except KeyError:
                 return self._error_response(
