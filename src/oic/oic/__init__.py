@@ -1,3 +1,4 @@
+
 __author__ = 'rohe0002'
 
 import urlparse
@@ -6,7 +7,10 @@ import logging
 import os
 
 from jwkest.jwe import JWE
+
+from oic.oauth2.exception import AuthnToOld
 from oic.oauth2.message import ErrorResponse
+from oic.oauth2.util import get_or_post
 
 from oic.oic.message import IdToken, ClaimsRequest
 from oic.oic.message import RegistrationResponse
@@ -35,7 +39,6 @@ from oic import oauth2
 
 from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2 import OtherError
-from oic.oauth2 import AuthnToOld
 from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import rndstr
 from oic.oauth2.consumer import ConfigurationError
@@ -749,7 +752,7 @@ class Client(oauth2.Client):
                 # remove the token from the request
                 del uir["access_token"]
 
-        path, body, kwargs = self.get_or_post(uri, method, uir, **kwargs)
+        path, body, kwargs = get_or_post(uri, method, uir, **kwargs)
 
         h_args = dict([(k, v) for k, v in kwargs.items() if k in HTTP_ARGS])
 

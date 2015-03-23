@@ -6,7 +6,7 @@ import logging
 import base64
 from urlparse import parse_qs
 
-from oic.oauth2 import VerificationError
+from oic.oauth2.exception import VerificationError
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authn.user import create_return_url
 from oic.utils.http_util import Redirect

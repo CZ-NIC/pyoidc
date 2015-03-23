@@ -5,12 +5,9 @@ import urllib
 import sys
 from jwkest.jwe import JWE
 from jwkest.jwk import SYMKey
-from oic.utils.authn.user import NoSuchAuthentication
-from oic.utils.authn.user import ToOld
-from oic.utils.authn.user import TamperAllert
-from oic.utils.sdb import AuthnEvent
 from oic.utils.time_util import utc_time_sans_frac
-from oic.utils.keyio import KeyBundle, dump_jwks
+from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
 
 from requests import ConnectionError
@@ -18,7 +15,6 @@ from requests import ConnectionError
 from oic.oauth2.message import by_schema
 from oic.oic.message import RefreshAccessTokenRequest
 from oic.oic.message import EndSessionRequest
-from oic.oic.message import AuthorizationRequest
 from oic.oic.message import Claims
 from oic.oic.message import IdToken
 from oic.oic.message import OpenIDSchema
@@ -35,8 +31,10 @@ from oic.oic.message import DiscoveryRequest
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import DiscoveryResponse
 
-from jwkest import jws, jwe, b64d
-from jwkest.jws import alg2keytype, left_hash
+from jwkest import jws
+from jwkest import jwe
+from jwkest import b64d
+from jwkest.jws import alg2keytype
 from jwkest.jws import NoSuitableSigningKeys
 
 __author__ = 'rohe0002'
@@ -57,7 +55,7 @@ from oic.utils.http_util import Redirect
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Unauthorized
 
-from oic.oauth2 import CapabilitiesMisMatch
+from oic.oauth2.exception import CapabilitiesMisMatch
 from oic.oauth2 import rndstr
 
 from oic.oic import Server
@@ -1598,20 +1596,20 @@ class Provider(AProvider):
                 return self._error("invalid_request", "Missing nonce value")
         return None
 
-    def response_mode(self, areq, fragment_enc, aresp, redirect_uri, headers):
+    def response_mode(self, areq, fragment_enc, **kwargs):
         resp_mode = areq["response_mode"]
         if resp_mode == "form_post":
-            argv = {"form_args": aresp.to_dict(),
-                    "action": redirect_uri}
+            argv = {"form_args": kwargs["aresp"].to_dict(),
+                    "action": kwargs["redirect_uri"]}
             mte = self.template_lookup.get_template(
                 self.template["form_post"])
-            return Response(mte.render(**argv), headers=headers)
+            return Response(mte.render(**argv), headers=kwargs["headers"])
         elif resp_mode == 'fragment' and not fragment_enc:
             # Can't be done
-            return self._error("invalid_request", "wrong response_mode")
+            raise InvalidRequest("wrong response_mode")
         elif resp_mode == 'query' and fragment_enc:
             # Can't be done
-            return self._error("invalid_request", "wrong response_mode")
+            raise InvalidRequest("wrong response_mode")
         return None
 
     @staticmethod

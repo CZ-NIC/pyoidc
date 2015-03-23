@@ -3,19 +3,21 @@ import urllib
 import urlparse
 import requests
 
+from oic import oauth2
+from oic.exception import UnSupported
+from oic.exception import UnknownAssertionType
+from oic.exception import PyoidcError
+from oic.exception import AuthzError
 from oic.oic import OIDCONF_PATTERN
 from oic.oic.message import ProviderConfigurationResponse, AuthorizationResponse
-from oic.utils.keyio import KeyJar
-from oic.utils.time_util import utc_time_sans_frac
 from oic.oic.provider import secret
 from oic.oic.provider import RegistrationEndpoint
 from oic.oic.provider import Endpoint
-from oic import oauth2
+from oic.utils.keyio import KeyJar
+from oic.utils.time_util import utc_time_sans_frac
 from oic.oauth2 import provider
-from oic.oauth2 import VerificationError
 from oic.oauth2 import rndstr
 from oic.oauth2 import ErrorResponse
-from oic.oauth2 import UnSupported
 from oic.oauth2 import Message
 from oic.oauth2 import message
 from oic.oauth2 import SINGLE_REQUIRED_STRING
@@ -24,10 +26,8 @@ from oic.oauth2 import REQUIRED_LIST_OF_STRINGS
 from oic.oauth2 import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.oauth2 import SINGLE_OPTIONAL_INT
-from oic.exception import UnknownAssertionType
-from oic.exception import PyoidcError
-from oic.exception import AuthzError
-from oic.utils.authn.client import AuthnFailure
+from oic.oauth2.exception import VerificationError
+from oic.utils.authn.client import AuthnFailure, get_client_id
 from oic.utils.http_util import Unauthorized
 from oic.utils.http_util import NoContent
 from oic.utils.http_util import Response
@@ -317,7 +317,8 @@ class Provider(provider.Provider):
         """
 
         if not client_id:
-            client_id = self.get_client_id(areq, environ["HTTP_AUTHORIZATION"])
+            client_id = get_client_id(self.cdb, areq,
+                                      environ["HTTP_AUTHORIZATION"])
 
         try:
             method = self.client_authn_methods[authn_method]

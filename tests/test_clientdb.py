@@ -1,11 +1,10 @@
 import json
 import unittest
-
 import httpretty
 import pytest
 import requests
 
-from oic.oauth2 import NoClientInfoReceivedError
+from oic.oauth2.exception import NoClientInfoReceivedError
 from oic.utils.clientdb import MDQClient
 
 

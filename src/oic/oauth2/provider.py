@@ -12,7 +12,7 @@ import base64
 import logging
 import os
 
-from oic.exception import MissingParameter
+from oic.exception import MissingParameter, InvalidRequest
 from oic.exception import URIError
 from oic.exception import RedirectURIError
 from oic.exception import ParameterError
@@ -181,106 +181,44 @@ class Provider(object):
         for endp in self.endp:
             yield endp(None).name
 
-    def subset(self, li1, li2):
-        """
-        Verify that all items in li1 appears in li2
-
-        :param li1: List 1
-        :param li2: List 2
-        :return: True if all items in li1 appears in li2
-        """
-        for item in li1:
-            try:
-                assert item in li2
-            except AssertionError:
-                return False
-        return True
-
-    def get_client_id(self, req, authn):
-        """
-        Verify the client and return the client id
-
-        :param req: The request
-        :param authn: Authentication information from the HTTP header
-        :return:
-        """
-
-        logger.debug("REQ: %s" % req.to_dict())
-        if authn:
-            if authn.startswith("Basic "):
-                logger.debug("Basic auth")
-                (_id, _secret) = base64.b64decode(authn[6:]).split(":")
-                if _id not in self.cdb:
-                    logger.debug("Unknown client_id")
-                    raise FailedAuthentication("Unknown client_id")
-                else:
-                    try:
-                        assert _secret == self.cdb[_id]["client_secret"]
-                    except AssertionError:
-                        logger.debug("Incorrect secret")
-                        raise FailedAuthentication("Incorrect secret")
-            else:
-                try:
-                    assert authn[:6].lower() == "bearer"
-                    logger.debug("Bearer auth")
-                    _token = authn[7:]
-                except AssertionError:
-                    raise FailedAuthentication("AuthZ type I don't know")
-
-                try:
-                    _id = self.cdb[_token]
-                except KeyError:
-                    logger.debug("Unknown access token")
-                    raise FailedAuthentication("Unknown access token")
-        else:
-            try:
-                _id = req["client_id"]
-                if _id not in self.cdb:
-                    logger.debug("Unknown client_id")
-                    raise FailedAuthentication("Unknown client_id")
-            except KeyError:
-                raise FailedAuthentication("Missing client_id")
-
-        return _id
-
-    def authn_reply(self, areq, aresp, bsid, **kwargs):
-        """
-
-        :param areq: Authorization Request
-        :param aresp: Authorization Response
-        :param bsid: Session id
-        :param kwargs: Additional keyword args
-        :return:
-        """
-        if "redirect_uri" in areq:
-            # TODO verify that the uri is reasonable
-            redirect_uri = areq["redirect_uri"]
-        else:
-            redirect_uri = self.urlmap[areq["client_id"]]
-
-        location = location_url(areq["response_type"], redirect_uri,
-                                aresp.to_urlencoded())
-
-        LOG_DEBUG("Redirected to: '%s' (%s)" % (location, type(location)))
-
-        # set cookie containing session ID
-
-        cookie = make_cookie(self.cookie_name, bsid, self.seed)
-
-        return Redirect(str(location), headers=[cookie])
-
-    def authn_response(self, areq, **kwargs):
-        """
-
-        :param areq: Authorization request
-        :param kwargs: Extra keyword arguments
-        :return:
-        """
-        scode = kwargs["code"]
-        areq["response_type"].sort()
-        _rtype = " ".join(areq["response_type"])
-        return self.response_type_map[_rtype](areq=areq, scode=scode,
-                                              sdb=self.sdb)
+    # def authn_reply(self, areq, aresp, bsid, **kwargs):
+    #     """
+    #
+    #     :param areq: Authorization Request
+    #     :param aresp: Authorization Response
+    #     :param bsid: Session id
+    #     :param kwargs: Additional keyword args
+    #     :return:
+    #     """
+    #     if "redirect_uri" in areq:
+    #         # TODO verify that the uri is reasonable
+    #         redirect_uri = areq["redirect_uri"]
+    #     else:
+    #         redirect_uri = self.urlmap[areq["client_id"]]
+    #
+    #     location = location_url(areq["response_type"], redirect_uri,
+    #                             aresp.to_urlencoded())
+    #
+    #     LOG_DEBUG("Redirected to: '%s' (%s)" % (location, type(location)))
+    #
+    #     # set cookie containing session ID
+    #
+    #     cookie = make_cookie(self.cookie_name, bsid, self.seed)
+    #
+    #     return Redirect(str(location), headers=[cookie])
+    #
+    # def authn_response(self, areq, **kwargs):
+    #     """
+    #
+    #     :param areq: Authorization request
+    #     :param kwargs: Extra keyword arguments
+    #     :return:
+    #     """
+    #     scode = kwargs["code"]
+    #     areq["response_type"].sort()
+    #     _rtype = " ".join(areq["response_type"])
+    #     return self.response_type_map[_rtype](areq=areq, scode=scode,
+    #                                           sdb=self.sdb)
 
     @staticmethod
     def input(query="", post=None):
@@ -647,17 +585,6 @@ class Provider(object):
     def aresp_check(self, aresp, areq):
         return ""
 
-    def response_mode(self, areq, fragment_enc, aresp, redirect_uri, headers):
-        resp_mode = areq["response_mode"]
-
-        if resp_mode == 'fragment' and not fragment_enc:
-            # Can't be done
-            return self._error("invalid_request", "wrong response_mode")
-        elif resp_mode == 'query' and fragment_enc:
-            # Can't be done
-            return self._error("invalid_request", "wrong response_mode")
-        return None
-
     def create_authn_response(self, areq, sid):
         rtype = areq["response_type"][0]
         _func = self.response_type_map[rtype]
@@ -669,6 +596,17 @@ class Provider(object):
             fragment_enc = True
 
         return aresp, fragment_enc
+
+    def response_mode(self, areq, fragment_enc, **kwargs):
+        resp_mode = areq["response_mode"]
+
+        if resp_mode == 'fragment' and not fragment_enc:
+            # Can't be done
+            raise InvalidRequest("wrong response_mode")
+        elif resp_mode == 'query' and fragment_enc:
+            # Can't be done
+            return InvalidRequest("wrong response_mode")
+        return None
 
     def authz_part2(self, user, areq, sid, **kwargs):
         """
@@ -728,10 +666,15 @@ class Provider(object):
         # 'form_post'.
 
         if "response_mode" in areq:
-            resp = self.response_mode(areq, fragment_enc, aresp, redirect_uri,
-                                      headers)
-            if isinstance(resp, Response):
-                return resp
+            try:
+                resp = self.response_mode(areq, fragment_enc, aresp=aresp,
+                                          redirect_uri=redirect_uri,
+                                          headers=headers)
+            except InvalidRequest as err:
+                return self._error("invalid_request", err)
+            else:
+                if resp is not None:
+                    return resp
 
         # Just do whatever is the default
         location = aresp.request(redirect_uri, fragment_enc)
