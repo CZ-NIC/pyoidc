@@ -706,6 +706,10 @@ class TestOICProvider(object):
         resp = self.server.endsession_endpoint("")
         self._assert_cookies_expired(resp.headers)
 
+        # End session not allowed if no cookie is sent (can't determine session)
+        resp = self.server.endsession_endpoint("", cookie="FAIL")
+        assert resp.status == "400 Bad Request"
+
     def test_endsession_endpoint_with_id_token_hint(self):
         id_token = self._auth_with_id_token()
         assert self.server.sdb.get_sids_by_sub(id_token["sub"])  # verify we got valid session

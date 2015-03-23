@@ -525,15 +525,14 @@ class Provider(AProvider):
                 pass
         else:
             identity, _ts = authn.authenticated_as(cookie)
-            try:
+            if identity:
                 uid = identity["uid"]
                 try:
                     sid = self.sdb.uid2sid[uid][0] # any sid will do, choose the first
                 except (KeyError, IndexError):
                     pass
-            except KeyError:
-                return self._error_response(
-                    "Not allowed (UID could not be retrieved)!")
+            else:
+                return self._error_response("Not allowed (UID could not be retrieved)!")
 
         #if self.sdb.get_verified_logout(uid):
         #    return self.let_user_verify_logout(uid, esr, cookie, redirect_uri)
