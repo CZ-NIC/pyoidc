@@ -5,6 +5,8 @@ import urlparse
 import json
 from jwkest import b64d
 import jwkest
+from jwkest import jwe
+from jwkest import jws
 from jwkest.jwe import JWE
 from jwkest.jwk import keyitems2keyreps
 from jwkest.jws import JWS
@@ -477,37 +479,8 @@ class Message(object):
         if keyjar is not None and "sender" in kwargs:
             key.extend(keyjar.get_verify_key(owner=kwargs["sender"]))
 
-        header = jwt_header(txt)
-        logger.debug("header: %s" % (header,))
-
-        try:
-            htype = header["typ"]
-        except KeyError:
-            htype = None
-
-        try:
-            _kid = header["kid"]
-        except KeyError:
-            _kid = ""
-
-        jso = None
-        if htype == "JWE" or ("alg" in header and "enc" in header):  # encrypted
-            try:
-                assert kwargs["algs"]["alg"] == header["alg"]
-            except AssertionError:
-                raise WrongEncryptionAlgorithm("%s != %s" % (
-                    kwargs["algs"]["alg"], header["alg"]))
-            except KeyError:
-                pass
-            else:
-                try:
-                    assert kwargs["algs"]["enc"] == header["enc"]
-                except AssertionError:
-                    raise WrongEncryptionAlgorithm("%s != %s" % (
-                        kwargs["algs"]["enc"], header["enc"]))
-                except KeyError:
-                    pass
-
+        _jw = jwe.factory(txt)
+        if _jw:
             if keyjar:
                 dkeys = keyjar.get_decrypt_key(owner="")
             elif key:
@@ -515,48 +488,33 @@ class Message(object):
             else:
                 dkeys = []
 
-            txt = JWE().decrypt(txt, dkeys)
-            self.jwe_header = header
-            try:
-                jso = json.loads(txt)
-            except Exception:
-                pass
+            txt = _jw.decrypt(txt, dkeys)
+            self.jwe_header = _jw.dump_header()
 
-        # assume htype == 'JWS'
-        _jws = JWS()
-        if not jso:
+        _jw = jws.factory(txt)
+        if _jw:
             try:
                 p = jwkest.unpack(txt)
-                header = p[0]
-                try:
-                    assert kwargs["algs"]["sign"] == header["alg"]
-                except AssertionError:
-                    raise WrongSigningAlgorithm("%s != %s" % (
-                        kwargs["algs"]["sign"], header["alg"]))
-                except KeyError:
-                    pass
-
-                jso = p[1]
-                if isinstance(jso, basestring):
-                    jso = json.loads(jso)
+                jso = json.loads(p[1])
 
                 logger.debug("Raw JSON: %s" % jso)
-                if header["alg"] == "none":
+                if _jw["alg"] == "none":
                     pass
                 else:
                     if keyjar:
-                        if "jku" in header:
-                            if not keyjar.find(header["jku"], jso["iss"]):
+                        if "jku" in _jw:
+                            if not keyjar.find(_jw["jku"], jso["iss"]):
                                 # This is really questionable
                                 try:
                                     if kwargs["trusting"]:
-                                        keyjar.add(jso["iss"], header["jku"])
+                                        keyjar.add(jso["iss"], _jw["jku"])
                                 except KeyError:
                                     pass
 
-                        if _kid:
+                        if "kid" in _jw and _jw["kid"]:
                             try:
-                                _key = keyjar.get_key_by_kid(_kid, jso["iss"])
+                                _key = keyjar.get_key_by_kid(_jw["kid"],
+                                                             jso["iss"])
                                 if _key:
                                     key.append(_key)
                             except KeyError:
@@ -583,16 +541,19 @@ class Message(object):
                                 else:
                                     self._add_key(keyjar, jso[ent], key)
 
-                        if "alg" in header and header["alg"] != "none":
+                        if "alg" in _jw and _jw["alg"] != "none":
                             if not key:
                                 raise MissingSigningKey(
-                                    "alg=%s" % header["alg"])
+                                    "alg=%s" % _jw["alg"])
 
-                        _jws.verify_compact(txt, key)
+                        _jw.verify_compact(txt, key)
             except Exception:
                 raise
             else:
-                self.jws_header = header
+                self.jws_header = _jw.dump_header()
+        else:
+            jso = json.loads(txt)
+
         return self.from_dict(jso)
 
     def __str__(self):
