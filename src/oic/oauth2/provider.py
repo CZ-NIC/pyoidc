@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import hashlib
 import traceback
 import sys
 import urllib
@@ -176,6 +177,8 @@ class Provider(object):
             "token": token_response,
             "none": none_response,
         }
+
+        self.session_cookie_name = "pyoic_session"
 
     def endpoints(self):
         for endp in self.endp:
@@ -534,14 +537,16 @@ class Provider(object):
             else:
                 # I get back a dictionary
                 user = identity["uid"]
-                if "req_user" in kwargs and kwargs["req_user"] != user:
-                    logger.debug("Wanted to be someone else!")
-                    if "prompt" in areq and "none" in areq["prompt"]:
-                        # Need to authenticate but not allowed
-                        return self._redirect_authz_error("login_required",
-                                                          redirect_uri)
-                    else:
-                        return authn(**authn_args)
+                if "req_user" in kwargs:
+                    sids_for_sub = self.sdb.get_sids_by_sub(kwargs["req_user"])
+                    if sids_for_sub and user != self.sdb.get_authentication_event(sids_for_sub[-1]).uid:
+                        logger.debug("Wanted to be someone else!")
+                        if "prompt" in areq and "none" in areq["prompt"]:
+                            # Need to authenticate but not allowed
+                            return self._redirect_authz_error("login_required",
+                                                              redirect_uri)
+                        else:
+                            return authn(**authn_args)
 
         authn_event = AuthnEvent(identity["uid"], authn_info=authn_class_ref,
                                  time_stamp=_ts)
@@ -618,6 +623,18 @@ class Provider(object):
         :param kwargs: possible other parameters
         :return: A redirect to the redirect_uri of the client
         """
+        result = self._complete_authz(user, areq, sid, **kwargs)
+        if isinstance(result, Response):
+            return result
+        else:
+            aresp, headers, redirect_uri, fragment_enc = result
+
+        # Just do whatever is the default
+        location = aresp.request(redirect_uri, fragment_enc)
+        logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
+        return Redirect(str(location), headers=headers)
+
+    def _complete_authz(self, user, areq, sid, **kwargs):
         _log_debug = logger.debug
         _log_debug("- in authenticated() -")
 
@@ -657,9 +674,8 @@ class Provider(object):
         except KeyError:
             pass
         else:
-            if _kaka and not _kaka.startswith("pyoidc="):
-                headers = [(self.cookie_func(user, typ="sso",
-                                             ttl=self.sso_ttl))]
+            if _kaka and self.cookie_name not in _kaka:  # Don't overwrite cookie
+                headers.append(self.cookie_func(user, typ="sso", ttl=self.sso_ttl))
 
         # Now about the response_mode. Should not be set if it's obvious
         # from the response_type. Knows about 'query', 'fragment' and
@@ -676,16 +692,13 @@ class Provider(object):
                 if resp is not None:
                     return resp
 
-        # Just do whatever is the default
-        location = aresp.request(redirect_uri, fragment_enc)
-        logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
-        return Redirect(str(location), headers=headers)
+        return aresp, headers, redirect_uri, fragment_enc
 
     def token_scope_check(self, areq, info):
         """ Not implemented here """
         # if not self.subset(areq["scope"], _info["scope"]):
         # LOG_INFO("Asked for scope which is not subset of previous defined")
-        #     err = TokenErrorResponse(error="invalid_scope")
+        # err = TokenErrorResponse(error="invalid_scope")
         #     return Response(err.to_json(), content="application/json")
         return None
 
@@ -758,3 +771,15 @@ class Provider(object):
         authn, acr = self.pick_auth(areq=areq)
         kwargs["cookie"] = cookie
         return authn.verify(_req, **kwargs)
+
+    def write_session_cookie(self, value):
+        return make_cookie(self.session_cookie_name, value, self.seed, path="/")
+
+    def delete_session_cookie(self):
+        return make_cookie(self.session_cookie_name, "", "", path="/", expire=-1)
+
+    def _compute_session_state(self, state, salt, client_id, redirect_uri):
+        parsed_uri = urlparse.urlparse(redirect_uri)
+        rp_origin_url = "{uri.scheme}://{uri.netloc}".format(uri=parsed_uri)
+        session_str = client_id + " " + rp_origin_url + " " + state + " " + salt
+        return hashlib.sha256(session_str).hexdigest() + "." + salt

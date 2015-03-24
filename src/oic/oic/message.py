@@ -774,9 +774,9 @@ class ProviderConfigurationResponse(Message):
         "request_uri_parameter_supported": SINGLE_OPTIONAL_BOOLEAN,
         "require_request_uri_registration": SINGLE_OPTIONAL_BOOLEAN,
         "op_policy_uri": SINGLE_OPTIONAL_STRING,
-        "op_tos_uri": SINGLE_OPTIONAL_STRING
-        #"check_session_iframe": SINGLE_OPTIONAL_STRING,
-        #"end_session_endpoint": SINGLE_OPTIONAL_STRING,
+        "op_tos_uri": SINGLE_OPTIONAL_STRING,
+        "check_session_iframe": SINGLE_OPTIONAL_STRING,
+        "end_session_endpoint": SINGLE_OPTIONAL_STRING,
         #"jwk_encryption_url": SINGLE_OPTIONAL_STRING,
         #"x509_url": SINGLE_REQUIRED_STRING,
         #"x509_encryption_url": SINGLE_OPTIONAL_STRING,

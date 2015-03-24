@@ -3,6 +3,7 @@ import json
 import traceback
 import urllib
 import sys
+import itertools
 from jwkest.jwe import JWE
 from jwkest.jwk import SYMKey
 from oic.utils.time_util import utc_time_sans_frac
@@ -155,7 +156,7 @@ class RegistrationEndpoint(Endpoint):
 
 
 class EndSessionEndpoint(Endpoint):
-    etype = "endsession"
+    etype = "end_session"
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"], ["token"], ["id_token"], ["code", "token"], ["code", "id_token"],
@@ -457,9 +458,10 @@ class Provider(AProvider):
         try:
             redirect_uri = areq["post_logout_redirect_uri"]
             authn, acr = self.pick_auth(areq)
-            uid, _ts = authn.authenticated_as(cookie)["uid"]
-            client_info = self.cdb[self.sdb.getClient_id(uid)]
-            if redirect_uri in client_info["post_logout_redirect_uris"]:
+            uid, _ts = authn.authenticated_as(cookie)
+            client_ids = self.sdb.get_client_ids_for_uid(uid["uid"])
+            accepted_urls = [self.cdb[cid]["post_logout_redirect_uris"] for cid in client_ids]
+            if self._verify_url(redirect_uri, itertools.chain.from_iterable(accepted_urls)):
                 return redirect_uri
         except Exception as exc:
             logger.debug(
@@ -499,41 +501,50 @@ class Provider(AProvider):
 
     def end_session_endpoint(self, request="", cookie=None, **kwargs):
         esr = EndSessionRequest().from_urlencoded(request)
-        redirect_uri = self.verify_post_logout_redirect_uri(esr, cookie)
-        if not redirect_uri:
-            return self._error_response(
-                "Not allowed (Post logout redirect URI verification failed)!")
+
+        redirect_uri = None
+        if "post_logout_redirect_uri" in esr:
+            redirect_uri = self.verify_post_logout_redirect_uri(esr, cookie)
+            if not redirect_uri:
+                return self._error_response(
+                    "Not allowed (Post logout redirect URI verification failed)!")
 
         authn, acr = self.pick_auth(esr)
 
+        sid = None
         if "id_token_hint" in esr:
             id_token_hint = OpenIDRequest().from_jwt(esr["id_token_hint"],
                                                      keyjar=self.keyjar,
                                                      verify=True)
-            uid = id_token_hint["sub"]
+            sub = id_token_hint["sub"]
+            try:
+                sid = self.sdb.get_sids_by_sub(sub)[0] # any sid will do, choose the first
+            except IndexError:
+                pass
         else:
             identity, _ts = authn.authenticated_as(cookie)
-            try:
+            if identity:
                 uid = identity["uid"]
-            except KeyError:
-                return self._error_response(
-                    "Not allowed (UID could not be retrieved)!")
+                try:
+                    sid = self.sdb.uid2sid[uid][0] # any sid will do, choose the first
+                except (KeyError, IndexError):
+                    pass
+            else:
+                return self._error_response("Not allowed (UID could not be retrieved)!")
 
         #if self.sdb.get_verified_logout(uid):
         #    return self.let_user_verify_logout(uid, esr, cookie, redirect_uri)
 
-        try:
-            sid = self.sdb.get_sid_from_userid(uid)
-        except KeyError:
-            pass
-            #If cleanup cannot be performed we will still invalidate the cookie.
-        else:
+        if sid is not None:
             del self.sdb[sid]
 
-        if redirect_uri is not None:
-            return Redirect(str(redirect_uri), headers=[authn.delete_cookie()])
+        # Delete cookies
+        headers = [authn.delete_cookie(), self.delete_session_cookie()]
 
-        return Response("", headers=[authn.delete_cookie()])
+        if redirect_uri is not None:
+            return Redirect(str(redirect_uri), headers=headers)
+
+        return Response("Successful logout", headers=headers)
 
     def verify_endpoint(self, request="", cookie=None, **kwargs):
         """
@@ -607,17 +618,14 @@ class Provider(AProvider):
 
         req_user = self.required_user(areq)
         if req_user:
-            try:
-                sids = self.sdb.sub2sid[req_user]
-            except KeyError:
-                pass
-            else:
+            sids = self.sdb.get_sids_by_sub(req_user)
+            if sids:
                 # anyone will do
-                authn_event = self.sdb[sids[0]]["authn_event"]
+                authn_event = self.sdb[sids[-1]]["authn_event"]
                 # Is the authentication event to be regarded as valid ?
                 if authn_event.valid():
                     sid = self.setup_session(areq, authn_event, cinfo)
-                    return self.authz_part2(authn_event.uid, areq, sid)
+                    return self.authz_part2(authn_event.uid, areq, sid, cookie=cookie)
 
             kwargs["req_user"] = req_user
 
@@ -633,6 +641,23 @@ class Provider(AProvider):
 
         sid = self.setup_session(areq, authnres["authn_event"], cinfo)
         return self.authz_part2(authnres["user"], areq, sid, cookie=cookie)
+
+    def authz_part2(self, user, areq, sid, **kwargs):
+        result = self._complete_authz(user, areq, sid, **kwargs)
+        if isinstance(result, Response):
+            return result
+        else:
+            aresp, headers, redirect_uri, fragment_enc = result
+
+        if "check_session_iframe" in self.capabilities:
+            salt = rndstr()
+            state = str(self.sdb.get_authentication_event(sid).authn_time) # use the last session
+            aresp["session_state"] = self._compute_session_state(state, salt, areq["client_id"], redirect_uri)
+            headers.append(self.write_session_cookie(state))
+
+        location = aresp.request(redirect_uri, fragment_enc)
+        logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
+        return Redirect(str(location), headers=headers)
 
     def userinfo_in_id_token_claims(self, session):
         """

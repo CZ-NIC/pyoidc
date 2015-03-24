@@ -27,6 +27,8 @@ keys
 static
 
 # Remaining stuff
+oidc_example/op1/client_db.db
+oidc_example/op1/oc_config.py
 oidc_example/op2/client_db.db
 oidc_example/op2/config.py
 oidc_example/op2/modules
@@ -35,4 +37,6 @@ oidc_example/op2/sp_cert/tmp_mycert.pem
 oidc_example/op2/sp_cert/tmp_mykey.pem
 oidc_example/op2/sp_conf.py
 oidc_example/op2/static/jwks.json
+oidc_example/rp3/conf.py
+oidc_example/rp3/modules/
 update

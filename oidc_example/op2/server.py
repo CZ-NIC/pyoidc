@@ -227,7 +227,7 @@ def static_file(path):
 
 
 #noinspection PyUnresolvedReferences
-def static(environ, start_response, logger, path):
+def static(environ, start_response, path):
     logger.info("[static]sending: %s" % (path,))
 
     try:
@@ -248,6 +248,10 @@ def static(environ, start_response, logger, path):
     except IOError:
         resp = NotFound()
         return resp(environ, start_response)
+
+
+def check_session_iframe(environ, start_response, logger):
+    return static(environ, start_response, "htdocs/op_session_iframe.html")
 
 # ----------------------------------------------------------------------------
 
@@ -288,7 +292,8 @@ URLS = [
     (r'.+\.css$', css),
     (r'safe', safe),
     (r'^keyrollover', key_rollover),
-    (r'^clearkeys', clear_keys)
+    (r'^clearkeys', clear_keys),
+    (r'^check_session', check_session_iframe)
 #    (r'tracelog', trace_log),
 ]
 
@@ -332,17 +337,15 @@ def application(environ, start_response):
     logger = logging.getLogger('oicServer')
 
     if path == "robots.txt":
-        return static(environ, start_response, logger, "static/robots.txt")
+        return static(environ, start_response, "static/robots.txt")
 
     environ["oic.oas"] = OAS
-    
+
     #remote = environ.get("REMOTE_ADDR")
     #kaka = environ.get("HTTP_COOKIE", '')
 
     if path.startswith("static/"):
-        return static(environ, start_response, logger, path)
-#    elif path.startswith("oc_keys/"):
-#        return static(environ, start_response, logger, path)
+        return static(environ, start_response, path)
 
     for regex, callback in URLS:
         match = re.search(regex, path)

@@ -82,6 +82,14 @@
 
 </div>
 <!-- /container -->
+
+
+% if check_session_iframe_url is not UNDEFINED:
+    <iframe id="rp_iframe" src="/session_iframe" hidden></iframe>
+    <iframe id="op_iframe" src="${check_session_iframe_url}" hidden></iframe>
+% endif
+
+
 <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
 <script src="/static/jquery.min.1.9.1.js"></script>
 <!-- Include all compiled plugins (below), or include individual files as needed -->

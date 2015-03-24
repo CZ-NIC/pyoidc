@@ -2,17 +2,19 @@ import json
 import os
 import shutil
 import tempfile
+
 from jwkest import BadSignature
 from jwkest.jwk import SYMKey
-from oic.oauth2.message import MissingSigningKey
 
+from oic.oauth2.message import MissingSigningKey
 from oic.oic.message import AccessTokenResponse, AuthorizationResponse, IdToken
 from oic.utils.keyio import KeyBundle, keybundle_from_local_file
 from oic.utils.keyio import KeyJar
 
+
 __author__ = 'rohe0002'
 
-from oic.oic import Server
+from oic.oic import Server, DEF_SIGN_ALG
 from oic.oauth2 import rndstr
 
 from oic.oic.consumer import Consumer
@@ -78,7 +80,7 @@ CONFIG = {
     "scope": ["openid"],
     "response_type": "code",
     "request_method": "parameter",
-    #"temp_dir": "./tmp",
+    # "temp_dir": "./tmp",
     #"flow_type":
     "password": "hemligt",
     "max_age": 3600,
@@ -120,6 +122,7 @@ class TestOICConsumer():
     def setup_class(self):
         self.consumer = Consumer(SessionDB(SERVER_INFO["issuer"]),
                                  CONFIG, CLIENT_CONFIG, SERVER_INFO)
+        self.consumer.behaviour = {"request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]}
         self.consumer.client_secret = CLIENT_SECRET
 
     def test_init(self):
@@ -174,7 +177,7 @@ class TestOICConsumer():
     def test_begin(self):
         self.consumer.authorization_endpoint = AUTHZ_URL
         self.consumer.keyjar[""].append(KC_RSA)
-        #self.consumer.keyjar.set_sign_key(rsapub, "rsa")
+        # self.consumer.keyjar.set_sign_key(rsapub, "rsa")
         #self.consumer.keyjar.set_verify_key(rsapub, "rsa")
 
         srv = Server()
@@ -205,7 +208,7 @@ class TestOICConsumer():
         sid, location = self.consumer.begin("openid", "code",
                                             path="http://localhost:8087")
         print location
-        #vkeys = {".":srv.keyjar.get_verify_key()}
+        # vkeys = {".":srv.keyjar.get_verify_key()}
         authreq = srv.parse_authorization_request(url=location)
         print authreq.keys()
         assert _eq(authreq.keys(), ['max_age', 'state', 'redirect_uri',
@@ -243,7 +246,7 @@ class TestOICConsumer():
             self.consumer.redirect_uris[0])
         _, query = result.headers["location"].split("?")
 
-        #vkeys = {".": self.consumer.keyjar.get_verify_key()}
+        # vkeys = {".": self.consumer.keyjar.get_verify_key()}
 
         self.consumer.parse_response(AuthorizationResponse, info=query,
                                      sformat="urlencoded")
@@ -375,7 +378,7 @@ def test_complete_auth_token():
     consumer._backup("state0")
 
     assert result.status_code == 302
-    #assert result.location.startswith(consumer.redirect_uri[0])
+    # assert result.location.startswith(consumer.redirect_uri[0])
     _, query = result.headers["location"].split("?")
     print query
     part = consumer.parse_authz(query=query)
@@ -422,7 +425,7 @@ def test_complete_auth_token_idtoken():
 
     result = consumer.do_authorization_request(state=_state,
                                                request_args=args)
-    #consumer._backup("state0")
+    # consumer._backup("state0")
 
     assert result.status_code == 302
     #assert result.location.startswith(consumer.redirect_uri[0])
@@ -444,6 +447,7 @@ def test_complete_auth_token_idtoken():
                             'token_type', 'state', 'scope'])
 
     consumer.verify_id_token(atr["id_token"], consumer.authz_req[atr["state"]])
+
 
 def test_userinfo():
     consumer = Consumer(SessionDB(SERVER_INFO["issuer"]), CONFIG,
@@ -625,7 +629,7 @@ def _faulty_id_token():
 
     _signed_jwt = idts.to_jwt(key=[SYMKEY], algorithm="HS256")
 
-    #Mess with the signed id_token
+    # Mess with the signed id_token
     p = _signed_jwt.split(".")
     p[2] = "aaa"
 
@@ -692,7 +696,7 @@ def test_faulty_idtoken_from_accesstoken_endpoint():
     consumer._backup("state0")
 
     assert result.status_code == 302
-    #assert result.location.startswith(consumer.redirect_uri[0])
+    # assert result.location.startswith(consumer.redirect_uri[0])
     _, query = result.headers["location"].split("?")
     print query
     try:

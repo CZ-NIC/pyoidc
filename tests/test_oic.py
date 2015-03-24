@@ -8,13 +8,16 @@ import time
 import json
 import urllib
 
-from oic.oic import Grant
+from jwkest import unpack
+from jwkest.jws import left_hash
+from jwkest.jws import alg2keytype
+from pytest import raises
+
+from oic.oic import Grant, DEF_SIGN_ALG
 from oic.oic import Token
 from oic.oic import Client
 from oic.oic import Server
-
 from oic.oic.message import IdToken, ClaimsRequest
-#from oic.oic.message import AuthorizationErrorResponse
 from oic.oic.message import Claims
 from oic.oic.message import UserInfoRequest
 from oic.oic.message import RegistrationRequest
@@ -27,23 +30,13 @@ from oic.oic.message import OpenIDRequest
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AuthorizationResponse
-
 from oic.oauth2.message import GrantExpired
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import MissingRequiredAttribute
-
 from oic.utils import time_util
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.keyio import KeyBundle, KeyJar, rsa_load
-
-from jwkest import unpack
-from jwkest.jws import left_hash
-from jwkest.jws import alg2keytype
-
-from pytest import raises
-
 from fakeoicsrv import MyFakeOICServer
-
 from utils_for_tests import _eq
 
 
@@ -76,6 +69,7 @@ class TestOICClient():
         self.client.redirect_uris = ["http://example.com/redirect"]
         self.client.client_secret = CLIENT_SECRET
         self.client.keyjar[""] = KC_RSA
+        self.client.behaviour = {"request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]}
         self._state = ""
 
     def test_areq_1(self):

@@ -61,8 +61,8 @@ logger = logging.getLogger(__name__)
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint",
              "userinfo_endpoint", "refresh_session_endpoint",
-             "check_session_endpoint", "end_session_endpoint",
-             "registration_endpoint", "check_id_endpoint"]
+             "end_session_endpoint", "registration_endpoint",
+             "check_id_endpoint"]
 
 RESPONSE2ERROR = {
     "AuthorizationResponse": [AuthorizationErrorResponse,
@@ -285,9 +285,7 @@ class Client(oauth2.Client):
         self.registration_response = None
         self.client_prefs = client_prefs or {}
 
-        self.behaviour = {
-            "request_object_signing_alg":
-                DEF_SIGN_ALG["openid_request_object"]}
+        self.behaviour = {}
 
         self.wf = WebFinger(OIC_ISSUER)
         self.wf.httpd = self

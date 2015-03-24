@@ -27,7 +27,7 @@ class Client(oic.Client):
         if behaviour:
             self.behaviour = behaviour
 
-    def create_authn_request(self, session, acr_value=None):
+    def create_authn_request(self, session, acr_value=None, **kwargs):
         session["state"] = rndstr()
         session["nonce"] = rndstr()
         request_args = {
@@ -41,6 +41,7 @@ class Client(oic.Client):
         if acr_value is not None:
             request_args["acr_values"] = acr_value
 
+        request_args.update(kwargs)
         cis = self.construct_AuthorizationRequest(request_args=request_args)
         logger.debug("request: %s" % cis)
 
@@ -58,7 +59,7 @@ class Client(oic.Client):
         logger.debug("resp_headers: %s" % resp.headers)
         return resp
 
-    def callback(self, response):
+    def callback(self, response, session):
         """
         This is the method that should be called when an AuthN response has been
         received from the OP.
@@ -70,9 +71,17 @@ class Client(oic.Client):
                                        sformat="dict", keyjar=self.keyjar)
 
         if isinstance(authresp, ErrorResponse):
-            return OIDCError("Access denied")
+            if authresp["error"] == "login_required":
+                return self.create_authn_request(session)
+            else:
+                return OIDCError("Access denied")
+
+        if session["state"] != authresp["state"]:
+            return OIDCError("Received state not the same as expected.")
 
         try:
+            if authresp["id_token"] != session["nonce"]:
+                return OIDCError("Received nonce not the same as expected.")
             self.id_token[authresp["state"]] = authresp["id_token"]
         except KeyError:
             pass

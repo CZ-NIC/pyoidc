@@ -2,6 +2,7 @@ import copy
 import uuid
 
 import time
+import itertools
 from oic.oic import AuthorizationRequest
 
 
@@ -160,7 +161,7 @@ class SessionDB(object):
         self.token = Token(secret, password)
         self.token_expires_in = token_expires_in
         self.grant_expires_in = grant_expires_in
-        self.sub2sid = {}
+        self.uid2sid = {}
         self.seed = seed or secret
 
     def __getitem__(self, item):
@@ -183,12 +184,14 @@ class SessionDB(object):
 
         self._db[key] = value
 
-    def __delitem__(self, key):
+    def __delitem__(self, sid):
         """
         Actually delete the pointed session from this SessionDB instance
         :param key: session identifier
         """
-        del self._db[key]
+        del self._db[sid]
+        # Delete the mapping for session id
+        self.uid2sid = {k: v for k, v in self.uid2sid.iteritems() if sid not in v}
 
     def keys(self):
         return self._db.keys()
@@ -223,30 +226,21 @@ class SessionDB(object):
         :return:
         """
         uid = self._db[sid]["authn_event"].uid
-        
-        old = [""]
+
         if subject_type == "public":
             sub = "%x" % hash(uid+self.base_url)
         else:
             sub = pairwise_id(uid, sector_id, self.seed)
-            old.append(sub)
-
-        logger.debug("sub: %s, old: %s" % (sub, old))
 
         # since sub can be public, there can be more then one session
         # that uses the same subject identifier
         try:
-            self.sub2sid[sub].append(sid)
+            self.uid2sid[uid].append(sid)
         except KeyError:
-            self.sub2sid[sub] = [sid]
+            self.uid2sid[uid] = [sid]
 
-        for old_id in old:
-            try:
-                del self.sub2sid[old_id]
-            except KeyError:
-                pass
 
-        logger.debug("sub2sid: %s" % self.sub2sid)
+        logger.debug("uid2sid: %s" % self.uid2sid)
         self._db[sid]["sub"] = sub
 
         return sub
@@ -302,11 +296,11 @@ class SessionDB(object):
     def get_authentication_event(self, sid):
         return self._db[sid]["authn_event"]
 
-    def get_token(self, key):
-        if self._db[key]["oauth_state"] == "authz":
-            return self._db[key]["code"]
-        elif self._db[key]["oauth_state"] == "token":
-            return self._db[key]["access_token"]
+    def get_token(self, sid):
+        if self._db[sid]["oauth_state"] == "authz":
+            return self._db[sid]["code"]
+        elif self._db[sid]["oauth_state"] == "token":
+            return self._db[sid]["access_token"]
 
     def upgrade_to_token(self, token=None, issue_refresh=True, id_token="",
                          oidreq=None, key=None, access_grant=""):
@@ -441,39 +435,46 @@ class SessionDB(object):
 
         self._db[sid]["revoked"] = True
 
-    def get_client_id(self, sub):
-        _dict = self._db[self.sub2sid[sub]]
+    def get_client_id_for_session(self, sid):
+        _dict = self._db[sid]
         return _dict["client_id"]
 
-    def get_verified_Logout(self, sub):
-        _dict = self._db[self.sub2sid[sub]]
+    def get_client_ids_for_uid(self, uid):
+        return [self.get_client_id_for_session(sid) for sid in self.uid2sid[uid]]
+
+    def get_verified_Logout(self, uid):
+        _dict = self._db[self.uid2sid[uid]]
         if "verified_logout" not in _dict:
             return None
         return _dict["verified_logout"]
 
-    def set_verify_logout(self, sub):
-        _dict = self._db[self.sub2sid[sub]]
+    def set_verify_logout(self, uid):
+        _dict = self._db[self.uid2sid[uid]]
         _dict["verified_logout"] = uuid.uuid4().urn
 
-    def get_token_id(self, sub):
-        _dict = self._db[self.sub2sid[sub]]
+    def get_token_id(self, uid):
+        _dict = self._db[self.uid2sid[uid]]
         return _dict["id_token"]
 
-    def is_revoke_uid(self, sub):
-        return self._db[self.sub2sid[sub]]["revoked"]
+    def is_revoke_uid(self, uid):
+        return self._db[self.uid2sid[uid]]["revoked"]
 
-    def revoke_uid(self, sub):
-        self._db[self.sub2sid[sub]]["revoked"] = True
+    def revoke_uid(self, uid):
+        self._db[self.uid2sid[uid]]["revoked"] = True
 
-    def get_sids_from_sub(self, sub):
+    def get_sids_from_uid(self, uid):
         """
         Returns list of identifiers for sessions that are connected to this
-        subject identifier
+        local identifier
 
-        :param sub: subject identifier
+        :param uid: local identifier (username)
         :return: list of session identifiers
         """
-        return self.sub2sid[sub]
+        return self.uid2sid[uid]
+
+    def get_sids_by_sub(self, sub):
+        sids = itertools.chain.from_iterable(self.uid2sid.values())
+        return [sid for sid in sids if self._db[sid]["sub"] == sub]
 
     def duplicate(self, sinfo):
         _dic = copy.copy(sinfo)
@@ -493,7 +494,7 @@ class SessionDB(object):
                 pass
 
         self._db[sid] = _dic
-        self.sub2sid[_dic["sub"]] = sid
+        self.uid2sid[_dic["sub"]] = sid
         return sid
 
     def read(self, token):
