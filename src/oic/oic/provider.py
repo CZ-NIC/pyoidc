@@ -623,11 +623,11 @@ class Provider(AProvider):
             sids = self.sdb.get_sids_by_sub(req_user)
             if sids:
                 # anyone will do
-                authn_event = self.sdb[sids[0]]["authn_event"]
+                authn_event = self.sdb[sids[-1]]["authn_event"]
                 # Is the authentication event to be regarded as valid ?
                 if authn_event.valid():
                     sid = self.setup_session(areq, authn_event, cinfo)
-                    return self.authz_part2(authn_event.uid, areq, sid)
+                    return self.authz_part2(authn_event.uid, areq, sid, cookie=cookie)
 
             kwargs["req_user"] = req_user
 
@@ -653,7 +653,7 @@ class Provider(AProvider):
 
         if "check_session_iframe" in self.capabilities:
             salt = rndstr()
-            state = str(self.sdb.get_authentication_event(self.sdb.uid2sid[user][-1]).authn_time) # use the last session
+            state = str(self.sdb.get_authentication_event(sid).authn_time) # use the last session
             aresp["session_state"] = self._compute_session_state(state, salt, areq["client_id"], redirect_uri)
             headers.append(self.write_session_cookie(state))
 

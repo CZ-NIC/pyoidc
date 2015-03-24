@@ -599,15 +599,16 @@ class Provider(object):
             else:
                 # I get back a dictionary
                 user = identity["uid"]
-                if "req_user" in kwargs and user != self.sdb.get_authentication_event(
-                        self.sdb.get_sids_by_sub(kwargs["req_user"])[-1]).uid:
-                    logger.debug("Wanted to be someone else!")
-                    if "prompt" in areq and "none" in areq["prompt"]:
-                        # Need to authenticate but not allowed
-                        return self._redirect_authz_error("login_required",
-                                                          redirect_uri)
-                    else:
-                        return authn(**authn_args)
+                if "req_user" in kwargs:
+                    sids_for_sub = self.sdb.get_sids_by_sub(kwargs["req_user"])
+                    if sids_for_sub and user != self.sdb.get_authentication_event(sids_for_sub[-1]).uid:
+                        logger.debug("Wanted to be someone else!")
+                        if "prompt" in areq and "none" in areq["prompt"]:
+                            # Need to authenticate but not allowed
+                            return self._redirect_authz_error("login_required",
+                                                              redirect_uri)
+                        else:
+                            return authn(**authn_args)
 
         authn_event = AuthnEvent(identity["uid"], authn_info=authn_class_ref,
                                  time_stamp=_ts)
