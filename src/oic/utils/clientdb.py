@@ -1,7 +1,7 @@
 import json
 import urllib
 import requests
-from oic.oauth2 import NoClientInfoReceivedError
+from oic.oauth2.exception import NoClientInfoReceivedError
 
 
 class MDQClient(object):

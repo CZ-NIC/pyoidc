@@ -5,7 +5,7 @@ from jwkest import MissingKey
 from jwkest.jws import alg2keytype
 import time
 
-from oic.exception import UnknownAssertionType
+from oic.exception import UnknownAssertionType, FailedAuthentication
 from oic.exception import NotForMe
 from oic.oauth2 import rndstr, VREQUIRED
 from oic.oauth2 import SINGLE_OPTIONAL_STRING
@@ -400,6 +400,54 @@ CLIENT_AUTHN_METHOD = {
 TYPE_METHOD = [(JWT_BEARER, JWSAuthnMethod)]
 
 
+def get_client_id(cdb, req, authn):
+    """
+    Verify the client and return the client id
+
+    :param req: The request
+    :param authn: Authentication information from the HTTP header
+    :return:
+    """
+
+    logger.debug("REQ: %s" % req.to_dict())
+    if authn:
+        if authn.startswith("Basic "):
+            logger.debug("Basic auth")
+            (_id, _secret) = base64.b64decode(authn[6:]).split(":")
+            if _id not in cdb:
+                logger.debug("Unknown client_id")
+                raise FailedAuthentication("Unknown client_id")
+            else:
+                try:
+                    assert _secret == cdb[_id]["client_secret"]
+                except AssertionError:
+                    logger.debug("Incorrect secret")
+                    raise FailedAuthentication("Incorrect secret")
+        else:
+            try:
+                assert authn[:6].lower() == "bearer"
+                logger.debug("Bearer auth")
+                _token = authn[7:]
+            except AssertionError:
+                raise FailedAuthentication("AuthZ type I don't know")
+
+            try:
+                _id = cdb[_token]
+            except KeyError:
+                logger.debug("Unknown access token")
+                raise FailedAuthentication("Unknown access token")
+    else:
+        try:
+            _id = req["client_id"]
+            if _id not in cdb:
+                logger.debug("Unknown client_id")
+                raise FailedAuthentication("Unknown client_id")
+        except KeyError:
+            raise FailedAuthentication("Missing client_id")
+
+    return _id
+
+
 def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
     """
     Initiated Guessing !
@@ -409,7 +457,7 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
     :return:
     """
 
-    client_id = inst.get_client_id(areq, authn)
+    client_id = get_client_id(inst.cdb, areq, authn)
 
     logger.debug("Verified Client ID: %s" % client_id)
 
