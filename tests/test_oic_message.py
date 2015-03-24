@@ -336,8 +336,6 @@ def test_wrong_alg():
         at.verify(key=[key], algs={"sign": "HS512"})
     except WrongSigningAlgorithm:
         pass
-    else:
-        raise
 
 
 if __name__ == "__main__":

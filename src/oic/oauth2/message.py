@@ -481,6 +481,17 @@ class Message(object):
 
         _jw = jwe.factory(txt)
         if _jw:
+            if "algs" in kwargs and "encalg" in kwargs["algs"]:
+                try:
+                    assert kwargs["algs"]["encalg"] == _jw["alg"]
+                except AssertionError:
+                    raise WrongEncryptionAlgorithm("%s != %s" % (
+                        _jw["alg"], kwargs["algs"]["encalg"]))
+                try:
+                    assert kwargs["algs"]["encenc"] == _jw["enc"]
+                except AssertionError:
+                    raise WrongEncryptionAlgorithm("%s != %s" % (
+                        _jw["enc"], kwargs["algs"]["encenc"]))
             if keyjar:
                 dkeys = keyjar.get_decrypt_key(owner="")
             elif key:
@@ -493,6 +504,12 @@ class Message(object):
 
         _jw = jws.factory(txt)
         if _jw:
+            if "algs" in kwargs and "sign" in kwargs["algs"]:
+                try:
+                    assert kwargs["algs"]["sign"] == _jw["alg"]
+                except AssertionError:
+                    raise WrongSigningAlgorithm("%s != %s" % (
+                        _jw["alg"], kwargs["algs"]["sign"]))
             try:
                 p = jwkest.unpack(txt)
                 jso = json.loads(p[1])
