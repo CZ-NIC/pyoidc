@@ -2,6 +2,7 @@
 import importlib
 import argparse
 import urllib
+import urlparse
 from jwkest.jws import alg2keytype
 from mako.lookup import TemplateLookup
 from urlparse import parse_qs
@@ -221,6 +222,7 @@ if __name__ == '__main__':
         'session.type': 'memory',
         'session.cookie_expires': True,
         'session.auto': True,
+        'session.key': "{}.beaker.session.id".format(urlparse.urlparse(conf.BASE).netloc.replace(":", "."))
     }
 
     CLIENTS = OIDCClients(conf)
