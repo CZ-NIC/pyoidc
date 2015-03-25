@@ -582,7 +582,7 @@ if __name__ == '__main__':
         OAS.baseurl += "/"
 
     try:
-        jwks = keyjar_init(OAS, config.keys)
+        jwks = keyjar_init(OAS, config.keys, kid_template="op%d")
     except Exception, err:
         LOGGER.error("Key setup failed: %s" % err)
         OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})

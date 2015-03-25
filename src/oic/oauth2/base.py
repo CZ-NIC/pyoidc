@@ -2,6 +2,7 @@ from Cookie import SimpleCookie
 import cookielib
 import copy
 import logging
+from oic.oauth2.util import set_cookie
 import requests
 from oic.utils.keyio import KeyJar
 
@@ -53,12 +54,12 @@ class PBase(object):
             raise
 
         try:
-            set_cookie = r.headers["set-cookie"]
+            _cookie = r.headers["set-cookie"]
             # Telekom fix
             # set_cookie = set_cookie.replace(
             # "=;Path=/;Expires=Thu, 01-Jan-1970 00:00:01 GMT;HttpOnly,", "")
-            logger.debug("RECEIVED COOKIEs: %s" % set_cookie)
-            set_cookie(self.cookiejar, SimpleCookie(set_cookie))
+            logger.debug("RECEIVED COOKIEs: %s" % _cookie)
+            set_cookie(self.cookiejar, SimpleCookie(_cookie))
         except (AttributeError, KeyError), err:
             pass
 
