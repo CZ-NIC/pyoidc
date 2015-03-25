@@ -6,7 +6,7 @@ __author__ = 'roland'
 
 
 def test_access_code():
-    keys = {"OCT": ["symmetric key123"]}
+    keys = {"oct": ["symmetric key123"]}
     st = StateLess(keys, enc_alg="A128KW", enc_method="A128CBC-HS256")
     con = st.create_authz_session("subject",
                                   {"redirect_uri": "https://example.com"})
@@ -21,7 +21,7 @@ def test_access_code():
 
 
 def test_update_to_access_token():
-    keys = {"OCT": ["symmetric key123"]}
+    keys = {"oct": ["symmetric key123"]}
     st = StateLess(keys, enc_alg="A128KW", enc_method="A128CBC-HS256")
     tok = st.create_authz_session("subject",
                                   {"redirect_uri": "https://example.com"})

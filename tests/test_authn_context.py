@@ -25,7 +25,7 @@ try:
 except ImportError:
     UserLDAPMemberValidation = None
 
-@pytest.mark.skipif(UserLDAPMemberValidation is None,
+@pytest.mark.skipif("UserLDAPMemberValidation is None",
                     reason="LDAP support missing")
 def test():
     ac = AuthnBroker()

@@ -1230,7 +1230,7 @@ class Provider(AProvider):
                     PREFERENCE2PROVIDER[item]]:
                     ktyp = jws.alg2keytype(request[item])
                     # do I have this ktyp and for EC type keys the curve
-                    if ktyp not in ["none", "OCT"]:
+                    if ktyp not in ["none", "oct"]:
                         _k = self.keyjar.get_signing_key(ktyp,
                                                          alg=request[item])
                         if not _k:
