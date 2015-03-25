@@ -60,9 +60,8 @@ setup(
         'develop': ["cherrypy==3.2.4"],
     },
     install_requires=[
-        "requests", "pycrypto>=2.6.1", "pyjwkest>=0.5.1",
-        "mako", "beaker", "alabaster", "pyOpenSSL",
-        "python-ldap"] + extra_install_requires,
+        "requests", "pycrypto>=2.6.1", "pyjwkest>=0.6.2",
+        "mako", "beaker", "alabaster", "pyOpenSSL"] + extra_install_requires,
     tests_require=['pytest', 'httpretty', 'requests'],
     zip_safe=False,
     cmdclass={'test': PyTest},
