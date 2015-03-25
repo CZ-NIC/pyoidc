@@ -1,9 +1,10 @@
 import socket
 from mako.lookup import TemplateLookup
+import pytest
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.authn.authn_context import AuthnBroker, PASSWORD
 from oic.utils.authn.user_cas import CasAuthnMethod
-from oic.utils.authn.ldap_member import UserLDAPMemberValidation
+
 
 __author__ = 'rolandh'
 
@@ -19,7 +20,13 @@ PASSWD = {"diana": "krall",
           "haho0032": "qwerty"
 }
 
+try:
+    from oic.utils.authn.ldap_member import UserLDAPMemberValidation
+except ImportError:
+    UserLDAPMemberValidation = None
 
+@pytest.mark.skipif(UserLDAPMemberValidation is None,
+                    reason="LDAP support missing")
 def test():
     ac = AuthnBroker()
     issuer = "https://example.com/op"
@@ -66,6 +73,3 @@ def test():
         assert res[0][0].__class__.__name__ == "CasAuthnMethod"
         assert res[1][0].__class__.__name__ == "UsernamePasswordMako"
 
-
-if __name__ == "__main__":
-    test()
