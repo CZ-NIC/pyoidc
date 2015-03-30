@@ -210,7 +210,9 @@ class SessionDB(object):
             else:
                 key = sid
 
-        self._db[key][attribute] = value
+        item = self._db[key]
+        item[attribute] = value
+        self._db[key] = item
 
     def update_by_token(self, token, attribute, value):
         (typ, key) = self.token.type_and_key(token)
@@ -239,9 +241,8 @@ class SessionDB(object):
         except KeyError:
             self.uid2sid[uid] = [sid]
 
-
         logger.debug("uid2sid: %s" % self.uid2sid)
-        self._db[sid]["sub"] = sub
+        self.update(sid, 'sub', sub)
 
         return sub
 
@@ -433,7 +434,7 @@ class SessionDB(object):
     def revoke_all_tokens(self, token):
         typ, sid = self.token.type_and_key(token)
 
-        self._db[sid]["revoked"] = True
+        self.update(sid, 'revoked', True)
 
     def get_client_id_for_session(self, sid):
         _dict = self._db[sid]
@@ -460,7 +461,7 @@ class SessionDB(object):
         return self._db[self.uid2sid[uid]]["revoked"]
 
     def revoke_uid(self, uid):
-        self._db[self.uid2sid[uid]]["revoked"] = True
+        self.update(self.uid2sid[uid], 'revoked', True)
 
     def get_sids_from_uid(self, uid):
         """
