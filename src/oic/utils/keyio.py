@@ -161,7 +161,8 @@ class KeyBundle(object):
                 pass
             return True
         else:
-            raise UpdateFailed()
+            raise UpdateFailed(
+                "Remote key update from '{}' failed.".format(self.source))
 
     def _uptodate(self):
         res = False
