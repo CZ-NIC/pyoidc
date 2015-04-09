@@ -276,7 +276,6 @@ class TestOICConsumer():
         result = self.consumer.do_authorization_request(
             state=_state, request_args=args)
 
-        print self.consumer.sdb.keys()
         print self.consumer.sdb["state0"].keys()
         part = self.consumer.parse_authz(query=result.headers["location"])
         print part
