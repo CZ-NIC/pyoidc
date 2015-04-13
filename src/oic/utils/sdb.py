@@ -193,9 +193,6 @@ class SessionDB(object):
         # Delete the mapping for session id
         self.uid2sid = {k: v for k, v in self.uid2sid.iteritems() if sid not in v}
 
-    def keys(self):
-        return self._db.keys()
-
     def update(self, key, attribute, value):
         if key in self._db:
             pass
