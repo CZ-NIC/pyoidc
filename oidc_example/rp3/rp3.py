@@ -103,6 +103,7 @@ def id_token_as_signed_jwt(client, id_token, alg="RS256"):
     _signed_jwt = id_token.to_jwt(key=ckey, algorithm=alg)
     return _signed_jwt
 
+
 def application(environ, start_response):
     session = environ['beaker.session']
     path = environ.get('PATH_INFO', '').lstrip('/')
@@ -141,7 +142,8 @@ def application(environ, start_response):
         else:
             check_session_iframe_url = None
             try:
-                check_session_iframe_url = client.provider_info["check_session_iframe"]
+                check_session_iframe_url = client.provider_info[
+                    "check_session_iframe"]
 
                 session["session_management"] = {
                     "session_state": query["session_state"][0],
@@ -151,7 +153,8 @@ def application(environ, start_response):
             except KeyError:
                 pass
 
-            return opresult(environ, start_response, result, check_session_iframe_url)
+            return opresult(environ, start_response, result,
+                            check_session_iframe_url)
     elif path == "logout":  # After the user has pressed the logout button
         client = CLIENTS[session["op"]]
         logout_url = client.end_session_endpoint
@@ -184,8 +187,11 @@ def application(environ, start_response):
         return Response("Logout successful!")(environ, start_response)
     elif path == "session_iframe":  # session management
         kwargs = session["session_management"]
-        resp = Response(mako_template="rp_session_iframe.mako", template_lookup=LOOKUP)
-        return resp(environ, start_response, session_change_url="{}session_change".format(SERVER_ENV["base_url"]),
+        resp = Response(mako_template="rp_session_iframe.mako",
+                        template_lookup=LOOKUP)
+        return resp(environ, start_response,
+                    session_change_url="{}session_change".format(
+                        SERVER_ENV["base_url"]),
                     **kwargs)
     elif path == "session_change":
         try:
@@ -197,7 +203,8 @@ def application(environ, start_response):
         # If there is an ID token send it along as a id_token_hint
         idt = get_id_token(client, session)
         if idt:
-            kwargs["id_token_hint"] = id_token_as_signed_jwt(client, idt, "HS256")
+            kwargs["id_token_hint"] = id_token_as_signed_jwt(client, idt,
+                                                             "HS256")
         resp = client.create_authn_request(session, ACR_VALUES, **kwargs)
         return resp(environ, start_response)
 
@@ -212,8 +219,26 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument(dest="config")
+    parser.add_argument("-b", dest="base_url", help="base url of the RP")
     args = parser.parse_args()
     conf = importlib.import_module(args.config)
+
+    if args.base_url:
+        if not args.base_url.endswith("/"):
+            args.base_url += "/"
+        conf.BASE = args.base_url
+
+    conf.ME["redirect_uris"] = [url.format(base=conf.BASE) for url in
+                                conf.ME["redirect_uris"]]
+    conf.ME["post_logout_redirect_uris"] = [url.format(base=conf.BASE) for url
+                                            in conf.ME[
+            "post_logout_redirect_uris"]]
+
+    for client, client_conf in conf.CLIENTS.iteritems():
+        if "client_registration" in client_conf:
+            client_reg = client_conf["client_registration"]
+            client_reg["redirect_uris"] = [url.format(base=conf.BASE) for url in
+                                           client_reg["redirect_uris"]]
 
     global ACR_VALUES
     ACR_VALUES = conf.ACR_VALUES
@@ -222,7 +247,8 @@ if __name__ == '__main__':
         'session.type': 'memory',
         'session.cookie_expires': True,
         'session.auto': True,
-        'session.key': "{}.beaker.session.id".format(urlparse.urlparse(conf.BASE).netloc.replace(":", "."))
+        'session.key': "{}.beaker.session.id".format(
+            urlparse.urlparse(conf.BASE).netloc.replace(":", "."))
     }
 
     CLIENTS = OIDCClients(conf)
