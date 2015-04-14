@@ -1,6 +1,5 @@
-PORT = 8666
-#BASE = "https://lingon.ladok.umu.se:" + str(PORT) + "/"
-BASE = "http://localhost:" + str(PORT) + "/"
+#BASE = "https://lingon.ladok.umu.se"
+BASE = "http://localhost"
 
 # If BASE is https these has to be specified
 SERVER_CERT = "certs/server.crt"

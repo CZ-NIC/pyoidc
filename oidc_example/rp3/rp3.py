@@ -219,15 +219,15 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument(dest="config")
+    parser.add_argument("-p", default=8666, dest="port", help="port of the RP")
     parser.add_argument("-b", dest="base_url", help="base url of the RP")
     args = parser.parse_args()
     conf = importlib.import_module(args.config)
 
     if args.base_url:
-        if not args.base_url.endswith("/"):
-            args.base_url += "/"
         conf.BASE = args.base_url
 
+    conf.BASE = "{base}:{port}/".format(base=conf.BASE, port=args.port)
     conf.ME["redirect_uris"] = [url.format(base=conf.BASE) for url in
                                 conf.ME["redirect_uris"]]
     conf.ME["post_logout_redirect_uris"] = [url.format(base=conf.BASE) for url
@@ -254,7 +254,7 @@ if __name__ == '__main__':
     CLIENTS = OIDCClients(conf)
     SERVER_ENV.update({"template_lookup": LOOKUP, "base_url": conf.BASE})
 
-    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', conf.PORT),
+    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port),
                                         SessionMiddleware(application,
                                                           session_opts))
 
@@ -264,8 +264,8 @@ if __name__ == '__main__':
         SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
             conf.SERVER_CERT, conf.SERVER_KEY, conf.CA_BUNDLE)
 
-    LOGGER.info("RP server starting listening on port:%s" % conf.PORT)
-    print "RP server starting listening on port:%s" % conf.PORT
+    LOGGER.info("RP server starting listening on port:%s" % args.port)
+    print "RP server starting listening on port:%s" % args.port
     try:
         SRV.start()
     except KeyboardInterrupt:
