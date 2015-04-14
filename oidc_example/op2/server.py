@@ -12,7 +12,6 @@ from exceptions import IndexError
 from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
 from urlparse import parse_qs
-from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from oic.utils import shelve_wrapper
 from oic.utils.authn.javascript_login import JavascriptFormMako
 
@@ -447,6 +446,8 @@ if __name__ == '__main__':
             URLS.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
         if "SAML" == authkey:
+            from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
+
             if not saml_authn:
                 saml_authn = SAMLAuthnMethod(
                     None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
@@ -461,6 +462,7 @@ if __name__ == '__main__':
             URLS.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
         if "SamlPass" == authkey:
+            from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
             if not saml_authn:
                 saml_authn = SAMLAuthnMethod(
                     None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
