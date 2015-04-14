@@ -3,7 +3,7 @@
 # issuer= "https://www.kodtest.se/rolandsOP"
 baseurl = "https://localhost"
 #baseurl = "https://lingon.ladok.umu.se"
-issuer = "%s:%%d" % baseurl
+issuer = "{base}:{port}/"
 
 keys = [
     {"type": "RSA", "key": "cp_keys/key.pem", "use": ["enc", "sig"]},
@@ -11,7 +11,7 @@ keys = [
     {"type": "EC", "crv": "P-256", "use": ["enc"]}
 ]
 
-SERVICE_URL = "%s/verify" % issuer
+SERVICE_URL = "{issuer}/verify"
 
 #Only Username and password.
 AUTHENTICATION = {

@@ -12,7 +12,6 @@ from exceptions import IndexError
 from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
 from urlparse import parse_qs
-from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from oic.utils import shelve_wrapper
 from oic.utils.authn.javascript_login import JavascriptFormMako
 
@@ -68,14 +67,14 @@ PASSWD = {
 # ----------------------------------------------------------------------------
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def safe(environ, start_response, logger):
     _oas = environ["oic.oas"]
     _srv = _oas.server
     _log_info = _oas.logger.info
 
     _log_info("- safe -")
-    #_log_info("env: %s" % environ)
+    # _log_info("env: %s" % environ)
     #_log_info("handle: %s" % (handle,))
 
     try:
@@ -97,7 +96,7 @@ def safe(environ, start_response, logger):
     return resp(environ, start_response)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def css(environ, start_response, logger):
     try:
         info = open(environ["PATH_INFO"]).read()
@@ -106,6 +105,7 @@ def css(environ, start_response, logger):
         resp = NotFound(environ["PATH_INFO"])
 
     return resp(environ, start_response)
+
 
 # ----------------------------------------------------------------------------
 
@@ -253,6 +253,7 @@ def static(environ, start_response, path):
 def check_session_iframe(environ, start_response, logger):
     return static(environ, start_response, "htdocs/op_session_iframe.html")
 
+
 # ----------------------------------------------------------------------------
 
 
@@ -288,13 +289,13 @@ URLS = [
     (r'^.well-known/simple-web-discovery', swd_info),
     (r'^.well-known/host-meta.json', meta_info),
     (r'^.well-known/webfinger', webfinger),
-#    (r'^.well-known/webfinger', webfinger),
+    #    (r'^.well-known/webfinger', webfinger),
     (r'.+\.css$', css),
     (r'safe', safe),
     (r'^keyrollover', key_rollover),
     (r'^clearkeys', clear_keys),
     (r'^check_session', check_session_iframe)
-#    (r'tracelog', trace_log),
+    #    (r'tracelog', trace_log),
 ]
 
 
@@ -390,6 +391,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '-c', dest='capabilities',
         help="A file containing a JSON representation of the capabilities")
+    parser.add_argument('-b', dest='baseurl', help="base url of the OP")
     parser.add_argument(dest="config")
     args = parser.parse_args()
 
@@ -398,17 +400,21 @@ if __name__ == '__main__':
 
     sys.path.insert(0, ".")
     config = importlib.import_module(args.config)
-    config.issuer = config.issuer % args.port
-    config.SERVICE_URL = config.SERVICE_URL % args.port
+    if args.baseurl:
+        config.baseurl = args.baseurl
+
+    config.issuer = config.issuer.format(base=config.baseurl, port=args.port)
+    config.SERVICE_URL = config.SERVICE_URL.format(issuer=config.issuer)
+
 
     ac = AuthnBroker()
 
     saml_authn = None
 
     end_points = config.AUTHENTICATION["UserPassword"]["END_POINTS"]
-    full_end_point_paths = ["%s/%s" % (config.issuer, ep) for ep in end_points]
+    full_end_point_paths = ["%s%s" % (config.issuer, ep) for ep in end_points]
     username_password_authn = UsernamePasswordMako(
-        None, "login.mako", LOOKUP, PASSWD,"%s/authorization" % config.issuer,
+        None, "login.mako", LOOKUP, PASSWD, "%sauthorization" % config.issuer,
         None, full_end_point_paths)
 
     for authkey, value in config.AUTHENTICATION.items():
@@ -438,7 +444,7 @@ if __name__ == '__main__':
                     None, "javascript_login.mako", LOOKUP, PASSWD,
                     "%s/authorization" % config.issuer, None,
                     full_end_point_paths)
-            ac.add("", javascript_login_authn,"","")
+            ac.add("", javascript_login_authn, "", "")
             JAVASCRIPT_END_POINT_INDEX = 0
             end_point = config.AUTHENTICATION[authkey]["END_POINTS"][
                 JAVASCRIPT_END_POINT_INDEX]
@@ -447,11 +453,14 @@ if __name__ == '__main__':
             URLS.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
         if "SAML" == authkey:
+            from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
+
             if not saml_authn:
                 saml_authn = SAMLAuthnMethod(
                     None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
-                    "%s/authorization" % config.issuer, userinfo=config.USERINFO)
-            ac.add("", saml_authn,"","")
+                    "%s/authorization" % config.issuer,
+                    userinfo=config.USERINFO)
+            ac.add("", saml_authn, "", "")
             SAML_END_POINT_INDEX = 0
             end_point = config.AUTHENTICATION[authkey]["END_POINTS"][
                 SAML_END_POINT_INDEX]
@@ -461,10 +470,13 @@ if __name__ == '__main__':
             URLS.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
         if "SamlPass" == authkey:
+            from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
+
             if not saml_authn:
                 saml_authn = SAMLAuthnMethod(
                     None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
-                    "%s/authorization" % config.issuer, userinfo=config.USERINFO)
+                    "%s/authorization" % config.issuer,
+                    userinfo=config.USERINFO)
             PASSWORD_END_POINT_INDEX = 1
             SAML_END_POINT_INDEX = 1
             password_end_point = config.AUTHENTICATION["UserPassword"][
@@ -538,6 +550,7 @@ if __name__ == '__main__':
 
     OAS = Provider(config.issuer, SessionDB(config.baseurl), cdb, ac, None,
                    authz, verify_client, config.SYM_KEY, **kwargs)
+    OAS.baseurl = config.issuer
 
     for authn in ac:
         authn.srv = OAS
@@ -570,16 +583,6 @@ if __name__ == '__main__':
     # All endpoints the OpenID Connect Provider should answer on
     add_endpoints(ENDPOINTS)
     OAS.endpoints = ENDPOINTS
-
-    if args.port == 80:
-        OAS.baseurl = config.baseurl
-    else:
-        if config.baseurl.endswith("/"):
-            config.baseurl = config.baseurl[:-1]
-        OAS.baseurl = "%s:%d" % (config.baseurl, args.port)
-
-    if not OAS.baseurl.endswith("/"):
-        OAS.baseurl += "/"
 
     try:
         jwks = keyjar_init(OAS, config.keys, kid_template="op%d")
