@@ -1,0 +1,29 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Please login</title>
+</head>
+
+<body>
+<h1>{{ page_header }}</h1>
+
+<form action="{{ action }}" method="post">
+    <input type="hidden" name="state" value="{{ state|urlencode }}">
+
+    <p>
+        <label for="username">{{ user_label }}</label>
+        <input type="text" id="username" name="username" autofocus
+               required>
+    </p>
+
+    <p>
+        <label for="password">{{ passwd_label }}</label>
+        <input type="password" id="password" name="password" required>
+    </p>
+
+    <input type="submit" value="{{ submit_btn }}">
+</form>
+</body>
+</html>
