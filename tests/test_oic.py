@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # from oic.oauth2 import KeyStore
+from jwkest.jwt import JWT
 
 __author__ = 'rohe0002'
 
@@ -8,7 +9,6 @@ import time
 import json
 import urllib
 
-from jwkest import unpack
 from jwkest.jws import left_hash
 from jwkest.jws import alg2keytype
 from pytest import raises
@@ -1141,9 +1141,9 @@ def test_make_id_token():
 
     idt = IdToken().from_jwt(_signed_jwt, keyjar=srv.keyjar)
     print idt
-    header = unpack(_signed_jwt)
+    _jwt = JWT().unpack(_signed_jwt)
 
-    lha = left_hash(code, func="HS" + header[0]["alg"][-3:])
+    lha = left_hash(code, func="HS" + _jwt.headers["alg"][-3:])
     assert lha == idt["c_hash"]
 
     atr = AccessTokenResponse(id_token=_signed_jwt, access_token="access_token",

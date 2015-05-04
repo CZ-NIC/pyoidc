@@ -565,7 +565,6 @@ class TestOICProvider(object):
                                     'client_id', 'client_secret',
                                     'client_id_issued_at', 'response_types'])
 
-
     def test_provider_key_setup(self):
         provider = Provider("pyoicserv", SessionDB(SERVER_INFO["issuer"]), None,
                             None, None, None, None, "")
@@ -799,3 +798,8 @@ class TestOICProvider(object):
     
         assert areq
         assert areq["request"]
+
+if __name__ == "__main__":
+    t = TestOICProvider()
+    t.setup_class()
+    t.test_provider_key_setup()

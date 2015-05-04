@@ -5,6 +5,7 @@ from urlparse import parse_qs
 import jwkest
 from jwkest.jwk import SYMKey
 from jwkest.jws import JWS
+from jwkest.jwt import JWT
 from mako.lookup import TemplateLookup
 from oic.oic import JWT_BEARER
 from oic.utils.authn.client import ClientSecretJWT
@@ -166,17 +167,16 @@ def test_client_secret_jwt():
     assert cis["client_assertion_type"] == JWT_BEARER
     assert "client_assertion" in cis
     cas = cis["client_assertion"]
-    header, claim, crypto, header_b64, claim_b64 = jwkest.unpack(cas)
-    jso = json.loads(claim)
+    _jwt = JWT().unpack(cas)
+    jso = json.loads(_jwt.part[1])
     assert _eq(jso.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
-    print header
-    assert header == {'alg': 'HS256'}
+    print _jwt.headers
+    assert _jwt.headers == {'alg': 'HS256'}
 
     _rj = JWS()
     info = _rj.verify_compact(cas, [SYMKey(key=cli.client_secret)])
 
-    _dict = json.loads(info)
-    assert _eq(_dict.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
+    assert _eq(info.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
 
 
 def test_private_key_jwt():
@@ -189,11 +189,11 @@ def test_private_key_jwt():
     http_args = pkj.construct(cis, algorithm="RS256")
     assert http_args == {}
     cas = cis["client_assertion"]
-    header, claim, crypto, header_b64, claim_b64 = jwkest.unpack(cas)
-    jso = json.loads(claim)
+    _jwt = JWT().unpack(cas)
+    jso = json.loads(_jwt.part[1])
     assert _eq(jso.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
-    print header
-    assert header == {'alg': 'RS256'}
+    print _jwt.headers
+    assert _jwt.headers == {'alg': 'RS256'}
 
 if __name__ == "__main__":
     test_client_secret_jwt()

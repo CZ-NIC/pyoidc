@@ -4,12 +4,12 @@ import urllib
 import urlparse
 import json
 from jwkest import b64d
-import jwkest
 from jwkest import jwe
 from jwkest import jws
 from jwkest.jwe import JWE
 from jwkest.jwk import keyitems2keyreps
 from jwkest.jws import JWS
+from jwkest.jwt import JWT
 
 from oic.exception import PyoidcError
 from oic.exception import MessageException
@@ -505,32 +505,34 @@ class Message(object):
         _jw = jws.factory(txt)
         if _jw:
             if "algs" in kwargs and "sign" in kwargs["algs"]:
+                _alg = _jw.jwt.headers["alg"]
                 try:
-                    assert kwargs["algs"]["sign"] == _jw["alg"]
+                    assert kwargs["algs"]["sign"] == _alg
                 except AssertionError:
                     raise WrongSigningAlgorithm("%s != %s" % (
-                        _jw["alg"], kwargs["algs"]["sign"]))
+                        _alg, kwargs["algs"]["sign"]))
             try:
-                p = jwkest.unpack(txt)
-                jso = json.loads(p[1])
+                _jwt = JWT().unpack(txt)
+                jso = json.loads(_jwt.part[1])
+                _header = _jwt.headers
 
                 logger.debug("Raw JSON: %s" % jso)
-                if _jw["alg"] == "none":
+                if _header["alg"] == "none":
                     pass
                 else:
                     if keyjar:
-                        if "jku" in _jw:
-                            if not keyjar.find(_jw["jku"], jso["iss"]):
+                        if "jku" in _header:
+                            if not keyjar.find(_header["jku"], jso["iss"]):
                                 # This is really questionable
                                 try:
                                     if kwargs["trusting"]:
-                                        keyjar.add(jso["iss"], _jw["jku"])
+                                        keyjar.add(jso["iss"], _header["jku"])
                                 except KeyError:
                                     pass
 
-                        if "kid" in _jw and _jw["kid"]:
+                        if "kid" in _header and _header["kid"]:
                             try:
-                                _key = keyjar.get_key_by_kid(_jw["kid"],
+                                _key = keyjar.get_key_by_kid(_header["kid"],
                                                              jso["iss"])
                                 if _key:
                                     key.append(_key)
@@ -558,16 +560,16 @@ class Message(object):
                                 else:
                                     self._add_key(keyjar, jso[ent], key)
 
-                        if "alg" in _jw and _jw["alg"] != "none":
+                        if "alg" in _header and _header["alg"] != "none":
                             if not key:
                                 raise MissingSigningKey(
-                                    "alg=%s" % _jw["alg"])
+                                    "alg=%s" % _header["alg"])
 
                         _jw.verify_compact(txt, key)
             except Exception:
                 raise
             else:
-                self.jws_header = _jw.dump_header()
+                self.jws_header = _jwt.headers
         else:
             jso = json.loads(txt)
 

@@ -664,10 +664,10 @@ def key_setup(vault, **kwargs):
                         _key = create_and_store_rsa_key_pair(
                             path=vault_path)
 
-                kb.append(RSAKey(key=_key, use=usage, kid=kid))
+                kb.append(RSAKey(key=_key, use=usage, kid=str(kid)))
                 kid += 1
                 if usage == "sig" and "enc" not in kwargs:
-                    kb.append(RSAKey(key=_key, use="enc", kid=kid))
+                    kb.append(RSAKey(key=_key, use="enc", kid=str(kid)))
                     kid += 1
 
     return kb
