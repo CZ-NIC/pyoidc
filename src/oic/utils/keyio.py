@@ -1,7 +1,7 @@
 import json
 import time
 from Crypto.PublicKey import RSA
-from cryptlib.ecc import NISTEllipticCurve
+from jwkest.ecc import NISTEllipticCurve
 from oic.exception import MessageException, PyoidcError
 
 
