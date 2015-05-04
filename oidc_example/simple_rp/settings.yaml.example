@@ -1,0 +1,28 @@
+# parameters for registration with the provider
+registration_info:
+  application_type: web
+  application_name: "Example RP"
+  # only has support for using the first redirect_uri and response_type
+  redirect_uris:
+    #- "{base}/code_flow"
+    - "{base}/implicit_hybrid_flow"
+  response_types:
+    #- code
+    - code id_token token
+
+# parameters for authentication request
+behaviour:
+  scope:
+    - openid
+    - profile
+  acr_values:
+    - password
+    - mail_two_factor
+    - yubikey
+
+
+server:
+  cert: certs/localhost.crt
+  key:  certs/localhost.key
+  cert_chain:
+  verify_ssl: False

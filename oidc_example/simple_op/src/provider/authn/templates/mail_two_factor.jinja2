@@ -1,0 +1,26 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Please login</title>
+</head>
+
+<body>
+<h1>Second part of authentication</h1>
+
+Check your registered mail <em>{{ mail }}</em>, then enter the received code
+below:
+
+<form action="{{ action }}" method="post">
+    <input type="hidden" name="state" value="{{ state|urlencode }}">
+
+    <p>
+        <label for="code">Code</label>
+        <input type="text" id="code" name="code" autofocus required>
+    </p>
+
+    <input type="submit" value="Login">
+</form>
+</body>
+</html>

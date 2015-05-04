@@ -1,0 +1,42 @@
+{
+  "diana": {
+    "sub": "dikr0001",
+    "name": "Diana Krall",
+    "given_name": "Diana",
+    "family_name": "Krall",
+    "nickname": "Dina",
+    "email": "diana@example.org",
+    "email_verified": false,
+    "phone_number": "+46 90 7865000",
+    "address": {
+      "street_address": "Umeå Universitet",
+      "locality": "Umeå",
+      "postal_code": "SE-90187",
+      "country": "Sweden"
+    }
+  },
+  "babs": {
+    "sub": "babs0001",
+    "name": "Barbara J Jensen",
+    "given_name": "Barbara",
+    "family_name": "Jensen",
+    "nickname": "babs",
+    "email": "babs@example.com",
+    "email_verified": true,
+    "address": {
+      "street_address": "100 Universal City Plaza",
+      "locality": "Hollywood",
+      "region": "CA",
+      "postal_code": "91608",
+      "country": "USA"
+    }
+  },
+  "upper": {
+    "sub": "uppe0001",
+    "name": "Upper Crust",
+    "given_name": "Upper",
+    "family_name": "Crust",
+    "email": "uc@example.com",
+    "email_verified": true
+  }
+}
