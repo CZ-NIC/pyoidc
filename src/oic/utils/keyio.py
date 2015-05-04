@@ -1,10 +1,3 @@
-import json
-import time
-from Crypto.PublicKey import RSA
-from cryptlib.ecc import NISTEllipticCurve
-from oic.exception import MessageException, PyoidcError
-
-
 __author__ = 'rohe0002'
 
 import logging
@@ -12,9 +5,16 @@ import os
 import urlparse
 import sys
 import traceback
+import json
+import time
+from Crypto.PublicKey import RSA
 
 from requests import request
 
+from oic.exception import MessageException
+from oic.exception import PyoidcError
+
+from jwkest.ecc import NISTEllipticCurve
 from jwkest.jwk import rsa_load
 from jwkest.jwk import RSAKey
 from jwkest.jwk import ECKey
