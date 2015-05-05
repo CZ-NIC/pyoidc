@@ -43,7 +43,7 @@ else:
 
 setup(
     name="oic",
-    version="0.7.5",
+    version="0.7.6",
     description="Python implementation of OAuth2 and OpenID Connect",
     author="Roland Hedberg",
     author_email="roland.hedberg@umu.se",
@@ -60,7 +60,7 @@ setup(
         'develop': ["cherrypy==3.2.4"],
     },
     install_requires=[
-        "requests", "pycrypto>=2.6.1", "pyjwkest>=0.6.2",
+        "requests", "pycrypto>=2.6.1", "pyjwkest>=1.0.1",
         "mako", "beaker", "alabaster", "pyOpenSSL"] + extra_install_requires,
     tests_require=['pytest', 'httpretty', 'requests'],
     zip_safe=False,
