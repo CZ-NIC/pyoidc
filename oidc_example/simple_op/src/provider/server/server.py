@@ -193,7 +193,7 @@ def main():
     # Setup keys
     path = os.path.join(os.path.dirname(__file__), "static")
     try:
-        os.makedirs(os.path.dirname(path))
+        os.makedirs(path)
     except OSError, e:
         if e.errno != errno.EEXIST:
             raise e
