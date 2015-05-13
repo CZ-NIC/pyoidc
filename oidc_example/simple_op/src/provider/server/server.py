@@ -6,14 +6,16 @@ import mimetypes
 import os
 import urllib
 import urlparse
+import errno
 
 import cherrypy
-import errno
 from cherrypy import wsgiserver
 from cherrypy.wsgiserver import ssl_pyopenssl
 from cherrypy.wsgiserver.wsgiserver2 import WSGIPathInfoDispatcher
 from jinja2.environment import Environment
 from jinja2.loaders import FileSystemLoader
+import yaml
+
 from oic.oauth2 import rndstr
 from oic.oic.provider import Provider, AuthorizationEndpoint, TokenEndpoint, \
     UserinfoEndpoint, RegistrationEndpoint, EndSessionEndpoint
@@ -26,8 +28,6 @@ from oic.utils.keyio import keyjar_init
 from oic.utils.sdb import SessionDB
 from oic.utils.userinfo import UserInfo
 from oic.utils.webfinger import OIC_ISSUER, WebFinger
-import yaml
-
 from provider.authn import make_cls_from_name
 
 
@@ -67,10 +67,10 @@ def VerifierMiddleware(verifier):
     return wrapper
 
 
-def Flask2pyoidcMiddleware(func):
+def pyoidcMiddleware(func):
     """Common wrapper for the underlying pyoidc library functions.
     Reads GET params and POST data before passing it on the library and
-    converts the response from oic.utils.http_util to Flask.
+    converts the response from oic.utils.http_util to wsgi.
     :param func: underlying library function
     """
 
@@ -109,15 +109,15 @@ def setup_endpoints(provider):
     app_routing = {}
     endpoints = [
         AuthorizationEndpoint(
-            Flask2pyoidcMiddleware(provider.authorization_endpoint)),
+            pyoidcMiddleware(provider.authorization_endpoint)),
         TokenEndpoint(
-            Flask2pyoidcMiddleware(provider.token_endpoint)),
+            pyoidcMiddleware(provider.token_endpoint)),
         UserinfoEndpoint(
-            Flask2pyoidcMiddleware(provider.userinfo_endpoint)),
+            pyoidcMiddleware(provider.userinfo_endpoint)),
         RegistrationEndpoint(
-            Flask2pyoidcMiddleware(provider.registration_endpoint)),
+            pyoidcMiddleware(provider.registration_endpoint)),
         EndSessionEndpoint(
-            Flask2pyoidcMiddleware(provider.endsession_endpoint))
+            pyoidcMiddleware(provider.endsession_endpoint))
     ]
 
     for ep in endpoints:
@@ -170,8 +170,7 @@ def main():
     with open(args.settings, "r") as f:
         settings = yaml.load(f)
 
-    baseurl = args.base.rstrip("/")
-    issuer = "{base}:{port}".format(base=baseurl, port=args.port)
+    issuer = args.base.rstrip("/")
 
     template_dirs = settings["server"].get("template_dirs", "templates")
     jinja_env = Environment(loader=FileSystemLoader(template_dirs))
@@ -185,7 +184,7 @@ def main():
     userinfo = UserInfo(i)
 
     client_db = {}
-    provider = Provider(issuer, SessionDB(baseurl), client_db, authn_broker,
+    provider = Provider(issuer, SessionDB(issuer), client_db, authn_broker,
                         userinfo, AuthzHandling(), verify_client, None)
     provider.baseurl = issuer
     provider.symkey = rndstr(16)
@@ -208,9 +207,9 @@ def main():
 
     # Mount the WSGI callable object (app) on the root directory
     app_routing = setup_endpoints(provider)
-    app_routing["/.well-known/openid-configuration"] = Flask2pyoidcMiddleware(
+    app_routing["/.well-known/openid-configuration"] = pyoidcMiddleware(
         provider.providerinfo_endpoint)
-    app_routing["/.well-known/webfinger"] = Flask2pyoidcMiddleware(
+    app_routing["/.well-known/webfinger"] = pyoidcMiddleware(
         partial(_webfinger, provider))
     routing = dict(auth_routing.items() + app_routing.items())
     routing["/static"] = make_static_handler(path)
@@ -227,7 +226,6 @@ def main():
     try:
         print("Server started: {}".format(issuer))
         server.start()
-
     except KeyboardInterrupt:
         server.stop()
 
