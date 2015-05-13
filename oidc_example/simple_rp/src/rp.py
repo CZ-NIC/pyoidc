@@ -166,8 +166,7 @@ def main():
     with open(args.settings, "r") as f:
         settings = yaml.load(f)
 
-    base = args.base.rstrip("/")  # strip trailing slash if it exists
-    baseurl = "{base}:{port}".format(base=base, port=args.port)
+    baseurl = args.base.rstrip("/")  # strip trailing slash if it exists
     registration_info = settings["registration_info"]
     # patch redirect_uris with proper base url
     registration_info["redirect_uris"] = [url.format(base=baseurl) for url in
