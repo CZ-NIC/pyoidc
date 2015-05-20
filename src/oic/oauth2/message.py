@@ -500,7 +500,7 @@ class Message(object):
                 dkeys = []
 
             txt = _jw.decrypt(txt, dkeys)
-            self.jwe_header = _jw.dump_header()
+            self.jwe_header = _jw.jwt.headers
 
         _jw = jws.factory(txt)
         if _jw:
