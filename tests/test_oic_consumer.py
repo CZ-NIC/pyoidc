@@ -8,6 +8,7 @@ from jwkest.jwk import SYMKey
 
 from oic.oauth2.message import MissingSigningKey
 from oic.oic.message import AccessTokenResponse, AuthorizationResponse, IdToken
+from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import KeyBundle, keybundle_from_local_file
 from oic.utils.keyio import KeyJar
 
@@ -90,7 +91,10 @@ CONFIG = {
     }
 }
 
-CLIENT_CONFIG = {"client_id": CLIENT_ID}
+CLIENT_CONFIG = {
+    "client_id": CLIENT_ID,
+    "client_authn_method": CLIENT_AUTHN_METHOD
+}
 
 
 def start_response(status=200, headers=None):
@@ -711,4 +715,4 @@ if __name__ == "__main__":
     # t = TestOICConsumer()
     # t.setup_class()
     # t.test_begin()
-    test_complete_auth_token_idtoken()
+    test_complete_secret_auth()

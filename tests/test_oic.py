@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # from oic.oauth2 import KeyStore
 from jwkest.jwt import JWT
+from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
 __author__ = 'rohe0002'
 
@@ -65,7 +66,7 @@ IDTOKEN = IdToken(iss="http://oic.example.org/", sub="sub",
 
 class TestOICClient():
     def setup_class(self):
-        self.client = Client(CLIENT_ID)
+        self.client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
         self.client.redirect_uris = ["http://example.com/redirect"]
         self.client.client_secret = CLIENT_SECRET
         self.client.keyjar[""] = KC_RSA
@@ -1163,8 +1164,8 @@ def test_authz_req():
     print areq.to_urlencoded()
 
 if __name__ == "__main__":
-    # t = TestOICClient()
-    # t.setup_class()
-    # t.test_access_token_request()
+    t = TestOICClient()
+    t.setup_class()
+    t.test_access_token_request()
 
-    test_authz_req()
+    #test_authz_req()
