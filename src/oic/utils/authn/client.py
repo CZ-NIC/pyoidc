@@ -330,7 +330,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
                                          keyjar=self.cli.keyjar)
         except (Invalid, MissingKey), err:
             logger.info("%s" % err)
-            return False
+            raise AuthnFailure("Could not verify client_assertion.")
 
         logger.debug("authntoken: %s" % bjwt.to_dict())
         # logger.debug("known clients: %s" % self.cli.cdb.keys())
@@ -354,7 +354,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
             else:
                 for target in _aud:
                     if target.startswith(self.cli.baseurl):
-                        return True
+                        return cid
                 raise NotForMe("Not for me!")
         except AssertionError:
             raise NotForMe("Not for me!")
@@ -463,17 +463,17 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
     :return:
     """
 
-    client_id = get_client_id(inst.cdb, areq, authn)
-
-    logger.debug("Verified Client ID: %s" % client_id)
-
-    if "client_secret" in areq:  # client_secret_post/client_secret_basic
+    if authn:  # HTTP Basic auth (client_secret_basic)
+        return get_client_id(inst.cdb, areq, authn)
+    elif "client_secret" in areq:  # client_secret_post
+        client_id = get_client_id(inst.cdb, areq, authn)
+        logger.debug("Verified Client ID: %s" % client_id)
         return ClientSecretBasic(inst).verify(areq, client_id)
-    elif "client_assertion" in areq:  # client_secret_jwt or public_key_jwt
+    elif "client_assertion" in areq:  # client_secret_jwt or private_key_jwt
         for typ, method in type_method:
             if areq["client_assertion_type"] == typ:
-                return method(inst).verify(areq, client_id=client_id)
+                return method(inst).verify(areq)
         else:
             raise UnknownAssertionType(areq["client_assertion_type"], areq)
     else:
-        return client_id
+        raise FailedAuthentication("Missing client authentication.")

@@ -415,51 +415,43 @@ class Client(PBase):
                 else:
                     info = fragment
 
-        err = None
-        try:
-            resp = response().deserialize(info, sformat, **kwargs)
-            if "error" in resp and not isinstance(resp, ErrorResponse):
-                resp = None
-                try:
-                    errmsgs = _r2e[response.__name__]
-                except KeyError:
-                    errmsgs = [ErrorResponse]
+        resp = response().deserialize(info, sformat, **kwargs)
+        if "error" in resp and not isinstance(resp, ErrorResponse):
+            resp = None
+            try:
+                errmsgs = _r2e[response.__name__]
+            except KeyError:
+                errmsgs = [ErrorResponse]
 
+            try:
+                for errmsg in errmsgs:
+                    try:
+                        resp = errmsg().deserialize(info, sformat)
+                        resp.verify()
+                        break
+                    except Exception, aerr:
+                        resp = None
+                        err = aerr
+            except KeyError:
+                pass
+        elif resp.only_extras():
+            resp = None
+        else:
+            kwargs["client_id"] = self.client_id
+            if "key" not in kwargs and "keyjar" not in kwargs:
+                kwargs["keyjar"] = self.keyjar
+            verf = resp.verify(**kwargs)
+            if not verf:
+                raise PyoidcError("Verification of the response failed")
+            if resp.type() == "AuthorizationResponse" and \
+                    "scope" not in resp:
                 try:
-                    for errmsg in errmsgs:
-                        try:
-                            resp = errmsg().deserialize(info, sformat)
-                            resp.verify()
-                            break
-                        except Exception, aerr:
-                            resp = None
-                            err = aerr
+                    resp["scope"] = kwargs["scope"]
                 except KeyError:
                     pass
-            elif resp.only_extras():
-                resp = None
-            else:
-                kwargs["client_id"] = self.client_id
-                if "key" not in kwargs and "keyjar" not in kwargs:
-                    kwargs["keyjar"] = self.keyjar
-                verf = resp.verify(**kwargs)
-                if not verf:
-                    raise PyoidcError("Verification of the response failed")
-                if resp.type() == "AuthorizationResponse" and \
-                        "scope" not in resp:
-                    try:
-                        resp["scope"] = kwargs["scope"]
-                    except KeyError:
-                        pass
-        except Exception, derr:
-            resp = None
-            err = derr
 
         if not resp:
-            if err:
-                raise err
-            else:
-                raise ResponseError("Missing or faulty response")
+            raise ResponseError("Missing or faulty response")
 
         if resp.type() in ["AuthorizationResponse", "AccessTokenResponse"]:
             try:
