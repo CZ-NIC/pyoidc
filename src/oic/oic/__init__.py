@@ -579,7 +579,7 @@ class Client(oauth2.Client):
                                 method="POST", request_args=None,
                                 extra_args=None, http_args=None,
                                 response_cls=AccessTokenResponse,
-                                authn_method="", **kwargs):
+                                authn_method="client_secret_basic", **kwargs):
 
         return oauth2.Client.do_access_token_request(self, request, scope,
                                                      state, body_type, method,
