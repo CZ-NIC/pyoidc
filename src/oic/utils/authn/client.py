@@ -316,6 +316,12 @@ class JWSAuthnMethod(ClientAuthnMethod):
         except KeyError:
             pass
 
+        if not cis.c_param["client_id"][VREQUIRED]:
+            try:
+                del cis["client_id"]
+            except KeyError:
+                pass
+
         return {}
 
     def verify(self, areq, **kwargs):
