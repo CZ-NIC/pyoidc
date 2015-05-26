@@ -1415,29 +1415,18 @@ class Provider(AProvider):
 
         _provider_info = self.capabilities
 
-        if setup:
-            # sort of placeholder right now
-            # for key, spec in pcr_class.c_param.items():
-            #     if isinstance(setup[0], list) and setup[0] != basestring:
-            #         # dealing with lists
-            #         if key in setup:
-            #             if key in _provider_info:
-            #                 _provider_info[key] = [x for x in setup[key]
-            #                                        if x in _provider_info[
-            # key]]
-            #             else:
-            #                 _provider_info[key] = setup[key]
-            #     else:
-            pass
-        else:
-            #keys = self.keyjar.keys_by_owner(owner=".")
-            if self.jwks_uri and self.keyjar:
-                _provider_info["jwks_uri"] = self.jwks_uri
+        if self.jwks_uri and self.keyjar:
+            _provider_info["jwks_uri"] = self.jwks_uri
 
-            for endp in self.endp:
-                #_log_info("# %s, %s" % (endp, endp.name))
-                _provider_info[endp(None).name] = "%s%s" % (self.baseurl,
-                                                            endp.etype)
+        for endp in self.endp:
+            #_log_info("# %s, %s" % (endp, endp.name))
+            _provider_info[endp(None).name] = "%s%s" % (self.baseurl,
+                                                        endp.etype)
+
+        if setup and isinstance(setup, dict):
+            for key in pcr_class.c_param.keys():
+                if key in setup:
+                    _provider_info[key] = setup[key]
 
         _provider_info["issuer"] = self.baseurl
         _provider_info["version"] = "3.0"
