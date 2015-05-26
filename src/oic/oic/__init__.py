@@ -931,10 +931,8 @@ class Client(oauth2.Client):
         return userinfo
 
     def fetch_distributed_claims(self, userinfo, callback=None):
-        for csrc, spec in userinfo._claim_sources.items():
+        for csrc, spec in userinfo["_claim_sources"].items():
             if "endpoint" in spec:
-                #pcr = self.provider_config(csrc, keys=False, endpoints=False)
-
                 if "access_token" in spec:
                     _uinfo = self.do_user_info_request(
                         token=spec["access_token"],
@@ -944,9 +942,9 @@ class Client(oauth2.Client):
                         token=callback(csrc),
                         userinfo_endpoint=spec["endpoint"])
 
-                attr = [n for n, s in
-                        userinfo._claim_names.items() if s == csrc]
-                assert attr == _uinfo.keys()
+                claims = [value for value, src in
+                          userinfo["_claim_names"].items() if src == csrc]
+                assert claims == _uinfo.keys()
 
                 for key, vals in _uinfo.items():
                     userinfo[key] = vals
