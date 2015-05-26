@@ -71,6 +71,12 @@ class Grant(object):
         if resp:
             self.add_code(resp)
             self.add_token(resp)
+            try:
+                # Recompute expiration time based on lifetime of access token
+                self.exp_in = resp["expires_in"]
+                self.grant_expiration_time = utc_time_sans_frac() + self.exp_in
+            except KeyError as e:
+                pass
 
     @classmethod
     def from_code(cls, resp):
