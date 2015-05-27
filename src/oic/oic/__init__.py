@@ -792,17 +792,9 @@ class Client(oauth2.Client):
         logger.debug("Reponse text: '%s'" % resp.text)
 
         if sformat == "json":
-            return _schema().from_json(txt=resp.text)
+            return _schema().from_json(txt=resp.text.encode("utf-8"))
         else:
-            algo = self.client_prefs["userinfo_signed_response_alg"]
-            _kty = jws.alg2keytype(algo)
-            # Keys of the OP ?
-            try:
-                args = {"kid": self.kid["sig"][_kty]}
-            except KeyError:
-                args = {}
-
-            return _schema().from_jwt(resp.text,
+            return _schema().from_jwt(resp.text.encode("utf-8"),
                                       keyjar=self.keyjar,
                                       sender=self.provider_info["issuer"])
 
