@@ -1,4 +1,3 @@
-
 __author__ = 'rohe0002'
 
 import urlparse
@@ -9,7 +8,7 @@ import os
 from jwkest.jwe import JWE
 
 from oic.oauth2.exception import AuthnToOld
-from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import ErrorResponse, Message
 from oic.oauth2.util import get_or_post
 
 from oic.oic.message import IdToken, ClaimsRequest
@@ -909,34 +908,23 @@ class Client(oauth2.Client):
         return pcr
 
     def unpack_aggregated_claims(self, userinfo):
-        if userinfo._claim_sources:
-            for csrc, spec in userinfo._claim_sources.items():
+        if userinfo["_claim_sources"]:
+            for csrc, spec in userinfo["_claim_sources"].items():
                 if "JWT" in spec:
-                    if not csrc in self.keyjar:
-                        self.provider_config(csrc, endpoints=False)
+                    aggregated_claims = Message().from_jwt(spec["JWT"].encode("utf-8"),
+                                              keyjar=self.keyjar, sender=csrc)
+                    claims = [value for value, src in
+                              userinfo["_claim_names"].items() if src == csrc]
+                    assert claims == aggregated_claims.keys()
 
-                    keycol = self.keyjar.get_verify_key(owner=csrc)
-                    for typ, keyl in self.keyjar.get_verify_key().items():
-                        try:
-                            keycol[typ].extend(keyl)
-                        except KeyError:
-                            keycol[typ] = keyl
-
-                    info = json.loads(JWS().verify(str(spec["JWT"]), keycol))
-                    attr = [n for n, s in
-                            userinfo._claim_names.items() if s == csrc]
-                    assert attr == info.keys()
-
-                    for key, vals in info.items():
+                    for key, vals in aggregated_claims.items():
                         userinfo[key] = vals
 
         return userinfo
 
     def fetch_distributed_claims(self, userinfo, callback=None):
-        for csrc, spec in userinfo._claim_sources.items():
+        for csrc, spec in userinfo["_claim_sources"].items():
             if "endpoint" in spec:
-                #pcr = self.provider_config(csrc, keys=False, endpoints=False)
-
                 if "access_token" in spec:
                     _uinfo = self.do_user_info_request(
                         token=spec["access_token"],
@@ -946,9 +934,9 @@ class Client(oauth2.Client):
                         token=callback(csrc),
                         userinfo_endpoint=spec["endpoint"])
 
-                attr = [n for n, s in
-                        userinfo._claim_names.items() if s == csrc]
-                assert attr == _uinfo.keys()
+                claims = [value for value, src in
+                          userinfo["_claim_names"].items() if src == csrc]
+                assert claims == _uinfo.keys()
 
                 for key, vals in _uinfo.items():
                     userinfo[key] = vals
