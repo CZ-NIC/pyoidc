@@ -425,6 +425,16 @@ class Client(oauth2.Client):
             # Should the request be encrypted
             _req = self.request_object_encryption(_req, **kwargs)
 
+            # Make new authn request with only the required parameters
+            _req_args = {"client_id": areq["client_id"],
+                         "response_type": areq["response_type"],
+                         "scope": areq["scope"]}
+            areq = oauth2.Client.construct_AuthorizationRequest(self, request,
+                                                                _req_args)
+            # allow missing redirect_uri since its part of the request object
+            areq.lax = True
+            del areq["redirect_uri"]
+
             if request_param == "request":
                 areq["request"] = _req
             else:
