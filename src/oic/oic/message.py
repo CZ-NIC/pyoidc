@@ -433,6 +433,8 @@ class AuthorizationRequest(message.AuthorizationRequest):
                 for key, val in oidr.items():
                     if key in self:
                         assert self[key] == val
+                    # sec 6.1 of OIDC spec: "[...]request parameter values contained in the JWT supersede"
+                    self[key] = val
 
                 # replace the JWT with the parsed and verified instance
                 self["request"] = oidr
