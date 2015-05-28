@@ -20,7 +20,7 @@ from oic.exception import ParameterError
 from oic.exception import FailedAuthentication
 from oic.exception import UnknownClient
 
-from oic.oauth2.message import AccessTokenResponse
+from oic.oauth2.message import AccessTokenResponse, MissingRequiredValue
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import AuthorizationErrorResponse
 from oic.oauth2.message import AuthorizationRequest
@@ -391,7 +391,7 @@ class Provider(object):
         # Same serialization used for GET and POST
         try:
             areq = self.server.parse_authorization_request(query=request)
-        except MissingRequiredAttribute, err:
+        except (MissingRequiredValue, MissingRequiredAttribute) as err:
             logger.debug("%s" % err)
             areq = AuthorizationRequest().deserialize(request, "urlencoded")
             try:
