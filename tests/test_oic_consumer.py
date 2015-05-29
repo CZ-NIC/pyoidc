@@ -123,9 +123,9 @@ AUTHZ_ORG_URL = "http://example.org/authorization"
 
 
 class TestOICConsumer():
-    def setup_class(self):
+    def setup_method(self, method):
         self.consumer = Consumer(SessionDB(SERVER_INFO["issuer"]),
-                                 CONFIG, CLIENT_CONFIG, SERVER_INFO)
+                                 CONFIG.copy(), CLIENT_CONFIG, SERVER_INFO)
         self.consumer.behaviour = {"request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]}
         self.consumer.client_secret = CLIENT_SECRET
 
@@ -201,10 +201,11 @@ class TestOICConsumer():
         assert authreq["client_id"] == self.consumer.client_id
 
     def test_begin_file(self):
-        tempdir = tempfile.mkdtemp()
+        tempdir = tempfile.mkdtemp(dir=".")
+        self.consumer.keyjar[""].append(KC_RSA)
         self.consumer.config["request_method"] = "file"
         self.consumer.config["temp_dir"] = tempdir
-        self.consumer.config["temp_path"] = tempdir
+        self.consumer.config["temp_path"] = tempdir[1:] + "/" # strip leading '.'
         self.consumer.config["authz_page"] = "/authz"
         srv = Server()
         srv.keyjar = SRVKEYS
@@ -269,6 +270,7 @@ class TestOICConsumer():
         mfos.keyjar = SRVKEYS
 
         self.consumer.http_request = mfos.http_request
+        self.consumer.redirect_uris = ["https://example.com/cb"]
         _state = "state0"
         self.consumer.nonce = rndstr()
         args = {
@@ -279,6 +281,7 @@ class TestOICConsumer():
 
         result = self.consumer.do_authorization_request(
             state=_state, request_args=args)
+        self.consumer._backup(_state)
 
         print self.consumer.sdb["state0"].keys()
         part = self.consumer.parse_authz(query=result.headers["location"])
