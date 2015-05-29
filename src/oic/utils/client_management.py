@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import copy
 import json
+import os
 import shelve
 import urllib
 import urlparse
@@ -149,10 +150,16 @@ if __name__ == "__main__":
                         help="Import client information from a file")
     parser.add_argument('-D', dest='output_file',
                         help="Dump client information to a file")
+    parser.add_argument('-R', dest="reset", action='store_true',
+                        help="Reset the database == removing all registrations")
     parser.add_argument(dest="filename")
     args = parser.parse_args()
 
+    if args.reset:
+        os.unlink(args.filename)
+
     cdb = CDB(args.filename)
+
     if args.list:
         print cdb.keys()
     elif args.client_id:
