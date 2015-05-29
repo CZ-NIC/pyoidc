@@ -2,10 +2,13 @@ import json
 import os
 import shutil
 import tempfile
+import urlparse
+import re
 
 from jwkest import BadSignature
 from jwkest.jwk import SYMKey
 
+import httpretty
 from oic.oauth2.message import MissingSigningKey
 from oic.oic.message import AccessTokenResponse, AuthorizationResponse, IdToken
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
@@ -200,8 +203,20 @@ class TestOICConsumer():
         assert authreq["scope"] == self.consumer.config["scope"]
         assert authreq["client_id"] == self.consumer.client_id
 
+    @httpretty.activate
     def test_begin_file(self):
+        def _local_file_read(request, uri, headers):
+            path = urlparse.urlparse(uri).path
+            with open("." + path) as f:
+                body = f.read()
+            return (200, headers, body)
+
         tempdir = tempfile.mkdtemp(dir=".")
+        httpretty.register_uri(httpretty.GET,
+                               re.compile("https://localhost:8087{}/.*".format(
+                                   tempdir[1:])),
+                               body=_local_file_read)
+
         self.consumer.keyjar[""].append(KC_RSA)
         self.consumer.config["request_method"] = "file"
         self.consumer.config["temp_dir"] = tempdir
