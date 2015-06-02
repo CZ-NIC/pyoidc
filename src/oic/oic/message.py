@@ -1,6 +1,8 @@
 # encoding: utf-8
 import time
 from urlparse import urlparse
+import requests
+from requests.exceptions import ConnectionError
 
 __author__ = 'rohe0002'
 
@@ -424,18 +426,38 @@ class AuthorizationRequest(message.AuthorizationRequest):
             except KeyError:
                 pass
 
+        request_object = None
+        if "request_uri" in self:
+            # Do a HTTP get
+            try:
+                _req = requests.get(self["request_uri"])
+            except ConnectionError:
+                raise InvalidRequest("invalid_request_uri", self)
+
+            try:
+                resq = OpenIDRequest().from_jwt(_req.text.encode("utf-8"),
+                                                **args)
+            except Exception:
+                raise InvalidRequest("invalid_openid_request_object", self)
+
+            request_object = resq
+
         if "request" in self:
             if isinstance(self["request"], basestring):
                 # Try to decode the JWT, checks the signature
                 oidr = OpenIDRequest().from_jwt(str(self["request"]), **args)
-
-                # verify that nothing is change in the original message
-                for key, val in oidr.items():
-                    if key in self:
-                        assert self[key] == val
-
                 # replace the JWT with the parsed and verified instance
                 self["request"] = oidr
+                request_object = oidr
+
+        if request_object:
+            # verify that nothing is change in the original message
+            for key, val in request_object.items():
+                if key in self:
+                    assert self[key] == val
+                # sec 6.1 of OIDC spec: "[...]request parameter values contained in the JWT supersede"
+                self[key] = val
+
 
         if "id_token_hint" in self:
             if isinstance(self["id_token_hint"], basestring):

@@ -388,9 +388,11 @@ class Provider(object):
         :return:
         """
         logger.debug("Request: '%s'" % request)
+        is_verified = False
         # Same serialization used for GET and POST
         try:
             areq = self.server.parse_authorization_request(query=request)
+            is_verified = True
         except (MissingRequiredValue, MissingRequiredAttribute) as err:
             logger.debug("%s" % err)
             areq = AuthorizationRequest().deserialize(request, "urlencoded")
@@ -428,12 +430,21 @@ class Provider(object):
         except (RedirectURIError, ParameterError, UnknownClient), err:
             return self._error("invalid_request", "%s" % err)
 
-        try:
-            # verify that the request message is correct
-            areq.verify()
-        except (MissingRequiredAttribute, ValueError), err:
-            return self._redirect_authz_error("invalid_request", redirect_uri,
-                                              "%s" % err)
+        if not is_verified:
+            try:
+                # get the verification keys
+                if areq["client_id"]:
+                    keys = self.keyjar.verify_keys(areq["client_id"])
+                else:
+                    try:
+                        keys = self.keyjar.verify_keys(request["client_id"])
+                    except KeyError:
+                        keys = None
+                # verify that the request message is correct
+                areq.verify(key=keys, keyjar=self.keyjar)
+            except (MissingRequiredAttribute, ValueError), err:
+                return self._redirect_authz_error("invalid_request", redirect_uri,
+                                                  "%s" % err)
 
         return {"areq": areq, "redirect_uri": redirect_uri}
 

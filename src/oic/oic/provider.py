@@ -369,27 +369,6 @@ class Provider(AProvider):
 
         return sid
 
-    def handle_oidc_request(self, areq, redirect_uri):
-        if "request_uri" in areq:
-            # Do a HTTP get
-            try:
-                _req = self.server.http_request(areq["request_uri"])
-            except ConnectionError:
-                return self._authz_error("invalid_request_uri")
-
-            if not _req:
-                return self._authz_error("invalid_request_uri")
-
-            try:
-                resq = self._parse_openid_request(_req.text)
-            except Exception:
-                return self._redirect_authz_error(
-                    "invalid_openid_request_object", redirect_uri)
-
-            areq["request"] = resq
-
-        return areq
-
     def _verify_client(self, areq, aud):
         if areq["client_id"] in aud:
             return True
@@ -603,7 +582,7 @@ class Provider(AProvider):
         if isinstance(info, Response):
             return info
 
-        areq = self.handle_oidc_request(info["areq"], info["redirect_uri"])
+        areq = info["areq"]
         if isinstance(areq, Response):
             return areq
 
