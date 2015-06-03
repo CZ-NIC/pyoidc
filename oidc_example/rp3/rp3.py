@@ -129,7 +129,7 @@ def application(environ, start_response):
             raise
         else:
             return resp(environ, start_response)
-    elif path == "authz_cb":  # After having authenticated at the OP
+    elif path in ["authz_cb", "google"]:  # After having authenticated at the OP
         client = CLIENTS[session["op"]]
         try:
             result = client.callback(query, session)
@@ -254,7 +254,7 @@ if __name__ == '__main__':
     CLIENTS = OIDCClients(conf)
     SERVER_ENV.update({"template_lookup": LOOKUP, "base_url": conf.BASE})
 
-    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port),
+    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', int(args.port)),
                                         SessionMiddleware(application,
                                                           session_opts))
 

@@ -107,7 +107,12 @@ class Client(oic.Client):
             if isinstance(atresp, ErrorResponse):
                 raise OIDCError("Invalid response %s." % atresp["error"])
 
-        inforesp = self.do_user_info_request(state=authresp["state"])
+        try:
+            kwargs = {"method": self.userinfo_request_method}
+        except AttributeError:
+            kwargs = {}
+
+        inforesp = self.do_user_info_request(state=authresp["state"], **kwargs)
 
         if isinstance(inforesp, ErrorResponse):
             raise OIDCError("Invalid response %s." % inforesp["error"])
@@ -159,6 +164,13 @@ class OIDCClients(object):
 
         client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
                                  behaviour=kwargs["behaviour"], verify_ssl=self.config.VERIFY_SSL, **args)
+
+        try:
+            client.userinfo_request_method = kwargs["userinfo_request_method"]
+        except KeyError:
+            pass
+        else:
+            _key_set.discard("userinfo_request_method")
 
         # The behaviour parameter is not significant for the election process
         _key_set.discard("behaviour")
