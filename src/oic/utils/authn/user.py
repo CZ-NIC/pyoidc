@@ -5,6 +5,7 @@ import time
 from urllib import urlencode
 import urllib
 from urlparse import parse_qs
+from urlparse import urlunsplit
 from urlparse import urlsplit
 from oic.exception import PyoidcError
 
@@ -106,12 +107,22 @@ class UserAuthnMethod(CookieDealer):
         :param uid:
         :param path: The verify path
         """
-        if not return_to.startswith("/"):
-            p = path.split("/")
-            p[-1] = return_to
-            return_to = "/".join(p)
+        if return_to.startswith("http"):
+            up = urlsplit(return_to)
+            _path = up.path
+        else:
+            up = None
+            _path = return_to
 
-        return create_return_url(return_to, uid, **{self.query_param: "true"})
+        if not _path.startswith("/"):
+            p = path.split("/")
+            p[-1] = _path
+            _path = "/".join(p)
+
+        if up:
+            _path = urlunsplit([up[0], up[1], _path, up[3], up[4]])
+
+        return create_return_url(_path, uid, **{self.query_param: "true"})
 
     def verify(self, **kwargs):
         raise NotImplemented
