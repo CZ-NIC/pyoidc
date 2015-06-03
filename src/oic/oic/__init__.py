@@ -429,6 +429,8 @@ class Client(oauth2.Client):
                 areq["request"] = _req
             else:
                 _filedir = kwargs["local_dir"]
+                if not os.path.isdir(_filedir):
+                    os.makedirs(_filedir)
                 _webpath = kwargs["base_path"]
                 _name = rndstr(10) + ".jwt"
                 filename = os.path.join(_filedir, _name)
