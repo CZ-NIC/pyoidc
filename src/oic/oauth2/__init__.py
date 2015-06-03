@@ -389,6 +389,17 @@ class Client(PBase):
         return self.request_info(AuthorizationRequest, "GET",
                                  request_args, extra_args, **kwargs)
 
+    def get_urlinfo(self, info):
+        if '?' in info or '#' in info:
+            parts = urlparse.urlparse(info)
+            scheme, netloc, path, params, query, fragment = parts[:6]
+            # either query of fragment
+            if query:
+                info = query
+            else:
+                info = fragment
+        return info
+
     def parse_response(self, response, info="", sformat="json", state="",
                        **kwargs):
         """
@@ -406,14 +417,7 @@ class Client(PBase):
         _r2e = self.response2error
 
         if sformat == "urlencoded":
-            if '?' in info or '#' in info:
-                parts = urlparse.urlparse(info)
-                scheme, netloc, path, params, query, fragment = parts[:6]
-                # either query of fragment
-                if query:
-                    info = query
-                else:
-                    info = fragment
+            info = self.get_urlinfo(info)
 
         resp = response().deserialize(info, sformat, **kwargs)
         if "error" in resp and not isinstance(resp, ErrorResponse):
