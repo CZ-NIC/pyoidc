@@ -117,6 +117,9 @@ class Client(PBase):
         self.kid = {"sig": {}, "enc": {}}
         self.authz_req = None
 
+    def store_response(self, clinst, text):
+        pass
+
     def get_client_secret(self):
         return self._c_secret
 
@@ -456,6 +459,8 @@ class Client(PBase):
 
         if not resp:
             raise ResponseError("Missing or faulty response")
+
+        self.store_response(resp, info)
 
         if resp.type() in ["AuthorizationResponse", "AccessTokenResponse"]:
             try:

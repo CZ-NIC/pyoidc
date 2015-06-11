@@ -496,11 +496,23 @@ class Provider(object):
                 _auth_info = kwargs["authn"]
             except KeyError:
                 _auth_info = ""
+
+            if "upm_answer" in areq and areq["upm_answer"] == "true":
+                _max_age = 0
+            else:
+                _max_age = max_age(areq)
+
             identity, _ts = authn.authenticated_as(
-                cookie, authorization=_auth_info, max_age=max_age(areq))
-        except (NoSuchAuthentication, ToOld, TamperAllert):
+                cookie, authorization=_auth_info, max_age=_max_age)
+        except (NoSuchAuthentication, TamperAllert):
             identity = None
             _ts = 0
+        except ToOld:
+            logger.info("Too old authentication")
+            identity = None
+            _ts = 0
+        else:
+            logger.info("No active authentication")
 
         # gather information to be used by the authentication method
         authn_args = {"query": request,

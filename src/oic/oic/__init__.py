@@ -792,12 +792,16 @@ class Client(oauth2.Client):
 
         logger.debug("Reponse text: '%s'" % resp.text)
 
+        _txt = resp.text.encode("utf-8")
         if sformat == "json":
-            return _schema().from_json(txt=resp.text.encode("utf-8"))
+            res = _schema().from_json(txt=_txt)
         else:
-            return _schema().from_jwt(resp.text.encode("utf-8"),
-                                      keyjar=self.keyjar,
-                                      sender=self.provider_info["issuer"])
+            res = _schema().from_jwt(_txt, keyjar=self.keyjar,
+                                     sender=self.provider_info["issuer"])
+
+        self.store_response(res, _txt)
+
+        return res
 
     def get_userinfo_claims(self, access_token, endpoint, method="POST",
                             schema_class=OpenIDSchema, **kwargs):
@@ -830,7 +834,10 @@ class Client(oauth2.Client):
                 "ERROR: Something went wrong [%s]: %s" % (resp.status_code,
                                                           resp.text))
 
-        return schema_class().from_json(txt=resp.text)
+        res = schema_class().from_json(txt=resp.text)
+        self.store_response(res, resp.txt)
+        return res
+
 
     def handle_provider_config(self, pcr, issuer, keys=True, endpoints=True):
         """
@@ -904,6 +911,8 @@ class Client(oauth2.Client):
         #logger.debug("Provider info: %s" % pcr)
         if pcr is None:
             raise PyoidcError("Trying '%s', status %s" % (url, r.status_code))
+
+        self.store_response(pcr, r.text)
 
         self.handle_provider_config(pcr, issuer, keys, endpoints)
 
@@ -1067,6 +1076,7 @@ class Client(oauth2.Client):
     def handle_registration_info(self, response):
         if response.status_code == 200:
             resp = RegistrationResponse().deserialize(response.text, "json")
+            self.store_response(resp, response.text)
             self.store_registration_info(resp)
         else:
             err = ErrorResponse().deserialize(response.text, "json")
