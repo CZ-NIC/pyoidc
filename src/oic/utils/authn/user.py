@@ -309,9 +309,8 @@ class UsernamePasswordMako(UserAuthnMethod):
             resp = Unauthorized("Unknown user or wrong password")
             return resp, False
         else:
-            headers = []
-            if "cookie" not in kwargs or self.srv.cookie_name not in kwargs["cookie"]:
-                headers.append(self.create_cookie(_dict["login"][0], "upm"))
+            # if "cookie" not in kwargs or self.srv.cookie_name not in kwargs["cookie"]:
+            headers = [self.create_cookie(_dict["login"][0], "upm")]
             try:
                 _qp = _dict["query"][0]
             except KeyError:

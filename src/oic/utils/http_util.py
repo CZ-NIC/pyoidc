@@ -409,7 +409,8 @@ class CookieDealer(object):
         else:
             info = _msg
         cookie = make_cookie(cookie_name, info, self.srv.seed,
-                             expire=ttl, domain="", path="")
+                             expire=ttl, domain="", path="",
+                             timestamp=timestamp)
         return cookie
 
     def getCookieValue(self, cookie=None, cookie_name=None):
