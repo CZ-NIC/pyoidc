@@ -299,13 +299,22 @@ class Provider(object):
                             assert key in _query
                             for val in vals:
                                 assert val in _query[key]
+                    # and vice versa, every query component in the redirect_uri
+                    # must be registered
+                    if _query:
+                        if rquery is None:
+                            raise ValueError
+                        for key, vals in _query.items():
+                            assert key in rquery
+                            for val in vals:
+                                assert val in rquery[key]
                     match = True
                     break
             if not match:
                 raise RedirectURIError("Doesn't match any registered uris")
             # ignore query components that are not registered
             return None
-        except Exception, err:
+        except Exception:
             logger.error("Faulty redirect_uri: %s" % areq["redirect_uri"])
             try:
                 _cinfo = self.cdb[areq["client_id"]]
@@ -314,7 +323,8 @@ class Provider(object):
                 raise UnknownClient(areq["client_id"])
             else:
                 logger.info("Registered redirect_uris: %s" % _cinfo)
-                raise RedirectURIError("Faulty redirect_uri: %s" % err)
+                raise RedirectURIError(
+                    "Faulty redirect_uri: %s" % areq["redirect_uri"])
 
     def get_redirect_uri(self, areq):
         """ verify that the redirect URI is reasonable

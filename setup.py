@@ -43,7 +43,7 @@ else:
 
 setup(
     name="oic",
-    version="0.7.6",
+    version="0.7.7",
     description="Python implementation of OAuth2 and OpenID Connect",
     author="Roland Hedberg",
     author_email="roland.hedberg@umu.se",
