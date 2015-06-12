@@ -597,12 +597,12 @@ class TestOICProvider(object):
         correct = [
             "http://example.org/cb",
             "http://example.org/cb/foo",
-            "http://example.org/cb?got=you",
-            "http://example.org/cb/foo?got=you"
         ]
         faulty = [
             "http://example.org/foo",
             "http://example.com/cb",
+            "http://example.org/cb?got=you",
+            "http://example.org/cb/foo?got=you"
         ]
 
         cid = self._client_id(provider.cdb)
@@ -652,11 +652,11 @@ class TestOICProvider(object):
             "http://example.org/cb/foo",
             "http://example.org/cb?got=you",
             "http://example.org/cb?foo=you"
+            "http://example.org/cb?foo=bar&got=you",
+            "http://example.org/cb?foo=you&foo=bar"
         ]
         correct = [
             "http://example.org/cb?foo=bar",
-            "http://example.org/cb?foo=bar&got=you",
-            "http://example.org/cb?foo=bar&foo=you"
         ]
 
         cid = regresp["client_id"]
@@ -802,4 +802,4 @@ class TestOICProvider(object):
 if __name__ == "__main__":
     t = TestOICProvider()
     t.setup_class()
-    t.test_provider_key_setup()
+    t.test_registered_redirect_uri_without_query_component()

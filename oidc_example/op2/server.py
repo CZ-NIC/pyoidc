@@ -342,9 +342,6 @@ def application(environ, start_response):
 
     environ["oic.oas"] = OAS
 
-    #remote = environ.get("REMOTE_ADDR")
-    #kaka = environ.get("HTTP_COOKIE", '')
-
     if path.startswith("static/"):
         return static(environ, start_response, path)
 
