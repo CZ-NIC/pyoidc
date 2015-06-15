@@ -427,8 +427,6 @@ class KeyJar(object):
                         break
                     if not key.use or use == key.use:
                         lst.append(key)
-                if kid and lst:
-                    break
 
         # if elliptic curve have to check I have a key of the right curve
         if key_type == "EC" and "alg" in kwargs:
