@@ -415,10 +415,11 @@ class Client(oauth2.Client):
             if "keys" not in kwargs and alg and alg != "none":
                 _kty = jws.alg2keytype(alg)
                 try:
-                    kwargs["keys"] = self.keyjar.get_signing_key(
-                        _kty, kid=self.kid["sig"][_kty])
+                    _kid = kwargs["sig_kid"]
                 except KeyError:
-                    kwargs["keys"] = self.keyjar.get_signing_key(_kty)
+                    _kid = self.kid["sig"].get(_kty, None)
+
+                kwargs["keys"] = self.keyjar.get_signing_key(_kty, kid=_kid)
 
             _req = make_openid_request(areq, **kwargs)
 
