@@ -611,6 +611,16 @@ class KeyJar(object):
         for issuer, keys in info.items():
             self.issuer_keys[issuer] = [KeyBundle(keys)]
 
+    def copy(self):
+        data = {}
+        for issuer, keybundles in self.issuer_keys.iteritems():
+            keys = [k.serialize(private=True) for kb in keybundles for k in kb.keys()]
+            data[issuer] = keys
+
+        copy_keybundle = KeyJar()
+        copy_keybundle.restore(data)
+        return copy_keybundle
+
 
 # =============================================================================
 
