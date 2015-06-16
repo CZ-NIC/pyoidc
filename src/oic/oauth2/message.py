@@ -531,6 +531,7 @@ class Message(object):
                                     pass
 
                         if "kid" in _header and _header["kid"]:
+                            _jw["kid"] = _header["kid"]
                             try:
                                 _key = keyjar.get_key_by_kid(_header["kid"],
                                                              jso["iss"])

@@ -427,8 +427,6 @@ class KeyJar(object):
                         break
                     if not key.use or use == key.use:
                         lst.append(key)
-                if kid and lst:
-                    break
 
         # if elliptic curve have to check I have a key of the right curve
         if key_type == "EC" and "alg" in kwargs:
@@ -612,6 +610,16 @@ class KeyJar(object):
     def restore(self, info):
         for issuer, keys in info.items():
             self.issuer_keys[issuer] = [KeyBundle(keys)]
+
+    def copy(self):
+        data = {}
+        for issuer, keybundles in self.issuer_keys.iteritems():
+            keys = [k.serialize(private=True) for kb in keybundles for k in kb.keys()]
+            data[issuer] = keys
+
+        copy_keybundle = KeyJar()
+        copy_keybundle.restore(data)
+        return copy_keybundle
 
 
 # =============================================================================
