@@ -63,6 +63,9 @@ class Endpoint(object):
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
 
+    def __name__(self):
+        return "%s_endpoint" % self.etype
+
 
 class AuthorizationEndpoint(Endpoint):
     etype = "authorization"
