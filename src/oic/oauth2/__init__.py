@@ -359,7 +359,7 @@ class Client(PBase):
         return uri, body, h_args, cis
 
     def request_info(self, request, method="POST", request_args=None,
-                     extra_args=None, **kwargs):
+                     extra_args=None, lax=False, **kwargs):
 
         if request_args is None:
             request_args = {}
@@ -370,6 +370,8 @@ class Client(PBase):
                       **kwargs)
         except AttributeError:
             cis = self.construct_request(request, request_args, extra_args)
+
+        cis.lax = lax
 
         if "authn_method" in kwargs:
             h_arg = self.init_authentication_method(cis,
