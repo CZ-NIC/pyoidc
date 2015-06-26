@@ -970,7 +970,7 @@ class Provider(AProvider):
         else:
             uireq = self.server.parse_user_info_request(data=request)
             logger.debug("user_info_request: %s" % uireq)
-            _token = uireq["access_token"]
+            _token = uireq["access_token"].replace(' ', '+')
 
         # should be an access token
         typ, key = _sdb.token.type_and_key(_token)
