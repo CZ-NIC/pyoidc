@@ -51,7 +51,7 @@ you will learn what information to look for.
 Issuer discovery
 ----------------
 
-OIDC uses webfinger (http://tools.ietf.org/html/rfc7033)to do the OP discovery.
+OIDC uses webfinger (http://tools.ietf.org/html/rfc7033) to do the OP discovery.
 In very general terms this means
 that the user that accesses the RP provides an identifier. There are a number
 of different syntaxes that this identifier can adhere to. The most common
