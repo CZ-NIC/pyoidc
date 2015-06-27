@@ -828,7 +828,7 @@ class Provider(AProvider):
         return Response(atr.to_json(), content="application/json")
 
     #noinspection PyUnusedLocal
-    def token_endpoint(self, request="", authn=None, **kwargs):
+    def token_endpoint(self, request="", authn=None, dtype='urlencoded', **kwargs):
         """
         This is where clients come to get their access tokens
 
@@ -839,9 +839,9 @@ class Provider(AProvider):
         logger.debug("- token -")
         logger.info("token_request: %s" % request)
 
-        req = AccessTokenRequest().deserialize(request, "urlencoded")
+        req = AccessTokenRequest().deserialize(request, dtype)
         if "refresh_token" in req:
-            req = RefreshAccessTokenRequest().deserialize(request, "urlencoded")
+            req = RefreshAccessTokenRequest().deserialize(request, dtype)
 
         logger.debug("%s: %s" % (req.__class__.__name__, req))
 
