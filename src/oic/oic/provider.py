@@ -454,18 +454,35 @@ class Provider(AProvider):
         # return the best I have
         return None, None
 
-    def verify_post_logout_redirect_uri(self, areq, cookie):
+    def verify_post_logout_redirect_uri(self, esreq, cookie):
+        """
+
+        :param esreq: End session request
+        :param cookie:
+        :return:
+        """
         try:
-            redirect_uri = areq["post_logout_redirect_uri"]
-            authn, acr = self.pick_auth(areq)
+            redirect_uri = esreq["post_logout_redirect_uri"]
+        except KeyError:
+            logger.debug("Missing post_logout_redirect_uri parameter")
+            return None
+
+        try:
+            authn, acr = self.pick_auth(esreq)
+        except Exception, err:
+            logger.exception("%s", err)
+            raise
+
+        try:
             uid, _ts = authn.authenticated_as(cookie)
             client_ids = self.sdb.get_client_ids_for_uid(uid["uid"])
             accepted_urls = [self.cdb[cid]["post_logout_redirect_uris"] for cid in client_ids]
-            if self._verify_url(redirect_uri, itertools.chain.from_iterable(accepted_urls)):
+            if self._verify_url(redirect_uri,
+                                itertools.chain.from_iterable(accepted_urls)):
                 return redirect_uri
         except Exception as exc:
             logger.debug(
-                "An error occurred while verifying redir URI: %s" % str(exc))
+                "An error occurred while verifying redirect URI: %s" % str(exc))
 
         return None
 
@@ -501,6 +518,8 @@ class Provider(AProvider):
 
     def end_session_endpoint(self, request="", cookie=None, **kwargs):
         esr = EndSessionRequest().from_urlencoded(request)
+
+        logger.debug("End session request: {}".format(esr.to_dict()))
 
         redirect_uri = None
         if "post_logout_redirect_uri" in esr:
