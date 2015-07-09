@@ -1314,6 +1314,7 @@ class Provider(AProvider):
                 return self._error(error="invalid_configuration_parameter",
                                    descr="%s" % err)
 
+        request.rm_blanks()
         try:
             self.match_client_request(request)
         except CapabilitiesMisMatch, err:

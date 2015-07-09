@@ -747,6 +747,14 @@ class Message(object):
         for k in _ext:
             del self._dict[k]
 
+    def rm_blanks(self):
+        """
+        Get rid of parameters that has no value.
+        """
+        _blanks = [k for k in self._dict.keys() if not self._dict[k]]
+        for key in _blanks:
+            del self._dict[key]
+
 
 # =============================================================================
 
