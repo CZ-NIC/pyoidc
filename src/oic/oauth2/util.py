@@ -184,7 +184,9 @@ def verify_header(reqresp, body_type):
             assert match_to_("application/jwt",
                              reqresp.headers["content-type"])
         except AssertionError:
-            raise AssertionError("Wrong content-type in header")
+            raise AssertionError(
+                "Wrong content-type in header, got: {} expected 'application/jwt'".format(
+                    reqresp.headers["content-type"]))
     elif body_type == "urlencoded":
         try:
             assert match_to_(DEFAULT_POST_CONTENT_TYPE,

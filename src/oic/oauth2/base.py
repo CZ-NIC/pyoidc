@@ -1,9 +1,13 @@
-from Cookie import SimpleCookie
 import cookielib
 import copy
 import logging
-from oic.oauth2.util import set_cookie
 import requests
+
+from Cookie import SimpleCookie
+from Cookie import CookieError
+
+from oic.oauth2.exception import NonFatalException
+from oic.oauth2.util import set_cookie
 from oic.utils.keyio import KeyJar
 
 __author__ = 'roland'
@@ -59,8 +63,12 @@ class PBase(object):
             # set_cookie = set_cookie.replace(
             # "=;Path=/;Expires=Thu, 01-Jan-1970 00:00:01 GMT;HttpOnly,", "")
             logger.debug("RECEIVED COOKIEs: %s" % _cookie)
-            set_cookie(self.cookiejar, SimpleCookie(_cookie))
-        except (AttributeError, KeyError), err:
+            try:
+                set_cookie(self.cookiejar, SimpleCookie(_cookie))
+            except CookieError as err:
+                logger.error(err)
+                raise NonFatalException(r, "{}".format(err))
+        except (AttributeError, KeyError) as err:
             pass
 
         return r

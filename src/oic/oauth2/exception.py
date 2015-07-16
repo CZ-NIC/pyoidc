@@ -59,3 +59,12 @@ class InvalidRequest(PyoidcError):
     pass
 
 
+class NonFatalException(PyoidcError):
+    """
+    :param resp: A response that the function/method would return on non-error
+    :param msg: A message describing what error has occurred.
+    """
+
+    def __init__(self, resp, msg):
+        self.resp = resp
+        self.msg = msg
