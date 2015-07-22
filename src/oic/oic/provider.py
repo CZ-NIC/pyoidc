@@ -920,7 +920,7 @@ class Provider(AProvider):
             logger.debug("userinfo_claim: %s" % userinfo_claims.to_dict())
 
         logger.debug("Session info: %s" % session)
-        info = self.userinfo(session["authn_event"].uid, userinfo_claims)
+        info = self.userinfo(session["authn_event"].uid, session['client_id'], userinfo_claims)
 
         if "sub" in userinfo_claims:
             if not claims_match(session["sub"], userinfo_claims["sub"]):
@@ -1707,8 +1707,7 @@ class Provider(AProvider):
                 user_info = self.userinfo_in_id_token_claims(_sinfo)
                 if areq["response_type"] == ["id_token"]:
                     #  scopes should be returned here
-                    info = self.userinfo(_sinfo["authn_event"].uid,
-                                         self._scope2claims(areq["scope"]))
+                    info = self._collect_user_info(_sinfo)
                     if user_info is None:
                         user_info = info
                     else:
