@@ -20,7 +20,7 @@ class AaUserInfo(UserInfo):
         self.sp = Saml2Client(config_file="%s" % ntf.name)
         self.samlcache = self.sp_conf.SAML_CACHE
 
-    def __call__(self, userid, user_info_claims=None, **kwargs):
+    def __call__(self, userid, client_id, user_info_claims=None, **kwargs):
         try:
             ava = self.db[userid]
             entity_id = self.sp_conf.AA_ENTITY_ID

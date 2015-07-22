@@ -55,8 +55,8 @@ class UserInfoLDAP(UserInfo):
         self.ld.protocol_version = ldap.VERSION3
         self.ld.simple_bind_s(self.ldapuser, self.ldappasswd)
 
-    def __call__(self, userid, user_info_claims=None, first_only=True,
-                 **kwargs):
+    def __call__(self, userid, client_id, user_info_claims=None,
+                 first_only=True, **kwargs):
         _filter = self.filter_pattern % userid
         logger.debug("CLAIMS: %s" % user_info_claims)
         _attr = self.attr
