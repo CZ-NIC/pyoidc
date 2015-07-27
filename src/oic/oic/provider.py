@@ -813,6 +813,9 @@ class Provider(AProvider):
 
             _sdb.update_by_token(_access_code, "id_token", _idtoken)
 
+        # Refresh the _tinfo
+        _tinfo = _sdb[_access_code]
+
         _log_debug("_tinfo: %s" % _tinfo)
 
         atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))

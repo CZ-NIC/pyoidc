@@ -425,7 +425,7 @@ class SessionDB(object):
             _dict["refresh_token"] = ""
         else:
             pass
-
+        self._db[sid] = _dict
         return True
 
     def revoke_all_tokens(self, token):

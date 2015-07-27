@@ -251,7 +251,7 @@ def test_is_valid():
 
     dict2["refresh_token"] = token2
     assert sdb.is_valid(rtoken) is False
-    
+
     # mess with the time-line
 
     dict2["token_expires_at"] = utc_time_sans_frac() - 86400
@@ -266,8 +266,7 @@ def test_is_valid():
     sid = sdb.create_authz_session(ae, AREQ)
     grant = sdb[sid]["code"]
 
-    gdict = sdb[grant]
-    gdict["token_expires_at"] = utc_time_sans_frac() - 86400
+    sdb.update(grant, "token_expires_at", utc_time_sans_frac() - 86400)
     assert sdb.is_valid(grant) is False
 
 
