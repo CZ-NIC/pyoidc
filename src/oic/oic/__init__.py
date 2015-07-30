@@ -1326,6 +1326,7 @@ class Server(oauth2.Server):
             except KeyError:
                 keys = None
 
+        logger.debug("verify keys: {}".format(keys))
         request.verify(key=keys, keyjar=self.keyjar)
         return request
 

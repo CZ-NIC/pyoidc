@@ -455,7 +455,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
         try:
             assert "openid" in self["scope"]
         except AssertionError:
-            raise MissingRequiredValue("openid in scope", self)
+            raise MissingRequiredValue("openid not in scope", self)
 
         if "offline_access" in self["scope"]:
             try:

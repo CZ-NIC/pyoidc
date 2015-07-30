@@ -131,7 +131,6 @@ def max_age(areq):
         except KeyError:
             return 0
 
-
 def re_authenticate(areq, authn):
     if "prompt" in areq and "login" in areq["prompt"]:
         if authn.done(areq):
