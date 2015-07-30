@@ -1,3 +1,5 @@
+import copy
+
 __author__ = 'rohe0002'
 
 import logging
@@ -502,7 +504,12 @@ class KeyJar(object):
         return self.x_keys("decrypt", part)
 
     def __getitem__(self, issuer):
-        return self.issuer_keys[issuer]
+        try:
+            return self.issuer_keys[issuer]
+        except KeyError:
+            logger.debug(
+                "Available key issuers: {}".format(self.issuer_keys.keys()))
+            raise
 
     def remove_key(self, issuer, key_type, key):
         try:
@@ -612,14 +619,15 @@ class KeyJar(object):
             self.issuer_keys[issuer] = [KeyBundle(keys)]
 
     def copy(self):
-        data = {}
+        copy_keyjar = KeyJar()
         for issuer, keybundles in self.issuer_keys.iteritems():
-            keys = [k.serialize(private=True) for kb in keybundles for k in kb.keys()]
-            data[issuer] = keys
+            _kb = KeyBundle()
+            for kb in keybundles:
+                for k in kb.keys():
+                    _kb.append(copy.copy(k))
+            copy_keyjar.issuer_keys[issuer] = [_kb]
 
-        copy_keybundle = KeyJar()
-        copy_keybundle.restore(data)
-        return copy_keybundle
+        return copy_keyjar
 
 
 # =============================================================================

@@ -541,7 +541,6 @@ class TestOICProvider(object):
         assert _eq(idt.keys(), ['sub', 'aud', 'iss', 'acr', 'exp', 'iat'])
         assert idt["iss"] == self.server.name + "/"
 
-
     def test_registration_endpoint(self):
         req = RegistrationRequest()
 
@@ -564,6 +563,34 @@ class TestOICProvider(object):
                                     'registration_access_token',
                                     'client_id', 'client_secret',
                                     'client_id_issued_at', 'response_types'])
+
+    def test_registration_endpoint_2(self):
+        req = RegistrationRequest(
+            **{'token_endpoint_auth_method': u'client_secret_post',
+             'redirect_uris': [
+                 u'https://connect.openid4.us:5443/phpRp/index.php/callback',
+                 u'https://connect.openid4.us:5443/phpRp/authcheck.php/authcheckcb'],
+             'jwks_uri': u'https://connect.openid4.us:5443/phpRp/rp/rp.jwk',
+             'userinfo_encrypted_response_alg': u'RSA1_5',
+             'contacts': [u'me@example.com'],
+             'userinfo_encrypted_response_enc': u'A128CBC-HS256',
+             'application_type': u'web',
+             'client_name': u'ABRP-17',
+             'grant_types': [u'authorization_code', u'implicit'],
+             'post_logout_redirect_uris': [
+                 u'https://connect.openid4.us:5443/phpRp/index.php/logoutcb'],
+             'subject_type': u'public',
+             'response_types': [u'code', u'token', u'id_token', u'code token',
+                                u'code id_token', u'id_token token',
+                                u'code id_token token'],
+             'policy_uri': u'https://connect.openid4.us:5443/phpRp/index.php/policy',
+             'logo_uri': u'https://connect.openid4.us:5443/phpRp/media/logo.png'})
+
+        resp = self.server.registration_endpoint(request=req.to_json())
+
+        print resp.message
+        regresp = RegistrationResponse().deserialize(resp.message, "json")
+
 
     def test_provider_key_setup(self):
         provider = Provider("pyoicserv", SessionDB(SERVER_INFO["issuer"]), None,
@@ -802,4 +829,4 @@ class TestOICProvider(object):
 if __name__ == "__main__":
     t = TestOICProvider()
     t.setup_class()
-    t.test_registered_redirect_uri_without_query_component()
+    t.test_registration_endpoint_2()
