@@ -1,4 +1,6 @@
 import copy
+from jwkest import jws
+from jwkest import jwe
 
 __author__ = 'rohe0002'
 
@@ -629,6 +631,13 @@ class KeyJar(object):
 
         return copy_keyjar
 
+    def keys_by_arg_and_usage(self, issuer, alg, usage):
+        if usage in ["sig", "ver"]:
+            ktype = jws.alg2keytype(alg)
+        else:
+            ktype = jwe.alg2keytype(alg)
+
+        return self.get(usage, ktype, issuer)
 
 # =============================================================================
 
