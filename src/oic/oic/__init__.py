@@ -1,7 +1,6 @@
 __author__ = 'rohe0002'
 
 import urlparse
-import json
 import logging
 import os
 
@@ -54,7 +53,6 @@ from oic.utils.webfinger import WebFinger
 
 from jwkest import jws
 from jwkest import jwe
-from jwkest.jws import JWS
 
 logger = logging.getLogger(__name__)
 
@@ -819,7 +817,7 @@ class Client(oauth2.Client):
                                                         **kwargs)
 
         h_args.update(http_args)
-        path, body, kwargs = self.get_or_post(endpoint, method, uir, **kwargs)
+        path, body, kwargs = get_or_post(endpoint, method, uir, **kwargs)
 
         try:
             resp = self.http_request(path, method, data=body, **h_args)
