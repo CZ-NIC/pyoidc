@@ -631,7 +631,7 @@ class KeyJar(object):
 
         return copy_keyjar
 
-    def keys_by_arg_and_usage(self, issuer, alg, usage):
+    def keys_by_alg_and_usage(self, issuer, alg, usage):
         if usage in ["sig", "ver"]:
             ktype = jws.alg2keytype(alg)
         else:
