@@ -7,7 +7,6 @@ from oic.utils.time_util import *
 
 from pytest import raises
 
-
 def test_f_quotient():
     assert f_quotient(-1, 3) == -1
     assert f_quotient(0, 3) == 0
@@ -184,7 +183,7 @@ def test_a_while_ago():
     then = a_while_ago(seconds=10)
     t = time.mktime(str_to_time(then))
     delta = dt - t  # slightly less than 10
-    print delta
+    print (delta)
     assert delta == 10
 
 
