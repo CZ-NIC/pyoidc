@@ -4,6 +4,8 @@ from Crypto import Random
 from Crypto.Cipher import AES
 from base64 import b64encode, b64decode
 
+from six import indexbytes
+
 __author__ = 'rolandh'
 
 POSTFIX_MODE = {
@@ -96,8 +98,8 @@ def decrypt(key, msg, iv=None, padding="PKCS#7", b64dec=True):
     cipher, iv = build_cipher(key, iv)
     res = cipher.decrypt(data)[AES.block_size:]
     if padding in ["PKCS#5", "PKCS#7"]:
-        res = res[:-ord(res[-1])]
-    return res
+        res = res[:-indexbytes(res, -1)]
+    return res.decode("utf-8")
 
 
 if __name__ == "__main__":
