@@ -61,7 +61,7 @@ setup(
     },
     install_requires=[
         "requests", "pycrypto>=2.6.1", "pyjwkest>=1.0.1",
-        "mako", "beaker", "alabaster", "pyOpenSSL"] + extra_install_requires,
+        "mako", "beaker", "alabaster", "pyOpenSSL", "six"] + extra_install_requires,
     tests_require=['pytest', 'httpretty'],
     zip_safe=False,
     cmdclass={'test': PyTest},
