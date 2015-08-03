@@ -1,11 +1,10 @@
-import cookielib
 import copy
 import logging
+
 import requests
 
-from Cookie import SimpleCookie
-from Cookie import CookieError
-
+import six.moves.http_cookiejar as cookielib
+from six.moves.http_cookies import SimpleCookie, CookieError
 from oic.oauth2.exception import NonFatalException
 from oic.oauth2.util import set_cookie
 from oic.utils.keyio import KeyJar

@@ -2,11 +2,8 @@
 import base64
 import logging
 import time
-from urllib import urlencode
-import urllib
-from urlparse import parse_qs
-from urlparse import urlunsplit
-from urlparse import urlsplit
+
+from six.moves.urllib.parse import parse_qs, urlunsplit, urlsplit, urlencode
 from oic.exception import PyoidcError
 
 from oic.utils import aes

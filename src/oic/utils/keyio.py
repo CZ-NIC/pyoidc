@@ -1,28 +1,26 @@
 import copy
-from jwkest import jws
-from jwkest import jwe
-
-__author__ = 'rohe0002'
-
 import logging
 import os
-import urlparse
 import sys
 import traceback
 import json
 import time
+
+from jwkest import jws
+from jwkest import jwe
 from Crypto.PublicKey import RSA
-
 from requests import request
-
-from oic.exception import MessageException
-from oic.exception import PyoidcError
-
 from jwkest.ecc import NISTEllipticCurve
 from jwkest.jwk import rsa_load
 from jwkest.jwk import RSAKey
 from jwkest.jwk import ECKey
 from jwkest.jwk import SYMKey
+
+from six.moves.urllib.parse import urlparse
+from oic.exception import MessageException
+from oic.exception import PyoidcError
+
+__author__ = 'rohe0002'
 
 KEYLOADERR = "Failed to load %s key from '%s' (%s)"
 logger = logging.getLogger(__name__)
@@ -638,6 +636,7 @@ class KeyJar(object):
             ktype = jwe.alg2keytype(alg)
 
         return self.get(usage, ktype, issuer)
+
 
 # =============================================================================
 

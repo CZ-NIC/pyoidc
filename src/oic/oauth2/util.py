@@ -1,5 +1,6 @@
-import cookielib
 import logging
+
+import six.moves.http_cookiejar as cookielib
 from oic.oauth2.exception import TimeFormatError
 from oic.exception import UnSupported
 
