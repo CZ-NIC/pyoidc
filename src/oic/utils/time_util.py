@@ -27,6 +27,11 @@ import sys
 from datetime import timedelta
 from datetime import datetime
 
+try:
+    from past.builtins import basestring
+except ImportError:
+    pass
+
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 TIME_FORMAT_WITH_FRAGMENT = re.compile(
     "^(\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2})\.\d*Z$")
@@ -38,7 +43,7 @@ class TimeUtilError(Exception):
 
 # ---------------------------------------------------------------------------
 # I'm sure this is implemented somewhere else can't find it now though, so I
-# made an attempt.
+# made an attempt.,
 # Implemented according to
 #http://www.w3.org/TR/2001/REC-xmlschema-2-20010502/
 #adding-durations-to-dateTimes
@@ -46,11 +51,11 @@ class TimeUtilError(Exception):
 
 def f_quotient(arg0, arg1, arg2=0):
     if arg2:
-        return int((arg0 - arg1) / (arg2 - arg1))
+        return int((arg0 - arg1) // (arg2 - arg1))
     elif not arg0:
         return 0
     else:
-        return int(arg0 / arg1)
+        return int(arg0 // arg1)
 
 
 def modulo(arg0, arg1, arg2=0):
