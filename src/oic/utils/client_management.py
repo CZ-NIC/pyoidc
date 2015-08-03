@@ -32,9 +32,9 @@ def pack_redirect_uri(redirect_uris):
             print >> sys.stderr, "Faulty redirect uri, contains fragment"
         base, query = urllib.splitquery(uri)
         if query:
-            ruri.append((base, urlparse.parse_qs(query)))
+            ruri.append([base, urlparse.parse_qs(query)])
         else:
-            ruri.append((base, query))
+            ruri.append([base, query])
 
     return ruri
 
@@ -53,7 +53,8 @@ class CDB(object):
     def items(self):
         return self.cdb.items()
 
-    def create(self, redirect_uris=None, policy_uri="", logo_uri="", jwks_uri=""):
+    def create(self, redirect_uris=None, policy_uri="", logo_uri="",
+               jwks_uri=""):
         if redirect_uris is None:
             print 'Enter redirect_uris one at the time, end with a blank line: '
             redirect_uris = []
