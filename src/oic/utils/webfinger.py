@@ -2,10 +2,16 @@
 import json
 import logging
 import re
-from urllib import urlencode
-import urlparse
 from oic.exception import PyoidcError
 import requests
+
+try:
+    from urllib.parse import urlencode
+    from urllib.parse import urlparse
+    from past.builtins import basestring
+except ImportError:
+    from urllib import urlencode
+    import urlparse
 
 from oic.utils.time_util import in_a_while
 
@@ -57,11 +63,11 @@ class Base(object):
                 pass
 
     def load(self, dictionary):
-        for key, spec in self.c_param.items():
+        for key, spec in list(self.c_param.items()):
             if key not in dictionary and spec["required"] is True:
                 raise AttributeError("Required attribute '%s' missing" % key)
 
-        for key, val in dictionary.items():
+        for key, val in list(dictionary.items()):
             if val == "" or val == [""]:
                 continue
 
@@ -76,7 +82,7 @@ class Base(object):
 
     def dump(self):
         res = {}
-        for key in self.c_param.keys():
+        for key in list(self.c_param.keys()):
             try:
                 val = self._ava[key]
             except KeyError:
@@ -100,13 +106,13 @@ class Base(object):
         return self._ava[item]
 
     def items(self):
-        return self._ava.items()
+        return list(self._ava.items())
 
     def keys(self):
-        return self._ava.keys()
+        return list(self._ava.keys())
 
     def values(self):
-        return self._ava.values()
+        return list(self._ava.values())
 
     def __len__(self):
         return self._ava.__len__()
@@ -237,7 +243,8 @@ class WebFinger(object):
                 info.append(("rel", val))
 
         if resource.startswith("http"):
-            part = urlparse.urlparse(resource)
+            #part = urlparse.urlparse(resource)
+            part = urlparse(resource)
             host = part.hostname
             if part.port is not None:
                 host += ":" + str(part.port)

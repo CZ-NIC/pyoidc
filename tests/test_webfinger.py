@@ -130,11 +130,11 @@ def test_wf4():
     wf = WebFinger()
     jrd0 = wf.load(json.dumps(EX0))
 
-    print jrd0
+    print (jrd0)
 
     for link in jrd0["links"]:
         if link["rel"] == "blog":
-            print link["href"]
+            print (link["href"])
             assert link["href"] == "http://blogs.example.com/bob/"
 
 
