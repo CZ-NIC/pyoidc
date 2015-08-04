@@ -1,3 +1,5 @@
+from urlparse import urlparse, parse_qs
+
 __author__ = "@maennelpaennel"
 
 
@@ -57,3 +59,20 @@ class URLObject(object):
             if prefix:
                 self.host = "%s://%s" % (prefix, host)
         self.resource = resource
+
+def url_compare(url1, url2):
+    url1 = urlparse(url1)
+    url2 = urlparse(url2)
+
+    if url1.scheme != url2.scheme:
+        return False
+    if url1.netloc != url2.netloc:
+        return False
+    if url1.path != url2.path:
+        return False
+    if parse_qs(url1.query) != parse_qs(url2.query):
+        return False
+    if parse_qs(url1.fragment) != parse_qs(url2.fragment):
+        return False
+
+    return True
