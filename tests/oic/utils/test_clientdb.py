@@ -32,11 +32,11 @@ class TestMDQClient(unittest.TestCase):
         result = self.md[TestMDQClient.CLIENT_ID]
         assert metadata == result
 
-
     @httpretty.activate
     def test_get_non_existing_client(self):
         httpretty.register_uri(httpretty.GET,
-                               TestMDQClient.MDX_URL.format(client_id=TestMDQClient.CLIENT_ID),
+                               TestMDQClient.MDX_URL.format(
+                                   client_id=TestMDQClient.CLIENT_ID),
                                status=404)
 
         with pytest.raises(NoClientInfoReceivedError):
