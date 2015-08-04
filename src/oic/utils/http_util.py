@@ -25,18 +25,19 @@ class Response(object):
     _mako_lookup = None
 
     def __init__(self, message=None, **kwargs):
-        self.status = kwargs.get('status', self._status)
-        self.response = kwargs.get('response', self._response)
-        self.template = kwargs.get('template', self._template)
-        self.mako_template = kwargs.get('mako_template', self._mako_template)
-        self.mako_lookup = kwargs.get('template_lookup', self._mako_lookup)
+        self.status = kwargs.get("status", self._status)
+        self.response = kwargs.get("response", self._response)
+        self.template = kwargs.get("template", self._template)
+        self.mako_template = kwargs.get("mako_template", self._mako_template)
+        self.mako_lookup = kwargs.get("template_lookup", self._mako_lookup)
 
         self.message = message
 
-        self.headers = kwargs.get('headers', [])
-        _content_type = kwargs.get('content', self._content_type)
+        self.headers = []
+        self.headers.extend(kwargs.get("headers", []))
+        _content_type = kwargs.get("content", self._content_type)
 
-        self.headers.append(('Content-type', _content_type))
+        self.headers.append(("Content-type", _content_type))
 
     def __call__(self, environ, start_response, **kwargs):
         start_response(self.status, self.headers)
@@ -44,7 +45,7 @@ class Response(object):
 
     def _response(self, message="", **argv):
         if self.template:
-            if ("Content-type", 'application/json') in self.headers:
+            if ("Content-type", "application/json") in self.headers:
                 return [message]
             else:
                 return [str(self.template % message)]
