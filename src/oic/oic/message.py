@@ -1,18 +1,13 @@
 # encoding: utf-8
 import time
-
-__author__ = 'rohe0002'
-
 import urllib
 import json
 import logging
 
-try:
-    from urllib.parse import urlparse
-    from past.builtins import basestring
-except ImportError:
-    from urlparse import urlparse
+import six
+from jwkest import jws
 
+from six.moves.urllib.parse import urlparse
 from oic.oauth2 import message
 from oic.oauth2 import MissingRequiredValue
 from oic.oauth2 import MissingRequiredAttribute
@@ -33,7 +28,7 @@ from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
 from oic.oauth2.message import SINGLE_OPTIONAL_INT
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 
-from jwkest import jws
+__author__ = 'rohe0002'
 
 logger = logging.getLogger(__name__)
 
@@ -46,12 +41,12 @@ class CHashError(VerificationError):
     pass
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def json_ser(val, sformat=None, lev=0):
     return json.dumps(val)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def json_deser(val, sformat=None, lev=0):
     return json.loads(val)
 
@@ -88,7 +83,7 @@ SINGLE_OPTIONAL_JSON_CONV = (dict, False, json_conv, json_rest, True)
 SINGLE_REQUIRED_INT = (int, True, None, None, False)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def idtoken_deser(val, sformat="urlencoded"):
     # id_token are always serialized as a JWT
     return IdToken().deserialize(val, "jwt")
@@ -237,8 +232,8 @@ OPTIONAL_MULTIPLE_Claims = (Message, False, claims_ser, claims_deser, False)
 # SINGLE_OPTIONAL_USERINFO_CLAIM = (Message, False, msg_ser, userinfo_deser)
 # SINGLE_OPTIONAL_ID_TOKEN_CLAIM = (Message, False, msg_ser, idtokenclaim_deser)
 
-SINGLE_OPTIONAL_JWT = (basestring, False, msg_ser, None, False)
-SINGLE_OPTIONAL_IDTOKEN = (basestring, False, msg_ser, None, False)
+SINGLE_OPTIONAL_JWT = (six.string_types, False, msg_ser, None, False)
+SINGLE_OPTIONAL_IDTOKEN = (six.string_types, False, msg_ser, None, False)
 
 SINGLE_OPTIONAL_REGISTRATION_REQUEST = (Message, False, msg_ser,
                                         registration_request_deser, False)
@@ -308,12 +303,11 @@ class UserInfoRequest(Message):
 
 class AuthorizationResponse(message.AuthorizationResponse,
                             message.AccessTokenResponse):
-
     c_param = message.AuthorizationResponse.c_param.copy()
     c_param.update(message.AccessTokenResponse.c_param)
     c_param.update({
         "code": SINGLE_OPTIONAL_STRING,
-        #"nonce": SINGLE_OPTIONAL_STRING,
+        # "nonce": SINGLE_OPTIONAL_STRING,
         "access_token": SINGLE_OPTIONAL_STRING,
         "token_type": SINGLE_OPTIONAL_STRING,
         "id_token": SINGLE_OPTIONAL_IDTOKEN
@@ -403,7 +397,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
             "registration": SINGLE_OPTIONAL_JSON,
             "request": SINGLE_OPTIONAL_STRING,
             "request_uri": SINGLE_OPTIONAL_STRING,
-            #"session_state": SINGLE_OPTIONAL_STRING,
+            # "session_state": SINGLE_OPTIONAL_STRING,
             "response_mode": SINGLE_OPTIONAL_STRING,
         }
     )
@@ -569,9 +563,9 @@ class RegistrationRequest(Message):
         "default_acr_values": OPTIONAL_LIST_OF_STRINGS,
         "initiate_login_uri": SINGLE_OPTIONAL_STRING,
         "request_uris": OPTIONAL_LIST_OF_STRINGS,
-        #"client_id": SINGLE_OPTIONAL_STRING,
-        #"client_secret": SINGLE_OPTIONAL_STRING,
-        #"access_token": SINGLE_OPTIONAL_STRING,
+        # "client_id": SINGLE_OPTIONAL_STRING,
+        # "client_secret": SINGLE_OPTIONAL_STRING,
+        # "access_token": SINGLE_OPTIONAL_STRING,
         "post_logout_redirect_uris": OPTIONAL_LIST_OF_STRINGS,
     }
     c_default = {"application_type": "web"}
@@ -664,7 +658,7 @@ class IdToken(OpenIDSchema):
                     raise NotForMe("", self)
 
             if len(self["aud"]) > 1:  # Then azr has to be present and be one of
-                                      # the aud values
+                # the aud values
                 try:
                     assert "azr" in self
                 except AssertionError:
@@ -715,7 +709,7 @@ class EndSessionResponse(Message):
 
 
 class Claims(Message):
-    #c_param = {"*": SINGLE_OPTIONAL_JSON_CONV}
+    # c_param = {"*": SINGLE_OPTIONAL_JSON_CONV}
     pass
 
 
@@ -762,12 +756,12 @@ class ProviderConfigurationResponse(Message):
         "userinfo_encryption_enc_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "request_object_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "request_object_encryption_alg_values_supported":
-        OPTIONAL_LIST_OF_STRINGS,
+            OPTIONAL_LIST_OF_STRINGS,
         "request_object_encryption_enc_values_supported":
-        OPTIONAL_LIST_OF_STRINGS,
+            OPTIONAL_LIST_OF_STRINGS,
         "token_endpoint_auth_methods_supported": OPTIONAL_LIST_OF_STRINGS,
         "token_endpoint_auth_signing_alg_values_supported":
-        OPTIONAL_LIST_OF_STRINGS,
+            OPTIONAL_LIST_OF_STRINGS,
         "display_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "claim_types_supported": OPTIONAL_LIST_OF_STRINGS,
         "claims_supported": OPTIONAL_LIST_OF_STRINGS,
@@ -782,12 +776,13 @@ class ProviderConfigurationResponse(Message):
         "op_tos_uri": SINGLE_OPTIONAL_STRING,
         "check_session_iframe": SINGLE_OPTIONAL_STRING,
         "end_session_endpoint": SINGLE_OPTIONAL_STRING,
-        #"jwk_encryption_url": SINGLE_OPTIONAL_STRING,
-        #"x509_url": SINGLE_REQUIRED_STRING,
-        #"x509_encryption_url": SINGLE_OPTIONAL_STRING,
+        # "jwk_encryption_url": SINGLE_OPTIONAL_STRING,
+        # "x509_url": SINGLE_REQUIRED_STRING,
+        # "x509_encryption_url": SINGLE_OPTIONAL_STRING,
     }
     c_default = {"version": "3.0",
-                 "token_endpoint_auth_methods_supported": ["client_secret_basic"],
+                 "token_endpoint_auth_methods_supported": [
+                     "client_secret_basic"],
                  "claims_parameter_supported": False,
                  "request_parameter_supported": False,
                  "request_uri_parameter_supported": True,
@@ -838,6 +833,7 @@ class DiscoveryResponse(Message):
 
 class ResourceRequest(Message):
     c_param = {"access_token": SINGLE_OPTIONAL_STRING}
+
 
 SCOPE2CLAIMS = {
     "openid": ["sub"],
@@ -896,16 +892,17 @@ def factory(msgtype):
         else:
             raise PyoidcError("Unknown message type: %s" % msgtype)
 
+
 if __name__ == "__main__":
     atr = AccessTokenResponse(access_token="access_token",
                               token_type="token_type")
-    print (atr)
-    print (atr.verify())
+    print(atr)
+    print(atr.verify())
 
     atr = AccessTokenRequest(code="code", client_id="client_id",
                              redirect_uri="redirect_uri")
-    print (atr)
-    print (atr.verify())
+    print(atr)
+    print(atr.verify())
     uue = atr.serialize()
     atr = AccessTokenRequest().deserialize(uue, "urlencoded")
-    print (atr)
+    print(atr)

@@ -4,15 +4,28 @@ import traceback
 import urllib
 import sys
 import itertools
+import random
+import hmac
+import time
+import hashlib
+import logging
+import socket
+
 from jwkest.jwe import JWE
 from jwkest.jwk import SYMKey
+from requests import ConnectionError
+from jwkest import jws
+from jwkest import jwe
+from jwkest import b64d
+from jwkest.jws import alg2keytype
+from jwkest.jws import NoSuitableSigningKeys
+
+from jwkest.jwe import JWEException
+
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
-
-from requests import ConnectionError
-
 from oic.oauth2.message import by_schema
 from oic.oic.message import RefreshAccessTokenRequest
 from oic.oic.message import EndSessionRequest
@@ -31,41 +44,22 @@ from oic.oic.message import ClientRegistrationErrorResponse
 from oic.oic.message import DiscoveryRequest
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import DiscoveryResponse
-
-from jwkest import jws
-from jwkest import jwe
-from jwkest import b64d
-from jwkest.jws import alg2keytype
-from jwkest.jws import NoSuitableSigningKeys
-
-__author__ = 'rohe0002'
-
-import random
-import urlparse
-import hmac
-import time
-import hashlib
-import logging
-import socket
-
+from six.moves.urllib.parse import urlparse
 from oic.oauth2.provider import Provider as AProvider
 from oic.oauth2.provider import Endpoint
-
 from oic.utils.http_util import Response
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Unauthorized
-
 from oic.oauth2.exception import CapabilitiesMisMatch
 from oic.oauth2 import rndstr
-
 from oic.oic import Server
 from oic.oic import PROVIDER_DEFAULT
 from oic.oic import PREFERENCE2PROVIDER
 from oic.oic import claims_match
-
 from oic.exception import *
-from jwkest.jwe import JWEException
+
+__author__ = 'rohe0002'
 
 logger = logging.getLogger(__name__)
 
@@ -78,20 +72,18 @@ def devnull(txt):
     pass
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def do_authorization(user):
     return ""
 
 
 def secret(seed, sid):
-    csum = hmac.new(seed, digestmod=hashlib.sha224)
-    csum.update("%s" % time.time())
-    csum.update("%f" % random.random())
-    csum.update(sid)
+    msg = "{}{:.6f}{}".format(time.time(), random.random(), sid).encode("utf-8")
+    csum = hmac.new(seed, msg, hashlib.sha224)
     return csum.hexdigest()
 
 
-#def update_info(aresp, sdict):
+# def update_info(aresp, sdict):
 #    for prop in aresp._schema["param"].keys():
 #        try:
 #            aresp[prop] = sdict[prop]
@@ -157,6 +149,7 @@ class RegistrationEndpoint(Endpoint):
 
 class EndSessionEndpoint(Endpoint):
     etype = "end_session"
+
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"], ["token"], ["id_token"], ["code", "token"], ["code", "id_token"],
@@ -330,7 +323,7 @@ class Provider(AProvider):
     def _parse_id_token(self, id_token, redirect_uri):
         try:
             return IdToken().from_jwt(id_token, keyjar=self.keyjar)
-        except Exception, err:
+        except Exception as err:
             logger.error("Faulty id_token: %s" % id_token)
             logger.error("Exception: %s" % (err.__class__.__name__,))
             id_token = IdToken().from_jwt(id_token, verify=False)
@@ -442,7 +435,7 @@ class Provider(AProvider):
                     logger.debug("Picked AuthN broker for ACR %s: %s" % (
                         str(acr), str(res)))
                     if res:
-                        #Return the best guess by pick.
+                        # Return the best guess by pick.
                         return res[0]
             else:  # same as any
                 return self.authn_broker[0]
@@ -469,14 +462,15 @@ class Provider(AProvider):
 
         try:
             authn, acr = self.pick_auth(esreq)
-        except Exception, err:
+        except Exception as err:
             logger.exception("%s", err)
             raise
 
         try:
             uid, _ts = authn.authenticated_as(cookie)
             client_ids = self.sdb.get_client_ids_for_uid(uid["uid"])
-            accepted_urls = [self.cdb[cid]["post_logout_redirect_uris"] for cid in client_ids]
+            accepted_urls = [self.cdb[cid]["post_logout_redirect_uris"] for cid
+                             in client_ids]
             if self._verify_url(redirect_uri,
                                 itertools.chain.from_iterable(accepted_urls)):
                 return redirect_uri
@@ -537,7 +531,8 @@ class Provider(AProvider):
                                                      verify=True)
             sub = id_token_hint["sub"]
             try:
-                sid = self.sdb.get_sids_by_sub(sub)[0] # any sid will do, choose the first
+                sid = self.sdb.get_sids_by_sub(sub)[
+                    0]  # any sid will do, choose the first
             except IndexError:
                 pass
         else:
@@ -545,13 +540,15 @@ class Provider(AProvider):
             if identity:
                 uid = identity["uid"]
                 try:
-                    sid = self.sdb.uid2sid[uid][0] # any sid will do, choose the first
+                    sid = self.sdb.uid2sid[uid][
+                        0]  # any sid will do, choose the first
                 except (KeyError, IndexError):
                     pass
             else:
-                return self._error_response("Not allowed (UID could not be retrieved)!")
+                return self._error_response(
+                    "Not allowed (UID could not be retrieved)!")
 
-        #if self.sdb.get_verified_logout(uid):
+        # if self.sdb.get_verified_logout(uid):
         #    return self.let_user_verify_logout(uid, esr, cookie, redirect_uri)
 
         if sid is not None:
@@ -588,7 +585,7 @@ class Provider(AProvider):
         logger.debug("REQ: %s" % areq)
         try:
             authn, acr = self.pick_auth(areq, "exact")
-        except Exception, err:
+        except Exception as err:
             logger.exception("%s", err)
             raise
 
@@ -644,7 +641,8 @@ class Provider(AProvider):
                 # Is the authentication event to be regarded as valid ?
                 if authn_event.valid():
                     sid = self.setup_session(areq, authn_event, cinfo)
-                    return self.authz_part2(authn_event.uid, areq, sid, cookie=cookie)
+                    return self.authz_part2(authn_event.uid, areq, sid,
+                                            cookie=cookie)
 
             kwargs["req_user"] = req_user
 
@@ -653,7 +651,6 @@ class Provider(AProvider):
 
         if isinstance(authnres, Response):
             return authnres
-
 
         logger.debug("- authenticated -")
         logger.debug("AREQ keys: %s" % areq.keys())
@@ -670,8 +667,12 @@ class Provider(AProvider):
 
         if "check_session_iframe" in self.capabilities:
             salt = rndstr()
-            state = str(self.sdb.get_authentication_event(sid).authn_time) # use the last session
-            aresp["session_state"] = self._compute_session_state(state, salt, areq["client_id"], redirect_uri)
+            state = str(self.sdb.get_authentication_event(
+                sid).authn_time)  # use the last session
+            aresp["session_state"] = self._compute_session_state(state, salt,
+                                                                 areq[
+                                                                     "client_id"],
+                                                                 redirect_uri)
             headers.append(self.write_session_cookie(state))
 
         location = aresp.request(redirect_uri, fragment_enc)
@@ -709,7 +710,7 @@ class Provider(AProvider):
         try:
             alg = client_info["%s_encrypted_response_alg" % val_type]
             enc = client_info["%s_encrypted_response_enc" % val_type]
-        except KeyError, err:  # both must be defined
+        except KeyError as err:  # both must be defined
             logger.warning("undefined parameter: %s" % err)
             raise JWEException("%s undefined" % err)
 
@@ -794,7 +795,7 @@ class Provider(AProvider):
 
         try:
             _tinfo = _sdb.upgrade_to_token(_access_code)
-        except Exception, err:
+        except Exception as err:
             logger.error("%s" % err)
             # Should revoke the token issued to this access code
             _sdb.revoke_all_tokens(_access_code)
@@ -849,8 +850,9 @@ class Provider(AProvider):
 
         return Response(atr.to_json(), content="application/json")
 
-    #noinspection PyUnusedLocal
-    def token_endpoint(self, request="", authn=None, dtype='urlencoded', **kwargs):
+    # noinspection PyUnusedLocal
+    def token_endpoint(self, request="", authn=None, dtype='urlencoded',
+                       **kwargs):
         """
         This is where clients come to get their access tokens
 
@@ -869,7 +871,7 @@ class Provider(AProvider):
 
         try:
             client_id = self.client_authn(self, req, authn)
-        except Exception, err:
+        except Exception as err:
             logger.error("Failed to verify client due to: %s" % err)
             client_id = ""
 
@@ -877,7 +879,7 @@ class Provider(AProvider):
             err = TokenErrorResponse(error="unauthorized_client")
             return Unauthorized(err.to_json(), content="application/json")
 
-        if not "client_id" in req:  # Optional for access token request
+        if "client_id" not in req:  # Optional for access token request
             req["client_id"] = client_id
 
         if isinstance(req, AccessTokenRequest):
@@ -923,7 +925,8 @@ class Provider(AProvider):
             logger.debug("userinfo_claim: %s" % userinfo_claims.to_dict())
 
         logger.debug("Session info: %s" % session)
-        info = self.userinfo(session["authn_event"].uid, session['client_id'], userinfo_claims)
+        info = self.userinfo(session["authn_event"].uid, session['client_id'],
+                             userinfo_claims)
 
         if "sub" in userinfo_claims:
             if not claims_match(session["sub"], userinfo_claims["sub"]):
@@ -970,7 +973,7 @@ class Provider(AProvider):
                                  "userinfo", "JWT")
         return jinfo
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def userinfo_endpoint(self, request="", **kwargs):
         """
         :param request: The request in a string format
@@ -1003,7 +1006,7 @@ class Provider(AProvider):
         except AssertionError:
             raise FailedAuthentication("Wrong type of token")
 
-        #_log_info("keys: %s" % self.sdb.keys())
+        # _log_info("keys: %s" % self.sdb.keys())
         if _sdb.is_revoked(key):
             return self._error(error="access_denied", descr="Token is revoked")
         session = _sdb[key]
@@ -1036,7 +1039,7 @@ class Provider(AProvider):
 
         return Response(jinfo, content=content_type)
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def check_session_endpoint(self, request, **kwargs):
         """
         """
@@ -1184,7 +1187,7 @@ class Provider(AProvider):
             si_url = request["sector_identifier_uri"]
             try:
                 res = self.server.http_request(si_url)
-            except ConnectionError, err:
+            except ConnectionError as err:
                 logger.error("%s" % err)
                 return self._error_response(
                     "invalid_configuration_parameter",
@@ -1232,8 +1235,7 @@ class Provider(AProvider):
                         except AssertionError:
                             return self._error_response(
                                 "invalid_configuration_parameter",
-                                descr=
-                                "'sector_identifier_uri' must be registered")
+                                descr="'sector_identifier_uri' must be registered")
 
         for item in ["policy_uri", "logo_uri", "tos_uri"]:
             if item in request:
@@ -1248,8 +1250,7 @@ class Provider(AProvider):
         for item in ["id_token_signed_response_alg",
                      "userinfo_signed_response_alg"]:
             if item in request:
-                if request[item] in self.capabilities[
-                    PREFERENCE2PROVIDER[item]]:
+                if request[item] in self.capabilities[PREFERENCE2PROVIDER[item]]:
                     ktyp = jws.alg2keytype(request[item])
                     # do I have this ktyp and for EC type keys the curve
                     if ktyp not in ["none", "oct"]:
@@ -1266,7 +1267,7 @@ class Provider(AProvider):
                     ",".join(["%s" % x for x in self.keyjar[client_id]])))
             except KeyError:
                 pass
-        except Exception, err:
+        except Exception as err:
             logger.error("Failed to load client keys: %s" % request.to_dict())
             logger.error("%s", err)
             err = ClientRegistrationErrorResponse(
@@ -1292,7 +1293,7 @@ class Provider(AProvider):
 
             args[param] = val
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def l_registration_endpoint(self, request, authn=None, **kwargs):
         _log_debug = logger.debug
         _log_info = logger.info
@@ -1309,7 +1310,7 @@ class Provider(AProvider):
 
         try:
             request.verify()
-        except MessageException, err:
+        except MessageException as err:
             if "type" not in request:
                 return self._error(error="invalid_type",
                                    descr="%s" % err)
@@ -1320,7 +1321,7 @@ class Provider(AProvider):
         request.rm_blanks()
         try:
             self.match_client_request(request)
-        except CapabilitiesMisMatch, err:
+        except CapabilitiesMisMatch as err:
             return self._error(error="invalid_request",
                                descr="Don't support proposed %s" % err)
 
@@ -1442,7 +1443,7 @@ class Provider(AProvider):
             _provider_info["jwks_uri"] = self.jwks_uri
 
         for endp in self.endp:
-            #_log_info("# %s, %s" % (endp, endp.name))
+            # _log_info("# %s, %s" % (endp, endp.name))
             _provider_info[endp(None).name] = "%s%s" % (self.baseurl,
                                                         endp.etype)
 
@@ -1493,7 +1494,7 @@ class Provider(AProvider):
         for typ in ["userinfo", "id_token", "request_object"]:
             _provider_info["%s_encryption_enc_values_supported" % typ] = encs
 
-        #acr_values
+        # acr_values
         if self.authn_broker:
             acr_values = self.authn_broker.getAcrValuesString()
             if acr_values is not None:
@@ -1524,7 +1525,7 @@ class Provider(AProvider):
 
         return True
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def providerinfo_endpoint(self, handle="", **kwargs):
         _log_debug = logger.debug
         _log_info = logger.info
@@ -1544,14 +1545,14 @@ class Provider(AProvider):
 
             resp = Response(_response.to_json(), content="application/json",
                             headers=headers)
-        except Exception, err:
+        except Exception as err:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
             resp = Response(message, content="html/text")
 
         return resp
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def discovery_endpoint(self, request, handle=None, **kwargs):
         """
         :param request:
@@ -1829,5 +1830,3 @@ class Endpoint(object):
 
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
-
-

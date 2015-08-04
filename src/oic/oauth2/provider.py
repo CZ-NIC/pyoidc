@@ -3,23 +3,17 @@ import hashlib
 import traceback
 import sys
 import urllib
-import urlparse
-from oic.utils.sdb import AccessCodeUsed, AuthnEvent
-
-
-__author__ = 'rohe0002'
-
-import base64
 import logging
 import os
 
+from six.moves.urllib.parse import urlparse
+from oic.utils.sdb import AccessCodeUsed, AuthnEvent
 from oic.exception import MissingParameter, InvalidRequest
 from oic.exception import URIError
 from oic.exception import RedirectURIError
 from oic.exception import ParameterError
 from oic.exception import FailedAuthentication
 from oic.exception import UnknownClient
-
 from oic.oauth2.message import AccessTokenResponse, MissingRequiredValue
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import AuthorizationErrorResponse
@@ -31,19 +25,18 @@ from oic.oauth2.message import by_schema
 from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.message import AccessTokenRequest
-
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import CookieDealer
 from oic.utils.http_util import make_cookie
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import Response
-
 from oic.utils.authn.user import NoSuchAuthentication
 from oic.utils.authn.user import ToOld
 from oic.utils.authn.user import TamperAllert
-
 from oic.oauth2 import rndstr
 from oic.oauth2 import Server
+
+__author__ = 'rohe0002'
 
 logger = logging.getLogger(__name__)
 LOG_INFO = logger.info
@@ -130,6 +123,7 @@ def max_age(areq):
             return areq["max_age"]
         except KeyError:
             return 0
+
 
 def re_authenticate(areq, authn):
     if "prompt" in areq and "login" in areq["prompt"]:
@@ -369,7 +363,7 @@ class Provider(object):
                     logger.debug("Picked AuthN broker for ACR %s: %s" % (
                         str(acr), str(res)))
                     if res:
-                        #Return the best guess by pick.
+                        # Return the best guess by pick.
                         return res[0]
             else:  # same as any
                 try:
@@ -382,7 +376,7 @@ class Provider(object):
                         logger.debug("Picked AuthN broker for ACR %s: %s" % (
                             str(acr), str(res)))
                         if res:
-                            #Return the best guess by pick.
+                            # Return the best guess by pick.
                             return res[0]
 
         except KeyError as exc:
@@ -408,7 +402,7 @@ class Provider(object):
             areq = AuthorizationRequest().deserialize(request, "urlencoded")
             try:
                 redirect_uri = self.get_redirect_uri(areq)
-            except (RedirectURIError, ParameterError), err:
+            except (RedirectURIError, ParameterError) as err:
                 return self._error("invalid_request", "%s" % err)
             try:
                 _rtype = areq["response_type"]
@@ -422,9 +416,9 @@ class Provider(object):
             # verify the redirect_uri
             try:
                 self.get_redirect_uri(areq)
-            except (RedirectURIError, ParameterError), err:
+            except (RedirectURIError, ParameterError) as err:
                 return self._error("invalid_request", "%s" % err)
-        except Exception, err:
+        except Exception as err:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
             logger.debug("Bad request: %s (%s)" % (err, err.__class__.__name__))
@@ -437,13 +431,13 @@ class Provider(object):
         logger.debug("AuthzRequest: %s" % (areq.to_dict(),))
         try:
             redirect_uri = self.get_redirect_uri(areq)
-        except (RedirectURIError, ParameterError, UnknownClient), err:
+        except (RedirectURIError, ParameterError, UnknownClient) as err:
             return self._error("invalid_request", "%s" % err)
 
         try:
             # verify that the request message is correct
             areq.verify()
-        except (MissingRequiredAttribute, ValueError), err:
+        except (MissingRequiredAttribute, ValueError) as err:
             return self._redirect_authz_error("invalid_request", redirect_uri,
                                               "%s" % err)
 
@@ -563,7 +557,8 @@ class Provider(object):
                 user = identity["uid"]
                 if "req_user" in kwargs:
                     sids_for_sub = self.sdb.get_sids_by_sub(kwargs["req_user"])
-                    if sids_for_sub and user != self.sdb.get_authentication_event(sids_for_sub[-1]).uid:
+                    if sids_for_sub and user != self.sdb.get_authentication_event(
+                            sids_for_sub[-1]).uid:
                         logger.debug("Wanted to be someone else!")
                         if "prompt" in areq and "none" in areq["prompt"]:
                             # Need to authenticate but not allowed
@@ -600,7 +595,6 @@ class Provider(object):
 
         if isinstance(authnres, Response):
             return authnres
-
 
         logger.debug("- authenticated -")
         logger.debug("AREQ keys: %s" % info["areq"].keys())
@@ -683,7 +677,7 @@ class Provider(object):
 
         try:
             redirect_uri = self.get_redirect_uri(areq)
-        except (RedirectURIError, ParameterError), err:
+        except (RedirectURIError, ParameterError) as err:
             return BadRequest("%s" % err)
 
         # Must not use HTTP unless implicit grant type and native application
@@ -699,7 +693,8 @@ class Provider(object):
             pass
         else:
             if _kaka and self.cookie_name not in _kaka:  # Don't overwrite cookie
-                headers.append(self.cookie_func(user, typ="sso", ttl=self.sso_ttl))
+                headers.append(
+                    self.cookie_func(user, typ="sso", ttl=self.sso_ttl))
 
         # Now about the response_mode. Should not be set if it's obvious
         # from the response_type. Knows about 'query', 'fragment' and
@@ -741,7 +736,7 @@ class Provider(object):
 
         try:
             client = self.client_authn(self, areq, authn)
-        except FailedAuthentication, err:
+        except FailedAuthentication as err:
             err = TokenErrorResponse(error="unauthorized_client",
                                      error_description="%s" % err)
             return Response(err.to_json(), content="application/json",
@@ -800,7 +795,8 @@ class Provider(object):
         return make_cookie(self.session_cookie_name, value, self.seed, path="/")
 
     def delete_session_cookie(self):
-        return make_cookie(self.session_cookie_name, "", "", path="/", expire=-1)
+        return make_cookie(self.session_cookie_name, "", "", path="/",
+                           expire=-1)
 
     def _compute_session_state(self, state, salt, client_id, redirect_uri):
         parsed_uri = urlparse.urlparse(redirect_uri)

@@ -1,25 +1,18 @@
 import logging
-
-__author__ = 'rohe0002'
-
 import cgi
 import time
 import hashlib
 import hmac
 
-try:
-    from urllib.parse import quote
-    from http.cookies import SimpleCookie
-except ImportError:
-    from urllib import quote
-    from Cookie import SimpleCookie
-
+from six.moves.urllib.parse import quote
+from six.moves.http_cookies import SimpleCookie
 from oic.oauth2 import rndstr
 from oic.exception import UnsupportedMethod
 from oic.utils import time_util
 from oic.utils.aes import encrypt
 from oic.utils.aes import decrypt
 
+__author__ = 'rohe0002'
 
 logger = logging.getLogger(__name__)
 
@@ -448,4 +441,3 @@ class CookieDealer(object):
                 if timestamp == _ts:
                     return value, _ts, typ
         return None
-

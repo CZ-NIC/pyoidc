@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 
-__author__ = 'rohe0002'
-
 import random
 import string
-import logging
 
 from oic.oauth2.base import PBase
 from oic.oauth2.exception import MissingEndpoint
@@ -18,16 +15,17 @@ from oic.oauth2.grant import Token
 from oic.oauth2.grant import Grant
 from oic.oauth2.util import get_or_post
 from oic.oauth2.util import verify_header
-
 from oic.utils.keyio import KeyJar
 from oic.utils.time_util import utc_time_sans_frac
+from oic.oauth2.message import *
+
+__author__ = 'rohe0002'
 
 logger = logging.getLogger(__name__)
 
 DEF_SIGN_ALG = "HS256"
 SUCCESSFUL = [200, 201, 202, 203, 204, 205, 206]
 
-from oic.oauth2.message import *
 
 Version = "2.0"
 
@@ -480,7 +478,7 @@ class Client(PBase):
 
         return resp
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def init_authentication_method(self, cis, authn_method, request_args=None,
                                    http_args=None, **kwargs):
 
@@ -506,7 +504,7 @@ class Client(PBase):
             logger.error("(%d) %s" % (reqresp.status_code, reqresp.text))
             raise ParseError("ERROR: Something went wrong: %s" % reqresp.text)
         elif reqresp.status_code in [400, 401]:
-            #expecting an error response
+            # expecting an error response
             if issubclass(response, ErrorResponse):
                 pass
         else:
