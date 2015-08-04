@@ -3,7 +3,7 @@ import datetime
 
 import pytest
 
-from oic.utils.http_util import CookieDealer, Response
+from oic.utils.http_util import CookieDealer, Response, geturl, getpath
 
 __author__ = 'roland'
 
@@ -55,3 +55,25 @@ class TestCookieDealer(object):
         cookie_timestamp = datetime.datetime.strptime(cookie_expiration,
                                                       "%a, %d-%b-%Y %H:%M:%S GMT")
         assert cookie_timestamp < now
+
+
+def test_geturl():
+    environ = {
+        "wsgi.url_scheme": "http",
+        "SERVER_NAME": "example.com",
+        "SERVER_PORT": "80",
+        "SCRIPT_NAME": "/foo",
+        "PATH_INFO": "/bar",
+        "QUERY_STRING": "baz=xyz"
+    }
+
+    assert geturl(environ) == "http://example.com/foo/bar?baz=xyz"
+
+
+def test_getpath():
+    environ = {
+        "SCRIPT_NAME": "/foo",
+        "PATH_INFO": "/bar",
+    }
+
+    assert getpath(environ) == "/foo/bar"

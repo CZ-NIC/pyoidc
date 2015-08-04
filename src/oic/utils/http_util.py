@@ -234,8 +234,8 @@ def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp=""):
     cookie = SimpleCookie()
     if not timestamp:
         timestamp = str(int(time.time()))
-    signature = cookie_signature(seed, load, timestamp)
-    cookie[name] = "|".join([load, timestamp, signature])
+    signature = cookie_signature(seed, load, timestamp.encode("utf-8"))
+    cookie[name] = "|".join([load.decode("utf-8"), timestamp, signature])
     if path:
         cookie[name]["path"] = path
     if domain:
@@ -265,7 +265,8 @@ def parse_cookie(name, seed, kaka):
         if len(parts) != 3:
             return None
         # verify the cookie signature
-        sig = cookie_signature(seed, parts[0], parts[1])
+        sig = cookie_signature(seed, parts[0].encode("utf-8"),
+                               parts[1].encode("utf-8"))
         if sig != parts[2]:
             raise InvalidCookieSign()
 
@@ -382,7 +383,7 @@ class CookieDealer(object):
 
             for param in ["seed", "iv"]:
                 if not getattr(srv, param, None):
-                    setattr(srv, param, rndstr())
+                    setattr(srv, param, rndstr().encode("utf-8"))
 
     def delete_cookie(self, cookie_name=None):
         if cookie_name is None:
