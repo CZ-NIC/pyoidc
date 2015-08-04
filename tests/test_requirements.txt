@@ -1,0 +1,10 @@
+pytest
+httpretty
+requests
+pycrypto
+mako
+pyjwkest
+beaker
+alabaster
+pyOpenSSL
+cherrypy==3.2.4
