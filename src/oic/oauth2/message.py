@@ -17,6 +17,7 @@ import six
 from six.moves.urllib.parse import urlparse, urlencode
 from oic.exception import PyoidcError
 from oic.exception import MessageException
+from past.builtins import basestring
 
 logger = logging.getLogger(__name__)
 
@@ -829,18 +830,18 @@ VSER = 2
 VDESER = 3
 VNULLALLOWED = 4
 
-SINGLE_REQUIRED_STRING = (six.string_types, True, None, None, False)
-SINGLE_OPTIONAL_STRING = (six.string_types, False, None, None, False)
+SINGLE_REQUIRED_STRING = (basestring, True, None, None, False)
+SINGLE_OPTIONAL_STRING = (basestring, False, None, None, False)
 SINGLE_OPTIONAL_INT = (int, False, None, None, False)
-OPTIONAL_LIST_OF_STRINGS = ([six.string_types], False, list_serializer,
+OPTIONAL_LIST_OF_STRINGS = ([basestring], False, list_serializer,
                             list_deserializer, False)
-REQUIRED_LIST_OF_STRINGS = ([six.string_types], True, list_serializer,
+REQUIRED_LIST_OF_STRINGS = ([basestring], True, list_serializer,
                             list_deserializer, False)
-OPTIONAL_LIST_OF_SP_SEP_STRINGS = ([six.string_types], False, sp_sep_list_serializer,
+OPTIONAL_LIST_OF_SP_SEP_STRINGS = ([basestring], False, sp_sep_list_serializer,
                                    sp_sep_list_deserializer, False)
-REQUIRED_LIST_OF_SP_SEP_STRINGS = ([six.string_types], True, sp_sep_list_serializer,
+REQUIRED_LIST_OF_SP_SEP_STRINGS = ([basestring], True, sp_sep_list_serializer,
                                    sp_sep_list_deserializer, False)
-SINGLE_OPTIONAL_JSON = (six.string_types, False, json_serializer, json_deserializer,
+SINGLE_OPTIONAL_JSON = (basestring, False, json_serializer, json_deserializer,
                         False)
 
 REQUIRED = [SINGLE_REQUIRED_STRING, REQUIRED_LIST_OF_STRINGS,
