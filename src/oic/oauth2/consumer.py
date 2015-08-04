@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import time
+import logging
 from hashlib import md5
 from oic.exception import PyoidcError
 from oic.oauth2.message import AuthorizationRequest, AuthorizationResponse, \
