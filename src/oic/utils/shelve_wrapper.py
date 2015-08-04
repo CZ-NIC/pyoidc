@@ -1,6 +1,10 @@
 from shelve import Shelf
-import anydbm
 import shelve
+
+try:
+    import dbm as anydbm
+except ImportError:
+    import anydbm
 
 __author__ = 'danielevertsson'
 
@@ -21,8 +25,7 @@ class ShelfWrapper(Shelf):
         return dict.__len__()
 
     def has_key(self, key):
-        dict = self._reopen_database()
-        return dict.has_key(key)
+        return key in self
 
     def __contains__(self, key):
         dict = self._reopen_database()
