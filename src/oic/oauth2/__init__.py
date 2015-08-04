@@ -394,7 +394,7 @@ class Client(PBase):
 
     def get_urlinfo(self, info):
         if '?' in info or '#' in info:
-            parts = urlparse.urlparse(info)
+            parts = urlparse(info)
             scheme, netloc, path, params, query, fragment = parts[:6]
             # either query of fragment
             if query:
@@ -717,7 +717,7 @@ class Server(PBase):
     @staticmethod
     def parse_url_request(request, url=None, query=None):
         if url:
-            parts = urlparse.urlparse(url)
+            parts = urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]
 
         req = request().deserialize(query, "urlencoded")

@@ -14,7 +14,7 @@ from jwkest.jws import JWS
 from jwkest.jwt import JWT
 import six
 
-from six.moves.urllib.parse import urlparse, urlencode
+from six.moves.urllib.parse import urlparse, urlencode, parse_qs
 from oic.exception import PyoidcError
 from oic.exception import MessageException
 from past.builtins import basestring
@@ -241,7 +241,7 @@ class Message(object):
 
         _spec = self.c_param
 
-        for key, val in urlparse.parse_qs(urlencoded).items():
+        for key, val in parse_qs(urlencoded).items():
             try:
                 (typ, _, _, _deser, null_allowed) = _spec[key]
             except KeyError:

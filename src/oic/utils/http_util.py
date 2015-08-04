@@ -25,18 +25,19 @@ class Response(object):
     _mako_lookup = None
 
     def __init__(self, message=None, **kwargs):
-        self.status = kwargs.get('status', self._status)
-        self.response = kwargs.get('response', self._response)
-        self.template = kwargs.get('template', self._template)
-        self.mako_template = kwargs.get('mako_template', self._mako_template)
-        self.mako_lookup = kwargs.get('template_lookup', self._mako_lookup)
+        self.status = kwargs.get("status", self._status)
+        self.response = kwargs.get("response", self._response)
+        self.template = kwargs.get("template", self._template)
+        self.mako_template = kwargs.get("mako_template", self._mako_template)
+        self.mako_lookup = kwargs.get("template_lookup", self._mako_lookup)
 
         self.message = message
 
-        self.headers = kwargs.get('headers', [])
-        _content_type = kwargs.get('content', self._content_type)
+        self.headers = []
+        self.headers.extend(kwargs.get("headers", []))
+        _content_type = kwargs.get("content", self._content_type)
 
-        self.headers.append(('Content-type', _content_type))
+        self.headers.append(("Content-type", _content_type))
 
     def __call__(self, environ, start_response, **kwargs):
         start_response(self.status, self.headers)
@@ -44,7 +45,7 @@ class Response(object):
 
     def _response(self, message="", **argv):
         if self.template:
-            if ("Content-type", 'application/json') in self.headers:
+            if ("Content-type", "application/json") in self.headers:
                 return [message]
             else:
                 return [str(self.template % message)]
@@ -233,8 +234,8 @@ def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp=""):
     cookie = SimpleCookie()
     if not timestamp:
         timestamp = str(int(time.time()))
-    signature = cookie_signature(seed, load, timestamp)
-    cookie[name] = "|".join([load, timestamp, signature])
+    signature = cookie_signature(seed, load, timestamp.encode("utf-8"))
+    cookie[name] = "|".join([load.decode("utf-8"), timestamp, signature])
     if path:
         cookie[name]["path"] = path
     if domain:
@@ -264,7 +265,8 @@ def parse_cookie(name, seed, kaka):
         if len(parts) != 3:
             return None
         # verify the cookie signature
-        sig = cookie_signature(seed, parts[0], parts[1])
+        sig = cookie_signature(seed, parts[0].encode("utf-8"),
+                               parts[1].encode("utf-8"))
         if sig != parts[2]:
             raise InvalidCookieSign()
 
@@ -381,7 +383,7 @@ class CookieDealer(object):
 
             for param in ["seed", "iv"]:
                 if not getattr(srv, param, None):
-                    setattr(srv, param, rndstr())
+                    setattr(srv, param, rndstr().encode("utf-8"))
 
     def delete_cookie(self, cookie_name=None):
         if cookie_name is None:
