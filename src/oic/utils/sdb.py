@@ -35,13 +35,13 @@ class AccessCodeUsed(Exception):
 
 
 def pairwise_id(sub, sector_identifier, seed):
-    return hashlib.sha256("%s%s%s" % (sub, sector_identifier, seed)).hexdigest()
+    return hashlib.sha256(("%s%s%s" % (sub, sector_identifier, seed)).encode()).hexdigest()
 
 
 class Crypt():
     def __init__(self, password, mode=AES.MODE_CBC):
         self.password = password or 'kitty'
-        self.key = hashlib.sha256(password).digest()
+        self.key = hashlib.sha256(password.encode()).digest()
         self.mode = mode
 
     def encrypt(self, text):
@@ -83,26 +83,26 @@ class Token(object):
                                                                rnd)))
 
     def key(self, user="", areq=None):
-        csum = hmac.new(self.secret, digestmod=hashlib.sha224)
-        csum.update("%s" % utc_time_sans_frac())
-        csum.update("%f" % random.random())
+        csum = hmac.new(self.secret.encode(), digestmod=hashlib.sha224)
+        csum.update(("%s" % utc_time_sans_frac()).encode())
+        csum.update(("%f" % random.random()).encode())
         if user:
-            csum.update(user)
+            csum.update(user.encode())
 
         if areq:
             try:
-                csum.update(areq["state"])
+                csum.update(areq["state"].encode())
             except KeyError:
                 pass
 
             try:
                 for val in areq["scope"]:
-                    csum.update(val)
+                    csum.update(val.encode())
             except KeyError:
                 pass
 
             try:
-                csum.update(areq["redirect_uri"])
+                csum.update(areq["redirect_uri"].encode())
             except KeyError:
                 pass
 
@@ -113,6 +113,13 @@ class Token(object):
         # first _sidlen bytes are the sid
         _sid = plain[:self._sidlen]
         _type = plain[self._sidlen]
+        try:
+            # Python 2 <-> 3
+            _type = chr(_type)
+            _sid = _sid.decode()
+        except TypeError:
+            pass
+
         _rnd = plain[self._sidlen + 1:]
         return _type, _sid, _rnd
 

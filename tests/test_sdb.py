@@ -56,7 +56,7 @@ def test_new_token():
 
     code3 = sdb.token(ttype="", prev=code2)
     assert code2 != code3
-    
+
     sid2 = sdb.token.key(areq=AREQ, user="jones")
     assert len(sid2) == 56
     assert sid != sid2
@@ -66,9 +66,9 @@ def test_type_and_key():
     sdb = SessionDB(BASE_URL)
     sid = sdb.token.key(areq=AREQ)
     code = sdb.token(sid=sid)
-    print sid
+    print(sid)
     part = sdb.token.type_and_key(code)
-    print part
+    print(part)
     assert part[0] == "A"
     assert part[1] == sid
 
@@ -117,7 +117,7 @@ def test_create_authz_session():
     sdb.do_sub(sid)
 
     info = sdb[sid]
-    print info
+    print(info)
     assert info["oauth_state"] == "authz"
 
     sdb = SessionDB(BASE_URL)
@@ -125,26 +125,26 @@ def test_create_authz_session():
     # Missing nonce property
     sid = sdb.create_authz_session(ae, OAUTH2_AREQ)
     info = sdb[sid]
-    print info
+    print(info)
     assert info["oauth_state"] == "authz"
 
     ae = AuthnEvent("sub")
     sid2 = sdb.create_authz_session(ae, AREQN)
 
     info = sdb[sid2]
-    print info
+    print(info)
     assert info["nonce"] == "something"
 
     sid3 = sdb.create_authz_session(ae, AREQN, id_token="id_token")
 
     info = sdb[sid3]
-    print info
+    print(info)
     assert info["id_token"] == "id_token"
 
     sid4 = sdb.create_authz_session(ae, AREQN, oidreq=OIDR)
 
     info = sdb[sid4]
-    print info
+    print(info)
     assert "id_token" not in info
     assert "oidreq" in info
 
@@ -156,7 +156,7 @@ def test_create_authz_session_with_sector_id():
     sdb.do_sub(sid5, "http://example.com/si.jwt", "pairwise")
 
     info_1 = sdb[sid5]
-    print info_1
+    print(info_1)
     assert "id_token" not in info_1
     assert "oidreq" in info_1
     assert info_1["sub"] != "sub"
@@ -165,7 +165,7 @@ def test_create_authz_session_with_sector_id():
     sdb.do_sub(sid5, "http://example.net/si.jwt", "pairwise")
 
     info_2 = sdb[sid5]
-    print info_2
+    print(info_2)
     assert info_2["sub"] != "sub"
     assert info_2["sub"] != user_id1
 
@@ -177,8 +177,8 @@ def test_upgrade_to_token():
     grant = sdb[sid]["code"]
     _dict = sdb.upgrade_to_token(grant)
 
-    print _dict.keys()
-    assert _eq(_dict.keys(), ['authn_event', 'code', 'authzreq', 'revoked',
+    print(list(_dict.keys()))
+    assert _eq(list(_dict.keys()), ['authn_event', 'code', 'authzreq', 'revoked',
                               'access_token', 'token_expires_at', 'expires_in',
                               'token_type', 'state', 'redirect_uri',
                               'code_used', 'client_id', 'scope', 'oauth_state',
@@ -194,8 +194,8 @@ def test_upgrade_to_token():
     grant = sdb[sid]["code"]
 
     _dict = sdb.upgrade_to_token(grant, id_token="id_token", oidreq=OIDR)
-    print _dict.keys()
-    assert _eq(_dict.keys(), ['authn_event', 'code', 'authzreq', 'revoked',
+    print(list(_dict.keys()))
+    assert _eq(list(_dict.keys()), ['authn_event', 'code', 'authzreq', 'revoked',
                               'oidreq', 'access_token', 'id_token',
                               'token_expires_at', 'expires_in', 'token_type',
                               'state', 'redirect_uri', 'code_used', 'client_id',
@@ -219,8 +219,8 @@ def test_refresh_token():
     rtoken = _dict["refresh_token"]
     time.sleep(1)
     dict2 = sdb.refresh_token(rtoken)
-    print dict2
-    
+    print(dict2)
+
     assert dict1["token_expires_at"] != dict2["token_expires_at"]
     assert dict1["access_token"] != dict2["access_token"]
 
@@ -280,7 +280,7 @@ def test_revoke_token():
 
     token = _dict["access_token"]
     rtoken = _dict["refresh_token"]
-    
+
     assert sdb.is_valid(token)
 
     sdb.revoke_token(token)
