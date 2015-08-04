@@ -17,6 +17,9 @@ from jwkest.jwk import ECKey
 from jwkest.jwk import SYMKey
 
 from six.moves.urllib.parse import urlparse
+from six.moves.urllib.parse import urlsplit
+from six import string_types
+
 from oic.exception import MessageException
 from oic.exception import PyoidcError
 
@@ -26,7 +29,6 @@ KEYLOADERR = "Failed to load %s key from '%s' (%s)"
 logger = logging.getLogger(__name__)
 
 # ======================================================================
-traceback.format_exception(*sys.exc_info())
 
 
 class KeyIOError(PyoidcError):
@@ -377,7 +379,7 @@ class KeyJar(object):
             self.issuer_keys[issuer] = [kb]
 
     def __setitem__(self, issuer, val):
-        if isinstance(val, basestring):
+        if isinstance(val, string_types):
             val = [val]
         elif not isinstance(val, list):
             val = [val]
@@ -524,7 +526,7 @@ class KeyJar(object):
 
     def update(self, kj):
         for key, val in kj.issuer_keys.items():
-            if isinstance(val, basestring):
+            if isinstance(val, string_types):
                 val = [val]
             elif not isinstance(val, list):
                 val = [val]
@@ -706,7 +708,7 @@ def key_export(baseurl, local_path, vault, keyjar, **kwargs):
     :return: 2-tuple: result of urlsplit and a dictionary with
         parameter name as key and url and value
     """
-    part = urlparse.urlsplit(baseurl)
+    part = urlsplit(baseurl)
 
     # deal with the export directory
     if part.path.endswith("/"):

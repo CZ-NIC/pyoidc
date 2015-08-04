@@ -66,11 +66,10 @@ def test1():
     url = key_export("http://example.com/keys/", "outbound", "secret",
                      keyjar=kj, sig={"alg": "rsa", "format": ["x509", "jwk"]})
 
-    print url
+    print(url)
     assert url == "http://example.com/keys/outbound/jwks"
 
 URL = "https://openidconnect.info/jwk/jwk.json"
-
 
 def test_keyjar_pairkeys():
     ks = KeyJar()
@@ -168,14 +167,14 @@ def test_dump_own_keys():
     kj.issuer_keys[""] = [kb]
     res = kj.dump_issuer_keys("")
 
-    print res
+    print(res)
     assert len(res) == 1
     assert res[0] == {
         'use': u'sig',
-        'e': u'AQAB',
+        'e': b'AQAB',
         'kty': u'RSA',
         'alg': u'RS256',
-        'n': u'pKybs0WaHU_y4cHxWbm8Wzj66HtcyFn7Fh3n-99qTXu5yNa30MRYIYfSDwe9JVc1JUoGw41yq2StdGBJ40HxichjE-Yopfu3B58QlgJvToUbWD4gmTDGgMGxQxtv1En2yedaynQ73sDpIK-12JJDY55pvf-PCiSQ9OjxZLiVGKlClDus44_uv2370b9IN2JiEOF-a7JBqaTEYLPpXaoKWDSnJNonr79tL0T7iuJmO1l705oO3Y0TQ-INLY6jnKG_RpsvyvGNnwP9pMvcP1phKsWZ10ofuuhJGRp8IxQL9RfzT87OvF0RBSO1U73h09YP-corWDsnKIi6TbzRpN5YDw',
+        'n': b'pKybs0WaHU_y4cHxWbm8Wzj66HtcyFn7Fh3n-99qTXu5yNa30MRYIYfSDwe9JVc1JUoGw41yq2StdGBJ40HxichjE-Yopfu3B58QlgJvToUbWD4gmTDGgMGxQxtv1En2yedaynQ73sDpIK-12JJDY55pvf-PCiSQ9OjxZLiVGKlClDus44_uv2370b9IN2JiEOF-a7JBqaTEYLPpXaoKWDSnJNonr79tL0T7iuJmO1l705oO3Y0TQ-INLY6jnKG_RpsvyvGNnwP9pMvcP1phKsWZ10ofuuhJGRp8IxQL9RfzT87OvF0RBSO1U73h09YP-corWDsnKIi6TbzRpN5YDw',
         'kid': u'abc'}
 
 
@@ -207,7 +206,7 @@ def test_enc_hmac():
 
     msg, state = _jwe.decrypt(_enctxt, keys)
 
-    assert json.loads(msg) == payload
+    assert json.loads(msg.decode()) == payload
 
 if __name__ == "__main__":
     test_dump_own_keys()
