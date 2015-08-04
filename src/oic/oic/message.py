@@ -1,12 +1,17 @@
 # encoding: utf-8
 import time
-from urlparse import urlparse
 
 __author__ = 'rohe0002'
 
 import urllib
 import json
 import logging
+
+try:
+    from urllib.parse import urlparse
+    from past.builtins import basestring
+except ImportError:
+    from urlparse import urlparse
 
 from oic.oauth2 import message
 from oic.oauth2 import MissingRequiredValue
@@ -894,13 +899,13 @@ def factory(msgtype):
 if __name__ == "__main__":
     atr = AccessTokenResponse(access_token="access_token",
                               token_type="token_type")
-    print atr
-    print atr.verify()
+    print (atr)
+    print (atr.verify())
 
     atr = AccessTokenRequest(code="code", client_id="client_id",
                              redirect_uri="redirect_uri")
-    print atr
-    print atr.verify()
+    print (atr)
+    print (atr.verify())
     uue = atr.serialize()
     atr = AccessTokenRequest().deserialize(uue, "urlencoded")
-    print atr
+    print (atr)

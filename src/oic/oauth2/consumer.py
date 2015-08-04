@@ -227,7 +227,7 @@ class Consumer(Client):
             try:
                 aresp = self.parse_response(AuthorizationResponse,
                                             info=query, sformat="urlencoded")
-            except Exception, err:
+            except Exception as err:
                 logger.error("%s" % err)
                 raise
 

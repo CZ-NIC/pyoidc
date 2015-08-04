@@ -6,12 +6,16 @@ __author__ = 'rohe0002'
 
 import logging
 import os
-import urlparse
 import sys
 import traceback
 import json
 import time
 from Crypto.PublicKey import RSA
+
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    import urlparse
 
 from requests import request
 

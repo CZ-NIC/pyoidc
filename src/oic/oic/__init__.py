@@ -1,8 +1,12 @@
 __author__ = 'rohe0002'
 
-import urlparse
 import logging
 import os
+
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    import urlparse
 
 from jwkest.jwe import JWE
 

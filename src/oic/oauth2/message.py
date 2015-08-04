@@ -1,7 +1,6 @@
 import copy
 import logging
 import urllib
-import urlparse
 import json
 from jwkest import b64d
 from jwkest import jwe
@@ -10,6 +9,12 @@ from jwkest.jwe import JWE
 from jwkest.jwk import keyitems2keyreps
 from jwkest.jws import JWS
 from jwkest.jwt import JWT
+
+try:
+    from urllib.parse import urlparse
+    from past.builtins import basestring
+except ImportError:
+    import urlparse
 
 from oic.exception import PyoidcError
 from oic.exception import MessageException
@@ -212,7 +217,7 @@ class Message(object):
     def deserialize(self, info, method="urlencoded", **kwargs):
         try:
             func = getattr(self, "from_%s" % method)
-        except AttributeError, err:
+        except AttributeError as err:
             raise FormatError("Unknown serialization method (%s)" % method)
         else:
             return func(info, **kwargs)
@@ -377,7 +382,7 @@ class Message(object):
                 elif _deser:
                     try:
                         self._dict[skey] = _deser(val, sformat="urlencoded")
-                    except Exception, exc:
+                    except Exception as exc:
                         raise DecodeError(ERRTXT % (key, exc))
                 else:
                     setattr(self, skey, [val])
@@ -385,7 +390,7 @@ class Message(object):
                 if _deser:
                     try:
                         val = _deser(val, sformat="dict")
-                    except Exception, exc:
+                    except Exception as exc:
                         raise DecodeError(ERRTXT % (key, exc))
 
                 if issubclass(vtype, Message):
@@ -395,7 +400,7 @@ class Message(object):
                             _val.append(vtype(**dict([(str(x), y) for x, y
                                                       in v.items()])))
                         val = _val
-                    except Exception, exc:
+                    except Exception as exc:
                         raise DecodeError(ERRTXT % (key, exc))
                 else:
                     for v in val:
@@ -416,7 +421,7 @@ class Message(object):
                 if _deser:
                     try:
                         val = _deser(val, sformat="dict")
-                    except Exception, exc:
+                    except Exception as exc:
                         raise DecodeError(ERRTXT % (key, exc))
 
                 if isinstance(val, basestring):
@@ -734,7 +739,7 @@ class Message(object):
         krs = keyitems2keyreps(keys)
         jwe = JWE()
         _res = jwe.decrypt(msg, krs)
-        return self.from_json(_res[0])
+        return self.from_json(_res[0].decode())
 
     def copy(self):
         return copy.deepcopy(self)
@@ -985,4 +990,4 @@ if __name__ == "__main__":
     foo = AccessTokenRequest(grant_type="authorization_code",
                              code="foo",
                              redirect_uri="http://example.com/cb")
-    print foo
+    print (foo)

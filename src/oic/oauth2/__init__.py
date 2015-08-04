@@ -438,7 +438,7 @@ class Client(PBase):
                         resp = errmsg().deserialize(info, sformat)
                         resp.verify()
                         break
-                    except Exception, aerr:
+                    except Exception as aerr:
                         resp = None
                         err = aerr
             except KeyError:

@@ -1,10 +1,15 @@
-import cookielib
 import copy
 import logging
 import requests
 
-from Cookie import SimpleCookie
-from Cookie import CookieError
+try:
+    import http.cookiejar as cookielib
+    from http.cookies import SimpleCookie
+    from http.cookies import CookieError
+except ImportError:
+    import cookielib
+    from Cookie import SimpleCookie
+    from Cookie import CookieError
 
 from oic.oauth2.exception import NonFatalException
 from oic.oauth2.util import set_cookie

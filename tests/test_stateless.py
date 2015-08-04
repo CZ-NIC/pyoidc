@@ -4,7 +4,6 @@ from utils_for_tests import _eq
 
 __author__ = 'roland'
 
-
 def test_access_code():
     keys = {"oct": ["symmetric key123"]}
     st = StateLess(keys, enc_alg="A128KW", enc_method="A128CBC-HS256")
@@ -13,7 +12,7 @@ def test_access_code():
     tok = st.get_token(con)
 
     _info = st[tok]
-    print _info
+    print (_info)
     assert _eq(_info.keys(), ["typ", "aud", "val", "sub"])
     assert _info["sub"] == "subject"
     assert _info["typ"] == "code"

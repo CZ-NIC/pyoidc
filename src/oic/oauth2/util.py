@@ -1,7 +1,11 @@
-import cookielib
 import logging
 from oic.oauth2.exception import TimeFormatError
 from oic.exception import UnSupported
+
+try:
+    import http.cookiejar as cookielib
+except ImportError:
+    import cookielib
 
 logger = logging.getLogger(__name__)
 
