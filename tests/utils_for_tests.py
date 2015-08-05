@@ -1,4 +1,5 @@
-from urlparse import urlparse, parse_qs
+
+from six.moves.urllib.parse import urlparse, parse_qs
 
 __author__ = "@maennelpaennel"
 

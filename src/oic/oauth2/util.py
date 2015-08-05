@@ -1,15 +1,11 @@
 import logging
 
-import six.moves.http_cookiejar as cookielib
 from oic.oauth2.exception import TimeFormatError
 from oic.exception import UnSupported
 
-try:
-    import http.cookiejar as cookielib
-    from http.cookiejar import http2time
-except ImportError:
-    import cookielib
-    from cookielib import http2time
+from six import string_types
+import six.moves.http_cookiejar as cookielib
+from six.moves.http_cookiejar import http2time
 
 logger = logging.getLogger(__name__)
 
@@ -158,7 +154,7 @@ def set_cookie(cookiejar, kaka):
 
 
 def match_to_(val, vlist):
-    if isinstance(vlist, basestring):
+    if isinstance(vlist, string_types):
         if vlist.startswith(val):
             return True
     else:

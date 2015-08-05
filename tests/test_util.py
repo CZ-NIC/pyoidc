@@ -1,12 +1,16 @@
-from Cookie import SimpleCookie
-import cookielib
 from oic.exception import UnSupported
 from oic.oic import AuthorizationRequest
 from oic.oic.message import AccessTokenRequest
+from utils_for_tests import url_compare
+
 try:
+    import http.cookiejar as cookielib
     from http.cookiejar import http2time
+    from http.cookies import SimpleCookie
 except ImportError:
+    import cookielib
     from cookielib import http2time
+    from Cookie import SimpleCookie
 
 __author__ = 'DIRG'
 
@@ -24,7 +28,7 @@ def test_get_or_post():
 
     path, body, ret_kwargs = util.get_or_post(uri, method, request)
 
-    assert path == u"https://localhost:8092/authorization?acr_values=PASSWORD&state=urn%3Auuid%3A92d81fb3-72e8-4e6c-9173-c360b782148a&redirect_uri=https%3A%2F%2Flocalhost%3A8666%2F919D3F697FDAAF138124B83E09ECB0B7&response_type=code&client_id=ok8tx7ulVlNV&scope=openid+profile+email+address+phone"
+    assert url_compare(path,u"https://localhost:8092/authorization?acr_values=PASSWORD&state=urn%3Auuid%3A92d81fb3-72e8-4e6c-9173-c360b782148a&redirect_uri=https%3A%2F%2Flocalhost%3A8666%2F919D3F697FDAAF138124B83E09ECB0B7&response_type=code&client_id=ok8tx7ulVlNV&scope=openid+profile+email+address+phone")
     assert not body
     assert not ret_kwargs
 
@@ -37,7 +41,7 @@ def test_get_or_post():
     path, body, ret_kwargs = util.get_or_post(uri, method, request, **kwargs)
 
     assert path == u'https://localhost:8092/token'
-    assert body == 'code=Je1iKfPN1vCiN7L43GiXAuAWGAnm0mzA7QIjl%2FYLBBZDB9wefNExQlLDUIIDM2rT2t%2BgwuoRoapEXJyY2wrvg9cWTW2vxsZU%2BSuWzZlMDXc%3D&grant_type=authorization_code&redirect_uri=https%3A%2F%2Flocalhost%3A8666%2F919D3F697FDAAF138124B83E09ECB0B7'
+    assert url_compare("http://test/#{}".format(body), 'http://test/#code=Je1iKfPN1vCiN7L43GiXAuAWGAnm0mzA7QIjl%2FYLBBZDB9wefNExQlLDUIIDM2rT2t%2BgwuoRoapEXJyY2wrvg9cWTW2vxsZU%2BSuWzZlMDXc%3D&grant_type=authorization_code&redirect_uri=https%3A%2F%2Flocalhost%3A8666%2F919D3F697FDAAF138124B83E09ECB0B7')
     assert ret_kwargs == {'scope': '', 'state': 'urn:uuid:92d81fb3-72e8-4e6c-9173-c360b782148a', 'authn_method': 'client_secret_basic', 'key': [], 'headers': {'Content-type': 'application/x-www-form-urlencoded', 'Authorization': 'Basic b2s4dHg3dWxWbE5WOjdlNzUyZDU1MTc0NzA0NzQzYjZiZWJkYjU4ZjU5YWU3MmFlMGM5NDM4YTY1ZmU0N2IxMDA3OTM1'}}
 
     method = 'UNSUPORTED'
@@ -97,6 +101,7 @@ def test_set_cookie():
     assert c_2.path == ""
     assert c_2.value == "v_2"
 
+
 def test_match_to():
     str0 = "abc"
     str1 = "123"
@@ -130,7 +135,7 @@ def test_verify_header():
     assert util.verify_header(FakeResponse(jwt_header), "jwt") == "jwt"
     assert util.verify_header(FakeResponse(default_header), "urlencoded") == "urlencoded"
     assert util.verify_header(FakeResponse(plain_text_header), "urlencoded") == "urlencoded"
-    
+
     with pytest.raises(AssertionError):
         util.verify_header(FakeResponse(json_header), "urlencoded")
     with pytest.raises(AssertionError):
