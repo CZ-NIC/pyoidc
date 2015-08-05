@@ -1,13 +1,11 @@
 import logging
 
-import six.moves.http_cookiejar as cookielib
 from oic.oauth2.exception import TimeFormatError
 from oic.exception import UnSupported
 
-try:
-    import http.cookiejar as cookielib
-except ImportError:
-    import cookielib
+from six import string_types
+import six.moves.http_cookiejar as cookielib
+from six.moves.http_cookiejar import http2time
 
 logger = logging.getLogger(__name__)
 
@@ -115,12 +113,12 @@ def set_cookie(cookiejar, kaka):
                 if attr in ATTRS:
                     if morsel[attr]:
                         if attr == "expires":
-                            std_attr[attr] = cookielib.http2time(morsel[attr])
+                            std_attr[attr] = http2time(morsel[attr])
                         else:
                             std_attr[attr] = morsel[attr]
                 elif attr == "max-age":
                     if morsel[attr]:
-                        std_attr["expires"] = cookielib.http2time(morsel[attr])
+                        std_attr["expires"] = http2time(morsel[attr])
         except TimeFormatError:
             # Ignore cookie
             logger.info(
@@ -156,7 +154,7 @@ def set_cookie(cookiejar, kaka):
 
 
 def match_to_(val, vlist):
-    if isinstance(vlist, basestring):
+    if isinstance(vlist, string_types):
         if vlist.startswith(val):
             return True
     else:
