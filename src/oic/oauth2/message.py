@@ -517,7 +517,7 @@ class Message(object):
                         _alg, kwargs["algs"]["sign"]))
             try:
                 _jwt = JWT().unpack(txt)
-                jso = json.loads(_jwt.part[1])
+                jso = _jwt.payload()
                 _header = _jwt.headers
 
                 logger.debug("Raw JSON: %s", jso)

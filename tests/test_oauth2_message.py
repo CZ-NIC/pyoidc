@@ -59,8 +59,8 @@ def test_authz_req_urlencoded_4():
     urlencoded = ar.to_urlencoded()
     ar2 = AuthorizationRequest().deserialize(urlencoded, "urlencoded")
 
-    print ar
-    print ar2
+    print (ar)
+    print (ar2)
 
     assert ar.keys() == ar2.keys()
 
@@ -108,7 +108,7 @@ def test_authz_req_urlencoded_9():
     txt = "scope=foo+bar&state=-11&redirect_uri=http%3A%2F%2Ffoobar.example.com%2Foaclient&response_type=code&client_id=foobar"
 
     ar = AuthorizationRequest().deserialize(txt, "urlencoded")
-    print ar
+    print (ar)
     assert ar["state"] == "-11"
 
 
@@ -116,7 +116,7 @@ def test_authz_req_urlencoded_10():
     txt = "scope=openid&state=id-6a3fc96caa7fd5cb1c7d00ed66937134&redirect_uri=http%3A%2F%2Flocalhost%3A8087authz&response_type=code&client_id=a1b2c3"
 
     ar = AuthorizationRequest().deserialize(txt, "urlencoded")
-    print ar
+    print (ar)
     assert ar["scope"] == ["openid"]
     assert ar["response_type"] == ["code"]
 
@@ -173,8 +173,8 @@ def test_authz_req_urlencoded_4b():
 
     ar2 = AuthorizationRequest().deserialize(jtxt, "json")
 
-    print ar
-    print ar2
+    print (ar)
+    print (ar2)
 
     assert ar == ar2
 
@@ -184,7 +184,7 @@ def test_authz_req_x1():
 
     ar = AuthorizationRequest().deserialize(query, "urlencoded")
 
-    print ar
+    print (ar)
 
     assert ar.verify()
 
@@ -195,7 +195,7 @@ def test_authz_err_resp_1():
                                      state="xyz")
 
     assert aer
-    print aer.__dict__.items()
+    print (aer.__dict__.items())
     assert aer["error"] == "access_denied"
     assert aer["state"] == "xyz"
 
@@ -206,7 +206,7 @@ def test_authz_err_resp_2():
                                      foo="bar")
 
     assert aer
-    print aer.__dict__.items()
+    print (aer.__dict__.items())
     assert aer["error"] == "access_denied"
     assert aer["error_description"] == "brewers has a four game series"
 
@@ -216,7 +216,7 @@ def test_authz_err_resp_1b():
     ter = TokenErrorResponse(error="access_denied", state="xyz")
 
     assert ter
-    print ter.__dict__.items()
+    print (ter.__dict__.items())
     assert ter["error"] == "access_denied"
     assert _eq(ter.keys(), ['state', 'error'])
 
@@ -227,7 +227,7 @@ def test_authz_err_resp_2b():
                              foo="bar")
 
     assert ter
-    print ter.__dict__.items()
+    print (ter.__dict__.items())
     assert ter["error"] == "access_denied"
     assert ter["error_description"] == "brewers has a four game series"
     assert ter["foo"] == "bar"
@@ -269,8 +269,8 @@ def test_extra():
 
     atr2 = AccessTokenRequest().deserialize(query, "urlencoded")
 
-    print atr.to_dict()
-    print atr2.to_dict()
+    print (atr.to_dict())
+    print (atr2.to_dict())
     assert atr == atr2
 
 # AuthorizationResponse
@@ -408,7 +408,7 @@ def test_to_urlencoded():
     assert _eq(atr["scope"], ["inner", "outer"])
 
     uec = atr.to_urlencoded()
-    print uec
+    print (uec)
     assert "inner+outer" in uec
 
 
@@ -424,14 +424,14 @@ def test_to_urlencoded_extended_omit():
         level=3)
 
     uec = atr.to_urlencoded()
-    print uec
+    print (uec)
     assert "level=3" in uec
     assert "example_parameter=example_value" in uec
     assert "extra=local" in uec
     assert "extra=external" in uec
     del atr["extra"]
     ouec = atr.to_urlencoded()
-    print ouec
+    print (ouec)
     assert "level=3" in ouec
     assert "example_parameter=example_value" in ouec
     assert "extra=local" not in ouec
@@ -440,13 +440,13 @@ def test_to_urlencoded_extended_omit():
                         len("extra=external") + 2)
 
     atr2 = AccessTokenResponse().deserialize(uec, "urlencoded")
-    print atr2.keys()
+    print (atr2.keys())
     assert _eq(atr2.keys(), ['access_token', 'expires_in', 'token_type',
                              'scope', 'refresh_token', 'level',
                              'example_parameter', 'extra'])
 
     atr3 = AccessTokenResponse().deserialize(ouec, "urlencoded")
-    print atr3.keys()
+    print (atr3.keys())
     assert _eq(atr3.keys(), ['access_token', 'expires_in', 'token_type',
                              'scope', 'refresh_token', 'level',
                              'example_parameter'])
@@ -467,9 +467,9 @@ def test_to_set_json():
                          opt_json='{"ford": "green"}')
 
     jso = item.serialize(method="json")
-    print jso
+    print (jso)
     item2 = Dummy_Message().deserialize(jso, "json")
-    print item2
+    print (item2)
     assert _eq(item2.keys(), ['opt_str', 'req_str', 'opt_json', 'req_str_list',
                               'opt_str_list', 'opt_int'])
 
@@ -486,13 +486,13 @@ def test_to_set_json():
     jso_3 = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], "extra": "out"}'
     item4 = Dummy_Message().deserialize(jso_3, "json")
 
-    print item4
+    print (item4)
     assert _eq(item4.keys(), ['req_str', 'req_str_list', 'extra'])
     assert item4["extra"] == "out"
 
     item4 = Dummy_Message().deserialize(jso_3, "json")
 
-    print item4
+    print (item4)
     assert _eq(item4.keys(), ['req_str', 'req_str_list', 'extra'])
     assert item4["extra"] == "out"
 
@@ -506,11 +506,11 @@ def test_to_from_jwt():
     keys = [SYMKey(key="A1B2C3D4")]
     jws = item.to_jwt(keys, "HS256")
 
-    print jws
+    print (jws)
 
     jitem = Dummy_Message().from_jwt(jws, key=keys)
 
-    print jitem.keys()
+    print (jitem.keys())
 
     assert _eq(jitem.keys(), ['opt_str', 'req_str', 'opt_json',
                               'req_str_list', 'opt_str_list', 'opt_int'])
@@ -537,7 +537,7 @@ def test_message():
 
     cls = Dummy_Message(**_dict)
     cls.verify()
-    print cls.keys()
+    print (cls.keys())
     assert _eq(cls.keys(), ['opt_str', 'req_str', 'extra', 'opt_json',
                             'req_str_list', 'opt_str_list', 'opt_int'])
 
@@ -597,7 +597,7 @@ def test_multiple_response_types_json():
     assert ue_obj == expected_ue_obj
 
     are = AuthorizationRequest().deserialize(ue, "json")
-    print are.keys()
+    print (are.keys())
     assert _eq(are.keys(), ["response_type", "client_id"])
     assert _eq(are["response_type"], ["code", "token"])
 
