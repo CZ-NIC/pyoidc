@@ -296,25 +296,24 @@ class TestCrypt(object):
 
     def test_encrypt_decrypt(self):
         ctext = self.crypt.encrypt("Cytosine")
-        plain = self.crypt.decrypt(ctext)
+        plain = self.crypt.decrypt(ctext).decode("utf-8")
         assert plain == 'Cytosine        '
 
         ctext = self.crypt.encrypt("cytidinetriphosp")
-        plain = self.crypt.decrypt(ctext)
+        plain = self.crypt.decrypt(ctext).decode("utf-8")
 
         assert plain == 'cytidinetriphosp'
 
     def test_crypt_with_b64(self):
         db = {}
-        csum = hmac.new("secret", digestmod=hashlib.sha224)
-        csum.update("%s" % time.time())
-        csum.update("%f" % random.random())
+        msg = "secret{}{}".format(time.time(), random.random())
+        csum = hmac.new(msg.encode("utf-8"), digestmod=hashlib.sha224)
         txt = csum.digest()  # 28 bytes long, 224 bits
         db[txt] = "foobar"
-        txt = "%saces" % txt  # another 4 bytes
+        txt = txt + b"aces"  # another 4 bytes
 
         ctext = self.crypt.encrypt(txt)
         onthewire = base64.b64encode(ctext)
         plain = self.crypt.decrypt(base64.b64decode(onthewire))
-        assert plain.endswith("aces")
+        assert plain.endswith(b"aces")
         assert db[plain[:-4]] == "foobar"
