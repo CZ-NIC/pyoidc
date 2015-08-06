@@ -1,29 +1,21 @@
-__author__ = 'rohe0002'
-import urllib
-
 from pytest import raises
 
+from six.moves.urllib.parse import urlencode
 from oic.oauth2 import rndstr
-
 from oic.oauth2.consumer import Consumer
 from oic.oauth2.consumer import stateID
 from oic.oauth2.consumer import factory
-
 from oic.utils.http_util import make_cookie
 from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import AuthorizationErrorResponse
 from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import TokenErrorResponse
-
 from oic.oauth2.consumer import AuthzError
-
 from utils_for_tests import URLObject
 
-#from oic.oauth2.message import
+__author__ = 'rohe0002'
 
-# client_id=None, ca_certs=None,grant_expire_in=600, client_timeout=0,
-# jwt_keys=None
 CLIENT_CONFIG = {
     "client_id": "number5",
     "ca_certs": "/usr/local/etc/oic/ca_certs.txt",
@@ -32,10 +24,10 @@ CLIENT_CONFIG = {
 CONSUMER_CONFIG = {
     "authz_page": "/authz",
     "flow_type": "code",
-    #"password": args.passwd,
+    # "password": args.passwd,
     "scope": ["openid"],
     "response_type": "code",
-    #"expire_in": 600,
+    # "expire_in": 600,
 }
 
 SERVER_INFO = {
@@ -43,13 +35,13 @@ SERVER_INFO = {
     "issuer": "https://connect-op.heroku.com",
     "authorization_endpoint": "http://localhost:8088/authorization",
     "token_endpoint": "http://localhost:8088/token",
-    #"userinfo_endpoint":"http://localhost:8088/user_info",
-    #"check_id_endpoint":"http://localhost:8088/id_token",
-    #"registration_endpoint":"https://connect-op.heroku.com/connect/client",
-    #"scopes_supported":["openid","profile","email","address","PPID"],
+    # "userinfo_endpoint":"http://localhost:8088/user_info",
+    # "check_id_endpoint":"http://localhost:8088/id_token",
+    # "registration_endpoint":"https://connect-op.heroku.com/connect/client",
+    # "scopes_supported":["openid","profile","email","address","PPID"],
     "flows_supported": ["code", "token", "code token"],
-    #"identifiers_supported":["public","ppid"],
-    #"x509_url":"https://connect-op.heroku.com/cert.pem"
+    # "identifiers_supported":["public","ppid"],
+    # "x509_url":"https://connect-op.heroku.com/cert.pem"
 }
 
 BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',
@@ -71,7 +63,7 @@ BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',
 
 
 def test_stateID():
-    seed = rndstr()
+    seed = rndstr().encode("utf-8")
     sid0 = stateID("http://example.com/home", seed)
     sid1 = stateID("http://example.com/home", seed)
     assert sid0
@@ -81,7 +73,7 @@ def test_stateID():
 
 def test_init_consumer():
     cons = Consumer({}, client_config=CLIENT_CONFIG, server_info=SERVER_INFO,
-                        **CONSUMER_CONFIG)
+                    **CONSUMER_CONFIG)
     assert cons
 
     cons._backup("123456")
@@ -132,7 +124,7 @@ def test_consumer_begin():
               "response_type": "code",
               "client_id": "number5"}
 
-    url = "http://localhost:8088/authorization?%s" % urllib.urlencode(params)
+    url = "http://localhost:8088/authorization?%s" % urlencode(params)
 
     loc_obj = URLObject.create(loc)
     url_obj = URLObject.create(url)
@@ -154,7 +146,6 @@ def test_consumer_handle_authorization_response():
     res = cons.handle_authorization_response(query=atr.to_urlencoded())
 
     assert res.type() == "AuthorizationResponse"
-    print cons.grant[sid]
     grant = cons.grant[sid]
     assert grant.code == "SplxlOBeZQQYbYS6WxSbIA"
 
@@ -173,7 +164,7 @@ def test_consumer_parse_authz_exception():
 
     adict = atr.to_dict()
     del adict["code"]
-    QUERY_STRING = urllib.urlencode(adict)
+    QUERY_STRING = urlencode(adict)
 
     raises(MissingRequiredAttribute,
            "cons.handle_authorization_response(query=QUERY_STRING)")
@@ -217,7 +208,6 @@ def test_consumer_parse_access_token():
     res = cons.handle_authorization_response(query=atr.to_urlencoded())
 
     assert res.type() == "AccessTokenResponse"
-    print cons.grant[sid]
     grant = cons.grant[sid]
     assert len(grant.tokens) == 1
     token = grant.tokens[0]
@@ -274,11 +264,13 @@ def test_consumer_client_get_access_token_reques():
     assert url_obj == expected_url_obj
     body_splits = body.split('&')
     expected_body_splits = "code=auth_grant&client_secret=secret0&" \
-                    "grant_type=authorization_code&client_id=number5&" \
-                    "redirect_uri=https%3A%2F%2Fwww.example.com%2Foic%2Fcb".split('&')
+                           "grant_type=authorization_code&client_id=number5&" \
+                           "redirect_uri=https%3A%2F%2Fwww.example.com%2Foic%2Fcb".split(
+        '&')
     assert set(body_splits) == set(expected_body_splits)
     assert http_args == {'headers': {
         'Content-type': 'application/x-www-form-urlencoded'}}
+
 
 if __name__ == "__main__":
     test_consumer_parse_access_token()
