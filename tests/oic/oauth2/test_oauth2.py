@@ -2,12 +2,12 @@
 
 # pylint: disable=missing-docstring,no-self-use
 import json
-from urllib import quote, urlencode
 
 import pytest
 
 from pytest import raises
 
+from six.moves.urllib.parse import quote, urlencode
 from oic.oauth2 import Grant
 from oic.oauth2.exception import GrantError, MissingEndpoint
 from oic.oauth2.message import AccessTokenResponse, AuthorizationResponse, \
@@ -484,14 +484,16 @@ class TestServer(object):
                                   state="cold")
 
         self.srv.keyjar["foobar"] = KeyBundle([
-            {"kty": "oct", "key": "A1B2C3D4", "use": "ver"},
-            {"kty": "oct", "key": "A1B2C3D4", "use": "sig"}])
+            {"kty": "oct", "key": "A1B2C3D4".encode("utf-8"), "use": "ver"},
+            {"kty": "oct", "key": "A1B2C3D4".encode("utf-8"), "use": "sig"}])
         self.srv.keyjar[""] = KeyBundle([
-            {"kty": "oct", "key": "A1B2C3D4", "use": "ver"},
-            {"kty": "oct", "key": "A1B2C3D4", "use": "sig"}])
+            {"kty": "oct", "key": "A1B2C3D4".encode("utf-8"), "use": "ver"},
+            {"kty": "oct", "key": "A1B2C3D4".encode("utf-8"), "use": "sig"}])
 
         keys = self.srv.keyjar.get_signing_key(owner="foobar")
-        _jwt = ar.to_jwt(key=keys, algorithm="HS256")
+        _jwt = ar.to_jwt(key=keys, algorithm="HS256").decode("utf-8")
+
+        print(_jwt)
 
         req = self.srv.parse_jwt_request(txt=_jwt)
 
