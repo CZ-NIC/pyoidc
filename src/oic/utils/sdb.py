@@ -80,7 +80,7 @@ class Token(object):
             # Ultimate length multiple of 16
 
         return base64.b64encode(self.crypt.encrypt("%s%s%s" % (sid, ttype,
-                                                               rnd)))
+                                                               rnd))).decode()
 
     def key(self, user="", areq=None):
         csum = hmac.new(self.secret.encode(), digestmod=hashlib.sha224)
