@@ -714,11 +714,20 @@ class Provider(AProvider):
             logger.warning("undefined parameter: %s" % err)
             raise JWEException("%s undefined" % err)
 
-        keys = self.keyjar.get_encrypt_key(owner=cid)
-        logger.debug("keys for %s: %s" % (
-            cid, "[" + ", ".join([str(x) for x in self.keyjar[cid]])) + "]")
         logger.debug("alg=%s, enc=%s, val_type=%s" % (alg, enc, val_type))
+        keys = self.keyjar.get_encrypt_key(owner=cid)
         logger.debug("Encryption keys for %s: %s" % (cid, keys))
+        try:
+            _ckeys = self.keyjar[cid]
+        except KeyError:
+            # Weird, but try to recuperate
+            logger.warning("Lost keys for {} trying to recuperate!!".format(cid))
+            self.keyjar.issuer_keys[cid] = []
+            self.keyjar.add(cid, client_info["jwks_uri"])
+            _ckeys = self.keyjar[cid]
+
+        logger.debug("keys for %s: %s" % (
+            cid, "[" + ", ".join([str(x) for x in _ckeys])) + "]")
 
         kwargs = {"alg": alg, "enc": enc}
         if cty:
