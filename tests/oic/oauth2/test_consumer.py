@@ -1,4 +1,5 @@
 from pytest import raises
+import pytest
 
 from six.moves.urllib.parse import urlencode
 from oic.oauth2 import rndstr
@@ -12,7 +13,7 @@ from oic.oauth2.message import AuthorizationErrorResponse
 from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.consumer import AuthzError
-from utils_for_tests import URLObject
+from utils_for_tests import url_compare, query_string_compare
 
 __author__ = 'rohe0002'
 
@@ -71,206 +72,155 @@ def test_stateID():
     assert sid0 != sid1
 
 
-def test_init_consumer():
-    cons = Consumer({}, client_config=CLIENT_CONFIG, server_info=SERVER_INFO,
-                    **CONSUMER_CONFIG)
-    assert cons
-
-    cons._backup("123456")
-
-    assert "123456" in cons.sdb
-
-    cons = Consumer({}, client_config=CLIENT_CONFIG, **CONSUMER_CONFIG)
-    assert cons.authorization_endpoint is None
-
-    cons = Consumer({}, **CONSUMER_CONFIG)
-    assert cons.authorization_endpoint is None
-
-
 def test_factory():
-    _session_db = {}
-    cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
-                    server_info=SERVER_INFO, **CONSUMER_CONFIG)
-
-    sid = stateID("https://example.org/", cons.seed)
+    sdb = {}
+    consumer = Consumer(sdb, client_config=CLIENT_CONFIG,
+                        server_info=SERVER_INFO, **CONSUMER_CONFIG)
+    sid = stateID("https://example.org/", consumer.seed)
     _state = sid
-    cons._backup(sid)
-    cons.sdb["seed:%s" % cons.seed] = sid
+    consumer._backup(sid)
+    consumer.sdb["seed:%s" % consumer.seed] = sid
 
-    kaka = make_cookie(CLIENT_CONFIG["client_id"], _state, cons.seed,
+    kaka = make_cookie(CLIENT_CONFIG["client_id"], _state, consumer.seed,
                        expire=360, path="/")
 
-    _oac = factory(kaka[1], _session_db, CLIENT_CONFIG["client_id"],
+    _oac = factory(kaka[1], sdb, CLIENT_CONFIG["client_id"],
                    client_config=CLIENT_CONFIG, server_info=SERVER_INFO,
                    **CONSUMER_CONFIG)
 
-    assert _oac
-    assert _oac.client_id == cons.client_id
-    assert _oac.seed == cons.seed
+    assert _oac.client_id == consumer.client_id
+    assert _oac.seed == consumer.seed
 
 
-def test_consumer_begin():
-    _session_db = {}
-    cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
-                    server_info=SERVER_INFO, **CONSUMER_CONFIG)
+class TestConsumer(object):
+    @pytest.fixture(autouse=True)
+    def create_consumer(self):
+        self.consumer = Consumer({}, client_config=CLIENT_CONFIG,
+                                 server_info=SERVER_INFO,
+                                 **CONSUMER_CONFIG)
 
-    sid, loc = cons.begin("http://localhost:8087",
-                          "http://localhost:8088/authorization")
+    def test_init(self):
+        cons = Consumer({}, client_config=CLIENT_CONFIG,
+                        server_info=SERVER_INFO,
+                        **CONSUMER_CONFIG)
+        cons._backup("123456")
+        assert "123456" in cons.sdb
 
-    # state is dynamic
-    params = {"scope": "openid",
-              "state": sid,
-              "redirect_uri": "http://localhost:8087/authz",
-              "response_type": "code",
-              "client_id": "number5"}
+        cons = Consumer({}, client_config=CLIENT_CONFIG, **CONSUMER_CONFIG)
+        assert cons.authorization_endpoint is None
 
-    url = "http://localhost:8088/authorization?%s" % urlencode(params)
+        cons = Consumer({}, **CONSUMER_CONFIG)
+        assert cons.authorization_endpoint is None
 
-    loc_obj = URLObject.create(loc)
-    url_obj = URLObject.create(url)
-    assert loc_obj == url_obj
+    def test_begin(self):
+        sid, loc = self.consumer.begin("http://localhost:8087",
+                                       "http://localhost:8088/authorization")
 
+        # state is dynamic
+        params = {"scope": "openid",
+                  "state": sid,
+                  "redirect_uri": "http://localhost:8087/authz",
+                  "response_type": "code",
+                  "client_id": "number5"}
 
-def test_consumer_handle_authorization_response():
-    _session_db = {}
-    cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
-                    server_info=SERVER_INFO, **CONSUMER_CONFIG)
-    cons.debug = True
+        url = "http://localhost:8088/authorization?{}".format(urlencode(params))
+        assert url_compare(loc, url)
 
-    sid, loc = cons.begin("http://localhost:8087",
-                          "http://localhost:8088/authorization")
+    def test_chandle_authorization_response(self):
+        sid, loc = self.consumer.begin("http://localhost:8087",
+                                       "http://localhost:8088/authorization")
 
-    atr = AuthorizationResponse(code="SplxlOBeZQQYbYS6WxSbIA",
-                                state=sid)
+        atr = AuthorizationResponse(code="SplxlOBeZQQYbYS6WxSbIA",
+                                    state=sid)
 
-    res = cons.handle_authorization_response(query=atr.to_urlencoded())
+        res = self.consumer.handle_authorization_response(
+            query=atr.to_urlencoded())
 
-    assert res.type() == "AuthorizationResponse"
-    grant = cons.grant[sid]
-    assert grant.code == "SplxlOBeZQQYbYS6WxSbIA"
+        assert isinstance(res, AuthorizationResponse)
+        assert self.consumer.grant[sid].code == "SplxlOBeZQQYbYS6WxSbIA"
 
+    def test_parse_authz_without_code(self):
+        sid, loc = self.consumer.begin("http://localhost:8087",
+                                       "http://localhost:8088/authorization")
 
-def test_consumer_parse_authz_exception():
-    _session_db = {}
-    cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
-                    server_info=SERVER_INFO, **CONSUMER_CONFIG)
-    cons.debug = True
+        atr = AuthorizationResponse(code="SplxlOBeZQQYbYS6WxSbIA",
+                                    state=sid)
 
-    sid, loc = cons.begin("http://localhost:8087",
-                          "http://localhost:8088/authorization")
+        adict = atr.to_dict()
+        del adict["code"]
 
-    atr = AuthorizationResponse(code="SplxlOBeZQQYbYS6WxSbIA",
-                                state=sid)
+        with pytest.raises(MissingRequiredAttribute):
+            self.consumer.handle_authorization_response(query=urlencode(adict))
 
-    adict = atr.to_dict()
-    del adict["code"]
-    QUERY_STRING = urlencode(adict)
+    def test_parse_authz_access_denied(self):
+        sid, loc = self.consumer.begin("http://localhost:8087",
+                                       "http://localhost:8088/authorization")
 
-    raises(MissingRequiredAttribute,
-           "cons.handle_authorization_response(query=QUERY_STRING)")
+        atr = AuthorizationErrorResponse(error="access_denied", state=sid)
 
+        with pytest.raises(AuthzError):
+            self.consumer.handle_authorization_response(
+                query=atr.to_urlencoded())
 
-def test_consumer_parse_authz_error():
-    _session_db = {}
-    cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
-                    server_info=SERVER_INFO, **CONSUMER_CONFIG)
-    cons.debug = True
+    def test_parse_access_token(self):
+        # implicit flow test
+        self.consumer.response_type = ["token"]
+        sid, loc = self.consumer.begin("http://localhost:8087",
+                                       "http://localhost:8088/authorization")
 
-    sid, loc = cons.begin("http://localhost:8087",
-                          "http://localhost:8088/authorization")
+        atr = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
+                                  token_type="example",
+                                  refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
+                                  example_parameter="example_value",
+                                  state=sid)
 
-    atr = AuthorizationErrorResponse(error="access_denied", state=sid)
+        res = self.consumer.handle_authorization_response(
+            query=atr.to_urlencoded())
 
-    QUERY_STRING = atr.to_urlencoded()
+        assert isinstance(res, AccessTokenResponse)
+        grant = self.consumer.grant[sid]
+        assert len(grant.tokens) == 1
+        token = grant.tokens[0]
+        assert token.access_token == "2YotnFZFEjr1zCsicMWpAA"
 
-    raises(AuthzError,
-           "cons.handle_authorization_response(query=QUERY_STRING)")
+    def test_parse_authz_invalid_client(self):
+        self.consumer.begin("http://localhost:8087",
+                            "http://localhost:8088/authorization")
 
+        atr = TokenErrorResponse(error="invalid_client")
 
-def test_consumer_parse_access_token():
-    # implicit flow test
-    _session_db = {}
-    cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
-                    server_info=SERVER_INFO, **CONSUMER_CONFIG)
-    cons.debug = True
-    environ = BASE_ENVIRON
+        with pytest.raises(AuthzError):
+            self.consumer.handle_authorization_response(
+                query=atr.to_urlencoded())
 
-    cons.response_type = ["token"]
-    sid, loc = cons.begin("http://localhost:8087",
-                          "http://localhost:8088/authorization")
-
-    atr = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
-                              token_type="example",
-                              refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
-                              example_parameter="example_value",
-                              state=sid)
-
-    res = cons.handle_authorization_response(query=atr.to_urlencoded())
-
-    assert res.type() == "AccessTokenResponse"
-    grant = cons.grant[sid]
-    assert len(grant.tokens) == 1
-    token = grant.tokens[0]
-    assert token.access_token == "2YotnFZFEjr1zCsicMWpAA"
-
-
-def test_consumer_parse_authz_error_2():
-    _session_db = {}
-    cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
-                    server_info=SERVER_INFO, **CONSUMER_CONFIG)
-    cons.debug = True
-
-    _ = cons.begin("http://localhost:8087",
-                   "http://localhost:8088/authorization")
-
-    atr = TokenErrorResponse(error="invalid_client")
-    QUERY_STRING = atr.to_urlencoded()
-
-    raises(AuthzError,
-           "cons.handle_authorization_response(query=QUERY_STRING)")
+    def test_consumer_client_auth_info(self):
+        self.consumer.client_secret = "secret0"
+        ra, ha, extra = self.consumer.client_auth_info()
+        assert ra == {'client_secret': 'secret0', 'client_id': 'number5'}
+        assert ha == {}
+        assert extra == {'auth_method': 'bearer_body'}
 
 
-def test_consumer_client_auth_info():
-    _session_db = {}
-    cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
-                    server_info=SERVER_INFO, **CONSUMER_CONFIG)
-    cons.client_secret = "secret0"
-    ra, ha, extra = cons.client_auth_info()
-    assert ra == {'client_secret': 'secret0', 'client_id': 'number5'}
-    assert ha == {}
-    assert extra == {'auth_method': 'bearer_body'}
+    def test_client_get_access_token_request(self):
+        self.consumer.client_secret = "secret0"
+        _state = "state"
+        self.consumer.redirect_uris = ["https://www.example.com/oic/cb"]
 
+        resp1 = AuthorizationResponse(code="auth_grant", state=_state)
+        self.consumer.parse_response(AuthorizationResponse, resp1.to_urlencoded(),
+                            "urlencoded")
+        resp2 = AccessTokenResponse(access_token="token1",
+                                    token_type="Bearer", expires_in=0,
+                                    state=_state)
+        self.consumer.parse_response(AccessTokenResponse, resp2.to_urlencoded(),
+                            "urlencoded")
 
-def test_consumer_client_get_access_token_reques():
-    _session_db = {}
-    cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
-                    server_info=SERVER_INFO, **CONSUMER_CONFIG)
-    cons.client_secret = "secret0"
-    _state = "state"
-    cons.redirect_uris = ["https://www.example.com/oic/cb"]
+        url, body, http_args = self.consumer.get_access_token_request(_state)
+        assert url_compare(url, "http://localhost:8088/token")
+        expected_params = "code=auth_grant&client_secret=secret0&" \
+                          "grant_type=authorization_code&client_id=number5&" \
+                          "redirect_uri=https%3A%2F%2Fwww.example.com%2Foic%2Fcb"
 
-    resp1 = AuthorizationResponse(code="auth_grant", state=_state)
-    cons.parse_response(AuthorizationResponse, resp1.to_urlencoded(),
-                        "urlencoded")
-    resp2 = AccessTokenResponse(access_token="token1",
-                                token_type="Bearer", expires_in=0,
-                                state=_state)
-    cons.parse_response(AccessTokenResponse, resp2.to_urlencoded(),
-                        "urlencoded")
-
-    url, body, http_args = cons.get_access_token_request(_state)
-    url_obj = URLObject.create(url)
-    expected_url_obj = URLObject.create("http://localhost:8088/token")
-    assert url_obj == expected_url_obj
-    body_splits = body.split('&')
-    expected_body_splits = "code=auth_grant&client_secret=secret0&" \
-                           "grant_type=authorization_code&client_id=number5&" \
-                           "redirect_uri=https%3A%2F%2Fwww.example.com%2Foic%2Fcb".split(
-        '&')
-    assert set(body_splits) == set(expected_body_splits)
-    assert http_args == {'headers': {
-        'Content-type': 'application/x-www-form-urlencoded'}}
-
-
-if __name__ == "__main__":
-    test_consumer_parse_access_token()
+        assert query_string_compare(body, expected_params)
+        assert http_args == {'headers': {
+            'Content-type': 'application/x-www-form-urlencoded'}}
