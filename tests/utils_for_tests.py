@@ -1,4 +1,3 @@
-
 from six.moves.urllib.parse import urlparse, parse_qs
 
 __author__ = "@maennelpaennel"
@@ -26,7 +25,7 @@ class URLObject(object):
 
     def __eq__(self, other):
         return self.host == other.host and self.resource == other.resource \
-            and self.arguments == other.arguments
+               and self.arguments == other.arguments
 
     def set_by_string(self, address):
         """
@@ -61,6 +60,7 @@ class URLObject(object):
                 self.host = "%s://%s" % (prefix, host)
         self.resource = resource
 
+
 def url_compare(url1, url2):
     url1 = urlparse(url1)
     url2 = urlparse(url2)
@@ -71,9 +71,13 @@ def url_compare(url1, url2):
         return False
     if url1.path != url2.path:
         return False
-    if parse_qs(url1.query) != parse_qs(url2.query):
+    if not query_string_compare(url1.query, url2.query):
         return False
-    if parse_qs(url1.fragment) != parse_qs(url2.fragment):
+    if not query_string_compare(url1.fragment, url2.fragment):
         return False
 
     return True
+
+
+def query_string_compare(query_str1, query_str2):
+    return parse_qs(query_str1) == parse_qs(query_str2)
