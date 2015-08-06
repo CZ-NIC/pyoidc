@@ -98,7 +98,7 @@ class ClientSecretBasic(ClientAuthnMethod):
             http_args["headers"] = {}
 
         http_args["headers"]["Authorization"] = "Basic %s" % base64.b64encode(
-            "%s:%s" % (user, passwd))
+            "{}:{}".format(user, passwd).encode("utf-8"))
 
         try:
             del cis["client_secret"]
