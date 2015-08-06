@@ -134,19 +134,19 @@ def test_provider_authenticated():
 
     resp = provider.authorization_endpoint(query_string)
     assert resp.status == "302 Found"
-    print resp.headers
-    print resp.message
+    print (resp.headers)
+    print (resp.message)
     if content_type(resp.headers) == "json":
         resp = resp.message
     else:
         resp = resp.message.split("?")[1]
     aresp = cons.handle_authorization_response(query=resp)
 
-    print aresp.keys()
+    print (aresp.keys())
     assert aresp.type() == "AuthorizationResponse"
     assert _eq(aresp.keys(), ['state', 'code'])
 
-    print cons.grant[sid].keys()
+    print (cons.grant[sid].keys())
     assert _eq(cons.grant[sid].keys(), ['tokens', 'code', 'exp_in',
                                                'seed', 'id_token',
                                                'grant_expiration_time'])
@@ -166,12 +166,11 @@ def test_provider_authenticated_token():
 
     QUERY_STRING = location.split("?")[1]
     resp = provider.authorization_endpoint(QUERY_STRING)
-    print resp.headers
-    print resp.message
+    print (resp.headers)
+    print (resp.message)
     txt = resp.message
     assert "access_token=" in txt
     assert "token_type=Bearer" in txt
-
 
 
 def test_token_endpoint():
@@ -200,12 +199,12 @@ def test_token_endpoint():
                               redirect_uri="http://example.com/authz",
                               client_id="client1", client_secret="hemlighet",)
 
-    print areq.to_dict()
+    print (areq.to_dict())
     resp = provider.token_endpoint(request=areq.to_urlencoded())
-    print resp.message
+    print (resp.message)
     atr = AccessTokenResponse().deserialize(resp.message, "json")
 
-    print atr.keys()
+    print (atr.keys())
     assert _eq(atr.keys(), ['access_token', 'expires_in', 'token_type',
                             'refresh_token'])
 
@@ -237,12 +236,13 @@ def test_token_endpoint_unauth():
                               redirect_uri="http://example.com/authz",
                               client_id="client2", client_secret="hemlighet",)
 
-    print areq.to_dict()
+    print (areq.to_dict())
     resp = provider.token_endpoint(request=areq.to_urlencoded())
-    print resp.message
+    print (resp.message)
     atr = TokenErrorResponse().deserialize(resp.message, "json")
-    print atr.keys()
+    print (atr.keys())
     assert _eq(atr.keys(), ['error_description', 'error'])
+
 
 if __name__ == "__main__":
     test_provider_authenticated_token()
