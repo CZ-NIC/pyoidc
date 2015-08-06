@@ -214,7 +214,7 @@ class TestClient(object):
         # Uses refresh_token from previous response
         atr = self.client.construct_RefreshAccessTokenRequest(state="foo")
 
-        assert atr.type() == "RefreshAccessTokenRequest"
+        assert isinstance(atr, RefreshAccessTokenRequest)
         assert atr["grant_type"] == "refresh_token"
         assert atr["refresh_token"] == "refresh_with_me"
 
@@ -279,7 +279,7 @@ class TestClient(object):
         assert set(body_elts) == set(expected_body_elts)
         assert h_args == {
             'headers': {'Content-type': 'application/x-www-form-urlencoded'}}
-        assert cis.type() == "AuthorizationRequest"
+        assert isinstance(cis, AuthorizationRequest)
 
     def test_request_info_simple_get(self):
         uri, body, h_args, cis = self.client.request_info(AuthorizationRequest,
@@ -301,7 +301,7 @@ class TestClient(object):
                                quote(self.redirect_uri, safe="")))
         assert body is None
         assert h_args == {}
-        assert cis.type() == "AuthorizationRequest"
+        assert isinstance(cis, AuthorizationRequest)
 
     def test_request_info_simple_get_with_extra_args(self):
         uri, body, h_args, cis = self.client.request_info(
@@ -313,7 +313,7 @@ class TestClient(object):
                                quote(self.redirect_uri, safe="")))
         assert body is None
         assert h_args == {}
-        assert cis.type() == "AuthorizationRequest"
+        assert isinstance(cis, AuthorizationRequest)
 
     def test_request_info_with_req_and_extra_args(self):
         uri, body, h_args, cis = self.client.request_info(
@@ -328,7 +328,7 @@ class TestClient(object):
                                                       safe="")))
         assert body is None
         assert h_args == {}
-        assert cis.type() == "AuthorizationRequest"
+        assert isinstance(cis, AuthorizationRequest)
 
     def test_construct_access_token_req_expired_grant(self):
         resp = AuthorizationResponse(code="code", state="state")
@@ -462,7 +462,7 @@ class TestServer(object):
 
         areq = self.srv.parse_authorization_request(query=uencq)
 
-        assert areq.type() == "AuthorizationRequest"
+        assert isinstance(areq, AuthorizationRequest)
         assert areq["response_type"] == ["code"]
         assert areq["client_id"] == "foobar"
         assert areq["redirect_uri"] == "http://foobar.example.com/oaclient"
@@ -471,7 +471,7 @@ class TestServer(object):
         urluenc = "%s?%s" % ("https://example.com/authz", uencq)
         areq = self.srv.parse_authorization_request(url=urluenc)
 
-        assert areq.type() == "AuthorizationRequest"
+        assert isinstance(areq, AuthorizationRequest)
         assert areq["response_type"] == ["code"]
         assert areq["client_id"] == "foobar"
         assert areq["redirect_uri"] == "http://foobar.example.com/oaclient"
@@ -497,7 +497,7 @@ class TestServer(object):
 
         req = self.srv.parse_jwt_request(txt=_jwt)
 
-        assert req.type() == "AuthorizationRequest"
+        assert isinstance(req, AuthorizationRequest)
         assert req["response_type"] == ["code"]
         assert req["client_id"] == "foobar"
         assert req["redirect_uri"] == "http://foobar.example.com/oaclient"
@@ -511,7 +511,7 @@ class TestServer(object):
 
         tr = self.srv.parse_token_request(body=uenc)
 
-        assert tr.type() == "AccessTokenRequest"
+        assert isinstance(tr, AccessTokenRequest)
         assert _eq(tr.keys(), ['code', 'redirect_uri', 'grant_type', 'extra'])
 
         assert tr["grant_type"] == "authorization_code"
@@ -519,7 +519,7 @@ class TestServer(object):
 
         tr = self.srv.parse_token_request(body=uenc)
 
-        assert tr.type() == "AccessTokenRequest"
+        assert isinstance(tr, AccessTokenRequest)
         assert _eq(tr.keys(), ['code', 'grant_type', 'redirect_uri', 'extra'])
 
         assert tr["extra"] == "foo"
@@ -531,6 +531,6 @@ class TestServer(object):
 
         tr = self.srv.parse_refresh_token_request(body=uenc)
 
-        assert tr.type() == "RefreshAccessTokenRequest"
+        assert isinstance(tr, RefreshAccessTokenRequest)
         assert tr["refresh_token"] == "ababababab"
         assert tr["client_id"] == "Client_id"
