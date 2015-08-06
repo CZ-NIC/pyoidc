@@ -200,20 +200,20 @@ class TestConsumer(object):
         assert ha == {}
         assert extra == {'auth_method': 'bearer_body'}
 
-
     def test_client_get_access_token_request(self):
         self.consumer.client_secret = "secret0"
         _state = "state"
         self.consumer.redirect_uris = ["https://www.example.com/oic/cb"]
 
         resp1 = AuthorizationResponse(code="auth_grant", state=_state)
-        self.consumer.parse_response(AuthorizationResponse, resp1.to_urlencoded(),
-                            "urlencoded")
+        self.consumer.parse_response(AuthorizationResponse,
+                                     resp1.to_urlencoded(),
+                                     "urlencoded")
         resp2 = AccessTokenResponse(access_token="token1",
                                     token_type="Bearer", expires_in=0,
                                     state=_state)
         self.consumer.parse_response(AccessTokenResponse, resp2.to_urlencoded(),
-                            "urlencoded")
+                                     "urlencoded")
 
         url, body, http_args = self.consumer.get_access_token_request(_state)
         assert url_compare(url, "http://localhost:8088/token")
