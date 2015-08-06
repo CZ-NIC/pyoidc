@@ -6,7 +6,7 @@ import urllib
 import logging
 import os
 
-from six.moves.urllib.parse import urlparse
+from six.moves.urllib import parse as urlparse
 from oic.utils.sdb import AccessCodeUsed, AuthnEvent
 from oic.exception import MissingParameter, InvalidRequest
 from oic.exception import URIError
@@ -281,7 +281,7 @@ class Provider(object):
             if part.fragment:
                 raise URIError("Contains fragment")
 
-            (_base, _query) = urllib.splitquery(_redirect_uri)
+            (_base, _query) = urlparse.splitquery(_redirect_uri)
             if _query:
                 _query = urlparse.parse_qs(_query)
 

@@ -328,7 +328,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
         try:
             bjwt = AuthnToken().from_jwt(areq["client_assertion"],
                                          keyjar=self.cli.keyjar)
-        except (Invalid, MissingKey), err:
+        except (Invalid, MissingKey) as err:
             logger.info("%s" % err)
             raise AuthnFailure("Could not verify client_assertion.")
 
