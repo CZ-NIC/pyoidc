@@ -491,9 +491,7 @@ class TestServer(object):
             {"kty": "oct", "key": "A1B2C3D4".encode("utf-8"), "use": "sig"}])
 
         keys = self.srv.keyjar.get_signing_key(owner="foobar")
-        _jwt = ar.to_jwt(key=keys, algorithm="HS256").decode("utf-8")
-
-        print(_jwt)
+        _jwt = ar.to_jwt(key=keys, algorithm="HS256")
 
         req = self.srv.parse_jwt_request(txt=_jwt)
 
