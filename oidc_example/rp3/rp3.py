@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 import importlib
 import argparse
-import urllib
-import urlparse
 from jwkest.jws import alg2keytype
 from mako.lookup import TemplateLookup
-from urlparse import parse_qs
+from six.moves.urllib import parse as urlparse
+import six
 import logging
 
 from oic.utils.http_util import NotFound
@@ -64,7 +63,7 @@ def opchoice(environ, start_response, clients):
                     template_lookup=LOOKUP,
                     headers=[])
     argv = {
-        "op_list": clients.keys()
+        "op_list": list(clients.keys())
     }
     return resp(environ, start_response, **argv)
 
@@ -113,7 +112,7 @@ def application(environ, start_response):
     if path.startswith("static/"):
         return static(environ, start_response, LOGGER, path)
 
-    query = parse_qs(environ["QUERY_STRING"])
+    query = urlparse.parse_qs(environ["QUERY_STRING"])
 
     if path == "rp":  # After having chosen which OP to authenticate at
         if "uid" in query:
@@ -162,7 +161,7 @@ def application(environ, start_response):
             # Specify to which URL the OP should return the user after
             # log out. That URL must be registered with the OP at client
             # registration.
-            logout_url += "?" + urllib.urlencode(
+            logout_url += "?" + urlparse.urlencode(
                 {"post_logout_redirect_uri": client.registration_response[
                     "post_logout_redirect_uris"][0]})
         except KeyError:
@@ -171,11 +170,11 @@ def application(environ, start_response):
             # If there is an ID token send it along as a id_token_hint
             _idtoken = get_id_token(client, session)
             if _idtoken:
-                logout_url += "&" + urllib.urlencode({
+                logout_url += "&" + urlparse.urlencode({
                     "id_token_hint": id_token_as_signed_jwt(client, _idtoken,
                                                             "HS256")})
             # Also append the ACR values
-            logout_url += "&" + urllib.urlencode({"acr_values": ACR_VALUES},
+            logout_url += "&" + urlparse.urlencode({"acr_values": ACR_VALUES},
                                                  True)
 
         LOGGER.debug("Logout URL: %s" % str(logout_url))
@@ -234,7 +233,7 @@ if __name__ == '__main__':
                                             in conf.ME[
             "post_logout_redirect_uris"]]
 
-    for client, client_conf in conf.CLIENTS.iteritems():
+    for client, client_conf in six.iteritems(conf.CLIENTS.):
         if "client_registration" in client_conf:
             client_reg = client_conf["client_registration"]
             client_reg["redirect_uris"] = [url.format(base=conf.BASE) for url in

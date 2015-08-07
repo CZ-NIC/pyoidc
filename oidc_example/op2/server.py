@@ -11,7 +11,7 @@ from exceptions import OSError
 from exceptions import IndexError
 from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
-from urlparse import parse_qs
+from six.moves.urllib.parse import parse_qs
 from oic.utils import shelve_wrapper
 from oic.utils.authn.javascript_login import JavascriptFormMako
 
@@ -583,7 +583,7 @@ if __name__ == '__main__':
 
     try:
         jwks = keyjar_init(OAS, config.keys, kid_template="op%d")
-    except Exception, err:
+    except Exception as err:
         LOGGER.error("Key setup failed: %s" % err)
         OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
     else:
@@ -607,7 +607,7 @@ if __name__ == '__main__':
 
     LOGGER.info("OC server starting listening on port:%s %s" % (args.port,
                                                                 https))
-    print "OC server starting listening on port:%s %s" % (args.port, https)
+    print ("OC server starting listening on port:%s %s" % (args.port, https))
     try:
         SRV.start()
     except KeyboardInterrupt:

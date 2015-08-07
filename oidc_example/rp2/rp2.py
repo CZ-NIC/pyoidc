@@ -8,7 +8,7 @@ from jwkest.jws import alg2keytype
 from beaker.middleware import SessionMiddleware
 from cherrypy import wsgiserver
 from mako.lookup import TemplateLookup
-from urlparse import parse_qs
+from six.moves.urllib.parse import parse_qs
 
 from oic.utils.http_util import NotFound, Response, ServiceError, Redirect
 from oidc import OpenIDConnect
@@ -267,7 +267,7 @@ if __name__ == '__main__':
             conf.SERVER_CERT, conf.SERVER_KEY, conf.CA_BUNDLE)
 
     LOGGER.info("RP server starting listening on port:%s" % conf.PORT)
-    print "RP server starting listening on port:%s" % conf.PORT
+    print ("RP server starting listening on port:%s" % conf.PORT)
     try:
         SRV.start()
     except KeyboardInterrupt:
