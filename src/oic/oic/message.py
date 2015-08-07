@@ -658,20 +658,20 @@ class IdToken(OpenIDSchema):
                 if kwargs["client_id"] not in self["aud"]:
                     raise NotForMe("", self)
 
-            if len(self["aud"]) > 1:  # Then azr has to be present and be one of
+            if len(self["aud"]) > 1:  # Then azp has to be present and be one of
                                       # the aud values
                 try:
-                    assert "azr" in self
+                    assert "azp" in self
                 except AssertionError:
-                    raise VerificationError("azr missing", self)
+                    raise VerificationError("azp missing", self)
                 else:
                     try:
-                        assert self["azr"] in self["aud"]
+                        assert self["azp"] in self["aud"]
                     except AssertionError:
                         raise VerificationError(
-                            "Mismatch between azr and aud claims", self)
+                            "Mismatch between azp and aud claims", self)
 
-        if "azr" in self:
+        if "azp" in self:
             if "client_id" in kwargs:
                 if kwargs["client_id"] != self["azp"]:
                     raise NotForMe("", self)
