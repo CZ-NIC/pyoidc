@@ -784,7 +784,7 @@ class Client(oauth2.Client):
 
         logger.debug("Reponse text: '%s'" % resp.text)
 
-        _txt = resp.text.encode("utf-8")
+        _txt = resp.text
         if sformat == "json":
             res = _schema().from_json(txt=_txt)
         else:

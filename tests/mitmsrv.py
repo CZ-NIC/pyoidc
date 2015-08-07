@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from urlparse import parse_qs
+from six.moves.urllib.parse import parse_qs
 from jwkest.jws import alg2keytype
 
 from oic.oauth2 import rndstr
