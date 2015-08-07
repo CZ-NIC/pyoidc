@@ -802,4 +802,4 @@ class Provider(object):
         parsed_uri = urlparse.urlparse(redirect_uri)
         rp_origin_url = "{uri.scheme}://{uri.netloc}".format(uri=parsed_uri)
         session_str = client_id + " " + rp_origin_url + " " + state + " " + salt
-        return hashlib.sha256(session_str).hexdigest() + "." + salt
+        return hashlib.sha256(session_str.encode("utf-8")).hexdigest() + "." + salt

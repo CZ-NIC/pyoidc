@@ -38,9 +38,9 @@ def stateID(url, seed):
     :return: The hex version of the digest
     """
     ident = md5()
-    ident.update(repr(time.time()))
-    ident.update(url)
-    ident.update(seed)
+    ident.update(repr(time.time()).encode())
+    ident.update(url.encode())
+    ident.update(seed.encode())
     return ident.hexdigest()
 
 

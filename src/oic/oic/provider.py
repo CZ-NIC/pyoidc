@@ -44,7 +44,6 @@ from oic.oic.message import ClientRegistrationErrorResponse
 from oic.oic.message import DiscoveryRequest
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import DiscoveryResponse
-from six.moves.urllib.parse import urlparse
 from oic.oauth2.provider import Provider as AProvider
 from oic.oauth2.provider import Endpoint
 from oic.utils.http_util import Response
@@ -58,6 +57,9 @@ from oic.oic import PROVIDER_DEFAULT
 from oic.oic import PREFERENCE2PROVIDER
 from oic.oic import claims_match
 from oic.exception import *
+
+from six.moves.urllib import parse as urlparse
+import six
 
 __author__ = 'rohe0002'
 
@@ -79,7 +81,7 @@ def do_authorization(user):
 
 def secret(seed, sid):
     msg = "{}{:.6f}{}".format(time.time(), random.random(), sid).encode("utf-8")
-    csum = hmac.new(seed, msg, hashlib.sha224)
+    csum = hmac.new(seed.encode("utf-8"), msg, hashlib.sha224)
     return csum.hexdigest()
 
 
@@ -346,7 +348,7 @@ class Provider(AProvider):
         if part.fragment:
             raise ValueError
 
-        (_base, _query) = urllib.splitquery(_redirect_uri)
+        (_base, _query) = urlparse.splitquery(_redirect_uri)
 
         sid = ""
         try:
@@ -1099,7 +1101,7 @@ class Provider(AProvider):
                         if not match:
                             raise CapabilitiesMisMatch(_pref)
                 else:
-                    if isinstance(request[_pref], basestring):
+                    if isinstance(request[_pref], six.string_types):
                         try:
                             assert request[_pref] in self.capabilities[_prov]
                         except AssertionError:
@@ -1131,7 +1133,7 @@ class Provider(AProvider):
                     return Response(err.to_json(),
                                     content="application/json",
                                     status="400 Bad Request")
-                base, query = urllib.splitquery(uri)
+                base, query = urlparse.splitquery(uri)
                 if query:
                     plruri.append((base, urlparse.parse_qs(query)))
                 else:
@@ -1185,7 +1187,7 @@ class Provider(AProvider):
                                     content="application/json",
                                     status="400 Bad Request")
 
-                base, query = urllib.splitquery(uri)
+                base, query = urlparse.splitquery(uri)
                 if query:
                     ruri.append((base, urlparse.parse_qs(query)))
                 else:
@@ -1481,11 +1483,11 @@ class Provider(AProvider):
             _claims.extend(_cl)
         _provider_info["claims_supported"] = list(set(_claims))
 
-        _scopes = SCOPE2CLAIMS.keys()
+        _scopes = list(SCOPE2CLAIMS.keys())
         _scopes.append("openid")
         _provider_info["scopes_supported"] = _scopes
 
-        sign_algs = jws.SIGNER_ALGS.keys()
+        sign_algs = list(jws.SIGNER_ALGS.keys())
         for typ in ["userinfo", "id_token", "request_object"]:
             _provider_info["%s_signing_alg_values_supported" % typ] = sign_algs
 
@@ -1523,7 +1525,7 @@ class Provider(AProvider):
         """
         _pinfo = self.provider_features()
         for key, val in capabilities.items():
-            if isinstance(val, basestring):
+            if isinstance(val, six.string_types):
                 try:
                     if val in _pinfo[key]:
                         continue

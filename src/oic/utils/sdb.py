@@ -13,6 +13,7 @@ import hashlib
 import random
 import base64
 import logging
+import six
 
 from oic.oauth2 import rndstr
 from oic.utils.time_util import utc_time_sans_frac
@@ -198,7 +199,7 @@ class SessionDB(object):
         """
         del self._db[sid]
         # Delete the mapping for session id
-        self.uid2sid = {k: v for k, v in self.uid2sid.iteritems() if sid not in v}
+        self.uid2sid = {k: v for k, v in six.iteritems(self.uid2sid) if sid not in v}
 
     def update(self, key, attribute, value):
         if key in self._db:

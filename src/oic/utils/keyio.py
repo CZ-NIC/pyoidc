@@ -22,6 +22,7 @@ from six import string_types
 
 from oic.exception import MessageException
 from oic.exception import PyoidcError
+from oic.utils import to_unicode
 
 __author__ = 'rohe0002'
 
@@ -239,7 +240,13 @@ class KeyBundle(object):
 
     def jwks(self):
         self._uptodate()
-        return json.dumps({"keys": [k.to_dict() for k in self._keys]})
+        keys = list()
+        for k in self._keys:
+            key = k.to_dict()
+            for k, v in key.items():
+                key[k] = to_unicode(v)
+            keys.append(key)
+        return json.dumps({"keys": keys})
 
     def append(self, key):
         self._keys.append(key)

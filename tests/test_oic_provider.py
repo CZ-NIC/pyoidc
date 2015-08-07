@@ -1,10 +1,13 @@
-from Cookie import SimpleCookie
+# from Cookie import SimpleCookie
+from six.moves.http_cookies import SimpleCookie
+from six import iteritems
+from six.moves.urllib import parse as urllib
 import json
 import locale
 import os
 from time import sleep, time
 import datetime
-import urllib
+
 
 from mako.lookup import TemplateLookup
 
@@ -181,7 +184,7 @@ class TestOICProvider(object):
     def test_server_init(self):
         assert self.server
         assert self.server.authn_broker == AUTHN_BROKER
-        print self.server.urlmap
+        print(self.server.urlmap)
         assert self.server.urlmap["client_1"] == ["https://example.com/authz"]
 
     def test_server_authorization_endpoint(self):
@@ -196,7 +199,7 @@ class TestOICProvider(object):
 
         resp = self.server.authorization_endpoint(request=arq.to_urlencoded())
 
-        print resp.message
+        print(resp.message)
         assert resp.message
 
     def test_server_authorization_endpoint_request(self):
@@ -221,7 +224,6 @@ class TestOICProvider(object):
             pass
         else:
             assert False
-
 
     def test_server_authorization_endpoint_id_token(self):
         bib = {"scope": ["openid"],
@@ -249,8 +251,8 @@ class TestOICProvider(object):
                              aud=bib["client_id"], exp=epoch_in_a_while(minutes=10),
                              acr="2", nonce=bib["nonce"])
 
-        print self.server.keyjar.issuer_keys
-        print _user_info.to_dict()
+        print(self.server.keyjar.issuer_keys)
+        print(_user_info.to_dict())
         idt = self.server.id_token_as_signed_jwt(_info, access_token="access_token",
                                                  user_info=_user_info)
 
@@ -260,7 +262,7 @@ class TestOICProvider(object):
         # client_id not in id_token["aud"] so login required
         resp = self.server.authorization_endpoint(request=query_string, cookie="FAIL")
 
-        print resp
+        print(resp)
         assert "error=login_required" in resp.message
 
         req["client_id"] = "client_1"
@@ -269,19 +271,18 @@ class TestOICProvider(object):
         # client_id is in id_token["aud"] so no login required
         resp = self.server.authorization_endpoint(request=query_string, cookie="FAIL")
 
-        print resp.message
+        print(resp.message)
         assert resp.message.startswith("http://localhost:8087/authz")
-
 
     def test_server_authenticated(self):
         _state, location = self.cons.begin("openid", "code",
                                            path="http://localhost:8087")
 
         QUERY_STRING = location.split("?")[1]
-        print QUERY_STRING
+        print(QUERY_STRING)
         resp = self.server.authorization_endpoint(request=QUERY_STRING)
 
-        print resp.message
+        print(resp.message)
 
         assert resp.message.startswith("http://localhost:8087/authz")
 
@@ -295,29 +296,27 @@ class TestOICProvider(object):
         # format="urlencoded",
         # state="id-6da9ca0cc23959f5f33e8becd9b08cae")
 
-        print aresp.keys()
+        print(aresp.keys())
         assert aresp.type() == "AuthorizationResponse"
         assert _eq(aresp.keys(), ['code', 'state', 'scope'])
 
-        print self.cons.grant[_state].keys()
+        print(self.cons.grant[_state].keys())
         assert _eq(self.cons.grant[_state].keys(),
                    ['code', 'tokens', 'id_token', 'exp_in', 'seed',
                     'grant_expiration_time'])
-
 
     def test_server_authenticated_1(self):
         state, location = self.cons.begin("openid", "code", path="http://localhost:8087")
 
         resp = self.server.authorization_endpoint(request=location.split("?")[1])
 
-        print resp
+        print(resp)
         aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
                                          sformat="urlencoded")
 
-        print aresp.keys()
+        print(aresp.keys())
         assert aresp.type() == "AuthorizationResponse"
         assert _eq(aresp.keys(), ['code', 'state', 'scope'])
-
 
     def test_server_authenticated_2(self):
         self.server.baseurl = self.server.name
@@ -326,14 +325,14 @@ class TestOICProvider(object):
                                            response_type="code id_token",
                                            path="http://localhost:8087")
 
-        print location
+        print(location)
         resp = self.server.authorization_endpoint(request=location.split("?")[1])
 
-        print resp.message
+        print(resp.message)
 
         part = self.cons.parse_authz(resp.message)
 
-        print part
+        print(part)
         aresp = part[0]
         assert part[1] is None
         assert part[2] is not None
@@ -341,21 +340,20 @@ class TestOICProvider(object):
         # aresp = cons.parse_response(AuthorizationResponse, location,
         # sformat="urlencoded")
 
-        print aresp.keys()
+        print(aresp.keys())
         assert aresp.type() == "AuthorizationResponse"
         assert _eq(aresp.keys(), ['scope', 'state', 'code', 'id_token'])
 
-        print self.cons.grant[_state].keys()
+        print(self.cons.grant[_state].keys())
         assert _eq(self.cons.grant[_state].keys(), ['code', 'id_token', 'tokens',
                                                     'exp_in',
                                                     'grant_expiration_time', 'seed'])
         id_token = part[2]
         assert isinstance(id_token, IdToken)
-        print id_token.keys()
+        print(id_token.keys())
         assert _eq(id_token.keys(),
                    ['nonce', 'c_hash', 'sub', 'iss', 'acr', 'exp', 'auth_time',
                     'iat', 'aud'])
-
 
     def test_server_authenticated_token(self):
         _state, location = self.cons.begin("openid", response_type="token",
@@ -367,7 +365,6 @@ class TestOICProvider(object):
         assert "access_token=" in txt
         assert "token_type=Bearer" in txt
 
-
     def test_server_authenticated_none(self):
         _state, location = self.cons.begin("openid", response_type="none",
                                            path="http://localhost:8087")
@@ -376,9 +373,8 @@ class TestOICProvider(object):
 
         assert resp.message.startswith("http://localhost:8087/authz")
         query_part = resp.message.split("?")[1]
-        print query_part
+        print(query_part)
         assert "state" in query_part
-
 
     def test_token_endpoint(self):
         authreq = AuthorizationRequest(state="state",
@@ -411,12 +407,11 @@ class TestOICProvider(object):
         txt = areq.to_urlencoded()
 
         resp = self.server.token_endpoint(request=txt)
-        print resp
+        print(resp)
         atr = AccessTokenResponse().deserialize(resp.message, "json")
-        print atr.keys()
+        print(atr.keys())
         assert _eq(atr.keys(), ['token_type', 'id_token', 'access_token', 'scope',
                                 'expires_in', 'refresh_token'])
-
 
     def test_token_endpoint_unauth(self):
         authreq = AuthorizationRequest(state="state",
@@ -444,25 +439,23 @@ class TestOICProvider(object):
                                   redirect_uri="http://example.com/authz",
                                   client_id="client_1", client_secret="secret", )
 
-        print areq.to_dict()
+        print(areq.to_dict())
         txt = areq.to_urlencoded()
 
         resp = self.server.token_endpoint(request=txt, remote_user="client2",
                                           request_method="POST")
-        print resp
+        print(resp)
         atr = TokenErrorResponse().deserialize(resp.message, "json")
-        print atr.keys()
+        print(atr.keys())
         assert _eq(atr.keys(), ['error'])
-
 
     def test_authz_endpoint(self):
         _state, location = self.cons.begin("openid", response_type=["code", "token"],
                                            path="http://localhost:8087")
         resp = self.server.authorization_endpoint(request=location.split("?")[1])
-        print resp.message
+        print(resp.message)
         assert "token_type=Bearer" in resp.message
         assert "code=" in resp.message
-
 
     def test_idtoken(self):
         AREQ = AuthorizationRequest(response_type="code", client_id=CLIENT_ID,
@@ -475,9 +468,8 @@ class TestOICProvider(object):
         session = self.server.sdb[sid]
 
         id_token = self.server.id_token_as_signed_jwt(session)
-        print id_token
+        print(id_token)
         assert len(id_token.split(".")) == 3
-
 
     def test_idtoken_with_extra_claims(self):
         areq = AuthorizationRequest(response_type="code", client_id=CLIENT_ID,
@@ -493,10 +485,9 @@ class TestOICProvider(object):
         id_token = self.server.id_token_as_signed_jwt(session, extra_claims=claims)
         parsed = IdToken().from_jwt(id_token, keyjar=self.server.keyjar)
 
-        print id_token
-        for key, value in claims.iteritems():
+        print(id_token)
+        for key, value in iteritems(claims):
             assert parsed[key] == value
-
 
     def test_userinfo_endpoint(self):
         self.cons.client_secret = "drickyoughurt"
@@ -518,7 +509,7 @@ class TestOICProvider(object):
 
         resp3 = self.server.userinfo_endpoint(request=uir.to_urlencoded())
         ident = OpenIDSchema().deserialize(resp3.message, "json")
-        print ident.keys()
+        print(ident.keys())
         assert _eq(ident.keys(), ['nickname', 'sub', 'name', 'email'])
 
         # uid = server.sdb[sid]["authn_event"].uid
@@ -526,18 +517,17 @@ class TestOICProvider(object):
         #
         # assert ident["sub"] == hash(USERDB["username"]["sub"]+server.sdb.base_url)
 
-
     def test_check_session_endpoint(self):
-        print self.server.name
+        print(self.server.name)
 
         session = {"sub": "UserID", "client_id": "number5"}
         idtoken = self.server.id_token_as_signed_jwt(session)
         csr = CheckSessionRequest(id_token=idtoken)
 
         info = self.server.check_session_endpoint(request=csr.to_urlencoded())
-        print info
+        print(info)
         idt = IdToken().deserialize(info.message, "json")
-        print idt.keys()
+        print(idt.keys())
         assert _eq(idt.keys(), ['sub', 'aud', 'iss', 'acr', 'exp', 'iat'])
         assert idt["iss"] == self.server.name + "/"
 
@@ -550,13 +540,13 @@ class TestOICProvider(object):
         req["contacts"] = ["foo@example.com"]
         req["response_types"] = ["code"]
 
-        print req.to_dict()
+        print(req.to_dict())
 
         resp = self.server.registration_endpoint(request=req.to_json())
 
-        print resp.message
+        print(resp.message)
         regresp = RegistrationResponse().deserialize(resp.message, "json")
-        print regresp.keys()
+        print(regresp.keys())
         assert _eq(regresp.keys(), ['redirect_uris', 'contacts', 'application_type',
                                     'client_name', 'registration_client_uri',
                                     'client_secret_expires_at',
@@ -588,9 +578,8 @@ class TestOICProvider(object):
 
         resp = self.server.registration_endpoint(request=req.to_json())
 
-        print resp.message
+        print(resp.message)
         regresp = RegistrationResponse().deserialize(resp.message, "json")
-
 
     def test_provider_key_setup(self):
         provider = Provider("pyoicserv", SessionDB(SERVER_INFO["issuer"]), None,
@@ -605,7 +594,7 @@ class TestOICProvider(object):
     def _client_id(self, cdb):
         cid = None
         for k, item in cdb.items():
-            if item in cdb.keys():
+            if item in list(cdb.keys()):
                 cid = item
                 break
 
@@ -640,7 +629,7 @@ class TestOICProvider(object):
                                         response_type="code",
                                         scope="openid")
 
-            print areq
+            print(areq)
             try:
                 provider._verify_redirect_uri(areq)
                 assert False
@@ -652,13 +641,12 @@ class TestOICProvider(object):
                                         client_id=cid,
                                         response_type="code", scope="openid")
 
-            print areq
+            print(areq)
             try:
                 provider._verify_redirect_uri(areq)
-            except RedirectURIError, err:
-                print err
+            except RedirectURIError as err:
+                print(err)
                 assert False
-
 
     def test_registered_redirect_uri_with_query_component(self):
         provider2 = Provider("FOOP", {}, {}, None, None, None, None, "")
@@ -672,7 +660,7 @@ class TestOICProvider(object):
 
         regresp = RegistrationResponse().from_json(resp.message)
 
-        print regresp.to_dict()
+        print(regresp.to_dict())
 
         faulty = [
             "http://example.org/cb",
@@ -694,7 +682,7 @@ class TestOICProvider(object):
                                         scope="openid",
                                         response_type="code")
 
-            print areq
+            print(areq)
             try:
                 provider2._verify_redirect_uri(areq)
             except RedirectURIError:
@@ -706,9 +694,8 @@ class TestOICProvider(object):
                                         response_type="code")
 
             resp = provider2._verify_redirect_uri(areq)
-            print resp
+            print(resp)
             assert resp is None
-
 
     def test_key_rollover(self):
         provider2 = Provider("FOOP", {}, {}, None, None, None, None, "")
@@ -717,16 +704,15 @@ class TestOICProvider(object):
         assert len(provider2.keyjar.issuer_keys[""]) == 1
         kb = ec_init({"type": "EC", "crv": "P-256", "use": ["sig"]})
         provider2.do_key_rollover(json.loads(kb.jwks()), "b%d")
-        print provider2.keyjar
+        print(provider2.keyjar)
         assert len(provider2.keyjar.issuer_keys[""]) == 2
         kb = ec_init({"type": "EC", "crv": "P-256", "use": ["sig"]})
         provider2.do_key_rollover(json.loads(kb.jwks()), "b%d")
-        print provider2.keyjar
+        print(provider2.keyjar)
         assert len(provider2.keyjar.issuer_keys[""]) == 3
         sleep(1)
         provider2.remove_inactive_keys(0)
         assert len(provider2.keyjar.issuer_keys[""]) == 2
-
 
     def test_endsession_endpoint(self):
         resp = self.server.endsession_endpoint("")
@@ -760,15 +746,10 @@ class TestOICProvider(object):
         all_cookies = SimpleCookie()
         all_cookies.load(cookies_string)
 
-        loc = locale.getlocale()
-        locale.setlocale(locale.LC_ALL, 'C')  # strptime depends on locale, use default (C) locale
-
         now = datetime.datetime.now()
         for c in [self.server.cookie_name, self.server.session_cookie_name]:
             dt = datetime.datetime.strptime(all_cookies[c]["expires"], "%a, %d-%b-%Y %H:%M:%S GMT")
             assert dt < now  # make sure the cookies have expired to be cleared
-
-        locale.setlocale(locale.LC_ALL, loc)  # restore saved locale
 
     def _auth_with_id_token(self):
         state, location = self.cons.begin("openid", "id_token", path="http://localhost:8087")
@@ -793,7 +774,7 @@ class TestOICProvider(object):
         aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
                                          sformat="urlencoded")
         assert "session_state" in aresp
-        
+
     def test_sign_enc_request(self):
         cli = Client()
         cli.redirect_uris = ["http://www.example.org/authz"]
@@ -805,24 +786,24 @@ class TestOICProvider(object):
                      if k["use"] in ["ver"]]
             _kb = KeyBundle(_keys)
             cli.keyjar.add_kb(self.server.name, _kb)
-    
+
         _kb = keybundle_from_local_file("%s/rsa.pub" % BASE_PATH, "RSA", ["enc"])
         cli.keyjar.add_kb(self.server.name, _kb)
-    
+
         request_args = {"redirect_uri": cli.redirect_uris[0],
                         "client_id": cli.client_id,
                         "scope": "openid",
                         "response_type": "code"}
-    
+
         kwargs = {"request_object_signing_alg": "none",
                   "request_object_encryption_alg": "RSA1_5",
                   "request_object_encryption_enc": "A128CBC-HS256",
                   "request_method": "parameter",
                   "target": self.server.name}
-    
+
         areq = cli.construct_AuthorizationRequest(request_args=request_args,
                                                   **kwargs)
-    
+
         assert areq
         assert areq["request"]
 
