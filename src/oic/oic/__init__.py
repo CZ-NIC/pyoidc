@@ -5,7 +5,7 @@ from jwkest.jwe import JWE
 from jwkest import jws
 from jwkest import jwe
 
-from six.moves.urllib.parse import urlparse
+from six.moves.urllib import parse as urlparse
 from oic.oauth2.exception import AuthnToOld
 from oic.oauth2.message import ErrorResponse, Message
 from oic.oauth2.util import get_or_post
