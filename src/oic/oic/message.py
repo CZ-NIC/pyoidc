@@ -8,7 +8,6 @@ import six
 from jwkest import jws
 
 from six.moves.urllib.parse import urlparse
-from six import string_types
 from oic.oauth2 import message
 from oic.oauth2 import MissingRequiredValue
 from oic.oauth2 import MissingRequiredAttribute
@@ -107,7 +106,7 @@ def idtoken_deser(val, sformat="urlencoded"):
 
 def address_deser(val, sformat="urlencoded"):
     if sformat in ["dict", "json"]:
-        if not isinstance(val, string_types):
+        if not isinstance(val, six.string_types):
             val = json.dumps(val)
             sformat = "json"
         elif sformat == "dict":
@@ -117,7 +116,7 @@ def address_deser(val, sformat="urlencoded"):
 
 def claims_deser(val, sformat="urlencoded"):
     if sformat in ["dict", "json"]:
-        if not isinstance(val, string_types):
+        if not isinstance(val, six.string_types):
             val = json.dumps(val)
             sformat = "json"
     return Claims().deserialize(val, sformat)
@@ -125,7 +124,7 @@ def claims_deser(val, sformat="urlencoded"):
 
 def message_deser(val, sformat="urlencoded"):
     if sformat in ["dict", "json"]:
-        if not isinstance(val, string_types):
+        if not isinstance(val, six.string_types):
             val = json.dumps(val)
             sformat = "json"
     return Message().deserialize(val, sformat)
@@ -142,7 +141,7 @@ def msg_ser(inst, sformat, lev=0):
             res = inst.serialize(sformat, lev)
         elif isinstance(inst, dict):
             res = inst
-        elif isinstance(inst, string_types):  # Iff ID Token
+        elif isinstance(inst, six.string_types):  # Iff ID Token
             res = inst
         else:
             raise MessageException("Wrong type: %s" % type(inst))
@@ -180,7 +179,7 @@ def msg_list_ser(insts, sformat, lev=0):
 
 def claims_ser(val, sformat="urlencoded", lev=0):
     # everything in c_extension
-    if isinstance(val, string_types):
+    if isinstance(val, six.string_types):
         item = val
     elif isinstance(val, list):
         item = val[0]
@@ -210,7 +209,7 @@ def claims_ser(val, sformat="urlencoded", lev=0):
 
 def registration_request_deser(val, sformat="urlencoded"):
     if sformat in ["dict", "json"]:
-        if not isinstance(val, string_types):
+        if not isinstance(val, six.string_types):
             val = json.dumps(val)
             sformat = "json"
     return RegistrationRequest().deserialize(val, sformat)
@@ -221,7 +220,7 @@ def claims_request_deser(val, sformat="json"):
     if sformat == "urlencoded":
         sformat = "json"
     if sformat in ["dict", "json"]:
-        if not isinstance(val, string_types):
+        if not isinstance(val, six.string_types):
             val = json.dumps(val)
             sformat = "json"
     return ClaimsRequest().deserialize(val, sformat)
@@ -425,7 +424,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
                 pass
 
         if "request" in self:
-            if isinstance(self["request"], string_types):
+            if isinstance(self["request"], six.string_types):
                 # Try to decode the JWT, checks the signature
                 oidr = OpenIDRequest().from_jwt(str(self["request"]), **args)
 
@@ -438,7 +437,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
                 self["request"] = oidr
 
         if "id_token_hint" in self:
-            if isinstance(self["id_token_hint"], string_types):
+            if isinstance(self["id_token_hint"], six.string_types):
                 idt = IdToken().from_jwt(str(self["id_token_hint"]), **args)
                 self["id_token_hint"] = idt
 
