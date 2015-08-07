@@ -2,10 +2,10 @@
 import time
 import logging
 from hashlib import md5
+
 from oic.exception import PyoidcError
 from oic.oauth2.message import AuthorizationRequest, AuthorizationResponse, \
     Message, AccessTokenResponse, AccessTokenRequest
-
 from oic.utils import http_util
 from oic.oauth2 import Client
 from oic.oauth2 import Grant
@@ -32,7 +32,7 @@ def stateID(url, seed):
     ident = md5()
     ident.update(repr(time.time()).encode())
     ident.update(url.encode())
-    ident.update(seed.encode())
+    ident.update(seed)
     return ident.hexdigest()
 
 
@@ -116,7 +116,7 @@ class Consumer(Client):
                 setattr(self, endpoint, None)
 
         self.sdb = session_db
-        self.seed = rndstr()
+        self.seed = rndstr().encode("utf-8")
         self._request = None
 
     def update(self, sid):
