@@ -4,7 +4,7 @@ import logging
 import time
 
 import six
-from six.moves.urllib.parse import parse_qs, urlunsplit, urlsplit, urlencode
+from six.moves.urllib.parse import parse_qs, urlunsplit, urlsplit, urlencode, unquote
 from oic.exception import PyoidcError
 
 from oic.utils import aes
@@ -357,7 +357,7 @@ class BasicAuthn(UserAuthnMethod):
             authorization = authorization[6:]
 
         (user, pwd) = base64.b64decode(authorization).split(":")
-        user = urllib.unquote(user)
+        user = unquote(user)
         self.verify_password(user, pwd)
         return {"uid": user}, time.time()
 
