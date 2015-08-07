@@ -26,7 +26,6 @@ from utils_for_tests import _eq
 
 #noinspection PyUnusedLocal
 def user_info(oicsrv, userdb, sub, client_id="", user_info_claims=None):
-    #print >> sys.stderr, "claims: %s" % user_info_claims
     identity = userdb[sub]
     if user_info_claims:
         result = {}
@@ -101,7 +100,6 @@ def test_1():
                                          "claims_names": ["gender",
                                                           "birthdate"]})
 
-    print req
     assert req.type() == "UserClaimsRequest"
     assert _eq(req.keys(), ['client_secret', 'claims_names', 'sub',
                             'client_id'])
@@ -126,10 +124,9 @@ def test_srv1():
 
     keys = [SYMKey(key="hemlig")]
     cresp = UserClaimsResponse(jwt=info.to_jwt(key=keys, algorithm="HS256"),
-                               claims_names=info.keys())
+                               claims_names=list(info.keys()))
 
-    print cresp
-    assert _eq(cresp.keys(), ["jwt", "claims_names"])
+    assert _eq(list(cresp.keys()), ["jwt", "claims_names"])
     assert _eq(cresp["claims_names"], ['gender', 'birthdate'])
     assert "jwt" in cresp
 
@@ -151,12 +148,9 @@ def test_srv2():
 
     resp = srv.claims_endpoint(req.to_urlencoded(), "")
 
-    print resp.message
-
     ucr = UserClaimsResponse().deserialize(resp.message, "json")
     ucr.verify(keyjar=srv.keyjar)
 
-    print ucr
     assert _eq(ucr["claims_names"], ["gender", "birthdate"])
     assert "jwt" in ucr
 
