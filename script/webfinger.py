@@ -6,4 +6,4 @@ __author__ = 'roland'
 
 wf = WebFinger(OIC_ISSUER)
 wf.httpd = PBase()
-print wf.discovery_query(sys.argv[1])
+print (wf.discovery_query(sys.argv[1]))
