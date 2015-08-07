@@ -2,10 +2,12 @@ import logging
 import os
 
 from jwkest.jwe import JWE
+
 from jwkest import jws
+
 from jwkest import jwe
 
-from six.moves.urllib.parse import urlparse
+from six.moves.urllib.parse import urlparse, parse_qs
 from oic.oauth2.exception import AuthnToOld
 from oic.oauth2.message import ErrorResponse, Message
 from oic.oauth2.util import get_or_post
@@ -784,7 +786,7 @@ class Client(oauth2.Client):
 
         logger.debug("Reponse text: '%s'" % resp.text)
 
-        _txt = resp.text.encode("utf-8")
+        _txt = resp.text
         if sformat == "json":
             res = _schema().from_json(txt=_txt)
         else:
@@ -1144,7 +1146,7 @@ class Client(oauth2.Client):
             (local, domain) = principal.split("@")
             subject = "acct:%s" % principal
         elif idtype == "url":
-            p = urlparse.urlparse(principal)
+            p = urlparse(principal)
             domain = p.netloc
             subject = principal
         else:
@@ -1250,10 +1252,10 @@ class Server(oauth2.Server):
     @staticmethod
     def _parse_urlencoded(url=None, query=None):
         if url:
-            parts = urlparse.urlparse(url)
+            parts = urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]
 
-        return urlparse.parse_qs(query)
+        return parse_qs(query)
 
     def parse_token_request(self, request=AccessTokenRequest,
                             body=None):
@@ -1262,7 +1264,7 @@ class Server(oauth2.Server):
     def parse_authorization_request(self, request=AuthorizationRequest,
                                     url=None, query=None, keys=None):
         if url:
-            parts = urlparse.urlparse(url)
+            parts = urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]
 
         return self._parse_request(request, query, "urlencoded")
@@ -1300,7 +1302,7 @@ class Server(oauth2.Server):
             request = request().from_jwt(data, keyjar=self.keyjar)
         elif sformat == "urlencoded":
             if '?' in data:
-                parts = urlparse.urlparse(data)
+                parts = urlparse(data)
                 scheme, netloc, path, params, query, fragment = parts[:6]
             else:
                 query = data
@@ -1330,7 +1332,7 @@ class Server(oauth2.Server):
 
     def parse_refresh_session_request(self, url=None, query=None):
         if url:
-            parts = urlparse.urlparse(url)
+            parts = urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]
 
         return RefreshSessionRequest().from_urlencoded(query)
@@ -1458,9 +1460,11 @@ class Server(oauth2.Server):
         if extra_claims is not None:
             _args.update(extra_claims)
         if code:
-            _args["c_hash"] = jws.left_hash(code, halg)
+            _args["c_hash"] = jws.left_hash(code.encode("utf-8"), halg).decode(
+                "utf-8")
         if access_token:
-            _args["at_hash"] = jws.left_hash(access_token, halg)
+            _args["at_hash"] = jws.left_hash(access_token.encode("utf-8"),
+                                             halg).decode("utf-8")
 
         # Should better be done elsewhere
         if not issuer.endswith("/"):
