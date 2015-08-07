@@ -1,12 +1,13 @@
 # from Cookie import SimpleCookie
 from six.moves.http_cookies import SimpleCookie
 from six import iteritems
+from six.moves.urllib import parse as urllib
 import json
 import locale
 import os
 from time import sleep, time
 import datetime
-import urllib
+
 
 from mako.lookup import TemplateLookup
 
@@ -167,7 +168,6 @@ def _eq(l1, l2):
     return set(l1) == set(l2)
 
 
-
 class TestOICProvider(object):
     def setup_class(self):
         self.server = Provider("pyoicserv", SessionDB(SERVER_INFO["issuer"]), CDB,
@@ -224,7 +224,6 @@ class TestOICProvider(object):
             pass
         else:
             assert False
-
 
     def test_server_authorization_endpoint_id_token(self):
         bib = {"scope": ["openid"],
@@ -306,7 +305,6 @@ class TestOICProvider(object):
                    ['code', 'tokens', 'id_token', 'exp_in', 'seed',
                     'grant_expiration_time'])
 
-
     def test_server_authenticated_1(self):
         state, location = self.cons.begin("openid", "code", path="http://localhost:8087")
 
@@ -319,7 +317,6 @@ class TestOICProvider(object):
         print(aresp.keys())
         assert aresp.type() == "AuthorizationResponse"
         assert _eq(aresp.keys(), ['code', 'state', 'scope'])
-
 
     def test_server_authenticated_2(self):
         self.server.baseurl = self.server.name
@@ -358,7 +355,6 @@ class TestOICProvider(object):
                    ['nonce', 'c_hash', 'sub', 'iss', 'acr', 'exp', 'auth_time',
                     'iat', 'aud'])
 
-
     def test_server_authenticated_token(self):
         _state, location = self.cons.begin("openid", response_type="token",
                                            path="http://localhost:8087")
@@ -368,7 +364,6 @@ class TestOICProvider(object):
         txt = resp.message
         assert "access_token=" in txt
         assert "token_type=Bearer" in txt
-
 
     def test_server_authenticated_none(self):
         _state, location = self.cons.begin("openid", response_type="none",
@@ -380,7 +375,6 @@ class TestOICProvider(object):
         query_part = resp.message.split("?")[1]
         print(query_part)
         assert "state" in query_part
-
 
     def test_token_endpoint(self):
         authreq = AuthorizationRequest(state="state",
@@ -419,7 +413,6 @@ class TestOICProvider(object):
         assert _eq(atr.keys(), ['token_type', 'id_token', 'access_token', 'scope',
                                 'expires_in', 'refresh_token'])
 
-
     def test_token_endpoint_unauth(self):
         authreq = AuthorizationRequest(state="state",
                                        redirect_uri="http://example.com/authz",
@@ -456,7 +449,6 @@ class TestOICProvider(object):
         print(atr.keys())
         assert _eq(atr.keys(), ['error'])
 
-
     def test_authz_endpoint(self):
         _state, location = self.cons.begin("openid", response_type=["code", "token"],
                                            path="http://localhost:8087")
@@ -464,7 +456,6 @@ class TestOICProvider(object):
         print(resp.message)
         assert "token_type=Bearer" in resp.message
         assert "code=" in resp.message
-
 
     def test_idtoken(self):
         AREQ = AuthorizationRequest(response_type="code", client_id=CLIENT_ID,
@@ -479,7 +470,6 @@ class TestOICProvider(object):
         id_token = self.server.id_token_as_signed_jwt(session)
         print(id_token)
         assert len(id_token.split(".")) == 3
-
 
     def test_idtoken_with_extra_claims(self):
         areq = AuthorizationRequest(response_type="code", client_id=CLIENT_ID,
@@ -591,7 +581,6 @@ class TestOICProvider(object):
         print(resp.message)
         regresp = RegistrationResponse().deserialize(resp.message, "json")
 
-
     def test_provider_key_setup(self):
         provider = Provider("pyoicserv", SessionDB(SERVER_INFO["issuer"]), None,
                             None, None, None, None, "")
@@ -659,7 +648,6 @@ class TestOICProvider(object):
                 print(err)
                 assert False
 
-
     def test_registered_redirect_uri_with_query_component(self):
         provider2 = Provider("FOOP", {}, {}, None, None, None, None, "")
 
@@ -709,7 +697,6 @@ class TestOICProvider(object):
             print(resp)
             assert resp is None
 
-
     def test_key_rollover(self):
         provider2 = Provider("FOOP", {}, {}, None, None, None, None, "")
         provider2.keyjar = KEYJAR
@@ -727,7 +714,6 @@ class TestOICProvider(object):
         provider2.remove_inactive_keys(0)
         assert len(provider2.keyjar.issuer_keys[""]) == 2
 
-
     def test_endsession_endpoint(self):
         resp = self.server.endsession_endpoint("")
         self._assert_cookies_expired(resp.headers)
@@ -736,106 +722,92 @@ class TestOICProvider(object):
         resp = self.server.endsession_endpoint("", cookie="FAIL")
         assert resp.status == "400 Bad Request"
 
-#     def test_endsession_endpoint_with_id_token_hint(self):
-#         id_token = self._auth_with_id_token()
-#         assert self.server.sdb.get_sids_by_sub(id_token["sub"])  # verify we got valid session
-#
-#         id_token_hint = id_token.to_jwt(algorithm="none")
-#         resp = self.server.endsession_endpoint(urllib.urlencode({"id_token_hint": id_token_hint}))
-#         assert not self.server.sdb.get_sids_by_sub(id_token["sub"])  # verify session has been removed
-#         self._assert_cookies_expired(resp.headers)
-#
-#     def test_endsession_endpoint_with_post_logout_redirect_uri(self):
-#         id_token = self._auth_with_id_token()
-#         assert self.server.sdb.get_sids_by_sub(id_token["sub"])  # verify we got valid session
-#
-#         post_logout_redirect_uri = CDB[CLIENT_CONFIG["client_id"]]["post_logout_redirect_uris"][0][0]
-#         resp = self.server.endsession_endpoint(urllib.urlencode({"post_logout_redirect_uri": post_logout_redirect_uri}))
-#         assert isinstance(resp, Redirect)
-#         assert not self.server.sdb.get_sids_by_sub(id_token["sub"])  # verify session has been removed
-#         self._assert_cookies_expired(resp.headers)
-#
-#     def _assert_cookies_expired(self, http_headers):
-#         cookies_string = ";".join([c[1] for c in http_headers if c[0] == "Set-Cookie"])
-#         all_cookies = SimpleCookie()
-#         all_cookies.load(cookies_string)
-#
-#         loc = locale.getlocale()
-#         locale.setlocale(locale.LC_ALL, 'C')  # strptime depends on locale, use default (C) locale
-#
-#         now = datetime.datetime.now()
-#         for c in [self.server.cookie_name, self.server.session_cookie_name]:
-#             dt = datetime.datetime.strptime(all_cookies[c]["expires"], "%a, %d-%b-%Y %H:%M:%S GMT")
-#             assert dt < now  # make sure the cookies have expired to be cleared
-#
-#         locale.setlocale(locale.LC_ALL, loc)  # restore saved locale
-#
-#     def _auth_with_id_token(self):
-#         state, location = self.cons.begin("openid", "id_token", path="http://localhost:8087")
-#         resp = self.server.authorization_endpoint(request=location.split("?")[1])
-#         aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
-#                                          sformat="urlencoded")
-#         return aresp["id_token"]
-#
-#     def test_session_state_in_auth_req(self):
-#         p = Provider("foo", SessionDB(SERVER_INFO["issuer"]), CDB,
-#                      AUTHN_BROKER, USERINFO,
-#                      AUTHZ, verify_client, SYMKEY, urlmap=URLMAP,
-#                      keyjar=KEYJAR, capabilities={"check_session_iframe": "https://op.example.com/check_session"})
-#
-#         req_args = {"scope": ["openid"],
-#                "redirect_uri": "http://localhost:8087/authz",
-#                "response_type": ["code"],
-#                "client_id": "a1b2c3"
-#         }
-#         areq = AuthorizationRequest(**req_args)
-#         resp = p.authorization_endpoint(request=areq.to_urlencoded())
-#         aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
-#                                          sformat="urlencoded")
-#         assert "session_state" in aresp
-#
-#     def test_sign_enc_request(self):
-#         cli = Client()
-#         cli.redirect_uris = ["http://www.example.org/authz"]
-#         cli.client_id = "client_1"
-#
-#         for kb in self.server.keyjar.issuer_keys[""]:
-#             _jwks = kb.jwks()
-#             _keys = [k for k in json.loads(_jwks)["keys"]
-#                      if k["use"] in ["ver"]]
-#             _kb = KeyBundle(_keys)
-#             cli.keyjar.add_kb(self.server.name, _kb)
-#
-#         _kb = keybundle_from_local_file("%s/rsa.pub" % BASE_PATH, "RSA", ["enc"])
-#         cli.keyjar.add_kb(self.server.name, _kb)
-#
-#         request_args = {"redirect_uri": cli.redirect_uris[0],
-#                         "client_id": cli.client_id,
-#                         "scope": "openid",
-#                         "response_type": "code"}
-#
-#         kwargs = {"request_object_signing_alg": "none",
-#                   "request_object_encryption_alg": "RSA1_5",
-#                   "request_object_encryption_enc": "A128CBC-HS256",
-#                   "request_method": "parameter",
-#                   "target": self.server.name}
-#
-#         areq = cli.construct_AuthorizationRequest(request_args=request_args,
-#                                                   **kwargs)
-#
-#         assert areq
-#         assert areq["request"]
-#
-# if __name__ == "__main__":
-#     t = TestOICProvider()
-#     t.setup_class()
-#     t.test_registration_endpoint_2()
+    def test_endsession_endpoint_with_id_token_hint(self):
+        id_token = self._auth_with_id_token()
+        assert self.server.sdb.get_sids_by_sub(id_token["sub"])  # verify we got valid session
 
+        id_token_hint = id_token.to_jwt(algorithm="none")
+        resp = self.server.endsession_endpoint(urllib.urlencode({"id_token_hint": id_token_hint}))
+        assert not self.server.sdb.get_sids_by_sub(id_token["sub"])  # verify session has been removed
+        self._assert_cookies_expired(resp.headers)
 
-t = TestOICProvider()
-t.setup_class()
-t.test_server_authorization_endpoint_request()
-t.test_server_authorization_endpoint_id_token()
-t.test_server_authenticated()
-t.test_registration_endpoint()
-t.test_endsession_endpoint()
+    def test_endsession_endpoint_with_post_logout_redirect_uri(self):
+        id_token = self._auth_with_id_token()
+        assert self.server.sdb.get_sids_by_sub(id_token["sub"])  # verify we got valid session
+
+        post_logout_redirect_uri = CDB[CLIENT_CONFIG["client_id"]]["post_logout_redirect_uris"][0][0]
+        resp = self.server.endsession_endpoint(urllib.urlencode({"post_logout_redirect_uri": post_logout_redirect_uri}))
+        assert isinstance(resp, Redirect)
+        assert not self.server.sdb.get_sids_by_sub(id_token["sub"])  # verify session has been removed
+        self._assert_cookies_expired(resp.headers)
+
+    def _assert_cookies_expired(self, http_headers):
+        cookies_string = ";".join([c[1] for c in http_headers if c[0] == "Set-Cookie"])
+        all_cookies = SimpleCookie()
+        all_cookies.load(cookies_string)
+
+        now = datetime.datetime.now()
+        for c in [self.server.cookie_name, self.server.session_cookie_name]:
+            dt = datetime.datetime.strptime(all_cookies[c]["expires"], "%a, %d-%b-%Y %H:%M:%S GMT")
+            assert dt < now  # make sure the cookies have expired to be cleared
+
+    def _auth_with_id_token(self):
+        state, location = self.cons.begin("openid", "id_token", path="http://localhost:8087")
+        resp = self.server.authorization_endpoint(request=location.split("?")[1])
+        aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
+                                         sformat="urlencoded")
+        return aresp["id_token"]
+
+    def test_session_state_in_auth_req(self):
+        p = Provider("foo", SessionDB(SERVER_INFO["issuer"]), CDB,
+                     AUTHN_BROKER, USERINFO,
+                     AUTHZ, verify_client, SYMKEY, urlmap=URLMAP,
+                     keyjar=KEYJAR, capabilities={"check_session_iframe": "https://op.example.com/check_session"})
+
+        req_args = {"scope": ["openid"],
+               "redirect_uri": "http://localhost:8087/authz",
+               "response_type": ["code"],
+               "client_id": "a1b2c3"
+        }
+        areq = AuthorizationRequest(**req_args)
+        resp = p.authorization_endpoint(request=areq.to_urlencoded())
+        aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
+                                         sformat="urlencoded")
+        assert "session_state" in aresp
+
+    def test_sign_enc_request(self):
+        cli = Client()
+        cli.redirect_uris = ["http://www.example.org/authz"]
+        cli.client_id = "client_1"
+
+        for kb in self.server.keyjar.issuer_keys[""]:
+            _jwks = kb.jwks()
+            _keys = [k for k in json.loads(_jwks)["keys"]
+                     if k["use"] in ["ver"]]
+            _kb = KeyBundle(_keys)
+            cli.keyjar.add_kb(self.server.name, _kb)
+
+        _kb = keybundle_from_local_file("%s/rsa.pub" % BASE_PATH, "RSA", ["enc"])
+        cli.keyjar.add_kb(self.server.name, _kb)
+
+        request_args = {"redirect_uri": cli.redirect_uris[0],
+                        "client_id": cli.client_id,
+                        "scope": "openid",
+                        "response_type": "code"}
+
+        kwargs = {"request_object_signing_alg": "none",
+                  "request_object_encryption_alg": "RSA1_5",
+                  "request_object_encryption_enc": "A128CBC-HS256",
+                  "request_method": "parameter",
+                  "target": self.server.name}
+
+        areq = cli.construct_AuthorizationRequest(request_args=request_args,
+                                                  **kwargs)
+
+        assert areq
+        assert areq["request"]
+
+if __name__ == "__main__":
+    t = TestOICProvider()
+    t.setup_class()
+    t.test_registration_endpoint_2()
