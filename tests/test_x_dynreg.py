@@ -267,8 +267,6 @@ def test_client_registration_update():
 
     _resp_up = ClientInfoResponse().from_json(resp.message)
 
-    print _resp_up
-
 
 def test_client_registration_delete():
     args = {
