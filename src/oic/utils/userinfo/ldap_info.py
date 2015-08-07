@@ -78,7 +78,7 @@ class UserInfoLDAP(UserInfo):
                         except KeyError:
                             avaspec[attr] = [val]
 
-                _attr.extend(avaspec.keys())
+                _attr.extend(list(avaspec.keys()))
 
         arg = [self.base, self.scope, _filter, _attr, self.attrsonly]
         try:
