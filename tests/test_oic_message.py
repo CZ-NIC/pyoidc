@@ -100,16 +100,14 @@ def test_example_response():
     }
 
     pcr = ProviderConfigurationResponse().deserialize(json.dumps(resp), "json")
-    rk = resp.keys()
+    rk = list(resp.keys())
     # parameters with default value if missing
     rk.extend(["grant_types_supported", "request_parameter_supported",
                "request_uri_parameter_supported",
                "require_request_uri_registration"])
     rk.sort()
-    pk = pcr.keys()
+    pk = list(pcr.keys())
     pk.sort()
-    print rk
-    print pk
     assert _eq(pk, rk)
 
 
@@ -175,7 +173,6 @@ def test_authz_request():
     req = AuthorizationRequest().deserialize(example.split("?")[1],
                                              "urlencoded")
 
-    print req.keys()
     assert _eq(req.keys(), ['nonce', 'state', 'redirect_uri', 'response_type',
                             'client_id', 'scope'])
 
