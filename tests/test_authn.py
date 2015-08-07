@@ -1,7 +1,7 @@
 import json
 import os
-import urllib
-from urlparse import parse_qs
+from six.moves.urllib.parse import parse_qs
+from six.moves.urllib.parse import urlencode
 import jwkest
 from jwkest.jwk import SYMKey
 from jwkest.jws import JWS
@@ -43,7 +43,7 @@ def create_return_form_env(user, password, query):
         "query": query
     }
 
-    return urllib.urlencode(_dict)
+    return urlencode(_dict)
 
 
 class SRV(object):
@@ -61,7 +61,6 @@ def test_2():
     authn = UsernamePasswordMako(None, "login.mako", tl, PASSWD,
                                  "authorization_endpoint")
     resp = authn(query="QUERY")
-    print resp.message
     assert 'name="query" value="QUERY"' in resp.message
     assert 'name="login" value=""' in resp.message
 
@@ -80,7 +79,6 @@ def test_3():
     url_in_response_msg = URLObject.create(response.message)
     expected_url_obj = URLObject.create("authorization_endpoint?query=foo&upm_answer=true")
     assert url_in_response_msg == expected_url_obj
-    print len(response.headers) == 2
     flag = 0
     for param, val in response.headers:
         if param == "Set-Cookie":
@@ -112,7 +110,7 @@ def test_3():
 #     print authn.active
 #     user = authn.authenticated_as(kaka)
 #     assert user == {"uid": "user"}
-
+#
 
 def test_5():
     form = create_return_form_env("user", "hemligt", "QUERY")
@@ -163,14 +161,12 @@ def test_client_secret_jwt():
     cis = AccessTokenRequest()
 
     http_args = csj.construct(cis, algorithm="HS256")
-    print http_args
     assert cis["client_assertion_type"] == JWT_BEARER
     assert "client_assertion" in cis
     cas = cis["client_assertion"]
     _jwt = JWT().unpack(cas)
-    jso = json.loads(_jwt.part[1])
+    jso = _jwt.payload()
     assert _eq(jso.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
-    print _jwt.headers
     assert _jwt.headers == {'alg': 'HS256'}
 
     _rj = JWS()
@@ -190,9 +186,8 @@ def test_private_key_jwt():
     assert http_args == {}
     cas = cis["client_assertion"]
     _jwt = JWT().unpack(cas)
-    jso = json.loads(_jwt.part[1])
+    jso = _jwt.payload()
     assert _eq(jso.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
-    print _jwt.headers
     assert _jwt.headers == {'alg': 'RS256'}
 
 if __name__ == "__main__":

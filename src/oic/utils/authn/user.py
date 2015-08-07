@@ -3,6 +3,7 @@ import base64
 import logging
 import time
 
+import six
 from six.moves.urllib.parse import parse_qs, urlunsplit, urlsplit, urlencode
 from oic.exception import PyoidcError
 
@@ -161,7 +162,7 @@ def create_return_url(base, query, **kwargs):
 
     for key, values in parse_qs(query).items():
         if key in kwargs:
-            if isinstance(kwargs[key], basestring):
+            if isinstance(kwargs[key], six.string_types):
                 kwargs[key] = [kwargs[key]]
             kwargs[key].extend(values)
         else:
@@ -170,7 +171,7 @@ def create_return_url(base, query, **kwargs):
     if part.query:
         for key, values in parse_qs(part.query).items():
             if key in kwargs:
-                if isinstance(kwargs[key], basestring):
+                if isinstance(kwargs[key], six.string_types):
                     kwargs[key] = [kwargs[key]]
                 kwargs[key].extend(values)
             else:
@@ -273,7 +274,7 @@ class UsernamePasswordMako(UserAuthnMethod):
         argv = self.templ_arg_func(end_point_index, **kwargs)
         logger.info("do_authentication argv: %s" % argv)
         mte = self.template_lookup.get_template(self.mako_template)
-        resp.message = mte.render(**argv)
+        resp.message = mte.render(**argv).decode("utf-8")
         return resp
 
     def _verify(self, pwd, user):
@@ -290,7 +291,7 @@ class UsernamePasswordMako(UserAuthnMethod):
         """
 
         logger.debug("verify(%s)" % request)
-        if isinstance(request, basestring):
+        if isinstance(request, six.string_types):
             _dict = parse_qs(request)
         elif isinstance(request, dict):
             _dict = request
