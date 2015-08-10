@@ -1,12 +1,12 @@
-import json
 import os
-from six.moves.urllib.parse import parse_qs
-from six.moves.urllib.parse import urlencode
-import jwkest
+
 from jwkest.jwk import SYMKey
 from jwkest.jws import JWS
 from jwkest.jwt import JWT
 from mako.lookup import TemplateLookup
+
+from six.moves.urllib.parse import parse_qs
+from six.moves.urllib.parse import urlencode
 from oic.oic import JWT_BEARER
 from oic.utils.authn.client import ClientSecretJWT
 from oic.utils.authn.client import PrivateKeyJWT
@@ -27,7 +27,6 @@ BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 ROOT = '%s/../oidc_example/op2/' % BASE_PATH
 tl = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
-                    module_directory=ROOT + 'modules',
                     input_encoding='utf-8', output_encoding='utf-8')
 
 _key = rsa_load("%s/rsa.key" % BASE_PATH)

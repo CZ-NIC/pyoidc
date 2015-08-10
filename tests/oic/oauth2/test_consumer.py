@@ -1,4 +1,3 @@
-from pytest import raises
 import pytest
 
 from six.moves.urllib.parse import urlencode
@@ -25,10 +24,8 @@ CLIENT_CONFIG = {
 CONSUMER_CONFIG = {
     "authz_page": "/authz",
     "flow_type": "code",
-    # "password": args.passwd,
     "scope": ["openid"],
     "response_type": "code",
-    # "expire_in": 600,
 }
 
 SERVER_INFO = {
@@ -36,13 +33,7 @@ SERVER_INFO = {
     "issuer": "https://connect-op.heroku.com",
     "authorization_endpoint": "http://localhost:8088/authorization",
     "token_endpoint": "http://localhost:8088/token",
-    # "userinfo_endpoint":"http://localhost:8088/user_info",
-    # "check_id_endpoint":"http://localhost:8088/id_token",
-    # "registration_endpoint":"https://connect-op.heroku.com/connect/client",
-    # "scopes_supported":["openid","profile","email","address","PPID"],
     "flows_supported": ["code", "token", "code token"],
-    # "identifiers_supported":["public","ppid"],
-    # "x509_url":"https://connect-op.heroku.com/cert.pem"
 }
 
 BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',
@@ -55,7 +46,6 @@ BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',
                 'PATH_INFO': '/register',
                 'HTTP_HOST': 'localhost:8087',
                 'HTTP_ACCEPT': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-
                 'HTTP_ACCEPT_LANGUAGE': 'sv-se',
                 'CONTENT_TYPE': 'text/plain',
                 'REMOTE_HOST': '1.0.0.127.in-addr.arpa',
@@ -126,7 +116,7 @@ class TestConsumer(object):
         url = "http://localhost:8088/authorization?{}".format(urlencode(params))
         assert url_compare(loc, url)
 
-    def test_chandle_authorization_response(self):
+    def test_handle_authorization_response(self):
         sid, loc = self.consumer.begin("http://localhost:8087",
                                        "http://localhost:8088/authorization")
 
