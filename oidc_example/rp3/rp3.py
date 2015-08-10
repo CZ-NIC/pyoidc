@@ -233,7 +233,7 @@ if __name__ == '__main__':
                                             in conf.ME[
             "post_logout_redirect_uris"]]
 
-    for client, client_conf in six.iteritems(conf.CLIENTS.):
+    for client, client_conf in six.iteritems(conf.CLIENTS):
         if "client_registration" in client_conf:
             client_reg = client_conf["client_registration"]
             client_reg["redirect_uris"] = [url.format(base=conf.BASE) for url in
@@ -264,7 +264,7 @@ if __name__ == '__main__':
             conf.SERVER_CERT, conf.SERVER_KEY, conf.CA_BUNDLE)
 
     LOGGER.info("RP server starting listening on port:%s" % args.port)
-    print "RP server starting listening on port:%s" % args.port
+    print ("RP server starting listening on port:%s" % args.port)
     try:
         SRV.start()
     except KeyboardInterrupt:
