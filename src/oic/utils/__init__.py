@@ -1,8 +1,9 @@
 # Useful utilities
-__author__ = 'rohe0002'
 
 import sys
 import traceback
+
+__author__ = 'rohe0002'
 
 
 def exception_trace(tag, exc, log=None):
@@ -13,6 +14,7 @@ def exception_trace(tag, exc, log=None):
     else:
         print >> sys.stderr, "[%s] ExcList: %s" % (tag, "".join(message),)
         print >> sys.stderr, "[%s] Exception: %s" % (tag, exc)
+
 
 def to_unicode(b):
     """

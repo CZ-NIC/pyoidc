@@ -1,31 +1,24 @@
 #!/usr/bin/env python
 import logging
-
-__author__ = 'rohe0002'
-
 import time
 import os.path
-
 from hashlib import md5
 
 from oic.exception import PyoidcError
 from oic.utils import http_util
-
 from oic.oic import Client
 from oic.oic import ENDPOINTS
-
 from oic.oic.message import Claims, ClaimsRequest
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import AccessTokenResponse
-
 from oic.oauth2 import Grant
 from oic.oauth2 import rndstr
-
 from oic.oauth2.consumer import TokenError
 from oic.oauth2.consumer import AuthzError
 from oic.oauth2.consumer import UnknownState
 
+__author__ = 'rohe0002'
 
 logger = logging.getLogger(__name__)
 
@@ -334,7 +327,7 @@ class Consumer(Client):
         self.redirect_uris = [self.sdb[_state]["redirect_uris"]]
         return aresp, _state
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def parse_authz(self, query="", **kwargs):
         """
         This is where we get redirect back to after authorization at the
@@ -424,7 +417,7 @@ class Consumer(Client):
         if resp.type() == "ErrorResponse":
             raise TokenError(resp.error, resp)
 
-        #self._backup(self.sdb["seed:%s" % _cli.seed])
+        # self._backup(self.sdb["seed:%s" % _cli.seed])
         self._backup(state)
 
         return resp
@@ -432,7 +425,7 @@ class Consumer(Client):
     def refresh_token(self):
         pass
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def get_user_info(self, state):
         uinfo = self.do_user_info_request(state=state, schema="openid")
 
