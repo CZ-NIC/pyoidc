@@ -1460,11 +1460,10 @@ class Server(oauth2.Server):
         if extra_claims is not None:
             _args.update(extra_claims)
         if code:
-            _args["c_hash"] = jws.left_hash(code.encode("utf-8"), halg).decode(
-                "utf-8")
+            _args["c_hash"] = jws.left_hash(code.encode("utf-8"), halg)
         if access_token:
             _args["at_hash"] = jws.left_hash(access_token.encode("utf-8"),
-                                             halg).decode("utf-8")
+                                             halg)
 
         # Should better be done elsewhere
         if not issuer.endswith("/"):

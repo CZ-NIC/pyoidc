@@ -211,7 +211,7 @@ def _expiration(timeout, time_format=None):
 
 def cookie_signature(seed, *parts):
     """Generates a cookie signature."""
-    sha1 = hmac.new(seed.encode("utf-8"), digestmod=hashlib.sha1)
+    sha1 = hmac.new(seed, digestmod=hashlib.sha1)
     for part in parts:
         if part:
             sha1.update(part)

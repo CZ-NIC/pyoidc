@@ -81,7 +81,7 @@ def do_authorization(user):
 
 def secret(seed, sid):
     msg = "{}{:.6f}{}".format(time.time(), random.random(), sid).encode("utf-8")
-    csum = hmac.new(seed.encode("utf-8"), msg, hashlib.sha224)
+    csum = hmac.new(seed, msg, hashlib.sha224)
     return csum.hexdigest()
 
 
@@ -202,7 +202,7 @@ class Provider(AProvider):
         self.cert_encryption = []
 
         self.cookie_name = "pyoidc"
-        self.seed = ""
+        self.seed = b""
         self.sso_ttl = 0
         self.test_mode = False
 
