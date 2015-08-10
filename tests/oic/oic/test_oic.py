@@ -167,8 +167,7 @@ class TestOICClient(object):
         alg = "RS256"
         ktyp = alg2keytype(alg)
         _sign_key = self.client.keyjar.get_signing_key(ktyp)
-        args = {"id_token": IDTOKEN.to_jwt(key=_sign_key, algorithm=alg).decode(
-            "utf-8")}
+        args = {"id_token": IDTOKEN.to_jwt(key=_sign_key, algorithm=alg)}
         resp = self.client.do_check_session_request(request_args=args)
 
         assert resp.type() == "IdToken"
@@ -183,8 +182,7 @@ class TestOICClient(object):
         alg = "RS256"
         ktyp = alg2keytype(alg)
         _sign_key = self.client.keyjar.get_signing_key(ktyp)
-        args = {"id_token": IDTOKEN.to_jwt(key=_sign_key, algorithm=alg).decode(
-            "utf-8"),
+        args = {"id_token": IDTOKEN.to_jwt(key=_sign_key, algorithm=alg),
             "redirect_url": "http://example.com/end"}
 
         resp = self.client.do_end_session_request(request_args=args,
@@ -536,7 +534,7 @@ class TestServer(object):
     def test_parse_check_session_request(self):
         csreq = CheckSessionRequest(
             id_token=IDTOKEN.to_jwt(key=KC_SYM_S.get(alg2keytype("HS256")),
-                                    algorithm="HS256").decode("utf-8"))
+                                    algorithm="HS256"))
         request = self.srv.parse_check_session_request(
             query=csreq.to_urlencoded())
         assert request.type() == "IdToken"
@@ -546,7 +544,7 @@ class TestServer(object):
     def test_parse_end_session_request(self):
         esreq = EndSessionRequest(
             id_token=IDTOKEN.to_jwt(key=KC_SYM_S.get(alg2keytype("HS256")),
-                                    algorithm="HS256").decode("utf-8"),
+                                    algorithm="HS256"),
             redirect_url="http://example.org/jqauthz",
             state="state0")
 
@@ -600,13 +598,13 @@ class TestServer(object):
         algo = "RS256"
         ckey = self.srv.keyjar.get_signing_key(alg2keytype(algo),
                                                session["client_id"])
-        _signed_jwt = _idt.to_jwt(key=ckey, algorithm="RS256").decode("utf-8")
+        _signed_jwt = _idt.to_jwt(key=ckey, algorithm="RS256")
 
         idt = IdToken().from_jwt(_signed_jwt, keyjar=self.srv.keyjar)
         _jwt = JWT().unpack(_signed_jwt)
 
         lha = left_hash(code.encode("utf-8"),
-                        func="HS" + _jwt.headers["alg"][-3:]).decode("utf-8")
+                        func="HS" + _jwt.headers["alg"][-3:])
         assert lha == idt["c_hash"]
 
         atr = AccessTokenResponse(id_token=_signed_jwt,

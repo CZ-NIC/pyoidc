@@ -156,7 +156,7 @@ class Provider(object):
         self.authz = authz
         self.client_authn = client_authn
         self.symkey = symkey
-        self.seed = rndstr()
+        self.seed = rndstr().encode("utf-8")
         self.iv = iv or os.urandom(16)
         self.cookie_name = "pyoidc"
         self.default_scope = default_scope
@@ -795,7 +795,7 @@ class Provider(object):
         return make_cookie(self.session_cookie_name, value, self.seed, path="/")
 
     def delete_session_cookie(self):
-        return make_cookie(self.session_cookie_name, "", "", path="/",
+        return make_cookie(self.session_cookie_name, "", b"", path="/",
                            expire=-1)
 
     def _compute_session_state(self, state, salt, client_id, redirect_uri):
