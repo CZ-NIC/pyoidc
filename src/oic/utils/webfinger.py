@@ -6,12 +6,11 @@ from oic.exception import PyoidcError
 import requests
 
 try:
-    from urllib.parse import urlencode
-    from urllib.parse import urlparse
     from past.builtins import basestring
 except ImportError:
-    from urllib import urlencode
-    import urlparse
+    pass
+
+from six.moves.urllib.parse import urlencode, urlparse
 
 from oic.utils.time_util import in_a_while
 
