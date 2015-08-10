@@ -11,6 +11,7 @@ from jwkest.jws import left_hash
 
 from jwkest.jws import alg2keytype
 
+from six.moves.urllib.parse import urlparse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.oic import Grant, DEF_SIGN_ALG
 from oic.oic import Token
@@ -75,16 +76,25 @@ class TestOICClient(object):
         mfos.keyjar = KEYJ
         self.client.http_request = mfos.http_request
 
-    @pytest.mark.xfail
     def test_construct_authz_req_with_request_object(self):
         request_uri_args = {
             "local_dir": "/tmp",
-            "base_path": "http://example.com/requests/"
+            "base_path": "http://example.com/"
         }
         areq = self.client.construct_AuthorizationRequest(request_method="file",
                                                           **request_uri_args)
-        assert False
-        # print(areq)
+        p = urlparse(areq["request_uri"])
+        local_path = os.path.join("/tmp/", p.path.lstrip("/"))
+        with open(local_path) as f:
+            data = f.read()
+        jwt = JWT().unpack(data)
+        payload = jwt.payload()
+
+        assert payload["redirect_uri"] == "http://example.com/redirect"
+        assert payload["client_id"] == CLIENT_ID
+        assert "nonce" in payload
+
+        os.remove(local_path)
 
     def test_construct_authz_req_nonce_for_token(self):
         assert "nonce" in self.client.construct_AuthorizationRequest(
