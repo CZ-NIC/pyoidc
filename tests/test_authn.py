@@ -69,7 +69,7 @@ def test_3():
     form = create_return_form_env("user", "hemligt", "query=foo")
     srv = SRV()
     srv.symkey = rndstr(16)
-    srv.seed = rndstr()
+    srv.seed = rndstr().encode("utf-8")
     srv.iv = os.urandom(16)
     srv.cookie_name = "xyzxyz"
 
@@ -116,7 +116,7 @@ def test_5():
     form = create_return_form_env("user", "hemligt", "QUERY")
     srv = SRV()
     srv.symkey = rndstr(16)
-    srv.seed = rndstr()
+    srv.seed = rndstr().encode("utf-8")
     srv.iv = os.urandom(16)
     srv.cookie_name = "xyzxyz"
 

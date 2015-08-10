@@ -239,7 +239,7 @@ class TestClient(object):
         grant.add_code(resp)
 
         self.client.grant["state"] = grant
-        assert self.cli.grant_from_state("state").code == "code"
+        assert self.client.grant_from_state("state").code == "code"
 
     def test_construct_access_token_req_with_extra_args(self):
         query = "code=SplxlOBeZQQYbYS6WxSbIA&state=abc"
