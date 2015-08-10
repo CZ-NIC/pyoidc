@@ -233,6 +233,14 @@ class TestClient(object):
     def test_return_non_existant_grant(self):
         assert self.client.grant_from_state("123456abcdef") is None
 
+    def test_get_grant(self):
+        resp = AuthorizationResponse(code="code", state="state")
+        grant = Grant()
+        grant.add_code(resp)
+
+        self.client.grant["state"] = grant
+        assert self.cli.grant_from_state("state").code == "code"
+
     def test_construct_access_token_req_with_extra_args(self):
         query = "code=SplxlOBeZQQYbYS6WxSbIA&state=abc"
         self.client.parse_response(AuthorizationResponse,
