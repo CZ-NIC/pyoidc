@@ -537,6 +537,14 @@ class Message(object):
                                                              jso["iss"])
                                 if _key:
                                     key.append(_key)
+                                else:
+                                    # kid was unknown, try getting updated keys
+                                    for kb in keyjar[jso["iss"]]:
+                                        kb.update()
+                                    _key = keyjar.get_key_by_kid(_header["kid"],
+                                                                 jso["iss"])
+                                    if _key:
+                                        key.append(_key)
                             except KeyError:
                                 pass
 
