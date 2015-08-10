@@ -134,28 +134,25 @@ class TestOICConsumer():
 
     def test_backup_keys(self):
         keys = self.consumer.__dict__.keys()
-        print keys
         _dict = self.consumer.dictionary()
-        print _dict.keys()
         dkeys = [key for key in keys if key not in _dict.keys()]
-        print dkeys
         assert _eq(dkeys, IGNORE)
 
     def test_backup_restore(self):
-        _dict = self.consumer.__dict__.items()
+        _dict = list(self.consumer.__dict__.items())
 
         self.consumer._backup("sid")
         self.consumer.restore("sid")
 
-        assert _dict == self.consumer.__dict__.items()
+        assert _dict == list(self.consumer.__dict__.items())
 
         self.consumer.authorization_endpoint = AUTHZ_URL
 
-        assert _dict != self.consumer.__dict__.items()
+        assert _dict != list(self.consumer.__dict__.items())
 
         self.consumer.restore("sid")
 
-        assert _dict == self.consumer.__dict__.items()
+        assert _dict == list(self.consumer.__dict__.items())
 
     def test_backup_restore_update(self):
         self.consumer.authorization_endpoint = AUTHZ_URL
@@ -186,12 +183,8 @@ class TestOICConsumer():
 
         srv = Server()
         srv.keyjar = SRVKEYS
-        print "redirect_uris", self.consumer.redirect_uris
-        print "config", self.consumer.config
         sid, location = self.consumer.begin("openid", "code")
-        print location
         authreq = srv.parse_authorization_request(url=location)
-        print authreq.keys()
         assert _eq(authreq.keys(), ['request', 'state', 'max_age', 'claims',
                                     'response_type', 'client_id', 'scope',
                                     'redirect_uri'])
@@ -211,10 +204,8 @@ class TestOICConsumer():
 
         sid, location = self.consumer.begin("openid", "code",
                                             path="http://localhost:8087")
-        print location
         # vkeys = {".":srv.keyjar.get_verify_key()}
         authreq = srv.parse_authorization_request(url=location)
-        print authreq.keys()
         assert _eq(authreq.keys(), ['max_age', 'state', 'redirect_uri',
                                     'response_type', 'client_id', 'scope',
                                     'claims', 'request_uri'])
@@ -243,8 +234,6 @@ class TestOICConsumer():
         result = self.consumer.do_authorization_request(
             state=_state, request_args=args)
         assert result.status_code == 302
-        print "redirect_uris", self.consumer.redirect_uris
-        print result.headers["location"]
 
         assert result.headers["location"].startswith(
             self.consumer.redirect_uris[0])
@@ -256,9 +245,7 @@ class TestOICConsumer():
                                      sformat="urlencoded")
 
         resp = self.consumer.complete(_state)
-        print resp
         assert resp.type() == "AccessTokenResponse"
-        print resp.keys()
         assert _eq(resp.keys(), ['token_type', 'state', 'access_token',
                                  'scope', 'expires_in', 'refresh_token'])
 
@@ -280,9 +267,7 @@ class TestOICConsumer():
         result = self.consumer.do_authorization_request(
             state=_state, request_args=args)
 
-        print self.consumer.sdb["state0"].keys()
         part = self.consumer.parse_authz(query=result.headers["location"])
-        print part
         atr = part[0]
         assert part[1] is None
         assert part[2] is None
@@ -309,7 +294,6 @@ class TestOICConsumer():
             state=_state, request_args=args)
 
         part = self.consumer.parse_authz(query=result.headers["location"])
-        print part
         assert part[0] is None
         atr = part[1]
         assert part[2] is None
@@ -348,9 +332,7 @@ def test_complete_secret_auth():
                             sformat="urlencoded")
 
     resp = consumer.complete(_state)
-    print resp
     assert resp.type() == "AccessTokenResponse"
-    print resp.keys()
     assert _eq(resp.keys(), ['token_type', 'state', 'access_token',
                              'scope', 'expires_in', 'refresh_token'])
 
@@ -383,18 +365,13 @@ def test_complete_auth_token():
     assert result.status_code == 302
     # assert result.location.startswith(consumer.redirect_uri[0])
     _, query = result.headers["location"].split("?")
-    print query
     part = consumer.parse_authz(query=query)
-    print part
     auth = part[0]
     acc = part[1]
     assert part[2] is None
 
-    #print auth.dictionary()
-    #print acc.dictionary()
     assert auth.type() == "AuthorizationResponse"
     assert acc.type() == "AccessTokenResponse"
-    print auth.keys()
     assert _eq(auth.keys(), ['code', 'access_token', 'expires_in',
                              'token_type', 'state', 'scope', 'refresh_token'])
     assert _eq(acc.keys(), ['token_type', 'state', 'access_token', 'scope',
@@ -433,17 +410,12 @@ def test_complete_auth_token_idtoken():
     assert result.status_code == 302
     #assert result.location.startswith(consumer.redirect_uri[0])
     _, query = result.headers["location"].split("?")
-    print query
     part = consumer.parse_authz(query=query,
                                 algs=consumer.sign_enc_algs("id_token"))
-    print part
     auth = part[0]
     atr = part[1]
     assert part[2] is None
 
-
-    #print auth.dictionary()
-    #print acc.dictionary()
     assert auth is None
     assert atr.type() == "AccessTokenResponse"
     assert _eq(atr.keys(), ['access_token', 'id_token', 'expires_in',
@@ -484,7 +456,6 @@ def test_userinfo():
     consumer.complete(_state)
 
     result = consumer.get_user_info(_state)
-    print result
     assert result.type() == "OpenIDSchema"
     assert _eq(result.keys(), ['name', 'email', 'verified', 'nickname', 'sub'])
 
@@ -518,7 +489,6 @@ def test_sign_userinfo():
     }
 
     sid, location = consumer.begin("openid", "code")
-    print location
 
     result = consumer.do_authorization_request(state=_state,
                                                request_args=args)
@@ -532,7 +502,6 @@ def test_sign_userinfo():
     consumer.complete(_state)
 
     result = consumer.get_user_info(_state)
-    print result
     assert result.type() == "OpenIDSchema"
     assert _eq(result.keys(), ['name', 'email', 'verified', 'nickname', 'sub'])
 
@@ -543,15 +512,12 @@ def real_test_discover():
     principal = "nav@connect-op.heroku.com"
 
     res = c.discover(principal)
-    print res
     assert res.type() == "ProviderConfigurationResponse"
-    print res.keys()
     assert _eq(res.keys(), ['registration_endpoint', 'scopes_supported',
                             'identifiers_supported', 'token_endpoint',
                             'flows_supported', 'version', 'userinfo_endpoint',
                             'authorization_endpoint', 'x509_url', 'issuer'])
     assert res.version == "3.0"
-    print res.flows_supported
     assert _eq(res.flows_supported, ['code', 'token', 'id_token',
                                      'code token', 'code id_token',
                                      'id_token token'])
@@ -580,7 +546,6 @@ def test_provider_config():
     res = c.discover(principal)
     info = c.provider_config(res)
     assert info.type() == "ProviderConfigurationResponse"
-    print info.keys()
     assert _eq(info.keys(), ['registration_endpoint', 'jwks_uri',
                              'check_session_endpoint',
                              'refresh_session_endpoint', 'register_endpoint',
@@ -701,7 +666,6 @@ def test_faulty_idtoken_from_accesstoken_endpoint():
     assert result.status_code == 302
     # assert result.location.startswith(consumer.redirect_uri[0])
     _, query = result.headers["location"].split("?")
-    print query
     try:
         consumer.parse_authz(query=query)
     except BadSignature:

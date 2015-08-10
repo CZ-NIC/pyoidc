@@ -288,7 +288,7 @@ class MyFakeOICServer(Server):
         for point, path in ENDPOINT.items():
             endpoint[point] = "%s%s" % (self.host, path)
 
-        signing_algs = jws.SIGNER_ALGS.keys()
+        signing_algs = list(jws.SIGNER_ALGS.keys())
         resp = ProviderConfigurationResponse(
             issuer=self.name,
             scopes_supported=["openid", "profile", "email", "address"],

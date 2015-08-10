@@ -4,8 +4,7 @@ from functools import wraps, partial
 import json
 import mimetypes
 import os
-import urllib
-import urlparse
+from six.moves.urllib import parse as urlparse
 import errno
 
 import cherrypy
@@ -44,7 +43,7 @@ def VerifierMiddleware(verifier):
     def wrapper(environ, start_response):
         data = get_post(environ)
         kwargs = dict(urlparse.parse_qsl(data))
-        kwargs["state"] = json.loads(urllib.unquote(kwargs["state"]))
+        kwargs["state"] = json.loads(urlparse.unquote(kwargs["state"]))
         val, completed = verifier.verify(**kwargs)
         if not completed:
             return val(environ, start_response)
@@ -193,7 +192,7 @@ def main():
     path = os.path.join(os.path.dirname(__file__), "static")
     try:
         os.makedirs(path)
-    except OSError, e:
+    except OSError as e:
         if e.errno != errno.EEXIST:
             raise e
         pass
@@ -211,7 +210,7 @@ def main():
         provider.providerinfo_endpoint)
     app_routing["/.well-known/webfinger"] = pyoidcMiddleware(
         partial(_webfinger, provider))
-    routing = dict(auth_routing.items() + app_routing.items())
+    routing = dict(list(auth_routing.items()) + list(app_routing.items()))
     routing["/static"] = make_static_handler(path)
     dispatcher = WSGIPathInfoDispatcher(routing)
     server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), dispatcher)

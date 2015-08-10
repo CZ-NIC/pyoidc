@@ -4,6 +4,7 @@ from jwkest import Invalid
 from jwkest import MissingKey
 from jwkest.jws import alg2keytype
 import time
+import six
 
 from oic.exception import UnknownAssertionType, FailedAuthentication
 from oic.exception import NotForMe
@@ -349,7 +350,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
         _aud = bjwt["aud"]
         logger.debug("audience: %s, baseurl: %s" % (_aud, self.cli.baseurl))
         try:
-            if isinstance(_aud, basestring):
+            if isinstance(_aud, six.string_types):
                 assert str(_aud).startswith(self.cli.baseurl)
             else:
                 for target in _aud:
