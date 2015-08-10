@@ -5,15 +5,13 @@ import json
 
 import pytest
 
-from pytest import raises
-
 from six.moves.urllib.parse import quote, urlencode
 from oic.oauth2 import Grant
-from oic.oauth2.exception import GrantError, MissingEndpoint
+from oic.oauth2.exception import GrantError, MissingEndpoint, ResponseError
 from oic.oauth2.message import AccessTokenResponse, AuthorizationResponse, \
     AuthorizationErrorResponse, AuthorizationRequest, GrantExpired, \
     ErrorResponse, AccessTokenRequest, RefreshAccessTokenRequest, \
-    MissingRequiredAttribute
+    MissingRequiredAttribute, FormatError
 from oic.utils import time_util
 from oic.oauth2 import Client
 from oic.oauth2 import Server
@@ -380,13 +378,14 @@ class TestClient(object):
         _ = self.client.parse_response(AccessTokenResponse, info=uerr,
                                        sformat="urlencoded")
 
-        raises(Exception,
-               'client.parse_response(ATR, info=jerr, sformat="urlencoded")')
+        with pytest.raises(ResponseError):
+            self.client.parse_response(AccessTokenResponse, info=jerr, sformat="urlencoded")
 
-        raises(Exception, "client.parse_response(ATR, info=uerr)")
+        with pytest.raises(ValueError):
+            self.client.parse_response(AccessTokenResponse, info=uerr)
 
-        raises(Exception,
-               'client.parse_response(ATR, info=jerr, sformat="focus")')
+        with pytest.raises(FormatError):
+            self.client.parse_response(AccessTokenResponse, info=jerr, sformat="focus")
 
     def test_parse_access_token_resp_missing_attribute(self):
         atresp = AccessTokenResponse(access_token="SlAV32hkKG",
