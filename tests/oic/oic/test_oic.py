@@ -6,9 +6,7 @@ import time
 
 from jwkest.jwt import JWT
 import pytest
-
 from jwkest.jws import left_hash
-
 from jwkest.jws import alg2keytype
 
 from six.moves.urllib.parse import urlparse
@@ -183,7 +181,7 @@ class TestOICClient(object):
         ktyp = alg2keytype(alg)
         _sign_key = self.client.keyjar.get_signing_key(ktyp)
         args = {"id_token": IDTOKEN.to_jwt(key=_sign_key, algorithm=alg),
-            "redirect_url": "http://example.com/end"}
+                "redirect_url": "http://example.com/end"}
 
         resp = self.client.do_end_session_request(request_args=args,
                                                   state="state1")
