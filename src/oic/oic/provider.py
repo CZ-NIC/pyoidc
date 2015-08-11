@@ -655,7 +655,7 @@ class Provider(AProvider):
             return authnres
 
         logger.debug("- authenticated -")
-        logger.debug("AREQ keys: %s" % areq.keys())
+        logger.debug("AREQ keys: %s" % list(areq.keys()))
 
         sid = self.setup_session(areq, authnres["authn_event"], cinfo)
         return self.authz_part2(authnres["user"], areq, sid, cookie=cookie)

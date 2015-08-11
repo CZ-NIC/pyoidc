@@ -6,6 +6,7 @@ import hmac
 
 from six.moves.urllib.parse import quote
 from six.moves.http_cookies import SimpleCookie
+from jwkest import as_unicode
 from oic.oauth2 import rndstr
 from oic.exception import UnsupportedMethod
 from oic.utils import time_util
@@ -325,7 +326,7 @@ def extract_from_request(environ, kwargs=None):
         pass
     if not request:
         try:
-            request = get_post(environ)
+            request = as_unicode(get_post(environ))
         except KeyError:
             pass
     kwargs["request"] = request

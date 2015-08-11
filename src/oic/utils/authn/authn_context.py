@@ -1,3 +1,5 @@
+from functools import cmp_to_key
+
 from oic.utils.http_util import extract_from_request
 
 __author__ = 'rolandh'
@@ -127,8 +129,7 @@ class AuthnBroker(object):
                             if _val not in res:
                                 res_other.append(_val)
             # sort on level
-            res.sort(self._cmp, reverse=True)
-            res_other.sort(self._cmp, reverse=True)
+            res_other.sort(key=cmp_to_key(self._cmp), reverse=True)
             res.extend(res_other)
 
             return [(b, c) for a, b, c in res]

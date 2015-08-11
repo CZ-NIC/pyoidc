@@ -233,8 +233,8 @@ def application(environ, start_response):
 
             RP.srv_discovery_url = link
             md5 = hashlib.md5()
-            md5.update(link)
-            opkey = base64.b16encode(md5.digest())
+            md5.update(link.encode("utf-8"))
+            opkey = base64.b16encode(md5.digest()).decode("utf-8")
             session.setCallback(True)
             func = getattr(RP, "begin")
             return func(environ, SERVER_ENV, start_response, session, opkey)
@@ -261,10 +261,9 @@ if __name__ == '__main__':
                                                           session_opts))
 
     if conf.BASE.startswith("https"):
-        from cherrypy.wsgiserver import ssl_pyopenssl
+        from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
 
-        SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
-            conf.SERVER_CERT, conf.SERVER_KEY, conf.CA_BUNDLE)
+        SRV.ssl_adapter = BuiltinSSLAdapter(conf.SERVER_CERT, conf.SERVER_KEY, conf.CA_BUNDLE)
 
     LOGGER.info("RP server starting listening on port:%s" % conf.PORT)
     print ("RP server starting listening on port:%s" % conf.PORT)

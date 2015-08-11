@@ -231,7 +231,7 @@ class OpenIDConnect(object):
 
     def get_accesstoken(self, client, authresp):
         if self.srv_discovery_url:
-            issuer = client.provider_info.keys()[0]
+            issuer = list(client.provider_info.keys())[0]
             #logger.debug("state: %s (%s)" % (client.state, msg["state"]))
             key = client.keyjar.get_verify_key(owner=issuer)
             kwargs = {"key": key}
