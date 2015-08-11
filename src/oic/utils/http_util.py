@@ -299,7 +299,7 @@ def get_post(environ):
     # When the method is POST the query string will be sent
     # in the HTTP request body which is passed by the WSGI server
     # in the file like wsgi.input environment variable.
-    return environ['wsgi.input'].read(request_body_size)
+    return environ['wsgi.input'].read(request_body_size).decode("utf-8")
 
 
 def get_or_post(environ):

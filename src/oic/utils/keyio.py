@@ -6,7 +6,7 @@ import traceback
 import json
 import time
 
-from jwkest import jws
+from jwkest import jws, as_unicode
 from jwkest import jwe
 from Crypto.PublicKey import RSA
 from requests import request
@@ -16,13 +16,12 @@ from jwkest.jwk import RSAKey
 from jwkest.jwk import ECKey
 from jwkest.jwk import SYMKey
 
-from six.moves.urllib.parse import urlparse
 from six.moves.urllib.parse import urlsplit
 from six import string_types
 
 from oic.exception import MessageException
 from oic.exception import PyoidcError
-from oic.utils import to_unicode
+from oic.utils import elements_to_unicode
 
 __author__ = 'rohe0002'
 
@@ -244,7 +243,7 @@ class KeyBundle(object):
         for k in self._keys:
             key = k.to_dict()
             for k, v in key.items():
-                key[k] = to_unicode(v)
+                key[k] = as_unicode(v)
             keys.append(key)
         return json.dumps({"keys": keys})
 
@@ -880,7 +879,7 @@ def build_keyjar(key_conf, kid_template="a%d", keyjar=None, kidd=None):
             kid += 1
             kidd[k.use][k.kty] = k.kid
 
-        jwks["keys"].extend([k.to_dict()
+        jwks["keys"].extend([elements_to_unicode(k.to_dict())
                              for k in kb.keys() if k.kty != 'oct'])
 
         keyjar.add_kb("", kb)

@@ -9,8 +9,12 @@ import errno
 
 import cherrypy
 from cherrypy import wsgiserver
-from cherrypy.wsgiserver import ssl_pyopenssl
-from cherrypy.wsgiserver.wsgiserver2 import WSGIPathInfoDispatcher
+from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
+try:
+    from cherrypy.wsgiserver.wsgiserver3 import WSGIPathInfoDispatcher
+except ImportError:
+    from cherrypy.wsgiserver.wsgiserver2 import WSGIPathInfoDispatcher
+
 from jinja2.environment import Environment
 from jinja2.loaders import FileSystemLoader
 import yaml
@@ -217,9 +221,9 @@ def main():
 
     # Setup SSL
     if provider.baseurl.startswith("https://"):
-        server.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
-            settings["server"]["cert"], settings["server"]["key"],
-            settings["server"]["cert_chain"])
+        server.ssl_adapter = BuiltinSSLAdapter(
+        settings["server"]["cert"], settings["server"]["key"],
+        settings["server"]["cert_chain"])
 
     # Start the CherryPy WSGI web server
     try:
