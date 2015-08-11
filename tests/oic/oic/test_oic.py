@@ -74,15 +74,16 @@ class TestOICClient(object):
         mfos.keyjar = KEYJ
         self.client.http_request = mfos.http_request
 
-    def test_construct_authz_req_with_request_object(self):
+    def test_construct_authz_req_with_request_object(self, tmpdir):
+        path = tmpdir.strpath
         request_uri_args = {
-            "local_dir": "/tmp",
+            "local_dir": path,
             "base_path": "http://example.com/"
         }
         areq = self.client.construct_AuthorizationRequest(request_method="file",
                                                           **request_uri_args)
         p = urlparse(areq["request_uri"])
-        local_path = os.path.join("/tmp/", p.path.lstrip("/"))
+        local_path = os.path.join(path, p.path.lstrip("/"))
         with open(local_path) as f:
             data = f.read()
         jwt = JWT().unpack(data)
