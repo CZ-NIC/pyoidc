@@ -1,6 +1,5 @@
 import json
 
-from mako.lookup import TemplateLookup
 import pytest
 
 from oic.utils.http_util import Response, NoContent, Unauthorized
@@ -18,44 +17,6 @@ from oic.oauth2.dynreg import ClientInfoResponse
 from oic.oauth2.dynreg import ClientRegistrationError
 from utils_for_tests import _eq
 
-CLIENT_CONFIG = {
-    "client_id": "client1",
-    "ca_certs": "/usr/local/etc/oic/ca_certs.txt",
-}
-
-CONSUMER_CONFIG = {
-    "authz_page": "/authz",
-    "flow_type": "code",
-    "scope": [],
-    "response_type": "code",
-}
-
-SERVER_INFO = {
-    "version": "3.0",
-    "issuer": "https://connect-op.heroku.com",
-    "authorization_endpoint": "http://localhost:8088/authorization",
-    "token_endpoint": "http://localhost:8088/token",
-    "flows_supported": ["code", "token", "code token"],
-}
-
-CDB = {
-    "a1b2c3": {
-        "password": "hemligt",
-        "client_secret": "drickyoughurt"
-    },
-    "client1": {
-        "client_secret": "hemlighet",
-        "redirect_uris": [("http://localhost:8087/authz", None)]
-    }
-}
-
-PASSWD = {"user": "password"}
-
-ROOT = '../oc3/'
-tl = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
-                    module_directory=ROOT + 'modules',
-                    input_encoding='utf-8', output_encoding='utf-8')
-
 
 class DummyAuthn(UserAuthnMethod):
     def __init__(self, srv, user):
@@ -66,20 +27,36 @@ class DummyAuthn(UserAuthnMethod):
         return {"uid": self.user}
 
 
-AUTHN_BROKER = AuthnBroker()
-AUTHN_BROKER.add("UNDEFINED", DummyAuthn(None, "username"))
-
-# dealing with authorization
-AUTHZ = Implicit()
-
-
 class TestProvider(object):
+    SERVER_INFO = {
+        "version": "3.0",
+        "issuer": "https://connect-op.heroku.com",
+        "authorization_endpoint": "http://localhost:8088/authorization",
+        "token_endpoint": "http://localhost:8088/token",
+        "flows_supported": ["code", "token", "code token"],
+    }
+
+    CDB = {
+        "a1b2c3": {
+            "password": "hemligt",
+            "client_secret": "drickyoughurt"
+        },
+        "client1": {
+            "client_secret": "hemlighet",
+            "redirect_uris": [("http://localhost:8087/authz", None)]
+        }
+    }
+
     @pytest.fixture(autouse=True)
     def create_provider(self):
+        authn_broker = AuthnBroker()
+        authn_broker.add("UNDEFINED", DummyAuthn(None, "username"))
+
         self.provider = Provider("pyoicserv",
-                                 sdb.SessionDB(SERVER_INFO["issuer"]),
-                                 CDB,
-                                 AUTHN_BROKER, AUTHZ,
+                                 sdb.SessionDB(
+                                     TestProvider.SERVER_INFO["issuer"]),
+                                 TestProvider.CDB,
+                                 authn_broker, Implicit(),
                                  verify_client,
                                  client_info_url="https://example.com/as",
                                  client_authn_methods={
