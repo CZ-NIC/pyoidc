@@ -187,7 +187,7 @@ def main():
 
     if baseurl.startswith("https://"):
         cherrypy.config.update({
-            'server.ssl_module': 'pyopenssl',
+            'server.ssl_module': 'builtin',
             'server.ssl_certificate': settings["server"]["cert"],
             'server.ssl_private_key': settings["server"]["key"],
             'server.ssl_certificate_chain': settings["server"]["cert_chain"]

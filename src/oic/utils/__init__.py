@@ -2,6 +2,7 @@
 
 import sys
 import traceback
+from jwkest import as_unicode
 
 __author__ = 'rohe0002'
 
@@ -16,14 +17,20 @@ def exception_trace(tag, exc, log=None):
         print >> sys.stderr, "[%s] Exception: %s" % (tag, exc)
 
 
-def to_unicode(b):
+def elements_to_unicode(b):
     """
-    Convert a byte string to an unicode string
-    :param b: byte string
-    :return: unicode string
+    Tries to convert all elements in a list/dict from a byte string to an unicode string
+    :param b: list / dict
+    :return: list / dict
     """
-    try:
-        b = b.decode()
-    except AttributeError:
-        pass
-    return b
+
+    if isinstance(b, list):
+        return [as_unicode(v) for v in b]
+
+    if isinstance(b, dict):
+        conv_dict = dict()
+        for key in b.keys():
+            conv_dict[key] = as_unicode(b[key])
+        return conv_dict
+
+
