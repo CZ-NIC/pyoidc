@@ -63,8 +63,6 @@ CONFIG = {
     }
 }
 
-SYMKEY = SYMKey(key="TestPassword")
-
 
 def test_clean_response():
     atr = AccessTokenResponse(access_token="access_token",
@@ -483,7 +481,8 @@ class TestOICConsumer():
                  'iat': 1420822473, 'aud': 'TestClient'}
         idts = IdToken(**idval)
 
-        _signed_jwt = idts.to_jwt(key=[SYMKEY], algorithm="HS256")
+        _signed_jwt = idts.to_jwt(key=[SYMKey(key="TestPassword")],
+                                  algorithm="HS256")
 
         # Mess with the signed id_token
         p = _signed_jwt.split(".")
@@ -494,7 +493,8 @@ class TestOICConsumer():
     def test_faulty_id_token(self):
         _faulty_signed_jwt = self._faulty_id_token()
         try:
-            _ = IdToken().from_jwt(_faulty_signed_jwt, key=[SYMKEY])
+            _ = IdToken().from_jwt(_faulty_signed_jwt,
+                                   key=[SYMKey(key="TestPassword")])
         except BadSignature:
             pass
         else:
