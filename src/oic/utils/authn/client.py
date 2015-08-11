@@ -99,7 +99,7 @@ class ClientSecretBasic(ClientAuthnMethod):
             http_args["headers"] = {}
 
         http_args["headers"]["Authorization"] = "Basic %s" % base64.b64encode(
-            "{}:{}".format(user, passwd).encode("utf-8"))
+            "{}:{}".format(user, passwd).encode("utf-8")).decode("utf-8")
 
         try:
             del cis["client_secret"]
@@ -420,7 +420,7 @@ def get_client_id(cdb, req, authn):
     if authn:
         if authn.startswith("Basic "):
             logger.debug("Basic auth")
-            (_id, _secret) = base64.b64decode(authn[6:]).split(":")
+            (_id, _secret) = base64.b64decode(authn[6:].encode("utf-8")).decode("utf-8").split(":")
             if _id not in cdb:
                 logger.debug("Unknown client_id")
                 raise FailedAuthentication("Unknown client_id")
