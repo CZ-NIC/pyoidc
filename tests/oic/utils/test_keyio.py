@@ -10,10 +10,11 @@ from oic.utils.keyio import RSAKey
 
 __author__ = 'rohe0002'
 
-BASE_PATH = os.path.dirname(__file__)
+BASE_PATH = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir,
+                         "data/keys")
 
-RSAKEY = os.path.join(BASE_PATH, os.pardir, os.pardir, "cert.key")
-RSA0 = os.path.join(BASE_PATH, os.pardir, os.pardir, "rsa.key")
+RSAKEY = os.path.join(BASE_PATH, "cert.key")
+RSA0 = os.path.join(BASE_PATH, "rsa.key")
 
 JWK0 = {"keys": [
     {'kty': 'RSA', 'e': 'AQAB', 'kid': "abc",

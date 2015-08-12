@@ -155,9 +155,10 @@ class TestClientSecretPost(object):
 
 class TestPrivateKeyJWT(object):
     def test_construct(self, client):
-        base_path = os.path.dirname(os.path.abspath(__file__))
+        base_path = os.path.join(os.path.dirname(__file__), os.pardir,
+                                 os.pardir, os.pardir, "data/keys")
         _key = rsa_load(
-            os.path.join(base_path, os.pardir, os.pardir, os.pardir, "rsa.key"))
+            os.path.join(base_path, "rsa.key"))
         kc_rsa = KeyBundle([{"key": _key, "kty": "RSA", "use": "ver"},
                             {"key": _key, "kty": "RSA", "use": "sig"}])
         client.keyjar[""] = kc_rsa

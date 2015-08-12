@@ -67,8 +67,6 @@ SERVER_INFO = {
     "flows_supported": ["code", "token", "code token"],
 }
 
-BASE_PATH = os.path.dirname(os.path.abspath(__file__))
-
 CLIENT_SECRET = "abcdefghijklmnop"
 CLIENT_ID = "client_1"
 
@@ -77,7 +75,9 @@ KC_SYM = KeyBundle([{"kty": "oct", "key": CLIENT_SECRET, "use": "ver"},
 KC_SYM2 = KeyBundle([{"kty": "oct", "key": "drickyoughurt", "use": "sig"},
                      {"kty": "oct", "key": "drickyoughurt", "use": "ver"}])
 
-KC_RSA = keybundle_from_local_file("%s/../../rsa.key" % BASE_PATH,
+BASE_PATH = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir,
+                         "data/keys")
+KC_RSA = keybundle_from_local_file(os.path.join(BASE_PATH, "rsa.key"),
                                    "RSA", ["ver", "sig"])
 
 KEYJAR = KeyJar()
