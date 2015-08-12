@@ -24,6 +24,7 @@ dist
 # Dynamically created doc folders
 doc/_build
 keys
+!tests/data/keys
 static
 
 # Remaining stuff
