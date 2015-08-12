@@ -489,13 +489,10 @@ class TestOICConsumer():
 
     def test_faulty_id_token(self):
         _faulty_signed_jwt = self._faulty_id_token()
-        try:
-            _ = IdToken().from_jwt(_faulty_signed_jwt,
-                                   key=[SYMKey(key="TestPassword")])
-        except BadSignature:
-            pass
-        else:
-            assert False
+
+        with pytest.raises(BadSignature):
+            IdToken().from_jwt(_faulty_signed_jwt,
+                               key=[SYMKey(key="TestPassword")])
 
         # What if no verification key is given ?
         # Should also result in an exception
@@ -511,12 +508,8 @@ class TestOICConsumer():
                  "token_type": "Bearer", "expires_in": 3600}
 
         _json = json.dumps(_info)
-        try:
-            resp = c.parse_response(AccessTokenResponse, _json, sformat="json")
-        except BadSignature:
-            pass
-        else:
-            assert False
+        with pytest.raises(BadSignature):
+            c.parse_response(AccessTokenResponse, _json, sformat="json")
 
     def test_faulty_idtoken_from_accesstoken_endpoint(self):
         mfos = MITMServer("http://localhost:8088")
