@@ -3,14 +3,8 @@ from oic.oic import AuthorizationRequest
 from oic.oic.message import AccessTokenRequest
 from utils_for_tests import url_compare
 
-try:
-    import http.cookiejar as cookielib
-    from http.cookiejar import http2time
-    from http.cookies import SimpleCookie
-except ImportError:
-    import cookielib
-    from cookielib import http2time
-    from Cookie import SimpleCookie
+from six.moves.http_cookiejar import http2time, FileCookieJar
+from six.moves.http_cookies import SimpleCookie
 
 __author__ = 'DIRG'
 
@@ -20,29 +14,45 @@ import pytest
 
 
 def test_get_or_post():
-
     uri = u'https://localhost:8092/authorization'
     method = 'GET'
-    values = {'acr_values': u'PASSWORD', 'state': 'urn:uuid:92d81fb3-72e8-4e6c-9173-c360b782148a', 'redirect_uri': 'https://localhost:8666/919D3F697FDAAF138124B83E09ECB0B7', 'response_type': 'code', 'client_id': u'ok8tx7ulVlNV', 'scope': 'openid profile email address phone'}
+    values = {'acr_values': u'PASSWORD',
+              'state': 'urn:uuid:92d81fb3-72e8-4e6c-9173-c360b782148a',
+              'redirect_uri': 'https://localhost:8666/919D3F697FDAAF138124B83E09ECB0B7',
+              'response_type': 'code', 'client_id': u'ok8tx7ulVlNV',
+              'scope': 'openid profile email address phone'}
     request = AuthorizationRequest(**values)
 
     path, body, ret_kwargs = util.get_or_post(uri, method, request)
 
-    assert url_compare(path,u"https://localhost:8092/authorization?acr_values=PASSWORD&state=urn%3Auuid%3A92d81fb3-72e8-4e6c-9173-c360b782148a&redirect_uri=https%3A%2F%2Flocalhost%3A8666%2F919D3F697FDAAF138124B83E09ECB0B7&response_type=code&client_id=ok8tx7ulVlNV&scope=openid+profile+email+address+phone")
+    assert url_compare(path,
+                       u"https://localhost:8092/authorization?acr_values=PASSWORD&state=urn%3Auuid%3A92d81fb3-72e8-4e6c-9173-c360b782148a&redirect_uri=https%3A%2F%2Flocalhost%3A8666%2F919D3F697FDAAF138124B83E09ECB0B7&response_type=code&client_id=ok8tx7ulVlNV&scope=openid+profile+email+address+phone")
     assert not body
     assert not ret_kwargs
 
     method = 'POST'
     uri = u'https://localhost:8092/token'
-    values = {'redirect_uri': 'https://localhost:8666/919D3F697FDAAF138124B83E09ECB0B7', 'code': 'Je1iKfPN1vCiN7L43GiXAuAWGAnm0mzA7QIjl/YLBBZDB9wefNExQlLDUIIDM2rT2t+gwuoRoapEXJyY2wrvg9cWTW2vxsZU+SuWzZlMDXc=', 'grant_type': 'authorization_code'}
+    values = {
+        'redirect_uri': 'https://localhost:8666/919D3F697FDAAF138124B83E09ECB0B7',
+        'code': 'Je1iKfPN1vCiN7L43GiXAuAWGAnm0mzA7QIjl/YLBBZDB9wefNExQlLDUIIDM2rT2t+gwuoRoapEXJyY2wrvg9cWTW2vxsZU+SuWzZlMDXc=',
+        'grant_type': 'authorization_code'}
     request = AccessTokenRequest(**values)
-    kwargs = {'scope': '', 'state': 'urn:uuid:92d81fb3-72e8-4e6c-9173-c360b782148a', 'authn_method': 'client_secret_basic', 'key': [], 'headers': {'Authorization': 'Basic b2s4dHg3dWxWbE5WOjdlNzUyZDU1MTc0NzA0NzQzYjZiZWJkYjU4ZjU5YWU3MmFlMGM5NDM4YTY1ZmU0N2IxMDA3OTM1'}}
+    kwargs = {'scope': '',
+              'state': 'urn:uuid:92d81fb3-72e8-4e6c-9173-c360b782148a',
+              'authn_method': 'client_secret_basic', 'key': [], 'headers': {
+        'Authorization': 'Basic b2s4dHg3dWxWbE5WOjdlNzUyZDU1MTc0NzA0NzQzYjZiZWJkYjU4ZjU5YWU3MmFlMGM5NDM4YTY1ZmU0N2IxMDA3OTM1'}}
 
     path, body, ret_kwargs = util.get_or_post(uri, method, request, **kwargs)
 
     assert path == u'https://localhost:8092/token'
-    assert url_compare("http://test/#{}".format(body), 'http://test/#code=Je1iKfPN1vCiN7L43GiXAuAWGAnm0mzA7QIjl%2FYLBBZDB9wefNExQlLDUIIDM2rT2t%2BgwuoRoapEXJyY2wrvg9cWTW2vxsZU%2BSuWzZlMDXc%3D&grant_type=authorization_code&redirect_uri=https%3A%2F%2Flocalhost%3A8666%2F919D3F697FDAAF138124B83E09ECB0B7')
-    assert ret_kwargs == {'scope': '', 'state': 'urn:uuid:92d81fb3-72e8-4e6c-9173-c360b782148a', 'authn_method': 'client_secret_basic', 'key': [], 'headers': {'Content-type': 'application/x-www-form-urlencoded', 'Authorization': 'Basic b2s4dHg3dWxWbE5WOjdlNzUyZDU1MTc0NzA0NzQzYjZiZWJkYjU4ZjU5YWU3MmFlMGM5NDM4YTY1ZmU0N2IxMDA3OTM1'}}
+    assert url_compare("http://test/#{}".format(body),
+                       'http://test/#code=Je1iKfPN1vCiN7L43GiXAuAWGAnm0mzA7QIjl%2FYLBBZDB9wefNExQlLDUIIDM2rT2t%2BgwuoRoapEXJyY2wrvg9cWTW2vxsZU%2BSuWzZlMDXc%3D&grant_type=authorization_code&redirect_uri=https%3A%2F%2Flocalhost%3A8666%2F919D3F697FDAAF138124B83E09ECB0B7')
+    assert ret_kwargs == {'scope': '',
+                          'state': 'urn:uuid:92d81fb3-72e8-4e6c-9173-c360b782148a',
+                          'authn_method': 'client_secret_basic', 'key': [],
+                          'headers': {
+                              'Content-type': 'application/x-www-form-urlencoded',
+                              'Authorization': 'Basic b2s4dHg3dWxWbE5WOjdlNzUyZDU1MTc0NzA0NzQzYjZiZWJkYjU4ZjU5YWU3MmFlMGM5NDM4YTY1ZmU0N2IxMDA3OTM1'}}
 
     method = 'UNSUPORTED'
     with pytest.raises(UnSupported):
@@ -50,8 +60,7 @@ def test_get_or_post():
 
 
 def test_set_cookie():
-
-    cookiejar = cookielib.FileCookieJar()
+    cookiejar = FileCookieJar()
     _cookie = {"value_0": "v_0", "value_1": "v_1", "value_2": "v_2"}
     c = SimpleCookie(_cookie)
 
@@ -74,10 +83,6 @@ def test_set_cookie():
     c_0 = cookies[domain_0][path]["value_0"]
     c_1 = cookies[domain_1][""]["value_1"]
     c_2 = cookies[""][""]["value_2"]
-
-    assert c_0
-    assert c_1
-    assert c_2
 
     assert not (c_2.domain_specified and c_2.path_specified)
     assert c_1.domain_specified and not c_1.domain_initial_dot and not c_1.path_specified
@@ -118,7 +123,6 @@ def test_match_to():
 
 
 def test_verify_header():
-
     class FakeResponse():
         def __init__(self, header):
             self.headers = {"content-type": header}
@@ -133,18 +137,16 @@ def test_verify_header():
     assert util.verify_header(FakeResponse(json_header), "json") == "json"
     assert util.verify_header(FakeResponse(jwt_header), "json") == "jwt"
     assert util.verify_header(FakeResponse(jwt_header), "jwt") == "jwt"
-    assert util.verify_header(FakeResponse(default_header), "urlencoded") == "urlencoded"
-    assert util.verify_header(FakeResponse(plain_text_header), "urlencoded") == "urlencoded"
+    assert util.verify_header(FakeResponse(default_header),
+                              "urlencoded") == "urlencoded"
+    assert util.verify_header(FakeResponse(plain_text_header),
+                              "urlencoded") == "urlencoded"
 
     with pytest.raises(AssertionError):
         util.verify_header(FakeResponse(json_header), "urlencoded")
-    with pytest.raises(AssertionError):
         util.verify_header(FakeResponse(jwt_header), "urlencoded")
-    with pytest.raises(AssertionError):
         util.verify_header(FakeResponse(default_header), "json")
-    with pytest.raises(AssertionError):
         util.verify_header(FakeResponse(plain_text_header), "jwt")
-    with pytest.raises(AssertionError):
         util.verify_header(FakeResponse(undefined_header), "json")
 
     with pytest.raises(ValueError):
