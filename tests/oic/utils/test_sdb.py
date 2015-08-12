@@ -30,8 +30,6 @@ OIDR = OpenIDRequest(response_type="code", client_id="client1",
                      redirect_uri="http://example.com/authz", scope=["openid"],
                      state="state000")
 
-BASE_URL = "https://exampl.com/"
-
 
 class TestToken(object):
     @pytest.fixture(autouse=True)
@@ -67,7 +65,7 @@ class TestToken(object):
 class TestSessionDB(object):
     @pytest.fixture(autouse=True)
     def create_sdb(self):
-        self.sdb = SessionDB(BASE_URL)
+        self.sdb = SessionDB("https://example.com/")
 
     def test_setitem(self):
         sid = self.sdb.token.key(areq=AREQ)
