@@ -1,5 +1,6 @@
 # pylint: disable=missing-docstring,no-self-use
 import os
+from oic.oic.message import ProviderConfigurationResponse
 
 from oic.utils.keyio import key_export
 from oic.utils.keyio import KeyJar
@@ -169,3 +170,13 @@ class TestKeyJar(object):
         kj.issuer_keys["abcdefgh"] = [kb]
         enc_key = kj.get_encrypt_key("RSA", "abcdefgh")
         assert enc_key != []
+
+    def test_provider(self):
+        provider_info = {
+            "jwks_uri": "https://connect-op.herokuapp.com/jwks.json",
+        }
+
+        ks = KeyJar()
+        ks.load_keys(provider_info, "https://connect-op.heroku.com")
+
+        assert ks["https://connect-op.heroku.com"][0].keys()
