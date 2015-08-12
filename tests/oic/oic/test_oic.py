@@ -171,7 +171,7 @@ class TestClient(object):
         args = {"id_token": IDTOKEN.to_jwt(key=_sign_key, algorithm=alg)}
         resp = self.client.do_check_session_request(request_args=args)
 
-        assert resp.type() == "IdToken"
+        assert isinstance(resp, IdToken)
         assert _eq(resp.keys(), ['nonce', 'sub', 'aud', 'iss', 'exp', 'iat'])
 
     def test_do_end_session_request(self):
@@ -220,7 +220,7 @@ class TestClient(object):
         token.token_expiration_time = utc_time_sans_frac() - 86400
 
         resp = self.client.do_user_info_request(state="state0")
-        assert resp.type() == "OpenIDSchema"
+        assert isinstance(resp, OpenIDSchema)
         assert _eq(resp.keys(), ['name', 'email', 'verified', 'nickname',
                                  'sub'])
         assert resp["name"] == "Melody Gardot"
@@ -445,7 +445,7 @@ class TestServer(object):
 
         req = self.srv.parse_jwt_request(txt=_jwt)
 
-        assert req.type() == "AuthorizationRequest"
+        assert isinstance(req, AuthorizationRequest)
         assert req["response_type"] == ["code"]
         assert req["client_id"] == CLIENT_ID
         assert req["redirect_uri"] == "http://foobar.example.com/oaclient"
@@ -499,7 +499,7 @@ class TestServer(object):
                                   redirect_uri="http://example.com/authz",
                                   client_id=CLIENT_ID)
         qdict = self.srv.parse_token_request(body=treq.to_urlencoded())
-        assert qdict.type() == "AccessTokenRequest"
+        assert isinstance(qdict, AccessTokenRequest)
         assert _eq(qdict.keys(), ['code', 'redirect_uri', 'client_id',
                                   'grant_type'])
         assert qdict["client_id"] == CLIENT_ID
@@ -529,7 +529,7 @@ class TestServer(object):
 
         request = self.srv.parse_registration_request(
             data=regreq.to_urlencoded())
-        assert request.type() == "RegistrationRequest"
+        assert isinstance(request, RegistrationRequest)
         assert _eq(request.keys(), ['redirect_uris', 'contacts', 'client_id',
                                     'application_name', 'operation',
                                     'application_type'])
@@ -543,13 +543,13 @@ class TestServer(object):
         uencq = rsreq.to_urlencoded()
 
         request = self.srv.parse_refresh_session_request(query=uencq)
-        assert request.type() == "RefreshSessionRequest"
+        assert isinstance(request, RefreshSessionRequest)
         assert _eq(request.keys(), ['id_token', 'state', 'redirect_url'])
         assert request["id_token"] == "id_token"
 
         url = "https://example.org/userinfo?{}".format(uencq)
         request = self.srv.parse_refresh_session_request(url=url)
-        assert request.type() == "RefreshSessionRequest"
+        assert isinstance(request, RefreshSessionRequest)
         assert _eq(request.keys(), ['id_token', 'state', 'redirect_url'])
         assert request["id_token"] == "id_token"
 
@@ -559,7 +559,7 @@ class TestServer(object):
                                     algorithm="HS256"))
         request = self.srv.parse_check_session_request(
             query=csreq.to_urlencoded())
-        assert request.type() == "IdToken"
+        assert isinstance(request, IdToken)
         assert _eq(request.keys(), ['nonce', 'sub', 'aud', 'iss', 'exp', 'iat'])
         assert request["aud"] == ["client_1"]
 
@@ -572,7 +572,7 @@ class TestServer(object):
 
         request = self.srv.parse_end_session_request(
             query=esreq.to_urlencoded())
-        assert request.type() == "EndSessionRequest"
+        assert isinstance(request, EndSessionRequest)
         assert _eq(request.keys(), ['id_token', 'redirect_url', 'state'])
         assert request["state"] == "state0"
 
@@ -598,7 +598,7 @@ class TestServer(object):
 
         request = self.srv.parse_open_id_request(data=oidreq.to_json(),
                                                  sformat="json")
-        assert request.type() == "OpenIDRequest"
+        assert isinstance(request, OpenIDRequest)
         assert _eq(request.keys(), ['nonce', 'claims', 'state', 'redirect_uri',
                                     'response_type', 'client_id', 'scope',
                                     'max_age'])
