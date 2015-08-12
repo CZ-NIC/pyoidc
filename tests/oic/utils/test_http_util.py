@@ -49,8 +49,6 @@ class TestCookieDealer(object):
         kaka = cookie_dealer.delete_cookie(cookie_name)
         cookie_expiration = kaka[1].split(";")[1].split("=")[1]
 
-        print(cookie_expiration)
-
         now = datetime.datetime.now()
         cookie_timestamp = datetime.datetime.strptime(cookie_expiration,
                                                       "%a, %d-%b-%Y %H:%M:%S GMT")

@@ -24,6 +24,5 @@ def test_update_to_access_token():
     st = StateLess(keys, enc_alg="A128KW", enc_method="A128CBC-HS256")
     tok = st.create_authz_session("subject",
                                   {"redirect_uri": "https://example.com"})
-    print(tok)
     assert tok["aud"] == "https://example.com"
     assert tok["sub"] == "subject"

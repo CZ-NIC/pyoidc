@@ -155,7 +155,6 @@ class TestKeyJar(object):
         kj.issuer_keys[""] = [kb]
         res = kj.dump_issuer_keys("")
 
-        print(res)
         assert len(res) == 1
         assert res[0] == {
             'use': u'sig',

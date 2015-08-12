@@ -117,9 +117,6 @@ class TestOICConsumer():
 
         self.consumer._backup("sid")
         self.consumer.restore("sid")
-        for k, v in list(self.consumer.__dict__.items()):
-            if (k, v) not in _dict:
-                print(k)
         assert sorted(_dict) == sorted(list(self.consumer.__dict__.items()))
 
         self.consumer.authorization_endpoint = authz_org_url
