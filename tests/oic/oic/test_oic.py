@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # from oic.oauth2 import KeyStore
+import json
 import sys
 import os
 import time
@@ -56,7 +57,7 @@ IDTOKEN = IdToken(iss="http://oic.example.org/", sub="sub",
 # ----------------- CLIENT --------------------
 
 
-class TestOICClient(object):
+class TestClient(object):
     @pytest.fixture(autouse=True)
     def create_client(self):
         self.redirect_uri = "http://example.com/redirect"
@@ -379,6 +380,27 @@ class TestOICClient(object):
         assert body == "access_token=access_token"
         assert h_args == {'headers': {
             'Content-type': 'application/x-www-form-urlencoded'}}
+
+    def test_sign_enc_request(self):
+        KC_RSA_ENC = KeyBundle({"key": _key, "kty": "RSA", "use": "enc"})
+        self.client.keyjar["test_provider"] = [KC_RSA_ENC]
+
+        request_args = {"redirect_uri": self.redirect_uri,
+                        "client_id": self.client.client_id,
+                        "scope": "openid",
+                        "response_type": "code"}
+
+        kwargs = {"request_object_signing_alg": "none",
+                  "request_object_encryption_alg": "RSA1_5",
+                  "request_object_encryption_enc": "A128CBC-HS256",
+                  "request_method": "parameter",
+                  "target": "test_provider"}
+
+        areq = self.client.construct_AuthorizationRequest(
+            request_args=request_args,
+            **kwargs)
+
+        assert areq["request"]
 
 
 class TestServer(object):
