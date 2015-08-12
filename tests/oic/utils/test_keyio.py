@@ -1,5 +1,6 @@
 # pylint: disable=missing-docstring,no-self-use
 import os
+import pytest
 from oic.oic.message import ProviderConfigurationResponse
 
 from oic.utils.keyio import key_export
@@ -171,6 +172,7 @@ class TestKeyJar(object):
         enc_key = kj.get_encrypt_key("RSA", "abcdefgh")
         assert enc_key != []
 
+    @pytest.mark.network
     def test_provider(self):
         provider_info = {
             "jwks_uri": "https://connect-op.herokuapp.com/jwks.json",

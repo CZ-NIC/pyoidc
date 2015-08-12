@@ -493,6 +493,7 @@ class TestProvider(object):
                     'client_id', 'client_secret',
                     'client_id_issued_at', 'response_types'])
 
+    @pytest.mark.network
     def test_registration_endpoint_openid4us(self):
         req = RegistrationRequest(
             **{'token_endpoint_auth_method': u'client_secret_post',
