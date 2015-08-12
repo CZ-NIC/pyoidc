@@ -40,8 +40,9 @@ KC_SYM_S = KeyBundle(
     {"kty": "oct", "key": "abcdefghijklmnop".encode("utf-8"), "use": "sig",
      "alg": "HS256"})
 
-BASE_PATH = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir,
-                         "data/keys")
+BASE_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir,
+                 "data/keys"))
 _key = rsa_load(os.path.join(BASE_PATH, "rsa.key"))
 KC_RSA = KeyBundle({"key": _key, "kty": "RSA", "use": "sig"})
 
