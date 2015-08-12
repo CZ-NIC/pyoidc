@@ -28,8 +28,8 @@ __author__ = 'rohe0002'
 KC_SYM_VS = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "ver"})
 KC_SYM_S = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "sig"})
 
-BASE_PATH = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir,
-                         "data/keys")
+BASE_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, "data/keys"))
 KC_RSA = keybundle_from_local_file(os.path.join(BASE_PATH, "rsa.key"), "rsa",
                                    ["ver", "sig"])
 
