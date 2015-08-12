@@ -1,16 +1,23 @@
 # pylint: disable=missing-docstring,no-self-use
 
 import base64
+import os
 
+from jwkest.jwk import SYMKey, rsa_load
+from jwkest.jws import JWS
+
+from jwkest.jwt import JWT
 import pytest
 
 from oic.oauth2 import Client
 from oic.oauth2.grant import Grant
 from oic.oauth2.message import AccessTokenRequest, ResourceRequest, \
     AuthorizationResponse, AccessTokenResponse
+from oic.oic import JWT_BEARER
 from oic.utils.authn.client import ClientSecretBasic, BearerHeader, BearerBody, \
-    ClientSecretPost
+    ClientSecretPost, PrivateKeyJWT, ClientSecretJWT
 from utils_for_tests import _eq  # pylint: disable=import-error
+from oic.utils.keyio import KeyBundle
 
 
 @pytest.fixture
@@ -144,3 +151,46 @@ class TestClientSecretPost(object):
         assert cis["client_id"] == "A"
         assert cis["client_secret"] == "another"
         assert http_args == {}
+
+
+class TestPrivateKeyJWT(object):
+    def test_construct(self, client):
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        _key = rsa_load(
+            os.path.join(base_path, os.pardir, os.pardir, os.pardir, "rsa.key"))
+        kc_rsa = KeyBundle([{"key": _key, "kty": "RSA", "use": "ver"},
+                            {"key": _key, "kty": "RSA", "use": "sig"}])
+        client.keyjar[""] = kc_rsa
+        client.token_endpoint = "https://example.com/token"
+
+        cis = AccessTokenRequest()
+        pkj = PrivateKeyJWT(client)
+        http_args = pkj.construct(cis, algorithm="RS256")
+        assert http_args == {}
+        cas = cis["client_assertion"]
+        _jwt = JWT().unpack(cas)
+        jso = _jwt.payload()
+        assert _eq(jso.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
+        assert _jwt.headers == {'alg': 'RS256'}
+
+
+class TestClientSecretJWT(object):
+    def test_client_secret_jwt(self, client):
+        client.token_endpoint = "https://example.com/token"
+
+        csj = ClientSecretJWT(client)
+        cis = AccessTokenRequest()
+
+        http_args = csj.construct(cis, algorithm="HS256")
+        assert cis["client_assertion_type"] == JWT_BEARER
+        assert "client_assertion" in cis
+        cas = cis["client_assertion"]
+        _jwt = JWT().unpack(cas)
+        jso = _jwt.payload()
+        assert _eq(jso.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
+        assert _jwt.headers == {'alg': 'HS256'}
+
+        _rj = JWS()
+        info = _rj.verify_compact(cas, [SYMKey(key=client.client_secret)])
+
+        assert _eq(info.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
