@@ -1,5 +1,7 @@
+# pylint: disable=missing-docstring
+
 import json
-import unittest
+
 import httpretty
 import pytest
 import requests
@@ -8,12 +10,13 @@ from oic.oauth2.exception import NoClientInfoReceivedError
 from oic.utils.clientdb import MDQClient
 
 
-class TestMDQClient(unittest.TestCase):
+class TestMDQClient(object):
     URL = "http://localhost/mdx"
     CLIENT_ID = "client1"
     MDX_URL = URL + "/entities/" + CLIENT_ID
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def create_client(self):
         self.md = MDQClient(TestMDQClient.URL)
 
     @httpretty.activate
@@ -40,8 +43,8 @@ class TestMDQClient(unittest.TestCase):
                                status=404)
 
         with pytest.raises(NoClientInfoReceivedError):
-            self.md[TestMDQClient.CLIENT_ID]
+            self.md[TestMDQClient.CLIENT_ID]  # pylint: disable=pointless-statement
 
     def test_broken_connection(self):
         with pytest.raises(requests.exceptions.RequestException):
-            self.md[TestMDQClient.CLIENT_ID]
+            self.md[TestMDQClient.CLIENT_ID]  # pylint: disable=pointless-statement
