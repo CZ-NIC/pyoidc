@@ -28,7 +28,8 @@ class TestClientSecretBasic(object):
         http_args = csb.construct(cis)
 
         assert http_args == {"headers": {"Authorization": "Basic {}".format(
-            base64.b64encode("A:boarding pass".encode("utf-8")).decode("utf-8"))}}
+            base64.b64encode("A:boarding pass".encode("utf-8")).decode(
+                "utf-8"))}}
 
 
 class TestBearerHeader(object):
