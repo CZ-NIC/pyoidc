@@ -3,7 +3,7 @@ httpretty
 requests
 pycrypto
 mako
-pyjwkest
+git+https://github.com/dallerbarn/pyjwkest@py3_string
 beaker
 alabaster
 pyOpenSSL
