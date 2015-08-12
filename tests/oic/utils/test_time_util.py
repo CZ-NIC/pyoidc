@@ -1,11 +1,20 @@
+# !/usr/bin/env python
+
+# pylint: disable=missing-docstring
+
+import calendar
+from datetime import datetime
+
+import pytest
+import time
+
+from oic.utils.time_util import f_quotient, modulo, before, in_a_while, valid, \
+    after, instant, not_before, not_on_or_after, parse_duration, TimeUtilError, \
+    str_to_time, add_duration, time_a_while_ago, a_while_ago, shift_time, \
+    utc_now, later_than
+
 __author__ = 'rohe0002'
 
-#!/usr/bin/env python
-
-#import calendar
-from oic.utils.time_util import *
-
-from pytest import raises
 
 def test_f_quotient():
     assert f_quotient(-1, 3) == -1
@@ -39,8 +48,8 @@ def test_modulo_2():
     for i in range(1, 13):
         assert modulo(i, 1, 13) == i
     assert modulo(13, 1, 13) == 1
-    #x = 0.123
-    #assert modulo(13+x, 1, 13) == 1+x
+    # x = 0.123
+    # assert modulo(13+x, 1, 13) == 1+x
 
 
 def test_parse_duration():
@@ -55,7 +64,7 @@ def test_parse_duration():
 
 
 def test_add_duration_1():
-    #2000-01-12T12:13:14Z	P1Y3M5DT7H10M3S	2001-04-17T19:23:17Z
+    # 2000-01-12T12:13:14Z	P1Y3M5DT7H10M3S	2001-04-17T19:23:17Z
     t = add_duration(str_to_time("2000-01-12T12:13:14Z"), "P1Y3M5DT7H10M3S")
     assert t.tm_year == 2001
     assert t.tm_mon == 4
@@ -66,7 +75,7 @@ def test_add_duration_1():
 
 
 def test_add_duration_2():
-    #2000-01-12 PT33H   2000-01-13
+    # 2000-01-12 PT33H   2000-01-13
     t = add_duration(str_to_time("2000-01-12T00:00:00Z"), "PT33H")
     assert t.tm_year == 2000
     assert t.tm_mon == 1
@@ -76,7 +85,28 @@ def test_add_duration_2():
     assert t.tm_sec == 0
 
 
-def test_str_to_time():   
+def test_add_duration_3():
+    # 2000-01-12 PT33H   2000-01-13
+    t = add_duration(str_to_time("2000-01-12T00:00:00Z"), "P32D")
+    assert t.tm_year == 2000
+    assert t.tm_mon == 2
+    assert t.tm_mday == 12
+    assert t.tm_hour == 0
+    assert t.tm_min == 0
+    assert t.tm_sec == 0
+    assert t.tm_wday == 5
+    assert t.tm_wday == 5
+    assert t.tm_yday == 43
+    assert t.tm_isdst == 0
+
+
+def test_add_duration_4():
+    # 2000-01-12 PT33H   2000-01-13
+    t = add_duration(str_to_time("2000-01-12T00:00:00Z"), "-P32D")
+    assert t is None
+
+
+def test_str_to_time():
     t = calendar.timegm(str_to_time("2000-01-12T00:00:00Z"))
     assert t == 947635200
 
@@ -93,15 +123,13 @@ def test_valid():
     current_year = datetime.today().year
     assert valid("%d-01-12T00:00:00Z" % (current_year + 1)) is True
     this_instance = instant()
-    time.sleep(1)
     assert valid(this_instance) is False  # unless on a very fast machine :-)
     soon = in_a_while(seconds=10)
     assert valid(soon) is True
 
 
 def test_timeout():
-    soon = in_a_while(seconds=1, time_format="")
-    time.sleep(2)
+    soon = in_a_while(seconds=-1, time_format="")
     assert valid(soon) is False
 
 
@@ -140,34 +168,17 @@ def test_parse_duration_1():
     assert d['tm_min'] == 10
 
 
-def test_parse_duration_2():
-    raises(Exception, 'parse_duration("-P1Y-3M5DT7H10M3.3S")')
-    raises(Exception, 'parse_duration("-P1Y3M5DU7H10M3.3S")')
-    raises(Exception, 'parse_duration("-P1Y3M5DT")')
-    raises(Exception, 'parse_duration("-P1Y3M5DU7H10M3.S")')
-    raises(Exception, 'parse_duration("-P1Y3M5DT7H10MxS")')
-    raises(Exception, 'parse_duration("-P1Y4M4DT7H10.5M3S")')
-
-
-def test_add_duration_2():
-    #2000-01-12 PT33H   2000-01-13
-    t = add_duration(str_to_time("2000-01-12T00:00:00Z"), "P32D")
-    assert t.tm_year == 2000
-    assert t.tm_mon == 2
-    assert t.tm_mday == 12
-    assert t.tm_hour == 0
-    assert t.tm_min == 0
-    assert t.tm_sec == 0
-    assert t.tm_wday == 5
-    assert t.tm_wday == 5
-    assert t.tm_yday == 43
-    assert t.tm_isdst == 0
-
-
-def test_add_duration_3():
-    #2000-01-12 PT33H   2000-01-13
-    t = add_duration(str_to_time("2000-01-12T00:00:00Z"), "-P32D")
-    assert t is None
+@pytest.mark.parametrize("duration", [
+    "-P1Y-3M5DT7H10M3.3S",
+    "-P1Y3M5DU7H10M3.3S",
+    "-P1Y3M5DT",
+    "-P1Y3M5DU7H10M3.S",
+    "-P1Y3M5DT7H10MxS",
+    "-P1Y4M4DT7H10.5M3S"
+])
+def test_parse_duration_error(duration):
+    with pytest.raises(TimeUtilError):
+        parse_duration(duration)
 
 
 def test_time_a_while_ago():
@@ -183,7 +194,6 @@ def test_a_while_ago():
     then = a_while_ago(seconds=10)
     t = time.mktime(str_to_time(then))
     delta = dt - t  # slightly less than 10
-    print (delta)
     assert delta == 10
 
 
@@ -195,7 +205,8 @@ def test_shift_time():
 
 
 def test_str_to_time_str_error():
-    raises(Exception, 'str_to_time("2000-01-12T00:00:00ZABC")')
+    with pytest.raises(AttributeError):
+        str_to_time("2000-01-12T00:00:00ZABC")
 
 
 def test_str_to_time_1():
