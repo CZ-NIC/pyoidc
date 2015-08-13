@@ -526,15 +526,17 @@ class TestProvider(object):
                     'client_id', 'client_secret',
                     'client_id_issued_at'])
 
-    def test_provider_key_setup(self):
+    def test_provider_key_setup(self, tmpdir):
+        path = tmpdir.strpath
         provider = Provider("pyoicserv", SessionDB(SERVER_INFO["issuer"]), None,
                             None, None, None, None, "")
-        provider.baseurl = "http://www.example.com/"
-        provider.key_setup("static", sig={"format": "jwk", "alg": "RSA"})
+        provider.baseurl = "http://www.example.com"
+        provider.key_setup(path, path, sig={"format": "jwk", "alg": "RSA"})
 
         keys = provider.keyjar.get_signing_key("RSA")
         assert len(keys) == 1
-        assert provider.jwks_uri == "http://www.example.com/static/jwks"
+        assert provider.jwks_uri == "http://www.example.com/{}/jwks".format(
+            path)
 
     @pytest.mark.parametrize("uri", [
         "http://example.org/foo",
