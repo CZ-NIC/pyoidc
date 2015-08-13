@@ -44,7 +44,3 @@ class TestMDQClient(object):
 
         with pytest.raises(NoClientInfoReceivedError):
             self.md[TestMDQClient.CLIENT_ID]  # pylint: disable=pointless-statement
-
-    def test_broken_connection(self):
-        with pytest.raises(requests.exceptions.RequestException):
-            self.md[TestMDQClient.CLIENT_ID]  # pylint: disable=pointless-statement
