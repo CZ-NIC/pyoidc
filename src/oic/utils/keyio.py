@@ -735,11 +735,10 @@ def key_export(baseurl, local_path, vault, keyjar, **kwargs):
         keyjar[""] = kb
 
     # the local filename
-    _export_filename = "%sjwks" % local_path
+    _export_filename = os.path.join(local_path, "jwks")
 
-    f = open(_export_filename, "w")
-    f.write("%s" % kb)
-    f.close()
+    with open(_export_filename, "w") as f:
+        f.write(str(kb))
 
     _url = "%s://%s%s" % (part.scheme, part.netloc,
                           _export_filename[1:])
@@ -760,18 +759,13 @@ def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=1024):
 
     key = RSA.generate(size)
 
-    if not path.endswith("/"):
-        path += "/"
-
-    f = open('%s%s' % (path, name), 'w')
-    f.write(key.exportKey('PEM'))
-    f.close()
+    with open(os.path.join(path, name), 'wb') as f:
+        f.write(key.exportKey('PEM'))
 
     _pub_key = key.publickey()
-    f = open('%s%s.pub' % (path, name), 'w')
 
-    f.write(_pub_key.exportKey('PEM'))
-    f.close()
+    with open(os.path.join(path, '{}.pub'.format(name)), 'wb') as f:
+        f.write(_pub_key.exportKey('PEM'))
 
     return key
 
