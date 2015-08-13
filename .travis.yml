@@ -1,4 +1,6 @@
 language: python
+python:
+  - 3.4.3 # specify 3.4.3, tox will still handle 2.7 ok
 
 sudo: false
 
@@ -10,12 +12,11 @@ addons:
     - libldap2-dev
 
 env:
-  - TOX_ENV=py27
-  - TOX_ENV=py34
+  - TOXENV=py27
+  - TOXENV=py34
 
 install:
   - pip install -U tox
 
 script:
-  - tox -e $TOX_ENV
-
+  - tox
