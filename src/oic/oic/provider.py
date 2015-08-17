@@ -838,13 +838,16 @@ class Provider(AProvider):
 
         _log_debug("All checks OK")
 
+        issue_refresh = False
         if "issue_refresh" in kwargs:
-            args = {"issue_refresh": kwargs["issue_refresh"]}
-        else:
-            args = {}
+            issue_refresh = kwargs["issue_refresh"]
+
+        permissions = _info.get('permission', ['offline_access']) or ['offline_access']
+        if 'offline_access' in _info['scope'] and 'offline_access' in permissions:
+            issue_refresh = True
 
         try:
-            _sdb.upgrade_to_token(_access_code, **args)
+            _tinfo = _sdb.upgrade_to_token(_access_code, issue_refresh=issue_refresh)
         except Exception as err:
             logger.error("%s" % err)
             # Should revoke the token issued to this access code
