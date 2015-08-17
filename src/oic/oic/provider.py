@@ -989,15 +989,11 @@ class Provider(AProvider):
         """
         :param request: The request in a string format
         """
-        try:
-            _log_debug = kwargs["logger"].debug
-            _log_info = kwargs["logger"].info
-        except KeyError:
-            _log_debug = logger.debug
-            _log_info = logger.info
 
-        _sdb = self.sdb
+        _token = self._parse_access_token(request, kwargs)
+        return self._do_user_info(_token, kwargs)
 
+    def _parse_access_token(self, request, **kwargs):
         if not request or "access_token" not in request:
             _token = kwargs["authn"]
             assert _token.startswith("Bearer ")
@@ -1008,8 +1004,19 @@ class Provider(AProvider):
             logger.debug("user_info_request: %s" % uireq)
             _token = uireq["access_token"]
 
+        return _token
+
+    def _do_user_info(self, token, **kwargs):
+        try:
+            _log_debug = kwargs["logger"].debug
+            _log_info = kwargs["logger"].info
+        except KeyError:
+            _log_debug = logger.debug
+            _log_info = logger.info
+
+        _sdb = self.sdb
         # should be an access token
-        typ, key = _sdb.token.type_and_key(_token)
+        typ, key = _sdb.token.type_and_key(token)
         _log_debug("access_token type: '%s'" % (typ,))
 
         try:
