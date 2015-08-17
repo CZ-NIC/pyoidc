@@ -515,7 +515,8 @@ class Message(object):
                 jso = json.loads(_jwt.part[1])
                 _header = _jwt.headers
 
-                logger.debug("Raw JSON: %s" % jso)
+                logger.debug("Raw JSON: {}".format(jso))
+                logger.debug("header: {}".format(_header))
                 if _header["alg"] == "none":
                     pass
                 else:
