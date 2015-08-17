@@ -19,13 +19,20 @@ RSA0 = "%s/rsa.key" % BASE_PATH
 
 JWK0 = {"keys": [
     {'kty': 'RSA', 'e': 'AQAB', 'kid': "abc",
-     'n': 'wf-wiusGhA-gleZYQAOPQlNUIucPiqXdPVyieDqQbXXOPBe3nuggtVzeq7pVFH1dZz4dY2Q2LA5DaegvP8kRvoSB_87ds3dy3Rfym_GUSc5B0l1TgEobcyaep8jguRoHto6GWHfCfKqoUYZq4N8vh4LLMQwLR6zi6Jtu82nB5k8'}
+     'n':
+         'wf-wiusGhA-gleZYQAOPQlNUIucPiqXdPVyieDqQbXXOPBe3nuggtVzeq7pVFH1dZz4dY2Q2LA5DaegvP8kRvoSB_87ds3dy3Rfym_GUSc5B0l1TgEobcyaep8jguRoHto6GWHfCfKqoUYZq4N8vh4LLMQwLR6zi6Jtu82nB5k8'}
 ]}
 
 JWK1 = {"keys": [
-    {"n": "zkpUgEgXICI54blf6iWiD2RbMDCOO1jV0VSff1MFFnujM4othfMsad7H1kRo50YM5S_X9TdvrpdOfpz5aBaKFhT6Ziv0nhtcekq1eRl8mjBlvGKCE5XGk-0LFSDwvqgkJoFYInq7bu0a4JEzKs5AyJY75YlGh879k1Uu2Sv3ZZOunfV1O1Orta-NvS-aG_jN5cstVbCGWE20H0vFVrJKNx0Zf-u-aA-syM4uX7wdWgQ-owoEMHge0GmGgzso2lwOYf_4znanLwEuO3p5aabEaFoKNR4K6GjQcjBcYmDEE4CtfRU9AEmhcD1kleiTB9TjPWkgDmT9MXsGxBHf3AKT5w", "e": "AQAB", "kty": "RSA", "kid": "5-VBFv40P8D4I-7SFz7hMugTbPs"},
-    {"k": "YTEyZjBlMDgxMGI4YWU4Y2JjZDFiYTFlZTBjYzljNDU3YWM0ZWNiNzhmNmFlYTNkNTY0NzMzYjE", "kty": "oct"},
-    ]}
+    {
+        "n":
+            "zkpUgEgXICI54blf6iWiD2RbMDCOO1jV0VSff1MFFnujM4othfMsad7H1kRo50YM5S_X9TdvrpdOfpz5aBaKFhT6Ziv0nhtcekq1eRl8mjBlvGKCE5XGk-0LFSDwvqgkJoFYInq7bu0a4JEzKs5AyJY75YlGh879k1Uu2Sv3ZZOunfV1O1Orta-NvS-aG_jN5cstVbCGWE20H0vFVrJKNx0Zf-u-aA-syM4uX7wdWgQ-owoEMHge0GmGgzso2lwOYf_4znanLwEuO3p5aabEaFoKNR4K6GjQcjBcYmDEE4CtfRU9AEmhcD1kleiTB9TjPWkgDmT9MXsGxBHf3AKT5w",
+        "e": "AQAB", "kty": "RSA", "kid": "5-VBFv40P8D4I-7SFz7hMugTbPs"},
+    {
+        "k":
+            "YTEyZjBlMDgxMGI4YWU4Y2JjZDFiYTFlZTBjYzljNDU3YWM0ZWNiNzhmNmFlYTNkNTY0NzMzYjE",
+        "kty": "oct"},
+]}
 
 
 def test_chain_1():
@@ -43,7 +50,7 @@ def test_chain_1():
 
 
 def test_chain_2():
-    kc = keybundle_from_local_file(RSAKEY, "rsa", ["ver","sig"])
+    kc = keybundle_from_local_file(RSAKEY, "rsa", ["ver", "sig"])
     assert kc.remote is False
     assert len(kc.get("oct")) == 0
     assert len(kc.get("RSA")) == 2
@@ -68,8 +75,6 @@ def test1():
 
     print url
     assert url == "http://example.com/keys/outbound/jwks"
-
-URL = "https://openidconnect.info/jwk/jwk.json"
 
 
 def test_keyjar_pairkeys():
@@ -123,7 +128,8 @@ def test_keyjar_remove_key():
 
 
 def test_local_jwk_file():
-    kb = keybundle_from_local_file("file://%s/jwk.json" % BASE_PATH, "jwk", ["ver", "sig"])
+    kb = keybundle_from_local_file("file://%s/jwk.json" % BASE_PATH, "jwk",
+                                   ["ver", "sig"])
     assert len(kb) == 1
     kj = KeyJar()
     kj.issuer_keys[""] = [kb]
@@ -136,7 +142,8 @@ def test_local_jwk_file():
 
 def test_signing():
     # Signing is only possible if key is a private RSA key
-    kb = keybundle_from_local_file("%s/rsa.key" % BASE_PATH, "rsa", ["ver", "sig"])
+    kb = keybundle_from_local_file("%s/rsa.key" % BASE_PATH, "rsa",
+                                   ["ver", "sig"])
     assert len(kb) == 2
     kj = KeyJar()
     kj.issuer_keys[""] = [kb]
@@ -151,7 +158,8 @@ def test_signing():
 
 
 def test_kid_usage():
-    kb = keybundle_from_local_file("file://%s/jwk.json" % BASE_PATH, "jwk", ["ver", "sig"])
+    kb = keybundle_from_local_file("file://%s/jwk.json" % BASE_PATH, "jwk",
+                                   ["ver", "sig"])
     kj = KeyJar()
     kj.issuer_keys["https://example.com"] = [kb]
 
@@ -175,7 +183,12 @@ def test_dump_own_keys():
         'e': u'AQAB',
         'kty': u'RSA',
         'alg': u'RS256',
-        'n': u'pKybs0WaHU_y4cHxWbm8Wzj66HtcyFn7Fh3n-99qTXu5yNa30MRYIYfSDwe9JVc1JUoGw41yq2StdGBJ40HxichjE-Yopfu3B58QlgJvToUbWD4gmTDGgMGxQxtv1En2yedaynQ73sDpIK-12JJDY55pvf-PCiSQ9OjxZLiVGKlClDus44_uv2370b9IN2JiEOF-a7JBqaTEYLPpXaoKWDSnJNonr79tL0T7iuJmO1l705oO3Y0TQ-INLY6jnKG_RpsvyvGNnwP9pMvcP1phKsWZ10ofuuhJGRp8IxQL9RfzT87OvF0RBSO1U73h09YP-corWDsnKIi6TbzRpN5YDw',
+        'n': u'pKybs0WaHU_y4cHxWbm8Wzj66HtcyFn7Fh3n'
+             u'-99qTXu5yNa30MRYIYfSDwe9JVc1JUoGw41yq2StdGBJ40HxichjE'
+             u'-Yopfu3B58QlgJvToUbWD4gmTDGgMGxQxtv1En2yedaynQ73sDpIK'
+             u'-12JJDY55pvf-PCiSQ9OjxZLiVGKlClDus44_uv2370b9IN2JiEOF'
+             u'-a7JBqaTEYLPpXaoKWDSnJNonr79tL0T7iuJmO1l705oO3Y0TQ'
+             u'-INLY6jnKG_RpsvyvGNnwP9pMvcP1phKsWZ10ofuuhJGRp8IxQL9RfzT87OvF0RBSO1U73h09YP-corWDsnKIi6TbzRpN5YDw',
         'kid': u'abc'}
 
 
@@ -208,6 +221,10 @@ def test_enc_hmac():
     msg, state = _jwe.decrypt(_enctxt, keys)
 
     assert json.loads(msg) == payload
+
+
+def test_import():
+    url = "https://login.microsoftonline.com/common/discovery/v2.0/keys"
 
 if __name__ == "__main__":
     test_dump_own_keys()

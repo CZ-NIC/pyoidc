@@ -330,7 +330,6 @@ class Message(object):
 
             skey = str(key)
             try:
-
                 (vtyp, req, _, _deser, null_allowed) = _spec[key]
             except KeyError:
                 # might be a parameter with a lang tag
