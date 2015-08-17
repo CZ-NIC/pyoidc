@@ -565,6 +565,7 @@ class Message(object):
                                 raise MissingSigningKey(
                                     "alg=%s" % _header["alg"])
 
+                        logger.debug("Verify keys: {}".format(key))
                         _jw.verify_compact(txt, key)
             except Exception:
                 raise

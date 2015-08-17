@@ -265,6 +265,7 @@ class KeyBundle(object):
         return None
 
     def kids(self):
+        self._uptodate()
         return [key.kid for key in self._keys if key.kid != ""]
 
 
