@@ -306,7 +306,7 @@ class SessionDB(object):
         elif self._db[sid]["oauth_state"] == "token":
             return self._db[sid]["access_token"]
 
-    def upgrade_to_token(self, token=None, issue_refresh=True, id_token="",
+    def upgrade_to_token(self, token=None, issue_refresh=False, id_token="",
                          oidreq=None, key=None, access_grant=""):
         """
 
