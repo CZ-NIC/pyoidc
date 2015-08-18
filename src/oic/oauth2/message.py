@@ -521,6 +521,7 @@ class Message(object):
                     pass
                 else:
                     if keyjar:
+                        logger.debug("Issuer keys: {}".format(keyjar.keys()))
                         if "jku" in _header:
                             if not keyjar.find(_header["jku"], jso["iss"]):
                                 # This is really questionable
