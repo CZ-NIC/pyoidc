@@ -734,12 +734,12 @@ class Client(oauth2.Client):
                     raise MissingParameter("Unspecified token type")
 
             # use_authorization_header, token_in_message_body
-            if "use_authorization_header" in _behav and _ttype == "Bearer":
-                bh = "Bearer %s" % _token
+            if "use_authorization_header" in _behav:
+                token_header = "{type} {token}".format(type=_ttype, token=_token)
                 if "headers" in kwargs:
-                    kwargs["headers"].update({"Authorization": bh})
+                    kwargs["headers"].update({"Authorization": token_header})
                 else:
-                    kwargs["headers"] = {"Authorization": bh}
+                    kwargs["headers"] = {"Authorization": token_header}
 
             if "token_in_message_body" not in _behav:
                 # remove the token from the request

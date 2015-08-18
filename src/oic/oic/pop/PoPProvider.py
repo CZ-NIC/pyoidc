@@ -121,8 +121,8 @@ class PoPProvider(Provider):
             return parse_qs(request["body"])["access_token"][0]
         elif request["headers"]["Authorization"]:
             auth_header = request["headers"]["Authorization"]
-            if auth_header.startswith("Bearer "):
-                return auth_header[len("Bearer "):]
+            if auth_header.startswith("pop "):
+                return auth_header[len("pop "):]
 
         return None
 

@@ -13,6 +13,7 @@ from oic.oic import AuthorizationRequest
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import keyjar_init
 from six.moves.urllib.parse import urlparse
+from six.moves.urllib.parse import urlencode
 from signed_http_req import sign_http
 
 __author__ = 'roland'
@@ -139,6 +140,7 @@ class Client(oic.Client):
                              request="openid", **kwargs):
 
         kwargs["request"] = request
+        kwargs["behavior"] = "use_authorization_header"
         url, body, method, h_args = self.user_info_request(method, state,
                                                            scope, **kwargs)
 
@@ -146,9 +148,9 @@ class Client(oic.Client):
         url_parse = urlparse(url)
         host = url_parse.netloc
         path = url_parse.path
-        h_args["headers"]["Http-Signature"] = sign_http(sign_key, "RS256", path=path, req_body=body,
-                                                        req_header=h_args["headers"], method=method,
-                                                        url_host=host)
+        body = sign_http(sign_key, "RS256", path=path, req_header=h_args["headers"],
+                         method=method, url_host=host)
+        body = urlencode({"http_signature": body})
 
         logger.debug("[do_user_info_request] PATH:%s BODY:%s H_ARGS: %s" % (
             url, body, h_args))
