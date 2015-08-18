@@ -73,9 +73,8 @@ class PoPProvider(Provider):
     def _get_client_public_key(self, access_token):
         _jws = jws.factory(access_token)
         if _jws:
-            _jws.verify_compact(access_token,
-                                self.keyjar.get_verify_key(owner=""))
-            data = _jws.jwt.payload()
+            data = _jws.verify_compact(access_token,
+                                       self.keyjar.get_verify_key(owner=""))
             try:
                 return keyrep(data["cnf"]["jwk"])
             except KeyError:
@@ -128,7 +127,9 @@ class PoPProvider(Provider):
         return None
 
     def _parse_signature(self, request):
-        if "body" in request:
+        if "Http-Signature" in request["headers"]:
+            return request["headers"]["Http-Signature"]
+        elif "body" in request:
             return parse_qs(request["body"])["http_signature"][0]
 
         return None

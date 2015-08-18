@@ -990,8 +990,8 @@ class Provider(AProvider):
         :param request: The request in a string format
         """
 
-        _token = self._parse_access_token(request, kwargs)
-        return self._do_user_info(_token, kwargs)
+        _token = self._parse_access_token(request, **kwargs)
+        return self._do_user_info(_token, **kwargs)
 
     def _parse_access_token(self, request, **kwargs):
         if not request or "access_token" not in request:
