@@ -1,0 +1,4 @@
+{
+  "check_session_iframe": "https://localhost:8080/check_session",
+  "subject_types_supported": ["public", "pairwise"]
+}
