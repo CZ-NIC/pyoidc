@@ -1,4 +1,4 @@
-#BASE = "https://lingon.ladok.umu.se"
+# BASE = "https://lingon.ladok.umu.se"
 BASE = "http://localhost"
 
 # If BASE is https these has to be specified
@@ -7,6 +7,13 @@ SERVER_KEY = "certs/server.key"
 CA_BUNDLE = None
 
 VERIFY_SSL = False
+
+# POP_PRIVATE_KEY = "keys/key.pem"
+# POP_PUBLIC_KEY = "keys/key.pub"
+
+POP_KEYS = [
+    {"type": "RSA", "key": "keys/key.pem", "use": ["sig"]}
+]
 
 # information used when registering the client, this may be the same for all OPs
 
@@ -37,11 +44,11 @@ CLIENTS = {
         "client_info": ME,
         "behaviour": BEHAVIOUR
     },
-    #"oictest": {
+    # "oictest": {
     #    "srv_discovery_url": "https://oictest.umdc.umu.se:8085/",
     #    "client_info": ME,
     #    "behaviour": BEHAVIOUR
-    #},
+    # },
     # "lingon": {
     #     "srv_discovery_url": "https://lingon.ladok.umu.se:8092/",
     #     "client_info": ME,

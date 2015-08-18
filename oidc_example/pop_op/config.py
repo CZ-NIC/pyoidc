@@ -2,7 +2,7 @@
 
 # issuer= "https://www.kodtest.se/rolandsOP"
 baseurl = "https://localhost"
-#baseurl = "https://lingon.ladok.umu.se"
+# baseurl = "https://lingon.ladok.umu.se"
 issuer = "{base}:{port}/"
 
 keys = [
@@ -13,7 +13,7 @@ keys = [
 
 SERVICE_URL = "{issuer}/verify"
 
-#Only Username and password.
+# Only Username and password.
 AUTHENTICATION = {
     "UserPassword": {"ACR": "PASSWORD", "WEIGHT": 1, "URL": SERVICE_URL,
                      "END_POINTS": ["verify"]}
@@ -25,7 +25,7 @@ SYM_KEY = "SoLittleTime,Got"
 
 SERVER_CERT = "certs/server.crt"
 SERVER_KEY = "certs/server.key"
-#CERT_CHAIN="certs/chain.pem"
+# CERT_CHAIN="certs/chain.pem"
 CERT_CHAIN = None
 
 # =======  SIMPLE DATABASE ==============
@@ -74,4 +74,3 @@ USERDB = {
         "email_verified": True,
     }
 }
-

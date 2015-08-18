@@ -11,7 +11,6 @@ from oic.utils.http_util import NotFound
 from oic.utils.http_util import Response
 from oic.utils.http_util import Redirect
 
-
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = 'rp.log'
 hdlr = logging.FileHandler(LOGFILE_NAME)
@@ -175,7 +174,7 @@ def application(environ, start_response):
                                                             "HS256")})
             # Also append the ACR values
             logout_url += "&" + urlparse.urlencode({"acr_values": ACR_VALUES},
-                                                 True)
+                                                   True)
 
         LOGGER.debug("Logout URL: %s" % str(logout_url))
         LOGGER.debug("Logging out from session: %s" % str(session))
@@ -231,7 +230,7 @@ if __name__ == '__main__':
                                 conf.ME["redirect_uris"]]
     conf.ME["post_logout_redirect_uris"] = [url.format(base=conf.BASE) for url
                                             in conf.ME[
-            "post_logout_redirect_uris"]]
+                                                "post_logout_redirect_uris"]]
 
     for client, client_conf in six.iteritems(conf.CLIENTS):
         if "client_registration" in client_conf:
@@ -264,7 +263,7 @@ if __name__ == '__main__':
             conf.SERVER_CERT, conf.SERVER_KEY, conf.CA_BUNDLE)
 
     LOGGER.info("RP server starting listening on port:%s" % args.port)
-    print ("RP server starting listening on port:%s" % args.port)
+    print("RP server starting listening on port:%s" % args.port)
     try:
         SRV.start()
     except KeyboardInterrupt:

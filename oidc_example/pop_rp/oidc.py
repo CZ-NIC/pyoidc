@@ -1,15 +1,21 @@
+from base64 import urlsafe_b64encode
+import json
+import logging
+from oic.oic.message import OpenIDSchema
+from oic.utils import elements_to_unicode
 from oic.utils.http_util import Redirect
-from oic.exception import MissingAttribute
-from oic import oic
+from oic.exception import MissingAttribute, PyoidcError
+from oic import oic, oauth2
 from oic.oauth2 import rndstr, ErrorResponse
 from oic.oic import ProviderConfigurationResponse, AuthorizationResponse
 from oic.oic import RegistrationResponse
 from oic.oic import AuthorizationRequest
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
+from oic.utils.keyio import keyjar_init
+from six.moves.urllib.parse import urlparse
+from signed_http_req import sign_http
 
 __author__ = 'roland'
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +105,8 @@ class Client(oic.Client):
 
                 atresp = self.do_access_token_request(
                     scope="openid", state=authresp["state"], request_args=args,
-                    authn_method=self.registration_response["token_endpoint_auth_method"])
+                    authn_method=self.registration_response["token_endpoint_auth_method"],
+                    extra_args={"token_type": "pop", "key": self._get_serialized_pop_key()})
             except Exception as err:
                 logger.error("%s" % err)
                 raise
@@ -122,6 +129,65 @@ class Client(oic.Client):
         logger.debug("UserInfo: %s" % inforesp)
 
         return userinfo
+
+    def _get_serialized_pop_key(self):
+        pub_key = self.keyjar.get_verify_key()
+        return urlsafe_b64encode(
+            json.dumps(elements_to_unicode(pub_key[0].serialize())).encode("utf-8")).decode("utf-8")
+
+    def do_user_info_request(self, method="POST", state="", scope="openid",
+                             request="openid", **kwargs):
+
+        kwargs["request"] = request
+        url, body, method, h_args = self.user_info_request(method, state,
+                                                           scope, **kwargs)
+
+        sign_key = self.keyjar.get_signing_key()[0]
+        url_parse = urlparse(url)
+        host = url_parse.netloc
+        path = url_parse.path
+        h_args["headers"]["Http-Signature"] = sign_http(sign_key, "RS256", path=path, req_body=body,
+                                                        req_header=h_args["headers"], method=method,
+                                                        url_host=host)
+
+        logger.debug("[do_user_info_request] PATH:%s BODY:%s H_ARGS: %s" % (
+            url, body, h_args))
+
+        try:
+            resp = self.http_request(url, method, data=body, **h_args)
+        except oauth2.MissingRequiredAttribute:
+            raise
+
+        if resp.status_code == 200:
+            try:
+                assert "application/json" in resp.headers["content-type"]
+                sformat = "json"
+            except AssertionError:
+                assert "application/jwt" in resp.headers["content-type"]
+                sformat = "jwt"
+        elif resp.status_code == 500:
+            raise PyoidcError("ERROR: Something went wrong: %s" % resp.text)
+        else:
+            raise PyoidcError("ERROR: Something went wrong [%s]: %s" % (
+                resp.status_code, resp.text))
+
+        try:
+            _schema = kwargs["user_info_schema"]
+        except KeyError:
+            _schema = OpenIDSchema
+
+        logger.debug("Reponse text: '%s'" % resp.text)
+
+        _txt = resp.text
+        if sformat == "json":
+            res = _schema().from_json(txt=_txt)
+        else:
+            res = _schema().from_jwt(_txt, keyjar=self.keyjar,
+                                     sender=self.provider_info["issuer"])
+
+        self.store_response(res, _txt)
+
+        return res
 
 
 class OIDCClients(object):
@@ -163,7 +229,10 @@ class OIDCClients(object):
                 _key_set.discard(param)
 
         client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
-                                 behaviour=kwargs["behaviour"], verify_ssl=self.config.VERIFY_SSL, **args)
+                                 behaviour=kwargs["behaviour"], verify_ssl=self.config.VERIFY_SSL,
+                                 **args)
+
+        keyjar_init(client, self.config.POP_KEYS)
 
         try:
             client.userinfo_request_method = kwargs["userinfo_request_method"]
@@ -225,7 +294,7 @@ class OIDCClients(object):
     def dynamic_client(self, userid):
         client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
                                  verify_ssl=self.config.VERIFY_SSL)
-
+        keyjar_init(client, self.config.POP_KEYS)
         issuer = client.wf.discovery_query(userid)
         if issuer in self.client:
             return self.client[issuer]

@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable=missing-docstring
 import json
 import sys
 import os
 import traceback
+import re
 
 from six.moves.urllib.parse import parse_qs
-from jwkest import as_unicode
+
+from oic.oic.pop.PoPProvider import PoPProvider
 from oic.utils import shelve_wrapper
 from oic.utils.authn.javascript_login import JavascriptFormMako
-
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.multi_auth import setup_multi_auth
 from oic.utils.authn.multi_auth import AuthnIndexedEndpointWrapper
@@ -23,16 +25,16 @@ from oic.utils.webfinger import WebFinger
 from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.authn_context import make_auth_verify
-
-__author__ = 'rohe0002'
-
-import re
-
-from oic.oic.provider import Provider
 from oic.oic.provider import EndSessionEndpoint
 from oic.utils.http_util import *
+from oic.oic.provider import AuthorizationEndpoint
+from oic.oic.provider import TokenEndpoint
+from oic.oic.provider import UserinfoEndpoint
+from oic.oic.provider import RegistrationEndpoint
 
 from mako.lookup import TemplateLookup
+
+__author__ = 'rohe0002'
 
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = 'oc.log'
@@ -70,7 +72,7 @@ def safe(environ, start_response, logger):
 
     _log_info("- safe -")
     # _log_info("env: %s" % environ)
-    #_log_info("handle: %s" % (handle,))
+    # _log_info("handle: %s" % (handle,))
 
     try:
         authz = environ["HTTP_AUTHORIZATION"]
@@ -105,7 +107,7 @@ def css(environ, start_response, logger):
 # ----------------------------------------------------------------------------
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def token(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
@@ -113,7 +115,7 @@ def token(environ, start_response, logger):
                         logger=logger)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def authorization(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
@@ -121,15 +123,14 @@ def authorization(environ, start_response, logger):
                         logger=logger)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def userinfo(environ, start_response, logger):
     _oas = environ["oic.oas"]
+    resp = _oas.userinfo_endpoint(_oas.parse_request(environ))
+    return resp(environ, start_response)
 
-    return wsgi_wrapper(environ, start_response, _oas.userinfo_endpoint,
-                        logger=logger)
 
-
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def op_info(environ, start_response, logger):
     _oas = environ["oic.oas"]
     LOGGER.info("op_info")
@@ -137,7 +138,7 @@ def op_info(environ, start_response, logger):
                         logger=logger)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def registration(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
@@ -152,7 +153,7 @@ def registration(environ, start_response, logger):
         return resp(environ, start_response)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def check_id(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
@@ -160,7 +161,7 @@ def check_id(environ, start_response, logger):
                         logger=logger)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def swd_info(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
@@ -168,7 +169,7 @@ def swd_info(environ, start_response, logger):
                         logger=logger)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def trace_log(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
@@ -176,7 +177,7 @@ def trace_log(environ, start_response, logger):
                         logger=logger)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def endsession(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
@@ -184,7 +185,7 @@ def endsession(environ, start_response, logger):
                         logger=logger)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def meta_info(environ, start_response, logger):
     """
     Returns something like this::
@@ -221,7 +222,7 @@ def static_file(path):
         return False
 
 
-#noinspection PyUnresolvedReferences
+# noinspection PyUnresolvedReferences
 def static(environ, start_response, path):
     logger.info("[static]sending: %s" % (path,))
 
@@ -265,11 +266,8 @@ def clear_keys(environ, start_response, _):
     resp = Response("OK")
     return resp(environ, start_response)
 
+
 # ----------------------------------------------------------------------------
-from oic.oic.provider import AuthorizationEndpoint
-from oic.oic.provider import TokenEndpoint
-from oic.oic.provider import UserinfoEndpoint
-from oic.oic.provider import RegistrationEndpoint
 
 ENDPOINTS = [
     AuthorizationEndpoint(authorization),
@@ -300,6 +298,7 @@ def add_endpoints(extra):
     for endp in extra:
         URLS.append(("^%s" % endp.etype, endp))
 
+
 # ----------------------------------------------------------------------------
 
 ROOT = './'
@@ -307,6 +306,7 @@ ROOT = './'
 LOOKUP = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
                         module_directory=ROOT + 'modules',
                         input_encoding='utf-8', output_encoding='utf-8')
+
 
 # ----------------------------------------------------------------------------
 
@@ -327,7 +327,7 @@ def application(environ, start_response):
     """
     global OAS
 
-    #user = environ.get("REMOTE_USER", "")
+    # user = environ.get("REMOTE_USER", "")
     path = environ.get('PATH_INFO', '').lstrip('/')
 
     logger = logging.getLogger('oicServer')
@@ -398,7 +398,6 @@ if __name__ == '__main__':
 
     config.issuer = config.issuer.format(base=config.baseurl, port=args.port)
     config.SERVICE_URL = config.SERVICE_URL.format(issuer=config.issuer)
-
 
     ac = AuthnBroker()
 
@@ -527,7 +526,7 @@ if __name__ == '__main__':
     kwargs = {
         "template_lookup": LOOKUP,
         "template": {"form_post": "form_response.mako"},
-        #"template_args": {"form_post": {"action": "form_post"}}
+        # "template_args": {"form_post": {"action": "form_post"}}
     }
 
     # Should I care about verifying the certificates used by other entities
@@ -541,8 +540,8 @@ if __name__ == '__main__':
     else:
         pass
 
-    OAS = Provider(config.issuer, SessionDB(config.baseurl), cdb, ac, None,
-                   authz, verify_client, config.SYM_KEY, **kwargs)
+    OAS = PoPProvider(config.issuer, SessionDB(config.baseurl), cdb, ac, None,
+                      authz, verify_client, config.SYM_KEY, **kwargs)
     OAS.baseurl = config.issuer
 
     for authn in ac:
@@ -569,7 +568,7 @@ if __name__ == '__main__':
     except AttributeError:
         pass
 
-    #print URLS
+    # print URLS
     if args.debug:
         OAS.debug = True
 
@@ -585,11 +584,11 @@ if __name__ == '__main__':
     else:
         new_name = "static/jwks.json"
         f = open(new_name, "w")
-        
+
         for key in jwks["keys"]:
             for k in key.keys():
                 key[k] = as_unicode(key[k])
-        
+
         f.write(json.dumps(jwks))
         f.close()
         OAS.jwks_uri.append("%s%s" % (OAS.baseurl, new_name))
@@ -605,11 +604,12 @@ if __name__ == '__main__':
         https = "using HTTPS"
         # SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
         #     config.SERVER_CERT, config.SERVER_KEY, config.CERT_CHAIN)
-        SRV.ssl_adapter = BuiltinSSLAdapter(config.SERVER_CERT, config.SERVER_KEY, config.CERT_CHAIN)
+        SRV.ssl_adapter = BuiltinSSLAdapter(config.SERVER_CERT, config.SERVER_KEY,
+                                            config.CERT_CHAIN)
 
     LOGGER.info("OC server starting listening on port:%s %s" % (args.port,
                                                                 https))
-    print ("OC server starting listening on port:%s %s" % (args.port, https))
+    print("OC server starting listening on port:%s %s" % (args.port, https))
     try:
         SRV.start()
     except KeyboardInterrupt:
