@@ -11,7 +11,7 @@ import time
 from oic.oic.message import AccessTokenRequest, AccessTokenResponse
 
 from oic.oic.provider import Provider
-from oic.utils.http_util import get_post
+from oic.utils.http_util import get_post, Response
 
 __author__ = 'regu0004'
 
@@ -27,38 +27,43 @@ class PoPProvider(Provider):
 
     def token_endpoint(self, dtype='urlencoded', **kwargs):
         atr = AccessTokenRequest().deserialize(kwargs["request"], dtype)
+        resp = super(PoPProvider, self).token_endpoint(**kwargs)
 
-        # TODO check if atr['token_type'] = 'pop' and that atr['key']
+        if "token_type" not in atr or atr["token_type"] != "pop":
+            return resp
 
-        client_public_key = base64.b64decode(atr['key'].encode("utf-8")).decode(
+        client_public_key = base64.urlsafe_b64decode(
+            atr["key"].encode("utf-8")).decode(
             "utf-8")
         pop_key = json.loads(client_public_key)
-
-        resp = super(PoPProvider, self).token_endpoint(**kwargs)
         atr = AccessTokenResponse().deserialize(resp.message, method="json")
         data = self.sdb.read(atr["access_token"])
 
-        _jws = {"iss": self.baseurl,
-                "aud": data["client_id"],
-                "exp": data["token_expires_at"],
-                "nbf": int(time.time()),
-                "cnf": {
-                    "jwk": pop_key}}
-        JWS(_jws).sign_compact(self.keyjar.get_signing_key(owner=""))  # TODO ??
-        self.access_tokens[_jws] = data["access_token"]
-        return resp
+        jwt = {"iss": self.baseurl,
+               "aud": self.baseurl,
+               "exp": data["token_expires_at"],
+               "nbf": int(time.time()),
+               "cnf": {"jwk": pop_key}}
+        jws = JWS(jwt, alg="RS256").sign_compact(
+            self.keyjar.get_signing_key(owner=""))
+        self.access_tokens[jws] = data["access_token"]
+
+        atr["access_token"] = jws
+        atr["token_type"] = "pop"
+        return Response(atr.to_json(), content="application/json")
 
     def userinfo_endpoint(self, request, **kwargs):
         access_token = self._parse_access_token(request)
         key = self._get_client_public_key(access_token)
+        http_signature = self._parse_signature(request)
         try:
-            verify_http(key, request["http_signature"],
+            verify_http(key, http_signature,
                         method=request["method"],
                         url_host=request["host"], path=request["path"],
                         query_param=request["query"],
                         req_header=request["headers"], req_body=request["body"],
                         strict_query_param=True,
-                        strict_req_header=True)
+                        strict_req_header=False)
         except ValidationError as exc:
             return self._error_response("access_denied",
                                         descr="Could not verify proof of possession")
@@ -69,8 +74,7 @@ class PoPProvider(Provider):
         _jws = jws.factory(access_token)
         if _jws:
             _jws.verify_compact(access_token,
-                                self.keyjar.get_verify_key(
-                                    owner=""))  # TODO find providers signining key
+                                self.keyjar.get_verify_key(owner=""))
             data = _jws.jwt.payload()
             try:
                 return keyrep(data["cnf"]["jwk"])
@@ -120,5 +124,11 @@ class PoPProvider(Provider):
             auth_header = request["headers"]["Authorization"]
             if auth_header.startswith("Bearer "):
                 return auth_header[len("Bearer "):]
+
+        return None
+
+    def _parse_signature(self, request):
+        if "body" in request:
+            return parse_qs(request["body"])["http_signature"][0]
 
         return None
