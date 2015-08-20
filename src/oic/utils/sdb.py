@@ -1,23 +1,21 @@
+import base64
 import copy
+import hashlib
+import hmac
+import itertools
+import logging
+import random
+import time
 import uuid
 
-import time
-import itertools
-from oic.oic import AuthorizationRequest
+from Crypto.Cipher import AES
 
+from oic.oauth2 import rndstr
+from oic.oic import AuthorizationRequest
+from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = 'rohe0002'
 
-import hmac
-import hashlib
-import random
-import base64
-import logging
-
-from oic.oauth2 import rndstr
-from oic.utils.time_util import utc_time_sans_frac
-
-from Crypto.Cipher import AES
 
 logger = logging.getLogger(__name__)
 
@@ -227,7 +225,7 @@ class SessionDB(object):
         uid = self._db[sid]["authn_event"].uid
 
         if subject_type == "public":
-            sub = "%x" % hash(uid+self.base_url)
+            sub = hashlib.sha256("%s%s" % (uid, self.seed)).hexdigest()
         else:
             sub = pairwise_id(uid, sector_id, self.seed)
 
