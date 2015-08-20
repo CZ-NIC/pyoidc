@@ -1,66 +1,66 @@
 #!/usr/bin/env python
+import hashlib
+import hmac
+import itertools
 import json
+import logging
+import random
+import socket
+import sys
+import time
 import traceback
 import urllib
-import sys
-import itertools
-import random
-import hmac
-import time
-import hashlib
-import logging
-import socket
 
-from jwkest.jwe import JWE, NotSupportedAlgorithm
-from jwkest.jwk import SYMKey
+import six
 from requests import ConnectionError
-from jwkest import jws
-from jwkest import jwe
+
 from jwkest import b64d
-from jwkest.jws import alg2keytype
-from jwkest.jws import NoSuitableSigningKeys
-
+from jwkest import jwe
+from jwkest import jws
+from jwkest.jwe import JWE
 from jwkest.jwe import JWEException
-
-from oic.utils.time_util import utc_time_sans_frac
+from jwkest.jwe import NotSupportedAlgorithm
+from jwkest.jwk import SYMKey
+from jwkest.jws import NoSuitableSigningKeys
+from jwkest.jws import alg2keytype
+from oic.exception import *
+from oic.oauth2 import rndstr
+from oic.oauth2.exception import CapabilitiesMisMatch
+from oic.oauth2.message import by_schema
+from oic.oauth2.provider import Provider as AProvider
+from oic.oauth2.provider import Endpoint
+from oic.oic import PREFERENCE2PROVIDER
+from oic.oic import PROVIDER_DEFAULT
+from oic.oic import Server
+from oic.oic import claims_match
+from oic.oic.message import SCOPE2CLAIMS
+from oic.oic.message import AccessTokenRequest
+from oic.oic.message import AccessTokenResponse
+from oic.oic.message import AuthorizationRequest
+from oic.oic.message import AuthorizationResponse
+from oic.oic.message import Claims
+from oic.oic.message import ClientRegistrationErrorResponse
+from oic.oic.message import DiscoveryRequest
+from oic.oic.message import DiscoveryResponse
+from oic.oic.message import EndSessionRequest
+from oic.oic.message import IdToken
+from oic.oic.message import OpenIDRequest
+from oic.oic.message import OpenIDSchema
+from oic.oic.message import ProviderConfigurationResponse
+from oic.oic.message import RefreshAccessTokenRequest
+from oic.oic.message import RegistrationRequest
+from oic.oic.message import RegistrationResponse
+from oic.oic.message import TokenErrorResponse
+from oic.utils.http_util import BadRequest
+from oic.utils.http_util import Redirect
+from oic.utils.http_util import Response
+from oic.utils.http_util import Unauthorized
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
-from oic.oauth2.message import by_schema
-from oic.oic.message import RefreshAccessTokenRequest
-from oic.oic.message import EndSessionRequest
-from oic.oic.message import Claims
-from oic.oic.message import IdToken
-from oic.oic.message import OpenIDSchema
-from oic.oic.message import RegistrationResponse
-from oic.oic.message import AuthorizationRequest
-from oic.oic.message import AuthorizationResponse
-from oic.oic.message import OpenIDRequest
-from oic.oic.message import AccessTokenResponse
-from oic.oic.message import AccessTokenRequest
-from oic.oic.message import TokenErrorResponse
-from oic.oic.message import SCOPE2CLAIMS
-from oic.oic.message import RegistrationRequest
-from oic.oic.message import ClientRegistrationErrorResponse
-from oic.oic.message import DiscoveryRequest
-from oic.oic.message import ProviderConfigurationResponse
-from oic.oic.message import DiscoveryResponse
-from oic.oauth2.provider import Provider as AProvider
-from oic.oauth2.provider import Endpoint
-from oic.utils.http_util import Response
-from oic.utils.http_util import Redirect
-from oic.utils.http_util import BadRequest
-from oic.utils.http_util import Unauthorized
-from oic.oauth2.exception import CapabilitiesMisMatch
-from oic.oauth2 import rndstr
-from oic.oic import Server
-from oic.oic import PROVIDER_DEFAULT
-from oic.oic import PREFERENCE2PROVIDER
-from oic.oic import claims_match
-from oic.exception import *
-
+from oic.utils.time_util import utc_time_sans_frac
 from six.moves.urllib import parse as urlparse
-import six
+
 if six.PY3:
     from urllib.parse import splitquery
 else:
@@ -68,6 +68,11 @@ else:
 
 
 __author__ = 'rohe0002'
+
+
+__author__ = 'rohe0002'
+
+
 
 logger = logging.getLogger(__name__)
 

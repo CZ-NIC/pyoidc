@@ -1,41 +1,45 @@
 #!/usr/bin/env python
 import hashlib
-import traceback
-import sys
 import logging
 import os
-
-from six.moves.urllib import parse as urlparse
-from oic.utils.sdb import AccessCodeUsed, AuthnEvent
-from oic.exception import MissingParameter, InvalidRequest
-from oic.exception import URIError
-from oic.exception import RedirectURIError
-from oic.exception import ParameterError
-from oic.exception import FailedAuthentication
-from oic.exception import UnknownClient
-from oic.oauth2.message import AccessTokenResponse, MissingRequiredValue
-from oic.oauth2.message import ErrorResponse
-from oic.oauth2.message import AuthorizationErrorResponse
-from oic.oauth2.message import AuthorizationRequest
-from oic.oauth2.message import add_non_standard
-from oic.oauth2.message import AuthorizationResponse
-from oic.oauth2.message import NoneResponse
-from oic.oauth2.message import by_schema
-from oic.oauth2.message import MissingRequiredAttribute
-from oic.oauth2.message import TokenErrorResponse
-from oic.oauth2.message import AccessTokenRequest
-from oic.utils.http_util import BadRequest
-from oic.utils.http_util import CookieDealer
-from oic.utils.http_util import make_cookie
-from oic.utils.http_util import Redirect
-from oic.utils.http_util import Response
-from oic.utils.authn.user import NoSuchAuthentication
-from oic.utils.authn.user import ToOld
-from oic.utils.authn.user import TamperAllert
-from oic.oauth2 import rndstr
-from oic.oauth2 import Server
+import sys
+import traceback
 
 import six
+
+from oic.exception import FailedAuthentication
+from oic.exception import InvalidRequest
+from oic.exception import MissingParameter
+from oic.exception import ParameterError
+from oic.exception import RedirectURIError
+from oic.exception import UnknownClient
+from oic.exception import URIError
+from oic.oauth2 import Server
+from oic.oauth2 import rndstr
+from oic.oauth2.message import AccessTokenRequest
+from oic.oauth2.message import AccessTokenResponse
+from oic.oauth2.message import AuthorizationErrorResponse
+from oic.oauth2.message import AuthorizationRequest
+from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import MissingRequiredAttribute
+from oic.oauth2.message import MissingRequiredValue
+from oic.oauth2.message import NoneResponse
+from oic.oauth2.message import TokenErrorResponse
+from oic.oauth2.message import add_non_standard
+from oic.oauth2.message import by_schema
+from oic.utils.authn.user import NoSuchAuthentication
+from oic.utils.authn.user import TamperAllert
+from oic.utils.authn.user import ToOld
+from oic.utils.http_util import BadRequest
+from oic.utils.http_util import CookieDealer
+from oic.utils.http_util import Redirect
+from oic.utils.http_util import Response
+from oic.utils.http_util import make_cookie
+from oic.utils.sdb import AccessCodeUsed
+from oic.utils.sdb import AuthnEvent
+from six.moves.urllib import parse as urlparse
+
 if six.PY3:
     from urllib.parse import splitquery
 else:
