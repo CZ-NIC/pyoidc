@@ -53,28 +53,24 @@ LOG_DEBUG = logger.debug
 
 
 class Endpoint(object):
+    '''
+    Endpoint class
+
+    @var etype: Endpoint type
+    @url: Relative part of the url (will be joined with server.baseurl)
+    '''
     etype = ""
-
-    def __init__(self, func):
-        self.func = func
-
-    @property
-    def name(self):
-        return "%s_endpoint" % self.etype
-
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
-
-    def __name__(self):
-        return "%s_endpoint" % self.etype
+    url = ""
 
 
 class AuthorizationEndpoint(Endpoint):
     etype = "authorization"
+    url = "authorization"
 
 
 class TokenEndpoint(Endpoint):
     etype = "token"
+    url = "token"
 
 
 def code_response(**kwargs):
@@ -184,10 +180,6 @@ class Provider(object):
         }
 
         self.session_cookie_name = "pyoic_session"
-
-    def endpoints(self):
-        for endp in self.endp:
-            yield endp(None).name
 
     # def authn_reply(self, areq, aresp, bsid, **kwargs):
     #     """

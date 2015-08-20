@@ -146,22 +146,28 @@ def construct_uri(item):
 
 class AuthorizationEndpoint(Endpoint):
     etype = "authorization"
+    url = 'authorization'
 
 
 class TokenEndpoint(Endpoint):
     etype = "token"
+    url = 'token'
 
 
 class UserinfoEndpoint(Endpoint):
     etype = "userinfo"
+    url = 'userinfo'
 
 
 class RegistrationEndpoint(Endpoint):
     etype = "registration"
+    url = 'registration'
 
 
 class EndSessionEndpoint(Endpoint):
     etype = "end_session"
+    url = 'end_session'
+
 
 
 RESPONSE_TYPES_SUPPORTED = [
@@ -226,10 +232,10 @@ class Provider(AProvider):
         self.preferred_id_type = "public"
         self.hostname = hostname or socket.gethostname
 
-        if self.baseurl.endswith("/"):
-            self.baseurl = self.baseurl[:-1]
-
-        self.register_endpoint = "%s/%s" % (self.baseurl, "register")
+        for endp in self.endp:
+            if endp.etype == 'registration':
+                self.register_endpoint = urlparse.urljoin(self.baseurl, endp.url)
+                break
 
         self.jwx_def = {}
         for _typ in ["sign_alg", "enc_alg", "enc_enc"]:
@@ -1375,8 +1381,8 @@ class Provider(AProvider):
         _rat = rndstr(32)
         reg_enp = ""
         for endp in self.endp:
-            if endp == RegistrationEndpoint:
-                reg_enp = "%s/%s" % (self.baseurl, endp.etype)
+            if endp.etype == 'registration':
+                reg_enp = urlparse.urljoin(self.baseurl, endp.url)
                 break
 
         self.cdb[client_id] = {
@@ -1481,8 +1487,7 @@ class Provider(AProvider):
 
         for endp in self.endp:
             # _log_info("# %s, %s" % (endp, endp.name))
-            _provider_info[endp(None).name] = "%s/%s" % (self.baseurl,
-                                                         endp.etype)
+            _provider_info[endp.etype] = urlparse.urljoin(self.baseurl, endp.url)
 
         if setup and isinstance(setup, dict):
             for key in pcr_class.c_param.keys():
