@@ -280,7 +280,7 @@ class AccessTokenResponse(message.AccessTokenResponse):
         if "id_token" in self:
             # Try to decode the JWT, checks the signature
             args = {}
-            for arg in ["key", "keyjar", "algs"]:
+            for arg in ["key", "keyjar", "algs", "sender"]:
                 try:
                     args[arg] = kwargs[arg]
                 except KeyError:
