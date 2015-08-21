@@ -10,6 +10,7 @@ build
 dist
 *.egg-info
 *.egg
+*.eggs
 
 # Compiled files
 *.pyc
@@ -20,6 +21,7 @@ dist
 
 # Tox testing
 .tox
+private/
 
 # Dynamically created doc folders
 doc/_build
