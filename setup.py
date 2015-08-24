@@ -62,7 +62,7 @@ setup(
     install_requires=[
         "requests",
         "pycrypto>=2.6.1",
-        "pyjwkest>=1.0.2",
+        "pyjwkest>=1.0.3",
         "mako",
         "beaker",
         "alabaster",
