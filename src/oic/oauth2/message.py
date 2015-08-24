@@ -334,7 +334,6 @@ class Message(object):
 
             skey = str(key)
             try:
-
                 (vtyp, req, _, _deser, null_allowed) = _spec[key]
             except KeyError:
                 # might be a parameter with a lang tag
@@ -520,11 +519,13 @@ class Message(object):
                 jso = _jwt.payload()
                 _header = _jwt.headers
 
-                logger.debug("Raw JSON: %s", jso)
+                logger.debug("Raw JSON: {}".format(jso))
+                logger.debug("header: {}".format(_header))
                 if _header["alg"] == "none":
                     pass
                 else:
                     if keyjar:
+                        logger.debug("Issuer keys: {}".format(keyjar.keys()))
                         if "jku" in _header:
                             if not keyjar.find(_header["jku"], jso["iss"]):
                                 # This is really questionable
@@ -570,6 +571,7 @@ class Message(object):
                                 raise MissingSigningKey(
                                     "alg=%s" % _header["alg"])
 
+                        logger.debug("Verify keys: {}".format(key))
                         _jw.verify_compact(txt, key)
             except Exception:
                 raise
@@ -981,10 +983,3 @@ def factory(msgtype):
         return MSG[msgtype]
     except KeyError:
         raise FormatError("Unknown message type: %s" % msgtype)
-
-
-if __name__ == "__main__":
-    atr = AccessTokenRequest(grant_type="authorization_code",
-                             code="foo",
-                             redirect_uri="http://example.com/cb")
-    print(atr)

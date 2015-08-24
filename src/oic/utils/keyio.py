@@ -271,6 +271,7 @@ class KeyBundle(object):
         return None
 
     def kids(self):
+        self._uptodate()
         return [key.kid for key in self._keys if key.kid != ""]
 
 
@@ -559,7 +560,7 @@ class KeyJar(object):
         return "%s" % (_res,)
 
     def keys(self):
-        self.issuer_keys.keys()
+        return self.issuer_keys.keys()
 
     def load_keys(self, pcr, issuer, replace=False):
         """

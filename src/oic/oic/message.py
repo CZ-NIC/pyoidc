@@ -76,6 +76,7 @@ def json_rest(val, sformat=None, lev=0):
 
     return val
 
+
 # value type, required, serializer, deserializer, null value allowed
 SINGLE_OPTIONAL_BOOLEAN = (bool, False, None, None, False)
 SINGLE_OPTIONAL_JSON_WN = (dict, False, json_ser, json_deser, True)
@@ -280,7 +281,7 @@ class AccessTokenResponse(message.AccessTokenResponse):
         if "id_token" in self:
             # Try to decode the JWT, checks the signature
             args = {}
-            for arg in ["key", "keyjar", "algs"]:
+            for arg in ["key", "keyjar", "algs", "sender"]:
                 try:
                     args[arg] = kwargs[arg]
                 except KeyError:
@@ -323,7 +324,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
         if "id_token" in self:
             # Try to decode the JWT, checks the signature
             args = {}
-            for arg in ["key", "keyjar", "algs"]:
+            for arg in ["key", "keyjar", "algs", "sender"]:
                 try:
                     args[arg] = kwargs[arg]
                 except KeyError:
@@ -657,20 +658,20 @@ class IdToken(OpenIDSchema):
                 if kwargs["client_id"] not in self["aud"]:
                     raise NotForMe("", self)
 
-            if len(self["aud"]) > 1:  # Then azr has to be present and be one of
-                # the aud values
+            # Then azp has to be present and be one of the aud values
+            if len(self["aud"]) > 1:
                 try:
-                    assert "azr" in self
+                    assert "azp" in self
                 except AssertionError:
-                    raise VerificationError("azr missing", self)
+                    raise VerificationError("azp missing", self)
                 else:
                     try:
-                        assert self["azr"] in self["aud"]
+                        assert self["azp"] in self["aud"]
                     except AssertionError:
                         raise VerificationError(
-                            "Mismatch between azr and aud claims", self)
+                            "Mismatch between azp and aud claims", self)
 
-        if "azr" in self:
+        if "azp" in self:
             if "client_id" in kwargs:
                 if kwargs["client_id"] != self["azp"]:
                     raise NotForMe("", self)
@@ -891,18 +892,3 @@ def factory(msgtype):
             return message.Message
         else:
             raise PyoidcError("Unknown message type: %s" % msgtype)
-
-
-if __name__ == "__main__":
-    atr = AccessTokenResponse(access_token="access_token",
-                              token_type="token_type")
-    print(atr)
-    print(atr.verify())
-
-    atr = AccessTokenRequest(code="code", client_id="client_id",
-                             redirect_uri="redirect_uri")
-    print(atr)
-    print(atr.verify())
-    uue = atr.serialize()
-    atr = AccessTokenRequest().deserialize(uue, "urlencoded")
-    print(atr)

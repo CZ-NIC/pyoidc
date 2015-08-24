@@ -178,7 +178,7 @@ class Provider(AProvider):
     def __init__(self, name, sdb, cdb, authn_broker, userinfo, authz,
                  client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
                  hostname="", template_lookup=None, template=None,
-                 verify_ssl=True, capabilities=None):
+                 verify_ssl=True, capabilities=None, schema=OpenIDSchema):
 
         AProvider.__init__(self, name, sdb, cdb, authn_broker, authz,
                            client_authn, symkey, urlmap, ca_bundle=ca_certs,
@@ -235,6 +235,9 @@ class Provider(AProvider):
             self.capabilities = self.provider_features()
         self.capabilities["issuer"] = self.name
         self.kid = {"sig": {}, "enc": {}}
+
+        # Allow custom schema (inheriting from OpenIDSchema) to be used - additional attributes
+        self.schema = schema
 
     def set_mode(self, mode):
         """
@@ -691,7 +694,7 @@ class Provider(AProvider):
         if not itc:
             return None
 
-        _claims = by_schema(OpenIDSchema, **itc)
+        _claims = by_schema(self.schema, **itc)
 
         if _claims:
             return self._collect_user_info(session, _claims)
@@ -1024,7 +1027,7 @@ class Provider(AProvider):
 
         # Scope can translate to userinfo_claims
 
-        info = OpenIDSchema(**self._collect_user_info(session))
+        info = self.schema(**self._collect_user_info(session))
 
         # Should I return a JSON or a JWT ?
         _cinfo = self.cdb[session["client_id"]]

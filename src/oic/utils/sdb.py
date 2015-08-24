@@ -34,13 +34,13 @@ class AccessCodeUsed(Exception):
 
 
 def pairwise_id(sub, sector_identifier, seed):
-    return hashlib.sha256(("%s%s%s" % (sub, sector_identifier, seed)).encode()).hexdigest()
+    return hashlib.sha256(("%s%s%s" % (sub, sector_identifier, seed)).encode("utf-8")).hexdigest()
 
 
 class Crypt():
     def __init__(self, password, mode=AES.MODE_CBC):
         self.password = password or 'kitty'
-        self.key = hashlib.sha256(password.encode()).digest()
+        self.key = hashlib.sha256(password.encode("utf-8")).digest()
         self.mode = mode
 
     def encrypt(self, text):
@@ -79,29 +79,29 @@ class Token(object):
             # Ultimate length multiple of 16
 
         return base64.b64encode(self.crypt.encrypt("%s%s%s" % (sid, ttype,
-                                                               rnd))).decode()
+                                                               rnd))).decode("utf-8")
 
     def key(self, user="", areq=None):
-        csum = hmac.new(self.secret.encode(), digestmod=hashlib.sha224)
-        csum.update(("%s" % utc_time_sans_frac()).encode())
-        csum.update(("%f" % random.random()).encode())
+        csum = hmac.new(self.secret.encode("utf-8"), digestmod=hashlib.sha224)
+        csum.update(("%s" % utc_time_sans_frac()).encode("utf-8"))
+        csum.update(("%f" % random.random()).encode("utf-8"))
         if user:
-            csum.update(user.encode())
+            csum.update(user.encode("utf-8"))
 
         if areq:
             try:
-                csum.update(areq["state"].encode())
+                csum.update(areq["state"].encode("utf-8"))
             except KeyError:
                 pass
 
             try:
                 for val in areq["scope"]:
-                    csum.update(val.encode())
+                    csum.update(val.encode("utf-8"))
             except KeyError:
                 pass
 
             try:
-                csum.update(areq["redirect_uri"].encode())
+                csum.update(areq["redirect_uri"].encode("utf-8"))
             except KeyError:
                 pass
 
@@ -197,7 +197,7 @@ class SessionDB(object):
         """
         del self._db[sid]
         # Delete the mapping for session id
-        self.uid2sid = {k: v for k, v in six.iteritems(self.uid2sid) if sid not in v}
+        self.uid2sid = {k: v for k, v in self.uid2sid.items() if sid not in v}
 
     def update(self, key, attribute, value):
         if key in self._db:
@@ -233,7 +233,7 @@ class SessionDB(object):
         uid = self._db[sid]["authn_event"].uid
 
         if subject_type == "public":
-            sub = "%x" % hash(uid + self.base_url)
+            sub = hashlib.sha256("{}{}".format(uid, self.seed).encode("utf-8")).hexdigest()
         else:
             sub = pairwise_id(uid, sector_id, self.seed)
 
