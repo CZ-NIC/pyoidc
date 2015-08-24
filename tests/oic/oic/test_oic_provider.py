@@ -90,17 +90,21 @@ CDB = {
         "password": "hemligt",
         "client_secret": "drickyoughurt",
         "redirect_uris": [("http://localhost:8087/authz", None)],
-        "post_logout_redirect_uris": [("https://example.com/post_logout", None)]
+        "post_logout_redirect_uris": [("https://example.com/post_logout", None)],
+        "client_salt": "salted"
     },
     "a1b2c3": {
-        "redirect_uris": [("http://localhost:8087/authz", None)]
+        "redirect_uris": [("http://localhost:8087/authz", None)],
+        "client_salt": "salted"
     },
     "client0": {
-        "redirect_uris": [("http://www.example.org/authz", None)]
+        "redirect_uris": [("http://www.example.org/authz", None)],
+        "client_salt": "salted"
     },
     CLIENT_ID: {
         "client_secret": CLIENT_SECRET,
-        "redirect_uris": [("http://localhost:8087/authz", None)]
+        "redirect_uris": [("http://localhost:8087/authz", None)],
+        "client_salt": "salted"
     }
 }
 
@@ -212,9 +216,9 @@ class TestProvider(object):
                                     scope=["openid"], state="state000")
 
         sdb = self.provider.sdb
-        ae = AuthnEvent("userX")
+        ae = AuthnEvent("userX", "salt")
         sid = sdb.create_authz_session(ae, areq)
-        sdb.do_sub(sid)
+        sdb.do_sub(sid, "client_salt")
         _info = sdb[sid]
         # All this is jut removed when the id_token is constructed
         # The proper information comes from the session information
@@ -341,7 +345,7 @@ class TestProvider(object):
         _sdb = self.provider.sdb
         sid = _sdb.token.key(user="sub", areq=authreq)
         access_grant = _sdb.token(sid=sid)
-        ae = AuthnEvent("user")
+        ae = AuthnEvent("user", "salt")
         _sdb[sid] = {
             "oauth_state": "authz",
             "authn_event": ae,
@@ -352,7 +356,7 @@ class TestProvider(object):
             "scope": ["openid"],
             "redirect_uri": "http://example.com/authz",
         }
-        _sdb.do_sub(sid)
+        _sdb.do_sub(sid, "client_salt")
 
         # Construct Access token request
         areq = AccessTokenRequest(code=access_grant, client_id=CLIENT_ID,
@@ -375,7 +379,7 @@ class TestProvider(object):
         _sdb = self.provider.sdb
         sid = _sdb.token.key(user="sub", areq=authreq)
         access_grant = _sdb.token(sid=sid)
-        ae = AuthnEvent("user")
+        ae = AuthnEvent("user", "salt")
         _sdb[sid] = {
             "authn_event": ae,
             "oauth_state": "authz",
@@ -386,7 +390,7 @@ class TestProvider(object):
             "scope": ["openid"],
             "redirect_uri": "http://example.com/authz"
         }
-        _sdb.do_sub(sid)
+        _sdb.do_sub(sid, "client_salt")
 
         # Construct Access token request
         areq = AccessTokenRequest(code=access_grant,
@@ -417,9 +421,9 @@ class TestProvider(object):
                                     redirect_uri="http://example.com/authz",
                                     scope=["openid"], state="state000")
 
-        ae = AuthnEvent("sub")
+        ae = AuthnEvent("sub", "salt")
         sid = self.provider.sdb.create_authz_session(ae, AREQ)
-        self.provider.sdb.do_sub(sid)
+        self.provider.sdb.do_sub(sid, "client_salt")
         session = self.provider.sdb[sid]
 
         id_token = self.provider.id_token_as_signed_jwt(session)
@@ -429,9 +433,9 @@ class TestProvider(object):
         areq = AuthorizationRequest(response_type="code", client_id=CLIENT_ID,
                                     redirect_uri="http://example.com/authz",
                                     scope=["openid"], state="state000")
-        aevent = AuthnEvent("sub")
+        aevent = AuthnEvent("sub", "salt")
         sid = self.provider.sdb.create_authz_session(aevent, areq)
-        self.provider.sdb.do_sub(sid)
+        self.provider.sdb.do_sub(sid, "client_salt")
         session = self.provider.sdb[sid]
 
         claims = {'k1': 'v1', 'k2': 32}

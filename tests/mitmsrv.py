@@ -100,9 +100,9 @@ class MITMServer(Server):
 
     def authorization_endpoint(self, query):
         req = self.parse_authorization_request(query=query)
-        aevent = AuthnEvent("user", authn_info="acr")
+        aevent = AuthnEvent("user", "salt", authn_info="acr")
         sid = self.sdb.create_authz_session(aevent, areq=req)
-        _ = self.sdb.do_sub(sid)
+        _ = self.sdb.do_sub(sid, 'client_salt')
         _info = self.sdb[sid]
 
         if "code" in req["response_type"]:

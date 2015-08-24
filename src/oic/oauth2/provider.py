@@ -578,14 +578,14 @@ class Provider(object):
                         else:
                             return authn(**authn_args)
 
-        authn_event = AuthnEvent(identity["uid"], authn_info=authn_class_ref,
+        authn_event = AuthnEvent(identity["uid"], identity.get('salt', ''), authn_info=authn_class_ref,
                                  time_stamp=_ts)
 
         return {"authn_event": authn_event, "identity": identity, "user": user}
 
     def setup_session(self, areq, authn_event, cinfo):
         sid = self.sdb.create_authz_session(authn_event, areq)
-        self.sdb.do_sub(sid)
+        self.sdb.do_sub(sid, '')
         return sid
 
     def authorization_endpoint(self, request="", cookie="", **kwargs):
