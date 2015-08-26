@@ -393,7 +393,7 @@ class Provider(object):
         # return the best I have
         return None, None
 
-    def auth_init(self, request, request_class=AuthorizationResponse):
+    def auth_init(self, request, request_class=AuthorizationRequest):
         """
 
         :param request: The AuthorizationRequest
