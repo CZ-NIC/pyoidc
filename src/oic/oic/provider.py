@@ -1486,8 +1486,9 @@ class Provider(AProvider):
             _provider_info["jwks_uri"] = self.jwks_uri
 
         for endp in self.endp:
-            # _log_info("# %s, %s" % (endp, endp.name))
-            _provider_info[endp.etype] = urlparse.urljoin(self.baseurl, endp.url)
+            #_log_info("# %s, %s" % (endp, endp.name))
+            _provider_info['{}_endpoint'.format(endp.etype)] = urlparse.urljoin(self.baseurl,
+                                                                                endp.url)
 
         if setup and isinstance(setup, dict):
             for key in pcr_class.c_param.keys():
