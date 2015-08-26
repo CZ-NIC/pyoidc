@@ -4,12 +4,9 @@ import traceback
 import sys
 import urllib
 import urlparse
-from oic.utils.sdb import AccessCodeUsed, AuthnEvent
-
 
 __author__ = 'rohe0002'
 
-import base64
 import logging
 import os
 
@@ -41,6 +38,9 @@ from oic.utils.http_util import Response
 from oic.utils.authn.user import NoSuchAuthentication
 from oic.utils.authn.user import ToOld
 from oic.utils.authn.user import TamperAllert
+
+from oic.utils.sdb import AccessCodeUsed
+from oic.utils.sdb import AuthnEvent
 
 from oic.oauth2 import rndstr
 from oic.oauth2 import Server
@@ -316,7 +316,7 @@ class Provider(object):
                 raise RedirectURIError("Doesn't match any registered uris")
             # ignore query components that are not registered
             return None
-        except Exception:
+        except Exception as err:
             logger.error("Faulty redirect_uri: %s" % areq["redirect_uri"])
             try:
                 _cinfo = self.cdb[areq["client_id"]]
@@ -393,7 +393,7 @@ class Provider(object):
         # return the best I have
         return None, None
 
-    def auth_init(self, request):
+    def auth_init(self, request, request_class=AuthorizationResponse):
         """
 
         :param request: The AuthorizationRequest
@@ -402,13 +402,14 @@ class Provider(object):
         logger.debug("Request: '%s'" % request)
         # Same serialization used for GET and POST
         try:
-            areq = self.server.parse_authorization_request(query=request)
+            areq = self.server.parse_authorization_request(
+                request=request_class, query=request)
         except (MissingRequiredValue, MissingRequiredAttribute) as err:
             logger.debug("%s" % err)
-            areq = AuthorizationRequest().deserialize(request, "urlencoded")
+            areq = request_class().deserialize(request, "urlencoded")
             try:
                 redirect_uri = self.get_redirect_uri(areq)
-            except (RedirectURIError, ParameterError), err:
+            except (RedirectURIError, ParameterError) as err:
                 return self._error("invalid_request", "%s" % err)
             try:
                 _rtype = areq["response_type"]
@@ -418,13 +419,13 @@ class Provider(object):
                                               "%s" % err, areq["state"],
                                               _rtype)
         except KeyError:
-            areq = AuthorizationRequest().deserialize(request, "urlencoded")
+            areq = request_class().deserialize(request, "urlencoded")
             # verify the redirect_uri
             try:
                 self.get_redirect_uri(areq)
-            except (RedirectURIError, ParameterError), err:
+            except (RedirectURIError, ParameterError) as err:
                 return self._error("invalid_request", "%s" % err)
-        except Exception, err:
+        except Exception as err:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
             logger.debug("Bad request: %s (%s)" % (err, err.__class__.__name__))
@@ -437,13 +438,18 @@ class Provider(object):
         logger.debug("AuthzRequest: %s" % (areq.to_dict(),))
         try:
             redirect_uri = self.get_redirect_uri(areq)
-        except (RedirectURIError, ParameterError, UnknownClient), err:
+        except (RedirectURIError, ParameterError, UnknownClient) as err:
             return self._error("invalid_request", "%s" % err)
 
         try:
+            keyjar = self.keyjar
+        except AttributeError:
+            keyjar = ""
+
+        try:
             # verify that the request message is correct
-            areq.verify()
-        except (MissingRequiredAttribute, ValueError), err:
+            areq.verify(keyjar=keyjar, opponent_id=areq["client_id"])
+        except (MissingRequiredAttribute, ValueError) as err:
             return self._redirect_authz_error("invalid_request", redirect_uri,
                                               "%s" % err)
 
@@ -683,7 +689,7 @@ class Provider(object):
 
         try:
             redirect_uri = self.get_redirect_uri(areq)
-        except (RedirectURIError, ParameterError), err:
+        except (RedirectURIError, ParameterError) as err:
             return BadRequest("%s" % err)
 
         # Must not use HTTP unless implicit grant type and native application
@@ -741,7 +747,7 @@ class Provider(object):
 
         try:
             client = self.client_authn(self, areq, authn)
-        except FailedAuthentication, err:
+        except FailedAuthentication as err:
             err = TokenErrorResponse(error="unauthorized_client",
                                      error_description="%s" % err)
             return Response(err.to_json(), content="application/json",

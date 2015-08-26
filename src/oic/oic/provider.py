@@ -20,6 +20,7 @@ from oic.oic.message import Claims
 from oic.oic.message import IdToken
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import RegistrationResponse
+from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import OpenIDRequest
 from oic.oic.message import AccessTokenResponse
@@ -373,6 +374,12 @@ class Provider(AProvider):
         return sid
 
     def handle_oidc_request(self, areq, redirect_uri):
+        """
+
+        :param areq:
+        :param redirect_uri:
+        :return:
+        """
         if "request_uri" in areq:
             # Do a HTTP get
             try:
@@ -390,6 +397,8 @@ class Provider(AProvider):
                     "invalid_openid_request_object", redirect_uri)
 
             areq["request"] = resq
+
+        # The "request" in areq case is handled by .verify()
 
         return areq
 
@@ -621,7 +630,7 @@ class Provider(AProvider):
         :param request: The client request
         """
 
-        info = self.auth_init(request)
+        info = self.auth_init(request, request_class=AuthorizationRequest)
         if isinstance(info, Response):
             return info
 
@@ -848,8 +857,14 @@ class Provider(AProvider):
 
         if "openid" in _info["scope"]:
             userinfo = self.userinfo_in_id_token_claims(_info)
-            _idtoken = self.sign_encrypt_id_token(
-                _info, client_info, req, user_info=userinfo)
+            try:
+                _idtoken = self.sign_encrypt_id_token(
+                    _info, client_info, req, user_info=userinfo)
+            except (JWEException, NoSuitableSigningKeys) as err:
+                logger.warning(str(err))
+                return self._error(error="access_denied",
+                                   descr="Could not sign/encrypt id_token")
+
             sid = _sdb.token.get_key(rtoken)
             _sdb.update(sid, "id_token", _idtoken)
 
@@ -1739,8 +1754,13 @@ class Provider(AProvider):
                     hargs = {"access_token": _access_token}
 
                 # or 'code id_token'
-                id_token = self.sign_encrypt_id_token(
-                    _sinfo, client_info, areq, user_info=user_info, **hargs)
+                try:
+                    id_token = self.sign_encrypt_id_token(
+                        _sinfo, client_info, areq, user_info=user_info, **hargs)
+                except (JWEException, NoSuitableSigningKeys) as err:
+                    logger.warning(str(err))
+                    return self._error(error="access_denied",
+                                       descr="Could not sign/encrypt id_token")
 
                 aresp["id_token"] = id_token
                 _sinfo["id_token"] = id_token
