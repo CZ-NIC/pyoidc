@@ -1460,8 +1460,8 @@ class Provider(AProvider):
         :return:
         """
 
-        if not self.baseurl.endswith("/"):
-            self.baseurl += "/"
+        if self.baseurl.endswith("/"):
+            self.baseurl = self.baseurl[:-1]
 
         _provider_info = self.capabilities
 
@@ -1470,7 +1470,7 @@ class Provider(AProvider):
 
         for endp in self.endp:
             #_log_info("# %s, %s" % (endp, endp.name))
-            _provider_info[endp(None).name] = "%s%s" % (self.baseurl,
+            _provider_info[endp(None).name] = "%s/%s" % (self.baseurl,
                                                         endp.etype)
 
         if setup and isinstance(setup, dict):
