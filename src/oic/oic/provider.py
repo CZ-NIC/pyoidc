@@ -220,7 +220,11 @@ class Provider(AProvider):
         self.authn_as = None
         self.preferred_id_type = "public"
         self.hostname = hostname or socket.gethostname
-        self.register_endpoint = "%s%s" % (self.baseurl, "register")
+
+        if self.baseurl.endswith("/"):
+            self.baseurl = self.baseurl[:-1]
+
+        self.register_endpoint = "%s/%s" % (self.baseurl, "register")
 
         self.jwx_def = {}
         for _typ in ["sign_alg", "enc_alg", "enc_enc"]:
@@ -1362,7 +1366,7 @@ class Provider(AProvider):
         reg_enp = ""
         for endp in self.endp:
             if endp == RegistrationEndpoint:
-                reg_enp = "%s%s" % (self.baseurl, endp.etype)
+                reg_enp = "%s/%s" % (self.baseurl, endp.etype)
                 break
 
         self.cdb[client_id] = {
@@ -1460,9 +1464,6 @@ class Provider(AProvider):
         :return:
         """
 
-        if self.baseurl.endswith("/"):
-            self.baseurl = self.baseurl[:-1]
-
         _provider_info = self.capabilities
 
         if self.jwks_uri and self.keyjar:
@@ -1471,7 +1472,7 @@ class Provider(AProvider):
         for endp in self.endp:
             #_log_info("# %s, %s" % (endp, endp.name))
             _provider_info[endp(None).name] = "%s/%s" % (self.baseurl,
-                                                        endp.etype)
+                                                         endp.etype)
 
         if setup and isinstance(setup, dict):
             for key in pcr_class.c_param.keys():
