@@ -744,28 +744,28 @@ def key_export(baseurl, local_path, vault, keyjar, **kwargs):
 # ================= create RSA key ======================
 
 
-def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=1024):
+def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=2048):
     """
     :param name: Name of the key file
     :param path: Path to where the key files are stored
-    :param size: Seed the random number generator with <size> random bytes
+    :param size: RSA key size
     :return: RSA key
     """
 
     key = RSA.generate(size)
 
-    if not path.endswith("/"):
-        path += "/"
+    if name:
+        if not path.endswith("/"):
+            path += "/"
 
-    f = open('%s%s' % (path, name), 'w')
-    f.write(key.exportKey('PEM'))
-    f.close()
+        f = open('%s%s' % (path, name), 'w')
+        f.write(key.exportKey('PEM'))
+        f.close()
 
-    _pub_key = key.publickey()
-    f = open('%s%s.pub' % (path, name), 'w')
-
-    f.write(_pub_key.exportKey('PEM'))
-    f.close()
+        _pub_key = key.publickey()
+        f = open('%s%s.pub' % (path, name), 'w')
+        f.write(_pub_key.exportKey('PEM'))
+        f.close()
 
     return key
 
@@ -809,6 +809,21 @@ def ec_init(spec):
         ec.serialize()
         ec.use = use
         kb.append(ec)
+    return kb
+
+
+def rsa_init(spec):
+    arg = {}
+    for param in ["name", "path", "size"]:
+        try:
+            arg[param] = spec[param]
+        except KeyError:
+            pass
+
+    _key = create_and_store_rsa_key_pair(**arg)
+    kb = KeyBundle(keytype=spec["type"], keyusage=spec["use"])
+    for use in spec["use"]:
+        kb.append(RSAKey(use=use, key=_key))
     return kb
 
 
@@ -862,9 +877,12 @@ def build_keyjar(key_conf, kid_template="a%d", keyjar=None, kidd=None):
         typ = spec["type"].upper()
 
         if typ == "RSA":
-            kb = KeyBundle(source="file://%s" % spec["key"],
-                           fileformat="der",
-                           keytype=typ, keyusage=spec["use"])
+            if "key" in spec:
+                kb = KeyBundle(source="file://%s" % spec["key"],
+                               fileformat="der",
+                               keytype=typ, keyusage=spec["use"])
+            else:
+                kb = rsa_init(spec)
         elif typ == "EC":
             kb = ec_init(spec)
 

@@ -7,7 +7,7 @@ from oic.oic import AuthorizationResponse
 
 __author__ = 'rohe0002'
 
-from oic.utils.keyio import key_export
+from oic.utils.keyio import key_export, rsa_init
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import keybundle_from_local_file
@@ -302,5 +302,9 @@ def test_issuer_mismatch():
         authz_resp.verify(keyjar=kj, sender=ISSUER)
 
 
+def test_rsa_init():
+    res = rsa_init({'use': ['enc'], 'type': 'RSA', 'name': 'rsa_enc'})
+    assert res
+
 if __name__ == "__main__":
-    test_issuer_mismatch()
+    test_rsa_init()
