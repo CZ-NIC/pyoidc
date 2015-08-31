@@ -59,6 +59,7 @@ from oic.utils.http_util import Unauthorized
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
+from oic.utils.sdb import ExpiredToken
 from oic.utils.time_util import utc_time_sans_frac
 from six.moves.urllib import parse as urlparse
 
@@ -879,13 +880,18 @@ class Provider(AProvider):
         _sdb = self.sdb
         _log_debug = logger.debug
 
-        client_info = self.cdb[str(req["client_id"])]
+        client_id = str(req['client_id'])
+        client_info = self.cdb[client_id]
 
         assert req["grant_type"] == "refresh_token"
         rtoken = req["refresh_token"]
-        _info = _sdb.refresh_token(rtoken)
+        try:
+            _info = _sdb.refresh_token(rtoken, client_id=client_id)
+        except ExpiredToken:
+            return self._error(error="access_denied",
+                               descr="Refresh token is expired")
 
-        if "openid" in _info["scope"]:
+        if "openid" in _info["scope"] and "authn_event" in _info:
             userinfo = self.userinfo_in_id_token_claims(_info)
             try:
                 _idtoken = self.sign_encrypt_id_token(
@@ -981,8 +987,14 @@ class Provider(AProvider):
             logger.debug("userinfo_claim: %s" % userinfo_claims.to_dict())
 
         logger.debug("Session info: %s" % session)
-        info = self.userinfo(session["authn_event"].uid, session['client_id'],
-                             userinfo_claims)
+
+        authn_event = session.get("authn_event")
+        if authn_event:
+            uid = authn_event.uid
+        else:
+            uid = session['uid']
+
+        info = self.userinfo(uid, session['client_id'], userinfo_claims)
 
         if "sub" in userinfo_claims:
             if not claims_match(session["sub"], userinfo_claims["sub"]):
