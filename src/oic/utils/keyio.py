@@ -423,7 +423,10 @@ class KeyJar(object):
                     except KeyError:
                         _keys = []
         else:
-            _keys = self.issuer_keys[issuer]
+            try:
+                _keys = self.issuer_keys[issuer]
+            except KeyError:
+                _keys = []
 
         lst = []
         if _keys:
