@@ -1,34 +1,34 @@
 import copy
-from jwkest import jws
-from jwkest import jwe
-
-__author__ = 'rohe0002'
-
 import logging
 import os
-import urlparse
 import sys
 import traceback
 import json
 import time
+
+from jwkest import jws, as_unicode
+from jwkest import jwe
 from Crypto.PublicKey import RSA
-
 from requests import request
-
-from oic.exception import MessageException
-from oic.exception import PyoidcError
-
 from jwkest.ecc import NISTEllipticCurve
 from jwkest.jwk import rsa_load
 from jwkest.jwk import RSAKey
 from jwkest.jwk import ECKey
 from jwkest.jwk import SYMKey
 
+from six.moves.urllib.parse import urlsplit
+from six import string_types
+
+from oic.exception import MessageException
+from oic.exception import PyoidcError
+from oic.utils import elements_to_unicode
+
+__author__ = 'rohe0002'
+
 KEYLOADERR = "Failed to load %s key from '%s' (%s)"
 logger = logging.getLogger(__name__)
 
 # ======================================================================
-traceback.format_exception(*sys.exc_info())
 
 
 class KeyIOError(PyoidcError):
@@ -239,7 +239,13 @@ class KeyBundle(object):
 
     def jwks(self):
         self._uptodate()
-        return json.dumps({"keys": [k.to_dict() for k in self._keys]})
+        keys = list()
+        for k in self._keys:
+            key = k.to_dict()
+            for k, v in key.items():
+                key[k] = as_unicode(v)
+            keys.append(key)
+        return json.dumps({"keys": keys})
 
     def append(self, key):
         self._keys.append(key)
@@ -380,7 +386,7 @@ class KeyJar(object):
             self.issuer_keys[issuer] = [kb]
 
     def __setitem__(self, issuer, val):
-        if isinstance(val, basestring):
+        if isinstance(val, string_types):
             val = [val]
         elif not isinstance(val, list):
             val = [val]
@@ -530,7 +536,7 @@ class KeyJar(object):
 
     def update(self, kj):
         for key, val in kj.issuer_keys.items():
-            if isinstance(val, basestring):
+            if isinstance(val, string_types):
                 val = [val]
             elif not isinstance(val, list):
                 val = [val]
@@ -643,6 +649,7 @@ class KeyJar(object):
 
         return self.get(usage, ktype, issuer)
 
+
 # =============================================================================
 
 
@@ -711,7 +718,7 @@ def key_export(baseurl, local_path, vault, keyjar, **kwargs):
     :return: 2-tuple: result of urlsplit and a dictionary with
         parameter name as key and url and value
     """
-    part = urlparse.urlsplit(baseurl)
+    part = urlsplit(baseurl)
 
     # deal with the export directory
     if part.path.endswith("/"):
@@ -732,11 +739,10 @@ def key_export(baseurl, local_path, vault, keyjar, **kwargs):
         keyjar[""] = kb
 
     # the local filename
-    _export_filename = "%sjwks" % local_path
+    _export_filename = os.path.join(local_path, "jwks")
 
-    f = open(_export_filename, "w")
-    f.write("%s" % kb)
-    f.close()
+    with open(_export_filename, "w") as f:
+        f.write(str(kb))
 
     _url = "%s://%s%s" % (part.scheme, part.netloc,
                           _export_filename[1:])
@@ -758,17 +764,12 @@ def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=2048):
     key = RSA.generate(size)
 
     if name:
-        if not path.endswith("/"):
-            path += "/"
-
-        f = open('%s%s' % (path, name), 'w')
-        f.write(key.exportKey('PEM'))
-        f.close()
+        with open(os.path.join(path, name), 'wb') as f:
+            f.write(key.exportKey('PEM'))
 
         _pub_key = key.publickey()
-        f = open('%s%s.pub' % (path, name), 'w')
-        f.write(_pub_key.exportKey('PEM'))
-        f.close()
+        with open(os.path.join(path, '{}.pub'.format(name)), 'wb') as f:
+            f.write(_pub_key.exportKey('PEM'))
 
     return key
 
@@ -894,7 +895,7 @@ def build_keyjar(key_conf, kid_template="a%d", keyjar=None, kidd=None):
             kid += 1
             kidd[k.use][k.kty] = k.kid
 
-        jwks["keys"].extend([k.to_dict()
+        jwks["keys"].extend([elements_to_unicode(k.to_dict())
                              for k in kb.keys() if k.kty != 'oct'])
 
         keyjar.add_kb("", kb)

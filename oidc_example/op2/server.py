@@ -5,13 +5,8 @@ import sys
 import os
 import traceback
 
-from exceptions import KeyError
-from exceptions import Exception
-from exceptions import OSError
-from exceptions import IndexError
-from exceptions import AttributeError
-from exceptions import KeyboardInterrupt
-from urlparse import parse_qs
+from six.moves.urllib.parse import parse_qs
+from jwkest import as_unicode
 from oic.utils import shelve_wrapper
 from oic.utils.authn.javascript_login import JavascriptFormMako
 
@@ -376,7 +371,8 @@ if __name__ == '__main__':
     import importlib
 
     from cherrypy import wsgiserver
-    from cherrypy.wsgiserver import ssl_pyopenssl
+    from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
+    # from cherrypy.wsgiserver import ssl_pyopenssl
 
     from oic.utils.sdb import SessionDB
 
@@ -583,12 +579,17 @@ if __name__ == '__main__':
 
     try:
         jwks = keyjar_init(OAS, config.keys, kid_template="op%d")
-    except Exception, err:
+    except Exception as err:
         LOGGER.error("Key setup failed: %s" % err)
         OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
     else:
         new_name = "static/jwks.json"
         f = open(new_name, "w")
+        
+        for key in jwks["keys"]:
+            for k in key.keys():
+                key[k] = as_unicode(key[k])
+        
         f.write(json.dumps(jwks))
         f.close()
         OAS.jwks_uri.append("%s%s" % (OAS.baseurl, new_name))
@@ -602,12 +603,13 @@ if __name__ == '__main__':
     https = ""
     if config.SERVICE_URL.startswith("https"):
         https = "using HTTPS"
-        SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
-            config.SERVER_CERT, config.SERVER_KEY, config.CERT_CHAIN)
+        # SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
+        #     config.SERVER_CERT, config.SERVER_KEY, config.CERT_CHAIN)
+        SRV.ssl_adapter = BuiltinSSLAdapter(config.SERVER_CERT, config.SERVER_KEY, config.CERT_CHAIN)
 
     LOGGER.info("OC server starting listening on port:%s %s" % (args.port,
                                                                 https))
-    print "OC server starting listening on port:%s %s" % (args.port, https)
+    print ("OC server starting listening on port:%s %s" % (args.port, https))
     try:
         SRV.start()
     except KeyboardInterrupt:

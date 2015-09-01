@@ -1,12 +1,11 @@
 import json
-import urllib
-import urlparse
 import uuid
 import logging
 import requests
 import base64
 import xml.etree.ElementTree as ET
-from urlparse import parse_qs
+from six.moves.urllib import parse as urlparse
+import six
 
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.http_util import Redirect
@@ -74,7 +73,7 @@ class CasAuthnMethod(UserAuthnMethod):
             acr = None
 
         nonce = uuid.uuid4().get_urn()
-        service_url = urllib.urlencode(
+        service_url = urlparse.urlencode(
             {self.CONST_SERVICE: self.get_service_url(nonce, acr)})
         cas_url = self.cas_server + self.CONST_CASLOGIN + service_url
         cookie = self.create_cookie(
@@ -139,8 +138,8 @@ class CasAuthnMethod(UserAuthnMethod):
         :raise: ValueError
         """
         logger.debug("verify(%s)" % request)
-        if isinstance(request, basestring):
-            _dict = parse_qs(request)
+        if isinstance(request, six.string_types):
+            _dict = urlparse.parse_qs(request)
         elif isinstance(request, dict):
             _dict = request
         else:

@@ -29,14 +29,14 @@ class PyTest(TestCommand):
         self.test_suite = True
 
     def run_tests(self):
-        #import here, cause outside the eggs aren't loaded
+        # import here, cause outside the eggs aren't loaded
         import pytest
 
         errno = pytest.main(self.test_args)
         sys.exit(errno)
 
 # Python 2.7 and later ship with importlib and argparse
-if sys.version_info.major == 2 and sys.version_info.minor == 6:
+if sys.version_info[0] == 2 and sys.version_info[1] == 6:
     extra_install_requires = ["importlib", "argparse"]
 else:
     extra_install_requires = []
@@ -60,9 +60,14 @@ setup(
         'develop': ["cherrypy==3.2.4"],
     },
     install_requires=[
-        "requests", "pycrypto>=2.6.1", "pyjwkest>=1.0.1",
-        "mako", "beaker", "alabaster", "pyOpenSSL"] + extra_install_requires,
-    tests_require=['pytest', 'httpretty'],
+        "requests",
+        "pycrypto>=2.6.1",
+        "pyjwkest>=1.0.3",
+        "mako",
+        "beaker",
+        "alabaster",
+        "pyOpenSSL",
+        "six"] + extra_install_requires,
     zip_safe=False,
     cmdclass={'test': PyTest},
 )

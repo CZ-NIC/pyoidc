@@ -3,20 +3,17 @@ import hashlib
 import traceback
 import sys
 import urllib
-import urlparse
-
-__author__ = 'rohe0002'
-
 import logging
 import os
 
+from six.moves.urllib import parse as urlparse
+from oic.utils.sdb import AccessCodeUsed, AuthnEvent
 from oic.exception import MissingParameter, InvalidRequest
 from oic.exception import URIError
 from oic.exception import RedirectURIError
 from oic.exception import ParameterError
 from oic.exception import FailedAuthentication
 from oic.exception import UnknownClient
-
 from oic.oauth2.message import AccessTokenResponse, MissingRequiredValue
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import AuthorizationErrorResponse
@@ -28,22 +25,18 @@ from oic.oauth2.message import by_schema
 from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.message import AccessTokenRequest
-
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import CookieDealer
 from oic.utils.http_util import make_cookie
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import Response
-
 from oic.utils.authn.user import NoSuchAuthentication
 from oic.utils.authn.user import ToOld
 from oic.utils.authn.user import TamperAllert
-
-from oic.utils.sdb import AccessCodeUsed
-from oic.utils.sdb import AuthnEvent
-
 from oic.oauth2 import rndstr
 from oic.oauth2 import Server
+
+__author__ = 'rohe0002'
 
 logger = logging.getLogger(__name__)
 LOG_INFO = logger.info
@@ -131,6 +124,7 @@ def max_age(areq):
         except KeyError:
             return 0
 
+
 def re_authenticate(areq, authn):
     if "prompt" in areq and "login" in areq["prompt"]:
         if authn.done(areq):
@@ -162,7 +156,7 @@ class Provider(object):
         self.authz = authz
         self.client_authn = client_authn
         self.symkey = symkey
-        self.seed = rndstr()
+        self.seed = rndstr().encode("utf-8")
         self.iv = iv or os.urandom(16)
         self.cookie_name = "pyoidc"
         self.default_scope = default_scope
@@ -287,7 +281,7 @@ class Provider(object):
             if part.fragment:
                 raise URIError("Contains fragment")
 
-            (_base, _query) = urllib.splitquery(_redirect_uri)
+            (_base, _query) = urlparse.splitquery(_redirect_uri)
             if _query:
                 _query = urlparse.parse_qs(_query)
 
@@ -369,7 +363,7 @@ class Provider(object):
                     logger.debug("Picked AuthN broker for ACR %s: %s" % (
                         str(acr), str(res)))
                     if res:
-                        #Return the best guess by pick.
+                        # Return the best guess by pick.
                         return res[0]
             else:  # same as any
                 try:
@@ -382,7 +376,7 @@ class Provider(object):
                         logger.debug("Picked AuthN broker for ACR %s: %s" % (
                             str(acr), str(res)))
                         if res:
-                            #Return the best guess by pick.
+                            # Return the best guess by pick.
                             return res[0]
 
         except KeyError as exc:
@@ -569,7 +563,8 @@ class Provider(object):
                 user = identity["uid"]
                 if "req_user" in kwargs:
                     sids_for_sub = self.sdb.get_sids_by_sub(kwargs["req_user"])
-                    if sids_for_sub and user != self.sdb.get_authentication_event(sids_for_sub[-1]).uid:
+                    if sids_for_sub and user != self.sdb.get_authentication_event(
+                            sids_for_sub[-1]).uid:
                         logger.debug("Wanted to be someone else!")
                         if "prompt" in areq and "none" in areq["prompt"]:
                             # Need to authenticate but not allowed
@@ -606,7 +601,6 @@ class Provider(object):
 
         if isinstance(authnres, Response):
             return authnres
-
 
         logger.debug("- authenticated -")
         logger.debug("AREQ keys: %s" % info["areq"].keys())
@@ -705,7 +699,8 @@ class Provider(object):
             pass
         else:
             if _kaka and self.cookie_name not in _kaka:  # Don't overwrite cookie
-                headers.append(self.cookie_func(user, typ="sso", ttl=self.sso_ttl))
+                headers.append(
+                    self.cookie_func(user, typ="sso", ttl=self.sso_ttl))
 
         # Now about the response_mode. Should not be set if it's obvious
         # from the response_type. Knows about 'query', 'fragment' and
@@ -806,10 +801,11 @@ class Provider(object):
         return make_cookie(self.session_cookie_name, value, self.seed, path="/")
 
     def delete_session_cookie(self):
-        return make_cookie(self.session_cookie_name, "", "", path="/", expire=-1)
+        return make_cookie(self.session_cookie_name, "", b"", path="/",
+                           expire=-1)
 
     def _compute_session_state(self, state, salt, client_id, redirect_uri):
         parsed_uri = urlparse.urlparse(redirect_uri)
         rp_origin_url = "{uri.scheme}://{uri.netloc}".format(uri=parsed_uri)
         session_str = client_id + " " + rp_origin_url + " " + state + " " + salt
-        return hashlib.sha256(session_str).hexdigest() + "." + salt
+        return hashlib.sha256(session_str.encode("utf-8")).hexdigest() + "." + salt

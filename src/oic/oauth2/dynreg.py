@@ -1,7 +1,7 @@
 import logging
-import urllib
-import urlparse
 import requests
+
+from six.moves.urllib import parse as urlparse
 
 from oic import oauth2
 from oic.exception import UnSupported
@@ -163,7 +163,7 @@ class ClientInfoEndpoint(Endpoint):
 class Provider(provider.Provider):
     def __init__(self, name, sdb, cdb, authn_broker, authz, client_authn,
                  symkey="", urlmap=None, iv=0, default_scope="",
-                 ca_bundle=None, seed="", client_authn_methods=None,
+                 ca_bundle=None, seed=b"", client_authn_methods=None,
                  authn_at_registration="", client_info_url="",
                  secret_lifetime=86400):
 
@@ -213,7 +213,7 @@ class Provider(provider.Provider):
     def _uris_to_tuples(uris):
         tup = []
         for uri in uris:
-            base, query = urllib.splitquery(uri)
+            base, query = urlparse.splitquery(uri)
             if query:
                 tup.append((base, query))
             else:
@@ -294,7 +294,7 @@ class Provider(provider.Provider):
             else:
                 _cinfo[key] = value
 
-        for key in _cinfo.keys():
+        for key in list(_cinfo.keys()):
             if key in ["client_id_issued_at", "client_secret_expires_at",
                        "registration_access_token", "registration_client_uri"]:
                 continue
@@ -338,11 +338,11 @@ class Provider(provider.Provider):
         _request = RegistrationRequest().deserialize(request, "json")
         try:
             _request.verify()
-        except InvalidRedirectUri, err:
+        except InvalidRedirectUri as err:
             msg = ClientRegistrationError(error="invalid_redirect_uri",
                                           error_description="%s" % err)
             return BadRequest(msg.to_json(), content="application/json")
-        except (MissingPage, VerificationError), err:
+        except (MissingPage, VerificationError) as err:
             msg = ClientRegistrationError(error="invalid_client_metadata",
                                           error_description="%s" % err)
             return BadRequest(msg.to_json(), content="application/json")
@@ -402,11 +402,11 @@ class Provider(provider.Provider):
 
             try:
                 _request.verify()
-            except InvalidRedirectUri, err:
+            except InvalidRedirectUri as err:
                 msg = ClientRegistrationError(error="invalid_redirect_uri",
                                               error_description="%s" % err)
                 return BadRequest(msg.to_json(), content="application/json")
-            except (MissingPage, VerificationError), err:
+            except (MissingPage, VerificationError) as err:
                 msg = ClientRegistrationError(error="invalid_client_metadata",
                                               error_description="%s" % err)
                 return BadRequest(msg.to_json(), content="application/json")

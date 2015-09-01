@@ -9,12 +9,16 @@ addons:
     - libsasl2-dev
     - libldap2-dev
 
-env:
-  - TOX_ENV=py27
+matrix:
+  include:
+    - python: 3.4.3
+      env: TOXENV=py34
+    - python: 2.7
+      env: TOXENV=py27
+
 
 install:
   - pip install -U tox
 
 script:
-  - tox -e $TOX_ENV
-
+  - tox

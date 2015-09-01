@@ -1,21 +1,22 @@
-import base64
 import copy
-import hashlib
-import hmac
-import itertools
-import logging
-import random
-import time
 import uuid
+import time
+import itertools
+import hmac
+import hashlib
+import random
+import base64
+import logging
+
+import six
 
 from Crypto.Cipher import AES
 
-from oic.oauth2 import rndstr
 from oic.oic import AuthorizationRequest
+from oic.oauth2 import rndstr
 from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = 'rohe0002'
-
 
 logger = logging.getLogger(__name__)
 
@@ -33,13 +34,13 @@ class AccessCodeUsed(Exception):
 
 
 def pairwise_id(sub, sector_identifier, seed):
-    return hashlib.sha256("%s%s%s" % (sub, sector_identifier, seed)).hexdigest()
+    return hashlib.sha256(("%s%s%s" % (sub, sector_identifier, seed)).encode("utf-8")).hexdigest()
 
 
 class Crypt():
     def __init__(self, password, mode=AES.MODE_CBC):
         self.password = password or 'kitty'
-        self.key = hashlib.sha256(password).digest()
+        self.key = hashlib.sha256(password.encode("utf-8")).digest()
         self.mode = mode
 
     def encrypt(self, text):
@@ -78,29 +79,29 @@ class Token(object):
             # Ultimate length multiple of 16
 
         return base64.b64encode(self.crypt.encrypt("%s%s%s" % (sid, ttype,
-                                                               rnd)))
+                                                               rnd))).decode("utf-8")
 
     def key(self, user="", areq=None):
-        csum = hmac.new(self.secret, digestmod=hashlib.sha224)
-        csum.update("%s" % utc_time_sans_frac())
-        csum.update("%f" % random.random())
+        csum = hmac.new(self.secret.encode("utf-8"), digestmod=hashlib.sha224)
+        csum.update(("%s" % utc_time_sans_frac()).encode("utf-8"))
+        csum.update(("%f" % random.random()).encode("utf-8"))
         if user:
-            csum.update(user)
+            csum.update(user.encode("utf-8"))
 
         if areq:
             try:
-                csum.update(areq["state"])
+                csum.update(areq["state"].encode("utf-8"))
             except KeyError:
                 pass
 
             try:
                 for val in areq["scope"]:
-                    csum.update(val)
+                    csum.update(val.encode("utf-8"))
             except KeyError:
                 pass
 
             try:
-                csum.update(areq["redirect_uri"])
+                csum.update(areq["redirect_uri"].encode("utf-8"))
             except KeyError:
                 pass
 
@@ -111,6 +112,13 @@ class Token(object):
         # first _sidlen bytes are the sid
         _sid = plain[:self._sidlen]
         _type = plain[self._sidlen]
+        try:
+            # Python 2 <-> 3
+            _type = chr(_type)
+            _sid = _sid.decode()
+        except TypeError:
+            pass
+
         _rnd = plain[self._sidlen + 1:]
         return _type, _sid, _rnd
 
@@ -189,7 +197,7 @@ class SessionDB(object):
         """
         del self._db[sid]
         # Delete the mapping for session id
-        self.uid2sid = {k: v for k, v in self.uid2sid.iteritems() if sid not in v}
+        self.uid2sid = {k: v for k, v in self.uid2sid.items() if sid not in v}
 
     def update(self, key, attribute, value):
         if key in self._db:
@@ -225,7 +233,7 @@ class SessionDB(object):
         uid = self._db[sid]["authn_event"].uid
 
         if subject_type == "public":
-            sub = hashlib.sha256("%s%s" % (uid, self.seed)).hexdigest()
+            sub = hashlib.sha256("{}{}".format(uid, self.seed).encode("utf-8")).hexdigest()
         else:
             sub = pairwise_id(uid, sector_id, self.seed)
 

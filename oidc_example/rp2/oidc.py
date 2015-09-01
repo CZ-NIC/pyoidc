@@ -189,7 +189,7 @@ class OpenIDConnect(object):
                     request_args["nonce"] = rndstr(16)
                     session.setNonce(request_args["nonce"])
 
-            logger.info("client args: %s" % client.__dict__.items(), )
+            logger.info("client args: %s" % list(client.__dict__.items()), )
             logger.info("request_args: %s" % (request_args,))
             # User info claims
         except Exception:
@@ -231,7 +231,7 @@ class OpenIDConnect(object):
 
     def get_accesstoken(self, client, authresp):
         if self.srv_discovery_url:
-            issuer = client.provider_info.keys()[0]
+            issuer = list(client.provider_info.keys())[0]
             #logger.debug("state: %s (%s)" % (client.state, msg["state"]))
             key = client.keyjar.get_verify_key(owner=issuer)
             kwargs = {"key": key}
@@ -285,7 +285,7 @@ class OpenIDConnect(object):
             # get the access token
             try:
                 tokenresp = self.get_accesstoken(client, authresp)
-            except Exception, err:
+            except Exception as err:
                 logger.error("%s" % err)
                 raise
 

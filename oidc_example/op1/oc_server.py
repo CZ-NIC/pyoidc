@@ -594,7 +594,7 @@ if __name__ == '__main__':
 
     try:
         jwks = keyjar_init(OAS, config.keys)
-    except Exception, err:
+    except Exception as err:
         LOGGER.error("Key setup failed: %s" % err)
         OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
     else:
@@ -626,7 +626,7 @@ if __name__ == '__main__':
                                                      config.CERT_CHAIN)
 
     LOGGER.info("OC server starting listening on port:%s" % args.port)
-    print "OC server starting listening on port:%s" % args.port
+    print ("OC server starting listening on port:%s" % args.port)
     try:
         SRV.start()
     except KeyboardInterrupt:

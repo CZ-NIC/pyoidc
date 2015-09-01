@@ -4,14 +4,17 @@ from functools import wraps, partial
 import json
 import mimetypes
 import os
-import urllib
-import urlparse
+from six.moves.urllib import parse as urlparse
 import errno
 
 import cherrypy
 from cherrypy import wsgiserver
-from cherrypy.wsgiserver import ssl_pyopenssl
-from cherrypy.wsgiserver.wsgiserver2 import WSGIPathInfoDispatcher
+from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
+try:
+    from cherrypy.wsgiserver.wsgiserver3 import WSGIPathInfoDispatcher
+except ImportError:
+    from cherrypy.wsgiserver.wsgiserver2 import WSGIPathInfoDispatcher
+
 from jinja2.environment import Environment
 from jinja2.loaders import FileSystemLoader
 import yaml
@@ -44,7 +47,7 @@ def VerifierMiddleware(verifier):
     def wrapper(environ, start_response):
         data = get_post(environ)
         kwargs = dict(urlparse.parse_qsl(data))
-        kwargs["state"] = json.loads(urllib.unquote(kwargs["state"]))
+        kwargs["state"] = json.loads(urlparse.unquote(kwargs["state"]))
         val, completed = verifier.verify(**kwargs)
         if not completed:
             return val(environ, start_response)
@@ -193,7 +196,7 @@ def main():
     path = os.path.join(os.path.dirname(__file__), "static")
     try:
         os.makedirs(path)
-    except OSError, e:
+    except OSError as e:
         if e.errno != errno.EEXIST:
             raise e
         pass
@@ -211,16 +214,16 @@ def main():
         provider.providerinfo_endpoint)
     app_routing["/.well-known/webfinger"] = pyoidcMiddleware(
         partial(_webfinger, provider))
-    routing = dict(auth_routing.items() + app_routing.items())
+    routing = dict(list(auth_routing.items()) + list(app_routing.items()))
     routing["/static"] = make_static_handler(path)
     dispatcher = WSGIPathInfoDispatcher(routing)
     server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), dispatcher)
 
     # Setup SSL
     if provider.baseurl.startswith("https://"):
-        server.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
-            settings["server"]["cert"], settings["server"]["key"],
-            settings["server"]["cert_chain"])
+        server.ssl_adapter = BuiltinSSLAdapter(
+        settings["server"]["cert"], settings["server"]["key"],
+        settings["server"]["cert_chain"])
 
     # Start the CherryPy WSGI web server
     try:

@@ -1,17 +1,18 @@
 #!/usr/bin/env python
-from urlparse import parse_qs
+from jwkest import jws
+
 from jwkest.jws import alg2keytype
 
+from six.moves.urllib.parse import parse_qs, urlparse
 from oic.oauth2 import rndstr
 from oic.oauth2.message import by_schema
-
 from oic.oic import Server
-from oic.oic.message import *
-
+from oic.oic.message import AuthorizationResponse, AccessTokenResponse, \
+    OpenIDSchema, RegistrationResponse, EndSessionResponse, \
+    ProviderConfigurationResponse, TokenErrorResponse
 from oic.utils.sdb import SessionDB, AuthnEvent
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.webfinger import WebFinger
-
 
 __author__ = 'rohe0002'
 
@@ -250,10 +251,7 @@ class MyFakeOICServer(Server):
 
     # noinspection PyUnusedLocal
     def refresh_session_endpoint(self, query):
-        try:
-            req = self.parse_refresh_session_request(query=query)
-        except Exception:
-            raise
+        self.parse_refresh_session_request(query=query)
 
         resp = RegistrationResponse(client_id="anonymous",
                                     client_secret="hemligt")
@@ -283,14 +281,14 @@ class MyFakeOICServer(Server):
     # noinspection PyUnusedLocal
     @staticmethod
     def add_credentials(user, passwd):
-        return
+        pass
 
     def openid_conf(self):
         endpoint = {}
         for point, path in ENDPOINT.items():
             endpoint[point] = "%s%s" % (self.host, path)
 
-        signing_algs = jws.SIGNER_ALGS.keys()
+        signing_algs = list(jws.SIGNER_ALGS.keys())
         resp = ProviderConfigurationResponse(
             issuer=self.name,
             scopes_supported=["openid", "profile", "email", "address"],

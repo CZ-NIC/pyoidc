@@ -4,6 +4,7 @@ from jwkest import Invalid
 from jwkest import MissingKey
 from jwkest.jws import alg2keytype
 import time
+import six
 
 from oic.exception import UnknownAssertionType, FailedAuthentication
 from oic.exception import NotForMe
@@ -98,7 +99,7 @@ class ClientSecretBasic(ClientAuthnMethod):
             http_args["headers"] = {}
 
         http_args["headers"]["Authorization"] = "Basic %s" % base64.b64encode(
-            "%s:%s" % (user, passwd))
+            "{}:{}".format(user, passwd).encode("utf-8")).decode("utf-8")
 
         try:
             del cis["client_secret"]
@@ -328,7 +329,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
         try:
             bjwt = AuthnToken().from_jwt(areq["client_assertion"],
                                          keyjar=self.cli.keyjar)
-        except (Invalid, MissingKey), err:
+        except (Invalid, MissingKey) as err:
             logger.info("%s" % err)
             raise AuthnFailure("Could not verify client_assertion.")
 
@@ -349,7 +350,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
         _aud = bjwt["aud"]
         logger.debug("audience: %s, baseurl: %s" % (_aud, self.cli.baseurl))
         try:
-            if isinstance(_aud, basestring):
+            if isinstance(_aud, six.string_types):
                 assert str(_aud).startswith(self.cli.baseurl)
             else:
                 for target in _aud:
@@ -419,7 +420,7 @@ def get_client_id(cdb, req, authn):
     if authn:
         if authn.startswith("Basic "):
             logger.debug("Basic auth")
-            (_id, _secret) = base64.b64decode(authn[6:]).split(":")
+            (_id, _secret) = base64.b64decode(authn[6:].encode("utf-8")).decode("utf-8").split(":")
             if _id not in cdb:
                 logger.debug("Unknown client_id")
                 raise FailedAuthentication("Unknown client_id")

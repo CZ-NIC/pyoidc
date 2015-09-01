@@ -152,7 +152,7 @@ class OIDCClients(object):
         :return: client instance
         """
 
-        _key_set = set(kwargs.keys())
+        _key_set = set(list(kwargs.keys()))
         args = {}
         for param in ["verify_ssl"]:
             try:
@@ -255,4 +255,4 @@ class OIDCClients(object):
             return self.dynamic_client(item)
 
     def keys(self):
-        return self.client.keys()
+        return list(self.client.keys())

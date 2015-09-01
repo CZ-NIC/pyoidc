@@ -1,15 +1,16 @@
-__author__ = 'rohe0002'
-
-import urlparse
 import logging
 import os
 
 from jwkest.jwe import JWE
 
+from jwkest import jws
+
+from jwkest import jwe
+
+from six.moves.urllib.parse import urlparse, parse_qs
 from oic.oauth2.exception import AuthnToOld
 from oic.oauth2.message import ErrorResponse, Message
 from oic.oauth2.util import get_or_post
-
 from oic.oic.message import IdToken, ClaimsRequest
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import AuthorizationResponse
@@ -32,27 +33,22 @@ from oic.oic.message import TokenErrorResponse
 from oic.oic.message import ClientRegistrationErrorResponse
 from oic.oic.message import UserInfoErrorResponse
 from oic.oic.message import AuthorizationErrorResponse
-
 from oic import oauth2
-
 from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2 import OtherError
 from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import rndstr
 from oic.oauth2.consumer import ConfigurationError
-
 from oic.exception import AccessDenied
 from oic.exception import IssuerMismatch
 from oic.exception import PyoidcError
 from oic.exception import MissingParameter
-
 from oic.utils import time_util
 from oic.utils.keyio import KeyJar
 from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.webfinger import WebFinger
 
-from jwkest import jws
-from jwkest import jwe
+__author__ = 'rohe0002'
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +95,6 @@ DEF_SIGN_ALG = {"id_token": "RS256",
                 "openid_request_object": "RS256",
                 "client_secret_jwt": "HS256",
                 "private_key_jwt": "RS256"}
-
 
 
 # -----------------------------------------------------------------------------
@@ -219,7 +214,7 @@ PREFERENCE2PROVIDER = {
     "token_endpoint_auth_signing_alg":
         "token_endpoint_auth_signing_alg_values_supported",
     "response_types": "response_types_supported"
-    #"request_object_signing_alg": "request_object_signing_alg_values_supported
+    # "request_object_signing_alg": "request_object_signing_alg_values_supported
 }
 
 PROVIDER2PREFERENCE = dict([(v, k) for k, v in PREFERENCE2PROVIDER.items()])
@@ -483,14 +478,14 @@ class Client(oauth2.Client):
 
         return self.construct_request(request, request_args, extra_args)
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def construct_RegistrationRequest(self, request=RegistrationRequest,
                                       request_args=None, extra_args=None,
                                       **kwargs):
 
         return self.construct_request(request, request_args, extra_args)
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def construct_RefreshSessionRequest(self,
                                         request=RefreshSessionRequest,
                                         request_args=None, extra_args=None,
@@ -546,7 +541,7 @@ class Client(oauth2.Client):
         elif "state" in request_args:
             kwargs["state"] = request_args["state"]
 
-        #        if "redirect_url" not in request_args:
+        # if "redirect_url" not in request_args:
         #            request_args["redirect_url"] = self.redirect_url
 
         return self._id_token_based(request, request_args, extra_args,
@@ -746,7 +741,7 @@ class Client(oauth2.Client):
                 else:
                     kwargs["headers"] = {"Authorization": bh}
 
-            if not "token_in_message_body" in _behav:
+            if "token_in_message_body" not in _behav:
                 # remove the token from the request
                 del uir["access_token"]
 
@@ -791,7 +786,7 @@ class Client(oauth2.Client):
 
         logger.debug("Reponse text: '%s'" % resp.text)
 
-        _txt = resp.text.encode("utf-8")
+        _txt = resp.text
         if sformat == "json":
             res = _schema().from_json(txt=_txt)
         else:
@@ -836,7 +831,6 @@ class Client(oauth2.Client):
         res = schema_class().from_json(txt=resp.text)
         self.store_response(res, resp.txt)
         return res
-
 
     def handle_provider_config(self, pcr, issuer, keys=True, endpoints=True):
         """
@@ -910,7 +904,7 @@ class Client(oauth2.Client):
                     pcr = response_cls().from_json(r.text)
                     break
 
-        #logger.debug("Provider info: %s" % pcr)
+        # logger.debug("Provider info: %s" % pcr)
         if pcr is None:
             raise PyoidcError("Trying '%s', status %s" % (url, r.status_code))
 
@@ -924,8 +918,9 @@ class Client(oauth2.Client):
         if userinfo["_claim_sources"]:
             for csrc, spec in userinfo["_claim_sources"].items():
                 if "JWT" in spec:
-                    aggregated_claims = Message().from_jwt(spec["JWT"].encode("utf-8"),
-                                              keyjar=self.keyjar, sender=csrc)
+                    aggregated_claims = Message().from_jwt(
+                        spec["JWT"].encode("utf-8"),
+                        keyjar=self.keyjar, sender=csrc)
                     claims = [value for value, src in
                               userinfo["_claim_names"].items() if src == csrc]
                     assert claims == aggregated_claims.keys()
@@ -1012,7 +1007,7 @@ class Client(oauth2.Client):
                 try:
                     self.behaviour[_pref] = PROVIDER_DEFAULT[_pref]
                 except KeyError:
-                    #self.behaviour[_pref]= vals[0]
+                    # self.behaviour[_pref]= vals[0]
                     if isinstance(pcr.c_param[_prov][0], list):
                         self.behaviour[_pref] = []
                     else:
@@ -1058,7 +1053,8 @@ class Client(oauth2.Client):
     def store_registration_info(self, reginfo):
         self.registration_response = reginfo
         if "token_endpoint_auth_method" not in self.registration_response:
-            self.registration_response["token_endpoint_auth_method"] = "client_secret_post"
+            self.registration_response[
+                "token_endpoint_auth_method"] = "client_secret_post"
         self.client_id = reginfo["client_id"]
         try:
             self.client_secret = reginfo["client_secret"]
@@ -1153,7 +1149,7 @@ class Client(oauth2.Client):
             (local, domain) = principal.split("@")
             subject = "acct:%s" % principal
         elif idtype == "url":
-            p = urlparse.urlparse(principal)
+            p = urlparse(principal)
             domain = p.netloc
             subject = principal
         else:
@@ -1163,7 +1159,7 @@ class Client(oauth2.Client):
         return subject, domain
 
     def discover(self, principal):
-        #subject, host = self.normalization(principal)
+        # subject, host = self.normalization(principal)
         return self.wf.discovery_query(principal)
 
     def sign_enc_algs(self, typ):
@@ -1259,10 +1255,10 @@ class Server(oauth2.Server):
     @staticmethod
     def _parse_urlencoded(url=None, query=None):
         if url:
-            parts = urlparse.urlparse(url)
+            parts = urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]
 
-        return urlparse.parse_qs(query)
+        return parse_qs(query)
 
     def parse_token_request(self, request=AccessTokenRequest,
                             body=None):
@@ -1271,7 +1267,7 @@ class Server(oauth2.Server):
     def parse_authorization_request(self, request=AuthorizationRequest,
                                     url=None, query=None, keys=None):
         if url:
-            parts = urlparse.urlparse(url)
+            parts = urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]
 
         return self._parse_request(request, query, "urlencoded")
@@ -1309,7 +1305,7 @@ class Server(oauth2.Server):
             request = request().from_jwt(data, keyjar=self.keyjar)
         elif sformat == "urlencoded":
             if '?' in data:
-                parts = urlparse.urlparse(data)
+                parts = urlparse(data)
                 scheme, netloc, path, params, query, fragment = parts[:6]
             else:
                 query = data
@@ -1339,7 +1335,7 @@ class Server(oauth2.Server):
 
     def parse_refresh_session_request(self, url=None, query=None):
         if url:
-            parts = urlparse.urlparse(url)
+            parts = urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]
 
         return RefreshSessionRequest().from_urlencoded(query)
@@ -1353,10 +1349,6 @@ class Server(oauth2.Server):
         # if there is a id_token in there it is as a string
         esr["id_token"] = deser_id_token(self, esr["id_token"])
         return esr
-
-    #    def parse_issuer_request(self, info, sformat="urlencoded"):
-    #        return self._parse_request(IssuerRequest, info, sformat)
-
 
     @staticmethod
     def update_claims(session, where, about, old_claims=None):
@@ -1425,7 +1417,7 @@ class Server(oauth2.Server):
         :param user_info: If user info are to be part of the IdToken
         :return: IDToken instance
         """
-        #defaults
+        # defaults
         if exp is None:
             inawhile = {"days": 1}
         else:
@@ -1442,7 +1434,7 @@ class Server(oauth2.Server):
                 if key == "auth_time":
                     extra["auth_time"] = auth_time
                 elif key == "acr":
-                    #["2","http://id.incommon.org/assurance/bronze"]
+                    # ["2","http://id.incommon.org/assurance/bronze"]
                     extra["acr"] = verify_acr_level(val, loa)
         else:
             if auth_time:
@@ -1471,9 +1463,10 @@ class Server(oauth2.Server):
         if extra_claims is not None:
             _args.update(extra_claims)
         if code:
-            _args["c_hash"] = jws.left_hash(code, halg)
+            _args["c_hash"] = jws.left_hash(code.encode("utf-8"), halg)
         if access_token:
-            _args["at_hash"] = jws.left_hash(access_token, halg)
+            _args["at_hash"] = jws.left_hash(access_token.encode("utf-8"),
+                                             halg)
 
         # Should better be done elsewhere
         if not issuer.endswith("/"):
