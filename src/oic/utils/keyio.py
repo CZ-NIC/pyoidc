@@ -2,12 +2,12 @@ import copy
 import logging
 import os
 import sys
-import traceback
 import json
 import time
 
-from jwkest import jws, as_unicode
+from jwkest import jws
 from jwkest import jwe
+from jwkest import as_unicode
 from Crypto.PublicKey import RSA
 from requests import request
 from jwkest.ecc import NISTEllipticCurve

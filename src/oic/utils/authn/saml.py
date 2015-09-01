@@ -229,7 +229,6 @@ else:
                         userdb[oic] = attributes[saml]
             self.userdb[uid] = userdb
 
-
         def _pick_idp(self, query, end_point_index):
             """
             If more than one idp and if none is selected, I have to do wayf or
