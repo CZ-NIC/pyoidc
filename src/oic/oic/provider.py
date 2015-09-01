@@ -33,6 +33,7 @@ from oic.oic.message import Claims
 from oic.oic.message import IdToken
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import RegistrationResponse
+from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import OpenIDRequest
 from oic.oic.message import AccessTokenResponse
@@ -214,7 +215,11 @@ class Provider(AProvider):
         self.authn_as = None
         self.preferred_id_type = "public"
         self.hostname = hostname or socket.gethostname
-        self.register_endpoint = "%s%s" % (self.baseurl, "register")
+
+        if self.baseurl.endswith("/"):
+            self.baseurl = self.baseurl[:-1]
+
+        self.register_endpoint = "%s/%s" % (self.baseurl, "register")
 
         self.jwx_def = {}
         for _typ in ["sign_alg", "enc_alg", "enc_enc"]:
@@ -368,6 +373,12 @@ class Provider(AProvider):
         return sid
 
     def handle_oidc_request(self, areq, redirect_uri):
+        """
+
+        :param areq:
+        :param redirect_uri:
+        :return:
+        """
         if "request_uri" in areq:
             # Do a HTTP get
             try:
@@ -385,6 +396,8 @@ class Provider(AProvider):
                     "invalid_openid_request_object", redirect_uri)
 
             areq["request"] = resq
+
+        # The "request" in areq case is handled by .verify()
 
         return areq
 
@@ -536,8 +549,7 @@ class Provider(AProvider):
                                                      verify=True)
             sub = id_token_hint["sub"]
             try:
-                sid = self.sdb.get_sids_by_sub(sub)[
-                    0]  # any sid will do, choose the first
+                sid = self.sdb.get_sids_by_sub(sub)[0]  # any sid will do, choose the first
             except IndexError:
                 pass
         else:
@@ -545,8 +557,7 @@ class Provider(AProvider):
             if identity:
                 uid = identity["uid"]
                 try:
-                    sid = self.sdb.uid2sid[uid][
-                        0]  # any sid will do, choose the first
+                    sid = self.sdb.uid2sid[uid][0]  # any sid will do, choose the first
                 except (KeyError, IndexError):
                     pass
             else:
@@ -620,7 +631,7 @@ class Provider(AProvider):
         :param request: The client request
         """
 
-        info = self.auth_init(request)
+        info = self.auth_init(request, request_class=AuthorizationRequest)
         if isinstance(info, Response):
             return info
 
@@ -672,12 +683,9 @@ class Provider(AProvider):
 
         if "check_session_iframe" in self.capabilities:
             salt = rndstr()
-            state = str(self.sdb.get_authentication_event(
-                sid).authn_time)  # use the last session
-            aresp["session_state"] = self._compute_session_state(state, salt,
-                                                                 areq[
-                                                                     "client_id"],
-                                                                 redirect_uri)
+            state = str(self.sdb.get_authentication_event(sid).authn_time)  # use the last session
+            aresp["session_state"] = self._compute_session_state(
+                state, salt, areq["client_id"], redirect_uri)
             headers.append(self.write_session_cookie(state))
 
         location = aresp.request(redirect_uri, fragment_enc)
@@ -851,8 +859,14 @@ class Provider(AProvider):
 
         if "openid" in _info["scope"]:
             userinfo = self.userinfo_in_id_token_claims(_info)
-            _idtoken = self.sign_encrypt_id_token(
-                _info, client_info, req, user_info=userinfo)
+            try:
+                _idtoken = self.sign_encrypt_id_token(
+                    _info, client_info, req, user_info=userinfo)
+            except (JWEException, NoSuitableSigningKeys) as err:
+                logger.warning(str(err))
+                return self._error(error="access_denied",
+                                   descr="Could not sign/encrypt id_token")
+
             sid = _sdb.token.get_key(rtoken)
             _sdb.update(sid, "id_token", _idtoken)
 
@@ -939,8 +953,7 @@ class Provider(AProvider):
             logger.debug("userinfo_claim: %s" % userinfo_claims.to_dict())
 
         logger.debug("Session info: %s" % session)
-        info = self.userinfo(session["authn_event"].uid, session['client_id'],
-                             userinfo_claims)
+        info = self.userinfo(session["authn_event"].uid, session['client_id'], userinfo_claims)
 
         if "sub" in userinfo_claims:
             if not claims_match(session["sub"], userinfo_claims["sub"]):
@@ -1350,7 +1363,7 @@ class Provider(AProvider):
         reg_enp = ""
         for endp in self.endp:
             if endp == RegistrationEndpoint:
-                reg_enp = "%s%s" % (self.baseurl, endp.etype)
+                reg_enp = "%s/%s" % (self.baseurl, endp.etype)
                 break
 
         self.cdb[client_id] = {
@@ -1448,9 +1461,6 @@ class Provider(AProvider):
         :return:
         """
 
-        if not self.baseurl.endswith("/"):
-            self.baseurl += "/"
-
         _provider_info = self.capabilities
 
         if self.jwks_uri and self.keyjar:
@@ -1458,8 +1468,8 @@ class Provider(AProvider):
 
         for endp in self.endp:
             # _log_info("# %s, %s" % (endp, endp.name))
-            _provider_info[endp(None).name] = "%s%s" % (self.baseurl,
-                                                        endp.etype)
+            _provider_info[endp(None).name] = "%s/%s" % (self.baseurl,
+                                                         endp.etype)
 
         if setup and isinstance(setup, dict):
             for key in pcr_class.c_param.keys():
@@ -1742,8 +1752,13 @@ class Provider(AProvider):
                     hargs = {"access_token": _access_token}
 
                 # or 'code id_token'
-                id_token = self.sign_encrypt_id_token(
-                    _sinfo, client_info, areq, user_info=user_info, **hargs)
+                try:
+                    id_token = self.sign_encrypt_id_token(
+                        _sinfo, client_info, areq, user_info=user_info, **hargs)
+                except (JWEException, NoSuitableSigningKeys) as err:
+                    logger.warning(str(err))
+                    return self._error(error="access_denied",
+                                       descr="Could not sign/encrypt id_token")
 
                 aresp["id_token"] = id_token
                 _sinfo["id_token"] = id_token

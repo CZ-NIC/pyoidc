@@ -526,24 +526,29 @@ class Message(object):
                 else:
                     if keyjar:
                         logger.debug("Issuer keys: {}".format(keyjar.keys()))
-                        if "jku" in _header:
-                            if not keyjar.find(_header["jku"], jso["iss"]):
-                                # This is really questionable
+                        try:
+                            _iss = jso["iss"]
+                        except KeyError:
+                            pass
+                        else:
+                            if "jku" in _header:
+                                if not keyjar.find(_header["jku"], _iss):
+                                    # This is really questionable
+                                    try:
+                                        if kwargs["trusting"]:
+                                            keyjar.add(jso["iss"], _header["jku"])
+                                    except KeyError:
+                                        pass
+
+                            if "kid" in _header and _header["kid"]:
+                                _jw["kid"] = _header["kid"]
                                 try:
-                                    if kwargs["trusting"]:
-                                        keyjar.add(jso["iss"], _header["jku"])
+                                    _key = keyjar.get_key_by_kid(_header["kid"],
+                                                                 _iss)
+                                    if _key:
+                                        key.append(_key)
                                 except KeyError:
                                     pass
-
-                        if "kid" in _header and _header["kid"]:
-                            _jw["kid"] = _header["kid"]
-                            try:
-                                _key = keyjar.get_key_by_kid(_header["kid"],
-                                                             jso["iss"])
-                                if _key:
-                                    key.append(_key)
-                            except KeyError:
-                                pass
 
                         try:
                             self._add_key(keyjar, kwargs["opponent_id"], key)

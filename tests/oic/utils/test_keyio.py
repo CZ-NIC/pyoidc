@@ -5,7 +5,7 @@ from oic.oic.message import ProviderConfigurationResponse
 from oic.oauth2 import MissingSigningKey
 from oic.oic import AuthorizationResponse
 
-from oic.utils.keyio import key_export
+from oic.utils.keyio import key_export, rsa_init
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import keybundle_from_local_file
@@ -102,6 +102,12 @@ def test_key_export():
                      keyjar=kj, sig={"alg": "rsa", "format": ["x509", "jwk"]})
 
     assert url == "http://example.com/keys/outbound/jwks"
+
+
+def test_rsa_init(tmpdir):
+    path = tmpdir.strpath
+    res = rsa_init({'use': ['enc'], 'type': 'RSA', 'name': os.path.join(path, "rsa_enc")})
+    assert res
 
 
 def test_keybundle_from_local_jwk_file():
