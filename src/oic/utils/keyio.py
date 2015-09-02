@@ -375,9 +375,9 @@ class KeyJar(object):
             self.issuer_keys[issuer] = []
 
         for use in usage:
-            self.issuer_keys[""].append(KeyBundle([{"kty": "oct",
-                                                    "key": key,
-                                                    "use": use}]))
+            self.issuer_keys[issuer].append(KeyBundle([{"kty": "oct",
+                                                        "key": key,
+                                                        "use": use}]))
 
     def add_kb(self, issuer, kb):
         try:
