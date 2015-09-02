@@ -8,8 +8,14 @@ import shelve
 import argparse
 import sys
 
-from six.moves.urllib.parse import urlparse, splitquery, parse_qs
+import six
+from six.moves.urllib.parse import urlparse, parse_qs
 from six.moves import input
+
+if six.PY3:
+    from urllib.parse import splitquery
+else:
+    from urllib import splitquery
 
 from oic.oic.provider import secret
 from oic.oauth2 import rndstr
