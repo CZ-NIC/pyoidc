@@ -61,6 +61,11 @@ from oic.exception import *
 
 from six.moves.urllib import parse as urlparse
 import six
+if six.PY3:
+    from urllib.parse import splitquery
+else:
+    from urllib import splitquery
+
 
 __author__ = 'rohe0002'
 
@@ -356,7 +361,7 @@ class Provider(AProvider):
         if part.fragment:
             raise ValueError
 
-        (_base, _query) = urlparse.splitquery(_redirect_uri)
+        (_base, _query) = splitquery(_redirect_uri)
 
         sid = ""
         try:
@@ -1149,7 +1154,7 @@ class Provider(AProvider):
                     return Response(err.to_json(),
                                     content="application/json",
                                     status="400 Bad Request")
-                base, query = urlparse.splitquery(uri)
+                base, query = splitquery(uri)
                 if query:
                     plruri.append((base, urlparse.parse_qs(query)))
                 else:
@@ -1203,7 +1208,7 @@ class Provider(AProvider):
                                     content="application/json",
                                     status="400 Bad Request")
 
-                base, query = urlparse.splitquery(uri)
+                base, query = splitquery(uri)
                 if query:
                     ruri.append((base, urlparse.parse_qs(query)))
                 else:

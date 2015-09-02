@@ -2,7 +2,6 @@
 import hashlib
 import traceback
 import sys
-import urllib
 import logging
 import os
 
@@ -35,6 +34,12 @@ from oic.utils.authn.user import ToOld
 from oic.utils.authn.user import TamperAllert
 from oic.oauth2 import rndstr
 from oic.oauth2 import Server
+
+import six
+if six.PY3:
+    from urllib.parse import splitquery
+else:
+    from urllib import splitquery
 
 __author__ = 'rohe0002'
 
@@ -281,7 +286,7 @@ class Provider(object):
             if part.fragment:
                 raise URIError("Contains fragment")
 
-            (_base, _query) = urlparse.splitquery(_redirect_uri)
+            (_base, _query) = splitquery(_redirect_uri)
             if _query:
                 _query = urlparse.parse_qs(_query)
 
