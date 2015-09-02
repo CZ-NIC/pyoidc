@@ -11,7 +11,7 @@ import hashlib
 import logging
 import socket
 
-from jwkest.jwe import JWE
+from jwkest.jwe import JWE, NotSupportedAlgorithm
 from jwkest.jwk import SYMKey
 from requests import ConnectionError
 from jwkest import jws
@@ -1064,7 +1064,10 @@ class Provider(AProvider):
                 jinfo = info.to_json()
                 content_type = "application/json"
                 cty = ""
-
+        except NotSupportedAlgorithm as err:
+            return self._error(error="access_denied",
+                               descr="Not supported algorithm: {}".format(
+                                   err.args[0]))
         except JWEException:
             return self._error(error="access_denied",
                                descr="Could not encrypt")
