@@ -450,20 +450,14 @@ class AuthorizationRequest(message.AuthorizationRequest):
 
         _rt = self["response_type"]
         if "token" in _rt or "id_token" in _rt:
-            try:
-                assert "nonce" in self
-            except AssertionError:
+            if "nonce" not in self:
                 raise MissingRequiredAttribute("Nonce missing", self)
 
-        try:
-            assert "openid" in self["scope"]
-        except AssertionError:
+        if "openid" not in self["scope"]:
             raise MissingRequiredValue("openid not in scope", self)
 
         if "offline_access" in self["scope"]:
-            try:
-                assert "consent" in self["prompt"]
-            except AssertionError:
+            if "prompt" not in self or "consent" not in self["prompt"]:
                 raise MissingRequiredValue("consent in prompt", self)
 
         if "prompt" in self:
