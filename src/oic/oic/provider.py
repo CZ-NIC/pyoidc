@@ -75,6 +75,10 @@ SWD_ISSUER = "http://openid.net/specs/connect/1.0/issuer"
 STR = 5 * "_"
 
 
+class InvalidRedirectURIError(Exception):
+    pass
+
+
 # noinspection PyUnusedLocal
 def devnull(txt):
     pass
@@ -1165,58 +1169,16 @@ class Provider(AProvider):
             _cinfo["post_logout_redirect_uris"] = plruri
 
         if "redirect_uris" in request:
-            ruri = []
             try:
-                client_type = request["application_type"]
-            except KeyError:  # default
-                client_type = "web"
-
-            if client_type == "web":
-                try:
-                    if request["response_types"] == ["code"]:
-                        must_https = False
-                    else:  # one has to be implicit or hybrid
-                        must_https = True
-                except KeyError:
-                    must_https = True
-            else:
-                must_https = False
-
-            for uri in request["redirect_uris"]:
-                p = urlparse.urlparse(uri)
-                err = None
-                if client_type == "native" and p.scheme == "http":
-                    if p.hostname != "localhost":
-                        err = ClientRegistrationErrorResponse(
-                            error="invalid_redirect_uri",
-                            error_description="Http redirect_uri must use "
-                                              "localhost")
-                elif must_https and p.scheme != "https":
-                    err = ClientRegistrationErrorResponse(
-                        error="invalid_redirect_uri",
-                        error_description="None https redirect_uri not allowed")
-                elif p.fragment:
-                    err = ClientRegistrationErrorResponse(
-                        error="invalid_redirect_uri",
-                        error_description="redirect_uri contains fragment")
-                # This rule will break local testing.
-                # elif must_https and p.hostname == "localhost":
-                #     err = ClientRegistrationErrorResponse(
-                #         error="invalid_redirect_uri",
-                #         error_description="https redirect_uri with host
-                # localhost")
-
-                if err:
-                    return Response(err.to_json(),
-                                    content="application/json",
-                                    status="400 Bad Request")
-
-                base, query = splitquery(uri)
-                if query:
-                    ruri.append((base, urlparse.parse_qs(query)))
-                else:
-                    ruri.append((base, query))
-            _cinfo["redirect_uris"] = ruri
+                ruri = self._verify_redirect_uris(request)
+                _cinfo["redirect_uris"] = ruri
+            except InvalidRedirectURIError as e:
+                err = ClientRegistrationErrorResponse(
+                    error="invalid_redirect_uri",
+                    error_description=str(e))
+                return Response(err.to_json(),
+                                content="application/json",
+                                status="400 Bad Request")
 
         if "sector_identifier_uri" in request:
             si_url = request["sector_identifier_uri"]
@@ -1312,6 +1274,49 @@ class Provider(AProvider):
                             status="400 Bad Request")
 
         return _cinfo
+
+    def _verify_redirect_uris(self, registration_request):
+        verified_redirect_uris = []
+        try:
+            client_type = registration_request["application_type"]
+        except KeyError:  # default
+            client_type = "web"
+
+        if client_type == "web":
+            try:
+                if registration_request["response_types"] == ["code"]:
+                    must_https = False
+                else:  # one has to be implicit or hybrid
+                    must_https = True
+            except KeyError:
+                must_https = True
+        else:
+            must_https = False
+
+        for uri in registration_request["redirect_uris"]:
+            p = urlparse.urlparse(uri)
+            if client_type == "native" and p.scheme == "http":
+                if p.hostname != "localhost":
+                    raise InvalidRedirectURIError(
+                        "Http redirect_uri must use localhost")
+            elif must_https and p.scheme != "https":
+                raise InvalidRedirectURIError(
+                    "None https redirect_uri not allowed")
+            elif p.fragment:
+                raise InvalidRedirectURIError(
+                    "redirect_uri contains fragment")
+            # This rule will break local testing.
+            # elif must_https and p.hostname == "localhost":
+            #     err = InvalidRedirectURIError(
+            # "https redirect_uri with host localhost")
+
+            base, query = splitquery(uri)
+            if query:
+                verified_redirect_uris.append((base, urlparse.parse_qs(query)))
+            else:
+                verified_redirect_uris.append((base, query))
+
+        return verified_redirect_uris
 
     @staticmethod
     def comb_uri(args):
