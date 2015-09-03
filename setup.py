@@ -43,7 +43,7 @@ else:
     extra_install_requires = []
 
 version = ''
-with open('src/saml2/__init__.py', 'r') as fd:
+with open('src/oic/__init__.py', 'r') as fd:
     version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
                         fd.read(), re.MULTILINE).group(1)
 
