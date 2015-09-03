@@ -820,8 +820,13 @@ class Provider(AProvider):
 
         _log_debug("All checks OK")
 
+        if 'offline_access' in _info['scope'] and 'offline_access' in _info.get('permissions', ['offline_access']):
+            issue_refresh = True
+        else:
+            issue_refresh = False
+
         try:
-            _tinfo = _sdb.upgrade_to_token(_access_code)
+            _tinfo = _sdb.upgrade_to_token(_access_code, issue_refresh=issue_refresh)
         except Exception as err:
             logger.error("%s" % err)
             # Should revoke the token issued to this access code

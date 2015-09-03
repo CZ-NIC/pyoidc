@@ -26,6 +26,11 @@ AREQN = AuthorizationRequest(response_type="code", client_id="client1",
                              scope=["openid"], state="state000",
                              nonce="something")
 
+AREQO = AuthorizationRequest(response_type="code", client_id="client1",
+                             redirect_uri="http://example.com/authz",
+                             scope=["openid", "offlien_access"],
+                             prompt="consent", state="state000")
+
 OIDR = OpenIDRequest(response_type="code", client_id="client1",
                      redirect_uri="http://example.com/authz", scope=["openid"],
                      state="state000")
@@ -162,6 +167,24 @@ class TestSessionDB(object):
                     'access_token', 'token_expires_at', 'expires_in',
                     'token_type', 'state', 'redirect_uri',
                     'code_used', 'client_id', 'scope', 'oauth_state',
+                    'access_token_scope'])
+
+        # can't update again
+        with pytest.raises(AccessCodeUsed):
+            self.sdb.upgrade_to_token(grant)
+            self.sdb.upgrade_to_token(_dict["access_token"])
+
+    def test_upgrade_to_token_refresh(self):
+        ae1 = AuthnEvent("sub")
+        sid = self.sdb.create_authz_session(ae1, AREQO)
+        grant = self.sdb[sid]["code"]
+        _dict = self.sdb.upgrade_to_token(grant, issue_refresh=True)
+
+        assert _eq(_dict.keys(),
+                   ['authn_event', 'code', 'authzreq', 'revoked',
+                    'access_token', 'token_expires_at', 'expires_in',
+                    'token_type', 'state', 'redirect_uri',
+                    'code_used', 'client_id', 'scope', 'oauth_state',
                     'refresh_token', 'access_token_scope'])
 
         # can't update again
@@ -181,21 +204,20 @@ class TestSessionDB(object):
                     'oidreq', 'access_token', 'id_token',
                     'token_expires_at', 'expires_in', 'token_type',
                     'state', 'redirect_uri', 'code_used', 'client_id',
-                    'scope', 'oauth_state', 'refresh_token',
-                    'access_token_scope'])
+                    'scope', 'oauth_state', 'access_token_scope'])
 
         assert _dict["id_token"] == "id_token"
         assert isinstance(_dict["oidreq"], OpenIDRequest)
 
     def test_refresh_token(self):
         ae = AuthnEvent("sub")
-        sid = self.sdb.create_authz_session(ae, AREQ)
+        sid = self.sdb.create_authz_session(ae, AREQO)
         grant = self.sdb[sid]["code"]
 
         with mock.patch("time.gmtime", side_effect=[
                 time.struct_time((1970, 1, 1, 10, 39, 0, 0, 0, 0)),
                 time.struct_time((1970, 1, 1, 10, 40, 0, 0, 0, 0))]):
-            dict1 = self.sdb.upgrade_to_token(grant).copy()
+            dict1 = self.sdb.upgrade_to_token(grant, issue_refresh=True).copy()
             rtoken = dict1["refresh_token"]
             dict2 = self.sdb.refresh_token(rtoken)
 
@@ -207,12 +229,12 @@ class TestSessionDB(object):
 
     def test_is_valid(self):
         ae1 = AuthnEvent("sub")
-        sid = self.sdb.create_authz_session(ae1, AREQ)
+        sid = self.sdb.create_authz_session(ae1, AREQO)
         grant = self.sdb[sid]["code"]
 
         assert self.sdb.is_valid(grant)
 
-        tokens = self.sdb.upgrade_to_token(grant)
+        tokens = self.sdb.upgrade_to_token(grant, issue_refresh=True)
         assert not self.sdb.is_valid(grant)
         access_token = tokens["access_token"]
         assert self.sdb.is_valid(access_token)
@@ -245,10 +267,10 @@ class TestSessionDB(object):
 
     def test_revoke_token(self):
         ae1 = AuthnEvent("sub")
-        sid = self.sdb.create_authz_session(ae1, AREQ)
+        sid = self.sdb.create_authz_session(ae1, AREQO)
 
         grant = self.sdb[sid]["code"]
-        tokens = self.sdb.upgrade_to_token(grant)
+        tokens = self.sdb.upgrade_to_token(grant, issue_refresh=True)
         access_token = tokens["access_token"]
         refresh_token = tokens["refresh_token"]
 
