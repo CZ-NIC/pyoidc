@@ -1188,21 +1188,21 @@ class Provider(AProvider):
                 if client_type == "native" and p.scheme == "http":
                     if p.hostname != "localhost":
                         err = ClientRegistrationErrorResponse(
-                            error="invalid_configuration_parameter",
+                            error="invalid_redirect_uri",
                             error_description="Http redirect_uri must use "
                                               "localhost")
                 elif must_https and p.scheme != "https":
                     err = ClientRegistrationErrorResponse(
-                        error="invalid_configuration_parameter",
+                        error="invalid_redirect_uri",
                         error_description="None https redirect_uri not allowed")
                 elif p.fragment:
                     err = ClientRegistrationErrorResponse(
-                        error="invalid_configuration_parameter",
+                        error="invalid_redirect_uri",
                         error_description="redirect_uri contains fragment")
                 # This rule will break local testing.
                 # elif must_https and p.hostname == "localhost":
                 #     err = ClientRegistrationErrorResponse(
-                #         error="invalid_configuration_parameter",
+                #         error="invalid_redirect_uri",
                 #         error_description="https redirect_uri with host
                 # localhost")
 

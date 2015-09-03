@@ -135,6 +135,7 @@ class DummyAuthn(UserAuthnMethod):
         else:
             return {"uid": self.user}, time()
 
+
 # AUTHN = UsernamePasswordMako(None, "login.mako", tl, PASSWD, "authenticated")
 AUTHN_BROKER = AuthnBroker()
 AUTHN_BROKER.add("UNDEFINED", DummyAuthn(None, "username"))
@@ -492,6 +493,18 @@ class TestProvider(object):
                     'registration_access_token',
                     'client_id', 'client_secret',
                     'client_id_issued_at', 'response_types'])
+
+    def test_registration_endpoint_with_non_https_redirect_uri_implicit_flow(
+            self):
+        params = {"application_type": "web",
+                  "redirect_uris": ["http://example.com/authz"],
+                  "response_types": ["id_token", "token"]}
+        req = RegistrationRequest(**params)
+        resp = self.provider.registration_endpoint(request=req.to_json())
+
+        assert resp.status == "400 Bad Request"
+        error = json.loads(resp.message)
+        assert error["error"] == "invalid_redirect_uri"
 
     @pytest.mark.network
     def test_registration_endpoint_openid4us(self):
