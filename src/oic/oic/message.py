@@ -650,7 +650,7 @@ class IdToken(OpenIDSchema):
         "c_hash": SINGLE_OPTIONAL_STRING,
         "acr": SINGLE_OPTIONAL_STRING,
         "amr": OPTIONAL_LIST_OF_STRINGS,
-        "azp": OPTIONAL_LIST_OF_STRINGS,  # Array of strings or string
+        "azp": SINGLE_OPTIONAL_STRING,
         "sub_jwk": SINGLE_OPTIONAL_STRING
     })
 
