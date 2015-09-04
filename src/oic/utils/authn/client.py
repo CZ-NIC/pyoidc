@@ -420,8 +420,8 @@ def get_client_id(cdb, req, authn):
     if authn:
         if authn.startswith("Basic "):
             logger.debug("Basic auth")
-            (_id, _secret) = base64.b64decode(authn[6:].encode("utf-8")).decode("utf-8").split(":")
-            _id = str(_id)
+            (_id, _secret) = base64.b64decode(
+                authn[6:].encode("utf-8")).decode("utf-8").split(":")
             if _id not in cdb:
                 logger.debug("Unknown client_id")
                 raise FailedAuthentication("Unknown client_id")
@@ -446,7 +446,7 @@ def get_client_id(cdb, req, authn):
                 raise FailedAuthentication("Unknown access token")
     else:
         try:
-            _id = req["client_id"]
+            _id = str(req["client_id"])
             if _id not in cdb:
                 logger.debug("Unknown client_id")
                 raise FailedAuthentication("Unknown client_id")
