@@ -29,7 +29,7 @@ from oic.oauth2.message import CCAccessTokenRequest
 from oic.oauth2.message import RefreshAccessTokenRequest
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import TokenRevocationRequest
-from utils_for_tests import url_compare, _eq, \
+from ...utils_for_tests import url_compare, _eq, \
     query_string_compare  # pylint: disable=import-error
 
 __author__ = 'rohe0002'

@@ -1,6 +1,6 @@
 from oic.utils.stateless import StateLess
 
-from utils_for_tests import _eq
+from ...utils_for_tests import _eq
 
 __author__ = 'roland'
 

@@ -13,7 +13,7 @@ from oic.utils.sdb import SessionDB, AuthnEvent, Token, WrongTokenType, Crypt, \
 from oic.utils.sdb import ExpiredToken
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import OpenIDRequest
-from utils_for_tests import _eq
+from ...utils_for_tests import _eq
 
 __author__ = 'rohe0002'
 

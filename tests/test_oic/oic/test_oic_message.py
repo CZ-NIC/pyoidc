@@ -20,7 +20,7 @@ from oic.oic.message import claims_deser
 from oic.oic.message import AddressClaim
 from oic.oic.message import address_deser
 from oic.oic.message import Claims
-from utils_for_tests import _eq, \
+from ...utils_for_tests import _eq, \
     query_string_compare  # pylint: disable=import-error
 
 __author__ = 'rohe0002'

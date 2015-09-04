@@ -15,7 +15,7 @@ from oic.oauth2.message import TokenErrorResponse
 from oic.utils import sdb
 from oic.oauth2.consumer import Consumer
 from oic.oauth2.provider import Provider
-from utils_for_tests import _eq
+from ...utils_for_tests import _eq
 
 CLIENT_CONFIG = {
     "client_id": "client1",
