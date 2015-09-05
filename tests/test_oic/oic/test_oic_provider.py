@@ -37,7 +37,7 @@ from oic.utils.sdb import SessionDB, AuthnEvent
 from oic.oic import DEF_SIGN_ALG
 from oic.oic import make_openid_request
 from oic.oic.consumer import Consumer
-from oic.oic.provider import Provider
+from oic.oic.provider import Provider, InvalidRedirectURIError
 from oic.utils.time_util import epoch_in_a_while
 from ...utils_for_tests import _eq
 
@@ -134,6 +134,7 @@ class DummyAuthn(UserAuthnMethod):
             return None, 0
         else:
             return {"uid": self.user}, time()
+
 
 # AUTHN = UsernamePasswordMako(None, "login.mako", tl, PASSWD, "authenticated")
 AUTHN_BROKER = AuthnBroker()
@@ -492,6 +493,37 @@ class TestProvider(object):
                     'registration_access_token',
                     'client_id', 'client_secret',
                     'client_id_issued_at', 'response_types'])
+
+    def test_registration_endpoint_with_non_https_redirect_uri_implicit_flow(
+            self):
+        params = {"application_type": "web",
+                  "redirect_uris": ["http://example.com/authz"],
+                  "response_types": ["id_token", "token"]}
+        req = RegistrationRequest(**params)
+        resp = self.provider.registration_endpoint(request=req.to_json())
+
+        assert resp.status == "400 Bad Request"
+        error = json.loads(resp.message)
+        assert error["error"] == "invalid_redirect_uri"
+
+    def test_verify_redirect_uris_with_https_code_flow(self):
+        params = {"application_type": "web",
+                  "redirect_uris": ["http://example.com/authz"],
+                  "response_types": ["code"]}
+        request = RegistrationRequest(**params)
+        verified_uris = self.provider._verify_redirect_uris(request)
+        assert verified_uris == [("http://example.com/authz", None)]
+
+    def test_verify_redirect_uris_with_non_https_redirect_uri_implicit_flow(self):
+        params = {"application_type": "web",
+                  "redirect_uris": ["http://example.com/authz"],
+                  "response_types": ["id_token", "token"]}
+        request = RegistrationRequest(**params)
+
+        with pytest.raises(InvalidRedirectURIError) as exc_info:
+            self.provider._verify_redirect_uris(request)
+
+        assert str(exc_info.value) == "None https redirect_uri not allowed"
 
     @pytest.mark.network
     def test_registration_endpoint_openid4us(self):
