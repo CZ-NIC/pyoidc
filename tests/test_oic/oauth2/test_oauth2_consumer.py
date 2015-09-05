@@ -12,7 +12,7 @@ from oic.oauth2.message import AuthorizationErrorResponse
 from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.consumer import AuthzError
-from utils_for_tests import url_compare, query_string_compare
+from ...utils_for_tests import url_compare, query_string_compare
 
 __author__ = 'rohe0002'
 

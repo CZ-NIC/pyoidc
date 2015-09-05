@@ -5,7 +5,7 @@ import os
 import pytest
 
 from oic.utils import shelve_wrapper
-from utils_for_tests import _eq  # pylint: disable=import-error
+from ...utils_for_tests import _eq  # pylint: disable=import-error
 
 __author__ = 'mathiashedstrom'
 

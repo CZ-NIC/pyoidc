@@ -31,8 +31,8 @@ from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AuthorizationResponse
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.keyio import KeyBundle, KeyJar, rsa_load
-from fakeoicsrv import MyFakeOICServer
-from utils_for_tests import _eq
+from ...fakeoicsrv import MyFakeOICServer
+from ...utils_for_tests import _eq
 
 __author__ = 'rohe0002'
 

@@ -39,7 +39,7 @@ from oic.oic import make_openid_request
 from oic.oic.consumer import Consumer
 from oic.oic.provider import Provider
 from oic.utils.time_util import epoch_in_a_while
-from utils_for_tests import _eq
+from ...utils_for_tests import _eq
 
 __author__ = 'rohe0002'
 

@@ -5,7 +5,6 @@ import os
 
 from jwkest.jwk import SYMKey, rsa_load
 from jwkest.jws import JWS
-
 from jwkest.jwt import JWT
 import pytest
 
@@ -16,8 +15,8 @@ from oic.oauth2.message import AccessTokenRequest, ResourceRequest, \
 from oic.oic import JWT_BEARER
 from oic.utils.authn.client import ClientSecretBasic, BearerHeader, BearerBody, \
     ClientSecretPost, PrivateKeyJWT, ClientSecretJWT
-from utils_for_tests import _eq  # pylint: disable=import-error
 from oic.utils.keyio import KeyBundle
+from ....utils_for_tests import _eq  # pylint: disable=import-error
 
 
 @pytest.fixture

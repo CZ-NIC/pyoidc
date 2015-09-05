@@ -1,10 +1,10 @@
 # pylint: disable=missing-docstring,no-self-use
 import os
+
 import pytest
-from oic.oic.message import ProviderConfigurationResponse
+
 from oic.oauth2 import MissingSigningKey
 from oic.oic import AuthorizationResponse
-
 from oic.utils.keyio import key_export, rsa_init
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import KeyBundle

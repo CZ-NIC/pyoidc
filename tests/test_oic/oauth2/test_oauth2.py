@@ -17,7 +17,7 @@ from oic.oauth2 import Client
 from oic.oauth2 import Server
 from oic.oauth2 import Token
 from oic.utils.keyio import KeyBundle
-from utils_for_tests import _eq, url_compare  # pylint: disable=import-error
+from ...utils_for_tests import _eq, url_compare  # pylint: disable=import-error
 
 __author__ = 'rohe0002'
 

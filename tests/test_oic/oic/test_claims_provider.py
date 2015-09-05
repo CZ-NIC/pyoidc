@@ -16,7 +16,7 @@ from oic.oic.claims_provider import ClaimsClient
 from oic.oic.claims_provider import UserClaimsResponse
 from oic.oic.claims_provider import UserClaimsRequest
 from oic.oic.claims_provider import ClaimsServer
-from utils_for_tests import _eq, \
+from ...utils_for_tests import _eq, \
     query_string_compare  # pylint: disable=import-error
 
 __author__ = 'rohe0002'
