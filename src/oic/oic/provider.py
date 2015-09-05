@@ -1,66 +1,66 @@
 #!/usr/bin/env python
+import hashlib
+import hmac
+import itertools
 import json
+import logging
+import random
+import socket
+import sys
+import time
 import traceback
 import urllib
-import sys
-import itertools
-import random
-import hmac
-import time
-import hashlib
-import logging
-import socket
 
-from jwkest.jwe import JWE, NotSupportedAlgorithm
-from jwkest.jwk import SYMKey
+import six
 from requests import ConnectionError
-from jwkest import jws
-from jwkest import jwe
+
 from jwkest import b64d
-from jwkest.jws import alg2keytype
-from jwkest.jws import NoSuitableSigningKeys
-
+from jwkest import jwe
+from jwkest import jws
+from jwkest.jwe import JWE
 from jwkest.jwe import JWEException
-
-from oic.utils.time_util import utc_time_sans_frac
+from jwkest.jwe import NotSupportedAlgorithm
+from jwkest.jwk import SYMKey
+from jwkest.jws import NoSuitableSigningKeys
+from jwkest.jws import alg2keytype
+from oic.exception import *
+from oic.oauth2 import rndstr
+from oic.oauth2.exception import CapabilitiesMisMatch
+from oic.oauth2.message import by_schema
+from oic.oauth2.provider import Provider as AProvider
+from oic.oauth2.provider import Endpoint
+from oic.oic import PREFERENCE2PROVIDER
+from oic.oic import PROVIDER_DEFAULT
+from oic.oic import Server
+from oic.oic import claims_match
+from oic.oic.message import SCOPE2CLAIMS
+from oic.oic.message import AccessTokenRequest
+from oic.oic.message import AccessTokenResponse
+from oic.oic.message import AuthorizationRequest
+from oic.oic.message import AuthorizationResponse
+from oic.oic.message import Claims
+from oic.oic.message import ClientRegistrationErrorResponse
+from oic.oic.message import DiscoveryRequest
+from oic.oic.message import DiscoveryResponse
+from oic.oic.message import EndSessionRequest
+from oic.oic.message import IdToken
+from oic.oic.message import OpenIDRequest
+from oic.oic.message import OpenIDSchema
+from oic.oic.message import ProviderConfigurationResponse
+from oic.oic.message import RefreshAccessTokenRequest
+from oic.oic.message import RegistrationRequest
+from oic.oic.message import RegistrationResponse
+from oic.oic.message import TokenErrorResponse
+from oic.utils.http_util import BadRequest
+from oic.utils.http_util import Redirect
+from oic.utils.http_util import Response
+from oic.utils.http_util import Unauthorized
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
-from oic.oauth2.message import by_schema
-from oic.oic.message import RefreshAccessTokenRequest
-from oic.oic.message import EndSessionRequest
-from oic.oic.message import Claims
-from oic.oic.message import IdToken
-from oic.oic.message import OpenIDSchema
-from oic.oic.message import RegistrationResponse
-from oic.oic.message import AuthorizationRequest
-from oic.oic.message import AuthorizationResponse
-from oic.oic.message import OpenIDRequest
-from oic.oic.message import AccessTokenResponse
-from oic.oic.message import AccessTokenRequest
-from oic.oic.message import TokenErrorResponse
-from oic.oic.message import SCOPE2CLAIMS
-from oic.oic.message import RegistrationRequest
-from oic.oic.message import ClientRegistrationErrorResponse
-from oic.oic.message import DiscoveryRequest
-from oic.oic.message import ProviderConfigurationResponse
-from oic.oic.message import DiscoveryResponse
-from oic.oauth2.provider import Provider as AProvider
-from oic.oauth2.provider import Endpoint
-from oic.utils.http_util import Response
-from oic.utils.http_util import Redirect
-from oic.utils.http_util import BadRequest
-from oic.utils.http_util import Unauthorized
-from oic.oauth2.exception import CapabilitiesMisMatch
-from oic.oauth2 import rndstr
-from oic.oic import Server
-from oic.oic import PROVIDER_DEFAULT
-from oic.oic import PREFERENCE2PROVIDER
-from oic.oic import claims_match
-from oic.exception import *
-
+from oic.utils.time_util import utc_time_sans_frac
 from six.moves.urllib import parse as urlparse
-import six
+
 if six.PY3:
     from urllib.parse import splitquery
 else:
@@ -68,6 +68,11 @@ else:
 
 
 __author__ = 'rohe0002'
+
+
+__author__ = 'rohe0002'
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -145,22 +150,28 @@ def construct_uri(item):
 
 class AuthorizationEndpoint(Endpoint):
     etype = "authorization"
+    url = 'authorization'
 
 
 class TokenEndpoint(Endpoint):
     etype = "token"
+    url = 'token'
 
 
 class UserinfoEndpoint(Endpoint):
     etype = "userinfo"
+    url = 'userinfo'
 
 
 class RegistrationEndpoint(Endpoint):
     etype = "registration"
+    url = 'registration'
 
 
 class EndSessionEndpoint(Endpoint):
     etype = "end_session"
+    url = 'end_session'
+
 
 
 RESPONSE_TYPES_SUPPORTED = [
@@ -225,10 +236,10 @@ class Provider(AProvider):
         self.preferred_id_type = "public"
         self.hostname = hostname or socket.gethostname
 
-        if self.baseurl.endswith("/"):
-            self.baseurl = self.baseurl[:-1]
-
-        self.register_endpoint = "%s/%s" % (self.baseurl, "register")
+        for endp in self.endp:
+            if endp.etype == 'registration':
+                self.register_endpoint = urlparse.urljoin(self.baseurl, endp.url)
+                break
 
         self.jwx_def = {}
         for _typ in ["sign_alg", "enc_alg", "enc_enc"]:
@@ -1375,8 +1386,8 @@ class Provider(AProvider):
         _rat = rndstr(32)
         reg_enp = ""
         for endp in self.endp:
-            if endp == RegistrationEndpoint:
-                reg_enp = "%s/%s" % (self.baseurl, endp.etype)
+            if endp.etype == 'registration':
+                reg_enp = urlparse.urljoin(self.baseurl, endp.url)
                 break
 
         self.cdb[client_id] = {
@@ -1481,9 +1492,9 @@ class Provider(AProvider):
             _provider_info["jwks_uri"] = self.jwks_uri
 
         for endp in self.endp:
-            # _log_info("# %s, %s" % (endp, endp.name))
-            _provider_info[endp(None).name] = "%s/%s" % (self.baseurl,
-                                                         endp.etype)
+            #_log_info("# %s, %s" % (endp, endp.name))
+            _provider_info['{}_endpoint'.format(endp.etype)] = urlparse.urljoin(self.baseurl,
+                                                                                endp.url)
 
         if setup and isinstance(setup, dict):
             for key in pcr_class.c_param.keys():
@@ -1856,20 +1867,3 @@ class Provider(AProvider):
                         kb.remove(key)
             if len(kb) == 0:
                 self.keyjar.issuer_keys[""].remove(kb)
-
-
-# -----------------------------------------------------------------------------
-
-
-class Endpoint(object):
-    etype = ""
-
-    def __init__(self, func):
-        self.func = func
-
-    @property
-    def name(self):
-        return "%s_endpoint" % self.etype
-
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
