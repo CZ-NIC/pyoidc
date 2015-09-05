@@ -102,57 +102,57 @@ class TestSessionDB(object):
             self.sdb.update("abcdefghijklmnop", "indo", "bar")
 
     def test_create_authz_session(self):
-        ae = AuthnEvent("uid")
+        ae = AuthnEvent("uid", "salt")
         sid = self.sdb.create_authz_session(ae, AREQ)
-        self.sdb.do_sub(sid)
+        self.sdb.do_sub(sid, "client_salt")
 
         info = self.sdb[sid]
         assert info["oauth_state"] == "authz"
 
     def test_create_authz_session_without_nonce(self):
-        ae = AuthnEvent("sub")
+        ae = AuthnEvent("sub", "salt")
         sid = self.sdb.create_authz_session(ae, AREQ)
         info = self.sdb[sid]
         assert info["oauth_state"] == "authz"
 
     def test_create_authz_session_with_nonce(self):
-        ae = AuthnEvent("sub")
+        ae = AuthnEvent("sub", "salt")
         sid = self.sdb.create_authz_session(ae, AREQN)
         info = self.sdb[sid]
         assert info["nonce"] == "something"
 
     def test_create_authz_session_with_id_token(self):
-        ae = AuthnEvent("sub")
+        ae = AuthnEvent("sub", "salt")
         sid = self.sdb.create_authz_session(ae, AREQN, id_token="id_token")
 
         info = self.sdb[sid]
         assert info["id_token"] == "id_token"
 
     def test_create_authz_session_with_oidreq(self):
-        ae = AuthnEvent("sub")
+        ae = AuthnEvent("sub", "salt")
         sid = self.sdb.create_authz_session(ae, AREQN, oidreq=OIDR)
         info = self.sdb[sid]
         assert "id_token" not in info
         assert "oidreq" in info
 
     def test_create_authz_session_with_sector_id(self):
-        ae = AuthnEvent("sub")
+        ae = AuthnEvent("sub", "salt")
         sid = self.sdb.create_authz_session(ae, AREQN, oidreq=OIDR)
-        self.sdb.do_sub(sid, "http://example.com/si.jwt", "pairwise")
+        self.sdb.do_sub(sid, "client_salt", "http://example.com/si.jwt", "pairwise")
 
         info_1 = self.sdb[sid].copy()
         assert "id_token" not in info_1
         assert "oidreq" in info_1
         assert info_1["sub"] != "sub"
 
-        self.sdb.do_sub(sid, "http://example.net/si.jwt", "pairwise")
+        self.sdb.do_sub(sid, "client_salt", "http://example.net/si.jwt", "pairwise")
 
         info_2 = self.sdb[sid]
         assert info_2["sub"] != "sub"
         assert info_2["sub"] != info_1["sub"]
 
     def test_upgrade_to_token(self):
-        ae1 = AuthnEvent("sub")
+        ae1 = AuthnEvent("sub", "salt")
         sid = self.sdb.create_authz_session(ae1, AREQ)
         grant = self.sdb[sid]["code"]
         _dict = self.sdb.upgrade_to_token(grant)
@@ -170,7 +170,7 @@ class TestSessionDB(object):
             self.sdb.upgrade_to_token(_dict["access_token"])
 
     def test_upgrade_to_token_with_id_token_and_oidreq(self):
-        ae2 = AuthnEvent("another_user_id")
+        ae2 = AuthnEvent("another_user_id", "salt")
         sid = self.sdb.create_authz_session(ae2, AREQ)
         grant = self.sdb[sid]["code"]
 
@@ -188,7 +188,7 @@ class TestSessionDB(object):
         assert isinstance(_dict["oidreq"], OpenIDRequest)
 
     def test_refresh_token(self):
-        ae = AuthnEvent("sub")
+        ae = AuthnEvent("sub", "salt")
         sid = self.sdb.create_authz_session(ae, AREQ)
         grant = self.sdb[sid]["code"]
 
@@ -206,7 +206,7 @@ class TestSessionDB(object):
             self.sdb.refresh_token(dict2["access_token"])
 
     def test_is_valid(self):
-        ae1 = AuthnEvent("sub")
+        ae1 = AuthnEvent("sub", "salt")
         sid = self.sdb.create_authz_session(ae1, AREQ)
         grant = self.sdb[sid]["code"]
 
@@ -236,7 +236,7 @@ class TestSessionDB(object):
         refreshed_tokens["access_token"] = access_token
         assert not self.sdb.is_valid(access_token2)
 
-        ae = AuthnEvent("another:user")
+        ae = AuthnEvent("another:user", "salt")
         sid = self.sdb.create_authz_session(ae, AREQ)
         grant = self.sdb[sid]["code"]
 
@@ -244,7 +244,7 @@ class TestSessionDB(object):
         assert not self.sdb.is_valid(grant)
 
     def test_revoke_token(self):
-        ae1 = AuthnEvent("sub")
+        ae1 = AuthnEvent("sub", "salt")
         sid = self.sdb.create_authz_session(ae1, AREQ)
 
         grant = self.sdb[sid]["code"]
@@ -269,7 +269,7 @@ class TestSessionDB(object):
 
         assert self.sdb.is_valid(access_token)
 
-        ae2 = AuthnEvent("sub")
+        ae2 = AuthnEvent("sub", "salt")
         sid = self.sdb.create_authz_session(ae2, AREQ)
 
         grant = self.sdb[sid]["code"]
@@ -277,14 +277,33 @@ class TestSessionDB(object):
         assert not self.sdb.is_valid(grant)
 
     def test_sub_to_authn_event(self):
-        ae = AuthnEvent("sub", time_stamp=time.time())
+        ae = AuthnEvent("sub", "salt", time_stamp=time.time())
         sid = self.sdb.create_authz_session(ae, AREQ)
-        sub = self.sdb.do_sub(sid)
+        sub = self.sdb.do_sub(sid, "client_salt")
 
         # given the sub find out whether the authn event is still valid
         sids = self.sdb.get_sids_by_sub(sub)
         ae = self.sdb[sids[0]]["authn_event"]
         assert ae.valid()
+
+    def test_do_sub_deterministic(self):
+        ae = AuthnEvent("tester", "random_value")
+        sid = self.sdb.create_authz_session(ae, AREQ)
+        self.sdb.do_sub(sid, "other_random_value")
+
+        info = self.sdb[sid]
+        assert info["sub"] == '179670cdee6375c48e577317b2abd7d5cd26a5cdb1cfb7ef84af3d703c71d013'
+
+        self.sdb.do_sub(sid, "other_random_value", sector_id='http://example.com',
+                        subject_type="pairwise")
+        info2 = self.sdb[sid]
+        assert info2["sub"] == 'aaa50d80f8780cf1c4beb39e8e126556292f5091b9e39596424fefa2b99d9c53'
+
+        self.sdb.do_sub(sid, "another_random_value", sector_id='http://other.example.com',
+                        subject_type="pairwise")
+
+        info2 = self.sdb[sid]
+        assert info2["sub"] == '62fb630e29f0d41b88e049ac0ef49a9c3ac5418c029d6e4f5417df7e9443976b'
 
 
 class TestCrypt(object):
