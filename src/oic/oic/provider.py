@@ -631,7 +631,7 @@ class Provider(AProvider):
             except KeyError:
                 pass
 
-        self.sdb.do_sub(sid, **kwargs)
+        self.sdb.do_sub(sid, cinfo['client_salt'], **kwargs)
         return sid
 
     def authorization_endpoint(self, request="", cookie=None, **kwargs):
@@ -1385,7 +1385,8 @@ class Provider(AProvider):
             "registration_access_token": _rat,
             "registration_client_uri": "%s?client_id=%s" % (reg_enp, client_id),
             "client_secret_expires_at": utc_time_sans_frac() + 86400,
-            "client_id_issued_at": utc_time_sans_frac()}
+            "client_id_issued_at": utc_time_sans_frac(),
+            "client_salt": rndstr(8)}
 
         self.cdb[_rat] = client_id
 

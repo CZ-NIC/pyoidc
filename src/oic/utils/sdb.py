@@ -134,16 +134,18 @@ class Token(object):
 
 
 class AuthnEvent(object):
-    def __init__(self, uid, valid=3600, authn_info=None, time_stamp=0):
+    def __init__(self, uid, salt, valid=3600, authn_info=None, time_stamp=0):
         """
         Creates a representation of an authentication event.
 
         :param uid: The local user identifier
+        :param salt: Salt to be used in creating a sub
         :param valid: How long the authentication is expected to be valid
         :param authn_info: Info about the authentication event
         :return:
         """
         self.uid = uid
+        self.salt = salt
         self.authn_time = int(time_stamp) or time.time()
         self.valid_until = self.authn_time + int(valid)
         self.authn_info = authn_info
@@ -221,21 +223,23 @@ class SessionDB(object):
         (typ, key) = self.token.type_and_key(token)
         return self.update(key, attribute, value)
 
-    def do_sub(self, sid, sector_id="", subject_type="public"):
+    def do_sub(self, sid, client_salt, sector_id="", subject_type="public"):
         """
         Construct a sub (subject identifier)
 
         :param sid: Session identifier
         :param sector_id: Possible sector identifier
         :param subject_type: 'public'/'pairwise'
+        :param client_salt: client specific salt - used in pairwise
         :return:
         """
         uid = self._db[sid]["authn_event"].uid
+        user_salt = self._db[sid]["authn_event"].salt
 
         if subject_type == "public":
-            sub = hashlib.sha256("{}{}".format(uid, self.seed).encode("utf-8")).hexdigest()
+            sub = hashlib.sha256("{}{}".format(uid, user_salt).encode("utf-8")).hexdigest()
         else:
-            sub = pairwise_id(uid, sector_id, self.seed)
+            sub = pairwise_id(uid, sector_id, "{}{}".format(client_salt, user_salt))
 
         # since sub can be public, there can be more then one session
         # that uses the same subject identifier
