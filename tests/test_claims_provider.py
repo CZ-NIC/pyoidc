@@ -16,8 +16,7 @@ from oic.oic.claims_provider import ClaimsClient
 from oic.oic.claims_provider import UserClaimsResponse
 from oic.oic.claims_provider import UserClaimsRequest
 from oic.oic.claims_provider import ClaimsServer
-from ...utils_for_tests import _eq, \
-    query_string_compare  # pylint: disable=import-error
+from utils_for_tests import _eq, query_string_compare  # pylint: disable=import-error
 
 __author__ = 'rohe0002'
 
@@ -126,9 +125,7 @@ class TestClaimsServer(object):
         symkey = KeyBundle(
             [{"kty": "oct", "key": "abcdefghijklmnop", "use": "ver"},
              {"kty": "oct", "key": "abcdefghijklmnop", "use": "sig"}])
-        base_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), os.pardir, os.pardir,
-                         "data/keys"))
+        base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/keys"))
         rsakey = keybundle_from_local_file(
             os.path.abspath(os.path.join(base_path, "rsa.key")), "rsa",
             ["ver", "sig"])

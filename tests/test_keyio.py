@@ -13,9 +13,7 @@ from oic.utils.keyio import RSAKey
 
 __author__ = 'rohe0002'
 
-BASE_PATH = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir,
-                 "data/keys"))
+BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/keys"))
 
 RSAKEY = os.path.join(BASE_PATH, "cert.key")
 RSA0 = os.path.join(BASE_PATH, "rsa.key")

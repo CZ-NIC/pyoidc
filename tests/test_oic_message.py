@@ -1,16 +1,10 @@
 # -*- coding: utf-8 -*-
 
 # pylint: disable=missing-docstring,no-self-use
-import os
-import sys
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                             '..', '..')))
 
 import json
 
 from jwkest import BadSignature
-
 from jwkest.jwk import SYMKey
 import pytest
 
@@ -27,8 +21,7 @@ from oic.oic.message import claims_deser
 from oic.oic.message import AddressClaim
 from oic.oic.message import address_deser
 from oic.oic.message import Claims
-from ...utils_for_tests import _eq
-from ...utils_for_tests import query_string_compare  # pylint: disable=import-error
+from utils_for_tests import _eq, query_string_compare  # pylint: disable=import-error
 
 __author__ = 'rohe0002'
 
