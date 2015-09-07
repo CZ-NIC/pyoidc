@@ -66,13 +66,9 @@ if six.PY3:
 else:
     from urllib import splitquery
 
-
 __author__ = 'rohe0002'
 
-
 __author__ = 'rohe0002'
-
-
 
 logger = logging.getLogger(__name__)
 
@@ -173,7 +169,6 @@ class EndSessionEndpoint(Endpoint):
     url = 'end_session'
 
 
-
 RESPONSE_TYPES_SUPPORTED = [
     ["code"], ["token"], ["id_token"], ["code", "token"], ["code", "id_token"],
     ["id_token", "token"], ["code", "token", "id_token"]]
@@ -238,7 +233,8 @@ class Provider(AProvider):
 
         for endp in self.endp:
             if endp.etype == 'registration':
-                self.register_endpoint = urlparse.urljoin(self.baseurl, endp.url)
+                self.register_endpoint = urlparse.urljoin(self.baseurl,
+                                                          endp.url)
                 break
 
         self.jwx_def = {}
@@ -261,7 +257,8 @@ class Provider(AProvider):
         self.capabilities["issuer"] = self.name
         self.kid = {"sig": {}, "enc": {}}
 
-        # Allow custom schema (inheriting from OpenIDSchema) to be used - additional attributes
+        # Allow custom schema (inheriting from OpenIDSchema) to be used -
+        # additional attributes
         self.schema = schema
 
     def set_mode(self, mode):
@@ -558,7 +555,8 @@ class Provider(AProvider):
             redirect_uri = self.verify_post_logout_redirect_uri(esr, cookie)
             if not redirect_uri:
                 return self._error_response(
-                    "Not allowed (Post logout redirect URI verification failed)!")
+                    "Not allowed (Post logout redirect URI verification "
+                    "failed)!")
 
         authn, acr = self.pick_auth(esr)
 
@@ -569,7 +567,8 @@ class Provider(AProvider):
                                                      verify=True)
             sub = id_token_hint["sub"]
             try:
-                sid = self.sdb.get_sids_by_sub(sub)[0]  # any sid will do, choose the first
+                sid = self.sdb.get_sids_by_sub(sub)[
+                    0]  # any sid will do, choose the first
             except IndexError:
                 pass
         else:
@@ -577,7 +576,8 @@ class Provider(AProvider):
             if identity:
                 uid = identity["uid"]
                 try:
-                    sid = self.sdb.uid2sid[uid][0]  # any sid will do, choose the first
+                    sid = self.sdb.uid2sid[uid][
+                        0]  # any sid will do, choose the first
                 except (KeyError, IndexError):
                     pass
             else:
@@ -703,7 +703,8 @@ class Provider(AProvider):
 
         if "check_session_iframe" in self.capabilities:
             salt = rndstr()
-            state = str(self.sdb.get_authentication_event(sid).authn_time)  # use the last session
+            state = str(self.sdb.get_authentication_event(
+                sid).authn_time)  # use the last session
             aresp["session_state"] = self._compute_session_state(
                 state, salt, areq["client_id"], redirect_uri)
             headers.append(self.write_session_cookie(state))
@@ -754,7 +755,8 @@ class Provider(AProvider):
             _ckeys = self.keyjar[cid]
         except KeyError:
             # Weird, but try to recuperate
-            logger.warning("Lost keys for {} trying to recuperate!!".format(cid))
+            logger.warning(
+                "Lost keys for {} trying to recuperate!!".format(cid))
             self.keyjar.issuer_keys[cid] = []
             self.keyjar.add(cid, client_info["jwks_uri"])
             _ckeys = self.keyjar[cid]
@@ -835,13 +837,14 @@ class Provider(AProvider):
 
         _log_debug("All checks OK")
 
-        if 'offline_access' in _info['scope'] and 'offline_access' in _info.get('permissions', ['offline_access']):
+        if 'offline_access' in _info['scope'] and 'offline_access' in _info.get(
+                'permissions', ['offline_access']):
             issue_refresh = True
         else:
             issue_refresh = False
 
         try:
-            _tinfo = _sdb.upgrade_to_token(_access_code, issue_refresh=issue_refresh)
+            _sdb.upgrade_to_token(_access_code, issue_refresh=issue_refresh)
         except Exception as err:
             logger.error("%s" % err)
             # Should revoke the token issued to this access code
@@ -850,7 +853,7 @@ class Provider(AProvider):
 
         if "openid" in _info["scope"]:
             userinfo = self.userinfo_in_id_token_claims(_info)
-            _authn_event = _info["authn_event"]
+            # _authn_event = _info["authn_event"]
             try:
                 _idtoken = self.sign_encrypt_id_token(
                     _info, client_info, req, user_info=userinfo)
@@ -978,7 +981,8 @@ class Provider(AProvider):
             logger.debug("userinfo_claim: %s" % userinfo_claims.to_dict())
 
         logger.debug("Session info: %s" % session)
-        info = self.userinfo(session["authn_event"].uid, session['client_id'], userinfo_claims)
+        info = self.userinfo(session["authn_event"].uid, session['client_id'],
+                             userinfo_claims)
 
         if "sub" in userinfo_claims:
             if not claims_match(session["sub"], userinfo_claims["sub"]):
@@ -1248,7 +1252,8 @@ class Provider(AProvider):
                         except AssertionError:
                             return self._error_response(
                                 "invalid_configuration_parameter",
-                                descr="'sector_identifier_uri' must be registered")
+                                descr="'sector_identifier_uri' must be "
+                                      "registered")
 
         for item in ["policy_uri", "logo_uri", "tos_uri"]:
             if item in request:
@@ -1263,7 +1268,8 @@ class Provider(AProvider):
         for item in ["id_token_signed_response_alg",
                      "userinfo_signed_response_alg"]:
             if item in request:
-                if request[item] in self.capabilities[PREFERENCE2PROVIDER[item]]:
+                if request[item] in self.capabilities[
+                    PREFERENCE2PROVIDER[item]]:
                     ktyp = jws.alg2keytype(request[item])
                     # do I have this ktyp and for EC type keys the curve
                     if ktyp not in ["none", "oct"]:
@@ -1497,9 +1503,10 @@ class Provider(AProvider):
             _provider_info["jwks_uri"] = self.jwks_uri
 
         for endp in self.endp:
-            #_log_info("# %s, %s" % (endp, endp.name))
-            _provider_info['{}_endpoint'.format(endp.etype)] = urlparse.urljoin(self.baseurl,
-                                                                                endp.url)
+            # _log_info("# %s, %s" % (endp, endp.name))
+            _provider_info['{}_endpoint'.format(endp.etype)] = urlparse.urljoin(
+                self.baseurl,
+                endp.url)
 
         if setup and isinstance(setup, dict):
             for key in pcr_class.c_param.keys():
@@ -1534,7 +1541,8 @@ class Provider(AProvider):
         for typ in ["userinfo", "id_token", "request_object"]:
             _provider_info["%s_signing_alg_values_supported" % typ] = sign_algs
 
-        # Remove 'none' for token_endpoint_auth_signing_alg_values_supported since it is not allowed
+        # Remove 'none' for token_endpoint_auth_signing_alg_values_supported
+        # since it is not allowed
         sign_algs = sign_algs[:]
         sign_algs.remove('none')
         _provider_info[
