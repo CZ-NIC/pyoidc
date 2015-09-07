@@ -772,7 +772,7 @@ class Provider(object):
             assert areq["redirect_uri"] == _info["redirect_uri"]
 
         try:
-            _tinfo = _sdb.upgrade_to_token(areq["code"])
+            _tinfo = _sdb.upgrade_to_token(areq["code"], issue_refresh=True)
         except AccessCodeUsed:
             err = TokenErrorResponse(error="invalid_grant",
                                      error_description="Access grant used")
