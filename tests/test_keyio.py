@@ -102,9 +102,10 @@ def test_key_export():
     assert url == "http://example.com/keys/outbound/jwks"
 
 
-def test_rsa_init(tmpdir):
-    path = tmpdir.strpath
-    res = rsa_init({'use': ['enc'], 'type': 'RSA', 'name': os.path.join(path, "rsa_enc")})
+def test_rsa_init():
+    path = "."
+    res = rsa_init({'use': ['enc'], 'type': 'RSA', 'size': 1024,
+                    'name': os.path.join(path, "rsa_enc")})
     assert res
 
 
@@ -265,3 +266,6 @@ class TestKeyJar(object):
             authz_resp.verify(keyjar=kj)
         except MissingSigningKey:
             authz_resp.verify(keyjar=kj, sender=ISSUER)
+
+if __name__ == "__main__":
+    test_rsa_init()

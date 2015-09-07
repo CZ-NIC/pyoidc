@@ -837,8 +837,13 @@ class Provider(AProvider):
 
         _log_debug("All checks OK")
 
+        if "issue_refresh" in kwargs:
+            args = {"issue_refresh": kwargs["issue_refresh"]}
+        else:
+            args = {}
+
         try:
-            _sdb.upgrade_to_token(_access_code, issue_refresh=issue_refresh)
+            _sdb.upgrade_to_token(_access_code, **args)
         except Exception as err:
             logger.error("%s" % err)
             # Should revoke the token issued to this access code

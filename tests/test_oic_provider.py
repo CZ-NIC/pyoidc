@@ -749,3 +749,8 @@ class TestProvider(object):
         aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
                                          sformat="urlencoded")
         return aresp["id_token"]
+
+if __name__ == "__main__":
+    t = TestProvider()
+    t.create_provider()
+    t.test_token_endpoint()
