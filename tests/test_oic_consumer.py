@@ -19,17 +19,16 @@ from oic.oic.consumer import IGNORE
 from oic.oic.consumer import clean_response
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.sdb import SessionDB
-from ...fakeoicsrv import MyFakeOICServer
-from ...utils_for_tests import _eq
-from ...mitmsrv import MITMServer
+from fakeoicsrv import MyFakeOICServer
+from utils_for_tests import _eq
+from mitmsrv import MITMServer
 
 __author__ = 'rohe0002'
 
 KC_SYM_VS = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "ver"})
 KC_SYM_S = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "sig"})
 
-BASE_PATH = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, "data/keys"))
+BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/keys"))
 KC_RSA = keybundle_from_local_file(os.path.join(BASE_PATH, "rsa.key"), "rsa",
                                    ["ver", "sig"])
 

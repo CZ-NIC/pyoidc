@@ -3,7 +3,7 @@
 from oic.oauth2.grant import Grant, Token
 from oic.oauth2.message import AuthorizationResponse, ErrorResponse, \
     AccessTokenResponse
-from ...utils_for_tests import _eq  # pylint: disable=import-error
+from utils_for_tests import _eq  # pylint: disable=import-error
 
 ATR = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
                           token_type="example",

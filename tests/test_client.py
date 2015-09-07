@@ -16,7 +16,9 @@ from oic.oic import JWT_BEARER
 from oic.utils.authn.client import ClientSecretBasic, BearerHeader, BearerBody, \
     ClientSecretPost, PrivateKeyJWT, ClientSecretJWT
 from oic.utils.keyio import KeyBundle
-from ....utils_for_tests import _eq  # pylint: disable=import-error
+from utils_for_tests import _eq  # pylint: disable=import-error
+
+BASE_PATH = os.path.abspath(os.path.dirname(__file__))
 
 
 @pytest.fixture
@@ -154,11 +156,8 @@ class TestClientSecretPost(object):
 
 class TestPrivateKeyJWT(object):
     def test_construct(self, client):
-        base_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), os.pardir, os.pardir,
-                         os.pardir, "data/keys"))
         _key = rsa_load(
-            os.path.join(base_path, "rsa.key"))
+            os.path.join(BASE_PATH, "data/keys/rsa.key"))
         kc_rsa = KeyBundle([{"key": _key, "kty": "RSA", "use": "ver"},
                             {"key": _key, "kty": "RSA", "use": "sig"}])
         client.keyjar[""] = kc_rsa

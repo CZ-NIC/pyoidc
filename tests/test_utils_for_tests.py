@@ -1,6 +1,6 @@
 # pylint: disable=missing-docstring
 
-from .utils_for_tests import url_compare
+from utils_for_tests import url_compare
 
 
 def test_url_compare():

@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
 # pylint: disable=missing-docstring,no-self-use
+import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                             '..', '..')))
 
 import json
 
@@ -10,9 +15,11 @@ from jwkest.jwk import SYMKey
 import pytest
 
 from oic.oauth2 import WrongSigningAlgorithm
-from oic.oic.message import ProviderConfigurationResponse, RegistrationResponse, \
-    AuthorizationRequest, \
-    IdToken, AccessTokenResponse
+from oic.oic.message import ProviderConfigurationResponse
+from oic.oic.message import RegistrationResponse
+from oic.oic.message import AuthorizationRequest
+from oic.oic.message import IdToken
+from oic.oic.message import AccessTokenResponse
 from oic.oic.message import msg_ser
 from oic.oic.message import claims_ser
 from oic.oic.message import RegistrationRequest
@@ -20,8 +27,7 @@ from oic.oic.message import claims_deser
 from oic.oic.message import AddressClaim
 from oic.oic.message import address_deser
 from oic.oic.message import Claims
-from ...utils_for_tests import _eq, \
-    query_string_compare  # pylint: disable=import-error
+from utils_for_tests import _eq, query_string_compare  # pylint: disable=import-error
 
 __author__ = 'rohe0002'
 
@@ -123,17 +129,21 @@ def test_claims_ser_json():
 class TestProviderConfigurationResponse(object):
     def test_deserialize(self):
         resp = {
-            "authorization_endpoint": "https://server.example.com/connect/authorize",
+            "authorization_endpoint":
+                "https://server.example.com/connect/authorize",
             "issuer": "https://server.example.com",
             "token_endpoint": "https://server.example.com/connect/token",
             "token_endpoint_auth_methods_supported": ["client_secret_basic",
                                                       "private_key_jwt"],
             "userinfo_endpoint": "https://server.example.com/connect/user",
             "check_id_endpoint": "https://server.example.com/connect/check_id",
-            "refresh_session_endpoint": "https://server.example.com/connect/refresh_session",
-            "end_session_endpoint": "https://server.example.com/connect/end_session",
+            "refresh_session_endpoint":
+                "https://server.example.com/connect/refresh_session",
+            "end_session_endpoint":
+                "https://server.example.com/connect/end_session",
             "jwk_url": "https://server.example.com/jwk.json",
-            "registration_endpoint": "https://server.example.com/connect/register",
+            "registration_endpoint":
+                "https://server.example.com/connect/register",
             "scopes_supported": ["openid", "profile", "email", "address",
                                  "phone"],
             "response_types_supported": ["code", "code id_token",
@@ -173,7 +183,8 @@ class TestProviderConfigurationResponse(object):
             "end_session_endpoint":
                 "https://server.example.com/connect/end_session",
             "jwks_uri": "https://server.example.com/jwks.json",
-            "registration_endpoint": "https://server.example.com/connect/register",
+            "registration_endpoint":
+                "https://server.example.com/connect/register",
             "scopes_supported": ["openid", "profile", "email", "address",
                                  "phone", "offline_access"],
             "response_types_supported": ["code", "code id_token", "id_token",
@@ -237,7 +248,8 @@ class TestRegistrationRequest(object):
             "userinfo_encrypted_response_enc": "A128CBC+HS256",
             "contacts": ["ve7jtb@example.org", "mary@example.org"],
             "request_uris": [
-                "https://client.example.org/rf.txt#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"]
+                "https://client.example.org/rf.txt"
+                "#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"]
         }
 
         reg = RegistrationRequest().deserialize(json.dumps(msg), "json")
@@ -268,7 +280,8 @@ class TestRegistrationResponse(object):
             "client_secret_expires_at": 1577858400,
             "registration_access_token": "this.is.an.access.token.value.ffx83",
             "registration_client_uri":
-                "https://server.example.com/connect/register?client_id=s6BhdRkqt3",
+                "https://server.example.com/connect/register?client_id"
+                "=s6BhdRkqt3",
             "token_endpoint_auth_method": "client_secret_basic",
             "application_type": "web",
             "redirect_uris": ["https://client.example.org/callback",
@@ -284,7 +297,8 @@ class TestRegistrationResponse(object):
             "userinfo_encrypted_response_enc": "A128CBC+HS256",
             "contacts": ["ve7jtb@example.org", "mary@example.org"],
             "request_uris": [
-                "https://client.example.org/rf.txt#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"]
+                "https://client.example.org/rf.txt"
+                "#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"]
         }
 
         resp = RegistrationResponse().deserialize(json.dumps(msg), "json")
@@ -293,7 +307,10 @@ class TestRegistrationResponse(object):
 
 class TestAuthorizationRequest(object):
     def test_deserialize(self):
-        query = "response_type=token%20id_token&client_id=0acf77d4-b486-4c99-bd76-074ed6a64ddf&redirect_uri=https%3A%2F%2Fclient.example.com%2Fcb&scope=openid%20profile&state=af0ifjsldkj&nonce=n-0S6_WzA2Mj"
+        query = "response_type=token%20id_token&client_id=0acf77d4-b486-4c99" \
+                "-bd76-074ed6a64ddf&redirect_uri=https%3A%2F%2Fclient.example" \
+                ".com%2Fcb&scope=openid%20profile&state=af0ifjsldkj&nonce=n" \
+                "-0S6_WzA2Mj"
 
         req = AuthorizationRequest().deserialize(query, "urlencoded")
 
@@ -340,3 +357,25 @@ class TestAccessTokenResponse(object):
         at = AccessTokenResponse(**_info)
         with pytest.raises(WrongSigningAlgorithm):
             at.verify(key=[key], algs={"sign": "HS512"})
+
+
+def test_id_token():
+    idt = IdToken(**{
+        "sub": "553df2bcf909104751cfd8b2",
+        "aud": [
+            "5542958437706128204e0000",
+            "554295ce3770612820620000"
+        ],
+        "auth_time": 1441364872,
+        "azp": "554295ce3770612820620000",
+        "at_hash": "L4Ign7TCAD_EppRbHAuCyw",
+        "iat": 1441367116,
+        "exp": 1441374316,
+        "iss": "https://sso.qa.7pass.ctf.prosiebensat1.com"
+    })
+
+    idt.verify()
+
+
+if __name__ == "__main__":
+    test_id_token()
