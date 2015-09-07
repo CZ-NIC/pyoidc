@@ -66,9 +66,9 @@ if six.PY3:
 else:
     from urllib import splitquery
 
-__author__ = 'rohe0002'
 
 __author__ = 'rohe0002'
+
 
 logger = logging.getLogger(__name__)
 
@@ -836,12 +836,6 @@ class Provider(AProvider):
                                    descr="redirect_uri mismatch")
 
         _log_debug("All checks OK")
-
-        if 'offline_access' in _info['scope'] and 'offline_access' in _info.get(
-                'permissions', ['offline_access']):
-            issue_refresh = True
-        else:
-            issue_refresh = False
 
         try:
             _sdb.upgrade_to_token(_access_code, issue_refresh=issue_refresh)

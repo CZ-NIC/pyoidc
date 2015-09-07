@@ -109,10 +109,7 @@ class MyFakeOICServer(Server):
         if "code" in req["response_type"]:
             if "token" in req["response_type"]:
                 grant = _info["code"]
-                if 'offline_access' in _info['scope']:
-                    _dict = self.sdb.upgrade_to_token(grant, issue_refresh=True)
-                else:
-                    _dict = self.sdb.upgrade_to_token(grant)
+                _dict = self.sdb.upgrade_to_token(grant)
                 _dict["oauth_state"] = "authz",
 
                 _dict = by_schema(AuthorizationResponse(), **_dict)
@@ -158,10 +155,7 @@ class MyFakeOICServer(Server):
             _info = self.sdb.refresh_token(req["refresh_token"])
         elif "grant_type=authorization_code":
             req = self.parse_token_request(body=data)
-            if 'offline_access' in self.sdb[req['code']]['scope']:
-                _info = self.sdb.upgrade_to_token(req["code"], issue_refresh=True)
-            else:
-                _info = self.sdb.upgrade_to_token(req["code"])
+            _info = self.sdb.upgrade_to_token(req["code"])
         else:
             response = TokenErrorResponse(error="unsupported_grant_type")
             return response, ""
