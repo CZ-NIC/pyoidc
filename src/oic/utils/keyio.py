@@ -393,19 +393,19 @@ class KeyJar(object):
 
         self.issuer_keys[issuer] = val
 
-    def get(self, use, key_type="", issuer="", kid=None, **kwargs):
+    def get(self, key_use, key_type="", issuer="", kid=None, **kwargs):
         """
 
-        :param use: A key useful for this usage (enc, dec, sig, ver)
+        :param key_use: A key useful for this usage (enc, dec, sig, ver)
         :param key_type: Type of key (rsa, ec, symmetric, ..)
         :param issuer: Who is responsible for the keys, "" == me
         :param kid: A Key Identifier
         :return: A possibly empty list of keys
         """
 
-        if use == "dec":
+        if key_use in ["dec", "enc"]:
             use = "enc"
-        elif use == "ver":
+        elif key_use in ["ver", "sig"]:
             use = "sig"
 
         if issuer != "":
@@ -436,6 +436,9 @@ class KeyJar(object):
                 else:
                     _keys = bundles.keys()
                 for key in _keys:
+                    if key.inactive_since and key_use != "ver":
+                        # Skip inactive keys unless for signature verification
+                        continue
                     if kid and key.kid == kid:
                         lst = [key]
                         break
