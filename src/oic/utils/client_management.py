@@ -1,14 +1,24 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
 import copy
 import json
+import os
 import shelve
-import urllib
-import urlparse
 import argparse
 import sys
-from oic.oic import RegistrationResponse
+
+import six
+
+from six.moves.urllib.parse import urlparse, parse_qs
+from six.moves import input
 from oic.oic.provider import secret
 from oic.oauth2 import rndstr
+
+if six.PY3:
+    from urllib.parse import splitquery
+else:
+    from urllib import splitquery
 
 __author__ = 'rolandh'
 
@@ -27,13 +37,13 @@ def unpack_redirect_uri(redirect_uris):
 def pack_redirect_uri(redirect_uris):
     ruri = []
     for uri in redirect_uris:
-        if urlparse.urlparse(uri).fragment:
-            print >> sys.stderr, "Faulty redirect uri, contains fragment"
-        base, query = urllib.splitquery(uri)
+        if urlparse(uri).fragment:
+            print("Faulty redirect uri, contains fragment", file=sys.stderr)
+        base, query = splitquery(uri)
         if query:
-            ruri.append((base, urlparse.parse_qs(query)))
+            ruri.append([base, parse_qs(query)])
         else:
-            ruri.append((base, query))
+            ruri.append([base, query])
 
     return ruri
 
@@ -41,7 +51,7 @@ def pack_redirect_uri(redirect_uris):
 class CDB(object):
     def __init__(self, filename):
         self.cdb = shelve.open(filename, writeback=True)
-        self.seed = rndstr(32)
+        self.seed = rndstr(32).encode("utf-8")
 
     def __getitem__(self, item):
         return self.cdb[item]
@@ -52,23 +62,25 @@ class CDB(object):
     def items(self):
         return self.cdb.items()
 
-    def create(self, redirect_uris=None, policy_uri="", logo_uri=""):
+    def create(self, redirect_uris=None, policy_uri="", logo_uri="",
+               jwks_uri=""):
         if redirect_uris is None:
-            print 'Enter redirect_uris one at the time, end with a blank line: '
+            print(
+                'Enter redirect_uris one at the time, end with a blank line: ')
             redirect_uris = []
             while True:
-                redirect_uri = raw_input('?: ')
+                redirect_uri = input('?: ')
                 if redirect_uri:
                     redirect_uris.append(redirect_uri)
                 else:
                     break
         if not policy_uri:
-            policy_uri = raw_input("Enter policy_uri or just return: ")
+            policy_uri = input("Enter policy_uri or just return: ")
         if not logo_uri:
-            logo_uri = raw_input("Enter logo_uri or just return: ")
+            logo_uri = input("Enter logo_uri or just return: ")
 
         client_id = rndstr(12)
-        while client_id in self.cdb:
+        while client_id in self.cdb.keys():
             client_id = rndstr(12)
 
         client_secret = secret(self.seed, client_id)
@@ -76,6 +88,7 @@ class CDB(object):
         info = {
             "client_secret": client_secret,
             "client_id": client_id,
+            "client_salt": rndstr(8),
             "redirect_uris": pack_redirect_uri(redirect_uris),
         }
 
@@ -83,6 +96,8 @@ class CDB(object):
             info["policy_uri"] = policy_uri
         if logo_uri:
             info["logo_uri"] = logo_uri
+        if jwks_uri:
+            info['jwks_uri'] = jwks_uri
 
         self.cdb[client_id] = info
 
@@ -107,9 +122,8 @@ class CDB(object):
                             _tmp[uris] = unpack_redirect_uri(_tmp[uris])
                         except KeyError:
                             pass
-                    rr = RegistrationResponse(**_tmp)
                 except Exception as err:
-                    print "Faulty specification: %s" % (item,)
+                    print("Faulty specification: {}".format(item))
                 else:
                     self.cdb[str(item["client_id"])] = item
 
@@ -147,23 +161,29 @@ if __name__ == "__main__":
                         help="Import client information from a file")
     parser.add_argument('-D', dest='output_file',
                         help="Dump client information to a file")
+    parser.add_argument('-R', dest="reset", action='store_true',
+                        help="Reset the database == removing all registrations")
     parser.add_argument(dest="filename")
     args = parser.parse_args()
 
+    if args.reset:
+        os.unlink(args.filename)
+
     cdb = CDB(args.filename)
+
     if args.list:
-        print cdb.keys()
+        print(cdb.keys())
     elif args.client_id:
         if args.delete:
             del cdb[args.client_id]
         elif args.show:
-            print cdb[args.client_id]
+            print(cdb[args.client_id])
         elif args.replace:
             cdb[args.client_id] = args.replace
     elif args.create:
-        print cdb.create()
+        print(cdb.create())
     elif args.delete or args.show or args.replace:
-        print "You have to specify a client_id !"
+        print("You have to specify a client_id !")
     elif args.input_file:
         cdb.load(args.input_file)
     elif args.output_file:

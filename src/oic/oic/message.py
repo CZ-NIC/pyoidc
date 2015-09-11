@@ -1,21 +1,21 @@
 # encoding: utf-8
 import time
-from urlparse import urlparse
-
-__author__ = 'rohe0002'
-
 import urllib
 import json
 import logging
 
+import six
+from jwkest import jws
+
+from six.moves.urllib.parse import urlparse
 from oic.oauth2 import message
 from oic.oauth2 import MissingRequiredValue
 from oic.oauth2 import MissingRequiredAttribute
-from oic.oauth2 import VerificationError
 from oic.exception import InvalidRequest
 from oic.exception import NotForMe
 from oic.exception import MessageException
 from oic.exception import PyoidcError
+from oic.oauth2.exception import VerificationError
 from oic.oauth2.message import Message
 from oic.oauth2.message import SchemeError
 from oic.oauth2.message import NotAllowedValue
@@ -28,8 +28,7 @@ from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
 from oic.oauth2.message import SINGLE_OPTIONAL_INT
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 
-import jwkest
-from jwkest import jws
+__author__ = 'rohe0002'
 
 logger = logging.getLogger(__name__)
 
@@ -42,22 +41,50 @@ class CHashError(VerificationError):
     pass
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def json_ser(val, sformat=None, lev=0):
     return json.dumps(val)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def json_deser(val, sformat=None, lev=0):
     return json.loads(val)
+
+
+def json_conv(val, sformat=None, lev=0):
+    if isinstance(val, dict):
+        for key, _val in val.items():
+            if _val is None:
+                val[key] = "none"
+            elif _val is True:
+                val[key] = "true"
+            elif _val is False:
+                val[key] = "false"
+
+    return val
+
+
+def json_rest(val, sformat=None, lev=0):
+    if isinstance(val, dict):
+        for key, _val in val.items():
+            if _val == "none":
+                val[key] = None
+            elif _val == "true":
+                val[key] = True
+            elif _val == "false":
+                val[key] = False
+
+    return val
+
 
 # value type, required, serializer, deserializer, null value allowed
 SINGLE_OPTIONAL_BOOLEAN = (bool, False, None, None, False)
 SINGLE_OPTIONAL_JSON_WN = (dict, False, json_ser, json_deser, True)
+SINGLE_OPTIONAL_JSON_CONV = (dict, False, json_conv, json_rest, True)
 SINGLE_REQUIRED_INT = (int, True, None, None, False)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def idtoken_deser(val, sformat="urlencoded"):
     # id_token are always serialized as a JWT
     return IdToken().deserialize(val, "jwt")
@@ -80,7 +107,7 @@ def idtoken_deser(val, sformat="urlencoded"):
 
 def address_deser(val, sformat="urlencoded"):
     if sformat in ["dict", "json"]:
-        if not isinstance(val, basestring):
+        if not isinstance(val, six.string_types):
             val = json.dumps(val)
             sformat = "json"
         elif sformat == "dict":
@@ -90,10 +117,18 @@ def address_deser(val, sformat="urlencoded"):
 
 def claims_deser(val, sformat="urlencoded"):
     if sformat in ["dict", "json"]:
-        if not isinstance(val, basestring):
+        if not isinstance(val, six.string_types):
             val = json.dumps(val)
             sformat = "json"
     return Claims().deserialize(val, sformat)
+
+
+def message_deser(val, sformat="urlencoded"):
+    if sformat in ["dict", "json"]:
+        if not isinstance(val, six.string_types):
+            val = json.dumps(val)
+            sformat = "json"
+    return Message().deserialize(val, sformat)
 
 
 def msg_ser(inst, sformat, lev=0):
@@ -107,6 +142,8 @@ def msg_ser(inst, sformat, lev=0):
             res = inst.serialize(sformat, lev)
         elif isinstance(inst, dict):
             res = inst
+        elif isinstance(inst, six.string_types):  # Iff ID Token
+            res = inst
         else:
             raise MessageException("Wrong type: %s" % type(inst))
     else:
@@ -117,6 +154,9 @@ def msg_ser(inst, sformat, lev=0):
 
 def msg_ser_json(inst, sformat="json", lev=0):
     # sformat = "json" always except when dict
+    if lev:
+        sformat = "dict"
+
     if sformat == "dict":
         if isinstance(inst, Message):
             res = inst.serialize(sformat, lev)
@@ -140,7 +180,7 @@ def msg_list_ser(insts, sformat, lev=0):
 
 def claims_ser(val, sformat="urlencoded", lev=0):
     # everything in c_extension
-    if isinstance(val, basestring):
+    if isinstance(val, six.string_types):
         item = val
     elif isinstance(val, list):
         item = val[0]
@@ -170,7 +210,7 @@ def claims_ser(val, sformat="urlencoded", lev=0):
 
 def registration_request_deser(val, sformat="urlencoded"):
     if sformat in ["dict", "json"]:
-        if not isinstance(val, basestring):
+        if not isinstance(val, six.string_types):
             val = json.dumps(val)
             sformat = "json"
     return RegistrationRequest().deserialize(val, sformat)
@@ -181,7 +221,7 @@ def claims_request_deser(val, sformat="json"):
     if sformat == "urlencoded":
         sformat = "json"
     if sformat in ["dict", "json"]:
-        if not isinstance(val, basestring):
+        if not isinstance(val, six.string_types):
             val = json.dumps(val)
             sformat = "json"
     return ClaimsRequest().deserialize(val, sformat)
@@ -193,13 +233,15 @@ OPTIONAL_MULTIPLE_Claims = (Message, False, claims_ser, claims_deser, False)
 # SINGLE_OPTIONAL_USERINFO_CLAIM = (Message, False, msg_ser, userinfo_deser)
 # SINGLE_OPTIONAL_ID_TOKEN_CLAIM = (Message, False, msg_ser, idtokenclaim_deser)
 
-SINGLE_OPTIONAL_JWT = (basestring, False, msg_ser, None, False)
-SINGLE_OPTIONAL_IDTOKEN = (basestring, False, msg_ser, None, False)
+SINGLE_OPTIONAL_JWT = (six.string_types, False, msg_ser, None, False)
+SINGLE_OPTIONAL_IDTOKEN = (six.string_types, False, msg_ser, None, False)
 
 SINGLE_OPTIONAL_REGISTRATION_REQUEST = (Message, False, msg_ser,
                                         registration_request_deser, False)
 SINGLE_OPTIONAL_CLAIMSREQ = (Message, False, msg_ser_json, claims_request_deser,
                              False)
+
+OPTIONAL_MESSAGE = (Message, False, msg_ser, message_deser, False)
 
 # ----------------------------------------------------------------------------
 
@@ -239,7 +281,7 @@ class AccessTokenResponse(message.AccessTokenResponse):
         if "id_token" in self:
             # Try to decode the JWT, checks the signature
             args = {}
-            for arg in ["key", "keyjar", "algs"]:
+            for arg in ["key", "keyjar", "algs", "sender"]:
                 try:
                     args[arg] = kwargs[arg]
                 except KeyError:
@@ -262,12 +304,11 @@ class UserInfoRequest(Message):
 
 class AuthorizationResponse(message.AuthorizationResponse,
                             message.AccessTokenResponse):
-
     c_param = message.AuthorizationResponse.c_param.copy()
     c_param.update(message.AccessTokenResponse.c_param)
     c_param.update({
         "code": SINGLE_OPTIONAL_STRING,
-        #"nonce": SINGLE_OPTIONAL_STRING,
+        # "nonce": SINGLE_OPTIONAL_STRING,
         "access_token": SINGLE_OPTIONAL_STRING,
         "token_type": SINGLE_OPTIONAL_STRING,
         "id_token": SINGLE_OPTIONAL_IDTOKEN
@@ -283,7 +324,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
         if "id_token" in self:
             # Try to decode the JWT, checks the signature
             args = {}
-            for arg in ["key", "keyjar", "algs"]:
+            for arg in ["key", "keyjar", "algs", "sender"]:
                 try:
                     args[arg] = kwargs[arg]
                 except KeyError:
@@ -292,7 +333,10 @@ class AuthorizationResponse(message.AuthorizationResponse,
             if not idt.verify(**kwargs):
                 raise VerificationError("Could not verify id_token", idt)
 
-            hfunc = "HS" + jwkest.unpack(self["id_token"])[0]["alg"][-3:]
+            _alg = idt.jws_header["alg"]
+            # What if _alg == 'none'
+
+            hfunc = "HS" + _alg[-3:]
 
             if "access_token" in self:
                 try:
@@ -331,7 +375,8 @@ class AuthorizationErrorResponse(message.AuthorizationErrorResponse):
                                       "invalid_request_uri",
                                       "invalid_request_object",
                                       "registration_not_supported",
-                                      "request_not_supported"])
+                                      "request_not_supported",
+                                      "request_uri_not_supported"])
 
 
 class AuthorizationRequest(message.AuthorizationRequest):
@@ -345,7 +390,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
             "prompt": OPTIONAL_LIST_OF_STRINGS,
             "max_age": SINGLE_OPTIONAL_INT,
             "ui_locales": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-            "claims_locale": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+            "claims_locales": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
             "id_token_hint": SINGLE_OPTIONAL_STRING,
             "login_hint": SINGLE_OPTIONAL_STRING,
             "acr_values": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
@@ -353,7 +398,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
             "registration": SINGLE_OPTIONAL_JSON,
             "request": SINGLE_OPTIONAL_STRING,
             "request_uri": SINGLE_OPTIONAL_STRING,
-            #"session_state": SINGLE_OPTIONAL_STRING,
+            # "session_state": SINGLE_OPTIONAL_STRING,
             "response_mode": SINGLE_OPTIONAL_STRING,
         }
     )
@@ -373,14 +418,17 @@ class AuthorizationRequest(message.AuthorizationRequest):
         Authorization Request and in the OpenID Request Object MUST exactly
         match."""
         args = {}
-        for arg in ["key", "keyjar"]:
+        for arg in ["key", "keyjar", "opponent_id"]:
             try:
                 args[arg] = kwargs[arg]
             except KeyError:
                 pass
 
+        if "opponent_id" not in kwargs:
+            args["opponent_id"] = self["client_id"]
+
         if "request" in self:
-            if isinstance(self["request"], basestring):
+            if isinstance(self["request"], six.string_types):
                 # Try to decode the JWT, checks the signature
                 oidr = OpenIDRequest().from_jwt(str(self["request"]), **args)
 
@@ -393,7 +441,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
                 self["request"] = oidr
 
         if "id_token_hint" in self:
-            if isinstance(self["id_token_hint"], basestring):
+            if isinstance(self["id_token_hint"], six.string_types):
                 idt = IdToken().from_jwt(str(self["id_token_hint"]), **args)
                 self["id_token_hint"] = idt
 
@@ -410,7 +458,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
         try:
             assert "openid" in self["scope"]
         except AssertionError:
-            raise MissingRequiredValue("openid in scope", self)
+            raise MissingRequiredValue("openid not in scope", self)
 
         if "offline_access" in self["scope"]:
             try:
@@ -467,8 +515,8 @@ class OpenIDSchema(Message):
                "phone_number_verified": SINGLE_OPTIONAL_STRING,
                "address": OPTIONAL_ADDRESS,
                "updated_at": SINGLE_OPTIONAL_INT,
-               "_claim_names": SINGLE_OPTIONAL_JSON,
-               "_claim_sources": SINGLE_OPTIONAL_JSON}
+               "_claim_names": OPTIONAL_MESSAGE,
+               "_claim_sources": OPTIONAL_MESSAGE}
 
     def verify(self, **kwargs):
         if "birthdate" in self:
@@ -519,9 +567,9 @@ class RegistrationRequest(Message):
         "default_acr_values": OPTIONAL_LIST_OF_STRINGS,
         "initiate_login_uri": SINGLE_OPTIONAL_STRING,
         "request_uris": OPTIONAL_LIST_OF_STRINGS,
-        #"client_id": SINGLE_OPTIONAL_STRING,
-        #"client_secret": SINGLE_OPTIONAL_STRING,
-        #"access_token": SINGLE_OPTIONAL_STRING,
+        # "client_id": SINGLE_OPTIONAL_STRING,
+        # "client_secret": SINGLE_OPTIONAL_STRING,
+        # "access_token": SINGLE_OPTIONAL_STRING,
         "post_logout_redirect_uris": OPTIONAL_LIST_OF_STRINGS,
     }
     c_default = {"application_type": "web"}
@@ -554,7 +602,7 @@ class RegistrationResponse(Message):
     c_param = {
         "client_id": SINGLE_REQUIRED_STRING,
         "client_secret": SINGLE_OPTIONAL_STRING,
-        "registration_access_token": SINGLE_REQUIRED_STRING,
+        "registration_access_token": SINGLE_OPTIONAL_STRING,
         "registration_client_uri": SINGLE_OPTIONAL_STRING,
         "client_id_issued_at": SINGLE_OPTIONAL_INT,
         "client_secret_expires_at": SINGLE_OPTIONAL_INT,
@@ -602,7 +650,7 @@ class IdToken(OpenIDSchema):
         "c_hash": SINGLE_OPTIONAL_STRING,
         "acr": SINGLE_OPTIONAL_STRING,
         "amr": OPTIONAL_LIST_OF_STRINGS,
-        "azp": OPTIONAL_LIST_OF_STRINGS,  # Array of strings or string
+        "azp": SINGLE_OPTIONAL_STRING,
         "sub_jwk": SINGLE_OPTIONAL_STRING
     })
 
@@ -613,20 +661,20 @@ class IdToken(OpenIDSchema):
                 if kwargs["client_id"] not in self["aud"]:
                     raise NotForMe("", self)
 
-            if len(self["aud"]) > 1:  # Then azr has to be present and be one of
-                                      # the aud values
+            # Then azp has to be present and be one of the aud values
+            if len(self["aud"]) > 1:
                 try:
-                    assert "azr" in self
+                    assert "azp" in self
                 except AssertionError:
-                    raise VerificationError("azr missing", self)
+                    raise VerificationError("azp missing", self)
                 else:
                     try:
-                        assert self["azr"] in self["aud"]
+                        assert self["azp"] in self["aud"]
                     except AssertionError:
                         raise VerificationError(
-                            "Mismatch between azr and aud claims", self)
+                            "Mismatch between azp and aud claims", self)
 
-        if "azr" in self:
+        if "azp" in self:
             if "client_id" in kwargs:
                 if kwargs["client_id"] != self["azp"]:
                     raise NotForMe("", self)
@@ -665,7 +713,8 @@ class EndSessionResponse(Message):
 
 
 class Claims(Message):
-    c_param = {"*": SINGLE_OPTIONAL_JSON_WN}
+    # c_param = {"*": SINGLE_OPTIONAL_JSON_CONV}
+    pass
 
 
 class ClaimsRequest(Message):
@@ -711,12 +760,12 @@ class ProviderConfigurationResponse(Message):
         "userinfo_encryption_enc_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "request_object_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "request_object_encryption_alg_values_supported":
-        OPTIONAL_LIST_OF_STRINGS,
+            OPTIONAL_LIST_OF_STRINGS,
         "request_object_encryption_enc_values_supported":
-        OPTIONAL_LIST_OF_STRINGS,
+            OPTIONAL_LIST_OF_STRINGS,
         "token_endpoint_auth_methods_supported": OPTIONAL_LIST_OF_STRINGS,
         "token_endpoint_auth_signing_alg_values_supported":
-        OPTIONAL_LIST_OF_STRINGS,
+            OPTIONAL_LIST_OF_STRINGS,
         "display_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "claim_types_supported": OPTIONAL_LIST_OF_STRINGS,
         "claims_supported": OPTIONAL_LIST_OF_STRINGS,
@@ -728,15 +777,16 @@ class ProviderConfigurationResponse(Message):
         "request_uri_parameter_supported": SINGLE_OPTIONAL_BOOLEAN,
         "require_request_uri_registration": SINGLE_OPTIONAL_BOOLEAN,
         "op_policy_uri": SINGLE_OPTIONAL_STRING,
-        "op_tos_uri": SINGLE_OPTIONAL_STRING
-        #"check_session_iframe": SINGLE_OPTIONAL_STRING,
-        #"end_session_endpoint": SINGLE_OPTIONAL_STRING,
-        #"jwk_encryption_url": SINGLE_OPTIONAL_STRING,
-        #"x509_url": SINGLE_REQUIRED_STRING,
-        #"x509_encryption_url": SINGLE_OPTIONAL_STRING,
+        "op_tos_uri": SINGLE_OPTIONAL_STRING,
+        "check_session_iframe": SINGLE_OPTIONAL_STRING,
+        "end_session_endpoint": SINGLE_OPTIONAL_STRING,
+        # "jwk_encryption_url": SINGLE_OPTIONAL_STRING,
+        # "x509_url": SINGLE_REQUIRED_STRING,
+        # "x509_encryption_url": SINGLE_OPTIONAL_STRING,
     }
     c_default = {"version": "3.0",
-                 "token_endpoint_auth_methods_supported": ["client_secret_basic"],
+                 "token_endpoint_auth_methods_supported": [
+                     "client_secret_basic"],
                  "claims_parameter_supported": False,
                  "request_parameter_supported": False,
                  "request_uri_parameter_supported": True,
@@ -787,6 +837,7 @@ class DiscoveryResponse(Message):
 
 class ResourceRequest(Message):
     c_param = {"access_token": SINGLE_OPTIONAL_STRING}
+
 
 SCOPE2CLAIMS = {
     "openid": ["sub"],
@@ -844,17 +895,3 @@ def factory(msgtype):
             return message.Message
         else:
             raise PyoidcError("Unknown message type: %s" % msgtype)
-
-if __name__ == "__main__":
-    atr = AccessTokenResponse(access_token="access_token",
-                              token_type="token_type")
-    print atr
-    print atr.verify()
-
-    atr = AccessTokenRequest(code="code", client_id="client_id",
-                             redirect_uri="redirect_uri")
-    print atr
-    print atr.verify()
-    uue = atr.serialize()
-    atr = AccessTokenRequest().deserialize(uue, "urlencoded")
-    print atr

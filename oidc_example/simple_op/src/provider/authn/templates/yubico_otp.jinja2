@@ -1,0 +1,23 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Please login</title>
+</head>
+
+<body>
+<h1>Yubikey OTP (One Time Password)</h1>
+
+<form action="{{ action }}" method="post">
+    <input type="hidden" name="state" value="{{ state|urlencode }}">
+
+    <p>
+        <label for="otp">OTP</label>
+        <input type="text" id="otp" name="otp" autofocus required>
+    </p>
+
+    <input type="submit" value="Login">
+</form>
+</body>
+</html>

@@ -1,12 +1,12 @@
 import importlib
 import json
 from tempfile import NamedTemporaryFile
-from urllib import urlencode
 import logging
 import base64
-from urlparse import parse_qs
+from six.moves.urllib.parse import parse_qs, urlencode
+import six
 
-from oic.oauth2 import VerificationError
+from oic.oauth2.exception import VerificationError
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authn.user import create_return_url
 from oic.utils.http_util import Redirect
@@ -108,7 +108,7 @@ else:
             return_to url. Otherwise a unauthorized response.
             :raise: ValueError
             """
-            if isinstance(request, basestring):
+            if isinstance(request, six.string_types):
                 request = parse_qs(request)
             elif isinstance(request, dict):
                 pass
@@ -152,21 +152,21 @@ else:
                 response = self.sp.parse_authn_request_response(
                     request["SAMLResponse"][0], binding,
                     self.cache_outstanding_queries)
-            except UnknownPrincipal, excp:
+            except UnknownPrincipal as excp:
                 logger.error("UnknownPrincipal: %s" % (excp,))
                 return Unauthorized(self.not_authorized), False
-            except UnsupportedBinding, excp:
+            except UnsupportedBinding as excp:
                 logger.error("UnsupportedBinding: %s" % (excp,))
                 return Unauthorized(self.not_authorized), False
-            except VerificationError, err:
+            except VerificationError as err:
                 logger.error("Verification error: %s" % (err,))
                 return Unauthorized(self.not_authorized), False
-            except Exception, err:
+            except Exception as err:
                 logger.error("Other error: %s" % (err,))
                 return Unauthorized(self.not_authorized), False
 
             if self.sp_conf.VALID_ATTRIBUTE_RESPONSE is not None:
-                for k, v in self.sp_conf.VALID_ATTRIBUTE_RESPONSE.iteritems():
+                for k, v in six.iteritems(self.sp_conf.VALID_ATTRIBUTE_RESPONSE):
                     if k not in response.ava:
                         return Unauthorized(self.not_authorized), False
                     else:
@@ -205,7 +205,7 @@ else:
         def setup_userdb(self, uid, samldata):
             attributes = {}
             if self.sp_conf.ATTRIBUTE_WHITELIST is not None:
-                for attr, allowed in self.sp_conf.ATTRIBUTE_WHITELIST.iteritems():
+                for attr, allowed in six.iteritems(self.sp_conf.ATTRIBUTE_WHITELIST):
                     if attr in samldata:
                         if allowed is not None:
                             tmp_attr_list = []
@@ -224,11 +224,10 @@ else:
             if self.sp_conf.OPENID2SAMLMAP is None:
                 userdb = attributes.copy()
             else:
-                for oic, saml in self.sp_conf.OPENID2SAMLMAP.iteritems():
+                for oic, saml in six.iteritems(self.sp_conf.OPENID2SAMLMAP):
                     if saml in attributes:
                         userdb[oic] = attributes[saml]
             self.userdb[uid] = userdb
-
 
         def _pick_idp(self, query, end_point_index):
             """
@@ -236,10 +235,10 @@ else:
             disco
             """
             query_dict = {}
-            if isinstance(query, basestring):
+            if isinstance(query, six.string_types):
                 query_dict = dict(parse_qs(query))
             else:
-                for key, value in query.iteritems():
+                for key, value in six.iteritems(query):
                     if isinstance(value, list):
                         query_dict[key] = value[0]
                     else:
@@ -254,7 +253,7 @@ else:
 
             if len(idps) == 1:
                 # idps is a dictionary
-                idp_entity_id = idps.keys()[0]
+                idp_entity_id = list(idps.keys())[0]
 
             if not idp_entity_id and query:
                 try:
@@ -341,7 +340,7 @@ else:
                                              relay_state=_rstate)
 
                 logger.debug("ht_args: %s" % ht_args)
-            except Exception, exc:
+            except Exception as exc:
                 logger.exception(exc)
                 raise ServiceErrorException(
                     "Failed to construct the AuthnRequest: %s" % exc)

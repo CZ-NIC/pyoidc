@@ -1,7 +1,6 @@
-from urlparse import parse_qs
-
+from six.moves.urllib.parse import parse_qs
+import six
 from oic.utils.authn.user import logger, UsernamePasswordMako
-
 from oic.utils.http_util import Unauthorized, Redirect
 
 
@@ -23,7 +22,7 @@ class JavascriptFormMako(UsernamePasswordMako):
         """
 
         logger.debug("verify(%s)" % request)
-        if isinstance(request, basestring):
+        if isinstance(request, six.string_types):
             _dict = parse_qs(request)
         elif isinstance(request, dict):
             _dict = request

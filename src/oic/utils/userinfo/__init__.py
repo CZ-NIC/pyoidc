@@ -36,7 +36,7 @@ class UserInfo(object):
                         optional.append(key)
             return result
 
-    def __call__(self, userid, user_info_claims=None, **kwargs):
+    def __call__(self, userid, client_id, user_info_claims=None, **kwargs):
         try:
             return self.filter(self.db[userid], user_info_claims)
         except KeyError:

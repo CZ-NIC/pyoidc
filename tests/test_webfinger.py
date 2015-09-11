@@ -1,5 +1,7 @@
-from copy import copy
+# pylint: disable=no-self-use,missing-docstring
+
 import json
+
 from oic.utils.webfinger import URINormalizer
 from oic.utils.webfinger import WebFinger
 from oic.utils.webfinger import OIC_ISSUER
@@ -7,7 +9,7 @@ from oic.utils.webfinger import OIC_ISSUER
 __author__ = 'rolandh'
 
 # examples provided by Nat Sakimura
-EXEMPEL = {
+EXAMPLE = {
     "example.com": "https://example.com",
     "example.com:8080": "https://example.com:8080",
     "example.com/path": "https://example.com/path",
@@ -60,83 +62,71 @@ EXEMPEL = {
 }
 
 
-def test_normalize():
-    for key, val in EXEMPEL.items():
-        _val = URINormalizer().normalize(copy(key))
-        assert val == _val
+class TestURINormalizer(object):
+    def test_normalize(self):
+        for key, val in EXAMPLE.items():
+            _val = URINormalizer().normalize(key)
+            assert val == _val
 
 
-def test_wf0():
-    wf = WebFinger()
+class TestWebFinger(object):
+    def test_query_device(self):
+        wf = WebFinger()
+        query = wf.query(resource="device:p1.example.com")
+        assert query == 'https://p1.example.com/.well-known/webfinger?resource=device%3Ap1.example.com'
 
-    query = wf.query(resource="device:p1.example.com")
+    def test_query_rel(self):
+        wf = WebFinger()
+        query = wf.query("acct:bob@example.com",
+                         ["http://webfinger.net/rel/profile-page", "vcard"])
+        assert query == "https://example.com/.well-known/webfinger?resource=acct%3Abob%40example.com&rel=http%3A%2F%2Fwebfinger.net%2Frel%2Fprofile-page&rel=vcard"
 
-    assert query == 'https://p1.example.com/.well-known/webfinger?resource=device%3Ap1.example.com'
+    def test_query_acct(self):
+        wf = WebFinger(OIC_ISSUER)
+        query = wf.query("acct:carol@example.com")
 
+        assert query == "https://example.com/.well-known/webfinger?resource=acct%3Acarol%40example.com&rel=http%3A%2F%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer"
 
-def test_wf1():
-    wf = WebFinger()
-    query = wf.query("acct:bob@example.com",
-                     ["http://webfinger.net/rel/profile-page", "vcard"])
-
-    assert query == """https://example.com/.well-known/webfinger?resource=acct%3Abob%40example.com&rel=http%3A%2F%2Fwebfinger.net%2Frel%2Fprofile-page&rel=vcard"""
-
-
-def test_wf2():
-    wf = WebFinger(OIC_ISSUER)
-
-    query = wf.query("acct:carol@example.com")
-
-    assert query == """https://example.com/.well-known/webfinger?resource=acct%3Acarol%40example.com&rel=http%3A%2F%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer"""
-
-
-EX0 = {
-    "expires": "2012-11-16T19:41:35Z",
-    "subject": "acct:bob@example.com",
-    "aliases": [
-        "http://www.example.com/~bob/"
-    ],
-    "properties": {
-        "http://example.com/ns/role/": "employee"
-    },
-    "links": [
-        {
-            "rel": "http://webfinger.net/rel/avatar",
-            "type": "image/jpeg",
-            "href": "http://www.example.com/~bob/bob.jpg"
-        },
-        {
-            "rel": "http://webfinger.net/rel/profile-page",
-            "href": "http://www.example.com/~bob/"
-        },
-        {
-            "rel": "blog",
-            "type": "text/html",
-            "href": "http://blogs.example.com/bob/",
-            "titles": {
-                "en-us": "The Magical World of Bob",
-                "fr": "Le monde magique de Bob"
-            }
-        },
-        {
-            "rel": "vcard",
-            "href": "https://www.example.com/~bob/bob.vcf"
+    def test_wf4(self):
+        EX0 = {
+            "expires": "2012-11-16T19:41:35Z",
+            "subject": "acct:bob@example.com",
+            "aliases": [
+                "http://www.example.com/~bob/"
+            ],
+            "properties": {
+                "http://example.com/ns/role/": "employee"
+            },
+            "links": [
+                {
+                    "rel": "http://webfinger.net/rel/avatar",
+                    "type": "image/jpeg",
+                    "href": "http://www.example.com/~bob/bob.jpg"
+                },
+                {
+                    "rel": "http://webfinger.net/rel/profile-page",
+                    "href": "http://www.example.com/~bob/"
+                },
+                {
+                    "rel": "blog",
+                    "type": "text/html",
+                    "href": "http://blogs.example.com/bob/",
+                    "titles": {
+                        "en-us": "The Magical World of Bob",
+                        "fr": "Le monde magique de Bob"
+                    }
+                },
+                {
+                    "rel": "vcard",
+                    "href": "https://www.example.com/~bob/bob.vcf"
+                }
+            ]
         }
-    ]
-}
 
+        wf = WebFinger()
+        jrd0 = wf.load(json.dumps(EX0))
 
-def test_wf4():
-    wf = WebFinger()
-    jrd0 = wf.load(json.dumps(EX0))
-
-    print jrd0
-
-    for link in jrd0["links"]:
-        if link["rel"] == "blog":
-            print link["href"]
-            assert link["href"] == "http://blogs.example.com/bob/"
-
-
-if __name__ == "__main__":
-    test_wf0()
+        for link in jrd0["links"]:
+            if link["rel"] == "blog":
+                assert link["href"] == "http://blogs.example.com/bob/"
+                break

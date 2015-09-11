@@ -1,32 +1,35 @@
 #!/usr/bin/env python
-import time
 
-__author__ = 'rohe0002'
-
-import requests
 import random
 import string
-import cookielib
-from Cookie import SimpleCookie
 
+from oic.oauth2.base import PBase
+from oic.oauth2.exception import MissingEndpoint
+from oic.oauth2.exception import GrantError
+from oic.oauth2.exception import ResponseError
+from oic.oauth2.exception import TokenError
+from oic.oauth2.exception import ParseError
+from oic.oauth2.exception import HttpError
+from oic.oauth2.exception import OtherError
+from oic.oauth2.grant import Token
+from oic.oauth2.grant import Grant
+from oic.oauth2.util import get_or_post
+from oic.oauth2.util import verify_header
 from oic.utils.keyio import KeyJar
 from oic.utils.time_util import utc_time_sans_frac
-from oic.exception import UnSupported
-import logging
+from oic.oauth2.message import *
+
+__author__ = 'rohe0002'
 
 logger = logging.getLogger(__name__)
 
 DEF_SIGN_ALG = "HS256"
+SUCCESSFUL = [200, 201, 202, 203, 204, 205, 206]
 
-from oic.oauth2.message import *
 
 Version = "2.0"
 
 HTTP_ARGS = ["headers", "redirections", "connection_type"]
-
-URL_ENCODED = 'application/x-www-form-urlencoded'
-JSON_ENCODED = "application/json"
-DEFAULT_POST_CONTENT_TYPE = URL_ENCODED
 
 REQUEST2ENDPOINT = {
     "AuthorizationRequest": "authorization_endpoint",
@@ -43,54 +46,6 @@ RESPONSE2ERROR = {
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint",
              "token_revocation_endpoint"]
-
-
-class HTTP_ERROR(PyoidcError):
-    pass
-
-
-class MISSING_REQUIRED_ATTRIBUTE(PyoidcError):
-    pass
-
-
-class VerificationError(PyoidcError):
-    pass
-
-
-class ResponseError(PyoidcError):
-    pass
-
-
-class TimeFormatError(PyoidcError):
-    pass
-
-
-class CapabilitiesMisMatch(PyoidcError):
-    pass
-
-
-class MissingEndpoint(PyoidcError):
-    pass
-
-
-class TokenError(PyoidcError):
-    pass
-
-
-class GrantError(PyoidcError):
-    pass
-
-
-class ParseError(PyoidcError):
-    pass
-
-
-class OtherError(PyoidcError):
-    pass
-
-
-class AuthnToOld(PyoidcError):
-    pass
 
 
 def rndstr(size=16):
@@ -111,318 +66,7 @@ class ExpiredToken(PyoidcError):
     pass
 
 
-# -----------------------------------------------------------------------------
-
-
-class Token(object):
-    def __init__(self, resp=None):
-        self.scope = []
-        self.token_expiration_time = 0
-        self.access_token = None
-        self.refresh_token = None
-        self.token_type = None
-        self.replaced = False
-
-        if resp:
-            for prop, val in resp.items():
-                setattr(self, prop, val)
-
-            try:
-                _expires_in = resp["expires_in"]
-            except KeyError:
-                return
-
-            if _expires_in:
-                _tet = utc_time_sans_frac() + int(_expires_in)
-            else:
-                _tet = 0
-            self.token_expiration_time = int(_tet)
-
-    def is_valid(self):
-        if self.token_expiration_time:
-            if utc_time_sans_frac() > self.token_expiration_time:
-                return False
-
-        return True
-
-    def __str__(self):
-        return "%s" % self.__dict__
-
-    def keys(self):
-        return self.__dict__.keys()
-
-    def __eq__(self, other):
-        skeys = self.keys()
-        okeys = other.keys()
-        if set(skeys) != set(okeys):
-            return False
-
-        for key in skeys:
-            if getattr(self, key) != getattr(other, key):
-                return False
-
-        return True
-
-
-class Grant(object):
-    _authz_resp = AuthorizationResponse
-    _acc_resp = AccessTokenResponse
-    _token_class = Token
-
-    def __init__(self, exp_in=600, resp=None, seed=""):
-        self.grant_expiration_time = 0
-        self.exp_in = exp_in
-        self.seed = seed
-        self.tokens = []
-        self.id_token = None
-        self.code = None
-        if resp:
-            self.add_code(resp)
-            self.add_token(resp)
-
-    @classmethod
-    def from_code(cls, resp):
-        instance = cls()
-        instance.add_code(resp)
-        return instance
-
-    def add_code(self, resp):
-        try:
-            self.code = resp["code"]
-            self.grant_expiration_time = utc_time_sans_frac() + self.exp_in
-        except KeyError:
-            pass
-
-    def add_token(self, resp):
-        """
-        :param resp: An Authorization Response instance
-        """
-
-        if "access_token" in resp:
-            tok = self._token_class(resp)
-            self.tokens.append(tok)
-
-    def is_valid(self):
-        if utc_time_sans_frac() > self.grant_expiration_time:
-            return False
-        else:
-            return True
-
-    def __str__(self):
-        return "%s" % self.__dict__
-
-    def keys(self):
-        return self.__dict__.keys()
-
-    def update(self, resp):
-        if "access_token" in resp or "id_token" in resp:
-            tok = self._token_class(resp)
-            if tok not in self.tokens:
-                for otok in self.tokens:
-                    otok.replaced = True
-                self.tokens.append(tok)
-
-        if "code" in resp:
-            self.add_code(resp)
-
-    def get_token(self, scope=""):
-        token = None
-        if scope:
-            for token in self.tokens:
-                if scope in token.scope and not token.replaced:
-                    return token
-        else:
-            for token in self.tokens:
-                if token.is_valid() and not token.replaced:
-                    return token
-
-        return token
-
-    def get_id_token(self):
-        if self.id_token:
-            return self.id_token
-        else:
-            for tok in self.tokens:
-                if tok.id_token:
-                    if tok.id_token["exp"] >= time.time():
-                        return tok.id_token
-        return None
-
-    def join(self, grant):
-        if not self.exp_in:
-            self.exp_in = grant.exp_in
-        if not self.grant_expiration_time:
-            self.grant_expiration_time = grant.grant_expiration_time
-        if not self.seed:
-            self.seed = grant.seed
-        for token in grant.tokens:
-            if token not in self.tokens:
-                for otok in self.tokens:
-                    if token.scope == otok.scope:
-                        otok.replaced = True
-                self.tokens.append(token)
-
-
 # =============================================================================
-# =============================================================================
-
-ATTRS = {"version": None,
-         "name": "",
-         "value": None,
-         "port": None,
-         "port_specified": False,
-         "domain": "",
-         "domain_specified": False,
-         "domain_initial_dot": False,
-         "path": "",
-         "path_specified": False,
-         "secure": False,
-         "expires": None,
-         "discard": True,
-         "comment": None,
-         "comment_url": None,
-         "rest": "",
-         "rfc2109": True}
-
-PAIRS = {
-    "port": "port_specified",
-    "domain": "domain_specified",
-    "path": "path_specified"
-}
-
-
-class PBase(object):
-    def __init__(self, ca_certs=None, verify_ssl=True):
-
-        self.keyjar = KeyJar(verify_ssl=verify_ssl)
-
-        self.request_args = {"allow_redirects": False}
-        # self.cookies = {}
-        self.cookiejar = cookielib.FileCookieJar()
-        self.ca_certs = ca_certs
-        if ca_certs:
-            self.request_args["verify"] = verify_ssl
-        else:
-            self.request_args["verify"] = False
-
-    def _cookies(self):
-        cookie_dict = {}
-
-        for _, a in list(self.cookiejar._cookies.items()):
-            for _, b in list(a.items()):
-                for cookie in list(b.values()):
-                    # print cookie
-                    cookie_dict[cookie.name] = cookie.value
-
-        return cookie_dict
-
-    def set_cookie(self, kaka):
-        """PLaces a cookie (a cookielib.Cookie based on a set-cookie header
-        line) in the cookie jar.
-        Always chose the shortest expires time.
-        """
-
-        # default rfc2109=False
-        # max-age, httponly
-        for cookie_name, morsel in kaka.items():
-            std_attr = ATTRS.copy()
-            std_attr["name"] = cookie_name
-            _tmp = morsel.coded_value
-            if _tmp.startswith('"') and _tmp.endswith('"'):
-                std_attr["value"] = _tmp[1:-1]
-            else:
-                std_attr["value"] = _tmp
-
-            std_attr["version"] = 0
-            attr = ""
-            # copy attributes that have values
-            try:
-                for attr in morsel.keys():
-                    if attr in ATTRS:
-                        if morsel[attr]:
-                            if attr == "expires":
-                                std_attr[attr] = cookielib.http2time(morsel[attr])
-                            else:
-                                std_attr[attr] = morsel[attr]
-                    elif attr == "max-age":
-                        if morsel[attr]:
-                            std_attr["expires"] = cookielib.http2time(morsel[attr])
-            except TimeFormatError:
-                # Ignore cookie
-                logger.info(
-                    "Time format error on %s parameter in received cookie" % (
-                        attr,))
-                continue
-
-            for att, spec in PAIRS.items():
-                if std_attr[att]:
-                    std_attr[spec] = True
-
-            if std_attr["domain"] and std_attr["domain"].startswith("."):
-                std_attr["domain_initial_dot"] = True
-
-            if morsel["max-age"] is 0:
-                try:
-                    self.cookiejar.clear(domain=std_attr["domain"],
-                                         path=std_attr["path"],
-                                         name=std_attr["name"])
-                except ValueError:
-                    pass
-            else:
-                # Fix for Microsoft cookie error
-                if "version" in std_attr:
-                    try:
-                        std_attr["version"] = std_attr["version"].split(",")[0]
-                    except (TypeError, AttributeError):
-                        pass
-
-                new_cookie = cookielib.Cookie(**std_attr)
-
-                self.cookiejar.set_cookie(new_cookie)
-
-                # return cookiejar
-
-    def http_request(self, url, method="GET", **kwargs):
-        _kwargs = copy.copy(self.request_args)
-        if kwargs:
-            _kwargs.update(kwargs)
-
-        if self.cookiejar:
-            _kwargs["cookies"] = self._cookies()
-            logger.debug("SENT COOKIEs: %s" % (_kwargs["cookies"],))
-
-        try:
-            r = requests.request(method, url, **_kwargs)
-        except Exception as err:
-            logger.error(
-                "http_request failed: %s, url: %s, htargs: %s, method: %s" % (
-                    err, url, _kwargs, method))
-            raise
-
-        try:
-            set_cookie = r.headers["set-cookie"]
-            # Telekom fix
-            # set_cookie = set_cookie.replace(
-            # "=;Path=/;Expires=Thu, 01-Jan-1970 00:00:01 GMT;HttpOnly,", "")
-            logger.debug("RECEIVED COOKIEs: %s" % set_cookie)
-            self.set_cookie(SimpleCookie(set_cookie))
-        except (AttributeError, KeyError), err:
-            pass
-
-        return r
-
-    def send(self, url, method="GET", **kwargs):
-        return self.http_request(url, method, **kwargs)
-
-    def load_cookies_from_file(self, filename, ignore_discard=False,
-                               ignore_expires=False):
-        self.cookiejar.load(filename, ignore_discard, ignore_expires)
-
-    def save_cookies_to_file(self, filename, ignore_discard=False,
-                             ignore_expires=False):
-
-        self.cookiejar.save(filename, ignore_discard, ignore_expires)
-
 
 class Client(PBase):
     _endpoints = ENDPOINTS
@@ -470,6 +114,9 @@ class Client(PBase):
         self._c_secret = None
         self.kid = {"sig": {}, "enc": {}}
         self.authz_req = None
+
+    def store_response(self, clinst, text):
+        pass
 
     def get_client_secret(self):
         return self._c_secret
@@ -692,39 +339,6 @@ class Client(PBase):
         request_args["access_token"] = token.access_token
         return self.construct_request(request, request_args, extra_args)
 
-    @staticmethod
-    def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE,
-                    accept=None, **kwargs):
-        if method == "GET":
-            _qp = req.to_urlencoded()
-            if _qp:
-                path = uri + '?' + _qp
-            else:
-                path = uri
-            body = None
-        elif method == "POST":
-            path = uri
-            if content_type == URL_ENCODED:
-                body = req.to_urlencoded()
-            elif content_type == JSON_ENCODED:
-                body = req.to_json()
-            else:
-                raise UnSupported(
-                    "Unsupported content type: '%s'" % content_type)
-
-            header_ext = {"Content-type": content_type}
-            if accept:
-                header_ext = {"Accept": accept}
-
-            if "headers" in kwargs.keys():
-                kwargs["headers"].update(header_ext)
-            else:
-                kwargs["headers"] = header_ext
-        else:
-            raise UnSupported("Unsupported HTTP method: '%s'" % method)
-
-        return path, body, kwargs
-
     def uri_and_body(self, reqmsg, cis, method="POST", request_args=None,
                      **kwargs):
 
@@ -734,7 +348,7 @@ class Client(PBase):
             uri = self._endpoint(self.request2endpoint[reqmsg.__name__],
                                  **request_args)
 
-        uri, body, kwargs = self.get_or_post(uri, method, cis, **kwargs)
+        uri, body, kwargs = get_or_post(uri, method, cis, **kwargs)
         try:
             h_args = {"headers": kwargs["headers"]}
         except KeyError:
@@ -743,7 +357,7 @@ class Client(PBase):
         return uri, body, h_args, cis
 
     def request_info(self, request, method="POST", request_args=None,
-                     extra_args=None, **kwargs):
+                     extra_args=None, lax=False, **kwargs):
 
         if request_args is None:
             request_args = {}
@@ -754,6 +368,8 @@ class Client(PBase):
                       **kwargs)
         except AttributeError:
             cis = self.construct_request(request, request_args, extra_args)
+
+        cis.lax = lax
 
         if "authn_method" in kwargs:
             h_arg = self.init_authentication_method(cis,
@@ -776,6 +392,17 @@ class Client(PBase):
         return self.request_info(AuthorizationRequest, "GET",
                                  request_args, extra_args, **kwargs)
 
+    def get_urlinfo(self, info):
+        if '?' in info or '#' in info:
+            parts = urlparse(info)
+            scheme, netloc, path, params, query, fragment = parts[:6]
+            # either query of fragment
+            if query:
+                info = query
+            else:
+                info = fragment
+        return info
+
     def parse_response(self, response, info="", sformat="json", state="",
                        **kwargs):
         """
@@ -793,60 +420,50 @@ class Client(PBase):
         _r2e = self.response2error
 
         if sformat == "urlencoded":
-            if '?' in info or '#' in info:
-                parts = urlparse.urlparse(info)
-                scheme, netloc, path, params, query, fragment = parts[:6]
-                # either query of fragment
-                if query:
-                    info = query
-                else:
-                    info = fragment
+            info = self.get_urlinfo(info)
 
-        err = None
-        try:
-            resp = response().deserialize(info, sformat, **kwargs)
-            if "error" in resp and not isinstance(resp, ErrorResponse):
-                resp = None
-                try:
-                    errmsgs = _r2e[response.__name__]
-                except KeyError:
-                    errmsgs = [ErrorResponse]
+        resp = response().deserialize(info, sformat, **kwargs)
+        if "error" in resp and not isinstance(resp, ErrorResponse):
+            resp = None
+            try:
+                errmsgs = _r2e[response.__name__]
+            except KeyError:
+                errmsgs = [ErrorResponse]
 
+            try:
+                for errmsg in errmsgs:
+                    try:
+                        resp = errmsg().deserialize(info, sformat)
+                        resp.verify()
+                        break
+                    except Exception as aerr:
+                        resp = None
+                        err = aerr
+            except KeyError:
+                pass
+        elif resp.only_extras():
+            resp = None
+        else:
+            kwargs["client_id"] = self.client_id
+            if "key" not in kwargs and "keyjar" not in kwargs:
+                kwargs["keyjar"] = self.keyjar
+
+            logger.debug("Verify response with {}".format(kwargs))
+            verf = resp.verify(**kwargs)
+
+            if not verf:
+                raise PyoidcError("Verification of the response failed")
+            if resp.type() == "AuthorizationResponse" and \
+                    "scope" not in resp:
                 try:
-                    for errmsg in errmsgs:
-                        try:
-                            resp = errmsg().deserialize(info, sformat)
-                            resp.verify()
-                            break
-                        except Exception, aerr:
-                            resp = None
-                            err = aerr
+                    resp["scope"] = kwargs["scope"]
                 except KeyError:
                     pass
-            elif resp.only_extras():
-                resp = None
-            else:
-                kwargs["client_id"] = self.client_id
-                if "key" not in kwargs and "keyjar" not in kwargs:
-                    kwargs["keyjar"] = self.keyjar
-                verf = resp.verify(**kwargs)
-                if not verf:
-                    raise PyoidcError("Verification of the response failed")
-                if resp.type() == "AuthorizationResponse" and \
-                        "scope" not in resp:
-                    try:
-                        resp["scope"] = kwargs["scope"]
-                    except KeyError:
-                        pass
-        except Exception, derr:
-            resp = None
-            err = derr
 
         if not resp:
-            if err:
-                raise err
-            else:
-                raise ResponseError("Missing or faulty response")
+            raise ResponseError("Missing or faulty response")
+
+        self.store_response(resp, info)
 
         if resp.type() in ["AuthorizationResponse", "AccessTokenResponse"]:
             try:
@@ -864,7 +481,7 @@ class Client(PBase):
 
         return resp
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def init_authentication_method(self, cis, authn_method, request_args=None,
                                    http_args=None, **kwargs):
 
@@ -879,56 +496,23 @@ class Client(PBase):
         else:
             return http_args
 
-    @staticmethod
-    def verify_header(reqresp, body_type):
-        logger.debug("resp.headers: %s" % (reqresp.headers,))
-        logger.debug("resp.txt: %s" % (reqresp.text,))
-
-        # This might be a tad to strict
-        if body_type == "":
-            pass
-        elif body_type == "json":
-            try:
-                assert "application/json" in reqresp.headers["content-type"]
-            except AssertionError:
-                try:
-                    assert "application/jwt" in reqresp.headers["content-type"]
-                    body_type = "jwt"
-                except AssertionError:
-                    raise AssertionError("Wrong content-type in header")
-        elif body_type == "jwt":
-            try:
-                assert "application/jwt" in reqresp.headers["content-type"]
-            except AssertionError:
-                raise AssertionError("Wrong content-type in header")
-        elif body_type == "urlencoded":
-            try:
-                assert DEFAULT_POST_CONTENT_TYPE in reqresp.headers[
-                    "content-type"]
-            except AssertionError:
-                assert "text/plain" in reqresp.headers["content-type"]
-        else:
-            raise ValueError("Unknown return format: %s" % body_type)
-
-        return body_type
-
     def parse_request_response(self, reqresp, response, body_type, state="",
                                **kwargs):
 
-        if reqresp.status_code in [200, 201]:
-            body_type = self.verify_header(reqresp, body_type)
+        if reqresp.status_code in SUCCESSFUL:
+            body_type = verify_header(reqresp, body_type)
         elif reqresp.status_code == 302:  # redirect
             pass
         elif reqresp.status_code == 500:
             logger.error("(%d) %s" % (reqresp.status_code, reqresp.text))
             raise ParseError("ERROR: Something went wrong: %s" % reqresp.text)
         elif reqresp.status_code in [400, 401]:
-            #expecting an error response
+            # expecting an error response
             if issubclass(response, ErrorResponse):
                 pass
         else:
             logger.error("(%d) %s" % (reqresp.status_code, reqresp.text))
-            raise HTTP_ERROR("HTTP ERROR: %s [%s] on %s" % (
+            raise HttpError("HTTP ERROR: %s [%s] on %s" % (
                 reqresp.text, reqresp.status_code, reqresp.url))
 
         if body_type:
@@ -1025,7 +609,7 @@ class Client(PBase):
         if http_args is None:
             http_args = ht_args
         else:
-            http_args.update(http_args)
+            http_args.update(ht_args)
 
         logger.debug("<do_access_token> URL: %s, Body: %s" % (url, body))
         logger.debug("<do_access_token> response_cls: %s" % response_cls)
@@ -1052,7 +636,7 @@ class Client(PBase):
         if http_args is None:
             http_args = ht_args
         else:
-            http_args.update(http_args)
+            http_args.update(ht_args)
 
         return self.request_and_return(url, response_cls, method, body,
                                        body_type, state=state,
@@ -1072,7 +656,7 @@ class Client(PBase):
         if http_args is None:
             http_args = ht_args
         else:
-            http_args.update(http_args)
+            http_args.update(ht_args)
 
         return self.request_and_return(url, response_cls, method, body,
                                        body_type, state=state,
@@ -1092,7 +676,7 @@ class Client(PBase):
         if http_args is None:
             http_args = ht_args
         else:
-            http_args.update(http_args)
+            http_args.update(ht_args)
 
         return self.request_and_return(url, response, method, body, body_type,
                                        state=state, http_args=http_args)
@@ -1136,7 +720,7 @@ class Server(PBase):
     @staticmethod
     def parse_url_request(request, url=None, query=None):
         if url:
-            parts = urlparse.urlparse(url)
+            parts = urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]
 
         req = request().deserialize(query, "urlencoded")

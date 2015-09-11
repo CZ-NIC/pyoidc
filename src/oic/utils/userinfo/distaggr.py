@@ -75,7 +75,7 @@ class DistributedAggregatedUserInfo(UserInfo):
 
         return result
 
-    def __call__(self, userid, user_info_claims=None, **kwargs):
+    def __call__(self, userid, client_id, user_info_claims=None, **kwargs):
         """
         :param userid: The local user id
         :param user_info_claims: Possible userinfo claims (a dictionary)

@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 
 <%!
-    import htmlentitydefs
     import re, string
 
     def createResult(acrvalues):

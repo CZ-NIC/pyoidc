@@ -1,0 +1,10 @@
+requests>=2.5.0
+pycrypto>=2.6.1
+cryptography==0.6.1
+cffi==0.8.6
+pyjwkest>=0.6.1
+mako>=1.0.0
+beaker>=1.6.4
+alabaster==0.6.2
+pyOpenSSL>=0.14
+python-ldap>=2.4.10

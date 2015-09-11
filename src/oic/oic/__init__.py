@@ -1,17 +1,16 @@
-from jwkest.jwe import JWE
-
-from oic.utils.keyio import KeyJar
-
-
-__author__ = 'rohe0002'
-
-import urlparse
-import json
 import logging
 import os
 
-from oic.oauth2.message import ErrorResponse
+from jwkest.jwe import JWE
 
+from jwkest import jws
+
+from jwkest import jwe
+
+from six.moves.urllib.parse import urlparse, parse_qs
+from oic.oauth2.exception import AuthnToOld
+from oic.oauth2.message import ErrorResponse, Message
+from oic.oauth2.util import get_or_post
 from oic.oic.message import IdToken, ClaimsRequest
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import AuthorizationResponse
@@ -34,36 +33,29 @@ from oic.oic.message import TokenErrorResponse
 from oic.oic.message import ClientRegistrationErrorResponse
 from oic.oic.message import UserInfoErrorResponse
 from oic.oic.message import AuthorizationErrorResponse
-
 from oic import oauth2
-
 from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2 import OtherError
-from oic.oauth2 import AuthnToOld
 from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import rndstr
 from oic.oauth2.consumer import ConfigurationError
-
 from oic.exception import AccessDenied
 from oic.exception import IssuerMismatch
 from oic.exception import PyoidcError
 from oic.exception import MissingParameter
-
 from oic.utils import time_util
-
+from oic.utils.keyio import KeyJar
 from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.webfinger import WebFinger
 
-from jwkest import jws
-from jwkest import jwe
-from jwkest.jws import JWS
+__author__ = 'rohe0002'
 
 logger = logging.getLogger(__name__)
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint",
              "userinfo_endpoint", "refresh_session_endpoint",
-             "check_session_endpoint", "end_session_endpoint",
-             "registration_endpoint", "check_id_endpoint"]
+             "end_session_endpoint", "registration_endpoint",
+             "check_id_endpoint"]
 
 RESPONSE2ERROR = {
     "AuthorizationResponse": [AuthorizationErrorResponse,
@@ -105,7 +97,6 @@ DEF_SIGN_ALG = {"id_token": "RS256",
                 "private_key_jwt": "RS256"}
 
 
-
 # -----------------------------------------------------------------------------
 ACR_LISTS = [
     ["0", "1", "2", "3", "4"],
@@ -138,7 +129,7 @@ def deser_id_token(inst, txt=""):
 
 # -----------------------------------------------------------------------------
 def make_openid_request(arq, keys=None, userinfo_claims=None,
-                        idtoken_claims=None, algorithm=None,
+                        idtoken_claims=None, request_object_signing_alg=None,
                         **kwargs):
     """
     Construct the specification of what I want returned.
@@ -148,7 +139,7 @@ def make_openid_request(arq, keys=None, userinfo_claims=None,
     :param keys: Keys to use for signing/encrypting
     :param userinfo_claims: UserInfo claims
     :param idtoken_claims: IdToken claims
-    :param algorithm: Which signing/encrypting algorithm to use
+    :param request_object_signing_alg: Which signing algorithm to use
     :return: JWT encoded OpenID request
     """
 
@@ -177,7 +168,7 @@ def make_openid_request(arq, keys=None, userinfo_claims=None,
 
     oir = OpenIDRequest(**oir_args)
 
-    return oir.to_jwt(key=keys, algorithm=algorithm)
+    return oir.to_jwt(key=keys, algorithm=request_object_signing_alg)
 
 
 class Token(oauth2.Token):
@@ -223,7 +214,7 @@ PREFERENCE2PROVIDER = {
     "token_endpoint_auth_signing_alg":
         "token_endpoint_auth_signing_alg_values_supported",
     "response_types": "response_types_supported"
-    #"request_object_signing_alg": "request_object_signing_alg_values_supported
+    # "request_object_signing_alg": "request_object_signing_alg_values_supported
 }
 
 PROVIDER2PREFERENCE = dict([(v, k) for k, v in PREFERENCE2PROVIDER.items()])
@@ -286,9 +277,7 @@ class Client(oauth2.Client):
         self.registration_response = None
         self.client_prefs = client_prefs or {}
 
-        self.behaviour = {
-            "request_object_signing_alg":
-                DEF_SIGN_ALG["openid_request_object"]}
+        self.behaviour = {}
 
         self.wf = WebFinger(OIC_ISSUER)
         self.wf.httpd = self
@@ -332,29 +321,41 @@ class Client(oauth2.Client):
 
     def request_object_encryption(self, msg, **kwargs):
         try:
-            encalg = self.behaviour["request_object_encryption_alg"]
+            encalg = kwargs["request_object_encryption_alg"]
         except KeyError:
-            return msg
-        else:
-            encenc = self.behaviour["request_object_encryption_enc"]
-            _jwe = JWE(msg, alg=encalg, enc=encenc)
-            _kty = jwe.alg2keytype(encalg)
-
             try:
-                _kid = kwargs["enc_kid"]
+                encalg = self.behaviour["request_object_encryption_alg"]
             except KeyError:
-                try:
-                    _kid = self.kid["enc"][_kty]
-                except KeyError:
-                    _kid = ""
+                return msg
 
-            if _kid:
-                _jwe["keys"] = self.keyjar.get_encrypt_key(_kty, kid=_kid)
-                _jwe["kid"] = _kid
-            else:
-                _jwe["keys"] = self.keyjar.get_signing_key(_kty)
+        try:
+            encenc = kwargs["request_object_encryption_enc"]
+        except KeyError:
+            try:
+                encenc = self.behaviour["request_object_encryption_enc"]
+            except KeyError:
+                raise MissingRequiredAttribute(
+                    "No request_object_encryption_enc specified")
 
-        return _jwe.encrypt(self.keyjar)
+        _jwe = JWE(msg, alg=encalg, enc=encenc)
+        _kty = jwe.alg2keytype(encalg)
+
+        try:
+            _kid = kwargs["enc_kid"]
+        except KeyError:
+            _kid = ""
+
+        if "target" not in kwargs:
+            raise MissingRequiredAttribute("No target specified")
+
+        if _kid:
+            _keys = self.keyjar.get_encrypt_key(_kty, owner=kwargs["target"],
+                                                kid=_kid)
+            _jwe["kid"] = _kid
+        else:
+            _keys = self.keyjar.get_encrypt_key(_kty, owner=kwargs["target"])
+
+        return _jwe.encrypt(_keys)
 
     def construct_AuthorizationRequest(self, request=AuthorizationRequest,
                                        request_args=None, extra_args=None,
@@ -387,23 +388,31 @@ class Client(oauth2.Client):
                                                             **kwargs)
 
         if request_param:
-            if "algorithm" in kwargs:  # Trumps everything
-                alg = kwargs["algorithm"]
-            else:
+            alg = None
+            for arg in ["request_object_signing_alg", "algorithm"]:
+                try:  # Trumps everything
+                    alg = kwargs[arg]
+                except KeyError:
+                    pass
+                else:
+                    break
+
+            if not alg:
                 try:
                     alg = self.behaviour["request_object_signing_alg"]
                 except KeyError:
-                    alg = None
-                else:
-                    kwargs["algorithm"] = alg
+                    alg = "none"
+
+            kwargs["request_object_signing_alg"] = alg
 
             if "keys" not in kwargs and alg and alg != "none":
                 _kty = jws.alg2keytype(alg)
                 try:
-                    kwargs["keys"] = self.keyjar.get_signing_key(
-                        _kty, kid=self.kid["sig"][_kty])
+                    _kid = kwargs["sig_kid"]
                 except KeyError:
-                    kwargs["keys"] = self.keyjar.get_signing_key(_kty)
+                    _kid = self.kid["sig"].get(_kty, None)
+
+                kwargs["keys"] = self.keyjar.get_signing_key(_kty, kid=_kid)
 
             _req = make_openid_request(areq, **kwargs)
 
@@ -414,6 +423,8 @@ class Client(oauth2.Client):
                 areq["request"] = _req
             else:
                 _filedir = kwargs["local_dir"]
+                if not os.path.isdir(_filedir):
+                    os.makedirs(_filedir)
                 _webpath = kwargs["base_path"]
                 _name = rndstr(10) + ".jwt"
                 filename = os.path.join(_filedir, _name)
@@ -467,14 +478,14 @@ class Client(oauth2.Client):
 
         return self.construct_request(request, request_args, extra_args)
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def construct_RegistrationRequest(self, request=RegistrationRequest,
                                       request_args=None, extra_args=None,
                                       **kwargs):
 
         return self.construct_request(request, request_args, extra_args)
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def construct_RefreshSessionRequest(self,
                                         request=RefreshSessionRequest,
                                         request_args=None, extra_args=None,
@@ -530,7 +541,7 @@ class Client(oauth2.Client):
         elif "state" in request_args:
             kwargs["state"] = request_args["state"]
 
-        #        if "redirect_url" not in request_args:
+        # if "redirect_url" not in request_args:
         #            request_args["redirect_url"] = self.redirect_url
 
         return self._id_token_based(request, request_args, extra_args,
@@ -563,7 +574,7 @@ class Client(oauth2.Client):
                                 method="POST", request_args=None,
                                 extra_args=None, http_args=None,
                                 response_cls=AccessTokenResponse,
-                                authn_method="", **kwargs):
+                                authn_method="client_secret_basic", **kwargs):
 
         return oauth2.Client.do_access_token_request(self, request, scope,
                                                      state, body_type, method,
@@ -730,11 +741,11 @@ class Client(oauth2.Client):
                 else:
                     kwargs["headers"] = {"Authorization": bh}
 
-            if not "token_in_message_body" in _behav:
+            if "token_in_message_body" not in _behav:
                 # remove the token from the request
                 del uir["access_token"]
 
-        path, body, kwargs = self.get_or_post(uri, method, uir, **kwargs)
+        path, body, kwargs = get_or_post(uri, method, uir, **kwargs)
 
         h_args = dict([(k, v) for k, v in kwargs.items() if k in HTTP_ARGS])
 
@@ -775,22 +786,16 @@ class Client(oauth2.Client):
 
         logger.debug("Reponse text: '%s'" % resp.text)
 
+        _txt = resp.text
         if sformat == "json":
-            return _schema().from_json(txt=resp.text)
+            res = _schema().from_json(txt=_txt)
         else:
-            algo = self.client_prefs["userinfo_signed_response_alg"]
-            _kty = jws.alg2keytype(algo)
-            # Keys of the OP ?
-            try:
-                args = {"kid": self.kid["sig"][_kty]}
-            except KeyError:
-                args = {}
+            res = _schema().from_jwt(_txt, keyjar=self.keyjar,
+                                     sender=self.provider_info["issuer"])
 
-            #owner = self.endpoint2issuer(path, "userinfo_endpoint")
-            owner = self.provider_info["issuer"]
-            keys = self.keyjar.get_signing_key(_kty, owner, **args)
+        self.store_response(res, _txt)
 
-            return _schema().from_jwt(resp.text, keys)
+        return res
 
     def get_userinfo_claims(self, access_token, endpoint, method="POST",
                             schema_class=OpenIDSchema, **kwargs):
@@ -807,7 +812,7 @@ class Client(oauth2.Client):
                                                         **kwargs)
 
         h_args.update(http_args)
-        path, body, kwargs = self.get_or_post(endpoint, method, uir, **kwargs)
+        path, body, kwargs = get_or_post(endpoint, method, uir, **kwargs)
 
         try:
             resp = self.http_request(path, method, data=body, **h_args)
@@ -823,7 +828,9 @@ class Client(oauth2.Client):
                 "ERROR: Something went wrong [%s]: %s" % (resp.status_code,
                                                           resp.text))
 
-        return schema_class().from_json(txt=resp.text)
+        res = schema_class().from_json(txt=resp.text)
+        self.store_response(res, resp.txt)
+        return res
 
     def handle_provider_config(self, pcr, issuer, keys=True, endpoints=True):
         """
@@ -886,7 +893,10 @@ class Client(oauth2.Client):
         pcr = None
         r = self.http_request(url)
         if r.status_code == 200:
-            pcr = response_cls().from_json(r.text)
+            try:
+                pcr = response_cls().from_json(r.text)
+            except:
+                logger.error("Faulty provider config response: {}".format(r.text))
         elif r.status_code == 302 or r.status_code == 301:
             while r.status_code == 302 or r.status_code == 301:
                 r = self.http_request(r.headers["location"])
@@ -894,43 +904,35 @@ class Client(oauth2.Client):
                     pcr = response_cls().from_json(r.text)
                     break
 
-        #logger.debug("Provider info: %s" % pcr)
+        # logger.debug("Provider info: %s" % pcr)
         if pcr is None:
             raise PyoidcError("Trying '%s', status %s" % (url, r.status_code))
+
+        self.store_response(pcr, r.text)
 
         self.handle_provider_config(pcr, issuer, keys, endpoints)
 
         return pcr
 
     def unpack_aggregated_claims(self, userinfo):
-        if userinfo._claim_sources:
-            for csrc, spec in userinfo._claim_sources.items():
+        if userinfo["_claim_sources"]:
+            for csrc, spec in userinfo["_claim_sources"].items():
                 if "JWT" in spec:
-                    if not csrc in self.keyjar:
-                        self.provider_config(csrc, endpoints=False)
+                    aggregated_claims = Message().from_jwt(
+                        spec["JWT"].encode("utf-8"),
+                        keyjar=self.keyjar, sender=csrc)
+                    claims = [value for value, src in
+                              userinfo["_claim_names"].items() if src == csrc]
+                    assert claims == aggregated_claims.keys()
 
-                    keycol = self.keyjar.get_verify_key(owner=csrc)
-                    for typ, keyl in self.keyjar.get_verify_key().items():
-                        try:
-                            keycol[typ].extend(keyl)
-                        except KeyError:
-                            keycol[typ] = keyl
-
-                    info = json.loads(JWS().verify(str(spec["JWT"]), keycol))
-                    attr = [n for n, s in
-                            userinfo._claim_names.items() if s == csrc]
-                    assert attr == info.keys()
-
-                    for key, vals in info.items():
+                    for key, vals in aggregated_claims.items():
                         userinfo[key] = vals
 
         return userinfo
 
     def fetch_distributed_claims(self, userinfo, callback=None):
-        for csrc, spec in userinfo._claim_sources.items():
+        for csrc, spec in userinfo["_claim_sources"].items():
             if "endpoint" in spec:
-                #pcr = self.provider_config(csrc, keys=False, endpoints=False)
-
                 if "access_token" in spec:
                     _uinfo = self.do_user_info_request(
                         token=spec["access_token"],
@@ -940,9 +942,9 @@ class Client(oauth2.Client):
                         token=callback(csrc),
                         userinfo_endpoint=spec["endpoint"])
 
-                attr = [n for n, s in
-                        userinfo._claim_names.items() if s == csrc]
-                assert attr == _uinfo.keys()
+                claims = [value for value, src in
+                          userinfo["_claim_names"].items() if src == csrc]
+                assert claims == _uinfo.keys()
 
                 for key, vals in _uinfo.items():
                     userinfo[key] = vals
@@ -1005,7 +1007,7 @@ class Client(oauth2.Client):
                 try:
                     self.behaviour[_pref] = PROVIDER_DEFAULT[_pref]
                 except KeyError:
-                    #self.behaviour[_pref]= vals[0]
+                    # self.behaviour[_pref]= vals[0]
                     if isinstance(pcr.c_param[_prov][0], list):
                         self.behaviour[_pref] = []
                     else:
@@ -1051,13 +1053,18 @@ class Client(oauth2.Client):
     def store_registration_info(self, reginfo):
         self.registration_response = reginfo
         if "token_endpoint_auth_method" not in self.registration_response:
-            self.registration_response["token_endpoint_auth_method"] = "client_secret_post"
-        self.client_secret = reginfo["client_secret"]
+            self.registration_response[
+                "token_endpoint_auth_method"] = "client_secret_post"
         self.client_id = reginfo["client_id"]
         try:
-            self.registration_expires = reginfo["client_secret_expires_at"]
-        except KeyError:
+            self.client_secret = reginfo["client_secret"]
+        except KeyError:  # Not required
             pass
+        else:
+            try:
+                self.registration_expires = reginfo["client_secret_expires_at"]
+            except KeyError:
+                pass
         try:
             self.registration_access_token = reginfo[
                 "registration_access_token"]
@@ -1067,10 +1074,11 @@ class Client(oauth2.Client):
     def handle_registration_info(self, response):
         if response.status_code == 200:
             resp = RegistrationResponse().deserialize(response.text, "json")
+            self.store_response(resp, response.text)
             self.store_registration_info(resp)
         else:
             err = ErrorResponse().deserialize(response.text, "json")
-            raise PyoidcError("Registration failed: %s" % err.get_json())
+            raise PyoidcError("Registration failed: %s" % err.to_json())
 
         return resp
 
@@ -1141,7 +1149,7 @@ class Client(oauth2.Client):
             (local, domain) = principal.split("@")
             subject = "acct:%s" % principal
         elif idtype == "url":
-            p = urlparse.urlparse(principal)
+            p = urlparse(principal)
             domain = p.netloc
             subject = principal
         else:
@@ -1151,7 +1159,7 @@ class Client(oauth2.Client):
         return subject, domain
 
     def discover(self, principal):
-        #subject, host = self.normalization(principal)
+        # subject, host = self.normalization(principal)
         return self.wf.discovery_query(principal)
 
     def sign_enc_algs(self, typ):
@@ -1165,7 +1173,7 @@ class Client(oauth2.Client):
         return resp
 
     def _verify_id_token(self, id_token, nonce="", acr_values=None, auth_time=0,
-                        max_age=0):
+                         max_age=0):
         """
         If the JWT alg Header Parameter uses a MAC based algorithm s uch as
         HS256, HS384, or HS512, the octets of the UTF-8 representation of the
@@ -1177,7 +1185,7 @@ class Client(oauth2.Client):
 
         :param id_token: The ID Token tp check
         :param nonce: The nonce specified in the authorization request
-        :param acrs: Asked for acr values
+        :param acr_values: Asked for acr values
         :param auth_time: An auth_time claim
         :param max_age: Max age of authentication
         """
@@ -1196,7 +1204,7 @@ class Client(oauth2.Client):
 
         if self.id_token_max_age:
             try:
-                assert _now < id_token["iat"] + self.id_token_max_age
+                assert _now < int(id_token["iat"]) + self.id_token_max_age
             except AssertionError:
                 raise OtherError("I think this ID token is to old")
 
@@ -1214,12 +1222,13 @@ class Client(oauth2.Client):
 
         if max_age:
             try:
-                assert _now < id_token["auth_time"] + max_age
+                assert _now < int(id_token["auth_time"]) + max_age
             except AssertionError:
                 raise AuthnToOld("To old authentication")
 
         if auth_time:
-            if not claims_match(id_token["auth_time"], {"auth_time": auth_time}):
+            if not claims_match(id_token["auth_time"],
+                                {"auth_time": auth_time}):
                 raise AuthnToOld("To old authentication")
 
     def verify_id_token(self, id_token, authn_req):
@@ -1246,10 +1255,10 @@ class Server(oauth2.Server):
     @staticmethod
     def _parse_urlencoded(url=None, query=None):
         if url:
-            parts = urlparse.urlparse(url)
+            parts = urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]
 
-        return urlparse.parse_qs(query)
+        return parse_qs(query)
 
     def parse_token_request(self, request=AccessTokenRequest,
                             body=None):
@@ -1258,7 +1267,7 @@ class Server(oauth2.Server):
     def parse_authorization_request(self, request=AuthorizationRequest,
                                     url=None, query=None, keys=None):
         if url:
-            parts = urlparse.urlparse(url)
+            parts = urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]
 
         return self._parse_request(request, query, "urlencoded")
@@ -1296,7 +1305,7 @@ class Server(oauth2.Server):
             request = request().from_jwt(data, keyjar=self.keyjar)
         elif sformat == "urlencoded":
             if '?' in data:
-                parts = urlparse.urlparse(data)
+                parts = urlparse(data)
                 scheme, netloc, path, params, query, fragment = parts[:6]
             else:
                 query = data
@@ -1314,6 +1323,7 @@ class Server(oauth2.Server):
             except KeyError:
                 keys = None
 
+        logger.debug("verify keys: {}".format(keys))
         request.verify(key=keys, keyjar=self.keyjar)
         return request
 
@@ -1325,7 +1335,7 @@ class Server(oauth2.Server):
 
     def parse_refresh_session_request(self, url=None, query=None):
         if url:
-            parts = urlparse.urlparse(url)
+            parts = urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]
 
         return RefreshSessionRequest().from_urlencoded(query)
@@ -1339,10 +1349,6 @@ class Server(oauth2.Server):
         # if there is a id_token in there it is as a string
         esr["id_token"] = deser_id_token(self, esr["id_token"])
         return esr
-
-    #    def parse_issuer_request(self, info, sformat="urlencoded"):
-    #        return self._parse_request(IssuerRequest, info, sformat)
-
 
     @staticmethod
     def update_claims(session, where, about, old_claims=None):
@@ -1411,7 +1417,7 @@ class Server(oauth2.Server):
         :param user_info: If user info are to be part of the IdToken
         :return: IDToken instance
         """
-        #defaults
+        # defaults
         if exp is None:
             inawhile = {"days": 1}
         else:
@@ -1428,7 +1434,7 @@ class Server(oauth2.Server):
                 if key == "auth_time":
                     extra["auth_time"] = auth_time
                 elif key == "acr":
-                    #["2","http://id.incommon.org/assurance/bronze"]
+                    # ["2","http://id.incommon.org/assurance/bronze"]
                     extra["acr"] = verify_acr_level(val, loa)
         else:
             if auth_time:
@@ -1436,7 +1442,7 @@ class Server(oauth2.Server):
             if loa:
                 extra["acr"] = loa
 
-        if user_info is None:
+        if not user_info:
             _args = {}
         else:
             try:
@@ -1457,9 +1463,10 @@ class Server(oauth2.Server):
         if extra_claims is not None:
             _args.update(extra_claims)
         if code:
-            _args["c_hash"] = jws.left_hash(code, halg)
+            _args["c_hash"] = jws.left_hash(code.encode("utf-8"), halg)
         if access_token:
-            _args["at_hash"] = jws.left_hash(access_token, halg)
+            _args["at_hash"] = jws.left_hash(access_token.encode("utf-8"),
+                                             halg)
 
         # Should better be done elsewhere
         if not issuer.endswith("/"):

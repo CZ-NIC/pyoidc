@@ -99,7 +99,7 @@ class ClaimsServer(Provider):
         jwt_key = self.keyjar.get_signing_key()
         cresp = UserClaimsResponse(jwt=info.to_jwt(key=jwt_key,
                                                    algorithm="RS256"),
-                                   claims_names=info.keys())
+                                   claims_names=list(info.keys()))
 
         logger.info("RESPONSE: %s" % (cresp.to_dict(),))
         return cresp
@@ -127,7 +127,7 @@ class ClaimsServer(Provider):
 
         try:
             resp = self.client_authn(self, ucreq, http_authz)
-        except Exception, err:
+        except Exception as err:
             _log_info("Failed to verify client due to: %s" % err)
             resp = False
 
@@ -206,7 +206,7 @@ class ClaimsClient(Client):
         else:
             http_args.update(http_args)
 
-        #        http_args = self.init_authentication_method(csi, "bearer_header",
+        # http_args = self.init_authentication_method(csi, "bearer_header",
         #                                                    request_args)
 
         return self.request_and_return(url, request_resp, method, body,

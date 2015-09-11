@@ -6,6 +6,69 @@ Quick install guide
 Before you can use PyOIDC, you'll need to get it installed. This guide
 will guide you to a simple, minimal installation.
 
+Install PyOIDC using Docker
+===========================
+
+To run an example op/rp you need to know the IP of the docker host. If you run docker directly under linux,
+the host IP will be your computer IP.
+
+If you run Mac OS X and using boot2docker, you will need the docker VM IP. This can be found by the command::
+
+    boot2docker ip
+
+The rp listens to HOST_IP:8666. If you need to configure the rp you can bind a volume containing a conf.py file.
+The op listens to HOST_IP:8092. If you need to configure the op you can bind a volume containing a config.py file.
+
+To bind a settings volume to the rp/op, add the flag::
+
+    -v {volume_path}:/opt/dirg/settings
+
+To run an example op in docker you can simply run the docker command::
+
+    docker run -p 8092:8092 -e HOST_IP={docker_host_ip} itsdirg/pyoidc_example_op
+
+And for rp run the docker command::
+
+    docker run -p 8666:8666 -e HOST_IP={docker_host_ip} itsdirg/pyoidc_example_rp
+
+If you have trouble starting the containers you can try this script::
+
+    #!/bin/bash
+
+    # Check if running on mac
+    if [ $(uname) = "Darwin" ]; then
+        # Check so the boot2docker vm is running
+        if [ $(boot2docker status) != "running" ]; then
+            boot2docker start
+        fi
+        $(boot2docker shellinit)
+        HOST_IP=$(boot2docker ip)
+    else
+        # if running on linux
+        if [ $(id -u) -ne 0 ]; then
+            sudo="sudo"
+        fi
+        HOST_IP=$(ifconfig | grep 'inet addr:'| grep -v '127.0.0.1' | grep -v '172.17' | cut -d: -f2 | awk '{ print $1}' | head -1)
+    fi
+
+    echo "HOST IP: " ${HOST_IP}
+
+    ${sudo} docker run -d \
+        --name op \
+        -p 8092:8092 \
+        -e HOST_IP=${HOST_IP} \
+        -i -t \
+        itsdirg/pyoidc_example_op
+
+    ${sudo} docker run -d \
+        --name rp \
+        -p 8666:8666 \
+        -e HOST_IP=${HOST_IP} \
+        -i -t \
+        itsdirg/pyoidc_example_rp
+
+Or download all dockerfiles from https://github.com/its-dirg/docker/tree/master/pyoidc
+
 Install PyOIDC
 ==============
 

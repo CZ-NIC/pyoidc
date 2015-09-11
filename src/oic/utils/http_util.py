@@ -1,21 +1,19 @@
 import logging
-
-__author__ = 'rohe0002'
-
 import cgi
 import time
 import hashlib
 import hmac
-from urllib import quote
-from Cookie import SimpleCookie
 
+from six.moves.urllib.parse import quote
+from six.moves.http_cookies import SimpleCookie
+from jwkest import as_unicode
 from oic.oauth2 import rndstr
 from oic.exception import UnsupportedMethod
 from oic.utils import time_util
 from oic.utils.aes import encrypt
 from oic.utils.aes import decrypt
 
-from Cookie import SimpleCookie
+__author__ = 'rohe0002'
 
 logger = logging.getLogger(__name__)
 
@@ -28,18 +26,19 @@ class Response(object):
     _mako_lookup = None
 
     def __init__(self, message=None, **kwargs):
-        self.status = kwargs.get('status', self._status)
-        self.response = kwargs.get('response', self._response)
-        self.template = kwargs.get('template', self._template)
-        self.mako_template = kwargs.get('mako_template', self._mako_template)
-        self.mako_lookup = kwargs.get('template_lookup', self._mako_lookup)
+        self.status = kwargs.get("status", self._status)
+        self.response = kwargs.get("response", self._response)
+        self.template = kwargs.get("template", self._template)
+        self.mako_template = kwargs.get("mako_template", self._mako_template)
+        self.mako_lookup = kwargs.get("template_lookup", self._mako_lookup)
 
         self.message = message
 
-        self.headers = kwargs.get('headers', [])
-        _content_type = kwargs.get('content', self._content_type)
+        self.headers = []
+        self.headers.extend(kwargs.get("headers", []))
+        _content_type = kwargs.get("content", self._content_type)
 
-        self.headers.append(('Content-type', _content_type))
+        self.headers.append(("Content-type", _content_type))
 
     def __call__(self, environ, start_response, **kwargs):
         start_response(self.status, self.headers)
@@ -47,7 +46,7 @@ class Response(object):
 
     def _response(self, message="", **argv):
         if self.template:
-            if ("Content-type", 'application/json') in self.headers:
+            if ("Content-type", "application/json") in self.headers:
                 return [message]
             else:
                 return [str(self.template % message)]
@@ -235,8 +234,9 @@ def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp=""):
     """
     cookie = SimpleCookie()
     if not timestamp:
-        timestamp = str(int(time.mktime(time.gmtime())))
-    signature = cookie_signature(seed, load, timestamp)
+        timestamp = str(int(time.time()))
+    signature = cookie_signature(seed, load.encode("utf-8"),
+                                 timestamp.encode("utf-8"))
     cookie[name] = "|".join([load, timestamp, signature])
     if path:
         cookie[name]["path"] = path
@@ -267,7 +267,8 @@ def parse_cookie(name, seed, kaka):
         if len(parts) != 3:
             return None
         # verify the cookie signature
-        sig = cookie_signature(seed, parts[0], parts[1])
+        sig = cookie_signature(seed, parts[0].encode("utf-8"),
+                               parts[1].encode("utf-8"))
         if sig != parts[2]:
             raise InvalidCookieSign()
 
@@ -298,7 +299,7 @@ def get_post(environ):
     # When the method is POST the query string will be sent
     # in the HTTP request body which is passed by the WSGI server
     # in the file like wsgi.input environment variable.
-    return environ['wsgi.input'].read(request_body_size)
+    return environ['wsgi.input'].read(request_body_size).decode("utf-8")
 
 
 def get_or_post(environ):
@@ -325,7 +326,7 @@ def extract_from_request(environ, kwargs=None):
         pass
     if not request:
         try:
-            request = get_post(environ)
+            request = as_unicode(get_post(environ))
         except KeyError:
             pass
     kwargs["request"] = request
@@ -384,7 +385,7 @@ class CookieDealer(object):
 
             for param in ["seed", "iv"]:
                 if not getattr(srv, param, None):
-                    setattr(srv, param, rndstr())
+                    setattr(srv, param, rndstr().encode("utf-8"))
 
     def delete_cookie(self, cookie_name=None):
         if cookie_name is None:
@@ -399,17 +400,18 @@ class CookieDealer(object):
             ttl = self.cookie_ttl
         if cookie_name is None:
             cookie_name = self.srv.cookie_name
-        timestamp = str(int(time.mktime(time.gmtime())))
+        timestamp = str(int(time.time()))
         _msg = "::".join([value, timestamp, typ])
         if self.srv.symkey:
             # Pad the message to be multiples of 16 bytes in length
             lm = len(_msg)
             _msg = _msg.ljust(lm + 16 - lm % 16, self.pad_chr)
-            info = encrypt(self.srv.symkey, _msg, self.srv.iv)
+            info = encrypt(self.srv.symkey, _msg, self.srv.iv).decode("utf-8")
         else:
             info = _msg
         cookie = make_cookie(cookie_name, info, self.srv.seed,
-                             expire=ttl, domain="", path="")
+                             expire=ttl, domain="", path="",
+                             timestamp=timestamp)
         return cookie
 
     def getCookieValue(self, cookie=None, cookie_name=None):
@@ -443,4 +445,3 @@ class CookieDealer(object):
                 if timestamp == _ts:
                     return value, _ts, typ
         return None
-

@@ -27,7 +27,7 @@ class Client(oic.Client):
         if behaviour:
             self.behaviour = behaviour
 
-    def create_authn_request(self, session, acr_value=None):
+    def create_authn_request(self, session, acr_value=None, **kwargs):
         session["state"] = rndstr()
         session["nonce"] = rndstr()
         request_args = {
@@ -41,6 +41,7 @@ class Client(oic.Client):
         if acr_value is not None:
             request_args["acr_values"] = acr_value
 
+        request_args.update(kwargs)
         cis = self.construct_AuthorizationRequest(request_args=request_args)
         logger.debug("request: %s" % cis)
 
@@ -58,7 +59,7 @@ class Client(oic.Client):
         logger.debug("resp_headers: %s" % resp.headers)
         return resp
 
-    def callback(self, response):
+    def callback(self, response, session):
         """
         This is the method that should be called when an AuthN response has been
         received from the OP.
@@ -70,9 +71,17 @@ class Client(oic.Client):
                                        sformat="dict", keyjar=self.keyjar)
 
         if isinstance(authresp, ErrorResponse):
-            return OIDCError("Access denied")
+            if authresp["error"] == "login_required":
+                return self.create_authn_request(session)
+            else:
+                return OIDCError("Access denied")
+
+        if session["state"] != authresp["state"]:
+            return OIDCError("Received state not the same as expected.")
 
         try:
+            if authresp["id_token"] != session["nonce"]:
+                return OIDCError("Received nonce not the same as expected.")
             self.id_token[authresp["state"]] = authresp["id_token"]
         except KeyError:
             pass
@@ -98,7 +107,12 @@ class Client(oic.Client):
             if isinstance(atresp, ErrorResponse):
                 raise OIDCError("Invalid response %s." % atresp["error"])
 
-        inforesp = self.do_user_info_request(state=authresp["state"])
+        try:
+            kwargs = {"method": self.userinfo_request_method}
+        except AttributeError:
+            kwargs = {}
+
+        inforesp = self.do_user_info_request(state=authresp["state"], **kwargs)
 
         if isinstance(inforesp, ErrorResponse):
             raise OIDCError("Invalid response %s." % inforesp["error"])
@@ -138,7 +152,7 @@ class OIDCClients(object):
         :return: client instance
         """
 
-        _key_set = set(kwargs.keys())
+        _key_set = set(list(kwargs.keys()))
         args = {}
         for param in ["verify_ssl"]:
             try:
@@ -150,6 +164,13 @@ class OIDCClients(object):
 
         client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
                                  behaviour=kwargs["behaviour"], verify_ssl=self.config.VERIFY_SSL, **args)
+
+        try:
+            client.userinfo_request_method = kwargs["userinfo_request_method"]
+        except KeyError:
+            pass
+        else:
+            _key_set.discard("userinfo_request_method")
 
         # The behaviour parameter is not significant for the election process
         _key_set.discard("behaviour")
@@ -234,4 +255,4 @@ class OIDCClients(object):
             return self.dynamic_client(item)
 
     def keys(self):
-        return self.client.keys()
+        return list(self.client.keys())

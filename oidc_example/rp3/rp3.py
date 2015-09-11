@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 import importlib
 import argparse
-import urllib
 from jwkest.jws import alg2keytype
 from mako.lookup import TemplateLookup
-from urlparse import parse_qs
+from six.moves.urllib import parse as urlparse
+import six
 import logging
 
 from oic.utils.http_util import NotFound
@@ -63,18 +63,21 @@ def opchoice(environ, start_response, clients):
                     template_lookup=LOOKUP,
                     headers=[])
     argv = {
-        "op_list": clients.keys()
+        "op_list": list(clients.keys())
     }
     return resp(environ, start_response, **argv)
 
 
-def opresult(environ, start_response, userinfo):
+def opresult(environ, start_response, userinfo, check_session_iframe_url=None):
     resp = Response(mako_template="opresult.mako",
                     template_lookup=LOOKUP,
                     headers=[])
     argv = {
         "userinfo": userinfo,
     }
+    if check_session_iframe_url:
+        argv["check_session_iframe_url"] = check_session_iframe_url
+
     return resp(environ, start_response, **argv)
 
 
@@ -100,12 +103,6 @@ def id_token_as_signed_jwt(client, id_token, alg="RS256"):
     return _signed_jwt
 
 
-def clear_session(session):
-    for key in session:
-        session.pop(key, None)
-    session.invalidate()
-
-
 def application(environ, start_response):
     session = environ['beaker.session']
     path = environ.get('PATH_INFO', '').lstrip('/')
@@ -115,7 +112,7 @@ def application(environ, start_response):
     if path.startswith("static/"):
         return static(environ, start_response, LOGGER, path)
 
-    query = parse_qs(environ["QUERY_STRING"])
+    query = urlparse.parse_qs(environ["QUERY_STRING"])
 
     if path == "rp":  # After having chosen which OP to authenticate at
         if "uid" in query:
@@ -131,24 +128,40 @@ def application(environ, start_response):
             raise
         else:
             return resp(environ, start_response)
-    elif path == "authz_cb":  # After having authenticated at the OP
+    elif path in ["authz_cb", "google"]:  # After having authenticated at the OP
         client = CLIENTS[session["op"]]
         try:
-            userinfo = client.callback(query)
+            result = client.callback(query, session)
+            if isinstance(result, Redirect):
+                return result(environ, start_response)
         except OIDCError as err:
             return operror(environ, start_response, "%s" % err)
         except Exception:
             raise
         else:
-            return opresult(environ, start_response, userinfo)
+            check_session_iframe_url = None
+            try:
+                check_session_iframe_url = client.provider_info[
+                    "check_session_iframe"]
+
+                session["session_management"] = {
+                    "session_state": query["session_state"][0],
+                    "client_id": client.client_id,
+                    "issuer": client.provider_info["issuer"]
+                }
+            except KeyError:
+                pass
+
+            return opresult(environ, start_response, result,
+                            check_session_iframe_url)
     elif path == "logout":  # After the user has pressed the logout button
         client = CLIENTS[session["op"]]
-        logout_url = client.endsession_endpoint
+        logout_url = client.end_session_endpoint
         try:
             # Specify to which URL the OP should return the user after
             # log out. That URL must be registered with the OP at client
             # registration.
-            logout_url += "?" + urllib.urlencode(
+            logout_url += "?" + urlparse.urlencode(
                 {"post_logout_redirect_uri": client.registration_response[
                     "post_logout_redirect_uris"][0]})
         except KeyError:
@@ -157,17 +170,41 @@ def application(environ, start_response):
             # If there is an ID token send it along as a id_token_hint
             _idtoken = get_id_token(client, session)
             if _idtoken:
-                logout_url += "&" + urllib.urlencode({
+                logout_url += "&" + urlparse.urlencode({
                     "id_token_hint": id_token_as_signed_jwt(client, _idtoken,
                                                             "HS256")})
             # Also append the ACR values
-            logout_url += "&" + urllib.urlencode({"acr_values": ACR_VALUES},
+            logout_url += "&" + urlparse.urlencode({"acr_values": ACR_VALUES},
                                                  True)
 
         LOGGER.debug("Logout URL: %s" % str(logout_url))
         LOGGER.debug("Logging out from session: %s" % str(session))
-        clear_session(session)
+        session.delete()
         resp = Redirect(str(logout_url))
+        return resp(environ, start_response)
+    elif path == "logout_success":  # post_logout_redirect_uri
+        return Response("Logout successful!")(environ, start_response)
+    elif path == "session_iframe":  # session management
+        kwargs = session["session_management"]
+        resp = Response(mako_template="rp_session_iframe.mako",
+                        template_lookup=LOOKUP)
+        return resp(environ, start_response,
+                    session_change_url="{}session_change".format(
+                        SERVER_ENV["base_url"]),
+                    **kwargs)
+    elif path == "session_change":
+        try:
+            client = CLIENTS[session["op"]]
+        except KeyError:
+            return Response("No valid session.")(environ, start_response)
+
+        kwargs = {"prompt": "none"}
+        # If there is an ID token send it along as a id_token_hint
+        idt = get_id_token(client, session)
+        if idt:
+            kwargs["id_token_hint"] = id_token_as_signed_jwt(client, idt,
+                                                             "HS256")
+        resp = client.create_authn_request(session, ACR_VALUES, **kwargs)
         return resp(environ, start_response)
 
     return opchoice(environ, start_response, CLIENTS)
@@ -181,8 +218,26 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument(dest="config")
+    parser.add_argument("-p", default=8666, dest="port", help="port of the RP")
+    parser.add_argument("-b", dest="base_url", help="base url of the RP")
     args = parser.parse_args()
     conf = importlib.import_module(args.config)
+
+    if args.base_url:
+        conf.BASE = args.base_url
+
+    conf.BASE = "{base}:{port}/".format(base=conf.BASE, port=args.port)
+    conf.ME["redirect_uris"] = [url.format(base=conf.BASE) for url in
+                                conf.ME["redirect_uris"]]
+    conf.ME["post_logout_redirect_uris"] = [url.format(base=conf.BASE) for url
+                                            in conf.ME[
+            "post_logout_redirect_uris"]]
+
+    for client, client_conf in six.iteritems(conf.CLIENTS):
+        if "client_registration" in client_conf:
+            client_reg = client_conf["client_registration"]
+            client_reg["redirect_uris"] = [url.format(base=conf.BASE) for url in
+                                           client_reg["redirect_uris"]]
 
     global ACR_VALUES
     ACR_VALUES = conf.ACR_VALUES
@@ -191,13 +246,14 @@ if __name__ == '__main__':
         'session.type': 'memory',
         'session.cookie_expires': True,
         'session.auto': True,
-        'session.timeout': 900
+        'session.key': "{}.beaker.session.id".format(
+            urlparse.urlparse(conf.BASE).netloc.replace(":", "."))
     }
 
     CLIENTS = OIDCClients(conf)
     SERVER_ENV.update({"template_lookup": LOOKUP, "base_url": conf.BASE})
 
-    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', conf.PORT),
+    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', int(args.port)),
                                         SessionMiddleware(application,
                                                           session_opts))
 
@@ -207,8 +263,8 @@ if __name__ == '__main__':
         SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
             conf.SERVER_CERT, conf.SERVER_KEY, conf.CA_BUNDLE)
 
-    LOGGER.info("RP server starting listening on port:%s" % conf.PORT)
-    print "RP server starting listening on port:%s" % conf.PORT
+    LOGGER.info("RP server starting listening on port:%s" % args.port)
+    print ("RP server starting listening on port:%s" % args.port)
     try:
         SRV.start()
     except KeyboardInterrupt:

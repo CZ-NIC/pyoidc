@@ -1,6 +1,7 @@
 import importlib
 from tempfile import NamedTemporaryFile
 from saml2.client import Saml2Client
+import six
 
 from oic.utils.userinfo import UserInfo
 
@@ -20,7 +21,7 @@ class AaUserInfo(UserInfo):
         self.sp = Saml2Client(config_file="%s" % ntf.name)
         self.samlcache = self.sp_conf.SAML_CACHE
 
-    def __call__(self, userid, user_info_claims=None, **kwargs):
+    def __call__(self, userid, client_id, user_info_claims=None, **kwargs):
         try:
             ava = self.db[userid]
             entity_id = self.sp_conf.AA_ENTITY_ID
@@ -34,7 +35,7 @@ class AaUserInfo(UserInfo):
 
             response_dict = response.ava.copy()
             if self.sp_conf.AA_ATTRIBUTE_SAML_IDP is True:
-                for key, value in ava.iteritems():
+                for key, value in six.iteritems(ava):
                     if (self.sp_conf.AA_ATTRIBUTE_SAML_IDP_WHITELIST is None or
                             key in self.sp_conf.AA_ATTRIBUTE_SAML_IDP_WHITELIST) and \
                             key not in response_dict:

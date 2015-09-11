@@ -1,15 +1,17 @@
 #!/usr/bin/env python
-__author__ = 'rohe0002'
-
 import time
+import logging
 from hashlib import md5
 
+from oic.exception import PyoidcError
+from oic.oauth2.message import AuthorizationRequest, AuthorizationResponse, \
+    Message, AccessTokenResponse, AccessTokenRequest
 from oic.utils import http_util
 from oic.oauth2 import Client
 from oic.oauth2 import Grant
 from oic.oauth2 import rndstr
-from oic.oauth2.message import *
 
+__author__ = 'rohe0002'
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint", "userinfo_endpoint",
              "check_id_endpoint", "registration_endpoint",
@@ -28,8 +30,8 @@ def stateID(url, seed):
     :return: The hex version of the digest
     """
     ident = md5()
-    ident.update(repr(time.time()))
-    ident.update(url)
+    ident.update(repr(time.time()).encode())
+    ident.update(url.encode())
     ident.update(seed)
     return ident.hexdigest()
 
@@ -114,7 +116,7 @@ class Consumer(Client):
                 setattr(self, endpoint, None)
 
         self.sdb = session_db
-        self.seed = rndstr()
+        self.seed = rndstr().encode("utf-8")
         self._request = None
 
     def update(self, sid):
@@ -190,7 +192,6 @@ class Consumer(Client):
             self.seed = rndstr()
 
         sid = stateID(request, self.seed)
-        #self.state = sid
         self.grant[sid] = Grant(seed=self.seed)
         self._backup(sid)
         self.sdb["seed:%s" % self.seed] = sid
@@ -209,7 +210,7 @@ class Consumer(Client):
 
         return sid, location
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def handle_authorization_response(self, query="", **kwargs):
         """
         This is where we get redirect back to after authorization at the
@@ -227,7 +228,7 @@ class Consumer(Client):
             try:
                 aresp = self.parse_response(AuthorizationResponse,
                                             info=query, sformat="urlencoded")
-            except Exception, err:
+            except Exception as err:
                 logger.error("%s" % err)
                 raise
 
@@ -293,7 +294,7 @@ class Consumer(Client):
 
         return request_args, http_args, extra_args
 
-    #noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def get_access_token_request(self, state, **kwargs):
 
         request_args, http_args, extra_args = self.client_auth_info()

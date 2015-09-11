@@ -1,0 +1,60 @@
+provider:
+    keys:
+        - type: RSA
+          key: keys/key.pem
+          use: [enc, sig]
+        - type: EC
+          crv: P-256
+          use: [sig]
+        - type: EC
+          crv: P-256
+          use: [enc]
+
+authn:
+    - acr: password
+      class: provider.authn.user_pass.UserPass
+      kwargs:
+          db:
+              class: provider.authn.util.JSONDictDB
+              kwargs:
+                json_path: passwd.json
+          template: user_pass.jinja2
+          page_header: "Testing log in"
+          submit_btn: "Get me in!"
+          user_label: "Nickname"
+          passwd_label: "Secret sauce"
+    - acr: mail_two_factor
+      class: provider.authn.two_factor.MailTwoFactor
+      kwargs:
+          user_db:
+              class: provider.authn.util.JSONDictDB
+              kwargs:
+                  json_path: users.json
+          passwd_db:
+              class: provider.authn.util.JSONDictDB
+              kwargs:
+                  json_path: passwd.json
+          smtp_server: smtp.example.com
+          outgoing_sender: sender@example.com
+    #- acr: yubikey
+    #  class: provider.authn.yubikey.YubicoOTP
+    #  kwargs:
+    #      yubikey_db: # mapping from yubikey public identity to local username
+    #          class: provider.authn.util.JSONDictDB
+    #          kwargs:
+    #              json_path: yubikeys.json
+    #      validation_server: https://example.com/wsapi/2.0/verify
+    #      client_id: 123456789
+    #      secret_key: abcdefghi
+
+userinfo:
+    class: provider.authn.util.JSONDictDB
+    kwargs:
+        json_path: users.json
+
+server:
+    cert: certs/localhost.crt
+    key: certs/localhost.key
+    cert_chain:
+    template_dirs:
+        - src/provider/authn/templates

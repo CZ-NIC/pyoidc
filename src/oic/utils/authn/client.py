@@ -3,8 +3,10 @@ import base64
 from jwkest import Invalid
 from jwkest import MissingKey
 from jwkest.jws import alg2keytype
+import time
+import six
 
-from oic.exception import UnknownAssertionType
+from oic.exception import UnknownAssertionType, FailedAuthentication
 from oic.exception import NotForMe
 from oic.oauth2 import rndstr, VREQUIRED
 from oic.oauth2 import SINGLE_OPTIONAL_STRING
@@ -12,7 +14,6 @@ from oic.oic import REQUEST2ENDPOINT
 from oic.oic import DEF_SIGN_ALG
 from oic.oic import AuthnToken
 from oic.oic import JWT_BEARER
-from oic.utils.time_util import utc_now
 
 
 logger = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ class NoMatchingKey(Exception):
 
 # ========================================================================
 def assertion_jwt(cli, keys, audience, algorithm):
-    _now = utc_now()
+    _now = time.time()
 
     at = AuthnToken(iss=cli.client_id, sub=cli.client_id,
                     aud=audience, jti=rndstr(8),
@@ -98,7 +99,7 @@ class ClientSecretBasic(ClientAuthnMethod):
             http_args["headers"] = {}
 
         http_args["headers"]["Authorization"] = "Basic %s" % base64.b64encode(
-            "%s:%s" % (user, passwd))
+            "{}:{}".format(user, passwd).encode("utf-8")).decode("utf-8")
 
         try:
             del cis["client_secret"]
@@ -316,15 +317,21 @@ class JWSAuthnMethod(ClientAuthnMethod):
         except KeyError:
             pass
 
+        if not cis.c_param["client_id"][VREQUIRED]:
+            try:
+                del cis["client_id"]
+            except KeyError:
+                pass
+
         return {}
 
     def verify(self, areq, **kwargs):
         try:
             bjwt = AuthnToken().from_jwt(areq["client_assertion"],
                                          keyjar=self.cli.keyjar)
-        except (Invalid, MissingKey), err:
+        except (Invalid, MissingKey) as err:
             logger.info("%s" % err)
-            return False
+            raise AuthnFailure("Could not verify client_assertion.")
 
         logger.debug("authntoken: %s" % bjwt.to_dict())
         # logger.debug("known clients: %s" % self.cli.cdb.keys())
@@ -343,12 +350,12 @@ class JWSAuthnMethod(ClientAuthnMethod):
         _aud = bjwt["aud"]
         logger.debug("audience: %s, baseurl: %s" % (_aud, self.cli.baseurl))
         try:
-            if isinstance(_aud, basestring):
+            if isinstance(_aud, six.string_types):
                 assert str(_aud).startswith(self.cli.baseurl)
             else:
                 for target in _aud:
                     if target.startswith(self.cli.baseurl):
-                        return True
+                        return cid
                 raise NotForMe("Not for me!")
         except AssertionError:
             raise NotForMe("Not for me!")
@@ -400,6 +407,55 @@ CLIENT_AUTHN_METHOD = {
 TYPE_METHOD = [(JWT_BEARER, JWSAuthnMethod)]
 
 
+def get_client_id(cdb, req, authn):
+    """
+    Verify the client and return the client id
+
+    :param req: The request
+    :param authn: Authentication information from the HTTP header
+    :return:
+    """
+
+    logger.debug("REQ: %s" % req.to_dict())
+    if authn:
+        if authn.startswith("Basic "):
+            logger.debug("Basic auth")
+            (_id, _secret) = base64.b64decode(
+                authn[6:].encode("utf-8")).decode("utf-8").split(":")
+            if _id not in cdb:
+                logger.debug("Unknown client_id")
+                raise FailedAuthentication("Unknown client_id")
+            else:
+                try:
+                    assert _secret == cdb[_id]["client_secret"]
+                except AssertionError:
+                    logger.debug("Incorrect secret")
+                    raise FailedAuthentication("Incorrect secret")
+        else:
+            try:
+                assert authn[:6].lower() == "bearer"
+                logger.debug("Bearer auth")
+                _token = authn[7:]
+            except AssertionError:
+                raise FailedAuthentication("AuthZ type I don't know")
+
+            try:
+                _id = cdb[_token]
+            except KeyError:
+                logger.debug("Unknown access token")
+                raise FailedAuthentication("Unknown access token")
+    else:
+        try:
+            _id = str(req["client_id"])
+            if _id not in cdb:
+                logger.debug("Unknown client_id")
+                raise FailedAuthentication("Unknown client_id")
+        except KeyError:
+            raise FailedAuthentication("Missing client_id")
+
+    return _id
+
+
 def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
     """
     Initiated Guessing !
@@ -409,17 +465,17 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
     :return:
     """
 
-    client_id = inst.get_client_id(areq, authn)
-
-    logger.debug("Verified Client ID: %s" % client_id)
-
-    if "client_secret" in areq:  # client_secret_post/client_secret_basic
+    if authn:  # HTTP Basic auth (client_secret_basic)
+        return get_client_id(inst.cdb, areq, authn)
+    elif "client_secret" in areq:  # client_secret_post
+        client_id = get_client_id(inst.cdb, areq, authn)
+        logger.debug("Verified Client ID: %s" % client_id)
         return ClientSecretBasic(inst).verify(areq, client_id)
-    elif "client_assertion" in areq:  # client_secret_jwt or public_key_jwt
+    elif "client_assertion" in areq:  # client_secret_jwt or private_key_jwt
         for typ, method in type_method:
             if areq["client_assertion_type"] == typ:
-                return method(inst).verify(areq, client_id=client_id)
+                return method(inst).verify(areq)
         else:
             raise UnknownAssertionType(areq["client_assertion_type"], areq)
     else:
-        return client_id
+        raise FailedAuthentication("Missing client authentication.")

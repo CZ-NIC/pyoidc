@@ -1,21 +1,23 @@
 import logging
-import urllib
-import urlparse
 import requests
 
+from six.moves.urllib import parse as urlparse
+
+from oic import oauth2
+from oic.exception import UnSupported
+from oic.exception import UnknownAssertionType
+from oic.exception import PyoidcError
+from oic.exception import AuthzError
 from oic.oic import OIDCONF_PATTERN
 from oic.oic.message import ProviderConfigurationResponse, AuthorizationResponse
-from oic.utils.keyio import KeyJar
-from oic.utils.time_util import utc_time_sans_frac
 from oic.oic.provider import secret
 from oic.oic.provider import RegistrationEndpoint
 from oic.oic.provider import Endpoint
-from oic import oauth2
+from oic.utils.keyio import KeyJar
+from oic.utils.time_util import utc_time_sans_frac
 from oic.oauth2 import provider
-from oic.oauth2 import VerificationError
 from oic.oauth2 import rndstr
 from oic.oauth2 import ErrorResponse
-from oic.oauth2 import UnSupported
 from oic.oauth2 import Message
 from oic.oauth2 import message
 from oic.oauth2 import SINGLE_REQUIRED_STRING
@@ -24,14 +26,19 @@ from oic.oauth2 import REQUIRED_LIST_OF_STRINGS
 from oic.oauth2 import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.oauth2 import SINGLE_OPTIONAL_INT
-from oic.exception import UnknownAssertionType
-from oic.exception import PyoidcError
-from oic.exception import AuthzError
-from oic.utils.authn.client import AuthnFailure
-from oic.utils.http_util import Unauthorized, NoContent
+from oic.oauth2.exception import VerificationError
+from oic.utils.authn.client import AuthnFailure, get_client_id
+from oic.utils.http_util import Unauthorized
+from oic.utils.http_util import NoContent
 from oic.utils.http_util import Response
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Forbidden
+
+import six
+if six.PY3:
+    from urllib.parse import splitquery
+else:
+    from urllib import splitquery
 
 
 logger = logging.getLogger(__name__)
@@ -39,6 +46,7 @@ logger = logging.getLogger(__name__)
 __author__ = 'roland'
 
 # -----------------------------------------------------------------------------
+SUCCESSFUL = [200, 201, 202, 203, 204, 205, 206]
 
 
 class InvalidRedirectUri(Exception):
@@ -84,12 +92,13 @@ class RegistrationRequest(Message):
         for uri in ["client_uri", "logo_uri", "tos_uri", "policy_uri"]:
             if uri in self:
                 try:
-                    resp = requests.request("GET", self[uri],
-                                            allow_redirects=True)
+                    resp = requests.request("GET", str(self[uri]),
+                                            allow_redirects=True,
+                                            verify=False)
                 except requests.ConnectionError:
                     raise MissingPage(self[uri])
 
-                if not resp.status_code in [200, 201]:
+                if resp.status_code not in SUCCESSFUL:
                     raise MissingPage(self[uri])
 
         if "grant_types" in self and "response_types" in self:
@@ -160,9 +169,12 @@ class ClientInfoEndpoint(Endpoint):
 class Provider(provider.Provider):
     def __init__(self, name, sdb, cdb, authn_broker, authz, client_authn,
                  symkey="", urlmap=None, iv=0, default_scope="",
-                 ca_bundle=None, seed="", client_authn_methods=None,
+                 ca_bundle=None, seed=b"", client_authn_methods=None,
                  authn_at_registration="", client_info_url="",
                  secret_lifetime=86400):
+
+        if not name.endswith("/"):
+            name += "/"
         provider.Provider.__init__(self, name, sdb, cdb, authn_broker, authz,
                                    client_authn, symkey, urlmap, iv,
                                    default_scope, ca_bundle)
@@ -207,7 +219,7 @@ class Provider(provider.Provider):
     def _uris_to_tuples(uris):
         tup = []
         for uri in uris:
-            base, query = urllib.splitquery(uri)
+            base, query = splitquery(uri)
             if query:
                 tup.append((base, query))
             else:
@@ -242,13 +254,14 @@ class Provider(provider.Provider):
         _cinfo["client_secret"] = secret(self.seed, _id)
         _cinfo["client_id_issued_at"] = utc_time_sans_frac()
         _cinfo["client_secret_expires_at"] = utc_time_sans_frac() + \
-                                             self.secret_lifetime
+            self.secret_lifetime
 
         # If I support client info endpoint
         if ClientInfoEndpoint in self.endp:
             _cinfo["registration_access_token"] = rndstr(32)
-            _cinfo["registration_client_uri"] = "%s%s?client_id=%s" % (
-                self.client_info_url, ClientInfoEndpoint.etype, _id)
+            _cinfo["registration_client_uri"] = "%s%s%s?client_id=%s" % (
+                self.name, self.client_info_url, ClientInfoEndpoint.etype,
+                _id)
 
         if "redirect_uris" in request:
             _cinfo["redirect_uris"] = self._uris_to_tuples(
@@ -287,7 +300,7 @@ class Provider(provider.Provider):
             else:
                 _cinfo[key] = value
 
-        for key in _cinfo.keys():
+        for key in list(_cinfo.keys()):
             if key in ["client_id_issued_at", "client_secret_expires_at",
                        "registration_access_token", "registration_client_uri"]:
                 continue
@@ -310,7 +323,8 @@ class Provider(provider.Provider):
         """
 
         if not client_id:
-            client_id = self.get_client_id(areq, environ["HTTP_AUTHORIZATION"])
+            client_id = get_client_id(self.cdb, areq,
+                                      environ["HTTP_AUTHORIZATION"])
 
         try:
             method = self.client_authn_methods[authn_method]
@@ -330,11 +344,11 @@ class Provider(provider.Provider):
         _request = RegistrationRequest().deserialize(request, "json")
         try:
             _request.verify()
-        except InvalidRedirectUri, err:
+        except InvalidRedirectUri as err:
             msg = ClientRegistrationError(error="invalid_redirect_uri",
                                           error_description="%s" % err)
             return BadRequest(msg.to_json(), content="application/json")
-        except (MissingPage, VerificationError), err:
+        except (MissingPage, VerificationError) as err:
             msg = ClientRegistrationError(error="invalid_client_metadata",
                                           error_description="%s" % err)
             return BadRequest(msg.to_json(), content="application/json")
@@ -389,16 +403,16 @@ class Provider(provider.Provider):
         elif method == "PUT":
             try:
                 _request = ClientUpdateRequest().from_json(request)
-            except ValueError:
-                return BadRequest()
+            except ValueError as err:
+                return BadRequest(str(err))
 
             try:
                 _request.verify()
-            except InvalidRedirectUri, err:
+            except InvalidRedirectUri as err:
                 msg = ClientRegistrationError(error="invalid_redirect_uri",
                                               error_description="%s" % err)
                 return BadRequest(msg.to_json(), content="application/json")
-            except (MissingPage, VerificationError), err:
+            except (MissingPage, VerificationError) as err:
                 msg = ClientRegistrationError(error="invalid_client_metadata",
                                               error_description="%s" % err)
                 return BadRequest(msg.to_json(), content="application/json")
@@ -624,7 +638,7 @@ class Client(oauth2.Client):
         self.redirect_uris = reginfo["redirect_uris"]
 
     def handle_registration_info(self, response):
-        if response.status_code in [200, 201]:
+        if response.status_code in SUCCESSFUL:
             resp = ClientInfoResponse().deserialize(response.text, "json")
             self.store_registration_info(resp)
         else:

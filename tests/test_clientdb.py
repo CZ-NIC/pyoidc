@@ -1,39 +1,46 @@
-import unittest
+# pylint: disable=missing-docstring
+
+import json
 
 import httpretty
-import jwkest
+import pytest
+import requests
 
-from oic.utils.clientdb import MDXClient, NoClientInfoReceived
+from oic.oauth2.exception import NoClientInfoReceivedError
+from oic.utils.clientdb import MDQClient
 
 
-class TestMDXClient(unittest.TestCase):
+class TestMDQClient(object):
     URL = "http://localhost/mdx"
     CLIENT_ID = "client1"
-    MDX_URL = URL + "/clients/" + CLIENT_ID
+    MDX_URL = URL + "/entities/" + CLIENT_ID
 
-    def setUp(self):
-        self.md = MDXClient(TestMDXClient.URL)
+    @pytest.fixture(autouse=True)
+    def create_client(self):
+        self.md = MDQClient(TestMDQClient.URL)
 
     @httpretty.activate
     def test_get_existing_client(self):
-        metadata = {"client_id": TestMDXClient.CLIENT_ID,
+        metadata = {"client_id": TestMDQClient.CLIENT_ID,
                     "client_secret": "abcd1234",
                     "redirect_uris": ["http://example.com/rp/authz_cb"]}
-        response_body = jwkest.pack(metadata)
+        response_body = json.dumps(metadata)
 
         httpretty.register_uri(httpretty.GET,
-                               TestMDXClient.MDX_URL.format(client_id=TestMDXClient.CLIENT_ID),
+                               TestMDQClient.MDX_URL.format(
+                                   client_id=TestMDQClient.CLIENT_ID),
                                body=response_body,
                                content_type="application/json")
 
-        result = self.md[TestMDXClient.CLIENT_ID]
-        self.assertEqual(metadata, result)
-
+        result = self.md[TestMDQClient.CLIENT_ID]
+        assert metadata == result
 
     @httpretty.activate
     def test_get_non_existing_client(self):
         httpretty.register_uri(httpretty.GET,
-                               TestMDXClient.MDX_URL.format(client_id=TestMDXClient.CLIENT_ID),
+                               TestMDQClient.MDX_URL.format(
+                                   client_id=TestMDQClient.CLIENT_ID),
                                status=404)
 
-        self.assertRaises(NoClientInfoReceived, lambda: self.md[TestMDXClient.CLIENT_ID])
+        with pytest.raises(NoClientInfoReceivedError):
+            self.md[TestMDQClient.CLIENT_ID]  # pylint: disable=pointless-statement

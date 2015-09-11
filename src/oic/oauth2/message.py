@@ -1,17 +1,23 @@
 import copy
 import logging
-import urllib
-import urlparse
 import json
+
 from jwkest import b64d
-import jwkest
+from jwkest import jwe
+from jwkest import jws
 from jwkest.jwe import JWE
+
 from jwkest.jwk import keyitems2keyreps
+
 from jwkest.jws import JWS
 
+from jwkest.jwt import JWT
+import six
+
+from six.moves.urllib.parse import urlparse, urlencode, parse_qs
 from oic.exception import PyoidcError
 from oic.exception import MessageException
-
+from past.builtins import basestring
 
 logger = logging.getLogger(__name__)
 
@@ -122,8 +128,10 @@ class Message(object):
     def __init__(self, **kwargs):
         self._dict = self.c_default.copy()
         self.lax = False
-        self.jwt_header = None
+        self.jws_header = None
+        self.jwe_header = None
         self.from_dict(kwargs)
+        self.verify_ssl = True
 
     def type(self):
         return self.__class__.__name__
@@ -167,20 +175,20 @@ class Message(object):
 
             if val is None and null_allowed is False:
                 continue
-            elif isinstance(val, basestring):
+            elif isinstance(val, six.string_types):
                 # Should I allow parameters with "" as value ???
-                params.append((key, unicode(val)))
+                params.append((key, val.encode("utf-8")))
             elif isinstance(val, list):
                 if _ser:
                     params.append((key, str(_ser(val, sformat="urlencoded",
                                                  lev=lev))))
                 else:
                     for item in val:
-                        params.append((key, str((unicode(item)).encode('utf-8'))))
+                        params.append((key, str(item).encode('utf-8')))
             elif isinstance(val, Message):
                 try:
-                    params.append((key, str(_ser(val, sformat="urlencoded",
-                                                 lev=lev))))
+                    _val = json.dumps(_ser(val, sformat="dict", lev=lev+1))
+                    params.append((key, _val))
                 except TypeError:
                     params.append((key, val))
             elif val is None:
@@ -192,15 +200,15 @@ class Message(object):
                     params.append((key, str(val)))
 
         try:
-            return urllib.urlencode(params)
+            return urlencode(params)
         except UnicodeEncodeError:
             _val = []
             for k, v in params:
                 try:
-                    _val.append((k, unicode.encode(v, "utf-8")))
+                    _val.append((k, v.encode("utf-8")))
                 except TypeError:
                     _val.append((k, v))
-            return urllib.urlencode(_val)
+            return urlencode(_val)
 
     def serialize(self, method="urlencoded", lev=0, **kwargs):
         return getattr(self, "to_%s" % method)(lev=lev, **kwargs)
@@ -208,7 +216,7 @@ class Message(object):
     def deserialize(self, info, method="urlencoded", **kwargs):
         try:
             func = getattr(self, "from_%s" % method)
-        except AttributeError, err:
+        except AttributeError as err:
             raise FormatError("Unknown serialization method (%s)" % method)
         else:
             return func(info, **kwargs)
@@ -224,16 +232,16 @@ class Message(object):
 
         # parse_qs returns a dictionary with keys and values. The values are
         # always lists even if there is only one value in the list.
-        #keys only appears once.
+        # keys only appears once.
 
-        if isinstance(urlencoded, basestring):
+        if isinstance(urlencoded, six.string_types):
             pass
         elif isinstance(urlencoded, list):
             urlencoded = urlencoded[0]
 
         _spec = self.c_param
 
-        for key, val in urlparse.parse_qs(urlencoded).items():
+        for key, val in parse_qs(urlencoded).items():
             try:
                 (typ, _, _, _deser, null_allowed) = _spec[key]
             except KeyError:
@@ -296,10 +304,10 @@ class Message(object):
                         _ser = None
 
             if _ser:
-                val = _ser(val, "json", lev)
+                val = _ser(val, "dict", lev)
 
             if isinstance(val, Message):
-                _res[key] = val.to_dict(lev)
+                _res[key] = val.to_dict(lev+1)
             elif isinstance(val, list) and isinstance(val[0], Message):
                 _res[key] = [v.to_dict(lev) for v in val]
             else:
@@ -326,7 +334,6 @@ class Message(object):
 
             skey = str(key)
             try:
-
                 (vtyp, req, _, _deser, null_allowed) = _spec[key]
             except KeyError:
                 # might be a parameter with a lang tag
@@ -373,7 +380,7 @@ class Message(object):
                 elif _deser:
                     try:
                         self._dict[skey] = _deser(val, sformat="urlencoded")
-                    except Exception, exc:
+                    except Exception as exc:
                         raise DecodeError(ERRTXT % (key, exc))
                 else:
                     setattr(self, skey, [val])
@@ -381,7 +388,7 @@ class Message(object):
                 if _deser:
                     try:
                         val = _deser(val, sformat="dict")
-                    except Exception, exc:
+                    except Exception as exc:
                         raise DecodeError(ERRTXT % (key, exc))
 
                 if issubclass(vtype, Message):
@@ -391,7 +398,7 @@ class Message(object):
                             _val.append(vtype(**dict([(str(x), y) for x, y
                                                       in v.items()])))
                         val = _val
-                    except Exception, exc:
+                    except Exception as exc:
                         raise DecodeError(ERRTXT % (key, exc))
                 else:
                     for v in val:
@@ -412,10 +419,10 @@ class Message(object):
                 if _deser:
                     try:
                         val = _deser(val, sformat="dict")
-                    except Exception, exc:
+                    except Exception as exc:
                         raise DecodeError(ERRTXT % (key, exc))
 
-                if isinstance(val, basestring):
+                if isinstance(val, six.string_types):
                     self._dict[skey] = val
                 elif isinstance(val, list):
                     if len(val) == 1:
@@ -470,124 +477,121 @@ class Message(object):
         if key is None and keyjar is not None:
             key = keyjar.get_verify_key(owner="")
         elif key is None:
-            key = {}
+            key = []
 
-        header = jwt_header(txt)
-        logger.debug("header: %s" % (header,))
+        if keyjar is not None and "sender" in kwargs:
+            key.extend(keyjar.get_verify_key(owner=kwargs["sender"]))
 
-        try:
-            htype = header["typ"]
-        except KeyError:
-            htype = None
-
-        try:
-            _kid = header["kid"]
-        except KeyError:
-            _kid = ""
-
-        jso = None
-        if htype == "JWE" or ("alg" in header and "enc" in header):  # encrypted
-            try:
-                assert kwargs["algs"]["alg"] == header["alg"]
-            except AssertionError:
-                raise WrongEncryptionAlgorithm("%s != %s" % (
-                    kwargs["algs"]["alg"], header["alg"]))
-            except KeyError:
-                pass
-            else:
+        _jw = jwe.factory(txt)
+        if _jw:
+            if "algs" in kwargs and "encalg" in kwargs["algs"]:
                 try:
-                    assert kwargs["algs"]["enc"] == header["enc"]
+                    assert kwargs["algs"]["encalg"] == _jw["alg"]
                 except AssertionError:
                     raise WrongEncryptionAlgorithm("%s != %s" % (
-                        kwargs["algs"]["enc"], header["enc"]))
-                except KeyError:
-                    pass
-
-
+                        _jw["alg"], kwargs["algs"]["encalg"]))
+                try:
+                    assert kwargs["algs"]["encenc"] == _jw["enc"]
+                except AssertionError:
+                    raise WrongEncryptionAlgorithm("%s != %s" % (
+                        _jw["enc"], kwargs["algs"]["encenc"]))
             if keyjar:
                 dkeys = keyjar.get_decrypt_key(owner="")
+            elif key:
+                dkeys = key
             else:
-                dkeys = {}
-            txt = JWE().decrypt(txt, dkeys)
-            try:
-                jso = json.loads(txt)
-            except Exception:
-                pass
+                dkeys = []
 
-        # assume htype == 'JWS'
-        _jws = JWS()
-        if not jso:
-            try:
-                p = jwkest.unpack(txt)
-                header = p[0]
+            txt = _jw.decrypt(txt, dkeys)
+            self.jwe_header = _jw.jwt.headers
+
+        _jw = jws.factory(txt)
+        if _jw:
+            if "algs" in kwargs and "sign" in kwargs["algs"]:
+                _alg = _jw.jwt.headers["alg"]
                 try:
-                    assert kwargs["algs"]["sign"] == header["alg"]
+                    assert kwargs["algs"]["sign"] == _alg
                 except AssertionError:
                     raise WrongSigningAlgorithm("%s != %s" % (
-                        kwargs["algs"]["sign"], header["alg"]))
-                except KeyError:
+                        _alg, kwargs["algs"]["sign"]))
+            try:
+                _jwt = JWT().unpack(txt)
+                jso = _jwt.payload()
+                _header = _jwt.headers
+
+                logger.debug("Raw JSON: {}".format(jso))
+                logger.debug("header: {}".format(_header))
+                if _header["alg"] == "none":
                     pass
-
-                jso = p[1]
-                if isinstance(jso, basestring):
-                    jso = json.loads(jso)
-
-                if keyjar:
-                    if "jku" in header:
-                        if not keyjar.find(header["jku"], jso["iss"]):
-                            # This is really questionable
-                            try:
-                                if kwargs["trusting"]:
-                                    keyjar.add(jso["iss"], header["jku"])
-                            except KeyError:
-                                pass
-
-                    if _kid:
+                else:
+                    if keyjar:
+                        logger.debug("Issuer keys: {}".format(keyjar.keys()))
                         try:
-                            _key = keyjar.get_key_by_kid(_kid, jso["iss"])
-                            if _key:
-                                key.append(_key)
+                            _iss = jso["iss"]
+                        except KeyError:
+                            pass
+                        else:
+                            if "jku" in _header:
+                                if not keyjar.find(_header["jku"], _iss):
+                                    # This is really questionable
+                                    try:
+                                        if kwargs["trusting"]:
+                                            keyjar.add(jso["iss"], _header["jku"])
+                                    except KeyError:
+                                        pass
+
+                            if "kid" in _header and _header["kid"]:
+                                _jw["kid"] = _header["kid"]
+                                try:
+                                    _key = keyjar.get_key_by_kid(_header["kid"],
+                                                                 _iss)
+                                    if _key:
+                                        key.append(_key)
+                                except KeyError:
+                                    pass
+
+                        try:
+                            self._add_key(keyjar, kwargs["opponent_id"], key)
                         except KeyError:
                             pass
 
-                    try:
-                        self._add_key(keyjar, kwargs["opponent_id"], key)
-                    except KeyError:
-                        pass
-
-                if verify:
-                    if keyjar:
-                        for ent in ["iss", "aud", "client_id"]:
-                            if ent not in jso:
-                                continue
-                            if ent == "aud":
-                                # list or basestring
-                                if isinstance(jso["aud"], basestring):
-                                    _aud = [jso["aud"]]
+                    if verify:
+                        if keyjar:
+                            for ent in ["iss", "aud", "client_id"]:
+                                if ent not in jso:
+                                    continue
+                                if ent == "aud":
+                                    # list or basestring
+                                    if isinstance(jso["aud"], six.string_types):
+                                        _aud = [jso["aud"]]
+                                    else:
+                                        _aud = jso["aud"]
+                                    for _e in _aud:
+                                        self._add_key(keyjar, _e, key)
                                 else:
-                                    _aud = jso["aud"]
-                                for _e in _aud:
-                                    self._add_key(keyjar, _e, key)
-                            else:
-                                self._add_key(keyjar, jso[ent], key)
+                                    self._add_key(keyjar, jso[ent], key)
 
-                    if "alg" in header and header["alg"] != "none":
-                        if not key:
-                            raise MissingSigningKey("alg=%s" % header["alg"])
+                        if "alg" in _header and _header["alg"] != "none":
+                            if not key:
+                                raise MissingSigningKey(
+                                    "alg=%s" % _header["alg"])
 
-                    _jws.verify_compact(txt, key)
+                        logger.debug("Verify keys: {}".format(key))
+                        _jw.verify_compact(txt, key)
             except Exception:
                 raise
+            else:
+                self.jws_header = _jwt.headers
+        else:
+            jso = json.loads(txt)
 
-        self.jwt_header = header
         return self.from_dict(jso)
 
     def __str__(self):
-        #return self.to_urlencoded()
         return '{}'.format(self.to_dict())
 
     def _type_check(self, typ, _allowed, val, na=False):
-        if typ is basestring:
+        if typ is six.string_types:
             if val not in _allowed:
                 raise NotAllowedValue(val)
         elif typ is int:
@@ -664,6 +668,9 @@ class Message(object):
     def items(self):
         return self._dict.items()
 
+    def values(self):
+        return self._dict.values()
+
     def __contains__(self, item):
         return item in self._dict
 
@@ -737,10 +744,26 @@ class Message(object):
         krs = keyitems2keyreps(keys)
         jwe = JWE()
         _res = jwe.decrypt(msg, krs)
-        return self.from_json(_res[0])
+        return self.from_json(_res[0].decode())
 
     def copy(self):
         return copy.deepcopy(self)
+
+    def weed(self):
+        """
+        Get rid of key value pairs that are not standard
+        """
+        _ext = [k for k in self._dict.keys() if k not in self.c_param]
+        for k in _ext:
+            del self._dict[k]
+
+    def rm_blanks(self):
+        """
+        Get rid of parameters that has no value.
+        """
+        _blanks = [k for k in self._dict.keys() if not self._dict[k]]
+        for key in _blanks:
+            del self._dict[key]
 
 
 # =============================================================================
@@ -761,7 +784,7 @@ def add_non_standard(msg1, msg2):
 
 # noinspection PyUnusedLocal
 def list_serializer(vals, sformat="urlencoded", lev=0):
-    if isinstance(vals, basestring) or not isinstance(vals, list):
+    if isinstance(vals, six.string_types) or not isinstance(vals, list):
         raise ValueError("Expected list: %s" % vals)
     if sformat == "urlencoded":
         return " ".join(vals)
@@ -772,7 +795,7 @@ def list_serializer(vals, sformat="urlencoded", lev=0):
 # noinspection PyUnusedLocal
 def list_deserializer(val, sformat="urlencoded"):
     if sformat == "urlencoded":
-        if isinstance(val, basestring):
+        if isinstance(val, six.string_types):
             return val.split(" ")
         elif isinstance(val, list) and len(val) == 1:
             return val[0].split(" ")
@@ -780,17 +803,17 @@ def list_deserializer(val, sformat="urlencoded"):
         return val
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def sp_sep_list_serializer(vals, sformat="urlencoded", lev=0):
-    if isinstance(vals, basestring):
+    if isinstance(vals, six.string_types):
         return vals
     else:
         return " ".join(vals)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def sp_sep_list_deserializer(val, sformat="urlencoded"):
-    if isinstance(val, basestring):
+    if isinstance(val, six.string_types):
         return val.split(" ")
     elif isinstance(val, list) and len(val) == 1:
         return val[0].split(" ")
@@ -798,12 +821,12 @@ def sp_sep_list_deserializer(val, sformat="urlencoded"):
         return val
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def json_serializer(obj, sformat="urlencoded", lev=0):
     return json.dumps(obj)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def json_deserializer(txt, sformat="urlencoded"):
     return json.loads(txt)
 
@@ -865,7 +888,6 @@ class AccessTokenRequest(Message):
     c_param = {"grant_type": SINGLE_REQUIRED_STRING,
                "code": SINGLE_REQUIRED_STRING,
                "redirect_uri": SINGLE_REQUIRED_STRING,
-               #"scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
                "client_id": SINGLE_OPTIONAL_STRING,
                "client_secret": SINGLE_OPTIONAL_STRING}
     c_default = {"grant_type": "authorization_code"}
@@ -966,10 +988,3 @@ def factory(msgtype):
         return MSG[msgtype]
     except KeyError:
         raise FormatError("Unknown message type: %s" % msgtype)
-
-
-if __name__ == "__main__":
-    foo = AccessTokenRequest(grant_type="authorization_code",
-                             code="foo",
-                             redirect_uri="http://example.com/cb")
-    print foo

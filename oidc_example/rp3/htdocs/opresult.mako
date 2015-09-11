@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 
 <%!
-    import htmlentitydefs
-    import re, string
+    from html import entities as htmlentitydefs
+    import re
 
     # this pattern matches substrings of reserved and non-ASCII characters
     pattern = re.compile(r"[&<>\"\x80-\xff]+")
@@ -14,11 +14,11 @@
         entity_map[chr(i)] = "&#%d;" % i
 
     for entity, char in htmlentitydefs.entitydefs.items():
-        if entity_map.has_key(char):
+        if char in entity_map:
             entity_map[char] = "&%s;" % entity
 
     def escape_entity(m, get=entity_map.get):
-        return string.join(map(get, m.group()), "")
+        return "".join(map(get, m.group()))
 
     def escape(string):
         return pattern.sub(escape_entity, string)
@@ -31,8 +31,8 @@
 
         for key, value in userinfo.items():
             element += "<div class='row'>"
-            element += "<div class='col-md-3'>" +  escape(unicode(key).encode("utf-8")) + "</div>"
-            element += "<div class='col-md-7'>" + escape(unicode(value).encode("utf-8")) + "</div>"
+            element += "<div class='col-md-3'>" +  escape(str(key)) + "</div>"
+            element += "<div class='col-md-7'>" + escape(str(value)) + "</div>"
             element += "</div>"
         return element
 %>
@@ -82,6 +82,14 @@
 
 </div>
 <!-- /container -->
+
+
+% if check_session_iframe_url is not UNDEFINED:
+    <iframe id="rp_iframe" src="/session_iframe" hidden></iframe>
+    <iframe id="op_iframe" src="${check_session_iframe_url}" hidden></iframe>
+% endif
+
+
 <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
 <script src="/static/jquery.min.1.9.1.js"></script>
 <!-- Include all compiled plugins (below), or include individual files as needed -->

@@ -1,48 +1,40 @@
-from mako.lookup import TemplateLookup
-from oic.oauth2 import rndstr
+import json
+import time
+
+import pytest
+
+from six.moves.urllib.parse import urlparse, parse_qs
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
-from oic.utils.http_util import Response
-
-from oic.oauth2.message import AuthorizationRequest
+from oic.oauth2.message import AuthorizationRequest, AuthorizationResponse
 from oic.oauth2.message import AccessTokenRequest
 from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import TokenErrorResponse
-
 from oic.utils import sdb
 from oic.oauth2.consumer import Consumer
 from oic.oauth2.provider import Provider
-
 from utils_for_tests import _eq
 
 CLIENT_CONFIG = {
     "client_id": "client1",
-    "ca_certs": "/usr/local/etc/oic/ca_certs.txt",
 }
 
 CONSUMER_CONFIG = {
     "authz_page": "/authz",
     "flow_type": "code",
-    #"password": args.passwd,
     "scope": [],
     "response_type": "code",
-    #"expire_in": 600,
 }
 
+ISSUER = "https://connect-op.heroku.com"
 SERVER_INFO = {
     "version": "3.0",
-    "issuer": "https://connect-op.heroku.com",
+    "issuer": ISSUER,
     "authorization_endpoint": "http://localhost:8088/authorization",
     "token_endpoint": "http://localhost:8088/token",
-    #"userinfo_endpoint":"http://localhost:8088/user_info",
-    #"check_id_endpoint":"http://localhost:8088/id_token",
-    #"registration_endpoint":"https://connect-op.heroku.com/connect/client",
-    #"scopes_supported":["openid","profile","email","address","PPID"],
     "flows_supported": ["code", "token", "code token"],
-    #"identifiers_supported":["public","ppid"],
-    #"x509_url":"https://connect-op.heroku.com/cert.pem"
 }
 
 CDB = {
@@ -56,13 +48,6 @@ CDB = {
     }
 }
 
-PASSWD = {"user": "password"}
-
-ROOT = '../oc3/'
-tl = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
-                    module_directory=ROOT + 'modules',
-                    input_encoding='utf-8', output_encoding='utf-8')
-
 
 class DummyAuthn(UserAuthnMethod):
     def __init__(self, srv, user):
@@ -70,178 +55,136 @@ class DummyAuthn(UserAuthnMethod):
         self.user = user
 
     def authenticated_as(self, cookie=None, **kwargs):
-        return {"uid": self.user}
+        return {"uid": self.user}, time.time()
+
 
 AUTHN_BROKER = AuthnBroker()
 AUTHN_BROKER.add("UNDEFINED", DummyAuthn(None, "username"))
-
 # dealing with authorization
 AUTHZ = Implicit()
 
 
-def content_type(headers):
-    for key, val in headers:
-        if key == "Content-type":
-            if val == "application/json":
-                return "json"
+class TestProvider(object):
+    @pytest.fixture(autouse=True)
+    def create_provider(self):
+        self.provider = Provider("pyoicserv",
+                                 sdb.SessionDB(ISSUER), CDB,
+                                 AUTHN_BROKER, AUTHZ, verify_client)
 
+    def test_init(self):
+        provider = Provider("pyoicserv", sdb.SessionDB(ISSUER),
+                            CDB,
+                            AUTHN_BROKER, AUTHZ, verify_client)
+        assert provider
 
-def test_provider_init():
-    provider = Provider("pyoicserv", sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
-                        AUTHN_BROKER, AUTHZ, verify_client)
+        provider = Provider("pyoicserv", sdb.SessionDB(ISSUER),
+                            CDB,
+                            AUTHN_BROKER, AUTHZ, verify_client,
+                            urlmap={"client1": ["https://example.com/authz"]})
+        assert provider.urlmap["client1"] == ["https://example.com/authz"]
 
-    assert provider
+    def test_authorization_endpoint_faulty_redirect_uri(self):
+        bib = {"scope": ["openid"],
+               "state": "id-6da9ca0cc23959f5f33e8becd9b08cae",
+               "redirect_uri": "http://localhost:8087/authz",
+               # faulty redirect uri
+               "response_type": ["code"],
+               "client_id": "a1b2c3"}
 
-    provider = Provider("pyoicserv", sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
-                        AUTHN_BROKER, AUTHZ, verify_client,
-                        urlmap={"client1": ["https://example.com/authz"]})
+        arq = AuthorizationRequest(**bib)
+        resp = self.provider.authorization_endpoint(request=arq.to_urlencoded())
+        assert resp.status == "400 Bad Request"
+        msg = json.loads(resp.message)
+        assert msg["error"] == "invalid_request"
 
-    assert provider.urlmap["client1"] == ["https://example.com/authz"]
+    def test_authenticated(self):
+        _session_db = {}
+        cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
+                        server_info=SERVER_INFO, **CONSUMER_CONFIG)
 
+        sid, location = cons.begin("http://localhost:8087",
+                                   "http://localhost:8088/authorization")
 
-def test_provider_authorization_endpoint():
-    provider = Provider("pyoicserv", sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
-                        AUTHN_BROKER, AUTHZ, verify_client)
+        resp = self.provider.authorization_endpoint(urlparse(location).query)
+        assert resp.status == "302 Found"
+        resp = urlparse(resp.message).query
+        aresp = cons.handle_authorization_response(query=resp)
 
-    bib = {"scope": ["openid"],
-           "state": "id-6da9ca0cc23959f5f33e8becd9b08cae",
-           "redirect_uri": "http://localhost:8087authz",
-           "response_type": ["code"],
-           "client_id": "a1b2c3"}
+        assert isinstance(aresp, AuthorizationResponse)
+        assert _eq(aresp.keys(), ['state', 'code'])
+        assert _eq(cons.grant[sid].keys(), ['tokens', 'code', 'exp_in',
+                                            'seed', 'id_token',
+                                            'grant_expiration_time'])
 
-    arq = AuthorizationRequest(**bib)
+    def test_authenticated_token(self):
+        _session_db = {}
+        cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
+                        server_info=SERVER_INFO, **CONSUMER_CONFIG)
 
-    QUERY_STRING = arq.to_urlencoded()
+        sid, location = cons.begin("http://localhost:8087",
+                                   "http://localhost:8088/authorization",
+                                   "token")
 
-    resp = provider.authorization_endpoint(request=QUERY_STRING)
+        QUERY_STRING = location.split("?")[1]
+        resp = self.provider.authorization_endpoint(QUERY_STRING)
+        auth_resp = parse_qs(urlparse(resp.message).fragment)
 
-    assert isinstance(resp, Response)
+        assert "access_token" in auth_resp
+        assert auth_resp["token_type"][0] == "Bearer"
 
+    def test_token_endpoint(self):
+        authreq = AuthorizationRequest(state="state",
+                                       redirect_uri="http://example.com/authz",
+                                       client_id="client1")
 
-def test_provider_authenticated():
-    provider = Provider("pyoicserv", sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
-                        AUTHN_BROKER, AUTHZ, verify_client, symkey=rndstr(16))
-    _session_db = {}
-    cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
-                    server_info=SERVER_INFO, **CONSUMER_CONFIG)
-    cons.debug = True
+        _sdb = self.provider.sdb
+        sid = _sdb.token.key(user="sub", areq=authreq)
+        access_grant = _sdb.token(sid=sid)
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "sub": "sub",
+            "authzreq": "",
+            "client_id": "client1",
+            "code": access_grant,
+            "code_used": False,
+            "redirect_uri": "http://example.com/authz"
+        }
 
-    sid, location = cons.begin("http://localhost:8087",
-                               "http://localhost:8088/authorization")
+        # Construct Access token request
+        areq = AccessTokenRequest(code=access_grant,
+                                  redirect_uri="http://example.com/authz",
+                                  client_id="client1",
+                                  client_secret="hemlighet", )
 
-    query_string = location.split("?")[1]
+        resp = self.provider.token_endpoint(request=areq.to_urlencoded())
+        atr = AccessTokenResponse().deserialize(resp.message, "json")
+        assert _eq(atr.keys(), ['access_token', 'expires_in', 'token_type',
+                                'refresh_token'])
 
-    resp = provider.authorization_endpoint(query_string)
-    assert resp.status == "302 Found"
-    print resp.headers
-    print resp.message
-    if content_type(resp.headers) == "json":
-        resp = resp.message
-    else:
-        resp = resp.message.split("?")[1]
-    aresp = cons.handle_authorization_response(query=resp)
+    def test_token_endpoint_unauth(self):
+        authreq = AuthorizationRequest(state="state",
+                                       redirect_uri="http://example.com/authz",
+                                       client_id="client1")
 
-    print aresp.keys()
-    assert aresp.type() == "AuthorizationResponse"
-    assert _eq(aresp.keys(), ['state', 'code'])
+        _sdb = self.provider.sdb
+        sid = _sdb.token.key(user="sub", areq=authreq)
+        access_grant = _sdb.token(sid=sid)
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "sub": "sub",
+            "authzreq": "",
+            "client_id": "client1",
+            "code": access_grant,
+            "code_used": False,
+            "redirect_uri": "http://example.com/authz"
+        }
 
-    print cons.grant[sid].keys()
-    assert _eq(cons.grant[sid].keys(), ['tokens', 'code', 'exp_in',
-                                               'seed', 'id_token',
-                                               'grant_expiration_time'])
+        # Construct Access token request
+        areq = AccessTokenRequest(code=access_grant,
+                                  redirect_uri="http://example.com/authz",
+                                  client_id="client2",
+                                  client_secret="hemlighet", )
 
-
-def test_provider_authenticated_token():
-    provider = Provider("pyoicserv", sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
-                        AUTHN_BROKER, AUTHZ, verify_client, symkey=rndstr(16))
-    _session_db = {}
-    cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
-                    server_info=SERVER_INFO, **CONSUMER_CONFIG)
-    cons.debug = True
-
-    sid, location = cons.begin("http://localhost:8087",
-                               "http://localhost:8088/authorization",
-                               "token")
-
-    QUERY_STRING = location.split("?")[1]
-    resp = provider.authorization_endpoint(QUERY_STRING)
-    print resp.headers
-    print resp.message
-    txt = resp.message
-    assert "access_token=" in txt
-    assert "token_type=Bearer" in txt
-
-
-
-def test_token_endpoint():
-    provider = Provider("pyoicserv", sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
-                        AUTHN_BROKER, AUTHZ, verify_client, symkey=rndstr(16))
-
-    authreq = AuthorizationRequest(state="state",
-                                   redirect_uri="http://example.com/authz",
-                                   client_id="client1")
-
-    _sdb = provider.sdb
-    sid = _sdb.token.key(user="sub", areq=authreq)
-    access_grant = _sdb.token(sid=sid)
-    _sdb[sid] = {
-        "oauth_state": "authz",
-        "sub": "sub",
-        "authzreq": "",
-        "client_id": "client1",
-        "code": access_grant,
-        "code_used": False,
-        "redirect_uri": "http://example.com/authz"
-    }
-
-    # Construct Access token request
-    areq = AccessTokenRequest(code=access_grant,
-                              redirect_uri="http://example.com/authz",
-                              client_id="client1", client_secret="hemlighet",)
-
-    print areq.to_dict()
-    resp = provider.token_endpoint(request=areq.to_urlencoded())
-    print resp.message
-    atr = AccessTokenResponse().deserialize(resp.message, "json")
-
-    print atr.keys()
-    assert _eq(atr.keys(), ['access_token', 'expires_in', 'token_type',
-                            'refresh_token'])
-
-
-def test_token_endpoint_unauth():
-    provider = Provider("pyoicserv", sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
-                        AUTHN_BROKER, AUTHZ,
-                        verify_client, symkey=rndstr(16))
-
-    authreq = AuthorizationRequest(state="state",
-                                   redirect_uri="http://example.com/authz",
-                                   client_id="client1")
-
-    _sdb = provider.sdb
-    sid = _sdb.token.key(user="sub", areq=authreq)
-    access_grant = _sdb.token(sid=sid)
-    _sdb[sid] = {
-        "oauth_state": "authz",
-        "sub": "sub",
-        "authzreq": "",
-        "client_id": "client1",
-        "code": access_grant,
-        "code_used": False,
-        "redirect_uri": "http://example.com/authz"
-    }
-
-    # Construct Access token request
-    areq = AccessTokenRequest(code=access_grant,
-                              redirect_uri="http://example.com/authz",
-                              client_id="client2", client_secret="hemlighet",)
-
-    print areq.to_dict()
-    resp = provider.token_endpoint(request=areq.to_urlencoded())
-    print resp.message
-    atr = TokenErrorResponse().deserialize(resp.message, "json")
-    print atr.keys()
-    assert _eq(atr.keys(), ['error_description', 'error'])
-
-if __name__ == "__main__":
-    test_provider_authenticated()
+        resp = self.provider.token_endpoint(request=areq.to_urlencoded())
+        atr = TokenErrorResponse().deserialize(resp.message, "json")
+        assert _eq(atr.keys(), ['error_description', 'error'])

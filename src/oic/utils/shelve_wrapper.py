@@ -1,53 +1,54 @@
 from shelve import Shelf
-import anydbm
 import shelve
+
+try:
+    import dbm as anydbm
+except ImportError:
+    import anydbm
 
 __author__ = 'danielevertsson'
 
-class ShelfWrapper(Shelf):
 
-    def __init__(self, filename, flag='c', protocol=None, writeback=False):
+class ShelfWrapper(object):
+    def __init__(self, filename):
         self.filename = filename
-        self.flag = flag
-
-        Shelf.__init__(self, anydbm.open(filename, flag), protocol, writeback)
 
     def keys(self):
-        dict = self._reopen_database()
-        return dict.keys()
+        db = self._reopen_database()
+        return db.keys()
 
     def __len__(self):
-        dict = self._reopen_database()
-        return dict.__len__()
+        db = self._reopen_database()
+        return db.__len__()
 
     def has_key(self, key):
-        dict = self._reopen_database()
-        return dict.has_key(key)
+        return key in self
 
     def __contains__(self, key):
-        dict = self._reopen_database()
-        return dict.__contains__(key)
+        db = self._reopen_database()
+        return db.__contains__(key)
 
     def get(self, key, default=None):
-        dict = self._reopen_database()
-        return dict.get(key, default)
+        db = self._reopen_database()
+        return db.get(key, default)
 
     def __getitem__(self, key):
-        dict = self._reopen_database()
-        return dict.__getitem__(key)
+        db = self._reopen_database()
+        return db.__getitem__(key)
 
     def __setitem__(self, key, value):
-        dict = self._reopen_database()
-        dict.__setitem__(key, value)
+        db = self._reopen_database()
+        db.__setitem__(key, value)
 
     def __delitem__(self, key):
-        dict = self._reopen_database()
-        dict.__delitem__(key)
+        db = self._reopen_database()
+        db.__delitem__(key)
 
     def _reopen_database(self):
         return shelve.open(self.filename, writeback=True)
 
-def open(filename, flag='c', protocol=None, writeback=False):
+
+def open(filename):
     """Open a persistent dictionary for reading and writing.
 
     The filename parameter is the base filename for the underlying
@@ -60,4 +61,4 @@ def open(filename, flag='c', protocol=None, writeback=False):
     See the module's __doc__ string for an overview of the interface.
     """
 
-    return ShelfWrapper(filename, flag, protocol, writeback)
+    return ShelfWrapper(filename)
