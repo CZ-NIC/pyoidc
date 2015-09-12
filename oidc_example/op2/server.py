@@ -389,7 +389,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Client data base
-    cdb = shelve_wrapper.open("client_db", writeback=True)
+    cdb = shelve_wrapper.open("client_db")
 
     sys.path.insert(0, ".")
     config = importlib.import_module(args.config)
