@@ -1195,7 +1195,7 @@ class Client(oauth2.Client):
         except AssertionError:
             raise OtherError("issuer != iss")
 
-        _now = time_util.utc_now()
+        _now = time_util.utc_time_sans_frac()
 
         try:
             assert _now < id_token["exp"]
@@ -1475,7 +1475,7 @@ class Server(oauth2.Server):
         idt = IdToken(iss=issuer, sub=session["sub"],
                       aud=session["client_id"],
                       exp=time_util.epoch_in_a_while(**inawhile), acr=loa,
-                      iat=time_util.utc_now(),
+                      iat=time_util.utc_time_sans_frac(),
                       **_args)
 
         for key, val in extra.items():
