@@ -298,7 +298,7 @@ def add_endpoints(extra):
     global URLS
 
     for endp in extra:
-        URLS.append(("^%s" % endp.etype, endp))
+        URLS.append(("^%s" % endp.etype, endp.func))
 
 # ----------------------------------------------------------------------------
 

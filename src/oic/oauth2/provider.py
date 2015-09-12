@@ -53,14 +53,17 @@ LOG_DEBUG = logger.debug
 
 
 class Endpoint(object):
-    '''
+    """
     Endpoint class
 
     @var etype: Endpoint type
     @url: Relative part of the url (will be joined with server.baseurl)
-    '''
+    """
     etype = ""
     url = ""
+
+    def __init__(self, func=None):
+        self.func = func
 
 
 class AuthorizationEndpoint(Endpoint):
@@ -71,6 +74,12 @@ class AuthorizationEndpoint(Endpoint):
 class TokenEndpoint(Endpoint):
     etype = "token"
     url = "token"
+
+
+def endpoint_ava(endp, baseurl):
+    key = '{}_endpoint'.format(endp.etype)
+    val = urlparse.urljoin(baseurl, endp.url)
+    return {key: val}
 
 
 def code_response(**kwargs):
