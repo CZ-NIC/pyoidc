@@ -604,8 +604,6 @@ class TestServer(object):
         assert request["nonce"] == "af0ifjsldkj"
         assert "email" in request["claims"]["userinfo"]
 
-    @pytest.mark.xfail(sys.version_info <= (3, 0),
-                       reason="pyjweskt dependency not updated")
     def test_make_id_token(self):
         self.srv.keyjar["http://oic.example/rp"] = KC_RSA
 

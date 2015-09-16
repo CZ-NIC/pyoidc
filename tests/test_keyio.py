@@ -102,8 +102,8 @@ def test_key_export():
     assert url == "http://example.com/keys/outbound/jwks"
 
 
-def test_rsa_init():
-    path = "."
+def test_rsa_init(tmpdir):
+    path = tmpdir.strpath
     res = rsa_init({'use': ['enc'], 'type': 'RSA', 'size': 1024,
                     'name': os.path.join(path, "rsa_enc")})
     assert res
