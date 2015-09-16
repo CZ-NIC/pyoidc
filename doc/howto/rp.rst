@@ -19,7 +19,7 @@ consists of a sequence of request-responses, namely these:
 * Issuer discovery using WebFinger
 * Provider Info discovery
 * Client registration
-* Authorization Request
+* Authentication Request
 * Access Token Request
 * Userinfo Request
 
@@ -243,7 +243,7 @@ Given you have all that, you now can send the request::
     }
 
     auth_req = self.client.construct_AuthorizationRequest(request_args=request_args)
-    login_url = client.authorization_endpoint + "?" + auth_req.to_urlencoded()
+    login_url = auth_req.request(client.authorization_endpoint)
 
     return Redirect(login_url)
 
@@ -276,7 +276,7 @@ You can parse this response by doing::
 
 *aresp* is an instance of an AuthorizationResponse or an ErrorResponse.
 The later if an error was return from the OP.
-Among other things you should get back in the authorization response is
+Among other things you should get back in the authentication response is
 the same state value as you used
 when sending the request. If you used the response_type='code' then you
 should also receive a grant code which you then can use to get the access
@@ -296,7 +296,7 @@ token::
                                           )
 
 
-'scope' has to be the same as in the authorization request.
+'scope' has to be the same as in the authentication request.
 
 If you don't specify a specific client authentication method, then
 *client_secret_basic* is used.
@@ -312,7 +312,7 @@ in the client instance with *state* as the key for future use.
 One if the items in the response will be the ID Token which contains information
 about the authentication.
 One parameter (or claim as its also called) is the nonce you provide with
-the authorization request.
+the authentication request.
 
 And then the final request, the user info request::
 
@@ -342,14 +342,14 @@ So::
         "client_id": client.client_id,
         "response_type": ["id_token", "token"],
         "scope": ["openid"],
+        "state": session["state"],
         "nonce": session["nonce"],
         "redirect_uri": client.redirect_uris[0]
     }
 
 
-    auth_req = self.client.construct_AuthorizationRequest(state=session["state"],
-                                                          request_args=args)
-    login_url = client.authorization_endpoint + "?" + auth_req.to_urlencoded()
+    auth_req = self.client.construct_AuthorizationRequest(request_args=args)
+    login_url = auth_req.request(client.authorization_endpoint)
 
     return Redirect(login_url)
 
@@ -377,4 +377,4 @@ information.
 Using Implicit Flow instead of Authorization Code Flow will save you a
 round trip but at the same time you will get an access token and no
 refresh_token. So in order to get a new access token you have to perform another
-authorization request.
+authentication request.

@@ -86,6 +86,8 @@ For installing pyOIDC you will need
 * pyjwkest
 * pysaml2
 * dirg-util
+* ffi headers (`apt-get libffi-dev` in Ubuntu)
+* sasl headers (`apt-get libsasl2-dev` in Ubuntu)
 
 To build the documentation you will need
 
