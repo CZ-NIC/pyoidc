@@ -400,6 +400,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
             "request_uri": SINGLE_OPTIONAL_STRING,
             # "session_state": SINGLE_OPTIONAL_STRING,
             "response_mode": SINGLE_OPTIONAL_STRING,
+            "software_statement": SINGLE_OPTIONAL_STRING,
         }
     )
     c_allowed_values = message.AuthorizationRequest.c_allowed_values.copy()
@@ -571,6 +572,7 @@ class RegistrationRequest(Message):
         # "client_secret": SINGLE_OPTIONAL_STRING,
         # "access_token": SINGLE_OPTIONAL_STRING,
         "post_logout_redirect_uris": OPTIONAL_LIST_OF_STRINGS,
+        "software_statement": SINGLE_OPTIONAL_STRING,
     }
     c_default = {"application_type": "web"}
     c_allowed_values = {"application_type": ["native", "web"],

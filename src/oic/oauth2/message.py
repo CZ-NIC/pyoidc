@@ -151,7 +151,7 @@ class Message(object):
         """
 
         _spec = self.c_param
-        if not self.lax:
+        if not self.lax and "software_statement" not in self._dict:
             for attribute, (_, req, _ser, _, na) in _spec.items():
                 if req and attribute not in self._dict:
                     raise MissingRequiredAttribute("%s" % attribute,

@@ -1119,7 +1119,7 @@ class Client(oauth2.Client):
             except AttributeError:
                 pass
 
-        if "redirect_uris" not in req:
+        if "redirect_uris" not in req and "software_statement" not in req:
             try:
                 req["redirect_uris"] = self.redirect_uris
             except AttributeError:
