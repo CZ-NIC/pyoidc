@@ -583,7 +583,8 @@ class Provider(object):
                         else:
                             return authn(**authn_args)
 
-        authn_event = AuthnEvent(identity["uid"], identity.get('salt', ''), authn_info=authn_class_ref,
+        authn_event = AuthnEvent(identity["uid"], identity.get('salt', ''),
+                                 authn_info=authn_class_ref,
                                  time_stamp=_ts)
 
         return {"authn_event": authn_event, "identity": identity, "user": user}
