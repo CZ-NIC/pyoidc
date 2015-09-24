@@ -5,7 +5,7 @@ import pytest
 
 from oic.oauth2 import MissingSigningKey
 from oic.oic import AuthorizationResponse
-from oic.utils.keyio import key_export, rsa_init
+from oic.utils.keyio import key_export, rsa_init, build_keyjar
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import keybundle_from_local_file
@@ -123,6 +123,22 @@ def test_keybundle_from_local_jwk_file():
     assert isinstance(key, RSAKey)
     assert key.kid == "abc"
 
+
+def test_build_keyjar():
+    keys = [
+        {"type": "RSA", "use": ["enc", "sig"]},
+        {"type": "EC", "crv": "P-256", "use": ["sig"]},
+    ]
+
+    jwks, keyjar, kidd = build_keyjar(keys)
+    for key in jwks["keys"]:
+        assert "d" not in key  # the JWKS shouldn't contain the private part of the keys
+
+    assert len(keyjar[""]) == 2
+
+    assert "RSA" in kidd["enc"]
+    assert "RSA" in kidd["sig"]
+    assert "EC" in kidd["sig"]
 
 class TestKeyBundle(object):
     def test_update(self):
@@ -266,6 +282,7 @@ class TestKeyJar(object):
             authz_resp.verify(keyjar=kj)
         except MissingSigningKey:
             authz_resp.verify(keyjar=kj, sender=ISSUER)
+
 
 if __name__ == "__main__":
     test_rsa_init()
