@@ -4,6 +4,7 @@ import hmac
 import itertools
 import json
 import logging
+import os
 import random
 import socket
 import sys
@@ -1503,7 +1504,7 @@ class Provider(AProvider):
 
         for endp in self.endp:
             # _log_info("# %s, %s" % (endp, endp.name))
-            _provider_info['{}_endpoint'.format(endp.etype)] = urlparse.urljoin(
+            _provider_info['{}_endpoint'.format(endp.etype)] = os.path.join(
                 self.baseurl,
                 endp.url)
 
