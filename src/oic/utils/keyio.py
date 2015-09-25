@@ -623,6 +623,12 @@ class KeyJar(object):
 
         return res
 
+    def export_jwks(self):
+        keys = []
+        for kb in self.issuer_keys[""]:
+            keys.extend([k.serialize() for k in kb.keys()])
+        return {"keys": keys}
+
     def dump(self):
         res = {}
         for issuer in self.issuer_keys.keys():
@@ -868,7 +874,9 @@ def build_keyjar(key_conf, kid_template="a%d", keyjar=None, kidd=None):
 
     :param key_conf: The key configuration
     :param kid_template: A template by which to build the kids
-    :return: a JWKS
+    :return: a tuple consisting of a JWKS dictionary, a KeyJar instance
+        and a representation of which kids that can be used for what.
+        Note the JWKS contains private key information !!
     """
 
     if keyjar is None:
