@@ -58,6 +58,7 @@ PASSWD = {
     "upper": "crust"
 }
 
+JWKS_FILE_NAME = "static/jwks.json"
 
 # ----------------------------------------------------------------------------
 
@@ -254,8 +255,14 @@ def check_session_iframe(environ, start_response, logger):
 
 def key_rollover(environ, start_response, _):
     # expects a post containing the necessary information
-    _jwks = json.loads(get_post(environ))
+    _txt = get_post(environ)
+    _jwks = json.loads(_txt)
+    logger.info("Key rollover to")
     OAS.do_key_rollover(_jwks, "key_%d_%%d" % int(time.time()))
+    # Dump to file
+    f = open(JWKS_FILE_NAME, "w")
+    f.write(json.dumps(OAS.keyjar.export_jwks()))
+    f.close()
     resp = Response("OK")
     return resp(environ, start_response)
 
@@ -583,16 +590,16 @@ if __name__ == '__main__':
         LOGGER.error("Key setup failed: %s" % err)
         OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
     else:
-        new_name = "static/jwks.json"
-        f = open(new_name, "w")
-        
+        jwks_file_name = JWKS_FILE_NAME
+        f = open(jwks_file_name, "w")
+
         for key in jwks["keys"]:
             for k in key.keys():
                 key[k] = as_unicode(key[k])
-        
+
         f.write(json.dumps(jwks))
         f.close()
-        OAS.jwks_uri.append("%s%s" % (OAS.baseurl, new_name))
+        OAS.jwks_uri.append("%s%s" % (OAS.baseurl, jwks_file_name))
 
     for b in OAS.keyjar[""]:
         LOGGER.info("OC3 server keys: %s" % b)
