@@ -702,7 +702,7 @@ class Client(oauth2.Client):
 
             if token.is_valid():
                 uir["access_token"] = token.access_token
-                if token.token_type == "Bearer" and method == "GET":
+                if token.token_type.lower() == "bearer" and method == "GET":
                     kwargs["behavior"] = "use_authorization_header"
             else:
                 # raise oauth2.OldAccessToken
@@ -734,7 +734,7 @@ class Client(oauth2.Client):
                     raise MissingParameter("Unspecified token type")
 
             # use_authorization_header, token_in_message_body
-            if "use_authorization_header" in _behav and _ttype == "Bearer":
+            if "use_authorization_header" in _behav and _ttype.lower() == "bearer":
                 bh = "Bearer %s" % _token
                 if "headers" in kwargs:
                     kwargs["headers"].update({"Authorization": bh})
