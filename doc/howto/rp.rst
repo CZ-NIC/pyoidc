@@ -13,7 +13,7 @@ library.
 There are a couple of choices you have to make, but we'll take that as
 we walk through the message flow.
 
-Before I start you should now that the basic code flow in OpenID Connect
+Before I start you should know that the basic code flow in OpenID Connect
 consists of a sequence of request-responses, namely these:
 
 * Issuer discovery using WebFinger
@@ -33,38 +33,38 @@ So lets start with instantiating a client::
 
     c = Client(client_authn_method=CLIENT_AUTHN_METHOD)
 
-The first choices is really not yours it's the OpenID Connect Provider (OP)
+The first choices is really not yours. It's the OpenID Connect Provider (OP)
 that has to decide on whether it supports dynamic provider information
 gathering and/or dynamic client registration.
 
-If the OP doesn't support client registration then you have to static register
+If the OP doesn't support client registration then you have to statically register
 your client with the provider. Typically this is accomplished using a web
 page provided by the organization that runs the OP. Can't help
 you with this since each provider does it differently. What you eventually
-must get from the service provide is a client id and a client secret.
+must get from the provider is a client id and a client secret.
 
-If the service provider does not support dynamic OP information lookup, then
+If the provider does not support dynamic OP information lookup, then
 the necessary information will probably appear on some web page somewhere.
-Again look to the service provider. Going through the dynamic process below
+Again, turn to the provider. Going through the dynamic process below
 you will learn what information to look for.
 
 Issuer discovery
 ----------------
 
-OIDC uses webfinger (http://tools.ietf.org/html/rfc7033)to do the OP discovery.
+OIDC uses webfinger (http://tools.ietf.org/html/rfc7033)to to do the OP discovery.
 In very general terms this means
 that the user that accesses the RP provides an identifier. There are a number
-of different syntaxes that this identifier can adhere to. The most common
-probably the e-mail address syntax. It's something the looks like an e-mail
+of different syntaxes that this identifier can adhere to. The most common is
+probably the e-mail address syntax. It's something that looks like an e-mail
 address (local@domain) but not necessarily is one.
 
-At this point in time let us assume that you will instantiated a OIDC RP.
+At this point in time let us assume that you will instantiate an OIDC RP.
 
 .. Note::Oh, by the way I will probably alternate between talking about the RP
     and the client, don't get caught up on that, they are the same thing.
 
-As stated above depending on depending on the OP and the return_type you
-will use some of these steps may be left out or replaced with an out-of-band
+As stated above, depending on the OP and the return_type you
+will use, some of these steps may be left out or replaced with an out-of-band
 process.
 
 Using pyoidc this is how you would do it::
@@ -76,7 +76,7 @@ The discover method will use webfinger to find the OIDC OP given the user
 identifier provided. If the user identifier follows another syntax/scheme
 the same method can still be used, you just have to preface the 'uid'
 value with the scheme used.
-The returned issuer must according to the standard be a https url, but some
+The returned issuer must according to the standard be an https url, but some
 implementers have decided differently on this, so you may get a http url.
 
 Provider Info discovery
@@ -90,7 +90,7 @@ you query for that::
 A description of the whole set of metadata can be found here:
 http://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
 
-.. Note::One parameter of the provider info is the issuer parameter this
+.. Note::One parameter of the provider info is the issuer parameter. This
      is supposed to be *exactly* the same as the URL you used to fetch the
      information. Now, this isn't valid for some providers. You can tell the
      client to not care about this by setting
@@ -166,7 +166,7 @@ automatically the response will be stored in the client instance
 
 .. Note:: The basic Client class is expected to only talk to one OP. If your service
     needs to talk to several OPs that are a couple of patterns you could use.
-    One is to instantiate one RP per OP another to keep the OP specific information
+    One is to instantiate one RP per OP, another to keep the OP specific information
     like provider information and client registration information outside the
     RP and then setup the RP every time you want to talk to a new OP.
 
@@ -212,7 +212,7 @@ The request you then want to make is the authentication request.
     For historical reasons I've kept the name authorization request for the
     method that handles that request.
 
-Before doing the request you have to decided on a couple of things:
+Before doing the request you have to decide on a couple of things:
 
 * which response type you want to use.
     You can read up on response types in the OAuth2 RFC.
@@ -242,7 +242,7 @@ Given you have all that, you now can send the request::
         "state": session["state"]
     }
 
-    auth_req = self.client.construct_AuthorizationRequest(request_args=request_args)
+    auth_req = self.client.construct_AuthorizationRequest(request_args=args)
     login_url = auth_req.request(client.authorization_endpoint)
 
     return Redirect(login_url)
@@ -256,8 +256,8 @@ and to mitigate replay attacks.
 Since you will need both these arguments later in the process you probably
 want to store them in a session object (assumed to look like a dictionary).
 Also even if you initiate one Client instance per OP you probably won't do it
-per user so you have to keep the state and nonce variables that belongs to
-an user together and separate from other users.
+per user so you have to keep the state and nonce variables that belong to
+a user together and separate from other users.
 
 Eventually a response is sent to the URL given as the redirect_uri.
 
@@ -275,7 +275,7 @@ You can parse this response by doing::
     assert aresp["state"] == session["state"]
 
 *aresp* is an instance of an AuthorizationResponse or an ErrorResponse.
-The later if an error was return from the OP.
+The latter if an error was return from the OP.
 Among other things you should get back in the authentication response is
 the same state value as you used
 when sending the request. If you used the response_type='code' then you
@@ -304,14 +304,14 @@ If you don't specify a specific client authentication method, then
 You have to provide client_id and client_secret as arguments, how they are used
 depends on the authentication method used.
 
-The resp you get back is an instance of an AccessTokenResponse or again possibly
+The response you get back is an instance of an AccessTokenResponse or again possibly
 an ErrorResponse instance.
 
 If it's an AccessTokenResponse the information in the response will be stored
 in the client instance with *state* as the key for future use.
-One if the items in the response will be the ID Token which contains information
+One of the items in the response will be the ID Token which contains information
 about the authentication.
-One parameter (or claim as its also called) is the nonce you provide with
+One parameter (or claim as it is also called) is the nonce you provide with
 the authentication request.
 
 And then the final request, the user info request::
@@ -319,10 +319,10 @@ And then the final request, the user info request::
     userinfo = client.do_user_info_request(state=aresp["state"])
 
 Using the *state* the client library will find the appropriate access token
-and based on the token type chose the authentication method.
+and based on the token type choose the authentication method.
 
 *userinfo* in an instance of OpenIDSchema or ErrorResponse. Given that you have
-used openid as the scope, *userinfo* will not contain a lot of information.
+used openid as the scope, *userinfo* will not contain a lot of information,
 actually only the *sub* parameter.
 
 Implicit Flow
@@ -358,10 +358,10 @@ As for the Authorization Code Flow the authentication part will begin
 with a redirect to a login page and end with a redirect back to the
 registered redirect_uri.
 
-Since the response will be return as a fragment you need some special code
+Since the response will be returned as a fragment you need some special code
 to catch that information. How you do that depends on your setup.
 
-Again the response can be parse by doing::
+Again the response can be parsed by doing::
 
     from oic.oic.message import AuthorizationResponse
 
