@@ -296,7 +296,7 @@ class Provider(object):
                 _query = urlparse.parse_qs(_query)
 
             match = False
-            for regbase, rquery in self.cdb[areq["client_id"]]["redirect_uris"]:
+            for regbase, rquery in self.cdb[str(areq["client_id"])]["redirect_uris"]:
                 if _base == regbase or _redirect_uri.startswith(regbase):
                     # every registered query component must exist in the
                     # redirect_uri
@@ -323,7 +323,7 @@ class Provider(object):
         except Exception as err:
             logger.error("Faulty redirect_uri: %s" % areq["redirect_uri"])
             try:
-                _cinfo = self.cdb[areq["client_id"]]
+                _cinfo = self.cdb[str(areq["client_id"])]
             except KeyError:
                 logger.info("Unknown client: %s" % areq["client_id"])
                 raise UnknownClient(areq["client_id"])

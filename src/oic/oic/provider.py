@@ -663,7 +663,7 @@ class Provider(AProvider):
         logger.debug("AuthzRequest+oidc_request: %s" % (areq.to_dict(),))
 
         _cid = areq["client_id"]
-        cinfo = self.cdb[_cid]
+        cinfo = self.cdb[str(_cid)]
         if _cid not in self.keyjar.issuer_keys:
             if "jwks_uri" in cinfo:
                 self.keyjar.issuer_keys[_cid] = []
@@ -816,7 +816,7 @@ class Provider(AProvider):
         _sdb = self.sdb
         _log_debug = logger.debug
 
-        client_info = self.cdb[req["client_id"]]
+        client_info = self.cdb[str(req["client_id"])]
 
         assert req["grant_type"] == "authorization_code"
 
@@ -879,7 +879,7 @@ class Provider(AProvider):
         _sdb = self.sdb
         _log_debug = logger.debug
 
-        client_info = self.cdb[req["client_id"]]
+        client_info = self.cdb[str(req["client_id"])]
 
         assert req["grant_type"] == "refresh_token"
         rtoken = req["refresh_token"]
@@ -1666,7 +1666,7 @@ class Provider(AProvider):
                 _access_token = None
 
             user_info = self.userinfo_in_id_token_claims(_sinfo)
-            client_info = self.cdb[areq["client_id"]]
+            client_info = self.cdb[str(areq["client_id"])]
 
             hargs = {}
             if set(areq["response_type"]) == {'code', 'id_token', 'token'}:
@@ -1779,7 +1779,7 @@ class Provider(AProvider):
                     else:
                         user_info.update(info)
 
-                client_info = self.cdb[areq["client_id"]]
+                client_info = self.cdb[str(areq["client_id"])]
 
                 hargs = {}
                 if set(areq["response_type"]) == {'code', 'id_token', 'token'}:
