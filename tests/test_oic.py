@@ -135,7 +135,8 @@ class TestClient(object):
         grant = Grant(10)  # expired grant
         grant.add_code(resp)
         resp = AccessTokenResponse(refresh_token="refresh_with_me",
-                                   access_token="access")
+                                   access_token="access",
+                                   token_type="Bearer")
         token = Token(resp)
         grant.tokens.append(token)
         self.client.grant["state0"] = grant

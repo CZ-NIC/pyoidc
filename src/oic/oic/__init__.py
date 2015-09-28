@@ -702,7 +702,8 @@ class Client(oauth2.Client):
 
             if token.is_valid():
                 uir["access_token"] = token.access_token
-                if token.token_type == "Bearer" and method == "GET":
+                if token.token_type and token.token_type == "Bearer" and \
+                                method == "GET":
                     kwargs["behavior"] = "use_authorization_header"
             else:
                 # raise oauth2.OldAccessToken
@@ -734,7 +735,8 @@ class Client(oauth2.Client):
                     raise MissingParameter("Unspecified token type")
 
             # use_authorization_header, token_in_message_body
-            if "use_authorization_header" in _behav and _ttype == "Bearer":
+            if "use_authorization_header" in _behav and _ttype.lower() == \
+                    "bearer":
                 bh = "Bearer %s" % _token
                 if "headers" in kwargs:
                     kwargs["headers"].update({"Authorization": bh})
@@ -896,7 +898,8 @@ class Client(oauth2.Client):
             try:
                 pcr = response_cls().from_json(r.text)
             except:
-                logger.error("Faulty provider config response: {}".format(r.text))
+                logger.error(
+                    "Faulty provider config response: {}".format(r.text))
         elif r.status_code == 302 or r.status_code == 301:
             while r.status_code == 302 or r.status_code == 301:
                 r = self.http_request(r.headers["location"])
@@ -1115,7 +1118,8 @@ class Client(oauth2.Client):
         if "post_logout_redirect_uris" not in req:
             try:
                 req[
-                    "post_logout_redirect_uris"] = self.post_logout_redirect_uris
+                    "post_logout_redirect_uris"] = \
+                    self.post_logout_redirect_uris
             except AttributeError:
                 pass
 
