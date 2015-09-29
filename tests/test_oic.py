@@ -344,7 +344,7 @@ class TestClient(object):
     def test_userinfo_request(self):
         aresp = AuthorizationResponse(code="code", state="state000")
         tresp = AccessTokenResponse(access_token="access_token",
-                                    token_type="bearer",
+                                    token_type="Bearer",
                                     expires_in=600, refresh_token="refresh",
                                     scope=["openid"])
 
@@ -355,10 +355,10 @@ class TestClient(object):
 
         path, body, method, h_args = self.client.user_info_request(
             state="state0")
-        assert path == "http://example.com/userinfo?access_token=access_token"
+        assert path == "http://example.com/userinfo"
         assert method == "GET"
         assert body is None
-        assert h_args == {}
+        assert h_args == {'headers': {'Authorization': 'Bearer access_token'}}
 
     def test_userinfo_request_post(self):
         aresp = AuthorizationResponse(code="code", state="state000")
