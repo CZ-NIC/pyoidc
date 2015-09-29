@@ -40,9 +40,7 @@ KC_SYM_S = KeyBundle(
     {"kty": "oct", "key": "abcdefghijklmnop".encode("utf-8"), "use": "sig",
      "alg": "HS256"})
 
-BASE_PATH = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir,
-                 "data/keys"))
+BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/keys"))
 _key = rsa_load(os.path.join(BASE_PATH, "rsa.key"))
 KC_RSA = KeyBundle({"key": _key, "kty": "RSA", "use": "sig"})
 
@@ -137,7 +135,8 @@ class TestClient(object):
         grant = Grant(10)  # expired grant
         grant.add_code(resp)
         resp = AccessTokenResponse(refresh_token="refresh_with_me",
-                                   access_token="access")
+                                   access_token="access",
+                                   token_type="Bearer")
         token = Token(resp)
         grant.tokens.append(token)
         self.client.grant["state0"] = grant
@@ -606,8 +605,6 @@ class TestServer(object):
         assert request["nonce"] == "af0ifjsldkj"
         assert "email" in request["claims"]["userinfo"]
 
-    @pytest.mark.xfail(sys.version_info <= (3, 0),
-                       reason="pyjweskt dependency not updated")
     def test_make_id_token(self):
         self.srv.keyjar["http://oic.example/rp"] = KC_RSA
 

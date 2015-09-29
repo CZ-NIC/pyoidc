@@ -8,11 +8,17 @@ import shelve
 import argparse
 import sys
 
-from six.moves.urllib.parse import urlparse, splitquery, parse_qs
-from six.moves import input
+import six
 
+from six.moves.urllib.parse import urlparse, parse_qs
+from six.moves import input
 from oic.oic.provider import secret
 from oic.oauth2 import rndstr
+
+if six.PY3:
+    from urllib.parse import splitquery
+else:
+    from urllib import splitquery
 
 __author__ = 'rolandh'
 
@@ -82,6 +88,7 @@ class CDB(object):
         info = {
             "client_secret": client_secret,
             "client_id": client_id,
+            "client_salt": rndstr(8),
             "redirect_uris": pack_redirect_uri(redirect_uris),
         }
 

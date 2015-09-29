@@ -34,6 +34,12 @@ from oic.utils.http_util import Response
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Forbidden
 
+import six
+if six.PY3:
+    from urllib.parse import splitquery
+else:
+    from urllib import splitquery
+
 
 logger = logging.getLogger(__name__)
 
@@ -213,7 +219,7 @@ class Provider(provider.Provider):
     def _uris_to_tuples(uris):
         tup = []
         for uri in uris:
-            base, query = urlparse.splitquery(uri)
+            base, query = splitquery(uri)
             if query:
                 tup.append((base, query))
             else:

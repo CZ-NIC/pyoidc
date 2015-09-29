@@ -1,11 +1,3 @@
 pytest
 httpretty
-requests
-pycrypto
-mako
-git+https://github.com/dallerbarn/pyjwkest@py3_string
-beaker
-alabaster
-pyOpenSSL
-cherrypy==3.2.4
 mock

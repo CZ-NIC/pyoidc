@@ -334,7 +334,6 @@ class Message(object):
 
             skey = str(key)
             try:
-
                 (vtyp, req, _, _deser, null_allowed) = _spec[key]
             except KeyError:
                 # might be a parameter with a lang tag
@@ -520,29 +519,36 @@ class Message(object):
                 jso = _jwt.payload()
                 _header = _jwt.headers
 
-                logger.debug("Raw JSON: %s", jso)
+                logger.debug("Raw JSON: {}".format(jso))
+                logger.debug("header: {}".format(_header))
                 if _header["alg"] == "none":
                     pass
                 else:
                     if keyjar:
-                        if "jku" in _header:
-                            if not keyjar.find(_header["jku"], jso["iss"]):
-                                # This is really questionable
+                        logger.debug("Issuer keys: {}".format(keyjar.keys()))
+                        try:
+                            _iss = jso["iss"]
+                        except KeyError:
+                            pass
+                        else:
+                            if "jku" in _header:
+                                if not keyjar.find(_header["jku"], _iss):
+                                    # This is really questionable
+                                    try:
+                                        if kwargs["trusting"]:
+                                            keyjar.add(jso["iss"], _header["jku"])
+                                    except KeyError:
+                                        pass
+
+                            if "kid" in _header and _header["kid"]:
+                                _jw["kid"] = _header["kid"]
                                 try:
-                                    if kwargs["trusting"]:
-                                        keyjar.add(jso["iss"], _header["jku"])
+                                    _key = keyjar.get_key_by_kid(_header["kid"],
+                                                                 _iss)
+                                    if _key:
+                                        key.append(_key)
                                 except KeyError:
                                     pass
-
-                        if "kid" in _header and _header["kid"]:
-                            _jw["kid"] = _header["kid"]
-                            try:
-                                _key = keyjar.get_key_by_kid(_header["kid"],
-                                                             jso["iss"])
-                                if _key:
-                                    key.append(_key)
-                            except KeyError:
-                                pass
 
                         try:
                             self._add_key(keyjar, kwargs["opponent_id"], key)
@@ -570,6 +576,7 @@ class Message(object):
                                 raise MissingSigningKey(
                                     "alg=%s" % _header["alg"])
 
+                        logger.debug("Verify keys: {}".format(key))
                         _jw.verify_compact(txt, key)
             except Exception:
                 raise
@@ -981,10 +988,3 @@ def factory(msgtype):
         return MSG[msgtype]
     except KeyError:
         raise FormatError("Unknown message type: %s" % msgtype)
-
-
-if __name__ == "__main__":
-    atr = AccessTokenRequest(grant_type="authorization_code",
-                             code="foo",
-                             redirect_uri="http://example.com/cb")
-    print(atr)

@@ -8,13 +8,13 @@ import pytest
 from six.moves.urllib.parse import parse_qs, urlencode
 from oic.oauth2 import rndstr
 from oic.utils.authn.user import UsernamePasswordMako
-from utils_for_tests import query_string_compare  # pylint: disable=import-error
 from oic.utils.http_util import Unauthorized
+from utils_for_tests import query_string_compare  # pylint: disable=import-error
 
 PASSWD = {"user": "hemligt"}
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
-TEMPLATE_DIR = os.path.join(BASE_PATH, '../../../data/templates')
+TEMPLATE_DIR = os.path.join(BASE_PATH, 'data/templates')
 tl = TemplateLookup(directories=[TEMPLATE_DIR],
                     input_encoding='utf-8', output_encoding='utf-8')
 

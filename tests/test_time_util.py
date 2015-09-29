@@ -8,10 +8,23 @@ from datetime import datetime
 import pytest
 import time
 
-from oic.utils.time_util import f_quotient, modulo, before, in_a_while, valid, \
-    after, instant, not_before, not_on_or_after, parse_duration, TimeUtilError, \
-    str_to_time, add_duration, time_a_while_ago, a_while_ago, shift_time, \
-    utc_now, later_than
+from oic.utils.time_util import f_quotient
+from oic.utils.time_util import modulo
+from oic.utils.time_util import before
+from oic.utils.time_util import in_a_while
+from oic.utils.time_util import valid
+from oic.utils.time_util import after
+from oic.utils.time_util import instant
+from oic.utils.time_util import not_before
+from oic.utils.time_util import not_on_or_after
+from oic.utils.time_util import parse_duration
+from oic.utils.time_util import str_to_time
+from oic.utils.time_util import TimeUtilError
+from oic.utils.time_util import add_duration
+from oic.utils.time_util import time_a_while_ago
+from oic.utils.time_util import a_while_ago
+from oic.utils.time_util import shift_time
+from oic.utils.time_util import later_than
 
 __author__ = 'rohe0002'
 
@@ -214,10 +227,10 @@ def test_str_to_time_1():
     assert t == 0
 
 
-def test_utc_now():
-    t1 = utc_now()
-    t2 = int("%d" % time.time())
-    assert t1 == t2
+# def test_utc_time_sans_frac():
+#     t1 = utc_time_sans_frac()
+#     t2 = int("%d" % time.time())
+#     assert t1 != t2
 
 
 def test_before_0():

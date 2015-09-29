@@ -702,7 +702,8 @@ class Client(oauth2.Client):
 
             if token.is_valid():
                 uir["access_token"] = token.access_token
-                if token.token_type == "Bearer" and method == "GET":
+                if token.token_type and token.token_type == "Bearer" and \
+                                method == "GET":
                     kwargs["behavior"] = "use_authorization_header"
             else:
                 # raise oauth2.OldAccessToken
@@ -893,7 +894,11 @@ class Client(oauth2.Client):
         pcr = None
         r = self.http_request(url)
         if r.status_code == 200:
-            pcr = response_cls().from_json(r.text)
+            try:
+                pcr = response_cls().from_json(r.text)
+            except:
+                logger.error(
+                    "Faulty provider config response: {}".format(r.text))
         elif r.status_code == 302 or r.status_code == 301:
             while r.status_code == 302 or r.status_code == 301:
                 r = self.http_request(r.headers["location"])
@@ -1112,7 +1117,8 @@ class Client(oauth2.Client):
         if "post_logout_redirect_uris" not in req:
             try:
                 req[
-                    "post_logout_redirect_uris"] = self.post_logout_redirect_uris
+                    "post_logout_redirect_uris"] = \
+                    self.post_logout_redirect_uris
             except AttributeError:
                 pass
 
@@ -1192,7 +1198,7 @@ class Client(oauth2.Client):
         except AssertionError:
             raise OtherError("issuer != iss")
 
-        _now = time_util.utc_now()
+        _now = time_util.utc_time_sans_frac()
 
         try:
             assert _now < id_token["exp"]
@@ -1472,7 +1478,7 @@ class Server(oauth2.Server):
         idt = IdToken(iss=issuer, sub=session["sub"],
                       aud=session["client_id"],
                       exp=time_util.epoch_in_a_while(**inawhile), acr=loa,
-                      iat=time_util.utc_now(),
+                      iat=time_util.utc_time_sans_frac(),
                       **_args)
 
         for key, val in extra.items():

@@ -199,6 +199,15 @@ def time_a_while_ago(days=0, seconds=0, microseconds=0, milliseconds=0,
     format of timedelta::
         timedelta([days[, seconds[, microseconds[, milliseconds[,
         minutes[, hours[, weeks]]]]]]])
+    :param days:
+    :param seconds:
+    :param microseconds:
+    :param milliseconds:
+    :param minutes:
+    :param hours:
+    :param weeks:
+    :param time_format:
+    :return: datetime instance
     """
     delta = timedelta(days, seconds, microseconds, milliseconds,
                       minutes, hours, weeks)
@@ -208,9 +217,15 @@ def time_a_while_ago(days=0, seconds=0, microseconds=0, milliseconds=0,
 def in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
                minutes=0, hours=0, weeks=0, time_format=TIME_FORMAT):
     """
-    format of timedelta::
-        timedelta([days[, seconds[, microseconds[, milliseconds[,
-        minutes[, hours[, weeks]]]]]]])
+    :param days:
+    :param seconds:
+    :param microseconds:
+    :param milliseconds:
+    :param minutes:
+    :param hours:
+    :param weeks:
+    :param time_format:
+    :return: Formatet string
     """
     if not time_format:
         time_format = TIME_FORMAT
@@ -221,6 +236,18 @@ def in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
 
 def a_while_ago(days=0, seconds=0, microseconds=0, milliseconds=0,
                 minutes=0, hours=0, weeks=0, time_format=TIME_FORMAT):
+    """
+
+    :param days:
+    :param seconds:
+    :param microseconds:
+    :param milliseconds:
+    :param minutes:
+    :param hours:
+    :param weeks:
+    :param time_format:
+    :return: Formatet string
+    """
     return time_a_while_ago(days, seconds, microseconds, milliseconds,
                             minutes, hours, weeks).strftime(time_format)
 
@@ -265,13 +292,6 @@ def str_to_time(timestr, time_format=TIME_FORMAT):
 
 def instant(time_format=TIME_FORMAT):
     return time.strftime(time_format, time.gmtime())
-
-
-# ---------------------------------------------------------------------------
-
-
-def utc_now():
-    return calendar.timegm(time.gmtime())
 
 
 # ---------------------------------------------------------------------------
@@ -334,9 +354,18 @@ def time_sans_frac():
 def epoch_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
                      minutes=0, hours=0, weeks=0):
     """
-    Return a point in the future as number of seconds since the epoch
-    1970-01-01
+    Return the number of seconds since epoch a while from now.
+
+    :param days:
+    :param seconds:
+    :param microseconds:
+    :param milliseconds:
+    :param minutes:
+    :param hours:
+    :param weeks:
+    :return: Seconds since epoch (1970-01-01)
     """
-    return int("%d" % time.mktime(time_in_a_while(days, seconds, microseconds,
-                                                  milliseconds, minutes, hours,
-                                                  weeks).timetuple()))
+
+    dt = time_in_a_while(days, seconds, microseconds, milliseconds, minutes,
+                         hours, weeks)
+    return int((dt-datetime(1970,1,1)).total_seconds())

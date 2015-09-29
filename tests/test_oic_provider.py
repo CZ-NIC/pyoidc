@@ -37,7 +37,7 @@ from oic.utils.sdb import SessionDB, AuthnEvent
 from oic.oic import DEF_SIGN_ALG
 from oic.oic import make_openid_request
 from oic.oic.consumer import Consumer
-from oic.oic.provider import Provider
+from oic.oic.provider import Provider, InvalidRedirectURIError
 from oic.utils.time_util import epoch_in_a_while
 from utils_for_tests import _eq
 
@@ -75,8 +75,7 @@ KC_SYM = KeyBundle([{"kty": "oct", "key": CLIENT_SECRET, "use": "ver"},
 KC_SYM2 = KeyBundle([{"kty": "oct", "key": "drickyoughurt", "use": "sig"},
                      {"kty": "oct", "key": "drickyoughurt", "use": "ver"}])
 
-BASE_PATH = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, "data/keys"))
+BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/keys"))
 KC_RSA = keybundle_from_local_file(os.path.join(BASE_PATH, "rsa.key"),
                                    "RSA", ["ver", "sig"])
 
@@ -90,17 +89,21 @@ CDB = {
         "password": "hemligt",
         "client_secret": "drickyoughurt",
         "redirect_uris": [("http://localhost:8087/authz", None)],
-        "post_logout_redirect_uris": [("https://example.com/post_logout", None)]
+        "post_logout_redirect_uris": [("https://example.com/post_logout", None)],
+        "client_salt": "salted"
     },
     "a1b2c3": {
-        "redirect_uris": [("http://localhost:8087/authz", None)]
+        "redirect_uris": [("http://localhost:8087/authz", None)],
+        "client_salt": "salted"
     },
     "client0": {
-        "redirect_uris": [("http://www.example.org/authz", None)]
+        "redirect_uris": [("http://www.example.org/authz", None)],
+        "client_salt": "salted"
     },
     CLIENT_ID: {
         "client_secret": CLIENT_SECRET,
-        "redirect_uris": [("http://localhost:8087/authz", None)]
+        "redirect_uris": [("http://localhost:8087/authz", None)],
+        "client_salt": "salted"
     }
 }
 
@@ -134,6 +137,7 @@ class DummyAuthn(UserAuthnMethod):
             return None, 0
         else:
             return {"uid": self.user}, time()
+
 
 # AUTHN = UsernamePasswordMako(None, "login.mako", tl, PASSWD, "authenticated")
 AUTHN_BROKER = AuthnBroker()
@@ -212,9 +216,9 @@ class TestProvider(object):
                                     scope=["openid"], state="state000")
 
         sdb = self.provider.sdb
-        ae = AuthnEvent("userX")
+        ae = AuthnEvent("userX", "salt")
         sid = sdb.create_authz_session(ae, areq)
-        sdb.do_sub(sid)
+        sdb.do_sub(sid, "client_salt")
         _info = sdb[sid]
         # All this is jut removed when the id_token is constructed
         # The proper information comes from the session information
@@ -341,7 +345,7 @@ class TestProvider(object):
         _sdb = self.provider.sdb
         sid = _sdb.token.key(user="sub", areq=authreq)
         access_grant = _sdb.token(sid=sid)
-        ae = AuthnEvent("user")
+        ae = AuthnEvent("user", "salt")
         _sdb[sid] = {
             "oauth_state": "authz",
             "authn_event": ae,
@@ -352,7 +356,7 @@ class TestProvider(object):
             "scope": ["openid"],
             "redirect_uri": "http://example.com/authz",
         }
-        _sdb.do_sub(sid)
+        _sdb.do_sub(sid, "client_salt")
 
         # Construct Access token request
         areq = AccessTokenRequest(code=access_grant, client_id=CLIENT_ID,
@@ -375,7 +379,7 @@ class TestProvider(object):
         _sdb = self.provider.sdb
         sid = _sdb.token.key(user="sub", areq=authreq)
         access_grant = _sdb.token(sid=sid)
-        ae = AuthnEvent("user")
+        ae = AuthnEvent("user", "salt")
         _sdb[sid] = {
             "authn_event": ae,
             "oauth_state": "authz",
@@ -386,7 +390,7 @@ class TestProvider(object):
             "scope": ["openid"],
             "redirect_uri": "http://example.com/authz"
         }
-        _sdb.do_sub(sid)
+        _sdb.do_sub(sid, "client_salt")
 
         # Construct Access token request
         areq = AccessTokenRequest(code=access_grant,
@@ -417,9 +421,9 @@ class TestProvider(object):
                                     redirect_uri="http://example.com/authz",
                                     scope=["openid"], state="state000")
 
-        ae = AuthnEvent("sub")
+        ae = AuthnEvent("sub", "salt")
         sid = self.provider.sdb.create_authz_session(ae, AREQ)
-        self.provider.sdb.do_sub(sid)
+        self.provider.sdb.do_sub(sid, "client_salt")
         session = self.provider.sdb[sid]
 
         id_token = self.provider.id_token_as_signed_jwt(session)
@@ -429,9 +433,9 @@ class TestProvider(object):
         areq = AuthorizationRequest(response_type="code", client_id=CLIENT_ID,
                                     redirect_uri="http://example.com/authz",
                                     scope=["openid"], state="state000")
-        aevent = AuthnEvent("sub")
+        aevent = AuthnEvent("sub", "salt")
         sid = self.provider.sdb.create_authz_session(aevent, areq)
-        self.provider.sdb.do_sub(sid)
+        self.provider.sdb.do_sub(sid, "client_salt")
         session = self.provider.sdb[sid]
 
         claims = {'k1': 'v1', 'k2': 32}
@@ -492,6 +496,37 @@ class TestProvider(object):
                     'registration_access_token',
                     'client_id', 'client_secret',
                     'client_id_issued_at', 'response_types'])
+
+    def test_registration_endpoint_with_non_https_redirect_uri_implicit_flow(
+            self):
+        params = {"application_type": "web",
+                  "redirect_uris": ["http://example.com/authz"],
+                  "response_types": ["id_token", "token"]}
+        req = RegistrationRequest(**params)
+        resp = self.provider.registration_endpoint(request=req.to_json())
+
+        assert resp.status == "400 Bad Request"
+        error = json.loads(resp.message)
+        assert error["error"] == "invalid_redirect_uri"
+
+    def test_verify_redirect_uris_with_https_code_flow(self):
+        params = {"application_type": "web",
+                  "redirect_uris": ["http://example.com/authz"],
+                  "response_types": ["code"]}
+        request = RegistrationRequest(**params)
+        verified_uris = self.provider._verify_redirect_uris(request)
+        assert verified_uris == [("http://example.com/authz", None)]
+
+    def test_verify_redirect_uris_with_non_https_redirect_uri_implicit_flow(self):
+        params = {"application_type": "web",
+                  "redirect_uris": ["http://example.com/authz"],
+                  "response_types": ["id_token", "token"]}
+        request = RegistrationRequest(**params)
+
+        with pytest.raises(InvalidRedirectURIError) as exc_info:
+            self.provider._verify_redirect_uris(request)
+
+        assert str(exc_info.value) == "None https redirect_uri not allowed"
 
     @pytest.mark.network
     def test_registration_endpoint_openid4us(self):
@@ -714,3 +749,8 @@ class TestProvider(object):
         aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
                                          sformat="urlencoded")
         return aresp["id_token"]
+
+if __name__ == "__main__":
+    t = TestProvider()
+    t.create_provider()
+    t.test_token_endpoint()

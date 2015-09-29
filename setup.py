@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import re
 
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
@@ -35,15 +36,21 @@ class PyTest(TestCommand):
         errno = pytest.main(self.test_args)
         sys.exit(errno)
 
+
 # Python 2.7 and later ship with importlib and argparse
 if sys.version_info[0] == 2 and sys.version_info[1] == 6:
     extra_install_requires = ["importlib", "argparse"]
 else:
     extra_install_requires = []
 
+version = ''
+with open('src/oic/__init__.py', 'r') as fd:
+    version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
+                        fd.read(), re.MULTILINE).group(1)
+
 setup(
     name="oic",
-    version="0.7.7",
+    version=version,
     description="Python implementation of OAuth2 and OpenID Connect",
     author="Roland Hedberg",
     author_email="roland.hedberg@umu.se",
@@ -52,22 +59,24 @@ setup(
     packages=["oic", "oic/oauth2", "oic/oic", "oic/utils", "oic/utils/authn",
               "oic/utils/userinfo"],
     package_dir={"": "src"},
-    classifiers=["Development Status :: 4 - Beta",
-                 "License :: OSI Approved :: Apache Software License",
-                 "Topic :: Software Development :: Libraries :: Python "
-                 "Modules"],
+    classifiers=[
+        "Development Status :: 4 - Beta",
+        "License :: OSI Approved :: Apache Software License",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.4",
+        "Topic :: Software Development :: Libraries :: Python Modules"],
     extras_require={
         'develop': ["cherrypy==3.2.4"],
     },
     install_requires=[
-        "requests",
-        "pycrypto>=2.6.1",
-        "pyjwkest>=1.0.1",
-        "mako",
-        "beaker",
-        "alabaster",
-        "pyOpenSSL",
-        "six"] + extra_install_requires,
+                         "requests",
+                         "pycrypto>=2.6.1",
+                         "pyjwkest>=1.0.3",
+                         "mako",
+                         "beaker",
+                         "alabaster",
+                         "pyOpenSSL",
+                         "six"] + extra_install_requires,
     zip_safe=False,
     cmdclass={'test': PyTest},
 )

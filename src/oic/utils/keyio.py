@@ -2,12 +2,12 @@ import copy
 import logging
 import os
 import sys
-import traceback
 import json
 import time
 
-from jwkest import jws, as_unicode
+from jwkest import jws
 from jwkest import jwe
+from jwkest import as_unicode
 from Crypto.PublicKey import RSA
 from requests import request
 from jwkest.ecc import NISTEllipticCurve
@@ -271,6 +271,7 @@ class KeyBundle(object):
         return None
 
     def kids(self):
+        self._uptodate()
         return [key.kid for key in self._keys if key.kid != ""]
 
 
@@ -374,9 +375,9 @@ class KeyJar(object):
             self.issuer_keys[issuer] = []
 
         for use in usage:
-            self.issuer_keys[""].append(KeyBundle([{"kty": "oct",
-                                                    "key": key,
-                                                    "use": use}]))
+            self.issuer_keys[issuer].append(KeyBundle([{"kty": "oct",
+                                                        "key": key,
+                                                        "use": use}]))
 
     def add_kb(self, issuer, kb):
         try:
@@ -392,19 +393,19 @@ class KeyJar(object):
 
         self.issuer_keys[issuer] = val
 
-    def get(self, use, key_type="", issuer="", kid=None, **kwargs):
+    def get(self, key_use, key_type="", issuer="", kid=None, **kwargs):
         """
 
-        :param use: A key useful for this usage (enc, dec, sig, ver)
+        :param key_use: A key useful for this usage (enc, dec, sig, ver)
         :param key_type: Type of key (rsa, ec, symmetric, ..)
         :param issuer: Who is responsible for the keys, "" == me
         :param kid: A Key Identifier
         :return: A possibly empty list of keys
         """
 
-        if use == "dec":
+        if key_use in ["dec", "enc"]:
             use = "enc"
-        elif use == "ver":
+        elif key_use in ["ver", "sig"]:
             use = "sig"
 
         if issuer != "":
@@ -422,7 +423,10 @@ class KeyJar(object):
                     except KeyError:
                         _keys = []
         else:
-            _keys = self.issuer_keys[issuer]
+            try:
+                _keys = self.issuer_keys[issuer]
+            except KeyError:
+                _keys = []
 
         lst = []
         if _keys:
@@ -432,6 +436,9 @@ class KeyJar(object):
                 else:
                     _keys = bundles.keys()
                 for key in _keys:
+                    if key.inactive_since and key_use != "ver":
+                        # Skip inactive keys unless for signature verification
+                        continue
                     if kid and key.kid == kid:
                         lst = [key]
                         break
@@ -559,7 +566,7 @@ class KeyJar(object):
         return "%s" % (_res,)
 
     def keys(self):
-        self.issuer_keys.keys()
+        return self.issuer_keys.keys()
 
     def load_keys(self, pcr, issuer, replace=False):
         """
@@ -615,6 +622,12 @@ class KeyJar(object):
             pass
 
         return res
+
+    def export_jwks(self):
+        keys = []
+        for kb in self.issuer_keys[""]:
+            keys.extend([k.serialize() for k in kb.keys()])
+        return {"keys": keys}
 
     def dump(self):
         res = {}
@@ -749,23 +762,23 @@ def key_export(baseurl, local_path, vault, keyjar, **kwargs):
 # ================= create RSA key ======================
 
 
-def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=1024):
+def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=2048):
     """
     :param name: Name of the key file
     :param path: Path to where the key files are stored
-    :param size: Seed the random number generator with <size> random bytes
+    :param size: RSA key size
     :return: RSA key
     """
 
     key = RSA.generate(size)
 
-    with open(os.path.join(path, name), 'wb') as f:
-        f.write(key.exportKey('PEM'))
+    if name:
+        with open(os.path.join(path, name), 'wb') as f:
+            f.write(key.exportKey('PEM'))
 
-    _pub_key = key.publickey()
-
-    with open(os.path.join(path, '{}.pub'.format(name)), 'wb') as f:
-        f.write(_pub_key.exportKey('PEM'))
+        _pub_key = key.publickey()
+        with open(os.path.join(path, '{}.pub'.format(name)), 'wb') as f:
+            f.write(_pub_key.exportKey('PEM'))
 
     return key
 
@@ -812,6 +825,21 @@ def ec_init(spec):
     return kb
 
 
+def rsa_init(spec):
+    arg = {}
+    for param in ["name", "path", "size"]:
+        try:
+            arg[param] = spec[param]
+        except KeyError:
+            pass
+
+    _key = create_and_store_rsa_key_pair(**arg)
+    kb = KeyBundle(keytype=spec["type"], keyusage=spec["use"])
+    for use in spec["use"]:
+        kb.append(RSAKey(use=use, key=_key))
+    return kb
+
+
 def keyjar_init(instance, key_conf, kid_template="a%d"):
     """
     Configuration of the type:
@@ -846,7 +874,9 @@ def build_keyjar(key_conf, kid_template="a%d", keyjar=None, kidd=None):
 
     :param key_conf: The key configuration
     :param kid_template: A template by which to build the kids
-    :return: a JWKS
+    :return: a tuple consisting of a JWKS dictionary, a KeyJar instance
+        and a representation of which kids that can be used for what.
+        Note the JWKS contains private key information !!
     """
 
     if keyjar is None:
@@ -862,9 +892,12 @@ def build_keyjar(key_conf, kid_template="a%d", keyjar=None, kidd=None):
         typ = spec["type"].upper()
 
         if typ == "RSA":
-            kb = KeyBundle(source="file://%s" % spec["key"],
-                           fileformat="der",
-                           keytype=typ, keyusage=spec["use"])
+            if "key" in spec:
+                kb = KeyBundle(source="file://%s" % spec["key"],
+                               fileformat="der",
+                               keytype=typ, keyusage=spec["use"])
+            else:
+                kb = rsa_init(spec)
         elif typ == "EC":
             kb = ec_init(spec)
 

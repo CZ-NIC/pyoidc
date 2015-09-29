@@ -447,7 +447,10 @@ class Client(PBase):
             kwargs["client_id"] = self.client_id
             if "key" not in kwargs and "keyjar" not in kwargs:
                 kwargs["keyjar"] = self.keyjar
+
+            logger.debug("Verify response with {}".format(kwargs))
             verf = resp.verify(**kwargs)
+
             if not verf:
                 raise PyoidcError("Verification of the response failed")
             if resp.type() == "AuthorizationResponse" and \
