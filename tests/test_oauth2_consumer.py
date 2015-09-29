@@ -213,4 +213,4 @@ class TestConsumer(object):
 
         assert query_string_compare(body, expected_params)
         assert http_args == {'headers': {
-            'Content-type': 'application/x-www-form-urlencoded'}}
+            'Content-Type': 'application/x-www-form-urlencoded'}}

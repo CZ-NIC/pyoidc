@@ -70,7 +70,7 @@ def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE,
             raise UnSupported(
                 "Unsupported content type: '%s'" % content_type)
 
-        header_ext = {"Content-type": content_type}
+        header_ext = {"Content-Type": content_type}
         if accept:
             header_ext = {"Accept": accept}
 
