@@ -51,7 +51,7 @@ def test_get_or_post():
                           'state': 'urn:uuid:92d81fb3-72e8-4e6c-9173-c360b782148a',
                           'authn_method': 'client_secret_basic', 'key': [],
                           'headers': {
-                              'Content-type': 'application/x-www-form-urlencoded',
+                              'Content-Type': 'application/x-www-form-urlencoded',
                               'Authorization': 'Basic b2s4dHg3dWxWbE5WOjdlNzUyZDU1MTc0NzA0NzQzYjZiZWJkYjU4ZjU5YWU3MmFlMGM5NDM4YTY1ZmU0N2IxMDA3OTM1'}}
 
     method = 'UNSUPORTED'

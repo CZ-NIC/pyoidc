@@ -284,7 +284,7 @@ class TestClient(object):
         expected_body_elts = expected_body.split('&')
         assert set(body_elts) == set(expected_body_elts)
         assert h_args == {
-            'headers': {'Content-type': 'application/x-www-form-urlencoded'}}
+            'headers': {'Content-Type': 'application/x-www-form-urlencoded'}}
         assert isinstance(cis, AuthorizationRequest)
 
     def test_request_info_simple_get(self):

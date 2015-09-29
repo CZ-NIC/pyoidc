@@ -380,7 +380,7 @@ class TestClient(object):
         assert method == "POST"
         assert body == "access_token=access_token"
         assert h_args == {'headers': {
-            'Content-type': 'application/x-www-form-urlencoded'}}
+            'Content-Type': 'application/x-www-form-urlencoded'}}
 
     def test_sign_enc_request(self):
         KC_RSA_ENC = KeyBundle({"key": _key, "kty": "RSA", "use": "enc"})
