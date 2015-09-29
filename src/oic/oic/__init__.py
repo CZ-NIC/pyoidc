@@ -702,8 +702,8 @@ class Client(oauth2.Client):
 
             if token.is_valid():
                 uir["access_token"] = token.access_token
-                if token.token_type and token.token_type == "Bearer" and \
-                                method == "GET":
+                if token.token_type and token.token_type.lower() == "bearer" \
+                        and method == "GET":
                     kwargs["behavior"] = "use_authorization_header"
             else:
                 # raise oauth2.OldAccessToken
