@@ -5,7 +5,7 @@ import pytest
 
 from oic.oauth2 import MissingSigningKey
 from oic.oic import AuthorizationResponse
-from oic.utils.keyio import key_export, rsa_init
+from oic.utils.keyio import key_export, rsa_init, build_keyjar
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import keybundle_from_local_file
@@ -124,6 +124,23 @@ def test_keybundle_from_local_jwk_file():
     assert key.kid == "abc"
 
 
+def test_build_keyjar():
+    keys = [
+        {"type": "RSA", "use": ["enc", "sig"]},
+        {"type": "EC", "crv": "P-256", "use": ["sig"]},
+    ]
+
+    jwks, keyjar, kidd = build_keyjar(keys)
+    for key in jwks["keys"]:
+        assert "d" not in key  # the JWKS shouldn't contain the private part of the keys
+
+    assert len(keyjar[""]) == 2
+
+    assert "RSA" in kidd["enc"]
+    assert "RSA" in kidd["sig"]
+    assert "EC" in kidd["sig"]
+
+
 class TestKeyBundle(object):
     def test_update(self):
         kc = KeyBundle([{"kty": "oct", "key": "supersecret", "use": "sig"}])
@@ -227,12 +244,12 @@ class TestKeyJar(object):
 
         assert len(res) == 1
         assert res[0] == {
-            'use': u'sig',
-            'e': b'AQAB',
-            'kty': u'RSA',
-            'alg': u'RS256',
-            'n': b'pKybs0WaHU_y4cHxWbm8Wzj66HtcyFn7Fh3n-99qTXu5yNa30MRYIYfSDwe9JVc1JUoGw41yq2StdGBJ40HxichjE-Yopfu3B58QlgJvToUbWD4gmTDGgMGxQxtv1En2yedaynQ73sDpIK-12JJDY55pvf-PCiSQ9OjxZLiVGKlClDus44_uv2370b9IN2JiEOF-a7JBqaTEYLPpXaoKWDSnJNonr79tL0T7iuJmO1l705oO3Y0TQ-INLY6jnKG_RpsvyvGNnwP9pMvcP1phKsWZ10ofuuhJGRp8IxQL9RfzT87OvF0RBSO1U73h09YP-corWDsnKIi6TbzRpN5YDw',
-            'kid': u'abc'}
+            'use': 'sig',
+            'e': 'AQAB',
+            'kty': 'RSA',
+            'alg': 'RS256',
+            'n': 'pKybs0WaHU_y4cHxWbm8Wzj66HtcyFn7Fh3n-99qTXu5yNa30MRYIYfSDwe9JVc1JUoGw41yq2StdGBJ40HxichjE-Yopfu3B58QlgJvToUbWD4gmTDGgMGxQxtv1En2yedaynQ73sDpIK-12JJDY55pvf-PCiSQ9OjxZLiVGKlClDus44_uv2370b9IN2JiEOF-a7JBqaTEYLPpXaoKWDSnJNonr79tL0T7iuJmO1l705oO3Y0TQ-INLY6jnKG_RpsvyvGNnwP9pMvcP1phKsWZ10ofuuhJGRp8IxQL9RfzT87OvF0RBSO1U73h09YP-corWDsnKIi6TbzRpN5YDw',
+            'kid': 'abc'}
 
     def test_no_use(self):
         kb = KeyBundle(JWK0["keys"])
@@ -266,6 +283,7 @@ class TestKeyJar(object):
             authz_resp.verify(keyjar=kj)
         except MissingSigningKey:
             authz_resp.verify(keyjar=kj, sender=ISSUER)
+
 
 if __name__ == "__main__":
     test_rsa_init()
