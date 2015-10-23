@@ -1035,13 +1035,17 @@ class Provider(AProvider):
         :param request: The request in a string format
         """
 
-        _token = self._parse_access_token(request, **kwargs)
+        try:
+            _token = self._parse_access_token(request, **kwargs)
+        except ParameterError:
+            return self._error(error='invalid_request', descr='Token is malformed')
         return self._do_user_info(_token, **kwargs)
 
     def _parse_access_token(self, request, **kwargs):
         if not request or "access_token" not in request:
-            _token = kwargs["authn"]
-            assert _token.startswith("Bearer ")
+            _token = kwargs.get("authn", '') or ''
+            if not _token.startswith("Bearer "):
+                raise ParameterError("Token is missing or malformed")
             _token = _token[len("Bearer "):]
             logger.debug("Bearer token: '%s'" % _token)
         else:
