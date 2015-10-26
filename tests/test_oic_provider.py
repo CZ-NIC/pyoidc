@@ -467,6 +467,36 @@ class TestProvider(object):
         ident = OpenIDSchema().deserialize(resp.message, "json")
         assert _eq(ident.keys(), ['nickname', 'sub', 'name', 'email'])
 
+    def test_userinfo_endpoint_authn(self):
+        self.cons.client_secret = "drickyoughurt"
+        self.cons.config["response_type"] = ["token"]
+        self.cons.config["request_method"] = "parameter"
+        state, location = self.cons.begin("openid", "token",
+                                          path="http://localhost:8087")
+
+        resp = self.provider.authorization_endpoint(
+            request=urlparse(location).query)
+
+        # redirect
+        atr = AuthorizationResponse().deserialize(
+            urlparse(resp.message).fragment, "urlencoded")
+
+        uir = UserInfoRequest(schema="openid")
+
+        resp = self.provider.userinfo_endpoint(request=uir.to_urlencoded(),
+                                               authn='Bearer ' + atr['access_token'])
+        ident = OpenIDSchema().deserialize(resp.message, "json")
+        assert _eq(ident.keys(), ['nickname', 'sub', 'name', 'email'])
+
+    def test_userinfo_endpoint_malformed(self):
+        uir = UserInfoRequest(schema="openid")
+
+        resp = self.provider.userinfo_endpoint(request=uir.to_urlencoded(),
+                                               authn='Not a token')
+
+        assert json.loads(resp.message) == {'error_description': 'Token is malformed',
+                                            'error': 'invalid_request'}
+
     def test_check_session_endpoint(self):
         session = {"sub": "UserID", "client_id": "number5"}
         idtoken = self.provider.id_token_as_signed_jwt(session)
