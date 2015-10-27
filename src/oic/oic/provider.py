@@ -577,8 +577,8 @@ class Provider(AProvider):
             if identity:
                 uid = identity["uid"]
                 try:
-                    sid = self.sdb.uid2sid[uid][
-                        0]  # any sid will do, choose the first
+                    # any sid will do, choose the first
+                    sid = self.sdb.uid2sid[uid][0]
                 except (KeyError, IndexError):
                     pass
             else:
