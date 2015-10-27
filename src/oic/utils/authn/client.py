@@ -2,6 +2,7 @@ import logging
 import base64
 from jwkest import Invalid
 from jwkest import MissingKey
+from jwkest import b64e_enc_dec
 from jwkest.jws import alg2keytype
 import time
 import six
@@ -61,6 +62,7 @@ class ClientAuthnMethod(object):
         raise NotImplementedError
 
 
+
 class ClientSecretBasic(ClientAuthnMethod):
     """
     Clients that have received a client_secret value from the Authorization
@@ -98,8 +100,8 @@ class ClientSecretBasic(ClientAuthnMethod):
         if "headers" not in http_args:
             http_args["headers"] = {}
 
-        http_args["headers"]["Authorization"] = "Basic %s" % base64.b64encode(
-            "{}:{}".format(user, passwd).encode("utf-8")).decode("utf-8")
+        http_args["headers"]["Authorization"] = "Basic {}".format(
+            b64e_enc_dec("{}:{}".format(user, passwd), "utf-8", "utf-8"))
 
         try:
             del cis["client_secret"]
