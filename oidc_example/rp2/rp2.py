@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import urllib
+from urllib.parse import urlencode
 import uuid
 import requests
 import hashlib
@@ -10,10 +11,10 @@ from cherrypy import wsgiserver
 from mako.lookup import TemplateLookup
 from six.moves.urllib.parse import parse_qs
 
-from oic.utils.http_util import NotFound, Response, ServiceError, Redirect
-from oidc import OpenIDConnect
-
-import conf
+from oic.utils.http_util import NotFound
+from oic.utils.http_util import Response
+from oic.utils.http_util import ServiceError
+from oic.utils.http_util import Redirect
 
 import logging
 
@@ -59,65 +60,35 @@ class Httpd(object):
 class Session(object):
     def __init__(self, session):
         self.session = session
-        self.getCallback()
-        self.getState()
-        self.getNonce()
-        self.getClient()
-        self.get_acr_values()
 
+    def __getitem__(self, item):
+        if item == 'state':
+            return uuid.uuid4().urn
+        
+        try:
+            return self.session[item]
+        except KeyError:
+            return None
 
-    def clearSession(self):
-        for key in self.session:
-            self.session.pop(key, None)
-        self.session.invalidate()
+    def __setitem__(self, key, value):
+        self.session[key] = value
+        
+    def clear(self):
+        for key in list(self.session.keys()):
+            del self.session[key]
 
-    def getCallback(self):
-        return self.session.get("callback", False)
+    def get_acr_value(self, key):
+        try:
+            self.session["acr_value"][key]
+        except KeyError:
+            return None
 
-    def setCallback(self, value):
-        self.session["callback"] = value
+    def set_acr_value(self, key, val):
+        try:
+            self.session['acr_value'][key] = val
+        except KeyError:
+            self.session['acr_value'] = {key: val}
 
-    def getState(self):
-        return self.session.get("state", uuid.uuid4().urn)
-
-    def setState(self, value):
-        self.session["state"] = value
-
-    def getNonce(self):
-        return self.session.get("nonce", None)
-
-    def setNonce(self, value):
-        self.session["nonce"] = value
-
-    def getClient(self):
-        return self.session.get("client", None)
-
-    def setClient(self, value):
-        self.session["client"] = value
-
-    def getLogin(self):
-        return self.session.get("login", None)
-
-    def setLogin(self, value):
-        self.session["login"] = value
-
-    def getProvider(self):
-        return self.session.get("provider", None)
-
-    def setProvider(self, value):
-        self.session["provider"] = value
-
-    def get_acr_values(self):
-        return self.session.get("acrvalues", None)
-
-    def set_acr_values(self, value):
-        self.session["acrvalues"] = value
-
-    def get_acr_value(self, server):
-        return self.session.get(server + "ACR_VALUE", None)
-
-    def set_acr_value(self, server, acr):
-        self.session[server + "ACR_VALUE"] = acr
 
 #noinspection PyUnresolvedReferences
 def static(environ, start_response, logger, path):
@@ -152,12 +123,20 @@ def opbyuid(environ, start_response):
     return resp(environ, start_response, **argv)
 
 
+def post_logout(environ, start_response):
+    resp = Response(mako_template="post_logout.mako",
+                    template_lookup=LOOKUP,
+                    headers=[])
+    argv = {}
+    return resp(environ, start_response, **argv)
+
+
 def choose_acr_value(environ, start_response, session):
     resp = Response(mako_template="acrvalue.mako",
                     template_lookup=LOOKUP,
                     headers=[])
     argv = {
-        "acrvalues": session.get_acr_values()
+        "acrvalues": session['acr_values']
     }
     return resp(environ, start_response, **argv)
 
@@ -185,26 +164,29 @@ def application(environ, start_response):
 
     if path == "logout":
         try:
-            logoutUrl = session.getClient().endsession_endpoint
-            logoutUrl += "?" + urllib.urlencode(
-                {"post_logout_redirect_uri": SERVER_ENV["base_url"]})
+            logoutUrl = session['client'].end_session_endpoint
+            plru = "{}post_logout".format(SERVER_ENV["base_url"])
+            logoutUrl += "?" + urlencode({"post_logout_redirect_uri": plru})
             try:
-                logoutUrl += "&" + urllib.urlencode({
+                logoutUrl += "&" + urlencode({
                     "id_token_hint": id_token_as_signed_jwt(
-                        session.getClient(), "HS256")})
-            except:
+                        session['client'], "HS256")})
+            except AttributeError as err:
                 pass
-            session.clearSession()
+            session.clear()
             resp = Redirect(str(logoutUrl))
             return resp(environ, start_response)
-        except:
+        except Exception as err:
             pass
 
-    if session.getCallback():
+    if path == "post_logout":
+        return post_logout(environ, start_response)
+
+    if session['callback']:
         _uri = "%s%s" % (conf.BASE, path)
         for _cli in SERVER_ENV["OIC_CLIENT"].values():
             if _uri in _cli.redirect_uris:
-                session.setCallback(False)
+                session['callback'] = False
                 func = getattr(RP, "callback")
                 return func(environ, SERVER_ENV, start_response, query, session)
 
@@ -213,13 +195,13 @@ def application(environ, start_response):
 
     if path == "rpAuth":
     # Only called if multiple arc_values (that is authentications) exists.
-        if "acr" in query and query["acr"][0] in session.get_acr_values():
+        if "acr" in query and query["acr"][0] in session['acr_values']:
             func = getattr(RP, "create_authnrequest")
             return func(environ, SERVER_ENV, start_response, session,
                         query["acr"][0])
 
-    if session.getClient() is not None:
-        session.setCallback(True)
+    if session["client"] is not None:
+        session['callback'] = True
         func = getattr(RP, "begin")
         return func(environ, SERVER_ENV, start_response, session, "")
 
@@ -235,7 +217,7 @@ def application(environ, start_response):
             md5 = hashlib.md5()
             md5.update(link.encode("utf-8"))
             opkey = base64.b16encode(md5.digest()).decode("utf-8")
-            session.setCallback(True)
+            session['callback'] = True
             func = getattr(RP, "begin")
             return func(environ, SERVER_ENV, start_response, session, opkey)
 
@@ -243,6 +225,9 @@ def application(environ, start_response):
 
 
 if __name__ == '__main__':
+    from oidc import OpenIDConnect
+    import conf
+
     setup_server_env(conf)
 
     session_opts = {
