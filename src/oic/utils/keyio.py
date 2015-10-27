@@ -21,14 +21,11 @@ from six import string_types
 
 from oic.exception import MessageException
 from oic.exception import PyoidcError
-from oic.utils import elements_to_unicode
 
 __author__ = 'rohe0002'
 
 KEYLOADERR = "Failed to load %s key from '%s' (%s)"
 logger = logging.getLogger(__name__)
-
-# ======================================================================
 
 
 class KeyIOError(PyoidcError):
@@ -906,8 +903,7 @@ def build_keyjar(key_conf, kid_template="a%d", keyjar=None, kidd=None):
             kid += 1
             kidd[k.use][k.kty] = k.kid
 
-        jwks["keys"].extend([elements_to_unicode(k.to_dict())
-                             for k in kb.keys() if k.kty != 'oct'])
+        jwks["keys"].extend([k.serialize() for k in kb.keys() if k.kty != 'oct'])
 
         keyjar.add_kb("", kb)
 
