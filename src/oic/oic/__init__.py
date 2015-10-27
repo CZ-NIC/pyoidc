@@ -897,8 +897,9 @@ class Client(oauth2.Client):
             try:
                 pcr = response_cls().from_json(r.text)
             except:
-                logger.error(
-                    "Faulty provider config response: {}".format(r.text))
+                _err_txt = "Faulty provider config response: {}".format(r.text)
+                logger.error(_err_txt)
+                raise PyoidcError(_err_txt)
         elif r.status_code == 302 or r.status_code == 301:
             while r.status_code == 302 or r.status_code == 301:
                 r = self.http_request(r.headers["location"])
