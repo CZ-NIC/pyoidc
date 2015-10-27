@@ -359,9 +359,9 @@ def application(environ, start_response):
             try:
                 return callback(environ, start_response, logger)
             except Exception as err:
-                print >> sys.stderr, "%s" % err
+                print("%s" % err)
                 message = traceback.format_exception(*sys.exc_info())
-                print >> sys.stderr, message
+                print(message)
                 logger.exception("%s" % err)
                 resp = ServiceError("%s" % err)
                 return resp(environ, start_response)
