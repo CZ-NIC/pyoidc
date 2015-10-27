@@ -408,6 +408,13 @@ class Message(object):
                                     vtype, type(v))))
 
                 self._dict[skey] = val
+            elif isinstance(val, dict):
+                try:
+                    val = _deser(val, sformat="dict")
+                except Exception as exc:
+                    raise DecodeError(ERRTXT % (key, exc))
+                else:
+                    self._dict[skey] = val
             else:
                 raise DecodeError(ERRTXT % (key, "type != %s" % vtype))
         else:
