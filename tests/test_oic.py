@@ -149,18 +149,18 @@ class TestClient(object):
 
     def test_do_access_token_refresh(self):
         args = {"response_type": ["code"],
-                "scope": ["openid"]}
+                "scope": ["openid", "offline"]}
         r = self.client.do_authorization_request(state="state0",
                                                  request_args=args)
         self.client.parse_response(AuthorizationResponse, r.headers["location"],
                                    sformat="urlencoded")
-        self.client.do_access_token_request(scope="openid",
+        self.client.do_access_token_request(scope="openid offline",
                                             state="state0")
 
-        resp = self.client.do_access_token_refresh(scope="openid",
+        resp = self.client.do_access_token_refresh(scope="openid offline",
                                                    state="state0")
         assert isinstance(resp, AccessTokenResponse)
-        assert _eq(resp.keys(), ['token_type', 'state', 'access_token',
+        assert _eq(resp.keys(), ['token_type', 'access_token',
                                  'expires_in', 'refresh_token', 'scope'])
 
     def test_do_check_session_request(self):

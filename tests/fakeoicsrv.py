@@ -152,7 +152,7 @@ class MyFakeOICServer(Server):
     def token_endpoint(self, data):
         if "grant_type=refresh_token" in data:
             req = self.parse_refresh_token_request(body=data)
-            _info = self.sdb.refresh_token(req["refresh_token"])
+            _info = self.sdb.refresh_token(req["refresh_token"], req['client_id'])
         elif "grant_type=authorization_code":
             req = self.parse_token_request(body=data)
             _info = self.sdb.upgrade_to_token(req["code"])

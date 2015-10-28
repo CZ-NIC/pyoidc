@@ -157,15 +157,111 @@ class AuthnEvent(object):
         return self.valid_until - time.time()
 
 
+class RefreshDB(object):
+    '''
+    Database for refresh token storage.
+    '''
+    def get(self, refresh_token):
+        '''
+        Retrieve info about the authentication proces from the refresh token
+
+        :return: Dictionary with info
+        :raises: KeyError
+        '''
+        raise NotImplementedError
+
+    def store(self, token, info):
+        '''
+        Stores the information about the authentication process
+
+        :param token: Token
+        :param info: Information associated with token to be stored
+        '''
+        raise NotImplementedError
+
+    def remove(self, token):
+        '''
+        Removes the token and related information from the internal storage
+
+        :param token: Token to be removed
+        '''
+        raise NotImplementedError
+
+    def create_token(self, client_id, uid, scopes, sub, authzreq):
+        '''
+        Create refresh token for given combination of client_id and sub and store it in internal storage
+
+        :param client_id: Client_id of the consumer
+        :param uid: User identification
+        :param scopes: Scopes associated with the token
+        :param sub: Sub identifier
+        :param authzreq: Authorization request
+        :return: Refresh token
+        '''
+        refresh_token = 'Refresh_{}'.format(rndstr(5 * 16))
+        self.store(refresh_token, {'client_id': client_id, 'uid': uid, 'scope': scopes, 'sub': sub,
+                                   'authzreq': authzreq})
+        return refresh_token
+
+    def verify_token(self, client_id, refresh_token):
+        '''
+        Verifies if the refresh token belongs to client_id
+        '''
+        if not refresh_token.startswith('Refresh_'):
+            raise WrongTokenType
+        try:
+            stored_cid = self.get(refresh_token).get('client_id')
+        except KeyError:
+            return False
+        return client_id == stored_cid
+
+    def revoke_token(self, token):
+        '''
+        Remove token from database
+        '''
+        self.remove(token)
+
+
+class DictRefreshDB(RefreshDB):
+    '''
+    Dictionary based implementation of RefreshDB
+    '''
+    def __init__(self):
+        super(DictRefreshDB, self).__init__()
+        self._db = {}
+
+    def get(self, refresh_token):
+        '''
+        Retrieve info for given token from dictionary
+        '''
+        return self._db[refresh_token].copy()
+
+    def store(self, token, info):
+        '''
+        Add token and info to the dictionary
+        '''
+        self._db[token] = info
+
+    def remove(self, token):
+        '''
+        Remove the token from the dictionary
+        '''
+        self._db.pop(token)
+
+
 class SessionDB(object):
     def __init__(self, base_url, db=None, secret="Ab01FG65",
                  token_expires_in=3600, password="4-amino-1H-pyrimidine-2-one",
-                 grant_expires_in=600, seed=""):
+                 grant_expires_in=600, seed="", refresh_db=None):
         self.base_url = base_url
         if db:
             self._db = db
         else:
             self._db = {}
+        if refresh_db:
+            self._refresh_db = refresh_db
+        else:
+            self._refresh_db = DictRefreshDB()
         self.token = Token(secret, password)
         self.token_expires_in = token_expires_in
         self.grant_expires_in = grant_expires_in
@@ -353,33 +449,55 @@ class SessionDB(object):
             dic["oidreq"] = oidreq
 
         if issue_refresh:
-            dic["refresh_token"] = self.token("R", token)
+            authn_event = dic.get('authn_event')
+            if authn_event:
+                uid = authn_event.uid
+            else:
+                uid = None
+            refresh_token = self._refresh_db.create_token(dic['client_id'], uid, dic.get('scope'), dic['sub'],
+                                                          dic['authzreq'])
+            dic["refresh_token"] = refresh_token
 
         self._db[key] = dic
         return dic
 
-    def refresh_token(self, rtoken):
-        # assert that it is a refresh token
-        typ = self.token.get_type(rtoken)
-        if typ == "R":
-            if not self.is_valid(rtoken):
-                raise ExpiredToken()
+    def refresh_token(self, rtoken, client_id):
+        '''
+        Issue a new access token for valid refresh token
 
-            sid = self.token.get_key(rtoken)
+        :param rtoken: Refresh token
+        :param client_id: Client ID
+        :return: Dictionary with session info
+        :raises: ExpiredToken for invalid refresh token
+                 WrongTokenType for wrong token type
+        '''
+        # assert that it is a refresh token and that it is valid
+        if self._refresh_db.verify_token(client_id, rtoken):
+            # Valid refresh token
+            _info = self._refresh_db.get(rtoken)
+            # TODO: This ain't pretty...
+            sid = _info.pop('sid', None)
+            if sid:
+                # This might raise an error if session database had been cleaned
+                try:
+                    dic = self._db[sid]
+                except KeyError:
+                    dic = _info
+            else:
+                sid = rndstr(self.token._sidlen)
+                dic = _info
 
-            # This might raise an error
-            dic = self._db[sid]
-
-            access_token = self.token("T", prev=rtoken)
+            access_token = self.token("T", sid=sid)
 
             dic["token_expires_at"] = utc_time_sans_frac() + self.token_expires_in
-            # dic["client_id_issued_at"] = utc_time_sans_frac()
+            dic["expires_in"] = self.token_expires_in
             dic["access_token"] = access_token
+            dic["token_type"] = "Bearer"
+            dic["refresh_token"] = rtoken
             self._db[sid] = dic
-            # self._db[dic["xxxx"]] = dic
             return dic
         else:
-            raise WrongTokenType("Not a refresh token!")
+            raise ExpiredToken()
 
     @staticmethod
     def is_expired(sess):
@@ -389,10 +507,20 @@ class SessionDB(object):
 
         return False
 
-    def is_valid(self, token):
+    def is_valid(self, token, client_id=None):
+        '''
+        Checks validity of the given token
+
+        :param token: Access or refresh token
+        :param client_id: Client ID, needed only for Refresh token
+        '''
+        if token.startswith('Refresh_'):
+            return self._refresh_db.verify_token(client_id, token)
+
         typ, sid = self.token.type_and_key(token)
 
         _dic = self._db[sid]
+
         if typ == "A":
             if _dic["code"] != token:
                 return False
@@ -409,9 +537,6 @@ class SessionDB(object):
             if self.is_expired(_dic):
                 return False
 
-        elif typ == "R" and _dic["refresh_token"] != token:
-            return False
-
         return True
 
     def is_revoked(self, sid):
@@ -422,26 +547,45 @@ class SessionDB(object):
             return False
 
     def revoke_token(self, token):
-        # revokes either the refresh token or the access token
+        '''
+        Revokes access token
 
+        :param token: access token
+        '''
         typ, sid = self.token.type_and_key(token)
-
         _dict = self._db[sid]
+
         if typ == "A":
             _dict["code"] = ""
         elif typ == "T":
             _dict["access_token"] = ""
-        elif typ == "R":
-            _dict["refresh_token"] = ""
         else:
             pass
         self._db[sid] = _dict
         return True
 
+    def revoke_refresh_token(self, rtoken):
+        '''
+        Revoke refresh token
+
+        :param rtoken: Refresh token
+        '''
+        self._refresh_db.revoke_token(rtoken)
+        return True
+
     def revoke_all_tokens(self, token):
-        typ, sid = self.token.type_and_key(token)
+        '''
+        Mark session as revoked but also explicitly revoke refresh token
+
+        :param token: access token
+        '''
+        _, sid = self.token.type_and_key(token)
+
+        rtoken = self._db[sid]['refresh_token']
+        self.revoke_refresh_token(rtoken)
 
         self.update(sid, 'revoked', True)
+        return True
 
     def get_client_id_for_session(self, sid):
         _dict = self._db[sid]
