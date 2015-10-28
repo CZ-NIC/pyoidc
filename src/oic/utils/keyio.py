@@ -831,7 +831,7 @@ def rsa_init(spec):
             pass
 
     _key = create_and_store_rsa_key_pair(**arg)
-    kb = KeyBundle(keytype=spec["type"], keyusage=spec["use"])
+    kb = KeyBundle(keytype="RSA", keyusage=spec["use"])
     for use in spec["use"]:
         kb.append(RSAKey(use=use, key=_key))
     return kb
