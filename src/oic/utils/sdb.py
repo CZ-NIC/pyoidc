@@ -34,7 +34,8 @@ class AccessCodeUsed(Exception):
 
 
 def pairwise_id(sub, sector_identifier, seed):
-    return hashlib.sha256(("%s%s%s" % (sub, sector_identifier, seed)).encode("utf-8")).hexdigest()
+    return hashlib.sha256(
+        ("%s%s%s" % (sub, sector_identifier, seed)).encode("utf-8")).hexdigest()
 
 
 class Crypt():
@@ -79,7 +80,8 @@ class Token(object):
             # Ultimate length multiple of 16
 
         return base64.b64encode(self.crypt.encrypt("%s%s%s" % (sid, ttype,
-                                                               rnd))).decode("utf-8")
+                                                               rnd))).decode(
+            "utf-8")
 
     def key(self, user="", areq=None):
         csum = hmac.new(self.secret.encode("utf-8"), digestmod=hashlib.sha224)
@@ -158,38 +160,40 @@ class AuthnEvent(object):
 
 
 class RefreshDB(object):
-    '''
+    """
     Database for refresh token storage.
-    '''
+    """
+
     def get(self, refresh_token):
-        '''
+        """
         Retrieve info about the authentication proces from the refresh token
 
         :return: Dictionary with info
         :raises: KeyError
-        '''
+        """
         raise NotImplementedError
 
     def store(self, token, info):
-        '''
+        """
         Stores the information about the authentication process
 
         :param token: Token
         :param info: Information associated with token to be stored
-        '''
+        """
         raise NotImplementedError
 
     def remove(self, token):
-        '''
+        """
         Removes the token and related information from the internal storage
 
         :param token: Token to be removed
-        '''
+        """
         raise NotImplementedError
 
     def create_token(self, client_id, uid, scopes, sub, authzreq):
-        '''
-        Create refresh token for given combination of client_id and sub and store it in internal storage
+        """
+        Create refresh token for given combination of client_id and sub and 
+        store it in internal storage
 
         :param client_id: Client_id of the consumer
         :param uid: User identification
@@ -197,16 +201,17 @@ class RefreshDB(object):
         :param sub: Sub identifier
         :param authzreq: Authorization request
         :return: Refresh token
-        '''
+        """
         refresh_token = 'Refresh_{}'.format(rndstr(5 * 16))
-        self.store(refresh_token, {'client_id': client_id, 'uid': uid, 'scope': scopes, 'sub': sub,
-                                   'authzreq': authzreq})
+        self.store(refresh_token,
+                   {'client_id': client_id, 'uid': uid, 'scope': scopes,
+                    'sub': sub, 'authzreq': authzreq})
         return refresh_token
 
     def verify_token(self, client_id, refresh_token):
-        '''
+        """
         Verifies if the refresh token belongs to client_id
-        '''
+        """
         if not refresh_token.startswith('Refresh_'):
             raise WrongTokenType
         try:
@@ -216,36 +221,37 @@ class RefreshDB(object):
         return client_id == stored_cid
 
     def revoke_token(self, token):
-        '''
+        """
         Remove token from database
-        '''
+        """
         self.remove(token)
 
 
 class DictRefreshDB(RefreshDB):
-    '''
+    """
     Dictionary based implementation of RefreshDB
-    '''
+    """
+
     def __init__(self):
         super(DictRefreshDB, self).__init__()
         self._db = {}
 
     def get(self, refresh_token):
-        '''
+        """
         Retrieve info for given token from dictionary
-        '''
+        """
         return self._db[refresh_token].copy()
 
     def store(self, token, info):
-        '''
+        """
         Add token and info to the dictionary
-        '''
+        """
         self._db[token] = info
 
     def remove(self, token):
-        '''
+        """
         Remove the token from the dictionary
-        '''
+        """
         self._db.pop(token)
 
 
@@ -291,7 +297,7 @@ class SessionDB(object):
     def __delitem__(self, sid):
         """
         Actually delete the pointed session from this SessionDB instance
-        :param key: session identifier
+        :param sid: session identifier
         """
         del self._db[sid]
         # Delete the mapping for session id
@@ -333,9 +339,11 @@ class SessionDB(object):
         user_salt = self._db[sid]["authn_event"].salt
 
         if subject_type == "public":
-            sub = hashlib.sha256("{}{}".format(uid, user_salt).encode("utf-8")).hexdigest()
+            sub = hashlib.sha256(
+                "{}{}".format(uid, user_salt).encode("utf-8")).hexdigest()
         else:
-            sub = pairwise_id(uid, sector_id, "{}{}".format(client_salt, user_salt))
+            sub = pairwise_id(uid, sector_id,
+                              "{}{}".format(client_salt, user_salt))
 
         # since sub can be public, there can be more then one session
         # that uses the same subject identifier
@@ -454,7 +462,9 @@ class SessionDB(object):
                 uid = authn_event.uid
             else:
                 uid = None
-            refresh_token = self._refresh_db.create_token(dic['client_id'], uid, dic.get('scope'), dic['sub'],
+            refresh_token = self._refresh_db.create_token(dic['client_id'], uid,
+                                                          dic.get('scope'),
+                                                          dic['sub'],
                                                           dic['authzreq'])
             dic["refresh_token"] = refresh_token
 
@@ -462,7 +472,7 @@ class SessionDB(object):
         return dic
 
     def refresh_token(self, rtoken, client_id):
-        '''
+        """
         Issue a new access token for valid refresh token
 
         :param rtoken: Refresh token
@@ -470,7 +480,7 @@ class SessionDB(object):
         :return: Dictionary with session info
         :raises: ExpiredToken for invalid refresh token
                  WrongTokenType for wrong token type
-        '''
+        """
         # assert that it is a refresh token and that it is valid
         if self._refresh_db.verify_token(client_id, rtoken):
             # Valid refresh token
@@ -489,7 +499,9 @@ class SessionDB(object):
 
             access_token = self.token("T", sid=sid)
 
-            dic["token_expires_at"] = utc_time_sans_frac() + self.token_expires_in
+            dic[
+                "token_expires_at"] = utc_time_sans_frac() + \
+                                      self.token_expires_in
             dic["expires_in"] = self.token_expires_in
             dic["access_token"] = access_token
             dic["token_type"] = "Bearer"
@@ -508,12 +520,12 @@ class SessionDB(object):
         return False
 
     def is_valid(self, token, client_id=None):
-        '''
+        """
         Checks validity of the given token
 
         :param token: Access or refresh token
         :param client_id: Client ID, needed only for Refresh token
-        '''
+        """
         if token.startswith('Refresh_'):
             return self._refresh_db.verify_token(client_id, token)
 
@@ -547,11 +559,11 @@ class SessionDB(object):
             return False
 
     def revoke_token(self, token):
-        '''
+        """
         Revokes access token
 
         :param token: access token
-        '''
+        """
         typ, sid = self.token.type_and_key(token)
         _dict = self._db[sid]
 
@@ -565,20 +577,20 @@ class SessionDB(object):
         return True
 
     def revoke_refresh_token(self, rtoken):
-        '''
+        """
         Revoke refresh token
 
         :param rtoken: Refresh token
-        '''
+        """
         self._refresh_db.revoke_token(rtoken)
         return True
 
     def revoke_all_tokens(self, token):
-        '''
+        """
         Mark session as revoked but also explicitly revoke refresh token
 
         :param token: access token
-        '''
+        """
         _, sid = self.token.type_and_key(token)
 
         rtoken = self._db[sid]['refresh_token']
@@ -592,7 +604,8 @@ class SessionDB(object):
         return _dict["client_id"]
 
     def get_client_ids_for_uid(self, uid):
-        return [self.get_client_id_for_session(sid) for sid in self.uid2sid[uid]]
+        return [self.get_client_id_for_session(sid) for sid in
+                self.uid2sid[uid]]
 
     def get_verified_Logout(self, uid):
         _dict = self._db[self.uid2sid[uid]]
