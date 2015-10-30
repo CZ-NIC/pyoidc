@@ -119,7 +119,12 @@ class KeyBundle(object):
                 raise UnknownKeyType(typ)
 
     def do_local_jwk(self, filename):
-        self.do_keys(json.loads(open(filename).read())["keys"])
+        try:
+            self.do_keys(json.loads(open(filename).read())["keys"])
+        except KeyError:
+            logger.error("Now 'keys' keyword in JWKS")
+            raise UpdateFailed(
+                "Local key update from '{}' failed.".format(filename))
 
     def do_local_der(self, filename, keytype, keyusage):
         # This is only for RSA keys
@@ -150,7 +155,12 @@ class KeyBundle(object):
 
             logger.debug("Loaded JWKS: %s from %s" % (r.text, self.source))
             self.imp_jwks = json.loads(r.text)  # For use else where
-            self.do_keys(self.imp_jwks["keys"])
+            try:
+                self.do_keys(self.imp_jwks["keys"])
+            except KeyError:
+                logger.error("Now 'keys' keyword in JWKS")
+                raise UpdateFailed(
+                    "Remote key update from '{}' failed.".format(self.source))
 
             try:
                 self.etag = r.headers["Etag"]
