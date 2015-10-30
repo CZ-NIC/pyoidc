@@ -369,6 +369,43 @@ class TestProvider(object):
         atr = AccessTokenResponse().deserialize(resp.message, "json")
         assert _eq(atr.keys(),
                    ['token_type', 'id_token', 'access_token', 'scope',
+                    'expires_in'])
+
+    def test_token_endpoint_refresh(self):
+        authreq = AuthorizationRequest(state="state",
+                                       redirect_uri="http://example.com/authz",
+                                       client_id=CLIENT_ID,
+                                       response_type="code",
+                                       scope=["openid offline_access"],
+                                       prompt="consent")
+
+        _sdb = self.provider.sdb
+        sid = _sdb.token.key(user="sub", areq=authreq)
+        access_grant = _sdb.token(sid=sid)
+        ae = AuthnEvent("user", "salt")
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "authn_event": ae,
+            "authzreq": authreq.to_json(),
+            "client_id": CLIENT_ID,
+            "code": access_grant,
+            "code_used": False,
+            "scope": ["openid", "offline_access"],
+            "redirect_uri": "http://example.com/authz",
+        }
+        _sdb.do_sub(sid, "client_salt")
+
+        # Construct Access token request
+        areq = AccessTokenRequest(code=access_grant, client_id=CLIENT_ID,
+                                  redirect_uri="http://example.com/authz",
+                                  client_secret=CLIENT_SECRET)
+
+        txt = areq.to_urlencoded()
+
+        resp = self.provider.token_endpoint(request=txt)
+        atr = AccessTokenResponse().deserialize(resp.message, "json")
+        assert _eq(atr.keys(),
+                   ['token_type', 'id_token', 'access_token', 'scope',
                     'expires_in', 'refresh_token'])
 
     def test_token_endpoint_unauth(self):
@@ -735,7 +772,7 @@ class TestProvider(object):
         all_cookies = SimpleCookie()
         all_cookies.load(cookies_string)
 
-        now = datetime.datetime.now()
+        now = datetime.datetime.utcnow()  #
         for c in [self.provider.cookie_name, self.provider.session_cookie_name]:
             dt = datetime.datetime.strptime(all_cookies[c]["expires"],
                                             "%a, %d-%b-%Y %H:%M:%S GMT")

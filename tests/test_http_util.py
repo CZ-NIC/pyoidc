@@ -1,5 +1,6 @@
 # pylint: disable=redefined-outer-name,missing-docstring
 import datetime
+from oic.utils.time_util import utc_time_sans_frac
 
 import pytest
 
@@ -49,9 +50,9 @@ class TestCookieDealer(object):
         kaka = cookie_dealer.delete_cookie(cookie_name)
         cookie_expiration = kaka[1].split(";")[1].split("=")[1]
 
-        now = datetime.datetime.now()
-        cookie_timestamp = datetime.datetime.strptime(cookie_expiration,
-                                                      "%a, %d-%b-%Y %H:%M:%S GMT")
+        now = datetime.datetime.utcnow()  #
+        cookie_timestamp = datetime.datetime.strptime(
+            cookie_expiration, "%a, %d-%b-%Y %H:%M:%S GMT")
         assert cookie_timestamp < now
 
 

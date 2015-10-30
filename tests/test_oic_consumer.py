@@ -198,7 +198,7 @@ class TestOICConsumer():
         resp = self.consumer.complete(_state)
         assert isinstance(resp, AccessTokenResponse)
         assert _eq(resp.keys(), ['token_type', 'state', 'access_token',
-                                 'scope', 'expires_in', 'refresh_token'])
+                                 'scope', 'expires_in'])
 
         assert resp["state"] == _state
 
@@ -268,7 +268,7 @@ class TestOICConsumer():
         resp = self.consumer.complete(_state)
         assert isinstance(resp, AccessTokenResponse)
         assert _eq(resp.keys(), ['token_type', 'state', 'access_token',
-                                 'scope', 'expires_in', 'refresh_token'])
+                                 'scope', 'expires_in'])
 
         assert resp["state"] == _state
 
@@ -299,10 +299,9 @@ class TestOICConsumer():
         assert isinstance(auth, AuthorizationResponse)
         assert isinstance(acc, AccessTokenResponse)
         assert _eq(auth.keys(), ['code', 'access_token', 'expires_in',
-                                 'token_type', 'state', 'scope',
-                                 'refresh_token'])
+                                 'token_type', 'state', 'scope'])
         assert _eq(acc.keys(), ['token_type', 'state', 'access_token', 'scope',
-                                'expires_in', 'refresh_token'])
+                                'expires_in'])
 
     def test_complete_auth_token_idtoken(self):
         _state = "state0"
