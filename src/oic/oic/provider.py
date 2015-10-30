@@ -821,7 +821,7 @@ class Provider(AProvider):
 
         assert req["grant_type"] == "authorization_code"
 
-        _access_code = req["code"]
+        _access_code = req["code"].replace(' ', '+')
         # assert that the code is valid
         if self.sdb.is_revoked(_access_code):
             return self._error(error="access_denied", descr="Token is revoked")
