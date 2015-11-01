@@ -821,7 +821,7 @@ class Provider(AProvider):
 
         assert req["grant_type"] == "authorization_code"
 
-        _access_code = req["code"]
+        _access_code = req["code"].replace(' ', '+')
         # assert that the code is valid
         if self.sdb.is_revoked(_access_code):
             return self._error(error="access_denied", descr="Token is revoked")
@@ -1050,13 +1050,17 @@ class Provider(AProvider):
         :param request: The request in a string format
         """
 
-        _token = self._parse_access_token(request, **kwargs)
+        try:
+            _token = self._parse_access_token(request, **kwargs)
+        except ParameterError:
+            return self._error(error='invalid_request', descr='Token is malformed')
         return self._do_user_info(_token, **kwargs)
 
     def _parse_access_token(self, request, **kwargs):
         if not request or "access_token" not in request:
-            _token = kwargs["authn"]
-            assert _token.startswith("Bearer ")
+            _token = kwargs.get("authn", '') or ''
+            if not _token.startswith("Bearer "):
+                raise ParameterError("Token is missing or malformed")
             _token = _token[len("Bearer "):]
             logger.debug("Bearer token: '%s'" % _token)
         else:
@@ -1491,7 +1495,8 @@ class Provider(AProvider):
 
         # verify the access token, has to be key into the client information
         # database.
-        assert authn.startswith("Bearer ")
+        if not authn.startswith("Bearer "):
+            return self._error_response('invalid_request')
         token = authn[len("Bearer "):]
 
         client_id = self.cdb[token]
