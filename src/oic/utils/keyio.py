@@ -810,9 +810,8 @@ def ec_init(spec):
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
     :return: A KeyBundle instance
     """
-    typ = spec["type"].upper()
     _key = NISTEllipticCurve.by_name(spec["crv"])
-    kb = KeyBundle(keytype=typ, keyusage=spec["use"])
+    kb = KeyBundle(keytype="EC", keyusage=spec["use"])
     for use in spec["use"]:
         priv, pub = _key.key_pair()
         ec = ECKey(x=pub[0], y=pub[1], d=priv, crv=spec["crv"])
@@ -831,7 +830,7 @@ def rsa_init(spec):
             pass
 
     _key = create_and_store_rsa_key_pair(**arg)
-    kb = KeyBundle(keytype=spec["type"], keyusage=spec["use"])
+    kb = KeyBundle(keytype="RSA", keyusage=spec["use"])
     for use in spec["use"]:
         kb.append(RSAKey(use=use, key=_key))
     return kb
