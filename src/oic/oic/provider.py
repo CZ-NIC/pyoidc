@@ -1495,7 +1495,8 @@ class Provider(AProvider):
 
         # verify the access token, has to be key into the client information
         # database.
-        assert authn.startswith("Bearer ")
+        if not authn.startswith("Bearer "):
+            return self._error_response('invalid_request')
         token = authn[len("Bearer "):]
 
         client_id = self.cdb[token]

@@ -729,6 +729,26 @@ class TestProvider(object):
 
         self.provider._verify_redirect_uri(areq)
 
+    def test_read_registration(self):
+        rr = RegistrationRequest(operation="register",
+                                 redirect_uris=[
+                                     "http://example.org/new"],
+                                 response_types=["code"])
+        registration_req = rr.to_json()
+        resp = self.provider.registration_endpoint(request=registration_req)
+        regresp = RegistrationResponse().from_json(resp.message)
+
+        authn = ' '.join(['Bearer', regresp['registration_access_token']])
+        query = '='.join(['client_id', regresp['client_id']])
+        resp = self.provider.read_registration(authn, query)
+
+        assert json.loads(resp.message) == regresp.to_dict()
+
+    def test_read_registration_wrong_authn(self):
+        resp = self.provider.read_registration('wrong string', 'request')
+        assert resp.status == '400 Bad Request'
+        assert json.loads(resp.message) == {'error': 'invalid_request', 'error_description': None}
+
     def test_key_rollover(self):
         provider2 = Provider("FOOP", {}, {}, None, None, None, None, "")
         provider2.keyjar = KEYJAR
