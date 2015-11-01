@@ -826,7 +826,11 @@ class Provider(AProvider):
         if self.sdb.is_revoked(_access_code):
             return self._error(error="access_denied", descr="Token is revoked")
 
-        _info = _sdb[_access_code]
+        # Session might not exist or _access_code malformed
+        try:
+            _info = _sdb[_access_code]
+        except KeyError:
+            return self._error(error="access_denied", descr="Token is invalid")
 
         # If redirect_uri was in the initial authorization request
         # verify that the one given here is the correct one.

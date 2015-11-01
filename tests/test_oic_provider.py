@@ -408,6 +408,41 @@ class TestProvider(object):
                    ['token_type', 'id_token', 'access_token', 'scope',
                     'expires_in', 'refresh_token'])
 
+    def test_token_endpoint_malformed(self):
+        authreq = AuthorizationRequest(state="state",
+                                       redirect_uri="http://example.com/authz",
+                                       client_id=CLIENT_ID,
+                                       response_type="code",
+                                       scope=["openid"])
+
+        _sdb = self.provider.sdb
+        sid = _sdb.token.key(user="sub", areq=authreq)
+        access_grant = _sdb.token(sid=sid)
+        ae = AuthnEvent("user", "salt")
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "authn_event": ae,
+            "authzreq": authreq.to_json(),
+            "client_id": CLIENT_ID,
+            "code": access_grant,
+            "code_used": False,
+            "scope": ["openid"],
+            "redirect_uri": "http://example.com/authz",
+        }
+        _sdb.do_sub(sid, "client_salt")
+
+        # Construct Access token request
+        areq = AccessTokenRequest(code=access_grant[0:len(access_grant)-1],
+                                  client_id=CLIENT_ID,
+                                  redirect_uri="http://example.com/authz",
+                                  client_secret=CLIENT_SECRET)
+
+        txt = areq.to_urlencoded()
+
+        resp = self.provider.token_endpoint(request=txt)
+        atr = TokenErrorResponse().deserialize(resp.message, "json")
+        assert atr['error'] == "access_denied"
+
     def test_token_endpoint_unauth(self):
         authreq = AuthorizationRequest(state="state",
                                        redirect_uri="http://example.com/authz",
