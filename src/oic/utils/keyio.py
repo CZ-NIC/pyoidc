@@ -153,6 +153,8 @@ class KeyBundle(object):
         elif r.status_code == 200:  # New content
             self.time_out = time.time() + self.cache_time
 
+            # Check if the content type is the rigt one.
+            r.headers["Content-Type"]
             logger.debug("Loaded JWKS: %s from %s" % (r.text, self.source))
             self.imp_jwks = json.loads(r.text)  # For use else where
             try:
