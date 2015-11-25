@@ -348,7 +348,7 @@ class SessionDB(object):
         # since sub can be public, there can be more then one session
         # that uses the same subject identifier
         try:
-            self.uid2sid[uid].append(sid)
+            self.uid2sid[uid] += [sid]
         except KeyError:
             self.uid2sid[uid] = [sid]
 
