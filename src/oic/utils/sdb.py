@@ -260,10 +260,9 @@ class SessionDB(object):
                  token_expires_in=3600, password="4-amino-1H-pyrimidine-2-one",
                  grant_expires_in=600, seed="", refresh_db=None):
         self.base_url = base_url
-        if db:
-            self._db = db
-        else:
-            self._db = {}
+        if db is None:
+            db = {}
+        self._db = db
         if refresh_db:
             self._refresh_db = refresh_db
         else:
