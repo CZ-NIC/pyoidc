@@ -5,7 +5,6 @@ import logging
 import base64
 from six.moves.urllib.parse import parse_qs, urlencode
 import six
-
 from oic.oauth2.exception import VerificationError
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authn.user import create_return_url
@@ -13,7 +12,6 @@ from oic.utils.http_util import Redirect
 from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Response
 from oic.utils.http_util import Unauthorized
-
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +25,7 @@ try:
 except ImportError:
     saml2 = None
 
+
     class SAMLAuthnMethod(UserAuthnMethod):
         pass
 else:
@@ -38,6 +37,7 @@ else:
     from saml2.s_utils import rndstr
     from saml2.s_utils import UnknownPrincipal
     from saml2.s_utils import UnsupportedBinding
+
 
     # This class handles user authentication with CAS.
     class SAMLAuthnMethod(UserAuthnMethod):
@@ -71,9 +71,9 @@ else:
                                  BINDING_HTTP_ARTIFACT]
             # TODO Why does this exist?
             self.verification_endpoint = ""
-            #Configurations for the SP handler. (pyOpSamlProxy.client.sp.conf)
+            # Configurations for the SP handler. (pyOpSamlProxy.client.sp.conf)
             self.sp_conf = importlib.import_module(spconf)
-            #self.sp_conf.BASE = self.sp_conf.BASE % url
+            # self.sp_conf.BASE = self.sp_conf.BASE % url
             ntf = NamedTemporaryFile(suffix="pyoidc.py", delete=True)
             ntf.write("CONFIG = " + str(self.sp_conf.CONFIG).replace("%s", url))
             ntf.seek(0)
@@ -84,7 +84,6 @@ else:
             }
             self.not_authorized = mte.render(**argv)
             self.samlcache = self.sp_conf.SAML_CACHE
-
 
         def __call__(self, query="", end_point_index=None, *args, **kwargs):
 
@@ -318,7 +317,7 @@ else:
                 kwargs = {}
 
                 if end_point_index:
-                    kwargs["assertion_consumer_service_index"] = end_point_index[binding]
+                    kwargs["assertion_consumer_service_index"] = str(end_point_index[binding])
 
                 if _cli.authn_requests_signed:
                     _sid = saml2.s_utils.sid(_cli.seed)
