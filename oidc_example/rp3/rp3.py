@@ -6,11 +6,9 @@ from mako.lookup import TemplateLookup
 from six.moves.urllib import parse as urlparse
 import six
 import logging
-
 from oic.utils.http_util import NotFound
 from oic.utils.http_util import Response
 from oic.utils.http_util import Redirect
-
 
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = 'rp.log'
@@ -113,23 +111,30 @@ def application(environ, start_response):
         return static(environ, start_response, LOGGER, path)
 
     query = urlparse.parse_qs(environ["QUERY_STRING"])
+    acr_values = session._params['acrs']
+    clients = session._params['clients']
+    server_env = session._params['server_env']
 
     if path == "rp":  # After having chosen which OP to authenticate at
         if "uid" in query:
-            client = CLIENTS.dynamic_client(query["uid"][0])
+            client = clients.dynamic_client(query["uid"][0])
             session["op"] = client.provider_info["issuer"]
         else:
-            client = CLIENTS[query["op"][0]]
+            client = clients[query["op"][0]]
             session["op"] = query["op"][0]
 
         try:
-            resp = client.create_authn_request(session, ACR_VALUES)
+            resp = client.create_authn_request(session, acr_values)
         except Exception:
             raise
         else:
             return resp(environ, start_response)
-    elif path in ["authz_cb", "google"]:  # After having authenticated at the OP
-        client = CLIENTS[session["op"]]
+    elif path in clients.return_paths():  # After having authenticated at the OP
+        # mismatch between callback and return_uri
+        if session['op'] != clients.path[path]:
+            return operror(environ, start_response, "%s" % 'Not allowed')
+
+        client = clients[session["op"]]
         try:
             result = client.callback(query, session)
             if isinstance(result, Redirect):
@@ -139,6 +144,7 @@ def application(environ, start_response):
         except Exception:
             raise
         else:
+            userid, userinfo = result
             check_session_iframe_url = None
             try:
                 check_session_iframe_url = client.provider_info[
@@ -152,10 +158,10 @@ def application(environ, start_response):
             except KeyError:
                 pass
 
-            return opresult(environ, start_response, result,
+            return opresult(environ, start_response, userinfo,
                             check_session_iframe_url)
     elif path == "logout":  # After the user has pressed the logout button
-        client = CLIENTS[session["op"]]
+        client = clients[session["op"]]
         logout_url = client.end_session_endpoint
         try:
             # Specify to which URL the OP should return the user after
@@ -174,8 +180,8 @@ def application(environ, start_response):
                     "id_token_hint": id_token_as_signed_jwt(client, _idtoken,
                                                             "HS256")})
             # Also append the ACR values
-            logout_url += "&" + urlparse.urlencode({"acr_values": ACR_VALUES},
-                                                 True)
+            logout_url += "&" + urlparse.urlencode({"acr_values": acr_values},
+                                                   True)
 
         LOGGER.debug("Logout URL: %s" % str(logout_url))
         LOGGER.debug("Logging out from session: %s" % str(session))
@@ -190,11 +196,11 @@ def application(environ, start_response):
                         template_lookup=LOOKUP)
         return resp(environ, start_response,
                     session_change_url="{}session_change".format(
-                        SERVER_ENV["base_url"]),
+                        server_env["base_url"]),
                     **kwargs)
     elif path == "session_change":
         try:
-            client = CLIENTS[session["op"]]
+            client = clients[session["op"]]
         except KeyError:
             return Response("No valid session.")(environ, start_response)
 
@@ -204,15 +210,15 @@ def application(environ, start_response):
         if idt:
             kwargs["id_token_hint"] = id_token_as_signed_jwt(client, idt,
                                                              "HS256")
-        resp = client.create_authn_request(session, ACR_VALUES, **kwargs)
+        resp = client.create_authn_request(session, acr_values, **kwargs)
         return resp(environ, start_response)
 
-    return opchoice(environ, start_response, CLIENTS)
+    return opchoice(environ, start_response, clients)
 
 
 if __name__ == '__main__':
-    from oidc import OIDCClients
-    from oidc import OIDCError
+    from oic.utils.rp import OIDCClients
+    from oic.utils.rp import OIDCError
     from beaker.middleware import SessionMiddleware
     from cherrypy import wsgiserver
 
@@ -226,21 +232,13 @@ if __name__ == '__main__':
     if args.base_url:
         conf.BASE = args.base_url
 
-    conf.BASE = "{base}:{port}/".format(base=conf.BASE, port=args.port)
-    conf.ME["redirect_uris"] = [url.format(base=conf.BASE) for url in
-                                conf.ME["redirect_uris"]]
-    conf.ME["post_logout_redirect_uris"] = [url.format(base=conf.BASE) for url
-                                            in conf.ME[
-            "post_logout_redirect_uris"]]
+    _base = "{base}:{port}/".format(base=conf.BASE, port=args.port)
 
-    for client, client_conf in six.iteritems(conf.CLIENTS):
+    for _client, client_conf in six.iteritems(conf.CLIENTS):
         if "client_registration" in client_conf:
             client_reg = client_conf["client_registration"]
             client_reg["redirect_uris"] = [url.format(base=conf.BASE) for url in
                                            client_reg["redirect_uris"]]
-
-    global ACR_VALUES
-    ACR_VALUES = conf.ACR_VALUES
 
     session_opts = {
         'session.type': 'memory',
@@ -250,21 +248,27 @@ if __name__ == '__main__':
             urlparse.urlparse(conf.BASE).netloc.replace(":", "."))
     }
 
-    CLIENTS = OIDCClients(conf)
-    SERVER_ENV.update({"template_lookup": LOOKUP, "base_url": conf.BASE})
+    _clients = OIDCClients(conf, _base)
+    SERVER_ENV.update({"template_lookup": LOOKUP, "base_url": _base})
 
-    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', int(args.port)),
-                                        SessionMiddleware(application,
-                                                          session_opts))
+    SRV = wsgiserver.CherryPyWSGIServer(
+        ('0.0.0.0', int(args.port)),
+        SessionMiddleware(application, session_opts,
+                          clients=_clients, acrs=conf.ACR_VALUES,
+                          server_env=SERVER_ENV))
 
     if conf.BASE.startswith("https"):
-        from cherrypy.wsgiserver import ssl_pyopenssl
+        from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
+        SRV.ssl_adapter = BuiltinSSLAdapter(conf.SERVER_CERT, conf.SERVER_KEY,
+                                            conf.CERT_CHAIN)
+        extra = " using SSL/TLS"
+    else:
+        extra = ""
 
-        SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
-            conf.SERVER_CERT, conf.SERVER_KEY, conf.CA_BUNDLE)
+    txt = "RP server starting listening on port:%s%s" % (args.port, extra)
+    LOGGER.info(txt)
+    print(txt)
 
-    LOGGER.info("RP server starting listening on port:%s" % args.port)
-    print ("RP server starting listening on port:%s" % args.port)
     try:
         SRV.start()
     except KeyboardInterrupt:

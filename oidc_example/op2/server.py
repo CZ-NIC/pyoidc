@@ -406,7 +406,6 @@ if __name__ == '__main__':
     config.issuer = config.issuer.format(base=config.baseurl, port=args.port)
     config.SERVICE_URL = config.SERVICE_URL.format(issuer=config.issuer)
 
-
     ac = AuthnBroker()
 
     saml_authn = None

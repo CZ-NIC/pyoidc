@@ -1,7 +1,6 @@
 import copy
 import hashlib
-from urllib.parse import urljoin
-
+from urllib.parse import urljoin, urlsplit
 from oic.utils.http_util import Redirect
 from oic.exception import MissingAttribute
 from oic import oic
@@ -24,8 +23,8 @@ class OIDCError(Exception):
 
 class Client(oic.Client):
     def __init__(self, client_id=None, ca_certs=None,
-            client_prefs=None, client_authn_method=None, keyjar=None,
-            verify_ssl=True, behaviour=None):
+                 client_prefs=None, client_authn_method=None, keyjar=None,
+                 verify_ssl=True, behaviour=None):
         oic.Client.__init__(self, client_id, ca_certs, client_prefs,
                             client_authn_method, keyjar, verify_ssl)
         if behaviour:
@@ -91,7 +90,10 @@ class Client(oic.Client):
             if _id_token['nonce'] != session["nonce"]:
                 return OIDCError("Received nonce not the same as expected.")
             # store id_token under the state
-            self.id_token[authresp["state"]] = _id_token
+            try:
+                self.id_token[authresp["state"]] = _id_token
+            except TypeError:
+                self.id_token = {authresp["state"]: _id_token}
 
         if self.behaviour["response_type"] == "code":
             # get the access token
@@ -105,16 +107,27 @@ class Client(oic.Client):
                 }
 
                 atresp = self.do_access_token_request(
-                        scope="openid", state=authresp["state"],
-                        request_args=args,
-                        authn_method=self.registration_response[
-                            "token_endpoint_auth_method"])
+                    scope="openid", state=authresp["state"],
+                    request_args=args,
+                    authn_method=self.registration_response[
+                        "token_endpoint_auth_method"])
             except Exception as err:
                 logger.error("%s" % err)
                 raise
 
             if isinstance(atresp, ErrorResponse):
                 raise OIDCError("Invalid response %s." % atresp["error"])
+
+            _id_token = atresp['id_token']
+            try:
+                self.id_token[authresp["state"]] = _id_token
+            except TypeError:
+                self.id_token = {authresp["state"]: _id_token}
+
+        if _id_token['iss'] != self.provider_info['issuer']:
+            raise OIDCError("Issuer mismatch")
+
+        user_id = '{}:{}'.format(_id_token['iss'], _id_token['sub'])
 
         try:
             kwargs = {"method": self.userinfo_request_method}
@@ -128,13 +141,16 @@ class Client(oic.Client):
 
         userinfo = inforesp.to_dict()
 
+        if user_id != '{}:{}'.format(_id_token['iss'], userinfo['sub']):
+            raise OIDCError("Invalid response: userid mismatch")
+
         logger.debug("UserInfo: %s" % inforesp)
 
-        return userinfo
+        return user_id, userinfo
 
 
 class OIDCClients(object):
-    def __init__(self, config, seed=''):
+    def __init__(self, config, base_url, seed=''):
         """
 
         :param config: Imported configuration module
@@ -144,12 +160,20 @@ class OIDCClients(object):
         self.client_cls = Client
         self.config = config
         self.seed = seed or rndstr(16)
+        self.seed = self.seed.encode('utf8')
+        self.path = {}
+        self.base_url = base_url
 
         for key, val in config.CLIENTS.items():
             if key == "":
                 continue
             else:
                 self.client[key] = self.create_client(**val)
+
+    def get_path(self, redirect_uris, issuer):
+        for ruri in redirect_uris:
+            p = urlsplit(ruri)
+            self.path[p.path[1:]] = issuer
 
     def create_client(self, userid="", **kwargs):
         """
@@ -205,6 +229,8 @@ class OIDCClients(object):
             # register the client
             _ = client.register(client.provider_info["registration_endpoint"],
                                 **kwargs["client_info"])
+
+            self.get_path(kwargs['client_info']['redirect_uris'], issuer)
         elif _key_set == set(["client_info", "srv_discovery_url"]):
             # Ship the webfinger part
             # Gather OP information
@@ -212,22 +238,31 @@ class OIDCClients(object):
             # register the client
             _ = client.register(client.provider_info["registration_endpoint"],
                                 **kwargs["client_info"])
+            self.get_path(kwargs['client_info']['redirect_uris'],
+                          kwargs["srv_discovery_url"])
         elif _key_set == set(["provider_info", "client_info"]):
             client.handle_provider_config(
-                    ProviderConfigurationResponse(**kwargs["provider_info"]),
-                    kwargs["provider_info"]["issuer"])
+                ProviderConfigurationResponse(**kwargs["provider_info"]),
+                kwargs["provider_info"]["issuer"])
             _ = client.register(client.provider_info["registration_endpoint"],
                                 **kwargs["client_info"])
+
+            self.get_path(kwargs['client_info']['redirect_uris'],
+                          kwargs["provider_info"]["issuer"])
         elif _key_set == set(["provider_info", "client_registration"]):
             client.handle_provider_config(
-                    ProviderConfigurationResponse(**kwargs["provider_info"]),
-                    kwargs["provider_info"]["issuer"])
+                ProviderConfigurationResponse(**kwargs["provider_info"]),
+                kwargs["provider_info"]["issuer"])
             client.store_registration_info(RegistrationResponse(
-                    **kwargs["client_registration"]))
+                **kwargs["client_registration"]))
+            self.get_path(kwargs['client_info']['redirect_uris'],
+                          kwargs["provider_info"]["issuer"])
         elif _key_set == set(["srv_discovery_url", "client_registration"]):
             _ = client.provider_config(kwargs["srv_discovery_url"])
             client.store_registration_info(RegistrationResponse(
-                    **kwargs["client_registration"]))
+                **kwargs["client_registration"]))
+            self.get_path(kwargs['client_info']['redirect_uris'],
+                          kwargs["srv_discovery_url"])
         else:
             raise Exception("Configuration error ?")
 
@@ -244,14 +279,17 @@ class OIDCClients(object):
             # Gather OP information
             _pcr = client.provider_config(issuer)
             # register the client
-            reg_args = copy.copy(self.config.CLIENTS[""]["client_info"])
+            _cinfo = self.config.CLIENTS[""]["client_info"]
+            reg_args = copy.copy(_cinfo)
             h = hashlib.sha256(self.seed)
-            h.update(issuer)  # issuer has to bytes
-            base_urls = self.config.CLIENTS[""]["redirect_uris"]
+            h.update(issuer.encode('utf8'))  # issuer has to be bytes
+            base_urls = _cinfo["redirect_uris"]
 
-            reg_args['redirect_uris'] = [urljoin(u, h.hexdigest()) for u in
-                                         base_urls]
+            reg_args['redirect_uris'] = [
+                u.format(base=self.base_url, iss=h.hexdigest())
+                for u in base_urls]
 
+            self.get_path(reg_args['redirect_uris'], issuer)
             _ = client.register(_pcr["registration_endpoint"], **reg_args)
 
             try:
@@ -275,3 +313,6 @@ class OIDCClients(object):
 
     def keys(self):
         return list(self.client.keys())
+
+    def return_paths(self):
+        return self.path.keys()
