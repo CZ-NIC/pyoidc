@@ -298,8 +298,9 @@ class TestOICConsumer():
 
         assert isinstance(auth, AuthorizationResponse)
         assert isinstance(acc, AccessTokenResponse)
+        print(auth.keys())
         assert _eq(auth.keys(), ['code', 'access_token', 'expires_in',
-                                 'token_type', 'state', 'scope'])
+                                 'token_type', 'state', 'client_id', 'scope'])
         assert _eq(acc.keys(), ['token_type', 'state', 'access_token', 'scope',
                                 'expires_in'])
 

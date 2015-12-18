@@ -499,7 +499,8 @@ class TestServer(object):
     def test_parse_token_request(self):
         treq = AccessTokenRequest(code="code",
                                   redirect_uri="http://example.com/authz",
-                                  client_id=CLIENT_ID)
+                                  client_id=CLIENT_ID,
+                                  grant_type='authorization_code')
         qdict = self.srv.parse_token_request(body=treq.to_urlencoded())
         assert isinstance(qdict, AccessTokenRequest)
         assert _eq(qdict.keys(), ['code', 'redirect_uri', 'client_id',

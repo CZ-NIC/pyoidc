@@ -1,5 +1,4 @@
 import pytest
-
 from six.moves.urllib.parse import urlencode
 from oic.oauth2 import rndstr
 from oic.oauth2.consumer import Consumer
@@ -45,7 +44,8 @@ BASE_ENVIRON = {'SERVER_PROTOCOL': 'HTTP/1.1',
                 'SERVER_PORT': '8087',
                 'PATH_INFO': '/register',
                 'HTTP_HOST': 'localhost:8087',
-                'HTTP_ACCEPT': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'HTTP_ACCEPT': 'text/html,application/xhtml+xml,'
+                               'application/xml;q=0.9,*/*;q=0.8',
                 'HTTP_ACCEPT_LANGUAGE': 'sv-se',
                 'CONTENT_TYPE': 'text/plain',
                 'REMOTE_HOST': '1.0.0.127.in-addr.arpa',
@@ -207,9 +207,9 @@ class TestConsumer(object):
 
         url, body, http_args = self.consumer.get_access_token_request(_state)
         assert url_compare(url, "http://localhost:8088/token")
-        expected_params = "code=auth_grant&client_secret=secret0&" \
-                          "grant_type=authorization_code&client_id=number5&" \
-                          "redirect_uri=https%3A%2F%2Fwww.example.com%2Foic%2Fcb"
+        expected_params = 'code=auth_grant&redirect_uri=https%3A%2F%2Fwww' \
+                          '.example.com%2Foic%2Fcb&client_id=number5' \
+                          '&client_secret=secret0&grant_type=authorization_code&state_hash=S6aXNcpTdl7WpwnttWxuoja3GTo7KaazkMNG8PQ0Dk4%3D'
 
         assert query_string_compare(body, expected_params)
         assert http_args == {'headers': {

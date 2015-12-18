@@ -363,7 +363,8 @@ class TestProvider(object):
         # Construct Access token request
         areq = AccessTokenRequest(code=access_grant, client_id=CLIENT_ID,
                                   redirect_uri="http://example.com/authz",
-                                  client_secret=CLIENT_SECRET)
+                                  client_secret=CLIENT_SECRET,
+                                  grant_type='authorization_code')
 
         txt = areq.to_urlencoded()
 
@@ -400,7 +401,8 @@ class TestProvider(object):
         # Construct Access token request
         areq = AccessTokenRequest(code=access_grant, client_id=CLIENT_ID,
                                   redirect_uri="http://example.com/authz",
-                                  client_secret=CLIENT_SECRET)
+                                  client_secret=CLIENT_SECRET,
+                                  grant_type='authorization_code')
 
         txt = areq.to_urlencoded()
 
@@ -437,7 +439,8 @@ class TestProvider(object):
         areq = AccessTokenRequest(code=access_grant[0:len(access_grant) - 1],
                                   client_id=CLIENT_ID,
                                   redirect_uri="http://example.com/authz",
-                                  client_secret=CLIENT_SECRET)
+                                  client_secret=CLIENT_SECRET,
+                                  grant_type='authorization_code')
 
         txt = areq.to_urlencoded()
 
@@ -473,7 +476,8 @@ class TestProvider(object):
                                   redirect_uri="http://example.com/authz",
                                   client_id="client_1",
                                   client_secret="secret",
-                                  state=state)
+                                  state=state,
+                                  grant_type='authorization_code')
 
         txt = areq.to_urlencoded()
 

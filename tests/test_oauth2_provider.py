@@ -154,7 +154,8 @@ class TestProvider(object):
         areq = AccessTokenRequest(code=access_grant,
                                   redirect_uri="http://example.com/authz",
                                   client_id="client1",
-                                  client_secret="hemlighet", )
+                                  client_secret="hemlighet",
+                                  grant_type='authorization_code')
 
         resp = self.provider.token_endpoint(request=areq.to_urlencoded())
         atr = AccessTokenResponse().deserialize(resp.message, "json")
@@ -183,7 +184,8 @@ class TestProvider(object):
         areq = AccessTokenRequest(code=access_grant,
                                   redirect_uri="http://example.com/authz",
                                   client_id="client2",
-                                  client_secret="hemlighet", )
+                                  client_secret="hemlighet",
+                                  grant_type='authorization_code')
 
         resp = self.provider.token_endpoint(request=areq.to_urlencoded())
         atr = TokenErrorResponse().deserialize(resp.message, "json")
