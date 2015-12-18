@@ -84,11 +84,14 @@ class Client(oic.Client):
             return OIDCError("Received state not the same as expected.")
 
         try:
-            if authresp["id_token"] != session["nonce"]:
-                return OIDCError("Received nonce not the same as expected.")
-            self.id_token[authresp["state"]] = authresp["id_token"]
+            _id_token = authresp['id_token']
         except KeyError:
             pass
+        else:
+            if _id_token['nonce'] != session["nonce"]:
+                return OIDCError("Received nonce not the same as expected.")
+            # store id_token under the state
+            self.id_token[authresp["state"]] = _id_token
 
         if self.behaviour["response_type"] == "code":
             # get the access token

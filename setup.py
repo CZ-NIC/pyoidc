@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 import re
-
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
 import sys
@@ -77,6 +76,7 @@ setup(
                          "beaker",
                          "alabaster",
                          "pyOpenSSL",
+                         'httpretty==0.8.10',
                          "six"] + extra_install_requires,
     zip_safe=False,
     cmdclass={'test': PyTest},
