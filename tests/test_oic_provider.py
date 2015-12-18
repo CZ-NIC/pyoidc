@@ -12,7 +12,7 @@ from six.moves.http_cookies import SimpleCookie
 from six.moves.urllib.parse import urlparse, parse_qs, urlencode
 from oic.oauth2 import rndstr
 from oic.utils.authn.authn_context import AuthnBroker
-from oic.utils.authn.client import verify_client
+from oic.utils.authn.client import verify_client, ClientSecretBasic
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
 from oic.utils.http_util import Redirect
@@ -75,7 +75,8 @@ KC_SYM = KeyBundle([{"kty": "oct", "key": CLIENT_SECRET, "use": "ver"},
 KC_SYM2 = KeyBundle([{"kty": "oct", "key": "drickyoughurt", "use": "sig"},
                      {"kty": "oct", "key": "drickyoughurt", "use": "ver"}])
 
-BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/keys"))
+BASE_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "data/keys"))
 KC_RSA = keybundle_from_local_file(os.path.join(BASE_PATH, "rsa.key"),
                                    "RSA", ["ver", "sig"])
 
@@ -89,7 +90,8 @@ CDB = {
         "password": "hemligt",
         "client_secret": "drickyoughurt",
         "redirect_uris": [("http://localhost:8087/authz", None)],
-        "post_logout_redirect_uris": [("https://example.com/post_logout", None)],
+        "post_logout_redirect_uris": [
+            ("https://example.com/post_logout", None)],
         "client_salt": "salted"
     },
     "a1b2c3": {
@@ -254,7 +256,7 @@ class TestProvider(object):
                                            path="http://localhost:8087")
 
         resp = self.provider.authorization_endpoint(
-            request=urlparse(location).query)
+                request=urlparse(location).query)
 
         parsed = urlparse(resp.message)
         assert "{}://{}{}".format(parsed.scheme, parsed.netloc,
@@ -278,7 +280,7 @@ class TestProvider(object):
                                           path="http://localhost:8087")
 
         resp = self.provider.authorization_endpoint(
-            request=urlparse(location).query)
+                request=urlparse(location).query)
 
         aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
                                          sformat="urlencoded")
@@ -288,12 +290,12 @@ class TestProvider(object):
 
     def test_authenticated_hybrid(self):
         _state, location = self.cons.begin(
-            scope="openid email claims_in_id_token",
-            response_type="code id_token",
-            path="http://localhost:8087")
+                scope="openid email claims_in_id_token",
+                response_type="code id_token",
+                path="http://localhost:8087")
 
         resp = self.provider.authorization_endpoint(
-            request=urlparse(location).query)
+                request=urlparse(location).query)
 
         part = self.cons.parse_authz(resp.message)
 
@@ -319,7 +321,7 @@ class TestProvider(object):
                                            path="http://localhost:8087")
 
         resp = self.provider.authorization_endpoint(
-            request=urlparse(location).query)
+                request=urlparse(location).query)
         parsed = parse_qs(urlparse(resp.message).fragment)
         assert parsed["token_type"][0] == "Bearer"
         assert "access_token" in parsed
@@ -329,7 +331,7 @@ class TestProvider(object):
                                            path="http://localhost:8087")
 
         resp = self.provider.authorization_endpoint(
-            request=location.split("?")[1])
+                request=location.split("?")[1])
         parsed = urlparse(resp.message)
         assert "{}://{}{}".format(parsed.scheme, parsed.netloc,
                                   parsed.path) == "http://localhost:8087/authz"
@@ -432,7 +434,7 @@ class TestProvider(object):
         _sdb.do_sub(sid, "client_salt")
 
         # Construct Access token request
-        areq = AccessTokenRequest(code=access_grant[0:len(access_grant)-1],
+        areq = AccessTokenRequest(code=access_grant[0:len(access_grant) - 1],
                                   client_id=CLIENT_ID,
                                   redirect_uri="http://example.com/authz",
                                   client_secret=CLIENT_SECRET)
@@ -444,7 +446,8 @@ class TestProvider(object):
         assert atr['error'] == "access_denied"
 
     def test_token_endpoint_unauth(self):
-        authreq = AuthorizationRequest(state="state",
+        state = 'state'
+        authreq = AuthorizationRequest(state=state,
                                        redirect_uri="http://example.com/authz",
                                        client_id="client_1")
 
@@ -460,7 +463,8 @@ class TestProvider(object):
             "code": access_grant,
             "code_used": False,
             "scope": ["openid"],
-            "redirect_uri": "http://example.com/authz"
+            "redirect_uri": "http://example.com/authz",
+            'state': state
         }
         _sdb.do_sub(sid, "client_salt")
 
@@ -468,7 +472,8 @@ class TestProvider(object):
         areq = AccessTokenRequest(code=access_grant,
                                   redirect_uri="http://example.com/authz",
                                   client_id="client_1",
-                                  client_secret="secret", )
+                                  client_secret="secret",
+                                  state=state)
 
         txt = areq.to_urlencoded()
 
@@ -477,12 +482,43 @@ class TestProvider(object):
         atr = TokenErrorResponse().deserialize(resp.message, "json")
         assert atr["error"] == "unauthorized_client"
 
+    def test_token_endpoint_auth(self):
+        state, location = self.cons.begin("openid", "code",
+                                          path="http://localhost:8087")
+
+        resp = self.provider.authorization_endpoint(
+                request=urlparse(location).query)
+
+        aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
+                                         sformat="urlencoded")
+
+        # Construct Access token request
+        areq = self.cons.construct_AccessTokenRequest(
+                redirect_uri="http://example.com/authz",
+                client_id="client_1",
+                client_secret='abcdefghijklmnop',
+                state=state)
+
+        txt = areq.to_urlencoded()
+        self.cons.client_secret='drickyoughurt'
+
+        csb = ClientSecretBasic(self.cons)
+        http_args = csb.construct(areq)
+
+        resp = self.provider.token_endpoint(request=txt, remote_user="client2",
+                                            request_method="POST",
+                                            authn=http_args['headers'][
+                                                'Authorization'])
+
+        atr = TokenErrorResponse().deserialize(resp.message, "json")
+        assert atr["token_type"] == 'Bearer'
+
     def test_authz_endpoint(self):
         _state, location = self.cons.begin("openid",
                                            response_type=["code", "token"],
                                            path="http://localhost:8087")
         resp = self.provider.authorization_endpoint(
-            request=urlparse(location).query)
+                request=urlparse(location).query)
 
         parsed = parse_qs(urlparse(resp.message).fragment)
         assert parsed["token_type"][0] == "Bearer"
@@ -527,11 +563,11 @@ class TestProvider(object):
                                           path="http://localhost:8087")
 
         resp = self.provider.authorization_endpoint(
-            request=urlparse(location).query)
+                request=urlparse(location).query)
 
         # redirect
         atr = AuthorizationResponse().deserialize(
-            urlparse(resp.message).fragment, "urlencoded")
+                urlparse(resp.message).fragment, "urlencoded")
 
         uir = UserInfoRequest(access_token=atr["access_token"], schema="openid")
 
@@ -547,16 +583,17 @@ class TestProvider(object):
                                           path="http://localhost:8087")
 
         resp = self.provider.authorization_endpoint(
-            request=urlparse(location).query)
+                request=urlparse(location).query)
 
         # redirect
         atr = AuthorizationResponse().deserialize(
-            urlparse(resp.message).fragment, "urlencoded")
+                urlparse(resp.message).fragment, "urlencoded")
 
         uir = UserInfoRequest(schema="openid")
 
         resp = self.provider.userinfo_endpoint(request=uir.to_urlencoded(),
-                                               authn='Bearer ' + atr['access_token'])
+                                               authn='Bearer ' + atr[
+                                                   'access_token'])
         ident = OpenIDSchema().deserialize(resp.message, "json")
         assert _eq(ident.keys(), ['nickname', 'sub', 'name', 'email'])
 
@@ -566,8 +603,9 @@ class TestProvider(object):
         resp = self.provider.userinfo_endpoint(request=uir.to_urlencoded(),
                                                authn='Not a token')
 
-        assert json.loads(resp.message) == {'error_description': 'Token is malformed',
-                                            'error': 'invalid_request'}
+        assert json.loads(resp.message) == {
+            'error_description': 'Token is malformed',
+            'error': 'invalid_request'}
 
     def test_check_session_endpoint(self):
         session = {"sub": "UserID", "client_id": "number5"}
@@ -619,7 +657,8 @@ class TestProvider(object):
         verified_uris = self.provider._verify_redirect_uris(request)
         assert verified_uris == [("http://example.com/authz", None)]
 
-    def test_verify_redirect_uris_with_non_https_redirect_uri_implicit_flow(self):
+    def test_verify_redirect_uris_with_non_https_redirect_uri_implicit_flow(
+            self):
         params = {"application_type": "web",
                   "redirect_uris": ["http://example.com/authz"],
                   "response_types": ["id_token", "token"]}
@@ -633,25 +672,33 @@ class TestProvider(object):
     @pytest.mark.network
     def test_registration_endpoint_openid4us(self):
         req = RegistrationRequest(
-            **{'token_endpoint_auth_method': u'client_secret_post',
-               'redirect_uris': [
-                   u'https://connect.openid4.us:5443/phpRp/index.php/callback',
-                   u'https://connect.openid4.us:5443/phpRp/authcheck.php/authcheckcb'],
-               'jwks_uri': u'https://connect.openid4.us:5443/phpRp/rp/rp.jwk',
-               'userinfo_encrypted_response_alg': u'RSA1_5',
-               'contacts': [u'me@example.com'],
-               'userinfo_encrypted_response_enc': u'A128CBC-HS256',
-               'application_type': u'web',
-               'client_name': u'ABRP-17',
-               'grant_types': [u'authorization_code', u'implicit'],
-               'post_logout_redirect_uris': [
-                   u'https://connect.openid4.us:5443/phpRp/index.php/logoutcb'],
-               'subject_type': u'public',
-               'response_types': [u'code', u'token', u'id_token', u'code token',
-                                  u'code id_token', u'id_token token',
-                                  u'code id_token token'],
-               'policy_uri': u'https://connect.openid4.us:5443/phpRp/index.php/policy',
-               'logo_uri': u'https://connect.openid4.us:5443/phpRp/media/logo.png'})
+                **{'token_endpoint_auth_method': u'client_secret_post',
+                   'redirect_uris': [
+                       u'https://connect.openid4.us:5443/phpRp/index.php'
+                       u'/callback',
+                       u'https://connect.openid4.us:5443/phpRp/authcheck.php'
+                       u'/authcheckcb'],
+                   'jwks_uri':
+                       u'https://connect.openid4.us:5443/phpRp/rp/rp.jwk',
+                   'userinfo_encrypted_response_alg': u'RSA1_5',
+                   'contacts': [u'me@example.com'],
+                   'userinfo_encrypted_response_enc': u'A128CBC-HS256',
+                   'application_type': u'web',
+                   'client_name': u'ABRP-17',
+                   'grant_types': [u'authorization_code', u'implicit'],
+                   'post_logout_redirect_uris': [
+                       u'https://connect.openid4.us:5443/phpRp/index.php'
+                       u'/logoutcb'],
+                   'subject_type': u'public',
+                   'response_types': [u'code', u'token', u'id_token',
+                                      u'code token',
+                                      u'code id_token', u'id_token token',
+                                      u'code id_token token'],
+                   'policy_uri':
+                       u'https://connect.openid4.us:5443/phpRp/index.php'
+                       u'/policy',
+                   'logo_uri':
+                       u'https://connect.openid4.us:5443/phpRp/media/logo.png'})
 
         resp = self.provider.registration_endpoint(request=req.to_json())
 
@@ -673,7 +720,7 @@ class TestProvider(object):
         keys = provider.keyjar.get_signing_key("RSA")
         assert len(keys) == 1
         assert provider.jwks_uri == "http://www.example.com/{}/jwks".format(
-            path)
+                path)
 
     @pytest.mark.parametrize("uri", [
         "http://example.org/foo",
@@ -758,9 +805,9 @@ class TestProvider(object):
         cid = regresp["client_id"]
 
         areq = AuthorizationRequest(
-            redirect_uri="http://example.org/cb?foo=bar",
-            client_id=cid, scope="openid",
-            response_type="code")
+                redirect_uri="http://example.org/cb?foo=bar",
+                client_id=cid, scope="openid",
+                response_type="code")
 
         self.provider._verify_redirect_uri(areq)
 
@@ -782,7 +829,8 @@ class TestProvider(object):
     def test_read_registration_wrong_authn(self):
         resp = self.provider.read_registration('wrong string', 'request')
         assert resp.status == '400 Bad Request'
-        assert json.loads(resp.message) == {'error': 'invalid_request', 'error_description': None}
+        assert json.loads(resp.message) == {'error': 'invalid_request',
+                                            'error_description': None}
 
     def test_key_rollover(self):
         provider2 = Provider("FOOP", {}, {}, None, None, None, None, "")
@@ -809,27 +857,27 @@ class TestProvider(object):
     def test_endsession_endpoint_with_id_token_hint(self):
         id_token = self._auth_with_id_token()
         assert self.provider.sdb.get_sids_by_sub(
-            id_token["sub"])  # verify we got valid session
+                id_token["sub"])  # verify we got valid session
 
         id_token_hint = id_token.to_jwt(algorithm="none")
         resp = self.provider.endsession_endpoint(
-            urlencode({"id_token_hint": id_token_hint}))
+                urlencode({"id_token_hint": id_token_hint}))
         assert not self.provider.sdb.get_sids_by_sub(
-            id_token["sub"])  # verify session has been removed
+                id_token["sub"])  # verify session has been removed
         self._assert_cookies_expired(resp.headers)
 
     def test_endsession_endpoint_with_post_logout_redirect_uri(self):
         id_token = self._auth_with_id_token()
         assert self.provider.sdb.get_sids_by_sub(
-            id_token["sub"])  # verify we got valid session
+                id_token["sub"])  # verify we got valid session
 
         post_logout_redirect_uri = \
             CDB[CLIENT_CONFIG["client_id"]]["post_logout_redirect_uris"][0][0]
         resp = self.provider.endsession_endpoint(urlencode(
-            {"post_logout_redirect_uri": post_logout_redirect_uri}))
+                {"post_logout_redirect_uri": post_logout_redirect_uri}))
         assert isinstance(resp, Redirect)
         assert not self.provider.sdb.get_sids_by_sub(
-            id_token["sub"])  # verify session has been removed
+                id_token["sub"])  # verify session has been removed
         self._assert_cookies_expired(resp.headers)
 
     def test_session_state_in_auth_req_for_session_support(self):
@@ -846,14 +894,14 @@ class TestProvider(object):
                     }
         areq = AuthorizationRequest(**req_args)
         resp = provider.authorization_endpoint(
-            request=areq.to_urlencoded())
+                request=areq.to_urlencoded())
         aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
                                          sformat="urlencoded")
         assert "session_state" in aresp
 
     def _assert_cookies_expired(self, http_headers):
         cookies_string = ";".join(
-            [c[1] for c in http_headers if c[0] == "Set-Cookie"])
+                [c[1] for c in http_headers if c[0] == "Set-Cookie"])
         all_cookies = SimpleCookie()
         all_cookies.load(cookies_string)
 
@@ -867,12 +915,13 @@ class TestProvider(object):
         state, location = self.cons.begin("openid", "id_token",
                                           path="http://localhost:8087")
         resp = self.provider.authorization_endpoint(
-            request=location.split("?")[1])
+                request=location.split("?")[1])
         aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
                                          sformat="urlencoded")
         return aresp["id_token"]
 
+
 if __name__ == "__main__":
     t = TestProvider()
     t.create_provider()
-    t.test_token_endpoint()
+    t.test_token_endpoint_auth()

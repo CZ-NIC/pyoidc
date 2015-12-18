@@ -187,7 +187,7 @@ class Message(object):
                         params.append((key, str(item).encode('utf-8')))
             elif isinstance(val, Message):
                 try:
-                    _val = json.dumps(_ser(val, sformat="dict", lev=lev+1))
+                    _val = json.dumps(_ser(val, sformat="dict", lev=lev + 1))
                     params.append((key, _val))
                 except TypeError:
                     params.append((key, val))
@@ -307,7 +307,7 @@ class Message(object):
                 val = _ser(val, "dict", lev)
 
             if isinstance(val, Message):
-                _res[key] = val.to_dict(lev+1)
+                _res[key] = val.to_dict(lev + 1)
             elif isinstance(val, list) and isinstance(val[0], Message):
                 _res[key] = [v.to_dict(lev) for v in val]
             else:
@@ -404,8 +404,8 @@ class Message(object):
                     for v in val:
                         if not isinstance(v, vtype):
                             raise DecodeError(
-                                ERRTXT % (key, "type != %s (%s)" % (
-                                    vtype, type(v))))
+                                    ERRTXT % (key, "type != %s (%s)" % (
+                                        vtype, type(v))))
 
                 self._dict[skey] = val
             elif isinstance(val, dict):
@@ -543,7 +543,8 @@ class Message(object):
                                     # This is really questionable
                                     try:
                                         if kwargs["trusting"]:
-                                            keyjar.add(jso["iss"], _header["jku"])
+                                            keyjar.add(jso["iss"],
+                                                       _header["jku"])
                                     except KeyError:
                                         pass
 
@@ -581,7 +582,7 @@ class Message(object):
                         if "alg" in _header and _header["alg"] != "none":
                             if not key:
                                 raise MissingSigningKey(
-                                    "alg=%s" % _header["alg"])
+                                        "alg=%s" % _header["alg"])
 
                         logger.debug("Verify keys: {}".format(key))
                         _jw.verify_compact(txt, key)
@@ -861,6 +862,7 @@ SINGLE_OPTIONAL_JSON = (basestring, False, json_serializer, json_deserializer,
 REQUIRED = [SINGLE_REQUIRED_STRING, REQUIRED_LIST_OF_STRINGS,
             REQUIRED_LIST_OF_SP_SEP_STRINGS]
 
+
 #
 # =============================================================================
 #
@@ -892,12 +894,17 @@ class TokenErrorResponse(ErrorResponse):
 
 
 class AccessTokenRequest(Message):
-    c_param = {"grant_type": SINGLE_REQUIRED_STRING,
-               "code": SINGLE_REQUIRED_STRING,
-               "redirect_uri": SINGLE_REQUIRED_STRING,
-               "client_id": SINGLE_OPTIONAL_STRING,
-               "client_secret": SINGLE_OPTIONAL_STRING}
-    c_default = {"grant_type": "authorization_code"}
+    c_param = {
+        "grant_type": SINGLE_REQUIRED_STRING,
+        "code": SINGLE_REQUIRED_STRING,
+        "redirect_uri": SINGLE_REQUIRED_STRING,
+        "client_id": SINGLE_OPTIONAL_STRING,
+        "client_secret": SINGLE_OPTIONAL_STRING,
+        'state_hash': SINGLE_OPTIONAL_STRING
+    }
+
+
+c_default = {"grant_type": "authorization_code"}
 
 
 class AuthorizationRequest(Message):
@@ -906,14 +913,16 @@ class AuthorizationRequest(Message):
         "client_id": SINGLE_REQUIRED_STRING,
         "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
         "redirect_uri": SINGLE_OPTIONAL_STRING,
-        "state": SINGLE_OPTIONAL_STRING
+        "state": SINGLE_OPTIONAL_STRING,
     }
 
 
 class AuthorizationResponse(Message):
     c_param = {
         "code": SINGLE_REQUIRED_STRING,
-        "state": SINGLE_OPTIONAL_STRING
+        "state": SINGLE_OPTIONAL_STRING,
+        'iss': SINGLE_OPTIONAL_STRING,
+        'client_id': SINGLE_OPTIONAL_STRING
     }
 
 
