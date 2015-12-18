@@ -794,6 +794,7 @@ class Client(oauth2.Client):
             res = _schema().from_jwt(_txt, keyjar=self.keyjar,
                                      sender=self.provider_info["issuer"])
 
+        # TODO verify issuer:sub against what's returned in the ID Token
         self.store_response(res, _txt)
 
         return res

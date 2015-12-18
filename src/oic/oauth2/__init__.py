@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-
+import base64
+import hashlib
 import random
 import string
 
@@ -285,6 +286,11 @@ class Client(PBase):
             request_args = {}
 
         request_args["code"] = grant.code
+
+        # MUST be same state as for the AuthReq
+        shash = base64.urlsafe_b64encode(
+                hashlib.sha256(kwargs['state'].encode('utf8')).digest())
+        request_args['state_hash'] = shash.decode('ascii')
 
         if "grant_type" not in request_args:
             request_args["grant_type"] = "authorization_code"

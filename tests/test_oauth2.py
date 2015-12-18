@@ -145,6 +145,8 @@ class TestClient(object):
         assert atr["grant_type"] == "authorization_code"
         assert atr["code"] == "AbCdEf"
         assert atr["redirect_uri"] == self.redirect_uri
+        assert atr['state_hash'] == \
+               b'QEYNqMiCzceRg2-6dgCYcPlgoVEod5jx34r16WM5j4Q='
 
     def test_construct_access_token_request_fail(self):
         with pytest.raises(GrantError):
@@ -161,6 +163,7 @@ class TestClient(object):
         assert atr["grant_type"] == "authorization_code"
         assert atr["code"] == "AbCdEf"
         assert atr["redirect_uri"] == self.redirect_uri
+        assert atr['state_hash'] == b'Ngi8oeROpsTSaOttsCJgJpiSwLQrhrvx53pvoWw8koI='
 
     def test_parse_access_token_resp(self):
         atr = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
@@ -249,7 +252,7 @@ class TestClient(object):
                                                            "foo": "bar"})
 
         assert _eq(req.keys(), ["code", "grant_type", "client_id",
-                                "redirect_uri", "foo"])
+                                "redirect_uri", "foo", 'state_hash'])
         assert req["foo"] == "bar"
 
     def test_construct_TokenRevocationRequest(self):

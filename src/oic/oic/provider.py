@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import base64
 import hashlib
 import hmac
 import itertools
@@ -68,9 +69,7 @@ if six.PY3:
 else:
     from urllib import splitquery
 
-
 __author__ = 'rohe0002'
-
 
 logger = logging.getLogger(__name__)
 
@@ -194,9 +193,9 @@ CAPABILITIES = {
 
 class Provider(AProvider):
     def __init__(self, name, sdb, cdb, authn_broker, userinfo, authz,
-                 client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
-                 hostname="", template_lookup=None, template=None,
-                 verify_ssl=True, capabilities=None, schema=OpenIDSchema):
+            client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
+            hostname="", template_lookup=None, template=None,
+            verify_ssl=True, capabilities=None, schema=OpenIDSchema):
 
         AProvider.__init__(self, name, sdb, cdb, authn_broker, authz,
                            client_authn, symkey, urlmap, ca_bundle=ca_certs,
@@ -309,8 +308,8 @@ class Provider(AProvider):
                     self.capabilities[val] = [_enc_enc]
 
     def id_token_as_signed_jwt(self, session, loa="2", alg="", code=None,
-                               access_token=None, user_info=None, auth_time=0,
-                               exp=None, extra_claims=None):
+            access_token=None, user_info=None, auth_time=0,
+            exp=None, extra_claims=None):
 
         if alg == "":
             alg = self.jwx_def["sign_alg"]["id_token"]
@@ -412,7 +411,7 @@ class Provider(AProvider):
                 resq = self._parse_openid_request(_req.text)
             except Exception as err:
                 return self._redirect_authz_error(
-                    "invalid_openid_request_object", redirect_uri)
+                        "invalid_openid_request_object", redirect_uri)
 
             areq["request"] = resq
 
@@ -478,8 +477,8 @@ class Provider(AProvider):
                 return self.authn_broker[0]
         except KeyError as exc:
             logger.debug(
-                "An error occured while picking the authN broker: %s" % str(
-                    exc))
+                    "An error occured while picking the authN broker: %s" % str(
+                            exc))
 
         # return the best I have
         return None, None
@@ -513,7 +512,8 @@ class Provider(AProvider):
                 return redirect_uri
         except Exception as exc:
             logger.debug(
-                "An error occurred while verifying redirect URI: %s" % str(exc))
+                    "An error occurred while verifying redirect URI: %s" % str(
+                        exc))
 
         return None
 
@@ -557,8 +557,8 @@ class Provider(AProvider):
             redirect_uri = self.verify_post_logout_redirect_uri(esr, cookie)
             if not redirect_uri:
                 return self._error_response(
-                    "Not allowed (Post logout redirect URI verification "
-                    "failed)!")
+                        "Not allowed (Post logout redirect URI verification "
+                        "failed)!")
 
         authn, acr = self.pick_auth(esr)
 
@@ -584,7 +584,7 @@ class Provider(AProvider):
                     pass
             else:
                 return self._error_response(
-                    "Not allowed (UID could not be retrieved)!")
+                        "Not allowed (UID could not be retrieved)!")
 
         # if self.sdb.get_verified_logout(uid):
         #    return self.let_user_verify_logout(uid, esr, cookie, redirect_uri)
@@ -706,9 +706,9 @@ class Provider(AProvider):
         if "check_session_iframe" in self.capabilities:
             salt = rndstr()
             state = str(self.sdb.get_authentication_event(
-                sid).authn_time)  # use the last session
+                    sid).authn_time)  # use the last session
             aresp["session_state"] = self._compute_session_state(
-                state, salt, areq["client_id"], redirect_uri)
+                    state, salt, areq["client_id"], redirect_uri)
             headers.append(self.write_session_cookie(state))
 
         location = aresp.request(redirect_uri, fragment_enc)
@@ -758,7 +758,7 @@ class Provider(AProvider):
         except KeyError:
             # Weird, but try to recuperate
             logger.warning(
-                "Lost keys for {} trying to recuperate!!".format(cid))
+                    "Lost keys for {} trying to recuperate!!".format(cid))
             self.keyjar.issuer_keys[cid] = []
             self.keyjar.add(cid, client_info["jwks_uri"])
             _ckeys = self.keyjar[cid]
@@ -775,7 +775,7 @@ class Provider(AProvider):
         return _jwe.encrypt(keys, context="public")
 
     def sign_encrypt_id_token(self, sinfo, client_info, areq, code=None,
-                              access_token=None, user_info=None):
+            access_token=None, user_info=None):
         """
         Signed and or encrypt a IDToken
 
@@ -801,9 +801,9 @@ class Provider(AProvider):
 
         _authn_event = sinfo["authn_event"]
         id_token = self.id_token_as_signed_jwt(
-            sinfo, loa=_authn_event.authn_info, alg=alg, code=code,
-            access_token=access_token, user_info=user_info,
-            auth_time=_authn_event.authn_time)
+                sinfo, loa=_authn_event.authn_info, alg=alg, code=code,
+                access_token=access_token, user_info=user_info,
+                auth_time=_authn_event.authn_time)
 
         # Then encrypt
         if "id_token_encrypted_response_alg" in client_info:
@@ -826,7 +826,11 @@ class Provider(AProvider):
         if self.sdb.is_revoked(_access_code):
             return self._error(error="access_denied", descr="Token is revoked")
 
-        _info = _sdb[_access_code]
+        # Session might not exist or _access_code malformed
+        try:
+            _info = _sdb[_access_code]
+        except KeyError:
+            return self._error(error="access_denied", descr="Token is invalid")
 
         # If redirect_uri was in the initial authorization request
         # verify that the one given here is the correct one.
@@ -843,12 +847,15 @@ class Provider(AProvider):
         if "issue_refresh" in kwargs:
             issue_refresh = kwargs["issue_refresh"]
 
-        permissions = _info.get('permission', ['offline_access']) or ['offline_access']
-        if 'offline_access' in _info['scope'] and 'offline_access' in permissions:
+        permissions = _info.get('permission', ['offline_access']) or [
+            'offline_access']
+        if 'offline_access' in _info[
+            'scope'] and 'offline_access' in permissions:
             issue_refresh = True
 
         try:
-            _tinfo = _sdb.upgrade_to_token(_access_code, issue_refresh=issue_refresh)
+            _tinfo = _sdb.upgrade_to_token(_access_code,
+                                           issue_refresh=issue_refresh)
         except Exception as err:
             logger.error("%s" % err)
             # Should revoke the token issued to this access code
@@ -860,7 +867,7 @@ class Provider(AProvider):
             # _authn_event = _info["authn_event"]
             try:
                 _idtoken = self.sign_encrypt_id_token(
-                    _info, client_info, req, user_info=userinfo)
+                        _info, client_info, req, user_info=userinfo)
             except (JWEException, NoSuitableSigningKeys) as err:
                 logger.warning(str(err))
                 return self._error(error="access_denied",
@@ -898,7 +905,7 @@ class Provider(AProvider):
             userinfo = self.userinfo_in_id_token_claims(_info)
             try:
                 _idtoken = self.sign_encrypt_id_token(
-                    _info, client_info, req, user_info=userinfo)
+                        _info, client_info, req, user_info=userinfo)
             except (JWEException, NoSuitableSigningKeys) as err:
                 logger.warning(str(err))
                 return self._error(error="access_denied",
@@ -917,7 +924,7 @@ class Provider(AProvider):
 
     # noinspection PyUnusedLocal
     def token_endpoint(self, request="", authn=None, dtype='urlencoded',
-                       **kwargs):
+            **kwargs):
         """
         This is where clients come to get their access tokens
 
@@ -929,6 +936,17 @@ class Provider(AProvider):
         logger.info("token_request: %s" % request)
 
         req = AccessTokenRequest().deserialize(request, dtype)
+
+        if 'state_hash' in req:
+            # have to get the token to get at the state
+            code = req['code']
+            shash = base64.urlsafe_b64encode(
+                    hashlib.sha256(
+                        self.sdb[code]['state'].encode('utf8')).digest())
+            if shash.decode('ascii') != req['state_hash']:
+                err = TokenErrorResponse(error="unauthorized_client")
+                return Unauthorized(err.to_json(), content="application/json")
+
         if "refresh_token" in req:
             req = RefreshAccessTokenRequest().deserialize(request, dtype)
 
@@ -1053,7 +1071,8 @@ class Provider(AProvider):
         try:
             _token = self._parse_access_token(request, **kwargs)
         except ParameterError:
-            return self._error(error='invalid_request', descr='Token is malformed')
+            return self._error(error='invalid_request',
+                               descr='Token is malformed')
         return self._do_user_info(_token, **kwargs)
 
     def _parse_access_token(self, request, **kwargs):
@@ -1117,7 +1136,7 @@ class Provider(AProvider):
         except NotSupportedAlgorithm as err:
             return self._error(error="access_denied",
                                descr="Not supported algorithm: {}".format(
-                                   err.args[0]))
+                                       err.args[0]))
         except JWEException:
             return self._error(error="access_denied",
                                descr="Could not encrypt")
@@ -1201,9 +1220,10 @@ class Provider(AProvider):
             for uri in request["post_logout_redirect_uris"]:
                 if urlparse.urlparse(uri).fragment:
                     err = ClientRegistrationErrorResponse(
-                        error="invalid_configuration_parameter",
-                        error_description="post_logout_redirect_uris contains "
-                                          "fragment")
+                            error="invalid_configuration_parameter",
+                            error_description="post_logout_redirect_uris "
+                                              "contains "
+                                              "fragment")
                     return Response(err.to_json(),
                                     content="application/json",
                                     status="400 Bad Request")
@@ -1220,8 +1240,8 @@ class Provider(AProvider):
                 _cinfo["redirect_uris"] = ruri
             except InvalidRedirectURIError as e:
                 err = ClientRegistrationErrorResponse(
-                    error="invalid_redirect_uri",
-                    error_description=str(e))
+                        error="invalid_redirect_uri",
+                        error_description=str(e))
                 return Response(err.to_json(),
                                 content="application/json",
                                 status="400 Bad Request")
@@ -1233,13 +1253,13 @@ class Provider(AProvider):
             except ConnectionError as err:
                 logger.error("%s" % err)
                 return self._error_response(
-                    "invalid_configuration_parameter",
-                    descr="Couldn't open sector_identifier_uri")
+                        "invalid_configuration_parameter",
+                        descr="Couldn't open sector_identifier_uri")
 
             if not res:
                 return self._error_response(
-                    "invalid_configuration_parameter",
-                    descr="Couldn't open sector_identifier_uri")
+                        "invalid_configuration_parameter",
+                        descr="Couldn't open sector_identifier_uri")
 
             logger.debug("sector_identifier_uri => %s" % res.text)
 
@@ -1247,8 +1267,9 @@ class Provider(AProvider):
                 si_redirects = json.loads(res.text)
             except ValueError:
                 return self._error_response(
-                    "invalid_configuration_parameter",
-                    descr="Error deserializing sector_identifier_uri content")
+                        "invalid_configuration_parameter",
+                        descr="Error deserializing sector_identifier_uri "
+                              "content")
 
             if "redirect_uris" in request:
                 logger.debug("redirect_uris: %s" % request["redirect_uris"])
@@ -1257,8 +1278,9 @@ class Provider(AProvider):
                         assert uri in si_redirects
                     except AssertionError:
                         return self._error_response(
-                            "invalid_configuration_parameter",
-                            descr="redirect_uri missing from sector_identifiers"
+                                "invalid_configuration_parameter",
+                                descr="redirect_uri missing from "
+                                      "sector_identifiers"
                         )
 
             _cinfo["si_redirects"] = si_redirects
@@ -1277,9 +1299,9 @@ class Provider(AProvider):
                             assert host == _host
                         except AssertionError:
                             return self._error_response(
-                                "invalid_configuration_parameter",
-                                descr="'sector_identifier_uri' must be "
-                                      "registered")
+                                    "invalid_configuration_parameter",
+                                    descr="'sector_identifier_uri' must be "
+                                          "registered")
 
         for item in ["policy_uri", "logo_uri", "tos_uri"]:
             if item in request:
@@ -1287,8 +1309,8 @@ class Provider(AProvider):
                     _cinfo[item] = request[item]
                 else:
                     return self._error_response(
-                        "invalid_configuration_parameter",
-                        descr="%s pointed to illegal URL" % item)
+                            "invalid_configuration_parameter",
+                            descr="%s pointed to illegal URL" % item)
 
         # Do I have the necessary keys
         for item in ["id_token_signed_response_alg",
@@ -1316,8 +1338,8 @@ class Provider(AProvider):
             logger.error("Failed to load client keys: %s" % request.to_dict())
             logger.error("%s", err)
             err = ClientRegistrationErrorResponse(
-                error="invalid_configuration_parameter",
-                error_description="%s" % err)
+                    error="invalid_configuration_parameter",
+                    error_description="%s" % err)
             return Response(err.to_json(), content="application/json",
                             status="400 Bad Request")
 
@@ -1346,13 +1368,13 @@ class Provider(AProvider):
             if client_type == "native" and p.scheme == "http":
                 if p.hostname != "localhost":
                     raise InvalidRedirectURIError(
-                        "Http redirect_uri must use localhost")
+                            "Http redirect_uri must use localhost")
             elif must_https and p.scheme != "https":
                 raise InvalidRedirectURIError(
-                    "None https redirect_uri not allowed")
+                        "None https redirect_uri not allowed")
             elif p.fragment:
                 raise InvalidRedirectURIError(
-                    "redirect_uri contains fragment")
+                        "redirect_uri contains fragment")
             # This rule will break local testing.
             # elif must_https and p.hostname == "localhost":
             #     err = InvalidRedirectURIError(
@@ -1516,7 +1538,7 @@ class Provider(AProvider):
                         headers=[("Cache-Control", "no-store")])
 
     def create_providerinfo(self, pcr_class=ProviderConfigurationResponse,
-                            setup=None):
+            setup=None):
         """
         Dynamically create the provider info response
         :param pcr_class:
@@ -1532,8 +1554,8 @@ class Provider(AProvider):
         for endp in self.endp:
             # _log_info("# %s, %s" % (endp, endp.name))
             _provider_info['{}_endpoint'.format(endp.etype)] = os.path.join(
-                self.baseurl,
-                endp.url)
+                    self.baseurl,
+                    endp.url)
 
         if setup and isinstance(setup, dict):
             for key in pcr_class.c_param.keys():
@@ -1705,7 +1727,7 @@ class Provider(AProvider):
 
             # or 'code id_token'
             id_token = self.sign_encrypt_id_token(
-                _sinfo, client_info, areq, user_info=user_info, **hargs)
+                    _sinfo, client_info, areq, user_info=user_info, **hargs)
 
             aresp["id_token"] = id_token
             _sinfo["id_token"] = id_token
@@ -1729,7 +1751,7 @@ class Provider(AProvider):
             argv = {"form_args": kwargs["aresp"].to_dict(),
                     "action": kwargs["redirect_uri"]}
             mte = self.template_lookup.get_template(
-                self.template["form_post"])
+                    self.template["form_post"])
             return Response(mte.render(**argv), headers=kwargs["headers"])
         elif resp_mode == 'fragment' and not fragment_enc:
             # Can't be done
@@ -1819,7 +1841,8 @@ class Provider(AProvider):
                 # or 'code id_token'
                 try:
                     id_token = self.sign_encrypt_id_token(
-                        _sinfo, client_info, areq, user_info=user_info, **hargs)
+                            _sinfo, client_info, areq, user_info=user_info,
+                            **hargs)
                 except (JWEException, NoSuitableSigningKeys) as err:
                     logger.warning(str(err))
                     return self._error(error="access_denied",

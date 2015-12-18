@@ -1,3 +1,7 @@
+import copy
+import hashlib
+from urllib.parse import urljoin
+
 from oic.utils.http_util import Redirect
 from oic.exception import MissingAttribute
 from oic import oic
@@ -20,8 +24,8 @@ class OIDCError(Exception):
 
 class Client(oic.Client):
     def __init__(self, client_id=None, ca_certs=None,
-                 client_prefs=None, client_authn_method=None, keyjar=None,
-                 verify_ssl=True, behaviour=None):
+            client_prefs=None, client_authn_method=None, keyjar=None,
+            verify_ssl=True, behaviour=None):
         oic.Client.__init__(self, client_id, ca_certs, client_prefs,
                             client_authn_method, keyjar, verify_ssl)
         if behaviour:
@@ -98,8 +102,10 @@ class Client(oic.Client):
                 }
 
                 atresp = self.do_access_token_request(
-                    scope="openid", state=authresp["state"], request_args=args,
-                    authn_method=self.registration_response["token_endpoint_auth_method"])
+                        scope="openid", state=authresp["state"],
+                        request_args=args,
+                        authn_method=self.registration_response[
+                            "token_endpoint_auth_method"])
             except Exception as err:
                 logger.error("%s" % err)
                 raise
@@ -125,7 +131,7 @@ class Client(oic.Client):
 
 
 class OIDCClients(object):
-    def __init__(self, config):
+    def __init__(self, config, seed=''):
         """
 
         :param config: Imported configuration module
@@ -134,6 +140,7 @@ class OIDCClients(object):
         self.client = {}
         self.client_cls = Client
         self.config = config
+        self.seed = seed or rndstr(16)
 
         for key, val in config.CLIENTS.items():
             if key == "":
@@ -163,7 +170,8 @@ class OIDCClients(object):
                 _key_set.discard(param)
 
         client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
-                                 behaviour=kwargs["behaviour"], verify_ssl=self.config.VERIFY_SSL, **args)
+                                 behaviour=kwargs["behaviour"],
+                                 verify_ssl=self.config.VERIFY_SSL, **args)
 
         try:
             client.userinfo_request_method = kwargs["userinfo_request_method"]
@@ -203,20 +211,20 @@ class OIDCClients(object):
                                 **kwargs["client_info"])
         elif _key_set == set(["provider_info", "client_info"]):
             client.handle_provider_config(
-                ProviderConfigurationResponse(**kwargs["provider_info"]),
-                kwargs["provider_info"]["issuer"])
+                    ProviderConfigurationResponse(**kwargs["provider_info"]),
+                    kwargs["provider_info"]["issuer"])
             _ = client.register(client.provider_info["registration_endpoint"],
                                 **kwargs["client_info"])
         elif _key_set == set(["provider_info", "client_registration"]):
             client.handle_provider_config(
-                ProviderConfigurationResponse(**kwargs["provider_info"]),
-                kwargs["provider_info"]["issuer"])
+                    ProviderConfigurationResponse(**kwargs["provider_info"]),
+                    kwargs["provider_info"]["issuer"])
             client.store_registration_info(RegistrationResponse(
-                **kwargs["client_registration"]))
+                    **kwargs["client_registration"]))
         elif _key_set == set(["srv_discovery_url", "client_registration"]):
             _ = client.provider_config(kwargs["srv_discovery_url"])
             client.store_registration_info(RegistrationResponse(
-                **kwargs["client_registration"]))
+                    **kwargs["client_registration"]))
         else:
             raise Exception("Configuration error ?")
 
@@ -233,8 +241,16 @@ class OIDCClients(object):
             # Gather OP information
             _pcr = client.provider_config(issuer)
             # register the client
-            _ = client.register(_pcr["registration_endpoint"],
-                                **self.config.CLIENTS[""]["client_info"])
+            reg_args = copy.copy(self.config.CLIENTS[""]["client_info"])
+            h = hashlib.sha256(self.seed)
+            h.update(issuer)  # issuer has to bytes
+            base_urls = self.config.CLIENTS[""]["redirect_uris"]
+
+            reg_args['redirect_uris'] = [urljoin(u, h.hexdigest()) for u in
+                                         base_urls]
+
+            _ = client.register(_pcr["registration_endpoint"], **reg_args)
+
             try:
                 client.behaviour.update(**self.config.CLIENTS[""]["behaviour"])
             except KeyError:
