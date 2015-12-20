@@ -4,6 +4,8 @@
 import os
 import sys
 
+from oic.utils import time_util
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              '..', '..')))
 
@@ -324,9 +326,10 @@ class TestAuthorizationRequest(object):
 
 class TestAccessTokenResponse(object):
     def test_faulty_idtoken(self):
+        _now = time_util.utc_time_sans_frac()
         idval = {'nonce': 'KUEYfRM2VzKDaaKD', 'sub': 'EndUserSubject',
-                 'iss': 'https://alpha.cloud.nds.rub.de', 'exp': 1420823073,
-                 'iat': 1420822473, 'aud': 'TestClient'}
+                 'iss': 'https://alpha.cloud.nds.rub.de', 'exp': _now+3600,
+                 'iat': _now, 'aud': 'TestClient'}
         idts = IdToken(**idval)
         key = SYMKey(key="TestPassword")
         _signed_jwt = idts.to_jwt(key=[key], algorithm="HS256")
@@ -344,9 +347,10 @@ class TestAccessTokenResponse(object):
             at.verify(key=[key])
 
     def test_wrong_alg(self):
+        _now = time_util.utc_time_sans_frac()
         idval = {'nonce': 'KUEYfRM2VzKDaaKD', 'sub': 'EndUserSubject',
-                 'iss': 'https://alpha.cloud.nds.rub.de', 'exp': 1420823073,
-                 'iat': 1420822473, 'aud': 'TestClient'}
+                 'iss': 'https://alpha.cloud.nds.rub.de', 'exp': _now+3600,
+                 'iat': _now, 'aud': 'TestClient'}
         idts = IdToken(**idval)
         key = SYMKey(key="TestPassword")
         _signed_jwt = idts.to_jwt(key=[key], algorithm="HS256")
@@ -360,6 +364,8 @@ class TestAccessTokenResponse(object):
 
 
 def test_id_token():
+    _now = time_util.utc_time_sans_frac()
+
     idt = IdToken(**{
         "sub": "553df2bcf909104751cfd8b2",
         "aud": [
@@ -369,8 +375,8 @@ def test_id_token():
         "auth_time": 1441364872,
         "azp": "554295ce3770612820620000",
         "at_hash": "L4Ign7TCAD_EppRbHAuCyw",
-        "iat": 1441367116,
-        "exp": 1441374316,
+        "iat": _now,
+        "exp": _now+3600,
         "iss": "https://sso.qa.7pass.ctf.prosiebensat1.com"
     })
 
