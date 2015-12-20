@@ -280,9 +280,9 @@ class TestKeyJar(object):
             "id_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ik1uQ19WWmNBVGZNNXBPWWlKSE1iYTlnb0VLWSIsImtpZCI6Ik1uQ19WWmNBVGZNNXBPWWlKSE1iYTlnb0VLWSJ9.eyJhdWQiOiIwMTZlZDBlNC1mYzUyLTRlYjgtOWVhYy1lODg1MmM4MjEwNTUiLCJpc3MiOiJodHRwczovL2xvZ2luLm1pY3Jvc29mdG9ubGluZS5jb20vYjRlYTNkZTYtODM5ZS00YWQxLWFlNzgtYzc4ZTVjMGNkYzA2L3YyLjAvIiwiaWF0IjoxNDM5OTIzNDY5LCJuYmYiOjE0Mzk5MjM0NjksImV4cCI6MTQzOTkyNzM2OSwidmVyIjoiMi4wIiwidGlkIjoiYjRlYTNkZTYtODM5ZS00YWQxLWFlNzgtYzc4ZTVjMGNkYzA2Iiwib2lkIjoiNDJjMzliNWUtYmQwNS00YTlhLTlhNWUtMTY5ZDc2N2ZlZjJmIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiaW50ZXJvcEBrYXV0aS5vbm1pY3Jvc29mdC5jb20iLCJzdWIiOiJFWGlaVldjakpsREN1LXZzOUxNb1V3ZGRNNEJZZ2ZISzBJNk40dWpXZkRFIiwibmFtZSI6ImludGVyb3AiLCJub25jZSI6IlpkSHRxQWwzR3c4QiJ9.tH4FKM4H9YCHX2XF4V64SsLaKh31c0oLpEVlFxFHw8jxL5HujUthZJDUMwngXZ2mPU_1G152ybKiRCV9DKaBh1rFSlZxTDBp0SV_YTwOkGYOt-sOzFUJyvVCjGmRhvFkOF1kiT3IYjDoRh72U8pMchj1duWSytLczdOc4LJmg24ya5jwqApuyQu7gVqoDH1kEqBAuhBj3a7ZDwxIt-bTKZklsht0RutZjv4Ckg8qJpzWnY7rIjSKFKfEpAAfk_LqWvTktvDMKTHXLxEPVZymoskE1LthtC8AYoNmtVPxgxf87yGCqYZBsuAnVChdnsItXP7tPeqUjC8Lm3JjabV-5g&id_token_expires_in=3599&state=6o3FmQ0QZl1zifsE&session_state=d2c97e8a-497c-4ce1-bb10-5058501164eb")
 
         try:
-            authz_resp.verify(keyjar=kj)
+            authz_resp.verify(keyjar=kj, skew=100000000)
         except MissingSigningKey:
-            authz_resp.verify(keyjar=kj, sender=ISSUER)
+            authz_resp.verify(keyjar=kj, sender=ISSUER, skew=100000000)
 
 
 if __name__ == "__main__":
