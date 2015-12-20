@@ -92,10 +92,6 @@ class Client(oic.Client):
             if _id_token['nonce'] != session["nonce"]:
                 return OIDCError("Received nonce not the same as expected.")
             # store id_token under the state
-            try:
-                self.id_token[authresp["state"]] = _id_token
-            except TypeError:
-                self.id_token = {authresp["state"]: _id_token}
 
         if self.behaviour["response_type"] == "code":
             # get the access token
@@ -121,10 +117,6 @@ class Client(oic.Client):
                 raise OIDCError("Invalid response %s." % atresp["error"])
 
             _id_token = atresp['id_token']
-            try:
-                self.id_token[authresp["state"]] = _id_token
-            except TypeError:
-                self.id_token = {authresp["state"]: _id_token}
 
         if _id_token is None:
             raise OIDCError("Invalid response: no IdToken")
@@ -157,6 +149,11 @@ class Client(oic.Client):
             raise OIDCError("Invalid response: userid mismatch")
 
         logger.debug("UserInfo: %s" % inforesp)
+
+        try:
+            self.id_token[user_id] = _id_token
+        except TypeError:
+            self.id_token = {user_id: _id_token}
 
         return user_id, userinfo
 
