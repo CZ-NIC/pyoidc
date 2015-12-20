@@ -30,6 +30,7 @@ class Client(oic.Client):
         if behaviour:
             self.behaviour = behaviour
         self.userinfo_request_method = ''
+        self.allow_sign_alg_none = False
 
     def create_authn_request(self, session, acr_value=None, **kwargs):
         session["state"] = rndstr()
@@ -130,6 +131,13 @@ class Client(oic.Client):
 
         if _id_token['iss'] != self.provider_info['issuer']:
             raise OIDCError("Issuer mismatch")
+
+        if _id_token['nonce'] != session['nonce']:
+            raise OIDCError('Nonce missmatch')
+
+        if not self.allow_sign_alg_none:
+            if _id_token.jws_header['alg'] == 'none':
+                raise OIDCError('Do not allow "none" signature algorithm')
 
         user_id = '{}:{}'.format(_id_token['iss'], _id_token['sub'])
 
