@@ -6,6 +6,7 @@ import logging
 
 import six
 from jwkest import jws
+from oic.utils import time_util
 
 from six.moves.urllib.parse import urlparse
 from oic.oauth2 import message
@@ -32,12 +33,21 @@ __author__ = 'rohe0002'
 
 logger = logging.getLogger(__name__)
 
+NONCE_STORAGE_TIME = 4*3600
 
 class AtHashError(VerificationError):
     pass
 
 
 class CHashError(VerificationError):
+    pass
+
+
+class EXPError(VerificationError):
+    pass
+
+
+class IATError(VerificationError):
     pass
 
 
@@ -672,6 +682,23 @@ class IdToken(OpenIDSchema):
             if "client_id" in kwargs:
                 if kwargs["client_id"] != self["azp"]:
                     raise NotForMe("", self)
+
+        _now = time_util.utc_time_sans_frac()
+        try:
+            _skew = kwargs['skew']
+        except KeyError:
+            _skew = 0
+
+        if (_now - _skew) > self['exp']:
+            raise EXPError('Invalid expiration time')
+
+        try:
+            _storage_time = kwargs['nonce_storage_time']
+        except KeyError:
+            _storage_time = NONCE_STORAGE_TIME
+
+        if (self['iat'] + _storage_time) < (_now - _skew):
+            raise IATError('Issued too long ago')
 
         return super(IdToken, self).verify(**kwargs)
 

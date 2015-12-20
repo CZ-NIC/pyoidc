@@ -29,6 +29,7 @@ class Client(oic.Client):
                             client_authn_method, keyjar, verify_ssl)
         if behaviour:
             self.behaviour = behaviour
+        self.userinfo_request_method = ''
 
     def create_authn_request(self, session, acr_value=None, **kwargs):
         session["state"] = rndstr()
@@ -85,7 +86,7 @@ class Client(oic.Client):
         try:
             _id_token = authresp['id_token']
         except KeyError:
-            pass
+            _id_token = None
         else:
             if _id_token['nonce'] != session["nonce"]:
                 return OIDCError("Received nonce not the same as expected.")
@@ -124,14 +125,17 @@ class Client(oic.Client):
             except TypeError:
                 self.id_token = {authresp["state"]: _id_token}
 
+        if _id_token is None:
+            raise OIDCError("Invalid response: no IdToken")
+
         if _id_token['iss'] != self.provider_info['issuer']:
             raise OIDCError("Issuer mismatch")
 
         user_id = '{}:{}'.format(_id_token['iss'], _id_token['sub'])
 
-        try:
+        if self.userinfo_request_method:
             kwargs = {"method": self.userinfo_request_method}
-        except AttributeError:
+        else:
             kwargs = {}
 
         inforesp = self.do_user_info_request(state=authresp["state"], **kwargs)
@@ -141,7 +145,7 @@ class Client(oic.Client):
 
         userinfo = inforesp.to_dict()
 
-        if user_id != '{}:{}'.format(_id_token['iss'], userinfo['sub']):
+        if _id_token['sub'] != userinfo['sub']:
             raise OIDCError("Invalid response: userid mismatch")
 
         logger.debug("UserInfo: %s" % inforesp)
