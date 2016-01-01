@@ -673,6 +673,12 @@ class Message(object):
     def __getitem__(self, item):
         return self._dict[item]
 
+    def get(self, item, default=None):
+        try:
+            return self[item]
+        except KeyError:
+            return default
+
     def items(self):
         return self._dict.items()
 

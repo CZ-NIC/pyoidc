@@ -149,6 +149,19 @@ class TestMessage(object):
         assert url_compare(req,
                            "http://example.com?req_str=Fair&req_str_list=game")
 
+    def test_get(self):
+        _dict = {"req_str": "Fair", "opt_str": "game", "opt_int": 9,
+                 "opt_str_list": ["one", "two"],
+                 "req_str_list": ["spike", "lee"],
+                 "opt_json": '{"ford": "green"}'}
+
+        cls = DummyMessage(**_dict)
+
+        assert cls.get("req_str") == "Fair"
+        assert cls.get("opt_int", 8) == 9
+        assert cls.get("missing") is None
+        assert cls.get("missing", []) == []
+
 
 class TestAuthorizationRequest(object):
     def test_authz_req_urlencoded(self):

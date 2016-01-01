@@ -17,6 +17,7 @@ from jwkest.jwk import SYMKey
 import pytest
 
 from oic.oauth2 import WrongSigningAlgorithm
+from oic.oauth2.message import MissingRequiredValue
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import AuthorizationRequest
@@ -322,6 +323,16 @@ class TestAuthorizationRequest(object):
 
         assert req["response_type"] == ["token", "id_token"]
         assert req["scope"] == ["openid", "profile"]
+
+    def test_verify_no_scopes(self):
+        args = {
+            "client_id": "foobar",
+            "redirect_uri": "http://foobar.example.com/oaclient",
+            "response_type": "code",
+        }
+        ar = AuthorizationRequest(**args)
+        with pytest.raises(MissingRequiredValue):
+            ar.verify()
 
 
 class TestAccessTokenResponse(object):

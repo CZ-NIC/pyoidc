@@ -463,10 +463,10 @@ class AuthorizationRequest(message.AuthorizationRequest):
             if "nonce" not in self:
                 raise MissingRequiredAttribute("Nonce missing", self)
 
-        if "openid" not in self["scope"]:
+        if "openid" not in self.get("scope", []):
             raise MissingRequiredValue("openid not in scope", self)
 
-        if "offline_access" in self["scope"]:
+        if "offline_access" in self.get("scope", []):
             if "prompt" not in self or "consent" not in self["prompt"]:
                 raise MissingRequiredValue("consent in prompt", self)
 
