@@ -371,8 +371,7 @@ class TestProvider(object):
         resp = self.provider.token_endpoint(request=txt)
         atr = AccessTokenResponse().deserialize(resp.message, "json")
         assert _eq(atr.keys(),
-                   ['token_type', 'id_token', 'access_token', 'scope',
-                    'expires_in'])
+                   ['token_type', 'id_token', 'access_token', 'scope'])
 
     def test_token_endpoint_refresh(self):
         authreq = AuthorizationRequest(state="state",
@@ -410,7 +409,7 @@ class TestProvider(object):
         atr = AccessTokenResponse().deserialize(resp.message, "json")
         assert _eq(atr.keys(),
                    ['token_type', 'id_token', 'access_token', 'scope',
-                    'expires_in', 'refresh_token'])
+                    'refresh_token'])
 
     def test_token_endpoint_malformed(self):
         authreq = AuthorizationRequest(state="state",
@@ -673,46 +672,46 @@ class TestProvider(object):
 
         assert str(exc_info.value) == "None https redirect_uri not allowed"
 
-    @pytest.mark.network
-    def test_registration_endpoint_openid4us(self):
-        req = RegistrationRequest(
-                **{'token_endpoint_auth_method': u'client_secret_post',
-                   'redirect_uris': [
-                       u'https://connect.openid4.us:5443/phpRp/index.php'
-                       u'/callback',
-                       u'https://connect.openid4.us:5443/phpRp/authcheck.php'
-                       u'/authcheckcb'],
-                   'jwks_uri':
-                       u'https://connect.openid4.us:5443/phpRp/rp/rp.jwk',
-                   'userinfo_encrypted_response_alg': u'RSA1_5',
-                   'contacts': [u'me@example.com'],
-                   'userinfo_encrypted_response_enc': u'A128CBC-HS256',
-                   'application_type': u'web',
-                   'client_name': u'ABRP-17',
-                   'grant_types': [u'authorization_code', u'implicit'],
-                   'post_logout_redirect_uris': [
-                       u'https://connect.openid4.us:5443/phpRp/index.php'
-                       u'/logoutcb'],
-                   'subject_type': u'public',
-                   'response_types': [u'code', u'token', u'id_token',
-                                      u'code token',
-                                      u'code id_token', u'id_token token',
-                                      u'code id_token token'],
-                   'policy_uri':
-                       u'https://connect.openid4.us:5443/phpRp/index.php'
-                       u'/policy',
-                   'logo_uri':
-                       u'https://connect.openid4.us:5443/phpRp/media/logo.png'})
-
-        resp = self.provider.registration_endpoint(request=req.to_json())
-
-        regresp = RegistrationResponse().deserialize(resp.message, "json")
-        assert _eq(regresp.keys(), list(req.keys()) +
-                   ['registration_client_uri',
-                    'client_secret_expires_at',
-                    'registration_access_token',
-                    'client_id', 'client_secret',
-                    'client_id_issued_at'])
+    # @pytest.mark.network
+    # def test_registration_endpoint_openid4us(self):
+    #     req = RegistrationRequest(
+    #             **{'token_endpoint_auth_method': u'client_secret_post',
+    #                'redirect_uris': [
+    #                    u'https://connect.openid4.us:5443/phpRp/index.php'
+    #                    u'/callback',
+    #                    u'https://connect.openid4.us:5443/phpRp/authcheck.php'
+    #                    u'/authcheckcb'],
+    #                'jwks_uri':
+    #                    u'https://connect.openid4.us:5443/phpRp/rp/rp.jwk',
+    #                'userinfo_encrypted_response_alg': u'RSA1_5',
+    #                'contacts': [u'me@example.com'],
+    #                'userinfo_encrypted_response_enc': u'A128CBC-HS256',
+    #                'application_type': u'web',
+    #                'client_name': u'ABRP-17',
+    #                'grant_types': [u'authorization_code', u'implicit'],
+    #                'post_logout_redirect_uris': [
+    #                    u'https://connect.openid4.us:5443/phpRp/index.php'
+    #                    u'/logoutcb'],
+    #                'subject_type': u'public',
+    #                'response_types': [u'code', u'token', u'id_token',
+    #                                   u'code token',
+    #                                   u'code id_token', u'id_token token',
+    #                                   u'code id_token token'],
+    #                'policy_uri':
+    #                    u'https://connect.openid4.us:5443/phpRp/index.php'
+    #                    u'/policy',
+    #                'logo_uri':
+    #                    u'https://connect.openid4.us:5443/phpRp/media/logo.png'})
+    #
+    #     resp = self.provider.registration_endpoint(request=req.to_json())
+    #
+    #     regresp = RegistrationResponse().deserialize(resp.message, "json")
+    #     assert _eq(regresp.keys(), list(req.keys()) +
+    #                ['registration_client_uri',
+    #                 'client_secret_expires_at',
+    #                 'registration_access_token',
+    #                 'client_id', 'client_secret',
+    #                 'client_id_issued_at'])
 
     def test_provider_key_setup(self, tmpdir):
         path = tmpdir.strpath

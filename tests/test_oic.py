@@ -127,8 +127,8 @@ class TestClient(object):
         resp = self.client.do_access_token_request(scope="openid",
                                                    state="state0")
         assert isinstance(resp, AccessTokenResponse)
-        assert _eq(resp.keys(), ['token_type', 'state', 'access_token',
-                                 'expires_in', 'scope'])
+        assert _eq(resp.keys(),
+                   ['token_type', 'state', 'access_token', 'scope'])
 
     def test_do_user_info_request(self):
         resp = AuthorizationResponse(code="code", state="state")
@@ -161,8 +161,8 @@ class TestClient(object):
         resp = self.client.do_access_token_refresh(scope="openid offline_access",
                                                    state="state0")
         assert isinstance(resp, AccessTokenResponse)
-        assert _eq(resp.keys(), ['token_type', 'access_token', 'expires_in',
-                                    'refresh_token', 'scope'])
+        assert _eq(resp.keys(), ['token_type', 'access_token', 'refresh_token',
+                                 'scope', 'state'])
 
     def test_do_check_session_request(self):
         # RSA signing

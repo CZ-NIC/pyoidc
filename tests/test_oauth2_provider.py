@@ -159,8 +159,7 @@ class TestProvider(object):
 
         resp = self.provider.token_endpoint(request=areq.to_urlencoded())
         atr = AccessTokenResponse().deserialize(resp.message, "json")
-        assert _eq(atr.keys(), ['access_token', 'expires_in', 'token_type',
-                                'refresh_token'])
+        assert _eq(atr.keys(), ['access_token', 'token_type', 'refresh_token'])
 
     def test_token_endpoint_unauth(self):
         authreq = AuthorizationRequest(state="state",

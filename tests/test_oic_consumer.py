@@ -197,8 +197,8 @@ class TestOICConsumer():
 
         resp = self.consumer.complete(_state)
         assert isinstance(resp, AccessTokenResponse)
-        assert _eq(resp.keys(), ['token_type', 'state', 'access_token',
-                                 'scope', 'expires_in'])
+        assert _eq(resp.keys(),
+                   ['token_type', 'state', 'access_token', 'scope'])
 
         assert resp["state"] == _state
 
@@ -267,8 +267,8 @@ class TestOICConsumer():
 
         resp = self.consumer.complete(_state)
         assert isinstance(resp, AccessTokenResponse)
-        assert _eq(resp.keys(), ['token_type', 'state', 'access_token',
-                                 'scope', 'expires_in'])
+        assert _eq(resp.keys(),
+                   ['token_type', 'state', 'access_token', 'scope'])
 
         assert resp["state"] == _state
 
@@ -299,10 +299,9 @@ class TestOICConsumer():
         assert isinstance(auth, AuthorizationResponse)
         assert isinstance(acc, AccessTokenResponse)
         print(auth.keys())
-        assert _eq(auth.keys(), ['code', 'access_token', 'expires_in',
+        assert _eq(auth.keys(), ['code', 'access_token',
                                  'token_type', 'state', 'client_id', 'scope'])
-        assert _eq(acc.keys(), ['token_type', 'state', 'access_token', 'scope',
-                                'expires_in'])
+        assert _eq(acc.keys(), ['token_type', 'state', 'access_token', 'scope'])
 
     def test_complete_auth_token_idtoken(self):
         _state = "state0"
@@ -336,7 +335,7 @@ class TestOICConsumer():
 
         assert auth is None
         assert isinstance(atr, AccessTokenResponse)
-        assert _eq(atr.keys(), ['access_token', 'id_token', 'expires_in',
+        assert _eq(atr.keys(), ['access_token', 'id_token',
                                 'token_type', 'state', 'scope'])
 
         self.consumer.verify_id_token(atr["id_token"],
@@ -504,7 +503,7 @@ class TestOICConsumer():
 
         _info = {"access_token": "accessTok",
                  "id_token": self._faulty_id_token(),
-                 "token_type": "Bearer", "expires_in": 3600}
+                 "token_type": "Bearer"}
 
         _json = json.dumps(_info)
         with pytest.raises(BadSignature):
