@@ -45,8 +45,13 @@ class JWTToken(Token):
 
         key = keys[0]  # Might be more then one if kid == ''
 
-        exp = utc_time_sans_frac() + self.lifetime
-        _jti = uuid.uuid4().hex
+        rt = ' '.join(sinfo['response_type'])
+        try:
+            exp = utc_time_sans_frac() + self.lifetime[rt]
+        except KeyError:
+            exp = utc_time_sans_frac() + self.lifetime['']
+
+        _jti = '{}-{}'.format(self.type, uuid.uuid4().hex)
         _tok = TokenAssertion(
             iss=self.iss,
             azp=sinfo['client_id'],
@@ -66,8 +71,12 @@ class JWTToken(Token):
         return _tok.to_jwt([key], self.sign_alg)
 
     def _unpack_jwt(self, token):
+        if not token:
+            raise KeyError
+
         _rj = factory(token)
-        info = _rj.verify_compact(token, self.keyjar)
+        keys = self.keyjar.get_signing_key(alg2keytype(_rj.jwt.headers['alg']))
+        info = _rj.verify_compact(token, keys)
         try:
             sid = self.db[info['jti']]
         except KeyError:
@@ -93,7 +102,12 @@ class JWTToken(Token):
     def valid(self, token):
         _, info = self._unpack_jwt(token)
 
-        if info['exp'] >= utc_time_sans_frac():
-            return True
+        if info['jti'] in self.db:
+            if info['exp'] >= utc_time_sans_frac():
+                return True
 
         return False
+
+    def invalidate(self, token):
+        _, info = self._unpack_jwt(token)
+        del self.db[info['jti']]

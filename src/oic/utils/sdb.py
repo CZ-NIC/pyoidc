@@ -1,4 +1,5 @@
 import copy
+import json
 import uuid
 import time
 import itertools
@@ -112,6 +113,13 @@ class Token(object):
 
     def expires_at(self):
         return utc_time_sans_frac() + self.lifetime
+
+    def invalidate(self, token):
+        pass
+
+    def valid(self, token):
+        self.type_and_key(token)
+        return True
 
 
 class DefaultToken(Token):
@@ -278,7 +286,7 @@ class RefreshDB(object):
         """
         raise NotImplementedError
 
-    def create_token(self, client_id, uid, scopes, sub, authzreq):
+    def create_token(self, client_id, uid, scopes, sub, authzreq, sid):
         """
         Create refresh token for given combination of client_id and sub and 
         store it in internal storage
@@ -288,12 +296,13 @@ class RefreshDB(object):
         :param scopes: Scopes associated with the token
         :param sub: Sub identifier
         :param authzreq: Authorization request
+        :param sid: Session ID
         :return: Refresh token
         """
         refresh_token = 'Refresh_{}'.format(rndstr(5 * 16))
         self.store(refresh_token,
                    {'client_id': client_id, 'uid': uid, 'scope': scopes,
-                    'sub': sub, 'authzreq': authzreq})
+                    'sub': sub, 'authzreq': authzreq, 'sid': sid})
         return refresh_token
 
     def verify_token(self, client_id, refresh_token):
@@ -354,6 +363,7 @@ class SessionDB(object):
         if db is None:
             db = {}
         self._db = db
+
         if refresh_db:
             self._refresh_db = refresh_db
         else:
@@ -377,6 +387,8 @@ class SessionDB(object):
         else:
             self.token_factory['refresh_token'] = refresh_token_cls
 
+        self.token = self.token_factory['token']
+        #self.refresh_token = self.token_factory['refresh_token']
         self.uid2sid = {}
         self.seed = seed or secret
 
@@ -400,7 +412,7 @@ class SessionDB(object):
         for key in order:
             try:
                 return self.token_factory[key].type_and_key(item)
-            except Exception:
+            except Exception as err:
                 pass
 
         logger.info("Unknown token format")
@@ -516,6 +528,7 @@ class SessionDB(object):
             "code_used": False,
             "authzreq": areq.to_json(),
             "client_id": areq["client_id"],
+            'response_type': areq['response_type'],
             "revoked": False,
             "authn_event": aevent
         }
@@ -574,11 +587,11 @@ class SessionDB(object):
 
             if dic["code_used"]:
                 raise AccessCodeUsed()
-            _at = self.token_factory['token'](sid=key, sinfo=dic)
+            _at = self.token(sid=key, sinfo=dic)
             dic["code_used"] = True
         else:
             dic = self._db[key]
-            _at = self.token_factory['token'](sid=key, sinfo=dic)
+            _at = self.token(sid=key, sinfo=dic)
 
         dic["access_token"] = _at
         dic["access_token_scope"] = "?"
@@ -596,10 +609,9 @@ class SessionDB(object):
                 uid = authn_event.uid
             else:
                 uid = None
-            refresh_token = self._refresh_db.create_token(dic['client_id'], uid,
-                                                          dic.get('scope'),
-                                                          dic['sub'],
-                                                          dic['authzreq'])
+            refresh_token = self._refresh_db.create_token(
+                dic['client_id'], uid, dic.get('scope'), dic['sub'],
+                dic['authzreq'], key)
             dic["refresh_token"] = refresh_token
 
         self._db[key] = dic
@@ -607,7 +619,7 @@ class SessionDB(object):
 
     def refresh_token(self, rtoken, client_id):
         """
-        Issue a new access token for valid refresh token
+        Issue a new access token using a valid refresh token
 
         :param rtoken: Refresh token
         :param client_id: Client ID
@@ -615,23 +627,47 @@ class SessionDB(object):
         :raises: ExpiredToken for invalid refresh token
                  WrongTokenType for wrong token type
         """
-        # assert that it is a refresh token and that it is valid
-        if self._refresh_db.verify_token(client_id, rtoken):
-            # Valid refresh token
-            _info = self._refresh_db.get(rtoken)
-            # TODO: This ain't pretty...
-            sid = _info.pop('sid', None)
-            if sid:
-                # This might raise an error if session database had been cleaned
-                try:
-                    dic = self._db[sid]
-                except KeyError:
-                    dic = _info
-            else:
-                sid = rndstr(self.token_factory['refresh_token']._sidlen)
-                dic = _info
 
-            access_token = self.token_factory['token'](sid=sid, sinfo=dic)
+        # assert that it is a refresh token and that it is valid
+        if self._refresh_db:
+            if self._refresh_db.verify_token(client_id, rtoken):
+                # Valid refresh token
+                _info = self._refresh_db.get(rtoken)
+                try:
+                    sid = _info['sid']
+                except KeyError:
+                    sid = rndstr(32)
+                    dic = _info
+                    areq = json.loads(_info['authzreq'])
+                    dic['response_type'] = areq['response_type'].split(' ')
+                else:
+                    try:
+                        dic = self._db[sid]
+                    except KeyError:
+                        dic = _info
+
+                access_token = self.token(sid=sid, sinfo=dic)
+                try:
+                    at = dic["access_token"]
+                except KeyError:
+                    pass
+                else:
+                    if at:
+                        self.token.invalidate(at)
+
+                dic["access_token"] = access_token
+                dic["token_type"] = "Bearer"
+                dic["refresh_token"] = rtoken
+                self._db[sid] = dic
+                return dic
+            else:
+                raise ExpiredToken()
+        elif self.token_factory['refresh_token'].valid(rtoken):
+            sid = self.token_factory['refresh_token'].get_key(rtoken)
+            dic = self._db[sid]
+            access_token = self.token(sid=sid, sinfo=dic)
+
+            self.token.invalidate(dic["access_token"])
 
             dic["access_token"] = access_token
             dic["token_type"] = "Bearer"
@@ -661,14 +697,11 @@ class SessionDB(object):
             elif _dic["oauth_state"] != "authz":
                 return False
 
-            if self.is_expired(_dic):
-                return False
-
         elif typ == "T":
             if _dic["access_token"] != token:
                 return False
 
-            if not self.token_factory['token'].valid(token):
+            if not self.token.valid(token):
                 return False
 
         return True

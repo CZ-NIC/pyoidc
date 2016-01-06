@@ -48,13 +48,13 @@ class TestDictRefreshDB(object):
 
     def test_verify_token(self):
         token = self.rdb.create_token('client1', 'uid', 'openid', 'sub1',
-                                      'authzreq')
+                                      'authzreq', 'sid')
         assert self.rdb.verify_token('client1', token)
         assert self.rdb.verify_token('client2', token) is False
 
     def test_revoke_token(self):
         token = self.rdb.create_token('client1', 'uid', 'openid', 'sub1',
-                                      'authzreq')
+                                      'authzreq', 'sid')
         self.rdb.remove(token)
         assert self.rdb.verify_token('client1', token) is False
         assert pytest.raises(KeyError, 'self.rdb.get(token)')
@@ -62,16 +62,16 @@ class TestDictRefreshDB(object):
     def test_get_token(self):
         assert pytest.raises(KeyError, 'self.rdb.get("token")')
         token = self.rdb.create_token('client1', 'uid', ['openid'], 'sub1',
-                                      'authzreq')
+                                      'authzreq', 'sid')
         assert self.rdb.get(token) == {'client_id': 'client1', 'sub': 'sub1',
                                        'scope': ['openid'], 'uid': 'uid',
-                                       'authzreq': 'authzreq'}
+                                       'authzreq': 'authzreq', 'sid': 'sid'}
 
 
 class TestToken(object):
     @pytest.fixture(autouse=True)
     def create_token(self):
-        self.token = DefaultToken("secret", "password")
+        self.token = DefaultToken("secret", "password", lifetime={'': 60})
 
     def test_token(self):
         sid = self.token.key(areq=AREQ)
@@ -163,10 +163,9 @@ class TestSessionDB(object):
         print(_dict.keys())
         assert _eq(list(_dict.keys()),
                    ['authn_event', 'code', 'authzreq', 'revoked',
-                    'access_token', 'token_expires_at', 'expires_in',
-                    'token_type', 'state', 'redirect_uri', 'code_used',
-                    'client_id', 'scope', 'oauth_state', 'access_token_scope',
-                    'sub'])
+                    'access_token', 'token_type', 'state', 'redirect_uri',
+                    'code_used', 'client_id', 'scope', 'oauth_state',
+                    'access_token_scope', 'sub', 'response_type'])
 
         # can't update again
         with pytest.raises(AccessCodeUsed):
@@ -183,7 +182,7 @@ class TestSessionDB(object):
         print(_dict.keys())
         assert _eq(_dict.keys(),
                    ['authn_event', 'code', 'authzreq', 'revoked',
-                    'access_token', 'token_expires_at', 'expires_in',
+                    'access_token', 'response_type',
                     'token_type', 'state', 'redirect_uri', 'code_used',
                     'client_id', 'scope', 'oauth_state', 'access_token_scope',
                     'refresh_token', 'sub'])
@@ -204,8 +203,8 @@ class TestSessionDB(object):
         print(_dict.keys())
         assert _eq(list(_dict.keys()),
                    ['authn_event', 'code', 'authzreq', 'revoked', 'oidreq',
-                    'access_token', 'id_token', 'token_expires_at',
-                    'expires_in', 'token_type', 'state', 'redirect_uri',
+                    'access_token', 'id_token', 'response_type',
+                    'token_type', 'state', 'redirect_uri',
                     'code_used', 'client_id', 'scope', 'oauth_state',
                     'access_token_scope', 'sub'])
 
@@ -218,14 +217,13 @@ class TestSessionDB(object):
         self.sdb[sid]['sub'] = 'sub'
         grant = self.sdb[sid]["code"]
 
-        with mock.patch("time.gmtime", side_effect=[
-            time.struct_time((1970, 1, 1, 10, 39, 0, 0, 0, 0)),
-            time.struct_time((1970, 1, 1, 10, 40, 0, 0, 0, 0))]):
-            dict1 = self.sdb.upgrade_to_token(grant, issue_refresh=True).copy()
-            rtoken = dict1["refresh_token"]
-            dict2 = self.sdb.refresh_token(rtoken, AREQ['client_id'])
+        # with mock.patch("time.gmtime", side_effect=[
+        #     time.struct_time((1970, 1, 1, 10, 39, 0, 0, 0, 0)),
+        #     time.struct_time((1970, 1, 1, 10, 40, 0, 0, 0, 0))]):
+        dict1 = self.sdb.upgrade_to_token(grant, issue_refresh=True).copy()
+        rtoken = dict1["refresh_token"]
+        dict2 = self.sdb.refresh_token(rtoken, AREQ['client_id'])
 
-        assert dict1["token_expires_at"] != dict2["token_expires_at"]
         assert dict1["access_token"] != dict2["access_token"]
 
         with pytest.raises(WrongTokenType):
@@ -237,19 +235,12 @@ class TestSessionDB(object):
         self.sdb[sid]['sub'] = 'sub'
         grant = self.sdb[sid]['code']
         dict1 = self.sdb.upgrade_to_token(grant, issue_refresh=True)
+        ac1 = dict1['access_token']
 
-        # Purge session DB
-        self.sdb._db = {}
+        rtoken = dict1['refresh_token']
+        dict2 = self.sdb.refresh_token(rtoken, AREQ['client_id'])
 
-        # Our refresh token shoudl still work
-        with mock.patch("time.gmtime", side_effect=[
-            time.struct_time((1970, 1, 1, 10, 39, 0, 0, 0, 0)),
-            time.struct_time((1970, 1, 1, 10, 40, 0, 0, 0, 0))]):
-            rtoken = dict1['refresh_token']
-            dict2 = self.sdb.refresh_token(rtoken, AREQ['client_id'])
-
-        assert dict1["token_expires_at"] != dict2["token_expires_at"]
-        assert dict1["access_token"] != dict2["access_token"]
+        assert ac1 != dict2["access_token"]
 
     def test_is_valid(self):
         ae1 = AuthnEvent("uid", "salt")
@@ -259,37 +250,28 @@ class TestSessionDB(object):
 
         assert self.sdb.is_valid(grant)
 
-        tokens = self.sdb.upgrade_to_token(grant, issue_refresh=True)
+        sinfo = self.sdb.upgrade_to_token(grant, issue_refresh=True)
         assert not self.sdb.is_valid(grant)
-        access_token = tokens["access_token"]
-        assert self.sdb.is_valid(access_token)
+        access_token = sinfo["access_token"]
+        assert self.sdb.token.valid(access_token)
 
-        refresh_token = tokens["refresh_token"]
-        assert self.sdb.is_valid(refresh_token, AREQ['client_id'])
-
-        refreshed_tokens = self.sdb.refresh_token(refresh_token,
-                                                  AREQ['client_id'])
-        access_token2 = refreshed_tokens["access_token"]
+        refresh_token = sinfo["refresh_token"]
+        sinfo = self.sdb.refresh_token(refresh_token, AREQ['client_id'])
+        access_token2 = sinfo["access_token"]
         assert self.sdb.is_valid(access_token2)
 
-        # replace refresh_token
-        refreshed_tokens["refresh_token"] = access_token2
-        assert not self.sdb.is_valid(refresh_token)
+        # The old access code should be invalid
+        try:
+            self.sdb.is_valid(access_token)
+        except KeyError:
+            pass
 
-        # mess with the time-line
-        refreshed_tokens["token_expires_at"] = utc_time_sans_frac() - 86400
-        assert not self.sdb.is_valid(access_token2)
-
-        # replace access_token
-        refreshed_tokens["access_token"] = access_token
-        assert not self.sdb.is_valid(access_token2)
-
+    def test_valid_grant(self):
         ae = AuthnEvent("another:user", "salt")
         sid = self.sdb.create_authz_session(ae, AREQ)
         grant = self.sdb[sid]["code"]
 
-        self.sdb.update(grant, "token_expires_at", utc_time_sans_frac() - 86400)
-        assert not self.sdb.is_valid(grant)
+        assert self.sdb.is_valid(grant)
 
     def test_revoke_token(self):
         ae1 = AuthnEvent("uid", "salt")
@@ -306,16 +288,17 @@ class TestSessionDB(object):
         self.sdb.revoke_token(access_token)
         assert not self.sdb.is_valid(access_token)
 
-        refreshed_tokens = self.sdb.refresh_token(refresh_token,
-                                                  AREQ['client_id'])
-        access_token = refreshed_tokens["access_token"]
+        sinfo = self.sdb.refresh_token(refresh_token, AREQ['client_id'])
+        access_token = sinfo["access_token"]
         assert self.sdb.is_valid(access_token)
 
         self.sdb.revoke_refresh_token(refresh_token)
         assert not self.sdb.is_valid(refresh_token)
 
-        with pytest.raises(ExpiredToken):
+        try:
             self.sdb.refresh_token(refresh_token, AREQ['client_id'])
+        except ExpiredToken:
+            pass
 
         assert self.sdb.is_valid(access_token)
 
@@ -360,8 +343,7 @@ class TestSessionDB(object):
 
         info2 = self.sdb[sid]
         assert info2[
-                   "sub"] == \
-               '62fb630e29f0d41b88e049ac0ef49a9c3ac5418c029d6e4f5417df7e9443976b'
+            "sub"] == '62fb630e29f0d41b88e049ac0ef49a9c3ac5418c029d6e4f5417df7e9443976b'
 
 
 class TestCrypt(object):
