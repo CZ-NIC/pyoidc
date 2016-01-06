@@ -35,7 +35,7 @@ class SoftwareStatement(Message):
         "exp": SINGLE_REQUIRED_INT,
         "iat": SINGLE_OPTIONAL_INT,
         "nbf": SINGLE_OPTIONAL_INT,
-        "cnf":
+        "cnf": SINGLE_OPTIONAL_INT
     }
 
 

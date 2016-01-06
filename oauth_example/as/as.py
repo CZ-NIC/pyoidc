@@ -8,9 +8,11 @@ import sys
 import traceback
 
 from authn_setup import authn_setup
-from oic.oauth2.provider import Provider
+from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
+from oic.extension.provider import Provider
 from oic.oauth2.provider import AuthorizationEndpoint
 from oic.oauth2.provider import TokenEndpoint
+from oic.oic.provider import RegistrationEndpoint
 from oic.utils.authn.client import verify_client
 from oic.utils.authz import Implicit
 from oic.utils.http_util import wsgi_wrapper, NotFound, ServiceError
@@ -50,9 +52,24 @@ def authorization(environ, start_response):
     return wsgi_wrapper(environ, start_response, _oas.authorization_endpoint)
 
 
+#noinspection PyUnusedLocal
+def config(environ, start_response):
+    _oas = environ["oic.oas"]
+
+    return wsgi_wrapper(environ, start_response, _oas.providerinfo_endpoint)
+
+
+#noinspection PyUnusedLocal
+def registration(environ, start_response):
+    _oas = environ["oic.oas"]
+
+    return wsgi_wrapper(environ, start_response, _oas.registration_endpoint)
+
+
 ENDPOINTS = [
     AuthorizationEndpoint(authorization),
     TokenEndpoint(token),
+    RegistrationEndpoint(registration)
 ]
 
 
@@ -89,6 +106,7 @@ def static(environ, start_response, path):
 
 URLS = [
     (r'^verify', verify),
+    (r'.well-known/openid-configuration', config)
 ]
 
 for endp in ENDPOINTS:
@@ -138,10 +156,10 @@ def application(environ, start_response):
             LOGGER.debug("callback: %s" % callback)
             try:
                 return callback(environ, start_response)
-            except Exception, err:
-                print >> sys.stderr, "%s" % err
+            except Exception as err:
+                print("{}".format(err), file=sys.stderr)
                 message = traceback.format_exception(*sys.exc_info())
-                print >> sys.stderr, message
+                print(message, file=sys.stderr)
                 LOGGER.exception("%s" % err)
                 resp = ServiceError("%s" % err)
                 return resp(environ, start_response)
@@ -155,7 +173,7 @@ def application(environ, start_response):
 # Below is what's needed to start the server
 # ============================================================================
 
-START_MESG = "OAuth2 server starting listening on port:%s at %s"
+START_MESG = "OAuth2 server starting listening on port:{} at {}"
 
 if __name__ == "__main__":
     import argparse
@@ -163,7 +181,6 @@ if __name__ == "__main__":
     import importlib
 
     from cherrypy import wsgiserver
-    from cherrypy.wsgiserver import ssl_pyopenssl
 
     # This is where session information is stored
     # This serve is stateful.
@@ -209,8 +226,8 @@ if __name__ == "__main__":
     authz = Implicit()
 
     # Initiate the OAuth2 provider instance
-    OAS = Provider(config.issuer, SessionDB(), cdb, broker, authz,
-                   client_authn=verify_client, symkey=config.SYM_KEY)
+    OAS = Provider(config.issuer, SessionDB(config.SERVICE_URL), cdb, broker,
+                   authz, client_authn=verify_client, symkey=config.SYM_KEY)
 
     # set some parameters
     try:
@@ -246,12 +263,18 @@ if __name__ == "__main__":
 
     # Initiate the web server
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
-    SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(config.SERVER_CERT,
-                                                     config.SERVER_KEY,
-                                                     config.CERT_CHAIN)
+    https = ""
+    if config.SERVICE_URL.startswith("https"):
+        https = " using HTTPS"
+        # SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
+        #     config.SERVER_CERT, config.SERVER_KEY, config.CERT_CHAIN)
+        SRV.ssl_adapter = BuiltinSSLAdapter(config.SERVER_CERT, config.SERVER_KEY, config.CERT_CHAIN)
 
-    LOGGER.info(START_MESG % (args.port, config.HOST))
-    print START_MESG % (args.port, config.HOST)
+    _info = START_MESG.format(args.port, config.HOST)
+    if https:
+        _info += https
+    LOGGER.info(_info)
+    print(_info)
     try:
         SRV.start()
     except KeyboardInterrupt:

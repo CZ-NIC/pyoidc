@@ -8,8 +8,6 @@ import random
 import base64
 import logging
 
-import six
-
 from Crypto.Cipher import AES
 
 from oic.oic import AuthorizationRequest
@@ -33,12 +31,16 @@ class AccessCodeUsed(Exception):
     pass
 
 
+class UnknownToken(Exception):
+    pass
+
+
 def pairwise_id(sub, sector_identifier, seed):
     return hashlib.sha256(
         ("%s%s%s" % (sub, sector_identifier, seed)).encode("utf-8")).hexdigest()
 
 
-class Crypt():
+class Crypt(object):
     def __init__(self, password, mode=AES.MODE_CBC):
         self.password = password or 'kitty'
         self.key = hashlib.sha256(password.encode("utf-8")).digest()
@@ -60,30 +62,97 @@ class Crypt():
 
 
 class Token(object):
-    def __init__(self, secret, password):
+    def __init__(self, typ, lifetime, **kwargs):
+        self.type = typ
+        self.lifetime = lifetime
+        self.args = kwargs
+
+    def __call__(self, sid, *args, **kwargs):
+        """
+        Return a token.
+
+        :param sid: Session id
+        :return:
+        """
+        raise NotImplementedError()
+
+    def key(self, **kwargs):
+        """
+        Return a key (the session id)
+        """
+        return rndstr(32)
+
+    def type_and_key(self, token):
+        """
+        Return type of Token (A=Access code, T=Token, R=Refresh token) and
+        the session id.
+
+        :param token: A token
+        :return: tuple of token type and session id
+        """
+        raise NotImplementedError()
+
+    def get_key(self, token):
+        """
+        Return session id
+
+        :param token: A token
+        :return: The session id
+        """
+        raise NotImplementedError()
+
+    def get_type(self, token):
+        """
+        Return token type
+
+        :param token: A token
+        :return: Type of Token (A=Access code, T=Token, R=Refresh token)
+        """
+        raise NotImplementedError()
+
+    def expires_at(self):
+        return utc_time_sans_frac() + self.lifetime
+
+
+class DefaultToken(Token):
+    def __init__(self, secret, password, typ='', **kwargs):
+        Token.__init__(self, typ, **kwargs)
         self.secret = secret
         self._rndlen = 19
         self._sidlen = 56
         self.crypt = Crypt(password)
 
-    def __call__(self, ttype="A", prev="", sid=None):
-        if prev:
-            ptyp, sid, tmp = self._split_token(prev)
-            if not ttype:
-                ttype = ptyp
+    def __call__(self, sid='', ttype='', **kwargs):
+        """
+        Return a token.
+
+        :param ttype: Type of token
+        :param prev: Previous token, if there is one to go from
+        :param sid: Session id
+        :return:
+        """
+        if not ttype and self.type:
+            ttype = self.type
         else:
-            tmp = ""
+            ttype = 'A'
 
-        rnd = tmp
-        while rnd == tmp:
-            rnd = rndstr(self._rndlen)
-            # Ultimate length multiple of 16
+        tmp = ''
+        rnd = ''
+        while rnd == tmp:  # Don't use the same random value again
+            rnd = rndstr(self._rndlen)  # Ultimate length multiple of 16
 
-        return base64.b64encode(self.crypt.encrypt("%s%s%s" % (sid, ttype,
-                                                               rnd))).decode(
-            "utf-8")
+        return base64.b64encode(
+            self.crypt.encrypt("%s%s%s" % (sid, ttype, rnd))).decode("utf-8")
 
     def key(self, user="", areq=None):
+        """
+        Return a key (the session id) that are based on some session
+        connected data
+
+        :param user: User id
+        :param areq: The authorization request
+        :return: A hash
+        """
         csum = hmac.new(self.secret.encode("utf-8"), digestmod=hashlib.sha224)
         csum.update(("%s" % utc_time_sans_frac()).encode("utf-8"))
         csum.update(("%f" % random.random()).encode("utf-8"))
@@ -125,13 +194,32 @@ class Token(object):
         return _type, _sid, _rnd
 
     def type_and_key(self, token):
+        """
+        Return type of Token (A=Access code, T=Token, R=Refresh token) and
+        the session id.
+
+        :param token: A token
+        :return: tuple of token type and session id
+        """
         a, b, c = self._split_token(token)
         return a, b
 
     def get_key(self, token):
+        """
+        Return session id
+
+        :param token: A token
+        :return: The session id
+        """
         return self._split_token(token)[1]
 
     def get_type(self, token):
+        """
+        Return token type
+
+        :param token: A token
+        :return: Type of Token (A=Access code, T=Token, R=Refresh token)
+        """
         return self._split_token(token)[0]
 
 
@@ -258,7 +346,10 @@ class DictRefreshDB(RefreshDB):
 class SessionDB(object):
     def __init__(self, base_url, db=None, secret="Ab01FG65",
                  token_expires_in=3600, password="4-amino-1H-pyrimidine-2-one",
-                 grant_expires_in=600, seed="", refresh_db=None):
+                 grant_expires_in=600, seed="", refresh_db=None,
+                 refresh_token_expires_in=86400,
+                 token_cls=DefaultToken, code_cls=DefaultToken,
+                 refresh_token_cls=DefaultToken):
         self.base_url = base_url
         if db is None:
             db = {}
@@ -267,11 +358,66 @@ class SessionDB(object):
             self._refresh_db = refresh_db
         else:
             self._refresh_db = DictRefreshDB()
-        self.token = Token(secret, password)
-        self.token_expires_in = token_expires_in
-        self.grant_expires_in = grant_expires_in
+
+        self.token_factory = {}
+
+        if isinstance(code_cls, type):
+            self.token_factory['code'] = code_cls(secret, password, typ='A',
+                                                  lifetime=grant_expires_in)
+        else:
+            self.token_factory['code'] = code_cls
+        if isinstance(token_cls, type):
+            self.token_factory['token'] = token_cls(secret, password, typ='T',
+                                                    lifetime=token_expires_in)
+        else:
+            self.token_factory['token'] = token_cls
+        if isinstance(refresh_token_cls, type):
+            self.token_factory['refresh_token'] = refresh_token_cls(
+                secret, password, typ='R', lifetime=refresh_token_expires_in)
+        else:
+            self.token_factory['refresh_token'] = refresh_token_cls
+
         self.uid2sid = {}
         self.seed = seed or secret
+
+    def _get_token_key(self, item, order=None):
+        if order is None:
+            order = ['code', 'token', 'refresh_token']
+
+        for key in order:
+            try:
+                return self.token_factory[key].get_key(item)
+            except Exception:
+                pass
+
+        logger.info("Unknown token format")
+        raise KeyError(item)
+
+    def _get_token_type_and_key(self, item, order=None):
+        if order is None:
+            order = ['code', 'token', 'refresh_token']
+
+        for key in order:
+            try:
+                return self.token_factory[key].type_and_key(item)
+            except Exception:
+                pass
+
+        logger.info("Unknown token format")
+        raise KeyError(item)
+
+    def _get_token_type(self, item, order=None):
+        if order is None:
+            order = ['code', 'token', 'refresh_token']
+
+        for key in order:
+            try:
+                return self.token_factory[key].get_type(item)
+            except Exception:
+                pass
+
+        logger.info("Unknown token format")
+        raise KeyError(item)
 
     def __getitem__(self, item):
         """
@@ -280,10 +426,7 @@ class SessionDB(object):
         try:
             return self._db[item]
         except KeyError:
-            try:
-                sid = self.token.get_key(item)
-            except Exception:
-                raise KeyError("item '%s' could not be found" % str(item))
+            sid = self._get_token_key(item)
             return self._db[sid]
 
     def __setitem__(self, key, value):
@@ -306,10 +449,7 @@ class SessionDB(object):
         if key in self._db:
             pass
         else:
-            try:
-                sid = self.token.get_key(key)
-            except Exception:
-                raise KeyError
+            sid = self._get_token_key(key)
 
             if sid not in self._db:
                 raise KeyError
@@ -321,7 +461,7 @@ class SessionDB(object):
         self._db[key] = item
 
     def update_by_token(self, token, attribute, value):
-        (typ, key) = self.token.type_and_key(token)
+        (typ, key) = self._get_token_type_and_key(token)
         return self.update(key, attribute, value)
 
     def do_sub(self, sid, client_salt, sector_id="", subject_type="public"):
@@ -367,8 +507,8 @@ class SessionDB(object):
         :return: The session identifier, which is the database key
         """
 
-        sid = self.token.key(user=aevent.uid, areq=areq)
-        access_grant = self.token(sid=sid)
+        sid = self.token_factory['code'].key(user=aevent.uid, areq=areq)
+        access_grant = self.token_factory['code'](sid=sid)
 
         _dic = {
             "oauth_state": "authz",
@@ -426,30 +566,25 @@ class SessionDB(object):
         """
         if token:
             try:
-                (typ, key) = self.token.type_and_key(token)
-            except (ValueError, TypeError):
-                (typ, key) = self.token.type_and_key(access_grant)
-                token = access_grant
-
-            if typ != "A":  # not a access grant
+                (typ, key) = self.token_factory['code'].type_and_key(token)
+            except Exception:
                 raise WrongTokenType("Not a grant token")
 
             dic = self._db[key]
 
             if dic["code_used"]:
                 raise AccessCodeUsed()
-            _at = self.token("T", token)
+            _at = self.token_factory['token'](sid=key, sinfo=dic)
             dic["code_used"] = True
         else:
             dic = self._db[key]
-            _at = self.token("T", sid=key)
+            _at = self.token_factory['token'](sid=key, sinfo=dic)
 
         dic["access_token"] = _at
         dic["access_token_scope"] = "?"
         dic["oauth_state"] = "token"
         dic["token_type"] = "Bearer"
-        dic["expires_in"] = self.token_expires_in
-        dic["token_expires_at"] = utc_time_sans_frac() + self.token_expires_in
+
         if id_token:
             dic["id_token"] = id_token
         if oidreq:
@@ -493,15 +628,11 @@ class SessionDB(object):
                 except KeyError:
                     dic = _info
             else:
-                sid = rndstr(self.token._sidlen)
+                sid = rndstr(self.token_factory['refresh_token']._sidlen)
                 dic = _info
 
-            access_token = self.token("T", sid=sid)
+            access_token = self.token_factory['token'](sid=sid, sinfo=dic)
 
-            dic[
-                "token_expires_at"] = utc_time_sans_frac() + \
-                                      self.token_expires_in
-            dic["expires_in"] = self.token_expires_in
             dic["access_token"] = access_token
             dic["token_type"] = "Bearer"
             dic["refresh_token"] = rtoken
@@ -509,14 +640,6 @@ class SessionDB(object):
             return dic
         else:
             raise ExpiredToken()
-
-    @staticmethod
-    def is_expired(sess):
-        if "token_expires_at" in sess:
-            if sess["token_expires_at"] < utc_time_sans_frac():
-                return True
-
-        return False
 
     def is_valid(self, token, client_id=None):
         """
@@ -528,7 +651,7 @@ class SessionDB(object):
         if token.startswith('Refresh_'):
             return self._refresh_db.verify_token(client_id, token)
 
-        typ, sid = self.token.type_and_key(token)
+        typ, sid = self._get_token_type_and_key(token)
 
         _dic = self._db[sid]
 
@@ -545,7 +668,7 @@ class SessionDB(object):
             if _dic["access_token"] != token:
                 return False
 
-            if self.is_expired(_dic):
+            if not self.token_factory['token'].valid(token):
                 return False
 
         return True
@@ -563,7 +686,7 @@ class SessionDB(object):
 
         :param token: access token
         """
-        typ, sid = self.token.type_and_key(token)
+        typ, sid = self._get_token_type_and_key(token)
         _dict = self._db[sid]
 
         if typ == "A":
@@ -590,7 +713,7 @@ class SessionDB(object):
 
         :param token: access token
         """
-        _, sid = self.token.type_and_key(token)
+        _, sid = self._get_token_type_and_key(token)
 
         rtoken = self._db[sid]['refresh_token']
         self.revoke_refresh_token(rtoken)
@@ -643,9 +766,9 @@ class SessionDB(object):
     def duplicate(self, sinfo):
         _dic = copy.copy(sinfo)
         areq = AuthorizationRequest().from_json(_dic["authzreq"])
-        sid = self.token.key(user=_dic["sub"], areq=areq)
+        sid = self.token_factory['code'].key(user=_dic["sub"], areq=areq)
 
-        _dic["code"] = self.token(sid=sid)
+        _dic["code"] = self.token_factory['code'](sid=sid, sinfo=sinfo)
         _dic["code_used"] = False
 
         for key in ["access_token", "access_token_scope", "oauth_state",
@@ -662,7 +785,7 @@ class SessionDB(object):
         return sid
 
     def read(self, token):
-        (typ, key) = self.token.type_and_key(token)
+        (typ, key) = self._get_token_type_and_key(token)
 
         if typ != "T":  # not a access grant
             raise WrongTokenType("Not a grant token")

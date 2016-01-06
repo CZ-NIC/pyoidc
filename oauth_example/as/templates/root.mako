@@ -16,7 +16,7 @@
 <%def name="post()" filter="trim">
 <div>
     <div class="footer">
-        <p>&#169; Copyright 2011 Ume&#229; Universitet &nbsp;</p>
+        <p>&#169; Copyright 2016 Ume&#229; Universitet &nbsp;</p>
     </div>
 </div>
 </%def>

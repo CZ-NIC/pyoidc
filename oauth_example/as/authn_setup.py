@@ -38,18 +38,18 @@ def userpwd_setup(item):
                                 _conf["passwd"], _conf["return_to"])
 
 
-def ldap_setup(item):
-    from oic.utils.authn.user import LDAPAuthn
-
-    _conf = item["config"]
-    return LDAPAuthn(None, _conf["ldap_server"], _conf["return_to"],
-                     _conf["dn_pattern"], "login.mako", _conf["lookup"])
+# def ldap_setup(item):
+#     from oic.utils.authn.user import LDAPAuthn
+#
+#     _conf = item["config"]
+#     return LDAPAuthn(None, _conf["ldap_server"], _conf["return_to"],
+#                      _conf["dn_pattern"], "login.mako", _conf["lookup"])
 
 
 AUTH_METHOD = {
     "UserPassword": userpwd_setup,
     "CAS": cas_setup,
-    "LDAP": ldap_setup,
+    #"LDAP": ldap_setup,
 }
 
 

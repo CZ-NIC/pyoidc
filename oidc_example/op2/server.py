@@ -379,7 +379,6 @@ if __name__ == '__main__':
 
     from cherrypy import wsgiserver
     from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
-    # from cherrypy.wsgiserver import ssl_pyopenssl
 
     from oic.utils.sdb import SessionDB
 

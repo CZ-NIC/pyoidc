@@ -30,6 +30,10 @@ class NoMatchingKey(Exception):
     pass
 
 
+class UnknownAuthnMethod(Exception):
+    pass
+
+
 # ========================================================================
 def assertion_jwt(cli, keys, audience, algorithm):
     _now = time.time()

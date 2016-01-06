@@ -650,7 +650,7 @@ class KeyJar(object):
 
     def copy(self):
         copy_keyjar = KeyJar()
-        for issuer, keybundles in self.issuer_keys.iteritems():
+        for issuer, keybundles in self.issuer_keys.items():
             _kb = KeyBundle()
             for kb in keybundles:
                 for k in kb.keys():

@@ -1,26 +1,22 @@
-import base64
-import hashlib
-import hmac
-import random
-import time
-
-import pytest
-
 import mock
-from oic.utils.time_util import utc_time_sans_frac
-from oic.utils.sdb import AccessCodeUsed, DefaultToken
-from oic.utils.sdb import AuthnEvent
-from oic.utils.sdb import Crypt
-from oic.utils.sdb import DictRefreshDB
+import time
+import pytest
+from oic.extension.token import JWTToken
+from oic.oauth2 import rndstr
+from oic.oauth2 import AuthorizationRequest
+from oic.oauth2 import ExpiredToken
+from oic.oic import OpenIDRequest
+from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import KeyJar
 from oic.utils.sdb import SessionDB
-from oic.utils.sdb import Token
+from oic.utils.sdb import AuthnEvent
+from oic.utils.sdb import AccessCodeUsed
 from oic.utils.sdb import WrongTokenType
-from oic.utils.sdb import ExpiredToken
-from oic.oic.message import AuthorizationRequest
-from oic.oic.message import OpenIDRequest
-from utils_for_tests import _eq
 
-__author__ = 'rohe0002'
+from utils_for_tests import _eq
+from oic.utils.time_util import utc_time_sans_frac
+
+__author__ = 'roland'
 
 AREQ = AuthorizationRequest(response_type="code", client_id="client1",
                             redirect_uri="http://example.com/authz",
@@ -40,66 +36,94 @@ OIDR = OpenIDRequest(response_type="code", client_id="client1",
                      redirect_uri="http://example.com/authz", scope=["openid"],
                      state="state000")
 
-
-class TestDictRefreshDB(object):
-    @pytest.fixture(autouse=True)
-    def create_rdb(self):
-        self.rdb = DictRefreshDB()
-
-    def test_verify_token(self):
-        token = self.rdb.create_token('client1', 'uid', 'openid', 'sub1',
-                                      'authzreq')
-        assert self.rdb.verify_token('client1', token)
-        assert self.rdb.verify_token('client2', token) is False
-
-    def test_revoke_token(self):
-        token = self.rdb.create_token('client1', 'uid', 'openid', 'sub1',
-                                      'authzreq')
-        self.rdb.remove(token)
-        assert self.rdb.verify_token('client1', token) is False
-        assert pytest.raises(KeyError, 'self.rdb.get(token)')
-
-    def test_get_token(self):
-        assert pytest.raises(KeyError, 'self.rdb.get("token")')
-        token = self.rdb.create_token('client1', 'uid', ['openid'], 'sub1',
-                                      'authzreq')
-        assert self.rdb.get(token) == {'client_id': 'client1', 'sub': 'sub1',
-                                       'scope': ['openid'], 'uid': 'uid',
-                                       'authzreq': 'authzreq'}
+JWKS = {"keys": [
+    {
+        "alg": "RS256",
+        "d": "vT9bnSZ63uIdaVsmZjrbmcvrDZG-_qzVQ1KmrSSC398sLJiyaQKRPkmBRvV"
+             "-MGxW1MVPeCkhnSULCRgtqHq"
+             "-zQxMeCviSScHTKOuDYJfwMB5qdOE3FkuqPMsEVf6EXYaSd90"
+             "-O6GOA88LBCPNR4iKxsrQ6LNkawwiJoPw7muK3TbQk9HzuznF8WDkt72CQFxd4eT"
+             "6wJ97xpaIgxZce0oRmFcLYkQ4A0pgVhF42zxJjJDIBj_ZrSl5_qZIgiE76PV4hjH"
+             "t9Nv4ZveabObnNbyz9YOiWHiOLdYZGmixHuauM98NK8udMxI6IuOkRypFhJzaQZF"
+             "wMroa7ZNZF-mm78VYQ",
+        "dp":
+            "wLqivLfMc0FBhGFFRTb6WWzDpVZukcgOEQGb8wW3knmNEpgch699WQ4ZY_ws1xSbv"
+            "QZtbx7MaIBXpn3qT1LYZosoP5oHVTAvdg6G8I7zgWyqj-nG4evciuoeAa1Ff52h4-"
+            "J1moZ6FF2GelLdjXHoCbjIBjz_VljelSqOk5Sh5HU",
+        "dq": "KXIUYNfDxwxv3A_w1t9Ohm92gOs-UJdI3_IVpe4FauCDrJ4mqgsnTisA15KY"
+              "-9fCEvKfqG571WK6EKpBcxaRrqSU0ekpBvgJx8o3MGlqXWj-Lw0co8N9_"
+              "-fo1rYx_8g-wCRrm5zeA5pYJdwdhOBnmKOqw_GsXJEcYeUod1xkcfU",
+        "e": "AQAB",
+        "ext": "true",
+        "key_ops": "sign",
+        "kty": "RSA",
+        "n":
+            "wl0DPln-EFLqr_Ftn6A87wEQAUVbpZsUTN2OCEsJV0nhlvmX3GUzyZx5UXdlM3Dz68PfUWCgfx67Il6sURqWVCnjnU-_gr3GeDyzedj-lZejnBx-lEy_3j6B98SbcDfkJF6saXnPd7_kgilJT1_g-EVI9ifFB1cxZXHCd2WBeRABSCprAlCglF-YmnUeeDs5K32z2ckVjadF9BG27CO5UfNq0K8jI9Yj_coOhM9dRNrQ9UVZNdQVG-bAIDhB2y2o3ASGwqchHouIxv5YZNGS0SMJL5t0edh483q1tSWPqBw-ZeryLztOedBBzSuJk7QDmL1B6B7KKUIrlUYJmVsYzw",
+        "p":
+            "6MEg5Di_IFiPGKvMFRjyx2t7YAOQ4KfdIkU_Khny1t1eCG5O07omPe_jLU8I5fPaD5F5HhWExLNureHD4K6LB18JPE3VE8chQROiRSNPZo1-faUvHu-Dy0pr7I-TS8pl_P3vop1KelIbGwXhzPIRKQMqCEKi3tLJt4R_MQ18Dx0",
+        "q":
+            "1cZVPpUbf4p5n4cMv_kERCPh3cieMs4aVojgh3feAiJiLwWWL9Pc43oJUekK44aWMnbs68Y4kqXtc52PMtBDzVp0Gjt0lCY3M7MYRVI4JhtknqvQynMKQ2nKs3VldvVfY2SxyUmnRyEolQUGRA7rRMUyPb4AXhSR7oroRrJD59s",
+        "qi": "50PhyaqbLSczhipWiYy149sLsGlx9cX0tnGMswy1JLam7nBvH4"
+              "-MWB2oGwD2hmG-YN66q-xXBS9CVDLZZrj1sonRTQPtWE"
+              "-zuZqds6_NVlk2Ge4_IAA3TZ9tvIfM5FZVTOQsExu3_LX8FGCspWC1R"
+              "-zDqT45Y9bpaCwxekluO7Q",
+        'kid': 'sign1'
+    },{
+        "k":
+            b"YTEyZjBlMDgxMGI4YWU4Y2JjZDFiYTFlZTBjYzljNDU3YWM0ZWNiNzhmNmFlYTNkNTY0NzMzYjE",
+        "kty": "oct",
+        "use": "sig"
+    }]}
 
 
 class TestToken(object):
     @pytest.fixture(autouse=True)
-    def create_token(self):
-        self.token = DefaultToken("secret", "password")
+    def create_sdb(self):
+        kb = KeyBundle(JWKS["keys"])
+        kj = KeyJar()
+        kj.issuer_keys[''] = [kb]
 
-    def test_token(self):
-        sid = self.token.key(areq=AREQ)
-        assert len(sid) == 56
+        self.token = JWTToken('T', 'https://example.com/as', 3600, 'RS256',
+                              kj)
 
-    def test_new_token(self):
-        sid = self.token.key(areq=AREQ)
-        assert len(sid) == 56
+    def test_create(self):
+        sid = rndstr(32)
+        session_info = {
+            'sub': 'subject_id',
+            'client_id': 'https://example.com/rp'
+        }
 
-        code2 = self.token(sid=sid, ttype='T')
-        assert len(sid) == 56
+        _jwt = self.token(sid, sinfo=session_info, kid='sign1')
 
-        sid2 = self.token.key(areq=AREQ, user="jones")
-        assert len(sid2) == 56
-        assert sid != sid2
+        assert _jwt
+        assert len(_jwt.split('.')) == 3  # very simple JWS check
 
-    def test_type_and_key(self):
-        sid = self.token.key(areq=AREQ)
-        code = self.token(sid=sid)
-        part = self.token.type_and_key(code)
-        assert part[0] == "A"
-        assert part[1] == sid
+    def test_create_with_aud(self):
+        sid = rndstr(32)
+        session_info = {
+            'sub': 'subject_id',
+            'client_id': 'https://example.com/rp'
+        }
 
+        _jwt = self.token(sid, sinfo=session_info, kid='sign1',
+                          aud=['https://example.com/rs'])
+
+        assert _jwt
 
 class TestSessionDB(object):
     @pytest.fixture(autouse=True)
     def create_sdb(self):
-        self.sdb = SessionDB("https://example.com/")
+        kb = KeyBundle(JWKS["keys"])
+        kj = KeyJar()
+        kj.issuer_keys[''] = [kb]
+
+        self.sdb = SessionDB(
+            "https://example.com/",
+            token_cls=JWTToken('T', 'https://example.com/as', 3600, 'RS256',
+                               kj),
+            refresh_token_cls=JWTToken('R', 'https://example.com/as', 24*3600,
+                                       'RS256', kj)
+        )
 
     def test_create_authz_session(self):
         ae = AuthnEvent("uid", "salt")
@@ -362,33 +386,3 @@ class TestSessionDB(object):
         assert info2[
                    "sub"] == \
                '62fb630e29f0d41b88e049ac0ef49a9c3ac5418c029d6e4f5417df7e9443976b'
-
-
-class TestCrypt(object):
-    @pytest.fixture(autouse=True)
-    def create_crypt(self):
-        self.crypt = Crypt("4-amino-1H-pyrimidine-2-one")
-
-    def test_encrypt_decrypt(self):
-        ctext = self.crypt.encrypt("Cytosine")
-        plain = self.crypt.decrypt(ctext).decode("utf-8")
-        assert plain == 'Cytosine        '
-
-        ctext = self.crypt.encrypt("cytidinetriphosp")
-        plain = self.crypt.decrypt(ctext).decode("utf-8")
-
-        assert plain == 'cytidinetriphosp'
-
-    def test_crypt_with_b64(self):
-        db = {}
-        msg = "secret{}{}".format(time.time(), random.random())
-        csum = hmac.new(msg.encode("utf-8"), digestmod=hashlib.sha224)
-        txt = csum.digest()  # 28 bytes long, 224 bits
-        db[txt] = "foobar"
-        txt = txt + b"aces"  # another 4 bytes
-
-        ctext = self.crypt.encrypt(txt)
-        onthewire = base64.b64encode(ctext)
-        plain = self.crypt.decrypt(base64.b64decode(onthewire))
-        assert plain.endswith(b"aces")
-        assert db[plain[:-4]] == "foobar"
