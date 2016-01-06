@@ -47,15 +47,15 @@ class Response(object):
     def _response(self, message="", **argv):
         if self.template:
             if ("Content-type", "application/json") in self.headers:
-                return [message]
+                return [message.encode("utf-8")]
             else:
-                return [str(self.template % message)]
+                return [str(self.template % message).encode("utf-8")]
         elif self.mako_lookup and self.mako_template:
             argv["message"] = message
             mte = self.mako_lookup.get_template(self.mako_template)
             return [mte.render(**argv)]
         else:
-            return [message]
+            return [message.encode("utf-8")]
 
 
 class Created(Response):

@@ -76,7 +76,6 @@ setup(
                          "beaker",
                          "alabaster",
                          "pyOpenSSL",
-                         'httpretty==0.8.10',
                          "six"] + extra_install_requires,
     zip_safe=False,
     cmdclass={'test': PyTest},

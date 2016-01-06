@@ -226,8 +226,6 @@ Authorization Code Flow
 From the list redirect_uris you have to pick one to use for this request.
 Given you have all that, you now can send the request::
 
-    import hashlib
-    import hmac
     from oic.oauth2 import rndstr
     from oic.utils.http_util import Redirect
 
@@ -238,7 +236,7 @@ Given you have all that, you now can send the request::
         "response_type": "code",
         "scope": ["openid"],
         "nonce": session["nonce"],
-        "redirect_uri": client.redirect_uris[0],
+        "redirect_uri": client.registration_response["redirect_uris"][0],
         "state": session["state"]
     }
 
