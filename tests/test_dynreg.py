@@ -11,10 +11,10 @@ from oic.utils.authn.client import ClientSecretBasic
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
 from oic.utils import sdb
-from oic.oauth2.dynreg import Provider
-from oic.oauth2.dynreg import RegistrationRequest
-from oic.oauth2.dynreg import ClientInfoResponse
-from oic.oauth2.dynreg import ClientRegistrationError
+from oic.extension.provider import Provider
+from oic.extension.dynreg import RegistrationRequest
+from oic.extension.dynreg import ClientInfoResponse
+from oic.extension.dynreg import ClientRegistrationError
 from utils_for_tests import _eq
 
 
@@ -67,7 +67,7 @@ class TestProvider(object):
     def test_registration_endpoint(self):
         request = RegistrationRequest(client_name="myself",
                                       redirect_uris=["https://example.com/rp"])
-        resp = self.provider.registration_endpoint(request.to_json(), {})
+        resp = self.provider.registration_endpoint(request=request.to_json())
         assert isinstance(resp, Response)
         data = json.loads(resp.message)
         assert data["client_name"] == "myself"
@@ -91,7 +91,7 @@ class TestProvider(object):
         }
 
         request = RegistrationRequest(**args)
-        resp = self.provider.registration_endpoint(request.to_json(), {})
+        resp = self.provider.registration_endpoint(request=request.to_json())
         _resp = ClientRegistrationError().from_json(resp.message)
 
         assert "error" in _resp
@@ -109,7 +109,7 @@ class TestProvider(object):
         }
 
         request = RegistrationRequest(**args)
-        resp = self.provider.registration_endpoint(request.to_json(), {})
+        resp = self.provider.registration_endpoint(request=request.to_json())
         _resp = ClientInfoResponse().from_json(resp.message)
 
         assert _resp[
@@ -127,15 +127,15 @@ class TestProvider(object):
             "scope": "read write dolphin",
         }
         request = RegistrationRequest(**args)
-        resp = self.provider.registration_endpoint(request.to_json(),
-                                                   environ={})
+        resp = self.provider.registration_endpoint(request=request.to_json())
         _resp = ClientInfoResponse().from_json(resp.message)
 
         resp = self.provider.client_info_endpoint(
-            "",
+            "GET",
             environ={"HTTP_AUTHORIZATION": "Bearer %s" % (
                 _resp["registration_access_token"],)},
-            query="client_id=%s" % _resp["client_id"])
+            query="client_id=%s" % _resp["client_id"],
+            request=request.to_json())
 
         _resp_cir = ClientInfoResponse().from_json(resp.message)
         assert _resp == _resp_cir
@@ -151,7 +151,7 @@ class TestProvider(object):
             "scope": "read write dolphin",
         }
         request = RegistrationRequest(**args)
-        resp = self.provider.registration_endpoint(request.to_json(),
+        resp = self.provider.registration_endpoint(request=request.to_json(),
                                                    environ={})
         _resp = ClientInfoResponse().from_json(resp.message)
 
@@ -169,7 +169,7 @@ class TestProvider(object):
         }
         update_req = RegistrationRequest(**update)
         resp = self.provider.client_info_endpoint(
-            update_req.to_json(),
+            request=update_req.to_json(),
             environ={"HTTP_AUTHORIZATION": "Bearer %s" % (
                 _resp["registration_access_token"],)},
             method="PUT",
@@ -199,11 +199,11 @@ class TestProvider(object):
             "scope": "read write dolphin",
         }
         request = RegistrationRequest(**args)
-        resp = self.provider.registration_endpoint(request.to_json(),
+        resp = self.provider.registration_endpoint(request=request.to_json(),
                                                    environ={})
         _resp = ClientInfoResponse().from_json(resp.message)
         resp = self.provider.client_info_endpoint(
-            "",
+            request=request.to_json(),
             environ={"HTTP_AUTHORIZATION": "Bearer %s" % (
                 _resp["registration_access_token"],)},
             method="DELETE",
