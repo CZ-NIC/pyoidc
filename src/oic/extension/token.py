@@ -1,3 +1,4 @@
+import json
 import uuid
 
 from jwkest.jws import factory
@@ -70,13 +71,23 @@ class JWTToken(Token):
 
         return _tok.to_jwt([key], self.sign_alg)
 
-    def _unpack_jwt(self, token):
+    def _unpack_jwt(self, token, only_info=False):
         if not token:
             raise KeyError
 
         _rj = factory(token)
-        keys = self.keyjar.get_signing_key(alg2keytype(_rj.jwt.headers['alg']))
+        _msg = json.loads(_rj.jwt.part[1].decode('utf8'))
+        if _msg['iss'] == self.iss:
+            owner = ''
+        else:
+            owner = _msg['iss']
+
+        keys = self.keyjar.get_signing_key(alg2keytype(_rj.jwt.headers['alg']),
+                                           owner=owner)
         info = _rj.verify_compact(token, keys)
+        if only_info:
+            return info
+
         try:
             sid = self.db[info['jti']]
         except KeyError:
@@ -111,3 +122,6 @@ class JWTToken(Token):
     def invalidate(self, token):
         _, info = self._unpack_jwt(token)
         del self.db[info['jti']]
+
+    def get_info(self, token):
+        return self._unpack_jwt(token, only_info=True)

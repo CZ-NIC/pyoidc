@@ -256,15 +256,15 @@ if __name__ == "__main__":
 
         f.write(json.dumps(jwks))
         f.close()
-        OAS.jwks_uri = "{}{}".format(OAS.baseurl, jwks_file_name)
+        OAS.jwks_uri = "{}/{}".format(OAS.baseurl, jwks_file_name)
 
     # Initiate the SessionDB
     _token = JWTToken('T', {'code': 3600, 'token': 900}, config.issuer, 'RS256',
                       OAS.keyjar)
-    _refresh_token = JWTToken('T', {'': 86400}, config.issuer, 'RS256',
+    _refresh_token = JWTToken('R', {'': 86400}, config.issuer, 'RS256',
                               OAS.keyjar)
-    OAS.sdb = SessionDB(config.SERVICE_URL, token_cls=_token,
-                        refresh_token_cls=_refresh_token)
+    OAS.sdb = SessionDB(config.SERVICE_URL, token_factory=_token,
+                        refresh_token_factory=_refresh_token)
 
     # set some parameters
     try:
