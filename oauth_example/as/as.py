@@ -2,20 +2,24 @@
 """
 A very simple OAuth2 AS
 """
+import json
 import logging
 import re
 import sys
 import traceback
 
 from authn_setup import authn_setup
+from aatest import as_unicode
 from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
 from oic.extension.provider import Provider
+from oic.extension.token import JWTToken
 from oic.oauth2.provider import AuthorizationEndpoint
 from oic.oauth2.provider import TokenEndpoint
 from oic.oic.provider import RegistrationEndpoint
 from oic.utils.authn.client import verify_client
 from oic.utils.authz import Implicit
 from oic.utils.http_util import wsgi_wrapper, NotFound, ServiceError
+from oic.utils.keyio import keyjar_init
 
 __author__ = 'roland'
 
@@ -33,33 +37,35 @@ hdlr.setFormatter(base_formatter)
 LOGGER.addHandler(hdlr)
 LOGGER.setLevel(logging.INFO)
 
+JWKS_FILE_NAME = "static/jwks.json"
+
 # ============================================================================
 # Endpoint functions
 # ============================================================================
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def token(environ, start_response):
     _oas = environ["oic.oas"]
 
     return wsgi_wrapper(environ, start_response, _oas.token_endpoint)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def authorization(environ, start_response):
     _oas = environ["oic.oas"]
 
     return wsgi_wrapper(environ, start_response, _oas.authorization_endpoint)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def config(environ, start_response):
     _oas = environ["oic.oas"]
 
     return wsgi_wrapper(environ, start_response, _oas.providerinfo_endpoint)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def registration(environ, start_response):
     _oas = environ["oic.oas"]
 
@@ -73,10 +79,11 @@ ENDPOINTS = [
 ]
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def verify(environ, start_response):
     _oas = environ["oic.oas"]
     return wsgi_wrapper(environ, start_response, _oas.verify_endpoint)
+
 
 # ---------------------------------------------------------------------------
 # For static files
@@ -104,6 +111,7 @@ def static(environ, start_response, path):
         resp = NotFound()
         return resp(environ, start_response)
 
+
 URLS = [
     (r'^verify', verify),
     (r'.well-known/openid-configuration', config)
@@ -111,6 +119,7 @@ URLS = [
 
 for endp in ENDPOINTS:
     URLS.append(("^%s" % endp.etype, endp))
+
 
 # ============================================================================
 # The main web server function
@@ -133,7 +142,7 @@ def application(environ, start_response):
     """
     global OAS
 
-    #user = environ.get("REMOTE_USER", "")
+    # user = environ.get("REMOTE_USER", "")
     path = environ.get('PATH_INFO', '').lstrip('/')
 
     LOGGER.info("path: %s" % path)
@@ -225,9 +234,37 @@ if __name__ == "__main__":
     # dealing with authorization, this is just everything goes.
     authz = Implicit()
 
-    # Initiate the OAuth2 provider instance
-    OAS = Provider(config.issuer, SessionDB(config.SERVICE_URL), cdb, broker,
-                   authz, client_authn=verify_client, symkey=config.SYM_KEY)
+    # Initiate the Provider
+    OAS = Provider(config.issuer, None, cdb, broker, authz,
+                   baseurl=config.issuer, client_authn=verify_client,
+                   symkey=config.SYM_KEY, hostname=config.HOST)
+
+    try:
+        jwks = keyjar_init(OAS, config.keys, kid_template="op%d")
+    except Exception as err:
+        LOGGER.error("Key setup failed: {}".format(err))
+        print("Key setup failed: {}".format(err))
+        exit()
+        #OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
+    else:
+        jwks_file_name = JWKS_FILE_NAME
+        f = open(jwks_file_name, "w")
+
+        for key in jwks["keys"]:
+            for k in key.keys():
+                key[k] = as_unicode(key[k])
+
+        f.write(json.dumps(jwks))
+        f.close()
+        OAS.jwks_uri = "{}{}".format(OAS.baseurl, jwks_file_name)
+
+    # Initiate the SessionDB
+    _token = JWTToken('T', {'code': 3600, 'token': 900}, config.issuer, 'RS256',
+                      OAS.keyjar)
+    _refresh_token = JWTToken('T', {'': 86400}, config.issuer, 'RS256',
+                              OAS.keyjar)
+    OAS.sdb = SessionDB(config.SERVICE_URL, token_cls=_token,
+                        refresh_token_cls=_refresh_token)
 
     # set some parameters
     try:
@@ -268,7 +305,9 @@ if __name__ == "__main__":
         https = " using HTTPS"
         # SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
         #     config.SERVER_CERT, config.SERVER_KEY, config.CERT_CHAIN)
-        SRV.ssl_adapter = BuiltinSSLAdapter(config.SERVER_CERT, config.SERVER_KEY, config.CERT_CHAIN)
+        SRV.ssl_adapter = BuiltinSSLAdapter(config.SERVER_CERT,
+                                            config.SERVER_KEY,
+                                            config.CERT_CHAIN)
 
     _info = START_MESG.format(args.port, config.HOST)
     if https:

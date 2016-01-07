@@ -25,9 +25,7 @@ private/
 
 # Dynamically created doc folders
 doc/_build
-keys
 !tests/data/keys
-static
 
 # Remaining stuff
 oidc_example/op1/client_db.db

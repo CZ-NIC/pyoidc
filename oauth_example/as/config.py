@@ -87,3 +87,9 @@ SERVER_CERT = "%s/certs/server.crt" % ROOT
 SERVER_KEY = "%s/certs/server.key" % ROOT
 #CERT_CHAIN="certs/chain.pem"
 CERT_CHAIN = None
+
+keys = [
+    {"type": "RSA", "key": "keys/key.pem", "use": ["enc", "sig"]},
+    {"type": "EC", "crv": "P-256", "use": ["sig"]},
+    {"type": "EC", "crv": "P-256", "use": ["enc"]}
+]

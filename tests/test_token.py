@@ -120,10 +120,10 @@ class TestSessionDB(object):
 
         self.sdb = SessionDB(
             "https://example.com/",
-            token_cls=JWTToken('T', {'code': 3600, 'token': 900},
-                               'https://example.com/as', 'RS256', kj),
-            refresh_token_cls=JWTToken('R', {'': 24*3600},
-                                       'https://example.com/as', 'RS256', kj)
+            token_factory=JWTToken('T', {'code': 3600, 'token': 900},
+                                   'https://example.com/as', 'RS256', kj),
+            refresh_token_factory=JWTToken(
+                'R', {'': 24*3600}, 'https://example.com/as', 'RS256', kj)
         )
 
     def test_create_authz_session(self):
@@ -251,7 +251,7 @@ class TestSessionDB(object):
 
         assert dict1["access_token"] != dict2["access_token"]
 
-        with pytest.raises(WrongTokenType):
+        with pytest.raises(KeyError):
             self.sdb.refresh_token(dict2["access_token"], AREQ['client_id'])
 
     def test_refresh_token_cleared_session(self):
@@ -322,7 +322,7 @@ class TestSessionDB(object):
 
         try:
             self.sdb.refresh_token(refresh_token, AREQ['client_id'])
-        except ExpiredToken:
+        except KeyError:
             pass
 
         assert self.sdb.is_valid(access_token)

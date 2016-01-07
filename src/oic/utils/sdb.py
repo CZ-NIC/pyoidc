@@ -357,44 +357,43 @@ class SessionDB(object):
                  token_expires_in=3600, password="4-amino-1H-pyrimidine-2-one",
                  grant_expires_in=600, seed="", refresh_db=None,
                  refresh_token_expires_in=86400,
-                 token_cls=DefaultToken, code_cls=DefaultToken,
-                 refresh_token_cls=DefaultToken):
+                 token_factory=None, code_factory=None,
+                 refresh_token_factory=None):
         self.base_url = base_url
         if db is None:
             db = {}
         self._db = db
 
-        if refresh_db:
+        self.token_factory = {}
+
+        self.token_factory_order = ['code', 'token']
+        if code_factory:
+            self.token_factory['code'] = code_factory
+        else:
+            self.token_factory['code'] = DefaultToken(secret, password, typ='A',
+                                                      lifetime=grant_expires_in)
+        if token_factory:
+            self.token_factory['token'] = token_factory
+        else:
+            self.token_factory['token'] = DefaultToken(
+                secret, password, typ='T', lifetime=token_expires_in)
+
+        if refresh_token_factory:
+            self._refresh_db = None
+            self.token_factory['refresh_token'] = refresh_token_factory
+            self.token_factory_order.append('refresh_token')
+        elif refresh_db:
             self._refresh_db = refresh_db
         else:
             self._refresh_db = DictRefreshDB()
 
-        self.token_factory = {}
-
-        if isinstance(code_cls, type):
-            self.token_factory['code'] = code_cls(secret, password, typ='A',
-                                                  lifetime=grant_expires_in)
-        else:
-            self.token_factory['code'] = code_cls
-        if isinstance(token_cls, type):
-            self.token_factory['token'] = token_cls(secret, password, typ='T',
-                                                    lifetime=token_expires_in)
-        else:
-            self.token_factory['token'] = token_cls
-        if isinstance(refresh_token_cls, type):
-            self.token_factory['refresh_token'] = refresh_token_cls(
-                secret, password, typ='R', lifetime=refresh_token_expires_in)
-        else:
-            self.token_factory['refresh_token'] = refresh_token_cls
-
         self.token = self.token_factory['token']
-        #self.refresh_token = self.token_factory['refresh_token']
         self.uid2sid = {}
         self.seed = seed or secret
 
     def _get_token_key(self, item, order=None):
         if order is None:
-            order = ['code', 'token', 'refresh_token']
+            order = self.token_factory_order
 
         for key in order:
             try:
@@ -407,7 +406,7 @@ class SessionDB(object):
 
     def _get_token_type_and_key(self, item, order=None):
         if order is None:
-            order = ['code', 'token', 'refresh_token']
+            order = self.token_factory_order
 
         for key in order:
             try:
@@ -420,7 +419,7 @@ class SessionDB(object):
 
     def _get_token_type(self, item, order=None):
         if order is None:
-            order = ['code', 'token', 'refresh_token']
+            order = self.token_factory_order
 
         for key in order:
             try:
@@ -428,7 +427,7 @@ class SessionDB(object):
             except Exception:
                 pass
 
-        logger.info("Unknown token format")
+        logger.info("Unknown token format or invalid token")
         raise KeyError(item)
 
     def __getitem__(self, item):
@@ -609,11 +608,15 @@ class SessionDB(object):
                 uid = authn_event.uid
             else:
                 uid = None
-            refresh_token = self._refresh_db.create_token(
-                dic['client_id'], uid, dic.get('scope'), dic['sub'],
-                dic['authzreq'], key)
-            dic["refresh_token"] = refresh_token
 
+            if self._refresh_db:
+                refresh_token = self._refresh_db.create_token(
+                    dic['client_id'], uid, dic.get('scope'), dic['sub'],
+                    dic['authzreq'], key)
+            else:
+                refresh_token = self.token_factory['refresh_token'](key,
+                                                                    sinfo=dic)
+            dic["refresh_token"] = refresh_token
         self._db[key] = dic
         return dic
 
@@ -656,8 +659,6 @@ class SessionDB(object):
                         self.token.invalidate(at)
 
                 dic["access_token"] = access_token
-                dic["token_type"] = "Bearer"
-                dic["refresh_token"] = rtoken
                 self._db[sid] = dic
                 return dic
             else:
@@ -667,7 +668,13 @@ class SessionDB(object):
             dic = self._db[sid]
             access_token = self.token(sid=sid, sinfo=dic)
 
-            self.token.invalidate(dic["access_token"])
+            try:
+                at = dic["access_token"]
+            except KeyError:
+                pass
+            else:
+                if at:
+                    self.token.invalidate(at)
 
             dic["access_token"] = access_token
             dic["token_type"] = "Bearer"
@@ -687,7 +694,10 @@ class SessionDB(object):
         if token.startswith('Refresh_'):
             return self._refresh_db.verify_token(client_id, token)
 
-        typ, sid = self._get_token_type_and_key(token)
+        try:
+            typ, sid = self._get_token_type_and_key(token)
+        except KeyError:
+            return False
 
         _dic = self._db[sid]
 
@@ -737,7 +747,11 @@ class SessionDB(object):
 
         :param rtoken: Refresh token
         """
-        self._refresh_db.revoke_token(rtoken)
+        if self._refresh_db:
+            self._refresh_db.revoke_token(rtoken)
+        else:
+            self.token_factory['refresh_token'].invalidate(rtoken)
+
         return True
 
     def revoke_all_tokens(self, token):
@@ -748,8 +762,12 @@ class SessionDB(object):
         """
         _, sid = self._get_token_type_and_key(token)
 
-        rtoken = self._db[sid]['refresh_token']
-        self.revoke_refresh_token(rtoken)
+        try:
+            rtoken = self._db[sid]['refresh_token']
+        except KeyError:
+            pass
+        else:
+            self.revoke_refresh_token(rtoken)
 
         self.update(sid, 'revoked', True)
         return True

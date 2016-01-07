@@ -7,14 +7,13 @@ import json
 import logging
 import os
 import random
-import socket
 import sys
 import time
 import traceback
-import urllib
 
 import six
 from requests import ConnectionError
+from socket import socket
 
 from jwkest import b64d
 from jwkest import jwe
@@ -62,10 +61,11 @@ from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
 from oic.utils.sdb import ExpiredToken
 from oic.utils.time_util import utc_time_sans_frac
+
 from six.moves.urllib import parse as urlparse
 
 if six.PY3:
-    from urllib.parse import splitquery
+    from urllib.parse import splitquery, urlencode
 else:
     from urllib import splitquery
 
@@ -140,7 +140,7 @@ def location_url(response_type, redirect_uri, query):
 def construct_uri(item):
     (base_url, query) = item
     if query:
-        return "%s?%s" % (base_url, urllib.urlencode(query))
+        return "%s?%s" % (base_url, urlencode(query))
     else:
         return base_url
 
@@ -193,9 +193,9 @@ CAPABILITIES = {
 
 class Provider(AProvider):
     def __init__(self, name, sdb, cdb, authn_broker, userinfo, authz,
-            client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
-            hostname="", template_lookup=None, template=None,
-            verify_ssl=True, capabilities=None, schema=OpenIDSchema):
+                 client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
+                 hostname="", template_lookup=None, template=None,
+                 verify_ssl=True, capabilities=None, schema=OpenIDSchema):
 
         AProvider.__init__(self, name, sdb, cdb, authn_broker, authz,
                            client_authn, symkey, urlmap, ca_bundle=ca_certs,
@@ -308,8 +308,8 @@ class Provider(AProvider):
                     self.capabilities[val] = [_enc_enc]
 
     def id_token_as_signed_jwt(self, session, loa="2", alg="", code=None,
-            access_token=None, user_info=None, auth_time=0,
-            exp=None, extra_claims=None):
+                               access_token=None, user_info=None, auth_time=0,
+                               exp=None, extra_claims=None):
 
         if alg == "":
             alg = self.jwx_def["sign_alg"]["id_token"]
@@ -359,7 +359,8 @@ class Provider(AProvider):
             return self._redirect_authz_error("invalid_id_token_object",
                                               redirect_uri)
 
-    def get_sector_id(self, redirect_uri, client_info):
+    @staticmethod
+    def get_sector_id(redirect_uri, client_info):
         """
         Pick the sector id given a number of factors
         :param redirect_uri: The redirect_uri used
@@ -411,7 +412,7 @@ class Provider(AProvider):
                 resq = self._parse_openid_request(_req.text)
             except Exception as err:
                 return self._redirect_authz_error(
-                        "invalid_openid_request_object", redirect_uri)
+                    "invalid_openid_request_object", redirect_uri)
 
             areq["request"] = resq
 
@@ -477,8 +478,8 @@ class Provider(AProvider):
                 return self.authn_broker[0]
         except KeyError as exc:
             logger.debug(
-                    "An error occured while picking the authN broker: %s" % str(
-                            exc))
+                "An error occured while picking the authN broker: %s" % str(
+                    exc))
 
         # return the best I have
         return None, None
@@ -512,8 +513,8 @@ class Provider(AProvider):
                 return redirect_uri
         except Exception as exc:
             logger.debug(
-                    "An error occurred while verifying redirect URI: %s" % str(
-                        exc))
+                "An error occurred while verifying redirect URI: %s" % str(
+                    exc))
 
         return None
 
@@ -528,8 +529,10 @@ class Provider(AProvider):
             headers = [cookie]
         else:
             headers = []
+
         mte = self.template_lookup.get_template(self.template["verify_logout"])
         self.sdb.set_verified_logout(uid)
+
         if redirect_uri is not None:
             redirect = redirect_uri
         else:
@@ -538,6 +541,7 @@ class Provider(AProvider):
             tmp_id_token_hint = esr["id_token_hint"]
         except:
             tmp_id_token_hint = ""
+
         argv = {
             "id_token_hint": tmp_id_token_hint,
             "post_logout_redirect_uri": esr["post_logout_redirect_uri"],
@@ -545,7 +549,7 @@ class Provider(AProvider):
             "redirect": redirect,
             "action": "/" + EndSessionEndpoint("").etype
         }
-        return Response(mte.render(**argv), headers=[])
+        return Response(mte.render(**argv), headers=headers)
 
     def end_session_endpoint(self, request="", cookie=None, **kwargs):
         esr = EndSessionRequest().from_urlencoded(request)
@@ -557,8 +561,8 @@ class Provider(AProvider):
             redirect_uri = self.verify_post_logout_redirect_uri(esr, cookie)
             if not redirect_uri:
                 return self._error_response(
-                        "Not allowed (Post logout redirect URI verification "
-                        "failed)!")
+                    "Not allowed (Post logout redirect URI verification "
+                    "failed)!")
 
         authn, acr = self.pick_auth(esr)
 
@@ -584,7 +588,7 @@ class Provider(AProvider):
                     pass
             else:
                 return self._error_response(
-                        "Not allowed (UID could not be retrieved)!")
+                    "Not allowed (UID could not be retrieved)!")
 
         # if self.sdb.get_verified_logout(uid):
         #    return self.let_user_verify_logout(uid, esr, cookie, redirect_uri)
@@ -706,9 +710,9 @@ class Provider(AProvider):
         if "check_session_iframe" in self.capabilities:
             salt = rndstr()
             state = str(self.sdb.get_authentication_event(
-                    sid).authn_time)  # use the last session
+                sid).authn_time)  # use the last session
             aresp["session_state"] = self._compute_session_state(
-                    state, salt, areq["client_id"], redirect_uri)
+                state, salt, areq["client_id"], redirect_uri)
             headers.append(self.write_session_cookie(state))
 
         location = aresp.request(redirect_uri, fragment_enc)
@@ -758,7 +762,7 @@ class Provider(AProvider):
         except KeyError:
             # Weird, but try to recuperate
             logger.warning(
-                    "Lost keys for {} trying to recuperate!!".format(cid))
+                "Lost keys for {} trying to recuperate!!".format(cid))
             self.keyjar.issuer_keys[cid] = []
             self.keyjar.add(cid, client_info["jwks_uri"])
             _ckeys = self.keyjar[cid]
@@ -775,7 +779,7 @@ class Provider(AProvider):
         return _jwe.encrypt(keys, context="public")
 
     def sign_encrypt_id_token(self, sinfo, client_info, areq, code=None,
-            access_token=None, user_info=None):
+                              access_token=None, user_info=None):
         """
         Signed and or encrypt a IDToken
 
@@ -801,9 +805,9 @@ class Provider(AProvider):
 
         _authn_event = sinfo["authn_event"]
         id_token = self.id_token_as_signed_jwt(
-                sinfo, loa=_authn_event.authn_info, alg=alg, code=code,
-                access_token=access_token, user_info=user_info,
-                auth_time=_authn_event.authn_time)
+            sinfo, loa=_authn_event.authn_info, alg=alg, code=code,
+            access_token=access_token, user_info=user_info,
+            auth_time=_authn_event.authn_time)
 
         # Then encrypt
         if "id_token_encrypted_response_alg" in client_info:
@@ -867,7 +871,7 @@ class Provider(AProvider):
             # _authn_event = _info["authn_event"]
             try:
                 _idtoken = self.sign_encrypt_id_token(
-                        _info, client_info, req, user_info=userinfo)
+                    _info, client_info, req, user_info=userinfo)
             except (JWEException, NoSuitableSigningKeys) as err:
                 logger.warning(str(err))
                 return self._error(error="access_denied",
@@ -905,7 +909,7 @@ class Provider(AProvider):
             userinfo = self.userinfo_in_id_token_claims(_info)
             try:
                 _idtoken = self.sign_encrypt_id_token(
-                        _info, client_info, req, user_info=userinfo)
+                    _info, client_info, req, user_info=userinfo)
             except (JWEException, NoSuitableSigningKeys) as err:
                 logger.warning(str(err))
                 return self._error(error="access_denied",
@@ -924,7 +928,7 @@ class Provider(AProvider):
 
     # noinspection PyUnusedLocal
     def token_endpoint(self, request="", authn=None, dtype='urlencoded',
-            **kwargs):
+                       **kwargs):
         """
         This is where clients come to get their access tokens
 
@@ -941,8 +945,8 @@ class Provider(AProvider):
             # have to get the token to get at the state
             code = req['code']
             shash = base64.urlsafe_b64encode(
-                    hashlib.sha256(
-                        self.sdb[code]['state'].encode('utf8')).digest())
+                hashlib.sha256(
+                    self.sdb[code]['state'].encode('utf8')).digest())
             if shash.decode('ascii') != req['state_hash']:
                 err = TokenErrorResponse(error="unauthorized_client")
                 return Unauthorized(err.to_json(), content="application/json")
@@ -1092,10 +1096,8 @@ class Provider(AProvider):
     def _do_user_info(self, token, **kwargs):
         try:
             _log_debug = kwargs["logger"].debug
-            _log_info = kwargs["logger"].info
         except KeyError:
             _log_debug = logger.debug
-            _log_info = logger.info
 
         _sdb = self.sdb
         # should be an access token
@@ -1123,7 +1125,6 @@ class Provider(AProvider):
                 # Will also encrypt if defined in cinfo
                 jinfo = self.signed_userinfo(_cinfo, info, session)
                 content_type = "application/jwt"
-                cty = "JWT"
             elif "userinfo_encrypted_response_alg" in _cinfo:
                 jinfo = info.to_json()
                 jinfo = self.encrypt(jinfo, _cinfo, session["client_id"],
@@ -1132,11 +1133,10 @@ class Provider(AProvider):
             else:
                 jinfo = info.to_json()
                 content_type = "application/json"
-                cty = ""
         except NotSupportedAlgorithm as err:
             return self._error(error="access_denied",
                                descr="Not supported algorithm: {}".format(
-                                       err.args[0]))
+                                   err.args[0]))
         except JWEException:
             return self._error(error="access_denied",
                                descr="Could not encrypt")
@@ -1220,10 +1220,10 @@ class Provider(AProvider):
             for uri in request["post_logout_redirect_uris"]:
                 if urlparse.urlparse(uri).fragment:
                     err = ClientRegistrationErrorResponse(
-                            error="invalid_configuration_parameter",
-                            error_description="post_logout_redirect_uris "
-                                              "contains "
-                                              "fragment")
+                        error="invalid_configuration_parameter",
+                        error_description="post_logout_redirect_uris "
+                                          "contains "
+                                          "fragment")
                     return Response(err.to_json(),
                                     content="application/json",
                                     status="400 Bad Request")
@@ -1240,8 +1240,8 @@ class Provider(AProvider):
                 _cinfo["redirect_uris"] = ruri
             except InvalidRedirectURIError as e:
                 err = ClientRegistrationErrorResponse(
-                        error="invalid_redirect_uri",
-                        error_description=str(e))
+                    error="invalid_redirect_uri",
+                    error_description=str(e))
                 return Response(err.to_json(),
                                 content="application/json",
                                 status="400 Bad Request")
@@ -1253,13 +1253,13 @@ class Provider(AProvider):
             except ConnectionError as err:
                 logger.error("%s" % err)
                 return self._error_response(
-                        "invalid_configuration_parameter",
-                        descr="Couldn't open sector_identifier_uri")
+                    "invalid_configuration_parameter",
+                    descr="Couldn't open sector_identifier_uri")
 
             if not res:
                 return self._error_response(
-                        "invalid_configuration_parameter",
-                        descr="Couldn't open sector_identifier_uri")
+                    "invalid_configuration_parameter",
+                    descr="Couldn't open sector_identifier_uri")
 
             logger.debug("sector_identifier_uri => %s" % res.text)
 
@@ -1267,9 +1267,9 @@ class Provider(AProvider):
                 si_redirects = json.loads(res.text)
             except ValueError:
                 return self._error_response(
-                        "invalid_configuration_parameter",
-                        descr="Error deserializing sector_identifier_uri "
-                              "content")
+                    "invalid_configuration_parameter",
+                    descr="Error deserializing sector_identifier_uri "
+                          "content")
 
             if "redirect_uris" in request:
                 logger.debug("redirect_uris: %s" % request["redirect_uris"])
@@ -1278,9 +1278,9 @@ class Provider(AProvider):
                         assert uri in si_redirects
                     except AssertionError:
                         return self._error_response(
-                                "invalid_configuration_parameter",
-                                descr="redirect_uri missing from "
-                                      "sector_identifiers"
+                            "invalid_configuration_parameter",
+                            descr="redirect_uri missing from "
+                                  "sector_identifiers"
                         )
 
             _cinfo["si_redirects"] = si_redirects
@@ -1299,9 +1299,9 @@ class Provider(AProvider):
                             assert host == _host
                         except AssertionError:
                             return self._error_response(
-                                    "invalid_configuration_parameter",
-                                    descr="'sector_identifier_uri' must be "
-                                          "registered")
+                                "invalid_configuration_parameter",
+                                descr="'sector_identifier_uri' must be "
+                                      "registered")
 
         for item in ["policy_uri", "logo_uri", "tos_uri"]:
             if item in request:
@@ -1309,15 +1309,15 @@ class Provider(AProvider):
                     _cinfo[item] = request[item]
                 else:
                     return self._error_response(
-                            "invalid_configuration_parameter",
-                            descr="%s pointed to illegal URL" % item)
+                        "invalid_configuration_parameter",
+                        descr="%s pointed to illegal URL" % item)
 
         # Do I have the necessary keys
         for item in ["id_token_signed_response_alg",
                      "userinfo_signed_response_alg"]:
             if item in request:
                 if request[item] in self.capabilities[
-                    PREFERENCE2PROVIDER[item]]:
+                        PREFERENCE2PROVIDER[item]]:
                     ktyp = jws.alg2keytype(request[item])
                     # do I have this ktyp and for EC type keys the curve
                     if ktyp not in ["none", "oct"]:
@@ -1338,14 +1338,15 @@ class Provider(AProvider):
             logger.error("Failed to load client keys: %s" % request.to_dict())
             logger.error("%s", err)
             err = ClientRegistrationErrorResponse(
-                    error="invalid_configuration_parameter",
-                    error_description="%s" % err)
+                error="invalid_configuration_parameter",
+                error_description="%s" % err)
             return Response(err.to_json(), content="application/json",
                             status="400 Bad Request")
 
         return _cinfo
 
-    def _verify_redirect_uris(self, registration_request):
+    @staticmethod
+    def _verify_redirect_uris(registration_request):
         verified_redirect_uris = []
         try:
             client_type = registration_request["application_type"]
@@ -1368,13 +1369,13 @@ class Provider(AProvider):
             if client_type == "native" and p.scheme == "http":
                 if p.hostname != "localhost":
                     raise InvalidRedirectURIError(
-                            "Http redirect_uri must use localhost")
+                        "Http redirect_uri must use localhost")
             elif must_https and p.scheme != "https":
                 raise InvalidRedirectURIError(
-                        "None https redirect_uri not allowed")
+                    "None https redirect_uri not allowed")
             elif p.fragment:
                 raise InvalidRedirectURIError(
-                        "redirect_uri contains fragment")
+                    "redirect_uri contains fragment")
             # This rule will break local testing.
             # elif must_https and p.hostname == "localhost":
             #     err = InvalidRedirectURIError(
@@ -1538,7 +1539,7 @@ class Provider(AProvider):
                         headers=[("Cache-Control", "no-store")])
 
     def create_providerinfo(self, pcr_class=ProviderConfigurationResponse,
-            setup=None):
+                            setup=None):
         """
         Dynamically create the provider info response
         :param pcr_class:
@@ -1554,8 +1555,8 @@ class Provider(AProvider):
         for endp in self.endp:
             # _log_info("# %s, %s" % (endp, endp.name))
             _provider_info['{}_endpoint'.format(endp.etype)] = os.path.join(
-                    self.baseurl,
-                    endp.url)
+                self.baseurl,
+                endp.url)
 
         if setup and isinstance(setup, dict):
             for key in pcr_class.c_param.keys():
@@ -1727,7 +1728,7 @@ class Provider(AProvider):
 
             # or 'code id_token'
             id_token = self.sign_encrypt_id_token(
-                    _sinfo, client_info, areq, user_info=user_info, **hargs)
+                _sinfo, client_info, areq, user_info=user_info, **hargs)
 
             aresp["id_token"] = id_token
             _sinfo["id_token"] = id_token
@@ -1751,7 +1752,7 @@ class Provider(AProvider):
             argv = {"form_args": kwargs["aresp"].to_dict(),
                     "action": kwargs["redirect_uri"]}
             mte = self.template_lookup.get_template(
-                    self.template["form_post"])
+                self.template["form_post"])
             return Response(mte.render(**argv), headers=kwargs["headers"])
         elif resp_mode == 'fragment' and not fragment_enc:
             # Can't be done
@@ -1841,8 +1842,8 @@ class Provider(AProvider):
                 # or 'code id_token'
                 try:
                     id_token = self.sign_encrypt_id_token(
-                            _sinfo, client_info, areq, user_info=user_info,
-                            **hargs)
+                        _sinfo, client_info, areq, user_info=user_info,
+                        **hargs)
                 except (JWEException, NoSuitableSigningKeys) as err:
                     logger.warning(str(err))
                     return self._error(error="access_denied",
@@ -1886,7 +1887,8 @@ class Provider(AProvider):
         Handle key roll-over by importing new keys and inactivating the
         ones in the keyjar that are of the same type and usage.
 
-        :param jwk: A JWK
+        :param jwks: A JWKS
+        :param kid_template: Key ID template
         """
 
         kb = KeyBundle()

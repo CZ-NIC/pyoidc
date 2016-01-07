@@ -1,12 +1,14 @@
 import logging
 import os
+from socket import gethostname
 import traceback
+import sys
 import six
+
 from future.backports.urllib.parse import parse_qs
 from future.backports.urllib.parse import splitquery
 from jwkest import jws
 from jwkest import jwe
-import sys
 
 from oic.exception import UnSupported, FailedAuthentication
 from oic.exception import UnknownAssertionType
@@ -17,8 +19,11 @@ from oic.extension.dynreg import RegistrationRequest
 from oic.extension.dynreg import InvalidRedirectUri
 from oic.extension.dynreg import ClientRegistrationError
 from oic.extension.dynreg import MissingPage
-from oic.oauth2 import provider, AccessTokenRequest, TokenErrorResponse, \
-    AccessTokenResponse, by_schema
+from oic.oauth2 import provider
+from oic.oauth2 import AccessTokenRequest
+from oic.oauth2 import TokenErrorResponse
+from oic.oauth2 import AccessTokenResponse
+from oic.oauth2 import by_schema
 from oic.oauth2 import rndstr
 from oic.oauth2.provider import Endpoint
 from oic.oauth2.exception import VerificationError
@@ -36,7 +41,7 @@ from oic.utils.http_util import NoContent
 from oic.utils.http_util import Response
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Forbidden
-from oic.utils.keyio import KeyBundle, KeyJar
+from oic.utils.keyio import KeyBundle, KeyJar, key_export
 from oic.utils.sdb import AccessCodeUsed
 from oic.utils.time_util import utc_time_sans_frac
 
@@ -58,8 +63,8 @@ class Provider(provider.Provider):
                  symkey="", urlmap=None, iv=0, default_scope="",
                  ca_bundle=None, seed=b"", client_authn_methods=None,
                  authn_at_registration="", client_info_url="",
-                 secret_lifetime=86400, jwks_uri=None, keyjar=None,
-                 capabilities=None, verify_ssl=True):
+                 secret_lifetime=86400, jwks_uri='', keyjar=None,
+                 capabilities=None, verify_ssl=True, baseurl='', hostname=''):
 
         if not name.endswith("/"):
             name += "/"
@@ -91,7 +96,9 @@ class Provider(provider.Provider):
             self.capabilities = ProviderConfigurationResponse(**capabilities)
         else:
             self.capabilities = self.provider_features()
-        self.baseurl = ""
+        self.baseurl = baseurl
+        self.hostname = hostname or gethostname()
+        self.kid = {"sig": {}, "enc": {}}
 
     @staticmethod
     def _uris_to_tuples(uris):
@@ -514,3 +521,15 @@ class Provider(provider.Provider):
         logger.debug("AccessTokenResponse: %s" % atr)
 
         return Response(atr.to_json(), content="application/json")
+
+    def key_setup(self, local_path, vault="keys", sig=None, enc=None):
+        """
+        my keys
+        :param local_path: The path to where the JWKs should be stored
+        :param vault: Where the private key will be stored
+        :param sig: Key for signature
+        :param enc: Key for encryption
+        :return: A URL the RP can use to download the key.
+        """
+        self.jwks_uri = key_export(self.baseurl, local_path, vault, self.keyjar,
+                                   fqdn=self.hostname, sig=sig, enc=enc)
