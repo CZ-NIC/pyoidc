@@ -13,7 +13,7 @@ import traceback
 
 import six
 from requests import ConnectionError
-from socket import socket
+import socket
 
 from jwkest import b64d
 from jwkest import jwe
