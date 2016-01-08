@@ -230,7 +230,7 @@ class Provider(AProvider):
 
         self.authn_as = None
         self.preferred_id_type = "public"
-        self.hostname = hostname or socket.gethostname
+        self.hostname = hostname or socket.gethostname()
 
         for endp in self.endp:
             if endp.etype == 'registration':
@@ -1500,347 +1500,230 @@ class Provider(AProvider):
                        headers=[("Cache-Control", "no-store")])
 
 
-def registration_endpoint(self, request, authn=None, **kwargs):
-    return self.l_registration_endpoint(request, authn, **kwargs)
+    def registration_endpoint(self, request, authn=None, **kwargs):
+        return self.l_registration_endpoint(request, authn, **kwargs)
 
 
-def read_registration(self, authn, request, **kwargs):
-    """
-    Read all information this server has on a client.
-    Authorization is done by using the access token that was return as
-    part of the client registration result.
+    def read_registration(self, authn, request, **kwargs):
+        """
+        Read all information this server has on a client.
+        Authorization is done by using the access token that was return as
+        part of the client registration result.
 
-    :param authn: The Authorization HTTP header
-    :param request: The query part of the URL
-    :param kwargs: Any other arguments
-    :return:
-    """
+        :param authn: The Authorization HTTP header
+        :param request: The query part of the URL
+        :param kwargs: Any other arguments
+        :return:
+        """
 
-    logger.debug("authn: %s, request: %s" % (authn, request))
+        logger.debug("authn: %s, request: %s" % (authn, request))
 
-    # verify the access token, has to be key into the client information
-    # database.
-    if not authn.startswith("Bearer "):
-        return self._error_response('invalid_request')
-    token = authn[len("Bearer "):]
+        # verify the access token, has to be key into the client information
+        # database.
+        if not authn.startswith("Bearer "):
+            return self._error_response('invalid_request')
+        token = authn[len("Bearer "):]
 
-    client_id = self.cdb[token]
+        client_id = self.cdb[token]
 
-    # extra check
-    _info = urlparse.parse_qs(request)
-    assert _info["client_id"][0] == client_id
+        # extra check
+        _info = urlparse.parse_qs(request)
+        assert _info["client_id"][0] == client_id
 
-    logger.debug("Client '%s' reads client info" % client_id)
-    args = dict([(k, v) for k, v in self.cdb[client_id].items()
-                 if k in RegistrationResponse.c_param])
+        logger.debug("Client '%s' reads client info" % client_id)
+        args = dict([(k, v) for k, v in self.cdb[client_id].items()
+                     if k in RegistrationResponse.c_param])
 
-    self.comb_uri(args)
-    response = RegistrationResponse(**args)
+        self.comb_uri(args)
+        response = RegistrationResponse(**args)
 
-    return Response(response.to_json(), content="application/json",
-                    headers=[("Cache-Control", "no-store")])
-
-
-def create_providerinfo(self, pcr_class=ProviderConfigurationResponse,
-                        setup=None):
-    """
-    Dynamically create the provider info response
-    :param pcr_class:
-    :param setup:
-    :return:
-    """
-
-    _provider_info = self.capabilities
-
-    if self.jwks_uri and self.keyjar:
-        _provider_info["jwks_uri"] = self.jwks_uri
-
-    for endp in self.endp:
-        # _log_info("# %s, %s" % (endp, endp.name))
-        _provider_info['{}_endpoint'.format(endp.etype)] = os.path.join(
-            self.baseurl,
-            endp.url)
-
-    if setup and isinstance(setup, dict):
-        for key in pcr_class.c_param.keys():
-            if key in setup:
-                _provider_info[key] = setup[key]
-
-    _provider_info["issuer"] = self.baseurl
-    _provider_info["version"] = "3.0"
-
-    return _provider_info
+        return Response(response.to_json(), content="application/json",
+                        headers=[("Cache-Control", "no-store")])
 
 
-def provider_features(self, pcr_class=ProviderConfigurationResponse):
-    """
-    Specifies what the server capabilities are.
+    def create_providerinfo(self, pcr_class=ProviderConfigurationResponse,
+                            setup=None):
+        """
+        Dynamically create the provider info response
+        :param pcr_class:
+        :param setup:
+        :return:
+        """
 
-    :param pcr_class:
-    :return: ProviderConfigurationResponse instance
-    """
+        _provider_info = self.capabilities
 
-    _provider_info = pcr_class(**CAPABILITIES)
+        if self.jwks_uri and self.keyjar:
+            _provider_info["jwks_uri"] = self.jwks_uri
 
-    _claims = []
-    for _cl in SCOPE2CLAIMS.values():
-        _claims.extend(_cl)
-    _provider_info["claims_supported"] = list(set(_claims))
+        for endp in self.endp:
+            # _log_info("# %s, %s" % (endp, endp.name))
+            _provider_info['{}_endpoint'.format(endp.etype)] = os.path.join(
+                self.baseurl,
+                endp.url)
 
-    _scopes = list(SCOPE2CLAIMS.keys())
-    _scopes.append("openid")
-    _provider_info["scopes_supported"] = _scopes
+        if setup and isinstance(setup, dict):
+            for key in pcr_class.c_param.keys():
+                if key in setup:
+                    _provider_info[key] = setup[key]
 
-    sign_algs = list(jws.SIGNER_ALGS.keys())
-    for typ in ["userinfo", "id_token", "request_object"]:
-        _provider_info["%s_signing_alg_values_supported" % typ] = sign_algs
+        _provider_info["issuer"] = self.baseurl
+        _provider_info["version"] = "3.0"
 
-    # Remove 'none' for token_endpoint_auth_signing_alg_values_supported
-    # since it is not allowed
-    sign_algs = sign_algs[:]
-    sign_algs.remove('none')
-    _provider_info[
-        "token_endpoint_auth_signing_alg_values_supported"] = sign_algs
-
-    algs = jwe.SUPPORTED["alg"]
-    for typ in ["userinfo", "id_token", "request_object"]:
-        _provider_info["%s_encryption_alg_values_supported" % typ] = algs
-
-    encs = jwe.SUPPORTED["enc"]
-    for typ in ["userinfo", "id_token", "request_object"]:
-        _provider_info["%s_encryption_enc_values_supported" % typ] = encs
-
-    # acr_values
-    if self.authn_broker:
-        acr_values = self.authn_broker.getAcrValuesString()
-        if acr_values is not None:
-            _provider_info["acr_values_supported"] = acr_values
-
-    return _provider_info
+        return _provider_info
 
 
-def verify_capabilities(self, capabilities):
-    """
-    Verify that what the admin wants the server to do actually
-    can be done by this implementation.
+    def provider_features(self, pcr_class=ProviderConfigurationResponse):
+        """
+        Specifies what the server capabilities are.
 
-    :param capabilities: The asked for capabilities as a dictionary
-    or a ProviderConfigurationResponse instance. The later can be
-    treated as a dictionary.
-    :return: True or False
-    """
-    _pinfo = self.provider_features()
-    for key, val in capabilities.items():
-        if isinstance(val, six.string_types):
-            try:
-                if val in _pinfo[key]:
-                    continue
-                else:
+        :param pcr_class:
+        :return: ProviderConfigurationResponse instance
+        """
+
+        _provider_info = pcr_class(**CAPABILITIES)
+
+        _claims = []
+        for _cl in SCOPE2CLAIMS.values():
+            _claims.extend(_cl)
+        _provider_info["claims_supported"] = list(set(_claims))
+
+        _scopes = list(SCOPE2CLAIMS.keys())
+        _scopes.append("openid")
+        _provider_info["scopes_supported"] = _scopes
+
+        sign_algs = list(jws.SIGNER_ALGS.keys())
+        for typ in ["userinfo", "id_token", "request_object"]:
+            _provider_info["%s_signing_alg_values_supported" % typ] = sign_algs
+
+        # Remove 'none' for token_endpoint_auth_signing_alg_values_supported
+        # since it is not allowed
+        sign_algs = sign_algs[:]
+        sign_algs.remove('none')
+        _provider_info[
+            "token_endpoint_auth_signing_alg_values_supported"] = sign_algs
+
+        algs = jwe.SUPPORTED["alg"]
+        for typ in ["userinfo", "id_token", "request_object"]:
+            _provider_info["%s_encryption_alg_values_supported" % typ] = algs
+
+        encs = jwe.SUPPORTED["enc"]
+        for typ in ["userinfo", "id_token", "request_object"]:
+            _provider_info["%s_encryption_enc_values_supported" % typ] = encs
+
+        # acr_values
+        if self.authn_broker:
+            acr_values = self.authn_broker.getAcrValuesString()
+            if acr_values is not None:
+                _provider_info["acr_values_supported"] = acr_values
+
+        return _provider_info
+
+
+    def verify_capabilities(self, capabilities):
+        """
+        Verify that what the admin wants the server to do actually
+        can be done by this implementation.
+
+        :param capabilities: The asked for capabilities as a dictionary
+        or a ProviderConfigurationResponse instance. The later can be
+        treated as a dictionary.
+        :return: True or False
+        """
+        _pinfo = self.provider_features()
+        for key, val in capabilities.items():
+            if isinstance(val, six.string_types):
+                try:
+                    if val in _pinfo[key]:
+                        continue
+                    else:
+                        return False
+                except KeyError:
                     return False
-            except KeyError:
-                return False
 
-    return True
+        return True
 
 
-# noinspection PyUnusedLocal
-def providerinfo_endpoint(self, handle="", **kwargs):
-    _log_debug = logger.debug
-    _log_info = logger.info
+    # noinspection PyUnusedLocal
+    def providerinfo_endpoint(self, handle="", **kwargs):
+        _log_debug = logger.debug
+        _log_info = logger.info
 
-    _log_info("@providerinfo_endpoint")
-    try:
-        _response = self.create_providerinfo()
-        _log_info("provider_info_response: %s" % (_response.to_dict(),))
+        _log_info("@providerinfo_endpoint")
+        try:
+            _response = self.create_providerinfo()
+            _log_info("provider_info_response: %s" % (_response.to_dict(),))
 
-        headers = [("Cache-Control", "no-store"), ("x-ffo", "bar")]
-        if handle:
-            (key, timestamp) = handle
-            if key.startswith(STR) and key.endswith(STR):
-                cookie = self.cookie_func(key, self.cookie_name, "pinfo",
-                                          self.sso_ttl)
-                headers.append(cookie)
+            headers = [("Cache-Control", "no-store"), ("x-ffo", "bar")]
+            if handle:
+                (key, timestamp) = handle
+                if key.startswith(STR) and key.endswith(STR):
+                    cookie = self.cookie_func(key, self.cookie_name, "pinfo",
+                                              self.sso_ttl)
+                    headers.append(cookie)
 
-        resp = Response(_response.to_json(), content="application/json",
-                        headers=headers)
-    except Exception as err:
-        message = traceback.format_exception(*sys.exc_info())
-        logger.error(message)
-        resp = Response(message, content="html/text")
+            resp = Response(_response.to_json(), content="application/json",
+                            headers=headers)
+        except Exception as err:
+            message = traceback.format_exception(*sys.exc_info())
+            logger.error(message)
+            resp = Response(message, content="html/text")
 
-    return resp
-
-
-# noinspection PyUnusedLocal
-def discovery_endpoint(self, request, handle=None, **kwargs):
-    """
-    :param request:
-    :param handle:
-    """
-
-    _log_debug = logger.debug
-
-    _log_debug("@discovery_endpoint")
-
-    request = DiscoveryRequest().deserialize(request, "urlencoded")
-    _log_debug("discovery_request:%s" % (request.to_dict(),))
-
-    try:
-        assert request["service"] == SWD_ISSUER
-    except AssertionError:
-        return BadRequest("Unsupported service")
-
-    # verify that the principal is one of mine
-
-    _response = DiscoveryResponse(locations=[self.baseurl])
-
-    _log_debug("discovery_response:%s" % (_response.to_dict(),))
-
-    headers = [("Cache-Control", "no-store")]
-    (key, timestamp) = handle
-    if key.startswith(STR) and key.endswith(STR):
-        cookie = self.cookie_func(key, self.cookie_name, "disc",
-                                  self.sso_ttl)
-        headers.append(cookie)
-
-    return Response(_response.to_json(), content="application/json",
-                    headers=headers)
+        return resp
 
 
-def auth_resp_extension(self, aresp, areq, sid, rtype):
-    if "id_token" in areq["response_type"]:
-        _sinfo = self.sdb[sid]
+    # noinspection PyUnusedLocal
+    def discovery_endpoint(self, request, handle=None, **kwargs):
+        """
+        :param request:
+        :param handle:
+        """
 
-        if "code" in areq["response_type"]:
-            _code = aresp["code"] = _sinfo["code"]
-            rtype.remove("code")
-        else:
-            _sinfo[sid]["code"] = None
-            _code = None
+        _log_debug = logger.debug
+
+        _log_debug("@discovery_endpoint")
+
+        request = DiscoveryRequest().deserialize(request, "urlencoded")
+        _log_debug("discovery_request:%s" % (request.to_dict(),))
 
         try:
-            _access_token = aresp["access_token"]
-        except KeyError:
-            _access_token = None
-
-        user_info = self.userinfo_in_id_token_claims(_sinfo)
-        client_info = self.cdb[str(areq["client_id"])]
-
-        hargs = {}
-        if set(areq["response_type"]) == {'code', 'id_token', 'token'}:
-            hargs = {"code": _code, "access_token": _access_token}
-        elif set(areq["response_type"]) == {'code', 'id_token'}:
-            hargs = {"code": _code}
-        elif set(areq["response_type"]) == {'id_token', 'token'}:
-            hargs = {"access_token": _access_token}
-
-        # or 'code id_token'
-        id_token = self.sign_encrypt_id_token(
-            _sinfo, client_info, areq, user_info=user_info, **hargs)
-
-        aresp["id_token"] = id_token
-        _sinfo["id_token"] = id_token
-        rtype.remove("id_token")
-
-    return aresp
-
-
-def aresp_check(self, aresp, areq):
-    # Use of the nonce is REQUIRED for all requests where an ID Token is
-    # returned directly from the Authorization Endpoint
-    if "id_token" in aresp:
-        try:
-            assert "nonce" in areq
+            assert request["service"] == SWD_ISSUER
         except AssertionError:
-            return self._error("invalid_request", "Missing nonce value")
-    return None
+            return BadRequest("Unsupported service")
+
+        # verify that the principal is one of mine
+
+        _response = DiscoveryResponse(locations=[self.baseurl])
+
+        _log_debug("discovery_response:%s" % (_response.to_dict(),))
+
+        headers = [("Cache-Control", "no-store")]
+        (key, timestamp) = handle
+        if key.startswith(STR) and key.endswith(STR):
+            cookie = self.cookie_func(key, self.cookie_name, "disc",
+                                      self.sso_ttl)
+            headers.append(cookie)
+
+        return Response(_response.to_json(), content="application/json",
+                        headers=headers)
 
 
-def response_mode(self, areq, fragment_enc, **kwargs):
-    resp_mode = areq["response_mode"]
-    if resp_mode == "form_post":
-        argv = {"form_args": kwargs["aresp"].to_dict(),
-                "action": kwargs["redirect_uri"]}
-        mte = self.template_lookup.get_template(
-            self.template["form_post"])
-        return Response(mte.render(**argv), headers=kwargs["headers"])
-    elif resp_mode == 'fragment' and not fragment_enc:
-        # Can't be done
-        raise InvalidRequest("wrong response_mode")
-    elif resp_mode == 'query' and fragment_enc:
-        # Can't be done
-        raise InvalidRequest("wrong response_mode")
-    return None
-
-
-@staticmethod
-def _scope2claims(scopes):
-    res = {}
-    for scope in scopes:
-        try:
-            claims = dict([(name, None) for name in SCOPE2CLAIMS[scope]])
-            res.update(claims)
-        except KeyError:
-            pass
-    return res
-
-
-def create_authn_response(self, areq, sid):
-    # create the response
-    aresp = AuthorizationResponse()
-    try:
-        aresp["state"] = areq["state"]
-    except KeyError:
-        pass
-
-    if "response_type" in areq and areq["response_type"] == ["none"]:
-        fragment_enc = False
-    else:
-        _sinfo = self.sdb[sid]
-
-        try:
-            aresp["scope"] = areq["scope"]
-        except KeyError:
-            pass
-
-        rtype = set(areq["response_type"][:])
-        if len(rtype) == 1 and "code" in rtype:
-            fragment_enc = False
-        else:
-            fragment_enc = True
-
-        if "code" in areq["response_type"]:
-            _code = aresp["code"] = self.sdb[sid]["code"]
-            rtype.remove("code")
-        else:
-            self.sdb[sid]["code"] = None
-            _code = None
-
-        if "token" in rtype:
-            _dic = self.sdb.upgrade_to_token(issue_refresh=False, key=sid)
-
-            logger.debug("_dic: %s" % _dic)
-            for key, val in _dic.items():
-                if key in aresp.parameters() and val is not None:
-                    aresp[key] = val
-
-            rtype.remove("token")
-
-        try:
-            _access_token = aresp["access_token"]
-        except KeyError:
-            _access_token = None
-
+    def auth_resp_extension(self, aresp, areq, sid, rtype):
         if "id_token" in areq["response_type"]:
-            user_info = self.userinfo_in_id_token_claims(_sinfo)
-            if areq["response_type"] == ["id_token"]:
-                #  scopes should be returned here
-                info = self._collect_user_info(_sinfo)
-                if user_info is None:
-                    user_info = info
-                else:
-                    user_info.update(info)
+            _sinfo = self.sdb[sid]
 
+            if "code" in areq["response_type"]:
+                _code = aresp["code"] = _sinfo["code"]
+                rtype.remove("code")
+            else:
+                _sinfo[sid]["code"] = None
+                _code = None
+
+            try:
+                _access_token = aresp["access_token"]
+            except KeyError:
+                _access_token = None
+
+            user_info = self.userinfo_in_id_token_claims(_sinfo)
             client_info = self.cdb[str(areq["client_id"])]
 
             hargs = {}
@@ -1852,100 +1735,217 @@ def create_authn_response(self, areq, sid):
                 hargs = {"access_token": _access_token}
 
             # or 'code id_token'
-            try:
-                id_token = self.sign_encrypt_id_token(
-                    _sinfo, client_info, areq, user_info=user_info,
-                    **hargs)
-            except (JWEException, NoSuitableSigningKeys) as err:
-                logger.warning(str(err))
-                return self._error(error="access_denied",
-                                   descr="Could not sign/encrypt id_token")
+            id_token = self.sign_encrypt_id_token(
+                _sinfo, client_info, areq, user_info=user_info, **hargs)
 
             aresp["id_token"] = id_token
             _sinfo["id_token"] = id_token
             rtype.remove("id_token")
 
-        if len(rtype):
-            return BadRequest("Unknown response type: %s" % rtype)
-
-    return aresp, fragment_enc
+        return aresp
 
 
-def key_setup(self, local_path, vault="keys", sig=None, enc=None):
-    """
-    my keys
-    :param local_path: The path to where the JWKs should be stored
-    :param vault: Where the private key will be stored
-    :param sig: Key for signature
-    :param enc: Key for encryption
-    :return: A URL the RP can use to download the key.
-    """
-    self.jwks_uri = key_export(self.baseurl, local_path, vault, self.keyjar,
-                               fqdn=self.hostname, sig=sig, enc=enc)
+    def aresp_check(self, aresp, areq):
+        # Use of the nonce is REQUIRED for all requests where an ID Token is
+        # returned directly from the Authorization Endpoint
+        if "id_token" in aresp:
+            try:
+                assert "nonce" in areq
+            except AssertionError:
+                return self._error("invalid_request", "Missing nonce value")
+        return None
 
 
-def register_endpoint(self, request="", **kwargs):
-    pass
+    def response_mode(self, areq, fragment_enc, **kwargs):
+        resp_mode = areq["response_mode"]
+        if resp_mode == "form_post":
+            argv = {"form_args": kwargs["aresp"].to_dict(),
+                    "action": kwargs["redirect_uri"]}
+            mte = self.template_lookup.get_template(
+                self.template["form_post"])
+            return Response(mte.render(**argv), headers=kwargs["headers"])
+        elif resp_mode == 'fragment' and not fragment_enc:
+            # Can't be done
+            raise InvalidRequest("wrong response_mode")
+        elif resp_mode == 'query' and fragment_enc:
+            # Can't be done
+            raise InvalidRequest("wrong response_mode")
+        return None
 
 
-def endsession_endpoint(self, request="", **kwargs):
-    """
+    @staticmethod
+    def _scope2claims(scopes):
+        res = {}
+        for scope in scopes:
+            try:
+                claims = dict([(name, None) for name in SCOPE2CLAIMS[scope]])
+                res.update(claims)
+            except KeyError:
+                pass
+        return res
 
-    :param request:
-    :param kwargs:
-    :return: Either a Response instance or a tuple (Response, args)
-    """
-    return self.end_session_endpoint(request, **kwargs)
 
+    def create_authn_response(self, areq, sid):
+        # create the response
+        aresp = AuthorizationResponse()
+        try:
+            aresp["state"] = areq["state"]
+        except KeyError:
+            pass
 
-def do_key_rollover(self, jwks, kid_template):
-    """
-    Handle key roll-over by importing new keys and inactivating the
-    ones in the keyjar that are of the same type and usage.
+        if "response_type" in areq and areq["response_type"] == ["none"]:
+            fragment_enc = False
+        else:
+            _sinfo = self.sdb[sid]
 
-    :param jwks: A JWKS
-    :param kid_template: Key ID template
-    """
+            try:
+                aresp["scope"] = areq["scope"]
+            except KeyError:
+                pass
 
-    kb = KeyBundle()
-    kb.do_keys(jwks["keys"])
+            rtype = set(areq["response_type"][:])
+            if len(rtype) == 1 and "code" in rtype:
+                fragment_enc = False
+            else:
+                fragment_enc = True
 
-    kid = 0
-    for k in kb.keys():
-        if not k.kid:
-            k.kid = kid_template % kid
-            kid += 1
-        self.kid[k.use][k.kty] = k.kid
+            if "code" in areq["response_type"]:
+                _code = aresp["code"] = self.sdb[sid]["code"]
+                rtype.remove("code")
+            else:
+                self.sdb[sid]["code"] = None
+                _code = None
 
-        # find the old key for this key type and usage and mark that
-        # as inactive
-        for _kb in self.keyjar.issuer_keys[""]:
-            for key in _kb.keys():
-                if key.kty == k.kty and key.use == k.use:
-                    if k.kty == "EC":
-                        if key.crv == k.crv:
-                            key.inactive_since = time.time()
+            if "token" in rtype:
+                _dic = self.sdb.upgrade_to_token(issue_refresh=False, key=sid)
+
+                logger.debug("_dic: %s" % _dic)
+                for key, val in _dic.items():
+                    if key in aresp.parameters() and val is not None:
+                        aresp[key] = val
+
+                rtype.remove("token")
+
+            try:
+                _access_token = aresp["access_token"]
+            except KeyError:
+                _access_token = None
+
+            if "id_token" in areq["response_type"]:
+                user_info = self.userinfo_in_id_token_claims(_sinfo)
+                if areq["response_type"] == ["id_token"]:
+                    #  scopes should be returned here
+                    info = self._collect_user_info(_sinfo)
+                    if user_info is None:
+                        user_info = info
                     else:
-                        key.inactive_since = time.time()
+                        user_info.update(info)
 
-    self.keyjar.add_kb("", kb)
+                client_info = self.cdb[str(areq["client_id"])]
 
-    if self.jwks_name:
-        # print to the jwks file
-        dump_jwks(self.keyjar[""], self.jwks_name)
+                hargs = {}
+                if set(areq["response_type"]) == {'code', 'id_token', 'token'}:
+                    hargs = {"code": _code, "access_token": _access_token}
+                elif set(areq["response_type"]) == {'code', 'id_token'}:
+                    hargs = {"code": _code}
+                elif set(areq["response_type"]) == {'id_token', 'token'}:
+                    hargs = {"access_token": _access_token}
+
+                # or 'code id_token'
+                try:
+                    id_token = self.sign_encrypt_id_token(
+                        _sinfo, client_info, areq, user_info=user_info,
+                        **hargs)
+                except (JWEException, NoSuitableSigningKeys) as err:
+                    logger.warning(str(err))
+                    return self._error(error="access_denied",
+                                       descr="Could not sign/encrypt id_token")
+
+                aresp["id_token"] = id_token
+                _sinfo["id_token"] = id_token
+                rtype.remove("id_token")
+
+            if len(rtype):
+                return BadRequest("Unknown response type: %s" % rtype)
+
+        return aresp, fragment_enc
 
 
-def remove_inactive_keys(self, more_then=3600):
-    """
-    Remove all keys that has been inactive 'more_then' seconds
+    def key_setup(self, local_path, vault="keys", sig=None, enc=None):
+        """
+        my keys
+        :param local_path: The path to where the JWKs should be stored
+        :param vault: Where the private key will be stored
+        :param sig: Key for signature
+        :param enc: Key for encryption
+        :return: A URL the RP can use to download the key.
+        """
+        self.jwks_uri = key_export(self.baseurl, local_path, vault, self.keyjar,
+                                   fqdn=self.hostname, sig=sig, enc=enc)
 
-    :param more_then: An integer (default = 3600 seconds == 1 hour)
-    """
-    now = time.time()
-    for kb in self.keyjar.issuer_keys[""]:
-        for key in kb.keys():
-            if key.inactive_since:
-                if now - key.inactive_since > more_then:
-                    kb.remove(key)
-        if len(kb) == 0:
-            self.keyjar.issuer_keys[""].remove(kb)
+
+    def register_endpoint(self, request="", **kwargs):
+        pass
+
+
+    def endsession_endpoint(self, request="", **kwargs):
+        """
+
+        :param request:
+        :param kwargs:
+        :return: Either a Response instance or a tuple (Response, args)
+        """
+        return self.end_session_endpoint(request, **kwargs)
+
+
+    def do_key_rollover(self, jwks, kid_template):
+        """
+        Handle key roll-over by importing new keys and inactivating the
+        ones in the keyjar that are of the same type and usage.
+
+        :param jwks: A JWKS
+        :param kid_template: Key ID template
+        """
+
+        kb = KeyBundle()
+        kb.do_keys(jwks["keys"])
+
+        kid = 0
+        for k in kb.keys():
+            if not k.kid:
+                k.kid = kid_template % kid
+                kid += 1
+            self.kid[k.use][k.kty] = k.kid
+
+            # find the old key for this key type and usage and mark that
+            # as inactive
+            for _kb in self.keyjar.issuer_keys[""]:
+                for key in _kb.keys():
+                    if key.kty == k.kty and key.use == k.use:
+                        if k.kty == "EC":
+                            if key.crv == k.crv:
+                                key.inactive_since = time.time()
+                        else:
+                            key.inactive_since = time.time()
+
+        self.keyjar.add_kb("", kb)
+
+        if self.jwks_name:
+            # print to the jwks file
+            dump_jwks(self.keyjar[""], self.jwks_name)
+
+
+    def remove_inactive_keys(self, more_then=3600):
+        """
+        Remove all keys that has been inactive 'more_then' seconds
+
+        :param more_then: An integer (default = 3600 seconds == 1 hour)
+        """
+        now = time.time()
+        for kb in self.keyjar.issuer_keys[""]:
+            for key in kb.keys():
+                if key.inactive_since:
+                    if now - key.inactive_since > more_then:
+                        kb.remove(key)
+            if len(kb) == 0:
+                self.keyjar.issuer_keys[""].remove(kb)
