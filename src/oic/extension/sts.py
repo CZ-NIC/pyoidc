@@ -1,0 +1,77 @@
+"""
+oic.extension.sts
+~~~~~~~~~~~~~~~~~
+
+The bases for doing draft-ietf-oauth-token-exchange-03
+
+:copyright: (c) 2016 by Roland Hedberg.
+:license: Apache2, see LICENSE for more details.
+
+"""
+import json
+import six
+from oic.oauth2.message import Message, OPTIONAL_LIST_OF_STRINGS
+from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
+from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
+from oic.oauth2.message import SINGLE_OPTIONAL_INT
+from oic.oauth2.message import SINGLE_OPTIONAL_STRING
+from oic.oauth2.message import SINGLE_REQUIRED_STRING
+from oic.oic.message import msg_ser
+from oic.oic.message import SINGLE_REQUIRED_INT
+
+__author__ = 'roland'
+
+
+class TokenExchangeRequest(Message):
+    c_param = {
+        'grant_type': SINGLE_REQUIRED_STRING,
+        'resource': SINGLE_OPTIONAL_STRING,
+        'audience': SINGLE_OPTIONAL_STRING,
+        'scope': OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+        'requested_token_type': SINGLE_OPTIONAL_STRING,
+        'subject_token': SINGLE_REQUIRED_STRING,
+        'subject_token_type': SINGLE_REQUIRED_STRING,
+        'actor_token': SINGLE_OPTIONAL_STRING,
+        'actor_token_type': SINGLE_OPTIONAL_STRING,
+        'want_composite': SINGLE_OPTIONAL_STRING
+    }
+
+    def verify(self, **kwargs):
+        if 'actor_token' in self:
+            if not 'actor_token_type':
+                return False
+
+
+class TokenExchangeResponse(Message):
+    c_param = {
+        "access_token": SINGLE_REQUIRED_STRING,
+        "issued_token_type": SINGLE_REQUIRED_STRING,
+        "token_type": SINGLE_REQUIRED_STRING,
+        "expires_in": SINGLE_OPTIONAL_INT,
+        "refresh_token": SINGLE_OPTIONAL_STRING,
+        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS
+    }
+
+
+def jwt_deser(val, sformat="json"):
+    if sformat == "urlencoded":
+        sformat = "json"
+    if sformat in ["dict", "json"]:
+        if not isinstance(val, six.string_types):
+            val = json.dumps(val)
+            sformat = "json"
+    return JWT().deserialize(val, sformat)
+
+SINGLE_OPTIONAL_JWT = (Message, False, msg_ser, jwt_deser, False)
+
+
+class JWT(Message):
+    c_param = {
+        "aud": REQUIRED_LIST_OF_STRINGS,  # Array of strings or string
+        "iss": SINGLE_REQUIRED_STRING,
+        "exp": SINGLE_REQUIRED_INT,
+        "nbf": SINGLE_REQUIRED_INT,
+        "sub": SINGLE_REQUIRED_STRING,
+        'act': SINGLE_OPTIONAL_JWT,
+        'scp': OPTIONAL_LIST_OF_STRINGS
+    }

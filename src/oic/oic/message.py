@@ -243,7 +243,6 @@ OPTIONAL_MULTIPLE_Claims = (Message, False, claims_ser, claims_deser, False)
 # SINGLE_OPTIONAL_USERINFO_CLAIM = (Message, False, msg_ser, userinfo_deser)
 # SINGLE_OPTIONAL_ID_TOKEN_CLAIM = (Message, False, msg_ser, idtokenclaim_deser)
 
-SINGLE_OPTIONAL_JWT = (six.string_types, False, msg_ser, None, False)
 SINGLE_OPTIONAL_IDTOKEN = (six.string_types, False, msg_ser, None, False)
 
 SINGLE_OPTIONAL_REGISTRATION_REQUEST = (Message, False, msg_ser,
@@ -841,6 +840,17 @@ class AuthnToken(Message):
         "iat": SINGLE_OPTIONAL_INT,
     }
 
+
+class JSONWebToken(Message):
+    c_param = {
+        "iss": SINGLE_REQUIRED_STRING,
+        "sub": SINGLE_REQUIRED_STRING,
+        "aud": REQUIRED_LIST_OF_STRINGS,  # Array of strings or string
+        "exp": SINGLE_REQUIRED_INT,
+        "nbf": SINGLE_REQUIRED_INT,
+        "iat": SINGLE_OPTIONAL_INT,
+        "jti": SINGLE_REQUIRED_STRING,
+    }
 
 class UserInfoErrorResponse(message.ErrorResponse):
     c_allowed_values = {"error": ["invalid_schema", "invalid_request",
