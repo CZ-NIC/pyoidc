@@ -4,10 +4,10 @@ from jwkest import Invalid
 from jwkest import MissingKey
 from jwkest import b64e_enc_dec
 from jwkest.jws import alg2keytype
-import time
 import six
 
-from oic.exception import UnknownAssertionType, FailedAuthentication
+from oic.exception import FailedAuthentication
+from oic.exception import UnknownAssertionType
 from oic.exception import NotForMe
 from oic.oauth2 import rndstr, VREQUIRED
 from oic.oauth2 import SINGLE_OPTIONAL_STRING
@@ -15,7 +15,7 @@ from oic.oic import REQUEST2ENDPOINT
 from oic.oic import DEF_SIGN_ALG
 from oic.oic import AuthnToken
 from oic.oic import JWT_BEARER
-
+from oic.utils.time_util import utc_time_sans_frac
 
 logger = logging.getLogger(__name__)
 
@@ -35,12 +35,12 @@ class UnknownAuthnMethod(Exception):
 
 
 # ========================================================================
-def assertion_jwt(cli, keys, audience, algorithm):
-    _now = time.time()
+def assertion_jwt(cli, keys, audience, algorithm, lifetime=600):
+    _now = utc_time_sans_frac()
 
     at = AuthnToken(iss=cli.client_id, sub=cli.client_id,
-                    aud=audience, jti=rndstr(8),
-                    exp=_now + 600, iat=_now)
+                    aud=audience, jti=rndstr(16),
+                    exp=_now + lifetime, iat=_now)
     return at.to_jwt(key=keys, algorithm=algorithm)
 
 
@@ -314,8 +314,14 @@ class JWSAuthnMethod(ClientAuthnMethod):
             logger.error("%s" % err)
             raise SystemError()
 
+        try:
+            _args = {'lifetime': kwargs['lifetime']}
+        except KeyError:
+            _args = {}
+
         cis["client_assertion"] = assertion_jwt(self.cli, signing_key, audience,
-                                                algorithm)
+                                                algorithm, **_args)
+
         cis["client_assertion_type"] = JWT_BEARER
 
         try:

@@ -1,12 +1,13 @@
 import logging
 import os
-from socket import gethostname
 import traceback
 import sys
 import six
 
+from socket import gethostname
 from future.backports.urllib.parse import parse_qs
 from future.backports.urllib.parse import splitquery
+
 from jwkest import jws
 from jwkest import jwe
 
