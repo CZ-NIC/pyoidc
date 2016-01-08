@@ -1496,7 +1496,7 @@ class Provider(AProvider):
 
         logger.debug("registration_response: %s" % response.to_dict())
 
-        return Response(response.to_json(), content="application/json",
+        return Response(response.to_json(), status='201 Created', content="application/json",
                         headers=[("Cache-Control", "no-store")])
 
     def registration_endpoint(self, request, authn=None, **kwargs):
