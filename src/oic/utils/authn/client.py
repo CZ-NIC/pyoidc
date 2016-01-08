@@ -66,7 +66,6 @@ class ClientAuthnMethod(object):
         raise NotImplementedError
 
 
-
 class ClientSecretBasic(ClientAuthnMethod):
     """
     Clients that have received a client_secret value from the Authorization
@@ -314,15 +313,26 @@ class JWSAuthnMethod(ClientAuthnMethod):
             logger.error("%s" % err)
             raise SystemError()
 
-        try:
-            _args = {'lifetime': kwargs['lifetime']}
-        except KeyError:
-            _args = {}
+        if 'client_assertion' in kwargs:
+            cis["client_assertion"] = kwargs['client_assertion']
+            if 'client_assertion_type' in kwargs:
+                cis['client_assertion_type'] = kwargs['client_assertion_type']
+            else:
+                cis["client_assertion_type"] = JWT_BEARER
+        elif 'client_assertion' in cis:
+            if not 'client_assertion_type' in cis:
+                cis["client_assertion_type"] = JWT_BEARER
+        else:
+            try:
+                _args = {'lifetime': kwargs['lifetime']}
+            except KeyError:
+                _args = {}
 
-        cis["client_assertion"] = assertion_jwt(self.cli, signing_key, audience,
-                                                algorithm, **_args)
+            cis["client_assertion"] = assertion_jwt(self.cli, signing_key,
+                                                    audience, algorithm,
+                                                    **_args)
 
-        cis["client_assertion_type"] = JWT_BEARER
+            cis["client_assertion_type"] = JWT_BEARER
 
         try:
             del cis["client_secret"]
