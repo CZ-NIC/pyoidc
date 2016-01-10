@@ -1,7 +1,10 @@
 import json
 import uuid
+from jwkest import jws
+from jwkest import jwe
 
-from jwkest.jws import factory
+from jwkest.jwe import JWE
+
 from jwkest.jws import NoSuitableSigningKeys
 from jwkest.jws import alg2keytype
 
@@ -29,13 +32,35 @@ class TokenAssertion(Message):
 
 
 class JWTToken(Token):
-    def __init__(self, typ, lifetime, iss, sign_alg, keyjar, **kwargs):
+    def __init__(self, typ, lifetime, iss, sign_alg, keyjar, encrypt=False,
+                 **kwargs):
         Token.__init__(self, typ, lifetime, **kwargs)
         self.iss = iss
         self.lifetime = lifetime
         self.sign_alg = sign_alg
         self.keyjar = keyjar  # my signing key
         self.db = {}
+        self.encrypt = encrypt
+        self.enc_alg = ''
+        self.enc_enc = ''
+        if encrypt:
+            for key, val in {'enc_alg': "RSA1_5",
+                             'enc_enc': "A128CBC-HS256"}.items():
+                try:
+                    setattr(self, key, kwargs['enc_alg'])
+                except KeyError:
+                    setattr(self, key, val)
+
+    def _encrypt(self, payload, cty='JWT'):
+        keys = self.keyjar.get_encrypt_key(owner='')
+        kwargs = {"alg": self.enc_alg, "enc": self.enc_enc}
+
+        if cty:
+            kwargs["cty"] = cty
+
+        # use the clients public key for encryption
+        _jwe = JWE(payload, **kwargs)
+        return _jwe.encrypt(keys, context="public")
 
     def __call__(self, sid, sinfo=None, kid='', **kwargs):
         keys = self.keyjar.get_signing_key(alg2keytype(self.sign_alg),
@@ -69,22 +94,45 @@ class JWTToken(Token):
         except KeyError:
             pass
 
-        return _tok.to_jwt([key], self.sign_alg)
+        _jws = _tok.to_jwt([key], self.sign_alg)
+        if self.encrypt:
+            return self._encrypt(_jws)
+        else:
+            return _jws
 
-    def _unpack_jwt(self, token, only_info=False):
-        if not token:
-            raise KeyError
-
-        _rj = factory(token)
-        _msg = json.loads(_rj.jwt.part[1].decode('utf8'))
+    def _verify(self, rj, token):
+        _msg = json.loads(rj.jwt.part[1].decode('utf8'))
         if _msg['iss'] == self.iss:
             owner = ''
         else:
             owner = _msg['iss']
 
-        keys = self.keyjar.get_signing_key(alg2keytype(_rj.jwt.headers['alg']),
+        keys = self.keyjar.get_signing_key(alg2keytype(rj.jwt.headers['alg']),
                                            owner=owner)
-        info = _rj.verify_compact(token, keys)
+        return rj.verify_compact(token, keys)
+
+    def decrypt(self, rj, token):
+        keys = self.keyjar.get_verify_key(owner='')
+        msg = rj.decrypt(token, keys)
+        _rj = jws.factory(msg)
+        if not _rj:
+            raise KeyError()
+        else:
+            return self._verify(_rj, msg)
+
+    def _unpack_jwt(self, token, only_info=False):
+        if not token:
+            raise KeyError
+
+        _rj = jws.factory(token)
+        if _rj:
+            info = self._verify(_rj, token)
+        else:
+            _rj = jwe.factory(token)
+            if not _rj:
+                raise KeyError()
+            info = self.decrypt(_rj, token)
+
         if only_info:
             return info
 

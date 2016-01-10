@@ -37,7 +37,6 @@ OIDR = OpenIDRequest(response_type="code", client_id="client1",
 
 JWKS = {"keys": [
     {
-        "alg": "RS256",
         "d": "vT9bnSZ63uIdaVsmZjrbmcvrDZG-_qzVQ1KmrSSC398sLJiyaQKRPkmBRvV"
              "-MGxW1MVPeCkhnSULCRgtqHq"
              "-zQxMeCviSScHTKOuDYJfwMB5qdOE3FkuqPMsEVf6EXYaSd90"
@@ -77,7 +76,7 @@ JWKS = {"keys": [
 
 class TestToken(object):
     @pytest.fixture(autouse=True)
-    def create_sdb(self):
+    def create_token(self):
         kb = KeyBundle(JWKS["keys"])
         kj = KeyJar()
         kj.issuer_keys[''] = [kb]
@@ -110,6 +109,44 @@ class TestToken(object):
                           aud=['https://example.com/rs'])
 
         assert _jwt
+
+
+class TestEncToken(object):
+    @pytest.fixture(autouse=True)
+    def create_token(self):
+        kb = KeyBundle(JWKS["keys"])
+        kj = KeyJar()
+        kj.issuer_keys[''] = [kb]
+
+        self.token = JWTToken('T', {'code': 3600, 'token': 900},
+                              'https://example.com/as', 'RS256', kj,
+                              encrypt=True)
+
+    def test_enc_create(self):
+        sid = rndstr(32)
+        session_info = {
+            'sub': 'subject_id',
+            'client_id': 'https://example.com/rp',
+            'response_type': ['code']
+        }
+
+        _jwe = self.token(sid, sinfo=session_info, kid='sign1')
+
+        assert _jwe
+        assert len(_jwe.split('.')) == 5  # very simple JWE check
+
+    def test_parse_enc(self):
+        sid = rndstr(32)
+        session_info = {
+            'sub': 'subject_id',
+            'client_id': 'https://example.com/rp',
+            'response_type': ['code']
+        }
+
+        _jwe = self.token(sid, sinfo=session_info, kid='sign1')
+        _info = self.token.get_info(_jwe)
+        assert _info
+
 
 class TestSessionDB(object):
     @pytest.fixture(autouse=True)
