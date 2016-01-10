@@ -254,24 +254,24 @@ class TestClient(object):
                                 "redirect_uri", "foo", 'state_hash'])
         assert req["foo"] == "bar"
 
-    def test_construct_TokenRevocationRequest(self):
-        self.client.grant["foo"] = Grant()
-        _get = time_util.utc_time_sans_frac() + 60
-        self.client.grant["foo"].grant_expiration_time = _get
-        self.client.grant["foo"].code = "access_code"
-        resp = AccessTokenResponse(refresh_token="refresh_with_me",
-                                   access_token="access")
-        token = Token(resp)
-        self.client.grant["foo"].tokens.append(token)
-
-        state = "foo"
-        query = "code=SplxlOBeZQQYbYS6WxSbIA&state={}".format(state)
-        self.client.parse_response(AuthorizationResponse,
-                                   info=query, sformat="urlencoded")
-
-        req = self.client.construct_TokenRevocationRequest(state=state)
-        assert _eq(req.keys(), ['token'])
-        assert req["token"] == "access"
+    # def test_construct_TokenRevocationRequest(self):
+    #     self.client.grant["foo"] = Grant()
+    #     _get = time_util.utc_time_sans_frac() + 60
+    #     self.client.grant["foo"].grant_expiration_time = _get
+    #     self.client.grant["foo"].code = "access_code"
+    #     resp = AccessTokenResponse(refresh_token="refresh_with_me",
+    #                                access_token="access")
+    #     token = Token(resp)
+    #     self.client.grant["foo"].tokens.append(token)
+    #
+    #     state = "foo"
+    #     query = "code=SplxlOBeZQQYbYS6WxSbIA&state={}".format(state)
+    #     self.client.parse_response(AuthorizationResponse,
+    #                                info=query, sformat="urlencoded")
+    #
+    #     req = self.client.construct_TokenRevocationRequest(state=state)
+    #     assert _eq(req.keys(), ['token'])
+    #     assert req["token"] == "access"
 
     def test_request_info_simple(self):
         req_args = {"state": "hmm", "response_type": "code"}

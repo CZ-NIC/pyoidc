@@ -1,16 +1,17 @@
 # pylint: disable=missing-docstring
+import pytest
+
 from collections import Counter
 
 from jwkest.jwk import SYMKey
-import pytest
 
-from oic.utils.signed_http_req import _serialize_dict
-from oic.utils.signed_http_req import _get_hash_size
-from oic.utils.signed_http_req import UnknownHashSizeError
-from oic.utils.signed_http_req import _hash_value
-from oic.utils.signed_http_req import SignedHttpRequest
-from oic.utils.signed_http_req import ValidationError
-from oic.utils.signed_http_req import EmptyHTTPRequestError
+from oic.extension.signed_http_req import serialize_dict
+from oic.extension.signed_http_req import get_hash_size
+from oic.extension.signed_http_req import UnknownHashSizeError
+from oic.extension.signed_http_req import hash_value
+from oic.extension.signed_http_req import SignedHttpRequest
+from oic.extension.signed_http_req import ValidationError
+from oic.extension.signed_http_req import EmptyHTTPRequestError
 
 ALG = "HS256"
 SIGN_KEY = SYMKey(key="a_key", alg=ALG)
@@ -29,7 +30,7 @@ def test_sign_empty_http_req():
 def test_serialize():
     data = {"key_1": "v1", "key_2": "v2", "key_3": "v3"}
     form = ".{}:{}"
-    keys, serialized_data = _serialize_dict(data, form)
+    keys, serialized_data = serialize_dict(data, form)
 
     assert Counter(keys) == Counter(data.keys())
 
@@ -47,14 +48,14 @@ def test_serialize():
     ("RS512", 512),
 ])
 def test_get_hash_size(value, expected):
-    assert _get_hash_size(value) == expected
+    assert get_hash_size(value) == expected
 
 
 def test_hash_value():
     data = "some_test_string"
     with pytest.raises(UnknownHashSizeError):
-        _hash_value(123, data)
-    assert _hash_value(256, data)
+        hash_value(123, data)
+    assert hash_value(256, data)
 
 
 def test_verify():
@@ -72,6 +73,7 @@ def test_verify_fail_wrong_key():
     with pytest.raises(ValidationError):
         rshr = SignedHttpRequest(SYMKey(key="wrong_key", alg="HS256"))
         rshr.verify(signature=result, **TEST_DATA)
+
 
 @pytest.mark.parametrize("key,value", [
     ("method", "FAIL"),

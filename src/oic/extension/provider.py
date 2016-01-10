@@ -3,8 +3,8 @@ import os
 import traceback
 import sys
 import six
+import socket
 
-from socket import gethostname
 from future.backports.urllib.parse import parse_qs
 from future.backports.urllib.parse import splitquery
 
@@ -20,6 +20,9 @@ from oic.extension.dynreg import RegistrationRequest
 from oic.extension.dynreg import InvalidRedirectUri
 from oic.extension.dynreg import ClientRegistrationError
 from oic.extension.dynreg import MissingPage
+from oic.extension.message import TokenRevocationRequest
+from oic.extension.message import TokenIntrospectionRequest
+from oic.extension.message import TokenIntrospectionResponse
 from oic.oauth2 import provider
 from oic.oauth2 import AccessTokenRequest
 from oic.oauth2 import TokenErrorResponse
@@ -42,12 +45,13 @@ from oic.utils.http_util import NoContent
 from oic.utils.http_util import Response
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Forbidden
-from oic.utils.keyio import KeyBundle, KeyJar, key_export
+from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import KeyJar
+from oic.utils.keyio import key_export
 from oic.utils.sdb import AccessCodeUsed
 from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = 'roland'
-
 
 logger = logging.getLogger(__name__)
 
@@ -56,10 +60,19 @@ class ClientInfoEndpoint(Endpoint):
     etype = "clientinfo"
 
 
+class RevocationEndpoint(Endpoint):
+    etype = "clientinfo"
+
+
+class IntrospectionEndpoint(Endpoint):
+    etype = "clientinfo"
+
+
 class Provider(provider.Provider):
     """
     A OAuth2 RP that knows all the OAuth2 extensions I've implemented
     """
+
     def __init__(self, name, sdb, cdb, authn_broker, authz, client_authn,
                  symkey="", urlmap=None, iv=0, default_scope="",
                  ca_bundle=None, seed=b"", client_authn_methods=None,
@@ -73,7 +86,8 @@ class Provider(provider.Provider):
                                    client_authn, symkey, urlmap, iv,
                                    default_scope, ca_bundle)
 
-        self.endp.extend([RegistrationEndpoint, ClientInfoEndpoint])
+        self.endp.extend([RegistrationEndpoint, ClientInfoEndpoint,
+                          RevocationEndpoint, IntrospectionEndpoint])
 
         # dictionary of client authentication methods
         self.client_authn_methods = client_authn_methods
@@ -98,7 +112,7 @@ class Provider(provider.Provider):
         else:
             self.capabilities = self.provider_features()
         self.baseurl = baseurl
-        self.hostname = hostname or gethostname()
+        self.hostname = hostname or socket.gethostname()
         self.kid = {"sig": {}, "enc": {}}
 
     @staticmethod
@@ -135,8 +149,8 @@ class Provider(provider.Provider):
             logger.error("Failed to load client keys: %s" % request.to_dict())
             logger.error("%s", err)
             err = ClientRegistrationError(
-                    error="invalid_configuration_parameter",
-                    error_description="%s" % err)
+                error="invalid_configuration_parameter",
+                error_description="%s" % err)
             return Response(err.to_json(), content="application/json",
                             status="400 Bad Request")
 
@@ -183,7 +197,6 @@ class Provider(provider.Provider):
 
         self.load_keys(request, _id, _cinfo["client_secret"])
         self.cdb[_id] = _cinfo
-
 
         return _id
 
@@ -534,3 +547,112 @@ class Provider(provider.Provider):
         """
         self.jwks_uri = key_export(self.baseurl, local_path, vault, self.keyjar,
                                    fqdn=self.hostname, sig=sig, enc=enc)
+
+    def get_token_info(self, authn, req, endpoint):
+        """
+
+        :param authn:
+        :param req:
+        :return:
+        """
+        try:
+            client_id = self.client_authn(self, req, authn)
+        except FailedAuthentication as err:
+            err = TokenErrorResponse(error="unauthorized_client",
+                                     error_description="%s" % err)
+            return Response(err.to_json(), content="application/json",
+                            status="401 Unauthorized")
+
+        logger.debug('{}: {} requesting {}'.format(endpoint, client_id,
+                                                   req.to_dict()))
+
+
+        try:
+            token_type = req['token_type_hint']
+        except KeyError:
+            try:
+                _info = self.sdb.token_factory['token'].info(req['token'])
+            except KeyError:
+                try:
+                    _info = self.sdb.token_factory['refresh_token'].invalidate(
+                        req['token'])
+                except KeyError:
+                    raise
+                else:
+                    token_type = 'refresh_token'
+            else:
+                token_type = 'token'
+        else:
+            try:
+                _info = self.sdb.token_factory[token_type].invalidate(
+                    req['token'])
+            except KeyError:
+                raise
+
+        # simple rule: if client_id in azp or aud it's allow to introspect
+        allow = False
+        if client_id == _info['azr']:
+            allow = True
+        elif 'aud' in _info:
+            if client_id in _info['aud']:
+                allow = True
+
+        if not allow:
+            return BadRequest()
+
+        return client_id, token_type, _info
+
+    def revocation_endpoint(self, authn='', request=None, **kwargs):
+        """
+        Implements RFC7009 allows a client to invalidate an access or refresh
+        token.
+
+        :param authn: Client Authentication information
+        :param request: The revocation request
+        :param kwargs:
+        :return:
+        """
+
+        trr = TokenRevocationRequest().deserialize(request, "urlencoded")
+
+        resp = self.get_token_info(authn, trr, 'revocation_endpoint')
+
+        if isinstance(resp, Response):
+            return resp
+        else:
+            client_id, token_type, _info = resp
+
+        logger.info('{} token revocation: {}'.format(client_id, trr.to_dict()))
+
+        try:
+            self.sdb.token_factory[token_type].invalidate(trr['token'])
+        except KeyError:
+            return BadRequest()
+        else:
+            return Response('OK')
+
+    def introspection_endpoint(self, authn='', request=None, **kwargs):
+        """
+        Implements RFC7662
+
+        :param authn: Client Authentication information
+        :param request: The introspection request
+        :param kwargs:
+        :return:
+        """
+
+        tir = TokenIntrospectionRequest().deserialize(request, "urlencoded")
+
+        resp = self.get_token_info(authn, tir, 'introspection_endpoint')
+
+        if isinstance(resp, Response):
+            return resp
+        else:
+            client_id, token_type, _info = resp
+
+        logger.info('{} token introspection: {}'.format(client_id,
+                                                        tir.to_dict()))
+
+        ir = TokenIntrospectionResponse(**_info.to_dict())
+
+        return Response(ir.to_json(), content="application/json")

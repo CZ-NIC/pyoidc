@@ -1,6 +1,9 @@
 import copy
 import logging
 import json
+from future.backports.urllib.parse import urlencode
+from future.backports.urllib.parse import urlparse
+from future.backports.urllib.parse import parse_qs
 
 from jwkest import b64d
 from jwkest import jwe
@@ -14,7 +17,9 @@ from jwkest.jws import JWS
 from jwkest.jwt import JWT
 import six
 
-from six.moves.urllib.parse import urlparse, urlencode, parse_qs
+# from six.moves.urllib.parse import urlparse
+# from six.moves.urllib.parse import urlencode
+# from six.moves.urllib.parse import parse_qs
 from oic.exception import PyoidcError
 from oic.exception import MessageException
 from past.builtins import basestring
@@ -979,12 +984,40 @@ class RefreshAccessTokenRequest(Message):
     c_allowed_values = {"grant_type": ["refresh_token"]}
 
 
-class TokenRevocationRequest(Message):
-    c_param = {"token": SINGLE_REQUIRED_STRING}
-
-
 class ResourceRequest(Message):
     c_param = {"access_token": SINGLE_OPTIONAL_STRING}
+
+
+class ASConfigurationResponse(Message):
+    c_param = {
+        "issuer": SINGLE_REQUIRED_STRING,
+        "authorization_endpoint": SINGLE_REQUIRED_STRING,
+        "token_endpoint": SINGLE_REQUIRED_STRING,
+        "jwks_uri": SINGLE_OPTIONAL_STRING,
+        'introspection_endpoint': SINGLE_REQUIRED_STRING,
+        'revocation_endpoint': SINGLE_REQUIRED_STRING,
+        "registration_endpoint": SINGLE_OPTIONAL_STRING,
+        "scopes_supported": OPTIONAL_LIST_OF_STRINGS,
+        "response_types_supported": REQUIRED_LIST_OF_STRINGS,
+        "response_modes_supported": OPTIONAL_LIST_OF_STRINGS,
+        "grant_types_supported": REQUIRED_LIST_OF_STRINGS,
+        "token_endpoint_auth_methods_supported": OPTIONAL_LIST_OF_STRINGS,
+        "ui_locales_supported": OPTIONAL_LIST_OF_STRINGS,
+        "op_policy_uri": SINGLE_OPTIONAL_STRING,
+        "op_tos_uri": SINGLE_OPTIONAL_STRING,
+    }
+    c_default = {"grant_types_supported": ["authorization_code", "implicit"]}
+
+    def verify(self, **kwargs):
+        parts = urlparse(self["issuer"])
+        try:
+            assert parts.scheme == "https"
+        except AssertionError:
+            raise SchemeError("Not HTTPS")
+
+        assert not parts.query and not parts.fragment
+
+        return super(ASConfigurationResponse, self).verify(**kwargs)
 
 
 MSG = {
@@ -1000,7 +1033,6 @@ MSG = {
     "ROPCAccessTokenRequest": ROPCAccessTokenRequest,
     "CCAccessTokenRequest": CCAccessTokenRequest,
     "RefreshAccessTokenRequest": RefreshAccessTokenRequest,
-    "TokenRevocationRequest": TokenRevocationRequest,
     "ResourceRequest": ResourceRequest,
 }
 

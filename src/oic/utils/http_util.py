@@ -55,7 +55,10 @@ class Response(object):
             mte = self.mako_lookup.get_template(self.mako_template)
             return [mte.render(**argv)]
         else:
-            return [message.encode("utf-8")]
+            try:
+                return [message.encode("utf-8")]
+            except AttributeError:
+                return ['']
 
 
 class Created(Response):

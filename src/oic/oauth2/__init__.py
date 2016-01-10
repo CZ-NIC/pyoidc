@@ -3,6 +3,7 @@ import base64
 import hashlib
 import random
 import string
+from future.backports.urllib.parse import urlparse
 
 from oic.oauth2.base import PBase
 from oic.oauth2.exception import MissingEndpoint
@@ -320,18 +321,18 @@ class Client(PBase):
 
         return self.construct_request(request, request_args, extra_args)
 
-    def construct_TokenRevocationRequest(self,
-                                         request=TokenRevocationRequest,
-                                         request_args=None, extra_args=None,
-                                         **kwargs):
-
-        if request_args is None:
-            request_args = {}
-
-        token = self.get_token(**kwargs)
-
-        request_args["token"] = token.access_token
-        return self.construct_request(request, request_args, extra_args)
+    # def construct_TokenRevocationRequest(self,
+    #                                      request=TokenRevocationRequest,
+    #                                      request_args=None, extra_args=None,
+    #                                      **kwargs):
+    #
+    #     if request_args is None:
+    #         request_args = {}
+    #
+    #     token = self.get_token(**kwargs)
+    #
+    #     request_args["token"] = token.access_token
+    #     return self.construct_request(request, request_args, extra_args)
 
     def construct_ResourceRequest(self, request=ResourceRequest,
                                   request_args=None, extra_args=None,
@@ -648,25 +649,25 @@ class Client(PBase):
                                        body_type, state=state,
                                        http_args=http_args)
 
-    def do_revocate_token(self, request=TokenRevocationRequest,
-                          scope="", state="", body_type="json", method="POST",
-                          request_args=None, extra_args=None, http_args=None,
-                          response_cls=None, authn_method=""):
-
-        url, body, ht_args, csi = self.request_info(request, method=method,
-                                                    request_args=request_args,
-                                                    extra_args=extra_args,
-                                                    scope=scope, state=state,
-                                                    authn_method=authn_method)
-
-        if http_args is None:
-            http_args = ht_args
-        else:
-            http_args.update(ht_args)
-
-        return self.request_and_return(url, response_cls, method, body,
-                                       body_type, state=state,
-                                       http_args=http_args)
+    # def do_revocate_token(self, request=TokenRevocationRequest,
+    #                       scope="", state="", body_type="json", method="POST",
+    #                       request_args=None, extra_args=None, http_args=None,
+    #                       response_cls=None, authn_method=""):
+    #
+    #     url, body, ht_args, csi = self.request_info(request, method=method,
+    #                                                 request_args=request_args,
+    #                                                 extra_args=extra_args,
+    #                                                 scope=scope, state=state,
+    #                                                 authn_method=authn_method)
+    #
+    #     if http_args is None:
+    #         http_args = ht_args
+    #     else:
+    #         http_args.update(ht_args)
+    #
+    #     return self.request_and_return(url, response_cls, method, body,
+    #                                    body_type, state=state,
+    #                                    http_args=http_args)
 
     def do_any(self, request, endpoint="", scope="", state="", body_type="json",
                method="POST", request_args=None, extra_args=None,

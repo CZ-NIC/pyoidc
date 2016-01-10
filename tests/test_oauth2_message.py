@@ -28,7 +28,6 @@ from oic.oauth2.message import ROPCAccessTokenRequest
 from oic.oauth2.message import CCAccessTokenRequest
 from oic.oauth2.message import RefreshAccessTokenRequest
 from oic.oauth2.message import ErrorResponse
-from oic.oauth2.message import TokenRevocationRequest
 from utils_for_tests import url_compare, _eq, query_string_compare  # pylint: disable=import-error
 
 __author__ = 'rohe0002'
@@ -559,9 +558,3 @@ class TestErrorResponse(object):
 
         with pytest.raises(MissingRequiredAttribute):
             err.to_urlencoded()
-
-
-class TestTokenRevocationRequest(object):
-    def test_verify(self):
-        trr = TokenRevocationRequest(token="token")
-        assert trr.verify()

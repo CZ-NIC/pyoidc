@@ -1499,10 +1499,8 @@ class Provider(AProvider):
         return Created(response.to_json(), content="application/json",
                        headers=[("Cache-Control", "no-store")])
 
-
     def registration_endpoint(self, request, authn=None, **kwargs):
         return self.l_registration_endpoint(request, authn, **kwargs)
-
 
     def read_registration(self, authn, request, **kwargs):
         """
@@ -1540,7 +1538,6 @@ class Provider(AProvider):
         return Response(response.to_json(), content="application/json",
                         headers=[("Cache-Control", "no-store")])
 
-
     def create_providerinfo(self, pcr_class=ProviderConfigurationResponse,
                             setup=None):
         """
@@ -1570,7 +1567,6 @@ class Provider(AProvider):
         _provider_info["version"] = "3.0"
 
         return _provider_info
-
 
     def provider_features(self, pcr_class=ProviderConfigurationResponse):
         """
@@ -1618,7 +1614,6 @@ class Provider(AProvider):
 
         return _provider_info
 
-
     def verify_capabilities(self, capabilities):
         """
         Verify that what the admin wants the server to do actually
@@ -1641,7 +1636,6 @@ class Provider(AProvider):
                     return False
 
         return True
-
 
     # noinspection PyUnusedLocal
     def providerinfo_endpoint(self, handle="", **kwargs):
@@ -1669,7 +1663,6 @@ class Provider(AProvider):
             resp = Response(message, content="html/text")
 
         return resp
-
 
     # noinspection PyUnusedLocal
     def discovery_endpoint(self, request, handle=None, **kwargs):
@@ -1705,7 +1698,6 @@ class Provider(AProvider):
 
         return Response(_response.to_json(), content="application/json",
                         headers=headers)
-
 
     def auth_resp_extension(self, aresp, areq, sid, rtype):
         if "id_token" in areq["response_type"]:
@@ -1744,7 +1736,6 @@ class Provider(AProvider):
 
         return aresp
 
-
     def aresp_check(self, aresp, areq):
         # Use of the nonce is REQUIRED for all requests where an ID Token is
         # returned directly from the Authorization Endpoint
@@ -1754,7 +1745,6 @@ class Provider(AProvider):
             except AssertionError:
                 return self._error("invalid_request", "Missing nonce value")
         return None
-
 
     def response_mode(self, areq, fragment_enc, **kwargs):
         resp_mode = areq["response_mode"]
@@ -1772,7 +1762,6 @@ class Provider(AProvider):
             raise InvalidRequest("wrong response_mode")
         return None
 
-
     @staticmethod
     def _scope2claims(scopes):
         res = {}
@@ -1783,7 +1772,6 @@ class Provider(AProvider):
             except KeyError:
                 pass
         return res
-
 
     def create_authn_response(self, areq, sid):
         # create the response
@@ -1870,7 +1858,6 @@ class Provider(AProvider):
 
         return aresp, fragment_enc
 
-
     def key_setup(self, local_path, vault="keys", sig=None, enc=None):
         """
         my keys
@@ -1883,10 +1870,8 @@ class Provider(AProvider):
         self.jwks_uri = key_export(self.baseurl, local_path, vault, self.keyjar,
                                    fqdn=self.hostname, sig=sig, enc=enc)
 
-
     def register_endpoint(self, request="", **kwargs):
         pass
-
 
     def endsession_endpoint(self, request="", **kwargs):
         """
@@ -1896,7 +1881,6 @@ class Provider(AProvider):
         :return: Either a Response instance or a tuple (Response, args)
         """
         return self.end_session_endpoint(request, **kwargs)
-
 
     def do_key_rollover(self, jwks, kid_template):
         """
@@ -1933,7 +1917,6 @@ class Provider(AProvider):
         if self.jwks_name:
             # print to the jwks file
             dump_jwks(self.keyjar[""], self.jwks_name)
-
 
     def remove_inactive_keys(self, more_then=3600):
         """

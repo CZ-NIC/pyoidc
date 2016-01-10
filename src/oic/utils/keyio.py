@@ -154,7 +154,12 @@ class KeyBundle(object):
             self.time_out = time.time() + self.cache_time
 
             # Check if the content type is the rigt one.
-            r.headers["Content-Type"]
+            try:
+                if r.headers["Content-Type"] != 'application/json':
+                    logger.warning('Wrong Content_type')
+            except KeyError:
+                pass
+
             logger.debug("Loaded JWKS: %s from %s" % (r.text, self.source))
             self.imp_jwks = json.loads(r.text)  # For use else where
             try:
@@ -414,7 +419,7 @@ class KeyJar(object):
 
         if key_use in ["dec", "enc"]:
             use = "enc"
-        elif key_use in ["ver", "sig"]:
+        else:
             use = "sig"
 
         if issuer != "":

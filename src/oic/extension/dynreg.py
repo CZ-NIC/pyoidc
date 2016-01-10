@@ -324,6 +324,8 @@ class Client(oauth2.Client):
         pcr = None
         r = self.http_request(url)
         if r.status_code == 200:
+            if self.event_store is not None:
+                self.event_store.store('response_msg', r.text, ref=url)
             pcr = response_cls().from_json(r.text)
         elif r.status_code == 302:
             while r.status_code == 302:
@@ -334,6 +336,9 @@ class Client(oauth2.Client):
 
         if pcr is None:
             raise PyoidcError("Trying '%s', status %s" % (url, r.status_code))
+
+        if self.event_store is not None:
+            self.event_store.store('protocol_response', (pcr, r.text), ref=url)
 
         self.handle_provider_config(pcr, issuer, keys, endpoints)
 

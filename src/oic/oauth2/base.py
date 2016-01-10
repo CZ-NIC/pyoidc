@@ -26,6 +26,7 @@ class PBase(object):
             self.request_args["verify"] = verify_ssl
         else:
             self.request_args["verify"] = False
+        self.event_store = None
 
     def _cookies(self):
         cookie_dict = {}
@@ -54,6 +55,9 @@ class PBase(object):
                 "http_request failed: %s, url: %s, htargs: %s, method: %s" % (
                     err, url, _kwargs, method))
             raise
+
+        if self.event_store is not None:
+            self.event_store.store('http response header', r.headers, ref=url)
 
         try:
             _cookie = r.headers["set-cookie"]

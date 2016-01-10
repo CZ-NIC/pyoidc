@@ -18,11 +18,11 @@ class ValidationError(Exception):
     pass
 
 
-def _get_hash_size(alg):
+def get_hash_size(alg):
     return int(alg[2:])
 
 
-def _hash_value(size, data):
+def hash_value(size, data):
     data = data.encode("utf-8")
     if size == 256:
         return hashlib.sha256(data).digest()
@@ -34,7 +34,7 @@ def _hash_value(size, data):
     raise UnknownHashSizeError(str(size))
 
 
-def _serialize_dict(data, serialization_template):
+def serialize_dict(data, serialization_template):
     buffer = []
     keys = []
     for key in data:
@@ -45,7 +45,7 @@ def _serialize_dict(data, serialization_template):
 
 
 def b64_hash(val, hash_size):
-    return urlsafe_b64encode(_hash_value(hash_size, val)).decode("utf-8")
+    return urlsafe_b64encode(hash_value(hash_size, val)).decode("utf-8")
 
 
 def _equals(value, expected):
@@ -54,8 +54,8 @@ def _equals(value, expected):
 
 
 def _serialize_params(params, str_format, hash_size):
-    _keys, _buffer = _serialize_dict(params, str_format)
-    _hash = urlsafe_b64encode(_hash_value(hash_size, _buffer)).decode("utf-8")
+    _keys, _buffer = serialize_dict(params, str_format)
+    _hash = urlsafe_b64encode(hash_value(hash_size, _buffer)).decode("utf-8")
     return [_keys, _hash]
 
 
@@ -100,7 +100,7 @@ class SignedHttpRequest(object):
 
     def sign(self, alg, **kwargs):
         http_json = {}
-        hash_size = _get_hash_size(alg)
+        hash_size = get_hash_size(alg)
 
         for arg, (key, func) in SIMPLE_OPER.items():
             try:
@@ -137,7 +137,7 @@ class SignedHttpRequest(object):
         try:
             unpacked_req = _jw.verify_compact(signature, keys=[self.key])
             _header = _jw.jwt.headers
-            hash_size = _get_hash_size(_header["alg"])
+            hash_size = get_hash_size(_header["alg"])
         except BadSignature:
             raise ValidationError("Could not verify signature")
 

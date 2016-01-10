@@ -8,13 +8,8 @@ from jwkest import jws
 from jwkest.jwk import keyrep
 from jwkest.jws import JWS
 
-from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import SINGLE_OPTIONAL_INT
-from oic.oauth2 import Message
 from oic.oic.message import AccessTokenRequest
 from oic.oic.message import AccessTokenResponse
-from oic.oic.message import SINGLE_REQUIRED_INT
 from oic.oic.provider import Provider
 from oic.utils.http_util import get_post
 from oic.utils.http_util import Response
@@ -26,17 +21,6 @@ __author__ = 'regu0004'
 
 class NonPoPTokenError(Exception):
     pass
-
-
-class SoftwareStatement(Message):
-    c_param = {
-        "iss": SINGLE_REQUIRED_STRING,
-        "aud": REQUIRED_LIST_OF_STRINGS,  # Array of strings or string
-        "exp": SINGLE_REQUIRED_INT,
-        "iat": SINGLE_OPTIONAL_INT,
-        "nbf": SINGLE_OPTIONAL_INT,
-        "cnf": SINGLE_OPTIONAL_INT
-    }
 
 
 class PoPProvider(Provider):
