@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import traceback
@@ -9,9 +10,9 @@ from future.backports.urllib.parse import parse_qs
 from future.backports.urllib.parse import splitquery
 
 from jwkest import jws
-from jwkest import jwe
 
-from oic.exception import UnSupported, FailedAuthentication
+from oic.exception import FailedAuthentication
+from oic.exception import UnSupported
 from oic.exception import UnknownAssertionType
 from oic.extension.dynreg import ClientInfoResponse
 from oic.extension.dynreg import ClientUpdateRequest
@@ -20,6 +21,7 @@ from oic.extension.dynreg import RegistrationRequest
 from oic.extension.dynreg import InvalidRedirectUri
 from oic.extension.dynreg import ClientRegistrationError
 from oic.extension.dynreg import MissingPage
+from oic.extension.message import ASConfigurationResponse
 from oic.extension.message import TokenRevocationRequest
 from oic.extension.message import TokenIntrospectionRequest
 from oic.extension.message import TokenIntrospectionResponse
@@ -31,11 +33,10 @@ from oic.oauth2 import by_schema
 from oic.oauth2 import rndstr
 from oic.oauth2.provider import Endpoint
 from oic.oauth2.exception import VerificationError
-from oic.oic import ProviderConfigurationResponse
+# from oic.oic import ProviderConfigurationResponse
 from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.provider import RegistrationEndpoint
 from oic.oic.provider import STR
-from oic.oic.provider import CAPABILITIES
 from oic.oic.provider import secret
 from oic.utils.authn.client import AuthnFailure
 from oic.utils.authn.client import UnknownAuthnMethod
@@ -56,16 +57,31 @@ __author__ = 'roland'
 logger = logging.getLogger(__name__)
 
 
+CAPABILITIES = {
+    "response_types_supported": ["code", "token"],
+    "token_endpoint_auth_methods_supported": [
+        "client_secret_post", "client_secret_basic",
+        "client_secret_jwt", "private_key_jwt"],
+    "response_modes_supported": ['query', 'fragment', 'form_post'],
+    "grant_types_supported": [
+        "authorization_code", "implicit",
+        "urn:ietf:params:oauth:grant-type:jwt-bearer"],
+}
+
+
 class ClientInfoEndpoint(Endpoint):
     etype = "clientinfo"
+    url = 'clientinfo'
 
 
 class RevocationEndpoint(Endpoint):
-    etype = "clientinfo"
+    etype = "revocation"
+    url = 'revocation'
 
 
 class IntrospectionEndpoint(Endpoint):
-    etype = "clientinfo"
+    etype = "introspection"
+    url = 'introspection'
 
 
 class Provider(provider.Provider):
@@ -107,8 +123,8 @@ class Provider(provider.Provider):
             self.keyjar = KeyJar(verify_ssl=self.verify_ssl)
 
         if capabilities:
-            self.verify_capabilities(capabilities)
-            self.capabilities = ProviderConfigurationResponse(**capabilities)
+            self.capabilities = self.provider_features(
+                provider_config=capabilities)
         else:
             self.capabilities = self.provider_features()
         self.baseurl = baseurl
@@ -354,7 +370,8 @@ class Provider(provider.Provider):
             else:
                 return NoContent()
 
-    def provider_features(self, pcr_class=ProviderConfigurationResponse):
+    def provider_features(self, pcr_class=ASConfigurationResponse,
+                          provider_config=None):
         """
         Specifies what the server capabilities are.
 
@@ -364,19 +381,10 @@ class Provider(provider.Provider):
 
         _provider_info = pcr_class(**CAPABILITIES)
 
-        _claims = []
-        for _cl in SCOPE2CLAIMS.values():
-            _claims.extend(_cl)
-        _provider_info["claims_supported"] = list(set(_claims))
-
         _scopes = list(SCOPE2CLAIMS.keys())
-        _scopes.append("openid")
         _provider_info["scopes_supported"] = _scopes
 
         sign_algs = list(jws.SIGNER_ALGS.keys())
-        for typ in ["userinfo", "id_token", "request_object"]:
-            _provider_info["%s_signing_alg_values_supported" % typ] = sign_algs
-
         # Remove 'none' for token_endpoint_auth_signing_alg_values_supported
         # since it is not allowed
         sign_algs = sign_algs[:]
@@ -384,19 +392,8 @@ class Provider(provider.Provider):
         _provider_info[
             "token_endpoint_auth_signing_alg_values_supported"] = sign_algs
 
-        algs = jwe.SUPPORTED["alg"]
-        for typ in ["userinfo", "id_token", "request_object"]:
-            _provider_info["%s_encryption_alg_values_supported" % typ] = algs
-
-        encs = jwe.SUPPORTED["enc"]
-        for typ in ["userinfo", "id_token", "request_object"]:
-            _provider_info["%s_encryption_enc_values_supported" % typ] = encs
-
-        # acr_values
-        if self.authn_broker:
-            acr_values = self.authn_broker.getAcrValuesString()
-            if acr_values is not None:
-                _provider_info["acr_values_supported"] = acr_values
+        if provider_config:
+            _provider_info.update(provider_config)
 
         return _provider_info
 
@@ -423,7 +420,7 @@ class Provider(provider.Provider):
 
         return True
 
-    def create_providerinfo(self, pcr_class=ProviderConfigurationResponse,
+    def create_providerinfo(self, pcr_class=ASConfigurationResponse,
                             setup=None):
         """
         Dynamically create the provider info response
@@ -520,8 +517,15 @@ class Provider(provider.Provider):
         if "redirect_uri" in _info:
             assert areq["redirect_uri"] == _info["redirect_uri"]
 
+        authzreq = json.loads(_info['authzreq'])
+        if 'scope' in authzreq and 'offline_access' in authzreq['scope']:
+            issue_refresh = True
+        else:
+            issue_refresh = False
+
         try:
-            _tinfo = _sdb.upgrade_to_token(areq["code"], issue_refresh=True)
+            _tinfo = _sdb.upgrade_to_token(areq["code"],
+                                           issue_refresh=issue_refresh)
         except AccessCodeUsed:
             err = TokenErrorResponse(error="invalid_grant",
                                      error_description="Access grant used")
@@ -565,7 +569,6 @@ class Provider(provider.Provider):
 
         logger.debug('{}: {} requesting {}'.format(endpoint, client_id,
                                                    req.to_dict()))
-
 
         try:
             token_type = req['token_type_hint']

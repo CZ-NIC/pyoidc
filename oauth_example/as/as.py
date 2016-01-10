@@ -234,10 +234,16 @@ if __name__ == "__main__":
     # dealing with authorization, this is just everything goes.
     authz = Implicit()
 
+    try:
+        capabilities = config.CAPABILITIES
+    except AttributeError:
+        capabilities = None
+
     # Initiate the Provider
     OAS = Provider(config.issuer, None, cdb, broker, authz,
                    baseurl=config.issuer, client_authn=verify_client,
-                   symkey=config.SYM_KEY, hostname=config.HOST)
+                   symkey=config.SYM_KEY, hostname=config.HOST,
+                   capabilities=capabilities)
 
     try:
         jwks = keyjar_init(OAS, config.keys, kid_template="op%d")

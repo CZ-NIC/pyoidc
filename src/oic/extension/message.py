@@ -1,4 +1,4 @@
-from oic.oauth2 import Message
+from oic.oauth2 import Message, FormatError
 from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
@@ -53,9 +53,42 @@ class SoftwareStatement(Message):
         "cnf": SINGLE_OPTIONAL_INT
     }
 
+
+class ASConfigurationResponse(Message):
+    c_param = {
+        "issuer": SINGLE_REQUIRED_STRING,
+        "authorization_endpoint": SINGLE_OPTIONAL_STRING,
+        "token_endpoint": SINGLE_OPTIONAL_STRING,
+        'introspection_endpoint': SINGLE_OPTIONAL_STRING,
+        'revocation_endpoint': SINGLE_OPTIONAL_STRING,
+        "jwks_uri": SINGLE_OPTIONAL_STRING,
+        "registration_endpoint": SINGLE_OPTIONAL_STRING,
+        "scopes_supported": OPTIONAL_LIST_OF_STRINGS,
+        "response_types_supported": REQUIRED_LIST_OF_STRINGS,
+        "response_modes_supported": OPTIONAL_LIST_OF_STRINGS,
+        "grant_types_supported": REQUIRED_LIST_OF_STRINGS,
+        "token_endpoint_auth_methods_supported": OPTIONAL_LIST_OF_STRINGS,
+        "token_endpoint_auth_signing_alg_values_supported":
+            OPTIONAL_LIST_OF_STRINGS,
+        "service_documentation": SINGLE_OPTIONAL_STRING,
+        "ui_locales_supported": OPTIONAL_LIST_OF_STRINGS,
+        "op_policy_uri": SINGLE_OPTIONAL_STRING,
+        "op_tos_uri": SINGLE_OPTIONAL_STRING,
+    }
+    c_default = {"version": "3.0"}
+
+
 MSG = {
     "TokenRevocationRequest": TokenRevocationRequest,
     "TokenIntrospectionRequest": TokenIntrospectionRequest,
     "TokenIntrospectionResponse": TokenIntrospectionResponse,
     "SoftwareStatement": SoftwareStatement,
+    'ASConfigurationResponse': ASConfigurationResponse
 }
+
+
+def factory(msgtype):
+    try:
+        return MSG[msgtype]
+    except KeyError:
+        raise FormatError("Unknown message type: %s" % msgtype)

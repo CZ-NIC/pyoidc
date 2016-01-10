@@ -2,8 +2,8 @@
 from mako.lookup import TemplateLookup
 
 HOST = "localhost"
-#HOST = "lingon.ladok.umu.se"
-#HOST = "lingon.catalogix.se"
+# HOST = "lingon.ladok.umu.se"
+# HOST = "lingon.catalogix.se"
 
 baseurl = "https://%s" % HOST
 issuer = "%s:%%d" % baseurl
@@ -52,7 +52,7 @@ ROOT = './'
 
 AUTHN_METHOD = {
     # ..... If you want to use CAS authentication ....
-    #"CAS" : {
+    # "CAS" : {
     #     "ACR": "CAS",
     #     "WEIGHT": 1,
     #     "URL": SERVICE_URL,
@@ -61,7 +61,7 @@ AUTHN_METHOD = {
     #          "server": "https://cas.umu.se",
     #          "return_to": RETURN_TO
     #     }
-    #},
+    # },
     "UserPassword": {
         "ACR": "PASSWORD",
         "WEIGHT": 1,
@@ -85,7 +85,7 @@ COOKIETTL = 4 * 60  # 4 hours
 SYM_KEY = "IfIwerelookingfo"  # 16 bytes for AES_128 which is the default
 SERVER_CERT = "%s/certs/server.crt" % ROOT
 SERVER_KEY = "%s/certs/server.key" % ROOT
-#CERT_CHAIN="certs/chain.pem"
+# CERT_CHAIN="certs/chain.pem"
 CERT_CHAIN = None
 
 keys = [
@@ -93,3 +93,10 @@ keys = [
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["enc"]}
 ]
+
+CAPABILITIES = {
+    "token_endpoint_auth_methods_supported": ["client_private_jwk"],
+    "grant_types_supported": ["authorization_code", "implicit",
+                              'client_credentials'],
+    "scopes_supported": ["offline_access"]
+}

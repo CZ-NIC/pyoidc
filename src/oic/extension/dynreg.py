@@ -1,4 +1,5 @@
 import logging
+from oic.extension.message import ASConfigurationResponse
 import requests
 
 from six.moves.urllib import parse as urlparse
@@ -7,7 +8,6 @@ from oic import oauth2
 from oic.exception import PyoidcError
 from oic.exception import AuthzError
 from oic.oic import OIDCONF_PATTERN
-from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import AuthorizationResponse
 from oic.utils.keyio import KeyJar
 from oic.oauth2 import ErrorResponse
@@ -312,7 +312,7 @@ class Client(oauth2.Client):
             self.keyjar.load_keys(pcr, _pcr_issuer)
 
     def provider_config(self, issuer, keys=True, endpoints=True,
-                        response_cls=ProviderConfigurationResponse,
+                        response_cls=ASConfigurationResponse,
                         serv_pattern=OIDCONF_PATTERN):
         if issuer.endswith("/"):
             _issuer = issuer[:-1]
@@ -353,6 +353,7 @@ class Client(oauth2.Client):
     def handle_registration_info(self, response):
         if response.status_code in SUCCESSFUL:
             resp = ClientInfoResponse().deserialize(response.text, "json")
+            self.store_response(resp, response.text)
             self.store_registration_info(resp)
         else:
             err = ErrorResponse().deserialize(response.text, "json")
