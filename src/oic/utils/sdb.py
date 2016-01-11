@@ -639,7 +639,7 @@ class SessionDB(object):
                 try:
                     sid = _info['sid']
                 except KeyError:
-                    sid = rndstr(32)
+                    sid = rndstr(self.token._sidlen)
                     dic = _info
                     areq = json.loads(_info['authzreq'])
                     dic['response_type'] = areq['response_type'].split(' ')
@@ -659,6 +659,8 @@ class SessionDB(object):
                         self.token.invalidate(at)
 
                 dic["access_token"] = access_token
+                dic["token_type"] = "Bearer"
+                dic["refresh_token"] = rtoken
                 self._db[sid] = dic
                 return dic
             else:
