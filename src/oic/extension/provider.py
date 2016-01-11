@@ -518,10 +518,10 @@ class Provider(provider.Provider):
             assert areq["redirect_uri"] == _info["redirect_uri"]
 
         authzreq = json.loads(_info['authzreq'])
+        issue_refresh = False
         if 'scope' in authzreq and 'offline_access' in authzreq['scope']:
-            issue_refresh = True
-        else:
-            issue_refresh = False
+            if authzreq['return_type'] == 'code':
+                issue_refresh = True
 
         try:
             _tinfo = _sdb.upgrade_to_token(areq["code"],
