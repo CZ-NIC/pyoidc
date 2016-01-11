@@ -237,10 +237,14 @@ class TestSessionDB(object):
         dict1 = self.sdb.upgrade_to_token(grant, issue_refresh=True)
         ac1 = dict1['access_token']
 
+        # Purge the SessionDB
+        self.sdb._db = {}
+
         rtoken = dict1['refresh_token']
         dict2 = self.sdb.refresh_token(rtoken, AREQ['client_id'])
 
         assert ac1 != dict2["access_token"]
+        assert self.sdb.is_valid(dict2['access_token'])
 
     def test_is_valid(self):
         ae1 = AuthnEvent("uid", "salt")
