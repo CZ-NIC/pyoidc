@@ -1480,7 +1480,7 @@ class Server(oauth2.Server):
         idt = IdToken(iss=issuer, sub=session["sub"],
                       aud=session["client_id"],
                       exp=time_util.epoch_in_a_while(**inawhile), acr=loa,
-                      iat=time_util.time_sans_frac(),
+                      iat=time_util.utc_time_sans_frac(),
                       **_args)
 
         for key, val in extra.items():

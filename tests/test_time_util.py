@@ -3,28 +3,28 @@
 # pylint: disable=missing-docstring
 
 import calendar
+import time
 from datetime import datetime
 
 import pytest
-import time
 
-from oic.utils.time_util import f_quotient
-from oic.utils.time_util import modulo
-from oic.utils.time_util import before
-from oic.utils.time_util import in_a_while
-from oic.utils.time_util import valid
+from oic.utils.time_util import TimeUtilError
+from oic.utils.time_util import a_while_ago
+from oic.utils.time_util import add_duration
 from oic.utils.time_util import after
+from oic.utils.time_util import before
+from oic.utils.time_util import f_quotient, utc_time_sans_frac
+from oic.utils.time_util import in_a_while
 from oic.utils.time_util import instant
+from oic.utils.time_util import later_than
+from oic.utils.time_util import modulo
 from oic.utils.time_util import not_before
 from oic.utils.time_util import not_on_or_after
 from oic.utils.time_util import parse_duration
-from oic.utils.time_util import str_to_time
-from oic.utils.time_util import TimeUtilError
-from oic.utils.time_util import add_duration
-from oic.utils.time_util import time_a_while_ago
-from oic.utils.time_util import a_while_ago
 from oic.utils.time_util import shift_time
-from oic.utils.time_util import later_than
+from oic.utils.time_util import str_to_time
+from oic.utils.time_util import time_a_while_ago
+from oic.utils.time_util import valid
 
 __author__ = 'rohe0002'
 
@@ -255,3 +255,9 @@ def test_later_than_str():
     b = in_a_while(seconds=20)
     assert later_than(b, a)
     assert later_than(a, b) is False
+
+
+def test_utc_time():
+    utc_now = utc_time_sans_frac()
+    expected_utc_now = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
+    assert utc_now == expected_utc_now
