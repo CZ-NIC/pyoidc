@@ -444,21 +444,24 @@ def get_client_id(cdb, req, authn):
             logger.debug("Basic auth")
             (_id, _secret) = base64.b64decode(
                 authn[6:].encode("utf-8")).decode("utf-8").split(":")
+
+            try:
+                _id = _id.encode('utf8')
+            except UnicodeDecodeError:
+                pass
+
             if _id not in cdb:
                 logger.debug("Unknown client_id")
                 raise FailedAuthentication("Unknown client_id")
             else:
-                try:
-                    assert _secret == cdb[_id]["client_secret"]
-                except AssertionError:
+                if _secret != cdb[_id]["client_secret"]:
                     logger.debug("Incorrect secret")
                     raise FailedAuthentication("Incorrect secret")
         else:
-            try:
-                assert authn[:6].lower() == "bearer"
+            if authn[:6].lower() == "bearer":
                 logger.debug("Bearer auth")
                 _token = authn[7:]
-            except AssertionError:
+            else:
                 raise FailedAuthentication("AuthZ type I don't know")
 
             try:
