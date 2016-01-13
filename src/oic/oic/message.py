@@ -688,16 +688,22 @@ class IdToken(OpenIDSchema):
         except KeyError:
             _skew = 0
 
-        if (_now - _skew) > self['exp']:
-            raise EXPError('Invalid expiration time')
+        try:
+            if (_now - _skew) > self['exp']:
+                raise EXPError('Invalid expiration time')
+        except KeyError:
+            raise MissingRequiredAttribute
 
         try:
             _storage_time = kwargs['nonce_storage_time']
         except KeyError:
             _storage_time = NONCE_STORAGE_TIME
 
-        if (self['iat'] + _storage_time) < (_now - _skew):
-            raise IATError('Issued too long ago')
+        try:
+            if (self['iat'] + _storage_time) < (_now - _skew):
+                raise IATError('Issued too long ago')
+        except KeyError:
+            raise MissingRequiredAttribute
 
         return super(IdToken, self).verify(**kwargs)
 
