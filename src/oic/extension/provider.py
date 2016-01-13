@@ -1,3 +1,5 @@
+import base64
+import hashlib
 import json
 import logging
 import os
@@ -504,6 +506,16 @@ class Provider(provider.Provider):
                                      error_description="Wrong grant type")
             return Response(err.to_json(), content="application/json",
                             status="401 Unauthorized")
+
+        if 'state_hash' in areq:
+            # have to get the token to get at the state
+            code = areq['code']
+            shash = base64.urlsafe_b64encode(
+                hashlib.sha256(
+                    self.sdb[code]['state'].encode('utf8')).digest())
+            if shash.decode('ascii') != areq['state_hash']:
+                err = TokenErrorResponse(error="unauthorized_client")
+                return Unauthorized(err.to_json(), content="application/json")
 
         # assert that the code is valid
         _info = _sdb[areq["code"]]

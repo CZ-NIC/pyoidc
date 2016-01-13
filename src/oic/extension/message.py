@@ -78,6 +78,23 @@ class ASConfigurationResponse(Message):
     c_default = {"version": "3.0"}
 
 
+class StateJWT(Message):
+    c_param = {
+        'rfp': SINGLE_REQUIRED_STRING,
+        'kid': SINGLE_OPTIONAL_STRING,
+        'iat': SINGLE_OPTIONAL_INT,
+        'exp': SINGLE_OPTIONAL_INT,
+        'iss': SINGLE_OPTIONAL_STRING,
+        'aud': SINGLE_OPTIONAL_STRING,
+        'target_link__uri': SINGLE_OPTIONAL_STRING,
+        'as': SINGLE_OPTIONAL_STRING,
+        'jti': SINGLE_OPTIONAL_STRING,
+        'at_hash': SINGLE_OPTIONAL_STRING,
+        'c_hash': SINGLE_OPTIONAL_STRING
+    }
+
+
+
 MSG = {
     "TokenRevocationRequest": TokenRevocationRequest,
     "TokenIntrospectionRequest": TokenIntrospectionRequest,
