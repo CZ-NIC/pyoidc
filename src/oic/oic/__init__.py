@@ -1076,7 +1076,7 @@ class Client(oauth2.Client):
             pass
 
     def handle_registration_info(self, response):
-        if response.status_code == 200:
+        if response.status_code in [200, 201]:
             resp = RegistrationResponse().deserialize(response.text, "json")
             self.store_response(resp, response.text)
             self.store_registration_info(resp)
