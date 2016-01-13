@@ -86,14 +86,16 @@ def endpoint_ava(endp, baseurl):
 
 
 def code_response(**kwargs):
-    _areq = kwargs["areq"]
-    _scode = kwargs["scode"]
     aresp = AuthorizationResponse()
+    _areq = kwargs["areq"]
     try:
         aresp["state"] = _areq["state"]
     except KeyError:
         pass
-    aresp["code"] = _scode
+    aresp["code"] = kwargs["scode"]
+    # TODO Add 'iss' and 'client_id'
+    aresp['iss'] = kwargs['myself']
+    aresp['client_id'] = _areq['client_id']
     add_non_standard(_areq, aresp)
     return aresp
 
@@ -155,7 +157,8 @@ class Provider(object):
 
     def __init__(self, name, sdb, cdb, authn_broker, authz, client_authn,
                  symkey="", urlmap=None, iv=0, default_scope="",
-                 ca_bundle=None, verify_ssl=True, default_acr=""):
+                 ca_bundle=None, verify_ssl=True, default_acr="",
+                 baseurl=''):
         self.name = name
         self.sdb = sdb
         self.cdb = cdb
@@ -192,45 +195,7 @@ class Provider(object):
         }
 
         self.session_cookie_name = "pyoic_session"
-
-    # def authn_reply(self, areq, aresp, bsid, **kwargs):
-    #     """
-    #
-    #     :param areq: Authorization Request
-    #     :param aresp: Authorization Response
-    #     :param bsid: Session id
-    #     :param kwargs: Additional keyword args
-    #     :return:
-    #     """
-    #     if "redirect_uri" in areq:
-    #         # TODO verify that the uri is reasonable
-    #         redirect_uri = areq["redirect_uri"]
-    #     else:
-    #         redirect_uri = self.urlmap[areq["client_id"]]
-    #
-    #     location = location_url(areq["response_type"], redirect_uri,
-    #                             aresp.to_urlencoded())
-    #
-    #     LOG_DEBUG("Redirected to: '%s' (%s)" % (location, type(location)))
-    #
-    #     # set cookie containing session ID
-    #
-    #     cookie = make_cookie(self.cookie_name, bsid, self.seed)
-    #
-    #     return Redirect(str(location), headers=[cookie])
-    #
-    # def authn_response(self, areq, **kwargs):
-    #     """
-    #
-    #     :param areq: Authorization request
-    #     :param kwargs: Extra keyword arguments
-    #     :return:
-    #     """
-    #     scode = kwargs["code"]
-    #     areq["response_type"].sort()
-    #     _rtype = " ".join(areq["response_type"])
-    #     return self.response_type_map[_rtype](areq=areq, scode=scode,
-    #                                           sdb=self.sdb)
+        self.baseurl = baseurl
 
     @staticmethod
     def input(query="", post=None):
@@ -631,7 +596,8 @@ class Provider(object):
     def create_authn_response(self, areq, sid):
         rtype = areq["response_type"][0]
         _func = self.response_type_map[rtype]
-        aresp = _func(areq=areq, scode=self.sdb[sid]["code"], sdb=self.sdb)
+        aresp = _func(areq=areq, scode=self.sdb[sid]["code"], sdb=self.sdb,
+                      myself=self.baseurl)
 
         if rtype == "code":
             fragment_enc = False

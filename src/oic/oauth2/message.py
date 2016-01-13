@@ -932,8 +932,8 @@ class AuthorizationResponse(Message):
     c_param = {
         "code": SINGLE_REQUIRED_STRING,
         "state": SINGLE_OPTIONAL_STRING,
-        'iss': SINGLE_OPTIONAL_STRING,
-        'client_id': SINGLE_OPTIONAL_STRING
+        'iss': SINGLE_REQUIRED_STRING,
+        'client_id': SINGLE_REQUIRED_STRING
     }
 
 

@@ -618,6 +618,11 @@ class Client(PBase):
         else:
             http_args.update(ht_args)
 
+        if self.event_store is not None:
+            self.event_store.store('request_url', url)
+            self.event_store.store('request_http_args', http_args)
+            self.event_store.store('request', body)
+
         logger.debug("<do_access_token> URL: %s, Body: %s" % (url, body))
         logger.debug("<do_access_token> response_cls: %s" % response_cls)
 
