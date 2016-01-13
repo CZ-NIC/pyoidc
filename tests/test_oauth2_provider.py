@@ -111,7 +111,7 @@ class TestProvider(object):
         aresp = cons.handle_authorization_response(query=resp)
 
         assert isinstance(aresp, AuthorizationResponse)
-        assert _eq(aresp.keys(), ['state', 'code'])
+        assert _eq(aresp.keys(), ['state', 'code', 'client_id'])
         assert _eq(cons.grant[sid].keys(), ['tokens', 'code', 'exp_in',
                                             'seed', 'id_token',
                                             'grant_expiration_time'])
