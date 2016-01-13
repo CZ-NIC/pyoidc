@@ -69,7 +69,8 @@ class TestProvider(object):
     def create_provider(self):
         self.provider = Provider("pyoicserv",
                                  sdb.SessionDB(ISSUER), CDB,
-                                 AUTHN_BROKER, AUTHZ, verify_client)
+                                 AUTHN_BROKER, AUTHZ, verify_client,
+                                 baseurl='https://example.com/as')
 
     def test_init(self):
         provider = Provider("pyoicserv", sdb.SessionDB(ISSUER),
@@ -111,7 +112,7 @@ class TestProvider(object):
         aresp = cons.handle_authorization_response(query=resp)
 
         assert isinstance(aresp, AuthorizationResponse)
-        assert _eq(aresp.keys(), ['state', 'code', 'client_id'])
+        assert _eq(aresp.keys(), ['state', 'code', 'client_id', 'iss'])
         assert _eq(cons.grant[sid].keys(), ['tokens', 'code', 'exp_in',
                                             'seed', 'id_token',
                                             'grant_expiration_time'])

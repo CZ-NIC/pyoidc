@@ -94,7 +94,8 @@ def code_response(**kwargs):
         pass
     aresp["code"] = kwargs["scode"]
     # TODO Add 'iss' and 'client_id'
-    aresp['iss'] = kwargs['myself']
+    if kwargs['myself']:
+        aresp['iss'] = kwargs['myself']
     aresp['client_id'] = _areq['client_id']
     add_non_standard(_areq, aresp)
     return aresp
