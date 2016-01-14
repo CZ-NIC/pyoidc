@@ -5,7 +5,7 @@ from future.backports.urllib.parse import urlencode
 from future.backports.urllib.parse import urlparse
 from future.backports.urllib.parse import parse_qs
 
-from jwkest import b64d
+from jwkest import b64d, as_unicode
 from jwkest import jwe
 from jwkest import jws
 from jwkest.jwe import JWE
@@ -514,7 +514,7 @@ class Message(object):
             else:
                 dkeys = []
 
-            txt = _jw.decrypt(txt, dkeys)
+            txt = as_unicode(_jw.decrypt(txt, dkeys))
             self.jwe_header = _jw.jwt.headers
 
         _jw = jws.factory(txt)
