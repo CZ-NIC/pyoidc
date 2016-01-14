@@ -1,6 +1,6 @@
 import logging
 import base64
-from jwkest import Invalid
+from jwkest import Invalid, as_unicode
 from jwkest import MissingKey
 from jwkest import b64e_enc_dec
 from jwkest.jws import alg2keytype
@@ -445,11 +445,7 @@ def get_client_id(cdb, req, authn):
             (_id, _secret) = base64.b64decode(
                 authn[6:].encode("utf-8")).decode("utf-8").split(":")
 
-            try:
-                _id = _id.encode('utf8')
-            except UnicodeDecodeError:
-                pass
-
+            _id = as_unicode(_id)
             if _id not in cdb:
                 logger.debug("Unknown client_id")
                 raise FailedAuthentication("Unknown client_id")
