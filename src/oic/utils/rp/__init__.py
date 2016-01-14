@@ -270,7 +270,7 @@ class OIDCClients(object):
             _ = client.provider_config(kwargs["srv_discovery_url"])
             client.store_registration_info(RegistrationResponse(
                 **kwargs["client_registration"]))
-            self.get_path(kwargs['client_info']['redirect_uris'],
+            self.get_path(kwargs['client_registration']['redirect_uris'],
                           kwargs["srv_discovery_url"])
         else:
             raise Exception("Configuration error ?")

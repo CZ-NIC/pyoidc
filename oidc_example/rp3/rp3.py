@@ -118,10 +118,10 @@ def application(environ, start_response):
     if path == "rp":  # After having chosen which OP to authenticate at
         if "uid" in query:
             client = clients.dynamic_client(query["uid"][0])
-            session["op"] = client.provider_info["issuer"]
         else:
             client = clients[query["op"][0]]
-            session["op"] = query["op"][0]
+
+        session["op"] = client.provider_info["issuer"]
 
         try:
             resp = client.create_authn_request(session, acr_values)
