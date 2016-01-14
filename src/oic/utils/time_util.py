@@ -20,12 +20,12 @@ different types of information.
 """
 
 import calendar
-import re
-import time
 import sys
-
-from datetime import timedelta
+import time
 from datetime import datetime
+from datetime import timedelta
+
+import re
 
 try:
     from past.builtins import basestring
@@ -34,7 +34,7 @@ except ImportError:
 
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 TIME_FORMAT_WITH_FRAGMENT = re.compile(
-    "^(\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2})\.\d*Z$")
+        "^(\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2})\.\d*Z$")
 
 
 class TimeUtilError(Exception):
@@ -45,8 +45,8 @@ class TimeUtilError(Exception):
 # I'm sure this is implemented somewhere else can't find it now though, so I
 # made an attempt.,
 # Implemented according to
-#http://www.w3.org/TR/2001/REC-xmlschema-2-20010502/
-#adding-durations-to-dateTimes
+# http://www.w3.org/TR/2001/REC-xmlschema-2-20010502/
+# adding-durations-to-dateTimes
 
 
 def f_quotient(arg0, arg1, arg2=0):
@@ -94,7 +94,7 @@ def parse_duration(duration):
     dic = dict([(typ, 0) for (code, typ) in D_FORMAT])
 
     for code, typ in D_FORMAT:
-        #print duration[index:], code
+        # print duration[index:], code
         if duration[index] == '-':
             raise TimeUtilError("Negation not allowed on individual items")
         if code == "T":
@@ -117,7 +117,7 @@ def parse_duration(duration):
                             raise TimeUtilError("Not a float")
                     else:
                         raise TimeUtilError(
-                            "Fractions not allow on anything byt seconds")
+                                "Fractions not allow on anything byt seconds")
                 index = mod + index + 1
             except ValueError:
                 dic[typ] = 0
@@ -132,11 +132,11 @@ def add_duration(tid, duration):
     (sign, dur) = parse_duration(duration)
 
     if sign == '+':
-        #Months
+        # Months
         temp = tid.tm_mon + dur["tm_mon"]
         month = modulo(temp, 1, 13)
         carry = f_quotient(temp, 1, 13)
-        #Years
+        # Years
         year = tid.tm_year + dur["tm_year"] + carry
         # seconds
         temp = tid.tm_sec + dur["tm_sec"]
@@ -344,7 +344,7 @@ def later_than(after, before):
 
 
 def utc_time_sans_frac():
-    return int("%d" % time.mktime(time.gmtime()))
+    return int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
 
 
 def time_sans_frac():
@@ -368,4 +368,4 @@ def epoch_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
 
     dt = time_in_a_while(days, seconds, microseconds, milliseconds, minutes,
                          hours, weeks)
-    return int((dt-datetime(1970,1,1)).total_seconds())
+    return int((dt - datetime(1970, 1, 1)).total_seconds())
