@@ -532,7 +532,7 @@ class Provider(provider.Provider):
         authzreq = json.loads(_info['authzreq'])
         issue_refresh = False
         if 'scope' in authzreq and 'offline_access' in authzreq['scope']:
-            if authzreq['return_type'] == 'code':
+            if authzreq['response_type'] == 'code':
                 issue_refresh = True
 
         try:
