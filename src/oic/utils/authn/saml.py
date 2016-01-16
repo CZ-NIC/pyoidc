@@ -3,6 +3,8 @@ import json
 from tempfile import NamedTemporaryFile
 import logging
 import base64
+
+from saml2.config import SPConfig
 from six.moves.urllib.parse import parse_qs, urlencode
 import six
 from oic.oauth2.exception import VerificationError
@@ -71,13 +73,10 @@ else:
                                  BINDING_HTTP_ARTIFACT]
             # TODO Why does this exist?
             self.verification_endpoint = ""
-            # Configurations for the SP handler. (pyOpSamlProxy.client.sp.conf)
+            # Configurations for the SP handler.
             self.sp_conf = importlib.import_module(spconf)
-            # self.sp_conf.BASE = self.sp_conf.BASE % url
-            ntf = NamedTemporaryFile(suffix="pyoidc.py", delete=True)
-            ntf.write("CONFIG = " + str(self.sp_conf.CONFIG).replace("%s", url))
-            ntf.seek(0)
-            self.sp = Saml2Client(config_file="%s" % ntf.name)
+            config = SPConfig().load(self.sp_conf.CONFIG)
+            self.sp = Saml2Client(config=config)
             mte = lookup.get_template("unauthorized.mako")
             argv = {
                 "message": "You are not authorized!",
@@ -132,7 +131,7 @@ else:
             query = rp_query_cookie
 
             if not query:
-                query = base64.b64decode(data[self.CONST_QUERY])
+                query = base64.b64decode(data[self.CONST_QUERY]).decode("ascii")
 
             if data[self.CONST_HASIDP] == 'False':
                 (done, response) = self._pick_idp(request, end_point_index)
@@ -198,7 +197,7 @@ else:
             return_to += query
 
             auth_cookie = self.create_cookie(uid, "samlm")
-            resp = Redirect(return_to, headers=[auth_cookie])
+            resp = Redirect(str(return_to), headers=[auth_cookie])
             return resp, True
 
         def setup_userdb(self, uid, samldata):
@@ -350,7 +349,7 @@ else:
 
         def response(self, binding, http_args, query):
             cookie = self.create_cookie(
-                '{"' + self.CONST_QUERY + '": "' + base64.b64encode(query) +
+                '{"' + self.CONST_QUERY + '": "' + base64.b64encode(query.encode("ascii")).decode("ascii") +
                 '" , "' + self.CONST_HASIDP + '": "True" }',
                 self.CONST_SAML_COOKIE, self.CONST_SAML_COOKIE)
             if binding == BINDING_HTTP_ARTIFACT:
