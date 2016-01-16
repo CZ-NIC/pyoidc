@@ -59,7 +59,7 @@ from oic.utils.http_util import Unauthorized
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
-from oic.utils.sdb import ExpiredToken
+from oic.utils.sdb import ExpiredToken, AccessCodeUsed
 from oic.utils.time_util import utc_time_sans_frac
 
 from six.moves.urllib import parse as urlparse
@@ -860,7 +860,7 @@ class Provider(AProvider):
         try:
             _tinfo = _sdb.upgrade_to_token(_access_code,
                                            issue_refresh=issue_refresh)
-        except Exception as err:
+        except AccessCodeUsed as err:
             logger.error("%s" % err)
             # Should revoke the token issued to this access code
             _sdb.revoke_all_tokens(_access_code)
