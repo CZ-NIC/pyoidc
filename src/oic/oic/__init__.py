@@ -8,6 +8,7 @@ from jwkest import jws
 from jwkest import jwe
 
 from six.moves.urllib.parse import urlparse, parse_qs
+import six
 from oic.oauth2.exception import AuthnToOld
 from oic.oauth2.message import ErrorResponse, Message
 from oic.oauth2.util import get_or_post
@@ -776,6 +777,15 @@ class Client(oauth2.Client):
                 sformat = "jwt"
         elif resp.status_code == 500:
             raise PyoidcError("ERROR: Something went wrong: %s" % resp.text)
+        elif resp.status_code == 400:
+            # the response text might be a OIDC message
+            try:
+                res = ErrorResponse().from_json(resp.text)
+            except Exception:
+                pass
+            else:
+                self.store_response(res, resp.text)
+                return res
         else:
             raise PyoidcError("ERROR: Something went wrong [%s]: %s" % (
                 resp.status_code, resp.text))
@@ -1018,7 +1028,7 @@ class Client(oauth2.Client):
                         self.behaviour[_pref] = None
                 continue
 
-            if isinstance(vals, basestring):
+            if isinstance(vals, six.string_types):
                 if vals in _pvals:
                     self.behaviour[_pref] = vals
             else:
@@ -1047,7 +1057,8 @@ class Client(oauth2.Client):
                 vtyp = regreq.c_param[key]
                 if isinstance(vtyp[0], list):
                     pass
-                elif isinstance(val, list) and not isinstance(val, basestring):
+                elif isinstance(val, list) and not isinstance(val,
+                                                              six.string_types):
                     val = val[0]
             except KeyError:
                 pass
