@@ -851,7 +851,7 @@ class AuthnToken(Message):
     }
 
 
-class JSONWebToken(Message):
+class JWT(Message):
     c_param = {
         "iss": SINGLE_REQUIRED_STRING,
         "sub": SINGLE_REQUIRED_STRING,
@@ -861,6 +861,19 @@ class JSONWebToken(Message):
         "iat": SINGLE_OPTIONAL_INT,
         "jti": SINGLE_REQUIRED_STRING,
     }
+
+
+def jwt_deser(val, sformat="json"):
+    if sformat == "urlencoded":
+        sformat = "json"
+    if sformat in ["dict", "json"]:
+        if not isinstance(val, six.string_types):
+            val = json.dumps(val)
+            sformat = "json"
+    return JWT().deserialize(val, sformat)
+
+SINGLE_OPTIONAL_JWT = (Message, False, msg_ser, jwt_deser, False)
+
 
 class UserInfoErrorResponse(message.ErrorResponse):
     c_allowed_values = {"error": ["invalid_schema", "invalid_request",
