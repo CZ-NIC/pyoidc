@@ -66,7 +66,7 @@ JWKS = {"keys": [
               "-zuZqds6_NVlk2Ge4_IAA3TZ9tvIfM5FZVTOQsExu3_LX8FGCspWC1R"
               "-zDqT45Y9bpaCwxekluO7Q",
         'kid': 'sign1'
-    },{
+    }, {
         "k":
             b"YTEyZjBlMDgxMGI4YWU4Y2JjZDFiYTFlZTBjYzljNDU3YWM0ZWNiNzhmNmFlYTNkNTY0NzMzYjE",
         "kty": "oct",
@@ -81,8 +81,9 @@ class TestToken(object):
         kj = KeyJar()
         kj.issuer_keys[''] = [kb]
 
-        self.token = JWTToken('T', {'code': 3600, 'token': 900},
-                              'https://example.com/as', 'RS256', kj)
+        self.token = JWTToken('T', keyjar=kj,
+                              lifetime={'code': 3600, 'token': 900},
+                              iss='https://example.com/as', sign_alg='RS256')
 
     def test_create(self):
         sid = rndstr(32)
@@ -118,9 +119,9 @@ class TestEncToken(object):
         kj = KeyJar()
         kj.issuer_keys[''] = [kb]
 
-        self.token = JWTToken('T', {'code': 3600, 'token': 900},
-                              'https://example.com/as', 'RS256', kj,
-                              encrypt=True)
+        self.token = JWTToken('T', keyjar=kj,
+                              lifetime={'code': 3600, 'token': 900},
+                              iss='https://example.com/as', encrypt=True)
 
     def test_enc_create(self):
         sid = rndstr(32)
@@ -157,10 +158,13 @@ class TestSessionDB(object):
 
         self.sdb = SessionDB(
             "https://example.com/",
-            token_factory=JWTToken('T', {'code': 3600, 'token': 900},
-                                   'https://example.com/as', 'RS256', kj),
+            token_factory=JWTToken('T', keyjar=kj,
+                                   lifetime={'code': 3600, 'token': 900},
+                                   iss='https://example.com/as',
+                                   sign_alg='RS256'),
             refresh_token_factory=JWTToken(
-                'R', {'': 24*3600}, 'https://example.com/as', 'RS256', kj)
+                'R', keyjar=kj, lifetime={'': 24 * 3600},
+                iss='https://example.com/as')
         )
 
     def test_create_authz_session(self):
@@ -222,7 +226,7 @@ class TestSessionDB(object):
         grant = self.sdb[sid]["code"]
         _dict = self.sdb.upgrade_to_token(grant)
 
-        print(_dict.keys())
+        #print(_dict.keys())
         assert _eq(list(_dict.keys()),
                    ['authn_event', 'code', 'authzreq', 'revoked',
                     'access_token', 'token_type', 'state', 'redirect_uri',
@@ -241,7 +245,7 @@ class TestSessionDB(object):
         grant = self.sdb[sid]["code"]
         _dict = self.sdb.upgrade_to_token(grant, issue_refresh=True)
 
-        print(_dict.keys())
+        #print(_dict.keys())
         assert _eq(_dict.keys(),
                    ['authn_event', 'code', 'authzreq', 'revoked',
                     'access_token', 'response_type',
@@ -262,7 +266,7 @@ class TestSessionDB(object):
 
         _dict = self.sdb.upgrade_to_token(grant, id_token="id_token",
                                           oidreq=OIDR)
-        print(_dict.keys())
+        #print(_dict.keys())
         assert _eq(list(_dict.keys()),
                    ['authn_event', 'code', 'authzreq', 'revoked', 'oidreq',
                     'access_token', 'id_token', 'response_type',
@@ -288,7 +292,7 @@ class TestSessionDB(object):
 
         assert dict1["access_token"] != dict2["access_token"]
 
-        with pytest.raises(KeyError):
+        with pytest.raises(ExpiredToken):
             self.sdb.refresh_token(dict2["access_token"], AREQ['client_id'])
 
     def test_refresh_token_cleared_session(self):
@@ -359,7 +363,7 @@ class TestSessionDB(object):
 
         try:
             self.sdb.refresh_token(refresh_token, AREQ['client_id'])
-        except KeyError:
+        except ExpiredToken:
             pass
 
         assert self.sdb.is_valid(access_token)

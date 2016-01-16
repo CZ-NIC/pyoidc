@@ -23,9 +23,6 @@ class JWT(object):
         self.enc_alg = enc_alg
         self.enc_enc = enc_enc
 
-    def make_jti(self):
-        return uuid.uuid4().hex
-
     def _encrypt(self, payload, cty='JWT'):
         keys = self.keyjar.get_encrypt_key(owner='')
         kwargs = {"alg": self.enc_alg, "enc": self.enc_enc}
@@ -47,7 +44,8 @@ class JWT(object):
         key = keys[0]  # Might be more then one if kid == ''
 
         iat = utc_time_sans_frac()
-        exp = iat + self.lifetime
+        if not 'exp' in kwargs:
+            kwargs['exp'] = iat + self.lifetime
 
         try:
             _encrypt = kwargs['encrypt']
@@ -56,12 +54,15 @@ class JWT(object):
         else:
             del kwargs['encrypt']
 
-        _jwt = self.message_type(iss=self.iss, exp=exp, iat=iat, **kwargs)
+        _jwt = self.message_type(iss=self.iss, iat=iat, **kwargs)
 
-        if not 'jti' in kwargs:
-            _jti = self.make_jti()
-            if _jti:
-                _jwt['jti'] = _jti
+        if 'jti' in self.message_type.c_param:
+            try:
+                _jti = kwargs['jti']
+            except:
+                _jti = uuid.uuid4().hex
+
+            _jwt['jti'] = _jti
 
         _jws = _jwt.to_jwt([key], self.sign_alg)
         if _encrypt:
