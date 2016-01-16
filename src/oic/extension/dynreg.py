@@ -56,6 +56,7 @@ class RegistrationRequest(Message):
         "jwks_uri": SINGLE_OPTIONAL_STRING,
         "software_id": SINGLE_OPTIONAL_STRING,
         "software_version": SINGLE_OPTIONAL_STRING,
+        'software_statement': OPTIONAL_LIST_OF_STRINGS
     }
 
     def verify(self, **kwargs):

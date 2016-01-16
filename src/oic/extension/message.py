@@ -93,8 +93,6 @@ class StateJWT(Message):
         'c_hash': SINGLE_OPTIONAL_STRING
     }
 
-
-
 MSG = {
     "TokenRevocationRequest": TokenRevocationRequest,
     "TokenIntrospectionRequest": TokenIntrospectionRequest,

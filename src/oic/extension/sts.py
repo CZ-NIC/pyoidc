@@ -2,7 +2,7 @@
 oic.extension.sts
 ~~~~~~~~~~~~~~~~~
 
-The bases for doing draft-ietf-oauth-token-exchange-03
+Message types in draft-ietf-oauth-token-exchange-03
 
 :copyright: (c) 2016 by Roland Hedberg.
 :license: Apache2, see LICENSE for more details.
@@ -53,25 +53,25 @@ class TokenExchangeResponse(Message):
     }
 
 
-def jwt_deser(val, sformat="json"):
+def sts_deser(val, sformat="json"):
     if sformat == "urlencoded":
         sformat = "json"
     if sformat in ["dict", "json"]:
         if not isinstance(val, six.string_types):
             val = json.dumps(val)
             sformat = "json"
-    return JWT().deserialize(val, sformat)
+    return STS().deserialize(val, sformat)
 
-SINGLE_OPTIONAL_JWT = (Message, False, msg_ser, jwt_deser, False)
+SINGLE_OPTIONAL_STS = (Message, False, msg_ser, sts_deser, False)
 
 
-class JWT(Message):
+class STS(Message):
     c_param = {
         "aud": REQUIRED_LIST_OF_STRINGS,  # Array of strings or string
         "iss": SINGLE_REQUIRED_STRING,
         "exp": SINGLE_REQUIRED_INT,
         "nbf": SINGLE_REQUIRED_INT,
         "sub": SINGLE_REQUIRED_STRING,
-        'act': SINGLE_OPTIONAL_JWT,
+        'act': SINGLE_OPTIONAL_STS,
         'scp': OPTIONAL_LIST_OF_STRINGS
     }
