@@ -259,3 +259,23 @@ class TestProvider(object):
 
         assert isinstance(resp, Unauthorized)
 
+    def test_client_registration_with_software_statement(self):
+        jwks, keyjar, kidd = build_keyjar(KEYS)
+        fed_operator = 'https://fedop.example.org'
+
+        self.provider.keyjar[fed_operator] = keyjar['']
+        ss = make_software_statement(keyjar, fed_operator, client_id='foxtrot')
+
+        args = {
+            "redirect_uris": ["https://client.example.org/callback",
+                              "https://client.example.org/callback2"],
+            "client_name": "XYZ Service B",
+            "token_endpoint_auth_method": "client_secret_basic",
+            "scope": "read write dolphin",
+            'software_statement': ss
+        }
+        request = RegistrationRequest(**args)
+        resp = self.provider.registration_endpoint(request=request.to_json(),
+                                                   environ={})
+        cli_resp = ClientInfoResponse().from_json(resp.message)
+        assert cli_resp

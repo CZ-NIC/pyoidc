@@ -182,10 +182,11 @@ class Provider(provider.Provider):
         except KeyError:
             self.keyjar[client_id] = [_kc]
 
-    def create_new_client(self, request):
+    def create_new_client(self, request, restrictions):
         """
 
         :param request: The Client registration request
+        :param restrictions: Restrictions on the client
         :return: The client_id
         """
 
@@ -279,6 +280,9 @@ class Provider(provider.Provider):
             raise UnSupported()
         return method(self).verify(environ, client_id=client_id)
 
+    def consume_software_statement(self, software_statement):
+        return {}
+
     def registration_endpoint(self, **kwargs):
         """
 
@@ -290,7 +294,7 @@ class Provider(provider.Provider):
 
         _request = RegistrationRequest().deserialize(kwargs['request'], "json")
         try:
-            _request.verify()
+            _request.verify(keyjar=self.keyjar)
         except InvalidRedirectUri as err:
             msg = ClientRegistrationError(error="invalid_redirect_uri",
                                           error_description="%s" % err)
@@ -308,7 +312,14 @@ class Provider(provider.Provider):
             except (AuthnFailure, UnknownAssertionType):
                 return Unauthorized()
 
-        client_id = self.create_new_client(_request)
+        client_restrictions = {}
+        if 'parsed_software_statement' in _request:
+            for ss in _request['parsed_software_statement']:
+                client_restrictions.update(self.consume_software_statement(ss))
+            del _request['software_statement']
+            del _request['parsed_software_statement']
+
+        client_id = self.create_new_client(_request, client_restrictions)
 
         return self.client_info(client_id)
 

@@ -96,19 +96,15 @@ class RegistrationRequest(Message):
                         assert "token" in self["response_types"]
                     except AssertionError:
                         self["response_types"].append("token")
-            try:
-                ss = self['software_statement']
-            except:
-                pass
-            else:
-                # can be either a single string or a list of strings
-                if isinstance(ss, str):
-                    _ss = unpack_software_statement(ss, **kwargs)
-                else:
-                    _ss = []
-                    for _s in ss:
-                        _ss.append(unpack_software_statement(_s, **kwargs))
-                self['software_statement'] = _ss
+        try:
+            ss = self['software_statement']
+        except:
+            pass
+        else:
+            _ss = []
+            for _s in ss:
+                _ss.append(unpack_software_statement(_s, '', kwargs['keyjar']))
+            self['__software_statement'] = _ss
 
         return super(RegistrationRequest, self).verify(**kwargs)
 
