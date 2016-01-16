@@ -5,7 +5,7 @@ from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 from oic.oauth2.message import SINGLE_OPTIONAL_INT
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oic.message import SINGLE_REQUIRED_INT
+from oic.oic.message import JasonWebToken
 
 __author__ = 'roland'
 
@@ -43,15 +43,13 @@ class TokenRevocationRequest(Message):
     }
 
 
-class SoftwareStatement(Message):
-    c_param = {
-        "iss": SINGLE_REQUIRED_STRING,
-        "aud": REQUIRED_LIST_OF_STRINGS,  # Array of strings or string
-        "exp": SINGLE_REQUIRED_INT,
-        "iat": SINGLE_OPTIONAL_INT,
-        "nbf": SINGLE_OPTIONAL_INT,
-        "cnf": SINGLE_OPTIONAL_INT
-    }
+class SoftwareStatement(JasonWebToken):
+    c_param = JasonWebToken.c_param.copy()
+    c_param.update({
+        "software_id": SINGLE_OPTIONAL_STRING,
+        'client_name': SINGLE_OPTIONAL_STRING,
+        'client_uri': SINGLE_OPTIONAL_STRING
+    })
 
 
 class ASConfigurationResponse(Message):
@@ -78,27 +76,26 @@ class ASConfigurationResponse(Message):
     c_default = {"version": "3.0"}
 
 
-class StateJWT(Message):
-    c_param = {
+class StateJWT(JasonWebToken):
+    c_param = JasonWebToken.c_param.copy()
+    c_param.update({
+        'aud': SINGLE_OPTIONAL_STRING,
         'rfp': SINGLE_REQUIRED_STRING,
         'kid': SINGLE_OPTIONAL_STRING,
-        'iat': SINGLE_OPTIONAL_INT,
-        'exp': SINGLE_OPTIONAL_INT,
-        'iss': SINGLE_OPTIONAL_STRING,
-        'aud': SINGLE_OPTIONAL_STRING,
         'target_link__uri': SINGLE_OPTIONAL_STRING,
         'as': SINGLE_OPTIONAL_STRING,
-        'jti': SINGLE_OPTIONAL_STRING,
         'at_hash': SINGLE_OPTIONAL_STRING,
         'c_hash': SINGLE_OPTIONAL_STRING
-    }
+    })
+
 
 MSG = {
     "TokenRevocationRequest": TokenRevocationRequest,
     "TokenIntrospectionRequest": TokenIntrospectionRequest,
     "TokenIntrospectionResponse": TokenIntrospectionResponse,
     "SoftwareStatement": SoftwareStatement,
-    'ASConfigurationResponse': ASConfigurationResponse
+    'ASConfigurationResponse': ASConfigurationResponse,
+    'StateJWT': StateJWT
 }
 
 

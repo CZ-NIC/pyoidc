@@ -1,15 +1,18 @@
+import inspect
 import logging
-from oic.extension.message import ASConfigurationResponse
 import requests
 
 from six.moves.urllib import parse as urlparse
 
 from oic import oauth2
+from oic.extension.message import ASConfigurationResponse
+from oic.extension.message import SoftwareStatement
 from oic.exception import PyoidcError
 from oic.exception import AuthzError
 from oic.oic import OIDCONF_PATTERN
 from oic.oic.message import AuthorizationResponse
 from oic.utils.keyio import KeyJar
+from oic.utils.jwt import JWT
 from oic.oauth2 import ErrorResponse
 from oic.oauth2 import Message
 from oic.oauth2 import message
@@ -93,6 +96,19 @@ class RegistrationRequest(Message):
                         assert "token" in self["response_types"]
                     except AssertionError:
                         self["response_types"].append("token")
+            try:
+                ss = self['software_statement']
+            except:
+                pass
+            else:
+                # can be either a single string or a list of strings
+                if isinstance(ss, str):
+                    _ss = unpack_software_statement(ss, **kwargs)
+                else:
+                    _ss = []
+                    for _s in ss:
+                        _ss.append(unpack_software_statement(_s, **kwargs))
+                self['software_statement'] = _ss
 
         return super(RegistrationRequest, self).verify(**kwargs)
 
@@ -391,3 +407,25 @@ class Client(oauth2.Client):
         logger.info("Aresp: %s" % aresp)
 
         return aresp
+
+
+def make_software_statement(keyjar, iss, **kwargs):
+    params = list(inspect.signature(JWT.__init__).parameters.keys())
+    params.remove('self')
+
+    args = {}
+    for param in params:
+        try:
+            args[param] = kwargs[param]
+        except KeyError:
+            pass
+        else:
+            del kwargs[param]
+
+    _jwt = JWT(keyjar, msgtype=SoftwareStatement, iss=iss, **args)
+    return _jwt.pack(**kwargs)
+
+
+def unpack_software_statement(software_statement, iss, keyjar):
+    _jwt = JWT(keyjar, iss=iss, msgtype=SoftwareStatement)
+    return _jwt.unpack(software_statement)

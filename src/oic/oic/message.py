@@ -851,15 +851,16 @@ class AuthnToken(Message):
     }
 
 
-class JWT(Message):
+# According to RFC 7519 all claims are optional
+class JasonWebToken(Message):
     c_param = {
-        "iss": SINGLE_REQUIRED_STRING,
-        "sub": SINGLE_REQUIRED_STRING,
-        "aud": REQUIRED_LIST_OF_STRINGS,  # Array of strings or string
-        "exp": SINGLE_REQUIRED_INT,
-        "nbf": SINGLE_REQUIRED_INT,
+        "iss": SINGLE_OPTIONAL_STRING,
+        "sub": SINGLE_OPTIONAL_STRING,
+        "aud": OPTIONAL_LIST_OF_STRINGS,  # Array of strings or string
+        "exp": SINGLE_OPTIONAL_INT,
+        "nbf": SINGLE_OPTIONAL_INT,
         "iat": SINGLE_OPTIONAL_INT,
-        "jti": SINGLE_REQUIRED_STRING,
+        "jti": SINGLE_OPTIONAL_STRING,
     }
 
 
@@ -870,7 +871,7 @@ def jwt_deser(val, sformat="json"):
         if not isinstance(val, six.string_types):
             val = json.dumps(val)
             sformat = "json"
-    return JWT().deserialize(val, sformat)
+    return JasonWebToken().deserialize(val, sformat)
 
 SINGLE_OPTIONAL_JWT = (Message, False, msg_ser, jwt_deser, False)
 

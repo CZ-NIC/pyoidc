@@ -1,8 +1,11 @@
 import json
+import os
 
 import pytest
 
-from oic.utils.http_util import Response, NoContent, Unauthorized
+from oic.utils.http_util import Response
+from oic.utils.http_util import NoContent
+from oic.utils.http_util import Unauthorized
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.client import BearerHeader
@@ -11,11 +14,47 @@ from oic.utils.authn.client import ClientSecretBasic
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
 from oic.utils import sdb
-from oic.extension.provider import Provider
-from oic.extension.dynreg import RegistrationRequest
+from oic.extension.dynreg import make_software_statement
+from oic.extension.dynreg import unpack_software_statement
 from oic.extension.dynreg import ClientInfoResponse
 from oic.extension.dynreg import ClientRegistrationError
+from oic.extension.dynreg import RegistrationRequest
+from oic.extension.provider import Provider
+from oic.utils.keyio import build_keyjar
 from utils_for_tests import _eq
+
+BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/keys"))
+
+KEYS = [
+    {"type": "RSA", "key": os.path.join(BASE_PATH, "cert.key"),
+     "use": ["enc", "sig"]},
+    {"type": "EC", "crv": "P-256", "use": ["sig"]},
+    {"type": "EC", "crv": "P-256", "use": ["enc"]}
+]
+
+
+class TestSoftwareStatement(object):
+    @pytest.fixture(autouse=True)
+    def create_provider(self):
+        jwks, keyjar, kidd = build_keyjar(KEYS)
+        self.keyjar = keyjar
+        self.issuer = 'https://fedop.example.org'
+
+    def test_pack(self):
+        ss = make_software_statement(self.keyjar, self.issuer,
+                                     client_id='ABC 001')
+        assert ss
+        assert len(ss.split('.')) == 3
+
+    def test_pack_and_unpack(self):
+        ss = make_software_statement(self.keyjar, self.issuer,
+                                     client_id='ABC 001')
+
+        msg = unpack_software_statement(ss, self.issuer, self.keyjar)
+        assert msg
+        assert _eq(msg.keys(), ['client_id', 'iat', 'iss', 'exp', 'jti'])
+        assert msg['client_id'] == 'ABC 001'
+        assert msg['iss'] == self.issuer
 
 
 class DummyAuthn(UserAuthnMethod):
@@ -219,3 +258,4 @@ class TestProvider(object):
             query="client_id=%s" % _resp["client_id"])
 
         assert isinstance(resp, Unauthorized)
+
