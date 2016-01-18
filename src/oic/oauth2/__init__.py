@@ -361,6 +361,9 @@ class Client(PBase):
         except KeyError:
             h_args = {}
 
+        # convert uri from newstr for python 2
+        uri = uri.decode('utf-8', 'surrogateescape')
+
         return uri, body, h_args, cis
 
     def request_info(self, request, method="POST", request_args=None,
