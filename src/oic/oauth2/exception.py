@@ -68,3 +68,7 @@ class NonFatalException(PyoidcError):
     def __init__(self, resp, msg):
         self.resp = resp
         self.msg = msg
+
+
+class Unsupported(PyoidcError):
+    pass

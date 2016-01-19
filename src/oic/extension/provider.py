@@ -11,18 +11,18 @@ import socket
 from future.backports.urllib.parse import parse_qs
 from future.backports.urllib.parse import splitquery
 
-from jwkest import jws
+from jwkest import jws, b64d, b64e
 
 from oic.exception import FailedAuthentication
 from oic.exception import UnSupported
 from oic.exception import UnknownAssertionType
-from oic.extension.dynreg import ClientInfoResponse
-from oic.extension.dynreg import ClientUpdateRequest
-from oic.extension.dynreg import ModificationForbidden
-from oic.extension.dynreg import RegistrationRequest
-from oic.extension.dynreg import InvalidRedirectUri
-from oic.extension.dynreg import ClientRegistrationError
-from oic.extension.dynreg import MissingPage
+from oic.extension.client import ClientInfoResponse, CC_METHOD
+from oic.extension.client import ClientUpdateRequest
+from oic.extension.client import ModificationForbidden
+from oic.extension.client import RegistrationRequest
+from oic.extension.client import InvalidRedirectUri
+from oic.extension.client import ClientRegistrationError
+from oic.extension.client import MissingPage
 from oic.extension.message import ASConfigurationResponse
 from oic.extension.message import TokenRevocationRequest
 from oic.extension.message import TokenIntrospectionRequest
@@ -58,7 +58,6 @@ __author__ = 'roland'
 
 logger = logging.getLogger(__name__)
 
-
 CAPABILITIES = {
     "response_types_supported": ["code", "token"],
     "token_endpoint_auth_methods_supported": [
@@ -92,11 +91,12 @@ class Provider(provider.Provider):
     """
 
     def __init__(self, name, sdb, cdb, authn_broker, authz, client_authn,
-                 symkey="", urlmap=None, iv=0, default_scope="",
-                 ca_bundle=None, seed=b"", client_authn_methods=None,
-                 authn_at_registration="", client_info_url="",
-                 secret_lifetime=86400, jwks_uri='', keyjar=None,
-                 capabilities=None, verify_ssl=True, baseurl='', hostname=''):
+            symkey="", urlmap=None, iv=0, default_scope="",
+            ca_bundle=None, seed=b"", client_authn_methods=None,
+            authn_at_registration="", client_info_url="",
+            secret_lifetime=86400, jwks_uri='', keyjar=None,
+            capabilities=None, verify_ssl=True, baseurl='', hostname='',
+            config=None):
 
         if not name.endswith("/"):
             name += "/"
@@ -132,6 +132,7 @@ class Provider(provider.Provider):
         self.baseurl = baseurl
         self.hostname = hostname or socket.gethostname()
         self.kid = {"sig": {}, "enc": {}}
+        self.config = config
 
     @staticmethod
     def _uris_to_tuples(uris):
@@ -384,7 +385,7 @@ class Provider(provider.Provider):
                 return NoContent()
 
     def provider_features(self, pcr_class=ASConfigurationResponse,
-                          provider_config=None):
+            provider_config=None):
         """
         Specifies what the server capabilities are.
 
@@ -434,7 +435,7 @@ class Provider(provider.Provider):
         return True
 
     def create_providerinfo(self, pcr_class=ASConfigurationResponse,
-                            setup=None):
+            setup=None):
         """
         Dynamically create the provider info response
         :param pcr_class:
@@ -487,6 +488,27 @@ class Provider(provider.Provider):
 
         return resp
 
+    @staticmethod
+    def verify_code_challenge(code_verifier, code_challenge,
+            code_challenge_method='S256'):
+        """
+        Verify a PKCE (RFC7636) code challenge
+
+        :param code_verifier: The origin
+        :param code_challenge: The transformed verifier used as challenge
+        :return:
+        """
+        _h = CC_METHOD[code_challenge_method](
+            code_verifier.encode()).hexdigest()
+        _cc = b64e(_h.encode())
+        if _cc.decode() != code_challenge:
+            logger.error('PCKE Code Challenge check failed')
+            err = TokenErrorResponse(error="invalid_request",
+                                     error_description="PCKE check failed")
+            return Response(err.to_json(), content="application/json",
+                            status="401 Unauthorized")
+        return True
+
     def token_endpoint(self, authn="", **kwargs):
         """
         This is where clients come to get their access tokens
@@ -501,7 +523,7 @@ class Provider(provider.Provider):
         areq = AccessTokenRequest().deserialize(body, "urlencoded")
 
         try:
-            client = self.client_authn(self, areq, authn)
+            client_id = self.client_authn(self, areq, authn)
         except FailedAuthentication as err:
             err = TokenErrorResponse(error="unauthorized_client",
                                      error_description="%s" % err)
@@ -509,6 +531,28 @@ class Provider(provider.Provider):
                             status="401 Unauthorized")
 
         logger.debug("AccessTokenRequest: %s" % areq)
+
+        # assert that the code is valid
+        try:
+            _info = _sdb[areq["code"]]
+        except KeyError:
+            err = TokenErrorResponse(error="invalid_grant",
+                                     error_description="Unknown access grant")
+            return Response(err.to_json(), content="application/json",
+                            status="401 Unauthorized")
+
+        authzreq = json.loads(_info['authzreq'])
+        if 'code_verifier' in areq:
+            try:
+                _method = authzreq['code_challenge_method']
+            except KeyError:
+                _method = 'S256'
+
+            resp = self.verify_code_challenge(areq['code_verifier'],
+                                              authzreq['code_challenge'],
+                                              _method)
+            if resp:
+                return resp
 
         try:
             assert areq["grant_type"] == "authorization_code"
@@ -528,9 +572,6 @@ class Provider(provider.Provider):
                 err = TokenErrorResponse(error="unauthorized_client")
                 return Unauthorized(err.to_json(), content="application/json")
 
-        # assert that the code is valid
-        _info = _sdb[areq["code"]]
-
         resp = self.token_scope_check(areq, _info)
         if resp:
             return resp
@@ -540,7 +581,6 @@ class Provider(provider.Provider):
         if "redirect_uri" in _info:
             assert areq["redirect_uri"] == _info["redirect_uri"]
 
-        authzreq = json.loads(_info['authzreq'])
         issue_refresh = False
         if 'scope' in authzreq and 'offline_access' in authzreq['scope']:
             if authzreq['response_type'] == 'code':

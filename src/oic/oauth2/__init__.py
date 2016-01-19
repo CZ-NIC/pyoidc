@@ -3,7 +3,6 @@ import base64
 import hashlib
 import random
 import string
-from future.backports.urllib.parse import urlparse
 
 from oic.oauth2.base import PBase
 from oic.oauth2.exception import MissingEndpoint

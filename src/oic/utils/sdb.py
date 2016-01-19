@@ -20,6 +20,23 @@ __author__ = 'rohe0002'
 logger = logging.getLogger(__name__)
 
 
+def lv_pack(*args):
+    s = []
+    for a in args:
+        s.append('{}:{}'.format(len(a),a))
+    return ''.join(s)
+
+
+def lv_unpack(txt):
+    txt = txt.strip()
+    res = []
+    while txt:
+        l,v = txt.split(':', 1)
+        res.append(v[:int(l)])
+        txt = v[int(l):]
+    return res
+
+
 class ExpiredToken(Exception):
     pass
 
@@ -126,8 +143,6 @@ class DefaultToken(Token):
     def __init__(self, secret, password, typ='', **kwargs):
         Token.__init__(self, typ, **kwargs)
         self.secret = secret
-        self._rndlen = 19
-        self._sidlen = 56
         self.crypt = Crypt(password)
 
     def __call__(self, sid='', ttype='', **kwargs):
@@ -147,10 +162,10 @@ class DefaultToken(Token):
         tmp = ''
         rnd = ''
         while rnd == tmp:  # Don't use the same random value again
-            rnd = rndstr(self._rndlen)  # Ultimate length multiple of 16
+            rnd = rndstr(32)  # Ultimate length multiple of 16
 
         return base64.b64encode(
-            self.crypt.encrypt("%s%s%s" % (sid, ttype, rnd))).decode("utf-8")
+            self.crypt.encrypt(lv_pack(rnd, ttype, sid))).decode("utf-8")
 
     def key(self, user="", areq=None):
         """
@@ -187,19 +202,10 @@ class DefaultToken(Token):
         return csum.hexdigest()  # 56 bytes long, 224 bits
 
     def _split_token(self, token):
-        plain = self.crypt.decrypt(base64.b64decode(token))
-        # first _sidlen bytes are the sid
-        _sid = plain[:self._sidlen]
-        _type = plain[self._sidlen]
-        try:
-            # Python 2 <-> 3
-            _type = chr(_type)
-            _sid = _sid.decode()
-        except TypeError:
-            pass
-
-        _rnd = plain[self._sidlen + 1:]
-        return _type, _sid, _rnd
+        plain = self.crypt.decrypt(base64.b64decode(token)).decode()
+        # order: rnd, type, sid
+        p = lv_unpack(plain)
+        return p[1], p[2], p[0]
 
     def type_and_key(self, token):
         """

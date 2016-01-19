@@ -1,4 +1,3 @@
-import mock
 import time
 import pytest
 from oic.extension.token import JWTToken
@@ -11,7 +10,6 @@ from oic.utils.sdb import SessionDB
 from oic.utils.sdb import AuthnEvent
 from oic.utils.sdb import ExpiredToken
 from oic.utils.sdb import AccessCodeUsed
-from oic.utils.sdb import WrongTokenType
 
 from utils_for_tests import _eq
 

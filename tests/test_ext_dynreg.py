@@ -14,11 +14,11 @@ from oic.utils.authn.client import ClientSecretBasic
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
 from oic.utils import sdb
-from oic.extension.dynreg import make_software_statement
-from oic.extension.dynreg import unpack_software_statement
-from oic.extension.dynreg import ClientInfoResponse
-from oic.extension.dynreg import ClientRegistrationError
-from oic.extension.dynreg import RegistrationRequest
+from oic.extension.client import make_software_statement
+from oic.extension.client import unpack_software_statement
+from oic.extension.client import ClientInfoResponse
+from oic.extension.client import ClientRegistrationError
+from oic.extension.client import RegistrationRequest
 from oic.extension.provider import Provider
 from oic.utils.keyio import build_keyjar
 from utils_for_tests import _eq
@@ -279,3 +279,4 @@ class TestProvider(object):
                                                    environ={})
         cli_resp = ClientInfoResponse().from_json(resp.message)
         assert cli_resp
+

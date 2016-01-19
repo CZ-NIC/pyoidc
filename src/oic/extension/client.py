@@ -1,11 +1,19 @@
 import inspect
 import logging
+import random
+import string
+from jwkest import b64e
+from oic.oauth2.exception import Unsupported
+from oic.oauth2.message import AuthorizationRequest
 import requests
+import hashlib
 
 from six.moves.urllib import parse as urlparse
 
 from oic import oauth2
 from oic.extension.message import ASConfigurationResponse
+from oic.extension.message import TokenIntrospectionRequest
+from oic.extension.message import TokenIntrospectionResponse
 from oic.extension.message import SoftwareStatement
 from oic.exception import PyoidcError
 from oic.exception import AuthzError
@@ -160,10 +168,31 @@ RESPONSE2ERROR = {
     "ClientUpdateRequest": [ClientRegistrationError]
 }
 
+BASECH = string.ascii_letters + string.digits + '-._~'
+
+
+def unreserved(size=64):
+    """
+    Returns a string of random ascii characters or digits
+
+    :param size: The length of the string
+    :return: string
+    """
+
+    return "".join([random.choice(BASECH) for _ in range(size)])
+
+
+CC_METHOD = {
+    'S256': hashlib.sha256,
+    'S384': hashlib.sha384,
+    'S512': hashlib.sha512,
+}
+
 
 class Client(oauth2.Client):
     def __init__(self, client_id=None, ca_certs=None,
-                 client_authn_method=None, keyjar=None, verify_ssl=True):
+            client_authn_method=None, keyjar=None, verify_ssl=True,
+            config=None):
         oauth2.Client.__init__(self, client_id=client_id, ca_certs=ca_certs,
                                client_authn_method=client_authn_method,
                                keyjar=keyjar, verify_ssl=verify_ssl)
@@ -173,10 +202,11 @@ class Client(oauth2.Client):
             "ClientUpdateRequest": "clientinfo_endpoint"
         })
         self.registration_response = None
+        self.config = config or {}
 
     def construct_RegistrationRequest(self, request=RegistrationRequest,
-                                      request_args=None, extra_args=None,
-                                      **kwargs):
+            request_args=None, extra_args=None,
+            **kwargs):
 
         if request_args is None:
             request_args = {}
@@ -184,8 +214,8 @@ class Client(oauth2.Client):
         return self.construct_request(request, request_args, extra_args)
 
     def construct_ClientUpdateRequest(self, request=ClientUpdateRequest,
-                                      request_args=None, extra_args=None,
-                                      **kwargs):
+            request_args=None, extra_args=None,
+            **kwargs):
 
         if request_args is None:
             request_args = {}
@@ -193,11 +223,11 @@ class Client(oauth2.Client):
         return self.construct_request(request, request_args, extra_args)
 
     def do_client_registration(self, request=RegistrationRequest,
-                               body_type="", method="GET",
-                               request_args=None, extra_args=None,
-                               http_args=None,
-                               response_cls=ClientInfoResponse,
-                               **kwargs):
+            body_type="", method="GET",
+            request_args=None, extra_args=None,
+            http_args=None,
+            response_cls=ClientInfoResponse,
+            **kwargs):
 
         url, body, ht_args, csi = self.request_info(request, method,
                                                     request_args, extra_args,
@@ -214,11 +244,11 @@ class Client(oauth2.Client):
         return resp
 
     def do_client_read_request(self, request=ClientUpdateRequest,
-                               body_type="", method="GET",
-                               request_args=None, extra_args=None,
-                               http_args=None,
-                               response_cls=ClientInfoResponse,
-                               **kwargs):
+            body_type="", method="GET",
+            request_args=None, extra_args=None,
+            http_args=None,
+            response_cls=ClientInfoResponse,
+            **kwargs):
 
         url, body, ht_args, csi = self.request_info(request, method,
                                                     request_args, extra_args,
@@ -235,11 +265,11 @@ class Client(oauth2.Client):
         return resp
 
     def do_client_update_request(self, request=ClientUpdateRequest,
-                                 body_type="", method="PUT",
-                                 request_args=None, extra_args=None,
-                                 http_args=None,
-                                 response_cls=ClientInfoResponse,
-                                 **kwargs):
+            body_type="", method="PUT",
+            request_args=None, extra_args=None,
+            http_args=None,
+            response_cls=ClientInfoResponse,
+            **kwargs):
 
         url, body, ht_args, csi = self.request_info(request, method,
                                                     request_args, extra_args,
@@ -256,11 +286,11 @@ class Client(oauth2.Client):
         return resp
 
     def do_client_delete_request(self, request=ClientUpdateRequest,
-                                 body_type="", method="DELETE",
-                                 request_args=None, extra_args=None,
-                                 http_args=None,
-                                 response_cls=ClientInfoResponse,
-                                 **kwargs):
+            body_type="", method="DELETE",
+            request_args=None, extra_args=None,
+            http_args=None,
+            response_cls=ClientInfoResponse,
+            **kwargs):
 
         url, body, ht_args, csi = self.request_info(request, method,
                                                     request_args, extra_args,
@@ -275,6 +305,57 @@ class Client(oauth2.Client):
                                        body_type, http_args=http_args)
 
         return resp
+
+    def do_token_introspection(
+            self, request=TokenIntrospectionRequest, body_type="",
+            method="POST", request_args=None, extra_args=None,
+            http_args=None, response_cls=TokenIntrospectionResponse, **kwargs):
+        pass
+
+    def add_code_challenge(self):
+        try:
+            cv_len = self.config['code_challenge']['length']
+        except KeyError:
+            cv_len = 64  # Use default
+
+        code_verifier = unreserved(cv_len)
+        _cv = code_verifier.encode()
+
+        try:
+            _method = self.config['code_challenge']['method']
+        except KeyError:
+            _method = 'S256'
+
+        try:
+            _h = CC_METHOD[_method](_cv).hexdigest()
+            code_challenge = b64e(_h.encode()).decode()
+        except KeyError:
+            raise Unsupported(
+                'PKCE Transformation method:{}'.format(_method))
+
+        # TODO store code_verifier
+
+        return {"code_challenge": code_challenge,
+                "code_challenge_method": _method}, code_verifier
+
+    def do_authorization_request(
+            self, request=AuthorizationRequest, state="", body_type="",
+            method="GET", request_args=None, extra_args=None, http_args=None,
+            response_cls=AuthorizationResponse, **kwargs):
+
+        if 'code_challenge' in self.config:
+            _args, code_verifier = self.add_code_challenge()
+            request_args.update(_args)
+
+        oauth2.Client.do_authorization_request(self,
+                                               request=request, state=state,
+                                               body_type=body_type,
+                                               method=method,
+                                               request_args=request_args,
+                                               extra_args=extra_args,
+                                               http_args=http_args,
+                                               response_cls=response_cls,
+                                               **kwargs)
 
     def handle_provider_config(self, pcr, issuer, keys=True, endpoints=True):
         """
@@ -325,8 +406,8 @@ class Client(oauth2.Client):
             self.keyjar.load_keys(pcr, _pcr_issuer)
 
     def provider_config(self, issuer, keys=True, endpoints=True,
-                        response_cls=ASConfigurationResponse,
-                        serv_pattern=OIDCONF_PATTERN):
+            response_cls=ASConfigurationResponse,
+            serv_pattern=OIDCONF_PATTERN):
         if issuer.endswith("/"):
             _issuer = issuer[:-1]
         else:
