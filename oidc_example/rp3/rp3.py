@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import importlib
 import argparse
+from future.backports.urllib.parse import parse_qs
 import six
 import logging
 
@@ -8,7 +9,7 @@ from mako.lookup import TemplateLookup
 from six.moves.urllib import parse as urlparse
 
 from jwkest.jws import alg2keytype
-from oic.utils.http_util import NotFound
+from oic.utils.http_util import NotFound, get_post
 from oic.utils.http_util import Response
 from oic.utils.http_util import Redirect
 
@@ -91,7 +92,23 @@ def operror(environ, start_response, error=None):
     return resp(environ, start_response, **argv)
 
 
-#
+def opresult_fragment(environ, start_response):
+    resp = Response(mako_template="opresult_repost.mako",
+                    template_lookup=LOOKUP,
+                    headers=[])
+    argv = {}
+    return resp(environ, start_response, **argv)
+
+
+def sorry_response(environ, start_response, homepage, err):
+    resp = Response(mako_template="sorry.mako",
+                    template_lookup=LOOKUP,
+                    headers=[])
+    argv = {"htmlpage": homepage,
+            "error": str(err)}
+    return resp(environ, start_response, **argv)
+
+
 def get_id_token(client, session):
     return client.grant[session["state"]].get_id_token()
 
@@ -131,22 +148,25 @@ def application(environ, start_response):
             raise
         else:
             return resp(environ, start_response)
-    elif path in clients.return_paths():  # After having authenticated at the OP
-        # mismatch between callback and return_uri
-        if session['op'] != clients.path[path]:
-            return operror(environ, start_response, "%s" % 'Not allowed')
-
+    elif path.endswith('authz_post'):
         client = clients[session["op"]]
+
+        query = parse_qs(get_post(environ))
         try:
-            result = client.callback(query, session)
+            info = query["fragment"][0]
+        except KeyError:
+            return sorry_response(environ, start_response, conf.BASE,
+                                  "missing fragment ?!")
+
+        try:
+            result = client.callback(info, session, 'urlencoded')
             if isinstance(result, Redirect):
                 return result(environ, start_response)
         except OIDCError as err:
             return operror(environ, start_response, "%s" % err)
-        except Exception:
+        except Exception as err:
             raise
         else:
-            userid, userinfo = result
             check_session_iframe_url = None
             try:
                 check_session_iframe_url = client.provider_info[
@@ -160,7 +180,43 @@ def application(environ, start_response):
             except KeyError:
                 pass
 
-            return opresult(environ, start_response, userinfo,
+            return opresult(environ, start_response, result['userinfo'],
+                            check_session_iframe_url)
+
+    elif path in clients.return_paths():  # After having authenticated at the OP
+        # mismatch between callback and return_uri
+        if session['op'] != clients.path[path]:
+            return operror(environ, start_response, "%s" % 'Not allowed')
+
+        client = clients[session["op"]]
+
+        _response_type = client.behaviour["response_type"]
+        if _response_type and not _response_type == ["code"]:
+            return opresult_fragment(environ, start_response)
+
+        try:
+            result = client.callback(query, session)
+            if isinstance(result, Redirect):
+                return result(environ, start_response)
+        except OIDCError as err:
+            return operror(environ, start_response, "%s" % err)
+        except Exception:
+            raise
+        else:
+            check_session_iframe_url = None
+            try:
+                check_session_iframe_url = client.provider_info[
+                    "check_session_iframe"]
+
+                session["session_management"] = {
+                    "session_state": query["session_state"][0],
+                    "client_id": client.client_id,
+                    "issuer": client.provider_info["issuer"]
+                }
+            except KeyError:
+                pass
+
+            return opresult(environ, start_response, result['userinfo'],
                             check_session_iframe_url)
     elif path == "logout":  # After the user has pressed the logout button
         client = clients[session["op"]]

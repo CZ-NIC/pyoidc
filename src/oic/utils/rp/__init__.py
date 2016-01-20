@@ -6,7 +6,7 @@ from oic import oic
 
 from oic.utils.http_util import Redirect
 from oic.exception import MissingAttribute
-from oic.oauth2 import rndstr, ErrorResponse
+from oic.oauth2 import rndstr, ErrorResponse, TokenError
 from oic.oic import ProviderConfigurationResponse
 from oic.oic import AuthorizationResponse
 from oic.oic import RegistrationResponse
@@ -67,7 +67,17 @@ class Client(oic.Client):
         logger.debug("resp_headers: %s" % resp.headers)
         return resp
 
-    def callback(self, response, session):
+    def has_access_token(self, **kwargs):
+        try:
+            token = self.get_token(**kwargs)
+        except TokenError:
+            pass
+        else:
+            if token.access_token:
+                return True
+        return False
+
+    def callback(self, response, session, format='dict'):
         """
         This is the method that should be called when an AuthN response has been
         received from the OP.
@@ -76,7 +86,7 @@ class Client(oic.Client):
         :return:
         """
         authresp = self.parse_response(AuthorizationResponse, response,
-                                       sformat="dict", keyjar=self.keyjar)
+                                       sformat=format, keyjar=self.keyjar)
 
         if isinstance(authresp, ErrorResponse):
             if authresp["error"] == "login_required":
@@ -94,7 +104,7 @@ class Client(oic.Client):
         else:
             if _id_token['nonce'] != session["nonce"]:
                 return OIDCError("Received nonce not the same as expected.")
-            # store id_token under the state
+                # store id_token under the state
 
         if self.behaviour["response_type"] == "code":
             # get the access token
@@ -141,24 +151,28 @@ class Client(oic.Client):
         else:
             kwargs = {}
 
-        inforesp = self.do_user_info_request(state=authresp["state"], **kwargs)
+        if self.has_access_token(state=authresp["state"]):
+            inforesp = self.do_user_info_request(state=authresp["state"],
+                                                 **kwargs)
 
-        if isinstance(inforesp, ErrorResponse):
-            raise OIDCError("Invalid response %s." % inforesp["error"])
+            if isinstance(inforesp, ErrorResponse):
+                raise OIDCError("Invalid response %s." % inforesp["error"])
 
-        userinfo = inforesp.to_dict()
+            userinfo = inforesp.to_dict()
 
-        if _id_token['sub'] != userinfo['sub']:
-            raise OIDCError("Invalid response: userid mismatch")
+            if _id_token['sub'] != userinfo['sub']:
+                raise OIDCError("Invalid response: userid mismatch")
 
-        logger.debug("UserInfo: %s" % inforesp)
+            logger.debug("UserInfo: %s" % inforesp)
 
-        try:
-            self.id_token[user_id] = _id_token
-        except TypeError:
-            self.id_token = {user_id: _id_token}
+            try:
+                self.id_token[user_id] = _id_token
+            except TypeError:
+                self.id_token = {user_id: _id_token}
+        else:
+            userinfo = {}
 
-        return user_id, userinfo
+        return {'user_id': user_id, 'userinfo': userinfo, 'id_token': _id_token}
 
 
 class OIDCClients(object):
