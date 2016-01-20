@@ -6,14 +6,6 @@ from jwkest import jws
 from jwkest.jws import JWS
 
 
-class UnknownHashSizeError(Exception):
-    pass
-
-
-class EmptyHTTPRequestError(Exception):
-    pass
-
-
 class ValidationError(Exception):
     pass
 
@@ -31,7 +23,7 @@ def hash_value(size, data):
     elif size == 512:
         return hashlib.sha512(data).digest()
 
-    raise UnknownHashSizeError(str(size))
+    raise ValueError("The specifed hash size '{}' is unsupported.".format(size))
 
 
 def serialize_dict(data, serialization_template):
@@ -124,7 +116,7 @@ class SignedHttpRequest(object):
             pass
 
         if not http_json:
-            raise EmptyHTTPRequestError("No data to sign")
+            raise ValueError("No data to sign")
 
         jws = JWS(json.dumps(http_json), alg=alg)
         return jws.sign_compact(keys=[self.key])
