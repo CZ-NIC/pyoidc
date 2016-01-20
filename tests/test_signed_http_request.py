@@ -1,17 +1,14 @@
 # pylint: disable=missing-docstring
-import pytest
-
 from collections import Counter
 
+import pytest
 from jwkest.jwk import SYMKey
 
-from oic.extension.signed_http_req import serialize_dict
-from oic.extension.signed_http_req import get_hash_size
-from oic.extension.signed_http_req import UnknownHashSizeError
-from oic.extension.signed_http_req import hash_value
 from oic.extension.signed_http_req import SignedHttpRequest
 from oic.extension.signed_http_req import ValidationError
-from oic.extension.signed_http_req import EmptyHTTPRequestError
+from oic.extension.signed_http_req import get_hash_size
+from oic.extension.signed_http_req import hash_value
+from oic.extension.signed_http_req import serialize_dict
 
 ALG = "HS256"
 SIGN_KEY = SYMKey(key="a_key", alg=ALG)
@@ -23,7 +20,7 @@ TEST_DATA = {"key": SIGN_KEY, "method": "GET", "host": "host",
 
 
 def test_sign_empty_http_req():
-    with pytest.raises(EmptyHTTPRequestError):
+    with pytest.raises(ValueError):
         SignedHttpRequest(SIGN_KEY).sign(ALG)
 
 
@@ -53,7 +50,7 @@ def test_get_hash_size(value, expected):
 
 def test_hash_value():
     data = "some_test_string"
-    with pytest.raises(UnknownHashSizeError):
+    with pytest.raises(ValueError):
         hash_value(123, data)
     assert hash_value(256, data)
 
@@ -116,3 +113,10 @@ def test_verify_not_strict(key, value, monkeypatch):
     shr.verify(signature=result,
                strict_query_params_verification=False,
                strict_headers_verification=False, **TEST_DATA)
+
+
+def test_verify_fail_on_missing_body():
+    shr = SignedHttpRequest(SIGN_KEY)
+    result = shr.sign(alg=ALG, body="abcdef")
+    with pytest.raises(ValidationError):
+        shr.verify(signature=result)
