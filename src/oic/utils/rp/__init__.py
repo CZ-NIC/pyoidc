@@ -1,11 +1,14 @@
 import copy
 import hashlib
-from urllib.parse import urljoin, urlsplit
+from future.backports.urllib.parse import urlsplit
+
+from oic import oic
+
 from oic.utils.http_util import Redirect
 from oic.exception import MissingAttribute
-from oic import oic
 from oic.oauth2 import rndstr, ErrorResponse
-from oic.oic import ProviderConfigurationResponse, AuthorizationResponse
+from oic.oic import ProviderConfigurationResponse
+from oic.oic import AuthorizationResponse
 from oic.oic import RegistrationResponse
 from oic.oic import AuthorizationRequest
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD

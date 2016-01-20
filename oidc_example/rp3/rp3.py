@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 import importlib
 import argparse
-from jwkest.jws import alg2keytype
-from mako.lookup import TemplateLookup
-from six.moves.urllib import parse as urlparse
 import six
 import logging
+
+from mako.lookup import TemplateLookup
+from six.moves.urllib import parse as urlparse
+
+from jwkest.jws import alg2keytype
 from oic.utils.http_util import NotFound
 from oic.utils.http_util import Response
 from oic.utils.http_util import Redirect
