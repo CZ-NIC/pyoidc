@@ -1,4 +1,5 @@
 import copy
+import json
 import logging
 import os
 import sys
@@ -8,16 +9,24 @@ import time
 from jwkest import jws, b64e
 from jwkest import jwe
 from jwkest import as_unicode
+import os
+import requests
 from Crypto.PublicKey import RSA
 from requests import request
+from jwkest import as_unicode
+from jwkest import jwe
+from jwkest import jws
 from jwkest.ecc import NISTEllipticCurve
 from jwkest.jwk import rsa_load
 from jwkest.jwk import RSAKey
 from jwkest.jwk import ECKey
+from jwkest.jwk import RSAKey
 from jwkest.jwk import SYMKey
 
 from six.moves.urllib.parse import urlsplit
+from jwkest.jwk import rsa_load
 from six import string_types
+from six.moves.urllib.parse import urlsplit
 
 from oic.exception import MessageException
 from oic.exception import PyoidcError
@@ -125,6 +134,7 @@ class KeyBundle(object):
             logger.error("Now 'keys' keyword in JWKS")
             raise UpdateFailed(
                 "Local key update from '{}' failed.".format(filename))
+                    "Local key update from '{}' failed.".format(filename))
 
     def do_local_der(self, filename, keytype, keyusage):
         # This is only for RSA keys
@@ -142,10 +152,16 @@ class KeyBundle(object):
         args = {"allow_redirects": True,
                 "verify": self.verify_ssl,
                 "timeout": 5.0}
+        args = {"verify": self.verify_ssl}
         if self.etag:
             args["headers"] = {"If-None-Match": self.etag}
 
         r = request("GET", self.source, **args)
+        try:
+            r = requests.get(self.source, **args)
+        except requests.ConnectionError as e:
+            raise UpdateFailed(
+                    "Remote key update from '{}' failed: {}.".format(self.source, str(e)))
 
         if r.status_code == 304:  # file has not changed
             self.time_out = time.time() + self.cache_time
@@ -159,6 +175,10 @@ class KeyBundle(object):
                     logger.warning('Wrong Content_type')
             except KeyError:
                 pass
+            self.imp_jwks = self._parse_remote_response(r)
+            if not isinstance(self.imp_jwks, dict) or "keys" not in self.imp_jwks:
+                raise UpdateFailed(
+                        "Remote key update from '{}' failed, malformed JWKS.".format(self.source))
 
             logger.debug("Loaded JWKS: %s from %s" % (r.text, self.source))
             self.imp_jwks = json.loads(r.text)  # For use else where
@@ -168,6 +188,7 @@ class KeyBundle(object):
                 logger.error("Now 'keys' keyword in JWKS")
                 raise UpdateFailed(
                     "Remote key update from '{}' failed.".format(self.source))
+                        "Remote key update from '{}' failed.".format(self.source))
 
             try:
                 self.etag = r.headers["Etag"]
@@ -181,6 +202,31 @@ class KeyBundle(object):
         else:
             raise UpdateFailed(
                 "Remote key update from '{}' failed.".format(self.source))
+                    "Remote key update from '{}' failed, HTTP status {}".format(self.source,
+                                                                                r.status_code))
+
+        return True
+
+    def _parse_remote_response(self, response):
+        """
+        Parse JWKS from the HTTP response.
+
+        Should be overriden by subclasses for adding support of e.g. signed JWKS.
+        :param response: HTTP response from the 'jwks_uri' endpoint
+        :return: response parsed as JSON
+        """
+        # Check if the content type is the right one.
+        try:
+            if response.headers["Content-Type"] != 'application/json':
+                logger.warning('Wrong Content_type')
+        except KeyError:
+            pass
+
+        logger.debug("Loaded JWKS: %s from %s" % (response.text, self.source))
+        try:
+            return json.loads(response.text)
+        except ValueError as e:
+            return None
 
     def _uptodate(self):
         res = False
@@ -541,6 +587,7 @@ class KeyJar(object):
         except KeyError:
             logger.debug(
                 "Available key issuers: {}".format(self.issuer_keys.keys()))
+                    "Available key issuers: {}".format(self.issuer_keys.keys()))
             raise
 
     def remove_key(self, issuer, key_type, key):
@@ -731,6 +778,7 @@ def key_setup(vault, **kwargs):
                     with RedirectStdStreams(stdout=devnull, stderr=devnull):
                         _key = create_and_store_rsa_key_pair(
                             path=vault_path)
+                                path=vault_path)
 
                 kb.append(RSAKey(key=_key, use=usage, kid=str(kid)))
                 kid += 1
