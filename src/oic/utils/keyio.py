@@ -1,29 +1,19 @@
 import copy
 import json
 import logging
-import os
 import sys
-import json
 import time
 
-from jwkest import jws, b64e
-from jwkest import jwe
-from jwkest import as_unicode
 import os
 import requests
 from Crypto.PublicKey import RSA
-from requests import request
-from jwkest import as_unicode
+from jwkest import as_unicode, b64e
 from jwkest import jwe
 from jwkest import jws
 from jwkest.ecc import NISTEllipticCurve
-from jwkest.jwk import rsa_load
-from jwkest.jwk import RSAKey
 from jwkest.jwk import ECKey
 from jwkest.jwk import RSAKey
 from jwkest.jwk import SYMKey
-
-from six.moves.urllib.parse import urlsplit
 from jwkest.jwk import rsa_load
 from six import string_types
 from six.moves.urllib.parse import urlsplit
@@ -75,7 +65,6 @@ class KeyBundle(object):
         self.cache_time = cache_time
         self.time_out = 0
         self.etag = ""
-        self.cache_control = None
         self.source = None
         self.fileformat = fileformat.lower()
         self.keytype = keytype
@@ -133,7 +122,6 @@ class KeyBundle(object):
         except KeyError:
             logger.error("Now 'keys' keyword in JWKS")
             raise UpdateFailed(
-                "Local key update from '{}' failed.".format(filename))
                     "Local key update from '{}' failed.".format(filename))
 
     def do_local_der(self, filename, keytype, keyusage):
@@ -149,14 +137,10 @@ class KeyBundle(object):
             self._keys.append(_key)
 
     def do_remote(self):
-        args = {"allow_redirects": True,
-                "verify": self.verify_ssl,
-                "timeout": 5.0}
         args = {"verify": self.verify_ssl}
         if self.etag:
             args["headers"] = {"If-None-Match": self.etag}
 
-        r = request("GET", self.source, **args)
         try:
             r = requests.get(self.source, **args)
         except requests.ConnectionError as e:
@@ -169,39 +153,25 @@ class KeyBundle(object):
         elif r.status_code == 200:  # New content
             self.time_out = time.time() + self.cache_time
 
-            # Check if the content type is the rigt one.
-            try:
-                if r.headers["Content-Type"] != 'application/json':
-                    logger.warning('Wrong Content_type')
-            except KeyError:
-                pass
             self.imp_jwks = self._parse_remote_response(r)
             if not isinstance(self.imp_jwks, dict) or "keys" not in self.imp_jwks:
                 raise UpdateFailed(
                         "Remote key update from '{}' failed, malformed JWKS.".format(self.source))
 
             logger.debug("Loaded JWKS: %s from %s" % (r.text, self.source))
-            self.imp_jwks = json.loads(r.text)  # For use else where
             try:
                 self.do_keys(self.imp_jwks["keys"])
             except KeyError:
-                logger.error("Now 'keys' keyword in JWKS")
+                logger.error("No 'keys' keyword in JWKS")
                 raise UpdateFailed(
-                    "Remote key update from '{}' failed.".format(self.source))
                         "Remote key update from '{}' failed.".format(self.source))
 
             try:
                 self.etag = r.headers["Etag"]
             except KeyError:
                 pass
-            try:
-                self.cache_control = r.headers["Cache-Control"]
-            except KeyError:
-                pass
-            return True
         else:
             raise UpdateFailed(
-                "Remote key update from '{}' failed.".format(self.source))
                     "Remote key update from '{}' failed, HTTP status {}".format(self.source,
                                                                                 r.status_code))
 
@@ -383,7 +353,7 @@ def dump_jwks(kbl, target):
 class KeyJar(object):
     """ A keyjar contains a number of KeyBundles """
 
-    def __init__(self, ca_certs=None, verify_ssl=True):
+    def __init__(self, ca_certs=None, verify_ssl=True, keybundle_cls=KeyBundle):
         """
 
         :param ca_certs:
@@ -394,6 +364,7 @@ class KeyJar(object):
         self.issuer_keys = {}
         self.ca_certs = ca_certs
         self.verify_ssl = verify_ssl
+        self.keybundle_cls = keybundle_cls
 
     def add_if_unique(self, issuer, use, keys):
         if use in self.issuer_keys[issuer] and self.issuer_keys[issuer][use]:
@@ -419,9 +390,9 @@ class KeyJar(object):
             raise KeyError("No jwks_uri")
 
         if "/localhost:" in url or "/localhost/" in url:
-            kc = KeyBundle(source=url, verify_ssl=False)
+            kc = self.keybundle_cls(source=url, verify_ssl=False)
         else:
-            kc = KeyBundle(source=url, verify_ssl=self.verify_ssl)
+            kc = self.keybundle_cls(source=url, verify_ssl=self.verify_ssl)
 
         try:
             self.issuer_keys[issuer].append(kc)
@@ -435,9 +406,9 @@ class KeyJar(object):
             self.issuer_keys[issuer] = []
 
         for use in usage:
-            self.issuer_keys[issuer].append(KeyBundle([{"kty": "oct",
-                                                        "key": key,
-                                                        "use": use}]))
+            self.issuer_keys[issuer].append(self.keybundle_cls([{"kty": "oct",
+                                                                 "key": key,
+                                                                 "use": use}]))
 
     def add_kb(self, issuer, kb):
         try:
@@ -586,7 +557,6 @@ class KeyJar(object):
             return self.issuer_keys[issuer]
         except KeyError:
             logger.debug(
-                "Available key issuers: {}".format(self.issuer_keys.keys()))
                     "Available key issuers: {}".format(self.issuer_keys.keys()))
             raise
 
@@ -660,7 +630,7 @@ class KeyJar(object):
             # jwks should only be considered if no jwks_uri is present
             try:
                 _keys = pcr["jwks"]["keys"]
-                self.issuer_keys[issuer].append(KeyBundle(_keys))
+                self.issuer_keys[issuer].append(self.keybundle_cls(_keys))
             except KeyError:
                 pass
 
@@ -701,12 +671,12 @@ class KeyJar(object):
 
     def restore(self, info):
         for issuer, keys in info.items():
-            self.issuer_keys[issuer] = [KeyBundle(keys)]
+            self.issuer_keys[issuer] = [self.keybundle_cls(keys)]
 
     def copy(self):
         copy_keyjar = KeyJar()
         for issuer, keybundles in self.issuer_keys.items():
-            _kb = KeyBundle()
+            _kb = self.keybundle_cls()
             for kb in keybundles:
                 for k in kb.keys():
                     _kb.append(copy.copy(k))
@@ -777,7 +747,6 @@ def key_setup(vault, **kwargs):
                     devnull = open(os.devnull, 'w')
                     with RedirectStdStreams(stdout=devnull, stderr=devnull):
                         _key = create_and_store_rsa_key_pair(
-                            path=vault_path)
                                 path=vault_path)
 
                 kb.append(RSAKey(key=_key, use=usage, kid=str(kid)))
