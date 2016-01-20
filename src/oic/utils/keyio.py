@@ -379,20 +379,21 @@ class KeyJar(object):
         else:
             self.issuer_keys[issuer][use] = keys
 
-    def add(self, issuer, url):
+    def add(self, issuer, url, **kwargs):
         """
 
         :param issuer: Who issued the keys
         :param url: Where can the key/-s be found
+        :param kwargs: extra parameters for instantiating KeyBundle
         """
 
         if not url:
             raise KeyError("No jwks_uri")
 
         if "/localhost:" in url or "/localhost/" in url:
-            kc = self.keybundle_cls(source=url, verify_ssl=False)
+            kc = self.keybundle_cls(source=url, verify_ssl=False, **kwargs)
         else:
-            kc = self.keybundle_cls(source=url, verify_ssl=self.verify_ssl)
+            kc = self.keybundle_cls(source=url, verify_ssl=self.verify_ssl, **kwargs)
 
         try:
             self.issuer_keys[issuer].append(kc)
@@ -619,9 +620,7 @@ class KeyJar(object):
         except MessageException:
             pass
 
-        if issuer not in self.issuer_keys:
-            self.issuer_keys[issuer] = []
-        elif replace:
+        if replace or issuer not in self.issuer_keys:
             self.issuer_keys[issuer] = []
 
         try:
