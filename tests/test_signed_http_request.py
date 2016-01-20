@@ -113,3 +113,10 @@ def test_verify_not_strict(key, value, monkeypatch):
     shr.verify(signature=result,
                strict_query_params_verification=False,
                strict_headers_verification=False, **TEST_DATA)
+
+
+def test_verify_fail_on_missing_body():
+    shr = SignedHttpRequest(SIGN_KEY)
+    result = shr.sign(alg=ALG, body="abcdef")
+    with pytest.raises(ValidationError):
+        shr.verify(signature=result)

@@ -158,9 +158,6 @@ class SignedHttpRequest(object):
             except KeyError:
                 pass
 
-        try:
-            _equals(b64_hash(kwargs['body'], hash_size), unpacked_req["b"])
-        except KeyError:
-            pass
+        _equals(b64_hash(kwargs.get("body", ""), hash_size), unpacked_req.get("b", ""))
 
         return unpacked_req
