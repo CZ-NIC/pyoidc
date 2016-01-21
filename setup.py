@@ -71,7 +71,7 @@ setup(
     install_requires=[
                          "requests",
                          "pycryptodome",
-                         "pyjwkest>=1.0.6",
+                         "pyjwkest>=1.1.0",
                          "mako",
                          "beaker",
                          "alabaster",
