@@ -10,6 +10,7 @@ import base64
 import logging
 
 from Crypto.Cipher import AES
+from future.utils import tobytes
 
 from oic.oic import AuthorizationRequest
 from oic.oauth2 import rndstr
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 def lv_pack(*args):
     s = []
     for a in args:
-        s.append('{}:{}'.format(len(a),a))
+        s.append('{}:{}'.format(len(a), a))
     return ''.join(s)
 
 
@@ -31,7 +32,7 @@ def lv_unpack(txt):
     txt = txt.strip()
     res = []
     while txt:
-        l,v = txt.split(':', 1)
+        l, v = txt.split(':', 1)
         res.append(v[:int(l)])
         txt = v[int(l):]
     return res
@@ -67,15 +68,16 @@ class Crypt(object):
     def encrypt(self, text):
         # setting iv because the underlying AES module misbehaves
         # on certain platforms
-        encryptor = AES.new(self.key, self.mode, IV="0" * 16)
+        encryptor = AES.new(self.key, self.mode, IV=b'0' * 16)
 
+        text = tobytes(text)
         if len(text) % 16:
-            text += ' ' * (16 - len(text) % 16)
+            text += b' ' * (16 - len(text) % 16)
 
         return encryptor.encrypt(text)
 
     def decrypt(self, ciphertext):
-        decryptor = AES.new(self.key, self.mode, IV="0" * 16)
+        decryptor = AES.new(self.key, self.mode, IV=b'0' * 16)
         return decryptor.decrypt(ciphertext)
 
 
@@ -165,7 +167,8 @@ class DefaultToken(Token):
             rnd = rndstr(32)  # Ultimate length multiple of 16
 
         return base64.b64encode(
-            self.crypt.encrypt(lv_pack(rnd, ttype, sid))).decode("utf-8")
+            self.crypt.encrypt(lv_pack(rnd, ttype, sid).encode())).decode(
+            "utf-8")
 
     def key(self, user="", areq=None):
         """

@@ -1,6 +1,7 @@
 import copy
 import hashlib
 from future.backports.urllib.parse import urlsplit
+from oic.oic.message import OpenIDSchema
 
 from oic import oic
 
@@ -171,6 +172,11 @@ class Client(oic.Client):
                 self.id_token = {user_id: _id_token}
         else:
             userinfo = {}
+            for attr in OpenIDSchema.c_param:
+                try:
+                    userinfo[attr] = _id_token[attr]
+                except KeyError:
+                    pass
 
         return {'user_id': user_id, 'userinfo': userinfo, 'id_token': _id_token}
 

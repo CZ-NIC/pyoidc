@@ -70,7 +70,7 @@ setup(
     },
     install_requires=[
                          "requests",
-                         "pycrypto>=2.6.1",
+                         "pycryptodome",
                          "pyjwkest>=1.0.6",
                          "mako",
                          "beaker",

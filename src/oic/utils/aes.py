@@ -3,8 +3,10 @@ import os
 from Crypto import Random
 from Crypto.Cipher import AES
 from base64 import b64encode, b64decode
+from future.utils import tobytes
 
 from six import indexbytes
+import six
 
 __author__ = 'rolandh'
 
@@ -43,7 +45,7 @@ def build_cipher(key, iv, alg="aes_128_cbc"):
         raise AESError("Wrong Key length")
 
     try:
-        return AES.new(key, POSTFIX_MODE[cmode], iv), iv
+        return AES.new(tobytes(key), POSTFIX_MODE[cmode], tobytes(iv)), iv
     except KeyError:
         raise AESError("Unsupported chaining mode")
 
@@ -70,10 +72,10 @@ def encrypt(key, msg, iv=None, alg="aes_128_cbc", padding="PKCS#7",
     if _block_size:
         plen = _block_size - (len(msg) % _block_size)
         c = chr(plen)
-        msg += c * plen
+        msg += (c * plen)
 
-    cipher, iv = build_cipher(key, iv, alg)
-    cmsg = iv + cipher.encrypt(msg)
+    cipher, iv = build_cipher(tobytes(key), iv, alg)
+    cmsg = iv + cipher.encrypt(tobytes(msg))
     if b64enc:
         return b64encode(cmsg)
     else:

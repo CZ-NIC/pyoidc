@@ -163,6 +163,7 @@ def application(environ, start_response):
             if isinstance(result, Redirect):
                 return result(environ, start_response)
         except OIDCError as err:
+            trace
             return operror(environ, start_response, "%s" % err)
         except Exception as err:
             raise
