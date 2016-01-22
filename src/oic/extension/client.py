@@ -488,10 +488,10 @@ class Client(oauth2.Client):
 
 
 def make_software_statement(keyjar, iss, **kwargs):
-    if six.PY3:
-        params = list(inspect.signature(JWT.__init__).parameters.keys())
-    else:
+    if six.PY2:
         params = inspect.getargspec(JWT.__init__).args
+    else:
+        params = list(inspect.signature(JWT.__init__).parameters.keys())
 
     params.remove('self')
 
