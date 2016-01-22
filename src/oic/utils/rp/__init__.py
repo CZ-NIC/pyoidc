@@ -263,11 +263,14 @@ class OIDCClients(object):
             # Find the service that provides information about the OP
             issuer = client.wf.discovery_query(userid)
             # Gather OP information
-            _ = client.provider_config(issuer)
+            pcr = client.provider_config(issuer)
+            logger.info('Provider info: {}'.format(pcr.to_dict()))
             # register the client
-            _ = client.register(client.provider_info["registration_endpoint"],
-                                **kwargs["client_info"])
-
+            client.register(client.provider_info["registration_endpoint"],
+                            **kwargs["client_info"])
+            logger.info(
+                'Client registration response: {}'.format(
+                    client.registration_response))
             self.get_path(kwargs['client_info']['redirect_uris'], issuer)
         elif _key_set == set(["client_info", "srv_discovery_url"]):
             # Ship the webfinger part

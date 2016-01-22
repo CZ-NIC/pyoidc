@@ -139,7 +139,8 @@ def application(environ, start_response):
     server_env = session._params['server_env']
 
     LOGGER.info(50 * "=")
-    LOGGER.info("path: {}".format(path))
+    LOGGER.info(
+        "Connection from: {}, path: {}".format(environ['SERVER_NAME'], path))
     LOGGER.info(50 * "=")
 
     if path == "rp":  # After having chosen which OP to authenticate at
@@ -163,7 +164,9 @@ def application(environ, start_response):
         try:
             _iss = session['op']
         except KeyError:
-            return operror(environ, start_response, 'Unknown OP')
+            LOGGER.info(
+                'No active session with {}'.format(environ['SERVER_NAME']))
+            return opchoice(environ, start_response, clients)
         else:
             client = clients[_iss]
 
@@ -208,13 +211,14 @@ def application(environ, start_response):
         try:
             _iss = session['op']
         except KeyError:
-            return operror(environ, start_response, 'Unknown OP')
+            LOGGER.info(
+                'No active session with {}'.format(environ['SERVER_NAME']))
+            return opchoice(environ, start_response, clients)
 
         # mismatch between callback and return_uri
         if _iss != clients.path[path]:
             LOGGER.warning(
-                'return_uri mismatch: {} != {}'.format(_iss,
-                                                       clients.path[path]))
+                'issuer mismatch: {} != {}'.format(_iss, clients.path[path]))
             return operror(environ, start_response, "%s" % 'Not allowed')
 
         client = clients[session["op"]]
