@@ -138,9 +138,9 @@ def application(environ, start_response):
     clients = session._params['clients']
     server_env = session._params['server_env']
 
-    LOGGER.info(50*"=")
+    LOGGER.info(50 * "=")
     LOGGER.info("path: {}".format(path))
-    LOGGER.info(50*"=")
+    LOGGER.info(50 * "=")
 
     if path == "rp":  # After having chosen which OP to authenticate at
         if "uid" in query:
@@ -225,8 +225,10 @@ def application(environ, start_response):
         except KeyError:
             _response_mode = ''
 
-        LOGGER.info("response_type: {}, response_mode: {}".format(
-            response_type='response_type', response_mode=_response_mode))
+        LOGGER.info(
+            "response_type: {response_type}, response_mode: {"
+            "response_mode}".format(
+                response_type='response_type', response_mode=_response_mode))
         if _response_type and _response_type != "code":
             # Fall through if it's a query response anyway
             if query:
@@ -289,7 +291,7 @@ def application(environ, start_response):
                                                             "HS256")})
             # Also append the ACR values
             logout_url += "&" + urlencode({"acr_values": acr_values},
-                                                   True)
+                                          True)
 
         LOGGER.debug("Logout URL: %s" % str(logout_url))
         LOGGER.debug("Logging out from session: %s" % str(session))
