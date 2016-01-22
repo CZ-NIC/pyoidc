@@ -27,8 +27,8 @@
         """
         Creates a display of user information.
         """
-        element = "<p>You have successfully authenticated!</p>"
-
+        element = "<h3>You have successfully authenticated!</h3>"
+        element += '<h3>And are now known to the RP as: <i>'+userid+'</i></h3>'
         for key, value in userinfo.items():
             element += "<div class='row'>"
             element += "<div class='col-md-3'>" +  escape(str(key)) + "</div>"
@@ -77,7 +77,7 @@
     <!-- Main component for a primary marketing message or call to action -->
     <div class="jumbotron">
         <h1>OP result</h1>
-        ${create_result(userinfo)}
+        ${create_result(userinfo, userid)}
     </div>
 
 </div>

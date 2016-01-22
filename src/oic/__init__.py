@@ -1,2 +1,2 @@
 __author__ = 'rohe0002'
-__version__ = '0.8.0'
+__version__ = '0.8.1b0'

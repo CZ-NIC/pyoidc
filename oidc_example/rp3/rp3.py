@@ -69,12 +69,14 @@ def opchoice(environ, start_response, clients):
     return resp(environ, start_response, **argv)
 
 
-def opresult(environ, start_response, userinfo, check_session_iframe_url=None):
+def opresult(environ, start_response, userinfo, user_id,
+             check_session_iframe_url=None):
     resp = Response(mako_template="opresult.mako",
                     template_lookup=LOOKUP,
                     headers=[])
     argv = {
         "userinfo": userinfo,
+        'userid': user_id
     }
     if check_session_iframe_url:
         argv["check_session_iframe_url"] = check_session_iframe_url
@@ -136,7 +138,10 @@ def application(environ, start_response):
 
     if path == "rp":  # After having chosen which OP to authenticate at
         if "uid" in query:
-            client = clients.dynamic_client(query["uid"][0])
+            try:
+                client = clients.dynamic_client(query["uid"][0])
+            except ConnectionError as err:
+                return operror(environ, start_response, '{}'.format(err))
         else:
             client = clients[query["op"][0]]
 
@@ -149,7 +154,12 @@ def application(environ, start_response):
         else:
             return resp(environ, start_response)
     elif path.endswith('authz_post'):
-        client = clients[session["op"]]
+        try:
+            _iss = session['op']
+        except KeyError:
+            return operror(environ, start_response, 'Unknown OP')
+        else:
+            client = clients[_iss]
 
         query = parse_qs(get_post(environ))
         try:
@@ -163,7 +173,6 @@ def application(environ, start_response):
             if isinstance(result, Redirect):
                 return result(environ, start_response)
         except OIDCError as err:
-            trace
             return operror(environ, start_response, "%s" % err)
         except Exception as err:
             raise
@@ -182,11 +191,19 @@ def application(environ, start_response):
                 pass
 
             return opresult(environ, start_response, result['userinfo'],
-                            check_session_iframe_url)
+                            result['user_id'], check_session_iframe_url)
 
     elif path in clients.return_paths():  # After having authenticated at the OP
+        try:
+            _iss = session['op']
+        except KeyError:
+            return operror(environ, start_response, 'Unknown OP')
+
         # mismatch between callback and return_uri
-        if session['op'] != clients.path[path]:
+        if _iss != clients.path[path]:
+            LOGGER.warning(
+                'return_uri mismatch: {} != {}'.format(_iss,
+                                                       clients.path[path]))
             return operror(environ, start_response, "%s" % 'Not allowed')
 
         client = clients[session["op"]]
@@ -218,7 +235,7 @@ def application(environ, start_response):
                 pass
 
             return opresult(environ, start_response, result['userinfo'],
-                            check_session_iframe_url)
+                            result['user_id'], check_session_iframe_url)
     elif path == "logout":  # After the user has pressed the logout button
         client = clients[session["op"]]
         logout_url = client.end_session_endpoint
@@ -318,6 +335,7 @@ if __name__ == '__main__':
 
     if conf.BASE.startswith("https"):
         from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
+
         SRV.ssl_adapter = BuiltinSSLAdapter(conf.SERVER_CERT, conf.SERVER_KEY,
                                             conf.CERT_CHAIN)
         extra = " using SSL/TLS"
