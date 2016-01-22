@@ -11,7 +11,8 @@ import hashlib
 from six.moves.urllib import parse as urlparse
 
 from oic import oauth2
-from oic.extension.message import ASConfigurationResponse
+from oic.extension.message import ASConfigurationResponse, \
+    TokenRevocationRequest
 from oic.extension.message import TokenIntrospectionRequest
 from oic.extension.message import TokenIntrospectionResponse
 from oic.extension.message import SoftwareStatement
@@ -310,7 +311,39 @@ class Client(oauth2.Client):
             self, request=TokenIntrospectionRequest, body_type="",
             method="POST", request_args=None, extra_args=None,
             http_args=None, response_cls=TokenIntrospectionResponse, **kwargs):
-        pass
+
+        url, body, ht_args, csi = self.request_info(request, method,
+                                                    request_args, extra_args,
+                                                    **kwargs)
+
+        if http_args is None:
+            http_args = ht_args
+        else:
+            http_args.update(http_args)
+
+        resp = self.request_and_return(url, response_cls, method, body,
+                                       body_type, http_args=http_args)
+
+        return resp
+
+    def do_token_revocation(
+            self, request=TokenRevocationRequest, body_type="",
+            method="POST", request_args=None, extra_args=None,
+            http_args=None, response_cls=TokenIntrospectionResponse, **kwargs):
+
+        url, body, ht_args, csi = self.request_info(request, method,
+                                                    request_args, extra_args,
+                                                    **kwargs)
+
+        if http_args is None:
+            http_args = ht_args
+        else:
+            http_args.update(http_args)
+
+        resp = self.request_and_return(url, response_cls, method, body,
+                                       body_type, http_args=http_args)
+
+        return resp
 
     def add_code_challenge(self):
         try:
