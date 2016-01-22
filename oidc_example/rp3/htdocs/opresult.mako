@@ -23,7 +23,7 @@
     def escape(string):
         return pattern.sub(escape_entity, string)
 
-    def create_result(userinfo):
+    def create_result(userinfo, userid):
         """
         Creates a display of user information.
         """
