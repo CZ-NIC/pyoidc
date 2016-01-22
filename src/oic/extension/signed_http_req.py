@@ -47,23 +47,24 @@ def _equals(value, expected):
 
 def _serialize_params(params, str_format, hash_size):
     _keys, _buffer = serialize_dict(params, str_format)
-    _hash = urlsafe_b64encode(hash_value(hash_size, _buffer)).decode("utf-8")
+    _hash = b64_hash(_buffer, hash_size)
     return [_keys, _hash]
 
 
 def _verify_params(params, req, str_format, hash_size, strict_verification,
                    key):
-    _req_keys, _req_hash = req
-    _pparam = {}
-    try:
-        _pparam = dict([(k, params[k]) for k in _req_keys])
-    except KeyError:
-        ValidationError("Too few {}".format(key))
+    key_order, req_hash = req
 
-    _keys, _hash = _serialize_params(_pparam, str_format, hash_size)
-    _equals(_req_hash, _hash)
-    if strict_verification and len(_keys) != len(params):
+    if strict_verification and len(key_order) != len(params):
         raise ValidationError("Too many or too few {}".format(key))
+
+    buffer = ""
+    try:
+        buffer = "".join([str_format.format(k, params[k]) for k in key_order])
+    except KeyError:
+        raise ValidationError("Too few {}".format(key))
+
+    _equals(req_hash, b64_hash(buffer, hash_size))
 
 
 def _upper(s):
