@@ -459,6 +459,7 @@ class Client(PBase):
             verf = resp.verify(**kwargs)
 
             if not verf:
+                logger.error('Verification of the response failed')
                 raise PyoidcError("Verification of the response failed")
             if resp.type() == "AuthorizationResponse" and \
                     "scope" not in resp:
@@ -468,6 +469,7 @@ class Client(PBase):
                     pass
 
         if not resp:
+            logger.error('Missing or faulty response')
             raise ResponseError("Missing or faulty response")
 
         self.store_response(resp, info)
