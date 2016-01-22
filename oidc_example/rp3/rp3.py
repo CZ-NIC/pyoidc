@@ -140,7 +140,7 @@ def application(environ, start_response):
 
     LOGGER.info(50 * "=")
     LOGGER.info(
-        "Connection from: {}, path: {}".format(environ['SERVER_NAME'], path))
+        "Connection from: {}, path: {}".format(environ['REMOTE_ADDR'], path))
     LOGGER.info(50 * "=")
 
     if path == "rp":  # After having chosen which OP to authenticate at
@@ -165,7 +165,7 @@ def application(environ, start_response):
             _iss = session['op']
         except KeyError:
             LOGGER.info(
-                'No active session with {}'.format(environ['SERVER_NAME']))
+                'No active session with {}'.format(environ['REMOTE_ADDR']))
             return opchoice(environ, start_response, clients)
         else:
             client = clients[_iss]
