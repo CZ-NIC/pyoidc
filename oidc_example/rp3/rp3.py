@@ -269,7 +269,13 @@ def application(environ, start_response):
             return opresult(environ, start_response, result['userinfo'],
                             result['user_id'], check_session_iframe_url)
     elif path == "logout":  # After the user has pressed the logout button
-        client = clients[session["op"]]
+        try:
+            _iss = session['op']
+        except KeyError:
+            LOGGER.info(
+                'No active session with {}'.format(environ['SERVER_NAME']))
+            return opchoice(environ, start_response, clients)
+        client = clients[_iss]
         try:
             del client.authz_req[session['state']]
         except KeyError:
@@ -313,7 +319,14 @@ def application(environ, start_response):
                     **kwargs)
     elif path == "session_change":
         try:
-            client = clients[session["op"]]
+            _iss = session['op']
+        except KeyError:
+            LOGGER.info(
+                'No active session with {}'.format(environ['SERVER_NAME']))
+            return opchoice(environ, start_response, clients)
+
+        try:
+            client = clients[_iss]
         except KeyError:
             return Response("No valid session.")(environ, start_response)
 
