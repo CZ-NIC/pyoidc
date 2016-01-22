@@ -139,8 +139,7 @@ def application(environ, start_response):
     server_env = session._params['server_env']
 
     LOGGER.info(50 * "=")
-    LOGGER.info(
-        "Connection from: {}, path: {}".format(environ['REMOTE_ADDR'], path))
+    LOGGER.info("[{}] path: {}".format(session.id, path))
     LOGGER.info(50 * "=")
 
     if path == "rp":  # After having chosen which OP to authenticate at
@@ -165,7 +164,8 @@ def application(environ, start_response):
             _iss = session['op']
         except KeyError:
             LOGGER.info(
-                'No active session with {}'.format(environ['REMOTE_ADDR']))
+                '[{}] No active session with {}'.format(session.id,
+                                                        environ['REMOTE_ADDR']))
             return opchoice(environ, start_response, clients)
         else:
             client = clients[_iss]
@@ -180,7 +180,7 @@ def application(environ, start_response):
             return sorry_response(environ, start_response, conf.BASE,
                                   "Expected fragment didn't get one ?!")
 
-        LOGGER.info('Fragment part: {}'.format(info))
+        LOGGER.info('[{}] Fragment part: {}'.format(session.id, info))
 
         try:
             result = client.callback(info, session, 'urlencoded')
@@ -212,13 +212,15 @@ def application(environ, start_response):
             _iss = session['op']
         except KeyError:
             LOGGER.info(
-                'No active session with {}'.format(environ['SERVER_NAME']))
+                '[{}]No active session with {}'.format(session.id,
+                                                       environ['REMOTE_ADDR']))
             return opchoice(environ, start_response, clients)
 
         # mismatch between callback and return_uri
         if _iss != clients.path[path]:
             LOGGER.warning(
-                'issuer mismatch: {} != {}'.format(_iss, clients.path[path]))
+                '[{}]issuer mismatch: {} != {}'.format(session.id, _iss,
+                                                       clients.path[path]))
             return operror(environ, start_response, "%s" % 'Not allowed')
 
         client = clients[session["op"]]
@@ -230,8 +232,9 @@ def application(environ, start_response):
             _response_mode = ''
 
         LOGGER.info(
-            "response_type: {}, response_mode: {}".format(_response_type,
-                                                          _response_mode))
+            "[{}]response_type: {}, response_mode: {}".format(session.id,
+                                                              _response_type,
+                                                              _response_mode))
         if _response_type and _response_type != "code":
             # Fall through if it's a query response anyway
             if query:
@@ -242,7 +245,7 @@ def application(environ, start_response):
             else:
                 return opresult_fragment(environ, start_response)
 
-        LOGGER.info("Query part: {}".format(query))
+        LOGGER.info("[{}]Query part: {}".format(session.id, query))
 
         try:
             result = client.callback(query, session)
@@ -273,7 +276,8 @@ def application(environ, start_response):
             _iss = session['op']
         except KeyError:
             LOGGER.info(
-                'No active session with {}'.format(environ['SERVER_NAME']))
+                '[{}]No active session with {}'.format(session.id,
+                                                       environ['REMOTE_ADDR']))
             return opchoice(environ, start_response, clients)
         client = clients[_iss]
         try:
@@ -302,8 +306,8 @@ def application(environ, start_response):
             logout_url += "&" + urlencode({"acr_values": acr_values},
                                           True)
 
-        LOGGER.debug("Logout URL: %s" % str(logout_url))
-        LOGGER.debug("Logging out from session: %s" % str(session))
+        LOGGER.debug("[{}]Logout URL: {}".format(session.id, logout_url))
+        LOGGER.debug("Logging out from session: [{}]".format(session.id))
         session.delete()
         resp = Redirect(str(logout_url))
         return resp(environ, start_response)
@@ -322,7 +326,8 @@ def application(environ, start_response):
             _iss = session['op']
         except KeyError:
             LOGGER.info(
-                'No active session with {}'.format(environ['SERVER_NAME']))
+                '[{}]No active session with {}'.format(session.id,
+                                                       environ['REMOTE_ADDR']))
             return opchoice(environ, start_response, clients)
 
         try:

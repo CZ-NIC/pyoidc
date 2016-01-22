@@ -80,6 +80,10 @@ class Client(oic.Client):
                 return True
         return False
 
+    def _err(self, txt):
+        logger.error(txt)
+        raise OIDCError(txt)
+
     def callback(self, response, session, format='dict'):
         """
         This is the method that should be called when an AuthN response has been
@@ -95,6 +99,7 @@ class Client(oic.Client):
             logger.error("Could not parse response: '{}'".format(response))
             raise OIDCError("Problem parsing response")
 
+        logger.info("AuthorizationReponse: {}".format(authresp))
         if isinstance(authresp, ErrorResponse):
             if authresp["error"] == "login_required":
                 return self.create_authn_request(session)
@@ -102,7 +107,7 @@ class Client(oic.Client):
                 raise OIDCError("Access denied")
 
         if session["state"] != authresp["state"]:
-            raise OIDCError("Received state not the same as expected.")
+            self._err("Received state not the same as expected.")
 
         try:
             _id_token = authresp['id_token']
@@ -110,8 +115,7 @@ class Client(oic.Client):
             _id_token = None
         else:
             if _id_token['nonce'] != session["nonce"]:
-                raise OIDCError("Received nonce not the same as expected.")
-                # store id_token under the state
+                self._err("Received nonce not the same as expected.")
 
         if self.behaviour["response_type"] == "code":
             # get the access token
@@ -129,27 +133,28 @@ class Client(oic.Client):
                     request_args=args,
                     authn_method=self.registration_response[
                         "token_endpoint_auth_method"])
+                logger.info('Access token response: {}'.format(atresp))
             except Exception as err:
                 logger.error("%s" % err)
                 raise
 
             if isinstance(atresp, ErrorResponse):
-                raise OIDCError("Invalid response %s." % atresp["error"])
+                self._err('Error response: {}'.format(atresp.to_dict()))
 
             _id_token = atresp['id_token']
 
         if _id_token is None:
-            raise OIDCError("Invalid response: no IdToken")
+            self._err("Invalid response: no IdToken")
 
         if _id_token['iss'] != self.provider_info['issuer']:
-            raise OIDCError("Issuer mismatch")
+            self._err("Issuer mismatch")
 
         if _id_token['nonce'] != session['nonce']:
-            raise OIDCError('Nonce missmatch')
+            self._err("Nonce mismatch")
 
         if not self.allow_sign_alg_none:
             if _id_token.jws_header['alg'] == 'none':
-                raise OIDCError('Do not allow "none" signature algorithm')
+                self._err('Do not allow "none" signature algorithm')
 
         user_id = '{}:{}'.format(_id_token['iss'], _id_token['sub'])
 
@@ -163,12 +168,12 @@ class Client(oic.Client):
                                                  **kwargs)
 
             if isinstance(inforesp, ErrorResponse):
-                raise OIDCError("Invalid response %s." % inforesp["error"])
+                self._err("Invalid response %s." % inforesp["error"])
 
             userinfo = inforesp.to_dict()
 
             if _id_token['sub'] != userinfo['sub']:
-                raise OIDCError("Invalid response: userid mismatch")
+                self._err("Invalid response: userid mismatch")
 
             logger.debug("UserInfo: %s" % inforesp)
 
