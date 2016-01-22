@@ -211,8 +211,16 @@ def application(environ, start_response):
         client = clients[session["op"]]
 
         _response_type = client.behaviour["response_type"]
+        _response_mode = ''
         if _response_type and not _response_type == ["code"]:
-            return opresult_fragment(environ, start_response)
+            # Fall through if it's a query response anyway
+            if query:
+                pass
+            elif _response_mode:
+                # form_post encoded
+                pass
+            else:
+                return opresult_fragment(environ, start_response)
 
         try:
             result = client.callback(query, session)

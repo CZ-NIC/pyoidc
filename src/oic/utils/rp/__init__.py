@@ -58,6 +58,7 @@ class Client(oic.Client):
                                                     method="GET",
                                                     request_args=request_args)
 
+        self.authz_req[request_args['state']] = cis
         logger.debug("body: %s" % body)
         logger.info("URL: %s" % url)
         logger.debug("ht_args: %s" % ht_args)
