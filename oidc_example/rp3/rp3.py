@@ -226,9 +226,8 @@ def application(environ, start_response):
             _response_mode = ''
 
         LOGGER.info(
-            "response_type: {response_type}, response_mode: {"
-            "response_mode}".format(
-                response_type='response_type', response_mode=_response_mode))
+            "response_type: {}, response_mode: {}".format(_response_type,
+                                                          _response_mode))
         if _response_type and _response_type != "code":
             # Fall through if it's a query response anyway
             if query:
