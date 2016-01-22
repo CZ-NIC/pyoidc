@@ -30,6 +30,7 @@
         element = "<h3>You have successfully authenticated!</h3>"
         element += '<h3>And are now known to the RP as:</h3>'
         element += '<i>'+userid+'</i>'
+        element += '<h3>With the following user information</h3>'
         for key, value in userinfo.items():
             element += "<div class='row'>"
             element += "<div class='col-md-3'>" +  escape(str(key)) + "</div>"
