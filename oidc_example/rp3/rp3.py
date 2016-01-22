@@ -265,6 +265,11 @@ def application(environ, start_response):
                             result['user_id'], check_session_iframe_url)
     elif path == "logout":  # After the user has pressed the logout button
         client = clients[session["op"]]
+        try:
+            del client.authz_req[session['state']]
+        except KeyError:
+            pass
+
         logout_url = client.end_session_endpoint
         try:
             # Specify to which URL the OP should return the user after
