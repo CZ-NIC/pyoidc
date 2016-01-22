@@ -92,7 +92,7 @@ def test_verify_fail(key, value, monkeypatch):
     ("query_params", {"k1": "v1", "k2": "v2", "k3": "v3"}),
     ("headers", {"h1": "d1", "h2": "d2", "h3": "d3"}),
 ])
-def test_verify_strict(key, value, monkeypatch):
+def test_verify_strict_with_too_many(key, value, monkeypatch):
     shr = SignedHttpRequest(SIGN_KEY)
     result = shr.sign(alg=ALG, **TEST_DATA)
     monkeypatch.setitem(TEST_DATA, key, value)
@@ -100,6 +100,20 @@ def test_verify_strict(key, value, monkeypatch):
         shr.verify(signature=result,
                    strict_query_params_verification=True,
                    strict_headers_verification=True, **TEST_DATA)
+
+
+@pytest.mark.parametrize("key,value", [
+    ("query_params", {"k1": "v1", "k2": "v2", "k3": "v3"}),
+    ("headers", {"h1": "d1", "h2": "d2", "h3": "d3"}),
+])
+def test_verify_with_too_few(key, value, monkeypatch):
+    monkeypatch.setitem(TEST_DATA, key, value)
+    shr = SignedHttpRequest(SIGN_KEY)
+    result = shr.sign(alg=ALG, **TEST_DATA)
+
+    monkeypatch.delitem(value, next(iter(value)))
+    with pytest.raises(ValidationError):
+        shr.verify(signature=result, **TEST_DATA)
 
 
 @pytest.mark.parametrize("key,value", [
