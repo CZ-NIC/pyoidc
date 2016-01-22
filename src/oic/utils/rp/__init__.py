@@ -264,13 +264,9 @@ class OIDCClients(object):
             issuer = client.wf.discovery_query(userid)
             # Gather OP information
             pcr = client.provider_config(issuer)
-            logger.info('Provider info: {}'.format(pcr.to_dict()))
             # register the client
             client.register(client.provider_info["registration_endpoint"],
                             **kwargs["client_info"])
-            logger.info(
-                'Client registration response: {}'.format(
-                    client.registration_response))
             self.get_path(kwargs['client_info']['redirect_uris'], issuer)
         elif _key_set == set(["client_info", "srv_discovery_url"]):
             # Ship the webfinger part
@@ -314,11 +310,13 @@ class OIDCClients(object):
                                  verify_ssl=self.config.VERIFY_SSL)
 
         issuer = client.wf.discovery_query(userid)
+        logger.info('issuer: {}'.format(issuer))
         if issuer in self.client:
             return self.client[issuer]
         else:
             # Gather OP information
             _pcr = client.provider_config(issuer)
+            logger.info('Provider info: {}'.format(_pcr.to_dict))
             # register the client
             _cinfo = self.config.CLIENTS[""]["client_info"]
             reg_args = copy.copy(_cinfo)
@@ -331,7 +329,8 @@ class OIDCClients(object):
                 for u in base_urls]
 
             self.get_path(reg_args['redirect_uris'], issuer)
-            _ = client.register(_pcr["registration_endpoint"], **reg_args)
+            rr = client.register(_pcr["registration_endpoint"], **reg_args)
+            logger.info('Registration response: {}'.format(rr.to_dict()))
 
             try:
                 client.behaviour.update(**self.config.CLIENTS[""]["behaviour"])
