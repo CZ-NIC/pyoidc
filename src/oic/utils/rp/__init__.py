@@ -7,7 +7,7 @@ from oic import oic
 
 from oic.utils.http_util import Redirect
 from oic.exception import MissingAttribute
-from oic.oauth2 import rndstr, ErrorResponse, TokenError
+from oic.oauth2 import rndstr, ErrorResponse, TokenError, ResponseError
 from oic.oic import ProviderConfigurationResponse
 from oic.oic import AuthorizationResponse
 from oic.oic import RegistrationResponse
@@ -86,17 +86,21 @@ class Client(oic.Client):
         :param response: The URL returned by the OP
         :return:
         """
-        authresp = self.parse_response(AuthorizationResponse, response,
-                                       sformat=format, keyjar=self.keyjar)
+        try:
+            authresp = self.parse_response(AuthorizationResponse, response,
+                                           sformat=format, keyjar=self.keyjar)
+        except ResponseError:
+            logger.error("Could not parse response: '{}'".format(response))
+            raise OIDCError("Problem parsing response")
 
         if isinstance(authresp, ErrorResponse):
             if authresp["error"] == "login_required":
                 return self.create_authn_request(session)
             else:
-                return OIDCError("Access denied")
+                raise OIDCError("Access denied")
 
         if session["state"] != authresp["state"]:
-            return OIDCError("Received state not the same as expected.")
+            raise OIDCError("Received state not the same as expected.")
 
         try:
             _id_token = authresp['id_token']
@@ -104,7 +108,7 @@ class Client(oic.Client):
             _id_token = None
         else:
             if _id_token['nonce'] != session["nonce"]:
-                return OIDCError("Received nonce not the same as expected.")
+                raise OIDCError("Received nonce not the same as expected.")
                 # store id_token under the state
 
         if self.behaviour["response_type"] == "code":

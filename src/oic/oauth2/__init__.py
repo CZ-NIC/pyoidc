@@ -429,6 +429,8 @@ class Client(PBase):
             info = self.get_urlinfo(info)
 
         resp = response().deserialize(info, sformat, **kwargs)
+        logger.debug('Initial response parsing => "{}"'.format(resp.to_dict()))
+
         if "error" in resp and not isinstance(resp, ErrorResponse):
             resp = None
             try:
@@ -444,7 +446,6 @@ class Client(PBase):
                         break
                     except Exception as aerr:
                         resp = None
-                        err = aerr
             except KeyError:
                 pass
         elif resp.only_extras():

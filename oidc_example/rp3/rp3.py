@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 import importlib
 import argparse
-from future.backports.urllib.parse import parse_qs
 import six
 import logging
 
+from requests import ConnectionError
 from mako.lookup import TemplateLookup
-from six.moves.urllib import parse as urlparse
+from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import urlencode
+from future.backports.urllib.parse import urlparse
 
 from jwkest.jws import alg2keytype
 from oic.utils.http_util import NotFound, get_post
@@ -131,7 +133,7 @@ def application(environ, start_response):
     if path.startswith("static/"):
         return static(environ, start_response, LOGGER, path)
 
-    query = urlparse.parse_qs(environ["QUERY_STRING"])
+    query = parse_qs(environ["QUERY_STRING"])
     acr_values = session._params['acrs']
     clients = session._params['clients']
     server_env = session._params['server_env']
@@ -243,7 +245,7 @@ def application(environ, start_response):
             # Specify to which URL the OP should return the user after
             # log out. That URL must be registered with the OP at client
             # registration.
-            logout_url += "?" + urlparse.urlencode(
+            logout_url += "?" + urlencode(
                 {"post_logout_redirect_uri": client.registration_response[
                     "post_logout_redirect_uris"][0]})
         except KeyError:
@@ -252,11 +254,11 @@ def application(environ, start_response):
             # If there is an ID token send it along as a id_token_hint
             _idtoken = get_id_token(client, session)
             if _idtoken:
-                logout_url += "&" + urlparse.urlencode({
+                logout_url += "&" + urlencode({
                     "id_token_hint": id_token_as_signed_jwt(client, _idtoken,
                                                             "HS256")})
             # Also append the ACR values
-            logout_url += "&" + urlparse.urlencode({"acr_values": acr_values},
+            logout_url += "&" + urlencode({"acr_values": acr_values},
                                                    True)
 
         LOGGER.debug("Logout URL: %s" % str(logout_url))
@@ -321,7 +323,7 @@ if __name__ == '__main__':
         'session.cookie_expires': True,
         'session.auto': True,
         'session.key': "{}.beaker.session.id".format(
-            urlparse.urlparse(conf.BASE).netloc.replace(":", "."))
+            urlparse(conf.BASE).netloc.replace(":", "."))
     }
 
     _clients = OIDCClients(conf, _base)
