@@ -138,6 +138,10 @@ def application(environ, start_response):
     clients = session._params['clients']
     server_env = session._params['server_env']
 
+    LOGGER.info(50*"=")
+    LOGGER.info("path: {}".format(path))
+    LOGGER.info(50*"=")
+
     if path == "rp":  # After having chosen which OP to authenticate at
         if "uid" in query:
             try:
@@ -169,6 +173,11 @@ def application(environ, start_response):
         except KeyError:
             return sorry_response(environ, start_response, conf.BASE,
                                   "missing fragment ?!")
+        if info == ['x']:
+            return sorry_response(environ, start_response, conf.BASE,
+                                  "Expected fragment didn't get one ?!")
+
+        LOGGER.info('Fragment part: {}'.format(info))
 
         try:
             result = client.callback(info, session, 'urlencoded')
@@ -211,8 +220,14 @@ def application(environ, start_response):
         client = clients[session["op"]]
 
         _response_type = client.behaviour["response_type"]
-        _response_mode = ''
-        if _response_type and not _response_type == ["code"]:
+        try:
+            _response_mode = client.authz_req[session['state']]['response_mode']
+        except KeyError:
+            _response_mode = ''
+
+        LOGGER.info("response_type: {}, response_mode: {}".format(
+            response_type='response_type', response_mode=_response_mode))
+        if _response_type and _response_type != "code":
             # Fall through if it's a query response anyway
             if query:
                 pass
@@ -221,6 +236,8 @@ def application(environ, start_response):
                 pass
             else:
                 return opresult_fragment(environ, start_response)
+
+        LOGGER.info("Query part: {}".format(query))
 
         try:
             result = client.callback(query, session)

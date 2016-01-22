@@ -35,6 +35,7 @@ class Client(oic.Client):
             self.behaviour = behaviour
         self.userinfo_request_method = ''
         self.allow_sign_alg_none = False
+        self.authz_req = {}
 
     def create_authn_request(self, session, acr_value=None, **kwargs):
         session["state"] = rndstr()
