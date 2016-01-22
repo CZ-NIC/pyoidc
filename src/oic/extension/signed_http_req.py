@@ -1,7 +1,8 @@
-from base64 import urlsafe_b64encode
 import hashlib
 import json
-from jwkest import BadSignature
+from base64 import urlsafe_b64encode
+
+from jwkest import JWKESTException
 from jwkest import jws
 from jwkest.jws import JWS
 
@@ -129,7 +130,7 @@ class SignedHttpRequest(object):
 
         try:
             unpacked_req = _jw.verify_compact(signature, keys=[self.key])
-        except BadSignature:
+        except JWKESTException:
             raise ValidationError("Could not verify signature")
 
         _header = _jw.jwt.headers
