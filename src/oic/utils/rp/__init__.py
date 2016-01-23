@@ -1,11 +1,15 @@
 import copy
 import hashlib
-from urllib.parse import urljoin, urlsplit
+from future.backports.urllib.parse import urlsplit
+from oic.oic.message import OpenIDSchema
+
+from oic import oic
+
 from oic.utils.http_util import Redirect
 from oic.exception import MissingAttribute
-from oic import oic
-from oic.oauth2 import rndstr, ErrorResponse
-from oic.oic import ProviderConfigurationResponse, AuthorizationResponse
+from oic.oauth2 import rndstr, ErrorResponse, TokenError, ResponseError
+from oic.oic import ProviderConfigurationResponse
+from oic.oic import AuthorizationResponse
 from oic.oic import RegistrationResponse
 from oic.oic import AuthorizationRequest
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
@@ -31,6 +35,7 @@ class Client(oic.Client):
             self.behaviour = behaviour
         self.userinfo_request_method = ''
         self.allow_sign_alg_none = False
+        self.authz_req = {}
 
     def create_authn_request(self, session, acr_value=None, **kwargs):
         session["state"] = rndstr()
@@ -54,6 +59,7 @@ class Client(oic.Client):
                                                     method="GET",
                                                     request_args=request_args)
 
+        self.authz_req[request_args['state']] = cis
         logger.debug("body: %s" % body)
         logger.info("URL: %s" % url)
         logger.debug("ht_args: %s" % ht_args)
@@ -64,7 +70,21 @@ class Client(oic.Client):
         logger.debug("resp_headers: %s" % resp.headers)
         return resp
 
-    def callback(self, response, session):
+    def has_access_token(self, **kwargs):
+        try:
+            token = self.get_token(**kwargs)
+        except TokenError:
+            pass
+        else:
+            if token.access_token:
+                return True
+        return False
+
+    def _err(self, txt):
+        logger.error(txt)
+        raise OIDCError(txt)
+
+    def callback(self, response, session, format='dict'):
         """
         This is the method that should be called when an AuthN response has been
         received from the OP.
@@ -72,17 +92,22 @@ class Client(oic.Client):
         :param response: The URL returned by the OP
         :return:
         """
-        authresp = self.parse_response(AuthorizationResponse, response,
-                                       sformat="dict", keyjar=self.keyjar)
+        try:
+            authresp = self.parse_response(AuthorizationResponse, response,
+                                           sformat=format, keyjar=self.keyjar)
+        except ResponseError:
+            logger.error("Could not parse response: '{}'".format(response))
+            raise OIDCError("Problem parsing response")
 
+        logger.info("AuthorizationReponse: {}".format(authresp))
         if isinstance(authresp, ErrorResponse):
             if authresp["error"] == "login_required":
                 return self.create_authn_request(session)
             else:
-                return OIDCError("Access denied")
+                raise OIDCError("Access denied")
 
         if session["state"] != authresp["state"]:
-            return OIDCError("Received state not the same as expected.")
+            self._err("Received state not the same as expected.")
 
         try:
             _id_token = authresp['id_token']
@@ -90,8 +115,7 @@ class Client(oic.Client):
             _id_token = None
         else:
             if _id_token['nonce'] != session["nonce"]:
-                return OIDCError("Received nonce not the same as expected.")
-            # store id_token under the state
+                self._err("Received nonce not the same as expected.")
 
         if self.behaviour["response_type"] == "code":
             # get the access token
@@ -109,27 +133,28 @@ class Client(oic.Client):
                     request_args=args,
                     authn_method=self.registration_response[
                         "token_endpoint_auth_method"])
+                logger.info('Access token response: {}'.format(atresp))
             except Exception as err:
                 logger.error("%s" % err)
                 raise
 
             if isinstance(atresp, ErrorResponse):
-                raise OIDCError("Invalid response %s." % atresp["error"])
+                self._err('Error response: {}'.format(atresp.to_dict()))
 
             _id_token = atresp['id_token']
 
         if _id_token is None:
-            raise OIDCError("Invalid response: no IdToken")
+            self._err("Invalid response: no IdToken")
 
         if _id_token['iss'] != self.provider_info['issuer']:
-            raise OIDCError("Issuer mismatch")
+            self._err("Issuer mismatch")
 
         if _id_token['nonce'] != session['nonce']:
-            raise OIDCError('Nonce missmatch')
+            self._err("Nonce mismatch")
 
         if not self.allow_sign_alg_none:
             if _id_token.jws_header['alg'] == 'none':
-                raise OIDCError('Do not allow "none" signature algorithm')
+                self._err('Do not allow "none" signature algorithm')
 
         user_id = '{}:{}'.format(_id_token['iss'], _id_token['sub'])
 
@@ -138,24 +163,33 @@ class Client(oic.Client):
         else:
             kwargs = {}
 
-        inforesp = self.do_user_info_request(state=authresp["state"], **kwargs)
+        if self.has_access_token(state=authresp["state"]):
+            inforesp = self.do_user_info_request(state=authresp["state"],
+                                                 **kwargs)
 
-        if isinstance(inforesp, ErrorResponse):
-            raise OIDCError("Invalid response %s." % inforesp["error"])
+            if isinstance(inforesp, ErrorResponse):
+                self._err("Invalid response %s." % inforesp["error"])
 
-        userinfo = inforesp.to_dict()
+            userinfo = inforesp.to_dict()
 
-        if _id_token['sub'] != userinfo['sub']:
-            raise OIDCError("Invalid response: userid mismatch")
+            if _id_token['sub'] != userinfo['sub']:
+                self._err("Invalid response: userid mismatch")
 
-        logger.debug("UserInfo: %s" % inforesp)
+            logger.debug("UserInfo: %s" % inforesp)
 
-        try:
-            self.id_token[user_id] = _id_token
-        except TypeError:
-            self.id_token = {user_id: _id_token}
+            try:
+                self.id_token[user_id] = _id_token
+            except TypeError:
+                self.id_token = {user_id: _id_token}
+        else:
+            userinfo = {}
+            for attr in OpenIDSchema.c_param:
+                try:
+                    userinfo[attr] = _id_token[attr]
+                except KeyError:
+                    pass
 
-        return user_id, userinfo
+        return {'user_id': user_id, 'userinfo': userinfo, 'id_token': _id_token}
 
 
 class OIDCClients(object):
@@ -234,11 +268,10 @@ class OIDCClients(object):
             # Find the service that provides information about the OP
             issuer = client.wf.discovery_query(userid)
             # Gather OP information
-            _ = client.provider_config(issuer)
+            pcr = client.provider_config(issuer)
             # register the client
-            _ = client.register(client.provider_info["registration_endpoint"],
-                                **kwargs["client_info"])
-
+            client.register(client.provider_info["registration_endpoint"],
+                            **kwargs["client_info"])
             self.get_path(kwargs['client_info']['redirect_uris'], issuer)
         elif _key_set == set(["client_info", "srv_discovery_url"]):
             # Ship the webfinger part
@@ -282,11 +315,13 @@ class OIDCClients(object):
                                  verify_ssl=self.config.VERIFY_SSL)
 
         issuer = client.wf.discovery_query(userid)
+        logger.info('issuer: {}'.format(issuer))
         if issuer in self.client:
             return self.client[issuer]
         else:
             # Gather OP information
             _pcr = client.provider_config(issuer)
+            logger.info('Provider info: {}'.format(_pcr.to_dict))
             # register the client
             _cinfo = self.config.CLIENTS[""]["client_info"]
             reg_args = copy.copy(_cinfo)
@@ -299,7 +334,8 @@ class OIDCClients(object):
                 for u in base_urls]
 
             self.get_path(reg_args['redirect_uris'], issuer)
-            _ = client.register(_pcr["registration_endpoint"], **reg_args)
+            rr = client.register(_pcr["registration_endpoint"], **reg_args)
+            logger.info('Registration response: {}'.format(rr.to_dict()))
 
             try:
                 client.behaviour.update(**self.config.CLIENTS[""]["behaviour"])

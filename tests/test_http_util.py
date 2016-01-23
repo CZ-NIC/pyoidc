@@ -20,7 +20,7 @@ class TestResponse(object):
 
         resp = Response(message, headers=[response_header])
         result = resp({}, start_response)
-        assert result == [message.encode("utf-8")]
+        assert result == [message.encode('utf8')]
 
 
 @pytest.fixture

@@ -3,6 +3,7 @@ import logging
 import random
 import string
 from jwkest import b64e
+import six
 from oic.oauth2.exception import Unsupported
 from oic.oauth2.message import AuthorizationRequest
 import requests
@@ -520,7 +521,11 @@ class Client(oauth2.Client):
 
 
 def make_software_statement(keyjar, iss, **kwargs):
-    params = list(inspect.signature(JWT.__init__).parameters.keys())
+    if six.PY2:
+        params = inspect.getargspec(JWT.__init__).args
+    else:
+        params = list(inspect.signature(JWT.__init__).parameters.keys())
+
     params.remove('self')
 
     args = {}

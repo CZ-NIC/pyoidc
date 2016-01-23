@@ -17,7 +17,6 @@ from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import AccessTokenRequest
 from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import TokenErrorResponse
-from oic.utils import sdb
 
 from oic.extension.client import Client
 from oic.extension.provider import Provider

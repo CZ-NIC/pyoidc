@@ -1,12 +1,17 @@
 #!/usr/bin/env python
 import importlib
 import argparse
-from jwkest.jws import alg2keytype
-from mako.lookup import TemplateLookup
-from six.moves.urllib import parse as urlparse
 import six
 import logging
-from oic.utils.http_util import NotFound
+
+from requests import ConnectionError
+from mako.lookup import TemplateLookup
+from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import urlencode
+from future.backports.urllib.parse import urlparse
+
+from jwkest.jws import alg2keytype
+from oic.utils.http_util import NotFound, get_post
 from oic.utils.http_util import Response
 from oic.utils.http_util import Redirect
 
@@ -66,12 +71,14 @@ def opchoice(environ, start_response, clients):
     return resp(environ, start_response, **argv)
 
 
-def opresult(environ, start_response, userinfo, check_session_iframe_url=None):
+def opresult(environ, start_response, userinfo, user_id,
+             check_session_iframe_url=None):
     resp = Response(mako_template="opresult.mako",
                     template_lookup=LOOKUP,
                     headers=[])
     argv = {
         "userinfo": userinfo,
+        'userid': user_id
     }
     if check_session_iframe_url:
         argv["check_session_iframe_url"] = check_session_iframe_url
@@ -89,7 +96,23 @@ def operror(environ, start_response, error=None):
     return resp(environ, start_response, **argv)
 
 
-#
+def opresult_fragment(environ, start_response):
+    resp = Response(mako_template="opresult_repost.mako",
+                    template_lookup=LOOKUP,
+                    headers=[])
+    argv = {}
+    return resp(environ, start_response, **argv)
+
+
+def sorry_response(environ, start_response, homepage, err):
+    resp = Response(mako_template="sorry.mako",
+                    template_lookup=LOOKUP,
+                    headers=[])
+    argv = {"htmlpage": homepage,
+            "error": str(err)}
+    return resp(environ, start_response, **argv)
+
+
 def get_id_token(client, session):
     return client.grant[session["state"]].get_id_token()
 
@@ -110,14 +133,21 @@ def application(environ, start_response):
     if path.startswith("static/"):
         return static(environ, start_response, LOGGER, path)
 
-    query = urlparse.parse_qs(environ["QUERY_STRING"])
+    query = parse_qs(environ["QUERY_STRING"])
     acr_values = session._params['acrs']
     clients = session._params['clients']
     server_env = session._params['server_env']
 
+    LOGGER.info(50 * "=")
+    LOGGER.info("[{}] path: {}".format(session.id, path))
+    LOGGER.info(50 * "=")
+
     if path == "rp":  # After having chosen which OP to authenticate at
         if "uid" in query:
-            client = clients.dynamic_client(query["uid"][0])
+            try:
+                client = clients.dynamic_client(query["uid"][0])
+            except ConnectionError as err:
+                return operror(environ, start_response, '{}'.format(err))
         else:
             client = clients[query["op"][0]]
 
@@ -129,22 +159,38 @@ def application(environ, start_response):
             raise
         else:
             return resp(environ, start_response)
-    elif path in clients.return_paths():  # After having authenticated at the OP
-        # mismatch between callback and return_uri
-        if session['op'] != clients.path[path]:
-            return operror(environ, start_response, "%s" % 'Not allowed')
-
-        client = clients[session["op"]]
+    elif path.endswith('authz_post'):
         try:
-            result = client.callback(query, session)
+            _iss = session['op']
+        except KeyError:
+            LOGGER.info(
+                '[{}] No active session with {}'.format(session.id,
+                                                        environ['REMOTE_ADDR']))
+            return opchoice(environ, start_response, clients)
+        else:
+            client = clients[_iss]
+
+        query = parse_qs(get_post(environ))
+        try:
+            info = query["fragment"][0]
+        except KeyError:
+            return sorry_response(environ, start_response, conf.BASE,
+                                  "missing fragment ?!")
+        if info == ['x']:
+            return sorry_response(environ, start_response, conf.BASE,
+                                  "Expected fragment didn't get one ?!")
+
+        LOGGER.info('[{}] Fragment part: {}'.format(session.id, info))
+
+        try:
+            result = client.callback(info, session, 'urlencoded')
             if isinstance(result, Redirect):
                 return result(environ, start_response)
         except OIDCError as err:
             return operror(environ, start_response, "%s" % err)
-        except Exception:
+        except Exception as err:
             raise
         else:
-            userid, userinfo = result
             check_session_iframe_url = None
             try:
                 check_session_iframe_url = client.provider_info[
@@ -158,16 +204,93 @@ def application(environ, start_response):
             except KeyError:
                 pass
 
-            return opresult(environ, start_response, userinfo,
-                            check_session_iframe_url)
-    elif path == "logout":  # After the user has pressed the logout button
+            return opresult(environ, start_response, result['userinfo'],
+                            result['user_id'], check_session_iframe_url)
+
+    elif path in clients.return_paths():  # After having authenticated at the OP
+        try:
+            _iss = session['op']
+        except KeyError:
+            LOGGER.info(
+                '[{}]No active session with {}'.format(session.id,
+                                                       environ['REMOTE_ADDR']))
+            return opchoice(environ, start_response, clients)
+
+        # mismatch between callback and return_uri
+        if _iss != clients.path[path]:
+            LOGGER.warning(
+                '[{}]issuer mismatch: {} != {}'.format(session.id, _iss,
+                                                       clients.path[path]))
+            return operror(environ, start_response, "%s" % 'Not allowed')
+
         client = clients[session["op"]]
+
+        _response_type = client.behaviour["response_type"]
+        try:
+            _response_mode = client.authz_req[session['state']]['response_mode']
+        except KeyError:
+            _response_mode = ''
+
+        LOGGER.info(
+            "[{}]response_type: {}, response_mode: {}".format(session.id,
+                                                              _response_type,
+                                                              _response_mode))
+        if _response_type and _response_type != "code":
+            # Fall through if it's a query response anyway
+            if query:
+                pass
+            elif _response_mode:
+                # form_post encoded
+                pass
+            else:
+                return opresult_fragment(environ, start_response)
+
+        LOGGER.info("[{}]Query part: {}".format(session.id, query))
+
+        try:
+            result = client.callback(query, session)
+            if isinstance(result, Redirect):
+                return result(environ, start_response)
+        except OIDCError as err:
+            return operror(environ, start_response, "%s" % err)
+        except Exception:
+            raise
+        else:
+            check_session_iframe_url = None
+            try:
+                check_session_iframe_url = client.provider_info[
+                    "check_session_iframe"]
+
+                session["session_management"] = {
+                    "session_state": query["session_state"][0],
+                    "client_id": client.client_id,
+                    "issuer": client.provider_info["issuer"]
+                }
+            except KeyError:
+                pass
+
+            return opresult(environ, start_response, result['userinfo'],
+                            result['user_id'], check_session_iframe_url)
+    elif path == "logout":  # After the user has pressed the logout button
+        try:
+            _iss = session['op']
+        except KeyError:
+            LOGGER.info(
+                '[{}]No active session with {}'.format(session.id,
+                                                       environ['REMOTE_ADDR']))
+            return opchoice(environ, start_response, clients)
+        client = clients[_iss]
+        try:
+            del client.authz_req[session['state']]
+        except KeyError:
+            pass
+
         logout_url = client.end_session_endpoint
         try:
             # Specify to which URL the OP should return the user after
             # log out. That URL must be registered with the OP at client
             # registration.
-            logout_url += "?" + urlparse.urlencode(
+            logout_url += "?" + urlencode(
                 {"post_logout_redirect_uri": client.registration_response[
                     "post_logout_redirect_uris"][0]})
         except KeyError:
@@ -176,15 +299,15 @@ def application(environ, start_response):
             # If there is an ID token send it along as a id_token_hint
             _idtoken = get_id_token(client, session)
             if _idtoken:
-                logout_url += "&" + urlparse.urlencode({
+                logout_url += "&" + urlencode({
                     "id_token_hint": id_token_as_signed_jwt(client, _idtoken,
                                                             "HS256")})
             # Also append the ACR values
-            logout_url += "&" + urlparse.urlencode({"acr_values": acr_values},
-                                                   True)
+            logout_url += "&" + urlencode({"acr_values": acr_values},
+                                          True)
 
-        LOGGER.debug("Logout URL: %s" % str(logout_url))
-        LOGGER.debug("Logging out from session: %s" % str(session))
+        LOGGER.debug("[{}]Logout URL: {}".format(session.id, logout_url))
+        LOGGER.debug("Logging out from session: [{}]".format(session.id))
         session.delete()
         resp = Redirect(str(logout_url))
         return resp(environ, start_response)
@@ -200,7 +323,15 @@ def application(environ, start_response):
                     **kwargs)
     elif path == "session_change":
         try:
-            client = clients[session["op"]]
+            _iss = session['op']
+        except KeyError:
+            LOGGER.info(
+                '[{}]No active session with {}'.format(session.id,
+                                                       environ['REMOTE_ADDR']))
+            return opchoice(environ, start_response, clients)
+
+        try:
+            client = clients[_iss]
         except KeyError:
             return Response("No valid session.")(environ, start_response)
 
@@ -245,7 +376,7 @@ if __name__ == '__main__':
         'session.cookie_expires': True,
         'session.auto': True,
         'session.key': "{}.beaker.session.id".format(
-            urlparse.urlparse(conf.BASE).netloc.replace(":", "."))
+            urlparse(conf.BASE).netloc.replace(":", "."))
     }
 
     _clients = OIDCClients(conf, _base)
@@ -259,6 +390,7 @@ if __name__ == '__main__':
 
     if conf.BASE.startswith("https"):
         from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
+
         SRV.ssl_adapter = BuiltinSSLAdapter(conf.SERVER_CERT, conf.SERVER_KEY,
                                             conf.CERT_CHAIN)
         extra = " using SSL/TLS"

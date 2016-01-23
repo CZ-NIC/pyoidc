@@ -6,14 +6,6 @@ from jwkest import jws
 from jwkest.jws import JWS
 
 
-class UnknownHashSizeError(Exception):
-    pass
-
-
-class EmptyHTTPRequestError(Exception):
-    pass
-
-
 class ValidationError(Exception):
     pass
 
@@ -31,7 +23,7 @@ def hash_value(size, data):
     elif size == 512:
         return hashlib.sha512(data).digest()
 
-    raise UnknownHashSizeError(str(size))
+    raise ValueError("The specifed hash size '{}' is unsupported.".format(size))
 
 
 def serialize_dict(data, serialization_template):
@@ -55,23 +47,24 @@ def _equals(value, expected):
 
 def _serialize_params(params, str_format, hash_size):
     _keys, _buffer = serialize_dict(params, str_format)
-    _hash = urlsafe_b64encode(hash_value(hash_size, _buffer)).decode("utf-8")
+    _hash = b64_hash(_buffer, hash_size)
     return [_keys, _hash]
 
 
 def _verify_params(params, req, str_format, hash_size, strict_verification,
                    key):
-    _req_keys, _req_hash = req
-    _pparam = {}
-    try:
-        _pparam = dict([(k, params[k]) for k in _req_keys])
-    except KeyError:
-        ValidationError("Too few {}".format(key))
+    key_order, req_hash = req
 
-    _keys, _hash = _serialize_params(_pparam, str_format, hash_size)
-    _equals(_req_hash, _hash)
-    if strict_verification and len(_keys) != len(params):
+    if strict_verification and len(key_order) != len(params):
         raise ValidationError("Too many or too few {}".format(key))
+
+    buffer = ""
+    try:
+        buffer = "".join([str_format.format(k, params[k]) for k in key_order])
+    except KeyError:
+        raise ValidationError("Too few {}".format(key))
+
+    _equals(req_hash, b64_hash(buffer, hash_size))
 
 
 def _upper(s):
@@ -124,7 +117,7 @@ class SignedHttpRequest(object):
             pass
 
         if not http_json:
-            raise EmptyHTTPRequestError("No data to sign")
+            raise ValueError("No data to sign")
 
         jws = JWS(json.dumps(http_json), alg=alg)
         return jws.sign_compact(keys=[self.key])
@@ -166,9 +159,6 @@ class SignedHttpRequest(object):
             except KeyError:
                 pass
 
-        try:
-            _equals(b64_hash(kwargs['body'], hash_size), unpacked_req["b"])
-        except KeyError:
-            pass
+        _equals(b64_hash(kwargs.get("body", ""), hash_size), unpacked_req.get("b", ""))
 
         return unpacked_req

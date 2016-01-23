@@ -429,6 +429,8 @@ class Client(PBase):
             info = self.get_urlinfo(info)
 
         resp = response().deserialize(info, sformat, **kwargs)
+        logger.debug('Initial response parsing => "{}"'.format(resp.to_dict()))
+
         if "error" in resp and not isinstance(resp, ErrorResponse):
             resp = None
             try:
@@ -444,7 +446,6 @@ class Client(PBase):
                         break
                     except Exception as aerr:
                         resp = None
-                        err = aerr
             except KeyError:
                 pass
         elif resp.only_extras():
@@ -458,6 +459,7 @@ class Client(PBase):
             verf = resp.verify(**kwargs)
 
             if not verf:
+                logger.error('Verification of the response failed')
                 raise PyoidcError("Verification of the response failed")
             if resp.type() == "AuthorizationResponse" and \
                     "scope" not in resp:
@@ -467,6 +469,7 @@ class Client(PBase):
                     pass
 
         if not resp:
+            logger.error('Missing or faulty response')
             raise ResponseError("Missing or faulty response")
 
         self.store_response(resp, info)
