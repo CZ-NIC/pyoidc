@@ -11,7 +11,8 @@ import traceback
 from authn_setup import authn_setup
 from aatest import as_unicode
 from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
-from oic.extension.provider import Provider
+from oic.extension.provider import Provider, RevocationEndpoint, \
+    IntrospectionEndpoint
 from oic.extension.token import JWTToken
 from oic.oauth2.provider import AuthorizationEndpoint
 from oic.oauth2.provider import TokenEndpoint
@@ -72,10 +73,26 @@ def registration(environ, start_response):
     return wsgi_wrapper(environ, start_response, _oas.registration_endpoint)
 
 
+# noinspection PyUnusedLocal
+def introspection(environ, start_response):
+    _oas = environ["oic.oas"]
+
+    return wsgi_wrapper(environ, start_response, _oas.introspection_endpoint)
+
+
+# noinspection PyUnusedLocal
+def revocation(environ, start_response):
+    _oas = environ["oic.oas"]
+
+    return wsgi_wrapper(environ, start_response, _oas.revocation_endpoint)
+
+
 ENDPOINTS = [
     AuthorizationEndpoint(authorization),
     TokenEndpoint(token),
-    RegistrationEndpoint(registration)
+    RegistrationEndpoint(registration),
+    IntrospectionEndpoint(introspection),
+    RevocationEndpoint(revocation)
 ]
 
 
@@ -265,10 +282,10 @@ if __name__ == "__main__":
         OAS.jwks_uri = "{}/{}".format(OAS.baseurl, jwks_file_name)
 
     # Initiate the SessionDB
-    _token = JWTToken('T', {'code': 3600, 'token': 900}, config.issuer, 'RS256',
-                      OAS.keyjar)
-    _refresh_token = JWTToken('R', {'': 86400}, config.issuer, 'RS256',
-                              OAS.keyjar)
+    _token = JWTToken('T', OAS.keyjar, {'code': 3600, 'token': 900},
+                      iss=config.issuer, sign_alg= 'RS256')
+    _refresh_token = JWTToken('R', OAS.keyjar, {'': 86400}, iss=config.issuer,
+                              sign_alg='RS256')
     OAS.sdb = SessionDB(config.SERVICE_URL, token_factory=_token,
                         refresh_token_factory=_refresh_token)
 
