@@ -145,6 +145,8 @@ class ClientUpdateRequest(RegistrationRequest):
     c_param.update({
         "client_id": SINGLE_REQUIRED_STRING,
         "client_secret": SINGLE_OPTIONAL_STRING,
+        'client_assertion_type': SINGLE_OPTIONAL_STRING,
+        'client_assertion': SINGLE_OPTIONAL_STRING
     })
 
 
@@ -175,7 +177,7 @@ BASECH = string.ascii_letters + string.digits + '-._~'
 
 def unreserved(size=64):
     """
-    Returns a string of random ascii characters or digits
+    Returns a string of random ascii characters, digits and unreserve characters
 
     :param size: The length of the string
     :return: string
@@ -226,11 +228,7 @@ class Client(oauth2.Client):
 
         return self.construct_request(request, request_args, extra_args)
 
-    def construct_TokenIntrospectionRequest(self,
-                                            request=TokenIntrospectionRequest,
-                                            request_args=None, extra_args=None,
-                                            **kwargs):
-
+    def _token_interaction_setup(self, request_args=None, **kwargs):
         if request_args is None or 'token' not in request_args:
             token = self.get_token(**kwargs)
             try:
@@ -245,6 +243,14 @@ class Client(oauth2.Client):
             request_args["client_id"] = self.client_id
         elif not request_args["client_id"]:
             request_args["client_id"] = self.client_id
+
+        return request_args
+
+    def construct_TokenIntrospectionRequest(self,
+                                            request=TokenIntrospectionRequest,
+                                            request_args=None, extra_args=None,
+                                            **kwargs):
+        request_args = self._token_interaction_setup(request_args, **kwargs)
         return self.construct_request(request, request_args, extra_args)
 
     def construct_TokenRevocationRequest(self,
@@ -252,22 +258,25 @@ class Client(oauth2.Client):
                                          request_args=None, extra_args=None,
                                          **kwargs):
 
-        if request_args is None or 'token' not in request_args:
-            token = self.get_token(**kwargs)
-            try:
-                _token_type_hint = kwargs['token_type_hint']
-            except KeyError:
-                _token_type_hint = 'access_token'
-
-            request_args = {'token_type_hint': _token_type_hint,
-                            'token': getattr(token, _token_type_hint)}
-
-        if "client_id" not in request_args:
-            request_args["client_id"] = self.client_id
-        elif not request_args["client_id"]:
-            request_args["client_id"] = self.client_id
+        request_args = self._token_interaction_setup(request_args, **kwargs)
 
         return self.construct_request(request, request_args, extra_args)
+
+    def do_op(self, request, body_type='', method='GET', request_args=None,
+              extra_args=None, http_args=None, response_cls=None, **kwargs):
+
+        url, body, ht_args, csi = self.request_info(request, method,
+                                                    request_args, extra_args,
+                                                    **kwargs)
+
+        if http_args is None:
+            http_args = ht_args
+        else:
+            http_args.update(http_args)
+
+        resp = self.request_and_return(url, response_cls, method, body,
+                                       body_type, http_args=http_args)
+        return resp
 
     def do_client_registration(self, request=RegistrationRequest,
                                body_type="", method="GET",
@@ -276,19 +285,10 @@ class Client(oauth2.Client):
                                response_cls=ClientInfoResponse,
                                **kwargs):
 
-        url, body, ht_args, csi = self.request_info(request, method,
-                                                    request_args, extra_args,
-                                                    **kwargs)
-
-        if http_args is None:
-            http_args = ht_args
-        else:
-            http_args.update(http_args)
-
-        resp = self.request_and_return(url, response_cls, method, body,
-                                       body_type, http_args=http_args)
-
-        return resp
+        return self.do_op(request=request, body_type=body_type, method=method,
+                          request_args=request_args, extra_args=extra_args,
+                          http_args=http_args, response_cls=response_cls,
+                          **kwargs)
 
     def do_client_read_request(self, request=ClientUpdateRequest,
                                body_type="", method="GET",
@@ -297,19 +297,10 @@ class Client(oauth2.Client):
                                response_cls=ClientInfoResponse,
                                **kwargs):
 
-        url, body, ht_args, csi = self.request_info(request, method,
-                                                    request_args, extra_args,
-                                                    **kwargs)
-
-        if http_args is None:
-            http_args = ht_args
-        else:
-            http_args.update(http_args)
-
-        resp = self.request_and_return(url, response_cls, method, body,
-                                       body_type, http_args=http_args)
-
-        return resp
+        return self.do_op(request=request, body_type=body_type, method=method,
+                          request_args=request_args, extra_args=extra_args,
+                          http_args=http_args, response_cls=response_cls,
+                          **kwargs)
 
     def do_client_update_request(self, request=ClientUpdateRequest,
                                  body_type="", method="PUT",
@@ -318,19 +309,10 @@ class Client(oauth2.Client):
                                  response_cls=ClientInfoResponse,
                                  **kwargs):
 
-        url, body, ht_args, csi = self.request_info(request, method,
-                                                    request_args, extra_args,
-                                                    **kwargs)
-
-        if http_args is None:
-            http_args = ht_args
-        else:
-            http_args.update(http_args)
-
-        resp = self.request_and_return(url, response_cls, method, body,
-                                       body_type, http_args=http_args)
-
-        return resp
+        return self.do_op(request=request, body_type=body_type, method=method,
+                          request_args=request_args, extra_args=extra_args,
+                          http_args=http_args, response_cls=response_cls,
+                          **kwargs)
 
     def do_client_delete_request(self, request=ClientUpdateRequest,
                                  body_type="", method="DELETE",
@@ -339,57 +321,30 @@ class Client(oauth2.Client):
                                  response_cls=ClientInfoResponse,
                                  **kwargs):
 
-        url, body, ht_args, csi = self.request_info(request, method,
-                                                    request_args, extra_args,
-                                                    **kwargs)
-
-        if http_args is None:
-            http_args = ht_args
-        else:
-            http_args.update(http_args)
-
-        resp = self.request_and_return(url, response_cls, method, body,
-                                       body_type, http_args=http_args)
-
-        return resp
+        return self.do_op(request=request, body_type=body_type, method=method,
+                          request_args=request_args, extra_args=extra_args,
+                          http_args=http_args, response_cls=response_cls,
+                          **kwargs)
 
     def do_token_introspection(
             self, request=TokenIntrospectionRequest, body_type="json",
             method="POST", request_args=None, extra_args=None,
             http_args=None, response_cls=TokenIntrospectionResponse, **kwargs):
 
-        url, body, ht_args, csi = self.request_info(request, method,
-                                                    request_args, extra_args,
-                                                    **kwargs)
-
-        if http_args is None:
-            http_args = ht_args
-        else:
-            http_args.update(http_args)
-
-        resp = self.request_and_return(url, response_cls, method, body,
-                                       body_type, http_args=http_args)
-
-        return resp
+        return self.do_op(request=request, body_type=body_type, method=method,
+                          request_args=request_args, extra_args=extra_args,
+                          http_args=http_args, response_cls=response_cls,
+                          **kwargs)
 
     def do_token_revocation(
             self, request=TokenRevocationRequest, body_type="",
             method="POST", request_args=None, extra_args=None,
             http_args=None, response_cls=None, **kwargs):
 
-        url, body, ht_args, csi = self.request_info(request, method,
-                                                    request_args, extra_args,
-                                                    **kwargs)
-
-        if http_args is None:
-            http_args = ht_args
-        else:
-            http_args.update(http_args)
-
-        resp = self.request_and_return(url, response_cls, method, body,
-                                       body_type, http_args=http_args)
-
-        return resp
+        return self.do_op(request=request, body_type=body_type, method=method,
+                          request_args=request_args, extra_args=extra_args,
+                          http_args=http_args, response_cls=response_cls,
+                          **kwargs)
 
     def add_code_challenge(self):
         try:
