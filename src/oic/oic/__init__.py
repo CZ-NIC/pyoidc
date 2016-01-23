@@ -80,7 +80,9 @@ REQUEST2ENDPOINT = {
     "RegistrationRequest": "registration_endpoint",
     "RotateSecret": "registration_endpoint",
     # ---
-    "ResourceRequest": "resource_endpoint"
+    "ResourceRequest": "resource_endpoint",
+    'TokenIntrospectionRequest': 'introspection_endpoint',
+    'TokenRevocationRequest': 'revocation_endpoint',
 }
 
 # -----------------------------------------------------------------------------
