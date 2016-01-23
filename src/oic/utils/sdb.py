@@ -397,6 +397,7 @@ class SessionDB(object):
             self._refresh_db = DictRefreshDB()
 
         self.access_token = self.token_factory['access_token']
+        self.token = self.access_token
         self.uid2sid = {}
         self.seed = seed or secret
 
