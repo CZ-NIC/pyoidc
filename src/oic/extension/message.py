@@ -14,7 +14,11 @@ __author__ = 'roland'
 class TokenIntrospectionRequest(Message):
     c_param = {
         'token': SINGLE_REQUIRED_STRING,
-        'token_type_hint': SINGLE_OPTIONAL_STRING
+        'token_type_hint': SINGLE_OPTIONAL_STRING,
+        # The ones below are part of authentication information
+        'client_id': SINGLE_OPTIONAL_STRING,
+        'client_assertion_type': SINGLE_OPTIONAL_STRING,
+        'client_assertion': SINGLE_OPTIONAL_STRING
     }
 
 
@@ -39,7 +43,10 @@ class TokenIntrospectionResponse(Message):
 class TokenRevocationRequest(Message):
     c_param = {
         'token': SINGLE_REQUIRED_STRING,
-        'token_type_hint': SINGLE_OPTIONAL_STRING
+        'token_type_hint': SINGLE_OPTIONAL_STRING,
+        'client_id': SINGLE_OPTIONAL_STRING,
+        'client_assertion_type': SINGLE_OPTIONAL_STRING,
+        'client_assertion': SINGLE_OPTIONAL_STRING
     }
 
 
