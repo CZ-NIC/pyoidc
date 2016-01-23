@@ -168,9 +168,16 @@ def verify_header(reqresp, body_type):
     logger.debug("resp.headers: %s" % (reqresp.headers,))
     logger.debug("resp.txt: %s" % (reqresp.text,))
 
-    # This might be a tad to strict
     if body_type == "":
-        pass
+        _ctype = reqresp.headers["content-type"]
+        if match_to_("application/json", _ctype):
+            body_type='json'
+        elif match_to_("application/jwt", _ctype):
+            body_type = "jwt"
+        elif match_to_(URL_ENCODED, _ctype) or match_to_("text/plain", _ctype):
+            body_type = 'urlencoded'
+        else:
+            body_type = 'urlencoded'  # reasonable default ??
     elif body_type == "json":
         try:
             assert match_to_("application/json",
