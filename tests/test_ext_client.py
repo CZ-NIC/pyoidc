@@ -125,7 +125,8 @@ def test_pkce_token():
     session_info = {
         'sub': 'subject_id',
         'client_id': 'https://example.com/rp',
-        'response_type': ['code']
+        'response_type': ['code'],
+        'authzreq': '{}'
     }
 
     _cli = Client(config={'code_challenge': {'method': 'S512', 'length': 96}})

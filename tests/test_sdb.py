@@ -6,14 +6,11 @@ import time
 
 import pytest
 
-import mock
-from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.sdb import AccessCodeUsed, DefaultToken
 from oic.utils.sdb import AuthnEvent
 from oic.utils.sdb import Crypt
 from oic.utils.sdb import DictRefreshDB
 from oic.utils.sdb import SessionDB
-from oic.utils.sdb import Token
 from oic.utils.sdb import WrongTokenType
 from oic.utils.sdb import ExpiredToken
 from oic.oic.message import AuthorizationRequest
@@ -257,7 +254,7 @@ class TestSessionDB(object):
         sinfo = self.sdb.upgrade_to_token(grant, issue_refresh=True)
         assert not self.sdb.is_valid(grant)
         access_token = sinfo["access_token"]
-        assert self.sdb.token.valid(access_token)
+        assert self.sdb.access_token.valid(access_token)
 
         refresh_token = sinfo["refresh_token"]
         sinfo = self.sdb.refresh_token(refresh_token, AREQ['client_id'])

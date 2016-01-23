@@ -615,6 +615,22 @@ class Provider(provider.Provider):
         self.jwks_uri = key_export(self.baseurl, local_path, vault, self.keyjar,
                                    fqdn=self.hostname, sig=sig, enc=enc)
 
+    @staticmethod
+    def token_access(endpoint, client_id, token_info):
+        # simple rules: if client_id in azp or aud it's allow to introspect
+        # to revoke it has to be in azr
+        allow = False
+        if endpoint == 'revocation_endpoint':
+            if 'azr' in token_info and client_id == token_info['azr']:
+                allow = True
+        else:  # has to be introspection endpoint
+            if 'azr' in token_info and client_id == token_info['azr']:
+                allow = True
+            elif 'aud' in token_info:
+                if client_id in token_info['aud']:
+                    allow = True
+        return allow
+
     def get_token_info(self, authn, req, endpoint):
         """
 
@@ -637,33 +653,25 @@ class Provider(provider.Provider):
             token_type = req['token_type_hint']
         except KeyError:
             try:
-                _info = self.sdb.token_factory['token'].info(req['token'])
+                _info = self.sdb.token_factory['access_token'].info(req['token'])
             except KeyError:
                 try:
-                    _info = self.sdb.token_factory['refresh_token'].invalidate(
+                    _info = self.sdb.token_factory['refresh_token'].get_info(
                         req['token'])
                 except KeyError:
                     raise
                 else:
                     token_type = 'refresh_token'
             else:
-                token_type = 'token'
+                token_type = 'access_token'
         else:
             try:
-                _info = self.sdb.token_factory[token_type].invalidate(
+                _info = self.sdb.token_factory[token_type].get_info(
                     req['token'])
             except KeyError:
                 raise
 
-        # simple rule: if client_id in azp or aud it's allow to introspect
-        allow = False
-        if client_id == _info['azr']:
-            allow = True
-        elif 'aud' in _info:
-            if client_id in _info['aud']:
-                allow = True
-
-        if not allow:
+        if not self.token_access(endpoint, client_id, _info):
             return BadRequest()
 
         return client_id, token_type, _info
@@ -719,6 +727,10 @@ class Provider(provider.Provider):
         logger.info('{} token introspection: {}'.format(client_id,
                                                         tir.to_dict()))
 
-        ir = TokenIntrospectionResponse(**_info.to_dict())
+        ir = TokenIntrospectionResponse(
+            active=self.sdb.token_factory[token_type].is_valid(_info),
+            **_info.to_dict())
+
+        ir.weed()
 
         return Response(ir.to_json(), content="application/json")

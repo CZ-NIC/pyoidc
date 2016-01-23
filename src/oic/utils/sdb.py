@@ -375,16 +375,16 @@ class SessionDB(object):
 
         self.token_factory = {}
 
-        self.token_factory_order = ['code', 'token']
+        self.token_factory_order = ['code', 'access_token']
         if code_factory:
             self.token_factory['code'] = code_factory
         else:
             self.token_factory['code'] = DefaultToken(secret, password, typ='A',
                                                       lifetime=grant_expires_in)
         if token_factory:
-            self.token_factory['token'] = token_factory
+            self.token_factory['access_token'] = token_factory
         else:
-            self.token_factory['token'] = DefaultToken(
+            self.token_factory['access_token'] = DefaultToken(
                 secret, password, typ='T', lifetime=token_expires_in)
 
         if refresh_token_factory:
@@ -396,7 +396,7 @@ class SessionDB(object):
         else:
             self._refresh_db = DictRefreshDB()
 
-        self.token = self.token_factory['token']
+        self.access_token = self.token_factory['access_token']
         self.uid2sid = {}
         self.seed = seed or secret
 
@@ -595,11 +595,11 @@ class SessionDB(object):
 
             if dic["code_used"]:
                 raise AccessCodeUsed()
-            _at = self.token(sid=key, sinfo=dic)
+            _at = self.access_token(sid=key, sinfo=dic)
             dic["code_used"] = True
         else:
             dic = self._db[key]
-            _at = self.token(sid=key, sinfo=dic)
+            _at = self.access_token(sid=key, sinfo=dic)
 
         dic["access_token"] = _at
         dic["access_token_scope"] = "?"
@@ -648,7 +648,7 @@ class SessionDB(object):
                 try:
                     sid = _info['sid']
                 except KeyError:
-                    sid = rndstr(self.token._sidlen)
+                    sid = rndstr(self.access_token._sidlen)
                     dic = _info
                     areq = json.loads(_info['authzreq'])
                     dic['response_type'] = areq['response_type'].split(' ')
@@ -658,20 +658,20 @@ class SessionDB(object):
                     except KeyError:
                         dic = _info
 
-                access_token = self.token(sid=sid, sinfo=dic)
+                access_token = self.access_token(sid=sid, sinfo=dic)
                 try:
                     at = dic["access_token"]
                 except KeyError:
                     pass
                 else:
                     if at:
-                        self.token.invalidate(at)
+                        self.access_token.invalidate(at)
             else:
                 raise ExpiredToken()
         elif self.token_factory['refresh_token'].valid(rtoken):
             sid = self.token_factory['refresh_token'].get_key(rtoken)
             dic = self._db[sid]
-            access_token = self.token(sid=sid, sinfo=dic)
+            access_token = self.access_token(sid=sid, sinfo=dic)
 
             try:
                 at = dic["access_token"]
@@ -679,7 +679,7 @@ class SessionDB(object):
                 pass
             else:
                 if at:
-                    self.token.invalidate(at)
+                    self.access_token.invalidate(at)
 
             dic["access_token"] = access_token
         else:
@@ -718,13 +718,13 @@ class SessionDB(object):
             if _dic["access_token"] != token:
                 return False
 
-            if not self.token.valid(token):
+            if not self.access_token.valid(token):
                 return False
 
         return True
 
     def is_revoked(self, sid):
-        # typ, sid = self.token.type_and_key(token)
+        # typ, sid = self.access_token.type_and_key(token)
         try:
             return self[sid]["revoked"]
         except KeyError:

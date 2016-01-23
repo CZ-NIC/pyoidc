@@ -72,6 +72,13 @@ JWKS = {"keys": [
     }]}
 
 
+SESSION_INFO = {
+    'sub': 'subject_id',
+    'client_id': 'https://example.com/rp',
+    'response_type': ['code'],
+    'authzreq': '{}'
+}
+
 class TestToken(object):
     @pytest.fixture(autouse=True)
     def create_token(self):
@@ -79,32 +86,24 @@ class TestToken(object):
         kj = KeyJar()
         kj.issuer_keys[''] = [kb]
 
-        self.token = JWTToken('T', keyjar=kj,
+        self.access_token = JWTToken('T', keyjar=kj,
                               lifetime={'code': 3600, 'token': 900},
                               iss='https://example.com/as', sign_alg='RS256')
 
     def test_create(self):
         sid = rndstr(32)
-        session_info = {
-            'sub': 'subject_id',
-            'client_id': 'https://example.com/rp',
-            'response_type': ['code']
-        }
+        session_info = SESSION_INFO
 
-        _jwt = self.token(sid, sinfo=session_info, kid='sign1')
+        _jwt = self.access_token(sid, sinfo=session_info, kid='sign1')
 
         assert _jwt
         assert len(_jwt.split('.')) == 3  # very simple JWS check
 
     def test_create_with_aud(self):
         sid = rndstr(32)
-        session_info = {
-            'sub': 'subject_id',
-            'client_id': 'https://example.com/rp',
-            'response_type': ['code']
-        }
+        session_info = SESSION_INFO
 
-        _jwt = self.token(sid, sinfo=session_info, kid='sign1',
+        _jwt = self.access_token(sid, sinfo=session_info, kid='sign1',
                           aud=['https://example.com/rs'])
 
         assert _jwt
@@ -117,33 +116,25 @@ class TestEncToken(object):
         kj = KeyJar()
         kj.issuer_keys[''] = [kb]
 
-        self.token = JWTToken('T', keyjar=kj,
+        self.access_token = JWTToken('T', keyjar=kj,
                               lifetime={'code': 3600, 'token': 900},
                               iss='https://example.com/as', encrypt=True)
 
     def test_enc_create(self):
         sid = rndstr(32)
-        session_info = {
-            'sub': 'subject_id',
-            'client_id': 'https://example.com/rp',
-            'response_type': ['code']
-        }
+        session_info = SESSION_INFO
 
-        _jwe = self.token(sid, sinfo=session_info, kid='sign1')
+        _jwe = self.access_token(sid, sinfo=session_info, kid='sign1')
 
         assert _jwe
         assert len(_jwe.split('.')) == 5  # very simple JWE check
 
     def test_parse_enc(self):
         sid = rndstr(32)
-        session_info = {
-            'sub': 'subject_id',
-            'client_id': 'https://example.com/rp',
-            'response_type': ['code']
-        }
+        session_info = SESSION_INFO
 
-        _jwe = self.token(sid, sinfo=session_info, kid='sign1')
-        _info = self.token.get_info(_jwe)
+        _jwe = self.access_token(sid, sinfo=session_info, kid='sign1')
+        _info = self.access_token.get_info(_jwe)
         assert _info
 
 
@@ -317,7 +308,7 @@ class TestSessionDB(object):
         sinfo = self.sdb.upgrade_to_token(grant, issue_refresh=True)
         assert not self.sdb.is_valid(grant)
         access_token = sinfo["access_token"]
-        assert self.sdb.token.valid(access_token)
+        assert self.sdb.access_token.valid(access_token)
 
         refresh_token = sinfo["refresh_token"]
         sinfo = self.sdb.refresh_token(refresh_token, AREQ['client_id'])

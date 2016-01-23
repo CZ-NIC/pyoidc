@@ -1,5 +1,7 @@
 import json
 import time
+from oic.extension.message import TokenIntrospectionRequest, \
+    TokenIntrospectionResponse, TokenRevocationRequest
 
 import pytest
 
@@ -200,7 +202,7 @@ class TestProvider(object):
                                        client_id="client1")
 
         _sdb = self.provider.sdb
-        sid = _sdb.token.key(user="sub", areq=authreq)
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
         access_grant = _sdb.token_factory['code'](sid=sid)
         _sdb[sid] = {
             "oauth_state": "authz",
@@ -231,7 +233,7 @@ class TestProvider(object):
                                        response_type='code')
 
         _sdb = self.provider.sdb
-        sid = _sdb.token.key(user="sub", areq=authreq)
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
         access_grant = _sdb.token_factory['code'](sid=sid)
         _sdb[sid] = {
             "oauth_state": "authz",
@@ -254,3 +256,85 @@ class TestProvider(object):
         resp = self.provider.token_endpoint(request=areq.to_urlencoded())
         atr = TokenErrorResponse().deserialize(resp.message, "json")
         assert _eq(atr.keys(), ['error_description', 'error'])
+
+    def test_token_introspection(self):
+        authreq = AuthorizationRequest(state="state",
+                                       redirect_uri="http://example.com/authz",
+                                       client_id="client1")
+
+        _sdb = self.provider.sdb
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
+        access_grant = _sdb.token_factory['code'](sid=sid)
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "sub": "sub",
+            "authzreq": authreq.to_json(),
+            "client_id": "client1",
+            "code": access_grant,
+            "code_used": False,
+            "redirect_uri": "http://example.com/authz",
+            'response_type': ['code']
+        }
+
+        # Construct Access token request
+        areq = AccessTokenRequest(code=access_grant,
+                                  redirect_uri="http://example.com/authz",
+                                  client_id="client1",
+                                  client_secret="hemlighet",
+                                  grant_type='authorization_code')
+
+        resp = self.provider.token_endpoint(request=areq.to_urlencoded())
+        atr = AccessTokenResponse().deserialize(resp.message, "json")
+        req = TokenIntrospectionRequest(token=atr['access_token'],
+                                        client_id="client1",
+                                        client_secret="hemlighet",
+                                        token_type_hint='access_token')
+        resp = self.provider.introspection_endpoint(request=req.to_urlencoded())
+        assert resp
+        ti_resp = TokenIntrospectionResponse().deserialize(resp.message, 'json')
+        assert ti_resp['active'] is True
+
+    def test_token_revocation_and_introspection(self):
+        authreq = AuthorizationRequest(state="state",
+                                       redirect_uri="http://example.com/authz",
+                                       client_id="client1")
+
+        _sdb = self.provider.sdb
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
+        access_grant = _sdb.token_factory['code'](sid=sid)
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "sub": "sub",
+            "authzreq": authreq.to_json(),
+            "client_id": "client1",
+            "code": access_grant,
+            "code_used": False,
+            "redirect_uri": "http://example.com/authz",
+            'response_type': ['code']
+        }
+
+        # Construct Access token request
+        areq = AccessTokenRequest(code=access_grant,
+                                  redirect_uri="http://example.com/authz",
+                                  client_id="client1",
+                                  client_secret="hemlighet",
+                                  grant_type='authorization_code')
+
+        resp = self.provider.token_endpoint(request=areq.to_urlencoded())
+        atr = AccessTokenResponse().deserialize(resp.message, "json")
+
+        req = TokenRevocationRequest(token=atr['access_token'],
+                                     client_id="client1",
+                                     client_secret="hemlighet",
+                                     token_type_hint='access_token')
+        resp = self.provider.revocation_endpoint(request=req.to_urlencoded())
+        assert resp.status == '200 OK'
+
+        req = TokenIntrospectionRequest(token=atr['access_token'],
+                                        client_id="client1",
+                                        client_secret="hemlighet",
+                                        token_type_hint='access_token')
+        resp = self.provider.introspection_endpoint(request=req.to_urlencoded())
+        assert resp
+        ti_resp = TokenIntrospectionResponse().deserialize(resp.message, 'json')
+        assert ti_resp['active'] is False

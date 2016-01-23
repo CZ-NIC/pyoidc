@@ -139,8 +139,8 @@ class TestProvider(object):
                                        client_id="client1")
 
         _sdb = self.provider.sdb
-        sid = _sdb.token.key(user="sub", areq=authreq)
-        access_grant = _sdb.token(sid=sid)
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
+        access_grant = _sdb.access_token(sid=sid)
         _sdb[sid] = {
             "oauth_state": "authz",
             "sub": "sub",
@@ -168,8 +168,8 @@ class TestProvider(object):
                                        client_id="client1")
 
         _sdb = self.provider.sdb
-        sid = _sdb.token.key(user="sub", areq=authreq)
-        access_grant = _sdb.token(sid=sid)
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
+        access_grant = _sdb.access_token(sid=sid)
         _sdb[sid] = {
             "oauth_state": "authz",
             "sub": "sub",

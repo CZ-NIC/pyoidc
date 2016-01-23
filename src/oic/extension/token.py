@@ -192,8 +192,34 @@ class JWTToken(Token, JWT):
 
         :return:
         """
-        exp = self.do_exp(**kwargs['sinfo'])
+        _sinfo = kwargs['sinfo']
+        exp = self.do_exp(**_sinfo)
+
+        _cid = _sinfo['client_id']
+        if 'aud' in kwargs:
+            if _cid not in kwargs['aud']:
+                kwargs['aud'].append(_cid)
+        else:
+            kwargs['aud'] = [_cid]
+
+        if 'azr' not in kwargs:
+            kwargs['azr'] = _cid
+
+        if 'scope' not in kwargs:
+            _scope = None
+            try:
+                _scope = _sinfo['scope']
+            except KeyError:
+                ar = json.loads(_sinfo['authzreq'])
+                try:
+                    _scope = ar['scope']
+                except KeyError:
+                    pass
+            if _scope:
+                kwargs['scope'] = ' ' .join(_scope)
+
         del kwargs['sinfo']
+
         _jti = '{}-{}'.format(self.type, uuid.uuid4().hex)
         _jwt = self.pack(sid=sid, jti=_jti, exp=exp, **kwargs)
         self.db[_jti] = sid
@@ -241,14 +267,16 @@ class JWTToken(Token, JWT):
         info = self.unpack(token)
         del self.db[info['jti']]
 
-    def valid(self, token):
-        info = self.unpack(token)
-
+    def is_valid(self, info):
         if info['jti'] in self.db:
             if info['exp'] >= utc_time_sans_frac():
                 return True
 
         return False
+
+    def valid(self, token):
+        info = self.unpack(token)
+        return self.is_valid(info)
 
     def get_info(self, token):
         return self.unpack(token)

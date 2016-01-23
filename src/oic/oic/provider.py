@@ -915,7 +915,7 @@ class Provider(AProvider):
                 return self._error(error="access_denied",
                                    descr="Could not sign/encrypt id_token")
 
-            sid = _sdb.token.get_key(rtoken)
+            sid = _sdb.access_token.get_key(rtoken)
             _sdb.update(sid, "id_token", _idtoken)
 
         _log_debug("_info: %s" % _info)
@@ -1101,7 +1101,7 @@ class Provider(AProvider):
 
         _sdb = self.sdb
         # should be an access token
-        typ, key = _sdb.token.type_and_key(token)
+        typ, key = _sdb.access_token.type_and_key(token)
         _log_debug("access_token type: '%s'" % (typ,))
 
         try:
