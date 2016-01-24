@@ -34,8 +34,9 @@ from oic.oauth2 import AccessTokenResponse
 from oic.oauth2 import by_schema
 from oic.oauth2 import rndstr
 from oic.oauth2.provider import Endpoint
-from oic.oauth2.exception import VerificationError
+from oic.oauth2.exception import VerificationError, CapabilitiesMisMatch
 # from oic.oic import ProviderConfigurationResponse
+from oic.oic import PREFERENCE2PROVIDER
 from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.provider import RegistrationEndpoint
 from oic.oic.provider import STR
@@ -91,12 +92,12 @@ class Provider(provider.Provider):
     """
 
     def __init__(self, name, sdb, cdb, authn_broker, authz, client_authn,
-            symkey="", urlmap=None, iv=0, default_scope="",
-            ca_bundle=None, seed=b"", client_authn_methods=None,
-            authn_at_registration="", client_info_url="",
-            secret_lifetime=86400, jwks_uri='', keyjar=None,
-            capabilities=None, verify_ssl=True, baseurl='', hostname='',
-            config=None):
+                 symkey="", urlmap=None, iv=0, default_scope="",
+                 ca_bundle=None, seed=b"", client_authn_methods=None,
+                 authn_at_registration="", client_info_url="",
+                 secret_lifetime=86400, jwks_uri='', keyjar=None,
+                 capabilities=None, verify_ssl=True, baseurl='', hostname='',
+                 config=None):
 
         if not name.endswith("/"):
             name += "/"
@@ -193,6 +194,8 @@ class Provider(provider.Provider):
 
         _cinfo = request.to_dict()
 
+        self.match_client_request(_cinfo)
+
         # create new id and secret
         _id = rndstr(12)
         while _id in self.cdb:
@@ -219,6 +222,31 @@ class Provider(provider.Provider):
         self.cdb[_id] = _cinfo
 
         return _id
+
+    def match_client_request(self, request):
+        for _pref, _prov in PREFERENCE2PROVIDER.items():
+            if _pref in request:
+                if _pref == "response_types":
+                    for val in request[_pref]:
+                        match = False
+                        p = set(val.split(" "))
+                        for cv in self.capabilities[_prov]:
+                            if p == set(cv.split(' ')):
+                                match = True
+                                break
+                        if not match:
+                            raise CapabilitiesMisMatch(
+                                'Not allowed {}'.format(_pref))
+                else:
+                    if isinstance(request[_pref], six.string_types):
+                        if request[_pref] not in self.capabilities[_prov]:
+                            raise CapabilitiesMisMatch(
+                                'Not allowed {}'.format(_pref))
+                    else:
+                        if not set(request[_pref]).issubset(
+                                set(self.capabilities[_prov])):
+                            raise CapabilitiesMisMatch(
+                                'Not allowed {}'.format(_pref))
 
     def client_info(self, client_id):
         _cinfo = self.cdb[client_id].copy()
@@ -320,7 +348,12 @@ class Provider(provider.Provider):
             del _request['software_statement']
             del _request['parsed_software_statement']
 
-        client_id = self.create_new_client(_request, client_restrictions)
+        try:
+            client_id = self.create_new_client(_request, client_restrictions)
+        except CapabilitiesMisMatch as err:
+            msg = ClientRegistrationError(error="invalid_client_metadata",
+                                          error_description="%s" % err)
+            return BadRequest(msg.to_json(), content="application/json")
 
         return self.client_info(client_id)
 
@@ -385,7 +418,7 @@ class Provider(provider.Provider):
                 return NoContent()
 
     def provider_features(self, pcr_class=ASConfigurationResponse,
-            provider_config=None):
+                          provider_config=None):
         """
         Specifies what the server capabilities are.
 
@@ -435,7 +468,7 @@ class Provider(provider.Provider):
         return True
 
     def create_providerinfo(self, pcr_class=ASConfigurationResponse,
-            setup=None):
+                            setup=None):
         """
         Dynamically create the provider info response
         :param pcr_class:
@@ -490,7 +523,7 @@ class Provider(provider.Provider):
 
     @staticmethod
     def verify_code_challenge(code_verifier, code_challenge,
-            code_challenge_method='S256'):
+                              code_challenge_method='S256'):
         """
         Verify a PKCE (RFC7636) code challenge
 
@@ -653,7 +686,8 @@ class Provider(provider.Provider):
             token_type = req['token_type_hint']
         except KeyError:
             try:
-                _info = self.sdb.token_factory['access_token'].info(req['token'])
+                _info = self.sdb.token_factory['access_token'].info(
+                    req['token'])
             except KeyError:
                 try:
                     _info = self.sdb.token_factory['refresh_token'].get_info(
