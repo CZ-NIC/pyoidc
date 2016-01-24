@@ -92,21 +92,26 @@ CDB = {
         "redirect_uris": [("http://localhost:8087/authz", None)],
         "post_logout_redirect_uris": [
             ("https://example.com/post_logout", None)],
-        "client_salt": "salted"
+        "client_salt": "salted",
+        'response_types': ['code', 'token', 'code id_token', 'none',
+                           'code token', 'id_token']
     },
     "a1b2c3": {
         "redirect_uris": [("http://localhost:8087/authz", None)],
-        "client_salt": "salted"
+        "client_salt": "salted",
+        'response_types': ['code', 'token', 'code id_token']
     },
     "client0": {
         "redirect_uris": [("http://www.example.org/authz", None)],
-        "client_salt": "salted"
+        "client_salt": "salted",
+        'response_types': ['code', 'token', 'code id_token']
     },
     CLIENT_ID: {
         "client_secret": CLIENT_SECRET,
         "redirect_uris": [("http://localhost:8087/authz", None)],
         "client_salt": "salted",
-        'token_endpoint_auth_method': 'client_secret_post'
+        'token_endpoint_auth_method': 'client_secret_post',
+        'response_types': ['code', 'token', 'code id_token']
     }
 }
 

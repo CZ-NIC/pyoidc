@@ -197,6 +197,7 @@ class Provider(object):
 
         self.session_cookie_name = "pyoic_session"
         self.baseurl = baseurl
+        self.keyjar = None
 
     @staticmethod
     def input(query="", post=None):
@@ -265,7 +266,8 @@ class Provider(object):
                 _query = urlparse.parse_qs(_query)
 
             match = False
-            for regbase, rquery in self.cdb[str(areq["client_id"])]["redirect_uris"]:
+            for regbase, rquery in self.cdb[str(areq["client_id"])][
+                "redirect_uris"]:
                 if _base == regbase or _redirect_uri.startswith(regbase):
                     # every registered query component must exist in the
                     # redirect_uri
@@ -408,6 +410,11 @@ class Provider(object):
             logger.debug("No AuthzRequest")
             return self._error("invalid_request", "Can not parse AuthzRequest")
 
+        if ' '.join(areq["response_type"]) not in self.cdb[areq['client_id']][
+            'response_types']:
+            return self._error("invalid_request",
+                               "Trying to use unregistered response_typ")
+
         logger.debug("AuthzRequest: %s" % (areq.to_dict(),))
         try:
             redirect_uri = self.get_redirect_uri(areq)
@@ -542,7 +549,8 @@ class Provider(object):
                 user = identity["uid"]
                 if "req_user" in kwargs:
                     sids_for_sub = self.sdb.get_sids_by_sub(kwargs["req_user"])
-                    if sids_for_sub and user != self.sdb.get_authentication_event(
+                    if sids_for_sub and user != \
+                            self.sdb.get_authentication_event(
                             sids_for_sub[-1]).uid:
                         logger.debug("Wanted to be someone else!")
                         if "prompt" in areq and "none" in areq["prompt"]:
@@ -679,7 +687,8 @@ class Provider(object):
         except KeyError:
             pass
         else:
-            if _kaka and self.cookie_name not in _kaka:  # Don't overwrite cookie
+            if _kaka and self.cookie_name not in _kaka:  # Don't overwrite
+            # cookie
                 headers.append(
                     self.cookie_func(user, typ="sso", ttl=self.sso_ttl))
 
@@ -789,4 +798,5 @@ class Provider(object):
         parsed_uri = urlparse.urlparse(redirect_uri)
         rp_origin_url = "{uri.scheme}://{uri.netloc}".format(uri=parsed_uri)
         session_str = client_id + " " + rp_origin_url + " " + state + " " + salt
-        return hashlib.sha256(session_str.encode("utf-8")).hexdigest() + "." + salt
+        return hashlib.sha256(
+            session_str.encode("utf-8")).hexdigest() + "." + salt
