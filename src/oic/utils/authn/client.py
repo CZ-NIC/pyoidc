@@ -9,7 +9,7 @@ import six
 from oic.exception import FailedAuthentication
 from oic.exception import UnknownAssertionType
 from oic.exception import NotForMe
-from oic.oauth2 import rndstr, VREQUIRED
+from oic.oauth2 import rndstr, VREQUIRED, AccessTokenRequest
 from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.oic import REQUEST2ENDPOINT
 from oic.oic import DEF_SIGN_ALG
@@ -371,18 +371,25 @@ class JWSAuthnMethod(ClientAuthnMethod):
         # aud can be a string or a list
         _aud = bjwt["aud"]
         logger.debug("audience: %s, baseurl: %s" % (_aud, self.cli.baseurl))
+
+        # figure out authn method
+        if alg2keytype(bjwt.jws_header['alg']) == 'oct':  # Symmetric key
+            authn_method = 'client_secret_jwt'
+        else:
+            authn_method = 'private_key_jwt'
+
         try:
             if isinstance(_aud, six.string_types):
                 assert str(_aud).startswith(self.cli.baseurl)
             else:
                 for target in _aud:
                     if target.startswith(self.cli.baseurl):
-                        return cid
+                        return cid, authn_method
                 raise NotForMe("Not for me!")
         except AssertionError:
             raise NotForMe("Not for me!")
 
-        return cid
+        return cid, authn_method
 
 
 class ClientSecretJWT(JWSAuthnMethod):
@@ -483,20 +490,34 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
 
     :param areq: The request
     :param authn: client authentication information
-    :return:
+    :return: tuple containing client id and client authentication method
     """
 
     if authn:  # HTTP Basic auth (client_secret_basic)
-        return get_client_id(inst.cdb, areq, authn)
+        cid = get_client_id(inst.cdb, areq, authn)
+        auth_method = 'client_secret_basic'
     elif "client_secret" in areq:  # client_secret_post
         client_id = get_client_id(inst.cdb, areq, authn)
         logger.debug("Verified Client ID: %s" % client_id)
-        return ClientSecretBasic(inst).verify(areq, client_id)
+        cid = ClientSecretBasic(inst).verify(areq, client_id)
+        auth_method = 'client_secret_post'
     elif "client_assertion" in areq:  # client_secret_jwt or private_key_jwt
         for typ, method in type_method:
             if areq["client_assertion_type"] == typ:
-                return method(inst).verify(areq)
+                cid, auth_method = method(inst).verify(areq)
+                break
         else:
             raise UnknownAssertionType(areq["client_assertion_type"], areq)
     else:
         raise FailedAuthentication("Missing client authentication.")
+
+    if isinstance(areq, AccessTokenRequest):
+        try:
+            _method = inst.cdb[cid]['token_endpoint_auth_method']
+        except KeyError:
+            _method = 'client_secret_basic'
+
+        if _method != auth_method:
+            raise FailedAuthentication("Wrong authentication method used")
+
+    return cid
