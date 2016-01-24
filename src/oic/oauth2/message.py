@@ -642,7 +642,9 @@ class Message(object):
                     raise MissingRequiredAttribute("%s" % attribute)
                 continue
             else:
-                if not val:
+                if typ == bool:
+                    pass
+                elif not val:
                     if required:
                         raise MissingRequiredAttribute("%s" % attribute)
                     continue
