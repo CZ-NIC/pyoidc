@@ -27,7 +27,6 @@ logger = logging.getLogger(__name__)
 DEF_SIGN_ALG = "HS256"
 SUCCESSFUL = [200, 201, 202, 203, 204, 205, 206]
 
-
 Version = "2.0"
 
 HTTP_ARGS = ["headers", "redirections", "connection_type"]
@@ -289,7 +288,7 @@ class Client(PBase):
 
         # MUST be same state as for the AuthReq
         shash = base64.urlsafe_b64encode(
-                hashlib.sha256(kwargs['state'].encode('utf8')).digest())
+            hashlib.sha256(kwargs['state'].encode('utf8')).digest())
         request_args['state_hash'] = shash.decode('ascii')
 
         if "grant_type" not in request_args:
@@ -462,7 +461,7 @@ class Client(PBase):
                 logger.error('Verification of the response failed')
                 raise PyoidcError("Verification of the response failed")
             if resp.type() == "AuthorizationResponse" and \
-                    "scope" not in resp:
+                            "scope" not in resp:
                 try:
                     resp["scope"] = kwargs["scope"]
                 except KeyError:
@@ -528,10 +527,24 @@ class Client(PBase):
             if response:
                 return self.parse_response(response, reqresp.text, body_type,
                                            state, **kwargs)
-            else:
-                raise OtherError("Didn't expect a response body")
-        else:
-            return reqresp
+
+        # could be an error response
+        if reqresp.status_code in [200, 400]:
+            if body_type == 'txt':
+                body_type = 'urlencoded'
+            try:
+                err = ErrorResponse().deserialize(reqresp.message,
+                                                  method=body_type)
+                try:
+                    err.verify()
+                except PyoidcError:
+                    pass
+                else:
+                    return err
+            except Exception:
+                pass
+
+        return reqresp
 
     def request_and_return(self, url, response=None, method="GET", body=None,
                            body_type="json", state="", http_args=None,
