@@ -84,7 +84,7 @@ keys = [
 ]
 
 CAPABILITIES = {
-    "token_endpoint_auth_methods_supported": ["client_private_jwk"],
+    "token_endpoint_auth_methods_supported": ["private_key_jwt"],
     "grant_types_supported": ["authorization_code", "implicit",
                               'client_credentials'],
     "scopes_supported": ["offline_access"],
