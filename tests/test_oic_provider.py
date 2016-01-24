@@ -105,7 +105,8 @@ CDB = {
     CLIENT_ID: {
         "client_secret": CLIENT_SECRET,
         "redirect_uris": [("http://localhost:8087/authz", None)],
-        "client_salt": "salted"
+        "client_salt": "salted",
+        'token_endpoint_auth_method': 'client_secret_post'
     }
 }
 

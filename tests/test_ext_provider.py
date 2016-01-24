@@ -51,11 +51,13 @@ CDB = {
     "a1b2c3": {
         "password": "hemligt",
         "client_secret": "drickyoughurt",
-        "redirect_uris": [("http://localhost:8087/authz", None)]
+        "redirect_uris": [("http://localhost:8087/authz", None)],
+        'token_endpoint_auth_method': 'client_secret_post'
     },
     "client1": {
         "client_secret": "hemlighet",
-        "redirect_uris": [("http://localhost:8087/authz", None)]
+        "redirect_uris": [("http://localhost:8087/authz", None)],
+        'token_endpoint_auth_method': 'client_secret_post'
     }
 }
 
