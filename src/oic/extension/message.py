@@ -22,9 +22,12 @@ class TokenIntrospectionRequest(Message):
     }
 
 
+SINGLE_REQUIRED_BOOLEAN = (bool, True, None, None, False)
+
+
 class TokenIntrospectionResponse(Message):
     c_param = {
-        'active': SINGLE_REQUIRED_STRING,
+        'active': SINGLE_REQUIRED_BOOLEAN,
         'scope': OPTIONAL_LIST_OF_SP_SEP_STRINGS,
         'client_id': SINGLE_OPTIONAL_STRING,
         'username': SINGLE_OPTIONAL_STRING,

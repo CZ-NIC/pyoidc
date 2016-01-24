@@ -276,6 +276,7 @@ class Client(oauth2.Client):
 
         resp = self.request_and_return(url, response_cls, method, body,
                                        body_type, http_args=http_args)
+
         return resp
 
     def do_client_registration(self, request=RegistrationRequest,
@@ -345,6 +346,8 @@ class Client(oauth2.Client):
                           request_args=request_args, extra_args=extra_args,
                           http_args=http_args, response_cls=response_cls,
                           **kwargs)
+
+
 
     def add_code_challenge(self):
         try:
