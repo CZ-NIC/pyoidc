@@ -1316,8 +1316,7 @@ class Provider(AProvider):
         for item in ["id_token_signed_response_alg",
                      "userinfo_signed_response_alg"]:
             if item in request:
-                if request[item] in self.capabilities[
-                    PREFERENCE2PROVIDER[item]]:
+                if request[item] in self.capabilities[PREFERENCE2PROVIDER[item]]:
                     ktyp = jws.alg2keytype(request[item])
                     # do I have this ktyp and for EC type keys the curve
                     if ktyp not in ["none", "oct"]:
@@ -1405,16 +1404,17 @@ class Provider(AProvider):
             args[param] = val
 
     # noinspection PyUnusedLocal
-    def l_registration_endpoint(self, request, authn=None, **kwargs):
+    def l_registration_endpoint(self, request, authn=None, deserialize_request=True, **kwargs):
         _log_debug = logger.debug
         _log_info = logger.info
 
         _log_debug("@registration_endpoint: <<%s>>" % request)
 
-        try:
-            request = RegistrationRequest().deserialize(request, "json")
-        except ValueError:
-            request = RegistrationRequest().deserialize(request)
+        if deserialize_request:
+            try:
+                request = RegistrationRequest().deserialize(request, "json")
+            except ValueError:
+                request = RegistrationRequest().deserialize(request)
 
         _log_info("registration_request:%s" % request.to_dict())
         resp_keys = request.keys()
@@ -1464,7 +1464,11 @@ class Provider(AProvider):
         _cinfo = self.do_client_registration(request, client_id,
                                              ignore=["redirect_uris",
                                                      "policy_uri", "logo_uri",
-                                                     "tos_uri"])
+                                                     "tos_uri", "client_id",
+                                                     "client_secret", "registration_access_token",
+                                                     "registration_client_uri",
+                                                     "client_secret_expires_at",
+                                                     "client_id_issued_at"])
         if isinstance(_cinfo, Response):
             return _cinfo
 
