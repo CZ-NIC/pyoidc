@@ -21,7 +21,7 @@ def map_grant_type2response_type(restriction, cinfo):
         for g, r in restriction.items():
             if g in cinfo['grant_types'] and r in cinfo['response_types']:
                 pass
-            else:
+            elif g in cinfo['grant_types'] or r in cinfo['response_types']:
                 return "grant_type didn't match response_type"
     return ''
 
