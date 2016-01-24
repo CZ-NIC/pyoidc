@@ -347,8 +347,6 @@ class Client(oauth2.Client):
                           http_args=http_args, response_cls=response_cls,
                           **kwargs)
 
-
-
     def add_code_challenge(self):
         try:
             cv_len = self.config['code_challenge']['length']
@@ -487,8 +485,13 @@ class Client(oauth2.Client):
             self.store_response(resp, response.text)
             self.store_registration_info(resp)
         else:
-            err = ErrorResponse().deserialize(response.text, "json")
-            raise PyoidcError("Registration failed: %s" % err.to_json())
+            resp = ErrorResponse().deserialize(response.text, "json")
+            try:
+                resp.verify()
+                self.store_response(resp, response.text)
+            except Exception as err:
+                raise PyoidcError(
+                    'Registration failed: {}'.format(response.text))
 
         return resp
 

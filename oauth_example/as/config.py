@@ -51,17 +51,6 @@ ROOT = './'
 #   redirected to.
 
 AUTHN_METHOD = {
-    # ..... If you want to use CAS authentication ....
-    # "CAS" : {
-    #     "ACR": "CAS",
-    #     "WEIGHT": 1,
-    #     "URL": SERVICE_URL,
-    #     "validator": VALIDATOR,
-    #     "config": {
-    #          "server": "https://cas.umu.se",
-    #          "return_to": RETURN_TO
-    #     }
-    # },
     "UserPassword": {
         "ACR": "PASSWORD",
         "WEIGHT": 1,
@@ -98,5 +87,6 @@ CAPABILITIES = {
     "token_endpoint_auth_methods_supported": ["client_private_jwk"],
     "grant_types_supported": ["authorization_code", "implicit",
                               'client_credentials'],
-    "scopes_supported": ["offline_access"]
+    "scopes_supported": ["offline_access"],
+    'response_types_supported': ['code', 'token']
 }
