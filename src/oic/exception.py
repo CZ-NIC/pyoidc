@@ -77,3 +77,7 @@ class AuthzError(PyoidcError):
 
 class IssuerMismatch(PyoidcError):
     pass
+
+
+class RestrictionError(PyoidcError):
+    pass

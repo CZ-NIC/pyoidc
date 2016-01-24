@@ -13,7 +13,7 @@ from future.backports.urllib.parse import splitquery
 
 from jwkest import jws, b64d, b64e
 
-from oic.exception import FailedAuthentication
+from oic.exception import FailedAuthentication, RestrictionError
 from oic.exception import UnSupported
 from oic.exception import UnknownAssertionType
 from oic.extension.client import ClientInfoResponse, CC_METHOD
@@ -41,6 +41,7 @@ from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.provider import RegistrationEndpoint
 from oic.oic.provider import STR
 from oic.oic.provider import secret
+from oic.utils import restrict
 from oic.utils.authn.client import AuthnFailure
 from oic.utils.authn.client import UnknownAuthnMethod
 from oic.utils.authn.client import get_client_id
@@ -186,30 +187,12 @@ class Provider(provider.Provider):
             self.keyjar[client_id] = [_kc]
 
     @staticmethod
-    def verify_correct(cinfo, restrict):
-        try:
-            _single = restrict['single']
-        except KeyError:
-            pass
-        else:
-            for s in _single:
-                try:
-                    if len(cinfo[s]) != 1:
-                        raise CapabilitiesMisMatch('Too Many {}'.format(s))
-                except KeyError:
-                    pass
-
-        try:
-            g2r = restrict['map']['grant_type2response_type']
-        except KeyError:
-            pass
-        else:
-            for g, r in g2r.items():
-                if g in cinfo['grant_types'] and r in cinfo['response_types']:
-                    pass
-                else:
-                    raise CapabilitiesMisMatch(
-                        "grant_type didn't match response_type")
+    def verify_correct(cinfo, restrictions):
+        for fname, arg in restrictions.items():
+            func = restrict.factory(fname)
+            res = func(arg, cinfo)
+            if res:
+                raise RestrictionError(res)
 
     def create_new_client(self, request, restrictions):
         """
@@ -386,6 +369,10 @@ class Provider(provider.Provider):
         try:
             client_id = self.create_new_client(_request, client_restrictions)
         except CapabilitiesMisMatch as err:
+            msg = ClientRegistrationError(error="invalid_client_metadata",
+                                          error_description="%s" % err)
+            return BadRequest(msg.to_json(), content="application/json")
+        except RestrictionError as err:
             msg = ClientRegistrationError(error="invalid_client_metadata",
                                           error_description="%s" % err)
             return BadRequest(msg.to_json(), content="application/json")
