@@ -90,3 +90,15 @@ CAPABILITIES = {
     "scopes_supported": ["offline_access"],
     'response_types_supported': ['code', 'token']
 }
+
+BEHAVIOR = {
+    'client_registration':{
+        'map': {
+            'grant_type2response_type': {
+                'authorization_code': 'code',
+                'implicit': 'token'
+            }
+        },
+        'single': ['response_types']
+    }
+}

@@ -97,7 +97,7 @@ class Provider(provider.Provider):
                  authn_at_registration="", client_info_url="",
                  secret_lifetime=86400, jwks_uri='', keyjar=None,
                  capabilities=None, verify_ssl=True, baseurl='', hostname='',
-                 config=None):
+                 config=None, behavior=None):
 
         if not name.endswith("/"):
             name += "/"
@@ -134,6 +134,7 @@ class Provider(provider.Provider):
         self.hostname = hostname or socket.gethostname()
         self.kid = {"sig": {}, "enc": {}}
         self.config = config
+        self.behavior = behavior or {}
 
     @staticmethod
     def _uris_to_tuples(uris):
@@ -184,6 +185,32 @@ class Provider(provider.Provider):
         except KeyError:
             self.keyjar[client_id] = [_kc]
 
+    @staticmethod
+    def verify_correct(cinfo, restrict):
+        try:
+            _single = restrict['single']
+        except KeyError:
+            pass
+        else:
+            for s in _single:
+                try:
+                    if len(cinfo[s]) != 1:
+                        raise CapabilitiesMisMatch('Too Many {}'.format(s))
+                except KeyError:
+                    pass
+
+        try:
+            g2r = restrict['map']['grant_type2response_type']
+        except KeyError:
+            pass
+        else:
+            for g, r in g2r.items():
+                if g in cinfo['grant_types'] and r in cinfo['response_types']:
+                    pass
+                else:
+                    raise CapabilitiesMisMatch(
+                        "grant_type didn't match response_type")
+
     def create_new_client(self, request, restrictions):
         """
 
@@ -219,6 +246,14 @@ class Provider(provider.Provider):
                 request["redirect_uris"])
 
         self.load_keys(request, _id, _cinfo["client_secret"])
+
+        try:
+            _behav = self.behavior['client_registration']
+        except KeyError:
+            pass
+        else:
+            self.verify_correct(_cinfo, _behav)
+
         self.cdb[_id] = _cinfo
 
         return _id

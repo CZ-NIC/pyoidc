@@ -260,7 +260,8 @@ if __name__ == "__main__":
     OAS = Provider(config.issuer, None, cdb, broker, authz,
                    baseurl=config.issuer, client_authn=verify_client,
                    symkey=config.SYM_KEY, hostname=config.HOST,
-                   capabilities=capabilities)
+                   capabilities=capabilities,
+                   behavior=config.BEHAVIOR)
 
     try:
         jwks = keyjar_init(OAS, config.keys, kid_template="op%d")
