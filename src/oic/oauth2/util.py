@@ -174,10 +174,10 @@ def verify_header(reqresp, body_type):
             body_type='json'
         elif match_to_("application/jwt", _ctype):
             body_type = "jwt"
-        elif match_to_(URL_ENCODED, _ctype) or match_to_("text/plain", _ctype):
+        elif match_to_(URL_ENCODED, _ctype):
             body_type = 'urlencoded'
         else:
-            body_type = 'urlencoded'  # reasonable default ??
+            body_type = 'txt'  # reasonable default ??
     elif body_type == "json":
         try:
             assert match_to_("application/json",
