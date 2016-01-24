@@ -94,18 +94,13 @@ class RegistrationRequest(Message):
                 if resp.status_code not in SUCCESSFUL:
                     raise MissingPage(self[uri])
 
-        if "grant_types" in self and "response_types" in self:
-            for typ in self["grant_types"]:
-                if typ == "authorization_code":
-                    try:
-                        assert "code" in self["response_types"]
-                    except AssertionError:
-                        self["response_types"].append("code")
-                elif typ == "implicit":
-                    try:
-                        assert "token" in self["response_types"]
-                    except AssertionError:
-                        self["response_types"].append("token")
+        # if "grant_types" in self and "response_types" in self:
+        #     for typ in self["grant_types"]:
+        #         if typ == "authorization_code":
+        #             assert "code" in self["response_types"]
+        #         elif typ == "implicit":
+        #             assert "token" in self["response_types"]
+
         try:
             ss = self['software_statement']
         except:
