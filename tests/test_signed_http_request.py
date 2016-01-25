@@ -1,9 +1,12 @@
 # pylint: disable=missing-docstring
 import copy
+import json
 from collections import Counter
 
 import pytest
 from jwkest.jwk import SYMKey
+from jwkest.jws import JWS
+from jwkest.jwt import JWT
 
 from oic.extension.signed_http_req import SignedHttpRequest
 from oic.extension.signed_http_req import ValidationError
@@ -141,3 +144,20 @@ def test_verify_fail_on_missing_body():
     result = shr.sign(alg=ALG, body="abcdef")
     with pytest.raises(ValidationError):
         shr.verify(signature=result)
+
+
+def test_sign_specifies_jws_typ_pop():
+    shr = SignedHttpRequest(SIGN_KEY)
+    result = shr.sign(alg=ALG, body="abcdef")
+    assert JWT().unpack(result).headers["typ"] == "pop"
+
+
+def test_verify_reject_jws_wo_typ_pop():
+    method = "GET"
+
+    signature_without_typ = JWS(json.dumps(dict(m=method)), alg=ALG).sign_compact([SIGN_KEY])
+    shr = SignedHttpRequest(SIGN_KEY)
+    with pytest.raises(ValidationError) as exc:
+        shr.verify(signature_without_typ, method=method)
+
+    assert "typ" in str(exc.value)

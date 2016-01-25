@@ -1,7 +1,8 @@
-from base64 import urlsafe_b64encode
 import hashlib
 import json
-from jwkest import BadSignature
+from base64 import urlsafe_b64encode
+
+from jwkest import JWKESTException
 from jwkest import jws
 from jwkest.jws import JWS
 
@@ -119,7 +120,7 @@ class SignedHttpRequest(object):
         if not http_json:
             raise ValueError("No data to sign")
 
-        jws = JWS(json.dumps(http_json), alg=alg)
+        jws = JWS(json.dumps(http_json), alg=alg, typ="pop")
         return jws.sign_compact(keys=[self.key])
 
     def verify(self, signature, **kwargs):
@@ -129,10 +130,14 @@ class SignedHttpRequest(object):
 
         try:
             unpacked_req = _jw.verify_compact(signature, keys=[self.key])
-            _header = _jw.jwt.headers
-            hash_size = get_hash_size(_header["alg"])
-        except BadSignature:
+        except JWKESTException:
             raise ValidationError("Could not verify signature")
+
+        _header = _jw.jwt.headers
+        if "typ" not in _header or _header["typ"] != "pop":
+            raise ValidationError("Incorrect JWS header 'typ', must be 'pop'")
+
+        hash_size = get_hash_size(_header["alg"])
 
         for arg, (key, func) in SIMPLE_OPER.items():
             if arg == 'time_stamp':
