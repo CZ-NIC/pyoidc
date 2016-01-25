@@ -1408,19 +1408,23 @@ class Provider(AProvider):
 
     # noinspection PyUnusedLocal
     def l_registration_endpoint(self, request, authn=None, **kwargs):
-        _log_debug = logger.debug
-        _log_info = logger.info
-
-        _log_debug("@registration_endpoint: <<%s>>" % request)
+        logger.debug("@registration_endpoint: <<%s>>" % request)
 
         try:
             request = RegistrationRequest().deserialize(request, "json")
         except ValueError:
             request = RegistrationRequest().deserialize(request)
 
-        _log_info("registration_request:%s" % request.to_dict())
-        resp_keys = request.keys()
+        logger.info("registration_request:%s" % request.to_dict())
 
+        result = self.client_registration_setup(request)
+        if isinstance(result, Response):
+            return result
+
+        return Created(result.to_json(), content="application/json",
+                       headers=[("Cache-Control", "no-store")])
+
+    def client_registration_setup(self, request):
         try:
             request.verify()
         except MessageException as err:
@@ -1496,8 +1500,7 @@ class Provider(AProvider):
 
         logger.info("registration_response: %s" % response.to_dict())
 
-        return Created(response.to_json(), content="application/json",
-                       headers=[("Cache-Control", "no-store")])
+        return response
 
     def registration_endpoint(self, request, authn=None, **kwargs):
         return self.l_registration_endpoint(request, authn, **kwargs)
