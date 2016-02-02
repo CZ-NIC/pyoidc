@@ -1494,10 +1494,6 @@ class Server(oauth2.Server):
             _args["at_hash"] = jws.left_hash(access_token.encode("utf-8"),
                                              halg)
 
-        # Should better be done elsewhere
-        if not issuer.endswith("/"):
-            issuer += "/"
-
         idt = IdToken(iss=issuer, sub=session["sub"],
                       aud=session["client_id"],
                       exp=time_util.epoch_in_a_while(**inawhile), acr=loa,
