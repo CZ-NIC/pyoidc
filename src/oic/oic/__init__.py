@@ -1214,6 +1214,13 @@ class Client(oauth2.Client):
         except AssertionError:
             raise OtherError("issuer != iss")
 
+        try:
+            assert self.client_id in id_token["aud"]
+            if len(id_token["aud"]) > 1:
+                assert "azp" in id_token and id_token["azp"] == self.client_id
+        except AssertionError:
+            raise OtherError("not intended for me")
+
         _now = time_util.utc_time_sans_frac()
 
         try:
