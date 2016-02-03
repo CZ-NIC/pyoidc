@@ -310,7 +310,7 @@ class TestOICConsumer():
             "id_token_signed_response_alg": "RS256",
         }
         self.consumer.provider_info = {
-            "issuer": "http://localhost:8088/"}  # abs min
+            "issuer": "http://localhost:8088"}  # abs min
         self.consumer.authz_req = {}  # Store AuthzReq with state as key
 
         args = {

@@ -630,7 +630,7 @@ class TestProvider(object):
         info = self.provider.check_session_endpoint(request=csr.to_urlencoded())
         idt = IdToken().deserialize(info.message, "json")
         assert _eq(idt.keys(), ['sub', 'aud', 'iss', 'acr', 'exp', 'iat'])
-        assert idt["iss"] == self.provider.name + "/"
+        assert idt["iss"] == self.provider.name
 
     def test_registration_endpoint(self):
         req = RegistrationRequest()

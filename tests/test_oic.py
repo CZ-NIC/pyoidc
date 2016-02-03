@@ -11,6 +11,8 @@ from jwkest.jws import left_hash
 from jwkest.jws import alg2keytype
 
 from six.moves.urllib.parse import urlparse
+
+from oic.oauth2.exception import OtherError
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.oic import Grant, DEF_SIGN_ALG
 from oic.oic import Token
@@ -37,8 +39,8 @@ from utils_for_tests import _eq
 __author__ = 'rohe0002'
 
 KC_SYM_S = KeyBundle(
-    {"kty": "oct", "key": "abcdefghijklmnop".encode("utf-8"), "use": "sig",
-     "alg": "HS256"})
+        {"kty": "oct", "key": "abcdefghijklmnop".encode("utf-8"), "use": "sig",
+         "alg": "HS256"})
 
 BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/keys"))
 _key = rsa_load(os.path.join(BASE_PATH, "rsa.key"))
@@ -53,6 +55,7 @@ IDTOKEN = IdToken(iss="http://oic.example.org/", sub="sub",
                   aud=CLIENT_ID, exp=utc_time_sans_frac() + 86400,
                   nonce="N0nce",
                   iat=time.time())
+
 
 # ----------------- CLIENT --------------------
 
@@ -98,11 +101,11 @@ class TestClient(object):
 
     def test_construct_authz_req_nonce_for_token(self):
         assert "nonce" in self.client.construct_AuthorizationRequest(
-            response_type="token")
+                response_type="token")
         assert "nonce" in self.client.construct_AuthorizationRequest(
-            response_type="id_token")
+                response_type="id_token")
         assert "nonce" in self.client.construct_AuthorizationRequest(
-            response_type="token id_token")
+                response_type="token id_token")
 
     def test_do_authorization_request(self):
         args = {"response_type": ["code"], "scope": "openid"}
@@ -237,25 +240,25 @@ class TestClient(object):
         }
 
         areq = self.client.construct_AuthorizationRequest(
-            request_args={
-                "scope": "openid",
-                "response_type": ["code"],
-                "claims": ClaimsRequest(userinfo=Claims(**claims),
-                                        id_token=Claims(auth_time=None,
-                                                        acr={"values": ["2"]})),
-                "max_age": 86400,
-            },
-            request_param="request")
+                request_args={
+                    "scope": "openid",
+                    "response_type": ["code"],
+                    "claims": ClaimsRequest(userinfo=Claims(**claims),
+                                            id_token=Claims(auth_time=None,
+                                                            acr={"values": ["2"]})),
+                    "max_age": 86400,
+                },
+                request_param="request")
 
         assert "request" in areq
 
     def test_openid_request_with_id_token_claims_request(self):
         areq = self.client.construct_AuthorizationRequest(
-            request_args={"scope": "openid",
-                          "response_type": ["code"],
-                          "claims": {
-                              "id_token": {"sub": {"value": "248289761001"}}}},
-            request_param="request"
+                request_args={"scope": "openid",
+                              "response_type": ["code"],
+                              "claims": {
+                                  "id_token": {"sub": {"value": "248289761001"}}}},
+                request_param="request"
         )
 
         jwtreq = OpenIDRequest().deserialize(areq["request"], "jwt",
@@ -266,7 +269,7 @@ class TestClient(object):
 
     def test_construct_UserInfoRequest_with_req_args(self):
         uir = self.client.construct_UserInfoRequest(
-            request_args={"access_token": "access_token"})
+                request_args={"access_token": "access_token"})
         assert uir["access_token"] == "access_token"
 
     def test_construct_UserInfoRequest_2_with_token(self):
@@ -285,7 +288,7 @@ class TestClient(object):
 
     def test_construct_CheckSessionRequest_with_req_args(self):
         csr = self.client.construct_CheckSessionRequest(
-            request_args={"id_token": "id_token"})
+                request_args={"id_token": "id_token"})
         assert csr["id_token"] == "id_token"
 
     def test_construct_CheckSessionRequest_2(self):
@@ -312,7 +315,7 @@ class TestClient(object):
         }
 
         crr = self.client.construct_RegistrationRequest(
-            request_args=request_args)
+                request_args=request_args)
         assert _eq(crr.keys(), ['application_name', 'application_type', 'type',
                                 'client_id', 'contacts', 'redirect_uris'])
 
@@ -338,7 +341,7 @@ class TestClient(object):
                         "state": "af0ifjsldkj"}
 
         areq = self.client.construct_AuthorizationRequest(
-            request_args=request_args)
+                request_args=request_args)
         assert _eq(areq.keys(),
                    ['nonce', 'state', 'redirect_uri', 'response_type',
                     'client_id', 'scope'])
@@ -356,7 +359,7 @@ class TestClient(object):
                                    state="state0")
 
         path, body, method, h_args = self.client.user_info_request(
-            state="state0")
+                state="state0")
         assert path == "http://example.com/userinfo"
         assert method == "GET"
         assert body is None
@@ -375,8 +378,8 @@ class TestClient(object):
                                    state="state0")
 
         path, body, method, h_args = self.client.user_info_request(
-            method="POST",
-            state="state0")
+                method="POST",
+                state="state0")
 
         assert path == "http://example.com/userinfo"
         assert method == "POST"
@@ -400,10 +403,29 @@ class TestClient(object):
                   "target": "test_provider"}
 
         areq = self.client.construct_AuthorizationRequest(
-            request_args=request_args,
-            **kwargs)
+                request_args=request_args,
+                **kwargs)
 
         assert areq["request"]
+
+    def test_verify_id_token_reject_wrong_aud(self, monkeypatch):
+        issuer = "https://provider.example.com"
+        monkeypatch.setattr(self.client, "provider_info", {"issuer": issuer})
+        id_token = IdToken(**dict(iss=issuer, aud=["nobody"]))
+
+        with pytest.raises(OtherError) as exc:
+            self.client._verify_id_token(id_token)
+        assert "me" in str(exc.value)
+
+    def test_verify_id_token_reject_wrong_azp(self, monkeypatch):
+        issuer = "https://provider.example.com"
+        monkeypatch.setattr(self.client, "provider_info", {"issuer": issuer})
+        id_token = IdToken(
+            **dict(iss=issuer, aud=["nobody", "somebody", self.client.client_id], azp="nobody"))
+
+        with pytest.raises(OtherError) as exc:
+            self.client._verify_id_token(id_token)
+        assert "me" in str(exc.value)
 
 
 class TestServer(object):
@@ -531,7 +553,7 @@ class TestServer(object):
                                      application_type="web")
 
         request = self.srv.parse_registration_request(
-            data=regreq.to_urlencoded())
+                data=regreq.to_urlencoded())
         assert isinstance(request, RegistrationRequest)
         assert _eq(request.keys(), ['redirect_uris', 'contacts', 'client_id',
                                     'application_name', 'operation',
@@ -558,23 +580,23 @@ class TestServer(object):
 
     def test_parse_check_session_request(self):
         csreq = CheckSessionRequest(
-            id_token=IDTOKEN.to_jwt(key=KC_SYM_S.get(alg2keytype("HS256")),
-                                    algorithm="HS256"))
+                id_token=IDTOKEN.to_jwt(key=KC_SYM_S.get(alg2keytype("HS256")),
+                                        algorithm="HS256"))
         request = self.srv.parse_check_session_request(
-            query=csreq.to_urlencoded())
+                query=csreq.to_urlencoded())
         assert isinstance(request, IdToken)
         assert _eq(request.keys(), ['nonce', 'sub', 'aud', 'iss', 'exp', 'iat'])
         assert request["aud"] == ["client_1"]
 
     def test_parse_end_session_request(self):
         esreq = EndSessionRequest(
-            id_token=IDTOKEN.to_jwt(key=KC_SYM_S.get(alg2keytype("HS256")),
-                                    algorithm="HS256"),
-            redirect_url="http://example.org/jqauthz",
-            state="state0")
+                id_token=IDTOKEN.to_jwt(key=KC_SYM_S.get(alg2keytype("HS256")),
+                                        algorithm="HS256"),
+                redirect_url="http://example.org/jqauthz",
+                state="state0")
 
         request = self.srv.parse_end_session_request(
-            query=esreq.to_urlencoded())
+                query=esreq.to_urlencoded())
         assert isinstance(request, EndSessionRequest)
         assert _eq(request.keys(), ['id_token', 'redirect_url', 'state'])
         assert request["state"] == "state0"
