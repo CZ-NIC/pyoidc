@@ -10,6 +10,12 @@ import random
 import sys
 import time
 import traceback
+from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import splitquery
+from future.backports.urllib.parse import urlparse
+from future.backports.urllib.parse import urljoin
+from future.backports.urllib.parse import urlencode
+from future.backports.urllib.parse import unquote
 import six
 import socket
 
@@ -52,8 +58,9 @@ from oic.oic.message import RefreshAccessTokenRequest
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import TokenErrorResponse
-from oic.utils.http_util import BadRequest, Created
-from oic.utils.http_util import Redirect
+from oic.utils.http_util import BadRequest
+from oic.utils.http_util import Created
+from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Response
 from oic.utils.http_util import Unauthorized
 from oic.utils.keyio import KeyBundle
@@ -61,13 +68,6 @@ from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
 from oic.utils.sdb import ExpiredToken, AccessCodeUsed
 from oic.utils.time_util import utc_time_sans_frac
-
-from six.moves.urllib import parse as urlparse
-
-if six.PY3:
-    from urllib.parse import splitquery, urlencode
-else:
-    from urllib import splitquery
 
 __author__ = 'rohe0002'
 
@@ -234,8 +234,8 @@ class Provider(AProvider):
 
         for endp in self.endp:
             if endp.etype == 'registration':
-                self.register_endpoint = urlparse.urljoin(self.baseurl,
-                                                          endp.url)
+                self.register_endpoint = urljoin(self.baseurl,
+                                                 endp.url)
                 break
 
         self.jwx_def = {}
@@ -369,9 +369,9 @@ class Provider(AProvider):
         :return: A sector_id or None
         """
 
-        _redirect_uri = urlparse.unquote(redirect_uri)
+        _redirect_uri = unquote(redirect_uri)
 
-        part = urlparse.urlparse(_redirect_uri)
+        part = urlparse(_redirect_uri)
         if part.fragment:
             raise ValueError
 
@@ -519,7 +519,7 @@ class Provider(AProvider):
         return None
 
     def is_session_revoked(self, request="", cookie=None):
-        areq = urlparse.parse_qs(request)
+        areq = parse_qs(request)
         authn, acr = self.pick_auth(areq)
         identity, _ts = authn.authenticated_as(cookie)
         return self.sdb.is_revoke_uid(identity["uid"])
@@ -600,7 +600,7 @@ class Provider(AProvider):
         headers = [authn.delete_cookie(), self.delete_session_cookie()]
 
         if redirect_uri is not None:
-            return Redirect(str(redirect_uri), headers=headers)
+            return SeeOther(str(redirect_uri), headers=headers)
 
         return Response("Successful logout", headers=headers)
 
@@ -614,11 +614,11 @@ class Provider(AProvider):
         """
         logger.debug("verify request: %s" % request)
 
-        _req = urlparse.parse_qs(request)
+        _req = parse_qs(request)
         if "query" in _req:
             try:
                 # TODO FIX THIS !!! Why query ?
-                areq = urlparse.parse_qs(_req["query"][0])
+                areq = parse_qs(_req["query"][0])
             except KeyError:
                 return BadRequest()
         else:
@@ -717,7 +717,7 @@ class Provider(AProvider):
 
         location = aresp.request(redirect_uri, fragment_enc)
         logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
-        return Redirect(str(location), headers=headers)
+        return SeeOther(str(location), headers=headers)
 
     def userinfo_in_id_token_claims(self, session):
         """
@@ -1171,10 +1171,10 @@ class Provider(AProvider):
 
     @staticmethod
     def _verify_url(url, urlset):
-        part = urlparse.urlparse(url)
+        part = urlparse(url)
 
         for reg, qp in urlset:
-            _part = urlparse.urlparse(reg)
+            _part = urlparse(reg)
             if part.scheme == _part.scheme and part.netloc == _part.netloc:
                 return True
 
@@ -1218,7 +1218,7 @@ class Provider(AProvider):
         if "post_logout_redirect_uris" in request:
             plruri = []
             for uri in request["post_logout_redirect_uris"]:
-                if urlparse.urlparse(uri).fragment:
+                if urlparse(uri).fragment:
                     err = ClientRegistrationErrorResponse(
                         error="invalid_configuration_parameter",
                         error_description="post_logout_redirect_uris "
@@ -1229,7 +1229,7 @@ class Provider(AProvider):
                                     status="400 Bad Request")
                 base, query = splitquery(uri)
                 if query:
-                    plruri.append((base, urlparse.parse_qs(query)))
+                    plruri.append((base, parse_qs(query)))
                 else:
                     plruri.append((base, query))
             _cinfo["post_logout_redirect_uris"] = plruri
@@ -1290,7 +1290,7 @@ class Provider(AProvider):
                 # check that the hostnames are the same
                 host = ""
                 for url in request["redirect_uris"]:
-                    part = urlparse.urlparse(url)
+                    part = urlparse(url)
                     _host = part.netloc.split(":")[0]
                     if not host:
                         host = _host
@@ -1365,7 +1365,7 @@ class Provider(AProvider):
             must_https = False
 
         for uri in registration_request["redirect_uris"]:
-            p = urlparse.urlparse(uri)
+            p = urlparse(uri)
             if client_type == "native" and p.scheme == "http":
                 if p.hostname != "localhost":
                     raise InvalidRedirectURIError(
@@ -1383,7 +1383,7 @@ class Provider(AProvider):
 
             base, query = splitquery(uri)
             if query:
-                verified_redirect_uris.append((base, urlparse.parse_qs(query)))
+                verified_redirect_uris.append((base, parse_qs(query)))
             else:
                 verified_redirect_uris.append((base, query))
 
@@ -1447,7 +1447,7 @@ class Provider(AProvider):
         reg_enp = ""
         for endp in self.endp:
             if endp.etype == 'registration':
-                reg_enp = urlparse.urljoin(self.baseurl, endp.url)
+                reg_enp = urljoin(self.baseurl, endp.url)
                 break
 
         self.cdb[client_id] = {
@@ -1525,7 +1525,7 @@ class Provider(AProvider):
         client_id = self.cdb[token]
 
         # extra check
-        _info = urlparse.parse_qs(request)
+        _info = parse_qs(request)
         assert _info["client_id"][0] == client_id
 
         logger.debug("Client '%s' reads client info" % client_id)

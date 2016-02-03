@@ -1,16 +1,15 @@
 import importlib
-from urllib import unquote
-from urlparse import parse_qs
 import argparse
 import sys
 
 from beaker.middleware import SessionMiddleware
 from cherrypy import wsgiserver
+from future.backports.urllib.parse import parse_qs, unquote
 
 from oic.oauth2.consumer import Consumer
 from oic.utils.http_util import NotFound
+from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Response
-from oic.utils.http_util import Redirect
 from oic.utils.http_util import get_or_post
 
 import logging
@@ -97,7 +96,7 @@ def application(environ, start_response):
 
     if path == "logout":
         session.invalidate()
-        resp = Redirect("static/log_out_message.html")
+        resp = SeeOther("static/log_out_message.html")
         return resp(environ, start_response)
 
     if path == "as":
@@ -105,7 +104,7 @@ def application(environ, start_response):
         request = parse_qs(get_or_post(environ))
         _cli = CONSUMER[unquote(request["authzsrv"][0])]
         session["client"] = _cli
-        resp = Redirect(_cli.begin(RP_CONF.BASE, path))
+        resp = SeeOther(_cli.begin(RP_CONF.BASE, path))
         return resp(environ, start_response)
 
     if path == "authz_cb":
@@ -175,7 +174,7 @@ if __name__ == '__main__':
             RP_CONF.SERVER_CERT, RP_CONF.SERVER_KEY, RP_CONF.CA_BUNDLE)
 
     LOGGER.info(START_MESG % (RP_CONF.HOST, RP_CONF.PORT))
-    print START_MESG % (RP_CONF.HOST, RP_CONF.PORT)
+    print(START_MESG % (RP_CONF.HOST, RP_CONF.PORT))
     try:
         SRV.start()
     except KeyboardInterrupt:

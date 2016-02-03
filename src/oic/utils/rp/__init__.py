@@ -1,17 +1,20 @@
 import copy
 import hashlib
 from future.backports.urllib.parse import urlsplit
-from oic.oic.message import OpenIDSchema
 
 from oic import oic
 
 from oic.utils.http_util import Redirect
 from oic.exception import MissingAttribute
-from oic.oauth2 import rndstr, ErrorResponse, TokenError, ResponseError
+from oic.oauth2 import rndstr
+from oic.oauth2 import ErrorResponse
+from oic.oauth2 import TokenError
+from oic.oauth2 import ResponseError
 from oic.oic import ProviderConfigurationResponse
 from oic.oic import AuthorizationResponse
 from oic.oic import RegistrationResponse
 from oic.oic import AuthorizationRequest
+from oic.oic.message import OpenIDSchema
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
 __author__ = 'roland'
@@ -260,7 +263,7 @@ class OIDCClients(object):
             else:
                 _key_set.discard(param)
 
-        if _key_set == set(["client_info"]):  # Everything dynamic
+        if _key_set == {"client_info"}:  # Everything dynamic
             # There has to be a userid
             if not userid:
                 raise MissingAttribute("Missing userid specification")

@@ -1,16 +1,17 @@
 import importlib
 import json
-from tempfile import NamedTemporaryFile
 import logging
 import base64
+import six
+
+from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import urlencode
 
 from saml2.config import SPConfig
-from six.moves.urllib.parse import parse_qs, urlencode
-import six
+
 from oic.oauth2.exception import VerificationError
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authn.user import create_return_url
-from oic.utils.http_util import Redirect
 from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Response
 from oic.utils.http_util import Unauthorized
@@ -197,7 +198,7 @@ else:
             return_to += query
 
             auth_cookie = self.create_cookie(uid, "samlm")
-            resp = Redirect(str(return_to), headers=[auth_cookie])
+            resp = SeeOther(str(return_to), headers=[auth_cookie])
             return resp, True
 
         def setup_userdb(self, uid, samldata):
@@ -353,7 +354,7 @@ else:
                 '" , "' + self.CONST_HASIDP + '": "True" }',
                 self.CONST_SAML_COOKIE, self.CONST_SAML_COOKIE)
             if binding == BINDING_HTTP_ARTIFACT:
-                resp = Redirect()
+                resp = SeeOther()
             elif binding == BINDING_HTTP_REDIRECT:
                 for param, value in http_args["headers"]:
                     if param == "Location":

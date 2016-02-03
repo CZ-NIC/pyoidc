@@ -13,7 +13,7 @@ from future.backports.urllib.parse import urlparse
 from jwkest.jws import alg2keytype
 from oic.utils.http_util import NotFound, get_post
 from oic.utils.http_util import Response
-from oic.utils.http_util import Redirect
+from oic.utils.http_util import SeeOther
 
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = 'rp.log'
@@ -184,7 +184,7 @@ def application(environ, start_response):
 
         try:
             result = client.callback(info, session, 'urlencoded')
-            if isinstance(result, Redirect):
+            if isinstance(result, SeeOther):
                 return result(environ, start_response)
         except OIDCError as err:
             return operror(environ, start_response, "%s" % err)
@@ -249,7 +249,7 @@ def application(environ, start_response):
 
         try:
             result = client.callback(query, session)
-            if isinstance(result, Redirect):
+            if isinstance(result, SeeOther):
                 return result(environ, start_response)
         except OIDCError as err:
             return operror(environ, start_response, "%s" % err)
@@ -309,7 +309,7 @@ def application(environ, start_response):
         LOGGER.debug("[{}]Logout URL: {}".format(session.id, logout_url))
         LOGGER.debug("Logging out from session: [{}]".format(session.id))
         session.delete()
-        resp = Redirect(str(logout_url))
+        resp = SeeOther(str(logout_url))
         return resp(environ, start_response)
     elif path == "logout_success":  # post_logout_redirect_uri
         return Response("Logout successful!")(environ, start_response)

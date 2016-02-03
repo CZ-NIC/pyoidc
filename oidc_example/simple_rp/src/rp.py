@@ -42,7 +42,7 @@ class OIDCExampleRP(object):
             request_args=request_args)
         login_url = auth_req.request(session["client"].authorization_endpoint)
 
-        raise cherrypy.HTTPRedirect(login_url, 302)
+        raise cherrypy.HTTPRedirect(login_url, 303)
 
     def parse_authentication_response(self, session, query_string):
         auth_response = session["client"].parse_response(AuthorizationResponse,
@@ -98,7 +98,7 @@ class RPServer(object):
 
         # auth req
         redirect_url = self.rp.make_authentication_request(cherrypy.session)
-        raise cherrypy.HTTPRedirect(redirect_url, 302)
+        raise cherrypy.HTTPRedirect(redirect_url, 303)
 
     @cherrypy.expose
     def repost_fragment(self, **kwargs):

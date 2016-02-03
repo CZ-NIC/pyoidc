@@ -2,16 +2,21 @@
 import base64
 import logging
 import time
-
 import six
-from six.moves.urllib.parse import parse_qs, urlunsplit, urlsplit, urlencode, unquote
+
+from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import urlsplit
+from future.backports.urllib.parse import urlunsplit
+from future.backports.urllib.parse import urlencode
+from future.backports.urllib.parse import unquote
+
 from oic.exception import PyoidcError
 
 from oic.utils import aes
 from oic.utils.http_util import Response
 from oic.utils.http_util import CookieDealer
 from oic.utils.http_util import InvalidCookieSign
-from oic.utils.http_util import Redirect
+from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Unauthorized
 
 __author__ = 'rolandh'
@@ -322,7 +327,7 @@ class UsernamePasswordMako(UserAuthnMethod):
                 except KeyError:
                     return_to = self.generate_return_url(self.return_to, _qp)
 
-            return Redirect(return_to, headers=headers), True
+            return SeeOther(return_to, headers=headers), True
 
     def done(self, areq):
         try:

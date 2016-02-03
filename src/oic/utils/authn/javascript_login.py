@@ -1,8 +1,9 @@
-from six.moves.urllib.parse import parse_qs
+from future.backports.urllib.parse import parse_qs
 import six
-from oic.utils.authn.user import logger, UsernamePasswordMako
-from oic.utils.http_util import Unauthorized, Redirect
-
+from oic.utils.authn.user import logger
+from oic.utils.authn.user import UsernamePasswordMako
+from oic.utils.http_util import Unauthorized
+from oic.utils.http_util import SeeOther
 
 __author__ = 'danielevertsson'
 
@@ -47,6 +48,6 @@ class JavascriptFormMako(UsernamePasswordMako):
                 return_to = self.generate_return_url(kwargs["return_to"], _qp)
             except KeyError:
                 return_to = self.generate_return_url(self.return_to, _qp)
-            resp = Redirect(return_to, headers=[cookie])
+            resp = SeeOther(return_to, headers=[cookie])
 
         return resp, True

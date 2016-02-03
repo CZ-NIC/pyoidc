@@ -20,13 +20,21 @@ from jinja2.loaders import FileSystemLoader
 import yaml
 
 from oic.oauth2 import rndstr
-from oic.oic.provider import Provider, AuthorizationEndpoint, TokenEndpoint, \
-    UserinfoEndpoint, RegistrationEndpoint, EndSessionEndpoint
+from oic.oic.provider import Provider
+from oic.oic.provider import AuthorizationEndpoint
+from oic.oic.provider import TokenEndpoint
+from oic.oic.provider import UserinfoEndpoint
+from oic.oic.provider import RegistrationEndpoint
+from oic.oic.provider import EndSessionEndpoint
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authz import AuthzHandling
-from oic.utils.http_util import Redirect, SeeOther, Response, BadRequest, \
-    get_or_post, get_post, NotFound
+from oic.utils.http_util import SeeOther
+from oic.utils.http_util import Response
+from oic.utils.http_util import BadRequest
+from oic.utils.http_util import get_or_post
+from oic.utils.http_util import get_post
+from oic.utils.http_util import NotFound
 from oic.utils.keyio import keyjar_init
 from oic.utils.sdb import SessionDB
 from oic.utils.userinfo import UserInfo
@@ -88,7 +96,7 @@ def pyoidcMiddleware(func):
 
 def resp2flask(resp):
     """Convert an oic.utils.http_util instance to Flask."""
-    if isinstance(resp, Redirect) or isinstance(resp, SeeOther):
+    if isinstance(resp, SeeOther):
         code = int(resp.status.split()[0])
         raise cherrypy.HTTPRedirect(resp.message, code)
     return resp.message, resp.status, resp.headers

@@ -13,5 +13,5 @@ def exception_trace(tag, exc, log=None):
         log.error("[%s] ExcList: %s" % (tag, "".join(message),))
         log.error("[%s] Exception: %s" % (tag, exc))
     else:
-        print >> sys.stderr, "[%s] ExcList: %s" % (tag, "".join(message),)
-        print >> sys.stderr, "[%s] Exception: %s" % (tag, exc)
+        print("[%s] ExcList: %s" % (tag, "".join(message),), file=sys.stderr)
+        print("[%s] Exception: %s" % (tag, exc), file=sys.stderr)

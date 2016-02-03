@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-import urllib
-from urllib.parse import urlencode
 import uuid
+from future.backports.urllib.parse import parse_qs, urlencode
 import requests
 import hashlib
 import base64
@@ -9,12 +8,11 @@ from jwkest.jws import alg2keytype
 from beaker.middleware import SessionMiddleware
 from cherrypy import wsgiserver
 from mako.lookup import TemplateLookup
-from six.moves.urllib.parse import parse_qs
 
 from oic.utils.http_util import NotFound
 from oic.utils.http_util import Response
 from oic.utils.http_util import ServiceError
-from oic.utils.http_util import Redirect
+from oic.utils.http_util import SeeOther
 
 import logging
 
@@ -174,7 +172,7 @@ def application(environ, start_response):
             except AttributeError as err:
                 pass
             session.clear()
-            resp = Redirect(str(logoutUrl))
+            resp = SeeOther(str(logoutUrl))
             return resp(environ, start_response)
         except Exception as err:
             pass

@@ -110,7 +110,7 @@ class TestProvider(object):
                                    "http://localhost:8088/authorization")
 
         resp = self.provider.authorization_endpoint(urlparse(location).query)
-        assert resp.status == "302 Found"
+        assert resp.status == "303 See Other"
         resp = urlparse(resp.message).query
         aresp = cons.handle_authorization_response(query=resp)
 

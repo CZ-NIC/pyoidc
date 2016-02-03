@@ -10,11 +10,17 @@ import pytest
 
 from oic.oauth2 import Client
 from oic.oauth2.grant import Grant
-from oic.oauth2.message import AccessTokenRequest, ResourceRequest, \
-    AuthorizationResponse, AccessTokenResponse
+from oic.oauth2.message import AccessTokenRequest
+from oic.oauth2.message import ResourceRequest
+from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import AccessTokenResponse
 from oic.oic import JWT_BEARER
-from oic.utils.authn.client import ClientSecretBasic, BearerHeader, BearerBody, \
-    ClientSecretPost, PrivateKeyJWT, ClientSecretJWT
+from oic.utils.authn.client import ClientSecretBasic
+from oic.utils.authn.client import BearerHeader
+from oic.utils.authn.client import BearerBody
+from oic.utils.authn.client import ClientSecretPost
+from oic.utils.authn.client import PrivateKeyJWT
+from oic.utils.authn.client import ClientSecretJWT
 from oic.utils.keyio import KeyBundle
 from utils_for_tests import _eq  # pylint: disable=import-error
 

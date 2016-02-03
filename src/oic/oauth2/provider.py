@@ -4,8 +4,11 @@ import logging
 import os
 import sys
 import traceback
-
-import six
+from future.backports.urllib.parse import unquote
+from future.backports.urllib.parse import urljoin
+from future.backports.urllib.parse import urlparse
+from future.backports.urllib.parse import splitquery
+from future.backports.urllib.parse import parse_qs
 
 from oic.exception import FailedAuthentication
 from oic.exception import InvalidRequest
@@ -33,17 +36,11 @@ from oic.utils.authn.user import TamperAllert
 from oic.utils.authn.user import ToOld
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import CookieDealer
-from oic.utils.http_util import Redirect
+from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Response
 from oic.utils.http_util import make_cookie
 from oic.utils.sdb import AccessCodeUsed
 from oic.utils.sdb import AuthnEvent
-from six.moves.urllib import parse as urlparse
-
-if six.PY3:
-    from urllib.parse import splitquery
-else:
-    from urllib import splitquery
 
 __author__ = 'rohe0002'
 
@@ -81,7 +78,7 @@ class TokenEndpoint(Endpoint):
 
 def endpoint_ava(endp, baseurl):
     key = '{}_endpoint'.format(endp.etype)
-    val = urlparse.urljoin(baseurl, endp.url)
+    val = urljoin(baseurl, endp.url)
     return {key: val}
 
 
@@ -244,7 +241,7 @@ class Provider(object):
             location = err.request(redirect_uri)
         else:
             location = err.request(redirect_uri, True)
-        return Redirect(location)
+        return SeeOther(location)
 
     def _verify_redirect_uri(self, areq):
         """
@@ -255,15 +252,15 @@ class Provider(object):
             None
         """
         try:
-            _redirect_uri = urlparse.unquote(areq["redirect_uri"])
+            _redirect_uri = unquote(areq["redirect_uri"])
 
-            part = urlparse.urlparse(_redirect_uri)
+            part = urlparse(_redirect_uri)
             if part.fragment:
                 raise URIError("Contains fragment")
 
             (_base, _query) = splitquery(_redirect_uri)
             if _query:
-                _query = urlparse.parse_qs(_query)
+                _query = parse_qs(_query)
 
             match = False
             for regbase, rquery in self.cdb[str(areq["client_id"])][
@@ -645,7 +642,7 @@ class Provider(object):
         # Just do whatever is the default
         location = aresp.request(redirect_uri, fragment_enc)
         logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
-        return Redirect(str(location), headers=headers)
+        return SeeOther(str(location), headers=headers)
 
     def _complete_authz(self, user, areq, sid, **kwargs):
         _log_debug = logger.debug
@@ -777,9 +774,9 @@ class Provider(object):
         return Response(atr.to_json(), content="application/json")
 
     def verify_endpoint(self, request="", cookie=None, **kwargs):
-        _req = urlparse.parse_qs(request)
+        _req = parse_qs(request)
         try:
-            areq = urlparse.parse_qs(_req["query"][0])
+            areq = parse_qs(_req["query"][0])
         except KeyError:
             return BadRequest()
 
@@ -795,7 +792,7 @@ class Provider(object):
                            expire=-1)
 
     def _compute_session_state(self, state, salt, client_id, redirect_uri):
-        parsed_uri = urlparse.urlparse(redirect_uri)
+        parsed_uri = urlparse(redirect_uri)
         rp_origin_url = "{uri.scheme}://{uri.netloc}".format(uri=parsed_uri)
         session_str = client_id + " " + rp_origin_url + " " + state + " " + salt
         return hashlib.sha256(

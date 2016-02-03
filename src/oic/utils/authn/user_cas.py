@@ -1,16 +1,16 @@
 import json
 import uuid
 import logging
+from future.backports.urllib.parse import parse_qs, urlencode
 import requests
 import base64
-import xml.etree.ElementTree as ET
-from six.moves.urllib import parse as urlparse
 import six
 
-from oic.utils.authn.user import UserAuthnMethod
-from oic.utils.http_util import Redirect
-from oic.utils.http_util import Unauthorized
+import xml.etree.ElementTree as ET
 
+from oic.utils.authn.user import UserAuthnMethod
+from oic.utils.http_util import SeeOther
+from oic.utils.http_util import Unauthorized
 
 logger = logging.getLogger(__name__)
 
@@ -19,25 +19,25 @@ logger = logging.getLogger(__name__)
 class CasAuthnMethod(UserAuthnMethod):
     # Standard login url for a CAS server.
     CONST_CASLOGIN = "/cas/login?"
-    #Standard URL for validation of a ticket for a CAS server.
+    # Standard URL for validation of a ticket for a CAS server.
     CONST_CAS_VERIFY_TICKET = "/serviceValidate"
-    #Standard name for the parameter containing a CAS ticket.
+    # Standard name for the parameter containing a CAS ticket.
     CONST_TICKET = "ticket"
-    #Standard name for the parameter containing the service url (callback url).
+    # Standard name for the parameter containing the service url (callback url).
     CONST_SERVICE = "service"
-    #A successful verification of a ticket against a CAS service will contain
+    # A successful verification of a ticket against a CAS service will contain
     # this XML element.
     CONST_AUTHSUCCESS = "authenticationSuccess"
-    #If a success full verification of a CAS ticket has been perform, the uid
+    # If a success full verification of a CAS ticket has been perform, the uid
     # will be containd in a XML element
-    #with this name.
+    # with this name.
     CONST_USER = "user"
-    #Used for preventing replay attacks.
+    # Used for preventing replay attacks.
     CONST_NONCE = "nonce"
-    #Parameter name for queries to be sent back on the URL, after successful
+    # Parameter name for queries to be sent back on the URL, after successful
     # authentication.
     CONST_QUERY = "query"
-    #The name for the CAS cookie, containing query parameters and nonce.
+    # The name for the CAS cookie, containing query parameters and nonce.
     CONST_CAS_COOKIE = "cascookie"
 
     def __init__(self, srv, cas_server, service_url, return_to,
@@ -67,13 +67,13 @@ class CasAuthnMethod(UserAuthnMethod):
         :return: A redirect response to the CAS server.
         """
         try:
-            req = urlparse.parse_qs(query)
+            req = parse_qs(query)
             acr = req['acr_values'][0]
         except KeyError:
             acr = None
 
         nonce = uuid.uuid4().get_urn()
-        service_url = urlparse.urlencode(
+        service_url = urlencode(
             {self.CONST_SERVICE: self.get_service_url(nonce, acr)})
         cas_url = self.cas_server + self.CONST_CASLOGIN + service_url
         cookie = self.create_cookie(
@@ -82,7 +82,7 @@ class CasAuthnMethod(UserAuthnMethod):
             self.CONST_QUERY + '": "' + base64.b64encode(query) + '"}',
             self.CONST_CAS_COOKIE,
             self.CONST_CAS_COOKIE)
-        return Redirect(cas_url, headers=[cookie])
+        return SeeOther(cas_url, headers=[cookie])
 
     def handle_callback(self, ticket, service_url):
         """
@@ -139,7 +139,7 @@ class CasAuthnMethod(UserAuthnMethod):
         """
         logger.debug("verify(%s)" % request)
         if isinstance(request, six.string_types):
-            _dict = urlparse.parse_qs(request)
+            _dict = parse_qs(request)
         elif isinstance(request, dict):
             _dict = request
         else:
@@ -170,7 +170,7 @@ class CasAuthnMethod(UserAuthnMethod):
             else:
                 return_to += "?"
             return_to += base64.b64decode(data[self.CONST_QUERY])
-            return Redirect(return_to, headers=[cookie])
+            return SeeOther(return_to, headers=[cookie])
         except:
             logger.fatal('Metod verify in user_cas.py had a fatal exception.',
                          exc_info=True)

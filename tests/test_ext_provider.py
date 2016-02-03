@@ -172,7 +172,7 @@ class TestProvider(object):
             AuthorizationRequest, 'GET', request_args=args)
 
         resp = self.provider.authorization_endpoint(urlparse(url).query)
-        assert resp.status == "302 Found"
+        assert resp.status == "303 See Other"
         resp = urlparse(resp.message).query
         aresp = client.parse_authz_response(resp)
 

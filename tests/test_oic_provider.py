@@ -1,21 +1,24 @@
-# from Cookie import SimpleCookie
 import json
 import os
-from time import time
 import datetime
+
+from six import iteritems
+from time import time
+
+from future.backports.http.cookies import SimpleCookie
+from future.backports.urllib.parse import urlencode
+from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import urlparse
 
 import pytest
 
-from six import iteritems
-
-from six.moves.http_cookies import SimpleCookie
-from six.moves.urllib.parse import urlparse, parse_qs, urlencode
 from oic.oauth2 import rndstr
 from oic.utils.authn.authn_context import AuthnBroker
-from oic.utils.authn.client import verify_client, ClientSecretBasic
+from oic.utils.authn.client import verify_client
+from oic.utils.authn.client import ClientSecretBasic
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
-from oic.utils.http_util import Redirect
+from oic.utils.http_util import SeeOther
 from oic.utils.userinfo import UserInfo
 from oic.exception import RedirectURIError
 from oic.exception import FailedAuthentication
@@ -33,12 +36,15 @@ from oic.oic.message import UserInfoRequest
 from oic.oic.message import CheckSessionRequest
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import IdToken
-from oic.utils.sdb import SessionDB, AuthnEvent
+from oic.utils.sdb import AuthnEvent
+from oic.utils.sdb import SessionDB
 from oic.oic import DEF_SIGN_ALG
 from oic.oic import make_openid_request
 from oic.oic.consumer import Consumer
-from oic.oic.provider import Provider, InvalidRedirectURIError
+from oic.oic.provider import Provider
+from oic.oic.provider import InvalidRedirectURIError
 from oic.utils.time_util import epoch_in_a_while
+
 from utils_for_tests import _eq
 
 __author__ = 'rohe0002'
@@ -884,7 +890,7 @@ class TestProvider(object):
             CDB[CLIENT_CONFIG["client_id"]]["post_logout_redirect_uris"][0][0]
         resp = self.provider.endsession_endpoint(urlencode(
                 {"post_logout_redirect_uri": post_logout_redirect_uri}))
-        assert isinstance(resp, Redirect)
+        assert isinstance(resp, SeeOther)
         assert not self.provider.sdb.get_sids_by_sub(
                 id_token["sub"])  # verify session has been removed
         self._assert_cookies_expired(resp.headers)
@@ -912,6 +918,12 @@ class TestProvider(object):
         cookies_string = ";".join(
                 [c[1] for c in http_headers if c[0] == "Set-Cookie"])
         all_cookies = SimpleCookie()
+
+        try:
+            cookies_string = cookies_string.decode()
+        except (AttributeError, UnicodeDecodeError):
+            pass
+
         all_cookies.load(cookies_string)
 
         now = datetime.datetime.utcnow()  #
