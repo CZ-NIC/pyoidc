@@ -240,7 +240,7 @@ Given you have all that, you now can send the request::
         "state": session["state"]
     }
 
-    auth_req = self.client.construct_AuthorizationRequest(request_args=args)
+    auth_req = client.construct_AuthorizationRequest(request_args=args)
     login_url = auth_req.request(client.authorization_endpoint)
 
     return Redirect(login_url)
@@ -346,7 +346,7 @@ So::
     }
 
 
-    auth_req = self.client.construct_AuthorizationRequest(request_args=args)
+    auth_req = client.construct_AuthorizationRequest(request_args=args)
     login_url = auth_req.request(client.authorization_endpoint)
 
     return Redirect(login_url)
