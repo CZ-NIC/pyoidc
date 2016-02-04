@@ -2,7 +2,7 @@
 import base64
 import time
 import json
-from six.moves.urllib.parse import parse_qs, parse_qsl
+from future.backports.urllib.parse import parse_qsl, parse_qs
 
 from jwkest import jws
 from jwkest.jwk import keyrep
@@ -13,8 +13,8 @@ from oic.oic.message import AccessTokenResponse
 from oic.oic.provider import Provider
 from oic.utils.http_util import get_post
 from oic.utils.http_util import Response
-from oic.utils.signed_http_req import SignedHttpRequest
-from oic.utils.signed_http_req import ValidationError
+from oic.extension.signed_http_req import SignedHttpRequest
+from oic.extension.signed_http_req import ValidationError
 
 __author__ = 'regu0004'
 
