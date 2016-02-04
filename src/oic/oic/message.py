@@ -576,7 +576,7 @@ class RegistrationRequest(Message):
         # "access_token": SINGLE_OPTIONAL_STRING,
         "post_logout_redirect_uris": OPTIONAL_LIST_OF_STRINGS,
     }
-    c_default = {"application_type": "web"}
+    c_default = {"application_type": "web", "response_types": ["code"]}
     c_allowed_values = {"application_type": ["native", "web"],
                         "subject_type": ["public", "pairwise"]}
 
