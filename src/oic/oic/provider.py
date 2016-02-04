@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import base64
+import copy
 import hashlib
 import hmac
 import itertools
@@ -1550,7 +1551,7 @@ class Provider(AProvider):
         :return:
         """
 
-        _provider_info = self.capabilities
+        _provider_info = copy.deepcopy(self.capabilities.to_dict())
 
         if self.jwks_uri and self.keyjar:
             _provider_info["jwks_uri"] = self.jwks_uri
@@ -1569,7 +1570,7 @@ class Provider(AProvider):
         _provider_info["issuer"] = self.name
         _provider_info["version"] = "3.0"
 
-        return _provider_info
+        return pcr_class(**_provider_info)
 
     def provider_features(self, pcr_class=ProviderConfigurationResponse):
         """
