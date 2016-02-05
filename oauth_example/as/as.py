@@ -11,15 +11,18 @@ import traceback
 from authn_setup import authn_setup
 from aatest import as_unicode
 from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
-from oic.extension.provider import Provider, RevocationEndpoint, \
-    IntrospectionEndpoint
+from oic.extension.provider import Provider
+from oic.extension.provider import RevocationEndpoint
+from oic.extension.provider import IntrospectionEndpoint
 from oic.extension.token import JWTToken
 from oic.oauth2.provider import AuthorizationEndpoint
 from oic.oauth2.provider import TokenEndpoint
 from oic.oic.provider import RegistrationEndpoint
 from oic.utils.authn.client import verify_client
 from oic.utils.authz import Implicit
-from oic.utils.http_util import wsgi_wrapper, NotFound, ServiceError
+from oic.utils.http_util import wsgi_wrapper
+from oic.utils.http_util import NotFound
+from oic.utils.http_util import ServiceError
 from oic.utils.keyio import keyjar_init
 
 __author__ = 'roland'
