@@ -597,7 +597,7 @@ if __name__ == '__main__':
 
         f.write(json.dumps(jwks))
         f.close()
-        OAS.jwks_uri.append("%s%s" % (OAS.baseurl, jwks_file_name))
+        OAS.jwks_uri = "%s%s" % (OAS.baseurl, jwks_file_name)
 
     for b in OAS.keyjar[""]:
         LOGGER.info("OC3 server keys: %s" % b)
