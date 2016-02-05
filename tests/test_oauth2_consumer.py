@@ -209,7 +209,7 @@ class TestConsumer(object):
         assert url_compare(url, "http://localhost:8088/token")
         expected_params = 'code=auth_grant&redirect_uri=https%3A%2F%2Fwww' \
                           '.example.com%2Foic%2Fcb&client_id=number5' \
-                          '&client_secret=secret0&grant_type=authorization_code&state_hash=S6aXNcpTdl7WpwnttWxuoja3GTo7KaazkMNG8PQ0Dk4%3D'
+                          '&client_secret=secret0&grant_type=authorization_code'
 
         assert query_string_compare(body, expected_params)
         assert http_args == {'headers': {
