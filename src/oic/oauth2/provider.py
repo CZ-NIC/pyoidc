@@ -407,10 +407,14 @@ class Provider(object):
             logger.debug("No AuthzRequest")
             return self._error("invalid_request", "Can not parse AuthzRequest")
 
-        if ' '.join(areq["response_type"]) not in self.cdb[areq['client_id']][
-            'response_types']:
-            return self._error("invalid_request",
-                               "Trying to use unregistered response_typ")
+        try:
+            _cinfo = self.cdb[areq['client_id']]
+        except KeyError:
+            return self._error('unauthorized_client', 'unknown client')
+        else:
+            if ' '.join(areq["response_type"]) not in _cinfo['response_types']:
+                return self._error("invalid_request",
+                                   "Trying to use unregistered response_typ")
 
         logger.debug("AuthzRequest: %s" % (areq.to_dict(),))
         try:
