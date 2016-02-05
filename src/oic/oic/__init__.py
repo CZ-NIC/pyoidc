@@ -1072,7 +1072,7 @@ class Client(oauth2.Client):
         self.registration_response = reginfo
         if "token_endpoint_auth_method" not in self.registration_response:
             self.registration_response[
-                "token_endpoint_auth_method"] = "client_secret_post"
+                "token_endpoint_auth_method"] = "client_secret_basic"
         self.client_id = reginfo["client_id"]
         try:
             self.client_secret = reginfo["client_secret"]
