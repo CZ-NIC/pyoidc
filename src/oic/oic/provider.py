@@ -195,7 +195,8 @@ class Provider(AProvider):
     def __init__(self, name, sdb, cdb, authn_broker, userinfo, authz,
                  client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
                  hostname="", template_lookup=None, template=None,
-                 verify_ssl=True, capabilities=None, schema=OpenIDSchema):
+                 verify_ssl=True, capabilities=None, schema=OpenIDSchema,
+                 jwks_uri='', jwks_name=''):
 
         AProvider.__init__(self, name, sdb, cdb, authn_broker, authz,
                            client_authn, symkey, urlmap, ca_bundle=ca_certs,
@@ -224,9 +225,9 @@ class Provider(AProvider):
         self.test_mode = False
 
         # where the jwks file kan be found by outsiders
-        self.jwks_uri = []
+        self.jwks_uri = jwks_uri
         # Local filename
-        self.jwks_name = ""
+        self.jwks_name = jwks_name
 
         self.authn_as = None
         self.preferred_id_type = "public"
@@ -665,7 +666,7 @@ class Provider(AProvider):
         if isinstance(areq, Response):
             return areq
 
-        logger.debug("AuthzRequest+oidc_request: %s" % (areq.to_dict(),))
+        logger.info("authorization_request: %s" % (areq.to_dict(),))
 
         _cid = areq["client_id"]
         cinfo = self.cdb[str(_cid)]
@@ -715,8 +716,9 @@ class Provider(AProvider):
                 state, salt, areq["client_id"], redirect_uri)
             headers.append(self.write_session_cookie(state))
 
+        logger.info('authorization response: %s', aresp.to_dict())
         location = aresp.request(redirect_uri, fragment_enc)
-        logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
+        logger.debug("Redirected to: '%s' (%s)", location, type(location))
         return SeeOther(str(location), headers=headers)
 
     def userinfo_in_id_token_claims(self, session):
@@ -886,7 +888,7 @@ class Provider(AProvider):
 
         atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
 
-        _log_debug("access_token_response: %s" % atr.to_dict())
+        logger.info("access_token_response: %s" % atr.to_dict())
 
         return Response(atr.to_json(), content="application/json")
 
@@ -922,7 +924,7 @@ class Provider(AProvider):
 
         atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_info))
 
-        _log_debug("access_token_response: %s" % atr.to_dict())
+        logger.info("access_token_response: %s" % atr.to_dict())
 
         return Response(atr.to_json(), content="application/json")
 
@@ -959,11 +961,13 @@ class Provider(AProvider):
         try:
             client_id = self.client_authn(self, req, authn)
         except Exception as err:
-            logger.error("Failed to verify client due to: %s" % err)
+            msg = "Failed to verify client due to: {}".format(err)
+            logger.error(msg)
             client_id = ""
 
         if not client_id:
-            err = TokenErrorResponse(error="unauthorized_client")
+            err = TokenErrorResponse(error="unauthorized_client",
+                                     error_description=msg)
             return Unauthorized(err.to_json(), content="application/json")
 
         if "client_id" not in req:  # Optional for access token request
@@ -1492,9 +1496,7 @@ class Provider(AProvider):
         except AttributeError:  # Not all databases can be sync'ed
             pass
 
-        _log_info("Client info: %s" % _cinfo)
-
-        logger.debug("registration_response: %s" % response.to_dict())
+        logger.info("registration_response: %s" % response.to_dict())
 
         return Created(response.to_json(), content="application/json",
                        headers=[("Cache-Control", "no-store")])
