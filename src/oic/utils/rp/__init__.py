@@ -340,10 +340,13 @@ class OIDCClients(object):
             reg_args['redirect_uris'] = [
                 u.format(base=self.base_url, iss=h.hexdigest())
                 for u in base_urls]
-            reg_args['post_logout_redirect_uris'] = [
-                u.format(base=self.base_url, iss=h.hexdigest())
-                for u in reg_args['post_logout_redirect_uris']
-            ]
+            try:
+                reg_args['post_logout_redirect_uris'] = [
+                    u.format(base=self.base_url, iss=h.hexdigest())
+                    for u in reg_args['post_logout_redirect_uris']
+                ]
+            except KeyError:
+                pass
 
             self.get_path(reg_args['redirect_uris'], issuer)
             rr = client.register(_pcr["registration_endpoint"], **reg_args)
