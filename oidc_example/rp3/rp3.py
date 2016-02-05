@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import importlib
+import json
 import argparse
 import six
 import logging
@@ -14,6 +15,9 @@ from jwkest.jws import alg2keytype
 from oic.utils.http_util import NotFound, get_post
 from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
+
+from requests.packages import urllib3
+urllib3.disable_warnings()
 
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = 'rp.log'
@@ -145,11 +149,24 @@ def application(environ, start_response):
     if path == "rp":  # After having chosen which OP to authenticate at
         if "uid" in query:
             try:
-                client = clients.dynamic_client(query["uid"][0])
-            except ConnectionError as err:
+                client = clients.dynamic_client(userid=query["uid"][0])
+            except (ConnectionError, OIDCError) as err:
                 return operror(environ, start_response, '{}'.format(err))
+        elif 'issuer' in query:
+            try:
+                client = clients[query["issuer"][0]]
+            except KeyError:
+                try:
+                    client = clients.dynamic_client(issuer=query["issuer"][0])
+                except (ConnectionError, OIDCError) as err:
+                    return operror(environ, start_response, '{}'.format(err))
         else:
             client = clients[query["op"][0]]
+
+        try:
+            session['response_format'] = query["response_format"][0]
+        except:
+            session['response_format'] = 'html'
 
         session["op"] = client.provider_info["issuer"]
 
@@ -269,8 +286,13 @@ def application(environ, start_response):
             except KeyError:
                 pass
 
-            return opresult(environ, start_response, result['userinfo'],
-                            result['user_id'], check_session_iframe_url)
+            if session['response_format'] == 'html':
+                return opresult(environ, start_response, result['userinfo'],
+                                result['user_id'], check_session_iframe_url)
+            else:
+                result['id_token'] = result['id_token'].to_dict()
+                res = Response(json.dumps(result))
+                return res(environ, start_response)
     elif path == "logout":  # After the user has pressed the logout button
         try:
             _iss = session['op']
