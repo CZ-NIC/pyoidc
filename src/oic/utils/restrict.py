@@ -37,7 +37,11 @@ def map(restriction, cinfo):
 
 def allow(restriction, cinfo):
     for param, args in restriction.items():
-        _cparam = cinfo[param]
+        try:
+            _cparam = cinfo[param]
+        except KeyError:
+            continue
+
         if isinstance(_cparam, six.string_types):
             if _cparam not in args:
                 return 'Not allowed to register with {}={}'.format(param,

@@ -313,11 +313,16 @@ class OIDCClients(object):
 
         return client
 
-    def dynamic_client(self, userid):
+    def dynamic_client(self, userid='', issuer=''):
         client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
                                  verify_ssl=self.config.VERIFY_SSL)
 
-        issuer = client.wf.discovery_query(userid)
+        if userid:
+            issuer = client.wf.discovery_query(userid)
+
+        if not issuer:
+            raise OIDCError('Missing issuer')
+
         logger.info('issuer: {}'.format(issuer))
         if issuer in self.client:
             return self.client[issuer]
@@ -335,6 +340,10 @@ class OIDCClients(object):
             reg_args['redirect_uris'] = [
                 u.format(base=self.base_url, iss=h.hexdigest())
                 for u in base_urls]
+            reg_args['post_logout_redirect_uris'] = [
+                u.format(base=self.base_url, iss=h.hexdigest())
+                for u in reg_args['post_logout_redirect_uris']
+            ]
 
             self.get_path(reg_args['redirect_uris'], issuer)
             rr = client.register(_pcr["registration_endpoint"], **reg_args)
@@ -357,7 +366,7 @@ class OIDCClients(object):
         try:
             return self.client[item]
         except KeyError:
-            return self.dynamic_client(item)
+            return self.dynamic_client(issuer=item)
 
     def keys(self):
         return list(self.client.keys())
