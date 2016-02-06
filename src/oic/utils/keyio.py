@@ -839,6 +839,11 @@ def ec_init(spec):
 
 
 def rsa_init(spec):
+    """
+
+    :param spec:
+    :return: KeyBundle
+    """
     arg = {}
     for param in ["name", "path", "size"]:
         try:

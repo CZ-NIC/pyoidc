@@ -251,6 +251,7 @@ SINGLE_OPTIONAL_CLAIMSREQ = (Message, False, msg_ser_json, claims_request_deser,
                              False)
 
 OPTIONAL_MESSAGE = (Message, False, msg_ser, message_deser, False)
+REQUIRED_MESSAGE = (Message, True, msg_ser, message_deser, False)
 
 # ----------------------------------------------------------------------------
 

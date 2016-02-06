@@ -121,7 +121,8 @@ class SignedHttpRequest(object):
             raise ValueError("No data to sign")
 
         jws = JWS(json.dumps(http_json), alg=alg, typ="pop")
-        return jws.sign_compact(keys=[self.key])
+        _jwt = jws.sign_compact(keys=[self.key])
+        return _jwt
 
     def verify(self, signature, **kwargs):
         _jw = jws.factory(signature)
@@ -164,6 +165,15 @@ class SignedHttpRequest(object):
             except KeyError:
                 pass
 
-        _equals(b64_hash(kwargs.get("body", ""), hash_size), unpacked_req.get("b", ""))
+        if 'b' not in unpacked_req and 'body' not in kwargs:
+            pass
+        elif 'b' in unpacked_req and 'body' in kwargs:
+            _equals(b64_hash(kwargs.get("body", ""), hash_size),
+                    unpacked_req.get("b", ""))
+        else:
+            if 'b' in unpacked_req:
+                raise ValidationError('Body sent but not received!!')
+            else:
+                raise ValidationError('Body received but not sent!!')
 
         return unpacked_req
