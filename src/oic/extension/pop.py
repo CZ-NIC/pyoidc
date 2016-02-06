@@ -1,8 +1,8 @@
 import json
 from Crypto.PublicKey import RSA
-from future.backports.urllib.parse import urlparse, parse_qs
+from future.backports.urllib.parse import urlparse
+from future.backports.urllib.parse import parse_qs
 from jwkest.jwk import RSAKey, load_jwks
-from oic.extension.message import TokenIntrospectionResponse
 from oic.extension.signed_http_req import SignedHttpRequest
 
 __author__ = 'roland'
@@ -57,7 +57,7 @@ class PoPClient(object):
         return shr.sign(alg=self.alg, **kwargs)
 
 
-class PoPAS():
+class PoPAS(object):
     def __init__(self):
         self.token2key = {}
 
