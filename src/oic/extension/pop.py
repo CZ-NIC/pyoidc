@@ -2,8 +2,12 @@ import json
 from Crypto.PublicKey import RSA
 from future.backports.urllib.parse import urlparse
 from future.backports.urllib.parse import parse_qs
+from jwkest import b64e
 from jwkest.jwk import RSAKey, load_jwks
+from oic.utils.keyio import KeyBundle
 from oic.extension.signed_http_req import SignedHttpRequest
+from oic.utils.jwt import JWT
+from oic.extension.message import TokenIntrospectionResponse
 
 __author__ = 'roland'
 
@@ -61,19 +65,36 @@ class PoPClient(object):
 
 
 class PoPAS(object):
-    def __init__(self):
-        self.token2key = {}
+    def __init__(self, me):
+        self.fingerprint2key = {}
+        self.keyjar = None
+        self.me = me
 
-    def update(self, msg, access_token):
-        """
-        Used to 'update' the AccessToken Request
+    def store_key(self, key):
+        kb = KeyBundle()
+        kb.do_keys([key])
 
-        :param msg: TokenIntrospectionResponse
-        :param key_size:
-        :return:
-        """
-        msg['key'] = self.token2key[access_token]
-        return msg
+        # Store key with fingerprint as key
+        key_fingerprint = b64e(kb.keys()[0].fingerprint('SHA-256')).decode(
+            'utf8')
+        self.fingerprint2key[key_fingerprint] = key
+        return key_fingerprint
+
+    def create_access_token(self, key_fingerprint):
+        # creating the access_token
+        jwt_constructor = JWT(self.keyjar, iss=self.me)
+        # Audience is myself
+        return jwt_constructor.pack(
+            kid='abc', cnf={'kid': key_fingerprint}, aud=self.me)
+
+    def token_introspection(self, token):
+        jwt_constructor = JWT(self.keyjar, iss=self.me)
+        res = jwt_constructor.unpack(token)
+
+        tir = TokenIntrospectionResponse(active=True)
+        tir['key'] = json.dumps(self.fingerprint2key[res['cnf']['kid']])
+
+        return tir
 
 
 class PoPRS(object):

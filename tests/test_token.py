@@ -380,23 +380,20 @@ class TestSessionDB(object):
         self.sdb.do_sub(sid, "other_random_value")
 
         info = self.sdb[sid]
-        assert info[
-                   "sub"] == \
-               '179670cdee6375c48e577317b2abd7d5cd26a5cdb1cfb7ef84af3d703c71d013'
+        assert info["sub"] == \
+            '179670cdee6375c48e577317b2abd7d5cd26a5cdb1cfb7ef84af3d703c71d013'
 
         self.sdb.do_sub(sid, "other_random_value",
                         sector_id='http://example.com',
                         subject_type="pairwise")
         info2 = self.sdb[sid]
-        assert info2[
-                   "sub"] == \
-               'aaa50d80f8780cf1c4beb39e8e126556292f5091b9e39596424fefa2b99d9c53'
+        assert info2["sub"] == \
+            'aaa50d80f8780cf1c4beb39e8e126556292f5091b9e39596424fefa2b99d9c53'
 
         self.sdb.do_sub(sid, "another_random_value",
                         sector_id='http://other.example.com',
                         subject_type="pairwise")
 
         info2 = self.sdb[sid]
-        assert info2[
-                   "sub"] == \
-               '62fb630e29f0d41b88e049ac0ef49a9c3ac5418c029d6e4f5417df7e9443976b'
+        assert info2["sub"] == \
+            '62fb630e29f0d41b88e049ac0ef49a9c3ac5418c029d6e4f5417df7e9443976b'

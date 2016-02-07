@@ -1,9 +1,40 @@
-from oic.extension.message import TokenIntrospectionResponse
-from oic.extension.pop import PoPClient, PoPRS, PoPAS
+import json
+from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import KeyJar
+from oic.extension.pop import PoPAS
+from oic.extension.pop import PoPClient
+from oic.extension.pop import PoPRS
 from oic.oauth2 import AccessTokenRequest
 from oic.oauth2 import AccessTokenResponse
 
 __author__ = 'roland'
+
+JWKS = {
+    "keys": [
+        {
+            "alg": "RS256",
+            "d": "vT9bnSZ63uIdaVsmZjrbmcvrDZG-_qzVQ1KmrSSC398sLJiyaQKRPkmBRvV-MGxW1MVPeCkhnSULCRgtqHq-zQxMeCviSScHTKOuDYJfwMB5qdOE3FkuqPMsEVf6EXYaSd90-O6GOA88LBCPNR4iKxsrQ6LNkawwiJoPw7muK3TbQk9HzuznF8WDkt72CQFxd4eT6wJ97xpaIgxZce0oRmFcLYkQ4A0pgVhF42zxJjJDIBj_ZrSl5_qZIgiE76PV4hjHt9Nv4ZveabObnNbyz9YOiWHiOLdYZGmixHuauM98NK8udMxI6IuOkRypFhJzaQZFwMroa7ZNZF-mm78VYQ",
+            "dp": "wLqivLfMc0FBhGFFRTb6WWzDpVZukcgOEQGb8wW3knmNEpgch699WQ4ZY_ws1xSbvQZtbx7MaIBXpn3qT1LYZosoP5oHVTAvdg6G8I7zgWyqj-nG4evciuoeAa1Ff52h4-J1moZ6FF2GelLdjXHoCbjIBjz_VljelSqOk5Sh5HU",
+            "dq": "KXIUYNfDxwxv3A_w1t9Ohm92gOs-UJdI3_IVpe4FauCDrJ4mqgsnTisA15KY-9fCEvKfqG571WK6EKpBcxaRrqSU0ekpBvgJx8o3MGlqXWj-Lw0co8N9_-fo1rYx_8g-wCRrm5zeA5pYJdwdhOBnmKOqw_GsXJEcYeUod1xkcfU",
+            "e": "AQAB",
+            'kid': 'abc',
+            "kty": "RSA",
+            "n": "wl0DPln-EFLqr_Ftn6A87wEQAUVbpZsUTN2OCEsJV0nhlvmX3GUzyZx5UXdlM3Dz68PfUWCgfx67Il6sURqWVCnjnU-_gr3GeDyzedj-lZejnBx-lEy_3j6B98SbcDfkJF6saXnPd7_kgilJT1_g-EVI9ifFB1cxZXHCd2WBeRABSCprAlCglF-YmnUeeDs5K32z2ckVjadF9BG27CO5UfNq0K8jI9Yj_coOhM9dRNrQ9UVZNdQVG-bAIDhB2y2o3ASGwqchHouIxv5YZNGS0SMJL5t0edh483q1tSWPqBw-ZeryLztOedBBzSuJk7QDmL1B6B7KKUIrlUYJmVsYzw",
+            "p": "6MEg5Di_IFiPGKvMFRjyx2t7YAOQ4KfdIkU_Khny1t1eCG5O07omPe_jLU8I5fPaD5F5HhWExLNureHD4K6LB18JPE3VE8chQROiRSNPZo1-faUvHu-Dy0pr7I-TS8pl_P3vop1KelIbGwXhzPIRKQMqCEKi3tLJt4R_MQ18Dx0",
+            "q": "1cZVPpUbf4p5n4cMv_kERCPh3cieMs4aVojgh3feAiJiLwWWL9Pc43oJUekK44aWMnbs68Y4kqXtc52PMtBDzVp0Gjt0lCY3M7MYRVI4JhtknqvQynMKQ2nKs3VldvVfY2SxyUmnRyEolQUGRA7rRMUyPb4AXhSR7oroRrJD59s",
+            "qi": "50PhyaqbLSczhipWiYy149sLsGlx9cX0tnGMswy1JLam7nBvH4-MWB2oGwD2hmG-YN66q-xXBS9CVDLZZrj1sonRTQPtWE-zuZqds6_NVlk2Ge4_IAA3TZ9tvIfM5FZVTOQsExu3_LX8FGCspWC1R-zDqT45Y9bpaCwxekluO7Q"
+        }
+    ]
+}
+
+
+def init_keyjar():
+    # Keys that are kept by the AS
+    kb = KeyBundle()
+    kb.do_keys(JWKS["keys"])
+    keyjar = KeyJar()
+    keyjar.add_kb('', kb)
+    return keyjar
 
 
 def test_flow():
@@ -19,15 +50,11 @@ def test_flow():
 
     assert 'key' in atreq
 
-    # This is the access_token created by the AS
-    access_token = "2YotnFZFEjr1zCsicMWpAA"
-
-    pas = PoPAS()
-    # Bind the key to the access token
-    # This is not the way it should/will be done, the access token will be
-    # a JWT with key included
-    pas.token2key[access_token] = atreq['key']
-
+    pas = PoPAS('https://example.com/as')
+    pas.keyjar = init_keyjar()
+    # Key is in the JSON string representation
+    finger_print = pas.store_key(json.loads(atreq['key']))
+    access_token = pas.create_access_token(finger_print)
     # The AS constructs the access token response
     atrsp = AccessTokenResponse(access_token=access_token,
                                 token_type="bearer", state='state')
@@ -52,10 +79,10 @@ def test_flow():
     # now to the RS
     rs = PoPRS()
 
-    # The AS constructs the token introspection response
-    tir = TokenIntrospectionResponse(active=True)
-    # adds key information
-    tir = pas.update(tir, access_token)
+    # The AS gets a token introspection request
+    # verifies the correctness of the access token
+    # and if correct constructs the token introspection response
+    tir = pas.token_introspection(atrsp['access_token'])
 
     # The RS binds the received key to the access token
     rs.store_key(access_token, tir)
