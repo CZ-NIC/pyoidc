@@ -8,11 +8,14 @@ from oic.extension.signed_http_req import SignedHttpRequest
 __author__ = 'roland'
 
 
-def sign_http_args(method, url, headers):
+def sign_http_args(method, url, headers, body=''):
     p = urlparse(url)
 
     kwargs = {'path': p.path, 'host': p.netloc, 'headers': headers,
               'method': method}
+
+    if body:
+        kwargs['body'] = body
 
     query_params = parse_qs(p.query)
     kwargs['query_params'] = query_params
@@ -51,8 +54,8 @@ class PoPClient(object):
 
         self.token2key[resp['access_token']] = self.state2key[resp['state']]
 
-    def auth_token(self, method, access_token, url, headers):
-        kwargs = sign_http_args(method, url, headers)
+    def auth_token(self, method, access_token, url, headers, body=''):
+        kwargs = sign_http_args(method, url, headers, body)
         shr = SignedHttpRequest(self.token2key[access_token])
         return shr.sign(alg=self.alg, **kwargs)
 
@@ -87,8 +90,8 @@ class PoPRS(object):
         self.token2key[access_token] = key
 
     def eval_signed_http_request(self, pop_token, access_token, method, url,
-                                 headers):
-        kwargs = sign_http_args(method, url, headers)
+                                 headers, body=''):
+        kwargs = sign_http_args(method, url, headers, body)
 
         shr = SignedHttpRequest(self.token2key[access_token][0])
         return shr.verify(signature=pop_token,

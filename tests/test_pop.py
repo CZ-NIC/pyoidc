@@ -41,9 +41,11 @@ def test_flow():
     # Time for the client to access the Resource Server
     url = 'https://example.com/rs?foo=bar&format=json'
     headers = {'Content-type': 'application/www-form-encoded'}
+    body = 'access_token={}'.format(access_token)
 
     # creates the POP token using signed HTTP request
-    pop_token = cli.auth_token('POST', atrsp['access_token'], url, headers)
+    pop_token = cli.auth_token('POST', atrsp['access_token'], url, headers,
+                               body)
     assert pop_token
     assert len(pop_token.split('.')) == 3  # simple JWS check
 
@@ -60,7 +62,7 @@ def test_flow():
 
     # The RS verifies the correctness of the POP token
     res = rs.eval_signed_http_request(pop_token, access_token, 'POST',
-                                      url, headers)
+                                      url, headers, body)
 
     # YEY :-)
     assert res
