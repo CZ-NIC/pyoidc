@@ -140,14 +140,7 @@ http://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
 
 The only absolutely required information is the **redirect_uris**
 
-So, registering a client could then be accomplished doing::
-
-    client.redirect_uris = ['https://example.com/rp/authz_cb']
-    registration_response = client.register(provider_info["registration_endpoint"])
-
-You have two choices here, you can either assign the parameters with value to
-the client instance as in the example above or you can provide them as an
-argument to the method::
+Provide the parameters as arguments to the method::
 
     args = {
         "redirect_uris": ['https://example.com/rp/authz_cb'],
