@@ -208,7 +208,7 @@ class TestClient(object):
                                  'application_type', 'registration_client_uri',
                                  'client_secret_expires_at',
                                  'registration_access_token', 'client_id',
-                                 'application_name', 'client_secret'])
+                                 'application_name', 'client_secret', 'response_types'])
 
     def test_do_user_info_request_with_access_token_refresh(self):
         args = {"response_type": ["code"],
@@ -317,7 +317,7 @@ class TestClient(object):
         crr = self.client.construct_RegistrationRequest(
                 request_args=request_args)
         assert _eq(crr.keys(), ['application_name', 'application_type', 'type',
-                                'client_id', 'contacts', 'redirect_uris'])
+                                'client_id', 'contacts', 'redirect_uris', 'response_types'])
 
     def test_construct_EndSessionRequest(self):
         self.client.grant["foo"] = Grant()
@@ -557,7 +557,7 @@ class TestServer(object):
         assert isinstance(request, RegistrationRequest)
         assert _eq(request.keys(), ['redirect_uris', 'contacts', 'client_id',
                                     'application_name', 'operation',
-                                    'application_type'])
+                                    'application_type', 'response_types'])
         assert request["application_name"] == "pacubar"
         assert request["operation"] == "register"
 
