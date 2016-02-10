@@ -290,7 +290,7 @@ token::
     resp = client.do_access_token_request(scope="openid",
                                           state=aresp["state"],
                                           request_args=args,
-                                          authn_method="client_secret_post"
+                                          authn_method="client_secret_basic"
                                           )
 
 
