@@ -282,7 +282,7 @@ token::
 
     args = {
         "code": aresp["code"],
-        "redirect_uri": client.redirect_uris[0],
+        "redirect_uri": client.registration_response["redirect_uris"][0],
         "client_id": client.client_id,
         "client_secret": client.client_secret
     }
@@ -342,7 +342,7 @@ So::
         "scope": ["openid"],
         "state": session["state"],
         "nonce": session["nonce"],
-        "redirect_uri": client.redirect_uris[0]
+        "redirect_uri": client.registration_response["redirect_uris"][0]
     }
 
 
