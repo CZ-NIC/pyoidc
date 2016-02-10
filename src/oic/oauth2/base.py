@@ -27,6 +27,7 @@ class PBase(object):
         else:
             self.request_args["verify"] = False
         self.event_store = None
+        self.req_callback = None
 
     def _cookies(self):
         cookie_dict = {}
@@ -47,6 +48,9 @@ class PBase(object):
         if self.cookiejar:
             _kwargs["cookies"] = self._cookies()
             logger.debug("SENT COOKIEs: %s" % (_kwargs["cookies"],))
+
+        if self.req_callback is not None:
+            _kwargs = self.req_callback(method, url, **_kwargs)
 
         try:
             r = requests.request(method, url, **_kwargs)

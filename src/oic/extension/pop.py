@@ -26,6 +26,28 @@ def sign_http_args(method, url, headers, body=''):
     return kwargs
 
 
+class PoPCallBack(object):
+    def __init__(self, key, alg):
+        self.key = key
+        self.alg = alg
+
+    def __call__(self, method, url, **kwargs):
+        try:
+            body = kwargs['body']
+        except KeyError:
+            body = None
+        try:
+            headers = kwargs['headers']
+        except KeyError:
+            headers = {}
+
+        _kwargs = sign_http_args(method, url, headers, body)
+        shr = SignedHttpRequest(self.key)
+        kwargs['Authorization'] = 'pop {}'.format(shr.sign(alg=self.alg,
+                                                           **_kwargs))
+        return kwargs
+
+
 class PoPClient(object):
     def __init__(self, key_size=2048, sign_alg='RS256'):
         self.key_size = key_size
@@ -57,11 +79,6 @@ class PoPClient(object):
         """
 
         self.token2key[resp['access_token']] = self.state2key[resp['state']]
-
-    def auth_token(self, method, access_token, url, headers, body=''):
-        kwargs = sign_http_args(method, url, headers, body)
-        shr = SignedHttpRequest(self.token2key[access_token])
-        return shr.sign(alg=self.alg, **kwargs)
 
 
 class PoPAS(object):

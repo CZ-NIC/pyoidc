@@ -1,7 +1,7 @@
 import json
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
-from oic.extension.pop import PoPAS
+from oic.extension.pop import PoPAS, PoPCallBack
 from oic.extension.pop import PoPClient
 from oic.extension.pop import PoPRS
 from oic.oauth2 import AccessTokenRequest
@@ -71,9 +71,11 @@ def test_flow():
     body = 'access_token={}'.format(access_token)
 
     # creates the POP token using signed HTTP request
-    pop_token = cli.auth_token('POST', atrsp['access_token'], url, headers,
-                               body)
-    assert pop_token
+    cb = PoPCallBack(cli.token2key[atrsp['access_token']],cli.alg)
+    kwargs = cb('POST', url, headers=headers, body=body)
+    assert kwargs['Authorization'].startswith('pop ')
+    pop_token = kwargs['Authorization'][4:]
+
     assert len(pop_token.split('.')) == 3  # simple JWS check
 
     # now to the RS
