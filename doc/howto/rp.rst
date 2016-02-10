@@ -160,9 +160,9 @@ argument to the method::
 or a combination of the two.
 
 Provided the registration went flawlessly you will get the registration response
-(an instance of a RegistrationResponse) as a result. But at the same time
-automatically the response will be stored in the client instance
-(client_info parameter).
+(an instance of a RegistrationResponse) as a result. The response will also be
+stored in the client instance (registration_response attribute) and some of the parameters
+will be unpacked and set as attributes on the client instance.
 
 .. Note:: The basic Client class is expected to only talk to one OP. If your service
     needs to talk to several OPs that are a couple of patterns you could use.
