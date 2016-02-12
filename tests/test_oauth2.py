@@ -249,7 +249,7 @@ class TestClient(object):
                                                            "foo": "bar"})
 
         assert _eq(req.keys(), ["code", "grant_type", "client_id",
-                                "redirect_uri", "foo"])
+                                "redirect_uri", "foo", 'state'])
         assert req["foo"] == "bar"
 
     # def test_construct_TokenRevocationRequest(self):

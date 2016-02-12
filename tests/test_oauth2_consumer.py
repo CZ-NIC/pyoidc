@@ -207,9 +207,7 @@ class TestConsumer(object):
 
         url, body, http_args = self.consumer.get_access_token_request(_state)
         assert url_compare(url, "http://localhost:8088/token")
-        expected_params = 'code=auth_grant&redirect_uri=https%3A%2F%2Fwww' \
-                          '.example.com%2Foic%2Fcb&client_id=number5' \
-                          '&client_secret=secret0&grant_type=authorization_code'
+        expected_params = 'redirect_uri=https%3A%2F%2Fwww.example.com%2Foic%2Fcb&client_id=number5&state=state&code=auth_grant&grant_type=authorization_code&client_secret=secret0'
 
         assert query_string_compare(body, expected_params)
         assert http_args == {'headers': {
