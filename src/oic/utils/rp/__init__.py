@@ -39,6 +39,7 @@ class Client(oic.Client):
         self.userinfo_request_method = ''
         self.allow_sign_alg_none = False
         self.authz_req = {}
+        self.get_userinfo = True
 
     def create_authn_request(self, session, acr_value=None, **kwargs):
         session["state"] = rndstr()
@@ -161,38 +162,42 @@ class Client(oic.Client):
 
         user_id = '{}:{}'.format(_id_token['iss'], _id_token['sub'])
 
-        if self.userinfo_request_method:
-            kwargs = {"method": self.userinfo_request_method}
-        else:
-            kwargs = {}
+        if self.get_userinfo:
+            if self.userinfo_request_method:
+                kwargs = {"method": self.userinfo_request_method}
+            else:
+                kwargs = {}
 
-        if self.has_access_token(state=authresp["state"]):
-            inforesp = self.do_user_info_request(state=authresp["state"],
-                                                 **kwargs)
+            if self.has_access_token(state=authresp["state"]):
+                inforesp = self.do_user_info_request(state=authresp["state"],
+                                                     **kwargs)
 
-            if isinstance(inforesp, ErrorResponse):
-                self._err("Invalid response %s." % inforesp["error"])
+                if isinstance(inforesp, ErrorResponse):
+                    self._err("Invalid response %s." % inforesp["error"])
 
-            userinfo = inforesp.to_dict()
+                userinfo = inforesp.to_dict()
 
-            if _id_token['sub'] != userinfo['sub']:
-                self._err("Invalid response: userid mismatch")
+                if _id_token['sub'] != userinfo['sub']:
+                    self._err("Invalid response: userid mismatch")
 
-            logger.debug("UserInfo: %s" % inforesp)
+                logger.debug("UserInfo: %s" % inforesp)
 
-            try:
-                self.id_token[user_id] = _id_token
-            except TypeError:
-                self.id_token = {user_id: _id_token}
-        else:
-            userinfo = {}
-            for attr in OpenIDSchema.c_param:
                 try:
-                    userinfo[attr] = _id_token[attr]
-                except KeyError:
-                    pass
+                    self.id_token[user_id] = _id_token
+                except TypeError:
+                    self.id_token = {user_id: _id_token}
+            else:
+                userinfo = {}
+                for attr in OpenIDSchema.c_param:
+                    try:
+                        userinfo[attr] = _id_token[attr]
+                    except KeyError:
+                        pass
 
-        return {'user_id': user_id, 'userinfo': userinfo, 'id_token': _id_token}
+            return {'user_id': user_id, 'userinfo': userinfo,
+                    'id_token': _id_token}
+        else:
+            return {'user_id': user_id, 'id_token': _id_token}
 
 
 class OIDCClients(object):
@@ -344,7 +349,7 @@ class OIDCClients(object):
                 reg_args['post_logout_redirect_uris'] = [
                     u.format(base=self.base_url, iss=h.hexdigest())
                     for u in reg_args['post_logout_redirect_uris']
-                ]
+                    ]
             except KeyError:
                 pass
 
