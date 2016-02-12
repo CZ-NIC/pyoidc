@@ -60,6 +60,13 @@ class Response(object):
             except AttributeError:
                 return ['']
 
+    def info(self):
+        return {'status': self.status, 'headers': self.headers,
+                'message': self.message}
+
+    def add_header(self, ava):
+        self.headers.append(ava)
+
 
 class Created(Response):
     _status = "201 Created"
