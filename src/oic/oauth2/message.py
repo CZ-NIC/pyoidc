@@ -912,7 +912,7 @@ class AccessTokenRequest(Message):
         "redirect_uri": SINGLE_REQUIRED_STRING,
         "client_id": SINGLE_OPTIONAL_STRING,
         "client_secret": SINGLE_OPTIONAL_STRING,
-        'state_hash': SINGLE_OPTIONAL_STRING
+        'state': SINGLE_OPTIONAL_STRING
     }
 
 
