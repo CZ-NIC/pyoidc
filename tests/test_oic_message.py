@@ -4,6 +4,8 @@
 import os
 import sys
 
+from future.backports.urllib.parse import urlencode
+
 from oic.utils import time_util
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
@@ -256,7 +258,7 @@ class TestRegistrationRequest(object):
         }
 
         reg = RegistrationRequest().deserialize(json.dumps(msg), "json")
-        assert _eq(msg.keys(), reg.keys())
+        assert _eq(list(msg.keys()) + ['response_types'], reg.keys())
 
     def test_registration_request(self):
         req = RegistrationRequest(operation="register", default_max_age=10,
@@ -269,10 +271,11 @@ class TestRegistrationRequest(object):
         expected_js_obj = {"redirect_uris": ["https://example.com/authz_cb"],
                            "application_type": "web", "default_acr": "foo",
                            "require_auth_time": True, "operation": "register",
-                           "default_max_age": 10}
+                           "default_max_age": 10, "response_types": ["code"]}
         assert js_obj == expected_js_obj
-        assert query_string_compare(req.to_urlencoded(),
-                                    "redirect_uris=https%3A%2F%2Fexample.com%2Fauthz_cb&application_type=web&default_acr=foo&require_auth_time=True&operation=register&default_max_age=10")
+
+        flattened_list_dict = {k: v[0] if isinstance(v, list) else v for k, v in expected_js_obj.items()}
+        assert query_string_compare(req.to_urlencoded(), urlencode(flattened_list_dict))
 
 
 class TestRegistrationResponse(object):
@@ -339,7 +342,7 @@ class TestAccessTokenResponse(object):
     def test_faulty_idtoken(self):
         _now = time_util.utc_time_sans_frac()
         idval = {'nonce': 'KUEYfRM2VzKDaaKD', 'sub': 'EndUserSubject',
-                 'iss': 'https://alpha.cloud.nds.rub.de', 'exp': _now+3600,
+                 'iss': 'https://alpha.cloud.nds.rub.de', 'exp': _now + 3600,
                  'iat': _now, 'aud': 'TestClient'}
         idts = IdToken(**idval)
         key = SYMKey(key="TestPassword")
@@ -360,7 +363,7 @@ class TestAccessTokenResponse(object):
     def test_wrong_alg(self):
         _now = time_util.utc_time_sans_frac()
         idval = {'nonce': 'KUEYfRM2VzKDaaKD', 'sub': 'EndUserSubject',
-                 'iss': 'https://alpha.cloud.nds.rub.de', 'exp': _now+3600,
+                 'iss': 'https://alpha.cloud.nds.rub.de', 'exp': _now + 3600,
                  'iat': _now, 'aud': 'TestClient'}
         idts = IdToken(**idval)
         key = SYMKey(key="TestPassword")
@@ -387,7 +390,7 @@ def test_id_token():
         "azp": "554295ce3770612820620000",
         "at_hash": "L4Ign7TCAD_EppRbHAuCyw",
         "iat": _now,
-        "exp": _now+3600,
+        "exp": _now + 3600,
         "iss": "https://sso.qa.7pass.ctf.prosiebensat1.com"
     })
 
