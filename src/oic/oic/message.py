@@ -482,7 +482,7 @@ class AccessTokenRequest(message.AccessTokenRequest):
     c_param = message.AccessTokenRequest.c_param.copy()
     c_param.update({"client_assertion_type": SINGLE_OPTIONAL_STRING,
                     "client_assertion": SINGLE_OPTIONAL_STRING})
-
+    c_default = {"grant_type": "authorization_code"}
     c_allowed_values = {
         "client_assertion_type": [
             "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"],
