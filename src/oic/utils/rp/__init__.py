@@ -40,17 +40,20 @@ class Client(oic.Client):
         self.allow_sign_alg_none = False
         self.authz_req = {}
         self.get_userinfo = True
+        self.oidc = True
 
     def create_authn_request(self, session, acr_value=None, **kwargs):
         session["state"] = rndstr()
-        session["nonce"] = rndstr()
         request_args = {
             "response_type": self.behaviour["response_type"],
             "scope": self.behaviour["scope"],
             "state": session["state"],
-            "nonce": session["nonce"],
             "redirect_uri": self.registration_response["redirect_uris"][0]
         }
+
+        if self.oidc:
+            session["nonce"] = rndstr()
+            request_args['nonce'] = session['nonce']
 
         if acr_value is not None:
             request_args["acr_values"] = acr_value
@@ -129,11 +132,12 @@ class Client(oic.Client):
                     "redirect_uri": self.registration_response[
                         "redirect_uris"][0],
                     "client_id": self.client_id,
-                    "client_secret": self.client_secret
+                    "client_secret": self.client_secret,
+                    'scope': response['scope']
                 }
 
                 atresp = self.do_access_token_request(
-                    scope="openid", state=authresp["state"],
+                    state=authresp["state"],
                     request_args=args,
                     authn_method=self.registration_response[
                         "token_endpoint_auth_method"])
@@ -145,7 +149,17 @@ class Client(oic.Client):
             if isinstance(atresp, ErrorResponse):
                 self._err('Error response: {}'.format(atresp.to_dict()))
 
-            _id_token = atresp['id_token']
+            _token = atresp['access_token']
+
+            try:
+                _id_token = atresp['id_token']
+            except KeyError:
+                pass
+        else:
+            _token = authresp['access_token']
+
+        if not self.oidc:
+            return {'access_token': _token}
 
         if _id_token is None:
             self._err("Invalid response: no IdToken")
@@ -195,9 +209,10 @@ class Client(oic.Client):
                         pass
 
             return {'user_id': user_id, 'userinfo': userinfo,
-                    'id_token': _id_token}
+                    'id_token': _id_token, 'access_token': _token}
         else:
-            return {'user_id': user_id, 'id_token': _id_token}
+            return {'user_id': user_id, 'id_token': _id_token,
+                    'access_token': _token}
 
 
 class OIDCClients(object):
