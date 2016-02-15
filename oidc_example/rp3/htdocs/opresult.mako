@@ -23,19 +23,28 @@
     def escape(string):
         return pattern.sub(escape_entity, string)
 
-    def create_result(userinfo, userid):
+    def create_result(userinfo, user_id, id_token):
         """
         Creates a display of user information.
         """
         element = "<h3>You have successfully authenticated!</h3>"
-        element += '<h3>And are now known to the RP as:</h3>'
-        element += '<i>'+userid+'</i>'
-        element += '<h3>With the following user information</h3>'
-        for key, value in userinfo.items():
-            element += "<div class='row'>"
-            element += "<div class='col-md-3'>" +  escape(str(key)) + "</div>"
-            element += "<div class='col-md-7'>" + escape(str(value)) + "</div>"
-            element += "</div>"
+        if id_token:
+          element += '<h3>With the following authentication information</h3>'
+          for key, value in id_token.items():
+              element += "<div class='row'>"
+              element += "<div class='col-md-3'>" +  escape(str(key)) + "</div>"
+              element += "<div class='col-md-7'>" + escape(str(value)) + "</div>"
+              element += "</div>"
+        if user_id:
+          element += '<h3>And are now known to the RP as:</h3>'
+          element += '<i>'+userid+'</i>'
+        if userinfo:
+          element += '<h3>With the following user information</h3>'
+          for key, value in userinfo.items():
+              element += "<div class='row'>"
+              element += "<div class='col-md-3'>" +  escape(str(key)) + "</div>"
+              element += "<div class='col-md-7'>" + escape(str(value)) + "</div>"
+              element += "</div>"
         return element
 %>
 
@@ -79,7 +88,7 @@
     <!-- Main component for a primary marketing message or call to action -->
     <div class="jumbotron">
         <h1>OP result</h1>
-        ${create_result(userinfo, userid)}
+        ${create_result(userinfo, user_id, id_token)}
     </div>
 
 </div>

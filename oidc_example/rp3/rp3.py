@@ -17,6 +17,7 @@ from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 
 from requests.packages import urllib3
+
 urllib3.disable_warnings()
 
 LOGGER = logging.getLogger("")
@@ -75,19 +76,19 @@ def opchoice(environ, start_response, clients):
     return resp(environ, start_response, **argv)
 
 
-def opresult(environ, start_response, userinfo, user_id,
-             check_session_iframe_url=None):
+def opresult(environ, start_response, **kwargs):
     resp = Response(mako_template="opresult.mako",
                     template_lookup=LOOKUP,
                     headers=[])
-    argv = {
-        "userinfo": userinfo,
-        'userid': user_id
-    }
-    if check_session_iframe_url:
-        argv["check_session_iframe_url"] = check_session_iframe_url
 
-    return resp(environ, start_response, **argv)
+    args = {}
+    for param in ['userinfo', 'user_id', 'id_token']:
+        try:
+            args[param] = kwargs[param]
+        except KeyError:
+            args[param] = None
+
+    return resp(environ, start_response, **args)
 
 
 def operror(environ, start_response, error=None):
@@ -133,8 +134,7 @@ def application(environ, start_response):
     path = environ.get('PATH_INFO', '').lstrip('/')
     if path == "robots.txt":
         return static(environ, start_response, LOGGER, "static/robots.txt")
-
-    if path.startswith("static/"):
+    elif path.startswith("static/"):
         return static(environ, start_response, LOGGER, path)
 
     query = parse_qs(environ["QUERY_STRING"])
@@ -146,7 +146,33 @@ def application(environ, start_response):
     LOGGER.info("[{}] path: {}".format(session.id, path))
     LOGGER.info(50 * "=")
 
-    if path == "rp":  # After having chosen which OP to authenticate at
+    if path == '':
+        if 'access_token' not in session:
+            return opchoice(environ, start_response, clients)
+        else:
+            client = clients[session["op"]]
+            check_session_iframe_url = None
+            try:
+                check_session_iframe_url = client.provider_info[
+                    "check_session_iframe"]
+
+                session["session_management"] = {
+                    "session_state": query["session_state"][0],
+                    "client_id": client.client_id,
+                    "issuer": client.provider_info["issuer"]
+                }
+            except KeyError:
+                pass
+
+            kwargs = dict(
+                [(p, session[p]) for p in ['id_token', 'userinfo', 'user_id'] if
+                 p in session])
+
+            return opresult(environ, start_response, check_session_iframe_url,
+                            **kwargs)
+
+
+    elif path == "rp":  # After having chosen which OP to authenticate at
         if "uid" in query:
             try:
                 client = clients.dynamic_client(userid=query["uid"][0])
@@ -163,9 +189,15 @@ def application(environ, start_response):
         else:
             client = clients[query["op"][0]]
 
+        client.get_userinfo = session._params['userinfo']
+        try:
+            client.resource_server = session._params['resource_server']
+        except KeyError:
+            pass
+
         try:
             session['response_format'] = query["response_format"][0]
-        except:
+        except KeyError:
             session['response_format'] = 'html'
 
         session["op"] = client.provider_info["issuer"]
@@ -208,22 +240,9 @@ def application(environ, start_response):
         except Exception as err:
             raise
         else:
-            check_session_iframe_url = None
-            try:
-                check_session_iframe_url = client.provider_info[
-                    "check_session_iframe"]
-
-                session["session_management"] = {
-                    "session_state": query["session_state"][0],
-                    "client_id": client.client_id,
-                    "issuer": client.provider_info["issuer"]
-                }
-            except KeyError:
-                pass
-
-            return opresult(environ, start_response, result['userinfo'],
-                            result['user_id'], check_session_iframe_url)
-
+            session.update(result)
+            res = SeeOther(location=server_env['base_url'])
+            return res(environ, start_response)
     elif path in clients.return_paths():  # After having authenticated at the OP
         try:
             _iss = session['op']
@@ -273,26 +292,9 @@ def application(environ, start_response):
         except Exception:
             raise
         else:
-            check_session_iframe_url = None
-            try:
-                check_session_iframe_url = client.provider_info[
-                    "check_session_iframe"]
-
-                session["session_management"] = {
-                    "session_state": query["session_state"][0],
-                    "client_id": client.client_id,
-                    "issuer": client.provider_info["issuer"]
-                }
-            except KeyError:
-                pass
-
-            if session['response_format'] == 'html':
-                return opresult(environ, start_response, result['userinfo'],
-                                result['user_id'], check_session_iframe_url)
-            else:
-                result['id_token'] = result['id_token'].to_dict()
-                res = Response(json.dumps(result))
-                return res(environ, start_response)
+            session.update(result)
+            res = SeeOther(server_env['base_url'])
+            return res(environ, start_response)
     elif path == "logout":  # After the user has pressed the logout button
         try:
             _iss = session['op']
@@ -404,11 +406,18 @@ if __name__ == '__main__':
     _clients = OIDCClients(conf, _base)
     SERVER_ENV.update({"template_lookup": LOOKUP, "base_url": _base})
 
+    kwargs = {'clients': _clients,
+              'acrs': conf.ACR_VALUES,
+              'server_env': SERVER_ENV,
+              'userinfo': conf.USERINFO}
+    try:
+        kwargs['resource_server'] = conf.RESOURCE_SERVER
+    except AttributeError:
+        pass
+
     SRV = wsgiserver.CherryPyWSGIServer(
         ('0.0.0.0', int(args.port)),
-        SessionMiddleware(application, session_opts,
-                          clients=_clients, acrs=conf.ACR_VALUES,
-                          server_env=SERVER_ENV))
+        SessionMiddleware(application, session_opts, **kwargs))
 
     if conf.BASE.startswith("https"):
         from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
