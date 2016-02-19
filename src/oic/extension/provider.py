@@ -564,6 +564,74 @@ class Provider(provider.Provider):
                             status="401 Unauthorized")
         return True
 
+    def code_grant_type(self, areq):
+        # assert that the code is valid
+        try:
+            _info = self.sdb[areq["code"]]
+        except KeyError:
+            err = TokenErrorResponse(error="invalid_grant",
+                                     error_description="Unknown access grant")
+            return Response(err.to_json(), content="application/json",
+                            status="401 Unauthorized")
+
+        authzreq = json.loads(_info['authzreq'])
+        if 'code_verifier' in areq:
+            try:
+                _method = authzreq['code_challenge_method']
+            except KeyError:
+                _method = 'S256'
+
+            resp = self.verify_code_challenge(areq['code_verifier'],
+                                              authzreq['code_challenge'],
+                                              _method)
+            if resp:
+                return resp
+
+        if 'state' in areq:
+            if self.sdb[areq['code']]['state'] != areq['state']:
+                err = TokenErrorResponse(error="unauthorized_client")
+                return Unauthorized(err.to_json(), content="application/json")
+
+        resp = self.token_scope_check(areq, _info)
+        if resp:
+            return resp
+
+        # If redirect_uri was in the initial authorization request
+        # verify that the one given here is the correct one.
+        if "redirect_uri" in _info:
+            assert areq["redirect_uri"] == _info["redirect_uri"]
+
+        issue_refresh = False
+        if 'scope' in authzreq and 'offline_access' in authzreq['scope']:
+            if authzreq['response_type'] == 'code':
+                issue_refresh = True
+
+        try:
+            _tinfo = self.sdb.upgrade_to_token(areq["code"],
+                                               issue_refresh=issue_refresh)
+        except AccessCodeUsed:
+            err = TokenErrorResponse(error="invalid_grant",
+                                     error_description="Access grant used")
+            return Response(err.to_json(), content="application/json",
+                            status="401 Unauthorized")
+
+        logger.debug("_tinfo: %s" % _tinfo)
+
+        atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
+
+        logger.debug("AccessTokenResponse: %s" % atr)
+
+        return Response(atr.to_json(), content="application/json")
+
+    def client_credentials_grant_type(self, areq):
+        return Response(atr.to_json(), content="application/json")
+
+    def password_grant_type(self, areq):
+        return Response(atr.to_json(), content="application/json")
+
+    def refresh_token_grant_type(self, areq):
+        return Response(atr.to_json(), content="application/json")
+
     def token_endpoint(self, authn="", **kwargs):
         """
         This is where clients come to get their access tokens
@@ -587,71 +655,17 @@ class Provider(provider.Provider):
 
         logger.debug("AccessTokenRequest: %s" % areq)
 
-        # assert that the code is valid
-        try:
-            _info = _sdb[areq["code"]]
-        except KeyError:
-            err = TokenErrorResponse(error="invalid_grant",
-                                     error_description="Unknown access grant")
-            return Response(err.to_json(), content="application/json",
-                            status="401 Unauthorized")
-
-        authzreq = json.loads(_info['authzreq'])
-        if 'code_verifier' in areq:
-            try:
-                _method = authzreq['code_challenge_method']
-            except KeyError:
-                _method = 'S256'
-
-            resp = self.verify_code_challenge(areq['code_verifier'],
-                                              authzreq['code_challenge'],
-                                              _method)
-            if resp:
-                return resp
-
-        try:
-            assert areq["grant_type"] == "authorization_code"
-        except AssertionError:
-            err = TokenErrorResponse(error="invalid_request",
-                                     error_description="Wrong grant type")
-            return Response(err.to_json(), content="application/json",
-                            status="401 Unauthorized")
-
-        if 'state' in areq:
-            if self.sdb[areq['code']]['state'] != areq['state']:
-                err = TokenErrorResponse(error="unauthorized_client")
-                return Unauthorized(err.to_json(), content="application/json")
-
-        resp = self.token_scope_check(areq, _info)
-        if resp:
-            return resp
-
-        # If redirect_uri was in the initial authorization request
-        # verify that the one given here is the correct one.
-        if "redirect_uri" in _info:
-            assert areq["redirect_uri"] == _info["redirect_uri"]
-
-        issue_refresh = False
-        if 'scope' in authzreq and 'offline_access' in authzreq['scope']:
-            if authzreq['response_type'] == 'code':
-                issue_refresh = True
-
-        try:
-            _tinfo = _sdb.upgrade_to_token(areq["code"],
-                                           issue_refresh=issue_refresh)
-        except AccessCodeUsed:
-            err = TokenErrorResponse(error="invalid_grant",
-                                     error_description="Access grant used")
-            return Response(err.to_json(), content="application/json",
-                            status="401 Unauthorized")
-
-        logger.debug("_tinfo: %s" % _tinfo)
-
-        atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
-
-        logger.debug("AccessTokenResponse: %s" % atr)
-
-        return Response(atr.to_json(), content="application/json")
+        _grant_type = areq["grant_type"]
+        if _grant_type == "authorization_code":
+            return self.code_grant_type(areq)
+        elif _grant_type == 'client_credentials':
+            return self.client_credentials_grant_type(areq)
+        elif _grant_type == 'password':
+            return self.password_grant_type(areq)
+        elif _grant_type == 'refresh_token':
+            return self.refresh_token_grant_type(areq)
+        else:
+            raise UnSupported('grant_type: {}'.format(_grant_type))
 
     def key_setup(self, local_path, vault="keys", sig=None, enc=None):
         """
