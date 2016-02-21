@@ -2,22 +2,36 @@
 
 # pylint: disable=missing-docstring,no-self-use
 import json
-
 import pytest
+import six
 
-from six.moves.urllib.parse import quote, urlencode
+from future.backports.urllib.parse import quote
+from future.backports.urllib.parse import urlencode
+
 from oic.oauth2 import Grant
-from oic.oauth2.exception import GrantError, MissingEndpoint, ResponseError
-from oic.oauth2.message import AccessTokenResponse, AuthorizationResponse, \
-    AuthorizationErrorResponse, AuthorizationRequest, GrantExpired, \
-    ErrorResponse, AccessTokenRequest, RefreshAccessTokenRequest, \
-    MissingRequiredAttribute, FormatError
+from oic.oauth2.exception import GrantError
+from oic.oauth2.exception import MissingEndpoint
+from oic.oauth2.exception import ResponseError
+from oic.oauth2.message import AccessTokenResponse
+from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import AuthorizationErrorResponse
+from oic.oauth2.message import AuthorizationRequest
+from oic.oauth2.message import GrantExpired
+from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import AccessTokenRequest
+from oic.oauth2.message import RefreshAccessTokenRequest
+from oic.oauth2.message import MissingRequiredAttribute
+from oic.oauth2.message import FormatError
 from oic.utils import time_util
 from oic.oauth2 import Client
 from oic.oauth2 import Server
 from oic.oauth2 import Token
 from oic.utils.keyio import KeyBundle
-from utils_for_tests import _eq, url_compare  # pylint: disable=import-error
+
+if six.PY2:
+    from utils_for_tests import _eq, query_string_compare
+else:
+    from .utils_for_tests import _eq, query_string_compare, url_compare
 
 __author__ = 'rohe0002'
 

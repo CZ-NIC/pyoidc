@@ -1,6 +1,8 @@
 import json
 import os
 import datetime
+import pytest
+import six
 
 from six import iteritems
 from time import time
@@ -9,8 +11,6 @@ from future.backports.http.cookies import SimpleCookie
 from future.backports.urllib.parse import urlencode
 from future.backports.urllib.parse import parse_qs
 from future.backports.urllib.parse import urlparse
-
-import pytest
 
 from oic.oauth2 import rndstr
 from oic.utils.authn.authn_context import AuthnBroker
@@ -45,7 +45,10 @@ from oic.oic.provider import Provider
 from oic.oic.provider import InvalidRedirectURIError
 from oic.utils.time_util import epoch_in_a_while
 
-from utils_for_tests import _eq
+if six.PY2:
+    from utils_for_tests import _eq
+else:
+    from .utils_for_tests import _eq
 
 __author__ = 'rohe0002'
 

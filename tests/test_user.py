@@ -1,15 +1,19 @@
 # pylint: disable=missing-docstring,redefined-outer-name,no-self-use
-
 import os
+from future.backports.urllib.parse import urlencode, parse_qs
+import pytest
+import six
 
 from mako.lookup import TemplateLookup
-import pytest
 
-from six.moves.urllib.parse import parse_qs, urlencode
 from oic.oauth2 import rndstr
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.http_util import Unauthorized
-from utils_for_tests import query_string_compare  # pylint: disable=import-error
+
+if six.PY2:
+    from utils_for_tests import query_string_compare
+else:
+    from .utils_for_tests import query_string_compare
 
 PASSWD = {"user": "hemligt"}
 

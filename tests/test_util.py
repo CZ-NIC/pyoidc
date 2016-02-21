@@ -1,4 +1,5 @@
 import pytest
+import six
 
 from oic.exception import UnSupported
 from oic.oic import AuthorizationRequest
@@ -6,7 +7,11 @@ from oic.oic.message import AccessTokenRequest
 from six.moves.http_cookiejar import http2time, FileCookieJar
 from six.moves.http_cookies import SimpleCookie
 from oic.oauth2 import util
-from utils_for_tests import url_compare
+
+if six.PY2:
+    from utils_for_tests import url_compare
+else:
+    from .utils_for_tests import url_compare
 
 __author__ = 'DIRG'
 

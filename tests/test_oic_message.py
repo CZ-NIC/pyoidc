@@ -1,22 +1,14 @@
 # -*- coding: utf-8 -*-
-
-# pylint: disable=missing-docstring,no-self-use
 import os
 import sys
+import json
+import pytest
+import six
 
 from future.backports.urllib.parse import urlencode
 
-from oic.utils import time_util
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                             '..', '..')))
-
-import json
-
 from jwkest import BadSignature
-
 from jwkest.jwk import SYMKey
-import pytest
 
 from oic.oauth2 import WrongSigningAlgorithm
 from oic.oauth2.message import MissingRequiredValue
@@ -32,7 +24,15 @@ from oic.oic.message import claims_deser
 from oic.oic.message import AddressClaim
 from oic.oic.message import address_deser
 from oic.oic.message import Claims
-from utils_for_tests import _eq, query_string_compare  # pylint: disable=import-error
+from oic.utils import time_util
+
+if six.PY2:
+    from utils_for_tests import _eq, query_string_compare
+else:
+    from .utils_for_tests import _eq, query_string_compare
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                             '..', '..')))
 
 __author__ = 'rohe0002'
 

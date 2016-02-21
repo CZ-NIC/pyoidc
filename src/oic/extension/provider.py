@@ -1,5 +1,3 @@
-import base64
-import hashlib
 import json
 import logging
 import os
@@ -11,12 +9,14 @@ import socket
 from future.backports.urllib.parse import parse_qs
 from future.backports.urllib.parse import splitquery
 
-from jwkest import jws, b64d, b64e
+from jwkest import jws, b64e
 
-from oic.exception import FailedAuthentication, RestrictionError
+from oic.exception import FailedAuthentication
+from oic.exception import RestrictionError
 from oic.exception import UnSupported
 from oic.exception import UnknownAssertionType
-from oic.extension.client import ClientInfoResponse, CC_METHOD
+from oic.extension.client import ClientInfoResponse
+from oic.extension.client import CC_METHOD
 from oic.extension.client import ClientUpdateRequest
 from oic.extension.client import ModificationForbidden
 from oic.extension.client import RegistrationRequest
@@ -34,7 +34,8 @@ from oic.oauth2 import AccessTokenResponse
 from oic.oauth2 import by_schema
 from oic.oauth2 import rndstr
 from oic.oauth2.provider import Endpoint
-from oic.oauth2.exception import VerificationError, CapabilitiesMisMatch
+from oic.oauth2.exception import VerificationError
+from oic.oauth2.exception import CapabilitiesMisMatch
 # from oic.oic import ProviderConfigurationResponse
 from oic.oic import PREFERENCE2PROVIDER
 from oic.oic.message import SCOPE2CLAIMS
@@ -55,6 +56,7 @@ from oic.utils.keyio import KeyJar
 from oic.utils.keyio import key_export
 from oic.utils.sdb import AccessCodeUsed
 from oic.utils.time_util import utc_time_sans_frac
+from oic.utils.token_handler import TokenHandler, NotAllowed
 
 __author__ = 'roland'
 
@@ -136,6 +138,9 @@ class Provider(provider.Provider):
         self.kid = {"sig": {}, "enc": {}}
         self.config = config
         self.behavior = behavior or {}
+        self.token_policy = {}
+        self.token_handler = TokenHandler(self.baseurl, self.token_policy,
+                                          keyjar=self.keyjar)
 
     @staticmethod
     def _uris_to_tuples(uris):
@@ -624,12 +629,46 @@ class Provider(provider.Provider):
         return Response(atr.to_json(), content="application/json")
 
     def client_credentials_grant_type(self, areq):
+        _at = self.token_handler.access_token(areq['client_id'],
+                                              scope=areq['scope'],
+                                              grant_type='client_credentials')
+        _tinfo = {'access_token': _at}
+        _info = self.token_handler.token_factory.get_info(_at)
+        _tinfo.update(_info)
+        try:
+            _refresh_token = self.token_handler.refresh_token(
+                self.baseurl, _tinfo['access_token'], 'client_credentials')
+        except NotAllowed:
+            pass
+        else:
+            _tinfo['refresh_token'] = _refresh_token
+
+        atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
         return Response(atr.to_json(), content="application/json")
 
     def password_grant_type(self, areq):
+        _at = self.token_handler.access_token(areq['client_id'],
+                                              scope=areq['scope'],
+                                              grant_type='password')
+        _tinfo = {'access_token': _at}
+        _info = self.token_handler.token_factory.get_info(_at)
+        _tinfo.update(_info)
+        try:
+            _refresh_token = self.token_handler.refresh_token(
+                self.baseurl, _tinfo['access_token'], 'password')
+        except NotAllowed:
+            pass
+        else:
+            _tinfo['refresh_token'] = _refresh_token
+
+        atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
         return Response(atr.to_json(), content="application/json")
 
     def refresh_token_grant_type(self, areq):
+        at = self.token_handler.refresh_token(
+            self.baseurl, areq['access_token'], 'refresh_token')
+
+        atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
         return Response(atr.to_json(), content="application/json")
 
     def token_endpoint(self, authn="", **kwargs):
@@ -686,6 +725,9 @@ class Provider(provider.Provider):
         allow = False
         if endpoint == 'revocation_endpoint':
             if 'azr' in token_info and client_id == token_info['azr']:
+                allow = True
+            elif len(token_info['aud']) == 1 and token_info['aud'] == [
+                client_id]:
                 allow = True
         else:  # has to be introspection endpoint
             if 'azr' in token_info and client_id == token_info['azr']:

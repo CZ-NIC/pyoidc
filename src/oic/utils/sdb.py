@@ -82,9 +82,9 @@ class Crypt(object):
 
 
 class Token(object):
-    def __init__(self, typ, lifetime, **kwargs):
+    def __init__(self, typ, lifetime=0, **kwargs):
         self.type = typ
-        self.lifetime = lifetime
+        self.lifetime  = lifetime
         self.args = kwargs
 
     def __call__(self, sid, *args, **kwargs):

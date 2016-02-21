@@ -1,17 +1,23 @@
+from future.backports.urllib.parse import urlencode
 import pytest
-from six.moves.urllib.parse import urlencode
+import six
+
 from oic.oauth2 import rndstr
 from oic.oauth2.consumer import Consumer
 from oic.oauth2.consumer import stateID
 from oic.oauth2.consumer import factory
-from oic.utils.http_util import make_cookie
 from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import AuthorizationErrorResponse
 from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.consumer import AuthzError
-from utils_for_tests import url_compare, query_string_compare
+from oic.utils.http_util import make_cookie
+
+if six.PY2:
+    from utils_for_tests import _eq, query_string_compare
+else:
+    from .utils_for_tests import _eq, query_string_compare, url_compare
 
 __author__ = 'rohe0002'
 

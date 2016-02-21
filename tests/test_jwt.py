@@ -1,7 +1,12 @@
 import os
+import six
 from oic.utils.jwt import JWT
 from oic.utils.keyio import build_keyjar
-from utils_for_tests import _eq
+
+if six.PY2:
+    from utils_for_tests import _eq, query_string_compare
+else:
+    from .utils_for_tests import _eq, query_string_compare
 
 __author__ = 'roland'
 

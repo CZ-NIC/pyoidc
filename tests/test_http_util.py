@@ -1,10 +1,11 @@
 # pylint: disable=redefined-outer-name,missing-docstring
 import datetime
-from oic.utils.time_util import utc_time_sans_frac
-
 import pytest
 
-from oic.utils.http_util import CookieDealer, Response, geturl, getpath
+from oic.utils.http_util import CookieDealer
+from oic.utils.http_util import Response
+from oic.utils.http_util import geturl
+from oic.utils.http_util import getpath
 
 __author__ = 'roland'
 

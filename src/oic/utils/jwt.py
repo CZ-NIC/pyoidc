@@ -11,7 +11,7 @@ __author__ = 'roland'
 
 
 class JWT(object):
-    def __init__(self, keyjar, lifetime=3600, iss='', sign_alg='RS256',
+    def __init__(self, keyjar, iss='', lifetime=0, sign_alg='RS256',
                  msgtype=JasonWebToken, encrypt=False, enc_enc="A128CBC-HS256",
                  enc_alg="RSA1_5"):
         self.iss = iss

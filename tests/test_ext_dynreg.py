@@ -2,6 +2,7 @@ import json
 import os
 
 import pytest
+import six
 
 from oic.utils.http_util import Response
 from oic.utils.http_util import NoContent
@@ -21,7 +22,11 @@ from oic.extension.client import ClientRegistrationError
 from oic.extension.client import RegistrationRequest
 from oic.extension.provider import Provider
 from oic.utils.keyio import build_keyjar
-from utils_for_tests import _eq
+
+if six.PY2:
+    from utils_for_tests import _eq, query_string_compare
+else:
+    from .utils_for_tests import _eq, query_string_compare
 
 BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/keys"))
 

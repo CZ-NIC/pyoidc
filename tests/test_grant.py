@@ -1,9 +1,15 @@
 # pylint: disable=missing-docstring,no-self-use
+import six
 
 from oic.oauth2.grant import Grant, Token
-from oic.oauth2.message import AuthorizationResponse, ErrorResponse, \
-    AccessTokenResponse
-from utils_for_tests import _eq  # pylint: disable=import-error
+from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import AccessTokenResponse
+
+if six.PY2:
+    from utils_for_tests import _eq, query_string_compare
+else:
+    from .utils_for_tests import _eq, query_string_compare
 
 ATR = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
                           token_type="example",

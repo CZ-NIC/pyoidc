@@ -2,11 +2,13 @@
 
 import base64
 import os
+import pytest
+import six
 
-from jwkest.jwk import SYMKey, rsa_load
 from jwkest.jws import JWS
 from jwkest.jwt import JWT
-import pytest
+from jwkest.jwk import rsa_load
+from jwkest.jwk import SYMKey
 
 from oic.oauth2 import Client
 from oic.oauth2.grant import Grant
@@ -22,7 +24,11 @@ from oic.utils.authn.client import ClientSecretPost
 from oic.utils.authn.client import PrivateKeyJWT
 from oic.utils.authn.client import ClientSecretJWT
 from oic.utils.keyio import KeyBundle
-from utils_for_tests import _eq  # pylint: disable=import-error
+
+if six.PY2:
+    from utils_for_tests import _eq, query_string_compare
+else:
+    from .utils_for_tests import _eq, query_string_compare
 
 BASE_PATH = os.path.abspath(os.path.dirname(__file__))
 

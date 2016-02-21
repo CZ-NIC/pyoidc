@@ -26,13 +26,13 @@ class TokenAssertion(Message):
 
 
 class JWTToken(Token, JWT):
-    def __init__(self, typ, keyjar, lifetime, **kwargs):
+    def __init__(self, typ, keyjar, lt_pattern=None, **kwargs):
         self.type = typ
-        JWT.__init__(self, keyjar, lifetime=lifetime, msgtype=TokenAssertion,
-                     **kwargs)
-        Token.__init__(self, typ, lifetime=lifetime, **kwargs)
+        JWT.__init__(self, keyjar, msgtype=TokenAssertion, **kwargs)
+        Token.__init__(self, typ, **kwargs)
+        self.lt_pattern = lt_pattern or {}
         self.db = {}
-        self.session_info = {}
+        self.session_info = {'': 600}
         self.exp_args = ['sinfo']
 
     def __call__(self, sid, *args, **kwargs):
@@ -41,45 +41,65 @@ class JWTToken(Token, JWT):
 
         :return:
         """
-        _sinfo = kwargs['sinfo']
-        exp = self.do_exp(**_sinfo)
-
-        _cid = _sinfo['client_id']
-        if 'aud' in kwargs:
-            if _cid not in kwargs['aud']:
-                kwargs['aud'].append(_cid)
-        else:
-            kwargs['aud'] = [_cid]
-
-        if 'azr' not in kwargs:
-            kwargs['azr'] = _cid
-
-        if 'scope' not in kwargs:
-            _scope = None
-            try:
-                _scope = _sinfo['scope']
-            except KeyError:
-                ar = json.loads(_sinfo['authzreq'])
+        if 'sinfo' in kwargs:
+            _sinfo = kwargs['sinfo']
+            if 'lifetime' in kwargs:
+                _sinfo['lifetime'] = kwargs['lifetime']
+            exp = self.do_exp(**_sinfo)
+            _tid = _sinfo['client_id']
+            if 'scope' not in kwargs:
+                _scope = None
                 try:
-                    _scope = ar['scope']
+                    _scope = _sinfo['scope']
                 except KeyError:
-                    pass
-            if _scope:
-                kwargs['scope'] = ' ' .join(_scope)
+                    ar = json.loads(_sinfo['authzreq'])
+                    try:
+                        _scope = ar['scope']
+                    except KeyError:
+                        pass
+                if _scope:
+                    kwargs['scope'] = ' ' .join(_scope)
+            del kwargs['sinfo']
+        else:
+            exp = self.do_exp(**kwargs)
+            _tid = kwargs['target_id']
 
-        del kwargs['sinfo']
+        if 'aud' in kwargs:
+            if _tid not in kwargs['aud']:
+                kwargs['aud'].append(_tid)
+        else:
+            kwargs['aud'] = [_tid]
+
+        if len(kwargs['aud']) > 1:
+            if 'azr' not in kwargs:
+                kwargs['azr'] = _tid
+
+        for param in ['lifetime', 'grant_type', 'response_type', 'target_id']:
+            try:
+                del kwargs[param]
+            except KeyError:
+                pass
 
         _jti = '{}-{}'.format(self.type, uuid.uuid4().hex)
-        _jwt = self.pack(sid=sid, jti=_jti, exp=exp, **kwargs)
+        _jwt = self.pack(jti=_jti, exp=exp, **kwargs)
         self.db[_jti] = sid
         return _jwt
 
     def do_exp(self, **kwargs):
-        rt = ' '.join(kwargs['response_type'])
         try:
-            return utc_time_sans_frac() + self.lifetime[rt]
+            lifetime = kwargs['lifetime']
         except KeyError:
-            return utc_time_sans_frac() + self.lifetime['']
+            try:
+                rt = ' '.join(kwargs['response_type'])
+            except KeyError:
+                rt = ' '.join(kwargs['grant_type'])
+
+            try:
+                lifetime = self.lt_pattern[rt]
+            except KeyError:
+                lifetime = self.lt_pattern['']
+
+        return utc_time_sans_frac() + lifetime
 
     def type_and_key(self, token):
         """
@@ -114,7 +134,12 @@ class JWTToken(Token, JWT):
 
     def invalidate(self, token):
         info = self.unpack(token)
-        del self.db[info['jti']]
+        try:
+            del self.db[info['jti']]
+        except KeyError:
+            return False
+
+        return True
 
     def is_valid(self, info):
         if info['jti'] in self.db:

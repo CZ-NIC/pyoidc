@@ -1,11 +1,11 @@
 # pylint: disable=missing-docstring,no-self-use,redefined-outer-name
-
 import os
-
 import pytest
 
 from oic.utils import shelve_wrapper
-from utils_for_tests import _eq  # pylint: disable=import-error
+
+def _eq(l1, l2):
+    return set(l1) == set(l2)
 
 __author__ = 'mathiashedstrom'
 

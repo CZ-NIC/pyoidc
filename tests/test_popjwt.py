@@ -1,8 +1,10 @@
 import json
 from Crypto.PublicKey import RSA
-from oic.extension.popjwt import PJWT, PopJWT
+from oic.extension.popjwt import PJWT
+from oic.extension.popjwt import PopJWT
 from jwkest.jwe import JWE
-from jwkest.jwk import RSAKey, KEYS
+from jwkest.jwk import KEYS
+from jwkest.jwk import RSAKey
 
 __author__ = 'roland'
 

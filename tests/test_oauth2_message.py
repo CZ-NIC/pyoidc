@@ -1,8 +1,8 @@
 # pylint: disable=no-self-use,missing-docstring
-
 import json
-
 import pytest
+import six
+
 from jwkest.jwk import SYMKey
 
 from oic.oauth2.message import sp_sep_list_deserializer
@@ -28,7 +28,11 @@ from oic.oauth2.message import ROPCAccessTokenRequest
 from oic.oauth2.message import CCAccessTokenRequest
 from oic.oauth2.message import RefreshAccessTokenRequest
 from oic.oauth2.message import ErrorResponse
-from utils_for_tests import url_compare, _eq, query_string_compare  # pylint: disable=import-error
+
+if six.PY2:
+    from utils_for_tests import url_compare, _eq, query_string_compare
+else:
+    from .utils_for_tests import url_compare, _eq, query_string_compare
 
 __author__ = 'rohe0002'
 

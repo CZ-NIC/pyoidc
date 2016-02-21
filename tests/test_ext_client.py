@@ -1,3 +1,4 @@
+import six
 from oic.extension.token import JWTToken
 from oic.oauth2 import rndstr
 from oic.utils import sdb
@@ -7,8 +8,12 @@ from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
-from utils_for_tests import _eq
 from oic.utils.keyio import KeyBundle, KeyJar
+
+if six.PY2:
+    from utils_for_tests import _eq, query_string_compare
+else:
+    from .utils_for_tests import _eq, query_string_compare
 
 __author__ = 'roland'
 
@@ -117,7 +122,7 @@ def test_pkce_token():
     kb = KeyBundle(JWKS["keys"])
     kj = KeyJar()
     kj.issuer_keys[''] = [kb]
-    constructor = JWTToken('A', keyjar=kj, lifetime={'': 900},
+    constructor = JWTToken('A', keyjar=kj, lt_pattern={'': 900},
                            iss='https://example.com/as', sign_alg='RS256',
                            encrypt=True)
 

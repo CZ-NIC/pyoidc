@@ -1,16 +1,15 @@
 #!/usr/bin/env python
 # from oic.oauth2 import KeyStore
-import json
-import sys
 import os
 import time
+import pytest
+
+from future.backports.urllib.parse import urlparse
 
 from jwkest.jwt import JWT
-import pytest
 from jwkest.jws import left_hash
 from jwkest.jws import alg2keytype
-
-from six.moves.urllib.parse import urlparse
+import six
 
 from oic.oauth2.exception import OtherError
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
@@ -18,7 +17,9 @@ from oic.oic import Grant, DEF_SIGN_ALG
 from oic.oic import Token
 from oic.oic import Client
 from oic.oic import Server
-from oic.oic.message import IdToken, ClaimsRequest, OpenIDSchema
+from oic.oic.message import IdToken
+from oic.oic.message import ClaimsRequest
+from oic.oic.message import OpenIDSchema
 from oic.oic.message import Claims
 from oic.oic.message import UserInfoRequest
 from oic.oic.message import RegistrationRequest
@@ -32,9 +33,16 @@ from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AuthorizationResponse
 from oic.utils.time_util import utc_time_sans_frac
-from oic.utils.keyio import KeyBundle, KeyJar, rsa_load
-from fakeoicsrv import MyFakeOICServer
-from utils_for_tests import _eq
+from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import KeyJar
+from oic.utils.keyio import rsa_load
+
+if six.PY2:
+    from fakeoicsrv import MyFakeOICServer
+    from utils_for_tests import _eq
+else:
+    from .fakeoicsrv import MyFakeOICServer
+    from .utils_for_tests import _eq
 
 __author__ = 'rohe0002'
 

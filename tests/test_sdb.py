@@ -15,7 +15,9 @@ from oic.utils.sdb import WrongTokenType
 from oic.utils.sdb import ExpiredToken
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import OpenIDRequest
-from utils_for_tests import _eq
+
+def _eq(l1, l2):
+    return set(l1) == set(l2)
 
 __author__ = 'rohe0002'
 

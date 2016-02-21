@@ -1,21 +1,29 @@
 import json
 import time
-
 import pytest
+import six
 
-from six.moves.urllib.parse import urlparse, parse_qs
+from future.backports.urllib.parse import urlparse
+from future.backports.urllib.parse import parse_qs
+
+from oic.oauth2.message import AuthorizationRequest
+from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import AccessTokenRequest
+from oic.oauth2.message import AccessTokenResponse
+from oic.oauth2.message import TokenErrorResponse
+from oic.oauth2.consumer import Consumer
+from oic.oauth2.provider import Provider
+
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
-from oic.oauth2.message import AuthorizationRequest, AuthorizationResponse
-from oic.oauth2.message import AccessTokenRequest
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import TokenErrorResponse
 from oic.utils import sdb
-from oic.oauth2.consumer import Consumer
-from oic.oauth2.provider import Provider
-from utils_for_tests import _eq
+
+if six.PY2:
+    from utils_for_tests import _eq
+else:
+    from .utils_for_tests import _eq
 
 CLIENT_CONFIG = {
     "client_id": "client1",

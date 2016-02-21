@@ -11,9 +11,12 @@ from oic.utils.sdb import AuthnEvent
 from oic.utils.sdb import ExpiredToken
 from oic.utils.sdb import AccessCodeUsed
 
-from utils_for_tests import _eq
-
 __author__ = 'roland'
+
+
+def _eq(l1, l2):
+    return set(l1) == set(l2)
+
 
 AREQ = AuthorizationRequest(response_type="code", client_id="client1",
                             redirect_uri="http://example.com/authz",
@@ -86,9 +89,9 @@ class TestToken(object):
         kj = KeyJar()
         kj.issuer_keys[''] = [kb]
 
-        self.access_token = JWTToken('T', keyjar=kj,
-                              lifetime={'code': 3600, 'token': 900},
-                              iss='https://example.com/as', sign_alg='RS256')
+        self.access_token = JWTToken(
+            'T', keyjar=kj, lt_pattern={'code': 3600, 'token': 900},
+            iss='https://example.com/as', sign_alg='RS256')
 
     def test_create(self):
         sid = rndstr(32)
@@ -109,6 +112,40 @@ class TestToken(object):
         assert _jwt
 
 
+class TestToken2(object):
+    @pytest.fixture(autouse=True)
+    def create_token(self):
+        kb = KeyBundle(JWKS["keys"])
+        kj = KeyJar()
+        kj.issuer_keys[''] = [kb]
+
+        self.access_token = JWTToken(
+            'T', keyjar=kj, iss='https://example.com/as', sign_alg='RS256')
+
+    def test_create(self):
+        sid = rndstr(32)
+        session_info = SESSION_INFO
+
+        _jwt = self.access_token(sid, sinfo=session_info, kid='sign1',
+                                 lifetime=1200)
+
+        assert _jwt
+        assert len(_jwt.split('.')) == 3  # very simple JWS check
+
+    def test_create_with_aud(self):
+        sid = rndstr(32)
+        session_info = SESSION_INFO
+
+        _jwt = self.access_token(
+            sid, sinfo=session_info, kid='sign1',
+            aud=['https://example.com/rs'], lifetime=1200)
+
+        assert _jwt
+
+        info = self.access_token.get_info(_jwt)
+        assert info['exp'] - info['iat'] == 1200
+
+
 class TestEncToken(object):
     @pytest.fixture(autouse=True)
     def create_token(self):
@@ -117,7 +154,7 @@ class TestEncToken(object):
         kj.issuer_keys[''] = [kb]
 
         self.access_token = JWTToken('T', keyjar=kj,
-                              lifetime={'code': 3600, 'token': 900},
+                              lt_pattern={'code': 3600, 'token': 900},
                               iss='https://example.com/as', encrypt=True)
 
     def test_enc_create(self):
@@ -148,11 +185,11 @@ class TestSessionDB(object):
         self.sdb = SessionDB(
             "https://example.com/",
             token_factory=JWTToken('T', keyjar=kj,
-                                   lifetime={'code': 3600, 'token': 900},
+                                   lt_pattern={'code': 3600, 'token': 900},
                                    iss='https://example.com/as',
                                    sign_alg='RS256'),
             refresh_token_factory=JWTToken(
-                'R', keyjar=kj, lifetime={'': 24 * 3600},
+                'R', keyjar=kj, lt_pattern={'': 24 * 3600},
                 iss='https://example.com/as')
         )
 
