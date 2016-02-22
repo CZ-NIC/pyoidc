@@ -20,10 +20,7 @@ from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
 from oic.utils import sdb
 
-if six.PY2:
-    from utils_for_tests import _eq
-else:
-    from .utils_for_tests import _eq
+from utils_for_tests import _eq
 
 CLIENT_CONFIG = {
     "client_id": "client1",

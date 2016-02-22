@@ -30,10 +30,7 @@ from oic.utils.sdb import SessionDB
 from oic.utils.sdb import lv_pack
 from oic.utils.sdb import lv_unpack
 
-if six.PY2:
-    from utils_for_tests import _eq, query_string_compare
-else:
-    from .utils_for_tests import _eq, query_string_compare
+from utils_for_tests import _eq, query_string_compare
 
 CLIENT_CONFIG = {
     "client_id": "client1",

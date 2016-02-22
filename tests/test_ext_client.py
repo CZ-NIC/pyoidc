@@ -10,10 +10,7 @@ from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
 from oic.utils.keyio import KeyBundle, KeyJar
 
-if six.PY2:
-    from utils_for_tests import _eq, query_string_compare
-else:
-    from .utils_for_tests import _eq, query_string_compare
+from utils_for_tests import _eq, query_string_compare
 
 __author__ = 'roland'
 

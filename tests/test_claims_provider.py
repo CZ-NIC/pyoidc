@@ -3,7 +3,6 @@
 # pylint: disable=missing-docstring,no-self-use
 import os
 import pytest
-import six
 
 from jwkest.jwk import SYMKey
 
@@ -18,10 +17,7 @@ from oic.oic.claims_provider import UserClaimsResponse
 from oic.oic.claims_provider import UserClaimsRequest
 from oic.oic.claims_provider import ClaimsServer
 
-if six.PY2:
-    from utils_for_tests import _eq, query_string_compare  # pylint: disable=import-error
-else:
-    from .utils_for_tests import _eq, query_string_compare
+from utils_for_tests import _eq, query_string_compare  # pylint: disable=import-error
 
 __author__ = 'rohe0002'
 

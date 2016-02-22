@@ -25,14 +25,9 @@ from oic.oic.consumer import clean_response
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.sdb import SessionDB
 
-if six.PY2:
-    from fakeoicsrv import MyFakeOICServer
-    from utils_for_tests import _eq
-    from mitmsrv import MITMServer
-else:
-    from .fakeoicsrv import MyFakeOICServer
-    from .utils_for_tests import _eq
-    from .mitmsrv import MITMServer
+from fakeoicsrv import MyFakeOICServer
+from utils_for_tests import _eq
+from mitmsrv import MITMServer
 
 __author__ = 'rohe0002'
 

@@ -28,10 +28,7 @@ from oic.oauth2 import Server
 from oic.oauth2 import Token
 from oic.utils.keyio import KeyBundle
 
-if six.PY2:
-    from utils_for_tests import _eq, query_string_compare
-else:
-    from .utils_for_tests import _eq, query_string_compare, url_compare
+from utils_for_tests import _eq, query_string_compare
 
 __author__ = 'rohe0002'
 

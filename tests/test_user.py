@@ -10,10 +10,7 @@ from oic.oauth2 import rndstr
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.http_util import Unauthorized
 
-if six.PY2:
-    from utils_for_tests import query_string_compare
-else:
-    from .utils_for_tests import query_string_compare
+from utils_for_tests import query_string_compare
 
 PASSWD = {"user": "hemligt"}
 

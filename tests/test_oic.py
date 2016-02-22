@@ -37,12 +37,8 @@ from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import rsa_load
 
-if six.PY2:
-    from fakeoicsrv import MyFakeOICServer
-    from utils_for_tests import _eq
-else:
-    from .fakeoicsrv import MyFakeOICServer
-    from .utils_for_tests import _eq
+from fakeoicsrv import MyFakeOICServer
+from utils_for_tests import _eq
 
 __author__ = 'rohe0002'
 

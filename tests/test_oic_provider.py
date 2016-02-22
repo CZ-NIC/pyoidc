@@ -45,10 +45,7 @@ from oic.oic.provider import Provider
 from oic.oic.provider import InvalidRedirectURIError
 from oic.utils.time_util import epoch_in_a_while
 
-if six.PY2:
-    from utils_for_tests import _eq
-else:
-    from .utils_for_tests import _eq
+from utils_for_tests import _eq
 
 __author__ = 'rohe0002'
 

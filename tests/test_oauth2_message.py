@@ -29,10 +29,7 @@ from oic.oauth2.message import CCAccessTokenRequest
 from oic.oauth2.message import RefreshAccessTokenRequest
 from oic.oauth2.message import ErrorResponse
 
-if six.PY2:
-    from utils_for_tests import url_compare, _eq, query_string_compare
-else:
-    from .utils_for_tests import url_compare, _eq, query_string_compare
+from utils_for_tests import url_compare, _eq, query_string_compare
 
 __author__ = 'rohe0002'
 

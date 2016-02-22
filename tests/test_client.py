@@ -25,10 +25,7 @@ from oic.utils.authn.client import PrivateKeyJWT
 from oic.utils.authn.client import ClientSecretJWT
 from oic.utils.keyio import KeyBundle
 
-if six.PY2:
-    from utils_for_tests import _eq, query_string_compare
-else:
-    from .utils_for_tests import _eq, query_string_compare
+from utils_for_tests import _eq, query_string_compare
 
 BASE_PATH = os.path.abspath(os.path.dirname(__file__))
 

@@ -14,10 +14,7 @@ from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.consumer import AuthzError
 from oic.utils.http_util import make_cookie
 
-if six.PY2:
-    from utils_for_tests import _eq, query_string_compare
-else:
-    from .utils_for_tests import _eq, query_string_compare, url_compare
+from utils_for_tests import _eq, query_string_compare
 
 __author__ = 'rohe0002'
 
