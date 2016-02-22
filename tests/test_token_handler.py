@@ -8,6 +8,7 @@ from oic.utils.token_handler import TokenHandler, NotAllowed
 def _eq(l1, l2):
     return set(l1) == set(l2)
 
+
 __author__ = 'roland'
 
 JWKS = {"keys": [
@@ -75,7 +76,7 @@ class TestTokenHandler(object):
 
     def test_construct_access_token(self):
         token = self.th.get_access_token('https://example.org/rp', 'foo bar',
-                                     'client_credentials')
+                                         'client_credentials')
 
         assert token
 
@@ -88,22 +89,35 @@ class TestTokenHandler(object):
         # Unknown client
         try:
             self.th.get_access_token('https://example.com/rp', 'foo bar',
-                                         'client_credentials')
+                                     'client_credentials')
         except NotAllowed:
             pass
         # wrong grant_type
         try:
             self.th.get_access_token('https://example.org/rp', 'foo bar',
-                                         'implicit')
+                                     'implicit')
         except NotAllowed:
             pass
 
     def test_from_access_to_refresh_token(self):
 
         token = self.th.get_access_token('https://example.org/rp', 'foo bar',
-                                     'client_credentials')
+                                         'client_credentials')
 
         refresh_token = self.th.refresh_access_token(
             'https://example.org/rp', token, 'client_credentials')
 
         assert refresh_token
+
+    def test_construct_refresh_token(self):
+        sid='1234'
+        rtoken = self.th.get_refresh_token('https://example.org/rp',
+                                           grant_type='client_credentials',
+                                           sid=sid)
+
+        info = self.th.token_factory.get_info(rtoken)
+
+        assert _eq(list(info.keys()),
+                   ['jti', 'exp', 'iss', 'aud', 'iat'])
+
+        assert self.th.refresh_token_factory.db[info['jti']] == sid

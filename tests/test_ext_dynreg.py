@@ -110,7 +110,9 @@ class TestProvider(object):
 
     def test_registration_endpoint(self):
         request = RegistrationRequest(client_name="myself",
-                                      redirect_uris=["https://example.com/rp"])
+                                      redirect_uris=["https://example.com/rp"],
+                                      grant_type=['authorization_code',
+                                                  'implicit'])
         resp = self.provider.registration_endpoint(request=request.to_json())
         assert isinstance(resp, Response)
         data = json.loads(resp.message)

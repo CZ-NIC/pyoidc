@@ -100,7 +100,7 @@ class Provider(provider.Provider):
                  authn_at_registration="", client_info_url="",
                  secret_lifetime=86400, jwks_uri='', keyjar=None,
                  capabilities=None, verify_ssl=True, baseurl='', hostname='',
-                 config=None, behavior=None):
+                 config=None, behavior=None, lifetime_policy=None):
 
         if not name.endswith("/"):
             name += "/"
@@ -138,7 +138,29 @@ class Provider(provider.Provider):
         self.kid = {"sig": {}, "enc": {}}
         self.config = config
         self.behavior = behavior or {}
-        self.token_policy = {}
+        self.token_policy = {'access_token': {}, 'refresh_token': {}}
+        if lifetime_policy is None:
+            self.lifetime_policy = {
+                'access_token': {
+                    'code': 600,
+                    'token': 120,
+                    'implicit': 120,
+                    'authorization_code': 600,
+                    'client_credentials': 600,
+                    'password': 600
+                },
+                'refresh_token': {
+                    'code': 3600,
+                    'token': 3600,
+                    'implicit': 3600,
+                    'authorization_code': 3600,
+                    'client_credentials': 3600,
+                    'password': 3600
+                }
+            }
+        else:
+            self.lifetime_policy = lifetime_policy
+
         self.token_handler = TokenHandler(self.baseurl, self.token_policy,
                                           keyjar=self.keyjar)
 
@@ -199,6 +221,23 @@ class Provider(provider.Provider):
             if res:
                 raise RestrictionError(res)
 
+    def set_token_policy(self, cid, cinfo):
+        for ttyp in ['access_token', 'refresh_token']:
+            pol = {}
+            for rgtyp in ['response_type', 'grant_type']:
+                try:
+                    rtyp = cinfo[rgtyp]
+                except KeyError:
+                    pass
+                else:
+                    for typ in rtyp:
+                        try:
+                            pol[typ] = self.lifetime_policy[ttyp][typ]
+                        except KeyError:
+                            pass
+
+            self.token_policy[ttyp][cid] = pol
+
     def create_new_client(self, request, restrictions):
         """
 
@@ -242,6 +281,7 @@ class Provider(provider.Provider):
         else:
             self.verify_correct(_cinfo, _behav)
 
+        self.set_token_policy(_id, _cinfo)
         self.cdb[_id] = _cinfo
 
         return _id
@@ -569,6 +609,20 @@ class Provider(provider.Provider):
                             status="401 Unauthorized")
         return True
 
+    def do_access_token_response(self, access_token, atinfo, state,
+                                 refresh_token=None):
+        _tinfo = {'access_token': access_token, 'expires_in': atinfo['exp'],
+                  'token_type': 'bearer', 'state': state}
+        try:
+            _tinfo['scope'] = atinfo['scope']
+        except KeyError:
+            pass
+
+        if refresh_token:
+            _tinfo['refresh_token'] = refresh_token
+
+        return AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
+
     def code_grant_type(self, areq):
         # assert that the code is valid
         try:
@@ -629,43 +683,37 @@ class Provider(provider.Provider):
         return Response(atr.to_json(), content="application/json")
 
     def client_credentials_grant_type(self, areq):
-        _at = self.token_handler.access_token(areq['client_id'],
-                                              scope=areq['scope'],
-                                              grant_type='client_credentials')
-        _tinfo = {'access_token': _at}
+        _at = self.token_handler.get_access_token(areq['client_id'],
+                                                  scope=areq['scope'],
+                                                  grant_type='client_credentials')
         _info = self.token_handler.token_factory.get_info(_at)
-        _tinfo.update(_info)
         try:
-            _refresh_token = self.token_handler.refresh_token(
-                self.baseurl, _tinfo['access_token'], 'client_credentials')
+            _rt = self.token_handler.get_refresh_token(
+                self.baseurl, _info['access_token'], 'client_credentials')
         except NotAllowed:
-            pass
+            atr = self.do_access_token_response(_at, _info, areq['state'])
         else:
-            _tinfo['refresh_token'] = _refresh_token
+            atr = self.do_access_token_response(_at, _info, areq['state'], _rt)
 
-        atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
         return Response(atr.to_json(), content="application/json")
 
     def password_grant_type(self, areq):
-        _at = self.token_handler.access_token(areq['client_id'],
-                                              scope=areq['scope'],
-                                              grant_type='password')
-        _tinfo = {'access_token': _at}
+        _at = self.token_handler.get_access_token(areq['client_id'],
+                                                  scope=areq['scope'],
+                                                  grant_type='password')
         _info = self.token_handler.token_factory.get_info(_at)
-        _tinfo.update(_info)
         try:
-            _refresh_token = self.token_handler.refresh_token(
-                self.baseurl, _tinfo['access_token'], 'password')
+            _rt = self.token_handler.get_refresh_token(
+                self.baseurl, _info['access_token'], 'password')
         except NotAllowed:
-            pass
+            atr = self.do_access_token_response(_at, _info, areq['state'])
         else:
-            _tinfo['refresh_token'] = _refresh_token
+            atr = self.do_access_token_response(_at, _info, areq['state'], _rt)
 
-        atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
         return Response(atr.to_json(), content="application/json")
 
     def refresh_token_grant_type(self, areq):
-        at = self.token_handler.refresh_token(
+        at = self.token_handler.refresh_access_token(
             self.baseurl, areq['access_token'], 'refresh_token')
 
         atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
