@@ -15,7 +15,7 @@ from oic.oauth2.consumer import AuthzError
 from oic.utils.http_util import make_cookie
 
 from utils_for_tests import _eq, query_string_compare
-from tests.utils_for_tests import url_compare
+from utils_for_tests import url_compare
 
 __author__ = 'rohe0002'
 

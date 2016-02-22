@@ -28,7 +28,7 @@ from oic.oauth2 import Token
 from oic.utils.keyio import KeyBundle
 
 from utils_for_tests import _eq, query_string_compare
-from tests.utils_for_tests import url_compare
+from utils_for_tests import url_compare
 
 __author__ = 'rohe0002'
 
