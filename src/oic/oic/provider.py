@@ -1378,7 +1378,7 @@ class Provider(AProvider):
                         "Http redirect_uri must use localhost")
             elif must_https and p.scheme != "https":
                 raise InvalidRedirectURIError(
-                    "Non-https redirect_uri not allowed")
+                    "None https redirect_uri not allowed")
             elif p.fragment:
                 raise InvalidRedirectURIError(
                     "redirect_uri contains fragment")
