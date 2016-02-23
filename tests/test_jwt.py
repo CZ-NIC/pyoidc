@@ -1,9 +1,6 @@
 import os
-import six
 from oic.utils.jwt import JWT
 from oic.utils.keyio import build_keyjar
-
-from utils_for_tests import _eq, query_string_compare
 
 __author__ = 'roland'
 
@@ -18,6 +15,10 @@ keys = [
 ]
 jwks, keyjar, kidd = build_keyjar(keys)
 issuer = 'https://fedop.example.org'
+
+
+def _eq(l1, l2):
+    return set(l1) == set(l2)
 
 
 def test_jwt_pack():

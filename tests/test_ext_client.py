@@ -1,6 +1,5 @@
-import six
 from oic.extension.token import JWTToken
-from oic.oauth2 import rndstr
+from oic import rndstr
 from oic.utils import sdb
 from oic.extension.client import Client
 from oic.extension.provider import Provider
@@ -9,8 +8,6 @@ from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
 from oic.utils.keyio import KeyBundle, KeyJar
-
-from utils_for_tests import _eq, query_string_compare
 
 __author__ = 'roland'
 
@@ -32,6 +29,10 @@ CDB = {
         "redirect_uris": [("http://localhost:8087/authz", None)]
     }
 }
+
+
+def _eq(l1, l2):
+    return set(l1) == set(l2)
 
 
 class DummyAuthn(UserAuthnMethod):

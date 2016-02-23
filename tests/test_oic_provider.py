@@ -2,7 +2,6 @@ import json
 import os
 import datetime
 import pytest
-import six
 
 from six import iteritems
 from time import time
@@ -12,7 +11,7 @@ from future.backports.urllib.parse import urlencode
 from future.backports.urllib.parse import parse_qs
 from future.backports.urllib.parse import urlparse
 
-from oic.oauth2 import rndstr
+from oic import rndstr
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.client import ClientSecretBasic
@@ -45,12 +44,11 @@ from oic.oic.provider import Provider
 from oic.oic.provider import InvalidRedirectURIError
 from oic.utils.time_util import epoch_in_a_while
 
-from utils_for_tests import _eq
-
 __author__ = 'rohe0002'
 
 CLIENT_CONFIG = {
     "client_id": "number5",
+    'config': {'issuer': 'pyoicserv'}
 }
 
 CONSUMER_CONFIG = {
@@ -139,6 +137,10 @@ USERDB = {
 }
 
 URLMAP = {CLIENT_ID: ["https://example.com/authz"]}
+
+
+def _eq(l1, l2):
+    return set(l1) == set(l2)
 
 
 class DummyAuthn(UserAuthnMethod):
@@ -281,7 +283,7 @@ class TestProvider(object):
         assert part[2] is None
 
         assert isinstance(aresp, AuthorizationResponse)
-        assert _eq(aresp.keys(), ['code', 'state', 'scope'])
+        assert _eq(aresp.keys(), ['code', 'state', 'scope', 'client_id', 'iss'])
 
         assert _eq(self.cons.grant[_state].keys(),
                    ['code', 'tokens', 'id_token', 'exp_in', 'seed',
@@ -298,7 +300,7 @@ class TestProvider(object):
                                          sformat="urlencoded")
 
         assert isinstance(aresp, AuthorizationResponse)
-        assert _eq(aresp.keys(), ['code', 'state', 'scope'])
+        assert _eq(aresp.keys(), ['code', 'state', 'scope', 'client_id', 'iss'])
 
     def test_authenticated_hybrid(self):
         _state, location = self.cons.begin(
@@ -905,7 +907,7 @@ class TestProvider(object):
         req_args = {"scope": ["openid"],
                     "redirect_uri": "http://localhost:8087/authz",
                     "response_type": ["code"],
-                    "client_id": "a1b2c3"
+                    "client_id": "number5"
                     }
         areq = AuthorizationRequest(**req_args)
         resp = provider.authorization_endpoint(

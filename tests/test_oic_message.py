@@ -3,9 +3,8 @@ import os
 import sys
 import json
 import pytest
-import six
 
-from future.backports.urllib.parse import urlencode
+from future.backports.urllib.parse import urlencode, parse_qs
 
 from jwkest import BadSignature
 from jwkest.jwk import SYMKey
@@ -26,12 +25,18 @@ from oic.oic.message import address_deser
 from oic.oic.message import Claims
 from oic.utils import time_util
 
-from utils_for_tests import _eq, query_string_compare
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              '..', '..')))
 
 __author__ = 'rohe0002'
+
+
+def query_string_compare(query_str1, query_str2):
+    return parse_qs(query_str1) == parse_qs(query_str2)
+
+
+def _eq(l1, l2):
+    return set(l1) == set(l2)
 
 
 def test_claims_deser():

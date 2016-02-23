@@ -1,12 +1,11 @@
 import json
 import time
-import six
 import pytest
 
 from future.backports.urllib.parse import parse_qs
 from future.backports.urllib.parse import urlparse
 
-from oic.oauth2 import rndstr
+from oic import rndstr
 from oic.oauth2.message import AuthorizationRequest
 from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import AccessTokenRequest
@@ -30,10 +29,10 @@ from oic.utils.sdb import SessionDB
 from oic.utils.sdb import lv_pack
 from oic.utils.sdb import lv_unpack
 
-from utils_for_tests import _eq, query_string_compare
 
 CLIENT_CONFIG = {
     "client_id": "client1",
+    'config': {'issuer': 'https://example.com/as'}
 }
 
 CONSUMER_CONFIG = {
@@ -105,6 +104,10 @@ JWKS = {"keys": [
         "kty": "oct",
         "use": "sig"
     }]}
+
+
+def _eq(l1, l2):
+    return set(l1) == set(l2)
 
 
 def test_lv_pack_unpack():

@@ -25,14 +25,18 @@ from oic.utils.authn.client import PrivateKeyJWT
 from oic.utils.authn.client import ClientSecretJWT
 from oic.utils.keyio import KeyBundle
 
-from utils_for_tests import _eq, query_string_compare
-
 BASE_PATH = os.path.abspath(os.path.dirname(__file__))
+
+
+CLIENT_CONF = {'client_id':'A', 'config':{'issuer': 'https://example.com/as'}}
+
+def _eq(l1, l2):
+    return set(l1) == set(l2)
 
 
 @pytest.fixture
 def client():
-    cli = Client("A")
+    cli = Client(**CLIENT_CONF)
     cli.client_secret = "boarding pass"
     return cli
 

@@ -3,10 +3,10 @@ import hashlib
 from future.backports.urllib.parse import urlsplit
 
 from oic import oic
+from oic import rndstr
 
 from oic.utils.http_util import Redirect
 from oic.exception import MissingAttribute
-from oic.oauth2 import rndstr
 from oic.oauth2 import ErrorResponse
 from oic.oauth2 import TokenError
 from oic.oauth2 import ResponseError
@@ -31,9 +31,10 @@ class OIDCError(Exception):
 class Client(oic.Client):
     def __init__(self, client_id=None, ca_certs=None,
                  client_prefs=None, client_authn_method=None, keyjar=None,
-                 verify_ssl=True, behaviour=None):
+                 verify_ssl=True, behaviour=None, config=None):
         oic.Client.__init__(self, client_id, ca_certs, client_prefs,
-                            client_authn_method, keyjar, verify_ssl)
+                            client_authn_method, keyjar, verify_ssl,
+                            config=config)
         if behaviour:
             self.behaviour = behaviour
         self.userinfo_request_method = ''

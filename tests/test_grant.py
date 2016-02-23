@@ -6,7 +6,6 @@ from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import AccessTokenResponse
 
-from utils_for_tests import _eq, query_string_compare
 
 ATR = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
                           token_type="example",
@@ -14,6 +13,10 @@ ATR = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
                           example_parameter="example_value",
                           scope=["inner", "outer"])
 AR = AuthorizationResponse(code="code", state="state")
+
+
+def _eq(l1, l2):
+    return set(l1) == set(l2)
 
 
 class TestGrant(object):

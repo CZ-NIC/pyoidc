@@ -1,16 +1,23 @@
 import logging
 import os
+import six
+
+from future.backports.urllib.parse import urlparse
+from future.backports.urllib.parse import parse_qs
 
 from jwkest.jwe import JWE
-
 from jwkest import jws
-
 from jwkest import jwe
 
-from six.moves.urllib.parse import urlparse, parse_qs
-import six
-from oic.oauth2.exception import AuthnToOld
-from oic.oauth2.message import ErrorResponse, Message
+from oic import oauth2, OIDCONF_PATTERN
+from oic import rndstr
+from oic.oauth2 import HTTP_ARGS
+from oic.oauth2.consumer import ConfigurationError
+
+from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import Message
+from oic.oauth2.exception import AuthnToOld, OtherError
+from oic.oauth2.exception import MissingRequiredAttribute
 from oic.oauth2.util import get_or_post
 from oic.oic.message import IdToken, ClaimsRequest
 from oic.oic.message import RegistrationResponse
@@ -34,12 +41,6 @@ from oic.oic.message import TokenErrorResponse
 from oic.oic.message import ClientRegistrationErrorResponse
 from oic.oic.message import UserInfoErrorResponse
 from oic.oic.message import AuthorizationErrorResponse
-from oic import oauth2
-from oic.oauth2 import MissingRequiredAttribute
-from oic.oauth2 import OtherError
-from oic.oauth2 import HTTP_ARGS
-from oic.oauth2 import rndstr
-from oic.oauth2.consumer import ConfigurationError
 from oic.exception import AccessDenied
 from oic.exception import IssuerMismatch
 from oic.exception import PyoidcError
@@ -89,8 +90,6 @@ REQUEST2ENDPOINT = {
 
 JWT_BEARER = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 SAML2_BEARER_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:saml2-bearer"
-
-OIDCONF_PATTERN = "%s/.well-known/openid-configuration"
 
 # This should probably be part of the configuration
 MAX_AUTHENTICATION_AGE = 86400
@@ -256,11 +255,12 @@ class Client(oauth2.Client):
 
     def __init__(self, client_id=None, ca_certs=None,
                  client_prefs=None, client_authn_method=None, keyjar=None,
-                 verify_ssl=True):
+                 verify_ssl=True, config=None):
 
         oauth2.Client.__init__(self, client_id, ca_certs,
                                client_authn_method=client_authn_method,
-                               keyjar=keyjar, verify_ssl=verify_ssl)
+                               keyjar=keyjar, verify_ssl=verify_ssl,
+                               config=config)
 
         self.file_store = "./file/"
         self.file_uri = "http://localhost/"
@@ -277,8 +277,8 @@ class Client(oauth2.Client):
 
         self.grant_class = Grant
         self.token_class = Token
-        self.provider_info = None
-        self.registration_response = None
+        self.provider_info = {}
+        self.registration_response = {}
         self.client_prefs = client_prefs or {}
 
         self.behaviour = {}
@@ -565,6 +565,12 @@ class Client(oauth2.Client):
                                  response_cls=AuthorizationResponse):
 
         algs = self.sign_enc_algs("id_token")
+
+        if 'code_challenge' in self.config:
+            _args, code_verifier = self.add_code_challenge()
+            request_args.update(_args)
+
+
 
         return oauth2.Client.do_authorization_request(self, request, state,
                                                       body_type, method,

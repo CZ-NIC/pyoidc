@@ -1,16 +1,16 @@
 # pylint: disable=missing-docstring,redefined-outer-name,no-self-use
 import os
-from future.backports.urllib.parse import urlencode, parse_qs
 import pytest
-import six
+
+from future.backports.urllib.parse import urlencode
+from future.backports.urllib.parse import parse_qs
 
 from mako.lookup import TemplateLookup
 
-from oic.oauth2 import rndstr
+from oic import rndstr
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.http_util import Unauthorized
 
-from utils_for_tests import query_string_compare
 
 PASSWD = {"user": "hemligt"}
 
@@ -18,6 +18,10 @@ BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.join(BASE_PATH, 'data/templates')
 tl = TemplateLookup(directories=[TEMPLATE_DIR],
                     input_encoding='utf-8', output_encoding='utf-8')
+
+
+def query_string_compare(query_str1, query_str2):
+    return parse_qs(query_str1) == parse_qs(query_str2)
 
 
 @pytest.fixture

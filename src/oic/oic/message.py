@@ -3,20 +3,20 @@ import time
 import urllib
 import json
 import logging
+from future.backports.urllib.parse import urlparse
 
 import six
 from jwkest import jws
 from oic.utils import time_util
 
-from six.moves.urllib.parse import urlparse
 from oic.oauth2 import message
-from oic.oauth2 import MissingRequiredValue
-from oic.oauth2 import MissingRequiredAttribute
 from oic.exception import InvalidRequest
 from oic.exception import NotForMe
 from oic.exception import MessageException
 from oic.exception import PyoidcError
 from oic.oauth2.exception import VerificationError
+from oic.oauth2.message import MissingRequiredValue
+from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import Message
 from oic.oauth2.message import SchemeError
 from oic.oauth2.message import NotAllowedValue
@@ -321,7 +321,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
         # "nonce": SINGLE_OPTIONAL_STRING,
         "access_token": SINGLE_OPTIONAL_STRING,
         "token_type": SINGLE_OPTIONAL_STRING,
-        "id_token": SINGLE_OPTIONAL_IDTOKEN
+        "id_token": SINGLE_OPTIONAL_IDTOKEN,
     })
 
     def verify(self, **kwargs):

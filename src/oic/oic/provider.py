@@ -30,8 +30,9 @@ from jwkest.jwe import NotSupportedAlgorithm
 from jwkest.jwk import SYMKey
 from jwkest.jws import NoSuitableSigningKeys
 from jwkest.jws import alg2keytype
+
+from oic import rndstr
 from oic.exception import *
-from oic.oauth2 import rndstr
 from oic.oauth2.exception import CapabilitiesMisMatch
 from oic.oauth2.message import by_schema
 from oic.oauth2.provider import Provider as AProvider
@@ -715,6 +716,12 @@ class Provider(AProvider):
             aresp["session_state"] = self._compute_session_state(
                 state, salt, areq["client_id"], redirect_uri)
             headers.append(self.write_session_cookie(state))
+
+        # as per the mix-up draft don't add iss and client_id if they are
+        # already in the id_token.
+        if 'id_token' not in aresp:
+            aresp['iss'] = self.baseurl
+            aresp['client_id'] = areq['client_id']
 
         logger.info('authorization response: %s', aresp.to_dict())
         location = aresp.request(redirect_uri, fragment_enc)

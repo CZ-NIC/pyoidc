@@ -4,6 +4,7 @@ import time
 import os.path
 from hashlib import md5
 
+from oic import rndstr
 from oic.exception import PyoidcError
 from oic.utils import http_util
 from oic.oic import Client
@@ -13,7 +14,6 @@ from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import AccessTokenResponse
 from oic.oauth2 import Grant
-from oic.oauth2 import rndstr
 from oic.oauth2.consumer import TokenError
 from oic.oauth2.consumer import AuthzError
 from oic.oauth2.consumer import UnknownState
@@ -116,7 +116,7 @@ class Consumer(Client):
 
     """
     # noinspection PyUnusedLocal
-    def __init__(self, session_db, config, client_config=None,
+    def __init__(self, session_db, consumer_config, client_config=None,
                  server_info=None, debug=False, client_prefs=None):
         """ Initializes a Consumer instance.
 
@@ -132,10 +132,10 @@ class Consumer(Client):
 
         Client.__init__(self, **client_config)
 
-        self.config = config
-        if config:
+        self.consumer_config = consumer_config
+        if consumer_config:
             try:
-                self.debug = config["debug"]
+                self.debug = consumer_config["debug"]
             except KeyError:
                 self.debug = 0
 
@@ -211,7 +211,7 @@ class Consumer(Client):
         if self.debug:
             _log_info("- begin -")
 
-        _page = self.config["authz_page"]
+        _page = self.consumer_config["authz_page"]
         if not path.endswith("/"):
             if _page.startswith("/"):
                 self.redirect_uris = [path + _page]
@@ -228,9 +228,9 @@ class Consumer(Client):
             self.seed = rndstr()
 
         if not scope:
-            scope = self.config["scope"]
+            scope = self.consumer_config["scope"]
         if not response_type:
-            response_type = self.config["response_type"]
+            response_type = self.consumer_config["response_type"]
 
         sid = stateID(path, self.seed)
         self.grant[sid] = Grant(seed=self.seed)
@@ -251,33 +251,33 @@ class Consumer(Client):
             self.nonce = rndstr(12)
             args["nonce"] = self.nonce
 
-        if "max_age" in self.config:
-            args["max_age"] = self.config["max_age"]
+        if "max_age" in self.consumer_config:
+            args["max_age"] = self.consumer_config["max_age"]
 
         _claims = None
-        if "user_info" in self.config:
+        if "user_info" in self.consumer_config:
             _claims = ClaimsRequest(
-                userinfo=Claims(**self.config["user_info"]))
-        if "id_token" in self.config:
+                userinfo=Claims(**self.consumer_config["user_info"]))
+        if "id_token" in self.consumer_config:
             if _claims:
-                _claims["id_token"] = Claims(**self.config["id_token"])
+                _claims["id_token"] = Claims(**self.consumer_config["id_token"])
             else:
                 _claims = ClaimsRequest(
-                    id_token=Claims(**self.config["id_token"]))
+                    id_token=Claims(**self.consumer_config["id_token"]))
 
         if _claims:
             args["claims"] = _claims
 
-        if "request_method" in self.config:
+        if "request_method" in self.consumer_config:
             areq = self.construct_AuthorizationRequest(
                 request_args=args, extra_args=None,
                 request_param="request")
 
-            if self.config["request_method"] == "file":
+            if self.consumer_config["request_method"] == "file":
                 id_request = areq["request"]
                 del areq["request"]
-                _filedir = self.config["temp_dir"]
-                _webpath = self.config["temp_path"]
+                _filedir = self.consumer_config["temp_dir"]
+                _webpath = self.consumer_config["temp_path"]
                 _name = rndstr(10)
                 filename = os.path.join(_filedir, _name)
                 while os.path.exists(filename):
@@ -351,7 +351,7 @@ class Consumer(Client):
 
         _log_info("response: %s" % query)
 
-        if "code" in self.config["response_type"]:
+        if "code" in self.consumer_config["response_type"]:
             aresp, _state = self._parse_authz(query, **kwargs)
 
             # May have token and id_token information too
@@ -371,7 +371,7 @@ class Consumer(Client):
                 idt = None
 
             return aresp, atr, idt
-        elif "token" in self.config["response_type"]:  # implicit flow
+        elif "token" in self.consumer_config["response_type"]:  # implicit flow
             _log_info("Expect Access Token Response")
             atr = self.parse_response(AccessTokenResponse, info=query,
                                       sformat="urlencoded",
@@ -396,9 +396,9 @@ class Consumer(Client):
         If Implicit flow was used then this method is never used.
         """
         args = {"redirect_uri": self.redirect_uris[0]}
-        if "password" in self.config and self.config["password"]:
+        if "password" in self.consumer_config and self.consumer_config["password"]:
             logger.info("basic auth")
-            http_args = {"password": self.config["password"]}
+            http_args = {"password": self.consumer_config["password"]}
         elif self.client_secret:
             logger.info("request_body auth")
             http_args = {}

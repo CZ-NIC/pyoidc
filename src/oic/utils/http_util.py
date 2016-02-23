@@ -3,11 +3,13 @@ import cgi
 import time
 import hashlib
 import hmac
+from future.backports.http.cookies import SimpleCookie
+from future.backports.urllib.parse import quote
 
-from six.moves.urllib.parse import quote
-from six.moves.http_cookies import SimpleCookie
 from jwkest import as_unicode
-from oic.oauth2 import rndstr
+
+from oic import rndstr
+
 from oic.exception import UnsupportedMethod
 from oic.utils import time_util
 from oic.utils.aes import encrypt

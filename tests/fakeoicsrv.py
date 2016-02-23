@@ -1,15 +1,20 @@
 #!/usr/bin/env python
-from jwkest import jws
+from future.backports.urllib.parse import urlparse
+from future.backports.urllib.parse import parse_qs
 
+from jwkest import jws
 from jwkest.jws import alg2keytype
 
-from six.moves.urllib.parse import parse_qs, urlparse
-from oic.oauth2 import rndstr
+from oic import rndstr
 from oic.oauth2.message import by_schema
 from oic.oic import Server
-from oic.oic.message import AuthorizationResponse, AccessTokenResponse, \
-    OpenIDSchema, RegistrationResponse, EndSessionResponse, \
-    ProviderConfigurationResponse, TokenErrorResponse
+from oic.oic.message import AuthorizationResponse
+from oic.oic.message import AccessTokenResponse
+from oic.oic.message import OpenIDSchema
+from oic.oic.message import RegistrationResponse
+from oic.oic.message import EndSessionResponse
+from oic.oic.message import ProviderConfigurationResponse
+from oic.oic.message import TokenErrorResponse
 from oic.utils.sdb import SessionDB, AuthnEvent
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.webfinger import WebFinger

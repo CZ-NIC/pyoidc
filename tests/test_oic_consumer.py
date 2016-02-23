@@ -26,7 +26,6 @@ from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.sdb import SessionDB
 
 from fakeoicsrv import MyFakeOICServer
-from utils_for_tests import _eq
 from mitmsrv import MITMServer
 
 __author__ = 'rohe0002'
@@ -69,6 +68,10 @@ CONFIG = {
 }
 
 
+def _eq(l1, l2):
+    return set(l1) == set(l2)
+
+
 def test_clean_response():
     atr = AccessTokenResponse(access_token="access_token",
                               token_type="bearer", expires_in=600,
@@ -89,7 +92,8 @@ class TestOICConsumer():
         client_id = "client_1"
         client_config = {
             "client_id": client_id,
-            "client_authn_method": CLIENT_AUTHN_METHOD
+            "client_authn_method": CLIENT_AUTHN_METHOD,
+            #'config': {}
         }
 
         self.consumer = Consumer(SessionDB(SERVER_INFO["issuer"]),
@@ -159,15 +163,15 @@ class TestOICConsumer():
                                     'redirect_uri'])
 
         assert authreq["state"] == sid
-        assert authreq["scope"] == self.consumer.config["scope"]
+        assert authreq["scope"] == self.consumer.consumer_config["scope"]
         assert authreq["client_id"] == self.consumer.client_id
 
     def test_begin_file(self, tmpdir):
         path = tmpdir.strpath
-        self.consumer.config["request_method"] = "file"
-        self.consumer.config["temp_dir"] = path
-        self.consumer.config["temp_path"] = path
-        self.consumer.config["authz_page"] = "/authz"
+        self.consumer.consumer_config["request_method"] = "file"
+        self.consumer.consumer_config["temp_dir"] = path
+        self.consumer.consumer_config["temp_path"] = path
+        self.consumer.consumer_config["authz_page"] = "/authz"
         srv = Server()
         srv.keyjar = SRVKEYS
 
@@ -179,7 +183,7 @@ class TestOICConsumer():
                                     'claims', 'request_uri'])
 
         assert authreq["state"] == sid
-        assert authreq["scope"] == self.consumer.config["scope"]
+        assert authreq["scope"] == self.consumer.consumer_config["scope"]
         assert authreq["client_id"] == self.consumer.client_id
         assert authreq["redirect_uri"].startswith("http://localhost:8087/authz")
 
@@ -230,7 +234,7 @@ class TestOICConsumer():
         assert "code" in atr
 
     def test_parse_authz_implicit(self):
-        self.consumer.config["response_type"] = ["token"]
+        self.consumer.consumer_config["response_type"] = ["token"]
         _state = "statxxx"
         args = {
             "client_id": self.consumer.client_id,
@@ -253,7 +257,7 @@ class TestOICConsumer():
 
     def test_complete_secret_auth(self):
         _state = "state0"
-        del self.consumer.config["password"]
+        del self.consumer.consumer_config["password"]
 
         args = {
             "client_id": self.consumer.client_id,
@@ -280,11 +284,11 @@ class TestOICConsumer():
 
     def test_complete_auth_token(self):
         _state = "state0"
-        self.consumer.config["response_type"] = ["code", "token"]
+        self.consumer.consumer_config["response_type"] = ["code", "token"]
 
         args = {
             "client_id": self.consumer.client_id,
-            "response_type": self.consumer.config["response_type"],
+            "response_type": self.consumer.consumer_config["response_type"],
             "scope": ["openid"],
         }
 
@@ -311,7 +315,7 @@ class TestOICConsumer():
 
     def test_complete_auth_token_idtoken(self):
         _state = "state0"
-        self.consumer.config["response_type"] = ["id_token", "token"]
+        self.consumer.consumer_config["response_type"] = ["id_token", "token"]
         self.consumer.registration_response = {
             "id_token_signed_response_alg": "RS256",
         }
@@ -321,7 +325,7 @@ class TestOICConsumer():
 
         args = {
             "client_id": self.consumer.client_id,
-            "response_type": self.consumer.config["response_type"],
+            "response_type": self.consumer.consumer_config["response_type"],
             "scope": ["openid"],
         }
 
@@ -379,7 +383,7 @@ class TestOICConsumer():
         self.consumer.provider_info = {
             "userinfo_endpoint": "http://localhost:8088/userinfo",
             "issuer": "http://localhost:8088/"}
-        del self.consumer.config["request_method"]
+        del self.consumer.consumer_config["request_method"]
 
         args = {
             "client_id": self.consumer.client_id,
@@ -520,11 +524,11 @@ class TestOICConsumer():
         mfos.keyjar = SRVKEYS
         self.consumer.http_request = mfos.http_request
         _state = "state0"
-        self.consumer.config["response_type"] = ["id_token"]
+        self.consumer.consumer_config["response_type"] = ["id_token"]
 
         args = {
             "client_id": self.consumer.client_id,
-            "response_type": self.consumer.config["response_type"],
+            "response_type": self.consumer.consumer_config["response_type"],
             "scope": ["openid"],
         }
 

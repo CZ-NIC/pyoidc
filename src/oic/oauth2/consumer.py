@@ -4,12 +4,15 @@ import logging
 from hashlib import md5
 
 from oic.exception import PyoidcError
-from oic.oauth2.message import AuthorizationRequest, AuthorizationResponse, \
-    Message, AccessTokenResponse, AccessTokenRequest
+from oic.oauth2.message import AuthorizationRequest
+from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import Message
+from oic.oauth2.message import AccessTokenResponse
+from oic.oauth2.message import AccessTokenRequest
 from oic.utils import http_util
 from oic.oauth2 import Client
 from oic.oauth2 import Grant
-from oic.oauth2 import rndstr
+from oic import rndstr
 
 __author__ = 'rohe0002'
 

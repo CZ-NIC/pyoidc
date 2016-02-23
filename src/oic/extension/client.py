@@ -2,17 +2,14 @@ import inspect
 import logging
 import random
 import string
-from jwkest import b64e
 import six
-from oic.oauth2.exception import Unsupported
-from oic.oauth2.message import AuthorizationRequest
 import requests
 import hashlib
 
-from six.moves.urllib import parse as urlparse
+from future.backports.urllib.parse import urlparse
 
+from jwkest import b64e
 from oic import oauth2
-from oic.extension.message import ASConfigurationResponse
 from oic.extension.message import TokenRevocationRequest
 from oic.extension.message import TokenIntrospectionRequest
 from oic.extension.message import TokenIntrospectionResponse
@@ -23,15 +20,18 @@ from oic.oic import OIDCONF_PATTERN
 from oic.oic.message import AuthorizationResponse
 from oic.utils.keyio import KeyJar
 from oic.utils.jwt import JWT
-from oic.oauth2 import ErrorResponse
-from oic.oauth2 import Message
 from oic.oauth2 import message
-from oic.oauth2 import SINGLE_REQUIRED_STRING
-from oic.oauth2 import OPTIONAL_LIST_OF_SP_SEP_STRINGS
-from oic.oauth2 import REQUIRED_LIST_OF_STRINGS
-from oic.oauth2 import OPTIONAL_LIST_OF_STRINGS
-from oic.oauth2 import SINGLE_OPTIONAL_STRING
-from oic.oauth2 import SINGLE_OPTIONAL_INT
+from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import Message
+from oic.oauth2.message import SINGLE_REQUIRED_STRING
+from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
+from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
+from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
+from oic.oauth2.message import SINGLE_OPTIONAL_STRING
+from oic.oauth2.message import SINGLE_OPTIONAL_INT
+from oic.oauth2.exception import Unsupported
+from oic.oauth2.message import AuthorizationRequest
+from oic.oauth2.message import ASConfigurationResponse
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ class RegistrationRequest(Message):
 
         if "redirect_uris" in self:
             for uri in self["redirect_uris"]:
-                if urlparse.urlparse(uri).fragment:
+                if urlparse(uri).fragment:
                     raise InvalidRedirectUri(
                         "redirect_uri contains fragment: %s" % uri)
 
@@ -194,7 +194,8 @@ class Client(oauth2.Client):
                  config=None):
         oauth2.Client.__init__(self, client_id=client_id, ca_certs=ca_certs,
                                client_authn_method=client_authn_method,
-                               keyjar=keyjar, verify_ssl=verify_ssl)
+                               keyjar=keyjar, verify_ssl=verify_ssl,
+                               config=config)
         self.allow = {}
         self.request2endpoint.update({
             "RegistrationRequest": "registration_endpoint",
@@ -203,7 +204,6 @@ class Client(oauth2.Client):
             'TokenRevocationRequest': 'revocation_endpoint'
         })
         self.registration_response = None
-        self.config = config or {}
 
     def construct_RegistrationRequest(self, request=RegistrationRequest,
                                       request_args=None, extra_args=None,
@@ -373,7 +373,7 @@ class Client(oauth2.Client):
             method="GET", request_args=None, extra_args=None, http_args=None,
             response_cls=AuthorizationResponse, **kwargs):
 
-        if 'code_challenge' in self.config:
+        if 'code_challenge' in self.config and self.config['code_challenge']:
             _args, code_verifier = self.add_code_challenge()
             request_args.update(_args)
 

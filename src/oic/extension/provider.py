@@ -11,6 +11,8 @@ from future.backports.urllib.parse import splitquery
 
 from jwkest import jws, b64e
 
+from oic import rndstr
+
 from oic.exception import FailedAuthentication
 from oic.exception import RestrictionError
 from oic.exception import UnSupported
@@ -23,7 +25,6 @@ from oic.extension.client import RegistrationRequest
 from oic.extension.client import InvalidRedirectUri
 from oic.extension.client import ClientRegistrationError
 from oic.extension.client import MissingPage
-from oic.extension.message import ASConfigurationResponse
 from oic.extension.message import TokenRevocationRequest
 from oic.extension.message import TokenIntrospectionRequest
 from oic.extension.message import TokenIntrospectionResponse
@@ -32,10 +33,10 @@ from oic.oauth2 import AccessTokenRequest
 from oic.oauth2 import TokenErrorResponse
 from oic.oauth2 import AccessTokenResponse
 from oic.oauth2 import by_schema
-from oic.oauth2 import rndstr
 from oic.oauth2.provider import Endpoint
 from oic.oauth2.exception import VerificationError
 from oic.oauth2.exception import CapabilitiesMisMatch
+from oic.oauth2.message import ASConfigurationResponse
 # from oic.oic import ProviderConfigurationResponse
 from oic.oic import PREFERENCE2PROVIDER
 from oic.oic.message import SCOPE2CLAIMS

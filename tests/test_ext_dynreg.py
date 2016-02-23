@@ -23,8 +23,6 @@ from oic.extension.client import RegistrationRequest
 from oic.extension.provider import Provider
 from oic.utils.keyio import build_keyjar
 
-from utils_for_tests import _eq, query_string_compare
-
 BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/keys"))
 
 KEYS = [
@@ -33,6 +31,9 @@ KEYS = [
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["enc"]}
 ]
+
+def _eq(l1, l2):
+    return set(l1) == set(l2)
 
 
 class TestSoftwareStatement(object):

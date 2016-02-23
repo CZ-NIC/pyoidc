@@ -1,6 +1,7 @@
 import logging
 import base64
-from jwkest import Invalid, as_unicode
+from jwkest import Invalid
+from jwkest import as_unicode
 from jwkest import MissingKey
 from jwkest import b64e_enc_dec
 from jwkest.jws import alg2keytype
@@ -9,7 +10,9 @@ import six
 from oic.exception import FailedAuthentication
 from oic.exception import UnknownAssertionType
 from oic.exception import NotForMe
-from oic.oauth2 import rndstr, VREQUIRED, AccessTokenRequest
+from oic import rndstr
+from oic.oauth2 import VREQUIRED
+from oic.oauth2 import AccessTokenRequest
 from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.oic import REQUEST2ENDPOINT
 from oic.oic import DEF_SIGN_ALG

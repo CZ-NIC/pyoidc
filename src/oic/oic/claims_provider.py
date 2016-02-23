@@ -3,7 +3,7 @@ from oic.utils.keyio import KeyJar
 __author__ = 'rohe0002'
 
 import logging
-from oic.oauth2 import rndstr
+from oic import rndstr
 
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import Claims

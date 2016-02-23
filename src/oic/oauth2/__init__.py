@@ -1,11 +1,16 @@
 #!/usr/bin/env python
-import base64
-import hashlib
-import random
-import string
+from jwkest import b64e
 
+from future.backports.urllib.parse import urlparse
+
+from oic import unreserved
+from oic import CC_METHOD
+from oic import OIDCONF_PATTERN
+
+from oic.oauth2.message import ASConfigurationResponse
 from oic.oauth2.base import PBase
 from oic.oauth2.exception import MissingEndpoint
+from oic.oauth2.exception import Unsupported
 from oic.oauth2.exception import GrantError
 from oic.oauth2.exception import ResponseError
 from oic.oauth2.exception import TokenError
@@ -47,21 +52,6 @@ RESPONSE2ERROR = {
 ENDPOINTS = ["authorization_endpoint", "token_endpoint",
              "token_revocation_endpoint"]
 
-
-def rndstr(size=16):
-    """
-    Returns a string of random ascii characters or digits
-
-    :param size: The length of the string
-    :return: string
-    """
-    _basech = string.ascii_letters + string.digits
-    return "".join([random.choice(_basech) for _ in range(size)])
-
-
-# -----------------------------------------------------------------------------
-
-
 class ExpiredToken(PyoidcError):
     pass
 
@@ -72,7 +62,7 @@ class Client(PBase):
     _endpoints = ENDPOINTS
 
     def __init__(self, client_id=None, ca_certs=None, client_authn_method=None,
-                 keyjar=None, verify_ssl=True):
+                 keyjar=None, verify_ssl=True, config=None):
         """
 
         :param client_id: The client identifier
@@ -114,6 +104,16 @@ class Client(PBase):
         self._c_secret = None
         self.kid = {"sig": {}, "enc": {}}
         self.authz_req = None
+
+        # the OAuth issuer is the URL of the authorization server's
+        # configuration information location
+        self.config = config or {}
+        try:
+            self.issuer = self.config['issuer']
+        except KeyError:
+            self.issuer = ''
+        self.allow = {}
+        self.provider_info = {}
 
     def store_response(self, clinst, text):
         pass
@@ -452,6 +452,12 @@ class Client(PBase):
             resp = None
         else:
             kwargs["client_id"] = self.client_id
+            try:
+                kwargs['iss'] = self.provider_info['issuer']
+            except (KeyError, AttributeError):
+                if self.issuer:
+                    kwargs['iss'] = self.issuer
+
             if "key" not in kwargs and "keyjar" not in kwargs:
                 kwargs["keyjar"] = self.keyjar
 
@@ -462,7 +468,7 @@ class Client(PBase):
                 logger.error('Verification of the response failed')
                 raise PyoidcError("Verification of the response failed")
             if resp.type() == "AuthorizationResponse" and \
-                            "scope" not in resp:
+                    "scope" not in resp:
                 try:
                     resp["scope"] = kwargs["scope"]
                 except KeyError:
@@ -739,6 +745,115 @@ class Client(PBase):
 
         logger.debug("Fetch URI: %s" % uri)
         return self.http_request(uri, method, headers=headers)
+
+    def add_code_challenge(self):
+        """
+        PKCE RFC 7636 support
+
+        :return:
+        """
+        try:
+            cv_len = self.config['code_challenge']['length']
+        except KeyError:
+            cv_len = 64  # Use default
+
+        code_verifier = unreserved(cv_len)
+        _cv = code_verifier.encode()
+
+        try:
+            _method = self.config['code_challenge']['method']
+        except KeyError:
+            _method = 'S256'
+
+        try:
+            _h = CC_METHOD[_method](_cv).hexdigest()
+            code_challenge = b64e(_h.encode()).decode()
+        except KeyError:
+            raise Unsupported(
+                'PKCE Transformation method:{}'.format(_method))
+
+        # TODO store code_verifier
+
+        return {"code_challenge": code_challenge,
+                "code_challenge_method": _method}, code_verifier
+
+    def handle_provider_config(self, pcr, issuer, keys=True, endpoints=True):
+        """
+        Deal with Provider Config Response
+        :param pcr: The ProviderConfigResponse instance
+        :param issuer: The one I thought should be the issuer of the config
+        :param keys: Should I deal with keys
+        :param endpoints: Should I deal with endpoints, that is store them
+        as attributes in self.
+        """
+
+        if "issuer" in pcr:
+            _pcr_issuer = pcr["issuer"]
+            if pcr["issuer"].endswith("/"):
+                if issuer.endswith("/"):
+                    _issuer = issuer
+                else:
+                    _issuer = issuer + "/"
+            else:
+                if issuer.endswith("/"):
+                    _issuer = issuer[:-1]
+                else:
+                    _issuer = issuer
+
+            try:
+                _ = self.allow["issuer_mismatch"]
+            except KeyError:
+                try:
+                    assert _issuer == _pcr_issuer
+                except AssertionError:
+                    raise PyoidcError(
+                        "provider info issuer mismatch '%s' != '%s'" % (
+                            _issuer, _pcr_issuer))
+
+            self.provider_info = pcr
+        else:
+            _pcr_issuer = issuer
+
+        self.issuer = _pcr_issuer
+
+        if endpoints:
+            for key, val in pcr.items():
+                if key.endswith("_endpoint"):
+                    setattr(self, key, val)
+
+        if keys:
+            if self.keyjar is None:
+                self.keyjar = KeyJar()
+
+            self.keyjar.load_keys(pcr, _pcr_issuer)
+
+    def provider_config(self, issuer, keys=True, endpoints=True,
+                        response_cls=ASConfigurationResponse,
+                        serv_pattern=OIDCONF_PATTERN):
+        if issuer.endswith("/"):
+            _issuer = issuer[:-1]
+        else:
+            _issuer = issuer
+
+        url = serv_pattern % _issuer
+
+        pcr = None
+        r = self.http_request(url)
+        if r.status_code == 200:
+            pcr = response_cls().from_json(r.text)
+        elif r.status_code == 302:
+            while r.status_code == 302:
+                r = self.http_request(r.headers["location"])
+                if r.status_code == 200:
+                    pcr = response_cls().from_json(r.text)
+                    break
+
+        if pcr is None:
+            raise PyoidcError("Trying '%s', status %s" % (url, r.status_code))
+
+        self.handle_provider_config(pcr, issuer, keys, endpoints)
+
+        return pcr
 
 
 class Server(PBase):

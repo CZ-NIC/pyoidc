@@ -1,7 +1,7 @@
 import time
 import pytest
 from oic.extension.token import JWTToken
-from oic.oauth2 import rndstr
+from oic import rndstr
 from oic.oauth2 import AuthorizationRequest
 from oic.oic import OpenIDRequest
 from oic.utils.keyio import KeyBundle

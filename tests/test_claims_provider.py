@@ -2,6 +2,7 @@
 
 # pylint: disable=missing-docstring,no-self-use
 import os
+from future.backports.urllib.parse import parse_qs
 import pytest
 
 from jwkest.jwk import SYMKey
@@ -17,9 +18,15 @@ from oic.oic.claims_provider import UserClaimsResponse
 from oic.oic.claims_provider import UserClaimsRequest
 from oic.oic.claims_provider import ClaimsServer
 
-from utils_for_tests import _eq, query_string_compare  # pylint: disable=import-error
-
 __author__ = 'rohe0002'
+
+
+def _eq(l1, l2):
+    return set(l1) == set(l2)
+
+
+def query_string_compare(query_str1, query_str2):
+    return parse_qs(query_str1) == parse_qs(query_str2)
 
 
 class TestClaimsClient(object):

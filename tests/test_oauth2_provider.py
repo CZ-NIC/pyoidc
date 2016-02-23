@@ -20,10 +20,9 @@ from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
 from oic.utils import sdb
 
-from utils_for_tests import _eq
-
 CLIENT_CONFIG = {
     "client_id": "client1",
+    'config': {'issuer': 'https://example.com/as'}
 }
 
 CONSUMER_CONFIG = {
@@ -55,6 +54,10 @@ CDB = {
         'response_types': ['code', 'token']
     }
 }
+
+
+def _eq(l1, l2):
+    return set(l1) == set(l2)
 
 
 class DummyAuthn(UserAuthnMethod):

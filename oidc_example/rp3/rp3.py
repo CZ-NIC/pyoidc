@@ -168,8 +168,7 @@ def application(environ, start_response):
                 [(p, session[p]) for p in ['id_token', 'userinfo', 'user_id'] if
                  p in session])
 
-            return opresult(environ, start_response, check_session_iframe_url,
-                            **kwargs)
+            return opresult(environ, start_response, **kwargs)
 
 
     elif path == "rp":  # After having chosen which OP to authenticate at

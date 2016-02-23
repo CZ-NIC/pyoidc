@@ -10,6 +10,7 @@ from future.backports.urllib.parse import urlparse
 from future.backports.urllib.parse import splitquery
 from future.backports.urllib.parse import parse_qs
 
+from oic import rndstr
 from oic.exception import FailedAuthentication
 from oic.exception import InvalidRequest
 from oic.exception import MissingParameter
@@ -18,7 +19,6 @@ from oic.exception import RedirectURIError
 from oic.exception import UnknownClient
 from oic.exception import URIError
 from oic.oauth2 import Server
-from oic.oauth2 import rndstr
 from oic.oauth2.message import AccessTokenRequest
 from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import AuthorizationErrorResponse
@@ -642,6 +642,10 @@ class Provider(object):
             return result
         else:
             aresp, headers, redirect_uri, fragment_enc = result
+
+        # Mix-Up mitigation
+        aresp['iss'] = self.baseurl
+        aresp['client_id'] = areq['client_id']
 
         # Just do whatever is the default
         location = aresp.request(redirect_uri, fragment_enc)

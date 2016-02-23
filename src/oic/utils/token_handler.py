@@ -1,5 +1,5 @@
+from oic import rndstr
 from oic.extension.token import JWTToken
-from oic.oauth2 import rndstr
 
 __author__ = 'roland'
 

@@ -12,9 +12,10 @@ import logging
 from Crypto.Cipher import AES
 from future.utils import tobytes
 
+from oic import rndstr
 from oic.oic import AuthorizationRequest
-from oic.oauth2 import rndstr
-from oic.utils.time_util import utc_time_sans_frac, time_sans_frac
+from oic.utils.time_util import utc_time_sans_frac
+from oic.utils.time_util import time_sans_frac
 
 __author__ = 'rohe0002'
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-from six.moves.urllib.parse import parse_qs
+from future.backports.urllib.parse import parse_qs
 from jwkest.jws import alg2keytype
 
-from oic.oauth2 import rndstr
+from oic import rndstr
 from oic.oauth2.message import by_schema
 
 from oic.oic import Server

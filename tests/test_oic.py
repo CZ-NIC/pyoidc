@@ -38,7 +38,6 @@ from oic.utils.keyio import KeyJar
 from oic.utils.keyio import rsa_load
 
 from fakeoicsrv import MyFakeOICServer
-from utils_for_tests import _eq
 
 __author__ = 'rohe0002'
 
@@ -60,6 +59,9 @@ IDTOKEN = IdToken(iss="http://oic.example.org/", sub="sub",
                   nonce="N0nce",
                   iat=time.time())
 
+
+def _eq(l1, l2):
+    return set(l1) == set(l2)
 
 # ----------------- CLIENT --------------------
 

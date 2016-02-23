@@ -1,28 +1,23 @@
 import copy
 import logging
 import json
+import six
+
 from future.backports.urllib.parse import urlencode
-from future.backports.urllib.parse import urlparse
 from future.backports.urllib.parse import parse_qs
+from past.builtins import basestring
 
 from jwkest import b64d, as_unicode
 from jwkest import jwe
 from jwkest import jws
 from jwkest.jwe import JWE
-
 from jwkest.jwk import keyitems2keyreps
-
 from jwkest.jws import JWS
-
 from jwkest.jwt import JWT
-import six
 
-# from six.moves.urllib.parse import urlparse
-# from six.moves.urllib.parse import urlencode
-# from six.moves.urllib.parse import parse_qs
 from oic.exception import PyoidcError
 from oic.exception import MessageException
-from past.builtins import basestring
+from oic.oauth2.exception import VerificationError
 
 logger = logging.getLogger(__name__)
 
@@ -937,6 +932,18 @@ class AuthorizationResponse(Message):
         'client_id': SINGLE_OPTIONAL_STRING
     }
 
+    def verify(self, **kwargs):
+        if 'client_id' in self:
+            if self['client_id'] != kwargs['client_id']:
+                raise VerificationError('client_id mismatch')
+        if 'iss' in self:
+            # Issuer URL for the authorization server issuing the response.
+            if self['iss'] != kwargs['iss']:
+                raise VerificationError('Issuer mismatch')
+
+        return super(AuthorizationResponse, self).verify(**kwargs)
+
+
 
 class AccessTokenResponse(Message):
     c_param = {
@@ -989,6 +996,30 @@ class ResourceRequest(Message):
     c_param = {"access_token": SINGLE_OPTIONAL_STRING}
 
 
+class ASConfigurationResponse(Message):
+    c_param = {
+        "issuer": SINGLE_REQUIRED_STRING,
+        "authorization_endpoint": SINGLE_OPTIONAL_STRING,
+        "token_endpoint": SINGLE_OPTIONAL_STRING,
+        'introspection_endpoint': SINGLE_OPTIONAL_STRING,
+        'revocation_endpoint': SINGLE_OPTIONAL_STRING,
+        "jwks_uri": SINGLE_OPTIONAL_STRING,
+        "registration_endpoint": SINGLE_OPTIONAL_STRING,
+        "scopes_supported": OPTIONAL_LIST_OF_STRINGS,
+        "response_types_supported": REQUIRED_LIST_OF_STRINGS,
+        "response_modes_supported": OPTIONAL_LIST_OF_STRINGS,
+        "grant_types_supported": REQUIRED_LIST_OF_STRINGS,
+        "token_endpoint_auth_methods_supported": OPTIONAL_LIST_OF_STRINGS,
+        "token_endpoint_auth_signing_alg_values_supported":
+            OPTIONAL_LIST_OF_STRINGS,
+        "service_documentation": SINGLE_OPTIONAL_STRING,
+        "ui_locales_supported": OPTIONAL_LIST_OF_STRINGS,
+        "op_policy_uri": SINGLE_OPTIONAL_STRING,
+        "op_tos_uri": SINGLE_OPTIONAL_STRING,
+    }
+    c_default = {"version": "3.0"}
+
+
 MSG = {
     "Message": Message,
     "ErrorResponse": ErrorResponse,
@@ -1003,6 +1034,7 @@ MSG = {
     "CCAccessTokenRequest": CCAccessTokenRequest,
     "RefreshAccessTokenRequest": RefreshAccessTokenRequest,
     "ResourceRequest": ResourceRequest,
+    'ASConfigurationResponse': ASConfigurationResponse
 }
 
 
