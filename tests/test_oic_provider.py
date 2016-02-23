@@ -684,7 +684,7 @@ class TestProvider(object):
         with pytest.raises(InvalidRedirectURIError) as exc_info:
             self.provider._verify_redirect_uris(request)
 
-        assert str(exc_info.value) == "None https redirect_uri not allowed"
+        assert str(exc_info.value) == "Non-https redirect_uri not allowed"
 
     # @pytest.mark.network
     # def test_registration_endpoint_openid4us(self):
