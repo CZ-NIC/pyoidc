@@ -937,9 +937,13 @@ class AuthorizationResponse(Message):
             if self['client_id'] != kwargs['client_id']:
                 raise VerificationError('client_id mismatch')
         if 'iss' in self:
-            # Issuer URL for the authorization server issuing the response.
-            if self['iss'] != kwargs['iss']:
-                raise VerificationError('Issuer mismatch')
+            try:
+                # Issuer URL for the authorization server issuing the response.
+                if self['iss'] != kwargs['iss']:
+                    raise VerificationError('Issuer mismatch')
+            except KeyError:
+                logger.info('No issuer set in the Client config')
+                pass
 
         return super(AuthorizationResponse, self).verify(**kwargs)
 
