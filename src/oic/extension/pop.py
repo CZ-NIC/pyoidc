@@ -83,7 +83,7 @@ class PoPClient(object):
 
 class PoPAS(object):
     def __init__(self, me):
-        self.fingerprint2key = {}
+        self.thumbprint2key = {}
         self.keyjar = None
         self.me = me
 
@@ -91,25 +91,25 @@ class PoPAS(object):
         kb = KeyBundle()
         kb.do_keys([key])
 
-        # Store key with fingerprint as key
-        key_fingerprint = b64e(kb.keys()[0].fingerprint('SHA-256')).decode(
+        # Store key with thumbprint as key
+        key_thumbprint = b64e(kb.keys()[0].thumbprint('SHA-256')).decode(
             'utf8')
-        self.fingerprint2key[key_fingerprint] = key
-        return key_fingerprint
+        self.thumbprint2key[key_thumbprint] = key
+        return key_thumbprint
 
-    def create_access_token(self, key_fingerprint):
+    def create_access_token(self, key_thumbprint):
         # creating the access_token
         jwt_constructor = JWT(self.keyjar, iss=self.me)
         # Audience is myself
         return jwt_constructor.pack(
-            kid='abc', cnf={'kid': key_fingerprint}, aud=self.me)
+            kid='abc', cnf={'kid': key_thumbprint}, aud=self.me)
 
     def token_introspection(self, token):
         jwt_constructor = JWT(self.keyjar, iss=self.me)
         res = jwt_constructor.unpack(token)
 
         tir = TokenIntrospectionResponse(active=True)
-        tir['key'] = json.dumps(self.fingerprint2key[res['cnf']['kid']])
+        tir['key'] = json.dumps(self.thumbprint2key[res['cnf']['kid']])
 
         return tir
 

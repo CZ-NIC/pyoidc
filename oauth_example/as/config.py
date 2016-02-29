@@ -105,3 +105,8 @@ BEHAVIOR = {
         }
     }
 }
+
+TRUSTED_REGISTRATION_ENTITIES = [{
+    'iss': 'https://has.example.com/tre',
+    'jwks': 'tre.jwks',
+}]

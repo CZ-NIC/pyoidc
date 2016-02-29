@@ -34,9 +34,9 @@ class JWT(object):
         _jwe = JWE(payload, **kwargs)
         return _jwe.encrypt(keys, context="public")
 
-    def pack(self, kid='', **kwargs):
+    def pack(self, kid='', owner='', **kwargs):
         keys = self.keyjar.get_signing_key(jws.alg2keytype(self.sign_alg),
-                                           owner='', kid=kid)
+                                           owner=owner, kid=kid)
 
         if not keys:
             raise NoSuitableSigningKeys('kid={}'.format(kid))

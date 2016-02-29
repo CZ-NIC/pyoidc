@@ -5,7 +5,7 @@ import sys
 import json
 import time
 
-from jwkest import jws
+from jwkest import jws, b64e
 from jwkest import jwe
 from jwkest import as_unicode
 from Crypto.PublicKey import RSA
@@ -637,10 +637,10 @@ class KeyJar(object):
 
         return res
 
-    def export_jwks(self):
+    def export_jwks(self, private=False):
         keys = []
         for kb in self.issuer_keys[""]:
-            keys.extend([k.serialize() for k in kb.keys()])
+            keys.extend([k.serialize(private) for k in kb.keys()])
         return {"keys": keys}
 
     def dump(self):
@@ -671,6 +671,12 @@ class KeyJar(object):
             ktype = jwe.alg2keytype(alg)
 
         return self.get(usage, ktype, issuer)
+
+    def get_issuer_keys(self, issuer):
+        res = []
+        for kbl in self.issuer_keys[issuer]:
+            res.extend(kbl.keys())
+        return res
 
 
 # =============================================================================
@@ -881,7 +887,7 @@ def keyjar_init(instance, key_conf, kid_template="a%d"):
     return jwks
 
 
-def build_keyjar(key_conf, kid_template="a%d", keyjar=None, kidd=None):
+def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
     """
     Configuration of the type:
     keys = [
@@ -920,8 +926,11 @@ def build_keyjar(key_conf, kid_template="a%d", keyjar=None, kidd=None):
             kb = ec_init(spec)
 
         for k in kb.keys():
-            k.kid = kid_template % kid
-            kid += 1
+            if kid_template:
+                k.kid = kid_template % kid
+                kid += 1
+            else:
+                k.kid = b64e(k.thumbprint('SHA-256')).decode('utf8')
             kidd[k.use][k.kty] = k.kid
 
         jwks["keys"].extend([k.serialize() for k in kb.keys() if k.kty != 'oct'])

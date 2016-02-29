@@ -32,6 +32,7 @@ KEYS = [
     {"type": "EC", "crv": "P-256", "use": ["enc"]}
 ]
 
+
 def _eq(l1, l2):
     return set(l1) == set(l2)
 

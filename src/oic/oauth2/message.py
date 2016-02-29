@@ -1005,8 +1005,6 @@ class ASConfigurationResponse(Message):
         "issuer": SINGLE_REQUIRED_STRING,
         "authorization_endpoint": SINGLE_OPTIONAL_STRING,
         "token_endpoint": SINGLE_OPTIONAL_STRING,
-        'introspection_endpoint': SINGLE_OPTIONAL_STRING,
-        'revocation_endpoint': SINGLE_OPTIONAL_STRING,
         "jwks_uri": SINGLE_OPTIONAL_STRING,
         "registration_endpoint": SINGLE_OPTIONAL_STRING,
         "scopes_supported": OPTIONAL_LIST_OF_STRINGS,
@@ -1020,6 +1018,8 @@ class ASConfigurationResponse(Message):
         "ui_locales_supported": OPTIONAL_LIST_OF_STRINGS,
         "op_policy_uri": SINGLE_OPTIONAL_STRING,
         "op_tos_uri": SINGLE_OPTIONAL_STRING,
+        'revocation_endpoint': SINGLE_OPTIONAL_STRING,
+        'introspection_endpoint': SINGLE_OPTIONAL_STRING,
     }
     c_default = {"version": "3.0"}
 

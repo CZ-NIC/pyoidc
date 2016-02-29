@@ -23,7 +23,7 @@ from oic.utils.authz import Implicit
 from oic.utils.http_util import wsgi_wrapper
 from oic.utils.http_util import NotFound
 from oic.utils.http_util import ServiceError
-from oic.utils.keyio import keyjar_init
+from oic.utils.keyio import keyjar_init, KeyBundle
 
 __author__ = 'roland'
 
@@ -322,6 +322,19 @@ if __name__ == "__main__":
 
     if not OAS.baseurl.endswith("/"):
         OAS.baseurl += "/"
+
+    # load extra keys
+    try:
+        extern = config.TRUSTED_REGISTRATION_ENTITIES
+    except AttributeError:
+        pass
+    else:
+        for ent in extern:
+            iss = ent['iss']
+            kb = KeyBundle()
+            kb.imp_jwks = json.load(open(ent['jwks']))
+            kb.do_keys(kb.imp_jwks['keys'])
+            OAS.keyjar.add_kb(iss, kb)
 
     LOGGER.debug("URLS: '%s" % (URLS,))
 
