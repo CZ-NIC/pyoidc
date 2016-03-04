@@ -11,13 +11,15 @@ from jwkest import b64d, as_unicode
 from jwkest import jwe
 from jwkest import jws
 from jwkest.jwe import JWE
-from jwkest.jwk import keyitems2keyreps
 from jwkest.jws import JWS
 from jwkest.jwt import JWT
+from jwkest.jwk import keyitems2keyreps
+from jwkest.jws import NoSuitableSigningKeys
 
 from oic.exception import PyoidcError
 from oic.exception import MessageException
 from oic.oauth2.exception import VerificationError
+from oic.utils.keyio import update_keyjar
 
 logger = logging.getLogger(__name__)
 
@@ -275,7 +277,7 @@ class Message(object):
                         except KeyError:
                             raise ParameterError(key)
                 else:
-                    raise TooManyValues
+                    raise TooManyValues('{}'.format(key))
 
         return self
 
@@ -404,8 +406,8 @@ class Message(object):
                     for v in val:
                         if not isinstance(v, vtype):
                             raise DecodeError(
-                                    ERRTXT % (key, "type != %s (%s)" % (
-                                        vtype, type(v))))
+                                ERRTXT % (key, "type != %s (%s)" % (
+                                    vtype, type(v))))
 
                 self._dict[skey] = val
             elif isinstance(val, dict):
@@ -467,6 +469,53 @@ class Message(object):
             key.extend(keyjar.get_verify_key(owner=item))
         except KeyError:
             pass
+
+    def get_verify_keys(self, keyjar, key, jso, header, jwt, **kwargs):
+        logger.debug("Issuer keys: {}".format(keyjar.keys()))
+        try:
+            _iss = jso["iss"]
+        except KeyError:
+            pass
+        else:
+            if "jku" in header:
+                if not keyjar.find(header["jku"], _iss):
+                    # This is really questionable
+                    try:
+                        if kwargs["trusting"]:
+                            keyjar.add(jso["iss"],
+                                       header["jku"])
+                    except KeyError:
+                        pass
+
+            if "kid" in header and header["kid"]:
+                jwt["kid"] = header["kid"]
+                try:
+                    _key = keyjar.get_key_by_kid(header["kid"],
+                                                 _iss)
+                    if _key:
+                        key.append(_key)
+                except KeyError:
+                    pass
+
+        try:
+            self._add_key(keyjar, kwargs["opponent_id"], key)
+        except KeyError:
+            pass
+
+        for ent in ["iss", "aud", "client_id"]:
+            if ent not in jso:
+                continue
+            if ent == "aud":
+                # list or basestring
+                if isinstance(jso["aud"], six.string_types):
+                    _aud = [jso["aud"]]
+                else:
+                    _aud = jso["aud"]
+                for _e in _aud:
+                    self._add_key(keyjar, _e, key)
+            else:
+                self._add_key(keyjar, jso[ent], key)
+        return key
 
     def from_jwt(self, txt, key=None, verify=True, keyjar=None, **kwargs):
         """
@@ -530,62 +579,25 @@ class Message(object):
                 logger.debug("header: {}".format(_header))
                 if _header["alg"] == "none":
                     pass
-                else:
+                elif verify:
                     if keyjar:
-                        logger.debug("Issuer keys: {}".format(keyjar.keys()))
-                        try:
-                            _iss = jso["iss"]
-                        except KeyError:
-                            pass
-                        else:
-                            if "jku" in _header:
-                                if not keyjar.find(_header["jku"], _iss):
-                                    # This is really questionable
-                                    try:
-                                        if kwargs["trusting"]:
-                                            keyjar.add(jso["iss"],
-                                                       _header["jku"])
-                                    except KeyError:
-                                        pass
+                        key = self.get_verify_keys(keyjar, key, jso, _header,
+                                                   _jw, **kwargs)
 
-                            if "kid" in _header and _header["kid"]:
-                                _jw["kid"] = _header["kid"]
-                                try:
-                                    _key = keyjar.get_key_by_kid(_header["kid"],
-                                                                 _iss)
-                                    if _key:
-                                        key.append(_key)
-                                except KeyError:
-                                    pass
+                    if "alg" in _header and _header["alg"] != "none":
+                        if not key:
+                            raise MissingSigningKey(
+                                "alg=%s" % _header["alg"])
 
-                        try:
-                            self._add_key(keyjar, kwargs["opponent_id"], key)
-                        except KeyError:
-                            pass
-
-                    if verify:
-                        if keyjar:
-                            for ent in ["iss", "aud", "client_id"]:
-                                if ent not in jso:
-                                    continue
-                                if ent == "aud":
-                                    # list or basestring
-                                    if isinstance(jso["aud"], six.string_types):
-                                        _aud = [jso["aud"]]
-                                    else:
-                                        _aud = jso["aud"]
-                                    for _e in _aud:
-                                        self._add_key(keyjar, _e, key)
-                                else:
-                                    self._add_key(keyjar, jso[ent], key)
-
-                        if "alg" in _header and _header["alg"] != "none":
-                            if not key:
-                                raise MissingSigningKey(
-                                        "alg=%s" % _header["alg"])
-
-                        logger.debug("Verify keys: {}".format(key))
+                    logger.debug("Verify keys: {}".format(key))
+                    try:
                         _jw.verify_compact(txt, key)
+                    except NoSuitableSigningKeys:
+                        if keyjar:
+                            update_keyjar(keyjar)
+                            key = self.get_verify_keys(keyjar, key, jso,
+                                                       _header, _jw, **kwargs)
+                            _jw.verify_compact(txt, key)
             except Exception:
                 raise
             else:
@@ -946,7 +958,6 @@ class AuthorizationResponse(Message):
                 pass
 
         return super(AuthorizationResponse, self).verify(**kwargs)
-
 
 
 class AccessTokenResponse(Message):

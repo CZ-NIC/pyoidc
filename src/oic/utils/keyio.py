@@ -407,6 +407,9 @@ class KeyJar(object):
 
         self.issuer_keys[issuer] = val
 
+    def items(self):
+        return self.issuer_keys.items()
+
     def get(self, key_use, key_type="", issuer="", kid=None, **kwargs):
         """
 
@@ -938,3 +941,9 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
         keyjar.add_kb("", kb)
 
     return jwks, keyjar, kidd
+
+
+def update_keyjar(keyjar):
+    for iss, kbl in keyjar.items():
+        for kb in kbl:
+            kb.update()
