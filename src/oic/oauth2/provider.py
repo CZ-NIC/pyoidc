@@ -195,6 +195,7 @@ class Provider(object):
         self.session_cookie_name = "pyoic_session"
         self.baseurl = baseurl
         self.keyjar = None
+        self.trace = None
 
     @staticmethod
     def input(query="", post=None):
@@ -407,6 +408,16 @@ class Provider(object):
             logger.debug("No AuthzRequest")
             return self._error("invalid_request", "Can not parse AuthzRequest")
 
+        if self.trace:
+            self.trace.info('{}'.format(areq.to_dict()))
+            if 'request' in areq:
+                if areq['request'].jwe_header:
+                    self.trace.info('request.jwe_header: {}'.format(
+                        areq['request'].jwe_header))
+                if areq['request'].jws_header:
+                    self.trace.info('request.jws_header: {}'.format(
+                        areq['request'].jws_header))
+
         try:
             _cinfo = self.cdb[areq['client_id']]
         except KeyError:
@@ -552,7 +563,7 @@ class Provider(object):
                     sids_for_sub = self.sdb.get_sids_by_sub(kwargs["req_user"])
                     if sids_for_sub and user != \
                             self.sdb.get_authentication_event(
-                            sids_for_sub[-1]).uid:
+                                sids_for_sub[-1]).uid:
                         logger.debug("Wanted to be someone else!")
                         if "prompt" in areq and "none" in areq["prompt"]:
                             # Need to authenticate but not allowed
@@ -693,7 +704,7 @@ class Provider(object):
             pass
         else:
             if _kaka and self.cookie_name not in _kaka:  # Don't overwrite
-            # cookie
+                # cookie
                 headers.append(
                     self.cookie_func(user, typ="sso", ttl=self.sso_ttl))
 
