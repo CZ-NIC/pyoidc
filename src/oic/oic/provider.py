@@ -321,7 +321,7 @@ class Provider(AProvider):
         else:
             alg = "none"
 
-        _idt = self.server.make_id_token(session, loa, self.baseurl, alg, code,
+        _idt = self.server.make_id_token(session, loa, self.name, alg, code,
                                          access_token, user_info, auth_time,
                                          exp, extra_claims)
 
@@ -1190,15 +1190,10 @@ class Provider(AProvider):
         for _pref, _prov in PREFERENCE2PROVIDER.items():
             if _pref in request:
                 if _pref == "response_types":
-                    for val in request[_pref]:
-                        match = False
-                        p = set(val.split(" "))
-                        for cv in RESPONSE_TYPES_SUPPORTED:
-                            if p == set(cv):
-                                match = True
-                                break
-                        if not match:
-                            raise CapabilitiesMisMatch(_pref)
+                    client_rt = [set(v.split(" ")) for v in request[_pref]]
+                    provider_rt = [set(v.split(" ")) for v in self.capabilities[_prov]]
+                    if not any(rt in provider_rt for rt in client_rt):
+                        raise CapabilitiesMisMatch(_pref)
                 else:
                     if isinstance(request[_pref], six.string_types):
                         try:
@@ -1567,7 +1562,7 @@ class Provider(AProvider):
                 if key in setup:
                     _provider_info[key] = setup[key]
 
-        _provider_info["issuer"] = self.baseurl
+        _provider_info["issuer"] = self.name
         _provider_info["version"] = "3.0"
 
         return _provider_info
@@ -1664,7 +1659,7 @@ class Provider(AProvider):
         except Exception as err:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
-            resp = Response(message, content="html/text")
+            resp = BadRequest(message, content="html/text")
 
         return resp
 
