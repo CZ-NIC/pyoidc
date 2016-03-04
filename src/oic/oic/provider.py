@@ -321,7 +321,7 @@ class Provider(AProvider):
         else:
             alg = "none"
 
-        _idt = self.server.make_id_token(session, loa, self.baseurl, alg, code,
+        _idt = self.server.make_id_token(session, loa, self.name, alg, code,
                                          access_token, user_info, auth_time,
                                          exp, extra_claims)
 
