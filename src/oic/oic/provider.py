@@ -962,6 +962,7 @@ class Provider(AProvider):
 
         try:
             client_id = self.client_authn(self, req, authn)
+            msg = ''
         except Exception as err:
             msg = "Failed to verify client due to: {}".format(err)
             logger.error(msg)

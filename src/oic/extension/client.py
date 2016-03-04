@@ -106,6 +106,11 @@ class RegistrationRequest(Message):
         except:
             pass
         else:
+            # need to get the client keys before I can verify any signature
+            kj = kwargs['keyjar']
+            # The case where jwks_uri is used
+            # try:
+            #     kj.add(,self['jwks_uri'])
             _ss = []
             for _s in ss:
                 _ss.append(unpack_software_statement(_s, '', kwargs['keyjar']))
