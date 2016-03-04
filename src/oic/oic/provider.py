@@ -1190,16 +1190,10 @@ class Provider(AProvider):
         for _pref, _prov in PREFERENCE2PROVIDER.items():
             if _pref in request:
                 if _pref == "response_types":
-                    for val in request[_pref]:
-                        match = False
-                        p = set(val.split(" "))
-                        for cv in self.capabilities[_prov]:
-                            rt = set(cv.split(" "))
-                            if p == rt:
-                                match = True
-                                break
-                        if not match:
-                            raise CapabilitiesMisMatch(_pref)
+                    client_rt = [set(v.split(" ")) for v in request[_pref]]
+                    provider_rt = [set(v.split(" ")) for v in self.capabilities[_prov]]
+                    if not any(rt in provider_rt for rt in client_rt):
+                        raise CapabilitiesMisMatch(_pref)
                 else:
                     if isinstance(request[_pref], six.string_types):
                         try:
