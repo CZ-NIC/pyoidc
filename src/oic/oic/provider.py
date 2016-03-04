@@ -1568,7 +1568,7 @@ class Provider(AProvider):
                 if key in setup:
                     _provider_info[key] = setup[key]
 
-        _provider_info["issuer"] = self.baseurl
+        _provider_info["issuer"] = self.name
         _provider_info["version"] = "3.0"
 
         return _provider_info
