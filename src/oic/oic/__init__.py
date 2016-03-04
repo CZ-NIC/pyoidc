@@ -1349,14 +1349,17 @@ class Server(oauth2.Server):
         # get the verification keys
         if client_id:
             keys = self.keyjar.verify_keys(client_id)
+            sender = client_id
         else:
             try:
                 keys = self.keyjar.verify_keys(request["client_id"])
+                sender = request['client_id']
             except KeyError:
                 keys = None
+                sender = ''
 
         logger.debug("verify keys: {}".format(keys))
-        request.verify(key=keys, keyjar=self.keyjar)
+        request.verify(key=keys, keyjar=self.keyjar, sender=sender)
         return request
 
     def parse_open_id_request(self, data, sformat="urlencoded", client_id=None):

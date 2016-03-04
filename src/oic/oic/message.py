@@ -428,7 +428,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
         Authorization Request and in the OpenID Request Object MUST exactly
         match."""
         args = {}
-        for arg in ["key", "keyjar", "opponent_id"]:
+        for arg in ["key", "keyjar", "opponent_id", "sender"]:
             try:
                 args[arg] = kwargs[arg]
             except KeyError:
