@@ -361,8 +361,7 @@ class Client(PBase):
 
         return uri, body, h_args, cis
 
-    def \
-            request_info(self, request, method="POST", request_args=None,
+    def request_info(self, request, method="POST", request_args=None,
                      extra_args=None, lax=False, **kwargs):
 
         if request_args is None:
@@ -516,7 +515,7 @@ class Client(PBase):
 
         if reqresp.status_code in SUCCESSFUL:
             body_type = verify_header(reqresp, body_type)
-        elif reqresp.status_code == 302:  # redirect
+        elif reqresp.status_code in [302, 303]:  # redirect
             pass
         elif reqresp.status_code == 500:
             logger.error("(%d) %s" % (reqresp.status_code, reqresp.text))
