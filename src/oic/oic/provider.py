@@ -1193,8 +1193,9 @@ class Provider(AProvider):
                     for val in request[_pref]:
                         match = False
                         p = set(val.split(" "))
-                        for cv in RESPONSE_TYPES_SUPPORTED:
-                            if p == set(cv):
+                        for cv in self.capabilities[_prov]:
+                            rt = set(cv.split(" "))
+                            if p == rt:
                                 match = True
                                 break
                         if not match:
