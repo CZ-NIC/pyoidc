@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import base64
+import copy
 import hashlib
 import hmac
 import itertools
@@ -197,7 +198,7 @@ class Provider(AProvider):
                  client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
                  hostname="", template_lookup=None, template=None,
                  verify_ssl=True, capabilities=None, schema=OpenIDSchema,
-                 jwks_uri='', jwks_name=''):
+                 jwks_uri='', jwks_name='', baseurl=None):
 
         AProvider.__init__(self, name, sdb, cdb, authn_broker, authz,
                            client_authn, symkey, urlmap, ca_bundle=ca_certs,
@@ -216,7 +217,7 @@ class Provider(AProvider):
         self.template_lookup = template_lookup
         self.template = template or {}
         self.keyjar = self.server.keyjar
-        self.baseurl = ""
+        self.baseurl = baseurl or name
         self.cert = []
         self.cert_encryption = []
 
@@ -1408,19 +1409,23 @@ class Provider(AProvider):
 
     # noinspection PyUnusedLocal
     def l_registration_endpoint(self, request, authn=None, **kwargs):
-        _log_debug = logger.debug
-        _log_info = logger.info
-
-        _log_debug("@registration_endpoint: <<%s>>" % request)
+        logger.debug("@registration_endpoint: <<%s>>" % request)
 
         try:
             request = RegistrationRequest().deserialize(request, "json")
         except ValueError:
             request = RegistrationRequest().deserialize(request)
 
-        _log_info("registration_request:%s" % request.to_dict())
-        resp_keys = request.keys()
+        logger.info("registration_request:%s" % request.to_dict())
 
+        result = self.client_registration_setup(request)
+        if isinstance(result, Response):
+            return result
+
+        return Created(result.to_json(), content="application/json",
+                       headers=[("Cache-Control", "no-store")])
+
+    def client_registration_setup(self, request):
         try:
             request.verify()
         except MessageException as err:
@@ -1496,8 +1501,7 @@ class Provider(AProvider):
 
         logger.info("registration_response: %s" % response.to_dict())
 
-        return Created(response.to_json(), content="application/json",
-                       headers=[("Cache-Control", "no-store")])
+        return response
 
     def registration_endpoint(self, request, authn=None, **kwargs):
         return self.l_registration_endpoint(request, authn, **kwargs)
@@ -1547,7 +1551,7 @@ class Provider(AProvider):
         :return:
         """
 
-        _provider_info = self.capabilities
+        _provider_info = copy.deepcopy(self.capabilities.to_dict())
 
         if self.jwks_uri and self.keyjar:
             _provider_info["jwks_uri"] = self.jwks_uri
@@ -1566,7 +1570,7 @@ class Provider(AProvider):
         _provider_info["issuer"] = self.name
         _provider_info["version"] = "3.0"
 
-        return _provider_info
+        return pcr_class(**_provider_info)
 
     def provider_features(self, pcr_class=ProviderConfigurationResponse):
         """
