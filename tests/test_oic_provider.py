@@ -46,11 +46,6 @@ from oic.utils.time_util import epoch_in_a_while
 
 __author__ = 'rohe0002'
 
-CLIENT_CONFIG = {
-    "client_id": "number5",
-    'config': {'issuer': 'pyoicserv'}
-}
-
 CONSUMER_CONFIG = {
     "authz_page": "/authz",
     "scope": ["openid"],
@@ -69,6 +64,11 @@ SERVER_INFO = {
     "authorization_endpoint": "http://localhost:8088/authorization",
     "token_endpoint": "http://localhost:8088/token",
     "flows_supported": ["code", "token", "code token"],
+}
+
+CLIENT_CONFIG = {
+    "client_id": "number5",
+    'config': {'issuer': SERVER_INFO["issuer"]}
 }
 
 CLIENT_SECRET = "abcdefghijklmnop"
@@ -168,7 +168,7 @@ USERINFO = UserInfo(USERDB)
 class TestProvider(object):
     @pytest.fixture(autouse=True)
     def create_provider(self):
-        self.provider = Provider("pyoicserv", SessionDB(SERVER_INFO["issuer"]),
+        self.provider = Provider(SERVER_INFO["issuer"], SessionDB(SERVER_INFO["issuer"]),
                                  CDB,
                                  AUTHN_BROKER, USERINFO,
                                  AUTHZ, verify_client, SYMKEY, urlmap=URLMAP,
@@ -898,7 +898,7 @@ class TestProvider(object):
         self._assert_cookies_expired(resp.headers)
 
     def test_session_state_in_auth_req_for_session_support(self):
-        provider = Provider("foo", SessionDB(SERVER_INFO["issuer"]), CDB,
+        provider = Provider(SERVER_INFO["issuer"], SessionDB(SERVER_INFO["issuer"]), CDB,
                             AUTHN_BROKER, USERINFO,
                             AUTHZ, verify_client, SYMKEY, urlmap=URLMAP,
                             keyjar=KEYJAR, capabilities={
