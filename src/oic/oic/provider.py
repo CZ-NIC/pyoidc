@@ -198,7 +198,7 @@ class Provider(AProvider):
                  client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
                  hostname="", template_lookup=None, template=None,
                  verify_ssl=True, capabilities=None, schema=OpenIDSchema,
-                 jwks_uri='', jwks_name=''):
+                 jwks_uri='', jwks_name='', baseurl=None):
 
         AProvider.__init__(self, name, sdb, cdb, authn_broker, authz,
                            client_authn, symkey, urlmap, ca_bundle=ca_certs,
@@ -217,7 +217,7 @@ class Provider(AProvider):
         self.template_lookup = template_lookup
         self.template = template or {}
         self.keyjar = self.server.keyjar
-        self.baseurl = ""
+        self.baseurl = baseurl or name
         self.cert = []
         self.cert_encryption = []
 
