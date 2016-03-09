@@ -30,7 +30,7 @@ So lets start with instantiating a client::
     from oic.oic import Client
     from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
-    c = Client(client_authn_method=CLIENT_AUTHN_METHOD)
+    client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
 
 The first choice is really not yours. It's the OpenID Connect Provider (OP)
 that has to decide on whether it supports dynamic provider information
