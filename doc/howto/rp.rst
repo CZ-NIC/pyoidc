@@ -56,7 +56,7 @@ of different syntaxes that this identifier can adhere to. The most common is
 probably the e-mail address syntax. It's something that looks like an e-mail
 address (local@domain) but is not necessarily one.
 
-.. webfinger: http://tools.ietf.org/html/rfc7033
+.. _webfinger: http://tools.ietf.org/html/rfc7033
 
 At this point in time let us assume that you will instantiate an OIDC RP.
 
@@ -89,7 +89,7 @@ you query for that::
 
 A description of the whole set of metadata can be found `here`_:
 
-.. here: http://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
+.. _here: http://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
 
 .. Note::One parameter of the provider info is the issuer parameter. This
      is supposed to be *exactly* the same as the URL you used to fetch the
@@ -138,7 +138,7 @@ Things like:
 
 The whole list of possible parameters can be found `here`_:
 
-.. here: http://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
+.. _here: http://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
 
 The only absolutely required information is the **redirect_uris**
 
