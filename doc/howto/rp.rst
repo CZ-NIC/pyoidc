@@ -87,9 +87,9 @@ you query for that::
 
     provider_info = client.provider_config(issuer)
 
-A description of the whole set of metadata can be found `here`_:
+A description of the whole set of metadata can be found here__:
 
-.. _here: http://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
+__ http://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
 
 .. Note::One parameter of the provider info is the issuer parameter. This
      is supposed to be *exactly* the same as the URL you used to fetch the
@@ -136,9 +136,9 @@ Things like:
 * contacts
     OPTIONAL. Array of e-mail addresses of people responsible for this Client.
 
-The whole list of possible parameters can be found `here`_:
+The whole list of possible parameters can be found `here`__:
 
-.. _here: http://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
+__ http://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
 
 The only absolutely required information is the **redirect_uris**
 
@@ -209,11 +209,12 @@ The request you then want to make is the authentication request.
 
 Before doing the request you have to decide on a couple of things:
 
-* which response type you want to use.
-    You can read up on response types in the OAuth2 RFC.
+* which response type you want to use.  You can read up on response types in
+  the OAuth2 RFC.
 * the scope. The list of scopes must contain 'openid'. There is a list of
-    extra scopes that OIDC defines which can be found in the specification.
+  extra scopes that OIDC defines which can be found in the specification.
 * whether to use HTTP 'GET' or 'POST'. Either one is allowed. 'GET' is default.
+
 
 Authorization Code Flow
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -241,9 +242,9 @@ Given you have all that, you now can send the request::
     return Redirect(login_url)
 
 * ``state`` is used to keep track of responses to outstanding
-requests (state).
+  requests (state).
 * ``nonce`` is a string value used to associate a Client session with an ID Token,
-and to mitigate replay attacks.
+  and to mitigate replay attacks.
 
 Since you will need both these arguments later in the process you probably
 want to store them in a session object (assumed to look like a dictionary).
