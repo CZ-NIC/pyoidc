@@ -1,16 +1,16 @@
 .. _howto_rp:
 
-Python Cookbook for OpenID Connect Public Client
-================================================
+Python Cookbook for OpenID Connect Public Client (RP)
+=====================================================
 
-According to the OpenID Connect (OIDC) Core document
+According to the OpenID Connect (OIDC) Core document,
 a Relying Party is an 'OAuth 2.0 Client application requiring End-User
 Authentication and Claims from an OpenID Provider'.
 
-This goal of this document is to show how you can build a RP using the pyoidc
+The goal of this document is to show how you can build a RP using the pyoidc
 library.
 
-There are a couple of choices you have to make, but we'll take that as
+There are a couple of choices you have to make, but we'll make them as
 we walk through the message flow.
 
 Before I start you should know that the basic code flow in OpenID Connect
@@ -23,9 +23,8 @@ consists of a sequence of request-responses, namely these:
 * Access Token Request
 * Userinfo Request
 
-
-In the example below I will go through all the steps and I will use the basic
-Client class because it will provide interfaces to all of them.
+In the example below I will go through all the steps and will use the basic
+``Client`` class because it provides interfaces to all of them.
 So lets start with instantiating a client::
 
     from oic.oic import Client
@@ -33,13 +32,13 @@ So lets start with instantiating a client::
 
     c = Client(client_authn_method=CLIENT_AUTHN_METHOD)
 
-The first choices is really not yours. It's the OpenID Connect Provider (OP)
+The first choice is really not yours. It's the OpenID Connect Provider (OP)
 that has to decide on whether it supports dynamic provider information
 gathering and/or dynamic client registration.
 
 If the OP doesn't support client registration then you have to statically register
 your client with the provider. Typically this is accomplished using a web
-page provided by the organization that runs the OP. Can't help
+page provided by the organization that runs the OP. I Can't help
 you with this since each provider does it differently. What you eventually
 must get from the provider is a client id and a client secret.
 
@@ -51,12 +50,13 @@ you will learn what information to look for.
 Issuer discovery
 ----------------
 
-OIDC uses webfinger (http://tools.ietf.org/html/rfc7033)to to do the OP discovery.
-In very general terms this means
+OIDC uses `webfinger`_ to to do the OP discovery. In very general terms this means
 that the user that accesses the RP provides an identifier. There are a number
 of different syntaxes that this identifier can adhere to. The most common is
 probably the e-mail address syntax. It's something that looks like an e-mail
-address (local@domain) but not necessarily is one.
+address (local@domain) but is not necessarily one.
+
+.. webfinger: http://tools.ietf.org/html/rfc7033
 
 At this point in time let us assume that you will instantiate an OIDC RP.
 
@@ -76,7 +76,7 @@ The discover method will use webfinger to find the OIDC OP given the user
 identifier provided. If the user identifier follows another syntax/scheme
 the same method can still be used, you just have to preface the 'uid'
 value with the scheme used.
-The returned issuer must according to the standard be an https url, but some
+The returned issuer must, according to the standard, be an https url, but some
 implementers have decided differently on this, so you may get a http url.
 
 Provider Info discovery
@@ -87,8 +87,9 @@ you query for that::
 
     provider_info = client.provider_config(issuer)
 
-A description of the whole set of metadata can be found here:
-http://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
+A description of the whole set of metadata can be found `here`_:
+
+.. here: http://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
 
 .. Note::One parameter of the provider info is the issuer parameter. This
      is supposed to be *exactly* the same as the URL you used to fetch the
@@ -135,8 +136,9 @@ Things like:
 * contacts
     OPTIONAL. Array of e-mail addresses of people responsible for this Client.
 
-The whole list of possible parameters can be found here:
-http://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
+The whole list of possible parameters can be found `here`_:
+
+.. here: http://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
 
 The only absolutely required information is the **redirect_uris**
 
@@ -153,7 +155,7 @@ Provide the parameters as arguments to the method::
 or a combination of the two.
 
 Provided the registration went flawlessly you will get the registration response
-(an instance of a RegistrationResponse) as a result. The response will also be
+(an instance of RegistrationResponse) as a result. The response will also be
 stored in the client instance (registration_response attribute) and some of the parameters
 will be unpacked and set as attributes on the client instance.
 
@@ -219,7 +221,7 @@ Authorization Code Flow
 From the list redirect_uris you have to pick one to use for this request.
 Given you have all that, you now can send the request::
 
-    from oic.oauth2 import rndstr
+    from oic import rndstr
     from oic.utils.http_util import Redirect
 
     session["state"] = rndstr()
@@ -238,10 +240,9 @@ Given you have all that, you now can send the request::
 
     return Redirect(login_url)
 
-The arguments *state* are use to keep track on responses to
-outstanding requests (state).
-
-*nonce* is a string value used to associate a Client session with an ID Token,
+* ``state`` is used to keep track of responses to outstanding
+requests (state).
+* ``nonce`` is a string value used to associate a Client session with an ID Token,
 and to mitigate replay attacks.
 
 Since you will need both these arguments later in the process you probably
@@ -265,8 +266,8 @@ You can parse this response by doing::
     code = aresp["code"]
     assert aresp["state"] == session["state"]
 
-*aresp* is an instance of an AuthorizationResponse or an ErrorResponse.
-The latter if an error was return from the OP.
+``aresp`` is an instance of an AuthorizationResponse or an ErrorResponse.
+The latter if an error was returned from the OP.
 Among other things you should get back in the authentication response is
 the same state value as you used
 when sending the request. If you used the response_type='code' then you
@@ -309,7 +310,7 @@ And then the final request, the user info request::
 
     userinfo = client.do_user_info_request(state=aresp["state"])
 
-Using the *state* the client library will find the appropriate access token
+Using the *state*, the client library will find the appropriate access token
 and based on the token type choose the authentication method.
 
 *userinfo* in an instance of OpenIDSchema or ErrorResponse. Given that you have
@@ -324,7 +325,7 @@ Endpoint; the Token Endpoint is not used.
 
 So::
 
-    from oic.oauth2 import rndstr
+    from oic import rndstr
     from oic.utils.http_util import Redirect
 
     session["state"] = rndstr()
@@ -338,14 +339,13 @@ So::
         "redirect_uri": client.registration_response["redirect_uris"][0]
     }
 
-
     auth_req = client.construct_AuthorizationRequest(request_args=args)
     login_url = auth_req.request(client.authorization_endpoint)
 
     return Redirect(login_url)
 
 
-As for the Authorization Code Flow the authentication part will begin
+As for the Authorization Code Flow, the authentication part will begin
 with a redirect to a login page and end with a redirect back to the
 registered redirect_uri.
 
@@ -365,7 +365,7 @@ Now *aresp* will not contain any code reference but instead an access token and
 an ID token. The access token can be used as described above to fetch user
 information.
 
-Using Implicit Flow instead of Authorization Code Flow will save you a
+Using the Implicit Flow instead of the Authorization Code Flow will save you a
 round trip but at the same time you will get an access token and no
 refresh_token. So in order to get a new access token you have to perform another
 authentication request.
