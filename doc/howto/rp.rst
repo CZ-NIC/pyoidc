@@ -28,7 +28,7 @@ In the example below I will go through all the steps and will use the basic
 So lets start with instantiating a client::
 
     from oic.oic import Client
-    import CLIENT_AUTHN_METHOD
+    from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 
     c = Client(client_authn_method=CLIENT_AUTHN_METHOD)
 
