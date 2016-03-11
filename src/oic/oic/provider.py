@@ -1399,9 +1399,11 @@ class Provider(AProvider):
                 continue
 
             val = []
-            for base, query in args[param]:
-                if query:
-                    val.append("%s?%s" % (base, query))
+            for base, query_dict in args[param]:
+                if query_dict:
+                    query_string = urlencode(
+                        [(key, v) for key in query_dict for v in query_dict[key]])
+                    val.append("%s?%s" % (base, query_string))
                 else:
                     val.append(base)
 
