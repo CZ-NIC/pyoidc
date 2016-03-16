@@ -174,7 +174,7 @@ class EndSessionEndpoint(Endpoint):
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"], ["token"], ["id_token"], ["code", "token"], ["code", "id_token"],
-    ["id_token", "token"], ["code", "token", "id_token"]]
+    ["id_token", "token"], ["code", "token", "id_token"], ['none']]
 
 CAPABILITIES = {
     "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
@@ -653,6 +653,56 @@ class Provider(AProvider):
 
         self.sdb.do_sub(sid, cinfo['client_salt'], **kwargs)
         return sid
+
+    def match_sp_sep(self, first, second):
+        one = [set(v.split(" ")) for v in first]
+        other = [set(v.split(" ")) for v in second]
+        if not any(rt in one for rt in other):
+            return False
+        return True
+
+    def filter_request(self, req):
+        _cap = self.capabilities
+
+        before = req.to_dict()
+
+        if 'claims' in req:
+            if _cap['claims_parameter_supported']:
+                if _cap['claims_supported']:
+                    for part in ['userinfo', 'id_token']:
+                        if part in req['claims']:
+                            for c in req['claims'][part].keys():
+                                if c not in _cap['claims_supported']:
+                                    del req['claims'][part][c]
+            else:
+                del req['claims']
+
+        if 'scope' in req:
+            _scopes = [s for s in req['scope'] if s in _cap['scopes_supported']]
+            req['scope'] = _scopes
+
+        if 'request' in req:
+            if _cap['request_parameter_supported'] is False:
+                raise InvalidRequest('Contains unsupported request parameter')
+
+        if 'request_uri' in req:
+            if _cap['request_uri_parameter_supported'] is False:
+                raise InvalidRequest('Contains unsupported request parameter')
+
+        if 'response_mode' in req:
+            if req['response_mode'] not in _cap['response_modes_supported']:
+                raise InvalidRequest('Contains unsupported response mode')
+
+        if 'response_type' in req:
+            if not self.match_sp_sep([" ".join(req['response_type'])],
+                                     _cap['response_types_supported']):
+                raise InvalidRequest('Contains unsupported response type')
+
+        if before != req.to_dict():
+            logging.warning('Request modified ! From {} to {}'.format(
+                before, req.to_dict()))
+            
+        return req
 
     def authorization_endpoint(self, request="", cookie=None, **kwargs):
         """ The AuthorizationRequest endpoint
@@ -1192,9 +1242,8 @@ class Provider(AProvider):
         for _pref, _prov in PREFERENCE2PROVIDER.items():
             if _pref in request:
                 if _pref == "response_types":
-                    client_rt = [set(v.split(" ")) for v in request[_pref]]
-                    provider_rt = [set(v.split(" ")) for v in self.capabilities[_prov]]
-                    if not any(rt in provider_rt for rt in client_rt):
+                    if not self.match_sp_sep(request[_pref],
+                                             self.capabilities[_prov]):
                         raise CapabilitiesMisMatch(_pref)
                 else:
                     if isinstance(request[_pref], six.string_types):
@@ -1629,15 +1678,37 @@ class Provider(AProvider):
         :return: True or False
         """
         _pinfo = self.provider_features()
+        not_supported = {}
         for key, val in capabilities.items():
             if isinstance(val, six.string_types):
                 try:
                     if val in _pinfo[key]:
                         continue
                     else:
-                        return False
+                        not_supported[key] = val
                 except KeyError:
-                    return False
+                    not_supported[key] = ''
+            elif isinstance(val, bool):
+                if not _pinfo[key] and val:
+                    not_supported[key] = ''
+            elif isinstance(val, list):
+                for v in val:
+                    try:
+                        if v in _pinfo[key]:
+                            continue
+                        else:
+                            try:
+                                not_supported[key].append(v)
+                            except KeyError:
+                                not_supported[key] = [v]
+                    except KeyError:
+                        not_supported[key] = ''
+
+        if not_supported:
+            logging.error(
+                "Server doesn't support the following features: {}".format(
+                    not_supported))
+            return False
 
         return True
 

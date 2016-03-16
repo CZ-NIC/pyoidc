@@ -196,6 +196,7 @@ class Provider(object):
         self.baseurl = baseurl
         self.keyjar = None
         self.trace = None
+        self.events = None
 
     @staticmethod
     def input(query="", post=None):
@@ -366,6 +367,9 @@ class Provider(object):
         # return the best I have
         return None, None
 
+    def filter_request(self, req):
+        return req
+
     def auth_init(self, request, request_class=AuthorizationRequest):
         """
 
@@ -407,6 +411,11 @@ class Provider(object):
         if not areq:
             logger.debug("No AuthzRequest")
             return self._error("invalid_request", "Can not parse AuthzRequest")
+
+        areq = self.filter_request(areq)
+
+        if self.events:
+            self.events.store('protocol request', areq)
 
         if self.trace:
             self.trace.info('{}'.format(areq.to_dict()))
