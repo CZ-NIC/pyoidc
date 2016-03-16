@@ -267,13 +267,16 @@ class KeyBundle(object):
     def __str__(self):
         return str(self.jwks())
 
-    def jwks(self):
+    def jwks(self, private=False):
         self._uptodate()
         keys = list()
         for k in self._keys:
-            key = k.to_dict()
-            for k, v in key.items():
-                key[k] = as_unicode(v)
+            if private:
+                key = k.serialize(private)
+            else:
+                key = k.to_dict()
+                for k, v in key.items():
+                    key[k] = as_unicode(v)
             keys.append(key)
         return json.dumps({"keys": keys})
 
@@ -876,9 +879,9 @@ def rsa_init(spec):
         except KeyError:
             pass
 
-    _key = create_and_store_rsa_key_pair(**arg)
     kb = KeyBundle(keytype="RSA", keyusage=spec["use"])
     for use in spec["use"]:
+        _key = create_and_store_rsa_key_pair(**arg)
         kb.append(RSAKey(use=use, key=_key))
     return kb
 
@@ -952,7 +955,8 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
                 k.kid = b64e(k.thumbprint('SHA-256')).decode('utf8')
             kidd[k.use][k.kty] = k.kid
 
-        jwks["keys"].extend([k.serialize() for k in kb.keys() if k.kty != 'oct'])
+        jwks["keys"].extend(
+            [k.serialize() for k in kb.keys() if k.kty != 'oct'])
 
         keyjar.add_kb("", kb)
 
