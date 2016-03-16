@@ -70,6 +70,7 @@ class KeyBundle(object):
         self.keytype = keytype
         self.keyusage = keyusage
         self.imp_jwks = None
+        self.last_updated = 0
 
         if keys:
             self.source = None
@@ -123,6 +124,8 @@ class KeyBundle(object):
             logger.error("Now 'keys' keyword in JWKS")
             raise UpdateFailed(
                 "Local key update from '{}' failed.".format(filename))
+        else:
+            self.last_updated = time.time()
 
     def do_local_der(self, filename, keytype, keyusage):
         # This is only for RSA keys
@@ -135,6 +138,8 @@ class KeyBundle(object):
             _key = RSAKey().load_key(_bkey)
             _key.use = use
             self._keys.append(_key)
+
+        self.last_updated = time.time()
 
     def do_remote(self):
         args = {"verify": self.verify_ssl}
@@ -151,6 +156,7 @@ class KeyBundle(object):
 
         if r.status_code == 304:  # file has not changed
             self.time_out = time.time() + self.cache_time
+            self.last_updated = time.time()
             return False
         elif r.status_code == 200:  # New content
             self.time_out = time.time() + self.cache_time
@@ -181,6 +187,7 @@ class KeyBundle(object):
                     self.source,
                     r.status_code))
 
+        self.last_updated = time.time()
         return True
 
     def _parse_remote_response(self, response):
