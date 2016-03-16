@@ -466,9 +466,13 @@ class Message(object):
 
     def _add_key(self, keyjar, item, key):
         try:
-            key.extend(keyjar.get_verify_key(owner=item))
+            kl = keyjar.get_verify_key(owner=item)
         except KeyError:
             pass
+        else:
+            for k in kl:
+                if k not in key:
+                    key.append(k)
 
     def get_verify_keys(self, keyjar, key, jso, header, jwt, **kwargs):
         logger.debug("Issuer keys: {}".format(keyjar.keys()))

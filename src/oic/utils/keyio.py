@@ -122,7 +122,7 @@ class KeyBundle(object):
         except KeyError:
             logger.error("Now 'keys' keyword in JWKS")
             raise UpdateFailed(
-                    "Local key update from '{}' failed.".format(filename))
+                "Local key update from '{}' failed.".format(filename))
 
     def do_local_der(self, filename, keytype, keyusage):
         # This is only for RSA keys
@@ -142,10 +142,12 @@ class KeyBundle(object):
             args["headers"] = {"If-None-Match": self.etag}
 
         try:
+            logging.debug('KeyBundle fetch keys from: {}'.format(self.source))
             r = requests.get(self.source, **args)
         except requests.ConnectionError as e:
             raise UpdateFailed(
-                    "Remote key update from '{}' failed: {}.".format(self.source, str(e)))
+                "Remote key update from '{}' failed: {}.".format(self.source,
+                                                                 str(e)))
 
         if r.status_code == 304:  # file has not changed
             self.time_out = time.time() + self.cache_time
@@ -154,9 +156,12 @@ class KeyBundle(object):
             self.time_out = time.time() + self.cache_time
 
             self.imp_jwks = self._parse_remote_response(r)
-            if not isinstance(self.imp_jwks, dict) or "keys" not in self.imp_jwks:
+            if not isinstance(self.imp_jwks,
+                              dict) or "keys" not in self.imp_jwks:
                 raise UpdateFailed(
-                        "Remote key update from '{}' failed, malformed JWKS.".format(self.source))
+                    "Remote key update from '{}' failed, malformed "
+                    "JWKS.".format(
+                        self.source))
 
             logger.debug("Loaded JWKS: %s from %s" % (r.text, self.source))
             try:
@@ -164,7 +169,7 @@ class KeyBundle(object):
             except KeyError:
                 logger.error("No 'keys' keyword in JWKS")
                 raise UpdateFailed(
-                        "Remote key update from '{}' failed.".format(self.source))
+                    "Remote key update from '{}' failed.".format(self.source))
 
             try:
                 self.etag = r.headers["Etag"]
@@ -172,8 +177,9 @@ class KeyBundle(object):
                 pass
         else:
             raise UpdateFailed(
-                    "Remote key update from '{}' failed, HTTP status {}".format(self.source,
-                                                                                r.status_code))
+                "Remote key update from '{}' failed, HTTP status {}".format(
+                    self.source,
+                    r.status_code))
 
         return True
 
@@ -181,7 +187,8 @@ class KeyBundle(object):
         """
         Parse JWKS from the HTTP response.
 
-        Should be overriden by subclasses for adding support of e.g. signed JWKS.
+        Should be overriden by subclasses for adding support of e.g. signed
+        JWKS.
         :param response: HTTP response from the 'jwks_uri' endpoint
         :return: response parsed as JSON
         """
@@ -396,7 +403,8 @@ class KeyJar(object):
         if "/localhost:" in url or "/localhost/" in url:
             kc = self.keybundle_cls(source=url, verify_ssl=False, **kwargs)
         else:
-            kc = self.keybundle_cls(source=url, verify_ssl=self.verify_ssl, **kwargs)
+            kc = self.keybundle_cls(source=url, verify_ssl=self.verify_ssl,
+                                    **kwargs)
 
         try:
             self.issuer_keys[issuer].append(kc)
@@ -561,7 +569,7 @@ class KeyJar(object):
             return self.issuer_keys[issuer]
         except KeyError:
             logger.debug(
-                    "Available key issuers: {}".format(self.issuer_keys.keys()))
+                "Available key issuers: {}".format(self.issuer_keys.keys()))
             raise
 
     def remove_key(self, issuer, key_type, key):
@@ -749,7 +757,7 @@ def key_setup(vault, **kwargs):
                     devnull = open(os.devnull, 'w')
                     with RedirectStdStreams(stdout=devnull, stderr=devnull):
                         _key = create_and_store_rsa_key_pair(
-                                path=vault_path)
+                            path=vault_path)
 
                 kb.append(RSAKey(key=_key, use=usage, kid=str(kid)))
                 kid += 1
