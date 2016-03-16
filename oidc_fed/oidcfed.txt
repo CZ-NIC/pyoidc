@@ -1,0 +1,1120 @@
+
+
+
+
+                                                         R. Hedberg, Ed.
+                                                           R. Gulliksson
+                                                                     UmU
+                                                          March 16, 2016
+
+
+                       OpenID Connect Federation
+                       draft-hedberg-oidc-fed-00
+
+Abstract
+
+   The OpenID Connect standard specifies how an Relying Party (RP) can
+   discover an OpenID Connect Provider (OP) and later register with that
+   OP.  If just standard OpenID Connect registration is done the OP has
+   to take the registered information at face value.  There is no easy
+   way by which the OP can verify the information.
+
+   This document describes a way that a trusted third party can be used
+   to allow an OP to have trust in some parts of the registration
+   information.  The same mechanism is also valid for the information
+   that the RP receives from the OP when doing dynamic discovery.
+
+Table of Contents
+
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   2
+   2.  Requirements Language . . . . . . . . . . . . . . . . . . . .   2
+   3.  Trust model . . . . . . . . . . . . . . . . . . . . . . . . .   2
+   4.  Joining a federation  . . . . . . . . . . . . . . . . . . . .   3
+     4.1.  Steps of joining a federation . . . . . . . . . . . . . .   3
+   5.  OpenID Connect communication  . . . . . . . . . . . . . . . .   4
+     5.1.  Extra metadata parameters . . . . . . . . . . . . . . . .   4
+     5.2.  Federation policy . . . . . . . . . . . . . . . . . . . .   5
+       5.2.1.  Additional policy parameters  . . . . . . . . . . . .   5
+   6.  Verification process  . . . . . . . . . . . . . . . . . . . .   5
+   7.  Provider Discovery  . . . . . . . . . . . . . . . . . . . . .   6
+   8.  Client Registration . . . . . . . . . . . . . . . . . . . . .   6
+   9.  Acknowledgements  . . . . . . . . . . . . . . . . . . . . . .   7
+   10. IANA Considerations . . . . . . . . . . . . . . . . . . . . .   7
+   11. Security Considerations . . . . . . . . . . . . . . . . . . .   7
+   12. Normative References  . . . . . . . . . . . . . . . . . . . .   7
+   Appendix A.  Example  . . . . . . . . . . . . . . . . . . . . . .   8
+     A.1.  Relying Party joining a federation  . . . . . . . . . . .   9
+       A.1.1.  Step 1  . . . . . . . . . . . . . . . . . . . . . . .   9
+       A.1.2.  Step 2  . . . . . . . . . . . . . . . . . . . . . . .  10
+       A.1.3.  Step 3  . . . . . . . . . . . . . . . . . . . . . . .  11
+     A.2.  Relying party using a software statement  . . . . . . . .  13
+       A.2.1.  Create intermediate signing key . . . . . . . . . . .  13
+       A.2.2.  Create keys to be used during the communication with
+
+
+
+Hedberg & Gulliksson   Expires September 17, 2016               [Page 1]
+
+                            Abbreviated Title                 March 2016
+
+
+               the OP  . . . . . . . . . . . . . . . . . . . . . . .  15
+       A.2.3.  Construct the client registration request . . . . . .  16
+     A.3.  The OP handling the Client Registration Request . . . . .  19
+       A.3.1.  Received Primary Key  . . . . . . . . . . . . . . . .  19
+       A.3.2.  Received intermediat key  . . . . . . . . . . . . . .  19
+       A.3.3.  Verifying Metadata  . . . . . . . . . . . . . . . . .  19
+       A.3.4.  Verifying the public keys . . . . . . . . . . . . . .  20
+   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  20
+
+1.  Introduction
+
+   The original specification of OpenID Connect defines how a relaying
+   party and an OpenID Connect Provider dynamically can exchange
+   information necessary for successful communication.
+
+   One problem with using dynamic discovery and registration is that the
+   information that is exchanged can not be easily verified.
+
+   Software statements, as introduced by RFC 7591, is a possible choice
+   for transferring verified data and trust in the data by using a
+   trusted third party (the verifier) between clients and servers.
+
+   Both dynamic client registration and provider discovery will leverage
+   software statements to transfer verified data.
+
+2.  Requirements Language
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+   document are to be interpreted as described inRFC 2119 [RFC2119].
+
+3.  Trust model
+
+   TODO description of Trust Model
+
+   The Federation Operator (FO) acting as the trusted third part will
+   sign a public key belonging to an entity in the federation (in the
+   text below this is called the primary key).  Since engaging an FO to
+   sign a key is an expensive operation this should happen seldom,
+   preferably only once during the lifetime of the entity.  On the other
+   hand it should be possible for the entity to rotate it's public keys
+   as often as it wants.  The public keys are typically published by an
+   entity by making them accessible at the jwks_uri location (defined
+   byOIDC [OpenID.Core]).
+
+   To accomplish this an intermediate key is created that the entity can
+   use to sign the public keys.  The signed public keys should be
+   published as JWS at the location pointed to by 'signed_jwks_uri' in
+
+
+
+Hedberg & Gulliksson   Expires September 17, 2016               [Page 2]
+
+                            Abbreviated Title                 March 2016
+
+
+   client registration requests and provider configuration responses.
+   When an entity fetches information from the URL defined in
+   'signed_jwks_uri' it should expect to find a signed JWT containing
+   whatever it also might be able to find at the jwks_uri location.
+
+   The intermediate key is transferred by adding a signed JWT containing
+   the JWK representation of its public key as value to the "signed_key"
+   parameter or by placing the JWS at a location specified by the URL in
+   the"signed_key_url".  The intermediate key MUST be signed by the key
+   signed by the FO.
+
+   The chain from top to bottom:
+
+   o  The FO's public key
+
+   o  The primary key signed by the FO
+
+   o  The intermediate keys signed by the primary key.
+
+   o  The key material (the tertiary keys) that will be used to verify
+      signature from the opponent or for encrypting requests to the
+      opponent.  These keys are if signed, signed by the intermediate
+      key.
+
+   The verified keys can be cached making the expensive traversal of the
+   signature chain necessary only when the intermediate key are rotated.
+
+4.  Joining a federation
+
+   The Federation Operator (FO) must have a public/private signing key
+   pair, call it F.  The public part of this key, pub(F), MUST be
+   distributed to all entities that are part of the federation.  How
+   this is accomplished is out of scope for this document.
+
+4.1.  Steps of joining a federation
+
+   1.  The operator of the entity creates a long-lived signing key pair;
+       call it A.
+
+   2.  The entity operator submits registration data to the Federation
+       Operator (FO).  The registration data MUST contain the entity's
+       primary key and MAY contain other information dependent on which
+       type of entity it is.
+
+   3.  FO returns a signed (with key F) software statement, containing
+       the submitted registration data, and any policy restrictions
+       applied by the FO.
+
+
+
+
+Hedberg & Gulliksson   Expires September 17, 2016               [Page 3]
+
+                            Abbreviated Title                 March 2016
+
+
+   If the entity is a Relying Party the registration data MUST contain
+   'redirect_uris'.  If the entity is an OpenID ConnectProvider it MUST
+   contain 'issuer'.
+
+5.  OpenID Connect communication
+
+   The trust between the entities are established using the described
+   extensions in the first tree steps of the communication between the
+   RP and the OP.  How, the RP found the OP in the first place is out of
+   scope for this document.
+
+   ------                             ------
+   |    | <--- 1) Discovery --------> |    |
+   | RP | <--- 2) Registration -----> | OP |
+   |    | <--- 3) Authentication ---> |    |
+   ------                             ------
+
+
+   After the discovery and registration is completed a first time, they
+   SHOULD only be repeated if any changes occur (see notes in respective
+   sections below).
+
+5.1.  Extra metadata parameters
+
+   These extra metadata parameters appear in both Provider Configuration
+   Discovery and Client Registration:
+
+   software_statements
+      OPTIONAL.  A list of software statements from all federations the
+      entity is part of.
+
+   software_statements_uri
+      OPTIONAL.  A JSON object where the member names are the issuer
+      identifiers of the federation that has signed a software statement
+      and the values are URLs pointing to the corresponding software
+      statements.
+
+   signed_metadata
+      OPTIONAL.  A JWS containing all published metadata, except the
+      "signed_metadata" itself.
+
+   signed_metadata_uri
+      OPTIONAL.  Location of the signed metadata.
+
+   signed_jwks_uri
+      OPTIONAL.  Location of the entity's signed JWKS, SHOULD return the
+      Content-Type "application/jose" to indicate that the JWKS is in
+      the form of a JWS using the JWS Compact Serialization.
+
+
+
+Hedberg & Gulliksson   Expires September 17, 2016               [Page 4]
+
+                            Abbreviated Title                 March 2016
+
+
+   signing_key
+      OPTIONAL.  A JWK containing the entity's intermediate public key.
+
+   signing_keys_uri
+      OPTIONAL.  Location of the JWKS containing the intermediate key
+      that the entity, signed by the primary key.
+
+   For all the pairs: software_statements/software_statements_uri,
+   signed_metadata/signed_metadata_uri and signing_key/signing_keys_uri
+   one parameter from the pair MUST be present.
+
+5.2.  Federation policy
+
+   Any parameters that the federation adds to the software statement
+   that also appears in the Provider Configuration response (OpenID
+   Connect Discovery 1.0 [OpenID.Discovery] or in a Client Registration
+   request (OpenID Connect Dynamic Client Registration 1.0)
+   [OpenID.Registration] MUST override what ever value the same
+   parameter has in the transfered metadata.
+
+5.2.1.  Additional policy parameters
+
+   The following parameters can be added by a federation to a software
+   statement issued by a Relying Part.
+
+   claims_allowed
+      OPTIONAL.  A list of claims that the Relying Party may request.
+
+   scopes_allowed
+      OPTIONAL.  A list of scopes that the Relying Party may request.
+
+6.  Verification process
+
+   When an entity receives metadata from another entity.  It MUST
+   complete the following steps:
+
+   Upon receiving the response the entity MUST do the following steps:
+
+   o  Find all software statements published by the opponent either
+      through the "software_statements" or "software_statements_uris"
+      signed by any federation to which the entity belongs.  If the
+      entity and the opponent are part of more than one common
+      federation then the entity may decide, using any heuristic of its
+      choice, which software statement to use.
+
+   o  Verify signature and unpack the chosen software statement:
+
+
+
+
+
+Hedberg & Gulliksson   Expires September 17, 2016               [Page 5]
+
+                            Abbreviated Title                 March 2016
+
+
+      1.  Verify the signature of the software statement using the
+          Federation key.
+
+      2.  Unpack the opponents primary signing key from the software
+          statement.
+
+   o  Verify the received metadata:
+
+      1.  If the entity is a RP verify that the value of the 'issuer'
+          parameter in the software statement matches 'issuer' in the
+          discovery response.
+
+      2.  Verify the signature of intermediate key, published in either
+          "signing_key" or "signing_key_uri" with the primary signing
+          key.
+
+      3.  Verify the signature of the JWS in "signed_metadata" with teh
+          extracted intermediate signing key, and use this metadata
+          instead of the clear-text values provided in the OpenID
+          Provider Configuration Response.
+
+7.  Provider Discovery
+
+   The OP MUST publish its provider metadata as specified by OpenID
+   Connect Discovery 1.0 [OpenID.Discovery].  The RP makes a standard
+   OpenID Provider Configuration Request.  The OP responds with its
+   provider configuration and the additional metadata parameters
+   specified above.
+
+   Note: Depending on whether signing_key or signing_keys_uri where used
+   in the OpenID Provider Configuration Request Response the RP must
+   behave differently when the OP rotates its intermediate signing key
+   pair.  If "signing_key" where used then the RP has to issue a new
+   OpenID Provider Configuration request.  If the parameter
+   "signing_keys_uri" the new keys can be obtained by querying the URL
+   again.
+
+8.  Client Registration
+
+   The OP MUST support dynamic client registration as described in
+   OpenID Connect Dynamic Client Registration 1.0 [OpenID.Registration].
+   The RP makes a Client Registration Request including the additional
+   metadata specified above, which is signed using [SignedHttp] and
+   includes the signature in the HTTP Authorization headers as
+   Authorization.
+
+
+
+
+
+
+Hedberg & Gulliksson   Expires September 17, 2016               [Page 6]
+
+                            Abbreviated Title                 March 2016
+
+
+9.  Acknowledgements
+
+      John Bradley
+
+      Mike Jones
+
+10.  IANA Considerations
+
+   This memo includes no request to IANA.
+
+   All drafts are required to have an IANA considerations section (see
+   Guidelines for Writing an IANA Considerations Section in RFCs
+   [RFC5226] for a guide).  If the draft does not require IANA to do
+   anything, the section contains an explicit statement that this is the
+   case (as above).  If there are no requirements for IANA, the section
+   will be removed during conversion into an RFC by the RFC Editor.
+
+11.  Security Considerations
+
+   All drafts are required to have a security considerations section.
+   See RFC 3552 [RFC3552] for a guide.
+
+12.  Normative References
+
+   [OpenID.Core]
+              Sakimura, N., Bradley, J., Jones, M., de Medeiros, B., and
+              C. Mortimore, "OpenID Connect Discovery 1.0", August 2015,
+              <http://openid.net/specs/openid-connect-core-1_0.html>.
+
+   [OpenID.Discovery]
+              Sakimura, N., Bradley, J., Jones, M., and E. Jay, "OpenID
+              Connect Discovery 1.0", August 2015,
+              <http://openid.net/specs/
+              openid-connect-discovery-1_0.html>.
+
+   [OpenID.Registration]
+              Sakimura, N., Bradley, J., and M. Jones, "OpenID Connect
+              Dynamic Client Registration 1.0", August 2015,
+              <http://openid.net/specs/
+              openid-connect-registration-1_0.html>.
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119,
+              DOI 10.17487/RFC2119, March 1997,
+              <http://www.rfc-editor.org/info/rfc2119>.
+
+
+
+
+
+
+Hedberg & Gulliksson   Expires September 17, 2016               [Page 7]
+
+                            Abbreviated Title                 March 2016
+
+
+   [RFC3552]  Rescorla, E. and B. Korver, "Guidelines for Writing RFC
+              Text on Security Considerations", BCP 72, RFC 3552,
+              DOI 10.17487/RFC3552, July 2003,
+              <http://www.rfc-editor.org/info/rfc3552>.
+
+   [RFC5226]  Narten, T. and H. Alvestrand, "Guidelines for Writing an
+              IANA Considerations Section in RFCs", BCP 26, RFC 5226,
+              DOI 10.17487/RFC5226, May 2008,
+              <http://www.rfc-editor.org/info/rfc5226>.
+
+   [SignedHttp]
+              Richer, J., Bradley, J., and H. Tschofenig, "A Method for
+              Signing HTTP Requests for OAuth", February 2016,
+              <https://tools.ietf.org/html/draft-ietf-oauth-signed-http-
+              request-02>.
+
+Appendix A.  Example
+
+   The necessary steps for adding a Relying Party to a federation
+
+   The following JWKS represents the signing key that the Federation
+   Operator is using in the following example:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hedberg & Gulliksson   Expires September 17, 2016               [Page 8]
+
+                            Abbreviated Title                 March 2016
+
+
+  {
+    "keys": [
+      {
+        "d": "I2kSNvD-WUqIcFP4oX6FnlVnPLzMFujqk5VRnA_cBoFE5N1tcnYTMxYx0F
+  4U9LzjilG__5ZaAGl4vhr9lO-A1eW54lC2k1CRXdKXC01XmtFnbCif5f_zWze4b4HFiedT
+  oJ8aeVUxULWbLJPAhxRrekImif1lwlmDyBMx3wXyBpUGontOGgsQAtajM2bw1TO9NHjSqt
+  vWzNZbZ0NITjzlFZUowRxIYz4MB6TbWaUz9inZAojVoVKV2EWUnJU4jmhnmNVcn2n7oBqW
+  IEmUS_0cGdUwMwQZydH4DTg7LGtiGRkq8Bgsk2gKHpLcTFGhvY5093Jok36tssPrQCW16N
+  UdqQ",
+        "e": "AQAB",
+        "kid": "0HjQPkCccmCBUly-LcOz8OLae-00Lf8NkTgSwNCFH0M",
+        "kty": "RSA",
+        "n": "t7gWVXUcM44of-Olf-38RzdvYcK9x1htU7kxcUiPflJCXXHZA-1T6UTjdg
+  toCffJoSYnIZAr_lkF9G6_3t29dqK5fS6yVa3X_e6UDc8qjr8bWH_NEB0hSTBFyCPPx5iN
+  AzOiuP64nV3v-66H_oT9Pghv1TIzKEpCO33T72XqZYhACbAe8YR5V9kGKP85F-OxN-6GBF
+  GpQdMybTs2I1OYh6BAsPUZuVxK9K5lpxMZHgG98o-GiiKuDWdZotwQC3dG0YWafFnNFjdq
+  8Ub980BKmbti767yWOefyPyyjxA8K53w1hNRvh6BWfqwX3gqQzt2x8qLvJw_M36Ozq_DDo
+  dwjQ",
+        "p": "u2kWyk-9Uugf8_6LIBGrs4CI6V6ZYdLenDTuyvYUuYU-ESpfJw8qohDRLU
+  wcZxRM5Ap3vOyRWmWpuzlfHhypkPtO5Ek1HrSefg85Ggq2jP8jLilwWUpREv4yXNWVu0Zp
+  _FpyrJzQlpxIrSgP44qRJJvI4IAgHWKss3hQanKr7jk",
+        "q": "-vUkNFCwUvLQJgViJvRc0SbBTzdF3z2Fwp23yJbVoaDAFUkQ_DcASlQLxa
+  w--nubgSrjl9u7AFAGMfK1y2YTvuviZ4e6XjIMUUe8mZ2N5gQoBVjOE-iMRHKLdeZBh3zC
+  gMWOmsCHrkOHqyUrQ1kmn9rcx01XY-kd5V4vmOxgFPU",
+        "use": "sig"
+      }
+    ]
+  }
+
+A.1.  Relying Party joining a federation
+
+A.1.1.  Step 1
+
+   Relying Party Operator (RPO) creates a the primary signing key pair.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hedberg & Gulliksson   Expires September 17, 2016               [Page 9]
+
+                            Abbreviated Title                 March 2016
+
+
+  {
+    "keys": [
+      {
+        "d": "HIH3fChs_BNvs0V5tLBzTeIH2SRBNo1NJa8xyZuqBskgZqWB0XQOAGzURi
+  2AtS2BjqK4ltghWrt0BrXKN0l5JIG8pYwLrj8163qQ1yvEsp59l_NmwFWmLz-A3FDs2gzi
+  7WKZfCHrXgxFQ7YMbrrPQ_hczyT5o9lpPU4XymeUt-8AMM5HrHuF33GsLM5E3Et-H9f8Ou
+  klczcaBjonznCWRGoWbDDi4p4uraqUt2O7BzGqrnZxOPBf-UnRhAB2jtsNPA4lg_GXGnog
+  5YEXNzKDEUZGuh4U3iQicuZD6YepjLoH1xE0ZjnZXSshC3lTdva5WMOVAdJ6Zn31DvP2hS
+  k9ZQ",
+        "e": "AQAB",
+        "kid": "l4V8JI2FhJGJL1yLw-pVkj_EAfFpze-HbuAlbCXPNyw",
+        "kty": "RSA",
+        "n": "ywd1xwhKIAzwauWVsAXvRWx3LKYJb0muUkpY0CFpDe_s7ZOGqMvPLkhJC4
+  ZlysTE_Bu-CXzpHVbxeAWzcVnwSAo7iq0sdYjVxBS5pEcCpiS8qnM9IEb0Si0_MkJh0BQF
+  KddhPribFW8kohg3XS3SwmIfZQCJVxTJzeWhNtHIARyodVDkdPD9J82Yi5iV3I7NOaKrZY
+  gbg7w2hm8ji0Ydj47U4MZhlsgikWW0Kj6g2vjvbwp8o7PHjT13sh41Iodcci_O7-Zxuw9A
+  Mlkn2HDu9dkZjMIwAVQhUGZggFRTaAY8s4o9Fa5n6CEb0yLBTtM1gVZBho1pEXt_R_GJ0l
+  FtTw",
+        "p": "1G7AjNFhdPn6mihZXDa7Wq71qRCPfWhHQlLHzx57rY6l0GfvAI-MNHpUjE
+  1ce_c1-63KfCP4KjufkBpnJmGj8VHUVMNpLvDLShOcEgPpAVtbZRuUear2ieo1oPzFpD0u
+  iy9AmVQnYs4ORMdrNF88dOy5iUdMUTyIKFIdzbWDJas",
+        "q": "9KsAVJg6XwCbXq-ECpzHiJydyi5bQEHcO15wkOuny-MFrRZ3rX15eibaHj
+  cD-GYqMaUmGfiWZihL8vnP3clvZ2LmfB-PPrLhn3QyKY0GF3WTACt6N2UwTtcanRaZnqeo
+  RL6JL1_3d_fdcspi66rRgMzIJKJ5Gf5KKb36kSasqu0",
+        "use": "sig"
+      }
+    ]
+  }
+
+A.1.2.  Step 2
+
+   The RPO submits registration data to Federation Operator (FO).
+
+   The following is a non-normative example containing redirect_uris and
+   a JWK representing pub(A) (with line breaks within values for display
+   purposes only):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hedberg & Gulliksson   Expires September 17, 2016              [Page 10]
+
+                            Abbreviated Title                 March 2016
+
+
+  {
+    "redirect_uris": [
+      "https://example.com/rp/cb"
+    ],
+    "signing_key": {
+      "e": "AQAB",
+      "kid": "l4V8JI2FhJGJL1yLw-pVkj_EAfFpze-HbuAlbCXPNyw",
+      "kty": "RSA",
+      "n": "ywd1xwhKIAzwauWVsAXvRWx3LKYJb0muUkpY0CFpDe_s7ZOGqMvPLkhJC4Zl
+  ysTE_Bu-CXzpHVbxeAWzcVnwSAo7iq0sdYjVxBS5pEcCpiS8qnM9IEb0Si0_MkJh0BQFKd
+  dhPribFW8kohg3XS3SwmIfZQCJVxTJzeWhNtHIARyodVDkdPD9J82Yi5iV3I7NOaKrZYgb
+  g7w2hm8ji0Ydj47U4MZhlsgikWW0Kj6g2vjvbwp8o7PHjT13sh41Iodcci_O7-Zxuw9AMl
+  kn2HDu9dkZjMIwAVQhUGZggFRTaAY8s4o9Fa5n6CEb0yLBTtM1gVZBho1pEXt_R_GJ0lFt
+  Tw",
+      "use": "sig"
+    }
+  }
+
+A.1.3.  Step 3
+
+   The FO returns a signed (with key F) software statement containing
+   the submitted registration data, and any applied policy restrictions
+   like response_types, signing/encryption algorithms to be used and
+   additional specific policy parameters like the ones specified above.
+
+   This is an example of a software statement constructed by the FO
+   before it is signed by the FO:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hedberg & Gulliksson   Expires September 17, 2016              [Page 11]
+
+                            Abbreviated Title                 March 2016
+
+
+  {
+    "exp": 1458076912,
+    "iat": 1458076912,
+    "iss": "https://fo.example.com/",
+    "jti": "81be65fea18a431faa506f4f7b37b787",
+    "redirect_uris": [
+      "https://example.com/rp/cb"
+    ],
+    "response_types": [
+      "code",
+      "token"
+    ],
+    "scopes_allowed": [
+      "openid",
+      "email",
+      "phone"
+    ],
+    "signing_key": {
+      "e": "AQAB",
+      "kid": "l4V8JI2FhJGJL1yLw-pVkj_EAfFpze-HbuAlbCXPNyw",
+      "kty": "RSA",
+      "n": "ywd1xwhKIAzwauWVsAXvRWx3LKYJb0muUkpY0CFpDe_s7ZOGqMvPLkhJC4Zl
+  ysTE_Bu-CXzpHVbxeAWzcVnwSAo7iq0sdYjVxBS5pEcCpiS8qnM9IEb0Si0_MkJh0BQFKd
+  dhPribFW8kohg3XS3SwmIfZQCJVxTJzeWhNtHIARyodVDkdPD9J82Yi5iV3I7NOaKrZYgb
+  g7w2hm8ji0Ydj47U4MZhlsgikWW0Kj6g2vjvbwp8o7PHjT13sh41Iodcci_O7-Zxuw9AMl
+  kn2HDu9dkZjMIwAVQhUGZggFRTaAY8s4o9Fa5n6CEb0yLBTtM1gVZBho1pEXt_R_GJ0lFt
+  Tw",
+      "use": "sig"
+    },
+    "token_endpoint_auth_method": "private_key_jwt"
+  }
+
+   and the corresponding software statement:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hedberg & Gulliksson   Expires September 17, 2016              [Page 12]
+
+                            Abbreviated Title                 March 2016
+
+
+ "eyJhbGciOiJSUzI1NiIsImtpZCI6IjBIalFQa0NjY21DQlVseS1MY096OE9MYWUtMDBMZj
+ hOa1RnU3dOQ0ZIME0ifQ.eyJyZXNwb25zZV90eXBlcyI6IFsiY29kZSIsICJ0b2tlbiJdL
+ CAianRpIjogIjgxYmU2NWZlYTE4YTQzMWZhYTUwNmY0ZjdiMzdiNzg3IiwgInJlZGlyZWN
+ 0X3VyaXMiOiBbImh0dHBzOi8vZXhhbXBsZS5jb20vcnAvY2IiXSwgImlhdCI6IDE0NTgwN
+ zY5MTIsICJpc3MiOiAiaHR0cHM6Ly9mby5leGFtcGxlLmNvbS8iLCAiZXhwIjogMTQ1ODA
+ 3NjkxMiwgInNpZ25pbmdfa2V5IjogeyJlIjogIkFRQUIiLCAidXNlIjogInNpZyIsICJuI
+ jogInl3ZDF4d2hLSUF6d2F1V1ZzQVh2Uld4M0xLWUpiMG11VWtwWTBDRnBEZV9zN1pPR3F
+ NdlBMa2hKQzRabHlzVEVfQnUtQ1h6cEhWYnhlQVd6Y1Zud1NBbzdpcTBzZFlqVnhCUzVwR
+ WNDcGlTOHFuTTlJRWIwU2kwX01rSmgwQlFGS2RkaFByaWJGVzhrb2hnM1hTM1N3bUlmWlF
+ DSlZ4VEp6ZVdoTnRISUFSeW9kVkRrZFBEOUo4MllpNWlWM0k3Tk9hS3JaWWdiZzd3MmhtO
+ GppMFlkajQ3VTRNWmhsc2dpa1dXMEtqNmcydmp2YndwOG83UEhqVDEzc2g0MUlvZGNjaV9
+ PNy1aeHV3OUFNbGtuMkhEdTlka1pqTUl3QVZRaFVHWmdnRlJUYUFZOHM0bzlGYTVuNkNFY
+ jB5TEJUdE0xZ1ZaQmhvMXBFWHRfUl9HSjBsRnRUdyIsICJraWQiOiAibDRWOEpJMkZoSkd
+ KTDF5THctcFZral9FQWZGcHplLUhidUFsYkNYUE55dyIsICJrdHkiOiAiUlNBIn0sICJzY
+ 29wZXNfYWxsb3dlZCI6IFsib3BlbmlkIiwgImVtYWlsIiwgInBob25lIl0sICJ0b2tlbl9
+ lbmRwb2ludF9hdXRoX21ldGhvZCI6ICJwcml2YXRlX2tleV9qd3QifQ.eEn16raaQykOIt
+ VSNI1FiZ7qvx13Dkbv08OV4cBePklHeO5QiTPnImYoWwPE46KGudk0VY6CZAHfxVWL2smc
+ 8AcsKr9zCuMu7XPFN52gAJ00nBTp2kw7_rphkydWVFmnMXD5Neznsc0MMLCzjPn-8WpBDF
+ h0Yi7sMUmizeMByznvlR96-WIXf9MFsbtKQhL3Do3_tS_xW6iFvuO_4CI1vf-X5EjdheYM
+ FUO-d8YlRrW4xHf0gX5f0I-KNrFnRwDJoBgpPXT7XTpeMkoQIIK-uYXwHTQnSBxHCc6349
+ Rt_unJZ8CPQYwSKIJqZaJ8VamlNVgAZe91nPrAm43-tOblFw"
+
+   This software statement is then expected to be used by the RP
+   whenever it wants to register with an OP.
+
+A.2.  Relying party using a software statement
+
+A.2.1.  Create intermediate signing key
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hedberg & Gulliksson   Expires September 17, 2016              [Page 13]
+
+                            Abbreviated Title                 March 2016
+
+
+  {
+    "keys": [
+      {
+        "d": "F0nNfakDzOl-oIwZFAYFgR1Ot1rd1tIVmeFhTmTkSN-fWJdsjf4W3Xh4Gi
+  xk2znXo9jqVpFZLdQwLBFpp9-uNriG124ul7KPHTwkgN04Ci4fMc6H2jLOO_swHw1ePlzW
+  5AYd499z6nzp2fs21YVH86V6sYS0RBfjyJak9UCtyYByXz9-_mKwIYGWijJ4hSLJQwmydn
+  LnrsKST5gc-N6qfYNfMikXOqtavRxV9e5VkZOkXk4p3w5L4dzzaCqr0VNIvltileGFLSki
+  4l0YW3mK_17EBOjlOfvi-QgZXKSPbX1752Fu82yu40otS7yXaUip4DqZKDgCOGj8j4WPMG
+  RDLQ",
+        "e": "AQAB",
+        "kid": "__ZIRhrPeBwx0ecrUe7HWLc3TA09C8n-u9ojAUFppqQ",
+        "kty": "RSA",
+        "n": "txoNZ5eATBUtWPrIZk4GVLKtY8FSnv5mi9yn_N-atF5qXL5D8qEcYTa7Je
+  YEv6oYKSvQ_qeGuUQid3zZ6Rli2-Pattws1fmq5AON92w91eYXL3T8qNA9oelOlYVoHu32
+  57ERRnLTY5QWoauJSjgYOsPsIRbMC15ESZlgkh3acd0CJYaLiaQVg3PSD7QxUGieV97oVQ
+  MG5cJNeA9zG0o5eyHp4VpNCCEmX5N5j8jc5K8Ko2Uv-aeiK3fag8rOrU4WcfYWT-BRxLMS
+  20s3sKMxz6D7QobozokM6N8h2zDZWncZz8nzP4sFzEdwsVG192Pi4BF8ipEN49a6EUYkCR
+  p0fw",
+        "p": "uIERLAbgRsdtvue8h8-efMdwmGlmSAwLl429p11pDTfugmolFnahz8HgX7
+  A_c8U84N4HdURl1vHwM2uwnAlRJqK0oAcBzXvA0LR0u3fmANZPUm71NuN6j-mgcXZrGRih
+  lSsSzqpAQ3V2W_4X3kJIyQfTx5_ep3ehqcRZhkVfvFU",
+        "q": "_g3dvY38Cm7CzHqg5N265q3mfQBJGOiKMP0WPkRwpfvsJVd5OnIHx3_Euk
+  IsuMb1SjBpcMcIu5pO_wDxbZenbrEjfSftZRtQY6yDM-xkW48MHZKhlZMf5z9uR9PAslvB
+  -SNkYRMpPiPdDlCNPI3edIZ0q1sJTTXq3UWwG2ydwYM",
+        "use": "sig"
+      }
+    ]
+  }
+
+   Signed intermediate key
+
+  eyJhbGciOiJSUzM4NCIsImtpZCI6Imw0VjhKSTJGaEpHSkwxeUx3LXBWa2pfRUFmRnB6ZS
+  1IYnVBbGJDWFBOeXcifQ.eyJrZXlzIjpbeyJlIjoiQVFBQiIsInVzZSI6InNpZyIsIm4iO
+  iJ0eG9OWjVlQVRCVXRXUHJJWms0R1ZMS3RZOEZTbnY1bWk5eW5fTi1hdEY1cVhMNUQ4cUV
+  jWVRhN0plWUV2Nm9ZS1N2UV9xZUd1VVFpZDN6WjZSbGkyLVBhdHR3czFmbXE1QU9OOTJ3O
+  TFlWVhMM1Q4cU5BOW9lbE9sWVZvSHUzMjU3RVJSbkxUWTVRV29hdUpTamdZT3NQc0lSYk1
+  DMTVFU1psZ2toM2FjZDBDSllhTGlhUVZnM1BTRDdReFVHaWVWOTdvVlFNRzVjSk5lQTl6R
+  zBvNWV5SHA0VnBOQ0NFbVg1TjVqOGpjNUs4S28yVXYtYWVpSzNmYWc4ck9yVTRXY2ZZV1Q
+  tQlJ4TE1TMjBzM3NLTXh6NkQ3UW9ib3pva002TjhoMnpEWlduY1p6OG56UDRzRnpFZHdzV
+  kcxOTJQaTRCRjhpcEVONDlhNkVVWWtDUnAwZnciLCJraWQiOiJfX1pJUmhyUGVCd3gwZWN
+  yVWU3SFdMYzNUQTA5QzhuLXU5b2pBVUZwcHFRIiwia3R5IjoiUlNBIn1dfQ.CmgW7xp_OI
+  Du_tCgvHWbRKjWByVJxDuPeZKxs0atVWI_aY-nqOJB5PTNaYKYAyu_f01kFRyo_h-Mgc-G
+  TGgH0gMOJJNOJqnKl-vlT6w-NHmYxjscv8hKFhAfsCo-1RzjA4CZD9iTU9GoR-rRaz7kFZ
+  8xo6Ghjj3AKzZR6ih3ehaOa54jAwAjpUVHtxFMWUz99Y5zYp-kL4cgOYoRZfmoYEgSa5B0
+  zOrc-VqBuRNgqBDvmgXNyJfinn7fKgaj6bDz6tWTeiUn7V2qffHXn5F4PL9yC7acSBeNl3
+  Ava4xyVy6on4JLrZ2MWiCcUt2h-qh5MpfWWH4DE8qLHqA04MOanw
+
+
+
+
+
+Hedberg & Gulliksson   Expires September 17, 2016              [Page 14]
+
+                            Abbreviated Title                 March 2016
+
+
+A.2.2.  Create keys to be used during the communication with the OP
+
+   These keys can be fetched from the jwks_uri location
+
+  {
+    "keys": [
+      {
+        "e": "AQAB",
+        "kid": "D5fdPhs6cZochj3YpE9tH5xDubxX_KAXJAOM_EfWvqg",
+        "kty": "RSA",
+        "n": "2Tc-llURwqV-PedoBVR-ba1MuZ8I5Ms0QpCwfLVD_dAjodSAk5aQeBuFYb
+  oP4Jk79dOfsoLMLe-iGZzwuYzgAjDyz9IuZlbEDIsFj6_7Xa3pEtU6YxK6JZKOGWK-h7nj
+  1qSDYomtrGBnzX9yg_HaKa8gRqkgMYb2gOMgtrSq7HTdonECnkMoPmGo5y4cYM8utGKdBz
+  q5h-vXs8Y-gbpjWcWTcR6oYDx-HEgwDo_tXCdPZbtyidK9PC7cCi-uHmiHPLL4Y4wKujNM
+  eZukHLCqJNI77y73P9lnLcozkNgRv5OC88zJx1warf1AF5orBvpD7pPQvKz4FetuW0oxtF
+  Yptw",
+        "use": "sig"
+      },
+      {
+        "e": "AQAB",
+        "kid": "Vfqtg0erALDq0gL0SETIosZdPYScjzw2ZHp6DRn19z4",
+        "kty": "RSA",
+        "n": "rT3r5GRwwAguBwqrVi8yBcalMn_Lh2M1sl46XO7xSLOZH3T5B90gz5aS4U
+  QNynOInpTm-nzYtK1CcYKmJQfdTRRauJxNtrN99XOnm0pQn7PHWDqJHAWUVnwCkpqkUjJr
+  Bqb4wRXYw6He08308ikJSDCI6s4yxpp9q8FoUl-W2sww9oR86S-K_SovrHf4e-Wjqf-7K8
+  R8fnfoJ5qJfZIi0clY5y6S8jqz5ho9OlmN6Z90X0mZmdblaT_YTcEtwf3mz7aqVI3BerNc
+  msIlmB9ULPJbTtQ6sR4DNMkgQcZ-5dCF_PMmRqKJG4ohE2xGKIbqkaJAfTez6Vn4w3E_rH
+  vvoQ",
+        "use": "enc"
+      },
+      {
+        "crv": "P-256",
+        "kid": "obP06OwixVXL3-kMIwfmyuYtONNSzAG-T1N0FMgIPYA",
+        "kty": "EC",
+        "use": "sig",
+        "x": "b7t3-CcAeDJSGE5ADdxifus1LrdsQCMZkj9c7Gbw770",
+        "y": "h2CQjaWH-cTvvCD4rhTs2uq7OZP6G0cJRm4cq0KkgS4"
+      },
+      {
+        "crv": "P-256",
+        "kid": "ggasxnDILkvO8WMqJkgNKxphK0p2RtJSeVa4P7Hy0wQ",
+        "kty": "EC",
+        "use": "enc",
+        "x": "nJWO4QHXgcu2G3RUrq4v1lLx0-1itdMImIH5aNiG5Uc",
+        "y": "mQ7G0DAYGQb9-Cz5iFp6-TJSzgdWoZ_0Jxob7volA0U"
+      }
+    ]
+  }
+
+
+
+Hedberg & Gulliksson   Expires September 17, 2016              [Page 15]
+
+                            Abbreviated Title                 March 2016
+
+
+   or in the signed version at signed_jwks_uri
+
+  eyJhbGciOiJSUzI1NiIsImtpZCI6Il9fWklSaHJQZUJ3eDBlY3JVZTdIV0xjM1RBMDlDOG
+  4tdTlvakFVRnBwcVEifQ.eyJrZXlzIjpbeyJlIjoiQVFBQiIsInVzZSI6InNpZyIsIm4iO
+  iIyVGMtbGxVUndxVi1QZWRvQlZSLWJhMU11WjhJNU1zMFFwQ3dmTFZEX2RBam9kU0FrNWF
+  RZUJ1Rllib1A0Sms3OWRPZnNvTE1MZS1pR1p6d3VZemdBakR5ejlJdVpsYkVESXNGajZfN
+  1hhM3BFdFU2WXhLNkpaS09HV0staDduajFxU0RZb210ckdCbnpYOXlnX0hhS2E4Z1Jxa2d
+  NWWIyZ09NZ3RyU3E3SFRkb25FQ25rTW9QbUdvNXk0Y1lNOHV0R0tkQnpxNWgtdlhzOFktZ
+  2JwaldjV1RjUjZvWUR4LUhFZ3dEb190WENkUFpidHlpZEs5UEM3Y0NpLXVIbWlIUExMNFk
+  0d0t1ak5NZVp1a0hMQ3FKTkk3N3k3M1A5bG5MY296a05nUnY1T0M4OHpKeDF3YXJmMUFGN
+  W9yQnZwRDdwUFF2S3o0RmV0dVcwb3h0RllwdHciLCJraWQiOiJENWZkUGhzNmNab2NoajN
+  ZcEU5dEg1eER1YnhYX0tBWEpBT01fRWZXdnFnIiwia3R5IjoiUlNBIn0seyJlIjoiQVFBQ
+  iIsInVzZSI6ImVuYyIsIm4iOiJyVDNyNUdSd3dBZ3VCd3FyVmk4eUJjYWxNbl9MaDJNMXN
+  sNDZYTzd4U0xPWkgzVDVCOTBnejVhUzRVUU55bk9JbnBUbS1uell0SzFDY1lLbUpRZmRUU
+  lJhdUp4TnRyTjk5WE9ubTBwUW43UEhXRHFKSEFXVVZud0NrcHFrVWpKckJxYjR3UlhZdzZ
+  IZTA4MzA4aWtKU0RDSTZzNHl4cHA5cThGb1VsLVcyc3d3OW9SODZTLUtfU292ckhmNGUtV
+  2pxZi03SzhSOGZuZm9KNXFKZlpJaTBjbFk1eTZTOGpxejVobzlPbG1ONlo5MFgwbVptZGJ
+  sYVRfWVRjRXR3ZjNtejdhcVZJM0Jlck5jbXNJbG1COVVMUEpiVHRRNnNSNEROTWtnUWNaL
+  TVkQ0ZfUE1tUnFLSkc0b2hFMnhHS0licWthSkFmVGV6NlZuNHczRV9ySHZ2b1EiLCJraWQ
+  iOiJWZnF0ZzBlckFMRHEwZ0wwU0VUSW9zWmRQWVNjanp3MlpIcDZEUm4xOXo0Iiwia3R5I
+  joiUlNBIn0seyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwidXNlIjoic2lnIiwia2lkIjo
+  ib2JQMDZPd2l4VlhMMy1rTUl3Zm15dVl0T05OU3pBRy1UMU4wRk1nSVBZQSIsInkiOiJoM
+  kNRamFXSC1jVHZ2Q0Q0cmhUczJ1cTdPWlA2RzBjSlJtNGNxMEtrZ1M0IiwieCI6ImI3dDM
+  tQ2NBZURKU0dFNUFEZHhpZnVzMUxyZHNRQ01aa2o5YzdHYnc3NzAifSx7ImNydiI6IlAtM
+  jU2Iiwia3R5IjoiRUMiLCJ1c2UiOiJlbmMiLCJraWQiOiJnZ2FzeG5ESUxrdk84V01xSmt
+  nTkt4cGhLMHAyUnRKU2VWYTRQN0h5MHdRIiwieSI6Im1RN0cwREFZR1FiOS1DejVpRnA2L
+  VRKU3pnZFdvWl8wSnhvYjd2b2xBMFUiLCJ4IjoibkpXTzRRSFhnY3UyRzNSVXJxNHYxbEx
+  4MC0xaXRkTUltSUg1YU5pRzVVYyJ9XX0.sL38ZWPqaEiVIZQ4dWeuKcYAFg7FgR2kjFPRZ
+  pqKbGGkNqhyGvtGbwr3UaAfSWvM9cZfNsUaJAtYqXrYRzzwvY42LHMXq3ABjl_7eNHgXCB
+  Xc4ezYXJPcq0qgL3AYTjUwaFiLEWvu40V2xBE4a-X6zU5YjA6P9URyZXDaAbUsXExjHhJL
+  Bx9JMG2ubotnRv4OX8fvpyTACoymvCkXu3TeyxjZ0i6xpqtAZPyGW6ViHLVPnvx9_gw3oG
+  sPhlUAt2R-eVa2LV4HYfKNszED7pYi0xna5dz2tImkNE0TaFBHb5oVDG9rwgyWBEh6-kCH
+  CPpPBQSD6ix3v573Ay4FJx1Sw
+
+A.2.3.  Construct the client registration request
+
+  {
+    "id_token_signed_response_alg": "SHA-256",
+    "jwks_uri": "https://example.com/rp/jwks",
+    "response_types": [
+      "code"
+    ],
+    "signed_jwks_uri": "https://example.com/rp/signed_jwks",
+    "signed_metadata": "eyJhbGciOiJSUzI1NiIsImtpZCI6Imw0VjhKSTJGaEpHSkwx
+  eUx3LXBWa2pfRUFmRnB6ZS1IYnVBbGJDWFBOeXcifQ.eyJzb2Z0d2FyZV9zdGF0ZW1lbnR
+  zIjogWyJleUpoYkdjaU9pSlNVekkxTmlJc0ltdHBaQ0k2SWpCSWFsRlFhME5qWTIxRFFsV
+  nNlUzFNWTA5Nk9FOU1ZV1V0TURCTVpqaE9hMVJuVTNkT1EwWklNRTBpZlEuZXlKeVpYTnd
+  iMjV6WlY5MGVYQmxjeUk2SUZzaVkyOWtaU0lzSUNKMGIydGxiaUpkTENBaWFuUnBJam9nS
+
+
+
+Hedberg & Gulliksson   Expires September 17, 2016              [Page 16]
+
+                            Abbreviated Title                 March 2016
+
+
+  WpneFltVTJOV1psWVRFNFlUUXpNV1poWVRVd05tWTBaamRpTXpkaU56ZzNJaXdnSW5KbFp
+  HbHlaV04wWDNWeWFYTWlPaUJiSW1oMGRIQnpPaTh2WlhoaGJYQnNaUzVqYjIwdmNuQXZZM
+  klpWFN3Z0ltbGhkQ0k2SURFME5UZ3dOelk1TVRJc0lDSnBjM01pT2lBaWFIUjBjSE02THk
+  5bWJ5NWxlR0Z0Y0d4bExtTnZiUzhpTENBaVpYaHdJam9nTVRRMU9EQTNOamt4TWl3Z0luT
+  nBaMjVwYm1kZmEyVjVJam9nZXlKbElqb2dJa0ZSUVVJaUxDQWlkWE5sSWpvZ0luTnBaeUl
+  zSUNKdUlqb2dJbmwzWkRGNGQyaExTVUY2ZDJGMVYxWnpRVmgyVWxkNE0weExXVXBpTUcxM
+  VZXdHdXVEJEUm5CRVpWOXpOMXBQUjNGTmRsQk1hMmhLUXpSYWJIbHpWRVZmUW5VdFExaDZ
+  jRWhXWW5obFFWZDZZMVp1ZDFOQmJ6ZHBjVEJ6WkZscVZuaENVelZ3UldORGNHbFRPSEZ1V
+  FRsSlJXSXdVMmt3WDAxclNtZ3dRbEZHUzJSa2FGQnlhV0pHVnpocmIyaG5NMWhUTTFOM2J
+  VbG1XbEZEU2xaNFZFcDZaVmRvVG5SSVNVRlNlVzlrVmtSclpGQkVPVW80TWxscE5XbFdNM
+  GszVGs5aFMzSmFXV2RpWnpkM01taHRPR3BwTUZsa2FqUTNWVFJOV21oc2MyZHBhMWRYTUV
+  0cU5tY3lkbXAyWW5kd09HODNVRWhxVkRFemMyZzBNVWx2WkdOamFWOVBOeTFhZUhWM09VR
+  k5iR3R1TWtoRWRUbGthMXBxVFVsM1FWWlJhRlZIV21kblJsSlVZVUZaT0hNMGJ6bEdZVFZ
+  1TmtORllqQjVURUpVZEUweFoxWmFRbWh2TVhCRldIUmZVbDlIU2pCc1JuUlVkeUlzSUNKc
+  mFXUWlPaUFpYkRSV09FcEpNa1pvU2tkS1RERjVUSGN0Y0ZacmFsOUZRV1pHY0hwbExVaGl
+  kVUZzWWtOWVVFNTVkeUlzSUNKcmRIa2lPaUFpVWxOQkluMHNJQ0p6WTI5d1pYTmZZV3hzY
+  jNkbFpDSTZJRnNpYjNCbGJtbGtJaXdnSW1WdFlXbHNJaXdnSW5Cb2IyNWxJbDBzSUNKMGI
+  ydGxibDlsYm1Sd2IybHVkRjloZFhSb1gyMWxkR2h2WkNJNklDSndjbWwyWVhSbFgydGxlV
+  jlxZDNRaWZRLmVFbjE2cmFhUXlrT0l0VlNOSTFGaVo3cXZ4MTNEa2J2MDhPVjRjQmVQa2x
+  IZU81UWlUUG5JbVlvV3dQRTQ2S0d1ZGswVlk2Q1pBSGZ4VldMMnNtYzhBY3NLcjl6Q3VNd
+  TdYUEZONTJnQUowMG5CVHAya3c3X3JwaGt5ZFdWRm1uTVhENU5lem5zYzBNTUxDempQbi0
+  4V3BCREZoMFlpN3NNVW1pemVNQnl6bnZsUjk2LVdJWGY5TUZzYnRLUWhMM0RvM190U194V
+  zZpRnZ1T180Q0kxdmYtWDVFamRoZVlNRlVPLWQ4WWxSclc0eEhmMGdYNWYwSS1LTnJGblJ
+  3REpvQmdwUFhUN1hUcGVNa29RSUlLLXVZWHdIVFFuU0J4SENjNjM0OVJ0X3VuSlo4Q1BRW
+  XdTS0lKcVphSjhWYW1sTlZnQVplOTFuUHJBbTQzLXRPYmxGdyJdLCAiandrc191cmkiOiA
+  iaHR0cHM6Ly9leGFtcGxlLmNvbS9ycC9qd2tzIiwgImlkX3Rva2VuX3NpZ25lZF9yZXNwb
+  25zZV9hbGciOiAiU0hBLTI1NiIsICJyZXNwb25zZV90eXBlcyI6IFsiY29kZSJdLCAic2l
+  nbmluZ19rZXkiOiAiZXlKaGJHY2lPaUpTVXpNNE5DSXNJbXRwWkNJNkltdzBWamhLU1RKR
+  2FFcEhTa3d4ZVV4M0xYQldhMnBmUlVGbVJuQjZaUzFJWW5WQmJHSkRXRkJPZVhjaWZRLmV
+  5SnJaWGx6SWpwYmV5SmxJam9pUVZGQlFpSXNJblZ6WlNJNkluTnBaeUlzSW00aU9pSjBlR
+  zlPV2pWbFFWUkNWWFJYVUhKSldtczBSMVpNUzNSWk9FWlRiblkxYldrNWVXNWZUaTFoZEV
+  ZMWNWaE1OVVE0Y1VWaldWUmhOMHBsV1VWMk5tOVpTMU4yVVY5eFpVZDFWVkZwWkRONldqW
+  lNiR2t5TFZCaGRIUjNjekZtYlhFMVFVOU9PVEozT1RGbFdWaE1NMVE0Y1U1Qk9XOWxiRTl
+  zV1ZadlNIVXpNalUzUlZKU2JreFVXVFZSVjI5aGRVcFRhbWRaVDNOUWMwbFNZazFETVRWR
+  lUxcHNaMnRvTTJGalpEQkRTbGxoVEdsaFVWWm5NMUJUUkRkUmVGVkhhV1ZXT1RkdlZsRk5
+  SelZqU2s1bFFUbDZSekJ2TldWNVNIQTBWbkJPUTBORmJWZzFUalZxT0dwak5VczRTMjh5V
+  lhZdFlXVnBTek5tWVdjNGNrOXlWVFJYWTJaWlYxUXRRbEo0VEUxVE1qQnpNM05MVFhoNk5
+  rUTNVVzlpYjNwdmEwMDJUamhvTW5wRVdsZHVZMXA2T0c1NlVEUnpSbnBGWkhkelZrY3hPV
+  EpRYVRSQ1JqaHBjRVZPTkRsaE5rVlZXV3REVW5Bd1puY2lMQ0pyYVdRaU9pSmZYMXBKVW1
+  oeVVHVkNkM2d3WldOeVZXVTNTRmRNWXpOVVFUQTVRemh1TFhVNWIycEJWVVp3Y0hGUklpd
+  2lhM1I1SWpvaVVsTkJJbjFkZlEuQ21nVzd4cF9PSUR1X3RDZ3ZIV2JSS2pXQnlWSnhEdVB
+  lWkt4czBhdFZXSV9hWS1ucU9KQjVQVE5hWUtZQXl1X2YwMWtGUnlvX2gtTWdjLUdUR2dIM
+  GdNT0pKTk9KcW5LbC12bFQ2dy1OSG1ZeGpzY3Y4aEtGaEFmc0NvLTFSempBNENaRDlpVFU
+  5R29SLXJSYXo3a0ZaOHhvNkdoamozQUt6WlI2aWgzZWhhT2E1NGpBd0FqcFVWSHR4Rk1XV
+  Xo5OVk1ellwLWtMNGNnT1lvUlpmbW9ZRWdTYTVCMHpPcmMtVnFCdVJOZ3FCRHZtZ1hOeUp
+  maW5uN2ZLZ2FqNmJEejZ0V1RlaVVuN1YycWZmSFhuNUY0UEw5eUM3YWNTQmVObDNBdmE0e
+  HlWeTZvbjRKTHJaMk1XaUNjVXQyaC1xaDVNcGZXV0g0REU4cUxIcUEwNE1PYW53IiwgInN
+  pZ25lZF9qd2tzX3VyaSI6ICJodHRwczovL2V4YW1wbGUuY29tL3JwL3NpZ25lZF9qd2tzI
+
+
+
+Hedberg & Gulliksson   Expires September 17, 2016              [Page 17]
+
+                            Abbreviated Title                 March 2016
+
+
+  n0.sjdWhxr8NFUXU69yFiiDGUlEEWY9qtMC05c1ZPfYyRYan8r90xXgF_2ALdMeozC_6gK
+  Dskdm0brGPnzqfCP_PgmOi_dHHr-gl8sx-lHpYZx4SAZy6MrV_DQbCgDUcpRyW3pcyZqEH
+  g_CvdlMT3SU8qUbp3rdRrX8Sv09VnacbigeVTUEv9-wQ5Gav509uh12jMyiWRftoolGzRD
+  hj28tx30yfq_HzNlhPFIEk-0QFj_8Fxm5wy8lspOyPXgzbtHM1sDhQnmTFtQmqQkVi9YWi
+  6KpQDg44o94z0sBRD0BtpAM-lXA5Q2H9DdOUcHk7alta9P53PGa-_hXU8jfJh3e4g",
+    "signing_key": "eyJhbGciOiJSUzM4NCIsImtpZCI6Imw0VjhKSTJGaEpHSkwxeUx3
+  LXBWa2pfRUFmRnB6ZS1IYnVBbGJDWFBOeXcifQ.eyJrZXlzIjpbeyJlIjoiQVFBQiIsInV
+  zZSI6InNpZyIsIm4iOiJ0eG9OWjVlQVRCVXRXUHJJWms0R1ZMS3RZOEZTbnY1bWk5eW5fT
+  i1hdEY1cVhMNUQ4cUVjWVRhN0plWUV2Nm9ZS1N2UV9xZUd1VVFpZDN6WjZSbGkyLVBhdHR
+  3czFmbXE1QU9OOTJ3OTFlWVhMM1Q4cU5BOW9lbE9sWVZvSHUzMjU3RVJSbkxUWTVRV29hd
+  UpTamdZT3NQc0lSYk1DMTVFU1psZ2toM2FjZDBDSllhTGlhUVZnM1BTRDdReFVHaWVWOTd
+  vVlFNRzVjSk5lQTl6RzBvNWV5SHA0VnBOQ0NFbVg1TjVqOGpjNUs4S28yVXYtYWVpSzNmY
+  Wc4ck9yVTRXY2ZZV1QtQlJ4TE1TMjBzM3NLTXh6NkQ3UW9ib3pva002TjhoMnpEWlduY1p
+  6OG56UDRzRnpFZHdzVkcxOTJQaTRCRjhpcEVONDlhNkVVWWtDUnAwZnciLCJraWQiOiJfX
+  1pJUmhyUGVCd3gwZWNyVWU3SFdMYzNUQTA5QzhuLXU5b2pBVUZwcHFRIiwia3R5IjoiUlN
+  BIn1dfQ.CmgW7xp_OIDu_tCgvHWbRKjWByVJxDuPeZKxs0atVWI_aY-nqOJB5PTNaYKYAy
+  u_f01kFRyo_h-Mgc-GTGgH0gMOJJNOJqnKl-vlT6w-NHmYxjscv8hKFhAfsCo-1RzjA4CZ
+  D9iTU9GoR-rRaz7kFZ8xo6Ghjj3AKzZR6ih3ehaOa54jAwAjpUVHtxFMWUz99Y5zYp-kL4
+  cgOYoRZfmoYEgSa5B0zOrc-VqBuRNgqBDvmgXNyJfinn7fKgaj6bDz6tWTeiUn7V2qffHX
+  n5F4PL9yC7acSBeNl3Ava4xyVy6on4JLrZ2MWiCcUt2h-qh5MpfWWH4DE8qLHqA04MOanw
+  ",
+    "software_statements": [
+      "eyJhbGciOiJSUzI1NiIsImtpZCI6IjBIalFQa0NjY21DQlVseS1MY096OE9MYWUtM
+  DBMZjhOa1RnU3dOQ0ZIME0ifQ.eyJyZXNwb25zZV90eXBlcyI6IFsiY29kZSIsICJ0b2tl
+  biJdLCAianRpIjogIjgxYmU2NWZlYTE4YTQzMWZhYTUwNmY0ZjdiMzdiNzg3IiwgInJlZG
+  lyZWN0X3VyaXMiOiBbImh0dHBzOi8vZXhhbXBsZS5jb20vcnAvY2IiXSwgImlhdCI6IDE0
+  NTgwNzY5MTIsICJpc3MiOiAiaHR0cHM6Ly9mby5leGFtcGxlLmNvbS8iLCAiZXhwIjogMT
+  Q1ODA3NjkxMiwgInNpZ25pbmdfa2V5IjogeyJlIjogIkFRQUIiLCAidXNlIjogInNpZyIs
+  ICJuIjogInl3ZDF4d2hLSUF6d2F1V1ZzQVh2Uld4M0xLWUpiMG11VWtwWTBDRnBEZV9zN1
+  pPR3FNdlBMa2hKQzRabHlzVEVfQnUtQ1h6cEhWYnhlQVd6Y1Zud1NBbzdpcTBzZFlqVnhC
+  UzVwRWNDcGlTOHFuTTlJRWIwU2kwX01rSmgwQlFGS2RkaFByaWJGVzhrb2hnM1hTM1N3bU
+  lmWlFDSlZ4VEp6ZVdoTnRISUFSeW9kVkRrZFBEOUo4MllpNWlWM0k3Tk9hS3JaWWdiZzd3
+  MmhtOGppMFlkajQ3VTRNWmhsc2dpa1dXMEtqNmcydmp2YndwOG83UEhqVDEzc2g0MUlvZG
+  NjaV9PNy1aeHV3OUFNbGtuMkhEdTlka1pqTUl3QVZRaFVHWmdnRlJUYUFZOHM0bzlGYTVu
+  NkNFYjB5TEJUdE0xZ1ZaQmhvMXBFWHRfUl9HSjBsRnRUdyIsICJraWQiOiAibDRWOEpJMk
+  ZoSkdKTDF5THctcFZral9FQWZGcHplLUhidUFsYkNYUE55dyIsICJrdHkiOiAiUlNBIn0s
+  ICJzY29wZXNfYWxsb3dlZCI6IFsib3BlbmlkIiwgImVtYWlsIiwgInBob25lIl0sICJ0b2
+  tlbl9lbmRwb2ludF9hdXRoX21ldGhvZCI6ICJwcml2YXRlX2tleV9qd3QifQ.eEn16raaQ
+  ykOItVSNI1FiZ7qvx13Dkbv08OV4cBePklHeO5QiTPnImYoWwPE46KGudk0VY6CZAHfxVW
+  L2smc8AcsKr9zCuMu7XPFN52gAJ00nBTp2kw7_rphkydWVFmnMXD5Neznsc0MMLCzjPn-8
+  WpBDFh0Yi7sMUmizeMByznvlR96-WIXf9MFsbtKQhL3Do3_tS_xW6iFvuO_4CI1vf-X5Ej
+  dheYMFUO-d8YlRrW4xHf0gX5f0I-KNrFnRwDJoBgpPXT7XTpeMkoQIIK-uYXwHTQnSBxHC
+  c6349Rt_unJZ8CPQYwSKIJqZaJ8VamlNVgAZe91nPrAm43-tOblFw"
+    ]
+  }
+
+
+
+
+
+
+Hedberg & Gulliksson   Expires September 17, 2016              [Page 18]
+
+                            Abbreviated Title                 March 2016
+
+
+A.3.  The OP handling the Client Registration Request
+
+A.3.1.  Received Primary Key
+
+   The primary key is found in the Software Statement.  The signature of
+   the Software Statement is verified using the public key of the FO.
+
+  {
+    "e": "AQAB",
+    "kid": "l4V8JI2FhJGJL1yLw-pVkj_EAfFpze-HbuAlbCXPNyw",
+    "kty": "RSA",
+    "n": "ywd1xwhKIAzwauWVsAXvRWx3LKYJb0muUkpY0CFpDe_s7ZOGqMvPLkhJC4Zlys
+  TE_Bu-CXzpHVbxeAWzcVnwSAo7iq0sdYjVxBS5pEcCpiS8qnM9IEb0Si0_MkJh0BQFKddh
+  PribFW8kohg3XS3SwmIfZQCJVxTJzeWhNtHIARyodVDkdPD9J82Yi5iV3I7NOaKrZYgbg7
+  w2hm8ji0Ydj47U4MZhlsgikWW0Kj6g2vjvbwp8o7PHjT13sh41Iodcci_O7-Zxuw9AMlkn
+  2HDu9dkZjMIwAVQhUGZggFRTaAY8s4o9Fa5n6CEb0yLBTtM1gVZBho1pEXt_R_GJ0lFtTw
+  ",
+    "use": "sig"
+  }
+
+A.3.2.  Received intermediat key
+
+   The intermediate key is in this case the value of the "signed_key"
+   parameter.  The value being a JWS signed by the primary key.
+
+  {
+    "keys": [
+      {
+        "e": "AQAB",
+        "kid": "__ZIRhrPeBwx0ecrUe7HWLc3TA09C8n-u9ojAUFppqQ",
+        "kty": "RSA",
+        "n": "txoNZ5eATBUtWPrIZk4GVLKtY8FSnv5mi9yn_N-atF5qXL5D8qEcYTa7Je
+  YEv6oYKSvQ_qeGuUQid3zZ6Rli2-Pattws1fmq5AON92w91eYXL3T8qNA9oelOlYVoHu32
+  57ERRnLTY5QWoauJSjgYOsPsIRbMC15ESZlgkh3acd0CJYaLiaQVg3PSD7QxUGieV97oVQ
+  MG5cJNeA9zG0o5eyHp4VpNCCEmX5N5j8jc5K8Ko2Uv-aeiK3fag8rOrU4WcfYWT-BRxLMS
+  20s3sKMxz6D7QobozokM6N8h2zDZWncZz8nzP4sFzEdwsVG192Pi4BF8ipEN49a6EUYkCR
+  p0fw",
+        "use": "sig"
+      }
+    ]
+  }
+
+A.3.3.  Verifying Metadata
+
+   The signed representation of the registation request can now be
+   verified using the intermediate key
+
+
+
+
+
+Hedberg & Gulliksson   Expires September 17, 2016              [Page 19]
+
+                            Abbreviated Title                 March 2016
+
+
+A.3.4.  Verifying the public keys
+
+   The signature on the signed version of the RP's public keys that has
+   been fetched from the location pointed to be "signed_jwks_uri" can
+   now be verified, again using the intermediate key.
+
+Authors' Addresses
+
+   Roland Hedberg (editor)
+   Umea University
+
+   Email: roland.hedberg@umu.se
+
+
+   Rebecka Gulliksson
+   Umea University
+
+   Email: rebecka.gulliksson@umu.se
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hedberg & Gulliksson   Expires September 17, 2016              [Page 20]
