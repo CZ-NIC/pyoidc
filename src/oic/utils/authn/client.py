@@ -42,7 +42,7 @@ def assertion_jwt(cli, keys, audience, algorithm, lifetime=600):
     _now = utc_time_sans_frac()
 
     at = AuthnToken(iss=cli.client_id, sub=cli.client_id,
-                    aud=audience, jti=rndstr(16),
+                    aud=audience, jti=rndstr(32),
                     exp=_now + lifetime, iat=_now)
     return at.to_jwt(key=keys, algorithm=algorithm)
 
@@ -359,6 +359,8 @@ class JWSAuthnMethod(ClientAuthnMethod):
             raise AuthnFailure("Could not verify client_assertion.")
 
         logger.debug("authntoken: %s" % bjwt.to_dict())
+        areq['parsed_client_assertion'] = bjwt
+
         # logger.debug("known clients: %s" % self.cli.cdb.keys())
         try:
             cid = kwargs["client_id"]
@@ -522,5 +524,15 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
 
         if _method != auth_method:
             raise FailedAuthentication("Wrong authentication method used")
+
+    # store which authn method was used where
+    try:
+        inst.cdb[cid]['auth_method'][areq.__class__.__name__] = auth_method
+    except KeyError:
+        try:
+            inst.cdb[cid]['auth_method'] = {
+                areq.__class__.__name__: auth_method}
+        except KeyError:
+            pass
 
     return cid

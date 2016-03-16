@@ -54,6 +54,8 @@ def allow(restriction, cinfo):
     return ''
 
 
+def assign(restriction, cinfo):
+    cinfo.update(restriction)
 
 
 def factory(name):

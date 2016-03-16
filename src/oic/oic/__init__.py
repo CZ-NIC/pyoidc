@@ -292,7 +292,7 @@ class Client(oauth2.Client):
         self.id_token_max_age = 0
 
         # Default key by kid for different key types
-        # For instance {"RSA":"abc"}
+        # For instance {'sig': {"RSA":"abc"}}
         self.kid = {"sig": {}, "enc": {}}
 
     def _get_id_token(self, **kwargs):
@@ -372,12 +372,12 @@ class Client(oauth2.Client):
             if "nonce" not in request_args:
                 _rt = request_args["response_type"]
                 if "token" in _rt or "id_token" in _rt:
-                    request_args["nonce"] = rndstr(12)
+                    request_args["nonce"] = rndstr(32)
         elif "response_type" in kwargs:
             if "token" in kwargs["response_type"]:
-                request_args = {"nonce": rndstr(12)}
+                request_args = {"nonce": rndstr(32)}
         else:  # Never wrong to specify a nonce
-            request_args = {"nonce": rndstr(12)}
+            request_args = {"nonce": rndstr(32)}
 
         if "request_method" in kwargs:
             if kwargs["request_method"] == "file":
@@ -883,8 +883,7 @@ class Client(oauth2.Client):
                     assert _issuer == _pcr_issuer
                 except AssertionError:
                     raise IssuerMismatch("'%s' != '%s'" % (_issuer,
-                                                           _pcr_issuer),
-                                         pcr)
+                                                           _pcr_issuer), pcr)
 
             self.provider_info = pcr
         else:

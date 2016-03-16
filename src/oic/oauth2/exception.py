@@ -72,3 +72,8 @@ class NonFatalException(PyoidcError):
 
 class Unsupported(PyoidcError):
     pass
+
+
+class UnsupportedResponseType(Unsupported):
+    pass
+

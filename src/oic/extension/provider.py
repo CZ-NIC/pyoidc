@@ -101,7 +101,7 @@ class Provider(provider.Provider):
                  authn_at_registration="", client_info_url="",
                  secret_lifetime=86400, jwks_uri='', keyjar=None,
                  capabilities=None, verify_ssl=True, baseurl='', hostname='',
-                 config=None, behavior=None, lifetime_policy=None):
+                 config=None, behavior=None, lifetime_policy=None, **kwargs):
 
         if not name.endswith("/"):
             name += "/"
@@ -137,7 +137,7 @@ class Provider(provider.Provider):
         self.baseurl = baseurl
         self.hostname = hostname or socket.gethostname()
         self.kid = {"sig": {}, "enc": {}}
-        self.config = config
+        self.config = config or {}
         self.behavior = behavior or {}
         self.token_policy = {'access_token': {}, 'refresh_token': {}}
         if lifetime_policy is None:
@@ -397,11 +397,11 @@ class Provider(provider.Provider):
                                           error_description="%s" % err)
             return BadRequest(msg.to_json(), content="application/json")
 
-        # authenticated client
+        # If authentication is necessary at registration
         if self.authn_at_registration:
             try:
-                _ = self.verify_client(kwargs['environ'], _request,
-                                       self.authn_at_registration)
+                self.verify_client(kwargs['environ'], _request,
+                                   self.authn_at_registration)
             except (AuthnFailure, UnknownAssertionType):
                 return Unauthorized()
 
@@ -448,8 +448,8 @@ class Provider(provider.Provider):
 
         # authenticated client
         try:
-            _ = self.verify_client(kwargs['environ'], kwargs['request'],
-                                   "bearer_header", client_id=_id)
+            self.verify_client(kwargs['environ'], kwargs['request'],
+                               "bearer_header", client_id=_id)
         except (AuthnFailure, UnknownAssertionType):
             return Unauthorized()
 
