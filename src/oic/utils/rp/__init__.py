@@ -31,7 +31,8 @@ class OIDCError(Exception):
 class Client(oic.Client):
     def __init__(self, client_id=None, ca_certs=None,
                  client_prefs=None, client_authn_method=None, keyjar=None,
-                 verify_ssl=True, behaviour=None, config=None):
+                 verify_ssl=True, behaviour=None, config=None, jwks_uri='',
+                 kid=None):
         oic.Client.__init__(self, client_id, ca_certs, client_prefs,
                             client_authn_method, keyjar, verify_ssl,
                             config=config)
@@ -42,9 +43,11 @@ class Client(oic.Client):
         self.authz_req = {}
         self.get_userinfo = True
         self.oidc = True
+        self.jwks_uri = jwks_uri
+        self.kid = kid
 
     def create_authn_request(self, session, acr_value=None, **kwargs):
-        session["state"] = rndstr()
+        session["state"] = rndstr(32)
         request_args = {
             "response_type": self.behaviour["response_type"],
             "scope": self.behaviour["scope"],
@@ -53,7 +56,7 @@ class Client(oic.Client):
         }
 
         if self.oidc:
-            session["nonce"] = rndstr()
+            session["nonce"] = rndstr(32)
             request_args['nonce'] = session['nonce']
 
         if acr_value is not None:
@@ -217,7 +220,7 @@ class Client(oic.Client):
 
 
 class OIDCClients(object):
-    def __init__(self, config, base_url, seed=''):
+    def __init__(self, config, base_url, seed='', jwks_info = None):
         """
 
         :param config: Imported configuration module
@@ -230,12 +233,19 @@ class OIDCClients(object):
         self.seed = self.seed.encode('utf8')
         self.path = {}
         self.base_url = base_url
+        self.jwks_info = jwks_info
 
         for key, val in config.CLIENTS.items():
+            if self.jwks_info:
+                _val = val.copy()
+                _val.update(self.jwks_info)
+            else:
+                _val = val
+
             if key == "":
                 continue
             else:
-                self.client[key] = self.create_client(**val)
+                self.client[key] = self.create_client(**_val)
 
     def get_path(self, redirect_uris, issuer):
         for ruri in redirect_uris:
@@ -336,7 +346,8 @@ class OIDCClients(object):
 
     def dynamic_client(self, userid='', issuer=''):
         client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
-                                 verify_ssl=self.config.VERIFY_SSL)
+                                 verify_ssl=self.config.VERIFY_SSL,
+                                 **self.jwks_info)
 
         if userid:
             issuer = client.wf.discovery_query(userid)
@@ -370,6 +381,9 @@ class OIDCClients(object):
                 pass
 
             self.get_path(reg_args['redirect_uris'], issuer)
+            if client.jwks_uri:
+                reg_args['jwks_uri'] = client.jwks_uri
+
             rr = client.register(_pcr["registration_endpoint"], **reg_args)
             logger.info('Registration response: {}'.format(rr.to_dict()))
 
