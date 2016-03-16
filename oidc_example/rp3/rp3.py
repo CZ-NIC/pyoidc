@@ -17,6 +17,8 @@ from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 
 from requests.packages import urllib3
+from oic.utils.keyio import build_keyjar
+from oic.utils.rp.oauth2 import OAuthClients
 
 urllib3.disable_warnings()
 
@@ -151,10 +153,10 @@ def application(environ, start_response):
             return opchoice(environ, start_response, clients)
         else:
             client = clients[session["op"]]
-            check_session_iframe_url = None
+            # check_session_iframe_url = None
             try:
-                check_session_iframe_url = client.provider_info[
-                    "check_session_iframe"]
+                # check_session_iframe_url = client.provider_info[
+                #     "check_session_iframe"]
 
                 session["session_management"] = {
                     "session_state": query["session_state"][0],
@@ -169,8 +171,6 @@ def application(environ, start_response):
                  p in session])
 
             return opresult(environ, start_response, **kwargs)
-
-
     elif path == "rp":  # After having chosen which OP to authenticate at
         if "uid" in query:
             try:
@@ -180,11 +180,8 @@ def application(environ, start_response):
         elif 'issuer' in query:
             try:
                 client = clients[query["issuer"][0]]
-            except KeyError:
-                try:
-                    client = clients.dynamic_client(issuer=query["issuer"][0])
-                except (ConnectionError, OIDCError) as err:
-                    return operror(environ, start_response, '{}'.format(err))
+            except (ConnectionError, OIDCError) as err:
+                return operror(environ, start_response, '{}'.format(err))
         else:
             client = clients[query["op"][0]]
 
@@ -203,7 +200,8 @@ def application(environ, start_response):
 
         try:
             resp = client.create_authn_request(session, acr_values)
-        except Exception:
+        except Exception as err:
+            logging.error(err)
             raise
         else:
             return resp(environ, start_response)
@@ -402,7 +400,31 @@ if __name__ == '__main__':
             urlparse(conf.BASE).netloc.replace(":", "."))
     }
 
-    _clients = OIDCClients(conf, _base)
+    try:
+        key_spec = conf.KEY_SPECIFICATION
+    except AttributeError:
+        jwks_info = {}
+    else:
+        jwks, keyjar, kidd = build_keyjar(key_spec)
+        jwks_info = {
+            'jwks_uri': '{}static/jwks_uri.json'.format(_base),
+            'keyjar': keyjar,
+            'kid': kidd
+        }
+        f = open('static/jwks_uri.json', 'w')
+        f.write(json.dumps(jwks))
+        f.close()
+
+    try:
+        ctype = conf.CLIENT_TYPE
+    except KeyError:
+        ctype = 'OIDC'
+
+    if ctype == 'OIDC':
+        _clients = OIDCClients(conf, _base, jwks_info=jwks_info)
+    else:
+        _clients = OAuthClients(conf, _base, jwks_info=jwks_info)
+
     SERVER_ENV.update({"template_lookup": LOOKUP, "base_url": _base})
 
     kwargs = {'clients': _clients,

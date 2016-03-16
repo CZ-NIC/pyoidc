@@ -133,7 +133,8 @@ class TestClaimsServer(object):
         symkey = KeyBundle(
             [{"kty": "oct", "key": "abcdefghijklmnop", "use": "ver"},
              {"kty": "oct", "key": "abcdefghijklmnop", "use": "sig"}])
-        base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/keys"))
+        base_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "data/keys"))
         rsakey = keybundle_from_local_file(
             os.path.abspath(os.path.join(base_path, "rsa.key")), "rsa",
             ["ver", "sig"])

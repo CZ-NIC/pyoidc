@@ -901,7 +901,9 @@ class TestProvider(object):
         provider = Provider(SERVER_INFO["issuer"], SessionDB(SERVER_INFO["issuer"]), CDB,
                             AUTHN_BROKER, USERINFO,
                             AUTHZ, verify_client, SYMKEY, urlmap=URLMAP,
-                            keyjar=KEYJAR, capabilities={
+                            keyjar=KEYJAR)
+
+        provider.capabilities.update({
                 "check_session_iframe": "https://op.example.com/check_session"})
 
         req_args = {"scope": ["openid"],
