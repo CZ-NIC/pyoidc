@@ -1,34 +1,27 @@
-import inspect
 import logging
 import random
 import string
-import six
-import requests
 import hashlib
-
-from future.backports.urllib.parse import urlparse
 
 from jwkest import b64e
 from oic import oauth2
 from oic.extension.message import TokenRevocationRequest
+from oic.extension.message import ClientUpdateRequest
+from oic.extension.message import ClientInfoResponse
+from oic.extension.message import RegistrationRequest
+from oic.extension.message import ClientRegistrationError
 from oic.extension.message import TokenIntrospectionRequest
 from oic.extension.message import TokenIntrospectionResponse
-from oic.extension.message import SoftwareStatement
+
 from oic.exception import PyoidcError
 from oic.exception import AuthzError
+
 from oic.oic import OIDCONF_PATTERN
 from oic.oic.message import AuthorizationResponse
+from oic.utils.http_util import SUCCESSFUL
 from oic.utils.keyio import KeyJar
-from oic.utils.jwt import JWT
-from oic.oauth2 import message
+
 from oic.oauth2.message import ErrorResponse
-from oic.oauth2.message import Message
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
-from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
-from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
-from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import SINGLE_OPTIONAL_INT
 from oic.oauth2.exception import Unsupported
 from oic.oauth2.message import AuthorizationRequest
 from oic.oauth2.message import ASConfigurationResponse
@@ -38,132 +31,6 @@ logger = logging.getLogger(__name__)
 __author__ = 'roland'
 
 # -----------------------------------------------------------------------------
-SUCCESSFUL = [200, 201, 202, 203, 204, 205, 206]
-
-
-class InvalidRedirectUri(Exception):
-    pass
-
-
-class MissingPage(Exception):
-    pass
-
-
-class ModificationForbidden(Exception):
-    pass
-
-
-class RegistrationRequest(Message):
-    c_param = {
-        "redirect_uris": REQUIRED_LIST_OF_STRINGS,
-        "client_name": SINGLE_OPTIONAL_STRING,
-        "client_uri": SINGLE_OPTIONAL_STRING,
-        "logo_uri": SINGLE_OPTIONAL_STRING,
-        "contacts": OPTIONAL_LIST_OF_STRINGS,
-        "tos_uri": SINGLE_OPTIONAL_STRING,
-        "policy_uri": SINGLE_OPTIONAL_STRING,
-        "token_endpoint_auth_method": SINGLE_OPTIONAL_STRING,
-        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-        "grant_types": OPTIONAL_LIST_OF_STRINGS,
-        "response_types": OPTIONAL_LIST_OF_STRINGS,
-        "jwks_uri": SINGLE_OPTIONAL_STRING,
-        "software_id": SINGLE_OPTIONAL_STRING,
-        "software_version": SINGLE_OPTIONAL_STRING,
-        'software_statement': OPTIONAL_LIST_OF_STRINGS
-    }
-
-    def verify(self, **kwargs):
-        if "initiate_login_uri" in self:
-            assert self["initiate_login_uri"].startswith("https:")
-
-        if "redirect_uris" in self:
-            for uri in self["redirect_uris"]:
-                if urlparse(uri).fragment:
-                    raise InvalidRedirectUri(
-                        "redirect_uri contains fragment: %s" % uri)
-
-        for uri in ["client_uri", "logo_uri", "tos_uri", "policy_uri"]:
-            if uri in self:
-                try:
-                    resp = requests.request("GET", str(self[uri]),
-                                            allow_redirects=True,
-                                            verify=False)
-                except requests.ConnectionError:
-                    raise MissingPage(self[uri])
-
-                if resp.status_code not in SUCCESSFUL:
-                    raise MissingPage(self[uri])
-
-        # if "grant_types" in self and "response_types" in self:
-        #     for typ in self["grant_types"]:
-        #         if typ == "authorization_code":
-        #             assert "code" in self["response_types"]
-        #         elif typ == "implicit":
-        #             assert "token" in self["response_types"]
-
-        try:
-            ss = self['software_statement']
-        except:
-            pass
-        else:
-            # need to get the client keys before I can verify any signature
-            kj = kwargs['keyjar']
-            # The case where jwks_uri is used
-            # try:
-            #     kj.add(,self['jwks_uri'])
-            _ss = []
-            for _s in ss:
-                _ss.append(unpack_software_statement(_s, '', kwargs['keyjar']))
-            self['__software_statement'] = _ss
-
-        return super(RegistrationRequest, self).verify(**kwargs)
-
-
-class ClientInfoResponse(RegistrationRequest):
-    c_param = RegistrationRequest.c_param.copy()
-    c_param.update({
-        "client_id": SINGLE_REQUIRED_STRING,
-        "client_secret": SINGLE_OPTIONAL_STRING,
-        "client_id_issued_at": SINGLE_OPTIONAL_INT,
-        "client_secret_expires_at": SINGLE_OPTIONAL_INT,
-        "registration_access_token": SINGLE_REQUIRED_STRING,
-        "registration_client_uri": SINGLE_REQUIRED_STRING
-    })
-
-
-class ClientRegistrationError(ErrorResponse):
-    c_param = ErrorResponse.c_param.copy()
-    c_param.update({"state": SINGLE_OPTIONAL_STRING})
-    c_allowed_values = ErrorResponse.c_allowed_values.copy()
-    c_allowed_values.update({"error": ["invalid_redirect_uri",
-                                       "invalid_client_metadata",
-                                       "invalid_client_id"]})
-
-
-class ClientUpdateRequest(RegistrationRequest):
-    c_param = RegistrationRequest.c_param.copy()
-    c_param.update({
-        "client_id": SINGLE_REQUIRED_STRING,
-        "client_secret": SINGLE_OPTIONAL_STRING,
-        'client_assertion_type': SINGLE_OPTIONAL_STRING,
-        'client_assertion': SINGLE_OPTIONAL_STRING
-    })
-
-
-MSG = {
-    "RegistrationRequest": RegistrationRequest,
-    "ClientInfoResponse": ClientInfoResponse,
-    "ClientRegistrationError": ClientRegistrationError,
-    "ClientUpdateRequest": ClientUpdateRequest
-}
-
-
-def factory(msgtype):
-    try:
-        return MSG[msgtype]
-    except KeyError:
-        return message.factory(msgtype)
-
 
 # -----------------------------------------------------------------------------
 
@@ -519,29 +386,3 @@ class Client(oauth2.Client):
         logger.info("Aresp: %s" % aresp)
 
         return aresp
-
-
-def make_software_statement(keyjar, iss, **kwargs):
-    if six.PY2:
-        params = inspect.getargspec(JWT.__init__).args
-    else:
-        params = list(inspect.signature(JWT.__init__).parameters.keys())
-
-    params.remove('self')
-
-    args = {}
-    for param in params:
-        try:
-            args[param] = kwargs[param]
-        except KeyError:
-            pass
-        else:
-            del kwargs[param]
-
-    _jwt = JWT(keyjar, msgtype=SoftwareStatement, iss=iss, **args)
-    return _jwt.pack(**kwargs)
-
-
-def unpack_software_statement(software_statement, iss, keyjar):
-    _jwt = JWT(keyjar, iss=iss, msgtype=SoftwareStatement)
-    return _jwt.unpack(software_statement)

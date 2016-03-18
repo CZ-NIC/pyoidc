@@ -81,3 +81,15 @@ class IssuerMismatch(PyoidcError):
 
 class RestrictionError(PyoidcError):
     pass
+
+
+class InvalidRedirectUri(Exception):
+    pass
+
+
+class MissingPage(Exception):
+    pass
+
+
+class ModificationForbidden(Exception):
+    pass

@@ -1,5 +1,7 @@
+import inspect
 import json
 import uuid
+import six
 
 from oic.oauth2 import Message
 from oic.oauth2 import SINGLE_REQUIRED_STRING

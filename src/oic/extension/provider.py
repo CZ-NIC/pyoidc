@@ -1,3 +1,4 @@
+from functools import cmp_to_key
 import json
 import logging
 import os
@@ -14,17 +15,18 @@ from jwkest import jws, b64e
 from oic import rndstr
 
 from oic.exception import FailedAuthentication
+from oic.exception import ModificationForbidden
 from oic.exception import RestrictionError
 from oic.exception import UnSupported
 from oic.exception import UnknownAssertionType
-from oic.extension.client import ClientInfoResponse
+from oic.extension.message import ClientInfoResponse
+from oic.extension.message import ClientRegistrationError
+from oic.extension.message import ServerMetadata
 from oic.extension.client import CC_METHOD
-from oic.extension.client import ClientUpdateRequest
-from oic.extension.client import ModificationForbidden
-from oic.extension.client import RegistrationRequest
-from oic.extension.client import InvalidRedirectUri
-from oic.extension.client import ClientRegistrationError
-from oic.extension.client import MissingPage
+from oic.extension.message import ClientUpdateRequest
+from oic.extension.message import RegistrationRequest
+from oic.extension.message import InvalidRedirectUri
+from oic.extension.message import MissingPage
 from oic.extension.message import TokenRevocationRequest
 from oic.extension.message import TokenIntrospectionRequest
 from oic.extension.message import TokenIntrospectionResponse
@@ -38,12 +40,13 @@ from oic.oauth2.exception import VerificationError
 from oic.oauth2.exception import CapabilitiesMisMatch
 from oic.oauth2.message import ASConfigurationResponse
 # from oic.oic import ProviderConfigurationResponse
+
 from oic.oic import PREFERENCE2PROVIDER
-from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.provider import RegistrationEndpoint
 from oic.oic.provider import STR
 from oic.oic.provider import secret
 from oic.utils import restrict
+from oic.utils import sort_sign_alg
 from oic.utils.authn.client import AuthnFailure
 from oic.utils.authn.client import UnknownAuthnMethod
 from oic.utils.authn.client import get_client_id
@@ -65,14 +68,14 @@ logger = logging.getLogger(__name__)
 
 CAPABILITIES = {
     "response_types_supported": ["code", "token"],
-    "token_endpoint_auth_methods_supported": [
-        "client_secret_post", "client_secret_basic",
-        "client_secret_jwt", "private_key_jwt"],
     "response_modes_supported": ['query', 'fragment', 'form_post'],
     "grant_types_supported": [
         "authorization_code", "implicit",
         "urn:ietf:params:oauth:grant-type:jwt-bearer"],
 }
+
+AUTH_METHODS_SUPPORTED = ["client_secret_post", "client_secret_basic",
+                          "client_secret_jwt", "private_key_jwt"]
 
 
 class ClientInfoEndpoint(Endpoint):
@@ -124,7 +127,10 @@ class Provider(provider.Provider):
         self.secret_lifetime = secret_lifetime
         self.jwks_uri = jwks_uri
         self.verify_ssl = verify_ssl
-
+        try:
+            self.scopes = kwargs['scopes']
+        except KeyError:
+            self.scopes = ['offline_access']
         self.keyjar = keyjar
         if self.keyjar is None:
             self.keyjar = KeyJar(verify_ssl=self.verify_ssl)
@@ -485,8 +491,7 @@ class Provider(provider.Provider):
             else:
                 return NoContent()
 
-    def provider_features(self, pcr_class=ASConfigurationResponse,
-                          provider_config=None):
+    def provider_features(self, pcr_class=ServerMetadata, provider_config=None):
         """
         Specifies what the server capabilities are.
 
@@ -495,17 +500,17 @@ class Provider(provider.Provider):
         """
 
         _provider_info = pcr_class(**CAPABILITIES)
-
-        _scopes = list(SCOPE2CLAIMS.keys())
-        _provider_info["scopes_supported"] = _scopes
+        _provider_info["scopes_supported"] = self.scopes
 
         sign_algs = list(jws.SIGNER_ALGS.keys())
-        # Remove 'none' for token_endpoint_auth_signing_alg_values_supported
-        # since it is not allowed
-        sign_algs = sign_algs[:]
         sign_algs.remove('none')
-        _provider_info[
-            "token_endpoint_auth_signing_alg_values_supported"] = sign_algs
+        sign_algs = sorted(sign_algs, key=cmp_to_key(sort_sign_alg))
+
+        _pat1 = "{}_endpoint_auth_signing_alg_values_supported"
+        _pat2 = "{}_endpoint_auth_methods_supported"
+        for typ in ["token", "revocation", "introspection"]:
+            _provider_info[_pat1.format(typ)] = sign_algs
+            _provider_info[_pat2.format(typ)] = AUTH_METHODS_SUPPORTED
 
         if provider_config:
             _provider_info.update(provider_config)
@@ -717,7 +722,7 @@ class Provider(provider.Provider):
         at = self.token_handler.refresh_access_token(
             self.baseurl, areq['access_token'], 'refresh_token')
 
-        atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
+        atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **at))
         return Response(atr.to_json(), content="application/json")
 
     def token_endpoint(self, authn="", **kwargs):
