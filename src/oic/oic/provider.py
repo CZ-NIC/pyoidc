@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import base64
 import copy
+from functools import cmp_to_key
 import hashlib
 import hmac
 import itertools
@@ -60,6 +61,7 @@ from oic.oic.message import RefreshAccessTokenRequest
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import TokenErrorResponse
+from oic.utils import sort_sign_alg
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Created
 from oic.utils.http_util import SeeOther
@@ -205,18 +207,17 @@ class Provider(AProvider):
                            verify_ssl=verify_ssl)
 
         # Should be a OIC Server not an OAuth2 server
-        self.server = Server(ca_certs=ca_certs, verify_ssl=verify_ssl)
+        self.server = Server(keyjar=keyjar, ca_certs=ca_certs,
+                             verify_ssl=verify_ssl)
+        # Same keyjar
+        self.keyjar = self.server.keyjar
 
         self.endp.extend([UserinfoEndpoint, RegistrationEndpoint,
                           EndSessionEndpoint])
 
         self.userinfo = userinfo
-
-        if keyjar:
-            self.server.keyjar = keyjar
         self.template_lookup = template_lookup
         self.template = template or {}
-        self.keyjar = self.server.keyjar
         self.baseurl = baseurl or name
         self.cert = []
         self.cert_encryption = []
@@ -241,17 +242,11 @@ class Provider(AProvider):
                                                  endp.url)
                 break
 
-        self.jwx_def = {}
-        for _typ in ["sign_alg", "enc_alg", "enc_enc"]:
-            self.jwx_def[_typ] = {}
-            for item in ["request_object", "id_token", "userinfo"]:
-                self.jwx_def[_typ][item] = ""
-
-        self.jwx_def["sign_alg"]["id_token"] = "RS256"
-
         self.force_jws = {}
         for item in ["request_object", "id_token", "userinfo"]:
             self.force_jws[item] = False
+
+        self.jwx_def = {}
 
         if capabilities:
             self.verify_capabilities(capabilities)
@@ -259,11 +254,26 @@ class Provider(AProvider):
         else:
             self.capabilities = self.provider_features()
         self.capabilities["issuer"] = self.name
+
+        self.build_jwx_def()
+
         self.kid = {"sig": {}, "enc": {}}
 
         # Allow custom schema (inheriting from OpenIDSchema) to be used -
         # additional attributes
         self.schema = schema
+
+    def build_jwx_def(self):
+        self.jwx_def = {}
+
+        for _typ in ["signing_alg", "encryption_alg", "encryption_enc"]:
+            self.jwx_def[_typ] = {}
+            for item in ["id_token", "userinfo"]:
+                cap_param = '{}_{}_values_supported'.format(item, _typ)
+                try:
+                    self.jwx_def[_typ][item] = self.capabilities[cap_param][0]
+                except KeyError:
+                    self.jwx_def[_typ][item] = ""
 
     def set_mode(self, mode):
         """
@@ -275,8 +285,8 @@ class Provider(AProvider):
 
         # Is there a signing algorithm I should use
         try:
-            self.jwx_def["sign_alg"]["id_token"] = mode["sign"]
-            self.jwx_def["sign_alg"]["userinfo"] = mode["sign"]
+            self.jwx_def["signing_alg"]["id_token"] = mode["sign"]
+            self.jwx_def["signing_alg"]["userinfo"] = mode["sign"]
         except KeyError:
             pass
         else:
@@ -315,7 +325,7 @@ class Provider(AProvider):
                                exp=None, extra_claims=None):
 
         if alg == "":
-            alg = self.jwx_def["sign_alg"]["id_token"]
+            alg = self.jwx_def["signing_alg"]["id_token"]
 
         if alg:
             logger.debug("Signing alg: %s [%s]" % (alg, alg2keytype(alg)))
@@ -701,7 +711,7 @@ class Provider(AProvider):
         if before != req.to_dict():
             logging.warning('Request modified ! From {} to {}'.format(
                 before, req.to_dict()))
-            
+
         return req
 
     def authorization_endpoint(self, request="", cookie=None, **kwargs):
@@ -856,7 +866,7 @@ class Provider(AProvider):
             alg = client_info["id_token_signed_response_alg"]
         except KeyError:
             try:
-                alg = self.jwx_def["sign_alg"]["id_token"]
+                alg = self.jwx_def["signing_alg"]["id_token"]
             except KeyError:
                 alg = PROVIDER_DEFAULT["id_token_signed_response_alg"]
             else:
@@ -1100,7 +1110,7 @@ class Provider(AProvider):
         try:
             algo = client_info["userinfo_signed_response_alg"]
         except KeyError:  # Fall back to default
-            algo = self.jwx_def["sign_alg"]["userinfo"]
+            algo = self.jwx_def["signing_alg"]["userinfo"]
 
         if algo == "none":
             key = []
@@ -1451,7 +1461,8 @@ class Provider(AProvider):
             for base, query_dict in args[param]:
                 if query_dict:
                     query_string = urlencode(
-                        [(key, v) for key in query_dict for v in query_dict[key]])
+                        [(key, v) for key in query_dict for v in
+                         query_dict[key]])
                     val.append("%s?%s" % (base, query_string))
                 else:
                     val.append(base)
@@ -1642,7 +1653,10 @@ class Provider(AProvider):
         _scopes.append("openid")
         _provider_info["scopes_supported"] = _scopes
 
+        # Sort order RS, ES, HS, PS
         sign_algs = list(jws.SIGNER_ALGS.keys())
+        sign_algs = sorted(sign_algs, key=cmp_to_key(sort_sign_alg))
+
         for typ in ["userinfo", "id_token", "request_object"]:
             _provider_info["%s_signing_alg_values_supported" % typ] = sign_algs
 
