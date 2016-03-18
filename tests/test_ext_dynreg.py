@@ -2,7 +2,6 @@ import json
 import os
 
 import pytest
-import six
 
 from oic.utils.http_util import Response
 from oic.utils.http_util import NoContent
@@ -15,8 +14,8 @@ from oic.utils.authn.client import ClientSecretBasic
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
 from oic.utils import sdb
-from oic.extension.client import make_software_statement
-from oic.extension.client import unpack_software_statement
+from oic.extension.message import make_software_statement
+from oic.extension.message import unpack_software_statement
 from oic.extension.client import ClientInfoResponse
 from oic.extension.client import ClientRegistrationError
 from oic.extension.client import RegistrationRequest

@@ -945,6 +945,13 @@ class TestProvider(object):
                                          sformat="urlencoded")
         return aresp["id_token"]
 
+    def test_id_token_RS512_sign(self):
+        self.provider.capabilities[
+            'id_token_signing_alg_values_supported'] = ['RS512']
+        self.provider.build_jwx_def()
+        id_token = self._auth_with_id_token()
+        assert id_token.jws_header['alg'] == "RS512"
+
 
 if __name__ == "__main__":
     t = TestProvider()

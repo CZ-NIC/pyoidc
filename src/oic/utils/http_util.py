@@ -20,6 +20,9 @@ __author__ = 'rohe0002'
 logger = logging.getLogger(__name__)
 
 
+SUCCESSFUL = [200, 201, 202, 203, 204, 205, 206]
+
+
 class Response(object):
     _template = None
     _status = '200 OK'
