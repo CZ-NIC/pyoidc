@@ -46,18 +46,18 @@
     <workgroup>Internet Engineering Task Force</workgroup>
     <keyword>OIDC</keyword>
     <abstract>
-      <t>The OpenID Connect standard specifies how an Relying Party (RP)
-        can discover an OpenID Connect Provider (OP) and later register
-        with that OP. If just standard OpenID Connect registration is done
-        the OP has to take the registered information at face
-        value. There is no easy way by which the OP can verify the information.
+      <t>The OpenID Connect standard specifies how a Relying Party (RP)
+        can discover and register with an OpenID Connect Provider (OP).
+        If just standard OpenID Connect registration is performed, there
+        is no easy way by which the OP can verify the information.
       </t>
       <t>
-        This document describes a way that a trusted third party can be used
-        to allow an OP to have trust in some parts of the registration
-        information.
-        The same mechanism is also valid for the information that the RP
-        receives from the OP when doing dynamic discovery.
+        This document describes a model in which a trusted third party
+        is used to allow an OP to have trust in some parts of
+        the registration information.
+        The same mechanism is also used to allow an RP to have some trust
+        in the provider configuration information received from the OP
+        when doing dynamic discovery.
       </t>
     </abstract>
   </front>
@@ -65,7 +65,7 @@
   <middle>
     <section anchor='Introduction' title="Introduction">
       <t>The original specification of OpenID Connect defines how a
-        relaying party and an OpenID Connect Provider dynamically can
+        Relying Party and an OpenID Connect Provider dynamically can
         exchange information necessary for successful communication.
       </t>
       <t>One problem with using dynamic discovery and registration is that
@@ -74,7 +74,8 @@
       <t>
         Software statements, as introduced by RFC 7591, is a possible choice for
         transferring verified data and trust in the data by using a
-        trusted third party (the verifier) between clients and servers.
+        trusted third party (that verifies and enforces some common policy)
+        between clients and servers.
       </t>
       <t>
         Both dynamic client registration and provider discovery
@@ -91,85 +92,96 @@
     </section>
 
     <section title="Trust model">
-      <t>TODO description of Trust Model</t>
+      <t>The trust model is based on chains of trust, linking together
+        signing keys, represented as JWKs<xref target="RFC7517">JWK</xref>,
+        using JSON Web Signatures<xref target="RFC7515">JWS</xref>.
+        The signature chain is rooted in the trusted third party's
+        signature, and then built upon by the respective entity.
+
+        By verifying such signature chains the entities can establish
+        trust in the data verified by the trusted third party.
+      </t>
       <t>
-        The Federation Operator (FO) acting as the trusted third part will
-        sign a public key belonging to an
-        entity in the federation (in the text below this is called the primary
-        key). Since engaging an FO to sign a key is an
-        expensive operation this should happen seldom, preferably only
-        once during the lifetime of the entity.
-        On the other hand it should be possible for the entity to rotate it's
-        public keys as often as it wants. The public keys are typically
-        published by an entity by making them accessible at the jwks_uri
+        A federation, acting as the trusted third party, will
+        sign a public key belonging to an entity in the federation
+        After it being signed, this public key together with its
+        private counterpart is the <spanx style="verb">primary key</spanx>
+        of this entity. Since engaging a Federation Operator (FO) to sign
+        a key is an expensive operation this should happen seldom,
+        preferably only once during the lifetime of the entity.
+        On the other hand it should be possible for the entity to rotate its
+        keys as often as it wishes. The public keys are typically
+        published by an entity by making them accessible at the 'jwks_uri'
         location (defined by<xref target="OpenID.Core">OIDC</xref>).
       </t>
       <t>
-        To accomplish this an intermediate key is created
-        that the entity can use to sign the public keys. The signed public keys
-        should be published as JWS at the location pointed to by
-        'signed_jwks_uri' in client registration requests
-        and provider configuration responses. When an entity fetches information
-        from the URL defined in 'signed_jwks_uri' it should expect to find a
-        signed JWT containing whatever it also might be able to find at
-        the jwks_uri location.
+        To allow for simple key rotation, the entity creates an
+        <spanx style="verb">intermediate key</spanx>.
+        The intermediate key is used by the entity to sign the JWKS containing
+        the entity's public keys intended for OpenID Connect communication and
+        the resulting JWS MUST be published at the location pointed to by the
+        'signed_jwks_uri' parameter in the entity's metadata. An RP MUST define
+        this parameter in the Client Registration Request and an OP MUST define
+        this parameter in the Provider Configuration Response. An entity operating
+        within the trust of a federation MUST disregard any unsigned keys published
+        at the standard jwks_uri location.
       </t>
       <t>
-        The intermediate key is transferred by adding a signed JWT containing
-        the
-        JWK representation of its public key as value to the
+        The intermediate key is transferred by signing the JWK representation
+        of its public key and adding the resulting JWS as the value to the
         <spanx style="verb">signed_key</spanx>
         parameter or by placing the JWS at a location specified by the URL in
-        the<spanx style="verb">signed_key_url</spanx>. The intermediate key
-        MUST be signed by the key signed by the FO.
+        the<spanx style="verb">signed_key_uri</spanx>. The intermediate key
+        MUST be signed by the key primary key.
       </t>
       <t>
-        The chain from top to bottom:
+        The keys required for OpenID Connect communication, typically published
+        at the jwks_uri location MUST be signed by both
+      </t>
+      <t>
+        The chain from top to bottom consists of:
 
         <list style="symbols">
-          <t>The FO's public key</t>
-          <t>The primary key signed by the FO</t>
-          <t>The intermediate keys signed by the primary key.</t>
-          <t>The key material (the tertiary keys) that will be used
-            to verify signature from the opponent or for encrypting requests
-            to the opponent. These keys are if signed, signed by the
-            intermediate key.
+          <t>the federations public key,</t>
+          <t>the entity's primary key signed by the federation</t>
+          <t>the entity's intermediate key signed by the primary key,</t>
+          <t>the entity's public keys in a JWKS, signed by the intermediate key.
           </t>
         </list>
       </t>
       <t>
         The verified keys can be cached making the expensive traversal of the
-        signature chain necessary only when the intermediate key are rotated.
+        signature chain necessary only when the intermediate key is rotated.
       </t>
     </section>
 
     <section title="Joining a federation">
       <t>
-        The Federation Operator (FO) must have a public/private signing key
-        pair, call it F. The public part of this key, pub(F), MUST be
-        distributed to all entities that are part of the federation. How this
-        is accomplished is out of scope for this document.
+        The Federation Operator (FO) must have access to a signing key
+        pair, call it F, that is long-lived. The public part of this key pair MUST be
+        distributed to all entities that are part of the federation. This process of
+        key distribution is out of scope for this document.
       </t>
       <section title="Steps of joining a federation">
         <t>
           <list style="numbers">
-            <t>The operator of the entity creates a long-lived signing key pair;
-              call it A.
+            <t>The operator of the entity creates a long-lived signing key pair.
             </t>
-            <t>The entity operator submits registration data to the Federation
-              Operator (FO). The registration data MUST contain the entity's
+            <t>The entity operator submits registration data to the FO.
+              The registration data MUST contain the entity's
               primary key and MAY contain other information dependent on which
               type of entity it is.
             </t>
-            <t>FO returns a signed (with key F) software statement, containing
+            <t>The FO returns a software statement, signed with key F, containing
               the submitted registration data, and any policy restrictions
               applied by the FO.
             </t>
           </list>
         </t>
-        <t>If the entity is a Relying Party the registration data MUST contain
-          'redirect_uris'. If the entity is an OpenID ConnectProvider it MUST
-          contain 'issuer'.
+        <t>
+          If the entity is a Relying Party, the registration data MUST contain
+          'redirect_uris'. If the entity is an OpenID Connect Provider the
+          registration data MUST contain 'issuer'.
         </t>
       </section>
     </section>
@@ -177,10 +189,10 @@
     <section title="OpenID Connect communication">
       <figure>
         <preamble>
-          The trust between the entities are established using the described
+          The trust between the entities is established using the above described
           extensions in the first tree steps of the communication between
-          the RP and the OP.
-          How, the RP found the OP in the first place is out of scope for this
+          an RP and an OP.
+          How the RP found the OP in the first place is out of scope for this
           document.
         </preamble>
         <artwork><![CDATA[
@@ -193,7 +205,7 @@
         </artwork>
         <postamble>
           After the discovery and registration is completed a first time,
-          they SHOULD only be repeated if any changes occur (see notes in
+          those steps SHOULD only be repeated if any changes occur (see notes in
           respective sections below).
         </postamble>
       </figure>
@@ -214,21 +226,9 @@
               <vspace/>
               OPTIONAL.
               A JSON object where the member names are the issuer identifiers of
-              the federation that has signed a software statement and
-              the values are URLs pointing to the corresponding software
+              the federation that has signed a software statement for this entity
+              and the values are URLs pointing to the corresponding software
               statements.
-            </t>
-            <t hangText="signed_metadata">
-              <vspace/>
-              OPTIONAL.
-              A JWS containing all published metadata, except the
-              <spanx style="verb">signed_metadata</spanx>
-              itself.
-            </t>
-            <t hangText="signed_metadata_uri">
-              <vspace/>
-              OPTIONAL.
-              Location of the signed metadata.
             </t>
             <t hangText="signed_jwks_uri">
               <vspace/>
@@ -241,21 +241,41 @@
             <t hangText="signing_key">
               <vspace/>
               OPTIONAL.
-              A JWK containing the entity's intermediate public key.
+              A JWS containing the entity's intermediate public key.
             </t>
-            <t hangText="signing_keys_uri">
+            <t hangText="signing_key_uri">
               <vspace/>
               OPTIONAL.
-              Location of the JWKS containing the intermediate
+              Location of the JWS containing the intermediate
               key that the entity, signed by the primary key.
             </t>
           </list>
         </t>
         <t>
           For all the pairs: software_statements/software_statements_uri,
-          signed_metadata/signed_metadata_uri and signing_key/signing_keys_uri
+          signed_metadata/signed_metadata_uri and signing_key/signing_key_uri
           one
           parameter from the pair MUST be present.
+        </t>
+        <t>
+          An OP also MUST publish either of the following parameters in the
+          Provider Configuration Response:
+        </t>
+        <t>
+          <list style="hanging">
+            <t hangText="signed_metadata">
+              <vspace/>
+              OPTIONAL.
+              A JWS containing all published metadata, except the
+              <spanx style="verb">signed_metadata</spanx>
+              itself.
+            </t>
+            <t hangText="signed_metadata_uri">
+            <vspace/>
+              OPTIONAL.
+              Location of the signed metadata.
+            </t>
+          </list>
         </t>
       </section>
       <section title="Federation policy">
@@ -267,8 +287,8 @@
           <xref target="OpenID.Registration">(OpenID Connect Dynamic Client
             Registration 1.0)
           </xref>
-          MUST override what ever value the same
-          parameter has in the transfered metadata.
+          MUST override whatever value the same
+          parameter has in the transferred metadata.
         </t>
         <section title="Additional policy parameters">
           <t>
@@ -293,13 +313,10 @@
       </section>
     </section>
     <section title="Verification process">
+      <t>Upon receiving metadata from another entity, the following steps
+        MUST be performed:</t>
       <t>
-        When an entity receives metadata from another entity.
-        It MUST complete the following steps:
-      </t>
-      <t>Upon receiving the response the entity MUST do the following steps:</t>
-      <t>
-        <list style="symbols">
+        <list style="numbers">
           <t>
             Find all software statements published by the opponent
             either through the
@@ -315,33 +332,34 @@
             Verify signature and unpack the chosen software statement:
             <list style="numbers">
               <t>Verify the signature of the software statement using the
-                Federation key.
+                federations public key.
               </t>
-              <t>Unpack the opponents primary signing key from the software
+              <t>Unpack the opponents primary key from the software
                 statement.
               </t>
             </list>
           </t>
-          <t>Verify the received metadata:
-            <list style="numbers">
-              <t>If the entity is a RP verify that the
-                value of the 'issuer' parameter in the software statement
-                matches 'issuer' in the discovery response.
-              </t>
-              <t>Verify the signature of intermediate key, published
-                in either
-                <spanx style="verb">signing_key</spanx>
-                or
-                <spanx style="verb">signing_key_uri</spanx>
-                with the primary signing key.
-              </t>
-              <t>Verify the signature of the JWS in
-                <spanx style="verb">signed_metadata</spanx>
-                with teh extracted intermediate signing key, and
-                use this metadata instead of the clear-text values provided in
-                the OpenID Provider Configuration Response.
-              </t>
-            </list>
+          <t>Verify signature of the intermediate key, published
+             in either
+             <spanx style="verb">signing_key</spanx>
+             or
+             <spanx style="verb">signing_key_uri</spanx>
+             with the primary key.
+          </t>
+         </list>
+      </t>
+      <t>
+        If the entity is an RP receiving metadata from an OP, it MUST also
+        perform additional verification steps:
+        <list style="numbers">
+          <t>Verify that the value of the 'issuer' parameter in the software
+            statement matches the value of 'issuer' in the discovery response.
+          </t>
+          <t>Verify the signature of the JWS in
+            <spanx style="verb">signed_metadata</spanx>
+            with the extracted intermediate signing key, and
+            use this metadata instead of the clear-text values provided in
+            the OpenID Provider Configuration Response.
           </t>
         </list>
       </t>
@@ -355,7 +373,7 @@
         metadata parameters specified above.
       </t>
       <t>
-        Note: Depending on whether signing_key or signing_keys_uri where used
+        Note: Depending on whether signing_key or signing_key_uri were used
         in the OpenID Provider Configuration Request Response the RP must
         behave differently when the OP rotates its intermediate signing key
         pair.
@@ -363,8 +381,8 @@
         <spanx style="verb">signing_key</spanx>
         where used then the RP has to issue a new
         OpenID Provider Configuration request. If the parameter
-        <spanx style="verb">signing_keys_uri</spanx>
-        the new keys can be obtained by querying
+        <spanx style="verb">signing_key_uri</spanx>
+        the new key can be obtained by querying
         the URL again.
       </t>
     </section>
@@ -378,7 +396,20 @@
         additional metadata specified above, which is signed using
         <xref target="SignedHttp"></xref>
         and includes the signature
-        in the HTTP Authorization headers as Authorization.
+        in the HTTP Authorization header using the authorization scheme
+        <spanx style="verb">pop</spanx>.
+        The following is a non-normative example of a registration request:
+        <figure>
+        <artwork><![CDATA[
+POST /registration HTTP/1.1
+Host: server.example.com
+Content-Type: application/json
+Authorization: pop eyJpc3MiOiJzY290Y2g ...
+
+...
+        ]]></artwork>
+      </figure>
+
       </t>
     </section>
     <section anchor="Acknowledgements" title="Acknowledgements">
@@ -437,9 +468,11 @@
 
     <references title="Normative References">
       <!--?rfc include="http://xml.resource.org/public/rfc/bibxml/reference.RFC.2119.xml"?-->
-      <?rfc include="http://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.5226"?>
-      <?rfc include="http://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.2119"?>
-      <?rfc include="http://xml2rfc.tools.ietf.org/public/rfc/bibxml/reference.RFC.3552"?>
+      <?rfc include="reference.RFC.5226"?>
+      <?rfc include="reference.RFC.2119"?>
+      <?rfc include="reference.RFC.3552"?>
+      <?rfc include="reference.RFC.7515"?>
+      <?rfc include="reference.RFC.7517"?>
       <reference anchor="OpenID.Core"
                  target="http://openid.net/specs/openid-connect-core-1_0.html">
         <front>
@@ -577,7 +610,7 @@ gMWOmsCHrkOHqyUrQ1kmn9rcx01XY-kd5V4vmOxgFPU",
       <section title="Relying Party joining a federation">
         <section title="Step 1">
           <t>
-            Relying Party Operator (RPO) creates a the primary signing key pair.
+            Relying Party Operator (RPO) creates the primary key pair.
             <figure>
               <artwork><![CDATA[
 {
