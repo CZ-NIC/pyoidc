@@ -856,8 +856,9 @@ class Client(PBase):
 
 
 class Server(PBase):
-    def __init__(self, keys=None, ca_certs=None, verify_ssl=True):
-        PBase.__init__(self, ca_certs, verify_ssl)
+    def __init__(self, keyjar=None, ca_certs=None, verify_ssl=True):
+        PBase.__init__(self, keyjar=keyjar, ca_certs=ca_certs,
+                       verify_ssl=verify_ssl)
 
     @staticmethod
     def parse_url_request(request, url=None, query=None):

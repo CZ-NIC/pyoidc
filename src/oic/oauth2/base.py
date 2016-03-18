@@ -14,9 +14,12 @@ logger = logging.getLogger(__name__)
 
 
 class PBase(object):
-    def __init__(self, ca_certs=None, verify_ssl=True):
+    def __init__(self, ca_certs=None, verify_ssl=True, keyjar=None):
 
-        self.keyjar = KeyJar(verify_ssl=verify_ssl)
+        if keyjar:
+            self.keyjar = keyjar
+        else:
+            self.keyjar = KeyJar(verify_ssl=verify_ssl)
 
         self.request_args = {"allow_redirects": False}
         # self.cookies = {}
