@@ -432,7 +432,12 @@ class Provider(object):
         except KeyError:
             return self._error('unauthorized_client', 'unknown client')
         else:
-            if ' '.join(areq["response_type"]) not in _cinfo['response_types']:
+            try:
+                rtypes = _cinfo['response_types']
+            except KeyError:
+                rtypes = ['code']  # default according to OIDC registration
+
+            if ' '.join(areq["response_type"]) not in rtypes:
                 return self._error("invalid_request",
                                    "Trying to use unregistered response_typ")
 
