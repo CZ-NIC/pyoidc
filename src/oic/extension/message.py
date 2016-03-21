@@ -1,13 +1,13 @@
-import inspect
-from future.backports.urllib.parse import urlparse
-from oic.utils.jwt import JWT
 import requests
 import six
+import inspect
+
+from future.backports.urllib.parse import urlparse
+import sys
 
 from oic.exception import InvalidRedirectUri
 from oic.exception import MissingPage
-from oic.utils.http_util import SUCCESSFUL
-from oic.oauth2.message import FormatError
+
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import Message
 from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
@@ -16,7 +16,11 @@ from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 from oic.oauth2.message import SINGLE_OPTIONAL_INT
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
+
 from oic.oic.message import JasonWebToken
+
+from oic.utils.http_util import SUCCESSFUL
+from oic.utils.jwt import JWT
 
 __author__ = 'roland'
 
@@ -228,10 +232,18 @@ MSG = {
 
 
 def factory(msgtype):
-    try:
-        return MSG[msgtype]
-    except KeyError:
-        raise FormatError("Unknown message type: %s" % msgtype)
+    for name, obj in inspect.getmembers(sys.modules[__name__]):
+        if inspect.isclass(obj) and issubclass(obj, Message):
+            try:
+                if obj.__name__ == msgtype:
+                    return obj
+            except AttributeError:
+                pass
+
+    # check among standard OAuth2 messages
+    from oic.oauth2 import message
+
+    return message.factory(msgtype)
 
 
 def make_software_statement(keyjar, iss, **kwargs):

@@ -34,4 +34,4 @@ def test_jwt_pack_and_unpack():
 
     info = srv.unpack(_jwt)
 
-    assert _eq(info.keys(), ['jti', 'iat', 'exp', 'iss', 'sub'])
+    assert _eq(info.keys(), ['jti', 'iat', 'exp', 'iss', 'sub', 'kid'])

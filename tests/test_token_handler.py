@@ -83,7 +83,7 @@ class TestTokenHandler(object):
         info = self.th.token_factory.get_info(token)
 
         assert _eq(list(info.keys()),
-                   ['jti', 'scope', 'exp', 'iss', 'aud', 'iat'])
+                   ['jti', 'scope', 'exp', 'iss', 'aud', 'iat', 'kid', 'azp'])
 
     def test_construct_access_token_fail(self):
         # Unknown client
@@ -118,6 +118,6 @@ class TestTokenHandler(object):
         info = self.th.token_factory.get_info(rtoken)
 
         assert _eq(list(info.keys()),
-                   ['jti', 'exp', 'iss', 'aud', 'iat'])
+                   ['jti', 'exp', 'iss', 'aud', 'iat', 'kid', 'azp'])
 
         assert self.th.refresh_token_factory.db[info['jti']] == sid

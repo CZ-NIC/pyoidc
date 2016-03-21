@@ -55,7 +55,7 @@ class TestSoftwareStatement(object):
 
         msg = unpack_software_statement(ss, self.issuer, self.keyjar)
         assert msg
-        assert _eq(msg.keys(), ['client_id', 'iat', 'iss', 'exp', 'jti'])
+        assert _eq(msg.keys(), ['client_id', 'iat', 'iss', 'exp', 'jti', 'kid'])
         assert msg['client_id'] == 'ABC 001'
         assert msg['iss'] == self.issuer
 

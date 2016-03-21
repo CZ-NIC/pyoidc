@@ -1,4 +1,5 @@
 # encoding: utf-8
+import inspect
 import time
 import urllib
 import json
@@ -7,6 +8,7 @@ from future.backports.urllib.parse import urlparse
 
 import six
 from jwkest import jws
+import sys
 from oic.utils import time_util
 
 from oic.oauth2 import message
@@ -942,12 +944,13 @@ MSG = {
 
 
 def factory(msgtype):
-    try:
-        return MSG[msgtype]
-    except KeyError:
-        if msgtype == "ErrorResponse":
-            return message.ErrorResponse
-        elif msgtype == "Message":
-            return message.Message
-        else:
-            raise PyoidcError("Unknown message type: %s" % msgtype)
+    for name, obj in inspect.getmembers(sys.modules[__name__]):
+        if inspect.isclass(obj) and issubclass(obj, Message):
+            try:
+                if obj.__name__ == msgtype:
+                    return obj
+            except AttributeError:
+                pass
+
+    # Fall back to basic OAuth2 messages
+    return message.factory(msgtype)
