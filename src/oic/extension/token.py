@@ -1,7 +1,5 @@
-import inspect
 import json
 import uuid
-import six
 
 from oic.oauth2 import Message
 from oic.oauth2 import SINGLE_REQUIRED_STRING
@@ -28,8 +26,10 @@ class TokenAssertion(Message):
 
 
 class JWTToken(Token, JWT):
-    def __init__(self, typ, keyjar, lt_pattern=None,
-                 usage='authorization_grant', extra_claims=None, **kwargs):
+    usage='authorization_grant'
+
+    def __init__(self, typ, keyjar, lt_pattern=None, extra_claims=None,
+                 **kwargs):
         self.type = typ
         JWT.__init__(self, keyjar, msgtype=TokenAssertion, **kwargs)
         Token.__init__(self, typ, **kwargs)
@@ -37,7 +37,6 @@ class JWTToken(Token, JWT):
         self.db = {}
         self.session_info = {'': 600}
         self.exp_args = ['sinfo']
-        self.usage = usage
         self.extra_claims = extra_claims or {}
 
     def __call__(self, sid, *args, **kwargs):
@@ -177,3 +176,11 @@ class JWTToken(Token, JWT):
 
     def get_info(self, token):
         return self.unpack(token)
+
+
+class Authorization_Grant(JWTToken):
+    usage='authorization_grant'
+
+
+class Client_Authentication(JWTToken):
+    usage='client_authentication'
