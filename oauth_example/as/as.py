@@ -25,6 +25,9 @@ from oic.utils.http_util import NotFound
 from oic.utils.http_util import ServiceError
 from oic.utils.keyio import keyjar_init, KeyBundle
 
+from requests.packages import urllib3
+urllib3.disable_warnings()
+
 __author__ = 'roland'
 
 # ============================================================================
