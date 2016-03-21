@@ -43,6 +43,9 @@ class JWT(object):
 
         key = keys[0]  # Might be more then one if kid == ''
 
+        if key.kid:
+            kwargs['kid'] = key.kid
+
         iat = utc_time_sans_frac()
         if not 'exp' in kwargs:
             kwargs['exp'] = iat + self.lifetime

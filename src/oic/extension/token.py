@@ -28,7 +28,8 @@ class TokenAssertion(Message):
 
 
 class JWTToken(Token, JWT):
-    def __init__(self, typ, keyjar, lt_pattern=None, **kwargs):
+    def __init__(self, typ, keyjar, lt_pattern=None,
+                 usage='authorization_grant', extra_claims=None, **kwargs):
         self.type = typ
         JWT.__init__(self, keyjar, msgtype=TokenAssertion, **kwargs)
         Token.__init__(self, typ, **kwargs)
@@ -36,6 +37,8 @@ class JWTToken(Token, JWT):
         self.db = {}
         self.session_info = {'': 600}
         self.exp_args = ['sinfo']
+        self.usage = usage
+        self.extra_claims = extra_claims or {}
 
     def __call__(self, sid, *args, **kwargs):
         """
@@ -43,8 +46,12 @@ class JWTToken(Token, JWT):
 
         :return:
         """
-        if 'sinfo' in kwargs:
+        try:
             _sinfo = kwargs['sinfo']
+        except KeyError:
+            exp = self.do_exp(**kwargs)
+            _tid = kwargs['target_id']
+        else:
             if 'lifetime' in kwargs:
                 _sinfo['lifetime'] = kwargs['lifetime']
             exp = self.do_exp(**_sinfo)
@@ -61,10 +68,14 @@ class JWTToken(Token, JWT):
                         pass
                 if _scope:
                     kwargs['scope'] = ' ' .join(_scope)
+
+            if self.usage == 'authorization_grant':
+                try:
+                    kwargs['sub'] = _sinfo['sub']
+                except KeyError:
+                    pass
+
             del kwargs['sinfo']
-        else:
-            exp = self.do_exp(**kwargs)
-            _tid = kwargs['target_id']
 
         if 'aud' in kwargs:
             if _tid not in kwargs['aud']:
@@ -72,15 +83,25 @@ class JWTToken(Token, JWT):
         else:
             kwargs['aud'] = [_tid]
 
-        if len(kwargs['aud']) > 1:
-            if 'azr' not in kwargs:
-                kwargs['azr'] = _tid
+        if self.usage == 'client_authentication':
+            try:
+                kwargs['sub'] = _tid
+            except KeyError:
+                pass
+        else:
+            if 'azp' not in kwargs:
+                kwargs['azp'] = _tid
 
         for param in ['lifetime', 'grant_type', 'response_type', 'target_id']:
             try:
                 del kwargs[param]
             except KeyError:
                 pass
+
+        try:
+            kwargs['kid'] = self.extra_claims['kid']
+        except:
+            pass
 
         _jti = '{}-{}'.format(self.type, uuid.uuid4().hex)
         _jwt = self.pack(jti=_jti, exp=exp, **kwargs)
