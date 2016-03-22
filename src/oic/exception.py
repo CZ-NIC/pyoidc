@@ -93,3 +93,11 @@ class MissingPage(Exception):
 
 class ModificationForbidden(Exception):
     pass
+
+
+class RegistrationError(PyoidcError):
+    pass
+
+
+class CommunicationError(PyoidcError):
+    pass

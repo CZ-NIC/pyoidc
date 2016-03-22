@@ -16,7 +16,9 @@ from oic.oauth2.consumer import ConfigurationError
 
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import Message
-from oic.oauth2.exception import AuthnToOld, OtherError
+from oic.oauth2.exception import AuthnToOld
+from oic.oauth2.exception import OtherError
+from oic.oauth2.exception import ParseError
 from oic.oauth2.exception import MissingRequiredAttribute
 from oic.oauth2.util import get_or_post
 from oic.oic.message import IdToken, ClaimsRequest
@@ -41,7 +43,8 @@ from oic.oic.message import TokenErrorResponse
 from oic.oic.message import ClientRegistrationErrorResponse
 from oic.oic.message import UserInfoErrorResponse
 from oic.oic.message import AuthorizationErrorResponse
-from oic.exception import AccessDenied
+from oic.exception import AccessDenied, CommunicationError
+from oic.exception import RegistrationError
 from oic.exception import IssuerMismatch
 from oic.exception import PyoidcError
 from oic.exception import MissingParameter
@@ -476,7 +479,7 @@ class Client(oauth2.Client):
                 kwargs["scope"] = "openid"
             token = self.get_token(**kwargs)
             if token is None:
-                raise PyoidcError("No valid token available")
+                raise MissingParameter("No valid token available")
 
             request_args["access_token"] = token.access_token
 
@@ -513,7 +516,7 @@ class Client(oauth2.Client):
         else:
             id_token = self._get_id_token(**kwargs)
             if id_token is None:
-                raise PyoidcError("No valid id token available")
+                raise MissingParameter("No valid id token available")
 
             request_args[_prop] = id_token
 
@@ -569,8 +572,6 @@ class Client(oauth2.Client):
         if 'code_challenge' in self.config:
             _args, code_verifier = self.add_code_challenge()
             request_args.update(_args)
-
-
 
         return oauth2.Client.do_authorization_request(self, request, state,
                                                       body_type, method,
@@ -746,7 +747,8 @@ class Client(oauth2.Client):
 
             # use_authorization_header, token_in_message_body
             if "use_authorization_header" in _behav:
-                token_header = "{type} {token}".format(type=_ttype, token=_token)
+                token_header = "{type} {token}".format(type=_ttype,
+                                                       token=_token)
                 if "headers" in kwargs:
                     kwargs["headers"].update({"Authorization": token_header})
                 else:
@@ -918,7 +920,7 @@ class Client(oauth2.Client):
             except:
                 _err_txt = "Faulty provider config response: {}".format(r.text)
                 logger.error(_err_txt)
-                raise PyoidcError(_err_txt)
+                raise ParseError(_err_txt)
         elif r.status_code == 302 or r.status_code == 301:
             while r.status_code == 302 or r.status_code == 301:
                 r = self.http_request(r.headers["location"])
@@ -928,7 +930,8 @@ class Client(oauth2.Client):
 
         # logger.debug("Provider info: %s" % pcr)
         if pcr is None:
-            raise PyoidcError("Trying '%s', status %s" % (url, r.status_code))
+            raise CommunicationError(
+                "Trying '%s', status %s" % (url, r.status_code))
 
         self.store_response(pcr, r.text)
 
@@ -1101,7 +1104,7 @@ class Client(oauth2.Client):
             self.store_registration_info(resp)
         else:
             err = ErrorResponse().deserialize(response.text, "json")
-            raise PyoidcError("Registration failed: %s" % err.to_json())
+            raise RegistrationError(err.to_json())
 
         return resp
 
@@ -1342,8 +1345,8 @@ class Server(oauth2.Server):
                 query = data
             request = request().from_urlencoded(query)
         else:
-            raise PyoidcError("Unknown package format: '%s'" % sformat,
-                              request)
+            raise ParseError("Unknown package format: '%s'" % sformat,
+                             request)
 
         # get the verification keys
         if client_id:
