@@ -295,8 +295,14 @@ class Provider(object):
             try:
                 _cinfo = self.cdb[str(areq["client_id"])]
             except KeyError:
-                logger.info("Unknown client: %s" % areq["client_id"])
-                raise UnknownClient(areq["client_id"])
+                try:
+                    cid = areq["client_id"]
+                except KeyError:
+                    logger.error('No client id found')
+                    raise UnknownClient('No client_id provided')
+                else:
+                    logger.info("Unknown client: %s" % cid)
+                    raise UnknownClient(areq["client_id"])
             else:
                 logger.info("Registered redirect_uris: %s" % _cinfo)
                 raise RedirectURIError(

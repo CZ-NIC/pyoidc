@@ -43,7 +43,8 @@ from oic.oic.message import TokenErrorResponse
 from oic.oic.message import ClientRegistrationErrorResponse
 from oic.oic.message import UserInfoErrorResponse
 from oic.oic.message import AuthorizationErrorResponse
-from oic.exception import AccessDenied, CommunicationError
+from oic.exception import AccessDenied
+from oic.exception import CommunicationError
 from oic.exception import RegistrationError
 from oic.exception import IssuerMismatch
 from oic.exception import PyoidcError
