@@ -45,7 +45,6 @@ from oic.oic.message import UserInfoErrorResponse
 from oic.oic.message import AuthorizationErrorResponse
 from oic.exception import AccessDenied
 from oic.exception import CommunicationError
-from oic.exception import RegistrationError
 from oic.exception import IssuerMismatch
 from oic.exception import PyoidcError
 from oic.exception import MissingParameter
@@ -1104,8 +1103,14 @@ class Client(oauth2.Client):
             self.store_response(resp, response.text)
             self.store_registration_info(resp)
         else:
-            err = ErrorResponse().deserialize(response.text, "json")
-            raise RegistrationError(err.to_json())
+            resp = ErrorResponse().deserialize(response.text, "json")
+            if resp.verify():
+                logger.error('Got error response: {}'.format(resp.to_json()))
+                if self.event_store:
+                    self.event_store.store('protocol response', resp)
+            else:  # Something else
+                logger.error('Unknown response: {}'.format(response.text))
+                resp = None
 
         return resp
 
@@ -1164,6 +1169,9 @@ class Client(oauth2.Client):
         :return:
         """
         req = self.create_registration_request(**kwargs)
+
+        if self.event_store:
+            self.event_store.store('protocol request', req)
 
         headers = {"content-type": "application/json"}
 
@@ -1463,7 +1471,7 @@ class Server(oauth2.Server):
         # Handle the idtoken_claims
         extra = {}
         itc = self.id_token_claims(session)
-        if itc:
+        if itc.keys():
             try:
                 inawhile = {"seconds": itc["max_age"]}
             except KeyError:
