@@ -681,7 +681,8 @@ class Provider(AProvider):
                 if _cap['claims_supported']:
                     for part in ['userinfo', 'id_token']:
                         if part in req['claims']:
-                            for c in req['claims'][part].keys():
+                            _keys = list(req['claims'][part].keys())
+                            for c in _keys:
                                 if c not in _cap['claims_supported']:
                                     del req['claims'][part][c]
             else:
