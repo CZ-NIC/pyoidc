@@ -374,6 +374,9 @@ class Client(PBase):
         except AttributeError:
             cis = self.construct_request(request, request_args, extra_args)
 
+        if self.event_store:
+            self.event_store.store('protocol request', cis)
+            
         cis.lax = lax
 
         if "authn_method" in kwargs:
