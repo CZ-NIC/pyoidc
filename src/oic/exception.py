@@ -101,3 +101,7 @@ class RegistrationError(PyoidcError):
 
 class CommunicationError(PyoidcError):
     pass
+
+
+class RequestError(PyoidcError):
+    pass

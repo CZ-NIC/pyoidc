@@ -43,7 +43,7 @@ from oic.oic.message import TokenErrorResponse
 from oic.oic.message import ClientRegistrationErrorResponse
 from oic.oic.message import UserInfoErrorResponse
 from oic.oic.message import AuthorizationErrorResponse
-from oic.exception import AccessDenied
+from oic.exception import AccessDenied, RegistrationError, RequestError
 from oic.exception import CommunicationError
 from oic.exception import IssuerMismatch
 from oic.exception import PyoidcError
@@ -280,7 +280,7 @@ class Client(oauth2.Client):
 
         self.grant_class = Grant
         self.token_class = Token
-        self.provider_info = {}
+        self.provider_info = Message()
         self.registration_response = {}
         self.client_prefs = client_prefs or {}
 
@@ -793,7 +793,7 @@ class Client(oauth2.Client):
             try:
                 res = ErrorResponse().from_json(resp.text)
             except Exception:
-                pass
+                raise RequestError(resp.text)
             else:
                 self.store_response(res, resp.text)
                 return res
@@ -1100,17 +1100,31 @@ class Client(oauth2.Client):
     def handle_registration_info(self, response):
         if response.status_code in [200, 201]:
             resp = RegistrationResponse().deserialize(response.text, "json")
-            self.store_response(resp, response.text)
-            self.store_registration_info(resp)
+            # Some implementations sends back a 200 with an error message inside
+            if resp.verify():  # got a proper registration response
+                self.store_response(resp, response.text)
+                self.store_registration_info(resp)
+            else:
+                resp = ErrorResponse().deserialize(response.text, "json")
+                if resp.verify():
+                    logger.error(
+                        'Got error response: {}'.format(resp.to_json()))
+                    if self.event_store:
+                        self.event_store.store('protocol response', resp)
+                    raise RegistrationError(resp.to_dict())
+                else:  # Something else
+                    logger.error('Unknown response: {}'.format(response.text))
+                    raise RegistrationError(response.text)
         else:
             resp = ErrorResponse().deserialize(response.text, "json")
             if resp.verify():
                 logger.error('Got error response: {}'.format(resp.to_json()))
                 if self.event_store:
                     self.event_store.store('protocol response', resp)
+                raise RegistrationError(resp.to_dict())
             else:  # Something else
                 logger.error('Unknown response: {}'.format(response.text))
-                resp = None
+                raise RegistrationError(response.text)
 
         return resp
 
