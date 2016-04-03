@@ -3,7 +3,7 @@ import random
 import string
 
 __author__ = 'rohe0002'
-__version__ = '0.8.3.2'
+__version__ = '0.8.3.3'
 
 
 OIDCONF_PATTERN = "%s/.well-known/openid-configuration"
