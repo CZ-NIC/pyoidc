@@ -45,6 +45,8 @@
             ${op_choice(op_list)}
             <p> OR by providing your unique identifier at the OP. </p>
             <input type="text" id="uid" name="uid" class="form-control" placeholder="UID" autofocus>
+            <p> OR by providing an issuer id</p>
+            <input type="text" id="issuer" name="issuer" class="form-control" placeholder="ISSUER">
             <button class="btn btn-lg btn-primary btn-block" type="submit">Start</button>
         </form>
     </div>

@@ -46,10 +46,14 @@ class OAuthClient(client.Client):
         session["state"] = rndstr(32)
         request_args = {
             "response_type": self.behaviour["response_type"],
-            "scope": self.behaviour["scope"],
             "state": session["state"],
             "redirect_uri": self.registration_response["redirect_uris"][0]
         }
+
+        try:
+            request_args["scope"] = self.behaviour["scope"]
+        except KeyError:
+            pass
 
         request_args.update(kwargs)
         cis = self.construct_AuthorizationRequest(request_args=request_args)
