@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 import os
-from Crypto import Random
-from Crypto.Cipher import AES
+
+from Cryptodome import Random
+from Cryptodome.Cipher import AES
 from base64 import b64encode, b64decode
 from future.utils import tobytes
 
 from six import indexbytes
-import six
 
 __author__ = 'rolandh'
 

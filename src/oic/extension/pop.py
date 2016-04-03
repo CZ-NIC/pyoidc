@@ -1,5 +1,5 @@
 import json
-from Crypto.PublicKey import RSA
+from Cryptodome.PublicKey import RSA
 from future.backports.urllib.parse import urlparse
 from future.backports.urllib.parse import parse_qs
 from jwkest import b64e

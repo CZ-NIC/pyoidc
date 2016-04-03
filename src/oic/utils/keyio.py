@@ -7,9 +7,9 @@ import os
 import requests
 
 from future.backports.urllib.parse import urlsplit
-
-from Crypto.PublicKey import RSA
 from six import string_types
+
+from Cryptodome.PublicKey import RSA
 
 from jwkest import as_unicode
 from jwkest import b64e

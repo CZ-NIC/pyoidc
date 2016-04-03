@@ -9,7 +9,7 @@ import random
 import base64
 import logging
 
-from Crypto.Cipher import AES
+from Cryptodome.Cipher import AES
 from future.utils import tobytes
 
 from oic import rndstr

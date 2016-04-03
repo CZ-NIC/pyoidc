@@ -1,5 +1,5 @@
 import json
-from Crypto.PublicKey import RSA
+from Cryptodome.PublicKey import RSA
 from oic.extension.popjwt import PJWT
 from oic.extension.popjwt import PopJWT
 from jwkest.jwe import JWE
@@ -23,6 +23,7 @@ HiahkYvW6jMMzdeW9GLyAuDmiIj9xbDhrNEdnhIBZgZF37x/XeaPklb4TmAt5Esi
 6omGEdSzPufCNmVJITECQEDD6V9ojDly//wsTTPykgiXmLiETAH9Ff6I6Zp2g5d7
 VcNvzfoQ3BegXbYuJzSFanCWNk/2+9GPptlcdMbGjo4=
 -----END RSA PRIVATE KEY-----"""
+
 
 def _eq(l1, l2):
     return set(l1) == set(l2)
