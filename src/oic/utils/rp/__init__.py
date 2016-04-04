@@ -220,7 +220,8 @@ class Client(oic.Client):
 
 
 class OIDCClients(object):
-    def __init__(self, config, base_url, seed='', jwks_info = None):
+    def __init__(self, config, base_url, seed='', jwks_info=None,
+                 verify_ssl=True):
         """
 
         :param config: Imported configuration module
@@ -234,6 +235,7 @@ class OIDCClients(object):
         self.path = {}
         self.base_url = base_url
         self.jwks_info = jwks_info
+        self.verify_ssl = verify_ssl
 
         for key, val in config.CLIENTS.items():
             if self.jwks_info:
@@ -264,18 +266,16 @@ class OIDCClients(object):
         """
 
         _key_set = set(list(kwargs.keys()))
-        args = {}
-        for param in ["verify_ssl"]:
-            try:
-                args[param] = kwargs[param]
-            except KeyError:
-                pass
-            else:
-                _key_set.discard(param)
+        try:
+            _verify_ssl = kwargs['verify_ssl']
+        except KeyError:
+            _verify_ssl = self.verify_ssl
+        else:
+            _key_set.discard('verify_ssl')
 
         client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
                                  behaviour=kwargs["behaviour"],
-                                 verify_ssl=self.config.VERIFY_SSL, **args)
+                                 verify_ssl=_verify_ssl)
 
         try:
             client.userinfo_request_method = kwargs["userinfo_request_method"]
@@ -346,8 +346,7 @@ class OIDCClients(object):
 
     def dynamic_client(self, userid='', issuer=''):
         client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
-                                 verify_ssl=self.config.VERIFY_SSL,
-                                 **self.jwks_info)
+                                 verify_ssl=self.verify_ssl, **self.jwks_info)
 
         if userid:
             issuer = client.wf.discovery_query(userid)

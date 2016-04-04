@@ -378,6 +378,7 @@ if __name__ == '__main__':
     parser.add_argument(dest="config")
     parser.add_argument("-p", default=8666, dest="port", help="port of the RP")
     parser.add_argument("-b", dest="base_url", help="base url of the RP")
+    parser.add_argument('-k', dest='verify_ssl', action='store_false')
     args = parser.parse_args()
     conf = importlib.import_module(args.config)
 
@@ -421,9 +422,11 @@ if __name__ == '__main__':
         ctype = 'OIDC'
 
     if ctype == 'OIDC':
-        _clients = OIDCClients(conf, _base, jwks_info=jwks_info)
+        _clients = OIDCClients(conf, _base, jwks_info=jwks_info,
+                               verify_ssl=args.verify_ssl)
     else:
-        _clients = OAuthClients(conf, _base, jwks_info=jwks_info)
+        _clients = OAuthClients(conf, _base, jwks_info=jwks_info,
+                                verify_ssl=args.verify_ssl)
 
     SERVER_ENV.update({"template_lookup": LOOKUP, "base_url": _base})
 

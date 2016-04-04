@@ -41,6 +41,8 @@ class OAuthClient(client.Client):
         self.jwks_uri = jwks_uri
         self.kid = kid
         self.client_prefs = client_prefs
+        # Make it the same. Been bitten by this too many times !
+        self.keyjar.verify_ssl = self.verify_ssl
 
     def create_authn_request(self, session, acr_value=None, **kwargs):
         session["state"] = rndstr(32)
@@ -150,7 +152,8 @@ class OAuthClient(client.Client):
 
 
 class OAuthClients(object):
-    def __init__(self, config, base_url, seed='', jwks_info=None):
+    def __init__(self, config, base_url, seed='', jwks_info=None,
+                 verify_ssl=True):
         """
 
         :param config: Imported configuration module
@@ -164,6 +167,7 @@ class OAuthClients(object):
         self.path = {}
         self.base_url = base_url
         self.jwks_info = jwks_info
+        self.verify_ssl = verify_ssl
 
         for key, val in config.CLIENTS.items():
             if self.jwks_info:
@@ -197,21 +201,20 @@ class OAuthClients(object):
         """
 
         _key_set = set(list(kwargs.keys()))
-        args = {}
-        for param in ["verify_ssl"]:
-            try:
-                args[param] = kwargs[param]
-            except KeyError:
-                pass
-            else:
-                _key_set.discard(param)
+        try:
+            _verify_ssl = kwargs['verify_ssl']
+        except KeyError:
+            _verify_ssl = self.verify_ssl
+        else:
+            _key_set.discard('verify_ssl')
 
         _client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
                                   behaviour=kwargs["behaviour"],
-                                  verify_ssl=self.config.VERIFY_SSL, **args)
+                                  verify_ssl=_verify_ssl)
 
         # The behaviour parameter is not significant for the election process
         _key_set.discard("behaviour")
+
         for param in ["allow"]:
             try:
                 setattr(_client, param, kwargs[param])
@@ -263,7 +266,7 @@ class OAuthClients(object):
 
         logger.info('issuer: {}'.format(issuer))
         client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
-                                 verify_ssl=self.config.VERIFY_SSL,
+                                 verify_ssl=self.verify_ssl,
                                  **self.jwks_info)
 
         if issuer in self.client:
