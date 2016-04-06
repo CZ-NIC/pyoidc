@@ -31,13 +31,11 @@ OPENID2LDAP = {
     "updated_at": ""  # Nothing equivalent
 }
 
-LDAP2USERINFO = dict([(v, k) for k, v in OPENID2LDAP.items()])
-
 
 class UserInfoLDAP(UserInfo):
     def __init__(self, uri, base, filter_pattern, scope=ldap.SCOPE_SUBTREE,
-                 tls=False, user="", passwd="", attr=None, attrsonly=False):
-        super(UserInfoLDAP, self).__init__(self, None)
+                 tls=False, user="", passwd="", attr=None, attrsonly=False, attrmap=OPENID2LDAP):
+        super(UserInfoLDAP, self).__init__(None)
         self.ldapuri = uri
         self.base = base
         self.filter_pattern = filter_pattern
@@ -49,10 +47,14 @@ class UserInfoLDAP(UserInfo):
         self.ldappasswd = passwd
         self.bind()
         self.ld = None
+        self.openid2ldap = attrmap
+        self.ldap2openid = dict([(v, k) for k, v in self.openid2ldap.items()])
 
     def bind(self):
         self.ld = ldap.initialize(self.ldapuri)
         self.ld.protocol_version = ldap.VERSION3
+        if self.tls:
+            self.ld.start_tls_s()
         self.ld.simple_bind_s(self.ldapuser, self.ldappasswd)
 
     def __call__(self, userid, client_id, user_info_claims=None,
@@ -69,9 +71,9 @@ class UserInfoLDAP(UserInfo):
                 avaspec = {}
                 for key, val in _claims.items():
                     try:
-                        attr = OPENID2LDAP[key]
+                        attr = self.openid2ldap[key]
                     except KeyError:
-                        pass
+                        logger.warn("OIDC attribute '%s' not defined in map" % key)
                     else:
                         try:
                             avaspec[attr].append(val)
@@ -98,7 +100,7 @@ class UserInfoLDAP(UserInfo):
                 if first_only:
                     val = val[0]  # if more than one just return the first
                 try:
-                    newres[LDAP2USERINFO[key]] = val
+                    newres[self.ldap2openid[key]] = val
                 except KeyError:
                     newres[key] = val
             return newres
