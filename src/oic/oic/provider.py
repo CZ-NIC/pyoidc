@@ -39,7 +39,7 @@ from oic.oauth2.exception import CapabilitiesMisMatch
 from oic.oauth2.message import by_schema
 from oic.oauth2.provider import Provider as AProvider
 from oic.oauth2.provider import Endpoint
-from oic.oic import PREFERENCE2PROVIDER
+from oic.oic import PREFERENCE2PROVIDER, scope2claims
 from oic.oic import PROVIDER_DEFAULT
 from oic.oic import Server
 from oic.oic import claims_match
@@ -1059,7 +1059,7 @@ class Provider(AProvider):
         :return: User info
         """
         if userinfo_claims is None:
-            uic = self._scope2claims(session["scope"])
+            uic = scope2claims(session["scope"])
 
             # Get only keys allowed by user and update the dict if such info
             # is stored in session
@@ -1853,17 +1853,6 @@ class Provider(AProvider):
             # Can't be done
             raise InvalidRequest("wrong response_mode")
         return None
-
-    @staticmethod
-    def _scope2claims(scopes):
-        res = {}
-        for scope in scopes:
-            try:
-                claims = dict([(name, None) for name in SCOPE2CLAIMS[scope]])
-                res.update(claims)
-            except KeyError:
-                pass
-        return res
 
     def create_authn_response(self, areq, sid):
         # create the response

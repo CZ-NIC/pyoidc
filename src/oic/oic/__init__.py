@@ -21,7 +21,7 @@ from oic.oauth2.exception import OtherError
 from oic.oauth2.exception import ParseError
 from oic.oauth2.exception import MissingRequiredAttribute
 from oic.oauth2.util import get_or_post
-from oic.oic.message import IdToken, ClaimsRequest
+from oic.oic.message import IdToken, ClaimsRequest, SCOPE2CLAIMS
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import AccessTokenResponse
@@ -1541,3 +1541,14 @@ class Server(oauth2.Server):
             idt["nonce"] = session["nonce"]
 
         return idt
+
+
+def scope2claims(scopes):
+    res = {}
+    for scope in scopes:
+        try:
+            claims = dict([(name, None) for name in SCOPE2CLAIMS[scope]])
+            res.update(claims)
+        except KeyError:
+            continue
+    return res
