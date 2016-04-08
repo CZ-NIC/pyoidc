@@ -2,6 +2,8 @@
 # from oic.oauth2 import KeyStore
 import os
 import time
+from collections import Counter
+
 import pytest
 
 from future.backports.urllib.parse import urlparse
@@ -13,11 +15,11 @@ import six
 
 from oic.oauth2.exception import OtherError
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
-from oic.oic import Grant, DEF_SIGN_ALG
+from oic.oic import Grant, DEF_SIGN_ALG, scope2claims
 from oic.oic import Token
 from oic.oic import Client
 from oic.oic import Server
-from oic.oic.message import IdToken
+from oic.oic.message import IdToken, SCOPE2CLAIMS
 from oic.oic.message import ClaimsRequest
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import Claims
@@ -663,3 +665,13 @@ class TestServer(object):
                                   token_type="Bearer")
         atr["code"] = code
         assert atr.verify(keyjar=self.srv.keyjar)
+
+
+class TestScope2Claims(object):
+    def test_scope2claims(self):
+        claims = scope2claims(['profile', 'email'])
+        assert Counter(claims.keys()) == Counter(SCOPE2CLAIMS['profile'] + SCOPE2CLAIMS['email'])
+
+    def test_scope2claims_with_non_standard_scope(self):
+        claims = scope2claims(['my_scope', 'email'])
+        assert Counter(claims.keys()) == Counter(SCOPE2CLAIMS['email'])
