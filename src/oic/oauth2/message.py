@@ -925,9 +925,7 @@ class AccessTokenRequest(Message):
         "client_secret": SINGLE_OPTIONAL_STRING,
         'state': SINGLE_OPTIONAL_STRING
     }
-
-
-c_default = {"grant_type": "authorization_code"}
+    c_default = {"grant_type": "authorization_code"}
 
 
 class AuthorizationRequest(Message):
