@@ -947,6 +947,8 @@ class AuthorizationResponse(Message):
     }
 
     def verify(self, **kwargs):
+        super(AuthorizationResponse, self).verify(**kwargs)
+
         if 'client_id' in self:
             if self['client_id'] != kwargs['client_id']:
                 raise VerificationError('client_id mismatch')
@@ -959,7 +961,7 @@ class AuthorizationResponse(Message):
                 logger.info('No issuer set in the Client config')
                 pass
 
-        return super(AuthorizationResponse, self).verify(**kwargs)
+        return True
 
 
 class AccessTokenResponse(Message):

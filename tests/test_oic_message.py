@@ -10,7 +10,7 @@ from jwkest import BadSignature
 from jwkest.jwk import SYMKey
 
 from oic.oauth2 import WrongSigningAlgorithm
-from oic.oauth2.message import MissingRequiredValue
+from oic.oauth2.message import MissingRequiredValue, MissingRequiredAttribute
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import AuthorizationRequest
@@ -336,7 +336,7 @@ class TestAuthorizationRequest(object):
             "response_type": "code",
         }
         ar = AuthorizationRequest(**args)
-        with pytest.raises(MissingRequiredValue):
+        with pytest.raises(MissingRequiredAttribute):
             ar.verify()
 
 
