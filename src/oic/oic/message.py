@@ -290,6 +290,7 @@ class AccessTokenResponse(message.AccessTokenResponse):
     c_param.update({"id_token": SINGLE_OPTIONAL_STRING})
 
     def verify(self, **kwargs):
+        super(AccessTokenResponse, self).verify(**kwargs)
         if "id_token" in self:
             # Try to decode the JWT, checks the signature
             args = {}
@@ -305,7 +306,7 @@ class AccessTokenResponse(message.AccessTokenResponse):
             # replace the JWT with the IdToken instance
             self["id_token"] = idt
 
-        return super(AccessTokenResponse, self).verify(**kwargs)
+        return True
 
 
 class UserInfoRequest(Message):
@@ -327,6 +328,8 @@ class AuthorizationResponse(message.AuthorizationResponse,
     })
 
     def verify(self, **kwargs):
+        super(AuthorizationResponse, self).verify(**kwargs)
+
         if "aud" in self:
             if "client_id" in kwargs:
                 # check that it's for me
@@ -375,7 +378,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
                     raise CHashError("Failed to verify code hash", idt)
 
             self["id_token"] = idt
-        return super(AuthorizationResponse, self).verify(**kwargs)
+        return True
 
 
 class AuthorizationErrorResponse(message.AuthorizationErrorResponse):
@@ -429,6 +432,8 @@ class AuthorizationRequest(message.AuthorizationRequest):
         All parameter values that are present both in the OAuth 2.0
         Authorization Request and in the OpenID Request Object MUST exactly
         match."""
+        super(AuthorizationRequest, self).verify(**kwargs)
+
         args = {}
         for arg in ["key", "keyjar", "opponent_id", "sender"]:
             try:
@@ -477,7 +482,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
                 raise InvalidRequest("prompt none combined with other value",
                                      self)
 
-        return super(AuthorizationRequest, self).verify(**kwargs)
+        return True
 
 
 class AccessTokenRequest(message.AccessTokenRequest):
@@ -525,6 +530,8 @@ class OpenIDSchema(Message):
                "_claim_sources": OPTIONAL_MESSAGE}
 
     def verify(self, **kwargs):
+        super(OpenIDSchema, self).verify(**kwargs)
+
         if "birthdate" in self:
             # Either YYYY-MM-DD or just YYYY or 0000-MM-DD
             try:
@@ -538,7 +545,7 @@ class OpenIDSchema(Message):
                     except ValueError:
                         raise VerificationError("Birthdate format error", self)
 
-        return super(OpenIDSchema, self).verify(**kwargs)
+        return True
 
 
 class RegistrationRequest(Message):
@@ -583,6 +590,8 @@ class RegistrationRequest(Message):
                         "subject_type": ["public", "pairwise"]}
 
     def verify(self, **kwargs):
+        super(RegistrationRequest, self).verify(**kwargs)
+
         if "initiate_login_uri" in self:
             assert self["initiate_login_uri"].startswith("https:")
 
@@ -598,7 +607,7 @@ class RegistrationRequest(Message):
         if "token_endpoint_auth_signing_alg" in self:
             assert self["token_endpoint_auth_signing_alg"] != "none"
 
-        return super(RegistrationRequest, self).verify(**kwargs)
+        return True
 
 
 class RegistrationResponse(Message):
@@ -622,18 +631,16 @@ class RegistrationResponse(Message):
         :param kwargs:
         :return: True if the message is OK otherwise False
         """
+        super(RegistrationResponse, self).verify(**kwargs)
 
-        if "registration_client_uri" in self:
-            if not "registration_access_token":
-                raise VerificationError((
+        has_reg_uri = "registration_client_uri" in self
+        has_reg_at = "registration_access_token" in self
+        if has_reg_uri != has_reg_at:
+            raise VerificationError((
                     "Only one of registration_client_uri"
                     " and registration_access_token present"), self)
-        elif "registration_access_token" in self:
-            raise VerificationError((
-                "Only one of registration_client_uri"
-                " and registration_access_token present"), self)
 
-        return super(RegistrationResponse, self).verify(**kwargs)
+        return True
 
 
 class ClientRegistrationErrorResponse(message.ErrorResponse):
@@ -661,6 +668,8 @@ class IdToken(OpenIDSchema):
     })
 
     def verify(self, **kwargs):
+        super(IdToken, self).verify(**kwargs)
+
         if "aud" in self:
             if "client_id" in kwargs:
                 # check that I'm among the recipients
@@ -712,7 +721,7 @@ class IdToken(OpenIDSchema):
             if (_iat + _storage_time) < (_now - _skew):
                 raise IATError('Issued too long ago')
 
-        return super(IdToken, self).verify(**kwargs)
+        return True
 
 
 class RefreshSessionRequest(Message):
@@ -827,6 +836,8 @@ class ProviderConfigurationResponse(Message):
                  "grant_types_supported": ["authorization_code", "implicit"]}
 
     def verify(self, **kwargs):
+        super(ProviderConfigurationResponse, self).verify(**kwargs)
+
         if "scopes_supported" in self:
             assert "openid" in self["scopes_supported"]
             for scope in self["scopes_supported"]:
@@ -840,7 +851,7 @@ class ProviderConfigurationResponse(Message):
 
         assert not parts.query and not parts.fragment
 
-        return super(ProviderConfigurationResponse, self).verify(**kwargs)
+        return True
 
 
 class AuthnToken(Message):
