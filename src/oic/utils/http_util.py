@@ -72,6 +72,9 @@ class Response(object):
     def add_header(self, ava):
         self.headers.append(ava)
 
+    def reply(self, **kwargs):
+        return self.response(self.message, **kwargs)
+
 
 class Created(Response):
     _status = "201 Created"

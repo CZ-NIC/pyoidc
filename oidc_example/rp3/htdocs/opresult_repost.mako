@@ -21,7 +21,7 @@
 <body onload="document.forms[0].submit()">
 <div class="container">
     <div class="jumbotron">
-        <form class="repost" action="authz_post" method="post">
+        <form class="repost" action="/authz_post" method="post">
             <input type="hidden" name="fragment" id="frag" value="x"/>
             <script type="text/javascript">
                 if(window.location.hash) {

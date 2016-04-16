@@ -131,6 +131,19 @@ def id_token_as_signed_jwt(client, id_token, alg="RS256"):
     return _signed_jwt
 
 
+def url_eq(a, b):
+    if a.endswith('/'):
+        if b.endswith('/'):
+            return a == b
+        else:
+            return a[:-1] == b
+    else:
+        if b.endswith('/'):
+            return a == b[:-1]
+        else:
+            return a == b
+
+
 def application(environ, start_response):
     session = environ['beaker.session']
     path = environ.get('PATH_INFO', '').lstrip('/')
@@ -138,6 +151,9 @@ def application(environ, start_response):
         return static(environ, start_response, LOGGER, "static/robots.txt")
     elif path.startswith("static/"):
         return static(environ, start_response, LOGGER, path)
+    elif '/static/' in path:
+        pre, post = path.split('static')
+        return static(environ, start_response, LOGGER, 'static'+post)
 
     query = parse_qs(environ["QUERY_STRING"])
     acr_values = session._params['acrs']
@@ -238,7 +254,7 @@ def application(environ, start_response):
             raise
         else:
             session.update(result)
-            res = SeeOther(location=server_env['base_url'])
+            res = SeeOther(server_env['base_url'])
             return res(environ, start_response)
     elif path in clients.return_paths():  # After having authenticated at the OP
         try:
@@ -250,13 +266,14 @@ def application(environ, start_response):
             return opchoice(environ, start_response, clients)
 
         # mismatch between callback and return_uri
-        if _iss != clients.path[path]:
+        # ignore trailing '/'
+        if not url_eq(_iss, clients.path[path]):
             LOGGER.warning(
                 '[{}]issuer mismatch: {} != {}'.format(session.id, _iss,
                                                        clients.path[path]))
             return operror(environ, start_response, "%s" % 'Not allowed')
 
-        client = clients[session["op"]]
+        client = clients[clients.path[path]]
 
         _response_type = client.behaviour["response_type"]
         try:

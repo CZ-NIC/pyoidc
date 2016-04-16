@@ -8,12 +8,14 @@ from oic.extension.client import ClientInfoResponse
 from oic.oic import ProviderConfigurationResponse
 
 from oic.utils.http_util import Redirect
+from oic.oauth2 import AccessTokenResponse
 from oic.oauth2 import ErrorResponse
 from oic.oauth2 import AuthorizationRequest
 from oic.oauth2 import AuthorizationResponse
 from oic.oauth2 import TokenError
 from oic.oauth2 import ResponseError
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
+from oic.utils.webfinger import WebFinger
 
 __author__ = 'roland'
 
@@ -98,14 +100,20 @@ class OAuthClient(client.Client):
         :param response: The URL returned by the OP
         :return:
         """
+        if self.behaviour["response_type"] == 'code':
+            respcls = AuthorizationResponse
+        else:
+            respcls = AccessTokenResponse
+
         try:
-            authresp = self.parse_response(AuthorizationResponse, response,
+            authresp = self.parse_response(respcls, response,
                                            sformat=format, keyjar=self.keyjar)
         except ResponseError:
             logger.error("Could not parse response: '{}'".format(response))
             raise OAuth2Error("Problem parsing response")
 
-        logger.info("AuthorizationReponse: {}".format(authresp))
+        logger.info("{}: {}".format(respcls.__name__, authresp))
+
         if isinstance(authresp, ErrorResponse):
             if authresp["error"] == "login_required":
                 return self.create_authn_request(session)
@@ -260,14 +268,21 @@ class OAuthClients(object):
 
         return client
 
-    def dynamic_client(self, issuer=''):
+    def dynamic_client(self, issuer='', userid=''):
+        client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
+                                 verify_ssl=self.verify_ssl,
+                                 **self.jwks_info)
+        if userid:
+            try:
+                issuer = client.wf.discovery_query(userid)
+            except AttributeError:
+                wf = WebFinger(httpd=client)
+                issuer = wf.discovery_query(userid)
+
         if not issuer:
             raise OAuth2Error('Missing issuer')
 
         logger.info('issuer: {}'.format(issuer))
-        client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
-                                 verify_ssl=self.verify_ssl,
-                                 **self.jwks_info)
 
         if issuer in self.client:
             return self.client[issuer]
@@ -275,6 +290,7 @@ class OAuthClients(object):
             # Gather OP information
             _pcr = client.provider_config(issuer)
             logger.info('Provider info: {}'.format(_pcr.to_dict))
+            issuer = _pcr['issuer']  # So no hickup later about trailing '/'
             # register the client
             _cinfo = self.config.CLIENTS[""]["client_info"]
             reg_args = copy.copy(_cinfo)
