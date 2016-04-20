@@ -49,8 +49,16 @@ class TestClientSecretBasic(object):
         http_args = csb.construct(cis)
 
         assert http_args == {"headers": {"Authorization": "Basic {}".format(
-            base64.b64encode("A:boarding pass".encode("utf-8")).decode(
+            base64.urlsafe_b64encode("A:boarding pass".encode("utf-8")).decode(
                 "utf-8"))}}
+
+    def test_does_not_remove_padding(self):
+        cis = AccessTokenRequest(code="foo", redirect_uri="http://example.com")
+
+        csb = ClientSecretBasic(None)
+        http_args = csb.construct(cis, user="ab", password="c")
+
+        assert http_args["headers"]["Authorization"].endswith("==")
 
 
 class TestBearerHeader(object):

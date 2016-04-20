@@ -106,8 +106,9 @@ class ClientSecretBasic(ClientAuthnMethod):
         if "headers" not in http_args:
             http_args["headers"] = {}
 
-        http_args["headers"]["Authorization"] = "Basic {}".format(
-            b64e_enc_dec("{}:{}".format(user, passwd), "utf-8", "utf-8"))
+        credentials = "{}:{}".format(user, passwd)
+        authz = base64.urlsafe_b64encode(credentials.encode("utf-8")).decode("utf-8")
+        http_args["headers"]["Authorization"] = "Basic {}".format(authz)
 
         try:
             del cis["client_secret"]
