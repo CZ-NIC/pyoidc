@@ -168,7 +168,7 @@ class BearerHeader(ClientAuthnMethod):
         :return:
         """
 
-        if cis:
+        if cis is not None:
             if "access_token" in cis:
                 _acc_token = cis["access_token"]
                 del cis["access_token"]
