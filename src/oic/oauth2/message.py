@@ -739,6 +739,9 @@ class Message(object):
     def __delitem__(self, key):
         del self._dict[key]
 
+    def __len__(self):
+        return len(self._dict)
+
     def extra(self):
         return dict([(key, val) for key, val in
                      self._dict.items() if key not in self.c_param])
