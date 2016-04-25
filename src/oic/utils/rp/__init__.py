@@ -137,8 +137,12 @@ class Client(oic.Client):
                         "redirect_uris"][0],
                     "client_id": self.client_id,
                     "client_secret": self.client_secret,
-                    'scope': response['scope']
                 }
+
+                try:
+                    args['scope'] = response['scope']
+                except KeyError:
+                    pass
 
                 atresp = self.do_access_token_request(
                     state=authresp["state"],
