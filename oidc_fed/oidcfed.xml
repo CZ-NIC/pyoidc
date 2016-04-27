@@ -67,16 +67,20 @@
   <middle>
     <section anchor='Introduction' title="Introduction">
       <t>The original specification of OpenID Connect defines how a
-        Relaying Party and an OpenID Connect Provider dynamically can
+        Relying Party and an OpenID Connect Provider dynamically can
         exchange information necessary for successful communication.
       </t>
       <t>One problem with using dynamic discovery and registration is that
         the information that is exchanged can not be easily verified.
       </t>
+
+      <!-- Schwartz: Is Software statements really such an important part of this
+      solution? I would argue that the chain of trust is more central
+      to the design.  -->
       <t>
-        Software statements, as introduced by RFC 7591, is a possible choice for
-        transferring verified data and trust in the data by using a
-        trusted third party (that verifies and enforces some common policy)
+        Software statements, as introduced by <xref target="RFC7591">RFC 7591</xref>,
+        is a possible choice for transferring verified data and trust in the data
+        by using a trusted third party (that verifies and enforces some common policy)
         between clients and servers.
       </t>
       <t>
@@ -87,38 +91,53 @@
       </t>
     </section>
 
+    <!-- Schwartz: Use of terms Relying Party and RP, OpenID Provider and OP
+         are inconsistent in this document. Perhaps term definition is needed
+         at the beginning of this document. -->
+
     <section title="Requirements Language">
       <t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL
         NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and
         "OPTIONAL" in this document are to be interpreted as described
-        in<xref target="RFC2119">RFC 2119</xref>.
+        in <xref target="RFC2119">RFC 2119</xref>.
       </t>
     </section>
 
     <section title="Trust model">
       <t>
-        The trust model is based on chains of trust, linking together
-        signing keys, represented as JWKs<xref target="RFC7517">JWK</xref>,
-        using JSON Web Signatures<xref target="RFC7515">JWS</xref>.
+        The trust model is based on chain of trust, linking together
+        signing keys, represented as JSON Web Keys <xref target="RFC7517">JWK</xref>,
+        using JSON Web Signatures <xref target="RFC7515">JWS</xref>.
+        <!-- Schwartz: Difficult to understand the following statement.
+             Given that this is an introduction, I would provide a definition
+             more accessible to a layman. -->
         The signature chain is rooted in the trusted third party's
-        signature, and then built upon by the respective entity.
- 
+        signature, and then built upon by the respective entity. 
         By verifying such signature chains, the entities can establish
         trust in the data verified by the trusted third party.
       </t>
       <t>
-        The Federation Operator (FO) acting as the trusted third part will
-        sign a public key belonging to an entity in the federation
-        After it being signed, this public key together with its
+        The Federation Operator (FO) acting as the trusted third party will
+        sign a public key belonging to an entity in the federation.
+        <!-- Schwartz: maybe this private key needs a better name? -->
+        Subsequently, this public key together with its
         private counterpart is the <spanx style="verb">primary key</spanx>
-        of this entity. Since engaging a Federation Operator (FO)
+        of this entity.
+        Since engaging a Federation Operator (FO)
         to sign a key is an
         expensive operation this should happen seldom, preferably only
         once during the lifetime of the entity.
-        On the other hand it should be possible for the entity to rotate it's
-        public keys as often as it wants. The public keys are typically
-        published by an entity by making them accessible at the jwks_uri
-        location (defined by<xref target="OpenID.Core">OIDC</xref>).
+        Despite the expense of key regeneration, recent history has shown
+        that compromises of private keys do happen. It is therefore necessary
+        to have a way to rotate keys. To avoid problems with a Relying Party
+        or OpenID Provider not being able to handle key rotation, a best
+        practice is to rotate keys often In this way, if one of the entities
+        cannot handle key rotation, the problem is discovered quickly.
+        In OpenID Connect, the public keys of the OP are published at the
+        jwks_uri location (defined by <xref target="OpenID.Core">OIDC
+        Core</xref>). An RP may either register a jwks or provide a jwks_uri
+        as defined in the Client Metadata of the
+        <xref target="OpenID.Registration">OIDC Registration</xref>).
       </t>
       <t>
         To allow for simple key rotation, the entity creates an
@@ -141,12 +160,17 @@
         MUST be signed by the key primary key.
       </t>
       <t>
+        <!-- Schwartz: Not sure this next line makes sense. Counldn't a
+        JWKS that is not at a URI contain more than one key too? Also,
+        isn't it implicit that data at a URI can change? -->
         If the operator of the entity expects to rotate the intermediate key
         the <spanx style="verb">signed_key_uris</spanx> should be used since
         the JWKS the URI points to can contain more then one key and also
         can be modified over time. For an RP operator the alternative would be
-        to reregister the RP. An OP can not change it's signing key during
-        the lifetime of a RP registration if it has use
+        to re-register its metadata with the OP.
+        <!-- Schwartz: Not sure I understand this: why not? -->
+        An OP can not change it's
+        signing key during the lifetime of a RP registration if it has use
         <spanx style="verb">signed_key_uris</spanx> to transfer its
         intermediate key.
       </t>
@@ -161,11 +185,17 @@
             the entity's public keys in a JWKS, signed by the intermediate key.
           </t>
         </list>
-
-        The choice of a 4-level key hierarchy instead of a 3-level is based on
-        the assumption that entities in the federation is fairly long lived
-        and that there are therefor a large possibility that key rotation of
-        the intermediate key are reasonable.
+        <!-- Schwartz: I really wonder if adding this fourth level really accomplished
+        the goal. You still have to worry about compromise of the signing_key, and that
+        this can be handled by the parties. Perhaps you could use one private key
+        storage mechanism for the intermediate key, and a different one for the signing
+        key... but if you use the same mechanism for both (like an HSM) an a compromise
+        occurs, you're now back to the original problem--you're not sure if the counterparty
+        can effectively handle key rotation. The gain seem marginal. -->
+        The choice of a four-level key hierarchy instead of three is based on
+        the assumption that entities in the federation are long lived,
+        while at the same time aligning with the practice of frequent
+        key rotation between the OP and RP.
       </t>
       <t>
         The verified keys can be cached making the expensive traversal of the
@@ -178,7 +208,9 @@
         The Federation Operator (FO) must have access to a signing key
         pair, call it F, that is long-lived. The public part of this key,
         pub(F), MUST be distributed to all entities that are part of the
-        federation. How this is accomplished is out of scope for this document.
+        federation.
+        <!-- Schwartz: Why is this out of scope? -->
+        How this is accomplished is out of scope for this document.
       </t>
       <section title="Steps of joining a federation">
         <t>
@@ -197,8 +229,8 @@
             </t>
           </list>
         </t>
-        <t>If the entity is a Relying Party the registration data MUST contain
-          'redirect_uris'. If the entity is an OpenID Connect Provider
+        <t>If the entity is a Relying Party, the registration data MUST contain
+          'redirect_uris'. If the entity is an OpenID Connect Provider,
           the registration data MUST contain 'issuer'.
         </t>
       </section>
@@ -210,6 +242,11 @@
           The trust between the entities is established using the above
           described extensions in the first tree steps of the communication
           between an RP and an OP.
+          <!-- Schwartz: Why is this out of scope? It seems like the reason
+          is you are trying to fit a square peg in a round hole. Trying
+          to fit in OpenID Connect Registration and Discovery will be a
+          handicap. It wouldn't be flexible enough, as the owners of the
+          OpenID Connect standard don't have an interest in this use case. -->
           How, the RP found the OP in the first place is out of scope for this
           document.
         </preamble>
@@ -303,12 +340,12 @@
             Registration 1.0)
           </xref>
           MUST override what ever value the same
-          parameter has in the transfered metadata.
+          parameter has in the transferred metadata.
         </t>
         <section title="Additional policy parameters">
           <t>
             The following parameters can be added by a federation to a
-            software statement issued by a Relying Part.
+            software statement issued by a Relying Party.
           </t>
           <t>
             <list style="hanging">
@@ -335,7 +372,7 @@
       <t>
         <list style="numbers">
           <t>
-            Find all software statements published by the opponent
+            Find all software statements published by the counter-party
             either through the
             <spanx style="verb">software_statements</spanx>
             or
@@ -471,6 +508,7 @@
       <?rfc include="reference.RFC.3552"?>
       <?rfc include="reference.RFC.7515"?>
       <?rfc include="reference.RFC.7517"?>
+      <?rfc include="reference.RFC.7591"?>
       <reference anchor="OpenID.Core"
                  target="http://openid.net/specs/openid-connect-core-1_0.html">
         <front>
@@ -1070,3 +1108,4 @@ p0fw",
     </section>
   </back>
 </rfc>
+
