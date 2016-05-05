@@ -1,5 +1,4 @@
 requests>=2.5.0
-pycrypto>=2.6.1
 cryptography==0.6.1
 cffi==0.8.6
 pyjwkest>=0.6.1
