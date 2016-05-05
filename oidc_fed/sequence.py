@@ -1,11 +1,14 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import json
 from jwkest.jws import JWS
 from jwkest.jws import factory
-from oic.extension.client import make_software_statement
-from oic.extension.client import RegistrationRequest
-from oic.extension.client import unpack_software_statement
+
+from oic.oauth2 import Message
+from oic.oic.message import RegistrationRequest
+
+from oic.extension.message import make_software_statement
+from oic.extension.message import unpack_software_statement
 from oic.extension.oidc_fed import SoftwareStatement
 from oic.utils.keyio import build_keyjar
 from oic.utils.keyio import KeyBundle
@@ -41,26 +44,36 @@ key_conf = [
 # FO get's its key pair
 # -----------------------------------------------------------------------------
 
-fo_jwks, fo_keyjar = build_keyjar(key_conf)[:-1]
+swamid_issuer = 'https://swamid.sunet.se/'
+swamid_jwks, swamid_keyjar = build_keyjar(key_conf)[:-1]
 
-print_private_key(fo_keyjar, "FO's key pair")
+print_private_key(swamid_keyjar, "SWAMID's key pair")
 
+incommon_issuer = 'https://www.incommon.org'
+incommon_jwks, incommon_keyjar = build_keyjar(key_conf)[:-1]
 
-# -----------------------------------------------------------------------------
-# Create initial RP key pair (A)
-# -----------------------------------------------------------------------------
-
-pub_jwks, a_keyjar, kdd = build_keyjar(key_conf)
-
-print_private_key(a_keyjar, "Primary signing key")
+print_private_key(incommon_keyjar, "InCommon's key pair")
 
 # -----------------------------------------------------------------------------
-# -- construct JSON document to be signed by FO
+# Create initial Developer key pair (A)
+# -----------------------------------------------------------------------------
+
+dev_swamid_jwks, dev_swamid_keyjar, _ = build_keyjar(key_conf)
+print_private_key(dev_swamid_keyjar, "Developers SWAMID signing key")
+
+dev_incommon_jwks, dev_incommon_keyjar, _ = build_keyjar(key_conf)
+print_private_key(dev_incommon_keyjar, "Developers InCommon signing key")
+
+# -----------------------------------------------------------------------------
+# -- construct JSON document to be signed by SWAMID
 # -----------------------------------------------------------------------------
 
 ssreq = SoftwareStatement(
-    redirect_uris=['https://example.com/rp/cb'],
-    signing_key=pub_jwks['keys'][0]
+    contacts=['dev_admin@example.com'],
+    policy_uri='https://example.com/policy.html',
+    tos_uri='https://example.com/tos.html',
+    logo_uri='https://example.com/logo.jpg',
+    signing_key=dev_swamid_jwks['keys'][0]
 )
 
 print(70 * "-")
@@ -70,175 +83,190 @@ print_lines(json.dumps(ssreq.to_dict(), sort_keys=True, indent=2,
                        separators=(',', ': ')))
 
 # -----------------------------------------------------------------------------
-# The FO constructs Software statement
+# The SWAMID FO constructs Software statement
+# -----------------------------------------------------------------------------
+
+ssreq.update({
+    "response_types": ["code", "code id_token", "token"],
+    "token_endpoint_auth_method": "private_key_jwt",
+    "scopes": ['openid', 'email', 'phone']
+})
+
+dev_swamid_sost = make_software_statement(swamid_keyjar, swamid_issuer,
+                                          **ssreq.to_dict())
+_jwt = factory(dev_swamid_sost)
+_sos = json.loads(_jwt.jwt.part[1].decode('utf8'))
+
+print(70 * "-")
+print('SWAMID extended software statement')
+print(70 * "-")
+print_lines(json.dumps(_sos, sort_keys=True, indent=2, separators=(',', ': ')))
+
+# -----------------------------------------------------------------------------
+# -- construct JSON document to be signed by InCommon
+# -----------------------------------------------------------------------------
+
+ssreq = SoftwareStatement(
+    contacts=['dev_admin@example.com'],
+    policy_uri='https://example.com/policy.html',
+    tos_uri='https://example.com/tos.html',
+    logo_uri='https://example.com/logo.jpg',
+    signing_key=dev_incommon_jwks['keys'][0]
+)
+
+print(70 * "-")
+print('Software statement request')
+print(70 * "-")
+print_lines(json.dumps(ssreq.to_dict(), sort_keys=True, indent=2,
+                       separators=(',', ': ')))
+
+# -----------------------------------------------------------------------------
+# The InCommon FO constructs Software statement
 # -----------------------------------------------------------------------------
 
 ssreq.update({
     "response_types": ["code", "token"],
     "token_endpoint_auth_method": "private_key_jwt",
-    "scopes_allowed": ['openid', 'email', 'phone']
+    "scopes": ['openid', 'email']
 })
 
-sost = make_software_statement(fo_keyjar, 'https://fo.example.com/',
-                               **ssreq.to_dict())
-_jwt = factory(sost)
+dev_incommon_sost = make_software_statement(incommon_keyjar, incommon_issuer,
+                                            **ssreq.to_dict())
+_jwt = factory(dev_incommon_sost)
 _sos = json.loads(_jwt.jwt.part[1].decode('utf8'))
 
 print(70 * "-")
-print('FO extended software statement')
+print('InCommon extended software statement')
 print(70 * "-")
 print_lines(json.dumps(_sos, sort_keys=True, indent=2, separators=(',', ': ')))
-print()
-print_lines(sost)
 
 # -----------------------------------------------------------------------------
-# Create intermediate key pair
+# The RPs signing key
 # -----------------------------------------------------------------------------
 
-im_jwks, im_keyjar = build_keyjar(key_conf)[:-1]
+rp_jwks, rp_keyjar, _ = build_keyjar(key_conf)
 
-print_private_key(im_keyjar, 'RP intermediate key')
-
-# -----------------------------------------------------------------------------
-# make a signed JWT with im_jwks as message body
-# -----------------------------------------------------------------------------
-
-_jws = JWS(im_jwks, alg="RS384")
-keys = a_keyjar.keys_by_alg_and_usage('', 'RS384', 'sig')
-signed_intermediate = _jws.sign_compact(keys)
-
-print(70 * "-")
-print("Signed intermediate key")
-print(70 * "-")
-print_lines(signed_intermediate)
+print_private_key(rp_keyjar, "RPs signing key")
 
 # -----------------------------------------------------------------------------
-# Create RP public keys, sign_jwks is what's support to be found at jwks_uri
+# -- construct Registration Request to be signed by Developer
 # -----------------------------------------------------------------------------
 
-rp_session_key_conf = [
-    {"type": "RSA", "use": ["sig", 'enc']},
-    {"type": "EC", "crv": "P-256", "use": ["sig"]},
-    {"type": "EC", "crv": "P-256", "use": ["enc"]}
-]
-
-sign_jwks, sign_keyjar = build_keyjar(rp_session_key_conf)[:-1]
-
-print(70 * "-")
-print("Keys at jwks_uri")
-print(70 * "-")
-print_lines(
-    json.dumps(sign_jwks, sort_keys=True, indent=2, separators=(',', ': ')))
-
-# -----------------------------------------------------------------------------
-# Create signed_jwks_uri
-# -----------------------------------------------------------------------------
-
-_jws = JWS(sign_jwks, alg="RS256")
-keys = im_keyjar.keys_by_alg_and_usage('', 'RS256', 'sig')
-signed_jwks = _jws.sign_compact(keys)
-
-print(70 * "-")
-print('signed_jwks_uri content')
-print(70 * "-")
-print_lines(signed_jwks)
-
-# -----------------------------------------------------------------------------
-# Create client registration request
-# -----------------------------------------------------------------------------
-
-rr = RegistrationRequest(
-    jwks_uri='https://example.com/rp/jwks',
-    software_statements=[sost],
-    signed_jwks_uri='https://example.com/rp/signed_jwks',
+rreq = RegistrationRequest(
+    redirect_uris=['https://example.com/rp1/callback'],
+    application_type='web',
     response_types=['code'],
-    id_token_signed_response_alg='SHA-256',
-    signing_key=signed_intermediate
+    signing_key=rp_jwks['keys'][0],
+    jwks_uri_signed='https://example.com/rp1/jwks.jws'
 )
 
-_jws = JWS(rr.to_json(), alg='RS256')
-keys = a_keyjar.keys_by_alg_and_usage('', 'RS384', 'sig')
-signed_reg_req = _jws.sign_compact(keys)
-
-rr['signed_metadata'] = signed_reg_req
-
 print(70 * "-")
-print('Client registration request')
+print('Client Registration request')
 print(70 * "-")
-print_lines(
-    json.dumps(rr.to_dict(), sort_keys=True, indent=2, separators=(',', ': ')))
-
-#### ======================================================================
-##   On the OP
-#### ======================================================================
-
-op_keyjar = KeyJar()
-op_keyjar.add_kb('https://fo.example.com/', KeyBundle(fo_jwks['keys']))
+print_lines(json.dumps(rreq.to_dict(), sort_keys=True, indent=2,
+                       separators=(',', ': ')))
 
 # -----------------------------------------------------------------------------
-# Unpack software_statements
+# Developer signs Registration Request once per federation
+# -----------------------------------------------------------------------------
+
+# adds the developers software statement
+rreq.update({
+    "software_statements": [dev_swamid_sost],
+})
+
+print(70 * "-")
+print('Developer adds software_statement to the Client Registration request')
+print(70 * "-")
+
+print_lines(json.dumps(rreq.to_dict(), sort_keys=True, indent=2,
+                       separators=(',', ': ')))
+
+rp_swamid_sost = make_software_statement(dev_swamid_keyjar,
+                                         'https://dev.example.com/',
+                                         **rreq.to_dict())
+
+print(70 * "-")
+print('.. and signs it producing a JWS')
+print(70 * "-")
+print_lines(rp_swamid_sost)
+
+rreq.update({
+    "software_statements": [dev_incommon_sost],
+})
+
+rp_incommon_sost = make_software_statement(dev_swamid_keyjar,
+                                           'https://dev.example.com/',
+                                           **rreq.to_dict())
+
+# ----------------------------------------------------------------------------
+# The RP publishes Registration Request
+# ----------------------------------------------------------------------------
+
+rere = Message(
+    software_statement_uris={
+        swamid_issuer: "https://dev.example.com/rp1/idfed/swamid.jws",
+        incommon_issuer: "https://dev.example.com/rp1/idfed/incommon.jws"
+    }
+)
+
+print('Registration Request published by RP')
+print(70 * "-")
+print_lines(json.dumps(rere.to_dict(), sort_keys=True, indent=2,
+                       separators=(',', ': ')))
+
+# ### ======================================================================
+# #   On the OP
+# ### ======================================================================
+
+print('The OP chooses which federation it will work under - SWAMID of course')
+
+op_keyjar = KeyJar()
+op_keyjar.add_kb(swamid_issuer, KeyBundle(swamid_jwks['keys']))
+
+# -----------------------------------------------------------------------------
+# Unpacking the russian doll (= the software_statement)
 # -----------------------------------------------------------------------------
 
 msgs = []
 
 # Only one software statement
-sost = rr['software_statements'][0]
+_rp_jwt = factory(rp_swamid_sost)
+_rp_sost = json.loads(_rp_jwt.jwt.part[1].decode('utf8'))
 
-_sost = unpack_software_statement(sost, '', op_keyjar)
-fo_id = _sost['iss']
+# Only one Software Statement within the signed
+sost = _rp_sost['software_statements'][0]
 
-# ------------------------------
-# get the long lived RP key (A)
-# ------------------------------
-A_keyjar = KeyJar()
-A_keyjar.add_kb('', KeyBundle(_sost['signing_key']))
+_sost_dev = unpack_software_statement(sost, '', op_keyjar)
+assert _sost_dev['iss'] == swamid_issuer
+
+# ----------------------------------------
+# get the Developers key and issuer ID
+# ----------------------------------------
+
+DEV_keyjar = KeyJar()
+DEV_keyjar.add_kb('', KeyBundle(_sost_dev['signing_key']))
+
+dev_iss = _rp_sost['iss']
+
+# -----------------------------------------------------------------------------
+
+_sost_rp = unpack_software_statement(rp_swamid_sost, dev_iss, DEV_keyjar)
+
+assert _sost_rp
+
+regreq_rp = RegistrationRequest(**_sost_rp)
+regreq_rp.weed()
+
+regreq_dev = RegistrationRequest(**_sost_dev)
+regreq_dev.weed()
+
+for key, val in regreq_rp.items():
+    if key not in regreq_dev:
+        regreq_dev[key] = val
+    elif isinstance(val, list):
+        regreq_dev[key] = list(set(regreq_dev[key]).intersection(val))
 
 print(70 * "-")
-print('Received primary key')
-print(70 * "-")
-print_lines(
-    json.dumps(_sost['signing_key'], sort_keys=True, indent=2,
-               separators=(',', ': ')))
-
-
-# ------------------------------
-#  get the intermediate key
-# ------------------------------
-
-_jws = factory(rr['signing_key'])
-_keys = A_keyjar.get_issuer_keys('')
-intermediate_keys = _jws.verify_compact(rr['signing_key'], _keys)
-intermediate_keyjar = KeyJar()
-intermediate_keyjar.add_kb('', KeyBundle(intermediate_keys['keys']))
-
-print(70 * "-")
-print('Received intermediate keys')
-print(70 * "-")
-print_lines(
-    json.dumps(intermediate_keys, sort_keys=True, indent=2,
-               separators=(',', ': ')))
-
-# ------------------------------
-#  Verify metadata signature
-# ------------------------------
-
-_jws = factory(rr['signed_metadata'])
-_keys = A_keyjar.get_issuer_keys('')
-metadata = _jws.verify_compact(rr['signed_metadata'], _keys)
-print(70 * "-")
-print('Verified metadata')
-print(70 * "-")
-print_lines(json.dumps(metadata, sort_keys=True, indent=2,
-                       separators=(',', ': ')))
-
-# ----------------------------------------------
-#  Verify the info fetched from signed_jwks_uri
-# ----------------------------------------------
-_jws = factory(signed_jwks)
-_keys = intermediate_keyjar.get_issuer_keys('')
-rp_keys = _jws.verify_compact(signed_jwks, _keys)
-print(70 * "-")
-print('Verified RP public keys')
-print(70 * "-")
-print_lines(json.dumps(rp_keys, sort_keys=True, indent=2,
+print_lines(json.dumps(regreq_dev.to_dict(), sort_keys=True, indent=2,
                        separators=(',', ': ')))
