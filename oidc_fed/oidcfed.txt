@@ -9,7 +9,7 @@
                                                                Microsoft
                                                               J. Bradley
                                                            Ping Identity
-                                                             May 5, 2016
+                                                             May 6, 2016
 
 
                        OpenID Connect Federation
@@ -37,45 +37,45 @@ Table of Contents
    3.  Trust model . . . . . . . . . . . . . . . . . . . . . . . . .   3
      3.1.  Federation operator . . . . . . . . . . . . . . . . . . .   3
      3.2.  Developer . . . . . . . . . . . . . . . . . . . . . . . .   3
-     3.3.  Relying Party Admin . . . . . . . . . . . . . . . . . . .   3
+     3.3.  Relying Party Admin . . . . . . . . . . . . . . . . . . .   4
      3.4.  Signing Key Chain . . . . . . . . . . . . . . . . . . . .   4
      3.5.  Dealing with the OpenID Provider Configuration
            Information . . . . . . . . . . . . . . . . . . . . . . .   4
    4.  OpenID Connect communication  . . . . . . . . . . . . . . . .   4
      4.1.  Extra metadata parameters . . . . . . . . . . . . . . . .   5
      4.2.  Federation policy . . . . . . . . . . . . . . . . . . . .   6
+     4.3.  Provider Discovery  . . . . . . . . . . . . . . . . . . .   7
+     4.4.  Client Registration . . . . . . . . . . . . . . . . . . .   7
    5.  Belonging to several federation . . . . . . . . . . . . . . .   7
      5.1.  Developer . . . . . . . . . . . . . . . . . . . . . . . .   7
      5.2.  OP/AS admin . . . . . . . . . . . . . . . . . . . . . . .   8
    6.  Verification process  . . . . . . . . . . . . . . . . . . . .   9
-     6.1.  OP as receiver  . . . . . . . . . . . . . . . . . . . . .   9
-     6.2.  RP as receiver  . . . . . . . . . . . . . . . . . . . . .   9
 
 
 
-Hedberg, et al.         Expires November 6, 2016                [Page 1]
+Hedberg, et al.         Expires November 7, 2016                [Page 1]
 
                             Abbreviated Title                   May 2016
 
 
-   7.  Provider Discovery  . . . . . . . . . . . . . . . . . . . . .   9
-   8.  Client Registration . . . . . . . . . . . . . . . . . . . . .   9
-   9.  Acknowledgements  . . . . . . . . . . . . . . . . . . . . . .  10
-   10. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  10
-   11. Security Considerations . . . . . . . . . . . . . . . . . . .  10
-   12. Normative References  . . . . . . . . . . . . . . . . . . . .  10
+     6.1.  OP as receiver  . . . . . . . . . . . . . . . . . . . . .   9
+     6.2.  RP as receiver  . . . . . . . . . . . . . . . . . . . . .   9
+   7.  Acknowledgements  . . . . . . . . . . . . . . . . . . . . . .   9
+   8.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .   9
+   9.  Security Considerations . . . . . . . . . . . . . . . . . . .  10
+   10. Normative References  . . . . . . . . . . . . . . . . . . . .  10
    Appendix A.  Example  . . . . . . . . . . . . . . . . . . . . . .  11
-     A.1.  Relying Party joining a federation  . . . . . . . . . . .  12
-       A.1.1.  Step 1 - Developer creates its signing key pair.  . .  12
-       A.1.2.  Step 2 - Developer submits registration data to FO  .  13
-       A.1.3.  Step 3 - FO returns a signed software statement . . .  14
-       A.1.4.  Step 4 - The RP gets a signing key  . . . . . . . . .  15
-       A.1.5.  Step 5 - RP produces a client registration request  .  16
-       A.1.6.  Step 6 - Developer produces software statement for RP  17
+     A.1.  Relying Party joining a federation  . . . . . . . . . . .  11
+       A.1.1.  Step 1 - Developer creates its signing key pair.  . .  11
+       A.1.2.  Step 2 - Developer submits registration data to FO  .  12
+       A.1.3.  Step 3 - FO returns a signed software statement . . .  13
+       A.1.4.  Step 4 - The RP gets a signing key  . . . . . . . . .  14
+       A.1.5.  Step 5 - RP produces a client registration request  .  15
+       A.1.6.  Step 6 - Developer produces software statement for RP  16
        A.1.7.  Step 7 - RP sends a client registration request to an
-               OP  . . . . . . . . . . . . . . . . . . . . . . . . .  18
-       A.1.8.  Step 8 - OP handles software statement  . . . . . . .  19
-   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  19
+               OP  . . . . . . . . . . . . . . . . . . . . . . . . .  17
+       A.1.8.  Step 8 - OP handles software statement  . . . . . . .  18
+   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  18
 
 1.  Introduction
 
@@ -109,7 +109,7 @@ Hedberg, et al.         Expires November 6, 2016                [Page 1]
 
 
 
-Hedberg, et al.         Expires November 6, 2016                [Page 2]
+Hedberg, et al.         Expires November 7, 2016                [Page 2]
 
                             Abbreviated Title                   May 2016
 
@@ -135,46 +135,53 @@ Hedberg, et al.         Expires November 6, 2016                [Page 2]
 
 3.1.  Federation operator
 
-   The Federation Operator (FO) acting as the trusted third part.  It
-   will publish a JWK Set at a HTTPS URL where the server certificate
-   MUST appear in a well-known Certificate Transparency log [RFC6962].
-   The FO will if the federation policy allows it sign a partial client
-   registration request provided by the developer.  The developer will
-   make the registration request available at a site where the FO can
-   fetch it.  The FO can add claims, representing federation policies,
-   to the registration request before signing it.  The signed
-   registration request is returned to the developer.
+   The Federation Operator (FO) acting as the trusted third part.  The
+   FO must have a globally unique identifier.  It will publish a JWK
+   Set, containing the signing keys that the FO will use for signing
+   developer metadata, at a HTTPS URL which server certificate MUST
+   appear in a well-known Certificate Transparency log [RFC6962].  The
+   FO will if the federation policy allows it sign a partial client
+   registration request provided by the developer.  There are several
+   ways that the developer can use to make the registration request
+   available to the.  One that we recommend is that the developer
+   publishes the request at an URLa where the FO can fetch it.  The FO
+   can add claims, representing federation policies, to the registration
+   request before constructing a software statement and signing it.  The
+   signed software statement is returned to the developer.
 
 3.2.  Developer
 
    The developer represents the organization responsible for the relying
    party (RP).  The developer will create a client registration request
-   that contains information common to more then one RP.  To the request
-   it will add an extra parameter"signed_key", that will contain a JWK
-   representation of the public key that corresponds to the private key
-   it will use to sign the registration request that the relying part
-   admin constructs.
+   that as an example can contain information pertaining to the
+   organization.  To the request it will add an extra
+   parameter"signing_key", that will contain a JWK representation of the
+   public key that corresponds to the private key it will use to sign
+   the registration request that the relying part admin constructs.
+
+
+
+
+
+
+
+Hedberg, et al.         Expires November 7, 2016                [Page 3]
+
+                            Abbreviated Title                   May 2016
+
 
 3.3.  Relying Party Admin
 
    The Relying Party Admin (RPA) is the entity responsible for a
    specific RP.  This entity will construct a client registration
    request containing claims specific to the RP.  To this registration
-   request it will add an extra parameter"signed_key", that will contain
-   a JWK representation of the public key that corresponds to the
-
-
-
-Hedberg, et al.         Expires November 6, 2016                [Page 3]
-
-                            Abbreviated Title                   May 2016
-
-
-   private key it will use to sign the JWK Set that represents the keys
-   it will use in the OpenID Connect communication.  The registration
-   request will be sent to the developer who will add the by the FO
-   signed registration request as a software statement before signing
-   the RPs registration request.
+   request it will add an extra parameter"signing_key", that will
+   contain a JWK representation of the public key that corresponds to
+   the private key it will use to sign the JWK Set that represents the
+   keys it will use in the OpenID Connect communication.  The
+   registration request will be sent to the developer who will add the,
+   by the FO constructed, software statement before signing the RPs
+   registration request.
 
 3.4.  Signing Key Chain
 
@@ -191,16 +198,33 @@ Hedberg, et al.         Expires November 6, 2016                [Page 3]
    It is assumed that an organization will only run one OpenID Connect
    Provider (OP).  We can therefor dispens of the intermediate, the
    developer, from the schema described above.  This leaves us with the
-   FO and the OP Admin.  The OP Admin will create a Provider
+   FO and the OP Admin.  The OP Admin (OPA) will create a Provider
    configuration and notify the FO about where and when it can be
    fetched.  The Provider configuration is extended with one parameter
-   "signed_key" where the OPA will publish the key it will use to sign
+   "signing_key" where the OPA will publish the key it will use to sign
    the JWK Set used in the OIDC communication.  The FO will if the
    federation policy allows it sign the Provider Configuration
    information.  The FO can add claims, representing federation
-   policies, to the Provider Configuration informaion before signing it.
+   policies, to the Provider Configuration informaion before
+   constructing the software statement, signing it and returning the
+   software statement to the OPA.  This software statement will later be
+   part of a Provider Configuration response.
 
 4.  OpenID Connect communication
+
+
+
+
+
+
+
+
+
+
+Hedberg, et al.         Expires November 7, 2016                [Page 4]
+
+                            Abbreviated Title                   May 2016
+
 
    The trust between the entities is established using the above
    described extensions in the first tree steps of the communication
@@ -217,14 +241,6 @@ Hedberg, et al.         Expires November 6, 2016                [Page 3]
    After the discovery and registration is completed a first time, those
    steps SHOULD only be repeated if any changes occur (see notes in
    respective sections below).
-
-
-
-
-Hedberg, et al.         Expires November 6, 2016                [Page 4]
-
-                            Abbreviated Title                   May 2016
-
 
 4.1.  Extra metadata parameters
 
@@ -261,23 +277,7 @@ Hedberg, et al.         Expires November 6, 2016                [Page 4]
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Hedberg, et al.         Expires November 6, 2016                [Page 5]
+Hedberg, et al.         Expires November 7, 2016                [Page 5]
 
                             Abbreviated Title                   May 2016
 
@@ -333,13 +333,28 @@ Hedberg, et al.         Expires November 6, 2016                [Page 5]
 
 
 
-Hedberg, et al.         Expires November 6, 2016                [Page 6]
+Hedberg, et al.         Expires November 7, 2016                [Page 6]
 
                             Abbreviated Title                   May 2016
 
 
    when the information provided by the RP/OP is a subset of what the
    developer/FO has specified.
+
+4.3.  Provider Discovery
+
+   The OP MUST publish its provider metadata as specified by OpenID
+   Connect Discovery 1.0 [OpenID.Discovery].  The RP makes a standard
+   OpenID Provider Configuration Request.  The OP responds with its
+   provider configuration and the additional metadata parameters
+   specified above.
+
+4.4.  Client Registration
+
+   The OP MUST support dynamic client registration as described in
+   OpenID Connect Dynamic Client Registration 1.0 [OpenID.Registration].
+   The RP makes a Client Registration Request including the additional
+   metadata specified above.
 
 5.  Belonging to several federation
 
@@ -354,7 +369,7 @@ Hedberg, et al.         Expires November 6, 2016                [Page 6]
    same key pair for all federations.  It really doesn't matter which it
    chooses but the end result must be that there is one signed RP
    registration request per signing key.  This is then published using
-   software_statement_uris.
+   "software_statement_uris" or "software_statements".
 
    The following is a non-normative example of an absolutely minimal
    client registration request sent to an OP:
@@ -369,30 +384,18 @@ Hedberg, et al.         Expires November 6, 2016                [Page 6]
      }
    }
 
-   Note that redirect_uris has to be present to make it a correct OpenID
-   Connect registration request !
-
    When the OP receives a request like this it will chose which
    federation it will work within and then signal that by only return
-   that entry in the software_statement_uris in the registration
-   response.
 
 
 
-
-
-
-
-
-
-
-
-
-
-Hedberg, et al.         Expires November 6, 2016                [Page 7]
+Hedberg, et al.         Expires November 7, 2016                [Page 7]
 
                             Abbreviated Title                   May 2016
 
+
+   that entry in the software_statements/software_statement_uris in the
+   registration response.
 
    The following is a non-normative example of an OPs response on the
    client registration request above:
@@ -438,14 +441,11 @@ Hedberg, et al.         Expires November 6, 2016                [Page 7]
            "https://foo.example.org/op/idfed/aconet.jws"
      }
 
-   As with client registration requests there are a number of claims
-   that has to be present in a Provider Configuration response to make
-   it legal.
 
 
 
 
-Hedberg, et al.         Expires November 6, 2016                [Page 8]
+Hedberg, et al.         Expires November 7, 2016                [Page 8]
 
                             Abbreviated Title                   May 2016
 
@@ -454,10 +454,7 @@ Hedberg, et al.         Expires November 6, 2016                [Page 8]
 
 6.1.  OP as receiver
 
-   Upon receiving metadata from an RP what the OP has to do varies
-   slightly dependent on whether it has seen an earlier version of the
-   metadata or not.  Assuming this is the first time the OP sees
-   metadata from the RP this is what it has to do:
+   Upon receiving metadata from an RP this is what the OP has to do:
 
    1.  The OP will have to unpack the metadata such that it can get at
        the software statement that is included.  This is the software
@@ -485,37 +482,13 @@ Hedberg, et al.         Expires November 6, 2016                [Page 8]
    the signing key included in the metadata to verify the signature of
    the JWK Set found at that URL.
 
-7.  Provider Discovery
-
-   The OP MUST publish its provider metadata as specified by OpenID
-   Connect Discovery 1.0 [OpenID.Discovery].  The RP makes a standard
-   OpenID Provider Configuration Request.  The OP responds with its
-   provider configuration and the additional metadata parameters
-   specified above.
-
-8.  Client Registration
-
-   The OP MUST support dynamic client registration as described in
-   OpenID Connect Dynamic Client Registration 1.0 [OpenID.Registration].
-
-
-
-
-Hedberg, et al.         Expires November 6, 2016                [Page 9]
-
-                            Abbreviated Title                   May 2016
-
-
-   The RP makes a Client Registration Request including the additional
-   metadata specified above.
-
-9.  Acknowledgements
+7.  Acknowledgements
 
       Michael Schwartz
 
       Peter Schober
 
-10.  IANA Considerations
+8.  IANA Considerations
 
    This memo includes no request to IANA.
 
@@ -526,12 +499,19 @@ Hedberg, et al.         Expires November 6, 2016                [Page 9]
    case (as above).  If there are no requirements for IANA, the section
    will be removed during conversion into an RFC by the RFC Editor.
 
-11.  Security Considerations
+
+
+Hedberg, et al.         Expires November 7, 2016                [Page 9]
+
+                            Abbreviated Title                   May 2016
+
+
+9.  Security Considerations
 
    All drafts are required to have a security considerations section.
    See RFC 3552 [RFC3552] for a guide.
 
-12.  Normative References
+10.  Normative References
 
    [OpenID.Core]
               Sakimura, N., Bradley, J., Jones, M., de Medeiros, B., and
@@ -555,13 +535,6 @@ Hedberg, et al.         Expires November 6, 2016                [Page 9]
               DOI 10.17487/RFC2119, March 1997,
               <http://www.rfc-editor.org/info/rfc2119>.
 
-
-
-Hedberg, et al.         Expires November 6, 2016               [Page 10]
-
-                            Abbreviated Title                   May 2016
-
-
    [RFC3552]  Rescorla, E. and B. Korver, "Guidelines for Writing RFC
               Text on Security Considerations", BCP 72, RFC 3552,
               DOI 10.17487/RFC3552, July 2003,
@@ -580,6 +553,15 @@ Hedberg, et al.         Expires November 6, 2016               [Page 10]
               Signature (JWS)", RFC 7515, DOI 10.17487/RFC7515, May
               2015, <http://www.rfc-editor.org/info/rfc7515>.
 
+
+
+
+
+Hedberg, et al.         Expires November 7, 2016               [Page 10]
+
+                            Abbreviated Title                   May 2016
+
+
    [RFC7517]  Jones, M., "JSON Web Key (JWK)", RFC 7517,
               DOI 10.17487/RFC7517, May 2015,
               <http://www.rfc-editor.org/info/rfc7517>.
@@ -590,33 +572,6 @@ Appendix A.  Example
 
    The following JWKS represents the signing key that the Federation
    Operator is using in the following example:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Hedberg, et al.         Expires November 6, 2016               [Page 11]
-
-                            Abbreviated Title                   May 2016
-
 
   {
     "keys": [
@@ -658,18 +613,7 @@ A.1.1.  Step 1 - Developer creates its signing key pair.
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-Hedberg, et al.         Expires November 6, 2016               [Page 12]
+Hedberg, et al.         Expires November 7, 2016               [Page 11]
 
                             Abbreviated Title                   May 2016
 
@@ -725,7 +669,7 @@ A.1.2.  Step 2 - Developer submits registration data to FO
 
 
 
-Hedberg, et al.         Expires November 6, 2016               [Page 13]
+Hedberg, et al.         Expires November 7, 2016               [Page 12]
 
                             Abbreviated Title                   May 2016
 
@@ -781,7 +725,7 @@ A.1.3.  Step 3 - FO returns a signed software statement
 
 
 
-Hedberg, et al.         Expires November 6, 2016               [Page 14]
+Hedberg, et al.         Expires November 7, 2016               [Page 13]
 
                             Abbreviated Title                   May 2016
 
@@ -837,7 +781,7 @@ A.1.4.  Step 4 - The RP gets a signing key
 
 
 
-Hedberg, et al.         Expires November 6, 2016               [Page 15]
+Hedberg, et al.         Expires November 7, 2016               [Page 14]
 
                             Abbreviated Title                   May 2016
 
@@ -893,7 +837,7 @@ A.1.5.  Step 5 - RP produces a client registration request
 
 
 
-Hedberg, et al.         Expires November 6, 2016               [Page 16]
+Hedberg, et al.         Expires November 7, 2016               [Page 15]
 
                             Abbreviated Title                   May 2016
 
@@ -949,7 +893,7 @@ A.1.6.  Step 6 - Developer produces software statement for RP
 
 
 
-Hedberg, et al.         Expires November 6, 2016               [Page 17]
+Hedberg, et al.         Expires November 7, 2016               [Page 16]
 
                             Abbreviated Title                   May 2016
 
@@ -1005,7 +949,7 @@ A.1.7.  Step 7 - RP sends a client registration request to an OP
 
 
 
-Hedberg, et al.         Expires November 6, 2016               [Page 18]
+Hedberg, et al.         Expires November 7, 2016               [Page 17]
 
                             Abbreviated Title                   May 2016
 
@@ -1061,4 +1005,4 @@ Authors' Addresses
 
 
 
-Hedberg, et al.         Expires November 6, 2016               [Page 19]
+Hedberg, et al.         Expires November 7, 2016               [Page 18]
