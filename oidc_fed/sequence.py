@@ -8,8 +8,8 @@ from oic.oauth2 import Message
 from oic.oic.message import RegistrationRequest
 
 from oic.extension.message import make_software_statement
+from oic.extension.message import SoftwareStatement
 from oic.extension.message import unpack_software_statement
-from oic.extension.oidc_fed import SoftwareStatement
 from oic.utils.keyio import build_keyjar
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
