@@ -779,7 +779,7 @@ class Provider(AProvider):
                 state, salt, areq["client_id"], redirect_uri)
             headers.append(self.write_session_cookie(state))
 
-        if 'cookie' in kwargs:
+        if 'cookie' in kwargs and kwargs['cookie']:
             headers.extend([('Set-Cookie', '{}="{}"'.format(k, v)) for k, v in
                             kwargs['cookie'].items()])
 
