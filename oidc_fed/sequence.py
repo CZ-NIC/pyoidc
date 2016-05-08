@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 
 import json
+from jwkest.jws import JWS
 from jwkest.jws import factory
 
 from oic.oauth2 import Message
 from oic.oic.message import RegistrationRequest
 
 from oic.extension.message import make_software_statement
-from oic.extension.message import unpack_software_statement
 from oic.extension.message import SoftwareStatement
+from oic.extension.message import unpack_software_statement
 from oic.utils.keyio import build_keyjar
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
