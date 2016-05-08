@@ -779,11 +779,16 @@ class Provider(AProvider):
                 state, salt, areq["client_id"], redirect_uri)
             headers.append(self.write_session_cookie(state))
 
+        if 'cookie' in kwargs:
+            headers.extend([('Set-Cookie', '{}="{}"'.format(k, v)) for k, v in
+                            kwargs['cookie'].items()])
+
         # as per the mix-up draft don't add iss and client_id if they are
         # already in the id_token.
         if 'id_token' not in aresp:
             aresp['iss'] = self.baseurl
-            aresp['client_id'] = areq['client_id']
+
+        aresp['client_id'] = areq['client_id']
 
         logger.info('authorization response: %s', aresp.to_dict())
         location = aresp.request(redirect_uri, fragment_enc)

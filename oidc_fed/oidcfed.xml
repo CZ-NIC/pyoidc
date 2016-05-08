@@ -145,26 +145,30 @@
       <section title="Federation operator">
         <t>
           The Federation Operator (FO) acting as the trusted third
-          part. It will publish a JWK Set at a HTTPS URL where the
-          server certificate MUST appear in a well-known
+          part. The FO must have a globally unique identifier.
+          It will publish a JWK Set, containing the signing keys
+          that the FO will use for signing developer metadata,
+          at a HTTPS URL which server certificate MUST appear in a well-known
           <xref target="RFC6962">Certificate Transparency log</xref>.
           The FO will if the federation policy allows it sign
           a partial client registration request provided by the
-          developer. The developer will make the registration
-          request available at a site where the FO can fetch it.
+          developer. There are several ways that the developer can use to make
+          the registration request available to the. One that we recommend is
+          that the developer publishes the request at an URLa where the FO
+          can fetch it.
           The FO can add claims, representing federation policies,
-          to the registration request before signing it.
-          The signed registration request is returned to the
+          to the registration request before constructing a software statement
+          and signing it. The signed software statement is returned to the
           developer.
         </t>
       </section>
       <section title="Developer">
         <t>
           The developer represents the organization responsible
-          for the relying party (RP). The developer will create a
-          client registration request that contains information
-          common to more then one RP. To the request it will add
-          an extra parameter<spanx style="verb">signed_key</spanx>,
+          for the relying party (RP). The developer will create a client
+          registration request that as an example can contain information
+          pertaining to the organization. To the request it will add
+          an extra parameter<spanx style="verb">signing_key</spanx>,
           that will contain a JWK representation of the public key
           that corresponds to the private key it will use to sign
           the registration request that the relying part admin
@@ -177,13 +181,13 @@
           a specific RP. This entity will construct a client
           registration request containing claims specific to the RP.
           To this registration request it will add an extra
-          parameter<spanx style="verb">signed_key</spanx>,
+          parameter<spanx style="verb">signing_key</spanx>,
           that will contain a JWK representation of the public key
           that corresponds to the private key it will use to sign
           the JWK Set that represents the keys it will use in the
           OpenID Connect communication. The registration request
-          will be sent to the developer who will add the by the FO
-          signed registration request as a software statement before
+          will be sent to the developer who will add the, by the FO
+          constructed, software statement before
           signing the RPs registration request.
         </t>
       </section>
@@ -206,16 +210,20 @@
           of the intermediate, the developer, from the schema
           described above.
           This leaves us with the FO and the OP Admin.
-          The OP Admin will create a Provider configuration and
+          The OP Admin (OPA) will create a Provider configuration and
           notify the FO about where and when it can be fetched.
           The Provider configuration is extended with one parameter
-          <spanx style="verb">signed_key</spanx>
+          <spanx style="verb">signing_key</spanx>
           where the OPA will publish the key it will use to sign
           the JWK Set used in the OIDC communication.
           The FO will if the federation policy allows it sign
           the Provider Configuration information.
           The FO can add claims, representing federation policies,
-          to the Provider Configuration informaion before signing it.
+          to the Provider Configuration informaion before constructing the
+          software statement, signing it and returning the software statement
+          to the OPA.
+          This software statement will later be part of a Provider Configuration
+          response.
         </t>
       </section>
     </section>
@@ -350,6 +358,26 @@
           RP/OP is a subset of what the developer/FO has specified.
         </t>
       </section>
+      <section title="Provider Discovery">
+        <t>
+          The OP MUST publish its provider metadata as specified by
+          <xref target="OpenID.Discovery">OpenID Connect Discovery
+            1.0</xref>.
+          The RP makes a standard OpenID Provider Configuration Request.
+          The OP responds with its provider configuration and the
+          additional metadata parameters specified above.
+        </t>
+      </section>
+      <section title="Client Registration">
+        <t>
+          The OP MUST support dynamic client registration
+          as described in
+          <xref target="OpenID.Registration">OpenID Connect Dynamic Client
+            Registration 1.0
+          </xref>. The RP makes a Client Registration Request including
+          the additional metadata specified above.
+        </t>
+      </section>
     </section>
     <section title="Belonging to several federation">
       <section title="Developer">
@@ -365,7 +393,10 @@
           federations. It really doesn't matter which it chooses but the end
           result must be that there is one signed RP registration request per
           signing key.
-          This is then published using software_statement_uris.
+          This is then published using
+          <spanx style="verb">software_statement_uris</spanx>
+          or
+          <spanx style="verb">software_statements</spanx>.
         </t>
         <t>
           <figure>
@@ -387,14 +418,10 @@
           </figure>
         </t>
         <t>
-          Note that redirect_uris has to be present to make it a correct
-          OpenID Connect registration request !
-        </t>
-        <t>
           When the OP receives a request like this it will chose which
           federation it will work within and then signal that by only
-          return that entry in the software_statement_uris in the
-          registration response.
+          return that entry in the software_statements/software_statement_uris
+          in the registration response.
         </t>
         <t>
           <figure>
@@ -453,20 +480,12 @@
             ]]></artwork>
           </figure>
         </t>
-        <t>
-          As with client registration requests there are a number of claims
-          that has to be present in a Provider Configuration response to make
-          it legal.
-        </t>
       </section>
     </section>
     <section title="Verification process">
       <section title="OP as receiver">
         <t>
-          Upon receiving metadata from an RP what the OP has to do
-          varies slightly dependent on whether it has seen an earlier version
-          of the metadata or not. Assuming this is the first time the OP sees
-          metadata from the RP this is what it has to do:
+          Upon receiving metadata from an RP this is what the OP has to do:
           <list style="numbers">
             <t>
               The OP will have to unpack the metadata such that it can get at
@@ -507,26 +526,6 @@
           of the JWK Set found at that URL.
         </t>
       </section>
-    </section>
-    <section title="Provider Discovery">
-      <t>
-        The OP MUST publish its provider metadata as specified by
-        <xref target="OpenID.Discovery">OpenID Connect Discovery
-          1.0</xref>.
-        The RP makes a standard OpenID Provider Configuration Request.
-        The OP responds with its provider configuration and the
-        additional metadata parameters specified above.
-      </t>
-    </section>
-    <section title="Client Registration">
-      <t>
-        The OP MUST support dynamic client registration
-        as described in
-        <xref target="OpenID.Registration">OpenID Connect Dynamic Client
-          Registration 1.0
-        </xref>. The RP makes a Client Registration Request including
-        the additional metadata specified above.
-      </t>
     </section>
     <section anchor="Acknowledgements" title="Acknowledgements">
       <t>
@@ -857,9 +856,9 @@ Sw",
         </section>
         <section title="Step 4 - The RP gets a signing key">
           <t>
-          The RP gets a signing key
-          <figure>
-            <artwork><![CDATA[
+            The RP gets a signing key
+            <figure>
+              <artwork><![CDATA[
 {
   "keys": [
     {
@@ -889,14 +888,14 @@ Jkm3l2rQoZALgvMtdYdDGJ-D3gwusW5nNS3-xJqMPds",
   ]
 }
             ]]></artwork>
-          </figure>
+            </figure>
           </t>
         </section>
         <section title="Step 5 - RP produces a client registration request">
           <t>
-          The RP produces a client registration request
-          <figure>
-            <artwork><![CDATA[
+            The RP produces a client registration request
+            <figure>
+              <artwork><![CDATA[
 {
   "application_type": "web",
   "jwks_uri_signed": "https://example.com/rp1/jwks.jws",
@@ -920,7 +919,7 @@ SQ",
   }
 }
             ]]></artwork>
-          </figure>
+            </figure>
           </t>
         </section>
         <section title="Step 6 - Developer produces software statement for RP">
@@ -985,7 +984,8 @@ Gcs0FsmD1irBDIAIQodidYoI6aA"
             that the RP will present to the OP
           </t>
         </section>
-        <section title="Step 7 - RP sends a client registration request to an OP">
+        <section
+            title="Step 7 - RP sends a client registration request to an OP">
           <t>
             The RP sends a client registration request to the OP
             <figure>
@@ -1005,8 +1005,8 @@ Gcs0FsmD1irBDIAIQodidYoI6aA"
         </section>
         <section title="Step 8 - OP handles software statement">
           <t>
-          The OP fetches the software statement from the URI
-          'https://dev.example.com/rp1/idfed/swamid.jws' and then goes about
+            The OP fetches the software statement from the URI
+            'https://dev.example.com/rp1/idfed/swamid.jws' and then goes about
             unpacking the metadata. At this point in time the OP doesn't have
             the necessary key to verify the signature of the metadata.
             Therefor it has to unpack the JWT without verifying the signature.
