@@ -318,7 +318,8 @@ class TestProvider(object):
         assert part[2] is not None
 
         assert isinstance(aresp, AuthorizationResponse)
-        assert _eq(aresp.keys(), ['scope', 'state', 'code', 'id_token'])
+        assert _eq(aresp.keys(), ['scope', 'state', 'id_token', 'client_id',
+                                  'code'])
 
         assert _eq(self.cons.grant[_state].keys(),
                    ['code', 'id_token', 'tokens',
