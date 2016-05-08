@@ -245,6 +245,9 @@ class Provider(object):
             location = err.request(redirect_uri, True)
         return SeeOther(location)
 
+    def endpoints(self):
+        return [endp.url for endp in self.endp]
+
     def _verify_redirect_uri(self, areq):
         """
         MUST NOT contain a fragment
