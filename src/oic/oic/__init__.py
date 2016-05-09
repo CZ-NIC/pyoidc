@@ -1393,6 +1393,9 @@ class Server(oauth2.Server):
     def parse_user_info_request(self, data, sformat="urlencoded"):
         return self._parse_request(UserInfoRequest, data, sformat)
 
+    def parse_userinfo_request(self, data, sformat="urlencoded"):
+        return self._parse_request(UserInfoRequest, data, sformat)
+
     def parse_refresh_session_request(self, url=None, query=None):
         if url:
             parts = urlparse(url)
