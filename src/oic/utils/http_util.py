@@ -19,7 +19,6 @@ __author__ = 'rohe0002'
 
 logger = logging.getLogger(__name__)
 
-
 SUCCESSFUL = [200, 201, 202, 203, 204, 205, 206]
 
 
@@ -60,6 +59,9 @@ class Response(object):
             mte = self.mako_lookup.get_template(self.mako_template)
             return [mte.render(**argv)]
         else:
+            if [x for x in self._c_types() if x.startswith('image/')]:
+                return [message]
+
             try:
                 return [message.encode("utf-8")]
             except AttributeError:
@@ -74,6 +76,9 @@ class Response(object):
 
     def reply(self, **kwargs):
         return self.response(self.message, **kwargs)
+
+    def _c_types(self):
+        return [y for x, y in self.headers if x == "Content-type"]
 
 
 class Created(Response):
