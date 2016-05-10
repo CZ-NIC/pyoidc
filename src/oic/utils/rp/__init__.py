@@ -364,7 +364,7 @@ class OIDCClients(object):
         else:
             # Gather OP information
             _pcr = client.provider_config(issuer)
-            logger.info('Provider info: {}'.format(_pcr.to_dict))
+            logger.info('Provider info: {}'.format(_pcr.to_dict()))
             # register the client
             _cinfo = self.config.CLIENTS[""]["client_info"]
             reg_args = copy.copy(_cinfo)

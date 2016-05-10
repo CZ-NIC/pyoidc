@@ -289,7 +289,7 @@ class OAuthClients(object):
         else:
             # Gather OP information
             _pcr = client.provider_config(issuer)
-            logger.info('Provider info: {}'.format(_pcr.to_dict))
+            logger.info('Provider info: {}'.format(_pcr.to_dict()))
             issuer = _pcr['issuer']  # So no hickup later about trailing '/'
             # register the client
             _cinfo = self.config.CLIENTS[""]["client_info"]
