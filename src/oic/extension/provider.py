@@ -39,7 +39,7 @@ from oic.oauth2.provider import Endpoint
 from oic.oauth2.exception import VerificationError
 from oic.oauth2.exception import CapabilitiesMisMatch
 from oic.oauth2.message import ASConfigurationResponse
-# from oic.oic import ProviderConfigurationResponse
+from oic.oauth2.message import ErrorResponse
 
 from oic.oic import PREFERENCE2PROVIDER
 from oic.oic.provider import RegistrationEndpoint
@@ -50,6 +50,7 @@ from oic.utils import sort_sign_alg
 from oic.utils.authn.client import AuthnFailure
 from oic.utils.authn.client import UnknownAuthnMethod
 from oic.utils.authn.client import get_client_id
+from oic.utils.authn.client import valid_client_info
 from oic.utils.http_util import Unauthorized
 from oic.utils.http_util import NoContent
 from oic.utils.http_util import Response
@@ -60,7 +61,8 @@ from oic.utils.keyio import KeyJar
 from oic.utils.keyio import key_export
 from oic.utils.sdb import AccessCodeUsed
 from oic.utils.time_util import utc_time_sans_frac
-from oic.utils.token_handler import TokenHandler, NotAllowed
+from oic.utils.token_handler import NotAllowed
+from oic.utils.token_handler import TokenHandler
 
 __author__ = 'roland'
 
@@ -320,6 +322,12 @@ class Provider(provider.Provider):
 
     def client_info(self, client_id):
         _cinfo = self.cdb[client_id].copy()
+        if not valid_client_info(_cinfo):
+            err = ErrorResponse(
+                error="invalid_client",
+                error_description="Invalid client secret")
+            return BadRequest(err.to_json(), content="application/json")
+
         try:
             _cinfo["redirect_uris"] = self._tuples_to_uris(
                 _cinfo["redirect_uris"])

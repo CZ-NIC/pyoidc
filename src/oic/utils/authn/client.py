@@ -442,6 +442,18 @@ CLIENT_AUTHN_METHOD = {
 TYPE_METHOD = [(JWT_BEARER, JWSAuthnMethod)]
 
 
+def valid_client_info(cinfo):
+    try:
+        eta = cinfo['client_secret_expires_at']
+    except KeyError:
+        pass
+    else:
+        if eta < utc_time_sans_frac():
+            return False
+
+    return True
+
+
 def get_client_id(cdb, req, authn):
     """
     Verify the client and return the client id
@@ -463,6 +475,10 @@ def get_client_id(cdb, req, authn):
                 logger.debug("Unknown client_id")
                 raise FailedAuthentication("Unknown client_id")
             else:
+                if not valid_client_info(cdb[_id]):
+                    logger.debug("Invalid Client info")
+                    raise FailedAuthentication("Invalid Client")
+
                 if _secret != cdb[_id]["client_secret"]:
                     logger.debug("Incorrect secret")
                     raise FailedAuthentication("Incorrect secret")
@@ -484,6 +500,8 @@ def get_client_id(cdb, req, authn):
             if _id not in cdb:
                 logger.debug("Unknown client_id")
                 raise FailedAuthentication("Unknown client_id")
+            if not valid_client_info(cdb[_id]):
+                raise FailedAuthentication("Invalid client_id")
         except KeyError:
             raise FailedAuthentication("Missing client_id")
 
