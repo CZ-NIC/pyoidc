@@ -84,7 +84,7 @@ def opresult(environ, start_response, **kwargs):
                     headers=[])
 
     args = {}
-    for param in ['userinfo', 'user_id', 'id_token']:
+    for param in ['userinfo', 'userid', 'id_token']:
         try:
             args[param] = kwargs[param]
         except KeyError:

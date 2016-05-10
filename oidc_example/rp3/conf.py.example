@@ -66,3 +66,8 @@ CLIENTS = {
     #     "userinfo_request_method": "GET"
     # }
 }
+
+# Which type of client
+CLIENT_TYPE = 'OIDC'  # one of OIDC/OAUTH2
+# Whether an attempt to fetch the userinfo should be made
+USERINFO = True
