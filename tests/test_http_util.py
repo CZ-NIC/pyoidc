@@ -6,6 +6,8 @@ from oic.utils.http_util import CookieDealer
 from oic.utils.http_util import Response
 from oic.utils.http_util import geturl
 from oic.utils.http_util import getpath
+from oic.utils.http_util import parse_cookie
+from oic.utils.http_util import cookie_parts
 
 __author__ = 'roland'
 
@@ -55,6 +57,25 @@ class TestCookieDealer(object):
         cookie_timestamp = datetime.datetime.strptime(
             cookie_expiration, "%a, %d-%b-%Y %H:%M:%S GMT")
         assert cookie_timestamp < now
+
+
+def test_parse_cookie():
+    kaka = ('pyoidc=bjmc::1463043535::upm|'
+            '1463043535|18a201305fa15a96ce4048e1fbb03f7715f86499')
+    seed = ''
+    name = 'pyoidc'
+    result = parse_cookie(name, seed, kaka)
+    assert result == ('bjmc::1463043535::upm', '1463043535')
+
+
+def test_cookie_parts():
+    name = 'pyoidc'
+    kaka = ('pyoidc=bjmc::1463043535::upm|'
+            '1463043535|18a201305fa15a96ce4048e1fbb03f7715f86499')
+    result = cookie_parts(name, kaka)
+    assert result == ['bjmc::1463043535::upm',
+                      '1463043535',
+                      '18a201305fa15a96ce4048e1fbb03f7715f86499']
 
 
 def test_geturl():
