@@ -7,6 +7,7 @@ from future.backports.http.cookies import SimpleCookie
 from future.backports.urllib.parse import quote
 
 from jwkest import as_unicode
+from six import text_type
 
 from oic import rndstr
 
@@ -282,7 +283,7 @@ def parse_cookie(name, seed, kaka):
     if not kaka:
         return None
 
-    cookie_obj = SimpleCookie(kaka)
+    cookie_obj = SimpleCookie(text_type(kaka))
     morsel = cookie_obj.get(name)
 
     if morsel:
@@ -304,7 +305,7 @@ def parse_cookie(name, seed, kaka):
 
 
 def cookie_parts(name, kaka):
-    cookie_obj = SimpleCookie(kaka)
+    cookie_obj = SimpleCookie(text_type(kaka))
     morsel = cookie_obj.get(name)
     if morsel:
         return morsel.value.split("|")
