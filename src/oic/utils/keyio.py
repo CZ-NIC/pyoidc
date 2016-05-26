@@ -956,9 +956,12 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
 
         if typ == "RSA":
             if "key" in spec:
-                kb = KeyBundle(source="file://%s" % spec["key"],
-                               fileformat="der",
-                               keytype=typ, keyusage=spec["use"])
+                try:
+                    kb = KeyBundle(source="file://%s" % spec["key"],
+                                   fileformat="der",
+                                   keytype=typ, keyusage=spec["use"])
+                except FileNotFoundError:
+                    kb = rsa_init(spec)
             else:
                 kb = rsa_init(spec)
         elif typ == "EC":
