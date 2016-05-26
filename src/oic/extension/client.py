@@ -319,6 +319,10 @@ class Client(oauth2.Client):
 
         pcr = None
         r = self.http_request(url)
+
+        if self.event_store:
+            self.event_store.store('http response header', r.headers)
+
         if r.status_code == 200:
             pcr = response_cls().from_json(r.text)
         elif r.status_code == 302:
