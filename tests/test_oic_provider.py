@@ -19,8 +19,8 @@ from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
 from oic.utils.http_util import SeeOther
 from oic.utils.userinfo import UserInfo
-from oic.exception import RedirectURIError
 from oic.exception import FailedAuthentication
+from oic.exception import RedirectURIError
 from oic.utils.keyio import KeyBundle, ec_init
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import keybundle_from_local_file

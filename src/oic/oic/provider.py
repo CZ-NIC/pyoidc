@@ -779,9 +779,9 @@ class Provider(AProvider):
                 state, salt, areq["client_id"], redirect_uri)
             headers.append(self.write_session_cookie(state))
 
-        if 'cookie' in kwargs and kwargs['cookie']:
-            headers.extend([('Set-Cookie', '{}="{}"'.format(k, v)) for k, v in
-                            kwargs['cookie'].items()])
+        # if 'cookie' in kwargs and kwargs['cookie']:
+        #     headers.extend([('Set-Cookie', '{}="{}"'.format(k, v)) for k, v in
+        #                     kwargs['cookie'].items()])
 
         # as per the mix-up draft don't add iss and client_id if they are
         # already in the id_token.
@@ -1796,42 +1796,42 @@ class Provider(AProvider):
         return Response(_response.to_json(), content="application/json",
                         headers=headers)
 
-    def auth_resp_extension(self, aresp, areq, sid, rtype):
-        if "id_token" in areq["response_type"]:
-            _sinfo = self.sdb[sid]
-
-            if "code" in areq["response_type"]:
-                _code = aresp["code"] = _sinfo["code"]
-                rtype.remove("code")
-            else:
-                _sinfo[sid]["code"] = None
-                _code = None
-
-            try:
-                _access_token = aresp["access_token"]
-            except KeyError:
-                _access_token = None
-
-            user_info = self.userinfo_in_id_token_claims(_sinfo)
-            client_info = self.cdb[str(areq["client_id"])]
-
-            hargs = {}
-            if set(areq["response_type"]) == {'code', 'id_token', 'token'}:
-                hargs = {"code": _code, "access_token": _access_token}
-            elif set(areq["response_type"]) == {'code', 'id_token'}:
-                hargs = {"code": _code}
-            elif set(areq["response_type"]) == {'id_token', 'token'}:
-                hargs = {"access_token": _access_token}
-
-            # or 'code id_token'
-            id_token = self.sign_encrypt_id_token(
-                _sinfo, client_info, areq, user_info=user_info, **hargs)
-
-            aresp["id_token"] = id_token
-            _sinfo["id_token"] = id_token
-            rtype.remove("id_token")
-
-        return aresp
+    # def auth_resp_extension(self, aresp, areq, sid, rtype):
+    #     if "id_token" in areq["response_type"]:
+    #         _sinfo = self.sdb[sid]
+    #
+    #         if "code" in areq["response_type"]:
+    #             _code = aresp["code"] = _sinfo["code"]
+    #             rtype.remove("code")
+    #         else:
+    #             _sinfo[sid]["code"] = None
+    #             _code = None
+    #
+    #         try:
+    #             _access_token = aresp["access_token"]
+    #         except KeyError:
+    #             _access_token = None
+    #
+    #         user_info = self.userinfo_in_id_token_claims(_sinfo)
+    #         client_info = self.cdb[str(areq["client_id"])]
+    #
+    #         hargs = {}
+    #         if set(areq["response_type"]) == {'code', 'id_token', 'token'}:
+    #             hargs = {"code": _code, "access_token": _access_token}
+    #         elif set(areq["response_type"]) == {'code', 'id_token'}:
+    #             hargs = {"code": _code}
+    #         elif set(areq["response_type"]) == {'id_token', 'token'}:
+    #             hargs = {"access_token": _access_token}
+    #
+    #         # or 'code id_token'
+    #         id_token = self.sign_encrypt_id_token(
+    #             _sinfo, client_info, areq, user_info=user_info, **hargs)
+    #
+    #         aresp["id_token"] = id_token
+    #         _sinfo["id_token"] = id_token
+    #         rtype.remove("id_token")
+    #
+    #     return aresp
 
     def aresp_check(self, aresp, areq):
         # Use of the nonce is REQUIRED for all requests where an ID Token is
@@ -1918,11 +1918,12 @@ class Provider(AProvider):
                 client_info = self.cdb[str(areq["client_id"])]
 
                 hargs = {}
-                if set(areq["response_type"]) == {'code', 'id_token', 'token'}:
+                rt_set = set(areq["response_type"])
+                if {'code', 'id_token', 'token'}.issubset(rt_set):
                     hargs = {"code": _code, "access_token": _access_token}
-                elif set(areq["response_type"]) == {'code', 'id_token'}:
+                elif {'code', 'id_token'}.issubset(rt_set):
                     hargs = {"code": _code}
-                elif set(areq["response_type"]) == {'id_token', 'token'}:
+                elif {'id_token', 'token'}.issubset(rt_set):
                     hargs = {"access_token": _access_token}
 
                 # or 'code id_token'
@@ -1940,7 +1941,7 @@ class Provider(AProvider):
                 rtype.remove("id_token")
 
             if len(rtype):
-                return BadRequest("Unknown response type: %s" % rtype)
+                raise UnSupported("unsupported_response_type", list(rtype))
 
         return aresp, fragment_enc
 

@@ -110,9 +110,15 @@ class Provider(provider.Provider):
 
         if not name.endswith("/"):
             name += "/"
+
+        try:
+            args = {'server_cls': kwargs['server_cls']}
+        except KeyError:
+            args = {}
+
         provider.Provider.__init__(self, name, sdb, cdb, authn_broker, authz,
                                    client_authn, symkey, urlmap, iv,
-                                   default_scope, ca_bundle)
+                                   default_scope, ca_bundle, **args)
 
         self.endp.extend([RegistrationEndpoint, ClientInfoEndpoint,
                           RevocationEndpoint, IntrospectionEndpoint])
@@ -142,7 +148,7 @@ class Provider(provider.Provider):
                 provider_config=capabilities)
         else:
             self.capabilities = self.provider_features()
-        self.baseurl = baseurl
+        self.baseurl = baseurl or name
         self.hostname = hostname or socket.gethostname()
         self.kid = {"sig": {}, "enc": {}}
         self.config = config or {}

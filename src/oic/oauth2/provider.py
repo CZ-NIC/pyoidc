@@ -4,6 +4,8 @@ import logging
 import os
 import sys
 import traceback
+
+from future.backports.http.cookies import SimpleCookie
 from future.backports.urllib.parse import unquote
 from future.backports.urllib.parse import urljoin
 from future.backports.urllib.parse import urlparse
@@ -11,7 +13,7 @@ from future.backports.urllib.parse import splitquery
 from future.backports.urllib.parse import parse_qs
 
 from oic import rndstr
-from oic.exception import FailedAuthentication
+from oic.exception import FailedAuthentication, UnSupported
 from oic.exception import InvalidRequest
 from oic.exception import MissingParameter
 from oic.exception import ParameterError
@@ -156,11 +158,11 @@ class Provider(object):
     def __init__(self, name, sdb, cdb, authn_broker, authz, client_authn,
                  symkey="", urlmap=None, iv=0, default_scope="",
                  ca_bundle=None, verify_ssl=True, default_acr="",
-                 baseurl=''):
+                 baseurl='', server_cls=Server):
         self.name = name
         self.sdb = sdb
         self.cdb = cdb
-        self.server = Server(ca_certs=ca_bundle, verify_ssl=verify_ssl)
+        self.server = server_cls(ca_certs=ca_bundle, verify_ssl=verify_ssl)
 
         self.authn_broker = authn_broker
         if authn_broker is None:
@@ -703,7 +705,11 @@ class Provider(object):
             return self._error(error="access_denied",
                                descr="Token is revoked")
 
-        info = self.create_authn_response(areq, sid)
+        try:
+            info = self.create_authn_response(areq, sid)
+        except UnSupported as err:
+            return self._error_response(*err.args)
+
         if isinstance(info, Response):
             return info
         else:
@@ -726,8 +732,22 @@ class Provider(object):
         except KeyError:
             pass
         else:
-            if _kaka and self.cookie_name not in _kaka:  # Don't overwrite
-                # cookie
+            if _kaka:
+                if isinstance(_kaka, dict):
+                    for name, val in _kaka.items():
+                        _c = SimpleCookie()
+                        _c[name] = val
+                        headers.append(tuple(_c.output().split(": ", 1)))
+                else:
+                    _c = SimpleCookie()
+                    _c.load(_kaka)
+                    for x in _c.output().split('\r\n'):
+                        headers.append(tuple(x.split(": ", 1)))
+
+                if self.cookie_name not in _kaka:  # Don't overwrite
+                    headers.append(
+                        self.cookie_func(user, typ="sso", ttl=self.sso_ttl))
+            else:
                 headers.append(
                     self.cookie_func(user, typ="sso", ttl=self.sso_ttl))
 
