@@ -120,7 +120,7 @@ class OAuthClient(client.Client):
             else:
                 raise OAuth2Error("Access denied")
 
-        if session["state"] != authresp["state"]:
+        if authresp["state"] not in self.authz_req:
             self._err("Received state not the same as expected.")
 
         if self.behaviour["response_type"] == "code":
