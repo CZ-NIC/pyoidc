@@ -961,6 +961,8 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
                                    fileformat="der",
                                    keytype=typ, keyusage=spec["use"])
                 except FileNotFoundError:
+                    if 'name' not in spec:
+                        spec['name'] = spec['key']
                     kb = rsa_init(spec)
             else:
                 kb = rsa_init(spec)
