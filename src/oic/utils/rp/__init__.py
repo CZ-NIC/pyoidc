@@ -117,15 +117,16 @@ class Client(oic.Client):
             else:
                 raise OIDCError("Access denied")
 
-        if session["state"] != authresp["state"]:
-            self._err("Received state not the same as expected.")
+        _state = authresp["state"]
+        # if session["state"] != authresp["state"]:
+        #     self._err("Received state not the same as expected.")
 
         try:
             _id_token = authresp['id_token']
         except KeyError:
             _id_token = None
         else:
-            if _id_token['nonce'] != session["nonce"]:
+            if _id_token['nonce'] != self.authz_req[_state]['nonce']:
                 self._err("Received nonce not the same as expected.")
 
         if self.behaviour["response_type"] == "code":
@@ -175,7 +176,7 @@ class Client(oic.Client):
         if _id_token['iss'] != self.provider_info['issuer']:
             self._err("Issuer mismatch")
 
-        if _id_token['nonce'] != session['nonce']:
+        if _id_token['nonce'] != self.authz_req[_state]['nonce']:
             self._err("Nonce mismatch")
 
         if not self.allow_sign_alg_none:
