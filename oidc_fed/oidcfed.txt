@@ -9,7 +9,7 @@
                                                                Microsoft
                                                               J. Bradley
                                                            Ping Identity
-                                                             May 6, 2016
+                                                            May 13, 2016
 
 
                        OpenID Connect Federation
@@ -53,7 +53,7 @@ Table of Contents
 
 
 
-Hedberg, et al.         Expires November 7, 2016                [Page 1]
+Hedberg, et al.         Expires November 14, 2016               [Page 1]
 
                             Abbreviated Title                   May 2016
 
@@ -109,7 +109,7 @@ Hedberg, et al.         Expires November 7, 2016                [Page 1]
 
 
 
-Hedberg, et al.         Expires November 7, 2016                [Page 2]
+Hedberg, et al.         Expires November 14, 2016               [Page 2]
 
                             Abbreviated Title                   May 2016
 
@@ -165,7 +165,7 @@ Hedberg, et al.         Expires November 7, 2016                [Page 2]
 
 
 
-Hedberg, et al.         Expires November 7, 2016                [Page 3]
+Hedberg, et al.         Expires November 14, 2016               [Page 3]
 
                             Abbreviated Title                   May 2016
 
@@ -221,7 +221,7 @@ Hedberg, et al.         Expires November 7, 2016                [Page 3]
 
 
 
-Hedberg, et al.         Expires November 7, 2016                [Page 4]
+Hedberg, et al.         Expires November 14, 2016               [Page 4]
 
                             Abbreviated Title                   May 2016
 
@@ -277,7 +277,7 @@ Hedberg, et al.         Expires November 7, 2016                [Page 4]
 
 
 
-Hedberg, et al.         Expires November 7, 2016                [Page 5]
+Hedberg, et al.         Expires November 14, 2016               [Page 5]
 
                             Abbreviated Title                   May 2016
 
@@ -333,7 +333,7 @@ Hedberg, et al.         Expires November 7, 2016                [Page 5]
 
 
 
-Hedberg, et al.         Expires November 7, 2016                [Page 6]
+Hedberg, et al.         Expires November 14, 2016               [Page 6]
 
                             Abbreviated Title                   May 2016
 
@@ -389,7 +389,7 @@ Hedberg, et al.         Expires November 7, 2016                [Page 6]
 
 
 
-Hedberg, et al.         Expires November 7, 2016                [Page 7]
+Hedberg, et al.         Expires November 14, 2016               [Page 7]
 
                             Abbreviated Title                   May 2016
 
@@ -445,7 +445,7 @@ Hedberg, et al.         Expires November 7, 2016                [Page 7]
 
 
 
-Hedberg, et al.         Expires November 7, 2016                [Page 8]
+Hedberg, et al.         Expires November 14, 2016               [Page 8]
 
                             Abbreviated Title                   May 2016
 
@@ -501,7 +501,7 @@ Hedberg, et al.         Expires November 7, 2016                [Page 8]
 
 
 
-Hedberg, et al.         Expires November 7, 2016                [Page 9]
+Hedberg, et al.         Expires November 14, 2016               [Page 9]
 
                             Abbreviated Title                   May 2016
 
@@ -557,7 +557,7 @@ Hedberg, et al.         Expires November 7, 2016                [Page 9]
 
 
 
-Hedberg, et al.         Expires November 7, 2016               [Page 10]
+Hedberg, et al.         Expires November 14, 2016              [Page 10]
 
                             Abbreviated Title                   May 2016
 
@@ -613,7 +613,7 @@ A.1.1.  Step 1 - Developer creates its signing key pair.
 
 
 
-Hedberg, et al.         Expires November 7, 2016               [Page 11]
+Hedberg, et al.         Expires November 14, 2016              [Page 11]
 
                             Abbreviated Title                   May 2016
 
@@ -669,7 +669,7 @@ A.1.2.  Step 2 - Developer submits registration data to FO
 
 
 
-Hedberg, et al.         Expires November 7, 2016               [Page 12]
+Hedberg, et al.         Expires November 14, 2016              [Page 12]
 
                             Abbreviated Title                   May 2016
 
@@ -725,7 +725,7 @@ A.1.3.  Step 3 - FO returns a signed software statement
 
 
 
-Hedberg, et al.         Expires November 7, 2016               [Page 13]
+Hedberg, et al.         Expires November 14, 2016              [Page 13]
 
                             Abbreviated Title                   May 2016
 
@@ -781,7 +781,7 @@ A.1.4.  Step 4 - The RP gets a signing key
 
 
 
-Hedberg, et al.         Expires November 7, 2016               [Page 14]
+Hedberg, et al.         Expires November 14, 2016              [Page 14]
 
                             Abbreviated Title                   May 2016
 
@@ -837,7 +837,7 @@ A.1.5.  Step 5 - RP produces a client registration request
 
 
 
-Hedberg, et al.         Expires November 7, 2016               [Page 15]
+Hedberg, et al.         Expires November 14, 2016              [Page 15]
 
                             Abbreviated Title                   May 2016
 
@@ -893,7 +893,7 @@ A.1.6.  Step 6 - Developer produces software statement for RP
 
 
 
-Hedberg, et al.         Expires November 7, 2016               [Page 16]
+Hedberg, et al.         Expires November 14, 2016              [Page 16]
 
                             Abbreviated Title                   May 2016
 
@@ -949,7 +949,7 @@ A.1.7.  Step 7 - RP sends a client registration request to an OP
 
 
 
-Hedberg, et al.         Expires November 7, 2016               [Page 17]
+Hedberg, et al.         Expires November 14, 2016              [Page 17]
 
                             Abbreviated Title                   May 2016
 
@@ -1005,4 +1005,4 @@ Authors' Addresses
 
 
 
-Hedberg, et al.         Expires November 7, 2016               [Page 18]
+Hedberg, et al.         Expires November 14, 2016              [Page 18]

@@ -117,6 +117,13 @@ def token_response(**kwargs):
     return aresp
 
 
+def error_response(error, descr=None):
+    logger.error("%s" % error)
+    response = ErrorResponse(error=error, error_description=descr)
+    return Response(response.to_json(), content="application/json",
+                    status="400 Bad Request")
+
+
 # noinspection PyUnusedLocal
 def none_response(**kwargs):
     _areq = kwargs["areq"]
@@ -212,16 +219,11 @@ class Provider(object):
 
     @staticmethod
     def _error_response(error, descr=None):
-        logger.error("%s" % error)
-        response = ErrorResponse(error=error, error_description=descr)
-        return Response(response.to_json(), content="application/json",
-                        status="400 Bad Request")
+        return error_response(error=error, descr=descr)
 
     @staticmethod
     def _error(error, descr=None):
-        response = ErrorResponse(error=error, error_description=descr)
-        return Response(response.to_json(), content="application/json",
-                        status="400 Bad Request")
+        return error_response(error=error, descr=descr)
 
     @staticmethod
     def _authz_error(error, descr=None):
