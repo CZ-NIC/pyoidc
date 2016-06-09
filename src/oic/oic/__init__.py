@@ -1,5 +1,7 @@
 import logging
 import os
+from json import JSONDecodeError
+
 import six
 
 from future.backports.urllib.parse import urlparse
@@ -730,10 +732,11 @@ class Client(oauth2.Client):
         uri = self._endpoint("userinfo_endpoint", **kwargs)
         # If access token is a bearer token it might be sent in the
         # authorization header
-        # 3-ways of sending the access_token:
+        # 4 ways of sending the access_token:
         # - POST with token in authorization header
         # - POST with token in message body
         # - GET with token in authorization header
+        # - GET with token as query parameter
         if "behavior" in kwargs:
             _behav = kwargs["behavior"]
             _token = uir["access_token"]
@@ -745,18 +748,21 @@ class Client(oauth2.Client):
                 except AttributeError:
                     raise MissingParameter("Unspecified token type")
 
-            # use_authorization_header, token_in_message_body
-            if "use_authorization_header" in _behav:
-                token_header = "{type} {token}".format(type=_ttype,
-                                                       token=_token)
-                if "headers" in kwargs:
-                    kwargs["headers"].update({"Authorization": token_header})
-                else:
-                    kwargs["headers"] = {"Authorization": token_header}
+            if 'as_query_parameter' == _behav:
+                method = 'GET'
+            else:
+                # use_authorization_header, token_in_message_body
+                if "use_authorization_header" in _behav:
+                    token_header = "{type} {token}".format(type=_ttype,
+                                                           token=_token)
+                    if "headers" in kwargs:
+                        kwargs["headers"].update({"Authorization": token_header})
+                    else:
+                        kwargs["headers"] = {"Authorization": token_header}
 
-            if "token_in_message_body" not in _behav:
-                # remove the token from the request
-                del uir["access_token"]
+                if "token_in_message_body" not in _behav:
+                    # remove the token from the request
+                    del uir["access_token"]
 
         path, body, kwargs = get_or_post(uri, method, uir, **kwargs)
 
@@ -1116,7 +1122,12 @@ class Client(oauth2.Client):
                     logger.error('Unknown response: {}'.format(response.text))
                     raise RegistrationError(response.text)
         else:
-            resp = ErrorResponse().deserialize(response.text, "json")
+            try:
+                resp = ErrorResponse().deserialize(response.text, "json")
+            except JSONDecodeError:
+                logger.error('Unknown response: {}'.format(response.text))
+                raise RegistrationError(response.text)
+
             if resp.verify():
                 logger.error('Got error response: {}'.format(resp.to_json()))
                 if self.event_store:
