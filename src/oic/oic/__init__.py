@@ -1,6 +1,12 @@
 import logging
 import os
-from json import JSONDecodeError
+
+try:
+    from json import JSONDecodeError
+except ImportError:  # Only works for >= 3.5
+    _decode_err = ValueError
+else:
+    _decode_err = JSONDecodeError
 
 import six
 
@@ -1124,7 +1130,7 @@ class Client(oauth2.Client):
         else:
             try:
                 resp = ErrorResponse().deserialize(response.text, "json")
-            except JSONDecodeError:
+            except _decode_err:
                 logger.error('Unknown response: {}'.format(response.text))
                 raise RegistrationError(response.text)
 
