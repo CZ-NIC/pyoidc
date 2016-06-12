@@ -11,6 +11,8 @@ from future.backports.urllib.parse import urljoin
 from future.backports.urllib.parse import urlparse
 from future.backports.urllib.parse import splitquery
 from future.backports.urllib.parse import parse_qs
+from future.types import newstr
+from six import PY2
 
 from oic import rndstr
 from oic.exception import FailedAuthentication, UnSupported
@@ -739,11 +741,18 @@ class Provider(object):
                     for name, val in _kaka.items():
                         _c = SimpleCookie()
                         _c[name] = val
-                        headers.append(tuple(_c.output().split(": ", 1)))
+                        _x = _c.output()
+                        if PY2:
+                            _x = str(_x)
+                        headers.append(tuple(_x.split(": ", 1)))
                 else:
+                    if PY2:
+                        _kaka = newstr(_kaka)
                     _c = SimpleCookie()
                     _c.load(_kaka)
                     for x in _c.output().split('\r\n'):
+                        if PY2:
+                            x = str(x)
                         headers.append(tuple(x.split(": ", 1)))
 
                 if self.cookie_name not in _kaka:  # Don't overwrite
