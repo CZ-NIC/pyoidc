@@ -756,11 +756,13 @@ class Provider(object):
                         headers.append(tuple(x.split(": ", 1)))
 
                 if self.cookie_name not in _kaka:  # Don't overwrite
-                    headers.append(
-                        self.cookie_func(user, typ="sso", ttl=self.sso_ttl))
+                    header = self.cookie_func(user, typ="sso", ttl=self.sso_ttl)
+                    if header:
+                        headers.append(header)
             else:
-                headers.append(
-                    self.cookie_func(user, typ="sso", ttl=self.sso_ttl))
+                header = self.cookie_func(user, typ="sso", ttl=self.sso_ttl)
+                if header:
+                    headers.append(header)
 
         # Now about the response_mode. Should not be set if it's obvious
         # from the response_type. Knows about 'query', 'fragment' and
