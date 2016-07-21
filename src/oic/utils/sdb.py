@@ -650,9 +650,9 @@ class SessionDB(object):
                 try:
                     sid = _info['sid']
                 except KeyError:
-                    sid = rndstr(self.access_token._sidlen)
-                    dic = _info
                     areq = json.loads(_info['authzreq'])
+                    sid = self.token_factory['code'].key(user=_info['uid'], areq=areq)
+                    dic = _info
                     dic['response_type'] = areq['response_type'].split(' ')
                 else:
                     try:
