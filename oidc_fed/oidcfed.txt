@@ -1,19 +1,18 @@
 
 
 
-
-                                                         R. Hedberg, Ed.
+Draft                                                    R. Hedberg, Ed.
+                                                             independent
                                                            R. Gulliksson
                                                                      UmU
                                                                 M. Jones
                                                                Microsoft
                                                               J. Bradley
                                                            Ping Identity
-                                                            May 13, 2016
+                                                           July 23, 2016
 
 
-                       OpenID Connect Federation
-                       draft-hedberg-oidc-fed-01
+                OpenID Connect Federation 1.0 - draft 00
 
 Abstract
 
@@ -30,52 +29,89 @@ Abstract
    would have to obtain the private keys of the trusted third party,
    which would mitigate the risk of a compromised SSL connection.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hedberg, et al.                                                 [Page 1]
+
+                        OpenID Connect Federation              July 2016
+
+
 Table of Contents
 
-   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   2
-   2.  Requirements Language . . . . . . . . . . . . . . . . . . . .   2
-   3.  Trust model . . . . . . . . . . . . . . . . . . . . . . . . .   3
-     3.1.  Federation operator . . . . . . . . . . . . . . . . . . .   3
-     3.2.  Developer . . . . . . . . . . . . . . . . . . . . . . . .   3
-     3.3.  Relying Party Admin . . . . . . . . . . . . . . . . . . .   4
-     3.4.  Signing Key Chain . . . . . . . . . . . . . . . . . . . .   4
+   1.  Introduction . . . . . . . . . . . . . . . . . . . . . . . . .  3
+   2.  Requirements Language  . . . . . . . . . . . . . . . . . . . .  4
+   3.  Trust model  . . . . . . . . . . . . . . . . . . . . . . . . .  5
+     3.1.  Federation operator  . . . . . . . . . . . . . . . . . . .  5
+     3.2.  Developer  . . . . . . . . . . . . . . . . . . . . . . . .  5
+     3.3.  Relying Party Admin  . . . . . . . . . . . . . . . . . . .  6
+     3.4.  Signing Key Chain  . . . . . . . . . . . . . . . . . . . .  6
      3.5.  Dealing with the OpenID Provider Configuration
-           Information . . . . . . . . . . . . . . . . . . . . . . .   4
-   4.  OpenID Connect communication  . . . . . . . . . . . . . . . .   4
-     4.1.  Extra metadata parameters . . . . . . . . . . . . . . . .   5
-     4.2.  Federation policy . . . . . . . . . . . . . . . . . . . .   6
-     4.3.  Provider Discovery  . . . . . . . . . . . . . . . . . . .   7
-     4.4.  Client Registration . . . . . . . . . . . . . . . . . . .   7
-   5.  Belonging to several federation . . . . . . . . . . . . . . .   7
-     5.1.  Developer . . . . . . . . . . . . . . . . . . . . . . . .   7
-     5.2.  OP/AS admin . . . . . . . . . . . . . . . . . . . . . . .   8
-   6.  Verification process  . . . . . . . . . . . . . . . . . . . .   9
+           Information  . . . . . . . . . . . . . . . . . . . . . . .  6
+   4.  OpenID Connect communication . . . . . . . . . . . . . . . . .  7
+     4.1.  Extra metadata parameters  . . . . . . . . . . . . . . . .  7
+     4.2.  Federation policy  . . . . . . . . . . . . . . . . . . . .  8
+     4.3.  Provider Discovery . . . . . . . . . . . . . . . . . . . .  9
+     4.4.  Client Registration  . . . . . . . . . . . . . . . . . . .  9
+   5.  Belonging to several federation  . . . . . . . . . . . . . . . 10
+     5.1.  Developer  . . . . . . . . . . . . . . . . . . . . . . . . 10
+     5.2.  OP/AS admin  . . . . . . . . . . . . . . . . . . . . . . . 11
+   6.  Verification process . . . . . . . . . . . . . . . . . . . . . 12
+     6.1.  OP as receiver . . . . . . . . . . . . . . . . . . . . . . 12
+     6.2.  RP as receiver . . . . . . . . . . . . . . . . . . . . . . 12
+   7.  Acknowledgements . . . . . . . . . . . . . . . . . . . . . . . 13
+   8.  IANA Considerations  . . . . . . . . . . . . . . . . . . . . . 14
+   9.  Security Considerations  . . . . . . . . . . . . . . . . . . . 15
+   10. Normative References . . . . . . . . . . . . . . . . . . . . . 16
+   Appendix A.  Example . . . . . . . . . . . . . . . . . . . . . . . 17
+     A.1.  Relying Party joining a federation . . . . . . . . . . . . 17
+       A.1.1.  Step 1 - Developer creates its signing key pair. . . . 17
+       A.1.2.  Step 2 - Developer submits registration data to FO . . 18
+       A.1.3.  Step 3 - FO returns a signed software statement  . . . 19
+       A.1.4.  Step 4 - The RP gets a signing key . . . . . . . . . . 20
+       A.1.5.  Step 5 - RP produces a client registration request . . 21
+       A.1.6.  Step 6 - Developer produces software statement for
+               RP . . . . . . . . . . . . . . . . . . . . . . . . . . 22
+       A.1.7.  Step 7 - RP sends a client registration request to
+               an OP  . . . . . . . . . . . . . . . . . . . . . . . . 23
+       A.1.8.  Step 8 - OP handles software statement . . . . . . . . 24
+   Appendix B.  Notices . . . . . . . . . . . . . . . . . . . . . . . 25
+   Appendix C.  Document History  . . . . . . . . . . . . . . . . . . 26
+   Authors' Addresses . . . . . . . . . . . . . . . . . . . . . . . . 27
 
 
 
-Hedberg, et al.         Expires November 14, 2016               [Page 1]
+
+
+
+
+
+
+
+Hedberg, et al.                                                 [Page 2]
 
-                            Abbreviated Title                   May 2016
+                        OpenID Connect Federation              July 2016
 
-
-     6.1.  OP as receiver  . . . . . . . . . . . . . . . . . . . . .   9
-     6.2.  RP as receiver  . . . . . . . . . . . . . . . . . . . . .   9
-   7.  Acknowledgements  . . . . . . . . . . . . . . . . . . . . . .   9
-   8.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .   9
-   9.  Security Considerations . . . . . . . . . . . . . . . . . . .  10
-   10. Normative References  . . . . . . . . . . . . . . . . . . . .  10
-   Appendix A.  Example  . . . . . . . . . . . . . . . . . . . . . .  11
-     A.1.  Relying Party joining a federation  . . . . . . . . . . .  11
-       A.1.1.  Step 1 - Developer creates its signing key pair.  . .  11
-       A.1.2.  Step 2 - Developer submits registration data to FO  .  12
-       A.1.3.  Step 3 - FO returns a signed software statement . . .  13
-       A.1.4.  Step 4 - The RP gets a signing key  . . . . . . . . .  14
-       A.1.5.  Step 5 - RP produces a client registration request  .  15
-       A.1.6.  Step 6 - Developer produces software statement for RP  16
-       A.1.7.  Step 7 - RP sends a client registration request to an
-               OP  . . . . . . . . . . . . . . . . . . . . . . . . .  17
-       A.1.8.  Step 8 - OP handles software statement  . . . . . . .  18
-   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  18
 
 1.  Introduction
 
@@ -97,6 +133,42 @@ Hedberg, et al.         Expires November 14, 2016               [Page 1]
    verified data and to create a trust in the information passed between
    the RP and OP that is independent on the usage of SSL.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hedberg, et al.                                                 [Page 3]
+
+                        OpenID Connect Federation              July 2016
+
+
 2.  Requirements Language
 
    The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
@@ -109,9 +181,48 @@ Hedberg, et al.         Expires November 14, 2016               [Page 1]
 
 
 
-Hedberg, et al.         Expires November 14, 2016               [Page 2]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hedberg, et al.                                                 [Page 4]
 
-                            Abbreviated Title                   May 2016
+                        OpenID Connect Federation              July 2016
 
 
 3.  Trust model
@@ -119,7 +230,7 @@ Hedberg, et al.         Expires November 14, 2016               [Page 2]
    The trust model is based on chains of trust, linking together signing
    keys, represented asJWK Sets [RFC7517], usingJSON Web Signatures
    [RFC7515].  The signature chain is rooted in the trusted third
-   party's signature, and then built upon by the respective entity.  By
+   party's signature, and then built upon by the respective entity.   By
    verifying such signature chains, the entities can establish trust in
    the data verified by the trusted third party.
 
@@ -165,9 +276,9 @@ Hedberg, et al.         Expires November 14, 2016               [Page 2]
 
 
 
-Hedberg, et al.         Expires November 14, 2016               [Page 3]
+Hedberg, et al.                                                 [Page 5]
 
-                            Abbreviated Title                   May 2016
+                        OpenID Connect Federation              July 2016
 
 
 3.3.  Relying Party Admin
@@ -210,7 +321,6 @@ Hedberg, et al.         Expires November 14, 2016               [Page 3]
    software statement to the OPA.  This software statement will later be
    part of a Provider Configuration response.
 
-4.  OpenID Connect communication
 
 
 
@@ -221,10 +331,13 @@ Hedberg, et al.         Expires November 14, 2016               [Page 3]
 
 
 
-Hedberg, et al.         Expires November 14, 2016               [Page 4]
+
+Hedberg, et al.                                                 [Page 6]
 
-                            Abbreviated Title                   May 2016
+                        OpenID Connect Federation              July 2016
 
+
+4.  OpenID Connect communication
 
    The trust between the entities is established using the above
    described extensions in the first tree steps of the communication
@@ -275,11 +388,9 @@ Hedberg, et al.         Expires November 14, 2016               [Page 4]
 
 
 
-
-
-Hedberg, et al.         Expires November 14, 2016               [Page 5]
+Hedberg, et al.                                                 [Page 7]
 
-                            Abbreviated Title                   May 2016
+                        OpenID Connect Federation              July 2016
 
 
    The following is a non-normative example of a RP registration request
@@ -329,16 +440,15 @@ Hedberg, et al.         Expires November 14, 2016               [Page 5]
    request (OpenID Connect Dynamic Client Registration 1.0)
    [OpenID.Registration] will override what ever value the same
    parameter has in the transferred metadata.  The only exception is
-
-
-
-
-Hedberg, et al.         Expires November 14, 2016               [Page 6]
-
-                            Abbreviated Title                   May 2016
-
-
    when the information provided by the RP/OP is a subset of what the
+
+
+
+Hedberg, et al.                                                 [Page 8]
+
+                        OpenID Connect Federation              July 2016
+
+
    developer/FO has specified.
 
 4.3.  Provider Discovery
@@ -355,6 +465,45 @@ Hedberg, et al.         Expires November 14, 2016               [Page 6]
    OpenID Connect Dynamic Client Registration 1.0 [OpenID.Registration].
    The RP makes a Client Registration Request including the additional
    metadata specified above.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hedberg, et al.                                                 [Page 9]
+
+                        OpenID Connect Federation              July 2016
+
 
 5.  Belonging to several federation
 
@@ -386,14 +535,6 @@ Hedberg, et al.         Expires November 14, 2016               [Page 6]
 
    When the OP receives a request like this it will chose which
    federation it will work within and then signal that by only return
-
-
-
-Hedberg, et al.         Expires November 14, 2016               [Page 7]
-
-                            Abbreviated Title                   May 2016
-
-
    that entry in the software_statements/software_statement_uris in the
    registration response.
 
@@ -411,6 +552,14 @@ Hedberg, et al.         Expires November 14, 2016               [Page 7]
          "https://dev.example.com/rp1/idfed/swamid.jws",
      }
    }
+
+
+
+
+Hedberg, et al.                                                [Page 10]
+
+                        OpenID Connect Federation              July 2016
+
 
 5.2.  OP/AS admin
 
@@ -445,9 +594,27 @@ Hedberg, et al.         Expires November 14, 2016               [Page 7]
 
 
 
-Hedberg, et al.         Expires November 14, 2016               [Page 8]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hedberg, et al.                                                [Page 11]
 
-                            Abbreviated Title                   May 2016
+                        OpenID Connect Federation              July 2016
 
 
 6.  Verification process
@@ -482,34 +649,197 @@ Hedberg, et al.         Expires November 14, 2016               [Page 8]
    the signing key included in the metadata to verify the signature of
    the JWK Set found at that URL.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hedberg, et al.                                                [Page 12]
+
+                        OpenID Connect Federation              July 2016
+
+
 7.  Acknowledgements
 
       Michael Schwartz
 
       Peter Schober
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hedberg, et al.                                                [Page 13]
+
+                        OpenID Connect Federation              July 2016
+
+
 8.  IANA Considerations
 
-   This memo includes no request to IANA.
-
-   All drafts are required to have an IANA considerations section (see
-   Guidelines for Writing an IANA Considerations Section in RFCs
-   [RFC5226] for a guide).  If the draft does not require IANA to do
-   anything, the section contains an explicit statement that this is the
-   case (as above).  If there are no requirements for IANA, the section
-   will be removed during conversion into an RFC by the RFC Editor.
+   TBD
 
 
 
-Hedberg, et al.         Expires November 14, 2016               [Page 9]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hedberg, et al.                                                [Page 14]
 
-                            Abbreviated Title                   May 2016
+                        OpenID Connect Federation              July 2016
 
 
 9.  Security Considerations
 
-   All drafts are required to have a security considerations section.
-   See RFC 3552 [RFC3552] for a guide.
+   TBD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hedberg, et al.                                                [Page 15]
+
+                        OpenID Connect Federation              July 2016
+
 
 10.  Normative References
 
@@ -520,19 +850,17 @@ Hedberg, et al.         Expires November 14, 2016               [Page 9]
 
    [OpenID.Discovery]
               Sakimura, N., Bradley, J., Jones, M., and E. Jay, "OpenID
-              Connect Discovery 1.0", August 2015,
-              <http://openid.net/specs/
-              openid-connect-discovery-1_0.html>.
+              Connect Discovery 1.0", August 2015, <http://openid.net/
+              specs/openid-connect-discovery-1_0.html>.
 
    [OpenID.Registration]
               Sakimura, N., Bradley, J., and M. Jones, "OpenID Connect
-              Dynamic Client Registration 1.0", August 2015,
-              <http://openid.net/specs/
-              openid-connect-registration-1_0.html>.
+              Dynamic Client Registration 1.0", August 2015, <http://
+              openid.net/specs/openid-connect-registration-1_0.html>.
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
-              Requirement Levels", BCP 14, RFC 2119,
-              DOI 10.17487/RFC2119, March 1997,
+              Requirement Levels", BCP 14, RFC 2119, DOI 10.17487/
+              RFC2119, March 1997,
               <http://www.rfc-editor.org/info/rfc2119>.
 
    [RFC3552]  Rescorla, E. and B. Korver, "Guidelines for Writing RFC
@@ -550,21 +878,24 @@ Hedberg, et al.         Expires November 14, 2016               [Page 9]
               <http://www.rfc-editor.org/info/rfc6962>.
 
    [RFC7515]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web
-              Signature (JWS)", RFC 7515, DOI 10.17487/RFC7515, May
-              2015, <http://www.rfc-editor.org/info/rfc7515>.
+              Signature (JWS)", RFC 7515, DOI 10.17487/RFC7515,
+              May 2015, <http://www.rfc-editor.org/info/rfc7515>.
 
-
-
-
-
-Hedberg, et al.         Expires November 14, 2016              [Page 10]
-
-                            Abbreviated Title                   May 2016
-
-
-   [RFC7517]  Jones, M., "JSON Web Key (JWK)", RFC 7517,
-              DOI 10.17487/RFC7517, May 2015,
+   [RFC7517]  Jones, M., "JSON Web Key (JWK)", RFC 7517, DOI 10.17487/
+              RFC7517, May 2015,
               <http://www.rfc-editor.org/info/rfc7517>.
+
+
+
+
+
+
+
+
+Hedberg, et al.                                                [Page 16]
+
+                        OpenID Connect Federation              July 2016
+
 
 Appendix A.  Example
 
@@ -613,9 +944,13 @@ A.1.1.  Step 1 - Developer creates its signing key pair.
 
 
 
-Hedberg, et al.         Expires November 14, 2016              [Page 11]
+
+
+
+
+Hedberg, et al.                                                [Page 17]
 
-                            Abbreviated Title                   May 2016
+                        OpenID Connect Federation              July 2016
 
 
   {
@@ -669,9 +1004,9 @@ A.1.2.  Step 2 - Developer submits registration data to FO
 
 
 
-Hedberg, et al.         Expires November 14, 2016              [Page 12]
+Hedberg, et al.                                                [Page 18]
 
-                            Abbreviated Title                   May 2016
+                        OpenID Connect Federation              July 2016
 
 
   {
@@ -725,9 +1060,9 @@ A.1.3.  Step 3 - FO returns a signed software statement
 
 
 
-Hedberg, et al.         Expires November 14, 2016              [Page 13]
+Hedberg, et al.                                                [Page 19]
 
-                            Abbreviated Title                   May 2016
+                        OpenID Connect Federation              July 2016
 
 
   {
@@ -781,9 +1116,9 @@ A.1.4.  Step 4 - The RP gets a signing key
 
 
 
-Hedberg, et al.         Expires November 14, 2016              [Page 14]
+Hedberg, et al.                                                [Page 20]
 
-                            Abbreviated Title                   May 2016
+                        OpenID Connect Federation              July 2016
 
 
   {
@@ -837,9 +1172,9 @@ A.1.5.  Step 5 - RP produces a client registration request
 
 
 
-Hedberg, et al.         Expires November 14, 2016              [Page 15]
+Hedberg, et al.                                                [Page 21]
 
-                            Abbreviated Title                   May 2016
+                        OpenID Connect Federation              July 2016
 
 
   {
@@ -893,9 +1228,9 @@ A.1.6.  Step 6 - Developer produces software statement for RP
 
 
 
-Hedberg, et al.         Expires November 14, 2016              [Page 16]
+Hedberg, et al.                                                [Page 22]
 
-                            Abbreviated Title                   May 2016
+                        OpenID Connect Federation              July 2016
 
 
     },
@@ -949,9 +1284,9 @@ A.1.7.  Step 7 - RP sends a client registration request to an OP
 
 
 
-Hedberg, et al.         Expires November 14, 2016              [Page 17]
+Hedberg, et al.                                                [Page 23]
 
-                            Abbreviated Title                   May 2016
+                        OpenID Connect Federation              July 2016
 
 
 A.1.8.  Step 8 - OP handles software statement
@@ -975,12 +1310,159 @@ A.1.8.  Step 8 - OP handles software statement
    the developer augmented with the federation policy and then another
    piece from the RP.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hedberg, et al.                                                [Page 24]
+
+                        OpenID Connect Federation              July 2016
+
+
+Appendix B.  Notices
+
+   Copyright (c) 2016 The OpenID Foundation.
+
+   The OpenID Foundation (OIDF) grants to any Contributor, developer,
+   implementer, or other interested party a non-exclusive, royalty free,
+   worldwide copyright license to reproduce, prepare derivative works
+   from, distribute, perform and display, this Implementers Draft or
+   Final Specification solely for the purposes of (i) developing
+   specifications, and (ii) implementing Implementers Drafts and Final
+   Specifications based on such documents, provided that attribution be
+   made to the OIDF as the source of the material, but that such
+   attribution does not indicate an endorsement by the OIDF.
+
+   The technology described in this specification was made available
+   from contributions from various sources, including members of the
+   OpenID Foundation and others.  Although the OpenID Foundation has
+   taken steps to help ensure that the technology is available for
+   distribution, it takes no position regarding the validity or scope of
+   any intellectual property or other rights that might be claimed to
+   pertain to the implementation or use of the technology described in
+   this specification or the extent to which any license under such
+   rights might or might not be available; neither does it represent
+   that it has made any independent effort to identify any such rights.
+   The OpenID Foundation and the contributors to this specification make
+   no (and hereby expressly disclaim any) warranties (express, implied,
+   or otherwise), including implied warranties of merchantability, non-
+   infringement, fitness for a particular purpose, or title, related to
+   this specification, and the entire risk as to implementing this
+   specification is assumed by the implementer.  The OpenID Intellectual
+   Property Rights policy requires contributors to offer a patent
+   promise not to assert certain patent claims against other
+   contributors and against implementers.  The OpenID Foundation invites
+   any interested party to bring to its attention any copyrights,
+   patents, patent applications, or other proprietary rights that may
+   cover technology that may be required to practice this specification.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hedberg, et al.                                                [Page 25]
+
+                        OpenID Connect Federation              July 2016
+
+
+Appendix C.  Document History
+
+   [[ To be removed from the approved specification ]]
+
+   -00
+
+   o  Created openid-connect-federation-1_0-00 from
+      draft-hedberg-oidc-fed-01.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hedberg, et al.                                                [Page 26]
+
+                        OpenID Connect Federation              July 2016
+
+
 Authors' Addresses
 
    Roland Hedberg (editor)
-   Umea University
+   independent
 
-   Email: roland.hedberg@umu.se
+   Email: roland@catalogix.se
 
 
    Rebecka Gulliksson
@@ -1005,4 +1487,26 @@ Authors' Addresses
 
 
 
-Hedberg, et al.         Expires November 14, 2016              [Page 18]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hedberg, et al.                                                [Page 27]
+
