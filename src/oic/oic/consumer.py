@@ -17,6 +17,7 @@ from oic.oauth2 import Grant
 from oic.oauth2.consumer import TokenError
 from oic.oauth2.consumer import AuthzError
 from oic.oauth2.consumer import UnknownState
+from oic.oauth2.message import ErrorResponse
 
 __author__ = 'rohe0002'
 
@@ -312,9 +313,9 @@ class Consumer(Client):
                                     info=query,
                                     sformat="urlencoded",
                                     keyjar=self.keyjar)
-        if aresp.type() == "ErrorResponse":
+        if isinstance(aresp, ErrorResponse):
             _log_info("ErrorResponse: %s" % aresp)
-            raise AuthzError(aresp.error, aresp)
+            raise AuthzError(aresp.get('error'), aresp)
 
         _log_info("Aresp: %s" % aresp)
 
@@ -376,8 +377,8 @@ class Consumer(Client):
             atr = self.parse_response(AccessTokenResponse, info=query,
                                       sformat="urlencoded",
                                       keyjar=self.keyjar, **kwargs)
-            if atr.type() == "ErrorResponse":
-                raise TokenError(atr["error"], atr)
+            if isinstance(atr, ErrorResponse):
+                raise TokenError(atr.get("error"), atr)
 
             idt = None
             return None, atr, idt
