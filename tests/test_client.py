@@ -9,6 +9,8 @@ from jwkest.jws import JWS
 from jwkest.jwt import JWT
 from jwkest.jwk import rsa_load
 from jwkest.jwk import SYMKey
+from mock import Mock
+from mock import patch
 
 from oic.oauth2 import Client
 from oic.oauth2.grant import Grant
@@ -23,6 +25,7 @@ from oic.utils.authn.client import BearerBody
 from oic.utils.authn.client import ClientSecretPost
 from oic.utils.authn.client import PrivateKeyJWT
 from oic.utils.authn.client import ClientSecretJWT
+from oic.utils.authn.client import valid_client_info
 from oic.utils.keyio import KeyBundle
 
 BASE_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -215,3 +218,18 @@ class TestClientSecretJWT(object):
         info = _rj.verify_compact(cas, [SYMKey(key=client.client_secret)])
 
         assert _eq(info.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
+
+
+class TestValidClientInfo(object):
+    @patch('oic.utils.authn.client.utc_time_sans_frac', Mock(return_value=123456))
+    def test_valid_client_info(self):
+        # Expiration time missing or 0, client_secret never expires
+        assert valid_client_info({})
+        assert valid_client_info({'client_id': 'test', 'client_secret': 'secret'})
+        assert valid_client_info({'client_secret_expires_at': 0})
+        # Expired secret
+        assert valid_client_info({'client_secret_expires_at': 1}) != True
+        assert valid_client_info({'client_id': 'test', 'client_secret_expires_at': 123455}) != True
+        # Valid secret
+        assert valid_client_info({'client_secret_expires_at': 123457})
+        assert valid_client_info({'client_id': 'test', 'client_secret_expires_at': 123457})
