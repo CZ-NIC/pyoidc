@@ -443,14 +443,9 @@ TYPE_METHOD = [(JWT_BEARER, JWSAuthnMethod)]
 
 
 def valid_client_info(cinfo):
-    try:
-        eta = cinfo['client_secret_expires_at']
-    except KeyError:
-        pass
-    else:
-        if eta < utc_time_sans_frac():
-            return False
-
+    eta = cinfo.get('client_secret_expires_at', 0)
+    if eta != 0 and eta < utc_time_sans_frac():
+        return False
     return True
 
 
