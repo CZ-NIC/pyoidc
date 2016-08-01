@@ -65,29 +65,28 @@
     <keyword>OIDC</keyword>
 
     <abstract>
-      <t>The OpenID Connect standard specifies how a Relying Party (RP)
-        can discover metadata about an OpenID Provider (OP), and then
-        register to obtain client credentials. During registration,
-        the RP provides metadata about its services. There is no
-        automated mechanism for the OP or the RP to verify the
-        information exchanged during this process. All the information
-        is self-asserted.
+       <t>
+         This document describes how a trusted third party, the Federation Operator (FO)
+         can enhance the trust and security between an OpenID Connect Provider (OP) and an
+         OpenID Connect Relying Party (RP) by signing their respective metadata, and
+         asserting additional information about the participants. From a trust perspective,
+         the FO can vet information about the federation participants and insure legal alignment.
+         From a security perspective, using this approach, an attacker would have to obtain the
+         private keys of the FO, which would mitigate the risk of a compromised SSL connection.
       </t>
-      <t>
-        This document describes how a trusted third party can enhance
-        the security between the OP and RP by providing additional
-        integrity about their respective metadata. Using this approach,
-        an attacker would have to obtain the private keys of the
-        trusted third party, which would
-        mitigate the risk of a compromised SSL connection.
+      <t>This mechanism is critical because it enables both the OP and the RP to verify
+        information which is essentially self-asserted in existing trust models
+        based on <xref target="OpenID.Registration">
+          OpenID Connect Dynamic client registration.</xref>
       </t>
+
     </abstract>
   </front>
 
   <middle>
     <section anchor='Introduction' title="Introduction">
       <t>The original specification of OpenID Connect defines how a
-        Relaying Party and an OpenID Connect Provider dynamically can
+        Relying Party and an OpenID Connect Provider dynamically can
         exchange information necessary for successful communication.
       </t>
       <t>One problem with using dynamic discovery and registration is that
@@ -114,7 +113,7 @@
       <t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL
         NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and
         "OPTIONAL" in this document are to be interpreted as described
-        in<xref target="RFC2119">RFC 2119</xref>.
+        in <xref target="RFC2119">RFC 2119</xref>.
       </t>
     </section>
 
@@ -152,11 +151,10 @@
           that the FO will use for signing developer metadata,
           at a HTTPS URL which server certificate MUST appear in a well-known
           <xref target="RFC6962">Certificate Transparency log</xref>.
-          The FO will if the federation policy allows it sign
-          a partial client registration request provided by the
-          developer. There are several ways that the developer can use to make
-          the registration request available to the. One that we recommend is
-          that the developer publishes the request at an URLa where the FO
+          The FO may sign a partial client registration request provided by the
+          developer. There are several ways that the developer can make
+          the registration request available to the federation. One that we recommend is
+          that the developer publishes the request at an URL where the FO
           can fetch it.
           The FO can add claims, representing federation policies,
           to the registration request before constructing a software statement
@@ -167,7 +165,7 @@
       <section title="Developer">
         <t>
           The developer represents the organization responsible
-          for the relying party (RP). The developer will create a client
+          for the RP. The developer will create a client
           registration request that as an example can contain information
           pertaining to the organization. To the request it will add
           an extra parameter<spanx style="verb">signing_key</spanx>,
@@ -207,25 +205,20 @@
       <section
           title="Dealing with the OpenID Provider Configuration Information">
         <t>
-          It is assumed that an organization will only run one
-          OpenID Connect Provider (OP). We can therefor dispens
-          of the intermediate, the developer, from the schema
-          described above.
-          This leaves us with the FO and the OP Admin.
-          The OP Admin (OPA) will create a Provider configuration and
-          notify the FO about where and when it can be fetched.
-          The Provider configuration is extended with one parameter
-          <spanx style="verb">signing_key</spanx>
+          It is assumed that an organization will only operate one
+          OP, so the actors we need to consider are the FO and the OP Admin (OPA).
+          The OPA will create a Provider configuration and
+          notify the FO about where and when it can be fetched. The OP configuration, as described in
+          <xref target="OpenID.Registration">OpenID Connect Discovery</xref>
+          is extended with one parameter <spanx style="verb">signing_key</spanx>
           where the OPA will publish the key it will use to sign
           the JWK Set used in the OIDC communication.
-          The FO will if the federation policy allows it sign
-          the Provider Configuration information.
-          The FO can add claims, representing federation policies,
-          to the Provider Configuration informaion before constructing the
-          software statement, signing it and returning the software statement
-          to the OPA.
-          This software statement will later be part of a Provider Configuration
-          response.
+          To construct a software statement for the OP, the FO consumes the
+          OP configuration information, may add claims (for example, information
+          related to federation policies), and then signs it
+          with the FO private key. This OP software statement is returned to
+          the OPA, which MAY be be part of a OP Configuration response, using
+          the software_statement_uris metadata parameter.
         </t>
       </section>
     </section>
