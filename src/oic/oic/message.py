@@ -783,10 +783,10 @@ class OpenIDRequest(AuthorizationRequest):
 class ProviderConfigurationResponse(Message):
     c_param = {
         "issuer": SINGLE_REQUIRED_STRING,
-        "authorization_endpoint": SINGLE_OPTIONAL_STRING,
+        "authorization_endpoint": SINGLE_REQUIRED_STRING,
         "token_endpoint": SINGLE_OPTIONAL_STRING,
         "userinfo_endpoint": SINGLE_OPTIONAL_STRING,
-        "jwks_uri": SINGLE_OPTIONAL_STRING,
+        "jwks_uri": SINGLE_REQUIRED_STRING,
         "registration_endpoint": SINGLE_OPTIONAL_STRING,
         "scopes_supported": OPTIONAL_LIST_OF_STRINGS,
         "response_types_supported": REQUIRED_LIST_OF_STRINGS,
