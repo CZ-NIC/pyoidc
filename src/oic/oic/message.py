@@ -791,7 +791,7 @@ class ProviderConfigurationResponse(Message):
         "scopes_supported": OPTIONAL_LIST_OF_STRINGS,
         "response_types_supported": REQUIRED_LIST_OF_STRINGS,
         "response_modes_supported": OPTIONAL_LIST_OF_STRINGS,
-        "grant_types_supported": REQUIRED_LIST_OF_STRINGS,
+        "grant_types_supported": OPTIONAL_LIST_OF_STRINGS,
         "acr_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "subject_types_supported": REQUIRED_LIST_OF_STRINGS,
         "id_token_signing_alg_values_supported": REQUIRED_LIST_OF_STRINGS,
