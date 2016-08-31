@@ -851,6 +851,9 @@ class ProviderConfigurationResponse(Message):
 
         assert not parts.query and not parts.fragment
 
+        if any("code" in rt for rt in self["response_types_supported"]) and "token_endpoint" not in self:
+            raise MissingRequiredAttribute("token_endpoint")
+
         return True
 
 
