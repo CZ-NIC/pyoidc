@@ -7,7 +7,7 @@ from future.backports.http.cookies import SimpleCookie
 from future.backports.urllib.parse import quote
 
 from jwkest import as_unicode
-from six import text_type
+from six import text_type, PY2
 
 from oic import rndstr
 
@@ -442,7 +442,10 @@ class CookieDealer(object):
         cookie = make_cookie(cookie_name, info, self.srv.seed,
                              expire=ttl, domain="", path="",
                              timestamp=timestamp)
-        return cookie
+        if PY2:
+            return str(cookie[0]), str(cookie[1])
+        else:
+            return cookie
 
     def getCookieValue(self, cookie=None, cookie_name=None):
         return self.get_cookie_value(cookie, cookie_name)
