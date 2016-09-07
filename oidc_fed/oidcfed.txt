@@ -10,10 +10,10 @@
                                                                Microsoft
                                                               J. Bradley
                                                            Ping Identity
-                                                           July 23, 2016
+                                                       September 7, 2016
 
 
-                OpenID Connect Federation 1.0 - draft 01
+                OpenID Connect Federation 1.0 - draft 02
                      openid-connect-federation-1_0
 
 Abstract
@@ -53,9 +53,9 @@ Table of Contents
 
 
 
-Hedberg, et al.         Expires January 24, 2017                [Page 1]
+Hedberg, et al.          Expires March 11, 2017                 [Page 1]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
    6.  Belonging to Several Federations  . . . . . . . . . . . . . .  10
@@ -109,9 +109,9 @@ Hedberg, et al.         Expires January 24, 2017                [Page 1]
 
 
 
-Hedberg, et al.         Expires January 24, 2017                [Page 2]
+Hedberg, et al.          Expires March 11, 2017                 [Page 2]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
 2.  Requirements Language
@@ -165,9 +165,9 @@ Hedberg, et al.         Expires January 24, 2017                [Page 2]
 
 
 
-Hedberg, et al.         Expires January 24, 2017                [Page 3]
+Hedberg, et al.          Expires March 11, 2017                 [Page 3]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
    statements or signing keys) into two pieces and send one in the
@@ -221,9 +221,9 @@ Hedberg, et al.         Expires January 24, 2017                [Page 3]
 
 
 
-Hedberg, et al.         Expires January 24, 2017                [Page 4]
+Hedberg, et al.          Expires March 11, 2017                 [Page 4]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
       If the values are strings they are less or equal if they are the
@@ -277,9 +277,9 @@ Hedberg, et al.         Expires January 24, 2017                [Page 4]
 
 
 
-Hedberg, et al.         Expires January 24, 2017                [Page 5]
+Hedberg, et al.          Expires March 11, 2017                 [Page 5]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
    sum(MS0...2)
@@ -333,9 +333,9 @@ Hedberg, et al.         Expires January 24, 2017                [Page 5]
 
 
 
-Hedberg, et al.         Expires January 24, 2017                [Page 6]
+Hedberg, et al.          Expires March 11, 2017                 [Page 6]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
 4.1.  Federation Operator
@@ -389,9 +389,9 @@ Hedberg, et al.         Expires January 24, 2017                [Page 6]
 
 
 
-Hedberg, et al.         Expires January 24, 2017                [Page 7]
+Hedberg, et al.          Expires March 11, 2017                 [Page 7]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
    3.  The signing request is transported to the signing party.  In the
@@ -445,9 +445,9 @@ Hedberg, et al.         Expires January 24, 2017                [Page 7]
 
 
 
-Hedberg, et al.         Expires January 24, 2017                [Page 8]
+Hedberg, et al.          Expires March 11, 2017                 [Page 8]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
    def verify(ms, sign_keys):
@@ -501,9 +501,9 @@ Hedberg, et al.         Expires January 24, 2017                [Page 8]
 
 
 
-Hedberg, et al.         Expires January 24, 2017                [Page 9]
+Hedberg, et al.          Expires March 11, 2017                 [Page 9]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
    The trust between the entities is established using the above
@@ -557,9 +557,9 @@ Hedberg, et al.         Expires January 24, 2017                [Page 9]
 
 
 
-Hedberg, et al.         Expires January 24, 2017               [Page 10]
+Hedberg, et al.          Expires March 11, 2017                [Page 10]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
       Based on what the OP published, the RP publishes a number
@@ -613,9 +613,9 @@ Hedberg, et al.         Expires January 24, 2017               [Page 10]
 
 
 
-Hedberg, et al.         Expires January 24, 2017               [Page 11]
+Hedberg, et al.          Expires March 11, 2017                [Page 11]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
    The following is a non-normative example of an OPs response on the
@@ -669,9 +669,9 @@ Hedberg, et al.         Expires January 24, 2017               [Page 11]
 
 
 
-Hedberg, et al.         Expires January 24, 2017               [Page 12]
+Hedberg, et al.          Expires March 11, 2017                [Page 12]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
       A client registration has a timeout.
@@ -725,9 +725,9 @@ Hedberg, et al.         Expires January 24, 2017               [Page 12]
 
 
 
-Hedberg, et al.         Expires January 24, 2017               [Page 13]
+Hedberg, et al.          Expires March 11, 2017                [Page 13]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
    [RFC6749]  Hardt, D., Ed., "The OAuth 2.0 Authorization Framework",
@@ -781,9 +781,9 @@ Appendix A.  Example
 
 
 
-Hedberg, et al.         Expires January 24, 2017               [Page 14]
+Hedberg, et al.          Expires March 11, 2017                [Page 14]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
   {
@@ -837,9 +837,9 @@ A.1.1.  Step 1 - Developer creates its signing key pair.
 
 
 
-Hedberg, et al.         Expires January 24, 2017               [Page 15]
+Hedberg, et al.          Expires March 11, 2017                [Page 15]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
   {
@@ -893,9 +893,9 @@ A.1.2.  Step 2 - Developer submits registration data to FO
 
 
 
-Hedberg, et al.         Expires January 24, 2017               [Page 16]
+Hedberg, et al.          Expires March 11, 2017                [Page 16]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
   {
@@ -949,9 +949,9 @@ A.1.3.  Step 3 - FO returns a signed metadata statement
 
 
 
-Hedberg, et al.         Expires January 24, 2017               [Page 17]
+Hedberg, et al.          Expires March 11, 2017                [Page 17]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
   {
@@ -1005,9 +1005,9 @@ A.1.4.  Step 4 - The RP gets a signing key
 
 
 
-Hedberg, et al.         Expires January 24, 2017               [Page 18]
+Hedberg, et al.          Expires March 11, 2017                [Page 18]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
   {
@@ -1061,9 +1061,9 @@ A.1.5.  Step 5 - RP produces a client registration request
 
 
 
-Hedberg, et al.         Expires January 24, 2017               [Page 19]
+Hedberg, et al.          Expires March 11, 2017                [Page 19]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
   {
@@ -1117,9 +1117,9 @@ A.1.6.  Step 6 - Developer produces metadata statement for RP
 
 
 
-Hedberg, et al.         Expires January 24, 2017               [Page 20]
+Hedberg, et al.          Expires March 11, 2017                [Page 20]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
     },
@@ -1173,9 +1173,9 @@ A.1.7.  Step 7 - RP sends a client registration request to an OP
 
 
 
-Hedberg, et al.         Expires January 24, 2017               [Page 21]
+Hedberg, et al.          Expires March 11, 2017                [Page 21]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
 A.1.8.  Step 8 - OP handles metadata statement
@@ -1229,9 +1229,9 @@ Appendix B.  Notices
 
 
 
-Hedberg, et al.         Expires January 24, 2017               [Page 22]
+Hedberg, et al.          Expires March 11, 2017                [Page 22]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
    infringement, fitness for a particular purpose, or title, related to
@@ -1285,9 +1285,9 @@ Authors' Addresses
 
 
 
-Hedberg, et al.         Expires January 24, 2017               [Page 23]
+Hedberg, et al.          Expires March 11, 2017                [Page 23]
 
-                        OpenID Connect Federation              July 2016
+                        OpenID Connect Federation         September 2016
 
 
    John Bradley
@@ -1341,4 +1341,4 @@ Hedberg, et al.         Expires January 24, 2017               [Page 23]
 
 
 
-Hedberg, et al.         Expires January 24, 2017               [Page 24]
+Hedberg, et al.          Expires March 11, 2017                [Page 24]
