@@ -91,20 +91,20 @@ Hedberg, et al.          Expires March 11, 2017                 [Page 1]
 
    One problem with using dynamic discovery and registration is that the
    correctness of the information that is exchanged can not be easily
-   verified by the recipient as it is self-asserted.
+   verified by the recipient since it is self-asserted.
 
    Another problem that has been raised is the dependency on TLS as the
    sole protection against attacks on the transferred information.
-   These last couple of years a number of problems with openSSL, which
+   These last couple of years a number of problems with OpenSSL, which
    is probably the most widely used TLS library, has been discovered
    that puts reasonable doubt into this dependency.
 
-   We are extending Signed Metadata, as introduced by OAuth 2.0
+   This document extends Signed Metadata, as introduced by OAuth 2.0
    Authorization Server Metadata [I-D.draft-ietf-oauth-discovery], to
-   create what we call metadata statements.  Metadata statements
-   together with the use of a trusted third party (that verifies and
-   enforces some common policy), can be used to transfer verified data
-   and trust in the data between clients and servers.
+   create so called metadata statements.  Metadata statements together
+   with the use of a trusted third party (that verifies and enforces
+   some common policy), can be used to transfer verified data and trust
+   in the data between clients and servers.
 
 
 
@@ -118,7 +118,7 @@ Hedberg, et al.          Expires March 11, 2017                 [Page 2]
 
    The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
    "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
-   document are to be interpreted as described inRFC 2119 [RFC2119].
+   document are to be interpreted as described in RFC 2119 [RFC2119].
 
 3.  Metadata Statement
 
@@ -151,17 +151,17 @@ Hedberg, et al.          Expires March 11, 2017                 [Page 2]
 
    signed_jwks_uri
       OPTIONAL.  This is the signed version of the "jwks_uri" parameter
-      defined inOpenID Connect Dynamic Client Registration 1.0
+      defined in OpenID Connect Dynamic Client Registration 1.0
       [OpenID.Registration].  SHOULD return the Content-Type
       "application/jose" to indicate that the JWKS is in the form of a
       JWS using the JWS Compact Serialization.  The key used to sign the
-      JWKS can be found in "signing_keys" or "signing_keys_uri"
+      JWKS can be found among the keys published in "signing_keys" or
+      fetched from "signing_keys_uri"
 
    Metadata statements and signing keys can be transferred in two
    different ways: either by including the information in the statement,
    or by providing a URI that points to the information.  How metadata
    statements and signing keys are transferred is independent of each
-   other.  It is NOT allowed to divide the information (metadata
 
 
 
@@ -170,6 +170,7 @@ Hedberg, et al.          Expires March 11, 2017                 [Page 3]
                         OpenID Connect Federation         September 2016
 
 
+   other.  It is NOT allowed to divide the information (metadata
    statements or signing keys) into two pieces and send one in the
    statement and leave the rest to be fetched using the URI.
 
@@ -201,13 +202,13 @@ Hedberg, et al.          Expires March 11, 2017                 [Page 3]
 3.4.  Compounded Metadata Statement
 
    The metadata for each entity in the federation is described by one or
-   more metadata statements (for example, MS0, MS1, ..., MSn).  MS0
-   would be the most generic, and MS1-MSn would in turn be successively
-   more specific.  To describe an entity belonging to an organization,
-   MS0 would typically contain information that belongs to the
-   organization, for instance "tos_uri", "contacts" and the like while
-   MSn would contain information that belongs to one specific entity
-   like "authorization_endpoint" for an OP or "redirect_uris" for a RP.
+   more metadata statements (for example, MS0, MS1, ..., MSn).  MS0 is
+   the most generic, and MS1-MSn would in turn be successively more
+   specific.  To describe an entity belonging to an organization, MS0
+   would typically contain information that belongs to the organization,
+   for example "tos_uri", "contacts" and the like while MSn would
+   contain information about the specific entity like
+   "authorization_endpoint" for an OP or "redirect_uris" for a RP.
 
    The metadata for a specific entity is constructed by starting with
    the information in MS0 and then adding the information in MS1 to MSn
@@ -216,7 +217,6 @@ Hedberg, et al.          Expires March 11, 2017                 [Page 3]
    *If the same claims appear in MSa and MSb (b > a, a=0,..,n, b=0,..,n)
    then unless the value in MSb is less or equal to the value in MSa
    then the value in MSb should be ignored.  *
-
 
 
 
@@ -236,9 +236,7 @@ Hedberg, et al.          Expires March 11, 2017                 [Page 4]
    way is so new OIDC entities can be created and described without
    having to involve all the parties up to and including the FO.  Only
    the party responsible for the entity and the immediate superior
-   party, who has to sign the new information, has to be involved.  In a
-   small organization this might not be an issue but in a big
-   organization a feature like this will probably be very handy.
+   party, who has to sign the new information, has to be involved.
 
    The following is a non-normative example of a set of client-specific
    metadata statements who together form the metadata for an entity:
@@ -277,6 +275,8 @@ Hedberg, et al.          Expires March 11, 2017                 [Page 4]
 
 
 
+
+
 Hedberg, et al.          Expires March 11, 2017                 [Page 5]
 
                         OpenID Connect Federation         September 2016
@@ -296,9 +296,8 @@ Hedberg, et al.          Expires March 11, 2017                 [Page 5]
 
 3.5.  Conceptual Model
 
-   A set of metadata statements, like the ones above, together describe
-   an entity are brought together using the "metadata_statement"
-   parameter.
+   A set of metadata statements, together describe an entity are brought
+   together using the "metadata_statement" parameter.
 
    The following is a non-normative example of a compounded metadata
    statement.  Also note that the the metadata_statement MUST be a
@@ -330,6 +329,7 @@ Hedberg, et al.          Expires March 11, 2017                 [Page 5]
    Each signature chain is rooted in the trusted third party's signing
    keys.  By verifying such signature chains, the entities can establish
    trust in the metadata.
+
 
 
 
@@ -372,12 +372,12 @@ Hedberg, et al.          Expires March 11, 2017                 [Page 6]
 
 4.3.  Constructing a Signed Metadata Statement
 
-   These are the steps that are preformed to construct a signed metadata
+   These are the steps that are performed to construct a signed metadata
    statement.  A metadata signing request may be about one specific
    entity or a group of similar entities.
 
    1.  The "requester" constructs a signing request by collecting the
-       necessary client or provider metadata as describe in Section 3.
+       necessary client or provider metadata as described in Section 3.
 
    2.  If this is the top most metadata statement (MS0) then no metadata
        statement will be added to the metadata statement.  If it is a
@@ -395,7 +395,7 @@ Hedberg, et al.          Expires March 11, 2017                 [Page 7]
 
 
    3.  The signing request is transported to the signing party.  In the
-       case or MS0 this MUST be the FO.  If it is MS1 it is the"LOReq".
+       case or MS0 this MUST be the FO.  If it is MS1 it is the "LOReq".
        If it is MS2 it is the L1Req and so on.
 
    4.  The signing party verifies the information in the signing
@@ -487,7 +487,7 @@ Hedberg, et al.          Expires March 11, 2017                 [Page 8]
    As can be see from the pseudo code the process is that you
    successively unpack the metadata statements (this involves base64
    decoding the JWS payload without verifying the signature) until you
-   reach the inner most MS (MS0).  After having verifies the signature
+   reach the inner most MS (MS0).  After having verified the signature
    of MS0 using the FOs signing keys, you can now use the signing keys
    included in or referenced from MS0 to verify the signature of the
    next layer (MS1) and so on.
@@ -575,13 +575,13 @@ Hedberg, et al.          Expires March 11, 2017                [Page 10]
    An organization may be a member of more the one federation.  The RPs
    it is responsible for may be members of one or more of these.
 
-   This is then how to deal with this.  The organization registers and
-   gets metadata signed by each federation.  One extreme is that it will
-   mint a new key pair for each federation, the other is that it will
-   use the same key pair for all federations.  It does not matter which
-   it chooses, but the end result MUST be that there is one signed RP
-   registration request per signing key.  This is then published using
-   "metadata_statement_uris" or "metadata_statements".
+   The organization registers and gets metadata staements signed by each
+   federation.  One extreme is that it will mint a new key pair for each
+   federation, the other is that it will use the same key pair for all
+   federations.  It does not matter which it chooses, but the end result
+   MUST be that there is one signed RP registration request per signing
+   key.  This is then published using "metadata_statement_uris" or
+   "metadata_statements" the client registration request.
 
    The following is a non-normative example of an absolutely minimal
    client registration request sent to an OP:
@@ -597,7 +597,7 @@ Hedberg, et al.          Expires March 11, 2017                [Page 10]
    }
 
    As described above, when the OP receives a request like this it will
-   chose which federation it will work within and then signal that by
+   choose which federation it will work within and then signal that by
    only returning that corresponding information in the
    "metadata_statements" / "metadata_statement_uris" in the registration
    response.

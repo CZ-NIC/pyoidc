@@ -95,19 +95,19 @@
       </t>
       <t>One problem with using dynamic discovery and registration is that
         the correctness of the information that is exchanged can not be easily
-        verified by the recipient as it is self-asserted.
+        verified by the recipient since it is self-asserted.
       </t>
       <t>Another problem that has been raised is the dependency on TLS as
         the sole protection against attacks on the transferred information.
-        These last couple of years a number of problems with openSSL, which
+        These last couple of years a number of problems with OpenSSL, which
         is probably the most widely used TLS library, has been
         discovered that puts reasonable doubt into this dependency.
       </t>
       <t>
-        We are extending Signed Metadata, as introduced by
+        This document extends Signed Metadata, as introduced by
         <xref target="I-D.draft-ietf-oauth-discovery">
           OAuth 2.0 Authorization Server Metadata</xref>,
-        to create what we call
+        to create so called
         metadata statements. Metadata statements together with the
         use of a trusted third party (that verifies and enforces some
         common policy), can be used to transfer verified data and trust
@@ -119,7 +119,7 @@
       <t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL
         NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and
         "OPTIONAL" in this document are to be interpreted as described
-        in<xref target="RFC2119">RFC 2119</xref>.
+        in <xref target="RFC2119">RFC 2119</xref>.
       </t>
     </section>
     <section title="Metadata Statement" anchor="entity_metadata">
@@ -169,15 +169,16 @@
               OPTIONAL.
               This is the signed version of the
               <spanx style="verb">jwks_uri</spanx>
-              parameter defined in<xref target="OpenID.Registration">OpenID
+              parameter defined in <xref target="OpenID.Registration">OpenID
               Connect
               Dynamic Client Registration 1.0</xref>.
               SHOULD return the Content-Type "application/jose" to
               indicate that the JWKS is in the form of a JWS using
               the JWS Compact Serialization.
-              The key used to sign the JWKS can be found in
+              The key used to sign the JWKS can be found among the keys
+              published in
               <spanx style="verb">signing_keys</spanx>
-              or
+              or fetched from
               <spanx style="verb">signing_keys_uri</spanx>
             </t>
           </list>
@@ -243,16 +244,16 @@
       <section title="Compounded Metadata Statement">
         <t>
           The metadata for each entity in the federation is described by one or
-          more metadata statements (for example, MS0, MS1, ..., MSn). MS0 would
-          be the most generic, and MS1-MSn would in turn be successively more
+          more metadata statements (for example, MS0, MS1, ..., MSn). MS0 is
+          the most generic, and MS1-MSn would in turn be successively more
           specific.
           To describe an entity belonging to an organization, MS0 would
           typically
-          contain information that belongs to the organization, for instance
+          contain information that belongs to the organization, for example
           <spanx style="verb">tos_uri</spanx>,
           <spanx style="verb">contacts</spanx>
           and the like while MSn would contain information
-          that belongs to one specific entity like
+          about the specific entity like
           <spanx style="verb">authorization_endpoint</spanx>
           for an OP
           or
@@ -288,10 +289,7 @@
           having
           to involve all the parties up to and including the FO. Only the
           party responsible for the entity and the immediate superior party,
-          who has to sign the new information, has to be involved. In a small
-          organization this might not be an issue
-          but in a big organization a feature like this will probably be
-          very handy.
+          who has to sign the new information, has to be involved.
         </t>
         <t>
           The following is a non-normative example of
@@ -355,8 +353,7 @@
       </section>
       <section title="Conceptual Model">
         <t>
-          A set of metadata statements, like the ones above, together describe
-          an
+          A set of metadata statements, together describe an
           entity are brought together using the
           <spanx style="verb">metadata_statement</spanx>
           parameter.
@@ -443,7 +440,7 @@
       </section>
       <section title="Constructing a Signed Metadata Statement">
         <t>
-          These are the steps that are preformed to construct a signed
+          These are the steps that are performed to construct a signed
           metadata statement.
           A metadata signing request may be about one specific entity or a
           group of similar entities.
@@ -454,7 +451,7 @@
               The
               <spanx style="verb">requester</spanx>
               constructs a signing request by collecting the necessary
-              client or provider metadata as describe in
+              client or provider metadata as described in
               <xref target='entity_metadata'/>.
             </t>
             <t>
@@ -468,7 +465,7 @@
             <t>
               The signing request is transported to the signing party.
               In the case or MS0 this MUST be the FO. If it is MS1 it
-              is the<spanx style="verb">LOReq</spanx>. If it is
+              is the <spanx style="verb">LOReq</spanx>. If it is
               MS2 it is the L1Req and so on.
             </t>
             <t>
@@ -556,7 +553,7 @@ def verify(ms, sign_keys):
           As can be see from the pseudo code the process is that you
           successively unpack the metadata statements (this involves base64
           decoding the JWS payload without verifying the signature) until
-          you reach the inner most MS (MS0). After having verifies the
+          you reach the inner most MS (MS0). After having verified the
           signature of MS0 using the FOs signing keys, you can now use the
           signing keys included in or referenced from MS0 to verify the signature of
           the next layer (MS1) and so on.
@@ -643,8 +640,7 @@ def verify(ms, sign_keys):
           RPs it is responsible for may be members of one or more of these.
         </t>
         <t>
-          This is then how to deal with this.
-          The organization registers and gets metadata signed by each
+          The organization registers and gets metadata staements signed by each
           federation.
           One extreme is that it will mint a new key pair for each federation,
           the other is that it will use the same key pair for all
@@ -654,7 +650,8 @@ def verify(ms, sign_keys):
           This is then published using
           <spanx style="verb">metadata_statement_uris</spanx>
           or
-          <spanx style="verb">metadata_statements</spanx>.
+          <spanx style="verb">metadata_statements</spanx> the client
+          registration request.
         </t>
         <t>
           <figure>
@@ -677,7 +674,7 @@ def verify(ms, sign_keys):
         </t>
         <t>
           As described above, when the OP receives a request like this
-          it will chose which federation it will work within and then
+          it will choose which federation it will work within and then
           signal that by only returning that corresponding information
           in the
           <spanx style="verb">metadata_statements</spanx>
