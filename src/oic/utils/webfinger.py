@@ -293,6 +293,8 @@ class WebFinger(object):
             self.jrd = self.load(rsp.text)
             for link in self.jrd["links"]:
                 if link["rel"] == OIC_ISSUER:
+                    if not link['href'].startswith('https://'):
+                        raise WebFingerError('Must be a HTTPS href')
                     return link["href"]
             return None
         elif rsp.status_code in [302, 301, 307]:
