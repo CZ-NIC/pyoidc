@@ -926,7 +926,7 @@ class Provider(AProvider):
                                    descr="redirect_uri mismatch")
             except KeyError:
                 return self._error(error='invalid_request',
-                                   descr='Missing code')
+                                   descr='Missing redirect_uri')
 
         _log_debug("All checks OK")
 
