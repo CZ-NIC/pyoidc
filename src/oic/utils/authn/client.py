@@ -107,7 +107,8 @@ class ClientSecretBasic(ClientAuthnMethod):
             http_args["headers"] = {}
 
         credentials = "{}:{}".format(user, passwd)
-        authz = base64.urlsafe_b64encode(credentials.encode("utf-8")).decode("utf-8")
+        authz = base64.urlsafe_b64encode(credentials.encode("utf-8")).decode(
+            "utf-8")
         http_args["headers"]["Authorization"] = "Basic {}".format(authz)
 
         try:
@@ -526,8 +527,11 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
                 cid, auth_method = method(inst).verify(areq)
                 break
         else:
+            logger.error('UnknownAssertionType: {}'.format(
+                areq["client_assertion_type"]))
             raise UnknownAssertionType(areq["client_assertion_type"], areq)
     else:
+        logger.error("Missing client authentication.")
         raise FailedAuthentication("Missing client authentication.")
 
     if isinstance(areq, AccessTokenRequest):
@@ -537,6 +541,8 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
             _method = 'client_secret_basic'
 
         if _method != auth_method:
+            logger.error("Wrong authentication method used: {} != {}".format(
+                auth_method, _method))
             raise FailedAuthentication("Wrong authentication method used")
 
     # store which authn method was used where
