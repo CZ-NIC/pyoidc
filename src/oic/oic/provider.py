@@ -901,7 +901,11 @@ class Provider(AProvider):
 
         assert req["grant_type"] == "authorization_code"
 
-        _access_code = req["code"].replace(' ', '+')
+        try:
+            _access_code = req["code"].replace(' ', '+')
+        except KeyError:  # Missing code parameter - absolutely fatal
+            return self._error(error='invalid_request', descr='Missing code')
+
         # assert that the code is valid
         if self.sdb.is_revoked(_access_code):
             return self._error(error="access_denied", descr="Token is revoked")
@@ -920,6 +924,9 @@ class Provider(AProvider):
             except AssertionError:
                 return self._error(error="access_denied",
                                    descr="redirect_uri mismatch")
+            except KeyError:
+                return self._error(error='invalid_request',
+                                   descr='Missing code')
 
         _log_debug("All checks OK")
 
