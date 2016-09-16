@@ -1894,7 +1894,7 @@ class Provider(AProvider):
                 _code = aresp["code"] = self.sdb[sid]["code"]
                 rtype.remove("code")
             else:
-                self.sdb[sid]["code"] = None
+                self.sdb.update(sid, 'code', None)
                 _code = None
 
             if "token" in rtype:
