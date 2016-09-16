@@ -579,7 +579,8 @@ class KeyJar(object):
             return self.issuer_keys[issuer]
         except KeyError:
             logger.debug(
-                "Available key issuers: {}".format(self.issuer_keys.keys()))
+                "Issuer '{}' not found, available key issuers: {}".format(
+                    issuer, list(self.issuer_keys.keys())))
             raise
 
     def remove_key(self, issuer, key_type, key):
@@ -717,6 +718,7 @@ class KeyJar(object):
         for kbl in self.issuer_keys[issuer]:
             res.extend(kbl.keys())
         return res
+
 
 # =============================================================================
 
@@ -989,3 +991,16 @@ def update_keyjar(keyjar):
     for iss, kbl in keyjar.items():
         for kb in kbl:
             kb.update()
+
+
+def issuer_keys(keyjar, issuer):
+    try:
+        kbl = keyjar[issuer]
+    except KeyError:
+        return ''
+    else:
+        l = []
+        for kb in kbl:
+            for key in kb.keys():
+                l.append('{}:{}:{}'.format(key.kty, key.use, key.kid))
+        return ', '.join(l)

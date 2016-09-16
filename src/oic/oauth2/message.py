@@ -11,7 +11,7 @@ from jwkest import b64d, as_unicode
 from jwkest import jwe
 from jwkest import jws
 from jwkest.jwe import JWE
-from jwkest.jws import JWS
+from jwkest.jws import JWS, alg2keytype
 from jwkest.jwt import JWT
 from jwkest.jwk import keyitems2keyreps
 from jwkest.jws import NoSuitableSigningKeys
@@ -19,7 +19,7 @@ from jwkest.jws import NoSuitableSigningKeys
 from oic.exception import PyoidcError
 from oic.exception import MessageException
 from oic.oauth2.exception import VerificationError
-from oic.utils.keyio import update_keyjar
+from oic.utils.keyio import update_keyjar, issuer_keys
 
 logger = logging.getLogger(__name__)
 
@@ -464,9 +464,15 @@ class Message(object):
         _jws = JWS(self.to_json(lev), alg=algorithm)
         return _jws.sign_compact(key)
 
-    def _add_key(self, keyjar, item, key):
+    def _add_key(self, keyjar, issuer, key, key_type=''):
         try:
-            kl = keyjar.get_verify_key(owner=item)
+            logger.debug('keys for "{}": {}'.format(
+                issuer, issuer_keys(keyjar, issuer)))
+        except KeyError:
+            logger.error('Issuer "{}" not in keyjar'.format(issuer))
+
+        try:
+            kl = keyjar.get_verify_key(owner=issuer, key_type=key_type)
         except KeyError:
             pass
         else:
@@ -475,7 +481,6 @@ class Message(object):
                     key.append(k)
 
     def get_verify_keys(self, keyjar, key, jso, header, jwt, **kwargs):
-        logger.debug("Issuer keys: {}".format(keyjar.keys()))
         try:
             _iss = jso["iss"]
         except KeyError:
@@ -494,8 +499,7 @@ class Message(object):
             if "kid" in header and header["kid"]:
                 jwt["kid"] = header["kid"]
                 try:
-                    _key = keyjar.get_key_by_kid(header["kid"],
-                                                 _iss)
+                    _key = keyjar.get_key_by_kid(header["kid"], _iss)
                     if _key:
                         key.append(_key)
                 except KeyError:
@@ -505,6 +509,11 @@ class Message(object):
             self._add_key(keyjar, kwargs["opponent_id"], key)
         except KeyError:
             pass
+
+        try:
+            _key_type = alg2keytype(header['alg'])
+        except KeyError:
+            _key_type = ''
 
         for ent in ["iss", "aud", "client_id"]:
             if ent not in jso:
@@ -516,9 +525,9 @@ class Message(object):
                 else:
                     _aud = jso["aud"]
                 for _e in _aud:
-                    self._add_key(keyjar, _e, key)
+                    self._add_key(keyjar, _e, key, _key_type)
             else:
-                self._add_key(keyjar, jso[ent], key)
+                self._add_key(keyjar, jso[ent], key, _key_type)
         return key
 
     def from_jwt(self, txt, key=None, verify=True, keyjar=None, **kwargs):
