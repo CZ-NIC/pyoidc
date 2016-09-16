@@ -34,6 +34,14 @@ from oic.utils.http_util import *
 
 from mako.lookup import TemplateLookup
 
+# This is *NOT* good practice !!
+try:
+    from requests.packages import urllib3
+except ImportError:
+    pass
+else:
+    urllib3.disable_warnings()
+
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = 'oc.log'
 hdlr = logging.FileHandler(LOGFILE_NAME)

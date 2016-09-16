@@ -2,8 +2,8 @@ import logging
 import base64
 from jwkest import Invalid
 from jwkest import as_unicode
+from jwkest import as_bytes
 from jwkest import MissingKey
-from jwkest import b64e_enc_dec
 from jwkest.jws import alg2keytype
 import six
 
@@ -466,16 +466,25 @@ def get_client_id(cdb, req, authn):
             (_id, _secret) = base64.b64decode(
                 authn[6:].encode("utf-8")).decode("utf-8").split(":")
 
-            _id = as_unicode(_id)
-            if _id not in cdb:
+            _bid = as_bytes(_id)
+            _cinfo = None
+            try:
+                _cinfo = cdb[_id]
+            except KeyError:
+                try:
+                    _cinfo[_bid]
+                except AttributeError:
+                    pass
+
+            if not _cinfo:
                 logger.debug("Unknown client_id")
                 raise FailedAuthentication("Unknown client_id")
             else:
-                if not valid_client_info(cdb[_id]):
+                if not valid_client_info(_cinfo):
                     logger.debug("Invalid Client info")
                     raise FailedAuthentication("Invalid Client")
 
-                if _secret != cdb[_id]["client_secret"]:
+                if _secret != _cinfo["client_secret"]:
                     logger.debug("Incorrect secret")
                     raise FailedAuthentication("Incorrect secret")
         else:
