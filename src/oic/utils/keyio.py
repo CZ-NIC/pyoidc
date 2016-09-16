@@ -1004,3 +1004,13 @@ def issuer_keys(keyjar, issuer):
             for key in kb.keys():
                 l.append('{}:{}:{}'.format(key.kty, key.use, key.kid))
         return ', '.join(l)
+
+
+def check_key_availability(inst, jwt):
+    _rj = jws.factory(jwt)
+    payload = json.loads(as_unicode(_rj.jwt.part[1]))
+    _cid = payload['iss']
+    if _cid not in inst.keyjar:
+        cinfo = inst.cdb[_cid]
+        inst.keyjar.add_symmetric(_cid, cinfo['client_secret'], ['enc', 'sig'])
+        inst.keyjar.add(_cid, cinfo['jwks_uri'])

@@ -6,6 +6,7 @@ from jwkest import as_bytes
 from jwkest import MissingKey
 from jwkest.jws import alg2keytype
 import six
+from oic.utils.keyio import check_key_availability
 
 from oic.exception import FailedAuthentication
 from oic.exception import UnknownAssertionType
@@ -517,6 +518,7 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
     """
     Initiated Guessing !
 
+    :param inst: Entity instance
     :param areq: The request
     :param authn: client authentication information
     :return: tuple containing client id and client authentication method
@@ -531,6 +533,8 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
         cid = ClientSecretBasic(inst).verify(areq, client_id)
         auth_method = 'client_secret_post'
     elif "client_assertion" in areq:  # client_secret_jwt or private_key_jwt
+        check_key_availability(inst, areq['client_assertion'])
+
         for typ, method in type_method:
             if areq["client_assertion_type"] == typ:
                 cid, auth_method = method(inst).verify(areq)
