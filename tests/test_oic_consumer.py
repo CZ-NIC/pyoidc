@@ -422,17 +422,17 @@ class TestOICConsumer():
 
     def test_discover(self):
         c = Consumer(None, None)
-        mfos = MyFakeOICServer("http://localhost:8088")
+        mfos = MyFakeOICServer("https://localhost:8088")
         mfos.keyjar = SRVKEYS
         c.http_request = mfos.http_request
 
         principal = "foo@example.com"
         res = c.discover(principal)
-        assert res == "http://localhost:8088/"
+        assert res == "https://localhost:8088/"
 
     def test_provider_config(self):
         c = Consumer(None, None)
-        mfos = MyFakeOICServer("http://example.com")
+        mfos = MyFakeOICServer("https://example.com")
         mfos.keyjar = SRVKEYS
         c.http_request = mfos.http_request
 
@@ -459,17 +459,17 @@ class TestOICConsumer():
                                  'response_types_supported',
                                  'end_session_endpoint', 'flows_supported'])
 
-        assert info["end_session_endpoint"] == "http://example.com/end_session"
+        assert info["end_session_endpoint"] == "https://example.com/end_session"
 
     def test_client_register(self):
         c = Consumer(None, None)
 
         c.application_type = "web"
         c.application_name = "My super service"
-        c.redirect_uris = ["http://example.com/authz"]
+        c.redirect_uris = ["https://example.com/authz"]
         c.contact = ["foo@example.com"]
 
-        mfos = MyFakeOICServer("http://example.com")
+        mfos = MyFakeOICServer("https://example.com")
         mfos.keyjar = SRVKEYS
         c.http_request = mfos.http_request
         location = c.discover("foo@example.com")
