@@ -651,7 +651,8 @@ class KeyJar(object):
             # jwks should only be considered if no jwks_uri is present
             try:
                 _keys = pcr["jwks"]["keys"]
-                self.issuer_keys[issuer].append(self.keybundle_cls(_keys))
+                self.issuer_keys[issuer].append(
+                    self.keybundle_cls(_keys, verify_ssl=self.verify_ssl))
             except KeyError:
                 pass
 
@@ -692,12 +693,13 @@ class KeyJar(object):
 
     def restore(self, info):
         for issuer, keys in info.items():
-            self.issuer_keys[issuer] = [self.keybundle_cls(keys)]
+            self.issuer_keys[issuer] = [self.keybundle_cls(
+                keys, verify_ssl=self.verify_ssl)]
 
     def copy(self):
-        copy_keyjar = KeyJar()
+        copy_keyjar = KeyJar(verify_ssl=self.verify_ssl)
         for issuer, keybundles in self.issuer_keys.items():
-            _kb = self.keybundle_cls()
+            _kb = self.keybundle_cls(verify_ssl=self.verify_ssl)
             for kb in keybundles:
                 for k in kb.keys():
                     _kb.append(copy.copy(k))

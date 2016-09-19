@@ -1412,6 +1412,7 @@ class Provider(AProvider):
         except Exception as err:
             logger.error("Failed to load client keys: %s" % request.to_dict())
             logger.error("%s", err)
+            logger.debug('Verify SSL: {}'.format(self.keyjar.verify_ssl))
             err = ClientRegistrationErrorResponse(
                 error="invalid_configuration_parameter",
                 error_description="%s" % err)
