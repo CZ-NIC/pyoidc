@@ -1561,7 +1561,7 @@ class Provider(AProvider):
         # Add the client_secret as a symmetric key to the keyjar
         if client_secret:
             _kc = KeyBundle([{"kty": "oct", "key": client_secret,
-                              "use": "ver"},
+                              "use": "enc"},
                              {"kty": "oct", "key": client_secret,
                               "use": "sig"}])
             try:
