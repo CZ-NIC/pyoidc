@@ -825,10 +825,17 @@ class Provider(AProvider):
 
         try:
             alg = client_info["%s_encrypted_response_alg" % val_type]
-            enc = client_info["%s_encrypted_response_enc" % val_type]
-        except KeyError as err:  # both must be defined
-            logger.warning("undefined parameter: %s" % err)
-            raise JWEException("%s undefined" % err)
+        except KeyError:
+            logger.warning('{} NOT defined means no encryption').format(
+                val_type)
+            return payload
+        else:
+            try:
+                enc = client_info["%s_encrypted_response_enc" % val_type]
+            except KeyError as err:  # if not defined-> A128CBC-HS256 (default)
+                logger.warning("undefined parameter: %s" % err)
+                logger.info("using default")
+                enc = 'A128CBC-HS256'
 
         logger.debug("alg=%s, enc=%s, val_type=%s" % (alg, enc, val_type))
         keys = self.keyjar.get_encrypt_key(owner=cid)
