@@ -595,14 +595,16 @@ class RegistrationRequest(Message):
         if "initiate_login_uri" in self:
             assert self["initiate_login_uri"].startswith("https:")
 
-        for param in ["request_object", "id_token", "userinfo"]:
-            if "%s_encryption_alg" % param in self:
-                if "%s_encryption_enc" % param not in self:
-                    self["%s_encryption_enc" % param] = "A128CBC-HS256"
+        for param in ["request_object_encryption", "id_token_encrypted_response", "userinfo_encrypted_response"]:
+            alg_param = "%s_alg" % param
+            enc_param = "%s_enc" % param
+            if alg_param in self:
+                if enc_param not in self:
+                    self[enc_param] = "A128CBC-HS256"
 
             # both or none
-            if "%s_encryption_enc" % param in self:
-                assert "%s_encryption_alg" % param in self
+            if enc_param in self:
+                assert alg_param in self
 
         if "token_endpoint_auth_signing_alg" in self:
             assert self["token_endpoint_auth_signing_alg"] != "none"
