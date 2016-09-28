@@ -173,8 +173,8 @@ if __name__ == '__main__':
         SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
             RP_CONF.SERVER_CERT, RP_CONF.SERVER_KEY, RP_CONF.CA_BUNDLE)
 
-    LOGGER.info(START_MESG % (RP_CONF.HOST, RP_CONF.PORT))
-    print(START_MESG % (RP_CONF.HOST, RP_CONF.PORT))
+    LOGGER.info(START_MESG % (RP_CONF.PORT, RP_CONF.HOST))
+    print(START_MESG % (RP_CONF.PORT, RP_CONF.HOST))
     try:
         SRV.start()
     except KeyboardInterrupt:
