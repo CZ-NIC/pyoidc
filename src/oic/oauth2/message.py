@@ -130,6 +130,7 @@ class Message(object):
     def __init__(self, **kwargs):
         self._dict = self.c_default.copy()
         self.lax = False
+        self.jwt = None
         self.jws_header = None
         self.jwe_header = None
         self.from_dict(kwargs)
@@ -618,6 +619,7 @@ class Message(object):
         else:
             jso = json.loads(txt)
 
+        self.jwt = txt
         return self.from_dict(jso)
 
     def __str__(self):
