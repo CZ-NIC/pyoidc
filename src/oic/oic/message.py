@@ -748,12 +748,13 @@ class CheckIDRequest(Message):
 class EndSessionRequest(Message):
     c_param = {
         "id_token_hint": SINGLE_OPTIONAL_STRING,
-        "post_logout_redirect_uri": SINGLE_OPTIONAL_STRING
+        "post_logout_redirect_uri": SINGLE_OPTIONAL_STRING,
+        "state": SINGLE_OPTIONAL_STRING
     }
 
 
 class EndSessionResponse(Message):
-    c_param = {"state": SINGLE_REQUIRED_STRING}
+    c_param = {"state": SINGLE_OPTIONAL_STRING}
 
 
 class Claims(Message):
