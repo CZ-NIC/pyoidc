@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import base64
 import copy
 from functools import cmp_to_key
 import hashlib
@@ -24,6 +23,7 @@ import socket
 from requests import ConnectionError
 
 from jwkest import b64d
+from jwkest import b64e
 from jwkest import jwe
 from jwkest import jws
 from jwkest.jwe import JWE
@@ -1997,11 +1997,9 @@ class Provider(AProvider):
         kb = KeyBundle()
         kb.do_keys(jwks["keys"])
 
-        kid = 0
         for k in kb.keys():
             if not k.kid:
-                k.kid = kid_template % kid
-                kid += 1
+                k.kid = b64e(k.thumbprint('SHA-256')).decode('utf8')
             self.kid[k.use][k.kty] = k.kid
 
             # find the old key for this key type and usage and mark that

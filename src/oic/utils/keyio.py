@@ -756,14 +756,13 @@ def key_setup(vault, **kwargs):
         os.makedirs(vault_path)
 
     kb = KeyBundle()
-    kid = 1
     for usage in ["sig", "enc"]:
         if usage in kwargs:
             if kwargs[usage] is None:
                 continue
 
             _args = kwargs[usage]
-            if _args["alg"] == "RSA":
+            if _args["alg"].upper() == "RSA":
                 try:
                     _key = rsa_load('%s%s' % (vault_path, "pyoidc"))
                 except Exception:
@@ -772,12 +771,9 @@ def key_setup(vault, **kwargs):
                         _key = create_and_store_rsa_key_pair(
                             path=vault_path)
 
-                kb.append(RSAKey(key=_key, use=usage, kid=str(kid)))
-                kid += 1
-                if usage == "sig" and "enc" not in kwargs:
-                    kb.append(RSAKey(key=_key, use="enc", kid=str(kid)))
-                    kid += 1
-
+                k = RSAKey(key=_key, use=usage)
+                k.kid = b64e(k.thumbprint('SHA-256')).decode('utf8')
+                kb.append(k)
     return kb
 
 
@@ -907,7 +903,7 @@ def rsa_init(spec):
     return kb
 
 
-def keyjar_init(instance, key_conf, kid_template="a%d"):
+def keyjar_init(instance, key_conf, kid_template=""):
     """
     Configuration of the type:
     keys = [
@@ -1009,6 +1005,15 @@ def issuer_keys(keyjar, issuer):
 
 
 def check_key_availability(inst, jwt):
+    """
+    If the server is restarted it will NOT load keys from jwks_uris for
+    all the clients that has been registered. So this function is there
+    to get a clients keys when needed.
+
+    :param inst: OP instance
+    :param jwt: A JWT that has to be verified or decrypted
+    """
+
     _rj = jws.factory(jwt)
     payload = json.loads(as_unicode(_rj.jwt.part[1]))
     _cid = payload['iss']

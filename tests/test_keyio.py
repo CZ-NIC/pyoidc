@@ -5,7 +5,7 @@ import pytest
 
 from oic.oauth2 import MissingSigningKey
 from oic.oic import AuthorizationResponse
-from oic.utils.keyio import key_export, rsa_init, build_keyjar
+from oic.utils.keyio import key_export, rsa_init, build_keyjar, key_setup
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import keybundle_from_local_file
@@ -94,12 +94,8 @@ JWK2 = {
 }
 
 
-def test_key_export():
-    kj = KeyJar()
-    url = key_export("http://example.com/keys/", "outbound", "secret",
-                     keyjar=kj, sig={"alg": "rsa", "format": ["x509", "jwk"]})
-
-    assert url == "http://example.com/keys/outbound/jwks"
+# def test_key_setup():
+#     x = key_setup()
 
 
 def test_rsa_init(tmpdir):
@@ -124,6 +120,26 @@ def test_keybundle_from_local_jwk_file():
     assert key.kid == "abc"
 
 
+def test_key_export():
+    kj = KeyJar()
+    url = key_export("http://example.com/keys/", "outbound", "secret",
+                     keyjar=kj, sig={"alg": "rsa", "format": ["x509", "jwk"]})
+
+    assert url == "http://example.com/keys/outbound/jwks"
+
+    # Now a jwks should reside in './keys/outbound/jwks'
+
+    kb = KeyBundle(source='file://./keys/outbound/jwks')
+
+    # One key
+    assert len(kb) == 1
+    # more specifically one RSA key
+    assert len(kb.get('RSA')) == 1
+    k = kb.get('RSA')[0]
+    # For signing
+    assert k.use == 'sig'
+
+
 def test_build_keyjar():
     keys = [
         {"type": "RSA", "use": ["enc", "sig"]},
@@ -134,7 +150,7 @@ def test_build_keyjar():
     for key in jwks["keys"]:
         assert "d" not in key  # the JWKS shouldn't contain the private part of the keys
 
-    assert len(keyjar[""]) == 2
+    assert len(keyjar[""]) == 2  # 1 with RSA keys and 1 with EC key
 
     assert "RSA" in kidd["enc"]
     assert "RSA" in kidd["sig"]
