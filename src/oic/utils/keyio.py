@@ -12,7 +12,6 @@ from six import string_types
 from Cryptodome.PublicKey import RSA
 
 from jwkest import as_unicode
-from jwkest import b64e
 from jwkest import jwe
 from jwkest import jws
 from jwkest.ecc import NISTEllipticCurve
@@ -772,7 +771,7 @@ def key_setup(vault, **kwargs):
                             path=vault_path)
 
                 k = RSAKey(key=_key, use=usage)
-                k.kid = b64e(k.thumbprint('SHA-256')).decode('utf8')
+                k.add_kid()
                 kb.append(k)
     return kb
 
@@ -974,7 +973,7 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
                 k.kid = kid_template % kid
                 kid += 1
             else:
-                k.kid = b64e(k.thumbprint('SHA-256')).decode('utf8')
+                k.add_kid()
             kidd[k.use][k.kty] = k.kid
 
         jwks["keys"].extend(
