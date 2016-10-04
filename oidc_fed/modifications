@@ -1,0 +1,6 @@
+02->03
+
+When the OP returns a client registration response it MUST sign it with
+its signing key.
+
+signed_jwks_uri <-> jwks_uri (both discovery and registration)

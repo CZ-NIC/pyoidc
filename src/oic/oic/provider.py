@@ -322,7 +322,7 @@ class Provider(AProvider):
 
     def id_token_as_signed_jwt(self, session, loa="2", alg="", code=None,
                                access_token=None, user_info=None, auth_time=0,
-                               exp=None, extra_claims=None):
+                               exp=None, extra_claims=None, **kwargs):
 
         if alg == "":
             alg = self.jwx_def["signing_alg"]["id_token"]
@@ -336,23 +336,32 @@ class Provider(AProvider):
                                          access_token, user_info, auth_time,
                                          exp, extra_claims)
 
-        logger.debug("id_token: %s" % _idt.to_dict())
-        # My signing key if its RS*, can use client secret if HS*
-        if alg.startswith("HS"):
-            logger.debug("client_id: %s" % session["client_id"])
-            ckey = self.keyjar.get_signing_key(alg2keytype(alg),
+        try:
+            ckey = kwargs['keys']
+        except KeyError:
+            try:
+                _keyjar = kwargs['keyjar']
+            except KeyError:
+                _keyjar = self.keyjar
+
+            logger.debug("id_token: %s" % _idt.to_dict())
+            # My signing key if its RS*, can use client secret if HS*
+            if alg.startswith("HS"):
+                logger.debug("client_id: %s" % session["client_id"])
+                ckey = _keyjar.get_signing_key(alg2keytype(alg),
                                                session["client_id"])
-            if not ckey:  # create a new key
-                _secret = self.cdb[session["client_id"]]["client_secret"]
-                ckey = [SYMKey(key=_secret)]
-        else:
-            if "" in self.keyjar:
-                for b in self.keyjar[""]:
-                    logger.debug("OC3 server keys: %s" % b)
-                ckey = self.keyjar.get_signing_key(alg2keytype(alg), "",
-                                                   alg=alg)
+                if not ckey:  # create a new key
+                    _secret = self.cdb[session["client_id"]]["client_secret"]
+                    ckey = [SYMKey(key=_secret)]
             else:
-                ckey = None
+                if "" in self.keyjar:
+                    for b in self.keyjar[""]:
+                        logger.debug("Provider keys: %s" % b)
+                    ckey = _keyjar.get_signing_key(alg2keytype(alg), "",
+                                                   alg=alg)
+                else:
+                    ckey = None
+
         logger.debug("ckey: %s" % ckey)
         _signed_jwt = _idt.to_jwt(key=ckey, algorithm=alg)
 
@@ -1999,7 +2008,7 @@ class Provider(AProvider):
 
         for k in kb.keys():
             if not k.kid:
-                k.kid = b64e(k.thumbprint('SHA-256')).decode('utf8')
+                k.add_kid()
             self.kid[k.use][k.kty] = k.kid
 
             # find the old key for this key type and usage and mark that

@@ -84,6 +84,7 @@ def static(environ, start_response, path):
 
 Token = {}
 
+
 def application(environ, start_response):
     session = environ['beaker.session']
 
@@ -103,6 +104,14 @@ def application(environ, start_response):
         session["callback"] = True
         request = parse_qs(get_or_post(environ))
         _cli = CONSUMER[unquote(request["authzsrv"][0])]
+        session["client"] = _cli
+        resp = SeeOther(_cli.begin(RP_CONF.BASE, path))
+        return resp(environ, start_response)
+
+    if path == "rp":
+        session["callback"] = True
+        request = parse_qs(get_or_post(environ))
+        _cli = CONSUMER[unquote(request["iss"][0])]
         session["client"] = _cli
         resp = SeeOther(_cli.begin(RP_CONF.BASE, path))
         return resp(environ, start_response)

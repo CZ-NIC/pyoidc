@@ -1,0 +1,1246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type='text/xsl' href='http://xml2rfc.tools.ietf.org/authoring/rfc2629.xslt' ?>
+<!DOCTYPE rfc PUBLIC "-//IETF//DTD RFC 2629//EN"
+        "http://xml2rfc.tools.ietf.org/authoring/rfc2629.dtd">
+<!--
+  NOTE:  This XML file is input used to produce the authoritative copy of an
+  OpenID Foundation specification.  The authoritative copy is the HTML output.
+  This XML source file is not authoritative.  The statement ipr="none" is
+  present only to satisfy the document compilation tool and is not indicative
+  of the IPR status of this specification.  The IPR for this specification is
+  described in the "Notices" section.  This is a public OpenID Foundation
+  document and not a private document, as the private="..." declaration could
+  be taken to indicate.
+-->
+<rfc category="info" docName="openid-connect-federation-1_0" ipr="none">
+
+    <?rfc toc="yes" ?>
+    <?rfc tocdepth="5" ?>
+    <?rfc symrefs="yes" ?>
+    <?rfc sortrefs="yes"?>
+    <?rfc strict="yes" ?>
+    <?rfc iprnotified="no" ?>
+    <?rfc private="Draft" ?>
+
+    <front>
+
+        <title abbrev="OpenID Connect Federation">OpenID Connect Federation 1.0 - draft 00</title>
+
+        <author fullname="Roland Hedberg" role="editor" surname="Hedberg"
+                initials="R.">
+            <organization>independent</organization>
+            <address>
+                <email>roland@catalogix.se</email>
+            </address>
+        </author>
+
+        <author fullname="Rebecka Gulliksson" surname="Gulliksson"
+                initials="R.">
+            <organization abbrev="UmU">Umea University</organization>
+            <address>
+                <email>rebecka.gulliksson@umu.se</email>
+            </address>
+        </author>
+
+        <author fullname="Michael B. Jones" initials="M.B." surname="Jones">
+            <organization abbrev="Microsoft">Microsoft</organization>
+            <address>
+                <email>mbj@microsoft.com</email>
+                <uri>http://self-issued.info/</uri>
+            </address>
+        </author>
+
+        <author fullname="John Bradley" initials="J." surname="Bradley">
+            <organization abbrev="Ping Identity">Ping Identity</organization>
+            <address>
+                <email>ve7jtb@ve7jtb.com</email>
+                <uri>http://www.thread-safe.com/</uri>
+            </address>
+        </author>
+
+        <date year="2016"/>
+        <area>General</area>
+        <workgroup>Internet Engineering Task Force</workgroup>
+        <keyword>OIDC</keyword>
+        <abstract>
+            <t>The OpenID Connect standard specifies how a Relying Party (RP)
+                can discover metadata about an OpenID Provider (OP), and then
+                register to obtain client credentials. During discovery and registration
+                there is no automated mechanism for the OP or the RP to verify the
+                information exchanged during this process. All the information
+                is self-asserted.
+            </t>
+            <t>
+                In an Identity federation context this is not sufficient. The
+                participants of the federation must be able to trust
+                information provided about other participants in the federation.
+            </t>
+            <t>
+                This document describes how an identity federation can be built
+                around a trusted third party, the federation operator.
+            </t>
+        </abstract>
+    </front>
+
+    <middle>
+        <section anchor='Introduction' title="Introduction">
+            <t>The original specification of OpenID Connect defines how a
+                Relaying Party and an OpenID Connect Provider dynamically can
+                exchange information about each other. Information that is
+                necessary for future successful communication.
+            </t>
+            <t>One problem with using dynamic discovery and registration is that
+                the correctness of the information that is exchanged can not be easily
+                verified as it is self-asserted.
+            </t>
+            <t>Another problem that has been raised is the dependency on TLS as
+                the sole protection against attacks on the transfered information.
+                These last couple of year a number of problems with openSSL, which
+                is probably the most widely used TLS library, has been
+                discovered that puts reasonable doubt into this assumption.
+            </t>
+            <t>
+                Software statements, as introduced by RFC 7591, is a possible
+                choice for transferring verified data and trust in the data, by
+                using a trusted third party (that verifies and enforces some
+                common policy), between clients and servers.
+            </t>
+            <t>
+                This document describes how extended software statements (in the
+                rest of this document called metadata statements) can be used in
+                dynamic client registration and provider discovery
+                to transfer protected and verified metadata.
+            </t>
+        </section>
+
+        <section title="Requirements Language">
+            <t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL
+                NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and
+                "OPTIONAL" in this document are to be interpreted as described
+                in<xref target="RFC2119">RFC 2119</xref>.
+            </t>
+        </section>
+        <section title="Metadata Statement" anchor="entity_metadata">
+            <t>
+                A software statement as described in
+                <xref target="RFC7591">RFC7591</xref>
+                is the stating point for defining what we call a metadata statement.
+                The difference is that a software statement asserts metadata values about
+                the <spanx style="verb">client</spanx>.
+                In our case the statement is to be used both by client and server.
+                That, plus the extra parameters we use is the reason for using
+                the name metadata statement instead of software statement.
+            </t>
+            <section title="Common Metadata">
+                <t>
+                    These extra metadata parameters appear in both provider
+                    and client metadata statements:
+                </t>
+                <t>
+                    <list style="hanging">
+                        <t hangText="signing_keys">
+                            <vspace/>
+                            OPTIONAL.
+                            A JWKS representing the public part of the entity's signing keys.
+                        </t>
+                        <t hangText="signing_keys_uri">
+                            <vspace/>
+                            OPTIONAL.
+                            Location where a JWKS representing the public part of the entity's
+                            signing keys can be found. SHOULD return
+                            the Content-Type "application/jose" to
+                            indicate that the JWKS is in the form of a JWS using
+                            the JWS Compact Serialization.
+                        </t>
+                        <t hangText="metadata_statements">
+                            <vspace/>
+                            OPTIONAL.
+                            JSON array containing a list of metadata statements.
+                        </t>
+                        <t hangText="metadata_statement_uris">
+                            <vspace/>
+                            OPTIONAL.
+                            JSON array containing a list of URLs pointing to metadata statements.
+                        </t>
+                    </list>
+                </t>
+                <t>
+                    Only one of the pair
+                    metadata_statements/metadata_statement_uris can be present.
+                </t>
+                <t>
+                    Along the same line if both
+                    <spanx style="verb">jwks_uri</spanx>
+                    and
+                    <spanx style="verb">signed_jwks_uri</spanx>
+                    are present, which they
+                    might be for backward compatibility reasons, then
+                    <spanx style="verb">signed_jwks_uri</spanx>
+                    SHOULD be preferred.
+                </t>
+            </section>
+            <section title="Specific Client Metadata">
+                <t>
+                    All parameters defined in section 2 of
+                    <xref target="OpenID.Registration">
+                        OpenID Connect Dynamic Client Registration 1.0
+                    </xref>
+                </t>
+                <t>
+                    To that list is added:
+                    <list style="hanging">
+                        <t hangText="scopes">
+                            <vspace/>
+                            RECOMMENDED.
+                            JSON array containing a list of the
+                            <xref target="RFC6749">RFC6749</xref>
+                            scope values that
+                            this clients expects to use.
+                        </t>
+                        <t hangText="claims">
+                            <vspace/>
+                            RECOMMENDED.
+                            JSON array containing a list of the Claim Names of the Claims that
+                            the OpenID Client wants values for.
+                        </t>
+                    </list>
+                </t>
+            </section>
+            <section title="Specific Provider Metadata">
+                <t>
+                    All parameters defined in section 3 of
+                    <xref target="OpenID.Discovery">
+                        OpenID Connect Discovery 1.0
+                    </xref>
+                </t>
+            </section>
+            <section title="Compounded Metadata Statement">
+                <t>
+                    The metadata for each entity in the federation is described by one or
+                    more metadata statements. Let's call them MS0, MS1, ..., MSn.
+                    Let furthermore MS0 be the most generic and MS1-MSn be successively more
+                    and more specific. In an organization context MS0 would typically
+                    contain information that belongs to the organization, for instance
+                    <spanx style="verb">tos_uri</spanx>,
+                    <spanx style="verb">contacts</spanx>
+                    and the like while MSn would contain information
+                    that belongs to one specific entity like
+                    <spanx style="verb">authorization_endpoint</spanx>
+                    for an OP
+                    or <spanx style="verb">redirect_uris</spanx> for a RP.
+                </t>
+                <t>
+                    The metadata for a specific entity is constructed by starting with the
+                    information in MS0 and then adding the information in MS1 to MSn using the
+                    rule below.
+                </t>
+                <t>
+                    <spanx style="strong">
+                        If the same claims appear in MSa and MSb (b > a) then unless the value in
+                        MSb is less or equal to the value in MSa then the value in MSb should be ignored.
+                    </spanx>
+                </t>
+                <t>
+                    The following is a non-normative example of a set of metadata statements
+                    (I'm only listing the client specific metadata)
+                    who together form the metadata for an entity:
+                    <figure>
+                        <preamble>
+                            MS0
+                        </preamble>
+                        <artwork><![CDATA[
+{
+  "contacts": ["dev_admin@example.com"],
+  "logo_uri": "https://example.com/logo.jpg",
+  "policy_uri": "https://example.com/policy.html",
+  "tos_uri": "https://example.com/tos.html"
+}
+            ]]></artwork>
+                    </figure>
+                    <figure>
+                        <preamble>
+                            MS1
+                        </preamble>
+                        <artwork><![CDATA[
+{
+  "scope": "openid eduperson",
+  "response_types": ["code"],
+}
+            ]]></artwork>
+                    </figure>
+                    <figure>
+                        <preamble>
+                            MS2
+                        </preamble>
+                        <artwork><![CDATA[
+{
+  "redirect_uris": ["https://example.com/rp1"],
+}
+            ]]></artwork>
+                    </figure>
+                    The metadata for the entity in question, using the rule above, would then be:
+                    <figure>
+                        <preamble>
+                            sum(MS0...2)
+                        </preamble>
+                        <artwork><![CDATA[
+{
+  "contacts": ["dev_admin@example.com"],
+  "logo_uri": "https://example.com/logo.jpg",
+  "policy_uri": "https://example.com/policy.html",
+  "tos_uri": "https://example.com/tos.html"
+  "scope": "openid eduperson",
+  "response_types": ["code"],
+  "redirect_uris": ["https://example.com/rp1"],
+}
+            ]]></artwork>
+                    </figure>
+
+                </t>
+            </section>
+            <section title="Conceptual Model">
+                <t>
+                    A set of metadata statements, like the ones above, which together describe an
+                    entity are brought together using the
+                    <spanx style="verb">metadata_statement</spanx>
+                    parameter
+                    <figure>
+                        <preamble>
+                            The following is a non-normative example of a compounded metadata
+                            statement. Also note that the the metadata_statement MUST be a signed
+                            JWT. In this example I've taken the liberty to 'unpack' the signed JWT
+                            and just show the parts of the JWT payload that are pertinent to the
+                            example.
+                        </preamble>
+                        <artwork><![CDATA[
+{
+  "redirect_uris": ["https://example.com/rp1"],
+  "metadata_statements": [
+    {
+      "scope": "openid eduperson",
+      "response_types": ["code"],
+      "metadata_statements" : [
+        {
+          "contacts": ["dev_admin@example.com"],
+          "logo_uri": "https://example.com/logo.jpg",
+          "policy_uri": "https://example.com/policy.html",
+          "tos_uri": "https://example.com/tos.html"
+        }
+      ]
+    }
+  ]
+}
+            ]]></artwork>
+                    </figure>
+                </t>
+            </section>
+        </section>
+        <section title="Trust model">
+            <t>
+                The trust model is based on linking together
+                signing keys, represented as <xref target="RFC7517">JWK Sets</xref>,
+                using <xref target="RFC7515">JSON Web Signatures</xref>.
+                Each signature chain is rooted in the trusted third party's
+                signing keys. By verifying such signature chains, the entities can establish
+                trust in the metadata.
+            </t>
+            <section title="Federation operator">
+                <t>
+                    The Federation Operator (FO) is the trusted third
+                    part. The FO MUST have a globally unique identifier.
+                    It will publish a JWK Set, containing the signing keys
+                    that the FO will use for signing metadata submitted to it,
+                    at a HTTPS URL which server certificate MUST appear in a well-known
+                    <xref target="RFC6962">Certificate Transparency log</xref>.
+                    The key IDs of the FO's signing keys MUST be globally unique.
+                </t>
+                <t>
+                    For the following description this is assumed to be true:
+                    A federation consists of a number of members, each member
+                    has one or more representatives registered with the federation.
+                    These representatives are allowed to issue metadata signing requests on
+                    behalf of the member to the federation. Below such a representative is
+                    called a <spanx style="emph">Level zero requester L0Req</spanx>.
+                    Within each member unless all entities belonging to the member is handled
+                    by the L0Req there may exists parties that are responsible for single
+                    or groups of entites within these parties we may have further subdivisions.
+                    So we have Level 0 requesters, level 1,2,3 and .. requesters. This document
+                    makes no assumption on how shallow or deep the layers may be.
+                </t>
+            </section>
+            <section title="The Building block">
+                <t>
+                    Even though we talk about a chain of trust the actual representation
+                    is as we have seen above a compounded metadata statement.
+                </t>
+                <t>
+                    The innermost metadata statement in the nest of metadata statements is
+                    the one that the FO signs.
+                    That statement MUST NOT contain any references to other metadata statements.
+                    All other metadata statements in the nest MUST contain at least one reference
+                    to another metadata statement.
+                </t>
+            </section>
+            <section title="Constructing an Signed Metadata Statement">
+                <t>
+                    These are the steps that is preformed to construct a signed
+                    metadata statement.
+                    A metadata signing request may be about one specific entity or a
+                    group of similar entities.
+                </t>
+                <t>
+                    <list style="numbers">
+                        <t>
+                            The
+                            <spanx style="verb">requester</spanx>
+                            constructs a signing request by collecting the necessary
+                            client or provider metadata as describe in
+                            <xref target='entity_metadata'/>
+                        </t>
+                        <t>
+                            If this is about the top most metadata statement (MS0) then no
+                            metadata statement will be added to the metadata statement.
+                            If it is a more specific metadata statement (MS1...n) then
+                            more general metadata statement/-s MUST be added.
+                            Dependent on setup the metadata statement can be added by the
+                            requester or the signer.
+                        </t>
+                        <t>
+                            The metadata statement is transported to the signing party.
+                            In the case or MS0 this MUST be the FO. If it is MS1...n it
+                            is the <spanx style="verb">requesters</spanx> of the included
+                            metadata statements.
+                        </t>
+                        <t>
+                            The signing party verifies the information in the metadata statement,
+                            modifies and/or adds more information according to the federation
+                            policy before signing the statement.
+                        </t>
+                        <t>
+                            Once signed by the signer the signed metadata is sent back to
+                            the <spanx style="verb">requester</spanx>.
+                        </t>
+                    </list>
+                </t>
+                <t>
+                    An example of the construction of a compounded metadata statement.
+                    The Level 0 requester (L0Req)sends a metadata statment request to the
+                    federation operator (FO). The FO verifies the information and if the
+                    federations policy so demands may add extra information. After signing with
+                    the FOs signing key the signed metadata statement (MS0) is returned to the L0Req.
+                    The L0Req then spreads MS0 to the level 1 Requesters.
+                    The L1Req includes the MS0 in any Metadata Statement signing requests it
+                    sends to the L0Req.
+                    <figure>
+                        <artwork><![CDATA[
++-----------+                                             +--------------+
+| Level 0   |--(A)- Metadata Statement signing Request -->|  Federation  |
+| Requester |                                             |  Operator    |
+|           |<-(B)- Signed Metadata Statement (MS0) ------|              |
++----+------+                                             +--------------+
+     |
+    (C)
+     |
+    MS0
+     |
+     v
++-------------+                                             +------------+
+| Level 1     |--(D)- Metadata Statement signing Request -->|  Level 0   |
+| Requester   |                                             |  Requester |
+|             |<-(E)----- Signed Metadata Statement --------|            |
++-------------+                                             +------------+
+                        ]]></artwork>
+                    </figure>
+                </t>
+            </section>
+            <section title="Verifying the Metadata Statement">
+                <t>
+                    Verifying the received metadata statement involves the following steps:
+                    <list style="numbers">
+                        <t>
+                            Pick out the payload from the JWS representing a signed metadata.
+                        </t>
+                        <t>
+                            If the payload contains
+                            <spanx style="verb">metadata_statement_uris</spanx>
+                            the entity should
+                            store the information for later use else if it contains
+                            <spanx style="verb">metadata_statements</spanx>
+                            .
+                        </t>
+                    </list>
+                </t>
+            </section>
+        </section>
+        <section title="OpenID Connect communication">
+            <figure>
+                <preamble>
+                    The trust between the entities is established using the
+                    above described extensions in the first tree steps of the
+                    communication between an RP and an OP.
+                    How, the RP found the OP in the first place is out of scope
+                    for this document.
+                </preamble>
+                <artwork><![CDATA[
+------                             ------
+|    | <--- 1) Discovery --------> |    |
+| RP | <--- 2) Registration -----> | OP |
+|    | <--- 3) Authentication ---> |    |
+------                             ------
+        ]]>
+                </artwork>
+                <postamble>
+                    After the discovery and registration is completed a first
+                    time, those steps SHOULD only be repeated if any changes
+                    occur (see notes in respective sections below).
+                </postamble>
+            </figure>
+            <section title="Federation policy">
+                <t>
+                    Any parameters that the federation adds to the software
+                    statement that
+                    also appears in the Provider Configuration response
+                    <xref target="OpenID.Discovery">(OpenID Connect Discovery
+                        1.0
+                    </xref>
+                    or in a Client Registration request
+                    <xref target="OpenID.Registration">(OpenID Connect Dynamic
+                        Client Registration 1.0)
+                    </xref>
+                    will override what ever value the same
+                    parameter has in the transferred metadata.
+                    The only exception is when the information provided by the
+                    RP/OP is a subset of what the developer/FO has specified.
+                </t>
+            </section>
+            <section title="Provider Discovery">
+                <t>
+                    The OP MUST publish its provider metadata as specified by
+                    <xref target="OpenID.Discovery">OpenID Connect Discovery
+                        1.0</xref>.
+                    The RP makes a standard OpenID Provider Configuration Request.
+                    The OP responds with its provider configuration and the
+                    additional metadata parameters specified above.
+                </t>
+            </section>
+            <section title="Client Registration">
+                <t>
+                    The OP MUST support dynamic client registration
+                    as described in
+                    <xref target="OpenID.Registration">OpenID Connect Dynamic Client
+                        Registration 1.0
+                    </xref>. The RP makes a Client Registration Request including
+                    the additional metadata specified above.
+                </t>
+            </section>
+        </section>
+        <section title="Belonging to several federation">
+            <section title="Developer">
+                <t>
+                    A developer may be a member of more the one federation and the
+                    RPs it is responsible for may be members of one or more of these.
+                </t>
+                <t>
+                    This is then how to deal with this.
+                    The developer registers and gets metadata signed by each federation.
+                    One extreme is that it will mint a new key pair for each federation,
+                    the other is that it will use the same key pair for all
+                    federations. It really doesn't matter which it chooses but the end
+                    result must be that there is one signed RP registration request per
+                    signing key.
+                    This is then published using
+                    <spanx style="verb">software_statement_uris</spanx>
+                    or
+                    <spanx style="verb">metadata_statements</spanx>.
+                </t>
+                <t>
+                    <figure>
+                        <preamble>The following is a non-normative example of an
+                            absolutely minimal client registration request sent to an OP:
+                        </preamble>
+
+                        <artwork><![CDATA[
+{
+  "redirect_uris": ["https://example.com/rp2/callback"],
+  "software_statement_uris": {
+    "https://swamid.sunet.se/":
+      "https://dev.example.com/rp1/idfed/swamid.jws",
+    "https://www.incommon.org":
+      "https://dev.example.com/rp1/idfed/incommon.jws"
+  }
+}
+            ]]></artwork>
+                    </figure>
+                </t>
+                <t>
+                    When the OP receives a request like this it will chose which
+                    federation it will work within and then signal that by only
+                    return that entry in the metadata_statements/software_statement_uris
+                    in the registration response.
+                </t>
+                <t>
+                    <figure>
+                        <preamble>The following is a non-normative example of an OPs
+                            response on the client registration request above:
+                        </preamble>
+
+                        <artwork><![CDATA[
+{
+  "client_id": "abcdefgh",
+  "client_secret": "0123456789",
+  "client_id_issued_at": 1462375583,
+  "client_secret_expires_at": 1462379183,
+  "redirect_uris": ["https://example.com/rp2/callback"],
+  "software_statement_uris": {
+    "https://swamid.sunet.se/":
+      "https://dev.example.com/rp1/idfed/swamid.jws",
+  }
+}
+            ]]></artwork>
+                    </figure>
+
+                </t>
+            </section>
+            <section title="OP/AS admin">
+                <t>
+                    An OP may likewise be member of several federations. As with the
+                    developer it has the choice of whether it wants one key pair per
+                    federation or one key pair for everyone or anything in between.
+                    And like the RP developer it has to produce one signed metadata
+                    statement per key used.
+                </t>
+                <t>
+                    <figure>
+                        <preamble>The following is a non-normative example of an OPs
+                            response to a provider configuration request:
+                        </preamble>
+                        <artwork><![CDATA[
+  {
+    "issuer": "https://foo.example.org/op/fDTowvP0slEdEAcc",
+    "response_types_supported": ["code", "code id_token", "token"],
+    "grant_types_supported": ["authorization_code", "implicit",
+        "urn:ietf:params:oauth:grant-type:jwt-bearer"],
+    "subject_types_supported": ["pairwise", "public"],
+    "id_token_signing_alg_values_supported": ["RS256"],
+    "software_statement_uris": {
+      "https://swamid.sunet.se/":
+        "https://foo.example.org/op/idfed/swamid.jws",
+      "https://www.incommon.org":
+        "https://foo.example.org/op/idfed/incommon.jws"
+      "https://www.switch.ch":
+        "https://foo.example.org/op/idfed/switch.jws"
+      "https://www.aco.net/":
+        "https://foo.example.org/op/idfed/aconet.jws"
+  }
+            ]]></artwork>
+                    </figure>
+                </t>
+            </section>
+        </section>
+        <section title="Verification process">
+            <section title="OP as receiver">
+                <t>
+                    Upon receiving metadata from an RP this is what the OP has to do:
+                    <list style="numbers">
+                        <t>
+                            The OP will have to unpack the metadata such that it can get at
+                            the software statement that is included. This is the software
+                            statement that the FO constructed and signed based on input from
+                            the developer.
+                        </t>
+                        <t>
+                            Having the FO's JWK Set it should be able to find a key that
+                            can be used to verify the signature on the software statement.
+                        </t>
+                        <t>
+                            Once it has verified the signature of the software statement
+                            it can use the signing key included in it to verify the signature
+                            of the metadata.
+                        </t>
+                        <t>
+                            If there is a
+                            <spanx style="verb">signed_jwks_uri</spanx>
+                            claim
+                            in the metadata then when it has verified the signature of the
+                            metadata it can use the signing key included in the metadata to
+                            verify the signature on the JWK Set it fetched from the URL
+                            defined in<spanx style="verb">signed_jwks_uri</spanx>.
+                        </t>
+                    </list>
+                </t>
+            </section>
+            <section title="RP as receiver">
+                <t>
+                    It's easier for the RP since there is no intermediate involved in
+                    producing the signed metadata for the OP. This means that the RP
+                    can verify the signature of the metadata using a key in the FOs
+                    JWK Set. If the OP' metadata contains a
+                    <spanx style="verb">signed_jwks_uri</spanx>
+                    claim the RP can
+                    use the signing key included in the metadata to verify the signature
+                    of the JWK Set found at that URL.
+                </t>
+            </section>
+        </section>
+        <section anchor="Acknowledgements" title="Acknowledgements">
+            <t>
+                <list style="empty">
+                    <t>Michael Schwartz</t>
+                    <t>Peter Schober</t>
+                </list>
+            </t>
+        </section>
+
+        <!-- Possibly a 'Contributors' section ... -->
+
+        <section anchor="IANA" title="IANA Considerations">
+            <t>This memo includes no request to IANA.</t>
+
+            <t>All drafts are required to have an IANA considerations section
+                (see
+                <xref target="RFC5226">Guidelines for Writing an IANA
+                    Considerations Section in RFCs
+                </xref>
+                for a guide). If the draft does not require IANA to do
+                anything, the section contains an explicit statement that this
+                is the
+                case (as above). If there are no requirements for IANA, the
+                section will
+                be removed during conversion into an RFC by the RFC Editor.
+            </t>
+        </section>
+
+        <section anchor="Security" title="Security Considerations">
+            <t>All drafts are required to have a security considerations
+                section.
+                See
+                <xref target="RFC3552">RFC 3552</xref>
+                for a guide.
+            </t>
+        </section>
+    </middle>
+
+    <!--  *****BACK MATTER ***** -->
+
+    <back>
+        <!-- References split into informative and normative -->
+
+        <!-- There are 2 ways to insert reference entries from the citation libraries:
+         1. define an ENTITY at the top, and use "ampersand character"RFC2629; here (as shown)
+         2. simply use a PI "less than character"?rfc include="reference.RFC.2119.xml"?> here
+            (for I-Ds: include="reference.I-D.narten-iana-considerations-rfc2434bis.xml")
+
+         Both are cited textually in the same manner: by using xref elements.
+         If you use the PI option, xml2rfc will, by default, try to find included files in the same
+         directory as the including file. You can also define the XML_LIBRARY environment variable
+         with a value containing a set of directories to search.  These can be either in the local
+         filing system or remote ones accessed by http (http://domain/dir/... ).-->
+
+        <references title="Normative References">
+            <!--?rfc include="http://xml.resource.org/public/rfc/bibxml/reference.RFC.2119.xml"?-->
+            <?rfc include="reference.RFC.5226"?>
+            <?rfc include="reference.RFC.2119"?>
+            <?rfc include="reference.RFC.3552"?>
+            <?rfc include="reference.RFC.7515"?>
+            <?rfc include="reference.RFC.7517"?>
+            <?rfc include="reference.RFC.6962"?>
+            <?rfc include="reference.RFC.6749"?>
+            <?rfc include="reference.RFC.7591"?>
+            <reference anchor="OpenID.Core"
+                       target="http://openid.net/specs/openid-connect-core-1_0.html">
+                <front>
+                    <title>OpenID Connect Discovery 1.0</title>
+
+                    <author fullname="Nat Sakimura" initials="N."
+                            surname="Sakimura">
+                        <organization abbrev="NRI">Nomura Research Institute,
+                            Ltd.
+                        </organization>
+                    </author>
+
+                    <author fullname="John Bradley" initials="J."
+                            surname="Bradley">
+                        <organization abbrev="Ping Identity">Ping Identity
+                        </organization>
+                    </author>
+
+                    <author fullname="Michael B. Jones" initials="M.B."
+                            surname="Jones">
+                        <organization abbrev="Microsoft">Microsoft
+                        </organization>
+                    </author>
+
+                    <author fullname="Breno de Medeiros" initials="B."
+                            surname="de Medeiros">
+                        <organization abbrev="Google">Google</organization>
+                    </author>
+
+                    <author fullname="Chuck Mortimore" initials="C."
+                            surname="Mortimore">
+                        <organization abbrev="Salesforce">Salesforce
+                        </organization>
+                    </author>
+
+                    <date day="3" month="August" year="2015"/>
+                </front>
+            </reference>
+            <reference anchor="OpenID.Discovery"
+                       target="http://openid.net/specs/openid-connect-discovery-1_0.html">
+                <front>
+                    <title>OpenID Connect Discovery 1.0</title>
+
+                    <author fullname="Nat Sakimura" initials="N."
+                            surname="Sakimura">
+                        <organization abbrev="NRI">Nomura Research Institute,
+                            Ltd.
+                        </organization>
+                    </author>
+
+                    <author fullname="John Bradley" initials="J."
+                            surname="Bradley">
+                        <organization abbrev="Ping Identity">Ping Identity
+                        </organization>
+                    </author>
+
+                    <author fullname="Michael B. Jones" initials="M.B."
+                            surname="Jones">
+                        <organization abbrev="Microsoft">Microsoft
+                        </organization>
+                    </author>
+
+                    <author fullname="Edmund Jay" initials="E." surname="Jay">
+                        <organization abbrev="Illumila">Illumila</organization>
+                    </author>
+
+                    <date day="3" month="August" year="2015"/>
+                </front>
+            </reference>
+            <reference anchor="OpenID.Registration"
+                       target="http://openid.net/specs/openid-connect-registration-1_0.html">
+                <front>
+                    <title>OpenID Connect Dynamic Client Registration 1.0
+                    </title>
+
+                    <author fullname="Nat Sakimura" initials="N."
+                            surname="Sakimura">
+                        <organization abbrev="NRI">Nomura Research Institute,
+                            Ltd.
+                        </organization>
+                    </author>
+
+                    <author fullname="John Bradley" initials="J."
+                            surname="Bradley">
+                        <organization abbrev="Ping Identity">Ping Identity
+                        </organization>
+                    </author>
+
+                    <author fullname="Michael B. Jones" initials="M.B."
+                            surname="Jones">
+                        <organization abbrev="Microsoft">Microsoft
+                        </organization>
+                    </author>
+
+                    <date day="3" month="August" year="2015"/>
+                </front>
+            </reference>
+        </references>
+
+        <!-- Here we use entities that we defined at the beginning. -->
+        <section anchor="app-additional" title="Example">
+            <t>
+                The necessary steps for adding a Relying Party to a federation
+            </t>
+            <t>
+                The following JWKS represents the signing key that
+                the Federation Operator is using in the following example:
+            </t>
+            <figure>
+                <artwork><![CDATA[
+{
+  "keys": [
+    {
+      "d": "DpFZnXz8fcKmOxFPfPdh3aZz44U2ZWm1Mxy6CiqHYcA80KVAY-wrjKFV4e
+iSl9JENpoWXax4dpMcyJa2TdAXL9-4WqGNQAPRvdOfHcJM_uaBSGZwsuqAqZi_0sbNxurG
+gbjKV38ra-iz42fcSXHCgNdMJjCi3VixS8iASHGU82R6mYyVeMWdX_j2RG--41PDxud4xS
+YCKDuR6s2qlLVXyCZqFu_Yzl5zChiNxZJ_ggcxyL6i_hngi1oSbbVjgNKTcJNaIdOfzzcn
+Ud5J9GP941-tylwg7NC3gRo1bXlUx6HFx3LkYe1PdroHhQd92RPyJdPqHDfbizJ4sjXN4c
+Nq-Q",
+      "e": "AQAB",
+      "kid": "uZX0-P1-TMsZRqK1SeXpdLgsLoeUNskN2W_rwBNKAtc",
+      "kty": "RSA",
+      "n": "rqJ_CFECPF2nBD1eXkFonJo5gGcbnCvDudm_-7f1thcQqiuY2Xz0eKqQ2H
+P3Nw-wP5q2hKbNVgAQSBbMp_AgNwRFmboJKF4cFEr3ZtmvO94bM6L15vUR2HNyX-4LaZ6S
+9u35jSikOVJDt1BK-72w_DKeb8O8qa2dl9k7F6QZJQT6Nfh5rEALQLOZgwBgZAUpu2tQUh
+3TFpwe3J_rQtCBbI3r0W1XoM1pD3EXTm9MI_aANRL82rh7_ZqLwGeBprD3F6ns9i5-psQ0
+UZ-2eVjN6J1um40U6ysu3QjFUZEwb0yxNVx2D9bzOPMHwo6GAzePhJ46rI8NQ0NwJdB7lN
+vrhw",
+      "p": "y4VcmM4QZoIjsGlTE7jvkJzYAud9Hz3uexVdeTShHnS-btLySSP70EWdvI
+CkHK7Z4KikNZaD3cET978LmkoG03WZcs7iEEg7hQ0N7ePMv7P1w6X1Z2_IeWml0c4iFSMa
+GPJk8a65HgBZ8fYPXFtERI7e1M--oqCrsTFikP8wYQU",
+      "q": "26pTV-JNgwx3LMrqEKIoIvHwLKfjFouRZXtTnOJP9G9BZ9vhAn1qX06M-x
+W02G3qGzhQEpNZKMj54APNcqkg4PH1wMJmJ-cs1T44KoNhhihoHd6awT7PGNMo9I728CwY
+fkM3ZW-BsgGBzQcfdI043cV3ebXzIEWwPbqTR44p8Bs",
+      "use": "sig"
+    }
+  ]
+}
+        ]]></artwork>
+            </figure>
+            <section title="Relying Party joining a federation">
+                <section title="Step 1 - Developer creates its signing key pair.">
+                    <t>
+                        Developer creates its signing key pair.
+                        <figure>
+                            <artwork><![CDATA[
+{
+  "keys": [
+    {
+      "d": "RJmqe2KiVOShoTMaZBmoMLkmeZY97PW3TOgSGDgZejL6I2qdhNlBAa3e9N
+z6ggkWpxEy6IGNGetwNwS9aYA_Z6m45kaaUHXGKol_R_5s4TJryXUppxWDuHScE_dVcfzl
+usm9Cq8J-U-xoaoKL36I3rakCJ_dWpsGNDpYSMenXcXuX-gJ5-HvSTETV5Bp23izUF4BH8
+TSVWniD8Vk5Hv8EtWVqsqc7YmIG1zW_ctJhK7peymmNIVpcGpIxaT8agUOS-hcNxpN4AlY
+rELn2twzq8tXp5bPZNiHHNXgzXANy5BgNFXXnZFqFiNiBn3agQxF2aiu4Ei5k5OidHTV8q
+eGWQ",
+      "e": "AQAB",
+      "kid": "z414hVxt2-nkbqgG3VFYOZGB3Miwuhe75SfWT1BQQTc",
+      "kty": "RSA",
+      "n": "waDXGJwu9pV3gMY7rtpq3OYSAG1HZy7qilGC3ULMxJxjhSQCJ7M9PBC4uo
+F_f5178FebpKBIoT3_YzqETt9Ry_6NA_mGBq6xtjEgnmNv6ktQj8hKI0tYheWRHMJIt2ay
+8IwnV-3LD0Q_Nn7E3YgGaJUBlzDgJxQQcRVGFEOcFL-7TiKtVdPmPDGcSF7FivaGJO-MVq
+mDkCsZVMTZoqmKeuaqbshsDjxy9GaiImQLe8tyzkhxEoG7qvovlGoV4AE8WroMinx0qWvg
+lR8n041qQhrUMtoQMDCI53uLy6ZSR0jbNNEwvDBbiqD4Hm3piAwTUrGKWYLxbeicK_7A6g
+F2Sw",
+      "p": "3SBEMBmIGztaOpCH-C9vwr80SyXm6M1uwCoKjBOiy_-kJ03jvacztd5CEO
+cCvhRLVvl3rEYSP97DR_Eju-jlKWi92tbIECGvWzgszMHLdEdjvVvpJLlOSAfFMYsaPxa1
+Sw2HS7RgoAwIxD5HVcdPK-3cJ5Gi0hInbz-ufrH4ru0",
+      "q": "4CphaFI0lSGr0HNifXJBN5JkXmCZp6WX06cI4pR_DwZAHTojc8dK1ECMHU
+2oP2nPn1pmAVZj4p98vO0MfTxSgNB15EmDRkic_cmS-SenUUf7Pl3avJwpZq_qxYPqDajA
+gWHuuci-2zKXRlKS_ZCz1MAmx-gV0We3AnletWV52xc",
+      "use": "sig"
+    }
+  ]
+}
+]]></artwork>
+                        </figure>
+                    </t>
+                </section>
+                <section title="Step 2 - Developer submits registration data to FO">
+                    <t>
+                        The developer submits registration data to Federation Operator (FO).
+                    </t>
+                    <figure>
+                        <artwork><![CDATA[
+{
+  "contacts": [
+    "dev_admin@example.com"
+  ],
+  "logo_uri": "https://example.com/logo.jpg",
+  "policy_uri": "https://example.com/policy.html",
+  "signing_key": {
+    "e": "AQAB",
+    "kid": "z414hVxt2-nkbqgG3VFYOZGB3Miwuhe75SfWT1BQQTc",
+    "kty": "RSA",
+    "n": "waDXGJwu9pV3gMY7rtpq3OYSAG1HZy7qilGC3ULMxJxjhSQCJ7M9PBC4uoF_
+f5178FebpKBIoT3_YzqETt9Ry_6NA_mGBq6xtjEgnmNv6ktQj8hKI0tYheWRHMJIt2ay8I
+wnV-3LD0Q_Nn7E3YgGaJUBlzDgJxQQcRVGFEOcFL-7TiKtVdPmPDGcSF7FivaGJO-MVqmD
+kCsZVMTZoqmKeuaqbshsDjxy9GaiImQLe8tyzkhxEoG7qvovlGoV4AE8WroMinx0qWvglR
+8n041qQhrUMtoQMDCI53uLy6ZSR0jbNNEwvDBbiqD4Hm3piAwTUrGKWYLxbeicK_7A6gF2
+Sw",
+    "use": "sig"
+  },
+  "tos_uri": "https://example.com/tos.html"
+}
+           ]]></artwork>
+                    </figure>
+                </section>
+                <section title="Step 3 - FO returns a signed software statement">
+                    <t>
+                        The FO returns a signed software statement containing
+                        the submitted registration data, and any applied policy
+                        restrictions like response_types, signing/encryption
+                        algorithms to be used and additional specific policy parameters
+                        like the ones specified above.
+                    </t>
+                    <t>
+                        This is an example of a software statement constructed
+                        by the FO before it is signed by the FO:
+                    </t>
+                    <figure>
+                        <artwork><![CDATA[
+{
+  "contacts": [
+    "dev_admin@example.com"
+  ],
+  "exp": 1462438820,
+  "iat": 1462438820,
+  "iss": "https://swamid.sunet.se/",
+  "jti": "e920396fc2cb4ac0aaeb229674fd286a",
+  "kid": "uZX0-P1-TMsZRqK1SeXpdLgsLoeUNskN2W_rwBNKAtc",
+  "logo_uri": "https://example.com/logo.jpg",
+  "policy_uri": "https://example.com/policy.html",
+  "response_types": [
+    "code",
+    "code id_token",
+    "token"
+  ],
+  "scopes": [
+    "openid",
+    "email",
+    "phone"
+  ],
+  "signing_key": {
+    "e": "AQAB",
+    "kid": "z414hVxt2-nkbqgG3VFYOZGB3Miwuhe75SfWT1BQQTc",
+    "kty": "RSA",
+    "n": "waDXGJwu9pV3gMY7rtpq3OYSAG1HZy7qilGC3ULMxJxjhSQCJ7M9PBC4uoF_
+f5178FebpKBIoT3_YzqETt9Ry_6NA_mGBq6xtjEgnmNv6ktQj8hKI0tYheWRHMJIt2ay8I
+wnV-3LD0Q_Nn7E3YgGaJUBlzDgJxQQcRVGFEOcFL-7TiKtVdPmPDGcSF7FivaGJO-MVqmD
+kCsZVMTZoqmKeuaqbshsDjxy9GaiImQLe8tyzkhxEoG7qvovlGoV4AE8WroMinx0qWvglR
+8n041qQhrUMtoQMDCI53uLy6ZSR0jbNNEwvDBbiqD4Hm3piAwTUrGKWYLxbeicK_7A6gF2
+Sw",
+    "use": "sig"
+  },
+  "token_endpoint_auth_method": "private_key_jwt",
+  "tos_uri": "https://example.com/tos.html"
+}
+            ]]></artwork>
+                    </figure>
+                    <t>
+                        The signed version of this software statement, or a link to it, is
+                        then expected to be included in the RPs client registration request
+                        before being signed by the developers signing key.
+                    </t>
+                </section>
+                <section title="Step 4 - The RP gets a signing key">
+                    <t>
+                        The RP gets a signing key
+                        <figure>
+                            <artwork><![CDATA[
+{
+  "keys": [
+    {
+      "d": "BA0bo5OR3ht2KGDeAUpZsKv-Jjo9IKpYA2x7yQhcIH3bt9T2495pXVAHLQ
+XXnZpjMenz7WPx94ajxIh96Bt59AYx4AwAEaBnPzK8vXLIP-A92NP3HV7vk0p8KWsrEdDw
+xBaypqRXxz7V5vPGQVnOGg2eKSlP5F4-HoGpU6xDRo8Lptcs5VNx0a9kKVqEu-YpQkc2z2
+uLRjl8urOu471sks38U03wRwWDElepUI28jEjhPydVSQw-E5w3yKhHTZeh1mVdNMp7_8LD
+zScP1Ah5VCRLFfrmx1bOXxXZWHpMD6vgghmaCQGmyhgEr3XNzHVlH4bfVI_2Vrxp6cxHpe
+3iYw",
+      "e": "AQAB",
+      "kid": "Tvd2gF4mcNtiYx6FyOOH83Xj_MkF-8yn_rD2Gm06RxY",
+      "kty": "RSA",
+      "n": "2kCKMUluhKV2INV3dS89WQ305J6JL8OJQ1cPk3GQ20Zvraa3DCntNns1xy
+9gynGYUQzom7LYAqcmpu7xFGNXH0gN8JyXcCiWl02IuD6lwS6N2d7y6xJm8-mUBiwVrAlh
+wWL1Bf8JRycRUQ51c6Y8yYrUf2pjeIFQBQEfUhcjNg13L1OUDoWJizy5QhaTe4p2uezYhK
+lKtSHC7T6Brs6kWJA57j8BY5Tx4p6cyWRGsN58XXfmWg1hA1LjVIwgtSBvax7KRGUY6TXO
+d5Km2MvJgBOfqAYfh1z0wZRiBdUa0RzsXavf4HGjnwPknYcSY1MwKZCzz_W0_uAiGlHFlN
+wLSQ",
+      "p": "5279rRhB4IBf5chMgrTVwsAEKWyEsRrIVs5xLFVA5rpOKLN6qGhLO6PU9j
+msD7dYEa0IA-eTxVCCuMp09KEfyrRAn0OWpWdndu8IR_n2e4zZxBXbf4WuIeZwxfM5PqKi
+5LOnp442CthmzbsVD2OLmlgSViWSAP9SLFOBGfniTqs",
+      "q": "8WtasUyu9D9StGJkgolHjofbMnxXzRqpnA-QSV71htsQD3wof-vda8e8Jk
+DLPPfAYuVYieCHeJYGsT9EHAG1Nyyr9OMzFeo73N1FdKGIGihWHSuvW6sRr6FTta12ZMN7
+Jkm3l2rQoZALgvMtdYdDGJ-D3gwusW5nNS3-xJqMPds",
+      "use": "sig"
+    }
+  ]
+}
+            ]]></artwork>
+                        </figure>
+                    </t>
+                </section>
+                <section title="Step 5 - RP produces a client registration request">
+                    <t>
+                        The RP produces a client registration request
+                        <figure>
+                            <artwork><![CDATA[
+{
+  "application_type": "web",
+  "jwks_uri_signed": "https://example.com/rp1/jwks.jws",
+  "redirect_uris": [
+    "https://example.com/rp1/callback"
+  ],
+  "response_types": [
+    "code"
+  ],
+  "signing_key": {
+    "e": "AQAB",
+    "kid": "Tvd2gF4mcNtiYx6FyOOH83Xj_MkF-8yn_rD2Gm06RxY",
+    "kty": "RSA",
+    "n": "2kCKMUluhKV2INV3dS89WQ305J6JL8OJQ1cPk3GQ20Zvraa3DCntNns1xy9g
+ynGYUQzom7LYAqcmpu7xFGNXH0gN8JyXcCiWl02IuD6lwS6N2d7y6xJm8-mUBiwVrAlhwW
+L1Bf8JRycRUQ51c6Y8yYrUf2pjeIFQBQEfUhcjNg13L1OUDoWJizy5QhaTe4p2uezYhKlK
+tSHC7T6Brs6kWJA57j8BY5Tx4p6cyWRGsN58XXfmWg1hA1LjVIwgtSBvax7KRGUY6TXOd5
+Km2MvJgBOfqAYfh1z0wZRiBdUa0RzsXavf4HGjnwPknYcSY1MwKZCzz_W0_uAiGlHFlNwL
+SQ",
+    "use": "sig"
+  }
+}
+            ]]></artwork>
+                        </figure>
+                    </t>
+                </section>
+                <section title="Step 6 - Developer produces software statement for RP">
+                    <t>
+                        Developer produces software statement based on client registration
+                        request
+                        <figure>
+                            <artwork><![CDATA[
+{
+  "application_type": "web",
+  "jwks_uri_signed": "https://example.com/rp1/jwks.jws",
+  "redirect_uris": [
+    "https://example.com/rp1/callback"
+  ],
+  "response_types": [
+    "code"
+  ],
+  "signing_key": {
+    "e": "AQAB",
+    "kid": "Tvd2gF4mcNtiYx6FyOOH83Xj_MkF-8yn_rD2Gm06RxY",
+    "kty": "RSA",
+    "n": "2kCKMUluhKV2INV3dS89WQ305J6JL8OJQ1cPk3GQ20Zvraa3DCntNns1xy9g
+ynGYUQzom7LYAqcmpu7xFGNXH0gN8JyXcCiWl02IuD6lwS6N2d7y6xJm8-mUBiwVrAlhwW
+L1Bf8JRycRUQ51c6Y8yYrUf2pjeIFQBQEfUhcjNg13L1OUDoWJizy5QhaTe4p2uezYhKlK
+tSHC7T6Brs6kWJA57j8BY5Tx4p6cyWRGsN58XXfmWg1hA1LjVIwgtSBvax7KRGUY6TXOd5
+Km2MvJgBOfqAYfh1z0wZRiBdUa0RzsXavf4HGjnwPknYcSY1MwKZCzz_W0_uAiGlHFlNwL
+SQ",
+    "use": "sig"
+  },
+  "software_statements": [
+    "eyJraWQiOiJ1WlgwLVAxLVRNc1pScUsxU2VYcGRMZ3NMb2VVTnNrTjJXX3J3Qk5LQ
+XRjIiwiYWxnIjoiUlMyNTYifQ.eyJwb2xpY3lfdXJpIjogImh0dHBzOi8vZXhhbXBsZS5j
+b20vcG9saWN5Lmh0bWwiLCAidG9rZW5fZW5kcG9pbnRfYXV0aF9tZXRob2QiOiAicHJpdm
+F0ZV9rZXlfand0IiwgImNvbnRhY3RzIjogWyJkZXZfYWRtaW5AZXhhbXBsZS5jb20iXSwg
+ImxvZ29fdXJpIjogImh0dHBzOi8vZXhhbXBsZS5jb20vbG9nby5qcGciLCAic2NvcGVzIj
+ogWyJvcGVuaWQiLCAiZW1haWwiLCAicGhvbmUiXSwgImlhdCI6IDE0NjI0Mzg4MjAsICJp
+c3MiOiAiaHR0cHM6Ly9zd2FtaWQuc3VuZXQuc2UvIiwgImtpZCI6ICJ1WlgwLVAxLVRNc1
+pScUsxU2VYcGRMZ3NMb2VVTnNrTjJXX3J3Qk5LQXRjIiwgImp0aSI6ICJlOTIwMzk2ZmMy
+Y2I0YWMwYWFlYjIyOTY3NGZkMjg2YSIsICJyZXNwb25zZV90eXBlcyI6IFsiY29kZSIsIC
+Jjb2RlIGlkX3Rva2VuIiwgInRva2VuIl0sICJzaWduaW5nX2tleSI6IHsiZSI6ICJBUUFC
+IiwgImtpZCI6ICJ6NDE0aFZ4dDItbmticWdHM1ZGWU9aR0IzTWl3dWhlNzVTZldUMUJRUV
+RjIiwgImt0eSI6ICJSU0EiLCAidXNlIjogInNpZyIsICJuIjogIndhRFhHSnd1OXBWM2dN
+WTdydHBxM09ZU0FHMUhaeTdxaWxHQzNVTE14SnhqaFNRQ0o3TTlQQkM0dW9GX2Y1MTc4Rm
+VicEtCSW9UM19ZenFFVHQ5UnlfNk5BX21HQnE2eHRqRWdubU52Nmt0UWo4aEtJMHRZaGVX
+UkhNSkl0MmF5OEl3blYtM0xEMFFfTm43RTNZZ0dhSlVCbHpEZ0p4UVFjUlZHRkVPY0ZMLT
+dUaUt0VmRQbVBER2NTRjdGaXZhR0pPLU1WcW1Ea0NzWlZNVFpvcW1LZXVhcWJzaHNEanh5
+OUdhaUltUUxlOHR5emtoeEVvRzdxdm92bEdvVjRBRThXcm9NaW54MHFXdmdsUjhuMDQxcV
+FoclVNdG9RTURDSTUzdUx5NlpTUjBqYk5ORXd2REJiaXFENEhtM3BpQXdUVXJHS1dZTHhi
+ZWljS183QTZnRjJTdyJ9LCAidG9zX3VyaSI6ICJodHRwczovL2V4YW1wbGUuY29tL3Rvcy
+5odG1sIiwgImV4cCI6IDE0NjI0Mzg4MjB9.ZVnHkrdGqQTP36UXwZhb9hhcIc1hgkYNd8d
+GsyS-uHojrr4lYqkAyDjCr39fJnGvRnJvm_-LQDBfaKFHyGjSCi97uQAN72lWC-FRs-wuE
+D0abhgSEyrpDBSG0enNvIyOP_BEbo5xx950MJrlcmOT9s2MCI2KPKV4Rt8ZIJUdLO5kWPl
+fzaHkRZenCnob7sKYY4mbFosrslT0ny51yFSbZLtvnc04dmR0Q8ccAYJkMfL4t-IIGrrKR
+bDB6x52_gqJ8REgbhfiN6StM6jwiv_UydOjLXvFpsl5_5AZWWubNaIzj-4eCIpPFYjxBaO
+Gcs0FsmD1irBDIAIQodidYoI6aA"
+  ]
+}
+              ]]></artwork>
+                        </figure>
+                        and signs it.
+                        We now have the signed software statement aka the metadata
+                        that the RP will present to the OP
+                    </t>
+                </section>
+                <section
+                        title="Step 7 - RP sends a client registration request to an OP">
+                    <t>
+                        The RP sends a client registration request to the OP
+                        <figure>
+                            <artwork><![CDATA[
+{
+  "redirect_uris": [
+    "https://example.com/rp1/callback"
+  ],
+  "software_statement_uris": {
+    "https://swamid.sunet.se/":
+      "https://dev.example.com/rp1/idfed/swamid.jws",
+  }
+}
+              ]]></artwork>
+                        </figure>
+                    </t>
+                </section>
+                <section title="Step 8 - OP handles software statement">
+                    <t>
+                        The OP fetches the software statement from the URI
+                        'https://dev.example.com/rp1/idfed/swamid.jws' and then goes about
+                        unpacking the metadata. At this point in time the OP doesn't have
+                        the necessary key to verify the signature of the metadata.
+                        Therefor it has to unpack the JWT without verifying the signature.
+                        It will then get a JSON document looking like whats listed in
+                        step 6 above. From this document it can extract the software
+                        statement which should be signed by a key belonging to the FO.
+                        The OP should have the fetched the public version of that key
+                        from the FO at some time prior to this.
+                        It can now verify the signature of the software statement and
+                        unpack the JWT. The JSON document it then gets is the one listed
+                        in step 3. The signing key specified in that document can now
+                        be extracted and used to verify the signature of the metadata.
+                    </t>
+                    <t>
+                        What's remaining now for the OP is to put all the pieces of
+                        the client registration request together. It will have one
+                        piece from the developer augmented with the federation policy
+                        and then another piece from the RP.
+                    </t>
+                </section>
+            </section>
+        </section>
+        <section anchor="Notices" title="Notices">
+            <t>Copyright (c) 2016 The OpenID Foundation.</t>
+            <t>
+                The OpenID Foundation (OIDF) grants to any Contributor, developer,
+                implementer, or other interested party a non-exclusive, royalty free,
+                worldwide copyright license to reproduce, prepare derivative works from,
+                distribute, perform and display, this Implementers Draft or
+                Final Specification solely for the purposes of (i) developing
+                specifications, and (ii) implementing Implementers Drafts and
+                Final Specifications based on such documents, provided that attribution
+                be made to the OIDF as the source of the material, but that such attribution
+                does not indicate an endorsement by the OIDF.
+            </t>
+            <t>
+                The technology described in this specification was
+                made available from contributions from various sources,
+                including members of the OpenID Foundation and others.
+                Although the OpenID Foundation has taken steps to help ensure
+                that the technology is available for distribution, it takes
+                no position regarding the validity or scope of any intellectual
+                property or other rights that might be claimed to pertain to
+                the implementation or use of the technology described in
+                this specification or the extent to which any license under
+                such rights might or might not be available; neither does it
+                represent that it has made any independent effort to identify
+                any such rights. The OpenID Foundation and the contributors
+                to this specification make no (and hereby expressly disclaim any)
+                warranties (express, implied, or otherwise), including implied
+                warranties of merchantability, non-infringement, fitness for
+                a particular purpose, or title, related to this specification,
+                and the entire risk as to implementing this specification is
+                assumed by the implementer. The OpenID Intellectual
+                Property Rights policy requires contributors to offer
+                a patent promise not to assert certain patent claims against
+                other contributors and against implementers. The OpenID Foundation invites
+                any interested party to bring to its attention any copyrights,
+                patents, patent applications, or other proprietary rights
+                that may cover technology that may be required to practice
+                this specification.
+            </t>
+        </section>
+
+        <section anchor="History" title="Document History">
+            <t>[[ To be removed from the approved specification ]]</t>
+
+            <t>
+                -00
+                <list style="symbols">
+                    <t>
+                        Created openid-connect-federation-1_0-00 from draft-hedberg-oidc-fed-01.
+                    </t>
+                </list>
+            </t>
+
+        </section>
+
+    </back>
+</rfc>

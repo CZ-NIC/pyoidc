@@ -766,7 +766,6 @@ class TestProvider(object):
 
     @pytest.mark.parametrize("uri", [
         "http://example.org/cb",
-        "http://example.org/cb/foo"
     ])
     def test_verify_redirect_uri_correct_without_query(self, uri):
         rr = RegistrationRequest(operation="register",
@@ -786,7 +785,6 @@ class TestProvider(object):
 
     @pytest.mark.parametrize("uri", [
         "http://example.org/cb",
-        "http://example.org/cb/foo",
         "http://example.org/cb?got=you",
         "http://example.org/cb?foo=you"
         "http://example.org/cb?foo=bar&got=you",

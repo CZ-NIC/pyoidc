@@ -1,0 +1,448 @@
+----------------------------------------------------------------------
+SWAMID's key pair
+----------------------------------------------------------------------
+{
+  "keys": [
+    {
+      "d": "NEHYQDYnabIFZLv6vu9MdhEA3Ou1ZS9sSsbVD0E5THt4jdwmQUr4TBBl-B
+qu6MYG1UXgAJl_xBrEg6WiaHZoUAvSaXnB_mmmTSKBC_ShbFTSTOf3o2CrSOommoYzzwk2
+i1XIYqiPRaFtx3sppFw0n51K1MixF1eHLfTRqs0GxWP-t3tb7kOCs2VkqRgz0XJNrVV0Vv
+l8jXYX1Csbgj6gg0sDFQvwncTHAQfYiFsSmssYE0_X7QOHltMW8Qwh-3D2k8b3mDdZ_V2F
+ZQdS_OKqiQunehBz_AXOjCXx8aFtIFFhRFCe33w4s8WDalgXOsK2PCYWcqKPtLJx763iQM
+L24Q",
+      "e": "AQAB",
+      "kid": "lavDOPkewOWYBmjGr0TuzDcrF6H4wMWSuLaywKONUZU",
+      "kty": "RSA",
+      "n": "240hEdiCGzvFfVsOzTUt2_O07vVBeriFKiVyqtBEwjD0nbD_cwOew3hYPE
+XlXzek8EXu39eRi56ohKN9iBzD7PcQOCEkYvy2ihkUV1Xvklf5mFm-97ejEoTkEAfZniws
+H2I_-oBV1ZJlRdAQiOaP7Jm3M2BAEf84h0t4LHxsa4ONdNSGnwxk-xl2mf2OfS2X9DvMmr
+-db5jAPRU7wwOKVh1BznAoGE37qi7mLUvMxp23q-pQvLKi-N2wt0ilawXTd9K_XLcQ56m_
+dZtWdQEELa8jCE4auFyypHkSHpFxMuRrzJXd9GZyHVs-7d9KzGK_2FBQPMFbesnbzFyUNJ
+sDpw",
+      "p": "6vbB8volaSFXKwUyLn2fFciiyojlmLWYnAxNfcVQ4zDWJsf13stWfnzdCy
+PJAcTk_x_u3AAmwc64bIft__7dcn8OcTroeMq0hPHAMglmD7Iodpl8r0ivo6QGPl22IxcA
+HsUuKkYoTd_TAHZ-DT69FS77Bh283ZdRSgqG0Wi2jrE",
+      "q": "7zUfgIf6crxU-oSMqzeRBHMASjC9ld546E0oDIvRS_trmSD7SOUopQKrUi
+F2I_mBI0_m2xzS9qQnCuhCUvqkQEStNVkUyC-9kLsmfH8TJP_D6Xid4ypTQ1Jdn0sZdW9E
+9DMT0hKYqcuzKBE2DYlIXlF-mnm5ArN3Jcj-SBQZPdc",
+      "use": "sig"
+    }
+  ]
+}
+----------------------------------------------------------------------
+InCommon's key pair
+----------------------------------------------------------------------
+{
+  "keys": [
+    {
+      "d": "Puov-5oZ_hcMYh_ofzIWZMIqb-MqdI6oIQbpeK0nuN8zLZcQZ-P-aU6A78
+0KjPUKtZ22fOk67-f2hdMGJDhdm_t7WPqlVgDXi_9hDYhXCnDhsmhj8PVjJnGos7c1wsvf
+YENcog4kdGHMwsqIoRh5DEERFKWEwmzRlLwOG7fJgAfuzlb6On3Xtw6UEvwv7wunmUqRwT
+CBG9IwND9mqmyeGx3I3ps1SsyAAcnDPGvRVnF2xOEHLGRp9WR7Xk7Vonm9TGVGQ5mBhspV
+YTvLo4lgEqTMDDsA3GV-hD6439dq4oPjCLszoc4YooicmuqvwOACGywdqXVpU7AEFVUc63
+iQYQ",
+      "e": "AQAB",
+      "kid": "V8Rvq5qLtirb0bTqgt4k6BQ2vJGDweHw4Aze8slgi0U",
+      "kty": "RSA",
+      "n": "mjKdclRg4yyPdpAqkzrCX2-Lc1vkMgYE0nVb3XHuNl4-Y72nh32NUeH_mc
+93ADAEsoisu_KYbHpzjVxKNTcfon6sI5hIJ0XdRlZJuduCufVRLY1oD0EGgivgplnuGOg9
+Yz9ssaMoztnoYLnDEdFNDk3dqoNJo-DKNfkOvcSxdLQmaLRKLQ55_lqeeFk1twZoRsNAtT
+xsvHIwG5DAteZeg6FlDtP3q7epSHR80B7QubOOiBdxbcpOMC2kXL0Id6KCXnBj36zyCdV3
+7g6whm6-Fxt3yQ_TrhhehkBge95EHUfEU35G0zty54E3XJ0Eu1Sx4UpJrf4fZt_wGhXkwb
+bWYw",
+      "p": "u6cRXmiuCfcZ3f0KzwNt4y9kYmGAf7Dx94MACmVeZVlbZprO7bGY0UH_Yn
+UKeVOc5MZc_ze1M-mkrACbMVeRDkYo8f0okeum0AiHv-DsBiZQV-rzoy6OKSOEPesuncFF
+qj5KcDtcfUfDQUgroS0i_0RXqw-PYGOSemMZmdKwhTU",
+      "q": "0lwtPGbSdUQemfE2jc7J-KfV74_fmDgVJh1WNVIR3g4W7g8wY7h3WrP99V
+eajCWwNpUKVA9LOpQ2K3TjRHGuHoYpA29AlUShpzYgTUmrlSs5CvLpyH7dxygro3DIqyCz
+lTuNZ_NDiUhD2QTJhIgH7Y5zeSbPEaRvC-TGRpAAWDc",
+      "use": "sig"
+    }
+  ]
+}
+----------------------------------------------------------------------
+Member's Swamid signing key
+----------------------------------------------------------------------
+{
+  "keys": [
+    {
+      "d": "JlBgQamclB18GEIcURGCCTRAnjS--ifFeog8p_YJiX2eRiLS5nlBMVk7A2
+VS1IxYRGZvM0qkEofR290Izuzhiz7XeWxITKPRV8aM4uZ1zg60GcyZniclrY-d2jjcXLMp
+7U8Zvk_1rdVKZP6JLdfjO_LoLMiflfjSDkdhdUHwOmVBff--Vl1vlkqZmOwS8j8-P28mYc
+or-7UhWufXbr7gQgR9Oc8wBi1dqsFvzahywT1CjZtBG552nrrbMAnZznGc8gyZqQxowiL9
+hm0DBEwobYeOTKZrZ0WK4HwsygEGFhjr-p5PSx90N0ikwQOh4hTA3vGLQk_IFnHKKeE2ox
+KxgQ",
+      "e": "AQAB",
+      "kid": "8V0xyZd0WryZDD1qHXAvlFqlCGVfc6UWBVHP5ho5DQY",
+      "kty": "RSA",
+      "n": "9XPtbs4OqFDiXVimpGf6qZ9zhjcVV-eRJjrv8HPAIDXYwWqUejklwH-iOV
+1L-JJ2om0Yt6AXJuKhjMKBucYOHfBaS3e1wCP8FgTSPdgUIfIj8pq8jY6vY5RhV02XIvjo
+o5XfZ0sfho4-nkcfsL_QcxDenBKG_yjKYAeZ0PBfM4uKTfvtYh-5f0bdlWyY-UW2I29KV2
+43iUNtQHYGDXGDE0L8HcyUyQq9h5VnvCn0yY06rOXmw5ca5or0XXhx8zFA2t6hc95LvH9A
+r92Ong2cnPzdrvGNOMLhWKzBOXCQgGo5djFtJMFSg9HVQczr7zs83tRKQfC5xjh9D_lndn
+3tsw",
+      "p": "9hJkF7FYDZI2w-svklVcnXs697tgcJf8MRl5Bvz2UGvTokDr1-_qU5KEDo
+6VNvhnwP0APn8k6vKCYkqlG0O4DRwA4Lz6sVMzV8SdDx-2xkhpqpXdEuas8jEewSJJ8CWv
+PCSh7ZR4IfsX4lRpJoC25OfPHP2sq2yJ4TsNsEOQbVM",
+      "q": "_1sknSHyNt5YBfUrdkqRjGc0ukmPNY20A78OjhbhOPAWVUA27Q-lJbzV04
+UpBqVabqeYA3wPopXaxycrYONWrwY_TilMj3yr9kvu1QtY-J8l8nrOtVYEECLS4sHfTfIn
+MXsk2KoxSGORjvz-zNiayq89YGuUBi_LUlF1PKwQEiE",
+      "use": "sig"
+    }
+  ]
+}
+----------------------------------------------------------------------
+Member's InCommon signing key
+----------------------------------------------------------------------
+{
+  "keys": [
+    {
+      "d": "DZwxYuAExUx4iTCNxjc8l1OMijvM-fWwxPsZBT-qslaZE9hg9k1bXwv2O0
+Pd6mSiT2ySiedB_hGR8C642g7AaS6L5GyuFkBD0aCjQDNAKn42wtZ4QrpVYDg8mTVoPm81
+JnoIkiH3x5D8D6Up5Hep_LvBksqheutrRzBZshNALn6uW32lG6dh4DcKSlaBLXtss9dUKn
+HVoAe5Gn-DjZgVZGm_Ve0GWOoAGMsduQdvhWAOOqnReYxnTZZY73VHujbXjoNH9SrVARfM
+K81Y54XS45UAmWhTGgSKy_URJOhueSwOiLIzLOkDT_r1z_zdRG8hr0tPTnxdzmfcXL4wmR
+xsyQ",
+      "e": "AQAB",
+      "kid": "qXmMgDHKyca4pHEiLjdZcTPd0EeuVh-bEaebGkZuLJM",
+      "kty": "RSA",
+      "n": "xwDndC-dJtLXSTejQDBKF3G8w1DDb0UfXbWAtb3qIAoYVl2Bc9ahQmV9mY
+9XS-PTQ1d4SIZUPpyD4ky6DMCLDYFcWBq4l64ZyniVFJ5h5mCATYTAPfwkIOBRuCFcstDF
+QguT_EybBbBD0A4Zn6jKvmN0hI6c--32fxknFOQ_ROibt8MLQL5DMq5SpNVIKSAOYzkAJX
+2Hx5-IQqokBztnFF4PQJ76wmOXQaJAm8pcmVECTceJOelxnglvBOumaKFOVD3AetmTYQHE
+LnI3SCqMjPnEEL8IRdEulfOB5Ceruv8IW9X7emxvywBUbnieXGOFWZR-w8_7uMP3QNMpvo
+_hMw",
+      "p": "yEb7vRzdYzT0qBBL8JjRVWEE6Mi7w2ZUUWIKRyZ-xJRHwOyHpcKuXBb1sI
+6RtIilUX1lTJnngTlFqfSLZqNuZXfzJ6f6vbAl_vw9STipZKQ3v54hca38OkuIzdnf8YgJ
+0kIRjZRL9zNeWexxHX04gyuTJ8b3Vbo3_gsYTUMcr9k",
+      "q": "_l8ySTOfrR1rY7xZFpr7cplRr6KNPHQaWDrInwGjDrSRbDV5z8f0AAkgMQ
+qrrwjSjTf88c_KmlS8PSGcykja45rMi5q_aVtoB7071D4Mx3TbtXjWAhB9NRGkfRPj5_1y
+3NMaNtVkDeHlQMqLyWj7ura4aruQLlnV_6Eh1H9Z_es",
+      "use": "sig"
+    }
+  ]
+}
+----------------------------------------------------------------------
+Metadata statement signing request to SWAMID
+----------------------------------------------------------------------
+{
+  "contacts": [
+    "dev_admin@example.com"
+  ],
+  "logo_uri": "https://example.com/logo.jpg",
+  "policy_uri": "https://example.com/policy.html",
+  "signing_keys": {
+    "keys": [
+      {
+        "e": "AQAB",
+        "kid": "8V0xyZd0WryZDD1qHXAvlFqlCGVfc6UWBVHP5ho5DQY",
+        "kty": "RSA",
+        "n": "9XPtbs4OqFDiXVimpGf6qZ9zhjcVV-eRJjrv8HPAIDXYwWqUejklwH-i
+OV1L-JJ2om0Yt6AXJuKhjMKBucYOHfBaS3e1wCP8FgTSPdgUIfIj8pq8jY6vY5RhV02XIv
+joo5XfZ0sfho4-nkcfsL_QcxDenBKG_yjKYAeZ0PBfM4uKTfvtYh-5f0bdlWyY-UW2I29K
+V243iUNtQHYGDXGDE0L8HcyUyQq9h5VnvCn0yY06rOXmw5ca5or0XXhx8zFA2t6hc95LvH
+9Ar92Ong2cnPzdrvGNOMLhWKzBOXCQgGo5djFtJMFSg9HVQczr7zs83tRKQfC5xjh9D_ln
+dn3tsw",
+        "use": "sig"
+      }
+    ]
+  },
+  "tos_uri": "https://example.com/tos.html"
+}
+----------------------------------------------------------------------
+SWAMID extended metadata statement
+----------------------------------------------------------------------
+{
+  "contacts": [
+    "dev_admin@example.com"
+  ],
+  "exp": 1469371671,
+  "iat": 1469371671,
+  "iss": "https://swamid.sunet.se/",
+  "jti": "670d06da91434be6ab4f2d284e71034f",
+  "kid": "lavDOPkewOWYBmjGr0TuzDcrF6H4wMWSuLaywKONUZU",
+  "logo_uri": "https://example.com/logo.jpg",
+  "policy_uri": "https://example.com/policy.html",
+  "response_types": [
+    "code",
+    "code id_token",
+    "token"
+  ],
+  "scopes": [
+    "openid",
+    "email",
+    "phone"
+  ],
+  "signing_keys": {
+    "keys": [
+      {
+        "e": "AQAB",
+        "kid": "8V0xyZd0WryZDD1qHXAvlFqlCGVfc6UWBVHP5ho5DQY",
+        "kty": "RSA",
+        "n": "9XPtbs4OqFDiXVimpGf6qZ9zhjcVV-eRJjrv8HPAIDXYwWqUejklwH-i
+OV1L-JJ2om0Yt6AXJuKhjMKBucYOHfBaS3e1wCP8FgTSPdgUIfIj8pq8jY6vY5RhV02XIv
+joo5XfZ0sfho4-nkcfsL_QcxDenBKG_yjKYAeZ0PBfM4uKTfvtYh-5f0bdlWyY-UW2I29K
+V243iUNtQHYGDXGDE0L8HcyUyQq9h5VnvCn0yY06rOXmw5ca5or0XXhx8zFA2t6hc95LvH
+9Ar92Ong2cnPzdrvGNOMLhWKzBOXCQgGo5djFtJMFSg9HVQczr7zs83tRKQfC5xjh9D_ln
+dn3tsw",
+        "use": "sig"
+      }
+    ]
+  },
+  "token_endpoint_auth_method": "private_key_jwt",
+  "tos_uri": "https://example.com/tos.html"
+}
+----------------------------------------------------------------------
+Metadata statement signing request to InCommon
+----------------------------------------------------------------------
+{
+  "contacts": [
+    "dev_admin@example.com"
+  ],
+  "logo_uri": "https://example.com/logo.jpg",
+  "policy_uri": "https://example.com/policy.html",
+  "signing_key": {
+    "e": "AQAB",
+    "kid": "qXmMgDHKyca4pHEiLjdZcTPd0EeuVh-bEaebGkZuLJM",
+    "kty": "RSA",
+    "n": "xwDndC-dJtLXSTejQDBKF3G8w1DDb0UfXbWAtb3qIAoYVl2Bc9ahQmV9mY9X
+S-PTQ1d4SIZUPpyD4ky6DMCLDYFcWBq4l64ZyniVFJ5h5mCATYTAPfwkIOBRuCFcstDFQg
+uT_EybBbBD0A4Zn6jKvmN0hI6c--32fxknFOQ_ROibt8MLQL5DMq5SpNVIKSAOYzkAJX2H
+x5-IQqokBztnFF4PQJ76wmOXQaJAm8pcmVECTceJOelxnglvBOumaKFOVD3AetmTYQHELn
+I3SCqMjPnEEL8IRdEulfOB5Ceruv8IW9X7emxvywBUbnieXGOFWZR-w8_7uMP3QNMpvo_h
+Mw",
+    "use": "sig"
+  },
+  "tos_uri": "https://example.com/tos.html"
+}
+----------------------------------------------------------------------
+InCommon extended metadata statement
+----------------------------------------------------------------------
+{
+  "contacts": [
+    "dev_admin@example.com"
+  ],
+  "exp": 1469371671,
+  "iat": 1469371671,
+  "iss": "https://www.incommon.org",
+  "jti": "5f302a9de90442e492c735790ab0e81b",
+  "kid": "V8Rvq5qLtirb0bTqgt4k6BQ2vJGDweHw4Aze8slgi0U",
+  "logo_uri": "https://example.com/logo.jpg",
+  "policy_uri": "https://example.com/policy.html",
+  "response_types": [
+    "code",
+    "token"
+  ],
+  "scopes": [
+    "openid",
+    "email"
+  ],
+  "signing_key": {
+    "e": "AQAB",
+    "kid": "qXmMgDHKyca4pHEiLjdZcTPd0EeuVh-bEaebGkZuLJM",
+    "kty": "RSA",
+    "n": "xwDndC-dJtLXSTejQDBKF3G8w1DDb0UfXbWAtb3qIAoYVl2Bc9ahQmV9mY9X
+S-PTQ1d4SIZUPpyD4ky6DMCLDYFcWBq4l64ZyniVFJ5h5mCATYTAPfwkIOBRuCFcstDFQg
+uT_EybBbBD0A4Zn6jKvmN0hI6c--32fxknFOQ_ROibt8MLQL5DMq5SpNVIKSAOYzkAJX2H
+x5-IQqokBztnFF4PQJ76wmOXQaJAm8pcmVECTceJOelxnglvBOumaKFOVD3AetmTYQHELn
+I3SCqMjPnEEL8IRdEulfOB5Ceruv8IW9X7emxvywBUbnieXGOFWZR-w8_7uMP3QNMpvo_h
+Mw",
+    "use": "sig"
+  },
+  "token_endpoint_auth_method": "private_key_jwt",
+  "tos_uri": "https://example.com/tos.html"
+}
+----------------------------------------------------------------------
+RPs signing key
+----------------------------------------------------------------------
+{
+  "keys": [
+    {
+      "d": "GldCSCAak7XKuoHntvgJVOhpwPuIk8aXPjCTdCM3RcK3CB4dE2lp9RqyKu
+HvOdA-CnBu7PD5quUw7CL_-Tk-MeswcKAuQYnFc4wASEVFWp51UnzmkbVb5EoAjrB7pnmV
+4Rqkl7LEatGvF4JSRDmgVpQ7Qs24rlFcggPHELW6MaOibHLtOQ9DGXwU9ErtNQFe6-hIp0
+DU9XvD5rwz8jmgvKoYqKe0KesyCfV2rao68efYkutiF5vekCuK_cwiK1zBjZ15v0L_P_Jp
+bfCgWkCIoqftLgASO9wiVOERT20BrghhG7GuWHM3_a6KqCIFhMjzGwcjeGrKXpF3YZi1ga
+M-QQ",
+      "e": "AQAB",
+      "kid": "MvN4XoZ89Qt86-w1t0hgKNLf0jhL0gnZEzcnPZZlI7Q",
+      "kty": "RSA",
+      "n": "6NPg-TqQjtDwCqf7MkenXg9Ret_A_78xjkvplQYtXhpNZ1Ouxrgt8FATzc
+0lQ1xoBMf1RmoNojhOoRDEQkPBnYrcyxvgXRXoL_k6EQGgh3or6pnaoNvI4gJ7CxoP8zLa
+aB3jzaM65-vDnnnEzh9ELjd6sVRq9z-2pKs4y9_aIvoxW6P6mmTZaMHIQhhFSluNSEAe6d
+1fKQmljH3dMQXETCjxeeFG7q0uEnUhz5pt5OEfbgX3cJvHuCS6l1OjdnWfWcI1ApKTYSlE
+zZkTgO-5g9ebUc6GCx6Qn655tdF5W2pE-G2JnWlH9AtqGjAgZa8_945CA5AK4cQK6_9iWt
+GUNw",
+      "p": "8g2lPRa9chfqDzSP8gYu7Nf1VDAS5rpqkMhYu_zq_R7-kw8iT9y5oEtX1Z
+bH-iPb_Ja1R1KQ4SQc0jeZ13mNq3muEj3wmKZnlGlHtW4rAJfReoSwe7A_zAynC6aF4TdL
+4TCfW7PceqQzL_BXSNZxA1RqeFMDK5AQhicDQIM4acE",
+      "q": "9j4nApGRnJCo0fN8bkTLCfGAjFn_FQkR54kvytHSNCaPMY7L_O97KOtVR0
+e5PmNNzHrjVzpfjghUyytuLxj_DdgRQfAPJzgrjYrC_EwWS89u-ZBbyKcO9ftfd5J4LqSF
+uVpcvV4B1UYW83I-bqxii7Rpf3ACqxoeWMNBY8JoS_c",
+      "use": "sig"
+    }
+  ]
+}
+----------------------------------------------------------------------
+Client Registration signing request
+----------------------------------------------------------------------
+{
+  "application_type": "web",
+  "jwks_uri_signed": "https://example.com/rp1/jwks.jws",
+  "redirect_uris": [
+    "https://example.com/rp1/callback"
+  ],
+  "response_types": [
+    "code"
+  ],
+  "signing_key": {
+    "e": "AQAB",
+    "kid": "MvN4XoZ89Qt86-w1t0hgKNLf0jhL0gnZEzcnPZZlI7Q",
+    "kty": "RSA",
+    "n": "6NPg-TqQjtDwCqf7MkenXg9Ret_A_78xjkvplQYtXhpNZ1Ouxrgt8FATzc0l
+Q1xoBMf1RmoNojhOoRDEQkPBnYrcyxvgXRXoL_k6EQGgh3or6pnaoNvI4gJ7CxoP8zLaaB
+3jzaM65-vDnnnEzh9ELjd6sVRq9z-2pKs4y9_aIvoxW6P6mmTZaMHIQhhFSluNSEAe6d1f
+KQmljH3dMQXETCjxeeFG7q0uEnUhz5pt5OEfbgX3cJvHuCS6l1OjdnWfWcI1ApKTYSlEzZ
+kTgO-5g9ebUc6GCx6Qn655tdF5W2pE-G2JnWlH9AtqGjAgZa8_945CA5AK4cQK6_9iWtGU
+Nw",
+    "use": "sig"
+  }
+}
+----------------------------------------------------------------------
+L0 adds metadata statement to the Client Registration request
+----------------------------------------------------------------------
+{
+  "application_type": "web",
+  "jwks_uri_signed": "https://example.com/rp1/jwks.jws",
+  "metadata_statements": [
+    "eyJraWQiOiJsYXZET1BrZXdPV1lCbWpHcjBUdXpEY3JGNkg0d01XU3VMYXl3S09OV
+VpVIiwiYWxnIjoiUlMyNTYifQ.eyJ0b2tlbl9lbmRwb2ludF9hdXRoX21ldGhvZCI6ICJw
+cml2YXRlX2tleV9qd3QiLCAic2NvcGVzIjogWyJvcGVuaWQiLCAiZW1haWwiLCAicGhvbm
+UiXSwgImNvbnRhY3RzIjogWyJkZXZfYWRtaW5AZXhhbXBsZS5jb20iXSwgInNpZ25pbmdf
+a2V5cyI6IHsia2V5cyI6IFt7InVzZSI6ICJzaWciLCAiZSI6ICJBUUFCIiwgImt0eSI6IC
+JSU0EiLCAibiI6ICI5WFB0YnM0T3FGRGlYVmltcEdmNnFaOXpoamNWVi1lUkpqcnY4SFBB
+SURYWXdXcVVlamtsd0gtaU9WMUwtSkoyb20wWXQ2QVhKdUtoak1LQnVjWU9IZkJhUzNlMX
+dDUDhGZ1RTUGRnVUlmSWo4cHE4alk2dlk1UmhWMDJYSXZqb281WGZaMHNmaG80LW5rY2Zz
+TF9RY3hEZW5CS0dfeWpLWUFlWjBQQmZNNHVLVGZ2dFloLTVmMGJkbFd5WS1VVzJJMjlLVj
+I0M2lVTnRRSFlHRFhHREUwTDhIY3lVeVFxOWg1Vm52Q24weVkwNnJPWG13NWNhNW9yMFhY
+aHg4ekZBMnQ2aGM5NUx2SDlBcjkyT25nMmNuUHpkcnZHTk9NTGhXS3pCT1hDUWdHbzVkak
+Z0Sk1GU2c5SFZRY3pyN3pzODN0UktRZkM1eGpoOURfbG5kbjN0c3ciLCAia2lkIjogIjhW
+MHh5WmQwV3J5WkREMXFIWEF2bEZxbENHVmZjNlVXQlZIUDVobzVEUVkifV19LCAiaWF0Ij
+ogMTQ2OTM3MTY3MSwgImtpZCI6ICJsYXZET1BrZXdPV1lCbWpHcjBUdXpEY3JGNkg0d01X
+U3VMYXl3S09OVVpVIiwgInJlc3BvbnNlX3R5cGVzIjogWyJjb2RlIiwgImNvZGUgaWRfdG
+9rZW4iLCAidG9rZW4iXSwgImxvZ29fdXJpIjogImh0dHBzOi8vZXhhbXBsZS5jb20vbG9n
+by5qcGciLCAiZXhwIjogMTQ2OTM3MTY3MSwgInBvbGljeV91cmkiOiAiaHR0cHM6Ly9leG
+FtcGxlLmNvbS9wb2xpY3kuaHRtbCIsICJpc3MiOiAiaHR0cHM6Ly9zd2FtaWQuc3VuZXQu
+c2UvIiwgImp0aSI6ICI2NzBkMDZkYTkxNDM0YmU2YWI0ZjJkMjg0ZTcxMDM0ZiIsICJ0b3
+NfdXJpIjogImh0dHBzOi8vZXhhbXBsZS5jb20vdG9zLmh0bWwifQ.NOk26VOultAbi7bIV
+A8gSEYmJiSWRgcMXJSoJd82jBvA2fKu8GehJ5I68OlrtVm7NpLlYlTmWtHJw3u3vWmcOOs
+ycAMT7XaYNK5AB02DrDOjDvD8dyT1GYLylVtCsuZJF8R7lJ6DI_irhLSDE5HMzM39c0c0c
+1wbNnan7z-5UkaPdDLNfFGep4sW3wMDlBzUI6M4JhvlO6bjpQZMAOR7MhDsyhT9e7WKXWk
+lcSIWfKeG3QcO2KKWcSAbnd8svSvQoaXBjKDBG-L0uy9Bnh3Q_-dC5_5BoHS0H3YqmmzUc
+8E-K-CiikM8IcLOki8QBhN3jqMTHeGlPXSE87B5rdrWog"
+  ],
+  "redirect_uris": [
+    "https://example.com/rp1/callback"
+  ],
+  "response_types": [
+    "code"
+  ],
+  "signing_key": {
+    "e": "AQAB",
+    "kid": "MvN4XoZ89Qt86-w1t0hgKNLf0jhL0gnZEzcnPZZlI7Q",
+    "kty": "RSA",
+    "n": "6NPg-TqQjtDwCqf7MkenXg9Ret_A_78xjkvplQYtXhpNZ1Ouxrgt8FATzc0l
+Q1xoBMf1RmoNojhOoRDEQkPBnYrcyxvgXRXoL_k6EQGgh3or6pnaoNvI4gJ7CxoP8zLaaB
+3jzaM65-vDnnnEzh9ELjd6sVRq9z-2pKs4y9_aIvoxW6P6mmTZaMHIQhhFSluNSEAe6d1f
+KQmljH3dMQXETCjxeeFG7q0uEnUhz5pt5OEfbgX3cJvHuCS6l1OjdnWfWcI1ApKTYSlEzZ
+kTgO-5g9ebUc6GCx6Qn655tdF5W2pE-G2JnWlH9AtqGjAgZa8_945CA5AK4cQK6_9iWtGU
+Nw",
+    "use": "sig"
+  }
+}
+----------------------------------------------------------------------
+.. and signs it producing a JWS
+----------------------------------------------------------------------
+eyJraWQiOiI4VjB4eVpkMFdyeVpERDFxSFhBdmxGcWxDR1ZmYzZVV0JWSFA1aG81RFFZIi
+wiYWxnIjoiUlMyNTYifQ.eyJhcHBsaWNhdGlvbl90eXBlIjogIndlYiIsICJyZXNwb25zZ
+V90eXBlcyI6IFsiY29kZSJdLCAiaWF0IjogMTQ2OTM3MTY3MSwgImV4cCI6IDE0NjkzNzE
+2NzEsICJtZXRhZGF0YV9zdGF0ZW1lbnRzIjogWyJleUpyYVdRaU9pSnNZWFpFVDFCclpYZ
+FBWMWxDYldwSGNqQlVkWHBFWTNKR05rZzBkMDFYVTNWTVlYbDNTMDlPVlZwVklpd2lZV3h
+uSWpvaVVsTXlOVFlpZlEuZXlKMGIydGxibDlsYm1Sd2IybHVkRjloZFhSb1gyMWxkR2h2W
+kNJNklDSndjbWwyWVhSbFgydGxlVjlxZDNRaUxDQWljMk52Y0dWeklqb2dXeUp2Y0dWdWF
+XUWlMQ0FpWlcxaGFXd2lMQ0FpY0dodmJtVWlYU3dnSW1OdmJuUmhZM1J6SWpvZ1d5SmtaW
+FpmWVdSdGFXNUFaWGhoYlhCc1pTNWpiMjBpWFN3Z0luTnBaMjVwYm1kZmEyVjVjeUk2SUh
+zaWEyVjVjeUk2SUZ0N0luVnpaU0k2SUNKemFXY2lMQ0FpWlNJNklDSkJVVUZDSWl3Z0ltd
+DBlU0k2SUNKU1UwRWlMQ0FpYmlJNklDSTVXRkIwWW5NMFQzRkdSR2xZVm1sdGNFZG1ObkZ
+hT1hwb2FtTldWaTFsVWtwcWNuWTRTRkJCU1VSWVdYZFhjVlZsYW10c2QwZ3RhVTlXTVV3d
+FNrb3liMjB3V1hRMlFWaEtkVXRvYWsxTFFuVmpXVTlJWmtKaFV6TmxNWGREVURoR1oxUlR
+VR1JuVlVsbVNXbzRjSEU0YWxrMmRsazFVbWhXTURKWVNYWnFiMjgxV0daYU1ITm1hRzgwT
+Fc1clkyWnpURjlSWTNoRVpXNUNTMGRmZVdwTFdVRmxXakJRUW1aTk5IVkxWR1oyZEZsb0x
+UVm1NR0prYkZkNVdTMVZWekpKTWpsTFZqSTBNMmxWVG5SUlNGbEhSRmhIUkVVd1REaElZM
+2xWZVZGeE9XZzFWbTUyUTI0d2VWa3dObkpQV0cxM05XTmhOVzl5TUZoWWFIZzRla1pCTW5
+RMmFHTTVOVXgyU0RsQmNqa3lUMjVuTW1OdVVIcGtjblpIVGs5TlRHaFhTM3BDVDFoRFVXZ
+EhielZrYWtaMFNrMUdVMmM1U0ZaUlkzcHlOM3B6T0ROMFVrdFJaa00xZUdwb09VUmZiRzV
+rYmpOMGMzY2lMQ0FpYTJsa0lqb2dJamhXTUhoNVdtUXdWM0o1V2tSRU1YRklXRUYyYkVae
+GJFTkhWbVpqTmxWWFFsWklVRFZvYnpWRVVWa2lmVjE5TENBaWFXRjBJam9nTVRRMk9UTTN
+NVFkzTVN3Z0ltdHBaQ0k2SUNKc1lYWkVUMUJyWlhkUFYxbENiV3BIY2pCVWRYcEVZM0pHT
+mtnMGQwMVhVM1ZNWVhsM1MwOU9WVnBWSWl3Z0luSmxjM0J2Ym5ObFgzUjVjR1Z6SWpvZ1d
+5SmpiMlJsSWl3Z0ltTnZaR1VnYVdSZmRHOXJaVzRpTENBaWRHOXJaVzRpWFN3Z0lteHZaM
+jlmZFhKcElqb2dJbWgwZEhCek9pOHZaWGhoYlhCc1pTNWpiMjB2Ykc5bmJ5NXFjR2NpTEN
+BaVpYaHdJam9nTVRRMk9UTTNNVFkzTVN3Z0luQnZiR2xqZVY5MWNta2lPaUFpYUhSMGNIT
+TZMeTlsZUdGdGNHeGxMbU52YlM5d2IyeHBZM2t1YUhSdGJDSXNJQ0pwYzNNaU9pQWlhSFI
+wY0hNNkx5OXpkMkZ0YVdRdWMzVnVaWFF1YzJVdklpd2dJbXAwYVNJNklDSTJOekJrTURaa
+1lUa3hORE0wWW1VMllXSTBaakprTWpnMFpUY3hNRE0wWmlJc0lDSjBiM05mZFhKcElqb2d
+JbWgwZEhCek9pOHZaWGhoYlhCc1pTNWpiMjB2ZEc5ekxtaDBiV3dpZlEuTk9rMjZWT3Vsd
+EFiaTdiSVZBOGdTRVltSmlTV1JnY01YSlNvSmQ4MmpCdkEyZkt1OEdlaEo1STY4T2xydFZ
+tN05wTGxZbFRtV3RISnczdTN2V21jT09zeWNBTVQ3WGFZTks1QUIwMkRyRE9qRHZEOGR5V
+DFHWUx5bFZ0Q3N1WkpGOFI3bEo2RElfaXJoTFNERTVITXpNMzljMGMwYzF3Yk5uYW43ei0
+1VWthUGRETE5mRkdlcDRzVzN3TURsQnpVSTZNNEpodmxPNmJqcFFaTUFPUjdNaERzeWhUO
+WU3V0tYV2tsY1NJV2ZLZUczUWNPMktLV2NTQWJuZDhzdlN2UW9hWEJqS0RCRy1MMHV5OUJ
+uaDNRXy1kQzVfNUJvSFMwSDNZcW1telVjOEUtSy1DaWlrTThJY0xPa2k4UUJoTjNqcU1US
+GVHbFBYU0U4N0I1cmRyV29nIl0sICJzaWduaW5nX2tleSI6IHsidXNlIjogInNpZyIsICJ
+lIjogIkFRQUIiLCAia3R5IjogIlJTQSIsICJuIjogIjZOUGctVHFRanREd0NxZjdNa2VuW
+Gc5UmV0X0FfNzh4amt2cGxRWXRYaHBOWjFPdXhyZ3Q4RkFUemMwbFExeG9CTWYxUm1vTm9
+qaE9vUkRFUWtQQm5ZcmN5eHZnWFJYb0xfazZFUUdnaDNvcjZwbmFvTnZJNGdKN0N4b1A4e
+kxhYUIzanphTTY1LXZEbm5uRXpoOUVMamQ2c1ZScTl6LTJwS3M0eTlfYUl2b3hXNlA2bW1
+UWmFNSElRaGhGU2x1TlNFQWU2ZDFmS1FtbGpIM2RNUVhFVENqeGVlRkc3cTB1RW5VaHo1c
+HQ1T0VmYmdYM2NKdkh1Q1M2bDFPamRuV2ZXY0kxQXBLVFlTbEV6WmtUZ08tNWc5ZWJVYzZ
+HQ3g2UW42NTV0ZEY1VzJwRS1HMkpuV2xIOUF0cUdqQWdaYThfOTQ1Q0E1QUs0Y1FLNl85a
+Vd0R1VOdyIsICJraWQiOiAiTXZONFhvWjg5UXQ4Ni13MXQwaGdLTkxmMGpoTDBnblpFemN
+uUFpabEk3USJ9LCAiaXNzIjogImh0dHBzOi8vZGV2LmV4YW1wbGUuY29tLyIsICJqdGkiO
+iAiNDA5MGFiZTllZGEwNDA3Y2JkODFhMjUxM2E0ODk3ZmMiLCAiandrc191cmlfc2lnbmV
+kIjogImh0dHBzOi8vZXhhbXBsZS5jb20vcnAxL2p3a3MuandzIiwgInJlZGlyZWN0X3Vya
+XMiOiBbImh0dHBzOi8vZXhhbXBsZS5jb20vcnAxL2NhbGxiYWNrIl0sICJraWQiOiAiOFY
+weHlaZDBXcnlaREQxcUhYQXZsRnFsQ0dWZmM2VVdCVkhQNWhvNURRWSJ9.BosF8Z2jU4jy
+A6vlriITQ87yYNnYLwTT0tUUOqc9_J33VoZTw3s6PQRPl4vE0X48VkiC6ClRB9wQnjelsQ
+jrGBSUBjQdJJM3cFKtCoghVuaE-0rOjTYCJmHJyzcKN1dupJ233NQ84xkN1zr7LiUPjOME
+nvf4_z24pVe75sTiOXWV8hrMj6QxCbS247UTyc6jdUJjMEzKIlRHEobxyHpXe8OTbckydC
+SGcYo9b4gpOgw1NMWf4QaFoApXU4Zjtq5jr61tU_j1OtSYWqtvGzgwohasTEVLSN-OMvZZ
+7lscgQLyWqzNUrTB6HxzPnjrXylczyHzOHGocU0j12W8vJLS0A
+Registration Request published by RP
+----------------------------------------------------------------------
+{
+  "metadata_statement_uris": {
+    "https://swamid.sunet.se/": "https://dev.example.com/rp1/idfed/swa
+mid.jws",
+    "https://www.incommon.org": "https://dev.example.com/rp1/idfed/inc
+ommon.jws"
+  }
+}
+The OP chooses which federation it will work under - SWAMID of course
+----------------------------------------------------------------------
+{
+  "application_type": "web",
+  "contacts": [
+    "dev_admin@example.com"
+  ],
+  "logo_uri": "https://example.com/logo.jpg",
+  "policy_uri": "https://example.com/policy.html",
+  "redirect_uris": [
+    "https://example.com/rp1/callback"
+  ],
+  "response_types": [
+    "code"
+  ],
+  "token_endpoint_auth_method": "private_key_jwt",
+  "tos_uri": "https://example.com/tos.html"
+}

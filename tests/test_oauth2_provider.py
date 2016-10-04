@@ -45,7 +45,8 @@ CDB = {
     "a1b2c3": {
         "password": "hemligt",
         "client_secret": "drickyoughurt",
-        'response_types': ['code', 'token']
+        'response_types': ['code', 'token'],
+        "redirect_uris": [("http://example.com", None)],
     },
     "client1": {
         "client_secret": "hemlighet",
@@ -99,6 +100,20 @@ class TestProvider(object):
         bib = {"scope": ["openid"],
                "state": "id-6da9ca0cc23959f5f33e8becd9b08cae",
                "redirect_uri": "http://localhost:8087/authz",
+               # faulty redirect uri
+               "response_type": ["code"],
+               "client_id": "a1b2c3"}
+
+        arq = AuthorizationRequest(**bib)
+        resp = self.provider.authorization_endpoint(request=arq.to_urlencoded())
+        assert resp.status == "400 Bad Request"
+        msg = json.loads(resp.message)
+        assert msg["error"] == "invalid_request"
+
+    def test_authorization_endpoint_faulty_redirect_uri_nwalker(self):
+        bib = {"scope": ["openid"],
+               "state": "id-6da9ca0cc23959f5f33e8becd9b08cae",
+               "redirect_uri": " https://example.com.evil.com",
                # faulty redirect uri
                "response_type": ["code"],
                "client_id": "a1b2c3"}
