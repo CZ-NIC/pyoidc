@@ -830,6 +830,8 @@ def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=2048):
 
     key = RSA.generate(size)
 
+    os.makedirs(path, exist_ok=True)
+
     if name:
         with open(os.path.join(path, name), 'wb') as f:
             f.write(key.exportKey('PEM'))
@@ -961,7 +963,12 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
                                    keytype=typ, keyusage=spec["use"])
                 except FileNotFoundError:
                     if 'name' not in spec:
-                        spec['name'] = spec['key']
+                        if '/' in spec['key']:
+                            (head, tail) = os.path.split(spec['key'])
+                            spec['path'] = head
+                            spec['name'] = tail
+                        else:
+                            spec['name'] = spec['key']
                     kb = rsa_init(spec)
             else:
                 kb = rsa_init(spec)
