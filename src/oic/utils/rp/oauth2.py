@@ -335,6 +335,9 @@ class OAuthClients(object):
         except KeyError:
             return self.dynamic_client(issuer=item)
 
+    def __delitem__(self, key):
+        del self.client[key]
+
     def keys(self):
         return list(self.client.keys())
 
