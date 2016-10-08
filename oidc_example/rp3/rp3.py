@@ -197,6 +197,28 @@ class Application(object):
 
         return None
 
+    def init_client(self, client, session, query, environ, start_response):
+        client.get_userinfo = self.userinfo
+        try:
+            client.resource_server = session['resource_server']
+        except KeyError:
+            pass
+
+        try:
+            session['response_format'] = query["response_format"][0]
+        except KeyError:
+            session['response_format'] = 'html'
+
+        session["op"] = client.provider_info["issuer"]
+
+        try:
+            resp = client.create_authn_request(session, self.acr_values)
+        except Exception as err:
+            logging.error(err)
+            raise
+        else:
+            return resp(environ, start_response)
+
     def application(self, environ, start_response):
         b_session = environ['beaker.session']
 
@@ -268,26 +290,8 @@ class Application(object):
             else:
                 client = self.clients[query["op"][0]]
 
-            client.get_userinfo = self.userinfo
-            try:
-                client.resource_server = session['resource_server']
-            except KeyError:
-                pass
-
-            try:
-                session['response_format'] = query["response_format"][0]
-            except KeyError:
-                session['response_format'] = 'html'
-
-            session["op"] = client.provider_info["issuer"]
-
-            try:
-                resp = client.create_authn_request(session, self.acr_values)
-            except Exception as err:
-                logging.error(err)
-                raise
-            else:
-                return resp(environ, start_response)
+            return self.init_client(client, session, query, environ,
+                                    start_response)
         elif path.endswith('authz_post'):
             try:
                 _iss = session['op']
@@ -340,6 +344,18 @@ class Application(object):
                     'state': query['state'][0]
                 })
                 return opchoice(environ, start_response, self.clients)
+
+            if 'error' in query:  # something amiss
+                if query['error'][0] == 'access_denied':  # Try reregistering
+                    _iss = _client.provider_info['issuer']
+                    del self.clients[_iss]
+                    try:
+                        client = self.clients[_iss]
+                    except (ConnectionError, OIDCError) as err:
+                        return operror(environ, start_response,
+                                       '{}'.format(err))
+                    return self.init_client(client, session, query, environ,
+                                            start_response)
 
             try:
                 _iss = query['iss'][0]
