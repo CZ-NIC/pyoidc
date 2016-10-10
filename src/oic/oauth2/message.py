@@ -964,8 +964,12 @@ class AuthorizationResponse(Message):
         super(AuthorizationResponse, self).verify(**kwargs)
 
         if 'client_id' in self:
-            if self['client_id'] != kwargs['client_id']:
-                raise VerificationError('client_id mismatch')
+            try:
+                if self['client_id'] != kwargs['client_id']:
+                    raise VerificationError('client_id mismatch')
+            except KeyError:
+                logger.info('No client_id to verify against')
+                pass
         if 'iss' in self:
             try:
                 # Issuer URL for the authorization server issuing the response.
