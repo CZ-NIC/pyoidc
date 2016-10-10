@@ -485,12 +485,12 @@ class KeyJar(object):
 
         lst = []
         if _keys:
-            for bundles in _keys:
+            for bundle in _keys:
                 if key_type:
-                    _keys = bundles.get(key_type)
+                    _bkeys = bundle.get(key_type)
                 else:
-                    _keys = bundles.keys()
-                for key in _keys:
+                    _bkeys = bundle.keys()
+                for key in _bkeys:
                     if key.inactive_since and key_use != "ver":
                         # Skip inactive keys unless for signature verification
                         continue
@@ -683,6 +683,19 @@ class KeyJar(object):
         for kb in self.issuer_keys[""]:
             keys.extend([k.serialize(private) for k in kb.keys()])
         return {"keys": keys}
+
+    def import_jwks(self, jwks, issuer):
+        try:
+            _keys = jwks["keys"]
+        except KeyError:
+            raise ValueError('Not a proper JWKS')
+        else:
+            try:
+                self.issuer_keys[issuer].append(
+                    self.keybundle_cls(_keys, verify_ssl=self.verify_ssl))
+            except KeyError:
+                self.issuer_keys[issuer] = [self.keybundle_cls(
+                    _keys, verify_ssl=self.verify_ssl)]
 
     def dump(self):
         res = {}
