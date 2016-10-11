@@ -7,8 +7,6 @@ import six
 from future.backports.urllib.parse import parse_qs
 from future.backports.urllib.parse import urlencode
 
-from saml2.config import SPConfig
-
 from oic.oauth2.exception import VerificationError
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authn.user import create_return_url
@@ -25,9 +23,9 @@ class ServiceErrorException(Exception):
 
 try:
     import saml2
+    from saml2.config import SPConfig
 except ImportError:
     saml2 = None
-
 
     class SAMLAuthnMethod(UserAuthnMethod):
         pass
