@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# issuer= "https://www.kodtest.se/rolandsOP"
-baseurl = "https://localhost"
-#baseurl = "https://lingon.ladok.umu.se"
-issuer = "{base}:{port}/"
-
 keys = [
     {"type": "RSA", "key": "cp_keys/key.pem", "use": ["enc", "sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},

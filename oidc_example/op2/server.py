@@ -68,6 +68,7 @@ PASSWD = {
 
 JWKS_FILE_NAME = "static/jwks.json"
 
+
 # ----------------------------------------------------------------------------
 
 
@@ -79,7 +80,7 @@ def safe(environ, start_response, logger):
 
     _log_info("- safe -")
     # _log_info("env: %s" % environ)
-    #_log_info("handle: %s" % (handle,))
+    # _log_info("handle: %s" % (handle,))
 
     try:
         authz = environ["HTTP_AUTHORIZATION"]
@@ -114,7 +115,7 @@ def css(environ, start_response, logger):
 # ----------------------------------------------------------------------------
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def token(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
@@ -122,7 +123,7 @@ def token(environ, start_response, logger):
                         logger=logger)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def authorization(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
@@ -130,7 +131,7 @@ def authorization(environ, start_response, logger):
                         logger=logger)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def userinfo(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
@@ -138,7 +139,7 @@ def userinfo(environ, start_response, logger):
                         logger=logger)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def op_info(environ, start_response, logger):
     _oas = environ["oic.oas"]
     LOGGER.info("op_info")
@@ -146,7 +147,7 @@ def op_info(environ, start_response, logger):
                         logger=logger)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def registration(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
@@ -161,7 +162,7 @@ def registration(environ, start_response, logger):
         return resp(environ, start_response)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def check_id(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
@@ -169,7 +170,7 @@ def check_id(environ, start_response, logger):
                         logger=logger)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def swd_info(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
@@ -177,7 +178,7 @@ def swd_info(environ, start_response, logger):
                         logger=logger)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def trace_log(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
@@ -185,7 +186,7 @@ def trace_log(environ, start_response, logger):
                         logger=logger)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def endsession(environ, start_response, logger):
     _oas = environ["oic.oas"]
 
@@ -193,7 +194,7 @@ def endsession(environ, start_response, logger):
                         logger=logger)
 
 
-#noinspection PyUnusedLocal
+# noinspection PyUnusedLocal
 def meta_info(environ, start_response, logger):
     """
     Returns something like this::
@@ -230,7 +231,7 @@ def static_file(path):
         return False
 
 
-#noinspection PyUnresolvedReferences
+# noinspection PyUnresolvedReferences
 def static(environ, start_response, path):
     logger.info("[static]sending: %s" % (path,))
 
@@ -280,6 +281,7 @@ def clear_keys(environ, start_response, _):
     resp = Response("OK")
     return resp(environ, start_response)
 
+
 # ----------------------------------------------------------------------------
 from oic.oic.provider import AuthorizationEndpoint
 from oic.oic.provider import TokenEndpoint
@@ -315,6 +317,7 @@ def add_endpoints(extra):
     for endp in extra:
         URLS.append(("^%s" % endp.etype, endp.func))
 
+
 # ----------------------------------------------------------------------------
 
 ROOT = './'
@@ -322,6 +325,7 @@ ROOT = './'
 LOOKUP = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
                         module_directory=ROOT + 'modules',
                         input_encoding='utf-8', output_encoding='utf-8')
+
 
 # ----------------------------------------------------------------------------
 
@@ -342,7 +346,7 @@ def application(environ, start_response):
     """
     global OAS
 
-    #user = environ.get("REMOTE_USER", "")
+    # user = environ.get("REMOTE_USER", "")
     path = environ.get('PATH_INFO', '').lstrip('/')
 
     logger = logging.getLogger('oicServer')
@@ -394,11 +398,13 @@ if __name__ == '__main__':
     parser.add_argument('-v', dest='verbose', action='store_true')
     parser.add_argument('-d', dest='debug', action='store_true')
     parser.add_argument('-p', dest='port', default=80, type=int)
+    parser.add_argument('-t', dest='tls', action='store_true')
     parser.add_argument('-k', dest='insecure', action='store_true')
     parser.add_argument(
         '-c', dest='capabilities',
         help="A file containing a JSON representation of the capabilities")
-    parser.add_argument('-b', dest='baseurl', help="base url of the OP")
+    parser.add_argument('-i', dest='issuer', help="issuer id of the OP",
+                        nargs=1)
     parser.add_argument(dest="config")
     args = parser.parse_args()
 
@@ -407,20 +413,21 @@ if __name__ == '__main__':
 
     sys.path.insert(0, ".")
     config = importlib.import_module(args.config)
-    if args.baseurl:
-        config.baseurl = args.baseurl
 
-    config.issuer = config.issuer.format(base=config.baseurl, port=args.port)
-    config.SERVICE_URL = config.SERVICE_URL.format(issuer=config.issuer)
+    _issuer = args.issuer[0]
+    if _issuer[-1] != '/':
+        _issuer += '/'
+
+    config.SERVICE_URL = config.SERVICE_URL.format(issuer=_issuer)
 
     ac = AuthnBroker()
 
     saml_authn = None
 
     end_points = config.AUTHENTICATION["UserPassword"]["END_POINTS"]
-    full_end_point_paths = ["%s%s" % (config.issuer, ep) for ep in end_points]
+    full_end_point_paths = ["%s%s" % (_issuer, ep) for ep in end_points]
     username_password_authn = UsernamePasswordMako(
-        None, "login.mako", LOOKUP, PASSWD, "%sauthorization" % config.issuer,
+        None, "login.mako", LOOKUP, PASSWD, "%sauthorization" % _issuer,
         None, full_end_point_paths)
 
     for authkey, value in config.AUTHENTICATION.items():
@@ -540,7 +547,7 @@ if __name__ == '__main__':
     kwargs = {
         "template_lookup": LOOKUP,
         "template": {"form_post": "form_response.mako"},
-        #"template_args": {"form_post": {"action": "form_post"}}
+        # "template_args": {"form_post": {"action": "form_post"}}
     }
 
     # Should I care about verifying the certificates used by other entities
@@ -554,9 +561,9 @@ if __name__ == '__main__':
     else:
         pass
 
-    OAS = Provider(config.issuer, SessionDB(config.baseurl), cdb, ac, None,
+    OAS = Provider(_issuer, SessionDB(_issuer), cdb, ac, None,
                    authz, verify_client, config.SYM_KEY, **kwargs)
-    OAS.baseurl = config.issuer
+    OAS.baseurl = _issuer
 
     for authn in ac:
         authn.srv = OAS
@@ -582,7 +589,7 @@ if __name__ == '__main__':
     except AttributeError:
         pass
 
-    #print URLS
+    # print URLS
     if args.debug:
         OAS.debug = True
 
@@ -614,15 +621,18 @@ if __name__ == '__main__':
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
 
     https = ""
-    if config.SERVICE_URL.startswith("https"):
+    if args.tls:
         https = "using HTTPS"
         # SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
         #     config.SERVER_CERT, config.SERVER_KEY, config.CERT_CHAIN)
-        SRV.ssl_adapter = BuiltinSSLAdapter(config.SERVER_CERT, config.SERVER_KEY, config.CERT_CHAIN)
+        SRV.ssl_adapter = BuiltinSSLAdapter(config.SERVER_CERT,
+                                            config.SERVER_KEY,
+                                            config.CERT_CHAIN)
 
-    LOGGER.info("OC server starting listening on port:%s %s" % (args.port,
-                                                                https))
-    print ("OC server starting listening on port:%s %s" % (args.port, https))
+    LOGGER.info(
+        "OC server started (iss={}, port={})".format(_issuer, args.port))
+    print("OC server started (iss={}, port={}) {}".format(_issuer, args.port,
+                                                          https))
     try:
         SRV.start()
     except KeyboardInterrupt:

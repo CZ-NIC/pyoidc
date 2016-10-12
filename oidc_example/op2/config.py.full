@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-baseurl = "https://localhost"
-issuer = "{base}:{port}/"
-
 keys = [
     {"type": "RSA", "key": "cp_keys/key.pem", "use": ["enc", "sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
