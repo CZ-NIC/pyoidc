@@ -572,7 +572,7 @@ class Message(object):
             else:
                 dkeys = []
 
-            txt = as_unicode(_jw.decrypt(txt, dkeys))
+            txt, _res = as_unicode(_jw.decrypt(txt, dkeys))
             self.jwe_header = _jw.jwt.headers
 
         _jw = jws.factory(txt)
