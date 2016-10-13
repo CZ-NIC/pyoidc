@@ -7,6 +7,7 @@ from hashlib import md5
 from oic import rndstr
 from oic.exception import PyoidcError
 from oic.utils import http_util
+from oic.utils.sanitize import sanitize
 from oic.oic import Client
 from oic.oic import ENDPOINTS
 from oic.oic.message import Claims, ClaimsRequest
@@ -314,10 +315,10 @@ class Consumer(Client):
                                     sformat="urlencoded",
                                     keyjar=self.keyjar)
         if isinstance(aresp, ErrorResponse):
-            _log_info("ErrorResponse: %s" % aresp)
+            _log_info("ErrorResponse: %s" % sanitize(aresp))
             raise AuthzError(aresp.get('error'), aresp)
 
-        _log_info("Aresp: %s" % aresp)
+        _log_info("Aresp: %s" % sanitize(aresp))
 
         _state = aresp["state"]
         try:
@@ -350,7 +351,7 @@ class Consumer(Client):
         if not query:
             return http_util.BadRequest("Missing query")
 
-        _log_info("response: %s" % query)
+        _log_info("response: %s" % sanitize(query))
 
         if "code" in self.consumer_config["response_type"]:
             aresp, _state = self._parse_authz(query, **kwargs)
@@ -413,7 +414,7 @@ class Consumer(Client):
                                             request_args=args,
                                             http_args=http_args)
 
-        logger.info("Access Token Response: %s" % resp)
+        logger.info("Access Token Response: %s" % sanitize(resp))
 
         if resp.type() == "ErrorResponse":
             raise TokenError(resp.error, resp)

@@ -60,6 +60,7 @@ from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import key_export
 from oic.utils.sdb import AccessCodeUsed
+from oic.utils.sanitize import sanitize
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.token_handler import NotAllowed
 from oic.utils.token_handler import TokenHandler
@@ -204,13 +205,14 @@ class Provider(provider.Provider):
         try:
             self.keyjar.load_keys(request, client_id)
             try:
-                logger.debug("keys for %s: [%s]" % (
-                    client_id,
-                    ",".join(["%s" % x for x in self.keyjar[client_id]])))
+                n_keys = len(self.keyjar[client_id])
+                msg = "Found {} keys for client_id={}"
+                logger.debug(msg.format(n_keys, client_id))
             except KeyError:
                 pass
         except Exception as err:
-            logger.error("Failed to load client keys: %s" % request.to_dict())
+            msg = "Failed to load client keys: {}"
+            logger.error(msg.format(sanitize(request.to_dict())))
             logger.error("%s", err)
             err = ClientRegistrationError(
                 error="invalid_configuration_parameter",

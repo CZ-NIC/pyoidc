@@ -70,6 +70,7 @@ from oic.utils.http_util import Unauthorized
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
+from oic.utils.sanitize import sanitize
 from oic.utils.sdb import ExpiredToken, AccessCodeUsed
 from oic.utils.time_util import utc_time_sans_frac
 
@@ -344,7 +345,7 @@ class Provider(AProvider):
             except KeyError:
                 _keyjar = self.keyjar
 
-            logger.debug("id_token: %s" % _idt.to_dict())
+            logger.debug("id_token: %s" % sanitize(_idt.to_dict()))
             # My signing key if its RS*, can use client secret if HS*
             if alg.startswith("HS"):
                 logger.debug("client_id: %s" % session["client_id"])
@@ -355,14 +356,11 @@ class Provider(AProvider):
                     ckey = [SYMKey(key=_secret)]
             else:
                 if "" in self.keyjar:
-                    for b in self.keyjar[""]:
-                        logger.debug("Provider keys: %s" % b)
                     ckey = _keyjar.get_signing_key(alg2keytype(alg), "",
                                                    alg=alg)
                 else:
                     ckey = None
 
-        logger.debug("ckey: %s" % ckey)
         _signed_jwt = _idt.to_jwt(key=ckey, algorithm=alg)
 
         return _signed_jwt
@@ -576,7 +574,7 @@ class Provider(AProvider):
     def end_session_endpoint(self, request="", cookie=None, **kwargs):
         esr = EndSessionRequest().from_urlencoded(request)
 
-        logger.debug("End session request: {}".format(esr.to_dict()))
+        logger.debug("End session request: {}".format(sanitize(esr.to_dict())))
 
         redirect_uri = None
         if "post_logout_redirect_uri" in esr:
@@ -634,7 +632,7 @@ class Provider(AProvider):
         :param kwargs:
         :return:
         """
-        logger.debug("verify request: %s" % request)
+        logger.debug("verify request: %s" % sanitize(request))
 
         _req = parse_qs(request)
         if "query" in _req:
@@ -646,11 +644,11 @@ class Provider(AProvider):
         else:
             areq = _req
 
-        logger.debug("REQ: %s" % areq)
+        logger.debug("REQ: %s" % sanitize(areq))
         try:
             authn, acr = self.pick_auth(areq, "exact")
         except Exception as err:
-            logger.exception("%s", err)
+            logger.exception("%s", sanitize(err))
             raise
 
         kwargs["cookie"] = cookie
@@ -738,7 +736,7 @@ class Provider(AProvider):
         if isinstance(areq, Response):
             return areq
 
-        logger.info("authorization_request: %s" % (areq.to_dict(),))
+        logger.info("authorization_request: %s" % (sanitize(areq.to_dict()),))
 
         _cid = areq["client_id"]
         cinfo = self.cdb[str(_cid)]
@@ -799,9 +797,9 @@ class Provider(AProvider):
 
         aresp['client_id'] = areq['client_id']
 
-        logger.info('authorization response: %s', aresp.to_dict())
+        logger.info('authorization response: %s', sanitize(aresp.to_dict()))
         location = aresp.request(redirect_uri, fragment_enc)
-        logger.debug("Redirected to: '%s' (%s)", location, type(location))
+        logger.debug("Redirected to: '%s' (%s)", sanitize(location), type(location))
         return SeeOther(str(location), headers=headers)
 
     def userinfo_in_id_token_claims(self, session):
@@ -848,7 +846,6 @@ class Provider(AProvider):
 
         logger.debug("alg=%s, enc=%s, val_type=%s" % (alg, enc, val_type))
         keys = self.keyjar.get_encrypt_key(owner=cid)
-        logger.debug("Encryption keys for %s: %s" % (cid, keys))
         try:
             _ckeys = self.keyjar[cid]
         except KeyError:
@@ -858,9 +855,6 @@ class Provider(AProvider):
             self.keyjar.issuer_keys[cid] = []
             self.keyjar.add(cid, client_info["jwks_uri"])
             _ckeys = self.keyjar[cid]
-
-        logger.debug("keys for %s: %s" % (
-            cid, "[" + ", ".join([str(x) for x in _ckeys])) + "]")
 
         kwargs = {"alg": alg, "enc": enc}
         if cty:
@@ -981,11 +975,11 @@ class Provider(AProvider):
         # Refresh the _tinfo
         _tinfo = _sdb[_access_code]
 
-        _log_debug("_tinfo: %s" % _tinfo)
+        _log_debug("_tinfo: %s" % sanitize(_tinfo))
 
         atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
 
-        logger.info("access_token_response: %s" % atr.to_dict())
+        logger.info("access_token_response: %s" % sanitize(atr.to_dict()))
 
         return Response(atr.to_json(), content="application/json")
 
@@ -1017,11 +1011,11 @@ class Provider(AProvider):
             sid = _sdb.access_token.get_key(rtoken)
             _sdb.update(sid, "id_token", _idtoken)
 
-        _log_debug("_info: %s" % _info)
+        _log_debug("_info: %s" % sanitize(_info))
 
         atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_info))
 
-        logger.info("access_token_response: %s" % atr.to_dict())
+        logger.info("access_token_response: %s" % sanitize(atr.to_dict()))
 
         return Response(atr.to_json(), content="application/json")
 
@@ -1036,7 +1030,7 @@ class Provider(AProvider):
         :returns:
         """
         logger.debug("- token -")
-        logger.info("token_request: %s" % request)
+        logger.info("token_request: %s" % sanitize(request))
 
         req = AccessTokenRequest().deserialize(request, dtype)
 
@@ -1048,7 +1042,7 @@ class Provider(AProvider):
         if "refresh_token" in req:
             req = RefreshAccessTokenRequest().deserialize(request, dtype)
 
-        logger.debug("%s: %s" % (req.__class__.__name__, req))
+        logger.debug("%s: %s" % (req.__class__.__name__, sanitize(req)))
 
         try:
             client_id = self.client_authn(self, req, authn)
@@ -1106,9 +1100,9 @@ class Provider(AProvider):
             else:
                 userinfo_claims = None
 
-            logger.debug("userinfo_claim: %s" % userinfo_claims.to_dict())
+            logger.debug("userinfo_claim: %s" % sanitize(userinfo_claims.to_dict()))
 
-        logger.debug("Session info: %s" % session)
+        logger.debug("Session info: %s" % sanitize(session))
 
         authn_event = session.get("authn_event")
         if authn_event:
@@ -1123,7 +1117,7 @@ class Provider(AProvider):
                 raise FailedAuthentication("Unmatched sub claim")
 
         info["sub"] = session["sub"]
-        logger.debug("user_info_response: %s" % (info,))
+        logger.debug("user_info_response: %s" % (sanitize(info),))
 
         return info
 
@@ -1182,10 +1176,10 @@ class Provider(AProvider):
             if not _token.startswith("Bearer "):
                 raise ParameterError("Token is missing or malformed")
             _token = _token[len("Bearer "):]
-            logger.debug("Bearer token: '%s'" % _token)
+            logger.debug("Bearer token {} chars".format(len(_token)))
         else:
             uireq = self.server.parse_user_info_request(data=request)
-            logger.debug("user_info_request: %s" % uireq)
+            logger.debug("user_info_request: %s" % sanitize(uireq))
             _token = uireq["access_token"].replace(' ', '+')
 
         return _token
@@ -1259,7 +1253,7 @@ class Provider(AProvider):
                 info = "id_token=%s" % _tok
 
         if self.test_mode:
-            _log_info("check_session_request: %s" % request)
+            _log_info("check_session_request: %s" % sanitize(request))
         idt = self.server.parse_check_session_request(query=request)
         if self.test_mode:
             _log_info("check_session_response: %s" % idt.to_dict())
@@ -1300,7 +1294,7 @@ class Provider(AProvider):
             ignore = []
 
         _cinfo = self.cdb[client_id].copy()
-        logger.debug("_cinfo: %s" % _cinfo)
+        logger.debug("_cinfo: %s" % sanitize(_cinfo))
 
         for key, val in request.items():
             if key not in ignore:
@@ -1352,7 +1346,7 @@ class Provider(AProvider):
                     "invalid_configuration_parameter",
                     descr="Couldn't open sector_identifier_uri")
 
-            logger.debug("sector_identifier_uri => %s" % res.text)
+            logger.debug("sector_identifier_uri => %s" % sanitize(res.text))
 
             try:
                 si_redirects = json.loads(res.text)
@@ -1420,13 +1414,13 @@ class Provider(AProvider):
         try:
             self.keyjar.load_keys(request, client_id)
             try:
-                logger.debug("keys for %s: [%s]" % (
-                    client_id,
-                    ",".join(["%s" % x for x in self.keyjar[client_id]])))
+                n_keys = len(self.keyjar[client_id])
+                msg = "found {} keys for client_id={}"
+                logger.debug(msg.format(n_keys, client_id))
             except KeyError:
                 pass
         except Exception as err:
-            logger.error("Failed to load client keys: %s" % request.to_dict())
+            logger.error("Failed to load client keys: %s" % sanitize(request.to_dict()))
             logger.error("%s", err)
             logger.debug('Verify SSL: {}'.format(self.keyjar.verify_ssl))
             err = ClientRegistrationErrorResponse(
@@ -1501,14 +1495,14 @@ class Provider(AProvider):
 
     # noinspection PyUnusedLocal
     def l_registration_endpoint(self, request, authn=None, **kwargs):
-        logger.debug("@registration_endpoint: <<%s>>" % request)
+        logger.debug("@registration_endpoint: <<%s>>" % sanitize(request))
 
         try:
             request = RegistrationRequest().deserialize(request, "json")
         except ValueError:
             request = RegistrationRequest().deserialize(request)
 
-        logger.info("registration_request:%s" % request.to_dict())
+        logger.info("registration_request:%s" % sanitize(request.to_dict()))
 
         result = self.client_registration_setup(request)
         if isinstance(result, Response):
@@ -1592,7 +1586,7 @@ class Provider(AProvider):
         except AttributeError:  # Not all databases can be sync'ed
             pass
 
-        logger.info("registration_response: %s" % response.to_dict())
+        logger.info("registration_response: %s" % sanitize(response.to_dict()))
 
         return response
 
@@ -1611,7 +1605,9 @@ class Provider(AProvider):
         :return:
         """
 
-        logger.debug("authn: %s, request: %s" % (authn, request))
+        logger.debug("authn: %s, request: %s" % (sanitize(authn),
+                                                 sanitize(request))
+        )
 
         # verify the access token, has to be key into the client information
         # database.
@@ -1767,7 +1763,8 @@ class Provider(AProvider):
         _log_info("@providerinfo_endpoint")
         try:
             _response = self.create_providerinfo()
-            _log_info("provider_info_response: %s" % (_response.to_dict(),))
+            msg = "provider_info_response: {}"
+            _log_info(msg.format(sanitize(_response.to_dict())))
 
             headers = [("Cache-Control", "no-store"), ("x-ffo", "bar")]
             if handle:
@@ -1798,7 +1795,7 @@ class Provider(AProvider):
         _log_debug("@discovery_endpoint")
 
         request = DiscoveryRequest().deserialize(request, "urlencoded")
-        _log_debug("discovery_request:%s" % (request.to_dict(),))
+        _log_debug("discovery_request:%s" % (sanitize(request.to_dict()),))
 
         try:
             assert request["service"] == SWD_ISSUER
@@ -1809,7 +1806,7 @@ class Provider(AProvider):
 
         _response = DiscoveryResponse(locations=[self.baseurl])
 
-        _log_debug("discovery_response:%s" % (_response.to_dict(),))
+        _log_debug("discovery_response:%s" % (sanitize(_response.to_dict()),))
 
         headers = [("Cache-Control", "no-store")]
         (key, timestamp) = handle
@@ -1918,7 +1915,7 @@ class Provider(AProvider):
             if "token" in rtype:
                 _dic = self.sdb.upgrade_to_token(issue_refresh=False, key=sid)
 
-                logger.debug("_dic: %s" % _dic)
+                logger.debug("_dic: %s" % sanitize(_dic))
                 for key, val in _dic.items():
                     if key in aresp.parameters() and val is not None:
                         aresp[key] = val

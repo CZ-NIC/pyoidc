@@ -19,7 +19,9 @@ from oic.oic import REQUEST2ENDPOINT
 from oic.oic import DEF_SIGN_ALG
 from oic.oic import AuthnToken
 from oic.oic import JWT_BEARER
+from oic.utils.sanitize import sanitize
 from oic.utils.time_util import utc_time_sans_frac
+
 
 logger = logging.getLogger(__name__)
 
@@ -316,7 +318,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
             else:
                 signing_key = self.get_signing_key(algorithm)
         except NoMatchingKey as err:
-            logger.error("%s" % err)
+            logger.error("%s" % sanitize(err))
             raise SystemError()
 
         if 'client_assertion' in kwargs:
@@ -358,13 +360,13 @@ class JWSAuthnMethod(ClientAuthnMethod):
             bjwt = AuthnToken().from_jwt(areq["client_assertion"],
                                          keyjar=self.cli.keyjar)
         except (Invalid, MissingKey) as err:
-            logger.info("%s" % err)
+            logger.info("%s" % sanitize(err))
             raise AuthnFailure("Could not verify client_assertion.")
 
-        logger.debug("authntoken: %s" % bjwt.to_dict())
+        logger.debug("authntoken: %s" % sanitize(bjwt.to_dict()))
         areq['parsed_client_assertion'] = bjwt
 
-        # logger.debug("known clients: %s" % self.cli.cdb.keys())
+        # logger.debug("known clients: %s" % sanitize(self.cli.cdb.keys()))
         try:
             cid = kwargs["client_id"]
         except KeyError:
@@ -460,7 +462,7 @@ def get_client_id(cdb, req, authn):
     :return:
     """
 
-    logger.debug("REQ: %s" % req.to_dict())
+    logger.debug("REQ: %s" % sanitize(req.to_dict()))
     if authn:
         if authn.startswith("Basic "):
             logger.debug("Basic auth")

@@ -7,6 +7,7 @@ from six.moves.http_cookies import SimpleCookie, CookieError
 from oic.oauth2.exception import NonFatalException
 from oic.oauth2.util import set_cookie
 from oic.utils.keyio import KeyJar
+from oic.utils.sanitize import sanitize
 
 __author__ = 'roland'
 
@@ -50,7 +51,7 @@ class PBase(object):
 
         if self.cookiejar:
             _kwargs["cookies"] = self._cookies()
-            logger.debug("SENT COOKIEs: %s" % (_kwargs["cookies"],))
+            logger.debug("SENT {} COOKIES" % (len(_kwargs["cookies"]),))
 
         if self.req_callback is not None:
             _kwargs = self.req_callback(method, url, **_kwargs)
@@ -60,7 +61,7 @@ class PBase(object):
         except Exception as err:
             logger.error(
                 "http_request failed: %s, url: %s, htargs: %s, method: %s" % (
-                    err, url, _kwargs, method))
+                    err, url, sanitize(_kwargs), method))
             raise
 
         if self.event_store is not None:
@@ -71,7 +72,7 @@ class PBase(object):
             # Telekom fix
             # set_cookie = set_cookie.replace(
             # "=;Path=/;Expires=Thu, 01-Jan-1970 00:00:01 GMT;HttpOnly,", "")
-            logger.debug("RECEIVED COOKIEs: %s" % _cookie)
+            logger.debug("RECEIVED COOKIE")
             try:
                 set_cookie(self.cookiejar, SimpleCookie(_cookie))
             except CookieError as err:

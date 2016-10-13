@@ -2,6 +2,7 @@ import logging
 import ldap
 
 from oic.utils.userinfo import UserInfo
+from oic.utils.sanitize import sanitize
 
 
 __author__ = 'rolandh'
@@ -60,7 +61,7 @@ class UserInfoLDAP(UserInfo):
     def __call__(self, userid, client_id, user_info_claims=None,
                  first_only=True, **kwargs):
         _filter = self.filter_pattern % userid
-        logger.debug("CLAIMS: %s" % user_info_claims)
+        logger.debug("CLAIMS: %s" % sanitize(user_info_claims))
         _attr = self.attr
         if user_info_claims:
             try:

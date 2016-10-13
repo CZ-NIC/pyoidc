@@ -58,6 +58,7 @@ from oic.exception import PyoidcError
 from oic.exception import MissingParameter
 from oic.utils import time_util
 from oic.utils.keyio import KeyJar
+from oic.utils.sanitize import sanitize
 from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.webfinger import WebFinger
 
@@ -701,7 +702,7 @@ class Client(oauth2.Client):
 
     def user_info_request(self, method="GET", state="", scope="", **kwargs):
         uir = UserInfoRequest()
-        logger.debug("[user_info_request]: kwargs:%s" % (kwargs,))
+        logger.debug("[user_info_request]: kwargs:%s" % (sanitize(kwargs),))
         if "token" in kwargs:
             if kwargs["token"]:
                 uir["access_token"] = kwargs["token"]
@@ -784,7 +785,7 @@ class Client(oauth2.Client):
                                                             scope, **kwargs)
 
         logger.debug("[do_user_info_request] PATH:%s BODY:%s H_ARGS: %s" % (
-            path, body, h_args))
+            sanitize(path), sanitize(body), sanitize(h_args)))
 
         try:
             resp = self.http_request(path, method, data=body, **h_args)
@@ -818,7 +819,7 @@ class Client(oauth2.Client):
         except KeyError:
             _schema = OpenIDSchema
 
-        logger.debug("Reponse text: '%s'" % resp.text)
+        logger.debug("Reponse text: '%s'" % sanitize(resp.text))
 
         _txt = resp.text
         if sformat == "json":
@@ -931,7 +932,7 @@ class Client(oauth2.Client):
                 pcr = response_cls().from_json(r.text)
             except:
                 _err_txt = "Faulty provider config response: {}".format(r.text)
-                logger.error(_err_txt)
+                logger.error(sanitize(_err_txt))
                 raise ParseError(_err_txt)
         elif r.status_code == 302 or r.status_code == 301:
             while r.status_code == 302 or r.status_code == 301:
@@ -940,7 +941,7 @@ class Client(oauth2.Client):
                     pcr = response_cls().from_json(r.text)
                     break
 
-        # logger.debug("Provider info: %s" % pcr)
+        # logger.debug("Provider info: %s" % sanitize(pcr))
         if pcr is None:
             raise CommunicationError(
                 "Trying '%s', status %s" % (url, r.status_code))
@@ -1110,6 +1111,8 @@ class Client(oauth2.Client):
             pass
 
     def handle_registration_info(self, response):
+        err_msg = 'Got error response: {}'
+        unk_msg = 'Unknown response: {}'
         if response.status_code in [200, 201]:
             resp = RegistrationResponse().deserialize(response.text, "json")
             # Some implementations sends back a 200 with an error message inside
@@ -1119,28 +1122,27 @@ class Client(oauth2.Client):
             else:
                 resp = ErrorResponse().deserialize(response.text, "json")
                 if resp.verify():
-                    logger.error(
-                        'Got error response: {}'.format(resp.to_json()))
+                    logger.error(err_msg.format(sanitize(resp.to_json())))
                     if self.event_store:
                         self.event_store.store('protocol response', resp)
                     raise RegistrationError(resp.to_dict())
                 else:  # Something else
-                    logger.error('Unknown response: {}'.format(response.text))
+                    logger.error(unk_msg.format(sanitize(response.text)))
                     raise RegistrationError(response.text)
         else:
             try:
                 resp = ErrorResponse().deserialize(response.text, "json")
             except _decode_err:
-                logger.error('Unknown response: {}'.format(response.text))
+                logger.error(unk_msg.format(sanitize(response.text)))
                 raise RegistrationError(response.text)
 
             if resp.verify():
-                logger.error('Got error response: {}'.format(resp.to_json()))
+                logger.error(err_msg.format(sanitize(resp.to_json())))
                 if self.event_store:
                     self.event_store.store('protocol response', resp)
                 raise RegistrationError(resp.to_dict())
             else:  # Something else
-                logger.error('Unknown response: {}'.format(response.text))
+                logger.error(unk_msg.format(sanitize(response.text)))
                 raise RegistrationError(response.text)
 
         return resp
@@ -1400,7 +1402,7 @@ class Server(oauth2.Server):
                 keys = None
                 sender = ''
 
-        logger.debug("verify keys: {}".format(keys))
+        logger.debug("Found {} verify keys".format(len(keys or '')))
         request.verify(key=keys, keyjar=self.keyjar, sender=sender)
         return request
 
@@ -1457,7 +1459,7 @@ class Server(oauth2.Server):
                 pass
 
         if req:
-            logger.debug("%s: %s" % (where, req.to_dict()))
+            logger.debug("%s: %s" % (where, sanitize(req.to_dict())))
             try:
                 _claims = req["claims"][about]
                 if _claims:

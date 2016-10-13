@@ -23,6 +23,7 @@ from oic.oauth2.util import get_or_post
 from oic.oauth2.util import verify_header
 from oic.utils.keyio import KeyJar
 from oic.utils.time_util import utc_time_sans_frac
+from oic.utils.sanitize import sanitize
 from oic.oauth2.message import *
 
 __author__ = 'rohe0002'
@@ -232,13 +233,13 @@ class Client(PBase):
         if request_args is None:
             request_args = {}
 
-        # logger.debug("request_args: %s" % request_args)
+        # logger.debug("request_args: %s" % sanitize(request_args))
         kwargs = self._parse_args(request, **request_args)
 
         if extra_args:
             kwargs.update(extra_args)
-            # logger.debug("kwargs: %s" % kwargs)
-        # logger.debug("request: %s" % request)
+            # logger.debug("kwargs: %s" % sanitize(kwargs))
+        # logger.debug("request: %s" % sanitize(request))
         return request(**kwargs)
 
     def construct_Message(self, request=Message, request_args=None,
@@ -376,7 +377,7 @@ class Client(PBase):
 
         if self.event_store:
             self.event_store.store('protocol request', cis)
-            
+
         cis.lax = lax
 
         if "authn_method" in kwargs:
@@ -431,7 +432,8 @@ class Client(PBase):
             info = self.get_urlinfo(info)
 
         resp = response().deserialize(info, sformat, **kwargs)
-        logger.debug('Initial response parsing => "{}"'.format(resp.to_dict()))
+        msg = 'Initial response parsing => "{}"'
+        logger.debug(msg.format(sanitize(resp.to_dict())))
 
         if "error" in resp and not isinstance(resp, ErrorResponse):
             resp = None
@@ -463,7 +465,7 @@ class Client(PBase):
             if "key" not in kwargs and "keyjar" not in kwargs:
                 kwargs["keyjar"] = self.keyjar
 
-            logger.debug("Verify response with {}".format(kwargs))
+            logger.debug("Verify response with {}".format(sanitize(kwargs)))
             verf = resp.verify(**kwargs)
 
             if not verf:
@@ -521,14 +523,16 @@ class Client(PBase):
         elif reqresp.status_code in [302, 303]:  # redirect
             pass
         elif reqresp.status_code == 500:
-            logger.error("(%d) %s" % (reqresp.status_code, reqresp.text))
+            logger.error("(%d) %s" % (reqresp.status_code,
+                                      sanitize(reqresp.text)))
             raise ParseError("ERROR: Something went wrong: %s" % reqresp.text)
         elif reqresp.status_code in [400, 401]:
             # expecting an error response
             if issubclass(response, ErrorResponse):
                 pass
         else:
-            logger.error("(%d) %s" % (reqresp.status_code, reqresp.text))
+            logger.error("(%d) %s" % (reqresp.status_code,
+                                      sanitize(reqresp.text)))
             raise HttpError("HTTP ERROR: %s [%s] on %s" % (
                 reqresp.text, reqresp.status_code, reqresp.url))
 
@@ -647,7 +651,8 @@ class Client(PBase):
             self.event_store.store('request_http_args', http_args)
             self.event_store.store('request', body)
 
-        logger.debug("<do_access_token> URL: %s, Body: %s" % (url, body))
+        logger.debug("<do_access_token> URL: %s, Body: %s" % (url,
+                                                              sanitize(body)))
         logger.debug("<do_access_token> response_cls: %s" % response_cls)
 
         return self.request_and_return(url, response_cls, method, body,
