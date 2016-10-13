@@ -422,14 +422,19 @@ class KeyJar(object):
 
         return kc
 
-    def add_symmetric(self, issuer, key, usage):
+    def add_symmetric(self, issuer, key, usage=None):
         if issuer not in self.issuer_keys:
             self.issuer_keys[issuer] = []
 
-        for use in usage:
-            self.issuer_keys[issuer].append(self.keybundle_cls([{"kty": "oct",
-                                                                 "key": key,
-                                                                 "use": use}]))
+        if usage is None:
+            self.issuer_keys[issuer].append(
+                self.keybundle_cls([{"kty": "oct", "key": key}]))
+        else:
+            for use in usage:
+                self.issuer_keys[issuer].append(
+                    self.keybundle_cls([{"kty": "oct",
+                                         "key": key,
+                                         "use": use}]))
 
     def add_kb(self, issuer, kb):
         try:

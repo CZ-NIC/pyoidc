@@ -131,7 +131,7 @@ class Client(PBase):
             # client uses it for verifying server signatures
             if self.keyjar is None:
                 self.keyjar = KeyJar()
-            self.keyjar.add_symmetric("", str(val), ["sig"])
+            self.keyjar.add_symmetric("", str(val))
 
     client_secret = property(get_client_secret, set_client_secret)
 
