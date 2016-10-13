@@ -1,3 +1,4 @@
+from collections import MutableMapping
 import copy
 import logging
 import json
@@ -123,7 +124,7 @@ def jwt_header(txt):
     return json.loads(b64d(str(txt.split(".")[0])))
 
 
-class Message(object):
+class Message(MutableMapping):
     c_param = {}
     c_default = {}
     c_allowed_values = {}
@@ -136,6 +137,9 @@ class Message(object):
         self.jwe_header = None
         self.from_dict(kwargs)
         self.verify_ssl = True
+
+    def __iter__(self):
+        return iter(self._dict)
 
     def type(self):
         return self.__class__.__name__
