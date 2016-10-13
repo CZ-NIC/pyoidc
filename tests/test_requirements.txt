@@ -1,3 +1,4 @@
 pytest
 httpretty==0.8.10
 mock
+testfixtures

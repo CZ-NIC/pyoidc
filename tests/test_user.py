@@ -1,4 +1,5 @@
 # pylint: disable=missing-docstring,redefined-outer-name,no-self-use
+import logging
 import os
 import pytest
 
@@ -6,6 +7,7 @@ from future.backports.urllib.parse import urlencode
 from future.backports.urllib.parse import parse_qs
 
 from mako.lookup import TemplateLookup
+from testfixtures import LogCapture
 
 from oic import rndstr
 from oic.utils.authn.user import UsernamePasswordMako
@@ -75,12 +77,22 @@ class TestUsernamePasswordMako(object):
 
         authn = UsernamePasswordMako(srv, "login.mako", tl, PASSWD,
                                      "authorization_endpoint")
-        response, success = authn.verify(parse_qs(form))
+        with LogCapture(level=logging.DEBUG) as logcap:
+            response, success = authn.verify(parse_qs(form))
         assert query_string_compare(response.message.split("?")[1],
                                     "query=foo&upm_answer=true")
 
         headers = dict(response.headers)
         assert headers["Set-Cookie"].startswith('xyzxyz=')
+        expected = {u'query': [u'query=foo'], u'login': ['user'], u'password': '<REDACTED>'}
+        # We have to use eval() here to avoid intermittent
+        # failures from dict ordering
+        assert eval(logcap.records[0].msg[7:-1]) == expected
+        expected = {u'query': [u'query=foo'], u'login': ['user'], u'password': '<REDACTED>'}
+        assert eval(logcap.records[1].msg[5:]) == expected
+        assert logcap.records[2].msg == 'Password verification succeeded.'
+        expected = {u'query': [u'foo'], 'upm_answer': 'true'}
+        assert eval(logcap.records[3].msg[8:]) == expected
 
     def test_not_authenticated(self, srv):
         form = create_return_form_env("user", "hemligt", "QUERY")
