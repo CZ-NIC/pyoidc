@@ -11,9 +11,9 @@ addons:
 
 matrix:
   include:
-    - python: 3.5.0
+    - python: 3.5.2
       env: TOXENV=py35
-    - python: 3.4.3
+    - python: 3.4.4
       env: TOXENV=py34
     - python: 2.7
       env: TOXENV=py27
