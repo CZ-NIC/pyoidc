@@ -236,7 +236,7 @@ def static(environ, start_response, path):
     logger.info("[static]sending: %s" % (path,))
 
     try:
-        text = open(path).read()
+        data = open(path, 'rb').read()
         if path.endswith(".ico"):
             start_response('200 OK', [('Content-Type', "image/x-icon")])
         elif path.endswith(".html"):
@@ -249,7 +249,7 @@ def static(environ, start_response, path):
             start_response('200 OK', [('Content-Type', 'text/css')])
         else:
             start_response('200 OK', [('Content-Type', "text/xml")])
-        return [text]
+        return [data]
     except IOError:
         resp = NotFound()
         return resp(environ, start_response)
