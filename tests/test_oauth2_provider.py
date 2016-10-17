@@ -1,7 +1,9 @@
 import json
+import logging
 import time
 import pytest
 import six
+from testfixtures import LogCapture
 
 from future.backports.urllib.parse import urlparse
 from future.backports.urllib.parse import parse_qs
@@ -135,13 +137,27 @@ class TestProvider(object):
         resp = self.provider.authorization_endpoint(urlparse(location).query)
         assert resp.status == "303 See Other"
         resp = urlparse(resp.message).query
-        aresp = cons.handle_authorization_response(query=resp)
+        with LogCapture(level=logging.DEBUG) as logcap:
+            aresp = cons.handle_authorization_response(query=resp)
 
         assert isinstance(aresp, AuthorizationResponse)
         assert _eq(aresp.keys(), ['state', 'code', 'client_id', 'iss'])
         assert _eq(cons.grant[sid].keys(), ['tokens', 'code', 'exp_in',
                                             'seed', 'id_token',
                                             'grant_expiration_time'])
+
+        state = aresp['state']
+        assert _eq(logcap.records[0].msg, '- authorization - code flow -')
+        expected = 'QUERY: iss=https%3A%2F%2Fexample.com%2Fas&state={}&code=<REDACTED>&client_id=client1'.format(state)
+        assert _eq(logcap.records[1].msg, expected)
+        expected = {'iss': 'https://example.com/as',
+                    'state': state, 'code': '<REDACTED>',
+                    'client_id': 'client1'}
+        # Eval here to avoid intermittent failures due to dict ordering
+        assert _eq(eval(logcap.records[2].msg[29:-1]), expected)
+        expected = ["'client_id': 'client1'", "'iss': 'https://example.com/as'",
+                    "'keyjar': <KeyJar(issuers=[])>"]
+        assert _eq(sorted(logcap.records[3].msg[22:-1].split(', ')), expected)
 
     def test_authenticated_token(self):
         _session_db = {}
@@ -183,10 +199,34 @@ class TestProvider(object):
                                   client_id="client1",
                                   client_secret="hemlighet",
                                   grant_type='authorization_code')
-
-        resp = self.provider.token_endpoint(request=areq.to_urlencoded())
+        with LogCapture(level=logging.DEBUG) as logcap:
+            resp = self.provider.token_endpoint(request=areq.to_urlencoded())
         atr = AccessTokenResponse().deserialize(resp.message, "json")
         assert _eq(atr.keys(), ['access_token', 'token_type', 'refresh_token'])
+
+        expected = ('body: code=<REDACTED>&client_secret=<REDACTED>&grant_type=authorization_code'
+                '   &client_id=client1&redirect_uri=http%3A%2F%2Fexample.com%2Fauthz')
+        assert _eq(parse_qs(logcap.records[1].msg[6:]), parse_qs(expected[6:]))
+        expected = {u'code': '<REDACTED>', u'client_secret': '<REDACTED>',
+                    u'redirect_uri': u'http://example.com/authz', u'client_id': 'client1',
+                    u'grant_type': 'authorization_code'}
+        # Don't try this at home, kids!
+        # We have to eval() to a dict here because otherwise the arbitrary
+        # ordering of the string causes the test to fail intermittently.
+        assert _eq(eval(logcap.records[2].msg[4:]), expected)
+        assert _eq(logcap.records[3].msg, 'Verified Client ID: client1')
+        expected = {'redirect_uri': u'http://example.com/authz', 'client_secret': '<REDACTED>',
+                    'code': u'<REDACTED>', 'client_id': 'client1', 'grant_type': 'authorization_code'}
+        assert eval(logcap.records[4].msg[20:]) == expected
+        expected = {'code': '<REDACTED>', 'authzreq': '', 'sub': 'sub', 'access_token': '<REDACTED>',
+                    'token_type': 'Bearer', 'redirect_uri': 'http://example.com/authz',
+                    'code_used': True, 'client_id': 'client1', 'oauth_state': 'token',
+                    'refresh_token': '<REDACTED>', 'access_token_scope': '?'}
+        assert _eq(eval(logcap.records[5].msg[7:]), expected)
+        expected = {'access_token': u'<REDACTED>', 'token_type': 'Bearer',
+                    'refresh_token': '<REDACTED>'}
+        assert _eq(eval(logcap.records[6].msg[21:]), expected)
+
 
     def test_token_endpoint_unauth(self):
         authreq = AuthorizationRequest(state="state",

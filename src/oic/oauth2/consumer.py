@@ -10,6 +10,7 @@ from oic.oauth2.message import Message
 from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import AccessTokenRequest
 from oic.utils import http_util
+from oic.utils.sanitize import sanitize
 from oic.oauth2 import Client
 from oic.oauth2 import Grant
 from oic import rndstr
@@ -21,8 +22,6 @@ ENDPOINTS = ["authorization_endpoint", "token_endpoint", "userinfo_endpoint",
              "token_revokation_endpoint"]
 
 logger = logging.getLogger(__name__)
-LOG_INFO = logger.info
-LOG_DEBUG = logger.debug
 
 
 def stateID(url, seed):
@@ -184,7 +183,7 @@ class Consumer(Client):
         :return: A URL to which the user should be redirected
         """
 
-        LOG_DEBUG("- begin -")
+        logger.debug("- begin -")
 
         # Store the request and the redirect uri used
         self.redirect_uris = ["%s%s" % (baseurl, self.authz_page)]
@@ -209,7 +208,7 @@ class Consumer(Client):
             AuthorizationRequest, method="GET", scope=self.scope,
             request_args={"state": sid, "response_type": response_type})[0]
 
-        LOG_DEBUG("Redirecting to: %s" % (location,))
+        logger.debug("Redirecting to: %s" % (sanitize(location),))
 
         return sid, location
 
@@ -223,8 +222,8 @@ class Consumer(Client):
         :return: A AccessTokenResponse instance
         """
 
-        LOG_DEBUG("- authorization - %s flow -" % self.flow_type)
-        LOG_DEBUG("QUERY: %s" % query)
+        logger.debug("- authorization - %s flow -" % self.flow_type)
+        logger.debug("QUERY: %s" % sanitize(query))
 
         if "code" in self.response_type:
             # Might be an error response

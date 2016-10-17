@@ -128,9 +128,9 @@ class AuthnBroker(object):
                             _val = (_dic["level"], _dic["method"], _dic["ref"])
                             if _val not in res:
                                 res_other.append(_val)
-            # sort on level
-            res_other.sort(key=cmp_to_key(self._cmp), reverse=True)
             res.extend(res_other)
+            # sort on level
+            res.sort(key=cmp_to_key(self._cmp), reverse=True)
 
             return [(b, c) for a, b, c in res]
 

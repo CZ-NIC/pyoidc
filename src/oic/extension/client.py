@@ -20,6 +20,7 @@ from oic.oic import OIDCONF_PATTERN
 from oic.oic.message import AuthorizationResponse
 from oic.utils.http_util import SUCCESSFUL
 from oic.utils.keyio import KeyJar
+from oic.utils.sanitize import sanitize
 
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.exception import Unsupported
@@ -384,9 +385,9 @@ class Client(oauth2.Client):
                                     sformat="urlencoded",
                                     keyjar=self.keyjar)
         if aresp.type() == "ErrorResponse":
-            logger.info("ErrorResponse: %s" % aresp)
+            logger.info("ErrorResponse: %s" % sanitize(aresp))
             raise AuthzError(aresp.error)
 
-        logger.info("Aresp: %s" % aresp)
+        logger.info("Aresp: %s" % sanitize(aresp))
 
         return aresp

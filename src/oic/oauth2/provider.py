@@ -43,14 +43,13 @@ from oic.utils.http_util import CookieDealer
 from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Response
 from oic.utils.http_util import make_cookie
+from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed
 from oic.utils.sdb import AuthnEvent
 
 __author__ = 'rohe0002'
 
 logger = logging.getLogger(__name__)
-LOG_INFO = logger.info
-LOG_DEBUG = logger.debug
 
 
 class Endpoint(object):
@@ -120,7 +119,7 @@ def token_response(**kwargs):
 
 
 def error_response(error, descr=None):
-    logger.error("%s" % error)
+    logger.error("%s" % sanitize(error))
     response = ErrorResponse(error=error, error_description=descr)
     return Response(response.to_json(), content="application/json",
                     status="400 Bad Request")
@@ -314,7 +313,7 @@ class Provider(object):
                     logger.info("Unknown client: %s" % cid)
                     raise UnknownClient(areq["client_id"])
             else:
-                logger.info("Registered redirect_uris: %s" % _cinfo)
+                logger.info("Registered redirect_uris: %s" % sanitize(_cinfo))
                 raise RedirectURIError(
                     "Faulty redirect_uri: %s" % areq["redirect_uri"])
 
@@ -392,7 +391,7 @@ class Provider(object):
         :param request: The AuthorizationRequest
         :return:
         """
-        logger.debug("Request: '%s'" % request)
+        logger.debug("Request: '%s'" % sanitize(request))
         # Same serialization used for GET and POST
         try:
             areq = self.server.parse_authorization_request(
@@ -457,7 +456,8 @@ class Provider(object):
                 return self._error("invalid_request",
                                    "Trying to use unregistered response_typ")
 
-        logger.debug("AuthzRequest: %s" % (areq.to_dict(),))
+
+        logger.debug("AuthzRequest: %s" % (sanitize(areq.to_dict()),))
         try:
             redirect_uri = self.get_redirect_uri(areq)
         except (RedirectURIError, ParameterError, UnknownClient) as err:
@@ -785,7 +785,7 @@ class Provider(object):
     def token_scope_check(self, areq, info):
         """ Not implemented here """
         # if not self.subset(areq["scope"], _info["scope"]):
-        # LOG_INFO("Asked for scope which is not subset of previous defined")
+        # logger.info("Asked for scope which is not subset of previous defined")
         # err = TokenErrorResponse(error="invalid_scope")
         #     return Response(err.to_json(), content="application/json")
         return None
@@ -797,9 +797,9 @@ class Provider(object):
 
         _sdb = self.sdb
 
-        LOG_DEBUG("- token -")
+        logger.debug("- token -")
         body = kwargs["request"]
-        LOG_DEBUG("body: %s" % body)
+        logger.debug("body: %s" % sanitize(body))
 
         areq = AccessTokenRequest().deserialize(body, "urlencoded")
 
@@ -811,7 +811,7 @@ class Provider(object):
             return Response(err.to_json(), content="application/json",
                             status="401 Unauthorized")
 
-        LOG_DEBUG("AccessTokenRequest: %s" % areq)
+        logger.debug("AccessTokenRequest: %s" % sanitize(areq))
 
         try:
             assert areq["grant_type"] == "authorization_code"
@@ -841,11 +841,11 @@ class Provider(object):
             return Response(err.to_json(), content="application/json",
                             status="401 Unauthorized")
 
-        LOG_DEBUG("_tinfo: %s" % _tinfo)
+        logger.debug("_tinfo: %s" % sanitize(_tinfo))
 
         atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
 
-        LOG_DEBUG("AccessTokenResponse: %s" % atr)
+        logger.debug("AccessTokenResponse: %s" % sanitize(atr))
 
         return Response(atr.to_json(), content="application/json")
 

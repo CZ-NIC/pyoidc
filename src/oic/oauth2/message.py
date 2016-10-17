@@ -1,3 +1,4 @@
+from collections import MutableMapping
 import copy
 import logging
 import json
@@ -20,6 +21,7 @@ from oic.exception import PyoidcError
 from oic.exception import MessageException
 from oic.oauth2.exception import VerificationError
 from oic.utils.keyio import update_keyjar, issuer_keys
+from oic.utils.sanitize import sanitize
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +124,7 @@ def jwt_header(txt):
     return json.loads(b64d(str(txt.split(".")[0])))
 
 
-class Message(object):
+class Message(MutableMapping):
     c_param = {}
     c_default = {}
     c_allowed_values = {}
@@ -135,6 +137,9 @@ class Message(object):
         self.jwe_header = None
         self.from_dict(kwargs)
         self.verify_ssl = True
+
+    def __iter__(self):
+        return iter(self._dict)
 
     def type(self):
         return self.__class__.__name__
@@ -467,8 +472,8 @@ class Message(object):
 
     def _add_key(self, keyjar, issuer, key, key_type=''):
         try:
-            logger.debug('keys for "{}": {}'.format(
-                issuer, issuer_keys(keyjar, issuer)))
+            n_keys = len(issuer_keys(keyjar, issuer))
+            logger.debug('{} keys for "{}"'.format(n_keys, issuer))
         except KeyError:
             logger.error('Issuer "{}" not in keyjar'.format(issuer))
 
@@ -589,8 +594,8 @@ class Message(object):
                 jso = _jwt.payload()
                 _header = _jwt.headers
 
-                logger.debug("Raw JSON: {}".format(jso))
-                logger.debug("header: {}".format(_header))
+                logger.debug("Raw JSON: {}".format(sanitize(jso)))
+                logger.debug("header: {}".format(sanitize(_header)))
                 if _header["alg"] == "none":
                     pass
                 elif verify:
@@ -603,7 +608,7 @@ class Message(object):
                             raise MissingSigningKey(
                                 "alg=%s" % _header["alg"])
 
-                    logger.debug("Verify keys: {}".format(key))
+                    logger.debug("Found signing key.")
                     try:
                         _jw.verify_compact(txt, key)
                     except NoSuitableSigningKeys:

@@ -2,6 +2,7 @@ import logging
 
 from oic.oauth2.exception import TimeFormatError
 from oic.exception import UnSupported
+from oic.utils.sanitize import sanitize
 
 from six import string_types
 import six.moves.http_cookiejar as cookielib
@@ -123,7 +124,7 @@ def set_cookie(cookiejar, kaka):
             # Ignore cookie
             logger.info(
                 "Time format error on %s parameter in received cookie" % (
-                    attr,))
+                    sanitize(attr),))
             continue
 
         for att, spec in PAIRS.items():
@@ -165,8 +166,8 @@ def match_to_(val, vlist):
 
 
 def verify_header(reqresp, body_type):
-    logger.debug("resp.headers: %s" % (reqresp.headers,))
-    logger.debug("resp.txt: %s" % (reqresp.text,))
+    logger.debug("resp.headers: %s" % (sanitize(reqresp.headers),))
+    logger.debug("resp.txt: %s" % (sanitize(reqresp.text),))
 
     if body_type == "":
         _ctype = reqresp.headers["content-type"]

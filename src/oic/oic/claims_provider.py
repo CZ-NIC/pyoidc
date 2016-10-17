@@ -23,6 +23,7 @@ from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 
 from oic.utils.http_util import Response
 from oic.utils.authn.client import bearer_auth
+from oic.utils.sanitize import sanitize
 
 # Used in claims.py
 # from oic.oic.message import RegistrationRequest
@@ -101,7 +102,7 @@ class ClaimsServer(Provider):
                                                    algorithm="RS256"),
                                    claims_names=list(info.keys()))
 
-        logger.info("RESPONSE: %s" % (cresp.to_dict(),))
+        logger.info("RESPONSE: %s" % (sanitize(cresp.to_dict()),))
         return cresp
 
     #noinspection PyUnusedLocal
@@ -123,7 +124,7 @@ class ClaimsServer(Provider):
 
         ucreq = self.srvmethod.parse_user_claims_request(request)
 
-        _log_info("request: %s" % ucreq)
+        _log_info("request: %s" % sanitize(ucreq))
 
         try:
             resp = self.client_authn(self, ucreq, http_authz)
@@ -138,13 +139,13 @@ class ClaimsServer(Provider):
         else:
             uic = None
 
-        _log_info("User info claims: %s" % uic)
+        _log_info("User info claims: %s" % sanitize(uic))
 
         #oicsrv, userdb, subject, client_id="", user_info_claims=None
         info = self.userinfo(ucreq["sub"], user_info_claims=uic,
                              client_id=ucreq["client_id"])
 
-        _log_info("User info: %s" % info)
+        _log_info("User info: %s" % sanitize(info))
 
         # Convert to message format
         info = OpenIDSchema(**info)
@@ -154,23 +155,23 @@ class ClaimsServer(Provider):
         else:
             cresp = self._distributed(info)
 
-        _log_info("response: %s" % cresp.to_dict())
+        _log_info("response: %s" % sanitize(cresp.to_dict()))
 
         return Response(cresp.to_json(), content="application/json")
 
     def claims_info_endpoint(self, request, authn):
         _log_info = logger.info
 
-        _log_info("Claims_info_endpoint query: '%s'" % request)
+        _log_info("Claims_info_endpoint query: '%s'" % sanitize(request))
 
         ucreq = self.srvmethod.parse_userinfo_claims_request(request)
-        #_log_info("request: %s" % ucreq)
+        #_log_info("request: %s" % sanitize(ucreq))
 
         # Bearer header or body
         access_token = bearer_auth(ucreq, authn)
         uiresp = OpenIDSchema(**self.info_store[access_token])
 
-        _log_info("returning: %s" % uiresp.to_dict())
+        _log_info("returning: %s" % sanitize(uiresp.to_dict()))
         return Response(uiresp.to_json(), content="application/json")
 
 

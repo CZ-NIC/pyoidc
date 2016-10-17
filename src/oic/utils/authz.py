@@ -3,6 +3,7 @@ import time
 
 from oic.utils.http_util import CookieDealer
 from oic.utils.authn.user import ToOld
+from oic.utils.sanitize import sanitize
 
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ class AuthzHandling(CookieDealer):
         if cookie is None:
             return None
         else:
-            logger.debug("kwargs: %s" % kwargs)
+            logger.debug("kwargs: %s" % sanitize(kwargs))
 
             val = self.getCookieValue(cookie, self.srv.cookie_name)
             if val is None:

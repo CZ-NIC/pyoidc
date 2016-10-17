@@ -18,6 +18,7 @@ from oic.utils.http_util import CookieDealer
 from oic.utils.http_util import InvalidCookieSign
 from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Unauthorized
+from oic.utils.sanitize import sanitize
 
 __author__ = 'rolandh'
 
@@ -75,7 +76,7 @@ class UserAuthnMethod(CookieDealer):
         if cookie is None:
             return None, 0
         else:
-            logger.debug("kwargs: %s" % kwargs)
+            logger.debug("kwargs: %s" % sanitize(kwargs))
 
             try:
                 val = self.getCookieValue(cookie, self.srv.cookie_name)
@@ -186,7 +187,7 @@ def create_return_url(base, query, **kwargs):
     else:
         _pre = base
 
-    logger.debug("kwargs: %s" % kwargs)
+    logger.debug("kwargs: %s" % sanitize(kwargs))
     if kwargs:
         return "%s?%s" % (_pre, url_encode_params(kwargs))
     else:
@@ -277,13 +278,13 @@ class UsernamePasswordMako(UserAuthnMethod):
         resp = Response()
 
         argv = self.templ_arg_func(end_point_index, **kwargs)
-        logger.info("do_authentication argv: %s" % argv)
+        logger.info("do_authentication argv: %s" % sanitize(argv))
         mte = self.template_lookup.get_template(self.mako_template)
         resp.message = mte.render(**argv).decode("utf-8")
         return resp
 
     def _verify(self, pwd, user):
-        assert pwd == self.passwd[user]
+        assert pwd == self.passwd[user], "Passwords don't match."
 
     def verify(self, request, **kwargs):
         """
@@ -295,7 +296,7 @@ class UsernamePasswordMako(UserAuthnMethod):
         wants the user after authentication.
         """
 
-        logger.debug("verify(%s)" % request)
+        logger.debug("verify(%s)" % sanitize(request))
         if isinstance(request, six.string_types):
             _dict = parse_qs(request)
         elif isinstance(request, dict):
@@ -303,15 +304,16 @@ class UsernamePasswordMako(UserAuthnMethod):
         else:
             raise ValueError("Wrong type of input")
 
-        logger.debug("dict: %s" % _dict)
-        logger.debug("passwd: %s" % self.passwd)
+        logger.debug("dict: %s" % sanitize(_dict))
         # verify username and password
         try:
             self._verify(_dict["password"][0], _dict["login"][0])
-        except (AssertionError, KeyError):
+        except (AssertionError, KeyError) as err:
+            logger.debug("Password verification failed: {}".format(err))
             resp = Unauthorized("Unknown user or wrong password")
             return resp, False
         else:
+            logger.debug("Password verification succeeded.")
             # if "cookie" not in kwargs or self.srv.cookie_name not in kwargs["cookie"]:
             headers = [self.create_cookie(_dict["login"][0], "upm")]
             try:

@@ -16,6 +16,7 @@ from oic.oic import RegistrationResponse
 from oic.oic import AuthorizationRequest
 from oic.oic.message import OpenIDSchema
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
+from oic.utils.sanitize import sanitize
 
 __author__ = 'roland'
 
@@ -64,21 +65,21 @@ class Client(oic.Client):
 
         request_args.update(kwargs)
         cis = self.construct_AuthorizationRequest(request_args=request_args)
-        logger.debug("request: %s" % cis)
+        logger.debug("request: %s" % sanitize(cis))
 
         url, body, ht_args, cis = self.uri_and_body(AuthorizationRequest, cis,
                                                     method="GET",
                                                     request_args=request_args)
 
         self.authz_req[request_args['state']] = cis
-        logger.debug("body: %s" % body)
-        logger.info("URL: %s" % url)
-        logger.debug("ht_args: %s" % ht_args)
+        logger.debug("body: %s" % sanitize(body))
+        logger.info("URL: %s" % sanitize(url))
+        logger.debug("ht_args: %s" % sanitize(ht_args))
 
         resp = Redirect(str(url))
         if ht_args:
             resp.headers.extend([(a, b) for a, b in ht_args.items()])
-        logger.debug("resp_headers: %s" % resp.headers)
+        logger.debug("resp_headers: %s" % sanitize(resp.headers))
         return resp
 
     def has_access_token(self, **kwargs):
@@ -92,7 +93,7 @@ class Client(oic.Client):
         return False
 
     def _err(self, txt):
-        logger.error(txt)
+        logger.error(sanitize(txt))
         raise OIDCError(txt)
 
     def callback(self, response, session, format='dict'):
@@ -107,10 +108,11 @@ class Client(oic.Client):
             authresp = self.parse_response(AuthorizationResponse, response,
                                            sformat=format, keyjar=self.keyjar)
         except ResponseError:
-            logger.error("Could not parse response: '{}'".format(response))
+            msg = "Could not parse response: '{}'"
+            logger.error(msg.format(sanitize(response)))
             raise OIDCError("Problem parsing response")
 
-        logger.info("AuthorizationReponse: {}".format(authresp))
+        logger.info("AuthorizationReponse: {}".format(sanitize(authresp)))
         if isinstance(authresp, ErrorResponse):
             if authresp["error"] == "login_required":
                 return self.create_authn_request(session)
@@ -150,13 +152,15 @@ class Client(oic.Client):
                     request_args=args,
                     authn_method=self.registration_response[
                         "token_endpoint_auth_method"])
-                logger.info('Access token response: {}'.format(atresp))
+                msg = 'Access token response: {}'
+                logger.info(msg.format(sanitize(atresp)))
             except Exception as err:
                 logger.error("%s" % err)
                 raise
 
             if isinstance(atresp, ErrorResponse):
-                self._err('Error response: {}'.format(atresp.to_dict()))
+                msg = 'Error response: {}'
+                self._err(msg.format(sanitize(atresp.to_dict())))
 
             _token = atresp['access_token']
 
@@ -203,7 +207,7 @@ class Client(oic.Client):
                 if _id_token['sub'] != userinfo['sub']:
                     self._err("Invalid response: userid mismatch")
 
-                logger.debug("UserInfo: %s" % inforesp)
+                logger.debug("UserInfo: %s" % sanitize(inforesp))
 
                 try:
                     self.id_token[user_id] = _id_token
@@ -365,7 +369,7 @@ class OIDCClients(object):
         else:
             # Gather OP information
             _pcr = client.provider_config(issuer)
-            logger.info('Provider info: {}'.format(_pcr.to_dict()))
+            logger.info('Provider info: {}'.format(sanitize(_pcr.to_dict())))
             # register the client
             _cinfo = self.config.CLIENTS[""]["client_info"]
             reg_args = copy.copy(_cinfo)
@@ -389,7 +393,8 @@ class OIDCClients(object):
                 reg_args['jwks_uri'] = client.jwks_uri
 
             rr = client.register(_pcr["registration_endpoint"], **reg_args)
-            logger.info('Registration response: {}'.format(rr.to_dict()))
+            msg = 'Registration response: {}'
+            logger.info(msg.format(sanitize(rr.to_dict())))
 
             try:
                 client.behaviour.update(**self.config.CLIENTS[""]["behaviour"])

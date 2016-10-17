@@ -5,6 +5,7 @@ from oic.exception import MissingAttribute
 from oic.oic import OpenIDSchema
 from oic.oic.claims_provider import ClaimsClient
 from oic.utils.userinfo import UserInfo
+from oic.utils.sanitize import sanitize
 
 
 __author__ = 'rolandh'
@@ -122,9 +123,10 @@ class DistributedAggregatedUserInfo(UserInfo):
 
                 for srv, what in cpoints.items():
                     cc = self.oidcsrv.claims_clients[srv]
-                    logger.debug("srv: %s, what: %s" % (srv, what))
+                    logger.debug("srv: %s, what: %s" % (sanitize(srv),
+                                                        sanitize(what)))
                     _res = self._collect_distributed(srv, cc, userid, what)
-                    logger.debug("Got: %s" % _res)
+                    logger.debug("Got: %s" % sanitize(_res))
                     for key, val in _res.items():
                         if key in result:
                             result[key].update(val)
