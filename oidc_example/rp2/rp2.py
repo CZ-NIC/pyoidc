@@ -62,7 +62,7 @@ class Session(object):
     def __getitem__(self, item):
         if item == 'state':
             return uuid.uuid4().urn
-        
+
         try:
             return self.session[item]
         except KeyError:
@@ -70,7 +70,7 @@ class Session(object):
 
     def __setitem__(self, key, value):
         self.session[key] = value
-        
+
     def clear(self):
         for key in list(self.session.keys()):
             del self.session[key]
@@ -93,7 +93,7 @@ def static(environ, start_response, logger, path):
     logger.info("[static]sending: %s" % (path,))
 
     try:
-        text = open(path).read()
+        data = open(path, 'rb').read()
         if path.endswith(".ico"):
             start_response('200 OK', [('Content-Type', "image/x-icon")])
         elif path.endswith(".html"):
@@ -106,7 +106,7 @@ def static(environ, start_response, logger, path):
             start_response('200 OK', [('Content-Type', 'text/css')])
         else:
             start_response('200 OK', [('Content-Type', "text/xml")])
-        return [text]
+        return [data]
     except IOError:
         resp = NotFound()
         return resp(environ, start_response)
