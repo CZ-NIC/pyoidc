@@ -707,6 +707,13 @@ class KeyJar(object):
                 self.issuer_keys[issuer] = [self.keybundle_cls(
                     _keys, verify_ssl=self.verify_ssl)]
 
+    def add_keyjar(self, keyjar):
+        for iss, kblist in keyjar.items():
+            try:
+                self.issuer_keys[iss].extend(kblist)
+            except KeyError:
+                self.issuer_keys[iss] = kblist
+
     def dump(self):
         res = {}
         for issuer in self.issuer_keys.keys():

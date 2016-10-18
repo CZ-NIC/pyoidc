@@ -34,21 +34,24 @@ class JWT(object):
         _jwe = JWE(payload, **kwargs)
         return _jwe.encrypt(keys, context="public")
 
-    def pack(self, kid='', owner='', **kwargs):
+    def pack_init(self):
+        argv = {'iss': self.iss, 'iat': utc_time_sans_frac()}
+        argv['exp'] = argv['iat'] + self.lifetime
+        return argv
+
+    def pack_key(self, owner='', kid=''):
         keys = self.keyjar.get_signing_key(jws.alg2keytype(self.sign_alg),
                                            owner=owner, kid=kid)
 
         if not keys:
             raise NoSuitableSigningKeys('kid={}'.format(kid))
 
-        key = keys[0]  # Might be more then one if kid == ''
+        return keys[0]  # Might be more then one if kid == ''
 
-        if key.kid:
-            kwargs['kid'] = key.kid
-
-        iat = utc_time_sans_frac()
-        if not 'exp' in kwargs:
-            kwargs['exp'] = iat + self.lifetime
+    def pack(self, kid='', owner='', cls_instance=None, **kwargs):
+        _args = self.pack_init()
+        _key = self.pack_key(owner, kid)
+        _args['kid'] = _key.kid
 
         try:
             _encrypt = kwargs['encrypt']
@@ -57,7 +60,13 @@ class JWT(object):
         else:
             del kwargs['encrypt']
 
-        _jwt = self.message_type(iss=self.iss, iat=iat, **kwargs)
+        _args.update(kwargs)
+
+        if cls_instance:
+            cls_instance.update(_args)
+            _jwt = cls_instance
+        else:
+            _jwt = self.message_type(**_args)
 
         if 'jti' in self.message_type.c_param:
             try:
@@ -67,7 +76,7 @@ class JWT(object):
 
             _jwt['jti'] = _jti
 
-        _jws = _jwt.to_jwt([key], self.sign_alg)
+        _jws = _jwt.to_jwt([_key], self.sign_alg)
         if _encrypt:
             return self._encrypt(_jws)
         else:
