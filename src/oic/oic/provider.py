@@ -1570,14 +1570,7 @@ class Provider(AProvider):
 
         # Add the client_secret as a symmetric key to the keyjar
         if client_secret:
-            _kc = KeyBundle([{"kty": "oct", "key": client_secret,
-                              "use": "enc"},
-                             {"kty": "oct", "key": client_secret,
-                              "use": "sig"}])
-            try:
-                self.keyjar[client_id].append(_kc)
-            except KeyError:
-                self.keyjar[client_id] = [_kc]
+            self.keyjar.add_symmetric(client_id, str(client_secret))
 
         self.cdb[client_id] = _cinfo
 
