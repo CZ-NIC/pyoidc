@@ -51,7 +51,7 @@ class PBase(object):
 
         if self.cookiejar:
             _kwargs["cookies"] = self._cookies()
-            logger.debug("SENT {} COOKIES" % (len(_kwargs["cookies"]),))
+            logger.debug("SENT {} COOKIES".format(len(_kwargs["cookies"])))
 
         if self.req_callback is not None:
             _kwargs = self.req_callback(method, url, **_kwargs)
