@@ -11,7 +11,7 @@ from six import string_types
 
 from Cryptodome.PublicKey import RSA
 
-from jwkest import as_unicode
+from jwkest import as_unicode, b64e, as_bytes
 from jwkest import jwe
 from jwkest import jws
 from jwkest.ecc import NISTEllipticCurve
@@ -431,14 +431,15 @@ class KeyJar(object):
         if issuer not in self.issuer_keys:
             self.issuer_keys[issuer] = []
 
+        _key = b64e(as_bytes(key))
         if usage is None:
             self.issuer_keys[issuer].append(
-                self.keybundle_cls([{"kty": "oct", "key": key}]))
+                self.keybundle_cls([{"kty": "oct", "k": _key}]))
         else:
             for use in usage:
                 self.issuer_keys[issuer].append(
                     self.keybundle_cls([{"kty": "oct",
-                                         "key": key,
+                                         "k": _key,
                                          "use": use}]))
 
     def add_kb(self, issuer, kb):

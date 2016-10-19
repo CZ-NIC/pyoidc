@@ -2,6 +2,7 @@
 import os
 
 import pytest
+from jwkest import b64e, as_unicode
 
 from oic.oauth2 import MissingSigningKey
 from oic.oic import AuthorizationResponse
@@ -318,3 +319,12 @@ def test_get_signing_key_use_undefined():
 
     keys = kj.get_signing_key(key_type='rsa', kid='rsa1')
     assert len(keys) == 1
+
+
+def test_symkey():
+    kj = KeyJar()
+    kj.add_symmetric(
+        "", 'df34db91c16613deba460752522d28f6ebc8a73d0d9185836270c26b')
+    key = kj.get_encrypt_key(key_type='oct')[0]
+    ek = key.encryption_key('A128KW')
+    assert as_unicode(b64e(ek)) == 'xCo9VhtommCTGMWi-RyWBw'
