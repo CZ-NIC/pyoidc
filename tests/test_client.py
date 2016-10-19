@@ -4,6 +4,7 @@ import base64
 import os
 import pytest
 import six
+from jwkest import as_bytes, b64e
 
 from jwkest.jws import JWS
 from jwkest.jwt import JWT
@@ -215,7 +216,8 @@ class TestClientSecretJWT(object):
         assert _jwt.headers == {'alg': 'HS256'}
 
         _rj = JWS()
-        info = _rj.verify_compact(cas, [SYMKey(key=client.client_secret)])
+        info = _rj.verify_compact(
+            cas, [SYMKey(k=b64e(as_bytes(client.client_secret)))])
 
         assert _eq(info.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
 
