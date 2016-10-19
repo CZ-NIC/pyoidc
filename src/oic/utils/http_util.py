@@ -106,7 +106,7 @@ class Redirect(Response):
 
     def __call__(self, environ, start_response, **kwargs):
         location = self.message
-        self.headers.append(('location', location))
+        self.headers.append(('location', str(location)))
         start_response(self.status, self.headers)
         return self.response((location, location, location))
 
@@ -119,7 +119,7 @@ class SeeOther(Response):
 
     def __call__(self, environ, start_response, **kwargs):
         location = self.message
-        self.headers.append(('location', location))
+        self.headers.append(('location', str(location)))
         start_response(self.status, self.headers)
         return self.response((location, location, location))
 
@@ -259,8 +259,7 @@ def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp=""):
     cookie = SimpleCookie()
     if not timestamp:
         timestamp = str(int(time.time()))
-    signature = cookie_signature(seed, load.encode("utf-8"),
-                                 timestamp.encode("utf-8"))
+    signature = cookie_signature(seed, load, timestamp)
     cookie[name] = "|".join([load, timestamp, signature])
     if path:
         cookie[name]["path"] = path
@@ -270,7 +269,7 @@ def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp=""):
         cookie[name]["expires"] = _expiration(expire,
                                               "%a, %d-%b-%Y %H:%M:%S GMT")
 
-    return tuple(cookie.output().split(": ", 1))
+    return tuple(str(cookie).split(": ", 1))
 
 
 def parse_cookie(name, seed, kaka):
@@ -292,8 +291,7 @@ def parse_cookie(name, seed, kaka):
         if len(parts) != 3:
             return None
         # verify the cookie signature
-        sig = cookie_signature(seed, parts[0].encode("utf-8"),
-                               parts[1].encode("utf-8"))
+        sig = cookie_signature(seed, parts[0], parts[1])
         if sig != parts[2]:
             raise InvalidCookieSign()
 
@@ -415,7 +413,7 @@ class CookieDealer(object):
 
             for param in ["seed", "iv"]:
                 if not getattr(srv, param, None):
-                    setattr(srv, param, rndstr().encode("utf-8"))
+                    setattr(srv, param, rndstr())
 
     def delete_cookie(self, cookie_name=None):
         if cookie_name is None:
@@ -436,7 +434,7 @@ class CookieDealer(object):
             # Pad the message to be multiples of 16 bytes in length
             lm = len(_msg)
             _msg = _msg.ljust(lm + 16 - lm % 16, self.pad_chr)
-            info = encrypt(self.srv.symkey, _msg, self.srv.iv).decode("utf-8")
+            info = encrypt(self.srv.symkey, _msg, self.srv.iv)
         else:
             info = _msg
         cookie = make_cookie(cookie_name, info, self.srv.seed,
