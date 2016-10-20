@@ -8,7 +8,9 @@ from future.backports.urllib.parse import urlencode
 from future.backports.urllib.parse import parse_qs
 from past.builtins import basestring
 
-from jwkest import b64d, as_unicode
+from jwkest import as_bytes
+from jwkest import as_unicode
+from jwkest import b64d
 from jwkest import jwe
 from jwkest import jws
 from jwkest.jwe import JWE
@@ -577,7 +579,8 @@ class Message(MutableMapping):
             else:
                 dkeys = []
 
-            txt, _res = as_unicode(_jw.decrypt(txt, dkeys))
+            txt, _res = _jw.decrypt(txt, dkeys)
+            txt = as_unicode(txt)
             self.jwe_header = _jw.jwt.headers
 
         _jw = jws.factory(txt)
@@ -723,13 +726,15 @@ class Message(MutableMapping):
         return item in self._dict
 
     def request(self, location, fragment_enc=False):
+        _l = as_bytes(location)
+        _qp = as_bytes(self.to_urlencoded())
         if fragment_enc:
-            return "%s#%s" % (location, self.to_urlencoded())
+            return "%s#%s" % (_l, _qp)
         else:
             if "?" in location:
-                return "%s&%s" % (location, self.to_urlencoded())
+                return "%s&%s" % (_l, _qp)
             else:
-                return "%s?%s" % (location, self.to_urlencoded())
+                return "%s?%s" % (_l, _qp)
 
     def __setitem__(self, key, value):
         try:
