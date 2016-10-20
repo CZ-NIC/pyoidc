@@ -422,17 +422,22 @@ class Provider(AProvider):
             # Do a HTTP get
             logger.debug('Get request from request_uri')
             try:
-                _req = self.server.http_request(areq["request_uri"])
+                http_req = self.server.http_request(areq["request_uri"])
             except ConnectionError:
                 logger.error('Connection Error')
                 return self._authz_error("invalid_request_uri")
 
-            if not _req:
+            if not http_req:
                 logger.error('Nothing returned')
                 return self._authz_error("invalid_request_uri")
 
+            if http_req.status_code >= 400:
+                logger.error('HTTP error {}:{}'.format(http_req.status_code,
+                                                       http_req.text))
+                return self._redirect_authz_error('invalid_request',
+                                                  redirect_uri)
             try:
-                resq = self._parse_openid_request(_req.text)
+                resq = self._parse_openid_request(http_req.text)
             except Exception as err:
                 logger.err(
                     '{} encountered while parsing fetched request'.format(err))
