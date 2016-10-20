@@ -439,7 +439,7 @@ class Provider(AProvider):
             try:
                 resq = self._parse_openid_request(http_req.text)
             except Exception as err:
-                logger.err(
+                logger.error(
                     '{} encountered while parsing fetched request'.format(err))
                 return self._redirect_authz_error(
                     "invalid_openid_request_object", redirect_uri)
