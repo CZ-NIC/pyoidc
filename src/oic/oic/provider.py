@@ -420,20 +420,26 @@ class Provider(AProvider):
         """
         if "request_uri" in areq:
             # Do a HTTP get
+            logger.debug('Get request from request_uri')
             try:
                 _req = self.server.http_request(areq["request_uri"])
             except ConnectionError:
+                logger.error('Connection Error')
                 return self._authz_error("invalid_request_uri")
 
             if not _req:
+                logger.error('Nothing returned')
                 return self._authz_error("invalid_request_uri")
 
             try:
                 resq = self._parse_openid_request(_req.text)
             except Exception as err:
+                logger.err(
+                    '{} encountered while parsing fetched request'.format(err))
                 return self._redirect_authz_error(
                     "invalid_openid_request_object", redirect_uri)
 
+            logger.debig('Fetched request: {}'.format(resq))
             areq["request"] = resq
 
         # The "request" in areq case is handled by .verify()
@@ -717,7 +723,7 @@ class Provider(AProvider):
                 raise InvalidRequest('Contains unsupported response type')
 
         if before != req.to_dict():
-            logging.warning('Request modified ! From {} to {}'.format(
+            logger.warning('Request modified ! From {} to {}'.format(
                 before, req.to_dict()))
 
         return req
@@ -1741,7 +1747,7 @@ class Provider(AProvider):
                         not_supported[key] = ''
 
         if not_supported:
-            logging.error(
+            logger.error(
                 "Server doesn't support the following features: {}".format(
                     not_supported))
             return False
