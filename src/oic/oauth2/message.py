@@ -8,7 +8,6 @@ from future.backports.urllib.parse import urlencode
 from future.backports.urllib.parse import parse_qs
 from past.builtins import basestring
 
-from jwkest import as_bytes
 from jwkest import as_unicode
 from jwkest import b64d
 from jwkest import jwe
@@ -726,8 +725,8 @@ class Message(MutableMapping):
         return item in self._dict
 
     def request(self, location, fragment_enc=False):
-        _l = as_bytes(location)
-        _qp = as_bytes(self.to_urlencoded())
+        _l = as_unicode(location)
+        _qp = as_unicode(self.to_urlencoded())
         if fragment_enc:
             return "%s#%s" % (_l, _qp)
         else:
