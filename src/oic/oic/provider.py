@@ -444,7 +444,7 @@ class Provider(AProvider):
                 return self._redirect_authz_error(
                     "invalid_openid_request_object", redirect_uri)
 
-            logger.debig('Fetched request: {}'.format(resq))
+            logger.debug('Fetched request: {}'.format(resq))
             areq["request"] = resq
 
         # The "request" in areq case is handled by .verify()
