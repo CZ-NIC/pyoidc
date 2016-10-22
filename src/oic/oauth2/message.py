@@ -550,13 +550,13 @@ class Message(MutableMapping):
         :param kwargs: Extra key word arguments
         :return: A class instance
         """
-        if key is None and keyjar is not None:
-            key = keyjar.get_verify_key(owner="")
-        elif key is None:
-            key = []
-
-        if keyjar is not None and "sender" in kwargs:
-            key.extend(keyjar.get_verify_key(owner=kwargs["sender"]))
+        # if key is None and keyjar is not None:
+        #     key = keyjar.get_verify_key(owner="")
+        # elif key is None:
+        #     key = []
+        #
+        # if keyjar is not None and "sender" in kwargs:
+        #     key.extend(keyjar.get_verify_key(owner=kwargs["sender"]))
 
         _jw = jwe.factory(txt)
         if _jw:
@@ -573,6 +573,8 @@ class Message(MutableMapping):
                         _jw["enc"], kwargs["algs"]["encenc"]))
             if keyjar:
                 dkeys = keyjar.get_decrypt_key(owner="")
+                if "sender" in kwargs:
+                    dkeys.extend(keyjar.get_verify_key(owner=kwargs["sender"]))
             elif key:
                 dkeys = key
             else:
@@ -596,6 +598,14 @@ class Message(MutableMapping):
                 _jwt = JWT().unpack(txt)
                 jso = _jwt.payload()
                 _header = _jwt.headers
+
+                if key is None and keyjar is not None:
+                    key = keyjar.get_verify_key(owner="")
+                elif key is None:
+                    key = []
+
+                if keyjar is not None and "sender" in kwargs:
+                    key.extend(keyjar.get_verify_key(owner=kwargs["sender"]))
 
                 logger.debug("Raw JSON: {}".format(sanitize(jso)))
                 logger.debug("header: {}".format(sanitize(_header)))
