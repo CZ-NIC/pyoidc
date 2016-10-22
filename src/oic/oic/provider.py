@@ -420,7 +420,8 @@ class Provider(AProvider):
         """
         if "request_uri" in areq:
             # Do a HTTP get
-            logger.debug('Get request from request_uri')
+            logger.debug('Get request from request_uri: {}'.format(
+                areq["request_uri"]))
             try:
                 http_req = self.server.http_request(areq["request_uri"])
             except ConnectionError:
@@ -437,10 +438,12 @@ class Provider(AProvider):
                 return self._redirect_authz_error('invalid_request',
                                                   redirect_uri)
             try:
+                logger.debug('request txt: {}'.format(http_req.text))
                 resq = self._parse_openid_request(http_req.text)
             except Exception as err:
                 logger.error(
-                    '{} encountered while parsing fetched request'.format(err))
+                    '{}:{} encountered while parsing fetched request'.format(
+                        err.__class__, err))
                 return self._redirect_authz_error(
                     "invalid_openid_request_object", redirect_uri)
 

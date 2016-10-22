@@ -119,6 +119,11 @@ class SeeOther(Response):
 
     def __call__(self, environ, start_response, **kwargs):
         location = self.message
+        if PY2:
+            try:
+                location = location.encode('utf8')
+            except UnicodeDecodeError:
+                pass
         self.headers.append(('location', location))
         start_response(self.status, self.headers)
         return self.response((location, location, location))

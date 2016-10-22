@@ -578,6 +578,7 @@ class Message(MutableMapping):
             else:
                 dkeys = []
 
+            logger.debug('Decrypt class: {}'.format(_jw.__class__))
             txt, _res = _jw.decrypt(txt, dkeys)
             txt = as_unicode(txt)
             self.jwe_header = _jw.jwt.headers
