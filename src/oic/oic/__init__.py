@@ -1378,7 +1378,8 @@ class Server(oauth2.Server):
         if sformat == "json":
             request = request().from_json(data)
         elif sformat == "jwt":
-            request = request().from_jwt(data, keyjar=self.keyjar)
+            request = request().from_jwt(data, keyjar=self.keyjar,
+                                         sender=client_id)
         elif sformat == "urlencoded":
             if '?' in data:
                 parts = urlparse(data)

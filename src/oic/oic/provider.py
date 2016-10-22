@@ -365,8 +365,9 @@ class Provider(AProvider):
 
         return _signed_jwt
 
-    def _parse_openid_request(self, request):
-        return OpenIDRequest().from_jwt(request, keyjar=self.keyjar)
+    def _parse_openid_request(self, request, **kwargs):
+        return OpenIDRequest().from_jwt(request, keyjar=self.keyjar,
+                                        **kwargs)
 
     def _parse_id_token(self, id_token, redirect_uri):
         try:
@@ -439,7 +440,8 @@ class Provider(AProvider):
                                                   redirect_uri)
             try:
                 logger.debug('request txt: {}'.format(http_req.text))
-                resq = self._parse_openid_request(http_req.text)
+                resq = self._parse_openid_request(http_req.text,
+                                                  sender=areq['client_id'])
             except Exception as err:
                 logger.error(
                     '{}:{} encountered while parsing fetched request'.format(
