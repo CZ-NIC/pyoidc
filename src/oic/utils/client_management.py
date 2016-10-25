@@ -57,7 +57,7 @@ class CDB(object):
         return self.cdb.items()
 
     def create(self, redirect_uris=None, policy_uri="", logo_uri="",
-               jwks_uri=""):
+               jwks_uri="", **kwargs):
         if redirect_uris is None:
             print(
                 'Enter redirect_uris one at the time, end with a blank line: ')
