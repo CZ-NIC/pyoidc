@@ -1052,6 +1052,7 @@ class Provider(AProvider):
 
         if 'state' in req:
             if self.sdb[req['code']]['state'] != req['state']:
+                logger.error('State value mismatch')
                 err = TokenErrorResponse(error="unauthorized_client")
                 return Unauthorized(err.to_json(), content="application/json")
 
@@ -1069,6 +1070,7 @@ class Provider(AProvider):
             client_id = ""
 
         if not client_id:
+            logger.error('No client_id, authentication failed')
             err = TokenErrorResponse(error="unauthorized_client",
                                      error_description=msg)
             return Unauthorized(err.to_json(), content="application/json")

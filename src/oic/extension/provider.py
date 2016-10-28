@@ -670,6 +670,7 @@ class Provider(provider.Provider):
 
         if 'state' in areq:
             if self.sdb[areq['code']]['state'] != areq['state']:
+                logger.error('State value mismathc')
                 err = TokenErrorResponse(error="unauthorized_client")
                 return Unauthorized(err.to_json(), content="application/json")
 
@@ -757,6 +758,7 @@ class Provider(provider.Provider):
         try:
             client_id = self.client_authn(self, areq, authn)
         except FailedAuthentication as err:
+            logger.error(err)
             err = TokenErrorResponse(error="unauthorized_client",
                                      error_description="%s" % err)
             return Response(err.to_json(), content="application/json",
@@ -817,6 +819,7 @@ class Provider(provider.Provider):
         try:
             client_id = self.client_authn(self, req, authn)
         except FailedAuthentication as err:
+            logger.error(err)
             err = TokenErrorResponse(error="unauthorized_client",
                                      error_description="%s" % err)
             return Response(err.to_json(), content="application/json",

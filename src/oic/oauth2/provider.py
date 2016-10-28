@@ -445,6 +445,9 @@ class Provider(object):
         try:
             _cinfo = self.cdb[areq['client_id']]
         except KeyError:
+            logger.error(
+                'Client ID ({}) not in client database'.format(
+                    areq['client_id']))
             return self._error('unauthorized_client', 'unknown client')
         else:
             try:
@@ -806,6 +809,7 @@ class Provider(object):
         try:
             client = self.client_authn(self, areq, authn)
         except FailedAuthentication as err:
+            logger.error(err)
             err = TokenErrorResponse(error="unauthorized_client",
                                      error_description="%s" % err)
             return Response(err.to_json(), content="application/json",
