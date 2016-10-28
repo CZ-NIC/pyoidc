@@ -414,7 +414,11 @@ if __name__ == '__main__':
     sys.path.insert(0, ".")
     config = importlib.import_module(args.config)
 
-    _issuer = args.issuer[0]
+    if args.issuer:
+        _issuer = args.issuer[0]
+    else:
+        _issuer = config.issuer
+
     if _issuer[-1] != '/':
         _issuer += '/'
 
