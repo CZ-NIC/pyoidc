@@ -411,6 +411,7 @@ if __name__ == '__main__':
     # Client data base
     cdb = shelve_wrapper.open("client_db")
 
+    logger.info("Known client_id's: {}".format(cdb.keys()))
     sys.path.insert(0, ".")
     config = importlib.import_module(args.config)
 
