@@ -13,7 +13,7 @@ from oic.exception import UnknownAssertionType
 from oic.exception import NotForMe
 from oic import rndstr
 from oic.oauth2 import VREQUIRED
-from oic.oauth2 import AccessTokenRequest
+from oic.oauth2 import AccessTokenRequest, RefreshAccessTokenRequest
 from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.oic import REQUEST2ENDPOINT
 from oic.oic import DEF_SIGN_ALG
@@ -119,11 +119,21 @@ class ClientSecretBasic(ClientAuthnMethod):
         except KeyError:
             pass
 
-        if cis and not cis.c_param["client_id"][VREQUIRED]:
-            try:
-                del cis["client_id"]
-            except KeyError:
-                pass
+        if cis:
+            if not cis.c_param["client_id"][VREQUIRED]:
+                try:
+                    del cis["client_id"]
+                except KeyError:
+                    pass
+
+            # From RFC 6749 section 3.2.1:
+            # 'In the "authorization_code" "grant_type" request to the token
+            # endpoint, an unauthenticated client MUST send its "client_id"'.
+            if isinstance(cis, (AccessTokenRequest, RefreshAccessTokenRequest)):
+                if "grant_type" in cis:
+                    if cis["grant_type"] == "authorization_code":
+                        if self.cli is not None:
+                            cis["client_id"] = self.cli.client_id
 
         return http_args
 
