@@ -21,7 +21,8 @@ from jwkest.jws import NoSuitableSigningKeys
 from oic.exception import PyoidcError
 from oic.exception import MessageException
 from oic.oauth2.exception import VerificationError
-from oic.utils.keyio import update_keyjar, issuer_keys
+from oic.utils.keyio import key_summary
+from oic.utils.keyio import update_keyjar
 from oic.utils.sanitize import sanitize
 
 logger = logging.getLogger(__name__)
@@ -473,7 +474,7 @@ class Message(MutableMapping):
 
     def _add_key(self, keyjar, issuer, key, key_type=''):
         try:
-            n_keys = len(issuer_keys(keyjar, issuer))
+            n_keys = len(key_summary(keyjar, issuer))
             logger.debug('{} keys for "{}"'.format(n_keys, issuer))
         except KeyError:
             logger.error('Issuer "{}" not in keyjar'.format(issuer))
