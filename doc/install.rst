@@ -77,7 +77,7 @@ The development has been done using 2.7.
 There will shortly be a 3.4 version.
 
 Prerequisites
-==============
+=============
 
 For installing pyOIDC you will need
 
@@ -113,7 +113,7 @@ If you wish your LDAP tests to pass, ensure you have installed the following pac
 * python-ldap (not supported in windows)
 
 Debian/Mac
-==============
+==========
 If you don't want to install pyoidc and all it's dependencies manually you can use yais
 
 Open a terminal and enter::
