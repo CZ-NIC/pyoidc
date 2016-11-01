@@ -101,7 +101,11 @@ BEHAVIOR = {
         },
         'single': ['response_types'],
         'allow': {
-            'grant_types': ['authorization_code', 'implicit']
+            'grant_types': [
+                'authorization_code',
+                'implicit',
+                #  'client_credentials'  Not allowed
+            ]
         }
     }
 }

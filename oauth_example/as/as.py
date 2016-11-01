@@ -9,8 +9,9 @@ import sys
 import traceback
 
 from authn_setup import authn_setup
-from aatest import as_unicode
 from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
+from otest import as_unicode
+
 from oic.extension.provider import Provider
 from oic.extension.provider import RevocationEndpoint
 from oic.extension.provider import IntrospectionEndpoint
@@ -116,7 +117,7 @@ def static(environ, start_response, path):
     LOGGER.info("[static]sending: %s" % (path,))
 
     try:
-        text = open(path).read()
+        text = open(path, 'rb').read()
         if path.endswith(".ico"):
             start_response('200 OK', [('Content-Type', "image/x-icon")])
         elif path.endswith(".html"):
