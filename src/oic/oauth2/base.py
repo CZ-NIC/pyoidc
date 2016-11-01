@@ -26,10 +26,26 @@ class PBase(object):
         # self.cookies = {}
         self.cookiejar = cookielib.FileCookieJar()
         self.ca_certs = ca_certs
+
         if ca_certs:
-            self.request_args["verify"] = verify_ssl
+            if verify_ssl is False:
+                raise ValueError(
+                    'conflict: ca_certs defined, but verify_ssl is False')
+
+            # Instruct requests to verify certificate against the CA cert
+            # bundle located at the path given by `ca_certs`.
+            self.request_args["verify"] = ca_certs
+
+        elif verify_ssl:
+            # Instruct requests to verify server certificates against the
+            # default CA bundle provided by 'certifi'. See
+            # http://docs.python-requests.org/en/master/user/advanced/#ca-certificates
+            self.request_args["verify"] = True
+
         else:
+            # Instruct requests to n ot perform server cert verification.
             self.request_args["verify"] = False
+
         self.event_store = None
         self.req_callback = None
 
