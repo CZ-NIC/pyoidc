@@ -1034,7 +1034,7 @@ def update_keyjar(keyjar):
             kb.update()
 
 
-def issuer_keys(keyjar, issuer):
+def key_summary(keyjar, issuer):
     try:
         kbl = keyjar[issuer]
     except KeyError:
@@ -1043,7 +1043,10 @@ def issuer_keys(keyjar, issuer):
         l = []
         for kb in kbl:
             for key in kb.keys():
-                l.append('{}:{}:{}'.format(key.kty, key.use, key.kid))
+                if key.inactive_since:
+                    l.append('*{}:{}:{}'.format(key.kty, key.use, key.kid))
+                else:
+                    l.append('{}:{}:{}'.format(key.kty, key.use, key.kid))
         return ', '.join(l)
 
 
