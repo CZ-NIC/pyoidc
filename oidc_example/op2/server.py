@@ -418,7 +418,10 @@ if __name__ == '__main__':
     if args.issuer:
         _issuer = args.issuer[0]
     else:
-        _issuer = config.issuer
+        if args.port not in [80, 443]:
+            _issuer = config.issuer + ':{}'.format(args.port)
+        else:
+            _issuer = config.issuer
 
     if _issuer[-1] != '/':
         _issuer += '/'
@@ -457,10 +460,10 @@ if __name__ == '__main__':
                 end_points = config.AUTHENTICATION[
                     "JavascriptLogin"]["END_POINTS"]
                 full_end_point_paths = [
-                    "%s/%s" % (config.issuer, ep) for ep in end_points]
+                    "{}{}".format(_issuer, ep) for ep in end_points]
                 javascript_login_authn = JavascriptFormMako(
                     None, "javascript_login.mako", LOOKUP, PASSWD,
-                    "%s/authorization" % config.issuer, None,
+                    "{}authorization".format(_issuer), None,
                     full_end_point_paths)
             ac.add("", javascript_login_authn, "", "")
             JAVASCRIPT_END_POINT_INDEX = 0
@@ -475,8 +478,8 @@ if __name__ == '__main__':
 
             if not saml_authn:
                 saml_authn = SAMLAuthnMethod(
-                    None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
-                    "%s/authorization" % config.issuer,
+                    None, LOOKUP, config.SAML, config.SP_CONFIG, _issuer,
+                    "{}authorization".format(_issuer),
                     userinfo=config.USERINFO)
             ac.add("", saml_authn, "", "")
             SAML_END_POINT_INDEX = 0
@@ -492,8 +495,8 @@ if __name__ == '__main__':
 
             if not saml_authn:
                 saml_authn = SAMLAuthnMethod(
-                    None, LOOKUP, config.SAML, config.SP_CONFIG, config.issuer,
-                    "%s/authorization" % config.issuer,
+                    None, LOOKUP, config.SAML, config.SP_CONFIG, _issuer,
+                    "{}authorization".format(_issuer),
                     userinfo=config.USERINFO)
             PASSWORD_END_POINT_INDEX = 1
             SAML_END_POINT_INDEX = 1
@@ -518,10 +521,10 @@ if __name__ == '__main__':
                 end_points = config.AUTHENTICATION[
                     "JavascriptLogin"]["END_POINTS"]
                 full_end_point_paths = [
-                    "%s/%s" % (config.issuer, ep) for ep in end_points]
+                    "{}{}".format(_issuer, ep) for ep in end_points]
                 javascript_login_authn = JavascriptFormMako(
                     None, "javascript_login.mako", LOOKUP, PASSWD,
-                    "%s/authorization" % config.issuer, None,
+                    "{}authorization".format(_issuer), None,
                     full_end_point_paths)
 
             PASSWORD_END_POINT_INDEX = 2
@@ -580,7 +583,7 @@ if __name__ == '__main__':
     elif config.USERINFO == "SAML":
         OAS.userinfo = UserInfo(config.SAML)
     elif config.USERINFO == "AA":
-        OAS.userinfo = AaUserInfo(config.SP_CONFIG, config.issuer, config.SAML)
+        OAS.userinfo = AaUserInfo(config.SP_CONFIG, _issuer, config.SAML)
     else:
         raise Exception("Unsupported userinfo source")
 
@@ -631,8 +634,7 @@ if __name__ == '__main__':
         # SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
         #     config.SERVER_CERT, config.SERVER_KEY, config.CERT_CHAIN)
         SRV.ssl_adapter = BuiltinSSLAdapter(config.SERVER_CERT,
-                                            config.SERVER_KEY,
-                                            config.CERT_CHAIN)
+                                            config.SERVER_KEY)
 
     LOGGER.info(
         "OC server started (iss={}, port={})".format(_issuer, args.port))
