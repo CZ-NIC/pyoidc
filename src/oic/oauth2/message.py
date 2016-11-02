@@ -474,8 +474,8 @@ class Message(MutableMapping):
 
     def _add_key(self, keyjar, issuer, key, key_type=''):
         try:
-            n_keys = len(key_summary(keyjar, issuer))
-            logger.debug('{} keys for "{}"'.format(n_keys, issuer))
+            logger.debug('Key set summary for {}: {}'.format(
+                issuer, key_summary(keyjar, issuer)))
         except KeyError:
             logger.error('Issuer "{}" not in keyjar'.format(issuer))
 
