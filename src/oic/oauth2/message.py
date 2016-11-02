@@ -561,6 +561,8 @@ class Message(MutableMapping):
 
         _jw = jwe.factory(txt)
         if _jw:
+            logger.debug("headers: {}".format(_jw.jwt.headers))
+
             if "algs" in kwargs and "encalg" in kwargs["algs"]:
                 try:
                     assert kwargs["algs"]["encalg"] == _jw["alg"]
@@ -583,7 +585,7 @@ class Message(MutableMapping):
 
             logger.debug('Decrypt class: {}'.format(_jw.__class__))
             _res = _jw.decrypt(txt, dkeys)
-            logger.debug('res:{}'.format(_res))
+            logger.debug('decrypted message:{}'.format(_res))
             if isinstance(_res, tuple):
                 txt = as_unicode(_res[0])
             elif isinstance(_res, list) and len(_res) == 2:
