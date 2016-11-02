@@ -110,7 +110,6 @@ DEF_SIGN_ALG = {"id_token": "RS256",
                 "client_secret_jwt": "HS256",
                 "private_key_jwt": "RS256"}
 
-
 # -----------------------------------------------------------------------------
 ACR_LISTS = [
     ["0", "1", "2", "3", "4"],
@@ -763,7 +762,8 @@ class Client(oauth2.Client):
                     token_header = "{type} {token}".format(type=_ttype,
                                                            token=_token)
                     if "headers" in kwargs:
-                        kwargs["headers"].update({"Authorization": token_header})
+                        kwargs["headers"].update(
+                            {"Authorization": token_header})
                     else:
                         kwargs["headers"] = {"Authorization": token_header}
 
@@ -961,7 +961,11 @@ class Client(oauth2.Client):
                         keyjar=self.keyjar, sender=csrc)
                     claims = [value for value, src in
                               userinfo["_claim_names"].items() if src == csrc]
-                    assert claims == aggregated_claims.keys()
+
+                    if set(claims) != set(list(aggregated_claims.keys())):
+                        logger.warning(
+                            "Claims from claim source doesn't match what's in "
+                            "the userinfo")
 
                     for key, vals in aggregated_claims.items():
                         userinfo[key] = vals
