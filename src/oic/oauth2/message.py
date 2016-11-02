@@ -617,7 +617,7 @@ class Message(MutableMapping):
                     key.extend(keyjar.get_verify_key(owner=kwargs["sender"]))
 
                 logger.debug("Raw JSON: {}".format(sanitize(jso)))
-                logger.debug("header: {}".format(sanitize(_header)))
+                logger.debug("JWS header: {}".format(sanitize(_header)))
                 if _header["alg"] == "none":
                     pass
                 elif verify:
