@@ -561,7 +561,7 @@ class Message(MutableMapping):
 
         _jw = jwe.factory(txt)
         if _jw:
-            logger.debug("headers: {}".format(_jw.jwt.headers))
+            logger.debug("JWE headers: {}".format(_jw.jwt.headers))
 
             if "algs" in kwargs and "encalg" in kwargs["algs"]:
                 try:
