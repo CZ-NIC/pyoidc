@@ -236,6 +236,60 @@ class TestProviderConfigurationResponse(object):
                    "require_request_uri_registration"])
         assert sorted(rk) == sorted(list(pcr.keys()))
 
+    @pytest.mark.parametrize("required_param", [
+        "issuer",
+        "authorization_endpoint",
+        "jwks_uri",
+        "response_types_supported",
+        "subject_types_supported",
+        "id_token_signing_alg_values_supported"
+    ])
+    def test_required_parameters(self, required_param):
+        provider_config = {
+            "issuer": "https://server.example.com",
+            "authorization_endpoint":
+                "https://server.example.com/connect/authorize",
+            "jwks_uri": "https://server.example.com/jwks.json",
+            "response_types_supported": ["code", "code id_token", "id_token",
+                                         "token id_token"],
+            "subject_types_supported": ["public", "pairwise"],
+            "id_token_signing_alg_values_supported": ["RS256", "ES256",
+                                                      "HS256"],
+        }
+
+        del provider_config[required_param]
+        with pytest.raises(MissingRequiredAttribute):
+            ProviderConfigurationResponse(**provider_config).verify()
+
+    def test_token_endpoint_is_not_required_for_implicit_flow_only(self):
+        provider_config = {
+            "issuer": "https://server.example.com",
+            "authorization_endpoint":
+                "https://server.example.com/connect/authorize",
+            "jwks_uri": "https://server.example.com/jwks.json",
+            "response_types_supported": ["id_token", "token id_token"],
+            "subject_types_supported": ["public", "pairwise"],
+            "id_token_signing_alg_values_supported": ["RS256", "ES256",
+                                                      "HS256"],
+        }
+
+        # should not raise an exception
+        assert ProviderConfigurationResponse(**provider_config).verify()
+
+    def test_token_endpoint_is_required_for_other_than_implicit_flow_only(self):
+        provider_config = {
+            "issuer": "https://server.example.com",
+            "authorization_endpoint":
+                "https://server.example.com/connect/authorize",
+            "jwks_uri": "https://server.example.com/jwks.json",
+            "response_types_supported": ["code", "id_token"],
+            "subject_types_supported": ["public", "pairwise"],
+            "id_token_signing_alg_values_supported": ["RS256", "ES256",
+                                                      "HS256"],
+        }
+
+        with pytest.raises(MissingRequiredAttribute):
+            ProviderConfigurationResponse(**provider_config).verify()
 
 class TestRegistrationRequest(object):
     def test_deserialize(self):
