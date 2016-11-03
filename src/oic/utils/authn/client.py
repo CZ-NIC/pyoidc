@@ -1,7 +1,6 @@
 import logging
 import base64
 from jwkest import Invalid
-from jwkest import as_unicode
 from jwkest import as_bytes
 from jwkest import MissingKey
 from jwkest.jws import alg2keytype
@@ -21,7 +20,6 @@ from oic.oic import AuthnToken
 from oic.oic import JWT_BEARER
 from oic.utils.sanitize import sanitize
 from oic.utils.time_util import utc_time_sans_frac
-
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +117,14 @@ class ClientSecretBasic(ClientAuthnMethod):
         except KeyError:
             pass
 
-        if cis and not cis.c_param["client_id"][VREQUIRED]:
+        if isinstance(cis, AccessTokenRequest) and cis[
+                'grant_type'] == 'authorization_code':
+            if 'client_id' not in cis:
+                try:
+                    cis['client_id'] = self.cli.client_id
+                except AttributeError:
+                    pass
+        elif cis.c_param["client_id"][VREQUIRED] is False:
             try:
                 del cis["client_id"]
             except KeyError:
@@ -358,7 +363,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
     def verify(self, areq, **kwargs):
         try:
             try:
-                argv = {'sender':areq['client_id']}
+                argv = {'sender': areq['client_id']}
             except KeyError:
                 argv = {}
             bjwt = AuthnToken().from_jwt(areq["client_assertion"],

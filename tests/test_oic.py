@@ -175,6 +175,36 @@ class TestClient(object):
         assert _eq(resp.keys(), ['token_type', 'access_token', 'refresh_token',
                                  'scope', 'state'])
 
+    def test_client_id(self):
+        resp = AuthorizationResponse(code="code", state="stateX").to_urlencoded()
+        self.client.parse_response(AuthorizationResponse, resp,
+                                   sformat="urlencoded")
+        args = {
+            "code": "code",
+            "redirect_uri": self.client.redirect_uris[0],
+            "client_id": self.client.client_id,
+        }
+
+        url, query, ht_args, cis = self.client.request_info(
+            AccessTokenRequest, method="POST", request_args=args,
+            state='stateX', authn_method='client_secret_basic',
+            grant_type='authorization_code')
+
+        assert cis['client_id'] == self.client.client_id
+
+        args = {
+            "code": "code",
+            "redirect_uri": self.client.redirect_uris[0],
+            #"client_id": self.client.client_id,
+        }
+
+        url, query, ht_args, cis = self.client.request_info(
+            AccessTokenRequest, method="POST", request_args=args,
+            state='stateX', authn_method='client_secret_basic',
+            grant_type='authorization_code')
+
+        assert cis['client_id'] == self.client.client_id
+
     def test_do_check_session_request(self):
         # RSA signing
         alg = "RS256"
