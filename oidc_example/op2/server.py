@@ -56,6 +56,8 @@ hdlr.setFormatter(base_formatter)
 LOGGER.addHandler(hdlr)
 LOGGER.setLevel(logging.DEBUG)
 
+logger = logging.getLogger('oicServer')
+
 URLMAP = {}
 NAME = "pyoic"
 OAS = None
@@ -73,10 +75,9 @@ JWKS_FILE_NAME = "static/jwks.json"
 
 
 # noinspection PyUnusedLocal
-def safe(environ, start_response, logger):
-    _oas = environ["oic.oas"]
-    _srv = _oas.server
-    _log_info = _oas.logger.info
+def safe(environ, start_response, logger, oas):
+    _srv = oas.server
+    _log_info = oas.logger.info
 
     _log_info("- safe -")
     # _log_info("env: %s" % environ)
@@ -102,7 +103,7 @@ def safe(environ, start_response, logger):
 
 
 # noinspection PyUnusedLocal
-def css(environ, start_response, logger):
+def css(environ, start_response, logger, oas):
     try:
         info = open(environ["PATH_INFO"]).read()
         resp = Response(info)
@@ -116,46 +117,36 @@ def css(environ, start_response, logger):
 
 
 # noinspection PyUnusedLocal
-def token(environ, start_response, logger):
-    _oas = environ["oic.oas"]
-
-    return wsgi_wrapper(environ, start_response, _oas.token_endpoint,
+def token(environ, start_response, oas):
+    return wsgi_wrapper(environ, start_response, oas.token_endpoint,
                         logger=logger)
 
 
 # noinspection PyUnusedLocal
-def authorization(environ, start_response, logger):
-    _oas = environ["oic.oas"]
-
-    return wsgi_wrapper(environ, start_response, _oas.authorization_endpoint,
+def authorization(environ, start_response, oas):
+    return wsgi_wrapper(environ, start_response, oas.authorization_endpoint,
                         logger=logger)
 
 
 # noinspection PyUnusedLocal
-def userinfo(environ, start_response, logger):
-    _oas = environ["oic.oas"]
-
-    return wsgi_wrapper(environ, start_response, _oas.userinfo_endpoint,
+def userinfo(environ, start_response, oas):
+    return wsgi_wrapper(environ, start_response, oas.userinfo_endpoint,
                         logger=logger)
 
 
 # noinspection PyUnusedLocal
-def op_info(environ, start_response, logger):
-    _oas = environ["oic.oas"]
-    LOGGER.info("op_info")
-    return wsgi_wrapper(environ, start_response, _oas.providerinfo_endpoint,
+def op_info(environ, start_response, oas):
+    return wsgi_wrapper(environ, start_response, oas.providerinfo_endpoint,
                         logger=logger)
 
 
 # noinspection PyUnusedLocal
-def registration(environ, start_response, logger):
-    _oas = environ["oic.oas"]
-
+def registration(environ, start_response, oas):
     if environ["REQUEST_METHOD"] == "POST":
-        return wsgi_wrapper(environ, start_response, _oas.registration_endpoint,
+        return wsgi_wrapper(environ, start_response, oas.registration_endpoint,
                             logger=logger)
     elif environ["REQUEST_METHOD"] == "GET":
-        return wsgi_wrapper(environ, start_response, _oas.read_registration,
+        return wsgi_wrapper(environ, start_response, oas.read_registration,
                             logger=logger)
     else:
         resp = ServiceError("Method not supported")
@@ -163,39 +154,31 @@ def registration(environ, start_response, logger):
 
 
 # noinspection PyUnusedLocal
-def check_id(environ, start_response, logger):
-    _oas = environ["oic.oas"]
-
-    return wsgi_wrapper(environ, start_response, _oas.check_id_endpoint,
+def check_id(environ, start_response, oas):
+    return wsgi_wrapper(environ, start_response, oas.check_id_endpoint,
                         logger=logger)
 
 
 # noinspection PyUnusedLocal
-def swd_info(environ, start_response, logger):
-    _oas = environ["oic.oas"]
-
-    return wsgi_wrapper(environ, start_response, _oas.discovery_endpoint,
+def swd_info(environ, start_response, oas):
+    return wsgi_wrapper(environ, start_response, oas.discovery_endpoint,
                         logger=logger)
 
 
 # noinspection PyUnusedLocal
-def trace_log(environ, start_response, logger):
-    _oas = environ["oic.oas"]
-
-    return wsgi_wrapper(environ, start_response, _oas.tracelog_endpoint,
+def trace_log(environ, start_response, oas):
+    return wsgi_wrapper(environ, start_response, oas.tracelog_endpoint,
                         logger=logger)
 
 
 # noinspection PyUnusedLocal
-def endsession(environ, start_response, logger):
-    _oas = environ["oic.oas"]
-
-    return wsgi_wrapper(environ, start_response, _oas.endsession_endpoint,
+def endsession(environ, start_response, oas):
+    return wsgi_wrapper(environ, start_response, oas.endsession_endpoint,
                         logger=logger)
 
 
 # noinspection PyUnusedLocal
-def meta_info(environ, start_response, logger):
+def meta_info(environ, start_response, oas):
     """
     Returns something like this::
 
@@ -330,57 +313,57 @@ LOOKUP = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
 # ----------------------------------------------------------------------------
 
 
-def application(environ, start_response):
-    """
-    The main WSGI application. Dispatch the current request to
-    the functions from above and store the regular expression
-    captures in the WSGI environment as  `oic.url_args` so that
-    the functions from above can access the url placeholders.
+class Application(object):
+    def __init__(self, oas):
+        self.oas = oas
 
-    If nothing matches call the `not_found` function.
+    def application(self, environ, start_response):
+        """
+        The main WSGI application. Dispatch the current request to
+        the functions from above and store the regular expression
+        captures in the WSGI environment as  `oic.url_args` so that
+        the functions from above can access the url placeholders.
 
-    :param environ: The HTTP application environment
-    :param start_response: The application to run when the handling of the
-        request is done
-    :return: The response as a list of lines
-    """
-    global OAS
+        If nothing matches call the `not_found` function.
 
-    # user = environ.get("REMOTE_USER", "")
-    path = environ.get('PATH_INFO', '').lstrip('/')
+        :param environ: The HTTP application environment
+        :param start_response: The application to run when the handling of the
+            request is done
+        :return: The response as a list of lines
+        """
+        # user = environ.get("REMOTE_USER", "")
+        path = environ.get('PATH_INFO', '').lstrip('/')
 
-    logger = logging.getLogger('oicServer')
+        if path == "robots.txt":
+            return static(environ, start_response, "static/robots.txt")
 
-    if path == "robots.txt":
-        return static(environ, start_response, "static/robots.txt")
+        environ["oic.oas"] = self.oas
 
-    environ["oic.oas"] = OAS
+        if path.startswith("static/"):
+            return static(environ, start_response, path)
 
-    if path.startswith("static/"):
-        return static(environ, start_response, path)
+        for regex, callback in URLS:
+            match = re.search(regex, path)
+            if match is not None:
+                try:
+                    environ['oic.url_args'] = match.groups()[0]
+                except IndexError:
+                    environ['oic.url_args'] = path
 
-    for regex, callback in URLS:
-        match = re.search(regex, path)
-        if match is not None:
-            try:
-                environ['oic.url_args'] = match.groups()[0]
-            except IndexError:
-                environ['oic.url_args'] = path
+                logger.info("callback: %s" % callback)
+                try:
+                    return callback(environ, start_response, logger, self.oas)
+                except Exception as err:
+                    print("%s" % err)
+                    message = traceback.format_exception(*sys.exc_info())
+                    print(message)
+                    logger.exception("%s" % err)
+                    resp = ServiceError("%s" % err)
+                    return resp(environ, start_response)
 
-            logger.info("callback: %s" % callback)
-            try:
-                return callback(environ, start_response, logger)
-            except Exception as err:
-                print("%s" % err)
-                message = traceback.format_exception(*sys.exc_info())
-                print(message)
-                logger.exception("%s" % err)
-                resp = ServiceError("%s" % err)
-                return resp(environ, start_response)
-
-    LOGGER.debug("unknown side: %s" % path)
-    resp = NotFound("Couldn't find the side you asked for!")
-    return resp(environ, start_response)
+        LOGGER.debug("unknown side: %s" % path)
+        resp = NotFound("Couldn't find the side you asked for!")
+        return resp(environ, start_response)
 
 
 # ----------------------------------------------------------------------------
@@ -625,8 +608,11 @@ if __name__ == '__main__':
     for b in OAS.keyjar[""]:
         LOGGER.info("OC3 server keys: %s" % b)
 
+    _app = Application(OAS)
+
     # Setup the web server
-    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
+    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port),
+                                        _app.application)
 
     https = ""
     if args.tls:

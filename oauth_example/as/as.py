@@ -27,6 +27,7 @@ from oic.utils.http_util import ServiceError
 from oic.utils.keyio import keyjar_init, KeyBundle
 
 from requests.packages import urllib3
+
 urllib3.disable_warnings()
 
 __author__ = 'roland'
@@ -46,67 +47,6 @@ LOGGER.addHandler(hdlr)
 LOGGER.setLevel(logging.INFO)
 
 JWKS_FILE_NAME = "static/jwks.json"
-
-# ============================================================================
-# Endpoint functions
-# ============================================================================
-
-
-# noinspection PyUnusedLocal
-def token(environ, start_response):
-    _oas = environ["oic.oas"]
-
-    return wsgi_wrapper(environ, start_response, _oas.token_endpoint)
-
-
-# noinspection PyUnusedLocal
-def authorization(environ, start_response):
-    _oas = environ["oic.oas"]
-
-    return wsgi_wrapper(environ, start_response, _oas.authorization_endpoint)
-
-
-# noinspection PyUnusedLocal
-def config(environ, start_response):
-    _oas = environ["oic.oas"]
-
-    return wsgi_wrapper(environ, start_response, _oas.providerinfo_endpoint)
-
-
-# noinspection PyUnusedLocal
-def registration(environ, start_response):
-    _oas = environ["oic.oas"]
-
-    return wsgi_wrapper(environ, start_response, _oas.registration_endpoint)
-
-
-# noinspection PyUnusedLocal
-def introspection(environ, start_response):
-    _oas = environ["oic.oas"]
-
-    return wsgi_wrapper(environ, start_response, _oas.introspection_endpoint)
-
-
-# noinspection PyUnusedLocal
-def revocation(environ, start_response):
-    _oas = environ["oic.oas"]
-
-    return wsgi_wrapper(environ, start_response, _oas.revocation_endpoint)
-
-
-ENDPOINTS = [
-    AuthorizationEndpoint(authorization),
-    TokenEndpoint(token),
-    RegistrationEndpoint(registration),
-    IntrospectionEndpoint(introspection),
-    RevocationEndpoint(revocation)
-]
-
-
-# noinspection PyUnusedLocal
-def verify(environ, start_response):
-    _oas = environ["oic.oas"]
-    return wsgi_wrapper(environ, start_response, _oas.verify_endpoint)
 
 
 # ---------------------------------------------------------------------------
@@ -136,70 +76,111 @@ def static(environ, start_response, path):
         return resp(environ, start_response)
 
 
-URLS = [
-    (r'^verify', verify),
-    (r'.well-known/openid-configuration', config)
-]
-
-for endp in ENDPOINTS:
-    URLS.append(("^%s" % endp.etype, endp))
-
-
 # ============================================================================
 # The main web server function
 # ============================================================================
 
 
-def application(environ, start_response):
-    """
-    The main WSGI application. Dispatch the current request to
-    the functions from above and store the regular expression
-    captures in the WSGI environment as  `oic.url_args` so that
-    the functions from above can access the url placeholders.
+class Application(object):
+    def __init__(self, oas):
+        self.oas = oas
 
-    If nothing matches call the `not_found` function.
+        self.endpoints = [
+            AuthorizationEndpoint(self.authorization),
+            TokenEndpoint(self.token),
+            RegistrationEndpoint(self.registration),
+            IntrospectionEndpoint(self.introspection),
+            RevocationEndpoint(self.revocation)
+        ]
 
-    :param environ: The HTTP application environment
-    :param start_response: The application to run when the handling of the
-        request is done
-    :return: The response as a list of lines
-    """
-    global OAS
+        self.urls = [
+            (r'^verify', self.verify),
+            (r'.well-known/openid-configuration', self.config)
+        ]
 
-    # user = environ.get("REMOTE_USER", "")
-    path = environ.get('PATH_INFO', '').lstrip('/')
+        for endp in self.endpoints:
+            self.urls.append(("^%s" % endp.etype, endp))
 
-    LOGGER.info("path: %s" % path)
-    if path == "robots.txt":
-        return static(environ, start_response, "static/robots.txt")
+    # noinspection PyUnusedLocal
+    def verify(self, environ, start_response):
+        return wsgi_wrapper(environ, start_response, self.oas.verify_endpoint)
 
-    environ["oic.oas"] = OAS
+    # noinspection PyUnusedLocal
+    def token(self, environ, start_response):
+        return wsgi_wrapper(environ, start_response, self.oas.token_endpoint)
 
-    if path.startswith("static/"):
-        return static(environ, start_response, path)
+    # noinspection PyUnusedLocal
+    def authorization(self, environ, start_response):
+        return wsgi_wrapper(environ, start_response,
+                            self.oas.authorization_endpoint)
 
-    for regex, callback in URLS:
-        match = re.search(regex, path)
-        if match is not None:
-            try:
-                environ['oic.url_args'] = match.groups()[0]
-            except IndexError:
-                environ['oic.url_args'] = path
+    # noinspection PyUnusedLocal
+    def config(self, environ, start_response):
+        return wsgi_wrapper(environ, start_response,
+                            self.oas.providerinfo_endpoint)
 
-            LOGGER.debug("callback: %s" % callback)
-            try:
-                return callback(environ, start_response)
-            except Exception as err:
-                print("{}".format(err), file=sys.stderr)
-                message = traceback.format_exception(*sys.exc_info())
-                print(message, file=sys.stderr)
-                LOGGER.exception("%s" % err)
-                resp = ServiceError("%s" % err)
-                return resp(environ, start_response)
+    # noinspection PyUnusedLocal
+    def registration(self, environ, start_response):
+        return wsgi_wrapper(environ, start_response,
+                            self.oas.registration_endpoint)
 
-    LOGGER.debug("unknown side: %s" % path)
-    resp = NotFound("Couldn't find the side you asked for!")
-    return resp(environ, start_response)
+    # noinspection PyUnusedLocal
+    def introspection(self, environ, start_response):
+        return wsgi_wrapper(environ, start_response,
+                            self.oas.introspection_endpoint)
+
+    # noinspection PyUnusedLocal
+    def revocation(self, environ, start_response):
+        return wsgi_wrapper(environ, start_response,
+                            self.oas.revocation_endpoint)
+
+    def application(self, environ, start_response):
+        """
+        The main WSGI application. Dispatch the current request to
+        the functions from above and store the regular expression
+        captures in the WSGI environment as  `oic.url_args` so that
+        the functions from above can access the url placeholders.
+
+        If nothing matches call the `not_found` function.
+
+        :param environ: The HTTP application environment
+        :param start_response: The application to run when the handling of the
+            request is done
+        :return: The response as a list of lines
+        """
+
+        # user = environ.get("REMOTE_USER", "")
+        path = environ.get('PATH_INFO', '').lstrip('/')
+
+        LOGGER.info("path: %s" % path)
+        if path == "robots.txt":
+            return static(environ, start_response, "static/robots.txt")
+
+        if path.startswith("static/"):
+            return static(environ, start_response, path)
+
+        for regex, callback in self.urls:
+            match = re.search(regex, path)
+            if match is not None:
+                try:
+                    environ['oic.url_args'] = match.groups()[0]
+                except IndexError:
+                    environ['oic.url_args'] = path
+
+                LOGGER.debug("callback: %s" % callback)
+                try:
+                    return callback(environ, start_response)
+                except Exception as err:
+                    print("{}".format(err), file=sys.stderr)
+                    message = traceback.format_exception(*sys.exc_info())
+                    print(message, file=sys.stderr)
+                    LOGGER.exception("%s" % err)
+                    resp = ServiceError("%s" % err)
+                    return resp(environ, start_response)
+
+        LOGGER.debug("unknown side: %s" % path)
+        resp = NotFound("Couldn't find the side you asked for!")
+        return resp(environ, start_response)
 
 
 # ============================================================================
@@ -222,6 +203,7 @@ if __name__ == "__main__":
     # Parse the command arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', dest='debug', action='store_true')
+    parser.add_argument('-k', dest='insecure', action='store_true')
     parser.add_argument('-p', dest='port', default=80, type=int)
     # Who it should report as being responsible for the authentication
     parser.add_argument('-A', dest='authn_as', default="")
@@ -263,20 +245,25 @@ if __name__ == "__main__":
     except AttributeError:
         capabilities = None
 
+    if args.insecure:
+        kwargs = {'verify_ssl': False}
+    else:
+        kwargs = {}
+
     # Initiate the Provider
-    OAS = Provider(config.issuer, None, cdb, broker, authz,
+    oas = Provider(config.issuer, None, cdb, broker, authz,
                    baseurl=config.issuer, client_authn=verify_client,
                    symkey=config.SYM_KEY, hostname=config.HOST,
                    capabilities=capabilities,
-                   behavior=config.BEHAVIOR)
+                   behavior=config.BEHAVIOR, **kwargs)
 
     try:
-        jwks = keyjar_init(OAS, config.keys, kid_template="op%d")
+        jwks = keyjar_init(oas, config.keys, kid_template="op%d")
     except Exception as err:
         LOGGER.error("Key setup failed: {}".format(err))
         print("Key setup failed: {}".format(err))
         exit()
-        #OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
+        # oas.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
     else:
         jwks_file_name = JWKS_FILE_NAME
         f = open(jwks_file_name, "w")
@@ -287,45 +274,43 @@ if __name__ == "__main__":
 
         f.write(json.dumps(jwks))
         f.close()
-        OAS.jwks_uri = "{}/{}".format(OAS.baseurl, jwks_file_name)
+        oas.jwks_uri = "{}/{}".format(oas.baseurl, jwks_file_name)
 
     # Initiate the SessionDB
-    _token = JWTToken('T', OAS.keyjar, {'code': 3600, 'token': 900},
-                      iss=config.issuer, sign_alg= 'RS256')
-    _refresh_token = JWTToken('R', OAS.keyjar, {'': 86400}, iss=config.issuer,
+    _token = JWTToken('T', oas.keyjar, {'code': 3600, 'token': 900},
+                      iss=config.issuer, sign_alg='RS256')
+    _refresh_token = JWTToken('R', oas.keyjar, {'': 86400}, iss=config.issuer,
                               sign_alg='RS256')
-    OAS.sdb = SessionDB(config.SERVICE_URL, token_factory=_token,
+    oas.sdb = SessionDB(config.SERVICE_URL, token_factory=_token,
                         refresh_token_factory=_refresh_token)
 
     # set some parameters
     try:
-        OAS.cookie_ttl = config.COOKIETTL
+        oas.cookie_ttl = config.COOKIETTL
     except AttributeError:
         pass
 
     try:
-        OAS.cookie_name = config.COOKIENAME
+        oas.cookie_name = config.COOKIENAME
     except AttributeError:
         pass
 
     if args.debug:
         LOGGER.setLevel(logging.DEBUG)
-        OAS.debug = True
+        oas.debug = True
 
     if args.authn_as:
-        OAS.authn_as = args.authn_as
-
-    OAS.endpoints = ENDPOINTS
+        oas.authn_as = args.authn_as
 
     if args.port == 80:
-        OAS.baseurl = config.baseurl
+        oas.baseurl = config.baseurl
     else:
         if config.baseurl.endswith("/"):
             config.baseurl = config.baseurl[:-1]
-        OAS.baseurl = "%s:%d" % (config.baseurl, args.port)
+        oas.baseurl = "%s:%d" % (config.baseurl, args.port)
 
-    if not OAS.baseurl.endswith("/"):
-        OAS.baseurl += "/"
+    if not oas.baseurl.endswith("/"):
+        oas.baseurl += "/"
 
     # load extra keys
     try:
@@ -338,12 +323,13 @@ if __name__ == "__main__":
             kb = KeyBundle()
             kb.imp_jwks = json.load(open(ent['jwks']))
             kb.do_keys(kb.imp_jwks['keys'])
-            OAS.keyjar.add_kb(iss, kb)
+            oas.keyjar.add_kb(iss, kb)
 
-    LOGGER.debug("URLS: '%s" % (URLS,))
-
+    _app = Application(oas)
+    
     # Initiate the web server
-    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), application)
+    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port),
+                                        _app.application)
     https = ""
     if config.SERVICE_URL.startswith("https"):
         https = " using HTTPS"
