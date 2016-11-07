@@ -7,7 +7,7 @@ from jwkest import jws
 
 from jwkest import jwe
 
-from six.moves.urllib.parse import urlparse, parse_qs
+from six.moves.urllib.parse import urlparse, urlunparse, parse_qs
 from oic.oauth2.exception import AuthnToOld
 from oic.oauth2.message import ErrorResponse, Message
 from oic.oauth2.util import get_or_post
@@ -903,7 +903,13 @@ class Client(oauth2.Client):
                 raise PyoidcError(_err_txt)
         elif r.status_code == 302 or r.status_code == 301:
             while r.status_code == 302 or r.status_code == 301:
-                r = self.http_request(r.headers["location"])
+                redirect_header = r.headers["location"]
+                if not urlparse(redirect_header).scheme:
+                    # Relative URL was provided - construct new redirect using an issuer
+                    _split = urlparse(issuer)
+                    new_url = urlunparse((_split.scheme, _split.netloc, redirect_header, _split.params,
+                                          _split.query, _split.fragment))
+                r = self.http_request(new_url)
                 if r.status_code == 200:
                     pcr = response_cls().from_json(r.text)
                     break
