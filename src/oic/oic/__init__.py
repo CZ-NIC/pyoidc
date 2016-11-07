@@ -11,6 +11,7 @@ else:
 import six
 
 from future.backports.urllib.parse import urlparse
+from future.backports.urllib.parse import urlunparse
 from future.backports.urllib.parse import parse_qs
 
 from jwkest.jwe import JWE
@@ -936,7 +937,13 @@ class Client(oauth2.Client):
                 raise ParseError(_err_txt)
         elif r.status_code == 302 or r.status_code == 301:
             while r.status_code == 302 or r.status_code == 301:
-                r = self.http_request(r.headers["location"])
+                redirect_header = r.headers["location"]
+                if not urlparse(redirect_header).scheme:
+                    # Relative URL was provided - construct new redirect using an issuer
+                    _split = urlparse(issuer)
+                    new_url = urlunparse((_split.scheme, _split.netloc, redirect_header, _split.params,
+                                          _split.query, _split.fragment))
+                r = self.http_request(new_url)
                 if r.status_code == 200:
                     pcr = response_cls().from_json(r.text)
                     break
