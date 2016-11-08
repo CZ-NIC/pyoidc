@@ -276,26 +276,18 @@ should also receive a grant code which you then can use to get the access
 token::
 
     args = {
-        "code": aresp["code"],
-        "redirect_uri": client.registration_response["redirect_uris"][0],
-        "client_id": client.client_id,
-        "client_secret": client.client_secret
+        "code": aresp["code"]
     }
 
-    resp = client.do_access_token_request(scope="openid",
-                                          state=aresp["state"],
+    resp = client.do_access_token_request(state=aresp["state"],
                                           request_args=args,
-                                          authn_method="client_secret_basic"
-                                          )
+                                          authn_method="client_secret_basic")
 
 
 'scope' has to be the same as in the authentication request.
 
 If you don't specify a specific client authentication method, then
 *client_secret_basic* is used.
-
-You have to provide client_id and client_secret as arguments, how they are used
-depends on the authentication method used.
 
 The response you get back is an instance of an AccessTokenResponse or again possibly
 an ErrorResponse instance.
