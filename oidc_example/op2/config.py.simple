@@ -6,6 +6,7 @@ keys = [
     {"type": "EC", "crv": "P-256", "use": ["enc"]}
 ]
 
+ISSUER='http://localhost'
 SERVICE_URL = "{issuer}/verify"
 
 #Only Username and password.

@@ -5,8 +5,8 @@ import sys
 import os
 import traceback
 
-from six.moves.urllib.parse import parse_qs
-from jwkest import as_unicode
+from future.backports.urllib.parse import parse_qs
+
 from oic.utils import shelve_wrapper
 from oic.utils.authn.javascript_login import JavascriptFormMako
 
@@ -74,138 +74,6 @@ JWKS_FILE_NAME = "static/jwks.json"
 # ----------------------------------------------------------------------------
 
 
-# noinspection PyUnusedLocal
-def safe(environ, start_response, logger, oas):
-    _srv = oas.server
-    _log_info = oas.logger.info
-
-    _log_info("- safe -")
-    # _log_info("env: %s" % environ)
-    # _log_info("handle: %s" % (handle,))
-
-    try:
-        authz = environ["HTTP_AUTHORIZATION"]
-        (typ, code) = authz.split(" ")
-        assert typ == "Bearer"
-    except KeyError:
-        resp = BadRequest("Missing authorization information")
-        return resp(environ, start_response)
-
-    try:
-        _sinfo = _srv.sdb[code]
-    except KeyError:
-        resp = Unauthorized("Not authorized")
-        return resp(environ, start_response)
-
-    info = "'%s' secrets" % _sinfo["sub"]
-    resp = Response(info)
-    return resp(environ, start_response)
-
-
-# noinspection PyUnusedLocal
-def css(environ, start_response, logger, oas):
-    try:
-        info = open(environ["PATH_INFO"]).read()
-        resp = Response(info)
-    except (OSError, IOError):
-        resp = NotFound(environ["PATH_INFO"])
-
-    return resp(environ, start_response)
-
-
-# ----------------------------------------------------------------------------
-
-
-# noinspection PyUnusedLocal
-def token(environ, start_response, oas):
-    return wsgi_wrapper(environ, start_response, oas.token_endpoint,
-                        logger=logger)
-
-
-# noinspection PyUnusedLocal
-def authorization(environ, start_response, oas):
-    return wsgi_wrapper(environ, start_response, oas.authorization_endpoint,
-                        logger=logger)
-
-
-# noinspection PyUnusedLocal
-def userinfo(environ, start_response, oas):
-    return wsgi_wrapper(environ, start_response, oas.userinfo_endpoint,
-                        logger=logger)
-
-
-# noinspection PyUnusedLocal
-def op_info(environ, start_response, oas):
-    return wsgi_wrapper(environ, start_response, oas.providerinfo_endpoint,
-                        logger=logger)
-
-
-# noinspection PyUnusedLocal
-def registration(environ, start_response, oas):
-    if environ["REQUEST_METHOD"] == "POST":
-        return wsgi_wrapper(environ, start_response, oas.registration_endpoint,
-                            logger=logger)
-    elif environ["REQUEST_METHOD"] == "GET":
-        return wsgi_wrapper(environ, start_response, oas.read_registration,
-                            logger=logger)
-    else:
-        resp = ServiceError("Method not supported")
-        return resp(environ, start_response)
-
-
-# noinspection PyUnusedLocal
-def check_id(environ, start_response, oas):
-    return wsgi_wrapper(environ, start_response, oas.check_id_endpoint,
-                        logger=logger)
-
-
-# noinspection PyUnusedLocal
-def swd_info(environ, start_response, oas):
-    return wsgi_wrapper(environ, start_response, oas.discovery_endpoint,
-                        logger=logger)
-
-
-# noinspection PyUnusedLocal
-def trace_log(environ, start_response, oas):
-    return wsgi_wrapper(environ, start_response, oas.tracelog_endpoint,
-                        logger=logger)
-
-
-# noinspection PyUnusedLocal
-def endsession(environ, start_response, oas):
-    return wsgi_wrapper(environ, start_response, oas.endsession_endpoint,
-                        logger=logger)
-
-
-# noinspection PyUnusedLocal
-def meta_info(environ, start_response, oas):
-    """
-    Returns something like this::
-
-         {"links":[
-             {
-                "rel":"http://openid.net/specs/connect/1.0/issuer",
-                "href":"https://openidconnect.info/"
-             }
-         ]}
-
-    """
-    pass
-
-
-def webfinger(environ, start_response, _):
-    query = parse_qs(environ["QUERY_STRING"])
-    try:
-        assert query["rel"] == [OIC_ISSUER]
-        resource = query["resource"][0]
-    except KeyError:
-        resp = BadRequest("Missing parameter in request")
-    else:
-        wf = WebFinger()
-        resp = Response(wf.response(subject=resource, base=OAS.baseurl))
-    return resp(environ, start_response)
-
-
 def static_file(path):
     try:
         os.stat(path)
@@ -215,7 +83,7 @@ def static_file(path):
 
 
 # noinspection PyUnresolvedReferences
-def static(environ, start_response, path):
+def static(self, environ, start_response, path):
     logger.info("[static]sending: %s" % (path,))
 
     try:
@@ -238,14 +106,14 @@ def static(environ, start_response, path):
         return resp(environ, start_response)
 
 
-def check_session_iframe(environ, start_response, logger):
-    return static(environ, start_response, "htdocs/op_session_iframe.html")
+def check_session_iframe(self, environ, start_response, logger):
+    return static(self, environ, start_response, "htdocs/op_session_iframe.html")
 
 
 # ----------------------------------------------------------------------------
 
 
-def key_rollover(environ, start_response, _):
+def key_rollover(self, environ, start_response, _):
     # expects a post containing the necessary information
     _txt = get_post(environ)
     _jwks = json.loads(_txt)
@@ -259,7 +127,7 @@ def key_rollover(environ, start_response, _):
     return resp(environ, start_response)
 
 
-def clear_keys(environ, start_response, _):
+def clear_keys(self, environ, start_response, _):
     OAS.remove_inactive_keys()
     resp = Response("OK")
     return resp(environ, start_response)
@@ -271,34 +139,6 @@ from oic.oic.provider import TokenEndpoint
 from oic.oic.provider import UserinfoEndpoint
 from oic.oic.provider import RegistrationEndpoint
 
-ENDPOINTS = [
-    AuthorizationEndpoint(authorization),
-    TokenEndpoint(token),
-    UserinfoEndpoint(userinfo),
-    RegistrationEndpoint(registration),
-    EndSessionEndpoint(endsession),
-]
-
-URLS = [
-    (r'^.well-known/openid-configuration', op_info),
-    (r'^.well-known/simple-web-discovery', swd_info),
-    (r'^.well-known/host-meta.json', meta_info),
-    (r'^.well-known/webfinger', webfinger),
-    #    (r'^.well-known/webfinger', webfinger),
-    (r'.+\.css$', css),
-    (r'safe', safe),
-    (r'^keyrollover', key_rollover),
-    (r'^clearkeys', clear_keys),
-    (r'^check_session', check_session_iframe)
-    #    (r'tracelog', trace_log),
-]
-
-
-def add_endpoints(extra):
-    global URLS
-
-    for endp in extra:
-        URLS.append(("^%s" % endp.etype, endp.func))
 
 
 # ----------------------------------------------------------------------------
@@ -314,8 +154,159 @@ LOOKUP = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
 
 
 class Application(object):
-    def __init__(self, oas):
+    def __init__(self, oas, urls):
         self.oas = oas
+
+        self.endpoints = [
+            AuthorizationEndpoint(self.authorization),
+            TokenEndpoint(self.token),
+            UserinfoEndpoint(self.userinfo),
+            RegistrationEndpoint(self.registration),
+            EndSessionEndpoint(self.endsession),
+        ]
+
+        self.oas.endpoints = self.endpoints
+        self.urls = urls
+        self.urls.extend([
+            (r'^.well-known/openid-configuration', self.op_info),
+            (r'^.well-known/simple-web-discovery', self.swd_info),
+            (r'^.well-known/host-meta.json', self.meta_info),
+            (r'^.well-known/webfinger', self.webfinger),
+            #    (r'^.well-known/webfinger', webfinger),
+            (r'.+\.css$', self.css),
+            (r'safe', self.safe),
+            (r'^keyrollover', key_rollover),
+            (r'^clearkeys', clear_keys),
+            (r'^check_session', check_session_iframe)
+            #    (r'tracelog', trace_log),
+        ])
+
+        self.add_endpoints(self.endpoints)
+
+    def add_endpoints(self, extra):
+        for endp in extra:
+            self.urls.append(("^%s" % endp.etype, endp.func))
+
+    # noinspection PyUnusedLocal
+    def safe(self, environ, start_response):
+        _srv = self.oas.server
+        _log_info = self.oas.logger.info
+
+        _log_info("- safe -")
+        # _log_info("env: %s" % environ)
+        # _log_info("handle: %s" % (handle,))
+
+        try:
+            authz = environ["HTTP_AUTHORIZATION"]
+            (typ, code) = authz.split(" ")
+            assert typ == "Bearer"
+        except KeyError:
+            resp = BadRequest("Missing authorization information")
+            return resp(environ, start_response)
+
+        try:
+            _sinfo = _srv.sdb[code]
+        except KeyError:
+            resp = Unauthorized("Not authorized")
+            return resp(environ, start_response)
+
+        info = "'%s' secrets" % _sinfo["sub"]
+        resp = Response(info)
+        return resp(environ, start_response)
+
+    # noinspection PyUnusedLocal
+    def css(self, environ, start_response):
+        try:
+            info = open(environ["PATH_INFO"]).read()
+            resp = Response(info)
+        except (OSError, IOError):
+            resp = NotFound(environ["PATH_INFO"])
+
+        return resp(environ, start_response)
+
+    # ----------------------------------------------------------------------------
+
+
+    # noinspection PyUnusedLocal
+    def token(self, environ, start_response):
+        return wsgi_wrapper(environ, start_response, self.oas.token_endpoint,
+                            logger=logger)
+
+    # noinspection PyUnusedLocal
+    def authorization(self, environ, start_response):
+        return wsgi_wrapper(environ, start_response, 
+                            self.oas.authorization_endpoint, logger=logger)
+
+    # noinspection PyUnusedLocal
+    def userinfo(self, environ, start_response):
+        return wsgi_wrapper(environ, start_response, self.oas.userinfo_endpoint,
+                            logger=logger)
+
+    # noinspection PyUnusedLocal
+    def op_info(self, environ, start_response):
+        return wsgi_wrapper(environ, start_response,
+                            self.oas.providerinfo_endpoint, logger=logger)
+
+    # noinspection PyUnusedLocal
+    def registration(self, environ, start_response):
+        if environ["REQUEST_METHOD"] == "POST":
+            return wsgi_wrapper(environ, start_response,
+                                self.oas.registration_endpoint,
+                                logger=logger)
+        elif environ["REQUEST_METHOD"] == "GET":
+            return wsgi_wrapper(environ, start_response,
+                                self.oas.read_registration, logger=logger)
+        else:
+            resp = ServiceError("Method not supported")
+            return resp(environ, start_response)
+
+    # noinspection PyUnusedLocal
+    def check_id(self, environ, start_response):
+        return wsgi_wrapper(environ, start_response, self.oas.check_id_endpoint,
+                            logger=logger)
+
+    # noinspection PyUnusedLocal
+    def swd_info(self, environ, start_response):
+        return wsgi_wrapper(environ, start_response, self.oas.discovery_endpoint,
+                            logger=logger)
+
+    # noinspection PyUnusedLocal
+    def trace_log(self, environ, start_response):
+        return wsgi_wrapper(environ, start_response, self.oas.tracelog_endpoint,
+                            logger=logger)
+
+    # noinspection PyUnusedLocal
+    def endsession(self, environ, start_response):
+        return wsgi_wrapper(environ, start_response,
+                            self.oas.endsession_endpoint, logger=logger)
+
+    # noinspection PyUnusedLocal
+    def meta_info(self, environ, start_response):
+        """
+        Returns something like this::
+
+             {"links":[
+                 {
+                    "rel":"http://openid.net/specs/connect/1.0/issuer",
+                    "href":"https://openidconnect.info/"
+                 }
+             ]}
+
+        """
+        pass
+
+    def webfinger(self, environ, start_response):
+        query = parse_qs(environ["QUERY_STRING"])
+        try:
+            assert query["rel"] == [OIC_ISSUER]
+            resource = query["resource"][0]
+        except KeyError:
+            resp = BadRequest("Missing parameter in request")
+        else:
+            wf = WebFinger()
+            resp = Response(wf.response(subject=resource,
+                                        base=self.oas.baseurl))
+        return resp(environ, start_response)
 
     def application(self, environ, start_response):
         """
@@ -335,14 +326,14 @@ class Application(object):
         path = environ.get('PATH_INFO', '').lstrip('/')
 
         if path == "robots.txt":
-            return static(environ, start_response, "static/robots.txt")
+            return static(self, environ, start_response, "static/robots.txt")
 
         environ["oic.oas"] = self.oas
 
         if path.startswith("static/"):
-            return static(environ, start_response, path)
+            return static(self, environ, start_response, path)
 
-        for regex, callback in URLS:
+        for regex, callback in self.urls:
             match = re.search(regex, path)
             if match is not None:
                 try:
@@ -352,7 +343,7 @@ class Application(object):
 
                 logger.info("callback: %s" % callback)
                 try:
-                    return callback(environ, start_response, logger, self.oas)
+                    return callback(environ, start_response)
                 except Exception as err:
                     print("%s" % err)
                     message = traceback.format_exception(*sys.exc_info())
@@ -402,9 +393,9 @@ if __name__ == '__main__':
         _issuer = args.issuer[0]
     else:
         if args.port not in [80, 443]:
-            _issuer = config.issuer + ':{}'.format(args.port)
+            _issuer = config.ISSUER + ':{}'.format(args.port)
         else:
-            _issuer = config.issuer
+            _issuer = config.ISSUER
 
     if _issuer[-1] != '/':
         _issuer += '/'
@@ -421,6 +412,7 @@ if __name__ == '__main__':
         None, "login.mako", LOOKUP, PASSWD, "%sauthorization" % _issuer,
         None, full_end_point_paths)
 
+    _urls = []
     for authkey, value in config.AUTHENTICATION.items():
         authn = None
 
@@ -430,7 +422,7 @@ if __name__ == '__main__':
                 PASSWORD_END_POINT_INDEX]
             authn = AuthnIndexedEndpointWrapper(username_password_authn,
                                                 PASSWORD_END_POINT_INDEX)
-            URLS.append((r'^' + end_point, make_auth_verify(authn.verify)))
+            _urls.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
         # Ensure javascript_login_authn to be defined
         try:
@@ -454,7 +446,7 @@ if __name__ == '__main__':
                 JAVASCRIPT_END_POINT_INDEX]
             authn = AuthnIndexedEndpointWrapper(javascript_login_authn,
                                                 JAVASCRIPT_END_POINT_INDEX)
-            URLS.append((r'^' + end_point, make_auth_verify(authn.verify)))
+            _urls.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
         if "SAML" == authkey:
             from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
@@ -471,7 +463,7 @@ if __name__ == '__main__':
             end_point_indexes = {BINDING_HTTP_REDIRECT: 0, BINDING_HTTP_POST: 0,
                                  "disco_end_point_index": 0}
             authn = AuthnIndexedEndpointWrapper(saml_authn, end_point_indexes)
-            URLS.append((r'^' + end_point, make_auth_verify(authn.verify)))
+            _urls.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
         if "SamlPass" == authkey:
             from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
@@ -497,7 +489,7 @@ if __name__ == '__main__':
 
             auth_modules = [(multi_saml, r'^' + saml_endpoint),
                             (multi_password, r'^' + password_end_point)]
-            authn = setup_multi_auth(ac, URLS, auth_modules)
+            authn = setup_multi_auth(ac, _urls, auth_modules)
 
         if "JavascriptPass" == authkey:
             if not javascript_login_authn:
@@ -525,7 +517,7 @@ if __name__ == '__main__':
 
             auth_modules = [(multi_password, r'^' + password_end_point),
                             (multi_javascript, r'^' + javascript_end_point)]
-            authn = setup_multi_auth(ac, URLS, auth_modules)
+            authn = setup_multi_auth(ac, _urls, auth_modules)
 
         if authn is not None:
             ac.add(config.AUTHENTICATION[authkey]["ACR"], authn,
@@ -585,8 +577,7 @@ if __name__ == '__main__':
         OAS.debug = True
 
     # All endpoints the OpenID Connect Provider should answer on
-    add_endpoints(ENDPOINTS)
-    OAS.endpoints = ENDPOINTS
+    # add_endpoints(ENDPOINTS)
 
     try:
         jwks = keyjar_init(OAS, config.keys, kid_template="op%d")
@@ -608,7 +599,7 @@ if __name__ == '__main__':
     for b in OAS.keyjar[""]:
         LOGGER.info("OC3 server keys: %s" % b)
 
-    _app = Application(OAS)
+    _app = Application(OAS,_urls)
 
     # Setup the web server
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port),

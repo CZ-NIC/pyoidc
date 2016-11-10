@@ -206,7 +206,7 @@ def make_auth_verify(callback, next_module_instance=None):
     :return: function encapsulating the specified callback which properly handles a multi auth chain.
     """
 
-    def auth_verify(environ, start_response, logger):
+    def auth_verify(environ, start_response, logger=None):
         kwargs = extract_from_request(environ)
 
         response, auth_is_complete = callback(**kwargs)
