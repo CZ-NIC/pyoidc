@@ -2,7 +2,7 @@ Setup and run simple OP.
 ========================
 
 Setup OP2:
-***********
+**********
 The folder [your path]/pyoidc/oidc_example/op2 contains a file named oc_config.py.example
 
 #. Take the file named **oc_config.py.example** and copy it to a new file named **oc_config.py**

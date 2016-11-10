@@ -159,6 +159,13 @@ class KeyBundle(object):
         if r.status_code == 304:  # file has not changed
             self.time_out = time.time() + self.cache_time
             self.last_updated = time.time()
+            try:
+                self.do_keys(self.imp_jwks["keys"])
+            except KeyError:
+                logger.error("No 'keys' keyword in JWKS")
+                raise UpdateFailed(
+                    "Remote key update after 304 from '{}' failed.".format(
+                        self.source))
             return False
         elif r.status_code == 200:  # New content
             self.time_out = time.time() + self.cache_time
