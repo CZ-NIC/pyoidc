@@ -401,7 +401,7 @@ class Provider(object):
             areq = request_class().deserialize(request, "urlencoded")
             try:
                 redirect_uri = self.get_redirect_uri(areq)
-            except (RedirectURIError, ParameterError) as err:
+            except (RedirectURIError, ParameterError, UnknownClient) as err:
                 return self._error("invalid_request", "%s" % err)
             try:
                 _rtype = areq["response_type"]

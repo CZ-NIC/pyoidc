@@ -126,6 +126,15 @@ class TestProvider(object):
         msg = json.loads(resp.message)
         assert msg["error"] == "invalid_request"
 
+    def test_authorization_endpoint_missing_client_id(self):
+        # Url encoded request with missing client_id
+        arq = 'scope=openid&state=id-6da9ca0cc23959f5f33e8becd9b08cae&'\
+              'redirect_uri=+https%3A%2F%2Fexample.com&response_type=code'
+        resp = self.provider.authorization_endpoint(request=arq)
+        assert resp.status == "400 Bad Request"
+        msg = json.loads(resp.message)
+        assert msg["error"] == "invalid_request"
+
     def test_authenticated(self):
         _session_db = {}
         cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
