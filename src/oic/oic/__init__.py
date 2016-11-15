@@ -373,6 +373,31 @@ class Client(oauth2.Client):
 
         return _jwe.encrypt(_keys)
 
+    @staticmethod
+    def construct_redirect_uri(**kwargs):
+        _filedir = kwargs["local_dir"]
+        if not os.path.isdir(_filedir):
+            os.makedirs(_filedir)
+        _webpath = kwargs["base_path"]
+        _name = rndstr(10) + ".jwt"
+        filename = os.path.join(_filedir, _name)
+        while os.path.exists(filename):
+            _name = rndstr(10)
+            filename = os.path.join(_filedir, _name)
+        _webname = "%s%s" % (_webpath, _name)
+        return filename,  _webname
+
+    @staticmethod
+    def filename_from_webname(webname, **kwargs):
+        _filedir = kwargs["local_dir"]
+        if not os.path.isdir(_filedir):
+            os.makedirs(_filedir)
+
+        assert webname.startswith(kwargs['base_path'])
+        _name = webname[len(kwargs['base_path']):]
+        return os.path.join(_filedir, _name)
+
+
     def construct_AuthorizationRequest(self, request=AuthorizationRequest,
                                        request_args=None, extra_args=None,
                                        request_param=None, **kwargs):
@@ -438,19 +463,14 @@ class Client(oauth2.Client):
             if request_param == "request":
                 areq["request"] = _req
             else:
-                _filedir = kwargs["local_dir"]
-                if not os.path.isdir(_filedir):
-                    os.makedirs(_filedir)
-                _webpath = kwargs["base_path"]
-                _name = rndstr(10) + ".jwt"
-                filename = os.path.join(_filedir, _name)
-                while os.path.exists(filename):
-                    _name = rndstr(10)
-                    filename = os.path.join(_filedir, _name)
+                try:
+                    _webname = self.registration_response['request_uris'][0]
+                    filename = self.filename_from_webname(_webname, **kwargs)
+                except KeyError:
+                    filename, _webname = self.construct_redirect_uri(**kwargs)
                 fid = open(filename, mode="w")
                 fid.write(_req)
                 fid.close()
-                _webname = "%s%s" % (_webpath, _name)
                 areq["request_uri"] = _webname
 
         return areq
@@ -1205,6 +1225,12 @@ class Client(oauth2.Client):
                 req["redirect_uris"] = self.redirect_uris
             except AttributeError:
                 raise MissingRequiredAttribute("redirect_uris", req)
+
+        try:
+            if self.provider_info['require_request_uri_registration'] is True:
+                req['request_uris'] = []
+        except KeyError:
+            pass
 
         return req
 

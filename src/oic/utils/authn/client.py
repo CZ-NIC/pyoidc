@@ -308,8 +308,17 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
         # audience is the OP endpoint
         audience = self.cli._endpoint(REQUEST2ENDPOINT[cis.type()])
+        algorithm = None
+        if kwargs['authn_endpoint'] in ['token', 'refresh']:
+            try:
+                algorithm = self.cli.registration_info[
+                    'token_endpoint_auth_signing_alg']
+            except KeyError:
+                pass
 
-        algorithm = self.choose_algorithm(**kwargs)
+        if not algorithm:
+            algorithm = self.choose_algorithm(**kwargs)
+
         ktype = alg2keytype(algorithm)
         try:
             if 'kid' in kwargs:

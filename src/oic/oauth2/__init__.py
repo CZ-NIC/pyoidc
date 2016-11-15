@@ -595,8 +595,12 @@ class Client(PBase):
                                  **kwargs):
 
         if state:
-            request_args["state"] = state
+            try:
+                request_args["state"] = state
+            except TypeError:
+                request_args = {"state": state}
 
+        kwargs['authn_endpoint'] = 'authorization'
         url, body, ht_args, csi = self.request_info(request, method,
                                                     request_args, extra_args,
                                                     **kwargs)
@@ -633,6 +637,7 @@ class Client(PBase):
                                 response_cls=AccessTokenResponse,
                                 authn_method="", **kwargs):
 
+        kwargs['authn_endpoint'] = 'token'
         # method is default POST
         url, body, ht_args, csi = self.request_info(request, method=method,
                                                     request_args=request_args,
@@ -667,7 +672,7 @@ class Client(PBase):
                                 authn_method="", **kwargs):
 
         token = self.get_token(also_expired=True, state=state, **kwargs)
-
+        kwargs['authn_endpoint'] = 'refresh'
         url, body, ht_args, csi = self.request_info(request, method=method,
                                                     request_args=request_args,
                                                     extra_args=extra_args,
