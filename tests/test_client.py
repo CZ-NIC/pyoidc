@@ -190,7 +190,8 @@ class TestPrivateKeyJWT(object):
 
         cis = AccessTokenRequest()
         pkj = PrivateKeyJWT(client)
-        http_args = pkj.construct(cis, algorithm="RS256")
+        http_args = pkj.construct(cis, algorithm="RS256",
+                                  authn_endpoint='token')
         assert http_args == {}
         cas = cis["client_assertion"]
         _jwt = JWT().unpack(cas)
@@ -206,7 +207,8 @@ class TestClientSecretJWT(object):
         csj = ClientSecretJWT(client)
         cis = AccessTokenRequest()
 
-        http_args = csj.construct(cis, algorithm="HS256")
+        http_args = csj.construct(cis, algorithm="HS256",
+                                  authn_endpoint='token')
         assert cis["client_assertion_type"] == JWT_BEARER
         assert "client_assertion" in cis
         cas = cis["client_assertion"]

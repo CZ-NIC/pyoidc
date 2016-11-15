@@ -521,7 +521,7 @@ class Client(PBase):
         if reqresp.status_code in SUCCESSFUL:
             body_type = verify_header(reqresp, body_type)
         elif reqresp.status_code in [302, 303]:  # redirect
-            pass
+            return reqresp
         elif reqresp.status_code == 500:
             logger.error("(%d) %s" % (reqresp.status_code,
                                       sanitize(reqresp.text)))
@@ -536,10 +536,12 @@ class Client(PBase):
             raise HttpError("HTTP ERROR: %s [%s] on %s" % (
                 reqresp.text, reqresp.status_code, reqresp.url))
 
-        if body_type:
-            if response:
-                return self.parse_response(response, reqresp.text, body_type,
-                                           state, **kwargs)
+        if response:
+            if body_type == 'txt':
+                # no meaning trying to parse unstructured text
+                return reqresp.text
+            return self.parse_response(response, reqresp.text, body_type,
+                                       state, **kwargs)
 
         # could be an error response
         if reqresp.status_code in [200, 400]:
@@ -625,7 +627,7 @@ class Client(PBase):
                                        http_args=http_args, algs=algs)
 
         if isinstance(resp, Message):
-            if resp.type() in RESPONSE2ERROR["AuthorizationRequest"]:
+            if resp.type() in RESPONSE2ERROR["AuthorizationResponse"]:
                 resp.state = csi.state
 
         return resp

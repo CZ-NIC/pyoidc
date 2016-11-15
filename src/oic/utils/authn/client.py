@@ -313,7 +313,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
             try:
                 algorithm = self.cli.registration_info[
                     'token_endpoint_auth_signing_alg']
-            except KeyError:
+            except (KeyError, AttributeError):
                 pass
 
         if not algorithm:
