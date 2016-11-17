@@ -258,7 +258,7 @@ class TestProvider(object):
         # Construct Access token request
         areq = AccessTokenRequest(code=access_grant,
                                   redirect_uri="http://example.com/authz",
-                                  client_id="client2",
+                                  client_id='<REDACTED>',
                                   client_secret="hemlighet",
                                   grant_type='authorization_code')
 

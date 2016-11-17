@@ -52,7 +52,7 @@ setup(
     version=version,
     description="Python implementation of OAuth2 and OpenID Connect",
     author="Roland Hedberg",
-    author_email="roland.hedberg@umu.se",
+    author_email="roland@catalogix.se",
     license="Apache 2.0",
     url='https://github.com/rohe/pyoidc',
     packages=["oic", "oic/oauth2", "oic/oic", "oic/utils", "oic/utils/authn",
