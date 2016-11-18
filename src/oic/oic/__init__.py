@@ -961,7 +961,7 @@ class Client(oauth2.Client):
                 if not urlparse(redirect_header).scheme:
                     # Relative URL was provided - construct new redirect using an issuer
                     _split = urlparse(issuer)
-                    new_url = urlunparse((_split.scheme, _split.netloc, redirect_header, _split.params,
+                    new_url = urlunparse((_split.scheme, _split.netloc, unicode(redirect_header), _split.params,
                                           _split.query, _split.fragment))
                 r = self.http_request(new_url)
                 if r.status_code == 200:
