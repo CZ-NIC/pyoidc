@@ -43,16 +43,8 @@ class ClientMetadataStatement(MetadataStatement):
 
 
 class ProviderConfigurationResponse(message.ProviderConfigurationResponse):
-    c_param = message.ProviderConfigurationResponse.c_param.copy()
-    c_param.update({
-        'software_statements': SINGLE_OPTIONAL_STRING,
-        'software_statement_uris': OPTIONAL_MESSAGE,
-        'signed_metadata': SINGLE_OPTIONAL_STRING,
-        'signed_metadata_uri': SINGLE_OPTIONAL_STRING,
-        'signed_jwks_uri': SINGLE_OPTIONAL_STRING,
-        'signing_key': SINGLE_REQUIRED_STRING,
-        'signing_keys_uri': SINGLE_OPTIONAL_STRING,
-    })
+    c_param = MetadataStatement.c_param.copy()
+    c_param.update(message.ProviderConfigurationResponse.c_param.copy())
 
 
 def unfurl(jwt):
@@ -80,32 +72,50 @@ def unpack_metadata_statement(json_ms=None, jwt_ms='', keyjar=None,
     :return: Unpacked and verified metadata statement
     """
 
+    if keyjar is None:
+        _keyjar = KeyJar()
+    else:
+        _keyjar = keyjar
+
     if jwt_ms:
         try:
             json_ms = unfurl(jwt_ms)
         except JWSException:
             raise
         else:
-            if 'metadata_statements' in json_ms or 'metadata_statement_uris' \
-                    in json_ms:
+            msl = []
+            if 'metadata_statements' in json_ms:
+                msl = []
+                for meta_s in json_ms['metadata_statements']:
+                    try:
+                        _ms = unpack_metadata_statement(jwt_ms=meta_s,
+                                                        keyjar=_keyjar)
+                    except (JWSException, BadSignature):
+                        pass
+                    else:
+                        msl.append(_ms)
+
+                for _ms in msl:
+                    _keyjar.import_jwks(_ms['signing_keys'], '')
+
+            elif 'metadata_statement_uris' in json_ms:
                 pass
-            else:
-                return cls().from_jwt(jwt_ms, keyjar=keyjar), None, None
+
+            _ms = cls().from_jwt(jwt_ms, keyjar=_keyjar)
+            if msl:
+                _ms['metadata_statements'] = [x.to_json() for x in msl]
+            return _ms
 
     if json_ms:
         msl = []
         if 'metadata_statements' in json_ms:
             for ms in json_ms['metadata_statements']:
                 try:
-                    _inst, _json, _ikj = unpack_metadata_statement(
-                        jwt_ms=ms, keyjar=keyjar)
+                    res = unpack_metadata_statement(jwt_ms=ms, keyjar=keyjar)
                 except (JWSException, BadSignature):
                     pass
                 else:
-                    if _json is None:
-                        msl.append((_inst, _inst, _ikj))
-                    else:
-                        msl.append((_inst, _json, _ikj))
+                    msl.append(res)
 
         if 'metadata_statement_uris' in json_ms:
             if httpcli:
@@ -135,9 +145,10 @@ def unpack_metadata_statement(json_ms=None, jwt_ms='', keyjar=None,
         raise AttributeError('Need one of json_ms or jwt_ms')
 
     if jwt_ms and _kj:
-        return cls().from_jwt(jwt_ms, keyjar=_kj), json_ms, _kj
+        return {'ms': cls().from_jwt(jwt_ms, keyjar=_kj),
+                'json_ms':json_ms, 'keyjar':_kj}
     else:
-        return json_ms
+        return {'json_ms':json_ms}
 
 
 def pack_metadata_statement(metadata, keyjar, iss, alg='', **kwargs):
@@ -161,8 +172,8 @@ def pack_metadata_statement(metadata, keyjar, iss, alg='', **kwargs):
 #  The resulting metadata must not contain these parameters
 IgnoreKeys = list(JasonWebToken.c_param.keys())
 IgnoreKeys.extend([
-    'signing_keys', 'signing_keys_uri', 'metadata_statements',
-    'metadata_statement_uris', 'kid'])
+    'signing_keys', 'signing_keys_uri', 'metadata_statement_uris', 'kid',
+    'metadata_statements'])
 
 
 def is_lesser(a, b):
@@ -172,6 +183,9 @@ def is_lesser(a, b):
     :param b:
     :return: True or False
     """
+
+    if type(a) != type(b):
+        return False
 
     if isinstance(a, string_types) and isinstance(b, string_types):
         return a == b
@@ -185,6 +199,19 @@ def is_lesser(a, b):
             if not flag:
                 return False
         return True
+    elif isinstance(a, dict) and isinstance(b, dict):
+        if is_lesser(list(a.keys()), list(b.keys())):
+            for key, val in a.items():
+                if not is_lesser(val, b[key]):
+                    return False
+            return True
+        return False
+    elif isinstance(a, int) and isinstance(b, int):
+        return a <= b
+    elif isinstance(a, float) and isinstance(b, float):
+        return a <= b
+
+    return False
 
 
 def evaluate_metadata_statement(metadata):
@@ -204,7 +231,7 @@ def evaluate_metadata_statement(metadata):
     if 'metadata_statements' in metadata:
         cres = {}
         for ms in metadata['metadata_statements']:
-            _msd = evaluate_metadata_statement(ms)
+            _msd = evaluate_metadata_statement(json.loads(ms))
             for _iss, kw in _msd.items():
                 _ci = {}
                 for k, v in kw.items():
