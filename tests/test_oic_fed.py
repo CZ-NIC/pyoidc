@@ -367,11 +367,11 @@ def test_evaluate_metadata_statement_3():
     _cms = unpack_metadata_statement(jwt_ms=ms_rp, keyjar=_keyjar)
 
     res = evaluate_metadata_statement(_cms)
-    assert list(res.keys()) == [ISSUER['fo']]
+    assert set(res.keys()) == {ISSUER['fo'], ISSUER['fo1']}
     assert sorted(list(res[ISSUER['fo']].keys())) == sorted(
-        ['contacts', 'tos_uri', 'redirect_uris', 'scope'])
+        ['claims', 'contacts', 'tos_uri', 'redirect_uris', 'scope'])
 
-    assert res[ISSUER['fo']]['scope'] == ['openid', 'email', 'address']
+    assert res[ISSUER['fo']]['scope'] == ['openid', 'email', 'phone']
     assert res[ISSUER['fo1']]['scope'] == ['openid', 'email', 'address']
     assert 'claims' in res[ISSUER['fo']]
     assert 'claims' not in res[ISSUER['fo1']]
