@@ -1,3 +1,4 @@
+import copy
 import json
 import logging
 
@@ -161,6 +162,8 @@ def pack_metadata_statement(metadata, keyjar, iss, alg='', **kwargs):
     :return: A JWT
     """
 
+    # Own copy
+    metadata = copy.deepcopy(metadata)
     metadata.update(kwargs)
     _jwt = JWT(keyjar, iss=iss, msgtype=metadata.__class__)
     if alg:
