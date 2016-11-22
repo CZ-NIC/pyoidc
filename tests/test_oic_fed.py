@@ -1,7 +1,7 @@
 import os
 
-from oic.extension.oidc_fed import MetadataStatement, \
-    evaluate_metadata_statement
+from oic.extension.oidc_fed import evaluate_metadata_statement
+from oic.extension.oidc_fed import MetadataStatement
 from oic.extension.oidc_fed import pack_metadata_statement
 from oic.extension.oidc_fed import unpack_metadata_statement
 from oic.utils.keyio import build_keyjar

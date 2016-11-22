@@ -23,7 +23,6 @@ from oic.oauth2.util import get_or_post
 from oic.oauth2.util import verify_header
 from oic.utils.keyio import KeyJar
 from oic.utils.time_util import utc_time_sans_frac
-from oic.utils.sanitize import sanitize
 from oic.oauth2.message import *
 
 __author__ = 'rohe0002'
