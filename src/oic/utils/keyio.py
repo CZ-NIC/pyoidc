@@ -29,6 +29,10 @@ KEYLOADERR = "Failed to load %s key from '%s' (%s)"
 logger = logging.getLogger(__name__)
 
 
+if sys.version_info[0] == 2:
+    class FileNotFoundError(OSError):
+        pass
+
 class KeyIOError(PyoidcError):
     pass
 
