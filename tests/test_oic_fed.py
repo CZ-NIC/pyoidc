@@ -80,9 +80,8 @@ def test_pack_and_unpack_ms_lev0():
     assert _jwt
     json_ms = unfurl(_jwt)
     #  print(json_ms.keys())
-    assert json_ms.keys() == {'signing_keys': 0, 'iss': 0, 'iat': 0, 'exp': 0,
-                              'kid': 0, 'scope': 0, 'contacts': 0,
-                              'jti': 0}.keys()
+    assert set(json_ms.keys()) == {'signing_keys', 'iss', 'iat', 'exp',
+                                   'kid', 'scope', 'contacts', 'jti'}
 
     # Unpack what you have packed
     _cms = FOP.unpack_metadata_statement(jwt_ms=_jwt)
@@ -108,7 +107,6 @@ def test_pack_ms_wrong_fo():
 
 
 def test_pack_and_unpack_ms_lev1():
-
     # metadata statement created by the organization
     cms_org = ClientMetadataStatement(
         signing_keys=ORGOP.jwks,
@@ -125,7 +123,7 @@ def test_pack_and_unpack_ms_lev1():
     )
 
     # signed by the org
-    ms_rp = ORGOP.pack_metadata_statement(cms_rp,alg='RS256',
+    ms_rp = ORGOP.pack_metadata_statement(cms_rp, alg='RS256',
                                           metadata_statements=[ms_org])
 
     receiver = fo_member(FOP)
@@ -175,7 +173,7 @@ def test_multiple_fo_one_working():
 
     #  signed by FO
     ms_org1 = FOP.pack_metadata_statement(cms_org, alg='RS256',
-                                      scope=['openid'])
+                                          scope=['openid'])
 
     #  signed by FO1
     ms_org2 = FO1P.pack_metadata_statement(cms_org, alg='RS256',
@@ -187,7 +185,8 @@ def test_multiple_fo_one_working():
     )
 
     ms_rp = ORGOP.pack_metadata_statement(cms_rp, alg='RS256',
-                                          metadata_statements=[ms_org1, ms_org2])
+                                          metadata_statements=[ms_org1,
+                                                               ms_org2])
 
     # only knows about one FO
     receiver = fo_member(FOP)
@@ -218,7 +217,8 @@ def test_multiple_fo_all_working():
     )
 
     ms_rp = ORGOP.pack_metadata_statement(cms_rp, alg='RS256',
-                                          metadata_statements=[ms_org1, ms_org2])
+                                          metadata_statements=[ms_org1,
+                                                               ms_org2])
 
     # knows all FO's
     receiver = fo_member(FOP, FO1P)
@@ -287,7 +287,7 @@ def test_evaluate_metadata_statement_2():
 
     #  signed by FO
     ms_org = FOP.pack_metadata_statement(cms_org, alg='RS256',
-                                     scope=['openid', 'email', 'address'])
+                                         scope=['openid', 'email', 'address'])
 
     cms_inter = ClientMetadataStatement(
         signing_keys=KEYS['inter']['jwks'],
@@ -296,7 +296,7 @@ def test_evaluate_metadata_statement_2():
 
     #  signed by org
     ms_inter = ORGOP.pack_metadata_statement(cms_inter, alg='RS256',
-                                       metadata_statements=[ms_org])
+                                             metadata_statements=[ms_org])
 
     cms_rp = ClientMetadataStatement(
         signing_keys=KEYS['admin']['jwks'],
@@ -306,7 +306,7 @@ def test_evaluate_metadata_statement_2():
 
     #  signed by intermediate
     ms_rp = INTEROP.pack_metadata_statement(cms_rp, alg='RS256',
-                                    metadata_statements=[ms_inter])
+                                            metadata_statements=[ms_inter])
 
     receiver = fo_member(FOP)
     _cms = receiver.unpack_metadata_statement(jwt_ms=ms_rp)
@@ -327,13 +327,13 @@ def test_evaluate_metadata_statement_3():
 
     #  signed by FO
     ms_org1 = FOP.pack_metadata_statement(cms_org, alg='RS256',
-                                      claims=['email', 'email_verified',
-                                              'phone', 'phone_verified'],
-                                      scope=['openid', 'email', 'phone'])
+                                          claims=['email', 'email_verified',
+                                                  'phone', 'phone_verified'],
+                                          scope=['openid', 'email', 'phone'])
 
     #  signed by FO1
     ms_org2 = FO1P.pack_metadata_statement(cms_org, alg='RS256',
-                                      scope=['openid', 'email', 'address'])
+                                           scope=['openid', 'email', 'address'])
 
     cms_inter = ClientMetadataStatement(
         signing_keys=KEYS['inter']['jwks'],
@@ -342,7 +342,8 @@ def test_evaluate_metadata_statement_3():
 
     #  signed by org
     ms_inter = ORGOP.pack_metadata_statement(cms_inter, alg='RS256',
-                                       metadata_statements=[ms_org1, ms_org2])
+                                             metadata_statements=[ms_org1,
+                                                                  ms_org2])
 
     cms_rp = ClientMetadataStatement(
         signing_keys=KEYS['admin']['jwks'],
@@ -352,7 +353,7 @@ def test_evaluate_metadata_statement_3():
 
     #  signed by intermediate
     ms_rp = INTEROP.pack_metadata_statement(cms_rp, alg='RS256',
-                                    metadata_statements=[ms_inter])
+                                            metadata_statements=[ms_inter])
 
     # knows all FO's
     receiver = fo_member(FOP, FO1P)
@@ -380,9 +381,9 @@ def test_evaluate_metadata_statement_4():
 
     #  signed by FO
     ms_org = FOP.pack_metadata_statement(cms_org, alg='RS256',
-                                     claims=['email', 'email_verified',
-                                             'phone', 'phone_verified'],
-                                     scope=['openid', 'email', 'phone'])
+                                         claims=['email', 'email_verified',
+                                                 'phone', 'phone_verified'],
+                                         scope=['openid', 'email', 'phone'])
 
     cms_inter = ClientMetadataStatement(
         signing_keys=KEYS['inter']['jwks'],
@@ -391,7 +392,7 @@ def test_evaluate_metadata_statement_4():
 
     #  signed by org
     ms_inter0 = ORGOP.pack_metadata_statement(cms_inter, alg='RS256',
-                                        metadata_statements=[ms_org])
+                                              metadata_statements=[ms_org])
 
     ms_inter1 = LIGOOP.pack_metadata_statement(cms_inter, alg='ES256')
 
@@ -403,7 +404,8 @@ def test_evaluate_metadata_statement_4():
 
     #  signed by intermediate
     ms_rp = INTEROP.pack_metadata_statement(cms_rp, alg='RS256',
-                                    metadata_statements=[ms_inter0, ms_inter1])
+                                            metadata_statements=[ms_inter0,
+                                                                 ms_inter1])
 
     # knows both FO's
     receiver = fo_member(FOP, LIGOOP)

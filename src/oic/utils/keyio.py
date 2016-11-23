@@ -29,10 +29,6 @@ KEYLOADERR = "Failed to load %s key from '%s' (%s)"
 logger = logging.getLogger(__name__)
 
 
-if sys.version_info[0] == 2:
-    class FileNotFoundError(OSError):
-        pass
-
 class KeyIOError(PyoidcError):
     pass
 
@@ -975,6 +971,17 @@ def keyjar_init(instance, key_conf, kid_template=""):
     return jwks
 
 
+def _new_rsa_key(spec):
+    if 'name' not in spec:
+        if '/' in spec['key']:
+            (head, tail) = os.path.split(spec['key'])
+            spec['path'] = head
+            spec['name'] = tail
+        else:
+            spec['name'] = spec['key']
+    return rsa_init(spec)
+
+
 def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
     """
     Configuration of the type:
@@ -1009,15 +1016,16 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
                     kb = KeyBundle(source="file://%s" % spec["key"],
                                    fileformat="der",
                                    keytype=typ, keyusage=spec["use"])
-                except FileNotFoundError:
-                    if 'name' not in spec:
-                        if '/' in spec['key']:
-                            (head, tail) = os.path.split(spec['key'])
-                            spec['path'] = head
-                            spec['name'] = tail
+                except Exception as err:
+                    if sys.version[0] == '2':
+                        if isinstance(err, IOError):
+                            kb = _new_rsa_key(spec)
                         else:
-                            spec['name'] = spec['key']
-                    kb = rsa_init(spec)
+                            raise
+                    elif isinstance(err, FileNotFoundError):
+                        kb = _new_rsa_key(spec)
+                    else:
+                        raise
             else:
                 kb = rsa_init(spec)
         elif typ == "EC":
