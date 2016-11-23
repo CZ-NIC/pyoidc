@@ -6,11 +6,9 @@ from jwkest.jws import JWSException, NoSuitableSigningKeys
 from oic.utils.keyio import build_keyjar, KeyJar
 
 from oic.extension.oidc_fed import ClientMetadataStatement
-from oic.extension.oidc_fed import evaluate_metadata_statement
 from oic.extension.oidc_fed import is_lesser
-from oic.extension.oidc_fed import pack_metadata_statement
+from oic.extension.oidc_fed import Operator
 from oic.extension.oidc_fed import unfurl
-from oic.extension.oidc_fed import unpack_metadata_statement
 
 from oic.extension.oidc_fed import MetadataStatement
 
@@ -24,6 +22,7 @@ KEYDEFS = [
 
 KEYS = {}
 ISSUER = {}
+OPERATOR = {}
 
 for entity in ['fo', 'fo1', 'org', 'inter', 'admin', 'ligo']:
     fname = os.path.join(BASE_PATH, "{}.key".format(entity))
@@ -33,6 +32,24 @@ for entity in ['fo', 'fo1', 'org', 'inter', 'admin', 'ligo']:
     _jwks, _keyjar, _kidd = build_keyjar(_keydef)
     KEYS[entity] = {'jwks': _jwks, 'keyjar': _keyjar, 'kidd': _kidd}
     ISSUER[entity] = 'https:{}.example.org'.format(entity)
+    OPERATOR[entity] = Operator(keyjar=_keyjar, iss=ISSUER[entity], jwks=_jwks)
+
+FOP = OPERATOR['fo']
+FOP.fo_keyjar = FOP.keyjar
+FO1P = OPERATOR['fo1']
+FO1P.fo_keyjar = FO1P.keyjar
+ORGOP = OPERATOR['org']
+ADMINOP = OPERATOR['admin']
+INTEROP = OPERATOR['inter']
+LIGOOP = OPERATOR['ligo']
+
+
+def fo_member(*args):
+    _kj = KeyJar()
+    for fo in args:
+        _kj.import_jwks(fo.jwks, '')
+
+    return Operator(fo_keyjar=_kj)
 
 
 def test_create_metadata_statement_simple():
@@ -55,14 +72,10 @@ def test_create_client_metadata_statement():
 
 
 def test_pack_and_unpack_ms_lev0():
-    cms = ClientMetadataStatement(
-        signing_keys=KEYS['org']['jwks'],
-        contacts=['info@example.com']
-    )
+    cms = ClientMetadataStatement(signing_keys=FOP.jwks,
+                                  contacts=['info@example.com'])
 
-    _jwt = pack_metadata_statement(cms, KEYS['fo']['keyjar'], ISSUER['fo'],
-                                   'RS256',
-                                   scope=['openid'])
+    _jwt = FOP.pack_metadata_statement(cms, alg='RS256', scope=['openid'])
 
     assert _jwt
     json_ms = unfurl(_jwt)
@@ -71,7 +84,8 @@ def test_pack_and_unpack_ms_lev0():
                               'kid': 0, 'scope': 0, 'contacts': 0,
                               'jti': 0}.keys()
 
-    _cms = unpack_metadata_statement(jwt_ms=_jwt, keyjar=KEYS['fo']['keyjar'])
+    # Unpack what you have packed
+    _cms = FOP.unpack_metadata_statement(jwt_ms=_jwt)
 
     assert _cms
 
@@ -82,12 +96,11 @@ def test_pack_ms_wrong_fo():
         contacts=['info@example.com']
     )
 
-    _jwt = pack_metadata_statement(cms, KEYS['fo']['keyjar'], ISSUER['fo'],
-                                   'RS256',
-                                   scope=['openid'])
+    _jwt = FOP.pack_metadata_statement(cms, alg='RS256', scope=['openid'])
 
     try:
-        _ = unpack_metadata_statement(jwt_ms=_jwt, keyjar=KEYS['fo1']['keyjar'])
+        member = fo_member(FO1P)
+        _ = member.unpack_metadata_statement(jwt_ms=_jwt)
     except JWSException as err:
         assert isinstance(err, NoSuitableSigningKeys)
     else:
@@ -95,26 +108,28 @@ def test_pack_ms_wrong_fo():
 
 
 def test_pack_and_unpack_ms_lev1():
+
+    # metadata statement created by the organization
     cms_org = ClientMetadataStatement(
-        signing_keys=KEYS['org']['jwks'],
+        signing_keys=ORGOP.jwks,
         contacts=['info@example.com']
     )
 
     #  signed by FO
-    ms_org = pack_metadata_statement(cms_org, KEYS['fo']['keyjar'],
-                                     ISSUER['fo'], 'RS256',
-                                     scope=['openid'])
+    ms_org = FOP.pack_metadata_statement(cms_org, alg='RS256', scope=['openid'])
 
+    # metadata statement created by the admin
     cms_rp = ClientMetadataStatement(
-        signing_keys=KEYS['admin']['jwks'],
+        signing_keys=ADMINOP.jwks,
         redirect_uris=['https://rp.example.com/auth_cb']
     )
 
-    ms_rp = pack_metadata_statement(cms_rp, KEYS['org']['keyjar'],
-                                    iss=ISSUER['org'], alg='RS256',
-                                    metadata_statements=[ms_org])
+    # signed by the org
+    ms_rp = ORGOP.pack_metadata_statement(cms_rp,alg='RS256',
+                                          metadata_statements=[ms_org])
 
-    _cms = unpack_metadata_statement(jwt_ms=ms_rp, keyjar=KEYS['fo']['keyjar'])
+    receiver = fo_member(FOP)
+    _cms = receiver.unpack_metadata_statement(jwt_ms=ms_rp)
 
     assert _cms
 
@@ -126,9 +141,7 @@ def test_pack_and_unpack_ms_lev2():
     )
 
     #  signed by FO
-    ms_org = pack_metadata_statement(cms_org, KEYS['fo']['keyjar'],
-                                     ISSUER['fo'], 'RS256',
-                                     scope=['openid'])
+    ms_org = FOP.pack_metadata_statement(cms_org, alg='RS256', scope=['openid'])
 
     cms_inter = ClientMetadataStatement(
         signing_keys=KEYS['inter']['jwks'],
@@ -136,9 +149,8 @@ def test_pack_and_unpack_ms_lev2():
     )
 
     #  signed by org
-    ms_inter = pack_metadata_statement(cms_inter, KEYS['org']['keyjar'],
-                                       iss=ISSUER['org'], alg='RS256',
-                                       metadata_statements=[ms_org])
+    ms_inter = ORGOP.pack_metadata_statement(cms_inter, alg='RS256',
+                                             metadata_statements=[ms_org])
 
     cms_rp = ClientMetadataStatement(
         signing_keys=KEYS['admin']['jwks'],
@@ -146,11 +158,11 @@ def test_pack_and_unpack_ms_lev2():
     )
 
     #  signed by intermediate
-    ms_rp = pack_metadata_statement(cms_rp, KEYS['inter']['keyjar'],
-                                    iss=ISSUER['inter'], alg='RS256',
-                                    metadata_statements=[ms_inter])
+    ms_rp = INTEROP.pack_metadata_statement(cms_rp, alg='RS256',
+                                            metadata_statements=[ms_inter])
 
-    _cms = unpack_metadata_statement(jwt_ms=ms_rp, keyjar=KEYS['fo']['keyjar'])
+    receiver = fo_member(FOP)
+    _cms = receiver.unpack_metadata_statement(jwt_ms=ms_rp)
 
     assert _cms
 
@@ -162,26 +174,24 @@ def test_multiple_fo_one_working():
     )
 
     #  signed by FO
-    ms_org1 = pack_metadata_statement(cms_org, KEYS['fo']['keyjar'],
-                                      ISSUER['fo'], 'RS256',
+    ms_org1 = FOP.pack_metadata_statement(cms_org, alg='RS256',
                                       scope=['openid'])
 
     #  signed by FO1
-    ms_org2 = pack_metadata_statement(cms_org, KEYS['fo1']['keyjar'],
-                                      ISSUER['fo1'], 'RS256',
-                                      scope=['openid', 'address'])
+    ms_org2 = FO1P.pack_metadata_statement(cms_org, alg='RS256',
+                                           scope=['openid', 'address'])
 
     cms_rp = ClientMetadataStatement(
         signing_keys=KEYS['admin']['jwks'],
         redirect_uris=['https://rp.example.com/auth_cb']
     )
 
-    ms_rp = pack_metadata_statement(cms_rp, KEYS['org']['keyjar'],
-                                    iss=ISSUER['org'], alg='RS256',
-                                    metadata_statements=[ms_org1, ms_org2])
+    ms_rp = ORGOP.pack_metadata_statement(cms_rp, alg='RS256',
+                                          metadata_statements=[ms_org1, ms_org2])
 
     # only knows about one FO
-    _cms = unpack_metadata_statement(jwt_ms=ms_rp, keyjar=KEYS['fo']['keyjar'])
+    receiver = fo_member(FOP)
+    _cms = receiver.unpack_metadata_statement(jwt_ms=ms_rp)
 
     assert len(_cms['metadata_statements']) == 1
     _ms = json.loads(_cms['metadata_statements'][0])
@@ -195,29 +205,24 @@ def test_multiple_fo_all_working():
     )
 
     #  signed by FO
-    ms_org1 = pack_metadata_statement(cms_org, KEYS['fo']['keyjar'],
-                                      ISSUER['fo'], 'RS256',
-                                      scope=['openid'])
+    ms_org1 = FOP.pack_metadata_statement(cms_org, alg='RS256',
+                                          scope=['openid'])
 
     #  signed by FO1
-    ms_org2 = pack_metadata_statement(cms_org, KEYS['fo1']['keyjar'],
-                                      ISSUER['fo1'], 'RS256',
-                                      scope=['openid', 'address'])
+    ms_org2 = FO1P.pack_metadata_statement(cms_org, alg='RS256',
+                                           scope=['openid', 'address'])
 
     cms_rp = ClientMetadataStatement(
         signing_keys=KEYS['admin']['jwks'],
         redirect_uris=['https://rp.example.com/auth_cb']
     )
 
-    ms_rp = pack_metadata_statement(cms_rp, KEYS['org']['keyjar'],
-                                    iss=ISSUER['org'], alg='RS256',
-                                    metadata_statements=[ms_org1, ms_org2])
+    ms_rp = ORGOP.pack_metadata_statement(cms_rp, alg='RS256',
+                                          metadata_statements=[ms_org1, ms_org2])
 
     # knows all FO's
-    _keyjar = KeyJar()
-    _keyjar.import_jwks(KEYS['fo']['jwks'], '')
-    _keyjar.import_jwks(KEYS['fo1']['jwks'], '')
-    _cms = unpack_metadata_statement(jwt_ms=ms_rp, keyjar=_keyjar)
+    receiver = fo_member(FOP, FO1P)
+    _cms = receiver.unpack_metadata_statement(jwt_ms=ms_rp)
 
     assert len(_cms['metadata_statements']) == 2
     _iss = [json.loads(x)['iss'] for x in _cms['metadata_statements']]
@@ -242,14 +247,10 @@ def test_is_lesser_list():
 
 def test_evaluate_metadata_statement_1():
     cms_org = ClientMetadataStatement(
-        signing_keys=KEYS['org']['jwks'],
-        contacts=['info@example.com']
-    )
+        signing_keys=ORGOP.jwks, contacts=['info@example.com'])
 
     #  signed by FO
-    ms_org = pack_metadata_statement(cms_org, KEYS['fo']['keyjar'],
-                                     ISSUER['fo'], 'RS256',
-                                     scope=['openid'])
+    ms_org = FOP.pack_metadata_statement(cms_org, alg='RS256', scope=['openid'])
 
     cms_inter = ClientMetadataStatement(
         signing_keys=KEYS['inter']['jwks'],
@@ -257,9 +258,8 @@ def test_evaluate_metadata_statement_1():
     )
 
     #  signed by org
-    ms_inter = pack_metadata_statement(cms_inter, KEYS['org']['keyjar'],
-                                       iss=ISSUER['org'], alg='RS256',
-                                       metadata_statements=[ms_org])
+    ms_inter = ORGOP.pack_metadata_statement(cms_inter, alg='RS256',
+                                             metadata_statements=[ms_org])
 
     cms_rp = ClientMetadataStatement(
         signing_keys=KEYS['admin']['jwks'],
@@ -267,13 +267,13 @@ def test_evaluate_metadata_statement_1():
     )
 
     #  signed by intermediate
-    ms_rp = pack_metadata_statement(cms_rp, KEYS['inter']['keyjar'],
-                                    iss=ISSUER['inter'], alg='RS256',
-                                    metadata_statements=[ms_inter])
+    ms_rp = INTEROP.pack_metadata_statement(cms_rp, alg='RS256',
+                                            metadata_statements=[ms_inter])
 
-    _cms = unpack_metadata_statement(jwt_ms=ms_rp, keyjar=KEYS['fo']['keyjar'])
+    receiver = fo_member(FOP)
+    _cms = receiver.unpack_metadata_statement(jwt_ms=ms_rp)
 
-    res = evaluate_metadata_statement(_cms)
+    res = receiver.evaluate_metadata_statement(_cms)
     assert list(res.keys()) == [ISSUER['fo']]
     assert sorted(list(res[ISSUER['fo']].keys())) == sorted(
         ['contacts', 'tos_uri', 'redirect_uris', 'scope'])
@@ -286,8 +286,7 @@ def test_evaluate_metadata_statement_2():
     )
 
     #  signed by FO
-    ms_org = pack_metadata_statement(cms_org, KEYS['fo']['keyjar'],
-                                     ISSUER['fo'], 'RS256',
+    ms_org = FOP.pack_metadata_statement(cms_org, alg='RS256',
                                      scope=['openid', 'email', 'address'])
 
     cms_inter = ClientMetadataStatement(
@@ -296,8 +295,7 @@ def test_evaluate_metadata_statement_2():
     )
 
     #  signed by org
-    ms_inter = pack_metadata_statement(cms_inter, KEYS['org']['keyjar'],
-                                       iss=ISSUER['org'], alg='RS256',
+    ms_inter = ORGOP.pack_metadata_statement(cms_inter, alg='RS256',
                                        metadata_statements=[ms_org])
 
     cms_rp = ClientMetadataStatement(
@@ -307,13 +305,13 @@ def test_evaluate_metadata_statement_2():
     )
 
     #  signed by intermediate
-    ms_rp = pack_metadata_statement(cms_rp, KEYS['inter']['keyjar'],
-                                    iss=ISSUER['inter'], alg='RS256',
+    ms_rp = INTEROP.pack_metadata_statement(cms_rp, alg='RS256',
                                     metadata_statements=[ms_inter])
 
-    _cms = unpack_metadata_statement(jwt_ms=ms_rp, keyjar=KEYS['fo']['keyjar'])
+    receiver = fo_member(FOP)
+    _cms = receiver.unpack_metadata_statement(jwt_ms=ms_rp)
 
-    res = evaluate_metadata_statement(_cms)
+    res = receiver.evaluate_metadata_statement(_cms)
     assert list(res.keys()) == [ISSUER['fo']]
     assert sorted(list(res[ISSUER['fo']].keys())) == sorted(
         ['contacts', 'tos_uri', 'redirect_uris', 'scope'])
@@ -328,15 +326,13 @@ def test_evaluate_metadata_statement_3():
     )
 
     #  signed by FO
-    ms_org1 = pack_metadata_statement(cms_org, KEYS['fo']['keyjar'],
-                                      ISSUER['fo'], 'RS256',
+    ms_org1 = FOP.pack_metadata_statement(cms_org, alg='RS256',
                                       claims=['email', 'email_verified',
                                               'phone', 'phone_verified'],
                                       scope=['openid', 'email', 'phone'])
 
     #  signed by FO1
-    ms_org2 = pack_metadata_statement(cms_org, KEYS['fo1']['keyjar'],
-                                      ISSUER['fo1'], 'RS256',
+    ms_org2 = FO1P.pack_metadata_statement(cms_org, alg='RS256',
                                       scope=['openid', 'email', 'address'])
 
     cms_inter = ClientMetadataStatement(
@@ -345,8 +341,7 @@ def test_evaluate_metadata_statement_3():
     )
 
     #  signed by org
-    ms_inter = pack_metadata_statement(cms_inter, KEYS['org']['keyjar'],
-                                       iss=ISSUER['org'], alg='RS256',
+    ms_inter = ORGOP.pack_metadata_statement(cms_inter, alg='RS256',
                                        metadata_statements=[ms_org1, ms_org2])
 
     cms_rp = ClientMetadataStatement(
@@ -356,17 +351,14 @@ def test_evaluate_metadata_statement_3():
     )
 
     #  signed by intermediate
-    ms_rp = pack_metadata_statement(cms_rp, KEYS['inter']['keyjar'],
-                                    iss=ISSUER['inter'], alg='RS256',
+    ms_rp = INTEROP.pack_metadata_statement(cms_rp, alg='RS256',
                                     metadata_statements=[ms_inter])
 
     # knows all FO's
-    _keyjar = KeyJar()
-    _keyjar.import_jwks(KEYS['fo']['jwks'], '')
-    _keyjar.import_jwks(KEYS['fo1']['jwks'], '')
-    _cms = unpack_metadata_statement(jwt_ms=ms_rp, keyjar=_keyjar)
+    receiver = fo_member(FOP, FO1P)
+    _cms = receiver.unpack_metadata_statement(jwt_ms=ms_rp)
 
-    res = evaluate_metadata_statement(_cms)
+    res = receiver.evaluate_metadata_statement(_cms)
     assert set(res.keys()) == {ISSUER['fo'], ISSUER['fo1']}
     assert sorted(list(res[ISSUER['fo']].keys())) == sorted(
         ['claims', 'contacts', 'tos_uri', 'redirect_uris', 'scope'])
@@ -387,8 +379,7 @@ def test_evaluate_metadata_statement_4():
     )
 
     #  signed by FO
-    ms_org = pack_metadata_statement(cms_org, KEYS['fo']['keyjar'],
-                                     iss=ISSUER['fo'], alg='RS256',
+    ms_org = FOP.pack_metadata_statement(cms_org, alg='RS256',
                                      claims=['email', 'email_verified',
                                              'phone', 'phone_verified'],
                                      scope=['openid', 'email', 'phone'])
@@ -399,12 +390,10 @@ def test_evaluate_metadata_statement_4():
     )
 
     #  signed by org
-    ms_inter0 = pack_metadata_statement(cms_inter, KEYS['org']['keyjar'],
-                                        iss=ISSUER['org'], alg='RS256',
+    ms_inter0 = ORGOP.pack_metadata_statement(cms_inter, alg='RS256',
                                         metadata_statements=[ms_org])
 
-    ms_inter1 = pack_metadata_statement(cms_inter, KEYS['fo1']['keyjar'],
-                                        iss=ISSUER['fo1'], alg='ES256')
+    ms_inter1 = LIGOOP.pack_metadata_statement(cms_inter, alg='ES256')
 
     cms_rp = ClientMetadataStatement(
         signing_keys=KEYS['admin']['jwks'],
@@ -413,18 +402,15 @@ def test_evaluate_metadata_statement_4():
     )
 
     #  signed by intermediate
-    ms_rp = pack_metadata_statement(cms_rp, KEYS['inter']['keyjar'],
-                                    iss=ISSUER['inter'], alg='RS256',
+    ms_rp = INTEROP.pack_metadata_statement(cms_rp, alg='RS256',
                                     metadata_statements=[ms_inter0, ms_inter1])
 
-    # knows all FO's
-    _keyjar = KeyJar()
-    _keyjar.import_jwks(KEYS['fo']['jwks'], '')
-    _keyjar.import_jwks(KEYS['fo1']['jwks'], '')
-    _cms = unpack_metadata_statement(jwt_ms=ms_rp, keyjar=_keyjar)
+    # knows both FO's
+    receiver = fo_member(FOP, LIGOOP)
+    _cms = receiver.unpack_metadata_statement(jwt_ms=ms_rp)
 
-    res = evaluate_metadata_statement(_cms)
-    assert set(res.keys()) == {ISSUER['fo'], ISSUER['fo1']}
+    res = receiver.evaluate_metadata_statement(_cms)
+    assert set(res.keys()) == {ISSUER['fo'], ISSUER['ligo']}
     assert sorted(list(res[ISSUER['fo']].keys())) == sorted(
         ['claims', 'contacts', 'redirect_uris', 'scope', 'tos_uri'])
 

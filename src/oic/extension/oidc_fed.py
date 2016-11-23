@@ -60,125 +60,6 @@ def keyjar_from_metadata_statements(iss, msl):
     return keyjar
 
 
-def unpack_metadata_statement(json_ms=None, jwt_ms='', keyjar=None,
-                              cls=ClientMetadataStatement, httpcli=None):
-    """
-
-    :param json_ms: Metadata statement as a JSON document
-    :param jwt_ms: Metadata statement as JWT
-    :param keyjar: Keys that should be used to verify the signature of the
-        document
-    :param cls: What type (Class) of metadata statement this is
-    :param httpcli: A oic.oauth2.base.PBase instance
-    :return: Unpacked and verified metadata statement
-    """
-
-    if keyjar is None:
-        _keyjar = KeyJar()
-    else:
-        _keyjar = keyjar
-
-    if jwt_ms:
-        try:
-            json_ms = unfurl(jwt_ms)
-        except JWSException:
-            raise
-        else:
-            msl = []
-            if 'metadata_statements' in json_ms:
-                msl = []
-                for meta_s in json_ms['metadata_statements']:
-                    try:
-                        _ms = unpack_metadata_statement(jwt_ms=meta_s,
-                                                        keyjar=_keyjar)
-                    except (JWSException, BadSignature):
-                        pass
-                    else:
-                        msl.append(_ms)
-
-                for _ms in msl:
-                    _keyjar.import_jwks(_ms['signing_keys'], '')
-
-            elif 'metadata_statement_uris' in json_ms:
-                pass
-
-            _ms = cls().from_jwt(jwt_ms, keyjar=_keyjar)
-            if msl:
-                _ms['metadata_statements'] = [x.to_json() for x in msl]
-            return _ms
-
-    if json_ms:
-        msl = []
-        if 'metadata_statements' in json_ms:
-            for ms in json_ms['metadata_statements']:
-                try:
-                    res = unpack_metadata_statement(jwt_ms=ms, keyjar=keyjar)
-                except (JWSException, BadSignature):
-                    pass
-                else:
-                    msl.append(res)
-
-        if 'metadata_statement_uris' in json_ms:
-            if httpcli:
-                for iss, url in json_ms['metadata_statement_uris'].items():
-                    if iss not in keyjar:  # FO I don't know about
-                        continue
-                    else:
-                        _jwt = httpcli.http_request(url)
-                        try:
-                            _inst, _json, _ikj = unpack_metadata_statement(
-                                jwt_ms=_jwt, keyjar=keyjar, httpcli=httpcli)
-                        except JWSException as err:
-                            logger.error(err)
-                        else:
-                            if _json is None:
-                                msl.append((_inst, _inst, _ikj))
-                            else:
-                                msl.append((_inst, _json, _ikj))
-
-        json_ms['metadata_statements'] = [y for x, y, z in msl]
-        _kj = keyjar_from_metadata_statements(json_ms['iss'],
-                                              [x for x, y, z in msl])
-        for ikj in [z for x, y, z in msl]:
-            if ikj:
-                _kj.add_keyjar(ikj)
-    else:
-        raise AttributeError('Need one of json_ms or jwt_ms')
-
-    if jwt_ms and _kj:
-        return {'ms': cls().from_jwt(jwt_ms, keyjar=_kj),
-                'json_ms':json_ms, 'keyjar':_kj}
-    else:
-        return {'json_ms':json_ms}
-
-
-def pack_metadata_statement(metadata, keyjar, iss, alg='', **kwargs):
-    """
-
-    :param metas: Original metadata statement as a MetadataStatement instance
-    :param keyjar: KeyJar in which the necessary keys should reside
-    :param alg: Which signing algorithm to use
-    :param kwargs: Additional metadata statement attribute values
-    :return: A JWT
-    """
-
-    # Own copy
-    metadata = copy.deepcopy(metadata)
-    metadata.update(kwargs)
-    _jwt = JWT(keyjar, iss=iss, msgtype=metadata.__class__)
-    if alg:
-        _jwt.sign_alg = alg
-
-    return _jwt.pack(cls_instance=metadata)
-
-
-#  The resulting metadata must not contain these parameters
-IgnoreKeys = list(JasonWebToken.c_param.keys())
-IgnoreKeys.extend([
-    'signing_keys', 'signing_keys_uri', 'metadata_statement_uris', 'kid',
-    'metadata_statements'])
-
-
 def is_lesser(a, b):
     """
     Verify that a in lesser then b
@@ -217,41 +98,189 @@ def is_lesser(a, b):
     return False
 
 
-def evaluate_metadata_statement(metadata):
-    """
-    Computes the resulting metadata statement from a compounded metadata
-    statement.
-    If something goes wrong during the evaluation an exception is raised
+#  The resulting metadata must not contain these parameters
+IgnoreKeys = list(JasonWebToken.c_param.keys())
+IgnoreKeys.extend([
+    'signing_keys', 'signing_keys_uri', 'metadata_statement_uris', 'kid',
+    'metadata_statements'])
 
-    :param ms: The compounded metadata statement
-    :return: The resulting metadata statement
-    """
 
-    # start from the innermost metadata statement and work outwards
+class Operator(object):
+    def __init__(self, keyjar=None, fo_keyjar=None, httpcli=None, jwks=None,
+                 iss=None):
+        """
 
-    res = dict([(k, v) for k, v in metadata.items() if k not in IgnoreKeys])
+        :param keyjar: Contains the operators signing keys
+        :param fo_keyjar: Contains the federation operators signing key
+            for all the federations this instance wants to talk to
+        :param httpcli: A http client to use when information has to be
+            fetched from somewhere else
+        :param iss: Issuer ID
+        """
+        self.keyjar = keyjar
+        self.fo_keyjar = fo_keyjar
+        self.httpcli = httpcli
+        if jwks:
+            self.jwks = jwks
+        elif keyjar:
+            self.jwks = self.keyjar.export_jwks()
+        else:
+            self.jwks = None
+        self.iss = iss
+        self.failed = {}
 
-    if 'metadata_statements' in metadata:
-        cres = {}
-        for ms in metadata['metadata_statements']:
-            _msd = evaluate_metadata_statement(json.loads(ms))
-            for _iss, kw in _msd.items():
-                _ci = {}
-                for k, v in kw.items():
-                    if k in res:
-                        if is_lesser(res[k], v):
-                            _ci[k] = v
+    def unpack_metadata_statement(self, json_ms=None, jwt_ms='', keyjar=None,
+                                  cls=ClientMetadataStatement):
+        """
+
+        :param json_ms: Metadata statement as a JSON document
+        :param jwt_ms: Metadata statement as JWT
+        :param keyjar: Keys that should be used to verify the signature of the
+            document
+        :param cls: What type (Class) of metadata statement this is
+        :param httpcli: A oic.oauth2.base.PBase instance
+        :return: Unpacked and verified metadata statement
+        """
+
+        if keyjar is None:
+            _keyjar = self.fo_keyjar
+        else:
+            _keyjar = keyjar
+
+        if jwt_ms:
+            try:
+                json_ms = unfurl(jwt_ms)
+            except JWSException:
+                raise
+            else:
+                msl = []
+                if 'metadata_statements' in json_ms:
+                    msl = []
+                    for meta_s in json_ms['metadata_statements']:
+                        try:
+                            _ms = self.unpack_metadata_statement(jwt_ms=meta_s,
+                                                                 keyjar=_keyjar)
+                        except (JWSException, BadSignature):
+                            pass
                         else:
-                            raise ValueError(
-                                'Value of {}: {} not <= {}'.format(k, res[k],
-                                                                   v))
+                            msl.append(_ms)
+
+                    for _ms in msl:
+                        _keyjar.import_jwks(_ms['signing_keys'], '')
+
+                elif 'metadata_statement_uris' in json_ms:
+                    pass
+
+                _ms = cls().from_jwt(jwt_ms, keyjar=_keyjar)
+                if msl:
+                    _ms['metadata_statements'] = [x.to_json() for x in msl]
+                return _ms
+
+        if json_ms:
+            msl = []
+            if 'metadata_statements' in json_ms:
+                for ms in json_ms['metadata_statements']:
+                    try:
+                        res = self.unpack_metadata_statement(jwt_ms=ms,
+                                                             keyjar=keyjar)
+                    except (JWSException, BadSignature):
+                        pass
                     else:
-                        _ci[k] = v
-                for k, v in res.items():
-                    if k not in _ci:
-                        _ci[k] = v
-                cres[_iss] = _ci
-        return cres
-    else:  # this is the innermost
-        _iss = metadata['iss']  # The issuer == FO is interesting
-        return {_iss: res}
+                        msl.append(res)
+
+            if 'metadata_statement_uris' in json_ms:
+                if self.httpcli:
+                    for iss, url in json_ms['metadata_statement_uris'].items():
+                        if iss not in keyjar:  # FO I don't know about
+                            continue
+                        else:
+                            _jwt = self.httpcli.http_request(url)
+                            try:
+                                _res = self.unpack_metadata_statement(
+                                    jwt_ms=_jwt, keyjar=keyjar)
+                            except JWSException as err:
+                                logger.error(err)
+                            else:
+                                msl.append(_res)
+
+            _ms = cls().from_jwt(jwt_ms, keyjar=_keyjar)
+            if msl:
+                _ms['metadata_statements'] = [x.to_json() for x in msl]
+            return _ms
+        else:
+            raise AttributeError('Need one of json_ms or jwt_ms')
+
+    def pack_metadata_statement(self, metadata, keyjar=None, iss=None, alg='',
+                                **kwargs):
+        """
+
+        :param metas: Original metadata statement as a MetadataStatement
+        instance
+        :param keyjar: KeyJar in which the necessary keys should reside
+        :param alg: Which signing algorithm to use
+        :param kwargs: Additional metadata statement attribute values
+        :return: A JWT
+        """
+        if iss is None:
+            iss = self.iss
+        if keyjar is None:
+            keyjar = self.keyjar
+
+        # Own copy
+        _metadata = copy.deepcopy(metadata)
+        _metadata.update(kwargs)
+        _jwt = JWT(keyjar, iss=iss, msgtype=_metadata.__class__)
+        if alg:
+            _jwt.sign_alg = alg
+
+        return _jwt.pack(cls_instance=_metadata)
+
+    def evaluate_metadata_statement(self, metadata):
+        """
+        Computes the resulting metadata statement from a compounded metadata
+        statement.
+        If something goes wrong during the evaluation an exception is raised
+
+        :param ms: The compounded metadata statement
+        :return: The resulting metadata statement
+        """
+
+        # start from the innermost metadata statement and work outwards
+
+        res = dict([(k, v) for k, v in metadata.items() if k not in IgnoreKeys])
+
+        if 'metadata_statements' in metadata:
+            cres = {}
+            for ms in metadata['metadata_statements']:
+                _msd = self.evaluate_metadata_statement(json.loads(ms))
+                for _iss, kw in _msd.items():
+                    _break = False
+                    _ci = {}
+                    for k, v in kw.items():
+                        if k in res:
+                            if is_lesser(res[k], v):
+                                _ci[k] = v
+                            else:
+                                self.failed['iss'] = (
+                                    'Value of {}: {} not <= {}'.format(k,
+                                                                       res[k],
+                                                                       v))
+                                _break = True
+                                break
+                        else:
+                            _ci[k] = v
+                        if _break:
+                            break
+
+                    if _break:
+                        continue
+
+                    for k, v in res.items():
+                        if k not in _ci:
+                            _ci[k] = v
+
+                    cres[_iss] = _ci
+            return cres
+        else:  # this is the innermost
+            _iss = metadata['iss']  # The issuer == FO is interesting
+            return {_iss: res}
