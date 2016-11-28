@@ -1529,6 +1529,15 @@ class Provider(AProvider):
         return Created(result.to_json(), content="application/json",
                        headers=[("Cache-Control", "no-store")])
 
+    @staticmethod
+    def client_secret_expiration_time():
+        '''
+        Returns client_secret expiration time.
+
+        Split for easy customization.
+        '''
+        return utc_time_sans_frac() + 86400
+
     def client_registration_setup(self, request):
         try:
             request.verify()
@@ -1566,7 +1575,7 @@ class Provider(AProvider):
             "client_secret": client_secret,
             "registration_access_token": _rat,
             "registration_client_uri": "%s?client_id=%s" % (reg_enp, client_id),
-            "client_secret_expires_at": utc_time_sans_frac() + 86400,
+            "client_secret_expires_at": self.client_secret_expiration_time(),
             "client_id_issued_at": utc_time_sans_frac(),
             "client_salt": rndstr(8)
         }

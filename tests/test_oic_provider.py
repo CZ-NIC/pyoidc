@@ -10,6 +10,7 @@ from future.backports.http.cookies import SimpleCookie
 from future.backports.urllib.parse import urlencode
 from future.backports.urllib.parse import parse_qs
 from future.backports.urllib.parse import urlparse
+from mock import Mock, patch
 
 from oic import rndstr
 from oic.utils.authn.authn_context import AuthnBroker
@@ -634,6 +635,11 @@ class TestProvider(object):
         idt = IdToken().deserialize(info.message, "json")
         assert _eq(idt.keys(), ['sub', 'aud', 'iss', 'acr', 'exp', 'iat'])
         assert idt["iss"] == self.provider.name
+
+    @patch('oic.oic.provider.utc_time_sans_frac', Mock(return_value=123456))
+    def test_client_secret_expiration_time(self):
+        exp_time = self.provider.client_secret_expiration_time()
+        assert exp_time == 209856
 
     def test_registration_endpoint(self):
         req = RegistrationRequest()
