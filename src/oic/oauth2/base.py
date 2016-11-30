@@ -81,7 +81,7 @@ class PBase(object):
             raise
 
         if self.event_store is not None:
-            self.event_store.store('http response', r, ref=url)
+            self.event_store.store('HTTP response', r, ref=url)
 
         try:
             _cookie = r.headers["set-cookie"]

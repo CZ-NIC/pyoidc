@@ -429,8 +429,8 @@ class Provider(object):
 
         areq = self.filter_request(areq)
 
-        if self.events:
-            self.events.store('protocol request', areq)
+        #if self.events:
+        #    self.events.store('protocol request', areq)
 
         if self.trace:
             self.trace.info('{}'.format(areq.to_dict()))

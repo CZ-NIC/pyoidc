@@ -375,7 +375,7 @@ class Client(PBase):
             cis = self.construct_request(request, request_args, extra_args)
 
         if self.event_store:
-            self.event_store.store('protocol request', cis)
+            self.event_store.store('Protocol request', cis)
 
         cis.lax = lax
 
@@ -430,8 +430,8 @@ class Client(PBase):
         if sformat == "urlencoded":
             info = self.get_urlinfo(info)
 
-        if self.event_store:
-            self.event_store.store('response', info)
+        #if self.event_store:
+        #    self.event_store.store('Response', info)
         resp = response().deserialize(info, sformat, **kwargs)
         msg = 'Initial response parsing => "{}"'
         logger.debug(msg.format(sanitize(resp.to_dict())))

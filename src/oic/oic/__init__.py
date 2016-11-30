@@ -1245,7 +1245,7 @@ class Client(oauth2.Client):
         req = self.create_registration_request(**kwargs)
 
         if self.event_store:
-            self.event_store.store('protocol request', req)
+            self.event_store.store('Protocol request', req)
 
         headers = {"content-type": "application/json"}
 
