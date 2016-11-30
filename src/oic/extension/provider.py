@@ -670,7 +670,7 @@ class Provider(provider.Provider):
 
         if 'state' in areq:
             if self.sdb[areq['code']]['state'] != areq['state']:
-                logger.error('State value mismathc')
+                logger.error('State value mismatch')
                 err = TokenErrorResponse(error="unauthorized_client")
                 return Unauthorized(err.to_json(), content="application/json")
 

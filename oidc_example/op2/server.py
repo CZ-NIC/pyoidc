@@ -330,6 +330,8 @@ class Application(object):
 
         environ["oic.oas"] = self.oas
 
+        logger.info('PATH: "{}"'.format(path))
+
         if path.startswith("static/"):
             return static(self, environ, start_response, path)
 
