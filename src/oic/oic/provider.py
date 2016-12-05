@@ -23,7 +23,6 @@ import socket
 from requests import ConnectionError
 
 from jwkest import b64d
-from jwkest import b64e
 from jwkest import jwe
 from jwkest import jws
 from jwkest.jwe import JWE
@@ -813,9 +812,13 @@ class Provider(AProvider):
 
         aresp['client_id'] = areq['client_id']
 
+        if self.events:
+            self.events.store('Protocol response', aresp)
+
         logger.info('authorization response: %s', sanitize(aresp.to_dict()))
         location = aresp.request(redirect_uri, fragment_enc)
-        logger.debug("Redirected to: '%s' (%s)", sanitize(location), type(location))
+        logger.debug("Redirected to: '%s' (%s)", sanitize(location),
+                     type(location))
         return SeeOther(str(location), headers=headers)
 
     def userinfo_in_id_token_claims(self, session):
@@ -1118,7 +1121,8 @@ class Provider(AProvider):
             else:
                 userinfo_claims = None
 
-            logger.debug("userinfo_claim: %s" % sanitize(userinfo_claims.to_dict()))
+            logger.debug(
+                "userinfo_claim: %s" % sanitize(userinfo_claims.to_dict()))
 
         logger.debug("Session info: %s" % sanitize(session))
 
@@ -1438,7 +1442,8 @@ class Provider(AProvider):
             except KeyError:
                 pass
         except Exception as err:
-            logger.error("Failed to load client keys: %s" % sanitize(request.to_dict()))
+            logger.error(
+                "Failed to load client keys: %s" % sanitize(request.to_dict()))
             logger.error("%s", err)
             logger.debug('Verify SSL: {}'.format(self.keyjar.verify_ssl))
             err = ClientRegistrationErrorResponse(
@@ -1627,7 +1632,7 @@ class Provider(AProvider):
 
         logger.debug("authn: %s, request: %s" % (sanitize(authn),
                                                  sanitize(request))
-        )
+                     )
 
         # verify the access token, has to be key into the client information
         # database.
@@ -1785,6 +1790,8 @@ class Provider(AProvider):
             _response = self.create_providerinfo()
             msg = "provider_info_response: {}"
             _log_info(msg.format(sanitize(_response.to_dict())))
+            if self.events:
+                self.events.store('Protocol response', _response)
 
             headers = [("Cache-Control", "no-store"), ("x-ffo", "bar")]
             if handle:

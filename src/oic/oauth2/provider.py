@@ -429,18 +429,8 @@ class Provider(object):
 
         areq = self.filter_request(areq)
 
-        #if self.events:
-        #    self.events.store('protocol request', areq)
-
-        if self.trace:
-            self.trace.info('{}'.format(areq.to_dict()))
-            if 'request' in areq:
-                if areq['request'].jwe_header:
-                    self.trace.info('request.jwe_header: {}'.format(
-                        areq['request'].jwe_header))
-                if areq['request'].jws_header:
-                    self.trace.info('request.jws_header: {}'.format(
-                        areq['request'].jws_header))
+        if self.events:
+            self.events.store('Protocol request', areq)
 
         try:
             _cinfo = self.cdb[areq['client_id']]
