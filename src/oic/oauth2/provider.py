@@ -166,11 +166,12 @@ class Provider(object):
     def __init__(self, name, sdb, cdb, authn_broker, authz, client_authn,
                  symkey="", urlmap=None, iv=0, default_scope="",
                  ca_bundle=None, verify_ssl=True, default_acr="",
-                 baseurl='', server_cls=Server):
+                 baseurl='', server_cls=Server, client_cert=None):
         self.name = name
         self.sdb = sdb
         self.cdb = cdb
-        self.server = server_cls(ca_certs=ca_bundle, verify_ssl=verify_ssl)
+        self.server = server_cls(ca_certs=ca_bundle, verify_ssl=verify_ssl,
+                                 client_cert=client_cert)
 
         self.authn_broker = authn_broker
         if authn_broker is None:

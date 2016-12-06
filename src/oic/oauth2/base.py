@@ -15,12 +15,22 @@ logger = logging.getLogger(__name__)
 
 
 class PBase(object):
-    def __init__(self, ca_certs=None, verify_ssl=True, keyjar=None):
+    def __init__(self, ca_certs=None, verify_ssl=True, keyjar=None,
+                 client_cert=None):
+        """
+        A base class for OAuth2 clients and servers
 
-        if keyjar:
-            self.keyjar = keyjar
-        else:
-            self.keyjar = KeyJar(verify_ssl=verify_ssl)
+        :param ca_certs: the path to a CA_BUNDLE file or directory with
+            certificates of trusted CAs
+        :param verify_ssl: If True then the server SSL certificate is not
+            verfied
+        :param keyjar: A place to keep keys for signing/encrypting messages
+        :param client_cert: local cert to use as client side certificate, as a
+            single file (containing the private key and the certificate) or as
+            a tuple of both file's path
+        """
+
+        self.keyjar = keyjar or KeyJar(verify_ssl=verify_ssl)
 
         self.request_args = {"allow_redirects": False}
         # self.cookies = {}
@@ -39,7 +49,8 @@ class PBase(object):
         elif verify_ssl:
             # Instruct requests to verify server certificates against the
             # default CA bundle provided by 'certifi'. See
-            # http://docs.python-requests.org/en/master/user/advanced/#ca-certificates
+            # http://docs.python-requests.org/en/master/user/advanced/#ca
+            # -certificates
             self.request_args["verify"] = True
 
         else:
@@ -48,6 +59,8 @@ class PBase(object):
 
         self.event_store = None
         self.req_callback = None
+        if client_cert:
+            self.request_args['cert'] = client_cert
 
     def _cookies(self):
         cookie_dict = {}

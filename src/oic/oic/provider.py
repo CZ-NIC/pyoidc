@@ -200,11 +200,11 @@ class Provider(AProvider):
                  client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
                  hostname="", template_lookup=None, template=None,
                  verify_ssl=True, capabilities=None, schema=OpenIDSchema,
-                 jwks_uri='', jwks_name='', baseurl=None):
+                 jwks_uri='', jwks_name='', baseurl=None, client_cert=None):
 
         AProvider.__init__(self, name, sdb, cdb, authn_broker, authz,
                            client_authn, symkey, urlmap, ca_bundle=ca_certs,
-                           verify_ssl=verify_ssl)
+                           verify_ssl=verify_ssl, client_cert=client_cert)
 
         # Should be a OIC Server not an OAuth2 server
         self.server = Server(keyjar=keyjar, ca_certs=ca_certs,

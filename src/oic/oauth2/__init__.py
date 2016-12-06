@@ -62,7 +62,7 @@ class Client(PBase):
     _endpoints = ENDPOINTS
 
     def __init__(self, client_id=None, ca_certs=None, client_authn_method=None,
-                 keyjar=None, verify_ssl=True, config=None):
+                 keyjar=None, verify_ssl=True, config=None, client_cert=None):
         """
 
         :param client_id: The client identifier
@@ -74,11 +74,11 @@ class Client(PBase):
         :return: Client instance
         """
 
-        PBase.__init__(self, ca_certs, verify_ssl=verify_ssl)
+        PBase.__init__(self, ca_certs, verify_ssl=verify_ssl,
+                       client_cert=client_cert)
 
         self.client_id = client_id
         self.client_authn_method = client_authn_method
-        self.keyjar = keyjar or KeyJar(verify_ssl=verify_ssl)
         self.verify_ssl = verify_ssl
         # self.secret_type = "basic "
 
@@ -872,9 +872,10 @@ class Client(PBase):
 
 
 class Server(PBase):
-    def __init__(self, keyjar=None, ca_certs=None, verify_ssl=True):
+    def __init__(self, keyjar=None, ca_certs=None, verify_ssl=True,
+                 client_cert=None):
         PBase.__init__(self, keyjar=keyjar, ca_certs=ca_certs,
-                       verify_ssl=verify_ssl)
+                       verify_ssl=verify_ssl, client_cert=client_cert)
 
     @staticmethod
     def parse_url_request(request, url=None, query=None):
