@@ -267,7 +267,7 @@ class Client(oauth2.Client):
 
     def __init__(self, client_id=None, ca_certs=None,
                  client_prefs=None, client_authn_method=None, keyjar=None,
-                 verify_ssl=True, config=None, client_cert=client_cert):
+                 verify_ssl=True, config=None, client_cert=None):
 
         oauth2.Client.__init__(self, client_id, ca_certs,
                                client_authn_method=client_authn_method,
