@@ -1160,8 +1160,8 @@ class Client(oauth2.Client):
                 resp = ErrorResponse().deserialize(response.text, "json")
                 if resp.verify():
                     logger.error(err_msg.format(sanitize(resp.to_json())))
-                    if self.event_store:
-                        self.event_store.store('protocol response', resp)
+                    if self.events:
+                        self.events.store('protocol response', resp)
                     raise RegistrationError(resp.to_dict())
                 else:  # Something else
                     logger.error(unk_msg.format(sanitize(response.text)))
@@ -1175,8 +1175,8 @@ class Client(oauth2.Client):
 
             if resp.verify():
                 logger.error(err_msg.format(sanitize(resp.to_json())))
-                if self.event_store:
-                    self.event_store.store('protocol response', resp)
+                if self.events:
+                    self.events.store('protocol response', resp)
                 raise RegistrationError(resp.to_dict())
             else:  # Something else
                 logger.error(unk_msg.format(sanitize(response.text)))
@@ -1246,8 +1246,8 @@ class Client(oauth2.Client):
         """
         req = self.create_registration_request(**kwargs)
 
-        if self.event_store:
-            self.event_store.store('Protocol request', req)
+        if self.events:
+            self.events.store('Protocol request', req)
 
         headers = {"content-type": "application/json"}
 

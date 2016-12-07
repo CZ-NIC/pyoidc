@@ -374,8 +374,8 @@ class Client(PBase):
         except AttributeError:
             cis = self.construct_request(request, request_args, extra_args)
 
-        if self.event_store:
-            self.event_store.store('Protocol request', cis)
+        if self.events:
+            self.events.store('Protocol request', cis)
 
         cis.lax = lax
 
@@ -430,8 +430,8 @@ class Client(PBase):
         if sformat == "urlencoded":
             info = self.get_urlinfo(info)
 
-        #if self.event_store:
-        #    self.event_store.store('Response', info)
+        #if self.events:
+        #    self.events.store('Response', info)
         resp = response().deserialize(info, sformat, **kwargs)
         msg = 'Initial response parsing => "{}"'
         logger.debug(msg.format(sanitize(resp.to_dict())))
@@ -654,10 +654,10 @@ class Client(PBase):
         else:
             http_args.update(ht_args)
 
-        if self.event_store is not None:
-            self.event_store.store('request_url', url)
-            self.event_store.store('request_http_args', http_args)
-            self.event_store.store('request', body)
+        if self.events is not None:
+            self.events.store('request_url', url)
+            self.events.store('request_http_args', http_args)
+            self.events.store('request', body)
 
         logger.debug("<do_access_token> URL: %s, Body: %s" % (url,
                                                               sanitize(body)))

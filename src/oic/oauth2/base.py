@@ -57,7 +57,7 @@ class PBase(object):
             # Instruct requests to n ot perform server cert verification.
             self.request_args["verify"] = False
 
-        self.event_store = None
+        self.events = None
         self.req_callback = None
         if client_cert:
             self.request_args['cert'] = client_cert
@@ -93,8 +93,8 @@ class PBase(object):
                     err, url, sanitize(_kwargs), method))
             raise
 
-        if self.event_store is not None:
-            self.event_store.store('HTTP response', r, ref=url)
+        if self.events is not None:
+            self.events.store('HTTP response', r, ref=url)
 
         try:
             _cookie = r.headers["set-cookie"]
