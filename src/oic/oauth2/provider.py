@@ -166,11 +166,12 @@ class Provider(object):
     def __init__(self, name, sdb, cdb, authn_broker, authz, client_authn,
                  symkey="", urlmap=None, iv=0, default_scope="",
                  ca_bundle=None, verify_ssl=True, default_acr="",
-                 baseurl='', server_cls=Server):
+                 baseurl='', server_cls=Server, client_cert=None):
         self.name = name
         self.sdb = sdb
         self.cdb = cdb
-        self.server = server_cls(ca_certs=ca_bundle, verify_ssl=verify_ssl)
+        self.server = server_cls(ca_certs=ca_bundle, verify_ssl=verify_ssl,
+                                 client_cert=client_cert)
 
         self.authn_broker = authn_broker
         if authn_broker is None:
@@ -430,17 +431,7 @@ class Provider(object):
         areq = self.filter_request(areq)
 
         if self.events:
-            self.events.store('protocol request', areq)
-
-        if self.trace:
-            self.trace.info('{}'.format(areq.to_dict()))
-            if 'request' in areq:
-                if areq['request'].jwe_header:
-                    self.trace.info('request.jwe_header: {}'.format(
-                        areq['request'].jwe_header))
-                if areq['request'].jws_header:
-                    self.trace.info('request.jws_header: {}'.format(
-                        areq['request'].jws_header))
+            self.events.store('Protocol request', areq)
 
         try:
             _cinfo = self.cdb[areq['client_id']]

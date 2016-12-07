@@ -62,7 +62,7 @@ class Client(PBase):
     _endpoints = ENDPOINTS
 
     def __init__(self, client_id=None, ca_certs=None, client_authn_method=None,
-                 keyjar=None, verify_ssl=True, config=None):
+                 keyjar=None, verify_ssl=True, config=None, client_cert=None):
         """
 
         :param client_id: The client identifier
@@ -74,11 +74,11 @@ class Client(PBase):
         :return: Client instance
         """
 
-        PBase.__init__(self, ca_certs, verify_ssl=verify_ssl)
+        PBase.__init__(self, ca_certs, verify_ssl=verify_ssl,
+                       client_cert=client_cert)
 
         self.client_id = client_id
         self.client_authn_method = client_authn_method
-        self.keyjar = keyjar or KeyJar(verify_ssl=verify_ssl)
         self.verify_ssl = verify_ssl
         # self.secret_type = "basic "
 
@@ -374,8 +374,8 @@ class Client(PBase):
         except AttributeError:
             cis = self.construct_request(request, request_args, extra_args)
 
-        if self.event_store:
-            self.event_store.store('protocol request', cis)
+        if self.events:
+            self.events.store('Protocol request', cis)
 
         cis.lax = lax
 
@@ -430,8 +430,8 @@ class Client(PBase):
         if sformat == "urlencoded":
             info = self.get_urlinfo(info)
 
-        if self.event_store:
-            self.event_store.store('response', info)
+        #if self.events:
+        #    self.events.store('Response', info)
         resp = response().deserialize(info, sformat, **kwargs)
         msg = 'Initial response parsing => "{}"'
         logger.debug(msg.format(sanitize(resp.to_dict())))
@@ -654,10 +654,10 @@ class Client(PBase):
         else:
             http_args.update(ht_args)
 
-        if self.event_store is not None:
-            self.event_store.store('request_url', url)
-            self.event_store.store('request_http_args', http_args)
-            self.event_store.store('request', body)
+        if self.events is not None:
+            self.events.store('request_url', url)
+            self.events.store('request_http_args', http_args)
+            self.events.store('request', body)
 
         logger.debug("<do_access_token> URL: %s, Body: %s" % (url,
                                                               sanitize(body)))
@@ -872,9 +872,10 @@ class Client(PBase):
 
 
 class Server(PBase):
-    def __init__(self, keyjar=None, ca_certs=None, verify_ssl=True):
+    def __init__(self, keyjar=None, ca_certs=None, verify_ssl=True,
+                 client_cert=None):
         PBase.__init__(self, keyjar=keyjar, ca_certs=ca_certs,
-                       verify_ssl=verify_ssl)
+                       verify_ssl=verify_ssl, client_cert=client_cert)
 
     @staticmethod
     def parse_url_request(request, url=None, query=None):

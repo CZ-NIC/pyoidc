@@ -15,7 +15,7 @@ from future.backports.urllib.parse import urlunparse
 from future.backports.urllib.parse import parse_qs
 
 from jwkest.jwe import JWE
-from jwkest import jws
+from jwkest import jws, as_unicode
 from jwkest import jwe
 
 from oic import oauth2, OIDCONF_PATTERN
@@ -267,12 +267,12 @@ class Client(oauth2.Client):
 
     def __init__(self, client_id=None, ca_certs=None,
                  client_prefs=None, client_authn_method=None, keyjar=None,
-                 verify_ssl=True, config=None):
+                 verify_ssl=True, config=None, client_cert=None):
 
         oauth2.Client.__init__(self, client_id, ca_certs,
                                client_authn_method=client_authn_method,
                                keyjar=keyjar, verify_ssl=verify_ssl,
-                               config=config)
+                               config=config, client_cert=client_cert)
 
         self.file_store = "./file/"
         self.file_uri = "http://localhost/"
@@ -385,7 +385,7 @@ class Client(oauth2.Client):
             _name = rndstr(10)
             filename = os.path.join(_filedir, _name)
         _webname = "%s%s" % (_webpath, _name)
-        return filename,  _webname
+        return filename, _webname
 
     @staticmethod
     def filename_from_webname(webname, **kwargs):
@@ -396,7 +396,6 @@ class Client(oauth2.Client):
         assert webname.startswith(kwargs['base_path'])
         _name = webname[len(kwargs['base_path']):]
         return os.path.join(_filedir, _name)
-
 
     def construct_AuthorizationRequest(self, request=AuthorizationRequest,
                                        request_args=None, extra_args=None,
@@ -959,14 +958,17 @@ class Client(oauth2.Client):
             while r.status_code == 302 or r.status_code == 301:
                 redirect_header = r.headers["location"]
                 if not urlparse(redirect_header).scheme:
-                    # Relative URL was provided - construct new redirect using an issuer
+                    # Relative URL was provided - construct new redirect
+                    # using an issuer
                     _split = urlparse(issuer)
-                    new_url = urlunparse((_split.scheme, _split.netloc, unicode(redirect_header), _split.params,
+                    new_url = urlunparse((_split.scheme, _split.netloc,
+                                          as_unicode(redirect_header),
+                                          _split.params,
                                           _split.query, _split.fragment))
-                r = self.http_request(new_url)
-                if r.status_code == 200:
-                    pcr = response_cls().from_json(r.text)
-                    break
+                    r = self.http_request(new_url)
+                    if r.status_code == 200:
+                        pcr = response_cls().from_json(r.text)
+                        break
 
         # logger.debug("Provider info: %s" % sanitize(pcr))
         if pcr is None:
@@ -1158,8 +1160,8 @@ class Client(oauth2.Client):
                 resp = ErrorResponse().deserialize(response.text, "json")
                 if resp.verify():
                     logger.error(err_msg.format(sanitize(resp.to_json())))
-                    if self.event_store:
-                        self.event_store.store('protocol response', resp)
+                    if self.events:
+                        self.events.store('protocol response', resp)
                     raise RegistrationError(resp.to_dict())
                 else:  # Something else
                     logger.error(unk_msg.format(sanitize(response.text)))
@@ -1173,8 +1175,8 @@ class Client(oauth2.Client):
 
             if resp.verify():
                 logger.error(err_msg.format(sanitize(resp.to_json())))
-                if self.event_store:
-                    self.event_store.store('protocol response', resp)
+                if self.events:
+                    self.events.store('protocol response', resp)
                 raise RegistrationError(resp.to_dict())
             else:  # Something else
                 logger.error(unk_msg.format(sanitize(response.text)))
@@ -1244,8 +1246,8 @@ class Client(oauth2.Client):
         """
         req = self.create_registration_request(**kwargs)
 
-        if self.event_store:
-            self.event_store.store('protocol request', req)
+        if self.events:
+            self.events.store('Protocol request', req)
 
         headers = {"content-type": "application/json"}
 
@@ -1366,8 +1368,10 @@ class Client(oauth2.Client):
 
 # noinspection PyMethodOverriding
 class Server(oauth2.Server):
-    def __init__(self, keyjar=None, ca_certs=None, verify_ssl=True):
-        oauth2.Server.__init__(self, keyjar, ca_certs, verify_ssl)
+    def __init__(self, keyjar=None, ca_certs=None, verify_ssl=True,
+                 client_cert=None):
+        oauth2.Server.__init__(self, keyjar, ca_certs, verify_ssl,
+                               client_cert=client_cert)
 
     @staticmethod
     def _parse_urlencoded(url=None, query=None):

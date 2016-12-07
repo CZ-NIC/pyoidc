@@ -7,7 +7,7 @@ try:
 except ImportError:
     import random as rnd
 
-__author__ = 'rohe0002'
+__author__ = 'Roland Hedberg'
 __version__ = '0.9.1.0'
 
 

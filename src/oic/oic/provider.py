@@ -23,7 +23,6 @@ import socket
 from requests import ConnectionError
 
 from jwkest import b64d
-from jwkest import b64e
 from jwkest import jwe
 from jwkest import jws
 from jwkest.jwe import JWE
@@ -201,11 +200,11 @@ class Provider(AProvider):
                  client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
                  hostname="", template_lookup=None, template=None,
                  verify_ssl=True, capabilities=None, schema=OpenIDSchema,
-                 jwks_uri='', jwks_name='', baseurl=None):
+                 jwks_uri='', jwks_name='', baseurl=None, client_cert=None):
 
         AProvider.__init__(self, name, sdb, cdb, authn_broker, authz,
                            client_authn, symkey, urlmap, ca_bundle=ca_certs,
-                           verify_ssl=verify_ssl)
+                           verify_ssl=verify_ssl, client_cert=client_cert)
 
         # Should be a OIC Server not an OAuth2 server
         self.server = Server(keyjar=keyjar, ca_certs=ca_certs,
@@ -813,9 +812,13 @@ class Provider(AProvider):
 
         aresp['client_id'] = areq['client_id']
 
+        if self.events:
+            self.events.store('Protocol response', aresp)
+
         logger.info('authorization response: %s', sanitize(aresp.to_dict()))
         location = aresp.request(redirect_uri, fragment_enc)
-        logger.debug("Redirected to: '%s' (%s)", sanitize(location), type(location))
+        logger.debug("Redirected to: '%s' (%s)", sanitize(location),
+                     type(location))
         return SeeOther(str(location), headers=headers)
 
     def userinfo_in_id_token_claims(self, session):
@@ -1118,7 +1121,8 @@ class Provider(AProvider):
             else:
                 userinfo_claims = None
 
-            logger.debug("userinfo_claim: %s" % sanitize(userinfo_claims.to_dict()))
+            logger.debug(
+                "userinfo_claim: %s" % sanitize(userinfo_claims.to_dict()))
 
         logger.debug("Session info: %s" % sanitize(session))
 
@@ -1438,7 +1442,8 @@ class Provider(AProvider):
             except KeyError:
                 pass
         except Exception as err:
-            logger.error("Failed to load client keys: %s" % sanitize(request.to_dict()))
+            logger.error(
+                "Failed to load client keys: %s" % sanitize(request.to_dict()))
             logger.error("%s", err)
             logger.debug('Verify SSL: {}'.format(self.keyjar.verify_ssl))
             err = ClientRegistrationErrorResponse(
@@ -1529,6 +1534,15 @@ class Provider(AProvider):
         return Created(result.to_json(), content="application/json",
                        headers=[("Cache-Control", "no-store")])
 
+    @staticmethod
+    def client_secret_expiration_time():
+        '''
+        Returns client_secret expiration time.
+
+        Split for easy customization.
+        '''
+        return utc_time_sans_frac() + 86400
+
     def client_registration_setup(self, request):
         try:
             request.verify()
@@ -1566,7 +1580,7 @@ class Provider(AProvider):
             "client_secret": client_secret,
             "registration_access_token": _rat,
             "registration_client_uri": "%s?client_id=%s" % (reg_enp, client_id),
-            "client_secret_expires_at": utc_time_sans_frac() + 86400,
+            "client_secret_expires_at": self.client_secret_expiration_time(),
             "client_id_issued_at": utc_time_sans_frac(),
             "client_salt": rndstr(8)
         }
@@ -1618,7 +1632,7 @@ class Provider(AProvider):
 
         logger.debug("authn: %s, request: %s" % (sanitize(authn),
                                                  sanitize(request))
-        )
+                     )
 
         # verify the access token, has to be key into the client information
         # database.
@@ -1776,6 +1790,8 @@ class Provider(AProvider):
             _response = self.create_providerinfo()
             msg = "provider_info_response: {}"
             _log_info(msg.format(sanitize(_response.to_dict())))
+            if self.events:
+                self.events.store('Protocol response', _response)
 
             headers = [("Cache-Control", "no-store"), ("x-ffo", "bar")]
             if handle:
