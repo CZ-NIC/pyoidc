@@ -62,6 +62,8 @@ class Response(object):
         else:
             if [x for x in self._c_types() if x.startswith('image/')]:
                 return [message]
+            elif [x for x in self._c_types() if x == 'application/x-gzip']:
+                return [message]
 
             try:
                 return [message.encode("utf-8")]
