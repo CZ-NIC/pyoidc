@@ -307,7 +307,9 @@ class JWSAuthnMethod(ClientAuthnMethod):
         """
 
         # audience is the OP endpoint
-        audience = self.cli._endpoint(REQUEST2ENDPOINT[cis.type()])
+        #audience = self.cli._endpoint(REQUEST2ENDPOINT[cis.type()])
+        # OR OP identifier
+        audience = self.cli.provider_info['issuer']
         algorithm = None
         if kwargs['authn_endpoint'] in ['token', 'refresh']:
             try:
@@ -333,7 +335,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
                 signing_key = self.get_signing_key(algorithm)
         except NoMatchingKey as err:
             logger.error("%s" % sanitize(err))
-            raise SystemError()
+            raise
 
         if 'client_assertion' in kwargs:
             cis["client_assertion"] = kwargs['client_assertion']
