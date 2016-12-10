@@ -75,7 +75,7 @@ class Client(PBase):
         """
 
         PBase.__init__(self, ca_certs, verify_ssl=verify_ssl,
-                       client_cert=client_cert)
+                       client_cert=client_cert, keyjar=keyjar)
 
         self.client_id = client_id
         self.client_authn_method = client_authn_method
