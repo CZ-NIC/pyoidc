@@ -322,7 +322,7 @@ class Client(oauth2.Client):
         r = self.http_request(url)
 
         if self.events:
-            self.events.store('http response header', r.headers)
+            self.events.store('HTTP response header', r.headers)
 
         if r.status_code == 200:
             pcr = response_cls().from_json(r.text)
