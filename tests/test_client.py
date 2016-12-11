@@ -187,7 +187,7 @@ class TestPrivateKeyJWT(object):
                             {"key": _key, "kty": "RSA", "use": "sig"}])
         client.keyjar[""] = kc_rsa
         client.token_endpoint = "https://example.com/token"
-
+        client.provider_info = {'issuer': 'https://example.com/'}
         cis = AccessTokenRequest()
         pkj = PrivateKeyJWT(client)
         http_args = pkj.construct(cis, algorithm="RS256",
@@ -203,6 +203,7 @@ class TestPrivateKeyJWT(object):
 class TestClientSecretJWT(object):
     def test_client_secret_jwt(self, client):
         client.token_endpoint = "https://example.com/token"
+        client.provider_info = {'issuer': 'https://example.com/'}
 
         csj = ClientSecretJWT(client)
         cis = AccessTokenRequest()
