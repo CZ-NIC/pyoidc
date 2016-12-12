@@ -138,7 +138,6 @@ class Operator(object):
         :param keyjar: Keys that should be used to verify the signature of the
             document
         :param cls: What type (Class) of metadata statement this is
-        :param httpcli: A oic.oauth2.base.PBase instance
         :return: Unpacked and verified metadata statement
         """
 
@@ -243,7 +242,7 @@ class Operator(object):
         statement.
         If something goes wrong during the evaluation an exception is raised
 
-        :param ms: The compounded metadata statement
+        :param metadata: The compounded metadata statement
         :return: The resulting metadata statement
         """
 
