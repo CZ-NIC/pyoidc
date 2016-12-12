@@ -158,8 +158,8 @@ class Operator(object):
                     msl = []
                     for meta_s in json_ms['metadata_statements']:
                         try:
-                            _ms = self.unpack_metadata_statement(jwt_ms=meta_s,
-                                                                 keyjar=_keyjar)
+                            _ms = self.unpack_metadata_statement(
+                                jwt_ms=meta_s, keyjar=_keyjar, cls=cls)
                         except (JWSException, BadSignature):
                             pass
                         else:
@@ -181,8 +181,8 @@ class Operator(object):
             if 'metadata_statements' in json_ms:
                 for ms in json_ms['metadata_statements']:
                     try:
-                        res = self.unpack_metadata_statement(jwt_ms=ms,
-                                                             keyjar=keyjar)
+                        res = self.unpack_metadata_statement(
+                            jwt_ms=ms, keyjar=keyjar, cls=cls)
                     except (JWSException, BadSignature):
                         pass
                     else:
@@ -197,16 +197,14 @@ class Operator(object):
                             _jwt = self.httpcli.http_request(url)
                             try:
                                 _res = self.unpack_metadata_statement(
-                                    jwt_ms=_jwt, keyjar=keyjar)
+                                    jwt_ms=_jwt, keyjar=keyjar, cls=cls)
                             except JWSException as err:
                                 logger.error(err)
                             else:
                                 msl.append(_res)
-
-            _ms = cls().from_jwt(jwt_ms, keyjar=_keyjar)
             if msl:
-                _ms['metadata_statements'] = [x.to_json() for x in msl]
-            return _ms
+                json_ms['metadata_statements'] = [x.to_json() for x in msl]
+            return json_ms
         else:
             raise AttributeError('Need one of json_ms or jwt_ms')
 

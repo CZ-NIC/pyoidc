@@ -3,9 +3,11 @@ import os
 
 from jwkest.jws import JWSException, NoSuitableSigningKeys
 
+from oic.oic import RegistrationResponse
 from oic.utils.keyio import build_keyjar, KeyJar
 
-from oic.extension.oidc_fed import ClientMetadataStatement
+from oic.extension.oidc_fed import ClientMetadataStatement, \
+    ProviderConfigurationResponse
 from oic.extension.oidc_fed import is_lesser
 from oic.extension.oidc_fed import Operator
 from oic.extension.oidc_fed import unfurl
@@ -24,14 +26,14 @@ KEYS = {}
 ISSUER = {}
 OPERATOR = {}
 
-for entity in ['fo', 'fo1', 'org', 'inter', 'admin', 'ligo']:
+for entity in ['fo', 'fo1', 'org', 'inter', 'admin', 'ligo', 'op']:
     fname = os.path.join(BASE_PATH, "{}.key".format(entity))
     _keydef = KEYDEFS[:]
     _keydef[0]['key'] = fname
 
     _jwks, _keyjar, _kidd = build_keyjar(_keydef)
     KEYS[entity] = {'jwks': _jwks, 'keyjar': _keyjar, 'kidd': _kidd}
-    ISSUER[entity] = 'https:{}.example.org'.format(entity)
+    ISSUER[entity] = 'https://{}.example.org'.format(entity)
     OPERATOR[entity] = Operator(keyjar=_keyjar, iss=ISSUER[entity], jwks=_jwks)
 
 FOP = OPERATOR['fo']
@@ -42,6 +44,7 @@ ORGOP = OPERATOR['org']
 ADMINOP = OPERATOR['admin']
 INTEROP = OPERATOR['inter']
 LIGOOP = OPERATOR['ligo']
+OPOP = OPERATOR['ligo']
 
 
 def fo_member(*args):
@@ -417,3 +420,42 @@ def test_evaluate_metadata_statement_4():
         ['claims', 'contacts', 'redirect_uris', 'scope', 'tos_uri'])
 
     assert res[ISSUER['fo']]['scope'] == ['openid', 'email', 'phone']
+
+
+def test_unpack_discovery_info():
+    resp = ProviderConfigurationResponse()
+
+    cms_org = ProviderConfigurationResponse(
+        signing_keys=KEYS['org']['jwks'],
+    )
+
+    #  signed by FO
+    ms_org = FOP.pack_metadata_statement(cms_org, alg='RS256')
+
+    # Made by OP admin
+    cms_sa = ProviderConfigurationResponse(
+        signing_keys=KEYS['op']['jwks'],
+        issuer='https://example.org/op',
+        authorization_endpoint='https://example.org/op/auth'
+    )
+
+    #  signed by org
+    ms_rp = ORGOP.pack_metadata_statement(cms_sa, alg='RS256',
+                                          metadata_statements=[ms_org])
+
+    # ProviderConfigurationResponse sent to the RP
+    pcr = ProviderConfigurationResponse(
+        issuer='https://example.org/op',
+        authorization_endpoint='https://example.org/op/auth',
+        metadata_statements=[ms_rp]
+    )
+
+    receiver = fo_member(FOP)
+    _cms = receiver.unpack_metadata_statement(json_ms=pcr,
+                                              cls=ProviderConfigurationResponse)
+
+    pcr_ms = receiver.evaluate_metadata_statement(_cms)
+
+    assert len(pcr_ms)
+    assert list(pcr_ms.keys()) == [ISSUER['fo']]
+    assert pcr_ms[ISSUER['fo']]['issuer'] == 'https://example.org/op'

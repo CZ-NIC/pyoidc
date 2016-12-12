@@ -52,11 +52,13 @@ from oic.oic.message import TokenErrorResponse
 from oic.oic.message import ClientRegistrationErrorResponse
 from oic.oic.message import UserInfoErrorResponse
 from oic.oic.message import AuthorizationErrorResponse
-from oic.exception import AccessDenied, RegistrationError, RequestError
+from oic.exception import AccessDenied
 from oic.exception import CommunicationError
 from oic.exception import IssuerMismatch
-from oic.exception import PyoidcError
 from oic.exception import MissingParameter
+from oic.exception import PyoidcError
+from oic.exception import RegistrationError
+from oic.exception import RequestError
 from oic.utils import time_util
 from oic.utils.keyio import KeyJar
 from oic.utils.sanitize import sanitize
