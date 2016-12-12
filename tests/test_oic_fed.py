@@ -1,13 +1,15 @@
 import json
 import os
 
-from jwkest.jws import JWSException, NoSuitableSigningKeys
+from jwkest.jws import JWSException
+from jwkest.jws import NoSuitableSigningKeys
 
-from oic.oic import RegistrationResponse
-from oic.utils.keyio import build_keyjar, KeyJar
+from oic.oauth2 import MissingSigningKey
+from oic.utils.keyio import build_keyjar
+from oic.utils.keyio import KeyJar
 
-from oic.extension.oidc_fed import ClientMetadataStatement, \
-    ProviderConfigurationResponse
+from oic.extension.oidc_fed import ClientMetadataStatement
+from oic.extension.oidc_fed import ProviderConfigurationResponse
 from oic.extension.oidc_fed import is_lesser
 from oic.extension.oidc_fed import Operator
 from oic.extension.oidc_fed import unfurl
@@ -50,7 +52,7 @@ OPOP = OPERATOR['ligo']
 def fo_member(*args):
     _kj = KeyJar()
     for fo in args:
-        _kj.import_jwks(fo.jwks, '')
+        _kj.import_jwks(fo.jwks, fo.iss)
 
     return Operator(fo_keyjar=_kj)
 
@@ -105,6 +107,8 @@ def test_pack_ms_wrong_fo():
         _ = member.unpack_metadata_statement(jwt_ms=_jwt)
     except JWSException as err:
         assert isinstance(err, NoSuitableSigningKeys)
+    except MissingSigningKey:
+        assert True
     else:
         assert False
 

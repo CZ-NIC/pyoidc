@@ -3,13 +3,13 @@ import json
 import logging
 
 from jwkest import BadSignature
-from jwkest.jws import factory, alg2keytype
+from jwkest.jws import factory
 from jwkest.jws import JWSException
 from six import string_types
 
 from oic.utils.keyio import KeyJar
 
-from oic.oauth2 import SINGLE_REQUIRED_STRING
+from oic.oauth2 import MissingSigningKey
 from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oic import message
@@ -160,7 +160,7 @@ class Operator(object):
                         try:
                             _ms = self.unpack_metadata_statement(
                                 jwt_ms=meta_s, keyjar=_keyjar, cls=cls)
-                        except (JWSException, BadSignature):
+                        except (JWSException, BadSignature, MissingSigningKey):
                             pass
                         else:
                             msl.append(_ms)
@@ -171,7 +171,11 @@ class Operator(object):
                 elif 'metadata_statement_uris' in json_ms:
                     pass
 
-                _ms = cls().from_jwt(jwt_ms, keyjar=_keyjar)
+                try:
+                    _ms = cls().from_jwt(jwt_ms, keyjar=_keyjar)
+                except MissingSigningKey:
+                    raise
+
                 if msl:
                     _ms['metadata_statements'] = [x.to_json() for x in msl]
                 return _ms

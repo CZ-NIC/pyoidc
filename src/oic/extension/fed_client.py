@@ -53,6 +53,49 @@ class Client(oic.Client):
                 res.extend(vals)
         return res
 
+    def add_fo(self, iss, jwks):
+        self.op.fo_keyjar.import_jwks(jwks=jwks, issuer=iss)
+
+    def handle_registration_info(self, response):
+        err_msg = 'Got error response: {}'
+        unk_msg = 'Unknown response: {}'
+        if response.status_code in [200, 201]:
+            resp = RegistrationResponse().deserialize(response.text, "json")
+            # Some implementations sends back a 200 with an error message inside
+            if resp.verify():  # got a proper registration response
+                _cms = self.op.unpack_metadata_statement(json_ms=resp)
+                resp = self.op.evaluate_metadata_statement(_cms)
+
+                self.store_response(resp, response.text)
+                self.store_registration_info(resp)
+            else:
+                resp = ErrorResponse().deserialize(response.text, "json")
+                if resp.verify():
+                    logger.error(err_msg.format(sanitize(resp.to_json())))
+                    if self.events:
+                        self.events.store('protocol response', resp)
+                    raise RegistrationError(resp.to_dict())
+                else:  # Something else
+                    logger.error(unk_msg.format(sanitize(response.text)))
+                    raise RegistrationError(response.text)
+        else:
+            try:
+                resp = ErrorResponse().deserialize(response.text, "json")
+            except _decode_err:
+                logger.error(unk_msg.format(sanitize(response.text)))
+                raise RegistrationError(response.text)
+
+            if resp.verify():
+                logger.error(err_msg.format(sanitize(resp.to_json())))
+                if self.events:
+                    self.events.store('protocol response', resp)
+                raise RegistrationError(resp.to_dict())
+            else:  # Something else
+                logger.error(unk_msg.format(sanitize(response.text)))
+                raise RegistrationError(response.text)
+
+        return resp
+
     def register(self, url, **kwargs):
         try:
             reg_type = kwargs['registration_type']
