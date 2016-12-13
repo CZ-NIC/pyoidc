@@ -51,13 +51,14 @@ def fo_member(*args):
     _kj = KeyJar()
     for fo in args:
         _kj.import_jwks(fo.jwks, fo.iss)
-    return _kj
+
+    return Operator(fo_keyjar=_kj)
 
 
 def create_compound_metadata_statement(spec):
     _ms = None
-    for signer, sig_args, op, op_args in spec:
-        _cms = ClientMetadataStatement(signing_keys=signer.jwks, **op_args)
+    for op, op_args, signer, sig_args in spec:
+        _cms = ClientMetadataStatement(signing_keys=op.jwks, **op_args)
         if _ms:
             sig_args['metadata_statements'] = [_ms]
         _ms = signer.pack_metadata_statement(_cms, **sig_args)
@@ -80,7 +81,7 @@ class TestClient(object):
         self.redirect_uri = "http://example.com/redirect"
         self.client = Client(CLIENT_ID,
                              client_authn_method=CLIENT_AUTHN_METHOD,
-                             fo_keyjar=fo_member(FOP, FO1P),
+                             fo_keyjar=fo_member(FOP, FO1P).fo_keyjar,
                              signed_metadata_statements=sms,
                              fo_priority_order=[FOP.iss, FO1P.iss]
                              )
@@ -95,6 +96,9 @@ class TestClient(object):
             "request_object_signing_alg": DEF_SIGN_ALG[
                 "openid_request_object"]}
 
-
     def test_init(self):
-        assert True
+        receiver = fo_member(FOP, FO1P)
+        ms = receiver.unpack_metadata_statement(
+            jwt_ms=self.client.signed_metadata_statements[0])
+        res = receiver.evaluate_metadata_statement(ms)
+        assert FOP.iss in res
