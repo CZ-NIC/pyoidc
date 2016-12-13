@@ -94,3 +94,7 @@ class TestClient(object):
         self.client.behaviour = {
             "request_object_signing_alg": DEF_SIGN_ALG[
                 "openid_request_object"]}
+
+
+    def test_init(self):
+        assert True
