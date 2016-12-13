@@ -1,6 +1,7 @@
 import copy
 import json
 import logging
+import re
 
 from jwkest import BadSignature
 from jwkest.jws import factory
@@ -285,3 +286,45 @@ class Operator(object):
         else:  # this is the innermost
             _iss = metadata['iss']  # The issuer == FO is interesting
             return {_iss: res}
+
+
+class FederationEntity(object):
+    def __init__(self, signed_metadata_statements, fo_keyjar, keyjar, eid,
+                 fo_priority_order=None, ms_cls=ClientMetadataStatement):
+        self.signed_metadata_statements = {} or signed_metadata_statements
+        self.fo_priority_order = {} or fo_priority_order
+        self.ms_cls = ms_cls
+        self.op = Operator(keyjar=keyjar, fo_keyjar=fo_keyjar, httpcli=self,
+                           iss=eid)
+
+    def add_signed_metadata_statement(self, fo, ms):
+        try:
+            self.signed_metadata_statements[fo].append(ms)
+        except KeyError:
+            self.signed_metadata_statements[fo] = ms
+
+    def remove_signed_metadata_statement(self, fo, ms):
+        self.signed_metadata_statements[fo].remove(ms)
+
+    def pick_signed_metadata_statements(self, pattern):
+        comp_pat = re.compile(pattern)
+        res = []
+        for key, vals in self.signed_metadata_statements.items():
+            if comp_pat.search(key):
+                res.extend(vals)
+        return res
+
+    def add_fo(self, iss, jwks):
+        self.op.fo_keyjar.import_jwks(jwks=jwks, issuer=iss)
+
+    def get_metadata_statement(self, json_ms):
+        _cms = self.op.unpack_metadata_statement(json_ms=json_ms,
+                                                 cls=self.ms_cls)
+        ms_per_fo = self.op.evaluate_metadata_statement(_cms)
+        for fo in self.fo_priority_order:
+            try:
+                return ms_per_fo[fo]
+            except KeyError:
+                continue
+
+        return None
