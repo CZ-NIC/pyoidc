@@ -1,12 +1,13 @@
-import re
-
 import logging
 
 from oic.exception import RegistrationError
 
-from oic.extension.oidc_fed import Operator, ClientMetadataStatement
 from oic import oic
-from oic.oauth2 import MissingRequiredAttribute, ErrorResponse, sanitize
+from oic.extension.oidc_fed import ClientMetadataStatement
+from oic.extension.oidc_fed import FederationEntity
+from oic.oauth2 import ErrorResponse
+from oic.oauth2 import MissingRequiredAttribute
+from oic.oauth2 import sanitize
 from oic.oic import RegistrationResponse
 
 try:
@@ -21,40 +22,22 @@ logger = logging.getLogger(__name__)
 __author__ = 'roland'
 
 
-class Client(oic.Client):
+class Client(oic.Client, FederationEntity):
     def __init__(self, client_id=None, ca_certs=None,
                  client_prefs=None, client_authn_method=None, keyjar=None,
                  verify_ssl=True, config=None, client_cert=None,
-                 fo_keyjar=None, signed_metadata_statements=None):
+                 fo_keyjar=None, signed_metadata_statements=None,
+                 fo_priority_order=None):
         oic.Client.__init__(
             self, client_id=client_id, ca_certs=ca_certs,
             client_prefs=client_prefs, client_authn_method=client_authn_method,
             keyjar=keyjar, verify_ssl=verify_ssl, config=config,
             client_cert=client_cert)
 
-        self.signed_metadata_statements = {} or signed_metadata_statements
-        self.op = Operator(keyjar=keyjar, fo_keyjar=fo_keyjar, httpcli=self,
-                           iss=client_id)
-
-    def add_signed_metadata_statement(self, fo, ms):
-        try:
-            self.signed_metadata_statements[fo].append(ms)
-        except KeyError:
-            self.signed_metadata_statements[fo] = ms
-
-    def remove_signed_metadata_statement(self, fo, ms):
-        self.signed_metadata_statements[fo].remove(ms)
-
-    def pick_signed_metadata_statements(self, pattern):
-        comp_pat = re.compile(pattern)
-        res = []
-        for key, vals in self.signed_metadata_statements.items():
-            if comp_pat.search(key):
-                res.extend(vals)
-        return res
-
-    def add_fo(self, iss, jwks):
-        self.op.fo_keyjar.import_jwks(jwks=jwks, issuer=iss)
+        FederationEntity.__init__(
+            self, signed_metadata_statements=signed_metadata_statements,
+            fo_keyjar=fo_keyjar, keyjar=keyjar, eid=client_id,
+            fo_priority_order=fo_priority_order, ms_cls=ClientMetadataStatement)
 
     def handle_registration_info(self, response):
         err_msg = 'Got error response: {}'
@@ -63,9 +46,9 @@ class Client(oic.Client):
             resp = RegistrationResponse().deserialize(response.text, "json")
             # Some implementations sends back a 200 with an error message inside
             if resp.verify():  # got a proper registration response
-                _cms = self.op.unpack_metadata_statement(json_ms=resp)
-                resp = self.op.evaluate_metadata_statement(_cms)
-
+                resp = self.get_metadata_statement(resp)
+                if resp is None: # No metadata statement that I can use
+                    raise RegistrationError('No trusted metadata')
                 self.store_response(resp, response.text)
                 self.store_registration_info(resp)
             else:
