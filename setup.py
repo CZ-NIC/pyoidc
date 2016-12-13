@@ -48,13 +48,14 @@ with open('src/oic/__init__.py', 'r') as fd:
                         fd.read(), re.MULTILINE).group(1)
 
 setup(
-    name="oic",
+    name="ana-oic",
     version=version,
-    description="Python implementation of OAuth2 and OpenID Connect",
+    description="This is a patched package for Python implementation of OAuth2 "
+                "and OpenID Connect",
     author="Roland Hedberg",
     author_email="roland@catalogix.se",
     license="Apache 2.0",
-    url='https://github.com/rohe/pyoidc',
+    url='https://github.com/fmoggia/pyoidc',
     packages=["oic", "oic/oauth2", "oic/oic", "oic/utils", "oic/utils/authn",
               "oic/utils/userinfo", 'oic/utils/rp', 'oic/extension'],
               # 'oic/v2'],
