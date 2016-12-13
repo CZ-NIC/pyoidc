@@ -3,10 +3,10 @@ import json
 import logging
 import re
 
-from jwkest import BadSignature
+from jwkest import BadSignature, as_unicode
 from jwkest.jws import factory
 from jwkest.jws import JWSException
-from six import string_types
+from six import string_types, PY2
 
 from oic.utils.keyio import KeyJar
 
@@ -69,10 +69,16 @@ def is_lesser(a, b):
     :return: True or False
     """
 
+
     if type(a) != type(b):
+        if PY2:  # one might be unicode and the other str
+            return as_unicode(a) == as_unicode(b)
+
         return False
 
     if isinstance(a, string_types) and isinstance(b, string_types):
+        return a == b
+    elif isinstance(a, bool) and isinstance(b, bool):
         return a == b
     elif isinstance(a, list) and isinstance(b, list):
         for element in a:
