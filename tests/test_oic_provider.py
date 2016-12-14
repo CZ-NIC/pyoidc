@@ -956,9 +956,3 @@ class TestProvider(object):
         self.provider.build_jwx_def()
         id_token = self._auth_with_id_token()
         assert id_token.jws_header['alg'] == "RS512"
-
-
-if __name__ == "__main__":
-    t = TestProvider()
-    t.create_provider()
-    t.test_token_endpoint_auth()

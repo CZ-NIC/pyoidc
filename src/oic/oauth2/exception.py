@@ -47,10 +47,6 @@ class OtherError(PyoidcError):
     pass
 
 
-class AuthnToOld(PyoidcError):
-    pass
-
-
 class NoClientInfoReceivedError(PyoidcError):
     pass
 
@@ -76,4 +72,3 @@ class Unsupported(PyoidcError):
 
 class UnsupportedResponseType(Unsupported):
     pass
-

@@ -157,7 +157,7 @@ class TestProvider(object):
 
         state = aresp['state']
         assert _eq(logcap.records[0].msg, '- authorization - code flow -')
-        expected = 'QUERY: iss=https%3A%2F%2Fexample.com%2Fas&state={}&code=<REDACTED>&client_id=client1'.format(state)
+        expected = 'QUERY: code=<REDACTED>&state={}&client_id=client1&iss=https%3A%2F%2Fexample.com%2Fas'.format(state)
         assert _eq(logcap.records[1].msg, expected)
         expected = {'iss': 'https://example.com/as',
                     'state': state, 'code': '<REDACTED>',

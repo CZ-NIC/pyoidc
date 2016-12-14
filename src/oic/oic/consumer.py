@@ -6,6 +6,7 @@ from hashlib import md5
 
 from oic import rndstr
 from oic.exception import PyoidcError
+from oic.exception import AuthzError
 from oic.utils import http_util
 from oic.utils.sanitize import sanitize
 from oic.oic import Client
@@ -16,7 +17,6 @@ from oic.oic.message import AuthorizationResponse
 from oic.oic.message import AccessTokenResponse
 from oic.oauth2 import Grant
 from oic.oauth2.consumer import TokenError
-from oic.oauth2.consumer import AuthzError
 from oic.oauth2.consumer import UnknownState
 from oic.oauth2.message import ErrorResponse
 
@@ -288,7 +288,7 @@ class Consumer(Client):
                 fid = open(filename, mode="w")
                 fid.write(id_request)
                 fid.close()
-                _webname = "%s%s%s" % (path, _webpath, _name)
+                _webname = "%s%s/%s" % (path, _webpath, _name)
                 areq["request_uri"] = _webname
                 self.request_uri = _webname
                 self._backup(sid)

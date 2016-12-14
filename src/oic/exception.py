@@ -105,3 +105,9 @@ class CommunicationError(PyoidcError):
 
 class RequestError(PyoidcError):
     pass
+
+
+class AuthnToOld(PyoidcError):
+    pass
+
+

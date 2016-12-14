@@ -1,6 +1,7 @@
 import json
 import os
 import pytest
+import responses
 import six
 
 from future.backports.urllib.parse import urlparse
@@ -33,7 +34,8 @@ __author__ = 'rohe0002'
 KC_SYM_VS = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "ver"})
 KC_SYM_S = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "sig"})
 
-BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/keys"))
+BASE_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "data/keys"))
 KC_RSA = keybundle_from_local_file(os.path.join(BASE_PATH, "rsa.key"), "rsa",
                                    ["ver", "sig"])
 
@@ -93,7 +95,7 @@ class TestOICConsumer():
         client_config = {
             "client_id": client_id,
             "client_authn_method": CLIENT_AUTHN_METHOD,
-            #'config': {}
+            # 'config': {}
         }
 
         self.consumer = Consumer(SessionDB(SERVER_INFO["issuer"]),
@@ -103,7 +105,8 @@ class TestOICConsumer():
         self.consumer.client_secret = "abcdefghijklmnop"
         self.consumer.keyjar = CLIKEYS
         self.consumer.redirect_uris = ["https://example.com/cb"]
-        self.consumer.authorization_endpoint = "http://example.com/authorization"
+        self.consumer.authorization_endpoint = \
+            "http://example.com/authorization"
         self.consumer.token_endpoint = "http://example.com/token"
         self.consumer.userinfo_endpoint = "http://example.com/userinfo"
         self.consumer.client_secret = "hemlig"
@@ -158,9 +161,9 @@ class TestOICConsumer():
         srv.keyjar = SRVKEYS
         sid, location = self.consumer.begin("openid", "code")
         authreq = srv.parse_authorization_request(url=location)
-        assert _eq(authreq.keys(), ['request', 'state', 'max_age', 'claims',
-                                    'response_type', 'client_id', 'scope',
-                                    'redirect_uri'])
+        assert _eq(list(authreq.keys()),
+                   ['state', 'max_age', 'claims', 'response_type', 'client_id',
+                    'scope', 'redirect_uri'])
 
         assert authreq["state"] == sid
         assert authreq["scope"] == self.consumer.consumer_config["scope"]
@@ -177,15 +180,23 @@ class TestOICConsumer():
 
         sid, location = self.consumer.begin("openid", "code",
                                             path="http://localhost:8087")
-        authreq = srv.parse_authorization_request(url=location)
-        assert _eq(authreq.keys(), ['max_age', 'state', 'redirect_uri',
-                                    'response_type', 'client_id', 'scope',
-                                    'claims', 'request_uri'])
 
-        assert authreq["state"] == sid
-        assert authreq["scope"] == self.consumer.consumer_config["scope"]
-        assert authreq["client_id"] == self.consumer.client_id
-        assert authreq["redirect_uri"].startswith("http://localhost:8087/authz")
+        with responses.RequestsMock() as rsps:
+            p = urlparse(self.consumer.request_uri)
+            rsps.add(rsps.GET, self.consumer.request_uri,
+                     body=open(p.path).read(), status=200,
+                     content_type='application/urlencoded')
+
+            authreq = srv.parse_authorization_request(url=location)
+            assert _eq(list(authreq.keys()),
+                       ['max_age', 'state', 'redirect_uri', 'response_type',
+                        'client_id', 'scope', 'claims'])
+
+            assert authreq["state"] == sid
+            assert authreq["scope"] == self.consumer.consumer_config["scope"]
+            assert authreq["client_id"] == self.consumer.client_id
+            assert authreq["redirect_uri"].startswith(
+                "http://localhost:8087/authz")
 
     def test_complete(self):
         _state = "state0"

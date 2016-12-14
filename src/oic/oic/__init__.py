@@ -20,17 +20,24 @@ from jwkest import jwe
 
 from oic import oauth2, OIDCONF_PATTERN
 from oic import rndstr
-from oic.oauth2 import HTTP_ARGS
-from oic.oauth2.consumer import ConfigurationError
 
-from oic.oauth2.message import ErrorResponse
-from oic.oauth2.message import Message
-from oic.oauth2.exception import AuthnToOld
+from oic.exception import AuthzError
+from oic.exception import AuthnToOld
+
+from oic.oauth2 import HTTP_ARGS
+from oic.oauth2 import authz_error
+from oic.oauth2 import redirect_authz_error
+from oic.oauth2.consumer import ConfigurationError
 from oic.oauth2.exception import OtherError
 from oic.oauth2.exception import ParseError
 from oic.oauth2.exception import MissingRequiredAttribute
+from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import Message
 from oic.oauth2.util import get_or_post
-from oic.oic.message import IdToken, ClaimsRequest, SCOPE2CLAIMS
+
+from oic.oic.message import ClaimsRequest
+from oic.oic.message import IdToken
+from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import AccessTokenResponse
@@ -1387,13 +1394,82 @@ class Server(oauth2.Server):
                             body=None):
         return oauth2.Server.parse_token_request(self, request, body)
 
+    def handle_request_uri(self, request_uri):
+        """
+
+        :param areq:
+        :param redirect_uri:
+        :return:
+        """
+
+        # Do a HTTP get
+        logger.debug('Get request from request_uri: {}'.format(request_uri))
+        try:
+            http_req = self.http_request(request_uri)
+        except ConnectionError:
+            logger.error('Connection Error')
+            return authz_error("invalid_request_uri")
+
+        if not http_req:
+            logger.error('Nothing returned')
+            return authz_error("invalid_request_uri")
+        elif http_req.status_code >= 400:
+            logger.error('HTTP error {}:{}'.format(http_req.status_code,
+                                                   http_req.text))
+            raise AuthzError('invalid_request')
+
+        # http_req.text is a signed JWT
+        try:
+            logger.debug('request txt: {}'.format(http_req.text))
+            req = self.parse_jwt_request(txt=http_req.text)
+        except Exception as err:
+            logger.error(
+                '{}:{} encountered while parsing fetched request'.format(
+                    err.__class__, err))
+            raise AuthzError("invalid_openid_request_object")
+
+        logger.debug('Fetched request: {}'.format(req))
+        return req
+
     def parse_authorization_request(self, request=AuthorizationRequest,
                                     url=None, query=None, keys=None):
         if url:
             parts = urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]
 
-        return self._parse_request(request, query, "urlencoded")
+        _req = self._parse_request(request, query, "urlencoded",
+                                   verify=False)
+
+        _req_req = {}
+        try:
+            _request = _req['request']
+        except KeyError:
+            try:
+                _url = _req['request_uri']
+            except KeyError:
+                pass
+            else:
+                _req_req = self.handle_request_uri(_url)
+        else:
+            if isinstance(_request, Message):
+                _req_req = _request
+            else:
+                try:
+                    _req_req = self.parse_jwt_request(request, txt=_request,
+                                                      verify=False)
+                except Exception as err:
+                    _req_req = self._parse_request(request, _request,
+                                                   'urlencoded', verify=False)
+        if _req_req:
+            for key, val in _req.items():
+                if key in ['request', 'request_uri']:
+                    continue
+                if key not in _req_req:
+                    _req_req[key] = val
+            _req = _req_req
+
+        _req.verify()
+        return _req
 
     def parse_jwt_request(self, request=AuthorizationRequest, txt="",
                           keys=None, verify=True):
@@ -1421,7 +1497,8 @@ class Server(oauth2.Server):
         assert "access_token" in param  # ignore the rest
         return deser_id_token(self, param["access_token"][0])
 
-    def _parse_request(self, request, data, sformat, client_id=None):
+    def _parse_request(self, request, data, sformat, client_id=None,
+                       verify=True):
         if sformat == "json":
             request = request().from_json(data)
         elif sformat == "jwt":
@@ -1451,7 +1528,8 @@ class Server(oauth2.Server):
                 sender = ''
 
         logger.debug("Found {} verify keys".format(len(keys or '')))
-        request.verify(key=keys, keyjar=self.keyjar, sender=sender)
+        if verify:
+            request.verify(key=keys, keyjar=self.keyjar, sender=sender)
         return request
 
     def parse_open_id_request(self, data, sformat="urlencoded", client_id=None):

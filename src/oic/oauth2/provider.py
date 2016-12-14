@@ -22,16 +22,17 @@ from oic.exception import ParameterError
 from oic.exception import RedirectURIError
 from oic.exception import UnknownClient
 from oic.exception import URIError
+from oic.oauth2 import error
+from oic.oauth2 import error_response
+from oic.oauth2 import none_response
+from oic.oauth2 import redirect_authz_error
 from oic.oauth2 import Server
 from oic.oauth2.message import AccessTokenRequest
 from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import AuthorizationErrorResponse
 from oic.oauth2.message import AuthorizationRequest
 from oic.oauth2.message import AuthorizationResponse
-from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import MissingRequiredValue
-from oic.oauth2.message import NoneResponse
 from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.message import add_non_standard
 from oic.oauth2.message import by_schema
@@ -118,23 +119,6 @@ def token_response(**kwargs):
     return aresp
 
 
-def error_response(error, descr=None):
-    logger.error("%s" % sanitize(error))
-    response = ErrorResponse(error=error, error_description=descr)
-    return Response(response.to_json(), content="application/json",
-                    status="400 Bad Request")
-
-
-# noinspection PyUnusedLocal
-def none_response(**kwargs):
-    _areq = kwargs["areq"]
-    aresp = NoneResponse()
-    if "state" in _areq:
-        aresp["state"] = _areq["state"]
-
-    return aresp
-
-
 def location_url(response_type, redirect_uri, query):
     if response_type in [["code"], ["token"], ["none"]]:
         return "%s?%s" % (redirect_uri, query)
@@ -218,38 +202,6 @@ class Provider(object):
             return post
         else:
             raise MissingParameter("No input")
-
-    @staticmethod
-    def _error_response(error, descr=None):
-        return error_response(error=error, descr=descr)
-
-    @staticmethod
-    def _error(error, descr=None):
-        return error_response(error=error, descr=descr)
-
-    @staticmethod
-    def _authz_error(error, descr=None):
-
-        response = AuthorizationErrorResponse(error=error)
-        if descr:
-            response["error_description"] = descr
-
-        return Response(response.to_json(), content="application/json",
-                        status="400 Bad Request")
-
-    @staticmethod
-    def _redirect_authz_error(error, redirect_uri, descr=None, state="",
-                              return_type=None):
-        err = AuthorizationErrorResponse(error=error)
-        if descr:
-            err["error_description"] = descr
-        if state:
-            err["state"] = state
-        if return_type is None or return_type == ["code"]:
-            location = err.request(redirect_uri)
-        else:
-            location = err.request(redirect_uri, True)
-        return SeeOther(location)
 
     def endpoints(self):
         return [endp.url for endp in self.endp]
@@ -404,12 +356,12 @@ class Provider(object):
             try:
                 redirect_uri = self.get_redirect_uri(areq)
             except (RedirectURIError, ParameterError, UnknownClient) as err:
-                return self._error("invalid_request", "%s" % err)
+                return error("invalid_request", "%s" % err)
             try:
                 _rtype = areq["response_type"]
             except:
                 _rtype = ["code"]
-            return self._redirect_authz_error("invalid_request", redirect_uri,
+            return redirect_authz_error("invalid_request", redirect_uri,
                                               "%s" % err, areq["state"],
                                               _rtype)
         except KeyError:
@@ -418,7 +370,7 @@ class Provider(object):
             try:
                 self.get_redirect_uri(areq)
             except (RedirectURIError, ParameterError) as err:
-                return self._error("invalid_request", "%s" % err)
+                return error("invalid_request", "%s" % err)
         except Exception as err:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
@@ -427,7 +379,7 @@ class Provider(object):
 
         if not areq:
             logger.debug("No AuthzRequest")
-            return self._error("invalid_request", "Can not parse AuthzRequest")
+            return error("invalid_request", "Can not parse AuthzRequest")
 
         areq = self.filter_request(areq)
 
@@ -440,7 +392,7 @@ class Provider(object):
             logger.error(
                 'Client ID ({}) not in client database'.format(
                     areq['client_id']))
-            return self._error('unauthorized_client', 'unknown client')
+            return error('unauthorized_client', 'unknown client')
         else:
             try:
                 rtypes = _cinfo['response_types']
@@ -448,7 +400,7 @@ class Provider(object):
                 rtypes = ['code']  # default according to OIDC registration
 
             if ' '.join(areq["response_type"]) not in rtypes:
-                return self._error("invalid_request",
+                return error("invalid_request",
                                    "Trying to use unregistered response_typ")
 
 
@@ -456,7 +408,7 @@ class Provider(object):
         try:
             redirect_uri = self.get_redirect_uri(areq)
         except (RedirectURIError, ParameterError, UnknownClient) as err:
-            return self._error("invalid_request", "%s" % err)
+            return error("invalid_request", "%s" % err)
 
         try:
             keyjar = self.keyjar
@@ -467,7 +419,7 @@ class Provider(object):
             # verify that the request message is correct
             areq.verify(keyjar=keyjar, opponent_id=areq["client_id"])
         except (MissingRequiredAttribute, ValueError) as err:
-            return self._redirect_authz_error("invalid_request", redirect_uri,
+            return redirect_authz_error("invalid_request", redirect_uri,
                                               "%s" % err)
 
         return {"areq": areq, "redirect_uri": redirect_uri}
@@ -523,7 +475,7 @@ class Provider(object):
                     authn, authn_class_ref = self.pick_auth(areq, "any")
 
         if authn is None:
-            return self._redirect_authz_error("access_denied", redirect_uri,
+            return redirect_authz_error("access_denied", redirect_uri,
                                               return_type=areq["response_type"])
 
         try:
@@ -572,7 +524,7 @@ class Provider(object):
         if identity is None:  # No!
             if "prompt" in areq and "none" in areq["prompt"]:
                 # Need to authenticate but not allowed
-                return self._redirect_authz_error(
+                return redirect_authz_error(
                     "login_required", redirect_uri,
                     return_type=areq["response_type"])
             else:
@@ -592,7 +544,7 @@ class Provider(object):
                         logger.debug("Wanted to be someone else!")
                         if "prompt" in areq and "none" in areq["prompt"]:
                             # Need to authenticate but not allowed
-                            return self._redirect_authz_error("login_required",
+                            return redirect_authz_error("login_required",
                                                               redirect_uri)
                         else:
                             return authn(**authn_args)
@@ -702,13 +654,13 @@ class Provider(object):
         _log_debug("response type: %s" % areq["response_type"])
 
         if self.sdb.is_revoked(sid):
-            return self._error(error="access_denied",
+            return error(error="access_denied",
                                descr="Token is revoked")
 
         try:
             info = self.create_authn_response(areq, sid)
         except UnSupported as err:
-            return self._error_response(*err.args)
+            return error_response(*err.args)
 
         if isinstance(info, Response):
             return info
@@ -770,7 +722,7 @@ class Provider(object):
                                           redirect_uri=redirect_uri,
                                           headers=headers)
             except InvalidRequest as err:
-                return self._error("invalid_request", err)
+                return error("invalid_request", err)
             else:
                 if resp is not None:
                     return resp

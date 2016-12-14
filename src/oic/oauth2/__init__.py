@@ -3,6 +3,7 @@ from jwkest import b64e
 
 from future.backports.urllib.parse import urlparse
 
+
 from oic import unreserved
 from oic import CC_METHOD
 from oic import OIDCONF_PATTERN
@@ -21,6 +22,8 @@ from oic.oauth2.grant import Token
 from oic.oauth2.grant import Grant
 from oic.oauth2.util import get_or_post
 from oic.oauth2.util import verify_header
+from oic.utils.http_util import Response
+from oic.utils.http_util import SeeOther
 from oic.utils.keyio import KeyJar
 from oic.utils.time_util import utc_time_sans_frac
 from oic.oauth2.message import *
@@ -57,6 +60,53 @@ class ExpiredToken(PyoidcError):
 
 
 # =============================================================================
+
+def error_response(error, descr=None):
+    logger.error("%s" % sanitize(error))
+    response = ErrorResponse(error=error, error_description=descr)
+    return Response(response.to_json(), content="application/json",
+                    status="400 Bad Request")
+
+
+# noinspection PyUnusedLocal
+def none_response(**kwargs):
+    _areq = kwargs["areq"]
+    aresp = NoneResponse()
+    if "state" in _areq:
+        aresp["state"] = _areq["state"]
+
+    return aresp
+
+
+def error(error, descr=None):
+    return error_response(error=error, descr=descr)
+
+
+def authz_error(error, descr=None):
+
+    response = AuthorizationErrorResponse(error=error)
+    if descr:
+        response["error_description"] = descr
+
+    return Response(response.to_json(), content="application/json",
+                    status="400 Bad Request")
+
+
+def redirect_authz_error(error, redirect_uri, descr=None, state="",
+                          return_type=None):
+    err = AuthorizationErrorResponse(error=error)
+    if descr:
+        err["error_description"] = descr
+    if state:
+        err["state"] = state
+    if return_type is None or return_type == ["code"]:
+        location = err.request(redirect_uri)
+    else:
+        location = err.request(redirect_uri, True)
+    return SeeOther(location)
+
+# =============================================================================
+
 
 class Client(PBase):
     _endpoints = ENDPOINTS
@@ -901,7 +951,8 @@ class Server(PBase):
         # areq = message().from_(txt, keys, verify)
         areq = request().deserialize(txt, "jwt", keyjar=keyjar,
                                      verify=verify)
-        areq.verify()
+        if verify:
+            areq.verify()
         return areq
 
     def parse_body_request(self, request=AccessTokenRequest, body=None):

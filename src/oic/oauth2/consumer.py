@@ -3,7 +3,7 @@ import time
 import logging
 from hashlib import md5
 
-from oic.exception import PyoidcError
+from oic.exception import PyoidcError, AuthzError
 from oic.oauth2.message import AuthorizationRequest
 from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import Message
@@ -62,10 +62,6 @@ class UnknownState(PyoidcError):
 
 
 class TokenError(PyoidcError):
-    pass
-
-
-class AuthzError(PyoidcError):
     pass
 
 

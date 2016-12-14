@@ -733,18 +733,6 @@ def test_request_attr_mis_match():
         del areq[attr]
 
     areq.lax = True
-    req = AuthorizationRequest().from_urlencoded(areq.to_urlencoded())
-    try:
-        _req_req = AuthorizationRequest().from_jwt(req['request'], keyjar=KEYJ)
-    except KeyError:
-        pass
-    else:
-        for key, val in areq.items():
-            if key == 'request':
-                continue
-            if key not in _req_req:
-                _req_req[key] = val
-        areq = _req_req
+    req = srv.parse_authorization_request(query=areq.to_urlencoded())
 
-    assert areq.verify()
-
+    assert req.verify()
