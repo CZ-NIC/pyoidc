@@ -82,9 +82,9 @@ class TestClient(object):
         self.client.keyjar[""] = KC_RSA
         self.client.behaviour = {
             "request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]}
-        mfos = MyFakeOICServer()
-        mfos.keyjar = KEYJ
-        self.client.http_request = mfos.http_request
+        self.mfos = MyFakeOICServer()
+        self.mfos.keyjar = KEYJ
+        self.client.http_request = self.mfos.http_request
 
     def test_construct_authz_req_with_request_object(self, tmpdir):
         path = tmpdir.strpath
@@ -705,3 +705,46 @@ class TestScope2Claims(object):
     def test_scope2claims_with_non_standard_scope(self):
         claims = scope2claims(['my_scope', 'email'])
         assert Counter(claims.keys()) == Counter(SCOPE2CLAIMS['email'])
+
+
+def test_request_attr_mis_match():
+    redirect_uri = "http://example.com/redirect"
+    client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
+    client.redirect_uris = [redirect_uri]
+    client.authorization_endpoint = "http://example.com/authorization"
+    client.client_secret = "abcdefghijklmnop"
+    client.keyjar[""] = KC_RSA
+    client.behaviour = {
+        "request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]}
+
+    srv = Server()
+    srv.keyjar = KEYJ
+
+    areq = client.construct_AuthorizationRequest(
+        request_args={
+            "scope": "openid",
+            "response_type": ["code"],
+            "max_age": 86400,
+            'state': 'foobar'
+        },
+        request_param="request")
+
+    for attr in ['state', 'max_age', 'client_id']:
+        del areq[attr]
+
+    areq.lax = True
+    req = AuthorizationRequest().from_urlencoded(areq.to_urlencoded())
+    try:
+        _req_req = AuthorizationRequest().from_jwt(req['request'], keyjar=KEYJ)
+    except KeyError:
+        pass
+    else:
+        for key, val in areq.items():
+            if key == 'request':
+                continue
+            if key not in _req_req:
+                _req_req[key] = val
+        areq = _req_req
+
+    assert areq.verify()
+

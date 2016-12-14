@@ -394,6 +394,7 @@ class Provider(object):
         """
         logger.debug("Request: '%s'" % sanitize(request))
         # Same serialization used for GET and POST
+
         try:
             areq = self.server.parse_authorization_request(
                 request=request_class, query=request)
