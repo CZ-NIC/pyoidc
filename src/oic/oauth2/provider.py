@@ -362,9 +362,11 @@ class Provider(object):
                 _rtype = areq["response_type"]
             except:
                 _rtype = ["code"]
-            return redirect_authz_error("invalid_request", redirect_uri,
-                                              "%s" % err, areq["state"],
-                                              _rtype)
+            try:
+                return redirect_authz_error("invalid_request", redirect_uri,
+                                            "%s" % err, areq["state"], _rtype)
+            except KeyError:
+                return BadRequest("%s" % err)
         except KeyError:
             areq = request_class().deserialize(request, "urlencoded")
             # verify the redirect_uri
@@ -402,8 +404,7 @@ class Provider(object):
 
             if ' '.join(areq["response_type"]) not in rtypes:
                 return error("invalid_request",
-                                   "Trying to use unregistered response_typ")
-
+                             "Trying to use unregistered response_typ")
 
         logger.debug("AuthzRequest: %s" % (sanitize(areq.to_dict()),))
         try:
@@ -421,7 +422,7 @@ class Provider(object):
             areq.verify(keyjar=keyjar, opponent_id=areq["client_id"])
         except (MissingRequiredAttribute, ValueError) as err:
             return redirect_authz_error("invalid_request", redirect_uri,
-                                              "%s" % err)
+                                        "%s" % err)
 
         return {"areq": areq, "redirect_uri": redirect_uri}
 
@@ -477,7 +478,7 @@ class Provider(object):
 
         if authn is None:
             return redirect_authz_error("access_denied", redirect_uri,
-                                              return_type=areq["response_type"])
+                                        return_type=areq["response_type"])
 
         try:
             try:
@@ -546,7 +547,7 @@ class Provider(object):
                         if "prompt" in areq and "none" in areq["prompt"]:
                             # Need to authenticate but not allowed
                             return redirect_authz_error("login_required",
-                                                              redirect_uri)
+                                                        redirect_uri)
                         else:
                             return authn(**authn_args)
 
@@ -656,7 +657,7 @@ class Provider(object):
 
         if self.sdb.is_revoked(sid):
             return error(error="access_denied",
-                               descr="Token is revoked")
+                         descr="Token is revoked")
 
         try:
             info = self.create_authn_response(areq, sid)

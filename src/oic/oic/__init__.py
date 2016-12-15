@@ -1468,7 +1468,12 @@ class Server(oauth2.Server):
                     _req_req[key] = val
             _req = _req_req
 
-        _req.verify()
+        try:
+            _req.verify()
+        except Exception as err:
+            if self.events:
+                self.events.store('Exception', err)
+            logger.error()
         return _req
 
     def parse_jwt_request(self, request=AuthorizationRequest, txt="",
