@@ -26,7 +26,6 @@ from oic.exception import AuthnToOld
 
 from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import authz_error
-from oic.oauth2 import redirect_authz_error
 from oic.oauth2.consumer import ConfigurationError
 from oic.oauth2.exception import OtherError
 from oic.oauth2.exception import ParseError
@@ -37,6 +36,7 @@ from oic.oauth2.util import get_or_post
 
 from oic.oic.message import ClaimsRequest
 from oic.oic.message import IdToken
+from oic.oic.message import JasonWebToken
 from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import AuthorizationResponse
@@ -1394,7 +1394,7 @@ class Server(oauth2.Server):
                             body=None):
         return oauth2.Server.parse_token_request(self, request, body)
 
-    def handle_request_uri(self, request_uri):
+    def handle_request_uri(self, request_uri, verify=True):
         """
 
         :param areq:
@@ -1421,7 +1421,7 @@ class Server(oauth2.Server):
         # http_req.text is a signed JWT
         try:
             logger.debug('request txt: {}'.format(http_req.text))
-            req = self.parse_jwt_request(txt=http_req.text)
+            req = self.parse_jwt_request(txt=http_req.text, verify=verify)
         except Exception as err:
             logger.error(
                 '{}:{} encountered while parsing fetched request'.format(
@@ -1440,6 +1440,9 @@ class Server(oauth2.Server):
         _req = self._parse_request(request, query, "urlencoded",
                                    verify=False)
 
+        if self.events:
+            self.events.store('Request', _req)
+
         _req_req = {}
         try:
             _request = _req['request']
@@ -1449,7 +1452,7 @@ class Server(oauth2.Server):
             except KeyError:
                 pass
             else:
-                _req_req = self.handle_request_uri(_url)
+                _req_req = self.handle_request_uri(_url, verify=False)
         else:
             if isinstance(_request, Message):
                 _req_req = _request
@@ -1460,7 +1463,16 @@ class Server(oauth2.Server):
                 except Exception as err:
                     _req_req = self._parse_request(request, _request,
                                                    'urlencoded', verify=False)
+                else:  # remove JWT attributes
+                    for attr in JasonWebToken.c_param:
+                        try:
+                            del _req_req[attr]
+                        except KeyError:
+                            pass
         if _req_req:
+            if self.events:
+                self.events.store('Signed Request', _req_req)
+
             for key, val in _req.items():
                 if key in ['request', 'request_uri']:
                     continue
@@ -1468,12 +1480,16 @@ class Server(oauth2.Server):
                     _req_req[key] = val
             _req = _req_req
 
+        if self.events:
+            self.events.store('Combined Request', _req)
+
         try:
             _req.verify()
         except Exception as err:
             if self.events:
                 self.events.store('Exception', err)
-            logger.error()
+            logger.error(err)
+
         return _req
 
     def parse_jwt_request(self, request=AuthorizationRequest, txt="",
