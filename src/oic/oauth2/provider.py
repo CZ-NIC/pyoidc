@@ -363,10 +363,12 @@ class Provider(object):
             except:
                 _rtype = ["code"]
             try:
-                return redirect_authz_error("invalid_request", redirect_uri,
-                                            "%s" % err, areq["state"], _rtype)
+                _state = areq["state"]
             except KeyError:
-                return BadRequest("%s" % err)
+                _state = ''
+
+            return redirect_authz_error("invalid_request", redirect_uri,
+                                        "%s" % err, _state, _rtype)
         except KeyError:
             areq = request_class().deserialize(request, "urlencoded")
             # verify the redirect_uri
