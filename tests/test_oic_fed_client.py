@@ -102,3 +102,9 @@ class TestClient(object):
             jwt_ms=self.client.signed_metadata_statements[0])
         res = receiver.evaluate_metadata_statement(ms)
         assert FOP.iss in res
+
+    def test_create_registration_request(self):
+        self.client.create_registration_request(
+            redirect_uris=['https://rp.example.com/auth_cb'],
+            metadata_statements=[self.client.signed_metadata_statements]
+        )

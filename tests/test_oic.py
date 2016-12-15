@@ -44,10 +44,11 @@ from fakeoicsrv import MyFakeOICServer
 __author__ = 'rohe0002'
 
 KC_SYM_S = KeyBundle(
-        {"kty": "oct", "key": "abcdefghijklmnop".encode("utf-8"), "use": "sig",
-         "alg": "HS256"})
+    {"kty": "oct", "key": "abcdefghijklmnop".encode("utf-8"), "use": "sig",
+     "alg": "HS256"})
 
-BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/keys"))
+BASE_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "data/keys"))
 _key = rsa_load(os.path.join(BASE_PATH, "rsa.key"))
 KC_RSA = KeyBundle({"key": _key, "kty": "RSA", "use": "sig"})
 
@@ -64,6 +65,7 @@ IDTOKEN = IdToken(iss="http://oic.example.org/", sub="sub",
 
 def _eq(l1, l2):
     return set(l1) == set(l2)
+
 
 # ----------------- CLIENT --------------------
 
@@ -109,11 +111,11 @@ class TestClient(object):
 
     def test_construct_authz_req_nonce_for_token(self):
         assert "nonce" in self.client.construct_AuthorizationRequest(
-                response_type="token")
+            response_type="token")
         assert "nonce" in self.client.construct_AuthorizationRequest(
-                response_type="id_token")
+            response_type="id_token")
         assert "nonce" in self.client.construct_AuthorizationRequest(
-                response_type="token id_token")
+            response_type="token id_token")
 
     def test_do_authorization_request(self):
         args = {"response_type": ["code"], "scope": "openid"}
@@ -169,14 +171,16 @@ class TestClient(object):
         self.client.do_access_token_request(scope="openid offline_access",
                                             state="state0")
 
-        resp = self.client.do_access_token_refresh(scope="openid offline_access",
-                                                   state="state0")
+        resp = self.client.do_access_token_refresh(
+            scope="openid offline_access",
+            state="state0")
         assert isinstance(resp, AccessTokenResponse)
         assert _eq(resp.keys(), ['token_type', 'access_token', 'refresh_token',
                                  'scope', 'state'])
 
     def test_client_id(self):
-        resp = AuthorizationResponse(code="code", state="stateX").to_urlencoded()
+        resp = AuthorizationResponse(code="code",
+                                     state="stateX").to_urlencoded()
         self.client.parse_response(AuthorizationResponse, resp,
                                    sformat="urlencoded")
         args = {
@@ -195,7 +199,7 @@ class TestClient(object):
         args = {
             "code": "code",
             "redirect_uri": self.client.redirect_uris[0],
-            #"client_id": self.client.client_id,
+            # "client_id": self.client.client_id,
         }
 
         url, query, ht_args, cis = self.client.request_info(
@@ -246,7 +250,8 @@ class TestClient(object):
                                  'application_type', 'registration_client_uri',
                                  'client_secret_expires_at',
                                  'registration_access_token', 'client_id',
-                                 'application_name', 'client_secret', 'response_types'])
+                                 'application_name', 'client_secret',
+                                 'response_types'])
 
     def test_do_user_info_request_with_access_token_refresh(self):
         args = {"response_type": ["code"],
@@ -259,7 +264,8 @@ class TestClient(object):
         self.client.do_access_token_request(scope="openid offline_access",
                                             state="state0")
 
-        token = self.client.get_token(state="state0", scope="openid offline_access")
+        token = self.client.get_token(state="state0",
+                                      scope="openid offline_access")
         token.token_expiration_time = utc_time_sans_frac() - 86400
 
         resp = self.client.do_user_info_request(state="state0")
@@ -278,25 +284,25 @@ class TestClient(object):
         }
 
         areq = self.client.construct_AuthorizationRequest(
-                request_args={
-                    "scope": "openid",
-                    "response_type": ["code"],
-                    "claims": ClaimsRequest(userinfo=Claims(**claims),
-                                            id_token=Claims(auth_time=None,
-                                                            acr={"values": ["2"]})),
-                    "max_age": 86400,
-                },
-                request_param="request")
+            request_args={
+                "scope": "openid",
+                "response_type": ["code"],
+                "claims": ClaimsRequest(userinfo=Claims(**claims),
+                                        id_token=Claims(auth_time=None,
+                                                        acr={"values": ["2"]})),
+                "max_age": 86400,
+            },
+            request_param="request")
 
         assert "request" in areq
 
     def test_openid_request_with_id_token_claims_request(self):
         areq = self.client.construct_AuthorizationRequest(
-                request_args={"scope": "openid",
-                              "response_type": ["code"],
-                              "claims": {
-                                  "id_token": {"sub": {"value": "248289761001"}}}},
-                request_param="request"
+            request_args={"scope": "openid",
+                          "response_type": ["code"],
+                          "claims": {
+                              "id_token": {"sub": {"value": "248289761001"}}}},
+            request_param="request"
         )
 
         jwtreq = OpenIDRequest().deserialize(areq["request"], "jwt",
@@ -307,7 +313,7 @@ class TestClient(object):
 
     def test_construct_UserInfoRequest_with_req_args(self):
         uir = self.client.construct_UserInfoRequest(
-                request_args={"access_token": "access_token"})
+            request_args={"access_token": "access_token"})
         assert uir["access_token"] == "access_token"
 
     def test_construct_UserInfoRequest_2_with_token(self):
@@ -326,7 +332,7 @@ class TestClient(object):
 
     def test_construct_CheckSessionRequest_with_req_args(self):
         csr = self.client.construct_CheckSessionRequest(
-                request_args={"id_token": "id_token"})
+            request_args={"id_token": "id_token"})
         assert csr["id_token"] == "id_token"
 
     def test_construct_CheckSessionRequest_2(self):
@@ -353,9 +359,10 @@ class TestClient(object):
         }
 
         crr = self.client.construct_RegistrationRequest(
-                request_args=request_args)
+            request_args=request_args)
         assert _eq(crr.keys(), ['application_name', 'application_type', 'type',
-                                'client_id', 'contacts', 'redirect_uris', 'response_types'])
+                                'client_id', 'contacts', 'redirect_uris',
+                                'response_types'])
 
     def test_construct_EndSessionRequest(self):
         self.client.grant["foo"] = Grant()
@@ -379,7 +386,7 @@ class TestClient(object):
                         "state": "af0ifjsldkj"}
 
         areq = self.client.construct_AuthorizationRequest(
-                request_args=request_args)
+            request_args=request_args)
         assert _eq(areq.keys(),
                    ['nonce', 'state', 'redirect_uri', 'response_type',
                     'client_id', 'scope'])
@@ -397,7 +404,7 @@ class TestClient(object):
                                    state="state0")
 
         path, body, method, h_args = self.client.user_info_request(
-                state="state0")
+            state="state0")
         assert path == "http://example.com/userinfo"
         assert method == "GET"
         assert body is None
@@ -416,8 +423,8 @@ class TestClient(object):
                                    state="state0")
 
         path, body, method, h_args = self.client.user_info_request(
-                method="POST",
-                state="state0")
+            method="POST",
+            state="state0")
 
         assert path == "http://example.com/userinfo"
         assert method == "POST"
@@ -441,8 +448,8 @@ class TestClient(object):
                   "target": "test_provider"}
 
         areq = self.client.construct_AuthorizationRequest(
-                request_args=request_args,
-                **kwargs)
+            request_args=request_args,
+            **kwargs)
 
         assert areq["request"]
 
@@ -459,7 +466,9 @@ class TestClient(object):
         issuer = "https://provider.example.com"
         monkeypatch.setattr(self.client, "provider_info", {"issuer": issuer})
         id_token = IdToken(
-            **dict(iss=issuer, aud=["nobody", "somebody", self.client.client_id], azp="nobody"))
+            **dict(iss=issuer,
+                   aud=["nobody", "somebody", self.client.client_id],
+                   azp="nobody"))
 
         with pytest.raises(OtherError) as exc:
             self.client._verify_id_token(id_token)
@@ -591,7 +600,7 @@ class TestServer(object):
                                      application_type="web")
 
         request = self.srv.parse_registration_request(
-                data=regreq.to_urlencoded())
+            data=regreq.to_urlencoded())
         assert isinstance(request, RegistrationRequest)
         assert _eq(request.keys(), ['redirect_uris', 'contacts', 'client_id',
                                     'application_name', 'operation',
@@ -618,23 +627,23 @@ class TestServer(object):
 
     def test_parse_check_session_request(self):
         csreq = CheckSessionRequest(
-                id_token=IDTOKEN.to_jwt(key=KC_SYM_S.get(alg2keytype("HS256")),
-                                        algorithm="HS256"))
+            id_token=IDTOKEN.to_jwt(key=KC_SYM_S.get(alg2keytype("HS256")),
+                                    algorithm="HS256"))
         request = self.srv.parse_check_session_request(
-                query=csreq.to_urlencoded())
+            query=csreq.to_urlencoded())
         assert isinstance(request, IdToken)
         assert _eq(request.keys(), ['nonce', 'sub', 'aud', 'iss', 'exp', 'iat'])
         assert request["aud"] == ["client_1"]
 
     def test_parse_end_session_request(self):
         esreq = EndSessionRequest(
-                id_token=IDTOKEN.to_jwt(key=KC_SYM_S.get(alg2keytype("HS256")),
-                                        algorithm="HS256"),
-                redirect_url="http://example.org/jqauthz",
-                state="state0")
+            id_token=IDTOKEN.to_jwt(key=KC_SYM_S.get(alg2keytype("HS256")),
+                                    algorithm="HS256"),
+            redirect_url="http://example.org/jqauthz",
+            state="state0")
 
         request = self.srv.parse_end_session_request(
-                query=esreq.to_urlencoded())
+            query=esreq.to_urlencoded())
         assert isinstance(request, EndSessionRequest)
         assert _eq(request.keys(), ['id_token', 'redirect_url', 'state'])
         assert request["state"] == "state0"
@@ -700,7 +709,8 @@ class TestServer(object):
 class TestScope2Claims(object):
     def test_scope2claims(self):
         claims = scope2claims(['profile', 'email'])
-        assert Counter(claims.keys()) == Counter(SCOPE2CLAIMS['profile'] + SCOPE2CLAIMS['email'])
+        assert Counter(claims.keys()) == Counter(
+            SCOPE2CLAIMS['profile'] + SCOPE2CLAIMS['email'])
 
     def test_scope2claims_with_non_standard_scope(self):
         claims = scope2claims(['my_scope', 'email'])
@@ -736,3 +746,30 @@ def test_request_attr_mis_match():
     req = srv.parse_authorization_request(query=areq.to_urlencoded())
 
     assert req.verify()
+
+
+def test_request_1():
+    srv = Server()
+    srv.keyjar = KEYJ
+
+    areq = 'redirect_uri=https%3A%2F%2Fnode-openid-client.dev%2Fcb&request' \
+           '=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0' \
+           '.eyJzdGF0ZSI6ImZvb2JhciIsImlzcyI6Inp2bWk4UGdJbURiOSIsImF1ZCI6Imh0dHBzOi8vcnAuY2VydGlmaWNhdGlvbi5vcGVuaWQubmV0OjgwODAvbm9kZS1vcGVuaWQtY2xpZW50L3JwLXJlcXVlc3RfdXJpLXVuc2lnbmVkIiwiY2xpZW50X2lkIjoienZtaThQZ0ltRGI5In0.&client_id=zvmi8PgImDb9&scope=openid&response_type=code'
+
+    req = srv.parse_authorization_request(query=areq)
+
+    assert req
+
+
+def test_request_duplicate_state():
+    srv = Server()
+    srv.keyjar = KEYJ
+
+    areq = 'redirect_uri=https%3A%2F%2Fnode-openid-client.dev%2Fcb&state=barf&request' \
+           '=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0' \
+           '.eyJzdGF0ZSI6ImZvb2JhciIsImlzcyI6Inp2bWk4UGdJbURiOSIsImF1ZCI6Imh0dHBzOi8vcnAuY2VydGlmaWNhdGlvbi5vcGVuaWQubmV0OjgwODAvbm9kZS1vcGVuaWQtY2xpZW50L3JwLXJlcXVlc3RfdXJpLXVuc2lnbmVkIiwiY2xpZW50X2lkIjoienZtaThQZ0ltRGI5In0.&client_id=zvmi8PgImDb9&scope=openid&response_type=code'
+
+    req = srv.parse_authorization_request(query=areq)
+
+    assert req['state'] == 'foobar'
+    assert req['redirect_uri'] == 'https://node-openid-client.dev/cb'
