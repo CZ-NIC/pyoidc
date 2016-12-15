@@ -15,7 +15,7 @@ from future.types import newstr
 from six import PY2
 
 from oic import rndstr
-from oic.exception import FailedAuthentication, UnSupported
+from oic.exception import FailedAuthentication, UnSupported, AuthzError
 from oic.exception import InvalidRequest
 from oic.exception import MissingParameter
 from oic.exception import ParameterError
@@ -350,7 +350,8 @@ class Provider(object):
         try:
             areq = self.server.parse_authorization_request(
                 request=request_class, query=request)
-        except (MissingRequiredValue, MissingRequiredAttribute) as err:
+        except (MissingRequiredValue, MissingRequiredAttribute,
+                AuthzError) as err:
             logger.debug("%s" % err)
             areq = request_class().deserialize(request, "urlencoded")
             try:
