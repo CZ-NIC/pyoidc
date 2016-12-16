@@ -25,6 +25,18 @@ class TestResponse(object):
         result = resp({}, start_response)
         assert result == [message.encode('utf8')]
 
+    def test_escaped(self):
+        template = '%s'
+        response_header = ("XSS-Test", "script")
+        message = '<script>alert("hi");</script>'
+
+        def start_response(status, headers):
+            assert status == "200 OK"
+            assert response_header in headers
+
+        resp = Response(message=message, headers=[response_header], template=template)
+        assert resp({}, start_response) == ['&lt;script&gt;alert("hi");&lt;/script&gt;'.encode('utf8')]
+
 
 @pytest.fixture
 def cookie_dealer():
