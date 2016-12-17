@@ -2,9 +2,9 @@ __author__ = 'rohe0002'
 
 
 class PyoidcError(Exception):
-    def __init__(self, errmsg, message="", *args):
+    def __init__(self, errmsg, content_type="", *args):
         Exception.__init__(self, errmsg, *args)
-        self.message = message
+        self.content_type = content_type
 
 
 class MissingAttribute(PyoidcError):
