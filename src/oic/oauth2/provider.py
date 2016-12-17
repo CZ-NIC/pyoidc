@@ -24,6 +24,7 @@ from oic.exception import UnknownClient
 from oic.exception import URIError
 from oic.oauth2 import error
 from oic.oauth2 import error_response
+from oic.oauth2 import ErrorResponse
 from oic.oauth2 import none_response
 from oic.oauth2 import redirect_authz_error
 from oic.oauth2 import Server
@@ -380,7 +381,9 @@ class Provider(object):
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
             logger.debug("Bad request: %s (%s)" % (err, err.__class__.__name__))
-            return BadRequest("%s" % err)
+            err = ErrorResponse(error='invalid_request',
+                                error_description=str(err))
+            return BadRequest(err.to_json(), content='application/json')
 
         if not areq:
             logger.debug("No AuthzRequest")
@@ -806,7 +809,7 @@ class Provider(object):
         try:
             areq = parse_qs(_req["query"][0])
         except KeyError:
-            return BadRequest()
+            return BadRequest('Could not verify endpoint')
 
         authn, acr = self.pick_auth(areq=areq)
         kwargs["cookie"] = cookie
