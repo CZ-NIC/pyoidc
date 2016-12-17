@@ -26,7 +26,15 @@ from oic.exception import PyoidcError
 __author__ = 'rohe0002'
 
 KEYLOADERR = "Failed to load %s key from '%s' (%s)"
+REMOTE_FAILED = "Remote key update from '{}' failed, HTTP status {}"
+MALFORMED = "Remote key update from {} failed, malformed JWKS."
+
 logger = logging.getLogger(__name__)
+
+
+def raise_exception(excep, descr, error='service_error'):
+    _err = json.dumps({'error': error, 'error_description': descr})
+    raise excep(_err, 'application/json')
 
 
 class KeyIOError(PyoidcError):
@@ -117,14 +125,15 @@ class KeyBundle(object):
                     flag = 1
                     break
             if not flag:
-                raise UnknownKeyType(typ)
+                raise_exception(UnknownKeyType, typ)
 
     def do_local_jwk(self, filename):
         try:
             self.do_keys(json.loads(open(filename).read())["keys"])
         except KeyError:
             logger.error("Now 'keys' keyword in JWKS")
-            raise UpdateFailed(
+            raise_exception(
+                UpdateFailed,
                 "Local key update from '{}' failed.".format(filename))
         else:
             self.last_updated = time.time()
@@ -152,9 +161,8 @@ class KeyBundle(object):
             logging.debug('KeyBundle fetch keys from: {}'.format(self.source))
             r = requests.get(self.source, **args)
         except requests.ConnectionError as e:
-            raise UpdateFailed(
-                "Remote key update from '{}' failed: {}.".format(self.source,
-                                                                 str(e)))
+            raise_exception(UpdateFailed,
+                            REMOTE_FAILED.format(self.source, str(e)))
 
         if r.status_code == 304:  # file has not changed
             self.time_out = time.time() + self.cache_time
@@ -163,39 +171,31 @@ class KeyBundle(object):
                 self.do_keys(self.imp_jwks["keys"])
             except KeyError:
                 logger.error("No 'keys' keyword in JWKS")
-                raise UpdateFailed(
-                    "Remote key update after 304 from '{}' failed.".format(
-                        self.source))
-            return False
+                raise_exception(UpdateFailed, "No 'keys' keyword in JWKS")
+            else:
+                return False
         elif r.status_code == 200:  # New content
             self.time_out = time.time() + self.cache_time
 
             self.imp_jwks = self._parse_remote_response(r)
             if not isinstance(self.imp_jwks,
                               dict) or "keys" not in self.imp_jwks:
-                raise UpdateFailed(
-                    "Remote key update from '{}' failed, malformed "
-                    "JWKS.".format(
-                        self.source))
+                raise_exception(UpdateFailed, MALFORMED.format(self.source))
 
             logger.debug("Loaded JWKS: %s from %s" % (r.text, self.source))
             try:
                 self.do_keys(self.imp_jwks["keys"])
             except KeyError:
                 logger.error("No 'keys' keyword in JWKS")
-                raise UpdateFailed(
-                    "Remote key update from '{}' failed.".format(self.source))
+                raise_exception(UpdateFailed, MALFORMED.format(self.source))
 
             try:
                 self.etag = r.headers["Etag"]
             except KeyError:
                 pass
         else:
-            raise UpdateFailed(
-                "Remote key update from '{}' failed, HTTP status {}".format(
-                    self.source,
-                    r.status_code))
-
+            raise_exception(UpdateFailed,
+                            REMOTE_FAILED.format(self.source, r.status_code))
         self.last_updated = time.time()
         return True
 
@@ -395,7 +395,6 @@ class KeyJar(object):
     def __repr__(self):
         issuers = list(self.issuer_keys.keys())
         return '<KeyJar(issuers={})>'.format(issuers)
-
 
     def add_if_unique(self, issuer, use, keys):
         if use in self.issuer_keys[issuer] and self.issuer_keys[issuer][use]:

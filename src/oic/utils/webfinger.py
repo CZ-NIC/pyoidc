@@ -226,6 +226,7 @@ class WebFinger(object):
         self.default_rel = default_rel
         self.httpd = httpd
         self.jrd = None
+        self.events = None
 
     def query(self, resource, rel=None):
         resource = URINormalizer().normalize(resource)
@@ -290,7 +291,12 @@ class WebFinger(object):
             raise
 
         if rsp.status_code == 200:
+            if self.events:
+                self.events.store('Response', rsp.text)
+
             self.jrd = self.load(rsp.text)
+            if self.events:
+                self.events.store('JRD Response', self.jrd)
             for link in self.jrd["links"]:
                 if link["rel"] == OIC_ISSUER:
                     if not link['href'].startswith('https://'):
