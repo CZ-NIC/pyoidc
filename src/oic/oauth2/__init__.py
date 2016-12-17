@@ -3,7 +3,6 @@ from jwkest import b64e
 
 from future.backports.urllib.parse import urlparse
 
-
 from oic import unreserved
 from oic import CC_METHOD
 from oic import OIDCONF_PATTERN
@@ -22,6 +21,7 @@ from oic.oauth2.grant import Token
 from oic.oauth2.grant import Grant
 from oic.oauth2.util import get_or_post
 from oic.oauth2.util import verify_header
+from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 from oic.utils.keyio import KeyJar
@@ -55,6 +55,7 @@ RESPONSE2ERROR = {
 ENDPOINTS = ["authorization_endpoint", "token_endpoint",
              "token_revocation_endpoint"]
 
+
 class ExpiredToken(PyoidcError):
     pass
 
@@ -83,7 +84,6 @@ def error(error, descr=None):
 
 
 def authz_error(error, descr=None):
-
     response = AuthorizationErrorResponse(error=error)
     if descr:
         response["error_description"] = descr
@@ -93,7 +93,7 @@ def authz_error(error, descr=None):
 
 
 def redirect_authz_error(error, redirect_uri, descr=None, state="",
-                          return_type=None):
+                         return_type=None):
     err = AuthorizationErrorResponse(error=error)
     if descr:
         err["error_description"] = descr
@@ -104,6 +104,24 @@ def redirect_authz_error(error, redirect_uri, descr=None, state="",
     else:
         location = err.request(redirect_uri, True)
     return SeeOther(location)
+
+
+def exception_to_error_mesg(excep):
+    if isinstance(excep, PyoidcError):
+        if excep.content_type:
+            if isinstance(excep.args, tuple):
+                resp = BadRequest(excep.args[0], content=excep.content_type)
+            else:
+                resp = BadRequest(excep.args, content=excep.content_type)
+        else:
+            resp = BadRequest()
+    else:
+        err = ErrorResponse(error='service_error',
+                            error_description='{}:{}'.format(
+                                excep.__class__.__name__, excep.args))
+        resp = BadRequest(err.to_json(), content='application/json')
+    return resp
+
 
 # =============================================================================
 
@@ -136,7 +154,7 @@ class Client(PBase):
         self.nonce = None
 
         self.grant = {}
-
+        self.state2nonce = {}
         # own endpoint
         self.redirect_uris = [None]
 
@@ -427,6 +445,9 @@ class Client(PBase):
         if self.events:
             self.events.store('Protocol request', cis)
 
+        if 'nonce' in cis and 'state' in cis:
+            self.state2nonce[cis['state']] = cis['nonce']
+
         cis.lax = lax
 
         if "authn_method" in kwargs:
@@ -480,7 +501,7 @@ class Client(PBase):
         if sformat == "urlencoded":
             info = self.get_urlinfo(info)
 
-        #if self.events:
+        # if self.events:
         #    self.events.store('Response', info)
         resp = response().deserialize(info, sformat, **kwargs)
         msg = 'Initial response parsing => "{}"'
@@ -523,7 +544,7 @@ class Client(PBase):
                 logger.error('Verification of the response failed')
                 raise PyoidcError("Verification of the response failed")
             if resp.type() == "AuthorizationResponse" and \
-                    "scope" not in resp:
+                            "scope" not in resp:
                 try:
                     resp["scope"] = kwargs["scope"]
                 except KeyError:
@@ -707,7 +728,7 @@ class Client(PBase):
         if self.events is not None:
             self.events.store('request_url', url)
             self.events.store('request_http_args', http_args)
-            self.events.store('request', body)
+            self.events.store('Request', body)
 
         logger.debug("<do_access_token> URL: %s, Body: %s" % (url,
                                                               sanitize(body)))
