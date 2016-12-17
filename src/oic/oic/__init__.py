@@ -23,6 +23,7 @@ from oic import rndstr
 
 from oic.exception import AuthzError
 from oic.exception import AuthnToOld
+from oic.exception import ParameterError
 
 from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import authz_error
@@ -624,11 +625,22 @@ class Client(oauth2.Client):
                                 response_cls=AccessTokenResponse,
                                 authn_method="client_secret_basic", **kwargs):
 
-        return oauth2.Client.do_access_token_request(self, request, scope,
-                                                     state, body_type, method,
-                                                     request_args, extra_args,
-                                                     http_args, response_cls,
-                                                     authn_method, **kwargs)
+        atr = oauth2.Client.do_access_token_request(self, request, scope,
+                                                    state, body_type, method,
+                                                    request_args, extra_args,
+                                                    http_args, response_cls,
+                                                    authn_method, **kwargs)
+        try:
+            _idt = atr['id_token']
+        except KeyError:
+            pass
+        else:
+            try:
+                if self.state2nonce[state] != _idt['nonce']:
+                    raise ParameterError('Someone has messed with "nonce"')
+            except KeyError:
+                pass
+        return atr
 
     def do_access_token_refresh(self, request=RefreshAccessTokenRequest,
                                 state="", body_type="json", method="POST",

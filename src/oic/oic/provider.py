@@ -1762,7 +1762,7 @@ class Provider(AProvider):
         except Exception as err:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
-            resp = BadRequest(message, content="html/text")
+            resp = error('service_error', message)
 
         return resp
 

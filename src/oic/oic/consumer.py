@@ -250,8 +250,8 @@ class Consumer(Client):
         # nonce is REQUIRED in implicit flow,
         # OPTIONAL on code flow.
         if "token" in response_type or use_nonce:
-            self.nonce = rndstr(12)
-            args["nonce"] = self.nonce
+            args["nonce"] = rndstr(12)
+            self.state2nonce[sid] = args['nonce']
 
         if "max_age" in self.consumer_config:
             args["max_age"] = self.consumer_config["max_age"]

@@ -35,7 +35,8 @@ __author__ = 'rohe0002'
 
 logger = logging.getLogger(__name__)
 
-NONCE_STORAGE_TIME = 4*3600
+NONCE_STORAGE_TIME = 4 * 3600
+
 
 class AtHashError(VerificationError):
     pass
@@ -382,7 +383,8 @@ class AuthorizationResponse(message.AuthorizationResponse,
 
 
 class AuthorizationErrorResponse(message.AuthorizationErrorResponse):
-    c_allowed_values = message.AuthorizationErrorResponse.c_allowed_values.copy()
+    c_allowed_values = message.AuthorizationErrorResponse.c_allowed_values \
+        .copy()
     c_allowed_values["error"].extend(["interaction_required",
                                       "login_required",
                                       "session_selection_required",
@@ -595,7 +597,9 @@ class RegistrationRequest(Message):
         if "initiate_login_uri" in self:
             assert self["initiate_login_uri"].startswith("https:")
 
-        for param in ["request_object_encryption", "id_token_encrypted_response", "userinfo_encrypted_response"]:
+        for param in ["request_object_encryption",
+                      "id_token_encrypted_response",
+                      "userinfo_encrypted_response"]:
             alg_param = "%s_alg" % param
             enc_param = "%s_enc" % param
             if alg_param in self:
@@ -639,8 +643,8 @@ class RegistrationResponse(Message):
         has_reg_at = "registration_access_token" in self
         if has_reg_uri != has_reg_at:
             raise VerificationError((
-                    "Only one of registration_client_uri"
-                    " and registration_access_token present"), self)
+                "Only one of registration_client_uri"
+                " and registration_access_token present"), self)
 
         return True
 
@@ -676,7 +680,9 @@ class IdToken(OpenIDSchema):
             if "client_id" in kwargs:
                 # check that I'm among the recipients
                 if kwargs["client_id"] not in self["aud"]:
-                    raise NotForMe("", self)
+                    raise NotForMe(
+                        "{} not in aud:{}".format(kwargs["client_id"],
+                                                  self["aud"]), self)
 
             # Then azp has to be present and be one of the aud values
             if len(self["aud"]) > 1:
@@ -694,9 +700,12 @@ class IdToken(OpenIDSchema):
         if "azp" in self:
             if "client_id" in kwargs:
                 if kwargs["client_id"] != self["azp"]:
-                    raise NotForMe("", self)
+                    raise NotForMe(
+                        "{} != azp:{}".format(kwargs["client_id"],
+                                              self["azp"]), self)
 
         _now = time_util.utc_time_sans_frac()
+
         try:
             _skew = kwargs['skew']
         except KeyError:
@@ -854,7 +863,8 @@ class ProviderConfigurationResponse(Message):
 
         assert not parts.query and not parts.fragment
 
-        if any("code" in rt for rt in self["response_types_supported"]) and "token_endpoint" not in self:
+        if any("code" in rt for rt in self[
+            "response_types_supported"]) and "token_endpoint" not in self:
             raise MissingRequiredAttribute("token_endpoint")
 
         return True
@@ -892,6 +902,7 @@ def jwt_deser(val, sformat="json"):
             val = json.dumps(val)
             sformat = "json"
     return JasonWebToken().deserialize(val, sformat)
+
 
 SINGLE_OPTIONAL_JWT = (Message, False, msg_ser, jwt_deser, False)
 
