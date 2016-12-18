@@ -78,7 +78,9 @@ setup(
         "alabaster",
         "pyOpenSSL",
         'future',
-        "six", 'testfixtures'] + extra_install_requires,
+        "six",
+        'responses',
+        'testfixtures'] + extra_install_requires,
     zip_safe=False,
     cmdclass={'test': PyTest},
 )
