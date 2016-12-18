@@ -68,7 +68,7 @@ class Response(object):
             try:
                 return [message.encode("utf-8")]
             except AttributeError:
-                return ['']
+                return [message]
 
     def info(self):
         return {'status': self.status, 'headers': self.headers,
