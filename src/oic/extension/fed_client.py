@@ -79,6 +79,25 @@ class Client(oic.Client, FederationEntity):
 
         return resp
 
+    def federated_client_registration_request(self, **kwargs):
+        req = ClientMetadataStatement()
+
+        try:
+            pp = kwargs['fo_pattern']
+        except KeyError:
+            pp = '.'
+        req['metadata_statements'] = self.pick_signed_metadata_statements(pp)
+
+        try:
+            req['redirect_uris'] = kwargs['redirect_uris']
+        except KeyError:
+            try:
+                req["redirect_uris"] = self.redirect_uris
+            except AttributeError:
+                raise MissingRequiredAttribute("redirect_uris", kwargs)
+
+        return req
+
     def register(self, url, **kwargs):
         try:
             reg_type = kwargs['registration_type']
@@ -86,20 +105,7 @@ class Client(oic.Client, FederationEntity):
             reg_type = 'core'
 
         if reg_type == 'federation':
-            req = ClientMetadataStatement()
-
-            try:
-                pp = kwargs['fo_pattern']
-            except KeyError:
-                pp = '.'
-            req['metadata_statements'] = self.pick_signed_metadata_statements(pp)
-
-            if "redirect_uris" not in kwargs:
-                try:
-                    req["redirect_uris"] = self.redirect_uris
-                except AttributeError:
-                    raise MissingRequiredAttribute("redirect_uris", kwargs)
-
+            req = self.federated_client_registration_request(**kwargs)
         else:
             req = self.create_registration_request(**kwargs)
 

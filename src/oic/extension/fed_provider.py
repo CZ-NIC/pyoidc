@@ -3,7 +3,7 @@ import logging
 from oic.oic import provider
 from oic.extension.oidc_fed import ClientMetadataStatement
 from oic.extension.oidc_fed import FederationEntity
-from oic.oic.message import OpenIDSchema
+from oic.oic.message import OpenIDSchema, RegistrationRequest
 from oic.utils.http_util import Created
 from oic.utils.http_util import Response
 from oic.utils.sanitize import sanitize
@@ -46,7 +46,8 @@ class Provider(provider.Provider, FederationEntity):
 
         logger.info("registration_request:%s" % sanitize(request.to_dict()))
 
-        request = self.get_metadata_statement(request)
+        request_args = self.get_metadata_statement(request)
+        request = RegistrationRequest(**request_args)
 
         result = self.client_registration_setup(request)
         if isinstance(result, Response):
