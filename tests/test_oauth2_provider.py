@@ -1,6 +1,8 @@
 import json
 import logging
 import time
+
+import itertools
 import pytest
 import six
 from testfixtures import LogCapture
@@ -72,6 +74,17 @@ class DummyAuthn(UserAuthnMethod):
         return {"uid": self.user}, time.time()
 
 
+def expected_outcome(prefix, lista):
+    """
+    Number of permutations are dependent on number of claims
+    :param prefix: prefix string
+    :param lista: list of claims=value
+    :return: list of possible strings
+    """
+    res = [prefix + '&'.join(x) for x in itertools.permutations(lista)]
+    return res
+
+
 AUTHN_BROKER = AuthnBroker()
 AUTHN_BROKER.add("UNDEFINED", DummyAuthn(None, "username"))
 # dealing with authorization
@@ -128,7 +141,7 @@ class TestProvider(object):
 
     def test_authorization_endpoint_missing_client_id(self):
         # Url encoded request with missing client_id
-        arq = 'scope=openid&state=id-6da9ca0cc23959f5f33e8becd9b08cae&'\
+        arq = 'scope=openid&state=id-6da9ca0cc23959f5f33e8becd9b08cae&' \
               'redirect_uri=+https%3A%2F%2Fexample.com&response_type=code'
         resp = self.provider.authorization_endpoint(request=arq)
         assert resp.status == "400 Bad Request"
@@ -157,8 +170,10 @@ class TestProvider(object):
 
         state = aresp['state']
         assert _eq(logcap.records[0].msg, '- authorization - code flow -')
-        expected = 'QUERY: code=<REDACTED>&state={}&client_id=client1&iss=https%3A%2F%2Fexample.com%2Fas'.format(state)
-        assert _eq(logcap.records[1].msg, expected)
+        assert logcap.records[1].msg in expected_outcome(
+            'QUERY: ', ['state={}'.format(state), 'code=<REDACTED>',
+                        'client_id=client1',
+                        'iss=https%3A%2F%2Fexample.com%2Fas'])
         expected = {'iss': 'https://example.com/as',
                     'state': state, 'code': '<REDACTED>',
                     'client_id': 'client1'}
@@ -210,32 +225,40 @@ class TestProvider(object):
                                   grant_type='authorization_code')
         with LogCapture(level=logging.DEBUG) as logcap:
             resp = self.provider.token_endpoint(request=areq.to_urlencoded())
+
         atr = AccessTokenResponse().deserialize(resp.message, "json")
         assert _eq(atr.keys(), ['access_token', 'token_type', 'refresh_token'])
 
-        expected = ('body: code=<REDACTED>&client_secret=<REDACTED>&grant_type=authorization_code'
-                '   &client_id=client1&redirect_uri=http%3A%2F%2Fexample.com%2Fauthz')
+        expected = (
+        'body: code=<REDACTED>&client_secret=<REDACTED>&grant_type'
+        '=authorization_code'
+        '   &client_id=client1&redirect_uri=http%3A%2F%2Fexample.com%2Fauthz')
         assert _eq(parse_qs(logcap.records[1].msg[6:]), parse_qs(expected[6:]))
         expected = {u'code': '<REDACTED>', u'client_secret': '<REDACTED>',
-                    u'redirect_uri': u'http://example.com/authz', u'client_id': 'client1',
+                    u'redirect_uri': u'http://example.com/authz',
+                    u'client_id': 'client1',
                     u'grant_type': 'authorization_code'}
         # Don't try this at home, kids!
         # We have to eval() to a dict here because otherwise the arbitrary
         # ordering of the string causes the test to fail intermittently.
         assert _eq(eval(logcap.records[2].msg[4:]), expected)
         assert _eq(logcap.records[3].msg, 'Verified Client ID: client1')
-        expected = {'redirect_uri': u'http://example.com/authz', 'client_secret': '<REDACTED>',
-                    'code': u'<REDACTED>', 'client_id': 'client1', 'grant_type': 'authorization_code'}
+        expected = {'redirect_uri': u'http://example.com/authz',
+                    'client_secret': '<REDACTED>',
+                    'code': u'<REDACTED>', 'client_id': 'client1',
+                    'grant_type': 'authorization_code'}
         assert eval(logcap.records[4].msg[20:]) == expected
-        expected = {'code': '<REDACTED>', 'authzreq': '', 'sub': 'sub', 'access_token': '<REDACTED>',
-                    'token_type': 'Bearer', 'redirect_uri': 'http://example.com/authz',
-                    'code_used': True, 'client_id': 'client1', 'oauth_state': 'token',
+        expected = {'code': '<REDACTED>', 'authzreq': '', 'sub': 'sub',
+                    'access_token': '<REDACTED>',
+                    'token_type': 'Bearer',
+                    'redirect_uri': 'http://example.com/authz',
+                    'code_used': True, 'client_id': 'client1',
+                    'oauth_state': 'token',
                     'refresh_token': '<REDACTED>', 'access_token_scope': '?'}
         assert _eq(eval(logcap.records[5].msg[7:]), expected)
         expected = {'access_token': u'<REDACTED>', 'token_type': 'Bearer',
                     'refresh_token': '<REDACTED>'}
         assert _eq(eval(logcap.records[6].msg[21:]), expected)
-
 
     def test_token_endpoint_unauth(self):
         authreq = AuthorizationRequest(state="state",
