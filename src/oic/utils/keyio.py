@@ -351,18 +351,25 @@ def keybundle_from_local_file(filename, typ, usage):
     return kb
 
 
-def dump_jwks(kbl, target):
+def dump_jwks(kbl, target, private=False):
     """
     Write a JWK to a file
 
     :param kbl: List of KeyBundles
     :param target: Name of the file to which everything should be written
+    :param private: Should also the private parts be exported
     """
-    res = {"keys": []}
+    # res = {"keys": []}
+    # for kb in kbl:
+    #     # ignore simple keys
+    #     res["keys"].extend([k.to_dict() for k in kb.keys() if
+    #                         k.kty != 'oct' and not k.inactive_since])
+
+    keys = []
     for kb in kbl:
-        # ignore simple keys
-        res["keys"].extend([k.to_dict() for k in kb.keys() if
-                            k.kty != 'oct' and not k.inactive_since])
+        keys.extend([k.serialize(private) for k in kb.keys() if
+                     k.kty != 'oct' and not k.inactive_since])
+    res = {"keys": keys}
 
     try:
         f = open(target, 'w')
