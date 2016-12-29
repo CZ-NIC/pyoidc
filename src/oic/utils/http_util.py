@@ -50,6 +50,7 @@ class Response(object):
         return self.response(self.message, **kwargs)
 
     def _response(self, message="", **argv):
+        message = cgi.escape(message)
         if self.template:
             if ("Content-type", "application/json") in self.headers:
                 return [message.encode("utf-8")]
