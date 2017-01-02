@@ -1501,6 +1501,7 @@ class Server(oauth2.Server):
             if self.events:
                 self.events.store('Exception', err)
             logger.error(err)
+            raise
 
         return _req
 
