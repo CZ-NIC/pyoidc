@@ -6,7 +6,8 @@ from jwkest import b64e, as_unicode
 
 from oic.oauth2 import MissingSigningKey
 from oic.oic import AuthorizationResponse
-from oic.utils.keyio import key_export, rsa_init, build_keyjar, key_setup
+from oic.utils.keyio import key_export, rsa_init, build_keyjar, key_setup, \
+    dump_jwks
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import keybundle_from_local_file
@@ -156,6 +157,48 @@ def test_build_keyjar():
     assert "RSA" in kidd["enc"]
     assert "RSA" in kidd["sig"]
     assert "EC" in kidd["sig"]
+
+
+def test_dump_public_jwks():
+    keys = [
+        {"type": "RSA", "use": ["enc", "sig"]},
+        {"type": "EC", "crv": "P-256", "use": ["sig"]},
+    ]
+
+    jwks, keyjar, kidd = build_keyjar(keys)
+
+    kbl = keyjar.issuer_keys['']
+    dump_jwks(kbl, 'foo.jwks')
+    kb_public = KeyBundle(source='file://./foo.jwks')
+    # All RSA keys
+    for k in kb_public.keys():
+        if k.kty == 'RSA':
+            assert not k.d
+            assert not k.p
+            assert not k.q
+        else:  # MUST be 'EC'
+            assert not k.d
+
+
+def test_dump_private_jwks():
+    keys = [
+        {"type": "RSA", "use": ["enc", "sig"]},
+        {"type": "EC", "crv": "P-256", "use": ["sig"]},
+    ]
+
+    jwks, keyjar, kidd = build_keyjar(keys)
+
+    kbl = keyjar.issuer_keys['']
+    dump_jwks(kbl, 'foo.jwks', private=True)
+    kb_public = KeyBundle(source='file://./foo.jwks')
+    # All RSA keys
+    for k in kb_public.keys():
+        if k.kty == 'RSA':
+            assert k.d
+            assert k.p
+            assert k.q
+        else:  # MUST be 'EC'
+            assert k.d
 
 
 class TestKeyBundle(object):
