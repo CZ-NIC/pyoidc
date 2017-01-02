@@ -18,7 +18,8 @@ class Provider(provider.Provider, FederationEntity):
                  verify_ssl=True, capabilities=None, schema=OpenIDSchema,
                  jwks_uri='', jwks_name='', baseurl=None, client_cert=None,
                  fo_keyjar=None, signed_metadata_statements=None,
-                 fo_priority_order=None):
+                 fo_priority_order=None, fo_jwks_uri=None,
+                 fo_keys_sign_key=None):
         provider.Provider.__init__(
             self, name, sdb, cdb, authn_broker, userinfo, authz,
             client_authn, symkey, urlmap=urlmap, ca_certs=ca_certs,
@@ -29,8 +30,9 @@ class Provider(provider.Provider, FederationEntity):
 
         FederationEntity.__init__(
             self, signed_metadata_statements = signed_metadata_statements,
-            fo_keyjar=fo_keyjar, keyjar=keyjar, eid=name,
-            fo_priority_order=fo_priority_order, ms_cls=ClientMetadataStatement
+            keyjar=keyjar, eid=name, fo_keyjar=fo_keyjar,
+            fo_priority_order=fo_priority_order, ms_cls=ClientMetadataStatement,
+            fo_jwks_uri=fo_jwks_uri, fo_keys_sign_key=fo_keys_sign_key
         )
 
     def discovery_endpoint(self, request, handle=None, **kwargs):

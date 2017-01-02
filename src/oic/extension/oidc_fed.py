@@ -3,6 +3,7 @@ import json
 import logging
 import re
 
+from future.backports.urllib.parse import urlparse
 from jwkest import BadSignature, as_unicode
 from jwkest.jws import factory
 from jwkest.jws import JWSException
@@ -295,13 +296,20 @@ class Operator(object):
 
 
 class FederationEntity(object):
-    def __init__(self, signed_metadata_statements, fo_keyjar, keyjar, eid,
-                 fo_priority_order=None, ms_cls=ClientMetadataStatement):
+    def __init__(self, signed_metadata_statements, keyjar, eid, fo_keyjar=None,
+                 fo_priority_order=None, ms_cls=ClientMetadataStatement,
+                 fo_jwks_uri=None, fo_keys_sign_key=None):
         self.signed_metadata_statements = {} or signed_metadata_statements
         self.fo_priority_order = {} or fo_priority_order
         self.ms_cls = ms_cls
         self.op = Operator(keyjar=keyjar, fo_keyjar=fo_keyjar, httpcli=self,
                            iss=eid)
+
+    def import_fo_keys(self, uri, sign_key):
+        p = urlparse(uri)
+        if p.scheme('file'):
+            fp = open(p.path, 'r')
+
 
     def add_signed_metadata_statement(self, fo, ms):
         try:
