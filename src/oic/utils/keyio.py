@@ -359,11 +359,6 @@ def dump_jwks(kbl, target, private=False):
     :param target: Name of the file to which everything should be written
     :param private: Should also the private parts be exported
     """
-    # res = {"keys": []}
-    # for kb in kbl:
-    #     # ignore simple keys
-    #     res["keys"].extend([k.to_dict() for k in kb.keys() if
-    #                         k.kty != 'oct' and not k.inactive_since])
 
     keys = []
     for kb in kbl:

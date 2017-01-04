@@ -286,6 +286,7 @@ class Client(oauth2.Client):
 
         self.file_store = "./file/"
         self.file_uri = "http://localhost/"
+        self.base_url = ''
 
         # OpenID connect specific endpoints
         for endpoint in ENDPOINTS:
@@ -1217,6 +1218,15 @@ class Client(oauth2.Client):
 
         return self.handle_registration_info(rsp)
 
+    def generate_request_uris(self):
+        """
+        Need to generate a path that is unique for the OP combo
+
+        :return: A list of uris
+        """
+        _val = hash(self.provider_info['issuer'])
+        return '{}{}'.format(self.base_url, _val)
+
     def create_registration_request(self, **kwargs):
         """
         Create a registration request
@@ -1251,7 +1261,7 @@ class Client(oauth2.Client):
 
         try:
             if self.provider_info['require_request_uri_registration'] is True:
-                req['request_uris'] = []
+                req['request_uris'] = self.generate_request_uris()
         except KeyError:
             pass
 

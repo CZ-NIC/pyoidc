@@ -3,6 +3,7 @@ import cgi
 import time
 import hashlib
 import hmac
+
 from future.backports.http.cookies import SimpleCookie
 from future.backports.urllib.parse import quote
 
@@ -50,8 +51,8 @@ class Response(object):
         return self.response(self.message, **kwargs)
 
     def _response(self, message="", **argv):
-        if message:
-            message = cgi.escape(message)
+        # if message:
+        #     message = html.escape(message)
 
         if self.template:
             if ("Content-type", "application/json") in self.headers:
