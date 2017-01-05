@@ -266,6 +266,20 @@ class TestProvider(object):
 
         assert resp.message.startswith("http://localhost:8087/authz")
 
+    def test_authorization_endpoint_bad_scope(self):
+        bib = {"scope": ["openid", "offline_access"],
+               "state": "id-6da9ca0cc23959f5f33e8becd9b08cae",
+               "redirect_uri": "http://localhost:8087/authz",
+               "response_type": ["code"],
+               "client_id": "a1b2c3"}
+
+        arq = AuthorizationRequest(**bib)
+        resp = self.provider.authorization_endpoint(request=arq.to_urlencoded())
+        assert resp.status == "303 See Other"
+        parsed = parse_qs(urlparse(resp.message).query)
+        assert parsed["error"][0] == "invalid_request"
+        assert parsed["error_description"][0] == "consent in prompt"
+
     def test_authenticated(self):
         _state, location = self.cons.begin("openid", "code",
                                            path="http://localhost:8087")
