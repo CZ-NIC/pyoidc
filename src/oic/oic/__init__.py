@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import os
 
@@ -15,7 +16,7 @@ from future.backports.urllib.parse import urlunparse
 from future.backports.urllib.parse import parse_qs
 
 from jwkest.jwe import JWE
-from jwkest import jws, as_unicode
+from jwkest import jws, as_unicode, as_bytes
 from jwkest import jwe
 
 from oic import oauth2, OIDCONF_PATTERN
@@ -277,7 +278,8 @@ class Client(oauth2.Client):
 
     def __init__(self, client_id=None, ca_certs=None,
                  client_prefs=None, client_authn_method=None, keyjar=None,
-                 verify_ssl=True, config=None, client_cert=None):
+                 verify_ssl=True, config=None, client_cert=None,
+                 requests_dir='requests'):
 
         oauth2.Client.__init__(self, client_id, ca_certs,
                                client_authn_method=client_authn_method,
@@ -317,6 +319,7 @@ class Client(oauth2.Client):
         # Default key by kid for different key types
         # For instance {'sig': {"RSA":"abc"}}
         self.kid = {"sig": {}, "enc": {}}
+        self.requests_dir = requests_dir
 
     def _get_id_token(self, **kwargs):
         try:
@@ -398,15 +401,13 @@ class Client(oauth2.Client):
         _webname = "%s%s" % (_webpath, _name)
         return filename, _webname
 
-    @staticmethod
-    def filename_from_webname(webname, **kwargs):
-        _filedir = kwargs["local_dir"]
+    def filename_from_webname(self, webname):
+        _filedir = self.requests_dir
         if not os.path.isdir(_filedir):
             os.makedirs(_filedir)
 
-        assert webname.startswith(kwargs['base_path'])
-        _name = webname[len(kwargs['base_path']):]
-        return os.path.join(_filedir, _name)
+        assert webname.startswith(self.base_url)
+        return webname[len(self.base_url):]
 
     def construct_AuthorizationRequest(self, request=AuthorizationRequest,
                                        request_args=None, extra_args=None,
@@ -475,7 +476,7 @@ class Client(oauth2.Client):
             else:
                 try:
                     _webname = self.registration_response['request_uris'][0]
-                    filename = self.filename_from_webname(_webname, **kwargs)
+                    filename = self.filename_from_webname(_webname)
                 except KeyError:
                     filename, _webname = self.construct_redirect_uri(**kwargs)
                 fid = open(filename, mode="w")
@@ -1218,14 +1219,16 @@ class Client(oauth2.Client):
 
         return self.handle_registration_info(rsp)
 
-    def generate_request_uris(self):
+    def generate_request_uris(self, request_dir):
         """
         Need to generate a path that is unique for the OP combo
 
         :return: A list of uris
         """
-        _val = hash(self.provider_info['issuer'])
-        return '{}{}'.format(self.base_url, _val)
+        m = hashlib.sha256()
+        m.update(as_bytes(self.provider_info['issuer']))
+        m.update(as_bytes(self.base_url))
+        return '{}{}/{}'.format(self.base_url, request_dir, m.hexdigest())
 
     def create_registration_request(self, **kwargs):
         """
@@ -1261,7 +1264,8 @@ class Client(oauth2.Client):
 
         try:
             if self.provider_info['require_request_uri_registration'] is True:
-                req['request_uris'] = self.generate_request_uris()
+                req['request_uris'] = self.generate_request_uris(
+                    self.requests_dir)
         except KeyError:
             pass
 
