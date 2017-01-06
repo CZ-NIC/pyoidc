@@ -52,9 +52,10 @@ class Response(object):
         return self.response(self.message, **kwargs)
 
     def _response(self, message="", **argv):
-        # Have to be more specific.
+        # Have to be more specific, this might be a bit to much.
         if message and '<script>' in message:
-            message = html.escape(message)
+            message = message.replace('<script>', '&lt;script&gt;').replace(
+                '</script>', '&lt;/script&gt;')
 
         if self.template:
             if ("Content-type", "application/json") in self.headers:
