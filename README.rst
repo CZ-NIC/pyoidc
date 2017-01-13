@@ -17,10 +17,15 @@ A complete OpenID Connect implementation
     :target: https://landscape.io/github/rohe/pyoidc/master
 
 This a fairly complete implementation of OpenID Connect as
-specified in http://openid.net/specs/openid-connect-core-1_0.html.
+specified in the `OpenID Connect Core specification`_.
+
 And as a side effect a complete implementation of OAuth2.0 too.
+
+Please see `the documentation`_ to get started.
 
 Cudos to Vladislav Mladenov and Christian Mainka both at
 Horst Görtz Institute for IT-Security, Ruhr-University Bochum, Germany
 for helping me making the implementation more secure.
 
+.. _OpenID Connect Core specification: http://openid.net/specs/openid-connect-core-1_0.html.
+.. _the documentation: http://pyoidc.readthedocs.io/en/latest/index.html
