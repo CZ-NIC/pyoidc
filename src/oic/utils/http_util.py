@@ -4,7 +4,7 @@ import time
 import hashlib
 import hmac
 
-from future.backports import html
+#from future.backports import html
 from future.backports.http.cookies import SimpleCookie
 from future.backports.urllib.parse import quote
 
@@ -24,11 +24,11 @@ logger = logging.getLogger(__name__)
 
 SUCCESSFUL = [200, 201, 202, 203, 204, 205, 206]
 
-CORS_HEADERS = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET",
-    "Access-Control-Allow-Headers": "Authorization"
-}
+CORS_HEADERS = [
+    ("Access-Control-Allow-Origin", "*"),
+    ("Access-Control-Allow-Methods", "GET"),
+    ("Access-Control-Allow-Headers", "Authorization")
+]
 
 
 class Response(object):
@@ -59,9 +59,17 @@ class Response(object):
 
     def _response(self, message="", **argv):
         # Have to be more specific, this might be a bit to much.
-        if message and '<script>' in message:
-            message = message.replace('<script>', '&lt;script&gt;').replace(
-                '</script>', '&lt;/script&gt;')
+        if message:
+            try:
+                if '<script>' in message:
+                    message = message.replace(
+                        '<script>', '&lt;script&gt;').replace(
+                        '</script>', '&lt;/script&gt;')
+            except TypeError:
+                if b'<script>' in message:
+                    message = message.replace(
+                        b'<script>', b'&lt;script&gt;').replace(
+                        b'</script>', b'&lt;/script&gt;')
 
         if self.template:
             if ("Content-type", "application/json") in self.headers:
