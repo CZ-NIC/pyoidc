@@ -73,8 +73,7 @@ Install PyOIDC
 ==============
 
 For all this to work you need to have Python installed.
-The development has been done using 2.7.
-There will shortly be a 3.4 version.
+PyOIDC supports Python 2 and 3.
 
 Prerequisites
 =============
