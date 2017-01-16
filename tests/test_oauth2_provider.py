@@ -2,9 +2,7 @@ import json
 import logging
 import time
 
-import itertools
 import pytest
-import six
 from testfixtures import LogCapture
 
 from future.backports.urllib.parse import urlparse
@@ -74,15 +72,20 @@ class DummyAuthn(UserAuthnMethod):
         return {"uid": self.user}, time.time()
 
 
-def expected_outcome(prefix, lista):
+def verify_outcome(msg, prefix, lista):
     """
     Number of permutations are dependent on number of claims
     :param prefix: prefix string
     :param lista: list of claims=value
     :return: list of possible strings
     """
-    res = [prefix + '&'.join(x) for x in itertools.permutations(lista)]
-    return res
+    assert msg.startswith(prefix)
+    qsl = ['{}={}'.format(k, v[0]) for k, v in
+           parse_qs(msg[len(prefix):]).items()]
+    if set(qsl) == set(lista):
+        return True
+    else:
+        return False
 
 
 AUTHN_BROKER = AuthnBroker()
@@ -170,10 +173,11 @@ class TestProvider(object):
 
         state = aresp['state']
         assert _eq(logcap.records[0].msg, '- authorization - code flow -')
-        assert logcap.records[1].msg in expected_outcome(
-            'QUERY: ', ['state={}'.format(state), 'code=<REDACTED>',
-                        'client_id=client1',
-                        'iss=https%3A%2F%2Fexample.com%2Fas'])
+        assert verify_outcome(logcap.records[1].msg,
+                              'QUERY: ',
+                              ['state={}'.format(state), 'code=<REDACTED>',
+                               'client_id=client1',
+                               'iss=https://example.com/as'])
         expected = {'iss': 'https://example.com/as',
                     'state': state, 'code': '<REDACTED>',
                     'client_id': 'client1'}
@@ -230,9 +234,10 @@ class TestProvider(object):
         assert _eq(atr.keys(), ['access_token', 'token_type', 'refresh_token'])
 
         expected = (
-        'body: code=<REDACTED>&client_secret=<REDACTED>&grant_type'
-        '=authorization_code'
-        '   &client_id=client1&redirect_uri=http%3A%2F%2Fexample.com%2Fauthz')
+            'body: code=<REDACTED>&client_secret=<REDACTED>&grant_type'
+            '=authorization_code'
+            '   &client_id=client1&redirect_uri=http%3A%2F%2Fexample.com'
+            '%2Fauthz')
         assert _eq(parse_qs(logcap.records[1].msg[6:]), parse_qs(expected[6:]))
         expected = {u'code': '<REDACTED>', u'client_secret': '<REDACTED>',
                     u'redirect_uri': u'http://example.com/authz',
