@@ -22,6 +22,12 @@ dist
 # Tox testing
 .tox
 private/
+tmp/
+keys/
+secret/
+pyoidc*
+tests/*
+foo.*
 
 # Dynamically created doc folders
 doc/_build
