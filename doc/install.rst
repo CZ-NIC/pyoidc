@@ -111,6 +111,10 @@ If you wish your LDAP tests to pass, ensure you have installed the following pac
 
 * python-ldap (not supported in windows)
 
+.. note:: The depdencies will require you compile your Python source code
+          with byte-compiling. This means avoiding the `-B` option or
+          not setting `PYTHONDONTWRITEBYTECODE`.
+
 Debian/Mac
 ==========
 If you don't want to install pyoidc and all it's dependencies manually you can use yais
