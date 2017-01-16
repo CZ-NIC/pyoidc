@@ -110,7 +110,7 @@ For running the tests you will additionally need to install:
 
 If you wish your LDAP tests to pass, ensure you have installed the following package as well:
 
-* python-ldap (not supported in windows)
+* pyldap (not supported in windows)
 
 Debian/Mac
 ==========
