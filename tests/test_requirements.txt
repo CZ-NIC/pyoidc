@@ -3,3 +3,4 @@ httpretty==0.8.10
 responses
 mock
 testfixtures
+pyldap
