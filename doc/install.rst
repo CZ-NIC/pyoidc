@@ -73,8 +73,7 @@ Install PyOIDC
 ==============
 
 For all this to work you need to have Python installed.
-The development has been done using 2.7.
-There will shortly be a 3.4 version.
+PyOIDC supports Python 2 and 3.
 
 Prerequisites
 =============
@@ -111,6 +110,10 @@ For running the tests you will additionally need to install:
 If you wish your LDAP tests to pass, ensure you have installed the following package as well:
 
 * pyldap (not supported in windows)
+
+.. note:: The depdencies will require you compile your Python source code
+          with byte-compiling. This means avoiding the `-B` option or
+          not setting `PYTHONDONTWRITEBYTECODE`.
 
 Debian/Mac
 ==========
