@@ -425,7 +425,8 @@ class Provider(object):
         try:
             # verify that the request message is correct
             areq.verify(keyjar=keyjar, opponent_id=areq["client_id"])
-        except (MissingRequiredAttribute, ValueError) as err:
+        except (MissingRequiredAttribute, ValueError,
+                MissingRequiredValue) as err:
             return redirect_authz_error("invalid_request", redirect_uri,
                                         "%s" % err)
 
