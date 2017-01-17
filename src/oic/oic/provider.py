@@ -22,7 +22,7 @@ import socket
 
 from requests import ConnectionError
 
-from jwkest import b64d
+from jwkest import b64d, as_unicode
 from jwkest import jwe
 from jwkest import jws
 from jwkest.jwe import JWE
@@ -380,7 +380,7 @@ class Provider(AProvider):
             id_token = IdToken().from_jwt(id_token, verify=False)
             logger.error("IdToken: %s" % id_token.to_dict())
             return redirect_authz_error("invalid_id_token_object",
-                                              redirect_uri)
+                                        redirect_uri)
 
     @staticmethod
     def get_sector_id(redirect_uri, client_info):
@@ -1095,7 +1095,8 @@ class Provider(AProvider):
                 raise FailedAuthentication("Unmatched sub claim")
 
         info["sub"] = session["sub"]
-        logger.debug("user_info_response: %s" % (sanitize(info),))
+        logger.debug(
+            "user_info_response: {}".format(as_unicode(sanitize(info))))
 
         return info
 
@@ -1380,7 +1381,7 @@ class Provider(AProvider):
                      "userinfo_signed_response_alg"]:
             if item in request:
                 if request[item] in self.capabilities[
-                        PREFERENCE2PROVIDER[item]]:
+                    PREFERENCE2PROVIDER[item]]:
                     ktyp = jws.alg2keytype(request[item])
                     # do I have this ktyp and for EC type keys the curve
                     if ktyp not in ["none", "oct"]:
