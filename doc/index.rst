@@ -1,33 +1,34 @@
-.. pyoidc documentation master file, created by
-   sphinx-quickstart on Fri Apr  4 15:33:42 2014.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-Pyoidc
+PyOIDC
 ======
 
-One of the most complete implementations of OpenID Connect.
-And as a side effect a fairly complete implementation of OAuth2.0.
+One of the most complete implementations of OpenID Connect. And as a side
+effect, a fairly complete implementation of OAuth2.0.
+
+Installation is simple with Pip_:
+
+.. _Pip: http://pip.pypa.io/
+
+::
+
+  $ pip install -U oic
+
 
 .. toctree::
    :maxdepth: 1
 
-   howto/index
-   install
-   examples/index
+   examples/op
+   examples/rp
+   examples/cookbook
+   examples/docker
 
-.. toctree::
-   :maxdepth: 1
+   contrib/install
+   contrib/testing
+   contrib/documentation
 
-   contents
-
-Indices and tables
-==================
+Please use the following indices to review the code base:
 
 * :ref:`genindex`
 * :ref:`modindex`
-* :ref:`search`
-
 
 .. raw:: html
 

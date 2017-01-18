@@ -12,15 +12,34 @@ addons:
 matrix:
   include:
     - python: 3.5.2
-      env: TOXENV=py35
+      env: TOXENV=py35 BUILD=code
     - python: 3.4.4
-      env: TOXENV=py34
+      env: TOXENV=py34 BUILD=code
     - python: 2.7
-      env: TOXENV=py27
+      env: TOXENV=py27 BUIOD=code
+    - python: 3.5.2
+      env: TOXENV=py35 BUILD=docs
 
 
 install:
-  - pip install -U tox
+  - |
+    set -ex
+    case "$BUILD" in
+      code)
+        pip install -U tox ;;
+      docs)
+        pip install -U sphinx ;;
+    esac
+    set +ex
+
 
 script:
-  - tox
+  - |
+    set -ex
+    case "$BUILD" in
+      code)
+        tox ;;
+      docs)
+        SPHINXOPTS=-W make html ;;
+    esac
+    set +ex
