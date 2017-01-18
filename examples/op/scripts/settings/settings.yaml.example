@@ -1,0 +1,51 @@
+provider:
+    keys:
+        - type: RSA
+          key: keys/key.pem
+          use: [enc, sig]
+        - type: EC
+          crv: P-256
+          use: [sig]
+        - type: EC
+          crv: P-256
+          use: [enc]
+
+authn:
+    - acr: password
+      class: authn.user_pass.UserPass
+      kwargs:
+          db:
+              class: authn.util.JSONDictDB
+              kwargs:
+                json_path: passwd.json
+          template: user_pass.jinja2
+          page_header: "Testing log in"
+          submit_btn: "Get me in!"
+          user_label: "Nickname"
+          passwd_label: "Secret sauce"
+    - acr: mail_two_factor
+      class: authn.two_factor.MailTwoFactor
+      kwargs:
+          user_db:
+              class: authn.util.JSONDictDB
+              kwargs:
+                  json_path: users.json
+          passwd_db:
+              class: authn.util.JSONDictDB
+              kwargs:
+                  json_path: passwd.json
+          smtp_server: smtp.example.com
+          outgoing_sender: sender@example.com
+
+
+userinfo:
+    class: authn.util.JSONDictDB
+    kwargs:
+        json_path: users.json
+
+server:
+    cert: certs/localhost.crt
+    key: certs/localhost.key
+    cert_chain:
+    template_dirs:
+        - src/provider/authn/templates
