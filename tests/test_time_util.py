@@ -208,7 +208,7 @@ def test_a_while_ago():
     then = a_while_ago(seconds=10)
     t = time.mktime(str_to_time(then))
     delta = dt - t  # slightly less than 10
-    assert delta == 10
+    assert 9 <= delta <= 10
 
 
 def test_shift_time():
