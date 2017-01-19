@@ -1,4 +1,5 @@
 from future.backports.urllib.parse import urlparse
+from oic.utils.jwt import JWT
 
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
@@ -9,8 +10,8 @@ from oic.utils.keyio import KeyBundle
 __author__ = 'roland'
 
 
-class PrivateKeyJWT(JWT):
-    c_param = JWT.c_param.copy()
+class PrivateKeyJWT(JasonWebToken):
+    c_param = JasonWebToken.c_param.copy()
     c_param.update({
         'aud': SINGLE_REQUIRED_STRING,
         "iss": SINGLE_REQUIRED_STRING,
