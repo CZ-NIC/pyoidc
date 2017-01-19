@@ -475,7 +475,7 @@ class TestProvider(object):
 
         resp = self.provider.token_endpoint(request=txt)
         atr = TokenErrorResponse().deserialize(resp.message, "json")
-        assert atr['error'] == "access_denied"
+        assert atr['error'] == "invalid_request"
 
     def test_token_endpoint_unauth(self):
         state = 'state'
