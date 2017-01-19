@@ -893,13 +893,13 @@ class Provider(AProvider):
 
         # assert that the code is valid
         if self.sdb.is_revoked(_access_code):
-            return error(error="access_denied", descr="Token is revoked")
+            return error(error="invalid_request", descr="Token is revoked")
 
         # Session might not exist or _access_code malformed
         try:
             _info = _sdb[_access_code]
         except KeyError:
-            return error(error="access_denied", descr="Token is invalid")
+            return error(error="invalid_request", descr="Code is invalid")
 
         # If redirect_uri was in the initial authorization request
         # verify that the one given here is the correct one.
@@ -907,7 +907,7 @@ class Provider(AProvider):
             try:
                 assert req["redirect_uri"] == _info["redirect_uri"]
             except AssertionError:
-                return error(error="access_denied",
+                return error(error="invalid_request",
                              descr="redirect_uri mismatch")
             except KeyError:
                 return error(error='invalid_request',
@@ -932,7 +932,7 @@ class Provider(AProvider):
             logger.error("%s" % err)
             # Should revoke the token issued to this access code
             _sdb.revoke_all_tokens(_access_code)
-            return error(error="access_denied", descr="%s" % err)
+            return error(error="invalid_request", descr="%s" % err)
 
         if "openid" in _info["scope"]:
             userinfo = self.userinfo_in_id_token_claims(_info)
@@ -942,7 +942,7 @@ class Provider(AProvider):
                     _info, client_info, req, user_info=userinfo)
             except (JWEException, NoSuitableSigningKeys) as err:
                 logger.warning(str(err))
-                return error(error="access_denied",
+                return error(error="invalid_request",
                              descr="Could not sign/encrypt id_token")
 
             _sdb.update_by_token(_access_code, "id_token", _idtoken)
@@ -970,7 +970,7 @@ class Provider(AProvider):
         try:
             _info = _sdb.refresh_token(rtoken, client_id=client_id)
         except ExpiredToken:
-            return error(error="access_denied",
+            return error(error="invalid_request",
                          descr="Refresh token is expired")
 
         if "openid" in _info["scope"] and "authn_event" in _info:
@@ -980,7 +980,7 @@ class Provider(AProvider):
                     _info, client_info, req, user_info=userinfo)
             except (JWEException, NoSuitableSigningKeys) as err:
                 logger.warning(str(err))
-                return error(error="access_denied",
+                return error(error="invalid_request",
                              descr="Could not sign/encrypt id_token")
 
             sid = _sdb.access_token.get_key(rtoken)
@@ -1126,7 +1126,7 @@ class Provider(AProvider):
                 key = self.keyjar.get_signing_key(alg2keytype(algo), "",
                                                   alg=algo)
             if not key:
-                return error(error="access_denied",
+                return error(error="invalid_request",
                              descr="Missing signing key")
 
         jinfo = userinfo.to_jwt(key, algo)
@@ -1181,7 +1181,7 @@ class Provider(AProvider):
 
         # _log_info("keys: %s" % self.sdb.keys())
         if _sdb.is_revoked(key):
-            return error(error="access_denied", descr="Token is revoked")
+            return error(error="invalid_request", descr="Token is revoked")
         session = _sdb[key]
 
         # Scope can translate to userinfo_claims
@@ -1204,11 +1204,11 @@ class Provider(AProvider):
                 jinfo = info.to_json()
                 content_type = "application/json"
         except NotSupportedAlgorithm as err:
-            return error(error="access_denied",
+            return error(error="invalid_request",
                          descr="Not supported algorithm: {}".format(
                              err.args[0]))
         except JWEException:
-            return error(error="access_denied",
+            return error(error="invalid_request",
                          descr="Could not encrypt")
 
         return Response(jinfo, content=content_type)
@@ -1227,7 +1227,7 @@ class Provider(AProvider):
         if not request:
             _tok = kwargs["authn"]
             if not _tok:
-                return error(error="access_denied", descr="Illegal token")
+                return error(error="invalid_request", descr="Illegal token")
             else:
                 info = "id_token=%s" % _tok
 
@@ -1939,7 +1939,7 @@ class Provider(AProvider):
                         **hargs)
                 except (JWEException, NoSuitableSigningKeys) as err:
                     logger.warning(str(err))
-                    return error(error="access_denied",
+                    return error(error="invalid_request",
                                  descr="Could not sign/encrypt id_token")
 
                 aresp["id_token"] = id_token
