@@ -1095,8 +1095,14 @@ class Provider(AProvider):
                 raise FailedAuthentication("Unmatched sub claim")
 
         info["sub"] = session["sub"]
-        logger.debug(
-            "user_info_response: {}".format(as_unicode(sanitize(info))))
+        try:
+            logger.debug("user_info_response: {}".format(info))
+        except UnicodeEncodeError:
+            try:
+                logger.debug(
+                    "user_info_response: {}".format(info.encode('utf-8')))
+            except Exception:
+                pass
 
         return info
 
