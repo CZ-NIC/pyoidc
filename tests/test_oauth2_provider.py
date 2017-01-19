@@ -173,11 +173,17 @@ class TestProvider(object):
 
         state = aresp['state']
         assert _eq(logcap.records[0].msg, '- authorization - code flow -')
-        assert verify_outcome(logcap.records[1].msg,
+        if not verify_outcome(logcap.records[1].msg,
                               'QUERY: ',
                               ['state={}'.format(state), 'code=<REDACTED>',
                                'client_id=client1',
-                               'iss=https://example.com/as'])
+                               'iss=https://example.com/as']):
+            assert verify_outcome(logcap.records[1].msg,
+                                  'QUERY: ',
+                                  ['state={}'.format(state), 'code=U<REDACTED>',
+                                   'client_id=client1',
+                                   'iss=https://example.com/as'])
+
         expected = {'iss': 'https://example.com/as',
                     'state': state, 'code': '<REDACTED>',
                     'client_id': 'client1'}
