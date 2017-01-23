@@ -703,7 +703,8 @@ class Provider(AProvider):
         """
 
         info = self.auth_init(request, request_class=AuthorizationRequest)
-        if isinstance(info, Response):
+
+        if isinstance(info, SeeOther):
             return info
 
         areq = info['areq']
@@ -733,7 +734,7 @@ class Provider(AProvider):
         authnres = self.do_auth(info["areq"], info["redirect_uri"],
                                 cinfo, request, cookie, **kwargs)
 
-        if isinstance(authnres, Response):
+        if isinstance(authnres, SeeOther):
             return authnres
 
         logger.debug("- authenticated -")
