@@ -22,7 +22,7 @@ import socket
 
 from requests import ConnectionError
 
-from jwkest import b64d, as_unicode
+from jwkest import b64d
 from jwkest import jwe
 from jwkest import jws
 from jwkest.jwe import JWE
