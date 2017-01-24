@@ -802,7 +802,7 @@ class Client(oauth2.Client):
             else:
                 # use_authorization_header, token_in_message_body
                 if "use_authorization_header" in _behav:
-                    token_header = "{type} {token}".format(type=_ttype,
+                    token_header = "{type} {token}".format(type=_ttype.capitalize(),
                                                            token=_token)
                     if "headers" in kwargs:
                         kwargs["headers"].update(
