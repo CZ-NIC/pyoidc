@@ -697,9 +697,9 @@ class KeyJar(object):
 
         return res
 
-    def export_jwks(self, private=False):
+    def export_jwks(self, private=False, issuer=""):
         keys = []
-        for kb in self.issuer_keys[""]:
+        for kb in self.issuer_keys[issuer]:
             keys.extend([k.serialize(private) for k in kb.keys()])
         return {"keys": keys}
 

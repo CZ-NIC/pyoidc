@@ -14,6 +14,7 @@ from oic.utils.keyio import KeyJar
 
 from oic.oauth2 import MissingSigningKey
 from oic.oauth2 import SINGLE_OPTIONAL_STRING
+from oic.oauth2 import VerificationError
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oic import message
 from oic.oic.message import JasonWebToken
@@ -35,6 +36,31 @@ class MetadataStatement(JasonWebToken):
         'metadata_statement_uris': OPTIONAL_MESSAGE,
         'signed_jwks_uri': SINGLE_OPTIONAL_STRING
     })
+
+    def verify(self, **kwargs):
+        if "signing_keys" in self:
+            if 'signing_keys_uri' in self:
+                raise VerificationError(
+                    'You can only have one of "signing_keys" and '
+                    '"signing_keys_uri" in a metadata statement')
+            else:
+                # signing_keys MUST be a JWKS
+                kj = KeyJar()
+                try:
+                    kj.import_jwks(self['signing_keys'], '')
+                except Exception:
+                    raise VerificationError('"signing_keys" not a proper JWKS')
+        elif not 'signing_keys_uri' in self:
+            raise VerificationError(
+                ' You must have one of "signing_keys" or '
+                '"signing_keys_uri" in a metadata statement')
+
+        if "metadata_statements" in self and "metadata_statement_uris" in self:
+            raise VerificationError(
+                'You can only have one of "metadata_statements" and '
+                '"metadata_statement_uris" in a metadata statement')
+
+        return True
 
 
 class ClientMetadataStatement(MetadataStatement):
@@ -357,15 +383,52 @@ class JWKSBundle(object):
         self.bundle = {}
 
     def __setitem__(self, key, value):
+        """
+
+        :param key: issuer ID
+        :param value: Supposed to be KeyJar or a JWKS
+        """
+        if not isinstance(value, KeyJar):
+            kj = KeyJar()
+            kj.import_jwks(value, issuer=key)
+            value = kj
+        else:
+            _iss = value.keys()
+            if _iss == ['']:
+                value.issuer_keys[key] = value.issuer_keys['']
+                del value.issuer_keys['']
+            elif len(_iss) == 1:
+                if _iss[0] != key:
+                    value.issuer_keys[key] = value.issuer_keys[_iss[0]]
+                    del value.issuer_keys[_iss[0]]
+            else:
+                raise ValueError('KeyJar contains to many issuers')
+
         self.bundle[key] = value
 
     def __delitem__(self, key):
         del self.bundle[key]
 
     def create_signed_bundle(self, sign_alg='RS256'):
-        data = json.dumps(self.bundle)
+        data = self.__str__()
         _jwt = JWT(self.sign_keys, iss=self.iss, sign_alg=sign_alg)
         return _jwt.pack(bundle=data)
+
+    def loads(self, jstr):
+        _info = json.loads(jstr)
+        for iss, jwks in _info.items():
+            kj = KeyJar()
+            kj.import_jwks(jwks, issuer=iss)
+            self.bundle[iss] = kj
+
+    def dumps(self):
+        self.__str__()
+
+    def __str__(self):
+        _int = {}
+        for iss, kj in self.bundle.items():
+            _int[iss] = kj.export_jwks(issuer=iss)
+        return json.dumps(_int)
 
 
 def verify_signed_bundle(signed_bundle, ver_keys):
