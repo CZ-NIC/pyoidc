@@ -4,22 +4,22 @@ from time import time
 
 import pytest
 from jwkest.jwk import rsa_load
-from oic.oic.message import RegistrationResponse
 
 from oic import rndstr
+from oic.federation import ClientMetadataStatement
+from oic.federation import Operator
+from oic.federation.client import Client
+from oic.federation.provider import Provider
 from oic.oic import DEF_SIGN_ALG
-from oic.extension.fed_client import Client
-from oic.extension.fed_provider import Provider
-from oic.extension.oidc_fed import ClientMetadataStatement
-from oic.extension.oidc_fed import Operator
+from oic.oic.message import RegistrationResponse
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
-from oic.utils.keyio import build_keyjar
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
+from oic.utils.keyio import build_keyjar
 from oic.utils.sdb import SessionDB
 from oic.utils.userinfo import UserInfo
 

@@ -1,9 +1,10 @@
 import logging
 
 from oic.oic import provider
-from oic.extension.oidc_fed import ClientMetadataStatement
-from oic.extension.oidc_fed import FederationEntity
-from oic.oic.message import OpenIDSchema, RegistrationRequest
+from oic.federation import ClientMetadataStatement
+from oic.federation import FederationEntity
+from oic.oic.message import OpenIDSchema
+from oic.oic.message import RegistrationRequest
 from oic.utils.http_util import Created
 from oic.utils.http_util import Response
 from oic.utils.sanitize import sanitize

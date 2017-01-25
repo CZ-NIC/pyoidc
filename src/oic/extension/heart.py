@@ -1,5 +1,4 @@
 from future.backports.urllib.parse import urlparse
-from oic.utils.jwt import JWT
 
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS

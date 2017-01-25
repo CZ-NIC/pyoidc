@@ -5,7 +5,8 @@ import re
 
 from future.backports.urllib.parse import urlparse
 from jwkest import BadSignature, as_unicode
-from jwkest.jws import factory
+from jwkest import jws
+from jwkest.jws import factory, JWS
 from jwkest.jws import JWSException
 from six import string_types, PY2
 
@@ -69,7 +70,6 @@ def is_lesser(a, b):
     :param b:
     :return: True or False
     """
-
 
     if type(a) != type(b):
         if PY2:  # one might be unicode and the other str
@@ -304,12 +304,18 @@ class FederationEntity(object):
         self.ms_cls = ms_cls
         self.op = Operator(keyjar=keyjar, fo_keyjar=fo_keyjar, httpcli=self,
                            iss=eid)
+        self.fo_jwks_uri = fo_jwks_uri
+        self.fo_keys_sign_key = fo_keys_sign_key
 
     def import_fo_keys(self, uri, sign_key):
         p = urlparse(uri)
         if p.scheme('file'):
-            fp = open(p.path, 'r')
-
+            jwks_bundle = open(p.path, 'r').read()
+            _jw = jws.factory(jwks_bundle)
+            _jwks_dict = _jw.verify_compact(jwks_bundle, sign_key)
+            kj = KeyJar()
+            for iss, jwks in _jwks_dict.items():
+                kj.import_jwks(jwks, iss)
 
     def add_signed_metadata_statement(self, fo, ms):
         try:
@@ -342,3 +348,33 @@ class FederationEntity(object):
                 continue
 
         return None
+
+
+class JWKSBundle(object):
+    def __init__(self, iss, sign_keys=None):
+        self.iss = iss
+        self.sign_keys = sign_keys  # These are my signing keys as a KeyJar
+        self.bundle = {}
+
+    def __setitem__(self, key, value):
+        self.bundle[key] = value
+
+    def __delitem__(self, key):
+        del self.bundle[key]
+
+    def create_signed_bundle(self, sign_alg='RS256'):
+        data = json.dumps(self.bundle)
+        _jwt = JWT(self.sign_keys, iss=self.iss, sign_alg=sign_alg)
+        return _jwt.pack(bundle=data)
+
+
+def verify_signed_bundle(signed_bundle, ver_keys):
+    """
+
+    :param signed_bundle: A signed JWT where the body is a JWKS bundle
+    :param ver_keys: Keys that can be used to verify signatures of the
+        signed_bundle as a KeyJar.
+    :return: The bundle or None
+    """
+    _jwt = JWT(ver_keys)
+    return _jwt.unpack(signed_bundle)

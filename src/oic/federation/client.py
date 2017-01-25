@@ -3,8 +3,8 @@ import logging
 from oic.exception import RegistrationError
 
 from oic import oic
-from oic.extension.oidc_fed import ClientMetadataStatement
-from oic.extension.oidc_fed import FederationEntity
+from oic.federation import ClientMetadataStatement
+from oic.federation import FederationEntity
 from oic.oauth2 import ErrorResponse
 from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2 import sanitize
