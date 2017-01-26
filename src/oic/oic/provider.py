@@ -1448,6 +1448,9 @@ class Provider(AProvider):
                 elif p.scheme == "http" and p.hostname == "localhost":
                     pass
                 else:
+                    logger.warning(
+                        "InvalidRedirectURI: scheme:{}, hostname:{}").format(
+                        p.scheme, p.hostname)
                     raise InvalidRedirectURIError(
                         "Redirect_uri must use custom scheme or http and "
                         "localhost")
