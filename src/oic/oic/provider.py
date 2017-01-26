@@ -1177,7 +1177,11 @@ class Provider(AProvider):
 
         _sdb = self.sdb
         # should be an access token
-        typ, key = _sdb.access_token.type_and_key(token)
+        try:
+            typ, key = _sdb.access_token.type_and_key(token)
+        except Exception:
+            return error(error="invalid_request", descr="Invalid Token")
+
         _log_debug("access_token type: '%s'" % (typ,))
 
         try:
