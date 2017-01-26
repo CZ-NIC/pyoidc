@@ -1418,7 +1418,7 @@ class Provider(AProvider):
         return _cinfo
 
     @staticmethod
-    def _verify_redirect_uris(registration_request):
+    def verify_redirect_uris(registration_request):
         verified_redirect_uris = []
         try:
             client_type = registration_request["application_type"]
@@ -1438,10 +1438,15 @@ class Provider(AProvider):
 
         for uri in registration_request["redirect_uris"]:
             p = urlparse(uri)
-            if client_type == "native" and p.scheme == "http":
-                if p.hostname != "localhost":
+            if client_type == "native":
+                if p.scheme not in ['http', 'https']:  # Custom scheme
+                    pass
+                elif p.scheme == "http" and p.hostname == "localhost":
+                    pass
+                else:
                     raise InvalidRedirectURIError(
-                        "Http redirect_uri must use localhost")
+                        "Redirect_uri must use custom scheme or http and "
+                        "localhost")
             elif must_https and p.scheme != "https":
                 raise InvalidRedirectURIError(
                     "None https redirect_uri not allowed")
