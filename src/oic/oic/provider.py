@@ -1310,7 +1310,7 @@ class Provider(AProvider):
 
         if "redirect_uris" in request:
             try:
-                ruri = self._verify_redirect_uris(request)
+                ruri = self.verify_redirect_uris(request)
                 _cinfo["redirect_uris"] = ruri
             except InvalidRedirectURIError as e:
                 err = ClientRegistrationErrorResponse(

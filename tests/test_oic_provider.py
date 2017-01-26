@@ -692,7 +692,7 @@ class TestProvider(object):
                   "redirect_uris": ["http://example.com/authz"],
                   "response_types": ["code"]}
         request = RegistrationRequest(**params)
-        verified_uris = self.provider._verify_redirect_uris(request)
+        verified_uris = self.provider.verify_redirect_uris(request)
         assert verified_uris == [("http://example.com/authz", None)]
 
     def test_verify_redirect_uris_with_non_https_redirect_uri_implicit_flow(
@@ -703,7 +703,7 @@ class TestProvider(object):
         request = RegistrationRequest(**params)
 
         with pytest.raises(InvalidRedirectURIError) as exc_info:
-            self.provider._verify_redirect_uris(request)
+            self.provider.verify_redirect_uris(request)
 
         assert str(exc_info.value) == "None https redirect_uri not allowed"
 
