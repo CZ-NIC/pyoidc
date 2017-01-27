@@ -422,13 +422,22 @@ class JWKSBundle(object):
             self.bundle[iss] = kj
 
     def dumps(self):
-        self.__str__()
+        return self.__str__()
 
     def __str__(self):
+        return json.dumps(self.dict())
+
+    def keys(self):
+        return self.bundle.keys()
+
+    def items(self):
+        return self.bundle.items()
+
+    def dict(self):
         _int = {}
         for iss, kj in self.bundle.items():
             _int[iss] = kj.export_jwks(issuer=iss)
-        return json.dumps(_int)
+        return _int
 
 
 def verify_signed_bundle(signed_bundle, ver_keys):
