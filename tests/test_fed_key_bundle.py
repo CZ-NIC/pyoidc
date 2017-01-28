@@ -1,7 +1,11 @@
 import os
+from future.backports.urllib.parse import quote_plus
 
-from oic.federation import Operator, JWKSBundle, verify_signed_bundle
-from oic.utils.keyio import build_keyjar, KeyJar
+from oic.federation import Operator
+from oic.federation.bundle import JWKSBundle
+from oic.federation.bundle import verify_signed_bundle
+from oic.utils.keyio import build_keyjar
+from oic.utils.keyio import KeyJar
 
 BASE_PATH = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "data/keys"))
@@ -16,7 +20,7 @@ ISSUER = {}
 OPERATOR = {}
 
 for entity in ['fo0', 'fo1', 'fo2', 'fo3', 'sig']:
-    fname = os.path.join(BASE_PATH, "{}.key".format(entity))
+    fname = quote_plus(os.path.join(BASE_PATH, "{}.key".format(entity)))
     _keydef = KEYDEFS[:]
     _keydef[0]['key'] = fname
 
