@@ -969,7 +969,7 @@ class Client(oauth2.Client):
         url = serv_pattern % _issuer
 
         pcr = None
-        r = self.http_request(url)
+        r = self.http_request(url, allow_redirects=True)
         if r.status_code == 200:
             try:
                 pcr = response_cls().from_json(r.text)
@@ -977,21 +977,21 @@ class Client(oauth2.Client):
                 _err_txt = "Faulty provider config response: {}".format(r.text)
                 logger.error(sanitize(_err_txt))
                 raise ParseError(_err_txt)
-        elif r.status_code == 302 or r.status_code == 301:
-            while r.status_code == 302 or r.status_code == 301:
-                redirect_header = r.headers["location"]
-                if not urlparse(redirect_header).scheme:
-                    # Relative URL was provided - construct new redirect
-                    # using an issuer
-                    _split = urlparse(issuer)
-                    new_url = urlunparse((_split.scheme, _split.netloc,
-                                          as_unicode(redirect_header),
-                                          _split.params,
-                                          _split.query, _split.fragment))
-                    r = self.http_request(new_url)
-                    if r.status_code == 200:
-                        pcr = response_cls().from_json(r.text)
-                        break
+        # elif r.status_code == 302 or r.status_code == 301:
+        #     while r.status_code == 302 or r.status_code == 301:
+        #         redirect_header = r.headers["location"]
+        #         if not urlparse(redirect_header).scheme:
+        #             # Relative URL was provided - construct new redirect
+        #             # using an issuer
+        #             _split = urlparse(issuer)
+        #             new_url = urlunparse((_split.scheme, _split.netloc,
+        #                                   as_unicode(redirect_header),
+        #                                   _split.params,
+        #                                   _split.query, _split.fragment))
+        #             r = self.http_request(new_url)
+        #             if r.status_code == 200:
+        #                 pcr = response_cls().from_json(r.text)
+        #                 break
 
         # logger.debug("Provider info: %s" % sanitize(pcr))
         if pcr is None:
@@ -1545,12 +1545,12 @@ class Server(oauth2.Server):
         assert "access_token" in param  # ignore the rest
         return deser_id_token(self, param["access_token"][0])
 
-    def _parse_request(self, request, data, sformat, client_id=None,
+    def _parse_request(self, request_cls, data, sformat, client_id=None,
                        verify=True):
         if sformat == "json":
-            request = request().from_json(data)
+            request = request_cls().from_json(data)
         elif sformat == "jwt":
-            request = request().from_jwt(data, keyjar=self.keyjar,
+            request = request_cls().from_jwt(data, keyjar=self.keyjar,
                                          sender=client_id)
         elif sformat == "urlencoded":
             if '?' in data:
@@ -1558,10 +1558,12 @@ class Server(oauth2.Server):
                 scheme, netloc, path, params, query, fragment = parts[:6]
             else:
                 query = data
-            request = request().from_urlencoded(query)
+            request = request_cls().from_urlencoded(query)
+        elif sformat == 'dict':
+            request = request_cls(**data)
         else:
-            raise ParseError("Unknown package format: '%s'" % sformat,
-                             request)
+            raise ParseError("Unknown package format: '{}'".format(sformat),
+                             request_cls)
 
         # get the verification keys
         if client_id:

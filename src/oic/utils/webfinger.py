@@ -286,7 +286,7 @@ class WebFinger(object):
         logger.debug("Looking for OIDC OP for '%s'" % resource)
         url = self.query(resource, OIC_ISSUER)
         try:
-            rsp = self.httpd.http_request(url)
+            rsp = self.httpd.http_request(url, allow_redirects=True)
         except requests.ConnectionError:
             raise
 
