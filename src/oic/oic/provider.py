@@ -1163,7 +1163,10 @@ class Provider(AProvider):
             _token = _token[len("Bearer "):]
             logger.debug("Bearer token {} chars".format(len(_token)))
         else:
-            uireq = self.server.parse_user_info_request(data=request)
+            args = {'data':request}
+            if isinstance(request, dict):
+                args['sformat'] = 'dict'
+            uireq = self.server.parse_user_info_request(**args)
             logger.debug("user_info_request: %s" % sanitize(uireq))
             _token = uireq["access_token"].replace(' ', '+')
 
