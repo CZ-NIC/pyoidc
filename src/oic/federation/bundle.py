@@ -3,6 +3,8 @@ import json
 import os
 
 import sys
+
+from future.backports.urllib.parse import quote_plus
 from jwkest import jws
 from jwkest.jws import NoSuitableSigningKeys
 from oic.utils.jwt import JWT
@@ -103,7 +105,7 @@ def make_bundle(tool_iss, fo_iss, sign_keyjar, keydefs, base_path=''):
     _operator = {}
 
     for entity in fo_iss:
-        fname = os.path.join(base_path, "{}.key".format(entity))
+        fname = quote_plus(os.path.join(base_path, "{}.key".format(entity)))
         _keydef = keydefs[:]
         _keydef[0]['key'] = fname
 

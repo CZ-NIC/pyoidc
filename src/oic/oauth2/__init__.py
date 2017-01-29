@@ -954,7 +954,10 @@ class Server(PBase):
             parts = urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]
 
-        req = request().deserialize(query, "urlencoded")
+        if isinstance(query, dict):
+            req = request(**query)
+        else:
+            req = request().deserialize(query, "urlencoded")
         req.verify()
         return req
 
