@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 class Operator(object):
     def __init__(self, keyjar=None, fo_keyjar=None, httpcli=None, iss=None,
-                 jwks_file=''):
+                 jwks_file='', jwks=None):
         """
 
         :param keyjar: Contains the operators signing keys
@@ -46,6 +46,9 @@ class Operator(object):
                 self.keyjar = KeyJar()
                 self.keyjar.import_jwks(json.load(fp), '')
                 fp.close()
+        elif jwks:
+                self.keyjar = KeyJar()
+                self.keyjar.import_jwks(jwks, '')
         else:
             self.keyjar = None
 

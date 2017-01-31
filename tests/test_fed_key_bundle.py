@@ -1,7 +1,7 @@
 import os
 from future.backports.urllib.parse import quote_plus
 
-from oic.federation import Operator
+from oic.federation.operator import Operator
 from oic.federation.bundle import JWKSBundle
 from oic.federation.bundle import verify_signed_bundle
 from oic.utils.keyio import build_keyjar

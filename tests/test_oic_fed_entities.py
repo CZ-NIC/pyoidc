@@ -7,7 +7,7 @@ from jwkest.jwk import rsa_load
 
 from oic import rndstr
 from oic.federation import ClientMetadataStatement
-from oic.federation import Operator
+from oic.federation.operator import Operator
 from oic.federation.client import Client
 from oic.federation.provider import Provider
 from oic.oic import DEF_SIGN_ALG
