@@ -22,7 +22,7 @@ class JWKSBundle(object):
         """
 
         :param key: issuer ID
-        :param value: Supposed to be KeyJar or a JWKS
+        :param value: Supposed to be KeyJar or a JWKS (JSON document)
         """
         if not isinstance(value, KeyJar):
             kj = KeyJar()
@@ -41,6 +41,9 @@ class JWKSBundle(object):
                 raise ValueError('KeyJar contains to many issuers')
 
         self.bundle[key] = value
+
+    def __getitem__(self, item):
+        return self.bundle[item]
 
     def __delitem__(self, key):
         del self.bundle[key]
