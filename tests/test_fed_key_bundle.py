@@ -32,11 +32,10 @@ for entity in ['fo0', 'fo1', 'fo2', 'fo3', 'sig']:
 SignKeyJar = OPERATOR['sig'].keyjar
 del OPERATOR['sig']
 
-
 def test_create():
     jb = JWKSBundle('iss')
     for iss, op in OPERATOR.items():
-        jb[op.iss] = op.jwks
+        jb[op.iss] = op.keyjar
 
     assert len(jb.keys()) == 4
 
@@ -44,7 +43,7 @@ def test_create():
 def test_dumps():
     jb = JWKSBundle('iss')
     for iss, op in OPERATOR.items():
-        jb[op.iss] = op.jwks
+        jb[op.iss] = op.keyjar
 
     bs = jb.dumps()
     assert len(bs) > 2000
@@ -53,7 +52,7 @@ def test_dumps():
 def test_dump_load():
     jb = JWKSBundle('iss')
     for iss, op in OPERATOR.items():
-        jb[op.iss] = op.jwks
+        jb[op.iss] = op.keyjar
 
     bs = jb.dumps()
 
@@ -67,7 +66,7 @@ def test_dump_load():
 def test_create_verify():
     jb = JWKSBundle('iss', SignKeyJar)
     for iss, op in OPERATOR.items():
-        jb[op.iss] = op.jwks
+        jb[op.iss] = op.keyjar
 
     _jws = jb.create_signed_bundle()
     _jwks = SignKeyJar.export_jwks()

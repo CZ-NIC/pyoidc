@@ -1,15 +1,18 @@
 import json
 import os
+import shutil
 from time import time
+from future.backports.urllib.parse import quote_plus
+from oic.federation.entity import FederationEntity
 
 import pytest
 from jwkest.jwk import rsa_load
 
 from oic import rndstr
+
 from oic.federation import ClientMetadataStatement
 from oic.federation.operator import Operator
-from oic.federation.client import Client
-from oic.federation.provider import Provider
+
 from oic.oic import DEF_SIGN_ALG
 from oic.oic.message import RegistrationResponse
 from oic.utils.authn.authn_context import AuthnBroker
@@ -132,6 +135,7 @@ def fo_keyjar(*args):
         _kj.import_jwks(fo.jwks, fo.iss)
     return _kj
 
+
 def fo_member(*args):
     return Operator(fo_keyjar=fo_keyjar(*args))
 
@@ -140,7 +144,8 @@ def create_compound_metadata_statement(spec):
     _ms = None
     root_signer = ''
     for op, op_args, signer, sig_args in spec:
-        _cms = ClientMetadataStatement(signing_keys=op.jwks, **op_args)
+        _cms = ClientMetadataStatement(
+            signing_keys=op.keyjar.export_jwks(), **op_args)
         if _ms:
             sig_args['metadata_statements'] = [_ms]
         else:  # root signed
@@ -158,50 +163,113 @@ SPEC = [
      INTEROP, {'alg': 'RS256'}]
 ]
 
+SMD_DIR = 'sign_mds'
+JWKS_DIR = 'fo_jwks'
 
-class TestClient(object):
-    @pytest.fixture(autouse=True)
-    def create_client(self):
-        signer, ms = create_compound_metadata_statement(SPEC)
-        sms = {signer: [ms]}
 
-        self.redirect_uri = "http://example.com/redirect"
-        self.client = Client(CLIENT_ID,
-                             client_authn_method=CLIENT_AUTHN_METHOD,
-                             fo_keyjar=fo_member(FOP, FO1P).fo_keyjar,
-                             signed_metadata_statements=sms,
-                             fo_priority_order=[FOP.iss, FO1P.iss]
-                             )
-        self.client.redirect_uris = [self.redirect_uri]
-        self.client.authorization_endpoint = \
-            "http://example.com/authorization"
-        self.client.token_endpoint = "http://example.com/token"
-        self.client.userinfo_endpoint = "http://example.com/userinfo"
-        self.client.client_secret = "abcdefghijklmnop"
-        self.client.keyjar[""] = KC_RSA
-        self.client.behaviour = {
-            "request_object_signing_alg": DEF_SIGN_ALG[
-                "openid_request_object"]}
+def populate_sms_dir(spec):
+    # populate the signed metadata statements directory
+    signer, sms = create_compound_metadata_statement(spec)
 
-        self.provider = Provider(
-            SERVER_INFO["issuer"], SessionDB(SERVER_INFO["issuer"]), CDB,
-            AUTHN_BROKER, USERINFO, AUTHZ, verify_client, SYMKEY, urlmap=URLMAP,
-            keyjar=KEYJAR, fo_keyjar=fo_keyjar(FOP, FO1P),
-            fo_priority_order=[FOP.iss, FO1P.iss])
-        self.provider.baseurl = self.provider.name
+    if not os.path.exists(SMD_DIR):
+        os.mkdir(SMD_DIR)
 
-    def test_init(self):
-        receiver = fo_member(FOP, FO1P)
-        ms = receiver.unpack_metadata_statement(
-            jwt_ms=self.client.signed_metadata_statements[FOP.iss][0])
-        res = receiver.evaluate_metadata_statement(ms)
-        assert FOP.iss in res
+    fname = os.path.join(SMD_DIR, quote_plus(signer))
+    fp = open(fname, 'w')
+    fp.write(sms)
+    fp.close()
 
-    def test_create_registration_request(self):
-        req = self.client.federated_client_registration_request(
-            redirect_uris=['https://rp.example.com/auth_cb']
-        )
-        msg = self.provider.registration_endpoint(req.to_json())
-        assert msg.status == '201 Created'
-        reqresp = RegistrationResponse(**json.loads(msg.message))
-        assert reqresp['response_types'] == ['code']
+
+def populate_jwks_dir(fos):
+    # Populate the FO jwks directory
+    if not os.path.exists(JWKS_DIR):
+        os.mkdir(JWKS_DIR)
+
+    for op in fos:
+        fname = os.path.join(JWKS_DIR, quote_plus(op.iss))
+        fp = open(fname, 'w')
+        fp.write(json.dumps(op.keyjar.export_jwks()))
+        fp.close()
+
+
+JWKS_FILE = 'my.jwks'
+fp = open(JWKS_FILE, 'w')
+fp.write(json.dumps(OPOP.keyjar.export_jwks(private=True)))
+fp.close()
+
+
+def test_create_entity():
+    for _dir in [JWKS_DIR, SMD_DIR]:
+        try:
+            shutil.rmtree(_dir)
+        except Exception:
+            pass
+
+    entity = FederationEntity(iss=CLIENT_ID, jwks_file=JWKS_FILE,
+                              signed_metadata_statements_dir=SMD_DIR,
+                              fo_jwks_dir=JWKS_DIR,
+                              fo_priority_order=[FOP.iss, FO1P.iss])
+
+    assert entity
+    assert entity.fo_keyjar is None
+    assert list(entity.signed_metadata_statements.keys()) == []
+
+
+def test_create_compound_statement():
+    signer, sms = create_compound_metadata_statement(SPEC)
+
+    assert sms
+    assert signer == FOP.iss
+
+
+def test_create_entity_with_fo_jwks_dir():
+    populate_jwks_dir([FOP, FO1P])
+
+    entity = FederationEntity(iss=CLIENT_ID, jwks_file=JWKS_FILE,
+                              signed_metadata_statements_dir=SMD_DIR,
+                              fo_jwks_dir=JWKS_DIR,
+                              fo_priority_order=[FOP.iss, FO1P.iss])
+
+    assert entity
+    assert set(entity.fo_keyjar.keys()) == {'https://fo.example.org',
+                                            'https://fo1.example.org'}
+    assert list(entity.signed_metadata_statements.keys()) == []
+
+
+def test_create_entity_with_fo_jwks_and_sms_dirs():
+    for _dir in [JWKS_DIR, SMD_DIR]:
+        try:
+            shutil.rmtree(_dir)
+        except Exception:
+            pass
+
+    populate_jwks_dir([FOP, FO1P])
+    populate_sms_dir(SPEC)
+
+    entity = FederationEntity(iss=CLIENT_ID, jwks_file=JWKS_FILE,
+                              signed_metadata_statements_dir=SMD_DIR,
+                              fo_jwks_dir=JWKS_DIR,
+                              fo_priority_order=[FOP.iss, FO1P.iss])
+
+    assert entity
+    assert set(entity.fo_keyjar.keys()) == {'https://fo.example.org',
+                                            'https://fo1.example.org'}
+    assert list(entity.signed_metadata_statements.keys()) == [FOP.iss]
+
+
+# def test_init(self):
+#     receiver = fo_member(FOP, FO1P)
+#     ms = receiver.unpack_metadata_statement(
+#         jwt_ms=self.client.signed_metadata_statements[FOP.iss][0])
+#     res = receiver.evaluate_metadata_statement(ms)
+#     assert FOP.iss in res
+#
+#
+# def test_create_registration_request(self):
+#     req = self.client.federated_client_registration_request(
+#         redirect_uris=['https://rp.example.com/auth_cb']
+#     )
+#     msg = self.provider.registration_endpoint(req.to_json())
+#     assert msg.status == '201 Created'
+#     reqresp = RegistrationResponse(**json.loads(msg.message))
+#     assert reqresp['response_types'] == ['code']

@@ -4,7 +4,7 @@ from oic.exception import RegistrationError
 
 from oic import oic
 from oic.federation import ClientMetadataStatement
-from oic.federation import FederationEntity
+from oic.federation.entity import FederationEntity
 from oic.oauth2 import ErrorResponse
 from oic.oauth2 import MissingRequiredAttribute
 from oic.oauth2 import sanitize
@@ -26,7 +26,7 @@ class Client(oic.Client, FederationEntity):
     def __init__(self, client_id=None, ca_certs=None,
                  client_prefs=None, client_authn_method=None, keyjar=None,
                  verify_ssl=True, config=None, client_cert=None,
-                 fo_keyjar=None, signed_metadata_statements=None,
+                 fo_jwks_dir=None, signed_metadata_statements_dir=None,
                  fo_priority_order=None):
         oic.Client.__init__(
             self, client_id=client_id, ca_certs=ca_certs,
@@ -35,8 +35,8 @@ class Client(oic.Client, FederationEntity):
             client_cert=client_cert)
 
         FederationEntity.__init__(
-            self, signed_metadata_statements=signed_metadata_statements,
-            fo_keyjar=fo_keyjar, keyjar=keyjar, eid=client_id,
+            self, signed_metadata_statements_dir=signed_metadata_statements_dir,
+            fo_jwks_dir=fo_jwks_dir, keyjar=keyjar, eid=client_id,
             fo_priority_order=fo_priority_order, ms_cls=ClientMetadataStatement)
 
     def handle_registration_info(self, response):

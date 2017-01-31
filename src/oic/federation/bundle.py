@@ -29,7 +29,7 @@ class JWKSBundle(object):
             kj.import_jwks(value, issuer=key)
             value = kj
         else:
-            _iss = value.keys()
+            _iss = list(value.keys())
             if _iss == ['']:
                 value.issuer_keys[key] = value.issuer_keys['']
                 del value.issuer_keys['']

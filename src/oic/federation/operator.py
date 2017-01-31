@@ -47,8 +47,9 @@ class Operator(object):
                 self.keyjar.import_jwks(json.load(fp), '')
                 fp.close()
         elif jwks:
-                self.keyjar = KeyJar()
-                self.keyjar.import_jwks(jwks, '')
+            self.keyjar = KeyJar()
+            self.keyjar.import_jwks(jwks, '')
+            self.jwks = jwks
         else:
             self.keyjar = None
 
