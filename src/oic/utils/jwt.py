@@ -50,8 +50,11 @@ class JWT(object):
 
     def pack(self, kid='', owner='', cls_instance=None, **kwargs):
         _args = self.pack_init()
-        _key = self.pack_key(owner, kid)
-        _args['kid'] = _key.kid
+        if self.sign_alg != 'none':
+            _key = self.pack_key(owner, kid)
+            _args['kid'] = _key.kid
+        else:
+            _key = None
 
         try:
             _encrypt = kwargs['encrypt']
