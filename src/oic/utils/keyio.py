@@ -160,9 +160,10 @@ class KeyBundle(object):
         try:
             logging.debug('KeyBundle fetch keys from: {}'.format(self.source))
             r = requests.get(self.source, **args)
-        except requests.ConnectionError as e:
+        except Exception as err:
+            logger.error(err)
             raise_exception(UpdateFailed,
-                            REMOTE_FAILED.format(self.source, str(e)))
+                            REMOTE_FAILED.format(self.source, str(err)))
 
         if r.status_code == 304:  # file has not changed
             self.time_out = time.time() + self.cache_time
@@ -700,7 +701,8 @@ class KeyJar(object):
     def export_jwks(self, private=False, issuer=""):
         keys = []
         for kb in self.issuer_keys[issuer]:
-            keys.extend([k.serialize(private) for k in kb.keys()])
+            keys.extend([k.serialize(private) for k in kb.keys() if
+                         k.inactive_since == 0])
         return {"keys": keys}
 
     def import_jwks(self, jwks, issuer):
