@@ -415,7 +415,8 @@ class Provider(object):
         try:
             redirect_uri = self.get_redirect_uri(areq)
         except (RedirectURIError, ParameterError, UnknownClient) as err:
-            return error("invalid_request", "%s" % err)
+            return error("invalid_request",
+                         "{}:{}".format(err.__class__.__name__, err))
 
         try:
             keyjar = self.keyjar

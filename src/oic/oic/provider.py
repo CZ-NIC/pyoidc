@@ -1148,6 +1148,9 @@ class Provider(AProvider):
         :param request: The request in a string format
         """
 
+        logger.debug('userinfo_endpoint: request={}, kwargs={}'.format(
+            request, kwargs))
+
         try:
             _token = self._parse_access_token(request, **kwargs)
         except ParameterError:
@@ -1190,6 +1193,7 @@ class Provider(AProvider):
         try:
             assert typ == "T"
         except AssertionError:
+            logger.error('Wrong token type: {}'.format(typ))
             raise FailedAuthentication("Wrong type of token")
 
         # _log_info("keys: %s" % self.sdb.keys())
