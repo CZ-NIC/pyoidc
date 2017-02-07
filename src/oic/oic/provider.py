@@ -197,6 +197,29 @@ CAPABILITIES = {
     "request_uri_parameter_supported": True,
 }
 
+FORM_POST = """<html>
+  <head>
+    <title>Submit This Form</title>
+  </head>
+  <body onload="javascript:document.forms[0].submit()">
+    <form method="post" action={action}>
+        {inputs}
+    </form>
+  </body>
+</html>"""
+
+
+def inputs(form_args):
+    """
+    Creates list of input elements
+    """
+    element = []
+    for name, value in form_args.items():
+        element.append(
+            '<input type="hidden" name="{}" value="{}"/>'.format(name, value))
+    return "\n".join(element)
+
+
 
 class Provider(AProvider):
     def __init__(self, name, sdb, cdb, authn_broker, userinfo, authz,
@@ -1827,43 +1850,6 @@ class Provider(AProvider):
         return Response(_response.to_json(), content="application/json",
                         headers=headers)
 
-    # def auth_resp_extension(self, aresp, areq, sid, rtype):
-    #     if "id_token" in areq["response_type"]:
-    #         _sinfo = self.sdb[sid]
-    #
-    #         if "code" in areq["response_type"]:
-    #             _code = aresp["code"] = _sinfo["code"]
-    #             rtype.remove("code")
-    #         else:
-    #             _sinfo[sid]["code"] = None
-    #             _code = None
-    #
-    #         try:
-    #             _access_token = aresp["access_token"]
-    #         except KeyError:
-    #             _access_token = None
-    #
-    #         user_info = self.userinfo_in_id_token_claims(_sinfo)
-    #         client_info = self.cdb[str(areq["client_id"])]
-    #
-    #         hargs = {}
-    #         if set(areq["response_type"]) == {'code', 'id_token', 'token'}:
-    #             hargs = {"code": _code, "access_token": _access_token}
-    #         elif set(areq["response_type"]) == {'code', 'id_token'}:
-    #             hargs = {"code": _code}
-    #         elif set(areq["response_type"]) == {'id_token', 'token'}:
-    #             hargs = {"access_token": _access_token}
-    #
-    #         # or 'code id_token'
-    #         id_token = self.sign_encrypt_id_token(
-    #             _sinfo, client_info, areq, user_info=user_info, **hargs)
-    #
-    #         aresp["id_token"] = id_token
-    #         _sinfo["id_token"] = id_token
-    #         rtype.remove("id_token")
-    #
-    #     return aresp
-
     def aresp_check(self, aresp, areq):
         # Use of the nonce is REQUIRED for all requests where an ID Token is
         # returned directly from the Authorization Endpoint
@@ -1877,11 +1863,9 @@ class Provider(AProvider):
     def response_mode(self, areq, fragment_enc, **kwargs):
         resp_mode = areq["response_mode"]
         if resp_mode == "form_post":
-            argv = {"form_args": kwargs["aresp"].to_dict(),
-                    "action": kwargs["redirect_uri"]}
-            mte = self.template_lookup.get_template(
-                self.template["form_post"])
-            return Response(mte.render(**argv), headers=kwargs["headers"])
+            msg = FORM_POST.format(inputs=inputs(kwargs["aresp"].to_dict()),
+                                   action=kwargs["redirect_uri"])
+            return Response(msg, headers=kwargs["headers"])
         elif resp_mode == 'fragment' and not fragment_enc:
             # Can't be done
             raise InvalidRequest("wrong response_mode")
