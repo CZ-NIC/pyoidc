@@ -19,13 +19,14 @@ logger = logging.getLogger(__name__)
 
 
 class FederationEntity(Operator):
-    def __init__(self, jwks_file=None, httpcli=None, iss='',
+    def __init__(self, jwks_file=None, httpcli=None, iss='', keyjar=None,
                  signed_metadata_statements_dir='.', fo_jwks_dir=None,
                  fo_priority_order=None, ms_cls=ClientMetadataStatement,
                  fo_bundle_uri=None, fo_bundle_sign_key=None,
                  verify_ssl=True, ca_certs=None, client_cert=None):
 
-        keyjar = self.read_jwks_file(jwks_file)
+        if jwks_file:
+            keyjar = self.read_jwks_file(jwks_file)
 
         if httpcli is None:
             httpcli = PBase(verify_ssl=verify_ssl, ca_certs=ca_certs,
