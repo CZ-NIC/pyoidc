@@ -11,6 +11,7 @@ from future.backports.urllib.parse import urlencode
 from future.backports.urllib.parse import unquote
 
 from oic.exception import PyoidcError
+from oic.oauth2 import compact
 
 from oic.utils import aes
 from oic.utils.http_util import Response
@@ -298,7 +299,7 @@ class UsernamePasswordMako(UserAuthnMethod):
 
         logger.debug("verify(%s)" % sanitize(request))
         if isinstance(request, six.string_types):
-            _dict = parse_qs(request)
+            _dict = compact(parse_qs(request))
         elif isinstance(request, dict):
             _dict = request
         else:
@@ -307,29 +308,42 @@ class UsernamePasswordMako(UserAuthnMethod):
         logger.debug("dict: %s" % sanitize(_dict))
         # verify username and password
         try:
-            self._verify(_dict["password"][0], _dict["login"][0])
+            self._verify(_dict["password"], _dict["login"])  # dict origin
+        except TypeError:
+            try:
+                self._verify(_dict["password"][0], _dict["login"][0])
+            except (AssertionError, KeyError) as err:
+                logger.debug("Password verification failed: {}".format(err))
+                resp = Unauthorized("Unknown user or wrong password")
+                return resp, False
+            else:
+                try:
+                    _qp = _dict["query"]
+                except KeyError:
+                    _qp = self.get_multi_auth_cookie(kwargs['cookie'])
         except (AssertionError, KeyError) as err:
             logger.debug("Password verification failed: {}".format(err))
             resp = Unauthorized("Unknown user or wrong password")
             return resp, False
         else:
-            logger.debug("Password verification succeeded.")
-            # if "cookie" not in kwargs or self.srv.cookie_name not in kwargs["cookie"]:
-            headers = [self.create_cookie(_dict["login"][0], "upm")]
             try:
-                _qp = _dict["query"][0]
+                _qp = _dict["query"]
             except KeyError:
                 _qp = self.get_multi_auth_cookie(kwargs['cookie'])
-            try:
-                return_to = self.generate_return_url(kwargs["return_to"], _qp)
-            except KeyError:
-                try:
-                    return_to = self.generate_return_url(self.return_to, _qp,
-                                                         kwargs["path"])
-                except KeyError:
-                    return_to = self.generate_return_url(self.return_to, _qp)
 
-            return SeeOther(return_to, headers=headers), True
+        logger.debug("Password verification succeeded.")
+        # if "cookie" not in kwargs or self.srv.cookie_name not in kwargs["cookie"]:
+        headers = [self.create_cookie(_dict["login"], "upm")]
+        try:
+            return_to = self.generate_return_url(kwargs["return_to"], _qp)
+        except KeyError:
+            try:
+                return_to = self.generate_return_url(self.return_to, _qp,
+                                                     kwargs["path"])
+            except KeyError:
+                return_to = self.generate_return_url(self.return_to, _qp)
+
+        return SeeOther(return_to, headers=headers), True
 
     def done(self, areq):
         try:
