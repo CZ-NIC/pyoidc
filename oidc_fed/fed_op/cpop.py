@@ -1,3 +1,6 @@
+import json
+from http.cookies import SimpleCookie
+
 import cherrypy
 import cherrypy_cors
 import logging
@@ -7,7 +10,7 @@ from future.backports.urllib.parse import urlparse
 from jwkest import as_bytes
 from jwkest import as_unicode
 
-from oic.oauth2 import Message
+from oic.oauth2 import Message, ErrorResponse
 from oic.utils.http_util import Response
 
 logger = logging.getLogger(__name__)
@@ -23,6 +26,18 @@ def handle_error():
 def conv_response(resp):
     if not isinstance(resp, Response):
         return as_bytes(resp)
+
+    cookie = cherrypy.response.cookie
+    for header, value in resp.headers:
+        if header == 'Set-Cookie':
+            cookie_obj = SimpleCookie(value)
+            for name in cookie_obj:
+                morsel = cookie_obj[name]
+                cookie[name] = morsel.value
+                for key in ['expires', 'path', 'comment', 'domain', 'max-age',
+                            'secure', 'version']:
+                    if morsel[key]:
+                        cookie[name][key] = morsel[key]
 
     _stat = int(resp._status.split(' ')[0])
     #  if self.mako_lookup and self.mako_template:
@@ -113,45 +128,6 @@ class Configuration(object):
             resp = op.providerinfo_endpoint()
             # cherrypy.response.headers['Content-Type'] = 'application/json'
             # return as_bytes(resp.message)
-            return conv_response(resp)
-
-
-class Registration(object):
-    @cherrypy.expose
-    @cherrypy_cors.tools.expose_public()
-    @cherrypy.tools.allow(
-        methods=["POST", "OPTIONS"])
-    def index(self, op):
-        if cherrypy.request.method == "OPTIONS":
-            logger.debug('Request headers: {}'.format(cherrypy.request.headers))
-            cherrypy_cors.preflight(
-                allowed_methods=["POST"], origins='*',
-                allowed_headers=['Authorization', 'content-type'])
-        else:
-            logger.debug('ClientRegistration request')
-            if cherrypy.request.process_request_body is True:
-                _request = cherrypy.request.body.read()
-            else:
-                raise cherrypy.HTTPError(400,
-                                         'Missing Client registration body')
-            logger.debug('request_body: {}'.format(_request))
-            resp = op.registration_endpoint(as_unicode(_request))
-            return conv_response(resp)
-
-
-class Authorization(object):
-    @cherrypy.expose
-    @cherrypy_cors.tools.expose_public()
-    @cherrypy.tools.allow(
-        methods=["GET", "OPTIONS"])
-    def index(self, op, **kwargs):
-        if cherrypy.request.method == "OPTIONS":
-            cherrypy_cors.preflight(
-                allowed_methods=["GET"], origins='*',
-                allowed_headers=['Authorization', 'content-type'])
-        else:
-            logger.debug('AuthorizationRequest')
-            resp = op.authorization_endpoint(kwargs)
             return conv_response(resp)
 
 
@@ -255,38 +231,18 @@ class Root(object):
 class Provider(Root):
     _cp_config = {'request.error_response': handle_error}
 
-    def __init__(self, op):
+    def __init__(self, op, static_dir=None):
         self.op = op
-        # The endpoints, should really be configurable
         self.configuration = Configuration()
-        self.registration = Registration()
-        self.authorization = Authorization()
-        self.token = Token()
-        self.userinfo = UserInfo()
-        self.claims = Claims()
+        self.static_dir = static_dir or ['static']
 
     def _cp_dispatch(self, vpath):
         # Only get here if vpath != None
         ent = cherrypy.request.remote.ip
         logger.info('ent:{}, vpath: {}'.format(ent, vpath))
 
-        if len(vpath) == 1:
-            endpoint = vpath.pop(0)
-            cherrypy.request.params['op'] = self.op
-            if endpoint == 'static':
-                return self
-            elif endpoint == 'registration':
-                return self.registration
-            elif endpoint == 'authorization':
-                return self.authorization
-            elif endpoint == 'token':
-                return self.token
-            elif endpoint == 'userinfo':
-                return self.userinfo
-            elif endpoint == 'claim':
-                return self.claims
-            else:  # Shouldn't be any other
-                raise cherrypy.NotFound()
+        if vpath[0] in self.static_dir:
+            return self
         elif len(vpath) == 2:
             a = vpath.pop(0)
             b = vpath.pop(0)
@@ -296,3 +252,160 @@ class Provider(Root):
                 return self.configuration
 
         return self
+
+    @cherrypy.expose
+    @cherrypy_cors.tools.expose_public()
+    @cherrypy.tools.allow(methods=["POST", "OPTIONS"])
+    def registration(self, **kwargs):
+        if cherrypy.request.method == "OPTIONS":
+            logger.debug('Request headers: {}'.format(cherrypy.request.headers))
+            cherrypy_cors.preflight(
+                allowed_methods=["POST"], origins='*',
+                allowed_headers=['Authorization', 'content-type'])
+        else:
+            logger.debug('ClientRegistration request')
+            if cherrypy.request.process_request_body is True:
+                _request = cherrypy.request.body.read()
+            else:
+                raise cherrypy.HTTPError(400,
+                                         'Missing Client registration body')
+            logger.debug('request_body: {}'.format(_request))
+            resp = self.op.registration_endpoint(as_unicode(_request))
+            return conv_response(resp)
+
+    @cherrypy.expose
+    @cherrypy_cors.tools.expose_public()
+    @cherrypy.tools.allow(
+        methods=["GET", "OPTIONS"])
+    def authorization(self, **kwargs):
+        if cherrypy.request.method == "OPTIONS":
+            cherrypy_cors.preflight(
+                allowed_methods=["GET"], origins='*',
+                allowed_headers=['Authorization', 'content-type'])
+        else:
+            logger.debug('AuthorizationRequest')
+            try:
+                args = {'cookie': cherrypy.request.headers['Cookie']}
+            except KeyError:
+                args = {}
+
+            try:
+                _claims = json.loads(kwargs['claims'])
+            except json.JSONDecodeError:
+                try:
+                    _claims = json.loads(
+                        kwargs['claims'].replace("\'", '"').replace('True',
+                                                                    'true'))
+                except json.JSONDecodeError:
+                    _err = ErrorResponse(
+                        error="invalid_request",
+                        error_description="Invalid claims value"
+                    )
+                    raise cherrypy.HTTPError(400, as_bytes(_err.to_json()))
+                else:
+                    kwargs['claims'] = _claims
+            except KeyError:
+                pass
+            else:
+                kwargs['claims'] = _claims
+
+            try:
+                resp = self.op.authorization_endpoint(kwargs, **args)
+            except Exception as err:
+                raise cherrypy.HTTPError(message=err)
+            else:
+                return conv_response(resp)
+
+    @cherrypy.expose
+    @cherrypy_cors.tools.expose_public()
+    @cherrypy.tools.allow(
+        methods=["POST", "GET", "OPTIONS"])
+    def verify(self, **kwargs):
+        if cherrypy.request.method == "OPTIONS":
+            cherrypy_cors.preflight(
+                allowed_methods=["POST", "GET"], origins='*',
+                allowed_headers=['Authorization', 'content-type'])
+        else:
+            logger.debug('AuthorizationRequest')
+            resp, state = self.op.verify_endpoint(kwargs)
+            return conv_response(resp)
+
+    @cherrypy.expose
+    @cherrypy_cors.tools.expose_public()
+    @cherrypy.tools.allow(
+        methods=["POST", "OPTIONS"])
+    def token(self, **kwargs):
+        if cherrypy.request.method == "OPTIONS":
+            cherrypy_cors.preflight(
+                allowed_methods=["POST"], origins='*',
+                allowed_headers=['Authorization', 'content-type'])
+        else:
+            logger.debug('AccessTokenRequest')
+            try:
+                authn = cherrypy.request.headers['Authorization']
+            except KeyError:
+                authn = None
+            logger.debug('Authorization: {}'.format(authn))
+            resp = self.op.token_endpoint(kwargs, authn, 'dict')
+            return conv_response(resp)
+
+    @cherrypy.expose
+    @cherrypy_cors.tools.expose_public()
+    @cherrypy.tools.allow(
+        methods=["GET", "POST", "OPTIONS"])
+    def userinfo(self, **kwargs):
+        if cherrypy.request.method == "OPTIONS":
+            cherrypy_cors.preflight(
+                allowed_methods=["GET", "POST"], origins='*',
+                allowed_headers=['Authorization', 'content-type'])
+        else:
+            logger.debug('UserinfoRequest')
+            args = {}
+            if cherrypy.request.process_request_body is True:
+                _req = cherrypy.request.body.read()
+                if _req:
+                    args = {'request': _req}
+
+            try:
+                args['authn'] = cherrypy.request.headers['Authorization']
+            except KeyError:
+                pass
+
+            kwargs.update(args)
+            resp = self.op.userinfo_endpoint(**kwargs)
+            return conv_response(resp)
+
+    @cherrypy.expose
+    @cherrypy_cors.tools.expose_public()
+    @cherrypy.tools.allow(
+        methods=["GET", "OPTIONS"])
+    def claims(self, **kwargs):
+        if cherrypy.request.method == "OPTIONS":
+            cherrypy_cors.preflight(
+                allowed_methods=["GET"], origins='*',
+                allowed_headers='Authorization')
+        else:
+            try:
+                authz = cherrypy.request.headers['Authorization']
+            except KeyError:
+                authz = None
+            try:
+                assert authz.startswith("Bearer")
+            except AssertionError:
+                logger.error("Bad authorization token")
+                cherrypy.HTTPError(400, "Bad authorization token")
+
+            tok = authz[7:]
+            try:
+                _claims = self.op.claim_access_token[tok]
+            except KeyError:
+                logger.error("Bad authorization token")
+                cherrypy.HTTPError(400, "Bad authorization token")
+            else:
+                # one time token
+                del self.op.claim_access_token[tok]
+                _info = Message(**_claims)
+                jwt_key = self.op.keyjar.get_signing_key()
+                logger.error(_info.to_dict())
+                cherrypy.response.headers["content-type"] = 'application/jwt'
+                return as_bytes(_info.to_jwt(key=jwt_key, algorithm="RS256"))

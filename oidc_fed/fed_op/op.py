@@ -6,6 +6,8 @@ import logging
 import os
 import sys
 
+import cherrypy_cors
+
 from oic.oic.provider import Provider
 from oic.utils import webfinger
 
@@ -42,27 +44,31 @@ if __name__ == '__main__':
     cherrypy.config.update(
         {'environment': 'production',
          'log.error_file': 'site.log',
-         'tools.trailing_slash.on': False,
-         'server.socket_host': '0.0.0.0',
          'log.screen': True,
-         'tools.sessions.on': True,
+         'server.socket_host': '0.0.0.0',
+         'server.socket_port': args.port,
          'tools.encode.on': True,
          'tools.encode.encoding': 'utf-8',
-         'server.socket_port': args.port
+         'tools.sessions.on': True,
+         'tools.trailing_slash.on': False
          })
 
     provider_config = {
         '/': {
             'root_path': 'localhost',
-            'log.screen': True
+            'log.screen': True,
+            'log.error_file': 'site.log',
+            'tools.staticdir.root': folder
         },
         '/static': {
-            'tools.staticdir.dir': os.path.join(folder, 'static'),
+            'tools.staticdir.dir': 'static',
             'tools.staticdir.debug': True,
             'tools.staticdir.on': True,
             'log.screen': True,
             'cors.expose_public.on': True
         }}
+
+    cherrypy_cors.install()
 
     sys.path.insert(0, ".")
     config = importlib.import_module(args.config)
@@ -78,7 +84,7 @@ if __name__ == '__main__':
     cherrypy.tree.mount(cpop.WebFinger(webfinger.WebFinger()),
                         '/.well-known/webfinger', webfinger_config)
 
-    cherrypy.tree.mount(cpop.Provider(_op), '/', provider_config)
+    cherrypy.tree.mount(cpop.Provider(_op, ['static']), '/', provider_config)
 
     # If HTTPS
     if args.tls:
