@@ -533,6 +533,15 @@ class KeyJar(object):
                     _lst.append(key)
             lst = _lst
 
+        if use == 'enc' and key_type == 'oct' and issuer != '':
+            # Add my symmetric keys
+            for kb in self.issuer_keys['']:
+                for key in kb.get(key_type):
+                    if key.inactive_since:
+                        continue
+                    if not key.use or key.use == use:
+                        lst.append(key)
+
         return lst
 
     def get_signing_key(self, key_type="", owner="", kid=None, **kwargs):
