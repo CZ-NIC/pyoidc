@@ -459,7 +459,11 @@ class CookieDealer(object):
         if cookie_name is None:
             cookie_name = self.srv.cookie_name
         timestamp = str(int(time.time()))
-        _msg = "::".join([value, timestamp, typ])
+        try:
+            _msg = "::".join([value, timestamp, typ])
+        except TypeError:
+            _msg = "::".join([value[0], timestamp, typ])
+
         if self.srv.symkey:
             # Pad the message to be multiples of 16 bytes in length
             lm = len(_msg)
