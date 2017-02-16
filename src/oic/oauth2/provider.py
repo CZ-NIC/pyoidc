@@ -32,6 +32,7 @@ from oic.oauth2.message import AccessTokenRequest
 from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import AuthorizationRequest
 from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import Message
 from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import MissingRequiredValue
 from oic.oauth2.message import TokenErrorResponse
@@ -354,7 +355,12 @@ class Provider(object):
         except (MissingRequiredValue, MissingRequiredAttribute,
                 AuthzError) as err:
             logger.debug("%s" % err)
-            areq = request_class().deserialize(request, "urlencoded")
+            areq = request_class()
+            areq.lax=True
+            if isinstance(request, dict):
+                areq.from_dict(request)
+            else:
+                areq.deserialize(request, "urlencoded")
             try:
                 redirect_uri = self.get_redirect_uri(areq)
             except (RedirectURIError, ParameterError, UnknownClient) as err:
@@ -511,8 +517,14 @@ class Provider(object):
             logger.info("No active authentication")
 
         # gather information to be used by the authentication method
-        authn_args = {"query": request,
-                      "authn_class_ref": authn_class_ref}
+        authn_args = {"authn_class_ref": authn_class_ref}
+        # Can't be something like JSON because it can't contain '"'
+        if isinstance(request, Message):
+            authn_args["query"] = request.to_urlencoded()
+        elif isinstance(request, dict):
+            authn_args["query"] = Message(**request).to_urlencoded()
+        else:
+            authn_args["query"] = request
 
         if "req_user" in kwargs:
             authn_args["as_user"] = kwargs["req_user"],
