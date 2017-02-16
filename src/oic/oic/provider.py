@@ -34,11 +34,11 @@ from jwkest.jws import alg2keytype
 
 from oic import rndstr
 from oic.exception import *
-from oic.oauth2 import error
+from oic.oauth2 import error, compact
 from oic.oauth2 import error_response
 from oic.oauth2 import redirect_authz_error
 from oic.oauth2.exception import CapabilitiesMisMatch
-from oic.oauth2.message import by_schema
+from oic.oauth2.message import by_schema, Message
 from oic.oauth2.provider import Provider as AProvider
 from oic.oauth2.provider import Endpoint
 from oic.oic import PREFERENCE2PROVIDER, scope2claims
@@ -218,7 +218,6 @@ def inputs(form_args):
         element.append(
             '<input type="hidden" name="{}" value="{}"/>'.format(name, value))
     return "\n".join(element)
-
 
 
 class Provider(AProvider):
@@ -631,14 +630,14 @@ class Provider(AProvider):
         """
         logger.debug("verify request: %s" % sanitize(request))
 
-        _req = parse_qs(request)
-        if "query" in _req:
-            try:
-                # TODO FIX THIS !!! Why query ?
-                areq = parse_qs(_req["query"][0])
-            except KeyError:
-                return BadRequest()
+        if isinstance(request, dict):
+            _req = request
         else:
+            _req = compact(parse_qs(request))
+
+        try:
+            areq = Message().from_urlencoded(_req['query'])
+        except KeyError:
             areq = _req
 
         logger.debug("REQ: %s" % sanitize(areq))
@@ -649,7 +648,7 @@ class Provider(AProvider):
             raise
 
         kwargs["cookie"] = cookie
-        return authn.verify(_req, **kwargs)
+        return authn.verify(request=_req, **kwargs)
 
     def setup_session(self, areq, authn_event, cinfo):
         try:
@@ -955,7 +954,8 @@ class Provider(AProvider):
             logger.error("%s" % err)
             # Should revoke the token issued to this access code
             _sdb.revoke_all_tokens(_access_code)
-            return error(error="invalid_request", descr="%s" % err)
+            return error(error="access_denied",
+                         descr="Access Code already used")
 
         if "openid" in _info["scope"]:
             userinfo = self.userinfo_in_id_token_claims(_info)
@@ -1209,7 +1209,8 @@ class Provider(AProvider):
         try:
             typ, key = _sdb.access_token.type_and_key(token)
         except Exception:
-            return error(error="invalid_request", descr="Invalid Token")
+            return error(error="invalid_token", descr="Invalid Token",
+                         status_code=401)
 
         _log_debug("access_token type: '%s'" % (typ,))
 
@@ -1221,7 +1222,8 @@ class Provider(AProvider):
 
         # _log_info("keys: %s" % self.sdb.keys())
         if _sdb.is_revoked(key):
-            return error(error="invalid_request", descr="Token is revoked")
+            return error(error="invalid_token", descr="Token is revoked",
+                         status_code=401)
         session = _sdb[key]
 
         # Scope can translate to userinfo_claims

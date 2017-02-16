@@ -2,6 +2,8 @@ import hashlib
 import logging
 import os
 
+from oic.utils.http_util import Response
+
 try:
     from json import JSONDecodeError
 except ImportError:  # Only works for >= 3.5
@@ -802,8 +804,9 @@ class Client(oauth2.Client):
             else:
                 # use_authorization_header, token_in_message_body
                 if "use_authorization_header" in _behav:
-                    token_header = "{type} {token}".format(type=_ttype.capitalize(),
-                                                           token=_token)
+                    token_header = "{type} {token}".format(
+                        type=_ttype.capitalize(),
+                        token=_token)
                     if "headers" in kwargs:
                         kwargs["headers"].update(
                             {"Authorization": token_header})
@@ -829,6 +832,11 @@ class Client(oauth2.Client):
 
         logger.debug("[do_user_info_request] PATH:%s BODY:%s H_ARGS: %s" % (
             sanitize(path), sanitize(body), sanitize(h_args)))
+
+        if self.events:
+            self.events.store('Request', {'body': body})
+            self.events.store('request_url', path)
+            self.events.store('request_http_args', h_args)
 
         try:
             resp = self.http_request(path, method, data=body, **h_args)
@@ -871,7 +879,11 @@ class Client(oauth2.Client):
             res = _schema().from_jwt(_txt, keyjar=self.keyjar,
                                      sender=self.provider_info["issuer"])
 
+        if 'error' in res:  # Error response
+            res = UserInfoErrorResponse(**res.to_dict())
+
         # TODO verify issuer:sub against what's returned in the ID Token
+
         self.store_response(res, _txt)
 
         return res
@@ -1176,10 +1188,9 @@ class Client(oauth2.Client):
         if response.status_code in [200, 201]:
             resp = RegistrationResponse().deserialize(response.text, "json")
             # Some implementations sends back a 200 with an error message inside
-            if resp.verify():  # got a proper registration response
-                self.store_response(resp, response.text)
-                self.store_registration_info(resp)
-            else:
+            try:
+                r = resp.verify()
+            except Exception:
                 resp = ErrorResponse().deserialize(response.text, "json")
                 if resp.verify():
                     logger.error(err_msg.format(sanitize(resp.to_json())))
@@ -1189,7 +1200,11 @@ class Client(oauth2.Client):
                 else:  # Something else
                     logger.error(unk_msg.format(sanitize(response.text)))
                     raise RegistrationError(response.text)
-        else:
+            else:
+                # got a proper registration response
+                self.store_response(resp, response.text)
+                self.store_registration_info(resp)
+        elif 400 <= response.status_code <= 499:
             try:
                 resp = ErrorResponse().deserialize(response.text, "json")
             except _decode_err:
@@ -1204,6 +1219,8 @@ class Client(oauth2.Client):
             else:  # Something else
                 logger.error(unk_msg.format(sanitize(response.text)))
                 raise RegistrationError(response.text)
+        else:
+            raise RegistrationError(response.text)
 
         return resp
 
@@ -1420,7 +1437,7 @@ class Server(oauth2.Server):
                             body=None):
         return oauth2.Server.parse_token_request(self, request, body)
 
-    def handle_request_uri(self, request_uri, verify=True):
+    def handle_request_uri(self, request_uri, verify=True, sender=''):
         """
 
         :param areq:
@@ -1447,7 +1464,8 @@ class Server(oauth2.Server):
         # http_req.text is a signed JWT
         try:
             logger.debug('request txt: {}'.format(http_req.text))
-            req = self.parse_jwt_request(txt=http_req.text, verify=verify)
+            req = self.parse_jwt_request(txt=http_req.text, verify=verify,
+                                         sender=sender)
         except Exception as err:
             logger.error(
                 '{}:{} encountered while parsing fetched request'.format(
@@ -1463,8 +1481,12 @@ class Server(oauth2.Server):
             parts = urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]
 
-        _req = self._parse_request(request, query, "urlencoded",
-                                   verify=False)
+        if isinstance(query, dict):
+            sformat = "dict"
+        else:
+            sformat= 'urlencoded'
+
+        _req = self._parse_request(request, query, sformat, verify=False)
 
         if self.events:
             self.events.store('Request', _req)
@@ -1478,7 +1500,8 @@ class Server(oauth2.Server):
             except KeyError:
                 pass
             else:
-                _req_req = self.handle_request_uri(_url, verify=False)
+                _req_req = self.handle_request_uri(_url, verify=False,
+                                                   sender=_req['client_id'])
         else:
             if isinstance(_request, Message):
                 _req_req = _request
@@ -1495,6 +1518,10 @@ class Server(oauth2.Server):
                             del _req_req[attr]
                         except KeyError:
                             pass
+
+        if isinstance(_req_req, Response):
+            return _req_req
+
         if _req_req:
             if self.events:
                 self.events.store('Signed Request', _req_req)
@@ -1510,7 +1537,7 @@ class Server(oauth2.Server):
             self.events.store('Combined Request', _req)
 
         try:
-            _req.verify()
+            _req.verify(keyjar=self.keyjar)
         except Exception as err:
             if self.events:
                 self.events.store('Exception', err)
@@ -1520,9 +1547,10 @@ class Server(oauth2.Server):
         return _req
 
     def parse_jwt_request(self, request=AuthorizationRequest, txt="",
-                          keys=None, verify=True):
+                          keys=None, verify=True, sender=''):
 
-        return oauth2.Server.parse_jwt_request(self, request, txt, keys, verify)
+        return oauth2.Server.parse_jwt_request(self, request, txt, keys, verify,
+                                               sender=sender)
 
     def parse_refresh_token_request(self,
                                     request=RefreshAccessTokenRequest,
@@ -1551,7 +1579,7 @@ class Server(oauth2.Server):
             request = request_cls().from_json(data)
         elif sformat == "jwt":
             request = request_cls().from_jwt(data, keyjar=self.keyjar,
-                                         sender=client_id)
+                                             sender=client_id)
         elif sformat == "urlencoded":
             if '?' in data:
                 parts = urlparse(data)
