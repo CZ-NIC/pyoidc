@@ -21,7 +21,7 @@ from oic.oauth2.grant import Token
 from oic.oauth2.grant import Grant
 from oic.oauth2.util import get_or_post
 from oic.oauth2.util import verify_header
-from oic.utils.http_util import BadRequest
+from oic.utils.http_util import BadRequest, R2C
 from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 from oic.utils.keyio import KeyJar
@@ -62,11 +62,11 @@ class ExpiredToken(PyoidcError):
 
 # =============================================================================
 
-def error_response(error, descr=None):
+def error_response(error, descr=None, status="400 Bad Request"):
     logger.error("%s" % sanitize(error))
     response = ErrorResponse(error=error, error_description=descr)
     return Response(response.to_json(), content="application/json",
-                    status="400 Bad Request")
+                    status=status)
 
 
 # noinspection PyUnusedLocal
@@ -79,11 +79,12 @@ def none_response(**kwargs):
     return aresp
 
 
-def error(error, descr=None):
-    return error_response(error=error, descr=descr)
+def error(error, descr=None, status_code=400):
+    stat_txt = R2C[400]._status
+    return error_response(error=error, descr=descr, status=stat_txt)
 
 
-def authz_error(error, descr=None):
+def authz_error(error, descr=None, status_code=400):
     response = AuthorizationErrorResponse(error=error)
     if descr:
         response["error_description"] = descr
@@ -122,6 +123,15 @@ def exception_to_error_mesg(excep):
         resp = BadRequest(err.to_json(), content='application/json')
     return resp
 
+
+def compact(qsdict):
+    res = {}
+    for key,val in qsdict.items():
+        if len(val) == 1:
+            res[key] = val[0]
+        else:
+            res[key] = val
+    return res
 
 # =============================================================================
 
@@ -506,6 +516,8 @@ class Client(PBase):
         resp = response().deserialize(info, sformat, **kwargs)
         msg = 'Initial response parsing => "{}"'
         logger.debug(msg.format(sanitize(resp.to_dict())))
+        if self.events:
+            self.events.store('Response', resp.to_dict())
 
         if "error" in resp and not isinstance(resp, ErrorResponse):
             resp = None
@@ -967,14 +979,14 @@ class Server(PBase):
         return self.parse_url_request(request, url, query)
 
     def parse_jwt_request(self, request=AuthorizationRequest, txt="",
-                          keyjar="", verify=True):
+                          keyjar="", verify=True, **kwargs):
 
         if not keyjar:
             keyjar = self.keyjar
 
         # areq = message().from_(txt, keys, verify)
         areq = request().deserialize(txt, "jwt", keyjar=keyjar,
-                                     verify=verify)
+                                     verify=verify, **kwargs)
         if verify:
             areq.verify()
         return areq
