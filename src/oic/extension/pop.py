@@ -4,6 +4,8 @@ from future.backports.urllib.parse import urlparse
 from future.backports.urllib.parse import parse_qs
 from jwkest import b64e
 from jwkest.jwk import RSAKey, load_jwks
+
+from oic.oauth2 import compact
 from oic.utils.keyio import KeyBundle
 from oic.extension.signed_http_req import SignedHttpRequest
 from oic.utils.jwt import JWT
@@ -21,7 +23,7 @@ def sign_http_args(method, url, headers, body=''):
     if body:
         kwargs['body'] = body
 
-    query_params = parse_qs(p.query)
+    query_params = compact(parse_qs(p.query))
     kwargs['query_params'] = query_params
     return kwargs
 

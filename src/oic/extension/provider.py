@@ -30,7 +30,7 @@ from oic.extension.message import MissingPage
 from oic.extension.message import TokenRevocationRequest
 from oic.extension.message import TokenIntrospectionRequest
 from oic.extension.message import TokenIntrospectionResponse
-from oic.oauth2 import provider
+from oic.oauth2 import provider, compact
 from oic.oauth2 import AccessTokenRequest
 from oic.oauth2 import TokenErrorResponse
 from oic.oauth2 import AccessTokenResponse
@@ -457,9 +457,9 @@ class Provider(provider.Provider):
         :return: A Response instance
         """
 
-        _query = parse_qs(kwargs['query'])
+        _query = compact(parse_qs(kwargs['query']))
         try:
-            _id = _query["client_id"][0]
+            _id = _query["client_id"]
         except KeyError:
             return BadRequest("Missing query component")
 

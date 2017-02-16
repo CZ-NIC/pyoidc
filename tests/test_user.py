@@ -10,6 +10,7 @@ from mako.lookup import TemplateLookup
 from testfixtures import LogCapture
 
 from oic import rndstr
+from oic.oauth2 import compact
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.http_util import Unauthorized
 
@@ -66,7 +67,7 @@ class TestUsernamePasswordMako(object):
 
         authn = UsernamePasswordMako(srv, "login.mako", tl, PASSWD,
                                      "authorization_endpoint")
-        response, success = authn.verify(parse_qs(form))
+        response, success = authn.verify(compact(parse_qs(form)))
 
         headers = dict(response.headers)
         user, timestamp = authn.authenticated_as(headers["Set-Cookie"])
@@ -78,17 +79,19 @@ class TestUsernamePasswordMako(object):
         authn = UsernamePasswordMako(srv, "login.mako", tl, PASSWD,
                                      "authorization_endpoint")
         with LogCapture(level=logging.DEBUG) as logcap:
-            response, success = authn.verify(parse_qs(form))
+            response, success = authn.verify(compact(parse_qs(form)))
         assert query_string_compare(response.message.split("?")[1],
                                     "query=foo&upm_answer=true")
 
         headers = dict(response.headers)
         assert headers["Set-Cookie"].startswith('xyzxyz=')
-        expected = {u'query': [u'query=foo'], u'login': ['user'], u'password': '<REDACTED>'}
+        expected = {u'query': u'query=foo', u'login': u'user',
+                    u'password': '<REDACTED>'}
         # We have to use eval() here to avoid intermittent
         # failures from dict ordering
         assert eval(logcap.records[0].msg[7:-1]) == expected
-        expected = {u'query': [u'query=foo'], u'login': ['user'], u'password': '<REDACTED>'}
+        expected = {u'query': u'query=foo', u'login': u'user',
+                    u'password': '<REDACTED>'}
         assert eval(logcap.records[1].msg[5:]) == expected
         assert logcap.records[2].msg == 'Password verification succeeded.'
         expected = {u'query': [u'foo'], 'upm_answer': 'true'}
@@ -99,7 +102,7 @@ class TestUsernamePasswordMako(object):
 
         authn = UsernamePasswordMako(srv, "login.mako", tl, PASSWD,
                                      "authorization_endpoint")
-        response, state = authn.verify(parse_qs(form))
+        response, state = authn.verify(compact(parse_qs(form)))
 
         headers = dict(response.headers)
         kaka = headers["Set-Cookie"]
