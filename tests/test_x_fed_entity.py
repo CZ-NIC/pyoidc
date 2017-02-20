@@ -195,9 +195,9 @@ def test_create_entity():
     for _dir in [JWKS_DIR, SMD_DIR]:
         try:
             shutil.rmtree(_dir)
-            os.makedirs(_dir)
         except Exception:
             pass
+        os.makedirs(_dir)
 
     fo_bundle = FSJWKSBundle(CLIENT_ID, fdir=JWKS_DIR,
                              key_conv={'in': quote_plus, 'out': unquote_plus})
