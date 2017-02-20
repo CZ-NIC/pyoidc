@@ -904,7 +904,7 @@ Hedberg, et al.          Expires March 13, 2017                [Page 16]
     ],
     "logo_uri": "https://example.com/logo.jpg",
     "policy_uri": "https://example.com/policy.html",
-    "signing_key": {
+    "signing_keys": {"keys": {
       "e": "AQAB",
       "kid": "z414hVxt2-nkbqgG3VFYOZGB3Miwuhe75SfWT1BQQTc",
       "kty": "RSA",
@@ -915,7 +915,7 @@ Hedberg, et al.          Expires March 13, 2017                [Page 16]
   8n041qQhrUMtoQMDCI53uLy6ZSR0jbNNEwvDBbiqD4Hm3piAwTUrGKWYLxbeicK_7A6gF2
   Sw",
       "use": "sig"
-    },
+    }},
     "tos_uri": "https://example.com/tos.html"
   }
 
@@ -975,7 +975,7 @@ Hedberg, et al.          Expires March 13, 2017                [Page 17]
       "email",
       "phone"
     ],
-    "signing_key": {
+    "signing_keys": {"keys": {
       "e": "AQAB",
       "kid": "z414hVxt2-nkbqgG3VFYOZGB3Miwuhe75SfWT1BQQTc",
       "kty": "RSA",
@@ -986,7 +986,7 @@ Hedberg, et al.          Expires March 13, 2017                [Page 17]
   8n041qQhrUMtoQMDCI53uLy6ZSR0jbNNEwvDBbiqD4Hm3piAwTUrGKWYLxbeicK_7A6gF2
   Sw",
       "use": "sig"
-    },
+    }},
     "token_endpoint_auth_method": "private_key_jwt",
     "tos_uri": "https://example.com/tos.html"
   }
@@ -1075,7 +1075,7 @@ Hedberg, et al.          Expires March 13, 2017                [Page 19]
     "response_types": [
       "code"
     ],
-    "signing_key": {
+    "signing_keys": {"keys": {
       "e": "AQAB",
       "kid": "Tvd2gF4mcNtiYx6FyOOH83Xj_MkF-8yn_rD2Gm06RxY",
       "kty": "RSA",
@@ -1086,7 +1086,7 @@ Hedberg, et al.          Expires March 13, 2017                [Page 19]
   Km2MvJgBOfqAYfh1z0wZRiBdUa0RzsXavf4HGjnwPknYcSY1MwKZCzz_W0_uAiGlHFlNwL
   SQ",
       "use": "sig"
-    }
+    }}
   }
 
 A.1.6.  Step 6 - Developer produces metadata statement for RP
@@ -1103,7 +1103,7 @@ A.1.6.  Step 6 - Developer produces metadata statement for RP
     "response_types": [
       "code"
     ],
-    "signing_key": {
+    "signing_keys": {"keys": {
       "e": "AQAB",
       "kid": "Tvd2gF4mcNtiYx6FyOOH83Xj_MkF-8yn_rD2Gm06RxY",
       "kty": "RSA",
@@ -1122,7 +1122,7 @@ Hedberg, et al.          Expires March 13, 2017                [Page 20]
                         OpenID Connect Federation         September 2016
 
 
-    },
+    }},
     "metadata_statements": [
       "eyJraWQiOiJ1WlgwLVAxLVRNc1pScUsxU2VYcGRMZ3NMb2VVTnNrTjJXX3J3Qk5LQ
   XRjIiwiYWxnIjoiUlMyNTYifQ.eyJwb2xpY3lfdXJpIjogImh0dHBzOi8vZXhhbXBsZS5j
