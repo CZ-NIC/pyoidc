@@ -628,7 +628,7 @@ class Client(PBase):
                                        state, **kwargs)
 
         # could be an error response
-        if reqresp.status_code in [200, 400]:
+        if reqresp.status_code in [200, 400, 401]:
             if body_type == 'txt':
                 body_type = 'urlencoded'
             try:

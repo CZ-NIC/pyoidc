@@ -24,39 +24,25 @@ logger = logging.getLogger(__name__)
 
 
 class Operator(object):
-    def __init__(self, keyjar=None, fo_keyjar=None, httpcli=None, iss=None,
-                 jwks_file='', jwks=None):
+    def __init__(self, keyjar=None, jwks_bundle=None, httpcli=None, iss=None):
         """
 
         :param keyjar: Contains the operators signing keys
-        :param fo_keyjar: Contains the federation operators signing key
+        :param jwks_bundle: Contains the federation operators signing keys
             for all the federations this instance wants to talk to
         :param httpcli: A http client to use when information has to be
             fetched from somewhere else
         :param iss: Issuer ID
         """
-        if keyjar:
-            self.keyjar = keyjar
-        elif jwks_file:
-            try:
-                fp = open(jwks_file,'r')
-            except Exception:
-                self.keyjar = None
-            else:
-                self.keyjar = KeyJar()
-                self.keyjar.import_jwks(json.load(fp), '')
-                fp.close()
-        elif jwks:
-            self.keyjar = KeyJar()
-            self.keyjar.import_jwks(jwks, '')
-            self.jwks = jwks
-        else:
-            self.keyjar = None
-
-        self.fo_keyjar = fo_keyjar
+        self.keyjar = keyjar
+        self.jwks_bundle = jwks_bundle
         self.httpcli = httpcli
         self.iss = iss
         self.failed = {}
+
+    def signing_keys_as_jwks(self):
+        _l = [x.serialize() for x in self.keyjar.get_signing_key()]
+        return {'keys': _l}
 
     def unpack_metadata_statement(self, json_ms=None, jwt_ms='', keyjar=None,
                                   cls=ClientMetadataStatement):
@@ -70,10 +56,8 @@ class Operator(object):
         :return: Unpacked and verified metadata statement
         """
 
-        if keyjar is None:
-            _keyjar = self.fo_keyjar
-        else:
-            _keyjar = keyjar
+        if not keyjar:
+            keyjar = self.jwks_bundle.as_keyjar()
 
         if jwt_ms:
             try:
@@ -87,20 +71,20 @@ class Operator(object):
                     for meta_s in json_ms['metadata_statements']:
                         try:
                             _ms = self.unpack_metadata_statement(
-                                jwt_ms=meta_s, keyjar=_keyjar, cls=cls)
+                                jwt_ms=meta_s, keyjar=keyjar, cls=cls)
                         except (JWSException, BadSignature, MissingSigningKey):
                             pass
                         else:
                             msl.append(_ms)
 
                     for _ms in msl:
-                        _keyjar.import_jwks(_ms['signing_keys'], '')
+                        keyjar.import_jwks(_ms['signing_keys'], '')
 
                 elif 'metadata_statement_uris' in json_ms:
                     pass
 
                 try:
-                    _ms = cls().from_jwt(jwt_ms, keyjar=_keyjar)
+                    _ms = cls().from_jwt(jwt_ms, keyjar=keyjar)
                 except MissingSigningKey:
                     raise
 
@@ -141,12 +125,13 @@ class Operator(object):
             raise AttributeError('Need one of json_ms or jwt_ms')
 
     def pack_metadata_statement(self, metadata, keyjar=None, iss=None, alg='',
-                                **kwargs):
+                                jwt_args=None, **kwargs):
         """
 
         :param metas: Original metadata statement as a MetadataStatement
         instance
         :param keyjar: KeyJar in which the necessary keys should reside
+        :param iss: Issuer ID
         :param alg: Which signing algorithm to use
         :param kwargs: Additional metadata statement attribute values
         :return: A JWT
@@ -162,8 +147,10 @@ class Operator(object):
         _jwt = JWT(keyjar, iss=iss, msgtype=_metadata.__class__)
         if alg:
             _jwt.sign_alg = alg
-
-        return _jwt.pack(cls_instance=_metadata)
+        if jwt_args:
+            return _jwt.pack(cls_instance=_metadata, **jwt_args)
+        else:
+            return _jwt.pack(cls_instance=_metadata)
 
     def evaluate_metadata_statement(self, metadata):
         """
@@ -217,22 +204,15 @@ class Operator(object):
 
 
 class FederationOperator(Operator):
-    def __init__(self, keyjar=None, fo_keyjar=None, httpcli=None, jwks_file='',
+    def __init__(self, keyjar=None, jwks_bundle=None, httpcli=None,
                  iss=None, keyconf=None, bundle_sign_alg='RS256'):
 
-        Operator.__init__(self, keyjar=keyjar, fo_keyjar=fo_keyjar,
-                          httpcli=httpcli, iss=iss, jwks_file=jwks_file)
-
-        if self.keyjar is None:
-            self.keyjar = build_keyjar(keyconf)[1]
-            if jwks_file:
-                fp = open(jwks_file, 'w')
-                fp.write(json.dumps(self.keyjar.export_jwks(private=True)))
-                fp.close()
+        Operator.__init__(self, keyjar=keyjar, jwks_bundle=jwks_bundle,
+                          httpcli=httpcli, iss=iss)
 
         self.keyconf = keyconf
+        self.jb = jwks_bundle
         self.bundle_sign_alg = bundle_sign_alg
-        self.jb = JWKSBundle(iss, self.keyjar)
 
     def public_keys(self):
         return self.keyjar.export_jwks()
