@@ -38,12 +38,16 @@ for entity in ['fo', 'fo1', 'org', 'inter', 'admin', 'ligo', 'op']:
     _jwks, _keyjar, _kidd = build_keyjar(_keydef)
     KEYS[entity] = {'jwks': _jwks, 'keyjar': _keyjar, 'kidd': _kidd}
     ISSUER[entity] = 'https://{}.example.org'.format(entity)
-    OPERATOR[entity] = Operator(keyjar=_keyjar, iss=ISSUER[entity], jwks=_jwks)
+    OPERATOR[entity] = Operator(keyjar=_keyjar, iss=ISSUER[entity])
 
 FOP = OPERATOR['fo']
-FOP.fo_keyjar = FOP.keyjar
+FOP.jwks_bundle = JWKSBundle(FOP.iss)
+FOP.jwks_bundle[FOP.iss] = FOP.keyjar
+
 FO1P = OPERATOR['fo1']
-FO1P.fo_keyjar = FO1P.keyjar
+FO1P.jwks_bundle = JWKSBundle(FO1P.iss)
+FO1P.jwks_bundle[FO1P.iss] = FO1P.keyjar
+
 ORGOP = OPERATOR['org']
 ADMINOP = OPERATOR['admin']
 INTEROP = OPERATOR['inter']
@@ -52,11 +56,11 @@ OPOP = OPERATOR['ligo']
 
 
 def fo_member(*args):
-    _kj = KeyJar()
+    _jb = JWKSBundle('https://sunet.se/op')
     for fo in args:
-        _kj.issuer_keys[fo.iss] = fo.keyjar.issuer_keys['']
+        _jb[fo.iss] = fo.signing_keys_as_jwks()
 
-    return Operator(fo_keyjar=_kj)
+    return Operator(jwks_bundle=_jb)
 
 
 def test_create_metadata_statement_simple():

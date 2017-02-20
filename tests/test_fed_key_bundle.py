@@ -27,7 +27,7 @@ for entity in ['fo0', 'fo1', 'fo2', 'fo3', 'sig']:
     _jwks, _keyjar, _kidd = build_keyjar(_keydef)
     KEYS[entity] = {'jwks': _jwks, 'keyjar': _keyjar, 'kidd': _kidd}
     ISSUER[entity] = 'https://{}.example.org'.format(entity)
-    OPERATOR[entity] = Operator(keyjar=_keyjar, iss=ISSUER[entity], jwks=_jwks)
+    OPERATOR[entity] = Operator(keyjar=_keyjar, iss=ISSUER[entity])
 
 SignKeyJar = OPERATOR['sig'].keyjar
 del OPERATOR['sig']

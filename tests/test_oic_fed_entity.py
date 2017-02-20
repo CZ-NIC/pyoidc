@@ -3,9 +3,10 @@ import os
 import shutil
 from time import time
 from future.backports.urllib.parse import quote_plus
+
+from oic.federation.bundle import JWKSBundle
 from oic.federation.entity import FederationEntity
 
-import pytest
 from jwkest.jwk import rsa_load
 
 from oic import rndstr
@@ -13,17 +14,12 @@ from oic import rndstr
 from oic.federation import ClientMetadataStatement
 from oic.federation.operator import Operator
 
-from oic.oic import DEF_SIGN_ALG
-from oic.oic.message import RegistrationResponse
 from oic.utils.authn.authn_context import AuthnBroker
-from oic.utils.authn.client import CLIENT_AUTHN_METHOD
-from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import build_keyjar
-from oic.utils.sdb import SessionDB
 from oic.utils.userinfo import UserInfo
 
 BASE_PATH = os.path.abspath(
@@ -116,7 +112,7 @@ for entity in ['fo', 'fo1', 'org', 'inter', 'admin', 'ligo', 'op']:
     _jwks, _keyjar, _kidd = build_keyjar(_keydef)
     KEYS[entity] = {'jwks': _jwks, 'keyjar': _keyjar, 'kidd': _kidd}
     ISSUER[entity] = 'https://{}.example.org'.format(entity)
-    OPERATOR[entity] = Operator(keyjar=_keyjar, iss=ISSUER[entity], jwks=_jwks)
+    OPERATOR[entity] = Operator(keyjar=_keyjar, iss=ISSUER[entity])
 
 FOP = OPERATOR['fo']
 FOP.fo_keyjar = FOP.keyjar
@@ -129,15 +125,12 @@ LIGOOP = OPERATOR['ligo']
 OPOP = OPERATOR['op']
 
 
-def fo_keyjar(*args):
-    _kj = KeyJar()
-    for fo in args:
-        _kj.import_jwks(fo.jwks, fo.iss)
-    return _kj
-
-
 def fo_member(*args):
-    return Operator(fo_keyjar=fo_keyjar(*args))
+    _jb = JWKSBundle('')
+    for fo in args:
+        _jb[fo.iss] = fo.keyjar.issuer_keys['']
+
+    return Operator(jwks_bundle=_jb)
 
 
 def create_compound_metadata_statement(spec):

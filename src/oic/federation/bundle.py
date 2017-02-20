@@ -33,16 +33,19 @@ class JWKSBundle(object):
             kj.import_jwks(value, issuer=key)
             value = kj
         else:
-            _iss = list(value.keys())
+            _val = value.copy()
+            _iss = list(_val.keys())
             if _iss == ['']:
-                value.issuer_keys[key] = value.issuer_keys['']
-                del value.issuer_keys['']
+                _val.issuer_keys[key] = _val.issuer_keys['']
+                del _val.issuer_keys['']
             elif len(_iss) == 1:
                 if _iss[0] != key:
-                    value.issuer_keys[key] = value.issuer_keys[_iss[0]]
-                    del value.issuer_keys[_iss[0]]
+                    _val.issuer_keys[key] = _val.issuer_keys[_iss[0]]
+                    del _val.issuer_keys[_iss[0]]
             else:
                 raise ValueError('KeyJar contains to many issuers')
+
+            value = _val
 
         self.bundle[key] = value
 
