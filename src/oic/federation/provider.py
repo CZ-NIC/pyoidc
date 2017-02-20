@@ -1,12 +1,12 @@
 import logging
-from oic.oic.provider import SWD_ISSUER
 
+from oic.oauth2 import error
 from oic.oic import provider
 from oic.federation import ClientMetadataStatement
-from oic.federation.entity import FederationEntity
-from oic.oic.message import DiscoveryResponse, DiscoveryRequest
+from oic.oic.message import DiscoveryRequest
+from oic.oic.message import DiscoveryResponse
 from oic.oic.message import OpenIDSchema
-from oic.oic.message import RegistrationRequest
+from oic.oic.provider import SWD_ISSUER
 from oic.utils.http_util import Created, BadRequest
 from oic.utils.http_util import Response
 from oic.utils.sanitize import sanitize
@@ -14,15 +14,13 @@ from oic.utils.sanitize import sanitize
 logger = logging.getLogger(__name__)
 
 
-class Provider(provider.Provider, FederationEntity):
+class Provider(provider.Provider):
     def __init__(self, name, sdb, cdb, authn_broker, userinfo, authz,
                  client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
                  hostname="", template_lookup=None, template=None,
                  verify_ssl=True, capabilities=None, schema=OpenIDSchema,
                  jwks_uri='', jwks_name='', baseurl=None, client_cert=None,
-                 signed_metadata_statements_dir='.', iss='', fo_jwks_dir=None,
-                 fo_priority_order=None, fo_bundle_uri=None,
-                 fo_bundle_sign_key=None):
+                 federation_entity=None, fo_priority=None):
         provider.Provider.__init__(
             self, name, sdb, cdb, authn_broker, userinfo, authz,
             client_authn, symkey, urlmap=urlmap, ca_certs=ca_certs,
@@ -31,13 +29,8 @@ class Provider(provider.Provider, FederationEntity):
             schema=schema, jwks_uri=jwks_uri, jwks_name=jwks_name,
             baseurl=baseurl, client_cert=client_cert)
 
-        FederationEntity.__init__(
-            self, httpcli=self, iss=iss, keyjar=self.keyjar,
-            signed_metadata_statements_dir=signed_metadata_statements_dir,
-            fo_jwks_dir=fo_jwks_dir,
-            fo_priority_order=fo_priority_order, ms_cls=ClientMetadataStatement,
-            fo_bundle_uri=fo_bundle_uri, fo_bundle_sign_key=fo_bundle_sign_key
-        )
+        self.federation_entity = federation_entity
+        self.fo_priority = fo_priority
 
     def discovery_endpoint(self, request, handle=None, **kwargs):
         if isinstance(request, dict):
@@ -51,9 +44,10 @@ class Provider(provider.Provider, FederationEntity):
             return BadRequest("Unsupported service")
 
         _response = DiscoveryResponse(locations=[self.baseurl])
-        if self.signed_metadata_statements:
+        if self.federation_entity.signed_metadata_statements:
             _response.update(
-                {'metadata_statements': self.signed_metadata_statements})
+                {'metadata_statements':
+                    self.federation_entity.signed_metadata_statements.values()})
 
         headers = [("Cache-Control", "no-store")]
 
@@ -74,8 +68,13 @@ class Provider(provider.Provider, FederationEntity):
         logger.info(
             "registration_request:{}".format(sanitize(request.to_dict())))
 
-        request_args = self.get_metadata_statement(request)
-        request = RegistrationRequest(**request_args)
+        res = self.federation_entity.get_metadata_statement(request)
+
+        if res:
+            request = self.federation_entity.pick_by_priority(res)
+        else:  # Nothing I can use
+            return error(error='invalid_request',
+                         descr='No signed metadata statement I could use')
 
         result = self.client_registration_setup(request)
         if isinstance(result, Response):

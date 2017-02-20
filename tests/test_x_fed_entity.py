@@ -2,9 +2,9 @@ import json
 import os
 import shutil
 from time import time
-from future.backports.urllib.parse import quote_plus
+from future.backports.urllib.parse import quote_plus, unquote_plus
 
-from oic.federation.bundle import JWKSBundle
+from oic.federation.bundle import JWKSBundle, FSJWKSBundle
 from oic.federation.entity import FederationEntity
 
 from jwkest.jwk import rsa_load
@@ -195,16 +195,18 @@ def test_create_entity():
     for _dir in [JWKS_DIR, SMD_DIR]:
         try:
             shutil.rmtree(_dir)
+            os.makedirs(_dir)
         except Exception:
             pass
 
-    entity = FederationEntity(iss=CLIENT_ID, jwks_file=JWKS_FILE,
+    fo_bundle = FSJWKSBundle(CLIENT_ID, fdir=JWKS_DIR,
+                             key_conv={'in': quote_plus, 'out': unquote_plus})
+
+    entity = FederationEntity(None, iss=CLIENT_ID, jwks_file=JWKS_FILE,
                               signed_metadata_statements_dir=SMD_DIR,
-                              fo_jwks_dir=JWKS_DIR,
-                              fo_priority_order=[FOP.iss, FO1P.iss])
+                              fo_bundle=fo_bundle)
 
     assert entity
-    assert entity.fo_keyjar is None
     assert list(entity.signed_metadata_statements.keys()) == []
 
 
@@ -216,15 +218,24 @@ def test_create_compound_statement():
 
 
 def test_create_entity_with_fo_jwks_dir():
+    for _dir in [JWKS_DIR, SMD_DIR]:
+        try:
+            shutil.rmtree(_dir)
+            os.makedirs(_dir)
+        except Exception:
+            pass
+
     populate_jwks_dir([FOP, FO1P])
 
-    entity = FederationEntity(iss=CLIENT_ID, jwks_file=JWKS_FILE,
+    fo_bundle = FSJWKSBundle(CLIENT_ID, fdir=JWKS_DIR,
+                             key_conv={'in': quote_plus, 'out': unquote_plus})
+
+    entity = FederationEntity(None, iss=CLIENT_ID, jwks_file=JWKS_FILE,
                               signed_metadata_statements_dir=SMD_DIR,
-                              fo_jwks_dir=JWKS_DIR,
-                              fo_priority_order=[FOP.iss, FO1P.iss])
+                              fo_bundle=fo_bundle)
 
     assert entity
-    assert set(entity.fo_keyjar.keys()) == {'https://fo.example.org',
+    assert set(entity.fo_bundle.keys()) == {'https://fo.example.org',
                                             'https://fo1.example.org'}
     assert list(entity.signed_metadata_statements.keys()) == []
 
@@ -239,30 +250,15 @@ def test_create_entity_with_fo_jwks_and_sms_dirs():
     populate_jwks_dir([FOP, FO1P])
     populate_sms_dir(SPEC)
 
-    entity = FederationEntity(iss=CLIENT_ID, jwks_file=JWKS_FILE,
+    fo_bundle = FSJWKSBundle(CLIENT_ID, fdir=JWKS_DIR,
+                             key_conv={'in': quote_plus, 'out': unquote_plus})
+
+    entity = FederationEntity(None, iss=CLIENT_ID, jwks_file=JWKS_FILE,
                               signed_metadata_statements_dir=SMD_DIR,
-                              fo_jwks_dir=JWKS_DIR,
-                              fo_priority_order=[FOP.iss, FO1P.iss])
+                              fo_bundle=fo_bundle)
 
     assert entity
-    assert set(entity.fo_keyjar.keys()) == {'https://fo.example.org',
+    assert set(entity.fo_bundle.keys()) == {'https://fo.example.org',
                                             'https://fo1.example.org'}
     assert list(entity.signed_metadata_statements.keys()) == [FOP.iss]
 
-
-# def test_init(self):
-#     receiver = fo_member(FOP, FO1P)
-#     ms = receiver.unpack_metadata_statement(
-#         jwt_ms=self.client.signed_metadata_statements[FOP.iss][0])
-#     res = receiver.evaluate_metadata_statement(ms)
-#     assert FOP.iss in res
-#
-#
-# def test_create_registration_request(self):
-#     req = self.client.federated_client_registration_request(
-#         redirect_uris=['https://rp.example.com/auth_cb']
-#     )
-#     msg = self.provider.registration_endpoint(req.to_json())
-#     assert msg.status == '201 Created'
-#     reqresp = RegistrationResponse(**json.loads(msg.message))
-#     assert reqresp['response_types'] == ['code']

@@ -4,9 +4,11 @@ import os
 
 import sys
 
-from future.backports.urllib.parse import quote_plus
+from future.backports.urllib.parse import quote_plus, unquote_plus
 from jwkest import jws
 from jwkest.jws import NoSuitableSigningKeys
+from oic.federation.file_system import FileSystem
+
 from oic.utils.jwt import JWT
 from oic.utils.keyio import build_keyjar
 from oic.utils.keyio import KeyJar
@@ -162,42 +164,8 @@ def get_signing_keys(eid, keydef, key_file):
     return kj
 
 
-# def key_setup(iss, keydefs, fo_liss, sk_file='signing_key.json',
-#               bundle_file='bundle.jws', base_path='./'):
-#     sign_key = get_signing_keys(iss, keydefs, sk_file)
-#     jb = get_bundle(iss, fo_liss, sign_key, bundle_file, keydefs,
-#                     base_path)
-#     return sign_key, jb
+class FSJWKSBundle(JWKSBundle):
+    def __init__(self, iss, sign_keys=None, fdir='./', key_conv=None):
+        JWKSBundle.__init__(self, iss, sign_keys=sign_keys)
+        self.bundle = FileSystem(fdir, key_conv)
 
-
-if __name__ == '__main__':
-    BASE_PATH = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "static"))
-
-    KEYDEFS = [
-        {"type": "RSA", "key": '', "use": ["sig"]},
-        {"type": "EC", "crv": "P-256", "use": ["sig"]}
-    ]
-
-    fo_liss = ['https://swamid.se/oidc', 'https://surfnet.nl/oidc',
-               'http://aai.grnet.gr/oidc',
-               'https://www.heanet.ie/services/oidc']
-
-    tool_iss = sys.argv[1]
-    try:
-        sk_file = sys.argv[2]
-    except IndexError:
-        sk_file = 'signing_key.json'
-        bundle_file = 'bundle.jws'
-    else:
-        try:
-            bundle_file = sys.argv[3]
-        except IndexError:
-            bundle_file = 'bundle.jws'
-
-    kj = get_signing_keys(tool_iss, KEYDEFS, sk_file)
-
-    sign_key, jb = key_setup(tool_iss, KEYDEFS, fo_liss, sk_file, bundle_file,
-                             BASE_PATH)
-
-    print(jb.keys())
