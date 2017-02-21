@@ -2,11 +2,6 @@
 import json
 import os
 
-import sys
-
-from future.backports.urllib.parse import quote_plus, unquote_plus
-from jwkest import jws
-from jwkest.jws import NoSuitableSigningKeys
 from oic.federation.file_system import FileSystem
 
 from oic.utils.jwt import JWT
@@ -164,8 +159,44 @@ def get_signing_keys(eid, keydef, key_file):
     return kj
 
 
+def jwks_to_keyjar(jwks):
+    """
+
+    :param jwks: String representation of a JWKS
+    :return: A KeyJar instance
+    """
+    try:
+        _jwks = json.loads(jwks)
+    except json.JSONDecodeError:
+        raise ValueError('No proper JWKS')
+    kj = KeyJar()
+    kj.import_jwks(_jwks, issuer='')
+    return kj
+
+
+def k_to_k(keyjar, private=False):
+    k = list(keyjar.keys())
+    if len(k) == 1:
+        return json.dumps(keyjar.export_jwks(issuer=k[0], private=private))
+    elif len(k) == 2 and '' in k:
+        k.remove('')
+        return json.dumps(keyjar.export_jwks(issuer=k[0], private=private))
+    else:
+        raise ValueError('Too many issuers')
+
+
+def keyjar_to_jwks(keyjar):
+    return k_to_k(keyjar)
+
+
+def keyjar_to_jwks_private(keyjar):
+    return k_to_k(keyjar, private=True)
+
+
 class FSJWKSBundle(JWKSBundle):
     def __init__(self, iss, sign_keys=None, fdir='./', key_conv=None):
         JWKSBundle.__init__(self, iss, sign_keys=sign_keys)
-        self.bundle = FileSystem(fdir, key_conv)
+        self.bundle = FileSystem(fdir, key_conv=key_conv,
+                                 value_conv={'to': keyjar_to_jwks,
+                                             'from': jwks_to_keyjar})
 

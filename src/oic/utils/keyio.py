@@ -715,6 +715,11 @@ class KeyJar(object):
         return {"keys": keys}
 
     def import_jwks(self, jwks, issuer):
+        """
+
+        :param jwks: Dictionary representation of a JWKS
+        :param issuer: Who 'owns' the JWKS
+        """
         try:
             _keys = jwks["keys"]
         except KeyError:

@@ -6,11 +6,12 @@ logger = logging.getLogger(__name__)
 
 
 class FileSystem(object):
-    def __init__(self, fdir, key_conv=None):
+    def __init__(self, fdir, key_conv=None, value_conv=None):
         self.fdir = fdir
         self.fmtime = {}
         self.db = {}
         self.key_conv = key_conv or {}
+        self.value_conv = value_conv or {}
 
     def __getitem__(self, item):
         try:
@@ -21,16 +22,43 @@ class FileSystem(object):
         if self.is_changed(item):
             logger.info("File content change in {}".format(item))
             fname = os.path.join(self.fdir, item)
-            self.db[item] = self._read_info(fname)
+            self.db[item] = self._read_info(self.value_conv['from'](fname))
 
         return self.db[item]
+
+    def __setitem__(self, key, value):
+        """
+
+        :param key: Identifier
+        :param value: Most be a string
+        :return:
+        """
+
+        if not os.path.isdir(self.fdir):
+            os.makedirs(self.fdir, exist_ok=True)
+
+        try:
+            _key = self.key_conv['to'](key)
+        except KeyError:
+            _key = key
+
+        fname = os.path.join(self.fdir, _key)
+        fp = open(fname, 'w')
+        try:
+            fp.write(self.value_conv['to'](value))
+        except KeyError:
+            fp.write(value)
+        fp.close()
+
+        self.db[key] = value
+        self.fmtime[key] = self.get_mtime(fname)
 
     def keys(self):
         self.sync()
         res = []
         for k in self.db.keys():
             try:
-                res.append(self.key_conv['out'](k))
+                res.append(self.key_conv['from'](k))
             except KeyError:
                 res.append(k)
         return res
@@ -67,11 +95,15 @@ class FileSystem(object):
             logger.error('Could not access {}'.format(fname))
             raise KeyError(item)
 
-    @staticmethod
-    def _read_info(fname):
+    def _read_info(self, fname):
         if os.path.isfile(fname):
             try:
-                return open(fname, 'r').read()
+                info = open(fname, 'r').read()
+                try:
+                    info = self.value_conv['from'](info)
+                except KeyError:
+                    pass
+                return info
             except Exception as err:
                 logger.error(err)
                 raise
@@ -97,7 +129,7 @@ class FileSystem(object):
         res = {}
         for k, v in self.db.items():
             try:
-                res[(self.key_conv['out'](k))] = v
+                res[(self.key_conv['from'](k))] = v
             except KeyError:
                 res[k] = v
         return res

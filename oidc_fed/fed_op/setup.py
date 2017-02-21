@@ -2,9 +2,13 @@ import importlib
 import json
 import logging
 import sys
+from urllib.parse import quote_plus, unquote_plus
 
 from jwkest import as_unicode
 
+from oic.federation.bundle import FSJWKSBundle
+from oic.federation.entity import FederationEntity
+from oic.federation.operator import Operator
 from oic.utils import shelve_wrapper
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.authn_context import make_auth_verify
@@ -15,7 +19,7 @@ from oic.utils.authn.multi_auth import setup_multi_auth
 from oic.utils.authn.saml import SAMLAuthnMethod
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.authz import AuthzHandling
-from oic.utils.keyio import keyjar_init
+from oic.utils.keyio import keyjar_init, build_keyjar
 from oic.utils.sdb import SessionDB
 from oic.utils.userinfo import UserInfo
 from oic.utils.userinfo.aa_info import AaUserInfo
@@ -272,3 +276,16 @@ def op_setup(args, config, provider_cls):
         logger.info("OC3 server keys: %s" % b)
 
     return _op
+
+
+def fed_setup(iss, provider, conf):
+    bundle = FSJWKSBundle(iss, fdir=conf.JWKS_DIR,
+                          key_conv={'to': quote_plus, 'from': unquote_plus})
+
+    sig_keys = build_keyjar(conf.SIG_KEYS)[1]
+
+    provider.federation_entity = FederationEntity(
+        provider, iss=iss, keyjar=sig_keys, fo_bundle=bundle,
+        signed_metadata_statements_dir=conf.SMS_DIR)
+
+    provider.fo_priority = conf.FO_PRIORITY

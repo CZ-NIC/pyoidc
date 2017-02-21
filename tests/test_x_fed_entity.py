@@ -200,7 +200,7 @@ def test_create_entity():
         os.makedirs(_dir)
 
     fo_bundle = FSJWKSBundle(CLIENT_ID, fdir=JWKS_DIR,
-                             key_conv={'in': quote_plus, 'out': unquote_plus})
+                             key_conv={'to': quote_plus, 'from': unquote_plus})
 
     entity = FederationEntity(None, iss=CLIENT_ID, jwks_file=JWKS_FILE,
                               signed_metadata_statements_dir=SMD_DIR,
@@ -228,7 +228,7 @@ def test_create_entity_with_fo_jwks_dir():
     populate_jwks_dir([FOP, FO1P])
 
     fo_bundle = FSJWKSBundle(CLIENT_ID, fdir=JWKS_DIR,
-                             key_conv={'in': quote_plus, 'out': unquote_plus})
+                             key_conv={'to': quote_plus, 'from': unquote_plus})
 
     entity = FederationEntity(None, iss=CLIENT_ID, jwks_file=JWKS_FILE,
                               signed_metadata_statements_dir=SMD_DIR,
@@ -251,7 +251,7 @@ def test_create_entity_with_fo_jwks_and_sms_dirs():
     populate_sms_dir(SPEC)
 
     fo_bundle = FSJWKSBundle(CLIENT_ID, fdir=JWKS_DIR,
-                             key_conv={'in': quote_plus, 'out': unquote_plus})
+                             key_conv={'to': quote_plus, 'from': unquote_plus})
 
     entity = FederationEntity(None, iss=CLIENT_ID, jwks_file=JWKS_FILE,
                               signed_metadata_statements_dir=SMD_DIR,

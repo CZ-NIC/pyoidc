@@ -71,6 +71,7 @@ if __name__ == '__main__':
 
     # OIDC Provider
     _op = setup.op_setup(args, config, Provider)
+    setup.fed_setup(_op.baseurl, _op, config)
 
     # WebFinger
     webfinger_config = {

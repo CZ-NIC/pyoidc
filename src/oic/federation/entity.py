@@ -36,7 +36,7 @@ class FederationEntity(Operator):
         # Signed metadata statements
         self.signed_metadata_statements = FileSystem(
             signed_metadata_statements_dir,
-            key_conv={'in': quote_plus, 'out': unquote_plus})
+            key_conv={'to': quote_plus, 'from': unquote_plus})
         self.signed_metadata_statements.sync()
 
         self.ms_cls = ms_cls
