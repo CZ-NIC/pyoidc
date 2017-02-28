@@ -71,43 +71,30 @@ class WebFinger(object):
         self.srv = srv
 
     @cherrypy.expose
-    def index(self, resource, rel):
+    def index(self, resource='', rel=''):
         logger.debug('webfinger request: res={}, rel={}'.format(resource, rel))
 
         if rel != 'http://openid.net/specs/connect/1.0/issuer':
             logger.error('unknown rel')
-            try:
-                op_id, test_id = parse_resource(resource)
-            except (ValueError, TypeError):
-                logger.error('webfinger resource specification faulty')
-                raise cherrypy.HTTPError(
-                    400, 'webfinger resource specification faulty')
-
-            raise cherrypy.NotFound()
-
-        try:
-            op_id, test_id = parse_resource(resource)
-        except (ValueError, TypeError):
-            logger.error('webfinger resource specification faulty')
-            raise cherrypy.HTTPError(
-                400, 'webfinger resource specification faulty')
-        else:
-            _path = '/'.join([op_id, test_id])
+            raise cherrypy.HTTPError(400, "Unknown 'rel")
 
         cnf = cherrypy.request.config
         subj = resource
         _base = cnf['base_url']
 
-        # introducing an error
-        if 'rp-discovery-webfinger-http-href' in resource:
-            _base = _base.replace('https', 'http')
-
-        if _base.endswith('/'):
-            href = '{}{}'.format(_base, _path)
+        if resource.startswith('http'):
+            assert resource.startswith(_base)
+        elif resource.startswith('acct:'):
+            loc, dom = resource[5:].split('@', 1)
+            r = urlparse(_base)
+            try:
+                assert dom == r.netloc
+            except AssertionError:
+                raise cherrypy.HTTPError(400, 'Not my domain')
         else:
-            href = '{}/{}'.format(_base, _path)
+            raise cherrypy.HTTPError(400, "URI type I don't support")
 
-        return self.srv.response(subj, href)
+        return self.srv.response(subj, _base)
 
 
 class Configuration(object):
@@ -129,89 +116,6 @@ class Configuration(object):
             # cherrypy.response.headers['Content-Type'] = 'application/json'
             # return as_bytes(resp.message)
             return conv_response(resp)
-
-
-class Token(object):
-    _cp_config = {"request.methods_with_bodies": ("POST", "PUT")}
-
-    @cherrypy.expose
-    @cherrypy_cors.tools.expose_public()
-    @cherrypy.tools.allow(
-        methods=["POST", "OPTIONS"])
-    def index(self, op, **kwargs):
-        if cherrypy.request.method == "OPTIONS":
-            cherrypy_cors.preflight(
-                allowed_methods=["POST"], origins='*',
-                allowed_headers=['Authorization', 'content-type'])
-        else:
-            logger.debug('AccessTokenRequest')
-            try:
-                authn = cherrypy.request.headers['Authorization']
-            except KeyError:
-                authn = None
-            logger.debug('Authorization: {}'.format(authn))
-            resp = op.token_endpoint(as_unicode(kwargs), authn, 'dict')
-            return conv_response(resp)
-
-
-class UserInfo(object):
-    @cherrypy.expose
-    @cherrypy_cors.tools.expose_public()
-    @cherrypy.tools.allow(
-        methods=["GET", "POST", "OPTIONS"])
-    def index(self, op, **kwargs):
-        if cherrypy.request.method == "OPTIONS":
-            cherrypy_cors.preflight(
-                allowed_methods=["GET", "POST"], origins='*',
-                allowed_headers=['Authorization', 'content-type'])
-        else:
-            logger.debug('UserinfoRequest')
-            if cherrypy.request.process_request_body is True:
-                args = {'request': cherrypy.request.body.read()}
-            else:
-                args = {}
-            try:
-                args['authn'] = cherrypy.request.headers['Authorization']
-            except KeyError:
-                pass
-
-            kwargs.update(args)
-            resp = op.userinfo_endpoint(**kwargs)
-            return conv_response(resp)
-
-
-class Claims(object):
-    @cherrypy.expose
-    def index(self, op, **kwargs):
-        if cherrypy.request.method == "OPTIONS":
-            cherrypy_cors.preflight(
-                allowed_methods=["GET"], origins='*',
-                allowed_headers='Authorization')
-        else:
-            try:
-                authz = cherrypy.request.headers['Authorization']
-            except KeyError:
-                authz = None
-            try:
-                assert authz.startswith("Bearer")
-            except AssertionError:
-                logger.error("Bad authorization token")
-                cherrypy.HTTPError(400, "Bad authorization token")
-
-            tok = authz[7:]
-            try:
-                _claims = op.claim_access_token[tok]
-            except KeyError:
-                logger.error("Bad authorization token")
-                cherrypy.HTTPError(400, "Bad authorization token")
-            else:
-                # one time token
-                del op.claim_access_token[tok]
-                _info = Message(**_claims)
-                jwt_key = op.keyjar.get_signing_key()
-                logger.error(_info.to_dict())
-                cherrypy.response.headers["content-type"] = 'application/jwt'
-                return as_bytes(_info.to_jwt(key=jwt_key, algorithm="RS256"))
 
 
 class Root(object):
