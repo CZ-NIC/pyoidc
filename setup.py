@@ -56,9 +56,8 @@ setup(
     license="Apache 2.0",
     url='https://github.com/rohe/pyoidc',
     packages=["oic", "oic/oauth2", "oic/oic", "oic/utils",
-              "oic/utils/authn", 'oic/federation',
-              "oic/utils/userinfo", 'oic/utils/rp', 'oic/extension'],
-              # 'oic/v2'],
+              "oic/utils/authn", "oic/utils/userinfo",
+              "oic/utils/rp", "oic/extension"],
     package_dir={"": "src"},
     classifiers=[
         "Development Status :: 4 - Beta",
