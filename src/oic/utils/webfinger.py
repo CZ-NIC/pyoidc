@@ -137,6 +137,7 @@ class JRD(Base):
         "aliases": {"type": (list, basestring), "required": False},  # Optional
         "properties": {"type": dict, "required": False},  # Optional
         "links": {"type": (list, LINK), "required": False},  # Optional
+        "dummy": {"type": basestring, "required": False},  # Optional, for errors
     }
 
     def __init__(self, dic=None, days=0, seconds=0, minutes=0, hours=0,
@@ -308,11 +309,13 @@ class WebFinger(object):
         else:
             raise WebFingerError(rsp.status_code)
 
-    def response(self, subject, base):
+    def response(self, subject, base, dummy=None):
         self.jrd = JRD()
         self.jrd["subject"] = subject
         link = LINK()
         link["rel"] = OIC_ISSUER
         link["href"] = base
         self.jrd["links"] = [link]
+        if dummy:
+            self.jrd["dummy"] = dummy
         return json.dumps(self.jrd.export())
