@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 WF_URL = "https://%s/.well-known/webfinger"
 OIC_ISSUER = "http://openid.net/specs/connect/1.0/issuer"
 
+
 class WebFingerError(PyoidcError):
     pass
 
@@ -35,7 +36,11 @@ class Base(object):
             self.load(dic)
 
     def __setitem__(self, item, val):
-        spec = self.c_param[item]
+        try:
+            spec = self.c_param[item]
+        except KeyError:
+            spec = {"type": basestring, "required": False}  # default
+
         try:
             t1, t2 = spec["type"]
             if t1 == list:  # Should always be
@@ -81,17 +86,17 @@ class Base(object):
 
     def dump(self):
         res = {}
-        for key in list(self.c_param.keys()):
+        for key, val in self._ava.items():
             try:
-                val = self._ava[key]
+                _type = self.c_param[key]["type"]
             except KeyError:
-                continue
-
-            if self.c_param[key]["type"] == (list, LINK):
-                sres = []
-                for _val in val:
-                    sres.append(_val.dump())
-                val = sres
+                pass
+            else:
+                if _type == (list, LINK):
+                    sres = []
+                    for _val in val:
+                        sres.append(_val.dump())
+                    val = sres
             res[key] = val
         return res
 
@@ -308,11 +313,13 @@ class WebFinger(object):
         else:
             raise WebFingerError(rsp.status_code)
 
-    def response(self, subject, base):
+    def response(self, subject, base, **kwargs):
         self.jrd = JRD()
         self.jrd["subject"] = subject
         link = LINK()
         link["rel"] = OIC_ISSUER
         link["href"] = base
         self.jrd["links"] = [link]
+        for k,v in kwargs.items():
+            self.jrd[k] = v
         return json.dumps(self.jrd.export())
