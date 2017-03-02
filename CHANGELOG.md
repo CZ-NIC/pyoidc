@@ -8,6 +8,10 @@ The format is based on http://keepachangelog.com/.
 ### Added
 - Added a Change log.
   - https://github.com/OpenIDC/pyoidc/pull/276
+- Use pip-tools for dependency management.
+  - https://github.com/OpenIDC/pyoidc/pull/277
+  - http://nvie.com/posts/pin-your-packages/
+  - https://github.com/jazzband/pip-tools
 
 ### Removed
 - Moved `oidc_fed` to https://github.com/OpenIDC/fedoidc.

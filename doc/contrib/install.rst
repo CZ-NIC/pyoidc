@@ -17,19 +17,13 @@ Installation via a `virtual environment`_ is **highly** recommended.
 
 .. _virtual environment: http://docs.python-guide.org/en/latest/dev/virtualenvs/
 
-Install dependencies via:
-
-::
-
-  $ python setup.py install
-
-Installation via Pip_ is also possible:
+Install dependencies (using Pip_) via:
 
 .. _Pip: pip.pypa.io/en/stable/installing/
 
 ::
 
-  $ pip install -U -e . -r requirements.txt
+  $ make install
 
 .. Note:: The depdencies will require you compile your Python source code
           with byte-compiling. This means avoiding the ``-B`` option or

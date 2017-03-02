@@ -1,3 +1,5 @@
+PROJECT_ROOT:=.
+
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 SPHINXABUILD  = sphinx-autobuild
@@ -7,31 +9,57 @@ DOCDIR        = doc/
 INDEXDIR      = doc/index
 OICDIR        = src/oic
 
-ifeq ($(shell which $(SPHINXBUILD) >/dev/null 2>&1; echo $$?), 1)
-$(error The '$(SPHINXBUILD)' command was not found. Make sure you have Sphinx installed!)
-endif
-
-.PHONY: help clean html livehtml index
-
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
 	@echo "  index      to make HTML code index files"
 	@echo "  html       to make HTML documentation files"
 	@echo "  livehtml   to make HTML documentation files (live reload!)"
+	@echo "  install    to install the python dependencies for development"
+	@echo "  upgrade    to upgrade the python dependencies"
+.PHONY: help
 
 clean:
 	rm -rf $(INDEXDIR)
 	rm -rf $(BUILDDIR)/*
+.PHONY: clean
 
 index:
 	$(SPHINXAPIDOC) -F -o $(INDEXDIR) $(OICDIR)
 	@echo "Build finished. The Index pages are in $(INDEXDIR)."
+.PHONY: index
 
 ALLSPHINXOPTS=-W
 html:
 	$(SPHINXBUILD) -b html $(DOCDIR) $(BUILDDIR)/html $(ALLSPHINXOPTS)
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
+.PHONY: html
 
 livehtml:
 	$(SPHINXABUILD) -b html $(DOCDIR) $(BUILDDIR)/html $(ALLSPHINXOPTS)
 	@echo "Build finished. Watching for change ..."
+.PHONY: livehtml
+
+install:
+	pip install -r requirements/test.txt -e .
+.PHONY: install
+
+REQS_DIR=$(PROJECT_ROOT)/requirements
+BASE_DEPS:=$(REQS_DIR)/base.txt
+TEST_DEPS:=$(REQS_DIR)/test.txt
+ADMIN_DEPS:=$(REQS_DIR)/admin.txt
+ALL_REQS:=$(BASE_DEPS) $(TEST_DEPS) $(ADMIN_DEPS)
+reqs: $(ALL_REQS)
+upgrade:
+	$(RM) $(ALL_REQS)
+	$(MAKE) reqs PIP_COMPILE_ARGS=--rebuild
+.PHONY: upgrade
+
+$(REQS_DIR)/%.txt: PIP_COMPILE_ARGS?=
+$(REQS_DIR)/%.txt: $(REQS_DIR)/%.in
+	pip-compile --no-header $(PIP_COMPILE_ARGS) --output-file "$@.tmp" "$<" >/tmp/pip-compile.out.tmp || { \
+	  ret=$$?; echo "pip-compile failed:" >&2; cat /tmp/pip-compile.out.tmp >&2; \
+	  $(RM) "$@.tmp" /tmp/pip-compile.out.tmp; \
+	  exit $$ret; }
+	@sed -n '1,10 s/# Depends on/-r/; s/\.in/.txt/p' "$<" > "$@"
+	@cat "$@.tmp" >> "$@"
+	@$(RM) "$@.tmp" /tmp/pip-compile.out.tmp
