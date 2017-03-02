@@ -17,5 +17,10 @@ The format is based on http://keepachangelog.com/.
 - Allow webfinger accept `kwargs`.
   - https://github.com/OpenIDC/pyoidc/pull/273
 
+### Fixed
+- Remove remaining cruft from `oidc_fed`
+  - https://github.com/OpenIDC/pyoidc/issues/275
+  - https://github.com/OpenIDC/pyoidc/pull/277
+
 ## 0.9.4.0 2016-12-22
 No change log folks. Sorry.
