@@ -15,31 +15,36 @@ EXAMPLE = {
     "example.com/path": "https://example.com/path",
     "example.com?query": "https://example.com?query",
     "example.com#fragment": "https://example.com",
-    "example.com:8080/path?query#fragment": "https://example.com:8080/path?query",
+    "example.com:8080/path?query#fragment":
+        "https://example.com:8080/path?query",
     "http://example.com": "http://example.com",
     "http://example.com:8080": "http://example.com:8080",
     "http://example.com/path": "http://example.com/path",
     "http://example.com?query": "http://example.com?query",
     "http://example.com#fragment": "http://example.com",
-    "http://example.com:8080/path?query#fragment": "http://example.com:8080/path?query",
+    "http://example.com:8080/path?query#fragment":
+        "http://example.com:8080/path?query",
     "nov@example.com": "acct:nov@example.com",
     "nov@example.com:8080": "https://nov@example.com:8080",
     "nov@example.com/path": "https://nov@example.com/path",
     "nov@example.com?query": "https://nov@example.com?query",
     "nov@example.com#fragment": "acct:nov@example.com",
-    "nov@example.com:8080/path?query#fragment": "https://nov@example.com:8080/path?query",
+    "nov@example.com:8080/path?query#fragment":
+        "https://nov@example.com:8080/path?query",
     "acct:nov@matake.jp": "acct:nov@matake.jp",
     "acct:nov@example.com:8080": "acct:nov@example.com:8080",
     "acct:nov@example.com/path": "acct:nov@example.com/path",
     "acct:nov@example.com?query": "acct:nov@example.com?query",
     "acct:nov@example.com#fragment": "acct:nov@example.com",
-    "acct:nov@example.com:8080/path?query#fragment": "acct:nov@example.com:8080/path?query",
+    "acct:nov@example.com:8080/path?query#fragment":
+        "acct:nov@example.com:8080/path?query",
     "mailto:nov@matake.jp": "mailto:nov@matake.jp",
     "mailto:nov@example.com:8080": "mailto:nov@example.com:8080",
     "mailto:nov@example.com/path": "mailto:nov@example.com/path",
     "mailto:nov@example.com?query": "mailto:nov@example.com?query",
     "mailto:nov@example.com#fragment": "mailto:nov@example.com",
-    "mailto:nov@example.com:8080/path?query#fragment": "mailto:nov@example.com:8080/path?query",
+    "mailto:nov@example.com:8080/path?query#fragment":
+        "mailto:nov@example.com:8080/path?query",
     "localhost": "https://localhost",
     "localhost:8080": "https://localhost:8080",
     "localhost/path": "https://localhost/path",
@@ -73,19 +78,24 @@ class TestWebFinger(object):
     def test_query_device(self):
         wf = WebFinger()
         query = wf.query(resource="device:p1.example.com")
-        assert query == 'https://p1.example.com/.well-known/webfinger?resource=device%3Ap1.example.com'
+        assert query == 'https://p1.example.com/.well-known/webfinger' \
+                        '?resource=device%3Ap1.example.com'
 
     def test_query_rel(self):
         wf = WebFinger()
         query = wf.query("acct:bob@example.com",
                          ["http://webfinger.net/rel/profile-page", "vcard"])
-        assert query == "https://example.com/.well-known/webfinger?resource=acct%3Abob%40example.com&rel=http%3A%2F%2Fwebfinger.net%2Frel%2Fprofile-page&rel=vcard"
+        assert query == "https://example.com/.well-known/webfinger?resource" \
+                        "=acct%3Abob%40example.com&rel=http%3A%2F%2Fwebfinger" \
+                        ".net%2Frel%2Fprofile-page&rel=vcard"
 
     def test_query_acct(self):
         wf = WebFinger(OIC_ISSUER)
         query = wf.query("acct:carol@example.com")
 
-        assert query == "https://example.com/.well-known/webfinger?resource=acct%3Acarol%40example.com&rel=http%3A%2F%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer"
+        assert query == "https://example.com/.well-known/webfinger?resource" \
+                        "=acct%3Acarol%40example.com&rel=http%3A%2F%2Fopenid" \
+                        ".net%2Fspecs%2Fconnect%2F1.0%2Fissuer"
 
     def test_wf4(self):
         EX0 = {
@@ -130,3 +140,13 @@ class TestWebFinger(object):
             if link["rel"] == "blog":
                 assert link["href"] == "http://blogs.example.com/bob/"
                 break
+
+    def test_extra_member_response(self):
+        wf = WebFinger()
+        resp = wf.response('acct:local@domain', 'https://example.com',
+                           dummy='foo')
+
+        # resp should be a JSON document
+
+        _resp = json.loads(resp)
+        assert _resp['dummy'] == 'foo'

@@ -1,0 +1,7 @@
+-r base.txt
+
+pytest
+httpretty
+responses
+mock
+testfixtures
