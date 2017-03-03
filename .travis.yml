@@ -16,7 +16,7 @@ matrix:
     - python: 3.4.4
       env: TOXENV=py34 BUILD=code
     - python: 2.7
-      env: TOXENV=py27 BUIOD=code
+      env: TOXENV=py27 BUILD=code
     - python: 3.5.2
       env: TOXENV=py35 BUILD=docs
 
