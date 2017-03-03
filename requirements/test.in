@@ -1,6 +1,7 @@
+-r base.txt
+
 pytest
-httpretty==0.8.10
+httpretty
 responses
 mock
 testfixtures
-pyldap
