@@ -47,3 +47,5 @@ oidc_example/op2/static/jwks.json
 oidc_example/rp3/conf.py
 oidc_example/rp3/modules/
 update
+/.project
+/.pydevproject
