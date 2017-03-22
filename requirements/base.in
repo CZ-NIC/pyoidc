@@ -1,3 +1,5 @@
+# Base essential dependencies
+
 requests
 cryptography
 cffi
