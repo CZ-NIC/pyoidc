@@ -1,9 +1,10 @@
+# Base essential dependencies
+
 requests
 cryptography
 cffi
 pyjwkest
 mako
 beaker
-alabaster
 pyOpenSSL
 pyldap

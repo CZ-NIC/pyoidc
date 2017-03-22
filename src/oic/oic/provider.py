@@ -1033,7 +1033,14 @@ class Provider(AProvider):
         req = AccessTokenRequest().deserialize(request, dtype)
 
         if 'state' in req:
-            if self.sdb[req['code']]['state'] != req['state']:
+            try:
+                state = self.sdb[req['code']]['state']
+            except KeyError:
+                logger.error('Code not present in SessionDB')
+                err = TokenErrorResponse(error="unauthorized_client")
+                return Unauthorized(err.to_json(), content="application/json")
+
+            if state != req['state']:
                 logger.error('State value mismatch')
                 err = TokenErrorResponse(error="unauthorized_client")
                 return Unauthorized(err.to_json(), content="application/json")
