@@ -12,6 +12,7 @@ from oic.exception import UnknownAssertionType
 from oic.exception import NotForMe
 from oic import rndstr
 from oic.oauth2 import VREQUIRED
+from oic.oauth2 import RefreshAccessTokenRequest
 from oic.oauth2 import AccessTokenRequest
 from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.oic import REQUEST2ENDPOINT
@@ -118,7 +119,7 @@ class ClientSecretBasic(ClientAuthnMethod):
             pass
 
         if isinstance(cis, AccessTokenRequest) and cis[
-                'grant_type'] == 'authorization_code':
+            'grant_type'] == 'authorization_code':
             if 'client_id' not in cis:
                 try:
                     cis['client_id'] = self.cli.client_id
@@ -307,7 +308,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
         """
 
         # audience is the OP endpoint
-        #audience = self.cli._endpoint(REQUEST2ENDPOINT[cis.type()])
+        # audience = self.cli._endpoint(REQUEST2ENDPOINT[cis.type()])
         # OR OP identifier
         audience = self.cli.provider_info['issuer']
         algorithm = None
@@ -570,7 +571,9 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
         logger.error("Missing client authentication.")
         raise FailedAuthentication("Missing client authentication.")
 
-    if isinstance(areq, AccessTokenRequest):
+    if isinstance(areq,
+                  AccessTokenRequest) or isinstance(areq,
+                                                    RefreshAccessTokenRequest):
         try:
             _method = inst.cdb[cid]['token_endpoint_auth_method']
         except KeyError:
