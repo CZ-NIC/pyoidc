@@ -5,6 +5,13 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
+## 0.9.6.0 [UNRELEASED]
+
+### Changed
+- [#291]: Testing more relevant Python versions.
+
+[#291]: https://github.com/OpenIDC/pyoidc/pull/291
+
 ## 0.9.5.0 [2017-03-22]
 
 ### Added
