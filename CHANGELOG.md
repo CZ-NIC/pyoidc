@@ -5,7 +5,7 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
-## 0.9.5.0 [Unreleased]
+## 0.9.5.0 [2017-03-22]
 
 ### Added
 - [#276]: Use a Change log for change history.
@@ -30,5 +30,5 @@ The format is based on the [KeepAChangeLog] project.
 
 [#286]: https://github.com/OpenIDC/pyoidc/pulls/286
 
-## 0.9.4.0 2016-12-22
+## 0.9.4.0 [2016-12-22]
 No change log folks. Sorry.
