@@ -1,17 +1,19 @@
-PyOIDC
-======
+A Python OpenID Connect implementation
+======================================
 
-One of the most complete implementations of OpenID Connect. And as a side
-effect, a fairly complete implementation of OAuth2.0.
+This is a complete implementation of OpenID Connect as specified in the `OpenID
+Connect Core specification`_. And as a side effect, a complete implementation
+of OAuth2.0 too.
 
-Installation is simple with Pip_:
+.. _OpenID Connect Core specification: http://openid.net/specs/openid-connect-core-1_0.html.
+
+Getting a copy is simple with Pip_:
 
 .. _Pip: http://pip.pypa.io/
 
 ::
 
   $ pip install -U oic
-
 
 .. toctree::
    :maxdepth: 1
