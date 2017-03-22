@@ -1,26 +1,26 @@
 alabaster==0.7.10
-appdirs==1.4.2
+appdirs==1.4.3
+asn1crypto==0.22.0
 beaker==1.8.1
-cffi==1.9.1
+cffi==1.10.0
 cookies==2.2.1            # via responses
-cryptography==1.7.2
+cryptography==1.8.1
 future==0.16.0
 httpretty==0.8.14
-idna==2.4
+idna==2.5
 mako==1.0.6
-MarkupSafe==0.23          # via mako
+MarkupSafe==1.0           # via mako
 mock==2.0.0
 packaging==16.8
 pbr==2.0.0                # via mock
-py==1.4.32                # via pytest
-pyasn1==0.2.3
+py==1.4.33                # via pytest
 pycparser==2.17
 pycryptodomex==3.4.5
 pyjwkest==1.3.2
 pyldap==2.4.28
 pyOpenSSL==16.2.0
-pyparsing==2.1.10
-pytest==3.0.6
+pyparsing==2.2.0
+pytest==3.0.7
 requests==2.13.0
 responses==0.5.1
 six==1.10.0
