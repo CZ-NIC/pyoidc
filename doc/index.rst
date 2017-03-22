@@ -25,11 +25,6 @@ Installation is simple with Pip_:
    contrib/testing
    contrib/documentation
 
-Please use the following indices to review the code base:
-
-* :ref:`genindex`
-* :ref:`modindex`
-
 .. raw:: html
 
     <a href="https://github.com/rohe/pyoidc" class="github" target="_blank">

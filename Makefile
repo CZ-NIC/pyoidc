@@ -3,15 +3,12 @@ PROJECT_ROOT:=.
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 SPHINXABUILD  = sphinx-autobuild
-SPHINXAPIDOC  = sphinx-apidoc
 BUILDDIR      = doc/_build
 DOCDIR        = doc/
-INDEXDIR      = doc/index
 OICDIR        = src/oic
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
-	@echo "  index      to make HTML code index files"
 	@echo "  html       to make HTML documentation files"
 	@echo "  livehtml   to make HTML documentation files (live reload!)"
 	@echo "  install    to install the python dependencies for development"
@@ -22,11 +19,6 @@ clean:
 	rm -rf $(INDEXDIR)
 	rm -rf $(BUILDDIR)/*
 .PHONY: clean
-
-index:
-	$(SPHINXAPIDOC) -F -o $(INDEXDIR) $(OICDIR)
-	@echo "Build finished. The Index pages are in $(INDEXDIR)."
-.PHONY: index
 
 ALLSPHINXOPTS=-W
 html:
