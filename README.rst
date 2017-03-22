@@ -26,14 +26,14 @@ Documentation
 ==============
 
 The `documentation`_ is graciously hosted by `Read the Docs`_. Unfortunately,
-the documentation has been largely left unmaintained and `there are many
+the documentation has been largely left unmaintained and `there are various
 issues`_. However, the maintainers are trying to remedy this lately with some
 new momentum. Please help us by submitting pull requests if you can help
 improve the documentation.
 
 .. _documentation: http://pyoidc.readthedocs.io/en/latest/index.html
 .. _Read the Docs: https://readthedocs.org/
-.. _there are many issues: https://github.com/OpenIDC/pyoidc/issues?q=is%3Aopen+is%3Aissue+label%3Adocumentation
+.. _there are various issues: https://github.com/OpenIDC/pyoidc/issues?q=is%3Aopen+is%3Aissue+label%3Adocumentation
 
 Examples
 ========
