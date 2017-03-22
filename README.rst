@@ -18,14 +18,44 @@ A complete OpenID Connect implementation
 
 This a fairly complete implementation of OpenID Connect as specified in the
 `OpenID Connect Core specification`_. And as a side effect a complete
-implementation of OAuth2.0 too. Please see `the documentation`_ to get started.
+implementation of OAuth2.0 too.
 
 .. _OpenID Connect Core specification: http://openid.net/specs/openid-connect-core-1_0.html.
-.. _the documentation: http://pyoidc.readthedocs.io/en/latest/index.html
+
+Documentation
+==============
+
+The `documentation`_ is graciously hosted by `Read the Docs`_. Unfortunately,
+the documentation has been largely left unmaintained and `there are many
+issues`_. However, the maintainers are trying to remedy this lately with some
+new momentum. Please help us by submitting pull requests if you can help
+improve the documentation.
+
+.. _documentation: http://pyoidc.readthedocs.io/en/latest/index.html
+.. _Read the Docs: https://readthedocs.org/
+.. _there are many issues: https://github.com/OpenIDC/pyoidc/issues?q=is%3Aopen+is%3Aissue+label%3Adocumentation
+
+Examples
+========
+
+Unfortunately, the current examples included in this repository are
+unmaintained and `there are many issues`_. We're currently in the process of
+creating a working canonical example implementation, however, until that time,
+the current examples largely do not work. Please help us by submitting pull
+requests that may bring these examples back into a working condition if you
+get something working locally.
+
+.. _there are many issues: https://github.com/OpenIDC/pyoidc/issues?q=is%3Aopen+is%3Aissue+label%3Aexamples
+
+Acknowledgements
+================
 
 Cudos to Vladislav Mladenov and Christian Mainka both at
 Horst Görtz Institute for IT-Security, Ruhr-University Bochum, Germany
 for helping me making the implementation more secure.
+
+Maintainers Needed
+==================
 
 If you're interested in helping maintain and improve this package, we're
 looking for you!
