@@ -1006,7 +1006,7 @@ class Provider(AProvider):
                 return error(error="invalid_request",
                              descr="Could not sign/encrypt id_token")
 
-            sid = _sdb.access_token.get_key(rtoken)
+            sid = _sdb.access_token.get_key(_info['access_token'])
             _sdb.update(sid, "id_token", _idtoken)
 
         _log_debug("_info: %s" % sanitize(_info))
@@ -1175,7 +1175,7 @@ class Provider(AProvider):
     # noinspection PyUnusedLocal
     def userinfo_endpoint(self, request="", **kwargs):
         """
-        :param request: The request in a string format
+        :param request: The request in a string format or as a dictionary
         """
 
         logger.debug('userinfo_endpoint: request={}, kwargs={}'.format(
