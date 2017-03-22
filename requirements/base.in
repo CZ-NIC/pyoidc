@@ -4,6 +4,5 @@ cffi
 pyjwkest
 mako
 beaker
-alabaster
 pyOpenSSL
 pyldap

@@ -47,7 +47,8 @@ REQS_DIR=$(PROJECT_ROOT)/requirements
 BASE_DEPS:=$(REQS_DIR)/base.txt
 TEST_DEPS:=$(REQS_DIR)/test.txt
 ADMIN_DEPS:=$(REQS_DIR)/admin.txt
-ALL_REQS:=$(BASE_DEPS) $(TEST_DEPS) $(ADMIN_DEPS)
+DOC_DEPS:=$(REQS_DIR)/docs.txt
+ALL_REQS:=$(BASE_DEPS) $(TEST_DEPS) $(ADMIN_DEPS) $(DOC_DEPS)
 reqs: $(ALL_REQS)
 upgrade:
 	$(RM) $(ALL_REQS)
