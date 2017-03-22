@@ -1,6 +1,3 @@
-A complete OpenID Connect implementation
-========================================
-
 .. image:: https://api.travis-ci.org/OpenIDC/pyoidc.png?branch=master
     :target: https://travis-ci.org/OpenIDC/pyoidc
 
@@ -16,9 +13,12 @@ A complete OpenID Connect implementation
 .. image:: https://landscape.io/github/rohe/pyoidc/master/landscape.svg?style=flat
     :target: https://landscape.io/github/rohe/pyoidc/master
 
-This a fairly complete implementation of OpenID Connect as specified in the
-`OpenID Connect Core specification`_. And as a side effect a complete
-implementation of OAuth2.0 too.
+A Python OpenID Connect implementation
+======================================
+
+This is a complete implementation of OpenID Connect as specified in the `OpenID
+Connect Core specification`_. And as a side effect, a complete implementation
+of OAuth2.0 too.
 
 .. _OpenID Connect Core specification: http://openid.net/specs/openid-connect-core-1_0.html.
 
