@@ -1,8 +1,8 @@
 A complete OpenID Connect implementation
 ========================================
 
-.. image:: https://api.travis-ci.org/rohe/pyoidc.png?branch=master
-    :target: https://travis-ci.org/rohe/pyoidc
+.. image:: https://api.travis-ci.org/OpenIDC/pyoidc.png?branch=master
+    :target: https://travis-ci.org/OpenIDC/pyoidc
 
 .. image:: https://img.shields.io/pypi/pyversions/oic.svg
     :target: https://pypi.python.org/pypi/oic
