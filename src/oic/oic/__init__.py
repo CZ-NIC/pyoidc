@@ -14,12 +14,12 @@ else:
 import six
 
 from future.backports.urllib.parse import urlparse
-from future.backports.urllib.parse import urlunparse
 from future.backports.urllib.parse import parse_qs
 
 from jwkest.jwe import JWE
-from jwkest import jws, as_unicode, as_bytes
+from jwkest import as_bytes
 from jwkest import jwe
+from jwkest import jws
 
 from oic import oauth2, OIDCONF_PATTERN
 from oic import rndstr
@@ -1455,7 +1455,7 @@ class Server(oauth2.Server):
 
         if not http_req:
             logger.error('Nothing returned')
-            return authz_error("invalid_request_uri")
+            raise AuthzError("invalid_request_uri")
         elif http_req.status_code >= 400:
             logger.error('HTTP error {}:{}'.format(http_req.status_code,
                                                    http_req.text))
