@@ -1175,7 +1175,7 @@ class Provider(AProvider):
     # noinspection PyUnusedLocal
     def userinfo_endpoint(self, request="", **kwargs):
         """
-        :param request: The request in a string format
+        :param request: The request in a string format or as a dictionary
         """
 
         logger.debug('userinfo_endpoint: request={}, kwargs={}'.format(
@@ -1488,8 +1488,8 @@ class Provider(AProvider):
                     pass
                 else:
                     logger.error(
-                        "InvalidRedirectURI: scheme:{}, hostname:{}").format(
-                        p.scheme, p.hostname)
+                        "InvalidRedirectURI: scheme:{}, hostname:{}".format(
+                        p.scheme, p.hostname))
                     raise InvalidRedirectURIError(
                         "Redirect_uri must use custom scheme or http and "
                         "localhost")
