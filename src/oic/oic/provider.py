@@ -1006,7 +1006,7 @@ class Provider(AProvider):
                 return error(error="invalid_request",
                              descr="Could not sign/encrypt id_token")
 
-            sid = _sdb.access_token.get_key(rtoken)
+            sid = _sdb.access_token.get_key(_info['access_token'])
             _sdb.update(sid, "id_token", _idtoken)
 
         _log_debug("_info: %s" % sanitize(_info))
@@ -1033,7 +1033,14 @@ class Provider(AProvider):
         req = AccessTokenRequest().deserialize(request, dtype)
 
         if 'state' in req:
-            if self.sdb[req['code']]['state'] != req['state']:
+            try:
+                state = self.sdb[req['code']]['state']
+            except KeyError:
+                logger.error('Code not present in SessionDB')
+                err = TokenErrorResponse(error="unauthorized_client")
+                return Unauthorized(err.to_json(), content="application/json")
+
+            if state != req['state']:
                 logger.error('State value mismatch')
                 err = TokenErrorResponse(error="unauthorized_client")
                 return Unauthorized(err.to_json(), content="application/json")
@@ -1168,7 +1175,7 @@ class Provider(AProvider):
     # noinspection PyUnusedLocal
     def userinfo_endpoint(self, request="", **kwargs):
         """
-        :param request: The request in a string format
+        :param request: The request in a string format or as a dictionary
         """
 
         logger.debug('userinfo_endpoint: request={}, kwargs={}'.format(

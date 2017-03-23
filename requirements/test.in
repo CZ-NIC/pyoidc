@@ -1,4 +1,5 @@
--r base.txt
+# Development dependencies
+# Depends on base.in
 
 pytest
 httpretty

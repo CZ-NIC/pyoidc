@@ -30,7 +30,6 @@ foo.*
 
 # Dynamically created doc folders
 doc/_build
-doc/index/*
 !tests/data/keys
 
 # Remaining stuff
