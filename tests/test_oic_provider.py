@@ -1,3 +1,4 @@
+# coding: utf-8
 import json
 import os
 import datetime
@@ -707,6 +708,19 @@ class TestProvider(object):
         regresp = RegistrationResponse().deserialize(resp.message, "json")
         assert _eq(regresp.keys(),
                    ['redirect_uris', 'contacts', 'application_type',
+                    'client_name', 'registration_client_uri',
+                    'client_secret_expires_at',
+                    'registration_access_token',
+                    'client_id', 'client_secret',
+                    'client_id_issued_at', 'response_types'])
+
+    def test_registration_endpoint_unicode(self):
+        data = 'application_type=web&client_name=M%C3%A1+supe%C5%99+service&redirect_uris=http%3A%2F%2Fexample.com%2Fauthz&response_types=code'
+        resp = self.provider.registration_endpoint(request=data)
+
+        regresp = RegistrationResponse().deserialize(resp.message, "json")
+        assert _eq(regresp.keys(),
+                   ['redirect_uris', 'application_type',
                     'client_name', 'registration_client_uri',
                     'client_secret_expires_at',
                     'registration_access_token',
