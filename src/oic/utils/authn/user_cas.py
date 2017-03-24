@@ -1,7 +1,8 @@
 import json
 import uuid
 import logging
-from future.backports.urllib.parse import parse_qs, urlencode
+from future.moves.urllib.parse import parse_qs
+from future.backports.urllib.parse import urlencode
 import requests
 import base64
 import six

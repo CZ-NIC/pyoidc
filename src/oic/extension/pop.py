@@ -1,7 +1,7 @@
 import json
 from Cryptodome.PublicKey import RSA
 from future.backports.urllib.parse import urlparse
-from future.backports.urllib.parse import parse_qs
+from future.moves.urllib.parse import parse_qs
 from jwkest import b64e
 from jwkest.jwk import RSAKey, load_jwks
 
