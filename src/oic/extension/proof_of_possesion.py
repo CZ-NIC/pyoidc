@@ -1,8 +1,9 @@
 # pylint: disable=missing-docstring
 import base64
-import time
 import json
-from future.backports.urllib.parse import parse_qsl, parse_qs
+import time
+from future.moves.urllib.parse import parse_qs
+from future.backports.urllib.parse import parse_qsl
 
 from jwkest import jws
 from jwkest.jwk import keyrep

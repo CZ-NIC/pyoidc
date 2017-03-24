@@ -11,7 +11,7 @@ import random
 import sys
 import time
 import traceback
-from future.backports.urllib.parse import parse_qs
+from future.moves.urllib.parse import parse_qs
 from future.backports.urllib.parse import splitquery
 from future.backports.urllib.parse import urlparse
 from future.backports.urllib.parse import urljoin

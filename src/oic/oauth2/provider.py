@@ -5,12 +5,12 @@ import os
 import sys
 import traceback
 
-from future.backports.http.cookies import SimpleCookie
+from http.cookies import SimpleCookie
 from future.backports.urllib.parse import unquote
 from future.backports.urllib.parse import urljoin
 from future.backports.urllib.parse import urlparse
 from future.backports.urllib.parse import splitquery
-from future.backports.urllib.parse import parse_qs
+from future.moves.urllib.parse import parse_qs
 from future.types import newstr
 from six import PY2
 

@@ -5,7 +5,7 @@ import json
 import six
 
 from future.backports.urllib.parse import urlencode
-from future.backports.urllib.parse import parse_qs
+from future.moves.urllib.parse import parse_qs
 from past.builtins import basestring
 
 from jwkest import as_unicode
