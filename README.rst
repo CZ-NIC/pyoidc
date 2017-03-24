@@ -10,8 +10,8 @@
 .. image:: https://img.shields.io/pypi/dm/oic.svg
     :target: https://pypi.python.org/pypi/oic
 
-.. image:: https://landscape.io/github/rohe/pyoidc/master/landscape.svg?style=flat
-    :target: https://landscape.io/github/rohe/pyoidc/master
+.. image:: https://landscape.io/github/OpenIDC/pyoidc/master/landscape.svg?style=flat
+    :target: https://landscape.io/github/OpenIDC/pyoidc/master
 
 A Python OpenID Connect implementation
 ======================================

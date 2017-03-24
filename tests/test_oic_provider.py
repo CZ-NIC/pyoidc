@@ -25,7 +25,7 @@ from oic.exception import RedirectURIError
 from oic.utils.keyio import KeyBundle, ec_init
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import keybundle_from_local_file
-from oic.oic.message import AuthorizationRequest
+from oic.oic.message import AuthorizationRequest, RefreshAccessTokenRequest
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import AccessTokenResponse
@@ -885,6 +885,57 @@ class TestProvider(object):
 
         self.provider._verify_redirect_uri(areq)
 
+    def test_verify_redirect_uri_native_http_localhost(self):
+        cid = 'client_id'
+
+        areq = RegistrationRequest(
+                redirect_uris=["http://localhost/cb"],
+                application_type='native')
+
+        self.provider.verify_redirect_uris(areq)
+
+    def test_verify_redirect_uri_native_loopback(self):
+        cid = 'client_id'
+
+        areq = RegistrationRequest(
+                redirect_uris=["http://127.0.0.1/cb"],
+                application_type='native')
+
+        self.provider.verify_redirect_uris(areq)
+
+    def test_verify_redirect_uri_native_http_non_localhost(self):
+        cid = 'client_id'
+
+        areq = RegistrationRequest(
+                redirect_uris=["http://example.org/cb"],
+                application_type='native')
+
+        try:
+            self.provider.verify_redirect_uris(areq)
+        except InvalidRedirectURIError:
+            assert True
+
+    def test_verify_redirect_uri_native_custom(self):
+        cid = 'client_id'
+
+        areq = RegistrationRequest(
+                redirect_uris=["com.example.app:/oauth2redirect"],
+                application_type='native')
+
+        self.provider.verify_redirect_uris(areq)
+
+    def test_verify_redirect_uri_native_https(self):
+        cid = 'client_id'
+
+        areq = RegistrationRequest(
+                redirect_uris=["https://example.org/cb"],
+                application_type='native')
+
+        try:
+            self.provider.verify_redirect_uris(areq)
+        except InvalidRedirectURIError:
+            assert True
+
     def test_read_registration(self):
         rr = RegistrationRequest(operation="register",
                                  redirect_uris=[
@@ -1008,3 +1059,50 @@ class TestProvider(object):
         self.provider.build_jwx_def()
         id_token = self._auth_with_id_token()
         assert id_token.jws_header['alg'] == "RS512"
+
+    def test_refresh_access_token_request(self):
+        authreq = AuthorizationRequest(state="state",
+                                       redirect_uri="http://example.com/authz",
+                                       client_id=CLIENT_ID,
+                                       response_type="code",
+                                       scope=["openid", 'offline_access'],
+                                       prompt='consent')
+
+        _sdb = self.provider.sdb
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
+        access_grant = _sdb.access_token(sid=sid)
+        ae = AuthnEvent("user", "salt")
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "authn_event": ae,
+            "authzreq": authreq.to_json(),
+            "client_id": CLIENT_ID,
+            "code": access_grant,
+            "code_used": False,
+            "scope": ["openid", 'offline_access'],
+            "redirect_uri": "http://example.com/authz",
+        }
+        _sdb.do_sub(sid, "client_salt")
+
+        # Construct Access token request
+        areq = AccessTokenRequest(code=access_grant, client_id=CLIENT_ID,
+                                  redirect_uri="http://example.com/authz",
+                                  client_secret=CLIENT_SECRET,
+                                  grant_type='authorization_code')
+
+        txt = areq.to_urlencoded()
+
+        resp = self.provider.token_endpoint(request=txt)
+        atr = AccessTokenResponse().deserialize(resp.message, "json")
+
+        rareq = RefreshAccessTokenRequest(grant_type="refresh_token",
+                                          refresh_token=atr['refresh_token'],
+                                          client_id=CLIENT_ID,
+                                          client_secret=CLIENT_SECRET,
+                                          scope=['openid'])
+
+        resp = self.provider.token_endpoint(request=rareq.to_urlencoded())
+        atr2 = AccessTokenResponse().deserialize(resp.message, "json")
+        assert atr2['access_token'] != atr['access_token']
+        assert atr2['refresh_token'] == atr['refresh_token']
+        assert atr2['token_type'] == 'Bearer'
