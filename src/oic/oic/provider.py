@@ -22,7 +22,7 @@ import socket
 
 from requests import ConnectionError
 
-from jwkest import b64d, as_unicode
+from jwkest import b64d
 from jwkest import jwe
 from jwkest import jws
 from jwkest.jwe import JWE
@@ -1006,7 +1006,7 @@ class Provider(AProvider):
                 return error(error="invalid_request",
                              descr="Could not sign/encrypt id_token")
 
-            sid = _sdb.access_token.get_key(rtoken)
+            sid = _sdb.access_token.get_key(_info['access_token'])
             _sdb.update(sid, "id_token", _idtoken)
 
         _log_debug("_info: %s" % sanitize(_info))
@@ -1175,7 +1175,7 @@ class Provider(AProvider):
     # noinspection PyUnusedLocal
     def userinfo_endpoint(self, request="", **kwargs):
         """
-        :param request: The request in a string format
+        :param request: The request in a string format or as a dictionary
         """
 
         logger.debug('userinfo_endpoint: request={}, kwargs={}'.format(
@@ -1484,12 +1484,13 @@ class Provider(AProvider):
             if client_type == "native":
                 if p.scheme not in ['http', 'https']:  # Custom scheme
                     pass
-                elif p.scheme == "http" and p.hostname == "localhost":
+                elif p.scheme == "http" and p.hostname in ["localhost",
+                                                           "127.0.0.1"]:
                     pass
                 else:
                     logger.error(
-                        "InvalidRedirectURI: scheme:{}, hostname:{}").format(
-                        p.scheme, p.hostname)
+                        "InvalidRedirectURI: scheme:{}, hostname:{}".format(
+                        p.scheme, p.hostname))
                     raise InvalidRedirectURIError(
                         "Redirect_uri must use custom scheme or http and "
                         "localhost")
