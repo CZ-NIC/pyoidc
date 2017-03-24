@@ -22,7 +22,7 @@ import socket
 
 from requests import ConnectionError
 
-from jwkest import b64d, as_unicode
+from jwkest import b64d
 from jwkest import jwe
 from jwkest import jws
 from jwkest.jwe import JWE
@@ -1484,7 +1484,8 @@ class Provider(AProvider):
             if client_type == "native":
                 if p.scheme not in ['http', 'https']:  # Custom scheme
                     pass
-                elif p.scheme == "http" and p.hostname == "localhost":
+                elif p.scheme == "http" and p.hostname in ["localhost",
+                                                           "127.0.0.1"]:
                     pass
                 else:
                     logger.error(
