@@ -15,7 +15,7 @@ import six
 
 from future.backports.urllib.parse import urlparse
 from future.backports.urllib.parse import urlunparse
-from future.backports.urllib.parse import parse_qs
+from future.moves.urllib.parse import parse_qs
 
 from jwkest.jwe import JWE
 from jwkest import jws, as_unicode, as_bytes

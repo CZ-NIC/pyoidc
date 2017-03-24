@@ -4,7 +4,7 @@ import logging
 import time
 import six
 
-from future.backports.urllib.parse import parse_qs
+from future.moves.urllib.parse import parse_qs
 from future.backports.urllib.parse import urlsplit
 from future.backports.urllib.parse import urlunsplit
 from future.backports.urllib.parse import urlencode
