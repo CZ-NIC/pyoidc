@@ -11,7 +11,9 @@ from six import string_types
 
 from Cryptodome.PublicKey import RSA
 
-from jwkest import as_unicode, b64e, as_bytes
+from jwkest import as_bytes
+from jwkest import as_unicode
+from jwkest import b64e
 from jwkest import jwe
 from jwkest import jws
 from jwkest.ecc import NISTEllipticCurve
@@ -19,6 +21,7 @@ from jwkest.jwk import ECKey
 from jwkest.jwk import RSAKey
 from jwkest.jwk import SYMKey
 from jwkest.jwk import rsa_load
+from jwkest.jwk import make_public_copy
 
 from oic.exception import MessageException
 from oic.exception import PyoidcError
@@ -58,7 +61,7 @@ K2C = {
 
 class KeyBundle(object):
     def __init__(self, keys=None, source="", cache_time=300, verify_ssl=True,
-                 fileformat="jwk", keytype="RSA", keyusage=None):
+            fileformat="jwk", keytype="RSA", keyusage=None):
         """
 
         :param keys: A list of dictionaries
@@ -377,6 +380,10 @@ def dump_jwks(kbl, target, private=False):
     _txt = json.dumps(res)
     f.write(_txt)
     f.close()
+
+
+def make_public_keybundle(kb):
+    return KeyBundle(keys=[make_public_copy(k) for k in kb._key])
 
 
 class KeyJar(object):
@@ -774,6 +781,31 @@ class KeyJar(object):
         for kbl in self.issuer_keys[issuer]:
             res.extend(kbl.keys())
         return res
+
+    def __eq__(self, other):
+        try:
+            assert isinstance(other, KeyJar)
+        except AssertionError:
+            return False
+
+        # number of issuer_keys must be equal
+        if self.issuer_keys.keys() != other.issuer_keys.keys():
+            return False
+
+        for issuer in self.issuer_keys.keys():
+            mine = self.get_issuer_keys(issuer)
+            others = other.get_issuer_keys(issuer)
+            if len(mine) != len(others):
+                return False
+            for a_key in mine:
+                cmp = False
+                for b_key in others:
+                    if a_key == b_key:
+                        cmp = True
+                        break
+                if not cmp:
+                    return False
+        return True
 
 
 # =============================================================================
