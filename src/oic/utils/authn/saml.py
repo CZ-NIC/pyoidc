@@ -4,7 +4,7 @@ import logging
 import base64
 import six
 
-from future.backports.urllib.parse import parse_qs
+from future.moves.urllib.parse import parse_qs
 from future.backports.urllib.parse import urlencode
 
 from oic.oauth2.exception import VerificationError

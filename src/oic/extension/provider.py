@@ -7,7 +7,7 @@ import sys
 import six
 import socket
 
-from future.backports.urllib.parse import parse_qs
+from future.moves.urllib.parse import parse_qs
 from future.backports.urllib.parse import splitquery
 
 from jwkest import jws, b64e

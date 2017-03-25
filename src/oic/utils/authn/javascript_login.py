@@ -1,4 +1,4 @@
-from future.backports.urllib.parse import parse_qs
+from future.moves.urllib.parse import parse_qs
 import six
 from oic.utils.authn.user import logger
 from oic.utils.authn.user import UsernamePasswordMako

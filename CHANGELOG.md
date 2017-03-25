@@ -9,12 +9,18 @@ The format is based on the [KeepAChangeLog] project.
 
 ### Changed
 - [#291]: Testing more relevant Python versions.
+- [#296]: `parse_qs` import from `future.backports` to `future.moves`.
 
 ### Removed
 - [#294]: Generating code indices in documentation.
 
+### Fixed
+- [#295]: Access token issuance and typo/exception handling.
+
 [#291]: https://github.com/OpenIDC/pyoidc/pull/291
 [#294]: https://github.com/OpenIDC/pyoidc/pull/294
+[#295]: https://github.com/OpenIDC/pyoidc/pull/295
+[#296]: https://github.com/OpenIDC/pyoidc/pull/296
 
 ## 0.9.5.0 [2017-03-22]
 
