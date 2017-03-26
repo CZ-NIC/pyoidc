@@ -2,17 +2,20 @@
 import json
 import logging
 import re
-from oic.exception import PyoidcError
+
 import requests
+from six.moves.urllib.parse import urlencode
+from six.moves.urllib.parse import urlparse
+
+from oic.exception import PyoidcError
+from oic.utils.time_util import in_a_while
 
 try:
     from past.builtins import basestring
 except ImportError:
     pass
 
-from six.moves.urllib.parse import urlencode, urlparse
 
-from oic.utils.time_util import in_a_while
 
 
 __author__ = 'rolandh'

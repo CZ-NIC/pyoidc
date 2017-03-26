@@ -1,6 +1,7 @@
 import os
 
-from oic.utils.aes import encrypt, decrypt
+from oic.utils.aes import decrypt
+from oic.utils.aes import encrypt
 
 
 def test_encrypt_decrypt():

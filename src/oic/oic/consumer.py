@@ -1,24 +1,25 @@
 #!/usr/bin/env python
 import logging
-import time
 import os.path
+import time
 from hashlib import md5
 
 from oic import rndstr
-from oic.exception import PyoidcError
 from oic.exception import AuthzError
-from oic.utils import http_util
-from oic.utils.sanitize import sanitize
-from oic.oic import Client
-from oic.oic import ENDPOINTS
-from oic.oic.message import Claims, ClaimsRequest
-from oic.oic.message import AuthorizationRequest
-from oic.oic.message import AuthorizationResponse
-from oic.oic.message import AccessTokenResponse
+from oic.exception import PyoidcError
 from oic.oauth2 import Grant
 from oic.oauth2.consumer import TokenError
 from oic.oauth2.consumer import UnknownState
 from oic.oauth2.message import ErrorResponse
+from oic.oic import ENDPOINTS
+from oic.oic import Client
+from oic.oic.message import AccessTokenResponse
+from oic.oic.message import AuthorizationRequest
+from oic.oic.message import AuthorizationResponse
+from oic.oic.message import Claims
+from oic.oic.message import ClaimsRequest
+from oic.utils import http_util
+from oic.utils.sanitize import sanitize
 
 __author__ = 'rohe0002'
 

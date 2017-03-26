@@ -1,17 +1,18 @@
-from future.backports.urllib.parse import urlencode, urlparse
 from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import urlencode
+from future.backports.urllib.parse import urlparse
 
 import pytest
 
 from oic import rndstr
 from oic.exception import AuthzError
 from oic.oauth2.consumer import Consumer
-from oic.oauth2.consumer import stateID
 from oic.oauth2.consumer import factory
-from oic.oauth2.message import MissingRequiredAttribute
-from oic.oauth2.message import AuthorizationResponse
-from oic.oauth2.message import AuthorizationErrorResponse
+from oic.oauth2.consumer import stateID
 from oic.oauth2.message import AccessTokenResponse
+from oic.oauth2.message import AuthorizationErrorResponse
+from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import TokenErrorResponse
 from oic.utils.http_util import make_cookie
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from future.backports.urllib.parse import urlparse
 from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import urlparse
 
 from jwkest import jws
 from jwkest.jws import alg2keytype
@@ -8,14 +8,15 @@ from jwkest.jws import alg2keytype
 from oic import rndstr
 from oic.oauth2.message import by_schema
 from oic.oic import Server
-from oic.oic.message import AuthorizationResponse
 from oic.oic.message import AccessTokenResponse
-from oic.oic.message import OpenIDSchema
-from oic.oic.message import RegistrationResponse
+from oic.oic.message import AuthorizationResponse
 from oic.oic.message import EndSessionResponse
+from oic.oic.message import OpenIDSchema
 from oic.oic.message import ProviderConfigurationResponse
+from oic.oic.message import RegistrationResponse
 from oic.oic.message import TokenErrorResponse
-from oic.utils.sdb import SessionDB, AuthnEvent
+from oic.utils.sdb import AuthnEvent
+from oic.utils.sdb import SessionDB
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.webfinger import WebFinger
 

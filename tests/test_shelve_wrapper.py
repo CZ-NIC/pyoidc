@@ -1,8 +1,10 @@
 # pylint: disable=missing-docstring,no-self-use,redefined-outer-name
 import os
+
 import pytest
 
 from oic.utils import shelve_wrapper
+
 
 def _eq(l1, l2):
     return set(l1) == set(l2)

@@ -1,50 +1,53 @@
 # coding: utf-8
+from future.backports.http.cookies import SimpleCookie
+from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import urlencode
+from future.backports.urllib.parse import urlparse
+
+import datetime
 import json
 import os
-import datetime
-import pytest
-
-from six import iteritems
 from time import time
 
-from future.backports.http.cookies import SimpleCookie
-from future.backports.urllib.parse import urlencode
-from future.backports.urllib.parse import parse_qs
-from future.backports.urllib.parse import urlparse
-from mock import Mock, patch
+import pytest
+from mock import Mock
+from mock import patch
+from six import iteritems
 
 from oic import rndstr
-from oic.utils.authn.authn_context import AuthnBroker
-from oic.utils.authn.client import verify_client
-from oic.utils.authn.client import ClientSecretBasic
-from oic.utils.authn.user import UserAuthnMethod
-from oic.utils.authz import AuthzHandling
-from oic.utils.http_util import SeeOther
-from oic.utils.userinfo import UserInfo
 from oic.exception import FailedAuthentication
 from oic.exception import RedirectURIError
-from oic.utils.keyio import KeyBundle, ec_init
-from oic.utils.keyio import KeyJar
-from oic.utils.keyio import keybundle_from_local_file
-from oic.oic.message import AuthorizationRequest, RefreshAccessTokenRequest
-from oic.oic.message import RegistrationResponse
-from oic.oic.message import OpenIDSchema
-from oic.oic.message import AccessTokenResponse
-from oic.oic.message import AccessTokenRequest
-from oic.oic.message import TokenErrorResponse
-from oic.oic.message import AuthorizationResponse
-from oic.oic.message import UserInfoRequest
-from oic.oic.message import CheckSessionRequest
-from oic.oic.message import RegistrationRequest
-from oic.oic.message import IdToken
-from oic.utils.sdb import AuthnEvent
-from oic.utils.sdb import SessionDB
 from oic.oic import DEF_SIGN_ALG
 from oic.oic import make_openid_request
 from oic.oic.consumer import Consumer
-from oic.oic.provider import Provider
+from oic.oic.message import AccessTokenRequest
+from oic.oic.message import AccessTokenResponse
+from oic.oic.message import AuthorizationRequest
+from oic.oic.message import AuthorizationResponse
+from oic.oic.message import CheckSessionRequest
+from oic.oic.message import IdToken
+from oic.oic.message import OpenIDSchema
+from oic.oic.message import RefreshAccessTokenRequest
+from oic.oic.message import RegistrationRequest
+from oic.oic.message import RegistrationResponse
+from oic.oic.message import TokenErrorResponse
+from oic.oic.message import UserInfoRequest
 from oic.oic.provider import InvalidRedirectURIError
+from oic.oic.provider import Provider
+from oic.utils.authn.authn_context import AuthnBroker
+from oic.utils.authn.client import ClientSecretBasic
+from oic.utils.authn.client import verify_client
+from oic.utils.authn.user import UserAuthnMethod
+from oic.utils.authz import AuthzHandling
+from oic.utils.http_util import SeeOther
+from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import KeyJar
+from oic.utils.keyio import ec_init
+from oic.utils.keyio import keybundle_from_local_file
+from oic.utils.sdb import AuthnEvent
+from oic.utils.sdb import SessionDB
 from oic.utils.time_util import epoch_in_a_while
+from oic.utils.userinfo import UserInfo
 
 __author__ = 'rohe0002'
 

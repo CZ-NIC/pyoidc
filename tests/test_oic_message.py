@@ -1,28 +1,30 @@
 # -*- coding: utf-8 -*-
+from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import urlencode
+
+import json
 import os
 import sys
-import json
+
 import pytest
-
-from future.backports.urllib.parse import urlencode, parse_qs
-
 from jwkest import BadSignature
 from jwkest.jwk import SYMKey
 
 from oic.oauth2 import WrongSigningAlgorithm
-from oic.oauth2.message import MissingRequiredValue, MissingRequiredAttribute
-from oic.oic.message import ProviderConfigurationResponse
-from oic.oic.message import RegistrationResponse
-from oic.oic.message import AuthorizationRequest
-from oic.oic.message import IdToken
+from oic.oauth2.message import MissingRequiredAttribute
+from oic.oauth2.message import MissingRequiredValue
 from oic.oic.message import AccessTokenResponse
-from oic.oic.message import msg_ser
-from oic.oic.message import claims_ser
-from oic.oic.message import RegistrationRequest
-from oic.oic.message import claims_deser
 from oic.oic.message import AddressClaim
-from oic.oic.message import address_deser
+from oic.oic.message import AuthorizationRequest
 from oic.oic.message import Claims
+from oic.oic.message import IdToken
+from oic.oic.message import ProviderConfigurationResponse
+from oic.oic.message import RegistrationRequest
+from oic.oic.message import RegistrationResponse
+from oic.oic.message import address_deser
+from oic.oic.message import claims_deser
+from oic.oic.message import claims_ser
+from oic.oic.message import msg_ser
 from oic.utils import time_util
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),

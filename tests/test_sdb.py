@@ -6,15 +6,17 @@ import time
 
 import pytest
 
-from oic.utils.sdb import AccessCodeUsed, DefaultToken
-from oic.utils.sdb import AuthnEvent
-from oic.utils.sdb import Crypt
-from oic.utils.sdb import DictRefreshDB
-from oic.utils.sdb import SessionDB
-from oic.utils.sdb import WrongTokenType
-from oic.utils.sdb import ExpiredToken
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import OpenIDRequest
+from oic.utils.sdb import AccessCodeUsed
+from oic.utils.sdb import AuthnEvent
+from oic.utils.sdb import Crypt
+from oic.utils.sdb import DefaultToken
+from oic.utils.sdb import DictRefreshDB
+from oic.utils.sdb import ExpiredToken
+from oic.utils.sdb import SessionDB
+from oic.utils.sdb import WrongTokenType
+
 
 def _eq(l1, l2):
     return set(l1) == set(l2)

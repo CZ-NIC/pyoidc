@@ -15,9 +15,10 @@
 # limitations under the License.
 #
 import re
+import sys
+
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
-import sys
 
 __author__ = 'rohe0002'
 

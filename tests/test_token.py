@@ -1,15 +1,17 @@
 import time
+
 import pytest
-from oic.extension.token import JWTToken
+
 from oic import rndstr
+from oic.extension.token import JWTToken
 from oic.oauth2 import AuthorizationRequest
 from oic.oic import OpenIDRequest
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
-from oic.utils.sdb import SessionDB
+from oic.utils.sdb import AccessCodeUsed
 from oic.utils.sdb import AuthnEvent
 from oic.utils.sdb import ExpiredToken
-from oic.utils.sdb import AccessCodeUsed
+from oic.utils.sdb import SessionDB
 
 __author__ = 'roland'
 

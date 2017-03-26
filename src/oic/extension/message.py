@@ -1,24 +1,22 @@
+from future.backports.urllib.parse import urlparse
+
+import inspect
+import sys
+
 import requests
 import six
-import inspect
-
-from future.backports.urllib.parse import urlparse
-import sys
 
 from oic.exception import InvalidRedirectUri
 from oic.exception import MissingPage
-
-from oic.oauth2.message import ErrorResponse
-from oic.oauth2.message import Message
 from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 from oic.oauth2.message import SINGLE_OPTIONAL_INT
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
-
+from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import Message
 from oic.oic.message import JasonWebToken
-
 from oic.utils.http_util import SUCCESSFUL
 from oic.utils.jwt import JWT
 

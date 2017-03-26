@@ -2,11 +2,12 @@
 
 import socket
 
-from mako.lookup import TemplateLookup
 import pytest
+from mako.lookup import TemplateLookup
 
+from oic.utils.authn.authn_context import PASSWORD
+from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.user import UsernamePasswordMako
-from oic.utils.authn.authn_context import AuthnBroker, PASSWORD
 from oic.utils.authn.user_cas import CasAuthnMethod
 
 __author__ = 'rolandh'

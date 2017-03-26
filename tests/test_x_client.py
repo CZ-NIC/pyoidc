@@ -1,13 +1,14 @@
-from oic.extension.token import JWTToken
 from oic import rndstr
-from oic.utils import sdb
 from oic.extension.client import Client
 from oic.extension.provider import Provider
+from oic.extension.token import JWTToken
+from oic.utils import sdb
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
-from oic.utils.keyio import KeyBundle, KeyJar
+from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import KeyJar
 
 __author__ = 'roland'
 

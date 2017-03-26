@@ -1,9 +1,9 @@
 import logging
+
 import ldap
 
-from oic.utils.userinfo import UserInfo
 from oic.utils.sanitize import sanitize
-
+from oic.utils.userinfo import UserInfo
 
 __author__ = 'rolandh'
 

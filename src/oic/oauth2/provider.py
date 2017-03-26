@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+from future.backports.urllib.parse import splitquery
+from future.backports.urllib.parse import unquote
+from future.backports.urllib.parse import urljoin
+from future.backports.urllib.parse import urlparse
+from future.moves.urllib.parse import parse_qs
+from future.types import newstr
+
 import hashlib
 import logging
 import os
@@ -6,28 +13,24 @@ import sys
 import traceback
 
 from http.cookies import SimpleCookie
-from future.backports.urllib.parse import unquote
-from future.backports.urllib.parse import urljoin
-from future.backports.urllib.parse import urlparse
-from future.backports.urllib.parse import splitquery
-from future.moves.urllib.parse import parse_qs
-from future.types import newstr
 from six import PY2
 
 from oic import rndstr
-from oic.exception import FailedAuthentication, UnSupported, AuthzError
+from oic.exception import AuthzError
+from oic.exception import FailedAuthentication
 from oic.exception import InvalidRequest
 from oic.exception import MissingParameter
 from oic.exception import ParameterError
 from oic.exception import RedirectURIError
 from oic.exception import UnknownClient
+from oic.exception import UnSupported
 from oic.exception import URIError
+from oic.oauth2 import ErrorResponse
+from oic.oauth2 import Server
 from oic.oauth2 import error
 from oic.oauth2 import error_response
-from oic.oauth2 import ErrorResponse
 from oic.oauth2 import none_response
 from oic.oauth2 import redirect_authz_error
-from oic.oauth2 import Server
 from oic.oauth2.message import AccessTokenRequest
 from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import AuthorizationRequest
@@ -43,8 +46,8 @@ from oic.utils.authn.user import TamperAllert
 from oic.utils.authn.user import ToOld
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import CookieDealer
-from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Response
+from oic.utils.http_util import SeeOther
 from oic.utils.http_util import make_cookie
 from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed

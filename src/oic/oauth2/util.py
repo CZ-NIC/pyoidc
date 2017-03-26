@@ -1,12 +1,12 @@
 import logging
 
-from oic.oauth2.exception import TimeFormatError
-from oic.exception import UnSupported
-from oic.utils.sanitize import sanitize
-
-from six import string_types
 import six.moves.http_cookiejar as cookielib
+from six import string_types
 from six.moves.http_cookiejar import http2time
+
+from oic.exception import UnSupported
+from oic.oauth2.exception import TimeFormatError
+from oic.utils.sanitize import sanitize
 
 logger = logging.getLogger(__name__)
 

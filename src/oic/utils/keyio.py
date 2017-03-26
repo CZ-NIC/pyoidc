@@ -1,17 +1,17 @@
+from future.backports.urllib.parse import urlsplit
+
 import copy
 import json
 import logging
+import os
 import sys
 import time
-import os
+
 import requests
-
-from future.backports.urllib.parse import urlsplit
-from six import string_types
-
 from Cryptodome.PublicKey import RSA
-
-from jwkest import as_unicode, b64e, as_bytes
+from jwkest import as_bytes
+from jwkest import as_unicode
+from jwkest import b64e
 from jwkest import jwe
 from jwkest import jws
 from jwkest.ecc import NISTEllipticCurve
@@ -19,6 +19,7 @@ from jwkest.jwk import ECKey
 from jwkest.jwk import RSAKey
 from jwkest.jwk import SYMKey
 from jwkest.jwk import rsa_load
+from six import string_types
 
 from oic.exception import MessageException
 from oic.exception import PyoidcError

@@ -1,9 +1,9 @@
 import importlib
 from tempfile import NamedTemporaryFile
+
 import six
 
 from oic.utils.userinfo import UserInfo
-
 
 __author__ = 'danielevertsson'
 

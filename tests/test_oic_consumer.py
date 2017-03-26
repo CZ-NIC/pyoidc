@@ -1,15 +1,22 @@
+from future.backports.urllib.parse import urlparse
+
 import json
 import os
+
 import pytest
 import responses
 import six
-
-from future.backports.urllib.parse import urlparse
-
+from fakeoicsrv import MyFakeOICServer
 from jwkest import BadSignature
 from jwkest.jwk import SYMKey
+from mitmsrv import MITMServer
 
 from oic.oauth2.message import MissingSigningKey
+from oic.oic import DEF_SIGN_ALG
+from oic.oic import Server
+from oic.oic.consumer import IGNORE
+from oic.oic.consumer import Consumer
+from oic.oic.consumer import clean_response
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import IdToken
@@ -17,17 +24,10 @@ from oic.oic.message import OpenIDSchema
 from oic.oic.message import ProviderConfigurationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import keybundle_from_local_file
 from oic.utils.keyio import KeyJar
-from oic.oic import Server, DEF_SIGN_ALG
-from oic.oic.consumer import Consumer
-from oic.oic.consumer import IGNORE
-from oic.oic.consumer import clean_response
-from oic.utils.time_util import utc_time_sans_frac
+from oic.utils.keyio import keybundle_from_local_file
 from oic.utils.sdb import SessionDB
-
-from fakeoicsrv import MyFakeOICServer
-from mitmsrv import MITMServer
+from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = 'rohe0002'
 

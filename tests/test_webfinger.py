@@ -2,9 +2,9 @@
 
 import json
 
+from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.webfinger import URINormalizer
 from oic.utils.webfinger import WebFinger
-from oic.utils.webfinger import OIC_ISSUER
 
 __author__ = 'rolandh'
 

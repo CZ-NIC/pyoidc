@@ -1,13 +1,14 @@
-from email.mime.text import MIMEText
 import hashlib
 import json
 import smtplib
 import time
+from email.mime.text import MIMEText
+
+from provider.authn import AuthnModule
+from provider.authn import make_cls_from_name
+from provider.authn.user_pass import UserPass
 
 from oic.utils.http_util import Response
-
-from provider.authn import AuthnModule, make_cls_from_name
-from provider.authn.user_pass import UserPass
 
 
 class MailTwoFactor(AuthnModule):

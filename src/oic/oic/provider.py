@@ -1,6 +1,12 @@
 #!/usr/bin/env python
+from future.backports.urllib.parse import splitquery
+from future.backports.urllib.parse import unquote
+from future.backports.urllib.parse import urlencode
+from future.backports.urllib.parse import urljoin
+from future.backports.urllib.parse import urlparse
+from future.moves.urllib.parse import parse_qs
+
 import copy
-from functools import cmp_to_key
 import hashlib
 import hmac
 import itertools
@@ -8,20 +14,13 @@ import json
 import logging
 import os
 import random
+import socket
 import sys
 import time
 import traceback
-from future.moves.urllib.parse import parse_qs
-from future.backports.urllib.parse import splitquery
-from future.backports.urllib.parse import urlparse
-from future.backports.urllib.parse import urljoin
-from future.backports.urllib.parse import urlencode
-from future.backports.urllib.parse import unquote
+from functools import cmp_to_key
+
 import six
-import socket
-
-from requests import ConnectionError
-
 from jwkest import b64d
 from jwkest import jwe
 from jwkest import jws
@@ -31,20 +30,24 @@ from jwkest.jwe import NotSupportedAlgorithm
 from jwkest.jwk import SYMKey
 from jwkest.jws import NoSuitableSigningKeys
 from jwkest.jws import alg2keytype
+from requests import ConnectionError
 
 from oic import rndstr
 from oic.exception import *
-from oic.oauth2 import error, compact
+from oic.oauth2 import compact
+from oic.oauth2 import error
 from oic.oauth2 import error_response
 from oic.oauth2 import redirect_authz_error
 from oic.oauth2.exception import CapabilitiesMisMatch
-from oic.oauth2.message import by_schema, Message
+from oic.oauth2.message import Message
+from oic.oauth2.message import by_schema
 from oic.oauth2.provider import Provider as AProvider
 from oic.oauth2.provider import Endpoint
-from oic.oic import PREFERENCE2PROVIDER, scope2claims
+from oic.oic import PREFERENCE2PROVIDER
 from oic.oic import PROVIDER_DEFAULT
 from oic.oic import Server
 from oic.oic import claims_match
+from oic.oic import scope2claims
 from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.message import AccessTokenRequest
 from oic.oic.message import AccessTokenResponse
@@ -66,14 +69,15 @@ from oic.oic.message import TokenErrorResponse
 from oic.utils import sort_sign_alg
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Created
-from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Response
+from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Unauthorized
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
 from oic.utils.sanitize import sanitize
-from oic.utils.sdb import ExpiredToken, AccessCodeUsed
+from oic.utils.sdb import AccessCodeUsed
+from oic.utils.sdb import ExpiredToken
 from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = 'rohe0002'

@@ -1,18 +1,19 @@
-import importlib
+from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import unquote
+
 import argparse
+import importlib
+import logging
 import sys
 
 from beaker.middleware import SessionMiddleware
 from cherrypy import wsgiserver
-from future.backports.urllib.parse import parse_qs, unquote
 
 from oic.oauth2.consumer import Consumer
 from oic.utils.http_util import NotFound
-from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Response
+from oic.utils.http_util import SeeOther
 from oic.utils.http_util import get_or_post
-
-import logging
 
 # ============================================================================
 # First define how logging is supposed to be done

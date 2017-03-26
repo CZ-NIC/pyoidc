@@ -1,20 +1,22 @@
 #!/usr/bin/env python
-import uuid
-from future.backports.urllib.parse import parse_qs, urlencode
-import requests
-import hashlib
+from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import urlencode
+
 import base64
-from jwkest.jws import alg2keytype
+import hashlib
+import logging
+import uuid
+
+import requests
 from beaker.middleware import SessionMiddleware
 from cherrypy import wsgiserver
+from jwkest.jws import alg2keytype
 from mako.lookup import TemplateLookup
 
 from oic.utils.http_util import NotFound
 from oic.utils.http_util import Response
-from oic.utils.http_util import ServiceError
 from oic.utils.http_util import SeeOther
-
-import logging
+from oic.utils.http_util import ServiceError
 
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = 'rp.log'
