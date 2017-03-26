@@ -13,6 +13,7 @@ help:
 	@echo "  livehtml   to make HTML documentation files (live reload!)"
 	@echo "  install    to install the python dependencies for development"
 	@echo "  upgrade    to upgrade the python dependencies"
+	@echo "  isort      to sort imports"
 .PHONY: help
 
 clean:
@@ -40,7 +41,8 @@ BASE_DEPS:=$(REQS_DIR)/base.txt
 TEST_DEPS:=$(REQS_DIR)/test.txt
 ADMIN_DEPS:=$(REQS_DIR)/admin.txt
 DOC_DEPS:=$(REQS_DIR)/docs.txt
-ALL_REQS:=$(BASE_DEPS) $(TEST_DEPS) $(ADMIN_DEPS) $(DOC_DEPS)
+QUAL_DEPS:=$(REQS_DIR)/quality.txt
+ALL_REQS:=$(BASE_DEPS) $(TEST_DEPS) $(ADMIN_DEPS) $(DOC_DEPS) $(QUAL_DEPS)
 reqs: $(ALL_REQS)
 upgrade:
 	$(RM) $(ALL_REQS)
@@ -56,3 +58,10 @@ $(REQS_DIR)/%.txt: $(REQS_DIR)/%.in
 	@sed -n '1,10 s/# Depends on/-r/; s/\.in/.txt/p' "$<" > "$@"
 	@cat "$@.tmp" >> "$@"
 	@$(RM) "$@.tmp" /tmp/pip-compile.out.tmp
+
+isort:
+	isort --recursive .
+
+check-isort:
+	isort --recursive --diff --check-only .
+.PHONY: isort, check-isort
