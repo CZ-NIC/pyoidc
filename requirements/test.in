@@ -1,6 +1,7 @@
 # Development dependencies
 # Depends on base.in
 
+tox
 pytest
 httpretty
 responses
