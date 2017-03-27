@@ -15,13 +15,13 @@ PyOIDC uses Pytest_ for testing. You can install it via Pip_:
 
 ::
 
-  $ pip install -U pytest
+  $ pip install pytest
 
 Then, you'll need to install the test dependencies with:
 
 ::
 
-  $ pip install -U -r tests/test_requirements.txt
+  $ pip install -U -r requirements/test.txt
 
 Now, you can run the tests by simply invoking ``py.test``:
 
@@ -40,7 +40,7 @@ many versions of Python. You can install it via Pip_:
 
 ::
 
-  $ pip install -U tox
+  $ pip install -r requirements/test.txt
 
 Then, check the available environments with:
 
@@ -52,4 +52,4 @@ Then run Tox on your chosen environment:
 
 ::
 
-  $ tox -e py35
+  $ tox -e py36
