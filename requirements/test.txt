@@ -4,13 +4,12 @@ cookies==2.2.1            # via responses
 httpretty==0.8.14
 mock==2.0.0
 packaging==16.8           # via setuptools
-pbr==2.0.0                # via mock
 py==1.4.33                # via pytest
 pyparsing==2.2.0          # via packaging
 pytest==3.0.7
 requests==2.13.0          # via responses
 responses==0.5.1
-six==1.10.0               # via mock, packaging, responses, setuptools
+six==1.10.0               # via packaging, responses, setuptools
 testfixtures==4.13.5
 
 # The following packages are considered to be unsafe in a requirements file:

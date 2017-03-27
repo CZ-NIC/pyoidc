@@ -8,3 +8,4 @@ mako
 beaker
 pyOpenSSL
 pyldap
+future
