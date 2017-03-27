@@ -60,8 +60,8 @@ $(REQS_DIR)/%.txt: $(REQS_DIR)/%.in
 	@$(RM) "$@.tmp" /tmp/pip-compile.out.tmp
 
 isort:
-	isort --recursive .
+	isort --recursive src/ tests/
 
 check-isort:
-	isort --recursive --diff --check-only .
+	isort --recursive --diff --check-only src/ tests/
 .PHONY: isort, check-isort
