@@ -1,35 +1,36 @@
 # encoding: utf-8
+from future.backports.urllib.parse import urlparse
+
 import inspect
-import time
-import urllib
 import json
 import logging
-from future.backports.urllib.parse import urlparse
+import sys
+import time
+import urllib
 
 import six
 from jwkest import jws
-import sys
-from oic.utils import time_util
 
-from oic.oauth2 import message
 from oic.exception import InvalidRequest
-from oic.exception import NotForMe
 from oic.exception import MessageException
+from oic.exception import NotForMe
 from oic.exception import PyoidcError
+from oic.oauth2 import message
 from oic.oauth2.exception import VerificationError
-from oic.oauth2.message import MissingRequiredValue
-from oic.oauth2.message import MissingRequiredAttribute
-from oic.oauth2.message import Message
-from oic.oauth2.message import SchemeError
-from oic.oauth2.message import NotAllowedValue
+from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
+from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
+from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
+from oic.oauth2.message import SINGLE_OPTIONAL_INT
 from oic.oauth2.message import SINGLE_OPTIONAL_JSON
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
-from oic.oauth2.message import SINGLE_OPTIONAL_INT
-from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
+from oic.oauth2.message import Message
+from oic.oauth2.message import MissingRequiredAttribute
+from oic.oauth2.message import MissingRequiredValue
+from oic.oauth2.message import NotAllowedValue
+from oic.oauth2.message import SchemeError
+from oic.utils import time_util
 
 __author__ = 'rohe0002'
 

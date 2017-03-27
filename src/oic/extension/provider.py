@@ -1,49 +1,49 @@
-from functools import cmp_to_key
+from future.backports.urllib.parse import splitquery
+from future.moves.urllib.parse import parse_qs
+
 import json
 import logging
 import os
-import traceback
-import sys
-import six
 import socket
+import sys
+import traceback
+from functools import cmp_to_key
 
-from future.moves.urllib.parse import parse_qs
-from future.backports.urllib.parse import splitquery
-
-from jwkest import jws, b64e
+import six
+from jwkest import b64e
+from jwkest import jws
 
 from oic import rndstr
-
 from oic.exception import FailedAuthentication
 from oic.exception import ModificationForbidden
 from oic.exception import RestrictionError
-from oic.exception import UnSupported
 from oic.exception import UnknownAssertionType
+from oic.exception import UnSupported
+from oic.extension.client import CC_METHOD
 from oic.extension.message import ClientInfoResponse
 from oic.extension.message import ClientRegistrationError
-from oic.extension.message import ServerMetadata
-from oic.extension.client import CC_METHOD
 from oic.extension.message import ClientUpdateRequest
-from oic.extension.message import RegistrationRequest
 from oic.extension.message import InvalidRedirectUri
 from oic.extension.message import MissingPage
-from oic.extension.message import TokenRevocationRequest
+from oic.extension.message import RegistrationRequest
+from oic.extension.message import ServerMetadata
 from oic.extension.message import TokenIntrospectionRequest
 from oic.extension.message import TokenIntrospectionResponse
-from oic.oauth2 import provider, compact
+from oic.extension.message import TokenRevocationRequest
 from oic.oauth2 import AccessTokenRequest
-from oic.oauth2 import TokenErrorResponse
 from oic.oauth2 import AccessTokenResponse
+from oic.oauth2 import TokenErrorResponse
 from oic.oauth2 import by_schema
-from oic.oauth2.provider import Endpoint
-from oic.oauth2.exception import VerificationError
+from oic.oauth2 import compact
+from oic.oauth2 import provider
 from oic.oauth2.exception import CapabilitiesMisMatch
+from oic.oauth2.exception import VerificationError
 from oic.oauth2.message import ASConfigurationResponse
 from oic.oauth2.message import ErrorResponse
-
+from oic.oauth2.provider import Endpoint
 from oic.oic import PREFERENCE2PROVIDER
-from oic.oic.provider import RegistrationEndpoint
 from oic.oic.provider import STR
+from oic.oic.provider import RegistrationEndpoint
 from oic.oic.provider import secret
 from oic.utils import restrict
 from oic.utils import sort_sign_alg
@@ -51,16 +51,16 @@ from oic.utils.authn.client import AuthnFailure
 from oic.utils.authn.client import UnknownAuthnMethod
 from oic.utils.authn.client import get_client_id
 from oic.utils.authn.client import valid_client_info
-from oic.utils.http_util import Unauthorized
-from oic.utils.http_util import NoContent
-from oic.utils.http_util import Response
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Forbidden
+from oic.utils.http_util import NoContent
+from oic.utils.http_util import Response
+from oic.utils.http_util import Unauthorized
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import key_export
-from oic.utils.sdb import AccessCodeUsed
 from oic.utils.sanitize import sanitize
+from oic.utils.sdb import AccessCodeUsed
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.token_handler import NotAllowed
 from oic.utils.token_handler import TokenHandler

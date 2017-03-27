@@ -1,11 +1,12 @@
 #!/usr/bin/env python
+from future.utils import tobytes
+
 import os
+from base64 import b64decode
+from base64 import b64encode
 
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
-from base64 import b64encode, b64decode
-from future.utils import tobytes
-
 from six import indexbytes
 
 __author__ = 'rolandh'

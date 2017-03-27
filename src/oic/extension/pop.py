@@ -1,15 +1,18 @@
-import json
-from Cryptodome.PublicKey import RSA
 from future.backports.urllib.parse import urlparse
 from future.moves.urllib.parse import parse_qs
-from jwkest import b64e
-from jwkest.jwk import RSAKey, load_jwks
 
-from oic.oauth2 import compact
-from oic.utils.keyio import KeyBundle
-from oic.extension.signed_http_req import SignedHttpRequest
-from oic.utils.jwt import JWT
+import json
+
+from Cryptodome.PublicKey import RSA
+from jwkest import b64e
+from jwkest.jwk import RSAKey
+from jwkest.jwk import load_jwks
+
 from oic.extension.message import TokenIntrospectionResponse
+from oic.extension.signed_http_req import SignedHttpRequest
+from oic.oauth2 import compact
+from oic.utils.jwt import JWT
+from oic.utils.keyio import KeyBundle
 
 __author__ = 'roland'
 

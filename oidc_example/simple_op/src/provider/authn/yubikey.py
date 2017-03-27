@@ -1,10 +1,12 @@
 import json
 import logging
 
+from provider.authn import AuthnModule
+from provider.authn import make_cls_from_name
 from yubico_client import yubico_exceptions
 from yubico_client.yubico import Yubico
+
 from oic.utils.http_util import Response
-from provider.authn import AuthnModule, make_cls_from_name
 
 logger = logging.getLogger(__name__)
 

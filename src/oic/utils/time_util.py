@@ -20,12 +20,11 @@ different types of information.
 """
 
 import calendar
+import re
 import sys
 import time
 from datetime import datetime
 from datetime import timedelta
-
-import re
 
 try:
     from past.builtins import basestring

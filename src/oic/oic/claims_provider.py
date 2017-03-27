@@ -1,29 +1,30 @@
+import logging
+
+from oic import rndstr
+from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
+from oic.oauth2.message import SINGLE_OPTIONAL_STRING
+from oic.oauth2.message import SINGLE_REQUIRED_STRING
+from oic.oauth2.message import Message
+from oic.oic import Server as OicServer
+from oic.oic import REQUEST2ENDPOINT
+from oic.oic import RESPONSE2ERROR
+from oic.oic import Client
+from oic.oic.message import Claims
+from oic.oic.message import OpenIDSchema
+from oic.oic.provider import Endpoint
+from oic.oic.provider import Provider
+from oic.utils.authn.client import bearer_auth
+from oic.utils.http_util import Response
 from oic.utils.keyio import KeyJar
+from oic.utils.sanitize import sanitize
 
 __author__ = 'rohe0002'
 
-import logging
-from oic import rndstr
 
-from oic.oic.message import OpenIDSchema
-from oic.oic.message import Claims
 
-from oic.oic import Server as OicServer
-from oic.oic import Client
-from oic.oic import REQUEST2ENDPOINT
-from oic.oic import RESPONSE2ERROR
 
-from oic.oic.provider import Provider
-from oic.oic.provider import Endpoint
 
-from oic.oauth2.message import Message
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 
-from oic.utils.http_util import Response
-from oic.utils.authn.client import bearer_auth
-from oic.utils.sanitize import sanitize
 
 # Used in claims.py
 # from oic.oic.message import RegistrationRequest

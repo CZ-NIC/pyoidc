@@ -1,24 +1,23 @@
-import json
-import time
-import pytest
-
 from future.backports.urllib.parse import parse_qs
 from future.backports.urllib.parse import urlparse
 
-from oic import rndstr
-from oic.oauth2.message import AuthorizationRequest
-from oic.oauth2.message import AuthorizationResponse
-from oic.oauth2.message import AccessTokenRequest
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import TokenErrorResponse
+import json
+import time
 
+import pytest
+
+from oic import rndstr
 from oic.extension.client import Client
-from oic.extension.provider import Provider
 from oic.extension.message import TokenIntrospectionRequest
 from oic.extension.message import TokenIntrospectionResponse
 from oic.extension.message import TokenRevocationRequest
+from oic.extension.provider import Provider
 from oic.extension.token import JWTToken
-
+from oic.oauth2.message import AccessTokenRequest
+from oic.oauth2.message import AccessTokenResponse
+from oic.oauth2.message import AuthorizationRequest
+from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import TokenErrorResponse
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
@@ -28,7 +27,6 @@ from oic.utils.keyio import KeyJar
 from oic.utils.sdb import SessionDB
 from oic.utils.sdb import lv_pack
 from oic.utils.sdb import lv_unpack
-
 
 CLIENT_CONFIG = {
     "client_id": "client1",

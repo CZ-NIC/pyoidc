@@ -1,15 +1,15 @@
-import pytest
-
 from future.backports.http.cookiejar import FileCookieJar
 from future.backports.http.cookiejar import http2time
 from future.backports.http.cookies import SimpleCookie
-from future.backports.urllib.parse import urlparse
 from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import urlparse
+
+import pytest
 
 from oic.exception import UnSupported
+from oic.oauth2 import util
 from oic.oic import AuthorizationRequest
 from oic.oic.message import AccessTokenRequest
-from oic.oauth2 import util
 
 __author__ = 'DIRG'
 

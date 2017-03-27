@@ -1,8 +1,7 @@
 import ldap
+
 from oic.exception import PyoidcError
-
 from oic.utils.authn.user import UsernamePasswordMako
-
 
 SCOPE_MAP = {
     "base": ldap.SCOPE_BASE,

@@ -1,13 +1,14 @@
-import json
-import uuid
-import logging
-from future.moves.urllib.parse import parse_qs
 from future.backports.urllib.parse import urlencode
-import requests
-import base64
-import six
+from future.moves.urllib.parse import parse_qs
 
+import base64
+import json
+import logging
+import uuid
 import xml.etree.ElementTree as ET
+
+import requests
+import six
 
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.http_util import SeeOther

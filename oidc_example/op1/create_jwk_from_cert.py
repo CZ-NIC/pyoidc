@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 from oic.oauth2 import PBase
-from oic.utils.keystore import KeyStore, x509_rsa_loads
+from oic.utils.keystore import KeyStore
+from oic.utils.keystore import x509_rsa_loads
 
 __author__ = 'rohe0002'
 

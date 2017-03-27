@@ -1,5 +1,5 @@
-from shelve import Shelf
 import shelve
+from shelve import Shelf
 
 try:
     import dbm as anydbm

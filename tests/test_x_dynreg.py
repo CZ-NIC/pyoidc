@@ -3,23 +3,23 @@ import os
 
 import pytest
 
-from oic.utils.http_util import Response
-from oic.utils.http_util import NoContent
-from oic.utils.http_util import Unauthorized
-from oic.utils.authn.authn_context import AuthnBroker
-from oic.utils.authn.client import verify_client
-from oic.utils.authn.client import BearerHeader
-from oic.utils.authn.client import ClientSecretPost
-from oic.utils.authn.client import ClientSecretBasic
-from oic.utils.authn.user import UserAuthnMethod
-from oic.utils.authz import Implicit
-from oic.utils import sdb
-from oic.extension.message import make_software_statement
-from oic.extension.message import unpack_software_statement
 from oic.extension.client import ClientInfoResponse
 from oic.extension.client import ClientRegistrationError
 from oic.extension.client import RegistrationRequest
+from oic.extension.message import make_software_statement
+from oic.extension.message import unpack_software_statement
 from oic.extension.provider import Provider
+from oic.utils import sdb
+from oic.utils.authn.authn_context import AuthnBroker
+from oic.utils.authn.client import BearerHeader
+from oic.utils.authn.client import ClientSecretBasic
+from oic.utils.authn.client import ClientSecretPost
+from oic.utils.authn.client import verify_client
+from oic.utils.authn.user import UserAuthnMethod
+from oic.utils.authz import Implicit
+from oic.utils.http_util import NoContent
+from oic.utils.http_util import Response
+from oic.utils.http_util import Unauthorized
 from oic.utils.keyio import build_keyjar
 
 BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/keys"))
@@ -284,4 +284,3 @@ class TestProvider(object):
                                                    environ={})
         cli_resp = ClientInfoResponse().from_json(resp.message)
         assert cli_resp
-

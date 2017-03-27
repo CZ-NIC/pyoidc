@@ -1,45 +1,49 @@
 #!/usr/bin/env python
 import argparse
-from functools import wraps, partial
+import errno
 import json
 import mimetypes
 import os
-from six.moves.urllib import parse as urlparse
-import errno
+from functools import partial
+from functools import wraps
 
 import cherrypy
+import yaml
 from cherrypy import wsgiserver
 from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
+from jinja2.environment import Environment
+from jinja2.loaders import FileSystemLoader
+from provider.authn import make_cls_from_name
+from six.moves.urllib import parse as urlparse
+
+from oic.oauth2 import rndstr
+from oic.oic.provider import AuthorizationEndpoint
+from oic.oic.provider import EndSessionEndpoint
+from oic.oic.provider import Provider
+from oic.oic.provider import RegistrationEndpoint
+from oic.oic.provider import TokenEndpoint
+from oic.oic.provider import UserinfoEndpoint
+from oic.utils.authn.authn_context import AuthnBroker
+from oic.utils.authn.client import verify_client
+from oic.utils.authz import AuthzHandling
+from oic.utils.http_util import BadRequest
+from oic.utils.http_util import NotFound
+from oic.utils.http_util import Response
+from oic.utils.http_util import SeeOther
+from oic.utils.http_util import get_or_post
+from oic.utils.http_util import get_post
+from oic.utils.keyio import keyjar_init
+from oic.utils.sdb import SessionDB
+from oic.utils.userinfo import UserInfo
+from oic.utils.webfinger import OIC_ISSUER
+from oic.utils.webfinger import WebFinger
+
 try:
     from cherrypy.wsgiserver.wsgiserver3 import WSGIPathInfoDispatcher
 except ImportError:
     from cherrypy.wsgiserver.wsgiserver2 import WSGIPathInfoDispatcher
 
-from jinja2.environment import Environment
-from jinja2.loaders import FileSystemLoader
-import yaml
 
-from oic.oauth2 import rndstr
-from oic.oic.provider import Provider
-from oic.oic.provider import AuthorizationEndpoint
-from oic.oic.provider import TokenEndpoint
-from oic.oic.provider import UserinfoEndpoint
-from oic.oic.provider import RegistrationEndpoint
-from oic.oic.provider import EndSessionEndpoint
-from oic.utils.authn.authn_context import AuthnBroker
-from oic.utils.authn.client import verify_client
-from oic.utils.authz import AuthzHandling
-from oic.utils.http_util import SeeOther
-from oic.utils.http_util import Response
-from oic.utils.http_util import BadRequest
-from oic.utils.http_util import get_or_post
-from oic.utils.http_util import get_post
-from oic.utils.http_util import NotFound
-from oic.utils.keyio import keyjar_init
-from oic.utils.sdb import SessionDB
-from oic.utils.userinfo import UserInfo
-from oic.utils.webfinger import OIC_ISSUER, WebFinger
-from provider.authn import make_cls_from_name
 
 
 def VerifierMiddleware(verifier):

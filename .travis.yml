@@ -19,6 +19,8 @@ matrix:
       env: TOXENV=py36 BUILD=code
     - python: 3.5
       env: TOXENV=py35 BUILD=docs
+    - python: 2.7
+      env: BUILD=quality
 
 
 install:
@@ -29,6 +31,8 @@ install:
         pip install -U tox ;;
       docs)
         pip install -U sphinx ;;
+      quality)
+        pip install -rrequirements/quality.txt
     esac
     set +ex
 
@@ -41,5 +45,7 @@ script:
         tox ;;
       docs)
         SPHINXOPTS=-W make html ;;
+      quality)
+        make check-isort
     esac
     set +ex

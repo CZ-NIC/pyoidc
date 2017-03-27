@@ -1,21 +1,22 @@
-import copy
-import json
-import uuid
-import time
-import itertools
-import hmac
-import hashlib
-import random
+from future.utils import tobytes
+
 import base64
+import copy
+import hashlib
+import hmac
+import itertools
+import json
 import logging
+import random
+import time
+import uuid
 
 from Cryptodome.Cipher import AES
-from future.utils import tobytes
 
 from oic import rndstr
 from oic.oic import AuthorizationRequest
-from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.time_util import time_sans_frac
+from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = 'rohe0002'
 

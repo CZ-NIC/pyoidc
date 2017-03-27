@@ -1,22 +1,23 @@
 #!/usr/bin/env python
-import importlib
-import json
-import argparse
-import six
-import logging
-
-from requests import ConnectionError
-from mako.lookup import TemplateLookup
 from future.backports.urllib.parse import parse_qs
 from future.backports.urllib.parse import urlencode
 from future.backports.urllib.parse import urlparse
 
+import argparse
+import importlib
+import json
+import logging
+
+import six
 from jwkest.jws import alg2keytype
-from oic.utils.http_util import NotFound, get_post
+from mako.lookup import TemplateLookup
+from requests import ConnectionError
+from requests.packages import urllib3
+
+from oic.utils.http_util import NotFound
 from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
-
-from requests.packages import urllib3
+from oic.utils.http_util import get_post
 from oic.utils.keyio import build_keyjar
 from oic.utils.rp.oauth2 import OAuthClients
 

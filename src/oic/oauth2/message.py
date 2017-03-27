@@ -1,25 +1,26 @@
-from collections import MutableMapping
-import copy
-import logging
-import json
-import six
-
 from future.backports.urllib.parse import urlencode
 from future.moves.urllib.parse import parse_qs
 from past.builtins import basestring
 
+import copy
+import json
+import logging
+from collections import MutableMapping
+
+import six
 from jwkest import as_unicode
 from jwkest import b64d
 from jwkest import jwe
 from jwkest import jws
 from jwkest.jwe import JWE
-from jwkest.jws import JWS, alg2keytype
-from jwkest.jwt import JWT
 from jwkest.jwk import keyitems2keyreps
+from jwkest.jws import JWS
 from jwkest.jws import NoSuitableSigningKeys
+from jwkest.jws import alg2keytype
+from jwkest.jwt import JWT
 
-from oic.exception import PyoidcError
 from oic.exception import MessageException
+from oic.exception import PyoidcError
 from oic.oauth2.exception import VerificationError
 from oic.utils.keyio import key_summary
 from oic.utils.keyio import update_keyjar

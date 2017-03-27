@@ -1,6 +1,6 @@
+import re
 from collections import Mapping
 from textwrap import dedent
-import re
 
 SENSITIVE_THINGS = {'password', 'passwd', 'client_secret', 'code',
                     'authorization', 'access_token', 'refresh_token'}

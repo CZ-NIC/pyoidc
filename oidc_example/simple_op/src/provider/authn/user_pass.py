@@ -1,8 +1,9 @@
 import json
 
-from oic.utils.http_util import Response
+from provider.authn import AuthnModule
+from provider.authn import make_cls_from_name
 
-from provider.authn import make_cls_from_name, AuthnModule
+from oic.utils.http_util import Response
 
 
 class UserPass(AuthnModule):

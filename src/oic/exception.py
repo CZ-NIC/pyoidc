@@ -109,5 +109,3 @@ class RequestError(PyoidcError):
 
 class AuthnToOld(PyoidcError):
     pass
-
-

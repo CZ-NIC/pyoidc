@@ -4,9 +4,9 @@
 
 import calendar
 import time
-import pytest
-
 from datetime import datetime
+
+import pytest
 
 from oic.utils.time_util import TimeUtilError
 from oic.utils.time_util import a_while_ago
@@ -14,7 +14,6 @@ from oic.utils.time_util import add_duration
 from oic.utils.time_util import after
 from oic.utils.time_util import before
 from oic.utils.time_util import f_quotient
-from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.time_util import in_a_while
 from oic.utils.time_util import instant
 from oic.utils.time_util import later_than
@@ -25,6 +24,7 @@ from oic.utils.time_util import parse_duration
 from oic.utils.time_util import shift_time
 from oic.utils.time_util import str_to_time
 from oic.utils.time_util import time_a_while_ago
+from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.time_util import valid
 
 __author__ = 'rohe0002'

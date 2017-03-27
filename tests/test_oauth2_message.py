@@ -1,34 +1,36 @@
 # pylint: disable=no-self-use,missing-docstring
+from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import urlparse
+
 import json
-from future.backports.urllib.parse import parse_qs, urlparse
+
 import pytest
 import six
-
 from jwkest.jwk import SYMKey
 
-from oic.oauth2.message import sp_sep_list_deserializer
-from oic.oauth2.message import json_serializer
-from oic.oauth2.message import json_deserializer
-from oic.oauth2.message import Message
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import SINGLE_OPTIONAL_INT
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
+from oic.oauth2.message import SINGLE_OPTIONAL_INT
 from oic.oauth2.message import SINGLE_OPTIONAL_JSON
-from oic.oauth2.message import AuthorizationRequest
-from oic.oauth2.message import AuthorizationErrorResponse
-from oic.oauth2.message import TokenErrorResponse
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import TooManyValues
-from oic.oauth2.message import MissingRequiredAttribute
-from oic.oauth2.message import DecodeError
+from oic.oauth2.message import SINGLE_OPTIONAL_STRING
+from oic.oauth2.message import SINGLE_REQUIRED_STRING
 from oic.oauth2.message import AccessTokenRequest
+from oic.oauth2.message import AccessTokenResponse
+from oic.oauth2.message import AuthorizationErrorResponse
+from oic.oauth2.message import AuthorizationRequest
 from oic.oauth2.message import AuthorizationResponse
-from oic.oauth2.message import ROPCAccessTokenRequest
 from oic.oauth2.message import CCAccessTokenRequest
-from oic.oauth2.message import RefreshAccessTokenRequest
+from oic.oauth2.message import DecodeError
 from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import Message
+from oic.oauth2.message import MissingRequiredAttribute
+from oic.oauth2.message import RefreshAccessTokenRequest
+from oic.oauth2.message import ROPCAccessTokenRequest
+from oic.oauth2.message import TokenErrorResponse
+from oic.oauth2.message import TooManyValues
+from oic.oauth2.message import json_deserializer
+from oic.oauth2.message import json_serializer
+from oic.oauth2.message import sp_sep_list_deserializer
 
 __author__ = 'rohe0002'
 

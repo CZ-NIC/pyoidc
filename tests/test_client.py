@@ -2,30 +2,31 @@
 
 import base64
 import os
+
 import pytest
 import six
-from jwkest import as_bytes, b64e
-
+from jwkest import as_bytes
+from jwkest import b64e
+from jwkest.jwk import SYMKey
+from jwkest.jwk import rsa_load
 from jwkest.jws import JWS
 from jwkest.jwt import JWT
-from jwkest.jwk import rsa_load
-from jwkest.jwk import SYMKey
 from mock import Mock
 from mock import patch
 
 from oic.oauth2 import Client
 from oic.oauth2.grant import Grant
 from oic.oauth2.message import AccessTokenRequest
-from oic.oauth2.message import ResourceRequest
-from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import AccessTokenResponse
+from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import ResourceRequest
 from oic.oic import JWT_BEARER
-from oic.utils.authn.client import ClientSecretBasic
-from oic.utils.authn.client import BearerHeader
 from oic.utils.authn.client import BearerBody
+from oic.utils.authn.client import BearerHeader
+from oic.utils.authn.client import ClientSecretBasic
+from oic.utils.authn.client import ClientSecretJWT
 from oic.utils.authn.client import ClientSecretPost
 from oic.utils.authn.client import PrivateKeyJWT
-from oic.utils.authn.client import ClientSecretJWT
 from oic.utils.authn.client import valid_client_info
 from oic.utils.keyio import KeyBundle
 
