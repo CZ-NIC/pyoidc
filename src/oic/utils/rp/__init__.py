@@ -311,7 +311,7 @@ class OIDCClients(object):
             # Find the service that provides information about the OP
             issuer = client.wf.discovery_query(userid)
             # Gather OP information
-            pcr = client.provider_config(issuer)
+            client.provider_config(issuer)
             # register the client
             client.register(client.provider_info["registration_endpoint"],
                             **kwargs["client_info"])
@@ -319,18 +319,18 @@ class OIDCClients(object):
         elif _key_set == set(["client_info", "srv_discovery_url"]):
             # Ship the webfinger part
             # Gather OP information
-            _ = client.provider_config(kwargs["srv_discovery_url"])
+            client.provider_config(kwargs["srv_discovery_url"])
             # register the client
-            _ = client.register(client.provider_info["registration_endpoint"],
-                                **kwargs["client_info"])
+            client.register(client.provider_info["registration_endpoint"],
+                            **kwargs["client_info"])
             self.get_path(kwargs['client_info']['redirect_uris'],
                           kwargs["srv_discovery_url"])
         elif _key_set == set(["provider_info", "client_info"]):
             client.handle_provider_config(
                 ProviderConfigurationResponse(**kwargs["provider_info"]),
                 kwargs["provider_info"]["issuer"])
-            _ = client.register(client.provider_info["registration_endpoint"],
-                                **kwargs["client_info"])
+            client.register(client.provider_info["registration_endpoint"],
+                            **kwargs["client_info"])
 
             self.get_path(kwargs['client_info']['redirect_uris'],
                           kwargs["provider_info"]["issuer"])
@@ -343,7 +343,7 @@ class OIDCClients(object):
             self.get_path(kwargs['client_info']['redirect_uris'],
                           kwargs["provider_info"]["issuer"])
         elif _key_set == set(["srv_discovery_url", "client_registration"]):
-            _ = client.provider_config(kwargs["srv_discovery_url"])
+            client.provider_config(kwargs["srv_discovery_url"])
             client.store_registration_info(RegistrationResponse(
                 **kwargs["client_registration"]))
             self.get_path(kwargs['client_registration']['redirect_uris'],

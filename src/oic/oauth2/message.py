@@ -227,7 +227,7 @@ class Message(MutableMapping):
     def deserialize(self, info, method="urlencoded", **kwargs):
         try:
             func = getattr(self, "from_%s" % method)
-        except AttributeError as err:
+        except AttributeError:
             raise FormatError("Unknown serialization method (%s)" % method)
         else:
             return func(info, **kwargs)

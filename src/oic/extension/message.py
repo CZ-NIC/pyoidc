@@ -173,7 +173,7 @@ class RegistrationRequest(Message):
             pass
         else:
             # need to get the client keys before I can verify any signature
-            kj = kwargs['keyjar']
+            # kj = kwargs['keyjar']
             # The case where jwks_uri is used
             # try:
             #     kj.add(,self['jwks_uri'])

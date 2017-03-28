@@ -116,7 +116,7 @@ class CDB(object):
                             _tmp[uris] = unpack_redirect_uri(_tmp[uris])
                         except KeyError:
                             pass
-                except Exception as err:
+                except Exception:
                     print("Faulty specification: {}".format(item))
                 else:
                     self.cdb[str(item["client_id"])] = item

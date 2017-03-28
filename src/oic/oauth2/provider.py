@@ -257,7 +257,7 @@ class Provider(object):
                 raise RedirectURIError("Doesn't match any registered uris")
             # ignore query components that are not registered
             return None
-        except Exception as err:
+        except Exception:
             logger.error("Faulty redirect_uri: %s" % areq["redirect_uri"])
             try:
                 _cinfo = self.cdb[str(areq["client_id"])]
@@ -775,7 +775,7 @@ class Provider(object):
         areq = AccessTokenRequest().deserialize(body, "urlencoded")
 
         try:
-            client = self.client_authn(self, areq, authn)
+            self.client_authn(self, areq, authn)
         except FailedAuthentication as err:
             logger.error(err)
             err = TokenErrorResponse(error="unauthorized_client",

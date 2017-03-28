@@ -564,8 +564,8 @@ class TestProvider(object):
         resp = self.provider.authorization_endpoint(
                 request=urlparse(location).query)
 
-        aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
-                                         sformat="urlencoded")
+        self.cons.parse_response(AuthorizationResponse, resp.message,
+                                 sformat="urlencoded")
 
         # Construct Access token request
         areq = self.cons.construct_AccessTokenRequest(
@@ -903,8 +903,6 @@ class TestProvider(object):
         self.provider._verify_redirect_uri(areq)
 
     def test_verify_redirect_uri_native_http_localhost(self):
-        cid = 'client_id'
-
         areq = RegistrationRequest(
                 redirect_uris=["http://localhost/cb"],
                 application_type='native')
@@ -912,8 +910,6 @@ class TestProvider(object):
         self.provider.verify_redirect_uris(areq)
 
     def test_verify_redirect_uri_native_loopback(self):
-        cid = 'client_id'
-
         areq = RegistrationRequest(
                 redirect_uris=["http://127.0.0.1/cb"],
                 application_type='native')
@@ -921,8 +917,6 @@ class TestProvider(object):
         self.provider.verify_redirect_uris(areq)
 
     def test_verify_redirect_uri_native_http_non_localhost(self):
-        cid = 'client_id'
-
         areq = RegistrationRequest(
                 redirect_uris=["http://example.org/cb"],
                 application_type='native')
@@ -933,8 +927,6 @@ class TestProvider(object):
             assert True
 
     def test_verify_redirect_uri_native_custom(self):
-        cid = 'client_id'
-
         areq = RegistrationRequest(
                 redirect_uris=["com.example.app:/oauth2redirect"],
                 application_type='native')
@@ -942,8 +934,6 @@ class TestProvider(object):
         self.provider.verify_redirect_uris(areq)
 
     def test_verify_redirect_uri_native_https(self):
-        cid = 'client_id'
-
         areq = RegistrationRequest(
                 redirect_uris=["https://example.org/cb"],
                 application_type='native')

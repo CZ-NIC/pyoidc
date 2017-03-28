@@ -603,7 +603,7 @@ class Provider(provider.Provider):
 
             resp = Response(_response.to_json(), content="application/json",
                             headers=headers)
-        except Exception as err:
+        except Exception:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
             resp = Response(message, content="html/text")
@@ -747,8 +747,6 @@ class Provider(provider.Provider):
         This is where clients come to get their access tokens
         """
 
-        _sdb = self.sdb
-
         logger.debug("- token -")
         body = kwargs["request"]
         logger.debug("body: %s" % body)
@@ -756,7 +754,7 @@ class Provider(provider.Provider):
         areq = AccessTokenRequest().deserialize(body, "urlencoded")
 
         try:
-            client_id = self.client_authn(self, areq, authn)
+            self.client_authn(self, areq, authn)
         except FailedAuthentication as err:
             logger.error(err)
             err = TokenErrorResponse(error="unauthorized_client",

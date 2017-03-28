@@ -546,7 +546,7 @@ class Client(PBase):
                         resp = errmsg().deserialize(info, sformat)
                         resp.verify()
                         break
-                    except Exception as aerr:
+                    except Exception:
                         resp = None
             except KeyError:
                 pass
@@ -913,7 +913,7 @@ class Client(PBase):
                     _issuer = issuer
 
             try:
-                _ = self.allow["issuer_mismatch"]
+                self.allow["issuer_mismatch"]
             except KeyError:
                 try:
                     assert _issuer == _pcr_issuer

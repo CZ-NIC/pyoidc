@@ -515,7 +515,7 @@ class TestOICConsumer():
         # What if no verification key is given ?
         # Should also result in an exception
         with pytest.raises(MissingSigningKey):
-            _ = IdToken().from_jwt(_faulty_signed_jwt)
+            IdToken().from_jwt(_faulty_signed_jwt)
 
     def test_faulty_id_token_in_access_token_response(self):
         c = Consumer(None, None)

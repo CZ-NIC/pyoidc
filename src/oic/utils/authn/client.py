@@ -239,7 +239,7 @@ class BearerBody(ClientAuthnMethod):
                 cis["access_token"] = request_args["access_token"]
             except KeyError:
                 try:
-                    _ = kwargs["state"]
+                    kwargs["state"]
                 except KeyError:
                     if not self.cli.state:
                         raise AuthnFailure("Missing state specification")
