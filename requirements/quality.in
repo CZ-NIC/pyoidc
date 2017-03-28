@@ -1,3 +1,4 @@
 # Dependencies for code quality checks
 
 isort
+pylama
