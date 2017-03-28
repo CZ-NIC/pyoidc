@@ -25,7 +25,7 @@ class TokenAssertion(Message):
 
 
 class JWTToken(Token, JWT):
-    usage='authorization_grant'
+    usage = 'authorization_grant'
 
     def __init__(self, typ, keyjar, lt_pattern=None, extra_claims=None,
                  **kwargs):
@@ -178,8 +178,8 @@ class JWTToken(Token, JWT):
 
 
 class Authorization_Grant(JWTToken):
-    usage='authorization_grant'
+    usage = 'authorization_grant'
 
 
 class Client_Authentication(JWTToken):
-    usage='client_authentication'
+    usage = 'client_authentication'

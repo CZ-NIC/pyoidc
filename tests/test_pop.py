@@ -73,7 +73,7 @@ def test_flow():
     body = 'access_token={}'.format(access_token)
 
     # creates the POP token using signed HTTP request
-    cb = PoPCallBack(cli.token2key[atrsp['access_token']],cli.alg)
+    cb = PoPCallBack(cli.token2key[atrsp['access_token']], cli.alg)
     kwargs = cb('POST', url, headers=headers, body=body)
     assert kwargs['Authorization'].startswith('pop ')
     pop_token = kwargs['Authorization'][4:]

@@ -575,7 +575,7 @@ class TestProvider(object):
                 state=state)
 
         txt = areq.to_urlencoded()
-        self.cons.client_secret='drickyoughurt'
+        self.cons.client_secret = 'drickyoughurt'
 
         csb = ClientSecretBasic(self.cons)
         http_args = csb.construct(areq)

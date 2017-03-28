@@ -292,6 +292,7 @@ class TestProviderConfigurationResponse(object):
         with pytest.raises(MissingRequiredAttribute):
             ProviderConfigurationResponse(**provider_config).verify()
 
+
 class TestRegistrationRequest(object):
     def test_deserialize(self):
         msg = {
@@ -344,6 +345,7 @@ class TestRegistrationRequest(object):
         registration_req = RegistrationRequest(**registration_params)
         with pytest.raises(AssertionError):
             registration_req.verify()
+
 
 class TestRegistrationResponse(object):
     def test_deserialize(self):

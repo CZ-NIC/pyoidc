@@ -359,7 +359,7 @@ class Provider(object):
                 AuthzError) as err:
             logger.debug("%s" % err)
             areq = request_class()
-            areq.lax=True
+            areq.lax = True
             if isinstance(request, dict):
                 areq.from_dict(request)
             else:

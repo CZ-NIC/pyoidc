@@ -5,7 +5,6 @@ from oic.utils.sanitize import sanitize
 
 
 @pytest.mark.parametrize("raw,expected", [
-
     ('code=%5B999%5D&bing=baz&password=foo&param1=bar',
      'code=<REDACTED>&bing=baz&password=<REDACTED>&param1=bar'),
 
@@ -36,9 +35,9 @@ from oic.utils.sanitize import sanitize
      ([('code', [999]), ('bing', 'baz'), ('password', 'foo'), ('param1', 'bar')],
       "[('code', [<REDACTED>]), ('bing', 'baz'), ('password', '<REDACTED>'), ('param1', 'bar')]")
 ])
-
 def test_sanitize(raw, expected):
     assert sanitize(raw) == expected
+
 
 def test_sanitize_preserves_original():
     old = {'passwd': 'secret'}

@@ -1482,7 +1482,7 @@ class Server(oauth2.Server):
         if isinstance(query, dict):
             sformat = "dict"
         else:
-            sformat= 'urlencoded'
+            sformat = 'urlencoded'
 
         _req = self._parse_request(request, query, sformat, verify=False)
 

@@ -73,6 +73,7 @@ def url_compare(url1, url2):
 
     return True
 
+
 def query_string_compare(query_str1, query_str2):
     return parse_qs(query_str1) == parse_qs(query_str2)
 

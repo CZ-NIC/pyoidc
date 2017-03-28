@@ -84,6 +84,7 @@ SESSION_INFO = {
     'authzreq': '{}'
 }
 
+
 class TestToken(object):
     @pytest.fixture(autouse=True)
     def create_token(self):

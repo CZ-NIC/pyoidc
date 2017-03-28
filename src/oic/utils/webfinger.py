@@ -15,9 +15,6 @@ try:
 except ImportError:
     pass
 
-
-
-
 __author__ = 'rolandh'
 
 logger = logging.getLogger(__name__)
@@ -323,6 +320,6 @@ class WebFinger(object):
         link["rel"] = OIC_ISSUER
         link["href"] = base
         self.jrd["links"] = [link]
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             self.jrd[k] = v
         return json.dumps(self.jrd.export())

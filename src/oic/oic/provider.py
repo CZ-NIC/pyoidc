@@ -1204,7 +1204,7 @@ class Provider(AProvider):
             _token = _token[len("Bearer "):]
             logger.debug("Bearer token {} chars".format(len(_token)))
         else:
-            args = {'data':request}
+            args = {'data': request}
             if isinstance(request, dict):
                 args['sformat'] = 'dict'
             uireq = self.server.parse_user_info_request(**args)
