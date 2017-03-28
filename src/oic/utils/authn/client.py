@@ -16,8 +16,7 @@ from oic.oauth2 import VREQUIRED
 from oic.oauth2 import AccessTokenRequest
 from oic.oic import DEF_SIGN_ALG
 from oic.oic import JWT_BEARER
-from oic.oic import REQUEST2ENDPOINT
-from oic.oic import AuthnToken
+from oic.oic.message import AuthnToken
 from oic.utils.keyio import check_key_availability
 from oic.utils.sanitize import sanitize
 from oic.utils.time_util import utc_time_sans_frac

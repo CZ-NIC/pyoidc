@@ -1,6 +1,4 @@
 # pylint: disable=missing-docstring,no-self-use
-import six
-
 from oic.oauth2.grant import Grant
 from oic.oauth2.grant import Token
 from oic.oauth2.message import AccessTokenResponse

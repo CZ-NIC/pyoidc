@@ -16,7 +16,6 @@ from oic.oauth2.exception import ResponseError
 from oic.oauth2.exception import TokenError
 from oic.oauth2.exception import ParseError
 from oic.oauth2.exception import HttpError
-from oic.oauth2.exception import OtherError
 from oic.oauth2.grant import Token
 from oic.oauth2.grant import Grant
 from oic.oauth2.util import get_or_post

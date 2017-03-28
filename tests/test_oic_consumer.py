@@ -5,7 +5,6 @@ import os
 
 import pytest
 import responses
-import six
 from fakeoicsrv import MyFakeOICServer
 from jwkest import BadSignature
 from jwkest.jwk import SYMKey

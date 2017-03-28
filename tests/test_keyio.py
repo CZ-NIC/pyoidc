@@ -2,8 +2,6 @@
 import os
 
 import pytest
-from jwkest import as_unicode
-from jwkest import b64e
 
 from oic.oauth2 import MissingSigningKey
 from oic.oic import AuthorizationResponse
@@ -13,7 +11,6 @@ from oic.utils.keyio import RSAKey
 from oic.utils.keyio import build_keyjar
 from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
-from oic.utils.keyio import key_setup
 from oic.utils.keyio import keybundle_from_local_file
 from oic.utils.keyio import rsa_init
 
