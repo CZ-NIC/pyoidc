@@ -7,7 +7,6 @@ import time
 from collections import Counter
 
 import pytest
-import six
 from fakeoicsrv import MyFakeOICServer
 from jwkest.jws import alg2keytype
 from jwkest.jws import left_hash

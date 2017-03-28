@@ -5,7 +5,6 @@ from future.backports.urllib.parse import urlparse
 import json
 
 import pytest
-import six
 from jwkest.jwk import SYMKey
 
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS

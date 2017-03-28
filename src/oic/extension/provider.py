@@ -33,13 +33,13 @@ from oic.extension.message import TokenRevocationRequest
 from oic.oauth2 import AccessTokenRequest
 from oic.oauth2 import AccessTokenResponse
 from oic.oauth2 import TokenErrorResponse
-from oic.oauth2 import by_schema
 from oic.oauth2 import compact
 from oic.oauth2 import provider
 from oic.oauth2.exception import CapabilitiesMisMatch
 from oic.oauth2.exception import VerificationError
 from oic.oauth2.message import ASConfigurationResponse
 from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import by_schema
 from oic.oauth2.provider import Endpoint
 from oic.oic import PREFERENCE2PROVIDER
 from oic.oic.provider import STR

@@ -14,11 +14,10 @@ else:
 import six
 
 from future.backports.urllib.parse import urlparse
-from future.backports.urllib.parse import urlunparse
 from future.moves.urllib.parse import parse_qs
 
 from jwkest.jwe import JWE
-from jwkest import jws, as_unicode, as_bytes
+from jwkest import jws, as_bytes
 from jwkest import jwe
 
 from oic import oauth2, OIDCONF_PATTERN
@@ -58,7 +57,6 @@ from oic.oic.message import CheckIDRequest
 from oic.oic.message import EndSessionRequest
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import ProviderConfigurationResponse
-from oic.oic.message import AuthnToken
 from oic.oic.message import TokenErrorResponse
 from oic.oic.message import ClientRegistrationErrorResponse
 from oic.oic.message import UserInfoErrorResponse

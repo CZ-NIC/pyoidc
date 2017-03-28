@@ -4,7 +4,6 @@ import base64
 import os
 
 import pytest
-import six
 from jwkest import as_bytes
 from jwkest import b64e
 from jwkest.jwk import SYMKey
