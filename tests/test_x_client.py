@@ -63,7 +63,8 @@ def test_pkce_verify_256():
                      authn_broker, Implicit(), verify_client)
 
     assert _prov.verify_code_challenge(cv, args['code_challenge']) is True
-    assert _prov.verify_code_challenge(cv, args['code_challenge'],'S256') is True
+    assert _prov.verify_code_challenge(cv, args['code_challenge'], 'S256') is True
+
 
 def test_pkce_verify_512():
     _cli = Client(config={'code_challenge': {'method': 'S512', 'length': 96}})
@@ -75,7 +76,7 @@ def test_pkce_verify_512():
                      sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
                      authn_broker, Implicit(), verify_client)
 
-    assert _prov.verify_code_challenge(cv, args['code_challenge'],'S512') is True
+    assert _prov.verify_code_challenge(cv, args['code_challenge'], 'S512') is True
 
 
 JWKS = {"keys": [

@@ -46,9 +46,9 @@ class PopJWT(object):
         _iat = utc_time_sans_frac()
         kwargs['iat'] = _iat
         if self.lifetime:
-            kwargs['exp'] = _iat+self.lifetime
+            kwargs['exp'] = _iat + self.lifetime
         if self.in_a_while:
-            kwargs['nbf'] = _iat+self.in_a_while
+            kwargs['nbf'] = _iat + self.in_a_while
 
         return PJWT(**kwargs)
 

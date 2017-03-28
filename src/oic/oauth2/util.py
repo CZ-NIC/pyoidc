@@ -172,7 +172,7 @@ def verify_header(reqresp, body_type):
     if body_type == "":
         _ctype = reqresp.headers["content-type"]
         if match_to_("application/json", _ctype):
-            body_type='json'
+            body_type = 'json'
         elif match_to_("application/jwt", _ctype):
             body_type = "jwt"
         elif match_to_(URL_ENCODED, _ctype):

@@ -40,7 +40,6 @@ else:
     from saml2.s_utils import UnknownPrincipal
     from saml2.s_utils import UnsupportedBinding
 
-
     # This class handles user authentication with CAS.
     class SAMLAuthnMethod(UserAuthnMethod):
         CONST_QUERY = "query"

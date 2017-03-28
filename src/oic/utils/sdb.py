@@ -86,7 +86,7 @@ class Crypt(object):
 class Token(object):
     def __init__(self, typ, lifetime=0, **kwargs):
         self.type = typ
-        self.lifetime  = lifetime
+        self.lifetime = lifetime
         self.args = kwargs
 
     def __call__(self, sid, *args, **kwargs):
@@ -299,7 +299,7 @@ class RefreshDB(object):
 
     def create_token(self, client_id, uid, scopes, sub, authzreq, sid):
         """
-        Create refresh token for given combination of client_id and sub and 
+        Create refresh token for given combination of client_id and sub and
         store it in internal storage
 
         :param client_id: Client_id of the consumer

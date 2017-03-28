@@ -140,7 +140,7 @@ def exception_to_error_mesg(excep):
 
 def compact(qsdict):
     res = {}
-    for key,val in qsdict.items():
+    for key, val in qsdict.items():
         if len(val) == 1:
             res[key] = val[0]
         else:

@@ -111,7 +111,7 @@ class TestTokenHandler(object):
         assert refresh_token
 
     def test_construct_refresh_token(self):
-        sid='1234'
+        sid = '1234'
         rtoken = self.th.get_refresh_token('https://example.org/rp',
                                            grant_type='client_credentials',
                                            sid=sid)

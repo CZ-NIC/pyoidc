@@ -29,7 +29,7 @@ def map_grant_type2response_type(restriction, cinfo):
 
 def map(restriction, cinfo):
     for fname, spec in restriction.items():
-        func = factory('map_'+fname)
+        func = factory('map_' + fname)
         resp = func(spec, cinfo)
         if resp:
             return resp
