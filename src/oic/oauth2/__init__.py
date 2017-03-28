@@ -1,31 +1,45 @@
 #!/usr/bin/env python
-from jwkest import b64e
-
 from future.backports.urllib.parse import urlparse
 
-from oic import unreserved
+import logging
+
+from jwkest import b64e
+
 from oic import CC_METHOD
 from oic import OIDCONF_PATTERN
-
-from oic.oauth2.message import ASConfigurationResponse
+from oic import unreserved
 from oic.oauth2.base import PBase
-from oic.oauth2.exception import MissingEndpoint
-from oic.oauth2.exception import Unsupported
 from oic.oauth2.exception import GrantError
+from oic.oauth2.exception import HttpError
+from oic.oauth2.exception import MissingEndpoint
+from oic.oauth2.exception import ParseError
 from oic.oauth2.exception import ResponseError
 from oic.oauth2.exception import TokenError
-from oic.oauth2.exception import ParseError
-from oic.oauth2.exception import HttpError
-from oic.oauth2.grant import Token
+from oic.oauth2.exception import Unsupported
 from oic.oauth2.grant import Grant
+from oic.oauth2.grant import Token
+from oic.oauth2.message import AccessTokenRequest
+from oic.oauth2.message import AccessTokenResponse
+from oic.oauth2.message import ASConfigurationResponse
+from oic.oauth2.message import AuthorizationErrorResponse
+from oic.oauth2.message import AuthorizationRequest
+from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import GrantExpired
+from oic.oauth2.message import Message
+from oic.oauth2.message import NoneResponse
+from oic.oauth2.message import PyoidcError
+from oic.oauth2.message import RefreshAccessTokenRequest
+from oic.oauth2.message import ResourceRequest
+from oic.oauth2.message import sanitize
 from oic.oauth2.util import get_or_post
 from oic.oauth2.util import verify_header
-from oic.utils.http_util import BadRequest, R2C
+from oic.utils.http_util import R2C
+from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 from oic.utils.keyio import KeyJar
 from oic.utils.time_util import utc_time_sans_frac
-from oic.oauth2.message import *
 
 __author__ = 'rohe0002'
 

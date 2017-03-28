@@ -33,7 +33,11 @@ from jwkest.jws import alg2keytype
 from requests import ConnectionError
 
 from oic import rndstr
-from oic.exception import *
+from oic.exception import FailedAuthentication
+from oic.exception import InvalidRequest
+from oic.exception import MessageException
+from oic.exception import ParameterError
+from oic.exception import UnSupported
 from oic.oauth2 import compact
 from oic.oauth2 import error
 from oic.oauth2 import error_response
