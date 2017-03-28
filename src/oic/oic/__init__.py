@@ -945,7 +945,7 @@ class Client(oauth2.Client):
                     _issuer = issuer
 
             try:
-                _ = self.allow["issuer_mismatch"]
+                self.allow["issuer_mismatch"]
             except KeyError:
                 try:
                     assert _issuer == _pcr_issuer
@@ -1187,7 +1187,7 @@ class Client(oauth2.Client):
             resp = RegistrationResponse().deserialize(response.text, "json")
             # Some implementations sends back a 200 with an error message inside
             try:
-                r = resp.verify()
+                resp.verify()
             except Exception:
                 resp = ErrorResponse().deserialize(response.text, "json")
                 if resp.verify():

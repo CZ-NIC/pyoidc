@@ -538,13 +538,13 @@ class OpenIDSchema(Message):
         if "birthdate" in self:
             # Either YYYY-MM-DD or just YYYY or 0000-MM-DD
             try:
-                _ = time.strptime(self["birthdate"], "%Y-%m-%d")
+                time.strptime(self["birthdate"], "%Y-%m-%d")
             except ValueError:
                 try:
-                    _ = time.strptime(self["birthdate"], "%Y")
+                    time.strptime(self["birthdate"], "%Y")
                 except ValueError:
                     try:
-                        _ = time.strptime(self["birthdate"], "0000-%m-%d")
+                        time.strptime(self["birthdate"], "0000-%m-%d")
                     except ValueError:
                         raise VerificationError("Birthdate format error", self)
 

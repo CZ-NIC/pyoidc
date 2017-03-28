@@ -409,9 +409,9 @@ class TestClient(object):
         jerr = err.to_json()
         uerr = err.to_urlencoded()
 
-        _ = self.client.parse_response(AccessTokenResponse, info=jerr)
-        _ = self.client.parse_response(AccessTokenResponse, info=uerr,
-                                       sformat="urlencoded")
+        self.client.parse_response(AccessTokenResponse, info=jerr)
+        self.client.parse_response(AccessTokenResponse, info=uerr,
+                                   sformat="urlencoded")
 
         with pytest.raises(ResponseError):
             self.client.parse_response(AccessTokenResponse, info=jerr, sformat="urlencoded")

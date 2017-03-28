@@ -109,7 +109,7 @@ class MyFakeOICServer(Server):
         req = self.parse_authorization_request(query=query)
         aevent = AuthnEvent("user", "salt", authn_info="acr")
         sid = self.sdb.create_authz_session(aevent, areq=req)
-        _ = self.sdb.do_sub(sid, "client_salt")
+        self.sdb.do_sub(sid, "client_salt")
         _info = self.sdb[sid]
 
         if "code" in req["response_type"]:
@@ -181,7 +181,7 @@ class MyFakeOICServer(Server):
 
     def userinfo_endpoint(self, data):
 
-        _ = self.parse_user_info_request(data)
+        self.parse_user_info_request(data)
         _info = {
             "sub": "melgar",
             "name": "Melody Gardot",

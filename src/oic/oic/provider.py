@@ -851,15 +851,12 @@ class Provider(AProvider):
 
         logger.debug("alg=%s, enc=%s, val_type=%s" % (alg, enc, val_type))
         keys = self.keyjar.get_encrypt_key(owner=cid)
-        try:
-            _ckeys = self.keyjar[cid]
-        except KeyError:
+        if cid not in self.keyjar:
             # Weird, but try to recuperate
             logger.warning(
                 "Lost keys for {} trying to recuperate!!".format(cid))
             self.keyjar.issuer_keys[cid] = []
             self.keyjar.add(cid, client_info["jwks_uri"])
-            _ckeys = self.keyjar[cid]
 
         kwargs = {"alg": alg, "enc": enc}
         if cty:
@@ -1275,18 +1272,14 @@ class Provider(AProvider):
         """
         """
         try:
-            _log_debug = kwargs["logger"].debug
             _log_info = kwargs["logger"].info
         except KeyError:
-            _log_debug = logger.debug
             _log_info = logger.info
 
         if not request:
             _tok = kwargs["authn"]
             if not _tok:
                 return error(error="invalid_request", descr="Illegal token")
-            else:
-                info = "id_token=%s" % _tok
 
         if self.test_mode:
             _log_info("check_session_request: %s" % sanitize(request))
@@ -1805,7 +1798,6 @@ class Provider(AProvider):
 
     # noinspection PyUnusedLocal
     def providerinfo_endpoint(self, handle="", **kwargs):
-        _log_debug = logger.debug
         _log_info = logger.info
 
         _log_info("@providerinfo_endpoint")
@@ -1826,7 +1818,7 @@ class Provider(AProvider):
 
             resp = Response(_response.to_json(), content="application/json",
                             headers=headers)
-        except Exception as err:
+        except Exception:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
             resp = error('service_error', message)

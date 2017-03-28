@@ -118,10 +118,9 @@ class ClaimsServer(Provider):
         _log_info("request: %s" % sanitize(ucreq))
 
         try:
-            resp = self.client_authn(self, ucreq, http_authz)
+            self.client_authn(self, ucreq, http_authz)
         except Exception as err:
             _log_info("Failed to verify client due to: %s" % err)
-            resp = False
 
         if "claims_names" in ucreq:
             args = dict([(n, {"optional": True}) for n in

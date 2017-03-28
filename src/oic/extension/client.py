@@ -282,7 +282,7 @@ class Client(oauth2.Client):
                     _issuer = issuer
 
             try:
-                _ = self.allow["issuer_mismatch"]
+                self.allow["issuer_mismatch"]
             except KeyError:
                 try:
                     assert _issuer == _pcr_issuer
@@ -354,7 +354,7 @@ class Client(oauth2.Client):
             try:
                 resp.verify()
                 self.store_response(resp, response.text)
-            except Exception as err:
+            except Exception:
                 raise PyoidcError(
                     'Registration failed: {}'.format(response.text))
 

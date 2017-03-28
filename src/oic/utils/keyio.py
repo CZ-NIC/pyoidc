@@ -220,7 +220,7 @@ class KeyBundle(object):
         logger.debug("Loaded JWKS: %s from %s" % (response.text, self.source))
         try:
             return json.loads(response.text)
-        except ValueError as e:
+        except ValueError:
             return None
 
     def _uptodate(self):

@@ -209,8 +209,8 @@ class TestClientSecretJWT(object):
         csj = ClientSecretJWT(client)
         cis = AccessTokenRequest()
 
-        http_args = csj.construct(cis, algorithm="HS256",
-                                  authn_endpoint='token')
+        csj.construct(cis, algorithm="HS256",
+                      authn_endpoint='token')
         assert cis["client_assertion_type"] == JWT_BEARER
         assert "client_assertion" in cis
         cas = cis["client_assertion"]

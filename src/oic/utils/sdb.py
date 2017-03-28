@@ -423,7 +423,7 @@ class SessionDB(object):
         for key in order:
             try:
                 return self.token_factory[key].type_and_key(item)
-            except Exception as err:
+            except Exception:
                 pass
 
         logger.info("Unknown token format")

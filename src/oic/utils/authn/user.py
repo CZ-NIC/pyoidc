@@ -347,7 +347,7 @@ class UsernamePasswordMako(UserAuthnMethod):
 
     def done(self, areq):
         try:
-            _ = areq[self.query_param]
+            areq[self.query_param]
             return False
         except KeyError:
             return True

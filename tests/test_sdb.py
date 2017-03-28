@@ -82,7 +82,7 @@ class TestToken(object):
         sid = self.token.key(areq=AREQ)
         assert len(sid) == 56
 
-        code2 = self.token(sid=sid, ttype='T')
+        self.token(sid=sid, ttype='T')
         assert len(sid) == 56
 
         sid2 = self.token.key(areq=AREQ, user="jones")
