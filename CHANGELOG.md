@@ -5,7 +5,7 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
-## 0.10.0.0 [UNRELEASED]
+## 0.10.0.0 [2017-03-28]
 
 ### Changed
 - [#291]: Testing more relevant Python versions.
