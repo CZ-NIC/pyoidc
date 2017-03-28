@@ -1,8 +1,8 @@
 import time
 
-from oic.oauth2 import SINGLE_OPTIONAL_STRING
-from oic.oauth2 import SINGLE_REQUIRED_STRING
-from oic.oauth2 import Message
+from oic.oauth2.message import SINGLE_OPTIONAL_STRING
+from oic.oauth2.message import SINGLE_REQUIRED_STRING
+from oic.oauth2.message import Message
 from oic.oic.message import SINGLE_REQUIRED_INT
 from oic.utils.time_util import epoch_in_a_while
 

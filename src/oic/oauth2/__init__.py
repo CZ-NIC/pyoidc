@@ -31,6 +31,7 @@ from oic.oauth2.message import NoneResponse
 from oic.oauth2.message import PyoidcError
 from oic.oauth2.message import RefreshAccessTokenRequest
 from oic.oauth2.message import ResourceRequest
+from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.message import sanitize
 from oic.oauth2.util import get_or_post
 from oic.oauth2.util import verify_header

@@ -3,7 +3,7 @@ import os
 
 import pytest
 
-from oic.oauth2 import MissingSigningKey
+from oic.oauth2.message import MissingSigningKey
 from oic.oic import AuthorizationResponse
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar

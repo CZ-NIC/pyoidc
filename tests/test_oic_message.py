@@ -10,8 +10,8 @@ import pytest
 from jwkest import BadSignature
 from jwkest.jwk import SYMKey
 
-from oic.oauth2 import WrongSigningAlgorithm
 from oic.oauth2.message import MissingRequiredAttribute
+from oic.oauth2.message import WrongSigningAlgorithm
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AddressClaim
 from oic.oic.message import AuthorizationRequest
