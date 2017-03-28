@@ -76,7 +76,7 @@ class JWT(object):
         if 'jti' in self.message_type.c_param:
             try:
                 _jti = kwargs['jti']
-            except:
+            except KeyError:
                 _jti = uuid.uuid4().hex
 
             _jwt['jti'] = _jti

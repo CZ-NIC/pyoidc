@@ -563,7 +563,7 @@ class Provider(AProvider):
             redirect = "/"
         try:
             tmp_id_token_hint = esr["id_token_hint"]
-        except:
+        except KeyError:
             tmp_id_token_hint = ""
 
         argv = {
@@ -946,10 +946,8 @@ class Provider(AProvider):
         if "issue_refresh" in kwargs:
             issue_refresh = kwargs["issue_refresh"]
 
-        permissions = _info.get('permission', ['offline_access']) or [
-            'offline_access']
-        if 'offline_access' in _info[
-            'scope'] and 'offline_access' in permissions:
+        permissions = _info.get('permission', ['offline_access']) or ['offline_access']
+        if 'offline_access' in _info['scope'] and 'offline_access' in permissions:
             issue_refresh = True
 
         try:
@@ -1430,13 +1428,11 @@ class Provider(AProvider):
         for item in ["id_token_signed_response_alg",
                      "userinfo_signed_response_alg"]:
             if item in request:
-                if request[item] in self.capabilities[
-                    PREFERENCE2PROVIDER[item]]:
+                if request[item] in self.capabilities[PREFERENCE2PROVIDER[item]]:
                     ktyp = jws.alg2keytype(request[item])
                     # do I have this ktyp and for EC type keys the curve
                     if ktyp not in ["none", "oct"]:
-                        _k = self.keyjar.get_signing_key(ktyp,
-                                                         alg=request[item])
+                        _k = self.keyjar.get_signing_key(ktyp, alg=request[item])
                         if not _k:
                             del _cinfo[item]
 
@@ -1489,12 +1485,8 @@ class Provider(AProvider):
                                                            "127.0.0.1"]:
                     pass
                 else:
-                    logger.error(
-                        "InvalidRedirectURI: scheme:{}, hostname:{}".format(
-                        p.scheme, p.hostname))
-                    raise InvalidRedirectURIError(
-                        "Redirect_uri must use custom scheme or http and "
-                        "localhost")
+                    logger.error("InvalidRedirectURI: scheme:%s, hostname:%s", p.scheme, p.hostname)
+                    raise InvalidRedirectURIError("Redirect_uri must use custom scheme or http and localhost")
             elif must_https and p.scheme != "https":
                 raise InvalidRedirectURIError(
                     "None https redirect_uri not allowed")

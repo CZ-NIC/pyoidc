@@ -788,8 +788,8 @@ class Message(MutableMapping):
                      self._dict.items() if key not in self.c_param])
 
     def only_extras(self):
-        l = [key for key in self._dict.keys() if key in self.c_param]
-        if not l:
+        extras = [key for key in self._dict.keys() if key in self.c_param]
+        if not extras:
             return True
         else:
             return False

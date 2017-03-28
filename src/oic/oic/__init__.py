@@ -19,6 +19,7 @@ from future.moves.urllib.parse import parse_qs
 from jwkest.jwe import JWE
 from jwkest import jws, as_bytes
 from jwkest import jwe
+from requests import ConnectionError
 
 from oic import oauth2, OIDCONF_PATTERN
 from oic import rndstr
@@ -983,7 +984,8 @@ class Client(oauth2.Client):
         if r.status_code == 200:
             try:
                 pcr = response_cls().from_json(r.text)
-            except:
+            except Exception:
+                # FIXME: This should catch specific exception from `from_json()`
                 _err_txt = "Faulty provider config response: {}".format(r.text)
                 logger.error(sanitize(_err_txt))
                 raise ParseError(_err_txt)

@@ -248,7 +248,6 @@ class WebFinger(object):
                 info.append(("rel", val))
 
         if resource.startswith("http"):
-            #part = urlparse.urlparse(resource)
             part = urlparse(resource)
             host = part.hostname
             if part.port is not None:

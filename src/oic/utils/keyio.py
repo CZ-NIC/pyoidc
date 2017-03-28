@@ -1030,20 +1030,15 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
 
         if typ == "RSA":
             if "key" in spec:
+                error_to_catch = getattr(__builtins__, 'FileNotFoundError', 'IOError')
                 try:
                     kb = KeyBundle(source="file://%s" % spec["key"],
                                    fileformat="der",
                                    keytype=typ, keyusage=spec["use"])
-                except Exception as err:
-                    if sys.version[0] == '2':
-                        if isinstance(err, IOError):
-                            kb = _new_rsa_key(spec)
-                        else:
-                            raise
-                    elif isinstance(err, FileNotFoundError):
-                        kb = _new_rsa_key(spec)
-                    else:
-                        raise
+                except error_to_catch:
+                    kb = _new_rsa_key(spec)
+                except Exception:
+                    raise
             else:
                 kb = rsa_init(spec)
         elif typ == "EC":
@@ -1077,14 +1072,14 @@ def key_summary(keyjar, issuer):
     except KeyError:
         return ''
     else:
-        l = []
+        key_list = []
         for kb in kbl:
             for key in kb.keys():
                 if key.inactive_since:
-                    l.append('*{}:{}:{}'.format(key.kty, key.use, key.kid))
+                    key_list.append('*{}:{}:{}'.format(key.kty, key.use, key.kid))
                 else:
-                    l.append('{}:{}:{}'.format(key.kty, key.use, key.kid))
-        return ', '.join(l)
+                    key_list.append('{}:{}:{}'.format(key.kty, key.use, key.kid))
+        return ', '.join(key_list)
 
 
 def check_key_availability(inst, jwt):

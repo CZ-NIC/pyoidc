@@ -291,7 +291,7 @@ class Client(PBase):
 
         try:
             return self.grant[state]
-        except:
+        except KeyError:
             raise GrantError("No grant found for state:'%s'" % state)
 
     def get_token(self, also_expired=False, **kwargs):
@@ -569,8 +569,7 @@ class Client(PBase):
             if not verf:
                 logger.error('Verification of the response failed')
                 raise PyoidcError("Verification of the response failed")
-            if resp.type() == "AuthorizationResponse" and \
-                            "scope" not in resp:
+            if resp.type() == "AuthorizationResponse" and "scope" not in resp:
                 try:
                     resp["scope"] = kwargs["scope"]
                 except KeyError:
@@ -717,7 +716,7 @@ class Client(PBase):
 
         try:
             algs = kwargs["algs"]
-        except:
+        except KeyError:
             algs = {}
 
         resp = self.request_and_return(url, response_cls, method, body,

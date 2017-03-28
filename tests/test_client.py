@@ -234,8 +234,8 @@ class TestValidClientInfo(object):
         assert valid_client_info({'client_id': 'test', 'client_secret': 'secret'})
         assert valid_client_info({'client_secret_expires_at': 0})
         # Expired secret
-        assert valid_client_info({'client_secret_expires_at': 1}) != True
-        assert valid_client_info({'client_id': 'test', 'client_secret_expires_at': 123455}) != True
+        assert valid_client_info({'client_secret_expires_at': 1}) is not True
+        assert valid_client_info({'client_id': 'test', 'client_secret_expires_at': 123455}) is not True
         # Valid secret
         assert valid_client_info({'client_secret_expires_at': 123457})
         assert valid_client_info({'client_id': 'test', 'client_secret_expires_at': 123457})

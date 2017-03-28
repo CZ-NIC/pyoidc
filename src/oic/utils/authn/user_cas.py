@@ -124,8 +124,7 @@ class CasAuthnMethod(UserAuthnMethod):
         """
         if acr is None:
             acr = ""
-        return self.service_url + "?" + self.CONST_NONCE + "=" + nonce + \
-               "&acr_values=" + acr
+        return self.service_url + "?" + self.CONST_NONCE + "=" + nonce + "&acr_values=" + acr
 
     def verify(self, request, cookie, **kwargs):
         """
@@ -173,7 +172,8 @@ class CasAuthnMethod(UserAuthnMethod):
                 return_to += "?"
             return_to += base64.b64decode(data[self.CONST_QUERY])
             return SeeOther(return_to, headers=[cookie])
-        except:
+        except Exception:
+            # FIXME: This should catch specific exception thrown from methods in the block
             logger.fatal('Metod verify in user_cas.py had a fatal exception.',
                          exc_info=True)
             return Unauthorized("You are not authorized!")

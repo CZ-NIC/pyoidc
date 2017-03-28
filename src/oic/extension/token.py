@@ -98,7 +98,7 @@ class JWTToken(Token, JWT):
 
         try:
             kwargs['kid'] = self.extra_claims['kid']
-        except:
+        except KeyError:
             pass
 
         _jti = '{}-{}'.format(self.type, uuid.uuid4().hex)

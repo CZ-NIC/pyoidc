@@ -65,6 +65,7 @@ def sts_deser(val, sformat="json"):
             sformat = "json"
     return STS().deserialize(val, sformat)
 
+
 SINGLE_OPTIONAL_STS = (Message, False, msg_ser, sts_deser, False)
 
 
