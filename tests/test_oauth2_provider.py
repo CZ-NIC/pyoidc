@@ -150,6 +150,7 @@ class TestProvider(object):
         msg = json.loads(resp.message)
         assert msg["error"] == "invalid_request"
 
+    @pytest.mark.xfail(reason="https://github.com/OpenIDC/pyoidc/issues/287")
     def test_authenticated(self):
         _session_db = {}
         cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
