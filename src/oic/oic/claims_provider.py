@@ -96,7 +96,6 @@ class ClaimsServer(Provider):
         logger.info("RESPONSE: %s" % (sanitize(cresp.to_dict()),))
         return cresp
 
-    # noinspection PyUnusedLocal
     def _distributed(self, info):
         # store the user info so it can be accessed later
         access_token = rndstr()
@@ -105,11 +104,9 @@ class ClaimsServer(Provider):
                                   access_token=access_token,
                                   claims_names=info.keys())
 
-    # noinspection PyUnusedLocal
     def do_aggregation(self, info, uid):
         return self.dist_claims_mode.aggregate(uid, info)
 
-    # noinspection PyUnusedLocal
     def claims_endpoint(self, request, http_authz, *args):
         _log_info = logger.info
 
@@ -175,7 +172,6 @@ class ClaimsClient(Client):
         self.response2error = RESPONSE2ERROR.copy()
         self.response2error["UserClaimsResponse"] = ["ErrorResponse"]
 
-    # noinspection PyUnusedLocal
     def construct_UserClaimsRequest(self, request=UserClaimsRequest,
                                     request_args=None, extra_args=None,
                                     **kwargs):

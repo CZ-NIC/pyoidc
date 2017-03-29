@@ -83,7 +83,6 @@ def error_response(error, descr=None, status="400 Bad Request"):
                     status=status)
 
 
-# noinspection PyUnusedLocal
 def none_response(**kwargs):
     _areq = kwargs["areq"]
     aresp = NoneResponse()
@@ -338,7 +337,6 @@ class Client(PBase):
 
         return self.construct_request(request, request_args, extra_args)
 
-    # noinspection PyUnusedLocal
     def construct_AuthorizationRequest(self, request=AuthorizationRequest,
                                        request_args=None, extra_args=None,
                                        **kwargs):
@@ -360,7 +358,6 @@ class Client(PBase):
 
         return self.construct_request(request, request_args, extra_args)
 
-    # noinspection PyUnusedLocal
     def construct_AccessTokenRequest(self,
                                      request=AccessTokenRequest,
                                      request_args=None, extra_args=None,
@@ -597,7 +594,6 @@ class Client(PBase):
 
         return resp
 
-    # noinspection PyUnusedLocal
     def init_authentication_method(self, cis, authn_method, request_args=None,
                                    http_args=None, **kwargs):
 

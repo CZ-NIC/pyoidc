@@ -61,7 +61,6 @@ class MyFakeOICServer(Server):
         self.webfinger = WebFinger()
         self.userinfo_signed_response_alg = ""
 
-    # noinspection PyUnusedLocal
     def http_request(self, path, method="GET", **kwargs):
         part = urlparse(path)
         path = part[2]
@@ -261,7 +260,6 @@ class MyFakeOICServer(Server):
         response.headers = {"content-type": "application/json"}
         return response
 
-    # noinspection PyUnusedLocal
     def refresh_session_endpoint(self, query):
         self.parse_refresh_session_request(query=query)
 
@@ -290,7 +288,6 @@ class MyFakeOICServer(Server):
         response.text = ""
         return response
 
-    # noinspection PyUnusedLocal
     @staticmethod
     def add_credentials(user, passwd):
         pass

@@ -791,7 +791,6 @@ class RedirectStdStreams(object):
         self.old_stderr.flush()
         sys.stdout, sys.stderr = self._stdout, self._stderr
 
-    # noinspection PyUnusedLocal
     def __exit__(self, exc_type, exc_value, trace_back):
         self._stdout.flush()
         self._stderr.flush()

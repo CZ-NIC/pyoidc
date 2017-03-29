@@ -96,12 +96,10 @@ class InvalidRedirectURIError(Exception):
     pass
 
 
-# noinspection PyUnusedLocal
 def devnull(txt):
     pass
 
 
-# noinspection PyUnusedLocal
 def do_authorization(user):
     return ""
 
@@ -1020,7 +1018,6 @@ class Provider(AProvider):
 
         return Response(atr.to_json(), content="application/json")
 
-    # noinspection PyUnusedLocal
     def token_endpoint(self, request="", authn=None, dtype='urlencoded',
                        **kwargs):
         """
@@ -1175,7 +1172,6 @@ class Provider(AProvider):
                                  "userinfo", "JWT")
         return jinfo
 
-    # noinspection PyUnusedLocal
     def userinfo_endpoint(self, request="", **kwargs):
         """
         :param request: The request in a string format or as a dictionary
@@ -1265,7 +1261,6 @@ class Provider(AProvider):
 
         return Response(jinfo, content=content_type)
 
-    # noinspection PyUnusedLocal
     def check_session_endpoint(self, request, **kwargs):
         """
         """
@@ -1524,7 +1519,6 @@ class Provider(AProvider):
 
             args[param] = val
 
-    # noinspection PyUnusedLocal
     def l_registration_endpoint(self, request, authn=None, **kwargs):
         logger.debug("@registration_endpoint: <<%s>>" % sanitize(request))
 
@@ -1788,7 +1782,6 @@ class Provider(AProvider):
 
         return True
 
-    # noinspection PyUnusedLocal
     def providerinfo_endpoint(self, handle="", **kwargs):
         _log_info = logger.info
 
@@ -1817,7 +1810,6 @@ class Provider(AProvider):
 
         return resp
 
-    # noinspection PyUnusedLocal
     def discovery_endpoint(self, request, handle=None, **kwargs):
         """
         :param request:

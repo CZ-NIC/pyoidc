@@ -669,7 +669,6 @@ class Message(MutableMapping):
         elif val is None and na is False:
             raise NotAllowedValue(val)
 
-    # noinspection PyUnusedLocal
     def verify(self, **kwargs):
         """
         Make sure all the required values are there and that the values are
@@ -857,7 +856,6 @@ def add_non_standard(msg1, msg2):
 
 # =============================================================================
 
-# noinspection PyUnusedLocal
 def list_serializer(vals, sformat="urlencoded", lev=0):
     if isinstance(vals, six.string_types) or not isinstance(vals, list):
         raise ValueError("Expected list: %s" % vals)
@@ -867,7 +865,6 @@ def list_serializer(vals, sformat="urlencoded", lev=0):
         return vals
 
 
-# noinspection PyUnusedLocal
 def list_deserializer(val, sformat="urlencoded"):
     if sformat == "urlencoded":
         if isinstance(val, six.string_types):
@@ -878,7 +875,6 @@ def list_deserializer(val, sformat="urlencoded"):
         return val
 
 
-# noinspection PyUnusedLocal
 def sp_sep_list_serializer(vals, sformat="urlencoded", lev=0):
     if isinstance(vals, six.string_types):
         return vals
@@ -886,7 +882,6 @@ def sp_sep_list_serializer(vals, sformat="urlencoded", lev=0):
         return " ".join(vals)
 
 
-# noinspection PyUnusedLocal
 def sp_sep_list_deserializer(val, sformat="urlencoded"):
     if isinstance(val, six.string_types):
         return val.split(" ")
@@ -896,12 +891,10 @@ def sp_sep_list_deserializer(val, sformat="urlencoded"):
         return val
 
 
-# noinspection PyUnusedLocal
 def json_serializer(obj, sformat="urlencoded", lev=0):
     return json.dumps(obj)
 
 
-# noinspection PyUnusedLocal
 def json_deserializer(txt, sformat="urlencoded"):
     return json.loads(txt)
 

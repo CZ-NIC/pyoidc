@@ -1,7 +1,6 @@
 __author__ = 'rolandh'
 
 
-# noinspection PyUnusedLocal
 class ClaimsMode(object):
     def __init__(self, user2mode):
         self.user2mode = user2mode
