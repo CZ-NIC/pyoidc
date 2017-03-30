@@ -380,10 +380,6 @@ def dump_jwks(kbl, target, private=False):
     f.close()
 
 
-def make_public_keybundle(kb):
-    return KeyBundle(keys=[make_public_copy(k) for k in kb._key])
-
-
 class KeyJar(object):
     """ A keyjar contains a number of KeyBundles """
 
