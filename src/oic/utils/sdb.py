@@ -1,21 +1,22 @@
-import copy
-import json
-import uuid
-import time
-import itertools
-import hmac
-import hashlib
-import random
+from future.utils import tobytes
+
 import base64
+import copy
+import hashlib
+import hmac
+import itertools
+import json
 import logging
+import random
+import time
+import uuid
 
 from Cryptodome.Cipher import AES
-from future.utils import tobytes
 
 from oic import rndstr
 from oic.oic import AuthorizationRequest
-from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.time_util import time_sans_frac
+from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = 'rohe0002'
 
@@ -85,7 +86,7 @@ class Crypt(object):
 class Token(object):
     def __init__(self, typ, lifetime=0, **kwargs):
         self.type = typ
-        self.lifetime  = lifetime
+        self.lifetime = lifetime
         self.args = kwargs
 
     def __call__(self, sid, *args, **kwargs):
@@ -298,7 +299,7 @@ class RefreshDB(object):
 
     def create_token(self, client_id, uid, scopes, sub, authzreq, sid):
         """
-        Create refresh token for given combination of client_id and sub and 
+        Create refresh token for given combination of client_id and sub and
         store it in internal storage
 
         :param client_id: Client_id of the consumer
@@ -422,7 +423,7 @@ class SessionDB(object):
         for key in order:
             try:
                 return self.token_factory[key].type_and_key(item)
-            except Exception as err:
+            except Exception:
                 pass
 
         logger.info("Unknown token format")

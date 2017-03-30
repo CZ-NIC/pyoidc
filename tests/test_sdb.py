@@ -6,18 +6,16 @@ import time
 
 import pytest
 
-from oic.utils.sdb import AccessCodeUsed, DefaultToken
-from oic.utils.sdb import AuthnEvent
-from oic.utils.sdb import Crypt
-from oic.utils.sdb import DictRefreshDB
-from oic.utils.sdb import SessionDB
-from oic.utils.sdb import WrongTokenType
-from oic.utils.sdb import ExpiredToken
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import OpenIDRequest
-
-def _eq(l1, l2):
-    return set(l1) == set(l2)
+from oic.utils.sdb import AccessCodeUsed
+from oic.utils.sdb import AuthnEvent
+from oic.utils.sdb import Crypt
+from oic.utils.sdb import DefaultToken
+from oic.utils.sdb import DictRefreshDB
+from oic.utils.sdb import ExpiredToken
+from oic.utils.sdb import SessionDB
+from oic.utils.sdb import WrongTokenType
 
 __author__ = 'rohe0002'
 
@@ -38,6 +36,10 @@ AREQO = AuthorizationRequest(response_type="code", client_id="client1",
 OIDR = OpenIDRequest(response_type="code", client_id="client1",
                      redirect_uri="http://example.com/authz", scope=["openid"],
                      state="state000")
+
+
+def _eq(l1, l2):
+    return set(l1) == set(l2)
 
 
 class TestDictRefreshDB(object):
@@ -80,7 +82,7 @@ class TestToken(object):
         sid = self.token.key(areq=AREQ)
         assert len(sid) == 56
 
-        code2 = self.token(sid=sid, ttype='T')
+        self.token(sid=sid, ttype='T')
         assert len(sid) == 56
 
         sid2 = self.token.key(areq=AREQ, user="jones")
@@ -328,25 +330,20 @@ class TestSessionDB(object):
         self.sdb.do_sub(sid, "other_random_value")
 
         info = self.sdb[sid]
-        assert info[
-                   "sub"] == \
-               '179670cdee6375c48e577317b2abd7d5cd26a5cdb1cfb7ef84af3d703c71d013'
+        assert info["sub"] == '179670cdee6375c48e577317b2abd7d5cd26a5cdb1cfb7ef84af3d703c71d013'
 
         self.sdb.do_sub(sid, "other_random_value",
                         sector_id='http://example.com',
                         subject_type="pairwise")
         info2 = self.sdb[sid]
-        assert info2[
-                   "sub"] == \
-               'aaa50d80f8780cf1c4beb39e8e126556292f5091b9e39596424fefa2b99d9c53'
+        assert info2["sub"] == 'aaa50d80f8780cf1c4beb39e8e126556292f5091b9e39596424fefa2b99d9c53'
 
         self.sdb.do_sub(sid, "another_random_value",
                         sector_id='http://other.example.com',
                         subject_type="pairwise")
 
         info2 = self.sdb[sid]
-        assert info2[
-            "sub"] == '62fb630e29f0d41b88e049ac0ef49a9c3ac5418c029d6e4f5417df7e9443976b'
+        assert info2["sub"] == '62fb630e29f0d41b88e049ac0ef49a9c3ac5418c029d6e4f5417df7e9443976b'
 
 
 class TestCrypt(object):

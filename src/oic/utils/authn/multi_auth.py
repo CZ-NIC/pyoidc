@@ -63,7 +63,6 @@ class AuthnIndexedEndpointWrapper(UserAuthnMethod):
         UserAuthnMethod.__init__(self, None)
         self.end_point_index = end_point_index
 
-
     def __call__(self, **kwargs):
         return self.authn_instance(end_point_index=self.end_point_index,
                                    **kwargs)

@@ -3,11 +3,11 @@ import json
 from oic import rndstr
 from oic.extension.single import SingleClient
 from oic.extension.single import SingleService
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import Message
 from oic.oauth2.message import SINGLE_OPTIONAL_INT
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
+from oic.oauth2.message import AccessTokenResponse
+from oic.oauth2.message import Message
 from oic.utils.time_util import time_sans_frac
 
 

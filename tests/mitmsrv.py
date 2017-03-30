@@ -1,17 +1,24 @@
 #!/usr/bin/env python
 from future.backports.urllib.parse import parse_qs
+from future.moves.urllib.parse import urlparse
+
+from jwkest import jws
 from jwkest.jws import alg2keytype
 
 from oic import rndstr
 from oic.oauth2.message import by_schema
-
 from oic.oic import Server
-from oic.oic.message import *
-
-from oic.utils.sdb import SessionDB, AuthnEvent
+from oic.oic.message import AccessTokenResponse
+from oic.oic.message import AuthorizationResponse
+from oic.oic.message import EndSessionResponse
+from oic.oic.message import OpenIDSchema
+from oic.oic.message import ProviderConfigurationResponse
+from oic.oic.message import RegistrationResponse
+from oic.oic.message import TokenErrorResponse
+from oic.utils.sdb import AuthnEvent
+from oic.utils.sdb import SessionDB
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.webfinger import WebFinger
-
 
 __author__ = 'rohe0002'
 
@@ -54,7 +61,6 @@ class MITMServer(Server):
         self.webfinger = WebFinger()
         self.userinfo_signed_response_alg = ""
 
-    # noinspection PyUnusedLocal
     def http_request(self, path, method="GET", **kwargs):
         part = urlparse(path)
         path = part[2]
@@ -102,7 +108,7 @@ class MITMServer(Server):
         req = self.parse_authorization_request(query=query)
         aevent = AuthnEvent("user", "salt", authn_info="acr")
         sid = self.sdb.create_authz_session(aevent, areq=req)
-        _ = self.sdb.do_sub(sid, 'client_salt')
+        self.sdb.do_sub(sid, 'client_salt')
         _info = self.sdb[sid]
 
         if "code" in req["response_type"]:
@@ -173,7 +179,7 @@ class MITMServer(Server):
 
     def userinfo_endpoint(self, data):
 
-        _ = self.parse_user_info_request(data)
+        self.parse_user_info_request(data)
         _info = {
             "sub": "melgar",
             "name": "Melody Gardot",
@@ -253,10 +259,9 @@ class MITMServer(Server):
         response.headers = {"content-type": "application/json"}
         return response
 
-    # noinspection PyUnusedLocal
     def refresh_session_endpoint(self, query):
         try:
-            req = self.parse_refresh_session_request(query=query)
+            self.parse_refresh_session_request(query=query)
         except Exception:
             raise
 
@@ -285,7 +290,6 @@ class MITMServer(Server):
         response.text = ""
         return response
 
-    # noinspection PyUnusedLocal
     @staticmethod
     def add_credentials(user, passwd):
         return

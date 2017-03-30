@@ -1,8 +1,8 @@
 import json
 
 import requests
-
 from six.moves.urllib.parse import quote
+
 from oic.oauth2.exception import NoClientInfoReceivedError
 
 

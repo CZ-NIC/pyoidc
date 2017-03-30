@@ -1,31 +1,29 @@
+import hashlib
 import logging
 import random
 import string
-import hashlib
 
 from jwkest import b64e
+
 from oic import oauth2
-from oic.extension.message import TokenRevocationRequest
-from oic.extension.message import ClientUpdateRequest
+from oic.exception import AuthzError
+from oic.exception import PyoidcError
 from oic.extension.message import ClientInfoResponse
-from oic.extension.message import RegistrationRequest
 from oic.extension.message import ClientRegistrationError
+from oic.extension.message import ClientUpdateRequest
+from oic.extension.message import RegistrationRequest
 from oic.extension.message import TokenIntrospectionRequest
 from oic.extension.message import TokenIntrospectionResponse
-
-from oic.exception import PyoidcError
-from oic.exception import AuthzError
-
+from oic.extension.message import TokenRevocationRequest
+from oic.oauth2.exception import Unsupported
+from oic.oauth2.message import ASConfigurationResponse
+from oic.oauth2.message import AuthorizationRequest
+from oic.oauth2.message import ErrorResponse
 from oic.oic import OIDCONF_PATTERN
 from oic.oic.message import AuthorizationResponse
 from oic.utils.http_util import SUCCESSFUL
 from oic.utils.keyio import KeyJar
 from oic.utils.sanitize import sanitize
-
-from oic.oauth2.message import ErrorResponse
-from oic.oauth2.exception import Unsupported
-from oic.oauth2.message import AuthorizationRequest
-from oic.oauth2.message import ASConfigurationResponse
 
 logger = logging.getLogger(__name__)
 
@@ -284,7 +282,7 @@ class Client(oauth2.Client):
                     _issuer = issuer
 
             try:
-                _ = self.allow["issuer_mismatch"]
+                self.allow["issuer_mismatch"]
             except KeyError:
                 try:
                     assert _issuer == _pcr_issuer
@@ -356,7 +354,7 @@ class Client(oauth2.Client):
             try:
                 resp.verify()
                 self.store_response(resp, response.text)
-            except Exception as err:
+            except Exception:
                 raise PyoidcError(
                     'Registration failed: {}'.format(response.text))
 

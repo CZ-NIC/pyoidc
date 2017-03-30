@@ -1,17 +1,18 @@
-from future.backports.urllib.parse import urlencode, urlparse
 from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import urlencode
+from future.backports.urllib.parse import urlparse
 
 import pytest
 
 from oic import rndstr
 from oic.exception import AuthzError
 from oic.oauth2.consumer import Consumer
-from oic.oauth2.consumer import stateID
 from oic.oauth2.consumer import factory
-from oic.oauth2.message import MissingRequiredAttribute
-from oic.oauth2.message import AuthorizationResponse
-from oic.oauth2.message import AuthorizationErrorResponse
+from oic.oauth2.consumer import stateID
 from oic.oauth2.message import AccessTokenResponse
+from oic.oauth2.message import AuthorizationErrorResponse
+from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import TokenErrorResponse
 from oic.utils.http_util import make_cookie
 
@@ -71,6 +72,7 @@ def url_compare(url1, url2):
         return False
 
     return True
+
 
 def query_string_compare(query_str1, query_str2):
     return parse_qs(query_str1) == parse_qs(query_str2)
@@ -234,7 +236,8 @@ class TestConsumer(object):
 
         url, body, http_args = self.consumer.get_access_token_request(_state)
         assert url_compare(url, "http://localhost:8088/token")
-        expected_params = 'redirect_uri=https%3A%2F%2Fwww.example.com%2Foic%2Fcb&client_id=number5&state=state&code=auth_grant&grant_type=authorization_code&client_secret=secret0'
+        expected_params = 'redirect_uri=https%3A%2F%2Fwww.example.com%2Foic%2Fcb&client_id=number5&state=state&' \
+                          'code=auth_grant&grant_type=authorization_code&client_secret=secret0'
 
         assert query_string_compare(body, expected_params)
         assert http_args == {'headers': {

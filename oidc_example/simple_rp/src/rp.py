@@ -1,12 +1,12 @@
 import argparse
+import os
 
 import cherrypy
-import os
+import yaml
+
 from oic.oauth2 import rndstr
 from oic.oic import Client
 from oic.oic.message import AuthorizationResponse
-import yaml
-
 
 __author__ = 'regu0004'
 

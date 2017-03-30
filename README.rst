@@ -10,6 +10,9 @@
 .. image:: https://img.shields.io/pypi/dm/oic.svg
     :target: https://pypi.python.org/pypi/oic
 
+.. image:: https://readthedocs.org/projects/pyoidc/badge/?version=latest
+    :target: http://pyoidc.readthedocs.io/en/latest/?badge=latest
+
 .. image:: https://landscape.io/github/OpenIDC/pyoidc/master/landscape.svg?style=flat
     :target: https://landscape.io/github/OpenIDC/pyoidc/master
 
@@ -31,7 +34,7 @@ issues`_. However, the maintainers are trying to remedy this lately with some
 new momentum. Please help us by submitting pull requests if you can help
 improve the documentation.
 
-.. _documentation: http://pyoidc.readthedocs.io/en/latest/index.html
+.. _documentation: http://pyoidc.rtfd.io
 .. _Read the Docs: https://readthedocs.org/
 .. _there are various issues: https://github.com/OpenIDC/pyoidc/issues?q=is%3Aopen+is%3Aissue+label%3Adocumentation
 
@@ -60,7 +63,8 @@ Maintainers Needed
 If you're interested in helping maintain and improve this package, we're
 looking for you!
 
-Please contact one of the current maintainers, `@lwm`_ or `@rohe`_.
+Please contact one of the current maintainers, `@lwm`_, `@rohe`_ or `@tpazderka`_.
 
 .. _@lwm: https://github.com/lwm/
 .. _@rohe: https://github.com/rohe/
+.. _@tpazderka: https://github.com/tpazderka/

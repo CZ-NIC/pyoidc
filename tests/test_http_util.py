@@ -1,13 +1,14 @@
 # pylint: disable=redefined-outer-name,missing-docstring
 import datetime
+
 import pytest
 
 from oic.utils.http_util import CookieDealer
 from oic.utils.http_util import Response
-from oic.utils.http_util import geturl
-from oic.utils.http_util import getpath
-from oic.utils.http_util import parse_cookie
 from oic.utils.http_util import cookie_parts
+from oic.utils.http_util import getpath
+from oic.utils.http_util import geturl
+from oic.utils.http_util import parse_cookie
 
 __author__ = 'roland'
 

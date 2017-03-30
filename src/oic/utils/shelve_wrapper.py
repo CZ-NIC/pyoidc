@@ -1,10 +1,4 @@
-from shelve import Shelf
 import shelve
-
-try:
-    import dbm as anydbm
-except ImportError:
-    import anydbm
 
 __author__ = 'danielevertsson'
 

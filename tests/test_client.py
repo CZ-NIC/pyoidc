@@ -2,37 +2,38 @@
 
 import base64
 import os
-import pytest
-import six
-from jwkest import as_bytes, b64e
 
+import pytest
+from jwkest import as_bytes
+from jwkest import b64e
+from jwkest.jwk import SYMKey
+from jwkest.jwk import rsa_load
 from jwkest.jws import JWS
 from jwkest.jwt import JWT
-from jwkest.jwk import rsa_load
-from jwkest.jwk import SYMKey
 from mock import Mock
 from mock import patch
 
 from oic.oauth2 import Client
 from oic.oauth2.grant import Grant
 from oic.oauth2.message import AccessTokenRequest
-from oic.oauth2.message import ResourceRequest
-from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import AccessTokenResponse
+from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import ResourceRequest
 from oic.oic import JWT_BEARER
-from oic.utils.authn.client import ClientSecretBasic
-from oic.utils.authn.client import BearerHeader
 from oic.utils.authn.client import BearerBody
+from oic.utils.authn.client import BearerHeader
+from oic.utils.authn.client import ClientSecretBasic
+from oic.utils.authn.client import ClientSecretJWT
 from oic.utils.authn.client import ClientSecretPost
 from oic.utils.authn.client import PrivateKeyJWT
-from oic.utils.authn.client import ClientSecretJWT
 from oic.utils.authn.client import valid_client_info
 from oic.utils.keyio import KeyBundle
 
 BASE_PATH = os.path.abspath(os.path.dirname(__file__))
 
 
-CLIENT_CONF = {'client_id':'A', 'config':{'issuer': 'https://example.com/as'}}
+CLIENT_CONF = {'client_id': 'A', 'config': {'issuer': 'https://example.com/as'}}
+
 
 def _eq(l1, l2):
     return set(l1) == set(l2)
@@ -208,8 +209,8 @@ class TestClientSecretJWT(object):
         csj = ClientSecretJWT(client)
         cis = AccessTokenRequest()
 
-        http_args = csj.construct(cis, algorithm="HS256",
-                                  authn_endpoint='token')
+        csj.construct(cis, algorithm="HS256",
+                      authn_endpoint='token')
         assert cis["client_assertion_type"] == JWT_BEARER
         assert "client_assertion" in cis
         cas = cis["client_assertion"]
@@ -233,8 +234,8 @@ class TestValidClientInfo(object):
         assert valid_client_info({'client_id': 'test', 'client_secret': 'secret'})
         assert valid_client_info({'client_secret_expires_at': 0})
         # Expired secret
-        assert valid_client_info({'client_secret_expires_at': 1}) != True
-        assert valid_client_info({'client_id': 'test', 'client_secret_expires_at': 123455}) != True
+        assert valid_client_info({'client_secret_expires_at': 1}) is not True
+        assert valid_client_info({'client_id': 'test', 'client_secret_expires_at': 123455}) is not True
         # Valid secret
         assert valid_client_info({'client_secret_expires_at': 123457})
         assert valid_client_info({'client_id': 'test', 'client_secret_expires_at': 123457})

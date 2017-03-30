@@ -3,23 +3,25 @@
 Documentation
 #############
 
-PyOIDC uses Sphinx_ for documentation. You can install
-it via Pip_:
+PyOIDC uses Sphinx_ for documentation.
+
+You can install it via Pip_:
 
 .. _Pip: https://pip.pypa.io/en/stable/installing/
 .. _Sphinx: https://www.sphinx-doc.org/
 
 ::
 
-  $ pip install -U sphinx sphinx-autobuild
+  $ pip install -r requirements/docs.txt
 
-There is a convenient Makefile_ for all documentation commands,
-which you can review by running (in the root of the repository):
-
-.. _Makefile: https://github.com/rohe/pyoidc/blob/master/Makefile
+To build the documentation, run:
 
 ::
 
   $ make help
 
-``make livehtml`` is particularly useful when developing locally.
+To have the changes automatically shown while you're hacking, run:
+
+::
+
+  $ make livehtml

@@ -1,8 +1,7 @@
 import base64
 
-from oic.utils.authn.client import ClientAuthnMethod
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
-
+from oic.utils.authn.client import ClientAuthnMethod
 
 __author__ = 'rolandh'
 
@@ -35,7 +34,8 @@ else:
             xmlstr = base64.urlsafe_b64decode(areq["client_assertion"])
             try:
                 assertion = assertion_from_string(xmlstr)
-            except:
+            except Exception:
+                # FIXME: This should catch specific exceptions thrown by `assertion_from_string`
                 return False
             return self._verify_saml2_assertion(assertion)
 

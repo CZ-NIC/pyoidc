@@ -1,12 +1,11 @@
 import copy
 import logging
-from oic.exception import MissingAttribute
 
+from oic.exception import MissingAttribute
 from oic.oic import OpenIDSchema
 from oic.oic.claims_provider import ClaimsClient
-from oic.utils.userinfo import UserInfo
 from oic.utils.sanitize import sanitize
-
+from oic.utils.userinfo import UserInfo
 
 __author__ = 'rolandh'
 

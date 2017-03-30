@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from future.backports.urllib.parse import splitquery
+from future.backports.urllib.parse import urlparse
+from future.moves.urllib.parse import parse_qs
 
+import argparse
 import copy
 import json
 import os
 import shelve
-import argparse
 import sys
-from future.backports.urllib.parse import urlparse
-from future.backports.urllib.parse import splitquery
-from future.backports.urllib.parse import parse_qs
 
-from oic.oic.provider import secret
 from oic import rndstr
+from oic.oic.provider import secret
 
 __author__ = 'rolandh'
 
@@ -116,7 +116,7 @@ class CDB(object):
                             _tmp[uris] = unpack_redirect_uri(_tmp[uris])
                         except KeyError:
                             pass
-                except Exception as err:
+                except Exception:
                     print("Faulty specification: {}".format(item))
                 else:
                     self.cdb[str(item["client_id"])] = item

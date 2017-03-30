@@ -1,5 +1,7 @@
 language: python
 
+python: 3.6
+
 sudo: false
 
 addons:
@@ -9,37 +11,15 @@ addons:
     - libsasl2-dev
     - libldap2-dev
 
-matrix:
-  include:
-    - python: 2.7
-      env: TOXENV=py27 BUILD=code
-    - python: 3.5
-      env: TOXENV=py35 BUILD=code
-    - python: 3.6
-      env: TOXENV=py36 BUILD=code
-    - python: 3.5
-      env: TOXENV=py35 BUILD=docs
-
+env:
+ - TOX_ENV=py27
+ - TOX_ENV=py34
+ - TOX_ENV=py36
+ - TOX_ENV=docs
+ - TOX_ENV=quality
 
 install:
-  - |
-    set -ex
-    case "$BUILD" in
-      code)
-        pip install -U tox ;;
-      docs)
-        pip install -U sphinx ;;
-    esac
-    set +ex
-
+  - pip install tox
 
 script:
-  - |
-    set -ex
-    case "$BUILD" in
-      code)
-        tox ;;
-      docs)
-        SPHINXOPTS=-W make html ;;
-    esac
-    set +ex
+  - tox -e $TOX_ENV

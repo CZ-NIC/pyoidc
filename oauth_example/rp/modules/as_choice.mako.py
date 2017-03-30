@@ -1,5 +1,8 @@
 # -*- coding:utf-8 -*-
-from mako import runtime, filters, cache
+from mako import cache
+from mako import filters
+from mako import runtime
+
 UNDEFINED = runtime.UNDEFINED
 STOP_RENDERING = runtime.STOP_RENDERING
 __M_dict_builtin = dict

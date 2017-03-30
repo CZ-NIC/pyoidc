@@ -1,25 +1,26 @@
-from collections import MutableMapping
-import copy
-import logging
-import json
-import six
-
 from future.backports.urllib.parse import urlencode
-from future.backports.urllib.parse import parse_qs
+from future.moves.urllib.parse import parse_qs
 from past.builtins import basestring
 
+import copy
+import json
+import logging
+from collections import MutableMapping
+
+import six
 from jwkest import as_unicode
 from jwkest import b64d
 from jwkest import jwe
 from jwkest import jws
 from jwkest.jwe import JWE
-from jwkest.jws import JWS, alg2keytype
-from jwkest.jwt import JWT
 from jwkest.jwk import keyitems2keyreps
+from jwkest.jws import JWS
 from jwkest.jws import NoSuitableSigningKeys
+from jwkest.jws import alg2keytype
+from jwkest.jwt import JWT
 
-from oic.exception import PyoidcError
 from oic.exception import MessageException
+from oic.exception import PyoidcError
 from oic.oauth2.exception import VerificationError
 from oic.utils.keyio import key_summary
 from oic.utils.keyio import update_keyjar
@@ -226,7 +227,7 @@ class Message(MutableMapping):
     def deserialize(self, info, method="urlencoded", **kwargs):
         try:
             func = getattr(self, "from_%s" % method)
-        except AttributeError as err:
+        except AttributeError:
             raise FormatError("Unknown serialization method (%s)" % method)
         else:
             return func(info, **kwargs)
@@ -668,7 +669,6 @@ class Message(MutableMapping):
         elif val is None and na is False:
             raise NotAllowedValue(val)
 
-    # noinspection PyUnusedLocal
     def verify(self, **kwargs):
         """
         Make sure all the required values are there and that the values are
@@ -787,8 +787,8 @@ class Message(MutableMapping):
                      self._dict.items() if key not in self.c_param])
 
     def only_extras(self):
-        l = [key for key in self._dict.keys() if key in self.c_param]
-        if not l:
+        extras = [key for key in self._dict.keys() if key in self.c_param]
+        if not extras:
             return True
         else:
             return False
@@ -856,7 +856,6 @@ def add_non_standard(msg1, msg2):
 
 # =============================================================================
 
-# noinspection PyUnusedLocal
 def list_serializer(vals, sformat="urlencoded", lev=0):
     if isinstance(vals, six.string_types) or not isinstance(vals, list):
         raise ValueError("Expected list: %s" % vals)
@@ -866,7 +865,6 @@ def list_serializer(vals, sformat="urlencoded", lev=0):
         return vals
 
 
-# noinspection PyUnusedLocal
 def list_deserializer(val, sformat="urlencoded"):
     if sformat == "urlencoded":
         if isinstance(val, six.string_types):
@@ -877,7 +875,6 @@ def list_deserializer(val, sformat="urlencoded"):
         return val
 
 
-# noinspection PyUnusedLocal
 def sp_sep_list_serializer(vals, sformat="urlencoded", lev=0):
     if isinstance(vals, six.string_types):
         return vals
@@ -885,7 +882,6 @@ def sp_sep_list_serializer(vals, sformat="urlencoded", lev=0):
         return " ".join(vals)
 
 
-# noinspection PyUnusedLocal
 def sp_sep_list_deserializer(val, sformat="urlencoded"):
     if isinstance(val, six.string_types):
         return val.split(" ")
@@ -895,12 +891,10 @@ def sp_sep_list_deserializer(val, sformat="urlencoded"):
         return val
 
 
-# noinspection PyUnusedLocal
 def json_serializer(obj, sformat="urlencoded", lev=0):
     return json.dumps(obj)
 
 
-# noinspection PyUnusedLocal
 def json_deserializer(txt, sformat="urlencoded"):
     return json.loads(txt)
 

@@ -1,12 +1,11 @@
+from future.backports.urllib.parse import urlsplit
+
 import copy
 import hashlib
-from future.backports.urllib.parse import urlsplit
+import logging
 
 from oic import oic
 from oic import rndstr
-
-from oic.utils.http_util import Redirect
-from oic.exception import MissingAttribute
 from oic.oauth2 import ErrorResponse
 from oic.oauth2 import TokenError
 from oic.oauth2 import ResponseError
@@ -15,12 +14,13 @@ from oic.oic import AuthorizationResponse
 from oic.oic import RegistrationResponse
 from oic.oic import AuthorizationRequest
 from oic.oic.message import OpenIDSchema
+from oic.exception import MissingAttribute
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
+from oic.utils.http_util import Redirect
 from oic.utils.sanitize import sanitize
 
 __author__ = 'roland'
 
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -311,7 +311,7 @@ class OIDCClients(object):
             # Find the service that provides information about the OP
             issuer = client.wf.discovery_query(userid)
             # Gather OP information
-            pcr = client.provider_config(issuer)
+            client.provider_config(issuer)
             # register the client
             client.register(client.provider_info["registration_endpoint"],
                             **kwargs["client_info"])
@@ -319,18 +319,18 @@ class OIDCClients(object):
         elif _key_set == set(["client_info", "srv_discovery_url"]):
             # Ship the webfinger part
             # Gather OP information
-            _ = client.provider_config(kwargs["srv_discovery_url"])
+            client.provider_config(kwargs["srv_discovery_url"])
             # register the client
-            _ = client.register(client.provider_info["registration_endpoint"],
-                                **kwargs["client_info"])
+            client.register(client.provider_info["registration_endpoint"],
+                            **kwargs["client_info"])
             self.get_path(kwargs['client_info']['redirect_uris'],
                           kwargs["srv_discovery_url"])
         elif _key_set == set(["provider_info", "client_info"]):
             client.handle_provider_config(
                 ProviderConfigurationResponse(**kwargs["provider_info"]),
                 kwargs["provider_info"]["issuer"])
-            _ = client.register(client.provider_info["registration_endpoint"],
-                                **kwargs["client_info"])
+            client.register(client.provider_info["registration_endpoint"],
+                            **kwargs["client_info"])
 
             self.get_path(kwargs['client_info']['redirect_uris'],
                           kwargs["provider_info"]["issuer"])
@@ -343,7 +343,7 @@ class OIDCClients(object):
             self.get_path(kwargs['client_info']['redirect_uris'],
                           kwargs["provider_info"]["issuer"])
         elif _key_set == set(["srv_discovery_url", "client_registration"]):
-            _ = client.provider_config(kwargs["srv_discovery_url"])
+            client.provider_config(kwargs["srv_discovery_url"])
             client.store_registration_info(RegistrationResponse(
                 **kwargs["client_registration"]))
             self.get_path(kwargs['client_registration']['redirect_uris'],

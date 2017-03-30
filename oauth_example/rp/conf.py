@@ -25,4 +25,3 @@ AS_CONF = {
         "client_secret": "cdb8c2f40110a5fdefe7e26ea26a0bd51fb3d1b9593d6a054c75abcb"
     }
 }
-

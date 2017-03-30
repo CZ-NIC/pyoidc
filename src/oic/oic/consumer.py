@@ -1,24 +1,25 @@
 #!/usr/bin/env python
 import logging
-import time
 import os.path
+import time
 from hashlib import md5
 
 from oic import rndstr
-from oic.exception import PyoidcError
 from oic.exception import AuthzError
-from oic.utils import http_util
-from oic.utils.sanitize import sanitize
-from oic.oic import Client
-from oic.oic import ENDPOINTS
-from oic.oic.message import Claims, ClaimsRequest
-from oic.oic.message import AuthorizationRequest
-from oic.oic.message import AuthorizationResponse
-from oic.oic.message import AccessTokenResponse
+from oic.exception import PyoidcError
 from oic.oauth2 import Grant
 from oic.oauth2.consumer import TokenError
 from oic.oauth2.consumer import UnknownState
 from oic.oauth2.message import ErrorResponse
+from oic.oic import ENDPOINTS
+from oic.oic import Client
+from oic.oic.message import AccessTokenResponse
+from oic.oic.message import AuthorizationRequest
+from oic.oic.message import AuthorizationResponse
+from oic.oic.message import Claims
+from oic.oic.message import ClaimsRequest
+from oic.utils import http_util
+from oic.utils.sanitize import sanitize
 
 __author__ = 'rohe0002'
 
@@ -117,7 +118,6 @@ class Consumer(Client):
     """ An OpenID Connect consumer implementation
 
     """
-    # noinspection PyUnusedLocal
     def __init__(self, session_db, consumer_config, client_config=None,
                  server_info=None, debug=False, client_prefs=None):
         """ Initializes a Consumer instance.
@@ -194,7 +194,6 @@ class Consumer(Client):
         """
         self.sdb[sid] = self.dictionary()
 
-    # noinspection PyUnusedLocal,PyArgumentEqualDefault
     def begin(self, scope="", response_type="", use_nonce=False, path="",
               **kwargs):
         """ Begin the OIDC flow
@@ -329,7 +328,6 @@ class Consumer(Client):
         self.redirect_uris = [self.sdb[_state]["redirect_uris"]]
         return aresp, _state
 
-    # noinspection PyUnusedLocal
     def parse_authz(self, query="", **kwargs):
         """
         This is where we get redirect back to after authorization at the
@@ -427,7 +425,6 @@ class Consumer(Client):
     def refresh_token(self):
         pass
 
-    # noinspection PyUnusedLocal
     def get_user_info(self, state):
         uinfo = self.do_user_info_request(state=state, schema="openid")
 

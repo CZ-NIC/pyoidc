@@ -1,24 +1,23 @@
-import logging
 import base64
-from jwkest import Invalid
-from jwkest import as_bytes
-from jwkest import MissingKey
-from jwkest.jws import alg2keytype
-import six
-from oic.utils.keyio import check_key_availability
+import logging
 
-from oic.exception import FailedAuthentication
-from oic.exception import UnknownAssertionType
-from oic.exception import NotForMe
+import six
+from jwkest import Invalid
+from jwkest import MissingKey
+from jwkest import as_bytes
+from jwkest.jws import alg2keytype
+
 from oic import rndstr
-from oic.oauth2 import VREQUIRED
-from oic.oauth2 import RefreshAccessTokenRequest
-from oic.oauth2 import AccessTokenRequest
-from oic.oauth2 import SINGLE_OPTIONAL_STRING
-from oic.oic import REQUEST2ENDPOINT
+from oic.exception import FailedAuthentication
+from oic.exception import NotForMe
+from oic.exception import UnknownAssertionType
+from oic.oauth2.message import SINGLE_OPTIONAL_STRING
+from oic.oauth2.message import VREQUIRED
+from oic.oauth2.message import AccessTokenRequest
 from oic.oic import DEF_SIGN_ALG
-from oic.oic import AuthnToken
 from oic.oic import JWT_BEARER
+from oic.oic.message import AuthnToken
+from oic.utils.keyio import check_key_availability
 from oic.utils.sanitize import sanitize
 from oic.utils.time_util import utc_time_sans_frac
 
@@ -119,7 +118,7 @@ class ClientSecretBasic(ClientAuthnMethod):
             pass
 
         if isinstance(cis, AccessTokenRequest) and cis[
-            'grant_type'] == 'authorization_code':
+                'grant_type'] == 'authorization_code':
             if 'client_id' not in cis:
                 try:
                     cis['client_id'] = self.cli.client_id
@@ -240,7 +239,7 @@ class BearerBody(ClientAuthnMethod):
                 cis["access_token"] = request_args["access_token"]
             except KeyError:
                 try:
-                    _ = kwargs["state"]
+                    kwargs["state"]
                 except KeyError:
                     if not self.cli.state:
                         raise AuthnFailure("Missing state specification")
@@ -345,7 +344,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
             else:
                 cis["client_assertion_type"] = JWT_BEARER
         elif 'client_assertion' in cis:
-            if not 'client_assertion_type' in cis:
+            if 'client_assertion_type' not in cis:
                 cis["client_assertion_type"] = JWT_BEARER
         else:
             try:
@@ -571,9 +570,7 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
         logger.error("Missing client authentication.")
         raise FailedAuthentication("Missing client authentication.")
 
-    if isinstance(areq,
-                  AccessTokenRequest) or isinstance(areq,
-                                                    RefreshAccessTokenRequest):
+    if isinstance(areq, AccessTokenRequest):
         try:
             _method = inst.cdb[cid]['token_endpoint_auth_method']
         except KeyError:

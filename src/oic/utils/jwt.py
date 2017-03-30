@@ -1,9 +1,11 @@
 import json
 import uuid
-from jwkest import jws
+
 from jwkest import jwe
+from jwkest import jws
 from jwkest.jwe import JWE
 from jwkest.jws import NoSuitableSigningKeys
+
 from oic.oic.message import JasonWebToken
 from oic.utils.time_util import utc_time_sans_frac
 
@@ -74,7 +76,7 @@ class JWT(object):
         if 'jti' in self.message_type.c_param:
             try:
                 _jti = kwargs['jti']
-            except:
+            except KeyError:
                 _jti = uuid.uuid4().hex
 
             _jwt['jti'] = _jti

@@ -1,13 +1,12 @@
 import json
 import uuid
 
-from oic.oauth2 import Message
-from oic.oauth2 import SINGLE_REQUIRED_STRING
-from oic.oauth2 import OPTIONAL_LIST_OF_STRINGS
+from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
+from oic.oauth2.message import SINGLE_REQUIRED_STRING
+from oic.oauth2.message import Message
 from oic.oic.message import SINGLE_REQUIRED_INT
 from oic.utils.jwt import JWT
 from oic.utils.sdb import Token
-
 from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = 'roland'
@@ -26,7 +25,7 @@ class TokenAssertion(Message):
 
 
 class JWTToken(Token, JWT):
-    usage='authorization_grant'
+    usage = 'authorization_grant'
 
     def __init__(self, typ, keyjar, lt_pattern=None, extra_claims=None,
                  **kwargs):
@@ -99,7 +98,7 @@ class JWTToken(Token, JWT):
 
         try:
             kwargs['kid'] = self.extra_claims['kid']
-        except:
+        except KeyError:
             pass
 
         _jti = '{}-{}'.format(self.type, uuid.uuid4().hex)
@@ -179,8 +178,8 @@ class JWTToken(Token, JWT):
 
 
 class Authorization_Grant(JWTToken):
-    usage='authorization_grant'
+    usage = 'authorization_grant'
 
 
 class Client_Authentication(JWTToken):
-    usage='client_authentication'
+    usage = 'client_authentication'

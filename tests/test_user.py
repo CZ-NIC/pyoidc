@@ -1,11 +1,11 @@
 # pylint: disable=missing-docstring,redefined-outer-name,no-self-use
+from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import urlencode
+
 import logging
 import os
+
 import pytest
-
-from future.backports.urllib.parse import urlencode
-from future.backports.urllib.parse import parse_qs
-
 from mako.lookup import TemplateLookup
 from testfixtures import LogCapture
 
@@ -13,7 +13,6 @@ from oic import rndstr
 from oic.oauth2 import compact
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.http_util import Unauthorized
-
 
 PASSWD = {"user": "hemligt"}
 

@@ -1,45 +1,45 @@
 #!/usr/bin/env python
 # from oic.oauth2 import KeyStore
+from future.backports.urllib.parse import urlparse
+
 import os
 import time
 from collections import Counter
 
 import pytest
-
-from future.backports.urllib.parse import urlparse
-
-from jwkest.jwt import JWT
-from jwkest.jws import left_hash
+from fakeoicsrv import MyFakeOICServer
 from jwkest.jws import alg2keytype
-import six
+from jwkest.jws import left_hash
+from jwkest.jwt import JWT
 
 from oic.oauth2.exception import OtherError
-from oic.utils.authn.client import CLIENT_AUTHN_METHOD
-from oic.oic import Grant, DEF_SIGN_ALG, scope2claims
-from oic.oic import Token
+from oic.oic import DEF_SIGN_ALG
 from oic.oic import Client
+from oic.oic import Grant
 from oic.oic import Server
-from oic.oic.message import IdToken, SCOPE2CLAIMS
-from oic.oic.message import ClaimsRequest
-from oic.oic.message import OpenIDSchema
-from oic.oic.message import Claims
-from oic.oic.message import UserInfoRequest
-from oic.oic.message import RegistrationRequest
-from oic.oic.message import RefreshSessionRequest
-from oic.oic.message import CheckSessionRequest
-from oic.oic.message import EndSessionRequest
-from oic.oic.message import RefreshAccessTokenRequest
+from oic.oic import Token
+from oic.oic import scope2claims
+from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.message import AccessTokenRequest
-from oic.oic.message import OpenIDRequest
-from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AccessTokenResponse
+from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AuthorizationResponse
-from oic.utils.time_util import utc_time_sans_frac
+from oic.oic.message import CheckSessionRequest
+from oic.oic.message import Claims
+from oic.oic.message import ClaimsRequest
+from oic.oic.message import EndSessionRequest
+from oic.oic.message import IdToken
+from oic.oic.message import OpenIDRequest
+from oic.oic.message import OpenIDSchema
+from oic.oic.message import RefreshAccessTokenRequest
+from oic.oic.message import RefreshSessionRequest
+from oic.oic.message import RegistrationRequest
+from oic.oic.message import UserInfoRequest
+from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import rsa_load
-
-from fakeoicsrv import MyFakeOICServer
+from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = 'rohe0002'
 
@@ -754,7 +754,10 @@ def test_request_1():
 
     areq = 'redirect_uri=https%3A%2F%2Fnode-openid-client.dev%2Fcb&request' \
            '=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0' \
-           '.eyJzdGF0ZSI6ImZvb2JhciIsImlzcyI6Inp2bWk4UGdJbURiOSIsImF1ZCI6Imh0dHBzOi8vcnAuY2VydGlmaWNhdGlvbi5vcGVuaWQubmV0OjgwODAvbm9kZS1vcGVuaWQtY2xpZW50L3JwLXJlcXVlc3RfdXJpLXVuc2lnbmVkIiwiY2xpZW50X2lkIjoienZtaThQZ0ltRGI5In0.&client_id=zvmi8PgImDb9&scope=openid&response_type=code'
+           '.eyJzdGF0ZSI6ImZvb2JhciIsImlzcyI6Inp2bWk4UGdJbURiOSIsImF1ZCI6I' \
+           'mh0dHBzOi8vcnAuY2VydGlmaWNhdGlvbi5vcGVuaWQubmV0OjgwODAvbm9kZS1' \
+           'vcGVuaWQtY2xpZW50L3JwLXJlcXVlc3RfdXJpLXVuc2lnbmVkIiwiY2xpZW50X' \
+           '2lkIjoienZtaThQZ0ltRGI5In0.&client_id=zvmi8PgImDb9&scope=openid&response_type=code'
 
     req = srv.parse_authorization_request(query=areq)
 
@@ -767,7 +770,10 @@ def test_request_duplicate_state():
 
     areq = 'redirect_uri=https%3A%2F%2Fnode-openid-client.dev%2Fcb&state=barf&request' \
            '=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0' \
-           '.eyJzdGF0ZSI6ImZvb2JhciIsImlzcyI6Inp2bWk4UGdJbURiOSIsImF1ZCI6Imh0dHBzOi8vcnAuY2VydGlmaWNhdGlvbi5vcGVuaWQubmV0OjgwODAvbm9kZS1vcGVuaWQtY2xpZW50L3JwLXJlcXVlc3RfdXJpLXVuc2lnbmVkIiwiY2xpZW50X2lkIjoienZtaThQZ0ltRGI5In0.&client_id=zvmi8PgImDb9&scope=openid&response_type=code'
+           '.eyJzdGF0ZSI6ImZvb2JhciIsImlzcyI6Inp2bWk4UGdJbURiOSIsImF1ZCI6Imh0dHBzOi8v' \
+           'cnAuY2VydGlmaWNhdGlvbi5vcGVuaWQubmV0OjgwODAvbm9kZS1vcGVuaWQtY2xpZW50L3JwL' \
+           'XJlcXVlc3RfdXJpLXVuc2lnbmVkIiwiY2xpZW50X2lkIjoienZtaThQZ0ltRGI5In0.&' \
+           'client_id=zvmi8PgImDb9&scope=openid&response_type=code'
 
     req = srv.parse_authorization_request(query=areq)
 

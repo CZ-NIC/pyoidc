@@ -1,6 +1,12 @@
 #!/usr/bin/env python
+from future.backports.urllib.parse import splitquery
+from future.backports.urllib.parse import unquote
+from future.backports.urllib.parse import urlencode
+from future.backports.urllib.parse import urljoin
+from future.backports.urllib.parse import urlparse
+from future.moves.urllib.parse import parse_qs
+
 import copy
-from functools import cmp_to_key
 import hashlib
 import hmac
 import itertools
@@ -8,20 +14,13 @@ import json
 import logging
 import os
 import random
+import socket
 import sys
 import time
 import traceback
-from future.backports.urllib.parse import parse_qs
-from future.backports.urllib.parse import splitquery
-from future.backports.urllib.parse import urlparse
-from future.backports.urllib.parse import urljoin
-from future.backports.urllib.parse import urlencode
-from future.backports.urllib.parse import unquote
+from functools import cmp_to_key
+
 import six
-import socket
-
-from requests import ConnectionError
-
 from jwkest import b64d
 from jwkest import jwe
 from jwkest import jws
@@ -31,20 +30,28 @@ from jwkest.jwe import NotSupportedAlgorithm
 from jwkest.jwk import SYMKey
 from jwkest.jws import NoSuitableSigningKeys
 from jwkest.jws import alg2keytype
+from requests import ConnectionError
 
 from oic import rndstr
-from oic.exception import *
-from oic.oauth2 import error, compact
+from oic.exception import FailedAuthentication
+from oic.exception import InvalidRequest
+from oic.exception import MessageException
+from oic.exception import ParameterError
+from oic.exception import UnSupported
+from oic.oauth2 import compact
+from oic.oauth2 import error
 from oic.oauth2 import error_response
 from oic.oauth2 import redirect_authz_error
 from oic.oauth2.exception import CapabilitiesMisMatch
-from oic.oauth2.message import by_schema, Message
+from oic.oauth2.message import Message
+from oic.oauth2.message import by_schema
 from oic.oauth2.provider import Provider as AProvider
 from oic.oauth2.provider import Endpoint
-from oic.oic import PREFERENCE2PROVIDER, scope2claims
+from oic.oic import PREFERENCE2PROVIDER
 from oic.oic import PROVIDER_DEFAULT
 from oic.oic import Server
 from oic.oic import claims_match
+from oic.oic import scope2claims
 from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.message import AccessTokenRequest
 from oic.oic.message import AccessTokenResponse
@@ -66,14 +73,15 @@ from oic.oic.message import TokenErrorResponse
 from oic.utils import sort_sign_alg
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Created
-from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Response
+from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Unauthorized
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
 from oic.utils.sanitize import sanitize
-from oic.utils.sdb import ExpiredToken, AccessCodeUsed
+from oic.utils.sdb import AccessCodeUsed
+from oic.utils.sdb import ExpiredToken
 from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = 'rohe0002'
@@ -88,12 +96,10 @@ class InvalidRedirectURIError(Exception):
     pass
 
 
-# noinspection PyUnusedLocal
 def devnull(txt):
     pass
 
 
-# noinspection PyUnusedLocal
 def do_authorization(user):
     return ""
 
@@ -555,7 +561,7 @@ class Provider(AProvider):
             redirect = "/"
         try:
             tmp_id_token_hint = esr["id_token_hint"]
-        except:
+        except KeyError:
             tmp_id_token_hint = ""
 
         argv = {
@@ -843,15 +849,12 @@ class Provider(AProvider):
 
         logger.debug("alg=%s, enc=%s, val_type=%s" % (alg, enc, val_type))
         keys = self.keyjar.get_encrypt_key(owner=cid)
-        try:
-            _ckeys = self.keyjar[cid]
-        except KeyError:
+        if cid not in self.keyjar:
             # Weird, but try to recuperate
             logger.warning(
                 "Lost keys for {} trying to recuperate!!".format(cid))
             self.keyjar.issuer_keys[cid] = []
             self.keyjar.add(cid, client_info["jwks_uri"])
-            _ckeys = self.keyjar[cid]
 
         kwargs = {"alg": alg, "enc": enc}
         if cty:
@@ -941,10 +944,8 @@ class Provider(AProvider):
         if "issue_refresh" in kwargs:
             issue_refresh = kwargs["issue_refresh"]
 
-        permissions = _info.get('permission', ['offline_access']) or [
-            'offline_access']
-        if 'offline_access' in _info[
-            'scope'] and 'offline_access' in permissions:
+        permissions = _info.get('permission', ['offline_access']) or ['offline_access']
+        if 'offline_access' in _info['scope'] and 'offline_access' in permissions:
             issue_refresh = True
 
         try:
@@ -1017,7 +1018,6 @@ class Provider(AProvider):
 
         return Response(atr.to_json(), content="application/json")
 
-    # noinspection PyUnusedLocal
     def token_endpoint(self, request="", authn=None, dtype='urlencoded',
                        **kwargs):
         """
@@ -1172,7 +1172,6 @@ class Provider(AProvider):
                                  "userinfo", "JWT")
         return jinfo
 
-    # noinspection PyUnusedLocal
     def userinfo_endpoint(self, request="", **kwargs):
         """
         :param request: The request in a string format or as a dictionary
@@ -1196,7 +1195,7 @@ class Provider(AProvider):
             _token = _token[len("Bearer "):]
             logger.debug("Bearer token {} chars".format(len(_token)))
         else:
-            args = {'data':request}
+            args = {'data': request}
             if isinstance(request, dict):
                 args['sformat'] = 'dict'
             uireq = self.server.parse_user_info_request(**args)
@@ -1262,23 +1261,18 @@ class Provider(AProvider):
 
         return Response(jinfo, content=content_type)
 
-    # noinspection PyUnusedLocal
     def check_session_endpoint(self, request, **kwargs):
         """
         """
         try:
-            _log_debug = kwargs["logger"].debug
             _log_info = kwargs["logger"].info
         except KeyError:
-            _log_debug = logger.debug
             _log_info = logger.info
 
         if not request:
             _tok = kwargs["authn"]
             if not _tok:
                 return error(error="invalid_request", descr="Illegal token")
-            else:
-                info = "id_token=%s" % _tok
 
         if self.test_mode:
             _log_info("check_session_request: %s" % sanitize(request))
@@ -1429,13 +1423,11 @@ class Provider(AProvider):
         for item in ["id_token_signed_response_alg",
                      "userinfo_signed_response_alg"]:
             if item in request:
-                if request[item] in self.capabilities[
-                    PREFERENCE2PROVIDER[item]]:
+                if request[item] in self.capabilities[PREFERENCE2PROVIDER[item]]:
                     ktyp = jws.alg2keytype(request[item])
                     # do I have this ktyp and for EC type keys the curve
                     if ktyp not in ["none", "oct"]:
-                        _k = self.keyjar.get_signing_key(ktyp,
-                                                         alg=request[item])
+                        _k = self.keyjar.get_signing_key(ktyp, alg=request[item])
                         if not _k:
                             del _cinfo[item]
 
@@ -1488,12 +1480,8 @@ class Provider(AProvider):
                                                            "127.0.0.1"]:
                     pass
                 else:
-                    logger.error(
-                        "InvalidRedirectURI: scheme:{}, hostname:{}".format(
-                        p.scheme, p.hostname))
-                    raise InvalidRedirectURIError(
-                        "Redirect_uri must use custom scheme or http and "
-                        "localhost")
+                    logger.error("InvalidRedirectURI: scheme:%s, hostname:%s", p.scheme, p.hostname)
+                    raise InvalidRedirectURIError("Redirect_uri must use custom scheme or http and localhost")
             elif must_https and p.scheme != "https":
                 raise InvalidRedirectURIError(
                     "None https redirect_uri not allowed")
@@ -1531,7 +1519,6 @@ class Provider(AProvider):
 
             args[param] = val
 
-    # noinspection PyUnusedLocal
     def l_registration_endpoint(self, request, authn=None, **kwargs):
         logger.debug("@registration_endpoint: <<%s>>" % sanitize(request))
 
@@ -1795,9 +1782,7 @@ class Provider(AProvider):
 
         return True
 
-    # noinspection PyUnusedLocal
     def providerinfo_endpoint(self, handle="", **kwargs):
-        _log_debug = logger.debug
         _log_info = logger.info
 
         _log_info("@providerinfo_endpoint")
@@ -1818,14 +1803,13 @@ class Provider(AProvider):
 
             resp = Response(_response.to_json(), content="application/json",
                             headers=headers)
-        except Exception as err:
+        except Exception:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
             resp = error('service_error', message)
 
         return resp
 
-    # noinspection PyUnusedLocal
     def discovery_endpoint(self, request, handle=None, **kwargs):
         """
         :param request:

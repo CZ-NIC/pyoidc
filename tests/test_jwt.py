@@ -1,4 +1,5 @@
 import os
+
 from oic.utils.jwt import JWT
 from oic.utils.keyio import build_keyjar
 

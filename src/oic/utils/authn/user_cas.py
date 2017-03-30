@@ -1,12 +1,14 @@
-import json
-import uuid
-import logging
-from future.backports.urllib.parse import parse_qs, urlencode
-import requests
-import base64
-import six
+from future.backports.urllib.parse import urlencode
+from future.moves.urllib.parse import parse_qs
 
+import base64
+import json
+import logging
+import uuid
 import xml.etree.ElementTree as ET
+
+import requests
+import six
 
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.http_util import SeeOther
@@ -122,8 +124,7 @@ class CasAuthnMethod(UserAuthnMethod):
         """
         if acr is None:
             acr = ""
-        return self.service_url + "?" + self.CONST_NONCE + "=" + nonce + \
-               "&acr_values=" + acr
+        return self.service_url + "?" + self.CONST_NONCE + "=" + nonce + "&acr_values=" + acr
 
     def verify(self, request, cookie, **kwargs):
         """
@@ -171,7 +172,8 @@ class CasAuthnMethod(UserAuthnMethod):
                 return_to += "?"
             return_to += base64.b64decode(data[self.CONST_QUERY])
             return SeeOther(return_to, headers=[cookie])
-        except:
+        except Exception:
+            # FIXME: This should catch specific exception thrown from methods in the block
             logger.fatal('Metod verify in user_cas.py had a fatal exception.',
                          exc_info=True)
             return Unauthorized("You are not authorized!")

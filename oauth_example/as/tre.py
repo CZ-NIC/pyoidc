@@ -1,4 +1,5 @@
 import json
+
 from oic.utils.keyio import build_keyjar
 from oic.utils.keyio import dump_jwks
 
