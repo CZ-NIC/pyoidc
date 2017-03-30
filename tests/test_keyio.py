@@ -202,6 +202,17 @@ def test_build_keyjar():
     assert "EC" in kidd["sig"]
 
 
+def test_build_keyjar_missing(tmpdir):
+    keys = [{"type": "RSA", "key": os.path.join(tmpdir.dirname, "missisng_file"), "use": ["enc", "sig"]}]
+
+    jwks, keyjar, kidd = build_keyjar(keys)
+
+    assert len(keyjar[""]) == 1
+
+    assert "RSA" in kidd["enc"]
+    assert "RSA" in kidd["sig"]
+
+
 def test_dump_public_jwks():
     keys = [
         {"type": "RSA", "use": ["enc", "sig"]},

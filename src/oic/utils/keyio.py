@@ -1,5 +1,6 @@
 from future.backports.urllib.parse import urlsplit
 
+import builtins
 import copy
 import json
 import logging
@@ -1059,7 +1060,8 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
 
         if typ == "RSA":
             if "key" in spec:
-                error_to_catch = getattr(__builtins__, 'FileNotFoundError', 'IOError')
+                error_to_catch = getattr(builtins, 'FileNotFoundError',
+                                         getattr(builtins, 'IOError'))
                 try:
                     kb = KeyBundle(source="file://%s" % spec["key"],
                                    fileformat="der",
