@@ -11,7 +11,7 @@ from oic import rndstr
 from oic.exception import FailedAuthentication
 from oic.exception import NotForMe
 from oic.exception import UnknownAssertionType
-from oic.oauth2 import AccessTokenRequest
+from oic.oauth2.message import AccessTokenRequest
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import VREQUIRED
 from oic.oic import DEF_SIGN_ALG
