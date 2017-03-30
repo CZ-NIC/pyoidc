@@ -777,36 +777,6 @@ class KeyJar(object):
             res.extend(kbl.keys())
         return res
 
-    def __eq__(self, other):
-        """
-        Compare 2 KeyJar instances
-        :param other: The other KeyJar instance
-        :return: True/False
-        """
-        try:
-            assert isinstance(other, KeyJar)
-        except AssertionError:
-            return False
-
-        # number of issuer_keys must be equal
-        if self.issuer_keys.keys() != other.issuer_keys.keys():
-            return False
-
-        for issuer in self.issuer_keys.keys():
-            mine = self.get_issuer_keys(issuer)
-            others = other.get_issuer_keys(issuer)
-            if len(mine) != len(others):
-                return False
-            for a_key in mine:
-                cmp = False
-                for b_key in others:
-                    if a_key == b_key:
-                        cmp = True
-                        break
-                if not cmp:
-                    return False
-        return True
-
 
 # =============================================================================
 
