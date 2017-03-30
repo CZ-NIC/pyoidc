@@ -1,21 +1,22 @@
 # pylint: disable=missing-docstring
+from future.backports.urllib.parse import parse_qsl
+from future.moves.urllib.parse import parse_qs
+
 import base64
 import json
 import time
-from future.moves.urllib.parse import parse_qs
-from future.backports.urllib.parse import parse_qsl
 
 from jwkest import jws
 from jwkest.jwk import keyrep
 from jwkest.jws import JWS
 
+from oic.extension.signed_http_req import SignedHttpRequest
+from oic.extension.signed_http_req import ValidationError
 from oic.oic.message import AccessTokenRequest
 from oic.oic.message import AccessTokenResponse
 from oic.oic.provider import Provider
-from oic.utils.http_util import get_post
 from oic.utils.http_util import Response
-from oic.extension.signed_http_req import SignedHttpRequest
-from oic.extension.signed_http_req import ValidationError
+from oic.utils.http_util import get_post
 
 __author__ = 'regu0004'
 
@@ -126,8 +127,7 @@ class PoPProvider(Provider):
             return request["query"]["access_token"]
         elif "access_token" in request["body"]:
             return parse_qs(request["body"])["access_token"][0]
-        elif "Authorization" in request["headers"] and request["headers"][
-            "Authorization"]:
+        elif "Authorization" in request["headers"] and request["headers"]["Authorization"]:
             auth_header = request["headers"]["Authorization"]
             if auth_header.startswith("pop "):
                 return auth_header[len("pop "):]

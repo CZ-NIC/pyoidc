@@ -1,17 +1,18 @@
-import pytest
-
 from future.backports.http.cookiejar import FileCookieJar
 from future.backports.http.cookiejar import http2time
 from future.backports.http.cookies import SimpleCookie
-from future.backports.urllib.parse import urlparse
 from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import urlparse
+
+import pytest
 
 from oic.exception import UnSupported
+from oic.oauth2 import util
 from oic.oic import AuthorizationRequest
 from oic.oic.message import AccessTokenRequest
-from oic.oauth2 import util
 
 __author__ = 'DIRG'
+
 
 def query_string_compare(query_str1, query_str2):
     return parse_qs(query_str1) == parse_qs(query_str2)
@@ -48,7 +49,10 @@ def test_get_or_post():
     path, body, ret_kwargs = util.get_or_post(uri, method, request)
 
     assert url_compare(path,
-                       u"https://localhost:8092/authorization?acr_values=PASSWORD&state=urn%3Auuid%3A92d81fb3-72e8-4e6c-9173-c360b782148a&redirect_uri=https%3A%2F%2Flocalhost%3A8666%2F919D3F697FDAAF138124B83E09ECB0B7&response_type=code&client_id=ok8tx7ulVlNV&scope=openid+profile+email+address+phone")
+                       u"https://localhost:8092/authorization?acr_values=PASSWORD&state=urn%3A"
+                       "uuid%3A92d81fb3-72e8-4e6c-9173-c360b782148a&"
+                       "redirect_uri=https%3A%2F%2Flocalhost%3A8666%2F919D3F697FDAAF138124B83E09ECB0B7&"
+                       "response_type=code&client_id=ok8tx7ulVlNV&scope=openid+profile+email+address+phone")
     assert not body
     assert not ret_kwargs
 
@@ -56,27 +60,32 @@ def test_get_or_post():
     uri = u'https://localhost:8092/token'
     values = {
         'redirect_uri': 'https://localhost:8666/919D3F697FDAAF138124B83E09ECB0B7',
-        'code': 'Je1iKfPN1vCiN7L43GiXAuAWGAnm0mzA7QIjl/YLBBZDB9wefNExQlLDUIIDM2rT2t+gwuoRoapEXJyY2wrvg9cWTW2vxsZU+SuWzZlMDXc=',
+        'code': 'Je1iKfPN1vCiN7L43GiXAuAWGAnm0mzA7QIjl/YLBBZDB9wefNExQlLDUIIDM2rT'
+                '2t+gwuoRoapEXJyY2wrvg9cWTW2vxsZU+SuWzZlMDXc=',
         'grant_type': 'authorization_code'}
     request = AccessTokenRequest(**values)
     kwargs = {'scope': '',
               'state': 'urn:uuid:92d81fb3-72e8-4e6c-9173-c360b782148a',
               'authn_method': 'client_secret_basic', 'key': [],
               'headers': {
-                  'Authorization': 'Basic b2s4dHg3dWxWbE5WOjdlNzUyZDU1MTc0NzA0NzQzYjZiZWJkYjU4ZjU5YWU3MmFlMGM5NDM4YTY1ZmU0N2IxMDA3OTM1'}
+                  'Authorization': 'Basic b2s4dHg3dWxWbE5WOjdlNzUyZDU1MTc0NzA0NzQzYjZiZWJk'
+                                   'YjU4ZjU5YWU3MmFlMGM5NDM4YTY1ZmU0N2IxMDA3OTM1'}
               }
 
     path, body, ret_kwargs = util.get_or_post(uri, method, request, **kwargs)
 
     assert path == u'https://localhost:8092/token'
     assert url_compare("http://test/#{}".format(body),
-                       'http://test/#code=Je1iKfPN1vCiN7L43GiXAuAWGAnm0mzA7QIjl%2FYLBBZDB9wefNExQlLDUIIDM2rT2t%2BgwuoRoapEXJyY2wrvg9cWTW2vxsZU%2BSuWzZlMDXc%3D&grant_type=authorization_code&redirect_uri=https%3A%2F%2Flocalhost%3A8666%2F919D3F697FDAAF138124B83E09ECB0B7')
+                       'http://test/#code=Je1iKfPN1vCiN7L43GiXAuAWGAnm0mzA7QIjl%2FYLBBZDB9wefNExQlLDUIIDM2rT2t%2BgwuoR'
+                       'oapEXJyY2wrvg9cWTW2vxsZU%2BSuWzZlMDXc%3D&grant_type=authorization_code&redirect_uri=https%3A%2'
+                       'F%2Flocalhost%3A8666%2F919D3F697FDAAF138124B83E09ECB0B7')
     assert ret_kwargs == {'scope': '',
                           'state': 'urn:uuid:92d81fb3-72e8-4e6c-9173-c360b782148a',
                           'authn_method': 'client_secret_basic', 'key': [],
                           'headers': {
                               'Content-Type': 'application/x-www-form-urlencoded',
-                              'Authorization': 'Basic b2s4dHg3dWxWbE5WOjdlNzUyZDU1MTc0NzA0NzQzYjZiZWJkYjU4ZjU5YWU3MmFlMGM5NDM4YTY1ZmU0N2IxMDA3OTM1'}}
+                              'Authorization': 'Basic b2s4dHg3dWxWbE5WOjdlNzUyZDU1MTc0NzA0NzQzYjZiZWJkYjU4ZjU5YWU3MmFl'
+                                               'MGM5NDM4YTY1ZmU0N2IxMDA3OTM1'}}
 
     method = 'UNSUPORTED'
     with pytest.raises(UnSupported):

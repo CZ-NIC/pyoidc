@@ -5,11 +5,13 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
-## 0.9.6.0 [UNRELEASED]
+## 0.10.0.0 [2017-03-28]
 
 ### Changed
 - [#291]: Testing more relevant Python versions.
 - [#296]: `parse_qs` import from `future.backports` to `future.moves`.
+- [#188]: Added `future` dependency, updated dependecies
+- [#305]: Some import were removed from `oic.oauth2` and `oic.oic.provider`, please import them from respective modules (`oic.oath2.message` and `oic.exception`).
 
 ### Removed
 - [#294]: Generating code indices in documentation.
@@ -21,6 +23,8 @@ The format is based on the [KeepAChangeLog] project.
 [#294]: https://github.com/OpenIDC/pyoidc/pull/294
 [#295]: https://github.com/OpenIDC/pyoidc/pull/295
 [#296]: https://github.com/OpenIDC/pyoidc/pull/296
+[#188]: https://github.com/OpenIDC/pyoidc/issues/188
+[#305]: https://github.com/OpenIDC/pyoidc/pull/305
 
 ## 0.9.5.0 [2017-03-22]
 

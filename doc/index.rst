@@ -13,7 +13,7 @@ Getting a copy is simple with Pip_:
 
 ::
 
-  $ pip install -U oic
+  $ pip install oic
 
 .. toctree::
    :maxdepth: 1

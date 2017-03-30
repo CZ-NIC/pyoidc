@@ -1,35 +1,36 @@
 # encoding: utf-8
+from future.backports.urllib.parse import urlparse
+
 import inspect
-import time
-import urllib
 import json
 import logging
-from future.backports.urllib.parse import urlparse
+import sys
+import time
+import urllib
 
 import six
 from jwkest import jws
-import sys
-from oic.utils import time_util
 
-from oic.oauth2 import message
 from oic.exception import InvalidRequest
-from oic.exception import NotForMe
 from oic.exception import MessageException
+from oic.exception import NotForMe
 from oic.exception import PyoidcError
+from oic.oauth2 import message
 from oic.oauth2.exception import VerificationError
-from oic.oauth2.message import MissingRequiredValue
-from oic.oauth2.message import MissingRequiredAttribute
-from oic.oauth2.message import Message
-from oic.oauth2.message import SchemeError
-from oic.oauth2.message import NotAllowedValue
+from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
+from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
+from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
+from oic.oauth2.message import SINGLE_OPTIONAL_INT
 from oic.oauth2.message import SINGLE_OPTIONAL_JSON
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
-from oic.oauth2.message import SINGLE_OPTIONAL_INT
-from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
+from oic.oauth2.message import Message
+from oic.oauth2.message import MissingRequiredAttribute
+from oic.oauth2.message import MissingRequiredValue
+from oic.oauth2.message import NotAllowedValue
+from oic.oauth2.message import SchemeError
+from oic.utils import time_util
 
 __author__ = 'rohe0002'
 
@@ -54,12 +55,10 @@ class IATError(VerificationError):
     pass
 
 
-# noinspection PyUnusedLocal
 def json_ser(val, sformat=None, lev=0):
     return json.dumps(val)
 
 
-# noinspection PyUnusedLocal
 def json_deser(val, sformat=None, lev=0):
     return json.loads(val)
 
@@ -97,7 +96,6 @@ SINGLE_OPTIONAL_JSON_CONV = (dict, False, json_conv, json_rest, True)
 SINGLE_REQUIRED_INT = (int, True, None, None, False)
 
 
-# noinspection PyUnusedLocal
 def idtoken_deser(val, sformat="urlencoded"):
     # id_token are always serialized as a JWT
     return IdToken().deserialize(val, "jwt")
@@ -537,13 +535,13 @@ class OpenIDSchema(Message):
         if "birthdate" in self:
             # Either YYYY-MM-DD or just YYYY or 0000-MM-DD
             try:
-                _ = time.strptime(self["birthdate"], "%Y-%m-%d")
+                time.strptime(self["birthdate"], "%Y-%m-%d")
             except ValueError:
                 try:
-                    _ = time.strptime(self["birthdate"], "%Y")
+                    time.strptime(self["birthdate"], "%Y")
                 except ValueError:
                     try:
-                        _ = time.strptime(self["birthdate"], "0000-%m-%d")
+                        time.strptime(self["birthdate"], "0000-%m-%d")
                     except ValueError:
                         raise VerificationError("Birthdate format error", self)
 
@@ -863,8 +861,7 @@ class ProviderConfigurationResponse(Message):
 
         assert not parts.query and not parts.fragment
 
-        if any("code" in rt for rt in self[
-            "response_types_supported"]) and "token_endpoint" not in self:
+        if any("code" in rt for rt in self["response_types_supported"]) and "token_endpoint" not in self:
             raise MissingRequiredAttribute("token_endpoint")
 
         return True

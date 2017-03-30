@@ -2,7 +2,6 @@ import logging
 
 from oic.utils.userinfo.ldap_info import UserInfoLDAP
 
-
 __author__ = 'haho0032'
 
 logger = logging.getLogger(__name__)

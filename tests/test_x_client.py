@@ -1,13 +1,14 @@
-from oic.extension.token import JWTToken
 from oic import rndstr
-from oic.utils import sdb
 from oic.extension.client import Client
 from oic.extension.provider import Provider
+from oic.extension.token import JWTToken
+from oic.utils import sdb
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
-from oic.utils.keyio import KeyBundle, KeyJar
+from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import KeyJar
 
 __author__ = 'roland'
 
@@ -62,7 +63,8 @@ def test_pkce_verify_256():
                      authn_broker, Implicit(), verify_client)
 
     assert _prov.verify_code_challenge(cv, args['code_challenge']) is True
-    assert _prov.verify_code_challenge(cv, args['code_challenge'],'S256') is True
+    assert _prov.verify_code_challenge(cv, args['code_challenge'], 'S256') is True
+
 
 def test_pkce_verify_512():
     _cli = Client(config={'code_challenge': {'method': 'S512', 'length': 96}})
@@ -74,7 +76,7 @@ def test_pkce_verify_512():
                      sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
                      authn_broker, Implicit(), verify_client)
 
-    assert _prov.verify_code_challenge(cv, args['code_challenge'],'S512') is True
+    assert _prov.verify_code_challenge(cv, args['code_challenge'], 'S512') is True
 
 
 JWKS = {"keys": [
@@ -97,12 +99,14 @@ JWKS = {"keys": [
         "ext": "true",
         "key_ops": "sign",
         "kty": "RSA",
-        "n":
-            "wl0DPln-EFLqr_Ftn6A87wEQAUVbpZsUTN2OCEsJV0nhlvmX3GUzyZx5UXdlM3Dz68PfUWCgfx67Il6sURqWVCnjnU-_gr3GeDyzedj-lZejnBx-lEy_3j6B98SbcDfkJF6saXnPd7_kgilJT1_g-EVI9ifFB1cxZXHCd2WBeRABSCprAlCglF-YmnUeeDs5K32z2ckVjadF9BG27CO5UfNq0K8jI9Yj_coOhM9dRNrQ9UVZNdQVG-bAIDhB2y2o3ASGwqchHouIxv5YZNGS0SMJL5t0edh483q1tSWPqBw-ZeryLztOedBBzSuJk7QDmL1B6B7KKUIrlUYJmVsYzw",
-        "p":
-            "6MEg5Di_IFiPGKvMFRjyx2t7YAOQ4KfdIkU_Khny1t1eCG5O07omPe_jLU8I5fPaD5F5HhWExLNureHD4K6LB18JPE3VE8chQROiRSNPZo1-faUvHu-Dy0pr7I-TS8pl_P3vop1KelIbGwXhzPIRKQMqCEKi3tLJt4R_MQ18Dx0",
-        "q":
-            "1cZVPpUbf4p5n4cMv_kERCPh3cieMs4aVojgh3feAiJiLwWWL9Pc43oJUekK44aWMnbs68Y4kqXtc52PMtBDzVp0Gjt0lCY3M7MYRVI4JhtknqvQynMKQ2nKs3VldvVfY2SxyUmnRyEolQUGRA7rRMUyPb4AXhSR7oroRrJD59s",
+        "n": "wl0DPln-EFLqr_Ftn6A87wEQAUVbpZsUTN2OCEsJV0nhlvmX3GUzyZx5UXdlM3Dz68PfUWCgfx67Il6sURqWVCnjnU-_gr3GeDyzedj"
+             "-lZejnBx-lEy_3j6B98SbcDfkJF6saXnPd7_kgilJT1_g-EVI9ifFB1cxZXHCd2WBeRABSCprAlCglF-YmnUeeDs5K32z2ckVjadF9B"
+             "G27CO5UfNq0K8jI9Yj_coOhM9dRNrQ9UVZNdQVG-bAIDhB2y2o3ASGwqchHouIxv5YZNGS0SMJL5t0edh483q1tSWPqBw-ZeryLztOe"
+             "dBBzSuJk7QDmL1B6B7KKUIrlUYJmVsYzw",
+        "p": "6MEg5Di_IFiPGKvMFRjyx2t7YAOQ4KfdIkU_Khny1t1eCG5O07omPe_jLU8I5fPaD5F5HhWExLNureHD4K6LB18JPE3VE8chQROiRSN"
+             "PZo1-faUvHu-Dy0pr7I-TS8pl_P3vop1KelIbGwXhzPIRKQMqCEKi3tLJt4R_MQ18Dx0",
+        "q": "1cZVPpUbf4p5n4cMv_kERCPh3cieMs4aVojgh3feAiJiLwWWL9Pc43oJUekK44aWMnbs68Y4kqXtc52PMtBDzVp0Gjt0lCY3M7MYRVI"
+             "4JhtknqvQynMKQ2nKs3VldvVfY2SxyUmnRyEolQUGRA7rRMUyPb4AXhSR7oroRrJD59s",
         "qi": "50PhyaqbLSczhipWiYy149sLsGlx9cX0tnGMswy1JLam7nBvH4"
               "-MWB2oGwD2hmG-YN66q-xXBS9CVDLZZrj1sonRTQPtWE"
               "-zuZqds6_NVlk2Ge4_IAA3TZ9tvIfM5FZVTOQsExu3_LX8FGCspWC1R"

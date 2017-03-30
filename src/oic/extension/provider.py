@@ -1,49 +1,49 @@
-from functools import cmp_to_key
+from future.backports.urllib.parse import splitquery
+from future.moves.urllib.parse import parse_qs
+
 import json
 import logging
 import os
-import traceback
-import sys
-import six
 import socket
+import sys
+import traceback
+from functools import cmp_to_key
 
-from future.moves.urllib.parse import parse_qs
-from future.backports.urllib.parse import splitquery
-
-from jwkest import jws, b64e
+import six
+from jwkest import b64e
+from jwkest import jws
 
 from oic import rndstr
-
 from oic.exception import FailedAuthentication
 from oic.exception import ModificationForbidden
 from oic.exception import RestrictionError
-from oic.exception import UnSupported
 from oic.exception import UnknownAssertionType
+from oic.exception import UnSupported
+from oic.extension.client import CC_METHOD
 from oic.extension.message import ClientInfoResponse
 from oic.extension.message import ClientRegistrationError
-from oic.extension.message import ServerMetadata
-from oic.extension.client import CC_METHOD
 from oic.extension.message import ClientUpdateRequest
-from oic.extension.message import RegistrationRequest
 from oic.extension.message import InvalidRedirectUri
 from oic.extension.message import MissingPage
-from oic.extension.message import TokenRevocationRequest
+from oic.extension.message import RegistrationRequest
+from oic.extension.message import ServerMetadata
 from oic.extension.message import TokenIntrospectionRequest
 from oic.extension.message import TokenIntrospectionResponse
-from oic.oauth2 import provider, compact
+from oic.extension.message import TokenRevocationRequest
 from oic.oauth2 import AccessTokenRequest
-from oic.oauth2 import TokenErrorResponse
 from oic.oauth2 import AccessTokenResponse
-from oic.oauth2 import by_schema
-from oic.oauth2.provider import Endpoint
-from oic.oauth2.exception import VerificationError
+from oic.oauth2 import TokenErrorResponse
+from oic.oauth2 import compact
+from oic.oauth2 import provider
 from oic.oauth2.exception import CapabilitiesMisMatch
+from oic.oauth2.exception import VerificationError
 from oic.oauth2.message import ASConfigurationResponse
 from oic.oauth2.message import ErrorResponse
-
+from oic.oauth2.message import by_schema
+from oic.oauth2.provider import Endpoint
 from oic.oic import PREFERENCE2PROVIDER
-from oic.oic.provider import RegistrationEndpoint
 from oic.oic.provider import STR
+from oic.oic.provider import RegistrationEndpoint
 from oic.oic.provider import secret
 from oic.utils import restrict
 from oic.utils import sort_sign_alg
@@ -51,16 +51,16 @@ from oic.utils.authn.client import AuthnFailure
 from oic.utils.authn.client import UnknownAuthnMethod
 from oic.utils.authn.client import get_client_id
 from oic.utils.authn.client import valid_client_info
-from oic.utils.http_util import Unauthorized
-from oic.utils.http_util import NoContent
-from oic.utils.http_util import Response
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Forbidden
+from oic.utils.http_util import NoContent
+from oic.utils.http_util import Response
+from oic.utils.http_util import Unauthorized
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import key_export
-from oic.utils.sdb import AccessCodeUsed
 from oic.utils.sanitize import sanitize
+from oic.utils.sdb import AccessCodeUsed
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.token_handler import NotAllowed
 from oic.utils.token_handler import TokenHandler
@@ -275,8 +275,7 @@ class Provider(provider.Provider):
         _cinfo["client_id"] = _id
         _cinfo["client_secret"] = secret(self.seed, _id)
         _cinfo["client_id_issued_at"] = utc_time_sans_frac()
-        _cinfo["client_secret_expires_at"] = utc_time_sans_frac() + \
-                                             self.secret_lifetime
+        _cinfo["client_secret_expires_at"] = utc_time_sans_frac() + self.secret_lifetime
 
         # If I support client info endpoint
         if ClientInfoEndpoint in self.endp:
@@ -603,7 +602,7 @@ class Provider(provider.Provider):
 
             resp = Response(_response.to_json(), content="application/json",
                             headers=headers)
-        except Exception as err:
+        except Exception:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
             resp = Response(message, content="html/text")
@@ -747,8 +746,6 @@ class Provider(provider.Provider):
         This is where clients come to get their access tokens
         """
 
-        _sdb = self.sdb
-
         logger.debug("- token -")
         body = kwargs["request"]
         logger.debug("body: %s" % body)
@@ -756,7 +753,7 @@ class Provider(provider.Provider):
         areq = AccessTokenRequest().deserialize(body, "urlencoded")
 
         try:
-            client_id = self.client_authn(self, areq, authn)
+            self.client_authn(self, areq, authn)
         except FailedAuthentication as err:
             logger.error(err)
             err = TokenErrorResponse(error="unauthorized_client",
@@ -798,8 +795,7 @@ class Provider(provider.Provider):
         if endpoint == 'revocation_endpoint':
             if 'azr' in token_info and client_id == token_info['azr']:
                 allow = True
-            elif len(token_info['aud']) == 1 and token_info['aud'] == [
-                client_id]:
+            elif len(token_info['aud']) == 1 and token_info['aud'] == [client_id]:
                 allow = True
         else:  # has to be introspection endpoint
             if 'azr' in token_info and client_id == token_info['azr']:

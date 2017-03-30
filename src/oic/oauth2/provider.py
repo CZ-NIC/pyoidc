@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+from future.backports.urllib.parse import splitquery
+from future.backports.urllib.parse import unquote
+from future.backports.urllib.parse import urljoin
+from future.backports.urllib.parse import urlparse
+from future.moves.urllib.parse import parse_qs
+from future.types import newstr
+
 import hashlib
 import logging
 import os
@@ -6,28 +13,24 @@ import sys
 import traceback
 
 from http.cookies import SimpleCookie
-from future.backports.urllib.parse import unquote
-from future.backports.urllib.parse import urljoin
-from future.backports.urllib.parse import urlparse
-from future.backports.urllib.parse import splitquery
-from future.moves.urllib.parse import parse_qs
-from future.types import newstr
 from six import PY2
 
 from oic import rndstr
-from oic.exception import FailedAuthentication, UnSupported, AuthzError
+from oic.exception import AuthzError
+from oic.exception import FailedAuthentication
 from oic.exception import InvalidRequest
 from oic.exception import MissingParameter
 from oic.exception import ParameterError
 from oic.exception import RedirectURIError
 from oic.exception import UnknownClient
+from oic.exception import UnSupported
 from oic.exception import URIError
+from oic.oauth2 import ErrorResponse
+from oic.oauth2 import Server
 from oic.oauth2 import error
 from oic.oauth2 import error_response
-from oic.oauth2 import ErrorResponse
 from oic.oauth2 import none_response
 from oic.oauth2 import redirect_authz_error
-from oic.oauth2 import Server
 from oic.oauth2.message import AccessTokenRequest
 from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import AuthorizationRequest
@@ -43,8 +46,8 @@ from oic.utils.authn.user import TamperAllert
 from oic.utils.authn.user import ToOld
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import CookieDealer
-from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Response
+from oic.utils.http_util import SeeOther
 from oic.utils.http_util import make_cookie
 from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed
@@ -228,8 +231,7 @@ class Provider(object):
                 _query = parse_qs(_query)
 
             match = False
-            for regbase, rquery in self.cdb[str(areq["client_id"])][
-                "redirect_uris"]:
+            for regbase, rquery in self.cdb[str(areq["client_id"])]["redirect_uris"]:
                 # The URI MUST exactly match one of the Redirection URI
                 if _base == regbase:
                     # every registered query component must exist in the
@@ -254,7 +256,7 @@ class Provider(object):
                 raise RedirectURIError("Doesn't match any registered uris")
             # ignore query components that are not registered
             return None
-        except Exception as err:
+        except Exception:
             logger.error("Faulty redirect_uri: %s" % areq["redirect_uri"])
             try:
                 _cinfo = self.cdb[str(areq["client_id"])]
@@ -356,7 +358,7 @@ class Provider(object):
                 AuthzError) as err:
             logger.debug("%s" % err)
             areq = request_class()
-            areq.lax=True
+            areq.lax = True
             if isinstance(request, dict):
                 areq.from_dict(request)
             else:
@@ -367,7 +369,7 @@ class Provider(object):
                 return error("invalid_request", "%s" % err)
             try:
                 _rtype = areq["response_type"]
-            except:
+            except KeyError:
                 _rtype = ["code"]
             try:
                 _state = areq["state"]
@@ -772,7 +774,7 @@ class Provider(object):
         areq = AccessTokenRequest().deserialize(body, "urlencoded")
 
         try:
-            client = self.client_authn(self, areq, authn)
+            self.client_authn(self, areq, authn)
         except FailedAuthentication as err:
             logger.error(err)
             err = TokenErrorResponse(error="unauthorized_client",

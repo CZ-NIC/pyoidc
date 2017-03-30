@@ -1,17 +1,18 @@
+from future.backports.urllib.parse import urlencode
+from future.moves.urllib.parse import parse_qs
+
+import base64
 import importlib
 import json
 import logging
-import base64
-import six
 
-from future.moves.urllib.parse import parse_qs
-from future.backports.urllib.parse import urlencode
+import six
 
 from oic.oauth2.exception import VerificationError
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authn.user import create_return_url
-from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Response
+from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Unauthorized
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,6 @@ else:
     from saml2.s_utils import rndstr
     from saml2.s_utils import UnknownPrincipal
     from saml2.s_utils import UnsupportedBinding
-
 
     # This class handles user authentication with CAS.
     class SAMLAuthnMethod(UserAuthnMethod):

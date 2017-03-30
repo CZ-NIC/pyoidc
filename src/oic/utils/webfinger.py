@@ -2,18 +2,18 @@
 import json
 import logging
 import re
-from oic.exception import PyoidcError
+
 import requests
+from six.moves.urllib.parse import urlencode
+from six.moves.urllib.parse import urlparse
+
+from oic.exception import PyoidcError
+from oic.utils.time_util import in_a_while
 
 try:
     from past.builtins import basestring
 except ImportError:
     pass
-
-from six.moves.urllib.parse import urlencode, urlparse
-
-from oic.utils.time_util import in_a_while
-
 
 __author__ = 'rolandh'
 
@@ -248,7 +248,6 @@ class WebFinger(object):
                 info.append(("rel", val))
 
         if resource.startswith("http"):
-            #part = urlparse.urlparse(resource)
             part = urlparse(resource)
             host = part.hostname
             if part.port is not None:
@@ -320,6 +319,6 @@ class WebFinger(object):
         link["rel"] = OIC_ISSUER
         link["href"] = base
         self.jrd["links"] = [link]
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             self.jrd[k] = v
         return json.dumps(self.jrd.export())

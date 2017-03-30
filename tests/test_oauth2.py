@@ -1,30 +1,32 @@
 #!/usr/bin/env python
-
 # pylint: disable=missing-docstring,no-self-use
+from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import quote
+from future.backports.urllib.parse import urlencode
+from future.backports.urllib.parse import urlparse
+
 import json
+
 import pytest
 
-from future.backports.urllib.parse import quote, urlparse, parse_qs
-from future.backports.urllib.parse import urlencode
-
+from oic.oauth2 import Client
 from oic.oauth2 import Grant
+from oic.oauth2 import Server
+from oic.oauth2 import Token
 from oic.oauth2.exception import GrantError
 from oic.oauth2.exception import MissingEndpoint
 from oic.oauth2.exception import ResponseError
+from oic.oauth2.message import AccessTokenRequest
 from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import AuthorizationErrorResponse
 from oic.oauth2.message import AuthorizationRequest
-from oic.oauth2.message import GrantExpired
+from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import ErrorResponse
-from oic.oauth2.message import AccessTokenRequest
-from oic.oauth2.message import RefreshAccessTokenRequest
-from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import FormatError
+from oic.oauth2.message import GrantExpired
+from oic.oauth2.message import MissingRequiredAttribute
+from oic.oauth2.message import RefreshAccessTokenRequest
 from oic.utils import time_util
-from oic.oauth2 import Client
-from oic.oauth2 import Server
-from oic.oauth2 import Token
 from oic.utils.keyio import KeyBundle
 
 __author__ = 'rohe0002'
@@ -407,9 +409,9 @@ class TestClient(object):
         jerr = err.to_json()
         uerr = err.to_urlencoded()
 
-        _ = self.client.parse_response(AccessTokenResponse, info=jerr)
-        _ = self.client.parse_response(AccessTokenResponse, info=uerr,
-                                       sformat="urlencoded")
+        self.client.parse_response(AccessTokenResponse, info=jerr)
+        self.client.parse_response(AccessTokenResponse, info=uerr,
+                                   sformat="urlencoded")
 
         with pytest.raises(ResponseError):
             self.client.parse_response(AccessTokenResponse, info=jerr, sformat="urlencoded")

@@ -1,22 +1,21 @@
-import logging
-import cgi
-import time
-import hashlib
-import hmac
-
-#from future.backports import html
 from future.backports.http.cookies import SimpleCookie
 from future.backports.urllib.parse import quote
 
+import cgi
+import hashlib
+import hmac
+import logging
+import time
+
 from jwkest import as_unicode
-from six import text_type, PY2
+from six import PY2
+from six import text_type
 
 from oic import rndstr
-
 from oic.exception import UnsupportedMethod
 from oic.utils import time_util
-from oic.utils.aes import encrypt
 from oic.utils.aes import decrypt
+from oic.utils.aes import encrypt
 
 __author__ = 'rohe0002'
 

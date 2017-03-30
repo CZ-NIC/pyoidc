@@ -1,8 +1,7 @@
 import ldap
+
 from oic.exception import PyoidcError
-
 from oic.utils.authn.user import UsernamePasswordMako
-
 
 SCOPE_MAP = {
     "base": ldap.SCOPE_BASE,
@@ -54,15 +53,13 @@ class LDAPAuthn(UsernamePasswordMako):
         try:
             _dn = self.pattern["dn"]["pattern"] % user
         except KeyError:
-            try:
-                _pat = self.pattern["search"]
-            except:
+            if "search" not in self.pattern:
                 raise LDAPCError("unknown search pattern")
             else:
                 args = {
-                    "filterstr": _pat["filterstr"] % user,
-                    "base": _pat["base"]}
-                if not "scope" in args:
+                    "filterstr": self.pattern["filterstr"] % user,
+                    "base": self.pattern["base"]}
+                if "scope" not in args:
                     args["scope"] = ldap.SCOPE_SUBTREE
                 else:
                     args["scope"] = SCOPE_MAP[args["scope"]]

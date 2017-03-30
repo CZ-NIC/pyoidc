@@ -1,33 +1,24 @@
-from oic.utils.keyio import KeyJar
-
-__author__ = 'rohe0002'
-
 import logging
+
 from oic import rndstr
-
-from oic.oic.message import OpenIDSchema
-from oic.oic.message import Claims
-
+from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
+from oic.oauth2.message import SINGLE_OPTIONAL_STRING
+from oic.oauth2.message import SINGLE_REQUIRED_STRING
+from oic.oauth2.message import Message
 from oic.oic import Server as OicServer
-from oic.oic import Client
 from oic.oic import REQUEST2ENDPOINT
 from oic.oic import RESPONSE2ERROR
-
-from oic.oic.provider import Provider
+from oic.oic import Client
+from oic.oic.message import Claims
+from oic.oic.message import OpenIDSchema
 from oic.oic.provider import Endpoint
-
-from oic.oauth2.message import Message
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
-
-from oic.utils.http_util import Response
+from oic.oic.provider import Provider
 from oic.utils.authn.client import bearer_auth
+from oic.utils.http_util import Response
+from oic.utils.keyio import KeyJar
 from oic.utils.sanitize import sanitize
 
-# Used in claims.py
-# from oic.oic.message import RegistrationRequest
-# from oic.oic.message import RegistrationResponse
+__author__ = 'rohe0002'
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +96,6 @@ class ClaimsServer(Provider):
         logger.info("RESPONSE: %s" % (sanitize(cresp.to_dict()),))
         return cresp
 
-    #noinspection PyUnusedLocal
     def _distributed(self, info):
         # store the user info so it can be accessed later
         access_token = rndstr()
@@ -114,11 +104,9 @@ class ClaimsServer(Provider):
                                   access_token=access_token,
                                   claims_names=info.keys())
 
-    #noinspection PyUnusedLocal
     def do_aggregation(self, info, uid):
         return self.dist_claims_mode.aggregate(uid, info)
 
-    #noinspection PyUnusedLocal
     def claims_endpoint(self, request, http_authz, *args):
         _log_info = logger.info
 
@@ -127,10 +115,9 @@ class ClaimsServer(Provider):
         _log_info("request: %s" % sanitize(ucreq))
 
         try:
-            resp = self.client_authn(self, ucreq, http_authz)
+            self.client_authn(self, ucreq, http_authz)
         except Exception as err:
             _log_info("Failed to verify client due to: %s" % err)
-            resp = False
 
         if "claims_names" in ucreq:
             args = dict([(n, {"optional": True}) for n in
@@ -141,7 +128,7 @@ class ClaimsServer(Provider):
 
         _log_info("User info claims: %s" % sanitize(uic))
 
-        #oicsrv, userdb, subject, client_id="", user_info_claims=None
+        # oicsrv, userdb, subject, client_id="", user_info_claims=None
         info = self.userinfo(ucreq["sub"], user_info_claims=uic,
                              client_id=ucreq["client_id"])
 
@@ -165,7 +152,7 @@ class ClaimsServer(Provider):
         _log_info("Claims_info_endpoint query: '%s'" % sanitize(request))
 
         ucreq = self.srvmethod.parse_userinfo_claims_request(request)
-        #_log_info("request: %s" % sanitize(ucreq))
+        # _log_info("request: %s" % sanitize(ucreq))
 
         # Bearer header or body
         access_token = bearer_auth(ucreq, authn)
@@ -185,7 +172,6 @@ class ClaimsClient(Client):
         self.response2error = RESPONSE2ERROR.copy()
         self.response2error["UserClaimsResponse"] = ["ErrorResponse"]
 
-    #noinspection PyUnusedLocal
     def construct_UserClaimsRequest(self, request=UserClaimsRequest,
                                     request_args=None, extra_args=None,
                                     **kwargs):

@@ -1,50 +1,53 @@
 # coding: utf-8
+from future.backports.http.cookies import SimpleCookie
+from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import urlencode
+from future.backports.urllib.parse import urlparse
+
+import datetime
 import json
 import os
-import datetime
-import pytest
-
-from six import iteritems
 from time import time
 
-from future.backports.http.cookies import SimpleCookie
-from future.backports.urllib.parse import urlencode
-from future.backports.urllib.parse import parse_qs
-from future.backports.urllib.parse import urlparse
-from mock import Mock, patch
+import pytest
+from mock import Mock
+from mock import patch
+from six import iteritems
 
 from oic import rndstr
-from oic.utils.authn.authn_context import AuthnBroker
-from oic.utils.authn.client import verify_client
-from oic.utils.authn.client import ClientSecretBasic
-from oic.utils.authn.user import UserAuthnMethod
-from oic.utils.authz import AuthzHandling
-from oic.utils.http_util import SeeOther
-from oic.utils.userinfo import UserInfo
 from oic.exception import FailedAuthentication
 from oic.exception import RedirectURIError
-from oic.utils.keyio import KeyBundle, ec_init
-from oic.utils.keyio import KeyJar
-from oic.utils.keyio import keybundle_from_local_file
-from oic.oic.message import AuthorizationRequest, RefreshAccessTokenRequest
-from oic.oic.message import RegistrationResponse
-from oic.oic.message import OpenIDSchema
-from oic.oic.message import AccessTokenResponse
-from oic.oic.message import AccessTokenRequest
-from oic.oic.message import TokenErrorResponse
-from oic.oic.message import AuthorizationResponse
-from oic.oic.message import UserInfoRequest
-from oic.oic.message import CheckSessionRequest
-from oic.oic.message import RegistrationRequest
-from oic.oic.message import IdToken
-from oic.utils.sdb import AuthnEvent
-from oic.utils.sdb import SessionDB
 from oic.oic import DEF_SIGN_ALG
 from oic.oic import make_openid_request
 from oic.oic.consumer import Consumer
-from oic.oic.provider import Provider
+from oic.oic.message import AccessTokenRequest
+from oic.oic.message import AccessTokenResponse
+from oic.oic.message import AuthorizationRequest
+from oic.oic.message import AuthorizationResponse
+from oic.oic.message import CheckSessionRequest
+from oic.oic.message import IdToken
+from oic.oic.message import OpenIDSchema
+from oic.oic.message import RefreshAccessTokenRequest
+from oic.oic.message import RegistrationRequest
+from oic.oic.message import RegistrationResponse
+from oic.oic.message import TokenErrorResponse
+from oic.oic.message import UserInfoRequest
 from oic.oic.provider import InvalidRedirectURIError
+from oic.oic.provider import Provider
+from oic.utils.authn.authn_context import AuthnBroker
+from oic.utils.authn.client import ClientSecretBasic
+from oic.utils.authn.client import verify_client
+from oic.utils.authn.user import UserAuthnMethod
+from oic.utils.authz import AuthzHandling
+from oic.utils.http_util import SeeOther
+from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import KeyJar
+from oic.utils.keyio import ec_init
+from oic.utils.keyio import keybundle_from_local_file
+from oic.utils.sdb import AuthnEvent
+from oic.utils.sdb import SessionDB
 from oic.utils.time_util import epoch_in_a_while
+from oic.utils.userinfo import UserInfo
 
 __author__ = 'rohe0002'
 
@@ -561,8 +564,8 @@ class TestProvider(object):
         resp = self.provider.authorization_endpoint(
                 request=urlparse(location).query)
 
-        aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
-                                         sformat="urlencoded")
+        self.cons.parse_response(AuthorizationResponse, resp.message,
+                                 sformat="urlencoded")
 
         # Construct Access token request
         areq = self.cons.construct_AccessTokenRequest(
@@ -572,7 +575,7 @@ class TestProvider(object):
                 state=state)
 
         txt = areq.to_urlencoded()
-        self.cons.client_secret='drickyoughurt'
+        self.cons.client_secret = 'drickyoughurt'
 
         csb = ClientSecretBasic(self.cons)
         http_args = csb.construct(areq)
@@ -715,7 +718,8 @@ class TestProvider(object):
                     'client_id_issued_at', 'response_types'])
 
     def test_registration_endpoint_unicode(self):
-        data = 'application_type=web&client_name=M%C3%A1+supe%C5%99+service&redirect_uris=http%3A%2F%2Fexample.com%2Fauthz&response_types=code'
+        data = 'application_type=web&client_name=M%C3%A1+supe%C5%99+service&' \
+               'redirect_uris=http%3A%2F%2Fexample.com%2Fauthz&response_types=code'
         resp = self.provider.registration_endpoint(request=data)
 
         regresp = RegistrationResponse().deserialize(resp.message, "json")
@@ -900,8 +904,6 @@ class TestProvider(object):
         self.provider._verify_redirect_uri(areq)
 
     def test_verify_redirect_uri_native_http_localhost(self):
-        cid = 'client_id'
-
         areq = RegistrationRequest(
                 redirect_uris=["http://localhost/cb"],
                 application_type='native')
@@ -909,8 +911,6 @@ class TestProvider(object):
         self.provider.verify_redirect_uris(areq)
 
     def test_verify_redirect_uri_native_loopback(self):
-        cid = 'client_id'
-
         areq = RegistrationRequest(
                 redirect_uris=["http://127.0.0.1/cb"],
                 application_type='native')
@@ -918,8 +918,6 @@ class TestProvider(object):
         self.provider.verify_redirect_uris(areq)
 
     def test_verify_redirect_uri_native_http_non_localhost(self):
-        cid = 'client_id'
-
         areq = RegistrationRequest(
                 redirect_uris=["http://example.org/cb"],
                 application_type='native')
@@ -930,8 +928,6 @@ class TestProvider(object):
             assert True
 
     def test_verify_redirect_uri_native_custom(self):
-        cid = 'client_id'
-
         areq = RegistrationRequest(
                 redirect_uris=["com.example.app:/oauth2redirect"],
                 application_type='native')
@@ -939,8 +935,6 @@ class TestProvider(object):
         self.provider.verify_redirect_uris(areq)
 
     def test_verify_redirect_uri_native_https(self):
-        cid = 'client_id'
-
         areq = RegistrationRequest(
                 redirect_uris=["https://example.org/cb"],
                 application_type='native')

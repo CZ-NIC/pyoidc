@@ -1,15 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import logging
+import re
+
+from oic.oic.claims_provider import UserClaimsEndpoint
+from oic.oic.claims_provider import UserClaimsInfoEndpoint
+from oic.oic.message import OpenIDSchema
+#from oic.oic.provider import CheckIDEndpoint
+from oic.oic.provider import RegistrationEndpoint
+from oic.oic.provider import UserinfoEndpoint
+from oic.utils.http_util import *
 from oic.utils.keyio import keybundle_from_local_file
 from oic.utils.userinfo import UserInfo
 
 __author__ = 'rohe0002'
 
-import logging
-import re
 
-from oic.utils.http_util import *
-from oic.oic.message import OpenIDSchema
 
 LOGGER = logging.getLogger("")
 hdlr = logging.FileHandler('oc3cp.log')
@@ -133,11 +139,6 @@ def static(environ, start_response, path):
 
 # ----------------------------------------------------------------------------
 
-from oic.oic.provider import UserinfoEndpoint
-#from oic.oic.provider import CheckIDEndpoint
-from oic.oic.provider import RegistrationEndpoint
-from oic.oic.claims_provider import UserClaimsEndpoint
-from oic.oic.claims_provider import UserClaimsInfoEndpoint
 
 ENDPOINTS = [
     UserinfoEndpoint(userinfo),

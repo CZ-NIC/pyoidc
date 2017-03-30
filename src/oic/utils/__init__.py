@@ -16,7 +16,7 @@ def exception_trace(tag, exc, log=None):
         print("[{0}] Exception: {1}".format(tag, exc), file=sys.stderr)
 
 
-SORT_ORDER = {'RS': 0, 'ES':1, 'HS':2, 'PS':3, 'no': 4}
+SORT_ORDER = {'RS': 0, 'ES': 1, 'HS': 2, 'PS': 3, 'no': 4}
 
 
 def sort_sign_alg(alg1, alg2):

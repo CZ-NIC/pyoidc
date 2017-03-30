@@ -6,22 +6,19 @@ Testing
 Using Pytest
 ------------
 
-Please make sure you have already reviewed :ref:`install`.
+Please make sure you have already reviewed the :ref:`install`.
 
-PyOIDC uses Pytest_ for testing. You can install it via Pip_:
+PyOIDC uses Pytest_ for testing.
 
 .. _Pytest: https://doc.pytest.org/
+
+You can install it along with the rest of the test dependencies via Pip_:
+
 .. _Pip: pip.pypa.io/en/stable/installing/
 
 ::
 
-  $ pip install -U pytest
-
-Then, you'll need to install the test dependencies with:
-
-::
-
-  $ pip install -U -r tests/test_requirements.txt
+  $ pip install -r requirements/test.txt
 
 Now, you can run the tests by simply invoking ``py.test``:
 
@@ -40,7 +37,7 @@ many versions of Python. You can install it via Pip_:
 
 ::
 
-  $ pip install -U tox
+  $ pip install -r requirements/test.txt
 
 Then, check the available environments with:
 
@@ -52,4 +49,4 @@ Then run Tox on your chosen environment:
 
 ::
 
-  $ tox -e py35
+  $ tox -e py36

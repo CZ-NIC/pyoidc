@@ -1,9 +1,9 @@
 import logging
+
 import ldap
 
-from oic.utils.userinfo import UserInfo
 from oic.utils.sanitize import sanitize
-
+from oic.utils.userinfo import UserInfo
 
 __author__ = 'rolandh'
 
@@ -27,7 +27,7 @@ OPENID2LDAP = {
     # zoneinfo
     "locale": "preferredLanguage",
     "phone_number": "telephoneNumber",
-    #phone_number_verified
+    # phone_number_verified
     "address": "postalAddress",
     "updated_at": ""  # Nothing equivalent
 }
@@ -86,10 +86,12 @@ class UserInfoLDAP(UserInfo):
         arg = [self.base, self.scope, _filter, _attr, self.attrsonly]
         try:
             res = self.ld.search_s(*arg)
-        except:
+        except Exception:
+            # FIXME: This should catch specific exception from `self.ld.search_s()`
             try:
                 self.ld.close()
-            except:
+            except Exception:
+                # FIXME: This should catch specific exception from `self.ld.close()`
                 pass
             self.bind()
             res = self.ld.search_s(*arg)

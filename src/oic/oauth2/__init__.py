@@ -1,32 +1,46 @@
 #!/usr/bin/env python
-from jwkest import b64e
-
 from future.backports.urllib.parse import urlparse
 
-from oic import unreserved
+import logging
+
+from jwkest import b64e
+
 from oic import CC_METHOD
 from oic import OIDCONF_PATTERN
-
-from oic.oauth2.message import ASConfigurationResponse
+from oic import unreserved
 from oic.oauth2.base import PBase
-from oic.oauth2.exception import MissingEndpoint
-from oic.oauth2.exception import Unsupported
 from oic.oauth2.exception import GrantError
+from oic.oauth2.exception import HttpError
+from oic.oauth2.exception import MissingEndpoint
+from oic.oauth2.exception import ParseError
 from oic.oauth2.exception import ResponseError
 from oic.oauth2.exception import TokenError
-from oic.oauth2.exception import ParseError
-from oic.oauth2.exception import HttpError
-from oic.oauth2.exception import OtherError
-from oic.oauth2.grant import Token
+from oic.oauth2.exception import Unsupported
 from oic.oauth2.grant import Grant
+from oic.oauth2.grant import Token
+from oic.oauth2.message import AccessTokenRequest
+from oic.oauth2.message import AccessTokenResponse
+from oic.oauth2.message import ASConfigurationResponse
+from oic.oauth2.message import AuthorizationErrorResponse
+from oic.oauth2.message import AuthorizationRequest
+from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import GrantExpired
+from oic.oauth2.message import Message
+from oic.oauth2.message import NoneResponse
+from oic.oauth2.message import PyoidcError
+from oic.oauth2.message import RefreshAccessTokenRequest
+from oic.oauth2.message import ResourceRequest
+from oic.oauth2.message import TokenErrorResponse
+from oic.oauth2.message import sanitize
 from oic.oauth2.util import get_or_post
 from oic.oauth2.util import verify_header
-from oic.utils.http_util import BadRequest, R2C
+from oic.utils.http_util import R2C
+from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 from oic.utils.keyio import KeyJar
 from oic.utils.time_util import utc_time_sans_frac
-from oic.oauth2.message import *
 
 __author__ = 'rohe0002'
 
@@ -69,7 +83,6 @@ def error_response(error, descr=None, status="400 Bad Request"):
                     status=status)
 
 
-# noinspection PyUnusedLocal
 def none_response(**kwargs):
     _areq = kwargs["areq"]
     aresp = NoneResponse()
@@ -126,7 +139,7 @@ def exception_to_error_mesg(excep):
 
 def compact(qsdict):
     res = {}
-    for key,val in qsdict.items():
+    for key, val in qsdict.items():
         if len(val) == 1:
             res[key] = val[0]
         else:
@@ -277,7 +290,7 @@ class Client(PBase):
 
         try:
             return self.grant[state]
-        except:
+        except KeyError:
             raise GrantError("No grant found for state:'%s'" % state)
 
     def get_token(self, also_expired=False, **kwargs):
@@ -324,7 +337,6 @@ class Client(PBase):
 
         return self.construct_request(request, request_args, extra_args)
 
-    # noinspection PyUnusedLocal
     def construct_AuthorizationRequest(self, request=AuthorizationRequest,
                                        request_args=None, extra_args=None,
                                        **kwargs):
@@ -346,7 +358,6 @@ class Client(PBase):
 
         return self.construct_request(request, request_args, extra_args)
 
-    # noinspection PyUnusedLocal
     def construct_AccessTokenRequest(self,
                                      request=AccessTokenRequest,
                                      request_args=None, extra_args=None,
@@ -532,7 +543,7 @@ class Client(PBase):
                         resp = errmsg().deserialize(info, sformat)
                         resp.verify()
                         break
-                    except Exception as aerr:
+                    except Exception:
                         resp = None
             except KeyError:
                 pass
@@ -555,8 +566,7 @@ class Client(PBase):
             if not verf:
                 logger.error('Verification of the response failed')
                 raise PyoidcError("Verification of the response failed")
-            if resp.type() == "AuthorizationResponse" and \
-                            "scope" not in resp:
+            if resp.type() == "AuthorizationResponse" and "scope" not in resp:
                 try:
                     resp["scope"] = kwargs["scope"]
                 except KeyError:
@@ -584,7 +594,6 @@ class Client(PBase):
 
         return resp
 
-    # noinspection PyUnusedLocal
     def init_authentication_method(self, cis, authn_method, request_args=None,
                                    http_args=None, **kwargs):
 
@@ -703,7 +712,7 @@ class Client(PBase):
 
         try:
             algs = kwargs["algs"]
-        except:
+        except KeyError:
             algs = {}
 
         resp = self.request_and_return(url, response_cls, method, body,
@@ -899,7 +908,7 @@ class Client(PBase):
                     _issuer = issuer
 
             try:
-                _ = self.allow["issuer_mismatch"]
+                self.allow["issuer_mismatch"]
             except KeyError:
                 try:
                     assert _issuer == _pcr_issuer

@@ -1,22 +1,22 @@
 # coding=utf-8
+from future.backports.urllib.parse import unquote
+from future.backports.urllib.parse import urlencode
+from future.backports.urllib.parse import urlsplit
+from future.backports.urllib.parse import urlunsplit
+from future.moves.urllib.parse import parse_qs
+
 import base64
 import logging
 import time
-import six
 
-from future.moves.urllib.parse import parse_qs
-from future.backports.urllib.parse import urlsplit
-from future.backports.urllib.parse import urlunsplit
-from future.backports.urllib.parse import urlencode
-from future.backports.urllib.parse import unquote
+import six
 
 from oic.exception import PyoidcError
 from oic.oauth2 import compact
-
 from oic.utils import aes
-from oic.utils.http_util import Response
 from oic.utils.http_util import CookieDealer
 from oic.utils.http_util import InvalidCookieSign
+from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Unauthorized
 from oic.utils.sanitize import sanitize
@@ -347,7 +347,7 @@ class UsernamePasswordMako(UserAuthnMethod):
 
     def done(self, areq):
         try:
-            _ = areq[self.query_param]
+            areq[self.query_param]
             return False
         except KeyError:
             return True

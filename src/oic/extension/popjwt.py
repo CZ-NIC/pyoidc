@@ -1,4 +1,5 @@
 import json
+
 from oic.oic.message import REQUIRED_MESSAGE
 from oic.oic.message import JasonWebToken
 from oic.utils.time_util import utc_time_sans_frac
@@ -45,9 +46,9 @@ class PopJWT(object):
         _iat = utc_time_sans_frac()
         kwargs['iat'] = _iat
         if self.lifetime:
-            kwargs['exp'] = _iat+self.lifetime
+            kwargs['exp'] = _iat + self.lifetime
         if self.in_a_while:
-            kwargs['nbf'] = _iat+self.in_a_while
+            kwargs['nbf'] = _iat + self.in_a_while
 
         return PJWT(**kwargs)
 
@@ -106,6 +107,3 @@ class PopJWT(object):
             _pjwt['cnf']['jwk'] = json.loads(msg.decode('utf8'))
 
         return _pjwt
-
-
-
