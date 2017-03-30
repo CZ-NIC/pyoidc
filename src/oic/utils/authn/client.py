@@ -570,9 +570,7 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
         logger.error("Missing client authentication.")
         raise FailedAuthentication("Missing client authentication.")
 
-    if isinstance(areq,
-                  AccessTokenRequest) or isinstance(areq,
-                                                    RefreshAccessTokenRequest):
+    if isinstance(areq, AccessTokenRequest):
         try:
             _method = inst.cdb[cid]['token_endpoint_auth_method']
         except KeyError:
