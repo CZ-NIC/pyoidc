@@ -83,7 +83,6 @@ def error_response(error, descr=None, status="400 Bad Request"):
                     status=status)
 
 
-# noinspection PyUnusedLocal
 def none_response(**kwargs):
     _areq = kwargs["areq"]
     aresp = NoneResponse()
@@ -291,7 +290,7 @@ class Client(PBase):
 
         try:
             return self.grant[state]
-        except:
+        except KeyError:
             raise GrantError("No grant found for state:'%s'" % state)
 
     def get_token(self, also_expired=False, **kwargs):
@@ -338,7 +337,6 @@ class Client(PBase):
 
         return self.construct_request(request, request_args, extra_args)
 
-    # noinspection PyUnusedLocal
     def construct_AuthorizationRequest(self, request=AuthorizationRequest,
                                        request_args=None, extra_args=None,
                                        **kwargs):
@@ -360,7 +358,6 @@ class Client(PBase):
 
         return self.construct_request(request, request_args, extra_args)
 
-    # noinspection PyUnusedLocal
     def construct_AccessTokenRequest(self,
                                      request=AccessTokenRequest,
                                      request_args=None, extra_args=None,
@@ -569,8 +566,7 @@ class Client(PBase):
             if not verf:
                 logger.error('Verification of the response failed')
                 raise PyoidcError("Verification of the response failed")
-            if resp.type() == "AuthorizationResponse" and \
-                            "scope" not in resp:
+            if resp.type() == "AuthorizationResponse" and "scope" not in resp:
                 try:
                     resp["scope"] = kwargs["scope"]
                 except KeyError:
@@ -598,7 +594,6 @@ class Client(PBase):
 
         return resp
 
-    # noinspection PyUnusedLocal
     def init_authentication_method(self, cis, authn_method, request_args=None,
                                    http_args=None, **kwargs):
 
@@ -717,7 +712,7 @@ class Client(PBase):
 
         try:
             algs = kwargs["algs"]
-        except:
+        except KeyError:
             algs = {}
 
         resp = self.request_and_return(url, response_cls, method, body,

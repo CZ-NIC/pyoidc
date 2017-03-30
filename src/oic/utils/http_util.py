@@ -1,4 +1,3 @@
-#from future.backports import html
 from future.backports.http.cookies import SimpleCookie
 from future.backports.urllib.parse import quote
 

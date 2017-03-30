@@ -13,9 +13,7 @@ from oic.utils.sanitize import sanitize
                         code=u'0x+QZlw/S2O9NJKVqB/LDzzhod4v/FVh6ULK/0OnFsfOFRQcux5ow=='),
 
      {'grant_type': 'authorization_code', 'redirect_uri': u'http://example.com/authz',
-      'client_id': 'client1', 'client_secret': '<REDACTED>', 'code': u'<REDACTED>'}
-
-    ),
+      'client_id': 'client1', 'client_secret': '<REDACTED>', 'code': u'<REDACTED>'}),
 
     (
         ("{'grant_type': 'authorization_code', 'redirect_uri': u'http://example.com/authz', "
@@ -32,8 +30,8 @@ from oic.utils.sanitize import sanitize
     ("{'code': [999], 'bing': 'baz', 'password': 'foo', 'param1': 'bar'}",
      "{'code': [<REDACTED>], 'bing': 'baz', 'password': '<REDACTED>', 'param1': 'bar'}"),
 
-     ([('code', [999]), ('bing', 'baz'), ('password', 'foo'), ('param1', 'bar')],
-      "[('code', [<REDACTED>]), ('bing', 'baz'), ('password', '<REDACTED>'), ('param1', 'bar')]")
+    ([('code', [999]), ('bing', 'baz'), ('password', 'foo'), ('param1', 'bar')],
+     "[('code', [<REDACTED>]), ('bing', 'baz'), ('password', '<REDACTED>'), ('param1', 'bar')]")
 ])
 def test_sanitize(raw, expected):
     assert sanitize(raw) == expected

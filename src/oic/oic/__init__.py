@@ -19,6 +19,7 @@ from future.moves.urllib.parse import parse_qs
 from jwkest.jwe import JWE
 from jwkest import jws, as_bytes
 from jwkest import jwe
+from requests import ConnectionError
 
 from oic import oauth2, OIDCONF_PATTERN
 from oic import rndstr
@@ -272,7 +273,6 @@ def claims_match(value, claimspec):
     return True
 
 
-# noinspection PyMethodOverriding
 class Client(oauth2.Client):
     _endpoints = ENDPOINTS
 
@@ -486,7 +486,6 @@ class Client(oauth2.Client):
 
         return areq
 
-    # noinspection PyUnusedLocal
     def construct_AccessTokenRequest(self, request=AccessTokenRequest,
                                      request_args=None, extra_args=None,
                                      **kwargs):
@@ -525,14 +524,12 @@ class Client(oauth2.Client):
 
         return self.construct_request(request, request_args, extra_args)
 
-    # noinspection PyUnusedLocal
     def construct_RegistrationRequest(self, request=RegistrationRequest,
                                       request_args=None, extra_args=None,
                                       **kwargs):
 
         return self.construct_request(request, request_args, extra_args)
 
-    # noinspection PyUnusedLocal
     def construct_RefreshSessionRequest(self,
                                         request=RefreshSessionRequest,
                                         request_args=None, extra_args=None,
@@ -983,7 +980,8 @@ class Client(oauth2.Client):
         if r.status_code == 200:
             try:
                 pcr = response_cls().from_json(r.text)
-            except:
+            except Exception:
+                # FIXME: This should catch specific exception from `from_json()`
                 _err_txt = "Faulty provider config response: {}".format(r.text)
                 logger.error(sanitize(_err_txt))
                 raise ParseError(_err_txt)
@@ -1416,7 +1414,6 @@ class Client(oauth2.Client):
         self._verify_id_token(id_token, **kwa)
 
 
-# noinspection PyMethodOverriding
 class Server(oauth2.Server):
     def __init__(self, keyjar=None, ca_certs=None, verify_ssl=True,
                  client_cert=None):

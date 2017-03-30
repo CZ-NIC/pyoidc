@@ -718,7 +718,8 @@ class TestProvider(object):
                     'client_id_issued_at', 'response_types'])
 
     def test_registration_endpoint_unicode(self):
-        data = 'application_type=web&client_name=M%C3%A1+supe%C5%99+service&redirect_uris=http%3A%2F%2Fexample.com%2Fauthz&response_types=code'
+        data = 'application_type=web&client_name=M%C3%A1+supe%C5%99+service&' \
+               'redirect_uris=http%3A%2F%2Fexample.com%2Fauthz&response_types=code'
         resp = self.provider.registration_endpoint(request=data)
 
         regresp = RegistrationResponse().deserialize(resp.message, "json")

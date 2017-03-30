@@ -169,7 +169,7 @@ class RegistrationRequest(Message):
 
         try:
             ss = self['software_statement']
-        except:
+        except KeyError:
             pass
         else:
             # need to get the client keys before I can verify any signature

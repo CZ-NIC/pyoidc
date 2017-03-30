@@ -64,4 +64,8 @@ isort:
 
 check-isort:
 	isort --recursive --diff --check-only src/ tests/
-.PHONY: isort, check-isort
+.PHONY: isort check-isort
+
+check-pylama:
+	pylama src/ tests/
+.PHONY: check-pylama

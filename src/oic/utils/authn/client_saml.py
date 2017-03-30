@@ -34,7 +34,8 @@ else:
             xmlstr = base64.urlsafe_b64decode(areq["client_assertion"])
             try:
                 assertion = assertion_from_string(xmlstr)
-            except:
+            except Exception:
+                # FIXME: This should catch specific exceptions thrown by `assertion_from_string`
                 return False
             return self._verify_saml2_assertion(assertion)
 

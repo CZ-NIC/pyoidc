@@ -96,12 +96,10 @@ class InvalidRedirectURIError(Exception):
     pass
 
 
-# noinspection PyUnusedLocal
 def devnull(txt):
     pass
 
 
-# noinspection PyUnusedLocal
 def do_authorization(user):
     return ""
 
@@ -563,7 +561,7 @@ class Provider(AProvider):
             redirect = "/"
         try:
             tmp_id_token_hint = esr["id_token_hint"]
-        except:
+        except KeyError:
             tmp_id_token_hint = ""
 
         argv = {
@@ -946,10 +944,8 @@ class Provider(AProvider):
         if "issue_refresh" in kwargs:
             issue_refresh = kwargs["issue_refresh"]
 
-        permissions = _info.get('permission', ['offline_access']) or [
-            'offline_access']
-        if 'offline_access' in _info[
-            'scope'] and 'offline_access' in permissions:
+        permissions = _info.get('permission', ['offline_access']) or ['offline_access']
+        if 'offline_access' in _info['scope'] and 'offline_access' in permissions:
             issue_refresh = True
 
         try:
@@ -1022,7 +1018,6 @@ class Provider(AProvider):
 
         return Response(atr.to_json(), content="application/json")
 
-    # noinspection PyUnusedLocal
     def token_endpoint(self, request="", authn=None, dtype='urlencoded',
                        **kwargs):
         """
@@ -1177,7 +1172,6 @@ class Provider(AProvider):
                                  "userinfo", "JWT")
         return jinfo
 
-    # noinspection PyUnusedLocal
     def userinfo_endpoint(self, request="", **kwargs):
         """
         :param request: The request in a string format or as a dictionary
@@ -1267,7 +1261,6 @@ class Provider(AProvider):
 
         return Response(jinfo, content=content_type)
 
-    # noinspection PyUnusedLocal
     def check_session_endpoint(self, request, **kwargs):
         """
         """
@@ -1430,13 +1423,11 @@ class Provider(AProvider):
         for item in ["id_token_signed_response_alg",
                      "userinfo_signed_response_alg"]:
             if item in request:
-                if request[item] in self.capabilities[
-                    PREFERENCE2PROVIDER[item]]:
+                if request[item] in self.capabilities[PREFERENCE2PROVIDER[item]]:
                     ktyp = jws.alg2keytype(request[item])
                     # do I have this ktyp and for EC type keys the curve
                     if ktyp not in ["none", "oct"]:
-                        _k = self.keyjar.get_signing_key(ktyp,
-                                                         alg=request[item])
+                        _k = self.keyjar.get_signing_key(ktyp, alg=request[item])
                         if not _k:
                             del _cinfo[item]
 
@@ -1489,12 +1480,8 @@ class Provider(AProvider):
                                                            "127.0.0.1"]:
                     pass
                 else:
-                    logger.error(
-                        "InvalidRedirectURI: scheme:{}, hostname:{}".format(
-                        p.scheme, p.hostname))
-                    raise InvalidRedirectURIError(
-                        "Redirect_uri must use custom scheme or http and "
-                        "localhost")
+                    logger.error("InvalidRedirectURI: scheme:%s, hostname:%s", p.scheme, p.hostname)
+                    raise InvalidRedirectURIError("Redirect_uri must use custom scheme or http and localhost")
             elif must_https and p.scheme != "https":
                 raise InvalidRedirectURIError(
                     "None https redirect_uri not allowed")
@@ -1532,7 +1519,6 @@ class Provider(AProvider):
 
             args[param] = val
 
-    # noinspection PyUnusedLocal
     def l_registration_endpoint(self, request, authn=None, **kwargs):
         logger.debug("@registration_endpoint: <<%s>>" % sanitize(request))
 
@@ -1796,7 +1782,6 @@ class Provider(AProvider):
 
         return True
 
-    # noinspection PyUnusedLocal
     def providerinfo_endpoint(self, handle="", **kwargs):
         _log_info = logger.info
 
@@ -1825,7 +1810,6 @@ class Provider(AProvider):
 
         return resp
 
-    # noinspection PyUnusedLocal
     def discovery_endpoint(self, request, handle=None, **kwargs):
         """
         :param request:

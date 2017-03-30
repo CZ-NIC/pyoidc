@@ -231,8 +231,7 @@ class Provider(object):
                 _query = parse_qs(_query)
 
             match = False
-            for regbase, rquery in self.cdb[str(areq["client_id"])][
-                "redirect_uris"]:
+            for regbase, rquery in self.cdb[str(areq["client_id"])]["redirect_uris"]:
                 # The URI MUST exactly match one of the Redirection URI
                 if _base == regbase:
                     # every registered query component must exist in the
@@ -370,7 +369,7 @@ class Provider(object):
                 return error("invalid_request", "%s" % err)
             try:
                 _rtype = areq["response_type"]
-            except:
+            except KeyError:
                 _rtype = ["code"]
             try:
                 _state = areq["state"]

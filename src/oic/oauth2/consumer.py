@@ -78,7 +78,6 @@ class Consumer(Client):
     """ An OAuth2 consumer implementation
 
     """
-    # noinspection PyUnusedLocal
     def __init__(self, session_db, client_config=None,
                  server_info=None, authz_page="", response_type="",
                  scope="", flow_type="", password=None):
@@ -169,7 +168,6 @@ class Consumer(Client):
 
         self.sdb[sid] = res
 
-    # noinspection PyUnusedLocal,PyArgumentEqualDefault
     def begin(self, baseurl, request, response_type="", **kwargs):
         """ Begin the OAuth2 flow
 
@@ -209,7 +207,6 @@ class Consumer(Client):
 
         return sid, location
 
-    # noinspection PyUnusedLocal
     def handle_authorization_response(self, query="", **kwargs):
         """
         This is where we get redirect back to after authorization at the
@@ -293,7 +290,6 @@ class Consumer(Client):
 
         return request_args, http_args, extra_args
 
-    # noinspection PyUnusedLocal
     def get_access_token_request(self, state, **kwargs):
 
         request_args, http_args, extra_args = self.client_auth_info()

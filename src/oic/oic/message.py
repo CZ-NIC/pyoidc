@@ -55,12 +55,10 @@ class IATError(VerificationError):
     pass
 
 
-# noinspection PyUnusedLocal
 def json_ser(val, sformat=None, lev=0):
     return json.dumps(val)
 
 
-# noinspection PyUnusedLocal
 def json_deser(val, sformat=None, lev=0):
     return json.loads(val)
 
@@ -98,7 +96,6 @@ SINGLE_OPTIONAL_JSON_CONV = (dict, False, json_conv, json_rest, True)
 SINGLE_REQUIRED_INT = (int, True, None, None, False)
 
 
-# noinspection PyUnusedLocal
 def idtoken_deser(val, sformat="urlencoded"):
     # id_token are always serialized as a JWT
     return IdToken().deserialize(val, "jwt")
@@ -864,8 +861,7 @@ class ProviderConfigurationResponse(Message):
 
         assert not parts.query and not parts.fragment
 
-        if any("code" in rt for rt in self[
-            "response_types_supported"]) and "token_endpoint" not in self:
+        if any("code" in rt for rt in self["response_types_supported"]) and "token_endpoint" not in self:
             raise MissingRequiredAttribute("token_endpoint")
 
         return True

@@ -307,7 +307,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
         """
 
         # audience is the OP endpoint
-        #audience = self.cli._endpoint(REQUEST2ENDPOINT[cis.type()])
+        # audience = self.cli._endpoint(REQUEST2ENDPOINT[cis.type()])
         # OR OP identifier
         audience = self.cli.provider_info['issuer']
         algorithm = None
@@ -344,7 +344,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
             else:
                 cis["client_assertion_type"] = JWT_BEARER
         elif 'client_assertion' in cis:
-            if not 'client_assertion_type' in cis:
+            if 'client_assertion_type' not in cis:
                 cis["client_assertion_type"] = JWT_BEARER
         else:
             try:

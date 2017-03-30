@@ -78,8 +78,7 @@ class AuthnBroker(object):
                     _remain.append(_ref)
                 if level and level != item["level"]:
                     _remain.append(_ref)
-                if authn_authority and \
-                                authn_authority != item["authn_authority"]:
+                if authn_authority and authn_authority != item["authn_authority"]:
                     _remain.append(_ref)
             if _remain:
                 self.db[acr] = _remain

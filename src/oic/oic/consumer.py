@@ -118,7 +118,6 @@ class Consumer(Client):
     """ An OpenID Connect consumer implementation
 
     """
-    # noinspection PyUnusedLocal
     def __init__(self, session_db, consumer_config, client_config=None,
                  server_info=None, debug=False, client_prefs=None):
         """ Initializes a Consumer instance.
@@ -195,7 +194,6 @@ class Consumer(Client):
         """
         self.sdb[sid] = self.dictionary()
 
-    # noinspection PyUnusedLocal,PyArgumentEqualDefault
     def begin(self, scope="", response_type="", use_nonce=False, path="",
               **kwargs):
         """ Begin the OIDC flow
@@ -330,7 +328,6 @@ class Consumer(Client):
         self.redirect_uris = [self.sdb[_state]["redirect_uris"]]
         return aresp, _state
 
-    # noinspection PyUnusedLocal
     def parse_authz(self, query="", **kwargs):
         """
         This is where we get redirect back to after authorization at the
@@ -428,7 +425,6 @@ class Consumer(Client):
     def refresh_token(self):
         pass
 
-    # noinspection PyUnusedLocal
     def get_user_info(self, state):
         uinfo = self.do_user_info_request(state=state, schema="openid")
 

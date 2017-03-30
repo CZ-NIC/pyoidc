@@ -275,8 +275,7 @@ class Provider(provider.Provider):
         _cinfo["client_id"] = _id
         _cinfo["client_secret"] = secret(self.seed, _id)
         _cinfo["client_id_issued_at"] = utc_time_sans_frac()
-        _cinfo["client_secret_expires_at"] = utc_time_sans_frac() + \
-                                             self.secret_lifetime
+        _cinfo["client_secret_expires_at"] = utc_time_sans_frac() + self.secret_lifetime
 
         # If I support client info endpoint
         if ClientInfoEndpoint in self.endp:
@@ -796,8 +795,7 @@ class Provider(provider.Provider):
         if endpoint == 'revocation_endpoint':
             if 'azr' in token_info and client_id == token_info['azr']:
                 allow = True
-            elif len(token_info['aud']) == 1 and token_info['aud'] == [
-                client_id]:
+            elif len(token_info['aud']) == 1 and token_info['aud'] == [client_id]:
                 allow = True
         else:  # has to be introspection endpoint
             if 'azr' in token_info and client_id == token_info['azr']:

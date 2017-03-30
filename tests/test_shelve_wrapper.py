@@ -5,13 +5,13 @@ import pytest
 
 from oic.utils import shelve_wrapper
 
-
-def _eq(l1, l2):
-    return set(l1) == set(l2)
-
 __author__ = 'mathiashedstrom'
 
 VALUES = {"key_1": "val_1", "key_2": "val_2", "key_3": "val_3"}
+
+
+def _eq(l1, l2):
+    return set(l1) == set(l2)
 
 
 @pytest.fixture
@@ -31,12 +31,6 @@ def populated_db(db):
 class TestShelfWrapper(object):
     def test_keys(self, populated_db):
         assert _eq(populated_db.keys(), VALUES.keys())
-
-    def test_has_keys(self, populated_db):
-        for k in VALUES.keys():
-            assert populated_db.has_key(k)
-
-        assert not populated_db.has_key("NO_KEY")
 
     def test_contains(self, populated_db):
         for k in VALUES.keys():
