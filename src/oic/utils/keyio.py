@@ -778,6 +778,11 @@ class KeyJar(object):
         return res
 
     def __eq__(self, other):
+        """
+        Compare 2 KeyJar instances
+        :param other: The other KeyJar instance
+        :return: True/False
+        """
         try:
             assert isinstance(other, KeyJar)
         except AssertionError:
