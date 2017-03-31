@@ -717,8 +717,8 @@ class Provider(object):
                             _x = str(_x)
                         headers.append(tuple(_x.split(": ", 1)))
                 else:
-                    if PY2:
-                        _kaka = newstr(_kaka)
+                    #  if PY2:
+                    #    _kaka = newstr(_kaka)
                     _c = SimpleCookie()
                     _c.load(_kaka)
                     for x in _c.output().split('\r\n'):
