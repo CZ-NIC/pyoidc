@@ -31,7 +31,10 @@ from oic.utils.sanitize import sanitize
      "{'code': [<REDACTED>], 'bing': 'baz', 'password': '<REDACTED>', 'param1': 'bar'}"),
 
     ([('code', [999]), ('bing', 'baz'), ('password', 'foo'), ('param1', 'bar')],
-     "[('code', [<REDACTED>]), ('bing', 'baz'), ('password', '<REDACTED>'), ('param1', 'bar')]")
+     "[('code', [<REDACTED>]), ('bing', 'baz'), ('password', '<REDACTED>'), ('param1', 'bar')]"),
+
+    ('Password=ubar&param=foo', 'Password=<REDACTED>&param=foo'),
+    ({'password': u'bar', 'client_secret': b'foo'}, {'password': '<REDACTED>', 'client_secret': '<REDACTED>'}),
 ])
 def test_sanitize(raw, expected):
     assert sanitize(raw) == expected
