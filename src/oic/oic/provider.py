@@ -96,6 +96,10 @@ class InvalidRedirectURIError(Exception):
     pass
 
 
+class InvalidSectorIdentifier(Exception):
+    pass
+
+
 def devnull(txt):
     pass
 
@@ -1354,44 +1358,10 @@ class Provider(AProvider):
                                 status="400 Bad Request")
 
         if "sector_identifier_uri" in request:
-            si_url = request["sector_identifier_uri"]
             try:
-                res = self.server.http_request(si_url)
-            except ConnectionError as err:
-                logger.error("%s" % err)
-                return error_response(
-                    "invalid_configuration_parameter",
-                    descr="Couldn't open sector_identifier_uri")
-
-            if not res:
-                return error_response(
-                    "invalid_configuration_parameter",
-                    descr="Couldn't open sector_identifier_uri")
-
-            logger.debug("sector_identifier_uri => %s" % sanitize(res.text))
-
-            try:
-                si_redirects = json.loads(res.text)
-            except ValueError:
-                return error_response(
-                    "invalid_configuration_parameter",
-                    descr="Error deserializing sector_identifier_uri "
-                          "content")
-
-            if "redirect_uris" in request:
-                logger.debug("redirect_uris: %s" % request["redirect_uris"])
-                for uri in request["redirect_uris"]:
-                    try:
-                        assert uri in si_redirects
-                    except AssertionError:
-                        return error_response(
-                            "invalid_configuration_parameter",
-                            descr="redirect_uri missing from "
-                                  "sector_identifiers"
-                        )
-
-            _cinfo["si_redirects"] = si_redirects
-            _cinfo["sector_id"] = si_url
+                _cinfo["si_redirects"], _cinfo["sector_id"] = self._verify_sector_identifier(request)
+            except InvalidSectorIdentifier as err:
+                return error_response("invalid_configuration_parameter", descr=err)
         elif "redirect_uris" in request:
             if len(request["redirect_uris"]) > 1:
                 # check that the hostnames are the same
@@ -1500,6 +1470,39 @@ class Provider(AProvider):
                 verified_redirect_uris.append((base, query))
 
         return verified_redirect_uris
+
+    def _verify_sector_identifier(self, request):
+        """
+        Verify `sector_identifier_uri` is reachable and that it contains `redirect_uri`s.
+
+        :param request: Provider registration request
+        :return: si_redirects, sector_id
+        :raises: InvalidSectorIdentifier
+        """
+        si_url = request["sector_identifier_uri"]
+        try:
+            res = self.server.http_request(si_url)
+        except ConnectionError as err:
+            logger.error(err)
+            res = None
+
+        if not res:
+            raise InvalidSectorIdentifier("Couldn't open sector_identifier_uri")
+
+        logger.debug("sector_identifier_uri => %s", sanitize(res.text))
+
+        try:
+            si_redirects = json.loads(res.text)
+        except ValueError:
+            raise InvalidSectorIdentifier("Error deserializing sector_identifier_uri content")
+
+        if "redirect_uris" in request:
+            logger.debug("redirect_uris: %s", request["redirect_uris"])
+            for uri in request["redirect_uris"]:
+                if uri not in si_redirects:
+                    raise InvalidSectorIdentifier("redirect_uri missing from sector_identifiers")
+
+        return si_redirects, si_url
 
     @staticmethod
     def comb_uri(args):

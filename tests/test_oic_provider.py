@@ -6,13 +6,17 @@ from future.backports.urllib.parse import urlparse
 
 import datetime
 import json
+import logging
 import os
 from time import time
 
 import pytest
+import responses
 from mock import Mock
 from mock import patch
+from requests import ConnectionError
 from six import iteritems
+from testfixtures import LogCapture
 
 from oic import rndstr
 from oic.exception import FailedAuthentication
@@ -33,6 +37,7 @@ from oic.oic.message import RegistrationResponse
 from oic.oic.message import TokenErrorResponse
 from oic.oic.message import UserInfoRequest
 from oic.oic.provider import InvalidRedirectURIError
+from oic.oic.provider import InvalidSectorIdentifier
 from oic.oic.provider import Provider
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import ClientSecretBasic
@@ -858,6 +863,89 @@ class TestProvider(object):
                                     scope="openid")
 
         self.provider._verify_redirect_uri(areq)
+
+    def test_verify_sector_identifier_nonreachable(self):
+        rr = RegistrationRequest(operation="register", sector_identifier_uri="https://example.com")
+        with responses.RequestsMock() as rsps, LogCapture(level=logging.DEBUG) as logcap:
+            rsps.add(rsps.GET, "https://example.com", status=404)
+            message = "Couldn't open sector_identifier_uri"
+            with pytest.raises(InvalidSectorIdentifier, message=message):
+                self.provider._verify_sector_identifier(rr)
+
+        assert len(logcap.records) == 0
+
+    def test_verify_sector_identifier_error(self):
+        rr = RegistrationRequest(operation="register", sector_identifier_uri="https://example.com")
+        error = ConnectionError('broken connection')
+        with responses.RequestsMock() as rsps, LogCapture(level=logging.DEBUG) as logcap:
+            rsps.add(rsps.GET, "https://example.com", body=error)
+            with pytest.raises(InvalidSectorIdentifier, message="Couldn't open sector_identifier_uri"):
+                self.provider._verify_sector_identifier(rr)
+
+        assert len(logcap.records) == 2
+        # First log record is from server...
+        assert logcap.records[1].msg == error
+
+    def test_verify_sector_identifier_malformed(self):
+        rr = RegistrationRequest(operation="register", sector_identifier_uri="https://example.com")
+        body = "This is not the JSON you are looking for"
+        with responses.RequestsMock() as rsps, LogCapture(level=logging.DEBUG) as logcap:
+            rsps.add(rsps.GET, "https://example.com", body=body)
+            with pytest.raises(InvalidSectorIdentifier, message="Error deserializing sector_identifier_uri content"):
+                self.provider._verify_sector_identifier(rr)
+
+        assert len(logcap.records) == 1
+        assert logcap.records[0].msg == "sector_identifier_uri => %s"
+        assert logcap.records[0].args == (body,)
+
+    def test_verify_sector_identifier_ru_missing_in_si(self):
+        """Redirect_uris is not present in the sector_identifier_uri content."""
+        rr = RegistrationRequest(operation="register", sector_identifier_uri="https://example.com",
+                                 redirect_uris=["http://example.com/missing"])
+        with responses.RequestsMock() as rsps, LogCapture(level=logging.DEBUG) as logcap:
+            rsps.add(rsps.GET, "https://example.com",
+                     body=json.dumps(["http://example.com/present"]))
+            with pytest.raises(InvalidSectorIdentifier, message="redirect uri missing from sector_identifiers"):
+                self.provider._verify_sector_identifier(rr)
+
+        assert len(logcap.records) == 2
+        assert logcap.records[0].msg == "sector_identifier_uri => %s"
+        assert logcap.records[0].args == ('["http://example.com/present"]',)
+        assert logcap.records[1].msg == "redirect_uris: %s"
+        assert logcap.records[1].args == (["http://example.com/missing"],)
+
+    def test_verify_sector_identifier_ru_missing(self):
+        """Redirect_uris is not present in the request."""
+        rr = RegistrationRequest(operation="register", sector_identifier_uri="https://example.com")
+        redirects = ["http://example.com/present"]
+
+        with responses.RequestsMock() as rsps, LogCapture(level=logging.DEBUG) as logcap:
+            rsps.add(rsps.GET, "https://example.com", body=json.dumps(redirects))
+            si_redirects, si_url = self.provider._verify_sector_identifier(rr)
+
+        assert si_url == "https://example.com"
+        assert si_redirects == redirects
+        assert len(logcap.records) == 1
+        assert logcap.records[0].msg == "sector_identifier_uri => %s"
+        assert logcap.records[0].args == ('["http://example.com/present"]',)
+
+    def test_verify_sector_identifier_ru_ok(self):
+        """Redirect_uris is present in the sector_identifier_uri content."""
+        rr = RegistrationRequest(operation="register", sector_identifier_uri="https://example.com",
+                                 redirect_uris=["http://example.com/present"])
+        redirects = ["http://example.com/present"]
+
+        with responses.RequestsMock() as rsps, LogCapture(level=logging.DEBUG) as logcap:
+            rsps.add(rsps.GET, "https://example.com", body=json.dumps(redirects))
+            si_redirects, si_url = self.provider._verify_sector_identifier(rr)
+
+        assert si_url == "https://example.com"
+        assert si_redirects == redirects
+        assert len(logcap.records) == 2
+        assert logcap.records[0].msg == "sector_identifier_uri => %s"
+        assert logcap.records[0].args == ('["http://example.com/present"]',)
+        assert logcap.records[1].msg == "redirect_uris: %s"
+        assert logcap.records[1].args == (["http://example.com/present"],)
 
     @pytest.mark.parametrize("uri", [
         "http://example.org/cb",
