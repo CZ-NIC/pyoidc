@@ -2,6 +2,8 @@ import hashlib
 import logging
 import os
 
+from collections import Iterable
+
 from oic.utils.http_util import Response
 
 try:
@@ -256,19 +258,21 @@ PARAMMAP = {
 }
 
 
-def claims_match(value, claimspec):
-    if claimspec is None:
-        return True
+def claims_match(claim1, claim2):
+    """
+    Is claim1 equal to or present in claim2?
 
-    for key, val in claimspec.items():
-        if key == "value":
-            if value != val:
-                return False
-        elif key == "values":
-            if value not in val:
-                return False
-                # Whether it's essential or not doesn't change anything here
-    return True
+    :param claim1: First claim value
+    :param claim2: Second claim value
+    :return: Boolean
+    """
+    if claim2 is None:
+        return True
+    if isinstance(claim2, dict):
+        return claim1 in claim2.values()
+    if isinstance(claim2, Iterable):
+        return claim1 in claim2
+    return claim1 == claim2
 
 
 class Client(oauth2.Client):

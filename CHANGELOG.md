@@ -12,10 +12,12 @@ The format is based on the [KeepAChangeLog] project.
 
 ### Changed
 - [#318]: `oic.utils.authn.saml` raises `ImportError` on import if optional `saml2` dependency is not present.
+- [#325]: `oic.oic.claims_match` implementation refactored.
 
 [#313]: https://github.com/OpenIDC/pyoidc/issues/313
 [#318]: https://github.com/OpenIDC/pyoidc/pull/318
 [#319]: https://github.com/OpenIDC/pyoidc/pull/319
+[#325]: https://github.com/OpenIDC/pyoidc/pull/325
 
 ## 0.10.0.0 [2017-03-28]
 
