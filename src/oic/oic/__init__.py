@@ -234,14 +234,12 @@ PREFERENCE2PROVIDER = {
     "id_token_encrypted_response_enc":
         "id_token_encryption_enc_values_supported",
     "default_acr_values": "acr_values_supported",
-    # "require_auth_time":"",
     "subject_type": "subject_types_supported",
     "token_endpoint_auth_method": "token_endpoint_auth_methods_supported",
     "token_endpoint_auth_signing_alg":
         "token_endpoint_auth_signing_alg_values_supported",
     "response_types": "response_types_supported",
     'grant_types': 'grant_types_supported'
-    # "request_object_signing_alg": "request_object_signing_alg_values_supported
 }
 
 PROVIDER2PREFERENCE = dict([(v, k) for k, v in PREFERENCE2PROVIDER.items()])
