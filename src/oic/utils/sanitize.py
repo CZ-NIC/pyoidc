@@ -19,7 +19,7 @@ SANITIZE_PATTERN = r'''
         [=:,] # Probably a : , or = in tuple, dict or qs format
         \s* # Maybe more whitespace
         [([]? # Could be inside a list/tuple, parse_qs?
-        [ub]? # Python 2/3
+        ([bu][\"'])? # Python 2
         [\"']? # Might be a quote here.
     ) # End of capturing group
     (?:[%=/+\w]+) # This is the bit we replace with '<REDACTED>'
