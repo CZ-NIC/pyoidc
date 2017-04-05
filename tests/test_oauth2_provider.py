@@ -81,10 +81,7 @@ def verify_outcome(msg, prefix, lista):
     assert msg.startswith(prefix)
     qsl = ['{}={}'.format(k, v[0]) for k, v in
            parse_qs(msg[len(prefix):]).items()]
-    if set(qsl) == set(lista):
-        return True
-    else:
-        return False
+    return set(qsl) == set(lista)
 
 
 AUTHN_BROKER = AuthnBroker()
