@@ -5,6 +5,13 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
+## 0.10.0.1 [UNRELEASED]
+
+### Fixed
+- [#313]: Catch exception correctly
+
+[#313]: https://github.com/OpenIDC/pyoidc/issues/313
+
 ## 0.10.0.0 [2017-03-28]
 
 ### Changed
