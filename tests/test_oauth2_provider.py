@@ -81,10 +81,7 @@ def verify_outcome(msg, prefix, lista):
     assert msg.startswith(prefix)
     qsl = ['{}={}'.format(k, v[0]) for k, v in
            parse_qs(msg[len(prefix):]).items()]
-    if set(qsl) == set(lista):
-        return True
-    else:
-        return False
+    return set(qsl) == set(lista)
 
 
 AUTHN_BROKER = AuthnBroker()
@@ -150,7 +147,6 @@ class TestProvider(object):
         msg = json.loads(resp.message)
         assert msg["error"] == "invalid_request"
 
-    @pytest.mark.xfail(reason="https://github.com/OpenIDC/pyoidc/issues/287")
     def test_authenticated(self):
         _session_db = {}
         cons = Consumer(_session_db, client_config=CLIENT_CONFIG,
@@ -173,16 +169,11 @@ class TestProvider(object):
 
         state = aresp['state']
         assert _eq(logcap.records[0].msg, '- authorization - code flow -')
-        if not verify_outcome(logcap.records[1].msg,
+        assert verify_outcome(logcap.records[1].msg,
                               'QUERY: ',
                               ['state={}'.format(state), 'code=<REDACTED>',
                                'client_id=client1',
-                               'iss=https://example.com/as']):
-            assert verify_outcome(logcap.records[1].msg,
-                                  'QUERY: ',
-                                  ['state={}'.format(state), 'code=U<REDACTED>',
-                                   'client_id=client1',
-                                   'iss=https://example.com/as'])
+                               'iss=https://example.com/as'])
 
         expected = {'iss': 'https://example.com/as',
                     'state': state, 'code': '<REDACTED>',
