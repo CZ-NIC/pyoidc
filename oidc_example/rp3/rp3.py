@@ -494,7 +494,6 @@ if __name__ == '__main__':
         _conf.BASE = args.base_url
 
     _base = "{base}:{port}/".format(base=_conf.BASE, port=args.port)
-
     for _client, client_conf in six.iteritems(_conf.CLIENTS):
         if "client_registration" in client_conf:
             client_reg = client_conf["client_registration"]

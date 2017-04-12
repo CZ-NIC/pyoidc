@@ -228,7 +228,7 @@ def inputs(form_args):
 
 class Provider(AProvider):
     def __init__(self, name, sdb, cdb, authn_broker, userinfo, authz,
-                 client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
+                 client_authn, symkey="", urlmap=None, ca_certs="", keyjar=None,
                  hostname="", template_lookup=None, template=None,
                  verify_ssl=True, capabilities=None, schema=OpenIDSchema,
                  jwks_uri='', jwks_name='', baseurl=None, client_cert=None):
