@@ -3,6 +3,8 @@ from __future__ import print_function
 from future.backports.urllib.parse import splitquery
 from future.backports.urllib.parse import urlparse
 from future.moves.urllib.parse import parse_qs
+from builtins import input
+
 
 import argparse
 import copy
