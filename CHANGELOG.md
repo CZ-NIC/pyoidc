@@ -9,6 +9,7 @@ The format is based on the [KeepAChangeLog] project.
 ### Fixed
 - [#313]: Catch exception correctly
 - [#319]: Fix sanitize on strings starting with "B" or "U"
+- [#330]: Fix client_management user input being eval'd under Python 2
 
 ### Changed
 - [#318]: `oic.utils.authn.saml` raises `ImportError` on import if optional `saml2` dependency is not present.
