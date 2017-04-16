@@ -963,7 +963,7 @@ class Provider(AProvider):
             # _authn_event = _info["authn_event"]
             try:
                 _idtoken = self.sign_encrypt_id_token(
-                    _info, client_info, req, user_info=userinfo)
+                    _info, client_info, req, user_info=userinfo, code=_access_code)
             except (JWEException, NoSuitableSigningKeys) as err:
                 logger.warning(str(err))
                 return error(error="invalid_request",
