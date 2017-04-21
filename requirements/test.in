@@ -3,6 +3,7 @@
 
 tox
 pytest
+pytest-cov
 httpretty
 responses
 mock

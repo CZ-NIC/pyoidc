@@ -22,4 +22,7 @@ install:
   - pip install tox
 
 script:
-  - tox -e $TOX_ENV
+  - tox -e coverage-erase,$TOX_ENV
+
+after_success:
+  - tox -e coveralls

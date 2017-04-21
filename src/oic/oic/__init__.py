@@ -2,6 +2,8 @@ import hashlib
 import logging
 import os
 
+from collections import Iterable
+
 from oic.utils.http_util import Response
 
 try:
@@ -235,14 +237,12 @@ PREFERENCE2PROVIDER = {
     "id_token_encrypted_response_enc":
         "id_token_encryption_enc_values_supported",
     "default_acr_values": "acr_values_supported",
-    # "require_auth_time":"",
     "subject_type": "subject_types_supported",
     "token_endpoint_auth_method": "token_endpoint_auth_methods_supported",
     "token_endpoint_auth_signing_alg":
         "token_endpoint_auth_signing_alg_values_supported",
     "response_types": "response_types_supported",
     'grant_types': 'grant_types_supported'
-    # "request_object_signing_alg": "request_object_signing_alg_values_supported
 }
 
 PROVIDER2PREFERENCE = dict([(v, k) for k, v in PREFERENCE2PROVIDER.items()])
@@ -259,19 +259,21 @@ PARAMMAP = {
 }
 
 
-def claims_match(value, claimspec):
-    if claimspec is None:
-        return True
+def claims_match(claim1, claim2):
+    """
+    Is claim1 equal to or present in claim2?
 
-    for key, val in claimspec.items():
-        if key == "value":
-            if value != val:
-                return False
-        elif key == "values":
-            if value not in val:
-                return False
-                # Whether it's essential or not doesn't change anything here
-    return True
+    :param claim1: First claim value
+    :param claim2: Second claim value
+    :return: Boolean
+    """
+    if claim2 is None:
+        return True
+    if isinstance(claim2, dict):
+        return claim1 in claim2.values()
+    if isinstance(claim2, Iterable):
+        return claim1 in claim2
+    return claim1 == claim2
 
 
 class Client(oauth2.Client):

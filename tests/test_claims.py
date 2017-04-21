@@ -1,3 +1,4 @@
+from oic.oic import claims_match
 from oic.utils.claims import ClaimsMode
 
 
@@ -20,3 +21,10 @@ def test_non_aggregate_claims():
     claims_mode = ClaimsMode({user: "distributed"})
 
     assert not claims_mode.aggregate(user)
+
+
+def test_claims_match():
+    assert claims_match("foo", "foo")
+    assert claims_match("foo", None)
+    assert claims_match("foo", {"a": "foo"})
+    assert claims_match("foo", ("foo", "bar"))

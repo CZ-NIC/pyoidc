@@ -228,7 +228,7 @@ def inputs(form_args):
 
 class Provider(AProvider):
     def __init__(self, name, sdb, cdb, authn_broker, userinfo, authz,
-                 client_authn, symkey, urlmap=None, ca_certs="", keyjar=None,
+                 client_authn, symkey="", urlmap=None, ca_certs="", keyjar=None,
                  hostname="", template_lookup=None, template=None,
                  verify_ssl=True, capabilities=None, schema=OpenIDSchema,
                  jwks_uri='', jwks_name='', baseurl=None, client_cert=None):
@@ -269,8 +269,8 @@ class Provider(AProvider):
 
         for endp in self.endp:
             if endp.etype == 'registration':
-                self.register_endpoint = urljoin(self.baseurl,
-                                                 endp.url)
+                endpoint = urljoin(self.baseurl, endp.url)
+                self.register_endpoint = endpoint
                 break
 
         self.force_jws = {}
@@ -499,9 +499,8 @@ class Provider(AProvider):
             else:  # same as any
                 return self.authn_broker[0]
         except KeyError as exc:
-            logger.debug(
-                "An error occured while picking the authN broker: %s" % str(
-                    exc))
+            msg = "An error occurred while picking the authN broker: %s"
+            logger.debug(msg, str(exc))
 
         # return the best I have
         return None, None
@@ -517,7 +516,7 @@ class Provider(AProvider):
             redirect_uri = esreq["post_logout_redirect_uri"]
         except KeyError:
             logger.debug("Missing post_logout_redirect_uri parameter")
-            return None
+            return
 
         try:
             authn, acr = self.pick_auth(esreq)
@@ -534,9 +533,8 @@ class Provider(AProvider):
                                 itertools.chain.from_iterable(accepted_urls)):
                 return redirect_uri
         except Exception as exc:
-            logger.debug(
-                "An error occurred while verifying redirect URI: %s" % str(
-                    exc))
+            msg = "An error occurred while verifying redirect URI: %s"
+            logger.debug(msg, str(exc))
 
         return None
 
@@ -582,9 +580,8 @@ class Provider(AProvider):
         if "post_logout_redirect_uri" in esr:
             redirect_uri = self.verify_post_logout_redirect_uri(esr, cookie)
             if not redirect_uri:
-                return error_response(
-                    "Not allowed (Post logout redirect URI verification "
-                    "failed)!")
+                msg = "Post logout redirect URI verification failed!"
+                return error_response("%s", msg)
 
         authn, acr = self.pick_auth(esr)
 
@@ -595,8 +592,8 @@ class Provider(AProvider):
                                                      verify=True)
             sub = id_token_hint["sub"]
             try:
-                sid = self.sdb.get_sids_by_sub(sub)[
-                    0]  # any sid will do, choose the first
+                # any sid will do, choose the first
+                sid = self.sdb.get_sids_by_sub(sub)[0]
             except IndexError:
                 pass
         else:
@@ -609,11 +606,8 @@ class Provider(AProvider):
                 except (KeyError, IndexError):
                     pass
             else:
-                return error_response(
-                    "Not allowed (UID could not be retrieved)!")
-
-        # if self.sdb.get_verified_logout(uid):
-        #    return self.let_user_verify_logout(uid, esr, cookie, redirect_uri)
+                msg = "Not allowed: UID could not be retrieved"
+                return error_response("%s", msg)
 
         if sid is not None:
             del self.sdb[sid]
@@ -646,7 +640,7 @@ class Provider(AProvider):
         except KeyError:
             areq = _req
 
-        logger.debug("REQ: %s" % sanitize(areq))
+        logger.debug("REQ: %s", sanitize(areq))
         try:
             authn, acr = self.pick_auth(areq, "exact")
         except Exception as err:
@@ -719,8 +713,8 @@ class Provider(AProvider):
                 raise InvalidRequest('Contains unsupported response type')
 
         if before != req.to_dict():
-            logger.warning('Request modified ! From {} to {}'.format(
-                before, req.to_dict()))
+            msg = "Request modified from %s to %s"
+            logger.warning(msg, before, req.to_dict())
 
         return req
 
@@ -765,7 +759,7 @@ class Provider(AProvider):
             return authnres
 
         logger.debug("- authenticated -")
-        logger.debug("AREQ keys: %s" % list(areq.keys()))
+        logger.debug("AREQ keys: %s", list(areq.keys()))
 
         sid = self.setup_session(areq, authnres["authn_event"], cinfo)
         return self.authz_part2(authnres["user"], areq, sid, cookie=cookie)
@@ -785,10 +779,6 @@ class Provider(AProvider):
                 state, salt, areq["client_id"], redirect_uri)
             headers.append(self.write_session_cookie(state))
 
-        # if 'cookie' in kwargs and kwargs['cookie']:
-        #     headers.extend([('Set-Cookie', '{}="{}"'.format(k, v)) for k, v in
-        #                     kwargs['cookie'].items()])
-
         # as per the mix-up draft don't add iss and client_id if they are
         # already in the id_token.
         if 'id_token' not in aresp:
@@ -799,10 +789,13 @@ class Provider(AProvider):
         if self.events:
             self.events.store('Protocol response', aresp)
 
-        logger.info('authorization response: %s', sanitize(aresp.to_dict()))
+        response = sanitize(aresp.to_dict())
+        logger.info("authorization response: %s", response)
+
         location = aresp.request(redirect_uri, fragment_enc)
-        logger.debug("Redirected to: '%s' (%s)", sanitize(location),
-                     type(location))
+        msg = "Redirected to: '%s' :: %s"
+        logger.debug(msg, sanitize(location), type(location))
+
         return SeeOther(str(location), headers=headers)
 
     def userinfo_in_id_token_claims(self, session):
@@ -851,8 +844,9 @@ class Provider(AProvider):
         keys = self.keyjar.get_encrypt_key(owner=cid)
         if cid not in self.keyjar:
             # Weird, but try to recuperate
-            logger.warning(
-                "Lost keys for {} trying to recuperate!!".format(cid))
+            msg = "Lost keys for %s trying to recuperate!"
+            logger.warning(msg, cid)
+
             self.keyjar.issuer_keys[cid] = []
             self.keyjar.add(cid, client_info["jwks_uri"])
 
@@ -960,7 +954,6 @@ class Provider(AProvider):
 
         if "openid" in _info["scope"]:
             userinfo = self.userinfo_in_id_token_claims(_info)
-            # _authn_event = _info["authn_event"]
             try:
                 _idtoken = self.sign_encrypt_id_token(
                     _info, client_info, req, user_info=userinfo)
@@ -1226,7 +1219,6 @@ class Provider(AProvider):
             logger.error('Wrong token type: {}'.format(typ))
             raise FailedAuthentication("Wrong type of token")
 
-        # _log_info("keys: %s" % self.sdb.keys())
         if _sdb.is_revoked(key):
             return error(error="invalid_token", descr="Token is revoked",
                          status_code=401)
@@ -1483,15 +1475,9 @@ class Provider(AProvider):
                     logger.error("InvalidRedirectURI: scheme:%s, hostname:%s", p.scheme, p.hostname)
                     raise InvalidRedirectURIError("Redirect_uri must use custom scheme or http and localhost")
             elif must_https and p.scheme != "https":
-                raise InvalidRedirectURIError(
-                    "None https redirect_uri not allowed")
+                raise InvalidRedirectURIError("None https redirect_uri not allowed")
             elif p.fragment:
-                raise InvalidRedirectURIError(
-                    "redirect_uri contains fragment")
-            # This rule will break local testing.
-            # elif must_https and p.hostname == "localhost":
-            #     err = InvalidRedirectURIError(
-            # "https redirect_uri with host localhost")
+                raise InvalidRedirectURIError("redirect_uri contains fragment")
 
             base, query = splitquery(uri)
             if query:

@@ -10,6 +10,7 @@ import json
 import os
 import shelve
 import sys
+from builtins import input
 
 from oic import rndstr
 from oic.oic.provider import secret

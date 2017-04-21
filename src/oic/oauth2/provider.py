@@ -4,7 +4,6 @@ from future.backports.urllib.parse import unquote
 from future.backports.urllib.parse import urljoin
 from future.backports.urllib.parse import urlparse
 from future.moves.urllib.parse import parse_qs
-from future.types import newstr
 
 import hashlib
 import logging
@@ -717,8 +716,6 @@ class Provider(object):
                             _x = str(_x)
                         headers.append(tuple(_x.split(": ", 1)))
                 else:
-                    if PY2:
-                        _kaka = newstr(_kaka)
                     _c = SimpleCookie()
                     _c.load(_kaka)
                     for x in _c.output().split('\r\n'):
