@@ -1,5 +1,5 @@
-import sys
 import shelve
+import sys
 import unicodedata
 
 __author__ = 'danielevertsson'
