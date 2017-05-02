@@ -1,4 +1,6 @@
+import sys
 import shelve
+import unicodedata
 
 __author__ = 'danielevertsson'
 
@@ -16,30 +18,45 @@ class ShelfWrapper(object):
         return db.__len__()
 
     def has_key(self, key):
+        if sys.version_info < (3, 0) and not isinstance(key, str):
+            key = self._normalizeString(key)
         return key in self
 
     def __contains__(self, key):
+        if sys.version_info < (3, 0) and not isinstance(key, str):
+            key = self._normalizeString(key)
         db = self._reopen_database()
         return db.__contains__(key)
 
     def get(self, key, default=None):
+        if sys.version_info < (3, 0) and not isinstance(key, str):
+            key = self._normalizeString(key)
         db = self._reopen_database()
         return db.get(key, default)
 
     def __getitem__(self, key):
+        if sys.version_info < (3, 0) and not isinstance(key, str):
+            key = self._normalizeString(key)
         db = self._reopen_database()
         return db.__getitem__(key)
 
     def __setitem__(self, key, value):
+        if sys.version_info < (3, 0) and not isinstance(key, str):
+            key = self._normalizeString(key)
         db = self._reopen_database()
         db.__setitem__(key, value)
 
     def __delitem__(self, key):
+        if sys.version_info < (3, 0) and not isinstance(key, str):
+            key = self._normalizeString(key)
         db = self._reopen_database()
         db.__delitem__(key)
 
     def _reopen_database(self):
         return shelve.open(self.filename, writeback=True)
+
+    def _normalizeString(self, key):
+        return unicodedata.normalize('NFKD', key).encode('ascii','ignore')
 
 
 def open(filename):
