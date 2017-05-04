@@ -970,12 +970,13 @@ class Client(oauth2.Client):
     def provider_config(self, issuer, keys=True, endpoints=True,
                         response_cls=ProviderConfigurationResponse,
                         serv_pattern=OIDCONF_PATTERN):
-        if issuer.endswith("/"):
-            _issuer = issuer[:-1]
-        else:
-            _issuer = issuer
 
-        url = serv_pattern % _issuer
+        # Issuer MAY contain a path element, but webfinger .well-known URLs
+        # are always rooted at the top (RFC 5785), so this must be normalized
+        # and any path component discarded.
+        _authority = "{0.scheme}://{0.netloc}".format(urlparse(_issuer))
+
+        url = serv_pattern % _authority
 
         pcr = None
         r = self.http_request(url, allow_redirects=True)
