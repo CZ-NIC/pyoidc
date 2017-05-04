@@ -974,7 +974,7 @@ class Client(oauth2.Client):
         # Issuer MAY contain a path element, but webfinger .well-known URLs
         # are always rooted at the top (RFC 5785), so this must be normalized
         # and any path component discarded.
-        _authority = "{0.scheme}://{0.netloc}".format(urlparse(_issuer))
+        _authority = "{0.scheme}://{0.netloc}".format(urlparse(issuer))
 
         url = serv_pattern % _authority
 
