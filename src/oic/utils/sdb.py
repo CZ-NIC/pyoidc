@@ -11,7 +11,7 @@ import random
 import time
 import uuid
 
-from Cryptodome.Cipher import AES
+from cryptography.fernet import Fernet
 
 from oic import rndstr
 from oic.oic import AuthorizationRequest
@@ -62,25 +62,21 @@ def pairwise_id(sub, sector_identifier, seed):
 
 
 class Crypt(object):
-    def __init__(self, password, mode=AES.MODE_CBC):
-        self.password = password or 'kitty'
-        self.key = hashlib.sha256(password.encode("utf-8")).digest()
-        self.mode = mode
+
+    def __init__(self, password, mode=None):
+        self.key = base64.urlsafe_b64encode(
+            hashlib.sha256(password.encode("utf-8")).digest())
+        self.core = Fernet(self.key)
 
     def encrypt(self, text):
-        # setting iv because the underlying AES module misbehaves
-        # on certain platforms
-        encryptor = AES.new(self.key, self.mode, IV=b'0' * 16)
-
+        # Padding to blocksize of AES
         text = tobytes(text)
         if len(text) % 16:
             text += b' ' * (16 - len(text) % 16)
-
-        return encryptor.encrypt(text)
+        return self.core.encrypt(tobytes(text))
 
     def decrypt(self, ciphertext):
-        decryptor = AES.new(self.key, self.mode, IV=b'0' * 16)
-        return decryptor.decrypt(ciphertext)
+        return self.core.decrypt(ciphertext)
 
 
 class Token(object):

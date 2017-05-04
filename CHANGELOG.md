@@ -15,10 +15,14 @@ The format is based on the [KeepAChangeLog] project.
 - [#318]: `oic.utils.authn.saml` raises `ImportError` on import if optional `saml2` dependency is not present.
 - [#325]: `oic.oic.claims_match` implementation refactored.
 
+### Security
+- [#349]: Changed crypto algorithm used by `oic.utils.sdb.Crypt` for token encryption to Fernet. Old stored tokens are incompatible. 
+
 [#313]: https://github.com/OpenIDC/pyoidc/issues/313
 [#318]: https://github.com/OpenIDC/pyoidc/pull/318
 [#319]: https://github.com/OpenIDC/pyoidc/pull/319
 [#325]: https://github.com/OpenIDC/pyoidc/pull/325
+[#349]: https://github.com/OpenIDC/pyoidc/issues/349
 
 ## 0.10.0.0 [2017-03-28]
 
