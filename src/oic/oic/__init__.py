@@ -849,7 +849,7 @@ class Client(oauth2.Client):
                 sformat = "jwt"
         elif resp.status_code == 500:
             raise PyoidcError("ERROR: Something went wrong: %s" % resp.text)
-        elif resp.status_code == 400:
+        elif 400 <= resp.status_code < 500 :
             # the response text might be a OIDC message
             try:
                 res = ErrorResponse().from_json(resp.text)
