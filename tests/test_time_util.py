@@ -199,8 +199,7 @@ def test_time_a_while_ago():
     dt = datetime.utcnow()
     t = time_a_while_ago(seconds=10)
     delta = dt - t  # slightly less than 10
-    assert delta.seconds == 9
-    assert delta.microseconds > 0
+    assert (delta.seconds == 9 and delta.microseconds > 0) or delta.seconds == 10
 
 
 def test_a_while_ago():

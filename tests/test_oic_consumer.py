@@ -170,9 +170,10 @@ class TestOICConsumer():
 
     def test_begin_file(self, tmpdir):
         path = tmpdir.strpath
+        external_path = "/exported"
         self.consumer.consumer_config["request_method"] = "file"
         self.consumer.consumer_config["temp_dir"] = path
-        self.consumer.consumer_config["temp_path"] = path
+        self.consumer.consumer_config["temp_path"] = external_path
         self.consumer.consumer_config["authz_page"] = "/authz"
         srv = Server()
         srv.keyjar = SRVKEYS
@@ -182,8 +183,13 @@ class TestOICConsumer():
 
         with responses.RequestsMock() as rsps:
             p = urlparse(self.consumer.request_uri)
+            assert p.netloc == "localhost:8087"
+            # Map the URL path to the local path
+            relative_path = os.path.relpath(p.path, external_path)
+            file_path = os.path.join(path, relative_path)
+
             rsps.add(rsps.GET, self.consumer.request_uri,
-                     body=open(p.path).read(), status=200,
+                     body=open(file_path).read(), status=200,
                      content_type='application/urlencoded')
 
             authreq = srv.parse_authorization_request(url=location)

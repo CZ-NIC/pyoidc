@@ -32,10 +32,25 @@ def stateID(url, seed):
     :param url: The base URL for this site
     :return: The hex version of the digest
     """
+    # Seed may be bytes or unicode
+    try:
+        seed = seed.encode()
+    except AttributeError:
+        pass
+
     ident = md5()
     ident.update(repr(time.time()).encode())
     ident.update(url.encode())
     ident.update(seed)
+    # Mix in some randomness, as time.time() does not have enough
+    # accuracy on all platforms to make this unique for identical
+    # seeds and urls.
+    # The accuracy can be pretty bad, around 20ms, unless one uses
+    # one of the high precision timers (e.g. py3 timeit.default_timer())
+    # that use stuff like the performance counters in the CPU.
+    # But even that can and does break on VMs, where the performance counters
+    # are virtualized too, so better play safe than sorry here.
+    ident.update(rndstr(8).encode())
     return ident.hexdigest()
 
 
