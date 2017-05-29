@@ -837,7 +837,7 @@ class Client(oauth2.Client):
 
         try:
             resp = self.http_request(path, method, data=body, **h_args)
-        except oauth2.MissingRequiredAttribute:
+        except oauth2.exception.MissingRequiredAttribute:
             raise
 
         if resp.status_code == 200:
@@ -1437,8 +1437,12 @@ class Server(oauth2.Server):
     def handle_request_uri(self, request_uri, verify=True, sender=''):
         """
 
-        :param areq:
-        :param redirect_uri:
+        :param request_uri: URL pointing to where the signed request should
+        be fetched from.
+        :param verify: Whether the signature on the request should be verified.
+        Don't use anything but the default unless you REALLY know what you're
+        doing
+        :param sender: The issuer of the request JWT.
         :return:
         """
 
