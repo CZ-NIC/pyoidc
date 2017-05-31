@@ -13,7 +13,7 @@ from jwkest.jws import left_hash
 from jwkest.jwt import JWT
 
 from oic.oauth2.exception import OtherError
-from oic.oic import DEF_SIGN_ALG, claims_match
+from oic.oic import DEF_SIGN_ALG
 from oic.oic import Client
 from oic.oic import Grant
 from oic.oic import Server
@@ -779,4 +779,3 @@ def test_request_duplicate_state():
 
     assert req['state'] == 'foobar'
     assert req['redirect_uri'] == 'https://node-openid-client.dev/cb'
-
