@@ -13,7 +13,7 @@ from jwkest.jws import left_hash
 from jwkest.jwt import JWT
 
 from oic.oauth2.exception import OtherError
-from oic.oic import DEF_SIGN_ALG
+from oic.oic import DEF_SIGN_ALG, claims_match
 from oic.oic import Client
 from oic.oic import Grant
 from oic.oic import Server
@@ -779,3 +779,20 @@ def test_request_duplicate_state():
 
     assert req['state'] == 'foobar'
     assert req['redirect_uri'] == 'https://node-openid-client.dev/cb'
+
+
+def test_claims_match():
+    claims_request = {
+        "sub": {"value": "248289761001"},
+        "auth_time": {"essential": True},
+        "acr": {"essential": True,
+                "values": ["urn:mace:incommon:iap:silver",
+                           "urn:mace:incommon:iap:bronze"]}
+    }
+
+    assert claims_match("248289761001", claims_request['sub'])
+    assert claims_match("123456789012", claims_request['sub']) is False
+    assert claims_match("123456789", claims_request['auth_time'])
+    assert claims_match("urn:mace:incommon:iap:silver", claims_request['acr'])
+    assert claims_match("urn:mace:incommon:iap:gold",
+                        claims_request['acr']) is False

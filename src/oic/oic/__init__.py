@@ -258,21 +258,41 @@ PARAMMAP = {
 }
 
 
-def claims_match(claim1, claim2):
+def claims_match(value, claimspec):
     """
-    Is claim1 equal to or present in claim2?
+    Implements matching according to section 5.5.1 of 
+    http://openid.net/specs/openid-connect-core-1_0.html 
+    The lack of value is not checked here.
+    Also the text doesn't prohibit having both 'value' and 'values'.
 
-    :param claim1: First claim value
-    :param claim2: Second claim value
+    :param value: single value or list of values 
+    :param claimspec: None or dictionary with 'essential', 'value' or 'values'
+    as key
     :return: Boolean
     """
-    if claim2 is None:
+    if claimspec is None:  # match anything
         return True
-    if isinstance(claim2, dict):
-        return claim1 in claim2.values()
-    if isinstance(claim2, Iterable):
-        return claim1 in claim2
-    return claim1 == claim2
+
+    matched = False
+    for key, val in claimspec.items():
+        if key == "value":
+            if value == val:
+                matched = True
+        elif key == "values":
+            if value in val:
+                matched = True
+        elif key == 'essential':
+            # Whether it's essential or not doesn't change anything here
+            continue
+
+        if matched:
+            break
+
+    if matched is False:
+        if list(claimspec.keys()) == ['essential']:
+            return True
+
+    return matched
 
 
 class Client(oauth2.Client):
