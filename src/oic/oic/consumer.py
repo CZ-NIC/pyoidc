@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 import logging
 import os.path
-import time
-from hashlib import md5
 
 from oic import rndstr
 from oic.exception import AuthzError
@@ -10,6 +8,7 @@ from oic.exception import PyoidcError
 from oic.oauth2 import Grant
 from oic.oauth2.consumer import TokenError
 from oic.oauth2.consumer import UnknownState
+from oic.oauth2.consumer import stateID
 from oic.oauth2.message import ErrorResponse
 from oic.oic import ENDPOINTS
 from oic.oic import Client
@@ -24,20 +23,6 @@ from oic.utils.sanitize import sanitize
 __author__ = 'rohe0002'
 
 logger = logging.getLogger(__name__)
-
-
-def stateID(url, seed):
-    """The hash of the time + server path + a seed makes an unique
-    SID for each session.
-
-    :param url: The base URL for this site
-    :return: The hex version of the digest
-    """
-    ident = md5()
-    ident.update(repr(time.time()).encode())
-    ident.update(url.encode())
-    ident.update(seed.encode())
-    return ident.hexdigest()
 
 
 def factory(kaka, sdb, config):
