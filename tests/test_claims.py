@@ -22,6 +22,7 @@ def test_non_aggregate_claims():
 
     assert not claims_mode.aggregate(user)
 
+
 def test_claims_match():
     claims_request = {
         "sub": {"value": "248289761001"},
