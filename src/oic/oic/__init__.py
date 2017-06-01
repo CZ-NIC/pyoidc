@@ -2,8 +2,6 @@ import hashlib
 import logging
 import os
 
-from collections import Iterable
-
 from oic.utils.http_util import Response
 
 try:
@@ -260,12 +258,12 @@ PARAMMAP = {
 
 def claims_match(value, claimspec):
     """
-    Implements matching according to section 5.5.1 of 
-    http://openid.net/specs/openid-connect-core-1_0.html 
+    Implements matching according to section 5.5.1 of
+    http://openid.net/specs/openid-connect-core-1_0.html
     The lack of value is not checked here.
     Also the text doesn't prohibit having both 'value' and 'values'.
 
-    :param value: single value or list of values 
+    :param value: single value or list of values
     :param claimspec: None or dictionary with 'essential', 'value' or 'values'
     as key
     :return: Boolean
