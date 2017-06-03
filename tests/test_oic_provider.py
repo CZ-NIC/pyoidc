@@ -15,7 +15,6 @@ import responses
 from mock import Mock
 from mock import patch
 from requests import ConnectionError
-from six import iteritems
 from testfixtures import LogCapture
 
 from oic import rndstr
@@ -632,7 +631,7 @@ class TestProvider(object):
                                                         extra_claims=claims)
         parsed = IdToken().from_jwt(id_token, keyjar=self.provider.keyjar)
 
-        for key, value in iteritems(claims):
+        for key, value in claims.items():
             assert parsed[key] == value
 
     def test_userinfo_endpoint(self):

@@ -7,6 +7,7 @@ The format is based on the [KeepAChangeLog] project.
 
 ## 0.10.0.1 [UNRELEASED]
 ### Fixed
+- [#358]: Fixed claims_match
 - [#313]: Catch exception correctly
 - [#319]: Fix sanitize on strings starting with "B" or "U"
 - [#330]: Fix client_management user input being eval'd under Python 2
