@@ -56,6 +56,9 @@ class ShelfWrapper(object):
     def _reopen_database(self):
         return shelve.open(self.filename, writeback=True)
 
+    def _normalizeString(self, key):
+        return unicodedata.normalize('NFKD', key).encode('ascii', 'ignore')
+
 
 def open(filename):
     """Open a persistent dictionary for reading and writing.
