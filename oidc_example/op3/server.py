@@ -3,13 +3,16 @@ __author__ = 'Vahid Jalili'
 
 from future.backports.urllib.parse import parse_qs
 
+import argparse
+import importlib
 import json
 import os
 import re
 import sys
 import traceback
-import argparse
-import importlib
+
+from cherrypy import wsgiserver
+from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
 from mako.lookup import TemplateLookup
 
 from oic.oic.provider import AuthorizationEndpoint
@@ -27,17 +30,10 @@ from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.authz import AuthzHandling
 from oic.utils.http_util import *
 from oic.utils.keyio import keyjar_init
+from oic.utils.sdb import SessionDB
 from oic.utils.userinfo import UserInfo
 from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.webfinger import WebFinger
-
-
-from cherrypy import wsgiserver
-from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
-
-from oic.utils.sdb import SessionDB
-
-
 
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = 'oc.log'
