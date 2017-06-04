@@ -152,7 +152,7 @@ class Provider(object):
     endp = [AuthorizationEndpoint, TokenEndpoint]
 
     def __init__(self, name, sdb, cdb, authn_broker, authz, client_authn,
-                 symkey="", urlmap=None, iv=0, default_scope="",
+                 symkey=None, urlmap=None, iv=0, default_scope="",
                  ca_bundle=None, verify_ssl=True, default_acr="",
                  baseurl='', server_cls=Server, client_cert=None):
         self.name = name

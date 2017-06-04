@@ -102,7 +102,7 @@ class Provider(provider.Provider):
     """
 
     def __init__(self, name, sdb, cdb, authn_broker, authz, client_authn,
-                 symkey="", urlmap=None, iv=0, default_scope="",
+                 symkey=None, urlmap=None, iv=0, default_scope="",
                  ca_bundle=None, seed=b"", client_authn_methods=None,
                  authn_at_registration="", client_info_url="",
                  secret_lifetime=86400, jwks_uri='', keyjar=None,

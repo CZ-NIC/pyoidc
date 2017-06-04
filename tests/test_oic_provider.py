@@ -770,7 +770,7 @@ class TestProvider(object):
     def test_provider_key_setup(self, tmpdir):
         path = tmpdir.strpath
         provider = Provider("pyoicserv", SessionDB(SERVER_INFO["issuer"]), None,
-                            None, None, None, None, "")
+                            None, None, None, None, None)
         provider.baseurl = "http://www.example.com"
         provider.key_setup(path, path, sig={"format": "jwk", "alg": "RSA"})
 
@@ -1012,7 +1012,7 @@ class TestProvider(object):
                                             'error_description': None}
 
     def test_key_rollover(self):
-        provider2 = Provider("FOOP", {}, {}, None, None, None, None, "")
+        provider2 = Provider("FOOP", {}, {}, None, None, None, None, None)
         provider2.keyjar = KEYJAR
         # Number of KeyBundles
         assert len(provider2.keyjar.issuer_keys[""]) == 1
