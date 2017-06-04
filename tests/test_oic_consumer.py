@@ -5,10 +5,10 @@ import os
 
 import pytest
 import responses
-from fakeoicsrv import MyFakeOICServer
 from jwkest import BadSignature
 from jwkest.jwk import SYMKey
-from mitmsrv import MITMServer
+from tests.mitmsrv import MITMServer
+from tests.fakeoicsrv import MyFakeOICServer
 
 from oic.oauth2.message import MissingSigningKey
 from oic.oic import DEF_SIGN_ALG

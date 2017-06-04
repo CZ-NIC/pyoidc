@@ -7,7 +7,7 @@ import time
 from collections import Counter
 
 import pytest
-from fakeoicsrv import MyFakeOICServer
+from tests.fakeoicsrv import MyFakeOICServer
 from jwkest.jws import alg2keytype
 from jwkest.jws import left_hash
 from jwkest.jwt import JWT
