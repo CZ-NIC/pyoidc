@@ -5,7 +5,14 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
+## 0.11.0.0 [UNRELEASED]
+
+- [#324]: Make the Provider `symkey` argument optional.
+
+[#324]: https://github.com/OpenIDC/pyoidc/pull/324
+
 ## 0.10.0.1 [UNRELEASED]
+
 ### Fixed
 - [#358]: Fixed claims_match
 - [#313]: Catch exception correctly
