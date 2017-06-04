@@ -437,12 +437,13 @@ class CookieDealer(object):
         self.pad_chr = " "
 
     def init_srv(self, srv):
-        if srv:
-            self.srv = srv
+        if not srv:
+            return
+        self.srv = srv
 
-            for param in ["seed", "iv"]:
-                if not getattr(srv, param, None):
-                    setattr(srv, param, rndstr().encode("utf-8"))
+        for param in ["seed", "iv"]:
+            if not getattr(srv, param, None):
+                setattr(srv, param, rndstr().encode("utf-8"))
 
     def delete_cookie(self, cookie_name=None):
         if cookie_name is None:
