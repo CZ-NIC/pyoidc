@@ -10,8 +10,8 @@ import logging
 import os
 import sys
 import traceback
-
 from http.cookies import SimpleCookie
+
 from six import PY2
 
 from oic import rndstr

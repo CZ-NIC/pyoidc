@@ -7,10 +7,10 @@ import time
 from collections import Counter
 
 import pytest
-from tests.fakeoicsrv import MyFakeOICServer
 from jwkest.jws import alg2keytype
 from jwkest.jws import left_hash
 from jwkest.jwt import JWT
+from tests.fakeoicsrv import MyFakeOICServer
 
 from oic.oauth2.exception import OtherError
 from oic.oic import DEF_SIGN_ALG
