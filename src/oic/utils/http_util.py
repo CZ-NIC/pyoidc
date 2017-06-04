@@ -12,6 +12,7 @@ from six import PY2
 from six import text_type
 
 from oic import rndstr
+from oic.exception import ImproperlyConfigured
 from oic.exception import UnsupportedMethod
 from oic.utils import time_util
 from oic.utils.aes import decrypt
@@ -440,6 +441,11 @@ class CookieDealer(object):
         if not srv:
             return
         self.srv = srv
+
+        symkey = getattr(self.srv, 'symkey', None)
+        if symkey is not None and symkey == "":
+            msg = "CookieDealer.srv.symkey cannot be an empty value"
+            raise ImproperlyConfigured(msg)
 
         for param in ["seed", "iv"]:
             if not getattr(srv, param, None):

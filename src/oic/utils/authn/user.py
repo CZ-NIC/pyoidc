@@ -11,6 +11,7 @@ import time
 
 import six
 
+from oic.exception import ImproperlyConfigured
 from oic.exception import PyoidcError
 from oic.oauth2 import compact
 from oic.utils import aes
@@ -387,6 +388,10 @@ class SymKeyAuthn(UserAuthnMethod):
 
     def __init__(self, srv, ttl, symkey):
         UserAuthnMethod.__init__(self, srv, ttl)
+
+        if symkey is not None and symkey == "":
+            msg = "SymKeyAuthn.symkey cannot be an empty value"
+            raise ImproperlyConfigured(msg)
         self.symkey = symkey
 
     def authenticated_as(self, cookie=None, authorization="", **kwargs):
