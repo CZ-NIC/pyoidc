@@ -24,7 +24,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#325]: `oic.oic.claims_match` implementation refactored.
 
 ### Security
-- [#349]: Changed crypto algorithm used by `oic.utils.sdb.Crypt` for token encryption to Fernet. Old stored tokens are incompatible. 
+- [#349]: Changed crypto algorithm used by `oic.utils.sdb.Crypt` for token encryption to Fernet. Old stored tokens are incompatible.
 
 [#313]: https://github.com/OpenIDC/pyoidc/issues/313
 [#318]: https://github.com/OpenIDC/pyoidc/pull/318
