@@ -745,6 +745,7 @@ class SessionDB(object):
         else:
             pass
         self._db[sid] = _dict
+        self.update(sid, 'revoked', True)
         return True
 
     def revoke_refresh_token(self, rtoken):

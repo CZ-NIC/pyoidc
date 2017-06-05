@@ -1,3 +1,5 @@
+import json
+
 from oic import rndstr
 from oic.extension.single import SingleClient
 from oic.extension.single import SingleService
@@ -35,8 +37,24 @@ class TokenRequest(Message):
     }
 
 
+class DeviceFlowError(Exception):
+    def __init__(self, error, desc='', status_code=400):
+        self.error = error
+        self.desc = desc
+        self.status_code = status_code
+
+    def __str__(self):
+        _tmp = {'error': self.error, 'desc': self.desc}
+        return json.dumps(_tmp)
+
+
+class AuthorizationPending(DeviceFlowError):
+    def __init__(self):
+        DeviceFlowError.__init__(self, 'authorization_pending')
+
+
 class DeviceFlowServer(SingleService):
-    def __init__(self, host):
+    def __init__(self, host, verification_uri):
         SingleService.__init__(self, host)
         self.host = host
         # map between device_code and user_code
@@ -45,6 +63,7 @@ class DeviceFlowServer(SingleService):
         self.user_auth = {}
         self.device_code_expire_at = {}
         self.device_code_life_time = 900  # 15 minutes
+        self.verification_uri = verification_uri
 
     def device_endpoint(self, request, authn=None):
 
@@ -59,6 +78,10 @@ class DeviceFlowServer(SingleService):
         self.device_code_expire_at[
             device_code] = time_sans_frac() + self.device_code_life_time
 
+        return AuthorizationResponse(device_code=device_code,
+                                     user_code=user_code,
+                                     verification_uri=self.verification_uri)
+
     def token_endpoint(self, request, authn=None):
         _req = TokenRequest(**request)
         _dc = _req['device_code']
@@ -69,9 +92,14 @@ class DeviceFlowServer(SingleService):
         _uc = self.device2user[_dc]
 
         if self.user_auth[_uc]:  # User is authenticated
-            pass
+            resp = AccessTokenResponse(
+                access_token="mF_9.B5f-4.1JqM",
+                token_type="Bearer",
+                expires_in=3600,
+                refresh_token="tGzv3JOkF0XG5Qx2TlKWIA"
+            )
         else:
-            return self.host.error_code(error='authorization_pending')
+            raise AuthorizationPending()
 
     def device_auth(self, user_code):
         self.user_auth[user_code] = True

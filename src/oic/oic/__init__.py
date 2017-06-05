@@ -58,6 +58,7 @@ from oic.oic.message import CheckIDRequest
 from oic.oic.message import EndSessionRequest
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import ProviderConfigurationResponse
+from oic.oic.message import AuthnToken
 from oic.oic.message import TokenErrorResponse
 from oic.oic.message import ClientRegistrationErrorResponse
 from oic.oic.message import UserInfoErrorResponse
@@ -1434,6 +1435,7 @@ class Client(oauth2.Client):
         self._verify_id_token(id_token, **kwa)
 
 
+# noinspection PyMethodOverriding
 class Server(oauth2.Server):
     def __init__(self, keyjar=None, ca_certs=None, verify_ssl=True,
                  client_cert=None):
@@ -1474,7 +1476,7 @@ class Server(oauth2.Server):
 
         if not http_req:
             logger.error('Nothing returned')
-            return authz_error("invalid_request_uri")
+            raise AuthzError("invalid_request_uri")
         elif http_req.status_code >= 400:
             logger.error('HTTP error {}:{}'.format(http_req.status_code,
                                                    http_req.text))
