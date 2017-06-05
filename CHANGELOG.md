@@ -14,6 +14,7 @@ The format is based on the [KeepAChangeLog] project.
 ## 0.10.0.1 [UNRELEASED]
 
 ### Fixed
+- [#362]: Fix bad package settings URL
 - [#358]: Fixed claims_match
 - [#313]: Catch exception correctly
 - [#319]: Fix sanitize on strings starting with "B" or "U"
@@ -31,6 +32,7 @@ The format is based on the [KeepAChangeLog] project.
 [#319]: https://github.com/OpenIDC/pyoidc/pull/319
 [#325]: https://github.com/OpenIDC/pyoidc/pull/325
 [#349]: https://github.com/OpenIDC/pyoidc/issues/349
+[#362]: https://github.com/OpenIDC/pyoidc/pull/362
 
 ## 0.10.0.0 [2017-03-28]
 
