@@ -440,23 +440,28 @@ class CookieDealer(object):
         if srv:
             self.srv = srv
 
-            for param in ["seed", "iv"]:
-                if not getattr(srv, param, None):
-                    setattr(srv, param, rndstr().encode("utf-8"))
-
     def delete_cookie(self, cookie_name=None):
         if cookie_name is None:
             cookie_name = self.srv.cookie_name
         return self.create_cookie("", "", cookie_name=cookie_name, ttl=-1,
                                   kill=True)
 
+    def set_seed_and_iv(self):
+        for param in ["seed", "iv"]:
+            randval = rndstr().encode("utf-8")
+            setattr(self.srv, param, randval)
+
     def create_cookie(self, value, typ, cookie_name=None, ttl=-1, kill=False):
+        self.set_seed_and_iv()
+
         if kill:
             ttl = -1
         elif ttl < 0:
             ttl = self.cookie_ttl
+
         if cookie_name is None:
             cookie_name = self.srv.cookie_name
+
         timestamp = str(int(time.time()))
         try:
             _msg = "::".join([value, timestamp, typ])
@@ -470,9 +475,11 @@ class CookieDealer(object):
             info = encrypt(self.srv.symkey, _msg, self.srv.iv).decode("utf-8")
         else:
             info = _msg
+
         cookie = make_cookie(cookie_name, info, self.srv.seed,
                              expire=ttl, domain="", path="",
                              timestamp=timestamp)
+
         if PY2:
             return str(cookie[0]), str(cookie[1])
         else:

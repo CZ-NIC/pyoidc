@@ -71,6 +71,32 @@ class TestCookieDealer(object):
             cookie_expiration, "%a, %d-%b-%Y %H:%M:%S GMT")
         assert cookie_timestamp < now
 
+    def test_per_cookie_iv_seed(self):
+        def cookie_dealer():
+            class Server():
+                def __init__(self):
+                    self.symkey = "0123456789012345"
+                    self.cookie_name = "baz"
+            return CookieDealer(Server())
+
+        cd1 = cookie_dealer()
+
+        assert cd1.srv is not None
+        assert getattr(cd1.srv, 'seed', None) is None
+        assert getattr(cd1.srv, 'iv', None) is None
+
+        cookie1 = cd1.create_cookie("foo", "bar")
+        seed1 = cd1.srv.seed
+        iv1 = cd1.srv.iv
+
+        cookie2 = cd1.create_cookie("foo", "bar")
+        seed2 = cd1.srv.seed
+        iv2 = cd1.srv.iv
+
+        assert cookie1 != cookie2
+        assert seed1 != seed2
+        assert iv1 != iv2
+
 
 def test_parse_cookie():
     kaka = ('pyoidc=bjmc::1463043535::upm|'
