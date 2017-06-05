@@ -69,7 +69,7 @@ class ClaimsServer(Provider):
     def __init__(self, name, sdb, cdb, userinfo, client_authn, urlmap=None,
                  ca_certs="", keyjar=None, hostname="", dist_claims_mode=None):
         Provider.__init__(self, name, sdb, cdb, None, userinfo, None,
-                          client_authn, "", urlmap, ca_certs, keyjar,
+                          client_authn, None, urlmap, ca_certs, keyjar,
                           hostname)
 
         if keyjar is None:

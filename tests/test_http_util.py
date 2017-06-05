@@ -1,8 +1,8 @@
-# pylint: disable=redefined-outer-name,missing-docstring
 import datetime
 
 import pytest
 
+from oic.exception import ImproperlyConfigured
 from oic.utils.http_util import CookieDealer
 from oic.utils.http_util import Response
 from oic.utils.http_util import cookie_parts
@@ -70,6 +70,15 @@ class TestCookieDealer(object):
         cookie_timestamp = datetime.datetime.strptime(
             cookie_expiration, "%a, %d-%b-%Y %H:%M:%S GMT")
         assert cookie_timestamp < now
+
+    def test_cookie_dealer_improperly_configured(self):
+        class BadServer():
+            def __init__(self):
+                self.symkey = ""
+        with pytest.raises(ImproperlyConfigured) as err:
+            CookieDealer(BadServer())
+        expected_msg = "CookieDealer.srv.symkey cannot be an empty value"
+        assert expected_msg in str(err.value)
 
 
 def test_parse_cookie():

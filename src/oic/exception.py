@@ -109,3 +109,7 @@ class RequestError(PyoidcError):
 
 class AuthnToOld(PyoidcError):
     pass
+
+
+class ImproperlyConfigured(PyoidcError):
+    pass
