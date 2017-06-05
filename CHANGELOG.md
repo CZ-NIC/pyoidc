@@ -7,6 +7,7 @@ The format is based on the [KeepAChangeLog] project.
 
 ## 0.10.0.1 [UNRELEASED]
 ### Fixed
+- [#366]: Assure fresh seed/iv for each cookie from CookieDealer
 - [#358]: Fixed claims_match
 - [#313]: Catch exception correctly
 - [#319]: Fix sanitize on strings starting with "B" or "U"
@@ -24,6 +25,7 @@ The format is based on the [KeepAChangeLog] project.
 [#319]: https://github.com/OpenIDC/pyoidc/pull/319
 [#325]: https://github.com/OpenIDC/pyoidc/pull/325
 [#349]: https://github.com/OpenIDC/pyoidc/issues/349
+[#366]: https://github.com/OpenIDC/pyoidc/pull/366
 
 ## 0.10.0.0 [2017-03-28]
 
