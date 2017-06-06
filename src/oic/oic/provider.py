@@ -776,10 +776,11 @@ class Provider(AProvider):
 
         if "check_session_iframe" in self.capabilities:
             salt = rndstr()
-            state = str(self.sdb.get_authentication_event(
-                sid).authn_time)  # use the last session
+            authn_event = self.sdb.get_authentication_event(sid)  # use the last session
+            state = str(authn_event["authn_time"])
             aresp["session_state"] = self._compute_session_state(
-                state, salt, areq["client_id"], redirect_uri)
+                state, salt, areq["client_id"], redirect_uri
+            )
             headers.append(self.write_session_cookie(state))
 
         # as per the mix-up draft don't add iss and client_id if they are
@@ -888,9 +889,9 @@ class Provider(AProvider):
 
         _authn_event = sinfo["authn_event"]
         id_token = self.id_token_as_signed_jwt(
-            sinfo, loa=_authn_event.authn_info, alg=alg, code=code,
+            sinfo, loa=_authn_event["authn_info"], alg=alg, code=code,
             access_token=access_token, user_info=user_info,
-            auth_time=_authn_event.authn_time)
+            auth_time=_authn_event["authn_time"])
 
         # Then encrypt
         if "id_token_encrypted_response_alg" in client_info:
@@ -1110,7 +1111,7 @@ class Provider(AProvider):
 
         authn_event = session.get("authn_event")
         if authn_event:
-            uid = authn_event.uid
+            uid = authn_event["uid"]
         else:
             uid = session['uid']
 

@@ -411,7 +411,7 @@ class TestSessionDB(object):
         # given the sub find out whether the authn event is still valid
         sids = self.sdb.get_sids_by_sub(sub)
         ae = self.sdb[sids[0]]["authn_event"]
-        assert ae.valid()
+        assert AuthnEvent(**ae).valid()
 
     def test_do_sub_deterministic(self):
         ae = AuthnEvent("tester", "random_value")

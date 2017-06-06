@@ -388,7 +388,7 @@ class TestProvider(object):
         ae = AuthnEvent("user", "salt")
         _sdb[sid] = {
             "oauth_state": "authz",
-            "authn_event": ae,
+            "authn_event": ae.to_json(),
             "authzreq": authreq.to_json(),
             "client_id": CLIENT_ID,
             "code": access_grant,
@@ -425,7 +425,7 @@ class TestProvider(object):
         ae = AuthnEvent("user", "salt")
         _sdb[sid] = {
             "oauth_state": "authz",
-            "authn_event": ae,
+            "authn_event": ae.to_json(),
             "authzreq": authreq.to_json(),
             "client_id": CLIENT_ID,
             "code": access_grant,
@@ -462,7 +462,7 @@ class TestProvider(object):
         ae = AuthnEvent("user", "salt")
         _sdb[sid] = {
             "oauth_state": "authz",
-            "authn_event": ae,
+            "authn_event": ae.to_json(),
             "authzreq": authreq.to_json(),
             "client_id": CLIENT_ID,
             "code": access_grant,
@@ -498,7 +498,7 @@ class TestProvider(object):
         ae = AuthnEvent("user", "salt")
         _sdb[sid] = {
             "oauth_state": "authz",
-            "authn_event": ae,
+            "authn_event": ae.to_json(),
             "authzreq": authreq.to_json(),
             "client_id": CLIENT_ID,
             "code": access_grant,
@@ -534,7 +534,7 @@ class TestProvider(object):
         access_grant = _sdb.access_token(sid=sid)
         ae = AuthnEvent("user", "salt")
         _sdb[sid] = {
-            "authn_event": ae,
+            "authn_event": ae.to_json(),
             "oauth_state": "authz",
             "authzreq": "",
             "client_id": "client_1",
@@ -1128,7 +1128,7 @@ class TestProvider(object):
         ae = AuthnEvent("user", "salt")
         _sdb[sid] = {
             "oauth_state": "authz",
-            "authn_event": ae,
+            "authn_event": ae.to_json(),
             "authzreq": authreq.to_json(),
             "client_id": CLIENT_ID,
             "code": access_grant,
