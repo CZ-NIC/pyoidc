@@ -7,9 +7,14 @@ The format is based on the [KeepAChangeLog] project.
 
 ## 0.11.0.0 [UNRELEASED]
 
+### Changed
 - [#324]: Make the Provider `symkey` argument optional.
 
+### Fixed
+- [#369]: The AuthnEvent object is now serialized to JSON for the session.
+
 [#324]: https://github.com/OpenIDC/pyoidc/pull/324
+[#369]: https://github.com/OpenIDC/pyoidc/pull/369
 
 ## 0.10.0.1 [UNRELEASED]
 
