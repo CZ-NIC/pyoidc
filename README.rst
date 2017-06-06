@@ -66,8 +66,9 @@ Maintainers Needed
 If you're interested in helping maintain and improve this package, we're
 looking for you!
 
-Please contact one of the current maintainers, `@lwm`_, `@rohe`_ or `@tpazderka`_.
+Please contact one of the current maintainers, `@lwm`_, `@rohe`_, `@tpazderka`_ or `@schlenk`_.
 
 .. _@lwm: https://github.com/lwm/
 .. _@rohe: https://github.com/rohe/
 .. _@tpazderka: https://github.com/tpazderka/
+.. _@schlenk: https://github.com/schlenk
