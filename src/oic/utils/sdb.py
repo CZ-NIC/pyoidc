@@ -239,7 +239,8 @@ class DefaultToken(Token):
 
 
 class AuthnEvent(object):
-    def __init__(self, uid, salt, valid=3600, authn_info=None, time_stamp=0):
+    def __init__(self, uid, salt, valid=3600, authn_info=None,
+                 time_stamp=0, authn_time=None, valid_until=None):
         """
         Creates a representation of an authentication event.
 
@@ -251,8 +252,8 @@ class AuthnEvent(object):
         """
         self.uid = uid
         self.salt = salt
-        self.authn_time = int(time_stamp) or time_sans_frac()
-        self.valid_until = self.authn_time + int(valid)
+        self.authn_time = authn_time or (int(time_stamp) or time_sans_frac())
+        self.valid_until = valid_until or (self.authn_time + int(valid))
         self.authn_info = authn_info
 
     def valid(self):
@@ -260,6 +261,9 @@ class AuthnEvent(object):
 
     def valid_for(self):
         return self.valid_until - time.time()
+
+    def to_json(self):
+        return self.__dict__
 
 
 class RefreshDB(object):
@@ -493,8 +497,8 @@ class SessionDB(object):
         :param client_salt: client specific salt - used in pairwise
         :return:
         """
-        uid = self._db[sid]["authn_event"].uid
-        user_salt = self._db[sid]["authn_event"].salt
+        uid = self._db[sid]["authn_event"]["uid"]
+        user_salt = self._db[sid]["authn_event"]["salt"]
 
         if subject_type == "public":
             sub = hashlib.sha256(
@@ -537,7 +541,7 @@ class SessionDB(object):
             "client_id": areq["client_id"],
             'response_type': areq['response_type'],
             "revoked": False,
-            "authn_event": aevent
+            "authn_event": aevent.to_json()
         }
 
         _dic.update(kwargs)
@@ -613,7 +617,7 @@ class SessionDB(object):
         if issue_refresh:
             authn_event = dic.get('authn_event')
             if authn_event:
-                uid = authn_event.uid
+                uid = authn_event["uid"]
             else:
                 uid = None
 
