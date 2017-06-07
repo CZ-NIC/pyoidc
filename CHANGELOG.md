@@ -18,6 +18,9 @@ The format is based on the [KeepAChangeLog] project.
 ### Security
 - [#363]: Fixed IV reuse for CookieDealer class. Replaced the encrypt-then-mac construction with a proper AEAD (AES-SIV). 
 
+### Security
+- [#363]: Fixed IV reuse for CookieDealer class. Replaced the encrypt-then-mac construction with a proper AEAD (AES-SIV). 
+
 [#324]: https://github.com/OpenIDC/pyoidc/pull/324
 [#369]: https://github.com/OpenIDC/pyoidc/pull/369
 [#363]: https://github.com/OpenIDC/pyoidc/issue/363
