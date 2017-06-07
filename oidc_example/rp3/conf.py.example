@@ -24,7 +24,8 @@ BEHAVIOUR = {
     "scope": ["openid", "profile", "email", "address", "phone"],
 }
 
-ACR_VALUES = ["SAML"]
+ACR_VALUES = ["PASSWORD"]
+# Other possible values: SAML
 
 # The keys in this dictionary are the OPs short userfriendly name
 # not the issuer (iss) name.
