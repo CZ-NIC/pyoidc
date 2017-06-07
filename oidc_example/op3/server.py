@@ -3,13 +3,16 @@ __author__ = 'Vahid Jalili'
 
 from future.backports.urllib.parse import parse_qs
 
+import argparse
+import importlib
 import json
 import os
 import re
 import sys
 import traceback
-import argparse
-import importlib
+
+from cherrypy import wsgiserver
+from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
 from mako.lookup import TemplateLookup
 
 from oic.oic.provider import AuthorizationEndpoint
@@ -27,17 +30,10 @@ from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.authz import AuthzHandling
 from oic.utils.http_util import *
 from oic.utils.keyio import keyjar_init
+from oic.utils.sdb import SessionDB
 from oic.utils.userinfo import UserInfo
 from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.webfinger import WebFinger
-
-
-from cherrypy import wsgiserver
-from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
-
-from oic.utils.sdb import SessionDB
-
-
 
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = 'oc.log'
@@ -96,7 +92,6 @@ def key_rollover(self, environ, start_response, _):
     # expects a post containing the necessary information
     _txt = get_post(environ)
     _jwks = json.loads(_txt)
-    # logger.info("Key rollover to")
     provider.do_key_rollover(_jwks, "key_%d_%%d" % int(time.time()))
     # Dump to file
     f = open(jwksFileName, "w")
@@ -141,10 +136,10 @@ class Application(object):
         for endp in self.endpoints:
             self.urls.append(("^%s" % endp.etype, endp.func))
 
-    # noinspection PyUnusedLocal
     def safe(self, environ, start_response):
         _srv = self.provider.server
         _log_info = self.provider.logger.info
+
         _log_info("- safe -")
 
         try:
@@ -165,7 +160,6 @@ class Application(object):
         resp = Response(info)
         return resp(environ, start_response)
 
-    # noinspection PyUnusedLocal
     def css(self, environ, start_response):
         try:
             info = open(environ["PATH_INFO"]).read()
@@ -175,27 +169,22 @@ class Application(object):
 
         return resp(environ, start_response)
 
-    # noinspection PyUnusedLocal
     def token(self, environ, start_response):
         return wsgi_wrapper(environ, start_response, self.provider.token_endpoint,
                             logger=logger)
 
-    # noinspection PyUnusedLocal
     def authorization(self, environ, start_response):
         return wsgi_wrapper(environ, start_response,
                             self.provider.authorization_endpoint, logger=logger)  # cookies required.
 
-    # noinspection PyUnusedLocal
     def userinfo(self, environ, start_response):
         return wsgi_wrapper(environ, start_response, self.provider.userinfo_endpoint,
                             logger=logger)
 
-    # noinspection PyUnusedLocal
     def op_info(self, environ, start_response):
         return wsgi_wrapper(environ, start_response,
                             self.provider.providerinfo_endpoint, logger=logger)
 
-    # noinspection PyUnusedLocal
     def registration(self, environ, start_response):
         if environ["REQUEST_METHOD"] == "POST":
             return wsgi_wrapper(environ, start_response,
@@ -208,27 +197,22 @@ class Application(object):
             resp = ServiceError("Method not supported")
             return resp(environ, start_response)
 
-    # noinspection PyUnusedLocal
     def check_id(self, environ, start_response):
         return wsgi_wrapper(environ, start_response, self.provider.check_id_endpoint,
                             logger=logger)
 
-    # noinspection PyUnusedLocal
     def swd_info(self, environ, start_response):
         return wsgi_wrapper(environ, start_response, self.provider.discovery_endpoint,
                             logger=logger)
 
-    # noinspection PyUnusedLocal
     def trace_log(self, environ, start_response):
         return wsgi_wrapper(environ, start_response, self.provider.tracelog_endpoint,
                             logger=logger)
 
-    # noinspection PyUnusedLocal
     def endsession(self, environ, start_response):
         return wsgi_wrapper(environ, start_response,
                             self.provider.endsession_endpoint, logger=logger)
 
-    # noinspection PyUnusedLocal
     def meta_info(self, environ, start_response):
         """
         Returns something like this::
@@ -271,8 +255,6 @@ class Application(object):
             request is done
         :return: The response as a list of lines
         """
-        path = environ.get('PATH_INFO', '').lstrip('/')
-
         print 'start_response: ', start_response
 
         if path == "robots.txt":
@@ -334,15 +316,6 @@ if __name__ == '__main__':
     endPoints = config.AUTHENTICATION["UserPassword"]["EndPoints"]
     fullEndPointsPath = ["%s%s" % (config.ISSUER, ep) for ep in endPoints]
 
-# TODO: why this instantiation happens so early? can I move it later?
-    # An OIDC Authorization/Authentication server is designed to
-    # allow more than one authentication method to be used by the server.
-    # And that is what the AuthBroker is for.
-    # Given information about the authorisation request, the AuthBroker
-    # chooses which method(s) to be used for authenticating the person/entity.
-    # According to the OIDC standard a Relaying Party can say
-    # 'I want this type of authentication', and the AuthnBroker tries to pick
-    # methods from the set it has been supplied, to map that request.
     authnBroker = AuthnBroker()
 
     # UsernamePasswordMako: authenticas a user using the username/password form in a
@@ -359,12 +332,11 @@ if __name__ == '__main__':
     # AuthnIndexedEndpointWrapper is a wrapper class for using an authentication module with multiple endpoints.
     authnIndexedEndPointWrapper = AuthnIndexedEndpointWrapper(usernamePasswordAuthn, passwordEndPointIndex)
 
-    authnBroker.add(config.AUTHENTICATION["UserPassword"]["ACR"],  # (?!)
-           authnIndexedEndPointWrapper,                      # (?!) method: an identifier of the authentication method.
+    authnBroker.add(config.AUTHENTICATION["UserPassword"]["ACR"],
+           authnIndexedEndPointWrapper,                      # method: an identifier of the authentication method.
            config.AUTHENTICATION["UserPassword"]["WEIGHT"],  # security level
-           "")                                               # (?!) authentication authority
+           "")                                               # authentication authority
 
-    # ?!
     authz = AuthzHandling()
     clientDB = shelve_wrapper.open(config.CLIENTDB)
 
@@ -377,19 +349,9 @@ if __name__ == '__main__':
         authz=authz,                                   # authz
         client_authn=verify_client,                    # client authentication
         symkey=config.SYM_KEY,                         # Used for Symmetric key authentication
-        # urlmap = None,                               # ?
-        # ca_certs = "",                               # ?
-        # keyjar = None,                               # ?
-        # hostname = "",                               # ?
-        template_lookup=lookup,                        # ?
-        template={"form_post": "form_response.mako"},  # ?
-        # verify_ssl = True,                           # ?
-        # capabilities = None,                         # ?
-        # schema = OpenIDSchema,                       # ?
-        # jwks_uri = '',                               # ?
-        # jwks_name = '',                              # ?
+        template_lookup=lookup,
+        template={"form_post": "form_response.mako"},
         baseurl=config.ISSUER,
-        # client_cert = None                           # ?
         )
 
     # SessionDB:
@@ -398,16 +360,10 @@ if __name__ == '__main__':
     # such as "what has been asked for (claims, scopes, and etc. )"
     # and "the state of the session". There is one entry in the
     # database per person
-    #
-    # __________ Note __________
-    # provider.keyjar is an interesting parameter,
-    # currently it uses default values, but
-    # if you have time, it worth investigating.
 
     for authnIndexedEndPointWrapper in authnBroker:
         authnIndexedEndPointWrapper.srv = provider
 
-    # TODO: this is a point to consider: what if user data in a database?
     if config.USERINFO == "SIMPLE":
         provider.userinfo = UserInfo(config.USERDB)
 
@@ -430,7 +386,6 @@ if __name__ == '__main__':
             config.keys,          # key configuration
             kid_template="op%d")  # template by which to build the kids (key ID parameter)
     except Exception as err:
-        # LOGGER.error("Key setup failed: %s" % err)
         provider.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
     else:
         for key in jwks["keys"]:
@@ -442,14 +397,6 @@ if __name__ == '__main__':
         f.close()
         provider.jwks_uri = "%s%s" % (provider.baseurl, jwksFileName)
 
-    # for b in OAS.keyjar[""]:
-    #    LOGGER.info("OC3 server keys: %s" % b)
-
-    # TODO: Questions:
-    # END_POINT is defined as a dictionary in the configuration file,
-    # why not defining it as string with "verify" value?
-    # after all, we have only one end point.
-    # can we have multiple end points for password? why?
     endPoint = config.AUTHENTICATION["UserPassword"]["EndPoints"][passwordEndPointIndex]
 
     _urls = []
