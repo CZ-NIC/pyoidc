@@ -17,7 +17,7 @@
 import re
 import sys
 
-from setuptools import setup
+from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
 __author__ = 'rohe0002'
@@ -56,9 +56,7 @@ setup(
     author_email="roland@catalogix.se",
     license="Apache 2.0",
     url='https://github.com/OpenIDC/pyoidc/',
-    packages=["oic", "oic/oauth2", "oic/oic", "oic/utils", "oic/utils/authn",
-              "oic/utils/userinfo", 'oic/utils/rp', 'oic/extension'],
-              # 'oic/v2'],
+    packages=find_packages("src.oic"),
     package_dir={"": "src"},
     classifiers=[
         "Development Status :: 4 - Beta",
