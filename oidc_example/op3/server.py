@@ -131,11 +131,13 @@ class Application(object):
             (r'^.well-known/simple-web-discovery', self.swd_info),
             (r'^.well-known/host-meta.json', self.meta_info),
             (r'^.well-known/webfinger', self.webfinger),
+            #    (r'^.well-known/webfinger', webfinger),
             (r'.+\.css$', self.css),
             (r'safe', self.safe),
             (r'^keyrollover', key_rollover),
             (r'^clearkeys', clear_keys),
             (r'^check_session', check_session_iframe)
+            #    (r'tracelog', trace_log),
         ])
 
         for endp in self.endpoints:
@@ -145,7 +147,10 @@ class Application(object):
     def safe(self, environ, start_response):
         _srv = self.provider.server
         _log_info = self.provider.logger.info
+
         _log_info("- safe -")
+        # _log_info("env: %s" % environ)
+        # _log_info("handle: %s" % (handle,))
 
         try:
             authz = environ["HTTP_AUTHORIZATION"]
@@ -271,6 +276,7 @@ class Application(object):
             request is done
         :return: The response as a list of lines
         """
+        # user = environ.get("REMOTE_USER", "")
         path = environ.get('PATH_INFO', '').lstrip('/')
 
         print 'start_response: ', start_response
@@ -460,6 +466,8 @@ if __name__ == '__main__':
     # Setup the web server
     server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', config.PORT), _app.application)
     server.ssl_adapter = BuiltinSSLAdapter(config.SERVER_CERT, config.SERVER_KEY)
+
+    # LOGGER.info("OC server started (iss={}, port={})".format(config.ISSUER, args.port))
 
     print "OIDC Provider server started (issuer={}, port={})".format(config.ISSUER, config.PORT)
 
