@@ -805,11 +805,13 @@ class Message(MutableMapping):
     def to_jwe(self, keys, enc, alg, lev=0):
         """
 
-        :param keys: Dictionary, keys are key type and key is the value
-        :param enc: The encryption method to use
-        :param alg: Encryption algorithm
+        :param keys: Dictionary, keys are key type and key is the value or
+        simple list.
+        :param enc: Content Encryption Algorithm
+        :param alg: Key Management Algorithm
         :param lev: Used for JSON construction
-        :return: A JWE
+        :return: An encrypted JWT. If encryption failed an exception will be 
+        raised.
         """
         if isinstance(keys, dict):
             keys = keyitems2keyreps(keys)
@@ -818,6 +820,14 @@ class Message(MutableMapping):
         return _jwe.encrypt(keys)
 
     def from_jwe(self, msg, keys):
+        """
+        
+        :param msg: An encrypted JWT 
+        :param keys: Dictionary, keys are key type and key is the value or
+        simple list.
+        :return: The decrypted message. If decryption failed an exception 
+        will be raised.
+        """
         if isinstance(keys, dict):
             keys = keyitems2keyreps(keys)
 
