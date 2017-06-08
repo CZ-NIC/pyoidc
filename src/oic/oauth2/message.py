@@ -811,15 +811,19 @@ class Message(MutableMapping):
         :param lev: Used for JSON construction
         :return: A JWE
         """
-        krs = keyitems2keyreps(keys)
+        if isinstance(keys, dict):
+            keys = keyitems2keyreps(keys)
+
         _jwe = JWE(self.to_json(lev), alg=alg, enc=enc)
-        return _jwe.encrypt(krs)
+        return _jwe.encrypt(keys)
 
     def from_jwe(self, msg, keys):
-        krs = keyitems2keyreps(keys)
+        if isinstance(keys, dict):
+            keys = keyitems2keyreps(keys)
+
         jwe = JWE()
-        _res = jwe.decrypt(msg, krs)
-        return self.from_json(_res[0].decode())
+        _res = jwe.decrypt(msg, keys)
+        return self.from_json(_res.decode())
 
     def copy(self):
         return copy.deepcopy(self)
