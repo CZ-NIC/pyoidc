@@ -323,14 +323,32 @@ def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp="",
     """
     Create and return a cookie
 
+    The cookie is secured against tampering.
+
+    If you only provide a `seed`, a HMAC gets added to the cookies value
+    and this is checked, when the cookie is parsed again.
+
+    If you provide both `seed` and `enc_key`, the cookie gets protected
+    by using AEAD encryption. This provides both a MAC over the whole cookie
+    and encrypts the `load` in a single step.
+
+    The `seed` and `enc_key` parameters should be byte strings of at least
+    16 bytes length each. Those are used as cryptographic keys.
+
     :param name: Cookie name
+    :type name: text
     :param load: Cookie load
+    :type load: text
     :param seed: A seed key for the HMAC function
+    :type seed: byte string
     :param expire: Number of minutes before this cookie goes stale
+    :type expire: int
     :param domain: The domain of the cookie
     :param path: The path specification for the cookie
     :param timestamp: A time stamp
+    :type timestamp: text
     :param enc_key: The key to use for cookie encryption.
+    :type enc_key: byte string
     :return: A tuple to be added to headers
     """
     cookie = SimpleCookie()
@@ -340,8 +358,6 @@ def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp="",
     bytes_load = load.encode("utf-8")
     bytes_timestamp = timestamp.encode("utf-8")
 
-    # If we have an encryption key, we use an AEAD cipher instead of
-    # building our own encrypt-and-mac scheme badly.
     if enc_key:
         # Make sure the key is 256-bit long, for AES-128-SIV
         #
@@ -383,49 +399,56 @@ def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp="",
 def parse_cookie(name, seed, kaka, enc_key=None):
     """Parses and verifies a cookie value
 
-    :param seed: A seed used for the HMAC signature
+    Parses a cookie created by `make_cookie` and verifies
+    it has not been tampered with.
+
+    You need to provide the same `seed` and `enc_key`
+    used when creating the cookie, otherwise the verification
+    fails. See `make_cookie` for details about the verification.
+
+    :param seed: A seed key used for the HMAC signature
+    :type seed: bytes
     :param kaka: The cookie
-    :return: A tuple consisting of (payload, timestamp)
+    :param enc_key: The encryption key used.
+    :type enc_key: bytes or None
+    :raises InvalidCookieSign: When verification fails.
+    :return: A tuple consisting of (payload, timestamp) or None if parsing fails
     """
     if not kaka:
         return None
-    cookie_obj = SimpleCookie(text_type(kaka))
-    morsel = cookie_obj.get(name)
 
     if isinstance(seed, text_type):
         seed = seed.encode('utf-8')
 
-    if morsel:
-        parts = morsel.value.split("|")
-        if len(parts) == 3:
-            # verify the cookie signature
-            cleartext, timestamp, sig = parts
-            if not verify_cookie_signature(sig, seed, cleartext, timestamp):
-                raise InvalidCookieSign()
-            return cleartext, timestamp
-        elif len(parts) == 4:
-            # encrypted and signed
-            timestamp = parts[0]
-            iv = base64.b64decode(parts[1])
-            ciphertext = base64.b64decode(parts[2])
-            tag = base64.b64decode(parts[3])
-
-            # Make sure the key is 32-Bytes long
-            key = _make_hashed_key((enc_key, seed))
-
-            crypt = AEAD(key, iv)
-            # timestamp does not need to be encrypted, just MAC'ed,
-            # so we add it to 'Associated Data' only.
-            crypt.add_associated_data(timestamp.encode('utf-8'))
-            try:
-                cleartext = crypt.decrypt_and_verify(ciphertext, tag)
-            except AESError:
-                raise InvalidCookieSign()
-            return cleartext.decode('utf-8'), timestamp
-        else:
-            return None
-    else:
+    parts = cookie_parts(name, kaka)
+    if parts is None:
         return None
+    elif len(parts) == 3:
+        # verify the cookie signature
+        cleartext, timestamp, sig = parts
+        if not verify_cookie_signature(sig, seed, cleartext, timestamp):
+            raise InvalidCookieSign()
+        return cleartext, timestamp
+    elif len(parts) == 4:
+        # encrypted and signed
+        timestamp = parts[0]
+        iv = base64.b64decode(parts[1])
+        ciphertext = base64.b64decode(parts[2])
+        tag = base64.b64decode(parts[3])
+
+        # Make sure the key is 32-Bytes long
+        key = _make_hashed_key((enc_key, seed))
+
+        crypt = AEAD(key, iv)
+        # timestamp does not need to be encrypted, just MAC'ed,
+        # so we add it to 'Associated Data' only.
+        crypt.add_associated_data(timestamp.encode('utf-8'))
+        try:
+            cleartext = crypt.decrypt_and_verify(ciphertext, tag)
+        except AESError:
+            raise InvalidCookieSign()
+        return cleartext.decode('utf-8'), timestamp
+    return None
 
 
 def cookie_parts(name, kaka):
