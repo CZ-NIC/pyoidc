@@ -7,7 +7,9 @@ from base64 import b64encode
 
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
+from six import binary_type
 from six import indexbytes
+from six import text_type
 
 __author__ = 'rolandh'
 
@@ -103,6 +105,87 @@ def decrypt(key, msg, iv=None, padding="PKCS#7", b64dec=True):
     if padding in ["PKCS#5", "PKCS#7"]:
         res = res[:-indexbytes(res, -1)]
     return res.decode("utf-8")
+
+
+class AEAD(object):
+    """
+    Authenticated Encryption with Associated Data Wrapper
+
+    This does encryption and integrity check in one
+    operation, so you do not need to combine HMAC + encryption
+    yourself.
+
+    :param key: The key to use for encryption.
+    :type key: bytes
+    :param iv: The initialization vector.
+    :type iv: bytes
+    :param mode: One of the AEAD available modes.
+
+    Your key and initialization vectors should be created from random bytes
+    of sufficient length.
+
+    For the default SIV mode, you need one of:
+
+        - 256-bit key, 128-bit IV to use AES-128
+        - 384-bit key, 192-bit IV to use AES-192
+        - 512-bit key, 256-bit IV to use AES-256
+
+    """
+    def __init__(self, key, iv, mode=AES.MODE_SIV):
+        assert isinstance(key, binary_type)
+        assert isinstance(iv, binary_type)
+        self.key = key
+        self.mode = mode
+        self.iv = iv
+        self.kernel = AES.new(self.key, self.mode, self.iv)
+
+    def add_associated_data(self, data):
+        """
+        Add data to include in the MAC
+
+        This data is protected by the MAC but not encrypted.
+
+        :param data: data to add in the MAC calculation
+        :type data: bytes
+        """
+        if isinstance(data, text_type):
+            data = data.encode('utf-8')
+        self.kernel.update(data)
+
+    def encrypt_and_tag(self, cleardata):
+        """
+        Encrypt the given data
+
+        Encrypts the given data and returns the encrypted
+        data and the MAC to later verify and decrypt the data.
+
+        :param cleardata: data to encrypt
+        :type cleardata: bytes
+
+        :returns: 2-tuple of encrypted data and MAC
+        """
+        assert isinstance(cleardata, binary_type)
+        return self.kernel.encrypt_and_digest(cleardata)
+
+    def decrypt_and_verify(self, cipherdata, tag):
+        """
+        Decrypt and verify
+
+        Checks the integrity against the tag and decrypts the
+        data. Any associated data used during encryption
+        needs to be added before calling this too.
+
+        :param cipherdata: The encrypted data
+        :type cipherdata: bytes
+        :param tag: The MAC tag
+        :type tag: bytes
+        """
+        assert isinstance(cipherdata, binary_type)
+        assert isinstance(tag, binary_type)
+        try:
+            return self.kernel.decrypt_and_verify(cipherdata, tag)
+        except ValueError:
+            raise AESError("Failed to verify data")
 
 
 if __name__ == "__main__":

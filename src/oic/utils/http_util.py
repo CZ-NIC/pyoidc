@@ -1,22 +1,25 @@
 from future.backports.http.cookies import SimpleCookie
 from future.backports.urllib.parse import quote
 
+import base64
 import cgi
 import hashlib
 import hmac
 import logging
+import os
 import time
 
 from jwkest import as_unicode
 from six import PY2
+from six import binary_type
 from six import text_type
 
 from oic import rndstr
 from oic.exception import ImproperlyConfigured
 from oic.exception import UnsupportedMethod
 from oic.utils import time_util
-from oic.utils.aes import decrypt
-from oic.utils.aes import encrypt
+from oic.utils.aes import AEAD
+from oic.utils.aes import AESError
 
 __author__ = 'rohe0002'
 
@@ -262,34 +265,126 @@ def _expiration(timeout, time_format=None):
         return time_util.in_a_while(minutes=timeout, time_format=time_format)
 
 
-def cookie_signature(seed, *parts):
-    """Generates a cookie signature."""
-    sha1 = hmac.new(seed, digestmod=hashlib.sha1)
+def cookie_signature(key, *parts):
+    """Generates a cookie signature.
+
+       :param key: The HMAC key to use.
+       :type key: bytes
+       :param parts: List of parts to include in the MAC
+       :type parts: list of bytes or strings
+       :returns: hexdigest of the HMAC
+    """
+    assert isinstance(key, binary_type)
+    sha1 = hmac.new(key, digestmod=hashlib.sha1)
     for part in parts:
         if part:
-            sha1.update(part)
-    return sha1.hexdigest()
+            if isinstance(part, text_type):
+                sha1.update(part.encode('utf-8'))
+            else:
+                sha1.update(part)
+    return text_type(sha1.hexdigest())
 
 
-def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp=""):
+def verify_cookie_signature(sig, key, *parts):
+    """Constant time verifier for signatures
+
+       :param sig: The signature hexdigest to check
+       :type sig: text_type
+       :param key: The HMAC key to use.
+       :type key: bytes
+       :param parts: List of parts to include in the MAC
+       :type parts: list of bytes or strings
+       :raises: `InvalidCookieSign` when the signature is wrong
+    """
+    assert isinstance(sig, text_type)
+    return hmac.compare_digest(sig, cookie_signature(key, *parts))
+
+
+def _make_hashed_key(parts, hashfunc='sha256'):
+    """
+    Construct a key via hashing the parts
+
+    If the parts do not have enough entropy of their
+    own, this doesn't help.
+
+    The size of the hash digest determines the size.
+    """
+    h = hashlib.new(hashfunc)
+    for part in parts:
+        if isinstance(part, text_type):
+            part = part.encode('utf-8')
+        if part:
+            h.update(part)
+    return h.digest()
+
+
+def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp="",
+                enc_key=None):
     """
     Create and return a cookie
 
+    The cookie is secured against tampering.
+
+    If you only provide a `seed`, a HMAC gets added to the cookies value
+    and this is checked, when the cookie is parsed again.
+
+    If you provide both `seed` and `enc_key`, the cookie gets protected
+    by using AEAD encryption. This provides both a MAC over the whole cookie
+    and encrypts the `load` in a single step.
+
+    The `seed` and `enc_key` parameters should be byte strings of at least
+    16 bytes length each. Those are used as cryptographic keys.
+
     :param name: Cookie name
+    :type name: text
     :param load: Cookie load
-    :param seed: A seed for the HMAC function
+    :type load: text
+    :param seed: A seed key for the HMAC function
+    :type seed: byte string
     :param expire: Number of minutes before this cookie goes stale
+    :type expire: int
     :param domain: The domain of the cookie
     :param path: The path specification for the cookie
     :param timestamp: A time stamp
+    :type timestamp: text
+    :param enc_key: The key to use for cookie encryption.
+    :type enc_key: byte string
     :return: A tuple to be added to headers
     """
     cookie = SimpleCookie()
     if not timestamp:
         timestamp = str(int(time.time()))
-    signature = cookie_signature(seed, load.encode("utf-8"),
-                                 timestamp.encode("utf-8"))
-    cookie[name] = "|".join([load, timestamp, signature])
+
+    bytes_load = load.encode("utf-8")
+    bytes_timestamp = timestamp.encode("utf-8")
+
+    if enc_key:
+        # Make sure the key is 256-bit long, for AES-128-SIV
+        #
+        # This should go away once we push the keysize requirements up
+        # to the top level APIs.
+        key = _make_hashed_key((enc_key, seed))
+
+        # Random 128-Bit IV
+        iv = os.urandom(16)
+
+        crypt = AEAD(key, iv)
+
+        # timestamp does not need to be encrypted, just MAC'ed,
+        # so we add it to 'Associated Data' only.
+        crypt.add_associated_data(bytes_timestamp)
+
+        ciphertext, tag = crypt.encrypt_and_tag(bytes_load)
+        cookie_payload = [bytes_timestamp,
+                          base64.b64encode(iv),
+                          base64.b64encode(ciphertext),
+                          base64.b64encode(tag)]
+    else:
+        cookie_payload = [
+            bytes_load, bytes_timestamp,
+            cookie_signature(seed, load, timestamp).encode('utf-8')]
+
+    cookie[name] = (b"|".join(cookie_payload)).decode('utf-8')
     if path:
         cookie[name]["path"] = path
     if domain:
@@ -301,36 +396,59 @@ def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp=""):
     return tuple(cookie.output().split(": ", 1))
 
 
-def parse_cookie(name, seed, kaka):
+def parse_cookie(name, seed, kaka, enc_key=None):
     """Parses and verifies a cookie value
 
-    :param seed: A seed used for the HMAC signature
+    Parses a cookie created by `make_cookie` and verifies
+    it has not been tampered with.
+
+    You need to provide the same `seed` and `enc_key`
+    used when creating the cookie, otherwise the verification
+    fails. See `make_cookie` for details about the verification.
+
+    :param seed: A seed key used for the HMAC signature
+    :type seed: bytes
     :param kaka: The cookie
-    :return: A tuple consisting of (payload, timestamp)
+    :param enc_key: The encryption key used.
+    :type enc_key: bytes or None
+    :raises InvalidCookieSign: When verification fails.
+    :return: A tuple consisting of (payload, timestamp) or None if parsing fails
     """
     if not kaka:
         return None
+
     if isinstance(seed, text_type):
-        seed = seed.encode("utf-8")
-    cookie_obj = SimpleCookie(text_type(kaka))
-    morsel = cookie_obj.get(name)
+        seed = seed.encode('utf-8')
 
-    if morsel:
-        parts = morsel.value.split("|")
-        if len(parts) != 3:
-            return None
-        # verify the cookie signature
-        sig = cookie_signature(seed, parts[0].encode("utf-8"),
-                               parts[1].encode("utf-8"))
-        if sig != parts[2]:
-            raise InvalidCookieSign()
-
-        try:
-            return parts[0].strip(), parts[1]
-        except KeyError:
-            return None
-    else:
+    parts = cookie_parts(name, kaka)
+    if parts is None:
         return None
+    elif len(parts) == 3:
+        # verify the cookie signature
+        cleartext, timestamp, sig = parts
+        if not verify_cookie_signature(sig, seed, cleartext, timestamp):
+            raise InvalidCookieSign()
+        return cleartext, timestamp
+    elif len(parts) == 4:
+        # encrypted and signed
+        timestamp = parts[0]
+        iv = base64.b64decode(parts[1])
+        ciphertext = base64.b64decode(parts[2])
+        tag = base64.b64decode(parts[3])
+
+        # Make sure the key is 32-Bytes long
+        key = _make_hashed_key((enc_key, seed))
+
+        crypt = AEAD(key, iv)
+        # timestamp does not need to be encrypted, just MAC'ed,
+        # so we add it to 'Associated Data' only.
+        crypt.add_associated_data(timestamp.encode('utf-8'))
+        try:
+            cleartext = crypt.decrypt_and_verify(ciphertext, tag)
+        except AESError:
+            raise InvalidCookieSign()
+        return cleartext.decode('utf-8'), timestamp
+    return None
 
 
 def cookie_parts(name, kaka):
@@ -435,7 +553,6 @@ class CookieDealer(object):
         self.init_srv(srv)
         # minutes before the interaction should be completed
         self.cookie_ttl = ttl  # N minutes
-        self.pad_chr = " "
 
     def init_srv(self, srv):
         if not srv:
@@ -447,9 +564,8 @@ class CookieDealer(object):
             msg = "CookieDealer.srv.symkey cannot be an empty value"
             raise ImproperlyConfigured(msg)
 
-        for param in ["seed", "iv"]:
-            if not getattr(srv, param, None):
-                setattr(srv, param, rndstr().encode("utf-8"))
+        if not getattr(srv, 'seed', None):
+            setattr(srv, 'seed', rndstr().encode("utf-8"))
 
     def delete_cookie(self, cookie_name=None):
         if cookie_name is None:
@@ -470,16 +586,10 @@ class CookieDealer(object):
         except TypeError:
             _msg = "::".join([value[0], timestamp, typ])
 
-        if self.srv.symkey:
-            # Pad the message to be multiples of 16 bytes in length
-            lm = len(_msg)
-            _msg = _msg.ljust(lm + 16 - lm % 16, self.pad_chr)
-            info = encrypt(self.srv.symkey, _msg, self.srv.iv).decode("utf-8")
-        else:
-            info = _msg
-        cookie = make_cookie(cookie_name, info, self.srv.seed,
+        cookie = make_cookie(cookie_name, _msg, self.srv.seed,
                              expire=ttl, domain="", path="",
-                             timestamp=timestamp)
+                             timestamp=timestamp,
+                             enc_key=self.srv.symkey)
         if PY2:
             return str(cookie[0]), str(cookie[1])
         else:
@@ -501,18 +611,12 @@ class CookieDealer(object):
         else:
             try:
                 info, timestamp = parse_cookie(cookie_name,
-                                               self.srv.seed, cookie)
+                                               self.srv.seed, cookie,
+                                               self.srv.symkey)
             except (TypeError, AssertionError):
                 return None
             else:
-                if self.srv.symkey:
-                    txt = decrypt(self.srv.symkey, info, self.srv.iv)
-                    # strip spaces at the end
-                    txt = txt.rstrip(self.pad_chr)
-                else:
-                    txt = info
-
-                value, _ts, typ = txt.split("::")
+                value, _ts, typ = info.split("::")
                 if timestamp == _ts:
                     return value, _ts, typ
         return None

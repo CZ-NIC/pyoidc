@@ -4,11 +4,14 @@ import pytest
 
 from oic.exception import ImproperlyConfigured
 from oic.utils.http_util import CookieDealer
+from oic.utils.http_util import InvalidCookieSign
 from oic.utils.http_util import Response
 from oic.utils.http_util import cookie_parts
+from oic.utils.http_util import cookie_signature
 from oic.utils.http_util import getpath
 from oic.utils.http_util import geturl
 from oic.utils.http_util import parse_cookie
+from oic.utils.http_util import verify_cookie_signature
 
 __author__ = 'roland'
 
@@ -43,7 +46,7 @@ class TestResponse(object):
 def cookie_dealer():
     class DummyServer():
         def __init__(self):
-            self.symkey = "0123456789012345"
+            self.symkey = b"0123456789012345"
 
     return CookieDealer(DummyServer())
 
@@ -81,6 +84,21 @@ class TestCookieDealer(object):
         assert expected_msg in str(err.value)
 
 
+def test_cookie_signature():
+    key = b'1234567890abcdef'
+    parts = ['abc', 'def']
+    sig = cookie_signature(key, *parts)
+    assert verify_cookie_signature(sig, key, *parts)
+
+
+def test_broken_cookie_signature():
+    key = b'1234567890abcdef'
+    parts = ['abc', 'def']
+    sig = cookie_signature(key, *parts)
+    parts.reverse()
+    assert not verify_cookie_signature(sig, key, *parts)
+
+
 def test_parse_cookie():
     kaka = ('pyoidc=bjmc::1463043535::upm|'
             '1463043535|18a201305fa15a96ce4048e1fbb03f7715f86499')
@@ -88,6 +106,24 @@ def test_parse_cookie():
     name = 'pyoidc'
     result = parse_cookie(name, seed, kaka)
     assert result == ('bjmc::1463043535::upm', '1463043535')
+
+
+def test_parse_manipulated_cookie_payload():
+    kaka = ('pyoidc=bjmc::1463043536::upm|'
+            '1463043535|18a201305fa15a96ce4048e1fbb03f7715f86499')
+    seed = ''
+    name = 'pyoidc'
+    with pytest.raises(InvalidCookieSign):
+        parse_cookie(name, seed, kaka)
+
+
+def test_parse_manipulated_cookie_timestamp():
+    kaka = ('pyoidc=bjmc::1463043535::upm|'
+            '1463043537|18a201305fa15a96ce4048e1fbb03f7715f86499')
+    seed = ''
+    name = 'pyoidc'
+    with pytest.raises(InvalidCookieSign):
+        parse_cookie(name, seed, kaka)
 
 
 def test_cookie_parts():
