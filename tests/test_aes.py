@@ -22,36 +22,45 @@ def test_encrypt_decrypt():
     assert txt == msg_
 
 
-def test_AEAD_good():
-    key = os.urandom(32)
-    iv = os.urandom(16)
-    cleartext = b"secret sauce"
+@pytest.fixture
+def aead_key():
+    return os.urandom(32)
+
+
+@pytest.fixture
+def aead_iv():
+    return os.urandom(16)
+
+
+@pytest.fixture
+def cleartext():
+    return b"secret sauce"
+
+
+def test_AEAD_good(aead_key, aead_iv, cleartext):
     extra = ["some", "extra", "data"]
-    k = AEAD(key, iv)
+    k = AEAD(aead_key, aead_iv)
     for d in extra:
         k.add_associated_data(d)
     ciphertext, tag = k.encrypt_and_tag(cleartext)
 
     # get a fresh AEAD object
-    c = AEAD(key, iv)
+    c = AEAD(aead_key, aead_iv)
     for d in extra:
         c.add_associated_data(d)
     cleartext2 = c.decrypt_and_verify(ciphertext, tag)
     assert cleartext2 == cleartext
 
 
-def test_AEAD_bad_aad():
-    key = os.urandom(32)
-    iv = os.urandom(16)
-    cleartext = b"secret sauce"
+def test_AEAD_bad_aad(aead_key, aead_iv, cleartext):
     extra = ["some", "extra", "data"]
-    k = AEAD(key, iv)
+    k = AEAD(aead_key, aead_iv)
     for d in extra:
         k.add_associated_data(d)
     ciphertext, tag = k.encrypt_and_tag(cleartext)
 
     # get a fresh AEAD object
-    c = AEAD(key, iv)
+    c = AEAD(aead_key, aead_iv)
     # skip one aad item, MAC is wrong now
     for d in extra[:1]:
         c.add_associated_data(d)

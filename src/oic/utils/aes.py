@@ -111,7 +111,7 @@ class AEAD(object):
     """
     Authenticated Encryption with Associated Data Wrapper
 
-    This does encrypts and does an integrity check in one
+    This does encryption and integrity check in one
     operation, so you do not need to combine HMAC + encryption
     yourself.
 
