@@ -1663,7 +1663,7 @@ class Provider(AProvider):
 
         for endp in self.endp:
             # _log_info("# %s, %s" % (endp, endp.name))
-            _provider_info['{}_endpoint'.format(endp.etype)] = urljoin(
+            _provider_info['{}_endpoint'.format(endp.etype)] = '{}/{}'.format(
                 self.baseurl,
                 endp.url)
 
