@@ -73,7 +73,7 @@ setup(
     install_requires=[
         "requests",
         "pycryptodomex",
-        "pyjwkest>=1.3.2",
+        "pyjwkest>=1.3.3",
         "mako",
         "beaker",
         "alabaster",
