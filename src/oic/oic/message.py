@@ -12,6 +12,7 @@ import six
 from jwkest import jws
 
 from oic.exception import InvalidRequest
+from oic.exception import IssuerMismatch
 from oic.exception import MessageException
 from oic.exception import NotForMe
 from oic.exception import PyoidcError
@@ -673,6 +674,13 @@ class IdToken(OpenIDSchema):
 
     def verify(self, **kwargs):
         super(IdToken, self).verify(**kwargs)
+
+        try:
+            kwargs['iss'] == self['iss']
+        except AssertionError:
+            raise IssuerMismatch('{} != {}'.format(kwargs['iss'], self['iss']))
+        except KeyError:
+            pass
 
         if "aud" in self:
             if "client_id" in kwargs:
