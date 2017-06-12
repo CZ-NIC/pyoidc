@@ -8,6 +8,7 @@ The format is based on the [KeepAChangeLog] project.
 ## 0.11.0.0 [UNRELEASED]
 
 ### Changed
+- [#374]: Made the to_jwe/from_jwe methods of Message accept list of keys value of parameter keys.
 - [#324]: Make the Provider `symkey` argument optional.
 
 ### Fixed

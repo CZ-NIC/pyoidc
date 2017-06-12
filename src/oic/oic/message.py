@@ -12,6 +12,7 @@ import six
 from jwkest import jws
 
 from oic.exception import InvalidRequest
+from oic.exception import IssuerMismatch
 from oic.exception import MessageException
 from oic.exception import NotForMe
 from oic.exception import PyoidcError
@@ -674,6 +675,13 @@ class IdToken(OpenIDSchema):
     def verify(self, **kwargs):
         super(IdToken, self).verify(**kwargs)
 
+        try:
+            if kwargs['iss'] != self['iss']:
+                raise IssuerMismatch(
+                    '{} != {}'.format(kwargs['iss'], self['iss']))
+        except KeyError:
+            pass
+
         if "aud" in self:
             if "client_id" in kwargs:
                 # check that I'm among the recipients
@@ -861,7 +869,8 @@ class ProviderConfigurationResponse(Message):
 
         assert not parts.query and not parts.fragment
 
-        if any("code" in rt for rt in self["response_types_supported"]) and "token_endpoint" not in self:
+        if any("code" in rt for rt in self[
+                "response_types_supported"]) and "token_endpoint" not in self:
             raise MissingRequiredAttribute("token_endpoint")
 
         return True
