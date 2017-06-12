@@ -30,8 +30,18 @@ from oic.oauth2.message import TooManyValues
 from oic.oauth2.message import json_deserializer
 from oic.oauth2.message import json_serializer
 from oic.oauth2.message import sp_sep_list_deserializer
+from oic.utils.keyio import build_keyjar
 
 __author__ = 'rohe0002'
+
+keys = [
+    {"type": "RSA", "use": ["sig"]},
+    {"type": "RSA", "use": ["enc"]},
+    {"type": "EC", "crv": "P-256", "use": ["sig"]},
+    {"type": "EC", "crv": "P-256", "use": ["enc"]},
+]
+
+KEYJAR = build_keyjar(keys)[1]
 
 
 def url_compare(url1, url2):
@@ -595,3 +605,33 @@ class TestErrorResponse(object):
 
         with pytest.raises(MissingRequiredAttribute):
             err.to_urlencoded()
+
+
+def test_to_jwt_rsa():
+    msg = Message(a='foo', b='bar', c='tjoho')
+    _jwt = msg.to_jwt(KEYJAR.get_signing_key('RSA', ''), 'RS256')
+    msg1 = Message().from_jwt(_jwt, KEYJAR.get_signing_key('RSA', ''))
+    assert msg1 == msg
+
+
+def test_to_jwt_ec():
+    msg = Message(a='foo', b='bar', c='tjoho')
+    _jwt = msg.to_jwt(KEYJAR.get_signing_key('EC', ''), 'ES256')
+    msg1 = Message().from_jwt(_jwt, KEYJAR.get_signing_key('EC', ''))
+    assert msg1 == msg
+
+
+def test_to_jwe_rsa():
+    msg = Message(a='foo', b='bar', c='tjoho')
+    _jwe = msg.to_jwe(KEYJAR.get_encrypt_key('RSA', ''), alg="RSA1_5",
+                      enc="A128CBC-HS256")
+    msg1 = Message().from_jwe(_jwe, KEYJAR.get_encrypt_key('RSA', ''))
+    assert msg1 == msg
+
+
+def test_to_jwe_ec():
+    msg = Message(a='foo', b='bar', c='tjoho')
+    _jwe = msg.to_jwe(KEYJAR.get_encrypt_key('EC', ''), alg="ECDH-ES",
+                      enc="A128GCM")
+    msg1 = Message().from_jwe(_jwe, KEYJAR.get_encrypt_key('EC', ''))
+    assert msg1 == msg
