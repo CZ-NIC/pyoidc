@@ -387,7 +387,7 @@ class TestKeyJar(object):
         assert ks["https://connect-op.heroku.com"][0].keys()
 
     def test_issuer_mismatch(self):
-        ISSUER = "https://login.microsoftonline.com/{tenantid}/v2.0/"
+        ISSUER = 'https://login.microsoftonline.com/b4ea3de6-839e-4ad1-ae78-c78e5c0cdc06/v2.0/'
         kb = KeyBundle(JWK2["keys"])
         kj = KeyJar()
         kj.issuer_keys[ISSUER] = [kb]
