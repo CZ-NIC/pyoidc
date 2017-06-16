@@ -30,8 +30,34 @@ from oic.oauth2.message import TooManyValues
 from oic.oauth2.message import json_deserializer
 from oic.oauth2.message import json_serializer
 from oic.oauth2.message import sp_sep_list_deserializer
+from oic.utils.keyio import build_keyjar
 
 __author__ = 'rohe0002'
+
+keys = [
+    {"type": "RSA", "use": ["sig"]},
+    {"type": "RSA", "use": ["enc"]},
+    {"type": "EC", "crv": "P-256", "use": ["sig"]},
+    {"type": "EC", "crv": "P-256", "use": ["enc"]},
+]
+
+keym = [
+    {"type": "RSA", "use": ["sig"]},
+    {"type": "RSA", "use": ["sig"]},
+    {"type": "RSA", "use": ["sig"]},
+]
+
+KEYJAR = build_keyjar(keys)[1]
+IKEYJAR = build_keyjar(keys)[1]
+IKEYJAR.issuer_keys['issuer'] = IKEYJAR.issuer_keys['']
+del IKEYJAR.issuer_keys['']
+
+KEYJARS = {}
+for iss in ['A','B','C']:
+    _kj = build_keyjar(keym)[1]
+    _kj.issuer_keys[iss] = _kj.issuer_keys['']
+    del _kj.issuer_keys['']
+    KEYJARS[iss] = _kj
 
 
 def url_compare(url1, url2):
@@ -595,3 +621,100 @@ class TestErrorResponse(object):
 
         with pytest.raises(MissingRequiredAttribute):
             err.to_urlencoded()
+
+
+def test_to_jwt_rsa():
+    msg = Message(a='foo', b='bar', c='tjoho')
+    _jwt = msg.to_jwt(KEYJAR.get_signing_key('RSA', ''), 'RS256')
+    msg1 = Message().from_jwt(_jwt, KEYJAR.get_signing_key('RSA', ''))
+    assert msg1 == msg
+
+
+def test_to_jwt_ec():
+    msg = Message(a='foo', b='bar', c='tjoho')
+    _jwt = msg.to_jwt(KEYJAR.get_signing_key('EC', ''), 'ES256')
+    msg1 = Message().from_jwt(_jwt, KEYJAR.get_signing_key('EC', ''))
+    assert msg1 == msg
+
+
+def test_to_jwe_rsa():
+    msg = Message(a='foo', b='bar', c='tjoho')
+    _jwe = msg.to_jwe(KEYJAR.get_encrypt_key('RSA', ''), alg="RSA1_5",
+                      enc="A128CBC-HS256")
+    msg1 = Message().from_jwe(_jwe, KEYJAR.get_encrypt_key('RSA', ''))
+    assert msg1 == msg
+
+
+def test_to_jwe_ec():
+    msg = Message(a='foo', b='bar', c='tjoho')
+    _jwe = msg.to_jwe(KEYJAR.get_encrypt_key('EC', ''), alg="ECDH-ES",
+                      enc="A128GCM")
+    msg1 = Message().from_jwe(_jwe, KEYJAR.get_encrypt_key('EC', ''))
+    assert msg1 == msg
+
+
+def test_get_verify_keys_no_kid_multiple_keys():
+    msg = Message()
+    header = {'alg': 'RS256'}
+    keys = []
+    msg.get_verify_keys(KEYJARS['A'], keys, {'iss': 'A'}, header, {})
+    assert keys == []
+
+
+def test_get_verify_keys_no_kid_single_key():
+    msg = Message()
+    header = {'alg': 'RS256'}
+    keys = []
+    msg.get_verify_keys(IKEYJAR, keys, {'iss': 'issuer'}, header, {})
+    assert len(keys) == 1
+
+
+def test_get_verify_keys_no_kid_multiple_keys_no_kid_issuer():
+    msg = Message()
+    header = {'alg': 'RS256'}
+    keys = []
+
+    a_kids = [k.kid for k in
+              KEYJARS['A'].get_verify_key(owner='A', key_type='RSA')]
+    no_kid_issuer = {'A': a_kids}
+
+    msg.get_verify_keys(KEYJARS['A'], keys, {'iss': 'A'}, header, {},
+                        no_kid_issuer=no_kid_issuer)
+    assert len(keys) == 3
+    assert set([k.kid for k in keys]) == set(a_kids)
+
+
+def test_get_verify_keys_no_kid_multiple_keys_no_kid_issuer_lim():
+    msg = Message()
+    header = {'alg': 'RS256'}
+    keys = []
+
+    a_kids = [k.kid for k in
+              KEYJARS['A'].get_verify_key(owner='A', key_type='RSA')]
+    # get rid of one kid
+    a_kids = a_kids[:-1]
+    no_kid_issuer = {'A': a_kids}
+
+    msg.get_verify_keys(KEYJARS['A'], keys, {'iss': 'A'}, header, {},
+                        no_kid_issuer=no_kid_issuer)
+    assert len(keys) == 2
+    assert set([k.kid for k in keys]) == set(a_kids)
+
+
+def test_get_verify_keys_matching_kid():
+    msg = Message()
+    a_kids = [k.kid for k in
+              KEYJARS['A'].get_verify_key(owner='A', key_type='RSA')]
+    header = {'alg': 'RS256', 'kid': a_kids[0]}
+    keys = []
+    msg.get_verify_keys(KEYJARS['A'], keys, {'iss': 'A'}, header, {})
+    assert len(keys) == 1
+    assert keys[0].kid == a_kids[0]
+
+
+def test_get_verify_keys_no_matching_kid():
+    msg = Message()
+    header = {'alg': 'RS256', 'kid': 'aaaaaaa'}
+    keys = []
+    msg.get_verify_keys(KEYJARS['A'], keys, {'iss': 'A'}, header, {})
+    assert keys == []
