@@ -502,8 +502,12 @@ class Message(MutableMapping):
                     except KeyError:
                         return
                     else:
-                        for k in kl:
-                            if k.kid in allowed_kids:
+                        if allowed_kids:
+                            for k in kl:
+                                if k.kid in allowed_kids:
+                                    key.append(k)
+                        else:
+                            for k in kl:
                                 key.append(k)
 
     def get_verify_keys(self, keyjar, key, jso, header, jwt, **kwargs):
