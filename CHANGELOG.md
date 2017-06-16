@@ -8,20 +8,10 @@ The format is based on the [KeepAChangeLog] project.
 ## 0.11.0.0 [UNRELEASED]
 
 ### Changed
+- [#318]: `oic.utils.authn.saml` raises `ImportError` on import if optional `saml2` dependency is not present.
+- [#325]: `oic.oic.claims_match` implementation refactored.
 - [#374]: Made the to_jwe/from_jwe methods of Message accept list of keys value of parameter keys.
 - [#324]: Make the Provider `symkey` argument optional.
-
-### Fixed
-- [#369]: The AuthnEvent object is now serialized to JSON for the session.
-
-### Security
-- [#363]: Fixed IV reuse for CookieDealer class. Replaced the encrypt-then-mac construction with a proper AEAD (AES-SIV). 
-
-[#324]: https://github.com/OpenIDC/pyoidc/pull/324
-[#369]: https://github.com/OpenIDC/pyoidc/pull/369
-[#363]: https://github.com/OpenIDC/pyoidc/issue/363
-
-## 0.10.0.1 [UNRELEASED]
 
 ### Fixed
 - [#362]: Fix bad package settings URL
@@ -29,20 +19,21 @@ The format is based on the [KeepAChangeLog] project.
 - [#313]: Catch exception correctly
 - [#319]: Fix sanitize on strings starting with "B" or "U"
 - [#330]: Fix client_management user input being eval'd under Python 2
-
-### Changed
-- [#318]: `oic.utils.authn.saml` raises `ImportError` on import if optional `saml2` dependency is not present.
-- [#325]: `oic.oic.claims_match` implementation refactored.
+- [#369]: The AuthnEvent object is now serialized to JSON for the session.
 
 ### Security
 - [#349]: Changed crypto algorithm used by `oic.utils.sdb.Crypt` for token encryption to Fernet. Old stored tokens are incompatible.
+- [#363]: Fixed IV reuse for CookieDealer class. Replaced the encrypt-then-mac construction with a proper AEAD (AES-SIV). 
 
 [#313]: https://github.com/OpenIDC/pyoidc/issues/313
 [#318]: https://github.com/OpenIDC/pyoidc/pull/318
 [#319]: https://github.com/OpenIDC/pyoidc/pull/319
+[#324]: https://github.com/OpenIDC/pyoidc/pull/324
 [#325]: https://github.com/OpenIDC/pyoidc/pull/325
 [#349]: https://github.com/OpenIDC/pyoidc/issues/349
 [#362]: https://github.com/OpenIDC/pyoidc/pull/362
+[#363]: https://github.com/OpenIDC/pyoidc/issue/363
+[#369]: https://github.com/OpenIDC/pyoidc/pull/369
 
 ## 0.10.0.0 [2017-03-28]
 
