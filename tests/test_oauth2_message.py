@@ -41,7 +41,23 @@ keys = [
     {"type": "EC", "crv": "P-256", "use": ["enc"]},
 ]
 
+keym = [
+    {"type": "RSA", "use": ["sig"]},
+    {"type": "RSA", "use": ["sig"]},
+    {"type": "RSA", "use": ["sig"]},
+]
+
 KEYJAR = build_keyjar(keys)[1]
+IKEYJAR = build_keyjar(keys)[1]
+IKEYJAR.issuer_keys['issuer'] = IKEYJAR.issuer_keys['']
+del IKEYJAR.issuer_keys['']
+
+KEYJARS = {}
+for iss in ['A','B','C']:
+    _kj = build_keyjar(keym)[1]
+    _kj.issuer_keys[iss] = _kj.issuer_keys['']
+    del _kj.issuer_keys['']
+    KEYJARS[iss] = _kj
 
 
 def url_compare(url1, url2):
@@ -626,3 +642,70 @@ def test_to_jwe(keytype, alg, enc):
     _jwe = msg.to_jwe(KEYJAR.get_encrypt_key(keytype, ''), alg=alg, enc=enc)
     msg1 = Message().from_jwe(_jwe, KEYJAR.get_encrypt_key(keytype, ''))
     assert msg1 == msg
+
+
+def test_get_verify_keys_no_kid_multiple_keys():
+    msg = Message()
+    header = {'alg': 'RS256'}
+    keys = []
+    msg.get_verify_keys(KEYJARS['A'], keys, {'iss': 'A'}, header, {})
+    assert keys == []
+
+
+def test_get_verify_keys_no_kid_single_key():
+    msg = Message()
+    header = {'alg': 'RS256'}
+    keys = []
+    msg.get_verify_keys(IKEYJAR, keys, {'iss': 'issuer'}, header, {})
+    assert len(keys) == 1
+
+
+def test_get_verify_keys_no_kid_multiple_keys_no_kid_issuer():
+    msg = Message()
+    header = {'alg': 'RS256'}
+    keys = []
+
+    a_kids = [k.kid for k in
+              KEYJARS['A'].get_verify_key(owner='A', key_type='RSA')]
+    no_kid_issuer = {'A': a_kids}
+
+    msg.get_verify_keys(KEYJARS['A'], keys, {'iss': 'A'}, header, {},
+                        no_kid_issuer=no_kid_issuer)
+    assert len(keys) == 3
+    assert set([k.kid for k in keys]) == set(a_kids)
+
+
+def test_get_verify_keys_no_kid_multiple_keys_no_kid_issuer_lim():
+    msg = Message()
+    header = {'alg': 'RS256'}
+    keys = []
+
+    a_kids = [k.kid for k in
+              KEYJARS['A'].get_verify_key(owner='A', key_type='RSA')]
+    # get rid of one kid
+    a_kids = a_kids[:-1]
+    no_kid_issuer = {'A': a_kids}
+
+    msg.get_verify_keys(KEYJARS['A'], keys, {'iss': 'A'}, header, {},
+                        no_kid_issuer=no_kid_issuer)
+    assert len(keys) == 2
+    assert set([k.kid for k in keys]) == set(a_kids)
+
+
+def test_get_verify_keys_matching_kid():
+    msg = Message()
+    a_kids = [k.kid for k in
+              KEYJARS['A'].get_verify_key(owner='A', key_type='RSA')]
+    header = {'alg': 'RS256', 'kid': a_kids[0]}
+    keys = []
+    msg.get_verify_keys(KEYJARS['A'], keys, {'iss': 'A'}, header, {})
+    assert len(keys) == 1
+    assert keys[0].kid == a_kids[0]
+
+
+def test_get_verify_keys_no_matching_kid():
+    msg = Message()
+    header = {'alg': 'RS256', 'kid': 'aaaaaaa'}
+    keys = []
+    msg.get_verify_keys(KEYJARS['A'], keys, {'iss': 'A'}, header, {})
+    assert keys == []
