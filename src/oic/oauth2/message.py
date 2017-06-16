@@ -473,28 +473,51 @@ class Message(MutableMapping):
         _jws = JWS(self.to_json(lev), alg=algorithm)
         return _jws.sign_compact(key)
 
-    def _add_key(self, keyjar, issuer, key, key_type=''):
+    def _add_key(self, keyjar, issuer, key, key_type='', kid='',
+                 no_kid_issuer=None):
+
         try:
             logger.debug('Key set summary for {}: {}'.format(
                 issuer, key_summary(keyjar, issuer)))
         except KeyError:
             logger.error('Issuer "{}" not in keyjar'.format(issuer))
 
-        try:
-            kl = keyjar.get_verify_key(owner=issuer, key_type=key_type)
-        except KeyError:
-            pass
+        if kid:
+            _key = keyjar.get_key_by_kid(kid, issuer)
+            if _key and _key not in key:
+                key.append(_key)
+                return
         else:
-            for k in kl:
-                if k not in key:
-                    key.append(k)
+            try:
+                kl = keyjar.get_verify_key(owner=issuer, key_type=key_type)
+            except KeyError:
+                pass
+            else:
+                if len(kl) == 1:
+                    if kl[0] not in key:
+                        key.append(kl[0])
+                elif no_kid_issuer:
+                    try:
+                        allowed_kids = no_kid_issuer[issuer]
+                    except KeyError:
+                        return
+                    else:
+                        for k in kl:
+                            if k.kid in allowed_kids:
+                                key.append(k)
 
     def get_verify_keys(self, keyjar, key, jso, header, jwt, **kwargs):
+        try:
+            _kid = header['kid']
+        except KeyError:
+            _kid = ''
+
         try:
             _iss = jso["iss"]
         except KeyError:
             pass
         else:
+            # First extend the keyjar if allowed
             if "jku" in header:
                 if not keyjar.find(header["jku"], _iss):
                     # This is really questionable
@@ -505,24 +528,33 @@ class Message(MutableMapping):
                     except KeyError:
                         pass
 
-            if "kid" in header and header["kid"]:
-                jwt["kid"] = header["kid"]
+            # If there is a kid and a key is found with that kid at the issuer
+            # then I'm done
+            if _kid:
+                jwt["kid"] = _kid
                 try:
-                    _key = keyjar.get_key_by_kid(header["kid"], _iss)
+                    _key = keyjar.get_key_by_kid(_kid, _iss)
                     if _key:
                         key.append(_key)
+                        return key
                 except KeyError:
                     pass
 
         try:
-            self._add_key(keyjar, kwargs["opponent_id"], key)
+            nki = kwargs['no_kid_issuer']
         except KeyError:
-            pass
+            nki = {}
 
         try:
             _key_type = alg2keytype(header['alg'])
         except KeyError:
             _key_type = ''
+
+        try:
+            self._add_key(keyjar, kwargs["opponent_id"], key, _key_type, _kid,
+                          nki)
+        except KeyError:
+            pass
 
         for ent in ["iss", "aud", "client_id"]:
             if ent not in jso:
@@ -534,9 +566,9 @@ class Message(MutableMapping):
                 else:
                     _aud = jso["aud"]
                 for _e in _aud:
-                    self._add_key(keyjar, _e, key, _key_type)
+                    self._add_key(keyjar, _e, key, _key_type, _kid, nki)
             else:
-                self._add_key(keyjar, jso[ent], key, _key_type)
+                self._add_key(keyjar, jso[ent], key, _key_type, _kid, nki)
         return key
 
     def from_jwt(self, txt, key=None, verify=True, keyjar=None, **kwargs):
