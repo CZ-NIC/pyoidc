@@ -709,3 +709,33 @@ def test_get_verify_keys_no_matching_kid():
     keys = []
     msg.get_verify_keys(KEYJARS['A'], keys, {'iss': 'A'}, header, {})
     assert keys == []
+=======
+
+def test_to_jwt_rsa():
+    msg = Message(a='foo', b='bar', c='tjoho')
+    _jwt = msg.to_jwt(KEYJAR.get_signing_key('RSA', ''), 'RS256')
+    msg1 = Message().from_jwt(_jwt, KEYJAR.get_signing_key('RSA', ''))
+    assert msg1 == msg
+
+
+def test_to_jwt_ec():
+    msg = Message(a='foo', b='bar', c='tjoho')
+    _jwt = msg.to_jwt(KEYJAR.get_signing_key('EC', ''), 'ES256')
+    msg1 = Message().from_jwt(_jwt, KEYJAR.get_signing_key('EC', ''))
+    assert msg1 == msg
+
+
+def test_to_jwe_rsa():
+    msg = Message(a='foo', b='bar', c='tjoho')
+    _jwe = msg.to_jwe(KEYJAR.get_encrypt_key('RSA', ''), alg="RSA1_5",
+                      enc="A128CBC-HS256")
+    msg1 = Message().from_jwe(_jwe, KEYJAR.get_encrypt_key('RSA', ''))
+    assert msg1 == msg
+
+
+def test_to_jwe_ec():
+    msg = Message(a='foo', b='bar', c='tjoho')
+    _jwe = msg.to_jwe(KEYJAR.get_encrypt_key('EC', ''), alg="ECDH-ES",
+                      enc="A128GCM")
+    msg1 = Message().from_jwe(_jwe, KEYJAR.get_encrypt_key('EC', ''))
+    assert msg1 == msg

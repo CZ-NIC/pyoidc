@@ -848,12 +848,17 @@ class Message(MutableMapping):
 
     def to_jwe(self, keys, enc, alg, lev=0):
         """
+        Place the information in this instance in a JSON object. Make that
+        JSON object the body of a JWT. Then encrypt that JWT using the
+        specified algorithms and the given keys. Return the encrypted JWT.
 
-        :param keys: Dictionary, keys are key type and key is the value
-        :param enc: The encryption method to use
-        :param alg: Encryption algorithm
+        :param keys: Dictionary, keys are key type and key is the value or
+        simple list.
+        :param enc: Content Encryption Algorithm
+        :param alg: Key Management Algorithm
         :param lev: Used for JSON construction
-        :return: A JWE
+        :return: An encrypted JWT. If encryption failed an exception will be
+        raised.
         """
         if isinstance(keys, dict):
             keys = keyitems2keyreps(keys)
@@ -862,6 +867,16 @@ class Message(MutableMapping):
         return _jwe.encrypt(keys)
 
     def from_jwe(self, msg, keys):
+        """
+        Decrypt an encrypted JWT and load the JSON object that was the body
+        of the JWT into this object.
+
+        :param msg: An encrypted JWT
+        :param keys: Dictionary, keys are key type and key is the value or
+        simple list.
+        :return: The decrypted message. If decryption failed an exception
+        will be raised.
+        """
         if isinstance(keys, dict):
             keys = keyitems2keyreps(keys)
 
