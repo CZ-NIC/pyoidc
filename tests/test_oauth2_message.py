@@ -622,6 +622,7 @@ class TestErrorResponse(object):
         with pytest.raises(MissingRequiredAttribute):
             err.to_urlencoded()
 
+
 @pytest.mark.parametrize("keytype,alg",[
     ('RSA', 'RS256'),
     ('EC', 'ES256')
