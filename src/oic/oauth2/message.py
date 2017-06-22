@@ -503,14 +503,22 @@ class Message(MutableMapping):
                         return
                     else:
                         if allowed_kids:
-                            for k in kl:
-                                if k.kid in allowed_kids:
-                                    key.append(k)
+                            key.extend([k for k in kl if k.kid in allowed_kids])
                         else:
-                            for k in kl:
-                                key.append(k)
+                            key.extend(kl)
 
     def get_verify_keys(self, keyjar, key, jso, header, jwt, **kwargs):
+        """
+        Get keys from a keyjar that can be used to verify a signed JWT
+        
+        :param keyjar: A KeyJar instance 
+        :param key: List of keys to start with
+        :param jso: The payload of the JWT, expected to be a dictionary.
+        :param header: The header of the JWT
+        :param jwt: A jwkest.jwt.JWT instance
+        :param kwargs: Other key word arguments
+        :return: list of usable keys
+        """
         try:
             _kid = header['kid']
         except KeyError:
@@ -847,15 +855,19 @@ class Message(MutableMapping):
         :param lev: Used for JSON construction
         :return: A JWE
         """
-        krs = keyitems2keyreps(keys)
+        if isinstance(keys, dict):
+            keys = keyitems2keyreps(keys)
+
         _jwe = JWE(self.to_json(lev), alg=alg, enc=enc)
-        return _jwe.encrypt(krs)
+        return _jwe.encrypt(keys)
 
     def from_jwe(self, msg, keys):
-        krs = keyitems2keyreps(keys)
+        if isinstance(keys, dict):
+            keys = keyitems2keyreps(keys)
+
         jwe = JWE()
-        _res = jwe.decrypt(msg, krs)
-        return self.from_json(_res[0].decode())
+        _res = jwe.decrypt(msg, keys)
+        return self.from_json(_res.decode())
 
     def copy(self):
         return copy.deepcopy(self)
