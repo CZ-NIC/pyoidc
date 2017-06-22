@@ -53,7 +53,7 @@ IKEYJAR.issuer_keys['issuer'] = IKEYJAR.issuer_keys['']
 del IKEYJAR.issuer_keys['']
 
 KEYJARS = {}
-for iss in ['A','B','C']:
+for iss in ['A', 'B', 'C']:
     _kj = build_keyjar(keym)[1]
     _kj.issuer_keys[iss] = _kj.issuer_keys['']
     del _kj.issuer_keys['']
@@ -134,19 +134,22 @@ class TestMessage(object):
                     'opt_str_list', 'opt_int'])
 
     def test_from_json(self):
-        jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], "opt_int": [9]}'
+        jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], ' \
+              '"opt_int": [9]}'
         item = DummyMessage().deserialize(jso, "json")
 
         assert _eq(item.keys(), ['req_str', 'req_str_list', 'opt_int'])
         assert item["opt_int"] == 9
 
     def test_single_optional(self):
-        jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], "opt_int": [9, 10]}'
+        jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], ' \
+              '"opt_int": [9, 10]}'
         with pytest.raises(TooManyValues):
             DummyMessage().deserialize(jso, "json")
 
     def test_extra_param(self):
-        jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], "extra": "out"}'
+        jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], "extra": ' \
+              '"out"}'
         item = DummyMessage().deserialize(jso, "json")
 
         assert _eq(item.keys(), ['req_str', 'req_str_list', 'extra'])
@@ -284,7 +287,8 @@ class TestAuthorizationRequest(object):
             AuthorizationRequest(**args)
 
     def test_urlencoded_deserialize_state(self):
-        txt = "scope=foo+bar&state=-11&redirect_uri=http%3A%2F%2Ffoobar.example.com%2Foaclient&response_type=code&" \
+        txt = "scope=foo+bar&state=-11&redirect_uri=http%3A%2F%2Ffoobar" \
+              ".example.com%2Foaclient&response_type=code&" \
               "client_id=foobar"
 
         ar = AuthorizationRequest().deserialize(txt, "urlencoded")
@@ -292,7 +296,8 @@ class TestAuthorizationRequest(object):
 
     def test_urlencoded_deserialize_response_type(self):
         txt = "scope=openid&state=id-6a3fc96caa7fd5cb1c7d00ed66937134&" \
-              "redirect_uri=http%3A%2F%2Flocalhost%3A8087authz&response_type=code&client_id=a1b2c3"
+              "redirect_uri=http%3A%2F%2Flocalhost%3A8087authz&response_type" \
+              "=code&client_id=a1b2c3"
 
         ar = AuthorizationRequest().deserialize(txt, "urlencoded")
         assert ar["scope"] == ["openid"]
@@ -348,7 +353,8 @@ class TestAuthorizationRequest(object):
         assert ar == ar2
 
     def test_verify(self):
-        query = 'redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauthz&response_type=code&client_id=0123456789'
+        query = 'redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauthz' \
+                '&response_type=code&client_id=0123456789'
         ar = AuthorizationRequest().deserialize(query, "urlencoded")
         assert ar.verify()
 
@@ -404,8 +410,7 @@ class TestAuthorizationRequest(object):
                                   scope=["openid", "foxtrot"])
         ue = ar.to_urlencoded()
         ue_splits = ue.split('&')
-        expected_ue_splits = "scope=openid+foxtrot&response_type=code+token&client_id=foobar".split(
-            '&')
+        expected_ue_splits = "scope=openid+foxtrot&response_type=code+token&client_id=foobar".split('&')
         assert _eq(ue_splits, expected_ue_splits)
 
         are = AuthorizationRequest().deserialize(ue, "urlencoded")
@@ -456,7 +461,8 @@ class TestAuthorizationErrorResponse(object):
 
     def test_extra_params(self):
         aer = AuthorizationErrorResponse(error="access_denied",
-                                         error_description="brewers has a four game series",
+                                         error_description="brewers has a "
+                                                           "four game series",
                                          foo="bar")
         assert aer["error"] == "access_denied"
         assert aer["error_description"] == "brewers has a four game series"
@@ -472,7 +478,8 @@ class TestTokenErrorResponse(object):
 
     def test_extra_params(self):
         ter = TokenErrorResponse(error="access_denied",
-                                 error_description="brewers has a four game series",
+                                 error_description="brewers has a four game "
+                                                   "series",
                                  foo="bar")
 
         assert ter["error"] == "access_denied"
@@ -622,7 +629,8 @@ class TestErrorResponse(object):
         with pytest.raises(MissingRequiredAttribute):
             err.to_urlencoded()
 
-@pytest.mark.parametrize("keytype,alg",[
+
+@pytest.mark.parametrize("keytype,alg", [
     ('RSA', 'RS256'),
     ('EC', 'ES256')
 ])
@@ -633,7 +641,7 @@ def test_to_jwt(keytype, alg):
     assert msg1 == msg
 
 
-@pytest.mark.parametrize("keytype,alg,enc",[
+@pytest.mark.parametrize("keytype,alg,enc", [
     ('RSA', 'RSA1_5', 'A128CBC-HS256'),
     ('EC', 'ECDH-ES', 'A128GCM'),
 ])
@@ -709,33 +717,3 @@ def test_get_verify_keys_no_matching_kid():
     keys = []
     msg.get_verify_keys(KEYJARS['A'], keys, {'iss': 'A'}, header, {})
     assert keys == []
-=======
-
-def test_to_jwt_rsa():
-    msg = Message(a='foo', b='bar', c='tjoho')
-    _jwt = msg.to_jwt(KEYJAR.get_signing_key('RSA', ''), 'RS256')
-    msg1 = Message().from_jwt(_jwt, KEYJAR.get_signing_key('RSA', ''))
-    assert msg1 == msg
-
-
-def test_to_jwt_ec():
-    msg = Message(a='foo', b='bar', c='tjoho')
-    _jwt = msg.to_jwt(KEYJAR.get_signing_key('EC', ''), 'ES256')
-    msg1 = Message().from_jwt(_jwt, KEYJAR.get_signing_key('EC', ''))
-    assert msg1 == msg
-
-
-def test_to_jwe_rsa():
-    msg = Message(a='foo', b='bar', c='tjoho')
-    _jwe = msg.to_jwe(KEYJAR.get_encrypt_key('RSA', ''), alg="RSA1_5",
-                      enc="A128CBC-HS256")
-    msg1 = Message().from_jwe(_jwe, KEYJAR.get_encrypt_key('RSA', ''))
-    assert msg1 == msg
-
-
-def test_to_jwe_ec():
-    msg = Message(a='foo', b='bar', c='tjoho')
-    _jwe = msg.to_jwe(KEYJAR.get_encrypt_key('EC', ''), alg="ECDH-ES",
-                      enc="A128GCM")
-    msg1 = Message().from_jwe(_jwe, KEYJAR.get_encrypt_key('EC', ''))
-    assert msg1 == msg
