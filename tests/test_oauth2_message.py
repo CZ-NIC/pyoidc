@@ -606,32 +606,23 @@ class TestErrorResponse(object):
         with pytest.raises(MissingRequiredAttribute):
             err.to_urlencoded()
 
-
-def test_to_jwt_rsa():
+@pytest.mark.parametrize("keytype,alg",[
+    ('RSA', 'RS256'),
+    ('EC', 'ES256')
+])
+def test_to_jwt(keytype, alg):
     msg = Message(a='foo', b='bar', c='tjoho')
-    _jwt = msg.to_jwt(KEYJAR.get_signing_key('RSA', ''), 'RS256')
-    msg1 = Message().from_jwt(_jwt, KEYJAR.get_signing_key('RSA', ''))
+    _jwt = msg.to_jwt(KEYJAR.get_signing_key(keytype, ''), alg)
+    msg1 = Message().from_jwt(_jwt, KEYJAR.get_signing_key(keytype, ''))
     assert msg1 == msg
 
 
-def test_to_jwt_ec():
+@pytest.mark.parametrize("keytype,alg,enc",[
+    ('RSA', 'RSA1_5', 'A128CBC-HS256'),
+    ('EC', 'ECDH-ES', 'A128GCM'),
+])
+def test_to_jwe(keytype, alg, enc):
     msg = Message(a='foo', b='bar', c='tjoho')
-    _jwt = msg.to_jwt(KEYJAR.get_signing_key('EC', ''), 'ES256')
-    msg1 = Message().from_jwt(_jwt, KEYJAR.get_signing_key('EC', ''))
-    assert msg1 == msg
-
-
-def test_to_jwe_rsa():
-    msg = Message(a='foo', b='bar', c='tjoho')
-    _jwe = msg.to_jwe(KEYJAR.get_encrypt_key('RSA', ''), alg="RSA1_5",
-                      enc="A128CBC-HS256")
-    msg1 = Message().from_jwe(_jwe, KEYJAR.get_encrypt_key('RSA', ''))
-    assert msg1 == msg
-
-
-def test_to_jwe_ec():
-    msg = Message(a='foo', b='bar', c='tjoho')
-    _jwe = msg.to_jwe(KEYJAR.get_encrypt_key('EC', ''), alg="ECDH-ES",
-                      enc="A128GCM")
-    msg1 = Message().from_jwe(_jwe, KEYJAR.get_encrypt_key('EC', ''))
+    _jwe = msg.to_jwe(KEYJAR.get_encrypt_key(keytype, ''), alg=alg, enc=enc)
+    msg1 = Message().from_jwe(_jwe, KEYJAR.get_encrypt_key(keytype, ''))
     assert msg1 == msg
