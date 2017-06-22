@@ -12,6 +12,7 @@ The format is based on the [KeepAChangeLog] project.
 
 ### Fixed
 - [#369]: The AuthnEvent object is now serialized to JSON for the session.
+- [#373]: Made the standard way the default when dealing with signed JWTs without 'kid'. Added the possibility to override this behavior if necessary.
 
 ### Security
 - [#363]: Fixed IV reuse for CookieDealer class. Replaced the encrypt-then-mac construction with a proper AEAD (AES-SIV). 
