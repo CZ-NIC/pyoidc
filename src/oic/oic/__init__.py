@@ -109,6 +109,7 @@ REQUEST2ENDPOINT = {
     "ResourceRequest": "resource_endpoint",
     'TokenIntrospectionRequest': 'introspection_endpoint',
     'TokenRevocationRequest': 'revocation_endpoint',
+    "ROPCAccessTokenRequest": "token_endpoint",
 }
 
 # -----------------------------------------------------------------------------
