@@ -124,11 +124,13 @@ class ClientSecretBasic(ClientAuthnMethod):
                     cis['client_id'] = self.cli.client_id
                 except AttributeError:
                     pass
-        elif ("client_id" not in cis.c_param.keys()) or cis.c_param["client_id"][VREQUIRED] is False:
-            try:
-                del cis["client_id"]
-            except KeyError:
-                pass
+        elif ("client_id" not in cis.c_param.keys()) or
+                cis.c_param["client_id"][VREQUIRED] is False:
+        try:
+            del cis["client_id"]
+        except KeyError:
+            pass
+
 
         return http_args
 

@@ -374,7 +374,6 @@ class Client(PBase):
                     utc_time_sans_frac(),
                     grant.grant_expiration_time))
 
-
             request_args["code"] = grant.code
 
         try:
