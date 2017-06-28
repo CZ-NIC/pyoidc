@@ -19,6 +19,7 @@ from oic.oauth2.exception import Unsupported
 from oic.oauth2.grant import Grant
 from oic.oauth2.grant import Token
 from oic.oauth2.message import AccessTokenRequest
+from oic.oauth2.message import ROPCAccessTokenRequest
 from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import ASConfigurationResponse
 from oic.oauth2.message import AuthorizationErrorResponse
@@ -363,17 +364,17 @@ class Client(PBase):
                                      request_args=None, extra_args=None,
                                      **kwargs):
 
-        grant = self.get_grant(**kwargs)
-
-        if not grant.is_valid():
-            raise GrantExpired("Authorization Code to old %s > %s" % (
-                utc_time_sans_frac(),
-                grant.grant_expiration_time))
-
         if request_args is None:
             request_args = {}
+        if request is not ROPCAccessTokenRequest:
+            grant = self.get_grant(**kwargs)
 
-        request_args["code"] = grant.code
+            if not grant.is_valid():
+                raise GrantExpired("Authorization Code to old %s > %s" % (
+                    utc_time_sans_frac(),
+                    grant.grant_expiration_time))
+
+            request_args["code"] = grant.code
 
         try:
             request_args['state'] = kwargs['state']
