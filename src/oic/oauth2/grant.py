@@ -137,9 +137,14 @@ class Grant(object):
                 return self.id_token
         else:
             for tok in self.tokens:
-                if tok.id_token:
-                    if tok.id_token["exp"] >= time.time():
-                        return tok.id_token
+                try:
+                    _idt = tok.id_token
+                except AttributeError:
+                    pass
+                else:
+                    if _idt:
+                        if _idt["exp"] >= time.time():
+                            return _idt
         return None
 
     def join(self, grant):
