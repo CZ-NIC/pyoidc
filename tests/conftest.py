@@ -24,6 +24,7 @@ def session_db(session_db_factory):
 @pytest.fixture
 def fake_oic_server(session_db_factory):
     from tests.fakeoicsrv import MyFakeOICServer
+
     def fac(name):
         return MyFakeOICServer(name, session_db_factory=session_db_factory)
     return fac
@@ -32,6 +33,7 @@ def fake_oic_server(session_db_factory):
 @pytest.fixture
 def mitm_server(session_db_factory):
     from tests.mitmsrv import MITMServer
+
     def fac(name):
         return MITMServer(name, session_db_factory=session_db_factory)
     return fac

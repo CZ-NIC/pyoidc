@@ -9,7 +9,6 @@ from oic.extension.client import RegistrationRequest
 from oic.extension.message import make_software_statement
 from oic.extension.message import unpack_software_statement
 from oic.extension.provider import Provider
-from oic.utils import sdb
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import BearerHeader
 from oic.utils.authn.client import ClientSecretBasic

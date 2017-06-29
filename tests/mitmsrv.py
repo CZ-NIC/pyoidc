@@ -16,7 +16,6 @@ from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import TokenErrorResponse
 from oic.utils.sdb import AuthnEvent
-from oic.utils.sdb import SessionDB
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.webfinger import WebFinger
 
