@@ -49,7 +49,6 @@ from oic.utils.keyio import KeyJar
 from oic.utils.keyio import ec_init
 from oic.utils.keyio import keybundle_from_local_file
 from oic.utils.sdb import AuthnEvent
-from oic.utils.sdb import SessionDB
 from oic.utils.time_util import epoch_in_a_while
 from oic.utils.userinfo import UserInfo
 
@@ -176,8 +175,8 @@ USERINFO = UserInfo(USERDB)
 
 class TestProvider(object):
     @pytest.fixture(autouse=True)
-    def create_provider(self):
-        self.provider = Provider(SERVER_INFO["issuer"], SessionDB(SERVER_INFO["issuer"]),
+    def create_provider(self, session_db_factory):
+        self.provider = Provider(SERVER_INFO["issuer"], session_db_factory(SERVER_INFO["issuer"]),
                                  CDB,
                                  AUTHN_BROKER, USERINFO,
                                  AUTHZ, verify_client, SYMKEY, urlmap=URLMAP,
@@ -767,9 +766,9 @@ class TestProvider(object):
 
         assert str(exc_info.value) == "None https redirect_uri not allowed"
 
-    def test_provider_key_setup(self, tmpdir):
+    def test_provider_key_setup(self, tmpdir, session_db_factory):
         path = tmpdir.strpath
-        provider = Provider("pyoicserv", SessionDB(SERVER_INFO["issuer"]), None,
+        provider = Provider("pyoicserv", session_db_factory(SERVER_INFO["issuer"]), None,
                             None, None, None, None, None)
         provider.baseurl = "http://www.example.com"
         provider.key_setup(path, path, sig={"format": "jwk", "alg": "RSA"})
@@ -1060,8 +1059,8 @@ class TestProvider(object):
                 id_token["sub"])  # verify session has been removed
         self._assert_cookies_expired(resp.headers)
 
-    def test_session_state_in_auth_req_for_session_support(self):
-        provider = Provider(SERVER_INFO["issuer"], SessionDB(SERVER_INFO["issuer"]), CDB,
+    def test_session_state_in_auth_req_for_session_support(self, session_db_factory):
+        provider = Provider(SERVER_INFO["issuer"], session_db_factory(SERVER_INFO["issuer"]), CDB,
                             AUTHN_BROKER, USERINFO,
                             AUTHZ, verify_client, SYMKEY, urlmap=URLMAP,
                             keyjar=KEYJAR)

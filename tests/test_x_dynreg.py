@@ -90,12 +90,12 @@ class TestProvider(object):
     }
 
     @pytest.fixture(autouse=True)
-    def create_provider(self):
+    def create_provider(self, session_db_factory):
         authn_broker = AuthnBroker()
         authn_broker.add("UNDEFINED", DummyAuthn(None, "username"))
 
         self.provider = Provider("pyoicserv",
-                                 sdb.SessionDB(
+                                 session_db_factory(
                                      TestProvider.SERVER_INFO["issuer"]),
                                  TestProvider.CDB,
                                  authn_broker, Implicit(),

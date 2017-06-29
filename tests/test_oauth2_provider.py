@@ -15,7 +15,6 @@ from oic.oauth2.message import AuthorizationRequest
 from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.provider import Provider
-from oic.utils import sdb
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
@@ -92,19 +91,19 @@ AUTHZ = Implicit()
 
 class TestProvider(object):
     @pytest.fixture(autouse=True)
-    def create_provider(self):
+    def create_provider(self, session_db_factory):
         self.provider = Provider("pyoicserv",
-                                 sdb.SessionDB(ISSUER), CDB,
+                                 session_db_factory(ISSUER), CDB,
                                  AUTHN_BROKER, AUTHZ, verify_client,
                                  baseurl='https://example.com/as')
 
-    def test_init(self):
-        provider = Provider("pyoicserv", sdb.SessionDB(ISSUER),
+    def test_init(self, session_db_factory):
+        provider = Provider("pyoicserv", session_db_factory(ISSUER),
                             CDB,
                             AUTHN_BROKER, AUTHZ, verify_client)
         assert provider
 
-        provider = Provider("pyoicserv", sdb.SessionDB(ISSUER),
+        provider = Provider("pyoicserv", session_db_factory(ISSUER),
                             CDB,
                             AUTHN_BROKER, AUTHZ, verify_client,
                             urlmap={"client1": ["https://example.com/authz"]})

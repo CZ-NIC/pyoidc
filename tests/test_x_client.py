@@ -2,7 +2,6 @@ from oic import rndstr
 from oic.extension.client import Client
 from oic.extension.provider import Provider
 from oic.extension.token import JWTToken
-from oic.utils import sdb
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
@@ -52,28 +51,28 @@ def test_pkce_create():
     assert _eq(list(args.keys()), ['code_challenge_method', 'code_challenge'])
 
 
-def test_pkce_verify_256():
+def test_pkce_verify_256(session_db_factory):
     _cli = Client(config={'code_challenge': {'method': 'S256', 'length': 64}})
     args, cv = _cli.add_code_challenge()
 
     authn_broker = AuthnBroker()
     authn_broker.add("UNDEFINED", DummyAuthn(None, "username"))
     _prov = Provider("as",
-                     sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
+                     session_db_factory(SERVER_INFO["issuer"]), CDB,
                      authn_broker, Implicit(), verify_client)
 
     assert _prov.verify_code_challenge(cv, args['code_challenge']) is True
     assert _prov.verify_code_challenge(cv, args['code_challenge'], 'S256') is True
 
 
-def test_pkce_verify_512():
+def test_pkce_verify_512(session_db_factory):
     _cli = Client(config={'code_challenge': {'method': 'S512', 'length': 96}})
     args, cv = _cli.add_code_challenge()
 
     authn_broker = AuthnBroker()
     authn_broker.add("UNDEFINED", DummyAuthn(None, "username"))
     _prov = Provider("as",
-                     sdb.SessionDB(SERVER_INFO["issuer"]), CDB,
+                     session_db_factory(SERVER_INFO["issuer"]), CDB,
                      authn_broker, Implicit(), verify_client)
 
     assert _prov.verify_code_challenge(cv, args['code_challenge'], 'S512') is True
