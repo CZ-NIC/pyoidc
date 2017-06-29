@@ -13,10 +13,10 @@ The format is based on the [KeepAChangeLog] project.
 - [#325]: `oic.oic.claims_match` implementation refactored.
 - [#368]: `oic.oauth2.Client.construct_AccessTokenRequest()` as well as `oic.oic.Client` are now able to perform proper Resource Owner Password Credentials Grant
 - [#374]: Made the to_jwe/from_jwe methods of Message accept list of keys value of parameter keys.
+- [#387]: Refactored the `oic.utils.sdb.SessionDB` constructor API.
 - [#380]: Made cookie_path and cookie_domain configurable via Provider like the cookie_name.
 - [#386]: An exception will now be thrown if a sub claim received from the userinfo endpoint is not the same as a sub claim previously received in an ID Token.
 - [#392]: Made sid creation simpler and faster
-
 
 ### Fixed
 - [#313]: Catch exception correctly
@@ -30,9 +30,10 @@ The format is based on the [KeepAChangeLog] project.
 
 ### Security
 - [#349]: Changed crypto algorithm used by `oic.utils.sdb.Crypt` for token encryption to Fernet. Old stored tokens are incompatible.
-- [#363]: Fixed IV reuse for CookieDealer class. Replaced the encrypt-then-mac construction with a proper AEAD (AES-SIV). 
+- [#363]: Fixed IV reuse for CookieDealer class. Replaced the encrypt-then-mac construction with a proper AEAD (AES-SIV).
 
 [#313]: https://github.com/OpenIDC/pyoidc/issues/313
+[#387]: https://github.com/OpenIDC/pyoidc/pull/387
 [#318]: https://github.com/OpenIDC/pyoidc/pull/318
 [#319]: https://github.com/OpenIDC/pyoidc/pull/319
 [#324]: https://github.com/OpenIDC/pyoidc/pull/324
