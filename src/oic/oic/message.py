@@ -727,9 +727,6 @@ class IdToken(OpenIDSchema):
             _iat = self['iat']
         except KeyError:
             raise MissingRequiredAttribute('iat')
-        else:
-            if (_iat) < (_now - _skew):
-                raise IATError('Issued too long ago')
 
         return True
 
