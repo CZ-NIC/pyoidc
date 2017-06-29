@@ -10,6 +10,7 @@ from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 from oic.utils.sdb import AccessCodeUsed
 from oic.utils.sdb import AuthnEvent
+from oic.utils.sdb import DefaultToken
 from oic.utils.sdb import ExpiredToken
 from oic.utils.sdb import SessionDB
 

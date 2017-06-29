@@ -24,6 +24,7 @@ from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
+from oic.utils.sdb import DefaultToken
 from oic.utils.sdb import SessionDB
 from oic.utils.sdb import lv_pack
 from oic.utils.sdb import lv_unpack
