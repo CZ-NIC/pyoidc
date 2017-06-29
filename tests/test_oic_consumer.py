@@ -7,8 +7,6 @@ import pytest
 import responses
 from jwkest import BadSignature
 from jwkest.jwk import SYMKey
-from tests.fakeoicsrv import MyFakeOICServer
-from tests.mitmsrv import MITMServer
 
 from oic.oauth2.message import MissingSigningKey
 from oic.oic import DEF_SIGN_ALG
@@ -25,7 +23,6 @@ from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import keybundle_from_local_file
-from oic.utils.sdb import SessionDB
 from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = 'rohe0002'
@@ -89,7 +86,7 @@ def test_clean_response():
 
 class TestOICConsumer():
     @pytest.fixture(autouse=True)
-    def setup_consumer(self):
+    def setup_consumer(self, fake_oic_server, session_db_factory):
         client_id = "client_1"
         client_config = {
             "client_id": client_id,
@@ -97,7 +94,7 @@ class TestOICConsumer():
             # 'config': {}
         }
 
-        self.consumer = Consumer(SessionDB(SERVER_INFO["issuer"]),
+        self.consumer = Consumer(session_db_factory(SERVER_INFO["issuer"]),
                                  CONFIG, client_config, SERVER_INFO)
         self.consumer.behaviour = {
             "request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]}
@@ -111,7 +108,7 @@ class TestOICConsumer():
         self.consumer.client_secret = "hemlig"
         self.consumer.secret_type = "basic"
 
-        mfos = MyFakeOICServer("http://localhost:8088")
+        mfos = fake_oic_server("http://localhost:8088")
         mfos.keyjar = SRVKEYS
         self.consumer.http_request = mfos.http_request
 
@@ -436,9 +433,9 @@ class TestOICConsumer():
                                          'code token', 'code id_token',
                                          'id_token token'])
 
-    def test_discover(self):
+    def test_discover(self, fake_oic_server):
         c = Consumer(None, None)
-        mfos = MyFakeOICServer("https://localhost:8088")
+        mfos = fake_oic_server("https://localhost:8088")
         mfos.keyjar = SRVKEYS
         c.http_request = mfos.http_request
 
@@ -446,9 +443,9 @@ class TestOICConsumer():
         res = c.discover(principal)
         assert res == "https://localhost:8088/"
 
-    def test_provider_config(self):
+    def test_provider_config(self, fake_oic_server):
         c = Consumer(None, None)
-        mfos = MyFakeOICServer("https://example.com")
+        mfos = fake_oic_server("https://example.com")
         mfos.keyjar = SRVKEYS
         c.http_request = mfos.http_request
 
@@ -477,15 +474,14 @@ class TestOICConsumer():
 
         assert info["end_session_endpoint"] == "https://example.com/end_session"
 
-    def test_client_register(self):
+    def test_client_register(self, fake_oic_server):
         c = Consumer(None, None)
 
         c.application_type = "web"
         c.application_name = "My super service"
         c.redirect_uris = ["https://example.com/authz"]
         c.contact = ["foo@example.com"]
-
-        mfos = MyFakeOICServer("https://example.com")
+        mfos = fake_oic_server("https://example.com")
         mfos.keyjar = SRVKEYS
         c.http_request = mfos.http_request
         location = c.discover("foo@example.com")
@@ -535,8 +531,8 @@ class TestOICConsumer():
         with pytest.raises(BadSignature):
             c.parse_response(AccessTokenResponse, _json, sformat="json")
 
-    def test_faulty_idtoken_from_accesstoken_endpoint(self):
-        mfos = MITMServer("http://localhost:8088")
+    def test_faulty_idtoken_from_accesstoken_endpoint(self, mitm_server):
+        mfos = mitm_server("http://localhost:8088")
         mfos.keyjar = SRVKEYS
         self.consumer.http_request = mfos.http_request
         _state = "state0"

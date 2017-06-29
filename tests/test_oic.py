@@ -10,7 +10,6 @@ import pytest
 from jwkest.jws import alg2keytype
 from jwkest.jws import left_hash
 from jwkest.jwt import JWT
-from tests.fakeoicsrv import MyFakeOICServer
 
 from oic.oauth2.exception import OtherError
 from oic.oic import DEF_SIGN_ALG
@@ -72,7 +71,7 @@ def _eq(l1, l2):
 
 class TestClient(object):
     @pytest.fixture(autouse=True)
-    def create_client(self):
+    def create_client(self, fake_oic_server):
         self.redirect_uri = "http://example.com/redirect"
         self.client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
         self.client.redirect_uris = [self.redirect_uri]
@@ -84,7 +83,7 @@ class TestClient(object):
         self.client.keyjar[""] = KC_RSA
         self.client.behaviour = {
             "request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]}
-        self.mfos = MyFakeOICServer()
+        self.mfos = fake_oic_server("http://example.com")
         self.mfos.keyjar = KEYJ
         self.client.http_request = self.mfos.http_request
 

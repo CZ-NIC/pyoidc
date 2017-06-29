@@ -51,9 +51,9 @@ ENDPOINT = {
 
 
 class MITMServer(Server):
-    def __init__(self, name=""):
+    def __init__(self, name="", session_db_factory=None):
         Server.__init__(self)
-        self.sdb = SessionDB(name)
+        self.sdb = session_db_factory(name)
         self.name = name
         self.client = {}
         self.registration_expires_in = 3600
