@@ -3,7 +3,6 @@ from future.backports.http.cookies import SimpleCookie
 import datetime
 
 import pytest
-
 from six import PY2
 
 from oic.exception import ImproperlyConfigured
