@@ -481,7 +481,8 @@ if __name__ == '__main__':
     #from cherrypy.wsgiserver import ssl_builtin
     from cherrypy.wsgiserver import ssl_pyopenssl
 
-    from oic.utils.sdb import SessionDB
+    from oic import rndstr
+    from oic.utils.sdb import create_session_db
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', dest='verbose', action='store_true')
@@ -532,18 +533,23 @@ if __name__ == '__main__':
     else:
         kwargs = {"verify_ssl": True}
 
+    # In-Memory SessionDB issuing DefaultTokens
+    sdb = create_session_db(config.baseurl,
+                            secret=rndstr(32),
+                            password=rndstr(32))
+
     if args.test:
         URLS.append((r'tracelog', trace_log))
-        OAS = TestProvider(config.issuer, SessionDB(config.baseurl), cdb, ac,
+        OAS = TestProvider(config.issuer, sdb, cdb, ac,
                            None, authz, config.SYM_KEY)
     elif args.XpressConnect:
         from XpressConnect import XpressConnectProvider
 
-        OAS = XpressConnectProvider(config.issuer, SessionDB(config.baseurl),
+        OAS = XpressConnectProvider(config.issuer, sdb,
                                     cdb, ac, None, authz, verify_client,
                                     config.SYM_KEY)
     else:
-        OAS = Provider(config.issuer, SessionDB(config.baseurl), cdb, ac, None,
+        OAS = Provider(config.issuer, sdb, cdb, ac, None,
                        authz, verify_client, config.SYM_KEY, **kwargs)
 
 

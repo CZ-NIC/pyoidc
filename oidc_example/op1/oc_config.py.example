@@ -22,6 +22,10 @@ AUTHORIZATION = {
 COOKIENAME= 'pyoic'
 COOKIETTL = 4*60 # 4 hours
 SYM_KEY = "SoLittleTime,Got"
+
+# Encryption Key and HMAC key to 
+SESSION_KEY = "a"*64
+
 SERVER_CERT = "certs/server.crt"
 SERVER_KEY = "certs/server.key"
 #CERT_CHAIN="certs/chain.pem"
