@@ -233,7 +233,7 @@ class Application(object):
 
     # noinspection PyUnusedLocal
     def authorization(self, environ, start_response):
-        return wsgi_wrapper(environ, start_response, 
+        return wsgi_wrapper(environ, start_response,
                             self.oas.authorization_endpoint, logger=logger)
 
     # noinspection PyUnusedLocal
@@ -367,7 +367,8 @@ if __name__ == '__main__':
     from cherrypy import wsgiserver
     from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
 
-    from oic.utils.sdb import SessionDB
+    from oic import rndstr
+    from oic.utils.sdb import create_session_db
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', dest='verbose', action='store_true')
@@ -545,7 +546,12 @@ if __name__ == '__main__':
     else:
         pass
 
-    OAS = Provider(_issuer, SessionDB(_issuer), cdb, ac, None,
+    # In-Memory non persistent SessionDB
+    sdb = create_session_db(_issuer,
+                            secret=rndstr(32),
+                            password=rndstr(32))
+
+    OAS = Provider(_issuer, sdb, cdb, ac, None,
                    authz, verify_client, config.SYM_KEY, **kwargs)
     OAS.baseurl = _issuer
 

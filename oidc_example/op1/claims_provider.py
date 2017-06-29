@@ -226,7 +226,7 @@ if __name__ == '__main__':
     from cherrypy.wsgiserver import ssl_builtin
 
     from oic.oic.claims_provider import ClaimsServer
-    from oic.utils.sdb import SessionDB
+    from oic.utils.sdb import create_session_db
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', dest='verbose', action='store_true')
@@ -241,7 +241,10 @@ if __name__ == '__main__':
     # in memory session storage
 
     config = json.loads(open(args.config).read())
-    OAS = ClaimsServer(config["issuer"], SessionDB(), cdb, userinfo,
+    sdb = create_session_db(config["issuer"],
+                            config["SESSION_KEY"],
+                            password="changethis")
+    OAS = ClaimsServer(config["issuer"], sdb, cdb, userinfo,
                        verify_client)
 
     if "keys" in config:
