@@ -340,13 +340,25 @@ class DictRefreshDB(RefreshDB):
         self._db.pop(token)
 
 
-def create_session_db(base_url,
-                      secret,
-                      password,
-                      db=None,
-                      token_expires_in=3600,
-                      grant_expires_in=600,
+def create_session_db(base_url, secret, password, db=None,
+                      token_expires_in=3600, grant_expires_in=600,
                       refresh_token_expires_in=86400):
+    """
+    Convenience wrapper for SessionDB construction
+
+    Using this you can create a very basic non persistant
+    session database that issues opaque DefaultTokens.
+
+    :param base_url: Same as base_url parameter of `SessionDB`.
+    :param secret: Secret to pass to `DefaultToken` class.
+    :param password: Secret key to pass to `DefaultToken` class.
+    :param db: Storage for the session data, usually a dict.
+    :param token_expires_in: Expiry time for access tokens in seconds.
+    :param grant_expires_in: Expiry time for access codes in seconds.
+    :param refresh_token_expires_in: Expiry time for refresh tokens.
+
+    :return: A constructed `SessionDB` object.
+    """
 
     code_factory = DefaultToken(secret, password, typ='A',
                                 lifetime=grant_expires_in)
@@ -359,7 +371,9 @@ def create_session_db(base_url,
         refresh_db=None,
         code_factory=code_factory,
         token_factory=token_factory,
-        refresh_token_factory=None)
+        refresh_token_expires_in=refresh_token_expires_in,
+        refresh_token_factory=None,
+    )
 
 
 class SessionDB(object):
@@ -370,6 +384,8 @@ class SessionDB(object):
 
         self.base_url = base_url
         self._db = db
+
+        # TODO: uid2sid should have a persistence option too.
         self.uid2sid = {}
 
         self.token_factory = {
@@ -378,6 +394,9 @@ class SessionDB(object):
         }
 
         self.token_factory_order = ['code', 'access_token']
+
+        # TODO: This should simply be a factory like all the others too,
+        #       even for the default case.
 
         if refresh_token_factory:
             if refresh_db:
