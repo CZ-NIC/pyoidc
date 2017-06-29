@@ -503,14 +503,22 @@ class Message(MutableMapping):
                         return
                     else:
                         if allowed_kids:
-                            for k in kl:
-                                if k.kid in allowed_kids:
-                                    key.append(k)
+                            key.extend([k for k in kl if k.kid in allowed_kids])
                         else:
-                            for k in kl:
-                                key.append(k)
+                            key.extend(kl)
 
     def get_verify_keys(self, keyjar, key, jso, header, jwt, **kwargs):
+        """
+        Get keys from a keyjar that can be used to verify a signed JWT
+
+        :param keyjar: A KeyJar instance
+        :param key: List of keys to start with
+        :param jso: The payload of the JWT, expected to be a dictionary.
+        :param header: The header of the JWT
+        :param jwt: A jwkest.jwt.JWT instance
+        :param kwargs: Other key word arguments
+        :return: list of usable keys
+        """
         try:
             _kid = header['kid']
         except KeyError:

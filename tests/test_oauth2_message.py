@@ -53,7 +53,7 @@ IKEYJAR.issuer_keys['issuer'] = IKEYJAR.issuer_keys['']
 del IKEYJAR.issuer_keys['']
 
 KEYJARS = {}
-for iss in ['A','B','C']:
+for iss in ['A', 'B', 'C']:
     _kj = build_keyjar(keym)[1]
     _kj.issuer_keys[iss] = _kj.issuer_keys['']
     del _kj.issuer_keys['']
@@ -134,19 +134,22 @@ class TestMessage(object):
                     'opt_str_list', 'opt_int'])
 
     def test_from_json(self):
-        jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], "opt_int": [9]}'
+        jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], ' \
+              '"opt_int": [9]}'
         item = DummyMessage().deserialize(jso, "json")
 
         assert _eq(item.keys(), ['req_str', 'req_str_list', 'opt_int'])
         assert item["opt_int"] == 9
 
     def test_single_optional(self):
-        jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], "opt_int": [9, 10]}'
+        jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], ' \
+              '"opt_int": [9, 10]}'
         with pytest.raises(TooManyValues):
             DummyMessage().deserialize(jso, "json")
 
     def test_extra_param(self):
-        jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], "extra": "out"}'
+        jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], "extra": ' \
+              '"out"}'
         item = DummyMessage().deserialize(jso, "json")
 
         assert _eq(item.keys(), ['req_str', 'req_str_list', 'extra'])
@@ -348,7 +351,8 @@ class TestAuthorizationRequest(object):
         assert ar == ar2
 
     def test_verify(self):
-        query = 'redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauthz&response_type=code&client_id=0123456789'
+        query = 'redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauthz' \
+                '&response_type=code&client_id=0123456789'
         ar = AuthorizationRequest().deserialize(query, "urlencoded")
         assert ar.verify()
 
@@ -404,8 +408,7 @@ class TestAuthorizationRequest(object):
                                   scope=["openid", "foxtrot"])
         ue = ar.to_urlencoded()
         ue_splits = ue.split('&')
-        expected_ue_splits = "scope=openid+foxtrot&response_type=code+token&client_id=foobar".split(
-            '&')
+        expected_ue_splits = "scope=openid+foxtrot&response_type=code+token&client_id=foobar".split('&')
         assert _eq(ue_splits, expected_ue_splits)
 
         are = AuthorizationRequest().deserialize(ue, "urlencoded")
@@ -456,7 +459,8 @@ class TestAuthorizationErrorResponse(object):
 
     def test_extra_params(self):
         aer = AuthorizationErrorResponse(error="access_denied",
-                                         error_description="brewers has a four game series",
+                                         error_description="brewers has a "
+                                                           "four game series",
                                          foo="bar")
         assert aer["error"] == "access_denied"
         assert aer["error_description"] == "brewers has a four game series"
@@ -472,7 +476,8 @@ class TestTokenErrorResponse(object):
 
     def test_extra_params(self):
         ter = TokenErrorResponse(error="access_denied",
-                                 error_description="brewers has a four game series",
+                                 error_description="brewers has a four game "
+                                                   "series",
                                  foo="bar")
 
         assert ter["error"] == "access_denied"
@@ -623,7 +628,7 @@ class TestErrorResponse(object):
             err.to_urlencoded()
 
 
-@pytest.mark.parametrize("keytype,alg",[
+@pytest.mark.parametrize("keytype,alg", [
     ('RSA', 'RS256'),
     ('EC', 'ES256')
 ])
@@ -634,7 +639,7 @@ def test_to_jwt(keytype, alg):
     assert msg1 == msg
 
 
-@pytest.mark.parametrize("keytype,alg,enc",[
+@pytest.mark.parametrize("keytype,alg,enc", [
     ('RSA', 'RSA1_5', 'A128CBC-HS256'),
     ('EC', 'ECDH-ES', 'A128GCM'),
 ])
