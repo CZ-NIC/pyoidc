@@ -1,6 +1,10 @@
+from future.backports.http.cookies import SimpleCookie
+
 import datetime
 
 import pytest
+
+from six import PY2
 
 from oic.exception import ImproperlyConfigured
 from oic.utils.http_util import CookieDealer
@@ -82,6 +86,52 @@ class TestCookieDealer(object):
             CookieDealer(BadServer())
         expected_msg = "CookieDealer.srv.symkey cannot be an empty value"
         assert expected_msg in str(err.value)
+
+    def test_cookie_dealer_with_domain(self):
+        class DomServer():
+            def __init__(self):
+                self.symkey = b"0123456789012345"
+                self.cookie_domain = "op.example.org"
+
+        cookie_dealer = CookieDealer(DomServer())
+
+        cookie_value = "Something to pass along"
+        cookie_typ = "sso"
+        cookie_name = "Foobar"
+
+        kaka = cookie_dealer.create_cookie(cookie_value, cookie_typ,
+                                           cookie_name)
+        C = SimpleCookie()
+        if PY2:
+            # the backported SimpleCookie wants py3 str
+            C.load(unicode(kaka[1]))
+        else:
+            C.load(kaka[1])
+
+        assert C[cookie_name]["domain"] == "op.example.org"
+
+    def test_cookie_dealer_with_path(self):
+        class DomServer():
+            def __init__(self):
+                self.symkey = b"0123456789012345"
+                self.cookie_path = "/oidc"
+
+        cookie_dealer = CookieDealer(DomServer())
+
+        cookie_value = "Something to pass along"
+        cookie_typ = "sso"
+        cookie_name = "Foobar"
+
+        kaka = cookie_dealer.create_cookie(cookie_value, cookie_typ,
+                                           cookie_name)
+        C = SimpleCookie()
+        if PY2:
+            # the backported SimpleCookie wants py3 str
+            C.load(unicode(kaka[1]))
+        else:
+            C.load(kaka[1])
+
+        assert C[cookie_name]["path"] == "/oidc"
 
 
 def test_cookie_signature():

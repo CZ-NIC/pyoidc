@@ -13,6 +13,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#325]: `oic.oic.claims_match` implementation refactored.
 - [#368]: `oic.oauth2.Client.construct_AccessTokenRequest()` as well as `oic.oic.Client` are now able to perform proper Resource Owner Password Credentials Grant
 - [#374]: Made the to_jwe/from_jwe methods of Message accept list of keys value of parameter keys.
+- [#380]: Made cookie_path and cookie_domain configurable via Provider like the cookie_name.
 
 ### Fixed
 - [#313]: Catch exception correctly
