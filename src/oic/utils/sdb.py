@@ -12,6 +12,7 @@ import uuid
 from cryptography.fernet import Fernet
 
 from oic import rndstr
+from oic.exception import ImproperlyConfigured
 from oic.oic import AuthorizationRequest
 from oic.utils.time_util import time_sans_frac
 from oic.utils.time_util import utc_time_sans_frac
@@ -339,33 +340,49 @@ class DictRefreshDB(RefreshDB):
         self._db.pop(token)
 
 
+def create_session_db(base_url,
+                      secret,
+                      password,
+                      db=None,
+                      token_expires_in=3600,
+                      grant_expires_in=600,
+                      refresh_token_expires_in=86400):
+
+    code_factory = DefaultToken(secret, password, typ='A',
+                                lifetime=grant_expires_in)
+    token_factory = DefaultToken(secret, password, typ='T',
+                                 lifetime=token_expires_in)
+    db = {} if db is None else db
+
+    return SessionDB(
+        base_url, db,
+        refresh_db=None,
+        code_factory=code_factory,
+        token_factory=token_factory,
+        refresh_token_factory=None)
+
+
 class SessionDB(object):
-    def __init__(self, base_url, db=None, secret="Ab01FG65",
-                 token_expires_in=3600, password="4-amino-1H-pyrimidine-2-one",
-                 grant_expires_in=600, seed="", refresh_db=None,
+    def __init__(self, base_url, db, refresh_db=None,
                  refresh_token_expires_in=86400,
                  token_factory=None, code_factory=None,
                  refresh_token_factory=None):
-        self.base_url = base_url
-        if db is None:
-            db = {}
-        self._db = db
 
-        self.token_factory = {}
+        self.base_url = base_url
+        self._db = db
+        self.uid2sid = {}
+
+        self.token_factory = {
+            'code': code_factory,
+            'access_token': token_factory,
+        }
 
         self.token_factory_order = ['code', 'access_token']
-        if code_factory:
-            self.token_factory['code'] = code_factory
-        else:
-            self.token_factory['code'] = DefaultToken(secret, password, typ='A',
-                                                      lifetime=grant_expires_in)
-        if token_factory:
-            self.token_factory['access_token'] = token_factory
-        else:
-            self.token_factory['access_token'] = DefaultToken(
-                secret, password, typ='T', lifetime=token_expires_in)
 
         if refresh_token_factory:
+            if refresh_db:
+                raise ImproperlyConfigured(
+                    "Only use one of refresh_db or refresh_token_factory")
             self._refresh_db = None
             self.token_factory['refresh_token'] = refresh_token_factory
             self.token_factory_order.append('refresh_token')
@@ -376,8 +393,6 @@ class SessionDB(object):
 
         self.access_token = self.token_factory['access_token']
         self.token = self.access_token
-        self.uid2sid = {}
-        self.seed = seed or secret
 
     def _get_token_key(self, item, order=None):
         if order is None:
