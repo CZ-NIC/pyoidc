@@ -37,8 +37,6 @@ __author__ = 'rohe0002'
 
 logger = logging.getLogger(__name__)
 
-NONCE_STORAGE_TIME = 4 * 3600
-
 
 class AtHashError(VerificationError):
     pass
@@ -726,16 +724,11 @@ class IdToken(OpenIDSchema):
                 raise EXPError('Invalid expiration time')
 
         try:
-            _storage_time = kwargs['nonce_storage_time']
-        except KeyError:
-            _storage_time = NONCE_STORAGE_TIME
-
-        try:
             _iat = self['iat']
         except KeyError:
             raise MissingRequiredAttribute('iat')
         else:
-            if (_iat + _storage_time) < (_now - _skew):
+            if (_iat) < (_now - _skew):
                 raise IATError('Issued too long ago')
 
         return True
