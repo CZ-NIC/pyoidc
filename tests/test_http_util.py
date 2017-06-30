@@ -1,4 +1,5 @@
 from future.backports.http.cookies import SimpleCookie
+from future.builtins import str as newstr
 
 import datetime
 
@@ -103,7 +104,7 @@ class TestCookieDealer(object):
         C = SimpleCookie()
         if PY2:
             # the backported SimpleCookie wants py3 str
-            C.load(unicode(kaka[1]))
+            C.load(newstr(kaka[1]))
         else:
             C.load(kaka[1])
 
@@ -126,7 +127,7 @@ class TestCookieDealer(object):
         C = SimpleCookie()
         if PY2:
             # the backported SimpleCookie wants py3 str
-            C.load(unicode(kaka[1]))
+            C.load(newstr(kaka[1]))
         else:
             C.load(kaka[1])
 
