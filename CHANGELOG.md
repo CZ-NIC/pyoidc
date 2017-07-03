@@ -13,6 +13,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#325]: `oic.oic.claims_match` implementation refactored.
 - [#368]: `oic.oauth2.Client.construct_AccessTokenRequest()` as well as `oic.oic.Client` are now able to perform proper Resource Owner Password Credentials Grant
 - [#374]: Made the to_jwe/from_jwe methods of Message accept list of keys value of parameter keys.
+- [#392]: Made sid creation simpler and faster
 
 ### Fixed
 - [#313]: Catch exception correctly
@@ -41,6 +42,7 @@ The format is based on the [KeepAChangeLog] project.
 [#369]: https://github.com/OpenIDC/pyoidc/pull/369
 [#373]: https://github.com/OpenIDC/pyoidc/pull/373
 [#374]: https://github.com/OpenIDC/pyoidc/pull/374
+[#392]: https://github.com/OpenIDC/pyoidc/issue/392
 
 ## 0.10.0.0 [2017-03-28]
 
