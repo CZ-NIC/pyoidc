@@ -72,3 +72,23 @@ Please contact one of the current maintainers, `@lwm`_, `@rohe`_, `@tpazderka`_ 
 .. _@rohe: https://github.com/rohe/
 .. _@tpazderka: https://github.com/tpazderka/
 .. _@schlenk: https://github.com/schlenk
+
+Contribute
+==========
+
+`Fork the repository`_, clone your copy and `install pipenv`_.
+
+.. _Fork the repository: https://github.com/OpenIDC/pyoidc#fork-destination-box
+.. _install pipenv: http://docs.pipenv.org/en/latest/advanced.html#fancy-installation-of-pipenv
+
+Then just run:
+
+.. code:: bash
+
+    $ pipenv install --dev
+
+This will not affect your system level Python installation. Please review `our
+issues`_ to see what needs working on. Do not hesitate to ask questions if
+something is unclear.
+
+.. _our issues: https://github.com/OpenIDC/pyoidc/issues
