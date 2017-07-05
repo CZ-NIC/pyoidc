@@ -16,7 +16,6 @@ help:
 .PHONY: help
 
 clean:
-	rm -rf $(INDEXDIR)
 	rm -rf $(BUILDDIR)/*
 .PHONY: clean
 
