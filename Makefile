@@ -6,6 +6,7 @@ SPHINXABUILD  = sphinx-autobuild
 BUILDDIR      = doc/_build
 DOCDIR        = doc/
 OICDIR        = src/oic
+TESTDIR       = tests
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
@@ -35,12 +36,12 @@ install:
 .PHONY: install
 
 isort:
-	@pipenv run isort --recursive src/ tests/
+	@pipenv run isort --recursive $(OICDIR) $(TESTDIR)
 
 check-isort:
-	@pipenv run isort --recursive --diff --check-only src/ tests/
+	@pipenv run isort --recursive --diff --check-only $(OICDIR) $(TESTDIR)
 .PHONY: isort check-isort
 
 check-pylama:
-	@pipenv run pylama src/ tests/
+	@pipenv run pylama $(OICDIR) $(TESTDIR)
 .PHONY: check-pylama
