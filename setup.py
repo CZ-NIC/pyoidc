@@ -56,9 +56,10 @@ setup(
     author_email="roland@catalogix.se",
     license="Apache 2.0",
     url='https://github.com/OpenIDC/pyoidc/',
-    packages=["oic", "oic/oauth2", "oic/oic", "oic/utils", "oic/utils/authn",
-              "oic/utils/userinfo", 'oic/utils/rp', 'oic/extension'],
-              # 'oic/v2'],
+    packages=[
+        "oic", "oic/oauth2", "oic/oic", "oic/utils", "oic/utils/authn",
+        "oic/utils/userinfo", 'oic/utils/rp', 'oic/extension'
+    ],
     package_dir={"": "src"},
     classifiers=[
         "Development Status :: 4 - Beta",
