@@ -22,26 +22,26 @@ clean:
 
 ALLSPHINXOPTS=-W
 html:
-	pipenv run $(SPHINXBUILD) -b html $(DOCDIR) $(BUILDDIR)/html $(ALLSPHINXOPTS)
+	@pipenv run $(SPHINXBUILD) -b html $(DOCDIR) $(BUILDDIR)/html $(ALLSPHINXOPTS)
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 .PHONY: html
 
 livehtml:
-	pipenv run $(SPHINXABUILD) -b html $(DOCDIR) $(BUILDDIR)/html $(ALLSPHINXOPTS)
+	@pipenv run $(SPHINXABUILD) -b html $(DOCDIR) $(BUILDDIR)/html $(ALLSPHINXOPTS)
 	@echo "Build finished. Watching for change ..."
 .PHONY: livehtml
 
 install:
-	pipenv install --dev
+	@pipenv install --dev
 .PHONY: install
 
 isort:
-	pipenv run isort --recursive src/ tests/
+	@pipenv run isort --recursive src/ tests/
 
 check-isort:
-	pipenv run isort --recursive --diff --check-only src/ tests/
+	@pipenv run isort --recursive --diff --check-only src/ tests/
 .PHONY: isort check-isort
 
 check-pylama:
-	pipenv run pylama src/ tests/
+	@pipenv run pylama src/ tests/
 .PHONY: check-pylama
