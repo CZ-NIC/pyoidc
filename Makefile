@@ -35,6 +35,10 @@ install:
 	@pipenv install --dev
 .PHONY: install
 
+test:
+	@pipenv run pytest $(TESTDIR)
+.PHONY: test
+
 isort:
 	@pipenv run isort --recursive $(OICDIR) $(TESTDIR)
 
