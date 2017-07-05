@@ -78,7 +78,7 @@ setup(
         "beaker",
         "alabaster",
         "pyOpenSSL",
-        'future',
+        "future",
         "six",
     ] + extra_install_requires,
     tests_require=[
