@@ -80,8 +80,11 @@ setup(
         "pyOpenSSL",
         'future',
         "six",
-        'responses',
-        'testfixtures'] + extra_install_requires,
+    ] + extra_install_requires,
+    tests_require=[
+        "responses",
+        "testfixtures",
+    ],
     zip_safe=False,
     cmdclass={'test': PyTest},
 )
