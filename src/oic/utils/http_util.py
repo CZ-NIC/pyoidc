@@ -568,8 +568,6 @@ class CookieDealer(object):
             setattr(srv, 'seed', rndstr().encode("utf-8"))
 
     def delete_cookie(self, cookie_name=None):
-        if cookie_name is None:
-            cookie_name = self.srv.cookie_name
         return self.create_cookie("", "", cookie_name=cookie_name, ttl=-1,
                                   kill=True)
 
@@ -580,6 +578,19 @@ class CookieDealer(object):
             ttl = self.cookie_ttl
         if cookie_name is None:
             cookie_name = self.srv.cookie_name
+
+        try:
+            srvdomain = self.srv.cookie_domain
+            cookie_domain = "" if not srvdomain else srvdomain
+        except AttributeError:
+            cookie_domain = ""
+
+        try:
+            srvpath = self.srv.cookie_path
+            cookie_path = "" if not srvpath else srvpath
+        except AttributeError:
+            cookie_path = ""
+
         timestamp = str(int(time.time()))
         try:
             _msg = "::".join([value, timestamp, typ])
@@ -587,7 +598,7 @@ class CookieDealer(object):
             _msg = "::".join([value[0], timestamp, typ])
 
         cookie = make_cookie(cookie_name, _msg, self.srv.seed,
-                             expire=ttl, domain="", path="",
+                             expire=ttl, domain=cookie_domain, path=cookie_path,
                              timestamp=timestamp,
                              enc_key=self.srv.symkey)
         if PY2:
