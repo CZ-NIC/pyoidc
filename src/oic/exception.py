@@ -113,3 +113,7 @@ class AuthnToOld(PyoidcError):
 
 class ImproperlyConfigured(PyoidcError):
     pass
+
+
+class SubMismatch(PyoidcError):
+    pass

@@ -27,6 +27,7 @@ from oic import rndstr
 from oic.exception import AuthzError
 from oic.exception import AuthnToOld
 from oic.exception import ParameterError
+from oic.exception import SubMismatch
 
 from oic.oauth2 import HTTP_ARGS
 from oic.oauth2 import authz_error
@@ -898,7 +899,12 @@ class Client(oauth2.Client):
         if 'error' in res:  # Error response
             res = UserInfoErrorResponse(**res.to_dict())
 
-        # TODO verify issuer:sub against what's returned in the ID Token
+        # Verify userinfo sub claim against what's returned in the ID Token
+        idt = self.grant[state].get_id_token()
+        if idt:
+            if idt['sub'] != res['sub']:
+                raise SubMismatch(
+                    'Sub identifier not the same in userinfo and Id Token')
 
         self.store_response(res, _txt)
 
