@@ -15,6 +15,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#374]: Made the to_jwe/from_jwe methods of Message accept list of keys value of parameter keys.
 - [#380]: Made cookie_path and cookie_domain configurable via Provider like the cookie_name.
 - [#386]: An exception will now be thrown if a sub claim received from the userinfo endpoint is not the same as a sub claim previously received in an ID Token.
+- [#392]: Made sid creation simpler and faster
 
 
 ### Fixed
@@ -44,6 +45,7 @@ The format is based on the [KeepAChangeLog] project.
 [#369]: https://github.com/OpenIDC/pyoidc/pull/369
 [#373]: https://github.com/OpenIDC/pyoidc/pull/373
 [#374]: https://github.com/OpenIDC/pyoidc/pull/374
+[#392]: https://github.com/OpenIDC/pyoidc/issue/392
 
 ## 0.10.0.0 [2017-03-28]
 

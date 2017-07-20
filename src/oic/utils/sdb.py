@@ -3,11 +3,9 @@ from future.utils import tobytes
 import base64
 import copy
 import hashlib
-import hmac
 import itertools
 import json
 import logging
-import random
 import time
 import uuid
 
@@ -142,7 +140,6 @@ class Token(object):
 class DefaultToken(Token):
     def __init__(self, secret, password, typ='', **kwargs):
         Token.__init__(self, typ, **kwargs)
-        self.secret = secret
         self.crypt = Crypt(password)
 
     def __call__(self, sid='', ttype='', **kwargs):
@@ -177,29 +174,8 @@ class DefaultToken(Token):
         :param areq: The authorization request
         :return: A hash
         """
-        csum = hmac.new(self.secret.encode("utf-8"), digestmod=hashlib.sha224)
-        csum.update(("%s" % utc_time_sans_frac()).encode("utf-8"))
-        csum.update(("%f" % random.random()).encode("utf-8"))
-        if user:
-            csum.update(user.encode("utf-8"))
-
-        if areq:
-            try:
-                csum.update(areq["state"].encode("utf-8"))
-            except KeyError:
-                pass
-
-            try:
-                for val in areq["scope"]:
-                    csum.update(val.encode("utf-8"))
-            except KeyError:
-                pass
-
-            try:
-                csum.update(areq["redirect_uri"].encode("utf-8"))
-            except KeyError:
-                pass
-
+        csum = hashlib.new('sha224')
+        csum.update(rndstr(32).encode('utf-8'))
         return csum.hexdigest()  # 56 bytes long, 224 bits
 
     def _split_token(self, token):
