@@ -546,6 +546,10 @@ class OpenIDSchema(Message):
                     except ValueError:
                         raise VerificationError("Birthdate format error", self)
 
+        for val in self.values():
+            if val is None:
+                return False
+            
         return True
 
 
