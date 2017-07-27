@@ -476,11 +476,12 @@ class Message(MutableMapping):
     def _add_key(self, keyjar, issuer, key, key_type='', kid='',
                  no_kid_issuer=None):
 
-        try:
-            logger.debug('Key set summary for {}: {}'.format(
-                issuer, key_summary(keyjar, issuer)))
-        except KeyError:
+        if issuer not in keyjar:
             logger.error('Issuer "{}" not in keyjar'.format(issuer))
+            return
+
+        logger.debug('Key set summary for {}: {}'.format(
+            issuer, key_summary(keyjar, issuer)))
 
         if kid:
             _key = keyjar.get_key_by_kid(kid, issuer)
