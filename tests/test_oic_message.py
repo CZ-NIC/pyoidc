@@ -12,7 +12,7 @@ from jwkest.jwk import SYMKey
 
 from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import WrongSigningAlgorithm
-from oic.oic.message import AccessTokenResponse
+from oic.oic.message import AccessTokenResponse, OpenIDSchema
 from oic.oic.message import AddressClaim
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import Claims
@@ -38,6 +38,23 @@ def query_string_compare(query_str1, query_str2):
 
 def _eq(l1, l2):
     return set(l1) == set(l2)
+
+
+def test_openidschema():
+    inp = '{"middle_name":null, "updated_at":"20170328081544", "sub":"abc"}'
+    ois = OpenIDSchema().from_json(inp)
+    assert ois.verify() is False
+
+
+@pytest.mark.parametrize("json_param", [
+    '{"middle_name":"fo", "updated_at":"20170328081544Z", "sub":"abc"}',
+    '{"middle_name":true, "updated_at":"20170328081544", "sub":"abc"}',
+    '{"middle_name":"fo", "updated_at":false, "sub":"abc"}',
+    '{"middle_name":"fo", "updated_at":"20170328081544Z", "sub":true}'
+])
+def test_openidschema_from_json(json_param):
+    with pytest.raises(ValueError):
+        _ = OpenIDSchema().from_json(json_param)
 
 
 def test_claims_deser():

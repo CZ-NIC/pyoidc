@@ -431,6 +431,12 @@ class Message(MutableMapping):
         else:
             if val is None:
                 self._dict[skey] = None
+            elif isinstance(val, bool):
+                if vtyp is bool:
+                    self._dict[skey] = val
+                else:
+                    raise ValueError(
+                        '"{}", wrong type of value for "{}"'.format(val, skey))
             elif isinstance(val, vtyp):  # Not necessary to do anything
                 self._dict[skey] = val
             else:
@@ -439,6 +445,15 @@ class Message(MutableMapping):
                         val = _deser(val, sformat="dict")
                     except Exception as exc:
                         raise DecodeError(ERRTXT % (key, exc))
+                elif vtyp == int:
+                    try:
+                        self._dict[skey] = int(val)
+                    except ValueError:
+                        raise ValueError(
+                            '"{}", wrong type of value for "{}"'.format(val,
+                                                                        skey))
+                    else:
+                        return
 
                 if isinstance(val, six.string_types):
                     self._dict[skey] = val
