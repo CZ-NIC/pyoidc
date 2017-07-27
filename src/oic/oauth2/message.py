@@ -448,7 +448,7 @@ class Message(MutableMapping):
                 elif vtyp == int:
                     try:
                         self._dict[skey] = int(val)
-                    except ValueError:
+                    except (ValueError, TypeError):
                         raise ValueError(
                             '"{}", wrong type of value for "{}"'.format(val,
                                                                         skey))

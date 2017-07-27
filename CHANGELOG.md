@@ -16,6 +16,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#380]: Made cookie_path and cookie_domain configurable via Provider like the cookie_name.
 - [#386]: An exception will now be thrown if a sub claim received from the userinfo endpoint is not the same as a sub claim previously received in an ID Token.
 - [#392]: Made sid creation simpler and faster
+- [#401]: Fixed message decoding and verifying errors.
 
 
 ### Fixed
