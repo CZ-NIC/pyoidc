@@ -199,7 +199,7 @@ CAPABILITIES = {
     "subject_types_supported": ["public", "pairwise"],
     "grant_types_supported": [
         "authorization_code", "implicit",
-        "urn:ietf:params:oauth:grant-type:jwt-bearer"],
+        "urn:ietf:params:oauth:grant-type:jwt-bearer", "refresh_token"],
     "claim_types_supported": ["normal", "aggregated", "distributed"],
     "claims_parameter_supported": True,
     "request_parameter_supported": True,
