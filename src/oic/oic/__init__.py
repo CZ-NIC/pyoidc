@@ -929,7 +929,7 @@ class Client(oauth2.Client):
 
         try:
             resp = self.http_request(path, method, data=body, **h_args)
-        except oauth2.MissingRequiredAttribute:
+        except MissingRequiredAttribute:
             raise
 
         if resp.status_code == 200:

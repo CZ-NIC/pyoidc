@@ -333,6 +333,16 @@ class KeyBundle(object):
         self._uptodate()
         return [key.kid for key in self._keys if key.kid != ""]
 
+    def remove_outdated(self, after):
+        now = time.time()
+        _kl = []
+        for k in self._keys:
+            if k.inactive_since and k.inactive_since + after < now:
+                pass
+            else:
+                _kl.append(k)
+        self._keys = _kl
+
 
 def keybundle_from_local_file(filename, typ, usage):
     if typ.upper() == "RSA":
@@ -384,7 +394,8 @@ def dump_jwks(kbl, target, private=False):
 class KeyJar(object):
     """ A keyjar contains a number of KeyBundles """
 
-    def __init__(self, ca_certs=None, verify_ssl=True, keybundle_cls=KeyBundle):
+    def __init__(self, ca_certs=None, verify_ssl=True, keybundle_cls=KeyBundle,
+                 remove_stale_after=3600):
         """
 
         :param ca_certs:
@@ -396,6 +407,7 @@ class KeyJar(object):
         self.ca_certs = ca_certs
         self.verify_ssl = verify_ssl
         self.keybundle_cls = keybundle_cls
+        self.remove_after = remove_stale_after
 
     def __repr__(self):
         issuers = list(self.issuer_keys.keys())
@@ -777,6 +789,39 @@ class KeyJar(object):
             res.extend(kbl.keys())
         return res
 
+    def __eq__(self, other):
+        if not isinstance(other, KeyJar):
+            return False
+
+        # The set of issuers MUST be the same
+        if set(self.keys()) != set(other.keys()):
+            return False
+
+        # Keys per issuer must be the same
+        for iss in self.keys():
+            sk = self.get_issuer_keys(iss)
+            ok = other.get_issuer_keys(iss)
+            if len(sk) != len(ok):
+                return False
+
+            for k in sk:
+                if k not in ok:
+                    return False
+
+        return True
+
+    def remove_outdated(self):
+        for iss in list(self.keys()):
+            _kbl = []
+            for kb in self.issuer_keys[iss]:
+                kb.remove_outdated(self.remove_after)
+                if len(kb):
+                    _kbl.append(kb)
+            if _kbl:
+                self.issuer_keys[iss] = _kbl
+            else:
+                del self.issuer_keys[iss]
+
 
 # =============================================================================
 
@@ -1077,9 +1122,11 @@ def key_summary(keyjar, issuer):
         for kb in kbl:
             for key in kb.keys():
                 if key.inactive_since:
-                    key_list.append('*{}:{}:{}'.format(key.kty, key.use, key.kid))
+                    key_list.append(
+                        '*{}:{}:{}'.format(key.kty, key.use, key.kid))
                 else:
-                    key_list.append('{}:{}:{}'.format(key.kty, key.use, key.kid))
+                    key_list.append(
+                        '{}:{}:{}'.format(key.kty, key.use, key.kid))
         return ', '.join(key_list)
 
 

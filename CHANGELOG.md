@@ -16,7 +16,6 @@ The format is based on the [KeepAChangeLog] project.
 - [#380]: Made cookie_path and cookie_domain configurable via Provider like the cookie_name.
 - [#386]: An exception will now be thrown if a sub claim received from the userinfo endpoint is not the same as a sub claim previously received in an ID Token.
 - [#392]: Made sid creation simpler and faster
-- [#401]: Fixed message decoding and verifying errors.
 
 
 ### Fixed
@@ -27,6 +26,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#362]: Fix bad package settings URL
 - [#369]: The AuthnEvent object is now serialized to JSON for the session.
 - [#373]: Made the standard way the default when dealing with signed JWTs without 'kid'. Added the possibility to override this behavior if necessary.
+- [#401]: Fixed message decoding and verifying errors.
 
 ### Security
 - [#349]: Changed crypto algorithm used by `oic.utils.sdb.Crypt` for token encryption to Fernet. Old stored tokens are incompatible.
