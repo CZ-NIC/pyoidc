@@ -12,11 +12,12 @@ from jwkest.jwk import SYMKey
 
 from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import WrongSigningAlgorithm
-from oic.oic.message import AccessTokenResponse, OpenIDSchema
+from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AddressClaim
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import Claims
 from oic.oic.message import IdToken
+from oic.oic.message import OpenIDSchema
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import RegistrationResponse
