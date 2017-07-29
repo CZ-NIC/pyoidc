@@ -445,7 +445,7 @@ class Message(MutableMapping):
                         val = _deser(val, sformat="dict")
                     except Exception as exc:
                         raise DecodeError(ERRTXT % (key, exc))
-                elif vtyp == int:
+                elif vtyp is int:
                     try:
                         self._dict[skey] = int(val)
                     except (ValueError, TypeError):

@@ -334,13 +334,28 @@ class KeyBundle(object):
         return [key.kid for key in self._keys if key.kid != ""]
 
     def remove_outdated(self, after):
+        """
+        Remove keys that should not be available any more.
+        Outdated means that the key was marked as inactive at a time
+        that was longer ago then what is given in 'after'.
+        
+        :param after: The length of time the key will remain in the KeyBundle
+            before it should be removed.
+        """
         now = time.time()
+        if not isinstance(after, float):
+            try:
+                after = float(after)
+            except TypeError:
+                raise
+
         _kl = []
         for k in self._keys:
             if k.inactive_since and k.inactive_since + after < now:
-                pass
+                continue
             else:
                 _kl.append(k)
+
         self._keys = _kl
 
 
@@ -395,7 +410,7 @@ class KeyJar(object):
     """ A keyjar contains a number of KeyBundles """
 
     def __init__(self, ca_certs=None, verify_ssl=True, keybundle_cls=KeyBundle,
-                 remove_stale_after=3600):
+                 remove_after=3600):
         """
 
         :param ca_certs:
@@ -407,7 +422,7 @@ class KeyJar(object):
         self.ca_certs = ca_certs
         self.verify_ssl = verify_ssl
         self.keybundle_cls = keybundle_cls
-        self.remove_after = remove_stale_after
+        self.remove_after = remove_after
 
     def __repr__(self):
         issuers = list(self.issuer_keys.keys())
@@ -804,13 +819,19 @@ class KeyJar(object):
             if len(sk) != len(ok):
                 return False
 
-            for k in sk:
-                if k not in ok:
-                    return False
+            if not any(k in ok for k in sk):
+                return False
 
         return True
 
     def remove_outdated(self):
+        """
+        Goes through the complete list of issuers and for each of them removes
+        outdated keys.
+        Outdated keys are keys that has been marked as inactive at a time that 
+        is longer ago then some set number of seconds.
+        The number of seconds a carried in the remove_after parameter.
+        """
         for iss in list(self.keys()):
             _kbl = []
             for kb in self.issuer_keys[iss]:
