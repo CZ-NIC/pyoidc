@@ -338,7 +338,7 @@ class KeyBundle(object):
         Remove keys that should not be available any more.
         Outdated means that the key was marked as inactive at a time
         that was longer ago then what is given in 'after'.
-        
+
         :param after: The length of time the key will remain in the KeyBundle
             before it should be removed.
         """
@@ -828,7 +828,7 @@ class KeyJar(object):
         """
         Goes through the complete list of issuers and for each of them removes
         outdated keys.
-        Outdated keys are keys that has been marked as inactive at a time that 
+        Outdated keys are keys that has been marked as inactive at a time that
         is longer ago then some set number of seconds.
         The number of seconds a carried in the remove_after parameter.
         """

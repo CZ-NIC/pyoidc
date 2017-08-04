@@ -55,7 +55,7 @@ def test_openidschema():
 ])
 def test_openidschema_from_json(json_param):
     with pytest.raises(ValueError):
-        _ = OpenIDSchema().from_json(json_param)
+        OpenIDSchema().from_json(json_param)
 
 
 def test_claims_deser():

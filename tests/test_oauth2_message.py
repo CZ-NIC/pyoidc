@@ -26,7 +26,6 @@ from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import RefreshAccessTokenRequest
 from oic.oauth2.message import ROPCAccessTokenRequest
 from oic.oauth2.message import TokenErrorResponse
-from oic.oauth2.message import TooManyValues
 from oic.oauth2.message import json_deserializer
 from oic.oauth2.message import json_serializer
 from oic.oauth2.message import sp_sep_list_deserializer
