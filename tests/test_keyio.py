@@ -1,8 +1,8 @@
 # pylint: disable=missing-docstring,no-self-use
 import os
+import time
 
 import pytest
-import time
 
 from oic.oauth2.message import MissingSigningKey
 from oic.oic import AuthorizationResponse
