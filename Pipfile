@@ -15,6 +15,7 @@ sphinx-autobuild = "*"
 testfixtures = "*"
 tox = "*"
 "-e ." = "*"
+freezegun = "*"
 
 [packages]
 cffi = "*"
