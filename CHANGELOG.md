@@ -5,7 +5,7 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
-## 0.11.0.0 [UNRELEASED]
+## 0.11.0.0 [2017-07-07]
 
 ### Changed
 - [#318]: `oic.utils.authn.saml` raises `ImportError` on import if optional `saml2` dependency is not present.
