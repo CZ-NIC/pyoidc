@@ -19,6 +19,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#392]: Made sid creation simpler and faster
 
 ### Fixed
+- [#317]: Resolved an `AttibuteError` exception under Python 2.
 - [#313]: Catch exception correctly
 - [#319]: Fix sanitize on strings starting with "B" or "U"
 - [#330]: Fix client_management user input being eval'd under Python 2
@@ -32,6 +33,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#349]: Changed crypto algorithm used by `oic.utils.sdb.Crypt` for token encryption to Fernet. Old stored tokens are incompatible.
 - [#363]: Fixed IV reuse for CookieDealer class. Replaced the encrypt-then-mac construction with a proper AEAD (AES-SIV).
 
+[#317]: https://github.com/OpenIDC/pyoidc/pull/317
 [#313]: https://github.com/OpenIDC/pyoidc/issues/313
 [#387]: https://github.com/OpenIDC/pyoidc/pull/387
 [#318]: https://github.com/OpenIDC/pyoidc/pull/318
