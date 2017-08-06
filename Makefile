@@ -49,3 +49,7 @@ check-isort:
 check-pylama:
 	@pipenv run pylama $(OICDIR) $(TESTDIR)
 .PHONY: check-pylama
+
+release:
+	@pipenv run python setup.py sdist upload -r pypi
+.PHONY: release
