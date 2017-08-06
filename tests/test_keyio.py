@@ -1,8 +1,11 @@
 # pylint: disable=missing-docstring,no-self-use
 import os
 import time
+from datetime import datetime as dt
+from datetime import timedelta
 
 import pytest
+from freezegun import freeze_time
 
 from oic.oauth2.message import MissingSigningKey
 from oic.oic import AuthorizationResponse
@@ -462,9 +465,11 @@ def test_remove_after():
             if not k.inactive_since:
                 k.inactive_since = _now
 
-    time.sleep(2)
-    # this should remove all the old ones
-    keyjar.remove_outdated()
+    with freeze_time(dt.now()) as frozen:
+        # this should remove all the old ones
+        frozen.tick(delta=timedelta(seconds=2))
+
+        keyjar.remove_outdated()
 
     # The remainder are the new keys
     _new = [k.kid for k in keyjar.get_issuer_keys('') if k.kid]
