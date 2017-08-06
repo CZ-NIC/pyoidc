@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "4927cb60029aac64afebd65c6deaf3b4ee49d544a0a620dacfc226c27677458b"
+            "sha256": "95e627ebcb0f7571bdbb665476845afd36d03e678d5b96b3f1659d163b720062"
         },
         "requires": {},
         "sources": [
@@ -19,7 +19,7 @@
             "version": "==1.9.0"
         },
         "certifi": {
-            "version": "==2017.4.17"
+            "version": "==2017.7.27.1"
         },
         "cffi": {
             "version": "==1.10.0"
@@ -28,7 +28,7 @@
             "version": "==3.0.4"
         },
         "cryptography": {
-            "version": "==1.9"
+            "version": "==2.0.3"
         },
         "future": {
             "version": "==0.16.0"
@@ -37,7 +37,7 @@
             "version": "==2.5"
         },
         "mako": {
-            "version": "==1.0.6"
+            "version": "==1.0.7"
         },
         "markupsafe": {
             "version": "==1.0"
@@ -55,19 +55,19 @@
             "version": "==2.4.37"
         },
         "pyopenssl": {
-            "version": "==17.1.0"
+            "version": "==17.2.0"
         },
         "requests": {
-            "version": "==2.18.1"
+            "version": "==2.18.3"
         },
         "setuptools": {
-            "version": "==36.0.1"
+            "version": "==36.2.7"
         },
         "six": {
             "version": "==1.10.0"
         },
         "urllib3": {
-            "version": "==1.21.1"
+            "version": "==1.22"
         }
     },
     "develop": {
@@ -82,7 +82,7 @@
             "version": "==2.4.0"
         },
         "certifi": {
-            "version": "==2017.4.17"
+            "version": "==2017.7.27.1"
         },
         "chardet": {
             "version": "==3.0.4"
@@ -94,7 +94,10 @@
             "version": "==4.4.1"
         },
         "docutils": {
-            "version": "==0.13.1"
+            "version": "==0.14"
+        },
+        "freezegun": {
+            "version": "==0.3.9"
         },
         "httpretty": {
             "version": "==0.8.14"
@@ -145,7 +148,7 @@
             "version": "==2.0.0"
         },
         "pyflakes": {
-            "version": "==1.5.0"
+            "version": "==1.6.0"
         },
         "pygments": {
             "version": "==2.2.0"
@@ -154,10 +157,13 @@
             "version": "==7.4.1"
         },
         "pytest": {
-            "version": "==3.1.3"
+            "version": "==3.2.0"
         },
         "pytest-cov": {
             "version": "==2.5.1"
+        },
+        "python-dateutil": {
+            "version": "==2.6.1"
         },
         "pytz": {
             "version": "==2017.2"
@@ -166,13 +172,13 @@
             "version": "==3.12"
         },
         "requests": {
-            "version": "==2.18.1"
+            "version": "==2.18.3"
         },
         "responses": {
-            "version": "==0.5.1"
+            "version": "==0.6.1"
         },
         "setuptools": {
-            "version": "==36.0.1"
+            "version": "==36.2.7"
         },
         "six": {
             "version": "==1.10.0"
@@ -199,7 +205,7 @@
             "version": "==2.7.0"
         },
         "urllib3": {
-            "version": "==1.21.1"
+            "version": "==1.22"
         },
         "virtualenv": {
             "version": "==15.1.0"
