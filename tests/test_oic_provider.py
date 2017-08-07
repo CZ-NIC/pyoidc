@@ -831,7 +831,6 @@ class TestProvider(object):
 
         assert len(logcap.records) == 0
 
-    @pytest.mark.skip(reason='https://github.com/OpenIDC/pyoidc/issues/402')
     def test_verify_sector_identifier_error(self):
         rr = RegistrationRequest(operation="register", sector_identifier_uri="https://example.com")
         error = ConnectionError('broken connection')

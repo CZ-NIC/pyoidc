@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "95e627ebcb0f7571bdbb665476845afd36d03e678d5b96b3f1659d163b720062"
+            "sha256": "cb251e7bb5b632a55271838b603f7863c69d8314771aae0d94bff58bce6c3867"
         },
         "requires": {},
         "sources": [
@@ -175,7 +175,7 @@
             "version": "==2.18.3"
         },
         "responses": {
-            "version": "==0.6.1"
+            "version": "==0.6.0"
         },
         "setuptools": {
             "version": "==36.2.7"
