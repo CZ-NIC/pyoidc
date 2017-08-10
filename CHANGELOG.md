@@ -5,6 +5,13 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
+## 0.11.1.0 [Unreleased]
+
+### Fixed
+- [#405]: Fix generation of endpoint urls
+
+[#405]: https://github.com.OpenIDC/pyoidc/issues/405
+
 ## 0.11.0.0 [2017-07-07]
 
 ### Changed
