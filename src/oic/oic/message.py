@@ -524,7 +524,7 @@ class OpenIDSchema(Message):
                "zoneinfo": SINGLE_OPTIONAL_STRING,
                "locale": SINGLE_OPTIONAL_STRING,
                "phone_number": SINGLE_OPTIONAL_STRING,
-               "phone_number_verified": SINGLE_OPTIONAL_STRING,
+               "phone_number_verified": SINGLE_OPTIONAL_BOOLEAN,
                "address": OPTIONAL_ADDRESS,
                "updated_at": SINGLE_OPTIONAL_INT,
                "_claim_names": OPTIONAL_MESSAGE,
