@@ -9,8 +9,10 @@ The format is based on the [KeepAChangeLog] project.
 
 ### Fixed
 - [#405]: Fix generation of endpoint urls
+- [#407]: make phone_number_verified in OpenIDSchema a boolean 
 
 [#405]: https://github.com.OpenIDC/pyoidc/issues/405
+[#407]: https://github.com/OpenIDC/pyoidc/issues/407
 
 ## 0.11.0.0 [2017-07-07]
 
