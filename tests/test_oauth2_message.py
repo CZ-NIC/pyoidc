@@ -116,7 +116,8 @@ class DummyMessage(Message):
         "opt_int": SINGLE_OPTIONAL_INT,
         "opt_str_list": OPTIONAL_LIST_OF_STRINGS,
         "req_str_list": REQUIRED_LIST_OF_STRINGS,
-        "opt_json": SINGLE_OPTIONAL_JSON}
+        "opt_json": SINGLE_OPTIONAL_JSON
+    }
 
 
 class TestMessage(object):
@@ -649,6 +650,20 @@ def test_to_jwe(keytype, alg, enc):
     _jwe = msg.to_jwe(KEYJAR.get_encrypt_key(keytype, ''), alg=alg, enc=enc)
     msg1 = Message().from_jwe(_jwe, KEYJAR.get_encrypt_key(keytype, ''))
     assert msg1 == msg
+
+
+def test_to_dict_with_message_obj():
+    content = Message(a={'a': {'foo': {'bar': [{'bat': []}]}}})
+    _dict = content.to_dict(lev=0)
+    content_fixture = {'a': {'a': {'foo': {'bar': [{'bat': []}]}}}}
+    assert _dict == content_fixture
+
+
+def test_to_dict_with_raw_types():
+    msg = Message(c_default=[])
+    content_fixture = {'c_default': []}
+    _dict = msg.to_dict(lev=1)
+    assert _dict == content_fixture
 
 
 def test_get_verify_keys_no_kid_multiple_keys():

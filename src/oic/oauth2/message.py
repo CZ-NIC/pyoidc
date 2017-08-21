@@ -319,7 +319,7 @@ class Message(MutableMapping):
 
             if isinstance(val, Message):
                 _res[key] = val.to_dict(lev + 1)
-            elif isinstance(val, list) and isinstance(val[0], Message):
+            elif isinstance(val, list) and isinstance(next(iter(val or []), None), Message):
                 _res[key] = [v.to_dict(lev) for v in val]
             else:
                 _res[key] = val
