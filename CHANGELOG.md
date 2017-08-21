@@ -9,6 +9,7 @@ The format is based on the [KeepAChangeLog] project.
 
 ### Fixed
 - [#405]: Fix generation of endpoint urls
+- [#411]: Empty lists not indexable
 
 [#405]: https://github.com/OpenIDC/pyoidc/issues/405
 
@@ -40,6 +41,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#349]: Changed crypto algorithm used by `oic.utils.sdb.Crypt` for token encryption to Fernet. Old stored tokens are incompatible.
 - [#363]: Fixed IV reuse for CookieDealer class. Replaced the encrypt-then-mac construction with a proper AEAD (AES-SIV).
 
+[#411]: https://github.com/OpenIDC/pyoidc/issues/411
 [#317]: https://github.com/OpenIDC/pyoidc/pull/317
 [#313]: https://github.com/OpenIDC/pyoidc/issues/313
 [#387]: https://github.com/OpenIDC/pyoidc/pull/387
