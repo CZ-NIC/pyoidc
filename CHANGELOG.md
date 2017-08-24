@@ -10,8 +10,10 @@ The format is based on the [KeepAChangeLog] project.
 ### Fixed
 - [#405]: Fix generation of endpoint urls
 - [#411]: Empty lists not indexable
+- [#413]: Fix error when wrong response_mode requested
 
 [#405]: https://github.com/OpenIDC/pyoidc/issues/405
+[#413]: https://github.com/OpenIDC/pyoidc/issues/413
 
 ## 0.11.0.0 [2017-07-07]
 
