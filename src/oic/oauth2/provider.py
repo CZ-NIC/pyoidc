@@ -744,7 +744,7 @@ class Provider(object):
                                           redirect_uri=redirect_uri,
                                           headers=headers)
             except InvalidRequest as err:
-                return error("invalid_request", err)
+                return error("invalid_request", str(err))
             else:
                 if resp is not None:
                     return resp
