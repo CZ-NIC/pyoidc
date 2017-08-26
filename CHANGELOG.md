@@ -5,13 +5,14 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
-## 0.11.1.0 [Unreleased]
+## 0.11.1.0 [2017-08-26]
 
 ### Fixed
 - [#405]: Fix generation of endpoint urls
 - [#411]: Empty lists not indexable
 - [#413]: Fix error when wrong response_mode requested
 
+[#411]: https://github.com/OpenIDC/pyoidc/issues/411
 [#405]: https://github.com/OpenIDC/pyoidc/issues/405
 [#413]: https://github.com/OpenIDC/pyoidc/issues/413
 
@@ -43,7 +44,9 @@ The format is based on the [KeepAChangeLog] project.
 - [#349]: Changed crypto algorithm used by `oic.utils.sdb.Crypt` for token encryption to Fernet. Old stored tokens are incompatible.
 - [#363]: Fixed IV reuse for CookieDealer class. Replaced the encrypt-then-mac construction with a proper AEAD (AES-SIV).
 
-[#411]: https://github.com/OpenIDC/pyoidc/issues/411
+[#401]: https://github.com/OpenIDC/pyoidc/pull/401
+[#386]: https://github.com/OpenIDC/pyoidc/pull/386
+[#380]: https://github.com/OpenIDC/pyoidc/pull/380
 [#317]: https://github.com/OpenIDC/pyoidc/pull/317
 [#313]: https://github.com/OpenIDC/pyoidc/issues/313
 [#387]: https://github.com/OpenIDC/pyoidc/pull/387
