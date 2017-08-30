@@ -58,6 +58,27 @@ def test_openidschema_from_json(json_param):
         OpenIDSchema().from_json(json_param)
 
 
+@pytest.mark.parametrize("json_param", [
+    '{"email_verified":false, "email":"foo@example.com", "sub":"abc"}',
+    '{"email_verified":true, "email":"foo@example.com", "sub":"abc"}',
+    '{"phone_number_verified":false, "phone_number":"+1 555 200000", "sub":"abc"}',
+    '{"phone_number_verified":true, "phone_number":"+1 555 20000", "sub":"abc"}',
+])
+def test_claim_booleans(json_param):
+    assert OpenIDSchema().from_json(json_param)
+
+
+@pytest.mark.parametrize("json_param", [
+    '{"email_verified":"Not", "email":"foo@example.com", "sub":"abc"}',
+    '{"email_verified":"Sure", "email":"foo@example.com", "sub":"abc"}',
+    '{"phone_number_verified":"Not", "phone_number":"+1 555 200000", "sub":"abc"}',
+    '{"phone_number_verified":"Sure", "phone_number":"+1 555 20000", "sub":"abc"}',
+])
+def test_claim_not_booleans(json_param):
+    with pytest.raises(ValueError):
+         OpenIDSchema().from_json(json_param)
+
+
 def test_claims_deser():
     _dic = {
         "userinfo": {
