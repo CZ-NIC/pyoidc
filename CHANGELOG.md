@@ -11,7 +11,9 @@ The format is based on the [KeepAChangeLog] project.
 - [#405]: Fix generation of endpoint urls
 - [#411]: Empty lists not indexable
 - [#413]: Fix error when wrong response_mode requested
+- [#418]: Made phone_number_claim be boolean and fixed a bug when importing JSON (non-boolean where boolean expected)
 
+[#418]: https://github.com/OpenIDC/pyoidc/pull/418
 [#411]: https://github.com/OpenIDC/pyoidc/issues/411
 [#405]: https://github.com/OpenIDC/pyoidc/issues/405
 [#413]: https://github.com/OpenIDC/pyoidc/issues/413
