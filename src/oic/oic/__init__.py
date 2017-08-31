@@ -1066,12 +1066,12 @@ class Client(oauth2.Client):
             if "endpoint" in spec:
                 if "access_token" in spec:
                     _uinfo = self.do_user_info_request(
-                        token=spec["access_token"],
+                        method='GET', token=spec["access_token"],
                         userinfo_endpoint=spec["endpoint"])
                 else:
                     if callback:
                         _uinfo = self.do_user_info_request(
-                            token=callback(csrc),
+                            method='GET', token=callback(csrc),
                             userinfo_endpoint=spec["endpoint"])
                     else:
                         _uinfo = self.do_user_info_request(
