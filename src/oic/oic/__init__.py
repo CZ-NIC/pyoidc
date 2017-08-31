@@ -764,6 +764,7 @@ class Client(oauth2.Client):
     def user_info_request(self, method="GET", state="", scope="", **kwargs):
         uir = UserInfoRequest()
         logger.debug("[user_info_request]: kwargs:%s" % (sanitize(kwargs),))
+        token = None
         if "token" in kwargs:
             if kwargs["token"]:
                 uir["access_token"] = kwargs["token"]
@@ -773,12 +774,11 @@ class Client(oauth2.Client):
                 kwargs["behavior"] = "use_authorization_header"
             else:
                 # What to do ? Need a callback
-                token = None
+                pass
         elif "access_token" in kwargs and kwargs["access_token"]:
             uir["access_token"] = kwargs["access_token"]
             del kwargs["access_token"]
-            token = None
-        else:
+        elif state:
             token = self.grant[state].get_token(scope)
 
             if token.is_valid():
@@ -808,17 +808,19 @@ class Client(oauth2.Client):
         if "behavior" in kwargs:
             _behav = kwargs["behavior"]
             _token = uir["access_token"]
+            _ttype = ''
             try:
                 _ttype = kwargs["token_type"]
             except KeyError:
-                try:
-                    _ttype = token.token_type
-                except AttributeError:
-                    raise MissingParameter("Unspecified token type")
+                if token:
+                    try:
+                        _ttype = token.token_type
+                    except AttributeError:
+                        raise MissingParameter("Unspecified token type")
 
             if 'as_query_parameter' == _behav:
                 method = 'GET'
-            else:
+            elif token:
                 # use_authorization_header, token_in_message_body
                 if "use_authorization_header" in _behav:
                     token_header = "{type} {token}".format(
@@ -1067,9 +1069,13 @@ class Client(oauth2.Client):
                         token=spec["access_token"],
                         userinfo_endpoint=spec["endpoint"])
                 else:
-                    _uinfo = self.do_user_info_request(
-                        token=callback(csrc),
-                        userinfo_endpoint=spec["endpoint"])
+                    if callback:
+                        _uinfo = self.do_user_info_request(
+                            token=callback(csrc),
+                            userinfo_endpoint=spec["endpoint"])
+                    else:
+                        _uinfo = self.do_user_info_request(
+                            method='GET', userinfo_endpoint=spec["endpoint"])
 
                 claims = [value for value, src in
                           userinfo["_claim_names"].items() if src == csrc]

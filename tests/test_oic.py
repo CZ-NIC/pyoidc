@@ -778,3 +778,44 @@ def test_request_duplicate_state():
 
     assert req['state'] == 'foobar'
     assert req['redirect_uri'] == 'https://node-openid-client.dev/cb'
+
+
+def test_do_userinfo_request_no_state_or_token():
+    """ Mirrors the first lines in do_userinfo_request"""
+    client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
+
+    method = "GET"
+    state = ""
+    scope = "openid"
+    request = "openid"
+    kwargs = {"request": request,
+              "userinfo_endpoint": 'http://example.com/userinfo'}
+
+    path, body, method, h_args = client.user_info_request(method, state,
+                                                          scope, **kwargs)
+
+    assert path == 'http://example.com/userinfo'
+    assert h_args == {}
+    assert body is None
+    assert method == 'GET'
+
+
+def test_do_userinfo_request_token_no_state():
+    """ Mirrors the first lines in do_userinfo_request"""
+    client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
+
+    method = "GET"
+    state = ""
+    scope = "openid"
+    request = "openid"
+    kwargs = {"request": request,
+              "userinfo_endpoint": 'http://example.com/userinfo',
+              "token": "abcdefgh"}
+
+    path, body, method, h_args = client.user_info_request(method, state,
+                                                          scope, **kwargs)
+
+    assert path == 'http://example.com/userinfo'
+    assert h_args == {'headers': {'Authorization': 'Bearer abcdefgh'}}
+    assert method == 'GET'
+    assert body is None
