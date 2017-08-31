@@ -454,6 +454,9 @@ class Message(MutableMapping):
                                                                         skey))
                     else:
                         return
+                elif vtyp is bool:
+                    raise ValueError(
+                        '"{}", wrong type of value for "{}"'.format(val, skey))
 
                 if isinstance(val, six.string_types):
                     self._dict[skey] = val
