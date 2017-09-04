@@ -756,7 +756,8 @@ def test_request_1():
            '.eyJzdGF0ZSI6ImZvb2JhciIsImlzcyI6Inp2bWk4UGdJbURiOSIsImF1ZCI6I' \
            'mh0dHBzOi8vcnAuY2VydGlmaWNhdGlvbi5vcGVuaWQubmV0OjgwODAvbm9kZS1' \
            'vcGVuaWQtY2xpZW50L3JwLXJlcXVlc3RfdXJpLXVuc2lnbmVkIiwiY2xpZW50X' \
-           '2lkIjoienZtaThQZ0ltRGI5In0.&client_id=zvmi8PgImDb9&scope=openid&response_type=code'
+           '2lkIjoienZtaThQZ0ltRGI5In0.&client_id=zvmi8PgImDb9&scope=openid' \
+           '&response_type=code'
 
     req = srv.parse_authorization_request(query=areq)
 
@@ -767,7 +768,8 @@ def test_request_duplicate_state():
     srv = Server()
     srv.keyjar = KEYJ
 
-    areq = 'redirect_uri=https%3A%2F%2Fnode-openid-client.dev%2Fcb&state=barf&request' \
+    areq = 'redirect_uri=https%3A%2F%2Fnode-openid-client.dev%2Fcb&state=barf' \
+           '&request' \
            '=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0' \
            '.eyJzdGF0ZSI6ImZvb2JhciIsImlzcyI6Inp2bWk4UGdJbURiOSIsImF1ZCI6Imh0dHBzOi8v' \
            'cnAuY2VydGlmaWNhdGlvbi5vcGVuaWQubmV0OjgwODAvbm9kZS1vcGVuaWQtY2xpZW50L3JwL' \
