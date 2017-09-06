@@ -10,6 +10,7 @@ import pytest
 from jwkest.jws import alg2keytype
 from jwkest.jws import left_hash
 from jwkest.jwt import JWT
+from requests import Response
 
 from oic.oauth2.exception import OtherError
 from oic.oic import DEF_SIGN_ALG
@@ -821,3 +822,55 @@ def test_do_userinfo_request_token_no_state():
     assert h_args == {'headers': {'Authorization': 'Bearer abcdefgh'}}
     assert method == 'GET'
     assert body is None
+
+
+def test_do_userinfo_request_explicit_token_none():
+    """ Mirrors the first lines in do_userinfo_request"""
+    client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
+
+    method = "GET"
+    state = ""
+    scope = "openid"
+    request = "openid"
+    kwargs = {"request": request,
+              "userinfo_endpoint": 'http://example.com/userinfo',
+              "token": None}
+
+    path, body, method, h_args = client.user_info_request(method, state,
+                                                          scope, **kwargs)
+
+    assert path == 'http://example.com/userinfo'
+    assert h_args == {}
+    assert method == 'GET'
+    assert body is None
+
+
+def token_callback(endp):
+    return 'abcdef'
+
+
+def fake_request(*args, **kwargs):
+    r = Response()
+    r.status_code = 200
+    r._content = b'{"shoe_size": 12}'
+    r.headers = {'content-type': 'application/json'}
+    return r
+
+
+def test_fetch_distributed_claims_with_callback():
+    """ Mirrors the first lines in do_userinfo_request"""
+    client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
+
+    client.http_request = fake_request
+    userinfo = {
+        'sub': 'foobar',
+        '_claim_names': {'shoe_size': 'src1'},
+        '_claim_sources': {
+            "src1": {
+                "endpoint": "https://bank.example.com/claim_source"}}
+    }
+
+    _ui = client.fetch_distributed_claims(userinfo, token_callback)
+
+    assert _ui['shoe_size'] == 12
+    assert _ui['sub'] == 'foobar'

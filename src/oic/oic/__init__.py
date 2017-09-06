@@ -901,12 +901,13 @@ class Client(oauth2.Client):
         if 'error' in res:  # Error response
             res = UserInfoErrorResponse(**res.to_dict())
 
-        # Verify userinfo sub claim against what's returned in the ID Token
-        idt = self.grant[state].get_id_token()
-        if idt:
-            if idt['sub'] != res['sub']:
-                raise SubMismatch(
-                    'Sub identifier not the same in userinfo and Id Token')
+        if state:
+            # Verify userinfo sub claim against what's returned in the ID Token
+            idt = self.grant[state].get_id_token()
+            if idt:
+                if idt['sub'] != res['sub']:
+                    raise SubMismatch(
+                        'Sub identifier not the same in userinfo and Id Token')
 
         self.store_response(res, _txt)
 
@@ -1071,7 +1072,7 @@ class Client(oauth2.Client):
                 else:
                     if callback:
                         _uinfo = self.do_user_info_request(
-                            method='GET', token=callback(csrc),
+                            method='GET', token=callback(spec['endpoint']),
                             userinfo_endpoint=spec["endpoint"])
                     else:
                         _uinfo = self.do_user_info_request(
