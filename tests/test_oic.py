@@ -845,6 +845,30 @@ def test_do_userinfo_request_explicit_token_none():
     assert body is None
 
 
+def test_do_userinfo_request_with_state():
+    """ Mirrors the first lines in do_userinfo_request"""
+    client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
+    client.grant['foxhound'] = Grant()
+    resp = AccessTokenResponse(access_token="access", token_type="Bearer")
+    _token = Token(resp)
+    client.grant["foxhound"].tokens = [_token]
+
+    method = "GET"
+    state = "foxhound"
+    scope = "openid"
+    request = "openid"
+    kwargs = {"request": request,
+              "userinfo_endpoint": 'http://example.com/userinfo'}
+
+    path, body, method, h_args = client.user_info_request(method, state,
+                                                          scope, **kwargs)
+
+    assert path == 'http://example.com/userinfo'
+    assert h_args == {'headers': {'Authorization': 'Bearer access'}}
+    assert method == 'GET'
+    assert body is None
+
+
 def token_callback(endp):
     return 'abcdef'
 
@@ -874,3 +898,43 @@ def test_fetch_distributed_claims_with_callback():
 
     assert _ui['shoe_size'] == 12
     assert _ui['sub'] == 'foobar'
+
+
+def test_fetch_distributed_claims_with_no_callback():
+    """ Mirrors the first lines in do_userinfo_request"""
+    client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
+
+    client.http_request = fake_request
+    userinfo = {
+        'sub': 'foobar',
+        '_claim_names': {'shoe_size': 'src1'},
+        '_claim_sources': {
+            "src1": {
+                "endpoint": "https://bank.example.com/claim_source"}}
+    }
+
+    _ui = client.fetch_distributed_claims(userinfo, callback=None)
+
+    assert _ui['shoe_size'] == 12
+    assert _ui['sub'] == 'foobar'
+
+
+def test_fetch_distributed_claims_with_explicit_no_token():
+    """ Mirrors the first lines in do_userinfo_request"""
+    client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
+
+    client.http_request = fake_request
+    userinfo = {
+        'sub': 'foobar',
+        '_claim_names': {'shoe_size': 'src1'},
+        '_claim_sources': {
+            "src1": {
+                "access_token": None,
+                "endpoint": "https://bank.example.com/claim_source"}}
+    }
+
+    _ui = client.fetch_distributed_claims(userinfo, callback=None)
+
+    assert _ui['shoe_size'] == 12
+    assert _ui['sub'] == 'foobar'
+
