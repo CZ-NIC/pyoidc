@@ -876,7 +876,18 @@ def token_callback(endp):
 def fake_request(*args, **kwargs):
     r = Response()
     r.status_code = 200
-    r._content = b'{"shoe_size": 12}'
+
+    try:
+        _token = kwargs['headers']['Authorization']
+    except KeyError:
+        r._content = b'{"shoe_size": 10}'
+    else:
+        _token = _token[7:]
+        if _token == 'abcdef':
+            r._content = b'{"shoe_size": 11}'
+        else:
+            r._content = b'{"shoe_size": 12}'
+
     r.headers = {'content-type': 'application/json'}
     return r
 
@@ -896,7 +907,7 @@ def test_fetch_distributed_claims_with_callback():
 
     _ui = client.fetch_distributed_claims(userinfo, token_callback)
 
-    assert _ui['shoe_size'] == 12
+    assert _ui['shoe_size'] == 11
     assert _ui['sub'] == 'foobar'
 
 
@@ -915,7 +926,7 @@ def test_fetch_distributed_claims_with_no_callback():
 
     _ui = client.fetch_distributed_claims(userinfo, callback=None)
 
-    assert _ui['shoe_size'] == 12
+    assert _ui['shoe_size'] == 10
     assert _ui['sub'] == 'foobar'
 
 
@@ -935,6 +946,5 @@ def test_fetch_distributed_claims_with_explicit_no_token():
 
     _ui = client.fetch_distributed_claims(userinfo, callback=None)
 
-    assert _ui['shoe_size'] == 12
+    assert _ui['shoe_size'] == 10
     assert _ui['sub'] == 'foobar'
-
