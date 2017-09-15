@@ -10,6 +10,7 @@ import pytest
 from jwkest.jws import alg2keytype
 from jwkest.jws import left_hash
 from jwkest.jwt import JWT
+from requests import Response
 
 from oic.oauth2.exception import OtherError
 from oic.oic import DEF_SIGN_ALG
@@ -756,7 +757,8 @@ def test_request_1():
            '.eyJzdGF0ZSI6ImZvb2JhciIsImlzcyI6Inp2bWk4UGdJbURiOSIsImF1ZCI6I' \
            'mh0dHBzOi8vcnAuY2VydGlmaWNhdGlvbi5vcGVuaWQubmV0OjgwODAvbm9kZS1' \
            'vcGVuaWQtY2xpZW50L3JwLXJlcXVlc3RfdXJpLXVuc2lnbmVkIiwiY2xpZW50X' \
-           '2lkIjoienZtaThQZ0ltRGI5In0.&client_id=zvmi8PgImDb9&scope=openid&response_type=code'
+           '2lkIjoienZtaThQZ0ltRGI5In0.&client_id=zvmi8PgImDb9&scope=openid' \
+           '&response_type=code'
 
     req = srv.parse_authorization_request(query=areq)
 
@@ -767,7 +769,8 @@ def test_request_duplicate_state():
     srv = Server()
     srv.keyjar = KEYJ
 
-    areq = 'redirect_uri=https%3A%2F%2Fnode-openid-client.dev%2Fcb&state=barf&request' \
+    areq = 'redirect_uri=https%3A%2F%2Fnode-openid-client.dev%2Fcb&state=barf' \
+           '&request' \
            '=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0' \
            '.eyJzdGF0ZSI6ImZvb2JhciIsImlzcyI6Inp2bWk4UGdJbURiOSIsImF1ZCI6Imh0dHBzOi8v' \
            'cnAuY2VydGlmaWNhdGlvbi5vcGVuaWQubmV0OjgwODAvbm9kZS1vcGVuaWQtY2xpZW50L3JwL' \
@@ -778,3 +781,170 @@ def test_request_duplicate_state():
 
     assert req['state'] == 'foobar'
     assert req['redirect_uri'] == 'https://node-openid-client.dev/cb'
+
+
+def test_do_userinfo_request_no_state_or_token():
+    """ Mirrors the first lines in do_userinfo_request"""
+    client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
+
+    method = "GET"
+    state = ""
+    scope = "openid"
+    request = "openid"
+    kwargs = {"request": request,
+              "userinfo_endpoint": 'http://example.com/userinfo'}
+
+    path, body, method, h_args = client.user_info_request(method, state,
+                                                          scope, **kwargs)
+
+    assert path == 'http://example.com/userinfo'
+    assert h_args == {}
+    assert body is None
+    assert method == 'GET'
+
+
+def test_do_userinfo_request_token_no_state():
+    """ Mirrors the first lines in do_userinfo_request"""
+    client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
+
+    method = "GET"
+    state = ""
+    scope = "openid"
+    request = "openid"
+    kwargs = {"request": request,
+              "userinfo_endpoint": 'http://example.com/userinfo',
+              "token": "abcdefgh"}
+
+    path, body, method, h_args = client.user_info_request(method, state,
+                                                          scope, **kwargs)
+
+    assert path == 'http://example.com/userinfo'
+    assert h_args == {'headers': {'Authorization': 'Bearer abcdefgh'}}
+    assert method == 'GET'
+    assert body is None
+
+
+def test_do_userinfo_request_explicit_token_none():
+    """ Mirrors the first lines in do_userinfo_request"""
+    client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
+
+    method = "GET"
+    state = ""
+    scope = "openid"
+    request = "openid"
+    kwargs = {"request": request,
+              "userinfo_endpoint": 'http://example.com/userinfo',
+              "token": None}
+
+    path, body, method, h_args = client.user_info_request(method, state,
+                                                          scope, **kwargs)
+
+    assert path == 'http://example.com/userinfo'
+    assert h_args == {}
+    assert method == 'GET'
+    assert body is None
+
+
+def test_do_userinfo_request_with_state():
+    """ Mirrors the first lines in do_userinfo_request"""
+    client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
+    client.grant['foxhound'] = Grant()
+    resp = AccessTokenResponse(access_token="access", token_type="Bearer")
+    _token = Token(resp)
+    client.grant["foxhound"].tokens = [_token]
+
+    method = "GET"
+    state = "foxhound"
+    scope = "openid"
+    request = "openid"
+    kwargs = {"request": request,
+              "userinfo_endpoint": 'http://example.com/userinfo'}
+
+    path, body, method, h_args = client.user_info_request(method, state,
+                                                          scope, **kwargs)
+
+    assert path == 'http://example.com/userinfo'
+    assert h_args == {'headers': {'Authorization': 'Bearer access'}}
+    assert method == 'GET'
+    assert body is None
+
+
+def token_callback(endp):
+    return 'abcdef'
+
+
+def fake_request(*args, **kwargs):
+    r = Response()
+    r.status_code = 200
+
+    try:
+        _token = kwargs['headers']['Authorization']
+    except KeyError:
+        r._content = b'{"shoe_size": 10}'
+    else:
+        _token = _token[7:]
+        if _token == 'abcdef':
+            r._content = b'{"shoe_size": 11}'
+        else:
+            r._content = b'{"shoe_size": 12}'
+
+    r.headers = {'content-type': 'application/json'}
+    return r
+
+
+def test_fetch_distributed_claims_with_callback():
+    """ Mirrors the first lines in do_userinfo_request"""
+    client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
+
+    client.http_request = fake_request
+    userinfo = {
+        'sub': 'foobar',
+        '_claim_names': {'shoe_size': 'src1'},
+        '_claim_sources': {
+            "src1": {
+                "endpoint": "https://bank.example.com/claim_source"}}
+    }
+
+    _ui = client.fetch_distributed_claims(userinfo, token_callback)
+
+    assert _ui['shoe_size'] == 11
+    assert _ui['sub'] == 'foobar'
+
+
+def test_fetch_distributed_claims_with_no_callback():
+    """ Mirrors the first lines in do_userinfo_request"""
+    client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
+
+    client.http_request = fake_request
+    userinfo = {
+        'sub': 'foobar',
+        '_claim_names': {'shoe_size': 'src1'},
+        '_claim_sources': {
+            "src1": {
+                "endpoint": "https://bank.example.com/claim_source"}}
+    }
+
+    _ui = client.fetch_distributed_claims(userinfo, callback=None)
+
+    assert _ui['shoe_size'] == 10
+    assert _ui['sub'] == 'foobar'
+
+
+def test_fetch_distributed_claims_with_explicit_no_token():
+    """ Mirrors the first lines in do_userinfo_request"""
+    client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
+
+    client.http_request = fake_request
+    userinfo = {
+        'sub': 'foobar',
+        '_claim_names': {'shoe_size': 'src1'},
+        '_claim_sources': {
+            "src1": {
+                "access_token": None,
+                "endpoint": "https://bank.example.com/claim_source"}}
+    }
+
+    _ui = client.fetch_distributed_claims(userinfo, callback=None)
+
+    assert _ui['shoe_size'] == 10
+    assert _ui['sub'] == 'foobar'

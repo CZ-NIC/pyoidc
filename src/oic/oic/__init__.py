@@ -764,6 +764,7 @@ class Client(oauth2.Client):
     def user_info_request(self, method="GET", state="", scope="", **kwargs):
         uir = UserInfoRequest()
         logger.debug("[user_info_request]: kwargs:%s" % (sanitize(kwargs),))
+        token = None
         if "token" in kwargs:
             if kwargs["token"]:
                 uir["access_token"] = kwargs["token"]
@@ -773,12 +774,11 @@ class Client(oauth2.Client):
                 kwargs["behavior"] = "use_authorization_header"
             else:
                 # What to do ? Need a callback
-                token = None
+                pass
         elif "access_token" in kwargs and kwargs["access_token"]:
             uir["access_token"] = kwargs["access_token"]
             del kwargs["access_token"]
-            token = None
-        else:
+        elif state:
             token = self.grant[state].get_token(scope)
 
             if token.is_valid():
@@ -808,17 +808,19 @@ class Client(oauth2.Client):
         if "behavior" in kwargs:
             _behav = kwargs["behavior"]
             _token = uir["access_token"]
+            _ttype = ''
             try:
                 _ttype = kwargs["token_type"]
             except KeyError:
-                try:
-                    _ttype = token.token_type
-                except AttributeError:
-                    raise MissingParameter("Unspecified token type")
+                if token:
+                    try:
+                        _ttype = token.token_type
+                    except AttributeError:
+                        raise MissingParameter("Unspecified token type")
 
             if 'as_query_parameter' == _behav:
                 method = 'GET'
-            else:
+            elif token:
                 # use_authorization_header, token_in_message_body
                 if "use_authorization_header" in _behav:
                     token_header = "{type} {token}".format(
@@ -899,12 +901,13 @@ class Client(oauth2.Client):
         if 'error' in res:  # Error response
             res = UserInfoErrorResponse(**res.to_dict())
 
-        # Verify userinfo sub claim against what's returned in the ID Token
-        idt = self.grant[state].get_id_token()
-        if idt:
-            if idt['sub'] != res['sub']:
-                raise SubMismatch(
-                    'Sub identifier not the same in userinfo and Id Token')
+        if state:
+            # Verify userinfo sub claim against what's returned in the ID Token
+            idt = self.grant[state].get_id_token()
+            if idt:
+                if idt['sub'] != res['sub']:
+                    raise SubMismatch(
+                        'Sub identifier not the same in userinfo and Id Token')
 
         self.store_response(res, _txt)
 
@@ -1064,12 +1067,16 @@ class Client(oauth2.Client):
             if "endpoint" in spec:
                 if "access_token" in spec:
                     _uinfo = self.do_user_info_request(
-                        token=spec["access_token"],
+                        method='GET', token=spec["access_token"],
                         userinfo_endpoint=spec["endpoint"])
                 else:
-                    _uinfo = self.do_user_info_request(
-                        token=callback(csrc),
-                        userinfo_endpoint=spec["endpoint"])
+                    if callback:
+                        _uinfo = self.do_user_info_request(
+                            method='GET', token=callback(spec['endpoint']),
+                            userinfo_endpoint=spec["endpoint"])
+                    else:
+                        _uinfo = self.do_user_info_request(
+                            method='GET', userinfo_endpoint=spec["endpoint"])
 
                 claims = [value for value, src in
                           userinfo["_claim_names"].items() if src == csrc]
