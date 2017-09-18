@@ -10,6 +10,7 @@ from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 from oic.utils.sdb import AccessCodeUsed
 from oic.utils.sdb import AuthnEvent
+from oic.utils.sdb import DefaultToken
 from oic.utils.sdb import ExpiredToken
 from oic.utils.sdb import SessionDB
 
@@ -189,6 +190,9 @@ class TestSessionDB(object):
 
         self.sdb = SessionDB(
             "https://example.com/",
+            db={},
+            code_factory=DefaultToken(
+                'supersecret', 'verybadpassword', typ='A', lifetime=600),
             token_factory=JWTToken('T', keyjar=kj,
                                    lt_pattern={'code': 3600, 'token': 900},
                                    iss='https://example.com/as',

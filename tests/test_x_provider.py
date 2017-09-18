@@ -24,6 +24,7 @@ from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
+from oic.utils.sdb import DefaultToken
 from oic.utils.sdb import SessionDB
 from oic.utils.sdb import lv_pack
 from oic.utils.sdb import lv_unpack
@@ -141,6 +142,9 @@ class TestProvider(object):
 
         _sdb = SessionDB(
             "https://example.com/",
+            db={},
+            code_factory=DefaultToken('supersecret', 'verybadpassword',
+                                      typ='A', lifetime=600),
             token_factory=JWTToken('T', keyjar=kj,
                                    lt_pattern={'code': 3600, 'token': 900},
                                    iss='https://example.com/as',

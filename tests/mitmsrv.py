@@ -16,7 +16,6 @@ from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import TokenErrorResponse
 from oic.utils.sdb import AuthnEvent
-from oic.utils.sdb import SessionDB
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.webfinger import WebFinger
 
@@ -51,9 +50,9 @@ ENDPOINT = {
 
 
 class MITMServer(Server):
-    def __init__(self, name=""):
+    def __init__(self, name="", session_db_factory=None):
         Server.__init__(self)
-        self.sdb = SessionDB(name)
+        self.sdb = session_db_factory(name)
         self.name = name
         self.client = {}
         self.registration_expires_in = 3600

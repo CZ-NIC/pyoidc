@@ -14,7 +14,6 @@ from oic.utils.sdb import Crypt
 from oic.utils.sdb import DefaultToken
 from oic.utils.sdb import DictRefreshDB
 from oic.utils.sdb import ExpiredToken
-from oic.utils.sdb import SessionDB
 from oic.utils.sdb import WrongTokenType
 
 __author__ = 'rohe0002'
@@ -99,8 +98,8 @@ class TestToken(object):
 
 class TestSessionDB(object):
     @pytest.fixture(autouse=True)
-    def create_sdb(self):
-        self.sdb = SessionDB("https://example.com/")
+    def create_sdb(self, session_db_factory):
+        self.sdb = session_db_factory("https://example.com/")
 
     def test_create_authz_session(self):
         ae = AuthnEvent("uid", "salt")

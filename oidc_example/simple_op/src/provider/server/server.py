@@ -33,7 +33,7 @@ from oic.utils.http_util import SeeOther
 from oic.utils.http_util import get_or_post
 from oic.utils.http_util import get_post
 from oic.utils.keyio import keyjar_init
-from oic.utils.sdb import SessionDB
+from oic.utils.sdb import create_session_db
 from oic.utils.userinfo import UserInfo
 from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.webfinger import WebFinger
@@ -199,7 +199,9 @@ def main():
     userinfo = UserInfo(i)
 
     client_db = {}
-    provider = Provider(issuer, SessionDB(issuer), client_db, authn_broker,
+    session_db = create_session_db(issuer,
+                                   secret=rndstr(32), password=rndstr(32))
+    provider = Provider(issuer, session_db, client_db, authn_broker,
                         userinfo, AuthzHandling(), verify_client, None)
     provider.baseurl = issuer
     provider.symkey = rndstr(16)

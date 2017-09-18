@@ -15,7 +15,6 @@ from oic.oauth2.message import AuthorizationRequest
 from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.provider import Provider
-from oic.utils import sdb
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
@@ -92,19 +91,19 @@ AUTHZ = Implicit()
 
 class TestProvider(object):
     @pytest.fixture(autouse=True)
-    def create_provider(self):
+    def create_provider(self, session_db_factory):
         self.provider = Provider("pyoicserv",
-                                 sdb.SessionDB(ISSUER), CDB,
+                                 session_db_factory(ISSUER), CDB,
                                  AUTHN_BROKER, AUTHZ, verify_client,
                                  baseurl='https://example.com/as')
 
-    def test_init(self):
-        provider = Provider("pyoicserv", sdb.SessionDB(ISSUER),
+    def test_init(self, session_db_factory):
+        provider = Provider("pyoicserv", session_db_factory(ISSUER),
                             CDB,
                             AUTHN_BROKER, AUTHZ, verify_client)
         assert provider
 
-        provider = Provider("pyoicserv", sdb.SessionDB(ISSUER),
+        provider = Provider("pyoicserv", session_db_factory(ISSUER),
                             CDB,
                             AUTHN_BROKER, AUTHZ, verify_client,
                             urlmap={"client1": ["https://example.com/authz"]})
@@ -116,6 +115,20 @@ class TestProvider(object):
                "redirect_uri": "http://localhost:8087/authz",
                # faulty redirect uri
                "response_type": ["code"],
+               "client_id": "a1b2c3"}
+
+        arq = AuthorizationRequest(**bib)
+        resp = self.provider.authorization_endpoint(request=arq.to_urlencoded())
+        assert resp.status == "400 Bad Request"
+        msg = json.loads(resp.message)
+        assert msg["error"] == "invalid_request"
+
+    def test_authorization_endpoint_wronge_response_mode(self):
+        bib = {"scope": ["openid"],
+               "state": "id-6da9ca0cc23959f5f33e8becd9b08cae",
+               "redirect_uri": "http://example.com",
+               "response_type": ["code"],
+               "response_mode": "fragment",
                "client_id": "a1b2c3"}
 
         arq = AuthorizationRequest(**bib)

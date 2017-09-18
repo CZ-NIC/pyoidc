@@ -1,7 +1,11 @@
 # pylint: disable=missing-docstring,no-self-use
 import os
+import time
+from datetime import datetime as dt
+from datetime import timedelta
 
 import pytest
+from freezegun import freeze_time
 
 from oic.oauth2.message import MissingSigningKey
 from oic.oic import AuthorizationResponse
@@ -430,3 +434,46 @@ def test_get_signing_key_use_undefined():
 
     keys = kj.get_signing_key(key_type='rsa', kid='rsa1')
     assert len(keys) == 1
+
+
+KEYDEFS = [
+    {"type": "RSA", "key": '', "use": ["sig"]},
+    {"type": "EC", "crv": "P-256", "use": ["sig"]}
+]
+
+
+def test_remove_after():
+    # initial keyjar
+    keyjar = build_keyjar(KEYDEFS)[1]
+    _old = [k.kid for k in keyjar.get_issuer_keys('') if k.kid]
+    assert len(_old) == 2
+
+    # rotate_keys = create new keys + make the old as inactive
+    keyjar = build_keyjar(KEYDEFS, keyjar=keyjar)[1]
+
+    keyjar.remove_after = 1
+    # None are remove since none are marked as inactive yet
+    keyjar.remove_outdated()
+
+    _interm = [k.kid for k in keyjar.get_issuer_keys('') if k.kid]
+    assert len(_interm) == 4
+
+    # Now mark the keys to be inactivated
+    _now = time.time()
+    for k in keyjar.get_issuer_keys(''):
+        if k.kid in _old:
+            if not k.inactive_since:
+                k.inactive_since = _now
+
+    with freeze_time(dt.now()) as frozen:
+        # this should remove all the old ones
+        frozen.tick(delta=timedelta(seconds=2))
+
+        keyjar.remove_outdated()
+
+    # The remainder are the new keys
+    _new = [k.kid for k in keyjar.get_issuer_keys('') if k.kid]
+    assert len(_new) == 2
+
+    # should not be any overlap between old and new
+    assert set(_new).intersection(set(_old)) == set()

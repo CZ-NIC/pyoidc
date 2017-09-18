@@ -56,9 +56,10 @@ setup(
     author_email="roland@catalogix.se",
     license="Apache 2.0",
     url='https://github.com/OpenIDC/pyoidc/',
-    packages=["oic", "oic/oauth2", "oic/oic", "oic/utils", "oic/utils/authn",
-              "oic/utils/userinfo", 'oic/utils/rp', 'oic/extension'],
-              # 'oic/v2'],
+    packages=[
+        "oic", "oic/oauth2", "oic/oic", "oic/utils", "oic/utils/authn",
+        "oic/utils/userinfo", 'oic/utils/rp', 'oic/extension'
+    ],
     package_dir={"": "src"},
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -66,6 +67,7 @@ setup(
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     extras_require={
         'develop': ["cherrypy==3.2.4"],
@@ -78,10 +80,13 @@ setup(
         "beaker",
         "alabaster",
         "pyOpenSSL",
-        'future',
+        "future",
         "six",
-        'responses',
-        'testfixtures'] + extra_install_requires,
+    ] + extra_install_requires,
+    tests_require=[
+        "responses",
+        "testfixtures",
+    ],
     zip_safe=False,
     cmdclass={'test': PyTest},
 )

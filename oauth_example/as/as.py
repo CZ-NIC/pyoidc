@@ -198,7 +198,8 @@ if __name__ == "__main__":
 
     # This is where session information is stored
     # This serve is stateful.
-    from oic.utils.sdb import SessionDB
+    from oic import rndstr
+    from oic.utils.sdb import SessionDB, DefaultToken
 
     # Parse the command arguments
     parser = argparse.ArgumentParser()
@@ -277,11 +278,15 @@ if __name__ == "__main__":
         oas.jwks_uri = "{}/{}".format(oas.baseurl, jwks_file_name)
 
     # Initiate the SessionDB
+    _code = DefaultToken(rndstr(32), rndstr(32), typ='A', lifetime=600)
     _token = JWTToken('T', oas.keyjar, {'code': 3600, 'token': 900},
                       iss=config.issuer, sign_alg='RS256')
     _refresh_token = JWTToken('R', oas.keyjar, {'': 86400}, iss=config.issuer,
                               sign_alg='RS256')
-    oas.sdb = SessionDB(config.SERVICE_URL, token_factory=_token,
+    oas.sdb = SessionDB(config.SERVICE_URL,
+                        db={},
+                        code_factory=_code,
+                        token_factory=_token,
                         refresh_token_factory=_refresh_token)
 
     # set some parameters
@@ -326,7 +331,7 @@ if __name__ == "__main__":
             oas.keyjar.add_kb(iss, kb)
 
     _app = Application(oas)
-    
+
     # Initiate the web server
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port),
                                         _app.application)

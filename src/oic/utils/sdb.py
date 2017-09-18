@@ -3,17 +3,16 @@ from future.utils import tobytes
 import base64
 import copy
 import hashlib
-import hmac
 import itertools
 import json
 import logging
-import random
 import time
 import uuid
 
 from cryptography.fernet import Fernet
 
 from oic import rndstr
+from oic.exception import ImproperlyConfigured
 from oic.oic import AuthorizationRequest
 from oic.utils.time_util import time_sans_frac
 from oic.utils.time_util import utc_time_sans_frac
@@ -142,7 +141,6 @@ class Token(object):
 class DefaultToken(Token):
     def __init__(self, secret, password, typ='', **kwargs):
         Token.__init__(self, typ, **kwargs)
-        self.secret = secret
         self.crypt = Crypt(password)
 
     def __call__(self, sid='', ttype='', **kwargs):
@@ -177,29 +175,8 @@ class DefaultToken(Token):
         :param areq: The authorization request
         :return: A hash
         """
-        csum = hmac.new(self.secret.encode("utf-8"), digestmod=hashlib.sha224)
-        csum.update(("%s" % utc_time_sans_frac()).encode("utf-8"))
-        csum.update(("%f" % random.random()).encode("utf-8"))
-        if user:
-            csum.update(user.encode("utf-8"))
-
-        if areq:
-            try:
-                csum.update(areq["state"].encode("utf-8"))
-            except KeyError:
-                pass
-
-            try:
-                for val in areq["scope"]:
-                    csum.update(val.encode("utf-8"))
-            except KeyError:
-                pass
-
-            try:
-                csum.update(areq["redirect_uri"].encode("utf-8"))
-            except KeyError:
-                pass
-
+        csum = hashlib.new('sha224')
+        csum.update(rndstr(32).encode('utf-8'))
         return csum.hexdigest()  # 56 bytes long, 224 bits
 
     def _split_token(self, token):
@@ -363,33 +340,68 @@ class DictRefreshDB(RefreshDB):
         self._db.pop(token)
 
 
+def create_session_db(base_url, secret, password, db=None,
+                      token_expires_in=3600, grant_expires_in=600,
+                      refresh_token_expires_in=86400):
+    """
+    Convenience wrapper for SessionDB construction
+
+    Using this you can create a very basic non persistant
+    session database that issues opaque DefaultTokens.
+
+    :param base_url: Same as base_url parameter of `SessionDB`.
+    :param secret: Secret to pass to `DefaultToken` class.
+    :param password: Secret key to pass to `DefaultToken` class.
+    :param db: Storage for the session data, usually a dict.
+    :param token_expires_in: Expiry time for access tokens in seconds.
+    :param grant_expires_in: Expiry time for access codes in seconds.
+    :param refresh_token_expires_in: Expiry time for refresh tokens.
+
+    :return: A constructed `SessionDB` object.
+    """
+
+    code_factory = DefaultToken(secret, password, typ='A',
+                                lifetime=grant_expires_in)
+    token_factory = DefaultToken(secret, password, typ='T',
+                                 lifetime=token_expires_in)
+    db = {} if db is None else db
+
+    return SessionDB(
+        base_url, db,
+        refresh_db=None,
+        code_factory=code_factory,
+        token_factory=token_factory,
+        refresh_token_expires_in=refresh_token_expires_in,
+        refresh_token_factory=None,
+    )
+
+
 class SessionDB(object):
-    def __init__(self, base_url, db=None, secret="Ab01FG65",
-                 token_expires_in=3600, password="4-amino-1H-pyrimidine-2-one",
-                 grant_expires_in=600, seed="", refresh_db=None,
+    def __init__(self, base_url, db, refresh_db=None,
                  refresh_token_expires_in=86400,
                  token_factory=None, code_factory=None,
                  refresh_token_factory=None):
+
         self.base_url = base_url
-        if db is None:
-            db = {}
         self._db = db
 
-        self.token_factory = {}
+        # TODO: uid2sid should have a persistence option too.
+        self.uid2sid = {}
+
+        self.token_factory = {
+            'code': code_factory,
+            'access_token': token_factory,
+        }
 
         self.token_factory_order = ['code', 'access_token']
-        if code_factory:
-            self.token_factory['code'] = code_factory
-        else:
-            self.token_factory['code'] = DefaultToken(secret, password, typ='A',
-                                                      lifetime=grant_expires_in)
-        if token_factory:
-            self.token_factory['access_token'] = token_factory
-        else:
-            self.token_factory['access_token'] = DefaultToken(
-                secret, password, typ='T', lifetime=token_expires_in)
+
+        # TODO: This should simply be a factory like all the others too,
+        #       even for the default case.
 
         if refresh_token_factory:
+            if refresh_db:
+                raise ImproperlyConfigured(
+                    "Only use one of refresh_db or refresh_token_factory")
             self._refresh_db = None
             self.token_factory['refresh_token'] = refresh_token_factory
             self.token_factory_order.append('refresh_token')
@@ -400,8 +412,6 @@ class SessionDB(object):
 
         self.access_token = self.token_factory['access_token']
         self.token = self.access_token
-        self.uid2sid = {}
-        self.seed = seed or secret
 
     def _get_token_key(self, item, order=None):
         if order is None:

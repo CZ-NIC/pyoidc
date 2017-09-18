@@ -1,0 +1,217 @@
+{
+    "_meta": {
+        "hash": {
+            "sha256": "cb251e7bb5b632a55271838b603f7863c69d8314771aae0d94bff58bce6c3867"
+        },
+        "requires": {},
+        "sources": [
+            {
+                "url": "https://pypi.python.org/simple",
+                "verify_ssl": true
+            }
+        ]
+    },
+    "default": {
+        "asn1crypto": {
+            "version": "==0.22.0"
+        },
+        "beaker": {
+            "version": "==1.9.0"
+        },
+        "certifi": {
+            "version": "==2017.7.27.1"
+        },
+        "cffi": {
+            "version": "==1.10.0"
+        },
+        "chardet": {
+            "version": "==3.0.4"
+        },
+        "cryptography": {
+            "version": "==2.0.3"
+        },
+        "future": {
+            "version": "==0.16.0"
+        },
+        "idna": {
+            "version": "==2.5"
+        },
+        "mako": {
+            "version": "==1.0.7"
+        },
+        "markupsafe": {
+            "version": "==1.0"
+        },
+        "pycparser": {
+            "version": "==2.18"
+        },
+        "pycryptodomex": {
+            "version": "==3.4.6"
+        },
+        "pyjwkest": {
+            "version": "==1.3.6"
+        },
+        "pyldap": {
+            "version": "==2.4.37"
+        },
+        "pyopenssl": {
+            "version": "==17.2.0"
+        },
+        "requests": {
+            "version": "==2.18.3"
+        },
+        "setuptools": {
+            "version": "==36.2.7"
+        },
+        "six": {
+            "version": "==1.10.0"
+        },
+        "urllib3": {
+            "version": "==1.22"
+        }
+    },
+    "develop": {
+        "-e .": "*",
+        "alabaster": {
+            "version": "==0.7.10"
+        },
+        "argh": {
+            "version": "==0.26.2"
+        },
+        "babel": {
+            "version": "==2.4.0"
+        },
+        "certifi": {
+            "version": "==2017.7.27.1"
+        },
+        "chardet": {
+            "version": "==3.0.4"
+        },
+        "cookies": {
+            "version": "==2.2.1"
+        },
+        "coverage": {
+            "version": "==4.4.1"
+        },
+        "docutils": {
+            "version": "==0.14"
+        },
+        "freezegun": {
+            "version": "==0.3.9"
+        },
+        "httpretty": {
+            "version": "==0.8.14"
+        },
+        "idna": {
+            "version": "==2.5"
+        },
+        "imagesize": {
+            "version": "==0.7.1"
+        },
+        "isort": {
+            "version": "==4.2.15"
+        },
+        "jinja2": {
+            "version": "==2.9.6"
+        },
+        "livereload": {
+            "version": "==2.5.1"
+        },
+        "markupsafe": {
+            "version": "==1.0"
+        },
+        "mccabe": {
+            "version": "==0.6.1"
+        },
+        "mock": {
+            "version": "==2.0.0"
+        },
+        "pathtools": {
+            "version": "==0.1.2"
+        },
+        "pbr": {
+            "version": "==3.1.1"
+        },
+        "pluggy": {
+            "version": "==0.4.0"
+        },
+        "port-for": {
+            "version": "==0.3.1"
+        },
+        "py": {
+            "version": "==1.4.34"
+        },
+        "pycodestyle": {
+            "version": "==2.3.1"
+        },
+        "pydocstyle": {
+            "version": "==2.0.0"
+        },
+        "pyflakes": {
+            "version": "==1.6.0"
+        },
+        "pygments": {
+            "version": "==2.2.0"
+        },
+        "pylama": {
+            "version": "==7.4.1"
+        },
+        "pytest": {
+            "version": "==3.2.0"
+        },
+        "pytest-cov": {
+            "version": "==2.5.1"
+        },
+        "python-dateutil": {
+            "version": "==2.6.1"
+        },
+        "pytz": {
+            "version": "==2017.2"
+        },
+        "pyyaml": {
+            "version": "==3.12"
+        },
+        "requests": {
+            "version": "==2.18.3"
+        },
+        "responses": {
+            "version": "==0.6.0"
+        },
+        "setuptools": {
+            "version": "==36.2.7"
+        },
+        "six": {
+            "version": "==1.10.0"
+        },
+        "snowballstemmer": {
+            "version": "==1.2.1"
+        },
+        "sphinx": {
+            "version": "==1.6.3"
+        },
+        "sphinx-autobuild": {
+            "version": "==0.7.1"
+        },
+        "sphinxcontrib-websupport": {
+            "version": "==1.0.1"
+        },
+        "testfixtures": {
+            "version": "==5.1.1"
+        },
+        "tornado": {
+            "version": "==4.5.1"
+        },
+        "tox": {
+            "version": "==2.7.0"
+        },
+        "urllib3": {
+            "version": "==1.22"
+        },
+        "virtualenv": {
+            "version": "==15.1.0"
+        },
+        "watchdog": {
+            "version": "==0.8.3"
+        }
+    }
+}

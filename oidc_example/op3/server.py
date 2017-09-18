@@ -12,6 +12,8 @@ import argparse
 import importlib
 from mako.lookup import TemplateLookup
 
+from oic import rndstr
+
 from oic.oic.provider import AuthorizationEndpoint
 from oic.oic.provider import EndSessionEndpoint
 from oic.oic.provider import Provider
@@ -35,7 +37,7 @@ from oic.utils.webfinger import WebFinger
 from cherrypy import wsgiserver
 from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
 
-from oic.utils.sdb import SessionDB
+from oic.utils.sdb import create_session_db
 
 
 
@@ -368,9 +370,14 @@ if __name__ == '__main__':
     authz = AuthzHandling()
     clientDB = shelve_wrapper.open(config.CLIENTDB)
 
+    # In-Memory non-persistent SessionDB issuing DefaultTokens
+    sessionDB = create_session_db(config.ISSUER,
+                                  secret=rndstr(32),
+                                  password=rndstr(32))
+
     provider = Provider(
         name=config.ISSUER,                            # name
-        sdb=SessionDB(config.ISSUER),                  # session database.
+        sdb=sessionDB,                                 # session database.
         cdb=clientDB,                                  # client database
         authn_broker=authnBroker,                      # authn broker
         userinfo=None,                                 # user information

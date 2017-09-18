@@ -176,6 +176,8 @@ class Provider(object):
         self.seed = rndstr().encode("utf-8")
         self.iv = iv or os.urandom(16)
         self.cookie_name = "pyoidc"
+        self.cookie_domain = ""
+        self.cookie_path = ""
         self.default_scope = default_scope
         self.sso_ttl = 0
         self.default_acr = default_acr
@@ -742,7 +744,7 @@ class Provider(object):
                                           redirect_uri=redirect_uri,
                                           headers=headers)
             except InvalidRequest as err:
-                return error("invalid_request", err)
+                return error("invalid_request", str(err))
             else:
                 if resp is not None:
                     return resp

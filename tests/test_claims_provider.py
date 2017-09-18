@@ -18,7 +18,6 @@ from oic.utils.claims import ClaimsMode
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import keybundle_from_local_file
-from oic.utils.sdb import SessionDB
 from oic.utils.userinfo import UserInfo
 
 __author__ = 'rohe0002'
@@ -108,8 +107,8 @@ class TestClaimsServer(object):
     }
 
     @pytest.fixture(autouse=True)
-    def create_claims_server(self, keyjar):
-        self.srv = ClaimsServer("pyoicserv", SessionDB("https://example.com"),
+    def create_claims_server(self, keyjar, session_db):
+        self.srv = ClaimsServer("pyoicserv", session_db,
                                 TestClaimsServer.CDB,
                                 UserInfo(USERDB), verify_client,
                                 keyjar=keyjar,

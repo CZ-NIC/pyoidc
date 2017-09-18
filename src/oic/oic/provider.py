@@ -199,7 +199,7 @@ CAPABILITIES = {
     "subject_types_supported": ["public", "pairwise"],
     "grant_types_supported": [
         "authorization_code", "implicit",
-        "urn:ietf:params:oauth:grant-type:jwt-bearer"],
+        "urn:ietf:params:oauth:grant-type:jwt-bearer", "refresh_token"],
     "claim_types_supported": ["normal", "aggregated", "distributed"],
     "claims_parameter_supported": True,
     "request_parameter_supported": True,
@@ -1663,9 +1663,11 @@ class Provider(AProvider):
 
         for endp in self.endp:
             # _log_info("# %s, %s" % (endp, endp.name))
-            _provider_info['{}_endpoint'.format(endp.etype)] = '{}/{}'.format(
-                self.baseurl,
-                endp.url)
+            if not self.baseurl.endswith('/'):
+                baseurl = self.baseurl + '/'
+            else:
+                baseurl = self.baseurl
+            _provider_info['{}_endpoint'.format(endp.etype)] = urljoin(baseurl, endp.url)
 
         if setup and isinstance(setup, dict):
             for key in pcr_class.c_param.keys():

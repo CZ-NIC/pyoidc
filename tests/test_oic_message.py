@@ -17,6 +17,7 @@ from oic.oic.message import AddressClaim
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import Claims
 from oic.oic.message import IdToken
+from oic.oic.message import OpenIDSchema
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import RegistrationResponse
@@ -38,6 +39,48 @@ def query_string_compare(query_str1, query_str2):
 
 def _eq(l1, l2):
     return set(l1) == set(l2)
+
+
+def test_openidschema():
+    inp = '{"middle_name":null, "updated_at":"20170328081544", "sub":"abc"}'
+    ois = OpenIDSchema().from_json(inp)
+    assert ois.verify() is False
+
+
+@pytest.mark.parametrize("json_param", [
+    '{"middle_name":"fo", "updated_at":"20170328081544Z", "sub":"abc"}',
+    '{"middle_name":true, "updated_at":"20170328081544", "sub":"abc"}',
+    '{"middle_name":"fo", "updated_at":false, "sub":"abc"}',
+    '{"middle_name":"fo", "updated_at":"20170328081544Z", "sub":true}'
+])
+def test_openidschema_from_json(json_param):
+    with pytest.raises(ValueError):
+        OpenIDSchema().from_json(json_param)
+
+
+@pytest.mark.parametrize("json_param", [
+    '{"email_verified":false, "email":"foo@example.com", "sub":"abc"}',
+    '{"email_verified":true, "email":"foo@example.com", "sub":"abc"}',
+    '{"phone_number_verified":false, "phone_number":"+1 555 200000", '
+    '"sub":"abc"}',
+    '{"phone_number_verified":true, "phone_number":"+1 555 20000", '
+    '"sub":"abc"}',
+])
+def test_claim_booleans(json_param):
+    assert OpenIDSchema().from_json(json_param)
+
+
+@pytest.mark.parametrize("json_param", [
+    '{"email_verified":"Not", "email":"foo@example.com", "sub":"abc"}',
+    '{"email_verified":"Sure", "email":"foo@example.com", "sub":"abc"}',
+    '{"phone_number_verified":"Not", "phone_number":"+1 555 200000", '
+    '"sub":"abc"}',
+    '{"phone_number_verified":"Sure", "phone_number":"+1 555 20000", '
+    '"sub":"abc"}',
+])
+def test_claim_not_booleans(json_param):
+    with pytest.raises(ValueError):
+        OpenIDSchema().from_json(json_param)
 
 
 def test_claims_deser():
@@ -332,16 +375,21 @@ class TestRegistrationRequest(object):
                            "default_max_age": 10, "response_types": ["code"]}
         assert js_obj == expected_js_obj
 
-        flattened_list_dict = {k: v[0] if isinstance(v, list) else v for k, v in expected_js_obj.items()}
-        assert query_string_compare(req.to_urlencoded(), urlencode(flattened_list_dict))
+        flattened_list_dict = {k: v[0] if isinstance(v, list) else v for k, v in
+                               expected_js_obj.items()}
+        assert query_string_compare(req.to_urlencoded(),
+                                    urlencode(flattened_list_dict))
 
     @pytest.mark.parametrize("enc_param", [
         "request_object_encryption_enc",
         "id_token_encrypted_response_enc",
         "userinfo_encrypted_response_enc",
     ])
-    def test_registration_request_with_coupled_encryption_params(self, enc_param):
-        registration_params = {"redirect_uris": ["https://example.com/authz_cb"], enc_param: "RS25asdasd6"}
+    def test_registration_request_with_coupled_encryption_params(self,
+                                                                 enc_param):
+        registration_params = {
+            "redirect_uris": ["https://example.com/authz_cb"],
+            enc_param: "RS25asdasd6"}
         registration_req = RegistrationRequest(**registration_params)
         with pytest.raises(AssertionError):
             registration_req.verify()

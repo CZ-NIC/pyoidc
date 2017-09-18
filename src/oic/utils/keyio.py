@@ -333,6 +333,31 @@ class KeyBundle(object):
         self._uptodate()
         return [key.kid for key in self._keys if key.kid != ""]
 
+    def remove_outdated(self, after):
+        """
+        Remove keys that should not be available any more.
+        Outdated means that the key was marked as inactive at a time
+        that was longer ago then what is given in 'after'.
+
+        :param after: The length of time the key will remain in the KeyBundle
+            before it should be removed.
+        """
+        now = time.time()
+        if not isinstance(after, float):
+            try:
+                after = float(after)
+            except TypeError:
+                raise
+
+        _kl = []
+        for k in self._keys:
+            if k.inactive_since and k.inactive_since + after < now:
+                continue
+            else:
+                _kl.append(k)
+
+        self._keys = _kl
+
 
 def keybundle_from_local_file(filename, typ, usage):
     if typ.upper() == "RSA":
@@ -384,7 +409,8 @@ def dump_jwks(kbl, target, private=False):
 class KeyJar(object):
     """ A keyjar contains a number of KeyBundles """
 
-    def __init__(self, ca_certs=None, verify_ssl=True, keybundle_cls=KeyBundle):
+    def __init__(self, ca_certs=None, verify_ssl=True, keybundle_cls=KeyBundle,
+                 remove_after=3600):
         """
 
         :param ca_certs:
@@ -396,6 +422,7 @@ class KeyJar(object):
         self.ca_certs = ca_certs
         self.verify_ssl = verify_ssl
         self.keybundle_cls = keybundle_cls
+        self.remove_after = remove_after
 
     def __repr__(self):
         issuers = list(self.issuer_keys.keys())
@@ -778,34 +805,43 @@ class KeyJar(object):
         return res
 
     def __eq__(self, other):
-        """
-        Compare 2 KeyJar instances
-        :param other: The other KeyJar instance
-        :return: True/False
-        """
-        try:
-            assert isinstance(other, KeyJar)
-        except AssertionError:
+        if not isinstance(other, KeyJar):
             return False
 
-        # number of issuer_keys must be equal
-        if self.issuer_keys.keys() != other.issuer_keys.keys():
+        # The set of issuers MUST be the same
+        if set(self.keys()) != set(other.keys()):
             return False
 
-        for issuer in self.issuer_keys.keys():
-            mine = self.get_issuer_keys(issuer)
-            others = other.get_issuer_keys(issuer)
-            if len(mine) != len(others):
+        # Keys per issuer must be the same
+        for iss in self.keys():
+            sk = self.get_issuer_keys(iss)
+            ok = other.get_issuer_keys(iss)
+            if len(sk) != len(ok):
                 return False
-            for a_key in mine:
-                cmp = False
-                for b_key in others:
-                    if a_key == b_key:
-                        cmp = True
-                        break
-                if not cmp:
-                    return False
+
+            if not any(k in ok for k in sk):
+                return False
+
         return True
+
+    def remove_outdated(self):
+        """
+        Goes through the complete list of issuers and for each of them removes
+        outdated keys.
+        Outdated keys are keys that has been marked as inactive at a time that
+        is longer ago then some set number of seconds.
+        The number of seconds a carried in the remove_after parameter.
+        """
+        for iss in list(self.keys()):
+            _kbl = []
+            for kb in self.issuer_keys[iss]:
+                kb.remove_outdated(self.remove_after)
+                if len(kb):
+                    _kbl.append(kb)
+            if _kbl:
+                self.issuer_keys[iss] = _kbl
+            else:
+                del self.issuer_keys[iss]
 
 
 # =============================================================================
@@ -1107,9 +1143,11 @@ def key_summary(keyjar, issuer):
         for kb in kbl:
             for key in kb.keys():
                 if key.inactive_since:
-                    key_list.append('*{}:{}:{}'.format(key.kty, key.use, key.kid))
+                    key_list.append(
+                        '*{}:{}:{}'.format(key.kty, key.use, key.kid))
                 else:
-                    key_list.append('{}:{}:{}'.format(key.kty, key.use, key.kid))
+                    key_list.append(
+                        '{}:{}:{}'.format(key.kty, key.use, key.kid))
         return ', '.join(key_list)
 
 

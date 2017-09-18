@@ -9,7 +9,6 @@ from oic.extension.client import RegistrationRequest
 from oic.extension.message import make_software_statement
 from oic.extension.message import unpack_software_statement
 from oic.extension.provider import Provider
-from oic.utils import sdb
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import BearerHeader
 from oic.utils.authn.client import ClientSecretBasic
@@ -90,12 +89,12 @@ class TestProvider(object):
     }
 
     @pytest.fixture(autouse=True)
-    def create_provider(self):
+    def create_provider(self, session_db_factory):
         authn_broker = AuthnBroker()
         authn_broker.add("UNDEFINED", DummyAuthn(None, "username"))
 
         self.provider = Provider("pyoicserv",
-                                 sdb.SessionDB(
+                                 session_db_factory(
                                      TestProvider.SERVER_INFO["issuer"]),
                                  TestProvider.CDB,
                                  authn_broker, Implicit(),

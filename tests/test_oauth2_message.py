@@ -26,7 +26,6 @@ from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import RefreshAccessTokenRequest
 from oic.oauth2.message import ROPCAccessTokenRequest
 from oic.oauth2.message import TokenErrorResponse
-from oic.oauth2.message import TooManyValues
 from oic.oauth2.message import json_deserializer
 from oic.oauth2.message import json_serializer
 from oic.oauth2.message import sp_sep_list_deserializer
@@ -117,7 +116,8 @@ class DummyMessage(Message):
         "opt_int": SINGLE_OPTIONAL_INT,
         "opt_str_list": OPTIONAL_LIST_OF_STRINGS,
         "req_str_list": REQUIRED_LIST_OF_STRINGS,
-        "opt_json": SINGLE_OPTIONAL_JSON}
+        "opt_json": SINGLE_OPTIONAL_JSON
+    }
 
 
 class TestMessage(object):
@@ -135,7 +135,7 @@ class TestMessage(object):
 
     def test_from_json(self):
         jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], ' \
-              '"opt_int": [9]}'
+              '"opt_int": 9}'
         item = DummyMessage().deserialize(jso, "json")
 
         assert _eq(item.keys(), ['req_str', 'req_str_list', 'opt_int'])
@@ -144,7 +144,7 @@ class TestMessage(object):
     def test_single_optional(self):
         jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], ' \
               '"opt_int": [9, 10]}'
-        with pytest.raises(TooManyValues):
+        with pytest.raises(ValueError):
             DummyMessage().deserialize(jso, "json")
 
     def test_extra_param(self):
@@ -648,6 +648,20 @@ def test_to_jwe(keytype, alg, enc):
     _jwe = msg.to_jwe(KEYJAR.get_encrypt_key(keytype, ''), alg=alg, enc=enc)
     msg1 = Message().from_jwe(_jwe, KEYJAR.get_encrypt_key(keytype, ''))
     assert msg1 == msg
+
+
+def test_to_dict_with_message_obj():
+    content = Message(a={'a': {'foo': {'bar': [{'bat': []}]}}})
+    _dict = content.to_dict(lev=0)
+    content_fixture = {'a': {'a': {'foo': {'bar': [{'bat': []}]}}}}
+    assert _dict == content_fixture
+
+
+def test_to_dict_with_raw_types():
+    msg = Message(c_default=[])
+    content_fixture = {'c_default': []}
+    _dict = msg.to_dict(lev=1)
+    assert _dict == content_fixture
 
 
 def test_get_verify_keys_no_kid_multiple_keys():
