@@ -287,8 +287,7 @@ class TestAuthorizationRequest(object):
             AuthorizationRequest(**args)
 
     def test_urlencoded_deserialize_state(self):
-        txt = "scope=foo+bar&state=-11&redirect_uri=http%3A%2F%2Ffoobar" \
-              ".example.com%2Foaclient&response_type=code&" \
+        txt = "scope=foo+bar&state=-11&redirect_uri=http%3A%2F%2Ffoobar.example.com%2Foaclient&response_type=code&" \
               "client_id=foobar"
 
         ar = AuthorizationRequest().deserialize(txt, "urlencoded")
@@ -296,8 +295,7 @@ class TestAuthorizationRequest(object):
 
     def test_urlencoded_deserialize_response_type(self):
         txt = "scope=openid&state=id-6a3fc96caa7fd5cb1c7d00ed66937134&" \
-              "redirect_uri=http%3A%2F%2Flocalhost%3A8087authz&response_type" \
-              "=code&client_id=a1b2c3"
+              "redirect_uri=http%3A%2F%2Flocalhost%3A8087authz&response_type=code&client_id=a1b2c3"
 
         ar = AuthorizationRequest().deserialize(txt, "urlencoded")
         assert ar["scope"] == ["openid"]

@@ -5,6 +5,16 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
+## 0.12.0 [2017-09-19]
+
+### Fixed
+- [#419]: inconsistent release numnbers/tags
+- [#420]: Fixed bug in handling of distributed claims.
+
+[#420]: https://github.com/OpenIDC/pyoidc/pull/420
+[#419]: https://github.com/OpenIDC/pyoidc/issues/419
+
+
 ## 0.11.1.0 [2017-08-26]
 
 ### Fixed
