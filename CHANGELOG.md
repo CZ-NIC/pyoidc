@@ -5,6 +5,15 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
+## 0.12.0 [2017-09-25]
+
+### Fixed
+- [#419]: Inconsistent release numbers/tags
+- [#420]: Distributed claims
+
+[#419]: https://github.com/OpenIDC/pyoidc/issues/419
+[#420]: https://github.com/OpenIDC/pyoidc/pull/420
+
 ## 0.11.1.0 [2017-08-26]
 
 ### Fixed
