@@ -10,7 +10,7 @@ import os
 import time
 
 from jwkest import as_unicode
-from jwkest import constant_time_compare
+from jwkest import safe_str_cmp
 from six import PY2
 from six import binary_type
 from six import text_type
@@ -298,7 +298,7 @@ def verify_cookie_signature(sig, key, *parts):
        :raises: `InvalidCookieSign` when the signature is wrong
     """
     assert isinstance(sig, text_type)
-    return constant_time_compare(sig, cookie_signature(key, *parts))
+    return safe_str_cmp(sig, cookie_signature(key, *parts))
 
 
 def _make_hashed_key(parts, hashfunc='sha256'):
