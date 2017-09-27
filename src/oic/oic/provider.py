@@ -1182,6 +1182,7 @@ class Provider(AProvider):
         except ParameterError:
             return error(error='invalid_request',
                          descr='Token is malformed')
+
         return self._do_user_info(_token, **kwargs)
 
     def _parse_access_token(self, request, **kwargs):
@@ -1223,13 +1224,15 @@ class Provider(AProvider):
             logger.error('Wrong token type: {}'.format(typ))
             raise FailedAuthentication("Wrong type of token")
 
+        if _sdb._access_token_expired(token):
+            raise ExpiredToken()
+
         if _sdb.is_revoked(key):
             return error(error="invalid_token", descr="Token is revoked",
                          status_code=401)
         session = _sdb[key]
 
         # Scope can translate to userinfo_claims
-
         info = self.schema(**self._collect_user_info(session))
 
         # Should I return a JSON or a JWT ?
