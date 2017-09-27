@@ -164,21 +164,6 @@ def test_broken_cookie_signature():
     assert not verify_cookie_signature(sig, key, *parts)
 
 
-def test_cookie_signature():
-    key = b'1234567890abcdef'
-    parts = ['abc', 'def']
-    sig = cookie_signature(key, *parts)
-    assert verify_cookie_signature(sig, key, *parts)
-
-
-def test_broken_cookie_signature():
-    key = b'1234567890abcdef'
-    parts = ['abc', 'def']
-    sig = cookie_signature(key, *parts)
-    parts.reverse()
-    assert not verify_cookie_signature(sig, key, *parts)
-
-
 def test_parse_cookie():
     kaka = ('pyoidc=bjmc::1463043535::upm|'
             '1463043535|18a201305fa15a96ce4048e1fbb03f7715f86499')
