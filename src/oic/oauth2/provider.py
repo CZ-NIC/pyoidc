@@ -233,7 +233,7 @@ class Provider(object):
 
             match = False
             for regbase, rquery in self.cdb[str(areq["client_id"])][
-                "redirect_uris"]:
+                    "redirect_uris"]:
                 # The URI MUST exactly match one of the Redirection URI
                 if _base == regbase:
                     # every registered query component must exist in the

@@ -305,7 +305,6 @@ class TestProvider(object):
         atr = TokenErrorResponse().deserialize(resp.message, "json")
         assert _eq(atr.keys(), ['error_description', 'error'])
 
-
     def test_response_types(self):
         authreq = AuthorizationRequest(state="state",
                                        redirect_uri="http://example.com/authz",
