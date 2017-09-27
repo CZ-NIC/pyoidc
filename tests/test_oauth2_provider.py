@@ -19,6 +19,7 @@ from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
+from oic.utils.http_util import Response
 
 CLIENT_CONFIG = {
     "client_id": "client1",
@@ -303,3 +304,36 @@ class TestProvider(object):
         resp = self.provider.token_endpoint(request=areq.to_urlencoded())
         atr = TokenErrorResponse().deserialize(resp.message, "json")
         assert _eq(atr.keys(), ['error_description', 'error'])
+
+
+    def test_response_types(self):
+        authreq = AuthorizationRequest(state="state",
+                                       redirect_uri="http://example.com/authz",
+                                       client_id="client1",
+                                       response_type='id_token token')
+
+        self.provider.cdb = {
+            "client1": {
+                "client_secret": "hemlighet",
+                "redirect_uris": [("http://example.com/authz", None)],
+                'token_endpoint_auth_method': 'client_secret_post',
+                'response_types': ['token id_token', 'id_token']
+            }
+        }
+
+        res = self.provider.auth_init(authreq.to_urlencoded())
+        assert isinstance(res, dict) and "areq" in res
+
+        self.provider.cdb["client1"]['response_types'] = ['token id_token',
+                                                          'id_token']
+
+        res = self.provider.auth_init(authreq.to_urlencoded())
+        assert isinstance(res, dict) and "areq" in res
+
+        authreq['response_type'] = 'code'
+
+        res = self.provider.auth_init(authreq.to_urlencoded())
+        assert isinstance(res, Response)
+
+        _res = json.loads(res.message)
+        assert _res['error'] == 'invalid_request'

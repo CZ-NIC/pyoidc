@@ -232,7 +232,8 @@ class Provider(object):
                 _query = parse_qs(_query)
 
             match = False
-            for regbase, rquery in self.cdb[str(areq["client_id"])]["redirect_uris"]:
+            for regbase, rquery in self.cdb[str(areq["client_id"])][
+                "redirect_uris"]:
                 # The URI MUST exactly match one of the Redirection URI
                 if _base == regbase:
                     # every registered query component must exist in the
@@ -412,11 +413,15 @@ class Provider(object):
             return error('unauthorized_client', 'unknown client')
         else:
             try:
-                rtypes = _cinfo['response_types']
-            except KeyError:
-                rtypes = ['code']  # default according to OIDC registration
+                _registered = [set(rt.split(' ')) for rt in
+                               _cinfo['response_types']]
+            except KeyError:  # default according to OIDC registration
+                _registered = [{'code'}]
+            except Exception as err:
+                raise
 
-            if ' '.join(areq["response_type"]) not in rtypes:
+            _wanted = set(areq["response_type"])
+            if _wanted not in _registered:
                 return error("invalid_request",
                              "Trying to use unregistered response_typ")
 
