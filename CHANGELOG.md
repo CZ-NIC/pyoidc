@@ -5,6 +5,15 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
+## 0.13.0 [Unreleased]
+
+### Fixed
+- [#427] Dealing with unordered response_types
+- [#399] Matching response_types for authz requests is too strict
+
+[#427]: https://github.com/OpenIDC/pyoidc/pull/427
+[#399]: https://github.com/OpenIDC/pyoidc/issues/399
+
 ## 0.12.0 [2017-09-25]
 
 ### Fixed
