@@ -587,6 +587,20 @@ class SessionDB(object):
         elif self._db[sid]["oauth_state"] == "token":
             return self._db[sid]["access_token"]
 
+    def _access_token_expired(self, token):
+        """Is the access token expiration time up?
+
+        :param token: Access token
+        :return:      bool
+        """
+        event = self[token]['authn_event']
+        valid_until = event['valid_until']
+        token_factory = self.token_factory['access_token']
+        elapsed = event["authn_time"] + token_factory.lifetime
+        if not elapsed < valid_until:
+            return True
+        return False
+
     def upgrade_to_token(self, token=None, issue_refresh=False, id_token="",
                          oidreq=None, key=None, access_grant=""):
         """
