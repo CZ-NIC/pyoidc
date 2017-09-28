@@ -323,8 +323,7 @@ class TestProvider(object):
         res = self.provider.auth_init(authreq.to_urlencoded())
         assert isinstance(res, dict) and "areq" in res
 
-        self.provider.cdb["client1"]['response_types'] = ['token id_token',
-                                                          'id_token']
+        self.provider.cdb["client1"]['response_types'] = ['id_token token']
 
         res = self.provider.auth_init(authreq.to_urlencoded())
         assert isinstance(res, dict) and "areq" in res
