@@ -8,7 +8,7 @@ The format is based on the [KeepAChangeLog] project.
 ## 0.13.0 [Unreleased]
 
 ### Fixed
-- [#427] Dealing with unordered response_types
+- [#427] Made matching for response_types order independent for authorization requests
 - [#399] Matching response_types for authz requests is too strict
 
 [#427]: https://github.com/OpenIDC/pyoidc/pull/427
