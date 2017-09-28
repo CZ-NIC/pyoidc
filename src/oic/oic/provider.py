@@ -1223,6 +1223,9 @@ class Provider(AProvider):
             logger.error('Wrong token type: {}'.format(typ))
             raise FailedAuthentication("Wrong type of token")
 
+        if _sdb.access_token.is_expired():
+            raise ExpiredToken()
+
         if _sdb.is_revoked(key):
             return error(error="invalid_token", descr="Token is revoked",
                          status_code=401)

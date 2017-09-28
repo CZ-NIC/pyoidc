@@ -130,6 +130,18 @@ class Token(object):
     def expires_at(self):
         return utc_time_sans_frac() + self.lifetime
 
+    def is_expired(self, when=0):
+        if not when:
+            now = time.time()
+        else:
+            now = when
+
+        eat = self.expires_at()
+        if now > eat:
+            return True
+        else:
+            return False
+
     def invalidate(self, token):
         pass
 
