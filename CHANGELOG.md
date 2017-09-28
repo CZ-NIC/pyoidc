@@ -8,9 +8,11 @@ The format is based on the [KeepAChangeLog] project.
 ## 0.13.0 [Unreleased]
 
 ### Fixed
+- [#429] An expired token should not be able to use.
 - [#427] Made matching for response_types order independent for authorization requests
 - [#399] Matching response_types for authz requests is too strict
 
+[#429]: https://github.com/OpenIDC/pyoidc/pull/429
 [#427]: https://github.com/OpenIDC/pyoidc/pull/427
 [#399]: https://github.com/OpenIDC/pyoidc/issues/399
 
