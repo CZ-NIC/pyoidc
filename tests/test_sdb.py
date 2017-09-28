@@ -71,7 +71,7 @@ class TestDictRefreshDB(object):
 class TestToken(object):
     @pytest.fixture(autouse=True)
     def create_token(self):
-        self.token = DefaultToken("secret", "password", lifetime={'': 60})
+        self.token = DefaultToken("secret", "password", lifetime=60)
 
     def test_token(self):
         sid = self.token.key(areq=AREQ)
@@ -94,6 +94,15 @@ class TestToken(object):
         part = self.token.type_and_key(code)
         assert part[0] == "A"
         assert part[1] == sid
+
+
+def test_expired():
+    _token = DefaultToken("secret", "password", lifetime=60)
+    assert _token.is_expired() is False
+
+    _token = DefaultToken("secret", "password", lifetime=2)
+    when = time.time() + 5  # 5 seconds from now
+    assert _token.is_expired(when=when) is True
 
 
 class TestSessionDB(object):
