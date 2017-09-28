@@ -305,7 +305,11 @@ class TestProvider(object):
         atr = TokenErrorResponse().deserialize(resp.message, "json")
         assert _eq(atr.keys(), ['error_description', 'error'])
 
-    def test_response_types(self):
+    @pytest.mark.parametrize("response_types", [
+        ['token id_token', 'id_token'],
+        ['id_token token']
+    ])
+    def test_response_types(self, response_types):
         authreq = AuthorizationRequest(state="state",
                                        redirect_uri="http://example.com/authz",
                                        client_id="client1",
@@ -316,19 +320,33 @@ class TestProvider(object):
                 "client_secret": "hemlighet",
                 "redirect_uris": [("http://example.com/authz", None)],
                 'token_endpoint_auth_method': 'client_secret_post',
-                'response_types': ['token id_token', 'id_token']
+                'response_types': response_types
             }
         }
 
         res = self.provider.auth_init(authreq.to_urlencoded())
         assert isinstance(res, dict) and "areq" in res
 
-        self.provider.cdb["client1"]['response_types'] = ['id_token token']
+    @pytest.mark.parametrize("response_types", [
+        ['token id_token', 'id_token'],
+        ['id_token token'],
+        ['code id_token'],
+        ['id_token code']
+    ])
+    def test_response_types_fail(self, response_types):
+        authreq = AuthorizationRequest(state="state",
+                                       redirect_uri="http://example.com/authz",
+                                       client_id="client1",
+                                       response_type='code')
 
-        res = self.provider.auth_init(authreq.to_urlencoded())
-        assert isinstance(res, dict) and "areq" in res
-
-        authreq['response_type'] = 'code'
+        self.provider.cdb = {
+            "client1": {
+                "client_secret": "hemlighet",
+                "redirect_uris": [("http://example.com/authz", None)],
+                'token_endpoint_auth_method': 'client_secret_post',
+                'response_types': response_types
+            }
+        }
 
         res = self.provider.auth_init(authreq.to_urlencoded())
         assert isinstance(res, Response)
