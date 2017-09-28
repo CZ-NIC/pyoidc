@@ -415,10 +415,10 @@ class Provider(object):
             try:
                 _registered = [set(rt.split(' ')) for rt in
                                _cinfo['response_types']]
-            except KeyError:  # default according to OIDC registration
+            except KeyError:
+                # If no response_type is registered by the client then we'll
+                # code which it the default according to the OIDC spec.
                 _registered = [{'code'}]
-            except Exception as err:
-                raise
 
             _wanted = set(areq["response_type"])
             if _wanted not in _registered:
