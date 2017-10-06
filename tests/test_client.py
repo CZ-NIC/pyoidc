@@ -188,7 +188,8 @@ class TestPrivateKeyJWT(object):
                             {"key": _key, "kty": "RSA", "use": "sig"}])
         client.keyjar[""] = kc_rsa
         client.token_endpoint = "https://example.com/token"
-        client.provider_info = {'issuer': 'https://example.com/'}
+        client.provider_info = {'issuer': 'https://example.com/',
+                                'token_endpoint': "https://example.com/token"}
         cis = AccessTokenRequest()
         pkj = PrivateKeyJWT(client)
         http_args = pkj.construct(cis, algorithm="RS256",
@@ -199,12 +200,14 @@ class TestPrivateKeyJWT(object):
         jso = _jwt.payload()
         assert _eq(jso.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
         assert _jwt.headers == {'alg': 'RS256'}
+        assert jso['aud'] == [client.provider_info['token_endpoint']]
 
 
-class TestClientSecretJWT(object):
+class TestClientSecretJWT_TE(object):
     def test_client_secret_jwt(self, client):
         client.token_endpoint = "https://example.com/token"
-        client.provider_info = {'issuer': 'https://example.com/'}
+        client.provider_info = {'issuer': 'https://example.com/',
+                                'token_endpoint': "https://example.com/token"}
 
         csj = ClientSecretJWT(client)
         cis = AccessTokenRequest()
@@ -224,6 +227,34 @@ class TestClientSecretJWT(object):
             cas, [SYMKey(k=b64e(as_bytes(client.client_secret)))])
 
         assert _eq(info.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
+        assert info['aud'] == [client.provider_info['token_endpoint']]
+
+
+class TestClientSecretJWT_UI(object):
+    def test_client_secret_jwt(self, client):
+        client.token_endpoint = "https://example.com/token"
+        client.provider_info = {'issuer': 'https://example.com/',
+                                'token_endpoint': "https://example.com/token"}
+
+        csj = ClientSecretJWT(client)
+        cis = AccessTokenRequest()
+
+        csj.construct(cis, algorithm="HS256",
+                      authn_endpoint='userinfo')
+        assert cis["client_assertion_type"] == JWT_BEARER
+        assert "client_assertion" in cis
+        cas = cis["client_assertion"]
+        _jwt = JWT().unpack(cas)
+        jso = _jwt.payload()
+        assert _eq(jso.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
+        assert _jwt.headers == {'alg': 'HS256'}
+
+        _rj = JWS()
+        info = _rj.verify_compact(
+            cas, [SYMKey(k=b64e(as_bytes(client.client_secret)))])
+
+        assert _eq(info.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
+        assert info['aud'] == [client.provider_info['issuer']]
 
 
 class TestValidClientInfo(object):
