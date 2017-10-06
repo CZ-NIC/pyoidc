@@ -45,6 +45,7 @@ def assertion_jwt(cli, keys, audience, algorithm, lifetime=600):
     at = AuthnToken(iss=cli.client_id, sub=cli.client_id,
                     aud=audience, jti=rndstr(32),
                     exp=_now + lifetime, iat=_now)
+    logger.debug('AuthnToken: {}'.format(at.to_dict()))
     return at.to_jwt(key=keys, algorithm=algorithm)
 
 
@@ -310,7 +311,6 @@ class JWSAuthnMethod(ClientAuthnMethod):
         # audience is the OP endpoint
         # audience = self.cli._endpoint(REQUEST2ENDPOINT[cis.type()])
         # OR OP identifier
-        audience = self.cli.provider_info['issuer']
         algorithm = None
         if kwargs['authn_endpoint'] in ['token', 'refresh']:
             try:
@@ -318,6 +318,9 @@ class JWSAuthnMethod(ClientAuthnMethod):
                     'token_endpoint_auth_signing_alg']
             except (KeyError, AttributeError):
                 pass
+            audience = self.cli.provider_info['token_endpoint']
+        else:
+            audience = self.cli.provider_info['issuer']
 
         if not algorithm:
             algorithm = self.choose_algorithm(**kwargs)
