@@ -25,6 +25,6 @@ Install dependencies (using Pip_) via:
 
   $ make install
 
-.. Note:: The depdencies will require you compile your Python source code
+.. Note:: The dependencies will require that you compile your Python source code
           with byte-compiling. This means avoiding the ``-B`` option and
           not setting ``PYTHONDONTWRITEBYTECODE``.
