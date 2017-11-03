@@ -1267,7 +1267,7 @@ class Client(oauth2.Client):
         if not registration_access_token:
             registration_access_token = self.registration_access_token
 
-        headers = {"Authorization", "Bearer %s" % registration_access_token}
+        headers = {"Authorization": "Bearer %s" % registration_access_token}
         rsp = self.http_request(url, "GET", headers=headers)
 
         return self.handle_registration_info(rsp)
