@@ -1255,13 +1255,19 @@ class Client(oauth2.Client):
         return resp
 
     def registration_read(self, url="", registration_access_token=None):
+        """
+        Read the client registration info from the given url
+
+        :raises RegistrationError: If an error happend
+        :return: RegistrationResponse
+        """
         if not url:
             url = self.registration_response["registration_client_uri"]
 
         if not registration_access_token:
             registration_access_token = self.registration_access_token
 
-        headers = [("Authorization", "Bearer %s" % registration_access_token)]
+        headers = {"Authorization", "Bearer %s" % registration_access_token}
         rsp = self.http_request(url, "GET", headers=headers)
 
         return self.handle_registration_info(rsp)
