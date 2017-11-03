@@ -11,10 +11,12 @@ The format is based on the [KeepAChangeLog] project.
 - [#430] Audience of a client assertion is endpoint dependent.
 - [#427] Made matching for response_types order independent for authorization requests
 - [#399] Matching response_types for authz requests is too strict
+- [#436] Fixed client.read_registration
 
 [#430]: https://github.com/OpenIDC/pyoidc/pull/430
 [#427]: https://github.com/OpenIDC/pyoidc/pull/427
 [#399]: https://github.com/OpenIDC/pyoidc/issues/399
+[#436]: https://github.com/OpenIDC/pyoidc/pull/436
 
 ## 0.12.0 [2017-09-25]
 
