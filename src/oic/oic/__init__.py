@@ -1328,6 +1328,8 @@ class Client(oauth2.Client):
         """
         req = self.create_registration_request(**kwargs)
 
+        logger.debug("[registration_request]: kwargs:%s" % (sanitize(kwargs),))
+
         if self.events:
             self.events.store('Protocol request', req)
 
