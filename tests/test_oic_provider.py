@@ -140,7 +140,8 @@ USERDB = {
         "nickname": "Linda",
         "email": "linda@example.com",
         "verified": True,
-        "sub": "username"
+        "sub": "username",
+        "extra_claim": "extra_claim_value",
     }
 }
 
@@ -183,7 +184,7 @@ class TestProvider(object):
                                  keyjar=KEYJAR)
         self.provider.baseurl = self.provider.name
 
-        self.cons = Consumer({}, CONSUMER_CONFIG, CLIENT_CONFIG,
+        self.cons = Consumer({}, CONSUMER_CONFIG.copy(), CLIENT_CONFIG,
                              server_info=SERVER_INFO, )
         self.cons.behaviour = {
             "request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]}
@@ -668,6 +669,54 @@ class TestProvider(object):
         resp = self.provider.userinfo_endpoint(request=uir.to_urlencoded())
         ident = OpenIDSchema().deserialize(resp.message, "json")
         assert _eq(ident.keys(), ['nickname', 'sub', 'name', 'email'])
+
+    def test_userinfo_endpoint_extra_claim(self):
+        # We have to recreate the cache again
+        self.provider.extra_claims = ['extra_claim']
+        self.provider.capabilities = self.provider.provider_features()
+
+        self.cons.client_secret = "drickyoughurt"
+        self.cons.config["response_type"] = ["token"]
+        self.cons.config["request_method"] = "parameter"
+        # Request the extra claim
+        self.cons.consumer_config['user_info'] = {'extra_claim': None}
+        state, location = self.cons.begin("openid", "token",
+                                          path="http://localhost:8087")
+
+        resp = self.provider.authorization_endpoint(
+                request=urlparse(location).query)
+
+        # redirect
+        atr = AuthorizationResponse().deserialize(
+                urlparse(resp.message).fragment, "urlencoded")
+
+        uir = UserInfoRequest(access_token=atr["access_token"], schema="openid")
+
+        resp = self.provider.userinfo_endpoint(request=uir.to_urlencoded())
+        ident = OpenIDSchema().deserialize(resp.message, "json")
+        assert _eq(ident.keys(), ['sub', 'extra_claim'])
+
+    def test_userinfo_endpoint_unknown_claim(self):
+        self.cons.client_secret = "drickyoughurt"
+        self.cons.config["response_type"] = ["token"]
+        self.cons.config["request_method"] = "parameter"
+        # Request the extra claim
+        self.cons.consumer_config['user_info'] = {'extra_claim': None}
+        state, location = self.cons.begin("openid", "token",
+                                          path="http://localhost:8087")
+
+        resp = self.provider.authorization_endpoint(
+                request=urlparse(location).query)
+
+        # redirect
+        atr = AuthorizationResponse().deserialize(
+                urlparse(resp.message).fragment, "urlencoded")
+
+        uir = UserInfoRequest(access_token=atr["access_token"], schema="openid")
+
+        resp = self.provider.userinfo_endpoint(request=uir.to_urlencoded())
+        ident = OpenIDSchema().deserialize(resp.message, "json")
+        assert _eq(ident.keys(), ['sub'])
 
     def test_userinfo_endpoint_authn(self):
         self.cons.client_secret = "drickyoughurt"
