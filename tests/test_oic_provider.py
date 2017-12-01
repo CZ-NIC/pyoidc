@@ -20,6 +20,7 @@ from testfixtures import LogCapture
 
 from oic import rndstr
 from oic.exception import FailedAuthentication
+from oic.exception import InvalidRequest
 from oic.exception import RedirectURIError
 from oic.oic import DEF_SIGN_ALG
 from oic.oic import make_openid_request
@@ -817,6 +818,28 @@ class TestProvider(object):
         idt = IdToken().deserialize(info.message, "json")
         assert _eq(idt.keys(), ['sub', 'aud', 'iss', 'acr', 'exp', 'iat'])
         assert idt["iss"] == self.provider.name
+
+    def test_response_mode_fragment(self):
+        areq = {'response_mode': 'fragment'}
+        assert self.provider.response_mode(areq, True) is None
+        with pytest.raises(InvalidRequest):
+            self.provider.response_mode(areq, False)
+
+    def test_response_mode_query(self):
+        areq = {'response_mode': 'query'}
+        assert self.provider.response_mode(areq, False) is None
+        with pytest.raises(InvalidRequest):
+            self.provider.response_mode(areq, True)
+
+    def test_response_mode_form_post(self):
+        areq = {'response_mode': 'form_post'}
+        aresp = AuthorizationResponse()
+        aresp['state'] = 'state'
+        response = self.provider.response_mode(areq, False, redirect_uri='http://example.com',
+                                               aresp=aresp, headers='')
+        assert 'Submit This Form' in response.message
+        assert 'http://example.com' in response.message
+        assert '<input type="hidden" name="state" value="state"/>' in response.message
 
     @patch('oic.oic.provider.utc_time_sans_frac', Mock(return_value=123456))
     def test_client_secret_expiration_time(self):

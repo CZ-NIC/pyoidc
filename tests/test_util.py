@@ -10,6 +10,9 @@ from oic.exception import UnSupported
 from oic.oauth2 import util
 from oic.oic import AuthorizationRequest
 from oic.oic.message import AccessTokenRequest
+from oic.utils.template_render import TemplateException
+from oic.utils.template_render import inputs
+from oic.utils.template_render import render_template
 
 __author__ = 'DIRG'
 
@@ -203,3 +206,42 @@ def test_verify_header():
         util.verify_header(FakeResponse(plain_text_header), "jwt")
         util.verify_header(FakeResponse(undefined_header), "json")
         util.verify_header(FakeResponse(json_header), "undefined")
+
+
+class TestRenderTemplate(object):
+
+    def test_wrong_template(self):
+        with pytest.raises(TemplateException):
+            render_template('bogus_template', {})
+
+    def test_form_post(self):
+        response = render_template('form_post', {'action': 'action', 'inputs': {'a': 'a'}})
+        assert '<form method="post" action="action">' in response
+        assert '<input type="hidden" name="a" value="a"/>' in response
+
+    def test_form_post_missing_inputs(self):
+        response = render_template('form_post', {'action': 'action'})
+        assert '<form method="post" action="action">' in response
+
+    def test_form_post_missing_action(self):
+        with pytest.raises(TemplateException):
+            render_template('form_post', {'inputs': {'a': 'a'}})
+
+    def test_verify_logout(self):
+        response = render_template('verify_logout', {})
+        assert response == ''
+
+
+class TestInputs(object):
+
+    def test_empty(self):
+        assert inputs({}) == ''
+
+    def test_single(self):
+        assert inputs({'a': 'a'}) == '<input type="hidden" name="a" value="a"/>'
+
+    def test_multiple(self):
+        rendered_string = inputs({'a': 'a', 'b': 'b'})
+
+        assert '<input type="hidden" name="a" value="a"/>' in rendered_string
+        assert '<input type="hidden" name="b" value="b"/>' in rendered_string

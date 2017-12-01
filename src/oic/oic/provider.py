@@ -83,6 +83,7 @@ from oic.utils.keyio import key_export
 from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed
 from oic.utils.sdb import ExpiredToken
+from oic.utils.template_render import render_template
 from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = 'rohe0002'
@@ -208,28 +209,6 @@ CAPABILITIES = {
     "request_uri_parameter_supported": True,
 }
 
-FORM_POST = """<html>
-  <head>
-    <title>Submit This Form</title>
-  </head>
-  <body onload="javascript:document.forms[0].submit()">
-    <form method="post" action={action}>
-        {inputs}
-    </form>
-  </body>
-</html>"""
-
-
-def inputs(form_args):
-    """
-    Creates list of input elements
-    """
-    element = []
-    for name, value in form_args.items():
-        element.append(
-            '<input type="hidden" name="{}" value="{}"/>'.format(name, value))
-    return "\n".join(element)
-
 
 class Provider(AProvider):
     def __init__(self, name, sdb, cdb, authn_broker, userinfo, authz,
@@ -237,7 +216,7 @@ class Provider(AProvider):
                  hostname="", template_lookup=None, template=None,
                  verify_ssl=True, capabilities=None, schema=OpenIDSchema,
                  jwks_uri='', jwks_name='', baseurl=None, client_cert=None,
-                 extra_claims=None):
+                 extra_claims=None, template_renderer=render_template):
 
         AProvider.__init__(self, name, sdb, cdb, authn_broker, authz,
                            client_authn, symkey, urlmap,
@@ -252,8 +231,7 @@ class Provider(AProvider):
                           EndSessionEndpoint])
 
         self.userinfo = userinfo
-        self.template_lookup = template_lookup
-        self.template = template or {}
+        self.template_renderer = template_renderer
         self.baseurl = baseurl or name
         self.cert = []
         self.cert_encryption = []
@@ -557,7 +535,6 @@ class Provider(AProvider):
         else:
             headers = []
 
-        mte = self.template_lookup.get_template(self.template["verify_logout"])
         self.sdb.set_verified_logout(uid)
 
         if redirect_uri is not None:
@@ -569,14 +546,14 @@ class Provider(AProvider):
         except KeyError:
             tmp_id_token_hint = ""
 
-        argv = {
+        context = {
             "id_token_hint": tmp_id_token_hint,
             "post_logout_redirect_uri": esr["post_logout_redirect_uri"],
             "key": self.sdb.get_verify_logout(uid),
             "redirect": redirect,
             "action": "/" + EndSessionEndpoint("").etype
         }
-        return Response(mte.render(**argv), headers=headers)
+        return Response(self.template_renderer('verify_logout', context), headers=headers)
 
     def end_session_endpoint(self, request="", cookie=None, **kwargs):
         esr = EndSessionRequest().from_urlencoded(request)
@@ -1876,9 +1853,11 @@ class Provider(AProvider):
     def response_mode(self, areq, fragment_enc, **kwargs):
         resp_mode = areq["response_mode"]
         if resp_mode == "form_post":
-            msg = FORM_POST.format(inputs=inputs(kwargs["aresp"].to_dict()),
-                                   action=kwargs["redirect_uri"])
-            return Response(msg, headers=kwargs["headers"])
+            context = {
+                'action': kwargs['redirect_uri'],
+                'inputs': kwargs['aresp'].to_dict(),
+            }
+            return Response(self.template_renderer('form_post', context), headers=kwargs["headers"])
         elif resp_mode == 'fragment' and not fragment_enc:
             # Can't be done
             raise InvalidRequest("wrong response_mode")
