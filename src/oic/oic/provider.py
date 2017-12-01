@@ -234,7 +234,8 @@ class Provider(AProvider):
                  client_authn, symkey=None, urlmap=None, ca_certs="", keyjar=None,
                  hostname="", template_lookup=None, template=None,
                  verify_ssl=True, capabilities=None, schema=OpenIDSchema,
-                 jwks_uri='', jwks_name='', baseurl=None, client_cert=None):
+                 jwks_uri='', jwks_name='', baseurl=None, client_cert=None,
+                 extra_claims=None):
 
         AProvider.__init__(self, name, sdb, cdb, authn_broker, authz,
                            client_authn, symkey, urlmap, ca_bundle=ca_certs,
@@ -269,6 +270,8 @@ class Provider(AProvider):
         self.authn_as = None
         self.preferred_id_type = "public"
         self.hostname = hostname or socket.gethostname()
+
+        self.extra_claims = extra_claims
 
         for endp in self.endp:
             if endp.etype == 'registration':
@@ -1692,6 +1695,8 @@ class Provider(AProvider):
         _claims = []
         for _cl in SCOPE2CLAIMS.values():
             _claims.extend(_cl)
+        if self.extra_claims is not None:
+            _claims.extend(self.extra_claims)
         _provider_info["claims_supported"] = list(set(_claims))
 
         _scopes = list(SCOPE2CLAIMS.keys())

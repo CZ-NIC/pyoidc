@@ -7,6 +7,9 @@ The format is based on the [KeepAChangeLog] project.
 
 ## 0.13.0 [Unreleased]
 
+### Added
+- [#443] Ability to specify additional supported claims for oic.Provider
+
 ### Fixed
 - [#430] Audience of a client assertion is endpoint dependent.
 - [#427] Made matching for response_types order independent for authorization requests
@@ -17,6 +20,7 @@ The format is based on the [KeepAChangeLog] project.
 [#427]: https://github.com/OpenIDC/pyoidc/pull/427
 [#399]: https://github.com/OpenIDC/pyoidc/issues/399
 [#436]: https://github.com/OpenIDC/pyoidc/pull/436
+[#443]: https://github.com/OpenIDC/pyoidc/pull/443
 
 ## 0.12.0 [2017-09-25]
 

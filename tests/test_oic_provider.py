@@ -215,6 +215,12 @@ class TestProvider(object):
         assert parsed["state"][0] == "id-6da9ca0cc23959f5f33e8becd9b08cae"
         assert "code" in parsed
 
+    def test_provider_features_extra_claims(self):
+        self.provider.extra_claims = ['claim_1', 'claim_2']
+        features = self.provider.provider_features()
+        assert 'claim_1' in features['claims_supported']
+        assert 'claim_2' in features['claims_supported']
+
     def test_authorization_endpoint_request(self):
         bib = {"scope": ["openid"],
                "state": "id-6da9ca0cc23959f5f33e8becd9b08cae",
