@@ -313,6 +313,10 @@ if __name__ == '__main__':
                             module_directory=root + 'modules',
                             input_encoding='utf-8', output_encoding='utf-8')
 
+    def mako_renderer(template_name, context):
+        mte = lookup.get_template(template_name)
+        return mte.render(**context)
+
     usernamePasswords = {
         "user1": "1",
         "user2": "2"
@@ -387,8 +391,7 @@ if __name__ == '__main__':
         # urlmap = None,                               # ?
         # keyjar = None,                               # ?
         # hostname = "",                               # ?
-        template_lookup=lookup,                        # ?
-        template={"form_post": "form_response.mako"},  # ?
+        template_renderer=mako_renderer,               # Rendering custom templates
         # verify_ssl = True,                           # Enable SSL certs
         # capabilities = None,                         # ?
         # schema = OpenIDSchema,                       # ?
