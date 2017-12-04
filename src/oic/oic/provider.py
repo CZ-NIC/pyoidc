@@ -1637,12 +1637,12 @@ class Provider(AProvider):
         try:
             client_id = self.cdb[token]
         except KeyError:
-            return error_response('invalid_request')
+            return Unauthorized()
 
         # extra check
         _info = parse_qs(request)
         if not _info["client_id"][0] == client_id:
-            return error_response('invalid_request')
+            return Unauthorized()
 
         logger.debug("Client '%s' reads client info" % client_id)
         args = dict([(k, v) for k, v in self.cdb[client_id].items()

@@ -1077,9 +1077,7 @@ class TestProvider(object):
 
     def test_read_registration_wrong_authn(self):
         resp = self.provider.read_registration('Bearer wrong string', 'request')
-        assert resp.status == '400 Bad Request'
-        assert json.loads(resp.message) == {'error': 'invalid_request',
-                                            'error_description': None}
+        assert resp.status == '401 Unauthorized'
 
     def test_read_registration_wrong_cid(self):
         rr = RegistrationRequest(operation="register",
@@ -1093,9 +1091,7 @@ class TestProvider(object):
         query = '='.join(['client_id', '123456789012'])
         resp = self.provider.read_registration(authn, query)
 
-        assert resp.status == '400 Bad Request'
-        assert json.loads(resp.message) == {'error': 'invalid_request',
-                                            'error_description': None}
+        assert resp.status == '401 Unauthorized'
 
     def test_key_rollover(self):
         provider2 = Provider("FOOP", {}, {}, None, None, None, None, None)
