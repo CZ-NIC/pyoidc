@@ -1069,11 +1069,29 @@ class TestProvider(object):
 
         assert json.loads(resp.message) == regresp.to_dict()
 
-    def test_read_registration_wrong_authn(self):
+    def test_read_registration_malformed_authn(self):
         resp = self.provider.read_registration('wrong string', 'request')
         assert resp.status == '400 Bad Request'
         assert json.loads(resp.message) == {'error': 'invalid_request',
                                             'error_description': None}
+
+    def test_read_registration_wrong_authn(self):
+        resp = self.provider.read_registration('Bearer wrong string', 'request')
+        assert resp.status == '401 Unauthorized'
+
+    def test_read_registration_wrong_cid(self):
+        rr = RegistrationRequest(operation="register",
+                                 redirect_uris=["http://example.org/new"],
+                                 response_types=["code"])
+        registration_req = rr.to_json()
+        resp = self.provider.registration_endpoint(request=registration_req)
+        regresp = RegistrationResponse().from_json(resp.message)
+
+        authn = ' '.join(['Bearer', regresp['registration_access_token']])
+        query = '='.join(['client_id', '123456789012'])
+        resp = self.provider.read_registration(authn, query)
+
+        assert resp.status == '401 Unauthorized'
 
     def test_key_rollover(self):
         provider2 = Provider("FOOP", {}, {}, None, None, None, None, None)

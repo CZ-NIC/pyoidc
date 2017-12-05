@@ -1634,11 +1634,15 @@ class Provider(AProvider):
             return error_response('invalid_request')
         token = authn[len("Bearer "):]
 
-        client_id = self.cdb[token]
+        try:
+            client_id = self.cdb[token]
+        except KeyError:
+            return Unauthorized()
 
         # extra check
         _info = parse_qs(request)
-        assert _info["client_id"][0] == client_id
+        if not _info["client_id"][0] == client_id:
+            return Unauthorized()
 
         logger.debug("Client '%s' reads client info" % client_id)
         args = dict([(k, v) for k, v in self.cdb[client_id].items()
