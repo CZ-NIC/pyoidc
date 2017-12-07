@@ -22,10 +22,7 @@ install:
   - pip install tox
 
 script:
-  - tox -e coverage-erase,$TOX_ENV
-
-after_success:
-  - tox -e coveralls
+  - tox -e $TOX_ENV
 
 notifications:
   email: false
