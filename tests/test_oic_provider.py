@@ -799,6 +799,18 @@ class TestProvider(object):
                     'client_id', 'client_secret',
                     'client_id_issued_at', 'response_types'])
 
+    def test_do_client_registration_invalid_sector_uri(self):
+        rr = RegistrationRequest(operation='register', sector_identifier_uri='https://example.com',
+                                 redirect_uris=['http://example.com/changed'])
+        redirects = ['http://example.com/present']
+        with responses.RequestsMock() as rsps:
+            rsps.add(rsps.GET, 'https://example.com', body=json.dumps(redirects))
+            resp = self.provider.do_client_registration(rr, 'client0')
+
+        assert resp.status == '400 Bad Request'
+        error = json.loads(resp.message)
+        assert error['error'] == 'invalid_configuration_parameter'
+
     def test_registration_endpoint_with_non_https_redirect_uri_implicit_flow(
             self):
         params = {"application_type": "web",

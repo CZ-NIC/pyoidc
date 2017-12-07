@@ -1356,7 +1356,7 @@ class Provider(AProvider):
             try:
                 _cinfo["si_redirects"], _cinfo["sector_id"] = self._verify_sector_identifier(request)
             except InvalidSectorIdentifier as err:
-                return error_response("invalid_configuration_parameter", descr=err)
+                return error_response("invalid_configuration_parameter", descr=str(err))
         elif "redirect_uris" in request:
             if len(request["redirect_uris"]) > 1:
                 # check that the hostnames are the same
