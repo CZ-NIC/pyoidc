@@ -1,7 +1,5 @@
 language: python
 
-python: 3.6
-
 sudo: false
 
 addons:
@@ -11,18 +9,26 @@ addons:
     - libsasl2-dev
     - libldap2-dev
 
-env:
- - TOX_ENV=py27
- - TOX_ENV=py34
- - TOX_ENV=py36
- - TOX_ENV=docs
- - TOX_ENV=quality
-
 install:
   - pip install tox
 
+matrix:
+  include:
+    - python: 2.7
+      env: TOXENV=py27
+    - python: 3.4
+      env: TOXENV=py34
+    - python: 3.5
+      env: TOXENV=py35
+    - python: 3.6
+      env: TOXENV=py36
+    - python: 3.6
+      env: TOXENV=quality
+    - python: 3.6
+      env: TOXENV=docs
+
 script:
-  - tox -e $TOX_ENV
+  - tox -e $TOXENV
 
 notifications:
   email: false
