@@ -46,21 +46,21 @@ class TestGetClientID(object):
             get_client_id(self.cdb, AuthorizationRequest(), 'mumbo jumbo')
 
     def test_basic_authn_client_ok(self):
-        authn = 'Basic ' + b64encode('number5:drickyoughurt')
+        authn = 'Basic ' + b64encode(b'number5:drickyoughurt').decode()
         assert get_client_id(self.cdb, AuthorizationRequest(), authn)
 
     def test_basic_authn_client_missing(self):
-        authn = 'Basic ' + b64encode('missing:drickyoughurt')
+        authn = 'Basic ' + b64encode(b'missing:drickyoughurt').decode()
         with pytest.raises(FailedAuthentication):
             get_client_id(self.cdb, AuthorizationRequest(), authn)
 
     def test_basic_authn_client_wrongpass(self):
-        authn = 'Basic ' + b64encode('number5:wrongpassword')
+        authn = 'Basic ' + b64encode(b'number5:wrongpassword').decode()
         with pytest.raises(FailedAuthentication):
             get_client_id(self.cdb, AuthorizationRequest(), authn)
 
     def test_basic_authn_client_invalid(self):
-        authn = 'Basic ' + b64encode('expired:drickyoughurt')
+        authn = 'Basic ' + b64encode(b'expired:drickyoughurt').decode()
         with pytest.raises(FailedAuthentication):
             get_client_id(self.cdb, AuthorizationRequest(), authn)
 
