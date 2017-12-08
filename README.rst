@@ -13,8 +13,8 @@
 .. image:: https://readthedocs.org/projects/pyoidc/badge/?version=latest
     :target: http://pyoidc.readthedocs.io/en/latest/?badge=latest
 
-.. image:: https://coveralls.io/repos/github/OpenIDC/pyoidc/badge.svg?branch=master
-    :target: https://coveralls.io/github/OpenIDC/pyoidc?branch=master
+.. image:: https://codecov.io/gh/OpenIDC/pyoidc/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/OpenIDC/pyoidc
 
 .. image:: https://landscape.io/github/OpenIDC/pyoidc/master/landscape.svg?style=flat
     :target: https://landscape.io/github/OpenIDC/pyoidc/master
