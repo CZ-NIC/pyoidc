@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 
 from oic.oauth2.message import AccessTokenRequest
@@ -35,6 +36,8 @@ from oic.utils.sanitize import sanitize
 
     ('Password=ubar&param=foo', 'Password=<REDACTED>&param=foo'),
     ({'password': u'bar', 'client_secret': b'foo'}, {'password': '<REDACTED>', 'client_secret': '<REDACTED>'}),
+    (u'code=ščřžáíé', 'code=<REDACTED>'),
+    ({'code': 'ščřžáíé'}, {'code': '<REDACTED>'}),
 ])
 def test_sanitize(raw, expected):
     assert sanitize(raw) == expected
