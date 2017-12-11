@@ -17,6 +17,7 @@ import socket
 import sys
 import time
 import traceback
+import warnings
 from functools import cmp_to_key
 
 import six
@@ -1512,6 +1513,11 @@ class Provider(AProvider):
             args[param] = val
 
     def l_registration_endpoint(self, request, authn=None, **kwargs):
+        warnings.warn('`l_registration_endpoint` is deprecated. Please use `create_registration` instead',
+                      DeprecationWarning)
+        return self.create_registration(request=request, authn=authn, **kwargs)
+
+    def create_registration(self, authn=None, request=None, **kwargs):
         logger.debug("@registration_endpoint: <<%s>>" % sanitize(request))
 
         try:
@@ -1611,7 +1617,7 @@ class Provider(AProvider):
 
     def registration_endpoint(self, request, authn=None, method='POST', **kwargs):
         if method.lower() == 'post':
-            return self.l_registration_endpoint(request, authn, **kwargs)
+            return self.create_registration(authn, request, **kwargs)
         elif method.lower() == 'get':
             return self.read_registration(authn, request, **kwargs)
         elif method.lower() == 'put':
@@ -1669,7 +1675,7 @@ class Provider(AProvider):
         :param request: Query part of the request
         :return: Response with updated client info
         """
-        return error_response('Unsupported operation', descr='Altering of the registration is not supported')
+        return error('Unsupported operation', descr='Altering of the registration is not supported', status_code=403)
 
     def delete_registration(self, authn, request, **kwargs):
         """Method to delete the client info on server side.
@@ -1678,7 +1684,7 @@ class Provider(AProvider):
         :param request: Query part of the request
         :return: Response with updated client info
         """
-        return error_response('Unsupported operation', descr='Deletion of the registration is not supported')
+        return error('Unsupported operation', descr='Deletion of the registration is not supported', status_code=403)
 
     def create_providerinfo(self, pcr_class=ProviderConfigurationResponse,
                             setup=None):

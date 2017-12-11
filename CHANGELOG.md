@@ -11,6 +11,9 @@ The format is based on the [KeepAChangeLog] project.
 - [#443] Ability to specify additional supported claims for oic.Provider
 - [#134] Added method kwarg to registration_endpoint that enables the client to read/modify registration
 
+### Changed
+- [#134] ``l_registration_enpoint`` has been deprecated, use ``create_registration`` instead
+
 ### Fixed
 - [#430] Audience of a client assertion is endpoint dependent.
 - [#427] Made matching for response_types order independent for authorization requests
