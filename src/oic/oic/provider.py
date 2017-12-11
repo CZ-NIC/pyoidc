@@ -1609,8 +1609,16 @@ class Provider(AProvider):
 
         return response
 
-    def registration_endpoint(self, request, authn=None, **kwargs):
-        return self.l_registration_endpoint(request, authn, **kwargs)
+    def registration_endpoint(self, request, authn=None, method='POST', **kwargs):
+        if method.lower() == 'post':
+            return self.l_registration_endpoint(request, authn, **kwargs)
+        elif method.lower() == 'get':
+            return self.read_registration(authn, request, **kwargs)
+        elif method.lower() == 'put':
+            return self.alter_registration(authn, request, **kwargs)
+        elif method.lower() == 'delete':
+            return self.delete_registration(authn, request, **kwargs)
+        return error_response('Unsupported method', descr='Unsupported HTTP method')
 
     def read_registration(self, authn, request, **kwargs):
         """
@@ -1653,6 +1661,24 @@ class Provider(AProvider):
 
         return Response(response.to_json(), content="application/json",
                         headers=[("Cache-Control", "no-store")])
+
+    def alter_registration(self, authn, request, **kwargs):
+        """Method to alter the client info on server side.
+
+        :param authn: Authorization HTTP header
+        :param request: Query part of the request
+        :return: Response with updated client info
+        """
+        return error_response('Unsupported operation', descr='Altering of the registration is not supported')
+
+    def delete_registration(self, authn, request, **kwargs):
+        """Method to delete the client info on server side.
+
+        :param authn: Authorization HTTP header
+        :param request: Query part of the request
+        :return: Response with updated client info
+        """
+        return error_response('Unsupported operation', descr='Deletion of the registration is not supported')
 
     def create_providerinfo(self, pcr_class=ProviderConfigurationResponse,
                             setup=None):

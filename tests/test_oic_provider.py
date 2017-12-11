@@ -765,7 +765,7 @@ class TestProvider(object):
         exp_time = self.provider.client_secret_expiration_time()
         assert exp_time == 209856
 
-    def test_registration_endpoint(self):
+    def test_registration_endpoint_post(self):
         req = RegistrationRequest()
 
         req["application_type"] = "web"
@@ -785,7 +785,7 @@ class TestProvider(object):
                     'client_id', 'client_secret',
                     'client_id_issued_at', 'response_types'])
 
-    def test_registration_endpoint_unicode(self):
+    def test_registration_endpoint_post_unicode(self):
         data = 'application_type=web&client_name=M%C3%A1+supe%C5%99+service&' \
                'redirect_uris=http%3A%2F%2Fexample.com%2Fauthz&response_types=code'
         resp = self.provider.registration_endpoint(request=data)
@@ -798,6 +798,34 @@ class TestProvider(object):
                     'registration_access_token',
                     'client_id', 'client_secret',
                     'client_id_issued_at', 'response_types'])
+
+    def test_registration_endpoint_get(self):
+        rr = RegistrationRequest(operation="register", redirect_uris=["http://example.org/new"],
+                                 response_types=["code"])
+        registration_req = rr.to_json()
+        resp = self.provider.registration_endpoint(request=registration_req)
+        regresp = RegistrationResponse().from_json(resp.message)
+
+        authn = ' '.join(['Bearer', regresp['registration_access_token']])
+        query = '='.join(['client_id', regresp['client_id']])
+        resp = self.provider.registration_endpoint(request=query, authn=authn, method='GET')
+
+        assert json.loads(resp.message) == regresp.to_dict()
+
+    def test_registration_endpoint_delete(self):
+        resp = self.provider.registration_endpoint(request='', method='PUT')
+        assert json.loads(resp.message) == {'error': 'Unsupported operation',
+                                            'error_description': 'Altering of the registration is not supported'}
+
+    def test_registration_endpoint_put(self):
+        resp = self.provider.registration_endpoint(request='', method='DELETE')
+        assert json.loads(resp.message) == {'error': 'Unsupported operation',
+                                            'error_description': 'Deletion of the registration is not supported'}
+
+    def test_registration_endpoint_unsupported(self):
+        resp = self.provider.registration_endpoint(request='', method='HEAD')
+        assert json.loads(resp.message) == {'error': 'Unsupported method',
+                                            'error_description': 'Unsupported HTTP method'}
 
     def test_do_client_registration_invalid_sector_uri(self):
         rr = RegistrationRequest(operation='register', sector_identifier_uri='https://example.com',

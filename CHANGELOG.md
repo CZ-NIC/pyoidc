@@ -9,6 +9,7 @@ The format is based on the [KeepAChangeLog] project.
 
 ### Added
 - [#443] Ability to specify additional supported claims for oic.Provider
+- [#134] Added method kwarg to registration_endpoint that enables the client to read/modify registration
 
 ### Fixed
 - [#430] Audience of a client assertion is endpoint dependent.
@@ -25,6 +26,7 @@ The format is based on the [KeepAChangeLog] project.
 [#443]: https://github.com/OpenIDC/pyoidc/pull/443
 [#446]: https://github.com/OpenIDC/pyoidc/issues/446
 [#449]: https://github.com/OpenIDC/pyoidc/issues/449
+[#134]: https://github.com/OpenIDC/pyoidc/issues/134
 
 ## 0.12.0 [2017-09-25]
 
