@@ -36,6 +36,7 @@ class PyTest(TestCommand):
         errno = pytest.main(self.test_args)
         sys.exit(errno)
 
+tests_requires = ['responses', 'testfixtures', 'pytest', 'mock', 'freezegun', 'httpretty']
 
 # Python 2.7 and later ship with importlib and argparse
 if sys.version_info[0] == 2 and sys.version_info[1] == 6:
@@ -71,6 +72,9 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules"],
     extras_require={
         'develop': ["cherrypy==3.2.4"],
+        'testing': tests_requires,
+        'docs': ['Sphinx', 'sphinx-autobuild'],
+        'quality': ['pylama', 'isort'],
     },
     install_requires=[
         "requests",
@@ -83,10 +87,7 @@ setup(
         "future",
         "six",
     ] + extra_install_requires,
-    tests_require=[
-        "responses",
-        "testfixtures",
-    ],
+    tests_require=tests_requires,
     zip_safe=False,
     cmdclass={'test': PyTest},
 )
