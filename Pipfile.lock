@@ -182,12 +182,6 @@
             ],
             "version": "==1.4.0"
         },
-        "pyldap": {
-            "hashes": [
-                "sha256:064ec1ec7db9ff3b941d83f94bacbe896be944951db548d774ad9cafdafd7887"
-            ],
-            "version": "==2.4.45"
-        },
         "pyopenssl": {
             "hashes": [
                 "sha256:07a2de1a54de07448732a81e38a55df7da109b2f47f599f8bb35b0cbec69d4bd",

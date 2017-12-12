@@ -75,6 +75,7 @@ setup(
         'testing': tests_requires,
         'docs': ['Sphinx', 'sphinx-autobuild'],
         'quality': ['pylama', 'isort'],
+        'ldap_authn': ['pyldap'],
     },
     install_requires=[
         "requests",

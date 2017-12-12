@@ -1,4 +1,7 @@
-import ldap
+try:
+    import ldap
+except ImportError:
+    raise ImportError('This module can be used only with pyldap installed.')
 
 from oic.exception import PyoidcError
 from oic.utils.authn.user import UsernamePasswordMako
