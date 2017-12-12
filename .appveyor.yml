@@ -20,7 +20,5 @@ environment:
 install:
   - "%PYTHON%\\python.exe -m pip install .[testing]"
 
-build: off
-
 test_script:
   - "%PYTHON%\\python.exe -m pytest tests/ -m \"not network\""
