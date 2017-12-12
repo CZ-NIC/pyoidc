@@ -1,6 +1,9 @@
-import logging
+try:
+    import ldap
+except ImportError:
+    raise ImportError('This module can be used only with pyldap installed.')
 
-import ldap
+import logging
 
 from oic.utils.sanitize import sanitize
 from oic.utils.userinfo import UserInfo

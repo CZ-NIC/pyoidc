@@ -13,6 +13,8 @@ The format is based on the [KeepAChangeLog] project.
 
 ### Changed
 - [#134] ``l_registration_enpoint`` has been deprecated, use ``create_registration`` instead
+- [#457] pyldap is now an optional dependency. ``oic.utils.authn.ldapc`` and ``oic.utils.userinfo.ldap_info`` raise
+         ``ImportError`` on import if ``pyldap`` is not present
 
 ### Fixed
 - [#430] Audience of a client assertion is endpoint dependent.
@@ -30,6 +32,7 @@ The format is based on the [KeepAChangeLog] project.
 [#446]: https://github.com/OpenIDC/pyoidc/issues/446
 [#449]: https://github.com/OpenIDC/pyoidc/issues/449
 [#134]: https://github.com/OpenIDC/pyoidc/issues/134
+[#457]: https://github.com/OpenIDC/pyoidc/issues/457
 
 ## 0.12.0 [2017-09-25]
 
