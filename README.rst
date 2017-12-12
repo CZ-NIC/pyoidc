@@ -1,6 +1,9 @@
 .. image:: https://api.travis-ci.org/OpenIDC/pyoidc.png?branch=master
     :target: https://travis-ci.org/OpenIDC/pyoidc
 
+.. image:: https://ci.appveyor.com/api/projects/status/9kd2u37pi9n2wt63/branch/master?svg=true
+    :target: https://ci.appveyor.com/project/tpazderka/pyoidc/branch/master
+
 .. image:: https://img.shields.io/pypi/pyversions/oic.svg
     :target: https://pypi.python.org/pypi/oic
 
