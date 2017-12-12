@@ -7,9 +7,6 @@
 .. image:: https://img.shields.io/pypi/v/oic.svg
     :target: https://pypi.python.org/pypi/oic
 
-.. image:: https://img.shields.io/pypi/dm/oic.svg
-    :target: https://pypi.python.org/pypi/oic
-
 .. image:: https://readthedocs.org/projects/pyoidc/badge/?version=latest
     :target: http://pyoidc.readthedocs.io/en/latest/?badge=latest
 
