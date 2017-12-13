@@ -43,6 +43,7 @@ from oic.oauth2.message import by_schema
 from oic.utils.authn.user import NoSuchAuthentication
 from oic.utils.authn.user import TamperAllert
 from oic.utils.authn.user import ToOld
+from oic.utils.http_util import OAUTH2_NOCACHE_HEADERS
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import CookieDealer
 from oic.utils.http_util import Response
@@ -822,7 +823,7 @@ class Provider(object):
 
         logger.debug("AccessTokenResponse: %s" % sanitize(atr))
 
-        return Response(atr.to_json(), content="application/json")
+        return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
     def verify_endpoint(self, request="", cookie=None, **kwargs):
         _req = parse_qs(request)

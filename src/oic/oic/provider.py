@@ -71,6 +71,7 @@ from oic.oic.message import RegistrationRequest
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import TokenErrorResponse
 from oic.utils import sort_sign_alg
+from oic.utils.http_util import OAUTH2_NOCACHE_HEADERS
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Created
 from oic.utils.http_util import Response
@@ -981,7 +982,7 @@ class Provider(AProvider):
 
         logger.info("access_token_response: %s" % sanitize(atr.to_dict()))
 
-        return Response(atr.to_json(), content="application/json")
+        return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
     def _refresh_access_token_endpoint(self, req, **kwargs):
         _sdb = self.sdb
@@ -1017,7 +1018,7 @@ class Provider(AProvider):
 
         logger.info("access_token_response: %s" % sanitize(atr.to_dict()))
 
-        return Response(atr.to_json(), content="application/json")
+        return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
     def token_endpoint(self, request="", authn=None, dtype='urlencoded',
                        **kwargs):
