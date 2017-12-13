@@ -344,90 +344,30 @@ class Message(MutableMapping):
                 continue
 
             skey = str(key)
-            try:
-                (vtyp, req, _, _deser, null_allowed) = _spec[key]
-            except KeyError:
+            if key in _spec:
+                lookup_key = key
+            else:
                 # might be a parameter with a lang tag
                 try:
                     _key, lang = skey.split("#")
                 except ValueError:
-                    try:
-                        (vtyp, _, _, _deser, null_allowed) = _spec['*']
-                        if val is None:
-                            self._dict[key] = val
-                            continue
-                    except KeyError:
-                        self._dict[key] = val
-                        continue
+                    lookup_key = '*'
                 else:
-                    try:
-                        (vtyp, req, _, _deser, null_allowed) = _spec[_key]
-                    except KeyError:
-                        try:
-                            (vtyp, _, _, _deser, null_allowed) = _spec['*']
-                            if val is None:
-                                self._dict[key] = val
-                                continue
-                        except KeyError:
-                            self._dict[key] = val
-                            continue
-
-            self._add_value(skey, vtyp, key, val, _deser, null_allowed)
+                    lookup_key = _key
+            if lookup_key in _spec:
+                (vtyp, _, _, _deser, null_allowed) = _spec[lookup_key]
+                self._add_value(skey, vtyp, key, val, _deser, null_allowed)
+            else:
+                self._dict[key] = val
         return self
 
     def _add_value(self, skey, vtyp, key, val, _deser, null_allowed):
-        # if not val:
-        # return
-
         if isinstance(val, list):
             if (len(val) == 0 or val[0] is None) and null_allowed is False:
                 return
 
         if isinstance(vtyp, list):
-            vtype = vtyp[0]
-            if isinstance(val, vtype):
-                if issubclass(vtype, Message):
-                    self._dict[skey] = [val]
-                elif _deser:
-                    try:
-                        self._dict[skey] = _deser(val, sformat="urlencoded")
-                    except Exception as exc:
-                        raise DecodeError(ERRTXT % (key, exc))
-                else:
-                    setattr(self, skey, [val])
-            elif isinstance(val, list):
-                if _deser:
-                    try:
-                        val = _deser(val, sformat="dict")
-                    except Exception as exc:
-                        raise DecodeError(ERRTXT % (key, exc))
-
-                if issubclass(vtype, Message):
-                    try:
-                        _val = []
-                        for v in val:
-                            _val.append(vtype(**dict([(str(x), y) for x, y
-                                                      in v.items()])))
-                        val = _val
-                    except Exception as exc:
-                        raise DecodeError(ERRTXT % (key, exc))
-                else:
-                    for v in val:
-                        if not isinstance(v, vtype):
-                            raise DecodeError(
-                                ERRTXT % (key, "type != %s (%s)" % (
-                                    vtype, type(v))))
-
-                self._dict[skey] = val
-            elif isinstance(val, dict):
-                try:
-                    val = _deser(val, sformat="dict")
-                except Exception as exc:
-                    raise DecodeError(ERRTXT % (key, exc))
-                else:
-                    self._dict[skey] = val
-            else:
-                raise DecodeError(ERRTXT % (key, "type != %s" % vtype))
+            self._add_value_list(skey, vtyp[0], key, val, _deser, null_allowed)
         else:
             if val is None:
                 self._dict[skey] = None
@@ -435,8 +375,7 @@ class Message(MutableMapping):
                 if vtyp is bool:
                     self._dict[skey] = val
                 else:
-                    raise ValueError(
-                        '"{}", wrong type of value for "{}"'.format(val, skey))
+                    raise ValueError('"{}", wrong type of value for "{}"'.format(val, skey))
             elif isinstance(val, vtyp):  # Not necessary to do anything
                 self._dict[skey] = val
             else:
@@ -449,14 +388,11 @@ class Message(MutableMapping):
                     try:
                         self._dict[skey] = int(val)
                     except (ValueError, TypeError):
-                        raise ValueError(
-                            '"{}", wrong type of value for "{}"'.format(val,
-                                                                        skey))
+                        raise ValueError('"{}", wrong type of value for "{}"'.format(val, skey))
                     else:
                         return
                 elif vtyp is bool:
-                    raise ValueError(
-                        '"{}", wrong type of value for "{}"'.format(val, skey))
+                    raise ValueError('"{}", wrong type of value for "{}"'.format(val, skey))
 
                 if isinstance(val, six.string_types):
                     self._dict[skey] = val
@@ -469,6 +405,59 @@ class Message(MutableMapping):
                         raise TooManyValues(key)
                 else:
                     self._dict[skey] = val
+
+    def _add_value_list(self, skey, vtype, key, val, _deser, null_allowed):
+        """Add value with internal type (``vtype``) of ``list`` to the message object.
+
+        :param skey: String representation of key
+        :param vtype: Type of object in list
+        :param key: Key for the object
+        :param val: Value of the object
+        :param _deser: Deserialization method
+        :param null_allowed: If null value is allowed
+        """
+        if isinstance(val, vtype):
+            if issubclass(vtype, Message):
+                self._dict[skey] = [val]
+            elif _deser is not None:
+                try:
+                    self._dict[skey] = _deser(val, sformat="urlencoded")
+                except Exception as exc:
+                    raise DecodeError(ERRTXT % (key, exc))
+            else:
+                setattr(self, skey, [val])
+            return
+        if isinstance(val, list):
+            if _deser is not None:
+                try:
+                    val = _deser(val, sformat="dict")
+                except Exception as exc:
+                    raise DecodeError(ERRTXT % (key, exc))
+
+            if issubclass(vtype, Message):
+                try:
+                    _val = []
+                    for v in val:
+                        _val.append(vtype(**dict([(str(x), y) for x, y in v.items()])))
+                    val = _val
+                except Exception as exc:
+                    raise DecodeError(ERRTXT % (key, exc))
+            else:
+                for v in val:
+                    if not isinstance(v, vtype):
+                        raise DecodeError(ERRTXT % (key, "type != %s (%s)" % (vtype, type(v))))
+            self._dict[skey] = val
+            return
+        if isinstance(val, dict):
+            try:
+                val = _deser(val, sformat="dict")
+            except Exception as exc:
+                raise DecodeError(ERRTXT % (key, exc))
+            else:
+                self._dict[skey] = val
+                return
+
+        raise DecodeError(ERRTXT % (key, "type != %s" % vtype))
 
     def to_json(self, lev=0, indent=None):
         if lev:

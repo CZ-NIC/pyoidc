@@ -120,6 +120,14 @@ class DummyMessage(Message):
     }
 
 
+class StarMessage(Message):
+    c_param = {'*': SINGLE_REQUIRED_STRING}
+
+
+class MessageListMessage(Message):
+    c_param = {'opt_message_list': ([Message], False, None, None, False)}
+
+
 class TestMessage(object):
     def test_json_serialization(self):
         item = DummyMessage(req_str="Fair", opt_str="game", opt_int=9,
@@ -216,6 +224,72 @@ class TestMessage(object):
         assert cls.get("opt_int", 8) == 9
         assert cls.get("missing") is None
         assert cls.get("missing", []) == []
+
+    def test_from_dict_simple(self):
+        _dict = {'req_str': 'Fair', 'opt_str': 'game', 'opt_int': 9}
+
+        message = DummyMessage().from_dict(_dict)
+        assert message.to_dict() == _dict
+
+    def test_from_dict_lang(self):
+        _dict = {'req_str#en': 'Fair', 'opt_str': 'game', 'opt_int': 9}
+
+        message = DummyMessage().from_dict(_dict)
+        assert message.to_dict() == _dict
+
+    def test_from_dict_wrong_lang_key_no_star(self):
+        _dict = {'bad_str#en': None}
+
+        message = DummyMessage().from_dict(_dict)
+        assert message.to_dict() == _dict
+
+    def test_from_dict_wrong_lang_key_star(self):
+        _dict = {'bad_str#en': 'test'}
+
+        message = StarMessage().from_dict(_dict)
+        assert message.to_dict() == _dict
+
+    def test_from_dict_wrong_lang_key_star_none(self):
+        _dict = {'bad_str#en': None}
+
+        message = StarMessage().from_dict(_dict)
+        assert message.to_dict() == _dict
+
+    def test_from_dict_wrong_key_no_star(self):
+        _dict = {'req_str_en': None}
+
+        message = DummyMessage().from_dict(_dict)
+        assert message.to_dict() == _dict
+
+    def test_from_dict_wrong_key_star(self):
+        _dict = {'req_str_en': 'test'}
+
+        message = StarMessage().from_dict(_dict)
+        assert message.to_dict() == _dict
+
+    def test_from_dict_wrong_key_star_none(self):
+        _dict = {'req_str_en': None}
+
+        message = StarMessage().from_dict(_dict)
+        assert message.to_dict() == _dict
+
+    def test_from_dict_empty_val(self):
+        _dict = {'req_str': '', 'req_str_list': ['']}
+
+        message = DummyMessage().from_dict(_dict)
+        assert message.to_dict() == {}
+
+    def test_from_dict_message(self):
+        _dict = {'opt_message_list': DummyMessage(req_str='test')}
+
+        message = MessageListMessage().from_dict(_dict)
+        assert message.to_dict() == {'opt_message_list': [{'req_str': 'test'}]}
+
+    def test_from_dict_message_list(self):
+        _dict = {'opt_message_list': [DummyMessage(req_str='test')]}
+
+        message = MessageListMessage().from_dict(_dict)
+        assert message.to_dict() == {'opt_message_list': [{'req_str': 'test'}]}
 
 
 class TestAuthorizationRequest(object):
