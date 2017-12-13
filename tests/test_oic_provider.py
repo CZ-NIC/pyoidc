@@ -427,6 +427,41 @@ class TestProvider(object):
         assert _eq(atr.keys(),
                    ['token_type', 'id_token', 'access_token', 'scope'])
 
+    def test_token_endpoint_no_cache(self):
+        authreq = AuthorizationRequest(state="state",
+                                       redirect_uri="http://example.com/authz",
+                                       client_id=CLIENT_ID,
+                                       response_type="code",
+                                       scope=["openid"])
+
+        _sdb = self.provider.sdb
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
+        access_grant = _sdb.access_token(sid=sid)
+        ae = AuthnEvent("user", "salt")
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "authn_event": ae.to_json(),
+            "authzreq": authreq.to_json(),
+            "client_id": CLIENT_ID,
+            "code": access_grant,
+            "code_used": False,
+            "scope": ["openid"],
+            "redirect_uri": "http://example.com/authz",
+        }
+        _sdb.do_sub(sid, "client_salt")
+
+        # Construct Access token request
+        areq = AccessTokenRequest(code=access_grant, client_id=CLIENT_ID,
+                                  redirect_uri="http://example.com/authz",
+                                  client_secret=CLIENT_SECRET,
+                                  grant_type='authorization_code')
+
+        txt = areq.to_urlencoded()
+
+        resp = self.provider.token_endpoint(request=txt)
+        assert resp.headers == [('Pragma', 'no-cache'), ('Cache-Control', 'no-store'),
+                                ('Content-type', 'application/json')]
+
     def test_token_endpoint_refresh(self):
         authreq = AuthorizationRequest(state="state",
                                        redirect_uri="http://example.com/authz",
@@ -1282,3 +1317,48 @@ class TestProvider(object):
         assert atr2['access_token'] != atr['access_token']
         assert atr2['refresh_token'] == atr['refresh_token']
         assert atr2['token_type'] == 'Bearer'
+
+    def test_refresh_access_token_no_cache(self):
+        authreq = AuthorizationRequest(state="state",
+                                       redirect_uri="http://example.com/authz",
+                                       client_id=CLIENT_ID,
+                                       response_type="code",
+                                       scope=["openid", 'offline_access'],
+                                       prompt='consent')
+
+        _sdb = self.provider.sdb
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
+        access_grant = _sdb.access_token(sid=sid)
+        ae = AuthnEvent("user", "salt")
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "authn_event": ae.to_json(),
+            "authzreq": authreq.to_json(),
+            "client_id": CLIENT_ID,
+            "code": access_grant,
+            "code_used": False,
+            "scope": ["openid", 'offline_access'],
+            "redirect_uri": "http://example.com/authz",
+        }
+        _sdb.do_sub(sid, "client_salt")
+
+        # Construct Access token request
+        areq = AccessTokenRequest(code=access_grant, client_id=CLIENT_ID,
+                                  redirect_uri="http://example.com/authz",
+                                  client_secret=CLIENT_SECRET,
+                                  grant_type='authorization_code')
+
+        txt = areq.to_urlencoded()
+
+        resp = self.provider.token_endpoint(request=txt)
+        atr = AccessTokenResponse().deserialize(resp.message, "json")
+
+        rareq = RefreshAccessTokenRequest(grant_type="refresh_token",
+                                          refresh_token=atr['refresh_token'],
+                                          client_id=CLIENT_ID,
+                                          client_secret=CLIENT_SECRET,
+                                          scope=['openid'])
+
+        resp = self.provider.token_endpoint(request=rareq.to_urlencoded())
+        assert resp.headers == [('Pragma', 'no-cache'), ('Cache-Control', 'no-store'),
+                                ('Content-type', 'application/json')]

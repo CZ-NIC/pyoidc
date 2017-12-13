@@ -34,6 +34,11 @@ CORS_HEADERS = [
     ("Access-Control-Allow-Headers", "Authorization")
 ]
 
+OAUTH2_NOCACHE_HEADERS = [
+    ('Pragma', 'no-cache'),
+    ('Cache-Control', 'no-store'),
+]
+
 
 class Response(object):
     _template = None
