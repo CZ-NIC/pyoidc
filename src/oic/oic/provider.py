@@ -791,7 +791,7 @@ class Provider(AProvider):
         # as per the mix-up draft don't add iss and client_id if they are
         # already in the id_token.
         if 'id_token' not in aresp:
-            aresp['iss'] = self.baseurl
+            aresp['iss'] = self.name
 
         aresp['client_id'] = areq['client_id']
 
