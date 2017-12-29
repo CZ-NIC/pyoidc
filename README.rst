@@ -72,9 +72,8 @@ still maintain a good flow of reviewing each others pull requests and driving
 discussions on what should be done. We also use a `mailing list`_ to have long
 form discussions.
 
-Please contact one of the current maintainers, `@lwm`_, `@rohe`_, `@tpazderka`_ or `@schlenk`_.
+Please contact one of the current maintainers `@rohe`_, `@tpazderka`_ or `@schlenk`_.
 
-.. _@lwm: https://github.com/lwm/
 .. _@rohe: https://github.com/rohe/
 .. _@tpazderka: https://github.com/tpazderka/
 .. _@schlenk: https://github.com/schlenk
