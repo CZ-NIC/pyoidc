@@ -57,7 +57,10 @@ def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE,
     if method in ["GET", "DELETE"]:
         _qp = req.to_urlencoded()
         if _qp:
-            path = uri + '?' + _qp
+            if '?' in _qp:
+                path = uri + '&' + _qp
+            else:
+                path = uri + '?' + _qp
         else:
             path = uri
         body = None

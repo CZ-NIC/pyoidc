@@ -92,6 +92,27 @@ def test_get_or_post():
         util.get_or_post(uri, method, request, **kwargs)
 
 
+def test_get_or_post_with_qp():
+    uri = u'https://localhost:8092/authorization?test=testslice'
+    method = 'GET'
+    values = {'acr_values': u'PASSWORD',
+              'state': 'urn:uuid:92d81fb3-72e8-4e6c-9173-c360b782148a',
+              'redirect_uri': 'https://localhost:8666/919D3F697FDAAF138124B83E09ECB0B7',
+              'response_type': 'code', 'client_id': u'ok8tx7ulVlNV',
+              'scope': 'openid profile email address phone'}
+    request = AuthorizationRequest(**values)
+
+    path, body, ret_kwargs = util.get_or_post(uri, method, request)
+
+    assert url_compare(path,
+                       u"https://localhost:8092/authorization?test=testslice&acr_values=PASSWORD&state=urn%3A"
+                       "uuid%3A92d81fb3-72e8-4e6c-9173-c360b782148a&"
+                       "redirect_uri=https%3A%2F%2Flocalhost%3A8666%2F919D3F697FDAAF138124B83E09ECB0B7&"
+                       "response_type=code&client_id=ok8tx7ulVlNV&scope=openid+profile+email+address+phone")
+    assert not body
+    assert not ret_kwargs
+
+
 def test_set_cookie():
     cookiejar = FileCookieJar()
     _cookie = {"value_0": "v_0", "value_1": "v_1", "value_2": "v_2"}
