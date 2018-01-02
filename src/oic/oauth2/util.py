@@ -1,4 +1,5 @@
 from future.backports.http.cookiejar import http2time
+from future.backports.http import cookiejar as http_cookiejar
 from future.backports.urllib.parse import parse_qs
 from future.backports.urllib.parse import urlsplit
 from future.backports.urllib.parse import urlunsplit
@@ -159,7 +160,7 @@ def set_cookie(cookiejar, kaka):
                 except (TypeError, AttributeError):
                     pass
 
-            new_cookie = cookiejar.Cookie(**std_attr)
+            new_cookie = http_cookiejar.Cookie(**std_attr)
 
             cookiejar.set_cookie(new_cookie)
 
