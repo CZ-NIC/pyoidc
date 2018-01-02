@@ -1,6 +1,7 @@
 import logging
 
 import six.moves.http_cookiejar as cookielib
+from future.backports.urllib.parse import urlsplit, urlunsplit, parse_qs
 from six import string_types
 from six.moves.http_cookiejar import http2time
 
@@ -57,8 +58,12 @@ def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE,
     if method in ["GET", "DELETE"]:
         _qp = req.to_urlencoded()
         if _qp:
-            if '?' in uri:
-                path = uri + '&' + _qp
+            comp = urlsplit(uri)
+            if comp.query:
+                req.update(parse_qs(comp.query))
+                _query = req.to_urlencoded()
+                path = urlunsplit((comp.scheme, comp.netloc, comp.path,
+                                  _query, comp.fragment))
             else:
                 path = uri + '?' + _qp
         else:
