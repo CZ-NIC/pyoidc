@@ -1,9 +1,11 @@
+from future.backports.http.cookiejar import http2time
+from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import urlsplit
+from future.backports.urllib.parse import urlunsplit
+
 import logging
 
-import six.moves.http_cookiejar as cookielib
-from future.backports.urllib.parse import urlsplit, urlunsplit, parse_qs
 from six import string_types
-from six.moves.http_cookiejar import http2time
 
 from oic.exception import UnSupported
 from oic.oauth2.exception import TimeFormatError
@@ -94,7 +96,7 @@ def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE,
 
 
 def set_cookie(cookiejar, kaka):
-    """PLaces a cookie (a cookielib.Cookie based on a set-cookie header
+    """PLaces a cookie (a http_cookielib.Cookie based on a set-cookie header
     line) in the cookie jar.
     Always chose the shortest expires time.
 
@@ -157,7 +159,7 @@ def set_cookie(cookiejar, kaka):
                 except (TypeError, AttributeError):
                     pass
 
-            new_cookie = cookielib.Cookie(**std_attr)
+            new_cookie = cookiejar.Cookie(**std_attr)
 
             cookiejar.set_cookie(new_cookie)
 
