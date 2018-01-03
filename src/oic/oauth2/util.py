@@ -1,5 +1,5 @@
-from future.backports.http.cookiejar import http2time
 from future.backports.http import cookiejar as http_cookiejar
+from future.backports.http.cookiejar import http2time
 from future.backports.urllib.parse import parse_qs
 from future.backports.urllib.parse import urlsplit
 from future.backports.urllib.parse import urlunsplit
