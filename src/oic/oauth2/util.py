@@ -59,16 +59,15 @@ def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE,
     :return:
     """
     if method in ["GET", "DELETE"]:
-        _qp = req.to_urlencoded()
-        if _qp:
+        if req.keys():
             comp = urlsplit(uri)
             if comp.query:
+                req = req.copy()
                 req.update(parse_qs(comp.query))
-                _query = req.to_urlencoded()
-                path = urlunsplit((comp.scheme, comp.netloc, comp.path,
-                                  _query, comp.fragment))
-            else:
-                path = uri + '?' + _qp
+
+            _query = req.to_urlencoded()
+            path = urlunsplit((comp.scheme, comp.netloc, comp.path,
+                              _query, comp.fragment))
         else:
             path = uri
         body = None
