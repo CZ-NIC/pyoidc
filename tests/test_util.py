@@ -39,10 +39,10 @@ def url_compare(url1, url2):
 def test_get_or_post():
     uri = u'https://localhost:8092/authorization'
     method = 'GET'
-    values = {'acr_values': u'PASSWORD',
+    values = {'acr_values': 'PASSWORD',
               'state': 'urn:uuid:92d81fb3-72e8-4e6c-9173-c360b782148a',
               'redirect_uri': 'https://localhost:8666/919D3F697FDAAF138124B83E09ECB0B7',
-              'response_type': 'code', 'client_id': u'ok8tx7ulVlNV',
+              'response_type': 'code', 'client_id': 'ok8tx7ulVlNV',
               'scope': 'openid profile email address phone'}
     request = AuthorizationRequest(**values)
 
@@ -95,10 +95,10 @@ def test_get_or_post():
 def test_get_or_post_with_qp():
     uri = u'https://localhost:8092/authorization?test=testslice'
     method = 'GET'
-    values = {'acr_values': u'PASSWORD',
+    values = {'acr_values': 'PASSWORD',
               'state': 'urn:uuid:92d81fb3-72e8-4e6c-9173-c360b782148a',
               'redirect_uri': 'https://localhost:8666/919D3F697FDAAF138124B83E09ECB0B7',
-              'response_type': 'code', 'client_id': u'ok8tx7ulVlNV',
+              'response_type': 'code', 'client_id': 'ok8tx7ulVlNV',
               'scope': 'openid profile email address phone'}
     request = AuthorizationRequest(**values)
 

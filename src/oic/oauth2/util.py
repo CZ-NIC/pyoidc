@@ -60,14 +60,14 @@ def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE,
     """
     if method in ["GET", "DELETE"]:
         if req.keys():
-            comp = urlsplit(uri)
+            _req = req.copy()
+            comp = urlsplit(str(uri))
             if comp.query:
-                req = req.copy()
-                req.update(parse_qs(comp.query))
+                _req.update(parse_qs(comp.query))
 
-            _query = req.to_urlencoded()
+            _query = str(_req.to_urlencoded())
             path = urlunsplit((comp.scheme, comp.netloc, comp.path,
-                              _query, comp.fragment))
+                               _query, comp.fragment))
         else:
             path = uri
         body = None
@@ -207,7 +207,8 @@ def verify_header(reqresp, body_type):
                              reqresp.headers["content-type"])
         except AssertionError:
             raise AssertionError(
-                "Wrong content-type in header, got: {} expected 'application/jwt'".format(
+                "Wrong content-type in header, got: {} expected "
+                "'application/jwt'".format(
                     reqresp.headers["content-type"]))
     elif body_type == "urlencoded":
         try:
