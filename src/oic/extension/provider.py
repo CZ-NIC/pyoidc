@@ -51,6 +51,7 @@ from oic.utils.authn.client import AuthnFailure
 from oic.utils.authn.client import UnknownAuthnMethod
 from oic.utils.authn.client import get_client_id
 from oic.utils.authn.client import valid_client_info
+from oic.utils.http_util import OAUTH2_NOCACHE_HEADERS
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Forbidden
 from oic.utils.http_util import NoContent
@@ -702,7 +703,7 @@ class Provider(provider.Provider):
 
         logger.debug("AccessTokenResponse: %s" % atr)
 
-        return Response(atr.to_json(), content="application/json")
+        return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
     def client_credentials_grant_type(self, areq):
         _at = self.token_handler.get_access_token(areq['client_id'],

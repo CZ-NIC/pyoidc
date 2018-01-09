@@ -17,6 +17,7 @@ import socket
 import sys
 import time
 import traceback
+import warnings
 from functools import cmp_to_key
 
 import six
@@ -70,6 +71,7 @@ from oic.oic.message import RegistrationRequest
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import TokenErrorResponse
 from oic.utils import sort_sign_alg
+from oic.utils.http_util import OAUTH2_NOCACHE_HEADERS
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Created
 from oic.utils.http_util import Response
@@ -789,7 +791,7 @@ class Provider(AProvider):
         # as per the mix-up draft don't add iss and client_id if they are
         # already in the id_token.
         if 'id_token' not in aresp:
-            aresp['iss'] = self.baseurl
+            aresp['iss'] = self.name
 
         aresp['client_id'] = areq['client_id']
 
@@ -980,7 +982,7 @@ class Provider(AProvider):
 
         logger.info("access_token_response: %s" % sanitize(atr.to_dict()))
 
-        return Response(atr.to_json(), content="application/json")
+        return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
     def _refresh_access_token_endpoint(self, req, **kwargs):
         _sdb = self.sdb
@@ -1016,7 +1018,7 @@ class Provider(AProvider):
 
         logger.info("access_token_response: %s" % sanitize(atr.to_dict()))
 
-        return Response(atr.to_json(), content="application/json")
+        return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
     def token_endpoint(self, request="", authn=None, dtype='urlencoded',
                        **kwargs):
@@ -1512,6 +1514,11 @@ class Provider(AProvider):
             args[param] = val
 
     def l_registration_endpoint(self, request, authn=None, **kwargs):
+        warnings.warn('`l_registration_endpoint` is deprecated. Please use `create_registration` instead',
+                      DeprecationWarning)
+        return self.create_registration(request=request, authn=authn, **kwargs)
+
+    def create_registration(self, authn=None, request=None, **kwargs):
         logger.debug("@registration_endpoint: <<%s>>" % sanitize(request))
 
         try:
@@ -1609,8 +1616,16 @@ class Provider(AProvider):
 
         return response
 
-    def registration_endpoint(self, request, authn=None, **kwargs):
-        return self.l_registration_endpoint(request, authn, **kwargs)
+    def registration_endpoint(self, request, authn=None, method='POST', **kwargs):
+        if method.lower() == 'post':
+            return self.create_registration(authn, request, **kwargs)
+        elif method.lower() == 'get':
+            return self.read_registration(authn, request, **kwargs)
+        elif method.lower() == 'put':
+            return self.alter_registration(authn, request, **kwargs)
+        elif method.lower() == 'delete':
+            return self.delete_registration(authn, request, **kwargs)
+        return error_response('Unsupported method', descr='Unsupported HTTP method')
 
     def read_registration(self, authn, request, **kwargs):
         """
@@ -1653,6 +1668,24 @@ class Provider(AProvider):
 
         return Response(response.to_json(), content="application/json",
                         headers=[("Cache-Control", "no-store")])
+
+    def alter_registration(self, authn, request, **kwargs):
+        """Method to alter the client info on server side.
+
+        :param authn: Authorization HTTP header
+        :param request: Query part of the request
+        :return: Response with updated client info
+        """
+        return error('Unsupported operation', descr='Altering of the registration is not supported', status_code=403)
+
+    def delete_registration(self, authn, request, **kwargs):
+        """Method to delete the client info on server side.
+
+        :param authn: Authorization HTTP header
+        :param request: Query part of the request
+        :return: Response with updated client info
+        """
+        return error('Unsupported operation', descr='Deletion of the registration is not supported', status_code=403)
 
     def create_providerinfo(self, pcr_class=ProviderConfigurationResponse,
                             setup=None):

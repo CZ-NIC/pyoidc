@@ -1,13 +1,13 @@
 .. image:: https://api.travis-ci.org/OpenIDC/pyoidc.png?branch=master
     :target: https://travis-ci.org/OpenIDC/pyoidc
 
+.. image:: https://ci.appveyor.com/api/projects/status/9kd2u37pi9n2wt63/branch/master?svg=true
+    :target: https://ci.appveyor.com/project/tpazderka/pyoidc/branch/master
+
 .. image:: https://img.shields.io/pypi/pyversions/oic.svg
     :target: https://pypi.python.org/pypi/oic
 
 .. image:: https://img.shields.io/pypi/v/oic.svg
-    :target: https://pypi.python.org/pypi/oic
-
-.. image:: https://img.shields.io/pypi/dm/oic.svg
     :target: https://pypi.python.org/pypi/oic
 
 .. image:: https://readthedocs.org/projects/pyoidc/badge/?version=latest
@@ -26,7 +26,10 @@ This is a complete implementation of OpenID Connect as specified in the `OpenID
 Connect Core specification`_. And as a side effect, a complete implementation
 of OAuth2.0 too.
 
+Please see the `CHANGELOG.md`_ to review the latest changes.
+
 .. _OpenID Connect Core specification: http://openid.net/specs/openid-connect-core-1_0.html.
+.. _CHANGELOG.md: https://github.com/OpenIDC/pyoidc/blob/master/CHANGELOG.md
 
 Documentation
 ==============
@@ -64,14 +67,17 @@ Maintainers Needed
 ==================
 
 If you're interested in helping maintain and improve this package, we're
-looking for you!
+looking for you! We're working on the project on a best effort basis but we
+still maintain a good flow of reviewing each others pull requests and driving
+discussions on what should be done. We also use a `mailing list`_ to have long
+form discussions.
 
-Please contact one of the current maintainers, `@lwm`_, `@rohe`_, `@tpazderka`_ or `@schlenk`_.
+Please contact one of the current maintainers `@rohe`_, `@tpazderka`_ or `@schlenk`_.
 
-.. _@lwm: https://github.com/lwm/
 .. _@rohe: https://github.com/rohe/
 .. _@tpazderka: https://github.com/tpazderka/
 .. _@schlenk: https://github.com/schlenk
+.. _mailing list: https://lists.sunet.se/listinfo/pyoidc-dev
 
 Contribute
 ==========
@@ -89,6 +95,8 @@ Then just run:
 
 This will not affect your system level Python installation. Please review `our
 issues`_ to see what needs working on. Do not hesitate to ask questions if
-something is unclear.
+something is unclear. We mark easy issues as `newcomer-friendly`_, so they are
+a good place to start if you want to contribute.
 
 .. _our issues: https://github.com/OpenIDC/pyoidc/issues
+.. _newcomer-friendly: https://github.com/OpenIDC/pyoidc/issues?q=is%3Aopen+is%3Aissue+label%3Anewcomer-friendly

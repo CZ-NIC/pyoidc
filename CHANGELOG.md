@@ -8,7 +8,14 @@ The format is based on the [KeepAChangeLog] project.
 ## 0.13.0 [Unreleased]
 
 ### Added
+- [#469] Allow endpoints to have query parts
 - [#443] Ability to specify additional supported claims for oic.Provider
+- [#134] Added method kwarg to registration_endpoint that enables the client to read/modify registration
+
+### Changed
+- [#134] ``l_registration_enpoint`` has been deprecated, use ``create_registration`` instead
+- [#457] pyldap is now an optional dependency. ``oic.utils.authn.ldapc`` and ``oic.utils.userinfo.ldap_info`` raise
+         ``ImportError`` on import if ``pyldap`` is not present
 
 ### Fixed
 - [#430] Audience of a client assertion is endpoint dependent.
@@ -18,6 +25,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#446] Fixed provider.read_registration
 - [#449] Fixed creation of error_response on client registration
 - [#421] Fixed handling of unicode in sanitize function
+- [#145] Successful token endpoint responses have correct no-cache headers
 
 [#430]: https://github.com/OpenIDC/pyoidc/pull/430
 [#427]: https://github.com/OpenIDC/pyoidc/pull/427
@@ -27,6 +35,9 @@ The format is based on the [KeepAChangeLog] project.
 [#446]: https://github.com/OpenIDC/pyoidc/issues/446
 [#449]: https://github.com/OpenIDC/pyoidc/issues/449
 [#449]: https://github.com/OpenIDC/pyoidc/issues/421
+[#134]: https://github.com/OpenIDC/pyoidc/issues/134
+[#457]: https://github.com/OpenIDC/pyoidc/issues/457
+[#145]: https://github.com/OpenIDC/pyoidc/issues/145
 
 ## 0.12.0 [2017-09-25]
 
