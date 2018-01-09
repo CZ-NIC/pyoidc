@@ -427,6 +427,41 @@ class TestProvider(object):
         assert _eq(atr.keys(),
                    ['token_type', 'id_token', 'access_token', 'scope'])
 
+    def test_token_endpoint_no_cache(self):
+        authreq = AuthorizationRequest(state="state",
+                                       redirect_uri="http://example.com/authz",
+                                       client_id=CLIENT_ID,
+                                       response_type="code",
+                                       scope=["openid"])
+
+        _sdb = self.provider.sdb
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
+        access_grant = _sdb.access_token(sid=sid)
+        ae = AuthnEvent("user", "salt")
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "authn_event": ae.to_json(),
+            "authzreq": authreq.to_json(),
+            "client_id": CLIENT_ID,
+            "code": access_grant,
+            "code_used": False,
+            "scope": ["openid"],
+            "redirect_uri": "http://example.com/authz",
+        }
+        _sdb.do_sub(sid, "client_salt")
+
+        # Construct Access token request
+        areq = AccessTokenRequest(code=access_grant, client_id=CLIENT_ID,
+                                  redirect_uri="http://example.com/authz",
+                                  client_secret=CLIENT_SECRET,
+                                  grant_type='authorization_code')
+
+        txt = areq.to_urlencoded()
+
+        resp = self.provider.token_endpoint(request=txt)
+        assert resp.headers == [('Pragma', 'no-cache'), ('Cache-Control', 'no-store'),
+                                ('Content-type', 'application/json')]
+
     def test_token_endpoint_refresh(self):
         authreq = AuthorizationRequest(state="state",
                                        redirect_uri="http://example.com/authz",
@@ -765,7 +800,7 @@ class TestProvider(object):
         exp_time = self.provider.client_secret_expiration_time()
         assert exp_time == 209856
 
-    def test_registration_endpoint(self):
+    def test_registration_endpoint_post(self):
         req = RegistrationRequest()
 
         req["application_type"] = "web"
@@ -785,7 +820,7 @@ class TestProvider(object):
                     'client_id', 'client_secret',
                     'client_id_issued_at', 'response_types'])
 
-    def test_registration_endpoint_unicode(self):
+    def test_registration_endpoint_post_unicode(self):
         data = 'application_type=web&client_name=M%C3%A1+supe%C5%99+service&' \
                'redirect_uris=http%3A%2F%2Fexample.com%2Fauthz&response_types=code'
         resp = self.provider.registration_endpoint(request=data)
@@ -798,6 +833,34 @@ class TestProvider(object):
                     'registration_access_token',
                     'client_id', 'client_secret',
                     'client_id_issued_at', 'response_types'])
+
+    def test_registration_endpoint_get(self):
+        rr = RegistrationRequest(operation="register", redirect_uris=["http://example.org/new"],
+                                 response_types=["code"])
+        registration_req = rr.to_json()
+        resp = self.provider.registration_endpoint(request=registration_req)
+        regresp = RegistrationResponse().from_json(resp.message)
+
+        authn = ' '.join(['Bearer', regresp['registration_access_token']])
+        query = '='.join(['client_id', regresp['client_id']])
+        resp = self.provider.registration_endpoint(request=query, authn=authn, method='GET')
+
+        assert json.loads(resp.message) == regresp.to_dict()
+
+    def test_registration_endpoint_delete(self):
+        resp = self.provider.registration_endpoint(request='', method='PUT')
+        assert json.loads(resp.message) == {'error': 'Unsupported operation',
+                                            'error_description': 'Altering of the registration is not supported'}
+
+    def test_registration_endpoint_put(self):
+        resp = self.provider.registration_endpoint(request='', method='DELETE')
+        assert json.loads(resp.message) == {'error': 'Unsupported operation',
+                                            'error_description': 'Deletion of the registration is not supported'}
+
+    def test_registration_endpoint_unsupported(self):
+        resp = self.provider.registration_endpoint(request='', method='HEAD')
+        assert json.loads(resp.message) == {'error': 'Unsupported method',
+                                            'error_description': 'Unsupported HTTP method'}
 
     def test_do_client_registration_invalid_sector_uri(self):
         rr = RegistrationRequest(operation='register', sector_identifier_uri='https://example.com',
@@ -1254,3 +1317,48 @@ class TestProvider(object):
         assert atr2['access_token'] != atr['access_token']
         assert atr2['refresh_token'] == atr['refresh_token']
         assert atr2['token_type'] == 'Bearer'
+
+    def test_refresh_access_token_no_cache(self):
+        authreq = AuthorizationRequest(state="state",
+                                       redirect_uri="http://example.com/authz",
+                                       client_id=CLIENT_ID,
+                                       response_type="code",
+                                       scope=["openid", 'offline_access'],
+                                       prompt='consent')
+
+        _sdb = self.provider.sdb
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
+        access_grant = _sdb.access_token(sid=sid)
+        ae = AuthnEvent("user", "salt")
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "authn_event": ae.to_json(),
+            "authzreq": authreq.to_json(),
+            "client_id": CLIENT_ID,
+            "code": access_grant,
+            "code_used": False,
+            "scope": ["openid", 'offline_access'],
+            "redirect_uri": "http://example.com/authz",
+        }
+        _sdb.do_sub(sid, "client_salt")
+
+        # Construct Access token request
+        areq = AccessTokenRequest(code=access_grant, client_id=CLIENT_ID,
+                                  redirect_uri="http://example.com/authz",
+                                  client_secret=CLIENT_SECRET,
+                                  grant_type='authorization_code')
+
+        txt = areq.to_urlencoded()
+
+        resp = self.provider.token_endpoint(request=txt)
+        atr = AccessTokenResponse().deserialize(resp.message, "json")
+
+        rareq = RefreshAccessTokenRequest(grant_type="refresh_token",
+                                          refresh_token=atr['refresh_token'],
+                                          client_id=CLIENT_ID,
+                                          client_secret=CLIENT_SECRET,
+                                          scope=['openid'])
+
+        resp = self.provider.token_endpoint(request=rareq.to_urlencoded())
+        assert resp.headers == [('Pragma', 'no-cache'), ('Cache-Control', 'no-store'),
+                                ('Content-type', 'application/json')]

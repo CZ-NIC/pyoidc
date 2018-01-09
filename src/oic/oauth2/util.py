@@ -1,8 +1,12 @@
+from future.backports.http import cookiejar as http_cookiejar
+from future.backports.http.cookiejar import http2time
+from future.backports.urllib.parse import parse_qs
+from future.backports.urllib.parse import urlsplit
+from future.backports.urllib.parse import urlunsplit
+
 import logging
 
-import six.moves.http_cookiejar as cookielib
 from six import string_types
-from six.moves.http_cookiejar import http2time
 
 from oic.exception import UnSupported
 from oic.oauth2.exception import TimeFormatError
@@ -55,9 +59,15 @@ def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE,
     :return:
     """
     if method in ["GET", "DELETE"]:
-        _qp = req.to_urlencoded()
-        if _qp:
-            path = uri + '?' + _qp
+        if req.keys():
+            _req = req.copy()
+            comp = urlsplit(str(uri))
+            if comp.query:
+                _req.update(parse_qs(comp.query))
+
+            _query = str(_req.to_urlencoded())
+            path = urlunsplit((comp.scheme, comp.netloc, comp.path,
+                               _query, comp.fragment))
         else:
             path = uri
         body = None
@@ -86,7 +96,7 @@ def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE,
 
 
 def set_cookie(cookiejar, kaka):
-    """PLaces a cookie (a cookielib.Cookie based on a set-cookie header
+    """PLaces a cookie (a http_cookielib.Cookie based on a set-cookie header
     line) in the cookie jar.
     Always chose the shortest expires time.
 
@@ -149,7 +159,7 @@ def set_cookie(cookiejar, kaka):
                 except (TypeError, AttributeError):
                     pass
 
-            new_cookie = cookielib.Cookie(**std_attr)
+            new_cookie = http_cookiejar.Cookie(**std_attr)
 
             cookiejar.set_cookie(new_cookie)
 
@@ -197,7 +207,8 @@ def verify_header(reqresp, body_type):
                              reqresp.headers["content-type"])
         except AssertionError:
             raise AssertionError(
-                "Wrong content-type in header, got: {} expected 'application/jwt'".format(
+                "Wrong content-type in header, got: {} expected "
+                "'application/jwt'".format(
                     reqresp.headers["content-type"]))
     elif body_type == "urlencoded":
         try:

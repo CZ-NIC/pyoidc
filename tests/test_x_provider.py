@@ -242,6 +242,36 @@ class TestProvider(object):
         atr = AccessTokenResponse().deserialize(resp.message, "json")
         assert _eq(atr.keys(), ['access_token', 'token_type'])
 
+    def test_token_endpoint_no_cache(self):
+        authreq = AuthorizationRequest(state="state",
+                                       redirect_uri="http://example.com/authz",
+                                       client_id="client1")
+
+        _sdb = self.provider.sdb
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
+        access_grant = _sdb.token_factory['code'](sid=sid)
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "sub": "sub",
+            "authzreq": authreq.to_json(),
+            "client_id": "client1",
+            "code": access_grant,
+            "code_used": False,
+            "redirect_uri": "http://example.com/authz",
+            'response_type': ['code']
+        }
+
+        # Construct Access token request
+        areq = AccessTokenRequest(code=access_grant,
+                                  redirect_uri="http://example.com/authz",
+                                  client_id="client1",
+                                  client_secret="hemlighet",
+                                  grant_type='authorization_code')
+
+        resp = self.provider.token_endpoint(request=areq.to_urlencoded())
+        assert resp.headers == [('Pragma', 'no-cache'), ('Cache-Control', 'no-store'),
+                                ('Content-type', 'application/json')]
+
     def test_token_endpoint_unauth(self):
         authreq = AuthorizationRequest(state="state",
                                        redirect_uri="http://example.com/authz",
