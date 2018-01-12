@@ -486,58 +486,42 @@ def get_client_id(cdb, req, authn):
     :param authn: Authentication information from the HTTP header
     :return:
     """
-
     logger.debug("REQ: %s" % sanitize(req.to_dict()))
-    if authn:
-        if authn.startswith("Basic "):
-            logger.debug("Basic auth")
-            (_id, _secret) = base64.b64decode(
-                authn[6:].encode("utf-8")).decode("utf-8").split(":")
-
-            _bid = as_bytes(_id)
-            _cinfo = None
-            try:
-                _cinfo = cdb[_id]
-            except KeyError:
-                try:
-                    _cinfo[_bid]
-                except AttributeError:
-                    pass
-
-            if not _cinfo:
-                logger.debug("Unknown client_id")
-                raise FailedAuthentication("Unknown client_id")
-            else:
-                if not valid_client_info(_cinfo):
-                    logger.debug("Invalid Client info")
-                    raise FailedAuthentication("Invalid Client")
-
-                if _secret != _cinfo["client_secret"]:
-                    logger.debug("Incorrect secret")
-                    raise FailedAuthentication("Incorrect secret")
-        else:
-            if authn[:6].lower() == "bearer":
-                logger.debug("Bearer auth")
-                _token = authn[7:]
-            else:
-                raise FailedAuthentication("AuthZ type I don't know")
-
-            try:
-                _id = cdb[_token]
-            except KeyError:
-                logger.debug("Unknown access token")
-                raise FailedAuthentication("Unknown access token")
-    else:
+    _secret = None
+    if not authn:
         try:
             _id = str(req["client_id"])
-            if _id not in cdb:
-                logger.debug("Unknown client_id")
-                raise FailedAuthentication("Unknown client_id")
-            if not valid_client_info(cdb[_id]):
-                raise FailedAuthentication("Invalid client_id")
         except KeyError:
             raise FailedAuthentication("Missing client_id")
-
+    elif authn.startswith("Basic "):
+        logger.debug("Basic auth")
+        (_id, _secret) = base64.b64decode(authn[6:].encode("utf-8")).decode("utf-8").split(":")
+        # Either as string or encoded
+        if _id not in cdb:
+            _bid = as_bytes(_id)
+            _id = _bid
+    elif authn[:6].lower() == "bearer":
+        logger.debug("Bearer auth")
+        _token = authn[7:]
+        try:
+            _id = cdb[_token]
+        except KeyError:
+            logger.debug("Unknown access token")
+            raise FailedAuthentication("Unknown access token")
+    else:
+        raise FailedAuthentication("AuthZ type I don't know")
+    # We have the client_id by now, so let's verify it
+    _cinfo = cdb.get(_id)
+    if _cinfo is None:
+        raise FailedAuthentication("Unknown client")
+    if not valid_client_info(_cinfo):
+        logger.debug("Invalid Client info")
+        raise FailedAuthentication("Invalid Client")
+    if _secret is not None:
+        if _secret != _cinfo["client_secret"]:
+            logger.debug("Incorrect secret")
+            raise FailedAuthentication("Incorrect secret")
+    # All should be good, so return it
     return _id
 
 
