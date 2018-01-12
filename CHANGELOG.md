@@ -25,6 +25,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#446] Fixed provider.read_registration
 - [#449] Fixed creation of error_response on client registration
 - [#445] Fixed get_client_id
+- [#421] Fixed handling of unicode in sanitize function
 - [#145] Successful token endpoint responses have correct no-cache headers
 
 [#430]: https://github.com/OpenIDC/pyoidc/pull/430
@@ -35,6 +36,7 @@ The format is based on the [KeepAChangeLog] project.
 [#446]: https://github.com/OpenIDC/pyoidc/issues/446
 [#449]: https://github.com/OpenIDC/pyoidc/issues/449
 [#445]: https://github.com/OpenIDC/pyoidc/issues/445
+[#449]: https://github.com/OpenIDC/pyoidc/issues/421
 [#134]: https://github.com/OpenIDC/pyoidc/issues/134
 [#457]: https://github.com/OpenIDC/pyoidc/issues/457
 [#145]: https://github.com/OpenIDC/pyoidc/issues/145

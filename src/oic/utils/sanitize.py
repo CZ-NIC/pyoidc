@@ -2,6 +2,8 @@ import re
 from collections import Mapping
 from textwrap import dedent
 
+import six
+
 SENSITIVE_THINGS = {'password', 'passwd', 'client_secret', 'code',
                     'authorization', 'access_token', 'refresh_token'}
 
@@ -26,7 +28,7 @@ SANITIZE_PATTERN = r'''
 '''
 
 SANITIZE_PATTERN = dedent(SANITIZE_PATTERN.format('|'.join(SENSITIVE_THINGS)))
-SANITIZE_REGEX = re.compile(SANITIZE_PATTERN, re.VERBOSE | re.IGNORECASE)
+SANITIZE_REGEX = re.compile(SANITIZE_PATTERN, re.VERBOSE | re.IGNORECASE | re.UNICODE)
 
 
 def redacted(key, value):
@@ -42,6 +44,7 @@ def sanitize(potentially_sensitive):
         return dict(
             redacted(k.lower(), v) for k, v in potentially_sensitive.items())
     else:
-        potentially_sensitive = str(potentially_sensitive)
+        if not isinstance(potentially_sensitive, six.string_types):
+            potentially_sensitive = str(potentially_sensitive)
         return SANITIZE_REGEX.sub(r'\1{}'.format(REPLACEMENT),
                                   potentially_sensitive)
