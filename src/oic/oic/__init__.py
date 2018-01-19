@@ -1220,6 +1220,9 @@ class Client(oauth2.Client):
             # Some implementations sends back a 200 with an error message inside
             try:
                 resp.verify()
+            except oauth2.message.MissingRequiredAttribute as err:
+                logger.error(err)
+                raise RegistrationError(err)
             except Exception:
                 resp = ErrorResponse().deserialize(response.text, "json")
                 if resp.verify():

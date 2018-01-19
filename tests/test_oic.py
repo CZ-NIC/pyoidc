@@ -2,6 +2,7 @@
 # from oic.oauth2 import KeyStore
 from future.backports.urllib.parse import urlparse
 
+import json
 import os
 import time
 from collections import Counter
@@ -12,6 +13,7 @@ from jwkest.jws import left_hash
 from jwkest.jwt import JWT
 from requests import Response
 
+from oic.exception import RegistrationError
 from oic.oauth2.exception import OtherError
 from oic.oic import DEF_SIGN_ALG
 from oic.oic import Client
@@ -252,6 +254,21 @@ class TestClient(object):
                                  'registration_access_token', 'client_id',
                                  'application_name', 'client_secret',
                                  'response_types'])
+
+    def test_do_registration_response_missing_attribute(self):
+        # this is lacking the required "redirect_uris" claim in the registration response
+        msg = {
+            "client_id": "s6BhdRkqt3",
+            "client_secret": "ZJYCqe3GGRvdrudKyZS0XhGv_Z45DuKhCUk0gBR1vZk",
+            "token_endpoint_auth_method": "client_secret_basic"
+        }
+        r = Response()
+        r.status_code = 201
+        r._content = str.encode(json.dumps(msg))
+
+        with pytest.raises(RegistrationError) as ex:
+            self.client.handle_registration_info(response=r)
+            assert 'Missing required attribute \'redirect_uris\'' in str(ex.value)
 
     def test_do_user_info_request_with_access_token_refresh(self):
         args = {"response_type": ["code"],
