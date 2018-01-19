@@ -36,7 +36,6 @@ from oic.oic.message import OpenIDSchema
 from oic.oic.message import RefreshAccessTokenRequest
 from oic.oic.message import RefreshSessionRequest
 from oic.oic.message import RegistrationRequest
-from oic.oic.message import RegistrationResponse
 from oic.oic.message import UserInfoRequest
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import KeyBundle
@@ -256,7 +255,7 @@ class TestClient(object):
                                  'application_name', 'client_secret',
                                  'response_types'])
 
-    def test_do_registration_response_missing_attribute(self):        
+    def test_do_registration_response_missing_attribute(self):
         # this is lacking the required "redirect_uris" claim in the registration response
         msg = {
             "client_id": "s6BhdRkqt3",
