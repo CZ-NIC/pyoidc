@@ -266,7 +266,7 @@ class TestClient(object):
         r = Response()
         r.status_code = 201
         r._content = str.encode(json.dumps(msg))
-    
+
         with pytest.raises(RegistrationError) as ex:
             self.client.handle_registration_info(response=r)
             assert 'Missing required attribute \'redirect_uris\'' in str(ex.value)
