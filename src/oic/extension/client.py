@@ -60,10 +60,10 @@ CC_METHOD = {
 
 
 class Client(oauth2.Client):
-    def __init__(self, client_id=None, ca_certs=None,
+    def __init__(self, client_id=None,
                  client_authn_method=None, keyjar=None, verify_ssl=True,
                  config=None):
-        oauth2.Client.__init__(self, client_id=client_id, ca_certs=ca_certs,
+        oauth2.Client.__init__(self, client_id=client_id,
                                client_authn_method=client_authn_method,
                                keyjar=keyjar, verify_ssl=verify_ssl,
                                config=config)

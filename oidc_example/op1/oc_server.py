@@ -421,9 +421,9 @@ def application(environ, start_response):
 class TestProvider(Provider):
     #noinspection PyUnusedLocal
     def __init__(self, name, sdb, cdb, function, userdb, urlmap=None,
-                 debug=0, ca_certs="", jwt_keys=None):
+                 debug=0, jwt_keys=None):
         Provider.__init__(self, name, sdb, cdb, function, userdb, urlmap,
-                          ca_certs, jwt_keys)
+                          jwt_keys)
         self.test_mode = True
         self.trace_log = {}
         self.sessions = []

@@ -17,16 +17,18 @@ logger = logging.getLogger(__name__)
 
 
 class PBase(object):
-    def __init__(self, ca_certs=None, verify_ssl=True, keyjar=None,
-                 client_cert=None):
+    def __init__(self, verify_ssl=True, keyjar=None, client_cert=None):
         """
         A base class for OAuth2 clients and servers
 
-        :param ca_certs: the path to a CA_BUNDLE file or directory with
-            certificates of trusted CAs
-        :param verify_ssl: If True then the server SSL certificate is not
-            verfied
+        :param verify_ssl: Control TLS server certificate validation. If set to
+            True the certificate is validated against the global settings,
+            if set to False, no validation is performed. If set to a filename
+            this is used as a certificate bundle in openssl format. If set
+            to a directory name this is used as a CA directory in
+            the openssl format.
         :param keyjar: A place to keep keys for signing/encrypting messages
+                       Creates a default keyjar if not set.
         :param client_cert: local cert to use as client side certificate, as a
             single file (containing the private key and the certificate) or as
             a tuple of both file's path
@@ -34,37 +36,21 @@ class PBase(object):
 
         self.keyjar = keyjar or KeyJar(verify_ssl=verify_ssl)
 
-        self.request_args = {"allow_redirects": False}
-        # self.cookies = {}
         self.cookiejar = cookielib.FileCookieJar()
-        self.ca_certs = ca_certs
 
-        if ca_certs:
-            if verify_ssl is False:
-                raise ValueError(
-                    'conflict: ca_certs defined, but verify_ssl is False')
+        # Additional args for the requests library calls
+        self.request_args = {
+            "allow_redirects": False,
+            "cert": client_cert,
+            "verify": verify_ssl,
+        }
 
-            # Instruct requests to verify certificate against the CA cert
-            # bundle located at the path given by `ca_certs`.
-            self.request_args["verify"] = ca_certs
-
-        elif verify_ssl:
-            # Instruct requests to verify server certificates against the
-            # default CA bundle provided by 'certifi'. See
-            # http://docs.python-requests.org/en/master/user/advanced/#ca
-            # -certificates
-            self.request_args["verify"] = True
-
-        else:
-            # Instruct requests to n ot perform server cert verification.
-            self.request_args["verify"] = False
-
+        # Event collector, for tracing
         self.events = None
         self.req_callback = None
-        if client_cert:
-            self.request_args['cert'] = client_cert
 
     def _cookies(self):
+        """Turn cookiejar into a dict"""
         cookie_dict = {}
 
         for _, a in list(self.cookiejar._cookies.items()):
@@ -76,6 +62,18 @@ class PBase(object):
         return cookie_dict
 
     def http_request(self, url, method="GET", **kwargs):
+        """
+        Run a HTTP request to fetch the given url
+
+        This wraps the requests library, so you can pass
+        most requests kwargs to this method to override
+        defaults.
+
+        :param url: The URL to fetch
+        :param method: The HTTP method to use.
+        :param kwargs: Additional keyword arguments to pass through.
+
+        """
         _kwargs = copy.copy(self.request_args)
         if kwargs:
             _kwargs.update(kwargs)

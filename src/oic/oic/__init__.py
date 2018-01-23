@@ -298,12 +298,12 @@ def claims_match(value, claimspec):
 class Client(oauth2.Client):
     _endpoints = ENDPOINTS
 
-    def __init__(self, client_id=None, ca_certs=None,
+    def __init__(self, client_id=None,
                  client_prefs=None, client_authn_method=None, keyjar=None,
                  verify_ssl=True, config=None, client_cert=None,
                  requests_dir='requests'):
 
-        oauth2.Client.__init__(self, client_id, ca_certs,
+        oauth2.Client.__init__(self, client_id,
                                client_authn_method=client_authn_method,
                                keyjar=keyjar, verify_ssl=verify_ssl,
                                config=config, client_cert=client_cert)
@@ -1460,9 +1460,9 @@ class Client(oauth2.Client):
 
 
 class Server(oauth2.Server):
-    def __init__(self, keyjar=None, ca_certs=None, verify_ssl=True,
+    def __init__(self, keyjar=None, verify_ssl=True,
                  client_cert=None):
-        oauth2.Server.__init__(self, keyjar, ca_certs, verify_ssl,
+        oauth2.Server.__init__(self, keyjar, verify_ssl,
                                client_cert=client_cert)
 
     @staticmethod

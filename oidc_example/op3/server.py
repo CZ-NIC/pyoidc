@@ -385,12 +385,11 @@ if __name__ == '__main__':
         client_authn=verify_client,                    # client authentication
         symkey=config.SYM_KEY,                         # Used for Symmetric key authentication
         # urlmap = None,                               # ?
-        # ca_certs = "",                               # ?
         # keyjar = None,                               # ?
         # hostname = "",                               # ?
         template_lookup=lookup,                        # ?
         template={"form_post": "form_response.mako"},  # ?
-        # verify_ssl = True,                           # ?
+        # verify_ssl = True,                           # Enable SSL certs
         # capabilities = None,                         # ?
         # schema = OpenIDSchema,                       # ?
         # jwks_uri = '',                               # ?

@@ -233,19 +233,18 @@ def inputs(form_args):
 
 class Provider(AProvider):
     def __init__(self, name, sdb, cdb, authn_broker, userinfo, authz,
-                 client_authn, symkey=None, urlmap=None, ca_certs="", keyjar=None,
+                 client_authn, symkey=None, urlmap=None, keyjar=None,
                  hostname="", template_lookup=None, template=None,
                  verify_ssl=True, capabilities=None, schema=OpenIDSchema,
                  jwks_uri='', jwks_name='', baseurl=None, client_cert=None,
                  extra_claims=None):
 
         AProvider.__init__(self, name, sdb, cdb, authn_broker, authz,
-                           client_authn, symkey, urlmap, ca_bundle=ca_certs,
+                           client_authn, symkey, urlmap,
                            verify_ssl=verify_ssl, client_cert=client_cert)
 
         # Should be a OIC Server not an OAuth2 server
-        self.server = Server(keyjar=keyjar, ca_certs=ca_certs,
-                             verify_ssl=verify_ssl)
+        self.server = Server(keyjar=keyjar, verify_ssl=verify_ssl)
         # Same keyjar
         self.keyjar = self.server.keyjar
 

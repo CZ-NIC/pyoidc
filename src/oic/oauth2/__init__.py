@@ -153,28 +153,26 @@ def compact(qsdict):
 class Client(PBase):
     _endpoints = ENDPOINTS
 
-    def __init__(self, client_id=None, ca_certs=None, client_authn_method=None,
+    def __init__(self, client_id=None, client_authn_method=None,
                  keyjar=None, verify_ssl=True, config=None, client_cert=None):
         """
 
         :param client_id: The client identifier
-        :param ca_certs: Certificates used to verify HTTPS certificates
         :param client_authn_method: Methods that this client can use to
             authenticate itself. It's a dictionary with method names as
             keys and method classes as values.
+        :param keyjar: The keyjar for this client.
         :param verify_ssl: Whether the SSL certificate should be verified.
+        :param client_cert: A client certificate to use.
         :return: Client instance
         """
 
-        PBase.__init__(self, ca_certs, verify_ssl=verify_ssl,
-                       client_cert=client_cert, keyjar=keyjar)
+        PBase.__init__(self, verify_ssl=verify_ssl, keyjar=keyjar,
+                       client_cert=client_cert)
 
         self.client_id = client_id
         self.client_authn_method = client_authn_method
-        self.verify_ssl = verify_ssl
-        # self.secret_type = "basic "
 
-        # self.state = None
         self.nonce = None
 
         self.grant = {}
@@ -228,7 +226,6 @@ class Client(PBase):
     client_secret = property(get_client_secret, set_client_secret)
 
     def reset(self):
-        # self.state = None
         self.nonce = None
 
         self.grant = {}
@@ -965,10 +962,9 @@ class Client(PBase):
 
 
 class Server(PBase):
-    def __init__(self, keyjar=None, ca_certs=None, verify_ssl=True,
-                 client_cert=None):
-        PBase.__init__(self, keyjar=keyjar, ca_certs=ca_certs,
-                       verify_ssl=verify_ssl, client_cert=client_cert)
+    def __init__(self, keyjar=None, verify_ssl=True, client_cert=None):
+        PBase.__init__(self, verify_ssl=verify_ssl, keyjar=keyjar,
+                       client_cert=client_cert)
 
     @staticmethod
     def parse_url_request(request, url=None, query=None):

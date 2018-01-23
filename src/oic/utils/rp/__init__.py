@@ -30,11 +30,11 @@ class OIDCError(Exception):
 
 
 class Client(oic.Client):
-    def __init__(self, client_id=None, ca_certs=None,
+    def __init__(self, client_id=None,
                  client_prefs=None, client_authn_method=None, keyjar=None,
                  verify_ssl=True, behaviour=None, config=None, jwks_uri='',
                  kid=None):
-        oic.Client.__init__(self, client_id, ca_certs, client_prefs,
+        oic.Client.__init__(self, client_id, client_prefs,
                             client_authn_method, keyjar, verify_ssl,
                             config=config)
         if behaviour:
