@@ -20,7 +20,7 @@ __author__ = 'rohe0002'
 
 CLIENT_CONFIG = {
     "client_id": "number5",
-    "ca_certs": "/usr/local/etc/oic/ca_certs.txt",
+    "verify_ssl": "/usr/local/etc/oic/ca_certs.txt",
 }
 
 CONSUMER_CONFIG = {

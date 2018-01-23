@@ -30,11 +30,11 @@ class OAuth2Error(Exception):
 
 
 class OAuthClient(client.Client):
-    def __init__(self, client_id=None, ca_certs=None,
+    def __init__(self, client_id=None,
                  client_prefs=None, client_authn_method=None, keyjar=None,
                  verify_ssl=True, behaviour=None, jwks_uri='',
                  kid=None):
-        client.Client.__init__(self, client_id, ca_certs, client_authn_method,
+        client.Client.__init__(self, client_id, client_authn_method,
                                keyjar=keyjar, verify_ssl=verify_ssl)
         self.behaviour = behaviour or {}
         self.userinfo_request_method = ''

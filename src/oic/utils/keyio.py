@@ -409,17 +409,14 @@ def dump_jwks(kbl, target, private=False):
 class KeyJar(object):
     """ A keyjar contains a number of KeyBundles """
 
-    def __init__(self, ca_certs=None, verify_ssl=True, keybundle_cls=KeyBundle,
+    def __init__(self, verify_ssl=True, keybundle_cls=KeyBundle,
                  remove_after=3600):
         """
-
-        :param ca_certs:
-        :param verify_ssl: Attempting SSL certificate verification
+        :param verify_ssl: Do SSL certificate verification
         :return:
         """
         self.spec2key = {}
         self.issuer_keys = {}
-        self.ca_certs = ca_certs
         self.verify_ssl = verify_ssl
         self.keybundle_cls = keybundle_cls
         self.remove_after = remove_after

@@ -67,13 +67,14 @@ class OICCServer(OicServer):
 
 class ClaimsServer(Provider):
     def __init__(self, name, sdb, cdb, userinfo, client_authn, urlmap=None,
-                 ca_certs="", keyjar=None, hostname="", dist_claims_mode=None):
+                 keyjar=None, hostname="", dist_claims_mode=None,
+                 verify_ssl=True):
         Provider.__init__(self, name, sdb, cdb, None, userinfo, None,
-                          client_authn, None, urlmap, ca_certs, keyjar,
-                          hostname)
+                          client_authn, None, urlmap, keyjar, hostname,
+                          verify_ssl=verify_ssl)
 
         if keyjar is None:
-            keyjar = KeyJar(ca_certs)
+            keyjar = KeyJar(verify_ssl=verify_ssl)
 
         for cid, _dic in cdb.items():
             try:
@@ -163,9 +164,9 @@ class ClaimsServer(Provider):
 
 
 class ClaimsClient(Client):
-    def __init__(self, client_id=None, ca_certs=""):
+    def __init__(self, client_id=None, verify_ssl=True):
 
-        Client.__init__(self, client_id, ca_certs)
+        Client.__init__(self, client_id, verify_ssl=verify_ssl)
 
         self.request2endpoint = REQUEST2ENDPOINT.copy()
         self.request2endpoint["UserClaimsRequest"] = "userclaims_endpoint"

@@ -22,6 +22,7 @@ Getting a copy is simple with Pip_:
    examples/rp
    examples/cookbook
    examples/docker
+   examples/tls
 
    contrib/install
    contrib/testing

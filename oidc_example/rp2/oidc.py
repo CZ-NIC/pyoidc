@@ -357,5 +357,5 @@ class OpenIDConnect(object):
         :return:
         """
 
-        wf = WebFinger(httpd=PBase(ca_certs=self.extra["ca_bundle"]))
+        wf = WebFinger(httpd=PBase(verify_ssl=self.extra["ca_bundle"]))
         return wf.discovery_query(resource)
