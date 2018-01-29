@@ -118,14 +118,7 @@ class ClientSecretBasic(ClientAuthnMethod):
         except KeyError:
             pass
 
-        if isinstance(cis, AccessTokenRequest) and cis[
-                'grant_type'] == 'authorization_code':
-            if 'client_id' not in cis:
-                try:
-                    cis['client_id'] = self.cli.client_id
-                except AttributeError:
-                    pass
-        elif (("client_id" not in cis.c_param.keys()) or
+        if (("client_id" not in cis.c_param.keys()) or
                 cis.c_param["client_id"][VREQUIRED]) is False:
             try:
                 del cis["client_id"]
