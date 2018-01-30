@@ -908,15 +908,21 @@ class TestProvider(object):
 
     def test_provider_key_setup(self, tmpdir, session_db_factory):
         path = tmpdir.strpath
+
+        # Path is actually just a random name we turn into a subpath of
+        # our current directory, that doesn't work with drive letters on
+        # windows, so we throw them away and add a '.' for a local path.
+        path = "." + os.path.splitdrive(path)[1].replace(os.path.sep, '/')
+
         provider = Provider("pyoicserv", session_db_factory(SERVER_INFO["issuer"]), None,
                             None, None, None, None, None)
         provider.baseurl = "http://www.example.com"
         provider.key_setup(path, path, sig={"format": "jwk", "alg": "RSA"})
 
         keys = provider.keyjar.get_signing_key("RSA")
+
         assert len(keys) == 1
-        assert provider.jwks_uri == "http://www.example.com/{}/jwks".format(
-                path)
+        assert provider.jwks_uri == "http://www.example.com/{}/jwks".format(path)
 
     @pytest.mark.parametrize("uri", [
         "http://example.org/foo",
