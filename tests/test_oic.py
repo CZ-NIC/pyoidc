@@ -196,7 +196,7 @@ class TestClient(object):
             state='stateX', authn_method='client_secret_basic',
             grant_type='authorization_code')
 
-        assert cis['client_id'] == self.client.client_id
+        assert 'client_id' not in cis
 
         args = {
             "code": "code",
@@ -209,7 +209,7 @@ class TestClient(object):
             state='stateX', authn_method='client_secret_basic',
             grant_type='authorization_code')
 
-        assert cis['client_id'] == self.client.client_id
+        assert 'client_id' not in cis
 
     def test_do_check_session_request(self):
         # RSA signing
