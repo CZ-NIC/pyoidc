@@ -45,8 +45,8 @@ from oic.oauth2 import redirect_authz_error
 from oic.oauth2.exception import CapabilitiesMisMatch
 from oic.oauth2.message import Message
 from oic.oauth2.message import by_schema
-from oic.oauth2.provider import Provider as AProvider
 from oic.oauth2.provider import Endpoint
+from oic.oauth2.provider import Provider as AProvider
 from oic.oic import PREFERENCE2PROVIDER
 from oic.oic import PROVIDER_DEFAULT
 from oic.oic import Server

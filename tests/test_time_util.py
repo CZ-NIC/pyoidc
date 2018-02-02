@@ -78,7 +78,7 @@ def test_parse_duration():
 
 
 def test_add_duration_1():
-    # 2000-01-12T12:13:14Z	P1Y3M5DT7H10M3S	2001-04-17T19:23:17Z
+    # 2000-01-12T12:13:14Z -> P1Y3M5DT7H10M3S -> 2001-04-17T19:23:17Z
     t = add_duration(str_to_time("2000-01-12T12:13:14Z"), "P1Y3M5DT7H10M3S")
     assert t.tm_year == 2001
     assert t.tm_mon == 4

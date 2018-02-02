@@ -5,10 +5,10 @@ from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
 from oic.oauth2.message import Message
-from oic.oic import Server as OicServer
 from oic.oic import REQUEST2ENDPOINT
 from oic.oic import RESPONSE2ERROR
 from oic.oic import Client
+from oic.oic import Server as OicServer
 from oic.oic.message import Claims
 from oic.oic.message import OpenIDSchema
 from oic.oic.provider import Endpoint
