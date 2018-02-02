@@ -29,6 +29,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#421] Fixed handling of unicode in sanitize function
 - [#145] Successful token endpoint responses have correct no-cache headers
 - [#352] Fixed broken windows test for ``test_provider_key_setup``. 
+- [#475] ``get_verify_key`` returns inactive ``sig`` keys for verification
 
 [#430]: https://github.com/OpenIDC/pyoidc/pull/430
 [#427]: https://github.com/OpenIDC/pyoidc/pull/427
@@ -44,6 +45,7 @@ The format is based on the [KeepAChangeLog] project.
 [#145]: https://github.com/OpenIDC/pyoidc/issues/145
 [#471]: https://github.com/OpenIDC/pyoidc/issues/471
 [#352]: https://github.com/OpenIDC/pyoidc/issues/352
+[#475]: https://github.com/OpenIDC/pyoidc/issues/475
 
 ## 0.12.0 [2017-09-25]
 

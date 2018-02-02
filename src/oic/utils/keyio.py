@@ -545,6 +545,10 @@ class KeyJar(object):
                         break
                     if not key.use or use == key.use:
                         lst.append(key)
+                        break
+                    # Verification can be performed by both `sig` and `ver` keys
+                    if key_use == 'ver' and key.use in ('sig', 'ver'):
+                        lst.append(key)
 
         # if elliptic curve have to check I have a key of the right curve
         if key_type == "EC" and "alg" in kwargs:

@@ -303,9 +303,9 @@ class TestKeyJar(object):
             keybundle_from_local_file(RSAKEY, "rsa", ["ver", "sig"]))
 
         verified_keys = ks.verify_keys("http://www.example.org")
-        assert len(verified_keys) == 3
+        assert len(verified_keys) == 4
         assert len([k for k in verified_keys if k.kty == "oct"]) == 2
-        assert len([k for k in verified_keys if k.kty == "RSA"]) == 1
+        assert len([k for k in verified_keys if k.kty == "RSA"]) == 2
 
     def test_remove_key(self):
         ks = KeyJar()
@@ -351,6 +351,32 @@ class TestKeyJar(object):
         _key = kj.get_key_by_kid("abc", "https://example.com")
         assert _key
         assert _key.kid == "abc"
+
+    def test_get_inactive_ver(self):
+        ks = KeyJar()
+        ks['http://example.com'] = KeyBundle([{"kty": "oct", "key": "a1b2c3d4", "use": "ver"}])
+        ks['http://example.com'][0]._keys[0].inactive_since = 1
+        key = ks.get_verify_key(owner='http://example.com')
+
+        assert len(key) == 1
+
+    def test_get_inactive_sig(self):
+        """get_signing_key cannot return inactive `sig` key."""
+        ks = KeyJar()
+        ks['http://example.com'] = KeyBundle([{"kty": "oct", "key": "a1b2c3d4", "use": "sig"}])
+        ks['http://example.com'][0]._keys[0].inactive_since = 1
+        key = ks.get_signing_key(owner='http://example.com')
+
+        assert len(key) == 0
+
+    def test_get_inactive_sig_for_ver(self):
+        """get_verify_key can return inactive `sig` key."""
+        ks = KeyJar()
+        ks['http://example.com'] = KeyBundle([{"kty": "oct", "key": "a1b2c3d4", "use": "sig"}])
+        ks['http://example.com'][0]._keys[0].inactive_since = 1
+        key = ks.get_verify_key(owner='http://example.com')
+
+        assert len(key) == 1
 
     def test_dump_issuer_keys(self):
         kb = keybundle_from_local_file("file://%s/jwk.json" % BASE_PATH, "jwk",
