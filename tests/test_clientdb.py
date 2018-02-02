@@ -54,6 +54,28 @@ class TestDictClientDatabase(object):
 
         assert set(cdb.items()) == {('client1', 'spam'), ('client2', 'eggs')}
 
+    def test_contains(self):
+        cdb = DictClientDatabase()
+        cdb['client1'] = 'spam'
+
+        assert 'client1' in cdb
+        assert 'client2' not in cdb
+
+    def test_delete(self):
+        cdb = DictClientDatabase()
+        cdb['client1'] = 'spam'
+
+        del cdb['client1']
+
+        assert 'client1' not in cdb
+
+    def test_len(self):
+        cdb = DictClientDatabase()
+        cdb['client1'] = 'spam'
+        cdb['client2'] = 'eggs'
+
+        assert len(cdb) == 2
+
 
 class TestMDQClient(object):
     """Tests for MDQClient."""
