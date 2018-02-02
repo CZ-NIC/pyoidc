@@ -1,45 +1,129 @@
-# pylint: disable=missing-docstring
-
 import json
+from operator import itemgetter
 
-import httpretty
 import pytest
+import responses
 
 from oic.oauth2.exception import NoClientInfoReceivedError
+from oic.utils.clientdb import DictClientDatabase
 from oic.utils.clientdb import MDQClient
 
 
+class TestDictClientDatabase(object):
+    """Tests for DictClientDatabase."""
+
+    def test_setitem(self):
+        cdb = DictClientDatabase()
+        cdb['client1'] = 'value'
+
+        assert cdb.cdb == {'client1': 'value'}
+
+    def test_getitem(self):
+        cdb = DictClientDatabase()
+        cdb['client1'] = 'value'
+
+        assert cdb['client1'] == 'value'
+
+    def test_getitem_missing(self):
+        cdb = DictClientDatabase()
+        with pytest.raises(KeyError):
+            cdb['client2']
+
+    def test_get_missing(self):
+        cdb = DictClientDatabase()
+        assert cdb.get('client') is None
+        assert cdb.get('client', 'spam') == 'spam'
+
+    def test_get(self):
+        cdb = DictClientDatabase()
+        cdb['client'] = 'value'
+
+        assert cdb.get('client', 'spam') == 'value'
+
+    def test_keys(self):
+        cdb = DictClientDatabase()
+        cdb['client1'] = 'spam'
+        cdb['client2'] = 'eggs'
+
+        assert set(cdb.keys()) == {'client1', 'client2'}
+
+    def test_items(self):
+        cdb = DictClientDatabase()
+        cdb['client1'] = 'spam'
+        cdb['client2'] = 'eggs'
+
+        assert set(cdb.items()) == {('client1', 'spam'), ('client2', 'eggs')}
+
+
 class TestMDQClient(object):
-    URL = "http://localhost/mdx"
-    CLIENT_ID = "client1"
-    MDX_URL = URL + "/entities/" + CLIENT_ID
+    """Tests for MDQClient."""
+
+    URL = "http://localhost/mdx/"
 
     @pytest.fixture(autouse=True)
     def create_client(self):
         self.md = MDQClient(TestMDQClient.URL)
 
-    @httpretty.activate
     def test_get_existing_client(self):
-        metadata = {"client_id": TestMDQClient.CLIENT_ID,
+        metadata = {"client_id": 'client1',
                     "client_secret": "abcd1234",
                     "redirect_uris": ["http://example.com/rp/authz_cb"]}
-        response_body = json.dumps(metadata)
+        url = TestMDQClient.URL + 'entities/client1'
+        with responses.RequestsMock() as rsps:
+            rsps.add(rsps.GET, url, body=json.dumps(metadata))
+            result = self.md['client1']
 
-        httpretty.register_uri(httpretty.GET,
-                               TestMDQClient.MDX_URL.format(
-                                   client_id=TestMDQClient.CLIENT_ID),
-                               body=response_body,
-                               content_type="application/json")
-
-        result = self.md[TestMDQClient.CLIENT_ID]
         assert metadata == result
 
-    @httpretty.activate
     def test_get_non_existing_client(self):
-        httpretty.register_uri(httpretty.GET,
-                               TestMDQClient.MDX_URL.format(
-                                   client_id=TestMDQClient.CLIENT_ID),
-                               status=404)
+        url = TestMDQClient.URL + 'entities/client1'
+        with responses.RequestsMock() as rsps:
+            rsps.add(rsps.GET, url, status=404)
+            with pytest.raises(NoClientInfoReceivedError):
+                self.md['client1']
 
-        with pytest.raises(NoClientInfoReceivedError):
-            self.md[TestMDQClient.CLIENT_ID]  # pylint: disable=pointless-statement
+    def test_keys(self):
+        url = TestMDQClient.URL + 'entities'
+        metadata = [
+            {'client_id': 'client1',
+             'client_secret': 'secret',
+             'redirect_uris': ['http://example.com']},
+            {'client_id': 'client2',
+             'client_secret': 'secret',
+             'redirect_uris': ['http://ecample2.com']},
+        ]
+        with responses.RequestsMock() as rsps:
+            rsps.add(rsps.GET, url, body=json.dumps(metadata))
+            result = self.md.keys()
+
+        assert {'client1', 'client2'} == set(result)
+
+    def test_keys_error(self):
+        url = TestMDQClient.URL + 'entities'
+        with responses.RequestsMock() as rsps:
+            rsps.add(rsps.GET, url, status=404)
+            with pytest.raises(NoClientInfoReceivedError):
+                self.md.keys()
+
+    def test_items(self):
+        url = TestMDQClient.URL + 'entities'
+        metadata = [
+            {'client_id': 'client1',
+             'client_secret': 'secret',
+             'redirect_uris': ['http://example.com']},
+            {'client_id': 'client2',
+             'client_secret': 'secret',
+             'redirect_uris': ['http://ecample2.com']},
+        ]
+        with responses.RequestsMock() as rsps:
+            rsps.add(rsps.GET, url, body=json.dumps(metadata))
+            result = self.md.items()
+
+        assert sorted(metadata, key=itemgetter('client_id')) == sorted(result, key=itemgetter('client_id'))
+
+    def test_items_errors(self):
+        url = TestMDQClient.URL + 'entities'
+        with responses.RequestsMock() as rsps:
+            rsps.add(rsps.GET, url, status=404)
+            with pytest.raises(NoClientInfoReceivedError):
+                self.md.items()

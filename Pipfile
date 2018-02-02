@@ -4,7 +4,6 @@ url = "https://pypi.python.org/simple"
 
 [dev-packages]
 Sphinx = "*"
-httpretty = "*"
 isort = "*"
 mock = "*"
 pylama = "*"

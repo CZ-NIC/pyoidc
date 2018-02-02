@@ -36,7 +36,7 @@ class PyTest(TestCommand):
         errno = pytest.main(self.test_args)
         sys.exit(errno)
 
-tests_requires = ['responses', 'testfixtures', 'pytest', 'mock', 'freezegun', 'httpretty']
+tests_requires = ['responses', 'testfixtures', 'pytest', 'mock', 'freezegun']
 
 # Python 2.7 and later ship with importlib and argparse
 if sys.version_info[0] == 2 and sys.version_info[1] == 6:
