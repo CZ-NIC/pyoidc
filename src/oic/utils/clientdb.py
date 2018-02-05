@@ -1,12 +1,16 @@
 """Client managament databases."""
+from abc import ABCMeta
+from abc import abstractmethod
+
 import requests
+from six import with_metaclass
 from six.moves.urllib.parse import quote
 from six.moves.urllib.parse import urljoin
 
 from oic.oauth2.exception import NoClientInfoReceivedError
 
 
-class BaseClientDatabase(object):
+class BaseClientDatabase(with_metaclass(ABCMeta)):
     """
     Base implementation for Client management database.
 
@@ -22,9 +26,10 @@ class BaseClientDatabase(object):
     def __init__(self):
         """Perform initialization of storage. Derived classes may override."""
 
+    @abstractmethod
     def __getitem__(self, key):
         """Retrieve an item by a key. Raises KeyError if item not found."""
-        raise NotImplementedError
+        pass  # pragma: no cover
 
     def get(self, key, default=None):
         """Retrieve an item by a key. Return default if not found."""
@@ -33,13 +38,15 @@ class BaseClientDatabase(object):
         except KeyError:
             return default
 
+    @abstractmethod
     def __setitem__(self, key, value):
         """Set key with value."""
-        raise NotImplementedError
+        pass  # pragma: no cover
 
+    @abstractmethod
     def __delitem__(self, key):
         """Remove key from database."""
-        raise NotImplementedError
+        pass  # pragma: no cover
 
     def __contains__(self, key):
         """Return True if key is contained in the database."""
@@ -50,45 +57,19 @@ class BaseClientDatabase(object):
         else:
             return True
 
+    @abstractmethod
     def keys(self):
         """Return all contained keys."""
-        raise NotImplementedError
+        pass  # pragma: no cover
 
+    @abstractmethod
     def items(self):
         """Return list of all contained items."""
-        raise NotImplementedError
+        pass  # pragma: no cover
 
     def __len__(self):
         """Return number of contained keys."""
         return len(self.keys())
-
-
-class DictClientDatabase(BaseClientDatabase):
-    """Simple implementation of client database with a dict as storage."""
-
-    def __init__(self):
-        """Initialize the storage."""
-        self.cdb = {}
-
-    def __getitem__(self, key):
-        """Retrieve an item and return its value. Raises KeyError if item not found."""
-        return self.cdb[key]
-
-    def __setitem__(self, key, value):
-        """Set item with value."""
-        self.cdb[key] = value
-
-    def __delitem__(self, key):
-        """Remove key from database."""
-        del self.cdb[key]
-
-    def keys(self):
-        """Return all contained keys."""
-        return self.cdb.keys()
-
-    def items(self):
-        """Return list of all contained items."""
-        return self.cdb.items()
 
 
 class MDQClient(BaseClientDatabase):
@@ -100,6 +81,7 @@ class MDQClient(BaseClientDatabase):
         self.headers = {'Accept': 'application/json', 'Accept-Encoding': 'gzip'}
 
     def __getitem__(self, item):
+        """Retrieve a single entity."""
         mdx_url = urljoin(self.url, 'entities/{}'.format(quote(item, safe='')))
         response = requests.get(mdx_url, headers=self.headers)
         if response.status_code == 200:
@@ -132,3 +114,7 @@ class MDQClient(BaseClientDatabase):
             return response.json()
         else:
             raise NoClientInfoReceivedError("{} {}".format(response.status_code, response.reason))
+
+
+# Dictionary can be used as a ClientDatabase
+BaseClientDatabase.register(dict)

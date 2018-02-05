@@ -1,3 +1,4 @@
+"""Unittests for ClientDatabases."""
 import json
 from operator import itemgetter
 
@@ -5,72 +6,53 @@ import pytest
 import responses
 
 from oic.oauth2.exception import NoClientInfoReceivedError
-from oic.utils.clientdb import DictClientDatabase
+from oic.utils.clientdb import BaseClientDatabase
 from oic.utils.clientdb import MDQClient
 
 
-class TestDictClientDatabase(object):
-    """Tests for DictClientDatabase."""
+class TestBaseClientDatabase(object):
 
-    def test_setitem(self):
-        cdb = DictClientDatabase()
-        cdb['client1'] = 'value'
+    class DictClientDatabase(BaseClientDatabase):
+        """Test implementation."""
 
-        assert cdb.cdb == {'client1': 'value'}
+        def __init__(self):
+            self.db = {}
 
-    def test_getitem(self):
-        cdb = DictClientDatabase()
-        cdb['client1'] = 'value'
+        def __getitem__(self, key):
+            return self.db[key]
 
-        assert cdb['client1'] == 'value'
+        def __setitem__(self, key, value):
+            self.db[key] = value
 
-    def test_getitem_missing(self):
-        cdb = DictClientDatabase()
-        with pytest.raises(KeyError):
-            cdb['client2']
+        def __delitem__(self, key):
+            del self.db[key]
+
+        def keys(self):
+            return self.db.keys()
+
+        def items(self):
+            return self.db.items()
 
     def test_get_missing(self):
-        cdb = DictClientDatabase()
+        cdb = self.DictClientDatabase()
         assert cdb.get('client') is None
         assert cdb.get('client', 'spam') == 'spam'
 
     def test_get(self):
-        cdb = DictClientDatabase()
+        cdb = self.DictClientDatabase()
         cdb['client'] = 'value'
 
         assert cdb.get('client', 'spam') == 'value'
 
-    def test_keys(self):
-        cdb = DictClientDatabase()
-        cdb['client1'] = 'spam'
-        cdb['client2'] = 'eggs'
-
-        assert set(cdb.keys()) == {'client1', 'client2'}
-
-    def test_items(self):
-        cdb = DictClientDatabase()
-        cdb['client1'] = 'spam'
-        cdb['client2'] = 'eggs'
-
-        assert set(cdb.items()) == {('client1', 'spam'), ('client2', 'eggs')}
-
     def test_contains(self):
-        cdb = DictClientDatabase()
+        cdb = self.DictClientDatabase()
         cdb['client1'] = 'spam'
 
         assert 'client1' in cdb
         assert 'client2' not in cdb
 
-    def test_delete(self):
-        cdb = DictClientDatabase()
-        cdb['client1'] = 'spam'
-
-        del cdb['client1']
-
-        assert 'client1' not in cdb
-
     def test_len(self):
-        cdb = DictClientDatabase()
+        cdb = self.DictClientDatabase()
         cdb['client1'] = 'spam'
         cdb['client2'] = 'eggs'
 
@@ -149,3 +131,11 @@ class TestMDQClient(object):
             rsps.add(rsps.GET, url, status=404)
             with pytest.raises(NoClientInfoReceivedError):
                 self.md.items()
+
+    def test_setitem(self):
+        with pytest.raises(RuntimeError):
+            self.md['client'] = 'foo'
+
+    def test_delitem(self):
+        with pytest.raises(RuntimeError):
+            del self.md['client']
