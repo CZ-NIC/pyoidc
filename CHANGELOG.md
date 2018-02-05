@@ -11,6 +11,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#469] Allow endpoints to have query parts
 - [#443] Ability to specify additional supported claims for oic.Provider
 - [#134] Added method kwarg to registration_endpoint that enables the client to read/modify registration
+- [#478] Addedd base-class for Client databases ``oic.utils.clientdb.BaseClientDatabase``
 
 ### Changed
 - [#134] ``l_registration_enpoint`` has been deprecated, use ``create_registration`` instead
@@ -46,6 +47,7 @@ The format is based on the [KeepAChangeLog] project.
 [#471]: https://github.com/OpenIDC/pyoidc/issues/471
 [#352]: https://github.com/OpenIDC/pyoidc/issues/352
 [#475]: https://github.com/OpenIDC/pyoidc/issues/475
+[#478]: https://github.com/OpenIDC/pyoidc/issues/478
 
 ## 0.12.0 [2017-09-25]
 

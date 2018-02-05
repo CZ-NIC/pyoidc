@@ -14,6 +14,7 @@ from builtins import input
 
 from oic import rndstr
 from oic.oic.provider import secret
+from oic.utils.clientdb import BaseClientDatabase
 
 __author__ = 'rolandh'
 
@@ -43,7 +44,9 @@ def pack_redirect_uri(redirect_uris):
     return ruri
 
 
-class CDB(object):
+class CDB(BaseClientDatabase):
+    """Implementation of ClientDatabase with shelve."""
+
     def __init__(self, filename):
         self.cdb = shelve.open(filename, writeback=True)
         self.seed = rndstr(32).encode("utf-8")

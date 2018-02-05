@@ -10,6 +10,7 @@ import logging
 import os
 import sys
 import traceback
+import warnings
 from http.cookies import SimpleCookie
 
 from six import PY2
@@ -43,6 +44,7 @@ from oic.oauth2.message import by_schema
 from oic.utils.authn.user import NoSuchAuthentication
 from oic.utils.authn.user import TamperAllert
 from oic.utils.authn.user import ToOld
+from oic.utils.clientdb import BaseClientDatabase
 from oic.utils.http_util import OAUTH2_NOCACHE_HEADERS
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import CookieDealer
@@ -158,6 +160,9 @@ class Provider(object):
                  baseurl='', server_cls=Server, client_cert=None):
         self.name = name
         self.sdb = sdb
+        if not isinstance(cdb, BaseClientDatabase):
+            warnings.warn('ClientDatabase should be an instance of '
+                          'oic.utils.clientdb.BaseClientDatabase to ensure proper API.')
         self.cdb = cdb
         self.server = server_cls(verify_ssl=verify_ssl, client_cert=client_cert)
 

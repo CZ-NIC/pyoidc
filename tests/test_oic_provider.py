@@ -914,7 +914,7 @@ class TestProvider(object):
         # windows, so we throw them away and add a '.' for a local path.
         path = "." + os.path.splitdrive(path)[1].replace(os.path.sep, '/')
 
-        provider = Provider("pyoicserv", session_db_factory(SERVER_INFO["issuer"]), None,
+        provider = Provider("pyoicserv", session_db_factory(SERVER_INFO["issuer"]), {},
                             None, None, None, None, None)
         provider.baseurl = "http://www.example.com"
         provider.key_setup(path, path, sig={"format": "jwk", "alg": "RSA"})
