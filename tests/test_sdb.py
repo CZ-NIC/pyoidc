@@ -1,10 +1,12 @@
 import base64
+import datetime
 import hashlib
 import hmac
 import random
 import time
 
 import pytest
+from freezegun import freeze_time
 
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import OpenIDRequest
@@ -71,7 +73,7 @@ class TestDictRefreshDB(object):
 class TestToken(object):
     @pytest.fixture(autouse=True)
     def create_token(self):
-        self.token = DefaultToken("secret", "password", lifetime={'': 60})
+        self.token = DefaultToken("secret", "password", lifetime=60)
 
     def test_token(self):
         sid = self.token.key(areq=AREQ)
@@ -94,6 +96,23 @@ class TestToken(object):
         part = self.token.type_and_key(code)
         assert part[0] == "A"
         assert part[1] == sid
+
+    def test_expired_fresh(self):
+        _token = DefaultToken('secret', 'password', lifetime=60)
+        assert _token.is_expired() is False
+
+    def test_expired_stale(self):
+        initial_datetime = datetime.datetime(2018, 2, 5, 10, 0, 0, 0)
+        final_datetime = datetime.datetime(2018, 2, 5, 10, 1, 0, 0)
+        with freeze_time(initial_datetime) as frozen:
+            _token = DefaultToken('secret', 'password', lifetime=2)
+            frozen.move_to(final_datetime)
+            assert _token.is_expired() is True
+
+    def test_expired_when(self):
+        _token = DefaultToken('secret', 'password', lifetime=2)
+        when = time.time() + 5  # 5 seconds from now
+        assert _token.is_expired(when=when) is True
 
 
 class TestSessionDB(object):

@@ -32,6 +32,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#145] Successful token endpoint responses have correct no-cache headers
 - [#352] Fixed broken windows test for ``test_provider_key_setup``. 
 - [#475] ``get_verify_key`` returns inactive ``sig`` keys for verification
+- [#429] An expired token is not possible to use.
 
 [#430]: https://github.com/OpenIDC/pyoidc/pull/430
 [#427]: https://github.com/OpenIDC/pyoidc/pull/427
@@ -50,6 +51,7 @@ The format is based on the [KeepAChangeLog] project.
 [#475]: https://github.com/OpenIDC/pyoidc/issues/475
 [#478]: https://github.com/OpenIDC/pyoidc/issues/478
 [#483]: https://github.com/OpenIDC/pyoidc/pull/483
+[#429]: https://github.com/OpenIDC/pyoidc/issues/424
 
 ## 0.12.0 [2017-09-25]
 

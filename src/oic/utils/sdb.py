@@ -83,6 +83,7 @@ class Token(object):
         self.type = typ
         self.lifetime = lifetime
         self.args = kwargs
+        self.issued_at = utc_time_sans_frac()
 
     def __call__(self, sid, *args, **kwargs):
         """
@@ -128,7 +129,19 @@ class Token(object):
         raise NotImplementedError()
 
     def expires_at(self):
-        return utc_time_sans_frac() + self.lifetime
+        return self.issued_at + self.lifetime
+
+    def is_expired(self, when=None):
+        """Return if token is still valid."""
+        if when is None:
+            now = utc_time_sans_frac()
+        else:
+            now = when
+        eat = self.expires_at()
+        if now > eat:
+            return True
+        else:
+            return False
 
     def invalidate(self, token):
         pass

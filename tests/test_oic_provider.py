@@ -12,6 +12,7 @@ from time import time
 
 import pytest
 import responses
+from freezegun import freeze_time
 from mock import Mock
 from mock import patch
 from requests import ConnectionError
@@ -704,6 +705,28 @@ class TestProvider(object):
         resp = self.provider.userinfo_endpoint(request=uir.to_urlencoded())
         ident = OpenIDSchema().deserialize(resp.message, "json")
         assert _eq(ident.keys(), ['nickname', 'sub', 'name', 'email'])
+
+    def test_userinfo_endpoint_expired(self):
+        self.cons.client_secret = "drickyoughurt"
+        self.cons.config["response_type"] = ["token"]
+        self.cons.config["request_method"] = "parameter"
+        state, location = self.cons.begin("openid", "token", path="http://localhost:8087")
+
+        initial_datetime = datetime.datetime(2018, 2, 5, 10, 0, 0, 0)
+        final_datetime = datetime.datetime(2018, 2, 9, 10, 0, 0, 0)
+        with freeze_time(initial_datetime) as frozen:
+            resp = self.provider.authorization_endpoint(request=urlparse(location).query)
+
+            # redirect
+            atr = AuthorizationResponse().deserialize(urlparse(resp.message).fragment, "urlencoded")
+            frozen.move_to(final_datetime)
+
+            uir = UserInfoRequest(access_token=atr["access_token"], schema="openid")
+            resp = self.provider.userinfo_endpoint(request=uir.to_urlencoded())
+
+        message = json.loads(resp.message)
+        assert message['error'] == 'invalid_token'
+        assert message['error_description'] == 'Token is expired'
 
     def test_userinfo_endpoint_extra_claim(self):
         # We have to recreate the cache again
