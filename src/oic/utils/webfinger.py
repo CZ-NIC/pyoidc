@@ -52,19 +52,12 @@ class Base(object):
                         res.append(LINK(v))
                 else:
                     for v in val:
-                        try:
-                            assert isinstance(v, t2)
-                        except AssertionError:
-                            pass
                         res.append(v)
                 self._ava[item] = res
         except TypeError:
             t2_type = spec["type"]
-            try:
-                assert isinstance(val, t2_type)
+            if isinstance(val, t2_type):
                 self._ava[item] = val
-            except AssertionError:
-                pass
 
     def load(self, dictionary):
         for key, spec in list(self.c_param.items()):
@@ -200,10 +193,8 @@ class URINormalizer(object):
 
             if ':' in authority:
                 scheme_or_host, host_or_port = authority.split(':', 1)
-                try:
-                    # Assert it's not a port number
-                    assert not re.match('^\d+$', host_or_port)
-                except AssertionError:
+                # Assert it's not a port number
+                if re.match('^\d+$', host_or_port):
                     return False
             else:
                 return False

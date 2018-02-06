@@ -190,33 +190,19 @@ def verify_header(reqresp, body_type):
         else:
             body_type = 'txt'  # reasonable default ??
     elif body_type == "json":
-        try:
-            assert match_to_("application/json",
-                             reqresp.headers["content-type"])
-        except AssertionError:
-            try:
-                assert match_to_("application/jwt",
-                                 reqresp.headers["content-type"])
+        if not match_to_("application/json", reqresp.headers["content-type"]):
+            if match_to_("application/jwt", reqresp.headers["content-type"]):
                 body_type = "jwt"
-            except AssertionError:
-                raise AssertionError("content-type: %s" % (
-                    reqresp.headers["content-type"],))
+            else:
+                raise ValueError("content-type: %s" % (reqresp.headers["content-type"],))
     elif body_type == "jwt":
-        try:
-            assert match_to_("application/jwt",
-                             reqresp.headers["content-type"])
-        except AssertionError:
-            raise AssertionError(
-                "Wrong content-type in header, got: {} expected "
-                "'application/jwt'".format(
-                    reqresp.headers["content-type"]))
+        if not match_to_("application/jwt", reqresp.headers["content-type"]):
+            raise ValueError("Wrong content-type in header, got: {} expected "
+                             "'application/jwt'".format(reqresp.headers["content-type"]))
     elif body_type == "urlencoded":
-        try:
-            assert match_to_(DEFAULT_POST_CONTENT_TYPE,
-                             reqresp.headers["content-type"])
-        except AssertionError:
-            assert match_to_("text/plain",
-                             reqresp.headers["content-type"])
+        if not match_to_(DEFAULT_POST_CONTENT_TYPE, reqresp.headers["content-type"]):
+            if not match_to_("text/plain", reqresp.headers["content-type"]):
+                raise ValueError('Wrong content-type')
     else:
         raise ValueError("Unknown return format: %s" % body_type)
 

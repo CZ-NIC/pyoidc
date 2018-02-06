@@ -42,9 +42,7 @@ def build_cipher(key, iv, alg="aes_128_cbc"):
 
     if bits not in ["128", "192", "256"]:
         raise AESError("Unsupported key length")
-    try:
-        assert len(key) == int(bits) >> 3
-    except AssertionError:
+    if len(key) != int(bits) >> 3:
         raise AESError("Wrong Key length")
 
     try:

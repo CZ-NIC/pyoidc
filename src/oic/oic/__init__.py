@@ -359,9 +359,7 @@ class Client(oauth2.Client):
                 if token.scope and _scope:
                     flag = True
                     for item in _scope:
-                        try:
-                            assert item in token.scope
-                        except AssertionError:
+                        if item not in token.scope:
                             flag = False
                             break
                     if not flag:
@@ -863,10 +861,9 @@ class Client(oauth2.Client):
             raise
 
         if resp.status_code == 200:
-            try:
-                assert "application/json" in resp.headers["content-type"]
+            if "application/json" in resp.headers["content-type"]:
                 sformat = "json"
-            except AssertionError:
+            else:
                 assert "application/jwt" in resp.headers["content-type"]
                 sformat = "jwt"
         elif resp.status_code == 500:
@@ -974,11 +971,8 @@ class Client(oauth2.Client):
             try:
                 self.allow["issuer_mismatch"]
             except KeyError:
-                try:
-                    assert _issuer == _pcr_issuer
-                except AssertionError:
-                    raise IssuerMismatch("'%s' != '%s'" % (_issuer,
-                                                           _pcr_issuer), pcr)
+                if _issuer != _pcr_issuer:
+                    raise IssuerMismatch("'%s' != '%s'" % (_issuer, _pcr_issuer), pcr)
 
             self.provider_info = pcr
         else:
@@ -1394,53 +1388,34 @@ class Client(oauth2.Client):
         :param auth_time: An auth_time claim
         :param max_age: Max age of authentication
         """
-
-        try:
-            assert self.provider_info["issuer"] == id_token["iss"]
-        except AssertionError:
+        if self.provider_info["issuer"] != id_token["iss"]:
             raise OtherError("issuer != iss")
 
-        try:
-            assert self.client_id in id_token["aud"]
-            if len(id_token["aud"]) > 1:
-                assert "azp" in id_token and id_token["azp"] == self.client_id
-        except AssertionError:
+        if self.client_id not in id_token["aud"]:
             raise OtherError("not intended for me")
+        if len(id_token["aud"]) > 1:
+            if "azp" not in id_token or id_token["azp"] != self.client_id:
+                raise OtherError("not intended for me")
 
         _now = time_util.utc_time_sans_frac()
 
-        try:
-            assert _now < id_token["exp"]
-        except AssertionError:
+        if _now > id_token["exp"]:
             raise OtherError("Passed best before date")
 
-        if self.id_token_max_age:
-            try:
-                assert _now < int(id_token["iat"]) + self.id_token_max_age
-            except AssertionError:
-                raise OtherError("I think this ID token is to old")
+        if self.id_token_max_age and _now > int(id_token["iat"]) + self.id_token_max_age:
+            raise OtherError("I think this ID token is to old")
 
-        if nonce:
-            try:
-                assert nonce == id_token["nonce"]
-            except AssertionError:
-                raise OtherError("nonce mismatch")
+        if nonce and nonce != id_token['nonce']:
+            raise OtherError("nonce mismatch")
 
-        if acr_values:
-            try:
-                assert id_token["acr"] in acr_values
-            except AssertionError:
-                raise OtherError("acr mismatch")
+        if acr_values and id_token['acr'] not in acr_values:
+            raise OtherError("acr mismatch")
 
-        if max_age:
-            try:
-                assert _now < int(id_token["auth_time"]) + max_age
-            except AssertionError:
-                raise AuthnToOld("To old authentication")
+        if max_age and _now > int(id_token['auth_time'] + max_age):
+            raise AuthnToOld("To old authentication")
 
         if auth_time:
-            if not claims_match(id_token["auth_time"],
-                                {"auth_time": auth_time}):
+            if not claims_match(id_token["auth_time"], {"auth_time": auth_time}):
                 raise AuthnToOld("To old authentication")
 
     def verify_id_token(self, id_token, authn_req):

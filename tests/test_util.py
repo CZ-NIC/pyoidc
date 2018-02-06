@@ -196,12 +196,10 @@ def test_verify_header():
     assert util.verify_header(FakeResponse(plain_text_header),
                               "urlencoded") == "urlencoded"
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         util.verify_header(FakeResponse(json_header), "urlencoded")
         util.verify_header(FakeResponse(jwt_header), "urlencoded")
         util.verify_header(FakeResponse(default_header), "json")
         util.verify_header(FakeResponse(plain_text_header), "jwt")
         util.verify_header(FakeResponse(undefined_header), "json")
-
-    with pytest.raises(ValueError):
         util.verify_header(FakeResponse(json_header), "undefined")

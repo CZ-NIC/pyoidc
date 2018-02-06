@@ -356,9 +356,7 @@ class Provider(provider.Provider):
         for key, value in request.items():
             if key in ["client_secret", "client_id"]:
                 # assure it's the same
-                try:
-                    assert value == _cinfo[key]
-                except AssertionError:
+                if value != _cinfo[key]:
                     raise ModificationForbidden("Not allowed to change")
             else:
                 _cinfo[key] = value
@@ -463,9 +461,7 @@ class Provider(provider.Provider):
         except KeyError:
             return BadRequest("Missing query component")
 
-        try:
-            assert _id in self.cdb
-        except AssertionError:
+        if _id not in self.cdb:
             return Unauthorized()
 
         # authenticated client

@@ -931,14 +931,10 @@ class Provider(AProvider):
         # If redirect_uri was in the initial authorization request
         # verify that the one given here is the correct one.
         if "redirect_uri" in _info:
-            try:
-                assert req["redirect_uri"] == _info["redirect_uri"]
-            except AssertionError:
-                return error(error="invalid_request",
-                             descr="redirect_uri mismatch")
-            except KeyError:
-                return error(error='invalid_request',
-                             descr='Missing redirect_uri')
+            if 'redirect_uri' not in req:
+                return error(error='invalid_request', descr='Missing redirect_uri')
+            if req["redirect_uri"] != _info["redirect_uri"]:
+                return error(error="invalid_request", descr="redirect_uri mismatch")
 
         _log_debug("All checks OK")
 
@@ -1221,9 +1217,7 @@ class Provider(AProvider):
 
         _log_debug("access_token type: '%s'" % (typ,))
 
-        try:
-            assert typ == "T"
-        except AssertionError:
+        if typ != "T":
             logger.error('Wrong token type: {}'.format(typ))
             raise FailedAuthentication("Wrong type of token")
 
@@ -1302,9 +1296,7 @@ class Provider(AProvider):
                         raise CapabilitiesMisMatch(_pref)
                 else:
                     if isinstance(request[_pref], six.string_types):
-                        try:
-                            assert request[_pref] in self.capabilities[_prov]
-                        except AssertionError:
+                        if request[_pref] not in self.capabilities[_prov]:
                             raise CapabilitiesMisMatch(_pref)
                     else:
                         if not set(request[_pref]).issubset(
@@ -1368,13 +1360,9 @@ class Provider(AProvider):
                     if not host:
                         host = _host
                     else:
-                        try:
-                            assert host == _host
-                        except AssertionError:
-                            return error_response(
-                                "invalid_configuration_parameter",
-                                descr="'sector_identifier_uri' must be "
-                                      "registered")
+                        if host != _host:
+                            return error_response("invalid_configuration_parameter",
+                                                  descr="'sector_identifier_uri' must be registered")
 
         for item in ["policy_uri", "logo_uri", "tos_uri"]:
             if item in request:
@@ -1855,9 +1843,7 @@ class Provider(AProvider):
         request = DiscoveryRequest().deserialize(request, "urlencoded")
         _log_debug("discovery_request:%s" % (sanitize(request.to_dict()),))
 
-        try:
-            assert request["service"] == SWD_ISSUER
-        except AssertionError:
+        if request["service"] != SWD_ISSUER:
             return BadRequest("Unsupported service")
 
         # verify that the principal is one of mine
@@ -1879,11 +1865,8 @@ class Provider(AProvider):
     def aresp_check(self, aresp, areq):
         # Use of the nonce is REQUIRED for all requests where an ID Token is
         # returned directly from the Authorization Endpoint
-        if "id_token" in aresp:
-            try:
-                assert "nonce" in areq
-            except AssertionError:
-                return error("invalid_request", "Missing nonce value")
+        if "id_token" in aresp and "nonce" not in areq:
+            return error("invalid_request", "Missing nonce value")
         return None
 
     def response_mode(self, areq, fragment_enc, **kwargs):

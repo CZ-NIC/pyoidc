@@ -18,6 +18,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#457] pyldap is now an optional dependency. ``oic.utils.authn.ldapc`` and ``oic.utils.userinfo.ldap_info`` raise
          ``ImportError`` on import if ``pyldap`` is not present
 - [#471] ``ca_certs`` option has been removed, use ``verify_ssl`` instead
+- [#483] ``oic.oauth2.uril.verify_header`` now raises ``ValueError`` insteaad of ``AssertionError``.
 
 ### Fixed
 - [#430] Audience of a client assertion is endpoint dependent.
@@ -48,6 +49,7 @@ The format is based on the [KeepAChangeLog] project.
 [#352]: https://github.com/OpenIDC/pyoidc/issues/352
 [#475]: https://github.com/OpenIDC/pyoidc/issues/475
 [#478]: https://github.com/OpenIDC/pyoidc/issues/478
+[#483]: https://github.com/OpenIDC/pyoidc/pull/483
 
 ## 0.12.0 [2017-09-25]
 

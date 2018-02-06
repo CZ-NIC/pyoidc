@@ -281,15 +281,8 @@ class Client(oauth2.Client):
                 else:
                     _issuer = issuer
 
-            try:
-                self.allow["issuer_mismatch"]
-            except KeyError:
-                try:
-                    assert _issuer == _pcr_issuer
-                except AssertionError:
-                    raise PyoidcError(
-                        "provider info issuer mismatch '%s' != '%s'" % (
-                            _issuer, _pcr_issuer))
+            if not self.allow.get("issuer_mismatch", False) and _issuer != _pcr_issuer:
+                raise PyoidcError("provider info issuer mismatch '%s' != '%s'" % (_issuer, _pcr_issuer))
 
             self.provider_info = pcr
         else:

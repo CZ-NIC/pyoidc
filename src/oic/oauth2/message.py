@@ -617,16 +617,10 @@ class Message(MutableMapping):
             logger.debug("JWE headers: {}".format(_jw.jwt.headers))
 
             if "algs" in kwargs and "encalg" in kwargs["algs"]:
-                try:
-                    assert kwargs["algs"]["encalg"] == _jw["alg"]
-                except AssertionError:
-                    raise WrongEncryptionAlgorithm("%s != %s" % (
-                        _jw["alg"], kwargs["algs"]["encalg"]))
-                try:
-                    assert kwargs["algs"]["encenc"] == _jw["enc"]
-                except AssertionError:
-                    raise WrongEncryptionAlgorithm("%s != %s" % (
-                        _jw["enc"], kwargs["algs"]["encenc"]))
+                if kwargs["algs"]["encalg"] != _jw["alg"]:
+                    raise WrongEncryptionAlgorithm("%s != %s" % (_jw["alg"], kwargs["algs"]["encalg"]))
+                if kwargs["algs"]["encenc"] != _jw["enc"]:
+                    raise WrongEncryptionAlgorithm("%s != %s" % (_jw["enc"], kwargs["algs"]["encenc"]))
             if keyjar:
                 dkeys = keyjar.get_decrypt_key(owner="")
                 if "sender" in kwargs:
@@ -651,11 +645,8 @@ class Message(MutableMapping):
         if _jw:
             if "algs" in kwargs and "sign" in kwargs["algs"]:
                 _alg = _jw.jwt.headers["alg"]
-                try:
-                    assert kwargs["algs"]["sign"] == _alg
-                except AssertionError:
-                    raise WrongSigningAlgorithm("%s != %s" % (
-                        _alg, kwargs["algs"]["sign"]))
+                if kwargs["algs"]["sign"] != _alg:
+                    raise WrongSigningAlgorithm("%s != %s" % (_alg, kwargs["algs"]["sign"]))
             try:
                 _jwt = JWT().unpack(txt)
                 jso = _jwt.payload()

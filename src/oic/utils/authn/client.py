@@ -213,9 +213,7 @@ class BearerHeader(ClientAuthnMethod):
         except KeyError:
             raise AuthnFailure("missing authorization info")
 
-        try:
-            assert cred.startswith("Bearer ")
-        except AssertionError:
+        if not cred.startswith("Bearer "):
             raise AuthnFailure("Wrong type of authorization token")
 
         label, token = cred.split(" ")
@@ -280,12 +278,10 @@ class JWSAuthnMethod(ClientAuthnMethod):
         _key = self.cli.keyjar.get_key_by_kid(kid)
         if _key:
             ktype = alg2keytype(algorithm)
-            try:
-                assert _key.kty == ktype
-            except AssertionError:
-                raise NoMatchingKey("Wrong key type")
-            else:
+            if _key.kty == ktype:
                 return _key
+            else:
+                raise NoMatchingKey("Wrong key type")
         else:
             raise NoMatchingKey("No key with kid:%s" % kid)
 
@@ -406,15 +402,13 @@ class JWSAuthnMethod(ClientAuthnMethod):
         else:
             authn_method = 'private_key_jwt'
 
-        try:
-            if isinstance(_aud, six.string_types):
-                assert str(_aud).startswith(self.cli.baseurl)
-            else:
-                for target in _aud:
-                    if target.startswith(self.cli.baseurl):
-                        return cid, authn_method
+        if isinstance(_aud, six.string_types):
+            if not str(_aud).startswith(self.cli.baseurl):
                 raise NotForMe("Not for me!")
-        except AssertionError:
+        else:
+            for target in _aud:
+                if target.startswith(self.cli.baseurl):
+                    return cid, authn_method
             raise NotForMe("Not for me!")
 
         return cid, authn_method
