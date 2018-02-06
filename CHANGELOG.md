@@ -21,6 +21,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#483] ``oic.oauth2.uril.verify_header`` now raises ``ValueError`` insteaad of ``AssertionError``.
 
 ### Fixed
+- [#430] Skip keys that are of unknown type or under defined.
 - [#430] Audience of a client assertion is endpoint dependent.
 - [#427] Made matching for response_types order independent for authorization requests
 - [#399] Matching response_types for authz requests is too strict
@@ -34,6 +35,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#475] ``get_verify_key`` returns inactive ``sig`` keys for verification
 - [#429] An expired token is not possible to use.
 
+[#431]: https://github.com/OpenIDC/pyoidc/pull/431
 [#430]: https://github.com/OpenIDC/pyoidc/pull/430
 [#427]: https://github.com/OpenIDC/pyoidc/pull/427
 [#399]: https://github.com/OpenIDC/pyoidc/issues/399
