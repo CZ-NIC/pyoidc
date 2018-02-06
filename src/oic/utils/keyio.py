@@ -555,11 +555,7 @@ class KeyJar(object):
             name = "P-{}".format(kwargs["alg"][2:])  # the type
             _lst = []
             for key in lst:
-                try:
-                    assert name == key.crv
-                except AssertionError:
-                    pass
-                else:
+                if name == key.crv:
                     _lst.append(key)
             lst = _lst
 

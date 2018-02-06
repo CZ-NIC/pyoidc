@@ -68,9 +68,7 @@ class StateLess(object):
     def refresh_token(self, rtoken):
         # assert that it is a refresh token
         _cont = Content().from_jwe(rtoken, self.keys)
-        try:
-            assert _cont["typ"] == "refresh"
-        except AssertionError:
+        if _cont['typ'] != 'refresh':
             raise Exception("Not a refresh token")
 
     def is_expired(self, token):

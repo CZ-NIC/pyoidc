@@ -793,13 +793,9 @@ class Provider(object):
 
         logger.debug("AccessTokenRequest: %s" % sanitize(areq))
 
-        try:
-            assert areq["grant_type"] == "authorization_code"
-        except AssertionError:
-            err = TokenErrorResponse(error="invalid_request",
-                                     error_description="Wrong grant type")
-            return Response(err.to_json(), content="application/json",
-                            status="401 Unauthorized")
+        if areq["grant_type"] != "authorization_code":
+            err = TokenErrorResponse(error="invalid_request", error_description="Wrong grant type")
+            return Response(err.to_json(), content="application/json", status="401 Unauthorized")
 
         # assert that the code is valid
         _info = _sdb[areq["code"]]

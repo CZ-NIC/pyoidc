@@ -354,27 +354,15 @@ class AuthorizationResponse(message.AuthorizationResponse,
             hfunc = "HS" + _alg[-3:]
 
             if "access_token" in self:
-                try:
-                    assert "at_hash" in idt
-                except AssertionError:
-                    raise MissingRequiredAttribute("Missing at_hash property",
-                                                   idt)
-                try:
-                    assert idt["at_hash"] == jws.left_hash(
-                        self["access_token"], hfunc)
-                except AssertionError:
-                    raise AtHashError(
-                        "Failed to verify access_token hash", idt)
+                if "at_hash" not in idt:
+                    raise MissingRequiredAttribute("Missing at_hash property", idt)
+                if idt["at_hash"] != jws.left_hash(self["access_token"], hfunc):
+                    raise AtHashError("Failed to verify access_token hash", idt)
 
             if "code" in self:
-                try:
-                    assert "c_hash" in idt
-                except AssertionError:
-                    raise MissingRequiredAttribute("Missing c_hash property",
-                                                   idt)
-                try:
-                    assert idt["c_hash"] == jws.left_hash(self["code"], hfunc)
-                except AssertionError:
+                if "c_hash" not in idt:
+                    raise MissingRequiredAttribute("Missing c_hash property", idt)
+                if idt["c_hash"] != jws.left_hash(self["code"], hfunc):
                     raise CHashError("Failed to verify code hash", idt)
 
             self["id_token"] = idt
@@ -695,16 +683,10 @@ class IdToken(OpenIDSchema):
 
             # Then azp has to be present and be one of the aud values
             if len(self["aud"]) > 1:
-                try:
-                    assert "azp" in self
-                except AssertionError:
+                if "azp" not in self:
                     raise VerificationError("azp missing", self)
-                else:
-                    try:
-                        assert self["azp"] in self["aud"]
-                    except AssertionError:
-                        raise VerificationError(
-                            "Mismatch between azp and aud claims", self)
+                if self["azp"] not in self["aud"]:
+                    raise VerificationError("Mismatch between azp and aud claims", self)
 
         if "azp" in self:
             if "client_id" in kwargs:
@@ -865,9 +847,7 @@ class ProviderConfigurationResponse(Message):
                 check_char_set(scope, SCOPE_CHARSET)
 
         parts = urlparse(self["issuer"])
-        try:
-            assert parts.scheme == "https"
-        except AssertionError:
+        if parts.scheme != "https":
             raise SchemeError("Not HTTPS")
 
         assert not parts.query and not parts.fragment
