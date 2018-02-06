@@ -16,8 +16,8 @@
 .. image:: https://codecov.io/gh/OpenIDC/pyoidc/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/OpenIDC/pyoidc
 
-.. image:: https://landscape.io/github/OpenIDC/pyoidc/master/landscape.svg?style=flat
-    :target: https://landscape.io/github/OpenIDC/pyoidc/master
+.. image:: https://api.codacy.com/project/badge/Grade/2038cfa7c56b480db6ae18b8320d7157
+    :target: https://www.codacy.com/app/tpazderka/pyoidc?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=OpenIDC/pyoidc&amp;utm_campaign=Badge_Grade
 
 A Python OpenID Connect implementation
 ======================================
