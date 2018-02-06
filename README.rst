@@ -100,3 +100,8 @@ a good place to start if you want to contribute.
 
 .. _our issues: https://github.com/OpenIDC/pyoidc/issues
 .. _newcomer-friendly: https://github.com/OpenIDC/pyoidc/issues?q=is%3Aopen+is%3Aissue+label%3Anewcomer-friendly
+
+
+.. image:: https://api.codacy.com/project/badge/Grade/54cd53111a6644c3996f885e3378bb6d
+   :alt: Codacy Badge
+   :target: https://app.codacy.com/app/tpazderka/pyoidc?utm_source=github.com&utm_medium=referral&utm_content=OpenIDC/pyoidc&utm_campaign=badger
