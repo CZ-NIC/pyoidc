@@ -503,3 +503,75 @@ def test_remove_after():
 
     # should not be any overlap between old and new
     assert set(_new).intersection(set(_old)) == set()
+
+
+JWK_UK = {"keys": [
+    {"n": "zkpUgEgXICI54blf6iWiD2RbMDCOO1jV0VSff1MFFnujM4othfMsad7H1kRo50YM5S_X9TdvrpdOfpz5aBaKFhT6Ziv0nhtcekq1eRl8"
+          "mjBlvGKCE5XGk-0LFSDwvqgkJoFYInq7bu0a4JEzKs5AyJY75YlGh879k1Uu2Sv3ZZOunfV1O1Orta-NvS-aG_jN5cstVbCGWE20H0vF"
+          "VrJKNx0Zf-u-aA-syM4uX7wdWgQ-owoEMHge0GmGgzso2lwOYf_4znanLwEuO3p5aabEaFoKNR4K6GjQcjBcYmDEE4CtfRU9AEmhcD1k"
+          "leiTB9TjPWkgDmT9MXsGxBHf3AKT5w",
+     "e": "AQAB",
+     "kty": "RSA",
+     "kid": "rsa1"},
+    {"k": "YTEyZjBlMDgxMGI4YWU4Y2JjZDFiYTFlZTBjYzljNDU3YWM0ZWNiNzhmNmFlYTNkNTY0NzMzYjE",
+     "kty": "buz"},
+]}
+
+
+def test_load_unknown_keytype():
+    kj = KeyJar()
+    kj.import_jwks(JWK_UK, '')
+    assert len(kj.get_issuer_keys('')) == 1
+
+
+JWKS_SPO = {"keys": [
+    {"kid": "BfxfnahEtkRBG3Hojc9XGLGht_5rDBj49Wh3sBDVnzRpulMqYwMRmpizA0aSPT1fhCHYivTiaucWUqFu_GwTqA",
+     "use": "sig",
+     "alg": "ES256",
+     "kty": "EC",
+     "crv": "P-256",
+     "x": "1XXUXq75gOPZ4bEj1o2Z5XKJWSs6LmL6fAOK3vyMzSc",
+     "y": "ac1h_DwyuUxhkrD9oKMJ-b_KuiVvvSARIwT-XoEmDXs"},
+    {"kid": "91pD1H81rXUvrfg9mkngIG-tXjnldykKUVbITDIU1SgJvq91b8clOcJuEHNAq61eIvg8owpEvWcWAtlbV2awyA",
+     "use": "sig",
+     "alg": "ES256",
+     "kty": "EC",
+     "crv": "P-256",
+     "x": "2DfQoLpZS2j3hHEcHDkzV8ISx-RdLt6Opy8YZYVm4AQ",
+     "y": "ycvkFMBIzgsowiaf6500YlG4vaMSK4OF7WVtQpUbEE0"},
+    {"kid": "0sIEl3MUJiCxrqleEBBF-_bZq5uClE84xp-wpt8oOI-WIeNxBjSR4ak_OTOmLdndB0EfDLtC7X1JrnfZILJkxA",
+     "use": "sig",
+     "alg": "RS256",
+     "kty": "RSA",
+     "n": "yG9914Q1j63Os4jX5dBQbUfImGq4zsXJD4R59XNjGJlEt5ek6NoiDl0ucJO3_7_R9e5my2ONTSqZhtzFW6MImnIn8idWYzJzO2EhUPCHTvw_"
+          "2oOGjeYTE2VltIyY_ogIxGwY66G0fVPRRH9tCxnkGOrIvmVgkhCCGkamqeXuWvx9MCHL_gJbZJVwogPSRN_SjA1gDlvsyCdA6__CkgAFcSt1"
+          "sGgiZ_4cQheKexxf1-7l8R91ZYetz53drk2FS3SfuMZuwMM4KbXt6CifNhzh1Ye-5Tr_ZENXdAvuBRDzfy168xnk9m0JBtvul9GoVIqvCVEC"
+          "B4MPUb7zU6FTIcwRAw",
+     "e": "AQAB"},
+    {"kid": "zyDfdEU7pvH0xEROK156ik8G7vLO1MIL9TKyL631kSPtr9tnvs9XOIiq5jafK2hrGr2qqvJdejmoonlGqWWZRA",
+     "use": "sig",
+     "alg": "RS256",
+     "kty": "RSA",
+     "n": "68be-nJp46VLj4Ci1V36IrVGYqkuBfYNyjQTZD_7yRYcERZebowOnwr3w0DoIQpl8iL2X8OXUo7rUW_LMzLxKx2hEmdJfUn4LL2QqA3KPgjY"
+          "z8hZJQPG92O14w9IZ-8bdDUgXrg9216H09yq6ZvJrn5Nwvap3MXgECEzsZ6zQLRKdb_R96KFFgCiI3bEiZKvZJRA7hM2ePyTm15D9En_Wzzf"
+          "n_JLMYgE_DlVpoKR1MsTinfACOlwwdO9U5Dm-5elapovILTyVTgjN75i-wsPU2TqzdHFKA-4hJNiWGrYPiihlAFbA2eUSXuEYFkX43ahoQNp"
+          "eaf0mc17Jt5kp7pM2w",
+     "e": "AQAB"},
+    {"kid": "q-H9y8iuh3BIKZBbK6S0mH_isBlJsk-u6VtZ5rAdBo5fCjjy3LnkrsoK_QWrlKB08j_PcvwpAMfTEDHw5spepw",
+     "use": "sig",
+     "alg": "EdDSA",
+     "kty": "OKP",
+     "crv": "Ed25519",
+     "x": "FnbcUAXZ4ySvrmdXK1MrDuiqlqTXvGdAaE4RWZjmFIQ"},
+    {"kid": "bL33HthM3fWaYkY2_pDzUd7a65FV2R2LHAKCOsye8eNmAPDgRgpHWPYpWFVmeaujUUEXRyDLHN-Up4QH_sFcmw",
+     "use": "sig",
+     "alg": "EdDSA",
+     "kty": "OKP",
+     "crv": "Ed25519",
+     "x": "CS01DGXDBPV9cFmd8tgFu3E7eHn1UcP7N1UCgd_JgZo"}]}
+
+
+def test_load_spomky_keys():
+    kj = KeyJar()
+    kj.import_jwks(JWKS_SPO, '')
+    assert len(kj.get_issuer_keys('')) == 4

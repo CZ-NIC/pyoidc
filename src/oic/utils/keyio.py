@@ -17,6 +17,7 @@ from jwkest import jwe
 from jwkest import jws
 from jwkest.ecc import NISTEllipticCurve
 from jwkest.jwk import ECKey
+from jwkest.jwk import JWKException
 from jwkest.jwk import RSAKey
 from jwkest.jwk import SYMKey
 from jwkest.jwk import rsa_load
@@ -122,12 +123,14 @@ class KeyBundle(object):
                     _key = K2C[_typ](**inst)
                 except KeyError:
                     continue
+                except JWKException as err:
+                    logger.warning('Loading a key failed: %s', err)
                 else:
                     self._keys.append(_key)
                     flag = 1
                     break
             if not flag:
-                raise_exception(UnknownKeyType, typ)
+                logger.warning('Unknown key type: %s', typ)
 
     def do_local_jwk(self, filename):
         try:
