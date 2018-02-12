@@ -29,12 +29,8 @@ pyoidc*
 foo.*
 
 # Windows testing stuff
-.pytest_cache/
 .coverage
 .cache/
-appdata/
-users/
-
 
 # Dynamically created doc folders
 doc/_build
