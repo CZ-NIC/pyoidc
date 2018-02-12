@@ -34,6 +34,9 @@ The format is based on the [KeepAChangeLog] project.
 - [#475] ``get_verify_key`` returns inactive ``sig`` keys for verification
 - [#429] An expired token is not possible to use.
 
+### Security
+- [#486] SystemRandom is not imported correctly, so various secrets get initialized with bad randomness
+
 [#430]: https://github.com/OpenIDC/pyoidc/pull/430
 [#427]: https://github.com/OpenIDC/pyoidc/pull/427
 [#399]: https://github.com/OpenIDC/pyoidc/issues/399
@@ -52,6 +55,7 @@ The format is based on the [KeepAChangeLog] project.
 [#478]: https://github.com/OpenIDC/pyoidc/issues/478
 [#483]: https://github.com/OpenIDC/pyoidc/pull/483
 [#429]: https://github.com/OpenIDC/pyoidc/issues/424
+[#486]: https://github.com/OpenIDC/pyoidc/issues/486
 
 ## 0.12.0 [2017-09-25]
 
