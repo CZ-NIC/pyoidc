@@ -98,21 +98,24 @@ class TestToken(object):
         assert part[1] == sid
 
     def test_expired_fresh(self):
-        _token = DefaultToken('secret', 'password', lifetime=60)
-        assert _token.is_expired() is False
+        factory = DefaultToken('secret', 'password', lifetime=60)
+        token = factory(sid="abc", ttype="T")
+        assert factory.is_expired(token) is False
 
     def test_expired_stale(self):
         initial_datetime = datetime.datetime(2018, 2, 5, 10, 0, 0, 0)
         final_datetime = datetime.datetime(2018, 2, 5, 10, 1, 0, 0)
+        factory = DefaultToken('secret', 'password', lifetime=2)
         with freeze_time(initial_datetime) as frozen:
-            _token = DefaultToken('secret', 'password', lifetime=2)
+            token = factory(sid="abc", ttype="T")
             frozen.move_to(final_datetime)
-            assert _token.is_expired() is True
+            assert factory.is_expired(token) is True
 
     def test_expired_when(self):
-        _token = DefaultToken('secret', 'password', lifetime=2)
+        factory = DefaultToken('secret', 'password', lifetime=2)
+        token = factory(sid="abc", ttype="T")
         when = time.time() + 5  # 5 seconds from now
-        assert _token.is_expired(when=when) is True
+        assert factory.is_expired(token, when=when) is True
 
 
 class TestSessionDB(object):
