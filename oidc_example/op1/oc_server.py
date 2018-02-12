@@ -585,7 +585,7 @@ if __name__ == '__main__':
         endpoints = ENDPOINTS
 
     add_endpoints(endpoints)
-    OAS.endpoints = endpoints
+    OAS.endp = endpoints
 
     if args.port == 80:
         OAS.baseurl = config.baseurl

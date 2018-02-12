@@ -260,7 +260,7 @@ if __name__ == '__main__':
     if args.debug:
         OAS.debug = True
 
-    OAS.endpoints = ENDPOINTS
+    OAS.endp = ENDPOINTS
     if args.port == 80:
         OAS.baseurl = config["baseurl"]
     else:

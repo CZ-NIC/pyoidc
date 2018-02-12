@@ -164,7 +164,7 @@ class Application(object):
             EndSessionEndpoint(self.endsession),
         ]
 
-        self.oas.endpoints = self.endpoints
+        self.oas.endp = self.endpoints
         self.urls = urls
         self.urls.extend([
             (r'^.well-known/openid-configuration', self.op_info),
