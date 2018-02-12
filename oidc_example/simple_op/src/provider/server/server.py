@@ -135,6 +135,7 @@ def setup_endpoints(provider):
             pyoidcMiddleware(provider.endsession_endpoint))
     ]
 
+    provider.endp = endpoints
     for ep in endpoints:
         app_routing["/{}".format(ep.etype)] = ep
 
