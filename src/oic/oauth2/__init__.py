@@ -94,7 +94,7 @@ def none_response(**kwargs):
 
 
 def error(error, descr=None, status_code=400):
-    stat_txt = R2C[400]._status
+    stat_txt = R2C.get(status_code, R2C[400])._status
     return error_response(error=error, descr=descr, status=stat_txt)
 
 
