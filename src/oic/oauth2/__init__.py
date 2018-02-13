@@ -2,6 +2,7 @@
 from future.backports.urllib.parse import urlparse
 
 import logging
+import warnings
 
 from jwkest import b64e
 
@@ -36,7 +37,6 @@ from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.message import sanitize
 from oic.oauth2.util import get_or_post
 from oic.oauth2.util import verify_header
-from oic.utils.http_util import R2C
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
@@ -77,11 +77,17 @@ class ExpiredToken(PyoidcError):
 
 # =============================================================================
 
-def error_response(error, descr=None, status="400 Bad Request"):
+def error_response(error, descr=None, status=None, status_code=400):
+    if status is not None:
+        warnings.warn('`status` kwarg is deprecated, please use `status_code` instead.',
+                      DeprecationWarning, stacklevel=2)
+        try:
+            status_code = str(status[:3])
+        except ValueError:
+            pass
     logger.error("%s" % sanitize(error))
     response = ErrorResponse(error=error, error_description=descr)
-    return Response(response.to_json(), content="application/json",
-                    status=status)
+    return Response(response.to_json(), content="application/json", status_code=status_code)
 
 
 def none_response(**kwargs):
@@ -94,17 +100,21 @@ def none_response(**kwargs):
 
 
 def error(error, descr=None, status_code=400):
-    stat_txt = R2C[400]._status
-    return error_response(error=error, descr=descr, status=stat_txt)
+    warnings.warn('`error` is now just a wrapper for `error_response` and will be removed in v0.14. '
+                  'Please use `error_response` directly instead.', DeprecationWarning, stacklevel=2)
+    return error_response(error=error, descr=descr, status_code=status_code)
 
 
-def authz_error(error, descr=None, status_code=400):
+def authz_error(error, descr=None, **kwargs):
+    if 'status_code' in kwargs:
+        warnings.warn('`status_code` kwarg is deprecated (and ignored) and will be removed in v0.14. '
+                      'If you need to set custom status_code, use `error_response` instead.',
+                      DeprecationWarning, stacklevel=2)
     response = AuthorizationErrorResponse(error=error)
     if descr:
         response["error_description"] = descr
 
-    return Response(response.to_json(), content="application/json",
-                    status="400 Bad Request")
+    return Response(response.to_json(), content="application/json", status_code=400)
 
 
 def redirect_authz_error(error, redirect_uri, descr=None, state="",
