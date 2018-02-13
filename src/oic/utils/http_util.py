@@ -80,7 +80,7 @@ class Response(object):
         return R2C[self.status_code]._status
 
     def __call__(self, environ, start_response, **kwargs):
-        start_response(self.status, self.headers)
+        start_response(self.status_code, self.headers)
         return self.response(self.message, **kwargs)
 
     def _response(self, message="", **argv):
@@ -162,7 +162,7 @@ class Redirect(Response):
     def __call__(self, environ, start_response, **kwargs):
         location = self.message
         self.headers.append(('location', location))
-        start_response(self.status, self.headers)
+        start_response(self.status_code, self.headers)
         return self.response((location, location, location))
 
 
@@ -181,7 +181,7 @@ class SeeOther(Response):
             except UnicodeDecodeError:
                 pass
         self.headers.append(('location', location))
-        start_response(self.status, self.headers)
+        start_response(self.status_code, self.headers)
         return self.response((location, location, location))
 
 

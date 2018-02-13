@@ -1345,9 +1345,7 @@ class Provider(AProvider):
                 err = ClientRegistrationErrorResponse(
                     error="invalid_redirect_uri",
                     error_description=str(e))
-                return Response(err.to_json(),
-                                content="application/json",
-                                status="400 Bad Request")
+                return Response(err.to_json(), content="application/json", status_code=400)
 
         if "sector_identifier_uri" in request:
             try:

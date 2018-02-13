@@ -120,7 +120,7 @@ class TestProvider(object):
 
         arq = AuthorizationRequest(**bib)
         resp = self.provider.authorization_endpoint(request=arq.to_urlencoded())
-        assert resp.status == "400 Bad Request"
+        assert resp.status_code == 400
         msg = json.loads(resp.message)
         assert msg["error"] == "invalid_request"
 
@@ -134,7 +134,7 @@ class TestProvider(object):
 
         arq = AuthorizationRequest(**bib)
         resp = self.provider.authorization_endpoint(request=arq.to_urlencoded())
-        assert resp.status == "400 Bad Request"
+        assert resp.status_code == 400
         msg = json.loads(resp.message)
         assert msg["error"] == "invalid_request"
 
@@ -148,7 +148,7 @@ class TestProvider(object):
 
         arq = AuthorizationRequest(**bib)
         resp = self.provider.authorization_endpoint(request=arq.to_urlencoded())
-        assert resp.status == "400 Bad Request"
+        assert resp.status_code == 400
         msg = json.loads(resp.message)
         assert msg["error"] == "invalid_request"
 
@@ -157,7 +157,7 @@ class TestProvider(object):
         arq = 'scope=openid&state=id-6da9ca0cc23959f5f33e8becd9b08cae&' \
               'redirect_uri=+https%3A%2F%2Fexample.com&response_type=code'
         resp = self.provider.authorization_endpoint(request=arq)
-        assert resp.status == "400 Bad Request"
+        assert resp.status_code == 400
         msg = json.loads(resp.message)
         assert msg["error"] == "invalid_request"
 
@@ -170,7 +170,7 @@ class TestProvider(object):
                                    "http://localhost:8088/authorization")
 
         resp = self.provider.authorization_endpoint(urlparse(location).query)
-        assert resp.status == "303 See Other"
+        assert resp.status_code == 303
         resp = urlparse(resp.message).query
         with LogCapture(level=logging.DEBUG) as logcap:
             aresp = cons.handle_authorization_response(query=resp)
