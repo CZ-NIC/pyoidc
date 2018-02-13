@@ -39,7 +39,6 @@ from oic.exception import MessageException
 from oic.exception import ParameterError
 from oic.exception import UnSupported
 from oic.oauth2 import compact
-from oic.oauth2 import error
 from oic.oauth2 import error_response
 from oic.oauth2 import redirect_authz_error
 from oic.oauth2.exception import CapabilitiesMisMatch
@@ -916,25 +915,25 @@ class Provider(AProvider):
         try:
             _access_code = req["code"].replace(' ', '+')
         except KeyError:  # Missing code parameter - absolutely fatal
-            return error(error='invalid_request', descr='Missing code')
+            return error_response('invalid_request', descr='Missing code')
 
         # assert that the code is valid
         if self.sdb.is_revoked(_access_code):
-            return error(error="invalid_request", descr="Token is revoked")
+            return error_response("invalid_request", descr="Token is revoked")
 
         # Session might not exist or _access_code malformed
         try:
             _info = _sdb[_access_code]
         except KeyError:
-            return error(error="invalid_request", descr="Code is invalid")
+            return error_response("invalid_request", descr="Code is invalid")
 
         # If redirect_uri was in the initial authorization request
         # verify that the one given here is the correct one.
         if "redirect_uri" in _info:
             if 'redirect_uri' not in req:
-                return error(error='invalid_request', descr='Missing redirect_uri')
+                return error_response('invalid_request', descr='Missing redirect_uri')
             if req["redirect_uri"] != _info["redirect_uri"]:
-                return error(error="invalid_request", descr="redirect_uri mismatch")
+                return error_response("invalid_request", descr="redirect_uri mismatch")
 
         _log_debug("All checks OK")
 
@@ -953,8 +952,7 @@ class Provider(AProvider):
             logger.error("%s" % err)
             # Should revoke the token issued to this access code
             _sdb.revoke_all_tokens(_access_code)
-            return error(error="access_denied",
-                         descr="Access Code already used")
+            return error_response("access_denied", descr="Access Code already used")
 
         if "openid" in _info["scope"]:
             userinfo = self.userinfo_in_id_token_claims(_info)
@@ -963,8 +961,7 @@ class Provider(AProvider):
                     _info, client_info, req, user_info=userinfo)
             except (JWEException, NoSuitableSigningKeys) as err:
                 logger.warning(str(err))
-                return error(error="invalid_request",
-                             descr="Could not sign/encrypt id_token")
+                return error_response("invalid_request", descr="Could not sign/encrypt id_token")
 
             _sdb.update_by_token(_access_code, "id_token", _idtoken)
 
@@ -991,8 +988,7 @@ class Provider(AProvider):
         try:
             _info = _sdb.refresh_token(rtoken, client_id=client_id)
         except ExpiredToken:
-            return error(error="invalid_request",
-                         descr="Refresh token is expired")
+            return error_response("invalid_request", descr="Refresh token is expired")
 
         if "openid" in _info["scope"] and "authn_event" in _info:
             userinfo = self.userinfo_in_id_token_claims(_info)
@@ -1001,8 +997,7 @@ class Provider(AProvider):
                     _info, client_info, req, user_info=userinfo)
             except (JWEException, NoSuitableSigningKeys) as err:
                 logger.warning(str(err))
-                return error(error="invalid_request",
-                             descr="Could not sign/encrypt id_token")
+                return error_response("invalid_request", descr="Could not sign/encrypt id_token")
 
             sid = _sdb.access_token.get_key(_info['access_token'])
             _sdb.update(sid, "id_token", _idtoken)
@@ -1159,8 +1154,7 @@ class Provider(AProvider):
                 key = self.keyjar.get_signing_key(alg2keytype(algo), "",
                                                   alg=algo)
             if not key:
-                return error(error="invalid_request",
-                             descr="Missing signing key")
+                return error_response("invalid_request", descr="Missing signing key")
 
         jinfo = userinfo.to_jwt(key, algo)
         if "userinfo_encrypted_response_alg" in client_info:
@@ -1180,8 +1174,7 @@ class Provider(AProvider):
         try:
             _token = self._parse_access_token(request, **kwargs)
         except ParameterError:
-            return error(error='invalid_request',
-                         descr='Token is malformed')
+            return error_response('invalid_request', descr='Token is malformed')
         return self._do_user_info(_token, **kwargs)
 
     def _parse_access_token(self, request, **kwargs):
@@ -1212,8 +1205,7 @@ class Provider(AProvider):
         try:
             typ, key = _sdb.access_token.type_and_key(token)
         except Exception:
-            return error(error="invalid_token", descr="Invalid Token",
-                         status_code=401)
+            return error_response("invalid_token", descr="Invalid Token", status_code=401)
 
         _log_debug("access_token type: '%s'" % (typ,))
 
@@ -1222,12 +1214,10 @@ class Provider(AProvider):
             raise FailedAuthentication("Wrong type of token")
 
         if _sdb.access_token.is_expired(token):
-            return error(error='invalid_token', descr='Token is expired',
-                         status_code=401)
+            return error_response('invalid_token', descr='Token is expired', status_code=401)
 
         if _sdb.is_revoked(key):
-            return error(error="invalid_token", descr="Token is revoked",
-                         status_code=401)
+            return error_response("invalid_token", descr="Token is revoked", status_code=401)
         session = _sdb[key]
 
         # Scope can translate to userinfo_claims
@@ -1250,12 +1240,9 @@ class Provider(AProvider):
                 jinfo = info.to_json()
                 content_type = "application/json"
         except NotSupportedAlgorithm as err:
-            return error(error="invalid_request",
-                         descr="Not supported algorithm: {}".format(
-                             err.args[0]))
+            return error_response("invalid_request", descr="Not supported algorithm: {}".format(err.args[0]))
         except JWEException:
-            return error(error="invalid_request",
-                         descr="Could not encrypt")
+            return error_response("invalid_request", descr="Could not encrypt")
 
         return Response(jinfo, content=content_type)
 
@@ -1270,7 +1257,7 @@ class Provider(AProvider):
         if not request:
             _tok = kwargs["authn"]
             if not _tok:
-                return error(error="invalid_request", descr="Illegal token")
+                return error_response("invalid_request", descr="Illegal token")
 
         if self.test_mode:
             _log_info("check_session_request: %s" % sanitize(request))
@@ -1538,18 +1525,15 @@ class Provider(AProvider):
             request.verify()
         except MessageException as err:
             if "type" not in request:
-                return error(error="invalid_type",
-                             descr="%s" % err)
+                return error_response("invalid_type", descr="%s" % err)
             else:
-                return error(error="invalid_configuration_parameter",
-                             descr="%s" % err)
+                return error_response("invalid_configuration_parameter", descr="%s" % err)
 
         request.rm_blanks()
         try:
             self.match_client_request(request)
         except CapabilitiesMisMatch as err:
-            return error(error="invalid_request",
-                         descr="Don't support proposed %s" % err)
+            return error_response("invalid_request", descr="Don't support proposed %s" % err)
 
         # create new id och secret
         client_id = rndstr(12)
@@ -1665,7 +1649,8 @@ class Provider(AProvider):
         :param request: Query part of the request
         :return: Response with updated client info
         """
-        return error('Unsupported operation', descr='Altering of the registration is not supported', status_code=403)
+        return error_response('Unsupported operation', descr='Altering of the registration is not supported',
+                              status_code=403)
 
     def delete_registration(self, authn, request, **kwargs):
         """Method to delete the client info on server side.
@@ -1674,7 +1659,8 @@ class Provider(AProvider):
         :param request: Query part of the request
         :return: Response with updated client info
         """
-        return error('Unsupported operation', descr='Deletion of the registration is not supported', status_code=403)
+        return error_response('Unsupported operation', descr='Deletion of the registration is not supported',
+                              status_code=403)
 
     def create_providerinfo(self, pcr_class=ProviderConfigurationResponse,
                             setup=None):
@@ -1828,7 +1814,7 @@ class Provider(AProvider):
         except Exception:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
-            resp = error('service_error', message)
+            resp = error_response('service_error', message)
 
         return resp
 
@@ -1868,7 +1854,7 @@ class Provider(AProvider):
         # Use of the nonce is REQUIRED for all requests where an ID Token is
         # returned directly from the Authorization Endpoint
         if "id_token" in aresp and "nonce" not in areq:
-            return error("invalid_request", "Missing nonce value")
+            return error_response("invalid_request", "Missing nonce value")
         return None
 
     def response_mode(self, areq, fragment_enc, **kwargs):
@@ -1959,8 +1945,7 @@ class Provider(AProvider):
                         **hargs)
                 except (JWEException, NoSuitableSigningKeys) as err:
                     logger.warning(str(err))
-                    return error(error="invalid_request",
-                                 descr="Could not sign/encrypt id_token")
+                    return error_response("invalid_request", descr="Could not sign/encrypt id_token")
 
                 aresp["id_token"] = id_token
                 _sinfo["id_token"] = id_token

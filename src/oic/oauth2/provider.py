@@ -27,7 +27,6 @@ from oic.exception import UnSupported
 from oic.exception import URIError
 from oic.oauth2 import ErrorResponse
 from oic.oauth2 import Server
-from oic.oauth2 import error
 from oic.oauth2 import error_response
 from oic.oauth2 import none_response
 from oic.oauth2 import redirect_authz_error
@@ -373,7 +372,7 @@ class Provider(object):
             try:
                 redirect_uri = self.get_redirect_uri(areq)
             except (RedirectURIError, ParameterError, UnknownClient) as err:
-                return error("invalid_request", "%s" % err)
+                return error_response("invalid_request", "%s" % err)
             try:
                 _rtype = areq["response_type"]
             except KeyError:
@@ -391,7 +390,7 @@ class Provider(object):
             try:
                 self.get_redirect_uri(areq)
             except (RedirectURIError, ParameterError) as err:
-                return error("invalid_request", "%s" % err)
+                return error_response("invalid_request", "%s" % err)
         except Exception as err:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
@@ -402,7 +401,7 @@ class Provider(object):
 
         if not areq:
             logger.debug("No AuthzRequest")
-            return error("invalid_request", "Can not parse AuthzRequest")
+            return error_response("invalid_request", "Can not parse AuthzRequest")
 
         areq = self.filter_request(areq)
 
@@ -415,7 +414,7 @@ class Provider(object):
             logger.error(
                 'Client ID ({}) not in client database'.format(
                     areq['client_id']))
-            return error('unauthorized_client', 'unknown client')
+            return error_response('unauthorized_client', 'unknown client')
         else:
             try:
                 _registered = [set(rt.split(' ')) for rt in
@@ -427,15 +426,13 @@ class Provider(object):
 
             _wanted = set(areq["response_type"])
             if _wanted not in _registered:
-                return error("invalid_request",
-                             "Trying to use unregistered response_typ")
+                return error_response("invalid_request", "Trying to use unregistered response_typ")
 
         logger.debug("AuthzRequest: %s" % (sanitize(areq.to_dict()),))
         try:
             redirect_uri = self.get_redirect_uri(areq)
         except (RedirectURIError, ParameterError, UnknownClient) as err:
-            return error("invalid_request",
-                         "{}:{}".format(err.__class__.__name__, err))
+            return error_response("invalid_request", "{}:{}".format(err.__class__.__name__, err))
 
         try:
             keyjar = self.keyjar
@@ -688,8 +685,7 @@ class Provider(object):
         _log_debug("response type: %s" % areq["response_type"])
 
         if self.sdb.is_revoked(sid):
-            return error(error="access_denied",
-                         descr="Token is revoked")
+            return error_response("access_denied", descr="Token is revoked")
 
         try:
             info = self.create_authn_response(areq, sid)
@@ -754,7 +750,7 @@ class Provider(object):
                                           redirect_uri=redirect_uri,
                                           headers=headers)
             except InvalidRequest as err:
-                return error("invalid_request", str(err))
+                return error_response("invalid_request", str(err))
             else:
                 if resp is not None:
                     return resp
