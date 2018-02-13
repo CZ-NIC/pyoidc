@@ -212,7 +212,7 @@ class TestRenderTemplate(object):
 
     def test_wrong_template(self):
         with pytest.raises(TemplateException):
-            render_template('bogus_template', {})
+            render_template('bogus_template', {'action': 'action'})
 
     def test_form_post(self):
         response = render_template('form_post', {'action': 'action', 'inputs': {'a': 'a'}})
@@ -228,8 +228,23 @@ class TestRenderTemplate(object):
             render_template('form_post', {'inputs': {'a': 'a'}})
 
     def test_verify_logout(self):
-        response = render_template('verify_logout', {})
-        assert response == ''
+        response = render_template('verify_logout', {'action': 'action', 'id_token_hint': 'hint',
+                                                     'post_logout_redirect_uri': 'http://example.com'})
+        assert 'Please verify logout' in response
+        assert '<form method="post" action="action">' in response
+        assert '<input type="submit">' in response
+        assert '<input type="hidden" name="id_token_hint" value="hint"/>' in response
+        assert '<input type="hidden" name="post_logout_redirect_uri" value="http://example.com"/>' in response
+
+    def test_verify_logout_missing_action(self):
+        with pytest.raises(TemplateException):
+            render_template('verify_logout', {'id_token_hint': 'hint'})
+
+    def test_verify_logout_missing_inputs(self):
+        response = render_template('verify_logout', {'action': 'action'})
+        assert 'Please verify logout' in response
+        assert '<input type="submit">' in response
+        assert '<form method="post" action="action">' in response
 
 
 class TestInputs(object):
