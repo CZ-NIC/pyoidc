@@ -13,6 +13,7 @@ from oic.oauth2 import Client
 from oic.oauth2 import Grant
 from oic.oauth2 import Server
 from oic.oauth2 import Token
+from oic.oauth2 import error
 from oic.oauth2.exception import GrantError
 from oic.oauth2.exception import MissingEndpoint
 from oic.oauth2.exception import ResponseError
@@ -61,6 +62,20 @@ def query_string_compare(query_str1, query_str2):
 
 def _eq(l1, l2):
     return set(l1) == set(l2)
+
+
+class TestError(object):
+    """Tests for error class."""
+
+    def test_custom_status(self):
+        response = error('Really bad error', status_code=500)
+        assert response.status == '500 Internal Service Error'
+        assert json.loads(response.message) == {'error_description': None, 'error': 'Really bad error'}
+
+    def test_missing_status(self):
+        response = error('Strange error', status_code=888)
+        assert response.status == '400 Bad Request'
+        assert json.loads(response.message) == {'error_description': None, 'error': 'Strange error'}
 
 
 class TestClient(object):
