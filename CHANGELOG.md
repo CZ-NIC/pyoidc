@@ -50,7 +50,7 @@ The format is based on the [KeepAChangeLog] project.
 [#446]: https://github.com/OpenIDC/pyoidc/issues/446
 [#449]: https://github.com/OpenIDC/pyoidc/issues/449
 [#445]: https://github.com/OpenIDC/pyoidc/issues/445
-[#449]: https://github.com/OpenIDC/pyoidc/issues/421
+[#421]: https://github.com/OpenIDC/pyoidc/issues/421
 [#134]: https://github.com/OpenIDC/pyoidc/issues/134
 [#457]: https://github.com/OpenIDC/pyoidc/issues/457
 [#145]: https://github.com/OpenIDC/pyoidc/issues/145
@@ -63,6 +63,7 @@ The format is based on the [KeepAChangeLog] project.
 [#486]: https://github.com/OpenIDC/pyoidc/issues/486
 [#370]: https://github.com/OpenIDC/pyoidc/issues/370
 [#334]: https://github.com/OpenIDC/pyoidc/issues/334
+[#469]: https://github.com/OpenIDC/pyoidc/pull/469
 
 ## 0.12.0 [2017-09-25]
 
