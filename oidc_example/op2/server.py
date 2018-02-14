@@ -148,6 +148,9 @@ LOOKUP = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
                         module_directory=ROOT + 'modules',
                         input_encoding='utf-8', output_encoding='utf-8')
 
+def mako_renderer(template_name, context):
+    mte = LOOKUP.get_template(template_name)
+    return mte.render(**context)
 
 # ----------------------------------------------------------------------------
 
@@ -530,8 +533,7 @@ if __name__ == '__main__':
     authz = AuthzHandling()
 
     kwargs = {
-        "template_lookup": LOOKUP,
-        "template": {"form_post": "form_response.mako"},
+        "template_renderer": mako_renderer,
         # "template_args": {"form_post": {"action": "form_post"}}
     }
 
