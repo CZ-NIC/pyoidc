@@ -12,6 +12,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#443] Ability to specify additional supported claims for oic.Provider
 - [#134] Added method kwarg to registration_endpoint that enables the client to read/modify registration
 - [#478] Addedd base-class for Client databases ``oic.utils.clientdb.BaseClientDatabase``
+- [#334] Ability to specify custom template rendering function for form_post and verify_logout
 
 ### Changed
 - [#134] ``l_registration_enpoint`` has been deprecated, use ``create_registration`` instead
@@ -21,6 +22,9 @@ The format is based on the [KeepAChangeLog] project.
 - [#483] ``oic.oauth2.uril.verify_header`` now raises ``ValueError`` insteaad of ``AssertionError``.
 - [#491] ``oic.utils.http_util.Response.status`` is deprecated in favor of ``status_code``
 - [#491] Some functions and kwargs in ``oic.oauth2`` module are deprecated
+
+### Removed
+- [#334] Removed template_lookup and template kwargs from oic.Provider
 
 ### Fixed
 - [#430] Audience of a client assertion is endpoint dependent.
@@ -48,7 +52,7 @@ The format is based on the [KeepAChangeLog] project.
 [#446]: https://github.com/OpenIDC/pyoidc/issues/446
 [#449]: https://github.com/OpenIDC/pyoidc/issues/449
 [#445]: https://github.com/OpenIDC/pyoidc/issues/445
-[#449]: https://github.com/OpenIDC/pyoidc/issues/421
+[#421]: https://github.com/OpenIDC/pyoidc/issues/421
 [#134]: https://github.com/OpenIDC/pyoidc/issues/134
 [#457]: https://github.com/OpenIDC/pyoidc/issues/457
 [#145]: https://github.com/OpenIDC/pyoidc/issues/145
@@ -61,6 +65,8 @@ The format is based on the [KeepAChangeLog] project.
 [#486]: https://github.com/OpenIDC/pyoidc/issues/486
 [#370]: https://github.com/OpenIDC/pyoidc/issues/370
 [#491]: https://github.com/OpenIDC/pyoidc/pull/491
+[#334]: https://github.com/OpenIDC/pyoidc/issues/334
+[#469]: https://github.com/OpenIDC/pyoidc/pull/469
 
 ## 0.12.0 [2017-09-25]
 
