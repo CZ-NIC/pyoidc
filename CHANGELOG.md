@@ -12,6 +12,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#443] Ability to specify additional supported claims for oic.Provider
 - [#134] Added method kwarg to registration_endpoint that enables the client to read/modify registration
 - [#478] Addedd base-class for Client databases ``oic.utils.clientdb.BaseClientDatabase``
+- [#334] Ability to specify custom template rendering function for form_post and verify_logout
 
 ### Changed
 - [#134] ``l_registration_enpoint`` has been deprecated, use ``create_registration`` instead
@@ -19,6 +20,11 @@ The format is based on the [KeepAChangeLog] project.
          ``ImportError`` on import if ``pyldap`` is not present
 - [#471] ``ca_certs`` option has been removed, use ``verify_ssl`` instead
 - [#483] ``oic.oauth2.uril.verify_header`` now raises ``ValueError`` insteaad of ``AssertionError``.
+- [#491] ``oic.utils.http_util.Response.status`` is deprecated in favor of ``status_code``
+- [#491] Some functions and kwargs in ``oic.oauth2`` module are deprecated
+
+### Removed
+- [#334] Removed template_lookup and template kwargs from oic.Provider
 
 ### Fixed
 - [#430] Audience of a client assertion is endpoint dependent.
@@ -34,6 +40,10 @@ The format is based on the [KeepAChangeLog] project.
 - [#475] ``get_verify_key`` returns inactive ``sig`` keys for verification
 - [#429] An expired token is not possible to use.
 - [#485] Skip import of improperly defined keys
+- [#370] Use oic.oic.Provider.endp instead of dynamic provider.endpoints in examples
+
+### Security
+- [#486] SystemRandom is not imported correctly, so various secrets get initialized with bad randomness
 
 [#430]: https://github.com/OpenIDC/pyoidc/pull/430
 [#427]: https://github.com/OpenIDC/pyoidc/pull/427
@@ -43,7 +53,7 @@ The format is based on the [KeepAChangeLog] project.
 [#446]: https://github.com/OpenIDC/pyoidc/issues/446
 [#449]: https://github.com/OpenIDC/pyoidc/issues/449
 [#445]: https://github.com/OpenIDC/pyoidc/issues/445
-[#449]: https://github.com/OpenIDC/pyoidc/issues/421
+[#421]: https://github.com/OpenIDC/pyoidc/issues/421
 [#134]: https://github.com/OpenIDC/pyoidc/issues/134
 [#457]: https://github.com/OpenIDC/pyoidc/issues/457
 [#145]: https://github.com/OpenIDC/pyoidc/issues/145
@@ -54,6 +64,11 @@ The format is based on the [KeepAChangeLog] project.
 [#483]: https://github.com/OpenIDC/pyoidc/pull/483
 [#429]: https://github.com/OpenIDC/pyoidc/issues/424
 [#485]: https://github.com/OpenIDC/pyoidc/pull/485
+[#486]: https://github.com/OpenIDC/pyoidc/issues/486
+[#370]: https://github.com/OpenIDC/pyoidc/issues/370
+[#491]: https://github.com/OpenIDC/pyoidc/pull/491
+[#334]: https://github.com/OpenIDC/pyoidc/issues/334
+[#469]: https://github.com/OpenIDC/pyoidc/pull/469
 
 ## 0.12.0 [2017-09-25]
 

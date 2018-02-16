@@ -83,7 +83,6 @@ class Token(object):
         self.type = typ
         self.lifetime = lifetime
         self.args = kwargs
-        self.issued_at = utc_time_sans_frac()
 
     def __call__(self, sid, *args, **kwargs):
         """
@@ -128,20 +127,23 @@ class Token(object):
         """
         raise NotImplementedError()
 
-    def expires_at(self):
-        return self.issued_at + self.lifetime
+    def expires_at(self, token):
+        """
+        Return the expiry timestamp of the token
 
-    def is_expired(self, when=None):
+        :param token: A token
+        :return: Timestamp of the token expiry in UTC
+        """
+        raise NotImplementedError()
+
+    def is_expired(self, token, when=None):
         """Return if token is still valid."""
         if when is None:
             now = utc_time_sans_frac()
         else:
             now = when
-        eat = self.expires_at()
-        if now > eat:
-            return True
-        else:
-            return False
+        eat = self.expires_at(token)
+        return bool(now > eat)
 
     def invalidate(self, token):
         pass
@@ -175,9 +177,11 @@ class DefaultToken(Token):
         while rnd == tmp:  # Don't use the same random value again
             rnd = rndstr(32)  # Ultimate length multiple of 16
 
+        issued_at = "{}".format(utc_time_sans_frac())
+
         return base64.b64encode(
-            self.crypt.encrypt(lv_pack(rnd, ttype, sid).encode())).decode(
-            "utf-8")
+            self.crypt.encrypt(lv_pack(rnd, ttype, sid, issued_at).encode())
+        ).decode("utf-8")
 
     def key(self, user="", areq=None):
         """
@@ -193,10 +197,16 @@ class DefaultToken(Token):
         return csum.hexdigest()  # 56 bytes long, 224 bits
 
     def _split_token(self, token):
+        """
+        Decode the token
+
+        :param token: A token
+        :return: Tuple of sid, type, iat, salt
+        """
         plain = self.crypt.decrypt(base64.b64decode(token)).decode()
-        # order: rnd, type, sid
+        # order: rnd, type, sid, iat
         p = lv_unpack(plain)
-        return p[1], p[2], p[0]
+        return p[1], p[2], int(p[3]), p[0]
 
     def type_and_key(self, token):
         """
@@ -206,7 +216,7 @@ class DefaultToken(Token):
         :param token: A token
         :return: tuple of token type and session id
         """
-        a, b, c = self._split_token(token)
+        a, b, _, _ = self._split_token(token)
         return a, b
 
     def get_key(self, token):
@@ -226,6 +236,15 @@ class DefaultToken(Token):
         :return: Type of Token (A=Access code, T=Token, R=Refresh token)
         """
         return self._split_token(token)[0]
+
+    def expires_at(self, token):
+        """
+        Return expiry time
+
+        :param token: A token
+        :return: expiry timestamp
+        """
+        return self._split_token(token)[2] + self.lifetime
 
 
 class AuthnEvent(object):

@@ -28,6 +28,10 @@ secret/
 pyoidc*
 foo.*
 
+# Windows testing stuff
+.coverage
+.cache/
+
 # Dynamically created doc folders
 doc/_build
 !tests/data/keys

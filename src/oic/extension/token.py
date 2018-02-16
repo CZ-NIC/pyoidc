@@ -169,6 +169,10 @@ class JWTToken(Token, JWT):
 
         return False
 
+    def expires_at(self, token):
+        info = self.unpack(token)
+        return info['exp']
+
     def valid(self, token):
         info = self.unpack(token)
         return self.is_valid(info)

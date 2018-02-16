@@ -167,7 +167,7 @@ class TestProvider(object):
 
         arq = AuthorizationRequest(**bib)
         resp = self.provider.authorization_endpoint(request=arq.to_urlencoded())
-        assert resp.status == "400 Bad Request"
+        assert resp.status_code == 400
         msg = json.loads(resp.message)
         assert msg["error"] == "invalid_request"
 
@@ -184,7 +184,7 @@ class TestProvider(object):
             AuthorizationRequest, 'GET', request_args=args)
 
         resp = self.provider.authorization_endpoint(urlparse(url).query)
-        assert resp.status == "303 See Other"
+        assert resp.status_code == 303
         resp = urlparse(resp.message).query
         aresp = client.parse_authz_response(resp)
 
@@ -374,7 +374,7 @@ class TestProvider(object):
                                      client_secret="hemlighet",
                                      token_type_hint='access_token')
         resp = self.provider.revocation_endpoint(request=req.to_urlencoded())
-        assert resp.status == '200 OK'
+        assert resp.status_code == 200
 
         req = TokenIntrospectionRequest(token=atr['access_token'],
                                         client_id="client1",

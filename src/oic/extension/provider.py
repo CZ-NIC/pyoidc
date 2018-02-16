@@ -755,8 +755,7 @@ class Provider(provider.Provider):
             logger.error(err)
             err = TokenErrorResponse(error="unauthorized_client",
                                      error_description="%s" % err)
-            return Response(err.to_json(), content="application/json",
-                            status="401 Unauthorized")
+            return Response(err.to_json(), content="application/json", status_code=401)
 
         logger.debug("AccessTokenRequest: %s" % areq)
 
