@@ -1345,11 +1345,9 @@ class Client(oauth2.Client):
         except KeyError:
             pass
 
-        try:
+        if 'response_types' in req :
             req['grant_types'] = response_types_to_grant_types(
                 req['response_types'])
-        except KeyError:
-            pass
 
         return req
 
