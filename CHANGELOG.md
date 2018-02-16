@@ -8,7 +8,7 @@ The format is based on the [KeepAChangeLog] project.
 ## 0.13.0 [Unreleased]
 
 ### Added
-- [#493] grant_types specification should follow the response_types sprecification in a client registration request.
+- [#493] grant_types specification should follow the response_types specification in a client registration request.
 - [#469] Allow endpoints to have query parts
 - [#443] Ability to specify additional supported claims for oic.Provider
 - [#134] Added method kwarg to registration_endpoint that enables the client to read/modify registration
