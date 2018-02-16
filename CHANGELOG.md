@@ -20,6 +20,8 @@ The format is based on the [KeepAChangeLog] project.
          ``ImportError`` on import if ``pyldap`` is not present
 - [#471] ``ca_certs`` option has been removed, use ``verify_ssl`` instead
 - [#483] ``oic.oauth2.uril.verify_header`` now raises ``ValueError`` insteaad of ``AssertionError``.
+- [#491] ``oic.utils.http_util.Response.status`` is deprecated in favor of ``status_code``
+- [#491] Some functions and kwargs in ``oic.oauth2`` module are deprecated
 
 ### Removed
 - [#334] Removed template_lookup and template kwargs from oic.Provider
@@ -62,6 +64,7 @@ The format is based on the [KeepAChangeLog] project.
 [#429]: https://github.com/OpenIDC/pyoidc/issues/424
 [#486]: https://github.com/OpenIDC/pyoidc/issues/486
 [#370]: https://github.com/OpenIDC/pyoidc/issues/370
+[#491]: https://github.com/OpenIDC/pyoidc/pull/491
 [#334]: https://github.com/OpenIDC/pyoidc/issues/334
 [#469]: https://github.com/OpenIDC/pyoidc/pull/469
 

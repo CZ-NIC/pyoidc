@@ -301,7 +301,7 @@ class TestProvider(object):
 
         arq = AuthorizationRequest(**bib)
         resp = self.provider.authorization_endpoint(request=arq.to_urlencoded())
-        assert resp.status == "303 See Other"
+        assert resp.status_code == 303
         parsed = parse_qs(urlparse(resp.message).query)
         assert parsed["error"][0] == "invalid_request"
         assert parsed["error_description"][0] == "consent in prompt"
@@ -916,7 +916,7 @@ class TestProvider(object):
             rsps.add(rsps.GET, 'https://example.com', body=json.dumps(redirects))
             resp = self.provider.do_client_registration(rr, 'client0')
 
-        assert resp.status == '400 Bad Request'
+        assert resp.status_code == 400
         error = json.loads(resp.message)
         assert error['error'] == 'invalid_configuration_parameter'
 
@@ -928,7 +928,7 @@ class TestProvider(object):
         req = RegistrationRequest(**params)
         resp = self.provider.registration_endpoint(request=req.to_json())
 
-        assert resp.status == "400 Bad Request"
+        assert resp.status_code == 400
         error = json.loads(resp.message)
         assert error["error"] == "invalid_redirect_uri"
 
@@ -1198,13 +1198,13 @@ class TestProvider(object):
 
     def test_read_registration_malformed_authn(self):
         resp = self.provider.read_registration('wrong string', 'request')
-        assert resp.status == '400 Bad Request'
+        assert resp.status_code == 400
         assert json.loads(resp.message) == {'error': 'invalid_request',
                                             'error_description': None}
 
     def test_read_registration_wrong_authn(self):
         resp = self.provider.read_registration('Bearer wrong string', 'request')
-        assert resp.status == '401 Unauthorized'
+        assert resp.status_code == 401
 
     def test_read_registration_wrong_cid(self):
         rr = RegistrationRequest(operation="register",
@@ -1218,7 +1218,7 @@ class TestProvider(object):
         query = '='.join(['client_id', '123456789012'])
         resp = self.provider.read_registration(authn, query)
 
-        assert resp.status == '401 Unauthorized'
+        assert resp.status_code == 401
 
     def test_key_rollover(self):
         provider2 = Provider("FOOP", {}, {}, None, None, None, None, None)
@@ -1240,7 +1240,7 @@ class TestProvider(object):
 
         # End session not allowed if no cookie is sent (can't determine session)
         resp = self.provider.endsession_endpoint("", cookie="FAIL")
-        assert resp.status == "400 Bad Request"
+        assert resp.status_code == 400
 
     def test_endsession_endpoint_with_id_token_hint(self):
         id_token = self._auth_with_id_token()
