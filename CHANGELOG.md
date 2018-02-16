@@ -39,6 +39,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#352] Fixed broken windows test for ``test_provider_key_setup``. 
 - [#475] ``get_verify_key`` returns inactive ``sig`` keys for verification
 - [#429] An expired token is not possible to use.
+- [#485] Skip import of improperly defined keys
 - [#370] Use oic.oic.Provider.endp instead of dynamic provider.endpoints in examples
 
 ### Security
@@ -62,6 +63,7 @@ The format is based on the [KeepAChangeLog] project.
 [#478]: https://github.com/OpenIDC/pyoidc/issues/478
 [#483]: https://github.com/OpenIDC/pyoidc/pull/483
 [#429]: https://github.com/OpenIDC/pyoidc/issues/424
+[#485]: https://github.com/OpenIDC/pyoidc/pull/485
 [#486]: https://github.com/OpenIDC/pyoidc/issues/486
 [#370]: https://github.com/OpenIDC/pyoidc/issues/370
 [#491]: https://github.com/OpenIDC/pyoidc/pull/491
