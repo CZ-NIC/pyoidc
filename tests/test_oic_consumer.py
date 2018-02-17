@@ -84,6 +84,9 @@ def test_response_types_to_grant_types():
         response_types_to_grant_types(req_args)) == {'authorization_code',
                                                      'implicit'}
 
+    with pytest.raises(ValueError):
+        response_types_to_grant_types(['foobar openid'])
+
 
 def test_clean_response():
     atr = AccessTokenResponse(access_token="access_token",
