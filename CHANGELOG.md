@@ -8,6 +8,7 @@ The format is based on the [KeepAChangeLog] project.
 ## 0.13.0 [Unreleased]
 
 ### Added
+- [#493] grant_types specification should follow the response_types specification in a client registration request.
 - [#469] Allow endpoints to have query parts
 - [#443] Ability to specify additional supported claims for oic.Provider
 - [#134] Added method kwarg to registration_endpoint that enables the client to read/modify registration
@@ -45,6 +46,7 @@ The format is based on the [KeepAChangeLog] project.
 ### Security
 - [#486] SystemRandom is not imported correctly, so various secrets get initialized with bad randomness
 
+[#493]: https://github.com/OpenIDC/pyoidc/pull/493
 [#430]: https://github.com/OpenIDC/pyoidc/pull/430
 [#427]: https://github.com/OpenIDC/pyoidc/pull/427
 [#399]: https://github.com/OpenIDC/pyoidc/issues/399

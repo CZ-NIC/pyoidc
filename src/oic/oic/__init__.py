@@ -257,6 +257,32 @@ PARAMMAP = {
     "enc": "%s_encrypted_response_enc",
 }
 
+rt2gt = {
+    'code': ['authorization_code'],
+    'id_token': ['implicit'],
+    'id_token token': ['implicit'],
+    'code id_token': ['authorization_code', 'implicit'],
+    'code token': ['authorization_code', 'implicit'],
+    'code id_token token': ['authorization_code', 'implicit']
+}
+
+
+def response_types_to_grant_types(response_types):
+    _res = set()
+
+    for response_type in response_types:
+        _rt = response_type.split(' ')
+        _rt.sort()
+        try:
+            _gt = rt2gt[" ".join(_rt)]
+        except KeyError:
+            raise ValueError(
+                'No such response type combination: {}'.format(response_types))
+        else:
+            _res.update(set(_gt))
+
+    return list(_res)
+
 
 def claims_match(value, claimspec):
     """
@@ -1318,6 +1344,10 @@ class Client(oauth2.Client):
                     self.requests_dir)
         except KeyError:
             pass
+
+        if 'response_types' in req:
+            req['grant_types'] = response_types_to_grant_types(
+                req['response_types'])
 
         return req
 

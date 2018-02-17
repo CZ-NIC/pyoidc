@@ -11,6 +11,7 @@ from jwkest.jwk import SYMKey
 from oic.oauth2.message import MissingSigningKey
 from oic.oic import DEF_SIGN_ALG
 from oic.oic import Server
+from oic.oic import response_types_to_grant_types
 from oic.oic.consumer import IGNORE
 from oic.oic.consumer import Consumer
 from oic.oic.consumer import clean_response
@@ -68,6 +69,23 @@ CONFIG = {
 
 def _eq(l1, l2):
     return set(l1) == set(l2)
+
+
+def test_response_types_to_grant_types():
+    req_args = ['code']
+    assert set(
+        response_types_to_grant_types(req_args)) == {'authorization_code'}
+    req_args = ['code', 'code id_token']
+    assert set(
+        response_types_to_grant_types(req_args)) == {'authorization_code',
+                                                     'implicit'}
+    req_args = ['code', 'id_token code', 'code token id_token']
+    assert set(
+        response_types_to_grant_types(req_args)) == {'authorization_code',
+                                                     'implicit'}
+
+    with pytest.raises(ValueError):
+        response_types_to_grant_types(['foobar openid'])
 
 
 def test_clean_response():
