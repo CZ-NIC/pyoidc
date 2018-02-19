@@ -5,7 +5,7 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
-## 0.13.0 [Unreleased]
+## 0.13.0 [2018-02-19]
 
 ### Added
 - [#493] grant_types specification should follow the response_types specification in a client registration request.
