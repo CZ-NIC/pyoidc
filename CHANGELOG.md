@@ -5,6 +5,13 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
+## 0.X.X [Unreleased]
+
+### Removed
+- [#494] Methods and functions deprecated in previous releases have been removed
+
+[#494]: https://github/com/OpenIDC/issues/494
+
 ## 0.13.0 [2018-02-19]
 
 ### Added

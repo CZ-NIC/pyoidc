@@ -17,7 +17,6 @@ import socket
 import sys
 import time
 import traceback
-import warnings
 from functools import cmp_to_key
 
 import six
@@ -1465,11 +1464,6 @@ class Provider(AProvider):
                     val.append(base)
 
             args[param] = val
-
-    def l_registration_endpoint(self, request, authn=None, **kwargs):
-        warnings.warn('`l_registration_endpoint` is deprecated. Please use `create_registration` instead',
-                      DeprecationWarning)
-        return self.create_registration(request=request, authn=authn, **kwargs)
 
     def create_registration(self, authn=None, request=None, **kwargs):
         logger.debug("@registration_endpoint: <<%s>>" % sanitize(request))

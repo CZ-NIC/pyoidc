@@ -2,7 +2,6 @@
 from future.backports.urllib.parse import urlparse
 
 import logging
-import warnings
 
 from jwkest import b64e
 
@@ -77,14 +76,7 @@ class ExpiredToken(PyoidcError):
 
 # =============================================================================
 
-def error_response(error, descr=None, status=None, status_code=400):
-    if status is not None:
-        warnings.warn('`status` kwarg is deprecated, please use `status_code` instead.',
-                      DeprecationWarning, stacklevel=2)
-        try:
-            status_code = str(status[:3])
-        except ValueError:
-            pass
+def error_response(error, descr=None, status_code=400):
     logger.error("%s" % sanitize(error))
     response = ErrorResponse(error=error, error_description=descr)
     return Response(response.to_json(), content="application/json", status_code=status_code)
@@ -99,17 +91,7 @@ def none_response(**kwargs):
     return aresp
 
 
-def error(error, descr=None, status_code=400):
-    warnings.warn('`error` is now just a wrapper for `error_response` and will be removed in v0.14. '
-                  'Please use `error_response` directly instead.', DeprecationWarning, stacklevel=2)
-    return error_response(error=error, descr=descr, status_code=status_code)
-
-
-def authz_error(error, descr=None, **kwargs):
-    if 'status_code' in kwargs:
-        warnings.warn('`status_code` kwarg is deprecated (and ignored) and will be removed in v0.14. '
-                      'If you need to set custom status_code, use `error_response` instead.',
-                      DeprecationWarning, stacklevel=2)
+def authz_error(error, descr=None):
     response = AuthorizationErrorResponse(error=error)
     if descr:
         response["error_description"] = descr

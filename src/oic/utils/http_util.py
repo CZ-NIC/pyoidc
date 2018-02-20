@@ -8,7 +8,6 @@ import hmac
 import logging
 import os
 import time
-import warnings
 
 from jwkest import as_unicode
 from jwkest import safe_str_cmp
@@ -43,7 +42,6 @@ OAUTH2_NOCACHE_HEADERS = [
 
 class Response(object):
     _template = None
-    _status = '200 OK'  # FIXME: Remove in v0.14
     _status_code = 200
     _content_type = 'text/html'
     _mako_template = None
@@ -51,15 +49,6 @@ class Response(object):
 
     def __init__(self, message=None, **kwargs):
         self.status_code = kwargs.get('status_code', self._status_code)
-        if 'status' in kwargs:
-            warnings.warn('`status` kwarg is deprecated and will be removed in v0.14. '
-                          'Use integer `status_code` instead.', DeprecationWarning, stacklevel=2)
-            # Heuristics...
-            str_status = kwargs['status'][:3]
-            try:
-                self.status_code = int(str_status)
-            except ValueError:
-                pass
         self.response = kwargs.get("response", self._response)
         self.template = kwargs.get("template", self._template)
         self.mako_template = kwargs.get("mako_template", self._mako_template)
@@ -72,12 +61,6 @@ class Response(object):
         _content_type = kwargs.get("content", self._content_type)
 
         self.headers.append(("Content-type", _content_type))
-
-    @property
-    def status(self):
-        warnings.warn('`status` is deprecated and will be removed in version v0.14. '
-                      'Use `status_code` instead.', DeprecationWarning, stacklevel=2)
-        return R2C[self.status_code]._status
 
     def __call__(self, environ, start_response, **kwargs):
         start_response(self.status_code, self.headers)
@@ -118,9 +101,7 @@ class Response(object):
                 return [message]
 
     def info(self):
-        warnings.warn('`status` will be removed from this output in v0.14.', DeprecationWarning, stacklevel=2)
-        return {'status': self.status, 'status_code': self.status_code, 'headers': self.headers,
-                'message': self.message}
+        return {'status_code': self.status_code, 'headers': self.headers, 'message': self.message}
 
     def add_header(self, ava):
         self.headers.append(ava)
@@ -133,22 +114,18 @@ class Response(object):
 
 
 class Created(Response):
-    _status = "201 Created"  # FIXME: Remove in v0.14
     _status_code = 201
 
 
 class Accepted(Response):
-    _status = "202 Accepted"  # FIXME: Remove in v0.14
     _status_code = 202
 
 
 class NonAuthoritativeInformation(Response):
-    _status = "203 Non Authoritative Information"  # FIXME: Remove in v0.14
     _status_code = 203
 
 
 class NoContent(Response):
-    _status = "204 No Content"  # FIXME: Remove in v0.14
     _status_code = 204
 
 
@@ -156,7 +133,6 @@ class Redirect(Response):
     _template = '<html>\n<head><title>Redirecting to %s</title></head>\n' \
                 '<body>\nYou are being redirected to <a href="%s">%s</a>\n' \
                 '</body>\n</html>'
-    _status = '302 Found'  # FIXME: Remove in v0.14
     _status_code = 302
 
     def __call__(self, environ, start_response, **kwargs):
@@ -170,7 +146,6 @@ class SeeOther(Response):
     _template = '<html>\n<head><title>Redirecting to %s</title></head>\n' \
                 '<body>\nYou are being redirected to <a href="%s">%s</a>\n' \
                 '</body>\n</html>'
-    _status = '303 See Other'  # FIXME: Remove in v0.14
     _status_code = 303
 
     def __call__(self, environ, start_response, **kwargs):
@@ -186,40 +161,33 @@ class SeeOther(Response):
 
 
 class Forbidden(Response):
-    _status = '403 Forbidden'  # FIXME: Remove in v0.14
     _status_code = 403
     _template = "<html>Not allowed to mess with: '%s'</html>"
 
 
 class BadRequest(Response):
-    _status = "400 Bad Request"  # FIXME: Remove in v0.14
     _status_code = 400
     _template = "<html>%s</html>"
 
 
 class Unauthorized(Response):
-    _status = "401 Unauthorized"  # FIXME: Remove in v0.14
     _status_code = 401
     _template = "<html>%s</html>"
 
 
 class NotFound(Response):
-    _status = '404 NOT FOUND'  # FIXME: Remove in v0.14
     _status_code = 404
 
 
 class NotSupported(Response):
-    _status = '405 Not Support'  # FIXME: Remove in v0.14
     _status_code = 405
 
 
 class NotAcceptable(Response):
-    _status = '406 Not Acceptable'  # FIXME: Remove in v0.14
     _status_code = 406
 
 
 class ServiceError(Response):
-    _status = '500 Internal Service Error'  # FIXME: Remove in v0.14
     _status_code = 500
 
 
