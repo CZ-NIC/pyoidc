@@ -143,3 +143,16 @@ formatted html. ``template_name`` can be one of following:
     and ``inputs`` a dictionary with passed attributes.
 
   * ``verify_logout`` - used for verification of logout at Provider.
+
+
+Extension of supported claims and scopes
+----------------------------------------
+To extend the supported and recognized claims and scopes, it is possible to pass keyword arguments ``extra_claims``
+and ``extra_scope_dict`` to a :py:class:`oic.oic.provider.Provider`.
+
+  * ``extra_scope_dict`` - This should be a dictionary with supported extra scopes as keys and the values should be a
+    list with the claims the scope maps to.
+  * ``extra_claims`` - A list with extra supported claims.
+
+It is not necessary to include the claims from ``extra_scope_dict`` in the ``extra_claims`` list, they are appended
+automatically.

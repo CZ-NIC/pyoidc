@@ -214,7 +214,7 @@ class Provider(AProvider):
                  hostname="", template_lookup=None, template=None,
                  verify_ssl=True, capabilities=None, schema=OpenIDSchema,
                  jwks_uri='', jwks_name='', baseurl=None, client_cert=None,
-                 extra_claims=None, template_renderer=render_template):
+                 extra_claims=None, template_renderer=render_template, extra_scope_dict=None):
 
         AProvider.__init__(self, name, sdb, cdb, authn_broker, authz,
                            client_authn, symkey, urlmap,
@@ -249,6 +249,7 @@ class Provider(AProvider):
         self.hostname = hostname or socket.gethostname()
 
         self.extra_claims = extra_claims
+        self.extra_scope_dict = extra_scope_dict
 
         for endp in self.endp:
             if endp.etype == 'registration':
@@ -1056,7 +1057,7 @@ class Provider(AProvider):
         :return: User info
         """
         if userinfo_claims is None:
-            uic = scope2claims(session["scope"])
+            uic = scope2claims(session["scope"], extra_scope_dict=self.extra_scope_dict)
 
             # Get only keys allowed by user and update the dict if such info
             # is stored in session
@@ -1675,16 +1676,23 @@ class Provider(AProvider):
 
         _provider_info = pcr_class(**CAPABILITIES)
 
+        # Parse scopes
+        _scopes = list(SCOPE2CLAIMS.keys())
+        if self.extra_scope_dict is not None:
+            _scopes.extend(self.extra_scope_dict.keys())
+        # Remove duplicates if any
+        _provider_info["scopes_supported"] = list(set(_scopes))
+
         _claims = []
         for _cl in SCOPE2CLAIMS.values():
             _claims.extend(_cl)
         if self.extra_claims is not None:
             _claims.extend(self.extra_claims)
+        if self.extra_scope_dict is not None:
+            for _ex_claim in self.extra_scope_dict.values():
+                _claims.extend(_ex_claim)
+        # Remove duplicates if any
         _provider_info["claims_supported"] = list(set(_claims))
-
-        _scopes = list(SCOPE2CLAIMS.keys())
-        _scopes.append("openid")
-        _provider_info["scopes_supported"] = _scopes
 
         # Sort order RS, ES, HS, PS
         sign_algs = list(jws.SIGNER_ALGS.keys())
