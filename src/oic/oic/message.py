@@ -440,8 +440,8 @@ class AuthorizationRequest(message.AuthorizationRequest):
 
                 # verify that nothing is change in the original message
                 for key, val in oidr.items():
-                    if key in self:
-                        assert self[key] == val
+                    if key in self and self[key] != val:
+                        raise AssertionError()
 
                 # replace the JWT with the parsed and verified instance
                 self["request"] = oidr
@@ -584,8 +584,8 @@ class RegistrationRequest(Message):
     def verify(self, **kwargs):
         super(RegistrationRequest, self).verify(**kwargs)
 
-        if "initiate_login_uri" in self:
-            assert self["initiate_login_uri"].startswith("https:")
+        if "initiate_login_uri" in self and not self["initiate_login_uri"].startswith("https:"):
+            raise AssertionError()
 
         for param in ["request_object_encryption",
                       "id_token_encrypted_response",
@@ -597,11 +597,11 @@ class RegistrationRequest(Message):
                     self[enc_param] = "A128CBC-HS256"
 
             # both or none
-            if enc_param in self:
-                assert alg_param in self
+            if enc_param in self and alg_param not in self:
+                raise AssertionError()
 
-        if "token_endpoint_auth_signing_alg" in self:
-            assert self["token_endpoint_auth_signing_alg"] != "none"
+        if "token_endpoint_auth_signing_alg" in self and self["token_endpoint_auth_signing_alg"] == "none":
+            raise AssertionError()
 
         return True
 
@@ -842,7 +842,8 @@ class ProviderConfigurationResponse(Message):
         super(ProviderConfigurationResponse, self).verify(**kwargs)
 
         if "scopes_supported" in self:
-            assert "openid" in self["scopes_supported"]
+            if "openid" not in self["scopes_supported"]:
+                raise AssertionError()
             for scope in self["scopes_supported"]:
                 check_char_set(scope, SCOPE_CHARSET)
 
@@ -850,7 +851,8 @@ class ProviderConfigurationResponse(Message):
         if parts.scheme != "https":
             raise SchemeError("Not HTTPS")
 
-        assert not parts.query and not parts.fragment
+        if parts.query or parts.fragment:
+            raise AssertionError()
 
         if any("code" in rt for rt in self[
                 "response_types_supported"]) and "token_endpoint" not in self:

@@ -676,8 +676,10 @@ class Provider(provider.Provider):
 
         # If redirect_uri was in the initial authorization request
         # verify that the one given here is the correct one.
-        if "redirect_uri" in _info:
-            assert areq["redirect_uri"] == _info["redirect_uri"]
+        if "redirect_uri" in _info and areq["redirect_uri"] != _info["redirect_uri"]:
+            logger.error('Redirect_uri mismatch')
+            err = TokenErrorResponse(error="unauthorized_client")
+            return Unauthorized(err.to_json(), content="application/json")
 
         issue_refresh = False
         if 'scope' in authzreq and 'offline_access' in authzreq['scope']:
