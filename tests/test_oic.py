@@ -733,6 +733,10 @@ class TestScope2Claims(object):
         claims = scope2claims(['my_scope', 'email'])
         assert Counter(claims.keys()) == Counter(SCOPE2CLAIMS['email'])
 
+    def test_scope2claims_extra_scope_dict(self):
+        claims = scope2claims(['my_scope', 'email'], extra_scope_dict={'my_scope': ['my_attribute']})
+        assert sorted(claims.keys()) == ['email', 'email_verified', 'my_attribute']
+
 
 def test_request_attr_mis_match():
     redirect_uri = "http://example.com/redirect"

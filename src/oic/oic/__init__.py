@@ -1818,11 +1818,15 @@ class Server(oauth2.Server):
         return idt
 
 
-def scope2claims(scopes):
+def scope2claims(scopes, extra_scope_dict=None):
     res = {}
+    # Construct the scope translation map
+    trans_map = SCOPE2CLAIMS.copy()
+    if extra_scope_dict is not None:
+        trans_map.update(extra_scope_dict)
     for scope in scopes:
         try:
-            claims = dict([(name, None) for name in SCOPE2CLAIMS[scope]])
+            claims = dict([(name, None) for name in trans_map[scope]])
             res.update(claims)
         except KeyError:
             continue

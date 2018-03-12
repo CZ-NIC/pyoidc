@@ -224,6 +224,13 @@ class TestProvider(object):
         assert 'claim_1' in features['claims_supported']
         assert 'claim_2' in features['claims_supported']
 
+    def test_provider_features_extra_scopes(self):
+        self.provider.extra_scope_dict = {'my_scope': ['claim_1', 'claim_2']}
+        features = self.provider.provider_features()
+        assert 'my_scope' in features['scopes_supported']
+        assert 'claim_1' in features['claims_supported']
+        assert 'claim_2' in features['claims_supported']
+
     def test_authorization_endpoint_request(self):
         bib = {"scope": ["openid"],
                "state": "id-6da9ca0cc23959f5f33e8becd9b08cae",
@@ -776,6 +783,29 @@ class TestProvider(object):
         resp = self.provider.userinfo_endpoint(request=uir.to_urlencoded())
         ident = OpenIDSchema().deserialize(resp.message, "json")
         assert _eq(ident.keys(), ['sub'])
+
+    def test_userinfo_endpoint_extra_scopes(self):
+        # We have to recreate the cache again
+        self.provider.extra_scope_dict = {'extra_scope': ['extra_claim']}
+        self.provider.capabilities = self.provider.provider_features()
+
+        self.cons.client_secret = "drickyoughurt"
+        self.cons.consumer_config['user_info'] = {'extra_claim': None}
+        self.cons.config["response_type"] = ["token"]
+        self.cons.config["request_method"] = "parameter"
+        # Request the extra scope
+        state, location = self.cons.begin("openid extra_scope", "token", path="http://localhost:8087")
+
+        resp = self.provider.authorization_endpoint(request=urlparse(location).query)
+
+        # redirect
+        atr = AuthorizationResponse().deserialize(urlparse(resp.message).fragment, "urlencoded")
+
+        uir = UserInfoRequest(access_token=atr["access_token"], schema="openid")
+
+        resp = self.provider.userinfo_endpoint(request=uir.to_urlencoded())
+        ident = OpenIDSchema().deserialize(resp.message, "json")
+        assert _eq(ident.keys(), ['sub', 'extra_claim'])
 
     def test_userinfo_endpoint_authn(self):
         self.cons.client_secret = "drickyoughurt"

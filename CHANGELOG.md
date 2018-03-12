@@ -10,7 +10,11 @@ The format is based on the [KeepAChangeLog] project.
 ### Removed
 - [#494] Methods and functions deprecated in previous releases have been removed
 
+### Added
+- [#496] Ability to specify additional supported scopes for oic.Provider
+
 [#494]: https://github/com/OpenIDC/issues/494
+[#496]: https://github.com/OpenIDC/pyoidc/issues/496
 
 ## 0.13.0 [2018-02-19]
 
