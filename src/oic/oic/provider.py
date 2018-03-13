@@ -1202,7 +1202,9 @@ class Provider(AProvider):
         info = self.schema(**self._collect_user_info(session))
 
         # Should I return a JSON or a JWT ?
-        _cinfo = self.cdb[session["client_id"]]
+        _cinfo = self.cdb.get(session["client_id"])
+        if _cinfo is None:
+            return error_response("unauthorized_client", descr="Unknown client")
         try:
             if "userinfo_signed_response_alg" in _cinfo:
                 # Will also encrypt if defined in cinfo

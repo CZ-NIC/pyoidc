@@ -340,6 +340,51 @@ class TestProvider(object):
         ti_resp = TokenIntrospectionResponse().deserialize(resp.message, 'json')
         assert ti_resp['active'] is True
 
+    def test_token_introspection_missing(self):
+        authreq = AuthorizationRequest(state="state",
+                                       redirect_uri="http://example.com/authz",
+                                       client_id="client2")
+
+        _sdb = self.provider.sdb
+        self.provider.cdb["client2"] = {
+            "client_secret": "hemlighet",
+            "redirect_uris": [("http://localhost:8087/authz", None)],
+            "token_endpoint_auth_method": "client_secret_post",
+            "response_types": ["code", "token"]
+        }
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
+        access_grant = _sdb.token_factory["code"](sid=sid)
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "sub": "sub",
+            "authzreq": authreq.to_json(),
+            "client_id": "client2",
+            "code": access_grant,
+            "code_used": False,
+            "redirect_uri": "http://example.com/authz",
+            "response_type": ["code"]
+        }
+
+        # Construct Access token request
+        areq = AccessTokenRequest(code=access_grant,
+                                  redirect_uri="http://example.com/authz",
+                                  client_id="client2",
+                                  client_secret="hemlighet",
+                                  grant_type="authorization_code")
+
+        resp = self.provider.token_endpoint(request=areq.to_urlencoded())
+        atr = AccessTokenResponse().deserialize(resp.message, "json")
+        # Delete the client
+        del self.provider.cdb["client2"]
+        req = TokenIntrospectionRequest(token=atr["access_token"],
+                                        client_id="client2",
+                                        client_secret="hemlighet",
+                                        token_type_hint="access_token")
+        resp = self.provider.introspection_endpoint(request=req.to_urlencoded())
+        assert resp
+        ti_resp = TokenIntrospectionResponse().deserialize(resp.message, "json")
+        assert ti_resp["error"] == "unauthorized_client"
+
     def test_token_revocation_and_introspection(self):
         authreq = AuthorizationRequest(state="state",
                                        redirect_uri="http://example.com/authz",

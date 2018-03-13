@@ -7,6 +7,9 @@ The format is based on the [KeepAChangeLog] project.
 
 ## 0.X.X [Unreleased]
 
+### Fixed
+- [#503] Fix error on UserInfo endpoint for removed clients
+
 ### Removed
 - [#494] Methods and functions deprecated in previous releases have been removed
 
@@ -15,6 +18,7 @@ The format is based on the [KeepAChangeLog] project.
 
 [#494]: https://github/com/OpenIDC/issues/494
 [#496]: https://github.com/OpenIDC/pyoidc/issues/496
+[#503]: https://github.com/OpenIDC/pyoidc/issues/503
 
 ## 0.13.0 [2018-02-19]
 
