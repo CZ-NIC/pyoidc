@@ -23,6 +23,7 @@ import six
 from jwkest import b64d
 from jwkest import jwe
 from jwkest import jws
+from jwkest import safe_str_cmp
 from jwkest.jwe import JWE
 from jwkest.jwe import JWEException
 from jwkest.jwe import NotSupportedAlgorithm
@@ -1533,8 +1534,6 @@ class Provider(AProvider):
             "client_salt": rndstr(8)
         }
 
-        self.cdb[_rat] = client_id
-
         _cinfo = self.do_client_registration(request, client_id,
                                              ignore=["redirect_uris",
                                                      "policy_uri", "logo_uri",
@@ -1596,14 +1595,15 @@ class Provider(AProvider):
             return error_response('invalid_request')
         token = authn[len("Bearer "):]
 
-        try:
-            client_id = self.cdb[token]
-        except KeyError:
-            return Unauthorized()
-
-        # extra check
+        # Get client_id from request
         _info = parse_qs(request)
-        if not _info["client_id"][0] == client_id:
+        client_id = _info.get("client_id", [None])[0]
+
+        cdb_entry = self.cdb.get(client_id)
+        if cdb_entry is None:
+            return Unauthorized()
+        reg_token = cdb_entry.get('registration_access_token', '')
+        if not safe_str_cmp(reg_token, token):
             return Unauthorized()
 
         logger.debug("Client '%s' reads client info" % client_id)
