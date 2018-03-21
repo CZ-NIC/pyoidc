@@ -2,6 +2,7 @@ import os
 
 from oic.utils.jwt import JWT
 from oic.utils.keyio import build_keyjar
+from oic.utils.keyio import keybundle_from_local_file
 
 __author__ = 'roland'
 
@@ -36,3 +37,20 @@ def test_jwt_pack_and_unpack():
     info = srv.unpack(_jwt)
 
     assert _eq(info.keys(), ['jti', 'iat', 'exp', 'iss', 'sub', 'kid'])
+
+
+class TestJWT(object):
+    """Tests for JWT."""
+
+    def test_unpack_verify_key(self):
+        srv = JWT(keyjar, iss=issuer)
+        _jwt = srv.pack(sub="sub")
+        # Remove the signing key from keyjar
+        keyjar.remove_key("", "RSA", "")
+        # And add it back as verify
+        kb = keybundle_from_local_file(os.path.join(BASE_PATH, "cert.key"), "RSA", ["ver"])
+        # keybundle_from_local_file doesn'assign kid, so assign manually
+        kb._keys[0].kid = kidd["sig"]["RSA"]
+        keyjar.add_kb("", kb)
+        info = srv.unpack(_jwt)
+        assert info["sub"] == "sub"

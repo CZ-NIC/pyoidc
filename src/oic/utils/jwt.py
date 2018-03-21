@@ -94,8 +94,7 @@ class JWT(object):
         else:
             owner = _msg['iss']
 
-        keys = self.keyjar.get_signing_key(jws.alg2keytype(rj.jwt.headers['alg']),
-                                           owner=owner)
+        keys = self.keyjar.get_verify_key(jws.alg2keytype(rj.jwt.headers['alg']), owner=owner)
         return rj.verify_compact(token, keys)
 
     def _decrypt(self, rj, token):
