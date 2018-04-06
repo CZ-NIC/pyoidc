@@ -26,7 +26,7 @@ class TestResponse(object):
         message = "foo bar"
 
         def start_response(status, headers):
-            assert status == 200
+            assert status == '200 OK'
             assert response_header in headers
 
         resp = Response(message, headers=[response_header])
@@ -39,7 +39,7 @@ class TestResponse(object):
         message = '<script>alert("hi");</script>'
 
         def start_response(status, headers):
-            assert status == 200
+            assert status == '200 OK'
             assert response_header in headers
 
         resp = Response(message=message, headers=[response_header], template=template)

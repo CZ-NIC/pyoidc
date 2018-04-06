@@ -5,6 +5,14 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
+
+## 0.13.1 [Unreleased]
+
+### Fixed
+- [#515]: Fix arguments to WSGI start_response
+
+[#515]: https://github.com/OpenIDC/pyoidc/issues/515
+
 ## 0.13.0 [2018-02-19]
 
 ### Added
