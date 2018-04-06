@@ -22,6 +22,13 @@ The format is based on the [KeepAChangeLog] project.
 [#503]: https://github.com/OpenIDC/pyoidc/issues/503
 [#508]: https://github.com/OpenIDC/pyoidc/issues/508
 
+## 0.13.1 [2018-04-06]
+
+### Fixed
+- [#515]: Fix arguments to WSGI start_response
+
+[#515]: https://github.com/OpenIDC/pyoidc/issues/515
+
 ## 0.13.0 [2018-02-19]
 
 ### Added
