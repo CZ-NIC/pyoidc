@@ -6,7 +6,7 @@ The format is based on the [KeepAChangeLog] project.
 [KeepAChangeLog]: http://keepachangelog.com/
 
 
-## 0.13.1 [Unreleased]
+## 0.13.1 [2018-04-06]
 
 ### Fixed
 - [#515]: Fix arguments to WSGI start_response
