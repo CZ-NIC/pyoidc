@@ -9,6 +9,7 @@ The format is based on the [KeepAChangeLog] project.
 
 ### Fixed
 - [#503] Fix error on UserInfo endpoint for removed clients
+- [#508] JWT now uses verify keys for JWT verification
 
 ### Removed
 - [#494] Methods and functions deprecated in previous releases have been removed
@@ -19,6 +20,7 @@ The format is based on the [KeepAChangeLog] project.
 [#494]: https://github/com/OpenIDC/issues/494
 [#496]: https://github.com/OpenIDC/pyoidc/issues/496
 [#503]: https://github.com/OpenIDC/pyoidc/issues/503
+[#508]: https://github.com/OpenIDC/pyoidc/issues/508
 
 ## 0.13.0 [2018-02-19]
 
