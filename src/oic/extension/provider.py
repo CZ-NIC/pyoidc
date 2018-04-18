@@ -826,29 +826,31 @@ class Provider(provider.Provider):
             token_type = req['token_type_hint']
         except KeyError:
             try:
-                _info = self.sdb.token_factory['access_token'].info(
-                    req['token'])
-            except KeyError:
+                _info = self.sdb.token_factory['access_token'].get_info(req['token'])
+            except Exception:
                 try:
-                    _info = self.sdb.token_factory['refresh_token'].get_info(
-                        req['token'])
-                except KeyError:
-                    raise
+                    _info = self.sdb.token_factory['refresh_token'].get_info(req['token'])
+                except Exception:
+                    return self._return_inactive()
                 else:
                     token_type = 'refresh_token'
             else:
                 token_type = 'access_token'
         else:
             try:
-                _info = self.sdb.token_factory[token_type].get_info(
-                    req['token'])
-            except KeyError:
-                raise
+                _info = self.sdb.token_factory[token_type].get_info(req['token'])
+            except Exception:
+                return self._return_inactive()
 
         if not self.token_access(endpoint, client_id, _info):
             return BadRequest()
 
         return client_id, token_type, _info
+
+    @staticmethod
+    def _return_inactive():
+        ir = TokenIntrospectionResponse(active=False)
+        return Response(ir.to_json(), content="application/json")
 
     def revocation_endpoint(self, authn='', request=None, **kwargs):
         """
