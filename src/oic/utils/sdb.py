@@ -272,7 +272,14 @@ class AuthnEvent(object):
         return self.valid_until - time.time()
 
     def to_json(self):
-        return self.__dict__
+        """Serialize AuthnEvent to JSON."""
+        return json.dumps(self.__dict__)
+
+    @classmethod
+    def from_json(cls, json_struct):
+        """Create AuthnEvent from JSON."""
+        dic = json.loads(json_struct)
+        return cls(**dic)
 
 
 class RefreshDB(object):
@@ -539,8 +546,9 @@ class SessionDB(object):
         :param client_salt: client specific salt - used in pairwise
         :return:
         """
-        uid = self._db[sid]["authn_event"]["uid"]
-        user_salt = self._db[sid]["authn_event"]["salt"]
+        authn_event = self.get_authentication_event(sid)
+        uid = authn_event.uid
+        user_salt = authn_event.salt
 
         if subject_type == "public":
             sub = hashlib.sha256(
@@ -611,7 +619,12 @@ class SessionDB(object):
         return sid
 
     def get_authentication_event(self, sid):
-        return self._db[sid]["authn_event"]
+        """Return AuthnEvent based on sid."""
+        # This is a compatibility shim for older sessions
+        if isinstance(self._db[sid]["authn_event"], dict):
+            return AuthnEvent(**self._db[sid]["authn_event"])
+        else:
+            return AuthnEvent.from_json(self._db[sid]["authn_event"])
 
     def get_token(self, sid):
         if self._db[sid]["oauth_state"] == "authz":
@@ -657,9 +670,12 @@ class SessionDB(object):
             dic["oidreq"] = oidreq
 
         if issue_refresh:
-            authn_event = dic.get('authn_event')
+            if 'authn_event' in dic:
+                authn_event = AuthnEvent.from_json(dic['authn_event'])
+            else:
+                authn_event = None
             if authn_event:
-                uid = authn_event["uid"]
+                uid = authn_event.uid
             else:
                 uid = None
 

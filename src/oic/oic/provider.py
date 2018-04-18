@@ -81,6 +81,7 @@ from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
 from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed
+from oic.utils.sdb import AuthnEvent
 from oic.utils.sdb import ExpiredToken
 from oic.utils.template_render import render_template
 from oic.utils.time_util import utc_time_sans_frac
@@ -727,7 +728,7 @@ class Provider(AProvider):
             sids = self.sdb.get_sids_by_sub(req_user)
             if sids:
                 # anyone will do
-                authn_event = self.sdb[sids[-1]]["authn_event"]
+                authn_event = self.sdb.get_authentication_event(sids[-1])
                 # Is the authentication event to be regarded as valid ?
                 if authn_event.valid():
                     sid = self.setup_session(areq, authn_event, cinfo)
@@ -758,7 +759,7 @@ class Provider(AProvider):
         if "check_session_iframe" in self.capabilities:
             salt = rndstr()
             authn_event = self.sdb.get_authentication_event(sid)  # use the last session
-            state = str(authn_event["authn_time"])
+            state = str(authn_event.authn_time)
             aresp["session_state"] = self._compute_session_state(
                 state, salt, areq["client_id"], redirect_uri
             )
@@ -868,11 +869,11 @@ class Provider(AProvider):
                 if not alg:
                     alg = PROVIDER_DEFAULT["id_token_signed_response_alg"]
 
-        _authn_event = sinfo["authn_event"]
+        _authn_event = AuthnEvent.from_json(sinfo["authn_event"])
         id_token = self.id_token_as_signed_jwt(
-            sinfo, loa=_authn_event["authn_info"], alg=alg, code=code,
+            sinfo, loa=_authn_event.authn_info, alg=alg, code=code,
             access_token=access_token, user_info=user_info,
-            auth_time=_authn_event["authn_time"])
+            auth_time=_authn_event.authn_time)
 
         # Then encrypt
         if "id_token_encrypted_response_alg" in client_info:
@@ -1082,9 +1083,9 @@ class Provider(AProvider):
 
         logger.debug("Session info: %s" % sanitize(session))
 
-        authn_event = session.get("authn_event")
+        authn_event = AuthnEvent.from_json(session.get("authn_event"))
         if authn_event:
-            uid = authn_event["uid"]
+            uid = authn_event.uid
         else:
             uid = session['uid']
 
