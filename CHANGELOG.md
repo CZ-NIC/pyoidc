@@ -12,6 +12,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#508] JWT now uses verify keys for JWT verification
 - [#502] IntrospectionEndpoint now returns False if it encounters any error as per specs
 - [#481] Loading AuthnEvent from session
+- [#492] Do not verify JWT signature on distributed claims
 
 ### Removed
 - [#494] Methods and functions deprecated in previous releases have been removed
@@ -30,6 +31,7 @@ The format is based on the [KeepAChangeLog] project.
 [#507]: https://github.com/OpenIDC/pyoidc/issues/507
 [#502]: https://github.com/OpenIDC/pyoidc/issues/502
 [#481]: https://github.com/OpenIDC/pyoidc/issues/481
+[#492]: https://github.com/OpenIDC/pyoidc/issues/492
 
 ## 0.13.1 [2018-04-06]
 

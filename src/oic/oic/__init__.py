@@ -918,8 +918,8 @@ class Client(oauth2.Client):
         if sformat == "json":
             res = _schema().from_json(txt=_txt)
         else:
-            res = _schema().from_jwt(_txt, keyjar=self.keyjar,
-                                     sender=self.provider_info["issuer"])
+            verify = kwargs.get('verify', True)
+            res = _schema().from_jwt(_txt, keyjar=self.keyjar, sender=self.provider_info["issuer"], verify=verify)
 
         if 'error' in res:  # Error response
             res = UserInfoErrorResponse(**res.to_dict())
@@ -1085,18 +1085,18 @@ class Client(oauth2.Client):
     def fetch_distributed_claims(self, userinfo, callback=None):
         for csrc, spec in userinfo["_claim_sources"].items():
             if "endpoint" in spec:
+                if not spec["endpoint"].startswith("https://"):
+                    logger.warning("Fetching distributed claims from an untrusted source: %s", spec["endpoint"])
                 if "access_token" in spec:
-                    _uinfo = self.do_user_info_request(
-                        method='GET', token=spec["access_token"],
-                        userinfo_endpoint=spec["endpoint"])
+                    _uinfo = self.do_user_info_request(method='GET', token=spec["access_token"],
+                                                       userinfo_endpoint=spec["endpoint"], verify=False)
                 else:
                     if callback:
-                        _uinfo = self.do_user_info_request(
-                            method='GET', token=callback(spec['endpoint']),
-                            userinfo_endpoint=spec["endpoint"])
+                        _uinfo = self.do_user_info_request(method='GET', token=callback(spec['endpoint']),
+                                                           userinfo_endpoint=spec["endpoint"], verify=False)
                     else:
-                        _uinfo = self.do_user_info_request(
-                            method='GET', userinfo_endpoint=spec["endpoint"])
+                        _uinfo = self.do_user_info_request(method='GET', userinfo_endpoint=spec["endpoint"],
+                                                           verify=False)
 
                 claims = [value for value, src in
                           userinfo["_claim_names"].items() if src == csrc]
