@@ -10,12 +10,14 @@ The format is based on the [KeepAChangeLog] project.
 ### Fixed
 - [#503] Fix error on UserInfo endpoint for removed clients
 - [#508] JWT now uses verify keys for JWT verification
+- [#481] Loading AuthnEvent from session
 
 ### Removed
 - [#494] Methods and functions deprecated in previous releases have been removed
 
 ### Changed
 - [#507] Altered structure of client_db. It no longer stores mapping of ``registration_access_token`` to ``client_id``
+- [#481] AuthnEvent in session is now represented as JSON
 
 ### Added
 - [#496] Ability to specify additional supported scopes for oic.Provider
@@ -25,6 +27,7 @@ The format is based on the [KeepAChangeLog] project.
 [#503]: https://github.com/OpenIDC/pyoidc/issues/503
 [#508]: https://github.com/OpenIDC/pyoidc/issues/508
 [#507]: https://github.com/OpenIDC/pyoidc/issues/507
+[#481]: https://github.com/OpenIDC/pyoidc/issues/481
 
 ## 0.13.1 [2018-04-06]
 
