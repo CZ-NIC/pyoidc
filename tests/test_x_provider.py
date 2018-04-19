@@ -340,6 +340,25 @@ class TestProvider(object):
         ti_resp = TokenIntrospectionResponse().deserialize(resp.message, 'json')
         assert ti_resp['active'] is True
 
+    def test_token_introspection_bad_access_token(self):
+        req = TokenIntrospectionRequest(token='access_token',
+                                        client_id="client1",
+                                        client_secret="hemlighet",
+                                        token_type_hint='access_token')
+        resp = self.provider.introspection_endpoint(request=req.to_urlencoded())
+        assert resp
+        ti_resp = TokenIntrospectionResponse().deserialize(resp.message, 'json')
+        assert ti_resp['active'] is False
+
+    def test_token_introspection_bad_token_no_hint(self):
+        req = TokenIntrospectionRequest(token='access_token',
+                                        client_id="client1",
+                                        client_secret="hemlighet")
+        resp = self.provider.introspection_endpoint(request=req.to_urlencoded())
+        assert resp
+        ti_resp = TokenIntrospectionResponse().deserialize(resp.message, 'json')
+        assert ti_resp['active'] is False
+
     def test_token_introspection_missing(self):
         authreq = AuthorizationRequest(state="state",
                                        redirect_uri="http://example.com/authz",
