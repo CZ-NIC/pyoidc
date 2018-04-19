@@ -23,6 +23,7 @@ The format is based on the [KeepAChangeLog] project.
 
 ### Added
 - [#496] Ability to specify additional supported scopes for oic.Provider
+- [#432] Ability to specify Initial Access Token for ``Client.register``
 
 [#494]: https://github/com/OpenIDC/issues/494
 [#496]: https://github.com/OpenIDC/pyoidc/issues/496
@@ -32,6 +33,7 @@ The format is based on the [KeepAChangeLog] project.
 [#502]: https://github.com/OpenIDC/pyoidc/issues/502
 [#481]: https://github.com/OpenIDC/pyoidc/issues/481
 [#492]: https://github.com/OpenIDC/pyoidc/issues/492
+[#432]: https://github.com/OpenIDC/pyoidc/issues/432
 
 ## 0.13.1 [2018-04-06]
 

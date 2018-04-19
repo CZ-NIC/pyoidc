@@ -510,6 +510,22 @@ class TestOICConsumer():
         assert c.client_secret is not None
         assert c.registration_expires > utc_time_sans_frac()
 
+    def test_client_register_token(self):
+        c = Consumer(None, None)
+
+        c.application_type = "web"
+        c.application_name = "My super service"
+        c.redirect_uris = ["https://example.com/authz"]
+        c.contact = ["foo@example.com"]
+
+        client_info = {"client_id": "clientid", "redirect_uris": ["https://example.com/authz"]}
+
+        with responses.RequestsMock() as rsps:
+            rsps.add(rsps.POST, "https://provider.example.com/registration/", json=client_info)
+            c.register("https://provider.example.com/registration/", registration_token="initial_registration_token")
+            header = rsps.calls[0].request.headers['Authorization'].decode()
+            assert header == "Bearer aW5pdGlhbF9yZWdpc3RyYXRpb25fdG9rZW4="
+
     def _faulty_id_token(self):
         idval = {'nonce': 'KUEYfRM2VzKDaaKD', 'sub': 'EndUserSubject',
                  'iss': 'https://alpha.cloud.nds.rub.de', 'exp': 1420823073,

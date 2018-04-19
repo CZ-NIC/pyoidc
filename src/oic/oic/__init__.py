@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import os
+from base64 import b64encode
 
 from oic.utils.http_util import Response
 
@@ -1351,11 +1352,12 @@ class Client(oauth2.Client):
 
         return req
 
-    def register(self, url, **kwargs):
+    def register(self, url, registration_token=None, **kwargs):
         """
         Register the client at an OP
 
         :param url: The OPs registration endpoint
+        :param registration_token: Initial Access Token for registration endpoint
         :param kwargs: parameters to the registration request
         :return:
         """
@@ -1367,6 +1369,8 @@ class Client(oauth2.Client):
             self.events.store('Protocol request', req)
 
         headers = {"content-type": "application/json"}
+        if registration_token is not None:
+            headers["Authorization"] = b"Bearer " + b64encode(registration_token.encode())
 
         rsp = self.http_request(url, "POST", data=req.to_json(),
                                 headers=headers)
