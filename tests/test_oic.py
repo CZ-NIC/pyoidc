@@ -930,6 +930,8 @@ def test_fetch_distributed_claims_with_callback():
 
     assert _ui['shoe_size'] == 11
     assert _ui['sub'] == 'foobar'
+    assert '_claim_names' not in _ui
+    assert '_claim_sources' not in _ui
 
 
 def test_fetch_distributed_claims_with_no_callback():

@@ -1110,6 +1110,11 @@ class Client(oauth2.Client):
                 for key, vals in _uinfo.items():
                     userinfo[key] = vals
 
+        # Remove the `_claim_sources` and `_claim_names` from userinfo and better be safe than sorry
+        if "_claim_sources" in userinfo:
+            del userinfo["_claim_sources"]
+        if "_claim_names" in userinfo:
+            del userinfo["_claim_names"]
         return userinfo
 
     def verify_alg_support(self, alg, usage, other):
