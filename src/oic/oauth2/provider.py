@@ -49,6 +49,7 @@ from oic.utils.http_util import BadRequest
 from oic.utils.http_util import CookieDealer
 from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
+from oic.utils.http_util import Unauthorized
 from oic.utils.http_util import make_cookie
 from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed
@@ -244,18 +245,22 @@ class Provider(object):
                     # redirect_uri
                     if rquery:
                         for key, vals in rquery.items():
-                            assert key in _query
+                            if key not in _query:
+                                raise AssertionError()
                             for val in vals:
-                                assert val in _query[key]
+                                if val not in _query[key]:
+                                    raise AssertionError()
                     # and vice versa, every query component in the redirect_uri
                     # must be registered
                     if _query:
                         if rquery is None:
                             raise ValueError
                         for key, vals in _query.items():
-                            assert key in rquery
+                            if key not in rquery:
+                                raise AssertionError()
                             for val in vals:
-                                assert val in rquery[key]
+                                if val not in rquery[key]:
+                                    raise AssertionError()
                     match = True
                     break
             if not match:
@@ -801,8 +806,10 @@ class Provider(object):
 
         # If redirect_uri was in the initial authorization request
         # verify that the one given here is the correct one.
-        if "redirect_uri" in _info:
-            assert areq["redirect_uri"] == _info["redirect_uri"]
+        if "redirect_uri" in _info and areq["redirect_uri"] != _info["redirect_uri"]:
+            logger.error('Redirect_uri mismatch')
+            err = TokenErrorResponse(error="unauthorized_client")
+            return Unauthorized(err.to_json(), content="application/json")
 
         try:
             _tinfo = _sdb.upgrade_to_token(areq["code"], issue_refresh=True)

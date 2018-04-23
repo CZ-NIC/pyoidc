@@ -286,7 +286,8 @@ class UsernamePasswordMako(UserAuthnMethod):
         return resp
 
     def _verify(self, pwd, user):
-        assert pwd == self.passwd[user], "Passwords don't match."
+        if self.passwd[user] != pwd:
+            raise AssertionError("Passwords don't match.")
 
     def verify(self, request, **kwargs):
         """
@@ -361,9 +362,7 @@ class BasicAuthn(UserAuthnMethod):
         self.passwd = pwd
 
     def verify_password(self, user, password):
-        try:
-            assert password == self.passwd[user]
-        except (AssertionError, KeyError):
+        if not (user in self.passwd and password == self.passwd[user]):
             raise FailedAuthentication("Wrong password")
 
     def authenticated_as(self, cookie=None, authorization="", **kwargs):

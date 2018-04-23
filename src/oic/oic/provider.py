@@ -23,6 +23,7 @@ import six
 from jwkest import b64d
 from jwkest import jwe
 from jwkest import jws
+from jwkest import safe_str_cmp
 from jwkest.jwe import JWE
 from jwkest.jwe import JWEException
 from jwkest.jwe import NotSupportedAlgorithm
@@ -80,6 +81,7 @@ from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
 from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed
+from oic.utils.sdb import AuthnEvent
 from oic.utils.sdb import ExpiredToken
 from oic.utils.template_render import render_template
 from oic.utils.time_util import utc_time_sans_frac
@@ -726,7 +728,7 @@ class Provider(AProvider):
             sids = self.sdb.get_sids_by_sub(req_user)
             if sids:
                 # anyone will do
-                authn_event = self.sdb[sids[-1]]["authn_event"]
+                authn_event = self.sdb.get_authentication_event(sids[-1])
                 # Is the authentication event to be regarded as valid ?
                 if authn_event.valid():
                     sid = self.setup_session(areq, authn_event, cinfo)
@@ -757,7 +759,7 @@ class Provider(AProvider):
         if "check_session_iframe" in self.capabilities:
             salt = rndstr()
             authn_event = self.sdb.get_authentication_event(sid)  # use the last session
-            state = str(authn_event["authn_time"])
+            state = str(authn_event.authn_time)
             aresp["session_state"] = self._compute_session_state(
                 state, salt, areq["client_id"], redirect_uri
             )
@@ -867,11 +869,11 @@ class Provider(AProvider):
                 if not alg:
                     alg = PROVIDER_DEFAULT["id_token_signed_response_alg"]
 
-        _authn_event = sinfo["authn_event"]
+        _authn_event = AuthnEvent.from_json(sinfo["authn_event"])
         id_token = self.id_token_as_signed_jwt(
-            sinfo, loa=_authn_event["authn_info"], alg=alg, code=code,
+            sinfo, loa=_authn_event.authn_info, alg=alg, code=code,
             access_token=access_token, user_info=user_info,
-            auth_time=_authn_event["authn_time"])
+            auth_time=_authn_event.authn_time)
 
         # Then encrypt
         if "id_token_encrypted_response_alg" in client_info:
@@ -1081,9 +1083,9 @@ class Provider(AProvider):
 
         logger.debug("Session info: %s" % sanitize(session))
 
-        authn_event = session.get("authn_event")
+        authn_event = AuthnEvent.from_json(session.get("authn_event"))
         if authn_event:
-            uid = authn_event["uid"]
+            uid = authn_event.uid
         else:
             uid = session['uid']
 
@@ -1202,7 +1204,9 @@ class Provider(AProvider):
         info = self.schema(**self._collect_user_info(session))
 
         # Should I return a JSON or a JWT ?
-        _cinfo = self.cdb[session["client_id"]]
+        _cinfo = self.cdb.get(session["client_id"])
+        if _cinfo is None:
+            return error_response("unauthorized_client", descr="Unknown client")
         try:
             if "userinfo_signed_response_alg" in _cinfo:
                 # Will also encrypt if defined in cinfo
@@ -1531,8 +1535,6 @@ class Provider(AProvider):
             "client_salt": rndstr(8)
         }
 
-        self.cdb[_rat] = client_id
-
         _cinfo = self.do_client_registration(request, client_id,
                                              ignore=["redirect_uris",
                                                      "policy_uri", "logo_uri",
@@ -1594,14 +1596,15 @@ class Provider(AProvider):
             return error_response('invalid_request')
         token = authn[len("Bearer "):]
 
-        try:
-            client_id = self.cdb[token]
-        except KeyError:
-            return Unauthorized()
-
-        # extra check
+        # Get client_id from request
         _info = parse_qs(request)
-        if not _info["client_id"][0] == client_id:
+        client_id = _info.get("client_id", [None])[0]
+
+        cdb_entry = self.cdb.get(client_id)
+        if cdb_entry is None:
+            return Unauthorized()
+        reg_token = cdb_entry.get('registration_access_token', '')
+        if not safe_str_cmp(reg_token, token):
             return Unauthorized()
 
         logger.debug("Client '%s' reads client info" % client_id)

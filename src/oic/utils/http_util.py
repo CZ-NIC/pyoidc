@@ -14,6 +14,7 @@ from jwkest import safe_str_cmp
 from six import PY2
 from six import binary_type
 from six import text_type
+from six.moves import http_client
 
 from oic import rndstr
 from oic.exception import ImproperlyConfigured
@@ -63,7 +64,8 @@ class Response(object):
         self.headers.append(("Content-type", _content_type))
 
     def __call__(self, environ, start_response, **kwargs):
-        start_response(self.status_code, self.headers)
+        name = http_client.responses.get(self.status_code, 'UNKNOWN')
+        start_response("{} {}".format(self.status_code, name), self.headers)
         return self.response(self.message, **kwargs)
 
     def _response(self, message="", **argv):
