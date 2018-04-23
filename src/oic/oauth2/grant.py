@@ -131,6 +131,13 @@ class Grant(object):
 
         return token
 
+    def delete_token(self, token):
+        """Remove the specified token if it exists."""
+        try:
+            self.tokens.remove(token)
+        except ValueError:
+            pass
+
     def get_id_token(self):
         if self.id_token:
             if self.id_token["exp"] >= time.time():
