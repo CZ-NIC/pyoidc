@@ -41,8 +41,10 @@ The format is based on the [KeepAChangeLog] project.
 
 ### Fixed
 - [#515]: Fix arguments to WSGI start_response
+- [#528]: Fix faulty redirect_uri with query
 
 [#515]: https://github.com/OpenIDC/pyoidc/issues/515
+[#528]: https://github.com/OpenIDC/pyoidc/issues/528
 
 ## 0.13.0 [2018-02-19]
 
