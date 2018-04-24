@@ -28,7 +28,7 @@ of OAuth2.0 too.
 
 Please see the `CHANGELOG.md`_ to review the latest changes.
 
-.. _OpenID Connect Core specification: http://openid.net/specs/openid-connect-core-1_0.html.
+.. _OpenID Connect Core specification: http://openid.net/specs/openid-connect-core-1_0.html
 .. _CHANGELOG.md: https://github.com/OpenIDC/pyoidc/blob/master/CHANGELOG.md
 
 Documentation
