@@ -237,32 +237,40 @@ class Provider(object):
                 _query = parse_qs(_query)
 
             match = False
-            for regbase, rquery in self.cdb[str(areq["client_id"])][
-                    "redirect_uris"]:
+            for regbase, rquery in self.cdb[str(areq["client_id"])]["redirect_uris"]:
                 # The URI MUST exactly match one of the Redirection URI
-                if _base == regbase:
-                    # every registered query component must exist in the
-                    # redirect_uri
-                    if rquery:
-                        for key, vals in rquery.items():
-                            if key not in _query:
-                                raise AssertionError()
-                            for val in vals:
-                                if val not in _query[key]:
-                                    raise AssertionError()
-                    # and vice versa, every query component in the redirect_uri
-                    # must be registered
-                    if _query:
-                        if rquery is None:
-                            raise ValueError
-                        for key, vals in _query.items():
-                            if key not in rquery:
-                                raise AssertionError()
-                            for val in vals:
-                                if val not in rquery[key]:
-                                    raise AssertionError()
+                if _base != regbase:
+                    continue
+
+                if not rquery and not _query:
                     match = True
                     break
+
+                if not rquery or not _query:
+                    continue
+
+                # every registered query component must exist in the
+                # redirect_uri
+                is_match_query = True
+                for key, vals in _query.items():
+                    if key not in rquery:
+                        is_match_query = False
+                        break
+
+                    for val in vals:
+                        if val not in rquery[key]:
+                            is_match_query = False
+                            break
+
+                    if not is_match_query:
+                        break
+
+                if not is_match_query:
+                    continue
+
+                match = True
+                break
+
             if not match:
                 raise RedirectURIError("Doesn't match any registered uris")
             # ignore query components that are not registered

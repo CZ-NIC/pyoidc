@@ -1051,11 +1051,56 @@ class TestProvider(object):
             self.provider._verify_redirect_uri(areq)
 
     @pytest.mark.parametrize("uri", [
+        "http://example.org/foo",
+        "http://example.com/cb",
+        "http://example.org/cb?got=you",
+        "http://example.org/cb?test=fail",
+        "http://example.org/cb/foo?got=you"
+    ])
+    def test_verify_redirect_uri_faulty_with_query(self, uri):
+        rr = RegistrationRequest(operation="register",
+                                 redirect_uris=["http://example.org/cb?test=test"],
+                                 response_types=["code"])
+        registration_req = rr.to_json()
+
+        resp = self.provider.registration_endpoint(request=registration_req)
+        regresp = RegistrationResponse().from_json(resp.message)
+        cid = regresp["client_id"]
+
+        areq = AuthorizationRequest(redirect_uri=uri,
+                                    client_id=cid,
+                                    response_type="code",
+                                    scope="openid")
+
+        with pytest.raises(RedirectURIError):
+            self.provider._verify_redirect_uri(areq)
+
+    @pytest.mark.parametrize("uri", [
         "http://example.org/cb",
     ])
     def test_verify_redirect_uri_correct_without_query(self, uri):
         rr = RegistrationRequest(operation="register",
                                  redirect_uris=["http://example.org/cb"],
+                                 response_types=["code"])
+        registration_req = rr.to_json()
+        resp = self.provider.registration_endpoint(request=registration_req)
+        regresp = RegistrationResponse().from_json(resp.message)
+        cid = regresp["client_id"]
+
+        areq = AuthorizationRequest(redirect_uri=uri,
+                                    client_id=cid,
+                                    response_type="code",
+                                    scope="openid")
+
+        self.provider._verify_redirect_uri(areq)
+
+    @pytest.mark.parametrize("uri", [
+        "http://example.org/cb",
+        "http://example.org/cb?test=test"
+    ])
+    def test_verify_redirect_uri_correct_with_query(self, uri):
+        rr = RegistrationRequest(operation="register",
+                                 redirect_uris=["http://example.org/cb", "http://example.org/cb?test=test"],
                                  response_types=["code"])
         registration_req = rr.to_json()
         resp = self.provider.registration_endpoint(request=registration_req)
