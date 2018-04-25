@@ -1083,9 +1083,8 @@ class Provider(AProvider):
 
         logger.debug("Session info: %s" % sanitize(session))
 
-        authn_event = AuthnEvent.from_json(session.get("authn_event"))
-        if authn_event:
-            uid = authn_event.uid
+        if "authn_event" in session:
+            uid = AuthnEvent.from_json(session["authn_event"]).uid
         else:
             uid = session['uid']
 
