@@ -352,13 +352,13 @@ class TestKeyJar(object):
         assert _key
         assert _key.kid == "abc"
 
-        def test_get_inactive_ver(self):
-            ks = KeyJar()
-            ks['http://example.com'] = KeyBundle([{"kty": "oct", "key": "a1b2c3d4", "use": "sig"},
-                                                  {"kty": "oct", "key": "a1b2c3d4", "use": "ver"}])
-            ks['http://example.com'][0]._keys[1].inactive_since = 1
-            key = ks.get_verify_key(owner='http://example.com')
-            assert len(key) == 2
+    def test_get_inactive_ver(self):
+        ks = KeyJar()
+        ks['http://example.com'] = KeyBundle([{"kty": "oct", "key": "a1b2c3d4", "use": "sig"},
+                                              {"kty": "oct", "key": "a1b2c3d4", "use": "ver"}])
+        ks['http://example.com'][0]._keys[1].inactive_since = 1
+        key = ks.get_verify_key(owner='http://example.com')
+        assert len(key) == 2
 
     def test_get_inactive_sig(self):
         """get_signing_key cannot return inactive `sig` key."""
