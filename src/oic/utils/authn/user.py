@@ -1,5 +1,5 @@
 # coding=utf-8
-from future.backports.urllib.parse import unquote
+from future.backports.urllib.parse import unquote_plus
 from future.backports.urllib.parse import urlencode
 from future.backports.urllib.parse import urlsplit
 from future.backports.urllib.parse import urlunsplit
@@ -378,7 +378,8 @@ class BasicAuthn(UserAuthnMethod):
             authorization = authorization[6:]
 
         (user, pwd) = base64.b64decode(authorization).split(":")
-        user = unquote(user)
+        user = unquote_plus(user)
+        pwd = unquote_plus(pwd)
         self.verify_password(user, pwd)
         return {"uid": user}, time.time()
 
