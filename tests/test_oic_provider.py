@@ -865,6 +865,35 @@ class TestProvider(object):
             'error_description': 'Token is malformed',
             'error': 'invalid_request'}
 
+    def test_userinfo_endpoint_mising_authn(self):
+        authreq = AuthorizationRequest(state="state",
+                                       redirect_uri="http://example.com/authz",
+                                       client_id=CLIENT_ID,
+                                       response_type="code",
+                                       scope=["openid", 'offline_access'],
+                                       prompt='consent')
+        _sdb = self.provider.sdb
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
+        access_grant = _sdb.access_token(sid=sid)
+        # authn_event is missing - this can happen for offline requests
+        _sdb[sid] = {
+            "sub": "my_sub",
+            "oauth_state": "authz",
+            "uid": "user",
+            "authzreq": authreq.to_json(),
+            "client_id": CLIENT_ID,
+            "code": access_grant,
+            "code_used": False,
+            "scope": ["openid", 'offline_access'],
+            "redirect_uri": "http://example.com/authz",
+        }
+
+        uir = UserInfoRequest(access_token=access_grant, schema="openid")
+
+        resp = self.provider.userinfo_endpoint(request=uir.to_urlencoded())
+        ident = OpenIDSchema().deserialize(resp.message, "json")
+        assert _eq(ident.keys(), ['sub'])
+
     def test_check_session_endpoint(self):
         session = {"sub": "UserID", "client_id": "number5"}
         idtoken = self.provider.id_token_as_signed_jwt(session)
