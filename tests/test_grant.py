@@ -70,6 +70,28 @@ class TestGrant(object):
 
         assert len(grant.tokens) == 0
 
+    def test_delete_token(self):
+        grant = Grant()
+        grant.update(ATR)
+
+        token = grant.get_token()
+
+        grant.delete_token(token)
+        assert len(grant.tokens) == 0
+
+    def test_delete_unknown(self):
+        grant = Grant()
+        grant.update(ATR)
+
+        atr = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
+                                  token_type="example",
+                                  refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
+                                  xscope=["inner", "outer"])
+        token = Token(atr)
+
+        grant.delete_token(token)
+        assert len(grant.tokens) == 1
+
 
 class TestToken(object):
     def test_access_token(self):

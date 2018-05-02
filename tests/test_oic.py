@@ -176,6 +176,7 @@ class TestClient(object):
         resp = self.client.do_access_token_refresh(
             scope="openid offline_access",
             state="state0")
+        assert len(self.client.grant['state0'].tokens) == 1
         assert isinstance(resp, AccessTokenResponse)
         assert _eq(resp.keys(), ['token_type', 'access_token', 'refresh_token',
                                  'scope', 'state'])
@@ -490,6 +491,47 @@ class TestClient(object):
         with pytest.raises(OtherError) as exc:
             self.client._verify_id_token(id_token)
         assert "me" in str(exc.value)
+
+    def test_clean_tokens_fresh(self):
+        self.client.grant["foo"] = Grant()
+        self.client.grant["foo"].grant_expiration_time = time.time() + 60
+        self.client.grant["foo"].code = "access_code"
+
+        resp = AccessTokenResponse(refresh_token="refresh_with_me",
+                                   access_token="access", id_token="IDTOKEN",
+                                   scope=["openid"])
+
+        self.client.grant["foo"].tokens.append(Token(resp))
+        self.client.clean_tokens()
+        assert len(self.client.grant["foo"].tokens) == 1
+
+    def test_clean_tokens_replaced(self):
+        self.client.grant["foo"] = Grant()
+        self.client.grant["foo"].grant_expiration_time = time.time() + 60
+        self.client.grant["foo"].code = "access_code"
+
+        resp = AccessTokenResponse(refresh_token="refresh_with_me",
+                                   access_token="access", id_token="IDTOKEN",
+                                   scope=["openid"])
+
+        self.client.grant["foo"].tokens.append(Token(resp))
+        self.client.grant["foo"].tokens[0].replaced = True
+        self.client.clean_tokens()
+        assert len(self.client.grant["foo"].tokens) == 0
+
+    def test_clean_tokens_stale(self):
+        self.client.grant["foo"] = Grant()
+        self.client.grant["foo"].grant_expiration_time = time.time() + 60
+        self.client.grant["foo"].code = "access_code"
+
+        resp = AccessTokenResponse(refresh_token="refresh_with_me",
+                                   access_token="access", id_token="IDTOKEN",
+                                   scope=["openid"])
+
+        self.client.grant["foo"].tokens.append(Token(resp))
+        self.client.grant["foo"].tokens[0].token_expiration_time = 10
+        self.client.clean_tokens()
+        assert len(self.client.grant["foo"].tokens) == 0
 
 
 class TestServer(object):
