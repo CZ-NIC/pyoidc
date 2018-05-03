@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import base64
-
 import pytest
+
 from future.backports.urllib.parse import quote_plus
 
 from oic.exception import ImproperlyConfigured

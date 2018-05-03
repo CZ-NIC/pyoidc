@@ -1,8 +1,9 @@
+from future.backports.urllib.parse import quote_plus
+
 import base64
 import logging
 
 import six
-from future.backports.urllib.parse import quote_plus
 from jwkest import Invalid
 from jwkest import MissingKey
 from jwkest import as_bytes

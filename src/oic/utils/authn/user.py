@@ -7,9 +7,9 @@ from future.moves.urllib.parse import parse_qs
 
 import base64
 import logging
-import six
 import time
 
+import six
 from jwkest import as_unicode
 
 from oic.exception import ImproperlyConfigured
