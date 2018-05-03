@@ -364,10 +364,14 @@ class BasicAuthn(UserAuthnMethod):
 
     def verify_password(self, user, password):
         if user in self.passwd:
-            if as_unicode(password) != as_unicode(self.passwd[user]):
-                raise FailedAuthentication("Wrong password")
+            _pwd = self.passwd[user]
+            if six.PY2:
+                if isinstance(_pwd, str):
+                    _pwd = _pwd.decode('utf-8')
+            if _pwd != password:
+                raise FailedAuthentication('Wrong user/password combination')
         else:
-            raise FailedAuthentication('Unknown user')
+            raise FailedAuthentication('Wrong user/password combination')
 
     def authenticated_as(self, cookie=None, authorization="", **kwargs):
         """
