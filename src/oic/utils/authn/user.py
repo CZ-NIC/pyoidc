@@ -1,5 +1,5 @@
 # coding=utf-8
-from future.backports.urllib.parse import unquote
+from future.backports.urllib.parse import unquote_plus
 from future.backports.urllib.parse import urlencode
 from future.backports.urllib.parse import urlsplit
 from future.backports.urllib.parse import urlunsplit
@@ -7,9 +7,10 @@ from future.moves.urllib.parse import parse_qs
 
 import base64
 import logging
+import six
 import time
 
-import six
+from jwkest import as_unicode
 
 from oic.exception import ImproperlyConfigured
 from oic.exception import PyoidcError
@@ -377,8 +378,10 @@ class BasicAuthn(UserAuthnMethod):
         if authorization.startswith("Basic"):
             authorization = authorization[6:]
 
-        (user, pwd) = base64.b64decode(authorization).split(":")
-        user = unquote(user)
+        _decoded = as_unicode(base64.b64decode(authorization))
+        (user, pwd) = _decoded.split(":")
+        user = unquote_plus(user)
+        pwd = unquote_plus(pwd)
         self.verify_password(user, pwd)
         return {"uid": user}, time.time()
 

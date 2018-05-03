@@ -2,6 +2,7 @@ import base64
 import logging
 
 import six
+from future.backports.urllib.parse import quote_plus
 from jwkest import Invalid
 from jwkest import MissingKey
 from jwkest import as_bytes
@@ -108,7 +109,7 @@ class ClientSecretBasic(ClientAuthnMethod):
         if "headers" not in http_args:
             http_args["headers"] = {}
 
-        credentials = "{}:{}".format(user, passwd)
+        credentials = "{}:{}".format(quote_plus(user), quote_plus(passwd))
         authz = base64.urlsafe_b64encode(credentials.encode("utf-8")).decode(
             "utf-8")
         http_args["headers"]["Authorization"] = "Basic {}".format(authz)

@@ -4,6 +4,7 @@ import base64
 import os
 
 import pytest
+from future.backports.urllib.parse import quote_plus
 from jwkest import as_bytes
 from jwkest import b64e
 from jwkest.jwk import SYMKey
@@ -52,10 +53,9 @@ class TestClientSecretBasic(object):
 
         csb = ClientSecretBasic(client)
         http_args = csb.construct(cis)
-
+        cred = '{}:{}'.format(quote_plus("A"), quote_plus("boarding pass"))
         assert http_args == {"headers": {"Authorization": "Basic {}".format(
-            base64.urlsafe_b64encode("A:boarding pass".encode("utf-8")).decode(
-                "utf-8"))}}
+            base64.urlsafe_b64encode(cred.encode("utf-8")).decode("utf-8"))}}
 
     def test_does_not_remove_padding(self):
         cis = AccessTokenRequest(code="foo", redirect_uri="http://example.com")
