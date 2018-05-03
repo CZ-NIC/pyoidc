@@ -32,8 +32,7 @@ def test_basic_authn_authenticate_as():
         credentials = "{}:{}".format(quote_plus(user),
                                      quote_plus(passwd))
 
-        authz = base64.urlsafe_b64encode(credentials.encode("utf-8")).decode(
-            "utf-8")
+        authz = base64.b64encode(credentials.encode("utf-8")).decode("utf-8")
         authorization_string = "Basic {}".format(authz)
 
         uid, when = ba.authenticated_as(authorization=authorization_string)
