@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-import base64
-import pytest
-
 from future.backports.urllib.parse import quote_plus
+
+import base64
+
+import pytest
 
 from oic.exception import ImproperlyConfigured
 from oic.utils.authn.user import BasicAuthn
