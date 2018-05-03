@@ -363,8 +363,11 @@ class BasicAuthn(UserAuthnMethod):
         self.passwd = pwd
 
     def verify_password(self, user, password):
-        if not (user in self.passwd and password == self.passwd[user]):
-            raise FailedAuthentication("Wrong password")
+        if user in self.passwd:
+            if as_unicode(password) != as_unicode(self.passwd[user]):
+                raise FailedAuthentication("Wrong password")
+        else:
+            raise FailedAuthentication('Unknown user')
 
     def authenticated_as(self, cookie=None, authorization="", **kwargs):
         """
