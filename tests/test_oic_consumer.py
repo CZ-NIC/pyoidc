@@ -74,15 +74,21 @@ def _eq(l1, l2):
 def test_response_types_to_grant_types():
     req_args = ['code']
     assert set(
-        response_types_to_grant_types(req_args)) == {'authorization_code'}
+        response_types_to_grant_types(req_args, {})) == {'authorization_code'}
     req_args = ['code', 'code id_token']
     assert set(
-        response_types_to_grant_types(req_args)) == {'authorization_code',
-                                                     'implicit'}
+        response_types_to_grant_types(req_args), {}) == {'authorization_code',
+                                                         'implicit'}
     req_args = ['code', 'id_token code', 'code token id_token']
     assert set(
-        response_types_to_grant_types(req_args)) == {'authorization_code',
-                                                     'implicit'}
+        response_types_to_grant_types(req_args, {})) == {'authorization_code',
+                                                         'implicit'}
+
+    req_args = ['code', 'id_token code', 'code token id_token']
+    args = {'grant_types': ['refresh_token', 'authorization_code']}
+    assert set(
+        response_types_to_grant_types(req_args, args)) == {'authorization_code',
+                                                           'implicit', 'refresh_token'}
 
     with pytest.raises(ValueError):
         response_types_to_grant_types(['foobar openid'])

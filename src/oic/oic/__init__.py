@@ -268,8 +268,11 @@ rt2gt = {
 }
 
 
-def response_types_to_grant_types(response_types):
+def response_types_to_grant_types(response_types, **kwargs):
     _res = set()
+
+    if 'grant_types' in kwargs:
+        _res.update(set(kwargs['grant_types']))
 
     for response_type in response_types:
         _rt = response_type.split(' ')
