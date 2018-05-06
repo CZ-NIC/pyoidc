@@ -819,7 +819,7 @@ class Client(oauth2.Client):
                 if self.log:
                     self.log.info("do access token refresh")
                 try:
-                    self.do_access_token_refresh(token=token)
+                    self.do_access_token_refresh(token=token, state=state)
                     token = self.grant[state].get_token(scope)
                     uir["access_token"] = token.access_token
                 except Exception:
