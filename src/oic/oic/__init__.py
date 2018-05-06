@@ -268,11 +268,11 @@ rt2gt = {
 }
 
 
-def response_types_to_grant_types(response_types, extra_args):
+def response_types_to_grant_types(response_types, **kwargs):
     _res = set()
 
-    if 'grant_types' in extra_args:
-        _res.update(set(extra_args['grant_types']))
+    if 'grant_types' in kwargs:
+        _res.update(set(kwargs['grant_types']))
 
     for response_type in response_types:
         _rt = response_type.split(' ')
@@ -923,7 +923,8 @@ class Client(oauth2.Client):
             res = _schema().from_json(txt=_txt)
         else:
             verify = kwargs.get('verify', True)
-            res = _schema().from_jwt(_txt, keyjar=self.keyjar, sender=self.provider_info["issuer"], verify=verify)
+            res = _schema().from_jwt(_txt, keyjar=self.keyjar,
+                                     sender=self.provider_info["issuer"], verify=verify)
 
         if 'error' in res:  # Error response
             res = UserInfoErrorResponse(**res.to_dict())
@@ -1002,7 +1003,8 @@ class Client(oauth2.Client):
                 self.allow["issuer_mismatch"]
             except KeyError:
                 if _issuer != _pcr_issuer:
-                    raise IssuerMismatch("'%s' != '%s'" % (_issuer, _pcr_issuer), pcr)
+                    raise IssuerMismatch("'%s' != '%s'" %
+                                         (_issuer, _pcr_issuer), pcr)
 
             self.provider_info = pcr
         else:
@@ -1035,7 +1037,8 @@ class Client(oauth2.Client):
             try:
                 pcr = response_cls().from_json(r.text)
             except Exception:
-                # FIXME: This should catch specific exception from `from_json()`
+                # FIXME: This should catch specific exception from
+                # `from_json()`
                 _err_txt = "Faulty provider config response: {}".format(r.text)
                 logger.error(sanitize(_err_txt))
                 raise ParseError(_err_txt)
@@ -1090,7 +1093,8 @@ class Client(oauth2.Client):
         for csrc, spec in userinfo["_claim_sources"].items():
             if "endpoint" in spec:
                 if not spec["endpoint"].startswith("https://"):
-                    logger.warning("Fetching distributed claims from an untrusted source: %s", spec["endpoint"])
+                    logger.warning(
+                        "Fetching distributed claims from an untrusted source: %s", spec["endpoint"])
                 if "access_token" in spec:
                     _uinfo = self.do_user_info_request(method='GET', token=spec["access_token"],
                                                        userinfo_endpoint=spec["endpoint"], verify=False)
@@ -1113,7 +1117,8 @@ class Client(oauth2.Client):
                 for key, vals in _uinfo.items():
                     userinfo[key] = vals
 
-        # Remove the `_claim_sources` and `_claim_names` from userinfo and better be safe than sorry
+        # Remove the `_claim_sources` and `_claim_names` from userinfo and
+        # better be safe than sorry
         if "_claim_sources" in userinfo:
             del userinfo["_claim_sources"]
         if "_claim_names" in userinfo:
@@ -1246,7 +1251,8 @@ class Client(oauth2.Client):
         unk_msg = 'Unknown response: {}'
         if response.status_code in [200, 201]:
             resp = RegistrationResponse().deserialize(response.text, "json")
-            # Some implementations sends back a 200 with an error message inside
+            # Some implementations sends back a 200 with an error message
+            # inside
             try:
                 resp.verify()
             except oauth2.message.MissingRequiredAttribute as err:
@@ -1378,7 +1384,8 @@ class Client(oauth2.Client):
 
         headers = {"content-type": "application/json"}
         if registration_token is not None:
-            headers["Authorization"] = b"Bearer " + b64encode(registration_token.encode())
+            headers["Authorization"] = b"Bearer " + \
+                b64encode(registration_token.encode())
 
         rsp = self.http_request(url, "POST", data=req.to_json(),
                                 headers=headers)
@@ -1719,7 +1726,8 @@ class Server(oauth2.Server):
                 pass
         else:  # where == "authzreq"
             try:
-                req = AuthorizationRequest().deserialize(session[where], "json")
+                req = AuthorizationRequest().deserialize(
+                    session[where], "json")
             except KeyError:
                 pass
 

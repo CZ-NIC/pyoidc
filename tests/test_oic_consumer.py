@@ -77,18 +77,16 @@ def test_response_types_to_grant_types():
         response_types_to_grant_types(req_args, {})) == {'authorization_code'}
     req_args = ['code', 'code id_token']
     assert set(
-        response_types_to_grant_types(req_args, {})) == {'authorization_code',
-                                                     'implicit'}
+        response_types_to_grant_types(req_args, {})) == {'authorization_code', 'implicit'}
     req_args = ['code', 'id_token code', 'code token id_token']
     assert set(
-        response_types_to_grant_types(req_args, {})) == {'authorization_code',
-                                                     'implicit'}
+        response_types_to_grant_types(req_args, {})) == {'authorization_code', 'implicit'}
 
     req_args = ['code', 'id_token code', 'code token id_token']
-    kwargs = { 'grant_types': ['refresh_token', 'authorization_code'] }
+    args = {'grant_types': ['refresh_token', 'authorization_code']}
     assert set(
-        response_types_to_grant_types(req_args, kwargs)) == {'authorization_code',
-                                                     'implicit', 'refresh_token'}
+        response_types_to_grant_types(req_args, args)) == {'authorization_code', 'implicit',
+                                                           'refresh_token'}
 
     with pytest.raises(ValueError):
         response_types_to_grant_types(['foobar openid'], {})
@@ -109,6 +107,7 @@ def test_clean_response():
 
 
 class TestOICConsumer():
+
     @pytest.fixture(autouse=True)
     def setup_consumer(self, fake_oic_server, session_db_factory):
         client_id = "client_1"
@@ -348,7 +347,8 @@ class TestOICConsumer():
         print(auth.keys())
         assert _eq(auth.keys(), ['code', 'access_token',
                                  'token_type', 'state', 'client_id', 'scope'])
-        assert _eq(acc.keys(), ['token_type', 'state', 'access_token', 'scope'])
+        assert _eq(acc.keys(), ['token_type',
+                                'state', 'access_token', 'scope'])
 
     def test_complete_auth_token_idtoken(self):
         _state = "state0"
@@ -524,11 +524,14 @@ class TestOICConsumer():
         c.redirect_uris = ["https://example.com/authz"]
         c.contact = ["foo@example.com"]
 
-        client_info = {"client_id": "clientid", "redirect_uris": ["https://example.com/authz"]}
+        client_info = {"client_id": "clientid",
+                       "redirect_uris": ["https://example.com/authz"]}
 
         with responses.RequestsMock() as rsps:
-            rsps.add(rsps.POST, "https://provider.example.com/registration/", json=client_info)
-            c.register("https://provider.example.com/registration/", registration_token="initial_registration_token")
+            rsps.add(
+                rsps.POST, "https://provider.example.com/registration/", json=client_info)
+            c.register("https://provider.example.com/registration/",
+                       registration_token="initial_registration_token")
             header = rsps.calls[0].request.headers['Authorization'].decode()
             assert header == "Bearer aW5pdGlhbF9yZWdpc3RyYXRpb25fdG9rZW4="
 
