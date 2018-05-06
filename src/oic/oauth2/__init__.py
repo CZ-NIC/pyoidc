@@ -781,7 +781,7 @@ class Client(PBase):
                                            body_type, state=state,
                                            http_args=http_args)
         if token.replaced:
-            grant = self.get_grant(token.state)
+            grant = self.get_grant(state)
             grant.delete_token(token)
         return response
 
