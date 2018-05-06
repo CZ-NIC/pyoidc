@@ -84,6 +84,11 @@ def test_response_types_to_grant_types():
         response_types_to_grant_types(req_args)) == {'authorization_code',
                                                      'implicit'}
 
+    req_args = ['code', 'id_token code', 'code token id_token']
+    kwargs = {'grant_types': ['refresh_token', 'authorization_code']}
+    assert set(
+        response_types_to_grant_types(req_args, **kwargs)) == {'authorization_code',
+                                                               'implicit', 'refresh_token'}
     with pytest.raises(ValueError):
         response_types_to_grant_types(['foobar openid'])
 
