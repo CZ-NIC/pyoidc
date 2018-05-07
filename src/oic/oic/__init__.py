@@ -268,20 +268,20 @@ rt2gt = {
 }
 
 
-def response_types_to_grant_types(response_types, **kwargs):
+def response_types_to_grant_types(resp_types, **kwargs):
     _res = set()
 
     if 'grant_types' in kwargs:
         _res.update(set(kwargs['grant_types']))
 
-    for response_type in response_types:
+    for response_type in resp_types:
         _rt = response_type.split(' ')
         _rt.sort()
         try:
             _gt = rt2gt[" ".join(_rt)]
         except KeyError:
             raise ValueError(
-                'No such response type combination: {}'.format(response_types))
+                'No such response type combination: {}'.format(resp_types))
         else:
             _res.update(set(_gt))
 
@@ -819,7 +819,7 @@ class Client(oauth2.Client):
                 if self.log:
                     self.log.info("do access token refresh")
                 try:
-                    self.do_access_token_refresh(token=token)
+                    self.do_access_token_refresh(token=token, state=state)
                     token = self.grant[state].get_token(scope)
                     uir["access_token"] = token.access_token
                 except Exception:
