@@ -835,7 +835,7 @@ class Client(PBase):
                 token = self.get_token(state=state, **kwargs)
             except ExpiredToken:
                 # The token is to old, refresh
-                self.do_access_token_refresh()
+                self.do_access_token_refresh(state=state)
                 token = self.get_token(state=state, **kwargs)
             request_args = {"access_token": token.access_token}
 
