@@ -1,5 +1,5 @@
 # coding=utf-8
-from future.backports.urllib.parse import unquote
+from future.backports.urllib.parse import unquote_plus
 from future.backports.urllib.parse import urlencode
 from future.backports.urllib.parse import urlsplit
 from future.backports.urllib.parse import urlunsplit
@@ -10,6 +10,7 @@ import logging
 import time
 
 import six
+from jwkest import as_unicode
 
 from oic.exception import ImproperlyConfigured
 from oic.exception import PyoidcError
@@ -362,8 +363,15 @@ class BasicAuthn(UserAuthnMethod):
         self.passwd = pwd
 
     def verify_password(self, user, password):
-        if not (user in self.passwd and password == self.passwd[user]):
-            raise FailedAuthentication("Wrong password")
+        if user in self.passwd:
+            _pwd = self.passwd[user]
+            if six.PY2:
+                if isinstance(_pwd, str):
+                    _pwd = _pwd.decode('utf-8')
+            if _pwd != password:
+                raise FailedAuthentication('Wrong user/password combination')
+        else:
+            raise FailedAuthentication('Wrong user/password combination')
 
     def authenticated_as(self, cookie=None, authorization="", **kwargs):
         """
@@ -377,8 +385,10 @@ class BasicAuthn(UserAuthnMethod):
         if authorization.startswith("Basic"):
             authorization = authorization[6:]
 
-        (user, pwd) = base64.b64decode(authorization).split(":")
-        user = unquote(user)
+        _decoded = as_unicode(base64.b64decode(authorization))
+        (user, pwd) = _decoded.split(":")
+        user = unquote_plus(user)
+        pwd = unquote_plus(pwd)
         self.verify_password(user, pwd)
         return {"uid": user}, time.time()
 
