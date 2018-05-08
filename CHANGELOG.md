@@ -8,6 +8,7 @@ The format is based on the [KeepAChangeLog] project.
 ## 0.X.X [Unreleased]
 
 ### Fixed
+- [#534] Fixed a bug in client_secret_basic authentication
 - [#503] Fix error on UserInfo endpoint for removed clients
 - [#508] JWT now uses verify keys for JWT verification
 - [#502] IntrospectionEndpoint now returns False if it encounters any error as per specs
@@ -43,6 +44,7 @@ The format is based on the [KeepAChangeLog] project.
 [#528]: https://github.com/OpenIDC/pyoidc/issues/528
 [#532]: https://github.com/OpenIDC/pyoidc/pull/532
 [#498]: https://github.com/OpenIDC/pyoidc/issues/498
+[#534]: https://github.com/OpenIDC/pyoidc/pull/534
 
 ## 0.13.1 [2018-04-06]
 
