@@ -5,7 +5,7 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
-## 0.X.X [Unreleased]
+## 0.14.0 [2018-05-15]
 
 ### Fixed
 - [#534] Fixed a bug in client_secret_basic authentication
