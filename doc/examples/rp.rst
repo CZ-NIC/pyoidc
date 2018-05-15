@@ -152,6 +152,14 @@ Provide the parameters as arguments to the method::
 
 or a combination of the two.
 
+If the OP requires to authenticate at the Registration Endpoint, you can pass the `Initial Access Token <https://openid.net/specs/openid-connect-registration-1_0.html#ClientRegistration>`_
+as a keyword argument to the :py:meth:`Client.register` method::
+
+    registration_response = client.register(
+        provider_infop["registration_endpoint"],
+        registration_token="my token", **args)
+
+
 Provided the registration went flawlessly you will get the registration response
 (an instance of RegistrationResponse) as a result. The response will also be
 stored in the client instance (registration_response attribute) and some of the parameters

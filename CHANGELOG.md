@@ -7,14 +7,51 @@ The format is based on the [KeepAChangeLog] project.
 
 ## 0.X.X [Unreleased]
 
+### Fixed
+- [#534] Fixed a bug in client_secret_basic authentication
+- [#503] Fix error on UserInfo endpoint for removed clients
+- [#508] JWT now uses verify keys for JWT verification
+- [#502] IntrospectionEndpoint now returns False if it encounters any error as per specs
+- [#481] Loading AuthnEvent from session
+- [#492] Do not verify JWT signature on distributed claims
+- [#526] Cleaned up extra claims from UserInfo with distributed claims
+- [#528] Fix faulty redirect_uri with query
+- [#532] Fix userinfo endpoint without auhtn_event in session
+- [#528] Fix faulty redirect_uri with query
+- [#498] Clean up replaced tokens on refresh and add Client.clean_tokens to clean old and replaced tokens
+
 ### Removed
 - [#494] Methods and functions deprecated in previous releases have been removed
 
+### Changed
+- [#507] Altered structure of client_db. It no longer stores mapping of ``registration_access_token`` to ``client_id``
+- [#481] AuthnEvent in session is now represented as JSON
+
 ### Added
 - [#496] Ability to specify additional supported scopes for oic.Provider
+- [#432] Ability to specify Initial Access Token for ``Client.register``
 
 [#494]: https://github/com/OpenIDC/issues/494
 [#496]: https://github.com/OpenIDC/pyoidc/issues/496
+[#503]: https://github.com/OpenIDC/pyoidc/issues/503
+[#508]: https://github.com/OpenIDC/pyoidc/issues/508
+[#507]: https://github.com/OpenIDC/pyoidc/issues/507
+[#502]: https://github.com/OpenIDC/pyoidc/issues/502
+[#481]: https://github.com/OpenIDC/pyoidc/issues/481
+[#492]: https://github.com/OpenIDC/pyoidc/issues/492
+[#432]: https://github.com/OpenIDC/pyoidc/issues/432
+[#526]: https://github.com/OpenIDC/pyoidc/issues/526
+[#528]: https://github.com/OpenIDC/pyoidc/issues/528
+[#532]: https://github.com/OpenIDC/pyoidc/pull/532
+[#498]: https://github.com/OpenIDC/pyoidc/issues/498
+[#534]: https://github.com/OpenIDC/pyoidc/pull/534
+
+## 0.13.1 [2018-04-06]
+
+### Fixed
+- [#515]: Fix arguments to WSGI start_response
+
+[#515]: https://github.com/OpenIDC/pyoidc/issues/515
 
 ## 0.13.0 [2018-02-19]
 

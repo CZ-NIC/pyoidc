@@ -194,7 +194,7 @@ class URINormalizer(object):
             if ':' in authority:
                 scheme_or_host, host_or_port = authority.split(':', 1)
                 # Assert it's not a port number
-                if re.match('^\d+$', host_or_port):
+                if re.match(r'^\d+$', host_or_port):
                     return False
             else:
                 return False

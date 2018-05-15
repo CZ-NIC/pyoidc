@@ -8,6 +8,7 @@ import six
 
 from oic.exception import InvalidRedirectUri
 from oic.exception import MissingPage
+from oic.exception import RegistrationError
 from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
@@ -139,8 +140,8 @@ class RegistrationRequest(Message):
     }
 
     def verify(self, **kwargs):
-        if "initiate_login_uri" in self:
-            assert self["initiate_login_uri"].startswith("https:")
+        if "initiate_login_uri" in self and not self["initiate_login_uri"].startswith("https:"):
+            raise RegistrationError('initiate_login_uri is not https')
 
         if "redirect_uris" in self:
             for uri in self["redirect_uris"]:

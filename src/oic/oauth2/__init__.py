@@ -309,6 +309,14 @@ class Client(PBase):
         else:
             raise TokenError("Token has expired")
 
+    def clean_tokens(self):
+        """Clean replaced and invalid tokens."""
+        for state in self.grant:
+            grant = self.get_grant(state)
+            for token in grant.tokens:
+                if token.replaced or not token.is_valid():
+                    grant.delete_token(token)
+
     def construct_request(self, request, request_args=None, extra_args=None):
         if request_args is None:
             request_args = {}
@@ -769,9 +777,13 @@ class Client(PBase):
         else:
             http_args.update(ht_args)
 
-        return self.request_and_return(url, response_cls, method, body,
-                                       body_type, state=state,
-                                       http_args=http_args)
+        response = self.request_and_return(url, response_cls, method, body,
+                                           body_type, state=state,
+                                           http_args=http_args)
+        if token.replaced:
+            grant = self.get_grant(state)
+            grant.delete_token(token)
+        return response
 
     # def do_revocate_token(self, request=TokenRevocationRequest,
     #                       scope="", state="", body_type="json", method="POST",
@@ -823,7 +835,7 @@ class Client(PBase):
                 token = self.get_token(state=state, **kwargs)
             except ExpiredToken:
                 # The token is to old, refresh
-                self.do_access_token_refresh()
+                self.do_access_token_refresh(state=state)
                 token = self.get_token(state=state, **kwargs)
             request_args = {"access_token": token.access_token}
 

@@ -829,6 +829,32 @@ class TestProvider(object):
         ident = OpenIDSchema().deserialize(resp.message, "json")
         assert _eq(ident.keys(), ['nickname', 'sub', 'name', 'email'])
 
+    def test_userinfo_endpoint_missing_client(self):
+        self.provider.cdb["unknownclient"] = {
+            "client_secret": "unknownclient",
+            "redirect_uris": [("http://localhost:8087/authz", None)],
+            "post_logout_redirect_uris": [("https://example.com/post_logout", None)],
+            "client_salt": "salted",
+            "response_types": ["code", "token", "code id_token", "none", "code token", "id_token"]
+        }
+        self.cons.client_id = "unknownclient"
+        self.cons.client_secret = "unknownclient"
+        self.cons.config["response_type"] = ["token"]
+        self.cons.config["request_method"] = "parameter"
+        state, location = self.cons.begin("openid", "token", path="http://localhost:8087")
+
+        resp = self.provider.authorization_endpoint(request=urlparse(location).query)
+
+        # redirect
+        atr = AuthorizationResponse().deserialize(urlparse(resp.message).fragment, "urlencoded")
+
+        uir = UserInfoRequest(schema="openid")
+
+        del self.provider.cdb["unknownclient"]
+        resp = self.provider.userinfo_endpoint(request=uir.to_urlencoded(), authn="Bearer " + atr["access_token"])
+        ident = OpenIDSchema().deserialize(resp.message, "json")
+        assert ident["error"] == "unauthorized_client"
+
     def test_userinfo_endpoint_malformed(self):
         uir = UserInfoRequest(schema="openid")
 
@@ -838,6 +864,35 @@ class TestProvider(object):
         assert json.loads(resp.message) == {
             'error_description': 'Token is malformed',
             'error': 'invalid_request'}
+
+    def test_userinfo_endpoint_mising_authn(self):
+        authreq = AuthorizationRequest(state="state",
+                                       redirect_uri="http://example.com/authz",
+                                       client_id=CLIENT_ID,
+                                       response_type="code",
+                                       scope=["openid", 'offline_access'],
+                                       prompt='consent')
+        _sdb = self.provider.sdb
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
+        access_grant = _sdb.access_token(sid=sid)
+        # authn_event is missing - this can happen for offline requests
+        _sdb[sid] = {
+            "sub": "my_sub",
+            "oauth_state": "authz",
+            "uid": "user",
+            "authzreq": authreq.to_json(),
+            "client_id": CLIENT_ID,
+            "code": access_grant,
+            "code_used": False,
+            "scope": ["openid", 'offline_access'],
+            "redirect_uri": "http://example.com/authz",
+        }
+
+        uir = UserInfoRequest(access_token=access_grant, schema="openid")
+
+        resp = self.provider.userinfo_endpoint(request=uir.to_urlencoded())
+        ident = OpenIDSchema().deserialize(resp.message, "json")
+        assert _eq(ident.keys(), ['sub'])
 
     def test_check_session_endpoint(self):
         session = {"sub": "UserID", "client_id": "number5"}
@@ -1025,11 +1080,56 @@ class TestProvider(object):
             self.provider._verify_redirect_uri(areq)
 
     @pytest.mark.parametrize("uri", [
+        "http://example.org/foo",
+        "http://example.com/cb",
+        "http://example.org/cb?got=you",
+        "http://example.org/cb?test=fail",
+        "http://example.org/cb/foo?got=you"
+    ])
+    def test_verify_redirect_uri_faulty_with_query(self, uri):
+        rr = RegistrationRequest(operation="register",
+                                 redirect_uris=["http://example.org/cb?test=test"],
+                                 response_types=["code"])
+        registration_req = rr.to_json()
+
+        resp = self.provider.registration_endpoint(request=registration_req)
+        regresp = RegistrationResponse().from_json(resp.message)
+        cid = regresp["client_id"]
+
+        areq = AuthorizationRequest(redirect_uri=uri,
+                                    client_id=cid,
+                                    response_type="code",
+                                    scope="openid")
+
+        with pytest.raises(RedirectURIError):
+            self.provider._verify_redirect_uri(areq)
+
+    @pytest.mark.parametrize("uri", [
         "http://example.org/cb",
     ])
     def test_verify_redirect_uri_correct_without_query(self, uri):
         rr = RegistrationRequest(operation="register",
                                  redirect_uris=["http://example.org/cb"],
+                                 response_types=["code"])
+        registration_req = rr.to_json()
+        resp = self.provider.registration_endpoint(request=registration_req)
+        regresp = RegistrationResponse().from_json(resp.message)
+        cid = regresp["client_id"]
+
+        areq = AuthorizationRequest(redirect_uri=uri,
+                                    client_id=cid,
+                                    response_type="code",
+                                    scope="openid")
+
+        self.provider._verify_redirect_uri(areq)
+
+    @pytest.mark.parametrize("uri", [
+        "http://example.org/cb",
+        "http://example.org/cb?test=test"
+    ])
+    def test_verify_redirect_uri_correct_with_query(self, uri):
+        rr = RegistrationRequest(operation="register",
+                                 redirect_uris=["http://example.org/cb", "http://example.org/cb?test=test"],
                                  response_types=["code"])
         registration_req = rr.to_json()
         resp = self.provider.registration_endpoint(request=registration_req)
@@ -1232,7 +1332,7 @@ class TestProvider(object):
         assert json.loads(resp.message) == {'error': 'invalid_request',
                                             'error_description': None}
 
-    def test_read_registration_wrong_authn(self):
+    def test_read_registration_missing_clientid(self):
         resp = self.provider.read_registration('Bearer wrong string', 'request')
         assert resp.status_code == 401
 
@@ -1246,6 +1346,20 @@ class TestProvider(object):
 
         authn = ' '.join(['Bearer', regresp['registration_access_token']])
         query = '='.join(['client_id', '123456789012'])
+        resp = self.provider.read_registration(authn, query)
+
+        assert resp.status_code == 401
+
+    def test_read_registration_wrong_rat(self):
+        rr = RegistrationRequest(operation="register",
+                                 redirect_uris=["http://example.org/new"],
+                                 response_types=["code"])
+        registration_req = rr.to_json()
+        resp = self.provider.registration_endpoint(request=registration_req)
+        regresp = RegistrationResponse().from_json(resp.message)
+
+        authn = ' '.join(['Bearer', 'registration_access_token'])
+        query = '='.join(['client_id', regresp['client_id']])
         resp = self.provider.read_registration(authn, query)
 
         assert resp.status_code == 401

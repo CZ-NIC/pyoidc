@@ -2,6 +2,7 @@ import base64
 import datetime
 import hashlib
 import hmac
+import json
 import random
 import time
 
@@ -41,6 +42,24 @@ OIDR = OpenIDRequest(response_type="code", client_id="client1",
 
 def _eq(l1, l2):
     return set(l1) == set(l2)
+
+
+class TestAuthnEvent(object):
+    """Tests for AuthnEvent class."""
+
+    def test_from_json(self):
+        dic = {'uid': 'uid', 'salt': 'salt', 'authn_time': 1000, 'valid_until': 1500}
+        ae = AuthnEvent.from_json(json.dumps(dic))
+        assert ae.uid == 'uid'
+        assert ae.salt == 'salt'
+        assert ae.authn_time == 1000
+        assert ae.valid_until == 1500
+
+    def test_to_json(self):
+        ae = AuthnEvent('uid', 'salt', authn_time=1000, valid_until=1500)
+        json_repr = ae.to_json()
+        assert json.loads(json_repr) == {'uid': 'uid', 'salt': 'salt', 'authn_time': 1000,
+                                         'valid_until': 1500, 'authn_info': None}
 
 
 class TestDictRefreshDB(object):
@@ -343,7 +362,7 @@ class TestSessionDB(object):
         # given the sub find out whether the authn event is still valid
         sids = self.sdb.get_sids_by_sub(sub)
         ae = self.sdb[sids[0]]["authn_event"]
-        assert AuthnEvent(**ae).valid()
+        assert AuthnEvent.from_json(ae).valid()
 
     def test_do_sub_deterministic(self):
         ae = AuthnEvent("tester", "random_value")
@@ -365,6 +384,25 @@ class TestSessionDB(object):
 
         info2 = self.sdb[sid]
         assert info2["sub"] == '62fb630e29f0d41b88e049ac0ef49a9c3ac5418c029d6e4f5417df7e9443976b'
+
+    def test_get_authentication_event_dict(self):
+        self.sdb._db['123'] = {}
+        self.sdb._db['123']['authn_event'] = {'uid': 'uid', 'salt': 'salt', 'authn_time': 1000, 'valid_until': 1500}
+        ae = self.sdb.get_authentication_event('123')
+        assert ae.uid == 'uid'
+        assert ae.salt == 'salt'
+        assert ae.authn_time == 1000
+        assert ae.valid_until == 1500
+
+    def test_get_authentication_event_json(self):
+        self.sdb._db['123'] = {}
+        self.sdb._db['123']['authn_event'] = json.dumps({'uid': 'uid', 'salt': 'salt', 'authn_time': 1000,
+                                                         'valid_until': 1500})
+        ae = self.sdb.get_authentication_event('123')
+        assert ae.uid == 'uid'
+        assert ae.salt == 'salt'
+        assert ae.authn_time == 1000
+        assert ae.valid_until == 1500
 
 
 class TestCrypt(object):

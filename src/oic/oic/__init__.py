@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import os
+from base64 import b64encode
 
 from oic.utils.http_util import Response
 
@@ -267,17 +268,20 @@ rt2gt = {
 }
 
 
-def response_types_to_grant_types(response_types):
+def response_types_to_grant_types(resp_types, **kwargs):
     _res = set()
 
-    for response_type in response_types:
+    if 'grant_types' in kwargs:
+        _res.update(set(kwargs['grant_types']))
+
+    for response_type in resp_types:
         _rt = response_type.split(' ')
         _rt.sort()
         try:
             _gt = rt2gt[" ".join(_rt)]
         except KeyError:
             raise ValueError(
-                'No such response type combination: {}'.format(response_types))
+                'No such response type combination: {}'.format(resp_types))
         else:
             _res.update(set(_gt))
 
@@ -815,7 +819,7 @@ class Client(oauth2.Client):
                 if self.log:
                     self.log.info("do access token refresh")
                 try:
-                    self.do_access_token_refresh(token=token)
+                    self.do_access_token_refresh(token=token, state=state)
                     token = self.grant[state].get_token(scope)
                     uir["access_token"] = token.access_token
                 except Exception:
@@ -918,8 +922,8 @@ class Client(oauth2.Client):
         if sformat == "json":
             res = _schema().from_json(txt=_txt)
         else:
-            res = _schema().from_jwt(_txt, keyjar=self.keyjar,
-                                     sender=self.provider_info["issuer"])
+            verify = kwargs.get('verify', True)
+            res = _schema().from_jwt(_txt, keyjar=self.keyjar, sender=self.provider_info["issuer"], verify=verify)
 
         if 'error' in res:  # Error response
             res = UserInfoErrorResponse(**res.to_dict())
@@ -1085,18 +1089,18 @@ class Client(oauth2.Client):
     def fetch_distributed_claims(self, userinfo, callback=None):
         for csrc, spec in userinfo["_claim_sources"].items():
             if "endpoint" in spec:
+                if not spec["endpoint"].startswith("https://"):
+                    logger.warning("Fetching distributed claims from an untrusted source: %s", spec["endpoint"])
                 if "access_token" in spec:
-                    _uinfo = self.do_user_info_request(
-                        method='GET', token=spec["access_token"],
-                        userinfo_endpoint=spec["endpoint"])
+                    _uinfo = self.do_user_info_request(method='GET', token=spec["access_token"],
+                                                       userinfo_endpoint=spec["endpoint"], verify=False)
                 else:
                     if callback:
-                        _uinfo = self.do_user_info_request(
-                            method='GET', token=callback(spec['endpoint']),
-                            userinfo_endpoint=spec["endpoint"])
+                        _uinfo = self.do_user_info_request(method='GET', token=callback(spec['endpoint']),
+                                                           userinfo_endpoint=spec["endpoint"], verify=False)
                     else:
-                        _uinfo = self.do_user_info_request(
-                            method='GET', userinfo_endpoint=spec["endpoint"])
+                        _uinfo = self.do_user_info_request(method='GET', userinfo_endpoint=spec["endpoint"],
+                                                           verify=False)
 
                 claims = [value for value, src in
                           userinfo["_claim_names"].items() if src == csrc]
@@ -1109,6 +1113,11 @@ class Client(oauth2.Client):
                 for key, vals in _uinfo.items():
                     userinfo[key] = vals
 
+        # Remove the `_claim_sources` and `_claim_names` from userinfo and better be safe than sorry
+        if "_claim_sources" in userinfo:
+            del userinfo["_claim_sources"]
+        if "_claim_names" in userinfo:
+            del userinfo["_claim_names"]
         return userinfo
 
     def verify_alg_support(self, alg, usage, other):
@@ -1347,15 +1356,16 @@ class Client(oauth2.Client):
 
         if 'response_types' in req:
             req['grant_types'] = response_types_to_grant_types(
-                req['response_types'])
+                req['response_types'], **kwargs)
 
         return req
 
-    def register(self, url, **kwargs):
+    def register(self, url, registration_token=None, **kwargs):
         """
         Register the client at an OP
 
         :param url: The OPs registration endpoint
+        :param registration_token: Initial Access Token for registration endpoint
         :param kwargs: parameters to the registration request
         :return:
         """
@@ -1367,6 +1377,8 @@ class Client(oauth2.Client):
             self.events.store('Protocol request', req)
 
         headers = {"content-type": "application/json"}
+        if registration_token is not None:
+            headers["Authorization"] = b"Bearer " + b64encode(registration_token.encode())
 
         rsp = self.http_request(url, "POST", data=req.to_json(),
                                 headers=headers)

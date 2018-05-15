@@ -49,6 +49,7 @@ from oic.utils.http_util import BadRequest
 from oic.utils.http_util import CookieDealer
 from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
+from oic.utils.http_util import Unauthorized
 from oic.utils.http_util import make_cookie
 from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed
@@ -236,28 +237,40 @@ class Provider(object):
                 _query = parse_qs(_query)
 
             match = False
-            for regbase, rquery in self.cdb[str(areq["client_id"])][
-                    "redirect_uris"]:
+            for regbase, rquery in self.cdb[str(areq["client_id"])]["redirect_uris"]:
                 # The URI MUST exactly match one of the Redirection URI
-                if _base == regbase:
-                    # every registered query component must exist in the
-                    # redirect_uri
-                    if rquery:
-                        for key, vals in rquery.items():
-                            assert key in _query
-                            for val in vals:
-                                assert val in _query[key]
-                    # and vice versa, every query component in the redirect_uri
-                    # must be registered
-                    if _query:
-                        if rquery is None:
-                            raise ValueError
-                        for key, vals in _query.items():
-                            assert key in rquery
-                            for val in vals:
-                                assert val in rquery[key]
+                if _base != regbase:
+                    continue
+
+                if not rquery and not _query:
                     match = True
                     break
+
+                if not rquery or not _query:
+                    continue
+
+                # every registered query component must exist in the
+                # redirect_uri
+                is_match_query = True
+                for key, vals in _query.items():
+                    if key not in rquery:
+                        is_match_query = False
+                        break
+
+                    for val in vals:
+                        if val not in rquery[key]:
+                            is_match_query = False
+                            break
+
+                    if not is_match_query:
+                        break
+
+                if not is_match_query:
+                    continue
+
+                match = True
+                break
+
             if not match:
                 raise RedirectURIError("Doesn't match any registered uris")
             # ignore query components that are not registered
@@ -801,8 +814,10 @@ class Provider(object):
 
         # If redirect_uri was in the initial authorization request
         # verify that the one given here is the correct one.
-        if "redirect_uri" in _info:
-            assert areq["redirect_uri"] == _info["redirect_uri"]
+        if "redirect_uri" in _info and areq["redirect_uri"] != _info["redirect_uri"]:
+            logger.error('Redirect_uri mismatch')
+            err = TokenErrorResponse(error="unauthorized_client")
+            return Unauthorized(err.to_json(), content="application/json")
 
         try:
             _tinfo = _sdb.upgrade_to_token(areq["code"], issue_refresh=True)

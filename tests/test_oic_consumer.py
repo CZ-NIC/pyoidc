@@ -84,6 +84,11 @@ def test_response_types_to_grant_types():
         response_types_to_grant_types(req_args)) == {'authorization_code',
                                                      'implicit'}
 
+    req_args = ['code', 'id_token code', 'code token id_token']
+    kwargs = {'grant_types': ['refresh_token', 'authorization_code']}
+    assert set(
+        response_types_to_grant_types(req_args, **kwargs)) == {'authorization_code',
+                                                               'implicit', 'refresh_token'}
     with pytest.raises(ValueError):
         response_types_to_grant_types(['foobar openid'])
 
@@ -509,6 +514,22 @@ class TestOICConsumer():
         assert c.client_id is not None
         assert c.client_secret is not None
         assert c.registration_expires > utc_time_sans_frac()
+
+    def test_client_register_token(self):
+        c = Consumer(None, None)
+
+        c.application_type = "web"
+        c.application_name = "My super service"
+        c.redirect_uris = ["https://example.com/authz"]
+        c.contact = ["foo@example.com"]
+
+        client_info = {"client_id": "clientid", "redirect_uris": ["https://example.com/authz"]}
+
+        with responses.RequestsMock() as rsps:
+            rsps.add(rsps.POST, "https://provider.example.com/registration/", json=client_info)
+            c.register("https://provider.example.com/registration/", registration_token="initial_registration_token")
+            header = rsps.calls[0].request.headers['Authorization'].decode()
+            assert header == "Bearer aW5pdGlhbF9yZWdpc3RyYXRpb25fdG9rZW4="
 
     def _faulty_id_token(self):
         idval = {'nonce': 'KUEYfRM2VzKDaaKD', 'sub': 'EndUserSubject',
