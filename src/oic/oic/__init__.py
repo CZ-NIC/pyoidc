@@ -1034,11 +1034,12 @@ class Client(oauth2.Client):
         if r.status_code == 200:
             try:
                 pcr = response_cls().from_json(r.text)
-            except Exception:
+            except Exception as e:
                 # FIXME: This should catch specific exception from `from_json()`
-                _err_txt = "Faulty provider config response: {}".format(r.text)
+                _err_txt = "Faulty provider config response: {}".format(e)
                 logger.error(sanitize(_err_txt))
                 raise ParseError(_err_txt)
+
         # elif r.status_code == 302 or r.status_code == 301:
         #     while r.status_code == 302 or r.status_code == 301:
         #         redirect_header = r.headers["location"]
