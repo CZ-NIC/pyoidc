@@ -63,9 +63,12 @@ class Response(object):
 
         self.headers.append(("Content-type", _content_type))
 
-    def __call__(self, environ, start_response, **kwargs):
+    def _start_response(self, start_response):
         name = http_client.responses.get(self.status_code, 'UNKNOWN')
         start_response("{} {}".format(self.status_code, name), self.headers)
+
+    def __call__(self, environ, start_response, **kwargs):
+        self._start_response(start_response)
         return self.response(self.message, **kwargs)
 
     def _response(self, message="", **argv):
@@ -140,7 +143,7 @@ class Redirect(Response):
     def __call__(self, environ, start_response, **kwargs):
         location = self.message
         self.headers.append(('location', location))
-        start_response(str(self.status_code), self.headers)
+        self._start_response(start_response)
         return self.response((location, location, location))
 
 
@@ -158,7 +161,7 @@ class SeeOther(Response):
             except UnicodeDecodeError:
                 pass
         self.headers.append(('location', location))
-        start_response(str(self.status_code), self.headers)
+        self._start_response(start_response)
         return self.response((location, location, location))
 
 
