@@ -140,7 +140,7 @@ class Redirect(Response):
     def __call__(self, environ, start_response, **kwargs):
         location = self.message
         self.headers.append(('location', location))
-        start_response(self.status_code, self.headers)
+        start_response(str(self.status_code), self.headers)
         return self.response((location, location, location))
 
 
@@ -158,7 +158,7 @@ class SeeOther(Response):
             except UnicodeDecodeError:
                 pass
         self.headers.append(('location', location))
-        start_response(self.status_code, self.headers)
+        start_response(str(self.status_code), self.headers)
         return self.response((location, location, location))
 
 
