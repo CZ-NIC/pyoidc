@@ -4,8 +4,9 @@ import os
 import cherrypy
 import yaml
 
-from oic.oauth2 import rndstr
+from oic import rndstr
 from oic.oic import Client
+from oic.utils.keyio import build_keyjar
 from oic.oic.message import AuthorizationResponse
 
 __author__ = 'regu0004'
@@ -91,7 +92,12 @@ class RPServer(object):
 
     @cherrypy.expose
     def authenticate(self, uid):
-        cherrypy.session["client"] = Client(verify_ssl=self.verify_ssl)
+        #TODO: Why did I have to do this?  I am not sure this is correct
+        keys = [
+            {"type": "RSA", "key": "../simple_op/keys/key.pem", "use": ["enc", "sig"]},
+        ]
+        _, keyjar, _ = build_keyjar(keys)
+        cherrypy.session["client"] = Client(verify_ssl=self.verify_ssl, keyjar=keyjar)
 
         # webfinger+registration
         self.rp.register_with_dynamic_provider(cherrypy.session, uid)
@@ -169,7 +175,9 @@ def main():
     baseurl = args.base.rstrip("/")  # strip trailing slash if it exists
     registration_info = settings["registration_info"]
     # patch redirect_uris with proper base url
-    registration_info["redirect_uris"] = [url.format(base=baseurl) for url in
+    registration_info["redirect_uris"] = [url.format(base=baseurl,
+                                                     port=args.port)
+                                          for url in
                                           registration_info["redirect_uris"]]
 
     rp_server = RPServer(registration_info, settings["behaviour"],
