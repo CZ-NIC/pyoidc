@@ -1570,7 +1570,7 @@ class Server(oauth2.Server):
                 try:
                     _req_req = self.parse_jwt_request(request, txt=_request,
                                                       verify=False)
-                except Exception as err:
+                except Exception:
                     _req_req = self._parse_request(request, _request,
                                                    'urlencoded', verify=False)
                 else:  # remove JWT attributes
