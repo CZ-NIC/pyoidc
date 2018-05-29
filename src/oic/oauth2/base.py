@@ -107,7 +107,7 @@ class PBase(object):
             except CookieError as err:
                 logger.error(err)
                 raise NonFatalException(r, "{}".format(err))
-        except (AttributeError, KeyError) as err:
+        except (AttributeError, KeyError):
             pass
 
         return r

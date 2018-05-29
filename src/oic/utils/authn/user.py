@@ -73,7 +73,7 @@ class UserAuthnMethod(CookieDealer):
         self.query_param = "upm_answer"
 
     def __call__(self, *args, **kwargs):
-        raise NotImplemented
+        raise NotImplementedError
 
     def authenticated_as(self, cookie=None, **kwargs):
         if cookie is None:
@@ -132,7 +132,7 @@ class UserAuthnMethod(CookieDealer):
         return create_return_url(_path, uid, **{self.query_param: "true"})
 
     def verify(self, **kwargs):
-        raise NotImplemented
+        raise NotImplementedError
 
     def get_multi_auth_cookie(self, cookie):
         rp_query_cookie = self.getCookieValue(cookie,
