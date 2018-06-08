@@ -51,6 +51,9 @@ class UnknownKeyType(KeyIOError):
 class UpdateFailed(KeyIOError):
     pass
 
+class JWKSError(KeyIOError):
+    pass
+
 
 K2C = {
     "RSA": RSAKey,
@@ -117,7 +120,7 @@ class KeyBundle(object):
         """
         for inst in keys:
             if not isinstance(inst, dict):
-                raise ValueError('Illegal JWK')
+                raise JWKSError('Illegal JWK')
 
             typ = inst["kty"]
             flag = 0
@@ -127,7 +130,7 @@ class KeyBundle(object):
                 except KeyError:
                     continue
                 except TypeError:
-                    raise ValueError('Illegal value in a JWK')
+                    raise JWKSError('Illegal value in a JWK')
                 except JWKException as err:
                     logger.warning('Loading a key failed: %s', err)
                 else:
