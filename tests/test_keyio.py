@@ -5,7 +5,6 @@ from datetime import datetime as dt
 from datetime import timedelta
 
 import pytest
-from cryptojwt.exception import FormatError
 from freezegun import freeze_time
 
 from oic.oauth2.message import MissingSigningKey
