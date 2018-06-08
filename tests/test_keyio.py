@@ -5,6 +5,7 @@ from datetime import datetime as dt
 from datetime import timedelta
 
 import pytest
+from cryptojwt.exception import FormatError
 from freezegun import freeze_time
 
 from oic.oauth2.message import MissingSigningKey
@@ -575,3 +576,10 @@ def test_load_spomky_keys():
     kj = KeyJar()
     kj.import_jwks(JWKS_SPO, '')
     assert len(kj.get_issuer_keys('')) == 4
+
+
+def test_load_null_jwks():
+    kj = KeyJar()
+    with pytest.raises(ValueError):
+        kj.import_jwks({'keys':[None, None]}, '')
+

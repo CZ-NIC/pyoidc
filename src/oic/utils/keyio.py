@@ -116,6 +116,9 @@ class KeyBundle(object):
         :return:
         """
         for inst in keys:
+            if not isinstance(inst, dict):
+                raise ValueError('Illegal JWK')
+
             typ = inst["kty"]
             flag = 0
             for _typ in [typ, typ.lower(), typ.upper()]:
@@ -123,6 +126,8 @@ class KeyBundle(object):
                     _key = K2C[_typ](**inst)
                 except KeyError:
                     continue
+                except TypeError:
+                    raise ValueError('Illegal value in a JWK')
                 except JWKException as err:
                     logger.warning('Loading a key failed: %s', err)
                 else:
