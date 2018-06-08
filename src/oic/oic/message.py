@@ -835,7 +835,7 @@ class ProviderConfigurationResponse(Message):
                  "claims_parameter_supported": False,
                  "request_parameter_supported": False,
                  "request_uri_parameter_supported": True,
-                 "require_request_uri_registration": True,
+                 "require_request_uri_registration": False,
                  "grant_types_supported": ["authorization_code", "implicit"]}
 
     def verify(self, **kwargs):
