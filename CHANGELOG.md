@@ -8,6 +8,7 @@ The format is based on the [KeepAChangeLog] project.
 ## 0.14.0 [2018-05-15]
 
 ### Fixed
+- [#548] Improved error handling when receiving malformed JWKSs
 - [#534] Fixed a bug in client_secret_basic authentication
 - [#503] Fix error on UserInfo endpoint for removed clients
 - [#508] JWT now uses verify keys for JWT verification
@@ -45,6 +46,7 @@ The format is based on the [KeepAChangeLog] project.
 [#532]: https://github.com/OpenIDC/pyoidc/pull/532
 [#498]: https://github.com/OpenIDC/pyoidc/issues/498
 [#534]: https://github.com/OpenIDC/pyoidc/pull/534
+[#548]: https://github.com/OpenIDC/pyoidc/pull/548
 
 ## 0.13.1 [2018-04-06]
 
