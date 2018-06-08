@@ -493,6 +493,21 @@ class TestAccessTokenResponse(object):
         with pytest.raises(WrongSigningAlgorithm):
             at.verify(key=[key], algs={"sign": "HS512"})
 
+    def test_without_iss(self):
+        _now = time_util.utc_time_sans_frac()
+        idval = {'nonce': 'KUEYfRM2VzKDaaKD', 'sub': 'EndUserSubject',
+                 'exp': _now + 3600, 'iat': _now, 'aud': 'TestClient'}
+        idts = IdToken(**idval)
+        key = SYMKey(key="TestPassword")
+        _signed_jwt = idts.to_jwt(key=[key], algorithm="HS256")
+
+        _info = {"access_token": "accessTok", "id_token": _signed_jwt,
+                 "token_type": "Bearer", "expires_in": 3600}
+
+        at = AccessTokenResponse(**_info)
+        with pytest.raises(MissingRequiredAttribute):
+            at.verify(key=[key], algs={"sign": "HS256"})
+
 
 def test_id_token():
     _now = time_util.utc_time_sans_frac()
@@ -512,7 +527,3 @@ def test_id_token():
     })
 
     idt.verify()
-
-
-if __name__ == "__main__":
-    test_id_token()

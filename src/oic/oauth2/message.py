@@ -652,6 +652,9 @@ class Message(MutableMapping):
                 jso = _jwt.payload()
                 _header = _jwt.headers
 
+                if 'iss' not in jso or not jso['iss']:
+                    raise MissingRequiredValue("No 'iss' value")
+
                 if key is None and keyjar is not None:
                     key = keyjar.get_verify_key(owner="")
                 elif key is None:
