@@ -580,5 +580,4 @@ def test_load_spomky_keys():
 def test_load_null_jwks():
     kj = KeyJar()
     with pytest.raises(ValueError):
-        kj.import_jwks({'keys':[None, None]}, '')
-
+        kj.import_jwks({'keys': [None, None]}, '')
