@@ -575,3 +575,28 @@ def test_load_spomky_keys():
     kj = KeyJar()
     kj.import_jwks(JWKS_SPO, '')
     assert len(kj.get_issuer_keys('')) == 4
+
+
+def test_reload():
+    """
+    Emulates what happens if you fetch keys from a remote site and
+    you get back the same JWKS as the last time.
+    """
+    _jwks = {
+        "keys": [
+            {
+                "alg":"RS256",
+                "e":"AQAB",
+                "kty":"RSA",
+                "n":"wkpyitec6TgFC5G41RF6jBOZghGVyaHL79CzSjjS9VCkWjpGo2hajOsiJ1RnSoat9XDmQAqiqn18rWx4xa4ErdWVqug88pLxMVmnV9tF10uJNgIi_RSsIQz40J9aKrxOotN6Mnq454BpanAxbrbC5hLlp-PIGgmWzUDNwCSfnWBjd0yGwdYKVB6d-SGNfLvdMUhFiYIX0POUnJDNl_j3kLYQ0peYRbunyQzST5nLPOItePCuZ12G5e0Eo1meSF1Md3IkuY8paqKk-vsWrT22X7CUV3HZow06ogRcFMMzvooE7yDqS53I_onsUrqgQ2aUnoo8OaD0eLlEWdaTyeNAIw","use":"sig"
+            }]}
+
+    kb = KeyBundle()
+    kb.imp_jwks = _jwks
+    kb.do_keys(kb.imp_jwks['keys'])
+
+    assert len(kb) == 1
+
+    kb.do_keys(kb.imp_jwks['keys'])
+
+    assert len(kb) == 1
