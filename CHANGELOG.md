@@ -5,6 +5,12 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
+## Unreleased
+
+- [#553] Made sure a reload would not lead to duplicated keys in a keybundle.
+
+[#553]: https://github.com/OpenIDC/pyoidc/pull/553
+
 ## 0.14.0 [2018-05-15]
 
 ### Fixed

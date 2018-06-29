@@ -126,9 +126,10 @@ class KeyBundle(object):
                 except JWKException as err:
                     logger.warning('Loading a key failed: %s', err)
                 else:
-                    self._keys.append(_key)
-                    flag = 1
-                    break
+                    if _key not in self._keys:
+                        self._keys.append(_key)
+                        flag = 1
+                        break
             if not flag:
                 logger.warning('Unknown key type: %s', typ)
 
