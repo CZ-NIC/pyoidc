@@ -6,6 +6,7 @@ from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
+from oic.utils.http_util import Response
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 
@@ -63,6 +64,9 @@ def test_pkce_verify_256(session_db_factory):
 
     assert _prov.verify_code_challenge(cv, args['code_challenge']) is True
     assert _prov.verify_code_challenge(cv, args['code_challenge'], 'S256') is True
+    resp = _prov.verify_code_challenge('XXX', args['code_challenge'])
+    assert isinstance(resp, Response)
+    assert resp.info()['status_code'] == 401
 
 
 def test_pkce_verify_512(session_db_factory):
@@ -76,6 +80,9 @@ def test_pkce_verify_512(session_db_factory):
                      authn_broker, Implicit(), verify_client)
 
     assert _prov.verify_code_challenge(cv, args['code_challenge'], 'S512') is True
+    resp = _prov.verify_code_challenge('XXX', args['code_challenge'])
+    assert isinstance(resp, Response)
+    assert resp.info()['status_code'] == 401
 
 
 JWKS = {"keys": [
