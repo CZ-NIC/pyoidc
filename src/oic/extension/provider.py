@@ -617,9 +617,9 @@ class Provider(provider.Provider):
         :return:
         """
         _h = CC_METHOD[code_challenge_method](
-            code_verifier.encode()).hexdigest()
-        _cc = b64e(_h.encode())
-        if _cc.decode() != code_challenge:
+            code_verifier.encode('ascii')).digest()
+        _cc = b64e(_h)
+        if _cc.decode('ascii') != code_challenge:
             logger.error('PCKE Code Challenge check failed')
             err = TokenErrorResponse(error="invalid_request",
                                      error_description="PCKE check failed")
