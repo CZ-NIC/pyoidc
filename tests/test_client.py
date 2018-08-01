@@ -15,6 +15,7 @@ from jwkest.jwt import JWT
 from mock import Mock
 from mock import patch
 
+from oic.extension.provider import Provider
 from oic.oauth2 import Client
 from oic.oauth2.grant import Grant
 from oic.oauth2.message import AccessTokenRequest
@@ -22,6 +23,7 @@ from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import ResourceRequest
 from oic.oic import JWT_BEARER
+from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import BearerBody
 from oic.utils.authn.client import BearerHeader
 from oic.utils.authn.client import ClientSecretBasic
@@ -29,12 +31,25 @@ from oic.utils.authn.client import ClientSecretJWT
 from oic.utils.authn.client import ClientSecretPost
 from oic.utils.authn.client import PrivateKeyJWT
 from oic.utils.authn.client import valid_client_info
+from oic.utils.authn.client import verify_client
+from oic.utils.authn.user import UserAuthnMethod
+from oic.utils.authz import Implicit
+from oic.utils.http_util import Response
 from oic.utils.keyio import KeyBundle
 
 BASE_PATH = os.path.abspath(os.path.dirname(__file__))
 
 
 CLIENT_CONF = {'client_id': 'A', 'config': {'issuer': 'https://example.com/as'}}
+
+
+class DummyAuthn(UserAuthnMethod):
+    def __init__(self, srv, user):
+        UserAuthnMethod.__init__(self, srv)
+        self.user = user
+
+    def authenticated_as(self, cookie=None, **kwargs):
+        return {"uid": self.user}
 
 
 def _eq(l1, l2):
@@ -271,3 +286,42 @@ class TestValidClientInfo(object):
         # Valid secret
         assert valid_client_info({'client_secret_expires_at': 123457})
         assert valid_client_info({'client_id': 'test', 'client_secret_expires_at': 123457})
+
+
+class TestPKCE(object):
+    def test_pkce_create(self):
+        _cli = Client(config={'code_challenge': {'method': 'S256', 'length': 64}})
+        args, cv = _cli.add_code_challenge()
+        assert args['code_challenge_method'] == 'S256'
+        assert _eq(list(args.keys()), ['code_challenge_method', 'code_challenge'])
+
+    def test_pkce_verify_256(self, session_db_factory):
+        _cli = Client(config={'code_challenge': {'method': 'S256', 'length': 64}})
+        args, cv = _cli.add_code_challenge()
+
+        authn_broker = AuthnBroker()
+        authn_broker.add("UNDEFINED", DummyAuthn(None, "username"))
+        _prov = Provider("as",
+                         session_db_factory('https://connect-op.heroku.com'), {},
+                         authn_broker, Implicit(), verify_client)
+
+        assert _prov.verify_code_challenge(cv, args['code_challenge']) is True
+        assert _prov.verify_code_challenge(cv, args['code_challenge'], 'S256') is True
+        resp = _prov.verify_code_challenge('XXX', args['code_challenge'])
+        assert isinstance(resp, Response)
+        assert resp.info()['status_code'] == 401
+
+    def test_pkce_verify_512(self, session_db_factory):
+        _cli = Client(config={'code_challenge': {'method': 'S512', 'length': 96}})
+        args, cv = _cli.add_code_challenge()
+
+        authn_broker = AuthnBroker()
+        authn_broker.add("UNDEFINED", DummyAuthn(None, "username"))
+        _prov = Provider("as",
+                         session_db_factory('https://connect-op.heroku.com'), {},
+                         authn_broker, Implicit(), verify_client)
+
+        assert _prov.verify_code_challenge(cv, args['code_challenge'], 'S512') is True
+        resp = _prov.verify_code_challenge('XXX', args['code_challenge'])
+        assert isinstance(resp, Response)
+        assert resp.info()['status_code'] == 401

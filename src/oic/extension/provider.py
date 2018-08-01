@@ -219,7 +219,7 @@ class Provider(provider.Provider):
                 error="invalid_configuration_parameter",
                 error_description="%s" % err)
             return Response(err.to_json(), content="application/json",
-                            status="400 Bad Request")
+                            status_code="400 Bad Request")
 
         # Add the client_secret as a symmetric key to the keyjar
         _kc = KeyBundle([{"kty": "oct", "key": client_secret,
@@ -624,7 +624,7 @@ class Provider(provider.Provider):
             err = TokenErrorResponse(error="invalid_request",
                                      error_description="PCKE check failed")
             return Response(err.to_json(), content="application/json",
-                            status="401 Unauthorized")
+                            status_code=401)
         return True
 
     def do_access_token_response(self, access_token, atinfo, state,
