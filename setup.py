@@ -71,7 +71,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     extras_require={
-        'develop': ["cherrypy==3.2.4"],
+        'develop': ["cherrypy==3.2.4", "pyOpenSSL"],
         'testing': tests_requires,
         'docs': ['Sphinx', 'sphinx-autobuild'],
         'quality': ['pylama', 'isort'],
@@ -84,7 +84,7 @@ setup(
         "mako",
         "beaker",
         "alabaster",
-        "pyOpenSSL",
+        "cryptography",
         "future",
         "six",
     ] + extra_install_requires,
