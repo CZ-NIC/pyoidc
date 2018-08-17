@@ -45,6 +45,7 @@ from oic.utils.authn.client import ClientSecretBasic
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
+from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
@@ -925,6 +926,20 @@ class TestProvider(object):
         assert 'Submit This Form' in response.message
         assert 'http://example.com' in response.message
         assert '<input type="hidden" name="state" value="state"/>' in response.message
+
+    def test_auth_init_invalid(self):
+        areq = {'response_mode': 'unknown',
+                'redirect_uri': 'http://localhost:8087/authz',
+                'client_id': 'number5',
+                'scope': 'openid',
+                'response_type': 'code',
+                'client_secret': 'drickyoghurt'}
+        response = self.provider.auth_init(areq)
+
+        assert isinstance(response, Response)
+        assert response.status_code == 400
+        assert json.loads(response.message) == {'error': 'invalid_request',
+                                                'error_description': 'Contains unsupported response mode'}
 
     @patch('oic.oic.provider.utc_time_sans_frac', Mock(return_value=123456))
     def test_client_secret_expiration_time(self):
