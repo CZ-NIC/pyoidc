@@ -703,6 +703,13 @@ class Provider(AProvider):
 
         return req
 
+    def auth_init(self, request, request_class=AuthorizationRequest):
+        """Overriden since the filter_request can throw an InvalidRequest."""
+        try:
+            return super(Provider, self).auth_init(request, request_class)
+        except InvalidRequest as err:
+            return error_response('invalid_request', '%s' % err)
+
     def authorization_endpoint(self, request="", cookie=None, **kwargs):
         """ The AuthorizationRequest endpoint
 
