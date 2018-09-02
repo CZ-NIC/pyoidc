@@ -368,9 +368,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
             self["id_token"] = idt
 
         if "access_token" in self:
-            try:
-                assert "token_type" in self
-            except AssertionError:
+            if "token_type" not in self:
                 raise MissingRequiredValue("Missing token_type parameter", self)
 
         return True

@@ -14,9 +14,9 @@ from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import MissingRequiredValue
 from oic.oauth2.message import WrongSigningAlgorithm
 from oic.oic.message import AccessTokenResponse
-from oic.oic.message import AuthorizationResponse
 from oic.oic.message import AddressClaim
 from oic.oic.message import AuthorizationRequest
+from oic.oic.message import AuthorizationResponse
 from oic.oic.message import Claims
 from oic.oic.message import IdToken
 from oic.oic.message import OpenIDSchema
