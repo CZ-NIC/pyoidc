@@ -5,6 +5,17 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
+## Unreleased
+
+### Fixed
+- [#553] Made sure a reload would not lead to duplicated keys in a keybundle.
+- [#557] Fixed PKCE verification
+- [#562] Fixed error response from oic request with invalid params
+
+[#553]: https://github.com/OpenIDC/pyoidc/pull/553
+[#557]: https://github.com/OpenIDC/pyoidc/pull/557
+[#562]: https://github.com/OpenIDC/pyoidc/issues/562
+
 ## 0.14.0 [2018-05-15]
 
 ### Fixed

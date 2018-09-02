@@ -220,7 +220,7 @@ class Client(oauth2.Client):
             cv_len = 64  # Use default
 
         code_verifier = unreserved(cv_len)
-        _cv = code_verifier.encode()
+        _cv = code_verifier.encode('ascii')
 
         try:
             _method = self.config['code_challenge']['method']
@@ -228,8 +228,8 @@ class Client(oauth2.Client):
             _method = 'S256'
 
         try:
-            _h = CC_METHOD[_method](_cv).hexdigest()
-            code_challenge = b64e(_h.encode()).decode()
+            _h = CC_METHOD[_method](_cv).digest()
+            code_challenge = b64e(_h).decode('ascii')
         except KeyError:
             raise Unsupported(
                 'PKCE Transformation method:{}'.format(_method))
