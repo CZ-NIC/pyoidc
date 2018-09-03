@@ -366,6 +366,11 @@ class AuthorizationResponse(message.AuthorizationResponse,
                     raise CHashError("Failed to verify code hash", idt)
 
             self["id_token"] = idt
+
+        if "access_token" in self:
+            if "token_type" not in self:
+                raise MissingRequiredValue("Missing token_type parameter", self)
+
         return True
 
 

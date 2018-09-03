@@ -11,10 +11,12 @@ from jwkest import BadSignature
 from jwkest.jwk import SYMKey
 
 from oic.oauth2.message import MissingRequiredAttribute
+from oic.oauth2.message import MissingRequiredValue
 from oic.oauth2.message import WrongSigningAlgorithm
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AddressClaim
 from oic.oic.message import AuthorizationRequest
+from oic.oic.message import AuthorizationResponse
 from oic.oic.message import Claims
 from oic.oic.message import IdToken
 from oic.oic.message import OpenIDSchema
@@ -455,6 +457,24 @@ class TestAuthorizationRequest(object):
             ar.verify()
 
 
+class TestAuthorizationResponse(object):
+
+    def test_verify_token_type(self):
+        args = {
+            "access_token": "foobar",
+            "token_type": "bearer"
+        }
+        ar = AuthorizationResponse(**args)
+        ar.verify()
+
+        args = {
+            "access_token": "foobar",
+        }
+        ar = AuthorizationResponse(**args)
+        with pytest.raises(MissingRequiredValue):
+            ar.verify()
+
+
 class TestAccessTokenResponse(object):
     def test_faulty_idtoken(self):
         _now = time_util.utc_time_sans_frac()
@@ -492,6 +512,13 @@ class TestAccessTokenResponse(object):
         at = AccessTokenResponse(**_info)
         with pytest.raises(WrongSigningAlgorithm):
             at.verify(key=[key], algs={"sign": "HS512"})
+
+    def test_token_type(self):
+        # lacks required token_type parameter
+        _info = {"access_token": "accessTok", "id_token": "blabla"}
+        at = AccessTokenResponse(**_info)
+        with pytest.raises(MissingRequiredAttribute):
+            at.verify()
 
 
 def test_id_token():
