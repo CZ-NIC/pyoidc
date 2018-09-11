@@ -146,7 +146,8 @@ class Client(PBase):
     _endpoints = ENDPOINTS
 
     def __init__(self, client_id=None, client_authn_method=None,
-                 keyjar=None, verify_ssl=True, config=None, client_cert=None):
+                 keyjar=None, verify_ssl=True, config=None, client_cert=None,
+                 timeout=5):
         """
 
         :param client_id: The client identifier
@@ -156,11 +157,14 @@ class Client(PBase):
         :param keyjar: The keyjar for this client.
         :param verify_ssl: Whether the SSL certificate should be verified.
         :param client_cert: A client certificate to use.
+        :param timeout: Timeout for requests library. Can be specified either as
+            a single integer or as a tuple of integers. For more details, refer to
+            ``requests`` documentation.
         :return: Client instance
         """
 
         PBase.__init__(self, verify_ssl=verify_ssl, keyjar=keyjar,
-                       client_cert=client_cert)
+                       client_cert=client_cert, timeout=timeout)
 
         self.client_id = client_id
         self.client_authn_method = client_authn_method
@@ -959,9 +963,9 @@ class Client(PBase):
 
 
 class Server(PBase):
-    def __init__(self, keyjar=None, verify_ssl=True, client_cert=None):
+    def __init__(self, keyjar=None, verify_ssl=True, client_cert=None, timeout=5):
         PBase.__init__(self, verify_ssl=verify_ssl, keyjar=keyjar,
-                       client_cert=client_cert)
+                       client_cert=client_cert, timeout=timeout)
 
     @staticmethod
     def parse_url_request(request, url=None, query=None):
