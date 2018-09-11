@@ -61,7 +61,7 @@ K2C = {
 
 class KeyBundle(object):
     def __init__(self, keys=None, source="", cache_time=300, verify_ssl=True,
-                 fileformat="jwk", keytype="RSA", keyusage=None):
+                 fileformat="jwk", keytype="RSA", keyusage=None, timeout=5):
         """
 
         :param keys: A list of dictionaries
@@ -70,6 +70,9 @@ class KeyBundle(object):
         :param verify_ssl: Verify the SSL cert used by the server
         :param fileformat: For a local file either "jwk" or "der"
         :param keytype: Iff local file and 'der' format what kind of key it is.
+        :param timeout: Timeout for requests library. Can be specified either as
+            a single integer or as a tuple of integers. For more details, refer to
+            ``requests`` documentation.
         """
 
         self._keys = []
@@ -84,6 +87,7 @@ class KeyBundle(object):
         self.keyusage = keyusage
         self.imp_jwks = None
         self.last_updated = 0
+        self.timeout = timeout
 
         if keys:
             self.source = None
@@ -159,7 +163,7 @@ class KeyBundle(object):
         self.last_updated = time.time()
 
     def do_remote(self):
-        args = {"verify": self.verify_ssl}
+        args = {"verify": self.verify_ssl, "timeout": self.timeout}
         if self.etag:
             args["headers"] = {"If-None-Match": self.etag}
 
