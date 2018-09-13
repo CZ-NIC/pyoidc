@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class PBase(object):
-    def __init__(self, verify_ssl=True, keyjar=None, client_cert=None):
+    def __init__(self, verify_ssl=True, keyjar=None, client_cert=None, timeout=5):
         """
         A base class for OAuth2 clients and servers
 
@@ -32,6 +32,9 @@ class PBase(object):
         :param client_cert: local cert to use as client side certificate, as a
             single file (containing the private key and the certificate) or as
             a tuple of both file's path
+        :param timeout: Timeout for requests library. Can be specified either as
+            a single integer or as a tuple of integers. For more details, refer to
+            ``requests`` documentation.
         """
 
         self.keyjar = keyjar or KeyJar(verify_ssl=verify_ssl)
@@ -43,6 +46,7 @@ class PBase(object):
             "allow_redirects": False,
             "cert": client_cert,
             "verify": verify_ssl,
+            "timeout": timeout,
         }
 
         # Event collector, for tracing

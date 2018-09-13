@@ -61,7 +61,7 @@ K2C = {
 
 class KeyBundle(object):
     def __init__(self, keys=None, source="", cache_time=300, verify_ssl=True,
-                 fileformat="jwk", keytype="RSA", keyusage=None):
+                 fileformat="jwk", keytype="RSA", keyusage=None, timeout=5):
         """
 
         :param keys: A list of dictionaries
@@ -70,6 +70,9 @@ class KeyBundle(object):
         :param verify_ssl: Verify the SSL cert used by the server
         :param fileformat: For a local file either "jwk" or "der"
         :param keytype: Iff local file and 'der' format what kind of key it is.
+        :param timeout: Timeout for requests library. Can be specified either as
+            a single integer or as a tuple of integers. For more details, refer to
+            ``requests`` documentation.
         """
 
         self._keys = []
@@ -84,6 +87,7 @@ class KeyBundle(object):
         self.keyusage = keyusage
         self.imp_jwks = None
         self.last_updated = 0
+        self.timeout = timeout
 
         if keys:
             self.source = None
@@ -159,7 +163,7 @@ class KeyBundle(object):
         self.last_updated = time.time()
 
     def do_remote(self):
-        args = {"verify": self.verify_ssl}
+        args = {"verify": self.verify_ssl, "timeout": self.timeout}
         if self.etag:
             args["headers"] = {"If-None-Match": self.etag}
 
@@ -414,14 +418,18 @@ class KeyJar(object):
     """ A keyjar contains a number of KeyBundles """
 
     def __init__(self, verify_ssl=True, keybundle_cls=KeyBundle,
-                 remove_after=3600):
+                 remove_after=3600, timeout=5):
         """
         :param verify_ssl: Do SSL certificate verification
+        :param timeout: Timeout for requests library. Can be specified either as
+            a single integer or as a tuple of integers. For more details, refer to
+            ``requests`` documentation.
         :return:
         """
         self.spec2key = {}
         self.issuer_keys = {}
         self.verify_ssl = verify_ssl
+        self.timeout = timeout
         self.keybundle_cls = keybundle_cls
         self.remove_after = remove_after
 
@@ -454,9 +462,9 @@ class KeyJar(object):
             raise KeyError("No jwks_uri")
 
         if "/localhost:" in url or "/localhost/" in url:
-            kc = self.keybundle_cls(source=url, verify_ssl=False, **kwargs)
+            kc = self.keybundle_cls(source=url, verify_ssl=False, timeout=self.timeout, **kwargs)
         else:
-            kc = self.keybundle_cls(source=url, verify_ssl=self.verify_ssl,
+            kc = self.keybundle_cls(source=url, verify_ssl=self.verify_ssl, timeout=self.timeout,
                                     **kwargs)
 
         try:
@@ -710,7 +718,7 @@ class KeyJar(object):
             try:
                 _keys = pcr["jwks"]["keys"]
                 self.issuer_keys[issuer].append(
-                    self.keybundle_cls(_keys, verify_ssl=self.verify_ssl))
+                    self.keybundle_cls(_keys, verify_ssl=self.verify_ssl, timeout=self.timeout))
             except KeyError:
                 pass
 
@@ -757,10 +765,10 @@ class KeyJar(object):
         else:
             try:
                 self.issuer_keys[issuer].append(
-                    self.keybundle_cls(_keys, verify_ssl=self.verify_ssl))
+                    self.keybundle_cls(_keys, verify_ssl=self.verify_ssl, timeout=self.timeout))
             except KeyError:
                 self.issuer_keys[issuer] = [self.keybundle_cls(
-                    _keys, verify_ssl=self.verify_ssl)]
+                    _keys, verify_ssl=self.verify_ssl, timeout=self.timeout)]
 
     def add_keyjar(self, keyjar):
         for iss, kblist in keyjar.items():
@@ -778,12 +786,12 @@ class KeyJar(object):
     def restore(self, info):
         for issuer, keys in info.items():
             self.issuer_keys[issuer] = [self.keybundle_cls(
-                keys, verify_ssl=self.verify_ssl)]
+                keys, verify_ssl=self.verify_ssl, timeout=self.timeout)]
 
     def copy(self):
-        copy_keyjar = KeyJar(verify_ssl=self.verify_ssl)
+        copy_keyjar = KeyJar(verify_ssl=self.verify_ssl, timeout=self.timeout)
         for issuer, keybundles in self.issuer_keys.items():
-            _kb = self.keybundle_cls(verify_ssl=self.verify_ssl)
+            _kb = self.keybundle_cls(verify_ssl=self.verify_ssl, timeout=self.timeout)
             for kb in keybundles:
                 for k in kb.keys():
                     _kb.append(copy.copy(k))
