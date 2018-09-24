@@ -12,6 +12,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#557] Fixed PKCE verification
 - [#562] Fixed error response from oic request with invalid params
 - [#565] Fixed checking token_type in AuthorizationResponse
+- [#547] Fixed get_userinfo_claims method
 
 ### Added
 - [#566] Added timeout to communications to remote servers
@@ -21,6 +22,7 @@ The format is based on the [KeepAChangeLog] project.
 [#562]: https://github.com/OpenIDC/pyoidc/issues/562
 [#565]: https://github.com/OpenIDC/pyoidc/issues/565
 [#566]: https://github.com/OpenIDC/pyoidc/issues/566
+[#547]: https://github.com.OpenIDC/pyoidc/issues/547
 
 ## 0.14.0 [2018-05-15]
 
