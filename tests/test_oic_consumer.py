@@ -441,6 +441,32 @@ class TestOICConsumer():
         assert _eq(result.keys(),
                    ['name', 'email', 'verified', 'nickname', 'sub'])
 
+    def test_get_userinfo_claims(self):
+        _state = "state0"
+
+        args = {
+            "client_id": self.consumer.client_id,
+            "response_type": "code",
+            "scope": ["openid"],
+        }
+
+        result = self.consumer.do_authorization_request(state=_state,
+                                                        request_args=args)
+        assert result.status_code == 302
+        parsed = urlparse(result.headers["location"])
+        baseurl = "{}://{}{}".format(parsed.scheme, parsed.netloc, parsed.path)
+        assert baseurl == self.consumer.redirect_uris[0]
+
+        self.consumer.parse_response(AuthorizationResponse, info=parsed.query,
+                                     sformat="urlencoded")
+
+        response = self.consumer.complete(_state)
+
+        result = self.consumer.get_userinfo_claims(response['access_token'], self.consumer.userinfo_endpoint)
+        assert isinstance(result, OpenIDSchema)
+        assert _eq(result.keys(),
+                   ['name', 'email', 'verified', 'nickname', 'sub'])
+
     def real_test_discover(self):
         c = Consumer(None, None)
         principal = "nav@connect-op.heroku.com"

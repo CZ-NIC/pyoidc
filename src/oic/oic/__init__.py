@@ -972,7 +972,7 @@ class Client(oauth2.Client):
                                                           resp.text))
 
         res = schema_class().from_json(txt=resp.text)
-        self.store_response(res, resp.txt)
+        self.store_response(res, resp.text)
         return res
 
     def handle_provider_config(self, pcr, issuer, keys=True, endpoints=True):
