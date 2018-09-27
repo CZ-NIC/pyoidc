@@ -354,6 +354,20 @@ class TestSessionDB(object):
         self.sdb.revoke_token(grant)
         assert not self.sdb.is_valid(grant)
 
+    def test_revoke_all_tokens(self):
+        ae1 = AuthnEvent("uid", "salt")
+        sid = self.sdb.create_authz_session(ae1, AREQ)
+        self.sdb[sid]['sub'] = 'sub'
+
+        grant = self.sdb[sid]["code"]
+        tokens = self.sdb.upgrade_to_token(grant, issue_refresh=True)
+        access_token = tokens["access_token"]
+        refresh_token = tokens["refresh_token"]
+
+        self.sdb.revoke_all_tokens(access_token)
+        assert not self.sdb.is_valid(access_token)
+        assert not self.sdb.is_valid(refresh_token)
+
     def test_sub_to_authn_event(self):
         ae = AuthnEvent("sub", "salt", time_stamp=time.time())
         sid = self.sdb.create_authz_session(ae, AREQ)

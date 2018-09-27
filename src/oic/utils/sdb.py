@@ -749,6 +749,7 @@ class SessionDB(object):
         dic["access_token"] = access_token
         dic["token_type"] = "Bearer"
         dic["refresh_token"] = rtoken
+        dic["revoked"] = False
         self._db[sid] = dic
         return dic
 
@@ -765,6 +766,9 @@ class SessionDB(object):
         try:
             typ, sid = self._get_token_type_and_key(token)
         except KeyError:
+            return False
+
+        if self.is_revoked(sid):
             return False
 
         _dic = self._db[sid]
@@ -797,16 +801,9 @@ class SessionDB(object):
 
         :param token: access token
         """
-        typ, sid = self._get_token_type_and_key(token)
-        _dict = self._db[sid]
+        _, sid = self._get_token_type_and_key(token)
 
-        if typ == "A":
-            _dict["code"] = ""
-        elif typ == "T":
-            _dict["access_token"] = ""
-        else:
-            pass
-        self._db[sid] = _dict
+        self.update(sid, 'revoked', True)
         return True
 
     def revoke_refresh_token(self, rtoken):
@@ -837,7 +834,7 @@ class SessionDB(object):
         else:
             self.revoke_refresh_token(rtoken)
 
-        self.update(sid, 'revoked', True)
+        self.revoke_token(token)
         return True
 
     def get_client_id_for_session(self, sid):
