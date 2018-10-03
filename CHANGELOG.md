@@ -14,6 +14,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#565] Fixed checking token_type in AuthorizationResponse
 - [#547] Fixed get_userinfo_claims method
 - [#268] Fixed SessionDB.revoke_token implementation
+- [#571] Return error when when resolving request_uri fails
 
 ### Added
 - [#566] Added timeout to communications to remote servers
@@ -25,6 +26,7 @@ The format is based on the [KeepAChangeLog] project.
 [#566]: https://github.com/OpenIDC/pyoidc/issues/566
 [#547]: https://github.com/OpenIDC/pyoidc/issues/547
 [#268]: https://github.com/OpenIDC/pyoidc/issues/268
+[#571]: https://github.com/OpenIDC/pyoidc/issues/571
 
 ## 0.14.0 [2018-05-15]
 
