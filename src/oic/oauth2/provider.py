@@ -416,6 +416,9 @@ class Provider(object):
             logger.debug("No AuthzRequest")
             return error_response("invalid_request", "Can not parse AuthzRequest")
 
+        if isinstance(areq, Response):
+            return areq
+
         areq = self.filter_request(areq)
 
         if self.events:
