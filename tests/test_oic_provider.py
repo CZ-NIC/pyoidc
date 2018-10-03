@@ -1588,4 +1588,3 @@ class TestProvider(object):
         assert resp.status_code == 400
         msg = json.loads(resp.message)
         assert msg["error"] == "invalid_request_uri"
-
