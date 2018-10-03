@@ -1572,3 +1572,18 @@ class TestProvider(object):
         resp = self.provider.token_endpoint(request=rareq.to_urlencoded())
         assert resp.headers == [('Pragma', 'no-cache'), ('Cache-Control', 'no-store'),
                                 ('Content-type', 'application/json')]
+
+    def test_authorization_endpoint_faulty_request_uri(self):
+        bib = {"scope": ["openid"],
+               "state": "id-6da9ca0cc23959f5f33e8becd9b08cae",
+               "redirect_uri": "http://localhost:8087/authz",
+               "request_uri": "https://some-non-resolving.hostname.com/request_uri#1234",
+               # faulty request_uri
+               "response_type": ["code"],
+               "client_id": "a1b2c3"}
+
+        arq = AuthorizationRequest(**bib)
+        resp = self.provider.authorization_endpoint(request=arq.to_urlencoded())
+        assert resp.status_code == 400
+        msg = json.loads(resp.message)
+        assert msg["error"] == "invalid_request_uri"
