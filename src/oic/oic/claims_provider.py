@@ -37,22 +37,6 @@ class UserClaimsResponse(Message):
                "access_token": SINGLE_OPTIONAL_STRING}
 
 
-#    def verify(self, **kwargs):
-#        if "jwt" in self:
-#            # Try to decode the JWT, checks the signature
-#            args = dict([(claim, kwargs[claim]) for claim in ["key","keyjar"] \
-#                            if claim in kwargs])
-#            try:
-#                item = OpenIDSchema().from_jwt(str(self["jwt"]), **args)
-#            except Exception, _err:
-#                raise
-#
-#            if not item.verify(**kwargs):
-#                return False
-#
-#        return super(self.__class__, self).verify(**kwargs)
-
-
 class UserInfoClaimsRequest(Message):
     c_param = {"access_token": SINGLE_REQUIRED_STRING}
 
@@ -153,7 +137,6 @@ class ClaimsServer(Provider):
         _log_info("Claims_info_endpoint query: '%s'" % sanitize(request))
 
         ucreq = self.srvmethod.parse_userinfo_claims_request(request)
-        # _log_info("request: %s" % sanitize(ucreq))
 
         # Bearer header or body
         access_token = bearer_auth(ucreq, authn)

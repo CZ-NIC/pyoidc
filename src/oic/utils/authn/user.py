@@ -273,11 +273,6 @@ class UsernamePasswordMako(UserAuthnMethod):
         """
         Put up the login form
         """
-        # if cookie:
-        #     headers = [cookie]
-        # else:
-        #     headers = []
-
         resp = Response()
 
         argv = self.templ_arg_func(end_point_index, **kwargs)
@@ -335,7 +330,6 @@ class UsernamePasswordMako(UserAuthnMethod):
                 _qp = self.get_multi_auth_cookie(kwargs['cookie'])
 
         logger.debug("Password verification succeeded.")
-        # if "cookie" not in kwargs or self.srv.cookie_name not in kwargs["cookie"]:
         headers = [self.create_cookie(_dict["login"], "upm")]
         try:
             return_to = self.generate_return_url(kwargs["return_to"], _qp)

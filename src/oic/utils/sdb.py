@@ -789,7 +789,6 @@ class SessionDB(object):
         return True
 
     def is_revoked(self, sid):
-        # typ, sid = self.access_token.type_and_key(token)
         try:
             return self[sid]["revoked"]
         except KeyError:

@@ -1,4 +1,4 @@
-# encoding: utf-8
+# -*- coding: utf-8 -*-
 from future.backports.urllib.parse import urlparse
 
 import inspect
@@ -101,21 +101,6 @@ def idtoken_deser(val, sformat="urlencoded"):
     # id_token are always serialized as a JWT
     return IdToken().deserialize(val, "jwt")
 
-
-# def idtokenclaim_deser(val, sformat="urlencoded"):
-#     if sformat in ["dict", "json"]:
-#         if not isinstance(val, basestring):
-#             val = json.dumps(val)
-#             sformat = "json"
-#     return IDTokenClaim().deserialize(val, sformat)
-#
-#
-# def userinfo_deser(val, sformat="urlencoded"):
-#     if sformat in ["dict", "json"]:
-#         if not isinstance(val, basestring):
-#             val = json.dumps(val)
-#             sformat = "json"
-#     return UserInfoClaim().deserialize(val, sformat)
 
 def address_deser(val, sformat="urlencoded"):
     if sformat in ["dict", "json"]:
@@ -242,8 +227,6 @@ def claims_request_deser(val, sformat="json"):
 OPTIONAL_ADDRESS = (Message, False, msg_ser, address_deser, False)
 OPTIONAL_LOGICAL = (bool, False, None, None, False)
 OPTIONAL_MULTIPLE_Claims = (Message, False, claims_ser, claims_deser, False)
-# SINGLE_OPTIONAL_USERINFO_CLAIM = (Message, False, msg_ser, userinfo_deser)
-# SINGLE_OPTIONAL_ID_TOKEN_CLAIM = (Message, False, msg_ser, idtokenclaim_deser)
 
 SINGLE_OPTIONAL_IDTOKEN = (six.string_types, False, msg_ser, None, False)
 
@@ -321,7 +304,6 @@ class AuthorizationResponse(message.AuthorizationResponse,
     c_param.update(message.AccessTokenResponse.c_param)
     c_param.update({
         "code": SINGLE_OPTIONAL_STRING,
-        # "nonce": SINGLE_OPTIONAL_STRING,
         "access_token": SINGLE_OPTIONAL_STRING,
         "token_type": SINGLE_OPTIONAL_STRING,
         "id_token": SINGLE_OPTIONAL_IDTOKEN,
@@ -407,7 +389,6 @@ class AuthorizationRequest(message.AuthorizationRequest):
             "registration": SINGLE_OPTIONAL_JSON,
             "request": SINGLE_OPTIONAL_STRING,
             "request_uri": SINGLE_OPTIONAL_STRING,
-            # "session_state": SINGLE_OPTIONAL_STRING,
             "response_mode": SINGLE_OPTIONAL_STRING,
         }
     )
@@ -577,9 +558,6 @@ class RegistrationRequest(Message):
         "default_acr_values": OPTIONAL_LIST_OF_STRINGS,
         "initiate_login_uri": SINGLE_OPTIONAL_STRING,
         "request_uris": OPTIONAL_LIST_OF_STRINGS,
-        # "client_id": SINGLE_OPTIONAL_STRING,
-        # "client_secret": SINGLE_OPTIONAL_STRING,
-        # "access_token": SINGLE_OPTIONAL_STRING,
         "post_logout_redirect_uris": OPTIONAL_LIST_OF_STRINGS,
     }
     c_default = {"application_type": "web", "response_types": ["code"]}
@@ -763,7 +741,6 @@ class EndSessionResponse(Message):
 
 
 class Claims(Message):
-    # c_param = {"*": SINGLE_OPTIONAL_JSON_CONV}
     pass
 
 
@@ -772,16 +749,6 @@ class ClaimsRequest(Message):
         "userinfo": OPTIONAL_MULTIPLE_Claims,
         "id_token": OPTIONAL_MULTIPLE_Claims
     }
-
-
-# class UserInfoClaim(Message):
-#     c_param = {"claims": OPTIONAL_MULTIPLE_Claims,
-#                "preferred_locale": SINGLE_OPTIONAL_STRING}
-#
-#
-# class IDTokenClaim(Message):
-#     c_param = {"claims": OPTIONAL_MULTIPLE_Claims,
-#                "max_age": SINGLE_OPTIONAL_INT}
 
 
 class OpenIDRequest(AuthorizationRequest):
@@ -830,9 +797,6 @@ class ProviderConfigurationResponse(Message):
         "op_tos_uri": SINGLE_OPTIONAL_STRING,
         "check_session_iframe": SINGLE_OPTIONAL_STRING,
         "end_session_endpoint": SINGLE_OPTIONAL_STRING,
-        # "jwk_encryption_url": SINGLE_OPTIONAL_STRING,
-        # "x509_url": SINGLE_REQUIRED_STRING,
-        # "x509_encryption_url": SINGLE_OPTIONAL_STRING,
     }
     c_default = {"version": "3.0",
                  "token_endpoint_auth_methods_supported": [
@@ -955,8 +919,6 @@ MSG = {
     "EndSessionRequest": EndSessionRequest,
     "EndSessionResponse": EndSessionResponse,
     "Claims": Claims,
-    # "UserInfoClaim": UserInfoClaim,
-    # "IDTokenClaim": IDTokenClaim,
     "OpenIDRequest": OpenIDRequest,
     "ProviderConfigurationResponse": ProviderConfigurationResponse,
     "AuthnToken": AuthnToken,

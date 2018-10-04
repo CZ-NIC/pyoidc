@@ -120,8 +120,6 @@ class Client(oic.Client):
                 raise OIDCError("Access denied")
 
         _state = authresp["state"]
-        # if session["state"] != authresp["state"]:
-        #     self._err("Received state not the same as expected.")
 
         try:
             _id_token = authresp['id_token']

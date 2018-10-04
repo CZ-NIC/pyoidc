@@ -134,7 +134,6 @@ class DistributedAggregatedUserInfo(UserInfo):
 
         else:
             # default is what "openid" demands which is sub
-            # result = identity
             result = {"sub": userid}
 
         return OpenIDSchema(**result)

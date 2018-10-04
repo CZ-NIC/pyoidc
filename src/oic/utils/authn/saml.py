@@ -329,7 +329,6 @@ class SAMLAuthnMethod(UserAuthnMethod):
                 _sid = req_id
 
             _rstate = rndstr()
-            # self.cache.relay_state[_rstate] = came_from
             ht_args = _cli.apply_binding(binding, msg_str, destination,
                                          relay_state=_rstate)
 

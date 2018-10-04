@@ -195,7 +195,6 @@ class BearerHeader(ClientAuthnMethod):
                 _acc_token = request_args["access_token"]
 
         # Do I need to base64 encode the access token ? Probably !
-        # _bearer = "Bearer %s" % base64.b64encode(_acc_token)
         _bearer = "Bearer %s" % _acc_token
         if http_args is None:
             http_args = {"headers": {}}
@@ -299,7 +298,6 @@ class JWSAuthnMethod(ClientAuthnMethod):
         """
 
         # audience is the OP endpoint
-        # audience = self.cli._endpoint(REQUEST2ENDPOINT[cis.type()])
         # OR OP identifier
         algorithm = None
         if kwargs['authn_endpoint'] in ['token', 'refresh']:
@@ -381,7 +379,6 @@ class JWSAuthnMethod(ClientAuthnMethod):
         logger.debug("authntoken: %s" % sanitize(bjwt.to_dict()))
         areq['parsed_client_assertion'] = bjwt
 
-        # logger.debug("known clients: %s" % sanitize(self.cli.cdb.keys()))
         try:
             cid = kwargs["client_id"]
         except KeyError:
@@ -442,9 +439,6 @@ class PrivateKeyJWT(JWSAuthnMethod):
     def get_signing_key(self, algorithm):
         return self.cli.keyjar.get_signing_key(alg2keytype(algorithm), "",
                                                alg=algorithm)
-
-
-# from oic.utils.authn.client_saml import SAML2_BEARER_ASSERTION_TYPE
 
 
 CLIENT_AUTHN_METHOD = {

@@ -167,7 +167,6 @@ class DummyAuthn(UserAuthnMethod):
             return {"uid": self.user}, time()
 
 
-# AUTHN = UsernamePasswordMako(None, "login.mako", tl, PASSWD, "authenticated")
 AUTHN_BROKER = AuthnBroker()
 AUTHN_BROKER.add("UNDEFINED", DummyAuthn(None, "username"))
 

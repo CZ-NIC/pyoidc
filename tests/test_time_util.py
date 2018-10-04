@@ -62,8 +62,6 @@ def test_modulo_2():
     for i in range(1, 13):
         assert modulo(i, 1, 13) == i
     assert modulo(13, 1, 13) == 1
-    # x = 0.123
-    # assert modulo(13+x, 1, 13) == 1+x
 
 
 def test_parse_duration():
@@ -225,12 +223,6 @@ def test_str_to_time_str_error():
 def test_str_to_time_1():
     t = str_to_time("")
     assert t == 0
-
-
-# def test_utc_time_sans_frac():
-#     t1 = utc_time_sans_frac()
-#     t2 = int("%d" % time.time())
-#     assert t1 != t2
 
 
 def test_before_0():

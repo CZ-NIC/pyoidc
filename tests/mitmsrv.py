@@ -118,7 +118,6 @@ class MITMServer(Server):
 
                 _dict = by_schema(AuthorizationResponse(), **_dict)
                 resp = AuthorizationResponse(**_dict)
-                # resp.code = grant
             else:
                 _state = req["state"]
                 resp = AuthorizationResponse(state=_state,

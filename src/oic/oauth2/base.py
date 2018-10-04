@@ -60,7 +60,6 @@ class PBase(object):
         for _, a in list(self.cookiejar._cookies.items()):
             for _, b in list(a.items()):
                 for cookie in list(b.values()):
-                    # print cookie
                     cookie_dict[cookie.name] = cookie.value
 
         return cookie_dict
@@ -102,9 +101,6 @@ class PBase(object):
 
         try:
             _cookie = r.headers["set-cookie"]
-            # Telekom fix
-            # set_cookie = set_cookie.replace(
-            # "=;Path=/;Expires=Thu, 01-Jan-1970 00:00:01 GMT;HttpOnly,", "")
             logger.debug("RECEIVED COOKIE")
             try:
                 set_cookie(self.cookiejar, SimpleCookie(_cookie))

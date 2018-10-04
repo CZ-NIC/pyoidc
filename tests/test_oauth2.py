@@ -214,10 +214,6 @@ class TestClient(object):
         assert token.expires_in == 3600
         assert token.refresh_token == "tGzv3JOkF0XG5Qx2TlKWIA"
 
-        # I'm dropping parameters I don't recognize
-        # with pytest.raises(AttributeError): # TODO not satisfied
-        #     nothing = token.example_parameter
-
     def test_get_access_token_refresh_with_refresh_token(self):
         self.client.grant["foo"] = Grant()
         _get = time_util.utc_time_sans_frac() + 60
@@ -287,31 +283,11 @@ class TestClient(object):
                                 "redirect_uri", "foo", 'state'])
         assert req["foo"] == "bar"
 
-    # def test_construct_TokenRevocationRequest(self):
-    #     self.client.grant["foo"] = Grant()
-    #     _get = time_util.utc_time_sans_frac() + 60
-    #     self.client.grant["foo"].grant_expiration_time = _get
-    #     self.client.grant["foo"].code = "access_code"
-    #     resp = AccessTokenResponse(refresh_token="refresh_with_me",
-    #                                access_token="access")
-    #     token = Token(resp)
-    #     self.client.grant["foo"].tokens.append(token)
-    #
-    #     state = "foo"
-    #     query = "code=SplxlOBeZQQYbYS6WxSbIA&state={}".format(state)
-    #     self.client.parse_response(AuthorizationResponse,
-    #                                info=query, sformat="urlencoded")
-    #
-    #     req = self.client.construct_TokenRevocationRequest(state=state)
-    #     assert _eq(req.keys(), ['token'])
-    #     assert req["token"] == "access"
-
     def test_request_info_simple(self):
         req_args = {"state": "hmm", "response_type": "code"}
         uri, body, h_args, cis = self.client.request_info(AuthorizationRequest,
                                                           request_args=req_args)
 
-        # default == "POST"
         assert uri == self.authorization_endpoint
         body_elts = body.split('&')
         expected_body = "state=hmm&redirect_uri={}&response_type=code&client_id=1".format(
