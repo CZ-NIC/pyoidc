@@ -161,23 +161,11 @@ class RegistrationRequest(Message):
                 if resp.status_code not in SUCCESSFUL:
                     raise MissingPage(self[uri])
 
-        # if "grant_types" in self and "response_types" in self:
-        #     for typ in self["grant_types"]:
-        #         if typ == "authorization_code":
-        #             assert "code" in self["response_types"]
-        #         elif typ == "implicit":
-        #             assert "token" in self["response_types"]
-
         try:
             ss = self['software_statement']
         except KeyError:
             pass
         else:
-            # need to get the client keys before I can verify any signature
-            # kj = kwargs['keyjar']
-            # The case where jwks_uri is used
-            # try:
-            #     kj.add(,self['jwks_uri'])
             _ss = []
             for _s in ss:
                 _ss.append(unpack_software_statement(_s, '', kwargs['keyjar']))

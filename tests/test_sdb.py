@@ -258,9 +258,6 @@ class TestSessionDB(object):
         self.sdb[sid]['sub'] = 'sub'
         grant = self.sdb[sid]["code"]
 
-        # with mock.patch("time.gmtime", side_effect=[
-        #     time.struct_time((1970, 1, 1, 10, 39, 0, 0, 0, 0)),
-        #     time.struct_time((1970, 1, 1, 10, 40, 0, 0, 0, 0))]):
         dict1 = self.sdb.upgrade_to_token(grant, issue_refresh=True).copy()
         rtoken = dict1["refresh_token"]
         dict2 = self.sdb.refresh_token(rtoken, AREQ['client_id'])

@@ -220,7 +220,6 @@ class Grant(oauth2.Grant):
 
 
 PREFERENCE2PROVIDER = {
-    # "require_signed_request_object": "request_object_algs_supported",
     "request_object_signing_alg": "request_object_signing_alg_values_supported",
     "request_object_encryption_alg":
         "request_object_encryption_alg_values_supported",
@@ -464,9 +463,6 @@ class Client(oauth2.Client):
                                        request_param=None, **kwargs):
 
         if request_args is not None:
-            # if "claims" in request_args:
-            # kwargs["claims"] = request_args["claims"]
-            #     del request_args["claims"]
             if "nonce" not in request_args:
                 _rt = request_args["response_type"]
                 if "token" in _rt or "id_token" in _rt:
@@ -634,9 +630,6 @@ class Client(oauth2.Client):
             request_args["state"] = kwargs["state"]
         elif "state" in request_args:
             kwargs["state"] = request_args["state"]
-
-        # if "redirect_url" not in request_args:
-        #            request_args["redirect_url"] = self.redirect_url
 
         return self._id_token_based(request, request_args, extra_args,
                                     **kwargs)
@@ -1040,23 +1033,7 @@ class Client(oauth2.Client):
                 logger.error(sanitize(_err_txt))
                 raise ParseError(_err_txt)
 
-        # elif r.status_code == 302 or r.status_code == 301:
-        #     while r.status_code == 302 or r.status_code == 301:
-        #         redirect_header = r.headers["location"]
-        #         if not urlparse(redirect_header).scheme:
-        #             # Relative URL was provided - construct new redirect
-        #             # using an issuer
-        #             _split = urlparse(issuer)
-        #             new_url = urlunparse((_split.scheme, _split.netloc,
-        #                                   as_unicode(redirect_header),
-        #                                   _split.params,
-        #                                   _split.query, _split.fragment))
-        #             r = self.http_request(new_url)
-        #             if r.status_code == 200:
-        #                 pcr = response_cls().from_json(r.text)
-        #                 break
-
-        # logger.debug("Provider info: %s" % sanitize(pcr))
+        logger.debug("Provider info: %s" % sanitize(pcr))
         if pcr is None:
             raise CommunicationError(
                 "Trying '%s', status %s" % (url, r.status_code))
@@ -1177,7 +1154,6 @@ class Client(oauth2.Client):
                 try:
                     self.behaviour[_pref] = PROVIDER_DEFAULT[_pref]
                 except KeyError:
-                    # self.behaviour[_pref]= vals[0]
                     if isinstance(pcr.c_param[_prov][0], list):
                         self.behaviour[_pref] = []
                     else:
@@ -1401,7 +1377,6 @@ class Client(oauth2.Client):
         return subject, domain
 
     def discover(self, principal):
-        # subject, host = self.normalization(principal)
         return self.wf.discovery_query(principal)
 
     def sign_enc_algs(self, typ):
@@ -1782,7 +1757,6 @@ class Server(oauth2.Server):
                 if key == "auth_time":
                     extra["auth_time"] = auth_time
                 elif key == "acr":
-                    # ["2","http://id.incommon.org/assurance/bronze"]
                     extra["acr"] = verify_acr_level(val, loa)
         else:
             if auth_time:

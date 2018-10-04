@@ -275,13 +275,6 @@ class Client(PBase):
         return uri
 
     def get_grant(self, state, **kwargs):
-        # try:
-        # _state = kwargs["state"]
-        # if not _state:
-        #         _state = self.state
-        # except KeyError:
-        #     _state = self.state
-
         try:
             return self.grant[state]
         except KeyError:
@@ -325,13 +318,11 @@ class Client(PBase):
         if request_args is None:
             request_args = {}
 
-        # logger.debug("request_args: %s" % sanitize(request_args))
         kwargs = self._parse_args(request, **request_args)
 
         if extra_args:
             kwargs.update(extra_args)
-            # logger.debug("kwargs: %s" % sanitize(kwargs))
-        # logger.debug("request: %s" % sanitize(request))
+        logger.debug("request: %s" % sanitize(request))
         return request(**kwargs)
 
     def construct_Message(self, request=Message, request_args=None,
@@ -409,19 +400,6 @@ class Client(PBase):
             pass
 
         return self.construct_request(request, request_args, extra_args)
-
-    # def construct_TokenRevocationRequest(self,
-    #                                      request=TokenRevocationRequest,
-    #                                      request_args=None, extra_args=None,
-    #                                      **kwargs):
-    #
-    #     if request_args is None:
-    #         request_args = {}
-    #
-    #     token = self.get_token(**kwargs)
-    #
-    #     request_args["token"] = token.access_token
-    #     return self.construct_request(request, request_args, extra_args)
 
     def construct_ResourceRequest(self, request=ResourceRequest,
                                   request_args=None, extra_args=None,
@@ -524,8 +502,6 @@ class Client(PBase):
         if sformat == "urlencoded":
             info = self.get_urlinfo(info)
 
-        # if self.events:
-        #    self.events.store('Response', info)
         resp = response().deserialize(info, sformat, **kwargs)
         msg = 'Initial response parsing => "{}"'
         logger.debug(msg.format(sanitize(resp.to_dict())))
@@ -789,26 +765,6 @@ class Client(PBase):
             grant.delete_token(token)
         return response
 
-    # def do_revocate_token(self, request=TokenRevocationRequest,
-    #                       scope="", state="", body_type="json", method="POST",
-    #                       request_args=None, extra_args=None, http_args=None,
-    #                       response_cls=None, authn_method=""):
-    #
-    #     url, body, ht_args, csi = self.request_info(request, method=method,
-    #                                                 request_args=request_args,
-    #                                                 extra_args=extra_args,
-    #                                                 scope=scope, state=state,
-    #                                                 authn_method=authn_method)
-    #
-    #     if http_args is None:
-    #         http_args = ht_args
-    #     else:
-    #         http_args.update(ht_args)
-    #
-    #     return self.request_and_return(url, response_cls, method, body,
-    #                                    body_type, state=state,
-    #                                    http_args=http_args)
-
     def do_any(self, request, endpoint="", scope="", state="", body_type="json",
                method="POST", request_args=None, extra_args=None,
                http_args=None, response=None, authn_method=""):
@@ -991,7 +947,6 @@ class Server(PBase):
         if not keyjar:
             keyjar = self.keyjar
 
-        # areq = message().from_(txt, keys, verify)
         areq = request().deserialize(txt, "jwt", keyjar=keyjar,
                                      verify=verify, **kwargs)
         if verify:
@@ -999,7 +954,6 @@ class Server(PBase):
         return areq
 
     def parse_body_request(self, request=AccessTokenRequest, body=None):
-        # req = message(reqmsg).from_urlencoded(body)
         req = request().deserialize(body, "urlencoded")
         req.verify()
         return req

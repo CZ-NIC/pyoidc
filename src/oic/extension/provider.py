@@ -567,7 +567,6 @@ class Provider(provider.Provider):
             _provider_info["jwks_uri"] = self.jwks_uri
 
         for endp in self.endp:
-            # _log_info("# %s, %s" % (endp, endp.name))
             _provider_info['{}_endpoint'.format(endp.etype)] = os.path.join(
                 self.baseurl, endp.url)
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# from oic.oauth2 import KeyStore
 from future.backports.urllib.parse import urlparse
 
 import json
@@ -202,7 +201,6 @@ class TestClient(object):
         args = {
             "code": "code",
             "redirect_uri": self.client.redirect_uris[0],
-            # "client_id": self.client.client_id,
         }
 
         url, query, ht_args, cis = self.client.request_info(

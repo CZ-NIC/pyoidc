@@ -604,14 +604,6 @@ class Message(MutableMapping):
         :param kwargs: Extra key word arguments
         :return: A class instance
         """
-        # if key is None and keyjar is not None:
-        #     key = keyjar.get_verify_key(owner="")
-        # elif key is None:
-        #     key = []
-        #
-        # if keyjar is not None and "sender" in kwargs:
-        #     key.extend(keyjar.get_verify_key(owner=kwargs["sender"]))
-
         _jw = jwe.factory(txt)
         if _jw:
             logger.debug("JWE headers: {}".format(_jw.jwt.headers))
@@ -705,7 +697,6 @@ class Message(MutableMapping):
                 raise NotAllowedValue(val)
         elif isinstance(typ, list):
             if isinstance(val, list):
-                # _typ = typ[0]
                 for item in val:
                     if item not in _allowed:
                         raise NotAllowedValue(val)
@@ -815,9 +806,6 @@ class Message(MutableMapping):
             return False
 
         return True
-
-    # def __getattr__(self, item):
-    #        return self._dict[item]
 
     def __delitem__(self, key):
         del self._dict[key]

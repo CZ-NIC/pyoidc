@@ -772,10 +772,6 @@ class Provider(object):
 
     def token_scope_check(self, areq, info):
         """ Not implemented here """
-        # if not self.subset(areq["scope"], _info["scope"]):
-        # logger.info("Asked for scope which is not subset of previous defined")
-        # err = TokenErrorResponse(error="invalid_scope")
-        #     return Response(err.to_json(), content="application/json")
         return None
 
     def token_endpoint(self, authn="", **kwargs):

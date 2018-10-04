@@ -52,7 +52,6 @@ class StateLess(object):
         _cont = Content(typ="code", sub=sub, aud=areq["redirect_uri"],
                         val=epoch_in_a_while(self.validity["grant"]))
 
-        # return _cont.to_jwe(self.keys, self.enc, self.alg)
         return _cont
 
     def upgrade_to_token(self, cont, issue_refresh=False):

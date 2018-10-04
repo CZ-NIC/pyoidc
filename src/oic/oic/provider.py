@@ -116,14 +116,6 @@ def secret(seed, sid):
     return csum.hexdigest()
 
 
-# def update_info(aresp, sdict):
-#    for prop in aresp._schema["param"].keys():
-#        try:
-#            aresp[prop] = sdict[prop]
-#        except KeyError:
-#            pass
-
-
 def code_token_response(**kwargs):
     _areq = kwargs["areq"]
     _scode = kwargs["scode"]
@@ -1658,7 +1650,6 @@ class Provider(AProvider):
             _provider_info["jwks_uri"] = self.jwks_uri
 
         for endp in self.endp:
-            # _log_info("# %s, %s" % (endp, endp.name))
             if not self.baseurl.endswith('/'):
                 baseurl = self.baseurl + '/'
             else:

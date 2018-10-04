@@ -402,7 +402,6 @@ class Consumer(Client):
         if resp.type() == "ErrorResponse":
             raise TokenError(resp.error, resp)
 
-        # self._backup(self.sdb["seed:%s" % _cli.seed])
         self._backup(state)
 
         return resp

@@ -55,7 +55,6 @@ class DeviceFlowServer(SingleService):
         self.device2user[device_code] = user_code
         self.user_auth[user_code] = False
         self.client_id2device[_req['client_id']] = device_code
-        # in_a_while(minutes=15)
         self.device_code_expire_at[
             device_code] = time_sans_frac() + self.device_code_life_time
 
