@@ -318,7 +318,7 @@ class TestProvider(object):
                                            path="http://localhost:8087")
 
         resp = self.provider.authorization_endpoint(
-                request=urlparse(location).query)
+            request=urlparse(location).query)
 
         parsed = urlparse(resp.message)
         assert "{}://{}{}".format(parsed.scheme, parsed.netloc,
@@ -342,7 +342,7 @@ class TestProvider(object):
                                           path="http://localhost:8087")
 
         resp = self.provider.authorization_endpoint(
-                request=urlparse(location).query)
+            request=urlparse(location).query)
 
         aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
                                          sformat="urlencoded")
@@ -352,12 +352,12 @@ class TestProvider(object):
 
     def test_authenticated_hybrid(self):
         _state, location = self.cons.begin(
-                scope="openid email claims_in_id_token",
-                response_type="code id_token",
-                path="http://localhost:8087")
+            scope="openid email claims_in_id_token",
+            response_type="code id_token",
+            path="http://localhost:8087")
 
         resp = self.provider.authorization_endpoint(
-                request=urlparse(location).query)
+            request=urlparse(location).query)
 
         part = self.cons.parse_authz(resp.message)
 
@@ -384,7 +384,7 @@ class TestProvider(object):
                                            path="http://localhost:8087")
 
         resp = self.provider.authorization_endpoint(
-                request=urlparse(location).query)
+            request=urlparse(location).query)
         parsed = parse_qs(urlparse(resp.message).fragment)
         assert parsed["token_type"][0] == "Bearer"
         assert "access_token" in parsed
@@ -394,7 +394,7 @@ class TestProvider(object):
                                            path="http://localhost:8087")
 
         resp = self.provider.authorization_endpoint(
-                request=location.split("?")[1])
+            request=location.split("?")[1])
         parsed = urlparse(resp.message)
         assert "{}://{}{}".format(parsed.scheme, parsed.netloc,
                                   parsed.path) == "http://localhost:8087/authz"
@@ -626,17 +626,17 @@ class TestProvider(object):
                                           path="http://localhost:8087")
 
         resp = self.provider.authorization_endpoint(
-                request=urlparse(location).query)
+            request=urlparse(location).query)
 
         self.cons.parse_response(AuthorizationResponse, resp.message,
                                  sformat="urlencoded")
 
         # Construct Access token request
         areq = self.cons.construct_AccessTokenRequest(
-                redirect_uri="http://example.com/authz",
-                client_id="client_1",
-                client_secret='abcdefghijklmnop',
-                state=state)
+            redirect_uri="http://example.com/authz",
+            client_id="client_1",
+            client_secret='abcdefghijklmnop',
+            state=state)
 
         txt = areq.to_urlencoded()
         self.cons.client_secret = 'drickyoughurt'
@@ -657,7 +657,7 @@ class TestProvider(object):
                                            response_type=["code", "token"],
                                            path="http://localhost:8087")
         resp = self.provider.authorization_endpoint(
-                request=urlparse(location).query)
+            request=urlparse(location).query)
 
         parsed = parse_qs(urlparse(resp.message).fragment)
         assert parsed["token_type"][0] == "Bearer"
@@ -702,11 +702,11 @@ class TestProvider(object):
                                           path="http://localhost:8087")
 
         resp = self.provider.authorization_endpoint(
-                request=urlparse(location).query)
+            request=urlparse(location).query)
 
         # redirect
         atr = AuthorizationResponse().deserialize(
-                urlparse(resp.message).fragment, "urlencoded")
+            urlparse(resp.message).fragment, "urlencoded")
 
         uir = UserInfoRequest(access_token=atr["access_token"], schema="openid")
 
@@ -750,11 +750,11 @@ class TestProvider(object):
                                           path="http://localhost:8087")
 
         resp = self.provider.authorization_endpoint(
-                request=urlparse(location).query)
+            request=urlparse(location).query)
 
         # redirect
         atr = AuthorizationResponse().deserialize(
-                urlparse(resp.message).fragment, "urlencoded")
+            urlparse(resp.message).fragment, "urlencoded")
 
         uir = UserInfoRequest(access_token=atr["access_token"], schema="openid")
 
@@ -772,11 +772,11 @@ class TestProvider(object):
                                           path="http://localhost:8087")
 
         resp = self.provider.authorization_endpoint(
-                request=urlparse(location).query)
+            request=urlparse(location).query)
 
         # redirect
         atr = AuthorizationResponse().deserialize(
-                urlparse(resp.message).fragment, "urlencoded")
+            urlparse(resp.message).fragment, "urlencoded")
 
         uir = UserInfoRequest(access_token=atr["access_token"], schema="openid")
 
@@ -815,11 +815,11 @@ class TestProvider(object):
                                           path="http://localhost:8087")
 
         resp = self.provider.authorization_endpoint(
-                request=urlparse(location).query)
+            request=urlparse(location).query)
 
         # redirect
         atr = AuthorizationResponse().deserialize(
-                urlparse(resp.message).fragment, "urlencoded")
+            urlparse(resp.message).fragment, "urlencoded")
 
         uir = UserInfoRequest(schema="openid")
 
@@ -1278,30 +1278,30 @@ class TestProvider(object):
         cid = regresp["client_id"]
 
         areq = AuthorizationRequest(
-                redirect_uri="http://example.org/cb?foo=bar",
-                client_id=cid, scope="openid",
-                response_type="code")
+            redirect_uri="http://example.org/cb?foo=bar",
+            client_id=cid, scope="openid",
+            response_type="code")
 
         self.provider._verify_redirect_uri(areq)
 
     def test_verify_redirect_uri_native_http_localhost(self):
         areq = RegistrationRequest(
-                redirect_uris=["http://localhost/cb"],
-                application_type='native')
+            redirect_uris=["http://localhost/cb"],
+            application_type='native')
 
         self.provider.verify_redirect_uris(areq)
 
     def test_verify_redirect_uri_native_loopback(self):
         areq = RegistrationRequest(
-                redirect_uris=["http://127.0.0.1/cb"],
-                application_type='native')
+            redirect_uris=["http://127.0.0.1/cb"],
+            application_type='native')
 
         self.provider.verify_redirect_uris(areq)
 
     def test_verify_redirect_uri_native_http_non_localhost(self):
         areq = RegistrationRequest(
-                redirect_uris=["http://example.org/cb"],
-                application_type='native')
+            redirect_uris=["http://example.org/cb"],
+            application_type='native')
 
         try:
             self.provider.verify_redirect_uris(areq)
@@ -1310,15 +1310,15 @@ class TestProvider(object):
 
     def test_verify_redirect_uri_native_custom(self):
         areq = RegistrationRequest(
-                redirect_uris=["com.example.app:/oauth2redirect"],
-                application_type='native')
+            redirect_uris=["com.example.app:/oauth2redirect"],
+            application_type='native')
 
         self.provider.verify_redirect_uris(areq)
 
     def test_verify_redirect_uri_native_https(self):
         areq = RegistrationRequest(
-                redirect_uris=["https://example.org/cb"],
-                application_type='native')
+            redirect_uris=["https://example.org/cb"],
+            application_type='native')
 
         try:
             self.provider.verify_redirect_uris(areq)
@@ -1403,27 +1403,27 @@ class TestProvider(object):
     def test_endsession_endpoint_with_id_token_hint(self):
         id_token = self._auth_with_id_token()
         assert self.provider.sdb.get_sids_by_sub(
-                id_token["sub"])  # verify we got valid session
+            id_token["sub"])  # verify we got valid session
 
         id_token_hint = id_token.to_jwt(algorithm="none")
         resp = self.provider.endsession_endpoint(
-                urlencode({"id_token_hint": id_token_hint}))
+            urlencode({"id_token_hint": id_token_hint}))
         assert not self.provider.sdb.get_sids_by_sub(
-                id_token["sub"])  # verify session has been removed
+            id_token["sub"])  # verify session has been removed
         self._assert_cookies_expired(resp.headers)
 
     def test_endsession_endpoint_with_post_logout_redirect_uri(self):
         id_token = self._auth_with_id_token()
         assert self.provider.sdb.get_sids_by_sub(
-                id_token["sub"])  # verify we got valid session
+            id_token["sub"])  # verify we got valid session
 
         post_logout_redirect_uri = \
             CDB[CLIENT_CONFIG["client_id"]]["post_logout_redirect_uris"][0][0]
         resp = self.provider.endsession_endpoint(urlencode(
-                {"post_logout_redirect_uri": post_logout_redirect_uri}))
+            {"post_logout_redirect_uri": post_logout_redirect_uri}))
         assert isinstance(resp, SeeOther)
         assert not self.provider.sdb.get_sids_by_sub(
-                id_token["sub"])  # verify session has been removed
+            id_token["sub"])  # verify session has been removed
         self._assert_cookies_expired(resp.headers)
 
     def test_session_state_in_auth_req_for_session_support(self, session_db_factory):
@@ -1433,7 +1433,7 @@ class TestProvider(object):
                             keyjar=KEYJAR)
 
         provider.capabilities.update({
-                "check_session_iframe": "https://op.example.com/check_session"})
+            "check_session_iframe": "https://op.example.com/check_session"})
 
         req_args = {"scope": ["openid"],
                     "redirect_uri": "http://localhost:8087/authz",
@@ -1442,14 +1442,14 @@ class TestProvider(object):
                     }
         areq = AuthorizationRequest(**req_args)
         resp = provider.authorization_endpoint(
-                request=areq.to_urlencoded())
+            request=areq.to_urlencoded())
         aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
                                          sformat="urlencoded")
         assert "session_state" in aresp
 
     def _assert_cookies_expired(self, http_headers):
         cookies_string = ";".join(
-                [c[1] for c in http_headers if c[0] == "Set-Cookie"])
+            [c[1] for c in http_headers if c[0] == "Set-Cookie"])
         all_cookies = SimpleCookie()
 
         try:
@@ -1469,7 +1469,7 @@ class TestProvider(object):
         state, location = self.cons.begin("openid", "id_token",
                                           path="http://localhost:8087")
         resp = self.provider.authorization_endpoint(
-                request=location.split("?")[1])
+            request=location.split("?")[1])
         aresp = self.cons.parse_response(AuthorizationResponse, resp.message,
                                          sformat="urlencoded")
         return aresp["id_token"]
