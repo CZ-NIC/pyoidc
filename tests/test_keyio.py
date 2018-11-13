@@ -29,11 +29,16 @@ jwks_folder = os.path.join(folder, 'jwks')
 RSAKEY = os.path.join(BASE_PATH, "cert.key")
 RSA0 = os.path.join(BASE_PATH, "rsa.key")
 
-JWK0 = json.load(open(os.path.join(jwks_folder, 'jwks0.json')))
-JWK1 = json.load(open(os.path.join(jwks_folder, 'jwks1.json')))
-JWK2 = json.load(open(os.path.join(jwks_folder, 'jwks2.json')))
-JWK_UK = json.load(open(os.path.join(jwks_folder, 'jwks_uk.json')))
-JWKS_SPO = json.load(open(os.path.join(jwks_folder, 'jwks_spo.json')))
+with open(os.path.join(jwks_folder, 'jwks0.json')) as f:
+    JWK0 = json.load(f)
+with open(os.path.join(jwks_folder, 'jwks1.json')) as f:
+    JWK1 = json.load(f)
+with open(os.path.join(jwks_folder, 'jwks2.json')) as f:
+    JWK2 = json.load(f)
+with open(os.path.join(jwks_folder, 'jwks_uk.json')) as f:
+    JWK_UK = json.load(f)
+with open(os.path.join(jwks_folder, 'jwks_spo.json')) as f:
+    JWKS_SPO = json.load(f)
 
 
 def test_rsa_init(tmpdir):
