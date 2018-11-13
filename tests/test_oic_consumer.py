@@ -208,9 +208,10 @@ class TestOICConsumer():
             relative_path = os.path.relpath(p.path, external_path)
             file_path = os.path.join(path, relative_path)
 
-            rsps.add(rsps.GET, self.consumer.request_uri,
-                     body=open(file_path).read(), status=200,
-                     content_type='application/urlencoded')
+            with open(file_path) as f:
+                rsps.add(rsps.GET, self.consumer.request_uri,
+                         body=f.read(), status=200,
+                         content_type='application/urlencoded')
 
             authreq = srv.parse_authorization_request(url=location)
             assert _eq(list(authreq.keys()),

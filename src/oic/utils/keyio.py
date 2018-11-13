@@ -139,7 +139,8 @@ class KeyBundle(object):
 
     def do_local_jwk(self, filename):
         try:
-            self.do_keys(json.loads(open(filename).read())["keys"])
+            with open(filename) as f:
+                self.do_keys(json.loads(f.read())["keys"])
         except KeyError:
             logger.error("Now 'keys' keyword in JWKS")
             raise_exception(
@@ -896,10 +897,10 @@ def key_setup(vault, **kwargs):
                 try:
                     _key = rsa_load('%s%s' % (vault_path, "pyoidc"))
                 except Exception:
-                    devnull = open(os.devnull, 'w')
-                    with RedirectStdStreams(stdout=devnull, stderr=devnull):
-                        _key = create_and_store_rsa_key_pair(
-                            path=vault_path)
+                    with open(os.devnull, 'w') as devnull:
+                        with RedirectStdStreams(stdout=devnull, stderr=devnull):
+                            _key = create_and_store_rsa_key_pair(
+                                path=vault_path)
 
                 k = RSAKey(key=_key, use=usage)
                 k.add_kid()

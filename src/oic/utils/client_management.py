@@ -108,7 +108,8 @@ class CDB(BaseClientDatabase):
         self.cdb[key] = eval(value)
 
     def load(self, filename):
-        info = json.loads(open(filename).read())
+        with open(filename) as f:
+            info = json.loads(f.read())
         for item in info:
             if isinstance(item, list):
                 self.cdb[str(item[0])] = item[1]
