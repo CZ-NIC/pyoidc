@@ -735,7 +735,7 @@ class TestServer(object):
         assert "email" in request["claims"]["userinfo"]
 
     def test_make_id_token(self):
-        self.srv.keyjar["http://oic.example/rp"] = KC_RSA
+        self.srv.keyjar["http://oic.example/idp"] = KC_RSA
 
         session = {"sub": "user0",
                    "client_id": "http://oic.example/rp"}
@@ -746,7 +746,7 @@ class TestServer(object):
 
         algo = "RS256"
         ckey = self.srv.keyjar.get_signing_key(alg2keytype(algo),
-                                               session["client_id"])
+                                               issuer)
         _signed_jwt = _idt.to_jwt(key=ckey, algorithm="RS256")
 
         idt = IdToken().from_jwt(_signed_jwt, keyjar=self.srv.keyjar)

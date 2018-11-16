@@ -10,6 +10,7 @@ import urllib
 
 import six
 from jwkest import jws
+from jwkest.jwt import JWT
 
 from oic.exception import InvalidRequest
 from oic.exception import IssuerMismatch
@@ -258,6 +259,50 @@ def check_char_set(string, allowed):
             raise NotAllowedValue("'%c' not in the allowed character set" % c)
 
 
+def verify_id_token(instance, check_hash=False, **kwargs):
+    # Try to decode the JWT, checks the signature
+    args = {}
+    for arg in ["key", "keyjar", "algs", "sender"]:
+        try:
+            args[arg] = kwargs[arg]
+        except KeyError:
+            pass
+
+    _jws = str(instance["id_token"])
+    _packer = JWT()
+    _body = _packer.unpack(_jws).payload()
+    if 'keyjar' in kwargs:
+        try:
+            if _body['iss'] not in kwargs['keyjar']:
+                raise ValueError('Unknown issuer')
+        except KeyError:
+            pass
+
+    idt = IdToken().from_jwt(_jws, **args)
+    if not idt.verify(**kwargs):
+        raise VerificationError("Could not verify id_token", idt)
+
+    if check_hash:
+        _alg = idt.jws_header["alg"]
+        # What if _alg == 'none'
+
+        hfunc = "HS" + _alg[-3:]
+
+        if "access_token" in instance:
+            if "at_hash" not in idt:
+                raise MissingRequiredAttribute("Missing at_hash property", idt)
+            if idt["at_hash"] != jws.left_hash(instance["access_token"], hfunc):
+                raise AtHashError("Failed to verify access_token hash", idt)
+
+        if "code" in instance:
+            if "c_hash" not in idt:
+                raise MissingRequiredAttribute("Missing c_hash property", idt)
+            if idt["c_hash"] != jws.left_hash(instance["code"], hfunc):
+                raise CHashError("Failed to verify code hash", idt)
+
+    return idt
+
+
 # -----------------------------------------------------------------------------
 
 class RefreshAccessTokenRequest(message.RefreshAccessTokenRequest):
@@ -275,19 +320,8 @@ class AccessTokenResponse(message.AccessTokenResponse):
     def verify(self, **kwargs):
         super(AccessTokenResponse, self).verify(**kwargs)
         if "id_token" in self:
-            # Try to decode the JWT, checks the signature
-            args = {}
-            for arg in ["key", "keyjar", "algs", "sender"]:
-                try:
-                    args[arg] = kwargs[arg]
-                except KeyError:
-                    pass
-            idt = IdToken().from_jwt(str(self["id_token"]), **args)
-            if not idt.verify(**kwargs):
-                return False
-
-            # replace the JWT with the IdToken instance
-            self["id_token"] = idt
+            # replace the JWT with the verified IdToken instance
+            self["id_token"] = verify_id_token(self, **kwargs)
 
         return True
 
@@ -319,35 +353,7 @@ class AuthorizationResponse(message.AuthorizationResponse,
                     return False
 
         if "id_token" in self:
-            # Try to decode the JWT, checks the signature
-            args = {}
-            for arg in ["key", "keyjar", "algs", "sender"]:
-                try:
-                    args[arg] = kwargs[arg]
-                except KeyError:
-                    pass
-            idt = IdToken().from_jwt(str(self["id_token"]), **args)
-            if not idt.verify(**kwargs):
-                raise VerificationError("Could not verify id_token", idt)
-
-            _alg = idt.jws_header["alg"]
-            # What if _alg == 'none'
-
-            hfunc = "HS" + _alg[-3:]
-
-            if "access_token" in self:
-                if "at_hash" not in idt:
-                    raise MissingRequiredAttribute("Missing at_hash property", idt)
-                if idt["at_hash"] != jws.left_hash(self["access_token"], hfunc):
-                    raise AtHashError("Failed to verify access_token hash", idt)
-
-            if "code" in self:
-                if "c_hash" not in idt:
-                    raise MissingRequiredAttribute("Missing c_hash property", idt)
-                if idt["c_hash"] != jws.left_hash(self["code"], hfunc):
-                    raise CHashError("Failed to verify code hash", idt)
-
-            self["id_token"] = idt
+            self["id_token"] = verify_id_token(self, check_hash=True, **kwargs)
 
         if "access_token" in self:
             if "token_type" not in self:

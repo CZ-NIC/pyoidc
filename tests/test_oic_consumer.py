@@ -594,7 +594,7 @@ class TestOICConsumer():
                  "token_type": "Bearer"}
 
         _json = json.dumps(_info)
-        with pytest.raises(BadSignature):
+        with pytest.raises(ValueError):
             c.parse_response(AccessTokenResponse, _json, sformat="json")
 
     def test_faulty_idtoken_from_accesstoken_endpoint(self, mitm_server):

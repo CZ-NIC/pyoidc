@@ -191,6 +191,8 @@ class TestProvider(object):
         self.cons.behaviour = {
             "request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]}
         self.cons.keyjar[""] = KC_RSA
+        self.cons.keyjar.import_jwks(self.provider.keyjar.export_jwks(),
+                                     self.cons.issuer)
 
     def test_providerinfo(self):
         self.provider.baseurl = 'http://example.com/path1/path2'
