@@ -17,6 +17,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#571] Return error when when resolving request_uri fails
 
 ### Added
+- [#577] Check that issuer of a signed JWT exists in the KeyJar used to verify the signature.
 - [#566] Added timeout to communications to remote servers
 
 [#553]: https://github.com/OpenIDC/pyoidc/pull/553
