@@ -11,8 +11,6 @@ from jwkest import BadSignature
 from jwkest.jwk import SYMKey
 from jwkest.jws import left_hash
 
-from oic.utils.keyio import KeyJar
-
 from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import MissingRequiredValue
 from oic.oauth2.message import WrongSigningAlgorithm
@@ -35,6 +33,7 @@ from oic.oic.message import msg_ser
 from oic.oic.message import verify_id_token
 from oic.utils import time_util
 from oic.utils.jwt import JWT
+from oic.utils.keyio import KeyJar
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              '..', '..')))
@@ -562,8 +561,6 @@ def test_id_token():
 
 
 def test_verify_id_token():
-    _now = time_util.utc_time_sans_frac()
-
     idt = IdToken(**{
         "sub": "553df2bcf909104751cfd8b2",
         "aud": [
@@ -590,8 +587,6 @@ def test_verify_id_token():
 
 
 def test_verify_id_token_wrong_issuer():
-    _now = time_util.utc_time_sans_frac()
-
     idt = IdToken(**{
         "sub": "553df2bcf909104751cfd8b2",
         "aud": [
@@ -617,8 +612,6 @@ def test_verify_id_token_wrong_issuer():
 
 
 def test_verify_id_token_wrong_aud():
-    _now = time_util.utc_time_sans_frac()
-
     idt = IdToken(**{
         "sub": "553df2bcf909104751cfd8b2",
         "aud": [
