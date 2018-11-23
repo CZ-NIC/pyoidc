@@ -13,15 +13,15 @@ from jwkest.jws import left_hash
 
 from oic.utils.keyio import KeyJar
 
-from oic.oauth2.exception import OtherError
-
 from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import MissingRequiredValue
 from oic.oauth2.message import WrongSigningAlgorithm
-from oic.oic.message import AccessTokenResponse, CHashError, AtHashError
+from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AddressClaim
+from oic.oic.message import AtHashError
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AuthorizationResponse
+from oic.oic.message import CHashError
 from oic.oic.message import Claims
 from oic.oic.message import IdToken
 from oic.oic.message import OpenIDSchema
@@ -692,7 +692,7 @@ def test_verify_id_token_c_hash():
                  lifetime=3600)
     _jws = packer.pack(**idt.to_dict())
     msg = AuthorizationResponse(code=code, id_token=_jws)
-    verify_id_token(msg, check_hash=True,keyjar=kj,
+    verify_id_token(msg, check_hash=True, keyjar=kj,
                     iss="https://sso.qa.7pass.ctf.prosiebensat1.com",
                     client_id="554295ce3770612820620000")
 
@@ -722,7 +722,7 @@ def test_verify_id_token_c_hash_fail():
     _jws = packer.pack(**idt.to_dict())
     msg = AuthorizationResponse(code="AccessCode289", id_token=_jws)
     with pytest.raises(CHashError):
-        verify_id_token(msg, check_hash=True,keyjar=kj,
+        verify_id_token(msg, check_hash=True, keyjar=kj,
                         iss="https://sso.qa.7pass.ctf.prosiebensat1.com",
                         client_id="554295ce3770612820620000")
 
@@ -751,7 +751,7 @@ def test_verify_id_token_at_hash():
                  lifetime=3600)
     _jws = packer.pack(**idt.to_dict())
     msg = AuthorizationResponse(access_token=token, id_token=_jws)
-    verify_id_token(msg, check_hash=True,keyjar=kj,
+    verify_id_token(msg, check_hash=True, keyjar=kj,
                     iss="https://sso.qa.7pass.ctf.prosiebensat1.com",
                     client_id="554295ce3770612820620000")
 
@@ -782,7 +782,7 @@ def test_verify_id_token_at_hash_fail():
     _jws = packer.pack(**idt.to_dict())
     msg = AuthorizationResponse(access_token=token2, id_token=_jws)
     with pytest.raises(AtHashError):
-        verify_id_token(msg, check_hash=True,keyjar=kj,
+        verify_id_token(msg, check_hash=True, keyjar=kj,
                         iss="https://sso.qa.7pass.ctf.prosiebensat1.com",
                         client_id="554295ce3770612820620000")
 
@@ -810,7 +810,7 @@ def test_verify_id_token_missing_at_hash():
     _jws = packer.pack(**idt.to_dict())
     msg = AuthorizationResponse(access_token=token, id_token=_jws)
     with pytest.raises(MissingRequiredAttribute):
-        verify_id_token(msg, check_hash=True,keyjar=kj,
+        verify_id_token(msg, check_hash=True, keyjar=kj,
                         iss="https://sso.qa.7pass.ctf.prosiebensat1.com",
                         client_id="554295ce3770612820620000")
 
@@ -842,7 +842,7 @@ def test_verify_id_token_at_hash_and_chash():
                  lifetime=3600)
     _jws = packer.pack(**idt.to_dict())
     msg = AuthorizationResponse(access_token=token, id_token=_jws, code=code)
-    verify_id_token(msg, check_hash=True,keyjar=kj,
+    verify_id_token(msg, check_hash=True, keyjar=kj,
                     iss="https://sso.qa.7pass.ctf.prosiebensat1.com",
                     client_id="554295ce3770612820620000")
 
