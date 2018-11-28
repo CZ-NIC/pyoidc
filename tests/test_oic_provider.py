@@ -1051,6 +1051,15 @@ class TestProvider(object):
 
         assert str(exc_info.value) == "None https redirect_uri not allowed"
 
+    def test_verify_redirect_uris_unicode(self):
+        url = 'http://example.com/a\xc5\xaf\xc5\xa5h\xc5\xbe'
+        params = {"application_type": "web",
+                  "redirect_uris": [url],
+                  "response_types": ["code"]}
+        request = RegistrationRequest(**params)
+        verified_uris = self.provider.verify_redirect_uris(request)
+        assert verified_uris == [(url, None)]
+
     def test_provider_key_setup(self, tmpdir, session_db_factory):
         path = tmpdir.strpath
 
