@@ -808,6 +808,34 @@ def test_verify_id_token_missing_at_hash():
                         client_id="554295ce3770612820620000")
 
 
+def test_verify_id_token_missing_c_hash():
+    code = 'AccessCode1'
+
+    idt = IdToken(**{
+        "sub": "553df2bcf909104751cfd8b2",
+        "aud": [
+            "5542958437706128204e0000",
+            "554295ce3770612820620000"
+            ],
+        "auth_time": 1441364872,
+        "azp": "554295ce3770612820620000",
+        })
+
+    kj = KeyJar()
+    kj.add_symmetric("", 'dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ', ['sig'])
+    kj.add_symmetric("https://sso.qa.7pass.ctf.prosiebensat1.com",
+                     'dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ', ['sig'])
+    packer = JWT(kj, sign_alg='HS256',
+                 iss="https://sso.qa.7pass.ctf.prosiebensat1.com",
+                 lifetime=3600)
+    _jws = packer.pack(**idt.to_dict())
+    msg = AuthorizationResponse(code=code, id_token=_jws)
+    with pytest.raises(MissingRequiredAttribute):
+        verify_id_token(msg, check_hash=True, keyjar=kj,
+                        iss="https://sso.qa.7pass.ctf.prosiebensat1.com",
+                        client_id="554295ce3770612820620000")
+
+
 def test_verify_id_token_at_hash_and_chash():
     token = 'AccessTokenWhichCouldBeASignedJWT'
     at_hash = left_hash(token)
@@ -840,5 +868,51 @@ def test_verify_id_token_at_hash_and_chash():
                     client_id="554295ce3770612820620000")
 
 
-if __name__ == "__main__":
-    test_id_token()
+def test_verify_id_token_missing_iss():
+    idt = IdToken(**{
+        "sub": "553df2bcf909104751cfd8b2",
+        "aud": [
+            "5542958437706128204e0000",
+            "554295ce3770612820620000"
+            ],
+        "auth_time": 1441364872,
+        "azp": "554295ce3770612820620000",
+        })
+
+    kj = KeyJar()
+    kj.add_symmetric("", 'dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ', ['sig'])
+    kj.add_symmetric("https://sso.qa.7pass.ctf.prosiebensat1.com",
+                     'dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ', ['sig'])
+    packer = JWT(kj, sign_alg='HS256', lifetime=3600)
+    _jws = packer.pack(**idt.to_dict())
+    msg = AuthorizationResponse(id_token=_jws)
+    with pytest.raises(MissingRequiredAttribute):
+        verify_id_token(msg, check_hash=True, keyjar=kj,
+                        iss="https://sso.qa.7pass.ctf.prosiebensat1.com",
+                        client_id="554295ce3770612820620000")
+
+
+def test_verify_id_token_iss_not_in_keyjar():
+    idt = IdToken(**{
+        "sub": "553df2bcf909104751cfd8b2",
+        "aud": [
+            "5542958437706128204e0000",
+            "554295ce3770612820620000"
+            ],
+        "auth_time": 1441364872,
+        "azp": "554295ce3770612820620000",
+        })
+
+    kj = KeyJar()
+    kj.add_symmetric("", 'dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ', ['sig'])
+    kj.add_symmetric("https://sso.qa.7pass.ctf.prosiebensat1.com",
+                     'dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ', ['sig'])
+    packer = JWT(kj, sign_alg='HS256', lifetime=3600,
+                 iss='https://example.com/op')
+    _jws = packer.pack(**idt.to_dict())
+    msg = AuthorizationResponse(id_token=_jws)
+    with pytest.raises(ValueError):
+        verify_id_token(msg, check_hash=True, keyjar=kj,
+                        iss="https://sso.qa.7pass.ctf.prosiebensat1.com",
+                        client_id="554295ce3770612820620000")
+
