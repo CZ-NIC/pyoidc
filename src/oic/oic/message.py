@@ -276,7 +276,7 @@ def verify_id_token(instance, check_hash=False, **kwargs):
             if _body['iss'] not in kwargs['keyjar']:
                 raise ValueError('Unknown issuer')
         except KeyError:
-            pass
+            raise MissingRequiredAttribute('iss')
 
     idt = IdToken().from_jwt(_jws, **args)
     if not idt.verify(**kwargs):
