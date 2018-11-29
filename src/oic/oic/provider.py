@@ -3,8 +3,8 @@ from future.backports.urllib.parse import splitquery
 from future.backports.urllib.parse import unquote
 from future.backports.urllib.parse import urlencode
 from future.backports.urllib.parse import urljoin
-from future.backports.urllib.parse import urlparse
 from future.moves.urllib.parse import parse_qs
+from future.moves.urllib.parse import urlparse
 
 import copy
 import hashlib
