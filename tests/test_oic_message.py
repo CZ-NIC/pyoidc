@@ -915,4 +915,3 @@ def test_verify_id_token_iss_not_in_keyjar():
         verify_id_token(msg, check_hash=True, keyjar=kj,
                         iss="https://sso.qa.7pass.ctf.prosiebensat1.com",
                         client_id="554295ce3770612820620000")
-
