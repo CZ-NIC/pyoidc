@@ -19,6 +19,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#581] Fix error in verification of sector_identifier
 - [#542] Updated examples
 - [#587] Fix JWKS content type detection
+- [#582] Handling import of non-compliant JWKS
 
 ### Added
 - [#577] Check that issuer of a signed JWT exists in the KeyJar used to verify the signature.
@@ -36,6 +37,7 @@ The format is based on the [KeepAChangeLog] project.
 [#581]: https://github.com/OpenIDC/pyoidc/issues/581
 [#542]: https://github.com/OpenIDC/pyoidc/pull/542
 [#581]: https://github.com/OpenIDC/pyoidc/pull/587
+[#582]: https://github.com/OpenIDC/pyoidc/issues/582
 
 ## 0.14.0 [2018-05-15]
 
