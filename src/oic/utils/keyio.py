@@ -52,6 +52,10 @@ class UpdateFailed(KeyIOError):
     pass
 
 
+class JWKSError(KeyIOError):
+    pass
+
+
 K2C = {
     "RSA": RSAKey,
     "EC": ECKey,
@@ -120,6 +124,9 @@ class KeyBundle(object):
         :return:
         """
         for inst in keys:
+            if not isinstance(inst, dict):
+                raise JWKSError('Illegal JWK')
+
             typ = inst["kty"]
             flag = 0
             for _typ in [typ, typ.lower(), typ.upper()]:
@@ -127,6 +134,8 @@ class KeyBundle(object):
                     _key = K2C[_typ](**inst)
                 except KeyError:
                     continue
+                except TypeError:
+                    raise JWKSError('Inappropriate JWKS argument type')
                 except JWKException as err:
                     logger.warning('Loading a key failed: %s', err)
                 else:
