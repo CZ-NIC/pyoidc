@@ -10,6 +10,7 @@ from freezegun import freeze_time
 
 from oic.oauth2.message import MissingSigningKey
 from oic.oic import AuthorizationResponse
+from oic.utils.keyio import JWKSError
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import RSAKey
@@ -39,6 +40,8 @@ with open(os.path.join(jwks_folder, 'jwks_uk.json')) as f:
     JWK_UK = json.load(f)
 with open(os.path.join(jwks_folder, 'jwks_spo.json')) as f:
     JWKS_SPO = json.load(f)
+with open(os.path.join(jwks_folder, 'jwks_fault.json')) as f:
+    JWKS_ERR_1 = json.load(f)
 
 
 def test_rsa_init(tmpdir):
@@ -438,3 +441,15 @@ def test_reload():
     kb.do_keys(kb.imp_jwks['keys'])
 
     assert len(kb) == 1
+
+
+def test_load_null_jwks():
+    kj = KeyJar()
+    with pytest.raises(JWKSError):
+        kj.import_jwks({'keys': [None, None]}, '')
+
+
+def test_load_jwks_wrong_argtype():
+    kj = KeyJar()
+    with pytest.raises(JWKSError):
+        kj.import_jwks(JWKS_ERR_1, '')
