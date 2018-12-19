@@ -16,6 +16,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#268] Fixed SessionDB.revoke_token implementation
 - [#571] Return error when when resolving request_uri fails
 - [#579] Fix error with unicode chars in redirect_uris
+- [#581] Fix error in verification of sector_identifier
 
 ### Added
 - [#577] Check that issuer of a signed JWT exists in the KeyJar used to verify the signature.
@@ -30,6 +31,7 @@ The format is based on the [KeepAChangeLog] project.
 [#268]: https://github.com/OpenIDC/pyoidc/issues/268
 [#571]: https://github.com/OpenIDC/pyoidc/issues/571
 [#579]: https://github.com/OpenIDC/pyoidc/issues/579
+[#581]: https://github.com/OpenIDC/pyoidc/issues/581
 
 ## 0.14.0 [2018-05-15]
 
