@@ -12,10 +12,12 @@ from time import time
 
 import pytest
 import responses
+import six
 from freezegun import freeze_time
 from mock import Mock
 from mock import patch
 from requests import ConnectionError
+from requests.exceptions import MissingSchema
 from testfixtures import LogCapture
 
 from oic import rndstr
@@ -1167,6 +1169,19 @@ class TestProvider(object):
                                     scope="openid")
 
         self.provider._verify_redirect_uri(areq)
+
+    def test_verify_sector_identifier_no_scheme(self):
+        rr = RegistrationRequest(operation="register", sector_identifier_uri="example.com")
+        with LogCapture(level=logging.DEBUG) as logcap:
+            message = "Couldn't open sector_identifier_uri"
+            with pytest.raises(InvalidSectorIdentifier, message=message):
+                self.provider._verify_sector_identifier(rr)
+
+        assert len(logcap.records) == 2
+        # First log record is from server...
+        assert isinstance(logcap.records[1].msg, MissingSchema)
+        error = "Invalid URL 'example.com': No schema supplied. Perhaps you meant http://example.com?"
+        assert six.text_type(logcap.records[1].msg) == error
 
     def test_verify_sector_identifier_nonreachable(self):
         rr = RegistrationRequest(operation="register", sector_identifier_uri="https://example.com")
