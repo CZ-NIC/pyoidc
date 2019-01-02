@@ -29,7 +29,7 @@ class AuthzHandling(CookieDealer):
             else:
                 uid, _ts, typ = val
 
-            if typ == "uam":  # shortlived
+            if typ == "uam":  # short lived
                 _now = int(time.time())
                 if _now > (int(_ts) + int(self.cookie_ttl * 60)):
                     logger.debug("Authentication timed out")
