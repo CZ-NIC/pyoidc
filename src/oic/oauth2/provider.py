@@ -199,6 +199,7 @@ class Provider(object):
         }
 
         self.session_cookie_name = "pyoic_session"
+        self.sso_cookie_name = "pyoidc_sso"
         self.baseurl = baseurl
         self.keyjar = None
         self.trace = None
@@ -728,33 +729,35 @@ class Provider(object):
         try:
             _kaka = kwargs["cookie"]
         except KeyError:
-            pass
-        else:
-            if _kaka:
-                if isinstance(_kaka, dict):
-                    for name, val in _kaka.items():
-                        _c = SimpleCookie()
-                        _c[name] = val
-                        _x = _c.output()
-                        if PY2:
-                            _x = str(_x)
-                        headers.append(tuple(_x.split(": ", 1)))
-                else:
-                    _c = SimpleCookie()
-                    _c.load(_kaka)
-                    for x in _c.output().split('\r\n'):
-                        if PY2:
-                            x = str(x)
-                        headers.append(tuple(x.split(": ", 1)))
+            _kaka = None
 
-                if self.cookie_name not in _kaka:  # Don't overwrite
-                    header = self.cookie_func(user, typ="sso", ttl=self.sso_ttl)
-                    if header:
-                        headers.append(header)
+        c_val = "{}][{}".format(user, areq['client_id'])
+
+        if _kaka:
+            if isinstance(_kaka, dict):
+                for name, val in _kaka.items():
+                    _c = SimpleCookie()
+                    _c[name] = val
+                    _x = _c.output()
+                    if PY2:
+                        _x = str(_x)
+                    headers.append(tuple(_x.split(": ", 1)))
             else:
-                header = self.cookie_func(user, typ="sso", ttl=self.sso_ttl)
-                if header:
-                    headers.append(header)
+                _c = SimpleCookie()
+                _c.load(_kaka)
+                for x in _c.output().split('\r\n'):
+                    if PY2:
+                        x = str(x)
+                    headers.append(tuple(x.split(": ", 1)))
+
+            if self.cookie_name not in _kaka:  # Don't overwrite
+                headers.append(self.cookie_func(c_val, typ="sso",
+                                                cookie_name=self.sso_cookie_name,
+                                                ttl=self.sso_ttl))
+        else:
+            headers.append(self.cookie_func(c_val, typ="sso",
+                                            cookie_name=self.sso_cookie_name,
+                                            ttl=self.sso_ttl))
 
         # Now about the response_mode. Should not be set if it's obvious
         # from the response_type. Knows about 'query', 'fragment' and
