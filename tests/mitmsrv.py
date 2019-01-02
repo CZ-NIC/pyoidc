@@ -161,7 +161,7 @@ class MITMServer(Server):
         if "grant_type=refresh_token" in data:
             req = self.parse_refresh_token_request(body=data)
             _info = self.sdb.refresh_token(req["refresh_token"])
-        elif "grant_type=authorization_code":
+        elif "grant_type=authorization_code" in data:
             req = self.parse_token_request(body=data)
             _info = self.sdb.upgrade_to_token(req["code"])
         else:
