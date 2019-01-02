@@ -16,6 +16,7 @@ import six
 from freezegun import freeze_time
 from mock import Mock
 from mock import patch
+from oic.oauth2.message import ErrorResponse
 from requests import ConnectionError
 from requests.exceptions import MissingSchema
 from testfixtures import LogCapture
@@ -47,7 +48,7 @@ from oic.utils.authn.client import ClientSecretBasic
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
-from oic.utils.http_util import Response
+from oic.utils.http_util import Response, CookieDealer
 from oic.utils.http_util import SeeOther
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
@@ -81,6 +82,11 @@ SERVER_INFO = {
 
 CLIENT_CONFIG = {
     "client_id": "number5",
+    'config': {'issuer': SERVER_INFO["issuer"]}
+}
+
+CLIENT_CONFIG_2 = {
+    "client_id": "client0",
     'config': {'issuer': SERVER_INFO["issuer"]}
 }
 
@@ -120,6 +126,8 @@ CDB = {
     },
     "client0": {
         "redirect_uris": [("http://www.example.org/authz", None)],
+        "post_logout_redirect_uris": [
+            ("https://www.example.org/post_logout", None)],
         "client_salt": "salted",
         'response_types': ['code', 'token', 'code id_token']
     },
@@ -195,6 +203,12 @@ class TestProvider(object):
         self.cons.keyjar[""] = KC_RSA
         self.cons.keyjar.import_jwks(self.provider.keyjar.export_jwks(),
                                      self.cons.issuer)
+
+        self.cons2 = Consumer({}, CONSUMER_CONFIG.copy(), CLIENT_CONFIG_2,
+                              server_info=SERVER_INFO, )
+        self.cons2.behaviour = {
+            "request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]}
+        self.cons2.keyjar[""] = KC_RSA
 
     def test_providerinfo(self):
         self.provider.baseurl = 'http://example.com/path1/path2'
@@ -1418,39 +1432,168 @@ class TestProvider(object):
         provider2.remove_inactive_keys(-1)
         assert len(provider2.keyjar.issuer_keys[""]) == 2
 
-    def test_endsession_endpoint(self):
-        resp = self.provider.endsession_endpoint("")
-        self._assert_cookies_expired(resp.headers)
-
-        # End session not allowed if no cookie is sent (can't determine session)
-        resp = self.provider.endsession_endpoint("", cookie="FAIL")
+    def test_end_session_endpoint(self):
+        # End session not allowed if no cookie and no id_token_hint is sent
+        # (can't determine session)
+        resp = self.provider.end_session_endpoint("", cookie="FAIL")
         assert resp.status_code == 400
 
-    def test_endsession_endpoint_with_id_token_hint(self):
+    def _create_sso_cookie(self, user, client_id):
+        cd = CookieDealer(self.provider)
+        # user='username'
+        # client_id='number5'
+        set_cookie = cd.create_cookie('{}][{}'.format(user, client_id),'sso',
+                                      self.provider.sso_cookie_name)
+        cookies_string = set_cookie[1]
+        all_cookies = SimpleCookie()
+
+        try:
+            cookies_string = cookies_string.decode()
+        except (AttributeError, UnicodeDecodeError):
+            pass
+
+        all_cookies.load(cookies_string)
+
+        return all_cookies
+
+    def _code_auth(self):
+        state, location = self.cons.begin("openid", "code",
+                                          path="http://localhost:8087")
+        return self.provider.authorization_endpoint(
+                request=location.split("?")[1])
+
+    def _code_auth2(self):
+        state, location = self.cons2.begin("openid", "code",
+                                           path="http://www.example.org")
+        return self.provider.authorization_endpoint(
+                request=location.split("?")[1])
+
+    def test_end_session_endpoint_with_cookie(self):
+        self._code_auth()
+        cookie = self._create_sso_cookie("username", "number5")
+
+        resp = self.provider.end_session_endpoint(
+                urlencode({"state": 'abcde'}),
+                cookie=cookie)
+
+        assert isinstance(resp, SeeOther)
+        assert 'username' not in self.provider.sdb.uid2sid
+        self._assert_cookies_expired(resp.headers)
+
+    def test_end_session_endpoint_with_cookie_wrong_user(self):
+        self._code_auth()
+        cookie = self._create_sso_cookie("diggins", "number5")
+
+        resp = self.provider.end_session_endpoint(
+                urlencode({"state": 'abcde'}),
+                cookie=cookie)
+
+        assert isinstance(resp, Response)
+        _err = ErrorResponse().from_json(resp.message)
+        assert _err['error'] == "invalid_request"
+
+    def test_end_session_endpoint_with_cookie_wrong_client(self):
+        self._code_auth()
+        cookie = self._create_sso_cookie("username", "a1b2c3")
+
+        resp = self.provider.end_session_endpoint(
+                urlencode({"state": 'abcde'}),
+                cookie=cookie)
+
+        assert isinstance(resp, Response)
+        _err = ErrorResponse().from_json(resp.message)
+        assert _err['error'] == "invalid_request"
+
+    def test_end_session_endpoint_with_cookie_dual_login(self):
+        self._code_auth()
+        self._code_auth2()
+        cookie = self._create_sso_cookie("username", "client0")
+
+        resp = self.provider.end_session_endpoint(
+                urlencode({"state": 'abcde'}),
+                cookie=cookie)
+
+        assert isinstance(resp, SeeOther)
+        assert 'username' not in self.provider.sdb.uid2sid
+        self._assert_cookies_expired(resp.headers)
+
+    def test_end_session_endpoint_with_cookie_dual_login_wrong_client(self):
+        self._code_auth()
+        self._code_auth2()
+        cookie = self._create_sso_cookie("username", "a1b2c3")
+
+        resp = self.provider.end_session_endpoint(
+                urlencode({"state": 'abcde'}),
+                cookie=cookie)
+
+        assert isinstance(resp, Response)
+        _err = ErrorResponse().from_json(resp.message)
+        assert _err['error'] == "invalid_request"
+
+    def test_end_session_endpoint_with_id_token_hint_only(self):
         id_token = self._auth_with_id_token()
         assert self.provider.sdb.get_sids_by_sub(
                 id_token["sub"])  # verify we got valid session
 
         id_token_hint = id_token.to_jwt(algorithm="none")
-        resp = self.provider.endsession_endpoint(
+
+        resp = self.provider.end_session_endpoint(
                 urlencode({"id_token_hint": id_token_hint}))
+
+        assert isinstance(resp, SeeOther)
+
         assert not self.provider.sdb.get_sids_by_sub(
                 id_token["sub"])  # verify session has been removed
         self._assert_cookies_expired(resp.headers)
 
-    def test_endsession_endpoint_with_post_logout_redirect_uri(self):
+    def test_end_session_endpoint_with_id_token_hint_and_cookie(self):
         id_token = self._auth_with_id_token()
         assert self.provider.sdb.get_sids_by_sub(
                 id_token["sub"])  # verify we got valid session
 
-        post_logout_redirect_uri = \
-            CDB[CLIENT_CONFIG["client_id"]]["post_logout_redirect_uris"][0][0]
-        resp = self.provider.endsession_endpoint(urlencode(
-                {"post_logout_redirect_uri": post_logout_redirect_uri}))
+        id_token_hint = id_token.to_jwt(algorithm="none")
+        cookie = self._create_sso_cookie("username", "number5")
+
+        resp = self.provider.end_session_endpoint(
+                urlencode({"id_token_hint": id_token_hint}),
+                cookie=cookie)
+
         assert isinstance(resp, SeeOther)
+
         assert not self.provider.sdb.get_sids_by_sub(
                 id_token["sub"])  # verify session has been removed
         self._assert_cookies_expired(resp.headers)
+
+    def test_end_session_endpoint_with_post_logout_redirect_uri(self):
+        self._code_auth()
+        # verify we got valid session
+        assert 'username' in self.provider.sdb.uid2sid
+        cookie = self._create_sso_cookie("username", "number5")
+
+        post_logout_redirect_uri = \
+            CDB[CLIENT_CONFIG["client_id"]]["post_logout_redirect_uris"][0][0]
+        resp = self.provider.end_session_endpoint(urlencode(
+                {"post_logout_redirect_uri": post_logout_redirect_uri,
+                 "state": 'abcde'}),
+                cookie=cookie)
+        assert isinstance(resp, SeeOther)
+        assert 'username' not in self.provider.sdb.uid2sid
+        self._assert_cookies_expired(resp.headers)
+
+    def test_end_session_endpoint_with_wrong_post_logout_redirect_uri(self):
+        self._code_auth()
+        # verify we got valid session
+        assert 'username' in self.provider.sdb.uid2sid
+        cookie = self._create_sso_cookie("username", "number5")
+
+        post_logout_redirect_uri = 'https://www.example.com/logout'
+        resp = self.provider.end_session_endpoint(urlencode(
+                {"post_logout_redirect_uri": post_logout_redirect_uri,
+                 "state": 'abcde'}),
+                cookie=cookie)
+        assert isinstance(resp, Response)
+        _err = ErrorResponse().from_json(resp.message)
+        assert _err['error'] == "invalid_request"
 
     def test_session_state_in_auth_req_for_session_support(self, session_db_factory):
         provider = Provider(SERVER_INFO["issuer"], session_db_factory(SERVER_INFO["issuer"]), CDB,
