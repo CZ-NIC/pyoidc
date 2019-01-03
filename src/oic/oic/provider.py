@@ -632,7 +632,13 @@ class Provider(AProvider):
                 return error_response('invalid_request', msg)
         else:  # If only one registered use that one
             if len(self.cdb[client_id]["post_logout_redirect_uris"]) == 1:
-                redirect_uri = self.cdb[client_id]["post_logout_redirect_uris"][0]
+                _base, _query = self.cdb[client_id]["post_logout_redirect_uris"][0]
+                if _query:
+                    query_string = urlencode(
+                        [(key, v) for key in _query for v in _query[key]])
+                    redirect_uri = "%s?%s" % (_base, query_string)
+                else:
+                    redirect_uri = _base
 
         for sid in sids:
             del self.sdb[sid]
@@ -644,7 +650,19 @@ class Provider(AProvider):
             headers.append(cd.delete_cookie(self.sso_cookie_name))
 
         if redirect_uri is not None:
-            return SeeOther(str(redirect_uri), headers=headers)
+            try:
+                _state = esr['state']
+            except KeyError:
+                redirect_uri = str(redirect_uri)
+            else:
+                if '?' in redirect_uri:
+                    redirect_uri += "&"
+                else:
+                    redirect_uri += "?"
+
+                redirect_uri += urlencode({'state': _state})
+
+            return SeeOther(redirect_uri, headers=headers)
 
         return Response("Successful logout", headers=headers)
 

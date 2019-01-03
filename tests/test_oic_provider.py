@@ -1477,6 +1477,7 @@ class TestProvider(object):
                 cookie=cookie)
 
         assert isinstance(resp, SeeOther)
+        assert 'state=abcde' in resp.message
         assert 'username' not in self.provider.sdb.uid2sid
         self._assert_cookies_expired(resp.headers)
 
@@ -1514,6 +1515,7 @@ class TestProvider(object):
                 cookie=cookie)
 
         assert isinstance(resp, SeeOther)
+        assert 'state=abcde' in resp.message
         assert 'username' not in self.provider.sdb.uid2sid
         self._assert_cookies_expired(resp.headers)
 
