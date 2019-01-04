@@ -26,6 +26,13 @@ matrix:
   include:
     - python: 3.5
       env: TOXENV=py35
+# Add python 3.7
+matrix:
+  include:
+    - python: 3.7
+      dist: xenial
+      env: TOXENV=py37
+
 
 script:
   - tox -e $TOXENV
