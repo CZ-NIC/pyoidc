@@ -51,7 +51,7 @@ from oic.oauth2.exception import CapabilitiesMisMatch
 from oic.oauth2.exception import VerificationError
 from oic.oauth2.message import Message
 from oic.oauth2.message import by_schema
-from oic.oauth2.provider import Endpoint
+from oic.oauth2.provider import Endpoint, DELIM
 from oic.oauth2.provider import Provider as AProvider
 from oic.oic import PREFERENCE2PROVIDER
 from oic.oic import PROVIDER_DEFAULT
@@ -555,15 +555,15 @@ class Provider(AProvider):
         # or using the id_token_hint
         client_id = uid = None
         sids = []
-        cd = None
+        cookie_dealer = None
 
         if cookie:
-            cd = CookieDealer(srv=self)
-            _cval = cd.get_cookie_value(cookie, self.sso_cookie_name)
+            cookie_dealer = CookieDealer(srv=self)
+            _cval = cookie_dealer.get_cookie_value(cookie, self.sso_cookie_name)
             if _cval:
                 (value, _ts, typ) = _cval
                 if typ == 'sso':
-                    uid, client_id = value.split('][')
+                    uid, client_id = value.split(DELIM)
                     try:
                         sids = self.sdb.uid2sid[uid]
                     except (KeyError, IndexError):
@@ -589,6 +589,7 @@ class Provider(AProvider):
                 return error_response('invalid_request', "Bad Id Token hint")
 
             sub = id_token_hint["sub"]
+
             if sids:
                 match = False
                 # verify that 'sub' are bound to 'user'
@@ -598,18 +599,17 @@ class Provider(AProvider):
                         break
                 if not match:
                     return error_response('invalid_request', "Wrong user")
+            else:
+                try:
+                    sids = self.sdb.get_sids_by_sub(sub)
+                except IndexError:
+                    pass
 
             if not client_id:
                 if len(id_token_hint['aud']) == 1:
                     client_id = id_token_hint['aud'][0]
                 else:
                     client_id = id_token_hint['azp']
-
-            if not sids:
-                try:
-                    sids = self.sdb.get_sids_by_sub(sub)
-                except IndexError:
-                    pass
 
         if not client_id:
             return error_response('invalid_request', "Could not find client ID")
@@ -646,8 +646,8 @@ class Provider(AProvider):
         # Delete cookies
         authn, acr = self.pick_auth(esr)
         headers = [authn.delete_cookie(), self.delete_session_cookie()]
-        if cd:
-            headers.append(cd.delete_cookie(self.sso_cookie_name))
+        if cookie_dealer:
+            headers.append(cookie_dealer.delete_cookie(self.sso_cookie_name))
 
         if redirect_uri is not None:
             try:
