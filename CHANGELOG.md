@@ -18,6 +18,7 @@ The format is based on the [KeepAChangeLog] project.
 
 ### Added
 - [#566] Added timeout to communications to remote servers
+- [#585] Worked on support for RP initiated logout
 
 [#553]: https://github.com/OpenIDC/pyoidc/pull/553
 [#557]: https://github.com/OpenIDC/pyoidc/pull/557
