@@ -151,6 +151,9 @@ def re_authenticate(areq, authn):
     return False
 
 
+DELIM = "]["
+
+
 class Provider(object):
     endp = [AuthorizationEndpoint, TokenEndpoint]
 
@@ -731,7 +734,7 @@ class Provider(object):
         except KeyError:
             _kaka = None
 
-        c_val = "{}][{}".format(user, areq['client_id'])
+        c_val = "{}{}{}".format(user, DELIM, areq['client_id'])
 
         if _kaka:
             if isinstance(_kaka, dict):
