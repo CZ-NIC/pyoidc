@@ -1,4 +1,2 @@
-oic==0.7.6
-pyjwkest==1.0.1
 cherrypy==3.2.4
 pyaml==15.03.1

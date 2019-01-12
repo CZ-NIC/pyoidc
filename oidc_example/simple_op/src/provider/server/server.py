@@ -16,7 +16,7 @@ from jinja2.loaders import FileSystemLoader
 from provider.authn import make_cls_from_name
 from six.moves.urllib import parse as urlparse
 
-from oic.oauth2 import rndstr
+from oic import rndstr
 from oic.oic.provider import AuthorizationEndpoint
 from oic.oic.provider import EndSessionEndpoint
 from oic.oic.provider import Provider
@@ -220,8 +220,9 @@ def main():
     with open(os.path.join(path, name), "w") as f:
         f.write(json.dumps(jwks))
 
-    provider.jwks_uri.append(
-        "{}/static/{}".format(provider.baseurl, name))
+    #TODO: I take this out and it still works, what was this for?
+    #provider.jwks_uri.append(
+    #    "{}/static/{}".format(provider.baseurl, name))
 
     # Mount the WSGI callable object (app) on the root directory
     app_routing = setup_endpoints(provider)
