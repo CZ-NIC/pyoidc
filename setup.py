@@ -53,6 +53,7 @@ setup(
     name="oic",
     version=version,
     description="Python implementation of OAuth2 and OpenID Connect",
+    long_description=open('README.rst').read(),
     author="Roland Hedberg",
     author_email="roland@catalogix.se",
     license="Apache 2.0",
