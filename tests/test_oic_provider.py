@@ -1443,7 +1443,7 @@ class TestProvider(object):
         cd = CookieDealer(self.provider)
         # user='username'
         # client_id='number5'
-        set_cookie = cd.create_cookie('{}][{}'.format(user, client_id),'sso',
+        set_cookie = cd.create_cookie('{}][{}'.format(user, client_id), 'sso',
                                       self.provider.sso_cookie_name)
         cookies_string = set_cookie[1]
         all_cookies = SimpleCookie()
