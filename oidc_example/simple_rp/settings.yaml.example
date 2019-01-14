@@ -5,7 +5,8 @@ registration_info:
   # only has support for using the first redirect_uri and response_type
   redirect_uris:
     #- "{base}/code_flow"
-    - "{base}/implicit_hybrid_flow"
+    #- "{base}/implicit_hybrid_flow"
+    - "{base}:{port}/implicit_hybrid_flow"
   response_types:
     #- code
     - code id_token token

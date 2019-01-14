@@ -15,8 +15,13 @@ The format is based on the [KeepAChangeLog] project.
 - [#547] Fixed get_userinfo_claims method
 - [#268] Fixed SessionDB.revoke_token implementation
 - [#571] Return error when when resolving request_uri fails
+- [#579] Fix error with unicode chars in redirect_uris
+- [#581] Fix error in verification of sector_identifier
+- [#542] Updated examples
+- [#587] Fix JWKS content type detection
 
 ### Added
+- [#577] Check that issuer of a signed JWT exists in the KeyJar used to verify the signature.
 - [#566] Added timeout to communications to remote servers
 - [#585] Worked on support for RP initiated logout
 
@@ -28,6 +33,10 @@ The format is based on the [KeepAChangeLog] project.
 [#547]: https://github.com/OpenIDC/pyoidc/issues/547
 [#268]: https://github.com/OpenIDC/pyoidc/issues/268
 [#571]: https://github.com/OpenIDC/pyoidc/issues/571
+[#579]: https://github.com/OpenIDC/pyoidc/issues/579
+[#581]: https://github.com/OpenIDC/pyoidc/issues/581
+[#542]: https://github.com/OpenIDC/pyoidc/pull/542
+[#581]: https://github.com/OpenIDC/pyoidc/pull/587
 
 ## 0.14.0 [2018-05-15]
 

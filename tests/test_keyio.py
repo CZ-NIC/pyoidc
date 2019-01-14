@@ -1,5 +1,6 @@
 # pylint: disable=missing-docstring,no-self-use
 import json
+import logging
 import os
 import time
 from datetime import datetime as dt
@@ -438,3 +439,43 @@ def test_reload():
     kb.do_keys(kb.imp_jwks['keys'])
 
     assert len(kb) == 1
+
+
+def test_parse_remote_response(caplog):
+    """
+    Tests parsing Content-Type header for _parse_remote_response
+    """
+    class FakeResponse():
+        def __init__(self, header):
+            self.headers = {"Content-Type": header}
+            self.text = "{}"
+
+    with caplog.at_level(logging.WARNING, logger='oic.utils.keyio'):
+        kb_public = KeyBundle(source='file://./foo.jwks')
+
+        res = FakeResponse('application/json;encoding=utf-8')
+        kb_public._parse_remote_response(res)
+        assert caplog.record_tuples != [
+            ('oic.utils.keyio', logging.WARNING, 'Wrong Content_type')
+        ]
+        caplog.clear()
+
+        res = FakeResponse('application/json')
+        kb_public._parse_remote_response(res)
+        assert caplog.record_tuples != [
+            ('oic.utils.keyio', logging.WARNING, 'Wrong Content_type')
+        ]
+        caplog.clear()
+
+        res = FakeResponse('Application/json')
+        kb_public._parse_remote_response(res)
+        assert caplog.record_tuples != [
+            ('oic.utils.keyio', logging.WARNING, 'Wrong Content_type')
+        ]
+        caplog.clear()
+
+        res = FakeResponse('text/plain')
+        kb_public._parse_remote_response(res)
+        assert caplog.record_tuples == [
+            ('oic.utils.keyio', logging.WARNING, 'Wrong Content_type')
+        ]

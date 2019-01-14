@@ -3,8 +3,8 @@ from future.backports.urllib.parse import splitquery
 from future.backports.urllib.parse import unquote
 from future.backports.urllib.parse import urlencode
 from future.backports.urllib.parse import urljoin
-from future.backports.urllib.parse import urlparse
 from future.moves.urllib.parse import parse_qs
+from future.moves.urllib.parse import urlparse
 
 import copy
 import hashlib
@@ -29,7 +29,7 @@ from jwkest.jwe import NotSupportedAlgorithm
 from jwkest.jwk import SYMKey
 from jwkest.jws import NoSuitableSigningKeys
 from jwkest.jws import alg2keytype
-from requests import ConnectionError
+from requests import RequestException
 
 from oic import rndstr
 from oic.exception import FailedAuthentication
@@ -1491,7 +1491,7 @@ class Provider(AProvider):
         si_url = request["sector_identifier_uri"]
         try:
             res = self.server.http_request(si_url)
-        except ConnectionError as err:
+        except RequestException as err:
             logger.error(err)
             res = None
 

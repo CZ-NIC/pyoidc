@@ -53,6 +53,7 @@ setup(
     name="oic",
     version=version,
     description="Python implementation of OAuth2 and OpenID Connect",
+    long_description=open('README.rst').read(),
     author="Roland Hedberg",
     author_email="roland@catalogix.se",
     license="Apache 2.0",
@@ -69,6 +70,7 @@ setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     extras_require={
         'develop': ["cherrypy==3.2.4", "pyOpenSSL"],
