@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+from future.backports.urllib.parse import splitquery
+from future.backports.urllib.parse import unquote
+from future.backports.urllib.parse import urlencode
+from future.backports.urllib.parse import urljoin
+from future.backports.urllib.parse import urlparse
+from future.moves.urllib.parse import parse_qs
+
 import copy
 import hashlib
 import hmac
@@ -12,12 +19,6 @@ import traceback
 from functools import cmp_to_key
 
 import six
-from future.backports.urllib.parse import splitquery
-from future.backports.urllib.parse import unquote
-from future.backports.urllib.parse import urlencode
-from future.backports.urllib.parse import urljoin
-from future.backports.urllib.parse import urlparse
-from future.moves.urllib.parse import parse_qs
 from jwkest import b64d
 from jwkest import jwe
 from jwkest import jws
