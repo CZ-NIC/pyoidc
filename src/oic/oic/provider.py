@@ -3,6 +3,7 @@ from future.backports.urllib.parse import splitquery
 from future.backports.urllib.parse import unquote
 from future.backports.urllib.parse import urlencode
 from future.backports.urllib.parse import urljoin
+from future.backports.urllib.parse import urlparse
 from future.moves.urllib.parse import parse_qs
 from future.moves.urllib.parse import urlparse
 
@@ -19,12 +20,6 @@ import traceback
 from functools import cmp_to_key
 
 import six
-from future.backports.urllib.parse import splitquery
-from future.backports.urllib.parse import unquote
-from future.backports.urllib.parse import urlencode
-from future.backports.urllib.parse import urljoin
-from future.backports.urllib.parse import urlparse
-from future.moves.urllib.parse import parse_qs
 from jwkest import b64d
 from jwkest import jwe
 from jwkest import jws
@@ -51,13 +46,15 @@ from oic.oauth2.exception import CapabilitiesMisMatch
 from oic.oauth2.exception import VerificationError
 from oic.oauth2.message import Message
 from oic.oauth2.message import by_schema
-from oic.oauth2.provider import Endpoint, DELIM
+from oic.oauth2.provider import DELIM
+from oic.oauth2.provider import Endpoint
 from oic.oauth2.provider import Provider as AProvider
 from oic.oic import PREFERENCE2PROVIDER
 from oic.oic import PROVIDER_DEFAULT
 from oic.oic import Server
 from oic.oic import claims_match
 from oic.oic import scope2claims
+from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.message import AccessTokenRequest
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AuthorizationRequest
@@ -74,13 +71,12 @@ from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import RefreshAccessTokenRequest
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import RegistrationResponse
-from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.message import TokenErrorResponse
 from oic.utils import sort_sign_alg
+from oic.utils.http_util import OAUTH2_NOCACHE_HEADERS
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import CookieDealer
 from oic.utils.http_util import Created
-from oic.utils.http_util import OAUTH2_NOCACHE_HEADERS
 from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Unauthorized

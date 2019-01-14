@@ -16,7 +16,6 @@ import six
 from freezegun import freeze_time
 from mock import Mock
 from mock import patch
-from oic.oauth2.message import ErrorResponse
 from requests import ConnectionError
 from requests.exceptions import MissingSchema
 from testfixtures import LogCapture
@@ -25,6 +24,7 @@ from oic import rndstr
 from oic.exception import FailedAuthentication
 from oic.exception import InvalidRequest
 from oic.exception import RedirectURIError
+from oic.oauth2.message import ErrorResponse
 from oic.oic import DEF_SIGN_ALG
 from oic.oic import make_openid_request
 from oic.oic.consumer import Consumer
@@ -48,7 +48,8 @@ from oic.utils.authn.client import ClientSecretBasic
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
-from oic.utils.http_util import Response, CookieDealer
+from oic.utils.http_util import CookieDealer
+from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
