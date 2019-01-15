@@ -24,7 +24,7 @@ The format is based on the [KeepAChangeLog] project.
 ### Added
 - [#577] Check that issuer of a signed JWT exists in the KeyJar used to verify the signature.
 - [#566] Added timeout to communications to remote servers
-- [#585] Worked on support for RP initiated logout
+- [#590] Worked on support for RP initiated logout
 
 [#553]: https://github.com/OpenIDC/pyoidc/pull/553
 [#557]: https://github.com/OpenIDC/pyoidc/pull/557
@@ -39,6 +39,7 @@ The format is based on the [KeepAChangeLog] project.
 [#542]: https://github.com/OpenIDC/pyoidc/pull/542
 [#581]: https://github.com/OpenIDC/pyoidc/pull/587
 [#582]: https://github.com/OpenIDC/pyoidc/issues/582
+[#590]: https://github.com/OpenIDC/pyoidc/pull/590
 
 ## 0.14.0 [2018-05-15]
 

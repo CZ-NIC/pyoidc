@@ -37,6 +37,7 @@ from oic.exception import InvalidRequest
 from oic.exception import MessageException
 from oic.exception import NotForMe
 from oic.exception import ParameterError
+from oic.exception import SubMismatch
 from oic.exception import UnSupported
 from oic.oauth2 import compact
 from oic.oauth2 import error_response
@@ -541,28 +542,36 @@ class Provider(AProvider):
         }
         return Response(self.template_renderer('verify_logout', context), headers=headers)
 
+    def _get_sids_from_cookie(self, cookie):
+        """Get cookie_dealer, client_id and sids from cookie."""
+        if cookie is None:
+            return None, None, None
+
+        cookie_dealer = CookieDealer(srv=self)
+        client_id = sids = None
+
+        _cval = cookie_dealer.get_cookie_value(cookie, self.sso_cookie_name)
+        if _cval:
+            (value, _ts, typ) = _cval
+            if typ == 'sso':
+                uid, client_id = value.split(DELIM)
+                try:
+                    sids = self.sdb.uid2sid[uid]
+                except (KeyError, IndexError):
+                    raise SubMismatch('Mismatch uid')
+        return cookie_dealer, client_id, sids
+
     def end_session_endpoint(self, request="", cookie=None, **kwargs):
         esr = EndSessionRequest().from_urlencoded(request)
 
-        logger.debug("End session request: {}".format(sanitize(esr.to_dict())))
+        logger.debug("End session request: {}", sanitize(esr.to_dict()))
 
         # 2 ways of find out client ID and user. Either through a cookie
         # or using the id_token_hint
-        client_id = uid = None
-        sids = []
-        cookie_dealer = None
-
-        if cookie:
-            cookie_dealer = CookieDealer(srv=self)
-            _cval = cookie_dealer.get_cookie_value(cookie, self.sso_cookie_name)
-            if _cval:
-                (value, _ts, typ) = _cval
-                if typ == 'sso':
-                    uid, client_id = value.split(DELIM)
-                    try:
-                        sids = self.sdb.uid2sid[uid]
-                    except (KeyError, IndexError):
-                        return error_response('invalid_request', 'Mismatch uid')
+        try:
+            cookie_dealer, client_id, sids = self._get_sids_from_cookie(cookie)
+        except SubMismatch as error:
+            return error_response('invalid_request', '%s' % error)
 
         if "id_token_hint" in esr:
             id_token_hint = IdToken().from_jwt(esr["id_token_hint"],

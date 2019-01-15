@@ -1439,11 +1439,11 @@ class TestProvider(object):
         resp = self.provider.end_session_endpoint("", cookie="FAIL")
         assert resp.status_code == 400
 
-    def _create_sso_cookie(self, user, client_id):
+    def _create_cookie(self, user, client_id, c_type='sso'):
         cd = CookieDealer(self.provider)
         # user='username'
         # client_id='number5'
-        set_cookie = cd.create_cookie('{}][{}'.format(user, client_id), 'sso',
+        set_cookie = cd.create_cookie('{}][{}'.format(user, client_id), c_type,
                                       self.provider.sso_cookie_name)
         cookies_string = set_cookie[1]
         all_cookies = SimpleCookie()
@@ -1471,7 +1471,7 @@ class TestProvider(object):
 
     def test_end_session_endpoint_with_cookie(self):
         self._code_auth()
-        cookie = self._create_sso_cookie("username", "number5")
+        cookie = self._create_cookie("username", "number5")
 
         resp = self.provider.end_session_endpoint(
                 urlencode({"state": 'abcde'}),
@@ -1482,9 +1482,21 @@ class TestProvider(object):
         assert 'username' not in self.provider.sdb.uid2sid
         self._assert_cookies_expired(resp.headers)
 
+    def test_end_session_endpoint_with_wrong_cookie(self):
+        self._code_auth()
+        cookie = self._create_cookie("username", "number5", c_type='session')
+
+        resp = self.provider.end_session_endpoint(
+                urlencode({"state": 'abcde'}),
+                cookie=cookie)
+
+        assert isinstance(resp, Response)
+        _err = ErrorResponse().from_json(resp.message)
+        assert _err['error'] == "invalid_request"
+
     def test_end_session_endpoint_with_cookie_wrong_user(self):
         self._code_auth()
-        cookie = self._create_sso_cookie("diggins", "number5")
+        cookie = self._create_cookie("diggins", "number5")
 
         resp = self.provider.end_session_endpoint(
                 urlencode({"state": 'abcde'}),
@@ -1496,7 +1508,7 @@ class TestProvider(object):
 
     def test_end_session_endpoint_with_cookie_wrong_client(self):
         self._code_auth()
-        cookie = self._create_sso_cookie("username", "a1b2c3")
+        cookie = self._create_cookie("username", "a1b2c3")
 
         resp = self.provider.end_session_endpoint(
                 urlencode({"state": 'abcde'}),
@@ -1509,7 +1521,7 @@ class TestProvider(object):
     def test_end_session_endpoint_with_cookie_dual_login(self):
         self._code_auth()
         self._code_auth2()
-        cookie = self._create_sso_cookie("username", "client0")
+        cookie = self._create_cookie("username", "client0")
 
         resp = self.provider.end_session_endpoint(
                 urlencode({"state": 'abcde'}),
@@ -1523,7 +1535,7 @@ class TestProvider(object):
     def test_end_session_endpoint_with_cookie_dual_login_wrong_client(self):
         self._code_auth()
         self._code_auth2()
-        cookie = self._create_sso_cookie("username", "a1b2c3")
+        cookie = self._create_cookie("username", "a1b2c3")
 
         resp = self.provider.end_session_endpoint(
                 urlencode({"state": 'abcde'}),
@@ -1555,7 +1567,7 @@ class TestProvider(object):
                 id_token["sub"])  # verify we got valid session
 
         id_token_hint = id_token.to_jwt(algorithm="none")
-        cookie = self._create_sso_cookie("username", "number5")
+        cookie = self._create_cookie("username", "number5")
 
         resp = self.provider.end_session_endpoint(
                 urlencode({"id_token_hint": id_token_hint}),
@@ -1571,7 +1583,7 @@ class TestProvider(object):
         self._code_auth()
         # verify we got valid session
         assert 'username' in self.provider.sdb.uid2sid
-        cookie = self._create_sso_cookie("username", "number5")
+        cookie = self._create_cookie("username", "number5")
 
         post_logout_redirect_uri = \
             CDB[CLIENT_CONFIG["client_id"]]["post_logout_redirect_uris"][0][0]
@@ -1587,7 +1599,7 @@ class TestProvider(object):
         self._code_auth()
         # verify we got valid session
         assert 'username' in self.provider.sdb.uid2sid
-        cookie = self._create_sso_cookie("username", "number5")
+        cookie = self._create_cookie("username", "number5")
 
         post_logout_redirect_uri = 'https://www.example.com/logout'
         resp = self.provider.end_session_endpoint(urlencode(
