@@ -39,12 +39,6 @@ class PyTest(TestCommand):
 
 tests_requires = ['responses', 'testfixtures', 'pytest', 'mock', 'freezegun']
 
-# Python 2.7 and later ship with importlib and argparse
-if sys.version_info[0] == 2 and sys.version_info[1] == 6:
-    extra_install_requires = ["importlib", "argparse"]
-else:
-    extra_install_requires = []
-
 version = ''
 with open('src/oic/__init__.py', 'r') as fd:
     version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
@@ -67,7 +61,6 @@ setup(
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: Apache Software License",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
@@ -90,7 +83,7 @@ setup(
         "future",
         "six",
         "defusedxml",
-    ] + extra_install_requires,
+    ],
     tests_require=tests_requires,
     zip_safe=False,
     cmdclass={'test': PyTest},

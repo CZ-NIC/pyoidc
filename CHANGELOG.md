@@ -11,6 +11,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#598] Move alabaster from runtime dependencies to docs
 
 ### Changed
+- [#578] Dropped python 2.7 support
 - [#588] Switch to defusedxml for XML parsing
 
 [#598]: https://github.com/OpenIDC/pyoidc/issues/598
@@ -23,6 +24,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#591] Fix verification of encrypted id_token
 - [#601] Fix headers od encrypted id_token
 
+[#578]: https://github.com/OpenIDC/pyoidc/issues/578
 [#592]: https://github.com/OpenIDC/pyoidc/issues/592
 [#591]: https://github.com/OpenIDC/pyoidc/issues/591
 [#601]: https://github.com/OpenIDC/pyoidc/pull/600
