@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 # pylint: disable=missing-docstring,no-self-use
-from future.backports.urllib.parse import parse_qs
-from future.backports.urllib.parse import quote
-from future.backports.urllib.parse import urlencode
-from future.backports.urllib.parse import urlparse
-
 import json
+from urllib.parse import parse_qs
+from urllib.parse import quote
+from urllib.parse import urlencode
+from urllib.parse import urlparse
 
 import pytest
 

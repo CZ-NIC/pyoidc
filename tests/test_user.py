@@ -1,9 +1,8 @@
 # pylint: disable=missing-docstring,redefined-outer-name,no-self-use
-from future.backports.urllib.parse import parse_qs
-from future.backports.urllib.parse import urlencode
-
 import logging
 import os
+from urllib.parse import parse_qs
+from urllib.parse import urlencode
 
 import pytest
 from mako.lookup import TemplateLookup

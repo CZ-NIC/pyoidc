@@ -1,8 +1,18 @@
-from __future__ import print_function
 import sys
 import traceback
 
 __author__ = 'rohe0002'
+
+
+def tobytes(value):
+    """Convert value to bytes."""
+    if isinstance(value, bytes):
+        return value
+    else:
+        if isinstance(value, str):
+            return value.encode()
+        else:
+            return bytes(value)
 
 
 def exception_trace(tag, exc, log=None):

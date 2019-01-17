@@ -1,7 +1,6 @@
-from future.backports.urllib.parse import urlparse
-
 import json
 import os
+from urllib.parse import urlparse
 
 import pytest
 import responses

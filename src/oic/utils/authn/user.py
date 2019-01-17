@@ -1,15 +1,12 @@
-# coding=utf-8
-from future.backports.urllib.parse import unquote_plus
-from future.backports.urllib.parse import urlencode
-from future.backports.urllib.parse import urlsplit
-from future.backports.urllib.parse import urlunsplit
-from future.moves.urllib.parse import parse_qs
-
 import base64
 import logging
 import time
+from urllib.parse import parse_qs
+from urllib.parse import unquote_plus
+from urllib.parse import urlencode
+from urllib.parse import urlsplit
+from urllib.parse import urlunsplit
 
-import six
 from jwkest import as_unicode
 
 from oic.exception import ImproperlyConfigured
@@ -171,7 +168,7 @@ def create_return_url(base, query, **kwargs):
 
     for key, values in parse_qs(query).items():
         if key in kwargs:
-            if isinstance(kwargs[key], six.string_types):
+            if isinstance(kwargs[key], str):
                 kwargs[key] = [kwargs[key]]
             kwargs[key].extend(values)
         else:
@@ -180,7 +177,7 @@ def create_return_url(base, query, **kwargs):
     if part.query:
         for key, values in parse_qs(part.query).items():
             if key in kwargs:
-                if isinstance(kwargs[key], six.string_types):
+                if isinstance(kwargs[key], str):
                     kwargs[key] = [kwargs[key]]
                 kwargs[key].extend(values)
             else:
@@ -296,7 +293,7 @@ class UsernamePasswordMako(UserAuthnMethod):
         """
 
         logger.debug("verify(%s)" % sanitize(request))
-        if isinstance(request, six.string_types):
+        if isinstance(request, str):
             _dict = compact(parse_qs(request))
         elif isinstance(request, dict):
             _dict = request
@@ -359,9 +356,6 @@ class BasicAuthn(UserAuthnMethod):
     def verify_password(self, user, password):
         if user in self.passwd:
             _pwd = self.passwd[user]
-            if six.PY2:
-                if isinstance(_pwd, str):
-                    _pwd = _pwd.decode('utf-8')
             if _pwd != password:
                 raise FailedAuthentication('Wrong user/password combination')
         else:

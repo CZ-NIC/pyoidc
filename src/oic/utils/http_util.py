@@ -1,6 +1,3 @@
-from future.backports.http.cookies import SimpleCookie
-from future.backports.urllib.parse import quote
-
 import base64
 import cgi
 import hashlib
@@ -8,13 +5,12 @@ import hmac
 import logging
 import os
 import time
+from http import client
+from http.cookies import SimpleCookie
+from urllib.parse import quote
 
 from jwkest import as_unicode
 from jwkest import safe_str_cmp
-from six import PY2
-from six import binary_type
-from six import text_type
-from six.moves import http_client
 
 from oic import rndstr
 from oic.exception import ImproperlyConfigured
@@ -64,7 +60,7 @@ class Response(object):
         self.headers.append(("Content-type", _content_type))
 
     def _start_response(self, start_response):
-        name = http_client.responses.get(self.status_code, 'UNKNOWN')
+        name = client.responses.get(self.status_code, 'UNKNOWN')
         start_response("{} {}".format(self.status_code, name), self.headers)
 
     def __call__(self, environ, start_response, **kwargs):
@@ -155,11 +151,6 @@ class SeeOther(Response):
 
     def __call__(self, environ, start_response, **kwargs):
         location = self.message
-        if PY2:
-            try:
-                location = location.encode('utf8')
-            except UnicodeDecodeError:
-                pass
         self.headers.append(('location', location))
         self._start_response(start_response)
         return self.response((location, location, location))
@@ -284,29 +275,29 @@ def cookie_signature(key, *parts):
        :type parts: list of bytes or strings
        :returns: hexdigest of the HMAC
     """
-    assert isinstance(key, binary_type)
+    assert isinstance(key, bytes)
     sha1 = hmac.new(key, digestmod=hashlib.sha1)
     for part in parts:
         if part:
-            if isinstance(part, text_type):
+            if isinstance(part, str):
                 sha1.update(part.encode('utf-8'))
             else:
                 sha1.update(part)
-    return text_type(sha1.hexdigest())
+    return str(sha1.hexdigest())
 
 
 def verify_cookie_signature(sig, key, *parts):
     """Constant time verifier for signatures
 
        :param sig: The signature hexdigest to check
-       :type sig: text_type
+       :type sig: str
        :param key: The HMAC key to use.
        :type key: bytes
        :param parts: List of parts to include in the MAC
        :type parts: list of bytes or strings
        :raises: `InvalidCookieSign` when the signature is wrong
     """
-    assert isinstance(sig, text_type)
+    assert isinstance(sig, str)
     return safe_str_cmp(sig, cookie_signature(key, *parts))
 
 
@@ -321,7 +312,7 @@ def _make_hashed_key(parts, hashfunc='sha256'):
     """
     h = hashlib.new(hashfunc)
     for part in parts:
-        if isinstance(part, text_type):
+        if isinstance(part, str):
             part = part.encode('utf-8')
         if part:
             h.update(part)
@@ -427,7 +418,7 @@ def parse_cookie(name, seed, kaka, enc_key=None):
     if not kaka:
         return None
 
-    if isinstance(seed, text_type):
+    if isinstance(seed, str):
         seed = seed.encode('utf-8')
 
     parts = cookie_parts(name, kaka)
@@ -462,7 +453,10 @@ def parse_cookie(name, seed, kaka, enc_key=None):
 
 
 def cookie_parts(name, kaka):
-    cookie_obj = SimpleCookie(text_type(kaka))
+    if not isinstance(kaka, SimpleCookie):
+        cookie_obj = SimpleCookie(str(kaka))
+    else:
+        cookie_obj = kaka
     morsel = cookie_obj.get(name)
     if morsel:
         return morsel.value.split("|")
@@ -611,10 +605,7 @@ class CookieDealer(object):
                              expire=ttl, domain=cookie_domain, path=cookie_path,
                              timestamp=timestamp,
                              enc_key=self.srv.symkey)
-        if PY2:
-            return str(cookie[0]), str(cookie[1])
-        else:
-            return cookie
+        return cookie
 
     def getCookieValue(self, cookie=None, cookie_name=None):
         return self.get_cookie_value(cookie, cookie_name)

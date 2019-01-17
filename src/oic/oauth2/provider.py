@@ -1,10 +1,4 @@
 #!/usr/bin/env python
-from future.backports.urllib.parse import splitquery
-from future.backports.urllib.parse import unquote
-from future.backports.urllib.parse import urljoin
-from future.backports.urllib.parse import urlparse
-from future.moves.urllib.parse import parse_qs
-
 import hashlib
 import logging
 import os
@@ -12,8 +6,11 @@ import sys
 import traceback
 import warnings
 from http.cookies import SimpleCookie
-
-from six import PY2
+from urllib.parse import parse_qs
+from urllib.parse import splitquery
+from urllib.parse import unquote
+from urllib.parse import urljoin
+from urllib.parse import urlparse
 
 from oic import rndstr
 from oic.exception import AuthzError
@@ -743,15 +740,11 @@ class Provider(object):
                     _c = SimpleCookie()
                     _c[name] = val
                     _x = _c.output()
-                    if PY2:
-                        _x = str(_x)
                     headers.append(tuple(_x.split(": ", 1)))
             else:
                 _c = SimpleCookie()
                 _c.load(_kaka)
                 for x in _c.output().split('\r\n'):
-                    if PY2:
-                        x = str(x)
                     headers.append(tuple(x.split(": ", 1)))
 
             if self.cookie_name not in _kaka:  # Don't overwrite

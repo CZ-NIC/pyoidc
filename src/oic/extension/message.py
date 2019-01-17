@@ -1,10 +1,8 @@
-from future.backports.urllib.parse import urlparse
-
 import inspect
 import sys
+from urllib.parse import urlparse
 
 import requests
-import six
 
 from oic.exception import InvalidRedirectUri
 from oic.exception import MissingPage
@@ -234,10 +232,7 @@ def factory(msgtype):
 
 
 def make_software_statement(keyjar, iss, **kwargs):
-    if six.PY2:
-        params = inspect.getargspec(JWT.__init__).args
-    else:
-        params = list(inspect.signature(JWT.__init__).parameters.keys())
+    params = list(inspect.signature(JWT.__init__).parameters.keys())
 
     params.remove('self')
 

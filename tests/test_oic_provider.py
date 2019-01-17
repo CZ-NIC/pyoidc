@@ -1,18 +1,16 @@
 # coding: utf-8
-from future.backports.http.cookies import SimpleCookie
-from future.backports.urllib.parse import parse_qs
-from future.backports.urllib.parse import urlencode
-from future.backports.urllib.parse import urlparse
-
 import datetime
 import json
 import logging
 import os
+from http.cookies import SimpleCookie
 from time import time
+from urllib.parse import parse_qs
+from urllib.parse import urlencode
+from urllib.parse import urlparse
 
 import pytest
 import responses
-import six
 from freezegun import freeze_time
 from mock import Mock
 from mock import patch
@@ -1196,7 +1194,7 @@ class TestProvider(object):
         # First log record is from server...
         assert isinstance(logcap.records[1].msg, MissingSchema)
         error = "Invalid URL 'example.com': No schema supplied. Perhaps you meant http://example.com?"
-        assert six.text_type(logcap.records[1].msg) == error
+        assert str(logcap.records[1].msg) == error
 
     def test_verify_sector_identifier_nonreachable(self):
         rr = RegistrationRequest(operation="register", sector_identifier_uri="https://example.com")

@@ -2,10 +2,10 @@
 import json
 import logging
 import re
+from urllib.parse import urlencode
+from urllib.parse import urlparse
 
 import requests
-from six.moves.urllib.parse import urlencode
-from six.moves.urllib.parse import urlparse
 
 from oic.exception import PyoidcError
 from oic.utils.time_util import in_a_while

@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-from future.backports.urllib.parse import parse_qs
-from future.backports.urllib.parse import urlencode
-
 import json
 import os
 import sys
+from urllib.parse import parse_qs
+from urllib.parse import urlencode
 
 import pytest
 from jwkest import BadSignature

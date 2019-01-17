@@ -1,9 +1,7 @@
-from future.backports.urllib.parse import quote_plus
-
 import base64
 import logging
+from urllib.parse import quote_plus
 
-import six
 from jwkest import Invalid
 from jwkest import MissingKey
 from jwkest import as_bytes
@@ -400,7 +398,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
         else:
             authn_method = 'private_key_jwt'
 
-        if isinstance(_aud, six.string_types):
+        if isinstance(_aud, str):
             if not str(_aud).startswith(self.cli.baseurl):
                 raise NotForMe("Not for me!")
         else:

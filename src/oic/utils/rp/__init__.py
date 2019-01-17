@@ -1,8 +1,7 @@
-from future.backports.urllib.parse import urlsplit
-
 import copy
 import hashlib
 import logging
+from urllib.parse import urlsplit
 
 from oic import oic
 from oic import rndstr

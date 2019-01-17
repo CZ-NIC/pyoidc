@@ -1,8 +1,8 @@
-from future.backports.http.cookiejar import FileCookieJar
-from future.backports.http.cookiejar import http2time
-from future.backports.http.cookies import SimpleCookie
-from future.backports.urllib.parse import parse_qs
-from future.backports.urllib.parse import urlparse
+from http.cookiejar import FileCookieJar
+from http.cookiejar import http2time
+from http.cookies import SimpleCookie
+from urllib.parse import parse_qs
+from urllib.parse import urlparse
 
 import pytest
 

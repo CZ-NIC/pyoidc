@@ -4,15 +4,13 @@ except ImportError:
     raise ImportError('This module can be used only with saml2 installed.')
 
 
-from future.backports.urllib.parse import urlencode
-from future.moves.urllib.parse import parse_qs
-
 import base64
 import importlib
 import json
 import logging
+from urllib.parse import parse_qs
+from urllib.parse import urlencode
 
-import six
 from saml2 import BINDING_HTTP_ARTIFACT
 from saml2 import BINDING_HTTP_POST
 from saml2 import BINDING_HTTP_REDIRECT
@@ -102,7 +100,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
         return_to url. Otherwise a unauthorized response.
         :raise: ValueError
         """
-        if isinstance(request, six.string_types):
+        if isinstance(request, str):
             request = parse_qs(request)
         elif isinstance(request, dict):
             pass
@@ -160,7 +158,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
             return Unauthorized(self.not_authorized), False
 
         if self.sp_conf.VALID_ATTRIBUTE_RESPONSE is not None:
-            for k, v in six.iteritems(self.sp_conf.VALID_ATTRIBUTE_RESPONSE):
+            for k, v in self.sp_conf.VALID_ATTRIBUTE_RESPONSE.items():
                 if k not in response.ava:
                     return Unauthorized(self.not_authorized), False
                 else:
@@ -199,7 +197,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
     def setup_userdb(self, uid, samldata):
         attributes = {}
         if self.sp_conf.ATTRIBUTE_WHITELIST is not None:
-            for attr, allowed in six.iteritems(self.sp_conf.ATTRIBUTE_WHITELIST):
+            for attr, allowed in self.sp_conf.ATTRIBUTE_WHITELIST.items():
                 if attr in samldata:
                     if allowed is not None:
                         tmp_attr_list = []
@@ -218,7 +216,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
         if self.sp_conf.OPENID2SAMLMAP is None:
             userdb = attributes.copy()
         else:
-            for oic, saml in six.iteritems(self.sp_conf.OPENID2SAMLMAP):
+            for oic, saml in self.sp_conf.OPENID2SAMLMAP.items():
                 if saml in attributes:
                     userdb[oic] = attributes[saml]
         self.userdb[uid] = userdb
@@ -229,10 +227,10 @@ class SAMLAuthnMethod(UserAuthnMethod):
         disco
         """
         query_dict = {}
-        if isinstance(query, six.string_types):
+        if isinstance(query, str):
             query_dict = dict(parse_qs(query))
         else:
-            for key, value in six.iteritems(query):
+            for key, value in query.items():
                 if isinstance(value, list):
                     query_dict[key] = value[0]
                 else:

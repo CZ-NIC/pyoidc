@@ -80,8 +80,6 @@ setup(
         "mako",
         "beaker",
         "cryptography",
-        "future",
-        "six",
         "defusedxml",
     ],
     tests_require=tests_requires,

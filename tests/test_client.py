@@ -1,9 +1,8 @@
 # pylint: disable=missing-docstring,no-self-use
 
-from future.backports.urllib.parse import quote_plus
-
 import base64
 import os
+from urllib.parse import quote_plus
 
 import pytest
 from jwkest import as_bytes

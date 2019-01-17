@@ -1,5 +1,5 @@
-from future.backports.urllib.parse import parse_qs
-from future.backports.urllib.parse import unquote
+from urllib.parse import parse_qs
+from urllib.parse import unquote
 
 import argparse
 import importlib

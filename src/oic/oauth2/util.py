@@ -1,12 +1,9 @@
-from future.backports.http import cookiejar as http_cookiejar
-from future.backports.http.cookiejar import http2time
-from future.backports.urllib.parse import parse_qs
-from future.backports.urllib.parse import urlsplit
-from future.backports.urllib.parse import urlunsplit
-
 import logging
-
-from six import string_types
+from http import cookiejar as http_cookiejar
+from http.cookiejar import http2time
+from urllib.parse import parse_qs
+from urllib.parse import urlsplit
+from urllib.parse import urlunsplit
 
 from oic.exception import UnSupported
 from oic.oauth2.exception import TimeFormatError
@@ -165,7 +162,7 @@ def set_cookie(cookiejar, kaka):
 
 
 def match_to_(val, vlist):
-    if isinstance(vlist, string_types):
+    if isinstance(vlist, str):
         if vlist.startswith(val):
             return True
     else:

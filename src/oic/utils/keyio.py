@@ -1,5 +1,3 @@
-from future.backports.urllib.parse import urlsplit
-
 import builtins
 import copy
 import json
@@ -7,6 +5,7 @@ import logging
 import os
 import sys
 import time
+from urllib.parse import urlsplit
 
 import requests
 from Cryptodome.PublicKey import RSA
@@ -21,7 +20,6 @@ from jwkest.jwk import JWKException
 from jwkest.jwk import RSAKey
 from jwkest.jwk import SYMKey
 from jwkest.jwk import rsa_load
-from six import string_types
 
 from oic.exception import MessageException
 from oic.exception import PyoidcError
@@ -506,7 +504,7 @@ class KeyJar(object):
             self.issuer_keys[issuer] = [kb]
 
     def __setitem__(self, issuer, val):
-        if isinstance(val, string_types):
+        if isinstance(val, str):
             val = [val]
         elif not isinstance(val, list):
             val = [val]
@@ -672,7 +670,7 @@ class KeyJar(object):
 
     def update(self, kj):
         for key, val in kj.issuer_keys.items():
-            if isinstance(val, string_types):
+            if isinstance(val, str):
                 val = [val]
             elif not isinstance(val, list):
                 val = [val]

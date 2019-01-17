@@ -1,8 +1,6 @@
 import importlib
 from tempfile import NamedTemporaryFile
 
-import six
-
 from oic.utils.userinfo import UserInfo
 
 __author__ = 'danielevertsson'
@@ -39,7 +37,7 @@ else:
 
                 response_dict = response.ava.copy()
                 if self.sp_conf.AA_ATTRIBUTE_SAML_IDP is True:
-                    for key, value in six.iteritems(ava):
+                    for key, value in ava.items():
                         if (self.sp_conf.AA_ATTRIBUTE_SAML_IDP_WHITELIST is None or
                             key in self.sp_conf.AA_ATTRIBUTE_SAML_IDP_WHITELIST) and \
                                         key not in response_dict:

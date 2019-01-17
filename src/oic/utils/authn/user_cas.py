@@ -1,13 +1,11 @@
-from future.backports.urllib.parse import urlencode
-from future.moves.urllib.parse import parse_qs
-
 import base64
 import json
 import logging
 import uuid
+from urllib.parse import parse_qs
+from urllib.parse import urlencode
 
 import requests
-import six
 from defusedxml import ElementTree as ET
 
 from oic.utils.authn.user import UserAuthnMethod
@@ -139,7 +137,7 @@ class CasAuthnMethod(UserAuthnMethod):
         :raise: ValueError
         """
         logger.debug("verify(%s)" % request)
-        if isinstance(request, six.string_types):
+        if isinstance(request, str):
             _dict = parse_qs(request)
         elif isinstance(request, dict):
             _dict = request
