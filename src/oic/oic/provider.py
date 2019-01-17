@@ -9,7 +9,6 @@ from future.moves.urllib.parse import urlparse
 import copy
 import hashlib
 import hmac
-import itertools
 import json
 import logging
 import random
@@ -36,14 +35,18 @@ from oic import rndstr
 from oic.exception import FailedAuthentication
 from oic.exception import InvalidRequest
 from oic.exception import MessageException
+from oic.exception import NotForMe
 from oic.exception import ParameterError
+from oic.exception import SubMismatch
 from oic.exception import UnSupported
 from oic.oauth2 import compact
 from oic.oauth2 import error_response
 from oic.oauth2 import redirect_authz_error
 from oic.oauth2.exception import CapabilitiesMisMatch
+from oic.oauth2.exception import VerificationError
 from oic.oauth2.message import Message
 from oic.oauth2.message import by_schema
+from oic.oauth2.provider import DELIM
 from oic.oauth2.provider import Endpoint
 from oic.oauth2.provider import Provider as AProvider
 from oic.oic import PREFERENCE2PROVIDER
@@ -72,6 +75,7 @@ from oic.oic.message import TokenErrorResponse
 from oic.utils import sort_sign_alg
 from oic.utils.http_util import OAUTH2_NOCACHE_HEADERS
 from oic.utils.http_util import BadRequest
+from oic.utils.http_util import CookieDealer
 from oic.utils.http_util import Created
 from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
@@ -483,11 +487,11 @@ class Provider(AProvider):
         # return the best I have
         return None, None
 
-    def verify_post_logout_redirect_uri(self, esreq, cookie):
+    def verify_post_logout_redirect_uri(self, esreq, client_id):
         """
 
         :param esreq: End session request
-        :param cookie:
+        :param client_id: The Client ID
         :return:
         """
         try:
@@ -497,18 +501,8 @@ class Provider(AProvider):
             return
 
         try:
-            authn, acr = self.pick_auth(esreq)
-        except Exception as err:
-            logger.exception("%s", err)
-            raise
-
-        try:
-            uid, _ts = authn.authenticated_as(cookie)
-            client_ids = self.sdb.get_client_ids_for_uid(uid["uid"])
-            accepted_urls = [self.cdb[cid]["post_logout_redirect_uris"] for cid
-                             in client_ids]
-            if self._verify_url(redirect_uri,
-                                itertools.chain.from_iterable(accepted_urls)):
+            accepted_urls = self.cdb[client_id]["post_logout_redirect_uris"]
+            if self._verify_url(redirect_uri, accepted_urls):
                 return redirect_uri
         except Exception as exc:
             msg = "An error occurred while verifying redirect URI: %s"
@@ -548,52 +542,131 @@ class Provider(AProvider):
         }
         return Response(self.template_renderer('verify_logout', context), headers=headers)
 
+    def _get_sids_from_cookie(self, cookie):
+        """Get cookie_dealer, client_id and sids from cookie."""
+        if cookie is None:
+            return None, None, None
+
+        cookie_dealer = CookieDealer(srv=self)
+        client_id = sids = None
+
+        _cval = cookie_dealer.get_cookie_value(cookie, self.sso_cookie_name)
+        if _cval:
+            (value, _ts, typ) = _cval
+            if typ == 'sso':
+                uid, client_id = value.split(DELIM)
+                try:
+                    sids = self.sdb.uid2sid[uid]
+                except (KeyError, IndexError):
+                    raise SubMismatch('Mismatch uid')
+        return cookie_dealer, client_id, sids
+
     def end_session_endpoint(self, request="", cookie=None, **kwargs):
         esr = EndSessionRequest().from_urlencoded(request)
 
-        logger.debug("End session request: {}".format(sanitize(esr.to_dict())))
+        logger.debug("End session request: {}", sanitize(esr.to_dict()))
+
+        # 2 ways of find out client ID and user. Either through a cookie
+        # or using the id_token_hint
+        try:
+            cookie_dealer, client_id, sids = self._get_sids_from_cookie(cookie)
+        except SubMismatch as error:
+            return error_response('invalid_request', '%s' % error)
+
+        if "id_token_hint" in esr:
+            id_token_hint = IdToken().from_jwt(esr["id_token_hint"],
+                                               keyjar=self.keyjar,
+                                               verify=True)
+            far_away = 86400*30  # 30 days
+
+            if client_id:
+                args = {'client_id': client_id}
+            else:
+                args = {}
+
+            try:
+                id_token_hint.verify(iss=self.baseurl, skew=far_away,
+                                     nonce_storage_time=far_away, **args)
+            except (VerificationError, NotForMe) as err:
+                logger.warning(
+                    'Verification error on id_token_hint: {}'.format(err))
+                return error_response('invalid_request', "Bad Id Token hint")
+
+            sub = id_token_hint["sub"]
+
+            if sids:
+                match = False
+                # verify that 'sub' are bound to 'user'
+                for sid in sids:
+                    if self.sdb[sid]['sub'] == sub:
+                        match = True
+                        break
+                if not match:
+                    return error_response('invalid_request', "Wrong user")
+            else:
+                try:
+                    sids = self.sdb.get_sids_by_sub(sub)
+                except IndexError:
+                    pass
+
+            if not client_id:
+                if len(id_token_hint['aud']) == 1:
+                    client_id = id_token_hint['aud'][0]
+                else:
+                    client_id = id_token_hint['azp']
+
+        if not client_id:
+            return error_response('invalid_request', "Could not find client ID")
+        if client_id not in self.cdb:
+            return error_response('invalid_request', "Unknown client")
+
+        match = False
+        for sid in sids:
+            if self.sdb[sid]['client_id'] == client_id:
+                match = True
+                break
+        if not match:
+            return error_response('invalid_request', "Unmatched client")
 
         redirect_uri = None
         if "post_logout_redirect_uri" in esr:
-            redirect_uri = self.verify_post_logout_redirect_uri(esr, cookie)
+            redirect_uri = self.verify_post_logout_redirect_uri(esr, client_id)
             if not redirect_uri:
                 msg = "Post logout redirect URI verification failed!"
-                return error_response("%s", msg)
+                return error_response('invalid_request', msg)
+        else:  # If only one registered use that one
+            if len(self.cdb[client_id]["post_logout_redirect_uris"]) == 1:
+                _base, _query = self.cdb[client_id]["post_logout_redirect_uris"][0]
+                if _query:
+                    query_string = urlencode(
+                        [(key, v) for key in _query for v in _query[key]])
+                    redirect_uri = "%s?%s" % (_base, query_string)
+                else:
+                    redirect_uri = _base
 
-        authn, acr = self.pick_auth(esr)
-
-        sid = None
-        if "id_token_hint" in esr:
-            id_token_hint = OpenIDRequest().from_jwt(esr["id_token_hint"],
-                                                     keyjar=self.keyjar,
-                                                     verify=True)
-            sub = id_token_hint["sub"]
-            try:
-                # any sid will do, choose the first
-                sid = self.sdb.get_sids_by_sub(sub)[0]
-            except IndexError:
-                pass
-        else:
-            identity, _ts = authn.authenticated_as(cookie)
-            if identity:
-                uid = identity["uid"]
-                try:
-                    # any sid will do, choose the first
-                    sid = self.sdb.uid2sid[uid][0]
-                except (KeyError, IndexError):
-                    pass
-            else:
-                msg = "Not allowed: UID could not be retrieved"
-                return error_response("%s", msg)
-
-        if sid is not None:
+        for sid in sids:
             del self.sdb[sid]
 
         # Delete cookies
+        authn, acr = self.pick_auth(esr)
         headers = [authn.delete_cookie(), self.delete_session_cookie()]
+        if cookie_dealer:
+            headers.append(cookie_dealer.delete_cookie(self.sso_cookie_name))
 
         if redirect_uri is not None:
-            return SeeOther(str(redirect_uri), headers=headers)
+            try:
+                _state = esr['state']
+            except KeyError:
+                redirect_uri = str(redirect_uri)
+            else:
+                if '?' in redirect_uri:
+                    redirect_uri += "&"
+                else:
+                    redirect_uri += "?"
+
+                redirect_uri += urlencode({'state': _state})
+
+            return SeeOther(redirect_uri, headers=headers)
 
         return Response("Successful logout", headers=headers)
 
