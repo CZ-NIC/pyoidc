@@ -5,7 +5,7 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
-## Unreleased
+## 0.15.0 [2019-01-17]
 
 ### Fixed
 - [#553] Made sure a reload would not lead to duplicated keys in a keybundle.
