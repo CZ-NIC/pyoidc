@@ -5,6 +5,13 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
+## Unreleased
+
+### Fixed
+- [#592] Do not append cookie header if there is nothing to append
+
+[#592]: https://github.com/OpenIDC/pyoidc/issues/592
+
 ## 0.15.0 [2019-01-17]
 
 ### Fixed

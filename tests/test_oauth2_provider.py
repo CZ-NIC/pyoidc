@@ -71,6 +71,13 @@ class DummyAuthn(UserAuthnMethod):
         return {"uid": self.user}, time.time()
 
 
+class NoCookieAuthn(DummyAuthn):
+    """Authn that doesn't create cookies."""
+
+    def create_cookie(self, value, typ, cookie_name=None, ttl=-1, kill=False):
+        pass
+
+
 def verify_outcome(msg, prefix, lista):
     """
     Number of permutations are dependent on number of claims
@@ -86,6 +93,8 @@ def verify_outcome(msg, prefix, lista):
 
 AUTHN_BROKER = AuthnBroker()
 AUTHN_BROKER.add("UNDEFINED", DummyAuthn(None, "username"))
+AUTHN_BROKER2 = AuthnBroker()
+AUTHN_BROKER2.add('UNDEFINED', NoCookieAuthn(None, 'username'))
 # dealing with authorization
 AUTHZ = Implicit()
 
@@ -381,3 +390,90 @@ class TestProvider(object):
 
         _res = json.loads(res.message)
         assert _res['error'] == 'invalid_request'
+
+    def test_complete_authz_no_cookie(self, session_db_factory):
+        provider = Provider("pyoicserver", session_db_factory(ISSUER), CDB, AUTHN_BROKER2, AUTHZ, verify_client,
+                            baseurl='https://example.com/as')
+        areq = {'client_id': 'client1',
+                'response_type': ['code'],
+                'redirect_uri': 'http://localhost:8087/authz'}
+        sid = provider.sdb.access_token.key(user='sub', areq=areq)
+        access_code = provider.sdb.access_token(sid=sid)
+        provider.sdb[sid] = {'oauth_state': 'authz',
+                             'sub': 'sub',
+                             'client_id': 'client1',
+                             'code': access_code,
+                             'redirect_uri': 'http://localhost:8087/authz'}
+        response, header, redirect, fragment = provider._complete_authz('sub', areq, sid)
+        assert header == []
+        assert not fragment
+        assert redirect == 'http://localhost:8087/authz'
+        assert 'code' in response
+
+    def test_complete_authz_cookie(self, session_db_factory):
+        provider = Provider("pyoicserver", session_db_factory(ISSUER), CDB, AUTHN_BROKER, AUTHZ, verify_client,
+                            baseurl='https://example.com/as')
+        areq = {'client_id': 'client1',
+                'response_type': ['code'],
+                'redirect_uri': 'http://localhost:8087/authz'}
+        sid = provider.sdb.access_token.key(user='sub', areq=areq)
+        access_code = provider.sdb.access_token(sid=sid)
+        provider.sdb[sid] = {'oauth_state': 'authz',
+                             'sub': 'sub',
+                             'client_id': 'client1',
+                             'code': access_code,
+                             'redirect_uri': 'http://localhost:8087/authz'}
+        response, header, redirect, fragment = provider._complete_authz('sub', areq, sid)
+        assert len(header) == 1
+        cookie_header = header[0]
+        assert cookie_header[0] == 'Set-Cookie'
+        assert cookie_header[1].startswith('pyoidc_sso="sub][client1')
+        assert not fragment
+        assert redirect == 'http://localhost:8087/authz'
+        assert 'code' in response
+
+    def test_complete_authz_other_cookie_exists(self, session_db_factory):
+        provider = Provider("pyoicserver", session_db_factory(ISSUER), CDB, AUTHN_BROKER, AUTHZ, verify_client,
+                            baseurl='https://example.com/as')
+        areq = {'client_id': 'client1',
+                'response_type': ['code'],
+                'redirect_uri': 'http://localhost:8087/authz'}
+        sid = provider.sdb.access_token.key(user='sub', areq=areq)
+        access_code = provider.sdb.access_token(sid=sid)
+        provider.sdb[sid] = {'oauth_state': 'authz',
+                             'sub': 'sub',
+                             'client_id': 'client1',
+                             'code': access_code,
+                             'redirect_uri': 'http://localhost:8087/authz'}
+        cookie = 'Some-cookie=test::test'
+        response, header, redirect, fragment = provider._complete_authz('sub', areq, sid, cookie=cookie)
+        assert len(header) == 2
+        orig_cookie_header = header[0]
+        assert orig_cookie_header[1] == cookie
+        pyoidc_cookie_header = header[1]
+        assert pyoidc_cookie_header[1].startswith('pyoidc_sso="sub][client1')
+        assert not fragment
+        assert redirect == 'http://localhost:8087/authz'
+        assert 'code' in response
+
+    def test_complete_authz_pyoidc_cookie_exists(self, session_db_factory):
+        provider = Provider("pyoicserver", session_db_factory(ISSUER), CDB, AUTHN_BROKER, AUTHZ, verify_client,
+                            baseurl='https://example.com/as')
+        areq = {'client_id': 'client1',
+                'response_type': ['code'],
+                'redirect_uri': 'http://localhost:8087/authz'}
+        sid = provider.sdb.access_token.key(user='sub', areq=areq)
+        access_code = provider.sdb.access_token(sid=sid)
+        provider.sdb[sid] = {'oauth_state': 'authz',
+                             'sub': 'sub',
+                             'client_id': 'client1',
+                             'code': access_code,
+                             'redirect_uri': 'http://localhost:8087/authz'}
+        cookie = 'pyoidc_sso=test::test'
+        response, header, redirect, fragment = provider._complete_authz('sub', areq, sid, cookie=cookie)
+        orig_cookie_header = header[0]
+        assert len(header) == 1
+        assert orig_cookie_header[1] == cookie
+        assert not fragment
+        assert redirect == 'http://localhost:8087/authz'
+        assert 'code' in response
