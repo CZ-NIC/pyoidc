@@ -736,6 +736,7 @@ class Provider(object):
 
         c_val = "{}{}{}".format(user, DELIM, areq['client_id'])
 
+        cookie_header = None
         if _kaka:
             if isinstance(_kaka, dict):
                 for name, val in _kaka.items():
@@ -754,14 +755,12 @@ class Provider(object):
                     headers.append(tuple(x.split(": ", 1)))
 
             if self.cookie_name not in _kaka:  # Don't overwrite
-                headers.append(self.cookie_func(c_val, typ="sso",
-                                                cookie_name=self.sso_cookie_name,
-                                                ttl=self.sso_ttl))
+                cookie_header = self.cookie_func(c_val, typ="sso", cookie_name=self.sso_cookie_name, ttl=self.sso_ttl)
         else:
-            headers.append(self.cookie_func(c_val, typ="sso",
-                                            cookie_name=self.sso_cookie_name,
-                                            ttl=self.sso_ttl))
+            cookie_header = self.cookie_func(c_val, typ="sso", cookie_name=self.sso_cookie_name, ttl=self.sso_ttl)
 
+        if cookie_header is not None:
+            headers.append(cookie_header)
         # Now about the response_mode. Should not be set if it's obvious
         # from the response_type. Knows about 'query', 'fragment' and
         # 'form_post'.
