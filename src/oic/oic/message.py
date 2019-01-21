@@ -10,6 +10,8 @@ import urllib
 
 import six
 from jwkest import jws
+from jwkest.jwe import JWEException
+from jwkest.jwe import factory as JWE_factory
 from jwkest.jwt import JWT
 
 from oic.exception import InvalidRequest
@@ -269,8 +271,17 @@ def verify_id_token(instance, check_hash=False, **kwargs):
             pass
 
     _jws = str(instance["id_token"])
+
+    # It can be encrypted, so try to decrypt first
+    _jwe = JWE_factory(_jws)
+    if _jwe is not None:
+        try:
+            _jws = _jwe.decrypt(keys=kwargs['keyjar'].get_decrypt_key())
+        except JWEException as err:
+            raise VerificationError("Could not decrypt id_token", err)
     _packer = JWT()
     _body = _packer.unpack(_jws).payload()
+
     if 'keyjar' in kwargs:
         try:
             if _body['iss'] not in kwargs['keyjar']:
