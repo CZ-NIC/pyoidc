@@ -26,6 +26,7 @@ from oic.oic.message import OpenIDSchema
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import RegistrationResponse
+from oic.oic.message import VerificationError
 from oic.oic.message import address_deser
 from oic.oic.message import claims_deser
 from oic.oic.message import claims_ser
@@ -33,6 +34,7 @@ from oic.oic.message import msg_ser
 from oic.oic.message import verify_id_token
 from oic.utils import time_util
 from oic.utils.jwt import JWT
+from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
@@ -913,5 +915,42 @@ def test_verify_id_token_iss_not_in_keyjar():
     msg = AuthorizationResponse(id_token=_jws)
     with pytest.raises(ValueError):
         verify_id_token(msg, check_hash=True, keyjar=kj,
+                        iss="https://sso.qa.7pass.ctf.prosiebensat1.com",
+                        client_id="554295ce3770612820620000")
+
+
+def test_verify_token_encrypted():
+    idt = IdToken(sub='553df2bcf909104751cfd8b2', aud=['5542958437706128204e0000', '554295ce3770612820620000'],
+                  auth_time=1441364872, azp='554295ce3770612820620000')
+    kj = KeyJar()
+    kb = KeyBundle()
+    kb.do_local_der(os.path.join(os.path.dirname(__file__), 'data', 'keys', 'cert.key'), 'some', ['enc', 'sig'])
+    kj.add_kb('', kb)
+    kj.add_kb('https://sso.qa.7pass.ctf.prosiebensat1.com', kb)
+
+    packer = JWT(kj, lifetime=3600, iss='https://sso.qa.7pass.ctf.prosiebensat1.com', encrypt=True)
+    _jws = packer.pack(**idt.to_dict())
+    msg = AuthorizationResponse(id_token=_jws)
+    vidt = verify_id_token(msg, keyjar=kj,
+                           iss="https://sso.qa.7pass.ctf.prosiebensat1.com",
+                           client_id="554295ce3770612820620000")
+    assert vidt
+
+
+def test_verify_token_encrypted_no_key():
+    idt = IdToken(sub='553df2bcf909104751cfd8b2', aud=['5542958437706128204e0000', '554295ce3770612820620000'],
+                  auth_time=1441364872, azp='554295ce3770612820620000')
+    kj = KeyJar()
+    kb = KeyBundle()
+    kb.do_local_der(os.path.join(os.path.dirname(__file__), 'data', 'keys', 'cert.key'), 'some', ['enc', 'sig'])
+    kj.add_kb('', kb)
+    kj.add_kb('https://sso.qa.7pass.ctf.prosiebensat1.com', kb)
+
+    packer = JWT(kj, lifetime=3600, iss='https://sso.qa.7pass.ctf.prosiebensat1.com', encrypt=True)
+    _jws = packer.pack(**idt.to_dict())
+    msg = AuthorizationResponse(id_token=_jws)
+    # Do not pass they keyjar with keys
+    with pytest.raises(VerificationError):
+        verify_id_token(msg, keyjar=KeyJar(),
                         iss="https://sso.qa.7pass.ctf.prosiebensat1.com",
                         client_id="554295ce3770612820620000")

@@ -9,8 +9,10 @@ The format is based on the [KeepAChangeLog] project.
 
 ### Fixed
 - [#592] Do not append cookie header if there is nothing to append
+- [#591] Fix verification of encrypted id_token
 
 [#592]: https://github.com/OpenIDC/pyoidc/issues/592
+[#591]: https://github.com/OpenIDC/pyoidc/issues/591
 
 ## 0.15.0 [2019-01-17]
 
