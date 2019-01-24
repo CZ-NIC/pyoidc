@@ -144,7 +144,7 @@ def set_cookie(cookiejar, kaka):
         if std_attr["domain"] and std_attr["domain"].startswith("."):
             std_attr["domain_initial_dot"] = True
 
-        if morsel["max-age"] is 0:
+        if morsel["max-age"] == 0:
             try:
                 cookiejar.clear(domain=std_attr["domain"],
                                 path=std_attr["path"],

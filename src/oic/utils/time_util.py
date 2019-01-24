@@ -280,7 +280,7 @@ def str_to_time(timestr, time_format=TIME_FORMAT):
         try:
             elem = TIME_FORMAT_WITH_FRAGMENT.match(timestr)
         except Exception as exc:
-            print >> sys.stderr, "Exception: %s on %s" % (exc, timestr)
+            print("Exception: %s on %s" % (exc, timestr), file=sys.stderr)
             raise
         then = time.strptime(elem.groups()[0] + "Z", TIME_FORMAT)
 
