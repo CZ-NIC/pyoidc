@@ -1,4 +1,3 @@
-# -*- coding:utf-8 -*-
 from mako import cache
 from mako import filters
 from mako import runtime

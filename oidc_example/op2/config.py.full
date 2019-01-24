@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 keys = [
     {"type": "RSA", "key": "cp_keys/key.pem", "use": ["enc", "sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},

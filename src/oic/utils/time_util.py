@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
 # Copyright (C) 2009-2011 Umeå University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,8 +15,6 @@
 Implements some usefull functions when dealing with validity of
 different types of information.
 """
-from __future__ import print_function
-
 import calendar
 import re
 import sys

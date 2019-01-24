@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 from oic.oauth2.message import AccessTokenRequest

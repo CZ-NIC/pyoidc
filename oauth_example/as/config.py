@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from mako.lookup import TemplateLookup
 
 HOST = "localhost"
