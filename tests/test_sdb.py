@@ -78,10 +78,12 @@ class TestDictRefreshDB(object):
                                       'authzreq', 'sid')
         self.rdb.remove(token)
         assert self.rdb.verify_token('client1', token) is False
-        assert pytest.raises(KeyError, 'self.rdb.get(token)')
+        with pytest.raises(KeyError):
+            self.rdb.get(token)
 
     def test_get_token(self):
-        assert pytest.raises(KeyError, 'self.rdb.get("token")')
+        with pytest.raises(KeyError):
+            self.rdb.get('token')
         token = self.rdb.create_token('client1', 'uid', ['openid'], 'sub1',
                                       'authzreq', 'sid')
         assert self.rdb.get(token) == {'client_id': 'client1', 'sub': 'sub1',

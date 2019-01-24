@@ -1189,7 +1189,7 @@ class TestProvider(object):
         rr = RegistrationRequest(operation="register", sector_identifier_uri="example.com")
         with LogCapture(level=logging.DEBUG) as logcap:
             message = "Couldn't open sector_identifier_uri"
-            with pytest.raises(InvalidSectorIdentifier, message=message):
+            with pytest.raises(InvalidSectorIdentifier, match=message):
                 self.provider._verify_sector_identifier(rr)
 
         assert len(logcap.records) == 2
@@ -1203,7 +1203,7 @@ class TestProvider(object):
         with responses.RequestsMock() as rsps, LogCapture(level=logging.DEBUG) as logcap:
             rsps.add(rsps.GET, "https://example.com", status=404)
             message = "Couldn't open sector_identifier_uri"
-            with pytest.raises(InvalidSectorIdentifier, message=message):
+            with pytest.raises(InvalidSectorIdentifier, match=message):
                 self.provider._verify_sector_identifier(rr)
 
         assert len(logcap.records) == 0
@@ -1213,7 +1213,7 @@ class TestProvider(object):
         error = ConnectionError('broken connection')
         with responses.RequestsMock() as rsps, LogCapture(level=logging.DEBUG) as logcap:
             rsps.add(rsps.GET, "https://example.com", body=error)
-            with pytest.raises(InvalidSectorIdentifier, message="Couldn't open sector_identifier_uri"):
+            with pytest.raises(InvalidSectorIdentifier, match="Couldn't open sector_identifier_uri"):
                 self.provider._verify_sector_identifier(rr)
 
         assert len(logcap.records) == 2
@@ -1225,7 +1225,7 @@ class TestProvider(object):
         body = "This is not the JSON you are looking for"
         with responses.RequestsMock() as rsps, LogCapture(level=logging.DEBUG) as logcap:
             rsps.add(rsps.GET, "https://example.com", body=body)
-            with pytest.raises(InvalidSectorIdentifier, message="Error deserializing sector_identifier_uri content"):
+            with pytest.raises(InvalidSectorIdentifier, match="Error deserializing sector_identifier_uri content"):
                 self.provider._verify_sector_identifier(rr)
 
         assert len(logcap.records) == 1
@@ -1239,7 +1239,7 @@ class TestProvider(object):
         with responses.RequestsMock() as rsps, LogCapture(level=logging.DEBUG) as logcap:
             rsps.add(rsps.GET, "https://example.com",
                      body=json.dumps(["http://example.com/present"]))
-            with pytest.raises(InvalidSectorIdentifier, message="redirect uri missing from sector_identifiers"):
+            with pytest.raises(InvalidSectorIdentifier, match="redirect_uri missing from sector_identifiers"):
                 self.provider._verify_sector_identifier(rr)
 
         assert len(logcap.records) == 2
