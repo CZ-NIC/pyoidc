@@ -5,10 +5,10 @@ import base64
 import json
 import logging
 import uuid
-import xml.etree.ElementTree as ET
 
 import requests
 import six
+from defusedxml import ElementTree as ET
 
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.http_util import SeeOther

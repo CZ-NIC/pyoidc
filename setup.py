@@ -90,6 +90,7 @@ setup(
         "cryptography",
         "future",
         "six",
+        "defusedxml",
     ] + extra_install_requires,
     tests_require=tests_requires,
     zip_safe=False,
