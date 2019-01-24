@@ -18,6 +18,7 @@
 Implements some usefull functions when dealing with validity of
 different types of information.
 """
+from __future__ import print_function
 
 import calendar
 import re
