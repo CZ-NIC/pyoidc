@@ -1,4 +1,3 @@
-# coding=utf-8
 import json
 import logging
 import re
@@ -9,11 +8,6 @@ import requests
 
 from oic.exception import PyoidcError
 from oic.utils.time_util import in_a_while
-
-try:
-    from past.builtins import basestring
-except ImportError:
-    pass
 
 __author__ = 'rolandh'
 
@@ -39,12 +33,12 @@ class Base(object):
         try:
             spec = self.c_param[item]
         except KeyError:
-            spec = {"type": basestring, "required": False}  # default
+            spec = {"type": str, "required": False}  # default
 
         try:
             t1, t2 = spec["type"]
             if t1 == list:  # Should always be
-                assert not isinstance(val, basestring)
+                assert not isinstance(val, str)
                 assert isinstance(val, list)
                 res = []
                 if t2 == LINK:
@@ -120,9 +114,9 @@ class Base(object):
 
 class LINK(Base):
     c_param = {
-        "rel": {"type": basestring, "required": True},
-        "type": {"type": basestring, "required": False},
-        "href": {"type": basestring, "required": False},
+        "rel": {"type": str, "required": True},
+        "type": {"type": str, "required": False},
+        "href": {"type": str, "required": False},
         "titles": {"type": dict, "required": False},
         "properties": {"type": dict, "required": False},
     }
@@ -130,9 +124,9 @@ class LINK(Base):
 
 class JRD(Base):
     c_param = {
-        "expires": {"type": basestring, "required": False},  # Optional
-        "subject": {"type": basestring, "required": False},  # Should
-        "aliases": {"type": (list, basestring), "required": False},  # Optional
+        "expires": {"type": str, "required": False},  # Optional
+        "subject": {"type": str, "required": False},  # Should
+        "aliases": {"type": (list, str), "required": False},  # Optional
         "properties": {"type": dict, "required": False},  # Optional
         "links": {"type": (list, LINK), "required": False},  # Optional
     }
@@ -232,7 +226,7 @@ class WebFinger(object):
         if rel is None:
             if self.default_rel:
                 info.append(("rel", self.default_rel))
-        elif isinstance(rel, basestring):
+        elif isinstance(rel, str):
             info.append(("rel", rel))
         else:
             for val in rel:

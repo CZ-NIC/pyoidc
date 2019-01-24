@@ -1,5 +1,3 @@
-from past.builtins import basestring
-
 import copy
 import json
 import logging
@@ -954,18 +952,18 @@ VSER = 2
 VDESER = 3
 VNULLALLOWED = 4
 
-SINGLE_REQUIRED_STRING = (basestring, True, None, None, False)
-SINGLE_OPTIONAL_STRING = (basestring, False, None, None, False)
+SINGLE_REQUIRED_STRING = (str, True, None, None, False)
+SINGLE_OPTIONAL_STRING = (str, False, None, None, False)
 SINGLE_OPTIONAL_INT = (int, False, None, None, False)
-OPTIONAL_LIST_OF_STRINGS = ([basestring], False, list_serializer,
+OPTIONAL_LIST_OF_STRINGS = ([str], False, list_serializer,
                             list_deserializer, False)
-REQUIRED_LIST_OF_STRINGS = ([basestring], True, list_serializer,
+REQUIRED_LIST_OF_STRINGS = ([str], True, list_serializer,
                             list_deserializer, False)
-OPTIONAL_LIST_OF_SP_SEP_STRINGS = ([basestring], False, sp_sep_list_serializer,
+OPTIONAL_LIST_OF_SP_SEP_STRINGS = ([str], False, sp_sep_list_serializer,
                                    sp_sep_list_deserializer, False)
-REQUIRED_LIST_OF_SP_SEP_STRINGS = ([basestring], True, sp_sep_list_serializer,
+REQUIRED_LIST_OF_SP_SEP_STRINGS = ([str], True, sp_sep_list_serializer,
                                    sp_sep_list_deserializer, False)
-SINGLE_OPTIONAL_JSON = (basestring, False, json_serializer, json_deserializer,
+SINGLE_OPTIONAL_JSON = (str, False, json_serializer, json_deserializer,
                         False)
 
 REQUIRED = [SINGLE_REQUIRED_STRING, REQUIRED_LIST_OF_STRINGS,
