@@ -969,13 +969,7 @@ def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=2048):
 
     key = RSA.generate(size)
 
-    if sys.version_info[0] > 2:
-        os.makedirs(path, exist_ok=True)
-    else:
-        try:
-            os.makedirs(path)
-        except OSError:  # assume this is because it already exists
-            pass
+    os.makedirs(path, exist_ok=True)
 
     if name:
         with open(os.path.join(path, name), 'wb') as f:

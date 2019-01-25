@@ -10,7 +10,6 @@ from http.cookies import SimpleCookie
 from urllib.parse import quote
 
 from jwkest import as_unicode
-from jwkest import safe_str_cmp
 
 from oic import rndstr
 from oic.exception import ImproperlyConfigured
@@ -298,7 +297,7 @@ def verify_cookie_signature(sig, key, *parts):
        :raises: `InvalidCookieSign` when the signature is wrong
     """
     assert isinstance(sig, str)
-    return safe_str_cmp(sig, cookie_signature(key, *parts))
+    return hmac.compare_digest(sig, cookie_signature(key, *parts))
 
 
 def _make_hashed_key(parts, hashfunc='sha256'):
