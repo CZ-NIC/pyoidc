@@ -24,6 +24,11 @@ from setuptools.command.test import test as TestCommand
 __author__ = 'rohe0002'
 
 
+if sys.version_info.major < 3:
+    raise RuntimeError('Pyoidc does not support python 2 anymore. '
+                       'Please use Python 3 or use older version of pyoidc (0.15.x)')
+
+
 class PyTest(TestCommand):
     def finalize_options(self):
         TestCommand.finalize_options(self)
