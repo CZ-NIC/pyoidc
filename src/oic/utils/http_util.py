@@ -37,7 +37,7 @@ OAUTH2_NOCACHE_HEADERS = [
 
 
 class Response(object):
-    _template = None
+    _template = ''
     _status_code = 200
     _content_type = 'text/html'
     _mako_template = None
@@ -546,13 +546,14 @@ def wsgi_wrapper(environ, start_response, func, **kwargs):
 
 
 class CookieDealer(object):
-    def getServer(self):
+
+    @property
+    def srv(self):
         return self._srv
 
-    def setServer(self, server):
+    @srv.setter
+    def srv(self, server):
         self._srv = server
-
-    srv = property(getServer, setServer)
 
     def __init__(self, srv, ttl=5, secure=True, httponly=True):
         self.srv = None

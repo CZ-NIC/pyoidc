@@ -1,5 +1,5 @@
 from http.cookiejar import FileCookieJar
-from http.cookiejar import http2time
+from http.cookiejar import http2time  # type: ignore
 from http.cookies import SimpleCookie
 from urllib.parse import parse_qs
 from urllib.parse import urlparse

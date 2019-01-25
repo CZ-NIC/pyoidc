@@ -6,7 +6,7 @@ import sys
 import traceback
 import warnings
 from urllib.parse import parse_qs
-from urllib.parse import splitquery
+from urllib.parse import splitquery  # type: ignore
 from urllib.parse import unquote
 from urllib.parse import urljoin
 from urllib.parse import urlparse
@@ -786,8 +786,8 @@ class Provider(object):
         logger.debug("AccessTokenRequest: %s" % sanitize(areq))
 
         if areq["grant_type"] != "authorization_code":
-            err = TokenErrorResponse(error="invalid_request", error_description="Wrong grant type")
-            return Response(err.to_json(), content="application/json", status="401 Unauthorized")
+            error = TokenErrorResponse(error="invalid_request", error_description="Wrong grant type")
+            return Response(error.to_json(), content="application/json", status="401 Unauthorized")
 
         # assert that the code is valid
         _info = _sdb[areq["code"]]
@@ -800,15 +800,15 @@ class Provider(object):
         # verify that the one given here is the correct one.
         if "redirect_uri" in _info and areq["redirect_uri"] != _info["redirect_uri"]:
             logger.error('Redirect_uri mismatch')
-            err = TokenErrorResponse(error="unauthorized_client")
-            return Unauthorized(err.to_json(), content="application/json")
+            error = TokenErrorResponse(error="unauthorized_client")
+            return Unauthorized(error.to_json(), content="application/json")
 
         try:
             _tinfo = _sdb.upgrade_to_token(areq["code"], issue_refresh=True)
         except AccessCodeUsed:
-            err = TokenErrorResponse(error="invalid_grant",
-                                     error_description="Access grant used")
-            return Response(err.to_json(), content="application/json",
+            error = TokenErrorResponse(error="invalid_grant",
+                                       error_description="Access grant used")
+            return Response(error.to_json(), content="application/json",
                             status="401 Unauthorized")
 
         logger.debug("_tinfo: %s" % sanitize(_tinfo))

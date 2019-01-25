@@ -3,6 +3,8 @@ import json
 import logging
 from collections import MutableMapping
 from collections import namedtuple
+from typing import Any  # noqa - This is used for MyPy
+from typing import Mapping  # noqa - This is used for MyPy
 from urllib.parse import parse_qs
 from urllib.parse import urlencode
 
@@ -126,9 +128,9 @@ def jwt_header(txt):
 
 
 class Message(MutableMapping):
-    c_param = {}
-    c_default = {}
-    c_allowed_values = {}
+    c_param = {}  # type: Mapping[str, ParamDefinition]
+    c_default = {}  # type: Mapping[str, Any]
+    c_allowed_values = {}  # type: ignore
 
     def __init__(self, **kwargs):
         self._dict = self.c_default.copy()

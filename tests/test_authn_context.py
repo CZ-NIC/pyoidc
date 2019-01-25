@@ -26,13 +26,13 @@ PASSWD = {
 
 try:
     from oic.utils.authn.ldap_member import UserLDAPMemberValidation
+    SKIP_LDAP = False
 except ImportError:
-    UserLDAPMemberValidation = None
+    SKIP_LDAP = True
 
 
 class TestAuthnBroker(object):
-    @pytest.mark.skipif("UserLDAPMemberValidation is None",
-                        reason="LDAP support missing")
+    @pytest.mark.skipif(SKIP_LDAP, reason="LDAP support missing")
     def test(self):
         ac = AuthnBroker()
         issuer = "https://example.com/op"

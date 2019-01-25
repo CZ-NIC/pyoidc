@@ -11,7 +11,7 @@ import time
 import traceback
 from functools import cmp_to_key
 from urllib.parse import parse_qs
-from urllib.parse import splitquery
+from urllib.parse import splitquery  # type: ignore
 from urllib.parse import unquote
 from urllib.parse import urlencode
 from urllib.parse import urljoin
@@ -247,9 +247,12 @@ class Provider(AProvider):
         self.extra_claims = extra_claims
         self.extra_scope_dict = extra_scope_dict
 
+        self.register_endpoint = None
         for endp in self.endp:
             if endp.etype == 'registration':
                 endpoint = urljoin(self.baseurl, endp.url)
+                DeprecationWarning("Using `register_endpoint` is deprecated, please use "
+                                   "`registration_endpoint` instead.")
                 self.register_endpoint = endpoint
                 break
 
@@ -1106,9 +1109,9 @@ class Provider(AProvider):
 
         if not client_id:
             logger.error('No client_id, authentication failed')
-            err = TokenErrorResponse(error="unauthorized_client",
-                                     error_description=msg)
-            return Unauthorized(err.to_json(), content="application/json")
+            error = TokenErrorResponse(error="unauthorized_client",
+                                       error_description=msg)
+            return Unauthorized(error.to_json(), content="application/json")
 
         if "client_id" not in req:  # Optional for access token request
             req["client_id"] = client_id
@@ -2024,9 +2027,6 @@ class Provider(AProvider):
         """
         self.jwks_uri = key_export(self.baseurl, local_path, vault, self.keyjar,
                                    fqdn=self.hostname, sig=sig, enc=enc)
-
-    def register_endpoint(self, request="", **kwargs):
-        pass
 
     def endsession_endpoint(self, request="", **kwargs):
         """

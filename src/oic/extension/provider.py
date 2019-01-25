@@ -6,7 +6,7 @@ import sys
 import traceback
 from functools import cmp_to_key
 from urllib.parse import parse_qs
-from urllib.parse import splitquery
+from urllib.parse import splitquery  # type: ignore
 
 from jwkest import b64e
 from jwkest import jws

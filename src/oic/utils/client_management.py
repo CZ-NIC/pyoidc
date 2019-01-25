@@ -7,7 +7,7 @@ import shelve
 import sys
 from builtins import input
 from urllib.parse import parse_qs
-from urllib.parse import splitquery
+from urllib.parse import splitquery  # type: ignore
 from urllib.parse import urlparse
 
 from oic import rndstr

@@ -11,7 +11,7 @@ except ImportError:
     class AaUserInfo(UserInfo):
         pass
 else:
-    class AaUserInfo(UserInfo):
+    class AaUserInfo(UserInfo):  # type: ignore
         def __init__(self, spconf, url, db=None):
             UserInfo.__init__(self, db)
 

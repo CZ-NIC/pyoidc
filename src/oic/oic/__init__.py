@@ -5,16 +5,6 @@ from base64 import b64encode
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
 
-
-from oic.utils.http_util import Response
-
-try:
-    from json import JSONDecodeError
-except ImportError:  # Only works for >= 3.5
-    _decode_err = ValueError
-else:
-    _decode_err = JSONDecodeError
-
 from jwkest.jwe import JWE
 from jwkest import jws, as_bytes
 from jwkest import jwe
@@ -70,6 +60,7 @@ from oic.exception import PyoidcError
 from oic.exception import RegistrationError
 from oic.exception import RequestError
 from oic.utils import time_util
+from oic.utils.http_util import Response
 from oic.utils.keyio import KeyJar
 from oic.utils.sanitize import sanitize
 from oic.utils.webfinger import OIC_ISSUER
@@ -1243,7 +1234,7 @@ class Client(oauth2.Client):
         elif 400 <= response.status_code <= 499:
             try:
                 resp = ErrorResponse().deserialize(response.text, "json")
-            except _decode_err:
+            except ValueError:  # TODO: Change to JSONDecodeError after py34 drop
                 logger.error(unk_msg.format(sanitize(response.text)))
                 raise RegistrationError(response.text)
 
