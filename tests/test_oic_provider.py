@@ -4,6 +4,8 @@ import logging
 import os
 from http.cookies import SimpleCookie
 from time import time
+from unittest.mock import Mock
+from unittest.mock import patch
 from urllib.parse import parse_qs
 from urllib.parse import urlencode
 from urllib.parse import urlparse
@@ -11,8 +13,6 @@ from urllib.parse import urlparse
 import pytest
 import responses
 from freezegun import freeze_time
-from mock import Mock
-from mock import patch
 from requests import ConnectionError
 from requests.exceptions import MissingSchema
 from testfixtures import LogCapture

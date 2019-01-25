@@ -42,7 +42,7 @@ class PyTest(TestCommand):
         errno = pytest.main(self.test_args)
         sys.exit(errno)
 
-tests_requires = ['responses', 'testfixtures', 'pytest', 'mock', 'freezegun']
+tests_requires = ['responses', 'testfixtures', 'pytest', 'freezegun']
 
 version = ''
 with open('src/oic/__init__.py', 'r') as fd:
