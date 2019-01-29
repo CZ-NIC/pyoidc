@@ -75,7 +75,7 @@ setup(
     extras_require={
         'develop': ["cherrypy==3.2.4", "pyOpenSSL"],
         'testing': tests_requires,
-        'docs': ['Sphinx', 'sphinx-autobuild'],
+        'docs': ['Sphinx', 'sphinx-autobuild', 'alabaster'],
         'quality': ['pylama', 'isort'],
         'ldap_authn': ['pyldap'],
     },
@@ -85,7 +85,6 @@ setup(
         "pyjwkest>=1.3.6",
         "mako",
         "beaker",
-        "alabaster",
         "cryptography",
         "future",
         "six",

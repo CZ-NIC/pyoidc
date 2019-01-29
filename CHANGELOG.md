@@ -8,9 +8,11 @@ The format is based on the [KeepAChangeLog] project.
 ## Unreleased
 
 ### Fixed
+- [#598] Move alabaster from runtime dependencies to docs
 - [#592] Do not append cookie header if there is nothing to append
 - [#591] Fix verification of encrypted id_token
 
+[#598]: https://github.com/OpenIDC/pyoidc/issues/598
 [#592]: https://github.com/OpenIDC/pyoidc/issues/592
 [#591]: https://github.com/OpenIDC/pyoidc/issues/591
 
