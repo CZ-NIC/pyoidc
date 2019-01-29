@@ -16,6 +16,7 @@
 #
 import re
 import sys
+from io import open
 
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
@@ -53,7 +54,7 @@ setup(
     name="oic",
     version=version,
     description="Python implementation of OAuth2 and OpenID Connect",
-    long_description=open('README.rst').read(),
+    long_description=open('README.rst', encoding='utf-8').read(),
     author="Roland Hedberg",
     author_email="roland@catalogix.se",
     license="Apache 2.0",
