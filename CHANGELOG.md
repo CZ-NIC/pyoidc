@@ -7,9 +7,13 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+### Fixed
+- [#598] Move alabaster from runtime dependencies to docs
+
 ### Changed
 - [#588] Switch to defusedxml for XML parsing
 
+[#598]: https://github.com/OpenIDC/pyoidc/issues/598
 [#588]: https://github.com/OpenIDC/pyoidc/issues/588
 
 ## 0.15.1 [2019-01-31]
