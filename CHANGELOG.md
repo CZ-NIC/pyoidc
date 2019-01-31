@@ -5,7 +5,7 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
-## Unreleased
+## 0.15.1 [2019-01-31]
 
 ### Fixed
 - [#592] Do not append cookie header if there is nothing to append
