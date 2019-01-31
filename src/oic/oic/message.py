@@ -294,7 +294,7 @@ def verify_id_token(instance, check_hash=False, **kwargs):
         raise VerificationError("Could not verify id_token", idt)
 
     if _jwe is not None:
-       idt.jwe_header =  _jwe.jwt.headers 
+       idt.jwe_header =  _jwe.jwt.headers
 
     if check_hash:
         _alg = idt.jws_header["alg"]
