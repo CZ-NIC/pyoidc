@@ -21,7 +21,7 @@ except ImportError:
             RuntimeWarning)
 
 __author__ = 'Roland Hedberg'
-__version__ = '0.15.0'
+__version__ = '0.15.1'
 
 
 OIDCONF_PATTERN = "%s/.well-known/openid-configuration"

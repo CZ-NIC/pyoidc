@@ -5,14 +5,16 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
-## Unreleased
+## 0.15.1 [2019-01-31]
 
 ### Fixed
 - [#592] Do not append cookie header if there is nothing to append
 - [#591] Fix verification of encrypted id_token
+- [#601] Fix headers od encrypted id_token
 
 [#592]: https://github.com/OpenIDC/pyoidc/issues/592
 [#591]: https://github.com/OpenIDC/pyoidc/issues/591
+[#601]: https://github.com/OpenIDC/pyoidc/pull/600
 
 ## 0.15.0 [2019-01-17]
 

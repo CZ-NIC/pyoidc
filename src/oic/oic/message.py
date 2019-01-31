@@ -289,7 +289,11 @@ def verify_id_token(instance, check_hash=False, **kwargs):
         except KeyError:
             raise MissingRequiredAttribute('iss')
 
-    idt = IdToken().from_jwt(_jws, **args)
+    if _jwe is not None:
+        # Use the original encrypted token to set correct headers
+        idt = IdToken().from_jwt(str(instance['id_token']), **args)
+    else:
+        idt = IdToken().from_jwt(_jws, **args)
     if not idt.verify(**kwargs):
         raise VerificationError("Could not verify id_token", idt)
 
