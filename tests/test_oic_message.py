@@ -935,6 +935,7 @@ def test_verify_token_encrypted():
                            iss="https://sso.qa.7pass.ctf.prosiebensat1.com",
                            client_id="554295ce3770612820620000")
     assert vidt
+    assert vidt.jwe_header == {'enc': 'A128CBC-HS256', 'alg': 'RSA1_5', 'cty': 'JWT'}
 
 
 def test_verify_token_encrypted_no_key():
