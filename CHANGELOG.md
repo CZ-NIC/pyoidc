@@ -5,6 +5,13 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
+## Unreleased
+
+### Changed
+- [#588] Switch to defusedxml for XML parsing
+
+[#588]: https://github.com/OpenIDC/pyoidc/issues/588
+
 ## 0.15.1 [2019-01-31]
 
 ### Fixed
