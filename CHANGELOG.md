@@ -8,6 +8,7 @@ The format is based on the [KeepAChangeLog] project.
 ## Unreleased
 
 ### Fixed
+- [#341] Using constant time comparison for password verification
 - [#598] Move alabaster from runtime dependencies to docs
 
 ### Changed
@@ -16,6 +17,7 @@ The format is based on the [KeepAChangeLog] project.
 
 [#598]: https://github.com/OpenIDC/pyoidc/issues/598
 [#588]: https://github.com/OpenIDC/pyoidc/issues/588
+[#341]: https://github.com/OpenIDC/pyoidc/issues/341
 
 ## 0.15.1 [2019-01-31]
 

@@ -1,4 +1,5 @@
 import base64
+import hmac
 import logging
 import time
 from urllib.parse import parse_qs
@@ -356,7 +357,7 @@ class BasicAuthn(UserAuthnMethod):
     def verify_password(self, user, password):
         if user in self.passwd:
             _pwd = self.passwd[user]
-            if _pwd != password:
+            if not hmac.compare_digest(_pwd.encode(), password.encode()):
                 raise FailedAuthentication('Wrong user/password combination')
         else:
             raise FailedAuthentication('Wrong user/password combination')
