@@ -5,7 +5,6 @@ import os
 import sys
 import traceback
 import warnings
-from http.cookies import SimpleCookie
 from urllib.parse import parse_qs
 from urllib.parse import splitquery
 from urllib.parse import unquote
@@ -734,19 +733,7 @@ class Provider(object):
         c_val = "{}{}{}".format(user, DELIM, areq['client_id'])
 
         cookie_header = None
-        if _kaka:
-            if isinstance(_kaka, dict):
-                for name, val in _kaka.items():
-                    _c = SimpleCookie()
-                    _c[name] = val
-                    _x = _c.output()
-                    headers.append(tuple(_x.split(": ", 1)))
-            else:
-                _c = SimpleCookie()
-                _c.load(_kaka)
-                for x in _c.output().split('\r\n'):
-                    headers.append(tuple(x.split(": ", 1)))
-
+        if _kaka is not None:
             if self.cookie_name not in _kaka:  # Don't overwrite
                 cookie_header = self.cookie_func(c_val, typ="sso", cookie_name=self.sso_cookie_name, ttl=self.sso_ttl)
         else:
