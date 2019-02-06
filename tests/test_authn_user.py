@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
-from future.backports.urllib.parse import quote_plus
-
 import base64
+from urllib.parse import quote_plus
 
 import pytest
 

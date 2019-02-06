@@ -14,7 +14,7 @@ from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
 from jinja2.environment import Environment
 from jinja2.loaders import FileSystemLoader
 from provider.authn import make_cls_from_name
-from six.moves.urllib import parse as urlparse
+from urllib import parse as urlparse
 
 from oic import rndstr
 from oic.oic.provider import AuthorizationEndpoint

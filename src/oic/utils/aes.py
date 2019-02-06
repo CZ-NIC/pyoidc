@@ -1,15 +1,12 @@
 #!/usr/bin/env python
-from future.utils import tobytes
-
 import os
 from base64 import b64decode
 from base64 import b64encode
 
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
-from six import binary_type
-from six import indexbytes
-from six import text_type
+
+from oic.utils import tobytes
 
 __author__ = 'rolandh'
 
@@ -101,7 +98,7 @@ def decrypt(key, msg, iv=None, padding="PKCS#7", b64dec=True):
     cipher, iv = build_cipher(key, iv)
     res = cipher.decrypt(data)[AES.block_size:]
     if padding in ["PKCS#5", "PKCS#7"]:
-        res = res[:-indexbytes(res, -1)]
+        res = res[:-res[-1]]
     return res.decode("utf-8")
 
 
@@ -130,8 +127,8 @@ class AEAD(object):
 
     """
     def __init__(self, key, iv, mode=AES.MODE_SIV):
-        assert isinstance(key, binary_type)
-        assert isinstance(iv, binary_type)
+        assert isinstance(key, bytes)
+        assert isinstance(iv, bytes)
         self.key = key
         self.mode = mode
         self.iv = iv
@@ -146,7 +143,7 @@ class AEAD(object):
         :param data: data to add in the MAC calculation
         :type data: bytes
         """
-        if isinstance(data, text_type):
+        if isinstance(data, str):
             data = data.encode('utf-8')
         self.kernel.update(data)
 
@@ -162,7 +159,7 @@ class AEAD(object):
 
         :returns: 2-tuple of encrypted data and MAC
         """
-        assert isinstance(cleardata, binary_type)
+        assert isinstance(cleardata, bytes)
         return self.kernel.encrypt_and_digest(cleardata)
 
     def decrypt_and_verify(self, cipherdata, tag):
@@ -178,8 +175,8 @@ class AEAD(object):
         :param tag: The MAC tag
         :type tag: bytes
         """
-        assert isinstance(cipherdata, binary_type)
-        assert isinstance(tag, binary_type)
+        assert isinstance(cipherdata, bytes)
+        assert isinstance(tag, bytes)
         try:
             return self.kernel.decrypt_and_verify(cipherdata, tag)
         except ValueError:

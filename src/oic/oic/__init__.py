@@ -2,6 +2,9 @@ import hashlib
 import logging
 import os
 from base64 import b64encode
+from urllib.parse import urlparse
+from urllib.parse import parse_qs
+
 
 from oic.utils.http_util import Response
 
@@ -11,11 +14,6 @@ except ImportError:  # Only works for >= 3.5
     _decode_err = ValueError
 else:
     _decode_err = JSONDecodeError
-
-import six
-
-from future.backports.urllib.parse import urlparse
-from future.moves.urllib.parse import parse_qs
 
 from jwkest.jwe import JWE
 from jwkest import jws, as_bytes
@@ -1160,7 +1158,7 @@ class Client(oauth2.Client):
                         self.behaviour[_pref] = None
                 continue
 
-            if isinstance(vals, six.string_types):
+            if isinstance(vals, str):
                 if vals in _pvals:
                     self.behaviour[_pref] = vals
             else:
@@ -1189,8 +1187,7 @@ class Client(oauth2.Client):
                 vtyp = regreq.c_param[key]
                 if isinstance(vtyp[0], list):
                     pass
-                elif isinstance(val, list) and not isinstance(val,
-                                                              six.string_types):
+                elif isinstance(val, list) and not isinstance(val, str):
                     val = val[0]
             except KeyError:
                 pass

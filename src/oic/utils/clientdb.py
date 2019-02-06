@@ -1,16 +1,15 @@
 """Client managament databases."""
 from abc import ABCMeta
 from abc import abstractmethod
+from urllib.parse import quote
+from urllib.parse import urljoin
 
 import requests
-from six import with_metaclass
-from six.moves.urllib.parse import quote
-from six.moves.urllib.parse import urljoin
 
 from oic.oauth2.exception import NoClientInfoReceivedError
 
 
-class BaseClientDatabase(with_metaclass(ABCMeta)):
+class BaseClientDatabase(metaclass=ABCMeta):
     """
     Base implementation for Client management database.
 

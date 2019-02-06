@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
-from future.backports.urllib.parse import parse_qs
-
 # pylint: disable=missing-docstring,no-self-use
 import os
+from urllib.parse import parse_qs
 
 import pytest
 from jwkest.jwk import SYMKey

@@ -1,6 +1,4 @@
-from future.moves.urllib.parse import parse_qs
-
-import six
+from urllib.parse import parse_qs
 
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.authn.user import logger
@@ -25,7 +23,7 @@ class JavascriptFormMako(UsernamePasswordMako):
         """
 
         logger.debug("verify(%s)" % request)
-        if isinstance(request, six.string_types):
+        if isinstance(request, str):
             _dict = parse_qs(request)
         elif isinstance(request, dict):
             _dict = request

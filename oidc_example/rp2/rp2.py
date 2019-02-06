@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from future.backports.urllib.parse import parse_qs
-from future.backports.urllib.parse import urlencode
+from urllib.parse import parse_qs
+from urllib.parse import urlencode
 
 import base64
 import hashlib

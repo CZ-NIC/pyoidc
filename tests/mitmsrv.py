@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from future.backports.urllib.parse import parse_qs
-from future.moves.urllib.parse import urlparse
+from urllib.parse import parse_qs
+from urllib.parse import urlparse
 
 from jwkest import jws
 from jwkest.jws import alg2keytype

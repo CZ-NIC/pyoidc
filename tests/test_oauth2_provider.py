@@ -1,9 +1,8 @@
-from future.backports.urllib.parse import parse_qs
-from future.backports.urllib.parse import urlparse
-
 import json
 import logging
 import time
+from urllib.parse import parse_qs
+from urllib.parse import urlparse
 
 import pytest
 from testfixtures import LogCapture

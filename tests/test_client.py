@@ -1,9 +1,10 @@
 # pylint: disable=missing-docstring,no-self-use
 
-from future.backports.urllib.parse import quote_plus
-
 import base64
 import os
+from unittest.mock import Mock
+from unittest.mock import patch
+from urllib.parse import quote_plus
 
 import pytest
 from jwkest import as_bytes
@@ -12,8 +13,6 @@ from jwkest.jwk import SYMKey
 from jwkest.jwk import rsa_load
 from jwkest.jws import JWS
 from jwkest.jwt import JWT
-from mock import Mock
-from mock import patch
 
 from oic.extension.provider import Provider
 from oic.oauth2 import Client

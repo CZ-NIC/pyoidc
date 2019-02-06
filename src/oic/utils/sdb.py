@@ -1,5 +1,3 @@
-from future.utils import tobytes
-
 import base64
 import copy
 import hashlib
@@ -14,6 +12,7 @@ from cryptography.fernet import Fernet
 from oic import rndstr
 from oic.exception import ImproperlyConfigured
 from oic.oic import AuthorizationRequest
+from oic.utils import tobytes
 from oic.utils.time_util import time_sans_frac
 from oic.utils.time_util import utc_time_sans_frac
 

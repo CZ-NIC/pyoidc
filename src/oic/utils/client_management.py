@@ -1,9 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
-from future.backports.urllib.parse import splitquery
-from future.backports.urllib.parse import urlparse
-from future.moves.urllib.parse import parse_qs
-
 import argparse
 import copy
 import json
@@ -11,6 +6,9 @@ import os
 import shelve
 import sys
 from builtins import input
+from urllib.parse import parse_qs
+from urllib.parse import splitquery
+from urllib.parse import urlparse
 
 from oic import rndstr
 from oic.oic.provider import secret

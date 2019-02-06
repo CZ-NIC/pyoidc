@@ -37,13 +37,7 @@ class PyTest(TestCommand):
         errno = pytest.main(self.test_args)
         sys.exit(errno)
 
-tests_requires = ['responses', 'testfixtures', 'pytest', 'mock', 'freezegun']
-
-# Python 2.7 and later ship with importlib and argparse
-if sys.version_info[0] == 2 and sys.version_info[1] == 6:
-    extra_install_requires = ["importlib", "argparse"]
-else:
-    extra_install_requires = []
+tests_requires = ['responses', 'testfixtures', 'pytest', 'freezegun']
 
 version = ''
 with open('src/oic/__init__.py', 'r') as fd:
@@ -67,12 +61,12 @@ setup(
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: Apache Software License",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Topic :: Software Development :: Libraries :: Python Modules"],
+    python_requires='~=3.4',
     extras_require={
         'develop': ["cherrypy==3.2.4", "pyOpenSSL"],
         'testing': tests_requires,
@@ -87,10 +81,8 @@ setup(
         "mako",
         "beaker",
         "cryptography",
-        "future",
-        "six",
         "defusedxml",
-    ] + extra_install_requires,
+    ],
     tests_require=tests_requires,
     zip_safe=False,
     cmdclass={'test': PyTest},

@@ -10,8 +10,6 @@ Message types in draft-ietf-oauth-token-exchange-03
 """
 import json
 
-import six
-
 from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
@@ -60,7 +58,7 @@ def sts_deser(val, sformat="json"):
     if sformat == "urlencoded":
         sformat = "json"
     if sformat in ["dict", "json"]:
-        if not isinstance(val, six.string_types):
+        if not isinstance(val, str):
             val = json.dumps(val)
             sformat = "json"
     return STS().deserialize(val, sformat)

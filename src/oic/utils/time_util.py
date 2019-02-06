@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
 # Copyright (C) 2009-2011 Umeå University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,19 +15,12 @@
 Implements some usefull functions when dealing with validity of
 different types of information.
 """
-from __future__ import print_function
-
 import calendar
 import re
 import sys
 import time
 from datetime import datetime
 from datetime import timedelta
-
-try:
-    from past.builtins import basestring
-except ImportError:
-    pass
 
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 TIME_FORMAT_WITH_FRAGMENT = re.compile(r"^(\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2})\.\d*Z$")
@@ -300,7 +290,7 @@ def before(point):
     if not point:
         return True
 
-    if isinstance(point, basestring):
+    if isinstance(point, str):
         point = str_to_time(point)
     elif isinstance(point, int):
         point = time.gmtime(point)
@@ -328,12 +318,12 @@ valid = before
 
 def later_than(after, before):
     """ True if then is later or equal to that """
-    if isinstance(after, basestring):
+    if isinstance(after, str):
         after = str_to_time(after)
     elif isinstance(after, int):
         after = time.gmtime(after)
 
-    if isinstance(before, basestring):
+    if isinstance(before, str):
         before = str_to_time(before)
     elif isinstance(before, int):
         before = time.gmtime(before)

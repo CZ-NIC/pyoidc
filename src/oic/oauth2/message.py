@@ -1,13 +1,10 @@
-from future.backports.urllib.parse import urlencode
-from future.moves.urllib.parse import parse_qs
-from past.builtins import basestring
-
 import copy
 import json
 import logging
 from collections import MutableMapping
+from urllib.parse import parse_qs
+from urllib.parse import urlencode
 
-import six
 from jwkest import as_unicode
 from jwkest import b64d
 from jwkest import jwe
@@ -186,7 +183,7 @@ class Message(MutableMapping):
 
             if val is None and null_allowed is False:
                 continue
-            elif isinstance(val, six.string_types):
+            elif isinstance(val, str):
                 # Should I allow parameters with "" as value ???
                 params.append((key, val.encode("utf-8")))
             elif isinstance(val, list):
@@ -245,7 +242,7 @@ class Message(MutableMapping):
         # always lists even if there is only one value in the list.
         # keys only appears once.
 
-        if isinstance(urlencoded, six.string_types):
+        if isinstance(urlencoded, str):
             pass
         elif isinstance(urlencoded, list):
             urlencoded = urlencoded[0]
@@ -394,7 +391,7 @@ class Message(MutableMapping):
                 elif vtyp is bool:
                     raise ValueError('"{}", wrong type of value for "{}"'.format(val, skey))
 
-                if isinstance(val, six.string_types):
+                if isinstance(val, str):
                     self._dict[skey] = val
                 elif isinstance(val, list):
                     if len(val) == 1:
@@ -581,7 +578,7 @@ class Message(MutableMapping):
                 continue
             if ent == "aud":
                 # list or basestring
-                if isinstance(jso["aud"], six.string_types):
+                if isinstance(jso["aud"], str):
                     _aud = [jso["aud"]]
                 else:
                     _aud = jso["aud"]
@@ -689,7 +686,7 @@ class Message(MutableMapping):
         return '{}'.format(self.to_dict())
 
     def _type_check(self, typ, _allowed, val, na=False):
-        if typ is six.string_types:
+        if typ is str:
             if val not in _allowed:
                 raise NotAllowedValue(val)
         elif typ is int:
@@ -907,7 +904,7 @@ def add_non_standard(msg1, msg2):
 # =============================================================================
 
 def list_serializer(vals, sformat="urlencoded", lev=0):
-    if isinstance(vals, six.string_types) or not isinstance(vals, list):
+    if isinstance(vals, str) or not isinstance(vals, list):
         raise ValueError("Expected list: %s" % vals)
     if sformat == "urlencoded":
         return " ".join(vals)
@@ -917,7 +914,7 @@ def list_serializer(vals, sformat="urlencoded", lev=0):
 
 def list_deserializer(val, sformat="urlencoded"):
     if sformat == "urlencoded":
-        if isinstance(val, six.string_types):
+        if isinstance(val, str):
             return val.split(" ")
         elif isinstance(val, list) and len(val) == 1:
             return val[0].split(" ")
@@ -926,14 +923,14 @@ def list_deserializer(val, sformat="urlencoded"):
 
 
 def sp_sep_list_serializer(vals, sformat="urlencoded", lev=0):
-    if isinstance(vals, six.string_types):
+    if isinstance(vals, str):
         return vals
     else:
         return " ".join(vals)
 
 
 def sp_sep_list_deserializer(val, sformat="urlencoded"):
-    if isinstance(val, six.string_types):
+    if isinstance(val, str):
         return val.split(" ")
     elif isinstance(val, list) and len(val) == 1:
         return val[0].split(" ")
@@ -955,18 +952,18 @@ VSER = 2
 VDESER = 3
 VNULLALLOWED = 4
 
-SINGLE_REQUIRED_STRING = (basestring, True, None, None, False)
-SINGLE_OPTIONAL_STRING = (basestring, False, None, None, False)
+SINGLE_REQUIRED_STRING = (str, True, None, None, False)
+SINGLE_OPTIONAL_STRING = (str, False, None, None, False)
 SINGLE_OPTIONAL_INT = (int, False, None, None, False)
-OPTIONAL_LIST_OF_STRINGS = ([basestring], False, list_serializer,
+OPTIONAL_LIST_OF_STRINGS = ([str], False, list_serializer,
                             list_deserializer, False)
-REQUIRED_LIST_OF_STRINGS = ([basestring], True, list_serializer,
+REQUIRED_LIST_OF_STRINGS = ([str], True, list_serializer,
                             list_deserializer, False)
-OPTIONAL_LIST_OF_SP_SEP_STRINGS = ([basestring], False, sp_sep_list_serializer,
+OPTIONAL_LIST_OF_SP_SEP_STRINGS = ([str], False, sp_sep_list_serializer,
                                    sp_sep_list_deserializer, False)
-REQUIRED_LIST_OF_SP_SEP_STRINGS = ([basestring], True, sp_sep_list_serializer,
+REQUIRED_LIST_OF_SP_SEP_STRINGS = ([str], True, sp_sep_list_serializer,
                                    sp_sep_list_deserializer, False)
-SINGLE_OPTIONAL_JSON = (basestring, False, json_serializer, json_deserializer,
+SINGLE_OPTIONAL_JSON = (str, False, json_serializer, json_deserializer,
                         False)
 
 REQUIRED = [SINGLE_REQUIRED_STRING, REQUIRED_LIST_OF_STRINGS,

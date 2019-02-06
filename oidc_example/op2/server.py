@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-from future.backports.urllib.parse import parse_qs
+from urllib.parse import parse_qs
 
 import json
 import os

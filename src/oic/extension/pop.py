@@ -1,7 +1,6 @@
-from future.backports.urllib.parse import urlparse
-from future.moves.urllib.parse import parse_qs
-
 import json
+from urllib.parse import parse_qs
+from urllib.parse import urlparse
 
 from Cryptodome.PublicKey import RSA
 from jwkest import b64e

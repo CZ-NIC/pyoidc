@@ -1,11 +1,4 @@
 #!/usr/bin/env python
-from future.backports.urllib.parse import splitquery
-from future.backports.urllib.parse import unquote
-from future.backports.urllib.parse import urlencode
-from future.backports.urllib.parse import urljoin
-from future.moves.urllib.parse import parse_qs
-from future.moves.urllib.parse import urlparse
-
 import copy
 import hashlib
 import hmac
@@ -17,8 +10,13 @@ import sys
 import time
 import traceback
 from functools import cmp_to_key
+from urllib.parse import parse_qs
+from urllib.parse import splitquery
+from urllib.parse import unquote
+from urllib.parse import urlencode
+from urllib.parse import urljoin
+from urllib.parse import urlparse
 
-import six
 from jwkest import b64d
 from jwkest import jwe
 from jwkest import jws
@@ -1338,7 +1336,7 @@ class Provider(AProvider):
                                              self.capabilities[_prov]):
                         raise CapabilitiesMisMatch(_pref)
                 else:
-                    if isinstance(request[_pref], six.string_types):
+                    if isinstance(request[_pref], str):
                         if request[_pref] not in self.capabilities[_prov]:
                             raise CapabilitiesMisMatch(_pref)
                     else:
@@ -1810,7 +1808,7 @@ class Provider(AProvider):
         _pinfo = self.provider_features()
         not_supported = {}
         for key, val in capabilities.items():
-            if isinstance(val, six.string_types):
+            if isinstance(val, str):
                 try:
                     if val in _pinfo[key]:
                         continue

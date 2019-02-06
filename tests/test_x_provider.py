@@ -1,8 +1,7 @@
-from future.backports.urllib.parse import parse_qs
-from future.backports.urllib.parse import urlparse
-
 import json
 import time
+from urllib.parse import parse_qs
+from urllib.parse import urlparse
 
 import pytest
 

@@ -15,7 +15,6 @@ install:
   - pip install tox
 
 env:
-   - TOXENV=py27
    - TOXENV=py34
    - TOXENV=py36
    - TOXENV=quality

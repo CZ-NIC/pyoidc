@@ -2,8 +2,6 @@ import inspect
 import json
 import sys
 
-import six
-
 __author__ = 'roland'
 
 
@@ -43,7 +41,7 @@ def allow(restriction, cinfo):
         except KeyError:
             continue
 
-        if isinstance(_cparam, six.string_types):
+        if isinstance(_cparam, str):
             if _cparam not in args:
                 return 'Not allowed to register with {}={}'.format(param,
                                                                    _cparam)

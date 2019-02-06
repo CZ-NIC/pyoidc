@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-from future.backports.urllib.parse import urlparse
-
 import json
 import os
 import time
 from collections import Counter
+from urllib.parse import urlparse
 
 import pytest
 from jwkest.jws import alg2keytype

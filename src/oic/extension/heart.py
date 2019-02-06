@@ -1,4 +1,4 @@
-from future.backports.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 from oic.oauth2.message import SINGLE_REQUIRED_STRING

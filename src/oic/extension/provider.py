@@ -1,6 +1,3 @@
-from future.backports.urllib.parse import splitquery
-from future.moves.urllib.parse import parse_qs
-
 import json
 import logging
 import os
@@ -8,8 +5,9 @@ import socket
 import sys
 import traceback
 from functools import cmp_to_key
+from urllib.parse import parse_qs
+from urllib.parse import splitquery
 
-import six
 from jwkest import b64e
 from jwkest import jws
 
@@ -318,7 +316,7 @@ class Provider(provider.Provider):
                             raise CapabilitiesMisMatch(
                                 'Not allowed {}'.format(_pref))
                 else:
-                    if isinstance(request[_pref], six.string_types):
+                    if isinstance(request[_pref], str):
                         if request[_pref] not in self.capabilities[_prov]:
                             raise CapabilitiesMisMatch(
                                 'Not allowed {}'.format(_pref))
@@ -541,7 +539,7 @@ class Provider(provider.Provider):
         """
         _pinfo = self.provider_features()
         for key, val in capabilities.items():
-            if isinstance(val, six.string_types):
+            if isinstance(val, str):
                 try:
                     if val in _pinfo[key]:
                         continue

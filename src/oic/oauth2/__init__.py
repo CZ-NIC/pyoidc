@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-from future.backports.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 import logging
 
