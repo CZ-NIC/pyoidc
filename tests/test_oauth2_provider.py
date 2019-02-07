@@ -446,11 +446,9 @@ class TestProvider(object):
                              'redirect_uri': 'http://localhost:8087/authz'}
         cookie = 'Some-cookie=test::test'
         response, header, redirect, fragment = provider._complete_authz('sub', areq, sid, cookie=cookie)
-        assert len(header) == 2
-        orig_cookie_header = header[0]
-        assert orig_cookie_header[1] == cookie
-        pyoidc_cookie_header = header[1]
-        assert pyoidc_cookie_header[1].startswith('pyoidc_sso="sub][client1')
+        assert len(header) == 1
+        cookie_header = header[0]
+        assert cookie_header[1].startswith('pyoidc_sso="sub][client1')
         assert not fragment
         assert redirect == 'http://localhost:8087/authz'
         assert 'code' in response
@@ -470,9 +468,7 @@ class TestProvider(object):
                              'redirect_uri': 'http://localhost:8087/authz'}
         cookie = 'pyoidc_sso=test::test'
         response, header, redirect, fragment = provider._complete_authz('sub', areq, sid, cookie=cookie)
-        orig_cookie_header = header[0]
-        assert len(header) == 1
-        assert orig_cookie_header[1] == cookie
+        assert len(header) == 0
         assert not fragment
         assert redirect == 'http://localhost:8087/authz'
         assert 'code' in response
