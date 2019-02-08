@@ -1,0 +1,1 @@
+{"tool": {"issuer": "https://op:4433", "tag": "default", "webfinger_email": "acct:foobar@op:4433", "webfinger_url": "https://op:4433/foobar", "acr_values": ["session urn:mace:incommon:iap:bronze"], "insecure": true, "login_hint": "bob@example.com", "profile": "CT.T.T.T.ens.+"}}
