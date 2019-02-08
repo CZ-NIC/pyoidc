@@ -1438,8 +1438,6 @@ class TestProvider(object):
 
     def _create_cookie(self, user, client_id, c_type='sso'):
         cd = CookieDealer(self.provider)
-        # user='username'
-        # client_id='number5'
         set_cookie = cd.create_cookie('{}][{}'.format(user, client_id), c_type,
                                       self.provider.sso_cookie_name)
         cookies_string = set_cookie[1]
