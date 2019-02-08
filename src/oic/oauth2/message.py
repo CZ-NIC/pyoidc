@@ -160,7 +160,7 @@ class Message(MutableMapping):
 
         _spec = self.c_param
         if not self.lax:
-            for attribute, (_, req, _ser, _, na) in _spec.items():
+            for attribute, (_, req, _ser, _, _) in _spec.items():
                 if req and attribute not in self._dict:
                     raise MissingRequiredAttribute("%s" % attribute,
                                                    "%s" % self)
@@ -251,7 +251,7 @@ class Message(MutableMapping):
 
         for key, val in parse_qs(urlencoded).items():
             try:
-                (typ, _, _, _deser, null_allowed) = _spec[key]
+                (typ, _, _, _deser, _) = _spec[key]
             except KeyError:
                 try:
                     _key, lang = key.split("#")
@@ -300,10 +300,10 @@ class Message(MutableMapping):
         lev += 1
         for key, val in self._dict.items():
             try:
-                (_, req, _ser, _, null_allowed) = _spec[str(key)]
+                (_, _, _ser, _, null_allowed) = _spec[str(key)]
             except KeyError:
                 try:
-                    _key, lang = key.split("#")
+                    _key, _ = key.split("#")
                     (_, req, _ser, _, null_allowed) = _spec[_key]
                 except (ValueError, KeyError):
                     try:
@@ -346,7 +346,7 @@ class Message(MutableMapping):
             else:
                 # might be a parameter with a lang tag
                 try:
-                    _key, lang = skey.split("#")
+                    _key, _ = skey.split("#")
                 except ValueError:
                     lookup_key = '*'
                 else:
@@ -788,7 +788,7 @@ class Message(MutableMapping):
 
     def __setitem__(self, key, value):
         try:
-            (vtyp, req, _, _deser, na) = self.c_param[key]
+            (vtyp, _, _, _deser, na) = self.c_param[key]
             self._add_value(str(key), vtyp, key, value, _deser, na)
         except KeyError:
             self._dict[key] = value

@@ -168,9 +168,9 @@ class ClaimsClient(Client):
                           method="POST", request_args=None, extra_args=None,
                           http_args=None):
 
-        url, body, ht_args, csi = self.request_info(request, method=method,
-                                                    request_args=request_args,
-                                                    extra_args=extra_args)
+        url, body, ht_args, _ = self.request_info(request, method=method,
+                                                  request_args=request_args,
+                                                  extra_args=extra_args)
 
         if http_args is None:
             http_args = ht_args

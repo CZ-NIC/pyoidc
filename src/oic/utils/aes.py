@@ -30,7 +30,7 @@ def build_cipher(key, iv, alg="aes_128_cbc"):
     :param alg: cipher algorithm
     :return: A Cipher instance
     """
-    typ, bits, cmode = alg.split("_")
+    _, bits, cmode = alg.split("_")
 
     if not iv:
         iv = Random.new().read(AES.block_size)

@@ -214,7 +214,7 @@ class BearerHeader(ClientAuthnMethod):
         if not cred.startswith("Bearer "):
             raise AuthnFailure("Wrong type of authorization token")
 
-        label, token = cred.split(" ")
+        _, token = cred.split(" ")
         return token
 
 

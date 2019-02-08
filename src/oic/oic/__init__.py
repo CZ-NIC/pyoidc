@@ -766,10 +766,10 @@ class Client(oauth2.Client):
                                request_args=None, extra_args=None,
                                http_args=None, response_cls=None):
 
-        url, body, ht_args, csi = self.request_info(request, method=method,
-                                                    request_args=request_args,
-                                                    extra_args=extra_args,
-                                                    scope=scope, state=state)
+        url, body, ht_args, _ = self.request_info(request, method=method,
+                                                  request_args=request_args,
+                                                  extra_args=extra_args,
+                                                  scope=scope, state=state)
 
         if http_args is None:
             http_args = ht_args
@@ -1361,7 +1361,7 @@ class Client(oauth2.Client):
 
     def normalization(self, principal, idtype="mail"):
         if idtype == "mail":
-            (local, domain) = principal.split("@")
+            (_, domain) = principal.split("@")
             subject = "acct:%s" % principal
         elif idtype == "url":
             p = urlparse(principal)
@@ -1656,8 +1656,7 @@ class Server(oauth2.Server):
     def parse_refresh_session_request(self, url=None, query=None):
         if url:
             parts = urlparse(url)
-            scheme, netloc, path, params, query, fragment = parts[:6]
-
+            query = parts.query
         return RefreshSessionRequest().from_urlencoded(query)
 
     def parse_registration_request(self, data, sformat="urlencoded"):

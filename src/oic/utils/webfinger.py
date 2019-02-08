@@ -186,7 +186,7 @@ class URINormalizer(object):
             authority = inp.replace('/', '#').replace('?', '#').split("#")[0]
 
             if ':' in authority:
-                scheme_or_host, host_or_port = authority.split(':', 1)
+                _, host_or_port = authority.split(':', 1)
                 # Assert it's not a port number
                 if re.match(r'^\d+$', host_or_port):
                     return False

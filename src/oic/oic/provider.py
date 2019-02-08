@@ -510,7 +510,7 @@ class Provider(AProvider):
 
     def is_session_revoked(self, request="", cookie=None):
         areq = parse_qs(request)
-        authn, acr = self.pick_auth(areq)
+        authn, _ = self.pick_auth(areq)
         identity, _ts = authn.authenticated_as(cookie)
         return self.sdb.is_revoke_uid(identity["uid"])
 
@@ -646,7 +646,7 @@ class Provider(AProvider):
             del self.sdb[sid]
 
         # Delete cookies
-        authn, acr = self.pick_auth(esr)
+        authn, _ = self.pick_auth(esr)
         headers = [authn.delete_cookie(), self.delete_session_cookie()]
         if cookie_dealer:
             headers.append(cookie_dealer.delete_cookie(self.sso_cookie_name))
@@ -1321,7 +1321,7 @@ class Provider(AProvider):
     def _verify_url(url, urlset):
         part = urlparse(url)
 
-        for reg, qp in urlset:
+        for reg, _ in urlset:
             _part = urlparse(reg)
             if part.scheme == _part.scheme and part.netloc == _part.netloc:
                 return True

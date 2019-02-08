@@ -588,7 +588,7 @@ class Provider(provider.Provider):
 
             headers = [("Cache-Control", "no-store"), ("x-ffo", "bar")]
             if 'handle' in kwargs:
-                (key, timestamp) = kwargs['handle']
+                (key, _) = kwargs['handle']
                 if key.startswith(STR) and key.endswith(STR):
                     cookie = self.cookie_func(key, self.cookie_name, "pinfo",
                                               self.sso_ttl)
