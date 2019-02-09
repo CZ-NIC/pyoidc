@@ -644,7 +644,7 @@ class SessionDB(object):
         """
         if token:
             try:
-                (typ, key) = self.token_factory['code'].type_and_key(token)
+                (_, key) = self.token_factory['code'].type_and_key(token)
             except Exception:
                 raise WrongTokenType("Not a grant token")
 

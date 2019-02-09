@@ -18,7 +18,7 @@ class DistributedAggregatedUserInfo(UserInfo):
         self.oidcsrv = oidcsrv
         self.claims_clients = self.init_claims_clients(client_info)
 
-        for key, cc in self.claims_clients.items():
+        for _, cc in self.claims_clients.items():
             oidcsrv.keyjar.update(cc.keyjar)
 
     def dynamic_init_claims_client(self, issuer, req_args):

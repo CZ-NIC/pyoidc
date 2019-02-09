@@ -71,7 +71,7 @@ setup(
         'develop': ["cherrypy==3.2.4", "pyOpenSSL"],
         'testing': tests_requires,
         'docs': ['Sphinx', 'sphinx-autobuild', 'alabaster'],
-        'quality': ['pylama', 'isort'],
+        'quality': ['pylama', 'isort', 'eradicate'],
         'ldap_authn': ['pyldap'],
     },
     install_requires=[

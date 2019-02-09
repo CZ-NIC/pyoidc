@@ -768,12 +768,12 @@ class Client(PBase):
                method="POST", request_args=None, extra_args=None,
                http_args=None, response=None, authn_method=""):
 
-        url, body, ht_args, csi = self.request_info(request, method=method,
-                                                    request_args=request_args,
-                                                    extra_args=extra_args,
-                                                    scope=scope, state=state,
-                                                    authn_method=authn_method,
-                                                    endpoint=endpoint)
+        url, body, ht_args, _ = self.request_info(request, method=method,
+                                                  request_args=request_args,
+                                                  extra_args=extra_args,
+                                                  scope=scope, state=state,
+                                                  authn_method=authn_method,
+                                                  endpoint=endpoint)
 
         if http_args is None:
             http_args = ht_args
@@ -926,7 +926,7 @@ class Server(PBase):
     def parse_url_request(request, url=None, query=None):
         if url:
             parts = urlparse(url)
-            scheme, netloc, path, params, query, fragment = parts[:6]
+            query = parts.query
 
         if isinstance(query, dict):
             req = request(**query)

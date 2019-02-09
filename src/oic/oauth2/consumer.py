@@ -309,10 +309,10 @@ class Consumer(Client):
 
         request_args, http_args, extra_args = self.client_auth_info()
 
-        url, body, ht_args, csi = self.request_info(AccessTokenRequest,
-                                                    request_args=request_args,
-                                                    state=state,
-                                                    **extra_args)
+        url, body, ht_args, _ = self.request_info(AccessTokenRequest,
+                                                  request_args=request_args,
+                                                  state=state,
+                                                  **extra_args)
 
         if not http_args:
             http_args = ht_args

@@ -131,9 +131,9 @@ class Client(oauth2.Client):
     def do_op(self, request, body_type='', method='GET', request_args=None,
               extra_args=None, http_args=None, response_cls=None, **kwargs):
 
-        url, body, ht_args, csi = self.request_info(request, method,
-                                                    request_args, extra_args,
-                                                    **kwargs)
+        url, body, ht_args, _ = self.request_info(request, method,
+                                                  request_args, extra_args,
+                                                  **kwargs)
 
         if http_args is None:
             http_args = ht_args
