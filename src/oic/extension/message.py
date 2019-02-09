@@ -15,6 +15,7 @@ from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import Message
+from oic.oauth2.message import ParamDefinition
 from oic.oic.message import JasonWebToken
 from oic.utils.http_util import SUCCESSFUL
 from oic.utils.jwt import JWT
@@ -34,7 +35,7 @@ class TokenIntrospectionRequest(Message):
     }
 
 
-SINGLE_REQUIRED_BOOLEAN = (bool, True, None, None, False)
+SINGLE_REQUIRED_BOOLEAN = ParamDefinition(bool, True, None, None, False)
 
 
 class TokenIntrospectionResponse(Message):
