@@ -22,6 +22,7 @@ from oic.oauth2.message import DecodeError
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import Message
 from oic.oauth2.message import MissingRequiredAttribute
+from oic.oauth2.message import ParamDefinition
 from oic.oauth2.message import RefreshAccessTokenRequest
 from oic.oauth2.message import ROPCAccessTokenRequest
 from oic.oauth2.message import TokenErrorResponse
@@ -124,7 +125,7 @@ class StarMessage(Message):
 
 
 class MessageListMessage(Message):
-    c_param = {'opt_message_list': ([Message], False, None, None, False)}
+    c_param = {'opt_message_list': ParamDefinition([Message], False, None, None, False)}
 
 
 class TestMessage(object):

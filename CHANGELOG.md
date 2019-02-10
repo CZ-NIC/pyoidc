@@ -15,11 +15,13 @@ The format is based on the [KeepAChangeLog] project.
 ### Changed
 - [#578] Dropped python 2.7 support
 - [#588] Switch to defusedxml for XML parsing
+- [#605] Message.c_param dictionary values have to be a ParamDefinition namedtuple type
 
 [#598]: https://github.com/OpenIDC/pyoidc/issues/598
 [#588]: https://github.com/OpenIDC/pyoidc/issues/588
 [#341]: https://github.com/OpenIDC/pyoidc/issues/341
 [#398]: https://github.com/OpenIDC/pyoidc/issues/398
+[#605]: https://github.com/OpenIDC/pyoidc/pull/605
 
 ## 0.15.1 [2019-01-31]
 
