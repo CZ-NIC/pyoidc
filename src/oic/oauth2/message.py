@@ -152,6 +152,18 @@ class Message(MutableMapping):
         for key, val in self.c_default.items():
             self._dict[key] = val
 
+    @staticmethod
+    def _extract_cparam(key, _spec):
+        """Extract ParamDefinition for a given key.
+
+        The key can be direct attribute or lang typed attribute.
+        If ParamDefinition is not found, tries to return "*" attribute, if it exists, otherwise returns None.
+        """
+        for _key in (key, key.split('#')[0], '*'):
+            if _key in _spec:
+                return _spec[_key]
+        return None
+
     def to_urlencoded(self, lev=0):
         """
         Creates a string using the application/x-www-form-urlencoded format
@@ -169,24 +181,13 @@ class Message(MutableMapping):
         params = []
 
         for key, val in self._dict.items():
-            try:
-                cparam = _spec[key]
-            except KeyError:  # extra attribute
-                try:
-                    _key, lang = key.split("#")
-                    cparam = _spec[_key]
-                except (ValueError, KeyError):
-                    try:
-                        cparam = _spec['*']
-                    except KeyError:
-                        cparam = None
-            finally:
-                if cparam is not None:
-                    _ser = cparam.serializer
-                    null_allowed = cparam.null_allowed
-                else:
-                    _ser = None
-                    null_allowed = False
+            cparam = self._extract_cparam(key, _spec)
+            if cparam is not None:
+                _ser = cparam.serializer
+                null_allowed = cparam.null_allowed
+            else:
+                _ser = None
+                null_allowed = False
 
             if val is None and null_allowed is False:
                 continue
@@ -257,21 +258,13 @@ class Message(MutableMapping):
         _spec = self.c_param
 
         for key, val in parse_qs(urlencoded).items():
-            try:
-                cparam = _spec[key]
-            except KeyError:
-                try:
-                    _key, lang = key.split("#")
-                    cparam = _spec[_key]
-                except (ValueError, KeyError):
-                    try:
-                        cparam = _spec['*']
-                    except KeyError:
-                        if len(val) == 1:
-                            val = val[0]
+            cparam = self._extract_cparam(key, _spec)
+            if cparam is None:
+                if len(val) == 1:
+                    val = val[0]
 
-                        self._dict[key] = val
-                        continue
+                self._dict[key] = val
+                continue
 
             if isinstance(cparam.type, list):
                 if cparam.deserializer is not None:
@@ -306,18 +299,7 @@ class Message(MutableMapping):
         _res = {}
         lev += 1
         for key, val in self._dict.items():
-            try:
-                cparam = _spec[str(key)]
-            except KeyError:
-                try:
-                    _key, _ = key.split("#")
-                    cparam = _spec[_key]
-                except (ValueError, KeyError):
-                    try:
-                        cparam = _spec['*']
-                    except KeyError:
-                        cparam = None
-
+            cparam = self._extract_cparam(key, _spec)
             if cparam is not None:
                 _ser = cparam.serializer
             else:
@@ -346,25 +328,11 @@ class Message(MutableMapping):
         _spec = self.c_param
 
         for key, val in dictionary.items():
-            # Earlier versions of python don't like unicode strings as
-            # variable names
-            if val == "" or val == [""]:
+            if val in ('', ['']):
                 continue
-
-            skey = str(key)
-            if key in _spec:
-                lookup_key = key
-            else:
-                # might be a parameter with a lang tag
-                try:
-                    _key, _ = skey.split("#")
-                except ValueError:
-                    lookup_key = '*'
-                else:
-                    lookup_key = _key
-            if lookup_key in _spec:
-                cparam = _spec[lookup_key]
-                self._add_value(skey, cparam.type, key, val, cparam.deserializer, cparam.null_allowed)
+            cparam = self._extract_cparam(key, _spec)
+            if cparam is not None:
+                self._add_value(key, cparam.type, key, val, cparam.deserializer, cparam.null_allowed)
             else:
                 self._dict[key] = val
         return self
@@ -722,38 +690,32 @@ class Message(MutableMapping):
         except KeyError:
             _allowed = {}
 
-        for (attribute, cparam) in _spec.items():
+        for attribute, cparam in _spec.items():
             if attribute == "*":
                 continue
 
-            try:
-                val = self._dict[attribute]
-            except KeyError:
+            val = self._dict.get(attribute)
+            if val is None:
                 if cparam.required:
                     raise MissingRequiredAttribute("%s" % attribute)
                 continue
-            else:
-                if cparam.type == bool:
-                    pass
-                elif not val:
-                    if cparam.required:
-                        raise MissingRequiredAttribute("%s" % attribute)
-                    continue
+            if cparam.type != bool and not val:
+                if cparam.required:
+                    raise MissingRequiredAttribute("%s" % attribute)
+                continue
 
             if attribute not in _allowed:
                 continue
 
             if isinstance(cparam.type, tuple):
-                _ityp = None
                 for _typ in cparam.type:
                     try:
                         self._type_check(_typ, _allowed[attribute], val)
-                        _ityp = _typ
                         break
                     except ValueError:
                         pass
-                if _ityp is None:
-                    raise NotAllowedValue(val)
+                    else:
+                        raise NotAllowedValue(val)
             else:
                 self._type_check(cparam.type, _allowed[attribute], val, cparam.null_allowed)
 
