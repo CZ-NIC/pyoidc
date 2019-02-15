@@ -13,6 +13,8 @@ from urllib.parse import urlparse
 import pytest
 import responses
 from freezegun import freeze_time
+from jwkest.jwe import JWEnc
+from jwkest.jws import NoSuitableSigningKeys
 from requests import ConnectionError
 from requests.exceptions import MissingSchema
 from testfixtures import LogCapture
@@ -1766,3 +1768,45 @@ class TestProvider(object):
         assert resp.status_code == 400
         msg = json.loads(resp.message)
         assert msg["error"] == "invalid_request_uri"
+
+    def test_encrypt_missing_info(self):
+        payload = self.provider.encrypt('payload', {}, 'some_client')
+        assert payload == 'payload'
+
+    def test_encrypt_missing_jwks(self):
+        self.provider.keyjar = KeyJar()  # Empty keyjar, all keys are lost
+        with open(os.path.join(BASE_PATH, 'jwk_enc.json')) as keyf:
+            key = keyf.read()
+        info = {
+                'id_token_encrypted_response_alg': 'A128KW',
+                'id_token_encrypted_response_enc': 'A128CBC-HS256',
+                'jwks': json.loads(key)}
+        payload = self.provider.encrypt('payload', info, 'some_client')
+        token = JWEnc().unpack(payload)
+        headers = json.loads(token.protected_header().decode())
+        assert headers['alg'] == 'A128KW'
+        assert headers['enc'] == 'A128CBC-HS256'
+
+    def test_encrypt_missing_jwks_uri(self):
+        self.provider.keyjar = KeyJar()  # Empty keyjar, all keys are lost
+        with open(os.path.join(BASE_PATH, 'jwk_enc.json')) as keyf:
+            key = keyf.read()
+        info = {
+                'id_token_encrypted_response_alg': 'A128KW',
+                'id_token_encrypted_response_enc': 'A128CBC-HS256',
+                'jwks_uri': 'http://example.com/key'}
+        with responses.RequestsMock() as rsps:
+            rsps.add(responses.GET, 'http://example.com/key', body=key, content_type='application/json')
+            payload = self.provider.encrypt('payload', info, 'some_client')
+        token = JWEnc().unpack(payload)
+        headers = json.loads(token.protected_header().decode())
+        assert headers['alg'] == 'A128KW'
+        assert headers['enc'] == 'A128CBC-HS256'
+
+    def test_encrypt_missing_both(self):
+        self.provider.keyjar = KeyJar()  # Empty keyjar, all keys are lost
+        info = {
+                'id_token_encrypted_response_alg': 'A128KW',
+                'id_token_encrypted_response_enc': 'A128CBC-HS256'}
+        with pytest.raises(NoSuitableSigningKeys):
+            self.provider.encrypt('payload', info, 'some_client')
