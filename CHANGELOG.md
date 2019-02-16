@@ -11,6 +11,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#341] Using constant time comparison for password verification
 - [#598] Move alabaster from runtime dependencies to docs
 - [#398] Do not echo cookies that do not belong to us
+- [#607] Fixed key recovery on encryption of payload
 
 ### Changed
 - [#578] Dropped python 2.7 support
@@ -22,6 +23,7 @@ The format is based on the [KeepAChangeLog] project.
 [#341]: https://github.com/OpenIDC/pyoidc/issues/341
 [#398]: https://github.com/OpenIDC/pyoidc/issues/398
 [#605]: https://github.com/OpenIDC/pyoidc/pull/605
+[#605]: https://github.com/OpenIDC/pyoidc/issues/607
 
 ## 0.15.1 [2019-01-31]
 

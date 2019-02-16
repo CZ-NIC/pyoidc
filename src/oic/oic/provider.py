@@ -885,27 +885,32 @@ class Provider(AProvider):
         try:
             alg = client_info["%s_encrypted_response_alg" % val_type]
         except KeyError:
-            logger.warning('{} NOT defined means no encryption').format(
-                val_type)
+            logger.warning('%s NOT defined means no encryption', val_type)
             return payload
         else:
             try:
                 enc = client_info["%s_encrypted_response_enc" % val_type]
             except KeyError as err:  # if not defined-> A128CBC-HS256 (default)
-                logger.warning("undefined parameter: %s" % err)
+                logger.warning("undefined parameter: %s", err)
                 logger.info("using default")
                 enc = 'A128CBC-HS256'
 
         logger.debug("alg=%s, enc=%s, val_type=%s" % (alg, enc, val_type))
-        keys = self.keyjar.get_encrypt_key(owner=cid)
         if cid not in self.keyjar:
             # Weird, but try to recuperate
             msg = "Lost keys for %s trying to recuperate!"
             logger.warning(msg, cid)
 
             self.keyjar.issuer_keys[cid] = []
-            self.keyjar.add(cid, client_info["jwks_uri"])
+            if client_info.get('jwks_uri') is not None:
+                self.keyjar.add(cid, client_info["jwks_uri"])
+            elif client_info.get('jwks') is not None:
+                self.keyjar.import_jwks(client_info['jwks'], cid)
+            else:
+                logger.error('No keys to recover.')
+                raise NoSuitableSigningKeys()
 
+        keys = self.keyjar.get_encrypt_key(owner=cid)
         kwargs = {"alg": alg, "enc": enc}
         if cty:
             kwargs["cty"] = cty
