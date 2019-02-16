@@ -1,6 +1,8 @@
 language: python
 
-sudo: false
+sudo: required
+services:
+    docker
 
 python: 3.6
 
@@ -10,6 +12,10 @@ addons:
     - libffi-dev
     - libsasl2-dev
     - libldap2-dev
+  hosts:
+     op-test
+     rp-test
+     op
 
 install:
   - pip install tox
@@ -20,6 +26,9 @@ env:
    - TOXENV=quality
    - TOXENV=docs
 
+script:
+  - tox -e $TOXENV
+
 # Everything behaves under python 3.6 except python3.5
 matrix:
   include:
@@ -29,10 +38,12 @@ matrix:
     - python: 3.7
       dist: xenial
       env: TOXENV=py37
-
-
-script:
-  - tox -e $TOXENV
+    - install:
+        - docker-compose -f docker/docker-compose.yml up -d
+      script:
+        - docker build docker/integration_tests -t oidctest-local
+        - docker run --net=host --name=oidctest-it -d oidctest-local
+        - docker container start oidctest-it -a
 
 notifications:
   email: false

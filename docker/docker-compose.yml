@@ -1,0 +1,27 @@
+version: '3'
+services:
+  op-test:
+    build:
+      context: ..
+      dockerfile: docker/op_test/Dockerfile
+    ports:
+      - "60000-60010:60000-60010"
+  rp-test:
+    build:
+      context: ..
+      dockerfile: docker/rp_test/Dockerfile
+    ports:
+      - "8080:8080"
+  op:
+    build:
+      context: ..
+      dockerfile: docker/op/Dockerfile
+    ports:
+      - "4433:4433"
+    environment:
+      - ISSUER=https://op:4433
+      - NODE_ENV=production
+      - DEBUG=oidc-provider:*
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+    links:
+      - op-test
