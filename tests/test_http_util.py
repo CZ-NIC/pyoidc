@@ -64,6 +64,53 @@ class TestCookieDealer(object):
                                                                "Foobar")
 
         assert (value, typ) == (cookie_value, cookie_typ)
+        t = SimpleCookie()
+        t.load(kaka[1])
+        morsel = t['Foobar']
+        assert morsel['secure']
+        assert morsel['httponly']
+
+    def test_create_cookie_value_no_httponly(self):
+        cookie_value = "Something to pass along"
+        cookie_typ = "sso"
+        cookie_name = "Foobar"
+
+        class DummyServer():
+            def __init__(self):
+                self.symkey = b"0123456789012345"
+        cookie_dealer = CookieDealer(DummyServer(), httponly=False)
+        kaka = cookie_dealer.create_cookie(cookie_value, cookie_typ,
+                                           cookie_name)
+        value, timestamp, typ = cookie_dealer.get_cookie_value(kaka[1],
+                                                               "Foobar")
+
+        assert (value, typ) == (cookie_value, cookie_typ)
+        t = SimpleCookie()
+        t.load(kaka[1])
+        morsel = t['Foobar']
+        assert morsel['secure']
+        assert not morsel['httponly']
+
+    def test_create_cookie_value_no_secure(self):
+        cookie_value = "Something to pass along"
+        cookie_typ = "sso"
+        cookie_name = "Foobar"
+
+        class DummyServer():
+            def __init__(self):
+                self.symkey = b"0123456789012345"
+        cookie_dealer = CookieDealer(DummyServer(), secure=False)
+        kaka = cookie_dealer.create_cookie(cookie_value, cookie_typ,
+                                           cookie_name)
+        value, timestamp, typ = cookie_dealer.get_cookie_value(kaka[1],
+                                                               "Foobar")
+
+        assert (value, typ) == (cookie_value, cookie_typ)
+        t = SimpleCookie()
+        t.load(kaka[1])
+        morsel = t['Foobar']
+        assert not morsel['secure']
+        assert morsel['httponly']
 
     def test_delete_cookie(self, cookie_dealer):
         cookie_name = "Foobar"

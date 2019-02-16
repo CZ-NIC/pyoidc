@@ -18,12 +18,16 @@ The format is based on the [KeepAChangeLog] project.
 - [#588] Switch to defusedxml for XML parsing
 - [#605] Message.c_param dictionary values have to be a ParamDefinition namedtuple type
 
+### Added
+- [#441] CookieDealer now accepts secure and httponly params
+
 [#598]: https://github.com/OpenIDC/pyoidc/issues/598
 [#588]: https://github.com/OpenIDC/pyoidc/issues/588
 [#341]: https://github.com/OpenIDC/pyoidc/issues/341
 [#398]: https://github.com/OpenIDC/pyoidc/issues/398
 [#605]: https://github.com/OpenIDC/pyoidc/pull/605
 [#605]: https://github.com/OpenIDC/pyoidc/issues/607
+[#441]: https://github.com/OpenIDC/pyoidc/issues/441
 
 ## 0.15.1 [2019-01-31]
 

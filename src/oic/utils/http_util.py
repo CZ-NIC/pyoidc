@@ -319,7 +319,7 @@ def _make_hashed_key(parts, hashfunc='sha256'):
 
 
 def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp="",
-                enc_key=None):
+                enc_key=None, secure=True, httponly=True):
     """
     Create and return a cookie
 
@@ -390,8 +390,11 @@ def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp="",
     if domain:
         cookie[name]["domain"] = domain
     if expire:
-        cookie[name]["expires"] = _expiration(expire,
-                                              "%a, %d-%b-%Y %H:%M:%S GMT")
+        cookie[name]["expires"] = _expiration(expire, "%a, %d-%b-%Y %H:%M:%S GMT")
+    if secure:
+        cookie[name]['secure'] = secure
+    if httponly:
+        cookie[name]['httponly'] = httponly
 
     return tuple(cookie.output().split(": ", 1))
 
@@ -551,11 +554,13 @@ class CookieDealer(object):
 
     srv = property(getServer, setServer)
 
-    def __init__(self, srv, ttl=5):
+    def __init__(self, srv, ttl=5, secure=True, httponly=True):
         self.srv = None
         self.init_srv(srv)
         # minutes before the interaction should be completed
         self.cookie_ttl = ttl  # N minutes
+        self.secure = secure
+        self.httponly = httponly
 
     def init_srv(self, srv):
         if not srv:
@@ -600,10 +605,8 @@ class CookieDealer(object):
         except TypeError:
             _msg = "::".join([value[0], timestamp, typ])
 
-        cookie = make_cookie(cookie_name, _msg, self.srv.seed,
-                             expire=ttl, domain=cookie_domain, path=cookie_path,
-                             timestamp=timestamp,
-                             enc_key=self.srv.symkey)
+        cookie = make_cookie(cookie_name, _msg, self.srv.seed, expire=ttl, domain=cookie_domain, path=cookie_path,
+                             timestamp=timestamp, enc_key=self.srv.symkey, secure=self.secure, httponly=self.httponly)
         return cookie
 
     def getCookieValue(self, cookie=None, cookie_name=None):
