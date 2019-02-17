@@ -96,9 +96,7 @@ class IntrospectionEndpoint(Endpoint):
 
 
 class Provider(provider.Provider):
-    """
-    A OAuth2 RP that knows all the OAuth2 extensions I've implemented
-    """
+    """A OAuth2 RP that knows all the OAuth2 extensions I've implemented."""
 
     def __init__(self, name, sdb, cdb, authn_broker, authz, client_authn,
                  symkey=None, urlmap=None, iv=0, default_scope="",
@@ -256,12 +254,12 @@ class Provider(provider.Provider):
 
     def create_new_client(self, request, restrictions):
         """
+        Create new client based on request and restrictions.
 
         :param request: The Client registration request
         :param restrictions: Restrictions on the client
         :return: The client_id
         """
-
         _cinfo = request.to_dict()
 
         self.match_client_request(_cinfo)
@@ -374,13 +372,13 @@ class Provider(provider.Provider):
 
     def verify_client(self, environ, areq, authn_method, client_id=""):
         """
+        Verify the client based on credentials.
 
         :param environ: WSGI environ
         :param areq: The request
         :param authn_method: client authentication method
         :return:
         """
-
         if not client_id:
             client_id = get_client_id(self.cdb, areq,
                                       environ["HTTP_AUTHORIZATION"])
@@ -396,13 +394,13 @@ class Provider(provider.Provider):
 
     def registration_endpoint(self, **kwargs):
         """
+        Perform dynamic client registration.
 
         :param request: The request
         :param authn: Client authentication information
         :param kwargs: extra keyword arguments
         :return: A Response instance
         """
-
         _request = RegistrationRequest().deserialize(kwargs['request'], "json")
         try:
             _request.verify(keyjar=self.keyjar)
@@ -445,14 +443,12 @@ class Provider(provider.Provider):
 
     def client_info_endpoint(self, method="GET", **kwargs):
         """
-        Operations on this endpoint are switched through the use of different
-        HTTP methods
+        Operations on this endpoint are switched through the use of different HTTP methods.
 
         :param method: HTTP method used for the request
         :param kwargs: keyword arguments
         :return: A Response instance
         """
-
         _query = compact(parse_qs(kwargs['query']))
         try:
             _id = _query["client_id"]
@@ -503,12 +499,11 @@ class Provider(provider.Provider):
 
     def provider_features(self, pcr_class=ServerMetadata, provider_config=None):
         """
-        Specifies what the server capabilities are.
+        Present what the server capabilities are.
 
         :param pcr_class:
         :return: ProviderConfigurationResponse instance
         """
-
         _provider_info = pcr_class(**CAPABILITIES)
         _provider_info["scopes_supported"] = self.scopes
 
@@ -529,8 +524,7 @@ class Provider(provider.Provider):
 
     def verify_capabilities(self, capabilities):
         """
-        Verify that what the admin wants the server to do actually
-        can be done by this implementation.
+        Verify that what the admin wants the server to do actually can be done by this implementation.
 
         :param capabilities: The asked for capabilities as a dictionary
         or a ProviderConfigurationResponse instance. The later can be
@@ -553,12 +547,12 @@ class Provider(provider.Provider):
     def create_providerinfo(self, pcr_class=ASConfigurationResponse,
                             setup=None):
         """
-        Dynamically create the provider info response
+        Dynamically create the provider info response.
+
         :param pcr_class:
         :param setup:
         :return:
         """
-
         _provider_info = self.capabilities
 
         if self.jwks_uri and self.keyjar:
@@ -607,7 +601,7 @@ class Provider(provider.Provider):
     def verify_code_challenge(code_verifier, code_challenge,
                               code_challenge_method='S256'):
         """
-        Verify a PKCE (RFC7636) code challenge
+        Verify a PKCE (RFC7636) code challenge.
 
         :param code_verifier: The origin
         :param code_challenge: The transformed verifier used as challenge
@@ -738,10 +732,7 @@ class Provider(provider.Provider):
         return Response(atr.to_json(), content="application/json")
 
     def token_endpoint(self, authn="", **kwargs):
-        """
-        This is where clients come to get their access tokens
-        """
-
+        """Provide clients their access tokens."""
         logger.debug("- token -")
         body = kwargs["request"]
         logger.debug("body: %s" % body)
@@ -772,7 +763,8 @@ class Provider(provider.Provider):
 
     def key_setup(self, local_path, vault="keys", sig=None, enc=None):
         """
-        my keys
+        Set provider keys for presentation.
+
         :param local_path: The path to where the JWKs should be stored
         :param vault: Where the private key will be stored
         :param sig: Key for signature
@@ -802,6 +794,7 @@ class Provider(provider.Provider):
 
     def get_token_info(self, authn, req, endpoint):
         """
+        Parse token for information.
 
         :param authn:
         :param req:
@@ -851,15 +844,13 @@ class Provider(provider.Provider):
 
     def revocation_endpoint(self, authn='', request=None, **kwargs):
         """
-        Implements RFC7009 allows a client to invalidate an access or refresh
-        token.
+        Implement RFC7009 allows a client to invalidate an access or refresh token.
 
         :param authn: Client Authentication information
         :param request: The revocation request
         :param kwargs:
         :return:
         """
-
         trr = TokenRevocationRequest().deserialize(request, "urlencoded")
 
         resp = self.get_token_info(authn, trr, 'revocation_endpoint')
@@ -880,14 +871,13 @@ class Provider(provider.Provider):
 
     def introspection_endpoint(self, authn='', request=None, **kwargs):
         """
-        Implements RFC7662
+        Implement RFC7662.
 
         :param authn: Client Authentication information
         :param request: The introspection request
         :param kwargs:
         :return:
         """
-
         tir = TokenIntrospectionRequest().deserialize(request, "urlencoded")
 
         resp = self.get_token_info(authn, tir, 'introspection_endpoint')

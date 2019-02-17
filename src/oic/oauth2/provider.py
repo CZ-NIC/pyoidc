@@ -58,11 +58,12 @@ logger = logging.getLogger(__name__)
 
 class Endpoint(object):
     """
-    Endpoint class
+    Endpoint class.
 
     @var etype: Endpoint type
     @url: Relative part of the url (will be joined with server.baseurl)
     """
+
     etype = ""
     url = ""
 
@@ -219,11 +220,12 @@ class Provider(object):
 
     def _verify_redirect_uri(self, areq):
         """
+        Verify that redirect_uri is valid.
+
         MUST NOT contain a fragment
         MAY contain query component
 
-        :return: An error response if the redirect URI is faulty otherwise
-            None
+        :return: An error response if the redirect URI is faulty otherwise None
         """
         try:
             _redirect_uri = unquote(areq["redirect_uri"])
@@ -294,7 +296,8 @@ class Provider(object):
                     "Faulty redirect_uri: %s" % areq["redirect_uri"])
 
     def get_redirect_uri(self, areq):
-        """ verify that the redirect URI is reasonable
+        """
+        Verify that the redirect URI is reasonable.
 
         :param areq: The Authorization request
         :return: Tuple of (redirect_uri, Response instance)
@@ -311,6 +314,7 @@ class Provider(object):
 
     def pick_auth(self, areq, comparision_type=""):
         """
+        Select an authentication method suitable for request.
 
         :param areq: AuthorizationRequest instance
         :param comparision_type: How to pick the authentication method
@@ -363,6 +367,7 @@ class Provider(object):
 
     def auth_init(self, request, request_class=AuthorizationRequest):
         """
+        Start the authentication process.
 
         :param request: The AuthorizationRequest
         :return:
@@ -485,6 +490,7 @@ class Provider(object):
 
     def do_auth(self, areq, redirect_uri, cinfo, request, cookie, **kwargs):
         """
+        Perform the authentication.
 
         :param areq:
         :param redirect_uri:
@@ -608,11 +614,11 @@ class Provider(object):
         return sid
 
     def authorization_endpoint(self, request="", cookie="", **kwargs):
-        """ The AuthorizationRequest endpoint
+        """
+        Authorize client.
 
         :param request: The client request
         """
-
         info = self.auth_init(request)
         if isinstance(info, Response):
             return info
@@ -664,7 +670,7 @@ class Provider(object):
 
     def authz_part2(self, user, areq, sid, **kwargs):
         """
-        After the authentication this is where you should end up
+        After the authentication this is where you should end up.
 
         :param user:
         :param areq: The Authorization Request
@@ -759,14 +765,11 @@ class Provider(object):
         return aresp, headers, redirect_uri, fragment_enc
 
     def token_scope_check(self, areq, info):
-        """ Not implemented here """
+        """Not implemented here."""
         return None
 
     def token_endpoint(self, authn="", **kwargs):
-        """
-        This is where clients come to get their access tokens
-        """
-
+        """Provide clients with access tokens."""
         _sdb = self.sdb
 
         logger.debug("- token -")

@@ -9,11 +9,16 @@ class NotAllowed(Exception):
 
 
 class TokenHandler(object):
+    """
+    Class for handling tokens.
+
+    Note! the token and refresh token factories both keep their own token databases.
+    """
+
     def __init__(self, issuer, token_policy, token_factory=None,
                  refresh_token_factory=None, keyjar=None, sign_alg='RS256'):
         """
-        Note! the token and refresh token factories both keep their own
-        token databases.
+        Initialize the class.
 
         :param token_factory: A callable function that returns a token
         :param refresh_token_factory: A callable function that returns a
@@ -25,7 +30,6 @@ class TokenHandler(object):
         :param sign_alg: Which signature algorithm to use.
         :return: a TokenHandler instance
         """
-
         self.token_policy = token_policy
         if token_factory is None:
             self.token_factory = JWTToken('T', keyjar=keyjar, iss=issuer,
@@ -42,6 +46,7 @@ class TokenHandler(object):
 
     def get_access_token(self, target_id, scope, grant_type):
         """
+        Return access token for given inputs.
 
         :param target_id:
         :param scope:
@@ -61,6 +66,7 @@ class TokenHandler(object):
 
     def refresh_access_token(self, target_id, token, grant_type, **kwargs):
         """
+        Return refresh_access_token for given input.
 
         :param target_id: Who gave me this token
         :param token: The refresh_token

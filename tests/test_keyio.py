@@ -427,10 +427,7 @@ def test_load_spomky_keys():
 
 
 def test_reload():
-    """
-    Emulates what happens if you fetch keys from a remote site and
-    you get back the same JWKS as the last time.
-    """
+    """Emulate what happens if you fetch keys from a remote site and you get back the same JWKS as the last time."""
     _jwks = JWK0
 
     kb = KeyBundle()
@@ -445,9 +442,7 @@ def test_reload():
 
 
 def test_parse_remote_response(caplog):
-    """
-    Tests parsing Content-Type header for _parse_remote_response
-    """
+    """Test parsing Content-Type header for _parse_remote_response."""
     class FakeResponse():
         def __init__(self, header):
             self.headers = {"Content-Type": header}

@@ -43,7 +43,8 @@ class CasAuthnMethod(UserAuthnMethod):
     def __init__(self, srv, cas_server, service_url, return_to,
                  extra_validation=None):
         """
-        Constructor for the class.
+        Construct the class.
+
         :param srv: Usually none, but otherwise the oic server.
         :param cas_server: Base URL to the cas server.
         :param service_url: BASE url to the service that will use CAS. In
@@ -59,7 +60,7 @@ class CasAuthnMethod(UserAuthnMethod):
 
     def create_redirect(self, query):
         """
-        Performs the redirect to the CAS server.
+        Perform the redirect to the CAS server.
 
         :rtype : Response
         :param query: All query parameters to be added to the return_to URL
@@ -86,7 +87,7 @@ class CasAuthnMethod(UserAuthnMethod):
 
     def handle_callback(self, ticket, service_url):
         """
-        Handles the callback from the CAS server.
+        Handle the callback from the CAS server.
 
         :rtype : String
         :param ticket: Onetime CAS ticket to be validated.
@@ -114,7 +115,7 @@ class CasAuthnMethod(UserAuthnMethod):
 
     def get_service_url(self, nonce, acr):
         """
-        Creates the service url for the CAS server.
+        Create the service url for the CAS server.
 
         :rtype : String
         :param nonce: The nonce to be added to the service url.
@@ -126,7 +127,7 @@ class CasAuthnMethod(UserAuthnMethod):
 
     def verify(self, request, cookie, **kwargs):
         """
-        Verifies if the authentication was successful.
+        Verify if the authentication was successful.
 
         :rtype : Response
         :param request: Contains the request parameters.

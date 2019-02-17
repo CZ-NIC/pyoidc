@@ -97,8 +97,7 @@ class Client(oic.Client):
 
     def callback(self, response, session, format='dict'):
         """
-        This is the method that should be called when an AuthN response has been
-        received from the OP.
+        Call when an AuthN response has been received from the OP.
 
         :param response: The URL returned by the OP
         :return:
@@ -229,6 +228,7 @@ class OIDCClients(object):
     def __init__(self, config, base_url, seed='', jwks_info=None,
                  verify_ssl=True):
         """
+        Initialize the client.
 
         :param config: Imported configuration module
         :return:
@@ -262,7 +262,7 @@ class OIDCClients(object):
 
     def create_client(self, userid="", **kwargs):
         """
-        Do an instantiation of a client instance
+        Do an instantiation of a client instance.
 
         :param userid: An identifier of the user
         :param: Keyword arguments
@@ -270,7 +270,6 @@ class OIDCClients(object):
             "provider_info"]
         :return: client instance
         """
-
         _key_set = set(list(kwargs.keys()))
         try:
             _verify_ssl = kwargs['verify_ssl']
@@ -403,7 +402,8 @@ class OIDCClients(object):
 
     def __getitem__(self, item):
         """
-        Given a service or user identifier return a suitable client
+        Given a service or user identifier return a suitable client.
+
         :param item:
         :return:
         """

@@ -124,8 +124,7 @@ class JWTToken(Token, JWT):
 
     def type_and_key(self, token):
         """
-        Return type of Token (A=Access code, T=Token, R=Refresh token) and
-        the session id.
+        Return type of Token (A=Access code, T=Token, R=Refresh token) and the session id.
 
         :param token: A token
         :return: tuple of token type and session id
@@ -135,7 +134,7 @@ class JWTToken(Token, JWT):
 
     def get_key(self, token):
         """
-        Return session id
+        Return session id.
 
         :param token: A token
         :return: The session id
@@ -145,7 +144,7 @@ class JWTToken(Token, JWT):
 
     def get_type(self, token):
         """
-        Return token type
+        Return token type.
 
         :param token: A token
         :return: Type of Token (A=Access code, T=Token, R=Refresh token)

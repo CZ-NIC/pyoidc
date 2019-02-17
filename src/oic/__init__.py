@@ -34,7 +34,7 @@ CC_METHOD = {
 
 def rndstr(size=16):
     """
-    Returns a string of random ascii characters or digits
+    Return a string of random ascii characters or digits.
 
     :param size: The length of the string
     :return: string
@@ -48,11 +48,9 @@ BASECH = string.ascii_letters + string.digits + '-._~'
 
 def unreserved(size=64):
     """
-    Returns a string of random ascii characters, digits and unreserved
-    characters for use as RFC 7636 code verifiers
+    Return a string of random ascii characters, digits and unreserved characters for use as RFC 7636 code verifiers.
 
     :param size: The length of the string
     :return: string
     """
-
     return "".join([choice(BASECH) for _ in range(size)])

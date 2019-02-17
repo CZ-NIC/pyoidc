@@ -52,19 +52,24 @@ def assertion_jwt(cli, keys, audience, algorithm, lifetime=600):
 class ClientAuthnMethod(object):
     def __init__(self, cli=None):
         """
+        Initialize class.
+
         :param cli: Client instance
         """
         self.cli = cli
 
     def construct(self, **kwargs):
-        """ Add authentication information to a request
+        """
+        Add authentication information to a request.
+
         :return:
         """
         raise NotImplementedError
 
     def verify(self, **kwargs):
         """
-        Verify authentication information in a request
+        Verify authentication information in a request.
+
         :param kwargs:
         :return:
         """
@@ -73,6 +78,8 @@ class ClientAuthnMethod(object):
 
 class ClientSecretBasic(ClientAuthnMethod):
     """
+    Use HTTP Basic authentication.
+
     Clients that have received a client_secret value from the Authorization
     Server, authenticate with the Authorization Server in accordance with
     Section 3.2.1 of OAuth 2.0 [RFC6749] using HTTP Basic authentication scheme.
@@ -80,12 +87,13 @@ class ClientSecretBasic(ClientAuthnMethod):
 
     def construct(self, cis, request_args=None, http_args=None, **kwargs):
         """
+        Create the request.
+
         :param cis: Request class instance
         :param request_args: Request arguments
         :param http_args: HTTP arguments
         :return: dictionary of HTTP arguments
         """
-
         if http_args is None:
             http_args = {}
 
@@ -135,10 +143,11 @@ class ClientSecretBasic(ClientAuthnMethod):
 
 class ClientSecretPost(ClientSecretBasic):
     """
+    Authenticate using client_secret in POST body.
+
     Clients that have received a client_secret value from the Authorization
     Server, authenticate with the Authorization Server in accordance with
-    Section 3.2.1 of OAuth 2.0 [RFC6749] by including the Client Credentials in
-    the request body.
+    Section 3.2.1 of OAuth 2.0 [RFC6749] by including the Client Credentials in the request body.
     """
 
     def construct(self, cis, request_args=None, http_args=None, **kwargs):
@@ -161,7 +170,7 @@ class BearerHeader(ClientAuthnMethod):
     def construct(self, cis=None, request_args=None, http_args=None,
                   **kwargs):
         """
-        More complicated logic then I would have liked it to be
+        More complicated logic then I would have liked it to be.
 
         :param cli: Client instance
         :param cis: Request class instance
@@ -170,7 +179,6 @@ class BearerHeader(ClientAuthnMethod):
         :param kwargs:
         :return:
         """
-
         if cis is not None:
             if "access_token" in cis:
                 _acc_token = cis["access_token"]
@@ -243,14 +251,12 @@ class BearerBody(ClientAuthnMethod):
 
 def bearer_auth(req, authn):
     """
-    Pick out the access token, either in HTTP_Authorization header or
-    in request body.
+    Pick out the access token, either in HTTP_Authorization header or in request body.
 
     :param req:
     :param authn:
     :return:
     """
-
     try:
         return req["access_token"]
     except KeyError:
@@ -285,16 +291,15 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
     def construct(self, cis, request_args=None, http_args=None, **kwargs):
         """
-        Constructs a client assertion and signs it with a key.
-        The request is modified as a side effect.
+        Construct a client assertion and signs it with a key.
 
+        The request is modified as a side effect.
         :param cis: The request
         :param request_args: request arguments
         :param http_args: HTTP arguments
         :param kwargs: Extra arguments
         :return: Constructed HTTP arguments, in this case none
         """
-
         # audience is the OP endpoint
         # OR OP identifier
         algorithm = None
@@ -412,8 +417,10 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
 class ClientSecretJWT(JWSAuthnMethod):
     """
-    Clients that have received a client_secret value from the Authorization
-    Server create a JWT using an HMAC SHA algorithm, such as HMAC SHA-256.
+    Authentication using JWT.
+
+    Clients that have received a client_secret value from the Authorization Server create a JWT using
+    an HMAC SHA algorithm, such as HMAC SHA-256.
     The HMAC (Hash-based Message Authentication Code) is calculated using the
     bytes of the UTF-8 representation of the client_secret as the shared key.
     """
@@ -427,9 +434,7 @@ class ClientSecretJWT(JWSAuthnMethod):
 
 
 class PrivateKeyJWT(JWSAuthnMethod):
-    """
-    Clients that have registered a public key sign a JWT using that key.
-    """
+    """Clients that have registered a public key sign a JWT using that key."""
 
     def choose_algorithm(self, entity="private_key_jwt", **kwargs):
         return JWSAuthnMethod.choose_algorithm(self, entity, **kwargs)
@@ -460,7 +465,7 @@ def valid_client_info(cinfo):
 
 def get_client_id(cdb, req, authn):
     """
-    Verify the client and return the client id
+    Verify the client and return the client id.
 
     :param req: The request
     :param authn: Authentication information from the HTTP header
@@ -507,14 +512,13 @@ def get_client_id(cdb, req, authn):
 
 def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
     """
-    Initiated Guessing !
+    Guess authentication method and get client from that.
 
     :param inst: Entity instance
     :param areq: The request
     :param authn: client authentication information
     :return: tuple containing client id and client authentication method
     """
-
     if authn:  # HTTP Basic auth (client_secret_basic)
         cid = get_client_id(inst.cdb, areq, authn)
         auth_method = 'client_secret_basic'

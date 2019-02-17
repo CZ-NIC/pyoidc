@@ -14,19 +14,17 @@ except ImportError:
     pass
 else:
     class SAML2AuthnMethod(ClientAuthnMethod):
-        """
-        Authenticating clients using the SAML2 assertion profile
-        """
+        """Authenticating clients using the SAML2 assertion profile."""
 
         def construct(self, cis, assertion=None, **kwargs):
             """
+            Create the HTTP request.
 
             :param cis: The request
             :param assertion: A SAML2 Assertion
             :param kwargs: Extra arguments
             :return: Constructed HTTP arguments, in this case none
             """
-
             cis["client_assertion"] = base64.urlsafe_b64encode(str(assertion))
             cis["client_assertion_type"] = SAML2_BEARER_ASSERTION_TYPE
 

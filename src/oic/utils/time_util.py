@@ -11,10 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Implements some usefull functions when dealing with validity of
-different types of information.
-"""
+"""Implement some usefull functions when dealing with validity of different types of information."""
 import calendar
 import re
 import sys
@@ -170,6 +167,8 @@ def add_duration(tid, duration):
 def time_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
                     minutes=0, hours=0, weeks=0):
     """
+    Return time in a future.
+
     format of timedelta::
         timedelta([days[, seconds[, microseconds[, milliseconds[,
         minutes[, hours[, weeks]]]]]]])
@@ -184,6 +183,8 @@ def time_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
 def time_a_while_ago(days=0, seconds=0, microseconds=0, milliseconds=0,
                      minutes=0, hours=0, weeks=0):
     """
+    Return time in past.
+
     format of timedelta::
         timedelta([days[, seconds[, microseconds[, milliseconds[,
         minutes[, hours[, weeks]]]]]]])
@@ -205,6 +206,8 @@ def time_a_while_ago(days=0, seconds=0, microseconds=0, milliseconds=0,
 def in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
                minutes=0, hours=0, weeks=0, time_format=TIME_FORMAT):
     """
+    Return time in a future.
+
     :param days:
     :param seconds:
     :param microseconds:
@@ -225,6 +228,7 @@ def in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
 def a_while_ago(days=0, seconds=0, microseconds=0, milliseconds=0,
                 minutes=0, hours=0, weeks=0, time_format=TIME_FORMAT):
     """
+    Return time in past.
 
     :param days:
     :param seconds:
@@ -244,7 +248,8 @@ def a_while_ago(days=0, seconds=0, microseconds=0, milliseconds=0,
 
 
 def shift_time(dtime, shift):
-    """ Adds/deletes an integer amount of seconds from a datetime specification
+    """
+    Add/delete an integer amount of seconds from a datetime specification.
 
     :param dtime: The datatime specification
     :param shift: The wanted time shift (+/-)
@@ -258,6 +263,7 @@ def shift_time(dtime, shift):
 
 def str_to_time(timestr, time_format=TIME_FORMAT):
     """
+    Convert string to time accordign to TIME_FORMAT.
 
     :param timestr:
     :param time_format:
@@ -286,7 +292,7 @@ def instant(time_format=TIME_FORMAT):
 
 
 def before(point):
-    """ True if point datetime specification is before now """
+    """Test if point datetime specification is before now."""
     if not point:
         return True
 
@@ -299,7 +305,7 @@ def before(point):
 
 
 def after(point):
-    """ True if point datetime specification is equal or after now """
+    """Test if point datetime specification is equal or after now."""
     if not point:
         return True
     else:
@@ -317,7 +323,7 @@ valid = before
 
 
 def later_than(after, before):
-    """ True if then is later or equal to that """
+    """Test if after is really later or equal to before."""
     if isinstance(after, str):
         after = str_to_time(after)
     elif isinstance(after, int):
@@ -353,7 +359,6 @@ def epoch_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0,
     :param weeks:
     :return: Seconds since epoch (1970-01-01)
     """
-
     dt = time_in_a_while(days, seconds, microseconds, milliseconds, minutes,
                          hours, weeks)
     return int((dt - datetime(1970, 1, 1)).total_seconds())

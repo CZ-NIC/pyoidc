@@ -25,6 +25,8 @@ class AESError(Exception):
 
 def build_cipher(key, iv, alg="aes_128_cbc"):
     """
+    Create cipher.
+
     :param key: encryption key
     :param iv: init vector
     :param alg: cipher algorithm
@@ -51,6 +53,8 @@ def build_cipher(key, iv, alg="aes_128_cbc"):
 def encrypt(key, msg, iv=None, alg="aes_128_cbc", padding="PKCS#7",
             b64enc=True, block_size=BLOCK_SIZE):
     """
+    Encrypt message.
+
     :param key: The encryption key
     :param iv: init vector
     :param msg: Message to be encrypted
@@ -59,7 +63,6 @@ def encrypt(key, msg, iv=None, alg="aes_128_cbc", padding="PKCS#7",
     :param block_size: If PKCS#7 padding which block size to use
     :return: The encrypted message
     """
-
     if padding == "PKCS#7":
         _block_size = block_size
     elif padding == "PKCS#5":
@@ -82,6 +85,8 @@ def encrypt(key, msg, iv=None, alg="aes_128_cbc", padding="PKCS#7",
 
 def decrypt(key, msg, iv=None, padding="PKCS#7", b64dec=True):
     """
+    Decrypt the message.
+
     :param key: The encryption key
     :param iv: init vector
     :param msg: Base64 encoded message to be decrypted
@@ -104,7 +109,7 @@ def decrypt(key, msg, iv=None, padding="PKCS#7", b64dec=True):
 
 class AEAD(object):
     """
-    Authenticated Encryption with Associated Data Wrapper
+    Authenticated Encryption with Associated Data Wrapper.
 
     This does encryption and integrity check in one
     operation, so you do not need to combine HMAC + encryption
@@ -126,6 +131,7 @@ class AEAD(object):
         - 512-bit key, 256-bit IV to use AES-256
 
     """
+
     def __init__(self, key, iv, mode=AES.MODE_SIV):
         assert isinstance(key, bytes)
         assert isinstance(iv, bytes)
@@ -136,7 +142,7 @@ class AEAD(object):
 
     def add_associated_data(self, data):
         """
-        Add data to include in the MAC
+        Add data to include in the MAC.
 
         This data is protected by the MAC but not encrypted.
 
@@ -149,7 +155,7 @@ class AEAD(object):
 
     def encrypt_and_tag(self, cleardata):
         """
-        Encrypt the given data
+        Encrypt the given data.
 
         Encrypts the given data and returns the encrypted
         data and the MAC to later verify and decrypt the data.
@@ -164,7 +170,7 @@ class AEAD(object):
 
     def decrypt_and_verify(self, cipherdata, tag):
         """
-        Decrypt and verify
+        Decrypt and verify.
 
         Checks the integrity against the tag and decrypts the
         data. Any associated data used during encryption

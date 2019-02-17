@@ -844,7 +844,6 @@ def test_request_duplicate_state():
 
 
 def test_do_userinfo_request_no_state_or_token():
-    """ Mirrors the first lines in do_userinfo_request"""
     client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
 
     method = "GET"
@@ -864,7 +863,6 @@ def test_do_userinfo_request_no_state_or_token():
 
 
 def test_do_userinfo_request_token_no_state():
-    """ Mirrors the first lines in do_userinfo_request"""
     client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
 
     method = "GET"
@@ -885,7 +883,6 @@ def test_do_userinfo_request_token_no_state():
 
 
 def test_do_userinfo_request_explicit_token_none():
-    """ Mirrors the first lines in do_userinfo_request"""
     client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
 
     method = "GET"
@@ -906,7 +903,6 @@ def test_do_userinfo_request_explicit_token_none():
 
 
 def test_do_userinfo_request_with_state():
-    """ Mirrors the first lines in do_userinfo_request"""
     client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
     client.grant['foxhound'] = Grant()
     resp = AccessTokenResponse(access_token="access", token_type="Bearer")
@@ -953,7 +949,6 @@ def fake_request(*args, **kwargs):
 
 
 def test_fetch_distributed_claims_with_callback():
-    """ Mirrors the first lines in do_userinfo_request"""
     client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
 
     client.http_request = fake_request
@@ -974,7 +969,6 @@ def test_fetch_distributed_claims_with_callback():
 
 
 def test_fetch_distributed_claims_with_no_callback():
-    """ Mirrors the first lines in do_userinfo_request"""
     client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
 
     client.http_request = fake_request
@@ -993,7 +987,6 @@ def test_fetch_distributed_claims_with_no_callback():
 
 
 def test_fetch_distributed_claims_with_explicit_no_token():
-    """ Mirrors the first lines in do_userinfo_request"""
     client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
 
     client.http_request = fake_request

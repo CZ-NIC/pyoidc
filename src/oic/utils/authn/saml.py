@@ -45,7 +45,8 @@ class SAMLAuthnMethod(UserAuthnMethod):
                  cache=None,
                  bindings=None, userinfo=None, samlcache=None):
         """
-        Constructor for the class.
+        Construct the class.
+
         :param srv: Usually none, but otherwise the oic server.
         :param return_to: The URL to return to after a successful
         authentication.
@@ -90,7 +91,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
 
     def verify(self, request, cookie, path, requrl, end_point_index=None, **kwargs):
         """
-        Verifies if the authentication was successful.
+        Verify if the authentication was successful.
 
         :rtype : Response
         :param request: Contains the request parameters.
@@ -222,10 +223,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
         self.userdb[uid] = userdb
 
     def _pick_idp(self, query, end_point_index):
-        """
-        If more than one idp and if none is selected, I have to do wayf or
-        disco
-        """
+        """If more than one idp and if none is selected, I have to do wayf or disco."""
         query_dict = {}
         if isinstance(query, str):
             query_dict = dict(parse_qs(query))

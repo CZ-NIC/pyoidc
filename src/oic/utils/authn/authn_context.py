@@ -41,7 +41,8 @@ class AuthnBroker(object):
 
     def add(self, acr, method, level=0, authn_authority=""):
         """
-        Adds a new authentication method.
+        Add a new authentication method.
+
         Assumes not more than one authentication method per type.
 
         :param acr: Add to what the authentication endpoint offers for this acr
@@ -49,7 +50,6 @@ class AuthnBroker(object):
         :param level: security level, positive integers, 0 is lowest
         :return:
         """
-
         _info = {
             "ref": acr,
             "method": method,
@@ -141,15 +141,14 @@ class AuthnBroker(object):
 
     def pick(self, acr=None, comparision_type="minimum"):
         """
-        Given the authentication context find zero or more places where
-        the user could be sent next. Ordered according to security level.
+        Given the authentication context find zero or more places where the user could be sent next.
+
+        Ordered according to security level.
 
         :param acr: The authentication class reference requested
-        :param comparision_type: If the caller wants exact, at a minimum,
-            ... this level
+        :param comparision_type: If the caller wants exact, at a minimum, ... this level
         :return: An URL
         """
-
         if not comparision_type:
             comparision_type = "minimum"
 
@@ -204,7 +203,6 @@ def make_auth_verify(callback, next_module_instance=None):
     setup_multi_auth (in multi_auth.py)
     :return: function encapsulating the specified callback which properly handles a multi auth chain.
     """
-
     def auth_verify(environ, start_response, logger=None):
         kwargs = extract_from_request(environ)
 
