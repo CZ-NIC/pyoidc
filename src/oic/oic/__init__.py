@@ -4,6 +4,7 @@ import os
 from base64 import b64encode
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
+from json import JSONDecodeError
 
 from jwkest.jwe import JWE
 from jwkest import jws, as_bytes
@@ -1234,7 +1235,7 @@ class Client(oauth2.Client):
         elif 400 <= response.status_code <= 499:
             try:
                 resp = ErrorResponse().deserialize(response.text, "json")
-            except ValueError:  # TODO: Change to JSONDecodeError after py34 drop
+            except JSONDecodeError:
                 logger.error(unk_msg.format(sanitize(response.text)))
                 raise RegistrationError(response.text)
 
