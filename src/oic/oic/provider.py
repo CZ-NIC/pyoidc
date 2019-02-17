@@ -9,6 +9,7 @@ import socket
 import sys
 import time
 import traceback
+import warnings
 from functools import cmp_to_key
 from urllib.parse import parse_qs
 from urllib.parse import splitquery  # type: ignore
@@ -251,8 +252,8 @@ class Provider(AProvider):
         for endp in self.endp:
             if endp.etype == 'registration':
                 endpoint = urljoin(self.baseurl, endp.url)
-                DeprecationWarning("Using `register_endpoint` is deprecated, please use "
-                                   "`registration_endpoint` instead.")
+                warnings.warn("Using `register_endpoint` is deprecated, please use `registration_endpoint` instead.",
+                              DeprecationWarning)
                 self.register_endpoint = endpoint
                 break
 

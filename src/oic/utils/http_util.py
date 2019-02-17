@@ -556,7 +556,6 @@ class CookieDealer(object):
         self._srv = server
 
     def __init__(self, srv, ttl=5, secure=True, httponly=True):
-        self.srv = None
         self.init_srv(srv)
         # minutes before the interaction should be completed
         self.cookie_ttl = ttl  # N minutes
