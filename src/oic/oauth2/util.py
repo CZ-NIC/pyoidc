@@ -1,6 +1,6 @@
 import logging
 from http import cookiejar as http_cookiejar
-from http.cookiejar import http2time
+from http.cookiejar import http2time  # type: ignore
 from urllib.parse import parse_qs
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit

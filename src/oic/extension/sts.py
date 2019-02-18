@@ -17,6 +17,7 @@ from oic.oauth2.message import SINGLE_OPTIONAL_INT
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
 from oic.oauth2.message import Message
+from oic.oauth2.message import ParamDefinition
 from oic.oic.message import SINGLE_REQUIRED_INT
 from oic.oic.message import msg_ser
 
@@ -64,7 +65,7 @@ def sts_deser(val, sformat="json"):
     return STS().deserialize(val, sformat)
 
 
-SINGLE_OPTIONAL_STS = (Message, False, msg_ser, sts_deser, False)
+SINGLE_OPTIONAL_STS = ParamDefinition(Message, False, msg_ser, sts_deser, False)
 
 
 class STS(Message):

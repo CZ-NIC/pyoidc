@@ -15,6 +15,7 @@ The format is based on the [KeepAChangeLog] project.
 
 ### Changed
 - [#578] Dropped python 2.7 support
+- [#612] Dropped python 3.4 support
 - [#588] Switch to defusedxml for XML parsing
 - [#605] Message.c_param dictionary values have to be a ParamDefinition namedtuple type
 
@@ -28,6 +29,7 @@ The format is based on the [KeepAChangeLog] project.
 [#605]: https://github.com/OpenIDC/pyoidc/pull/605
 [#605]: https://github.com/OpenIDC/pyoidc/issues/607
 [#441]: https://github.com/OpenIDC/pyoidc/issues/441
+[#612]: https://github.com/OpenIDC/pyoidc/pull/612
 
 ## 0.15.1 [2019-01-31]
 
