@@ -1,8 +1,5 @@
 """
-oic.extension.sts
-~~~~~~~~~~~~~~~~~
-
-Message types in draft-ietf-oauth-token-exchange-03
+Message types in draft-ietf-oauth-token-exchange-03.
 
 :copyright: (c) 2016 by Roland Hedberg.
 :license: Apache2, see LICENSE for more details.

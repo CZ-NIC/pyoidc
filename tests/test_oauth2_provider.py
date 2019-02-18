@@ -79,7 +79,8 @@ class NoCookieAuthn(DummyAuthn):
 
 def verify_outcome(msg, prefix, lista):
     """
-    Number of permutations are dependent on number of claims
+    Compare message to list of claims: values.
+
     :param prefix: prefix string
     :param lista: list of claims=value
     :return: list of possible strings

@@ -65,6 +65,7 @@ class KeyBundle(object):
     def __init__(self, keys=None, source="", cache_time=300, verify_ssl=True,
                  fileformat="jwk", keytype="RSA", keyusage=None, timeout=5):
         """
+        Initialize the KeyBundle.
 
         :param keys: A list of dictionaries
             with the keys ["kty", "key", "alg", "use", "kid"]
@@ -76,7 +77,6 @@ class KeyBundle(object):
             a single integer or as a tuple of integers. For more details, refer to
             ``requests`` documentation.
         """
-
         self._keys = []
         self.remote = False
         self.verify_ssl = verify_ssl
@@ -116,7 +116,7 @@ class KeyBundle(object):
 
     def do_keys(self, keys):
         """
-        Go from JWK description to binary keys
+        Go from JWK description to binary keys.
 
         :param keys:
         :return:
@@ -254,8 +254,9 @@ class KeyBundle(object):
 
     def update(self):
         """
-        Reload the key if necessary
-        This is a forced update, will happen even if cache time has not elapsed
+        Reload the key if necessary.
+
+        This is a forced update, will happen even if cache time has not elapsed.
         """
         res = True  # An update was successful
         if self.source:
@@ -273,10 +274,10 @@ class KeyBundle(object):
 
     def get(self, typ=""):
         """
+        Return keys matching the typ.
 
         :param typ: Type of key (rsa, ec, oct, ..)
-        :return: If typ is undefined all the keys as a dictionary
-            otherwise the appropriate keys in a list
+        :return: If typ is undefined all the keys as a dictionary otherwise the appropriate keys in a list
         """
         self._uptodate()
         _typs = [typ.lower(), typ.upper()]
@@ -296,6 +297,7 @@ class KeyBundle(object):
 
     def remove_key(self, typ, val=None):
         """
+        Delete key given the type ot type and value.
 
         :param typ: Type of key (rsa, ec, oct, ..)
         :param val: The key itself
@@ -352,11 +354,10 @@ class KeyBundle(object):
     def remove_outdated(self, after):
         """
         Remove keys that should not be available any more.
-        Outdated means that the key was marked as inactive at a time
-        that was longer ago then what is given in 'after'.
 
-        :param after: The length of time the key will remain in the KeyBundle
-            before it should be removed.
+        Outdated means that the key was marked as inactive at a time that was longer ago then what is given in 'after'.
+
+        :param after: The length of time the key will remain in the KeyBundle before it should be removed.
         """
         now = time.time()
         if not isinstance(after, float):
@@ -397,13 +398,12 @@ def keybundle_from_local_file(filename, typ, usage):
 
 def dump_jwks(kbl, target, private=False):
     """
-    Write a JWK to a file
+    Write a JWK to a file.
 
     :param kbl: List of KeyBundles
     :param target: Name of the file to which everything should be written
     :param private: Should also the private parts be exported
     """
-
     keys = []
     for kb in kbl:
         keys.extend([k.serialize(private) for k in kb.keys() if
@@ -423,11 +423,13 @@ def dump_jwks(kbl, target, private=False):
 
 
 class KeyJar(object):
-    """ A keyjar contains a number of KeyBundles """
+    """A keyjar contains a number of KeyBundles."""
 
     def __init__(self, verify_ssl=True, keybundle_cls=KeyBundle,
                  remove_after=3600, timeout=5):
         """
+        Initialize the class.
+
         :param verify_ssl: Do SSL certificate verification
         :param timeout: Timeout for requests library. Can be specified either as
             a single integer or as a tuple of integers. For more details, refer to
@@ -460,12 +462,12 @@ class KeyJar(object):
 
     def add(self, issuer, url, **kwargs):
         """
+        Add keys for issuer.
 
         :param issuer: Who issued the keys
         :param url: Where can the key/-s be found
         :param kwargs: extra parameters for instantiating KeyBundle
         """
-
         if not url:
             raise KeyError("No jwks_uri")
 
@@ -516,6 +518,7 @@ class KeyJar(object):
 
     def get(self, key_use, key_type="", issuer="", kid=None, **kwargs):
         """
+        Return keys matching the args.
 
         :param key_use: A key useful for this usage (enc, dec, sig, ver)
         :param key_type: Type of key (rsa, ec, symmetric, ..)
@@ -523,7 +526,6 @@ class KeyJar(object):
         :param kid: A Key Identifier
         :return: A possibly empty list of keys
         """
-
         if key_use in ["dec", "enc"]:
             use = "enc"
         else:
@@ -604,7 +606,7 @@ class KeyJar(object):
 
     def get_key_by_kid(self, kid, owner=""):
         """
-        Return the key from a specific owner that has a specific kid
+        Return the key from a specific owner that has a specific kid.
 
         :param kid: The key identifier
         :param owner: The owner of the key
@@ -645,7 +647,6 @@ class KeyJar(object):
         :param part: The other part
         :return: dictionary of keys
         """
-
         return self.x_keys("decrypt", part)
 
     def __getitem__(self, issuer):
@@ -701,7 +702,7 @@ class KeyJar(object):
 
     def load_keys(self, pcr, issuer, replace=False):
         """
-        Fetch keys from another server
+        Fetch keys from another server.
 
         :param pcr: The provider information
         :param issuer: The provider URL
@@ -709,7 +710,6 @@ class KeyJar(object):
             should be replace.
         :return: Dictionary with usage as key and keys as values
         """
-
         logger.debug("loading keys for issuer: %s" % issuer)
         try:
             logger.debug("pcr: %s" % pcr)
@@ -732,7 +732,8 @@ class KeyJar(object):
 
     def find(self, source, issuer):
         """
-        Find a key bundle
+        Find a key bundle.
+
         :param source: A url
         :param issuer: The issuer of keys
         """
@@ -762,6 +763,7 @@ class KeyJar(object):
 
     def import_jwks(self, jwks, issuer):
         """
+        Import key from JWKS.
 
         :param jwks: Dictionary representation of a JWKS
         :param issuer: Who 'owns' the JWKS
@@ -843,8 +845,8 @@ class KeyJar(object):
 
     def remove_outdated(self):
         """
-        Goes through the complete list of issuers and for each of them removes
-        outdated keys.
+        Goes through the complete list of issuers and for each of them removes outdated keys.
+
         Outdated keys are keys that has been marked as inactive at a time that
         is longer ago then some set number of seconds.
         The number of seconds a carried in the remove_after parameter.
@@ -884,9 +886,10 @@ class RedirectStdStreams(object):
 
 def key_setup(vault, **kwargs):
     """
+    Create a KeyBundle from file.
+
     :param vault: Where the keys are kept
-    :return: 2-tuple: result of urlsplit and a dictionary with
-        parameter name as key and url and value
+    :return: 2-tuple: result of urlsplit and a dictionary with parameter name as key and url and value
     """
     vault_path = proper_path(vault)
 
@@ -917,6 +920,8 @@ def key_setup(vault, **kwargs):
 
 def key_export(baseurl, local_path, vault, keyjar, **kwargs):
     """
+    Export keys.
+
     :param baseurl: The base URL to which the key file names are added
     :param local_path: Where on the machine the export files are kept
     :param vault: Where the keys are kept
@@ -961,12 +966,13 @@ def key_export(baseurl, local_path, vault, keyjar, **kwargs):
 
 def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=2048):
     """
+    Create RSA keypair.
+
     :param name: Name of the key file
     :param path: Path to where the key files are stored
     :param size: RSA key size
     :return: RSA key
     """
-
     key = RSA.generate(size)
 
     os.makedirs(path, exist_ok=True)
@@ -985,6 +991,7 @@ def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=2048):
 def proper_path(path):
     """
     Clean up the path specification so it looks like something I could use.
+
     "./" <path> "/"
     """
     if path.startswith("./"):
@@ -1007,6 +1014,7 @@ def proper_path(path):
 
 def ec_init(spec):
     """
+    Initialize EC encryption.
 
     :param spec: Key specifics of the form
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
@@ -1025,6 +1033,7 @@ def ec_init(spec):
 
 def rsa_init(spec):
     """
+    Initialize RSA encryption.
 
     :param spec:
     :return: KeyBundle
@@ -1045,6 +1054,8 @@ def rsa_init(spec):
 
 def keyjar_init(instance, key_conf, kid_template=""):
     """
+    Initialize KeyJar.
+
     Configuration of the type:
     keys = [
         {"type": "RSA", "key": "cp_keys/key.pem", "use": ["enc", "sig"]},
@@ -1057,7 +1068,6 @@ def keyjar_init(instance, key_conf, kid_template=""):
     :param kid_template: A template by which to build the kids
     :return: a JWKS
     """
-
     jwks, keyjar, kdd = build_keyjar(key_conf, kid_template, instance.keyjar,
                                      instance.kid)
 
@@ -1079,6 +1089,8 @@ def _new_rsa_key(spec):
 
 def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
     """
+    Create a KeyJar from keys.
+
     Configuration of the type:
     keys = [
         {"type": "RSA", "key": "cp_keys/key.pem", "use": ["enc", "sig"]},
@@ -1092,7 +1104,6 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
         and a representation of which kids that can be used for what.
         Note the JWKS contains private key information !!
     """
-
     if keyjar is None:
         keyjar = KeyJar()
 
@@ -1164,6 +1175,8 @@ def key_summary(keyjar, issuer):
 
 def check_key_availability(inst, jwt):
     """
+    Try to refresh keys.
+
     If the server is restarted it will NOT load keys from jwks_uris for
     all the clients that has been registered. So this function is there
     to get a clients keys when needed.
@@ -1171,7 +1184,6 @@ def check_key_availability(inst, jwt):
     :param inst: OP instance
     :param jwt: A JWT that has to be verified or decrypted
     """
-
     _rj = jws.factory(jwt)
     payload = json.loads(as_unicode(_rj.jwt.part[1]))
     _cid = payload['iss']

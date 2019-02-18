@@ -416,14 +416,17 @@ class AuthorizationRequest(message.AuthorizationRequest):
     })
 
     def verify(self, **kwargs):
-        """Authorization Request parameters that are OPTIONAL in the OAuth 2.0
+        """
+        Check that the request is valid.
+
+        Authorization Request parameters that are OPTIONAL in the OAuth 2.0
         specification MAY be included in the OpenID Request Object without also
         passing them as OAuth 2.0 Authorization Request parameters, with one
         exception: The scope parameter MUST always be present in OAuth 2.0
         Authorization Request parameters.
         All parameter values that are present both in the OAuth 2.0
-        Authorization Request and in the OpenID Request Object MUST exactly
-        match."""
+        Authorization Request and in the OpenID Request Object MUST exactly match.
+        """
         super(AuthorizationRequest, self).verify(**kwargs)
 
         args = {}
@@ -607,9 +610,8 @@ class RegistrationRequest(Message):
 
 
 class RegistrationResponse(Message):
-    """
-    Response to client_register registration requests
-    """
+    """Response to client_register registration requests."""
+
     c_param = {
         "client_id": SINGLE_REQUIRED_STRING,
         "client_secret": SINGLE_OPTIONAL_STRING,
@@ -622,6 +624,8 @@ class RegistrationResponse(Message):
 
     def verify(self, **kwargs):
         """
+        Verify that the response is valid.
+
         Implementations MUST either return both a Client Configuration Endpoint
         and a Registration Access Token or neither of them.
         :param kwargs:

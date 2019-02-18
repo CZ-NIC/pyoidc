@@ -9,19 +9,20 @@ __author__ = 'danielevertsson'
 
 
 class JavascriptFormMako(UsernamePasswordMako):
-    """Do user authentication using the normal username password form in a
-    WSGI environment using Mako as template system"""
+    """
+    Do user authentication.
+
+    This is using the normal username password form in a WSGI environment using Mako as template system.
+    """
 
     def verify(self, request, **kwargs):
         """
-        Verifies that the given username and password was correct
-        :param request: Either the query part of a URL a urlencoded
-        body of a HTTP message or a parse such.
-        :param kwargs: Catch whatever else is sent.
-        :return: redirect back to where ever the base applications
-        wants the user after authentication.
-        """
+        Verify that the given username and password was correct.
 
+        :param request: Either the query part of a URL a urlencoded body of a HTTP message or a parse such.
+        :param kwargs: Catch whatever else is sent.
+        :return: redirect back to where ever the base applications wants the user after authentication.
+        """
         logger.debug("verify(%s)" % request)
         if isinstance(request, str):
             _dict = parse_qs(request)

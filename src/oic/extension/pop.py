@@ -61,7 +61,7 @@ class PoPClient(object):
 
     def update(self, msg, state, key_size=0):
         """
-        Used to 'update' the AccessToken Request
+        Use to 'update' the AccessToken Request.
 
         :param msg:
         :param state: Used to map access token response to this request
@@ -78,10 +78,10 @@ class PoPClient(object):
 
     def handle_access_token_response(self, resp):
         """
-        Maps access token to a keypair
+        Map access token to a keypair.
+
         :param resp: AccessTokenResponse instance
         """
-
         self.token2key[resp['access_token']] = self.state2key[resp['state']]
 
 
@@ -124,7 +124,8 @@ class PoPRS(object):
 
     def store_key(self, access_token, tir):
         """
-        Store key that was returned in response from token introspection
+        Store key that was returned in response from token introspection.
+
         :param access_token: The token that was introspected
         :param tir: TokenIntrospectionResponse instance
         """

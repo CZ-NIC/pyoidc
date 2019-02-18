@@ -292,12 +292,11 @@ class Provider(AProvider):
 
     def set_mode(self, mode):
         """
-        The mode is a set of parameters that govern how this OP will behave.
+        Prepare OP based on parameters that govern how this OP will behave.
 
         :param mode:
         :return:
         """
-
         # Is there a signing algorithm I should use
         try:
             self.jwx_def["signing_alg"]["id_token"] = mode["sign"]
@@ -397,13 +396,12 @@ class Provider(AProvider):
     @staticmethod
     def get_sector_id(redirect_uri, client_info):
         """
-        Pick the sector id given a number of factors
+        Pick the sector id given a number of factors.
+
         :param redirect_uri: The redirect_uri used
-        :param client_info: Information provided by the client in the
-        client registration
+        :param client_info: Information provided by the client in the client registration
         :return: A sector_id or None
         """
-
         _redirect_uri = unquote(redirect_uri)
 
         part = urlparse(_redirect_uri)
@@ -456,12 +454,12 @@ class Provider(AProvider):
 
     def pick_auth(self, areq, comparision_type=""):
         """
+        Select authenticatoin method.
 
         :param areq: AuthorizationRequest instance
         :param comparision_type: How to pick the authentication method
         :return: An authentication method and its authn class ref
         """
-
         if comparision_type == "any":
             return self.authn_broker[0]
 
@@ -491,6 +489,7 @@ class Provider(AProvider):
 
     def verify_post_logout_redirect_uri(self, esreq, client_id):
         """
+        Verify the post_logout_redirect_uris.
 
         :param esreq: End session request
         :param client_id: The Client ID
@@ -674,6 +673,7 @@ class Provider(AProvider):
 
     def verify_endpoint(self, request="", cookie=None, **kwargs):
         """
+        Verify endpoint.
 
         :param request:
         :param cookie:
@@ -778,11 +778,11 @@ class Provider(AProvider):
             return error_response('invalid_request', '%s' % err)
 
     def authorization_endpoint(self, request="", cookie=None, **kwargs):
-        """ The AuthorizationRequest endpoint
+        """
+        Authorize the client.
 
         :param request: The client request
         """
-
         info = self.auth_init(request, request_class=AuthorizationRequest)
         if isinstance(info, Response):
             return info
@@ -860,7 +860,8 @@ class Provider(AProvider):
 
     def userinfo_in_id_token_claims(self, session):
         """
-        Put userinfo claims in the id token
+        Put userinfo claims in the id token.
+
         :param session:
         :return:
         """
@@ -877,7 +878,8 @@ class Provider(AProvider):
 
     def encrypt(self, payload, client_info, cid, val_type="id_token", cty=""):
         """
-        Handles the encryption of a payload.
+        Handle the encryption of a payload.
+
         Shouldn't get here unless there are encrypt parameters in client info
 
         :param payload: The information to be encrypted
@@ -885,7 +887,6 @@ class Provider(AProvider):
         :param cid: Client id
         :return: The encrypted information as a JWT
         """
-
         try:
             alg = client_info["%s_encrypted_response_alg" % val_type]
         except KeyError:
@@ -926,7 +927,7 @@ class Provider(AProvider):
     def sign_encrypt_id_token(self, sinfo, client_info, areq, code=None,
                               access_token=None, user_info=None):
         """
-        Signed and or encrypt a IDToken
+        Sign and or encrypt a IDToken.
 
         :param sinfo: Session information
         :param client_info: Client information
@@ -936,7 +937,6 @@ class Provider(AProvider):
         :param user_info: User information
         :return: IDToken instance
         """
-
         try:
             alg = client_info["id_token_signed_response_alg"]
         except KeyError:
@@ -1071,7 +1071,7 @@ class Provider(AProvider):
     def token_endpoint(self, request="", authn=None, dtype='urlencoded',
                        **kwargs):
         """
-        This is where clients come to get their access tokens
+        Give clients their access tokens.
 
         :param request: The request
         :param authn: Authentication info, comes from HTTP header
@@ -1130,6 +1130,7 @@ class Provider(AProvider):
     def _collect_user_info(self, session, userinfo_claims=None):
         """
         Collect information about a user.
+
         This can happen in two cases, either when constructing an IdToken or
         when returning user info through the UserInfo endpoint
 
@@ -1187,7 +1188,7 @@ class Provider(AProvider):
 
     def signed_userinfo(self, client_info, userinfo, session):
         """
-        Will create a JWS with the userinfo as payload.
+        Create a JWS with the userinfo as payload.
 
         :param client_info: Client registration information
         :param userinfo: An OpenIDSchema instance
@@ -1222,9 +1223,10 @@ class Provider(AProvider):
 
     def userinfo_endpoint(self, request="", **kwargs):
         """
+        Endpoint for collecting the UserInfo.
+
         :param request: The request in a string format or as a dictionary
         """
-
         logger.debug('userinfo_endpoint: request={}, kwargs={}'.format(
             request, kwargs))
 
@@ -1306,8 +1308,6 @@ class Provider(AProvider):
         return Response(jinfo, content=content_type)
 
     def check_session_endpoint(self, request, **kwargs):
-        """
-        """
         try:
             _log_info = kwargs["logger"].info
         except KeyError:
@@ -1567,11 +1567,11 @@ class Provider(AProvider):
 
     @staticmethod
     def client_secret_expiration_time():
-        '''
-        Returns client_secret expiration time.
+        """
+        Return client_secret expiration time.
 
         Split for easy customization.
-        '''
+        """
         return utc_time_sans_frac() + 86400
 
     def client_registration_setup(self, request):
@@ -1655,6 +1655,7 @@ class Provider(AProvider):
     def read_registration(self, authn, request, **kwargs):
         """
         Read all information this server has on a client.
+
         Authorization is done by using the access token that was return as
         part of the client registration result.
 
@@ -1663,7 +1664,6 @@ class Provider(AProvider):
         :param kwargs: Any other arguments
         :return:
         """
-
         logger.debug("authn: %s, request: %s" % (sanitize(authn),
                                                  sanitize(request))
                      )
@@ -1696,7 +1696,8 @@ class Provider(AProvider):
                         headers=[("Cache-Control", "no-store")])
 
     def alter_registration(self, authn, request, **kwargs):
-        """Method to alter the client info on server side.
+        """
+        Alter the client info on server side.
 
         :param authn: Authorization HTTP header
         :param request: Query part of the request
@@ -1706,7 +1707,8 @@ class Provider(AProvider):
                               status_code=403)
 
     def delete_registration(self, authn, request, **kwargs):
-        """Method to delete the client info on server side.
+        """
+        Delete the client info on server side.
 
         :param authn: Authorization HTTP header
         :param request: Query part of the request
@@ -1718,12 +1720,12 @@ class Provider(AProvider):
     def create_providerinfo(self, pcr_class=ProviderConfigurationResponse,
                             setup=None):
         """
-        Dynamically create the provider info response
+        Dynamically create the provider info response.
+
         :param pcr_class:
         :param setup:
         :return:
         """
-
         _provider_info = copy.deepcopy(self.capabilities.to_dict())
 
         if self.jwks_uri and self.keyjar:
@@ -1748,12 +1750,11 @@ class Provider(AProvider):
 
     def provider_features(self, pcr_class=ProviderConfigurationResponse):
         """
-        Specifies what the server capabilities are.
+        Specify what the server capabilities are.
 
         :param pcr_class:
         :return: ProviderConfigurationResponse instance
         """
-
         _provider_info = pcr_class(**CAPABILITIES)
 
         # Parse scopes
@@ -1806,8 +1807,7 @@ class Provider(AProvider):
 
     def verify_capabilities(self, capabilities):
         """
-        Verify that what the admin wants the server to do actually
-        can be done by this implementation.
+        Verify that what the admin wants the server to do actually can be done by this implementation.
 
         :param capabilities: The asked for capabilities as a dictionary
         or a ProviderConfigurationResponse instance. The later can be
@@ -1878,11 +1878,6 @@ class Provider(AProvider):
         return resp
 
     def discovery_endpoint(self, request, handle=None, **kwargs):
-        """
-        :param request:
-        :param handle:
-        """
-
         _log_debug = logger.debug
 
         _log_debug("@discovery_endpoint")
@@ -2019,7 +2014,8 @@ class Provider(AProvider):
 
     def key_setup(self, local_path, vault="keys", sig=None, enc=None):
         """
-        my keys
+        Prepare keys for presentation.
+
         :param local_path: The path to where the JWKs should be stored
         :param vault: Where the private key will be stored
         :param sig: Key for signature
@@ -2031,6 +2027,7 @@ class Provider(AProvider):
 
     def endsession_endpoint(self, request="", **kwargs):
         """
+        Endpoint for EndSession.
 
         :param request:
         :param kwargs:
@@ -2040,13 +2037,13 @@ class Provider(AProvider):
 
     def do_key_rollover(self, jwks, kid_template):
         """
-        Handle key roll-over by importing new keys and inactivating the
-        ones in the keyjar that are of the same type and usage.
+        Handle key roll-over.
+
+        Import new keys and inactivating the ones in the keyjar that are of the same type and usage.
 
         :param jwks: A JWKS
         :param kid_template: Key ID template
         """
-
         kb = KeyBundle()
         kb.do_keys(jwks["keys"])
 
@@ -2074,7 +2071,7 @@ class Provider(AProvider):
 
     def remove_inactive_keys(self, more_then=3600):
         """
-        Remove all keys that has been inactive 'more_then' seconds
+        Remove all keys that has been inactive 'more_then' seconds.
 
         :param more_then: An integer (default = 3600 seconds == 1 hour)
         """

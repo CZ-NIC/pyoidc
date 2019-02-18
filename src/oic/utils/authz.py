@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class AuthzHandling(CookieDealer):
-    """ Class that allow an entity to manage authorization """
+    """Class that allows an entity to manage authorization."""
 
     def __init__(self):
         self.permdb = {}

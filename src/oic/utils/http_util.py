@@ -213,7 +213,8 @@ def factory(code, message, **kwargs):
 
 
 def extract(environ, empty=False, err=False):
-    """Extracts strings in form data and returns a dict.
+    """
+    Extract strings in form data and returns a dict.
 
     :param environ: WSGI environ
     :param empty: Stops on empty fields (default: Fault)
@@ -228,7 +229,8 @@ def extract(environ, empty=False, err=False):
 
 
 def geturl(environ, query=True, path=True):
-    """Rebuilds a request URL (from PEP 333).
+    """
+    Rebuild a request URL (from PEP 333).
 
     :param query: Is QUERY_STRING included in URI (default: True)
     :param path: Is path included in URI (default: True)
@@ -252,7 +254,7 @@ def geturl(environ, query=True, path=True):
 
 
 def getpath(environ):
-    """Builds a path."""
+    """Build a path."""
     return ''.join([quote(environ.get('SCRIPT_NAME', '')),
                     quote(environ.get('PATH_INFO', ''))])
 
@@ -266,13 +268,14 @@ def _expiration(timeout, time_format=None):
 
 
 def cookie_signature(key, *parts):
-    """Generates a cookie signature.
+    """
+    Generate a cookie signature.
 
-       :param key: The HMAC key to use.
-       :type key: bytes
-       :param parts: List of parts to include in the MAC
-       :type parts: list of bytes or strings
-       :returns: hexdigest of the HMAC
+    :param key: The HMAC key to use.
+    :type key: bytes
+    :param parts: List of parts to include in the MAC
+    :type parts: list of bytes or strings
+    :returns: hexdigest of the HMAC
     """
     assert isinstance(key, bytes)
     sha1 = hmac.new(key, digestmod=hashlib.sha1)
@@ -286,15 +289,16 @@ def cookie_signature(key, *parts):
 
 
 def verify_cookie_signature(sig, key, *parts):
-    """Constant time verifier for signatures
+    """
+    Constant time verifier for signatures.
 
-       :param sig: The signature hexdigest to check
-       :type sig: str
-       :param key: The HMAC key to use.
-       :type key: bytes
-       :param parts: List of parts to include in the MAC
-       :type parts: list of bytes or strings
-       :raises: `InvalidCookieSign` when the signature is wrong
+    :param sig: The signature hexdigest to check
+    :type sig: str
+    :param key: The HMAC key to use.
+    :type key: bytes
+    :param parts: List of parts to include in the MAC
+    :type parts: list of bytes or strings
+    :raises: `InvalidCookieSign` when the signature is wrong
     """
     assert isinstance(sig, str)
     return hmac.compare_digest(sig, cookie_signature(key, *parts))
@@ -302,11 +306,9 @@ def verify_cookie_signature(sig, key, *parts):
 
 def _make_hashed_key(parts, hashfunc='sha256'):
     """
-    Construct a key via hashing the parts
+    Construct a key via hashing the parts.
 
-    If the parts do not have enough entropy of their
-    own, this doesn't help.
-
+    If the parts do not have enough entropy of their own, this doesn't help.
     The size of the hash digest determines the size.
     """
     h = hashlib.new(hashfunc)
@@ -321,7 +323,7 @@ def _make_hashed_key(parts, hashfunc='sha256'):
 def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp="",
                 enc_key=None, secure=True, httponly=True):
     """
-    Create and return a cookie
+    Create and return a cookie.
 
     The cookie is secured against tampering.
 
@@ -400,10 +402,10 @@ def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp="",
 
 
 def parse_cookie(name, seed, kaka, enc_key=None):
-    """Parses and verifies a cookie value
+    """
+    Parse and verify a cookie value.
 
-    Parses a cookie created by `make_cookie` and verifies
-    it has not been tampered with.
+    Parses a cookie created by `make_cookie` and verifies it has not been tampered with.
 
     You need to provide the same `seed` and `enc_key`
     used when creating the cookie, otherwise the verification
@@ -614,7 +616,7 @@ class CookieDealer(object):
 
     def get_cookie_value(self, cookie=None, cookie_name=None):
         """
-        Return information stored in the Cookie
+        Return information stored in the Cookie.
 
         :param cookie:
         :param cookie_name: The name of the cookie I'm looking for

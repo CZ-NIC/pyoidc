@@ -38,7 +38,8 @@ class TemplateException(Exception):
 
 
 def render_template(template_name, context):
-    """Render specified template with the given context.
+    """
+    Render specified template with the given context.
 
     Templates are defined as strings in this module.
     """

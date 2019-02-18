@@ -17,9 +17,11 @@ logger = logging.getLogger(__name__)
 
 
 class PBase(object):
+    """Class for OAuth2 clients and servers."""
+
     def __init__(self, verify_ssl=True, keyjar=None, client_cert=None, timeout=5):
         """
-        A base class for OAuth2 clients and servers
+        Initialize the instance.
 
         :param verify_ssl: Control TLS server certificate validation. If set to
             True the certificate is validated against the global settings,
@@ -36,7 +38,6 @@ class PBase(object):
             a single integer or as a tuple of integers. For more details, refer to
             ``requests`` documentation.
         """
-
         self.keyjar = keyjar or KeyJar(verify_ssl=verify_ssl)
 
         self.cookiejar = cookielib.FileCookieJar()
@@ -54,7 +55,7 @@ class PBase(object):
         self.req_callback = None
 
     def _cookies(self):
-        """Turn cookiejar into a dict"""
+        """Turn cookiejar into a dict."""
         cookie_dict = {}
 
         for _, a in list(self.cookiejar._cookies.items()):
@@ -66,7 +67,7 @@ class PBase(object):
 
     def http_request(self, url, method="GET", **kwargs):
         """
-        Run a HTTP request to fetch the given url
+        Run a HTTP request to fetch the given url.
 
         This wraps the requests library, so you can pass
         most requests kwargs to this method to override

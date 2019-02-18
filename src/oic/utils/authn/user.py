@@ -107,6 +107,8 @@ class UserAuthnMethod(CookieDealer):
 
     def generate_return_url(self, return_to, uid, path=""):
         """
+        Create an URL for returning.
+
         :param return_to: If it starts with '/' it's an absolute path otherwise
         a relative path.
         :param uid:
@@ -155,8 +157,7 @@ def url_encode_params(params=None):
 
 def create_return_url(base, query, **kwargs):
     """
-    Add a query string plus extra parameters to a base URL which may contain
-    a query part already.
+    Add a query string plus extra parameters to a base URL which may contain a query part already.
 
     :param base: redirect_uri may contain a query part, no fragment allowed.
     :param query: Old query part as a string
@@ -196,8 +197,11 @@ def create_return_url(base, query, **kwargs):
 
 
 class UsernamePasswordMako(UserAuthnMethod):
-    """Do user authentication using the normal username password form in a
-    WSGI environment using Mako as template system"""
+    """
+    Do user authentication using the normal username password form.
+
+    Works in a WSGI environment using Mako as template system.
+    """
 
     param_map = {"as_user": "login", "acr_values": "acr",
                  "policy_uri": "policy_uri", "logo_uri": "logo_uri",
@@ -206,6 +210,8 @@ class UsernamePasswordMako(UserAuthnMethod):
     def __init__(self, srv, mako_template, template_lookup, pwd, return_to="",
                  templ_arg_func=None, verification_endpoints=None):
         """
+        Initialize the class.
+
         :param srv: The server instance
         :param mako_template: Which Mako template to use
         :param pwd: Username/password dictionary like database
@@ -225,13 +231,13 @@ class UsernamePasswordMako(UserAuthnMethod):
 
     def template_args(self, end_point_index=0, **kwargs):
         """
-        Method to override if necessary, dependent on the page layout
-        and context
+        Build the context for authn page.
+
+        Method to override if necessary, dependent on the page layout and context.
 
         :param kwargs:
         :return: dictionary of parameters used to build the Authn page
         """
-
         try:
             action = kwargs["action"]
         except KeyError:
@@ -268,9 +274,7 @@ class UsernamePasswordMako(UserAuthnMethod):
         return argv
 
     def __call__(self, cookie=None, end_point_index=0, **kwargs):
-        """
-        Put up the login form
-        """
+        """Put up the login form."""
         resp = Response()
 
         argv = self.templ_arg_func(end_point_index, **kwargs)
@@ -285,14 +289,12 @@ class UsernamePasswordMako(UserAuthnMethod):
 
     def verify(self, request, **kwargs):
         """
-        Verifies that the given username and password was correct
-        :param request: Either the query part of a URL a urlencoded
-        body of a HTTP message or a parse such.
-        :param kwargs: Catch whatever else is sent.
-        :return: redirect back to where ever the base applications
-        wants the user after authentication.
-        """
+        Verify that the given username and password was correct.
 
+        :param request: Either the query part of a URL a urlencoded body of a HTTP message or a parse such.
+        :param kwargs: Catch whatever else is sent.
+        :return: redirect back to where ever the base applications wants the user after authentication.
+        """
         logger.debug("verify(%s)" % sanitize(request))
         if isinstance(request, str):
             _dict = compact(parse_qs(request))
@@ -364,6 +366,7 @@ class BasicAuthn(UserAuthnMethod):
 
     def authenticated_as(self, cookie=None, authorization="", **kwargs):
         """
+        Return authenticated user and time of login.
 
         :param cookie: A HTTP Cookie
         :param authorization: The HTTP Authorization header
@@ -394,6 +397,7 @@ class SymKeyAuthn(UserAuthnMethod):
 
     def authenticated_as(self, cookie=None, authorization="", **kwargs):
         """
+        Return authenticated user and time of login.
 
         :param cookie: A HTTP Cookie
         :param authorization: The HTTP Authorization header
@@ -419,6 +423,7 @@ class NoAuthn(UserAuthnMethod):
 
     def authenticated_as(self, cookie=None, authorization="", **kwargs):
         """
+        Return authenticated user and time of login.
 
         :param cookie: A HTTP Cookie
         :param authorization: The HTTP Authorization header
@@ -426,5 +431,4 @@ class NoAuthn(UserAuthnMethod):
         :param kwargs: extra key word arguments
         :return:
         """
-
         return {"uid": self.user}, time.time()

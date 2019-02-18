@@ -92,8 +92,7 @@ class PoPProvider(Provider):
 
     def parse_request(self, environ):
         def rebuild_header_name(environ_key):
-            """Construct the HTTP header name from a WSGI environ variable.
-            """
+            """Construct the HTTP header name from a WSGI environ variable."""
             header_name = environ_key[5:]  # strip 'HTTP_'
             name_parts = header_name.split("_")
             header_name = "-".join(part.capitalize() for part in name_parts)

@@ -93,7 +93,7 @@ class MDQClient(BaseClientDatabase):
         raise RuntimeError('MDQClient is readonly.')
 
     def __delitem__(self, item):
-        """"Remote management is readonly."""
+        """Remote management is readonly."""
         raise RuntimeError('MDQClient is readonly.')
 
     def keys(self):

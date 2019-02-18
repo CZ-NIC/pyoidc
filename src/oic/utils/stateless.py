@@ -34,6 +34,8 @@ class StateLess(object):
 
     def __getitem__(self, token):
         """
+        Get token.
+
         :param token: authz grant code or refresh token
         :return: information about the session
         """
@@ -44,6 +46,7 @@ class StateLess(object):
 
     def create_authz_session(self, sub, areq, **kwargs):
         """
+        Create session for keeping the Authorization.
 
         :param sub: Identifier for the user, this is the real identifier
         :param areq: The AuthorizationRequest instance

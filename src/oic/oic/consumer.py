@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 def factory(kaka, sdb, config):
     """
-    Return the right Consumer instance dependent on what's in the cookie
+    Return the right Consumer instance dependent on what's in the cookie.
 
     :param kaka: The cookie
     :param sdb: The session database
@@ -46,6 +46,8 @@ def factory(kaka, sdb, config):
 
 def build_userinfo_claims(claims, sformat="signed", locale="us-en"):
     """
+    Create userinfo request based on claims.
+
     config example::
 
         "userinfo":{
@@ -61,7 +63,7 @@ def build_userinfo_claims(claims, sformat="signed", locale="us-en"):
 
 def clean_response(aresp):
     """
-    Creates a new instance with only the standard attributes
+    Create a new instance with only the standard attributes.
 
     :param aresp: The original AccessTokenResponse
     :return: An AccessTokenResponse instance
@@ -100,12 +102,12 @@ CONSUMER_PREF_ARGS = [
 
 
 class Consumer(Client):
-    """ An OpenID Connect consumer implementation
+    """An OpenID Connect consumer implementation."""
 
-    """
     def __init__(self, session_db, consumer_config, client_config=None,
                  server_info=None, debug=False, client_prefs=None):
-        """ Initializes a Consumer instance.
+        """
+        Initialize a Consumer instance.
 
         :param session_db: Where info are kept about sessions
         :param config: Configuration of the consumer
@@ -144,8 +146,10 @@ class Consumer(Client):
         self.secret_type = "Bearer"
 
     def update(self, sid):
-        """ Updates the instance variables from something stored in the
-        session database. Will not overwrite something that's already there.
+        """
+        Update the instance variables from something stored in the session database.
+
+        Will not overwrite something that's already there.
         Except for the grant dictionary !!
 
         :param sid: Session identifier
@@ -159,8 +163,8 @@ class Consumer(Client):
                 setattr(self, key, val)
 
     def restore(self, sid):
-        """ Restores the instance variables from something stored in the
-        session database.
+        """
+        Restore the instance variables from something stored in the session database.
 
         :param sid: Session identifier
         """
@@ -172,8 +176,8 @@ class Consumer(Client):
                      self.__dict__.items() if k not in IGNORE])
 
     def _backup(self, sid):
-        """ Stores instance variable values in the session store under a
-        session identifier.
+        """
+        Store instance variable values in the session store under a session identifier.
 
         :param sid: Session identifier
         """
@@ -181,16 +185,14 @@ class Consumer(Client):
 
     def begin(self, scope="", response_type="", use_nonce=False, path="",
               **kwargs):
-        """ Begin the OIDC flow
+        """
+        Begin the OIDC flow.
 
         :param scope: Defines which user info claims is wanted
-        :param response_type: Controls the parameters returned in the
-            response from the Authorization Endpoint
-        :param use_nonce: If not implicit flow nonce is optional.
-            This defines if it should be used anyway.
+        :param response_type: Controls the parameters returned in the response from the Authorization Endpoint
+        :param use_nonce: If not implicit flow nonce is optional. This defines if it should be used anyway.
         :param path: The path part of the redirect URL
-        :return: A 2-tuple, session identifier and URL to which the user
-            should be redirected
+        :return: A 2-tuple, session identifier and URL to which the user should be redirected
         """
         _log_info = logger.info
 
@@ -315,8 +317,8 @@ class Consumer(Client):
 
     def parse_authz(self, query="", **kwargs):
         """
-        This is where we get redirect back to after authorization at the
-        authorization server has happened.
+        Parse authorization response from server.
+
         Couple of cases
         ["code"]
         ["code", "token"]
@@ -327,7 +329,6 @@ class Consumer(Client):
 
         :return: A AccessTokenResponse instance
         """
-
         _log_info = logger.info
         logger.debug("- authorization -")
 
@@ -378,6 +379,7 @@ class Consumer(Client):
     def complete(self, state):
         """
         Do the access token request, the last step in a code flow.
+
         If Implicit flow was used then this method is never used.
         """
         args = {"redirect_uri": self.redirect_uris[0]}
@@ -425,6 +427,8 @@ class Consumer(Client):
 
     def check_session(self):
         """
+        Check session endpoint.
+
         With python you could use PyQuery to get the onclick attribute of each
         anchor tag, parse that with a regular expression to get the placeId,
         build the /places/duplicates.jsp?inPID= URL yourself, use requests to

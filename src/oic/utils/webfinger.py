@@ -268,12 +268,11 @@ class WebFinger(object):
 
     def discovery_query(self, resource):
         """
-        Given a resource find a OpenID connect OP to use
+        Given a resource find a OpenID connect OP to use.
 
         :param resource: An identifier of an entity
         :return: A URL if an OpenID Connect OP could be found
         """
-
         logger.debug("Looking for OIDC OP for '%s'" % resource)
         url = self.query(resource, OIC_ISSUER)
         try:

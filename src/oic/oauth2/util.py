@@ -46,6 +46,7 @@ ATTRS = {"version": None,
 def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE,
                 accept=None, **kwargs):
     """
+    Construct HTTP request.
 
     :param uri:
     :param method:
@@ -93,17 +94,16 @@ def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE,
 
 
 def set_cookie(cookiejar, kaka):
-    """PLaces a cookie (a http_cookielib.Cookie based on a set-cookie header
-    line) in the cookie jar.
+    """
+    Place a cookie (a http_cookielib.Cookie based on a set-cookie header line) in the cookie jar.
+
     Always chose the shortest expires time.
 
     :param cookiejar:
     :param kaka: Cookie
     """
-
     # default rfc2109=False
     # max-age, httponly
-
     for cookie_name, morsel in kaka.items():
         std_attr = ATTRS.copy()
         std_attr["name"] = cookie_name

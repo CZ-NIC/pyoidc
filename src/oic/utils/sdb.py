@@ -93,15 +93,12 @@ class Token(object):
         raise NotImplementedError()
 
     def key(self, **kwargs):
-        """
-        Return a key (the session id)
-        """
+        """Return a key - the session id."""
         return rndstr(32)
 
     def type_and_key(self, token):
         """
-        Return type of Token (A=Access code, T=Token, R=Refresh token) and
-        the session id.
+        Return type of Token (A=Access code, T=Token, R=Refresh token) and the session id.
 
         :param token: A token
         :return: tuple of token type and session id
@@ -110,7 +107,7 @@ class Token(object):
 
     def get_key(self, token):
         """
-        Return session id
+        Return session id.
 
         :param token: A token
         :return: The session id
@@ -119,7 +116,7 @@ class Token(object):
 
     def get_type(self, token):
         """
-        Return token type
+        Return token type.
 
         :param token: A token
         :return: Type of Token (A=Access code, T=Token, R=Refresh token)
@@ -128,7 +125,7 @@ class Token(object):
 
     def expires_at(self, token):
         """
-        Return the expiry timestamp of the token
+        Return the expiry timestamp of the token.
 
         :param token: A token
         :return: Timestamp of the token expiry in UTC
@@ -184,8 +181,7 @@ class DefaultToken(Token):
 
     def key(self, user="", areq=None):
         """
-        Return a key (the session id) that are based on some session
-        connected data
+        Return a key - the session id - that are based on some session connected data.
 
         :param user: User id
         :param areq: The authorization request
@@ -197,7 +193,7 @@ class DefaultToken(Token):
 
     def _split_token(self, token):
         """
-        Decode the token
+        Decode the token.
 
         :param token: A token
         :return: Tuple of sid, type, iat, salt
@@ -209,8 +205,7 @@ class DefaultToken(Token):
 
     def type_and_key(self, token):
         """
-        Return type of Token (A=Access code, T=Token, R=Refresh token) and
-        the session id.
+        Return type of Token (A=Access code, T=Token, R=Refresh token) and the session id.
 
         :param token: A token
         :return: tuple of token type and session id
@@ -220,7 +215,7 @@ class DefaultToken(Token):
 
     def get_key(self, token):
         """
-        Return session id
+        Return session id.
 
         :param token: A token
         :return: The session id
@@ -229,7 +224,7 @@ class DefaultToken(Token):
 
     def get_type(self, token):
         """
-        Return token type
+        Return token type.
 
         :param token: A token
         :return: Type of Token (A=Access code, T=Token, R=Refresh token)
@@ -238,7 +233,7 @@ class DefaultToken(Token):
 
     def expires_at(self, token):
         """
-        Return expiry time
+        Return expiry time.
 
         :param token: A token
         :return: expiry timestamp
@@ -250,7 +245,7 @@ class AuthnEvent(object):
     def __init__(self, uid, salt, valid=3600, authn_info=None,
                  time_stamp=0, authn_time=None, valid_until=None):
         """
-        Creates a representation of an authentication event.
+        Create a representation of an authentication event.
 
         :param uid: The local user identifier
         :param salt: Salt to be used in creating a sub
@@ -282,13 +277,11 @@ class AuthnEvent(object):
 
 
 class RefreshDB(object):
-    """
-    Database for refresh token storage.
-    """
+    """Database for refresh token storage."""
 
     def get(self, refresh_token):
         """
-        Retrieve info about the authentication proces from the refresh token
+        Retrieve info about the authentication proces from the refresh token.
 
         :return: Dictionary with info
         :raises: KeyError
@@ -297,7 +290,7 @@ class RefreshDB(object):
 
     def store(self, token, info):
         """
-        Stores the information about the authentication process
+        Store the information about the authentication process.
 
         :param token: Token
         :param info: Information associated with token to be stored
@@ -306,7 +299,7 @@ class RefreshDB(object):
 
     def remove(self, token):
         """
-        Removes the token and related information from the internal storage
+        Remove the token and related information from the internal storage.
 
         :param token: Token to be removed
         """
@@ -314,8 +307,7 @@ class RefreshDB(object):
 
     def create_token(self, client_id, uid, scopes, sub, authzreq, sid):
         """
-        Create refresh token for given combination of client_id and sub and
-        store it in internal storage
+        Create refresh token for given combination of client_id and sub and store it in internal storage.
 
         :param client_id: Client_id of the consumer
         :param uid: User identification
@@ -332,9 +324,7 @@ class RefreshDB(object):
         return refresh_token
 
     def verify_token(self, client_id, refresh_token):
-        """
-        Verifies if the refresh token belongs to client_id
-        """
+        """Verify if the refresh token belongs to client_id."""
         if not refresh_token.startswith('Refresh_'):
             raise WrongTokenType
         try:
@@ -344,37 +334,27 @@ class RefreshDB(object):
         return client_id == stored_cid
 
     def revoke_token(self, token):
-        """
-        Remove token from database
-        """
+        """Remove token from database."""
         self.remove(token)
 
 
 class DictRefreshDB(RefreshDB):
-    """
-    Dictionary based implementation of RefreshDB
-    """
+    """Dictionary based implementation of RefreshDB."""
 
     def __init__(self):
         super(DictRefreshDB, self).__init__()
         self._db = {}
 
     def get(self, refresh_token):
-        """
-        Retrieve info for given token from dictionary
-        """
+        """Retrieve info for given token from dictionary."""
         return self._db[refresh_token].copy()
 
     def store(self, token, info):
-        """
-        Add token and info to the dictionary
-        """
+        """Add token and info to the dictionary."""
         self._db[token] = info
 
     def remove(self, token):
-        """
-        Remove the token from the dictionary
-        """
+        """Remove the token from the dictionary."""
         self._db.pop(token)
 
 
@@ -382,7 +362,7 @@ def create_session_db(base_url, secret, password, db=None,
                       token_expires_in=3600, grant_expires_in=600,
                       refresh_token_expires_in=86400):
     """
-    Convenience wrapper for SessionDB construction
+    Construct SessionDB instance.
 
     Using this you can create a very basic non persistant
     session database that issues opaque DefaultTokens.
@@ -397,7 +377,6 @@ def create_session_db(base_url, secret, password, db=None,
 
     :return: A constructed `SessionDB` object.
     """
-
     code_factory = DefaultToken(secret, password, typ='A',
                                 lifetime=grant_expires_in)
     token_factory = DefaultToken(secret, password, typ='T',
@@ -492,6 +471,8 @@ class SessionDB(object):
 
     def __getitem__(self, item):
         """
+        Return Session item.
+
         :param item: authz grant code or refresh token
         """
         try:
@@ -502,14 +483,16 @@ class SessionDB(object):
 
     def __setitem__(self, key, value):
         """
+        Assign Session item.
+
         :param key: authz grant code or refresh token
         """
-
         self._db[key] = value
 
     def __delitem__(self, sid):
         """
-        Actually delete the pointed session from this SessionDB instance
+        Actually delete the pointed session from this SessionDB instance.
+
         :param sid: session identifier
         """
         del self._db[sid]
@@ -537,7 +520,7 @@ class SessionDB(object):
 
     def do_sub(self, sid, client_salt, sector_id="", subject_type="public"):
         """
-        Construct a sub (subject identifier)
+        Construct a sub (subject identifier).
 
         :param sid: Session identifier
         :param sector_id: Possible sector identifier
@@ -571,6 +554,7 @@ class SessionDB(object):
     def create_authz_session(self, aevent, areq, id_token=None, oidreq=None,
                              **kwargs):
         """
+        Create session holding info about the Authorization event.
 
         :param aevent: An AuthnEvent instance
         :param areq: The AuthorizationRequest instance
@@ -578,7 +562,6 @@ class SessionDB(object):
         :param oidreq: An OpenIDRequest instance
         :return: The session identifier, which is the database key
         """
-
         sid = self.token_factory['code'].key(user=aevent.uid, areq=areq)
         access_grant = self.token_factory['code'](sid=sid)
 
@@ -634,6 +617,7 @@ class SessionDB(object):
     def upgrade_to_token(self, token=None, issue_refresh=False, id_token="",
                          oidreq=None, key=None, access_grant=""):
         """
+        Promote session to token.
 
         :param token: The access grant
         :param issue_refresh: If a refresh token should be issued
@@ -691,7 +675,7 @@ class SessionDB(object):
 
     def refresh_token(self, rtoken, client_id):
         """
-        Issue a new access token using a valid refresh token
+        Issue a new access token using a valid refresh token.
 
         :param rtoken: Refresh token
         :param client_id: Client ID
@@ -699,7 +683,6 @@ class SessionDB(object):
         :raises: ExpiredToken for invalid refresh token
                  WrongTokenType for wrong token type
         """
-
         # assert that it is a refresh token and that it is valid
         if self._refresh_db:
             if self._refresh_db.verify_token(client_id, rtoken):
@@ -754,7 +737,7 @@ class SessionDB(object):
 
     def is_valid(self, token, client_id=None):
         """
-        Checks validity of the given token
+        Check validity of the given token.
 
         :param token: Access or refresh token
         :param client_id: Client ID, needed only for Refresh token
@@ -795,7 +778,7 @@ class SessionDB(object):
 
     def revoke_token(self, token):
         """
-        Revokes access token
+        Revoke access token.
 
         :param token: access token
         """
@@ -806,7 +789,7 @@ class SessionDB(object):
 
     def revoke_refresh_token(self, rtoken):
         """
-        Revoke refresh token
+        Revoke refresh token.
 
         :param rtoken: Refresh token
         """
@@ -819,7 +802,7 @@ class SessionDB(object):
 
     def revoke_all_tokens(self, token):
         """
-        Mark session as revoked but also explicitly revoke refresh token
+        Mark session as revoked but also explicitly revoke refresh token.
 
         :param token: access token
         """
@@ -865,8 +848,7 @@ class SessionDB(object):
 
     def get_sids_from_uid(self, uid):
         """
-        Returns list of identifiers for sessions that are connected to this
-        local identifier
+        Return list of identifiers for sessions that are connected to this local identifier.
 
         :param uid: local identifier (username)
         :return: list of session identifiers

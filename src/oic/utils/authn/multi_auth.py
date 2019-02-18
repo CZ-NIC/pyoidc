@@ -6,8 +6,8 @@ __author__ = 'danielevertsson'
 
 class MultiAuthnMethod(UserAuthnMethod):
     """
-    Small auth module just to kick off multi auth chains (it must be the
-    first module in the chain).
+    Small auth module just to kick off multi auth chains (it must be the first module in the chain).
+
     Do no instantiate this object, use setup_multi_auth instead!
     """
 
@@ -25,14 +25,12 @@ class MultiAuthnMethod(UserAuthnMethod):
 
 def setup_multi_auth(auth_broker, urls, auth_modules):
     """
+    Set up multiauthn chain.
 
     :param auth_broker: auth broker
-    :param urls: list of (callback) endpoint URLS and their associated
-    callback functions
-    :param auth_modules: list of auth modules specifying the order of the
-    multi auth chain
-    :return: a multi auth object which must be added to the list of callback
-    endpoints
+    :param urls: list of (callback) endpoint URLS and their associated callback functions
+    :param auth_modules: list of auth modules specifying the order of the multi auth chain
+    :return: a multi auth object which must be added to the list of callback endpoints
     """
     multi_auth = MultiAuthnMethod(auth_modules[0][0])
 
@@ -54,6 +52,7 @@ def setup_multi_auth(auth_broker, urls, auth_modules):
 class AuthnIndexedEndpointWrapper(UserAuthnMethod):
     """
     Wrapper class for using an authn module with multiple endpoints.
+
     Encapsulates the desired index of the endpoint.
     """
 

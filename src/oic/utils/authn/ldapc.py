@@ -22,6 +22,8 @@ class LDAPAuthn(UsernamePasswordMako):
                  template_lookup, ldap_user="", ldap_pwd="",
                  verification_endpoints=["verify"]):
         """
+        Authenticate user against LDAP.
+
         :param srv: The server instance
         :param ldapsrv: Which LDAP server to us
         :param return_to: Where to send the user after authentication
@@ -48,7 +50,8 @@ class LDAPAuthn(UsernamePasswordMako):
 
     def _verify(self, pwd, user):
         """
-        Verifies the username and password against a LDAP server
+        Verify the username and password against a LDAP server.
+
         :param pwd: The password
         :param user: The username
         :return: AssertionError if the LDAP verification failed.
