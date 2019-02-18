@@ -20,6 +20,7 @@ from oic.oic import Server
 from oic.oic import Token
 from oic.oic import scope2claims
 from oic.oic.message import SCOPE2CLAIMS
+from oic.oic.message import SINGLE_OPTIONAL_STRING
 from oic.oic.message import AccessTokenRequest
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AuthorizationRequest
@@ -34,7 +35,6 @@ from oic.oic.message import OpenIDSchema
 from oic.oic.message import RefreshAccessTokenRequest
 from oic.oic.message import RefreshSessionRequest
 from oic.oic.message import RegistrationRequest
-from oic.oic.message import SINGLE_OPTIONAL_STRING
 from oic.oic.message import UserInfoRequest
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import KeyBundle
