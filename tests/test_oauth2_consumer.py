@@ -9,6 +9,7 @@ from oic.exception import AuthzError
 from oic.oauth2.consumer import Consumer
 from oic.oauth2.consumer import factory
 from oic.oauth2.consumer import stateID
+from oic.oauth2.message import SINGLE_OPTIONAL_INT
 from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import AuthorizationErrorResponse
 from oic.oauth2.message import AuthorizationResponse
@@ -242,3 +243,32 @@ class TestConsumer(object):
         assert query_string_compare(body, expected_params)
         assert http_args == {'headers': {
             'Content-Type': 'application/x-www-form-urlencoded'}}
+
+    def test_access_token_storage_with_custom_response_class(self):
+        _state = "state"
+
+        # AccessTokenResponse custom class
+        class AccessTokenResponseWrapper(AccessTokenResponse):
+            """Response wrapper to get "expires_in" in hours."""
+
+            c_param = AccessTokenResponse.c_param.copy()
+            c_param.update({"expires_in_hours": SINGLE_OPTIONAL_INT})
+
+            def __init__(self, *args, **kwargs):
+                super(AccessTokenResponseWrapper, self).__init__(*args, **kwargs)
+                if "expires_in" in self and self["expires_in"]:
+                    self["expires_in_hours"] = self["expires_in"] // 3600
+
+        resp = AccessTokenResponseWrapper(access_token="2YotnFZFEjr1zCsiAB",
+                                          token_type="Bearer",
+                                          expires_in=3600,
+                                          state=_state)
+        self.consumer.parse_response(AccessTokenResponseWrapper,
+                                     resp.to_urlencoded(),
+                                     "urlencoded")
+
+        grant = self.consumer.grant[_state]
+        assert len(grant.tokens) == 1
+        assert grant.tokens[0].access_token == "2YotnFZFEjr1zCsiAB"
+        assert grant.tokens[0].expires_in == 3600
+        assert grant.tokens[0].expires_in_hours == 1
