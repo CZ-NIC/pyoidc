@@ -20,6 +20,7 @@ from oic.oic import Server
 from oic.oic import Token
 from oic.oic import scope2claims
 from oic.oic.message import SCOPE2CLAIMS
+from oic.oic.message import SINGLE_OPTIONAL_STRING
 from oic.oic.message import AccessTokenRequest
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AuthorizationRequest
@@ -142,6 +143,41 @@ class TestClient(object):
         assert isinstance(resp, AccessTokenResponse)
         assert _eq(resp.keys(),
                    ['token_type', 'state', 'access_token', 'scope'])
+
+    def test_access_token_request_with_custom_response_class(self):
+        args = {"response_type": ["code"],
+                "scope": ["openid"]}
+        r = self.client.do_authorization_request(state="state0",
+                                                 request_args=args)
+
+        self.client.parse_response(AuthorizationResponse, r.headers["location"],
+                                   sformat="urlencoded")
+
+        # AccessTokenResponse wrapper class
+        class AccessTokenResponseWrapper(AccessTokenResponse):
+            c_param = AccessTokenResponse.c_param.copy()
+            c_param.update({"raw_id_token": SINGLE_OPTIONAL_STRING})
+
+            def __init__(self, *args, **kwargs):
+                super(AccessTokenResponseWrapper, self).__init__(*args, **kwargs)
+                self["raw_id_token"] = None
+
+            def verify(self, **kwargs):
+                if "id_token" in self:
+                    self["raw_id_token"] = self["id_token"]
+                return super(AccessTokenResponseWrapper, self).verify(**kwargs)
+
+        resp = \
+            self.client.do_access_token_request(scope="openid",
+                                                state="state0",
+                                                response_cls=AccessTokenResponseWrapper)
+
+        assert isinstance(resp, AccessTokenResponse)
+        assert isinstance(resp, AccessTokenResponseWrapper)
+        assert _eq(resp.keys(),
+                   ['token_type', 'state', 'access_token', 'scope',
+                    'raw_id_token'])
+        assert len(self.client.grant["state0"].tokens) == 1
 
     def test_do_user_info_request(self):
         resp = AuthorizationResponse(code="code", state="state")

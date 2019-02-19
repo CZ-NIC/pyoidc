@@ -554,7 +554,7 @@ class Client(PBase):
 
         self.store_response(resp, info)
 
-        if resp.type() in ["AuthorizationResponse", "AccessTokenResponse"]:
+        if isinstance(resp, (AuthorizationResponse, AccessTokenResponse)):
             try:
                 _state = resp["state"]
             except (AttributeError, KeyError):
