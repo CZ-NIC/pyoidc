@@ -37,6 +37,7 @@ class PyTest(TestCommand):
         errno = pytest.main(self.test_args)
         sys.exit(errno)
 
+
 tests_requires = ['responses', 'testfixtures', 'pytest', 'freezegun']
 
 version = ''
