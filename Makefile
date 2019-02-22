@@ -13,6 +13,7 @@ help:
 	@echo "  html       to make HTML documentation files"
 	@echo "  livehtml   to make HTML documentation files (live reload!)"
 	@echo "  install    to install the python dependencies for development"
+	@echo "  test       to run the tests"
 	@echo "  isort      to sort imports"
 .PHONY: help
 
@@ -32,7 +33,7 @@ livehtml:
 .PHONY: livehtml
 
 install:
-	@pipenv install --dev
+	@pipenv install --dev -e .[develop,testing,docs,quality,ldap_authn]
 .PHONY: install
 
 test:

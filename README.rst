@@ -91,7 +91,13 @@ Then just run:
 
 .. code:: bash
 
-    $ pipenv install --dev
+    $ make install
+
+Next, running the tests:
+
+.. code:: bash
+
+    $ make test
 
 This will not affect your system level Python installation. Please review `our
 issues`_ to see what needs working on. Do not hesitate to ask questions if
