@@ -85,7 +85,7 @@ Contribute
 `Fork the repository`_, clone your copy and `install pipenv`_.
 
 .. _Fork the repository: https://github.com/OpenIDC/pyoidc#fork-destination-box
-.. _install pipenv: http://docs.pipenv.org/en/latest/advanced.html#fancy-installation-of-pipenv
+.. _install pipenv: https://pipenv.readthedocs.io/en/latest/
 
 Then just run:
 
