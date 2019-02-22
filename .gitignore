@@ -4,6 +4,8 @@
 # Other dev-env folders and files
 .vagrant
 Vagrantfile
+Pipfile
+Pipfile.lock
 
 # setup.py-related folders and files
 build
