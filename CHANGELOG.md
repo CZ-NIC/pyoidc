@@ -27,7 +27,7 @@ The format is based on the [KeepAChangeLog] project.
 [#341]: https://github.com/OpenIDC/pyoidc/issues/341
 [#398]: https://github.com/OpenIDC/pyoidc/issues/398
 [#605]: https://github.com/OpenIDC/pyoidc/pull/605
-[#605]: https://github.com/OpenIDC/pyoidc/issues/607
+[#607]: https://github.com/OpenIDC/pyoidc/issues/607
 [#441]: https://github.com/OpenIDC/pyoidc/issues/441
 [#612]: https://github.com/OpenIDC/pyoidc/pull/612
 
@@ -68,6 +68,7 @@ The format is based on the [KeepAChangeLog] project.
 [#557]: https://github.com/OpenIDC/pyoidc/pull/557
 [#562]: https://github.com/OpenIDC/pyoidc/issues/562
 [#565]: https://github.com/OpenIDC/pyoidc/issues/565
+[#577]: https://github.com/OpenIDC/pyoidc/pull/577
 [#566]: https://github.com/OpenIDC/pyoidc/issues/566
 [#547]: https://github.com/OpenIDC/pyoidc/issues/547
 [#268]: https://github.com/OpenIDC/pyoidc/issues/268
@@ -75,7 +76,7 @@ The format is based on the [KeepAChangeLog] project.
 [#579]: https://github.com/OpenIDC/pyoidc/issues/579
 [#581]: https://github.com/OpenIDC/pyoidc/issues/581
 [#542]: https://github.com/OpenIDC/pyoidc/pull/542
-[#581]: https://github.com/OpenIDC/pyoidc/pull/587
+[#587]: https://github.com/OpenIDC/pyoidc/pull/587
 [#582]: https://github.com/OpenIDC/pyoidc/issues/582
 [#590]: https://github.com/OpenIDC/pyoidc/pull/590
 
