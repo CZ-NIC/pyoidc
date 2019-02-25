@@ -4,10 +4,10 @@ keys = [
     {"type": "EC", "crv": "P-256", "use": ["enc"]}
 ]
 
-ISSUER='http://localhost'
+ISSUER = 'http://localhost'
 SERVICE_URL = "{issuer}/verify"
 
-#Only Username and password.
+# Only Username and password.
 AUTHENTICATION = {
     "UserPassword": {"ACR": "PASSWORD", "WEIGHT": 1, "URL": SERVICE_URL,
                      "END_POINTS": ["verify"]}
@@ -19,7 +19,7 @@ SYM_KEY = "SoLittleTime,Got"
 
 SERVER_CERT = "certs/server.crt"
 SERVER_KEY = "certs/server.key"
-#CERT_CHAIN="certs/chain.pem"
+# CERT_CHAIN="certs/chain.pem"
 CERT_CHAIN = None
 
 # =======  SIMPLE DATABASE ==============
@@ -68,4 +68,3 @@ USERDB = {
         "email_verified": True,
     }
 }
-
