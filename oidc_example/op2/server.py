@@ -21,7 +21,6 @@ from oic.utils.authn.client import verify_client
 from oic.utils.authn.javascript_login import JavascriptFormMako
 from oic.utils.authn.multi_auth import AuthnIndexedEndpointWrapper
 from oic.utils.authn.multi_auth import setup_multi_auth
-from oic.utils.authn.saml import SAMLAuthnMethod
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.authz import AuthzHandling
 from oic.utils.http_util import *
@@ -439,9 +438,13 @@ if __name__ == '__main__':
                                                 JAVASCRIPT_END_POINT_INDEX)
             _urls.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
-        if "SAML" == authkey:
+        if authkey in {"SAML", "SamlPass"}:
+            # https://github.com/OpenIDC/pyoidc/issues/33
+            # noinspection PyUnresolvedReferences
             from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
+            from oic.utils.authn.saml import SAMLAuthnMethod
 
+        if "SAML" == authkey:
             if not saml_authn:
                 saml_authn = SAMLAuthnMethod(
                     None, LOOKUP, config.SAML, config.SP_CONFIG, _issuer,
@@ -457,8 +460,6 @@ if __name__ == '__main__':
             _urls.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
         if "SamlPass" == authkey:
-            from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
-
             if not saml_authn:
                 saml_authn = SAMLAuthnMethod(
                     None, LOOKUP, config.SAML, config.SP_CONFIG, _issuer,
