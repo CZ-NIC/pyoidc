@@ -137,7 +137,7 @@ class CDB(BaseClientDatabase):
         fp.close()
 
 
-if __name__ == "__main__":
+def run():
     parser = argparse.ArgumentParser()
     parser.add_argument('-l', '--list', dest='list', action='store_true',
                         help="List all client_ids")
@@ -185,3 +185,7 @@ if __name__ == "__main__":
         cdb.load(args.input_file)
     elif args.output_file:
         cdb.dump(args.output_file)
+
+
+if __name__ == '__main__':
+    run()

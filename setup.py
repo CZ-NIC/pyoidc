@@ -58,6 +58,11 @@ setup(
         "oic", "oic/oauth2", "oic/oic", "oic/utils", "oic/utils/authn",
         "oic/utils/userinfo", 'oic/utils/rp', 'oic/extension'
     ],
+    entry_points={
+        'console_scripts': [
+            'oic-client-management = oic.utils.client_management:run'
+        ]
+    },
     package_dir={"": "src"},
     classifiers=[
         "Development Status :: 4 - Beta",
