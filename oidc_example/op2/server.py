@@ -2,7 +2,6 @@
 from urllib.parse import parse_qs
 
 import json
-import os
 import re
 import sys
 import traceback
@@ -33,9 +32,6 @@ from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.webfinger import WebFinger
 
 __author__ = 'rohe0002'
-
-
-
 
 # This is *NOT* good practice !!
 try:
@@ -85,7 +81,6 @@ def static_file(path):
         return False
 
 
-# noinspection PyUnresolvedReferences
 def static(self, environ, start_response, path):
     logger.info("[static]sending: %s" % (path,))
 
@@ -110,7 +105,8 @@ def static(self, environ, start_response, path):
 
 
 def check_session_iframe(self, environ, start_response, logger):
-    return static(self, environ, start_response, "htdocs/op_session_iframe.html")
+    return static(self, environ, start_response,
+                  "htdocs/op_session_iframe.html")
 
 
 # ----------------------------------------------------------------------------
@@ -136,10 +132,8 @@ def clear_keys(self, environ, start_response, _):
     return resp(environ, start_response)
 
 
-
-
-
 # ----------------------------------------------------------------------------
+
 
 ROOT = './'
 
@@ -147,9 +141,11 @@ LOOKUP = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
                         module_directory=ROOT + 'modules',
                         input_encoding='utf-8', output_encoding='utf-8')
 
+
 def mako_renderer(template_name, context):
     mte = LOOKUP.get_template(template_name)
     return mte.render(**context)
+
 
 # ----------------------------------------------------------------------------
 
@@ -225,30 +221,24 @@ class Application(object):
 
         return resp(environ, start_response)
 
-    # ----------------------------------------------------------------------------
+    # ------------------------------------------------------------------------
 
-
-    # noinspection PyUnusedLocal
     def token(self, environ, start_response):
         return wsgi_wrapper(environ, start_response, self.oas.token_endpoint,
                             logger=logger)
 
-    # noinspection PyUnusedLocal
     def authorization(self, environ, start_response):
         return wsgi_wrapper(environ, start_response,
                             self.oas.authorization_endpoint, logger=logger)
 
-    # noinspection PyUnusedLocal
     def userinfo(self, environ, start_response):
         return wsgi_wrapper(environ, start_response, self.oas.userinfo_endpoint,
                             logger=logger)
 
-    # noinspection PyUnusedLocal
     def op_info(self, environ, start_response):
         return wsgi_wrapper(environ, start_response,
                             self.oas.providerinfo_endpoint, logger=logger)
 
-    # noinspection PyUnusedLocal
     def registration(self, environ, start_response):
         if environ["REQUEST_METHOD"] == "POST":
             return wsgi_wrapper(environ, start_response,
@@ -261,22 +251,19 @@ class Application(object):
             resp = ServiceError("Method not supported")
             return resp(environ, start_response)
 
-    # noinspection PyUnusedLocal
     def check_id(self, environ, start_response):
         return wsgi_wrapper(environ, start_response, self.oas.check_id_endpoint,
                             logger=logger)
 
-    # noinspection PyUnusedLocal
     def swd_info(self, environ, start_response):
-        return wsgi_wrapper(environ, start_response, self.oas.discovery_endpoint,
+        return wsgi_wrapper(environ, start_response,
+                            self.oas.discovery_endpoint,
                             logger=logger)
 
-    # noinspection PyUnusedLocal
     def trace_log(self, environ, start_response):
         return wsgi_wrapper(environ, start_response, self.oas.tracelog_endpoint,
                             logger=logger)
 
-    # noinspection PyUnusedLocal
     def endsession(self, environ, start_response):
         return wsgi_wrapper(environ, start_response,
                             self.oas.endsession_endpoint, logger=logger)
@@ -607,7 +594,7 @@ if __name__ == '__main__':
     for b in OAS.keyjar[""]:
         LOGGER.info("OC3 server keys: %s" % b)
 
-    _app = Application(OAS,_urls)
+    _app = Application(OAS, _urls)
 
     # Setup the web server
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port),
