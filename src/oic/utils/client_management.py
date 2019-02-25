@@ -59,7 +59,7 @@ class CDB(BaseClientDatabase):
         return self.cdb.items()
 
     def create(self, redirect_uris=None, policy_uri="", logo_uri="",
-               jwks_uri="", **kwargs):
+               jwks_uri=""):
         if redirect_uris is None:
             print(
                 'Enter redirect_uris one at the time, end with a blank line: ')
@@ -169,7 +169,8 @@ def run():
     cdb = CDB(args.filename)
 
     if args.list:
-        print(cdb.keys())
+        for client_id in list(cdb.keys()):
+            print(client_id)
     elif args.client_id:
         if args.delete:
             del cdb[args.client_id]
