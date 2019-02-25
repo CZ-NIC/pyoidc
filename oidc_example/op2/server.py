@@ -5,6 +5,7 @@ import json
 import re
 import sys
 import traceback
+import importlib.util
 
 from mako.lookup import TemplateLookup
 
@@ -348,9 +349,15 @@ class Application(object):
 
 # ----------------------------------------------------------------------------
 
+def _import_config(config_path):
+    import_spec = importlib.util.spec_from_file_location('config', config_path)
+    config_module = importlib.util.module_from_spec(import_spec)
+    import_spec.loader.exec_module(config_module)
+    return config_module
+
+
 if __name__ == '__main__':
     import argparse
-    import importlib
 
     from cherrypy import wsgiserver
     from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
@@ -377,7 +384,8 @@ if __name__ == '__main__':
 
     logger.info("Known client_ids: {}".format([k for k in cdb.keys()]))
     sys.path.insert(0, ".")
-    config = importlib.import_module(args.config)
+
+    config = _import_config(args.config)
 
     if args.issuer:
         _issuer = args.issuer[0]
