@@ -21,7 +21,6 @@ class TestClientManagementRun(object):
     def test_help_prints_usage_instructions(self):
         result = run(CLI_INVOCATION + '--help', shell=True,
                      stdout=PIPE, stderr=PIPE)
-        assert result.returncode is 0
         assert result.stdout.decode().startswith('usage: ')
         assert result.stderr.decode() == ''
 
@@ -29,7 +28,6 @@ class TestClientManagementRun(object):
         for list_option_form in ('-l', '--list'):
             result = run(CLI_INVOCATION + list_option_form + ' ' + db_file_path,
                          shell=True, stdout=PIPE, stderr=STDOUT)
-            assert result.returncode is 0
             assert result.stdout.decode() == ''
 
     def test_list_option_with_1_client_id_in_db(self, db_file_path):
@@ -45,7 +43,6 @@ class TestClientManagementRun(object):
         for list_option_form in ('-l', '--list'):
             result = run(CLI_INVOCATION + list_option_form + ' ' + db_file_path,
                          shell=True, stdout=PIPE, stderr=STDOUT)
-            assert result.returncode is 0
             assert result.stdout.decode().splitlines() == ['the_first']
 
     def test_list_option_with_2_client_ids_in_db(self, db_file_path):
@@ -65,5 +62,4 @@ class TestClientManagementRun(object):
         for list_option_form in ('-l', '--list'):
             result = run(CLI_INVOCATION + list_option_form + ' ' + db_file_path,
                          shell=True, stdout=PIPE, stderr=STDOUT)
-            assert result.returncode is 0
             assert set(result.stdout.decode().splitlines()) == client_ids
