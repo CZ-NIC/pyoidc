@@ -40,7 +40,6 @@ class PyTest(TestCommand):
 
 tests_requires = ['responses', 'testfixtures', 'pytest', 'freezegun']
 
-version = ''
 with open('src/oic/__init__.py', 'r') as fd:
     version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
                         fd.read(), re.MULTILINE).group(1)
