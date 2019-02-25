@@ -12,9 +12,9 @@ Run the following:
 1. Install oic from source using `python setup.py install`
 1. Install `requirements.txt` for `simple_op` using `pip install -r requirements.txt`
 1. Install `requirements.txt` for `simple_rp` using `pip install -r requirements.txt`
-1. Start the op server on port 443.  In `simple_op` urn `python src/run.py settings.yaml.example -p 443`
-1. Start the rp server on port 8000 using `python src/rp.py settings.yaml.example -p 8000`
-1. Open the rp server in a broswer, <https://localhost:8000/>
+1. Start the op server on port 443 in `simple_op` using `python src/run.py settings.yaml.example -p 443`
+1. Start the rp server on port 8000 in `simple_rp` using `python src/rp.py settings.yaml.example -p 8000`
+1. Open the rp server in a browser, <https://localhost:8000/>
 1. Enter the uid `localhost` to connect to the simple op server
 1. Login using the credentials in `simple_op/passwd.json` (this is referenced in the simple op example settings)
 1. Observe the user info is loaded by the RP server
