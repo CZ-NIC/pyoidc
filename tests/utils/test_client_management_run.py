@@ -1,5 +1,6 @@
 import tempfile
 from subprocess import run, STDOUT, PIPE
+from sys import executable as python_executable
 
 import pytest
 
@@ -7,7 +8,7 @@ import oic.utils.client_management
 from oic.utils.client_management import CDB, pack_redirect_uri
 
 CLI_PATH = oic.utils.client_management.__file__
-CLI_INVOCATION = 'python {} '.format(CLI_PATH)
+CLI_INVOCATION = '{} {} '.format(python_executable, CLI_PATH)
 
 
 @pytest.fixture
