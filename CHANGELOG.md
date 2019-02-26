@@ -12,6 +12,8 @@ The format is based on the [KeepAChangeLog] project.
 - [#598] Move alabaster from runtime dependencies to docs
 - [#398] Do not echo cookies that do not belong to us
 - [#607] Fixed key recovery on encryption of payload
+- [#618] Prettified `client_management.py` CLI and wrapped it as
+         a setup.py console script `oic-client-management`
 
 ### Changed
 - [#578] Dropped python 2.7 support
@@ -30,6 +32,7 @@ The format is based on the [KeepAChangeLog] project.
 [#607]: https://github.com/OpenIDC/pyoidc/issues/607
 [#441]: https://github.com/OpenIDC/pyoidc/issues/441
 [#612]: https://github.com/OpenIDC/pyoidc/pull/612
+[#618]: https://github.com/OpenIDC/pyoidc/pull/618
 
 ## 0.15.1 [2019-01-31]
 

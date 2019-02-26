@@ -40,7 +40,6 @@ class PyTest(TestCommand):
 
 tests_requires = ['responses', 'testfixtures', 'pytest', 'freezegun']
 
-version = ''
 with open('src/oic/__init__.py', 'r') as fd:
     version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
                         fd.read(), re.MULTILINE).group(1)
@@ -58,6 +57,11 @@ setup(
         "oic", "oic/oauth2", "oic/oic", "oic/utils", "oic/utils/authn",
         "oic/utils/userinfo", 'oic/utils/rp', 'oic/extension'
     ],
+    entry_points={
+        'console_scripts': [
+            'oic-client-management = oic.utils.client_management:run'
+        ]
+    },
     package_dir={"": "src"},
     classifiers=[
         "Development Status :: 4 - Beta",
