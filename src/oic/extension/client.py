@@ -16,13 +16,10 @@ from oic.extension.message import TokenIntrospectionRequest
 from oic.extension.message import TokenIntrospectionResponse
 from oic.extension.message import TokenRevocationRequest
 from oic.oauth2.exception import Unsupported
-from oic.oauth2.message import ASConfigurationResponse
 from oic.oauth2.message import AuthorizationRequest
 from oic.oauth2.message import ErrorResponse
-from oic.oic import OIDCONF_PATTERN
 from oic.oic.message import AuthorizationResponse
 from oic.utils.http_util import SUCCESSFUL
-from oic.utils.keyio import KeyJar
 from oic.utils.sanitize import sanitize
 
 logger = logging.getLogger(__name__)
@@ -256,78 +253,6 @@ class Client(oauth2.Client):
                                                http_args=http_args,
                                                response_cls=response_cls,
                                                **kwargs)
-
-    def handle_provider_config(self, pcr, issuer, keys=True, endpoints=True):
-        """
-        Deal with Provider Config Response.
-
-        :param pcr: The ProviderConfigResponse instance
-        :param issuer: The one I thought should be the issuer of the config
-        :param keys: Should I deal with keys
-        :param endpoints: Should I deal with endpoints, that is store them as attributes in self.
-        """
-        if "issuer" in pcr:
-            _pcr_issuer = pcr["issuer"]
-            if pcr["issuer"].endswith("/"):
-                if issuer.endswith("/"):
-                    _issuer = issuer
-                else:
-                    _issuer = issuer + "/"
-            else:
-                if issuer.endswith("/"):
-                    _issuer = issuer[:-1]
-                else:
-                    _issuer = issuer
-
-            if not self.allow.get("issuer_mismatch", False) and _issuer != _pcr_issuer:
-                raise PyoidcError("provider info issuer mismatch '%s' != '%s'" % (_issuer, _pcr_issuer))
-
-            self.provider_info = pcr
-        else:
-            _pcr_issuer = issuer
-
-        if endpoints:
-            for key, val in pcr.items():
-                if key.endswith("_endpoint"):
-                    setattr(self, key, val)
-
-        if keys:
-            if self.keyjar is None:
-                self.keyjar = KeyJar()
-
-            self.keyjar.load_keys(pcr, _pcr_issuer)
-
-    def provider_config(self, issuer, keys=True, endpoints=True,
-                        response_cls=ASConfigurationResponse,
-                        serv_pattern=OIDCONF_PATTERN):
-        if issuer.endswith("/"):
-            _issuer = issuer[:-1]
-        else:
-            _issuer = issuer
-
-        url = serv_pattern % _issuer
-
-        pcr = None
-        r = self.http_request(url)
-
-        if self.events:
-            self.events.store('HTTP response header', r.headers)
-
-        if r.status_code == 200:
-            pcr = response_cls().from_json(r.text)
-        elif r.status_code == 302:
-            while r.status_code == 302:
-                r = self.http_request(r.headers["location"])
-                if r.status_code == 200:
-                    pcr = response_cls().from_json(r.text)
-                    break
-
-        if pcr is None:
-            raise PyoidcError("Trying '%s', status %s" % (url, r.status_code))
-
-        self.handle_provider_config(pcr, issuer, keys, endpoints)
-
-        return pcr
 
     def store_registration_info(self, reginfo):
         self.registration_response = reginfo
