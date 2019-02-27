@@ -366,17 +366,24 @@ if __name__ == '__main__':
     from oic.utils.sdb import create_session_db
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', dest='verbose', action='store_true')
-    parser.add_argument('-d', dest='debug', action='store_true')
-    parser.add_argument('-p', dest='port', default=80, type=int)
-    parser.add_argument('-t', dest='tls', action='store_true')
-    parser.add_argument('-k', dest='insecure', action='store_true')
-    parser.add_argument(
-        '-c', dest='capabilities',
-        help="A file containing a JSON representation of the capabilities")
-    parser.add_argument('-i', dest='issuer', help="issuer id of the OP",
+    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
+                        help='Moar verbose output')
+    parser.add_argument('-d', '--debug', dest='debug', action='store_true',
+                        help="Enable debug output (doesn't do much)")
+    parser.add_argument('-p', '--port', dest='port', default=80, type=int,
+                        help='TCP listen port')
+    parser.add_argument('-t', '--tls', dest='tls', action='store_true',
+                        help='Use HTTPS')
+    parser.add_argument('-k', '--insecure', dest='insecure',
+                        action='store_true',
+                        help='Disable verification of SSL certs')
+    parser.add_argument('-c', '--capabilities', dest='capabilities',
+                        help='A file containing a JSON representation of '
+                             'server capabilities')
+    parser.add_argument('-i', '--issuer', dest='issuer',
+                        help='Issuer ID of the OpenID Connect Provider [OP]',
                         nargs=1)
-    parser.add_argument(dest="config")
+    parser.add_argument(dest='config', help='Python config file (see examples)')
     args = parser.parse_args()
 
     # Client data base
