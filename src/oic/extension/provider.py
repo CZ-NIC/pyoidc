@@ -1,9 +1,6 @@
 import json
 import logging
-import os
 import socket
-import sys
-import traceback
 from functools import cmp_to_key
 from urllib.parse import parse_qs
 from urllib.parse import splitquery  # type: ignore
@@ -40,7 +37,6 @@ from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import by_schema
 from oic.oauth2.provider import Endpoint
 from oic.oic import PREFERENCE2PROVIDER
-from oic.oic.provider import STR
 from oic.oic.provider import RegistrationEndpoint
 from oic.oic.provider import secret
 from oic.utils import restrict
@@ -57,7 +53,6 @@ from oic.utils.http_util import Response
 from oic.utils.http_util import Unauthorized
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
-from oic.utils.keyio import key_export
 from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed
 from oic.utils.time_util import utc_time_sans_frac
@@ -522,28 +517,6 @@ class Provider(provider.Provider):
 
         return _provider_info
 
-    def verify_capabilities(self, capabilities):
-        """
-        Verify that what the admin wants the server to do actually can be done by this implementation.
-
-        :param capabilities: The asked for capabilities as a dictionary
-        or a ProviderConfigurationResponse instance. The later can be
-        treated as a dictionary.
-        :return: True or False
-        """
-        _pinfo = self.provider_features()
-        for key, val in capabilities.items():
-            if isinstance(val, str):
-                try:
-                    if val in _pinfo[key]:
-                        continue
-                    else:
-                        return False
-                except KeyError:
-                    return False
-
-        return True
-
     def create_providerinfo(self, pcr_class=ASConfigurationResponse,
                             setup=None):
         """
@@ -553,49 +526,7 @@ class Provider(provider.Provider):
         :param setup:
         :return:
         """
-        _provider_info = self.capabilities
-
-        if self.jwks_uri and self.keyjar:
-            _provider_info["jwks_uri"] = self.jwks_uri
-
-        for endp in self.endp:
-            _provider_info['{}_endpoint'.format(endp.etype)] = os.path.join(
-                self.baseurl, endp.url)
-
-        if setup and isinstance(setup, dict):
-            for key in pcr_class.c_param.keys():
-                if key in setup:
-                    _provider_info[key] = setup[key]
-
-        _provider_info["issuer"] = self.baseurl
-        _provider_info["version"] = "3.0"
-
-        return _provider_info
-
-    def providerinfo_endpoint(self, **kwargs):
-        _log_info = logger.info
-
-        _log_info("@providerinfo_endpoint")
-        try:
-            _response = self.create_providerinfo()
-            _log_info("provider_info_response: %s" % (_response.to_dict(),))
-
-            headers = [("Cache-Control", "no-store"), ("x-ffo", "bar")]
-            if 'handle' in kwargs:
-                (key, _) = kwargs['handle']
-                if key.startswith(STR) and key.endswith(STR):
-                    cookie = self.cookie_func(key, self.cookie_name, "pinfo",
-                                              self.sso_ttl)
-                    headers.append(cookie)
-
-            resp = Response(_response.to_json(), content="application/json",
-                            headers=headers)
-        except Exception:
-            message = traceback.format_exception(*sys.exc_info())
-            logger.error(message)
-            resp = Response(message, content="html/text")
-
-        return resp
+        return super().create_providerinfo(pcr_class=pcr_class, setup=setup)
 
     @staticmethod
     def verify_code_challenge(code_verifier, code_challenge,
@@ -760,19 +691,6 @@ class Provider(provider.Provider):
             return self.refresh_token_grant_type(areq)
         else:
             raise UnSupported('grant_type: {}'.format(_grant_type))
-
-    def key_setup(self, local_path, vault="keys", sig=None, enc=None):
-        """
-        Set provider keys for presentation.
-
-        :param local_path: The path to where the JWKs should be stored
-        :param vault: Where the private key will be stored
-        :param sig: Key for signature
-        :param enc: Key for encryption
-        :return: A URL the RP can use to download the key.
-        """
-        self.jwks_uri = key_export(self.baseurl, local_path, vault, self.keyjar,
-                                   fqdn=self.hostname, sig=sig, enc=enc)
 
     @staticmethod
     def token_access(endpoint, client_id, token_info):
