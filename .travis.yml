@@ -23,7 +23,6 @@ install:
 
 env:
    - TOXENV=py36
-   - TOXENV=py37
    - TOXENV=quality
    - TOXENV=docs
 
@@ -36,6 +35,8 @@ matrix:
     - python: 3.5
       env: TOXENV=py35
     # Add python 3.7
+    - python: 3.7
+      env: TOXENV=py37
     - install:
         - docker-compose -f docker/docker-compose.yml up -d
       script:

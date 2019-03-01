@@ -1,11 +1,11 @@
-FROM jfloff/alpine-python:3.6
+FROM ubuntu:18.04
 
-RUN apk add openssl-dev libffi-dev git
-
+ENV DEBIAN_FRONTEND noninteractive
 ENV SRCDIR /usr/local/src
 ENV INSTDIR oidf
 ENV SUBDIR ${SRCDIR}/${INSTDIR}/oidc_cp_rplib
 
+RUN apt-get update && apt-get install -y --no-install-recommends python3-pip build-essential libssl-dev libffi-dev python3-dev git python3-setuptools && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN git clone https://github.com/openid-certification/otest.git ${SRCDIR}/otest
 WORKDIR ${SRCDIR}/otest
