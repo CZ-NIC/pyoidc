@@ -1,6 +1,5 @@
-from urllib.parse import urlparse
-
 import logging
+from urllib.parse import urlparse
 
 from jwkest import b64e
 
@@ -18,7 +17,6 @@ from oic.oauth2.exception import Unsupported
 from oic.oauth2.grant import Grant
 from oic.oauth2.grant import Token
 from oic.oauth2.message import AccessTokenRequest
-from oic.oauth2.message import ROPCAccessTokenRequest
 from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import ASConfigurationResponse
 from oic.oauth2.message import AuthorizationErrorResponse
@@ -31,6 +29,7 @@ from oic.oauth2.message import NoneResponse
 from oic.oauth2.message import PyoidcError
 from oic.oauth2.message import RefreshAccessTokenRequest
 from oic.oauth2.message import ResourceRequest
+from oic.oauth2.message import ROPCAccessTokenRequest
 from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.message import sanitize
 from oic.oauth2.util import get_or_post
