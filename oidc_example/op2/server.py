@@ -367,7 +367,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
-                        help='Moar verbose output')
+                        help='More verbose output')
     parser.add_argument('-d', '--debug', dest='debug', action='store_true',
                         help="Enable debug output (doesn't do much)")
     parser.add_argument('-p', '--port', dest='port', default=80, type=int,
