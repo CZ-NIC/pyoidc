@@ -33,6 +33,7 @@ from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import CheckSessionRequest
 from oic.oic.message import IdToken
+from oic.oic.message import Message
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import RefreshAccessTokenRequest
 from oic.oic.message import RegistrationRequest
@@ -43,7 +44,6 @@ from oic.oic.provider import InvalidRedirectURIError
 from oic.oic.provider import InvalidSectorIdentifier
 from oic.oic.provider import Provider
 from oic.utils.authn.authn_context import AuthnBroker
-from oic.utils.authn.client import ClientSecretBasic
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
@@ -418,7 +418,7 @@ class TestProvider(object):
                                   parsed.path) == "http://localhost:8087/authz"
         assert "state" in parse_qs(parsed.query)
 
-    def test_token_endpoint(self):
+    def test_code_grant_type_ok(self):
         authreq = AuthorizationRequest(state="state",
                                        redirect_uri="http://example.com/authz",
                                        client_id=CLIENT_ID,
@@ -439,22 +439,73 @@ class TestProvider(object):
             "scope": ["openid"],
             "redirect_uri": "http://example.com/authz",
         }
-        _sdb.do_sub(sid, "client_salt")
+        _sdb.do_sub(sid, 'client_salt')
 
         # Construct Access token request
         areq = AccessTokenRequest(code=access_grant, client_id=CLIENT_ID,
-                                  redirect_uri="http://example.com/authz",
+                                  redirect_uri='http://example.com/authz',
                                   client_secret=CLIENT_SECRET,
                                   grant_type='authorization_code')
+        resp = self.provider.code_grant_type(areq)
+        atr = AccessTokenResponse().deserialize(resp.message, 'json')
+        assert _eq(atr.keys(), ['token_type', 'id_token', 'access_token', 'scope'])
 
-        txt = areq.to_urlencoded()
+    def test_code_grant_type_missing_code(self):
+        # Construct Access token request
+        areq = AccessTokenRequest(client_id=CLIENT_ID,
+                                  redirect_uri='http://example.com/authz',
+                                  client_secret=CLIENT_SECRET,
+                                  grant_type='authorization_code')
+        resp = self.provider.code_grant_type(areq)
+        atr = TokenErrorResponse().deserialize(resp.message, 'json')
+        assert atr['error'] == 'invalid_request'
+        assert atr['error_description'] == 'Missing code'
 
-        resp = self.provider.token_endpoint(request=txt)
-        atr = AccessTokenResponse().deserialize(resp.message, "json")
-        assert _eq(atr.keys(),
-                   ['token_type', 'id_token', 'access_token', 'scope'])
+    def test_code_grant_type_revoked(self):
+        authreq = AuthorizationRequest(state="state",
+                                       redirect_uri="http://example.com/authz",
+                                       client_id=CLIENT_ID,
+                                       response_type="code",
+                                       scope=["openid"])
 
-    def test_token_endpoint_no_cache(self):
+        _sdb = self.provider.sdb
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
+        access_grant = _sdb.access_token(sid=sid)
+        ae = AuthnEvent("user", "salt")
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "authn_event": ae.to_json(),
+            "authzreq": authreq.to_json(),
+            "client_id": CLIENT_ID,
+            "code": access_grant,
+            "revoked": True,
+            "scope": ["openid"],
+            "redirect_uri": "http://example.com/authz",
+        }
+        _sdb.do_sub(sid, 'client_salt')
+
+        # Construct Access token request
+        areq = AccessTokenRequest(code=access_grant, client_id=CLIENT_ID,
+                                  redirect_uri='http://example.com/authz',
+                                  client_secret=CLIENT_SECRET,
+                                  grant_type='authorization_code')
+        resp = self.provider.code_grant_type(areq)
+        atr = TokenErrorResponse().deserialize(resp.message, 'json')
+        assert atr['error'] == 'invalid_request'
+        assert atr['error_description'] == 'Token is revoked'
+
+    def test_code_grant_type_no_session(self):
+        # Construct Access token request
+        areq = AccessTokenRequest(code='some grant', client_id=CLIENT_ID,
+                                  redirect_uri='http://example.com/authz',
+                                  client_secret=CLIENT_SECRET,
+                                  grant_type='authorization_code')
+        resp = self.provider.code_grant_type(areq)
+        atr = TokenErrorResponse().deserialize(resp.message, 'json')
+        assert atr['error'] == 'invalid_request'
+        assert atr['error_description'] == 'Code is invalid'
+
+    def test_code_grant_type_missing_redirect_uri(self):
         authreq = AuthorizationRequest(state="state",
                                        redirect_uri="http://example.com/authz",
                                        client_id=CLIENT_ID,
@@ -475,21 +526,51 @@ class TestProvider(object):
             "scope": ["openid"],
             "redirect_uri": "http://example.com/authz",
         }
-        _sdb.do_sub(sid, "client_salt")
+        _sdb.do_sub(sid, 'client_salt')
 
         # Construct Access token request
         areq = AccessTokenRequest(code=access_grant, client_id=CLIENT_ID,
-                                  redirect_uri="http://example.com/authz",
                                   client_secret=CLIENT_SECRET,
                                   grant_type='authorization_code')
+        resp = self.provider.code_grant_type(areq)
+        atr = TokenErrorResponse().deserialize(resp.message, 'json')
+        assert atr['error'] == 'invalid_request'
+        assert atr['error_description'] == 'Missing redirect_uri'
 
-        txt = areq.to_urlencoded()
+    def test_code_grant_type_used(self):
+        authreq = AuthorizationRequest(state="state",
+                                       redirect_uri="http://example.com/authz",
+                                       client_id=CLIENT_ID,
+                                       response_type="code",
+                                       scope=["openid"])
 
-        resp = self.provider.token_endpoint(request=txt)
-        assert resp.headers == [('Pragma', 'no-cache'), ('Cache-Control', 'no-store'),
-                                ('Content-type', 'application/json')]
+        _sdb = self.provider.sdb
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
+        access_grant = _sdb.access_token(sid=sid)
+        ae = AuthnEvent("user", "salt")
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "authn_event": ae.to_json(),
+            "authzreq": authreq.to_json(),
+            "client_id": CLIENT_ID,
+            "code": access_grant,
+            "code_used": True,
+            "scope": ["openid"],
+            "redirect_uri": "http://example.com/authz",
+        }
+        _sdb.do_sub(sid, 'client_salt')
 
-    def test_token_endpoint_refresh(self):
+        # Construct Access token request
+        areq = AccessTokenRequest(code=access_grant, client_id=CLIENT_ID,
+                                  redirect_uri='http://example.com/authz',
+                                  client_secret=CLIENT_SECRET,
+                                  grant_type='authorization_code')
+        resp = self.provider.code_grant_type(areq)
+        atr = TokenErrorResponse().deserialize(resp.message, 'json')
+        assert atr['error'] == 'access_denied'
+        assert atr['error_description'] == 'Access Code already used'
+
+    def test_code_grant_type_refresh(self):
         authreq = AuthorizationRequest(state="state",
                                        redirect_uri="http://example.com/authz",
                                        client_id=CLIENT_ID,
@@ -518,157 +599,21 @@ class TestProvider(object):
                                   redirect_uri="http://example.com/authz",
                                   client_secret=CLIENT_SECRET,
                                   grant_type='authorization_code')
-
-        txt = areq.to_urlencoded()
-
-        resp = self.provider.token_endpoint(request=txt)
+        resp = self.provider.code_grant_type(areq)
         atr = AccessTokenResponse().deserialize(resp.message, "json")
-        assert _eq(atr.keys(),
-                   ['token_type', 'id_token', 'access_token', 'scope',
-                    'refresh_token'])
+        assert _eq(atr.keys(), ['token_type', 'id_token', 'access_token', 'scope', 'refresh_token'])
 
-    def test_token_endpoint_malformed(self):
-        authreq = AuthorizationRequest(state="state",
-                                       redirect_uri="http://example.com/authz",
-                                       client_id=CLIENT_ID,
-                                       response_type="code",
-                                       scope=["openid"])
+    def test_client_credentials_grant_type(self):
+        resp = self.provider.client_credentials_grant_type(Message())
+        parsed = ErrorResponse().from_json(resp.message)
+        assert parsed['error'] == 'invalid_request'
+        assert parsed['error_description'] == 'Unsupported grant_type'
 
-        _sdb = self.provider.sdb
-        sid = _sdb.access_token.key(user="sub", areq=authreq)
-        access_grant = _sdb.access_token(sid=sid)
-        ae = AuthnEvent("user", "salt")
-        _sdb[sid] = {
-            "oauth_state": "authz",
-            "authn_event": ae.to_json(),
-            "authzreq": authreq.to_json(),
-            "client_id": CLIENT_ID,
-            "code": access_grant,
-            "code_used": False,
-            "scope": ["openid"],
-            "redirect_uri": "http://example.com/authz",
-        }
-        _sdb.do_sub(sid, "client_salt")
-
-        # Construct Access token request
-        areq = AccessTokenRequest(code=access_grant[0:len(access_grant) - 1],
-                                  client_id=CLIENT_ID,
-                                  redirect_uri="http://example.com/authz",
-                                  client_secret=CLIENT_SECRET,
-                                  grant_type='authorization_code')
-
-        txt = areq.to_urlencoded()
-
-        resp = self.provider.token_endpoint(request=txt)
-        atr = TokenErrorResponse().deserialize(resp.message, "json")
-        assert atr['error'] == "invalid_request"
-
-    def test_token_endpoint_bad_code(self):
-        authreq = AuthorizationRequest(state="state",
-                                       redirect_uri="http://example.com/authz",
-                                       client_id=CLIENT_ID,
-                                       response_type="code",
-                                       scope=["openid"])
-
-        _sdb = self.provider.sdb
-        sid = _sdb.access_token.key(user="sub", areq=authreq)
-        access_grant = _sdb.access_token(sid=sid)
-        ae = AuthnEvent("user", "salt")
-        _sdb[sid] = {
-            "oauth_state": "authz",
-            "authn_event": ae.to_json(),
-            "authzreq": authreq.to_json(),
-            "client_id": CLIENT_ID,
-            "code": access_grant,
-            "code_used": False,
-            "scope": ["openid"],
-            "state": "state",
-            "redirect_uri": "http://example.com/authz",
-        }
-        _sdb.do_sub(sid, "client_salt")
-
-        # Construct Access token request
-        areq = AccessTokenRequest(code='bad_code',
-                                  client_id=CLIENT_ID,
-                                  redirect_uri="http://example.com/authz",
-                                  client_secret=CLIENT_SECRET,
-                                  grant_type='authorization_code',
-                                  state="state")
-
-        txt = areq.to_urlencoded()
-
-        resp = self.provider.token_endpoint(request=txt)
-        atr = TokenErrorResponse().deserialize(resp.message, "json")
-        assert atr['error'] == "unauthorized_client"
-
-    def test_token_endpoint_unauth(self):
-        state = 'state'
-        authreq = AuthorizationRequest(state=state,
-                                       redirect_uri="http://example.com/authz",
-                                       client_id="client_1")
-
-        _sdb = self.provider.sdb
-        sid = _sdb.access_token.key(user="sub", areq=authreq)
-        access_grant = _sdb.access_token(sid=sid)
-        ae = AuthnEvent("user", "salt")
-        _sdb[sid] = {
-            "authn_event": ae.to_json(),
-            "oauth_state": "authz",
-            "authzreq": "",
-            "client_id": "client_1",
-            "code": access_grant,
-            "code_used": False,
-            "scope": ["openid"],
-            "redirect_uri": "http://example.com/authz",
-            'state': state
-        }
-        _sdb.do_sub(sid, "client_salt")
-
-        # Construct Access token request
-        areq = AccessTokenRequest(code=access_grant,
-                                  redirect_uri="http://example.com/authz",
-                                  client_id="client_1",
-                                  client_secret="secret",
-                                  state=state,
-                                  grant_type='authorization_code')
-
-        txt = areq.to_urlencoded()
-
-        resp = self.provider.token_endpoint(request=txt, remote_user="client2",
-                                            request_method="POST")
-        atr = TokenErrorResponse().deserialize(resp.message, "json")
-        assert atr["error"] == "unauthorized_client"
-
-    def test_token_endpoint_auth(self):
-        state, location = self.cons.begin("openid", "code",
-                                          path="http://localhost:8087")
-
-        resp = self.provider.authorization_endpoint(
-                request=urlparse(location).query)
-
-        self.cons.parse_response(AuthorizationResponse, resp.message,
-                                 sformat="urlencoded")
-
-        # Construct Access token request
-        areq = self.cons.construct_AccessTokenRequest(
-                redirect_uri="http://example.com/authz",
-                client_id="client_1",
-                client_secret='abcdefghijklmnop',
-                state=state)
-
-        txt = areq.to_urlencoded()
-        self.cons.client_secret = 'drickyoughurt'
-
-        csb = ClientSecretBasic(self.cons)
-        http_args = csb.construct(areq)
-
-        resp = self.provider.token_endpoint(request=txt, remote_user="client2",
-                                            request_method="POST",
-                                            authn=http_args['headers'][
-                                                'Authorization'])
-
-        atr = TokenErrorResponse().deserialize(resp.message, "json")
-        assert atr["token_type"] == 'Bearer'
+    def test_password_grant_type(self):
+        resp = self.provider.password_grant_type(Message())
+        parsed = ErrorResponse().from_json(resp.message)
+        assert parsed['error'] == 'invalid_request'
+        assert parsed['error_description'] == 'Unsupported grant_type'
 
     def test_authz_endpoint(self):
         _state, location = self.cons.begin("openid",
@@ -1662,7 +1607,7 @@ class TestProvider(object):
         id_token = self._auth_with_id_token()
         assert id_token.jws_header['alg'] == "RS512"
 
-    def test_refresh_access_token_request(self):
+    def test_refresh_token_grant_type_ok(self):
         authreq = AuthorizationRequest(state="state",
                                        redirect_uri="http://example.com/authz",
                                        client_id=CLIENT_ID,
@@ -1685,74 +1630,43 @@ class TestProvider(object):
             "redirect_uri": "http://example.com/authz",
         }
         _sdb.do_sub(sid, "client_salt")
-
-        # Construct Access token request
-        areq = AccessTokenRequest(code=access_grant, client_id=CLIENT_ID,
-                                  redirect_uri="http://example.com/authz",
-                                  client_secret=CLIENT_SECRET,
-                                  grant_type='authorization_code')
-
-        txt = areq.to_urlencoded()
-
-        resp = self.provider.token_endpoint(request=txt)
-        atr = AccessTokenResponse().deserialize(resp.message, "json")
+        info = _sdb.upgrade_to_token(access_grant, issue_refresh=True)
 
         rareq = RefreshAccessTokenRequest(grant_type="refresh_token",
-                                          refresh_token=atr['refresh_token'],
+                                          refresh_token=info['refresh_token'],
                                           client_id=CLIENT_ID,
                                           client_secret=CLIENT_SECRET,
                                           scope=['openid'])
 
-        resp = self.provider.token_endpoint(request=rareq.to_urlencoded())
-        atr2 = AccessTokenResponse().deserialize(resp.message, "json")
-        assert atr2['access_token'] != atr['access_token']
-        assert atr2['refresh_token'] == atr['refresh_token']
-        assert atr2['token_type'] == 'Bearer'
-
-    def test_refresh_access_token_no_cache(self):
-        authreq = AuthorizationRequest(state="state",
-                                       redirect_uri="http://example.com/authz",
-                                       client_id=CLIENT_ID,
-                                       response_type="code",
-                                       scope=["openid", 'offline_access'],
-                                       prompt='consent')
-
-        _sdb = self.provider.sdb
-        sid = _sdb.access_token.key(user="sub", areq=authreq)
-        access_grant = _sdb.access_token(sid=sid)
-        ae = AuthnEvent("user", "salt")
-        _sdb[sid] = {
-            "oauth_state": "authz",
-            "authn_event": ae.to_json(),
-            "authzreq": authreq.to_json(),
-            "client_id": CLIENT_ID,
-            "code": access_grant,
-            "code_used": False,
-            "scope": ["openid", 'offline_access'],
-            "redirect_uri": "http://example.com/authz",
-        }
-        _sdb.do_sub(sid, "client_salt")
-
-        # Construct Access token request
-        areq = AccessTokenRequest(code=access_grant, client_id=CLIENT_ID,
-                                  redirect_uri="http://example.com/authz",
-                                  client_secret=CLIENT_SECRET,
-                                  grant_type='authorization_code')
-
-        txt = areq.to_urlencoded()
-
-        resp = self.provider.token_endpoint(request=txt)
+        resp = self.provider.refresh_token_grant_type(rareq)
         atr = AccessTokenResponse().deserialize(resp.message, "json")
+        assert atr['refresh_token'] is not None
+        assert atr['token_type'] == 'Bearer'
 
+    def test_refresh_token_grant_type_wrong_token(self):
         rareq = RefreshAccessTokenRequest(grant_type="refresh_token",
-                                          refresh_token=atr['refresh_token'],
+                                          refresh_token='some_other_refresh_token',
                                           client_id=CLIENT_ID,
                                           client_secret=CLIENT_SECRET,
                                           scope=['openid'])
 
-        resp = self.provider.token_endpoint(request=rareq.to_urlencoded())
-        assert resp.headers == [('Pragma', 'no-cache'), ('Cache-Control', 'no-store'),
-                                ('Content-type', 'application/json')]
+        resp = self.provider.refresh_token_grant_type(rareq)
+        atr = TokenErrorResponse().deserialize(resp.message, "json")
+        assert atr['error'] == 'invalid_request'
+        assert atr['error_description'] == 'Not a refresh token'
+
+    def test_refresh_token_grant_type_expired(self):
+        # Missing refresh_token also raises Expired
+        rareq = RefreshAccessTokenRequest(grant_type="refresh_token",
+                                          refresh_token='Refresh_some_other_refresh_token',
+                                          client_id=CLIENT_ID,
+                                          client_secret=CLIENT_SECRET,
+                                          scope=['openid'])
+
+        resp = self.provider.refresh_token_grant_type(rareq)
+        atr = TokenErrorResponse().deserialize(resp.message, "json")
+        assert atr['error'] == 'invalid_request'
+        assert atr['error_description'] == 'Refresh token is expired'
 
     def test_authorization_endpoint_faulty_request_uri(self):
         bib = {"scope": ["openid"],

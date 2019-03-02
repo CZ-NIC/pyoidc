@@ -36,6 +36,7 @@ from oic.oauth2.message import MissingRequiredValue
 from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.message import add_non_standard
 from oic.oauth2.message import by_schema
+from oic.utils.authn.client import AuthnFailure
 from oic.utils.authn.user import NoSuchAuthentication
 from oic.utils.authn.user import TamperAllert
 from oic.utils.authn.user import ToOld
@@ -153,6 +154,8 @@ DELIM = "]["
 
 class Provider(object):
     endp = [AuthorizationEndpoint, TokenEndpoint]
+    # Define the message class that in token_enpdoint
+    atr_class = AccessTokenRequest
 
     def __init__(self, name, sdb, cdb, authn_broker, authz, client_authn,
                  symkey=None, urlmap=None, iv=0, default_scope="",
@@ -768,51 +771,77 @@ class Provider(object):
         """Not implemented here."""
         return None
 
-    def token_endpoint(self, authn="", **kwargs):
-        """Provide clients with access tokens."""
-        _sdb = self.sdb
+    def token_endpoint(self, request='', authn='', dtype='urlencoded', **kwargs):
+        """
+        Provide clients with access tokens.
 
+        :param authn: Auhentication info, comes from HTTP header.
+        :param request: The request.
+        :param dtype: deserialization method for the request.
+        """
         logger.debug("- token -")
-        body = kwargs["request"]
-        logger.debug("body: %s" % sanitize(body))
+        logger.debug("token_request: %s" % sanitize(request))
 
-        areq = AccessTokenRequest().deserialize(body, "urlencoded")
+        areq = self.atr_class().deserialize(request, dtype)
 
+        # Verify client authentication
         try:
-            self.client_authn(self, areq, authn)
-        except FailedAuthentication as err:
+            client_id = self.client_authn(self, areq, authn)
+        except (FailedAuthentication, AuthnFailure) as err:
             logger.error(err)
-            err = TokenErrorResponse(error="unauthorized_client",
-                                     error_description="%s" % err)
-            return Response(err.to_json(), content="application/json", status_code=401)
+            err = TokenErrorResponse(error="unauthorized_client", error_description="%s" % err)
+            return Unauthorized(err.to_json(), content="application/json")
 
         logger.debug("AccessTokenRequest: %s" % sanitize(areq))
 
-        if areq["grant_type"] != "authorization_code":
-            error = TokenErrorResponse(error="invalid_request", error_description="Wrong grant type")
-            return Response(error.to_json(), content="application/json", status="401 Unauthorized")
+        # `code` is not mandatory for all requests
+        if 'code' in areq:
+            try:
+                _info = self.sdb[areq["code"]]
+            except KeyError:
+                logger.error('Code not present in SessionDB')
+                error = TokenErrorResponse(error="unauthorized_client")
+                return Unauthorized(error.to_json(), content="application/json")
 
-        # assert that the code is valid
-        _info = _sdb[areq["code"]]
+            resp = self.token_scope_check(areq, _info)
+            if resp:
+                return resp
+            # If redirect_uri was in the initial authorization request verify that they match
+            if "redirect_uri" in _info and areq["redirect_uri"] != _info["redirect_uri"]:
+                logger.error('Redirect_uri mismatch')
+                error = TokenErrorResponse(error="unauthorized_client")
+                return Unauthorized(error.to_json(), content="application/json")
+            if 'state' in areq:
+                if _info['state'] != areq['state']:
+                    logger.error('State value mismatch')
+                    error = TokenErrorResponse(error="unauthorized_client")
+                    return Unauthorized(error.to_json(), content="application/json")
 
-        resp = self.token_scope_check(areq, _info)
-        if resp:
-            return resp
+        # Propagate the client_id further
+        areq.setdefault('client_id', client_id)
+        grant_type = areq["grant_type"]
+        if grant_type == "authorization_code":
+            return self.code_grant_type(areq)
+        elif grant_type == "refresh_token":
+            return self.refresh_token_grant_type(areq)
+        elif grant_type == 'client_credentials':
+            return self.client_credentials_grant_type(areq)
+        elif grant_type == 'password':
+            return self.password_grant_type(areq)
+        else:
+            raise UnSupported('grant_type: {}'.format(grant_type))
 
-        # If redirect_uri was in the initial authorization request
-        # verify that the one given here is the correct one.
-        if "redirect_uri" in _info and areq["redirect_uri"] != _info["redirect_uri"]:
-            logger.error('Redirect_uri mismatch')
-            error = TokenErrorResponse(error="unauthorized_client")
-            return Unauthorized(error.to_json(), content="application/json")
+    def code_grant_type(self, areq):
+        """
+        Token authorization using Code Grant.
 
+        RFC6749 section 4.1
+        """
         try:
-            _tinfo = _sdb.upgrade_to_token(areq["code"], issue_refresh=True)
+            _tinfo = self.sdb.upgrade_to_token(areq["code"], issue_refresh=True)
         except AccessCodeUsed:
-            error = TokenErrorResponse(error="invalid_grant",
-                                       error_description="Access grant used")
-            return Response(error.to_json(), content="application/json",
-                            status="401 Unauthorized")
+            error = TokenErrorResponse(error="invalid_grant", error_description="Access grant used")
+            return Unauthorized(error.to_json(), content="application/json")
 
         logger.debug("_tinfo: %s" % sanitize(_tinfo))
 
@@ -821,6 +850,30 @@ class Provider(object):
         logger.debug("AccessTokenResponse: %s" % sanitize(atr))
 
         return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
+
+    def refresh_token_grant_type(self, areq):
+        """
+        Token refresh.
+
+        RFC6749 section 6
+        """
+        raise NotImplementedError('See oic.extension.provider.')
+
+    def client_credentials_grant_type(self, areq):
+        """
+        Token authorization using client credentials.
+
+        RFC6749 section 4.4
+        """
+        raise NotImplementedError('See oic.extension.provider.')
+
+    def password_grant_type(self, areq):
+        """
+        Token authorization using Resource owner password credentials.
+
+        RFC6749 section 4.3
+        """
+        raise NotImplementedError('See oic.extension.provider.')
 
     def verify_endpoint(self, request="", cookie=None, **kwargs):
         _req = parse_qs(request)

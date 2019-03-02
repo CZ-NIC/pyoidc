@@ -25,7 +25,6 @@ from oic.extension.message import ServerMetadata
 from oic.extension.message import TokenIntrospectionRequest
 from oic.extension.message import TokenIntrospectionResponse
 from oic.extension.message import TokenRevocationRequest
-from oic.oauth2 import AccessTokenRequest
 from oic.oauth2 import AccessTokenResponse
 from oic.oauth2 import TokenErrorResponse
 from oic.oauth2 import compact
@@ -661,36 +660,6 @@ class Provider(provider.Provider):
 
         atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **at))
         return Response(atr.to_json(), content="application/json")
-
-    def token_endpoint(self, authn="", **kwargs):
-        """Provide clients their access tokens."""
-        logger.debug("- token -")
-        body = kwargs["request"]
-        logger.debug("body: %s" % body)
-
-        areq = AccessTokenRequest().deserialize(body, "urlencoded")
-
-        try:
-            self.client_authn(self, areq, authn)
-        except FailedAuthentication as err:
-            logger.error(err)
-            err = TokenErrorResponse(error="unauthorized_client",
-                                     error_description="%s" % err)
-            return Response(err.to_json(), content="application/json", status_code=401)
-
-        logger.debug("AccessTokenRequest: %s" % areq)
-
-        _grant_type = areq["grant_type"]
-        if _grant_type == "authorization_code":
-            return self.code_grant_type(areq)
-        elif _grant_type == 'client_credentials':
-            return self.client_credentials_grant_type(areq)
-        elif _grant_type == 'password':
-            return self.password_grant_type(areq)
-        elif _grant_type == 'refresh_token':
-            return self.refresh_token_grant_type(areq)
-        else:
-            raise UnSupported('grant_type: {}'.format(_grant_type))
 
     @staticmethod
     def token_access(endpoint, client_id, token_info):

@@ -67,10 +67,8 @@ from oic.oic.message import IdToken
 from oic.oic.message import OpenIDRequest
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import ProviderConfigurationResponse
-from oic.oic.message import RefreshAccessTokenRequest
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import RegistrationResponse
-from oic.oic.message import TokenErrorResponse
 from oic.utils import sort_sign_alg
 from oic.utils.http_util import OAUTH2_NOCACHE_HEADERS
 from oic.utils.http_util import BadRequest
@@ -86,6 +84,7 @@ from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed
 from oic.utils.sdb import AuthnEvent
 from oic.utils.sdb import ExpiredToken
+from oic.utils.sdb import WrongTokenType
 from oic.utils.template_render import render_template
 from oic.utils.time_util import utc_time_sans_frac
 
@@ -206,6 +205,8 @@ CAPABILITIES = {
 
 
 class Provider(AProvider):
+    atr_class = AccessTokenRequest
+
     def __init__(self, name, sdb, cdb, authn_broker, userinfo, authz,
                  client_authn, symkey=None, urlmap=None, keyjar=None,
                  hostname="", template_lookup=None, template=None,
@@ -961,17 +962,19 @@ class Provider(AProvider):
 
         return id_token
 
-    def _access_token_endpoint(self, req, **kwargs):
+    def code_grant_type(self, areq):
+        """
+        Token authorization using Code Grant.
 
+        RFC6749 section 4.1
+        """
         _sdb = self.sdb
         _log_debug = logger.debug
 
-        client_info = self.cdb[str(req["client_id"])]
-
-        assert req["grant_type"] == "authorization_code"
+        client_info = self.cdb[str(areq["client_id"])]
 
         try:
-            _access_code = req["code"].replace(' ', '+')
+            _access_code = areq["code"].replace(' ', '+')
         except KeyError:  # Missing code parameter - absolutely fatal
             return error_response('invalid_request', descr='Missing code')
 
@@ -985,27 +988,20 @@ class Provider(AProvider):
         except KeyError:
             return error_response("invalid_request", descr="Code is invalid")
 
-        # If redirect_uri was in the initial authorization request
-        # verify that the one given here is the correct one.
-        if "redirect_uri" in _info:
-            if 'redirect_uri' not in req:
-                return error_response('invalid_request', descr='Missing redirect_uri')
-            if req["redirect_uri"] != _info["redirect_uri"]:
-                return error_response("invalid_request", descr="redirect_uri mismatch")
+        # If redirect_uri was in the initial authorization request verify that it is here as well
+        # Mismatch would raise in oic.oauth2.provider.Provider.token_endpoint
+        if "redirect_uri" in _info and 'redirect_uri' not in areq:
+            return error_response('invalid_request', descr='Missing redirect_uri')
 
         _log_debug("All checks OK")
 
         issue_refresh = False
-        if "issue_refresh" in kwargs:
-            issue_refresh = kwargs["issue_refresh"]
-
         permissions = _info.get('permission', ['offline_access']) or ['offline_access']
         if 'offline_access' in _info['scope'] and 'offline_access' in permissions:
             issue_refresh = True
 
         try:
-            _tinfo = _sdb.upgrade_to_token(_access_code,
-                                           issue_refresh=issue_refresh)
+            _tinfo = _sdb.upgrade_to_token(_access_code, issue_refresh=issue_refresh)
         except AccessCodeUsed as err:
             logger.error("%s" % err)
             # Should revoke the token issued to this access code
@@ -1015,8 +1011,7 @@ class Provider(AProvider):
         if "openid" in _info["scope"]:
             userinfo = self.userinfo_in_id_token_claims(_info)
             try:
-                _idtoken = self.sign_encrypt_id_token(
-                    _info, client_info, req, user_info=userinfo)
+                _idtoken = self.sign_encrypt_id_token(_info, client_info, areq, user_info=userinfo)
             except (JWEException, NoSuitableSigningKeys) as err:
                 logger.warning(str(err))
                 return error_response("invalid_request", descr="Could not sign/encrypt id_token")
@@ -1034,25 +1029,30 @@ class Provider(AProvider):
 
         return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
-    def _refresh_access_token_endpoint(self, req, **kwargs):
+    def refresh_token_grant_type(self, areq):
+        """
+        Token refresh.
+
+        RFC6749 section 6
+        """
         _sdb = self.sdb
         _log_debug = logger.debug
 
-        client_id = str(req['client_id'])
+        client_id = str(areq['client_id'])
         client_info = self.cdb[client_id]
 
-        assert req["grant_type"] == "refresh_token"
-        rtoken = req["refresh_token"]
+        rtoken = areq["refresh_token"]
         try:
             _info = _sdb.refresh_token(rtoken, client_id=client_id)
         except ExpiredToken:
             return error_response("invalid_request", descr="Refresh token is expired")
+        except WrongTokenType:
+            return error_response("invalid_request", descr="Not a refresh token")
 
         if "openid" in _info["scope"] and "authn_event" in _info:
             userinfo = self.userinfo_in_id_token_claims(_info)
             try:
-                _idtoken = self.sign_encrypt_id_token(
-                    _info, client_info, req, user_info=userinfo)
+                _idtoken = self.sign_encrypt_id_token(_info, client_info, areq, user_info=userinfo)
             except (JWEException, NoSuitableSigningKeys) as err:
                 logger.warning(str(err))
                 return error_response("invalid_request", descr="Could not sign/encrypt id_token")
@@ -1068,64 +1068,23 @@ class Provider(AProvider):
 
         return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
-    def token_endpoint(self, request="", authn=None, dtype='urlencoded',
-                       **kwargs):
+    def client_credentials_grant_type(self, areq):
         """
-        Give clients their access tokens.
+        Token authorization using client credentials.
 
-        :param request: The request
-        :param authn: Authentication info, comes from HTTP header
-        :returns:
+        RFC6749 section 4.4
         """
-        logger.debug("- token -")
-        logger.info("token_request: %s" % sanitize(request))
+        # Not supported in OpenID Connect
+        return error_response('invalid_request', descr='Unsupported grant_type')
 
-        req = AccessTokenRequest().deserialize(request, dtype)
+    def password_grant_type(self, areq):
+        """
+        Token authorization using Resource owner password credentials.
 
-        if 'state' in req:
-            try:
-                state = self.sdb[req['code']]['state']
-            except KeyError:
-                logger.error('Code not present in SessionDB')
-                err = TokenErrorResponse(error="unauthorized_client")
-                return Unauthorized(err.to_json(), content="application/json")
-
-            if state != req['state']:
-                logger.error('State value mismatch')
-                err = TokenErrorResponse(error="unauthorized_client")
-                return Unauthorized(err.to_json(), content="application/json")
-
-        if "refresh_token" in req:
-            req = RefreshAccessTokenRequest().deserialize(request, dtype)
-
-        logger.debug("%s: %s" % (req.__class__.__name__, sanitize(req)))
-
-        try:
-            client_id = self.client_authn(self, req, authn)
-            msg = ''
-        except Exception as err:
-            msg = "Failed to verify client due to: {}".format(err)
-            logger.error(msg)
-            client_id = ""
-
-        if not client_id:
-            logger.error('No client_id, authentication failed')
-            error = TokenErrorResponse(error="unauthorized_client",
-                                       error_description=msg)
-            return Unauthorized(error.to_json(), content="application/json")
-
-        if "client_id" not in req:  # Optional for access token request
-            req["client_id"] = client_id
-
-        if isinstance(req, AccessTokenRequest):
-            try:
-                return self._access_token_endpoint(req, **kwargs)
-            except JWEException as err:
-                return error_response("invalid_request",
-                                      descr="%s" % err)
-
-        else:
-            return self._refresh_access_token_endpoint(req, **kwargs)
+        RFC6749 section 4.3
+        """
+        # Not supported in OpenID Connect
+        return error_response('invalid_request', descr='Unsupported grant_type')
 
     def _collect_user_info(self, session, userinfo_claims=None):
         """
