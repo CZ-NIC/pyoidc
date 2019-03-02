@@ -1,11 +1,14 @@
 import tempfile
-from subprocess import run, STDOUT, PIPE
+from subprocess import PIPE
+from subprocess import STDOUT
+from subprocess import run
 from sys import executable as python_executable
 
 import pytest
 
 import oic.utils.client_management
-from oic.utils.client_management import CDB, pack_redirect_uri
+from oic.utils.client_management import CDB
+from oic.utils.client_management import pack_redirect_uri
 
 CLI_PATH = oic.utils.client_management.__file__
 CLI_INVOCATION = '{} {} '.format(python_executable, CLI_PATH)
