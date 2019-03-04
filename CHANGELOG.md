@@ -20,6 +20,8 @@ The format is based on the [KeepAChangeLog] project.
 - [#612] Dropped python 3.4 support
 - [#588] Switch to defusedxml for XML parsing
 - [#605] Message.c_param dictionary values have to be a ParamDefinition namedtuple type
+- [#56] Updated README, CLI help texts, pip requirements.txt and such for OP2,
+        making it into a stand-alone example easy for beginners to take on 
 
 ### Added
 - [#441] CookieDealer now accepts secure and httponly params
@@ -33,6 +35,7 @@ The format is based on the [KeepAChangeLog] project.
 [#441]: https://github.com/OpenIDC/pyoidc/issues/441
 [#612]: https://github.com/OpenIDC/pyoidc/pull/612
 [#618]: https://github.com/OpenIDC/pyoidc/pull/618
+[#56]: https://github.com/OpenIDC/pyoidc/issues/56
 
 ## 0.15.1 [2019-01-31]
 

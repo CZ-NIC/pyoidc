@@ -2,10 +2,10 @@
 from urllib.parse import parse_qs
 
 import json
-import os
 import re
 import sys
 import traceback
+import importlib.util
 
 from mako.lookup import TemplateLookup
 
@@ -22,7 +22,6 @@ from oic.utils.authn.client import verify_client
 from oic.utils.authn.javascript_login import JavascriptFormMako
 from oic.utils.authn.multi_auth import AuthnIndexedEndpointWrapper
 from oic.utils.authn.multi_auth import setup_multi_auth
-from oic.utils.authn.saml import SAMLAuthnMethod
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.authz import AuthzHandling
 from oic.utils.http_util import *
@@ -33,9 +32,6 @@ from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.webfinger import WebFinger
 
 __author__ = 'rohe0002'
-
-
-
 
 # This is *NOT* good practice !!
 try:
@@ -85,7 +81,6 @@ def static_file(path):
         return False
 
 
-# noinspection PyUnresolvedReferences
 def static(self, environ, start_response, path):
     logger.info("[static]sending: %s" % (path,))
 
@@ -110,7 +105,8 @@ def static(self, environ, start_response, path):
 
 
 def check_session_iframe(self, environ, start_response, logger):
-    return static(self, environ, start_response, "htdocs/op_session_iframe.html")
+    return static(self, environ, start_response,
+                  "htdocs/op_session_iframe.html")
 
 
 # ----------------------------------------------------------------------------
@@ -136,10 +132,8 @@ def clear_keys(self, environ, start_response, _):
     return resp(environ, start_response)
 
 
-
-
-
 # ----------------------------------------------------------------------------
+
 
 ROOT = './'
 
@@ -147,9 +141,11 @@ LOOKUP = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
                         module_directory=ROOT + 'modules',
                         input_encoding='utf-8', output_encoding='utf-8')
 
+
 def mako_renderer(template_name, context):
     mte = LOOKUP.get_template(template_name)
     return mte.render(**context)
+
 
 # ----------------------------------------------------------------------------
 
@@ -225,30 +221,24 @@ class Application(object):
 
         return resp(environ, start_response)
 
-    # ----------------------------------------------------------------------------
+    # ------------------------------------------------------------------------
 
-
-    # noinspection PyUnusedLocal
     def token(self, environ, start_response):
         return wsgi_wrapper(environ, start_response, self.oas.token_endpoint,
                             logger=logger)
 
-    # noinspection PyUnusedLocal
     def authorization(self, environ, start_response):
         return wsgi_wrapper(environ, start_response,
                             self.oas.authorization_endpoint, logger=logger)
 
-    # noinspection PyUnusedLocal
     def userinfo(self, environ, start_response):
         return wsgi_wrapper(environ, start_response, self.oas.userinfo_endpoint,
                             logger=logger)
 
-    # noinspection PyUnusedLocal
     def op_info(self, environ, start_response):
         return wsgi_wrapper(environ, start_response,
                             self.oas.providerinfo_endpoint, logger=logger)
 
-    # noinspection PyUnusedLocal
     def registration(self, environ, start_response):
         if environ["REQUEST_METHOD"] == "POST":
             return wsgi_wrapper(environ, start_response,
@@ -261,22 +251,19 @@ class Application(object):
             resp = ServiceError("Method not supported")
             return resp(environ, start_response)
 
-    # noinspection PyUnusedLocal
     def check_id(self, environ, start_response):
         return wsgi_wrapper(environ, start_response, self.oas.check_id_endpoint,
                             logger=logger)
 
-    # noinspection PyUnusedLocal
     def swd_info(self, environ, start_response):
-        return wsgi_wrapper(environ, start_response, self.oas.discovery_endpoint,
+        return wsgi_wrapper(environ, start_response,
+                            self.oas.discovery_endpoint,
                             logger=logger)
 
-    # noinspection PyUnusedLocal
     def trace_log(self, environ, start_response):
         return wsgi_wrapper(environ, start_response, self.oas.tracelog_endpoint,
                             logger=logger)
 
-    # noinspection PyUnusedLocal
     def endsession(self, environ, start_response):
         return wsgi_wrapper(environ, start_response,
                             self.oas.endsession_endpoint, logger=logger)
@@ -362,9 +349,15 @@ class Application(object):
 
 # ----------------------------------------------------------------------------
 
+def _import_config(config_path):
+    import_spec = importlib.util.spec_from_file_location('config', config_path)
+    config_module = importlib.util.module_from_spec(import_spec)
+    import_spec.loader.exec_module(config_module)
+    return config_module
+
+
 if __name__ == '__main__':
     import argparse
-    import importlib
 
     from cherrypy import wsgiserver
     from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
@@ -373,17 +366,24 @@ if __name__ == '__main__':
     from oic.utils.sdb import create_session_db
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', dest='verbose', action='store_true')
-    parser.add_argument('-d', dest='debug', action='store_true')
-    parser.add_argument('-p', dest='port', default=80, type=int)
-    parser.add_argument('-t', dest='tls', action='store_true')
-    parser.add_argument('-k', dest='insecure', action='store_true')
-    parser.add_argument(
-        '-c', dest='capabilities',
-        help="A file containing a JSON representation of the capabilities")
-    parser.add_argument('-i', dest='issuer', help="issuer id of the OP",
+    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
+                        help='More verbose output')
+    parser.add_argument('-d', '--debug', dest='debug', action='store_true',
+                        help="Enable debug output (doesn't do much)")
+    parser.add_argument('-p', '--port', dest='port', default=80, type=int,
+                        help='TCP listen port')
+    parser.add_argument('-t', '--tls', dest='tls', action='store_true',
+                        help='Use HTTPS')
+    parser.add_argument('-k', '--insecure', dest='insecure',
+                        action='store_true',
+                        help='Disable verification of SSL certs')
+    parser.add_argument('-c', '--capabilities', dest='capabilities',
+                        help='A file containing a JSON representation of '
+                             'server capabilities')
+    parser.add_argument('-i', '--issuer', dest='issuer',
+                        help='Issuer ID of the OpenID Connect Provider [OP]',
                         nargs=1)
-    parser.add_argument(dest="config")
+    parser.add_argument(dest='config', help='Python config file (see examples)')
     args = parser.parse_args()
 
     # Client data base
@@ -391,7 +391,8 @@ if __name__ == '__main__':
 
     logger.info("Known client_ids: {}".format([k for k in cdb.keys()]))
     sys.path.insert(0, ".")
-    config = importlib.import_module(args.config)
+
+    config = _import_config(args.config)
 
     if args.issuer:
         _issuer = args.issuer[0]
@@ -452,9 +453,13 @@ if __name__ == '__main__':
                                                 JAVASCRIPT_END_POINT_INDEX)
             _urls.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
-        if "SAML" == authkey:
+        if authkey in {"SAML", "SamlPass"}:
+            # https://github.com/OpenIDC/pyoidc/issues/33
+            # noinspection PyUnresolvedReferences
             from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
+            from oic.utils.authn.saml import SAMLAuthnMethod
 
+        if "SAML" == authkey:
             if not saml_authn:
                 saml_authn = SAMLAuthnMethod(
                     None, LOOKUP, config.SAML, config.SP_CONFIG, _issuer,
@@ -470,8 +475,6 @@ if __name__ == '__main__':
             _urls.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
         if "SamlPass" == authkey:
-            from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
-
             if not saml_authn:
                 saml_authn = SAMLAuthnMethod(
                     None, LOOKUP, config.SAML, config.SP_CONFIG, _issuer,
@@ -607,7 +610,7 @@ if __name__ == '__main__':
     for b in OAS.keyjar[""]:
         LOGGER.info("OC3 server keys: %s" % b)
 
-    _app = Application(OAS,_urls)
+    _app = Application(OAS, _urls)
 
     # Setup the web server
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port),
