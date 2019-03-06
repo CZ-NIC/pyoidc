@@ -513,8 +513,9 @@ class TestProvider(object):
         }
         areq = CCAccessTokenRequest(grant_type='client_credentials')
         authn = 'Basic Y2xpZW50Mjp2ZXJ5c2VjcmV0='
-        with pytest.raises(NotImplementedError):
-            self.provider.token_endpoint(request=areq.to_urlencoded(), authn=authn)
+        resp = self.provider.token_endpoint(request=areq.to_urlencoded(), authn=authn)
+        parsed = TokenErrorResponse().from_json(resp.message)
+        assert parsed['error'] == "unsupported_grant_type"
 
     def test_token_endpoint_password(self):
         authreq = AuthorizationRequest(state="state",
@@ -536,8 +537,9 @@ class TestProvider(object):
         }
         areq = ROPCAccessTokenRequest(grant_type='password', username='client1', password='password')
         authn = 'Basic Y2xpZW50Mjp2ZXJ5c2VjcmV0='
-        with pytest.raises(NotImplementedError):
-            self.provider.token_endpoint(request=areq.to_urlencoded(), authn=authn)
+        resp = self.provider.token_endpoint(request=areq.to_urlencoded(), authn=authn)
+        parsed = TokenErrorResponse().from_json(resp.message)
+        assert parsed['error'] == "unsupported_grant_type"
 
     def test_token_endpoint_other(self):
         authreq = AuthorizationRequest(state="state",

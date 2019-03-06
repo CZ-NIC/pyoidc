@@ -606,13 +606,13 @@ class TestProvider(object):
     def test_client_credentials_grant_type(self):
         resp = self.provider.client_credentials_grant_type(Message())
         parsed = ErrorResponse().from_json(resp.message)
-        assert parsed['error'] == 'invalid_request'
+        assert parsed['error'] == 'unsupported_grant_type'
         assert parsed['error_description'] == 'Unsupported grant_type'
 
     def test_password_grant_type(self):
         resp = self.provider.password_grant_type(Message())
         parsed = ErrorResponse().from_json(resp.message)
-        assert parsed['error'] == 'invalid_request'
+        assert parsed['error'] == 'unsupported_grant_type'
         assert parsed['error_description'] == 'Unsupported grant_type'
 
     def test_authz_endpoint(self):

@@ -154,7 +154,7 @@ DELIM = "]["
 
 class Provider(object):
     endp = [AuthorizationEndpoint, TokenEndpoint]
-    # Define the message class that in token_enpdoint
+    # Define the message class that in token_endpoint
     atr_class = AccessTokenRequest
 
     def __init__(self, name, sdb, cdb, authn_broker, authz, client_authn,
@@ -800,7 +800,8 @@ class Provider(object):
                 _info = self.sdb[areq["code"]]
             except KeyError:
                 logger.error('Code not present in SessionDB')
-                error = TokenErrorResponse(error="unauthorized_client")
+                error = TokenErrorResponse(error="unauthorized_client",
+                                           error_description='Invalid code.')
                 return Unauthorized(error.to_json(), content="application/json")
 
             resp = self.token_scope_check(areq, _info)
@@ -809,12 +810,14 @@ class Provider(object):
             # If redirect_uri was in the initial authorization request verify that they match
             if "redirect_uri" in _info and areq["redirect_uri"] != _info["redirect_uri"]:
                 logger.error('Redirect_uri mismatch')
-                error = TokenErrorResponse(error="unauthorized_client")
+                error = TokenErrorResponse(error="unauthorized_client",
+                                           error_description='Redirect_uris do not match.')
                 return Unauthorized(error.to_json(), content="application/json")
             if 'state' in areq:
                 if _info['state'] != areq['state']:
                     logger.error('State value mismatch')
-                    error = TokenErrorResponse(error="unauthorized_client")
+                    error = TokenErrorResponse(error="unauthorized_client",
+                                               error_description='State values do not match.')
                     return Unauthorized(error.to_json(), content="application/json")
 
         # Propagate the client_id further
@@ -857,7 +860,8 @@ class Provider(object):
 
         RFC6749 section 6
         """
-        raise NotImplementedError('See oic.extension.provider.')
+        # This is not implemented here, please see oic.extension.provider.
+        return error_response('unsupported_grant_type', descr='Unsupported grant_type')
 
     def client_credentials_grant_type(self, areq):
         """
@@ -865,7 +869,8 @@ class Provider(object):
 
         RFC6749 section 4.4
         """
-        raise NotImplementedError('See oic.extension.provider.')
+        # This is not implemented here, please see oic.extension.provider.
+        return error_response('unsupported_grant_type', descr='Unsupported grant_type')
 
     def password_grant_type(self, areq):
         """
@@ -873,7 +878,8 @@ class Provider(object):
 
         RFC6749 section 4.3
         """
-        raise NotImplementedError('See oic.extension.provider.')
+        # This is not implemented here, please see oic.extension.provider.
+        return error_response('unsupported_grant_type', descr='Unsupported grant_type')
 
     def verify_endpoint(self, request="", cookie=None, **kwargs):
         _req = parse_qs(request)

@@ -1075,7 +1075,7 @@ class Provider(AProvider):
         RFC6749 section 4.4
         """
         # Not supported in OpenID Connect
-        return error_response('invalid_request', descr='Unsupported grant_type')
+        return error_response('unsupported_grant_type', descr='Unsupported grant_type')
 
     def password_grant_type(self, areq):
         """
@@ -1084,7 +1084,7 @@ class Provider(AProvider):
         RFC6749 section 4.3
         """
         # Not supported in OpenID Connect
-        return error_response('invalid_request', descr='Unsupported grant_type')
+        return error_response('unsupported_grant_type', descr='Unsupported grant_type')
 
     def _collect_user_info(self, session, userinfo_claims=None):
         """
