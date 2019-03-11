@@ -957,49 +957,6 @@ class Client(oauth2.Client):
         self.store_response(res, resp.text)
         return res
 
-    def handle_provider_config(self, pcr, issuer, keys=True, endpoints=True):
-        """
-        Deal with Provider Config Response.
-
-        :param pcr: The ProviderConfigResponse instance
-        :param issuer: The one I thought should be the issuer of the config
-        :param keys: Should I deal with keys
-        :param endpoints: Should I deal with endpoints, that is store them as attributes in self.
-        """
-        if "issuer" in pcr:
-            _pcr_issuer = pcr["issuer"]
-            if pcr["issuer"].endswith("/"):
-                if issuer.endswith("/"):
-                    _issuer = issuer
-                else:
-                    _issuer = issuer + "/"
-            else:
-                if issuer.endswith("/"):
-                    _issuer = issuer[:-1]
-                else:
-                    _issuer = issuer
-
-            try:
-                self.allow["issuer_mismatch"]
-            except KeyError:
-                if _issuer != _pcr_issuer:
-                    raise IssuerMismatch("'%s' != '%s'" % (_issuer, _pcr_issuer), pcr)
-
-            self.provider_info = pcr
-        else:
-            _pcr_issuer = issuer
-
-        if endpoints:
-            for key, val in pcr.items():
-                if key.endswith("_endpoint"):
-                    setattr(self, key, val)
-
-        if keys:
-            if self.keyjar is None:
-                self.keyjar = KeyJar(verify_ssl=self.verify_ssl)
-
-            self.keyjar.load_keys(pcr, _pcr_issuer)
-
     def provider_config(self, issuer, keys=True, endpoints=True,
                         response_cls=ProviderConfigurationResponse,
                         serv_pattern=OIDCONF_PATTERN):
