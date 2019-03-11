@@ -492,37 +492,6 @@ class TestOICConsumer():
         res = c.discover(principal)
         assert res == "https://localhost:8088/"
 
-    def test_provider_config(self, fake_oic_server):
-        c = Consumer(None, None)
-        mfos = fake_oic_server("https://example.com")
-        mfos.keyjar = SRVKEYS
-        c.http_request = mfos.http_request
-
-        principal = "foo@example.com"
-
-        res = c.discover(principal)
-        info = c.provider_config(res)
-        assert isinstance(info, ProviderConfigurationResponse)
-        assert _eq(info.keys(), ['registration_endpoint', 'jwks_uri',
-                                 'check_session_endpoint',
-                                 'refresh_session_endpoint',
-                                 'register_endpoint',
-                                 'subject_types_supported',
-                                 'token_endpoint_auth_methods_supported',
-                                 'id_token_signing_alg_values_supported',
-                                 'grant_types_supported', 'user_info_endpoint',
-                                 'claims_parameter_supported',
-                                 'request_parameter_supported',
-                                 'discovery_endpoint', 'issuer',
-                                 'authorization_endpoint', 'scopes_supported',
-                                 'require_request_uri_registration',
-                                 'identifiers_supported', 'token_endpoint',
-                                 'request_uri_parameter_supported', 'version',
-                                 'response_types_supported',
-                                 'end_session_endpoint', 'flows_supported'])
-
-        assert info["end_session_endpoint"] == "https://example.com/end_session"
-
     def test_client_register(self, fake_oic_server):
         c = Consumer(None, None)
 

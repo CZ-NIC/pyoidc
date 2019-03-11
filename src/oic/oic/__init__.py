@@ -18,8 +18,6 @@ from oic import rndstr
 from oic.exception import AccessDenied
 from oic.exception import AuthnToOld
 from oic.exception import AuthzError
-from oic.exception import CommunicationError
-from oic.exception import IssuerMismatch
 from oic.exception import MissingParameter
 from oic.exception import ParameterError
 from oic.exception import PyoidcError
@@ -61,7 +59,6 @@ from oic.oic.message import UserInfoErrorResponse
 from oic.oic.message import UserInfoRequest
 from oic.utils import time_util
 from oic.utils.http_util import Response
-from oic.utils.keyio import KeyJar
 from oic.utils.sanitize import sanitize
 from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.webfinger import WebFinger
@@ -960,34 +957,7 @@ class Client(oauth2.Client):
     def provider_config(self, issuer, keys=True, endpoints=True,
                         response_cls=ProviderConfigurationResponse,
                         serv_pattern=OIDCONF_PATTERN):
-        if issuer.endswith("/"):
-            _issuer = issuer[:-1]
-        else:
-            _issuer = issuer
-
-        url = serv_pattern % _issuer
-
-        pcr = None
-        r = self.http_request(url, allow_redirects=True)
-        if r.status_code == 200:
-            try:
-                pcr = response_cls().from_json(r.text)
-            except Exception as e:
-                # FIXME: This should catch specific exception from `from_json()`
-                _err_txt = "Faulty provider config response: {}".format(e)
-                logger.error(sanitize(_err_txt))
-                raise ParseError(_err_txt)
-
-        logger.debug("Provider info: %s" % sanitize(pcr))
-        if pcr is None:
-            raise CommunicationError(
-                "Trying '%s', status %s" % (url, r.status_code))
-
-        self.store_response(pcr, r.text)
-
-        self.handle_provider_config(pcr, issuer, keys, endpoints)
-
-        return pcr
+        return super().provider_config(issuer, keys, endpoints, response_cls, serv_pattern)
 
     def unpack_aggregated_claims(self, userinfo):
         if userinfo["_claim_sources"]:

@@ -3,6 +3,7 @@ from urllib.parse import urlencode
 from urllib.parse import urlparse
 
 import pytest
+import responses
 
 from oic import rndstr
 from oic.exception import AuthzError
@@ -11,6 +12,7 @@ from oic.oauth2.consumer import factory
 from oic.oauth2.consumer import stateID
 from oic.oauth2.message import SINGLE_OPTIONAL_INT
 from oic.oauth2.message import AccessTokenResponse
+from oic.oauth2.message import ASConfigurationResponse
 from oic.oauth2.message import AuthorizationErrorResponse
 from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import MissingRequiredAttribute
@@ -219,6 +221,17 @@ class TestConsumer(object):
         assert ra == {'client_secret': 'secret0', 'client_id': 'number5'}
         assert ha == {}
         assert extra == {'auth_method': 'bearer_body'}
+
+    def test_provider_config(self):
+        c = Consumer(None, None)
+        response = ASConfigurationResponse(**{'issuer': 'https://example.com',
+                                              'end_session_endpoint': 'https://example.com/end_session'})
+        with responses.RequestsMock() as rsps:
+            rsps.add(responses.GET, 'https://example.com/.well-known/openid-configuration', json=response.to_dict())
+            info = c.provider_config('https://example.com')
+        assert isinstance(info, ASConfigurationResponse)
+        assert _eq(info.keys(), ['issuer', 'version', 'end_session_endpoint'])
+        assert info["end_session_endpoint"] == "https://example.com/end_session"
 
     def test_client_get_access_token_request(self):
         self.consumer.client_secret = "secret0"
