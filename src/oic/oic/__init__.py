@@ -466,10 +466,7 @@ class Client(oauth2.Client):
                 request_param = "request"
             del kwargs["request_method"]
 
-        areq = oauth2.Client.construct_AuthorizationRequest(self, request,
-                                                            request_args,
-                                                            extra_args,
-                                                            **kwargs)
+        areq = super().construct_AuthorizationRequest(request, request_args, extra_args, **kwargs)
 
         if request_param:
             alg = None
@@ -522,19 +519,14 @@ class Client(oauth2.Client):
                                      request_args=None, extra_args=None,
                                      **kwargs):
 
-        return oauth2.Client.construct_AccessTokenRequest(self, request,
-                                                          request_args,
-                                                          extra_args, **kwargs)
+        return super().construct_AccessTokenRequest(request, request_args, extra_args, **kwargs)
 
     def construct_RefreshAccessTokenRequest(self,
                                             request=RefreshAccessTokenRequest,
                                             request_args=None, extra_args=None,
                                             **kwargs):
 
-        return oauth2.Client.construct_RefreshAccessTokenRequest(self, request,
-                                                                 request_args,
-                                                                 extra_args,
-                                                                 **kwargs)
+        return super().construct_RefreshAccessTokenRequest(request, request_args, extra_args, **kwargs)
 
     def construct_UserInfoRequest(self, request=UserInfoRequest,
                                   request_args=None, extra_args=None,
@@ -639,12 +631,8 @@ class Client(oauth2.Client):
             _args, code_verifier = self.add_code_challenge()
             request_args.update(_args)
 
-        return oauth2.Client.do_authorization_request(self, request, state,
-                                                      body_type, method,
-                                                      request_args,
-                                                      extra_args, http_args,
-                                                      response_cls,
-                                                      algs=algs)
+        return super().do_authorization_request(request, state, body_type, method, request_args, extra_args, http_args,
+                                                response_cls, algs=algs)
 
     def do_access_token_request(self, request=AccessTokenRequest,
                                 scope="", state="", body_type="json",
@@ -653,11 +641,8 @@ class Client(oauth2.Client):
                                 response_cls=AccessTokenResponse,
                                 authn_method="client_secret_basic", **kwargs):
 
-        atr = oauth2.Client.do_access_token_request(self, request, scope,
-                                                    state, body_type, method,
-                                                    request_args, extra_args,
-                                                    http_args, response_cls,
-                                                    authn_method, **kwargs)
+        atr = super().do_access_token_request(request, scope, state, body_type, method, request_args, extra_args,
+                                              http_args, response_cls, authn_method, **kwargs)
         try:
             _idt = atr['id_token']
         except KeyError:
@@ -677,11 +662,8 @@ class Client(oauth2.Client):
                                 response_cls=AccessTokenResponse,
                                 **kwargs):
 
-        return oauth2.Client.do_access_token_refresh(self, request, state,
-                                                     body_type, method,
-                                                     request_args,
-                                                     extra_args, http_args,
-                                                     response_cls, **kwargs)
+        return super().do_access_token_refresh(request, state, body_type, method, request_args, extra_args, http_args,
+                                               response_cls, **kwargs)
 
     def do_registration_request(self, request=RegistrationRequest,
                                 scope="", state="", body_type="json",
