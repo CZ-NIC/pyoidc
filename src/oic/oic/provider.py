@@ -453,41 +453,6 @@ class Provider(AProvider):
 
         return req_user
 
-    def pick_auth(self, areq, comparision_type=""):
-        """
-        Select authenticatoin method.
-
-        :param areq: AuthorizationRequest instance
-        :param comparision_type: How to pick the authentication method
-        :return: An authentication method and its authn class ref
-        """
-        if comparision_type == "any":
-            return self.authn_broker[0]
-
-        try:
-            if "acr_values" in areq:
-                if not comparision_type:
-                    comparision_type = "exact"
-
-                if not isinstance(areq["acr_values"], list):
-                    areq["acr_values"] = [areq["acr_values"]]
-
-                for acr in areq["acr_values"]:
-                    res = self.authn_broker.pick(acr, comparision_type)
-                    logger.debug("Picked AuthN broker for ACR %s: %s" % (
-                        str(acr), str(res)))
-                    if res:
-                        # Return the best guess by pick.
-                        return res[0]
-            else:  # same as any
-                return self.authn_broker[0]
-        except KeyError as exc:
-            msg = "An error occurred while picking the authN broker: %s"
-            logger.debug(msg, str(exc))
-
-        # return the best I have
-        return None, None
-
     def verify_post_logout_redirect_uri(self, esreq, client_id):
         """
         Verify the post_logout_redirect_uris.
