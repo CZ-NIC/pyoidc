@@ -915,9 +915,7 @@ class Client(PBase):
 
 
 class Server(PBase):
-    def __init__(self, keyjar=None, verify_ssl=True, client_cert=None, timeout=5):
-        PBase.__init__(self, verify_ssl=verify_ssl, keyjar=keyjar,
-                       client_cert=client_cert, timeout=timeout)
+    """OAuth Server class."""
 
     @staticmethod
     def parse_url_request(request, url=None, query=None):
@@ -958,6 +956,5 @@ class Server(PBase):
                             body=None):
         return self.parse_body_request(request, body)
 
-    def parse_refresh_token_request(self, request=RefreshAccessTokenRequest,
-                                    body=None):
+    def parse_refresh_token_request(self, request=RefreshAccessTokenRequest, body=None):
         return self.parse_body_request(request, body)

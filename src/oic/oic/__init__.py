@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import os
+import warnings
 from base64 import b64encode
 from json import JSONDecodeError
 from urllib.parse import parse_qs
@@ -1441,10 +1442,7 @@ class Client(oauth2.Client):
 
 
 class Server(oauth2.Server):
-    def __init__(self, keyjar=None, verify_ssl=True,
-                 client_cert=None):
-        oauth2.Server.__init__(self, keyjar, verify_ssl,
-                               client_cert=client_cert)
+    """OIC Server class."""
 
     @staticmethod
     def _parse_urlencoded(url=None, query=None):
@@ -1454,9 +1452,9 @@ class Server(oauth2.Server):
 
         return parse_qs(query)
 
-    def parse_token_request(self, request=AccessTokenRequest,
-                            body=None):
-        return oauth2.Server.parse_token_request(self, request, body)
+    def parse_token_request(self, request=AccessTokenRequest, body=None):
+        """Overridden to use OIC Message type."""
+        return super().parse_token_request(request=request, body=body)
 
     def handle_request_uri(self, request_uri, verify=True, sender=''):
         """
@@ -1570,15 +1568,16 @@ class Server(oauth2.Server):
         return _req
 
     def parse_jwt_request(self, request=AuthorizationRequest, txt="",
-                          keys=None, verify=True, sender=''):
+                          keyjar=None, verify=True, sender='', **kwargs):
+        """Overridden to use OIC Message type."""
+        if 'keys' in kwargs:
+            keyjar = kwargs['keys']
+            warnings.warn('`keys` was renamed to `keyjar`, please update your code.', DeprecationWarning)
+        return super().parse_jwt_request(request=request, txt=txt, keyjar=keyjar, verify=verify, sender=sender)
 
-        return oauth2.Server.parse_jwt_request(self, request, txt, keys, verify,
-                                               sender=sender)
-
-    def parse_refresh_token_request(self,
-                                    request=RefreshAccessTokenRequest,
-                                    body=None):
-        return oauth2.Server.parse_refresh_token_request(self, request, body)
+    def parse_refresh_token_request(self, request=RefreshAccessTokenRequest, body=None):
+        """Overridden to use OIC Message type."""
+        return super().parse_refresh_token_request(request=request, body=body)
 
     def parse_check_session_request(self, url=None, query=None):
         param = self._parse_urlencoded(url, query)
