@@ -23,6 +23,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#56] Updated README, CLI help texts, pip requirements.txt and such for OP2,
         making it into a stand-alone example easy for beginners to take on 
 - [#624] token_endpoint implementation and kwargs have been changed
+- [#629] Duplicated methods in oic.oic classes were removed.
 
 ### Added
 - [#441] CookieDealer now accepts secure and httponly params
@@ -38,6 +39,7 @@ The format is based on the [KeepAChangeLog] project.
 [#618]: https://github.com/OpenIDC/pyoidc/pull/618
 [#56]: https://github.com/OpenIDC/pyoidc/issues/56
 [#624]: https://github.com/OpenIDC/pyoidc/pull/624
+[#629]: https://github.com/OpenIDC/pyoidc/issues/629
 
 ## 0.15.1 [2019-01-31]
 
