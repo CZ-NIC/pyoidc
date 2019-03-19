@@ -159,7 +159,7 @@ class Provider(object):
 
     def __init__(self, name, sdb, cdb, authn_broker, authz, client_authn,
                  symkey=None, urlmap=None, iv=0, default_scope="",
-                 verify_ssl=True, default_acr="",
+                 verify_ssl=True, default_acr="", keyjar=None,
                  baseurl='', server_cls=Server, client_cert=None):
         self.name = name
         self.sdb = sdb
@@ -167,7 +167,7 @@ class Provider(object):
             warnings.warn('ClientDatabase should be an instance of '
                           'oic.utils.clientdb.BaseClientDatabase to ensure proper API.')
         self.cdb = cdb
-        self.server = server_cls(verify_ssl=verify_ssl, client_cert=client_cert)
+        self.server = server_cls(verify_ssl=verify_ssl, client_cert=client_cert, keyjar=keyjar)
 
         self.authn_broker = authn_broker
         if authn_broker is None:
