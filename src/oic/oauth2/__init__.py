@@ -6,6 +6,7 @@ from jwkest import b64e
 from oic import CC_METHOD
 from oic import OIDCONF_PATTERN
 from oic import unreserved
+from oic.exception import CommunicationError
 from oic.oauth2.base import PBase
 from oic.oauth2.exception import GrantError
 from oic.oauth2.exception import HttpError
@@ -896,21 +897,20 @@ class Client(PBase):
         url = serv_pattern % _issuer
 
         pcr = None
-        r = self.http_request(url)
+        r = self.http_request(url, allow_redirects=True)
         if r.status_code == 200:
-            pcr = response_cls().from_json(r.text)
-        elif r.status_code == 302:
-            while r.status_code == 302:
-                r = self.http_request(r.headers["location"])
-                if r.status_code == 200:
-                    pcr = response_cls().from_json(r.text)
-                    break
+            try:
+                pcr = response_cls().from_json(r.text)
+            except Exception as e:
+                # FIXME: This should catch specific exception from `from_json()`
+                _err_txt = "Faulty provider config response: {}".format(e)
+                logger.error(sanitize(_err_txt))
+                raise ParseError(_err_txt)
+        else:
+            raise CommunicationError("Trying '%s', status %s" % (url, r.status_code))
 
-        if pcr is None:
-            raise PyoidcError("Trying '%s', status %s" % (url, r.status_code))
-
+        self.store_response(pcr, r.text)
         self.handle_provider_config(pcr, issuer, keys, endpoints)
-
         return pcr
 
 

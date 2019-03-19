@@ -19,8 +19,6 @@ from oic import rndstr
 from oic.exception import AccessDenied
 from oic.exception import AuthnToOld
 from oic.exception import AuthzError
-from oic.exception import CommunicationError
-from oic.exception import IssuerMismatch
 from oic.exception import MissingParameter
 from oic.exception import ParameterError
 from oic.exception import PyoidcError
@@ -62,7 +60,6 @@ from oic.oic.message import UserInfoErrorResponse
 from oic.oic.message import UserInfoRequest
 from oic.utils import time_util
 from oic.utils.http_util import Response
-from oic.utils.keyio import KeyJar
 from oic.utils.sanitize import sanitize
 from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.webfinger import WebFinger
@@ -470,10 +467,8 @@ class Client(oauth2.Client):
                 request_param = "request"
             del kwargs["request_method"]
 
-        areq = oauth2.Client.construct_AuthorizationRequest(self, request,
-                                                            request_args,
-                                                            extra_args,
-                                                            **kwargs)
+        areq = super().construct_AuthorizationRequest(request=request, request_args=request_args, extra_args=extra_args,
+                                                      **kwargs)
 
         if request_param:
             alg = None
@@ -526,19 +521,16 @@ class Client(oauth2.Client):
                                      request_args=None, extra_args=None,
                                      **kwargs):
 
-        return oauth2.Client.construct_AccessTokenRequest(self, request,
-                                                          request_args,
-                                                          extra_args, **kwargs)
+        return super().construct_AccessTokenRequest(request=request, request_args=request_args, extra_args=extra_args,
+                                                    **kwargs)
 
     def construct_RefreshAccessTokenRequest(self,
                                             request=RefreshAccessTokenRequest,
                                             request_args=None, extra_args=None,
                                             **kwargs):
 
-        return oauth2.Client.construct_RefreshAccessTokenRequest(self, request,
-                                                                 request_args,
-                                                                 extra_args,
-                                                                 **kwargs)
+        return super().construct_RefreshAccessTokenRequest(requests=request, request_args=request_args,
+                                                           extra_args=extra_args, **kwargs)
 
     def construct_UserInfoRequest(self, request=UserInfoRequest,
                                   request_args=None, extra_args=None,
@@ -643,12 +635,9 @@ class Client(oauth2.Client):
             _args, code_verifier = self.add_code_challenge()
             request_args.update(_args)
 
-        return oauth2.Client.do_authorization_request(self, request, state,
-                                                      body_type, method,
-                                                      request_args,
-                                                      extra_args, http_args,
-                                                      response_cls,
-                                                      algs=algs)
+        return super().do_authorization_request(request=request, state=state, body_type=body_type, method=method,
+                                                request_args=request_args, extra_args=extra_args, http_args=http_args,
+                                                response_cls=response_cls, algs=algs)
 
     def do_access_token_request(self, request=AccessTokenRequest,
                                 scope="", state="", body_type="json",
@@ -657,11 +646,10 @@ class Client(oauth2.Client):
                                 response_cls=AccessTokenResponse,
                                 authn_method="client_secret_basic", **kwargs):
 
-        atr = oauth2.Client.do_access_token_request(self, request, scope,
-                                                    state, body_type, method,
-                                                    request_args, extra_args,
-                                                    http_args, response_cls,
-                                                    authn_method, **kwargs)
+        atr = super().do_access_token_request(request=request, scope=scope, state=state, body_type=body_type,
+                                              method=method, request_args=request_args, extra_args=extra_args,
+                                              http_args=http_args, response_cls=response_cls, authn_method=authn_method,
+                                              **kwargs)
         try:
             _idt = atr['id_token']
         except KeyError:
@@ -681,11 +669,9 @@ class Client(oauth2.Client):
                                 response_cls=AccessTokenResponse,
                                 **kwargs):
 
-        return oauth2.Client.do_access_token_refresh(self, request, state,
-                                                     body_type, method,
-                                                     request_args,
-                                                     extra_args, http_args,
-                                                     response_cls, **kwargs)
+        return super().do_access_token_refresh(request=request, state=state, body_type=body_type, method=method,
+                                               requset_args=request_args, extra_args=extra_args, http_args=http_args,
+                                               response_cls=response_cls, **kwargs)
 
     def do_registration_request(self, request=RegistrationRequest,
                                 scope="", state="", body_type="json",
@@ -958,80 +944,11 @@ class Client(oauth2.Client):
         self.store_response(res, resp.text)
         return res
 
-    def handle_provider_config(self, pcr, issuer, keys=True, endpoints=True):
-        """
-        Deal with Provider Config Response.
-
-        :param pcr: The ProviderConfigResponse instance
-        :param issuer: The one I thought should be the issuer of the config
-        :param keys: Should I deal with keys
-        :param endpoints: Should I deal with endpoints, that is store them as attributes in self.
-        """
-        if "issuer" in pcr:
-            _pcr_issuer = pcr["issuer"]
-            if pcr["issuer"].endswith("/"):
-                if issuer.endswith("/"):
-                    _issuer = issuer
-                else:
-                    _issuer = issuer + "/"
-            else:
-                if issuer.endswith("/"):
-                    _issuer = issuer[:-1]
-                else:
-                    _issuer = issuer
-
-            try:
-                self.allow["issuer_mismatch"]
-            except KeyError:
-                if _issuer != _pcr_issuer:
-                    raise IssuerMismatch("'%s' != '%s'" % (_issuer, _pcr_issuer), pcr)
-
-            self.provider_info = pcr
-        else:
-            _pcr_issuer = issuer
-
-        if endpoints:
-            for key, val in pcr.items():
-                if key.endswith("_endpoint"):
-                    setattr(self, key, val)
-
-        if keys:
-            if self.keyjar is None:
-                self.keyjar = KeyJar(verify_ssl=self.verify_ssl)
-
-            self.keyjar.load_keys(pcr, _pcr_issuer)
-
     def provider_config(self, issuer, keys=True, endpoints=True,
                         response_cls=ProviderConfigurationResponse,
                         serv_pattern=OIDCONF_PATTERN):
-        if issuer.endswith("/"):
-            _issuer = issuer[:-1]
-        else:
-            _issuer = issuer
-
-        url = serv_pattern % _issuer
-
-        pcr = None
-        r = self.http_request(url, allow_redirects=True)
-        if r.status_code == 200:
-            try:
-                pcr = response_cls().from_json(r.text)
-            except Exception as e:
-                # FIXME: This should catch specific exception from `from_json()`
-                _err_txt = "Faulty provider config response: {}".format(e)
-                logger.error(sanitize(_err_txt))
-                raise ParseError(_err_txt)
-
-        logger.debug("Provider info: %s" % sanitize(pcr))
-        if pcr is None:
-            raise CommunicationError(
-                "Trying '%s', status %s" % (url, r.status_code))
-
-        self.store_response(pcr, r.text)
-
-        self.handle_provider_config(pcr, issuer, keys, endpoints)
-
-        return pcr
+        return super().provider_config(issuer=issuer, keys=keys, endpoints=endpoints, response_cls=response_cls,
+                                       serv_pattern=serv_pattern)
 
     def unpack_aggregated_claims(self, userinfo):
         if userinfo["_claim_sources"]:
