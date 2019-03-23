@@ -12,7 +12,7 @@ from oic.oauth2 import AuthorizationResponse
 from oic.oauth2 import ErrorResponse
 from oic.oauth2 import ResponseError
 from oic.oauth2 import TokenError
-from oic.oic import ProviderConfigurationResponse
+from oic.oic.message import ProviderConfigurationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.http_util import Redirect
 from oic.utils.sanitize import sanitize

@@ -27,6 +27,8 @@ from oic.oauth2.message import SINGLE_OPTIONAL_JSON
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
 from oic.oauth2.message import Message
+from oic.oauth2.message import MessageFactory
+from oic.oauth2.message import MessageTuple
 from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import MissingRequiredValue
 from oic.oauth2.message import NotAllowedValue
@@ -961,3 +963,19 @@ def factory(msgtype):
 
     # Fall back to basic OAuth2 messages
     return message.factory(msgtype)
+
+
+class OIDCMessageFactory(MessageFactory):
+    """Factory that knows OIDC message types."""
+
+    authorization_endpoint = MessageTuple(AuthorizationRequest, AuthorizationResponse)
+    token_endpoint = MessageTuple(AccessTokenRequest, AccessTokenResponse)
+    refresh_endpoint = MessageTuple(RefreshAccessTokenRequest, AccessTokenResponse)
+    userinfo_endpoint = MessageTuple(UserInfoRequest, Message)
+    registration_endpoint = MessageTuple(RegistrationRequest, RegistrationResponse)
+    configuration_endpoint = MessageTuple(Message, ProviderConfigurationResponse)
+    endsession_endpoint = MessageTuple(EndSessionRequest, EndSessionResponse)
+    checkid_endpoint = MessageTuple(CheckIDRequest, IdToken)
+    checksession_endpoint = MessageTuple(CheckSessionRequest, IdToken)
+    endsession_endpoint = MessageTuple(EndSessionRequest, Message)
+    refreshsession_endpoint = MessageTuple(RefreshSessionRequest, RefreshSessionResponse)

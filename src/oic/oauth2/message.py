@@ -1104,3 +1104,37 @@ def factory(msgtype):
         return MSG[msgtype]
     except KeyError:
         raise FormatError("Unknown message type: %s" % msgtype)
+
+
+MessageTuple = namedtuple('MessageTuple', ['request_cls', 'response_cls'])
+
+
+class MessageFactory():
+    """Factory for holding message types."""
+
+    @classmethod
+    def get_request_type(cls, endpoint: str):
+        """Return class representing the request_cls for given endpoint."""
+        try:
+            return getattr(cls, endpoint).request_cls
+        except AttributeError:
+            raise MessageException('Unknown endpoint.')
+
+    @classmethod
+    def get_response_type(cls, endpoint: str):
+        """Return class representing the response_cls for given endpoint."""
+        try:
+            return getattr(cls, endpoint).response_cls
+        except AttributeError:
+            raise MessageException('Unknown endpoint.')
+
+
+class OauthMessageFactory(MessageFactory):
+    """Factory that knows Oauth2.0 message types."""
+
+    authorization_endpoint = MessageTuple(AuthorizationRequest, AuthorizationResponse)
+    token_endpoint = MessageTuple(AccessTokenRequest, AccessTokenResponse)
+    refresh_endpoint = MessageTuple(RefreshAccessTokenRequest, AccessTokenResponse)
+    # Message as a placeholder ...
+    resource_endpoint = MessageTuple(ResourceRequest, Message)
+    configuration_endpoint = MessageTuple(Message, ASConfigurationResponse)

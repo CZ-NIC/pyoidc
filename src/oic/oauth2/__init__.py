@@ -1,5 +1,8 @@
 import logging
+import warnings
+from typing import Any  # noqa - This is used for MyPy
 from typing import Dict
+from typing import List  # noqa - This is used for MyPy
 from typing import Optional
 from typing import Tuple
 from typing import Type
@@ -31,7 +34,9 @@ from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import GrantExpired
 from oic.oauth2.message import Message
+from oic.oauth2.message import MessageFactory
 from oic.oauth2.message import NoneResponse
+from oic.oauth2.message import OauthMessageFactory
 from oic.oauth2.message import PyoidcError
 from oic.oauth2.message import RefreshAccessTokenRequest
 from oic.oauth2.message import ResourceRequest
@@ -68,7 +73,7 @@ REQUEST2ENDPOINT = {
 RESPONSE2ERROR = {
     "AuthorizationResponse": [AuthorizationErrorResponse, TokenErrorResponse],
     "AccessTokenResponse": [TokenErrorResponse]
-}
+}  # type: Dict[str, List]
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint",
              "token_revocation_endpoint"]
@@ -153,7 +158,7 @@ class Client(PBase):
 
     def __init__(self, client_id=None, client_authn_method=None,
                  keyjar=None, verify_ssl=True, config=None, client_cert=None,
-                 timeout=5):
+                 timeout=5, message_factory: Type[MessageFactory] = OauthMessageFactory):
         """
         Initialize the instance.
 
@@ -167,6 +172,7 @@ class Client(PBase):
         :param timeout: Timeout for requests library. Can be specified either as
             a single integer or as a tuple of integers. For more details, refer to
             ``requests`` documentation.
+        :param: message_factory: Factory for message classes, should inherit from OauthMessageFactory
         :return: Client instance
         """
         PBase.__init__(self, verify_ssl=verify_ssl, keyjar=keyjar,
@@ -177,10 +183,11 @@ class Client(PBase):
 
         self.nonce = None
 
-        self.grant = {}
-        self.state2nonce = {}
+        self.message_factory = message_factory
+        self.grant = {}  # type: Dict[str, Grant]
+        self.state2nonce = {}  # type: Dict[str, str]
         # own endpoint
-        self.redirect_uris = [None]
+        self.redirect_uris = []  # type: List[str]
 
         # service endpoints
         self.authorization_endpoint = None
@@ -188,14 +195,14 @@ class Client(PBase):
         self.token_revocation_endpoint = None
 
         self.request2endpoint = REQUEST2ENDPOINT
-        self.response2error = RESPONSE2ERROR
+        self.response2error = RESPONSE2ERROR  # type: Dict[str, List]
         self.grant_class = Grant
         self.token_class = Token
 
-        self.provider_info = {}
-        self._c_secret = None
-        self.kid = {"sig": {}, "enc": {}}
-        self.authz_req = None
+        self.provider_info = ASConfigurationResponse()  # type: Message
+        self._c_secret = ''  # type: str
+        self.kid = {"sig": {}, "enc": {}}  # type: Dict[str, Dict]
+        self.authz_req = {}  # type: Dict[str, Message]
 
         # the OAuth issuer is the URL of the authorization server's
         # configuration information location
@@ -204,8 +211,7 @@ class Client(PBase):
             self.issuer = self.config['issuer']
         except KeyError:
             self.issuer = ''
-        self.allow = {}
-        self.provider_info = {}
+        self.allow = {}  # type: Dict[str, Any]
 
     def store_response(self, clinst, text):
         pass
@@ -234,7 +240,7 @@ class Client(PBase):
 
         self.authorization_endpoint = None
         self.token_endpoint = None
-        self.redirect_uris = None
+        self.redirect_uris = []
 
     def grant_from_state(self, state: str) -> Optional[Grant]:
         for key, grant in self.grant.items():
@@ -336,10 +342,12 @@ class Client(PBase):
 
         return self.construct_request(request, request_args, extra_args)
 
-    def construct_AuthorizationRequest(self, request: Type[AuthorizationRequest] = AuthorizationRequest,
+    def construct_AuthorizationRequest(self, request: Type[AuthorizationRequest] = None,
                                        request_args=None, extra_args=None,
                                        **kwargs) -> AuthorizationRequest:
 
+        if request is None:
+            request = self.message_factory.get_request_type('authorization_endpoint')
         if request_args is not None:
             try:  # change default
                 new = request_args["redirect_uri"]
@@ -358,10 +366,12 @@ class Client(PBase):
         return self.construct_request(request, request_args, extra_args)
 
     def construct_AccessTokenRequest(self,
-                                     request: Type[AccessTokenRequest] = AccessTokenRequest,
+                                     request: Type[AccessTokenRequest] = None,
                                      request_args=None, extra_args=None,
                                      **kwargs) -> AccessTokenRequest:
 
+        if request is None:
+            request = self.message_factory.get_request_type('token_endpoint')
         if request_args is None:
             request_args = {}
         if request is not ROPCAccessTokenRequest:
@@ -389,10 +399,12 @@ class Client(PBase):
         return self.construct_request(request, request_args, extra_args)
 
     def construct_RefreshAccessTokenRequest(self,
-                                            request: Type[RefreshAccessTokenRequest] = RefreshAccessTokenRequest,
+                                            request: Type[RefreshAccessTokenRequest] = None,
                                             request_args=None, extra_args=None,
                                             **kwargs) -> RefreshAccessTokenRequest:
 
+        if request is None:
+            request = self.message_factory.get_request_type('refresh_endpoint')
         if request_args is None:
             request_args = {}
 
@@ -407,10 +419,12 @@ class Client(PBase):
 
         return self.construct_request(request, request_args, extra_args)
 
-    def construct_ResourceRequest(self, request: Type[ResourceRequest] = ResourceRequest,
+    def construct_ResourceRequest(self, request: Type[ResourceRequest] = None,
                                   request_args=None, extra_args=None,
                                   **kwargs) -> ResourceRequest:
 
+        if request is None:
+            request = self.message_factory.get_request_type('resource_endpoint')
         if request_args is None:
             request_args = {}
 
@@ -473,7 +487,7 @@ class Client(PBase):
 
     def authorization_request_info(self, request_args=None, extra_args=None,
                                    **kwargs):
-        return self.request_info(AuthorizationRequest, "GET",
+        return self.request_info(self.message_factory.get_request_type('authorization_endpoint'), "GET",
                                  request_args, extra_args, **kwargs)
 
     @staticmethod
@@ -514,6 +528,7 @@ class Client(PBase):
 
         if "error" in resp and not isinstance(resp, ErrorResponse):
             resp = None
+            errmsgs = []  # type: List[Any]
             try:
                 errmsgs = _r2e[response.__name__]
             except KeyError:
@@ -665,12 +680,25 @@ class Client(PBase):
         return self.parse_request_response(resp, response, body_type, state,
                                            **kwargs)
 
-    def do_authorization_request(self, request=AuthorizationRequest,
+    def do_authorization_request(self, request=None,
                                  state="", body_type="", method="GET",
                                  request_args=None, extra_args=None,
                                  http_args=None,
-                                 response_cls: Type[AuthorizationResponse] = AuthorizationResponse,
+                                 response_cls=None,
                                  **kwargs) -> AuthorizationResponse:
+        if request is not None:
+            warnings.warn('Passing `request` is deprecated. Please use `message_factory` instead.', DeprecationWarning,
+                          stacklevel=2)
+        else:
+            # TODO: This can be moved to the call once we remove the kwarg
+            request = self.message_factory.get_request_type('authorization_endpoint')
+        if response_cls is not None:
+            warnings.warn('Passing `response_cls` is deprecated. Please use `message_factory` instead.',
+                          DeprecationWarning, stacklevel=2)
+        else:
+            # TODO: This can be moved to the call once we remove the kwarg
+            response_cls = self.message_factory.get_response_type('authorization_endpoint')
+
         if state:
             try:
                 request_args["state"] = state
@@ -708,12 +736,24 @@ class Client(PBase):
 
         return resp
 
-    def do_access_token_request(self, request: Type[AccessTokenRequest] = AccessTokenRequest,
+    def do_access_token_request(self, request=None,
                                 scope: str = "", state: str = "", body_type: ENCODINGS = "json",
                                 method="POST", request_args=None,
                                 extra_args=None, http_args=None,
-                                response_cls: Type[AccessTokenResponse] = AccessTokenResponse,
+                                response_cls=None,
                                 authn_method="", **kwargs) -> AccessTokenResponse:
+        if request is not None:
+            warnings.warn('Passing `request` is deprecated. Please use `message_factory` instead.', DeprecationWarning,
+                          stacklevel=2)
+        else:
+            # TODO: This can be moved to the call once we remove the kwarg
+            request = self.message_factory.get_request_type('token_endpoint')
+        if response_cls is not None:
+            warnings.warn('Passing `response_cls` is deprecated. Please use `message_factory` instead.',
+                          DeprecationWarning, stacklevel=2)
+        else:
+            # TODO: This can be moved to the call once we remove the kwarg
+            response_cls = self.message_factory.get_response_type('token_endpoint')
 
         kwargs['authn_endpoint'] = 'token'
         # method is default POST
@@ -742,12 +782,24 @@ class Client(PBase):
                                        body_type, state=state,
                                        http_args=http_args, **kwargs)
 
-    def do_access_token_refresh(self, request: Type[RefreshAccessTokenRequest] = RefreshAccessTokenRequest,
+    def do_access_token_refresh(self, request=None,
                                 state: str = "", body_type: ENCODINGS = "json", method="POST",
                                 request_args=None, extra_args=None,
                                 http_args=None,
-                                response_cls: Type[AccessTokenResponse] = AccessTokenResponse,
+                                response_cls=None,
                                 authn_method="", **kwargs) -> AccessTokenResponse:
+        if request is not None:
+            warnings.warn('Passing `request` is deprecated. Please use `message_factory` instead.', DeprecationWarning,
+                          stacklevel=2)
+        else:
+            # TODO: This can be moved to the call once we remove the kwarg
+            request = self.message_factory.get_request_type('refresh_endpoint')
+        if response_cls is not None:
+            warnings.warn('Passing `response_cls` is deprecated. Please use `message_factory` instead.',
+                          DeprecationWarning, stacklevel=2)
+        else:
+            # TODO: This can be moved to the call once we remove the kwarg
+            response_cls = self.message_factory.get_response_type('refresh_endpoint')
 
         token = self.get_token(also_expired=True, state=state, **kwargs)
         kwargs['authn_endpoint'] = 'refresh'
@@ -895,8 +947,13 @@ class Client(PBase):
             self.keyjar.load_keys(pcr, _pcr_issuer)
 
     def provider_config(self, issuer: str, keys: bool = True, endpoints: bool = True,
-                        response_cls: Type[ASConfigurationResponse] = ASConfigurationResponse,
+                        response_cls: Type[ASConfigurationResponse] = None,
                         serv_pattern: str = OIDCONF_PATTERN) -> ASConfigurationResponse:
+        if response_cls is not None:
+            warnings.warn('Passing `response_cls` is deprecated. Please use `message_factory` instead.',
+                          DeprecationWarning, stacklevel=2)
+        else:
+            response_cls = self.message_factory.get_response_type('configuration_endpoint')
         if issuer.endswith("/"):
             _issuer = issuer[:-1]
         else:
