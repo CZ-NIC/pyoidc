@@ -86,6 +86,7 @@ setup(
         "beaker",
         "cryptography",
         "defusedxml",
+        "typing_extensions",
     ],
     tests_require=tests_requires,
     zip_safe=False,

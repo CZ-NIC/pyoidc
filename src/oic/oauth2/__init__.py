@@ -1,7 +1,12 @@
 import logging
+from typing import Dict
+from typing import Optional
+from typing import Tuple
+from typing import Type
 from urllib.parse import urlparse
 
 from jwkest import b64e
+from typing_extensions import Literal
 
 from oic import CC_METHOD
 from oic import OIDCONF_PATTERN
@@ -67,6 +72,8 @@ RESPONSE2ERROR = {
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint",
              "token_revocation_endpoint"]
+
+ENCODINGS = Literal['json', 'urlencoded']
 
 
 class ExpiredToken(PyoidcError):
@@ -203,10 +210,10 @@ class Client(PBase):
     def store_response(self, clinst, text):
         pass
 
-    def get_client_secret(self):
+    def get_client_secret(self) -> str:
         return self._c_secret
 
-    def set_client_secret(self, val):
+    def set_client_secret(self, val: str):
         if not val:
             self._c_secret = ""
         else:
@@ -220,7 +227,7 @@ class Client(PBase):
 
     client_secret = property(get_client_secret, set_client_secret)
 
-    def reset(self):
+    def reset(self) -> None:
         self.nonce = None
 
         self.grant = {}
@@ -229,14 +236,14 @@ class Client(PBase):
         self.token_endpoint = None
         self.redirect_uris = None
 
-    def grant_from_state(self, state):
+    def grant_from_state(self, state: str) -> Optional[Grant]:
         for key, grant in self.grant.items():
             if key == state:
                 return grant
 
         return None
 
-    def _parse_args(self, request, **kwargs):
+    def _parse_args(self, request: Type[Message], **kwargs) -> Dict:
         ar_args = kwargs.copy()
 
         for prop in request.c_param.keys():
@@ -254,7 +261,7 @@ class Client(PBase):
 
         return ar_args
 
-    def _endpoint(self, endpoint, **kwargs):
+    def _endpoint(self, endpoint: str, **kwargs) -> str:
         try:
             uri = kwargs[endpoint]
             if uri:
@@ -273,13 +280,13 @@ class Client(PBase):
 
         return uri
 
-    def get_grant(self, state, **kwargs):
+    def get_grant(self, state: str, **kwargs) -> Grant:
         try:
             return self.grant[state]
         except KeyError:
             raise GrantError("No grant found for state:'%s'" % state)
 
-    def get_token(self, also_expired=False, **kwargs):
+    def get_token(self, also_expired: bool = False, **kwargs) -> Token:
         try:
             return kwargs["token"]
         except KeyError:
@@ -305,7 +312,7 @@ class Client(PBase):
         else:
             raise TokenError("Token has expired")
 
-    def clean_tokens(self):
+    def clean_tokens(self) -> None:
         """Clean replaced and invalid tokens."""
         for state in self.grant:
             grant = self.get_grant(state)
@@ -313,7 +320,7 @@ class Client(PBase):
                 if token.replaced or not token.is_valid():
                     grant.delete_token(token)
 
-    def construct_request(self, request, request_args=None, extra_args=None):
+    def construct_request(self, request: Type[Message], request_args=None, extra_args=None):
         if request_args is None:
             request_args = {}
 
@@ -324,14 +331,14 @@ class Client(PBase):
         logger.debug("request: %s" % sanitize(request))
         return request(**kwargs)
 
-    def construct_Message(self, request=Message, request_args=None,
-                          extra_args=None, **kwargs):
+    def construct_Message(self, request: Type[Message] = Message, request_args=None,
+                          extra_args=None, **kwargs) -> Message:
 
         return self.construct_request(request, request_args, extra_args)
 
-    def construct_AuthorizationRequest(self, request=AuthorizationRequest,
+    def construct_AuthorizationRequest(self, request: Type[AuthorizationRequest] = AuthorizationRequest,
                                        request_args=None, extra_args=None,
-                                       **kwargs):
+                                       **kwargs) -> AuthorizationRequest:
 
         if request_args is not None:
             try:  # change default
@@ -351,9 +358,9 @@ class Client(PBase):
         return self.construct_request(request, request_args, extra_args)
 
     def construct_AccessTokenRequest(self,
-                                     request=AccessTokenRequest,
+                                     request: Type[AccessTokenRequest] = AccessTokenRequest,
                                      request_args=None, extra_args=None,
-                                     **kwargs):
+                                     **kwargs) -> AccessTokenRequest:
 
         if request_args is None:
             request_args = {}
@@ -382,9 +389,9 @@ class Client(PBase):
         return self.construct_request(request, request_args, extra_args)
 
     def construct_RefreshAccessTokenRequest(self,
-                                            request=RefreshAccessTokenRequest,
+                                            request: Type[RefreshAccessTokenRequest] = RefreshAccessTokenRequest,
                                             request_args=None, extra_args=None,
-                                            **kwargs):
+                                            **kwargs) -> RefreshAccessTokenRequest:
 
         if request_args is None:
             request_args = {}
@@ -400,9 +407,9 @@ class Client(PBase):
 
         return self.construct_request(request, request_args, extra_args)
 
-    def construct_ResourceRequest(self, request=ResourceRequest,
+    def construct_ResourceRequest(self, request: Type[ResourceRequest] = ResourceRequest,
                                   request_args=None, extra_args=None,
-                                  **kwargs):
+                                  **kwargs) -> ResourceRequest:
 
         if request_args is None:
             request_args = {}
@@ -412,14 +419,12 @@ class Client(PBase):
         request_args["access_token"] = token.access_token
         return self.construct_request(request, request_args, extra_args)
 
-    def uri_and_body(self, reqmsg, cis, method="POST", request_args=None,
-                     **kwargs):
-
+    def uri_and_body(self, reqmsg: Type[Message], cis: Message, method="POST", request_args=None,
+                     **kwargs) -> Tuple[str, str, Dict, Message]:
         if "endpoint" in kwargs and kwargs["endpoint"]:
             uri = kwargs["endpoint"]
         else:
-            uri = self._endpoint(self.request2endpoint[reqmsg.__name__],
-                                 **request_args)
+            uri = self._endpoint(self.request2endpoint[reqmsg.__name__], **request_args)
 
         uri, body, kwargs = get_or_post(uri, method, cis, **kwargs)
         try:
@@ -429,8 +434,8 @@ class Client(PBase):
 
         return uri, body, h_args, cis
 
-    def request_info(self, request, method="POST", request_args=None,
-                     extra_args=None, lax=False, **kwargs):
+    def request_info(self, request: Type[Message], method="POST", request_args=None,
+                     extra_args=None, lax=False, **kwargs) -> Tuple[str, str, Dict, Message]:
 
         if request_args is None:
             request_args = {}
@@ -471,7 +476,8 @@ class Client(PBase):
         return self.request_info(AuthorizationRequest, "GET",
                                  request_args, extra_args, **kwargs)
 
-    def get_urlinfo(self, info):
+    @staticmethod
+    def get_urlinfo(info: str) -> str:
         if '?' in info or '#' in info:
             parts = urlparse(info)
             scheme, netloc, path, params, query, fragment = parts[:6]
@@ -482,8 +488,8 @@ class Client(PBase):
                 info = fragment
         return info
 
-    def parse_response(self, response, info="", sformat="json", state="",
-                       **kwargs):
+    def parse_response(self, response: Type[Message], info: str = "", sformat: ENCODINGS = "json", state: str = "",
+                       **kwargs) -> Message:
         """
         Parse a response.
 
@@ -630,8 +636,8 @@ class Client(PBase):
 
         return reqresp
 
-    def request_and_return(self, url, response=None, method="GET", body=None,
-                           body_type="json", state="", http_args=None,
+    def request_and_return(self, url: str, response: Type[Message] = None, method="GET", body=None,
+                           body_type: ENCODINGS = "json", state: str = "", http_args=None,
                            **kwargs):
         """
         Perform a request and return the response.
@@ -644,6 +650,7 @@ class Client(PBase):
         :param http_args: Arguments for the HTTP client
         :return: A cls or ErrorResponse instance or the HTTP response instance if no response body was expected.
         """
+        # FIXME: Cannot annotate return value as Message since it disrupts all other methods
         if http_args is None:
             http_args = {}
 
@@ -662,9 +669,8 @@ class Client(PBase):
                                  state="", body_type="", method="GET",
                                  request_args=None, extra_args=None,
                                  http_args=None,
-                                 response_cls=AuthorizationResponse,
-                                 **kwargs):
-
+                                 response_cls: Type[AuthorizationResponse] = AuthorizationResponse,
+                                 **kwargs) -> AuthorizationResponse:
         if state:
             try:
                 request_args["state"] = state
@@ -696,17 +702,18 @@ class Client(PBase):
                                        http_args=http_args, algs=algs)
 
         if isinstance(resp, Message):
-            if resp.type() in RESPONSE2ERROR["AuthorizationResponse"]:
-                resp.state = csi.state
+            # FIXME: The Message classes do not have classical attrs
+            if resp.type() in RESPONSE2ERROR["AuthorizationResponse"]:  # type: ignore
+                resp.state = csi.state  # type: ignore
 
         return resp
 
-    def do_access_token_request(self, request=AccessTokenRequest,
-                                scope="", state="", body_type="json",
+    def do_access_token_request(self, request: Type[AccessTokenRequest] = AccessTokenRequest,
+                                scope: str = "", state: str = "", body_type: ENCODINGS = "json",
                                 method="POST", request_args=None,
                                 extra_args=None, http_args=None,
-                                response_cls=AccessTokenResponse,
-                                authn_method="", **kwargs):
+                                response_cls: Type[AccessTokenResponse] = AccessTokenResponse,
+                                authn_method="", **kwargs) -> AccessTokenResponse:
 
         kwargs['authn_endpoint'] = 'token'
         # method is default POST
@@ -735,12 +742,12 @@ class Client(PBase):
                                        body_type, state=state,
                                        http_args=http_args, **kwargs)
 
-    def do_access_token_refresh(self, request=RefreshAccessTokenRequest,
-                                state="", body_type="json", method="POST",
+    def do_access_token_refresh(self, request: Type[RefreshAccessTokenRequest] = RefreshAccessTokenRequest,
+                                state: str = "", body_type: ENCODINGS = "json", method="POST",
                                 request_args=None, extra_args=None,
                                 http_args=None,
-                                response_cls=AccessTokenResponse,
-                                authn_method="", **kwargs):
+                                response_cls: Type[AccessTokenResponse] = AccessTokenResponse,
+                                authn_method="", **kwargs) -> AccessTokenResponse:
 
         token = self.get_token(also_expired=True, state=state, **kwargs)
         kwargs['authn_endpoint'] = 'refresh'
@@ -763,9 +770,9 @@ class Client(PBase):
             grant.delete_token(token)
         return response
 
-    def do_any(self, request, endpoint="", scope="", state="", body_type="json",
+    def do_any(self, request: Type[Message], endpoint="", scope="", state="", body_type="json",
                method="POST", request_args=None, extra_args=None,
-               http_args=None, response=None, authn_method=""):
+               http_args=None, response: Type[Message] = None, authn_method="") -> Message:
 
         url, body, ht_args, _ = self.request_info(request, method=method,
                                                   request_args=request_args,
@@ -844,7 +851,8 @@ class Client(PBase):
         return {"code_challenge": code_challenge,
                 "code_challenge_method": _method}, code_verifier
 
-    def handle_provider_config(self, pcr, issuer, keys=True, endpoints=True):
+    def handle_provider_config(self, pcr: ASConfigurationResponse, issuer: str, keys: bool = True,
+                               endpoints: bool = True) -> None:
         """
         Deal with Provider Config Response.
 
@@ -886,9 +894,9 @@ class Client(PBase):
 
             self.keyjar.load_keys(pcr, _pcr_issuer)
 
-    def provider_config(self, issuer, keys=True, endpoints=True,
-                        response_cls=ASConfigurationResponse,
-                        serv_pattern=OIDCONF_PATTERN):
+    def provider_config(self, issuer: str, keys: bool = True, endpoints: bool = True,
+                        response_cls: Type[ASConfigurationResponse] = ASConfigurationResponse,
+                        serv_pattern: str = OIDCONF_PATTERN) -> ASConfigurationResponse:
         if issuer.endswith("/"):
             _issuer = issuer[:-1]
         else:
