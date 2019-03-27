@@ -938,13 +938,13 @@ class Server(PBase):
         req.verify()
         return req
 
-    def parse_authorization_request(self, request=AuthorizationRequest,
-                                    url=None, query=None):
+    def parse_authorization_request(self, request: Type[AuthorizationRequest] = AuthorizationRequest,
+                                    url: str = None, query: dict = None) -> AuthorizationRequest:
 
         return self.parse_url_request(request, url, query)
 
-    def parse_jwt_request(self, request=AuthorizationRequest, txt="",
-                          keyjar="", verify=True, **kwargs):
+    def parse_jwt_request(self, request: Type[Message] = AuthorizationRequest, txt: str = "",
+                          keyjar: KeyJar = None, verify: bool = True, **kwargs) -> Message:
 
         if not keyjar:
             keyjar = self.keyjar
@@ -955,14 +955,16 @@ class Server(PBase):
             areq.verify()
         return areq
 
-    def parse_body_request(self, request=AccessTokenRequest, body=None):
+    def parse_body_request(self, request: Type[Message] = AccessTokenRequest,
+                           body: str = None):
         req = request().deserialize(body, "urlencoded")
         req.verify()
         return req
 
-    def parse_token_request(self, request=AccessTokenRequest,
-                            body=None):
+    def parse_token_request(self, request: Type[AccessTokenRequest] = AccessTokenRequest,
+                            body: str = None) -> AccessTokenRequest:
         return self.parse_body_request(request, body)
 
-    def parse_refresh_token_request(self, request=RefreshAccessTokenRequest, body=None):
+    def parse_refresh_token_request(self, request: Type[RefreshAccessTokenRequest] = RefreshAccessTokenRequest,
+                                    body: str = None) -> RefreshAccessTokenRequest:
         return self.parse_body_request(request, body)
