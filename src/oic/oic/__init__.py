@@ -7,7 +7,9 @@ from json import JSONDecodeError
 from typing import Any  # noqa - Used for MyPy
 from typing import Dict  # noqa - Used for MyPy
 from typing import List  # noqa - Used for MyPy
+from typing import Tuple
 from typing import Type
+from typing import Union
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
@@ -62,6 +64,7 @@ from oic.oic.message import UserInfoErrorResponse
 from oic.oic.message import UserInfoRequest
 from oic.utils import time_util
 from oic.utils.http_util import Response
+from oic.utils.keyio import KeyJar
 from oic.utils.sanitize import sanitize
 from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.webfinger import WebFinger
@@ -1378,6 +1381,12 @@ class Client(oauth2.Client):
 
 class Server(oauth2.Server):
     """OIC Server class."""
+
+    def __init__(self, verify_ssl: bool = True, keyjar: KeyJar = None, client_cert: Union[str, Tuple[str, str]] = None,
+                 timeout: int = 5, message_factory: Type[MessageFactory] = OIDCMessageFactory):
+        """Initialize the server."""
+        super().__init__(verify_ssl=verify_ssl, keyjar=keyjar, client_cert=client_cert, timeout=timeout,
+                         message_factory=message_factory)
 
     @staticmethod
     def _parse_urlencoded(url=None, query=None):

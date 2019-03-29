@@ -4,6 +4,7 @@ import logging
 import sys
 import time
 import urllib
+import warnings
 from urllib.parse import urlparse
 
 from jwkest import jws
@@ -953,6 +954,7 @@ MSG = {
 
 
 def factory(msgtype):
+    warnings.warn('`factory` is deprecated. Use `OIDCMessageFactory` instead.', DeprecationWarning)
     for _, obj in inspect.getmembers(sys.modules[__name__]):
         if inspect.isclass(obj) and issubclass(obj, Message):
             try:
@@ -971,11 +973,14 @@ class OIDCMessageFactory(MessageFactory):
     authorization_endpoint = MessageTuple(AuthorizationRequest, AuthorizationResponse)
     token_endpoint = MessageTuple(AccessTokenRequest, AccessTokenResponse)
     refresh_endpoint = MessageTuple(RefreshAccessTokenRequest, AccessTokenResponse)
+    resource_endpoint = MessageTuple(ResourceRequest, Message)
+    configuration_endpoint = MessageTuple(Message, ProviderConfigurationResponse)
+
     userinfo_endpoint = MessageTuple(UserInfoRequest, Message)
     registration_endpoint = MessageTuple(RegistrationRequest, RegistrationResponse)
-    configuration_endpoint = MessageTuple(Message, ProviderConfigurationResponse)
     endsession_endpoint = MessageTuple(EndSessionRequest, EndSessionResponse)
     checkid_endpoint = MessageTuple(CheckIDRequest, IdToken)
     checksession_endpoint = MessageTuple(CheckSessionRequest, IdToken)
-    endsession_endpoint = MessageTuple(EndSessionRequest, Message)
+    endsession_endpoint = MessageTuple(EndSessionRequest, EndSessionResponse)
     refreshsession_endpoint = MessageTuple(RefreshSessionRequest, RefreshSessionResponse)
+    discovery_endpoint = MessageTuple(DiscoveryRequest, DiscoveryResponse)

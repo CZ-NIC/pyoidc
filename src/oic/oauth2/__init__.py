@@ -6,6 +6,7 @@ from typing import List  # noqa - This is used for MyPy
 from typing import Optional
 from typing import Tuple
 from typing import Type
+from typing import Union
 from urllib.parse import urlparse
 
 from jwkest import b64e
@@ -982,6 +983,12 @@ class Client(PBase):
 class Server(PBase):
     """OAuth Server class."""
 
+    def __init__(self, verify_ssl: bool = True, keyjar: KeyJar = None, client_cert: Union[str, Tuple[str, str]] = None,
+                 timeout: int = 5, message_factory: Type[MessageFactory] = OauthMessageFactory):
+        """Initialize the server."""
+        super().__init__(verify_ssl=verify_ssl, keyjar=keyjar, client_cert=client_cert, timeout=timeout)
+        self.message_factory = message_factory
+
     @staticmethod
     def parse_url_request(request, url=None, query=None):
         if url:
@@ -995,9 +1002,13 @@ class Server(PBase):
         req.verify()
         return req
 
-    def parse_authorization_request(self, request: Type[AuthorizationRequest] = AuthorizationRequest,
+    def parse_authorization_request(self, request: Type[AuthorizationRequest] = None,
                                     url: str = None, query: dict = None) -> AuthorizationRequest:
-
+        if request is not None:
+            warnings.warn('Passing `request` is deprecated. Please use `message_factory`.', DeprecationWarning,
+                          stacklevel=2)
+        else:
+            request = self.message_factory.get_request_type('authorization_endpoint')
         return self.parse_url_request(request, url, query)
 
     def parse_jwt_request(self, request: Type[Message] = AuthorizationRequest, txt: str = "",
@@ -1018,10 +1029,20 @@ class Server(PBase):
         req.verify()
         return req
 
-    def parse_token_request(self, request: Type[AccessTokenRequest] = AccessTokenRequest,
+    def parse_token_request(self, request: Type[AccessTokenRequest] = None,
                             body: str = None) -> AccessTokenRequest:
+        if request is not None:
+            warnings.warn('Passing `request` is deprecated. Please use `message_factory`.', DeprecationWarning,
+                          stacklevel=2)
+        else:
+            request = self.message_factory.get_request_type('token_endpoint')
         return self.parse_body_request(request, body)
 
-    def parse_refresh_token_request(self, request: Type[RefreshAccessTokenRequest] = RefreshAccessTokenRequest,
+    def parse_refresh_token_request(self, request: Type[RefreshAccessTokenRequest] = None,
                                     body: str = None) -> RefreshAccessTokenRequest:
+        if request is not None:
+            warnings.warn('Passing `request` is deprecated. Please use `message_factory`.', DeprecationWarning,
+                          stacklevel=2)
+        else:
+            request = self.message_factory.get_request_type('refresh_endpoint')
         return self.parse_body_request(request, body)

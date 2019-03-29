@@ -26,13 +26,12 @@ from oic.oauth2 import Server
 from oic.oauth2 import error_response
 from oic.oauth2 import none_response
 from oic.oauth2 import redirect_authz_error
-from oic.oauth2.message import AccessTokenRequest
 from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import AuthorizationRequest
 from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import Message
 from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import MissingRequiredValue
+from oic.oauth2.message import OauthMessageFactory
 from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.message import add_non_standard
 from oic.oauth2.message import by_schema
@@ -154,20 +153,19 @@ DELIM = "]["
 
 class Provider(object):
     endp = [AuthorizationEndpoint, TokenEndpoint]
-    # Define the message class that in token_endpoint
-    atr_class = AccessTokenRequest
 
     def __init__(self, name, sdb, cdb, authn_broker, authz, client_authn,
                  symkey=None, urlmap=None, iv=0, default_scope="",
                  verify_ssl=True, default_acr="", keyjar=None,
-                 baseurl='', server_cls=Server, client_cert=None):
+                 baseurl='', server_cls=Server, client_cert=None, message_factory=OauthMessageFactory):
         self.name = name
         self.sdb = sdb
         if not isinstance(cdb, BaseClientDatabase):
             warnings.warn('ClientDatabase should be an instance of '
                           'oic.utils.clientdb.BaseClientDatabase to ensure proper API.')
         self.cdb = cdb
-        self.server = server_cls(verify_ssl=verify_ssl, client_cert=client_cert, keyjar=keyjar)
+        self.server = server_cls(verify_ssl=verify_ssl, client_cert=client_cert, keyjar=keyjar,
+                                 message_factory=message_factory)
 
         self.authn_broker = authn_broker
         if authn_broker is None:
@@ -368,13 +366,18 @@ class Provider(object):
     def filter_request(self, req):
         return req
 
-    def auth_init(self, request, request_class=AuthorizationRequest):
+    def auth_init(self, request, request_class=None):
         """
         Start the authentication process.
 
         :param request: The AuthorizationRequest
         :return:
         """
+        if request_class is not None:
+            warnings.warn('Passing `request_class` is deprecated. Please use `message_factory` instead.',
+                          DeprecationWarning, stacklevel=2)
+        else:
+            request_class = self.server.message_factory.get_request_type('authorization_endpoint')
         logger.debug("Request: '%s'" % sanitize(request))
         # Same serialization used for GET and POST
 
@@ -782,7 +785,7 @@ class Provider(object):
         logger.debug("- token -")
         logger.debug("token_request: %s" % sanitize(request))
 
-        areq = self.atr_class().deserialize(request, dtype)
+        areq = self.server.message_factory.get_request_type('token_endpoint')().deserialize(request, dtype)
 
         # Verify client authentication
         try:

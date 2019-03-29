@@ -1,6 +1,7 @@
 import copy
 import json
 import logging
+import warnings
 from collections import MutableMapping
 from collections import namedtuple
 from typing import Any  # noqa - This is used for MyPy
@@ -1100,6 +1101,7 @@ MSG = {
 
 
 def factory(msgtype):
+    warnings.warn('`factory` is deprecated. Use `OIDCMessageFactory` instead.', DeprecationWarning)
     try:
         return MSG[msgtype]
     except KeyError:
