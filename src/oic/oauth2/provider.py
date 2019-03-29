@@ -668,7 +668,7 @@ class Provider(object):
             raise InvalidRequest("wrong response_mode")
         elif resp_mode == 'query' and fragment_enc:
             # Can't be done
-            return InvalidRequest("wrong response_mode")
+            raise InvalidRequest("wrong response_mode")
         return None
 
     def authz_part2(self, user, areq, sid, **kwargs):

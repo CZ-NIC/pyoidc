@@ -1836,19 +1836,14 @@ class Provider(AProvider):
         return None
 
     def response_mode(self, areq, fragment_enc, **kwargs):
-        resp_mode = areq["response_mode"]
-        if resp_mode == "form_post":
+        resp = super().response_mode(areq, fragment_enc, **kwargs)
+
+        if resp is None and areq["response_mode"] == "form_post":
             context = {
                 'action': kwargs['redirect_uri'],
                 'inputs': kwargs['aresp'].to_dict(),
             }
             return Response(self.template_renderer('form_post', context), headers=kwargs["headers"])
-        elif resp_mode == 'fragment' and not fragment_enc:
-            # Can't be done
-            raise InvalidRequest("wrong response_mode")
-        elif resp_mode == 'query' and fragment_enc:
-            # Can't be done
-            raise InvalidRequest("wrong response_mode")
         return None
 
     def create_authn_response(self, areq, sid):
