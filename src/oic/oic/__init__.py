@@ -452,7 +452,7 @@ class Client(oauth2.Client):
 
     def construct_AuthorizationRequest(self, request=None,
                                        request_args=None, extra_args=None,
-                                       request_param=None, **kwargs):
+                                       **kwargs):
 
         if request_args is not None:
             if "nonce" not in request_args:
@@ -465,6 +465,7 @@ class Client(oauth2.Client):
         else:  # Never wrong to specify a nonce
             request_args = {"nonce": rndstr(32)}
 
+        request_param = kwargs.get('request_param')
         if "request_method" in kwargs:
             if kwargs["request_method"] == "file":
                 request_param = "request_uri"
@@ -618,8 +619,7 @@ class Client(oauth2.Client):
     def do_authorization_request(self, request=None,
                                  state="", body_type="", method="GET",
                                  request_args=None, extra_args=None,
-                                 http_args=None,
-                                 response_cls=None):
+                                 http_args=None, response_cls=None, **kwargs):
         if request is not None:
             warnings.warn('Passing `request` is deprecated. Please use `message_factory` instead.', DeprecationWarning,
                           stacklevel=2)
