@@ -1101,7 +1101,7 @@ MSG = {
 
 
 def factory(msgtype):
-    warnings.warn('`factory` is deprecated. Use `OIDCMessageFactory` instead.', DeprecationWarning)
+    warnings.warn('`factory` is deprecated. Use `OauthMessageFactory` instead.', DeprecationWarning)
     try:
         return MSG[msgtype]
     except KeyError:
