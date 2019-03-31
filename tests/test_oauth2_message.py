@@ -1,5 +1,5 @@
-# pylint: disable=no-self-use,missing-docstring
 import json
+from unittest import TestCase
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
@@ -21,6 +21,9 @@ from oic.oauth2.message import CCAccessTokenRequest
 from oic.oauth2.message import DecodeError
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import Message
+from oic.oauth2.message import MessageException
+from oic.oauth2.message import MessageFactory
+from oic.oauth2.message import MessageTuple
 from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import ParamDefinition
 from oic.oauth2.message import RefreshAccessTokenRequest
@@ -805,3 +808,23 @@ def test_get_verify_keys_no_matching_kid():
     keys = []
     msg.get_verify_keys(KEYJARS['A'], keys, {'iss': 'A'}, header, {})
     assert keys == []
+
+
+class TestMessageFactory(TestCase):
+    """Unittests for MessageFactory."""
+
+    def setUp(self):
+        class DummyMessageFactory(MessageFactory):
+            some_endpoint = MessageTuple('request', 'response')
+
+        self.factory = DummyMessageFactory
+
+    def test_get_request_type(self):
+        self.assertEqual(self.factory.get_request_type('some_endpoint'), 'request')
+        with self.assertRaises(MessageException):
+            self.factory.get_request_type('not_registered')
+
+    def test_get_response_type(self):
+        self.assertEqual(self.factory.get_response_type('some_endpoint'), 'response')
+        with self.assertRaises(MessageException):
+            self.factory.get_response_type('not_registered')
