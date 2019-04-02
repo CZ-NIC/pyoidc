@@ -15,17 +15,11 @@ from oic.exception import RestrictionError
 from oic.exception import UnknownAssertionType
 from oic.exception import UnSupported
 from oic.extension.client import CC_METHOD
-from oic.extension.message import ClientInfoResponse
 from oic.extension.message import ClientRegistrationError
-from oic.extension.message import ClientUpdateRequest
+from oic.extension.message import ExtensionMessageFactory
 from oic.extension.message import InvalidRedirectUri
 from oic.extension.message import MissingPage
-from oic.extension.message import RegistrationRequest
 from oic.extension.message import ServerMetadata
-from oic.extension.message import TokenIntrospectionRequest
-from oic.extension.message import TokenIntrospectionResponse
-from oic.extension.message import TokenRevocationRequest
-from oic.oauth2 import AccessTokenResponse
 from oic.oauth2 import TokenErrorResponse
 from oic.oauth2 import compact
 from oic.oauth2 import provider
@@ -99,7 +93,7 @@ class Provider(provider.Provider):
                  authn_at_registration="", client_info_url="",
                  secret_lifetime=86400, jwks_uri='', keyjar=None,
                  capabilities=None, verify_ssl=True, baseurl='', hostname='',
-                 config=None, behavior=None, lifetime_policy=None, **kwargs):
+                 config=None, behavior=None, lifetime_policy=None, message_factory=ExtensionMessageFactory, **kwargs):
 
         if not name.endswith("/"):
             name += "/"
@@ -109,9 +103,9 @@ class Provider(provider.Provider):
         except KeyError:
             args = {}
 
-        provider.Provider.__init__(self, name, sdb, cdb, authn_broker, authz,
-                                   client_authn, symkey, urlmap, iv,
-                                   default_scope, ca_bundle, **args)
+        super().__init__(name, sdb, cdb, authn_broker, authz,
+                         client_authn, symkey, urlmap, iv,
+                         default_scope, ca_bundle, message_factory=message_factory, **args)
 
         self.endp.extend([RegistrationEndpoint, ClientInfoEndpoint,
                           RevocationEndpoint, IntrospectionEndpoint])
@@ -333,7 +327,7 @@ class Provider(provider.Provider):
         except KeyError:
             pass
 
-        msg = ClientInfoResponse(**_cinfo)
+        msg = self.server.message_factory.get_response_type('update_endpoint')(**_cinfo)
         return Response(msg.to_json(), content="application/json")
 
     def client_info_update(self, client_id, request):
@@ -396,7 +390,8 @@ class Provider(provider.Provider):
         :param kwargs: extra keyword arguments
         :return: A Response instance
         """
-        _request = RegistrationRequest().deserialize(kwargs['request'], "json")
+        _request = self.server.message_factory.get_request_type('registration_endpoint')().deserialize(
+            kwargs['request'], "json")
         try:
             _request.verify(keyjar=self.keyjar)
         except InvalidRedirectUri as err:
@@ -464,7 +459,8 @@ class Provider(provider.Provider):
             return self.client_info(_id)
         elif method == "PUT":
             try:
-                _request = ClientUpdateRequest().from_json(kwargs['request'])
+                _request = self.server.message_factory.get_request_type('update_endpoint')().from_json(
+                    kwargs['request'])
             except ValueError as err:
                 return BadRequest(str(err))
 
@@ -561,7 +557,8 @@ class Provider(provider.Provider):
         if refresh_token:
             _tinfo['refresh_token'] = refresh_token
 
-        return AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
+        atr_class = self.server.message_factory.get_response_type('token_endpoint')
+        return atr_class(**by_schema(atr_class, **_tinfo))
 
     def code_grant_type(self, areq):
         # assert that the code is valid
@@ -619,7 +616,8 @@ class Provider(provider.Provider):
 
         logger.debug("_tinfo: %s" % _tinfo)
 
-        atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
+        atr_class = self.server.message_factory.get_response_type('token_endpoint')
+        atr = atr_class(**by_schema(atr_class, **_tinfo))
 
         logger.debug("AccessTokenResponse: %s" % atr)
 
@@ -663,14 +661,16 @@ class Provider(provider.Provider):
                                  time_stamp=_ts)
         sid = self.setup_session(areq, authn_event, self.cdb[areq['client_id']])
         _at = self.sdb.upgrade_to_token(self.sdb[sid]['code'], issue_refresh=True)
-        atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_at))
+        atr_class = self.server.message_factory.get_response_type('token_endpoint')
+        atr = atr_class(**by_schema(atr_class, **_at))
         return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
     def refresh_token_grant_type(self, areq):
         at = self.token_handler.refresh_access_token(
             self.baseurl, areq['access_token'], 'refresh_token')
 
-        atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **at))
+        atr_class = self.server.message_factory.get_response_type('token_endpoint')
+        atr = atr_class(**by_schema(atr_class, **at))
         return Response(atr.to_json(), content="application/json")
 
     @staticmethod
@@ -736,9 +736,8 @@ class Provider(provider.Provider):
 
         return client_id, token_type, _info
 
-    @staticmethod
-    def _return_inactive():
-        ir = TokenIntrospectionResponse(active=False)
+    def _return_inactive(self):
+        ir = self.server.message_factory.get_response_type('introspection_endpoint')(active=False)
         return Response(ir.to_json(), content="application/json")
 
     def revocation_endpoint(self, authn='', request=None, **kwargs):
@@ -750,7 +749,7 @@ class Provider(provider.Provider):
         :param kwargs:
         :return:
         """
-        trr = TokenRevocationRequest().deserialize(request, "urlencoded")
+        trr = self.server.message_factory.get_request_type('revocation_endpoint')().deserialize(request, "urlencoded")
 
         resp = self.get_token_info(authn, trr, 'revocation_endpoint')
 
@@ -777,7 +776,8 @@ class Provider(provider.Provider):
         :param kwargs:
         :return:
         """
-        tir = TokenIntrospectionRequest().deserialize(request, "urlencoded")
+        tir = self.server.message_factory.get_request_type('introspection_endpoint')().deserialize(request,
+                                                                                                   "urlencoded")
 
         resp = self.get_token_info(authn, tir, 'introspection_endpoint')
 
@@ -789,7 +789,7 @@ class Provider(provider.Provider):
         logger.info('{} token introspection: {}'.format(client_id,
                                                         tir.to_dict()))
 
-        ir = TokenIntrospectionResponse(
+        ir = self.server.message_factory.get_response_type('introspection_endpoint')(
             active=self.sdb.token_factory[token_type].is_valid(_info),
             **_info.to_dict())
 

@@ -5,7 +5,7 @@ from urllib.parse import urlsplit
 
 from oic import rndstr
 from oic.extension import client
-from oic.extension.client import ClientInfoResponse
+from oic.extension.message import ClientInfoResponse
 from oic.oauth2 import AccessTokenResponse
 from oic.oauth2 import AuthorizationRequest
 from oic.oauth2 import AuthorizationResponse
