@@ -15,6 +15,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#618] Prettified `client_management.py` CLI and wrapped it as
          a setup.py console script `oic-client-management`
 - [#615] Fix ROPC grant in the extensions provider
+- [#640] Use more secure random generator for client_secret
 
 ### Changed
 - [#578] Dropped python 2.7 support
@@ -42,6 +43,7 @@ The format is based on the [KeepAChangeLog] project.
 [#624]: https://github.com/OpenIDC/pyoidc/pull/624
 [#629]: https://github.com/OpenIDC/pyoidc/issues/629
 [#615]: https://github.com/OpenIDC/pyoidc/issues/615
+[#640]: https://github.com/OpenIDC/pyoidc/issues/640
 
 ## 0.15.1 [2019-01-31]
 
