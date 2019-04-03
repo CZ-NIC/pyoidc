@@ -4,7 +4,6 @@ import hashlib
 import hmac
 import json
 import logging
-import random
 import socket
 import sys
 import time
@@ -113,7 +112,7 @@ def do_authorization(user):
 
 
 def secret(seed, sid):
-    msg = "{}{:.6f}{}".format(time.time(), random.random(), sid).encode("utf-8")
+    msg = "{}{}{}".format(time.time(), rndstr(10), sid).encode("utf-8")
     csum = hmac.new(seed, msg, hashlib.sha224)
     return csum.hexdigest()
 
