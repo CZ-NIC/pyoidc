@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-
-# pylint: disable=missing-docstring,no-self-use
 import os
 from urllib.parse import parse_qs
 
@@ -11,6 +8,7 @@ from oic.oic.claims_provider import ClaimsClient
 from oic.oic.claims_provider import ClaimsServer
 from oic.oic.claims_provider import UserClaimsRequest
 from oic.oic.claims_provider import UserClaimsResponse
+from oic.oic.claims_provider import UserInfoClaimsRequest
 from oic.oic.message import OpenIDSchema
 from oic.utils.authn.client import verify_client
 from oic.utils.claims import ClaimsMode
@@ -128,6 +126,18 @@ class TestClaimsServer(object):
 
         assert _eq(ucr["claims_names"], ["gender", "birthdate"])
         assert "jwt" in ucr
+
+    def test_claims_info_endpoint(self):
+        self.srv.info_store['access_token'] = {'sub': 'some_sub',
+                                               'gender': 'neutral',
+                                               'birthdate': 'someday',
+                                               'claims_names': ['gender', 'birthdate']}
+        req = UserInfoClaimsRequest(access_token='access_token')
+        resp = self.srv.claims_info_endpoint(req.to_urlencoded(), "")
+
+        ucr = UserClaimsResponse().deserialize(resp.message, "json")
+        ucr.verify()
+        assert _eq(ucr["claims_names"], ["gender", "birthdate"])
 
     @pytest.fixture(scope="session")
     def keyjar(self):

@@ -13,7 +13,6 @@ from oic.oic.message import Claims
 from oic.oic.message import OpenIDSchema
 from oic.oic.provider import Endpoint
 from oic.oic.provider import Provider
-from oic.utils.authn.client import bearer_auth
 from oic.utils.http_util import Response
 from oic.utils.keyio import KeyJar
 from oic.utils.sanitize import sanitize
@@ -137,10 +136,8 @@ class ClaimsServer(Provider):
         _log_info("Claims_info_endpoint query: '%s'" % sanitize(request))
 
         ucreq = self.srvmethod.parse_userinfo_claims_request(request)
-
-        # Bearer header or body
-        access_token = bearer_auth(ucreq, authn)
-        uiresp = OpenIDSchema(**self.info_store[access_token])
+        # Access_token is mandatory in UserInfoClaimsRequest
+        uiresp = OpenIDSchema(**self.info_store[ucreq['access_token']])
 
         _log_info("returning: %s" % sanitize(uiresp.to_dict()))
         return Response(uiresp.to_json(), content="application/json")
