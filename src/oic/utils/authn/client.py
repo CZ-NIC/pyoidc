@@ -1,5 +1,6 @@
 import base64
 import logging
+import warnings
 from urllib.parse import quote_plus
 
 from jwkest import Invalid
@@ -257,6 +258,7 @@ def bearer_auth(req, authn):
     :param authn:
     :return:
     """
+    warnings.warn("`bearer_auth` is deprecated.", DeprecationWarning, stacklevel=2)
     try:
         return req["access_token"]
     except KeyError:
