@@ -16,6 +16,7 @@ The format is based on the [KeepAChangeLog] project.
          a setup.py console script `oic-client-management`
 - [#615] Fix ROPC grant in the extensions provider
 - [#640] Use more secure random generator for client_secret
+- [#639] Make sure symmetric keys are available after server restart
 
 ### Changed
 - [#578] Dropped python 2.7 support
@@ -46,6 +47,7 @@ The format is based on the [KeepAChangeLog] project.
 [#615]: https://github.com/OpenIDC/pyoidc/issues/615
 [#640]: https://github.com/OpenIDC/pyoidc/issues/640
 [#642]: https://github.com/OpenIDC/pyoidc/pull/642
+[#639]: https://github.com/OpenIDC/pyoidc/issues/639
 
 ## 0.15.1 [2019-01-31]
 

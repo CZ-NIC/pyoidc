@@ -13,8 +13,8 @@ from urllib.parse import urlparse
 import pytest
 import responses
 from freezegun import freeze_time
+from jwkest.jwe import JWEException
 from jwkest.jwe import JWEnc
-from jwkest.jws import NoSuitableSigningKeys
 from requests import ConnectionError
 from requests.exceptions import MissingSchema
 from testfixtures import LogCapture
@@ -122,10 +122,12 @@ CDB = {
     "a1b2c3": {
         "redirect_uris": [("http://localhost:8087/authz", None)],
         "client_salt": "salted",
+        'client_secret': 'very_secret',
         'response_types': ['code', 'token', 'code id_token']
     },
     "client0": {
         "redirect_uris": [("http://www.example.org/authz", None)],
+        'client_secret': 'very_secret',
         "post_logout_redirect_uris": [
             ("https://www.example.org/post_logout", None)],
         "client_salt": "salted",
@@ -1687,27 +1689,14 @@ class TestProvider(object):
         payload = self.provider.encrypt('payload', {}, 'some_client')
         assert payload == 'payload'
 
-    def test_encrypt_missing_jwks(self):
+    def test_encrypt_missing_recuperated(self):
         self.provider.keyjar = KeyJar()  # Empty keyjar, all keys are lost
         with open(os.path.join(BASE_PATH, 'jwk_enc.json')) as keyf:
             key = keyf.read()
         info = {
                 'id_token_encrypted_response_alg': 'A128KW',
                 'id_token_encrypted_response_enc': 'A128CBC-HS256',
-                'jwks': json.loads(key)}
-        payload = self.provider.encrypt('payload', info, 'some_client')
-        token = JWEnc().unpack(payload)
-        headers = json.loads(token.protected_header().decode())
-        assert headers['alg'] == 'A128KW'
-        assert headers['enc'] == 'A128CBC-HS256'
-
-    def test_encrypt_missing_jwks_uri(self):
-        self.provider.keyjar = KeyJar()  # Empty keyjar, all keys are lost
-        with open(os.path.join(BASE_PATH, 'jwk_enc.json')) as keyf:
-            key = keyf.read()
-        info = {
-                'id_token_encrypted_response_alg': 'A128KW',
-                'id_token_encrypted_response_enc': 'A128CBC-HS256',
+                'client_secret': 'some_secret',
                 'jwks_uri': 'http://example.com/key'}
         with responses.RequestsMock() as rsps:
             rsps.add(responses.GET, 'http://example.com/key', body=key, content_type='application/json')
@@ -1717,10 +1706,46 @@ class TestProvider(object):
         assert headers['alg'] == 'A128KW'
         assert headers['enc'] == 'A128CBC-HS256'
 
-    def test_encrypt_missing_both(self):
+    def test_encrypt_missing_not_recuperated(self):
+        self.provider.keyjar = KeyJar()  # Empty keyjar, all keys are lost
+        info = {
+                'id_token_encrypted_response_alg': 'RSA1_5',
+                'id_token_encrypted_response_enc': 'A128CBC-HS256',
+                'client_secret': 'some_secret'}
+        with pytest.raises(JWEException):
+            self.provider.encrypt('payload', info, 'some_client')
+
+    def test_recuperate_jwks(self):
+        self.provider.keyjar = KeyJar()  # Empty keyjar, all keys are lost
+        with open(os.path.join(BASE_PATH, 'jwk_enc.json')) as keyf:
+            key = keyf.read()
+        info = {
+                'id_token_encrypted_response_alg': 'A128KW',
+                'id_token_encrypted_response_enc': 'A128CBC-HS256',
+                'client_secret': 'some_secret',
+                'jwks': json.loads(key)}
+        self.provider.recuperate_keys('some_client', info)
+        assert len(self.provider.keyjar.get_issuer_keys('some_client')) == 3
+
+    def test_recuperate_jwks_uri(self):
+        self.provider.keyjar = KeyJar()  # Empty keyjar, all keys are lost
+        with open(os.path.join(BASE_PATH, 'jwk_enc.json')) as keyf:
+            key = keyf.read()
+        info = {
+                'id_token_encrypted_response_alg': 'A128KW',
+                'id_token_encrypted_response_enc': 'A128CBC-HS256',
+                'client_secret': 'some_secret',
+                'jwks_uri': 'http://example.com/key'}
+        with responses.RequestsMock() as rsps:
+            rsps.add(responses.GET, 'http://example.com/key', body=key, content_type='application/json')
+            self.provider.recuperate_keys('some_client', info)
+            assert len(self.provider.keyjar.get_issuer_keys('some_client')) == 3
+
+    def test_recuperate_none(self):
         self.provider.keyjar = KeyJar()  # Empty keyjar, all keys are lost
         info = {
                 'id_token_encrypted_response_alg': 'A128KW',
-                'id_token_encrypted_response_enc': 'A128CBC-HS256'}
-        with pytest.raises(NoSuitableSigningKeys):
-            self.provider.encrypt('payload', info, 'some_client')
+                'id_token_encrypted_response_enc': 'A128CBC-HS256',
+                'client_secret': 'some_secret'}
+        self.provider.recuperate_keys('some_client', info)
+        assert len(self.provider.keyjar.get_issuer_keys('some_client')) == 2

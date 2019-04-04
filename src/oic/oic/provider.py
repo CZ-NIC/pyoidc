@@ -10,6 +10,7 @@ import time
 import traceback
 import warnings
 from functools import cmp_to_key
+from typing import Dict
 from urllib.parse import parse_qs
 from urllib.parse import splitquery  # type: ignore
 from urllib.parse import unquote
@@ -758,9 +759,7 @@ class Provider(AProvider):
         _cid = areq["client_id"]
         cinfo = self.cdb[str(_cid)]
         if _cid not in self.keyjar.issuer_keys:
-            if "jwks_uri" in cinfo:
-                self.keyjar.issuer_keys[_cid] = []
-                self.keyjar.add(_cid, cinfo["jwks_uri"])
+            self.recuperate_keys(_cid, cinfo)
 
         req_user = self.required_user(areq)
         if req_user:
@@ -841,6 +840,22 @@ class Provider(AProvider):
         else:
             return None
 
+    def recuperate_keys(self, cid: str, client_info: Dict[str, str]) -> None:
+        """Try to recuperate lost keys."""
+        msg = "Lost keys for %s trying to recuperate!"
+        logger.warning(msg, cid)
+
+        self.keyjar.issuer_keys[cid] = []
+        # Add client secret as a symmetric key
+        self.keyjar.add_symmetric(cid, client_info['client_secret'], usage=['enc', 'sig'])
+        # Try to renew from jwks or jwks_uri
+        if client_info.get('jwks_uri') is not None:
+            self.keyjar.add(cid, client_info["jwks_uri"])
+        elif client_info.get('jwks') is not None:
+            self.keyjar.import_jwks(client_info['jwks'], cid)
+        else:
+            logger.warning('No keys to recover.')
+
     def encrypt(self, payload, client_info, cid, val_type="id_token", cty=""):
         """
         Handle the encryption of a payload.
@@ -867,19 +882,7 @@ class Provider(AProvider):
 
         logger.debug("alg=%s, enc=%s, val_type=%s" % (alg, enc, val_type))
         if cid not in self.keyjar:
-            # Weird, but try to recuperate
-            msg = "Lost keys for %s trying to recuperate!"
-            logger.warning(msg, cid)
-
-            self.keyjar.issuer_keys[cid] = []
-            if client_info.get('jwks_uri') is not None:
-                self.keyjar.add(cid, client_info["jwks_uri"])
-            elif client_info.get('jwks') is not None:
-                self.keyjar.import_jwks(client_info['jwks'], cid)
-            else:
-                logger.error('No keys to recover.')
-                raise NoSuitableSigningKeys()
-
+            self.recuperate_keys(cid, client_info)
         keys = self.keyjar.get_encrypt_key(owner=cid)
         kwargs = {"alg": alg, "enc": enc}
         if cty:
