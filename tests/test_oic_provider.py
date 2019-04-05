@@ -1715,6 +1715,32 @@ class TestProvider(object):
         with pytest.raises(JWEException):
             self.provider.encrypt('payload', info, 'some_client')
 
+    def test_encrypt_userinfo_missing_recuperated(self):
+        self.provider.keyjar = KeyJar()  # Empty keyjar, all keys are lost
+        with open(os.path.join(BASE_PATH, 'jwk_enc.json')) as keyf:
+            key = keyf.read()
+        info = {
+                'userinfo_encrypted_response_alg': 'A128KW',
+                'userinfo_encrypted_response_enc': 'A128CBC-HS256',
+                'client_secret': 'some_secret',
+                'jwks_uri': 'http://example.com/key'}
+        with responses.RequestsMock() as rsps:
+            rsps.add(responses.GET, 'http://example.com/key', body=key, content_type='application/json')
+            payload = self.provider.encrypt('payload', info, 'some_client', val_type='userinfo')
+        token = JWEnc().unpack(payload)
+        headers = json.loads(token.protected_header().decode())
+        assert headers['alg'] == 'A128KW'
+        assert headers['enc'] == 'A128CBC-HS256'
+
+    def test_encrypt_missing_userinfo_not_recuperated(self):
+        self.provider.keyjar = KeyJar()  # Empty keyjar, all keys are lost
+        info = {
+                'userinfo_encrypted_response_alg': 'RSA1_5',
+                'userinfo_encrypted_response_enc': 'A128CBC-HS256',
+                'client_secret': 'some_secret'}
+        with pytest.raises(JWEException):
+            self.provider.encrypt('payload', info, 'some_client', val_type='userinfo')
+
     def test_recuperate_jwks(self):
         self.provider.keyjar = KeyJar()  # Empty keyjar, all keys are lost
         with open(os.path.join(BASE_PATH, 'jwk_enc.json')) as keyf:
