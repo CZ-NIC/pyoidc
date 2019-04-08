@@ -3,9 +3,9 @@ import os
 
 import pytest
 
-from oic.extension.client import ClientInfoResponse
 from oic.extension.client import ClientRegistrationError
-from oic.extension.client import RegistrationRequest
+from oic.extension.message import ClientInfoResponse
+from oic.extension.message import RegistrationRequest
 from oic.extension.message import make_software_statement
 from oic.extension.message import unpack_software_statement
 from oic.extension.provider import Provider

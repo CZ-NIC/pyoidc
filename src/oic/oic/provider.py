@@ -54,21 +54,15 @@ from oic.oic import Server
 from oic.oic import claims_match
 from oic.oic import scope2claims
 from oic.oic.message import SCOPE2CLAIMS
-from oic.oic.message import AccessTokenRequest
 from oic.oic.message import AccessTokenResponse
-from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import Claims
 from oic.oic.message import ClientRegistrationErrorResponse
-from oic.oic.message import DiscoveryRequest
-from oic.oic.message import DiscoveryResponse
-from oic.oic.message import EndSessionRequest
 from oic.oic.message import IdToken
+from oic.oic.message import OIDCMessageFactory
 from oic.oic.message import OpenIDRequest
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import ProviderConfigurationResponse
-from oic.oic.message import RegistrationRequest
-from oic.oic.message import RegistrationResponse
 from oic.utils import sort_sign_alg
 from oic.utils.http_util import OAUTH2_NOCACHE_HEADERS
 from oic.utils.http_util import BadRequest
@@ -205,21 +199,21 @@ CAPABILITIES = {
 
 
 class Provider(AProvider):
-    atr_class = AccessTokenRequest
 
     def __init__(self, name, sdb, cdb, authn_broker, userinfo, authz,
                  client_authn, symkey=None, urlmap=None, keyjar=None,
                  hostname="", template_lookup=None, template=None,
                  verify_ssl=True, capabilities=None, schema=OpenIDSchema,
                  jwks_uri='', jwks_name='', baseurl=None, client_cert=None,
-                 extra_claims=None, template_renderer=render_template, extra_scope_dict=None):
+                 extra_claims=None, template_renderer=render_template, extra_scope_dict=None,
+                 message_factory=OIDCMessageFactory):
 
         AProvider.__init__(self, name, sdb, cdb, authn_broker, authz,
                            client_authn, symkey, urlmap,
-                           verify_ssl=verify_ssl, client_cert=client_cert)
+                           verify_ssl=verify_ssl, client_cert=client_cert, message_factory=message_factory)
 
         # Should be a OIC Server not an OAuth2 server
-        self.server = Server(keyjar=keyjar, verify_ssl=verify_ssl)
+        self.server = Server(keyjar=keyjar, verify_ssl=verify_ssl, message_factory=message_factory)
         # Same keyjar
         self.keyjar = self.server.keyjar
 
@@ -529,7 +523,7 @@ class Provider(AProvider):
         return cookie_dealer, client_id, sids
 
     def end_session_endpoint(self, request="", cookie=None, **kwargs):
-        esr = EndSessionRequest().from_urlencoded(request)
+        esr = self.server.message_factory.get_request_type('endsession_endpoint')().from_urlencoded(request)
 
         logger.debug("End session request: {}", sanitize(esr.to_dict()))
 
@@ -736,10 +730,13 @@ class Provider(AProvider):
 
         return req
 
-    def auth_init(self, request, request_class=AuthorizationRequest):
+    def auth_init(self, request, request_class=None):
         """Overriden since the filter_request can throw an InvalidRequest."""
+        if request_class is not None:
+            warnings.warn('Passing `request_class` is deprecated. Please use `message_factory` instead.',
+                          DeprecationWarning, stacklevel=2)
         try:
-            return super(Provider, self).auth_init(request, request_class)
+            return super().auth_init(request, request_class)
         except InvalidRequest as err:
             return error_response('invalid_request', '%s' % err)
 
@@ -749,7 +746,7 @@ class Provider(AProvider):
 
         :param request: The client request
         """
-        info = self.auth_init(request, request_class=AuthorizationRequest)
+        info = self.auth_init(request)
         if isinstance(info, Response):
             return info
 
@@ -990,7 +987,8 @@ class Provider(AProvider):
 
         _log_debug("_tinfo: %s" % sanitize(_tinfo))
 
-        atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
+        response_cls = self.server.message_factory.get_response_type('token_endpoint')
+        atr = response_cls(**by_schema(response_cls, **_tinfo))
 
         logger.info("access_token_response: %s" % sanitize(atr.to_dict()))
 
@@ -1029,7 +1027,8 @@ class Provider(AProvider):
 
         _log_debug("_info: %s" % sanitize(_info))
 
-        atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_info))
+        response_cls = self.server.message_factory.get_response_type('token_endpoint')
+        atr = response_cls(**by_schema(response_cls, **_info))
 
         logger.info("access_token_response: %s" % sanitize(atr.to_dict()))
 
@@ -1477,10 +1476,11 @@ class Provider(AProvider):
     def create_registration(self, authn=None, request=None, **kwargs):
         logger.debug("@registration_endpoint: <<%s>>" % sanitize(request))
 
+        request_cls = self.server.message_factory.get_request_type('registration_endpoint')
         try:
-            request = RegistrationRequest().deserialize(request, "json")
+            request = request_cls().deserialize(request, "json")
         except ValueError:
-            request = RegistrationRequest().deserialize(request)
+            request = request_cls().deserialize(request)
 
         logger.info("registration_request:%s" % sanitize(request.to_dict()))
 
@@ -1546,11 +1546,12 @@ class Provider(AProvider):
         if isinstance(_cinfo, Response):
             return _cinfo
 
+        response_cls = self.server.message_factory.get_response_type('registration_endpoint')
         args = dict([(k, v) for k, v in _cinfo.items()
-                     if k in RegistrationResponse.c_param])
+                     if k in response_cls.c_param])
 
         self.comb_uri(args)
-        response = RegistrationResponse(**args)
+        response = response_cls(**args)
 
         # Add the client_secret as a symmetric key to the keyjar
         if client_secret:
@@ -1612,11 +1613,12 @@ class Provider(AProvider):
             return Unauthorized()
 
         logger.debug("Client '%s' reads client info" % client_id)
+        response_cls = self.server.message_factory.get_response_type('registration_endpoint')
         args = dict([(k, v) for k, v in self.cdb[client_id].items()
-                     if k in RegistrationResponse.c_param])
+                     if k in response_cls.c_param])
 
         self.comb_uri(args)
-        response = RegistrationResponse(**args)
+        response = response_cls(**args)
 
         return Response(response.to_json(), content="application/json",
                         headers=[("Cache-Control", "no-store")])
@@ -1643,7 +1645,7 @@ class Provider(AProvider):
         return error_response('Unsupported operation', descr='Deletion of the registration is not supported',
                               status_code=403)
 
-    def create_providerinfo(self, pcr_class=ProviderConfigurationResponse,
+    def create_providerinfo(self, pcr_class=None,
                             setup=None):
         """
         Dynamically create the provider info response.
@@ -1652,6 +1654,11 @@ class Provider(AProvider):
         :param setup:
         :return:
         """
+        if pcr_class is not None:
+            warnings.warn('Passing `pcr_class` is deprecated. Please use `message_factory.',
+                          DeprecationWarning, stacklevel=2)
+        else:
+            pcr_class = self.server.message_factory.get_response_type('configuration_endpoint')
         _provider_info = copy.deepcopy(self.capabilities.to_dict())
 
         if self.jwks_uri and self.keyjar:
@@ -1674,13 +1681,18 @@ class Provider(AProvider):
 
         return pcr_class(**_provider_info)
 
-    def provider_features(self, pcr_class=ProviderConfigurationResponse):
+    def provider_features(self, pcr_class=None):
         """
         Specify what the server capabilities are.
 
         :param pcr_class:
         :return: ProviderConfigurationResponse instance
         """
+        if pcr_class is not None:
+            warnings.warn('Passing `pcr_class` is deprecated. Please use `message_factory.',
+                          DeprecationWarning, stacklevel=2)
+        else:
+            pcr_class = self.server.message_factory.get_response_type('configuration_endpoint')
         _provider_info = pcr_class(**CAPABILITIES)
 
         # Parse scopes
@@ -1808,7 +1820,8 @@ class Provider(AProvider):
 
         _log_debug("@discovery_endpoint")
 
-        request = DiscoveryRequest().deserialize(request, "urlencoded")
+        request = self.server.message_factory.get_request_type('discovery_endpoint')().deserialize(request,
+                                                                                                   "urlencoded")
         _log_debug("discovery_request:%s" % (sanitize(request.to_dict()),))
 
         if request["service"] != SWD_ISSUER:
@@ -1816,7 +1829,7 @@ class Provider(AProvider):
 
         # verify that the principal is one of mine
 
-        _response = DiscoveryResponse(locations=[self.baseurl])
+        _response = self.server.message_factory.get_response_type('discovery_endpoint')(locations=[self.baseurl])
 
         _log_debug("discovery_response:%s" % (sanitize(_response.to_dict()),))
 
@@ -1850,7 +1863,7 @@ class Provider(AProvider):
 
     def create_authn_response(self, areq, sid):
         # create the response
-        aresp = AuthorizationResponse()
+        aresp = self.server.message_factory.get_response_type('authorization_endpoint')()
         try:
             aresp["state"] = areq["state"]
         except KeyError:

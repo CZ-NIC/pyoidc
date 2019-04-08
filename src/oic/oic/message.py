@@ -4,6 +4,7 @@ import logging
 import sys
 import time
 import urllib
+import warnings
 from urllib.parse import urlparse
 
 from jwkest import jws
@@ -27,6 +28,8 @@ from oic.oauth2.message import SINGLE_OPTIONAL_JSON
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
 from oic.oauth2.message import Message
+from oic.oauth2.message import MessageFactory
+from oic.oauth2.message import MessageTuple
 from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import MissingRequiredValue
 from oic.oauth2.message import NotAllowedValue
@@ -951,6 +954,7 @@ MSG = {
 
 
 def factory(msgtype):
+    warnings.warn('`factory` is deprecated. Use `OIDCMessageFactory` instead.', DeprecationWarning)
     for _, obj in inspect.getmembers(sys.modules[__name__]):
         if inspect.isclass(obj) and issubclass(obj, Message):
             try:
@@ -961,3 +965,22 @@ def factory(msgtype):
 
     # Fall back to basic OAuth2 messages
     return message.factory(msgtype)
+
+
+class OIDCMessageFactory(MessageFactory):
+    """Factory that knows OIDC message types."""
+
+    authorization_endpoint = MessageTuple(AuthorizationRequest, AuthorizationResponse)
+    token_endpoint = MessageTuple(AccessTokenRequest, AccessTokenResponse)
+    refresh_endpoint = MessageTuple(RefreshAccessTokenRequest, AccessTokenResponse)
+    resource_endpoint = MessageTuple(ResourceRequest, Message)
+    configuration_endpoint = MessageTuple(Message, ProviderConfigurationResponse)
+
+    userinfo_endpoint = MessageTuple(UserInfoRequest, Message)
+    registration_endpoint = MessageTuple(RegistrationRequest, RegistrationResponse)
+    endsession_endpoint = MessageTuple(EndSessionRequest, EndSessionResponse)
+    checkid_endpoint = MessageTuple(CheckIDRequest, IdToken)
+    checksession_endpoint = MessageTuple(CheckSessionRequest, IdToken)
+    endsession_endpoint = MessageTuple(EndSessionRequest, EndSessionResponse)
+    refreshsession_endpoint = MessageTuple(RefreshSessionRequest, RefreshSessionResponse)
+    discovery_endpoint = MessageTuple(DiscoveryRequest, DiscoveryResponse)

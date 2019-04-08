@@ -15,6 +15,8 @@ from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import Message
+from oic.oauth2.message import MessageTuple
+from oic.oauth2.message import OauthMessageFactory
 from oic.oauth2.message import ParamDefinition
 from oic.oic.message import JasonWebToken
 from oic.utils.http_util import SUCCESSFUL
@@ -253,3 +255,13 @@ def make_software_statement(keyjar, iss, **kwargs):
 def unpack_software_statement(software_statement, iss, keyjar):
     _jwt = JWT(keyjar, iss=iss, msgtype=SoftwareStatement)
     return _jwt.unpack(software_statement)
+
+
+class ExtensionMessageFactory(OauthMessageFactory):
+    """Message factory for Extension code."""
+
+    introspection_endpoint = MessageTuple(TokenIntrospectionRequest, TokenIntrospectionResponse)
+    revocation_endpoint = MessageTuple(TokenRevocationRequest, Message)
+    registration_endpoint = MessageTuple(RegistrationRequest, ClientInfoResponse)
+    update_endpoint = MessageTuple(ClientUpdateRequest, ClientInfoResponse)
+    delete_endpoint = MessageTuple(ClientUpdateRequest, ClientInfoResponse)
