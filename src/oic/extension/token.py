@@ -30,8 +30,9 @@ class JWTToken(Token, JWT):
 
     def __init__(self, typ, keyjar, lt_pattern=None, extra_claims=None, **kwargs):
         self.type = typ
-        JWT.__init__(self, keyjar, msgtype=TokenAssertion, **kwargs)
         Token.__init__(self, typ, **kwargs)
+        kwargs.pop("token_storage", None)
+        JWT.__init__(self, keyjar, msgtype=TokenAssertion, **kwargs)
         self.lt_pattern = lt_pattern or {}
         self.db = {}  # type: Dict[str,str]
         self.session_info = {"": 600}

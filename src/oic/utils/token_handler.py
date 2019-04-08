@@ -47,7 +47,11 @@ class TokenHandler(object):
 
         if refresh_token_factory is None:
             self.refresh_token_factory = JWTToken(
-                "R", keyjar=keyjar, iss="https://example.com/as", sign_alg=sign_alg
+                "R",
+                keyjar=keyjar,
+                iss="https://example.com/as",
+                sign_alg=sign_alg,
+                token_storage={},
             )
         else:
             self.refresh_token_factory = refresh_token_factory

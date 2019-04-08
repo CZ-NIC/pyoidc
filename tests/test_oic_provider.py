@@ -1884,10 +1884,36 @@ class TestProvider(object):
         assert atr["error_description"] == "Not a refresh token"
 
     def test_refresh_token_grant_type_expired(self):
-        # Missing refresh_token also raises Expired
+        authreq = AuthorizationRequest(
+            state="state",
+            redirect_uri="http://example.com/authz",
+            client_id=CLIENT_ID,
+            response_type="code",
+            scope=["openid", "offline_access"],
+            prompt="consent",
+        )
+
+        _sdb = self.provider.sdb
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
+        access_grant = _sdb.access_token(sid=sid)
+        ae = AuthnEvent("user", "salt")
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "authn_event": ae.to_json(),
+            "authzreq": authreq.to_json(),
+            "client_id": CLIENT_ID,
+            "code": access_grant,
+            "code_used": False,
+            "scope": ["openid", "offline_access"],
+            "redirect_uri": "http://example.com/authz",
+        }
+        _sdb.do_sub(sid, "client_salt")
+        with freeze_time("2000-01-01"):
+            info = _sdb.upgrade_to_token(access_grant, issue_refresh=True)
+
         rareq = RefreshAccessTokenRequest(
             grant_type="refresh_token",
-            refresh_token="Refresh_some_other_refresh_token",
+            refresh_token=info["refresh_token"],
             client_id=CLIENT_ID,
             client_secret=CLIENT_SECRET,
             scope=["openid"],
