@@ -8,11 +8,13 @@ import uuid
 import warnings
 from abc import ABCMeta
 from abc import abstractmethod
+from binascii import Error
 from typing import Dict  # noqa
 from typing import List  # noqa
 from typing import Optional  # noqa
 
 from cryptography.fernet import Fernet
+from cryptography.fernet import InvalidToken
 
 from oic import rndstr
 from oic.exception import ImproperlyConfigured
@@ -84,10 +86,16 @@ class Crypt(object):
 
 
 class Token(object):
-    def __init__(self, typ, lifetime=0, **kwargs):
+    def __init__(self, typ, lifetime=0, token_storage=None, **kwargs):
         self.type = typ
         self.lifetime = lifetime
         self.args = kwargs
+        if typ == "R":
+            if token_storage is None:
+                raise ImproperlyConfigured(
+                    "token_storage kwarg must be passed in for refresh token."
+                )
+        self.token_storage = token_storage
 
     def __call__(self, sid, *args, **kwargs):
         """
@@ -148,11 +156,23 @@ class Token(object):
         return bool(now > eat)
 
     def invalidate(self, token):
-        pass
+        """Mark the refresh token as invalidated."""
+        if self.get_type(token) != "R":
+            return
+        sid = self.get_key(token)
+        self.token_storage[sid]["revoked"] = True
 
     def valid(self, token):
-        self.type_and_key(token)
-        return True
+        try:
+            typ, key = self.type_and_key(token)
+        except (Error, InvalidToken):
+            raise WrongTokenType()
+        if typ != self.type:
+            raise WrongTokenType()
+        if typ == "R":
+            return not self.token_storage[key].get("revoked", False)
+        else:
+            return True
 
 
 class DefaultToken(Token):
@@ -180,6 +200,9 @@ class DefaultToken(Token):
             rnd = rndstr(32)  # Ultimate length multiple of 16
 
         issued_at = "{}".format(utc_time_sans_frac())
+        if ttype == "R":
+            # kwargs["sinfo"] is a dictionary and we do not want updates...
+            self.token_storage[sid] = copy.deepcopy(kwargs["sinfo"])
 
         return base64.b64encode(
             self.crypt.encrypt(lv_pack(rnd, ttype, sid, issued_at).encode())
@@ -293,6 +316,13 @@ class AuthnEvent(object):
 class RefreshDB(object):
     """Database for refresh token storage."""
 
+    def __init__(self):
+        warnings.warn(
+            "Using `RefreshDB` is deprecated, please use `Token` and `refresh_token_factory` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
     def get(self, refresh_token):
         """
         Retrieve info about the authentication proces from the refresh token.
@@ -365,6 +395,11 @@ class DictRefreshDB(RefreshDB):
 
     def __init__(self):
         super(DictRefreshDB, self).__init__()
+        warnings.warn(
+            "Using `DictRefreshDB` is deprecated, please use `Token` and `refresh_token_factory` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._db = {}  # type: Dict[str, Dict[str, str]]
 
     def get(self, refresh_token):
@@ -408,6 +443,9 @@ def create_session_db(
     code_factory = DefaultToken(secret, password, typ="A", lifetime=grant_expires_in)
     token_factory = DefaultToken(secret, password, typ="T", lifetime=token_expires_in)
     db = DictSessionBackend() if db is None else db
+    refresh_token_factory = DefaultToken(
+        secret, password, typ="R", lifetime=refresh_token_expires_in, token_storage={}
+    )
 
     return SessionDB(
         base_url,
@@ -415,8 +453,7 @@ def create_session_db(
         refresh_db=None,
         code_factory=code_factory,
         token_factory=token_factory,
-        refresh_token_expires_in=refresh_token_expires_in,
-        refresh_token_factory=None,
+        refresh_token_factory=refresh_token_factory,
     )
 
 
@@ -523,7 +560,7 @@ class SessionDB(object):
         base_url,
         db,
         refresh_db=None,
-        refresh_token_expires_in=86400,
+        refresh_token_expires_in=None,
         token_factory=None,
         code_factory=None,
         refresh_token_factory=None,
@@ -533,6 +570,12 @@ class SessionDB(object):
 
         :param db: Database for storing the session information.
         """
+        if refresh_token_expires_in is not None:
+            warnings.warn(
+                "Setting a `refresh_token_expires_in` has no effect, please set the expiration on "
+                "`refresh_token_factory`.",
+                DeprecationWarning,
+            )
         self.base_url = base_url
         if not isinstance(db, SessionBackend):
             warnings.warn(
@@ -557,9 +600,16 @@ class SessionDB(object):
             self.token_factory["refresh_token"] = refresh_token_factory
             self.token_factory_order.append("refresh_token")
         elif refresh_db:
+            warnings.warn(
+                "Using `refresh_db` is deprecated, please use `refresh_token_factory`",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             self._refresh_db = refresh_db
         else:
-            self._refresh_db = DictRefreshDB()
+            # Not configured
+            self._refresh_db = None
+            self.token_factory["refresh_token"] = None
 
         self.access_token = self.token_factory["access_token"]
         self.token = self.access_token
@@ -797,9 +847,10 @@ class SessionDB(object):
                     dic["authzreq"],
                     key,
                 )
-            else:
+                dic["refresh_token"] = refresh_token
+            elif self.token_factory["refresh_token"] is not None:
                 refresh_token = self.token_factory["refresh_token"](key, sinfo=dic)
-            dic["refresh_token"] = refresh_token
+                dic["refresh_token"] = refresh_token
         self._db[key] = dic
         return dic
 
@@ -841,9 +892,17 @@ class SessionDB(object):
                         self.access_token.invalidate(at)
             else:
                 raise ExpiredToken()
+        elif self.token_factory["refresh_token"] is None:
+            raise WrongTokenType()
         elif self.token_factory["refresh_token"].valid(rtoken):
+            if self.token_factory["refresh_token"].is_expired(rtoken):
+                raise ExpiredToken()
             sid = self.token_factory["refresh_token"].get_key(rtoken)
-            dic = self._db[sid]
+            try:
+                dic = self._db[sid]
+            except KeyError:
+                # Session is cleared, use the storage in token factory
+                dic = self.token_factory["refresh_token"].token_storage[sid]
             access_token = self.access_token(sid=sid, sinfo=dic)
 
             try:
@@ -898,6 +957,11 @@ class SessionDB(object):
             if not self.access_token.valid(token):
                 return False
 
+        elif typ == "R":
+            if self.token_factory["refresh_token"] is None:
+                return False
+            if not self.token_factory["refresh_token"].valid(token):
+                return False
         return True
 
     def is_revoked(self, sid):
@@ -925,7 +989,7 @@ class SessionDB(object):
         """
         if self._refresh_db:
             self._refresh_db.revoke_token(rtoken)
-        else:
+        elif self.token_factory["refresh_token"] is not None:
             self.token_factory["refresh_token"].invalidate(rtoken)
 
         return True

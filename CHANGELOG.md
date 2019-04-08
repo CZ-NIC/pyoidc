@@ -30,6 +30,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#629] Duplicated methods in oic.oic classes were removed.
 - [#642] Deprecated `bearer_auth` method.
 - [#631] Refactored message type handling in Client/Provider.
+- [#644] refresh_db kwarg in SessionDB has been deprecated
 
 ### Added
 - [#655] Host can be forced on webfinger discovery
@@ -58,6 +59,7 @@ The format is based on the [KeepAChangeLog] project.
 [#638]: https://github.com/OpenIDC/pyoidc/issues/638
 [#146]: https://github.com/OpenIDC/pyoidc/issues/146
 [#664]: https://github.com/OpenIDC/pyoidc/pull/664
+[#644]: https://github.com/OpenIDC/pyoidc/pull/644
 
 ## 0.15.1 [2019-01-31]
 
