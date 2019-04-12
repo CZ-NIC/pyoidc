@@ -13,20 +13,19 @@ from oic.oauth2 import compact
 from oic.utils.jwt import JWT
 from oic.utils.keyio import KeyBundle
 
-__author__ = 'roland'
+__author__ = "roland"
 
 
-def sign_http_args(method, url, headers, body=''):
+def sign_http_args(method, url, headers, body=""):
     p = urlparse(url)
 
-    kwargs = {'path': p.path, 'host': p.netloc, 'headers': headers,
-              'method': method}
+    kwargs = {"path": p.path, "host": p.netloc, "headers": headers, "method": method}
 
     if body:
-        kwargs['body'] = body
+        kwargs["body"] = body
 
     query_params = compact(parse_qs(p.query))
-    kwargs['query_params'] = query_params
+    kwargs["query_params"] = query_params
     return kwargs
 
 
@@ -37,23 +36,22 @@ class PoPCallBack(object):
 
     def __call__(self, method, url, **kwargs):
         try:
-            body = kwargs['body']
+            body = kwargs["body"]
         except KeyError:
             body = None
         try:
-            headers = kwargs['headers']
+            headers = kwargs["headers"]
         except KeyError:
             headers = {}
 
         _kwargs = sign_http_args(method, url, headers, body)
         shr = SignedHttpRequest(self.key)
-        kwargs['Authorization'] = 'pop {}'.format(shr.sign(alg=self.alg,
-                                                           **_kwargs))
+        kwargs["Authorization"] = "pop {}".format(shr.sign(alg=self.alg, **_kwargs))
         return kwargs
 
 
 class PoPClient(object):
-    def __init__(self, key_size=2048, sign_alg='RS256'):
+    def __init__(self, key_size=2048, sign_alg="RS256"):
         self.key_size = key_size
         self.state2key = {}
         self.token2key = {}
@@ -73,7 +71,7 @@ class PoPClient(object):
 
         key = RSAKey(key=RSA.generate(key_size))
         self.state2key[state] = key
-        msg['key'] = json.dumps(key.serialize())
+        msg["key"] = json.dumps(key.serialize())
         return msg
 
     def handle_access_token_response(self, resp):
@@ -82,7 +80,7 @@ class PoPClient(object):
 
         :param resp: AccessTokenResponse instance
         """
-        self.token2key[resp['access_token']] = self.state2key[resp['state']]
+        self.token2key[resp["access_token"]] = self.state2key[resp["state"]]
 
 
 class PoPAS(object):
@@ -96,8 +94,7 @@ class PoPAS(object):
         kb.do_keys([key])
 
         # Store key with thumbprint as key
-        key_thumbprint = b64e(kb.keys()[0].thumbprint('SHA-256')).decode(
-            'utf8')
+        key_thumbprint = b64e(kb.keys()[0].thumbprint("SHA-256")).decode("utf8")
         self.thumbprint2key[key_thumbprint] = key
         return key_thumbprint
 
@@ -105,15 +102,14 @@ class PoPAS(object):
         # creating the access_token
         jwt_constructor = JWT(self.keyjar, iss=self.me)
         # Audience is myself
-        return jwt_constructor.pack(
-            kid='abc', cnf={'kid': key_thumbprint}, aud=self.me)
+        return jwt_constructor.pack(kid="abc", cnf={"kid": key_thumbprint}, aud=self.me)
 
     def token_introspection(self, token):
         jwt_constructor = JWT(self.keyjar, iss=self.me)
         res = jwt_constructor.unpack(token)
 
         tir = TokenIntrospectionResponse(active=True)
-        tir['key'] = json.dumps(self.thumbprint2key[res['cnf']['kid']])
+        tir["key"] = json.dumps(self.thumbprint2key[res["cnf"]["kid"]])
 
         return tir
 
@@ -129,14 +125,18 @@ class PoPRS(object):
         :param access_token: The token that was introspected
         :param tir: TokenIntrospectionResponse instance
         """
-        key = load_jwks(json.dumps({'keys': [json.loads(tir['key'])]}))
+        key = load_jwks(json.dumps({"keys": [json.loads(tir["key"])]}))
         self.token2key[access_token] = key
 
-    def eval_signed_http_request(self, pop_token, access_token, method, url,
-                                 headers, body=''):
+    def eval_signed_http_request(
+        self, pop_token, access_token, method, url, headers, body=""
+    ):
         kwargs = sign_http_args(method, url, headers, body)
 
         shr = SignedHttpRequest(self.token2key[access_token][0])
-        return shr.verify(signature=pop_token,
-                          strict_query_params_verification=True,
-                          strict_headers_verification=True, **kwargs)
+        return shr.verify(
+            signature=pop_token,
+            strict_query_params_verification=True,
+            strict_headers_verification=True,
+            **kwargs
+        )

@@ -69,22 +69,26 @@ from oic.utils.sanitize import sanitize
 from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.webfinger import WebFinger
 
-__author__ = 'rohe0002'
+__author__ = "rohe0002"
 
 logger = logging.getLogger(__name__)
 
-ENDPOINTS = ["authorization_endpoint", "token_endpoint",
-             "userinfo_endpoint", "refresh_session_endpoint",
-             "end_session_endpoint", "registration_endpoint",
-             "check_id_endpoint"]
+ENDPOINTS = [
+    "authorization_endpoint",
+    "token_endpoint",
+    "userinfo_endpoint",
+    "refresh_session_endpoint",
+    "end_session_endpoint",
+    "registration_endpoint",
+    "check_id_endpoint",
+]
 
 RESPONSE2ERROR = {
-    "AuthorizationResponse": [AuthorizationErrorResponse,
-                              TokenErrorResponse],
+    "AuthorizationResponse": [AuthorizationErrorResponse, TokenErrorResponse],
     "AccessTokenResponse": [TokenErrorResponse],
     "IdToken": [ErrorResponse],
     "RegistrationResponse": [ClientRegistrationErrorResponse],
-    "OpenIDSchema": [UserInfoErrorResponse]
+    "OpenIDSchema": [UserInfoErrorResponse],
 }  # type: Dict[str, List]
 
 REQUEST2ENDPOINT = {
@@ -101,8 +105,8 @@ REQUEST2ENDPOINT = {
     "RotateSecret": "registration_endpoint",
     # ---
     "ResourceRequest": "resource_endpoint",
-    'TokenIntrospectionRequest': 'introspection_endpoint',
-    'TokenRevocationRequest': 'revocation_endpoint',
+    "TokenIntrospectionRequest": "introspection_endpoint",
+    "TokenRevocationRequest": "revocation_endpoint",
     "ROPCAccessTokenRequest": "token_endpoint",
 }
 
@@ -113,15 +117,15 @@ SAML2_BEARER_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:saml2-bearer"
 
 # This should probably be part of the configuration
 MAX_AUTHENTICATION_AGE = 86400
-DEF_SIGN_ALG = {"id_token": "RS256",
-                "openid_request_object": "RS256",
-                "client_secret_jwt": "HS256",
-                "private_key_jwt": "RS256"}
+DEF_SIGN_ALG = {
+    "id_token": "RS256",
+    "openid_request_object": "RS256",
+    "client_secret_jwt": "HS256",
+    "private_key_jwt": "RS256",
+}
 
 # -----------------------------------------------------------------------------
-ACR_LISTS = [
-    ["0", "1", "2", "3", "4"],
-]
+ACR_LISTS = [["0", "1", "2", "3", "4"]]
 
 
 def verify_acr_level(req, level):
@@ -149,9 +153,14 @@ def deser_id_token(inst, txt=""):
 
 
 # -----------------------------------------------------------------------------
-def make_openid_request(arq, keys=None, userinfo_claims=None,
-                        idtoken_claims=None, request_object_signing_alg=None,
-                        **kwargs):
+def make_openid_request(
+    arq,
+    keys=None,
+    userinfo_claims=None,
+    idtoken_claims=None,
+    request_object_signing_alg=None,
+    **kwargs
+):
     """
     Construct the specification of what I want returned.
 
@@ -213,27 +222,20 @@ class Grant(oauth2.Grant):
 
 PREFERENCE2PROVIDER = {
     "request_object_signing_alg": "request_object_signing_alg_values_supported",
-    "request_object_encryption_alg":
-        "request_object_encryption_alg_values_supported",
-    "request_object_encryption_enc":
-        "request_object_encryption_enc_values_supported",
+    "request_object_encryption_alg": "request_object_encryption_alg_values_supported",
+    "request_object_encryption_enc": "request_object_encryption_enc_values_supported",
     "userinfo_signed_response_alg": "userinfo_signing_alg_values_supported",
-    "userinfo_encrypted_response_alg":
-        "userinfo_encryption_alg_values_supported",
-    "userinfo_encrypted_response_enc":
-        "userinfo_encryption_enc_values_supported",
+    "userinfo_encrypted_response_alg": "userinfo_encryption_alg_values_supported",
+    "userinfo_encrypted_response_enc": "userinfo_encryption_enc_values_supported",
     "id_token_signed_response_alg": "id_token_signing_alg_values_supported",
-    "id_token_encrypted_response_alg":
-        "id_token_encryption_alg_values_supported",
-    "id_token_encrypted_response_enc":
-        "id_token_encryption_enc_values_supported",
+    "id_token_encrypted_response_alg": "id_token_encryption_alg_values_supported",
+    "id_token_encrypted_response_enc": "id_token_encryption_enc_values_supported",
     "default_acr_values": "acr_values_supported",
     "subject_type": "subject_types_supported",
     "token_endpoint_auth_method": "token_endpoint_auth_methods_supported",
-    "token_endpoint_auth_signing_alg":
-        "token_endpoint_auth_signing_alg_values_supported",
+    "token_endpoint_auth_signing_alg": "token_endpoint_auth_signing_alg_values_supported",
     "response_types": "response_types_supported",
-    'grant_types': 'grant_types_supported'
+    "grant_types": "grant_types_supported",
 }
 
 PROVIDER2PREFERENCE = dict([(v, k) for k, v in PREFERENCE2PROVIDER.items()])
@@ -250,29 +252,28 @@ PARAMMAP = {
 }
 
 rt2gt = {
-    'code': ['authorization_code'],
-    'id_token': ['implicit'],
-    'id_token token': ['implicit'],
-    'code id_token': ['authorization_code', 'implicit'],
-    'code token': ['authorization_code', 'implicit'],
-    'code id_token token': ['authorization_code', 'implicit']
+    "code": ["authorization_code"],
+    "id_token": ["implicit"],
+    "id_token token": ["implicit"],
+    "code id_token": ["authorization_code", "implicit"],
+    "code token": ["authorization_code", "implicit"],
+    "code id_token token": ["authorization_code", "implicit"],
 }
 
 
 def response_types_to_grant_types(resp_types, **kwargs):
     _res = set()
 
-    if 'grant_types' in kwargs:
-        _res.update(set(kwargs['grant_types']))
+    if "grant_types" in kwargs:
+        _res.update(set(kwargs["grant_types"]))
 
     for response_type in resp_types:
-        _rt = response_type.split(' ')
+        _rt = response_type.split(" ")
         _rt.sort()
         try:
             _gt = rt2gt[" ".join(_rt)]
         except KeyError:
-            raise ValueError(
-                'No such response type combination: {}'.format(resp_types))
+            raise ValueError("No such response type combination: {}".format(resp_types))
         else:
             _res.update(set(_gt))
 
@@ -302,7 +303,7 @@ def claims_match(value, claimspec):
         elif key == "values":
             if value in val:
                 matched = True
-        elif key == 'essential':
+        elif key == "essential":
             # Whether it's essential or not doesn't change anything here
             continue
 
@@ -310,7 +311,7 @@ def claims_match(value, claimspec):
             break
 
     if matched is False:
-        if list(claimspec.keys()) == ['essential']:
+        if list(claimspec.keys()) == ["essential"]:
             return True
 
     return matched
@@ -319,19 +320,33 @@ def claims_match(value, claimspec):
 class Client(oauth2.Client):
     _endpoints = ENDPOINTS
 
-    def __init__(self, client_id=None,
-                 client_prefs=None, client_authn_method=None, keyjar=None,
-                 verify_ssl=True, config=None, client_cert=None,
-                 requests_dir='requests', message_factory: Type[MessageFactory] = OIDCMessageFactory):
+    def __init__(
+        self,
+        client_id=None,
+        client_prefs=None,
+        client_authn_method=None,
+        keyjar=None,
+        verify_ssl=True,
+        config=None,
+        client_cert=None,
+        requests_dir="requests",
+        message_factory: Type[MessageFactory] = OIDCMessageFactory,
+    ):
 
-        oauth2.Client.__init__(self, client_id,
-                               client_authn_method=client_authn_method,
-                               keyjar=keyjar, verify_ssl=verify_ssl,
-                               config=config, client_cert=client_cert, message_factory=message_factory)
+        oauth2.Client.__init__(
+            self,
+            client_id,
+            client_authn_method=client_authn_method,
+            keyjar=keyjar,
+            verify_ssl=verify_ssl,
+            config=config,
+            client_cert=client_cert,
+            message_factory=message_factory,
+        )
 
         self.file_store = "./file/"
         self.file_uri = "http://localhost/"
-        self.base_url = ''
+        self.base_url = ""
 
         # OpenID connect specific endpoints
         for endpoint in ENDPOINTS:
@@ -346,7 +361,9 @@ class Client(oauth2.Client):
         self.grant_class = Grant
         self.token_class = Token
         self.provider_info = Message()
-        self.registration_response = RegistrationResponse()  # type: RegistrationResponse
+        self.registration_response = (
+            RegistrationResponse()
+        )  # type: RegistrationResponse
         self.client_prefs = client_prefs or {}
 
         self.behaviour = {}  # type: Dict[str, Any]
@@ -406,7 +423,8 @@ class Client(oauth2.Client):
                 encenc = self.behaviour["request_object_encryption_enc"]
             except KeyError:
                 raise MissingRequiredAttribute(
-                    "No request_object_encryption_enc specified")
+                    "No request_object_encryption_enc specified"
+                )
 
         _jwe = JWE(msg, alg=encalg, enc=encenc)
         _kty = jwe.alg2keytype(encalg)
@@ -420,8 +438,7 @@ class Client(oauth2.Client):
             raise MissingRequiredAttribute("No target specified")
 
         if _kid:
-            _keys = self.keyjar.get_encrypt_key(_kty, owner=kwargs["target"],
-                                                kid=_kid)
+            _keys = self.keyjar.get_encrypt_key(_kty, owner=kwargs["target"], kid=_kid)
             _jwe["kid"] = _kid
         else:
             _keys = self.keyjar.get_encrypt_key(_kty, owner=kwargs["target"])
@@ -448,11 +465,11 @@ class Client(oauth2.Client):
             os.makedirs(_filedir)
 
         assert webname.startswith(self.base_url)
-        return webname[len(self.base_url):]
+        return webname[len(self.base_url) :]
 
-    def construct_AuthorizationRequest(self, request=None,
-                                       request_args=None, extra_args=None,
-                                       **kwargs):
+    def construct_AuthorizationRequest(
+        self, request=None, request_args=None, extra_args=None, **kwargs
+    ):
 
         if request_args is not None:
             if "nonce" not in request_args:
@@ -465,7 +482,7 @@ class Client(oauth2.Client):
         else:  # Never wrong to specify a nonce
             request_args = {"nonce": rndstr(32)}
 
-        request_param = kwargs.get('request_param')
+        request_param = kwargs.get("request_param")
         if "request_method" in kwargs:
             if kwargs["request_method"] == "file":
                 request_param = "request_uri"
@@ -473,8 +490,9 @@ class Client(oauth2.Client):
                 request_param = "request"
             del kwargs["request_method"]
 
-        areq = super().construct_AuthorizationRequest(request=request, request_args=request_args, extra_args=extra_args,
-                                                      **kwargs)
+        areq = super().construct_AuthorizationRequest(
+            request=request, request_args=request_args, extra_args=extra_args, **kwargs
+        )
 
         if request_param:
             alg = None
@@ -512,7 +530,7 @@ class Client(oauth2.Client):
                 areq["request"] = _req
             else:
                 try:
-                    _webname = self.registration_response['request_uris'][0]
+                    _webname = self.registration_response["request_uris"][0]
                     filename = self.filename_from_webname(_webname)
                 except KeyError:
                     filename, _webname = self.construct_redirect_uri(**kwargs)
@@ -523,12 +541,12 @@ class Client(oauth2.Client):
 
         return areq
 
-    def construct_UserInfoRequest(self, request=None,
-                                  request_args=None, extra_args=None,
-                                  **kwargs):
+    def construct_UserInfoRequest(
+        self, request=None, request_args=None, extra_args=None, **kwargs
+    ):
 
         if request is None:
-            request = self.message_factory.get_request_type('userinfo_endpoint')
+            request = self.message_factory.get_request_type("userinfo_endpoint")
         if request_args is None:
             request_args = {}
 
@@ -545,23 +563,21 @@ class Client(oauth2.Client):
 
         return self.construct_request(request, request_args, extra_args)
 
-    def construct_RegistrationRequest(self, request=None,
-                                      request_args=None, extra_args=None,
-                                      **kwargs):
+    def construct_RegistrationRequest(
+        self, request=None, request_args=None, extra_args=None, **kwargs
+    ):
         if request is None:
-            request = self.message_factory.get_request_type('registration_endpoint')
+            request = self.message_factory.get_request_type("registration_endpoint")
         return self.construct_request(request, request_args, extra_args)
 
-    def construct_RefreshSessionRequest(self,
-                                        request=None,
-                                        request_args=None, extra_args=None,
-                                        **kwargs):
+    def construct_RefreshSessionRequest(
+        self, request=None, request_args=None, extra_args=None, **kwargs
+    ):
         if request is None:
-            request = self.message_factory.get_request_type('refreshsession_endpoint')
+            request = self.message_factory.get_request_type("refreshsession_endpoint")
         return self.construct_request(request, request_args, extra_args)
 
-    def _id_token_based(self, request, request_args=None, extra_args=None,
-                        **kwargs):
+    def _id_token_based(self, request, request_args=None, extra_args=None, **kwargs):
 
         if request_args is None:
             request_args = {}
@@ -582,29 +598,30 @@ class Client(oauth2.Client):
 
         return self.construct_request(request, request_args, extra_args)
 
-    def construct_CheckSessionRequest(self, request=None,
-                                      request_args=None, extra_args=None,
-                                      **kwargs):
+    def construct_CheckSessionRequest(
+        self, request=None, request_args=None, extra_args=None, **kwargs
+    ):
         if request is None:
-            request = self.message_factory.get_request_type('checksession_endpoint')
+            request = self.message_factory.get_request_type("checksession_endpoint")
 
         return self._id_token_based(request, request_args, extra_args, **kwargs)
 
-    def construct_CheckIDRequest(self, request=None,
-                                 request_args=None,
-                                 extra_args=None, **kwargs):
+    def construct_CheckIDRequest(
+        self, request=None, request_args=None, extra_args=None, **kwargs
+    ):
         if request is None:
-            request = self.message_factory.get_request_type('checkid_endpoint')
+            request = self.message_factory.get_request_type("checkid_endpoint")
         # access_token is where the id_token will be placed
-        return self._id_token_based(request, request_args, extra_args,
-                                    prop="access_token", **kwargs)
+        return self._id_token_based(
+            request, request_args, extra_args, prop="access_token", **kwargs
+        )
 
-    def construct_EndSessionRequest(self, request=None,
-                                    request_args=None, extra_args=None,
-                                    **kwargs):
+    def construct_EndSessionRequest(
+        self, request=None, request_args=None, extra_args=None, **kwargs
+    ):
 
         if request is None:
-            request = self.message_factory.get_request_type('endsession_endpoint')
+            request = self.message_factory.get_request_type("endsession_endpoint")
         if request_args is None:
             request_args = {}
 
@@ -613,73 +630,131 @@ class Client(oauth2.Client):
         elif "state" in request_args:
             kwargs["state"] = request_args["state"]
 
-        return self._id_token_based(request, request_args, extra_args,
-                                    **kwargs)
+        return self._id_token_based(request, request_args, extra_args, **kwargs)
 
-    def do_authorization_request(self, request=None,
-                                 state="", body_type="", method="GET",
-                                 request_args=None, extra_args=None,
-                                 http_args=None, response_cls=None, **kwargs):
+    def do_authorization_request(
+        self,
+        request=None,
+        state="",
+        body_type="",
+        method="GET",
+        request_args=None,
+        extra_args=None,
+        http_args=None,
+        response_cls=None,
+        **kwargs
+    ):
         if request is not None:
-            warnings.warn('Passing `request` is deprecated. Please use `message_factory` instead.', DeprecationWarning,
-                          stacklevel=2)
+            warnings.warn(
+                "Passing `request` is deprecated. Please use `message_factory` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         if response_cls is not None:
-            warnings.warn('Passing `response_cls` is deprecated. Please use `message_factory` instead.',
-                          DeprecationWarning, stacklevel=2)
+            warnings.warn(
+                "Passing `response_cls` is deprecated. Please use `message_factory` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         algs = self.sign_enc_algs("id_token")
 
-        if 'code_challenge' in self.config:
+        if "code_challenge" in self.config:
             _args, code_verifier = self.add_code_challenge()
             request_args.update(_args)
 
-        return super().do_authorization_request(request=request, state=state, body_type=body_type, method=method,
-                                                request_args=request_args, extra_args=extra_args, http_args=http_args,
-                                                response_cls=response_cls, algs=algs)
+        return super().do_authorization_request(
+            request=request,
+            state=state,
+            body_type=body_type,
+            method=method,
+            request_args=request_args,
+            extra_args=extra_args,
+            http_args=http_args,
+            response_cls=response_cls,
+            algs=algs,
+        )
 
-    def do_access_token_request(self, request=None,
-                                scope="", state="", body_type="json",
-                                method="POST", request_args=None,
-                                extra_args=None, http_args=None,
-                                response_cls=None,
-                                authn_method="client_secret_basic", **kwargs):
+    def do_access_token_request(
+        self,
+        request=None,
+        scope="",
+        state="",
+        body_type="json",
+        method="POST",
+        request_args=None,
+        extra_args=None,
+        http_args=None,
+        response_cls=None,
+        authn_method="client_secret_basic",
+        **kwargs
+    ):
 
         if request is not None:
-            warnings.warn('Passing `request` is deprecated. Please use `message_factory` instead.', DeprecationWarning,
-                          stacklevel=2)
+            warnings.warn(
+                "Passing `request` is deprecated. Please use `message_factory` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         if response_cls is not None:
-            warnings.warn('Passing `response_cls` is deprecated. Please use `message_factory` instead.',
-                          DeprecationWarning, stacklevel=2)
-        atr = super().do_access_token_request(request=request, scope=scope, state=state, body_type=body_type,
-                                              method=method, request_args=request_args, extra_args=extra_args,
-                                              http_args=http_args, response_cls=response_cls, authn_method=authn_method,
-                                              **kwargs)
+            warnings.warn(
+                "Passing `response_cls` is deprecated. Please use `message_factory` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        atr = super().do_access_token_request(
+            request=request,
+            scope=scope,
+            state=state,
+            body_type=body_type,
+            method=method,
+            request_args=request_args,
+            extra_args=extra_args,
+            http_args=http_args,
+            response_cls=response_cls,
+            authn_method=authn_method,
+            **kwargs
+        )
         try:
-            _idt = atr['id_token']
+            _idt = atr["id_token"]
         except KeyError:
             pass
         else:
             try:
-                if self.state2nonce[state] != _idt['nonce']:
+                if self.state2nonce[state] != _idt["nonce"]:
                     raise ParameterError('Someone has messed with "nonce"')
             except KeyError:
                 pass
         return atr
 
-    def do_registration_request(self, request=None,
-                                scope="", state="", body_type="json",
-                                method="POST", request_args=None,
-                                extra_args=None, http_args=None,
-                                response_cls=None):
+    def do_registration_request(
+        self,
+        request=None,
+        scope="",
+        state="",
+        body_type="json",
+        method="POST",
+        request_args=None,
+        extra_args=None,
+        http_args=None,
+        response_cls=None,
+    ):
 
         if request is not None:
-            warnings.warn('Passing `request` is deprecated. Please use `message_factory` instead.', DeprecationWarning,
-                          stacklevel=2)
+            warnings.warn(
+                "Passing `request` is deprecated. Please use `message_factory` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            request = self.message_factory.get_request_type('registration_endpoint')
-        url, body, ht_args, csi = self.request_info(request, method=method,
-                                                    request_args=request_args,
-                                                    extra_args=extra_args,
-                                                    scope=scope, state=state)
+            request = self.message_factory.get_request_type("registration_endpoint")
+        url, body, ht_args, csi = self.request_info(
+            request,
+            method=method,
+            request_args=request_args,
+            extra_args=extra_args,
+            scope=scope,
+            state=state,
+        )
 
         if http_args is None:
             http_args = ht_args
@@ -687,106 +762,164 @@ class Client(oauth2.Client):
             http_args.update(http_args)
 
         if response_cls is None:
-            response_cls = self.message_factory.get_response_type('registration_endpoint')
+            response_cls = self.message_factory.get_response_type(
+                "registration_endpoint"
+            )
         else:
-            warnings.warn('Passing `response_cls` is deprecated. Please use `message_factory` instead.',
-                          DeprecationWarning, stacklevel=2)
-        response = self.request_and_return(url, response_cls, method, body,
-                                           body_type, state=state,
-                                           http_args=http_args)
+            warnings.warn(
+                "Passing `response_cls` is deprecated. Please use `message_factory` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        response = self.request_and_return(
+            url, response_cls, method, body, body_type, state=state, http_args=http_args
+        )
         return response
 
-    def do_check_session_request(self, request=None,
-                                 scope="",
-                                 state="", body_type="json", method="GET",
-                                 request_args=None, extra_args=None,
-                                 http_args=None,
-                                 response_cls=None):
+    def do_check_session_request(
+        self,
+        request=None,
+        scope="",
+        state="",
+        body_type="json",
+        method="GET",
+        request_args=None,
+        extra_args=None,
+        http_args=None,
+        response_cls=None,
+    ):
         if request is not None:
-            warnings.warn('Passing `request` is deprecated. Please use `message_factory` instead.',
-                          DeprecationWarning, stacklevel=2)
+            warnings.warn(
+                "Passing `request` is deprecated. Please use `message_factory` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            request = self.message_factory.get_request_type('checksession_endpoint')
+            request = self.message_factory.get_request_type("checksession_endpoint")
         if response_cls is not None:
-            warnings.warn('Passing `response_cls` is deprecated. Please use `message_factory` instead.',
-                          DeprecationWarning, stacklevel=2)
+            warnings.warn(
+                "Passing `response_cls` is deprecated. Please use `message_factory` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            response_cls = self.message_factory.get_response_type('checksession_endpoint')
+            response_cls = self.message_factory.get_response_type(
+                "checksession_endpoint"
+            )
 
-        url, body, ht_args, csi = self.request_info(request, method=method,
-                                                    request_args=request_args,
-                                                    extra_args=extra_args,
-                                                    scope=scope, state=state)
+        url, body, ht_args, csi = self.request_info(
+            request,
+            method=method,
+            request_args=request_args,
+            extra_args=extra_args,
+            scope=scope,
+            state=state,
+        )
 
         if http_args is None:
             http_args = ht_args
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(url, response_cls, method, body,
-                                       body_type, state=state,
-                                       http_args=http_args)
+        return self.request_and_return(
+            url, response_cls, method, body, body_type, state=state, http_args=http_args
+        )
 
-    def do_check_id_request(self, request=None, scope="",
-                            state="", body_type="json", method="GET",
-                            request_args=None, extra_args=None,
-                            http_args=None,
-                            response_cls=None):
+    def do_check_id_request(
+        self,
+        request=None,
+        scope="",
+        state="",
+        body_type="json",
+        method="GET",
+        request_args=None,
+        extra_args=None,
+        http_args=None,
+        response_cls=None,
+    ):
         if request is not None:
-            warnings.warn('Passing `request` is deprecated. Please use `message_factory` instead.',
-                          DeprecationWarning, stacklevel=2)
+            warnings.warn(
+                "Passing `request` is deprecated. Please use `message_factory` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            request = self.message_factory.get_request_type('checkid_endpoint')
+            request = self.message_factory.get_request_type("checkid_endpoint")
         if response_cls is not None:
-            warnings.warn('Passing `response_cls` is deprecated. Please use `message_factory` instead.',
-                          DeprecationWarning, stacklevel=2)
+            warnings.warn(
+                "Passing `response_cls` is deprecated. Please use `message_factory` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            response_cls = self.message_factory.get_response_type('checkid_endpoint')
+            response_cls = self.message_factory.get_response_type("checkid_endpoint")
 
-        url, body, ht_args, csi = self.request_info(request, method=method,
-                                                    request_args=request_args,
-                                                    extra_args=extra_args,
-                                                    scope=scope, state=state)
+        url, body, ht_args, csi = self.request_info(
+            request,
+            method=method,
+            request_args=request_args,
+            extra_args=extra_args,
+            scope=scope,
+            state=state,
+        )
 
         if http_args is None:
             http_args = ht_args
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(url, response_cls, method, body,
-                                       body_type, state=state,
-                                       http_args=http_args)
+        return self.request_and_return(
+            url, response_cls, method, body, body_type, state=state, http_args=http_args
+        )
 
-    def do_end_session_request(self, request=None, scope="",
-                               state="", body_type="", method="GET",
-                               request_args=None, extra_args=None,
-                               http_args=None, response_cls=None):
+    def do_end_session_request(
+        self,
+        request=None,
+        scope="",
+        state="",
+        body_type="",
+        method="GET",
+        request_args=None,
+        extra_args=None,
+        http_args=None,
+        response_cls=None,
+    ):
         if request is not None:
-            warnings.warn('Passing `request` is deprecated. Please use `message_factory` instead.',
-                          DeprecationWarning, stacklevel=2)
+            warnings.warn(
+                "Passing `request` is deprecated. Please use `message_factory` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            request = self.message_factory.get_request_type('endsession_endpoint')
+            request = self.message_factory.get_request_type("endsession_endpoint")
         if response_cls is not None:
-            warnings.warn('Passing `request` is deprecated. Please use `message_factory` instead.',
-                          DeprecationWarning, stacklevel=2)
+            warnings.warn(
+                "Passing `request` is deprecated. Please use `message_factory` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            response_cls = self.message_factory.get_response_type('endsession_endpoint')
-        url, body, ht_args, _ = self.request_info(request, method=method,
-                                                  request_args=request_args,
-                                                  extra_args=extra_args,
-                                                  scope=scope, state=state)
+            response_cls = self.message_factory.get_response_type("endsession_endpoint")
+        url, body, ht_args, _ = self.request_info(
+            request,
+            method=method,
+            request_args=request_args,
+            extra_args=extra_args,
+            scope=scope,
+            state=state,
+        )
 
         if http_args is None:
             http_args = ht_args
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(url, response_cls, method, body,
-                                       body_type, state=state,
-                                       http_args=http_args)
+        return self.request_and_return(
+            url, response_cls, method, body, body_type, state=state, http_args=http_args
+        )
 
     def user_info_request(self, method="GET", state="", scope="", **kwargs):
-        uir = self.message_factory.get_request_type('userinfo_endpoint')()
+        uir = self.message_factory.get_request_type("userinfo_endpoint")()
         logger.debug("[user_info_request]: kwargs:%s" % (sanitize(kwargs),))
         token = None
         if "token" in kwargs:
@@ -807,8 +940,11 @@ class Client(oauth2.Client):
 
             if token.is_valid():
                 uir["access_token"] = token.access_token
-                if token.token_type and token.token_type.lower() == "bearer" \
-                        and method == "GET":
+                if (
+                    token.token_type
+                    and token.token_type.lower() == "bearer"
+                    and method == "GET"
+                ):
                     kwargs["behavior"] = "use_authorization_header"
             else:
                 # raise oauth2.OldAccessToken
@@ -832,7 +968,7 @@ class Client(oauth2.Client):
         if "behavior" in kwargs:
             _behav = kwargs["behavior"]
             _token = uir["access_token"]
-            _ttype = ''
+            _ttype = ""
             try:
                 _ttype = kwargs["token_type"]
             except KeyError:
@@ -842,17 +978,16 @@ class Client(oauth2.Client):
                     except AttributeError:
                         raise MissingParameter("Unspecified token type")
 
-            if 'as_query_parameter' == _behav:
-                method = 'GET'
+            if "as_query_parameter" == _behav:
+                method = "GET"
             elif token:
                 # use_authorization_header, token_in_message_body
                 if "use_authorization_header" in _behav:
                     token_header = "{type} {token}".format(
-                        type=_ttype.capitalize(),
-                        token=_token)
+                        type=_ttype.capitalize(), token=_token
+                    )
                     if "headers" in kwargs:
-                        kwargs["headers"].update(
-                            {"Authorization": token_header})
+                        kwargs["headers"].update({"Authorization": token_header})
                     else:
                         kwargs["headers"] = {"Authorization": token_header}
 
@@ -866,20 +1001,24 @@ class Client(oauth2.Client):
 
         return path, body, method, h_args
 
-    def do_user_info_request(self, method="POST", state="", scope="openid",
-                             request="openid", **kwargs):
+    def do_user_info_request(
+        self, method="POST", state="", scope="openid", request="openid", **kwargs
+    ):
 
         kwargs["request"] = request
-        path, body, method, h_args = self.user_info_request(method, state,
-                                                            scope, **kwargs)
+        path, body, method, h_args = self.user_info_request(
+            method, state, scope, **kwargs
+        )
 
-        logger.debug("[do_user_info_request] PATH:%s BODY:%s H_ARGS: %s" % (
-            sanitize(path), sanitize(body), sanitize(h_args)))
+        logger.debug(
+            "[do_user_info_request] PATH:%s BODY:%s H_ARGS: %s"
+            % (sanitize(path), sanitize(body), sanitize(h_args))
+        )
 
         if self.events:
-            self.events.store('Request', {'body': body})
-            self.events.store('request_url', path)
-            self.events.store('request_http_args', h_args)
+            self.events.store("Request", {"body": body})
+            self.events.store("request_url", path)
+            self.events.store("request_http_args", h_args)
 
         try:
             resp = self.http_request(path, method, data=body, **h_args)
@@ -904,8 +1043,9 @@ class Client(oauth2.Client):
                 self.store_response(res, resp.text)
                 return res
         else:
-            raise PyoidcError("ERROR: Something went wrong [%s]: %s" % (
-                resp.status_code, resp.text))
+            raise PyoidcError(
+                "ERROR: Something went wrong [%s]: %s" % (resp.status_code, resp.text)
+            )
 
         try:
             _schema = kwargs["user_info_schema"]
@@ -918,26 +1058,33 @@ class Client(oauth2.Client):
         if sformat == "json":
             res = _schema().from_json(txt=_txt)
         else:
-            verify = kwargs.get('verify', True)
-            res = _schema().from_jwt(_txt, keyjar=self.keyjar, sender=self.provider_info["issuer"], verify=verify)
+            verify = kwargs.get("verify", True)
+            res = _schema().from_jwt(
+                _txt,
+                keyjar=self.keyjar,
+                sender=self.provider_info["issuer"],
+                verify=verify,
+            )
 
-        if 'error' in res:  # Error response
+        if "error" in res:  # Error response
             res = UserInfoErrorResponse(**res.to_dict())
 
         if state:
             # Verify userinfo sub claim against what's returned in the ID Token
             idt = self.grant[state].get_id_token()
             if idt:
-                if idt['sub'] != res['sub']:
+                if idt["sub"] != res["sub"]:
                     raise SubMismatch(
-                        'Sub identifier not the same in userinfo and Id Token')
+                        "Sub identifier not the same in userinfo and Id Token"
+                    )
 
         self.store_response(res, _txt)
 
         return res
 
-    def get_userinfo_claims(self, access_token, endpoint, method="POST",
-                            schema_class=OpenIDSchema, **kwargs):
+    def get_userinfo_claims(
+        self, access_token, endpoint, method="POST", schema_class=OpenIDSchema, **kwargs
+    ):
 
         uir = UserInfoRequest(access_token=access_token)
 
@@ -947,8 +1094,7 @@ class Client(oauth2.Client):
             http_args = self.init_authentication_method(**kwargs)
         else:
             # If nothing defined this is the default
-            http_args = self.init_authentication_method(uir, "bearer_header",
-                                                        **kwargs)
+            http_args = self.init_authentication_method(uir, "bearer_header", **kwargs)
 
         h_args.update(http_args)
         path, body, kwargs = get_or_post(endpoint, method, uir, **kwargs)
@@ -964,8 +1110,8 @@ class Client(oauth2.Client):
             raise PyoidcError("ERROR: Something went wrong: %s" % resp.text)
         else:
             raise PyoidcError(
-                "ERROR: Something went wrong [%s]: %s" % (resp.status_code,
-                                                          resp.text))
+                "ERROR: Something went wrong [%s]: %s" % (resp.status_code, resp.text)
+            )
 
         res = schema_class().from_json(txt=resp.text)
         self.store_response(res, resp.text)
@@ -976,15 +1122,19 @@ class Client(oauth2.Client):
             for csrc, spec in userinfo["_claim_sources"].items():
                 if "JWT" in spec:
                     aggregated_claims = Message().from_jwt(
-                        spec["JWT"].encode("utf-8"),
-                        keyjar=self.keyjar, sender=csrc)
-                    claims = [value for value, src in
-                              userinfo["_claim_names"].items() if src == csrc]
+                        spec["JWT"].encode("utf-8"), keyjar=self.keyjar, sender=csrc
+                    )
+                    claims = [
+                        value
+                        for value, src in userinfo["_claim_names"].items()
+                        if src == csrc
+                    ]
 
                     if set(claims) != set(list(aggregated_claims.keys())):
                         logger.warning(
                             "Claims from claim source doesn't match what's in "
-                            "the userinfo")
+                            "the userinfo"
+                        )
 
                     for key, vals in aggregated_claims.items():
                         userinfo[key] = vals
@@ -995,25 +1145,43 @@ class Client(oauth2.Client):
         for csrc, spec in userinfo["_claim_sources"].items():
             if "endpoint" in spec:
                 if not spec["endpoint"].startswith("https://"):
-                    logger.warning("Fetching distributed claims from an untrusted source: %s", spec["endpoint"])
+                    logger.warning(
+                        "Fetching distributed claims from an untrusted source: %s",
+                        spec["endpoint"],
+                    )
                 if "access_token" in spec:
-                    _uinfo = self.do_user_info_request(method='GET', token=spec["access_token"],
-                                                       userinfo_endpoint=spec["endpoint"], verify=False)
+                    _uinfo = self.do_user_info_request(
+                        method="GET",
+                        token=spec["access_token"],
+                        userinfo_endpoint=spec["endpoint"],
+                        verify=False,
+                    )
                 else:
                     if callback:
-                        _uinfo = self.do_user_info_request(method='GET', token=callback(spec['endpoint']),
-                                                           userinfo_endpoint=spec["endpoint"], verify=False)
+                        _uinfo = self.do_user_info_request(
+                            method="GET",
+                            token=callback(spec["endpoint"]),
+                            userinfo_endpoint=spec["endpoint"],
+                            verify=False,
+                        )
                     else:
-                        _uinfo = self.do_user_info_request(method='GET', userinfo_endpoint=spec["endpoint"],
-                                                           verify=False)
+                        _uinfo = self.do_user_info_request(
+                            method="GET",
+                            userinfo_endpoint=spec["endpoint"],
+                            verify=False,
+                        )
 
-                claims = [value for value, src in
-                          userinfo["_claim_names"].items() if src == csrc]
+                claims = [
+                    value
+                    for value, src in userinfo["_claim_names"].items()
+                    if src == csrc
+                ]
 
                 if set(claims) != set(list(_uinfo.keys())):
                     logger.warning(
                         "Claims from claim source doesn't match what's in "
-                        "the userinfo")
+                        "the userinfo"
+                    )
 
                 for key, vals in _uinfo.items():
                     userinfo[key] = vals
@@ -1066,7 +1234,7 @@ class Client(oauth2.Client):
         if not pcr:
             pcr = self.provider_info
 
-        regreq = self.message_factory.get_request_type('registration_endpoint')
+        regreq = self.message_factory.get_request_type("registration_endpoint")
 
         for _pref, _prov in PREFERENCE2PROVIDER.items():
             try:
@@ -1104,8 +1272,7 @@ class Client(oauth2.Client):
                             break
 
             if _pref not in self.behaviour:
-                raise ConfigurationError(
-                    "OP couldn't match preference:%s" % _pref, pcr)
+                raise ConfigurationError("OP couldn't match preference:%s" % _pref, pcr)
 
         for key, val in self.client_prefs.items():
             if key in self.behaviour:
@@ -1126,7 +1293,8 @@ class Client(oauth2.Client):
         self.registration_response = reginfo
         if "token_endpoint_auth_method" not in self.registration_response:
             self.registration_response[
-                "token_endpoint_auth_method"] = "client_secret_basic"
+                "token_endpoint_auth_method"
+            ] = "client_secret_basic"
         self.client_id = reginfo["client_id"]
         try:
             self.client_secret = reginfo["client_secret"]
@@ -1138,16 +1306,17 @@ class Client(oauth2.Client):
             except KeyError:
                 pass
         try:
-            self.registration_access_token = reginfo[
-                "registration_access_token"]
+            self.registration_access_token = reginfo["registration_access_token"]
         except KeyError:
             pass
 
     def handle_registration_info(self, response):
-        err_msg = 'Got error response: {}'
-        unk_msg = 'Unknown response: {}'
+        err_msg = "Got error response: {}"
+        unk_msg = "Unknown response: {}"
         if response.status_code in [200, 201]:
-            resp = self.message_factory.get_response_type('registration_endpoint')().deserialize(response.text, "json")
+            resp = self.message_factory.get_response_type(
+                "registration_endpoint"
+            )().deserialize(response.text, "json")
             # Some implementations sends back a 200 with an error message inside
             try:
                 resp.verify()
@@ -1159,7 +1328,7 @@ class Client(oauth2.Client):
                 if resp.verify():
                     logger.error(err_msg.format(sanitize(resp.to_json())))
                     if self.events:
-                        self.events.store('protocol response', resp)
+                        self.events.store("protocol response", resp)
                     raise RegistrationError(resp.to_dict())
                 else:  # Something else
                     logger.error(unk_msg.format(sanitize(response.text)))
@@ -1178,7 +1347,7 @@ class Client(oauth2.Client):
             if resp.verify():
                 logger.error(err_msg.format(sanitize(resp.to_json())))
                 if self.events:
-                    self.events.store('protocol response', resp)
+                    self.events.store("protocol response", resp)
                 raise RegistrationError(resp.to_dict())
             else:  # Something else
                 logger.error(unk_msg.format(sanitize(response.text)))
@@ -1213,9 +1382,9 @@ class Client(oauth2.Client):
         :return: A list of uris
         """
         m = hashlib.sha256()
-        m.update(as_bytes(self.provider_info['issuer']))
+        m.update(as_bytes(self.provider_info["issuer"]))
         m.update(as_bytes(self.base_url))
-        return '{}{}/{}'.format(self.base_url, request_dir, m.hexdigest())
+        return "{}{}/{}".format(self.base_url, request_dir, m.hexdigest())
 
     def create_registration_request(self, **kwargs):
         """
@@ -1224,7 +1393,7 @@ class Client(oauth2.Client):
         :param kwargs: parameters to the registration request
         :return:
         """
-        req = self.message_factory.get_request_type('registration_endpoint')()
+        req = self.message_factory.get_request_type("registration_endpoint")()
 
         for prop in req.parameters():
             try:
@@ -1237,9 +1406,7 @@ class Client(oauth2.Client):
 
         if "post_logout_redirect_uris" not in req:
             try:
-                req[
-                    "post_logout_redirect_uris"] = \
-                    self.post_logout_redirect_uris
+                req["post_logout_redirect_uris"] = self.post_logout_redirect_uris
             except AttributeError:
                 pass
 
@@ -1250,15 +1417,15 @@ class Client(oauth2.Client):
                 raise MissingRequiredAttribute("redirect_uris", req)
 
         try:
-            if self.provider_info['require_request_uri_registration'] is True:
-                req['request_uris'] = self.generate_request_uris(
-                    self.requests_dir)
+            if self.provider_info["require_request_uri_registration"] is True:
+                req["request_uris"] = self.generate_request_uris(self.requests_dir)
         except KeyError:
             pass
 
-        if 'response_types' in req:
-            req['grant_types'] = response_types_to_grant_types(
-                req['response_types'], **kwargs)
+        if "response_types" in req:
+            req["grant_types"] = response_types_to_grant_types(
+                req["response_types"], **kwargs
+            )
 
         return req
 
@@ -1276,14 +1443,15 @@ class Client(oauth2.Client):
         logger.debug("[registration_request]: kwargs:%s" % (sanitize(kwargs),))
 
         if self.events:
-            self.events.store('Protocol request', req)
+            self.events.store("Protocol request", req)
 
         headers = {"content-type": "application/json"}
         if registration_token is not None:
-            headers["Authorization"] = b"Bearer " + b64encode(registration_token.encode())
+            headers["Authorization"] = b"Bearer " + b64encode(
+                registration_token.encode()
+            )
 
-        rsp = self.http_request(url, "POST", data=req.to_json(),
-                                headers=headers)
+        rsp = self.http_request(url, "POST", data=req.to_json(), headers=headers)
 
         return self.handle_registration_info(rsp)
 
@@ -1314,8 +1482,9 @@ class Client(oauth2.Client):
                     resp[key] = DEF_SIGN_ALG["id_token"]
         return resp
 
-    def _verify_id_token(self, id_token, nonce="", acr_values=None, auth_time=0,
-                         max_age=0):
+    def _verify_id_token(
+        self, id_token, nonce="", acr_values=None, auth_time=0, max_age=0
+    ):
         """
         Verify IdToken.
 
@@ -1347,16 +1516,19 @@ class Client(oauth2.Client):
         if _now > id_token["exp"]:
             raise OtherError("Passed best before date")
 
-        if self.id_token_max_age and _now > int(id_token["iat"]) + self.id_token_max_age:
+        if (
+            self.id_token_max_age
+            and _now > int(id_token["iat"]) + self.id_token_max_age
+        ):
             raise OtherError("I think this ID token is to old")
 
-        if nonce and nonce != id_token['nonce']:
+        if nonce and nonce != id_token["nonce"]:
             raise OtherError("nonce mismatch")
 
-        if acr_values and id_token['acr'] not in acr_values:
+        if acr_values and id_token["acr"] not in acr_values:
             raise OtherError("acr mismatch")
 
-        if max_age and _now > int(id_token['auth_time'] + max_age):
+        if max_age and _now > int(id_token["auth_time"] + max_age):
             raise AuthnToOld("To old authentication")
 
         if auth_time:
@@ -1382,11 +1554,22 @@ class Client(oauth2.Client):
 class Server(oauth2.Server):
     """OIC Server class."""
 
-    def __init__(self, verify_ssl: bool = True, keyjar: KeyJar = None, client_cert: Union[str, Tuple[str, str]] = None,
-                 timeout: int = 5, message_factory: Type[MessageFactory] = OIDCMessageFactory):
+    def __init__(
+        self,
+        verify_ssl: bool = True,
+        keyjar: KeyJar = None,
+        client_cert: Union[str, Tuple[str, str]] = None,
+        timeout: int = 5,
+        message_factory: Type[MessageFactory] = OIDCMessageFactory,
+    ):
         """Initialize the server."""
-        super().__init__(verify_ssl=verify_ssl, keyjar=keyjar, client_cert=client_cert, timeout=timeout,
-                         message_factory=message_factory)
+        super().__init__(
+            verify_ssl=verify_ssl,
+            keyjar=keyjar,
+            client_cert=client_cert,
+            timeout=timeout,
+            message_factory=message_factory,
+        )
 
     @staticmethod
     def _parse_urlencoded(url=None, query=None):
@@ -1400,7 +1583,7 @@ class Server(oauth2.Server):
         """Overridden to use OIC Message type."""
         return super().parse_token_request(request=request, body=body)
 
-    def handle_request_uri(self, request_uri, verify=True, sender=''):
+    def handle_request_uri(self, request_uri, verify=True, sender=""):
         """
         Handle request URI.
 
@@ -1411,37 +1594,40 @@ class Server(oauth2.Server):
         :return:
         """
         # Do a HTTP get
-        logger.debug('Get request from request_uri: {}'.format(request_uri))
+        logger.debug("Get request from request_uri: {}".format(request_uri))
         try:
             http_req = self.http_request(request_uri)
         except ConnectionError:
-            logger.error('Connection Error')
+            logger.error("Connection Error")
             return authz_error("invalid_request_uri")
 
         if not http_req:
-            logger.error('Nothing returned')
+            logger.error("Nothing returned")
             return authz_error("invalid_request_uri")
         elif http_req.status_code >= 400:
-            logger.error('HTTP error {}:{}'.format(http_req.status_code,
-                                                   http_req.text))
-            raise AuthzError('invalid_request')
+            logger.error("HTTP error {}:{}".format(http_req.status_code, http_req.text))
+            raise AuthzError("invalid_request")
 
         # http_req.text is a signed JWT
         try:
-            logger.debug('request txt: {}'.format(http_req.text))
-            req = self.parse_jwt_request(txt=http_req.text, verify=verify,
-                                         sender=sender)
+            logger.debug("request txt: {}".format(http_req.text))
+            req = self.parse_jwt_request(
+                txt=http_req.text, verify=verify, sender=sender
+            )
         except Exception as err:
             logger.error(
-                '{}:{} encountered while parsing fetched request'.format(
-                    err.__class__, err))
+                "{}:{} encountered while parsing fetched request".format(
+                    err.__class__, err
+                )
+            )
             raise AuthzError("invalid_openid_request_object")
 
-        logger.debug('Fetched request: {}'.format(req))
+        logger.debug("Fetched request: {}".format(req))
         return req
 
-    def parse_authorization_request(self, request=AuthorizationRequest,
-                                    url=None, query=None, keys=None):
+    def parse_authorization_request(
+        self, request=AuthorizationRequest, url=None, query=None, keys=None
+    ):
         if url:
             parts = urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]
@@ -1449,34 +1635,37 @@ class Server(oauth2.Server):
         if isinstance(query, dict):
             sformat = "dict"
         else:
-            sformat = 'urlencoded'
+            sformat = "urlencoded"
 
         _req = self._parse_request(request, query, sformat, verify=False)
 
         if self.events:
-            self.events.store('Request', _req)
+            self.events.store("Request", _req)
 
         _req_req = {}
         try:
-            _request = _req['request']
+            _request = _req["request"]
         except KeyError:
             try:
-                _url = _req['request_uri']
+                _url = _req["request_uri"]
             except KeyError:
                 pass
             else:
-                _req_req = self.handle_request_uri(_url, verify=False,
-                                                   sender=_req['client_id'])
+                _req_req = self.handle_request_uri(
+                    _url, verify=False, sender=_req["client_id"]
+                )
         else:
             if isinstance(_request, Message):
                 _req_req = _request
             else:
                 try:
-                    _req_req = self.parse_jwt_request(request, txt=_request,
-                                                      verify=False)
+                    _req_req = self.parse_jwt_request(
+                        request, txt=_request, verify=False
+                    )
                 except Exception:
-                    _req_req = self._parse_request(request, _request,
-                                                   'urlencoded', verify=False)
+                    _req_req = self._parse_request(
+                        request, _request, "urlencoded", verify=False
+                    )
                 else:  # remove JWT attributes
                     for attr in JasonWebToken.c_param:
                         try:
@@ -1489,35 +1678,48 @@ class Server(oauth2.Server):
 
         if _req_req:
             if self.events:
-                self.events.store('Signed Request', _req_req)
+                self.events.store("Signed Request", _req_req)
 
             for key, val in _req.items():
-                if key in ['request', 'request_uri']:
+                if key in ["request", "request_uri"]:
                     continue
                 if key not in _req_req:
                     _req_req[key] = val
             _req = _req_req
 
         if self.events:
-            self.events.store('Combined Request', _req)
+            self.events.store("Combined Request", _req)
 
         try:
             _req.verify(keyjar=self.keyjar)
         except Exception as err:
             if self.events:
-                self.events.store('Exception', err)
+                self.events.store("Exception", err)
             logger.error(err)
             raise
 
         return _req
 
-    def parse_jwt_request(self, request=AuthorizationRequest, txt="",
-                          keyjar=None, verify=True, sender='', **kwargs):
+    def parse_jwt_request(
+        self,
+        request=AuthorizationRequest,
+        txt="",
+        keyjar=None,
+        verify=True,
+        sender="",
+        **kwargs
+    ):
         """Overridden to use OIC Message type."""
-        if 'keys' in kwargs:
-            keyjar = kwargs['keys']
-            warnings.warn('`keys` was renamed to `keyjar`, please update your code.', DeprecationWarning, stacklevel=2)
-        return super().parse_jwt_request(request=request, txt=txt, keyjar=keyjar, verify=verify, sender=sender)
+        if "keys" in kwargs:
+            keyjar = kwargs["keys"]
+            warnings.warn(
+                "`keys` was renamed to `keyjar`, please update your code.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        return super().parse_jwt_request(
+            request=request, txt=txt, keyjar=keyjar, verify=verify, sender=sender
+        )
 
     def parse_refresh_token_request(self, request=RefreshAccessTokenRequest, body=None):
         """Overridden to use OIC Message type."""
@@ -1533,25 +1735,24 @@ class Server(oauth2.Server):
         assert "access_token" in param  # ignore the rest
         return deser_id_token(self, param["access_token"][0])
 
-    def _parse_request(self, request_cls, data, sformat, client_id=None,
-                       verify=True):
+    def _parse_request(self, request_cls, data, sformat, client_id=None, verify=True):
         if sformat == "json":
             request = request_cls().from_json(data)
         elif sformat == "jwt":
-            request = request_cls().from_jwt(data, keyjar=self.keyjar,
-                                             sender=client_id)
+            request = request_cls().from_jwt(data, keyjar=self.keyjar, sender=client_id)
         elif sformat == "urlencoded":
-            if '?' in data:
+            if "?" in data:
                 parts = urlparse(data)
                 scheme, netloc, path, params, query, fragment = parts[:6]
             else:
                 query = data
             request = request_cls().from_urlencoded(query)
-        elif sformat == 'dict':
+        elif sformat == "dict":
             request = request_cls(**data)
         else:
-            raise ParseError("Unknown package format: '{}'".format(sformat),
-                             request_cls)
+            raise ParseError(
+                "Unknown package format: '{}'".format(sformat), request_cls
+            )
 
         # get the verification keys
         if client_id:
@@ -1560,12 +1761,12 @@ class Server(oauth2.Server):
         else:
             try:
                 keys = self.keyjar.verify_keys(request["client_id"])
-                sender = request['client_id']
+                sender = request["client_id"]
             except KeyError:
                 keys = None
-                sender = ''
+                sender = ""
 
-        logger.debug("Found {} verify keys".format(len(keys or '')))
+        logger.debug("Found {} verify keys".format(len(keys or "")))
         if verify:
             request.verify(key=keys, keyjar=self.keyjar, sender=sender)
         return request
@@ -1589,8 +1790,7 @@ class Server(oauth2.Server):
         return self._parse_request(RegistrationRequest, data, sformat)
 
     def parse_end_session_request(self, query, sformat="urlencoded"):
-        esr = self._parse_request(EndSessionRequest, query,
-                                  sformat)
+        esr = self._parse_request(EndSessionRequest, query, sformat)
         # if there is a id_token in there it is as a string
         esr["id_token"] = deser_id_token(self, esr["id_token"])
         return esr
@@ -1648,9 +1848,19 @@ class Server(oauth2.Server):
         itc = self.update_claims(session, "oidreq", "id_token", itc)
         return itc
 
-    def make_id_token(self, session, loa="2", issuer="",
-                      alg="RS256", code=None, access_token=None,
-                      user_info=None, auth_time=0, exp=None, extra_claims=None):
+    def make_id_token(
+        self,
+        session,
+        loa="2",
+        issuer="",
+        alg="RS256",
+        code=None,
+        access_token=None,
+        user_info=None,
+        auth_time=0,
+        exp=None,
+        extra_claims=None,
+    ):
         """
         Create ID Token.
 
@@ -1696,8 +1906,7 @@ class Server(oauth2.Server):
                 _args = user_info
 
         # Make sure that there are no name clashes
-        for key in ["iss", "sub", "aud", "exp", "acr", "nonce",
-                    "auth_time"]:
+        for key in ["iss", "sub", "aud", "exp", "acr", "nonce", "auth_time"]:
             try:
                 del _args[key]
             except KeyError:
@@ -1710,14 +1919,17 @@ class Server(oauth2.Server):
         if code:
             _args["c_hash"] = jws.left_hash(code.encode("utf-8"), halg)
         if access_token:
-            _args["at_hash"] = jws.left_hash(access_token.encode("utf-8"),
-                                             halg)
+            _args["at_hash"] = jws.left_hash(access_token.encode("utf-8"), halg)
 
-        idt = IdToken(iss=issuer, sub=session["sub"],
-                      aud=session["client_id"],
-                      exp=time_util.epoch_in_a_while(**inawhile), acr=loa,
-                      iat=time_util.utc_time_sans_frac(),
-                      **_args)
+        idt = IdToken(
+            iss=issuer,
+            sub=session["sub"],
+            aud=session["client_id"],
+            exp=time_util.epoch_in_a_while(**inawhile),
+            acr=loa,
+            iat=time_util.utc_time_sans_frac(),
+            **_args
+        )
 
         for key, val in extra.items():
             idt[key] = val

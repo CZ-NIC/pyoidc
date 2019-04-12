@@ -1,7 +1,7 @@
 import sys
 import traceback
 
-__author__ = 'rohe0002'
+__author__ = "rohe0002"
 
 
 def tobytes(value):
@@ -21,12 +21,11 @@ def exception_trace(tag, exc, log=None):
         log.error("[%s] ExcList: %s", tag, "".join(message))
         log.error("[%s] Exception: %s", tag, exc)
     else:
-        print("[{0}] ExcList: {1}".format(tag, "".join(message)),
-              file=sys.stderr)
+        print("[{0}] ExcList: {1}".format(tag, "".join(message)), file=sys.stderr)
         print("[{0}] Exception: {1}".format(tag, exc), file=sys.stderr)
 
 
-SORT_ORDER = {'RS': 0, 'ES': 1, 'HS': 2, 'PS': 3, 'no': 4}
+SORT_ORDER = {"RS": 0, "ES": 1, "HS": 2, "PS": 3, "no": 4}
 
 
 def sort_sign_alg(alg1, alg2):

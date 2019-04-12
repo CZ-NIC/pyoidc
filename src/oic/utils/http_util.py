@@ -18,7 +18,7 @@ from oic.utils import time_util
 from oic.utils.aes import AEAD
 from oic.utils.aes import AESError
 
-__author__ = 'rohe0002'
+__author__ = "rohe0002"
 
 logger = logging.getLogger(__name__)
 
@@ -27,24 +27,21 @@ SUCCESSFUL = [200, 201, 202, 203, 204, 205, 206]
 CORS_HEADERS = [
     ("Access-Control-Allow-Origin", "*"),
     ("Access-Control-Allow-Methods", "GET"),
-    ("Access-Control-Allow-Headers", "Authorization")
+    ("Access-Control-Allow-Headers", "Authorization"),
 ]
 
-OAUTH2_NOCACHE_HEADERS = [
-    ('Pragma', 'no-cache'),
-    ('Cache-Control', 'no-store'),
-]
+OAUTH2_NOCACHE_HEADERS = [("Pragma", "no-cache"), ("Cache-Control", "no-store")]
 
 
 class Response(object):
-    _template = ''
+    _template = ""
     _status_code = 200
-    _content_type = 'text/html'
+    _content_type = "text/html"
     _mako_template = None
     _mako_lookup = None
 
     def __init__(self, message=None, **kwargs):
-        self.status_code = kwargs.get('status_code', self._status_code)
+        self.status_code = kwargs.get("status_code", self._status_code)
         self.response = kwargs.get("response", self._response)
         self.template = kwargs.get("template", self._template)
         self.mako_template = kwargs.get("mako_template", self._mako_template)
@@ -59,7 +56,7 @@ class Response(object):
         self.headers.append(("Content-type", _content_type))
 
     def _start_response(self, start_response):
-        name = client.responses.get(self.status_code, 'UNKNOWN')
+        name = client.responses.get(self.status_code, "UNKNOWN")
         start_response("{} {}".format(self.status_code, name), self.headers)
 
     def __call__(self, environ, start_response, **kwargs):
@@ -70,15 +67,15 @@ class Response(object):
         # Have to be more specific, this might be a bit to much.
         if message:
             try:
-                if '<script>' in message:
-                    message = message.replace(
-                        '<script>', '&lt;script&gt;').replace(
-                        '</script>', '&lt;/script&gt;')
+                if "<script>" in message:
+                    message = message.replace("<script>", "&lt;script&gt;").replace(
+                        "</script>", "&lt;/script&gt;"
+                    )
             except TypeError:
-                if b'<script>' in message:
-                    message = message.replace(
-                        b'<script>', b'&lt;script&gt;').replace(
-                        b'</script>', b'&lt;/script&gt;')
+                if b"<script>" in message:
+                    message = message.replace(b"<script>", b"&lt;script&gt;").replace(
+                        b"</script>", b"&lt;/script&gt;"
+                    )
 
         if self.template:
             if ("Content-type", "application/json") in self.headers:
@@ -90,9 +87,9 @@ class Response(object):
             mte = self.mako_lookup.get_template(self.mako_template)
             return [mte.render(**argv)]
         else:
-            if [x for x in self._c_types() if x.startswith('image/')]:
+            if [x for x in self._c_types() if x.startswith("image/")]:
                 return [message]
-            elif [x for x in self._c_types() if x == 'application/x-gzip']:
+            elif [x for x in self._c_types() if x == "application/x-gzip"]:
                 return [message]
 
             try:
@@ -101,7 +98,11 @@ class Response(object):
                 return [message]
 
     def info(self):
-        return {'status_code': self.status_code, 'headers': self.headers, 'message': self.message}
+        return {
+            "status_code": self.status_code,
+            "headers": self.headers,
+            "message": self.message,
+        }
 
     def add_header(self, ava):
         self.headers.append(ava)
@@ -130,27 +131,31 @@ class NoContent(Response):
 
 
 class Redirect(Response):
-    _template = '<html>\n<head><title>Redirecting to %s</title></head>\n' \
-                '<body>\nYou are being redirected to <a href="%s">%s</a>\n' \
-                '</body>\n</html>'
+    _template = (
+        "<html>\n<head><title>Redirecting to %s</title></head>\n"
+        '<body>\nYou are being redirected to <a href="%s">%s</a>\n'
+        "</body>\n</html>"
+    )
     _status_code = 302
 
     def __call__(self, environ, start_response, **kwargs):
         location = self.message
-        self.headers.append(('location', location))
+        self.headers.append(("location", location))
         self._start_response(start_response)
         return self.response((location, location, location))
 
 
 class SeeOther(Response):
-    _template = '<html>\n<head><title>Redirecting to %s</title></head>\n' \
-                '<body>\nYou are being redirected to <a href="%s">%s</a>\n' \
-                '</body>\n</html>'
+    _template = (
+        "<html>\n<head><title>Redirecting to %s</title></head>\n"
+        '<body>\nYou are being redirected to <a href="%s">%s</a>\n'
+        "</body>\n</html>"
+    )
     _status_code = 303
 
     def __call__(self, environ, start_response, **kwargs):
         location = self.message
-        self.headers.append(('location', location))
+        self.headers.append(("location", location))
         self._start_response(start_response)
         return self.response((location, location, location))
 
@@ -220,7 +225,7 @@ def extract(environ, empty=False, err=False):
     :param empty: Stops on empty fields (default: Fault)
     :param err: Stops on errors in fields (default: Fault)
     """
-    formdata = cgi.parse(environ['wsgi.input'], environ, empty, err)
+    formdata = cgi.parse(environ["wsgi.input"], environ, empty, err)
     # Remove single entries from lists
     for key, value in formdata.iteritems():
         if len(value) == 1:
@@ -235,28 +240,29 @@ def geturl(environ, query=True, path=True):
     :param query: Is QUERY_STRING included in URI (default: True)
     :param path: Is path included in URI (default: True)
     """
-    url = [environ['wsgi.url_scheme'] + '://']
-    if environ.get('HTTP_HOST'):
-        url.append(environ['HTTP_HOST'])
+    url = [environ["wsgi.url_scheme"] + "://"]
+    if environ.get("HTTP_HOST"):
+        url.append(environ["HTTP_HOST"])
     else:
-        url.append(environ['SERVER_NAME'])
-        if environ['wsgi.url_scheme'] == 'https':
-            if environ['SERVER_PORT'] != '443':
-                url.append(':' + environ['SERVER_PORT'])
+        url.append(environ["SERVER_NAME"])
+        if environ["wsgi.url_scheme"] == "https":
+            if environ["SERVER_PORT"] != "443":
+                url.append(":" + environ["SERVER_PORT"])
         else:
-            if environ['SERVER_PORT'] != '80':
-                url.append(':' + environ['SERVER_PORT'])
+            if environ["SERVER_PORT"] != "80":
+                url.append(":" + environ["SERVER_PORT"])
     if path:
         url.append(getpath(environ))
-    if query and environ.get('QUERY_STRING'):
-        url.append('?' + environ['QUERY_STRING'])
-    return ''.join(url)
+    if query and environ.get("QUERY_STRING"):
+        url.append("?" + environ["QUERY_STRING"])
+    return "".join(url)
 
 
 def getpath(environ):
     """Build a path."""
-    return ''.join([quote(environ.get('SCRIPT_NAME', '')),
-                    quote(environ.get('PATH_INFO', ''))])
+    return "".join(
+        [quote(environ.get("SCRIPT_NAME", "")), quote(environ.get("PATH_INFO", ""))]
+    )
 
 
 def _expiration(timeout, time_format=None):
@@ -282,7 +288,7 @@ def cookie_signature(key, *parts):
     for part in parts:
         if part:
             if isinstance(part, str):
-                sha1.update(part.encode('utf-8'))
+                sha1.update(part.encode("utf-8"))
             else:
                 sha1.update(part)
     return str(sha1.hexdigest())
@@ -304,7 +310,7 @@ def verify_cookie_signature(sig, key, *parts):
     return hmac.compare_digest(sig, cookie_signature(key, *parts))
 
 
-def _make_hashed_key(parts, hashfunc='sha256'):
+def _make_hashed_key(parts, hashfunc="sha256"):
     """
     Construct a key via hashing the parts.
 
@@ -314,14 +320,24 @@ def _make_hashed_key(parts, hashfunc='sha256'):
     h = hashlib.new(hashfunc)
     for part in parts:
         if isinstance(part, str):
-            part = part.encode('utf-8')
+            part = part.encode("utf-8")
         if part:
             h.update(part)
     return h.digest()
 
 
-def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp="",
-                enc_key=None, secure=True, httponly=True):
+def make_cookie(
+    name,
+    load,
+    seed,
+    expire=0,
+    domain="",
+    path="",
+    timestamp="",
+    enc_key=None,
+    secure=True,
+    httponly=True,
+):
     """
     Create and return a cookie.
 
@@ -377,16 +393,20 @@ def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp="",
         crypt.add_associated_data(bytes_timestamp)
 
         ciphertext, tag = crypt.encrypt_and_tag(bytes_load)
-        cookie_payload = [bytes_timestamp,
-                          base64.b64encode(iv),
-                          base64.b64encode(ciphertext),
-                          base64.b64encode(tag)]
+        cookie_payload = [
+            bytes_timestamp,
+            base64.b64encode(iv),
+            base64.b64encode(ciphertext),
+            base64.b64encode(tag),
+        ]
     else:
         cookie_payload = [
-            bytes_load, bytes_timestamp,
-            cookie_signature(seed, load, timestamp).encode('utf-8')]
+            bytes_load,
+            bytes_timestamp,
+            cookie_signature(seed, load, timestamp).encode("utf-8"),
+        ]
 
-    cookie[name] = (b"|".join(cookie_payload)).decode('utf-8')
+    cookie[name] = (b"|".join(cookie_payload)).decode("utf-8")
     if path:
         cookie[name]["path"] = path
     if domain:
@@ -394,9 +414,9 @@ def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp="",
     if expire:
         cookie[name]["expires"] = _expiration(expire, "%a, %d-%b-%Y %H:%M:%S GMT")
     if secure:
-        cookie[name]['secure'] = secure
+        cookie[name]["secure"] = secure
     if httponly:
-        cookie[name]['httponly'] = httponly
+        cookie[name]["httponly"] = httponly
 
     return tuple(cookie.output().split(": ", 1))
 
@@ -423,7 +443,7 @@ def parse_cookie(name, seed, kaka, enc_key=None):
         return None
 
     if isinstance(seed, str):
-        seed = seed.encode('utf-8')
+        seed = seed.encode("utf-8")
 
     parts = cookie_parts(name, kaka)
     if parts is None:
@@ -447,12 +467,12 @@ def parse_cookie(name, seed, kaka, enc_key=None):
         crypt = AEAD(key, iv)
         # timestamp does not need to be encrypted, just MAC'ed,
         # so we add it to 'Associated Data' only.
-        crypt.add_associated_data(timestamp.encode('utf-8'))
+        crypt.add_associated_data(timestamp.encode("utf-8"))
         try:
             cleartext = crypt.decrypt_and_verify(ciphertext, tag)
         except AESError:
             raise InvalidCookieSign()
-        return cleartext.decode('utf-8'), timestamp
+        return cleartext.decode("utf-8"), timestamp
     return None
 
 
@@ -471,14 +491,14 @@ def cookie_parts(name, kaka):
 def get_post(environ):
     # the environment variable CONTENT_LENGTH may be empty or missing
     try:
-        request_body_size = int(environ.get('CONTENT_LENGTH', 0))
+        request_body_size = int(environ.get("CONTENT_LENGTH", 0))
     except ValueError:
         request_body_size = 0
 
     # When the method is POST the query string will be sent
     # in the HTTP request body which is passed by the WSGI server
     # in the file like wsgi.input environment variable.
-    text = environ['wsgi.input'].read(request_body_size)
+    text = environ["wsgi.input"].read(request_body_size)
     try:
         text = text.decode("utf-8")
     except AttributeError:
@@ -548,7 +568,6 @@ def wsgi_wrapper(environ, start_response, func, **kwargs):
 
 
 class CookieDealer(object):
-
     @property
     def srv(self):
         return self._srv
@@ -569,17 +588,16 @@ class CookieDealer(object):
             return
         self.srv = srv
 
-        symkey = getattr(self.srv, 'symkey', None)
+        symkey = getattr(self.srv, "symkey", None)
         if symkey is not None and symkey == "":
             msg = "CookieDealer.srv.symkey cannot be an empty value"
             raise ImproperlyConfigured(msg)
 
-        if not getattr(srv, 'seed', None):
-            setattr(srv, 'seed', rndstr().encode("utf-8"))
+        if not getattr(srv, "seed", None):
+            setattr(srv, "seed", rndstr().encode("utf-8"))
 
     def delete_cookie(self, cookie_name=None):
-        return self.create_cookie("", "", cookie_name=cookie_name, ttl=-1,
-                                  kill=True)
+        return self.create_cookie("", "", cookie_name=cookie_name, ttl=-1, kill=True)
 
     def create_cookie(self, value, typ, cookie_name=None, ttl=-1, kill=False):
         if kill:
@@ -607,8 +625,18 @@ class CookieDealer(object):
         except TypeError:
             _msg = "::".join([value[0], timestamp, typ])
 
-        cookie = make_cookie(cookie_name, _msg, self.srv.seed, expire=ttl, domain=cookie_domain, path=cookie_path,
-                             timestamp=timestamp, enc_key=self.srv.symkey, secure=self.secure, httponly=self.httponly)
+        cookie = make_cookie(
+            cookie_name,
+            _msg,
+            self.srv.seed,
+            expire=ttl,
+            domain=cookie_domain,
+            path=cookie_path,
+            timestamp=timestamp,
+            enc_key=self.srv.symkey,
+            secure=self.secure,
+            httponly=self.httponly,
+        )
         return cookie
 
     def getCookieValue(self, cookie=None, cookie_name=None):
@@ -626,9 +654,9 @@ class CookieDealer(object):
             return None
         else:
             try:
-                info, timestamp = parse_cookie(cookie_name,
-                                               self.srv.seed, cookie,
-                                               self.srv.symkey)
+                info, timestamp = parse_cookie(
+                    cookie_name, self.srv.seed, cookie, self.srv.symkey
+                )
             except (TypeError, AssertionError):
                 return None
             else:

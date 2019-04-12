@@ -1,6 +1,6 @@
 import copy
 
-__author__ = 'rolandh'
+__author__ = "rolandh"
 
 
 class UserInfo(object):

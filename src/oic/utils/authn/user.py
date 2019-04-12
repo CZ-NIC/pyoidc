@@ -21,7 +21,7 @@ from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Unauthorized
 from oic.utils.sanitize import sanitize
 
-__author__ = 'rolandh'
+__author__ = "rolandh"
 
 logger = logging.getLogger(__name__)
 
@@ -32,14 +32,15 @@ LOC = {
         "login_title": "Username",
         "passwd_title": "Password",
         "submit_text": "Submit",
-        "client_policy_title": "Client Policy"},
+        "client_policy_title": "Client Policy",
+    },
     "se": {
         "title": "Logga in",
         "login_title": u"Användarnamn",
         "passwd_title": u"Lösenord",
         "submit_text": u"Sänd",
-        "client_policy_title": "Klientens sekretesspolicy"
-    }
+        "client_policy_title": "Klientens sekretesspolicy",
+    },
 }
 
 
@@ -93,15 +94,17 @@ class UserAuthnMethod(CookieDealer):
                 _now = int(time.time())
                 if _now > (int(_ts) + int(self.cookie_ttl * 60)):
                     logger.debug("Authentication timed out")
-                    raise ToOld("%d > (%d + %d)" % (_now, int(_ts),
-                                                    int(self.cookie_ttl * 60)))
+                    raise ToOld(
+                        "%d > (%d + %d)" % (_now, int(_ts), int(self.cookie_ttl * 60))
+                    )
             else:
                 if "max_age" in kwargs and kwargs["max_age"]:
                     _now = int(time.time())
                     if _now > (int(_ts) + int(kwargs["max_age"])):
                         logger.debug("Authentication too old")
-                        raise ToOld("%d > (%d + %d)" % (
-                            _now, int(_ts), int(kwargs["max_age"])))
+                        raise ToOld(
+                            "%d > (%d + %d)" % (_now, int(_ts), int(kwargs["max_age"]))
+                        )
 
             return {"uid": uid}, _ts
 
@@ -135,8 +138,7 @@ class UserAuthnMethod(CookieDealer):
         raise NotImplementedError
 
     def get_multi_auth_cookie(self, cookie):
-        rp_query_cookie = self.getCookieValue(cookie,
-                                              UserAuthnMethod.MULTI_AUTH_COOKIE)
+        rp_query_cookie = self.getCookieValue(cookie, UserAuthnMethod.MULTI_AUTH_COOKIE)
 
         if rp_query_cookie:
             return rp_query_cookie[0]
@@ -203,12 +205,25 @@ class UsernamePasswordMako(UserAuthnMethod):
     Works in a WSGI environment using Mako as template system.
     """
 
-    param_map = {"as_user": "login", "acr_values": "acr",
-                 "policy_uri": "policy_uri", "logo_uri": "logo_uri",
-                 "tos_uri": "tos_uri", "query": "query"}
+    param_map = {
+        "as_user": "login",
+        "acr_values": "acr",
+        "policy_uri": "policy_uri",
+        "logo_uri": "logo_uri",
+        "tos_uri": "tos_uri",
+        "query": "query",
+    }
 
-    def __init__(self, srv, mako_template, template_lookup, pwd, return_to="",
-                 templ_arg_func=None, verification_endpoints=None):
+    def __init__(
+        self,
+        srv,
+        mako_template,
+        template_lookup,
+        pwd,
+        return_to="",
+        templ_arg_func=None,
+        verification_endpoints=None,
+    ):
         """
         Initialize the class.
 
@@ -318,7 +333,7 @@ class UsernamePasswordMako(UserAuthnMethod):
                 try:
                     _qp = _dict["query"]
                 except KeyError:
-                    _qp = self.get_multi_auth_cookie(kwargs['cookie'])
+                    _qp = self.get_multi_auth_cookie(kwargs["cookie"])
         except (AssertionError, KeyError) as err:
             logger.debug("Password verification failed: {}".format(err))
             resp = Unauthorized("Unknown user or wrong password")
@@ -327,7 +342,7 @@ class UsernamePasswordMako(UserAuthnMethod):
             try:
                 _qp = _dict["query"]
             except KeyError:
-                _qp = self.get_multi_auth_cookie(kwargs['cookie'])
+                _qp = self.get_multi_auth_cookie(kwargs["cookie"])
 
         logger.debug("Password verification succeeded.")
         headers = [self.create_cookie(_dict["login"], "upm")]
@@ -335,8 +350,9 @@ class UsernamePasswordMako(UserAuthnMethod):
             return_to = self.generate_return_url(kwargs["return_to"], _qp)
         except KeyError:
             try:
-                return_to = self.generate_return_url(self.return_to, _qp,
-                                                     kwargs["path"])
+                return_to = self.generate_return_url(
+                    self.return_to, _qp, kwargs["path"]
+                )
             except KeyError:
                 return_to = self.generate_return_url(self.return_to, _qp)
 
@@ -351,7 +367,6 @@ class UsernamePasswordMako(UserAuthnMethod):
 
 
 class BasicAuthn(UserAuthnMethod):
-
     def __init__(self, srv, pwd, ttl=5):
         UserAuthnMethod.__init__(self, srv, ttl)
         self.passwd = pwd
@@ -360,9 +375,9 @@ class BasicAuthn(UserAuthnMethod):
         if user in self.passwd:
             _pwd = self.passwd[user]
             if not hmac.compare_digest(_pwd.encode(), password.encode()):
-                raise FailedAuthentication('Wrong user/password combination')
+                raise FailedAuthentication("Wrong user/password combination")
         else:
-            raise FailedAuthentication('Wrong user/password combination')
+            raise FailedAuthentication("Wrong user/password combination")
 
     def authenticated_as(self, cookie=None, authorization="", **kwargs):
         """
@@ -386,7 +401,6 @@ class BasicAuthn(UserAuthnMethod):
 
 
 class SymKeyAuthn(UserAuthnMethod):
-
     def __init__(self, srv, ttl, symkey):
         UserAuthnMethod.__init__(self, srv, ttl)
 

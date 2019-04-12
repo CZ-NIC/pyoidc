@@ -2,7 +2,7 @@ import logging
 
 from oic.utils.userinfo.ldap_info import UserInfoLDAP
 
-__author__ = 'haho0032'
+__author__ = "haho0032"
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +19,5 @@ class UserLDAPMemberValidation(UserInfoLDAP):
             for field in result[self.verify_attr]:
                 if field in self.verify_attr_valid:
                     return True
-        logger.warning(userid + "tries to use the service with the values " +
-                       result)
+        logger.warning(userid + "tries to use the service with the values " + result)
         return False

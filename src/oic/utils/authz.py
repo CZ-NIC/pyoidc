@@ -33,15 +33,17 @@ class AuthzHandling(CookieDealer):
                 _now = int(time.time())
                 if _now > (int(_ts) + int(self.cookie_ttl * 60)):
                     logger.debug("Authentication timed out")
-                    raise ToOld("%d > (%d + %d)" % (_now, int(_ts),
-                                                    int(self.cookie_ttl * 60)))
+                    raise ToOld(
+                        "%d > (%d + %d)" % (_now, int(_ts), int(self.cookie_ttl * 60))
+                    )
             else:
                 if "max_age" in kwargs and kwargs["max_age"]:
                     _now = int(time.time())
                     if _now > (int(_ts) + int(kwargs["max_age"])):
                         logger.debug("Authentication too old")
-                        raise ToOld("%d > (%d + %d)" % (
-                            _now, int(_ts), int(kwargs["max_age"])))
+                        raise ToOld(
+                            "%d > (%d + %d)" % (_now, int(_ts), int(kwargs["max_age"]))
+                        )
 
             return self.permdb[uid]
 

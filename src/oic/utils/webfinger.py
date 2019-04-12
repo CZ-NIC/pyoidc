@@ -11,7 +11,7 @@ import requests
 from oic.exception import PyoidcError
 from oic.utils.time_util import in_a_while
 
-__author__ = 'rolandh'
+__author__ = "rolandh"
 
 logger = logging.getLogger(__name__)
 
@@ -133,8 +133,7 @@ class JRD(Base):
         "links": {"type": (list, LINK), "required": False},  # Optional
     }
 
-    def __init__(self, dic=None, days=0, seconds=0, minutes=0, hours=0,
-                 weeks=0):
+    def __init__(self, dic=None, days=0, seconds=0, minutes=0, hours=0, weeks=0):
         Base.__init__(self, dic)
         self.expires_in(days, seconds, minutes, hours, weeks)
 
@@ -147,9 +146,13 @@ class JRD(Base):
 
     def export(self):
         res = self.dump()
-        res["expires"] = in_a_while(days=self._exp_days, seconds=self._exp_secs,
-                                    minutes=self._exp_min, hours=self._exp_hour,
-                                    weeks=self._exp_week)
+        res["expires"] = in_a_while(
+            days=self._exp_days,
+            seconds=self._exp_secs,
+            minutes=self._exp_min,
+            hours=self._exp_hour,
+            weeks=self._exp_week,
+        )
         return res
 
 
@@ -180,26 +183,27 @@ class JRD(Base):
 # [ userinfo "@" ] host [ ":" port ], it is legal to have a user input
 # identifier like userinfo@host:port, e.g., alice@example.com:8080.
 
+
 class URINormalizer(object):
     def has_scheme(self, inp):
         if "://" in inp:
             return True
         else:
-            authority = inp.replace('/', '#').replace('?', '#').split("#")[0]
+            authority = inp.replace("/", "#").replace("?", "#").split("#")[0]
 
-            if ':' in authority:
-                _, host_or_port = authority.split(':', 1)
+            if ":" in authority:
+                _, host_or_port = authority.split(":", 1)
                 # Assert it's not a port number
-                if re.match(r'^\d+$', host_or_port):
+                if re.match(r"^\d+$", host_or_port):
                     return False
             else:
                 return False
         return True
 
     def acct_scheme_assumed(self, inp):
-        if '@' in inp:
-            host = inp.split('@')[-1]
-            return not (':' in host or '/' in host or '?' in host)
+        if "@" in inp:
+            host = inp.split("@")[-1]
+            return not (":" in host or "/" in host or "?" in host)
         else:
             return False
 
@@ -240,10 +244,10 @@ class WebFinger(object):
             if part.port is not None:
                 host += ":" + str(part.port)
         elif resource.startswith("acct:"):
-            host = resource.split('@')[-1]
-            host = host.replace('/', '#').replace('?', '#').split("#")[0]
+            host = resource.split("@")[-1]
+            host = host.replace("/", "#").replace("?", "#").split("#")[0]
         elif resource.startswith("device:"):
-            host = resource.split(':')[1]
+            host = resource.split(":")[1]
         else:
             raise WebFingerError("Unknown schema")
 
@@ -261,9 +265,11 @@ class WebFinger(object):
                 return None
 
         return {
-            "headers": {"Access-Control-Allow-Origin": "*",
-                        "Content-Type": "application/json; charset=UTF-8"},
-            "body": json.dumps(jrd.export())
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Content-Type": "application/json; charset=UTF-8",
+            },
+            "body": json.dumps(jrd.export()),
         }
 
     def discovery_query(self, resource):
@@ -282,15 +288,15 @@ class WebFinger(object):
 
         if rsp.status_code == 200:
             if self.events:
-                self.events.store('Response', rsp.text)
+                self.events.store("Response", rsp.text)
 
             self.jrd = self.load(rsp.text)
             if self.events:
-                self.events.store('JRD Response', self.jrd)
+                self.events.store("JRD Response", self.jrd)
             for link in self.jrd["links"]:
                 if link["rel"] == OIC_ISSUER:
-                    if not link['href'].startswith('https://'):
-                        raise WebFingerError('Must be a HTTPS href')
+                    if not link["href"].startswith("https://"):
+                        raise WebFingerError("Must be a HTTPS href")
                     return link["href"]
             return None
         elif rsp.status_code in [302, 301, 307]:

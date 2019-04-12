@@ -11,9 +11,9 @@ from oic.utils.sanitize import sanitize
 
 logger = logging.getLogger(__name__)
 
-__author__ = 'roland'
+__author__ = "roland"
 
-URL_ENCODED = 'application/x-www-form-urlencoded'
+URL_ENCODED = "application/x-www-form-urlencoded"
 JSON_ENCODED = "application/json"
 
 DEFAULT_POST_CONTENT_TYPE = URL_ENCODED
@@ -21,30 +21,33 @@ DEFAULT_POST_CONTENT_TYPE = URL_ENCODED
 PAIRS = {
     "port": "port_specified",
     "domain": "domain_specified",
-    "path": "path_specified"
+    "path": "path_specified",
 }
 
-ATTRS = {"version": None,
-         "name": "",
-         "value": None,
-         "port": None,
-         "port_specified": False,
-         "domain": "",
-         "domain_specified": False,
-         "domain_initial_dot": False,
-         "path": "",
-         "path_specified": False,
-         "secure": False,
-         "expires": None,
-         "discard": True,
-         "comment": None,
-         "comment_url": None,
-         "rest": "",
-         "rfc2109": True}
+ATTRS = {
+    "version": None,
+    "name": "",
+    "value": None,
+    "port": None,
+    "port_specified": False,
+    "domain": "",
+    "domain_specified": False,
+    "domain_initial_dot": False,
+    "path": "",
+    "path_specified": False,
+    "secure": False,
+    "expires": None,
+    "discard": True,
+    "comment": None,
+    "comment_url": None,
+    "rest": "",
+    "rfc2109": True,
+}
 
 
-def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE,
-                accept=None, **kwargs):
+def get_or_post(
+    uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE, accept=None, **kwargs
+):
     """
     Construct HTTP request.
 
@@ -64,8 +67,9 @@ def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE,
                 _req.update(parse_qs(comp.query))
 
             _query = str(_req.to_urlencoded())
-            path = urlunsplit((comp.scheme, comp.netloc, comp.path,
-                               _query, comp.fragment))
+            path = urlunsplit(
+                (comp.scheme, comp.netloc, comp.path, _query, comp.fragment)
+            )
         else:
             path = uri
         body = None
@@ -76,8 +80,7 @@ def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE,
         elif content_type == JSON_ENCODED:
             body = req.to_json()
         else:
-            raise UnSupported(
-                "Unsupported content type: '%s'" % content_type)
+            raise UnSupported("Unsupported content type: '%s'" % content_type)
 
         header_ext = {"Content-Type": content_type}
         if accept:
@@ -130,8 +133,9 @@ def set_cookie(cookiejar, kaka):
         except TimeFormatError:
             # Ignore cookie
             logger.info(
-                "Time format error on %s parameter in received cookie" % (
-                    sanitize(attr),))
+                "Time format error on %s parameter in received cookie"
+                % (sanitize(attr),)
+            )
             continue
 
         for att, spec in PAIRS.items():
@@ -143,9 +147,11 @@ def set_cookie(cookiejar, kaka):
 
         if morsel["max-age"] == 0:
             try:
-                cookiejar.clear(domain=std_attr["domain"],
-                                path=std_attr["path"],
-                                name=std_attr["name"])
+                cookiejar.clear(
+                    domain=std_attr["domain"],
+                    path=std_attr["path"],
+                    name=std_attr["name"],
+                )
             except ValueError:
                 pass
         else:
@@ -179,27 +185,31 @@ def verify_header(reqresp, body_type):
     if body_type == "":
         _ctype = reqresp.headers["content-type"]
         if match_to_("application/json", _ctype):
-            body_type = 'json'
+            body_type = "json"
         elif match_to_("application/jwt", _ctype):
             body_type = "jwt"
         elif match_to_(URL_ENCODED, _ctype):
-            body_type = 'urlencoded'
+            body_type = "urlencoded"
         else:
-            body_type = 'txt'  # reasonable default ??
+            body_type = "txt"  # reasonable default ??
     elif body_type == "json":
         if not match_to_("application/json", reqresp.headers["content-type"]):
             if match_to_("application/jwt", reqresp.headers["content-type"]):
                 body_type = "jwt"
             else:
-                raise ValueError("content-type: %s" % (reqresp.headers["content-type"],))
+                raise ValueError(
+                    "content-type: %s" % (reqresp.headers["content-type"],)
+                )
     elif body_type == "jwt":
         if not match_to_("application/jwt", reqresp.headers["content-type"]):
-            raise ValueError("Wrong content-type in header, got: {} expected "
-                             "'application/jwt'".format(reqresp.headers["content-type"]))
+            raise ValueError(
+                "Wrong content-type in header, got: {} expected "
+                "'application/jwt'".format(reqresp.headers["content-type"])
+            )
     elif body_type == "urlencoded":
         if not match_to_(DEFAULT_POST_CONTENT_TYPE, reqresp.headers["content-type"]):
             if not match_to_("text/plain", reqresp.headers["content-type"]):
-                raise ValueError('Wrong content-type')
+                raise ValueError("Wrong content-type")
     else:
         raise ValueError("Unknown return format: %s" % body_type)
 

@@ -1,14 +1,14 @@
 try:
     import ldap
 except ImportError:
-    raise ImportError('This module can be used only with pyldap installed.')
+    raise ImportError("This module can be used only with pyldap installed.")
 
 import logging
 
 from oic.utils.sanitize import sanitize
 from oic.utils.userinfo import UserInfo
 
-__author__ = 'rolandh'
+__author__ = "rolandh"
 
 logger = logging.getLogger(__name__)
 
@@ -32,13 +32,24 @@ OPENID2LDAP = {
     "phone_number": "telephoneNumber",
     # phone_number_verified
     "address": "postalAddress",
-    "updated_at": ""  # Nothing equivalent
+    "updated_at": "",  # Nothing equivalent
 }
 
 
 class UserInfoLDAP(UserInfo):
-    def __init__(self, uri, base, filter_pattern, scope=ldap.SCOPE_SUBTREE,
-                 tls=False, user="", passwd="", attr=None, attrsonly=False, attrmap=OPENID2LDAP):
+    def __init__(
+        self,
+        uri,
+        base,
+        filter_pattern,
+        scope=ldap.SCOPE_SUBTREE,
+        tls=False,
+        user="",
+        passwd="",
+        attr=None,
+        attrsonly=False,
+        attrmap=OPENID2LDAP,
+    ):
         super(UserInfoLDAP, self).__init__(None)
         self.ldapuri = uri
         self.base = base
@@ -61,8 +72,9 @@ class UserInfoLDAP(UserInfo):
             self.ld.start_tls_s()
         self.ld.simple_bind_s(self.ldapuser, self.ldappasswd)
 
-    def __call__(self, userid, client_id, user_info_claims=None,
-                 first_only=True, **kwargs):
+    def __call__(
+        self, userid, client_id, user_info_claims=None, first_only=True, **kwargs
+    ):
         _filter = self.filter_pattern % userid
         logger.debug("CLAIMS: %s" % sanitize(user_info_claims))
         _attr = self.attr

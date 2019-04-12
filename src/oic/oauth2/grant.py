@@ -4,7 +4,7 @@ from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import AuthorizationResponse
 from oic.utils.time_util import utc_time_sans_frac
 
-__author__ = 'roland'
+__author__ = "roland"
 
 
 class Token(object):

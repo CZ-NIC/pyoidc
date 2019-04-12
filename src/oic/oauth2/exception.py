@@ -1,6 +1,6 @@
 from oic.exception import PyoidcError
 
-__author__ = 'roland'
+__author__ = "roland"
 
 
 class HttpError(PyoidcError):

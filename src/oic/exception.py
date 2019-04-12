@@ -1,4 +1,4 @@
-__author__ = 'rohe0002'
+__author__ = "rohe0002"
 
 
 class PyoidcError(Exception):

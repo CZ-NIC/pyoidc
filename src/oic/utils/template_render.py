@@ -29,7 +29,9 @@ def inputs(form_args):
     """Create list of input elements."""
     element = []
     for name, value in form_args.items():
-        element.append('<input type="hidden" name="{}" value="{}"/>'.format(name, value))
+        element.append(
+            '<input type="hidden" name="{}" value="{}"/>'.format(name, value)
+        )
     return "\n".join(element)
 
 
@@ -43,14 +45,16 @@ def render_template(template_name, context):
 
     Templates are defined as strings in this module.
     """
-    if 'action' not in context:
-        raise TemplateException('Missing action in context.')
-    if template_name == 'form_post':
-        context['html_inputs'] = inputs(context.get('inputs', {}))
+    if "action" not in context:
+        raise TemplateException("Missing action in context.")
+    if template_name == "form_post":
+        context["html_inputs"] = inputs(context.get("inputs", {}))
         return FORM_POST.format(**context)
-    elif template_name == 'verify_logout':
-        form_args = {'id_token_hint': context.get('id_token_hint', ''),
-                     'post_logout_redirect_uri': context.get('post_logout_redirect_uri', '')}
-        context['html_inputs'] = inputs(form_args)
+    elif template_name == "verify_logout":
+        form_args = {
+            "id_token_hint": context.get("id_token_hint", ""),
+            "post_logout_redirect_uri": context.get("post_logout_redirect_uri", ""),
+        }
+        context["html_inputs"] = inputs(form_args)
         return VERIFY_LOGOUT.format(**context)
-    raise TemplateException('Unknown template name.')
+    raise TemplateException("Unknown template name.")

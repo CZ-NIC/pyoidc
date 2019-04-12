@@ -37,7 +37,7 @@ from oic.oauth2.message import ParamDefinition
 from oic.oauth2.message import SchemeError
 from oic.utils import time_util
 
-__author__ = 'rohe0002'
+__author__ = "rohe0002"
 
 logger = logging.getLogger(__name__)
 
@@ -230,12 +230,18 @@ def claims_request_deser(val, sformat="json"):
 
 OPTIONAL_ADDRESS = ParamDefinition(Message, False, msg_ser, address_deser, False)
 OPTIONAL_LOGICAL = ParamDefinition(bool, False, None, None, False)
-OPTIONAL_MULTIPLE_Claims = ParamDefinition(Message, False, claims_ser, claims_deser, False)
+OPTIONAL_MULTIPLE_Claims = ParamDefinition(
+    Message, False, claims_ser, claims_deser, False
+)
 
 SINGLE_OPTIONAL_IDTOKEN = ParamDefinition(str, False, msg_ser, None, False)
 
-SINGLE_OPTIONAL_REGISTRATION_REQUEST = ParamDefinition(Message, False, msg_ser, registration_request_deser, False)
-SINGLE_OPTIONAL_CLAIMSREQ = ParamDefinition(Message, False, msg_ser_json, claims_request_deser, False)
+SINGLE_OPTIONAL_REGISTRATION_REQUEST = ParamDefinition(
+    Message, False, msg_ser, registration_request_deser, False
+)
+SINGLE_OPTIONAL_CLAIMSREQ = ParamDefinition(
+    Message, False, msg_ser_json, claims_request_deser, False
+)
 
 OPTIONAL_MESSAGE = ParamDefinition(Message, False, msg_ser, message_deser, False)
 REQUIRED_MESSAGE = ParamDefinition(Message, True, msg_ser, message_deser, False)
@@ -244,7 +250,7 @@ REQUIRED_MESSAGE = ParamDefinition(Message, True, msg_ser, message_deser, False)
 
 
 SCOPE_CHARSET = []
-for char in ['\x21', ('\x23', '\x5b'), ('\x5d', '\x7E')]:
+for char in ["\x21", ("\x23", "\x5b"), ("\x5d", "\x7E")]:
     if isinstance(char, tuple):
         c = char[0]
         while c <= char[1]:
@@ -275,22 +281,22 @@ def verify_id_token(instance, check_hash=False, **kwargs):
     _jwe = JWE_factory(_jws)
     if _jwe is not None:
         try:
-            _jws = _jwe.decrypt(keys=kwargs['keyjar'].get_decrypt_key())
+            _jws = _jwe.decrypt(keys=kwargs["keyjar"].get_decrypt_key())
         except JWEException as err:
             raise VerificationError("Could not decrypt id_token", err)
     _packer = JWT()
     _body = _packer.unpack(_jws).payload()
 
-    if 'keyjar' in kwargs:
+    if "keyjar" in kwargs:
         try:
-            if _body['iss'] not in kwargs['keyjar']:
-                raise ValueError('Unknown issuer')
+            if _body["iss"] not in kwargs["keyjar"]:
+                raise ValueError("Unknown issuer")
         except KeyError:
-            raise MissingRequiredAttribute('iss')
+            raise MissingRequiredAttribute("iss")
 
     if _jwe is not None:
         # Use the original encrypted token to set correct headers
-        idt = IdToken().from_jwt(str(instance['id_token']), **args)
+        idt = IdToken().from_jwt(str(instance["id_token"]), **args)
     else:
         idt = IdToken().from_jwt(_jws, **args)
     if not idt.verify(**kwargs):
@@ -319,6 +325,7 @@ def verify_id_token(instance, check_hash=False, **kwargs):
 
 # -----------------------------------------------------------------------------
 
+
 class RefreshAccessTokenRequest(message.RefreshAccessTokenRequest):
     pass
 
@@ -341,21 +348,20 @@ class AccessTokenResponse(message.AccessTokenResponse):
 
 
 class UserInfoRequest(Message):
-    c_param = {
-        "access_token": SINGLE_OPTIONAL_STRING,
-    }
+    c_param = {"access_token": SINGLE_OPTIONAL_STRING}
 
 
-class AuthorizationResponse(message.AuthorizationResponse,
-                            message.AccessTokenResponse):
+class AuthorizationResponse(message.AuthorizationResponse, message.AccessTokenResponse):
     c_param = message.AuthorizationResponse.c_param.copy()
     c_param.update(message.AccessTokenResponse.c_param)
-    c_param.update({
-        "code": SINGLE_OPTIONAL_STRING,
-        "access_token": SINGLE_OPTIONAL_STRING,
-        "token_type": SINGLE_OPTIONAL_STRING,
-        "id_token": SINGLE_OPTIONAL_IDTOKEN,
-    })
+    c_param.update(
+        {
+            "code": SINGLE_OPTIONAL_STRING,
+            "access_token": SINGLE_OPTIONAL_STRING,
+            "token_type": SINGLE_OPTIONAL_STRING,
+            "id_token": SINGLE_OPTIONAL_IDTOKEN,
+        }
+    )
 
     def verify(self, **kwargs):
         super(AuthorizationResponse, self).verify(**kwargs)
@@ -377,17 +383,20 @@ class AuthorizationResponse(message.AuthorizationResponse,
 
 
 class AuthorizationErrorResponse(message.AuthorizationErrorResponse):
-    c_allowed_values = message.AuthorizationErrorResponse.c_allowed_values \
-        .copy()
-    c_allowed_values["error"].extend(["interaction_required",
-                                      "login_required",
-                                      "session_selection_required",
-                                      "consent_required",
-                                      "invalid_request_uri",
-                                      "invalid_request_object",
-                                      "registration_not_supported",
-                                      "request_not_supported",
-                                      "request_uri_not_supported"])
+    c_allowed_values = message.AuthorizationErrorResponse.c_allowed_values.copy()
+    c_allowed_values["error"].extend(
+        [
+            "interaction_required",
+            "login_required",
+            "session_selection_required",
+            "consent_required",
+            "invalid_request_uri",
+            "invalid_request_object",
+            "registration_not_supported",
+            "request_not_supported",
+            "request_uri_not_supported",
+        ]
+    )
 
 
 class AuthorizationRequest(message.AuthorizationRequest):
@@ -413,10 +422,12 @@ class AuthorizationRequest(message.AuthorizationRequest):
         }
     )
     c_allowed_values = message.AuthorizationRequest.c_allowed_values.copy()
-    c_allowed_values.update({
-        "display": ["page", "popup", "touch", "wap"],
-        "prompt": ["none", "login", "consent", "select_account"]
-    })
+    c_allowed_values.update(
+        {
+            "display": ["page", "popup", "touch", "wap"],
+            "prompt": ["none", "login", "consent", "select_account"],
+        }
+    )
 
     def verify(self, **kwargs):
         """
@@ -477,55 +488,63 @@ class AuthorizationRequest(message.AuthorizationRequest):
 
         if "prompt" in self:
             if "none" in self["prompt"] and len(self["prompt"]) > 1:
-                raise InvalidRequest("prompt none combined with other value",
-                                     self)
+                raise InvalidRequest("prompt none combined with other value", self)
 
         return True
 
 
 class AccessTokenRequest(message.AccessTokenRequest):
     c_param = message.AccessTokenRequest.c_param.copy()
-    c_param.update({"client_assertion_type": SINGLE_OPTIONAL_STRING,
-                    "client_assertion": SINGLE_OPTIONAL_STRING})
+    c_param.update(
+        {
+            "client_assertion_type": SINGLE_OPTIONAL_STRING,
+            "client_assertion": SINGLE_OPTIONAL_STRING,
+        }
+    )
     c_default = {"grant_type": "authorization_code"}
     c_allowed_values = {
         "client_assertion_type": [
-            "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"],
+            "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+        ]
     }
 
 
 class AddressClaim(Message):
-    c_param = {"formatted": SINGLE_OPTIONAL_STRING,
-               "street_address": SINGLE_OPTIONAL_STRING,
-               "locality": SINGLE_OPTIONAL_STRING,
-               "region": SINGLE_OPTIONAL_STRING,
-               "postal_code": SINGLE_OPTIONAL_STRING,
-               "country": SINGLE_OPTIONAL_STRING}
+    c_param = {
+        "formatted": SINGLE_OPTIONAL_STRING,
+        "street_address": SINGLE_OPTIONAL_STRING,
+        "locality": SINGLE_OPTIONAL_STRING,
+        "region": SINGLE_OPTIONAL_STRING,
+        "postal_code": SINGLE_OPTIONAL_STRING,
+        "country": SINGLE_OPTIONAL_STRING,
+    }
 
 
 class OpenIDSchema(Message):
-    c_param = {"sub": SINGLE_REQUIRED_STRING,
-               "name": SINGLE_OPTIONAL_STRING,
-               "given_name": SINGLE_OPTIONAL_STRING,
-               "family_name": SINGLE_OPTIONAL_STRING,
-               "middle_name": SINGLE_OPTIONAL_STRING,
-               "nickname": SINGLE_OPTIONAL_STRING,
-               "preferred_username": SINGLE_OPTIONAL_STRING,
-               "profile": SINGLE_OPTIONAL_STRING,
-               "picture": SINGLE_OPTIONAL_STRING,
-               "website": SINGLE_OPTIONAL_STRING,
-               "email": SINGLE_OPTIONAL_STRING,
-               "email_verified": SINGLE_OPTIONAL_BOOLEAN,
-               "gender": SINGLE_OPTIONAL_STRING,
-               "birthdate": SINGLE_OPTIONAL_STRING,
-               "zoneinfo": SINGLE_OPTIONAL_STRING,
-               "locale": SINGLE_OPTIONAL_STRING,
-               "phone_number": SINGLE_OPTIONAL_STRING,
-               "phone_number_verified": SINGLE_OPTIONAL_BOOLEAN,
-               "address": OPTIONAL_ADDRESS,
-               "updated_at": SINGLE_OPTIONAL_INT,
-               "_claim_names": OPTIONAL_MESSAGE,
-               "_claim_sources": OPTIONAL_MESSAGE}
+    c_param = {
+        "sub": SINGLE_REQUIRED_STRING,
+        "name": SINGLE_OPTIONAL_STRING,
+        "given_name": SINGLE_OPTIONAL_STRING,
+        "family_name": SINGLE_OPTIONAL_STRING,
+        "middle_name": SINGLE_OPTIONAL_STRING,
+        "nickname": SINGLE_OPTIONAL_STRING,
+        "preferred_username": SINGLE_OPTIONAL_STRING,
+        "profile": SINGLE_OPTIONAL_STRING,
+        "picture": SINGLE_OPTIONAL_STRING,
+        "website": SINGLE_OPTIONAL_STRING,
+        "email": SINGLE_OPTIONAL_STRING,
+        "email_verified": SINGLE_OPTIONAL_BOOLEAN,
+        "gender": SINGLE_OPTIONAL_STRING,
+        "birthdate": SINGLE_OPTIONAL_STRING,
+        "zoneinfo": SINGLE_OPTIONAL_STRING,
+        "locale": SINGLE_OPTIONAL_STRING,
+        "phone_number": SINGLE_OPTIONAL_STRING,
+        "phone_number_verified": SINGLE_OPTIONAL_BOOLEAN,
+        "address": OPTIONAL_ADDRESS,
+        "updated_at": SINGLE_OPTIONAL_INT,
+        "_claim_names": OPTIONAL_MESSAGE,
+        "_claim_sources": OPTIONAL_MESSAGE,
+    }
 
     def verify(self, **kwargs):
         super(OpenIDSchema, self).verify(**kwargs)
@@ -584,18 +603,24 @@ class RegistrationRequest(Message):
         "post_logout_redirect_uris": OPTIONAL_LIST_OF_STRINGS,
     }
     c_default = {"application_type": "web", "response_types": ["code"]}
-    c_allowed_values = {"application_type": ["native", "web"],
-                        "subject_type": ["public", "pairwise"]}
+    c_allowed_values = {
+        "application_type": ["native", "web"],
+        "subject_type": ["public", "pairwise"],
+    }
 
     def verify(self, **kwargs):
         super(RegistrationRequest, self).verify(**kwargs)
 
-        if "initiate_login_uri" in self and not self["initiate_login_uri"].startswith("https:"):
+        if "initiate_login_uri" in self and not self["initiate_login_uri"].startswith(
+            "https:"
+        ):
             raise AssertionError()
 
-        for param in ["request_object_encryption",
-                      "id_token_encrypted_response",
-                      "userinfo_encrypted_response"]:
+        for param in [
+            "request_object_encryption",
+            "id_token_encrypted_response",
+            "userinfo_encrypted_response",
+        ]:
             alg_param = "%s_alg" % param
             enc_param = "%s_enc" % param
             if alg_param in self:
@@ -606,7 +631,10 @@ class RegistrationRequest(Message):
             if enc_param in self and alg_param not in self:
                 raise AssertionError()
 
-        if "token_endpoint_auth_signing_alg" in self and self["token_endpoint_auth_signing_alg"] == "none":
+        if (
+            "token_endpoint_auth_signing_alg" in self
+            and self["token_endpoint_auth_signing_alg"] == "none"
+        ):
             raise AssertionError()
 
         return True
@@ -639,44 +667,53 @@ class RegistrationResponse(Message):
         has_reg_uri = "registration_client_uri" in self
         has_reg_at = "registration_access_token" in self
         if has_reg_uri != has_reg_at:
-            raise VerificationError((
-                "Only one of registration_client_uri"
-                " and registration_access_token present"), self)
+            raise VerificationError(
+                (
+                    "Only one of registration_client_uri"
+                    " and registration_access_token present"
+                ),
+                self,
+            )
 
         return True
 
 
 class ClientRegistrationErrorResponse(message.ErrorResponse):
-    c_allowed_values = {"error": ["invalid_redirect_uri",
-                                  "invalid_client_metadata",
-                                  "invalid_configuration_parameter"]}
+    c_allowed_values = {
+        "error": [
+            "invalid_redirect_uri",
+            "invalid_client_metadata",
+            "invalid_configuration_parameter",
+        ]
+    }
 
 
 class IdToken(OpenIDSchema):
     c_param = OpenIDSchema.c_param.copy()
-    c_param.update({
-        "iss": SINGLE_REQUIRED_STRING,
-        "sub": SINGLE_REQUIRED_STRING,
-        "aud": REQUIRED_LIST_OF_STRINGS,  # Array of strings or string
-        "exp": SINGLE_REQUIRED_INT,
-        "iat": SINGLE_REQUIRED_INT,
-        "auth_time": SINGLE_OPTIONAL_INT,
-        "nonce": SINGLE_OPTIONAL_STRING,
-        "at_hash": SINGLE_OPTIONAL_STRING,
-        "c_hash": SINGLE_OPTIONAL_STRING,
-        "acr": SINGLE_OPTIONAL_STRING,
-        "amr": OPTIONAL_LIST_OF_STRINGS,
-        "azp": SINGLE_OPTIONAL_STRING,
-        "sub_jwk": SINGLE_OPTIONAL_STRING
-    })
+    c_param.update(
+        {
+            "iss": SINGLE_REQUIRED_STRING,
+            "sub": SINGLE_REQUIRED_STRING,
+            "aud": REQUIRED_LIST_OF_STRINGS,  # Array of strings or string
+            "exp": SINGLE_REQUIRED_INT,
+            "iat": SINGLE_REQUIRED_INT,
+            "auth_time": SINGLE_OPTIONAL_INT,
+            "nonce": SINGLE_OPTIONAL_STRING,
+            "at_hash": SINGLE_OPTIONAL_STRING,
+            "c_hash": SINGLE_OPTIONAL_STRING,
+            "acr": SINGLE_OPTIONAL_STRING,
+            "amr": OPTIONAL_LIST_OF_STRINGS,
+            "azp": SINGLE_OPTIONAL_STRING,
+            "sub_jwk": SINGLE_OPTIONAL_STRING,
+        }
+    )
 
     def verify(self, **kwargs):
         super(IdToken, self).verify(**kwargs)
 
         try:
-            if kwargs['iss'] != self['iss']:
-                raise IssuerMismatch(
-                    '{} != {}'.format(kwargs['iss'], self['iss']))
+            if kwargs["iss"] != self["iss"]:
+                raise IssuerMismatch("{} != {}".format(kwargs["iss"], self["iss"]))
         except KeyError:
             pass
 
@@ -685,8 +722,9 @@ class IdToken(OpenIDSchema):
                 # check that I'm among the recipients
                 if kwargs["client_id"] not in self["aud"]:
                     raise NotForMe(
-                        "{} not in aud:{}".format(kwargs["client_id"],
-                                                  self["aud"]), self)
+                        "{} not in aud:{}".format(kwargs["client_id"], self["aud"]),
+                        self,
+                    )
 
             # Then azp has to be present and be one of the aud values
             if len(self["aud"]) > 1:
@@ -699,49 +737,50 @@ class IdToken(OpenIDSchema):
             if "client_id" in kwargs:
                 if kwargs["client_id"] != self["azp"]:
                     raise NotForMe(
-                        "{} != azp:{}".format(kwargs["client_id"],
-                                              self["azp"]), self)
+                        "{} != azp:{}".format(kwargs["client_id"], self["azp"]), self
+                    )
 
         _now = time_util.utc_time_sans_frac()
 
         try:
-            _skew = kwargs['skew']
+            _skew = kwargs["skew"]
         except KeyError:
             _skew = 0
 
         try:
-            _exp = self['exp']
+            _exp = self["exp"]
         except KeyError:
-            raise MissingRequiredAttribute('exp')
+            raise MissingRequiredAttribute("exp")
         else:
             if (_now - _skew) > _exp:
-                raise EXPError('Invalid expiration time')
+                raise EXPError("Invalid expiration time")
 
         try:
-            _storage_time = kwargs['nonce_storage_time']
+            _storage_time = kwargs["nonce_storage_time"]
         except KeyError:
             _storage_time = NONCE_STORAGE_TIME
 
         try:
-            _iat = self['iat']
+            _iat = self["iat"]
         except KeyError:
-            raise MissingRequiredAttribute('iat')
+            raise MissingRequiredAttribute("iat")
         else:
             if (_iat + _storage_time) < (_now - _skew):
-                raise IATError('Issued too long ago')
+                raise IATError("Issued too long ago")
 
         return True
 
 
 class RefreshSessionRequest(Message):
-    c_param = {"id_token": SINGLE_REQUIRED_STRING,
-               "redirect_url": SINGLE_REQUIRED_STRING,
-               "state": SINGLE_REQUIRED_STRING}
+    c_param = {
+        "id_token": SINGLE_REQUIRED_STRING,
+        "redirect_url": SINGLE_REQUIRED_STRING,
+        "state": SINGLE_REQUIRED_STRING,
+    }
 
 
 class RefreshSessionResponse(Message):
-    c_param = {"id_token": SINGLE_REQUIRED_STRING,
-               "state": SINGLE_REQUIRED_STRING}
+    c_param = {"id_token": SINGLE_REQUIRED_STRING, "state": SINGLE_REQUIRED_STRING}
 
 
 class CheckSessionRequest(Message):
@@ -756,7 +795,7 @@ class EndSessionRequest(Message):
     c_param = {
         "id_token_hint": SINGLE_OPTIONAL_STRING,
         "post_logout_redirect_uri": SINGLE_OPTIONAL_STRING,
-        "state": SINGLE_OPTIONAL_STRING
+        "state": SINGLE_OPTIONAL_STRING,
     }
 
 
@@ -771,7 +810,7 @@ class Claims(Message):
 class ClaimsRequest(Message):
     c_param = {
         "userinfo": OPTIONAL_MULTIPLE_Claims,
-        "id_token": OPTIONAL_MULTIPLE_Claims
+        "id_token": OPTIONAL_MULTIPLE_Claims,
     }
 
 
@@ -800,13 +839,10 @@ class ProviderConfigurationResponse(Message):
         "userinfo_encryption_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "userinfo_encryption_enc_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "request_object_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
-        "request_object_encryption_alg_values_supported":
-            OPTIONAL_LIST_OF_STRINGS,
-        "request_object_encryption_enc_values_supported":
-            OPTIONAL_LIST_OF_STRINGS,
+        "request_object_encryption_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
+        "request_object_encryption_enc_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "token_endpoint_auth_methods_supported": OPTIONAL_LIST_OF_STRINGS,
-        "token_endpoint_auth_signing_alg_values_supported":
-            OPTIONAL_LIST_OF_STRINGS,
+        "token_endpoint_auth_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "display_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "claim_types_supported": OPTIONAL_LIST_OF_STRINGS,
         "claims_supported": OPTIONAL_LIST_OF_STRINGS,
@@ -822,14 +858,15 @@ class ProviderConfigurationResponse(Message):
         "check_session_iframe": SINGLE_OPTIONAL_STRING,
         "end_session_endpoint": SINGLE_OPTIONAL_STRING,
     }
-    c_default = {"version": "3.0",
-                 "token_endpoint_auth_methods_supported": [
-                     "client_secret_basic"],
-                 "claims_parameter_supported": False,
-                 "request_parameter_supported": False,
-                 "request_uri_parameter_supported": True,
-                 "require_request_uri_registration": False,
-                 "grant_types_supported": ["authorization_code", "implicit"]}
+    c_default = {
+        "version": "3.0",
+        "token_endpoint_auth_methods_supported": ["client_secret_basic"],
+        "claims_parameter_supported": False,
+        "request_parameter_supported": False,
+        "request_uri_parameter_supported": True,
+        "require_request_uri_registration": False,
+        "grant_types_supported": ["authorization_code", "implicit"],
+    }
 
     def verify(self, **kwargs):
         super(ProviderConfigurationResponse, self).verify(**kwargs)
@@ -847,8 +884,10 @@ class ProviderConfigurationResponse(Message):
         if parts.query or parts.fragment:
             raise AssertionError()
 
-        if any("code" in rt for rt in self[
-                "response_types_supported"]) and "token_endpoint" not in self:
+        if (
+            any("code" in rt for rt in self["response_types_supported"])
+            and "token_endpoint" not in self
+        ):
             raise MissingRequiredAttribute("token_endpoint")
 
         return True
@@ -892,13 +931,18 @@ SINGLE_OPTIONAL_JWT = ParamDefinition(Message, False, msg_ser, jwt_deser, False)
 
 
 class UserInfoErrorResponse(message.ErrorResponse):
-    c_allowed_values = {"error": ["invalid_schema", "invalid_request",
-                                  "invalid_token", "insufficient_scope"]}
+    c_allowed_values = {
+        "error": [
+            "invalid_schema",
+            "invalid_request",
+            "invalid_token",
+            "insufficient_scope",
+        ]
+    }
 
 
 class DiscoveryRequest(Message):
-    c_param = {"principal": SINGLE_REQUIRED_STRING,
-               "service": SINGLE_REQUIRED_STRING}
+    c_param = {"principal": SINGLE_REQUIRED_STRING, "service": SINGLE_REQUIRED_STRING}
 
 
 class DiscoveryResponse(Message):
@@ -911,14 +955,26 @@ class ResourceRequest(Message):
 
 SCOPE2CLAIMS = {
     "openid": ["sub"],
-    "profile": ["name", "given_name", "family_name", "middle_name",
-                "nickname", "profile", "picture", "website", "gender",
-                "birthdate", "zoneinfo", "locale", "updated_at",
-                "preferred_username"],
+    "profile": [
+        "name",
+        "given_name",
+        "family_name",
+        "middle_name",
+        "nickname",
+        "profile",
+        "picture",
+        "website",
+        "gender",
+        "birthdate",
+        "zoneinfo",
+        "locale",
+        "updated_at",
+        "preferred_username",
+    ],
     "email": ["email", "email_verified"],
     "address": ["address"],
     "phone": ["phone_number", "phone_number_verified"],
-    "offline_access": []
+    "offline_access": [],
 }
 
 MSG = {
@@ -954,7 +1010,9 @@ MSG = {
 
 
 def factory(msgtype):
-    warnings.warn('`factory` is deprecated. Use `OIDCMessageFactory` instead.', DeprecationWarning)
+    warnings.warn(
+        "`factory` is deprecated. Use `OIDCMessageFactory` instead.", DeprecationWarning
+    )
     for _, obj in inspect.getmembers(sys.modules[__name__]):
         if inspect.isclass(obj) and issubclass(obj, Message):
             try:
@@ -982,5 +1040,7 @@ class OIDCMessageFactory(MessageFactory):
     checkid_endpoint = MessageTuple(CheckIDRequest, IdToken)
     checksession_endpoint = MessageTuple(CheckSessionRequest, IdToken)
     endsession_endpoint = MessageTuple(EndSessionRequest, EndSessionResponse)
-    refreshsession_endpoint = MessageTuple(RefreshSessionRequest, RefreshSessionResponse)
+    refreshsession_endpoint = MessageTuple(
+        RefreshSessionRequest, RefreshSessionResponse
+    )
     discovery_endpoint = MessageTuple(DiscoveryRequest, DiscoveryResponse)

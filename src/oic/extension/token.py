@@ -9,7 +9,7 @@ from oic.utils.jwt import JWT
 from oic.utils.sdb import Token
 from oic.utils.time_util import utc_time_sans_frac
 
-__author__ = 'roland'
+__author__ = "roland"
 
 
 class TokenAssertion(Message):
@@ -17,25 +17,24 @@ class TokenAssertion(Message):
         "iss": SINGLE_REQUIRED_STRING,
         "azp": SINGLE_REQUIRED_STRING,
         "sub": SINGLE_REQUIRED_STRING,
-        'kid': SINGLE_REQUIRED_STRING,
+        "kid": SINGLE_REQUIRED_STRING,
         "exp": SINGLE_REQUIRED_INT,
-        'jti': SINGLE_REQUIRED_STRING,
+        "jti": SINGLE_REQUIRED_STRING,
         "aud": OPTIONAL_LIST_OF_STRINGS,  # Array of strings or string
     }
 
 
 class JWTToken(Token, JWT):
-    usage = 'authorization_grant'
+    usage = "authorization_grant"
 
-    def __init__(self, typ, keyjar, lt_pattern=None, extra_claims=None,
-                 **kwargs):
+    def __init__(self, typ, keyjar, lt_pattern=None, extra_claims=None, **kwargs):
         self.type = typ
         JWT.__init__(self, keyjar, msgtype=TokenAssertion, **kwargs)
         Token.__init__(self, typ, **kwargs)
         self.lt_pattern = lt_pattern or {}
         self.db = {}
-        self.session_info = {'': 600}
-        self.exp_args = ['sinfo']
+        self.session_info = {"": 600}
+        self.exp_args = ["sinfo"]
         self.extra_claims = extra_claims or {}
 
     def __call__(self, sid, *args, **kwargs):
@@ -45,80 +44,80 @@ class JWTToken(Token, JWT):
         :return:
         """
         try:
-            _sinfo = kwargs['sinfo']
+            _sinfo = kwargs["sinfo"]
         except KeyError:
             exp = self.do_exp(**kwargs)
-            _tid = kwargs['target_id']
+            _tid = kwargs["target_id"]
         else:
-            if 'lifetime' in kwargs:
-                _sinfo['lifetime'] = kwargs['lifetime']
+            if "lifetime" in kwargs:
+                _sinfo["lifetime"] = kwargs["lifetime"]
             exp = self.do_exp(**_sinfo)
-            _tid = _sinfo['client_id']
-            if 'scope' not in kwargs:
+            _tid = _sinfo["client_id"]
+            if "scope" not in kwargs:
                 _scope = None
                 try:
-                    _scope = _sinfo['scope']
+                    _scope = _sinfo["scope"]
                 except KeyError:
-                    ar = json.loads(_sinfo['authzreq'])
+                    ar = json.loads(_sinfo["authzreq"])
                     try:
-                        _scope = ar['scope']
+                        _scope = ar["scope"]
                     except KeyError:
                         pass
                 if _scope:
-                    kwargs['scope'] = ' ' .join(_scope)
+                    kwargs["scope"] = " ".join(_scope)
 
-            if self.usage == 'authorization_grant':
+            if self.usage == "authorization_grant":
                 try:
-                    kwargs['sub'] = _sinfo['sub']
+                    kwargs["sub"] = _sinfo["sub"]
                 except KeyError:
                     pass
 
-            del kwargs['sinfo']
+            del kwargs["sinfo"]
 
-        if 'aud' in kwargs:
-            if _tid not in kwargs['aud']:
-                kwargs['aud'].append(_tid)
+        if "aud" in kwargs:
+            if _tid not in kwargs["aud"]:
+                kwargs["aud"].append(_tid)
         else:
-            kwargs['aud'] = [_tid]
+            kwargs["aud"] = [_tid]
 
-        if self.usage == 'client_authentication':
+        if self.usage == "client_authentication":
             try:
-                kwargs['sub'] = _tid
+                kwargs["sub"] = _tid
             except KeyError:
                 pass
         else:
-            if 'azp' not in kwargs:
-                kwargs['azp'] = _tid
+            if "azp" not in kwargs:
+                kwargs["azp"] = _tid
 
-        for param in ['lifetime', 'grant_type', 'response_type', 'target_id']:
+        for param in ["lifetime", "grant_type", "response_type", "target_id"]:
             try:
                 del kwargs[param]
             except KeyError:
                 pass
 
         try:
-            kwargs['kid'] = self.extra_claims['kid']
+            kwargs["kid"] = self.extra_claims["kid"]
         except KeyError:
             pass
 
-        _jti = '{}-{}'.format(self.type, uuid.uuid4().hex)
+        _jti = "{}-{}".format(self.type, uuid.uuid4().hex)
         _jwt = self.pack(jti=_jti, exp=exp, **kwargs)
         self.db[_jti] = sid
         return _jwt
 
     def do_exp(self, **kwargs):
         try:
-            lifetime = kwargs['lifetime']
+            lifetime = kwargs["lifetime"]
         except KeyError:
             try:
-                rt = ' '.join(kwargs['response_type'])
+                rt = " ".join(kwargs["response_type"])
             except KeyError:
-                rt = ' '.join(kwargs['grant_type'])
+                rt = " ".join(kwargs["grant_type"])
 
             try:
                 lifetime = self.lt_pattern[rt]
             except KeyError:
-                lifetime = self.lt_pattern['']
+                lifetime = self.lt_pattern[""]
 
         return utc_time_sans_frac() + lifetime
 
@@ -130,7 +129,7 @@ class JWTToken(Token, JWT):
         :return: tuple of token type and session id
         """
         msg = self.unpack(token)
-        return self.type, self.db[msg['jti']]
+        return self.type, self.db[msg["jti"]]
 
     def get_key(self, token):
         """
@@ -140,7 +139,7 @@ class JWTToken(Token, JWT):
         :return: The session id
         """
         msg = self.unpack(token)
-        return self.db[msg['jti']]
+        return self.db[msg["jti"]]
 
     def get_type(self, token):
         """
@@ -155,22 +154,22 @@ class JWTToken(Token, JWT):
     def invalidate(self, token):
         info = self.unpack(token)
         try:
-            del self.db[info['jti']]
+            del self.db[info["jti"]]
         except KeyError:
             return False
 
         return True
 
     def is_valid(self, info):
-        if info['jti'] in self.db:
-            if info['exp'] >= utc_time_sans_frac():
+        if info["jti"] in self.db:
+            if info["exp"] >= utc_time_sans_frac():
                 return True
 
         return False
 
     def expires_at(self, token):
         info = self.unpack(token)
-        return info['exp']
+        return info["exp"]
 
     def valid(self, token):
         info = self.unpack(token)
@@ -181,8 +180,8 @@ class JWTToken(Token, JWT):
 
 
 class Authorization_Grant(JWTToken):
-    usage = 'authorization_grant'
+    usage = "authorization_grant"
 
 
 class Client_Authentication(JWTToken):
-    usage = 'client_authentication'
+    usage = "client_authentication"

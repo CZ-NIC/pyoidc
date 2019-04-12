@@ -18,26 +18,26 @@ from oic.oauth2.message import ParamDefinition
 from oic.oic.message import SINGLE_REQUIRED_INT
 from oic.oic.message import msg_ser
 
-__author__ = 'roland'
+__author__ = "roland"
 
 
 class TokenExchangeRequest(Message):
     c_param = {
-        'grant_type': SINGLE_REQUIRED_STRING,
-        'resource': SINGLE_OPTIONAL_STRING,
-        'audience': SINGLE_OPTIONAL_STRING,
-        'scope': OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-        'requested_token_type': SINGLE_OPTIONAL_STRING,
-        'subject_token': SINGLE_REQUIRED_STRING,
-        'subject_token_type': SINGLE_REQUIRED_STRING,
-        'actor_token': SINGLE_OPTIONAL_STRING,
-        'actor_token_type': SINGLE_OPTIONAL_STRING,
-        'want_composite': SINGLE_OPTIONAL_STRING
+        "grant_type": SINGLE_REQUIRED_STRING,
+        "resource": SINGLE_OPTIONAL_STRING,
+        "audience": SINGLE_OPTIONAL_STRING,
+        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+        "requested_token_type": SINGLE_OPTIONAL_STRING,
+        "subject_token": SINGLE_REQUIRED_STRING,
+        "subject_token_type": SINGLE_REQUIRED_STRING,
+        "actor_token": SINGLE_OPTIONAL_STRING,
+        "actor_token_type": SINGLE_OPTIONAL_STRING,
+        "want_composite": SINGLE_OPTIONAL_STRING,
     }
 
     def verify(self, **kwargs):
-        if 'actor_token' in self:
-            if not 'actor_token_type':
+        if "actor_token" in self:
+            if not "actor_token_type":
                 return False
 
 
@@ -48,7 +48,7 @@ class TokenExchangeResponse(Message):
         "token_type": SINGLE_REQUIRED_STRING,
         "expires_in": SINGLE_OPTIONAL_INT,
         "refresh_token": SINGLE_OPTIONAL_STRING,
-        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS
+        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
     }
 
 
@@ -72,6 +72,6 @@ class STS(Message):
         "exp": SINGLE_REQUIRED_INT,
         "nbf": SINGLE_REQUIRED_INT,
         "sub": SINGLE_REQUIRED_STRING,
-        'act': SINGLE_OPTIONAL_STS,
-        'scp': OPTIONAL_LIST_OF_STRINGS
+        "act": SINGLE_OPTIONAL_STS,
+        "scp": OPTIONAL_LIST_OF_STRINGS,
     }
