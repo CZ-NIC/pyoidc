@@ -1,12 +1,10 @@
 import json
 import logging
 import socket
-from functools import cmp_to_key
 from urllib.parse import parse_qs
 from urllib.parse import splitquery  # type: ignore
 
 from jwkest import b64e
-from jwkest import jws
 
 from oic import rndstr
 from oic.exception import FailedAuthentication
@@ -19,13 +17,11 @@ from oic.extension.message import ClientRegistrationError
 from oic.extension.message import ExtensionMessageFactory
 from oic.extension.message import InvalidRedirectUri
 from oic.extension.message import MissingPage
-from oic.extension.message import ServerMetadata
 from oic.oauth2 import TokenErrorResponse
 from oic.oauth2 import compact
 from oic.oauth2 import provider
 from oic.oauth2.exception import CapabilitiesMisMatch
 from oic.oauth2.exception import VerificationError
-from oic.oauth2.message import ASConfigurationResponse
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import by_schema
 from oic.oauth2.provider import Endpoint
@@ -33,7 +29,6 @@ from oic.oic import PREFERENCE2PROVIDER
 from oic.oic.provider import RegistrationEndpoint
 from oic.oic.provider import secret
 from oic.utils import restrict
-from oic.utils import sort_sign_alg
 from oic.utils.authn.client import AuthnFailure
 from oic.utils.authn.client import UnknownAuthnMethod
 from oic.utils.authn.client import get_client_id
@@ -169,10 +164,7 @@ class Provider(provider.Provider):
         self.secret_lifetime = secret_lifetime
         self.jwks_uri = jwks_uri
         self.verify_ssl = verify_ssl
-        try:
-            self.scopes = kwargs["scopes"]
-        except KeyError:
-            self.scopes = ["offline_access"]
+        self.scopes.extend(kwargs.get("scopes", []))
         self.keyjar = keyjar
         if self.keyjar is None:
             self.keyjar = KeyJar(verify_ssl=self.verify_ssl)
@@ -547,41 +539,6 @@ class Provider(provider.Provider):
                 return Unauthorized()
             else:
                 return NoContent()
-
-    def provider_features(self, pcr_class=ServerMetadata, provider_config=None):
-        """
-        Present what the server capabilities are.
-
-        :param pcr_class:
-        :return: ProviderConfigurationResponse instance
-        """
-        _provider_info = pcr_class(**CAPABILITIES)
-        _provider_info["scopes_supported"] = self.scopes
-
-        sign_algs = list(jws.SIGNER_ALGS.keys())
-        sign_algs.remove("none")
-        sign_algs = sorted(sign_algs, key=cmp_to_key(sort_sign_alg))
-
-        _pat1 = "{}_endpoint_auth_signing_alg_values_supported"
-        _pat2 = "{}_endpoint_auth_methods_supported"
-        for typ in ["token", "revocation", "introspection"]:
-            _provider_info[_pat1.format(typ)] = sign_algs
-            _provider_info[_pat2.format(typ)] = AUTH_METHODS_SUPPORTED
-
-        if provider_config:
-            _provider_info.update(provider_config)
-
-        return _provider_info
-
-    def create_providerinfo(self, pcr_class=ASConfigurationResponse, setup=None):
-        """
-        Dynamically create the provider info response.
-
-        :param pcr_class:
-        :param setup:
-        :return:
-        """
-        return super().create_providerinfo(pcr_class=pcr_class, setup=setup)
 
     @staticmethod
     def verify_code_challenge(

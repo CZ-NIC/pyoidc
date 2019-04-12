@@ -1,13 +1,9 @@
-#!/usr/bin/env python
-import copy
 import hashlib
 import hmac
 import json
 import logging
 import socket
-import sys
 import time
-import traceback
 import warnings
 from functools import cmp_to_key
 from typing import Dict
@@ -46,6 +42,7 @@ from oic.oauth2.exception import VerificationError
 from oic.oauth2.message import Message
 from oic.oauth2.message import by_schema
 from oic.oauth2.provider import DELIM
+from oic.oauth2.provider import STR
 from oic.oauth2.provider import Endpoint
 from oic.oauth2.provider import Provider as AProvider
 from oic.oic import PREFERENCE2PROVIDER
@@ -62,7 +59,6 @@ from oic.oic.message import IdToken
 from oic.oic.message import OIDCMessageFactory
 from oic.oic.message import OpenIDRequest
 from oic.oic.message import OpenIDSchema
-from oic.oic.message import ProviderConfigurationResponse
 from oic.utils import sort_sign_alg
 from oic.utils.http_util import OAUTH2_NOCACHE_HEADERS
 from oic.utils.http_util import BadRequest
@@ -87,7 +83,6 @@ __author__ = "rohe0002"
 logger = logging.getLogger(__name__)
 
 SWD_ISSUER = "http://openid.net/specs/connect/1.0/issuer"
-STR = 5 * "_"
 
 
 class InvalidRedirectURIError(Exception):
@@ -240,6 +235,10 @@ class Provider(AProvider):
         message_factory=OIDCMessageFactory,
     ):
 
+        # This has to be defined before calling super()
+        self.extra_claims = extra_claims
+        self.extra_scope_dict = extra_scope_dict
+        # Now we can call super()
         AProvider.__init__(
             self,
             name,
@@ -254,7 +253,6 @@ class Provider(AProvider):
             client_cert=client_cert,
             message_factory=message_factory,
         )
-
         # Should be a OIC Server not an OAuth2 server
         self.server = Server(
             keyjar=keyjar, verify_ssl=verify_ssl, message_factory=message_factory
@@ -275,17 +273,12 @@ class Provider(AProvider):
         self.sso_ttl = 0
         self.test_mode = False
 
-        # where the jwks file kan be found by outsiders
-        self.jwks_uri = jwks_uri
         # Local filename
         self.jwks_name = jwks_name
 
         self.authn_as = None
         self.preferred_id_type = "public"
         self.hostname = hostname or socket.gethostname()
-
-        self.extra_claims = extra_claims
-        self.extra_scope_dict = extra_scope_dict
 
         self.register_endpoint = None
         for endp in self.endp:
@@ -304,13 +297,6 @@ class Provider(AProvider):
 
         self.jwx_def = {}
 
-        if capabilities:
-            self.verify_capabilities(capabilities)
-            self.capabilities = ProviderConfigurationResponse(**capabilities)
-        else:
-            self.capabilities = self.provider_features()
-        self.capabilities["issuer"] = self.name
-
         self.build_jwx_def()
 
         self.kid = {"sig": {}, "enc": {}}
@@ -318,6 +304,11 @@ class Provider(AProvider):
         # Allow custom schema (inheriting from OpenIDSchema) to be used -
         # additional attributes
         self.schema = schema
+
+    @property
+    def default_capabilities(self):
+        """Define default capabilities for implementation."""
+        return CAPABILITIES
 
     def build_jwx_def(self):
         self.jwx_def = {}
@@ -1786,11 +1777,9 @@ class Provider(AProvider):
 
     def create_providerinfo(self, pcr_class=None, setup=None):
         """
-        Dynamically create the provider info response.
+        Overriden to use the proper message class.
 
-        :param pcr_class:
-        :param setup:
-        :return:
+        Can be removed once pcr_class is dropped.
         """
         if pcr_class is not None:
             warnings.warn(
@@ -1802,31 +1791,9 @@ class Provider(AProvider):
             pcr_class = self.server.message_factory.get_response_type(
                 "configuration_endpoint"
             )
-        _provider_info = copy.deepcopy(self.capabilities.to_dict())
+        return super().create_providerinfo(pcr_class=pcr_class, setup=setup)
 
-        if self.jwks_uri and self.keyjar:
-            _provider_info["jwks_uri"] = self.jwks_uri
-
-        for endp in self.endp:
-            if not self.baseurl.endswith("/"):
-                baseurl = self.baseurl + "/"
-            else:
-                baseurl = self.baseurl
-            _provider_info["{}_endpoint".format(endp.etype)] = urljoin(
-                baseurl, endp.url
-            )
-
-        if setup and isinstance(setup, dict):
-            for key in pcr_class.c_param.keys():
-                if key in setup:
-                    _provider_info[key] = setup[key]
-
-        _provider_info["issuer"] = self.name
-        _provider_info["version"] = "3.0"
-
-        return pcr_class(**_provider_info)
-
-    def provider_features(self, pcr_class=None):
+    def provider_features(self, pcr_class=None, provider_config=None):
         """
         Specify what the server capabilities are.
 
@@ -1843,15 +1810,19 @@ class Provider(AProvider):
             pcr_class = self.server.message_factory.get_response_type(
                 "configuration_endpoint"
             )
-        _provider_info = pcr_class(**CAPABILITIES)
 
-        # Parse scopes
+        _provider_info = super().provider_features(
+            pcr_class=pcr_class, provider_config=provider_config
+        )
+
+        # Parse scopes - override the base class
         _scopes = list(SCOPE2CLAIMS.keys())
         if self.extra_scope_dict is not None:
             _scopes.extend(self.extra_scope_dict.keys())
         # Remove duplicates if any
         _provider_info["scopes_supported"] = list(set(_scopes))
 
+        # Add claims
         _claims = []
         for _cl in SCOPE2CLAIMS.values():
             _claims.extend(_cl)
@@ -1867,106 +1838,27 @@ class Provider(AProvider):
         sign_algs = list(jws.SIGNER_ALGS.keys())
         sign_algs = sorted(sign_algs, key=cmp_to_key(sort_sign_alg))
 
+        # Add signing alg values
         for typ in ["userinfo", "id_token", "request_object"]:
             _provider_info["%s_signing_alg_values_supported" % typ] = sign_algs
 
-        # Remove 'none' for token_endpoint_auth_signing_alg_values_supported
-        # since it is not allowed
-        sign_algs = sign_algs[:]
-        sign_algs.remove("none")
-        _provider_info["token_endpoint_auth_signing_alg_values_supported"] = sign_algs
-
+        # Add encryption alg values
         algs = jwe.SUPPORTED["alg"]
         for typ in ["userinfo", "id_token", "request_object"]:
             _provider_info["%s_encryption_alg_values_supported" % typ] = algs
 
+        # Add encryption enc values
         encs = jwe.SUPPORTED["enc"]
         for typ in ["userinfo", "id_token", "request_object"]:
             _provider_info["%s_encryption_enc_values_supported" % typ] = encs
 
-        # acr_values
+        # Add acr_values
         if self.authn_broker:
             acr_values = self.authn_broker.getAcrValuesString()
             if acr_values is not None:
                 _provider_info["acr_values_supported"] = acr_values
 
         return _provider_info
-
-    def verify_capabilities(self, capabilities):
-        """
-        Verify that what the admin wants the server to do actually can be done by this implementation.
-
-        :param capabilities: The asked for capabilities as a dictionary
-        or a ProviderConfigurationResponse instance. The later can be
-        treated as a dictionary.
-        :return: True or False
-        """
-        _pinfo = self.provider_features()
-        not_supported = {}
-        for key, val in capabilities.items():
-            if isinstance(val, str):
-                try:
-                    if val in _pinfo[key]:
-                        continue
-                    else:
-                        not_supported[key] = val
-                except KeyError:
-                    not_supported[key] = ""
-            elif isinstance(val, bool):
-                if not _pinfo[key] and val:
-                    not_supported[key] = ""
-            elif isinstance(val, list):
-                for v in val:
-                    try:
-                        if v in _pinfo[key]:
-                            continue
-                        else:
-                            try:
-                                not_supported[key].append(v)
-                            except KeyError:
-                                not_supported[key] = [v]
-                    except KeyError:
-                        not_supported[key] = ""
-
-        if not_supported:
-            logger.error(
-                "Server doesn't support the following features: {}".format(
-                    not_supported
-                )
-            )
-            return False
-
-        return True
-
-    def providerinfo_endpoint(self, handle="", **kwargs):
-        _log_info = logger.info
-
-        _log_info("@providerinfo_endpoint")
-        try:
-            _response = self.create_providerinfo()
-            msg = "provider_info_response: {}"
-            _log_info(msg.format(sanitize(_response.to_dict())))
-            if self.events:
-                self.events.store("Protocol response", _response)
-
-            headers = [("Cache-Control", "no-store"), ("x-ffo", "bar")]
-            if handle:
-                (key, timestamp) = handle
-                if key.startswith(STR) and key.endswith(STR):
-                    cookie = self.cookie_func(
-                        key, self.cookie_name, "pinfo", self.sso_ttl
-                    )
-                    headers.append(cookie)
-
-            resp = Response(
-                _response.to_json(), content="application/json", headers=headers
-            )
-        except Exception:
-            message = traceback.format_exception(*sys.exc_info())
-            logger.error(message)
-            resp = error_response("service_error", message)
-
-        return resp
 
     def discovery_endpoint(self, request, handle=None, **kwargs):
         _log_debug = logger.debug

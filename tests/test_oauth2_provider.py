@@ -130,6 +130,38 @@ class TestProvider(object):
                             urlmap={"client1": ["https://example.com/authz"]})
         assert provider.urlmap["client1"] == ["https://example.com/authz"]
 
+    def test_providerinfo(self):
+        self.provider.baseurl = 'http://example.com/path1/path2'
+        resp = self.provider.create_providerinfo()
+        assert resp.to_dict()['authorization_endpoint'] == 'http://example.com/path1/path2/authorization'
+
+    def test_providerinfo_trailing(self):
+        self.provider.baseurl = 'http://example.com/path1/path2/'
+        resp = self.provider.create_providerinfo()
+        assert resp.to_dict()['authorization_endpoint'] == 'http://example.com/path1/path2/authorization'
+
+    def test_verify_capabilities(self):
+        capabilities = {'grant_types_supported': ['authorization_code'],
+                        'version': '3.0',
+                        'response_types_supported': ['code', 'token']}
+        assert self.provider.verify_capabilities(capabilities)
+
+    def test_verify_capabilities_mismatch_list(self):
+        capabilities = {'grant_types_supported': ['authorization_code'],
+                        'response_types_supported': ['code token']}  # this is not supported
+        assert not self.provider.verify_capabilities(capabilities)
+
+    def test_verify_capabilities_mismatch_str(self):
+        capabilities = {'grant_types_supported': ['authorization_code'],
+                        'version': '5.0'}  # this is not matching
+        assert not self.provider.verify_capabilities(capabilities)
+
+    def test_verify_capabilities_missing(self):
+        capabilities = {'grant_types_supported': ['authorization_code'],
+                        'str_value': 'test',  # this is not supported
+                        'we_dont_know_this': True}  # this is not supported
+        assert not self.provider.verify_capabilities(capabilities)
+
     def test_authorization_endpoint_faulty_redirect_uri(self):
         bib = {"scope": ["openid"],
                "state": "id-6da9ca0cc23959f5f33e8becd9b08cae",

@@ -1,15 +1,22 @@
 #!/usr/bin/env python
+import copy
 import hashlib
 import logging
 import os
 import sys
 import traceback
 import warnings
+from functools import cmp_to_key
+from typing import Dict  # noqa - This is used for MyPy
+from typing import List  # noqa - This is used for MyPy
+from typing import Union  # noqa - This is used for MyPy
 from urllib.parse import parse_qs
 from urllib.parse import splitquery  # type: ignore
 from urllib.parse import unquote
 from urllib.parse import urljoin
 from urllib.parse import urlparse
+
+from jwkest import jws
 
 from oic import rndstr
 from oic.exception import AuthzError
@@ -35,6 +42,7 @@ from oic.oauth2.message import OauthMessageFactory
 from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.message import add_non_standard
 from oic.oauth2.message import by_schema
+from oic.utils import sort_sign_alg
 from oic.utils.authn.client import AuthnFailure
 from oic.utils.authn.user import NoSuchAuthentication
 from oic.utils.authn.user import TamperAllert
@@ -54,6 +62,25 @@ from oic.utils.sdb import AuthnEvent
 __author__ = "rohe0002"
 
 logger = logging.getLogger(__name__)
+
+STR = 5 * "_"
+
+CAPABILITIES = {
+    "response_types_supported": ["code", "token"],
+    "response_modes_supported": ["query", "fragment", "form_post"],
+    "grant_types_supported": [
+        "authorization_code",
+        "implicit",
+        "urn:ietf:params:oauth:grant-type:jwt-bearer",
+    ],
+}
+
+AUTH_METHODS_SUPPORTED = [
+    "client_secret_post",
+    "client_secret_basic",
+    "client_secret_jwt",
+    "private_key_jwt",
+]
 
 
 class Endpoint(object):
@@ -173,6 +200,8 @@ class Provider(object):
         server_cls=Server,
         client_cert=None,
         message_factory=OauthMessageFactory,
+        capabilities=None,
+        jwks_uri="",
     ):
         self.name = name
         self.sdb = sdb
@@ -227,6 +256,18 @@ class Provider(object):
         self.keyjar = None
         self.trace = None
         self.events = None
+        self.scopes = ["offline_access"]
+
+        self.jwks_uri = jwks_uri
+
+        if capabilities:
+            self.verify_capabilities(capabilities)
+            self.capabilities = self.message_factory.get_response_type(
+                "configuration_endpoint"
+            )(**capabilities)
+        else:
+            self.capabilities = self.provider_features()
+        self.capabilities["issuer"] = self.name
 
     @staticmethod
     def input(query="", post=None):
@@ -237,6 +278,11 @@ class Provider(object):
             return post
         else:
             raise MissingParameter("No input")
+
+    @property
+    def default_capabilities(self):
+        """Define default capabilities for implementation."""
+        return CAPABILITIES
 
     def endpoints(self):
         return [endp.url for endp in self.endp]
@@ -316,6 +362,145 @@ class Provider(object):
             else:
                 logger.info("Registered redirect_uris: %s" % sanitize(_cinfo))
                 raise RedirectURIError("Faulty redirect_uri: %s" % areq["redirect_uri"])
+
+    def verify_capabilities(self, capabilities) -> bool:
+        """
+        Verify that what the admin wants the server to do actually can be done by this implementation.
+
+        :param capabilities: The asked for capabilities as a dictionary
+        or a ProviderConfigurationResponse instance. The later can be
+        treated as a dictionary.
+        """
+        _pinfo = self.provider_features()
+        not_supported = {}  # type: Dict[str, Union[str, List[str]]]
+        for key, val in capabilities.items():
+            if isinstance(val, str):
+                if val not in _pinfo.get(key, ""):
+                    not_supported[key] = val
+            elif isinstance(val, bool):
+                if not _pinfo.get(key) and val:
+                    not_supported[key] = ""
+            elif isinstance(val, list):
+                unsup = []
+                for v in val:
+                    if v not in _pinfo.get(key, ""):
+                        unsup.append(v)
+                if unsup:
+                    not_supported[key] = unsup
+        if not_supported:
+            logger.error(
+                "Server does not support the following features: %s", not_supported
+            )
+            return False
+        return True
+
+    def provider_features(self, pcr_class=None, provider_config=None):
+        """
+        Present what the server capabilities are.
+
+        :param pcr_class:
+        :return: ProviderConfigurationResponse instance
+        """
+        if pcr_class is not None:
+            warnings.warn(
+                "`pcr_class` is deprecated, please use `message_factory`.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        else:
+            pcr_class = self.server.message_factory.get_response_type(
+                "configuration_endpoint"
+            )
+
+        _provider_info = pcr_class(**self.default_capabilities)
+        _provider_info["scopes_supported"] = self.scopes
+
+        sign_algs = list(jws.SIGNER_ALGS.keys())
+        sign_algs.remove("none")
+        sign_algs = sorted(sign_algs, key=cmp_to_key(sort_sign_alg))
+
+        _pat1 = "{}_endpoint_auth_signing_alg_values_supported"
+        _pat2 = "{}_endpoint_auth_methods_supported"
+        for typ in ["token", "revocation", "introspection"]:
+            _provider_info[_pat1.format(typ)] = sign_algs
+            _provider_info[_pat2.format(typ)] = AUTH_METHODS_SUPPORTED
+
+        if provider_config:
+            _provider_info.update(provider_config)
+
+        return _provider_info
+
+    def create_providerinfo(self, pcr_class=None, setup=None):
+        """
+        Dynamically create the provider info response.
+
+        :param pcr_class:
+        :param setup:
+        :return:
+        """
+        if pcr_class is not None:
+            warnings.warn(
+                "Passing `pcr_class` is deprecated. Please use `message_factory.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        else:
+            pcr_class = self.server.message_factory.get_response_type(
+                "configuration_endpoint"
+            )
+        _provider_info = copy.deepcopy(self.capabilities.to_dict())
+
+        if self.jwks_uri and self.keyjar:
+            _provider_info["jwks_uri"] = self.jwks_uri
+
+        for endp in self.endp:
+            if not self.baseurl.endswith("/"):
+                baseurl = self.baseurl + "/"
+            else:
+                baseurl = self.baseurl
+            _provider_info["{}_endpoint".format(endp.etype)] = urljoin(
+                baseurl, endp.url
+            )
+
+        if setup and isinstance(setup, dict):
+            for key in pcr_class.c_param.keys():
+                if key in setup:
+                    _provider_info[key] = setup[key]
+
+        _provider_info["issuer"] = self.name
+        _provider_info["version"] = "3.0"
+
+        return pcr_class(**_provider_info)
+
+    def providerinfo_endpoint(self, handle="", **kwargs):
+        _log_info = logger.info
+
+        _log_info("@providerinfo_endpoint")
+        try:
+            _response = self.create_providerinfo()
+            msg = "provider_info_response: {}"
+            _log_info(msg.format(sanitize(_response.to_dict())))
+            if self.events:
+                self.events.store("Protocol response", _response)
+
+            headers = [("Cache-Control", "no-store"), ("x-ffo", "bar")]
+            if handle:
+                (key, timestamp) = handle
+                if key.startswith(STR) and key.endswith(STR):
+                    cookie = self.cookie_func(
+                        key, self.cookie_name, "pinfo", self.sso_ttl
+                    )
+                    headers.append(cookie)
+
+            resp = Response(
+                _response.to_json(), content="application/json", headers=headers
+            )
+        except Exception:
+            message = traceback.format_exception(*sys.exc_info())
+            logger.error(message)
+            resp = error_response("service_error", message)
+
+        return resp
 
     def get_redirect_uri(self, areq):
         """
