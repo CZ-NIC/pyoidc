@@ -419,7 +419,7 @@ class SymKeyAuthn(UserAuthnMethod):
         :param kwargs: extra key word arguments
         :return:
         """
-        (encmsg, iv) = base64.b64decode(authorization).split(":")
+        (encmsg, iv) = base64.b64decode(authorization).split(b":")
         try:
             user = aes.decrypt(self.symkey, encmsg, iv)
         except (AssertionError, KeyError):

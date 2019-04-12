@@ -1,4 +1,7 @@
 import logging
+from typing import Any  # noqa
+from typing import Dict  # noqa
+from typing import Optional  # noqa
 
 from oic import rndstr
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
@@ -93,7 +96,7 @@ class ClaimsServer(Provider):
 
         self.srvmethod = OICCServer(keyjar=keyjar)
         self.dist_claims_mode = dist_claims_mode
-        self.info_store = {}
+        self.info_store = {}  # type: Dict[str, Any]
         self.claims_userinfo_endpoint = ""
 
     def _aggregation(self, info):
@@ -133,8 +136,8 @@ class ClaimsServer(Provider):
             _log_info("Failed to verify client due to: %s" % err)
 
         if "claims_names" in ucreq:
-            args = dict([(n, {"optional": True}) for n in ucreq["claims_names"]])
-            uic = Claims(**args)
+            claim_args = dict([(n, {"optional": True}) for n in ucreq["claims_names"]])
+            uic = Claims(**claim_args)  # type: Optional[Claims]
         else:
             uic = None
 

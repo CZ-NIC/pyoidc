@@ -25,7 +25,7 @@ else:
             :param kwargs: Extra arguments
             :return: Constructed HTTP arguments, in this case none
             """
-            cis["client_assertion"] = base64.urlsafe_b64encode(str(assertion))
+            cis["client_assertion"] = base64.urlsafe_b64encode(assertion)
             cis["client_assertion_type"] = SAML2_BEARER_ASSERTION_TYPE
 
         def verify(self, areq, **kwargs):

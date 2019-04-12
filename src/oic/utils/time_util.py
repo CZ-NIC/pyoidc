@@ -18,6 +18,7 @@ import sys
 import time
 from datetime import datetime
 from datetime import timedelta
+from typing import Dict  # noqa
 
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 TIME_FORMAT_WITH_FRAGMENT = re.compile(
@@ -61,7 +62,7 @@ D_FORMAT = [
     ("Y", "tm_year"),
     ("M", "tm_mon"),
     ("D", "tm_mday"),
-    ("T", None),
+    ("T", ""),
     ("H", "tm_hour"),
     ("M", "tm_min"),
     ("S", "tm_sec"),
@@ -79,7 +80,7 @@ def parse_duration(duration):
     assert duration[index] == "P"
     index += 1
 
-    dic = dict([(typ, 0) for (code, typ) in D_FORMAT])
+    dic = dict([(typ, 0) for (code, typ) in D_FORMAT])  # type: Dict[str, float]
 
     for code, typ in D_FORMAT:
         if duration[index] == "-":
@@ -301,6 +302,8 @@ def str_to_time(timestr, time_format=TIME_FORMAT):
         except Exception as exc:
             print("Exception: %s on %s" % (exc, timestr), file=sys.stderr)
             raise
+        if elem is None:
+            raise TimeUtilError("Error parsing time")
         then = time.strptime(elem.groups()[0] + "Z", TIME_FORMAT)
 
     return time.gmtime(calendar.timegm(then))

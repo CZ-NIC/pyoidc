@@ -66,7 +66,7 @@ def test_get_or_post():
         'code': 'Je1iKfPN1vCiN7L43GiXAuAWGAnm0mzA7QIjl/YLBBZDB9wefNExQlLDUIIDM2rT'
                 '2t+gwuoRoapEXJyY2wrvg9cWTW2vxsZU+SuWzZlMDXc=',
         'grant_type': 'authorization_code'}
-    request = AccessTokenRequest(**values)
+    request2 = AccessTokenRequest(**values)
     kwargs = {'scope': '',
               'state': 'urn:uuid:92d81fb3-72e8-4e6c-9173-c360b782148a',
               'authn_method': 'client_secret_basic', 'key': [],
@@ -75,7 +75,7 @@ def test_get_or_post():
                                    'YjU4ZjU5YWU3MmFlMGM5NDM4YTY1ZmU0N2IxMDA3OTM1'}
               }
 
-    path, body, ret_kwargs = util.get_or_post(uri, method, request, **kwargs)
+    path, body, ret_kwargs = util.get_or_post(uri, method, request2, **kwargs)
 
     assert path == u'https://localhost:8092/token'
     assert url_compare("http://test/#{}".format(body),
@@ -92,7 +92,7 @@ def test_get_or_post():
 
     method = 'UNSUPORTED'
     with pytest.raises(UnSupported):
-        util.get_or_post(uri, method, request, **kwargs)
+        util.get_or_post(uri, method, request2, **kwargs)
 
 
 def test_get_or_post_with_qp():
@@ -135,7 +135,7 @@ def test_set_cookie():
 
     util.set_cookie(cookiejar, c)
 
-    cookies = cookiejar._cookies
+    cookies = cookiejar._cookies  # type: ignore
 
     c_0 = cookies[domain_0][path]["value_0"]
     c_1 = cookies[domain_1][""]["value_1"]

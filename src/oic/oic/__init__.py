@@ -7,9 +7,11 @@ from json import JSONDecodeError
 from typing import Any  # noqa - Used for MyPy
 from typing import Dict  # noqa - Used for MyPy
 from typing import List  # noqa - Used for MyPy
-from typing import Tuple
-from typing import Type
-from typing import Union
+from typing import Optional  # noqa - Used for MyPy
+from typing import Tuple  # noqa - Used for MyPy
+from typing import Type  # noqa - Used for MyPy
+from typing import Union  # noqa - Used for MyPy
+from typing import cast  # noqa - Used for MyPy
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
@@ -921,7 +923,7 @@ class Client(oauth2.Client):
     def user_info_request(self, method="GET", state="", scope="", **kwargs):
         uir = self.message_factory.get_request_type("userinfo_endpoint")()
         logger.debug("[user_info_request]: kwargs:%s" % (sanitize(kwargs),))
-        token = None
+        token = None  # type: Optional[Token]
         if "token" in kwargs:
             if kwargs["token"]:
                 uir["access_token"] = kwargs["token"]
@@ -937,7 +939,8 @@ class Client(oauth2.Client):
             del kwargs["access_token"]
         elif state:
             token = self.grant[state].get_token(scope)
-
+            if token is None:
+                raise AccessDenied("invalid_token")
             if token.is_valid():
                 uir["access_token"] = token.access_token
                 if (
@@ -952,7 +955,7 @@ class Client(oauth2.Client):
                     self.log.info("do access token refresh")
                 try:
                     self.do_access_token_refresh(token=token, state=state)
-                    token = self.grant[state].get_token(scope)
+                    token = cast(Token, self.grant[state].get_token(scope))
                     uir["access_token"] = token.access_token
                 except Exception:
                     raise
@@ -974,7 +977,7 @@ class Client(oauth2.Client):
             except KeyError:
                 if token:
                     try:
-                        _ttype = token.token_type
+                        _ttype = cast(str, token.token_type)
                     except AttributeError:
                         raise MissingParameter("Unspecified token type")
 
@@ -1447,8 +1450,8 @@ class Client(oauth2.Client):
 
         headers = {"content-type": "application/json"}
         if registration_token is not None:
-            headers["Authorization"] = b"Bearer " + b64encode(
-                registration_token.encode()
+            headers["Authorization"] = (
+                "Bearer " + b64encode(registration_token.encode()).decode()
             )
 
         rsp = self.http_request(url, "POST", data=req.to_json(), headers=headers)
@@ -1642,7 +1645,7 @@ class Server(oauth2.Server):
         if self.events:
             self.events.store("Request", _req)
 
-        _req_req = {}
+        _req_req = {}  # type: Union[Message, Dict[str, Any]]
         try:
             _request = _req["request"]
         except KeyError:
@@ -1843,7 +1846,7 @@ class Server(oauth2.Server):
         :param session: Session information
         :return: The IdToken claims
         """
-        itc = {}
+        itc = {}  # type: Dict[str, str]
         itc = self.update_claims(session, "authzreq", "id_token", itc)
         itc = self.update_claims(session, "oidreq", "id_token", itc)
         return itc
@@ -1898,7 +1901,7 @@ class Server(oauth2.Server):
                 extra["acr"] = loa
 
         if not user_info:
-            _args = {}
+            _args = {}  # type: Dict[str, str]
         else:
             try:
                 _args = user_info.to_dict()
@@ -1941,9 +1944,9 @@ class Server(oauth2.Server):
 
 
 def scope2claims(scopes, extra_scope_dict=None):
-    res = {}
+    res = {}  # type: Dict[str, None]
     # Construct the scope translation map
-    trans_map = SCOPE2CLAIMS.copy()
+    trans_map = SCOPE2CLAIMS.copy()  # type: Dict[str, Any]
     if extra_scope_dict is not None:
         trans_map.update(extra_scope_dict)
     for scope in scopes:

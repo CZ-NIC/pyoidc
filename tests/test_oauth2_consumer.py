@@ -1,3 +1,4 @@
+from typing import Dict  # noqa
 from urllib.parse import parse_qs
 from urllib.parse import urlencode
 from urllib.parse import urlparse
@@ -95,7 +96,7 @@ def test_stateID():
 
 
 def test_factory():
-    sdb = {}
+    sdb = {}  # type: Dict[str, str]
     consumer = Consumer(sdb, client_config=CLIENT_CONFIG,
                         server_info=SERVER_INFO, **CONSUMER_CONFIG)
     sid = stateID("https://example.org/", consumer.seed)
@@ -267,8 +268,8 @@ class TestConsumer(object):
             c_param = AccessTokenResponse.c_param.copy()
             c_param.update({"expires_in_hours": SINGLE_OPTIONAL_INT})
 
-            def __init__(self, *args, **kwargs):
-                super(AccessTokenResponseWrapper, self).__init__(*args, **kwargs)
+            def __init__(self, **kwargs):
+                super(AccessTokenResponseWrapper, self).__init__(**kwargs)
                 if "expires_in" in self and self["expires_in"]:
                     self["expires_in_hours"] = self["expires_in"] // 3600
 

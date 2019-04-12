@@ -1,4 +1,5 @@
 import json
+from typing import Dict  # noqa
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
@@ -53,8 +54,8 @@ class PoPCallBack(object):
 class PoPClient(object):
     def __init__(self, key_size=2048, sign_alg="RS256"):
         self.key_size = key_size
-        self.state2key = {}
-        self.token2key = {}
+        self.state2key = {}  # type: Dict[str, RSAKey]
+        self.token2key = {}  # type: Dict[str, RSAKey]
         self.alg = sign_alg
 
     def update(self, msg, state, key_size=0):
@@ -85,7 +86,7 @@ class PoPClient(object):
 
 class PoPAS(object):
     def __init__(self, me):
-        self.thumbprint2key = {}
+        self.thumbprint2key = {}  # type: Dict[str, RSAKey]
         self.keyjar = None
         self.me = me
 
@@ -116,7 +117,7 @@ class PoPAS(object):
 
 class PoPRS(object):
     def __init__(self):
-        self.token2key = {}
+        self.token2key = {}  # type: Dict[str, RSAKey]
 
     def store_key(self, access_token, tir):
         """

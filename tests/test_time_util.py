@@ -1,7 +1,3 @@
-# !/usr/bin/env python
-
-# pylint: disable=missing-docstring
-
 import calendar
 import time
 from datetime import datetime
@@ -216,7 +212,7 @@ def test_shift_time():
 
 
 def test_str_to_time_str_error():
-    with pytest.raises(AttributeError):
+    with pytest.raises(TimeUtilError):
         str_to_time("2000-01-12T00:00:00ZABC")
 
 

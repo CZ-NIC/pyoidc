@@ -6,7 +6,9 @@ import socket
 import time
 import warnings
 from functools import cmp_to_key
-from typing import Dict
+from typing import Dict  # noqa
+from typing import List  # noqa
+from typing import Union  # noqa
 from urllib.parse import parse_qs
 from urllib.parse import splitquery  # type: ignore
 from urllib.parse import unquote
@@ -67,7 +69,9 @@ from oic.utils.http_util import Created
 from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Unauthorized
+from oic.utils.keyio import KEYS  # noqa
 from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import KeyJar  # noqa
 from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
 from oic.utils.sanitize import sanitize
@@ -258,15 +262,15 @@ class Provider(AProvider):
             keyjar=keyjar, verify_ssl=verify_ssl, message_factory=message_factory
         )
         # Same keyjar
-        self.keyjar = self.server.keyjar
+        self.keyjar = self.server.keyjar  # type: KeyJar
 
         self.endp.extend([UserinfoEndpoint, RegistrationEndpoint, EndSessionEndpoint])
 
         self.userinfo = userinfo
         self.template_renderer = template_renderer
         self.baseurl = baseurl or name
-        self.cert = []
-        self.cert_encryption = []
+        self.cert = []  # type: ignore  # UNUSED?
+        self.cert_encryption = []  # type: ignore  # UNUSED?
 
         self.cookie_name = "pyoidc"
         self.seed = b""
@@ -291,15 +295,13 @@ class Provider(AProvider):
                 self.register_endpoint = endpoint
                 break
 
-        self.force_jws = {}
-        for item in ["request_object", "id_token", "userinfo"]:
-            self.force_jws[item] = False
+        self.force_jws = {"request_object": False, "id_token": False, "userinfo": False}
 
-        self.jwx_def = {}
+        self.jwx_def = {}  # type: Dict[str, Dict[str,str]]
 
         self.build_jwx_def()
 
-        self.kid = {"sig": {}, "enc": {}}
+        self.kid = {"sig": {}, "enc": {}}  # type: Dict[str, Dict[str, str]]
 
         # Allow custom schema (inheriting from OpenIDSchema) to be used -
         # additional attributes
@@ -1204,7 +1206,7 @@ class Provider(AProvider):
             algo = self.jwx_def["signing_alg"]["userinfo"]
 
         if algo == "none":
-            key = []
+            key = []  # type: List[KEYS]
         else:
             if algo.startswith("HS"):
                 key = self.keyjar.get_signing_key(
@@ -1466,11 +1468,11 @@ class Provider(AProvider):
             logger.error("Failed to load client keys: %s" % sanitize(request.to_dict()))
             logger.error("%s", err)
             logger.debug("Verify SSL: {}".format(self.keyjar.verify_ssl))
-            err = ClientRegistrationErrorResponse(
+            error = ClientRegistrationErrorResponse(
                 error="invalid_configuration_parameter", error_description="%s" % err
             )
             return Response(
-                err.to_json(), content="application/json", status="400 Bad Request"
+                error.to_json(), content="application/json", status="400 Bad Request"
             )
 
         return _cinfo
@@ -1823,7 +1825,7 @@ class Provider(AProvider):
         _provider_info["scopes_supported"] = list(set(_scopes))
 
         # Add claims
-        _claims = []
+        _claims = []  # type: List[str]
         for _cl in SCOPE2CLAIMS.values():
             _claims.extend(_cl)
         if self.extra_claims is not None:
@@ -1971,7 +1973,7 @@ class Provider(AProvider):
 
                 client_info = self.cdb[str(areq["client_id"])]
 
-                hargs = {}
+                hargs = {}  # type: Dict[str, str]
                 rt_set = set(areq["response_type"])
                 if {"code", "id_token", "token"}.issubset(rt_set):
                     hargs = {"code": _code, "access_token": _access_token}

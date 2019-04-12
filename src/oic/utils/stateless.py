@@ -1,5 +1,8 @@
 import time
+from typing import List  # noqa
 
+from oic.oauth2.grant import Grant  # noqa
+from oic.oauth2.grant import Token  # noqa
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
 from oic.oauth2.message import Message
@@ -39,8 +42,8 @@ class StateLess(object):
             "access": access_validity,
             "refresh": refresh_validity,
         }
-        self.used_grants = []
-        self.revoked = []
+        self.used_grants = []  # type: List[Grant]
+        self.revoked = []  # type: List[Token]
 
     def __getitem__(self, token):
         """

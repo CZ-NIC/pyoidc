@@ -5,7 +5,11 @@ import warnings
 from collections import MutableMapping
 from collections import namedtuple
 from typing import Any  # noqa - This is used for MyPy
+from typing import List  # noqa - This is used for MyPy
 from typing import Mapping  # noqa - This is used for MyPy
+from typing import Optional  # noqa - This is used for MyPy
+from typing import Tuple  # noqa - This is used for MyPy
+from typing import Union  # noqa - This is used for MyPy
 from urllib.parse import parse_qs
 from urllib.parse import urlencode
 
@@ -180,7 +184,7 @@ class Message(MutableMapping):
                 if cparam.required and attribute not in self._dict:
                     raise MissingRequiredAttribute("%s" % attribute, "%s" % self)
 
-        params = []
+        params = []  # type: List[Tuple[str, Optional[Union[str, bytes, Message]]]]
 
         for key, val in self._dict.items():
             cparam = self._extract_cparam(key, _spec)
@@ -219,13 +223,13 @@ class Message(MutableMapping):
         try:
             return urlencode(params)
         except UnicodeEncodeError:
-            _val = []
+            _val2 = []  # type: List[Tuple[str, Optional[Union[str, bytes, Message]]]]
             for k, v in params:
-                try:
-                    _val.append((k, v.encode("utf-8")))
-                except TypeError:
-                    _val.append((k, v))
-            return urlencode(_val)
+                if isinstance(v, str):
+                    _val2.append((k, v.encode("utf-8")))
+                else:
+                    _val2.append((k, v))
+            return urlencode(_val2)
 
     def serialize(self, method="urlencoded", lev=0, **kwargs):
         return getattr(self, "to_%s" % method)(lev=lev, **kwargs)

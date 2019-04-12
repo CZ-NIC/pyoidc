@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+from typing import Any  # noqa
+from typing import Dict  # noqa
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
@@ -23,6 +24,9 @@ __author__ = 'rohe0002'
 
 
 class Response():
+    headers = None  # type: Dict[str, str]
+    text = None  # type: str
+
     def __init__(self, base=None):
         self.status_code = 200
         if base:
@@ -54,7 +58,7 @@ class MITMServer(Server):
         Server.__init__(self)
         self.sdb = session_db_factory(name)
         self.name = name
-        self.client = {}
+        self.client = {}  # type: Dict[str, Dict[str, Any]]
         self.registration_expires_in = 3600
         self.host = ""
         self.webfinger = WebFinger()
@@ -169,11 +173,11 @@ class MITMServer(Server):
             return response, ""
 
         resp = AccessTokenResponse(**by_schema(AccessTokenResponse, **_info))
-        response = Response()
-        response.headers = {"content-type": "application/json"}
-        response.text = resp.to_json()
+        response2 = Response()
+        response2.headers = {"content-type": "application/json"}
+        response2.text = resp.to_json()
 
-        return response
+        return response2
 
     def userinfo_endpoint(self, data):
 
@@ -208,7 +212,7 @@ class MITMServer(Server):
 
         client_secret = rndstr()
         expires = utc_time_sans_frac() + self.registration_expires_in
-        kwargs = {}
+        kwargs = {}  # type: Dict[str, str]
         if "client_id" not in req:
             client_id = rndstr(10)
             registration_access_token = rndstr(20)

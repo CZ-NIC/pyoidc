@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import json
 import os
 import time
@@ -158,8 +157,8 @@ class TestClient(object):
             c_param = AccessTokenResponse.c_param.copy()
             c_param.update({"raw_id_token": SINGLE_OPTIONAL_STRING})
 
-            def __init__(self, *args, **kwargs):
-                super(AccessTokenResponseWrapper, self).__init__(*args, **kwargs)
+            def __init__(self, **kwargs):
+                super(AccessTokenResponseWrapper, self).__init__(**kwargs)
                 self["raw_id_token"] = None
 
             def verify(self, **kwargs):
@@ -183,18 +182,18 @@ class TestClient(object):
         resp = AuthorizationResponse(code="code", state="state")
         grant = Grant(10)  # expired grant
         grant.add_code(resp)
-        resp = AccessTokenResponse(refresh_token="refresh_with_me",
-                                   access_token="access",
-                                   token_type="Bearer")
-        token = Token(resp)
+        resp2 = AccessTokenResponse(refresh_token="refresh_with_me",
+                                    access_token="access",
+                                    token_type="Bearer")
+        token = Token(resp2)
         grant.tokens.append(token)
         self.client.grant["state0"] = grant
 
-        resp = self.client.do_user_info_request(state="state0")
-        assert isinstance(resp, OpenIDSchema)
-        assert _eq(resp.keys(),
+        resp3 = self.client.do_user_info_request(state="state0")
+        assert isinstance(resp3, OpenIDSchema)
+        assert _eq(resp3.keys(),
                    ['name', 'email', 'verified', 'nickname', 'sub'])
-        assert resp["name"] == "Melody Gardot"
+        assert resp3["name"] == "Melody Gardot"
 
     def test_do_access_token_refresh(self):
         args = {"response_type": ["code"],
@@ -298,7 +297,7 @@ class TestClient(object):
         }
         r = Response()
         r.status_code = 201
-        r._content = str.encode(json.dumps(msg))
+        r._content = str.encode(json.dumps(msg))  # type: ignore
 
         with pytest.raises(RegistrationError) as ex:
             self.client.handle_registration_info(response=r)
@@ -966,19 +965,20 @@ def token_callback(endp):
 
 
 def fake_request(*args, **kwargs):
+    # FIXME: Replace with responses
     r = Response()
     r.status_code = 200
 
     try:
         _token = kwargs['headers']['Authorization']
     except KeyError:
-        r._content = b'{"shoe_size": 10}'
+        r._content = b'{"shoe_size": 10}'  # type: ignore
     else:
         _token = _token[7:]
         if _token == 'abcdef':
-            r._content = b'{"shoe_size": 11}'
+            r._content = b'{"shoe_size": 11}'  # type: ignore
         else:
-            r._content = b'{"shoe_size": 12}'
+            r._content = b'{"shoe_size": 12}'  # type: ignore
 
     r.headers = {'content-type': 'application/json'}
     return r
@@ -987,7 +987,7 @@ def fake_request(*args, **kwargs):
 def test_fetch_distributed_claims_with_callback():
     client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
 
-    client.http_request = fake_request
+    client.http_request = fake_request  # type: ignore # FIXME: Replace with responses?
     userinfo = {
         'sub': 'foobar',
         '_claim_names': {'shoe_size': 'src1'},
@@ -1007,7 +1007,7 @@ def test_fetch_distributed_claims_with_callback():
 def test_fetch_distributed_claims_with_no_callback():
     client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
 
-    client.http_request = fake_request
+    client.http_request = fake_request  # type: ignore # FIXME: Replace with responses?
     userinfo = {
         'sub': 'foobar',
         '_claim_names': {'shoe_size': 'src1'},
@@ -1025,7 +1025,7 @@ def test_fetch_distributed_claims_with_no_callback():
 def test_fetch_distributed_claims_with_explicit_no_token():
     client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
 
-    client.http_request = fake_request
+    client.http_request = fake_request  # type: ignore # FIXME: Replace with responses?
     userinfo = {
         'sub': 'foobar',
         '_claim_names': {'shoe_size': 'src1'},

@@ -72,7 +72,7 @@ class CasAuthnMethod(UserAuthnMethod):
         except KeyError:
             acr = None
 
-        nonce = uuid.uuid4().get_urn()
+        nonce = uuid.uuid4().urn.encode()
         service_url = urlencode({self.CONST_SERVICE: self.get_service_url(nonce, acr)})
         cas_url = self.cas_server + self.CONST_CASLOGIN + service_url
         cookie = self.create_cookie(

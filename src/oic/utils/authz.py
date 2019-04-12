@@ -1,5 +1,7 @@
 import logging
 import time
+from typing import Any  # noqa
+from typing import Dict  # noqa
 
 from oic.utils.authn.user import ToOld
 from oic.utils.http_util import CookieDealer
@@ -12,7 +14,7 @@ class AuthzHandling(CookieDealer):
     """Class that allows an entity to manage authorization."""
 
     def __init__(self):
-        self.permdb = {}
+        self.permdb = {}  # type: Dict[str, Any]
 
     def __call__(self, *args, **kwargs):
         return ""

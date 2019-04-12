@@ -37,8 +37,10 @@ class JavascriptFormMako(UsernamePasswordMako):
         try:
             assert _dict["login_parameter"][0] == "logged_in"
         except (AssertionError, KeyError):
-            resp = Unauthorized("You are not authorized. Javascript not executed")
-            return resp, False
+            return (
+                Unauthorized("You are not authorized. Javascript not executed"),
+                False,
+            )
         else:
             cookie = self.create_cookie("diana", "upm")
             try:
@@ -49,6 +51,4 @@ class JavascriptFormMako(UsernamePasswordMako):
                 return_to = self.generate_return_url(kwargs["return_to"], _qp)
             except KeyError:
                 return_to = self.generate_return_url(self.return_to, _qp)
-            resp = SeeOther(return_to, headers=[cookie])
-
-        return resp, True
+            return SeeOther(return_to, headers=[cookie]), True

@@ -6,6 +6,8 @@ import json
 import logging
 import time
 import uuid
+from typing import Dict  # noqa
+from typing import List  # noqa
 
 from cryptography.fernet import Fernet
 
@@ -360,7 +362,7 @@ class DictRefreshDB(RefreshDB):
 
     def __init__(self):
         super(DictRefreshDB, self).__init__()
-        self._db = {}
+        self._db = {}  # type: Dict[str, Dict[str, str]]
 
     def get(self, refresh_token):
         """Retrieve info for given token from dictionary."""
@@ -431,7 +433,7 @@ class SessionDB(object):
         self._db = db
 
         # TODO: uid2sid should have a persistence option too.
-        self.uid2sid = {}
+        self.uid2sid = {}  # type: Dict[str, List[str]]
 
         self.token_factory = {"code": code_factory, "access_token": token_factory}
 

@@ -6,6 +6,8 @@ import os
 import shelve
 import sys
 from builtins import input
+from typing import Any  # noqa
+from typing import List  # noqa
 from urllib.parse import parse_qs
 from urllib.parse import splitquery  # type: ignore
 from urllib.parse import urlparse
@@ -123,7 +125,7 @@ class CDB(BaseClientDatabase):
                     self.cdb[str(item["client_id"])] = item
 
     def dump(self, filename):
-        res = []
+        res = []  # type: List[Any]
         for key, val in self.cdb.items():
             if isinstance(val, dict):
                 res.append(val)

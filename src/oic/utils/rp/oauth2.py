@@ -1,6 +1,9 @@
 import copy
 import hashlib
 import logging
+from typing import Dict  # noqa
+from typing import Type  # noqa
+from typing import Union  # noqa
 from urllib.parse import urlsplit
 
 from oic import rndstr
@@ -108,7 +111,9 @@ class OAuthClient(client.Client):
         :return:
         """
         if self.behaviour["response_type"] == "code":
-            respcls = AuthorizationResponse
+            respcls = (
+                AuthorizationResponse
+            )  # type: Union[Type[AuthorizationResponse], Type[AccessTokenResponse]]
         else:
             respcls = AccessTokenResponse
 
@@ -177,12 +182,12 @@ class OAuthClients(object):
         :param config: Imported configuration module
         :return:
         """
-        self.client = {}
+        self.client = {}  # type: Dict[str, OAuthClient]
         self.client_cls = OAuthClient
         self.config = config
         self.seed = seed or rndstr(16)
         self.seed = self.seed.encode("utf8")
-        self.path = {}
+        self.path = {}  # type: Dict[str, str]
         self.base_url = base_url
         self.jwks_info = jwks_info
         self.verify_ssl = verify_ssl
