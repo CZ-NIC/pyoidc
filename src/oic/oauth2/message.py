@@ -2,6 +2,8 @@ import copy
 import json
 import logging
 import warnings
+from base64 import b64encode
+from collections import MutableMapping
 from collections import namedtuple
 from collections.abc import MutableMapping
 from json import JSONDecodeError
@@ -15,23 +17,25 @@ from typing import Union
 from urllib.parse import parse_qs
 from urllib.parse import urlencode
 
+from jwcrypto.common import json_encode
+from jwcrypto.jwe import JWE as crypt_JWE
+from jwcrypto.jwe import InvalidJWEData
+from jwcrypto.jwk import JWK
+from jwcrypto.jws import JWS as crypt_JWS
+from jwcrypto.jws import InvalidJWSSignature
+from jwcrypto.jwt import JWT as crypt_JWT
 from jwkest import as_unicode
 from jwkest import b64d
-from jwkest import jwe
-from jwkest import jws
-from jwkest.jwe import JWE
+from jwkest import long_to_base64
+from jwkest.jwk import Key
+from jwkest.jwk import RSAKey
 from jwkest.jwk import keyitems2keyreps
-from jwkest.jws import JWS
-from jwkest.jws import NoSuitableSigningKeys
 from jwkest.jws import alg2keytype
-from jwkest.jwt import JWT
 
 from oic.exception import MessageException
 from oic.exception import PyoidcError
 from oic.oauth2.exception import VerificationError
 from oic.utils.keyio import key_summary
-from oic.utils.keyio import update_keyjar
-from oic.utils.sanitize import sanitize
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +133,38 @@ def gather_keys(comb, collection, jso, target):
         pass
 
     return comb
+
+
+def convert_key_to_jwcrypto(jwkey):
+    """Temporary helper to convert key from jwkest to jwcrypto."""
+    temp = jwkey.serialize(private=True)
+    if isinstance(jwkey, RSAKey) and jwkey.d != "":
+        # Recalculate since they are not included in jwkest
+        temp["dp"] = long_to_base64(jwkey.d % (jwkey.p - 1))
+        temp["dq"] = long_to_base64(jwkey.d % (jwkey.q - 1))
+        # This only works for primes, which we have...
+        temp["qi"] = long_to_base64(pow(jwkey.q, jwkey.p - 2, jwkey.p))
+    return JWK(**temp)
+
+
+def pick_keys(keys: List[Key], alg: str, usage: str = "sig") -> Key:
+    """
+    Pick correct key based on alg.
+
+    Returns first key for now. Might get redone after complete switch to jwcrypto.
+    """
+    if alg.startswith("RS") or alg.startswith("PS"):
+        key_type = "RSA"
+    elif alg.startswith("HS") or alg.startswith("A"):
+        key_type = "oct"
+    elif alg.startswith("ES") or alg.startswith("ECDH-ES"):
+        key_type = "EC"
+    else:
+        return None
+    for key in keys:
+        if key.kty == key_type and (key.use == "" or key.use == usage):
+            return key
+    return None
 
 
 def swap_dict(dic):
@@ -479,8 +515,23 @@ class Message(MutableMapping):
         :param algorithm: The signature algorithm to use
         :return: A signed JWT
         """
-        _jws = JWS(self.to_json(lev), alg=algorithm)
-        return _jws.sign_compact(key)
+        # FIXME: This can be removed once the keys are in jwcrypto format as well
+        picked_key = pick_keys(key, algorithm)
+        if picked_key is None:
+            headers = {"alg": "none"}
+        else:
+            k = convert_key_to_jwcrypto(picked_key)
+            headers = {"alg": picked_key.alg or algorithm}
+
+        _jws = crypt_JWT(claims=self.to_json(lev), header=headers)
+        if picked_key is not None:
+            _jws.make_signed_token(k)
+            return _jws.serialize()
+        else:
+            # Pack manually - jwcrypto has no support for this
+            header = b64encode(_jws.header.encode()).decode().rstrip("=")
+            payload = b64encode(_jws.claims.encode()).decode().rstrip("=")
+            return header + "." + payload + "."
 
     def _add_key(self, keyjar, issuer, key, key_type="", kid="", no_kid_issuer=None):
         if issuer not in keyjar:
@@ -602,18 +653,25 @@ class Message(MutableMapping):
         :param kwargs: Extra key word arguments
         :return: A class instance
         """
-        _jw = jwe.factory(txt)
-        if _jw:
-            logger.debug("JWE headers: {}".format(_jw.jwt.headers))
-
+        _crypt_jw = crypt_JWT(jwt=txt)
+        if isinstance(_crypt_jw.token, crypt_JWE):
+            # First decrypt the token ...
             if "algs" in kwargs and "encalg" in kwargs["algs"]:
-                if kwargs["algs"]["encalg"] != _jw["alg"]:
+                if kwargs["algs"]["encalg"] != _crypt_jw.token.jose_header.get("alg"):
                     raise WrongEncryptionAlgorithm(
-                        "%s != %s" % (_jw["alg"], kwargs["algs"]["encalg"])
+                        "%s != %s"
+                        % (
+                            _crypt_jw.token.jose_header.get("alg"),
+                            kwargs["algs"]["encalg"],
+                        )
                     )
-                if kwargs["algs"]["encenc"] != _jw["enc"]:
+                if kwargs["algs"]["encenc"] != _crypt_jw.token.jose_header.get("enc"):
                     raise WrongEncryptionAlgorithm(
-                        "%s != %s" % (_jw["enc"], kwargs["algs"]["encenc"])
+                        "%s != %s"
+                        % (
+                            _crypt_jw.token.jose_header.get("enc"),
+                            kwargs["algs"]["encenc"],
+                        )
                     )
             if keyjar:
                 dkeys = keyjar.get_decrypt_key(owner="")
@@ -623,72 +681,72 @@ class Message(MutableMapping):
                 dkeys = key
             else:
                 dkeys = []
-
-            logger.debug("Decrypt class: {}".format(_jw.__class__))
-            _res = _jw.decrypt(txt, dkeys)
-            logger.debug("decrypted message:{}".format(_res))
-            if isinstance(_res, tuple):
-                txt = as_unicode(_res[0])
-            elif isinstance(_res, list) and len(_res) == 2:
-                txt = as_unicode(_res[0])
+            for _key in dkeys:
+                # Try to decrypt
+                _key = convert_key_to_jwcrypto(_key)
+                try:
+                    _crypt_jw = crypt_JWT(jwt=txt, key=_key)
+                except InvalidJWEData:
+                    # Wrong key ...
+                    pass
+                else:
+                    break
             else:
-                txt = as_unicode(_res)
-            self.jwe_header = _jw.jwt.headers
-
-        _jw = jws.factory(txt)
-        if _jw:
+                # FIXME: Raise decrytpion error
+                raise MissingSigningKey("")
+            # Assign the decrypted object
+            self.jwe_header = json.loads(_crypt_jw.header)
+            txt = _crypt_jw.claims
+            _crypt_jw = crypt_JWT(jwt=txt)
+        if isinstance(_crypt_jw.token, crypt_JWS):
             if "algs" in kwargs and "sign" in kwargs["algs"]:
-                _alg = _jw.jwt.headers["alg"]
-                if kwargs["algs"]["sign"] != _alg:
+                _alg = _crypt_jw.token.jose_header.get("alg")
+                if _alg is not None and kwargs["algs"]["sign"] != _alg:
                     raise WrongSigningAlgorithm(
                         "%s != %s" % (_alg, kwargs["algs"]["sign"])
                     )
-            try:
-                _jwt = JWT().unpack(txt)
-                jso = _jwt.payload()
-                _header = _jwt.headers
-
-                if key is None and keyjar is not None:
-                    key = keyjar.get_verify_key(owner="")
-                elif key is None:
-                    key = []
-
-                if keyjar is not None and "sender" in kwargs:
-                    key.extend(keyjar.get_verify_key(owner=kwargs["sender"]))
-
-                logger.debug("Raw JSON: {}".format(sanitize(jso)))
-                logger.debug("JWS header: {}".format(sanitize(_header)))
-                if _header["alg"] == "none":
-                    pass
-                elif verify:
-                    if keyjar:
-                        key = self.get_verify_keys(
-                            keyjar, key, jso, _header, _jw, **kwargs
-                        )
-
-                    if "alg" in _header and _header["alg"] != "none":
-                        if not key:
-                            raise MissingSigningKey("alg=%s" % _header["alg"])
-
-                    logger.debug("Found signing key.")
-                    try:
-                        _jw.verify_compact(txt, key)
-                    except NoSuitableSigningKeys:
-                        if keyjar:
-                            update_keyjar(keyjar)
-                            key = self.get_verify_keys(
-                                keyjar, key, jso, _header, _jw, **kwargs
-                            )
-                            _jw.verify_compact(txt, key)
-            except Exception:
-                raise
+            if _crypt_jw.token.jose_header.get("alg") == "none":
+                _crypt_jw = crypt_JWT(
+                    algs=["none"], jwt=txt, key=JWK(generate="oct", size=0)
+                )
+                self.jws_header = json.loads(_crypt_jw.header)
+                return self.from_json(_crypt_jw.claims)
+            # Verify the signature of the token
+            _crypt_kid = _crypt_jw.token.jose_header.get("kid")
+            if key is not None:
+                keys = key
+            elif _crypt_kid is not None:
+                # FIXME: jwcrypt does not allow to access unverified payload directly
+                keys = [
+                    keyjar.get_key_by_kid(
+                        _crypt_kid,
+                        json.loads(_crypt_jw.token.objects["payload"]).get("iss"),
+                    )
+                ]
             else:
-                self.jws_header = _jwt.headers
-        else:
-            jso = json.loads(txt)
-
-        self.jwt = txt
-        return self.from_dict(jso)
+                if keyjar is not None:
+                    keys = keyjar.get_verify_key(owner="")
+                else:
+                    raise MissingSigningKey("No signing key")
+            for key in keys:
+                key = convert_key_to_jwcrypto(key)
+                try:
+                    _crypt_jw = crypt_JWT(key=key, jwt=txt)
+                except InvalidJWSSignature:
+                    # Just try different key
+                    pass
+                else:
+                    # Decrypted skip the rest of the keys if there are any
+                    break
+            else:
+                raise InvalidJWSSignature()
+            # FIXME: Cannot we get it from the existing object?
+            self.jwt = txt
+            try:
+                self.jws_header = json.loads(_crypt_jw.header)
+            except KeyError:
+                raise InvalidJWSSignature()
+            return self.from_json(_crypt_jw.claims)
 
     def __str__(self):
         return "{}".format(self.to_dict())
@@ -855,8 +913,10 @@ class Message(MutableMapping):
         if isinstance(keys, dict):
             keys = keyitems2keyreps(keys)
 
-        _jwe = JWE(self.to_json(lev), alg=alg, enc=enc)
-        return _jwe.encrypt(keys)
+        cr_jwe = crypt_JWE(self.to_json(), json_encode({"alg": alg, "enc": enc}))
+        for key in keys:
+            cr_jwe.add_recipient(convert_key_to_jwcrypto(key))
+        return cr_jwe.serialize(compact=True)
 
     def from_jwe(self, msg, keys):
         """
@@ -869,9 +929,19 @@ class Message(MutableMapping):
         if isinstance(keys, dict):
             keys = keyitems2keyreps(keys)
 
-        jwe = JWE()
-        _res = jwe.decrypt(msg, keys)
-        return self.from_json(_res.decode())
+        jwe = crypt_JWE()
+        jwe.deserialize(msg)
+        for key in keys:
+            try:
+                jwe.decrypt(key=convert_key_to_jwcrypto(key))
+            except InvalidJWEData:
+                pass
+            else:
+                break
+        else:
+            # FIXME: Raise decrytpion error
+            raise MissingSigningKey("")
+        return self.from_json(jwe.payload)
 
     def copy(self):
         return copy.deepcopy(self)

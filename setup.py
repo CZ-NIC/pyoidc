@@ -89,6 +89,7 @@ setup(
         "pycryptodomex",
         "pydantic",
         "pyjwkest>=1.3.6",
+        "jwcrypto",
         "mako",
         "cryptography",
         "defusedxml",

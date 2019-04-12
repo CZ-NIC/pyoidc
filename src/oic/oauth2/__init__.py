@@ -54,7 +54,8 @@ from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 from oic.utils.keyio import KeyJar
-from oic.utils.sdb import SessionBackend
+from oic.utils.sanitize import sanitize
+from oic.utils.sdb import SessionBackend  # noqa
 from oic.utils.sdb import session_update
 from oic.utils.settings import OauthClientSettings
 from oic.utils.settings import OauthServerSettings

@@ -11,6 +11,7 @@ from jwkest.jwk import SYMKey
 from jwkest.jws import left_hash
 
 from oic import rndstr
+from oic.exception import IssuerMismatch
 from oic.exception import MessageException
 from oic.exception import NotForMe
 from oic.oauth2.message import MissingRequiredAttribute
@@ -590,7 +591,7 @@ class TestAccessTokenResponse(object):
         }
 
         at = AccessTokenResponse(**_info)
-        with pytest.raises(BadSignature):
+        with pytest.raises(VerificationError):
             at.verify(key=[key])
 
     def test_wrong_alg(self):
@@ -759,14 +760,19 @@ def test_verify_id_token_wrong_issuer():
         "dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ",
         ["sig"],
     )
-    packer = JWT(kj, sign_alg="HS256", iss="https://example.com/as", lifetime=3600)
+    packer = JWT(
+        kj,
+        sign_alg="HS256",
+        iss="https://sso.qa.7pass.ctf.prosiebensat1.com",
+        lifetime=3600,
+    )
     _jws = packer.pack(**idt.to_dict())
     msg = AuthorizationResponse(id_token=_jws)
-    with pytest.raises(ValueError):
+    with pytest.raises(IssuerMismatch):
         verify_id_token(
             msg,
             keyjar=kj,
-            iss="https://sso.qa.7pass.ctf.prosiebensat1.com",
+            iss="https://example.com",
             client_id="554295ce3770612820620000",
         )
 
@@ -1154,7 +1160,7 @@ def test_verify_id_token_iss_not_in_keyjar():
             msg,
             check_hash=True,
             keyjar=kj,
-            iss="https://sso.qa.7pass.ctf.prosiebensat1.com",
+            iss="https://example.com/op",
             client_id="554295ce3770612820620000",
         )
 
