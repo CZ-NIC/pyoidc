@@ -14,7 +14,7 @@ from oic import rndstr
 from oic.oic.provider import secret
 from oic.utils.clientdb import BaseClientDatabase
 
-__author__ = 'rolandh'
+__author__ = "rolandh"
 
 
 def unpack_redirect_uri(redirect_uris):
@@ -58,14 +58,12 @@ class CDB(BaseClientDatabase):
     def items(self):
         return self.cdb.items()
 
-    def create(self, redirect_uris=None, policy_uri="", logo_uri="",
-               jwks_uri=""):
+    def create(self, redirect_uris=None, policy_uri="", logo_uri="", jwks_uri=""):
         if redirect_uris is None:
-            print(
-                'Enter redirect_uris one at the time, end with a blank line: ')
+            print("Enter redirect_uris one at the time, end with a blank line: ")
             redirect_uris = []
             while True:
-                redirect_uri = input('?: ')
+                redirect_uri = input("?: ")
                 if redirect_uri:
                     redirect_uris.append(redirect_uri)
                 else:
@@ -93,7 +91,7 @@ class CDB(BaseClientDatabase):
         if logo_uri:
             info["logo_uri"] = logo_uri
         if jwks_uri:
-            info['jwks_uri'] = jwks_uri
+            info["jwks_uri"] = jwks_uri
 
         self.cdb[client_id] = info
 
@@ -132,34 +130,70 @@ class CDB(BaseClientDatabase):
             else:
                 res.append([key, val])
 
-        fp = open(filename, 'w')
+        fp = open(filename, "w")
         json.dump(res, fp)
         fp.close()
 
 
 def run():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-l', '--list', dest='list', action='store_true',
-                        help="List all client_ids")
-    parser.add_argument('-d', '--delete', dest='delete', action='store_true',
-                        help="Delete the entity with the given client_id")
-    parser.add_argument('-c', '--create', dest='create', action='store_true',
-                        help=("Create a new client, returns the stored "
-                              "information"))
-    parser.add_argument('-s', '--show', dest='show', action='store_true',
-                        help=("Show information connected to a specific"
-                              "client_id"))
-    parser.add_argument('-i', '--client-id', dest='client_id',
-                        help="A client_id on which to do an action")
-    parser.add_argument('-r', '--replace', dest='replace',
-                        help=("Information that should replace what's there"
-                              "about a specific client_id"))
-    parser.add_argument('-I', '--input-file', dest='input_file',
-                        help="Import client information from a file")
-    parser.add_argument('-D', '--output-file', dest='output_file',
-                        help="Dump client information to a file")
-    parser.add_argument('-R', '--reset', dest="reset", action='store_true',
-                        help="Reset the database == removing all registrations")
+    parser.add_argument(
+        "-l", "--list", dest="list", action="store_true", help="List all client_ids"
+    )
+    parser.add_argument(
+        "-d",
+        "--delete",
+        dest="delete",
+        action="store_true",
+        help="Delete the entity with the given client_id",
+    )
+    parser.add_argument(
+        "-c",
+        "--create",
+        dest="create",
+        action="store_true",
+        help=("Create a new client, returns the stored " "information"),
+    )
+    parser.add_argument(
+        "-s",
+        "--show",
+        dest="show",
+        action="store_true",
+        help=("Show information connected to a specific" "client_id"),
+    )
+    parser.add_argument(
+        "-i",
+        "--client-id",
+        dest="client_id",
+        help="A client_id on which to do an action",
+    )
+    parser.add_argument(
+        "-r",
+        "--replace",
+        dest="replace",
+        help=(
+            "Information that should replace what's there" "about a specific client_id"
+        ),
+    )
+    parser.add_argument(
+        "-I",
+        "--input-file",
+        dest="input_file",
+        help="Import client information from a file",
+    )
+    parser.add_argument(
+        "-D",
+        "--output-file",
+        dest="output_file",
+        help="Dump client information to a file",
+    )
+    parser.add_argument(
+        "-R",
+        "--reset",
+        dest="reset",
+        action="store_true",
+        help="Reset the database == removing all registrations",
+    )
     parser.add_argument(dest="filename")
     args = parser.parse_args()
 
@@ -188,5 +222,5 @@ def run():
         cdb.dump(args.output_file)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()

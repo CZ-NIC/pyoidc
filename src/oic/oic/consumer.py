@@ -20,7 +20,7 @@ from oic.oic.message import ClaimsRequest
 from oic.utils import http_util
 from oic.utils.sanitize import sanitize
 
-__author__ = 'rohe0002'
+__author__ = "rohe0002"
 
 logger = logging.getLogger(__name__)
 
@@ -97,15 +97,22 @@ CONSUMER_PREF_ARGS = [
     "request_object_encryption_enc",
     "default_max_age",
     "require_auth_time",
-    "default_acr_values"
+    "default_acr_values",
 ]
 
 
 class Consumer(Client):
     """An OpenID Connect consumer implementation."""
 
-    def __init__(self, session_db, consumer_config, client_config=None,
-                 server_info=None, debug=False, client_prefs=None):
+    def __init__(
+        self,
+        session_db,
+        consumer_config,
+        client_config=None,
+        server_info=None,
+        debug=False,
+        client_prefs=None,
+    ):
         """
         Initialize a Consumer instance.
 
@@ -172,8 +179,7 @@ class Consumer(Client):
             setattr(self, key, val)
 
     def dictionary(self):
-        return dict([(k, v) for k, v in
-                     self.__dict__.items() if k not in IGNORE])
+        return dict([(k, v) for k, v in self.__dict__.items() if k not in IGNORE])
 
     def _backup(self, sid):
         """
@@ -183,8 +189,7 @@ class Consumer(Client):
         """
         self.sdb[sid] = self.dictionary()
 
-    def begin(self, scope="", response_type="", use_nonce=False, path="",
-              **kwargs):
+    def begin(self, scope="", response_type="", use_nonce=False, path="", **kwargs):
         """
         Begin the OIDC flow.
 
@@ -237,7 +242,7 @@ class Consumer(Client):
         # OPTIONAL on code flow.
         if "token" in response_type or use_nonce:
             args["nonce"] = rndstr(12)
-            self.state2nonce[sid] = args['nonce']
+            self.state2nonce[sid] = args["nonce"]
 
         if "max_age" in self.consumer_config:
             args["max_age"] = self.consumer_config["max_age"]
@@ -245,21 +250,23 @@ class Consumer(Client):
         _claims = None
         if "user_info" in self.consumer_config:
             _claims = ClaimsRequest(
-                userinfo=Claims(**self.consumer_config["user_info"]))
+                userinfo=Claims(**self.consumer_config["user_info"])
+            )
         if "id_token" in self.consumer_config:
             if _claims:
                 _claims["id_token"] = Claims(**self.consumer_config["id_token"])
             else:
                 _claims = ClaimsRequest(
-                    id_token=Claims(**self.consumer_config["id_token"]))
+                    id_token=Claims(**self.consumer_config["id_token"])
+                )
 
         if _claims:
             args["claims"] = _claims
 
         if "request_method" in self.consumer_config:
             areq = self.construct_AuthorizationRequest(
-                request_args=args, extra_args=None,
-                request_param="request")
+                request_args=args, extra_args=None, request_param="request"
+            )
 
             if self.consumer_config["request_method"] == "file":
                 id_request = areq["request"]
@@ -282,8 +289,9 @@ class Consumer(Client):
             if "userinfo_claims" in args:  # can only be carried in an IDRequest
                 raise PyoidcError("Need a request method")
 
-            areq = self.construct_AuthorizationRequest(AuthorizationRequest,
-                                                       request_args=args)
+            areq = self.construct_AuthorizationRequest(
+                AuthorizationRequest, request_args=args
+            )
 
         location = areq.request(self.authorization_endpoint)
 
@@ -296,13 +304,12 @@ class Consumer(Client):
         _log_info = logger.info
         # Might be an error response
         _log_info("Expect Authorization Response")
-        aresp = self.parse_response(AuthorizationResponse,
-                                    info=query,
-                                    sformat="urlencoded",
-                                    keyjar=self.keyjar)
+        aresp = self.parse_response(
+            AuthorizationResponse, info=query, sformat="urlencoded", keyjar=self.keyjar
+        )
         if isinstance(aresp, ErrorResponse):
             _log_info("ErrorResponse: %s" % sanitize(aresp))
-            raise AuthzError(aresp.get('error'), aresp)
+            raise AuthzError(aresp.get("error"), aresp)
 
         _log_info("Aresp: %s" % sanitize(aresp))
 
@@ -359,9 +366,13 @@ class Consumer(Client):
             return aresp, atr, idt
         elif "token" in self.consumer_config["response_type"]:  # implicit flow
             _log_info("Expect Access Token Response")
-            atr = self.parse_response(AccessTokenResponse, info=query,
-                                      sformat="urlencoded",
-                                      keyjar=self.keyjar, **kwargs)
+            atr = self.parse_response(
+                AccessTokenResponse,
+                info=query,
+                sformat="urlencoded",
+                keyjar=self.keyjar,
+                **kwargs
+            )
             if isinstance(atr, ErrorResponse):
                 raise TokenError(atr.get("error"), atr)
 
@@ -389,15 +400,19 @@ class Consumer(Client):
         elif self.client_secret:
             logger.info("request_body auth")
             http_args = {}
-            args.update({"client_secret": self.client_secret,
-                         "client_id": self.client_id,
-                         "secret_type": self.secret_type})
+            args.update(
+                {
+                    "client_secret": self.client_secret,
+                    "client_id": self.client_id,
+                    "secret_type": self.secret_type,
+                }
+            )
         else:
             raise PyoidcError("Nothing to authenticate with")
 
-        resp = self.do_access_token_request(state=state,
-                                            request_args=args,
-                                            http_args=http_args)
+        resp = self.do_access_token_request(
+            state=state, request_args=args, http_args=http_args
+        )
 
         logger.info("Access Token Response: %s" % sanitize(resp))
 

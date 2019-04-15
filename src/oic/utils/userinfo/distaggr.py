@@ -7,7 +7,7 @@ from oic.oic.claims_provider import ClaimsClient
 from oic.utils.sanitize import sanitize
 from oic.utils.userinfo import UserInfo
 
-__author__ = 'rolandh'
+__author__ = "rolandh"
 
 logger = logging.getLogger(__name__)
 
@@ -52,8 +52,7 @@ class DistributedAggregatedUserInfo(UserInfo):
     def _collect_distributed(self, srv, cc, sub, what, alias=""):
 
         try:
-            resp = cc.do_claims_request(request_args={"sub": sub,
-                                                      "claims_names": what})
+            resp = cc.do_claims_request(request_args={"sub": sub, "claims_names": what})
         except Exception:
             raise
 
@@ -70,8 +69,7 @@ class DistributedAggregatedUserInfo(UserInfo):
         else:
             result["_claims_sources"][alias] = {"endpoint": resp["endpoint"]}
             if "access_token" in resp:
-                result["_claims_sources"][alias]["access_token"] = resp[
-                    "access_token"]
+                result["_claims_sources"][alias]["access_token"] = resp["access_token"]
 
         return result
 
@@ -118,13 +116,11 @@ class DistributedAggregatedUserInfo(UserInfo):
                                 pass
 
                 if remaining:
-                    raise MissingAttribute(
-                        "Missing properties '%s'" % remaining)
+                    raise MissingAttribute("Missing properties '%s'" % remaining)
 
                 for srv, what in cpoints.items():
                     cc = self.oidcsrv.claims_clients[srv]
-                    logger.debug("srv: %s, what: %s" % (sanitize(srv),
-                                                        sanitize(what)))
+                    logger.debug("srv: %s, what: %s" % (sanitize(srv), sanitize(what)))
                     _res = self._collect_distributed(srv, cc, userid, what)
                     logger.debug("Got: %s" % sanitize(_res))
                     for key, val in _res.items():

@@ -1,7 +1,7 @@
 from oic.utils.authn.authn_context import make_auth_verify
 from oic.utils.authn.user import UserAuthnMethod
 
-__author__ = 'danielevertsson'
+__author__ = "danielevertsson"
 
 
 class MultiAuthnMethod(UserAuthnMethod):
@@ -16,8 +16,9 @@ class MultiAuthnMethod(UserAuthnMethod):
         self.auth_module = auth_module
 
     def __call__(self, **kwargs):
-        cookie = self.create_cookie(kwargs['query'], "query",
-                                    UserAuthnMethod.MULTI_AUTH_COOKIE)
+        cookie = self.create_cookie(
+            kwargs["query"], "query", UserAuthnMethod.MULTI_AUTH_COOKIE
+        )
         resp = self.auth_module(**kwargs)
         resp.headers.append(cookie)
         return resp
@@ -43,8 +44,12 @@ def setup_multi_auth(auth_broker, urls, auth_modules):
         if i < len(auth_modules) - 1:
             next_module_instance = auth_modules[i + 1][0]
 
-        urls.append((callback_regexp, make_auth_verify(module_instance.verify,
-                                                       next_module_instance)))
+        urls.append(
+            (
+                callback_regexp,
+                make_auth_verify(module_instance.verify, next_module_instance),
+            )
+        )
 
     return multi_auth
 
@@ -63,12 +68,12 @@ class AuthnIndexedEndpointWrapper(UserAuthnMethod):
         self.end_point_index = end_point_index
 
     def __call__(self, **kwargs):
-        return self.authn_instance(end_point_index=self.end_point_index,
-                                   **kwargs)
+        return self.authn_instance(end_point_index=self.end_point_index, **kwargs)
 
     def verify(self, **kwargs):
-        return self.authn_instance.verify(end_point_index=self.end_point_index,
-                                          **kwargs)
+        return self.authn_instance.verify(
+            end_point_index=self.end_point_index, **kwargs
+        )
 
     @property
     def srv(self):

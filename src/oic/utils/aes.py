@@ -8,13 +8,9 @@ from Cryptodome.Cipher import AES
 
 from oic.utils import tobytes
 
-__author__ = 'rolandh'
+__author__ = "rolandh"
 
-POSTFIX_MODE = {
-    "cbc": AES.MODE_CBC,
-    "cfb": AES.MODE_CFB,
-    "ecb": AES.MODE_CFB,
-}
+POSTFIX_MODE = {"cbc": AES.MODE_CBC, "cfb": AES.MODE_CFB, "ecb": AES.MODE_CFB}
 
 BLOCK_SIZE = 16
 
@@ -50,8 +46,15 @@ def build_cipher(key, iv, alg="aes_128_cbc"):
         raise AESError("Unsupported chaining mode")
 
 
-def encrypt(key, msg, iv=None, alg="aes_128_cbc", padding="PKCS#7",
-            b64enc=True, block_size=BLOCK_SIZE):
+def encrypt(
+    key,
+    msg,
+    iv=None,
+    alg="aes_128_cbc",
+    padding="PKCS#7",
+    b64enc=True,
+    block_size=BLOCK_SIZE,
+):
     """
     Encrypt message.
 
@@ -73,7 +76,7 @@ def encrypt(key, msg, iv=None, alg="aes_128_cbc", padding="PKCS#7",
     if _block_size:
         plen = _block_size - (len(msg) % _block_size)
         c = chr(plen)
-        msg += (c * plen)
+        msg += c * plen
 
     cipher, iv = build_cipher(tobytes(key), iv, alg)
     cmsg = iv + cipher.encrypt(tobytes(msg))
@@ -97,13 +100,13 @@ def decrypt(key, msg, iv=None, padding="PKCS#7", b64dec=True):
     else:
         data = msg
 
-    _iv = data[:AES.block_size]
+    _iv = data[: AES.block_size]
     if iv:
         assert iv == _iv
     cipher, iv = build_cipher(key, iv)
-    res = cipher.decrypt(data)[AES.block_size:]
+    res = cipher.decrypt(data)[AES.block_size :]
     if padding in ["PKCS#5", "PKCS#7"]:
-        res = res[:-res[-1]]
+        res = res[: -res[-1]]
     return res.decode("utf-8")
 
 
@@ -150,7 +153,7 @@ class AEAD(object):
         :type data: bytes
         """
         if isinstance(data, str):
-            data = data.encode('utf-8')
+            data = data.encode("utf-8")
         self.kernel.update(data)
 
     def encrypt_and_tag(self, cleardata):

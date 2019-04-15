@@ -1,7 +1,7 @@
 from oic import rndstr
 from oic.extension.token import JWTToken
 
-__author__ = 'roland'
+__author__ = "roland"
 
 
 class NotAllowed(Exception):
@@ -15,8 +15,15 @@ class TokenHandler(object):
     Note! the token and refresh token factories both keep their own token databases.
     """
 
-    def __init__(self, issuer, token_policy, token_factory=None,
-                 refresh_token_factory=None, keyjar=None, sign_alg='RS256'):
+    def __init__(
+        self,
+        issuer,
+        token_policy,
+        token_factory=None,
+        refresh_token_factory=None,
+        keyjar=None,
+        sign_alg="RS256",
+    ):
         """
         Initialize the class.
 
@@ -32,15 +39,16 @@ class TokenHandler(object):
         """
         self.token_policy = token_policy
         if token_factory is None:
-            self.token_factory = JWTToken('T', keyjar=keyjar, iss=issuer,
-                                          sign_alg=sign_alg)
+            self.token_factory = JWTToken(
+                "T", keyjar=keyjar, iss=issuer, sign_alg=sign_alg
+            )
         else:
             self.token_factory = token_factory
 
         if refresh_token_factory is None:
-            self.refresh_token_factory = JWTToken('R', keyjar=keyjar,
-                                                  iss='https://example.com/as',
-                                                  sign_alg=sign_alg)
+            self.refresh_token_factory = JWTToken(
+                "R", keyjar=keyjar, iss="https://example.com/as", sign_alg=sign_alg
+            )
         else:
             self.refresh_token_factory = refresh_token_factory
 
@@ -55,14 +63,20 @@ class TokenHandler(object):
         """
         # No default, either there is an explicit policy or there is not
         try:
-            lifetime = self.token_policy['access_token'][target_id][grant_type]
+            lifetime = self.token_policy["access_token"][target_id][grant_type]
         except KeyError:
             raise NotAllowed(
-                'Access token for grant_type {} for target_id {} not allowed')
+                "Access token for grant_type {} for target_id {} not allowed"
+            )
 
         sid = rndstr(32)
-        return self.token_factory(sid, target_id=target_id, scope=scope,
-                                  grant_type=grant_type, lifetime=lifetime)
+        return self.token_factory(
+            sid,
+            target_id=target_id,
+            scope=scope,
+            grant_type=grant_type,
+            lifetime=lifetime,
+        )
 
     def refresh_access_token(self, target_id, token, grant_type, **kwargs):
         """
@@ -83,35 +97,38 @@ class TokenHandler(object):
             if target_id != info["azr"]:
                 raise NotAllowed("{} can't use this token".format(target_id))
         except KeyError:
-            if target_id not in info['aud']:
+            if target_id not in info["aud"]:
                 raise NotAllowed("{} can't use this token".format(target_id))
 
         if self.token_factory.is_valid(info):
             try:
-                lifetime = self.token_policy['access_token'][target_id][
-                    grant_type]
+                lifetime = self.token_policy["access_token"][target_id][grant_type]
             except KeyError:
                 raise NotAllowed(
-                    'Issue access token for grant_type {} for target_id {} not allowed')
+                    "Issue access token for grant_type {} for target_id {} not allowed"
+                )
             else:
-                sid = self.token_factory.db[info['jti']]
+                sid = self.token_factory.db[info["jti"]]
                 try:
-                    _aud = kwargs['aud']
+                    _aud = kwargs["aud"]
                 except KeyError:
-                    _aud = info['aud']
+                    _aud = info["aud"]
 
                 return self.token_factory(
-                    sid, target_id=target_id, lifetime=lifetime, aud=_aud)
+                    sid, target_id=target_id, lifetime=lifetime, aud=_aud
+                )
 
     def get_refresh_token(self, target_id, grant_type, sid):
         try:
-            lifetime = self.token_policy['refresh_token'][target_id][grant_type]
+            lifetime = self.token_policy["refresh_token"][target_id][grant_type]
         except KeyError:
             raise NotAllowed(
-                'Issue access token for grant_type {} for target_id {} not allowed')
+                "Issue access token for grant_type {} for target_id {} not allowed"
+            )
         else:
             return self.refresh_token_factory(
-                sid, target_id=target_id, lifetime=lifetime)
+                sid, target_id=target_id, lifetime=lifetime
+            )
 
     def invalidate(self, token):
         if self.token_factory.valid(token):

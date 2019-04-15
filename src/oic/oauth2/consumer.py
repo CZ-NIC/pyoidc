@@ -16,11 +16,16 @@ from oic.oauth2.message import Message
 from oic.utils import http_util
 from oic.utils.sanitize import sanitize
 
-__author__ = 'rohe0002'
+__author__ = "rohe0002"
 
-ENDPOINTS = ["authorization_endpoint", "token_endpoint", "userinfo_endpoint",
-             "check_id_endpoint", "registration_endpoint",
-             "token_revokation_endpoint"]
+ENDPOINTS = [
+    "authorization_endpoint",
+    "token_endpoint",
+    "userinfo_endpoint",
+    "check_id_endpoint",
+    "registration_endpoint",
+    "token_revokation_endpoint",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -92,9 +97,17 @@ class MissingAuthenticationInfo(PyoidcError):
 class Consumer(Client):
     """An OAuth2 consumer implementation."""
 
-    def __init__(self, session_db, client_config=None,
-                 server_info=None, authz_page="", response_type="",
-                 scope="", flow_type="", password=None):
+    def __init__(
+        self,
+        session_db,
+        client_config=None,
+        server_info=None,
+        authz_page="",
+        response_type="",
+        scope="",
+        flow_type="",
+        password=None,
+    ):
         """
         Initialize a Consumer instance.
 
@@ -215,8 +228,11 @@ class Consumer(Client):
                 self.response_type = response_type = "code"
 
         location = self.request_info(
-            AuthorizationRequest, method="GET", scope=self.scope,
-            request_args={"state": sid, "response_type": response_type})[0]
+            AuthorizationRequest,
+            method="GET",
+            scope=self.scope,
+            request_args={"state": sid, "response_type": response_type},
+        )[0]
 
         logger.debug("Redirecting to: %s" % (sanitize(location),))
 
@@ -235,8 +251,9 @@ class Consumer(Client):
         if "code" in self.response_type:
             # Might be an error response
             try:
-                aresp = self.parse_response(AuthorizationResponse,
-                                            info=query, sformat="urlencoded")
+                aresp = self.parse_response(
+                    AuthorizationResponse, info=query, sformat="urlencoded"
+                )
             except Exception as err:
                 logger.error("%s" % err)
                 raise
@@ -254,9 +271,9 @@ class Consumer(Client):
 
             return aresp
         else:  # implicit flow
-            atr = self.parse_response(AccessTokenResponse,
-                                      info=query, sformat="urlencoded",
-                                      extended=True)
+            atr = self.parse_response(
+                AccessTokenResponse, info=query, sformat="urlencoded", extended=True
+            )
 
             if isinstance(atr, Message):
                 if atr.type().endswith("ErrorResponse"):
@@ -293,8 +310,10 @@ class Consumer(Client):
             extra_args = {}
         elif self.client_secret:
             http_args = {}
-            request_args = {"client_secret": self.client_secret,
-                            "client_id": self.client_id}
+            request_args = {
+                "client_secret": self.client_secret,
+                "client_id": self.client_id,
+            }
             extra_args = {"auth_method": "bearer_body"}
         else:
             raise MissingAuthenticationInfo("Nothing to authenticate with")
@@ -304,10 +323,9 @@ class Consumer(Client):
     def get_access_token_request(self, state, **kwargs):
         request_args, http_args, extra_args = self.client_auth_info()
 
-        url, body, ht_args, _ = self.request_info(AccessTokenRequest,
-                                                  request_args=request_args,
-                                                  state=state,
-                                                  **extra_args)
+        url, body, ht_args, _ = self.request_info(
+            AccessTokenRequest, request_args=request_args, state=state, **extra_args
+        )
 
         if not http_args:
             http_args = ht_args

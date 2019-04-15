@@ -2,36 +2,36 @@ import inspect
 import json
 import sys
 
-__author__ = 'roland'
+__author__ = "roland"
 
 
 def single(restriction, cinfo):
     for s in restriction:
         try:
             if len(cinfo[s]) != 1:
-                return 'Too Many {}'.format(s)
+                return "Too Many {}".format(s)
         except KeyError:
             pass
-    return ''
+    return ""
 
 
 def map_grant_type2response_type(restriction, cinfo):
-    if 'grant_types' in cinfo and 'response_types' in cinfo:
+    if "grant_types" in cinfo and "response_types" in cinfo:
         for g, r in restriction.items():
-            if g in cinfo['grant_types'] and r in cinfo['response_types']:
+            if g in cinfo["grant_types"] and r in cinfo["response_types"]:
                 pass
-            elif g in cinfo['grant_types'] or r in cinfo['response_types']:
+            elif g in cinfo["grant_types"] or r in cinfo["response_types"]:
                 return "grant_type didn't match response_type"
-    return ''
+    return ""
 
 
 def map(restriction, cinfo):
     for fname, spec in restriction.items():
-        func = factory('map_' + fname)
+        func = factory("map_" + fname)
         resp = func(spec, cinfo)
         if resp:
             return resp
-    return ''
+    return ""
 
 
 def allow(restriction, cinfo):
@@ -43,14 +43,14 @@ def allow(restriction, cinfo):
 
         if isinstance(_cparam, str):
             if _cparam not in args:
-                return 'Not allowed to register with {}={}'.format(param,
-                                                                   _cparam)
+                return "Not allowed to register with {}={}".format(param, _cparam)
         else:
             if not set(_cparam).issubset(args):
-                return 'Not allowed to register with {}={}'.format(
-                    param, json.dumps(_cparam))
+                return "Not allowed to register with {}={}".format(
+                    param, json.dumps(_cparam)
+                )
 
-    return ''
+    return ""
 
 
 def assign(restriction, cinfo):

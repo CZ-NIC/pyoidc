@@ -2,20 +2,23 @@ from functools import cmp_to_key
 
 from oic.utils.http_util import extract_from_request
 
-__author__ = 'rolandh'
+__author__ = "rolandh"
 
 UNSPECIFIED = "urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified"
-INTERNETPROTOCOLPASSWORD = \
-    'urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword'
-MOBILETWOFACTORCONTRACT = \
-    'urn:oasis:names:tc:SAML:2.0:ac:classes:MobileTwoFactorContract'
-PASSWORDPROTECTEDTRANSPORT = \
-    'urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport'
-PASSWORD = 'urn:oasis:names:tc:SAML:2.0:ac:classes:Password'
-TLSCLIENT = 'urn:oasis:names:tc:SAML:2.0:ac:classes:TLSClient'
+INTERNETPROTOCOLPASSWORD = (
+    "urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword"
+)
+MOBILETWOFACTORCONTRACT = (
+    "urn:oasis:names:tc:SAML:2.0:ac:classes:MobileTwoFactorContract"
+)
+PASSWORDPROTECTEDTRANSPORT = (
+    "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport"
+)
+PASSWORD = "urn:oasis:names:tc:SAML:2.0:ac:classes:Password"
+TLSCLIENT = "urn:oasis:names:tc:SAML:2.0:ac:classes:TLSClient"
 TIMESYNCTOKEN = "urn:oasis:names:tc:SAML:2.0:ac:classes:TimeSyncToken"
 
-CMP_TYPE = ['exact', 'minimum', 'maximum', 'better']
+CMP_TYPE = ["exact", "minimum", "maximum", "better"]
 
 
 class AuthnBroker(object):
@@ -54,7 +57,7 @@ class AuthnBroker(object):
             "ref": acr,
             "method": method,
             "level": level,
-            "authn_auth": authn_authority
+            "authn_auth": authn_authority,
         }
 
         self.next += 1
@@ -203,6 +206,7 @@ def make_auth_verify(callback, next_module_instance=None):
     setup_multi_auth (in multi_auth.py)
     :return: function encapsulating the specified callback which properly handles a multi auth chain.
     """
+    # This has to be here ...
     def auth_verify(environ, start_response, logger=None):
         kwargs = extract_from_request(environ)
 

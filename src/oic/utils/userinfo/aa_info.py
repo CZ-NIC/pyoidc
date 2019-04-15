@@ -3,14 +3,18 @@ from tempfile import NamedTemporaryFile
 
 from oic.utils.userinfo import UserInfo
 
-__author__ = 'danielevertsson'
+__author__ = "danielevertsson"
 
 try:
     from saml2.client import Saml2Client
 except ImportError:
+
     class AaUserInfo(UserInfo):
         pass
+
+
 else:
+
     class AaUserInfo(UserInfo):  # type: ignore
         def __init__(self, spconf, url, db=None):
             UserInfo.__init__(self, db)
@@ -33,14 +37,16 @@ else:
                     entity_id,
                     ava[self.sp_conf.AA_NAMEID_ATTRIBUTE][0],
                     nameid_format=self.sp_conf.AA_NAMEID_FORMAT,
-                    attribute=self.sp_conf.AA_REQUEST_ATTRIBUTES)
+                    attribute=self.sp_conf.AA_REQUEST_ATTRIBUTES,
+                )
 
                 response_dict = response.ava.copy()
                 if self.sp_conf.AA_ATTRIBUTE_SAML_IDP is True:
                     for key, value in ava.items():
-                        if (self.sp_conf.AA_ATTRIBUTE_SAML_IDP_WHITELIST is None or
-                            key in self.sp_conf.AA_ATTRIBUTE_SAML_IDP_WHITELIST) and \
-                                        key not in response_dict:
+                        if (
+                            self.sp_conf.AA_ATTRIBUTE_SAML_IDP_WHITELIST is None
+                            or key in self.sp_conf.AA_ATTRIBUTE_SAML_IDP_WHITELIST
+                        ) and key not in response_dict:
                             response_dict[key] = value
 
                 return response_dict

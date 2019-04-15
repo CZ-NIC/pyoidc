@@ -52,8 +52,7 @@ def _serialize_params(params, str_format, hash_size):
     return [_keys, _hash]
 
 
-def _verify_params(params, req, str_format, hash_size, strict_verification,
-                   key):
+def _verify_params(params, req, str_format, hash_size, strict_verification, key):
     key_order, req_hash = req
 
     if strict_verification and len(key_order) != len(params):
@@ -73,18 +72,18 @@ def _upper(s):
 
 
 SIMPLE_OPER = {
-    "method": ('m', _upper),
-    "host": ('u', None),
-    "path": ('p', None),
-    "time_stamp": ('ts', int),
+    "method": ("m", _upper),
+    "host": ("u", None),
+    "path": ("p", None),
+    "time_stamp": ("ts", int),
 }
 
 QUERY_PARAM_FORMAT = "{}={}"
 REQUEST_HEADER_FORMAT = "{}: {}"
 
 PARAM_ARGS = {
-    'query_params': ('q', QUERY_PARAM_FORMAT),
-    'headers': ('h', REQUEST_HEADER_FORMAT)
+    "query_params": ("q", QUERY_PARAM_FORMAT),
+    "headers": ("h", REQUEST_HEADER_FORMAT),
 }
 
 
@@ -107,13 +106,12 @@ class SignedHttpRequest(object):
 
         for arg, (key, format) in PARAM_ARGS.items():
             try:
-                http_json[key] = _serialize_params(kwargs[arg], format,
-                                                   hash_size)
+                http_json[key] = _serialize_params(kwargs[arg], format, hash_size)
             except KeyError:
                 pass
 
         try:
-            http_json['b'] = b64_hash(kwargs['body'], hash_size)
+            http_json["b"] = b64_hash(kwargs["body"], hash_size)
         except KeyError:
             pass
 
@@ -141,7 +139,7 @@ class SignedHttpRequest(object):
         hash_size = get_hash_size(_header["alg"])
 
         for arg, (key, func) in SIMPLE_OPER.items():
-            if arg == 'time_stamp':
+            if arg == "time_stamp":
                 continue
             try:
                 if func is None:
@@ -154,26 +152,33 @@ class SignedHttpRequest(object):
 
         for arg, (key, format) in PARAM_ARGS.items():
             try:
-                _attr = 'strict_{}_verification'.format(arg)
+                _attr = "strict_{}_verification".format(arg)
                 _strict_verify = kwargs[_attr]
             except KeyError:
                 _strict_verify = False
 
             try:
-                _verify_params(kwargs[arg], unpacked_req[key], format,
-                               hash_size, _strict_verify, key)
+                _verify_params(
+                    kwargs[arg],
+                    unpacked_req[key],
+                    format,
+                    hash_size,
+                    _strict_verify,
+                    key,
+                )
             except KeyError:
                 pass
 
-        if 'b' not in unpacked_req and 'body' not in kwargs:
+        if "b" not in unpacked_req and "body" not in kwargs:
             pass
-        elif 'b' in unpacked_req and 'body' in kwargs:
-            _equals(b64_hash(kwargs.get("body", ""), hash_size),
-                    unpacked_req.get("b", ""))
+        elif "b" in unpacked_req and "body" in kwargs:
+            _equals(
+                b64_hash(kwargs.get("body", ""), hash_size), unpacked_req.get("b", "")
+            )
         else:
-            if 'b' in unpacked_req:
-                raise ValidationError('Body sent but not received!!')
+            if "b" in unpacked_req:
+                raise ValidationError("Body sent but not received!!")
             else:
-                raise ValidationError('Body received but not sent!!')
+                raise ValidationError("Body received but not sent!!")
 
         return unpacked_req

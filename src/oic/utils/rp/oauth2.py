@@ -18,7 +18,7 @@ from oic.utils.http_util import Redirect
 from oic.utils.sanitize import sanitize
 from oic.utils.webfinger import WebFinger
 
-__author__ = 'roland'
+__author__ = "roland"
 
 
 logger = logging.getLogger(__name__)
@@ -29,14 +29,22 @@ class OAuth2Error(Exception):
 
 
 class OAuthClient(client.Client):
-    def __init__(self, client_id=None,
-                 client_prefs=None, client_authn_method=None, keyjar=None,
-                 verify_ssl=True, behaviour=None, jwks_uri='',
-                 kid=None):
-        client.Client.__init__(self, client_id, client_authn_method,
-                               keyjar=keyjar, verify_ssl=verify_ssl)
+    def __init__(
+        self,
+        client_id=None,
+        client_prefs=None,
+        client_authn_method=None,
+        keyjar=None,
+        verify_ssl=True,
+        behaviour=None,
+        jwks_uri="",
+        kid=None,
+    ):
+        client.Client.__init__(
+            self, client_id, client_authn_method, keyjar=keyjar, verify_ssl=verify_ssl
+        )
         self.behaviour = behaviour or {}
-        self.userinfo_request_method = ''
+        self.userinfo_request_method = ""
         self.allow_sign_alg_none = False
         self.authz_req = {}
         self.get_userinfo = True
@@ -51,7 +59,7 @@ class OAuthClient(client.Client):
         request_args = {
             "response_type": self.behaviour["response_type"],
             "state": session["state"],
-            "redirect_uri": self.registration_response["redirect_uris"][0]
+            "redirect_uri": self.registration_response["redirect_uris"][0],
         }
 
         try:
@@ -63,11 +71,11 @@ class OAuthClient(client.Client):
         cis = self.construct_AuthorizationRequest(request_args=request_args)
         logger.debug("request: %s" % sanitize(cis))
 
-        url, body, ht_args, cis = self.uri_and_body(AuthorizationRequest, cis,
-                                                    method="GET",
-                                                    request_args=request_args)
+        url, body, ht_args, cis = self.uri_and_body(
+            AuthorizationRequest, cis, method="GET", request_args=request_args
+        )
 
-        self.authz_req[request_args['state']] = cis
+        self.authz_req[request_args["state"]] = cis
         logger.debug("body: %s" % sanitize(body))
         logger.info("URL: %s" % sanitize(url))
         logger.debug("ht_args: %s" % sanitize(ht_args))
@@ -92,21 +100,22 @@ class OAuthClient(client.Client):
         logger.error(sanitize(txt))
         raise OAuth2Error(txt)
 
-    def callback(self, response, session, format='dict'):
+    def callback(self, response, session, format="dict"):
         """
         Call when an AuthN response has been received from the OP.
 
         :param response: The URL returned by the OP
         :return:
         """
-        if self.behaviour["response_type"] == 'code':
+        if self.behaviour["response_type"] == "code":
             respcls = AuthorizationResponse
         else:
             respcls = AccessTokenResponse
 
         try:
-            authresp = self.parse_response(respcls, response,
-                                           sformat=format, keyjar=self.keyjar)
+            authresp = self.parse_response(
+                respcls, response, sformat=format, keyjar=self.keyjar
+            )
         except ResponseError:
             msg = "Could not parse response: '{}'"
             logger.error(msg.format(sanitize(response)))
@@ -128,14 +137,13 @@ class OAuthClient(client.Client):
             try:
                 args = {
                     "code": authresp["code"],
-                    "redirect_uri": self.registration_response[
-                        "redirect_uris"][0],
+                    "redirect_uri": self.registration_response["redirect_uris"][0],
                     "client_id": self.client_id,
                     "client_secret": self.client_secret,
                 }
 
                 try:
-                    args['scope'] = response['scope']
+                    args["scope"] = response["scope"]
                 except KeyError:
                     pass
 
@@ -143,25 +151,26 @@ class OAuthClient(client.Client):
                     state=authresp["state"],
                     request_args=args,
                     authn_method=self.registration_response[
-                        "token_endpoint_auth_method"])
-                logger.info('Access token response: {}'.format(sanitize(atresp)))
+                        "token_endpoint_auth_method"
+                    ],
+                )
+                logger.info("Access token response: {}".format(sanitize(atresp)))
             except Exception as err:
                 logger.error("%s" % err)
                 raise
 
             if isinstance(atresp, ErrorResponse):
-                self._err('Error response: {}'.format(atresp.to_dict()))
+                self._err("Error response: {}".format(atresp.to_dict()))
 
-            _token = atresp['access_token']
+            _token = atresp["access_token"]
         else:
-            _token = authresp['access_token']
+            _token = authresp["access_token"]
 
-        return {'access_token': _token}
+        return {"access_token": _token}
 
 
 class OAuthClients(object):
-    def __init__(self, config, base_url, seed='', jwks_info=None,
-                 verify_ssl=True):
+    def __init__(self, config, base_url, seed="", jwks_info=None, verify_ssl=True):
         """
         Initialize the client.
 
@@ -172,7 +181,7 @@ class OAuthClients(object):
         self.client_cls = OAuthClient
         self.config = config
         self.seed = seed or rndstr(16)
-        self.seed = self.seed.encode('utf8')
+        self.seed = self.seed.encode("utf8")
         self.path = {}
         self.base_url = base_url
         self.jwks_info = jwks_info
@@ -210,15 +219,17 @@ class OAuthClients(object):
         """
         _key_set = set(list(kwargs.keys()))
         try:
-            _verify_ssl = kwargs['verify_ssl']
+            _verify_ssl = kwargs["verify_ssl"]
         except KeyError:
             _verify_ssl = self.verify_ssl
         else:
-            _key_set.discard('verify_ssl')
+            _key_set.discard("verify_ssl")
 
-        _client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
-                                  behaviour=kwargs["behaviour"],
-                                  verify_ssl=_verify_ssl)
+        _client = self.client_cls(
+            client_authn_method=CLIENT_AUTHN_METHOD,
+            behaviour=kwargs["behaviour"],
+            verify_ssl=_verify_ssl,
+        )
 
         # The behaviour parameter is not significant for the election process
         _key_set.discard("behaviour")
@@ -236,42 +247,57 @@ class OAuthClients(object):
             # Gather OP information
             _client.provider_config(kwargs["srv_discovery_url"])
             # register the client
-            _client.register(_client.provider_info["registration_endpoint"],
-                             **kwargs["client_info"])
-            self.get_path(kwargs['client_info']['redirect_uris'],
-                          kwargs["srv_discovery_url"])
+            _client.register(
+                _client.provider_info["registration_endpoint"], **kwargs["client_info"]
+            )
+            self.get_path(
+                kwargs["client_info"]["redirect_uris"], kwargs["srv_discovery_url"]
+            )
         elif _key_set == {"provider_info", "client_info"}:
             _client.handle_provider_config(
                 ProviderConfigurationResponse(**kwargs["provider_info"]),
-                kwargs["provider_info"]["issuer"])
-            _client.register(_client.provider_info["registration_endpoint"],
-                             **kwargs["client_info"])
+                kwargs["provider_info"]["issuer"],
+            )
+            _client.register(
+                _client.provider_info["registration_endpoint"], **kwargs["client_info"]
+            )
 
-            self.get_path(kwargs['client_info']['redirect_uris'],
-                          kwargs["provider_info"]["issuer"])
+            self.get_path(
+                kwargs["client_info"]["redirect_uris"],
+                kwargs["provider_info"]["issuer"],
+            )
         elif _key_set == {"provider_info", "client_registration"}:
             _client.handle_provider_config(
                 ProviderConfigurationResponse(**kwargs["provider_info"]),
-                kwargs["provider_info"]["issuer"])
-            _client.store_registration_info(ClientInfoResponse(
-                **kwargs["client_registration"]))
-            self.get_path(kwargs['client_info']['redirect_uris'],
-                          kwargs["provider_info"]["issuer"])
+                kwargs["provider_info"]["issuer"],
+            )
+            _client.store_registration_info(
+                ClientInfoResponse(**kwargs["client_registration"])
+            )
+            self.get_path(
+                kwargs["client_info"]["redirect_uris"],
+                kwargs["provider_info"]["issuer"],
+            )
         elif _key_set == {"srv_discovery_url", "client_registration"}:
             _client.provider_config(kwargs["srv_discovery_url"])
-            _client.store_registration_info(ClientInfoResponse(
-                **kwargs["client_registration"]))
-            self.get_path(kwargs['client_registration']['redirect_uris'],
-                          kwargs["srv_discovery_url"])
+            _client.store_registration_info(
+                ClientInfoResponse(**kwargs["client_registration"])
+            )
+            self.get_path(
+                kwargs["client_registration"]["redirect_uris"],
+                kwargs["srv_discovery_url"],
+            )
         else:
             raise Exception("Configuration error ?")
 
         return client
 
-    def dynamic_client(self, issuer='', userid=''):
-        client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
-                                 verify_ssl=self.verify_ssl,
-                                 **self.jwks_info)
+    def dynamic_client(self, issuer="", userid=""):
+        client = self.client_cls(
+            client_authn_method=CLIENT_AUTHN_METHOD,
+            verify_ssl=self.verify_ssl,
+            **self.jwks_info
+        )
         if userid:
             try:
                 issuer = client.wf.discovery_query(userid)
@@ -280,41 +306,41 @@ class OAuthClients(object):
                 issuer = wf.discovery_query(userid)
 
         if not issuer:
-            raise OAuth2Error('Missing issuer')
+            raise OAuth2Error("Missing issuer")
 
-        logger.info('issuer: {}'.format(issuer))
+        logger.info("issuer: {}".format(issuer))
 
         if issuer in self.client:
             return self.client[issuer]
         else:
             # Gather OP information
             _pcr = client.provider_config(issuer)
-            logger.info('Provider info: {}'.format(sanitize(_pcr.to_dict())))
-            issuer = _pcr['issuer']  # So no hickup later about trailing '/'
+            logger.info("Provider info: {}".format(sanitize(_pcr.to_dict())))
+            issuer = _pcr["issuer"]  # So no hickup later about trailing '/'
             # register the client
             _cinfo = self.config.CLIENTS[""]["client_info"]
             reg_args = copy.copy(_cinfo)
             h = hashlib.sha256(self.seed)
-            h.update(issuer.encode('utf8'))  # issuer has to be bytes
+            h.update(issuer.encode("utf8"))  # issuer has to be bytes
             base_urls = _cinfo["redirect_uris"]
 
-            reg_args['redirect_uris'] = [
-                u.format(base=self.base_url, iss=h.hexdigest())
-                for u in base_urls]
+            reg_args["redirect_uris"] = [
+                u.format(base=self.base_url, iss=h.hexdigest()) for u in base_urls
+            ]
             try:
-                reg_args['post_logout_redirect_uris'] = [
+                reg_args["post_logout_redirect_uris"] = [
                     u.format(base=self.base_url, iss=h.hexdigest())
-                    for u in reg_args['post_logout_redirect_uris']
-                    ]
+                    for u in reg_args["post_logout_redirect_uris"]
+                ]
             except KeyError:
                 pass
 
-            self.get_path(reg_args['redirect_uris'], issuer)
+            self.get_path(reg_args["redirect_uris"], issuer)
             if client.jwks_uri:
-                reg_args['jwks_uri'] = client.jwks_uri
+                reg_args["jwks_uri"] = client.jwks_uri
 
             rr = client.register(_pcr["registration_endpoint"], **reg_args)
-            msg = 'Registration response: {}'
+            msg = "Registration response: {}"
             logger.info(msg.format(sanitize(rr.to_dict())))
 
             try:

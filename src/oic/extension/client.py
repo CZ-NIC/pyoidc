@@ -18,7 +18,7 @@ from oic.utils.sanitize import sanitize
 
 logger = logging.getLogger(__name__)
 
-__author__ = 'roland'
+__author__ = "roland"
 
 # -----------------------------------------------------------------------------
 
@@ -26,10 +26,10 @@ __author__ = 'roland'
 
 RESPONSE2ERROR = {
     "ClientInfoResponse": [ClientRegistrationError],
-    "ClientUpdateRequest": [ClientRegistrationError]
+    "ClientUpdateRequest": [ClientRegistrationError],
 }
 
-BASECH = string.ascii_letters + string.digits + '-._~'
+BASECH = string.ascii_letters + string.digits + "-._~"
 
 
 def unreserved(size=64):
@@ -42,59 +42,70 @@ def unreserved(size=64):
     return "".join([random.choice(BASECH) for _ in range(size)])
 
 
-CC_METHOD = {
-    'S256': hashlib.sha256,
-    'S384': hashlib.sha384,
-    'S512': hashlib.sha512,
-}
+CC_METHOD = {"S256": hashlib.sha256, "S384": hashlib.sha384, "S512": hashlib.sha512}
 
 
 class Client(oauth2.Client):
-    def __init__(self, client_id=None,
-                 client_authn_method=None, keyjar=None, verify_ssl=True,
-                 config=None, message_factory=ExtensionMessageFactory):
-        super().__init__(client_id=client_id, client_authn_method=client_authn_method,
-                         keyjar=keyjar, verify_ssl=verify_ssl,
-                         config=config, message_factory=message_factory)
+    def __init__(
+        self,
+        client_id=None,
+        client_authn_method=None,
+        keyjar=None,
+        verify_ssl=True,
+        config=None,
+        message_factory=ExtensionMessageFactory,
+    ):
+        super().__init__(
+            client_id=client_id,
+            client_authn_method=client_authn_method,
+            keyjar=keyjar,
+            verify_ssl=verify_ssl,
+            config=config,
+            message_factory=message_factory,
+        )
         self.allow = {}
-        self.request2endpoint.update({
-            "RegistrationRequest": "registration_endpoint",
-            "ClientUpdateRequest": "clientinfo_endpoint",
-            'TokenIntrospectionRequest': 'introspection_endpoint',
-            'TokenRevocationRequest': 'revocation_endpoint'
-        })
+        self.request2endpoint.update(
+            {
+                "RegistrationRequest": "registration_endpoint",
+                "ClientUpdateRequest": "clientinfo_endpoint",
+                "TokenIntrospectionRequest": "introspection_endpoint",
+                "TokenRevocationRequest": "revocation_endpoint",
+            }
+        )
         self.registration_response = None
 
-    def construct_RegistrationRequest(self, request=None,
-                                      request_args=None, extra_args=None,
-                                      **kwargs):
+    def construct_RegistrationRequest(
+        self, request=None, request_args=None, extra_args=None, **kwargs
+    ):
         if request is None:
-            request = self.message_factory.get_request_type('registration_endpoint')
+            request = self.message_factory.get_request_type("registration_endpoint")
         if request_args is None:
             request_args = {}
 
         return self.construct_request(request, request_args, extra_args)
 
-    def construct_ClientUpdateRequest(self, request=None,
-                                      request_args=None, extra_args=None,
-                                      **kwargs):
+    def construct_ClientUpdateRequest(
+        self, request=None, request_args=None, extra_args=None, **kwargs
+    ):
         if request is None:
-            request = self.message_factory.get_request_type('update_endpoint')
+            request = self.message_factory.get_request_type("update_endpoint")
         if request_args is None:
             request_args = {}
 
         return self.construct_request(request, request_args, extra_args)
 
     def _token_interaction_setup(self, request_args=None, **kwargs):
-        if request_args is None or 'token' not in request_args:
+        if request_args is None or "token" not in request_args:
             token = self.get_token(**kwargs)
             try:
-                _token_type_hint = kwargs['token_type_hint']
+                _token_type_hint = kwargs["token_type_hint"]
             except KeyError:
-                _token_type_hint = 'access_token'
+                _token_type_hint = "access_token"
 
-            request_args = {'token_type_hint': _token_type_hint,
-                            'token': getattr(token, _token_type_hint)}
+            request_args = {
+                "token_type_hint": _token_type_hint,
+                "token": getattr(token, _token_type_hint),
+            }
 
         if "client_id" not in request_args:
             request_args["client_id"] = self.client_id
@@ -103,217 +114,355 @@ class Client(oauth2.Client):
 
         return request_args
 
-    def construct_TokenIntrospectionRequest(self,
-                                            request=None,
-                                            request_args=None, extra_args=None,
-                                            **kwargs):
+    def construct_TokenIntrospectionRequest(
+        self, request=None, request_args=None, extra_args=None, **kwargs
+    ):
         if request is None:
-            request = self.message_factory.get_request_type('introspection_endpoint')
+            request = self.message_factory.get_request_type("introspection_endpoint")
         request_args = self._token_interaction_setup(request_args, **kwargs)
         return self.construct_request(request, request_args, extra_args)
 
-    def construct_TokenRevocationRequest(self,
-                                         request=None,
-                                         request_args=None, extra_args=None,
-                                         **kwargs):
+    def construct_TokenRevocationRequest(
+        self, request=None, request_args=None, extra_args=None, **kwargs
+    ):
         if request is None:
-            request = self.message_factory.get_request_type('revocation_endpoint')
+            request = self.message_factory.get_request_type("revocation_endpoint")
         request_args = self._token_interaction_setup(request_args, **kwargs)
 
         return self.construct_request(request, request_args, extra_args)
 
-    def do_op(self, request, body_type='', method='GET', request_args=None,
-              extra_args=None, http_args=None, response_cls=None, **kwargs):
+    def do_op(
+        self,
+        request,
+        body_type="",
+        method="GET",
+        request_args=None,
+        extra_args=None,
+        http_args=None,
+        response_cls=None,
+        **kwargs
+    ):
 
-        url, body, ht_args, _ = self.request_info(request, method,
-                                                  request_args, extra_args,
-                                                  **kwargs)
+        url, body, ht_args, _ = self.request_info(
+            request, method, request_args, extra_args, **kwargs
+        )
 
         if http_args is None:
             http_args = ht_args
         else:
             http_args.update(http_args)
 
-        resp = self.request_and_return(url, response_cls, method, body,
-                                       body_type, http_args=http_args)
+        resp = self.request_and_return(
+            url, response_cls, method, body, body_type, http_args=http_args
+        )
 
         return resp
 
-    def do_client_registration(self, request=None,
-                               body_type="", method="GET",
-                               request_args=None, extra_args=None,
-                               http_args=None,
-                               response_cls=None,
-                               **kwargs):
+    def do_client_registration(
+        self,
+        request=None,
+        body_type="",
+        method="GET",
+        request_args=None,
+        extra_args=None,
+        http_args=None,
+        response_cls=None,
+        **kwargs
+    ):
         if request is not None:
-            warnings.warn('Passing `request` is deprecated, please use `message_factory`.', DeprecationWarning,
-                          stacklevel=2)
+            warnings.warn(
+                "Passing `request` is deprecated, please use `message_factory`.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            request = self.message_factory.get_request_type('registration_endpoint')
+            request = self.message_factory.get_request_type("registration_endpoint")
         if response_cls is not None:
-            warnings.warn('Passing `response_cls` is deprecated, please use `message_factory`.', DeprecationWarning,
-                          stacklevel=2)
+            warnings.warn(
+                "Passing `response_cls` is deprecated, please use `message_factory`.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            response_cls = self.message_factory.get_response_type('registration_endpoint')
-        return self.do_op(request=request, body_type=body_type, method=method,
-                          request_args=request_args, extra_args=extra_args,
-                          http_args=http_args, response_cls=response_cls,
-                          **kwargs)
+            response_cls = self.message_factory.get_response_type(
+                "registration_endpoint"
+            )
+        return self.do_op(
+            request=request,
+            body_type=body_type,
+            method=method,
+            request_args=request_args,
+            extra_args=extra_args,
+            http_args=http_args,
+            response_cls=response_cls,
+            **kwargs
+        )
 
-    def do_client_read_request(self, request=None,
-                               body_type="", method="GET",
-                               request_args=None, extra_args=None,
-                               http_args=None,
-                               response_cls=None,
-                               **kwargs):
+    def do_client_read_request(
+        self,
+        request=None,
+        body_type="",
+        method="GET",
+        request_args=None,
+        extra_args=None,
+        http_args=None,
+        response_cls=None,
+        **kwargs
+    ):
         if request is not None:
-            warnings.warn('Passing `request` is deprecated, please use `message_factory`.', DeprecationWarning,
-                          stacklevel=2)
+            warnings.warn(
+                "Passing `request` is deprecated, please use `message_factory`.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            request = self.message_factory.get_request_type('update_endpoint')
+            request = self.message_factory.get_request_type("update_endpoint")
         if response_cls is not None:
-            warnings.warn('Passing `response_cls` is deprecated, please use `message_factory`.', DeprecationWarning,
-                          stacklevel=2)
+            warnings.warn(
+                "Passing `response_cls` is deprecated, please use `message_factory`.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            response_cls = self.message_factory.get_response_type('update_endpoint')
-        return self.do_op(request=request, body_type=body_type, method=method,
-                          request_args=request_args, extra_args=extra_args,
-                          http_args=http_args, response_cls=response_cls,
-                          **kwargs)
+            response_cls = self.message_factory.get_response_type("update_endpoint")
+        return self.do_op(
+            request=request,
+            body_type=body_type,
+            method=method,
+            request_args=request_args,
+            extra_args=extra_args,
+            http_args=http_args,
+            response_cls=response_cls,
+            **kwargs
+        )
 
-    def do_client_update_request(self, request=None,
-                                 body_type="", method="PUT",
-                                 request_args=None, extra_args=None,
-                                 http_args=None,
-                                 response_cls=None,
-                                 **kwargs):
+    def do_client_update_request(
+        self,
+        request=None,
+        body_type="",
+        method="PUT",
+        request_args=None,
+        extra_args=None,
+        http_args=None,
+        response_cls=None,
+        **kwargs
+    ):
         if request is not None:
-            warnings.warn('Passing `request` is deprecated, please use `message_factory`.', DeprecationWarning,
-                          stacklevel=2)
+            warnings.warn(
+                "Passing `request` is deprecated, please use `message_factory`.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            request = self.message_factory.get_request_type('update_endpoint')
+            request = self.message_factory.get_request_type("update_endpoint")
         if response_cls is not None:
-            warnings.warn('Passing `response_cls` is deprecated, please use `message_factory`.', DeprecationWarning,
-                          stacklevel=2)
+            warnings.warn(
+                "Passing `response_cls` is deprecated, please use `message_factory`.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            response_cls = self.message_factory.get_response_type('update_endpoint')
-        return self.do_op(request=request, body_type=body_type, method=method,
-                          request_args=request_args, extra_args=extra_args,
-                          http_args=http_args, response_cls=response_cls,
-                          **kwargs)
+            response_cls = self.message_factory.get_response_type("update_endpoint")
+        return self.do_op(
+            request=request,
+            body_type=body_type,
+            method=method,
+            request_args=request_args,
+            extra_args=extra_args,
+            http_args=http_args,
+            response_cls=response_cls,
+            **kwargs
+        )
 
-    def do_client_delete_request(self, request=None,
-                                 body_type="", method="DELETE",
-                                 request_args=None, extra_args=None,
-                                 http_args=None,
-                                 response_cls=None,
-                                 **kwargs):
+    def do_client_delete_request(
+        self,
+        request=None,
+        body_type="",
+        method="DELETE",
+        request_args=None,
+        extra_args=None,
+        http_args=None,
+        response_cls=None,
+        **kwargs
+    ):
         if request is not None:
-            warnings.warn('Passing `request` is deprecated, please use `message_factory`.', DeprecationWarning,
-                          stacklevel=2)
+            warnings.warn(
+                "Passing `request` is deprecated, please use `message_factory`.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            request = self.message_factory.get_request_type('delete_endpoint')
+            request = self.message_factory.get_request_type("delete_endpoint")
         if response_cls is not None:
-            warnings.warn('Passing `response_cls` is deprecated, please use `message_factory`.', DeprecationWarning,
-                          stacklevel=2)
+            warnings.warn(
+                "Passing `response_cls` is deprecated, please use `message_factory`.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            response_cls = self.message_factory.get_response_type('delete_endpoint')
-        return self.do_op(request=request, body_type=body_type, method=method,
-                          request_args=request_args, extra_args=extra_args,
-                          http_args=http_args, response_cls=response_cls,
-                          **kwargs)
+            response_cls = self.message_factory.get_response_type("delete_endpoint")
+        return self.do_op(
+            request=request,
+            body_type=body_type,
+            method=method,
+            request_args=request_args,
+            extra_args=extra_args,
+            http_args=http_args,
+            response_cls=response_cls,
+            **kwargs
+        )
 
     def do_token_introspection(
-            self, request=None, body_type="json",
-            method="POST", request_args=None, extra_args=None,
-            http_args=None, response_cls=None, **kwargs):
+        self,
+        request=None,
+        body_type="json",
+        method="POST",
+        request_args=None,
+        extra_args=None,
+        http_args=None,
+        response_cls=None,
+        **kwargs
+    ):
         if request is not None:
-            warnings.warn('Passing `request` is deprecated, please use `message_factory`.', DeprecationWarning,
-                          stacklevel=2)
+            warnings.warn(
+                "Passing `request` is deprecated, please use `message_factory`.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            request = self.message_factory.get_request_type('introspection_endpoint')
+            request = self.message_factory.get_request_type("introspection_endpoint")
         if response_cls is not None:
-            warnings.warn('Passing `response_cls` is deprecated, please use `message_factory`.', DeprecationWarning,
-                          stacklevel=2)
+            warnings.warn(
+                "Passing `response_cls` is deprecated, please use `message_factory`.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            response_cls = self.message_factory.get_response_type('introspection_endpoint')
-        return self.do_op(request=request, body_type=body_type, method=method,
-                          request_args=request_args, extra_args=extra_args,
-                          http_args=http_args, response_cls=response_cls,
-                          **kwargs)
+            response_cls = self.message_factory.get_response_type(
+                "introspection_endpoint"
+            )
+        return self.do_op(
+            request=request,
+            body_type=body_type,
+            method=method,
+            request_args=request_args,
+            extra_args=extra_args,
+            http_args=http_args,
+            response_cls=response_cls,
+            **kwargs
+        )
 
     def do_token_revocation(
-            self, request=None, body_type="",
-            method="POST", request_args=None, extra_args=None,
-            http_args=None, response_cls=None, **kwargs):
+        self,
+        request=None,
+        body_type="",
+        method="POST",
+        request_args=None,
+        extra_args=None,
+        http_args=None,
+        response_cls=None,
+        **kwargs
+    ):
         if request is not None:
-            warnings.warn('Passing `request` is deprecated, please use `message_factory`.', DeprecationWarning,
-                          stacklevel=2)
+            warnings.warn(
+                "Passing `request` is deprecated, please use `message_factory`.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            request = self.message_factory.get_request_type('revocation_endpoint')
+            request = self.message_factory.get_request_type("revocation_endpoint")
         if response_cls is not None:
-            warnings.warn('Passing `response_cls` is deprecated, please use `message_factory`.', DeprecationWarning,
-                          stacklevel=2)
+            warnings.warn(
+                "Passing `response_cls` is deprecated, please use `message_factory`.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            response_cls = self.message_factory.get_response_type('revocation_endpoint')
-        return self.do_op(request=request, body_type=body_type, method=method,
-                          request_args=request_args, extra_args=extra_args,
-                          http_args=http_args, response_cls=response_cls,
-                          **kwargs)
+            response_cls = self.message_factory.get_response_type("revocation_endpoint")
+        return self.do_op(
+            request=request,
+            body_type=body_type,
+            method=method,
+            request_args=request_args,
+            extra_args=extra_args,
+            http_args=http_args,
+            response_cls=response_cls,
+            **kwargs
+        )
 
     def add_code_challenge(self):
         try:
-            cv_len = self.config['code_challenge']['length']
+            cv_len = self.config["code_challenge"]["length"]
         except KeyError:
             cv_len = 64  # Use default
 
         code_verifier = unreserved(cv_len)
-        _cv = code_verifier.encode('ascii')
+        _cv = code_verifier.encode("ascii")
 
         try:
-            _method = self.config['code_challenge']['method']
+            _method = self.config["code_challenge"]["method"]
         except KeyError:
-            _method = 'S256'
+            _method = "S256"
 
         try:
             _h = CC_METHOD[_method](_cv).digest()
-            code_challenge = b64e(_h).decode('ascii')
+            code_challenge = b64e(_h).decode("ascii")
         except KeyError:
-            raise Unsupported(
-                'PKCE Transformation method:{}'.format(_method))
+            raise Unsupported("PKCE Transformation method:{}".format(_method))
 
         # TODO store code_verifier
 
-        return {"code_challenge": code_challenge,
-                "code_challenge_method": _method}, code_verifier
+        return (
+            {"code_challenge": code_challenge, "code_challenge_method": _method},
+            code_verifier,
+        )
 
     def do_authorization_request(
-            self, request=None, state="", body_type="",
-            method="GET", request_args=None, extra_args=None, http_args=None,
-            response_cls=None, **kwargs):
+        self,
+        request=None,
+        state="",
+        body_type="",
+        method="GET",
+        request_args=None,
+        extra_args=None,
+        http_args=None,
+        response_cls=None,
+        **kwargs
+    ):
         if request is not None:
-            warnings.warn('Passing `request` is deprecated, please use `message_factory`.', DeprecationWarning,
-                          stacklevel=2)
+            warnings.warn(
+                "Passing `request` is deprecated, please use `message_factory`.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            request = self.message_factory.get_request_type('authorization_endpoint')
+            request = self.message_factory.get_request_type("authorization_endpoint")
         if response_cls is not None:
-            warnings.warn('Passing `response_cls` is deprecated, please use `message_factory`.', DeprecationWarning,
-                          stacklevel=2)
+            warnings.warn(
+                "Passing `response_cls` is deprecated, please use `message_factory`.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
-            response_cls = self.message_factory.get_response_type('authorization_endpoint')
-        if 'code_challenge' in self.config and self.config['code_challenge']:
+            response_cls = self.message_factory.get_response_type(
+                "authorization_endpoint"
+            )
+        if "code_challenge" in self.config and self.config["code_challenge"]:
             _args, code_verifier = self.add_code_challenge()
             request_args.update(_args)
 
-        oauth2.Client.do_authorization_request(self,
-                                               request=request, state=state,
-                                               body_type=body_type,
-                                               method=method,
-                                               request_args=request_args,
-                                               extra_args=extra_args,
-                                               http_args=http_args,
-                                               response_cls=response_cls,
-                                               **kwargs)
+        oauth2.Client.do_authorization_request(
+            self,
+            request=request,
+            state=state,
+            body_type=body_type,
+            method=method,
+            request_args=request_args,
+            extra_args=extra_args,
+            http_args=http_args,
+            response_cls=response_cls,
+            **kwargs
+        )
 
     def store_registration_info(self, reginfo):
         self.registration_response = reginfo
@@ -323,7 +472,9 @@ class Client(oauth2.Client):
 
     def handle_registration_info(self, response):
         if response.status_code in SUCCESSFUL:
-            resp = self.message_factory.get_response_type('registration_endpoint')().deserialize(response.text, "json")
+            resp = self.message_factory.get_response_type(
+                "registration_endpoint"
+            )().deserialize(response.text, "json")
             self.store_response(resp, response.text)
             self.store_registration_info(resp)
         else:
@@ -332,8 +483,7 @@ class Client(oauth2.Client):
                 resp.verify()
                 self.store_response(resp, response.text)
             except Exception:
-                raise PyoidcError(
-                    'Registration failed: {}'.format(response.text))
+                raise PyoidcError("Registration failed: {}".format(response.text))
 
         return resp
 
@@ -349,16 +499,17 @@ class Client(oauth2.Client):
 
         headers = {"content-type": "application/json"}
 
-        rsp = self.http_request(url, "POST", data=req.to_json(),
-                                headers=headers)
+        rsp = self.http_request(url, "POST", data=req.to_json(), headers=headers)
 
         return self.handle_registration_info(rsp)
 
     def parse_authz_response(self, query):
-        aresp = self.parse_response(self.message_factory.get_response_type('authorization_endpoint'),
-                                    info=query,
-                                    sformat="urlencoded",
-                                    keyjar=self.keyjar)
+        aresp = self.parse_response(
+            self.message_factory.get_response_type("authorization_endpoint"),
+            info=query,
+            sformat="urlencoded",
+            keyjar=self.keyjar,
+        )
         if aresp.type() == "ErrorResponse":
             logger.info("ErrorResponse: %s" % sanitize(aresp))
             raise AuthzError(aresp.error)

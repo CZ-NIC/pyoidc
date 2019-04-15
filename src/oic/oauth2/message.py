@@ -163,7 +163,7 @@ class Message(MutableMapping):
         The key can be direct attribute or lang typed attribute.
         If ParamDefinition is not found, tries to return "*" attribute, if it exists, otherwise returns None.
         """
-        for _key in (key, key.split('#')[0], '*'):
+        for _key in (key, key.split("#")[0], "*"):
             if _key in _spec:
                 return _spec[_key]
         return None
@@ -178,8 +178,7 @@ class Message(MutableMapping):
         if not self.lax:
             for attribute, cparam in _spec.items():
                 if cparam.required and attribute not in self._dict:
-                    raise MissingRequiredAttribute("%s" % attribute,
-                                                   "%s" % self)
+                    raise MissingRequiredAttribute("%s" % attribute, "%s" % self)
 
         params = []
 
@@ -199,11 +198,10 @@ class Message(MutableMapping):
                 params.append((key, val.encode("utf-8")))
             elif isinstance(val, list):
                 if _ser:
-                    params.append((key, str(_ser(val, sformat="urlencoded",
-                                                 lev=lev))))
+                    params.append((key, str(_ser(val, sformat="urlencoded", lev=lev))))
                 else:
                     for item in val:
-                        params.append((key, str(item).encode('utf-8')))
+                        params.append((key, str(item).encode("utf-8")))
             elif isinstance(val, Message):
                 try:
                     _val = json.dumps(_ser(val, sformat="dict", lev=lev + 1))
@@ -284,7 +282,7 @@ class Message(MutableMapping):
                         except KeyError:
                             raise ParameterError(key)
                 else:
-                    raise TooManyValues('{}'.format(key))
+                    raise TooManyValues("{}".format(key))
 
         return self
 
@@ -309,7 +307,9 @@ class Message(MutableMapping):
 
             if isinstance(val, Message):
                 _res[key] = val.to_dict(lev + 1)
-            elif isinstance(val, list) and isinstance(next(iter(val or []), None), Message):
+            elif isinstance(val, list) and isinstance(
+                next(iter(val or []), None), Message
+            ):
                 _res[key] = [v.to_dict(lev) for v in val]
             else:
                 _res[key] = val
@@ -326,11 +326,13 @@ class Message(MutableMapping):
         _spec = self.c_param
 
         for key, val in dictionary.items():
-            if val in ('', ['']):
+            if val in ("", [""]):
                 continue
             cparam = self._extract_cparam(key, _spec)
             if cparam is not None:
-                self._add_value(key, cparam.type, key, val, cparam.deserializer, cparam.null_allowed)
+                self._add_value(
+                    key, cparam.type, key, val, cparam.deserializer, cparam.null_allowed
+                )
             else:
                 self._dict[key] = val
         return self
@@ -349,7 +351,9 @@ class Message(MutableMapping):
                 if vtyp is bool:
                     self._dict[skey] = val
                 else:
-                    raise ValueError('"{}", wrong type of value for "{}"'.format(val, skey))
+                    raise ValueError(
+                        '"{}", wrong type of value for "{}"'.format(val, skey)
+                    )
             elif isinstance(val, vtyp):  # Not necessary to do anything
                 self._dict[skey] = val
             else:
@@ -362,11 +366,15 @@ class Message(MutableMapping):
                     try:
                         self._dict[skey] = int(val)
                     except (ValueError, TypeError):
-                        raise ValueError('"{}", wrong type of value for "{}"'.format(val, skey))
+                        raise ValueError(
+                            '"{}", wrong type of value for "{}"'.format(val, skey)
+                        )
                     else:
                         return
                 elif vtyp is bool:
-                    raise ValueError('"{}", wrong type of value for "{}"'.format(val, skey))
+                    raise ValueError(
+                        '"{}", wrong type of value for "{}"'.format(val, skey)
+                    )
 
                 if isinstance(val, str):
                     self._dict[skey] = val
@@ -420,7 +428,9 @@ class Message(MutableMapping):
             else:
                 for v in val:
                     if not isinstance(v, vtype):
-                        raise DecodeError(ERRTXT % (key, "type != %s (%s)" % (vtype, type(v))))
+                        raise DecodeError(
+                            ERRTXT % (key, "type != %s (%s)" % (vtype, type(v)))
+                        )
             self._dict[skey] = val
             return
         if isinstance(val, dict):
@@ -454,15 +464,15 @@ class Message(MutableMapping):
         _jws = JWS(self.to_json(lev), alg=algorithm)
         return _jws.sign_compact(key)
 
-    def _add_key(self, keyjar, issuer, key, key_type='', kid='',
-                 no_kid_issuer=None):
+    def _add_key(self, keyjar, issuer, key, key_type="", kid="", no_kid_issuer=None):
 
         if issuer not in keyjar:
             logger.error('Issuer "{}" not in keyjar'.format(issuer))
             return
 
-        logger.debug('Key set summary for {}: {}'.format(
-            issuer, key_summary(keyjar, issuer)))
+        logger.debug(
+            "Key set summary for {}: {}".format(issuer, key_summary(keyjar, issuer))
+        )
 
         if kid:
             _key = keyjar.get_key_by_kid(kid, issuer)
@@ -502,9 +512,9 @@ class Message(MutableMapping):
         :return: list of usable keys
         """
         try:
-            _kid = header['kid']
+            _kid = header["kid"]
         except KeyError:
-            _kid = ''
+            _kid = ""
 
         try:
             _iss = jso["iss"]
@@ -517,8 +527,7 @@ class Message(MutableMapping):
                     # This is really questionable
                     try:
                         if kwargs["trusting"]:
-                            keyjar.add(jso["iss"],
-                                       header["jku"])
+                            keyjar.add(jso["iss"], header["jku"])
                     except KeyError:
                         pass
 
@@ -535,18 +544,17 @@ class Message(MutableMapping):
                     pass
 
         try:
-            nki = kwargs['no_kid_issuer']
+            nki = kwargs["no_kid_issuer"]
         except KeyError:
             nki = {}
 
         try:
-            _key_type = alg2keytype(header['alg'])
+            _key_type = alg2keytype(header["alg"])
         except KeyError:
-            _key_type = ''
+            _key_type = ""
 
         try:
-            self._add_key(keyjar, kwargs["opponent_id"], key, _key_type, _kid,
-                          nki)
+            self._add_key(keyjar, kwargs["opponent_id"], key, _key_type, _kid, nki)
         except KeyError:
             pass
 
@@ -583,9 +591,13 @@ class Message(MutableMapping):
 
             if "algs" in kwargs and "encalg" in kwargs["algs"]:
                 if kwargs["algs"]["encalg"] != _jw["alg"]:
-                    raise WrongEncryptionAlgorithm("%s != %s" % (_jw["alg"], kwargs["algs"]["encalg"]))
+                    raise WrongEncryptionAlgorithm(
+                        "%s != %s" % (_jw["alg"], kwargs["algs"]["encalg"])
+                    )
                 if kwargs["algs"]["encenc"] != _jw["enc"]:
-                    raise WrongEncryptionAlgorithm("%s != %s" % (_jw["enc"], kwargs["algs"]["encenc"]))
+                    raise WrongEncryptionAlgorithm(
+                        "%s != %s" % (_jw["enc"], kwargs["algs"]["encenc"])
+                    )
             if keyjar:
                 dkeys = keyjar.get_decrypt_key(owner="")
                 if "sender" in kwargs:
@@ -595,9 +607,9 @@ class Message(MutableMapping):
             else:
                 dkeys = []
 
-            logger.debug('Decrypt class: {}'.format(_jw.__class__))
+            logger.debug("Decrypt class: {}".format(_jw.__class__))
             _res = _jw.decrypt(txt, dkeys)
-            logger.debug('decrypted message:{}'.format(_res))
+            logger.debug("decrypted message:{}".format(_res))
             if isinstance(_res, tuple):
                 txt = as_unicode(_res[0])
             elif isinstance(_res, list) and len(_res) == 2:
@@ -611,7 +623,9 @@ class Message(MutableMapping):
             if "algs" in kwargs and "sign" in kwargs["algs"]:
                 _alg = _jw.jwt.headers["alg"]
                 if kwargs["algs"]["sign"] != _alg:
-                    raise WrongSigningAlgorithm("%s != %s" % (_alg, kwargs["algs"]["sign"]))
+                    raise WrongSigningAlgorithm(
+                        "%s != %s" % (_alg, kwargs["algs"]["sign"])
+                    )
             try:
                 _jwt = JWT().unpack(txt)
                 jso = _jwt.payload()
@@ -631,13 +645,13 @@ class Message(MutableMapping):
                     pass
                 elif verify:
                     if keyjar:
-                        key = self.get_verify_keys(keyjar, key, jso, _header,
-                                                   _jw, **kwargs)
+                        key = self.get_verify_keys(
+                            keyjar, key, jso, _header, _jw, **kwargs
+                        )
 
                     if "alg" in _header and _header["alg"] != "none":
                         if not key:
-                            raise MissingSigningKey(
-                                "alg=%s" % _header["alg"])
+                            raise MissingSigningKey("alg=%s" % _header["alg"])
 
                     logger.debug("Found signing key.")
                     try:
@@ -645,8 +659,9 @@ class Message(MutableMapping):
                     except NoSuitableSigningKeys:
                         if keyjar:
                             update_keyjar(keyjar)
-                            key = self.get_verify_keys(keyjar, key, jso,
-                                                       _header, _jw, **kwargs)
+                            key = self.get_verify_keys(
+                                keyjar, key, jso, _header, _jw, **kwargs
+                            )
                             _jw.verify_compact(txt, key)
             except Exception:
                 raise
@@ -659,7 +674,7 @@ class Message(MutableMapping):
         return self.from_dict(jso)
 
     def __str__(self):
-        return '{}'.format(self.to_dict())
+        return "{}".format(self.to_dict())
 
     def _type_check(self, typ, _allowed, val, na=False):
         if typ is str:
@@ -711,7 +726,9 @@ class Message(MutableMapping):
                     else:
                         raise NotAllowedValue(val)
             else:
-                self._type_check(cparam.type, _allowed[attribute], val, cparam.null_allowed)
+                self._type_check(
+                    cparam.type, _allowed[attribute], val, cparam.null_allowed
+                )
 
         return True
 
@@ -755,7 +772,14 @@ class Message(MutableMapping):
     def __setitem__(self, key, value):
         try:
             cparam = self.c_param[key]
-            self._add_value(str(key), cparam.type, key, value, cparam.deserializer, cparam.null_allowed)
+            self._add_value(
+                str(key),
+                cparam.type,
+                key,
+                value,
+                cparam.deserializer,
+                cparam.null_allowed,
+            )
         except KeyError:
             self._dict[key] = value
 
@@ -777,8 +801,9 @@ class Message(MutableMapping):
         return len(self._dict)
 
     def extra(self):
-        return dict([(key, val) for key, val in
-                     self._dict.items() if key not in self.c_param])
+        return dict(
+            [(key, val) for key, val in self._dict.items() if key not in self.c_param]
+        )
 
     def only_extras(self):
         extras = [key for key in self._dict.keys() if key in self.c_param]
@@ -862,6 +887,7 @@ def add_non_standard(msg1, msg2):
 
 # =============================================================================
 
+
 def list_serializer(vals, sformat="urlencoded", lev=0):
     if isinstance(vals, str) or not isinstance(vals, list):
         raise ValueError("Expected list: %s" % vals)
@@ -911,18 +937,34 @@ VSER = 2
 VDESER = 3
 VNULLALLOWED = 4
 
-ParamDefinition = namedtuple('ParamDefinition', ['type', 'required', 'serializer', 'deserializer', 'null_allowed'])
+ParamDefinition = namedtuple(
+    "ParamDefinition",
+    ["type", "required", "serializer", "deserializer", "null_allowed"],
+)
 SINGLE_REQUIRED_STRING = ParamDefinition(str, True, None, None, False)
 SINGLE_OPTIONAL_STRING = ParamDefinition(str, False, None, None, False)
 SINGLE_OPTIONAL_INT = ParamDefinition(int, False, None, None, False)
-OPTIONAL_LIST_OF_STRINGS = ParamDefinition([str], False, list_serializer, list_deserializer, False)
-REQUIRED_LIST_OF_STRINGS = ParamDefinition([str], True, list_serializer, list_deserializer, False)
-OPTIONAL_LIST_OF_SP_SEP_STRINGS = ParamDefinition([str], False, sp_sep_list_serializer, sp_sep_list_deserializer, False)
-REQUIRED_LIST_OF_SP_SEP_STRINGS = ParamDefinition([str], True, sp_sep_list_serializer, sp_sep_list_deserializer, False)
-SINGLE_OPTIONAL_JSON = ParamDefinition(str, False, json_serializer, json_deserializer, False)
+OPTIONAL_LIST_OF_STRINGS = ParamDefinition(
+    [str], False, list_serializer, list_deserializer, False
+)
+REQUIRED_LIST_OF_STRINGS = ParamDefinition(
+    [str], True, list_serializer, list_deserializer, False
+)
+OPTIONAL_LIST_OF_SP_SEP_STRINGS = ParamDefinition(
+    [str], False, sp_sep_list_serializer, sp_sep_list_deserializer, False
+)
+REQUIRED_LIST_OF_SP_SEP_STRINGS = ParamDefinition(
+    [str], True, sp_sep_list_serializer, sp_sep_list_deserializer, False
+)
+SINGLE_OPTIONAL_JSON = ParamDefinition(
+    str, False, json_serializer, json_deserializer, False
+)
 
-REQUIRED = [SINGLE_REQUIRED_STRING, REQUIRED_LIST_OF_STRINGS,
-            REQUIRED_LIST_OF_SP_SEP_STRINGS]
+REQUIRED = [
+    SINGLE_REQUIRED_STRING,
+    REQUIRED_LIST_OF_STRINGS,
+    REQUIRED_LIST_OF_SP_SEP_STRINGS,
+]
 
 
 #
@@ -931,28 +973,43 @@ REQUIRED = [SINGLE_REQUIRED_STRING, REQUIRED_LIST_OF_STRINGS,
 
 
 class ErrorResponse(Message):
-    c_param = {"error": SINGLE_REQUIRED_STRING,
-               "error_description": SINGLE_OPTIONAL_STRING,
-               "error_uri": SINGLE_OPTIONAL_STRING}
+    c_param = {
+        "error": SINGLE_REQUIRED_STRING,
+        "error_description": SINGLE_OPTIONAL_STRING,
+        "error_uri": SINGLE_OPTIONAL_STRING,
+    }
 
 
 class AuthorizationErrorResponse(ErrorResponse):
     c_param = ErrorResponse.c_param.copy()
     c_param.update({"state": SINGLE_OPTIONAL_STRING})
     c_allowed_values = ErrorResponse.c_allowed_values.copy()
-    c_allowed_values.update({"error": ["invalid_request",
-                                       "unauthorized_client",
-                                       "access_denied",
-                                       "unsupported_response_type",
-                                       "invalid_scope", "server_error",
-                                       "temporarily_unavailable"]})
+    c_allowed_values.update(
+        {
+            "error": [
+                "invalid_request",
+                "unauthorized_client",
+                "access_denied",
+                "unsupported_response_type",
+                "invalid_scope",
+                "server_error",
+                "temporarily_unavailable",
+            ]
+        }
+    )
 
 
 class TokenErrorResponse(ErrorResponse):
-    c_allowed_values = {"error": ["invalid_request", "invalid_client",
-                                  "invalid_grant", "unauthorized_client",
-                                  "unsupported_grant_type",
-                                  "invalid_scope"]}
+    c_allowed_values = {
+        "error": [
+            "invalid_request",
+            "invalid_client",
+            "invalid_grant",
+            "unauthorized_client",
+            "unsupported_grant_type",
+            "invalid_scope",
+        ]
+    }
 
 
 class AccessTokenRequest(Message):
@@ -962,7 +1019,7 @@ class AccessTokenRequest(Message):
         "redirect_uri": SINGLE_REQUIRED_STRING,
         "client_id": SINGLE_OPTIONAL_STRING,
         "client_secret": SINGLE_OPTIONAL_STRING,
-        'state': SINGLE_OPTIONAL_STRING
+        "state": SINGLE_OPTIONAL_STRING,
     }
     c_default = {"grant_type": "authorization_code"}
 
@@ -981,27 +1038,27 @@ class AuthorizationResponse(Message):
     c_param = {
         "code": SINGLE_REQUIRED_STRING,
         "state": SINGLE_OPTIONAL_STRING,
-        'iss': SINGLE_OPTIONAL_STRING,
-        'client_id': SINGLE_OPTIONAL_STRING
+        "iss": SINGLE_OPTIONAL_STRING,
+        "client_id": SINGLE_OPTIONAL_STRING,
     }
 
     def verify(self, **kwargs):
         super(AuthorizationResponse, self).verify(**kwargs)
 
-        if 'client_id' in self:
+        if "client_id" in self:
             try:
-                if self['client_id'] != kwargs['client_id']:
-                    raise VerificationError('client_id mismatch')
+                if self["client_id"] != kwargs["client_id"]:
+                    raise VerificationError("client_id mismatch")
             except KeyError:
-                logger.info('No client_id to verify against')
+                logger.info("No client_id to verify against")
                 pass
-        if 'iss' in self:
+        if "iss" in self:
             try:
                 # Issuer URL for the authorization server issuing the response.
-                if self['iss'] != kwargs['iss']:
-                    raise VerificationError('Issuer mismatch')
+                if self["iss"] != kwargs["iss"]:
+                    raise VerificationError("Issuer mismatch")
             except KeyError:
-                logger.info('No issuer set in the Client config')
+                logger.info("No issuer set in the Client config")
                 pass
 
         return True
@@ -1014,14 +1071,12 @@ class AccessTokenResponse(Message):
         "expires_in": SINGLE_OPTIONAL_INT,
         "refresh_token": SINGLE_OPTIONAL_STRING,
         "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-        "state": SINGLE_OPTIONAL_STRING
+        "state": SINGLE_OPTIONAL_STRING,
     }
 
 
 class NoneResponse(Message):
-    c_param = {
-        "state": SINGLE_OPTIONAL_STRING
-    }
+    c_param = {"state": SINGLE_OPTIONAL_STRING}
 
 
 class ROPCAccessTokenRequest(Message):
@@ -1029,14 +1084,14 @@ class ROPCAccessTokenRequest(Message):
         "grant_type": SINGLE_REQUIRED_STRING,
         "username": SINGLE_OPTIONAL_STRING,
         "password": SINGLE_OPTIONAL_STRING,
-        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS
+        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
     }
 
 
 class CCAccessTokenRequest(Message):
     c_param = {
         "grant_type": SINGLE_REQUIRED_STRING,
-        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS
+        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
     }
     c_default = {"grant_type": "client_credentials"}
     c_allowed_values = {"grant_type": ["client_credentials"]}
@@ -1048,7 +1103,7 @@ class RefreshAccessTokenRequest(Message):
         "refresh_token": SINGLE_REQUIRED_STRING,
         "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
         "client_id": SINGLE_OPTIONAL_STRING,
-        "client_secret": SINGLE_OPTIONAL_STRING
+        "client_secret": SINGLE_OPTIONAL_STRING,
     }
     c_default = {"grant_type": "refresh_token"}
     c_allowed_values = {"grant_type": ["refresh_token"]}
@@ -1070,14 +1125,13 @@ class ASConfigurationResponse(Message):
         "response_modes_supported": OPTIONAL_LIST_OF_STRINGS,
         "grant_types_supported": REQUIRED_LIST_OF_STRINGS,
         "token_endpoint_auth_methods_supported": OPTIONAL_LIST_OF_STRINGS,
-        "token_endpoint_auth_signing_alg_values_supported":
-            OPTIONAL_LIST_OF_STRINGS,
+        "token_endpoint_auth_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "service_documentation": SINGLE_OPTIONAL_STRING,
         "ui_locales_supported": OPTIONAL_LIST_OF_STRINGS,
         "op_policy_uri": SINGLE_OPTIONAL_STRING,
         "op_tos_uri": SINGLE_OPTIONAL_STRING,
-        'revocation_endpoint': SINGLE_OPTIONAL_STRING,
-        'introspection_endpoint': SINGLE_OPTIONAL_STRING,
+        "revocation_endpoint": SINGLE_OPTIONAL_STRING,
+        "introspection_endpoint": SINGLE_OPTIONAL_STRING,
     }
     c_default = {"version": "3.0"}
 
@@ -1096,22 +1150,25 @@ MSG = {
     "CCAccessTokenRequest": CCAccessTokenRequest,
     "RefreshAccessTokenRequest": RefreshAccessTokenRequest,
     "ResourceRequest": ResourceRequest,
-    'ASConfigurationResponse': ASConfigurationResponse
+    "ASConfigurationResponse": ASConfigurationResponse,
 }
 
 
 def factory(msgtype):
-    warnings.warn('`factory` is deprecated. Use `OauthMessageFactory` instead.', DeprecationWarning)
+    warnings.warn(
+        "`factory` is deprecated. Use `OauthMessageFactory` instead.",
+        DeprecationWarning,
+    )
     try:
         return MSG[msgtype]
     except KeyError:
         raise FormatError("Unknown message type: %s" % msgtype)
 
 
-MessageTuple = namedtuple('MessageTuple', ['request_cls', 'response_cls'])
+MessageTuple = namedtuple("MessageTuple", ["request_cls", "response_cls"])
 
 
-class MessageFactory():
+class MessageFactory:
     """Factory for holding message types."""
 
     @classmethod
@@ -1120,7 +1177,7 @@ class MessageFactory():
         try:
             return getattr(cls, endpoint).request_cls
         except AttributeError:
-            raise MessageException('Unknown endpoint.')
+            raise MessageException("Unknown endpoint.")
 
     @classmethod
     def get_response_type(cls, endpoint: str):
@@ -1128,7 +1185,7 @@ class MessageFactory():
         try:
             return getattr(cls, endpoint).response_cls
         except AttributeError:
-            raise MessageException('Unknown endpoint.')
+            raise MessageException("Unknown endpoint.")
 
 
 class OauthMessageFactory(MessageFactory):

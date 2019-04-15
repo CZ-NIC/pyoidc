@@ -5,7 +5,7 @@ from oic.utils.authn.user import logger
 from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Unauthorized
 
-__author__ = 'danielevertsson'
+__author__ = "danielevertsson"
 
 
 class JavascriptFormMako(UsernamePasswordMako):
@@ -35,7 +35,7 @@ class JavascriptFormMako(UsernamePasswordMako):
         logger.debug("passwd: %s" % self.passwd)
         # verify username and password
         try:
-            assert _dict['login_parameter'][0] == 'logged_in'
+            assert _dict["login_parameter"][0] == "logged_in"
         except (AssertionError, KeyError):
             resp = Unauthorized("You are not authorized. Javascript not executed")
             return resp, False
@@ -44,7 +44,7 @@ class JavascriptFormMako(UsernamePasswordMako):
             try:
                 _qp = _dict["query"][0]
             except KeyError:
-                _qp = self.get_multi_auth_cookie(kwargs['cookie'])
+                _qp = self.get_multi_auth_cookie(kwargs["cookie"])
             try:
                 return_to = self.generate_return_url(kwargs["return_to"], _qp)
             except KeyError:

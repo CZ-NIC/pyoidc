@@ -24,7 +24,7 @@ from jwkest.jwk import rsa_load
 from oic.exception import MessageException
 from oic.exception import PyoidcError
 
-__author__ = 'rohe0002'
+__author__ = "rohe0002"
 
 KEYLOADERR = "Failed to load %s key from '%s' (%s)"
 REMOTE_FAILED = "Remote key update from '{}' failed, HTTP status {}"
@@ -33,9 +33,9 @@ MALFORMED = "Remote key update from {} failed, malformed JWKS."
 logger = logging.getLogger(__name__)
 
 
-def raise_exception(excep, descr, error='service_error'):
-    _err = json.dumps({'error': error, 'error_description': descr})
-    raise excep(_err, 'application/json')
+def raise_exception(excep, descr, error="service_error"):
+    _err = json.dumps({"error": error, "error_description": descr})
+    raise excep(_err, "application/json")
 
 
 class KeyIOError(PyoidcError):
@@ -54,16 +54,21 @@ class JWKSError(KeyIOError):
     pass
 
 
-K2C = {
-    "RSA": RSAKey,
-    "EC": ECKey,
-    "oct": SYMKey,
-}
+K2C = {"RSA": RSAKey, "EC": ECKey, "oct": SYMKey}
 
 
 class KeyBundle(object):
-    def __init__(self, keys=None, source="", cache_time=300, verify_ssl=True,
-                 fileformat="jwk", keytype="RSA", keyusage=None, timeout=5):
+    def __init__(
+        self,
+        keys=None,
+        source="",
+        cache_time=300,
+        verify_ssl=True,
+        fileformat="jwk",
+        keytype="RSA",
+        keyusage=None,
+        timeout=5,
+    ):
         """
         Initialize the KeyBundle.
 
@@ -123,7 +128,7 @@ class KeyBundle(object):
         """
         for inst in keys:
             if not isinstance(inst, dict):
-                raise JWKSError('Illegal JWK')
+                raise JWKSError("Illegal JWK")
 
             typ = inst["kty"]
             flag = 0
@@ -133,16 +138,16 @@ class KeyBundle(object):
                 except KeyError:
                     continue
                 except TypeError:
-                    raise JWKSError('Inappropriate JWKS argument type')
+                    raise JWKSError("Inappropriate JWKS argument type")
                 except JWKException as err:
-                    logger.warning('Loading a key failed: %s', err)
+                    logger.warning("Loading a key failed: %s", err)
                 else:
                     if _key not in self._keys:
                         self._keys.append(_key)
                         flag = 1
                         break
             if not flag:
-                logger.warning('Unknown key type: %s', typ)
+                logger.warning("Unknown key type: %s", typ)
 
     def do_local_jwk(self, filename):
         try:
@@ -151,8 +156,8 @@ class KeyBundle(object):
         except KeyError:
             logger.error("Now 'keys' keyword in JWKS")
             raise_exception(
-                UpdateFailed,
-                "Local key update from '{}' failed.".format(filename))
+                UpdateFailed, "Local key update from '{}' failed.".format(filename)
+            )
         else:
             self.last_updated = time.time()
 
@@ -176,12 +181,11 @@ class KeyBundle(object):
             args["headers"] = {"If-None-Match": self.etag}
 
         try:
-            logging.debug('KeyBundle fetch keys from: {}'.format(self.source))
+            logging.debug("KeyBundle fetch keys from: {}".format(self.source))
             r = requests.get(self.source, **args)
         except Exception as err:
             logger.error(err)
-            raise_exception(UpdateFailed,
-                            REMOTE_FAILED.format(self.source, str(err)))
+            raise_exception(UpdateFailed, REMOTE_FAILED.format(self.source, str(err)))
 
         if r.status_code == 304:  # file has not changed
             self.time_out = time.time() + self.cache_time
@@ -197,8 +201,7 @@ class KeyBundle(object):
             self.time_out = time.time() + self.cache_time
 
             self.imp_jwks = self._parse_remote_response(r)
-            if not isinstance(self.imp_jwks,
-                              dict) or "keys" not in self.imp_jwks:
+            if not isinstance(self.imp_jwks, dict) or "keys" not in self.imp_jwks:
                 raise_exception(UpdateFailed, MALFORMED.format(self.source))
 
             logger.debug("Loaded JWKS: %s from %s" % (r.text, self.source))
@@ -213,8 +216,9 @@ class KeyBundle(object):
             except KeyError:
                 pass
         else:
-            raise_exception(UpdateFailed,
-                            REMOTE_FAILED.format(self.source, r.status_code))
+            raise_exception(
+                UpdateFailed, REMOTE_FAILED.format(self.source, r.status_code)
+            )
         self.last_updated = time.time()
         return True
 
@@ -229,8 +233,12 @@ class KeyBundle(object):
         """
         # Check if the content type is the right one.
         try:
-            if not response.headers["Content-Type"].lower().startswith('application/json'):
-                logger.warning('Wrong Content_type')
+            if (
+                not response.headers["Content-Type"]
+                .lower()
+                .startswith("application/json")
+            ):
+                logger.warning("Wrong Content_type")
         except KeyError:
             pass
 
@@ -303,8 +311,9 @@ class KeyBundle(object):
         :param val: The key itself
         """
         if val:
-            self._keys = [k for k in self._keys if
-                          not (k.kty == typ and k.key == val.key)]
+            self._keys = [
+                k for k in self._keys if not (k.kty == typ and k.key == val.key)
+            ]
         else:
             self._keys = [k for k in self._keys if not k.kty == typ]
 
@@ -406,16 +415,21 @@ def dump_jwks(kbl, target, private=False):
     """
     keys = []
     for kb in kbl:
-        keys.extend([k.serialize(private) for k in kb.keys() if
-                     k.kty != 'oct' and not k.inactive_since])
+        keys.extend(
+            [
+                k.serialize(private)
+                for k in kb.keys()
+                if k.kty != "oct" and not k.inactive_since
+            ]
+        )
     res = {"keys": keys}
 
     try:
-        f = open(target, 'w')
+        f = open(target, "w")
     except IOError:
         (head, tail) = os.path.split(target)
         os.makedirs(head)
-        f = open(target, 'w')
+        f = open(target, "w")
 
     _txt = json.dumps(res)
     f.write(_txt)
@@ -425,8 +439,9 @@ def dump_jwks(kbl, target, private=False):
 class KeyJar(object):
     """A keyjar contains a number of KeyBundles."""
 
-    def __init__(self, verify_ssl=True, keybundle_cls=KeyBundle,
-                 remove_after=3600, timeout=5):
+    def __init__(
+        self, verify_ssl=True, keybundle_cls=KeyBundle, remove_after=3600, timeout=5
+    ):
         """
         Initialize the class.
 
@@ -445,7 +460,7 @@ class KeyJar(object):
 
     def __repr__(self):
         issuers = list(self.issuer_keys.keys())
-        return '<KeyJar(issuers={})>'.format(issuers)
+        return "<KeyJar(issuers={})>".format(issuers)
 
     def add_if_unique(self, issuer, use, keys):
         if use in self.issuer_keys[issuer] and self.issuer_keys[issuer][use]:
@@ -472,10 +487,13 @@ class KeyJar(object):
             raise KeyError("No jwks_uri")
 
         if "/localhost:" in url or "/localhost/" in url:
-            kc = self.keybundle_cls(source=url, verify_ssl=False, timeout=self.timeout, **kwargs)
+            kc = self.keybundle_cls(
+                source=url, verify_ssl=False, timeout=self.timeout, **kwargs
+            )
         else:
-            kc = self.keybundle_cls(source=url, verify_ssl=self.verify_ssl, timeout=self.timeout,
-                                    **kwargs)
+            kc = self.keybundle_cls(
+                source=url, verify_ssl=self.verify_ssl, timeout=self.timeout, **kwargs
+            )
 
         try:
             self.issuer_keys[issuer].append(kc)
@@ -491,13 +509,13 @@ class KeyJar(object):
         _key = b64e(as_bytes(key))
         if usage is None:
             self.issuer_keys[issuer].append(
-                self.keybundle_cls([{"kty": "oct", "k": _key}]))
+                self.keybundle_cls([{"kty": "oct", "k": _key}])
+            )
         else:
             for use in usage:
                 self.issuer_keys[issuer].append(
-                    self.keybundle_cls([{"kty": "oct",
-                                         "k": _key,
-                                         "use": use}]))
+                    self.keybundle_cls([{"kty": "oct", "k": _key, "use": use}])
+                )
 
     def add_kb(self, issuer, kb):
         try:
@@ -569,7 +587,7 @@ class KeyJar(object):
                         lst.append(key)
                         continue
                     # Verification can be performed by both `sig` and `ver` keys
-                    if key_use == 'ver' and key.use in ('sig', 'ver'):
+                    if key_use == "ver" and key.use in ("sig", "ver"):
                         lst.append(key)
 
         # if elliptic curve have to check I have a key of the right curve
@@ -581,9 +599,9 @@ class KeyJar(object):
                     _lst.append(key)
             lst = _lst
 
-        if use == 'enc' and key_type == 'oct' and issuer != '':
+        if use == "enc" and key_type == "oct" and issuer != "":
             # Add my symmetric keys
-            for kb in self.issuer_keys['']:
+            for kb in self.issuer_keys[""]:
                 for key in kb.get(key_type):
                     if key.inactive_since:
                         continue
@@ -655,7 +673,9 @@ class KeyJar(object):
         except KeyError:
             logger.debug(
                 "Issuer '{}' not found, available key issuers: {}".format(
-                    issuer, list(self.issuer_keys.keys())))
+                    issuer, list(self.issuer_keys.keys())
+                )
+            )
             raise
 
     def remove_key(self, issuer, key_type, key):
@@ -726,7 +746,10 @@ class KeyJar(object):
             try:
                 _keys = pcr["jwks"]["keys"]
                 self.issuer_keys[issuer].append(
-                    self.keybundle_cls(_keys, verify_ssl=self.verify_ssl, timeout=self.timeout))
+                    self.keybundle_cls(
+                        _keys, verify_ssl=self.verify_ssl, timeout=self.timeout
+                    )
+                )
             except KeyError:
                 pass
 
@@ -757,8 +780,9 @@ class KeyJar(object):
     def export_jwks(self, private=False, issuer=""):
         keys = []
         for kb in self.issuer_keys[issuer]:
-            keys.extend([k.serialize(private) for k in kb.keys() if
-                         k.inactive_since == 0])
+            keys.extend(
+                [k.serialize(private) for k in kb.keys() if k.inactive_since == 0]
+            )
         return {"keys": keys}
 
     def import_jwks(self, jwks, issuer):
@@ -771,14 +795,20 @@ class KeyJar(object):
         try:
             _keys = jwks["keys"]
         except KeyError:
-            raise ValueError('Not a proper JWKS')
+            raise ValueError("Not a proper JWKS")
         else:
             try:
                 self.issuer_keys[issuer].append(
-                    self.keybundle_cls(_keys, verify_ssl=self.verify_ssl, timeout=self.timeout))
+                    self.keybundle_cls(
+                        _keys, verify_ssl=self.verify_ssl, timeout=self.timeout
+                    )
+                )
             except KeyError:
-                self.issuer_keys[issuer] = [self.keybundle_cls(
-                    _keys, verify_ssl=self.verify_ssl, timeout=self.timeout)]
+                self.issuer_keys[issuer] = [
+                    self.keybundle_cls(
+                        _keys, verify_ssl=self.verify_ssl, timeout=self.timeout
+                    )
+                ]
 
     def add_keyjar(self, keyjar):
         for iss, kblist in keyjar.items():
@@ -795,8 +825,11 @@ class KeyJar(object):
 
     def restore(self, info):
         for issuer, keys in info.items():
-            self.issuer_keys[issuer] = [self.keybundle_cls(
-                keys, verify_ssl=self.verify_ssl, timeout=self.timeout)]
+            self.issuer_keys[issuer] = [
+                self.keybundle_cls(
+                    keys, verify_ssl=self.verify_ssl, timeout=self.timeout
+                )
+            ]
 
     def copy(self):
         copy_keyjar = KeyJar(verify_ssl=self.verify_ssl, timeout=self.timeout)
@@ -905,12 +938,11 @@ def key_setup(vault, **kwargs):
             _args = kwargs[usage]
             if _args["alg"].upper() == "RSA":
                 try:
-                    _key = rsa_load('%s%s' % (vault_path, "pyoidc"))
+                    _key = rsa_load("%s%s" % (vault_path, "pyoidc"))
                 except Exception:
-                    with open(os.devnull, 'w') as devnull:
+                    with open(os.devnull, "w") as devnull:
                         with RedirectStdStreams(stdout=devnull, stderr=devnull):
-                            _key = create_and_store_rsa_key_pair(
-                                path=vault_path)
+                            _key = create_and_store_rsa_key_pair(path=vault_path)
 
                 k = RSAKey(key=_key, use=usage)
                 k.add_kid()
@@ -955,8 +987,7 @@ def key_export(baseurl, local_path, vault, keyjar, **kwargs):
     with open(_export_filename, "w") as f:
         f.write(str(kb))
 
-    _url = "%s://%s%s" % (part.scheme, part.netloc,
-                          _export_filename[1:])
+    _url = "%s://%s%s" % (part.scheme, part.netloc, _export_filename[1:])
 
     return _url
 
@@ -978,12 +1009,12 @@ def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=2048):
     os.makedirs(path, exist_ok=True)
 
     if name:
-        with open(os.path.join(path, name), 'wb') as f:
-            f.write(key.exportKey('PEM'))
+        with open(os.path.join(path, name), "wb") as f:
+            f.write(key.exportKey("PEM"))
 
         _pub_key = key.publickey()
-        with open(os.path.join(path, '{}.pub'.format(name)), 'wb') as f:
-            f.write(_pub_key.exportKey('PEM'))
+        with open(os.path.join(path, "{}.pub".format(name)), "wb") as f:
+            f.write(_pub_key.exportKey("PEM"))
 
     return key
 
@@ -1068,8 +1099,9 @@ def keyjar_init(instance, key_conf, kid_template=""):
     :param kid_template: A template by which to build the kids
     :return: a JWKS
     """
-    jwks, keyjar, kdd = build_keyjar(key_conf, kid_template, instance.keyjar,
-                                     instance.kid)
+    jwks, keyjar, kdd = build_keyjar(
+        key_conf, kid_template, instance.keyjar, instance.kid
+    )
 
     instance.keyjar = keyjar
     instance.kid = kdd
@@ -1077,13 +1109,13 @@ def keyjar_init(instance, key_conf, kid_template=""):
 
 
 def _new_rsa_key(spec):
-    if 'name' not in spec:
-        if '/' in spec['key']:
-            (head, tail) = os.path.split(spec['key'])
-            spec['path'] = head
-            spec['name'] = tail
+    if "name" not in spec:
+        if "/" in spec["key"]:
+            (head, tail) = os.path.split(spec["key"])
+            spec["path"] = head
+            spec["name"] = tail
         else:
-            spec['name'] = spec['key']
+            spec["name"] = spec["key"]
     return rsa_init(spec)
 
 
@@ -1118,12 +1150,16 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
 
         if typ == "RSA":
             if "key" in spec:
-                error_to_catch = getattr(builtins, 'FileNotFoundError',
-                                         getattr(builtins, 'IOError'))
+                error_to_catch = getattr(
+                    builtins, "FileNotFoundError", getattr(builtins, "IOError")
+                )
                 try:
-                    kb = KeyBundle(source="file://%s" % spec["key"],
-                                   fileformat="der",
-                                   keytype=typ, keyusage=spec["use"])
+                    kb = KeyBundle(
+                        source="file://%s" % spec["key"],
+                        fileformat="der",
+                        keytype=typ,
+                        keyusage=spec["use"],
+                    )
                 except error_to_catch:
                     kb = _new_rsa_key(spec)
                 except Exception:
@@ -1141,8 +1177,7 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
                 k.add_kid()
             kidd[k.use][k.kty] = k.kid
 
-        jwks["keys"].extend(
-            [k.serialize() for k in kb.keys() if k.kty != 'oct'])
+        jwks["keys"].extend([k.serialize() for k in kb.keys() if k.kty != "oct"])
 
         keyjar.add_kb("", kb)
 
@@ -1159,18 +1194,16 @@ def key_summary(keyjar, issuer):
     try:
         kbl = keyjar[issuer]
     except KeyError:
-        return ''
+        return ""
     else:
         key_list = []
         for kb in kbl:
             for key in kb.keys():
                 if key.inactive_since:
-                    key_list.append(
-                        '*{}:{}:{}'.format(key.kty, key.use, key.kid))
+                    key_list.append("*{}:{}:{}".format(key.kty, key.use, key.kid))
                 else:
-                    key_list.append(
-                        '{}:{}:{}'.format(key.kty, key.use, key.kid))
-        return ', '.join(key_list)
+                    key_list.append("{}:{}:{}".format(key.kty, key.use, key.kid))
+        return ", ".join(key_list)
 
 
 def check_key_availability(inst, jwt):
@@ -1186,8 +1219,8 @@ def check_key_availability(inst, jwt):
     """
     _rj = jws.factory(jwt)
     payload = json.loads(as_unicode(_rj.jwt.part[1]))
-    _cid = payload['iss']
+    _cid = payload["iss"]
     if _cid not in inst.keyjar:
         cinfo = inst.cdb[_cid]
-        inst.keyjar.add_symmetric(_cid, cinfo['client_secret'], ['enc', 'sig'])
-        inst.keyjar.add(_cid, cinfo['jwks_uri'])
+        inst.keyjar.add_symmetric(_cid, cinfo["client_secret"], ["enc", "sig"])
+        inst.keyjar.add(_cid, cinfo["jwks_uri"])

@@ -34,6 +34,7 @@ foo.*
 .coverage
 .cache/
 .pytest_cache
+.mypy_cache
 
 # Dynamically created doc folders
 doc/_build

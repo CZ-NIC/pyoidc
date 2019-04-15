@@ -15,6 +15,7 @@ help:
 	@echo "  install    to install the python dependencies for development"
 	@echo "  test       to run the tests"
 	@echo "  isort      to sort imports"
+	@echo "  blacken    to format the code"
 .PHONY: help
 
 clean:
@@ -46,6 +47,13 @@ isort:
 check-isort:
 	@pipenv run isort --recursive --diff --check-only $(OICDIR) $(TESTDIR)
 .PHONY: isort check-isort
+
+blacken:
+	@pipenv run black src/
+
+check-black:
+	@pipenv run black src/ --check
+.PHONY: blacken check-black
 
 check-pylama:
 	@pipenv run pylama $(OICDIR) $(TESTDIR)

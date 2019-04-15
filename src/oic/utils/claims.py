@@ -1,4 +1,4 @@
-__author__ = 'rolandh'
+__author__ = "rolandh"
 
 
 class ClaimsMode(object):

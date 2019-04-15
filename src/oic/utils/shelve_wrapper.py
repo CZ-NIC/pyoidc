@@ -1,6 +1,6 @@
 import shelve
 
-__author__ = 'danielevertsson'
+__author__ = "danielevertsson"
 
 
 class ShelfWrapper(object):
