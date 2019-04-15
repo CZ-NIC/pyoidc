@@ -16,6 +16,7 @@ help:
 	@echo "  test       to run the tests"
 	@echo "  isort      to sort imports"
 	@echo "  blacken    to format the code"
+	@echo "  bandit     to run some simple security checkers"
 .PHONY: help
 
 clean:
@@ -54,6 +55,10 @@ blacken:
 check-black:
 	@pipenv run black src/ --check
 .PHONY: blacken check-black
+
+bandit:
+	@pipenv run bandit -a file -r src/ oauth_example/ oidc_example/ 
+.PHONY: bandit
 
 check-pylama:
 	@pipenv run pylama $(OICDIR) $(TESTDIR)
