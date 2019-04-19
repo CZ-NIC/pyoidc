@@ -1,24 +1,24 @@
 FROM ubuntu:18.04
 
 ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get update && apt-get install -y --no-install-recommends git ntp curl gnupg ca-certificates
-RUN curl -sL https://deb.nodesource.com/setup_8.x | bash -
-RUN apt-get update && apt-get install -y --no-install-recommends nodejs apache2 && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    git \
+    gnupg \
+    ntp \
+    wget
+RUN wget -q https://deb.nodesource.com/setup_8.x -O - | bash -
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    apache2 \
+    nodejs && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 ENV SRCDIR /usr/local/src
 ENV INSTDIR node-oidc-provider
 ENV SUBDIR ${SRCDIR}/${INSTDIR}
 
-
-ENV VERSION_NODE_OP   tags/v4.0.3
-
 WORKDIR ${SRCDIR}
-RUN git clone https://github.com/panva/node-oidc-provider.git
-WORKDIR ${SRCDIR}/node-oidc-provider
-RUN git checkout ${VERSION_NODE_OP}
-RUN pwd
+RUN git clone --depth=1 --branch=v4.0.3 https://github.com/panva/node-oidc-provider.git
 WORKDIR ${INSTDIR}
-RUN pwd
 RUN npm install
 
 COPY docker/op/apache-ssl.conf /etc/apache2/sites-available/ssl.conf
