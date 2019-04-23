@@ -10,6 +10,8 @@ import sys
 import traceback
 import argparse
 import importlib
+import logging
+
 from mako.lookup import TemplateLookup
 
 from oic import rndstr
@@ -243,7 +245,7 @@ class Application(object):
              ]}
 
         """
-        print '\n in meta-info'
+        print('\n in meta-info')
         pass
 
     def webfinger(self, environ, start_response):
@@ -275,7 +277,7 @@ class Application(object):
         """
         path = environ.get('PATH_INFO', '').lstrip('/')
 
-        print 'start_response: ', start_response
+        print('start_response: ', start_response)
 
         if path == "robots.txt":
             return static(self, environ, start_response, "static/robots.txt")
@@ -470,7 +472,7 @@ if __name__ == '__main__':
     server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', config.PORT), _app.application)
     server.ssl_adapter = BuiltinSSLAdapter(config.SERVER_CERT, config.SERVER_KEY)
 
-    print "OIDC Provider server started (issuer={}, port={})".format(config.ISSUER, config.PORT)
+    print("OIDC Provider server started (issuer={}, port={})".format(config.ISSUER, config.PORT))
 
     try:
         server.start()
