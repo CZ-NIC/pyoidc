@@ -31,8 +31,10 @@ The format is based on the [KeepAChangeLog] project.
 - [#631] Refactored message type handling in Client/Provider.
 
 ### Added
+- [#655] host can be force
 - [#441] CookieDealer now accepts secure and httponly params
 
+[#655]: https://github.com/OpenIDC/pyoidc/issues/655
 [#598]: https://github.com/OpenIDC/pyoidc/issues/598
 [#588]: https://github.com/OpenIDC/pyoidc/issues/588
 [#341]: https://github.com/OpenIDC/pyoidc/issues/341
