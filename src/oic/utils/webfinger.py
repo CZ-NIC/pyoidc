@@ -224,7 +224,7 @@ class WebFinger(object):
         self.jrd = None
         self.events = None
 
-    def query(self, resource, rel=None):
+    def query(self, resource, rel=None, host=None):
         resource = URINormalizer().normalize(resource)
 
         info = [("resource", resource)]
@@ -238,18 +238,19 @@ class WebFinger(object):
             for val in rel:
                 info.append(("rel", val))
 
-        if resource.startswith("http"):
-            part = urlparse(resource)
-            host = part.hostname
-            if part.port is not None:
-                host += ":" + str(part.port)
-        elif resource.startswith("acct:"):
-            host = resource.split("@")[-1]
-            host = host.replace("/", "#").replace("?", "#").split("#")[0]
-        elif resource.startswith("device:"):
-            host = resource.split(":")[1]
-        else:
-            raise WebFingerError("Unknown schema")
+        if host is None:
+            if resource.startswith("http"):
+                part = urlparse(resource)
+                host = part.hostname
+                if part.port is not None:
+                    host += ":" + str(part.port)
+            elif resource.startswith("acct:"):
+                host = resource.split("@")[-1]
+                host = host.replace("/", "#").replace("?", "#").split("#")[0]
+            elif resource.startswith("device:"):
+                host = resource.split(":")[1]
+            else:
+                raise WebFingerError("Unknown schema")
 
         return "%s?%s" % (WF_URL % host, urlencode(info))
 
@@ -272,15 +273,16 @@ class WebFinger(object):
             "body": json.dumps(jrd.export()),
         }
 
-    def discovery_query(self, resource):
+    def discovery_query(self, resource, host=None):
         """
         Given a resource find a OpenID connect OP to use.
 
+        :param host: Force the host. Disable host detection on resource
         :param resource: An identifier of an entity
         :return: A URL if an OpenID Connect OP could be found
         """
         logger.debug("Looking for OIDC OP for '%s'" % resource)
-        url = self.query(resource, OIC_ISSUER)
+        url = self.query(resource, rel=OIC_ISSUER, host=host)
         try:
             rsp = self.httpd.http_request(url, allow_redirects=True)
         except requests.ConnectionError:
