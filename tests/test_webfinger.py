@@ -97,6 +97,29 @@ class TestWebFinger(object):
                         "=acct%3Acarol%40example.com&rel=http%3A%2F%2Fopenid" \
                         ".net%2Fspecs%2Fconnect%2F1.0%2Fissuer"
 
+    def test_query_device_host_forced(self):
+        wf = WebFinger()
+        query = wf.query(resource="device:p1.example.com", host='forced.com')
+        assert query == 'https://forced.com/.well-known/webfinger' \
+                        '?resource=device%3Ap1.example.com'
+
+    def test_query_rel_host_forced(self):
+        wf = WebFinger()
+        query = wf.query("acct:bob@example.com",
+                         ["http://webfinger.net/rel/profile-page", "vcard"],
+                         host='forced.com:3000')
+        assert query == "https://forced.com:3000/.well-known/webfinger?resource" \
+                        "=acct%3Abob%40example.com&rel=http%3A%2F%2Fwebfinger" \
+                        ".net%2Frel%2Fprofile-page&rel=vcard"
+
+    def test_query_acct_host_forced(self):
+        wf = WebFinger(OIC_ISSUER)
+        query = wf.query("http://example.com/carol", host='forced.co')
+
+        assert query == "https://forced.co/.well-known/webfinger?resource" \
+                        "=http%3A%2F%2Fexample.com%2Fcarol&rel=http%3A%2F%2Fopenid" \
+                        ".net%2Fspecs%2Fconnect%2F1.0%2Fissuer"
+
     def test_wf4(self):
         EX0 = {
             "expires": "2012-11-16T19:41:35Z",

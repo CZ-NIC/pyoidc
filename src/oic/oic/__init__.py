@@ -1469,8 +1469,8 @@ class Client(oauth2.Client):
 
         return subject, domain
 
-    def discover(self, principal):
-        return self.wf.discovery_query(principal)
+    def discover(self, principal, host=None):
+        return self.wf.discovery_query(principal, host=host)
 
     def sign_enc_algs(self, typ):
         resp = {}
