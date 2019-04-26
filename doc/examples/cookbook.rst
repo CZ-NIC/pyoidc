@@ -51,7 +51,7 @@ The ``authn_method`` parameter initiates authentication with a client assertion.
 The ``algorithm`` and ``authn_endpoint`` parameters are needed by the
 ``oic.utils.authn.client.PrivateKeyJWT`` class to properly construct the
 assertion. Also required is a signing key in the client's keyjar. A way to
-accomplish this is illustrated by the ``TestPrivateKeyJWT`` class in
+accomplish this is illustrated by the ``TestPrivateKeyJWT`` test in
 *tests/test_client.py*
 
 ::
@@ -61,26 +61,9 @@ accomplish this is illustrated by the ``TestPrivateKeyJWT`` class in
                         {"key": _key, "kty": "RSA", "use": "sig"}])
     client.keyjar[""] = kc_rsa
 
-The payload of the resulting JWT can be understood by examining the
-``assertion_jwt`` function in ``oic.utils.authn.client``, shown below. Only the
-``alg`` header claim is included when constructing and signing the JWT.
-
-::
-
-    def assertion_jwt(cli, keys, audience, algorithm, lifetime=600):
-        _now = utc_time_sans_frac()
-
-        at = AuthnToken(
-            iss=cli.client_id,
-            sub=cli.client_id,
-            aud=audience,
-            jti=rndstr(32),
-            exp=_now + lifetime,
-            iat=_now,
-        )
-        logger.debug("AuthnToken: {}".format(at.to_dict()))
-        return at.to_jwt(key=keys, algorithm=algorithm)
-
+The test also illustrates how you can directly generate the assertion and
+inspect it.  The JWT payload contents can be understood by examining the
+``assertion_jwt`` function in ``oic.utils.authn.client``.
 
 So that's basically all you need to know if your IdP can use pyoidc's client
 assertions.  If you're using out-of-band client registration, you would not
