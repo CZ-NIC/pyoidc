@@ -31,7 +31,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#631] Refactored message type handling in Client/Provider.
 
 ### Added
-- [#655] host can be force
+- [#655] Host can be forced on webfinger discovery
 - [#441] CookieDealer now accepts secure and httponly params
 
 [#655]: https://github.com/OpenIDC/pyoidc/issues/655
