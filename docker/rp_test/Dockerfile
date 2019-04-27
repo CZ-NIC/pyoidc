@@ -5,13 +5,20 @@ ENV SRCDIR /usr/local/src
 ENV INSTDIR oidf
 ENV SUBDIR ${SRCDIR}/${INSTDIR}/oidc_cp_rplib
 
-RUN apt-get update && apt-get install -y --no-install-recommends python3-pip build-essential libssl-dev libffi-dev python3-dev git python3-setuptools && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    libffi-dev \
+    libssl-dev \
+    python3-dev \
+    python3-pip \
+    python3-setuptools && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN git clone https://github.com/openid-certification/otest.git ${SRCDIR}/otest
+RUN git clone --depth=1 https://github.com/openid-certification/otest.git ${SRCDIR}/otest
 WORKDIR ${SRCDIR}/otest
 RUN python3 setup.py install
 
-RUN git clone https://github.com/openid-certification/oidctest.git ${SRCDIR}/oidctest
+RUN git clone --depth=1 https://github.com/openid-certification/oidctest.git ${SRCDIR}/oidctest
 WORKDIR ${SRCDIR}/oidctest
 RUN python3 setup.py install
 
