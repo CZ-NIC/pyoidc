@@ -1777,7 +1777,7 @@ class Provider(AProvider):
 
     def create_providerinfo(self, pcr_class=None, setup=None):
         """
-        Overriden to use the proper message class.
+        Overridden to use the proper message class.
 
         Can be removed once pcr_class is dropped.
         """

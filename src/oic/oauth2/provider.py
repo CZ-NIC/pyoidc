@@ -483,7 +483,7 @@ class Provider(object):
             if self.events:
                 self.events.store("Protocol response", _response)
 
-            headers = [("Cache-Control", "no-store"), ("x-ffo", "bar")]
+            headers = [("Cache-Control", "no-store")]
             if handle:
                 (key, timestamp) = handle
                 if key.startswith(STR) and key.endswith(STR):
