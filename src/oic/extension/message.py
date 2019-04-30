@@ -94,33 +94,6 @@ class StateJWT(JasonWebToken):
     )
 
 
-class ServerMetadata(Message):
-    c_param = {
-        "issuer": SINGLE_REQUIRED_STRING,
-        "authorization_endpoint": SINGLE_OPTIONAL_STRING,
-        "token_endpoint": SINGLE_OPTIONAL_STRING,
-        "jwks_uri": SINGLE_REQUIRED_STRING,
-        "registration_endpoint": SINGLE_OPTIONAL_STRING,
-        "scopes_supported": OPTIONAL_LIST_OF_STRINGS,
-        "response_types_supported": REQUIRED_LIST_OF_STRINGS,
-        "response_modes_supported": OPTIONAL_LIST_OF_STRINGS,
-        "grant_types_supported": OPTIONAL_LIST_OF_STRINGS,
-        "token_endpoint_auth_methods_supported": OPTIONAL_LIST_OF_STRINGS,
-        "token_endpoint_auth_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
-        "service_documentation": SINGLE_OPTIONAL_STRING,
-        "ui_locales_supported": OPTIONAL_LIST_OF_STRINGS,
-        "op_policy_uri": SINGLE_OPTIONAL_STRING,
-        "op_tos_uri": SINGLE_OPTIONAL_STRING,
-        "revocation_endpoint": SINGLE_OPTIONAL_STRING,
-        "revocation_endpoint_auth_methods_supported": OPTIONAL_LIST_OF_STRINGS,
-        "revocation_endpoint_auth_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
-        "introspection_endpoint": SINGLE_OPTIONAL_STRING,
-        "introspection_endpoint_auth_methods_supported": OPTIONAL_LIST_OF_STRINGS,
-        "introspection_endpoint_auth_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
-        "code_challenge_methods_supported": OPTIONAL_LIST_OF_STRINGS,
-    }
-
-
 class RegistrationRequest(Message):
     c_param = {
         "redirect_uris": REQUIRED_LIST_OF_STRINGS,

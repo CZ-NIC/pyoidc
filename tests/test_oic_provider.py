@@ -212,16 +212,6 @@ class TestProvider(object):
             "request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]}
         self.cons2.keyjar[""] = KC_RSA
 
-    def test_providerinfo(self):
-        self.provider.baseurl = 'http://example.com/path1/path2'
-        resp = self.provider.create_providerinfo()
-        assert resp.to_dict()['authorization_endpoint'] == 'http://example.com/path1/path2/authorization'
-
-    def test_providerinfo_trailing(self):
-        self.provider.baseurl = 'http://example.com/path1/path2/'
-        resp = self.provider.create_providerinfo()
-        assert resp.to_dict()['authorization_endpoint'] == 'http://example.com/path1/path2/authorization'
-
     def test_authorization_endpoint(self):
         bib = {"scope": ["openid"],
                "state": "id-6da9ca0cc23959f5f33e8becd9b08cae",

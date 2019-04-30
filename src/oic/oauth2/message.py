@@ -1131,7 +1131,12 @@ class ASConfigurationResponse(Message):
         "op_policy_uri": SINGLE_OPTIONAL_STRING,
         "op_tos_uri": SINGLE_OPTIONAL_STRING,
         "revocation_endpoint": SINGLE_OPTIONAL_STRING,
+        "revocation_endpoint_auth_methods_supported": OPTIONAL_LIST_OF_STRINGS,
+        "revocation_endpoint_auth_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "introspection_endpoint": SINGLE_OPTIONAL_STRING,
+        "introspection_endpoint_auth_methods_supported": OPTIONAL_LIST_OF_STRINGS,
+        "introspection_endpoint_auth_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
+        "code_challenge_methods_supported": OPTIONAL_LIST_OF_STRINGS,
     }
     c_default = {"version": "3.0"}
 
