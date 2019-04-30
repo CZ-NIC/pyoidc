@@ -1,7 +1,6 @@
 import base64
 import copy
 import hashlib
-import itertools
 import json
 import logging
 import time
@@ -428,12 +427,16 @@ class SessionDB(object):
         code_factory=None,
         refresh_token_factory=None,
     ):
+        """
+        Object to store the session related information.
 
+        :param db: Database for storing the session information.
+                   There are two possible insertions:
+                        session_id: session_info -> session information based on session_id
+                        uid: session_id -> reverse mapping for faster lookup
+        """
         self.base_url = base_url
         self._db = db
-
-        # TODO: uid2sid should have a persistence option too.
-        self.uid2sid = {}  # type: Dict[str, List[str]]
 
         self.token_factory = {"code": code_factory, "access_token": token_factory}
 
@@ -523,9 +526,14 @@ class SessionDB(object):
 
         :param sid: session identifier
         """
+        session = self._db[sid]
+        # Drop the reverse lookups as well
+        if session["sub"] in self._db:
+            del self._db[session["sub"]]
+        uid = AuthnEvent.from_json(session["authn_event"]).uid
+        if uid in self._db:
+            del self._db[uid]
         del self._db[sid]
-        # Delete the mapping for session id
-        self.uid2sid = {k: v for k, v in self.uid2sid.items() if sid not in v}
 
     def update(self, key, attribute, value):
         if key in self._db:
@@ -566,16 +574,12 @@ class SessionDB(object):
             ).hexdigest()
         else:
             sub = pairwise_id(uid, sector_id, "{}{}".format(client_salt, user_salt))
-
-        # since sub can be public, there can be more then one session
-        # that uses the same subject identifier
-        try:
-            self.uid2sid[uid] += [sid]
-        except KeyError:
-            self.uid2sid[uid] = [sid]
-
-        logger.debug("uid2sid: %s" % self.uid2sid)
         self.update(sid, "sub", sub)
+        # Store a reverse mapping for faster lookup
+        try:
+            self._db[sub] += [sid]
+        except KeyError:
+            self._db[sub] = [sid]
 
         return sub
 
@@ -624,7 +628,11 @@ class SessionDB(object):
             _dic["oidreq"] = oidreq.to_json()
 
         self._db[sid] = _dic
-
+        # Store the reverse lookup
+        try:
+            self._db[aevent.uid] += [sid]
+        except KeyError:
+            self._db[aevent.uid] = [sid]
         return sid
 
     def get_authentication_event(self, sid):
@@ -861,40 +869,47 @@ class SessionDB(object):
         return _dict["client_id"]
 
     def get_client_ids_for_uid(self, uid):
-        return [self.get_client_id_for_session(sid) for sid in self.uid2sid[uid]]
+        return [
+            self.get_client_id_for_session(sid) for sid in self.get_sids_from_uid(uid)
+        ]
 
     def get_verified_Logout(self, uid):
-        _dict = self._db[self.uid2sid[uid]]
+        # FIXME: This can be broken if there are more `sids` for `uid`
+        _dict = self._db[self.get_sids_from_uid(uid)]
         if "verified_logout" not in _dict:
             return None
         return _dict["verified_logout"]
 
     def set_verify_logout(self, uid):
-        _dict = self._db[self.uid2sid[uid]]
+        # FIXME: This can be broken if there are more `sids` for `uid`
+        _dict = self._db[self.get_sids_from_uid(uid)]
         _dict["verified_logout"] = uuid.uuid4().urn
 
     def get_token_id(self, uid):
-        _dict = self._db[self.uid2sid[uid]]
+        # FIXME: This can be broken if there are more `sids` for `uid`
+        _dict = self._db[self.get_sids_from_uid(uid)]
         return _dict["id_token"]
 
     def is_revoke_uid(self, uid):
-        return self._db[self.uid2sid[uid]]["revoked"]
+        # FIXME: This can be broken if there are more `sids` for `uid`
+        return self._db[self.get_sids_from_uid(uid)]["revoked"]
 
     def revoke_uid(self, uid):
-        self.update(self.uid2sid[uid], "revoked", True)
+        # FIXME: This can be broken if there are more `sids` for `uid`
+        self.update(self.get_sids_from_uid(uid), "revoked", True)
 
-    def get_sids_from_uid(self, uid):
+    def get_sids_from_uid(self, uid: str) -> List[str]:
         """
         Return list of identifiers for sessions that are connected to this local identifier.
 
         :param uid: local identifier (username)
         :return: list of session identifiers
         """
-        return self.uid2sid[uid]
+        return self._db.get(uid, [])
 
-    def get_sids_by_sub(self, sub):
-        sids = itertools.chain.from_iterable(self.uid2sid.values())
-        return [sid for sid in sids if self._db[sid]["sub"] == sub]
+    def get_sids_by_sub(self, sub: str) -> List[str]:
+        """Return the list of identifiers for session that are connected to this public identifier."""
+        return self._db.get(sub, [])
 
     def duplicate(self, sinfo):
         _dic = copy.copy(sinfo)
@@ -922,7 +937,6 @@ class SessionDB(object):
                 pass
 
         self._db[sid] = _dic
-        self.uid2sid[_dic["sub"]] = sid
         return sid
 
     def read(self, token):

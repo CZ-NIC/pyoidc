@@ -1416,7 +1416,7 @@ class TestProvider(object):
 
         assert isinstance(resp, SeeOther)
         assert 'state=abcde' in resp.message
-        assert 'username' not in self.provider.sdb.uid2sid
+        assert self.provider.sdb.get_sids_from_uid('username') == []
         self._assert_cookies_expired(resp.headers)
 
     def test_end_session_endpoint_with_wrong_cookie(self):
@@ -1466,7 +1466,7 @@ class TestProvider(object):
 
         assert isinstance(resp, SeeOther)
         assert 'state=abcde' in resp.message
-        assert 'username' not in self.provider.sdb.uid2sid
+        assert self.provider.sdb.get_sids_from_uid("username") == []
         self._assert_cookies_expired(resp.headers)
 
     def test_end_session_endpoint_with_cookie_dual_login_wrong_client(self):
@@ -1519,7 +1519,6 @@ class TestProvider(object):
     def test_end_session_endpoint_with_post_logout_redirect_uri(self):
         self._code_auth()
         # verify we got valid session
-        assert 'username' in self.provider.sdb.uid2sid
         cookie = self._create_cookie("username", "number5")
 
         client_id = cast(str, CLIENT_CONFIG["client_id"])  # type: str
@@ -1530,13 +1529,12 @@ class TestProvider(object):
                  "state": 'abcde'}),
                 cookie=cookie)
         assert isinstance(resp, SeeOther)
-        assert 'username' not in self.provider.sdb.uid2sid
+        assert self.provider.sdb.get_sids_from_uid("username") == []
         self._assert_cookies_expired(resp.headers)
 
     def test_end_session_endpoint_with_wrong_post_logout_redirect_uri(self):
         self._code_auth()
         # verify we got valid session
-        assert 'username' in self.provider.sdb.uid2sid
         cookie = self._create_cookie("username", "number5")
 
         post_logout_redirect_uri = 'https://www.example.com/logout'

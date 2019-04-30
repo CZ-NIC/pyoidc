@@ -397,7 +397,6 @@ class TestProvider(object):
         access_grant = _sdb.access_token(sid=sid)
         _sdb[sid] = {
             "oauth_state": "authz",
-            "authn_event": '',
             "authzreq": '',
             "client_id": 'client1',
             "code": access_grant,
@@ -431,7 +430,6 @@ class TestProvider(object):
         access_grant = _sdb.access_token(sid=sid)
         _sdb[sid] = {
             "oauth_state": "authz",
-            "authn_event": '',
             "authzreq": '',
             "client_id": 'client1',
             "code": access_grant,
@@ -503,7 +501,6 @@ class TestProvider(object):
         access_grant = _sdb.access_token(sid=sid)
         _sdb[sid] = {
             "oauth_state": "authz",
-            "authn_event": '',
             "authzreq": '',
             "client_id": 'client1',
             "code": access_grant,
@@ -610,7 +607,6 @@ class TestProvider(object):
         access_grant = _sdb.access_token(sid=sid)
         _sdb[sid] = {
             "oauth_state": "authz",
-            "authn_event": '',
             "authzreq": '',
             "client_id": 'client1',
             "code": access_grant,

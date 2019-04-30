@@ -18,6 +18,7 @@ from oic.utils.sdb import DefaultToken
 from oic.utils.sdb import DictRefreshDB
 from oic.utils.sdb import ExpiredToken
 from oic.utils.sdb import WrongTokenType
+from oic.utils.sdb import create_session_db
 
 __author__ = 'rohe0002'
 
@@ -416,6 +417,19 @@ class TestSessionDB(object):
         assert ae.salt == 'salt'
         assert ae.authn_time == 1000
         assert ae.valid_until == 1500
+
+    def test_get_sids_from_uid_distributed(self):
+        db = {}  # type: ignore
+        sdb1 = create_session_db("https://example.com/1", "secret", "password", db=db)
+        sdb2 = create_session_db("https://example.com/2", "secret", "password", db=db)
+        ae = AuthnEvent("sub", "salt", time_stamp=time.time())
+        sid1 = sdb1.create_authz_session(ae, AREQ)
+        sdb1.do_sub(sid1, "salt")
+        sid2 = sdb2.create_authz_session(ae, AREQ)
+        sdb2.do_sub(sid2, "salt")
+        sdb1sids = sdb1.get_sids_from_uid("sub")
+        sdb2sids = sdb2.get_sids_from_uid("sub")
+        assert sdb1sids == sdb2sids
 
 
 class TestCrypt(object):
