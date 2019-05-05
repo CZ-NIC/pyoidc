@@ -16,6 +16,7 @@ from oic.utils.sdb import AuthnEvent
 from oic.utils.sdb import Crypt
 from oic.utils.sdb import DefaultToken
 from oic.utils.sdb import DictRefreshDB
+from oic.utils.sdb import DictSessionBackend
 from oic.utils.sdb import ExpiredToken
 from oic.utils.sdb import WrongTokenType
 from oic.utils.sdb import create_session_db
@@ -419,7 +420,7 @@ class TestSessionDB(object):
         assert ae.valid_until == 1500
 
     def test_get_sids_from_uid_distributed(self):
-        db = {}  # type: ignore
+        db = DictSessionBackend()
         sdb1 = create_session_db("https://example.com/1", "secret", "password", db=db)
         sdb2 = create_session_db("https://example.com/2", "secret", "password", db=db)
         ae = AuthnEvent("sub", "salt", time_stamp=time.time())

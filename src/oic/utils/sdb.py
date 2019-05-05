@@ -5,6 +5,9 @@ import json
 import logging
 import time
 import uuid
+import warnings
+from abc import ABCMeta
+from abc import abstractmethod
 from typing import Dict  # noqa
 from typing import List  # noqa
 
@@ -403,7 +406,7 @@ def create_session_db(
     """
     code_factory = DefaultToken(secret, password, typ="A", lifetime=grant_expires_in)
     token_factory = DefaultToken(secret, password, typ="T", lifetime=token_expires_in)
-    db = {} if db is None else db
+    db = DictSessionBackend() if db is None else db
 
     return SessionDB(
         base_url,
@@ -414,6 +417,79 @@ def create_session_db(
         refresh_token_expires_in=refresh_token_expires_in,
         refresh_token_factory=None,
     )
+
+
+class SessionBackend(metaclass=ABCMeta):
+    """Backend for storing sessionDB data."""
+
+    @abstractmethod
+    def __setitem__(self, key: str, value: Dict[str, str]) -> None:
+        """Store the session information under the session_id."""
+
+    @abstractmethod
+    def __getitem__(self, key: str) -> Dict[str, str]:
+        """
+        Retrieve the session information based os session_id.
+
+        @raises KeyError when no key is found.
+        """
+
+    @abstractmethod
+    def __delitem__(self, key: str) -> None:
+        """Remove the stored session from storage."""
+
+    @abstractmethod
+    def __contains__(self, key: str) -> bool:
+        """Test presence of key in storage."""
+
+    @abstractmethod
+    def get_by_uid(self, uid: str) -> List[str]:
+        """Return session ids (keys) based on `uid` (internal user identifier)."""
+
+    @abstractmethod
+    def get_by_sub(self, uid: str) -> List[str]:
+        """Return session ids based on `sub` (external user identifier)."""
+
+
+class DictSessionBackend(SessionBackend):
+    """
+    Simple implementation of `SessionBackend` based on dictionary.
+
+    This should really not be used in production.
+    """
+
+    def __init__(self):
+        """Create the storage."""
+        self.storage = {}  # type: Dict[str, Dict[str, str]]
+
+    def __setitem__(self, key: str, value: Dict[str, str]) -> None:
+        """Store the session info in the storage."""
+        self.storage[key] = value
+
+    def __getitem__(self, key: str) -> Dict[str, str]:
+        """Retrieve session information based on session id."""
+        return self.storage[key]
+
+    def __delitem__(self, key: str) -> None:
+        """Delete the session info."""
+        del self.storage[key]
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.storage
+
+    def get_by_sub(self, sub: str) -> List[str]:
+        """Return session ids based on sub."""
+        return [
+            sid for sid, session in self.storage.items() if session.get("sub") == sub
+        ]
+
+    def get_by_uid(self, uid: str) -> List[str]:
+        """Return session ids based on uid."""
+        return [
+            sid
+            for sid, session in self.storage.items()
+            if AuthnEvent.from_json(session["authn_event"]).uid == uid
+        ]
 
 
 class SessionDB(object):
@@ -431,11 +507,13 @@ class SessionDB(object):
         Object to store the session related information.
 
         :param db: Database for storing the session information.
-                   There are two possible insertions:
-                        session_id: session_info -> session information based on session_id
-                        uid: session_id -> reverse mapping for faster lookup
         """
         self.base_url = base_url
+        if not isinstance(db, SessionBackend):
+            warnings.warn(
+                "Please use `SessionBackend` to ensure proper API for the database.",
+                DeprecationWarning,
+            )
         self._db = db
 
         self.token_factory = {"code": code_factory, "access_token": token_factory}
@@ -526,13 +604,6 @@ class SessionDB(object):
 
         :param sid: session identifier
         """
-        session = self._db[sid]
-        # Drop the reverse lookups as well
-        if session["sub"] in self._db:
-            del self._db[session["sub"]]
-        uid = AuthnEvent.from_json(session["authn_event"]).uid
-        if uid in self._db:
-            del self._db[uid]
         del self._db[sid]
 
     def update(self, key, attribute, value):
@@ -575,12 +646,6 @@ class SessionDB(object):
         else:
             sub = pairwise_id(uid, sector_id, "{}{}".format(client_salt, user_salt))
         self.update(sid, "sub", sub)
-        # Store a reverse mapping for faster lookup
-        try:
-            self._db[sub] += [sid]
-        except KeyError:
-            self._db[sub] = [sid]
-
         return sub
 
     def create_authz_session(self, aevent, areq, id_token=None, oidreq=None, **kwargs):
@@ -626,13 +691,7 @@ class SessionDB(object):
             _dic["id_token"] = id_token
         if oidreq:
             _dic["oidreq"] = oidreq.to_json()
-
         self._db[sid] = _dic
-        # Store the reverse lookup
-        try:
-            self._db[aevent.uid] += [sid]
-        except KeyError:
-            self._db[aevent.uid] = [sid]
         return sid
 
     def get_authentication_event(self, sid):
@@ -905,11 +964,11 @@ class SessionDB(object):
         :param uid: local identifier (username)
         :return: list of session identifiers
         """
-        return self._db.get(uid, [])
+        return self._db.get_by_uid(uid)
 
     def get_sids_by_sub(self, sub: str) -> List[str]:
         """Return the list of identifiers for session that are connected to this public identifier."""
-        return self._db.get(sub, [])
+        return self._db.get_by_sub(sub)
 
     def duplicate(self, sinfo):
         _dic = copy.copy(sinfo)
