@@ -5,6 +5,7 @@ import hmac
 import json
 import random
 import time
+from unittest import TestCase
 
 import pytest
 from freezegun import freeze_time
@@ -139,6 +140,117 @@ class TestToken(object):
         token = factory(sid="abc", ttype="T")
         when = time.time() + 5  # 5 seconds from now
         assert factory.is_expired(token, when=when) is True
+
+
+class TestSessionBackend(TestCase):
+    """Unittests for SessionBackend - using the DictSessionBackend."""
+
+    def setUp(self):
+        self.backend = DictSessionBackend()
+
+    def test_setitem(self):
+        self.backend["key"] = "value"
+        self.assertEqual(self.backend.storage["key"], "value")
+        self.backend["key"] = "new_value"
+        self.assertEqual(self.backend.storage["key"] , "new_value")
+
+    def test_getitem(self):
+        self.backend.storage = {"key": "value"}
+        self.assertEqual(self.backend["key"], "value")
+        with self.assertRaises(KeyError):
+            self.backend["missing"]
+
+    def test_delitem(self):
+        self.backend.storage = {"key": "value"}
+        del self.backend["key"]
+        self.assertEqual(self.backend.storage, {})
+
+    def test_contains(self):
+        self.backend["key"] = "value"
+        self.assertTrue("key" in self.backend)
+        self.assertFalse("missing" in self.backend)
+
+    def test_get_by_sub(self):
+        self.backend.storage = {"session_id": {"sub": "my_sub"}}
+        self.assertEqual(set(self.backend.get_by_sub("my_sub")), {"session_id"})
+        self.assertEqual(set(self.backend.get_by_sub("missing")), set())
+
+    def test_get_by_sub_multiple(self):
+        self.backend.storage = {"session_id1": {"sub": "my_sub"},
+                                "session_id2": {"sub": "my_sub"}}
+        self.assertEqual(set(self.backend.get_by_sub("my_sub")), {"session_id1", "session_id2"})
+
+    def test_get_by_uid(self):
+        aevent = AuthnEvent("my_uid", "some_salt").to_json()
+        self.backend.storage = {"session_id": {"authn_event": aevent}}
+        self.assertEqual(set(self.backend.get_by_uid("my_uid")), {"session_id"})
+        self.assertEqual(set(self.backend.get_by_uid("missing")), set())
+
+    def test_get_by_uid_multiple(self):
+        aevent1 = AuthnEvent("my_uid", "some_salt").to_json()
+        aevent2 = AuthnEvent("my_uid", "some_salt").to_json()
+        self.backend.storage = {"session_id1": {"authn_event": aevent1},
+                                "session_id2": {"authn_event": aevent2}}
+        self.assertEqual(set(self.backend.get_by_uid("my_uid")), {"session_id1", "session_id2"})
+
+    def test_get_client_ids_for_uid(self):
+        aevent = AuthnEvent("my_uid", "some_salt").to_json()
+        self.backend.storage = {"session_id": {"authn_event": aevent, "client_id": "my_client"}}
+        self.assertEqual(set(self.backend.get_client_ids_for_uid("my_uid")), {"my_client"})
+        self.assertEqual(set(self.backend.get_client_ids_for_uid("missing")), set())
+
+    def test_get_client_ids_for_uid_multiple(self):
+        aevent1 = AuthnEvent("my_uid", "some_salt").to_json()
+        aevent2 = AuthnEvent("my_uid", "some_salt").to_json()
+        self.backend.storage = {"session_id1": {"authn_event": aevent1, "client_id": "my_client"},
+                                "session_id2": {"authn_event": aevent2, "client_id": "my_other"}}
+        self.assertEqual(set(self.backend.get_client_ids_for_uid("my_uid")), {"my_client", "my_other"})
+
+    def test_get_verified_logout(self):
+        aevent1 = AuthnEvent("my_uid1", "some_salt").to_json()
+        aevent2 = AuthnEvent("my_uid2", "some_salt").to_json()
+        self.backend.storage = {"session_id": {"authn_event": aevent1, "verified_logout": "verification key"},
+                                "session_id2": {"authn_event": aevent2}}
+        self.assertEqual(self.backend.get_verified_logout("my_uid1"), "verification key")
+        self.assertIsNone(self.backend.get_verified_logout("my_uid2"))
+        self.assertIsNone(self.backend.get_verified_logout("missing"))
+
+    def test_get_verified_logout_multiple(self):
+        aevent1 = AuthnEvent("my_uid", "some_salt").to_json()
+        aevent2 = AuthnEvent("my_uid", "some_salt").to_json()
+        self.backend.storage = {"session_id1": {"authn_event": aevent1, "verified_logout": "verification key"},
+                                "session_id2": {"authn_event": aevent2, "verified_logout": "verification key"}}
+        self.assertEqual(self.backend.get_verified_logout("my_uid"), "verification key")
+
+    def test_get_token_ids(self):
+        aevent = AuthnEvent("my_uid", "some_salt").to_json()
+        self.backend.storage = {"session_id": {"authn_event": aevent, "id_token": "Id token"}}
+        self.assertEqual(set(self.backend.get_token_ids("my_uid")), {"Id token"})
+        self.assertEqual(set(self.backend.get_token_ids("missing")), set())
+
+    def test_get_token_ids_multiple(self):
+        aevent1 = AuthnEvent("my_uid", "some_salt").to_json()
+        aevent2 = AuthnEvent("my_uid", "some_salt").to_json()
+        self.backend.storage = {"session_id1": {"authn_event": aevent1, "id_token": "Id token 1"},
+                                "session_id2": {"authn_event": aevent2, "id_token": "Id token 2"}}
+        self.assertEqual(set(self.backend.get_token_ids("my_uid")), {"Id token 1", "Id token 2"})
+
+    def test_is_revoke_uid_false(self):
+        aevent = AuthnEvent("my_uid", "some_salt").to_json()
+        self.backend.storage = {"session_id": {"authn_event": aevent, "revoked": False}}
+        self.assertFalse(self.backend.is_revoke_uid("my_uid"))
+
+    def test_is_revoke_uid_true(self):
+        aevent = AuthnEvent("my_uid", "some_salt").to_json()
+        self.backend.storage = {"session_id": {"authn_event": aevent, "revoked": True}}
+        self.assertTrue(self.backend.is_revoke_uid("my_uid"))
+
+    def test_is_revoke_uid_multiple(self):
+        aevent1 = AuthnEvent("my_uid", "some_salt").to_json()
+        aevent2 = AuthnEvent("my_uid", "some_salt").to_json()
+        self.backend.storage = {"session_id1": {"authn_event": aevent1, "revoked": True},
+                                "session_id2": {"authn_event": aevent2, "revoked": False}}
+        self.assertTrue(self.backend.is_revoke_uid("my_uid"))
 
 
 class TestSessionDB(object):
@@ -431,6 +543,40 @@ class TestSessionDB(object):
         sdb1sids = sdb1.get_sids_from_uid("sub")
         sdb2sids = sdb2.get_sids_from_uid("sub")
         assert sdb1sids == sdb2sids
+
+    def test_get_client_ids_for_uid(self):
+        self.sdb._db["123"] = {"authn_event": json.dumps({"uid": "my_uid", "salt": "salt"}), "client_id": "my_client"}
+        assert self.sdb.get_client_ids_for_uid("my_uid") == ["my_client"]
+
+    def test_get_verify_logout(self):
+        self.sdb._db["123"] = {"authn_event": json.dumps({"uid": "my_uid", "salt": "salt"}),
+                               "verified_logout": "something"}
+        assert self.sdb.get_verify_logout("my_uid") == "something"
+
+    def test_set_verify_logout(self):
+        self.sdb._db["123"] = {"authn_event": json.dumps({"uid": "my_uid", "salt": "salt"})}
+        self.sdb.set_verify_logout("my_uid")
+        assert self.sdb.get_verify_logout("my_uid") is not None
+
+    def test_set_verify_logout_multiple(self):
+        self.sdb._db["123"] = {"authn_event": json.dumps({"uid": "my_uid", "salt": "salt"})}
+        self.sdb._db["321"] = {"authn_event": json.dumps({"uid": "my_uid", "salt": "salt"})}
+        self.sdb.set_verify_logout("my_uid")
+        assert self.sdb.get_verify_logout("my_uid") is not None
+        assert self.sdb._db["123"]["verified_logout"] == self.sdb._db["321"]["verified_logout"]
+
+    def test_get_token_ids(self):
+        self.sdb._db["123"] = {"authn_event": json.dumps({"uid": "my_uid", "salt": "salt"}), "id_token": "Id token"}
+        assert set(self.sdb.get_token_ids("my_uid")) == {"Id token"}
+
+    def test_get_is_revoke_uid(self):
+        self.sdb._db["123"] = {"authn_event": json.dumps({"uid": "my_uid", "salt": "salt"}), "revoked": True}
+        assert self.sdb.is_revoke_uid("my_uid")
+
+    def test_revoke_uid(self):
+        self.sdb._db["123"] = {"authn_event": json.dumps({"uid": "my_uid", "salt": "salt"})}
+        self.sdb.revoke_uid("my_uid")
+        assert self.sdb.is_revoke_uid("my_uid")
 
 
 class TestCrypt(object):

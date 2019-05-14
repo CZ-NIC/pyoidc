@@ -10,6 +10,7 @@ from abc import ABCMeta
 from abc import abstractmethod
 from typing import Dict  # noqa
 from typing import List  # noqa
+from typing import Optional  # noqa
 
 from cryptography.fernet import Fernet
 
@@ -447,8 +448,32 @@ class SessionBackend(metaclass=ABCMeta):
         """Return session ids (keys) based on `uid` (internal user identifier)."""
 
     @abstractmethod
-    def get_by_sub(self, uid: str) -> List[str]:
+    def get_by_sub(self, sub: str) -> List[str]:
         """Return session ids based on `sub` (external user identifier)."""
+
+    def get_client_ids_for_uid(self, uid: str) -> List[str]:
+        """Return client ids that have a session for given uid."""
+        return [self[sid]["client_id"] for sid in self.get_by_uid(uid)]
+
+    def get_verified_logout(self, uid: str) -> Optional[str]:
+        """Return logout verification key for given uid."""
+        # Since all the sessions should be the same, we return the first one
+        sids = self.get_by_uid(uid)
+        if len(sids) == 0:
+            return None
+        _dict = self[sids[0]]
+        if "verified_logout" not in _dict:
+            return None
+        return _dict["verified_logout"]
+
+    def get_token_ids(self, uid: str) -> List[str]:
+        """Return id_tokens for the given uid."""
+        return [self[sid]["id_token"] for sid in self.get_by_uid(uid)]
+
+    def is_revoke_uid(self, uid: str) -> bool:
+        """Return if the session is revoked."""
+        # We do not care which session it is - once revoked, al are revoked
+        return any([self[sid]["revoked"] for sid in self.get_by_uid(uid)])
 
 
 class DictSessionBackend(SessionBackend):
@@ -927,35 +952,32 @@ class SessionDB(object):
         _dict = self._db[sid]
         return _dict["client_id"]
 
-    def get_client_ids_for_uid(self, uid):
-        return [
-            self.get_client_id_for_session(sid) for sid in self.get_sids_from_uid(uid)
-        ]
+    def get_client_ids_for_uid(self, uid: str) -> List[str]:
+        """Return client_ids for a given uid."""
+        return self._db.get_client_ids_for_uid(uid)
 
-    def get_verified_Logout(self, uid):
-        # FIXME: This can be broken if there are more `sids` for `uid`
-        _dict = self._db[self.get_sids_from_uid(uid)]
-        if "verified_logout" not in _dict:
-            return None
-        return _dict["verified_logout"]
+    def get_verify_logout(self, uid: str) -> str:
+        """Return the key for logout verification."""
+        return self._db.get_verified_logout(uid)
 
-    def set_verify_logout(self, uid):
-        # FIXME: This can be broken if there are more `sids` for `uid`
-        _dict = self._db[self.get_sids_from_uid(uid)]
-        _dict["verified_logout"] = uuid.uuid4().urn
+    def set_verify_logout(self, uid: str) -> None:
+        """Save the key that is used for logout verification."""
+        logout_key = uuid.uuid4().urn
+        for sid in self.get_sids_from_uid(uid):
+            self.update(sid, "verified_logout", logout_key)
 
-    def get_token_id(self, uid):
-        # FIXME: This can be broken if there are more `sids` for `uid`
-        _dict = self._db[self.get_sids_from_uid(uid)]
-        return _dict["id_token"]
+    def get_token_ids(self, uid: str) -> List[str]:
+        """Return id_tokens for given uid."""
+        return self._db.get_token_ids(uid)
 
-    def is_revoke_uid(self, uid):
-        # FIXME: This can be broken if there are more `sids` for `uid`
-        return self._db[self.get_sids_from_uid(uid)]["revoked"]
+    def is_revoke_uid(self, uid: str) -> bool:
+        """Return if the uid session has been revoked."""
+        return self._db.is_revoke_uid(uid)
 
-    def revoke_uid(self, uid):
-        # FIXME: This can be broken if there are more `sids` for `uid`
-        self.update(self.get_sids_from_uid(uid), "revoked", True)
+    def revoke_uid(self, uid: str) -> None:
+        """Mark all sessions for the given uid as revoked."""
+        for sid in self.get_sids_from_uid(uid):
+            self.update(sid, "revoked", True)
 
     def get_sids_from_uid(self, uid: str) -> List[str]:
         """
