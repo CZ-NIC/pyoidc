@@ -208,9 +208,9 @@ class Client(PBase):
         self.redirect_uris = []  # type: List[str]
 
         # service endpoints
-        self.authorization_endpoint = None
-        self.token_endpoint = None
-        self.token_revocation_endpoint = None
+        self.authorization_endpoint = None  # type: Optional[str]
+        self.token_endpoint = None  # type: Optional[str]
+        self.token_revocation_endpoint = None  # type: Optional[str]
 
         self.request2endpoint = REQUEST2ENDPOINT
         self.response2error = RESPONSE2ERROR  # type: Dict[str, List]

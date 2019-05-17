@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import copy
 import hashlib
 import logging
@@ -240,7 +239,7 @@ class Provider(object):
         self.default_acr = default_acr
 
         if urlmap is None:
-            self.urlmap = {}
+            self.urlmap = {}  # type: Dict[str, List[str]]
         else:
             self.urlmap = urlmap
 
@@ -634,8 +633,8 @@ class Provider(object):
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
             logger.debug("Bad request: %s (%s)" % (err, err.__class__.__name__))
-            err = ErrorResponse(error="invalid_request", error_description=str(err))
-            return BadRequest(err.to_json(), content="application/json")
+            error = ErrorResponse(error="invalid_request", error_description=str(err))
+            return BadRequest(error.to_json(), content="application/json")
 
         if not areq:
             logger.debug("No AuthzRequest")
@@ -1024,10 +1023,10 @@ class Provider(object):
             client_id = self.client_authn(self, areq, authn)
         except (FailedAuthentication, AuthnFailure) as err:
             logger.error(err)
-            err = TokenErrorResponse(
+            error = TokenErrorResponse(
                 error="unauthorized_client", error_description="%s" % err
             )
-            return Unauthorized(err.to_json(), content="application/json")
+            return Unauthorized(error.to_json(), content="application/json")
 
         logger.debug("AccessTokenRequest: %s" % sanitize(areq))
 

@@ -732,13 +732,13 @@ def test_to_jwe(keytype, alg, enc):
 def test_to_dict_with_message_obj():
     content = Message(a={'a': {'foo': {'bar': [{'bat': []}]}}})
     _dict = content.to_dict(lev=0)
-    content_fixture = {'a': {'a': {'foo': {'bar': [{'bat': []}]}}}}
+    content_fixture = {'a': {'a': {'foo': {'bar': [{'bat': []}]}}}}  # type: ignore
     assert _dict == content_fixture
 
 
 def test_to_dict_with_raw_types():
     msg = Message(c_default=[])
-    content_fixture = {'c_default': []}
+    content_fixture = {'c_default': []}  # type: ignore
     _dict = msg.to_dict(lev=1)
     assert _dict == content_fixture
 
@@ -746,7 +746,7 @@ def test_to_dict_with_raw_types():
 def test_get_verify_keys_no_kid_multiple_keys():
     msg = Message()
     header = {'alg': 'RS256'}
-    keys = []
+    keys = []  # type: ignore
     msg.get_verify_keys(KEYJARS['A'], keys, {'iss': 'A'}, header, {})
     assert keys == []
 
@@ -754,7 +754,7 @@ def test_get_verify_keys_no_kid_multiple_keys():
 def test_get_verify_keys_no_kid_single_key():
     msg = Message()
     header = {'alg': 'RS256'}
-    keys = []
+    keys = []  # type: ignore
     msg.get_verify_keys(IKEYJAR, keys, {'iss': 'issuer'}, header, {})
     assert len(keys) == 1
 
@@ -762,7 +762,7 @@ def test_get_verify_keys_no_kid_single_key():
 def test_get_verify_keys_no_kid_multiple_keys_no_kid_issuer():
     msg = Message()
     header = {'alg': 'RS256'}
-    keys = []
+    keys = []  # type: ignore
 
     a_kids = [k.kid for k in
               KEYJARS['A'].get_verify_key(owner='A', key_type='RSA')]
@@ -777,7 +777,7 @@ def test_get_verify_keys_no_kid_multiple_keys_no_kid_issuer():
 def test_get_verify_keys_no_kid_multiple_keys_no_kid_issuer_lim():
     msg = Message()
     header = {'alg': 'RS256'}
-    keys = []
+    keys = []  # type: ignore
 
     a_kids = [k.kid for k in
               KEYJARS['A'].get_verify_key(owner='A', key_type='RSA')]
@@ -796,7 +796,7 @@ def test_get_verify_keys_matching_kid():
     a_kids = [k.kid for k in
               KEYJARS['A'].get_verify_key(owner='A', key_type='RSA')]
     header = {'alg': 'RS256', 'kid': a_kids[0]}
-    keys = []
+    keys = []  # type: ignore
     msg.get_verify_keys(KEYJARS['A'], keys, {'iss': 'A'}, header, {})
     assert len(keys) == 1
     assert keys[0].kid == a_kids[0]
@@ -805,7 +805,7 @@ def test_get_verify_keys_matching_kid():
 def test_get_verify_keys_no_matching_kid():
     msg = Message()
     header = {'alg': 'RS256', 'kid': 'aaaaaaa'}
-    keys = []
+    keys = []  # type: ignore
     msg.get_verify_keys(KEYJARS['A'], keys, {'iss': 'A'}, header, {})
     assert keys == []
 

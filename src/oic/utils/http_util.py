@@ -5,8 +5,13 @@ import hmac
 import logging
 import os
 import time
+import warnings
 from http import client
 from http.cookies import SimpleCookie
+from typing import Dict  # noqa
+from typing import List  # noqa
+from typing import Tuple  # noqa
+from typing import Union  # noqa
 from urllib.parse import quote
 
 from jwkest import as_unicode
@@ -49,7 +54,7 @@ class Response(object):
 
         self.message = message
 
-        self.headers = []
+        self.headers = []  # type: List[Tuple[str, str]]
         self.headers.extend(kwargs.get("headers", []))
         _content_type = kwargs.get("content", self._content_type)
 
@@ -225,12 +230,16 @@ def extract(environ, empty=False, err=False):
     :param empty: Stops on empty fields (default: Fault)
     :param err: Stops on errors in fields (default: Fault)
     """
+    warnings.warn("This function is deprecated.", DeprecationWarning)
     formdata = cgi.parse(environ["wsgi.input"], environ, empty, err)
     # Remove single entries from lists
-    for key, value in formdata.iteritems():
+    new_formdata = {}  # type: Dict[str, Union[str, List[str]]]
+    for key, value in formdata.items():
         if len(value) == 1:
-            formdata[key] = value[0]
-    return formdata
+            new_formdata[key] = value[0]
+        else:
+            new_formdata[key] = value
+    return new_formdata
 
 
 def geturl(environ, query=True, path=True):

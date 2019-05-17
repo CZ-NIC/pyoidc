@@ -27,7 +27,7 @@ class Base(object):
     c_param = {}  # type: Mapping[str, Mapping[str, Any]]
 
     def __init__(self, dic=None):
-        self._ava = {}
+        self._ava = {}  # type: Mapping[str, Any]
         if dic is not None:
             self.load(dic)
 

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import logging
 import os.path
 
@@ -38,7 +37,7 @@ def factory(kaka, sdb, config):
     if part is None:
         return None
 
-    cons = Consumer(sdb, config=config)
+    cons = Consumer(sdb, config)
     cons.restore(part[0])
     http_util.parse_cookie(config["name"], cons.seed, kaka)
     return cons

@@ -1,5 +1,8 @@
 import copy
 import logging
+from typing import Any  # noqa
+from typing import Dict  # noqa
+from typing import List  # noqa
 
 from oic.exception import MissingAttribute
 from oic.oic import OpenIDSchema
@@ -31,7 +34,7 @@ class DistributedAggregatedUserInfo(UserInfo):
         return cc
 
     def init_claims_clients(self, client_info):
-        res = {}
+        res = {}  # type: Dict[str, ClaimsClient]
         if client_info is None:
             return res
 
@@ -56,7 +59,7 @@ class DistributedAggregatedUserInfo(UserInfo):
         except Exception:
             raise
 
-        result = {"_claims_names": {}, "_claims_sources": {}}
+        result = {"_claims_names": {}, "_claims_sources": {}}  # type: Dict[str, Any]
 
         if not alias:
             alias = srv
@@ -100,7 +103,7 @@ class DistributedAggregatedUserInfo(UserInfo):
 
             # Check if anything asked for is somewhere else
             if (missing or optional) and "_external_" in identity:
-                cpoints = {}
+                cpoints = {}  # type: Dict[str, List[str]]
                 remaining = missing[:]
                 missing.extend(optional)
                 for key in missing:

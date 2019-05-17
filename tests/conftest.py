@@ -1,4 +1,6 @@
 """Pytest fixtures for testing."""
+from typing import Any  # noqa
+from typing import Dict  # noqa
 
 import pytest
 
@@ -42,7 +44,7 @@ def mitm_server(session_db_factory):
 @pytest.fixture
 def provider(session_db):
     issuer = "https://op.example.com"
-    client_db = {}
+    client_db = {}  # type: Dict[str, Any]
     verification_function = verify_client
     authz_handler = AuthzHandling()
     symkey = None

@@ -110,8 +110,8 @@ class TestToken(object):
         assert token.access_token == "2YotnFZFEjr1zCsicMWpAA"
         assert token.token_type == "example"
         assert token.refresh_token == "tGzv3JOkF0XG5Qx2TlKWIA"
-        assert token.example_parameter == "example_value"
-        assert token.xscope == ["inner", "outer"]
+        assert token.example_parameter == "example_value"  # type: ignore  # FIXME: Define __setattr__ on token?
+        assert token.xscope == ["inner", "outer"]  # type: ignore  # FIXME: Define __setattr__ on token?
         assert token.token_expiration_time != 0
         assert not token.is_valid()
 

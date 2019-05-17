@@ -1,7 +1,7 @@
-#!/usr/bin/env python
 import logging
 import time
 from hashlib import md5
+from typing import Dict  # noqa
 
 from oic import rndstr
 from oic.exception import AuthzError
@@ -306,8 +306,8 @@ class Consumer(Client):
     def client_auth_info(self):
         if self.password:
             http_args = {"client_password": self.password}
-            request_args = {}
-            extra_args = {}
+            request_args = {}  # type: Dict[str, str]
+            extra_args = {}  # type: Dict[str, str]
         elif self.client_secret:
             http_args = {}
             request_args = {

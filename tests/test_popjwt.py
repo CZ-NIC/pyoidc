@@ -112,7 +112,7 @@ def test_pop_kid():
     de_pjwt = PJWT().from_json(s)
     assert _eq(de_pjwt.keys(), ['iss', 'aud', 'exp', 'cnf'])
     assert list(de_pjwt['cnf'].keys()) == ['kid']
-    assert de_pjwt['cnf']['kid'] == jwt['cnf']['kid']
+    assert de_pjwt['cnf']['kid'] == jwt['cnf']['kid']  # type: ignore
 
 
 def test_pop_jku():

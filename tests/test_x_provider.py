@@ -445,11 +445,11 @@ class TestProvider(object):
         resp = self.provider.revocation_endpoint(request=req.to_urlencoded())
         assert resp.status_code == 200
 
-        req = TokenIntrospectionRequest(token=atr['access_token'],
-                                        client_id="client1",
-                                        client_secret="hemlighet",
-                                        token_type_hint='access_token')
-        resp = self.provider.introspection_endpoint(request=req.to_urlencoded())
+        req2 = TokenIntrospectionRequest(token=atr['access_token'],
+                                         client_id="client1",
+                                         client_secret="hemlighet",
+                                         token_type_hint='access_token')
+        resp = self.provider.introspection_endpoint(request=req2.to_urlencoded())
         assert resp
         ti_resp = TokenIntrospectionResponse().deserialize(resp.message, 'json')
         assert ti_resp['active'] is False

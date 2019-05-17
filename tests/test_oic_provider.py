@@ -4,6 +4,9 @@ import logging
 import os
 from http.cookies import SimpleCookie
 from time import time
+from typing import Any  # noqa
+from typing import Dict  # noqa
+from typing import cast
 from unittest.mock import Mock
 from unittest.mock import patch
 from urllib.parse import parse_qs
@@ -140,7 +143,7 @@ CDB = {
         'token_endpoint_auth_method': 'client_secret_post',
         'response_types': ['code', 'token', 'code id_token']
     }
-}
+}  # type: Dict[str, Dict[str, Any]]
 
 USERDB = {
     "user": {
@@ -1519,8 +1522,9 @@ class TestProvider(object):
         assert 'username' in self.provider.sdb.uid2sid
         cookie = self._create_cookie("username", "number5")
 
+        client_id = cast(str, CLIENT_CONFIG["client_id"])  # type: str
         post_logout_redirect_uri = \
-            CDB[CLIENT_CONFIG["client_id"]]["post_logout_redirect_uris"][0][0]
+            CDB[client_id]["post_logout_redirect_uris"][0][0]
         resp = self.provider.end_session_endpoint(urlencode(
                 {"post_logout_redirect_uri": post_logout_redirect_uri,
                  "state": 'abcde'}),
@@ -1570,14 +1574,9 @@ class TestProvider(object):
                 [c[1] for c in http_headers if c[0] == "Set-Cookie"])
         all_cookies = SimpleCookie()
 
-        try:
-            cookies_string = cookies_string.decode()
-        except (AttributeError, UnicodeDecodeError):
-            pass
-
         all_cookies.load(cookies_string)
 
-        now = datetime.datetime.utcnow()  #
+        now = datetime.datetime.utcnow()
         for c in [self.provider.cookie_name, self.provider.session_cookie_name]:
             dt = datetime.datetime.strptime(all_cookies[c]["expires"],
                                             "%a, %d-%b-%Y %H:%M:%S GMT")

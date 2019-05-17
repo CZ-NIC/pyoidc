@@ -3,8 +3,10 @@ import json
 import logging
 import sys
 import time
-import urllib
 import warnings
+from typing import Dict  # noqa
+from typing import List  # noqa
+from urllib.parse import urlencode
 from urllib.parse import urlparse
 
 from jwkest import jws
@@ -134,7 +136,7 @@ def message_deser(val, sformat="urlencoded"):
 
 def msg_ser(inst, sformat, lev=0):
     if sformat in ["urlencoded", "json"]:
-        if isinstance(inst, dict) or isinstance(inst, Message):
+        if isinstance(inst, Message):
             res = inst.serialize(sformat, lev)
         else:
             res = inst
@@ -167,7 +169,7 @@ def msg_ser_json(inst, sformat="json", lev=0):
             raise MessageException("Wrong type: %s" % type(inst))
     else:
         sformat = "json"
-        if isinstance(inst, dict) or isinstance(inst, Message):
+        if isinstance(inst, Message):
             res = inst.serialize(sformat, lev)
         else:
             res = inst
@@ -192,7 +194,8 @@ def claims_ser(val, sformat="urlencoded", lev=0):
         return item.serialize(method=sformat, lev=lev + 1)
 
     if sformat == "urlencoded":
-        res = urllib.urlencode(item)
+        assert isinstance(item, dict)  # We cannot urlencode anything else than Mapping
+        res = urlencode(item)
     elif sformat == "json":
         if lev:
             res = item
@@ -975,7 +978,7 @@ SCOPE2CLAIMS = {
     "address": ["address"],
     "phone": ["phone_number", "phone_number_verified"],
     "offline_access": [],
-}
+}  # type: Dict[str, List[str]]
 
 MSG = {
     "RefreshAccessTokenRequest": RefreshAccessTokenRequest,

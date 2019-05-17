@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# pylint: disable=missing-docstring,no-self-use
 import json
 from urllib.parse import parse_qs
 from urllib.parse import quote

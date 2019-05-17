@@ -1,5 +1,3 @@
-# pylint: disable=missing-docstring,no-self-use
-
 import base64
 import os
 from unittest.mock import Mock
@@ -39,9 +37,6 @@ from oic.utils.keyio import KeyBundle
 BASE_PATH = os.path.abspath(os.path.dirname(__file__))
 
 
-CLIENT_CONF = {'client_id': 'A', 'config': {'issuer': 'https://example.com/as'}}
-
-
 class DummyAuthn(UserAuthnMethod):
     def __init__(self, srv, user):
         UserAuthnMethod.__init__(self, srv)
@@ -57,7 +52,7 @@ def _eq(l1, l2):
 
 @pytest.fixture
 def client():
-    cli = Client(**CLIENT_CONF)
+    cli = Client(client_id="A", config={"issuer": "https://example.com/as"})
     cli.client_secret = "boarding pass"
     return cli
 

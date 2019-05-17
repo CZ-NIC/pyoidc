@@ -1,3 +1,5 @@
 - [ ] Any changes relevant to users are recorded in the `CHANGELOG.md`.
 - [ ] The documentation has been updated, if necessary.
+- [ ] New code is annotated.
+- [ ] Changes are covered by tests.
 ---

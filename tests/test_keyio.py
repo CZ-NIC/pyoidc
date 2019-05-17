@@ -1,10 +1,11 @@
-# pylint: disable=missing-docstring,no-self-use
 import json
 import logging
 import os
 import time
 from datetime import datetime as dt
 from datetime import timedelta
+from typing import Any  # noqa
+from typing import Dict  # noqa
 
 import pytest
 from freezegun import freeze_time
@@ -32,7 +33,7 @@ RSAKEY = os.path.join(BASE_PATH, "cert.key")
 RSA0 = os.path.join(BASE_PATH, "rsa.key")
 
 with open(os.path.join(jwks_folder, 'jwks0.json')) as f:
-    JWK0 = json.load(f)
+    JWK0 = json.load(f)  # type: Dict[str, Any]
 with open(os.path.join(jwks_folder, 'jwks1.json')) as f:
     JWK1 = json.load(f)
 with open(os.path.join(jwks_folder, 'jwks2.json')) as f:

@@ -5,6 +5,11 @@ import logging
 import os
 import sys
 import time
+from typing import Any  # noqa
+from typing import Dict  # noqa
+from typing import List  # noqa
+from typing import Tuple  # noqa
+from typing import Union  # noqa
 from urllib.parse import urlsplit
 
 import requests
@@ -55,6 +60,7 @@ class JWKSError(KeyIOError):
 
 
 K2C = {"RSA": RSAKey, "EC": ECKey, "oct": SYMKey}
+KEYS = Union[RSAKey, SYMKey, ECKey]
 
 
 class KeyBundle(object):
@@ -82,7 +88,7 @@ class KeyBundle(object):
             a single integer or as a tuple of integers. For more details, refer to
             ``requests`` documentation.
         """
-        self._keys = []
+        self._keys = []  # type: Dict[str, KEYS]
         self.remote = False
         self.verify_ssl = verify_ssl
         self.cache_time = cache_time
@@ -92,7 +98,7 @@ class KeyBundle(object):
         self.fileformat = fileformat.lower()
         self.keytype = keytype
         self.keyusage = keyusage
-        self.imp_jwks = None
+        self.imp_jwks = None  # type: Dict[str, Any]
         self.last_updated = 0
         self.timeout = timeout
 
@@ -451,8 +457,7 @@ class KeyJar(object):
             ``requests`` documentation.
         :return:
         """
-        self.spec2key = {}
-        self.issuer_keys = {}
+        self.issuer_keys = {}  # type: Dict[str, List[KeyBundle]]
         self.verify_ssl = verify_ssl
         self.timeout = timeout
         self.keybundle_cls = keybundle_cls
@@ -569,7 +574,7 @@ class KeyJar(object):
             except KeyError:
                 _keys = []
 
-        lst = []
+        lst = []  # type: List[KEYS]
         if _keys:
             for bundle in _keys:
                 if key_type:
@@ -711,7 +716,7 @@ class KeyJar(object):
     def __str__(self):
         _res = {}
         for _id, kbs in self.issuer_keys.items():
-            _l = []
+            _l = []  # type: List[Dict[str, str]]
             for kb in kbs:
                 _l.extend(json.loads(kb.jwks())["keys"])
             _res[_id] = {"keys": _l}
@@ -851,7 +856,7 @@ class KeyJar(object):
         return self.get(usage, ktype, issuer)
 
     def get_issuer_keys(self, issuer):
-        res = []
+        res = []  # type: List[KEYS]
         for kbl in self.issuer_keys[issuer]:
             res.extend(kbl.keys())
         return res
@@ -1143,7 +1148,7 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
         kidd = {"sig": {}, "enc": {}}
 
     kid = 0
-    jwks = {"keys": []}
+    jwks = {"keys": []}  # type: Dict[str, List[Dict[str, str]]]
 
     for spec in key_conf:
         typ = spec["type"].upper()

@@ -21,11 +21,11 @@ def test_device_flow():
 
     # Polling
 
-    req = TokenRequest(
+    req2 = TokenRequest(
         grant_type="urn:ietf:params:oauth:grant-type:device_code",
         device_code=resp['device_dode'], client_id=cli.host.client_id)
 
-    resp = srv.token_endpoint(req)
+    resp = srv.token_endpoint(req2)
 
     # Authorization Pending
 

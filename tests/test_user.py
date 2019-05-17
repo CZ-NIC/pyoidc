@@ -88,12 +88,12 @@ class TestUsernamePasswordMako(object):
         # We have to use eval() here to avoid intermittent
         # failures from dict ordering
         assert eval(logcap.records[0].msg[7:-1]) == expected
-        expected = {u'query': u'query=foo', u'login': u'user',
-                    u'password': '<REDACTED>'}
-        assert eval(logcap.records[1].msg[5:]) == expected
+        expected2 = {u'query': u'query=foo', u'login': u'user',
+                     u'password': '<REDACTED>'}
+        assert eval(logcap.records[1].msg[5:]) == expected2
         assert logcap.records[2].msg == 'Password verification succeeded.'
-        expected = {u'query': [u'foo'], 'upm_answer': 'true'}
-        assert eval(logcap.records[3].msg[8:]) == expected
+        expected3 = {u'query': [u'foo'], 'upm_answer': 'true'}
+        assert eval(logcap.records[3].msg[8:]) == expected3
 
     def test_not_authenticated(self, srv):
         form = create_return_form_env("user", "hemligt", "QUERY")
