@@ -5,6 +5,7 @@ import hmac
 import logging
 import os
 import time
+import warnings
 from http import client
 from http.cookies import SimpleCookie
 from typing import Dict  # noqa
@@ -229,7 +230,7 @@ def extract(environ, empty=False, err=False):
     :param empty: Stops on empty fields (default: Fault)
     :param err: Stops on errors in fields (default: Fault)
     """
-    # FIXME: This seems to be unused -> Deprecate?
+    warnings.warn("This function is deprecated.", DeprecationWarning)
     formdata = cgi.parse(environ["wsgi.input"], environ, empty, err)
     # Remove single entries from lists
     new_formdata = {}  # type: Dict[str, Union[str, List[str]]]
