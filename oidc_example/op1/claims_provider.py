@@ -184,7 +184,7 @@ def application(environ, start_response):
     environ["oic.oas"] = OAS
 
     LOGGER.info("path: %s" % path)
-    if path in OAS.cert or path in OAS.jwk:
+    if path in OAS.jwk:
         return static(environ, start_response, path)
     else:
         for regex, callback in URLS:

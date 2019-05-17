@@ -269,9 +269,6 @@ class Provider(AProvider):
         self.userinfo = userinfo
         self.template_renderer = template_renderer
         self.baseurl = baseurl or name
-        self.cert = []  # type: ignore  # UNUSED?
-        self.cert_encryption = []  # type: ignore  # UNUSED?
-
         self.cookie_name = "pyoidc"
         self.seed = b""
         self.sso_ttl = 0
