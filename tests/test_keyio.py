@@ -6,17 +6,22 @@ from datetime import datetime as dt
 from datetime import timedelta
 from typing import Any  # noqa
 from typing import Dict  # noqa
+from unittest import TestCase
+from unittest.mock import sentinel
 
 import pytest
 from freezegun import freeze_time
+from jwkest.jws import JWS
 
 from oic.oauth2.message import MissingSigningKey
 from oic.oic import AuthorizationResponse
+from oic.oic.provider import Provider
 from oic.utils.keyio import JWKSError
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import RSAKey
 from oic.utils.keyio import build_keyjar
+from oic.utils.keyio import check_key_availability
 from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
 from oic.utils.keyio import keybundle_from_local_file
@@ -490,3 +495,35 @@ def test_load_jwks_wrong_argtype():
     kj = KeyJar()
     with pytest.raises(JWKSError):
         kj.import_jwks(JWKS_ERR_1, '')
+
+
+class TestCheckKeyAvailability(TestCase):
+    """Unittests for check_key_availability."""
+
+    def setUp(self):
+        self.server = Provider("example", sentinel.session_db, {}, None, sentinel.userinfo,
+                               sentinel.authz, sentinel.client_authn)
+        self.jwt = JWS({"iss": "some_cid"}).sign_compact()
+
+    def test_none(self):
+        self.server.cdb["some_cid"] = {"client_secret": "top secret"}
+        check_key_availability(self.server, self.jwt)
+        self.assertTrue("some_cid" in self.server.keyjar)
+        # Two symmetric
+        self.assertEqual(len(self.server.keyjar["some_cid"]), 2)
+
+    def test_jwks(self):
+        self.server.cdb["some_cid"] = {"client_secret": "top secret",
+                                       "jwks": JWK0}
+        check_key_availability(self.server, self.jwt)
+        self.assertTrue("some_cid" in self.server.keyjar)
+        # Two symmetric and one remote
+        self.assertEqual(len(self.server.keyjar["some_cid"]), 3)
+
+    def test_jwks_uri(self):
+        self.server.cdb["some_cid"] = {"client_secret": "top secret",
+                                       "jwks_uri": "https://example.com/key"}
+        check_key_availability(self.server, self.jwt)
+        self.assertTrue("some_cid" in self.server.keyjar)
+        # Two symmetric and one remote
+        self.assertEqual(len(self.server.keyjar["some_cid"]), 3)
