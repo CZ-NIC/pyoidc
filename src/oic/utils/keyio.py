@@ -1228,4 +1228,7 @@ def check_key_availability(inst, jwt):
     if _cid not in inst.keyjar:
         cinfo = inst.cdb[_cid]
         inst.keyjar.add_symmetric(_cid, cinfo["client_secret"], ["enc", "sig"])
-        inst.keyjar.add(_cid, cinfo["jwks_uri"])
+        if cinfo.get("jwks_uri") is not None:
+            inst.keyjar.add(_cid, cinfo["jwks_uri"])
+        elif cinfo.get("jwks") is not None:
+            inst.keyjar.import_jwks(cinfo["jwks"], _cid)
