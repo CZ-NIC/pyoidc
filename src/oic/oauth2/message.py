@@ -145,6 +145,7 @@ class Message(MutableMapping):
         self.jwe_header = None
         self.from_dict(kwargs)
         self.verify_ssl = True
+        self.raw_id_token = None
 
     def __iter__(self):
         return iter(self._dict)
