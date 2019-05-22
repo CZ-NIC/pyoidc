@@ -9,17 +9,24 @@ from jwkest import BadSignature
 from jwkest.jwk import SYMKey
 from jwkest.jws import left_hash
 
+from oic import rndstr
+from oic.exception import MessageException
+from oic.exception import NotForMe
 from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import MissingRequiredValue
 from oic.oauth2.message import WrongSigningAlgorithm
+from oic.oic.message import BACK_CHANNEL_LOGOUT_EVENT
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AddressClaim
 from oic.oic.message import AtHashError
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AuthorizationResponse
+from oic.oic.message import BackChannelLogoutRequest
 from oic.oic.message import CHashError
 from oic.oic.message import Claims
+from oic.oic.message import FrontChannelLogoutRequest
 from oic.oic.message import IdToken
+from oic.oic.message import LogoutToken
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import RegistrationRequest
@@ -34,6 +41,7 @@ from oic.utils import time_util
 from oic.utils.jwt import JWT
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
+from oic.utils.time_util import utc_time_sans_frac
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              '..', '..')))
@@ -60,7 +68,7 @@ def test_openidschema():
     '{"middle_name":true, "updated_at":"20170328081544", "sub":"abc"}',
     '{"middle_name":"fo", "updated_at":false, "sub":"abc"}',
     '{"middle_name":"fo", "updated_at":"20170328081544Z", "sub":true}'
-    ])
+])
 def test_openidschema_from_json(json_param):
     with pytest.raises(ValueError):
         OpenIDSchema().from_json(json_param)
@@ -73,7 +81,7 @@ def test_openidschema_from_json(json_param):
     '"sub":"abc"}',
     '{"phone_number_verified":true, "phone_number":"+1 555 20000", '
     '"sub":"abc"}',
-    ])
+])
 def test_claim_booleans(json_param):
     assert OpenIDSchema().from_json(json_param)
 
@@ -85,7 +93,7 @@ def test_claim_booleans(json_param):
     '"sub":"abc"}',
     '{"phone_number_verified":"Sure", "phone_number":"+1 555 20000", '
     '"sub":"abc"}',
-    ])
+])
 def test_claim_not_booleans(json_param):
     with pytest.raises(ValueError):
         OpenIDSchema().from_json(json_param)
@@ -100,12 +108,12 @@ def test_claims_deser():
             "email_verified": {"essential": True},
             "picture": None,
             "http://example.info/claims/groups": None
-            },
+        },
         "id_token": {
             "auth_time": {"essential": True},
             "acr": {"values": ["urn:mace:incommon:iap:silver"]}
-            }
         }
+    }
 
     claims = claims_deser(json.dumps(_dic), sformat="json")
     assert _eq(claims.keys(), ["userinfo", "id_token"])
@@ -170,7 +178,7 @@ def test_msg_ser_from_dict():
     pre = {
         "street_address": "Kasamark 114", "locality": "Umea",
         "country": "Sweden"
-        }
+    }
 
     ser = msg_ser(pre, "dict")
 
@@ -219,7 +227,7 @@ class TestProviderConfigurationResponse(object):
             "request_object_algs_supported": ["HS256", "RS256", "A128CBC",
                                               "A128KW",
                                               "RSA1_5"]
-            }
+        }
 
         pcr = ProviderConfigurationResponse().deserialize(json.dumps(resp),
                                                           "json")
@@ -279,7 +287,7 @@ class TestProviderConfigurationResponse(object):
                 "http://server.example.com/connect/service_documentation.html",
             "ui_locales_supported": ["en-US", "en-GB", "en-CA", "fr-FR",
                                      "fr-CA"]
-            }
+        }
 
         pcr = ProviderConfigurationResponse().deserialize(json.dumps(resp),
                                                           "json")
@@ -297,7 +305,7 @@ class TestProviderConfigurationResponse(object):
         "response_types_supported",
         "subject_types_supported",
         "id_token_signing_alg_values_supported"
-        ])
+    ])
     def test_required_parameters(self, required_param):
         provider_config = {
             "issuer": "https://server.example.com",
@@ -309,7 +317,7 @@ class TestProviderConfigurationResponse(object):
             "subject_types_supported": ["public", "pairwise"],
             "id_token_signing_alg_values_supported": ["RS256", "ES256",
                                                       "HS256"],
-            }
+        }
 
         del provider_config[required_param]
         with pytest.raises(MissingRequiredAttribute):
@@ -325,7 +333,7 @@ class TestProviderConfigurationResponse(object):
             "subject_types_supported": ["public", "pairwise"],
             "id_token_signing_alg_values_supported": ["RS256", "ES256",
                                                       "HS256"],
-            }
+        }
 
         # should not raise an exception
         assert ProviderConfigurationResponse(**provider_config).verify()
@@ -340,7 +348,7 @@ class TestProviderConfigurationResponse(object):
             "subject_types_supported": ["public", "pairwise"],
             "id_token_signing_alg_values_supported": ["RS256", "ES256",
                                                       "HS256"],
-            }
+        }
 
         with pytest.raises(MissingRequiredAttribute):
             ProviderConfigurationResponse(**provider_config).verify()
@@ -366,7 +374,7 @@ class TestRegistrationRequest(object):
             "request_uris": [
                 "https://client.example.org/rf.txt"
                 "#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"]
-            }
+        }
 
         reg = RegistrationRequest().deserialize(json.dumps(msg), "json")
         assert _eq(list(msg.keys()) + ['response_types'], reg.keys())
@@ -384,7 +392,7 @@ class TestRegistrationRequest(object):
             "application_type": "web", "default_acr": "foo",
             "require_auth_time": True, "operation": "register",
             "default_max_age": 10, "response_types": ["code"]
-            }
+        }
         assert js_obj == expected_js_obj
 
         flattened_list_dict = {k: v[0] if isinstance(v, list) else v for k, v in
@@ -396,13 +404,13 @@ class TestRegistrationRequest(object):
         "request_object_encryption_enc",
         "id_token_encrypted_response_enc",
         "userinfo_encrypted_response_enc",
-        ])
+    ])
     def test_registration_request_with_coupled_encryption_params(self,
                                                                  enc_param):
         registration_params = {
             "redirect_uris": ["https://example.com/authz_cb"],
             enc_param: "RS25asdasd6"
-            }
+        }
         registration_req = RegistrationRequest(**registration_params)
         with pytest.raises(AssertionError):
             registration_req.verify()
@@ -435,7 +443,7 @@ class TestRegistrationResponse(object):
             "request_uris": [
                 "https://client.example.org/rf.txt"
                 "#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"]
-            }
+        }
 
         resp = RegistrationResponse().deserialize(json.dumps(msg), "json")
         assert _eq(msg.keys(), resp.keys())
@@ -462,7 +470,7 @@ class TestAuthorizationRequest(object):
             "client_id": "foobar",
             "redirect_uri": "http://foobar.example.com/oaclient",
             "response_type": "code",
-            }
+        }
         ar = AuthorizationRequest(**args)
         with pytest.raises(MissingRequiredAttribute):
             ar.verify()
@@ -474,13 +482,13 @@ class TestAuthorizationResponse(object):
         args = {
             "access_token": "foobar",
             "token_type": "bearer"
-            }
+        }
         ar = AuthorizationResponse(**args)
         ar.verify()
 
         args = {
             "access_token": "foobar",
-            }
+        }
         ar = AuthorizationResponse(**args)
         with pytest.raises(MissingRequiredValue):
             ar.verify()
@@ -493,7 +501,7 @@ class TestAccessTokenResponse(object):
             'nonce': 'KUEYfRM2VzKDaaKD', 'sub': 'EndUserSubject',
             'iss': 'https://alpha.cloud.nds.rub.de', 'exp': _now + 3600,
             'iat': _now, 'aud': 'TestClient'
-            }
+        }
         idts = IdToken(**idval)
         key = SYMKey(key="TestPassword")
         _signed_jwt = idts.to_jwt(key=[key], algorithm="HS256")
@@ -506,7 +514,7 @@ class TestAccessTokenResponse(object):
         _info = {
             "access_token": "accessTok", "id_token": _faulty_signed_jwt,
             "token_type": "Bearer", "expires_in": 3600
-            }
+        }
 
         at = AccessTokenResponse(**_info)
         with pytest.raises(BadSignature):
@@ -518,7 +526,7 @@ class TestAccessTokenResponse(object):
             'nonce': 'KUEYfRM2VzKDaaKD', 'sub': 'EndUserSubject',
             'iss': 'https://alpha.cloud.nds.rub.de', 'exp': _now + 3600,
             'iat': _now, 'aud': 'TestClient'
-            }
+        }
         idts = IdToken(**idval)
         key = SYMKey(key="TestPassword")
         _signed_jwt = idts.to_jwt(key=[key], algorithm="HS256")
@@ -526,7 +534,7 @@ class TestAccessTokenResponse(object):
         _info = {
             "access_token": "accessTok", "id_token": _signed_jwt,
             "token_type": "Bearer", "expires_in": 3600
-            }
+        }
 
         at = AccessTokenResponse(**_info)
         with pytest.raises(WrongSigningAlgorithm):
@@ -548,14 +556,14 @@ def test_id_token():
         "aud": [
             "5542958437706128204e0000",
             "554295ce3770612820620000"
-            ],
+        ],
         "auth_time": 1441364872,
         "azp": "554295ce3770612820620000",
         "at_hash": "L4Ign7TCAD_EppRbHAuCyw",
         "iat": _now,
         "exp": _now + 3600,
         "iss": "https://sso.qa.7pass.ctf.prosiebensat1.com"
-        })
+    })
 
     idt.verify()
 
@@ -566,10 +574,10 @@ def test_verify_id_token():
         "aud": [
             "5542958437706128204e0000",
             "554295ce3770612820620000"
-            ],
+        ],
         "auth_time": 1441364872,
         "azp": "554295ce3770612820620000",
-        })
+    })
 
     kj = KeyJar()
     kj.add_symmetric("", 'dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ', ['sig'])
@@ -592,10 +600,10 @@ def test_verify_id_token_wrong_issuer():
         "aud": [
             "5542958437706128204e0000",
             "554295ce3770612820620000"
-            ],
+        ],
         "auth_time": 1441364872,
         "azp": "554295ce3770612820620000",
-        })
+    })
 
     kj = KeyJar()
     kj.add_symmetric("", 'dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ', ['sig'])
@@ -617,10 +625,10 @@ def test_verify_id_token_wrong_aud():
         "aud": [
             "5542958437706128204e0000",
             "554295ce3770612820620000"
-            ],
+        ],
         "auth_time": 1441364872,
         "azp": "554295ce3770612820620000",
-        })
+    })
 
     kj = KeyJar()
     kj.add_symmetric("", 'dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ', ['sig'])
@@ -642,10 +650,10 @@ def test_verify_id_token_mismatch_aud_azp():
         "aud": [
             "5542958437706128204e0000",
             "554295ce3770612820620000"
-            ],
+        ],
         "auth_time": 1441364872,
         "azp": "aaaaaaaaaaaaaaaaaaaa",
-        })
+    })
 
     kj = KeyJar()
     kj.add_symmetric("", 'dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ', ['sig'])
@@ -670,11 +678,11 @@ def test_verify_id_token_c_hash():
         "aud": [
             "5542958437706128204e0000",
             "554295ce3770612820620000"
-            ],
+        ],
         "auth_time": 1441364872,
         "azp": "554295ce3770612820620000",
         "c_hash": lhsh
-        })
+    })
 
     kj = KeyJar()
     kj.add_symmetric("", 'dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ', ['sig'])
@@ -699,11 +707,11 @@ def test_verify_id_token_c_hash_fail():
         "aud": [
             "5542958437706128204e0000",
             "554295ce3770612820620000"
-            ],
+        ],
         "auth_time": 1441364872,
         "azp": "554295ce3770612820620000",
         "c_hash": lhsh
-        })
+    })
 
     kj = KeyJar()
     kj.add_symmetric("", 'dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ', ['sig'])
@@ -729,11 +737,11 @@ def test_verify_id_token_at_hash():
         "aud": [
             "5542958437706128204e0000",
             "554295ce3770612820620000"
-            ],
+        ],
         "auth_time": 1441364872,
         "azp": "554295ce3770612820620000",
         "at_hash": lhsh
-        })
+    })
 
     kj = KeyJar()
     kj.add_symmetric("", 'dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ', ['sig'])
@@ -759,11 +767,11 @@ def test_verify_id_token_at_hash_fail():
         "aud": [
             "5542958437706128204e0000",
             "554295ce3770612820620000"
-            ],
+        ],
         "auth_time": 1441364872,
         "azp": "554295ce3770612820620000",
         "at_hash": lhsh
-        })
+    })
 
     kj = KeyJar()
     kj.add_symmetric("", 'dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ', ['sig'])
@@ -788,10 +796,10 @@ def test_verify_id_token_missing_at_hash():
         "aud": [
             "5542958437706128204e0000",
             "554295ce3770612820620000"
-            ],
+        ],
         "auth_time": 1441364872,
         "azp": "554295ce3770612820620000",
-        })
+    })
 
     kj = KeyJar()
     kj.add_symmetric("", 'dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ', ['sig'])
@@ -816,10 +824,10 @@ def test_verify_id_token_missing_c_hash():
         "aud": [
             "5542958437706128204e0000",
             "554295ce3770612820620000"
-            ],
+        ],
         "auth_time": 1441364872,
         "azp": "554295ce3770612820620000",
-        })
+    })
 
     kj = KeyJar()
     kj.add_symmetric("", 'dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ', ['sig'])
@@ -847,12 +855,12 @@ def test_verify_id_token_at_hash_and_chash():
         "aud": [
             "5542958437706128204e0000",
             "554295ce3770612820620000"
-            ],
+        ],
         "auth_time": 1441364872,
         "azp": "554295ce3770612820620000",
         "at_hash": at_hash,
         'c_hash': c_hash
-        })
+    })
 
     kj = KeyJar()
     kj.add_symmetric("", 'dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ', ['sig'])
@@ -874,10 +882,10 @@ def test_verify_id_token_missing_iss():
         "aud": [
             "5542958437706128204e0000",
             "554295ce3770612820620000"
-            ],
+        ],
         "auth_time": 1441364872,
         "azp": "554295ce3770612820620000",
-        })
+    })
 
     kj = KeyJar()
     kj.add_symmetric("", 'dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ', ['sig'])
@@ -898,10 +906,10 @@ def test_verify_id_token_iss_not_in_keyjar():
         "aud": [
             "5542958437706128204e0000",
             "554295ce3770612820620000"
-            ],
+        ],
         "auth_time": 1441364872,
         "azp": "554295ce3770612820620000",
-        })
+    })
 
     kj = KeyJar()
     kj.add_symmetric("", 'dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ', ['sig'])
@@ -953,3 +961,153 @@ def test_verify_token_encrypted_no_key():
         verify_id_token(msg, keyjar=KeyJar(),
                         iss="https://sso.qa.7pass.ctf.prosiebensat1.com",
                         client_id="554295ce3770612820620000")
+
+
+class TestLogoutToken():
+    def test_with_sub(self):
+        # All the required claims. Note there must be a sub, a sid or both
+        lt = LogoutToken(iss='https://example.com', aud=['https://rp.example.org'],
+                         events={BACK_CHANNEL_LOGOUT_EVENT: {}},
+                         iat=utc_time_sans_frac(), jti=rndstr(16),
+                         sub='https://example.com/sub')
+
+        assert lt.verify()
+
+    def test_with_sid(self):
+        lt = LogoutToken(iss='https://example.com', aud=['https://rp.example.org'],
+                         events={BACK_CHANNEL_LOGOUT_EVENT: {}},
+                         iat=utc_time_sans_frac(), jti=rndstr(16),
+                         sid=rndstr())
+
+        assert lt.verify()
+
+    def test_with_sub_and_sid(self):
+        lt = LogoutToken(iss='https://example.com', aud=['https://rp.example.org'],
+                         events={BACK_CHANNEL_LOGOUT_EVENT: {}},
+                         iat=utc_time_sans_frac(), jti=rndstr(16),
+                         sub='https://example.com/sub', sid=rndstr())
+
+        assert lt.verify()
+
+    def test_no_sub_or_sid(self):
+        lt = LogoutToken(iss='https://example.com', aud=['https://rp.example.org'],
+                         events={BACK_CHANNEL_LOGOUT_EVENT: {}},
+                         iat=utc_time_sans_frac(), jti=rndstr(16))
+
+        with pytest.raises(ValueError):
+            lt.verify()
+
+    def test_with_nonce(self):
+        lt = LogoutToken(iss='https://example.com', aud=['https://rp.example.org'],
+                         events={BACK_CHANNEL_LOGOUT_EVENT: {}},
+                         iat=utc_time_sans_frac(), jti=rndstr(16), nonce=rndstr(16))
+
+        with pytest.raises(MessageException):
+            lt.verify()
+
+    def test_extra_event(self):
+        # more the one event
+        lt = LogoutToken(iss='https://example.com', aud=['https://rp.example.org'],
+                         events={
+                             BACK_CHANNEL_LOGOUT_EVENT: {},
+                             'http://schemas.openid.net/event/other}': {}
+                         },
+                         jti=rndstr(16),
+                         iat=utc_time_sans_frac(), sub='https://example.com/sub')
+
+        with pytest.raises(ValueError):
+            lt.verify()
+
+    def test_wrong_event(self):
+        lt = LogoutToken(iss='https://example.com', aud=['https://rp.example.org'],
+                         events={
+                             'http://schemas.openid.net/event/other}': {}
+                         },
+                         jti=rndstr(16),
+                         iat=utc_time_sans_frac(), sub='https://example.com/sub')
+
+        with pytest.raises(ValueError):
+            lt.verify()
+
+    def test_wrong_event_content(self):
+        lt = LogoutToken(iss='https://example.com', aud=['https://rp.example.org'],
+                         events={BACK_CHANNEL_LOGOUT_EVENT: {'foo': 'bar'}},
+                         jti=rndstr(16),
+                         iat=utc_time_sans_frac(), sub='https://example.com/sub')
+
+        with pytest.raises(ValueError):
+            lt.verify()
+
+    def test_wrong_aud(self):
+        lt = LogoutToken(iss='https://example.com', aud=['https://rp.example.org'],
+                         events={BACK_CHANNEL_LOGOUT_EVENT: {}},
+                         iat=utc_time_sans_frac(), jti=rndstr(16),
+                         sub='https://example.com/sub')
+
+        with pytest.raises(NotForMe):
+            lt.verify(aud='https://example.com')
+
+    def test_wrong_iss(self):
+        lt = LogoutToken(iss='https://example.com', aud=['https://rp.example.org'],
+                         events={BACK_CHANNEL_LOGOUT_EVENT: {}},
+                         iat=utc_time_sans_frac(), jti=rndstr(16),
+                         sub='https://example.com/sub')
+
+        with pytest.raises(NotForMe):
+            lt.verify(iss='https://rp.example.org')
+
+    def test_wrong_iat(self):
+        # Issued sometime in the future
+        lt = LogoutToken(iss='https://example.com', aud=['https://rp.example.org'],
+                         events={BACK_CHANNEL_LOGOUT_EVENT: {}},
+                         iat=utc_time_sans_frac() + 86400, jti=rndstr(16),
+                         sub='https://example.com/sub')
+
+        with pytest.raises(ValueError):
+            lt.verify()
+
+
+class TestBackchannelLogout(object):
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        self.kj = KeyJar()
+        self.kj.add_symmetric("", 'dYMmrcQksKaPkhdgRNYk3zzh5l7ewdDJ', ['sig'])
+        self.key = self.kj.get_signing_key('oct')
+        lt = LogoutToken(iss='https://example.com', aud=['https://rp.example.org'],
+                         events={BACK_CHANNEL_LOGOUT_EVENT: {}},
+                         iat=utc_time_sans_frac(), jti=rndstr(16),
+                         sub='https://example.com/sub')
+
+        self.signed_jwt = lt.to_jwt(key=self.key, algorithm="HS256")
+
+    def test_verify_with_keyjar(self):
+        bclr = BackChannelLogoutRequest(logout_token=self.signed_jwt)
+        assert bclr.verify(keyjar=self.kj)
+
+        # The signed JWT is replaced by a dictionary with all the verified values
+        assert bclr['logout_token']['iss'] == 'https://example.com'
+
+    def test_verify_with_key(self):
+        bclr = BackChannelLogoutRequest(logout_token=self.signed_jwt)
+        assert bclr.verify(key=self.key)
+
+        # The signed JWT is replaced by a dictionary with all the verified values
+        assert bclr['logout_token']['iss'] == 'https://example.com'
+
+    def test_bogus_logout_token(self):
+        lt = LogoutToken(iss='https://example.com', aud=['https://rp.example.org'],
+                         events={BACK_CHANNEL_LOGOUT_EVENT: {}},
+                         iat=utc_time_sans_frac(), jti=rndstr(16), nonce=rndstr(16))
+        signed_jwt = lt.to_jwt(key=self.key, algorithm="HS256")
+        bclr = BackChannelLogoutRequest(logout_token=signed_jwt)
+
+        with pytest.raises(MessageException):
+            bclr.verify(key=self.key)
+
+
+class TestFrontchannelLogout(object):
+    def test_verify_request(self):
+        # May be completely empty
+        fclr = FrontChannelLogoutRequest()
+
+        assert fclr.verify()
