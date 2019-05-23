@@ -155,6 +155,8 @@ class Consumer(Client):
         self.user_info = None
         self.registration_expires_at = 0
         self.secret_type = "Bearer"
+        # Session management ID vs authorization state
+        self.smid2state = {}
 
     def update(self, sid):
         """
