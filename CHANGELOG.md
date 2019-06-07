@@ -17,6 +17,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#615] Fix ROPC grant in the extensions provider
 - [#640] Use more secure random generator for client_secret
 - [#639] Make sure symmetric keys are available after server restart
+- [#146] Make SessionDB storage conductive with multi-session
 
 ### Changed
 - [#578] Dropped python 2.7 support
@@ -54,6 +55,7 @@ The format is based on the [KeepAChangeLog] project.
 [#639]: https://github.com/OpenIDC/pyoidc/issues/639
 [#631]: https://github.com/OpenIDC/pyoidc/issues/631
 [#638]: https://github.com/OpenIDC/pyoidc/issues/638
+[#146]: https://github.com/OpenIDC/pyoidc/issues/146
 
 ## 0.15.1 [2019-01-31]
 
