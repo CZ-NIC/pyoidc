@@ -35,6 +35,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#655] Host can be forced on webfinger discovery
 - [#441] CookieDealer now accepts secure and httponly params
 - [#638] Moved `providerinfo_endpoint` from `oic.extensions` to `oic.oauth2`
+- [#664] Messages needed for Single-Sign-Out Support
 
 [#655]: https://github.com/OpenIDC/pyoidc/issues/655
 [#598]: https://github.com/OpenIDC/pyoidc/issues/598
@@ -56,6 +57,7 @@ The format is based on the [KeepAChangeLog] project.
 [#631]: https://github.com/OpenIDC/pyoidc/issues/631
 [#638]: https://github.com/OpenIDC/pyoidc/issues/638
 [#146]: https://github.com/OpenIDC/pyoidc/issues/146
+[#664]: https://github.com/OpenIDC/pyoidc/pull/664
 
 ## 0.15.1 [2019-01-31]
 
