@@ -50,10 +50,10 @@ check-isort:
 .PHONY: isort check-isort
 
 blacken:
-	@pipenv run black src/
+	@pipenv run black src/ tests/
 
 check-black:
-	@pipenv run black src/ --check
+	@pipenv run black src/ tests/ --check
 .PHONY: blacken check-black
 
 bandit:

@@ -5,7 +5,7 @@ import pytest
 
 from oic.utils import shelve_wrapper
 
-__author__ = 'mathiashedstrom'
+__author__ = "mathiashedstrom"
 
 VALUES = {"key_1": "val_1", "key_2": "val_2", "key_3": "val_3"}
 
@@ -16,8 +16,7 @@ def _eq(l1, l2):
 
 @pytest.fixture
 def db(tmpdir):
-    return shelve_wrapper.open(
-        os.path.join(tmpdir.strpath, "test_db_shelve_wrapper"))
+    return shelve_wrapper.open(os.path.join(tmpdir.strpath, "test_db_shelve_wrapper"))
 
 
 @pytest.fixture

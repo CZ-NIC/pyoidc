@@ -23,7 +23,7 @@ from oic.utils.time_util import time_a_while_ago
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.time_util import valid
 
-__author__ = 'rohe0002'
+__author__ = "rohe0002"
 
 
 def test_f_quotient():
@@ -63,12 +63,12 @@ def test_modulo_2():
 def test_parse_duration():
     (sign, d) = parse_duration("P1Y3M5DT7H10M3.3S")
     assert sign == "+"
-    assert d['tm_sec'] == 3.3
-    assert d['tm_mon'] == 3
-    assert d['tm_hour'] == 7
-    assert d['tm_mday'] == 5
-    assert d['tm_year'] == 1
-    assert d['tm_min'] == 10
+    assert d["tm_sec"] == 3.3
+    assert d["tm_mon"] == 3
+    assert d["tm_hour"] == 7
+    assert d["tm_mday"] == 5
+    assert d["tm_year"] == 1
+    assert d["tm_min"] == 10
 
 
 def test_add_duration_1():
@@ -168,22 +168,25 @@ def test_not_on_or_after():
 def test_parse_duration_1():
     (sign, d) = parse_duration("-P1Y3M5DT7H10M3.3S")
     assert sign == "-"
-    assert d['tm_sec'] == 3.3
-    assert d['tm_mon'] == 3
-    assert d['tm_hour'] == 7
-    assert d['tm_mday'] == 5
-    assert d['tm_year'] == 1
-    assert d['tm_min'] == 10
+    assert d["tm_sec"] == 3.3
+    assert d["tm_mon"] == 3
+    assert d["tm_hour"] == 7
+    assert d["tm_mday"] == 5
+    assert d["tm_year"] == 1
+    assert d["tm_min"] == 10
 
 
-@pytest.mark.parametrize("duration", [
-    "-P1Y-3M5DT7H10M3.3S",
-    "-P1Y3M5DU7H10M3.3S",
-    "-P1Y3M5DT",
-    "-P1Y3M5DU7H10M3.S",
-    "-P1Y3M5DT7H10MxS",
-    "-P1Y4M4DT7H10.5M3S"
-])
+@pytest.mark.parametrize(
+    "duration",
+    [
+        "-P1Y-3M5DT7H10M3.3S",
+        "-P1Y3M5DU7H10M3.3S",
+        "-P1Y3M5DT",
+        "-P1Y3M5DU7H10M3.S",
+        "-P1Y3M5DT7H10MxS",
+        "-P1Y4M4DT7H10.5M3S",
+    ],
+)
 def test_parse_duration_error(duration):
     with pytest.raises(TimeUtilError):
         parse_duration(duration)

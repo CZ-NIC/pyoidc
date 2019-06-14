@@ -25,15 +25,15 @@ from oic.utils.keyio import KeyJar
 from oic.utils.keyio import keybundle_from_local_file
 from oic.utils.time_util import utc_time_sans_frac
 
-__author__ = 'rohe0002'
+__author__ = "rohe0002"
 
 KC_SYM_VS = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "ver"})
 KC_SYM_S = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "sig"})
 
-BASE_PATH = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "data/keys"))
-KC_RSA = keybundle_from_local_file(os.path.join(BASE_PATH, "rsa.key"), "rsa",
-                                   ["ver", "sig"])
+BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/keys"))
+KC_RSA = keybundle_from_local_file(
+    os.path.join(BASE_PATH, "rsa.key"), "rsa", ["ver", "sig"]
+)
 
 SRVKEYS = KeyJar()
 SRVKEYS[""] = [KC_RSA]
@@ -60,9 +60,7 @@ CONFIG = {
     "request_method": "parameter",
     "password": "hemligt",
     "max_age": 3600,
-    "user_info": {
-        "name": None,
-    }
+    "user_info": {"name": None},
 }
 
 
@@ -71,42 +69,58 @@ def _eq(l1, l2):
 
 
 def test_response_types_to_grant_types():
-    req_args = ['code']
-    assert set(
-        response_types_to_grant_types(req_args)) == {'authorization_code'}
-    req_args = ['code', 'code id_token']
-    assert set(
-        response_types_to_grant_types(req_args)) == {'authorization_code',
-                                                     'implicit'}
-    req_args = ['code', 'id_token code', 'code token id_token']
-    assert set(
-        response_types_to_grant_types(req_args)) == {'authorization_code',
-                                                     'implicit'}
+    req_args = ["code"]
+    assert set(response_types_to_grant_types(req_args)) == {"authorization_code"}
+    req_args = ["code", "code id_token"]
+    assert set(response_types_to_grant_types(req_args)) == {
+        "authorization_code",
+        "implicit",
+    }
+    req_args = ["code", "id_token code", "code token id_token"]
+    assert set(response_types_to_grant_types(req_args)) == {
+        "authorization_code",
+        "implicit",
+    }
 
-    req_args = ['code', 'id_token code', 'code token id_token']
-    kwargs = {'grant_types': ['refresh_token', 'authorization_code']}
-    assert set(
-        response_types_to_grant_types(req_args, **kwargs)) == {'authorization_code',
-                                                               'implicit', 'refresh_token'}
+    req_args = ["code", "id_token code", "code token id_token"]
+    kwargs = {"grant_types": ["refresh_token", "authorization_code"]}
+    assert set(response_types_to_grant_types(req_args, **kwargs)) == {
+        "authorization_code",
+        "implicit",
+        "refresh_token",
+    }
     with pytest.raises(ValueError):
-        response_types_to_grant_types(['foobar openid'])
+        response_types_to_grant_types(["foobar openid"])
 
 
 def test_clean_response():
-    atr = AccessTokenResponse(access_token="access_token",
-                              token_type="bearer", expires_in=600,
-                              refresh_token="refresh", steps=39, stalls="yes")
+    atr = AccessTokenResponse(
+        access_token="access_token",
+        token_type="bearer",
+        expires_in=600,
+        refresh_token="refresh",
+        steps=39,
+        stalls="yes",
+    )
 
     catr = clean_response(atr)
     atr_keys = atr.keys()
     catr_keys = catr.keys()
-    assert _eq(atr_keys, ['token_type', 'access_token', 'expires_in',
-                          'refresh_token', 'steps', 'stalls'])
-    assert _eq(catr_keys, ['token_type', 'access_token', 'expires_in',
-                           'refresh_token'])
+    assert _eq(
+        atr_keys,
+        [
+            "token_type",
+            "access_token",
+            "expires_in",
+            "refresh_token",
+            "steps",
+            "stalls",
+        ],
+    )
+    assert _eq(catr_keys, ["token_type", "access_token", "expires_in", "refresh_token"])
 
 
-class TestOICConsumer():
+class TestOICConsumer:
     @pytest.fixture(autouse=True)
     def setup_consumer(self, fake_oic_server, session_db_factory):
         client_id = "client_1"
@@ -116,15 +130,19 @@ class TestOICConsumer():
             # 'config': {}
         }
 
-        self.consumer = Consumer(session_db_factory(SERVER_INFO["issuer"]),
-                                 CONFIG, client_config, SERVER_INFO)
+        self.consumer = Consumer(
+            session_db_factory(SERVER_INFO["issuer"]),
+            CONFIG,
+            client_config,
+            SERVER_INFO,
+        )
         self.consumer.behaviour = {
-            "request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]}
+            "request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]
+        }
         self.consumer.client_secret = "abcdefghijklmnop"
         self.consumer.keyjar = CLIKEYS
         self.consumer.redirect_uris = ["https://example.com/cb"]
-        self.consumer.authorization_endpoint = \
-            "http://example.com/authorization"
+        self.consumer.authorization_endpoint = "http://example.com/authorization"
         self.consumer.token_endpoint = "http://example.com/token"
         self.consumer.userinfo_endpoint = "http://example.com/userinfo"
         self.consumer.client_secret = "hemlig"
@@ -179,9 +197,18 @@ class TestOICConsumer():
         srv.keyjar = SRVKEYS
         sid, location = self.consumer.begin("openid", "code")
         authreq = srv.parse_authorization_request(url=location)
-        assert _eq(list(authreq.keys()),
-                   ['state', 'max_age', 'claims', 'response_type', 'client_id',
-                    'scope', 'redirect_uri'])
+        assert _eq(
+            list(authreq.keys()),
+            [
+                "state",
+                "max_age",
+                "claims",
+                "response_type",
+                "client_id",
+                "scope",
+                "redirect_uri",
+            ],
+        )
 
         assert authreq["state"] == sid
         assert authreq["scope"] == self.consumer.consumer_config["scope"]
@@ -197,8 +224,9 @@ class TestOICConsumer():
         srv = Server()
         srv.keyjar = SRVKEYS
 
-        sid, location = self.consumer.begin("openid", "code",
-                                            path="http://localhost:8087")
+        sid, location = self.consumer.begin(
+            "openid", "code", path="http://localhost:8087"
+        )
 
         with responses.RequestsMock() as rsps:
             p = urlparse(self.consumer.request_uri)
@@ -208,20 +236,32 @@ class TestOICConsumer():
             file_path = os.path.join(path, relative_path)
 
             with open(file_path) as f:
-                rsps.add(rsps.GET, self.consumer.request_uri,
-                         body=f.read(), status=200,
-                         content_type='application/urlencoded')
+                rsps.add(
+                    rsps.GET,
+                    self.consumer.request_uri,
+                    body=f.read(),
+                    status=200,
+                    content_type="application/urlencoded",
+                )
 
             authreq = srv.parse_authorization_request(url=location)
-            assert _eq(list(authreq.keys()),
-                       ['max_age', 'state', 'redirect_uri', 'response_type',
-                        'client_id', 'scope', 'claims'])
+            assert _eq(
+                list(authreq.keys()),
+                [
+                    "max_age",
+                    "state",
+                    "redirect_uri",
+                    "response_type",
+                    "client_id",
+                    "scope",
+                    "claims",
+                ],
+            )
 
             assert authreq["state"] == sid
             assert authreq["scope"] == self.consumer.consumer_config["scope"]
             assert authreq["client_id"] == self.consumer.client_id
-            assert authreq["redirect_uri"].startswith(
-                "http://localhost:8087/authz")
+            assert authreq["redirect_uri"].startswith("http://localhost:8087/authz")
 
     def test_complete(self):
         _state = "state0"
@@ -231,20 +271,19 @@ class TestOICConsumer():
             "scope": ["openid"],
         }
 
-        result = self.consumer.do_authorization_request(
-            state=_state, request_args=args)
+        result = self.consumer.do_authorization_request(state=_state, request_args=args)
         assert result.status_code == 302
         parsed = urlparse(result.headers["location"])
         baseurl = "{}://{}{}".format(parsed.scheme, parsed.netloc, parsed.path)
         assert baseurl == self.consumer.redirect_uris[0]
 
-        self.consumer.parse_response(AuthorizationResponse, info=parsed.query,
-                                     sformat="urlencoded")
+        self.consumer.parse_response(
+            AuthorizationResponse, info=parsed.query, sformat="urlencoded"
+        )
 
         resp = self.consumer.complete(_state)
         assert isinstance(resp, AccessTokenResponse)
-        assert _eq(resp.keys(),
-                   ['token_type', 'state', 'access_token', 'scope'])
+        assert _eq(resp.keys(), ["token_type", "state", "access_token", "scope"])
 
         assert resp["state"] == _state
 
@@ -256,8 +295,7 @@ class TestOICConsumer():
             "scope": ["openid"],
         }
 
-        result = self.consumer.do_authorization_request(
-            state=_state, request_args=args)
+        result = self.consumer.do_authorization_request(state=_state, request_args=args)
         self.consumer._backup(_state)
 
         part = self.consumer.parse_authz(query=result.headers["location"])
@@ -276,11 +314,10 @@ class TestOICConsumer():
             "client_id": self.consumer.client_id,
             "response_type": "implicit",
             "scope": ["openid"],
-            "redirect_uri": "http://localhost:8088/cb"
+            "redirect_uri": "http://localhost:8088/cb",
         }
 
-        result = self.consumer.do_authorization_request(
-            state=_state, request_args=args)
+        result = self.consumer.do_authorization_request(state=_state, request_args=args)
 
         part = self.consumer.parse_authz(query=result.headers["location"])
         assert part[0] is None
@@ -301,20 +338,19 @@ class TestOICConsumer():
             "scope": ["openid"],
         }
 
-        result = self.consumer.do_authorization_request(state=_state,
-                                                        request_args=args)
+        result = self.consumer.do_authorization_request(state=_state, request_args=args)
         assert result.status_code == 302
         parsed = urlparse(result.headers["location"])
         baseurl = "{}://{}{}".format(parsed.scheme, parsed.netloc, parsed.path)
         assert baseurl == self.consumer.redirect_uris[0]
 
-        self.consumer.parse_response(AuthorizationResponse, info=parsed.query,
-                                     sformat="urlencoded")
+        self.consumer.parse_response(
+            AuthorizationResponse, info=parsed.query, sformat="urlencoded"
+        )
 
         resp = self.consumer.complete(_state)
         assert isinstance(resp, AccessTokenResponse)
-        assert _eq(resp.keys(),
-                   ['token_type', 'state', 'access_token', 'scope'])
+        assert _eq(resp.keys(), ["token_type", "state", "access_token", "scope"])
 
         assert resp["state"] == _state
 
@@ -328,8 +364,7 @@ class TestOICConsumer():
             "scope": ["openid"],
         }
 
-        result = self.consumer.do_authorization_request(state=_state,
-                                                        request_args=args)
+        result = self.consumer.do_authorization_request(state=_state, request_args=args)
         self.consumer._backup("state0")
 
         assert result.status_code == 302
@@ -345,18 +380,17 @@ class TestOICConsumer():
         assert isinstance(auth, AuthorizationResponse)
         assert isinstance(acc, AccessTokenResponse)
         print(auth.keys())
-        assert _eq(auth.keys(), ['code', 'access_token',
-                                 'token_type', 'state', 'client_id', 'scope'])
-        assert _eq(acc.keys(), ['token_type', 'state', 'access_token', 'scope'])
+        assert _eq(
+            auth.keys(),
+            ["code", "access_token", "token_type", "state", "client_id", "scope"],
+        )
+        assert _eq(acc.keys(), ["token_type", "state", "access_token", "scope"])
 
     def test_complete_auth_token_idtoken(self):
         _state = "state0"
         self.consumer.consumer_config["response_type"] = ["id_token", "token"]
-        self.consumer.registration_response = {
-            "id_token_signed_response_alg": "RS256",
-        }
-        self.consumer.provider_info = {
-            "issuer": "http://localhost:8088"}  # abs min
+        self.consumer.registration_response = {"id_token_signed_response_alg": "RS256"}
+        self.consumer.provider_info = {"issuer": "http://localhost:8088"}  # abs min
         self.consumer.authz_req = {}  # Store AuthzReq with state as key
 
         args = {
@@ -365,27 +399,28 @@ class TestOICConsumer():
             "scope": ["openid"],
         }
 
-        result = self.consumer.do_authorization_request(state=_state,
-                                                        request_args=args)
+        result = self.consumer.do_authorization_request(state=_state, request_args=args)
         assert result.status_code == 302
         parsed = urlparse(result.headers["location"])
         baseurl = "{}://{}{}".format(parsed.scheme, parsed.netloc, parsed.path)
         assert baseurl == self.consumer.redirect_uris[0]
 
-        part = self.consumer.parse_authz(query=parsed.query,
-                                         algs=self.consumer.sign_enc_algs(
-                                             "id_token"))
+        part = self.consumer.parse_authz(
+            query=parsed.query, algs=self.consumer.sign_enc_algs("id_token")
+        )
         auth = part[0]
         atr = part[1]
         assert part[2] is None
 
         assert auth is None
         assert isinstance(atr, AccessTokenResponse)
-        assert _eq(atr.keys(), ['access_token', 'id_token',
-                                'token_type', 'state', 'scope'])
+        assert _eq(
+            atr.keys(), ["access_token", "id_token", "token_type", "state", "scope"]
+        )
 
-        self.consumer.verify_id_token(atr["id_token"],
-                                      self.consumer.authz_req[atr["state"]])
+        self.consumer.verify_id_token(
+            atr["id_token"], self.consumer.authz_req[atr["state"]]
+        )
 
     def test_userinfo(self):
         _state = "state0"
@@ -396,29 +431,29 @@ class TestOICConsumer():
             "scope": ["openid"],
         }
 
-        result = self.consumer.do_authorization_request(state=_state,
-                                                        request_args=args)
+        result = self.consumer.do_authorization_request(state=_state, request_args=args)
         assert result.status_code == 302
         parsed = urlparse(result.headers["location"])
         baseurl = "{}://{}{}".format(parsed.scheme, parsed.netloc, parsed.path)
         assert baseurl == self.consumer.redirect_uris[0]
 
-        self.consumer.parse_response(AuthorizationResponse, info=parsed.query,
-                                     sformat="urlencoded")
+        self.consumer.parse_response(
+            AuthorizationResponse, info=parsed.query, sformat="urlencoded"
+        )
 
         self.consumer.complete(_state)
 
         result = self.consumer.get_user_info(_state)
         assert isinstance(result, OpenIDSchema)
-        assert _eq(result.keys(),
-                   ['name', 'email', 'verified', 'nickname', 'sub'])
+        assert _eq(result.keys(), ["name", "email", "verified", "nickname", "sub"])
 
     def test_sign_userinfo(self):
         _state = "state0"
         self.consumer.client_prefs = {"userinfo_signed_response_alg": "RS256"}
         self.consumer.provider_info = {
             "userinfo_endpoint": "http://localhost:8088/userinfo",
-            "issuer": "http://localhost:8088/"}
+            "issuer": "http://localhost:8088/",
+        }
         del self.consumer.consumer_config["request_method"]
 
         args = {
@@ -428,18 +463,17 @@ class TestOICConsumer():
         }
 
         self.consumer.begin("openid", "code")
-        result = self.consumer.do_authorization_request(state=_state,
-                                                        request_args=args)
+        result = self.consumer.do_authorization_request(state=_state, request_args=args)
         parsed = urlparse(result.headers["location"])
-        self.consumer.parse_response(AuthorizationResponse, info=parsed.query,
-                                     sformat="urlencoded")
+        self.consumer.parse_response(
+            AuthorizationResponse, info=parsed.query, sformat="urlencoded"
+        )
 
         self.consumer.complete(_state)
 
         result = self.consumer.get_user_info(_state)
         assert isinstance(result, OpenIDSchema)
-        assert _eq(result.keys(),
-                   ['name', 'email', 'verified', 'nickname', 'sub'])
+        assert _eq(result.keys(), ["name", "email", "verified", "nickname", "sub"])
 
     def test_get_userinfo_claims(self):
         _state = "state0"
@@ -450,43 +484,64 @@ class TestOICConsumer():
             "scope": ["openid"],
         }
 
-        result = self.consumer.do_authorization_request(state=_state,
-                                                        request_args=args)
+        result = self.consumer.do_authorization_request(state=_state, request_args=args)
         assert result.status_code == 302
         parsed = urlparse(result.headers["location"])
         baseurl = "{}://{}{}".format(parsed.scheme, parsed.netloc, parsed.path)
         assert baseurl == self.consumer.redirect_uris[0]
 
-        self.consumer.parse_response(AuthorizationResponse, info=parsed.query,
-                                     sformat="urlencoded")
+        self.consumer.parse_response(
+            AuthorizationResponse, info=parsed.query, sformat="urlencoded"
+        )
 
         response = self.consumer.complete(_state)
 
-        result = self.consumer.get_userinfo_claims(response['access_token'], self.consumer.userinfo_endpoint)
+        result = self.consumer.get_userinfo_claims(
+            response["access_token"], self.consumer.userinfo_endpoint
+        )
         assert isinstance(result, OpenIDSchema)
-        assert _eq(result.keys(),
-                   ['name', 'email', 'verified', 'nickname', 'sub'])
+        assert _eq(result.keys(), ["name", "email", "verified", "nickname", "sub"])
 
     def real_test_discover(self):
         c = Consumer(None, None)
         principal = "nav@connect-op.heroku.com"
         res = c.discover(principal)
         assert isinstance(res, ProviderConfigurationResponse)
-        assert _eq(res.keys(), ['registration_endpoint', 'scopes_supported',
-                                'identifiers_supported', 'token_endpoint',
-                                'flows_supported', 'version',
-                                'userinfo_endpoint',
-                                'authorization_endpoint', 'x509_url', 'issuer'])
+        assert _eq(
+            res.keys(),
+            [
+                "registration_endpoint",
+                "scopes_supported",
+                "identifiers_supported",
+                "token_endpoint",
+                "flows_supported",
+                "version",
+                "userinfo_endpoint",
+                "authorization_endpoint",
+                "x509_url",
+                "issuer",
+            ],
+        )
         assert res.version == "3.0"  # type: ignore
-        assert _eq(res.flows_supported, ['code', 'token', 'id_token',  # type: ignore
-                                         'code token', 'code id_token',
-                                         'id_token token'])
+        assert _eq(
+            res.flows_supported,  # type: ignore
+            [
+                "code",
+                "token",
+                "id_token",
+                "code token",
+                "code id_token",
+                "id_token token",
+            ],
+        )
 
     def test_discover(self, fake_oic_server):
         c = Consumer(None, None)
         mfos = fake_oic_server("https://localhost:8088")
         mfos.keyjar = SRVKEYS
-        c.http_request = mfos.http_request  # type: ignore  # FIXME: Replace with responses
+        c.http_request = (  # type: ignore  # FIXME: Replace with responses
+            mfos.http_request
+        )
 
         principal = "foo@example.com"
         res = c.discover(principal)
@@ -498,7 +553,9 @@ class TestOICConsumer():
         c.redirect_uris = ["https://example.com/authz"]
         mfos = fake_oic_server("https://example.com")
         mfos.keyjar = SRVKEYS
-        c.http_request = mfos.http_request  # type: ignore  # FIXME: Replace with responses
+        c.http_request = (  # type: ignore  # FIXME: Replace with responses
+            mfos.http_request
+        )
         location = c.discover("foo@example.com")
         info = c.provider_config(location)
 
@@ -512,22 +569,36 @@ class TestOICConsumer():
 
         c.redirect_uris = ["https://example.com/authz"]
 
-        client_info = {"client_id": "clientid", "redirect_uris": ["https://example.com/authz"]}
+        client_info = {
+            "client_id": "clientid",
+            "redirect_uris": ["https://example.com/authz"],
+        }
 
         with responses.RequestsMock() as rsps:
-            rsps.add(rsps.POST, "https://provider.example.com/registration/", json=client_info)
-            c.register("https://provider.example.com/registration/", registration_token="initial_registration_token")
-            header = rsps.calls[0].request.headers['Authorization']
+            rsps.add(
+                rsps.POST,
+                "https://provider.example.com/registration/",
+                json=client_info,
+            )
+            c.register(
+                "https://provider.example.com/registration/",
+                registration_token="initial_registration_token",
+            )
+            header = rsps.calls[0].request.headers["Authorization"]
             assert header == "Bearer aW5pdGlhbF9yZWdpc3RyYXRpb25fdG9rZW4="
 
     def _faulty_id_token(self):
-        idval = {'nonce': 'KUEYfRM2VzKDaaKD', 'sub': 'EndUserSubject',
-                 'iss': 'https://alpha.cloud.nds.rub.de', 'exp': 1420823073,
-                 'iat': 1420822473, 'aud': 'TestClient'}
+        idval = {
+            "nonce": "KUEYfRM2VzKDaaKD",
+            "sub": "EndUserSubject",
+            "iss": "https://alpha.cloud.nds.rub.de",
+            "exp": 1420823073,
+            "iat": 1420822473,
+            "aud": "TestClient",
+        }
         idts = IdToken(**idval)
 
-        _signed_jwt = idts.to_jwt(key=[SYMKey(key="TestPassword")],
-                                  algorithm="HS256")
+        _signed_jwt = idts.to_jwt(key=[SYMKey(key="TestPassword")], algorithm="HS256")
 
         # Mess with the signed id_token
         p = _signed_jwt.split(".")
@@ -539,8 +610,7 @@ class TestOICConsumer():
         _faulty_signed_jwt = self._faulty_id_token()
 
         with pytest.raises(BadSignature):
-            IdToken().from_jwt(_faulty_signed_jwt,
-                               key=[SYMKey(key="TestPassword")])
+            IdToken().from_jwt(_faulty_signed_jwt, key=[SYMKey(key="TestPassword")])
 
         # What if no verification key is given ?
         # Should also result in an exception
@@ -551,9 +621,11 @@ class TestOICConsumer():
         c = Consumer(None, None)
         c.keyjar.add_symmetric("", "TestPassword", ["sig"])
 
-        _info = {"access_token": "accessTok",
-                 "id_token": self._faulty_id_token(),
-                 "token_type": "Bearer"}
+        _info = {
+            "access_token": "accessTok",
+            "id_token": self._faulty_id_token(),
+            "token_type": "Bearer",
+        }
 
         _json = json.dumps(_info)
         with pytest.raises(ValueError):
@@ -572,8 +644,7 @@ class TestOICConsumer():
             "scope": ["openid"],
         }
 
-        result = self.consumer.do_authorization_request(state=_state,
-                                                        request_args=args)
+        result = self.consumer.do_authorization_request(state=_state, request_args=args)
         self.consumer._backup("state0")
 
         assert result.status_code == 302
