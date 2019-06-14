@@ -20,10 +20,10 @@ from oic.utils.sdb import AuthnEvent
 from oic.utils.time_util import utc_time_sans_frac
 from oic.utils.webfinger import WebFinger
 
-__author__ = 'rohe0002'
+__author__ = "rohe0002"
 
 
-class Response():
+class Response:
     headers = None  # type: Dict[str, str]
     text = None  # type: str
 
@@ -49,7 +49,7 @@ ENDPOINT = {
     "end_session_endpoint": "/end_session",
     "registration_endpoint": "/registration",
     "discovery_endpoint": "/discovery",
-    "register_endpoint": "/register"
+    "register_endpoint": "/register",
 }
 
 
@@ -99,8 +99,9 @@ class MITMServer(Server):
             assert method == "GET"
             qdict = parse_qs(query)
             response.status_code = 200
-            response.text = self.webfinger.response(qdict["resource"][0],
-                                                    "%s/" % self.name)
+            response.text = self.webfinger.response(
+                qdict["resource"][0], "%s/" % self.name
+            )
         elif path == "/.well-known/openid-configuration":
             assert method == "GET"
             response = self.openid_conf()
@@ -111,30 +112,33 @@ class MITMServer(Server):
         req = self.parse_authorization_request(query=query)
         aevent = AuthnEvent("user", "salt", authn_info="acr")
         sid = self.sdb.create_authz_session(aevent, areq=req)
-        self.sdb.do_sub(sid, 'client_salt')
+        self.sdb.do_sub(sid, "client_salt")
         _info = self.sdb[sid]
 
         if "code" in req["response_type"]:
             if "token" in req["response_type"]:
                 grant = _info["code"]
                 _dict = self.sdb.upgrade_to_token(grant)
-                _dict["oauth_state"] = "authz",
+                _dict["oauth_state"] = ("authz",)
 
                 _dict = by_schema(AuthorizationResponse(), **_dict)
                 resp = AuthorizationResponse(**_dict)
             else:
                 _state = req["state"]
-                resp = AuthorizationResponse(state=_state,
-                                             code=_info["code"])
+                resp = AuthorizationResponse(state=_state, code=_info["code"])
 
         else:  # "implicit" in req.response_type:
             grant = _info["code"]
             params = AccessTokenResponse.c_param.keys()
 
             if "token" in req["response_type"]:
-                _dict = dict([(k, v) for k, v in
-                              self.sdb.upgrade_to_token(grant).items() if k in
-                              params])
+                _dict = dict(
+                    [
+                        (k, v)
+                        for k, v in self.sdb.upgrade_to_token(grant).items()
+                        if k in params
+                    ]
+                )
                 try:
                     del _dict["refresh_token"]
                 except KeyError:
@@ -145,8 +149,7 @@ class MITMServer(Server):
             if "id_token" in req["response_type"]:
                 _idt = self.make_id_token(_info, issuer=self.name)
                 alg = "RS256"
-                ckey = self.keyjar.get_signing_key(alg2keytype(alg),
-                                                   _info["client_id"])
+                ckey = self.keyjar.get_signing_key(alg2keytype(alg), _info["client_id"])
                 _signed_jwt = _idt.to_jwt(key=ckey, algorithm=alg)
                 p = _signed_jwt.split(".")
                 p[2] = "aaa"
@@ -218,13 +221,15 @@ class MITMServer(Server):
             registration_access_token = rndstr(20)
             _client_info = req.to_dict()
             kwargs.update(_client_info)
-            _client_info.update({
-                "client_secret": client_secret,
-                "info": req.to_dict(),
-                "expires": expires,
-                "registration_access_token": registration_access_token,
-                "registration_client_uri": "register_endpoint"
-            })
+            _client_info.update(
+                {
+                    "client_secret": client_secret,
+                    "info": req.to_dict(),
+                    "expires": expires,
+                    "registration_access_token": registration_access_token,
+                    "registration_client_uri": "register_endpoint",
+                }
+            )
             self.client[client_id] = _client_info
             kwargs["registration_access_token"] = registration_access_token
             kwargs["registration_client_uri"] = "register_endpoint"
@@ -239,10 +244,12 @@ class MITMServer(Server):
             _cinfo["client_secret"] = client_secret
             _cinfo["expires"] = expires
 
-        resp = RegistrationResponse(client_id=client_id,
-                                    client_secret=client_secret,
-                                    client_secret_expires_at=expires,
-                                    **kwargs)
+        resp = RegistrationResponse(
+            client_id=client_id,
+            client_secret=client_secret,
+            client_secret_expires_at=expires,
+            **kwargs
+        )
 
         response = Response()
         response.headers = {"content-type": "application/json"}
@@ -267,8 +274,7 @@ class MITMServer(Server):
         except Exception:
             raise
 
-        resp = RegistrationResponse(client_id="anonymous",
-                                    client_secret="hemligt")
+        resp = RegistrationResponse(client_id="anonymous", client_secret="hemligt")
 
         response = Response()
         response.headers = {"content-type": "application/json"}
@@ -306,16 +312,29 @@ class MITMServer(Server):
             issuer=self.name,
             scopes_supported=["openid", "profile", "email", "address"],
             identifiers_supported=["public", "PPID"],
-            flows_supported=["code", "token", "code token", "id_token",
-                             "code id_token", "token id_token"],
+            flows_supported=[
+                "code",
+                "token",
+                "code token",
+                "id_token",
+                "code id_token",
+                "token id_token",
+            ],
             subject_types_supported=["pairwise", "public"],
-            response_types_supported=["code", "token", "id_token",
-                                      "code token", "code id_token",
-                                      "token id_token", "code token id_token"],
+            response_types_supported=[
+                "code",
+                "token",
+                "id_token",
+                "code token",
+                "code id_token",
+                "token id_token",
+                "code token id_token",
+            ],
             jwks_uri="http://example.com/oidc/jwks",
             id_token_signing_alg_values_supported=signing_algs,
             grant_types_supported=["authorization_code", "implicit"],
-            **endpoint)
+            **endpoint
+        )
 
         response = Response()
         response.headers = {"content-type": "application/json"}

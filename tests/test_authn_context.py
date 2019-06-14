@@ -10,22 +10,26 @@ from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.authn.user_cas import CasAuthnMethod
 
-__author__ = 'rolandh'
+__author__ = "rolandh"
 
-ROOT = './'
+ROOT = "./"
 
-LOOKUP = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
-                        input_encoding='utf-8', output_encoding='utf-8')
+LOOKUP = TemplateLookup(
+    directories=[ROOT + "templates", ROOT + "htdocs"],
+    input_encoding="utf-8",
+    output_encoding="utf-8",
+)
 PASSWD = {
     "diana": "krall",
     "babs": "howes",
     "upper": "crust",
     "rohe0002": "StevieRay",
-    "haho0032": "qwerty"
+    "haho0032": "qwerty",
 }
 
 try:
     from oic.utils.authn.ldap_member import UserLDAPMemberValidation
+
     SKIP_LDAP = False
 except ImportError:
     SKIP_LDAP = True
@@ -50,22 +54,32 @@ class TestAuthnBroker(object):
 
         LDAP_EXTRAVALIDATION = {
             "verify_attr": "eduPersonAffiliation",
-            "verify_attr_valid": ['employee', 'staff', 'student']
+            "verify_attr_valid": ["employee", "staff", "student"],
         }
         LDAP_EXTRAVALIDATION.update(LDAP)
 
-        ac.add(PASSWORD,
-               UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
-                                    "%s/authorization" % issuer),
-               10, "http://%s" % socket.gethostname())
+        ac.add(
+            PASSWORD,
+            UsernamePasswordMako(
+                None, "login.mako", LOOKUP, PASSWD, "%s/authorization" % issuer
+            ),
+            10,
+            "http://%s" % socket.gethostname(),
+        )
 
         try:
-            ac.add(PASSWORD,
-                   CasAuthnMethod(
-                       None, CAS_SERVER, SERVICE_URL,
-                       "%s/authorization" % issuer,
-                       UserLDAPMemberValidation(**LDAP_EXTRAVALIDATION)),
-                   20, "http://%s" % socket.gethostname())
+            ac.add(
+                PASSWORD,
+                CasAuthnMethod(
+                    None,
+                    CAS_SERVER,
+                    SERVICE_URL,
+                    "%s/authorization" % issuer,
+                    UserLDAPMemberValidation(**LDAP_EXTRAVALIDATION),
+                ),
+                20,
+                "http://%s" % socket.gethostname(),
+            )
         except Exception:
             assert len(ac) == 1
         else:

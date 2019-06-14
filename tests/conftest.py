@@ -13,8 +13,8 @@ from oic.utils.sdb import create_session_db
 @pytest.fixture
 def session_db_factory():
     def fac(issuer):
-        return create_session_db(issuer,
-                                 secret='supersecret', password='badpassword')
+        return create_session_db(issuer, secret="supersecret", password="badpassword")
+
     return fac
 
 
@@ -29,6 +29,7 @@ def fake_oic_server(session_db_factory):
 
     def fac(name):
         return MyFakeOICServer(name, session_db_factory=session_db_factory)
+
     return fac
 
 
@@ -38,6 +39,7 @@ def mitm_server(session_db_factory):
 
     def fac(name):
         return MITMServer(name, session_db_factory=session_db_factory)
+
     return fac
 
 
@@ -58,5 +60,5 @@ def provider(session_db):
         user_info_store,
         authz_handler,
         verification_function,
-        symkey
+        symkey,
     )
