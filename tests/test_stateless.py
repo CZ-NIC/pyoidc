@@ -1,6 +1,6 @@
 from oic.utils.stateless import StateLess
 
-__author__ = 'roland'
+__author__ = "roland"
 
 
 def _eq(l1, l2):
@@ -10,8 +10,7 @@ def _eq(l1, l2):
 def test_access_code():
     keys = {"oct": ["symmetric key123"]}  # keylength 16 bytes=128 bits
     st = StateLess(keys, enc_alg="A128KW", enc_method="A128CBC-HS256")
-    con = st.create_authz_session("subject",
-                                  {"redirect_uri": "https://example.com"})
+    con = st.create_authz_session("subject", {"redirect_uri": "https://example.com"})
     tok = st.get_token(con)
 
     _info = st[tok]
@@ -24,7 +23,6 @@ def test_access_code():
 def test_update_to_access_token():
     keys = {"oct": ["symmetric key123"]}
     st = StateLess(keys, enc_alg="A128KW", enc_method="A128CBC-HS256")
-    tok = st.create_authz_session("subject",
-                                  {"redirect_uri": "https://example.com"})
+    tok = st.create_authz_session("subject", {"redirect_uri": "https://example.com"})
     assert tok["aud"] == "https://example.com"
     assert tok["sub"] == "subject"

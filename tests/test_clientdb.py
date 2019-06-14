@@ -13,7 +13,6 @@ from oic.utils.clientdb import MDQClient
 
 
 class TestBaseClientDatabase(object):
-
     class DictClientDatabase(BaseClientDatabase):
         """Test implementation."""
 
@@ -37,26 +36,26 @@ class TestBaseClientDatabase(object):
 
     def test_get_missing(self):
         cdb = self.DictClientDatabase()
-        assert cdb.get('client') is None
-        assert cdb.get('client', 'spam') == 'spam'
+        assert cdb.get("client") is None
+        assert cdb.get("client", "spam") == "spam"
 
     def test_get(self):
         cdb = self.DictClientDatabase()
-        cdb['client'] = 'value'
+        cdb["client"] = "value"
 
-        assert cdb.get('client', 'spam') == 'value'
+        assert cdb.get("client", "spam") == "value"
 
     def test_contains(self):
         cdb = self.DictClientDatabase()
-        cdb['client1'] = 'spam'
+        cdb["client1"] = "spam"
 
-        assert 'client1' in cdb
-        assert 'client2' not in cdb
+        assert "client1" in cdb
+        assert "client2" not in cdb
 
     def test_len(self):
         cdb = self.DictClientDatabase()
-        cdb['client1'] = 'spam'
-        cdb['client2'] = 'eggs'
+        cdb["client1"] = "spam"
+        cdb["client2"] = "eggs"
 
         assert len(cdb) == 2
 
@@ -71,64 +70,76 @@ class TestMDQClient(object):
         self.md = MDQClient(TestMDQClient.URL)
 
     def test_get_existing_client(self):
-        metadata = {"client_id": 'client1',
-                    "client_secret": "abcd1234",
-                    "redirect_uris": ["http://example.com/rp/authz_cb"]}
-        url = TestMDQClient.URL + 'entities/client1'
+        metadata = {
+            "client_id": "client1",
+            "client_secret": "abcd1234",
+            "redirect_uris": ["http://example.com/rp/authz_cb"],
+        }
+        url = TestMDQClient.URL + "entities/client1"
         with responses.RequestsMock() as rsps:
             rsps.add(rsps.GET, url, body=json.dumps(metadata))
-            result = self.md['client1']
+            result = self.md["client1"]
 
         assert metadata == result
 
     def test_get_non_existing_client(self):
-        url = TestMDQClient.URL + 'entities/client1'
+        url = TestMDQClient.URL + "entities/client1"
         with responses.RequestsMock() as rsps:
             rsps.add(rsps.GET, url, status=404)
             with pytest.raises(NoClientInfoReceivedError):
-                self.md['client1']
+                self.md["client1"]
 
     def test_keys(self):
-        url = TestMDQClient.URL + 'entities'
+        url = TestMDQClient.URL + "entities"
         metadata = [
-            {'client_id': 'client1',
-             'client_secret': 'secret',
-             'redirect_uris': ['http://example.com']},
-            {'client_id': 'client2',
-             'client_secret': 'secret',
-             'redirect_uris': ['http://ecample2.com']},
+            {
+                "client_id": "client1",
+                "client_secret": "secret",
+                "redirect_uris": ["http://example.com"],
+            },
+            {
+                "client_id": "client2",
+                "client_secret": "secret",
+                "redirect_uris": ["http://ecample2.com"],
+            },
         ]
         with responses.RequestsMock() as rsps:
             rsps.add(rsps.GET, url, body=json.dumps(metadata))
             result = self.md.keys()
 
-        assert {'client1', 'client2'} == set(result)
+        assert {"client1", "client2"} == set(result)
 
     def test_keys_error(self):
-        url = TestMDQClient.URL + 'entities'
+        url = TestMDQClient.URL + "entities"
         with responses.RequestsMock() as rsps:
             rsps.add(rsps.GET, url, status=404)
             with pytest.raises(NoClientInfoReceivedError):
                 self.md.keys()
 
     def test_items(self):
-        url = TestMDQClient.URL + 'entities'
+        url = TestMDQClient.URL + "entities"
         metadata = [
-            {'client_id': 'client1',
-             'client_secret': 'secret',
-             'redirect_uris': ['http://example.com']},
-            {'client_id': 'client2',
-             'client_secret': 'secret',
-             'redirect_uris': ['http://ecample2.com']},
+            {
+                "client_id": "client1",
+                "client_secret": "secret",
+                "redirect_uris": ["http://example.com"],
+            },
+            {
+                "client_id": "client2",
+                "client_secret": "secret",
+                "redirect_uris": ["http://ecample2.com"],
+            },
         ]
         with responses.RequestsMock() as rsps:
             rsps.add(rsps.GET, url, body=json.dumps(metadata))
             result = self.md.items()
 
-        assert sorted(metadata, key=itemgetter('client_id')) == sorted(result, key=itemgetter('client_id'))
+        assert sorted(metadata, key=itemgetter("client_id")) == sorted(
+            result, key=itemgetter("client_id")
+        )
 
     def test_items_errors(self):
-        url = TestMDQClient.URL + 'entities'
+        url = TestMDQClient.URL + "entities"
         with responses.RequestsMock() as rsps:
             rsps.add(rsps.GET, url, status=404)
             with pytest.raises(NoClientInfoReceivedError):
@@ -136,8 +147,8 @@ class TestMDQClient(object):
 
     def test_setitem(self):
         with pytest.raises(RuntimeError):
-            self.md['client'] = 'foo'
+            self.md["client"] = "foo"
 
     def test_delitem(self):
         with pytest.raises(RuntimeError):
-            del self.md['client']
+            del self.md["client"]

@@ -5,11 +5,13 @@ from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import ErrorResponse
 
-ATR = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
-                          token_type="example",
-                          refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
-                          example_parameter="example_value",
-                          scope=["inner", "outer"])
+ATR = AccessTokenResponse(
+    access_token="2YotnFZFEjr1zCsicMWpAA",
+    token_type="example",
+    refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
+    example_parameter="example_value",
+    scope=["inner", "outer"],
+)
 AR = AuthorizationResponse(code="code", state="state")
 
 
@@ -83,10 +85,12 @@ class TestGrant(object):
         grant = Grant()
         grant.update(ATR)
 
-        atr = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
-                                  token_type="example",
-                                  refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
-                                  xscope=["inner", "outer"])
+        atr = AccessTokenResponse(
+            access_token="2YotnFZFEjr1zCsicMWpAA",
+            token_type="example",
+            refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
+            xscope=["inner", "outer"],
+        )
         token = Token(atr)
 
         grant.delete_token(token)
@@ -95,23 +99,41 @@ class TestGrant(object):
 
 class TestToken(object):
     def test_access_token(self):
-        atr = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
-                                  token_type="example", expires_in=-1,
-                                  refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
-                                  example_parameter="example_value",
-                                  xscope=["inner", "outer"])
+        atr = AccessTokenResponse(
+            access_token="2YotnFZFEjr1zCsicMWpAA",
+            token_type="example",
+            expires_in=-1,
+            refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
+            example_parameter="example_value",
+            xscope=["inner", "outer"],
+        )
         token = Token(atr)
-        assert _eq(token.keys(), ['token_expiration_time', 'access_token',
-                                  'expires_in', 'example_parameter',
-                                  'token_type',
-                                  'xscope', 'refresh_token', 'scope',
-                                  'replaced'])
+        assert _eq(
+            token.keys(),
+            [
+                "token_expiration_time",
+                "access_token",
+                "expires_in",
+                "example_parameter",
+                "token_type",
+                "xscope",
+                "refresh_token",
+                "scope",
+                "replaced",
+            ],
+        )
 
         assert token.access_token == "2YotnFZFEjr1zCsicMWpAA"
         assert token.token_type == "example"
         assert token.refresh_token == "tGzv3JOkF0XG5Qx2TlKWIA"
-        assert token.example_parameter == "example_value"  # type: ignore  # FIXME: Define __setattr__ on token?
-        assert token.xscope == ["inner", "outer"]  # type: ignore  # FIXME: Define __setattr__ on token?
+        assert (
+            token.example_parameter  # type: ignore  # FIXME: Define __setattr__ on token?
+            == "example_value"
+        )
+        assert token.xscope == [  # type: ignore  # FIXME: Define __setattr__ on token?
+            "inner",
+            "outer",
+        ]
         assert token.token_expiration_time != 0
         assert not token.is_valid()
 
@@ -121,11 +143,13 @@ def test_grant_access_token():
     grant = Grant()
     grant.add_code(resp)
 
-    atr = AccessTokenResponse(access_token="2YotnFZFEjr1zCsicMWpAA",
-                              token_type="example",
-                              refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
-                              example_parameter="example_value",
-                              scope=["inner", "outer"])
+    atr = AccessTokenResponse(
+        access_token="2YotnFZFEjr1zCsicMWpAA",
+        token_type="example",
+        refresh_token="tGzv3JOkF0XG5Qx2TlKWIA",
+        example_parameter="example_value",
+        scope=["inner", "outer"],
+    )
 
     grant.add_token(atr)
     assert len(grant.tokens) == 1

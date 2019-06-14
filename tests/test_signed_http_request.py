@@ -17,10 +17,15 @@ from oic.extension.signed_http_req import serialize_dict
 ALG = "HS256"
 SIGN_KEY = SYMKey(key="a_key", alg=ALG)
 
-DEFAULT_DATA = {"key": SIGN_KEY, "method": "GET", "host": "host",
-                "path": "/foo/bar", "query_params": {"k1": "v1", "k2": "v2"},
-                "headers": {"h1": "d1", "h2": "d2"},
-                "body": "my body"}
+DEFAULT_DATA = {
+    "key": SIGN_KEY,
+    "method": "GET",
+    "host": "host",
+    "path": "/foo/bar",
+    "query_params": {"k1": "v1", "k2": "v2"},
+    "headers": {"h1": "d1", "h2": "d2"},
+    "body": "my body",
+}
 
 
 def test_sign_empty_http_req():
@@ -43,11 +48,9 @@ def test_serialize():
         assert value == data[key]
 
 
-@pytest.mark.parametrize("value,expected", [
-    ("RS256", 256),
-    ("RS384", 384),
-    ("RS512", 512),
-])
+@pytest.mark.parametrize(
+    "value,expected", [("RS256", 256), ("RS384", 384), ("RS512", 512)]
+)
 def test_get_hash_size(value, expected):
     assert get_hash_size(value) == expected
 
@@ -76,14 +79,17 @@ def test_verify_fail_wrong_key():
         rshr.verify(signature=result, **DEFAULT_DATA)
 
 
-@pytest.mark.parametrize("param,value", [
-    ("method", "FAIL"),
-    ("host", "FAIL"),
-    ("path", "FAIL"),
-    ("query_params", {"k1": "v1", "k2": "FAIL"}),
-    ("headers", {"h1": "d1", "h2": "FAIL"}),
-    ("body", "FAIL"),
-])
+@pytest.mark.parametrize(
+    "param,value",
+    [
+        ("method", "FAIL"),
+        ("host", "FAIL"),
+        ("path", "FAIL"),
+        ("query_params", {"k1": "v1", "k2": "FAIL"}),
+        ("headers", {"h1": "d1", "h2": "FAIL"}),
+        ("body", "FAIL"),
+    ],
+)
 def test_verify_fail(param, value):
     shr = SignedHttpRequest(SIGN_KEY)
     result = shr.sign(alg=ALG, **DEFAULT_DATA)
@@ -94,10 +100,7 @@ def test_verify_fail(param, value):
         shr.verify(signature=result, **wrong_data)
 
 
-@pytest.mark.parametrize("param", [
-    "query_params",
-    "headers",
-])
+@pytest.mark.parametrize("param", ["query_params", "headers"])
 def test_verify_strict_with_too_many(param):
     shr = SignedHttpRequest(SIGN_KEY)
     result = shr.sign(alg=ALG, **DEFAULT_DATA)
@@ -105,15 +108,15 @@ def test_verify_strict_with_too_many(param):
     request_with_extra_params = copy.deepcopy(DEFAULT_DATA)
     request_with_extra_params[param]["foo"] = "bar"  # insert extra param
     with pytest.raises(ValidationError):
-        shr.verify(signature=result,
-                   strict_query_params_verification=True,
-                   strict_headers_verification=True, **request_with_extra_params)
+        shr.verify(
+            signature=result,
+            strict_query_params_verification=True,
+            strict_headers_verification=True,
+            **request_with_extra_params
+        )
 
 
-@pytest.mark.parametrize("param", [
-    "query_params",
-    "headers",
-])
+@pytest.mark.parametrize("param", ["query_params", "headers"])
 def test_verify_with_too_few(param):
     test_data = copy.deepcopy(DEFAULT_DATA)
     test_data[param]["foo"] = "bar"  # insert extra param
@@ -124,19 +127,19 @@ def test_verify_with_too_few(param):
         shr.verify(signature=result, **DEFAULT_DATA)
 
 
-@pytest.mark.parametrize("param", [
-    "query_params",
-    "headers",
-])
+@pytest.mark.parametrize("param", ["query_params", "headers"])
 def test_verify_not_strict(param):
     shr = SignedHttpRequest(SIGN_KEY)
     result = shr.sign(alg=ALG, **DEFAULT_DATA)
 
     request_with_extra_params = copy.deepcopy(DEFAULT_DATA)
     request_with_extra_params[param]["foo"] = "bar"  # insert extra param
-    shr.verify(signature=result,
-               strict_query_params_verification=False,
-               strict_headers_verification=False, **DEFAULT_DATA)
+    shr.verify(
+        signature=result,
+        strict_query_params_verification=False,
+        strict_headers_verification=False,
+        **DEFAULT_DATA
+    )
 
 
 def test_verify_fail_on_missing_body():
@@ -155,7 +158,9 @@ def test_sign_specifies_jws_typ_pop():
 def test_verify_reject_jws_wo_typ_pop():
     method = "GET"
 
-    signature_without_typ = JWS(json.dumps(dict(m=method)), alg=ALG).sign_compact([SIGN_KEY])
+    signature_without_typ = JWS(json.dumps(dict(m=method)), alg=ALG).sign_compact(
+        [SIGN_KEY]
+    )
     shr = SignedHttpRequest(SIGN_KEY)
     with pytest.raises(ValidationError) as exc:
         shr.verify(signature_without_typ, method=method)

@@ -40,9 +40,11 @@ class TestCDB(object):
         assert cdb[client_id] == info  # ensure the all info was restored
 
     def _create_new(self, client_db):
-        info = client_db.create(["https://example.com/redirect"],
-                                "https://example.com/policy",
-                                "https://example.com/logo",
-                                "https://example.com/jwks")
+        info = client_db.create(
+            ["https://example.com/redirect"],
+            "https://example.com/policy",
+            "https://example.com/logo",
+            "https://example.com/jwks",
+        )
 
         return info
