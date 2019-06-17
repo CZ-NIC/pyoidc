@@ -234,7 +234,11 @@ class TestSessionDB(object):
                 sign_alg="RS256",
             ),
             refresh_token_factory=JWTToken(
-                "R", keyjar=kj, lt_pattern={"": 24 * 3600}, iss="https://example.com/as"
+                "R",
+                keyjar=kj,
+                lt_pattern={"": 24 * 3600},
+                iss="https://example.com/as",
+                token_storage={},
             ),
         )
 
