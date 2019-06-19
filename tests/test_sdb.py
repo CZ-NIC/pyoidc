@@ -16,7 +16,6 @@ from oic.utils.sdb import AccessCodeUsed
 from oic.utils.sdb import AuthnEvent
 from oic.utils.sdb import Crypt
 from oic.utils.sdb import DefaultToken
-from oic.utils.sdb import DictRefreshDB
 from oic.utils.sdb import DictSessionBackend
 from oic.utils.sdb import ExpiredToken
 from oic.utils.sdb import WrongTokenType
@@ -83,43 +82,6 @@ class TestAuthnEvent(object):
             "authn_time": 1000,
             "valid_until": 1500,
             "authn_info": None,
-        }
-
-
-class TestDictRefreshDB(object):
-    @pytest.fixture(autouse=True)
-    def create_rdb(self):
-        self.rdb = DictRefreshDB()
-
-    def test_verify_token(self):
-        token = self.rdb.create_token(
-            "client1", "uid", "openid", "sub1", "authzreq", "sid"
-        )
-        assert self.rdb.verify_token("client1", token)
-        assert self.rdb.verify_token("client2", token) is False
-
-    def test_revoke_token(self):
-        token = self.rdb.create_token(
-            "client1", "uid", "openid", "sub1", "authzreq", "sid"
-        )
-        self.rdb.remove(token)
-        assert self.rdb.verify_token("client1", token) is False
-        with pytest.raises(KeyError):
-            self.rdb.get(token)
-
-    def test_get_token(self):
-        with pytest.raises(KeyError):
-            self.rdb.get("token")
-        token = self.rdb.create_token(
-            "client1", "uid", ["openid"], "sub1", "authzreq", "sid"
-        )
-        assert self.rdb.get(token) == {
-            "client_id": "client1",
-            "sub": "sub1",
-            "scope": ["openid"],
-            "uid": "uid",
-            "authzreq": "authzreq",
-            "sid": "sid",
         }
 
 
