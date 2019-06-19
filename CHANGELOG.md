@@ -5,7 +5,7 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
-## Unreleased
+## 1.0.0 [2019-06-19]
 
 ### Fixed
 - [#341] Using constant time comparison for password verification
