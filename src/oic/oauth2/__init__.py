@@ -1,5 +1,4 @@
 import logging
-import warnings
 from typing import Any  # noqa - This is used for MyPy
 from typing import Dict
 from typing import List  # noqa - This is used for MyPy
@@ -751,36 +750,17 @@ class Client(PBase):
 
     def do_authorization_request(
         self,
-        request=None,
         state="",
         body_type="",
         method="GET",
         request_args=None,
         extra_args=None,
         http_args=None,
-        response_cls=None,
         **kwargs
     ) -> AuthorizationResponse:
-        if request is not None:
-            warnings.warn(
-                "Passing `request` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            # TODO: This can be moved to the call once we remove the kwarg
-            request = self.message_factory.get_request_type("authorization_endpoint")
-        if response_cls is not None:
-            warnings.warn(
-                "Passing `response_cls` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            # TODO: This can be moved to the call once we remove the kwarg
-            response_cls = self.message_factory.get_response_type(
-                "authorization_endpoint"
-            )
+
+        request = self.message_factory.get_request_type("authorization_endpoint")
+        response_cls = self.message_factory.get_response_type("authorization_endpoint")
 
         if state:
             try:
@@ -828,7 +808,6 @@ class Client(PBase):
 
     def do_access_token_request(
         self,
-        request=None,
         scope: str = "",
         state: str = "",
         body_type: ENCODINGS = "json",
@@ -836,28 +815,12 @@ class Client(PBase):
         request_args=None,
         extra_args=None,
         http_args=None,
-        response_cls=None,
         authn_method="",
         **kwargs
     ) -> AccessTokenResponse:
-        if request is not None:
-            warnings.warn(
-                "Passing `request` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            # TODO: This can be moved to the call once we remove the kwarg
-            request = self.message_factory.get_request_type("token_endpoint")
-        if response_cls is not None:
-            warnings.warn(
-                "Passing `response_cls` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            # TODO: This can be moved to the call once we remove the kwarg
-            response_cls = self.message_factory.get_response_type("token_endpoint")
+
+        request = self.message_factory.get_request_type("token_endpoint")
+        response_cls = self.message_factory.get_response_type("token_endpoint")
 
         kwargs["authn_endpoint"] = "token"
         # method is default POST
@@ -898,35 +861,18 @@ class Client(PBase):
 
     def do_access_token_refresh(
         self,
-        request=None,
         state: str = "",
         body_type: ENCODINGS = "json",
         method="POST",
         request_args=None,
         extra_args=None,
         http_args=None,
-        response_cls=None,
         authn_method="",
         **kwargs
     ) -> AccessTokenResponse:
-        if request is not None:
-            warnings.warn(
-                "Passing `request` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            # TODO: This can be moved to the call once we remove the kwarg
-            request = self.message_factory.get_request_type("refresh_endpoint")
-        if response_cls is not None:
-            warnings.warn(
-                "Passing `response_cls` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            # TODO: This can be moved to the call once we remove the kwarg
-            response_cls = self.message_factory.get_response_type("refresh_endpoint")
+
+        request = self.message_factory.get_request_type("refresh_endpoint")
+        response_cls = self.message_factory.get_response_type("refresh_endpoint")
 
         token = self.get_token(also_expired=True, state=state, **kwargs)
         kwargs["authn_endpoint"] = "refresh"
@@ -1109,19 +1055,10 @@ class Client(PBase):
         issuer: str,
         keys: bool = True,
         endpoints: bool = True,
-        response_cls: Type[ASConfigurationResponse] = None,
         serv_pattern: str = OIDCONF_PATTERN,
     ) -> ASConfigurationResponse:
-        if response_cls is not None:
-            warnings.warn(
-                "Passing `response_cls` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            response_cls = self.message_factory.get_response_type(
-                "configuration_endpoint"
-            )
+
+        response_cls = self.message_factory.get_response_type("configuration_endpoint")
         if issuer.endswith("/"):
             _issuer = issuer[:-1]
         else:
@@ -1181,19 +1118,9 @@ class Server(PBase):
         return req
 
     def parse_authorization_request(
-        self,
-        request: Type[AuthorizationRequest] = None,
-        url: str = None,
-        query: dict = None,
+        self, url: str = None, query: dict = None
     ) -> AuthorizationRequest:
-        if request is not None:
-            warnings.warn(
-                "Passing `request` is deprecated. Please use `message_factory`.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            request = self.message_factory.get_request_type("authorization_endpoint")
+        request = self.message_factory.get_request_type("authorization_endpoint")
         return self.parse_url_request(request, url, query)
 
     def parse_jwt_request(
@@ -1220,28 +1147,12 @@ class Server(PBase):
         req.verify()
         return req
 
-    def parse_token_request(
-        self, request: Type[AccessTokenRequest] = None, body: str = None
-    ) -> AccessTokenRequest:
-        if request is not None:
-            warnings.warn(
-                "Passing `request` is deprecated. Please use `message_factory`.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            request = self.message_factory.get_request_type("token_endpoint")
+    def parse_token_request(self, body: str = None) -> AccessTokenRequest:
+        request = self.message_factory.get_request_type("token_endpoint")
         return self.parse_body_request(request, body)
 
     def parse_refresh_token_request(
-        self, request: Type[RefreshAccessTokenRequest] = None, body: str = None
+        self, body: str = None
     ) -> RefreshAccessTokenRequest:
-        if request is not None:
-            warnings.warn(
-                "Passing `request` is deprecated. Please use `message_factory`.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            request = self.message_factory.get_request_type("refresh_endpoint")
+        request = self.message_factory.get_request_type("refresh_endpoint")
         return self.parse_body_request(request, body)

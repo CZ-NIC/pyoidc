@@ -43,7 +43,6 @@ from oic.oauth2.message import Message
 from oic.oauth2.message import MessageFactory
 from oic.oauth2.util import get_or_post
 from oic.oic.message import SCOPE2CLAIMS
-from oic.oic.message import AccessTokenRequest
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AuthorizationErrorResponse
 from oic.oic.message import AuthorizationRequest
@@ -57,7 +56,6 @@ from oic.oic.message import JasonWebToken
 from oic.oic.message import OIDCMessageFactory
 from oic.oic.message import OpenIDRequest
 from oic.oic.message import OpenIDSchema
-from oic.oic.message import RefreshAccessTokenRequest
 from oic.oic.message import RefreshSessionRequest
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import RegistrationResponse
@@ -636,28 +634,14 @@ class Client(oauth2.Client):
 
     def do_authorization_request(
         self,
-        request=None,
         state="",
         body_type="",
         method="GET",
         request_args=None,
         extra_args=None,
         http_args=None,
-        response_cls=None,
         **kwargs
     ):
-        if request is not None:
-            warnings.warn(
-                "Passing `request` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        if response_cls is not None:
-            warnings.warn(
-                "Passing `response_cls` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
         algs = self.sign_enc_algs("id_token")
 
         if "code_challenge" in self.config:
@@ -665,20 +649,17 @@ class Client(oauth2.Client):
             request_args.update(_args)
 
         return super().do_authorization_request(
-            request=request,
             state=state,
             body_type=body_type,
             method=method,
             request_args=request_args,
             extra_args=extra_args,
             http_args=http_args,
-            response_cls=response_cls,
             algs=algs,
         )
 
     def do_access_token_request(
         self,
-        request=None,
         scope="",
         state="",
         body_type="json",
@@ -686,25 +667,10 @@ class Client(oauth2.Client):
         request_args=None,
         extra_args=None,
         http_args=None,
-        response_cls=None,
         authn_method="client_secret_basic",
         **kwargs
     ):
-
-        if request is not None:
-            warnings.warn(
-                "Passing `request` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        if response_cls is not None:
-            warnings.warn(
-                "Passing `response_cls` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
         atr = super().do_access_token_request(
-            request=request,
             scope=scope,
             state=state,
             body_type=body_type,
@@ -712,7 +678,6 @@ class Client(oauth2.Client):
             request_args=request_args,
             extra_args=extra_args,
             http_args=http_args,
-            response_cls=response_cls,
             authn_method=authn_method,
             **kwargs
         )
@@ -730,7 +695,6 @@ class Client(oauth2.Client):
 
     def do_registration_request(
         self,
-        request=None,
         scope="",
         state="",
         body_type="json",
@@ -738,17 +702,8 @@ class Client(oauth2.Client):
         request_args=None,
         extra_args=None,
         http_args=None,
-        response_cls=None,
     ):
-
-        if request is not None:
-            warnings.warn(
-                "Passing `request` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            request = self.message_factory.get_request_type("registration_endpoint")
+        request = self.message_factory.get_request_type("registration_endpoint")
         url, body, ht_args, csi = self.request_info(
             request,
             method=method,
@@ -763,16 +718,7 @@ class Client(oauth2.Client):
         else:
             http_args.update(http_args)
 
-        if response_cls is None:
-            response_cls = self.message_factory.get_response_type(
-                "registration_endpoint"
-            )
-        else:
-            warnings.warn(
-                "Passing `response_cls` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
+        response_cls = self.message_factory.get_response_type("registration_endpoint")
         response = self.request_and_return(
             url, response_cls, method, body, body_type, state=state, http_args=http_args
         )
@@ -780,7 +726,6 @@ class Client(oauth2.Client):
 
     def do_check_session_request(
         self,
-        request=None,
         scope="",
         state="",
         body_type="json",
@@ -788,26 +733,10 @@ class Client(oauth2.Client):
         request_args=None,
         extra_args=None,
         http_args=None,
-        response_cls=None,
     ):
-        if request is not None:
-            warnings.warn(
-                "Passing `request` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            request = self.message_factory.get_request_type("checksession_endpoint")
-        if response_cls is not None:
-            warnings.warn(
-                "Passing `response_cls` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            response_cls = self.message_factory.get_response_type(
-                "checksession_endpoint"
-            )
+
+        request = self.message_factory.get_request_type("checksession_endpoint")
+        response_cls = self.message_factory.get_response_type("checksession_endpoint")
 
         url, body, ht_args, csi = self.request_info(
             request,
@@ -829,7 +758,6 @@ class Client(oauth2.Client):
 
     def do_check_id_request(
         self,
-        request=None,
         scope="",
         state="",
         body_type="json",
@@ -837,24 +765,9 @@ class Client(oauth2.Client):
         request_args=None,
         extra_args=None,
         http_args=None,
-        response_cls=None,
     ):
-        if request is not None:
-            warnings.warn(
-                "Passing `request` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            request = self.message_factory.get_request_type("checkid_endpoint")
-        if response_cls is not None:
-            warnings.warn(
-                "Passing `response_cls` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            response_cls = self.message_factory.get_response_type("checkid_endpoint")
+        request = self.message_factory.get_request_type("checkid_endpoint")
+        response_cls = self.message_factory.get_response_type("checkid_endpoint")
 
         url, body, ht_args, csi = self.request_info(
             request,
@@ -876,7 +789,6 @@ class Client(oauth2.Client):
 
     def do_end_session_request(
         self,
-        request=None,
         scope="",
         state="",
         body_type="",
@@ -884,24 +796,9 @@ class Client(oauth2.Client):
         request_args=None,
         extra_args=None,
         http_args=None,
-        response_cls=None,
     ):
-        if request is not None:
-            warnings.warn(
-                "Passing `request` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            request = self.message_factory.get_request_type("endsession_endpoint")
-        if response_cls is not None:
-            warnings.warn(
-                "Passing `request` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            response_cls = self.message_factory.get_response_type("endsession_endpoint")
+        request = self.message_factory.get_request_type("endsession_endpoint")
+        response_cls = self.message_factory.get_response_type("endsession_endpoint")
         url, body, ht_args, _ = self.request_info(
             request,
             method=method,
@@ -1582,10 +1479,6 @@ class Server(oauth2.Server):
 
         return parse_qs(query)
 
-    def parse_token_request(self, request=AccessTokenRequest, body=None):
-        """Overridden to use OIC Message type."""
-        return super().parse_token_request(request=request, body=body)
-
     def handle_request_uri(self, request_uri, verify=True, sender=""):
         """
         Handle request URI.
@@ -1723,10 +1616,6 @@ class Server(oauth2.Server):
         return super().parse_jwt_request(
             request=request, txt=txt, keyjar=keyjar, verify=verify, sender=sender
         )
-
-    def parse_refresh_token_request(self, request=RefreshAccessTokenRequest, body=None):
-        """Overridden to use OIC Message type."""
-        return super().parse_refresh_token_request(request=request, body=body)
 
     def parse_check_session_request(self, url=None, query=None):
         param = self._parse_urlencoded(url, query)

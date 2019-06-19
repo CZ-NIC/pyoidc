@@ -393,23 +393,15 @@ class Provider(object):
             return False
         return True
 
-    def provider_features(self, pcr_class=None, provider_config=None):
+    def provider_features(self, provider_config=None):
         """
         Present what the server capabilities are.
 
-        :param pcr_class:
         :return: ProviderConfigurationResponse instance
         """
-        if pcr_class is not None:
-            warnings.warn(
-                "`pcr_class` is deprecated, please use `message_factory`.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            pcr_class = self.server.message_factory.get_response_type(
-                "configuration_endpoint"
-            )
+        pcr_class = self.server.message_factory.get_response_type(
+            "configuration_endpoint"
+        )
 
         _provider_info = pcr_class(**self.default_capabilities)
         _provider_info["scopes_supported"] = self.scopes
@@ -429,24 +421,16 @@ class Provider(object):
 
         return _provider_info
 
-    def create_providerinfo(self, pcr_class=None, setup=None):
+    def create_providerinfo(self, setup=None):
         """
         Dynamically create the provider info response.
 
-        :param pcr_class:
         :param setup:
         :return:
         """
-        if pcr_class is not None:
-            warnings.warn(
-                "Passing `pcr_class` is deprecated. Please use `message_factory.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            pcr_class = self.server.message_factory.get_response_type(
-                "configuration_endpoint"
-            )
+        pcr_class = self.server.message_factory.get_response_type(
+            "configuration_endpoint"
+        )
         _provider_info = copy.deepcopy(self.capabilities.to_dict())
 
         if self.jwks_uri and self.keyjar:
@@ -574,30 +558,21 @@ class Provider(object):
     def filter_request(self, req):
         return req
 
-    def auth_init(self, request, request_class=None):
+    def auth_init(self, request):
         """
         Start the authentication process.
 
         :param request: The AuthorizationRequest
         :return:
         """
-        if request_class is not None:
-            warnings.warn(
-                "Passing `request_class` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            request_class = self.server.message_factory.get_request_type(
-                "authorization_endpoint"
-            )
+        request_class = self.server.message_factory.get_request_type(
+            "authorization_endpoint"
+        )
         logger.debug("Request: '%s'" % sanitize(request))
         # Same serialization used for GET and POST
 
         try:
-            areq = self.server.parse_authorization_request(
-                request=request_class, query=request
-            )
+            areq = self.server.parse_authorization_request(query=request)
         except (MissingRequiredValue, MissingRequiredAttribute, AuthzError) as err:
             logger.debug("%s" % err)
             areq = request_class()
