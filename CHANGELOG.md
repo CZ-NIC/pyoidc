@@ -5,6 +5,13 @@ The format is based on the [KeepAChangeLog] project.
 
 [KeepAChangeLog]: http://keepachangelog.com/
 
+## Unreleased
+
+### Fixed
+- [#669] Install as PEP561 compliant package
+
+[#669]: https://github.com/OpenIDC/pyoidc/issues/669
+
 ## 1.0.0 [2019-06-19]
 
 ### Fixed

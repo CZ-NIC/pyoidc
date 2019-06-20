@@ -63,6 +63,8 @@ setup(
         ]
     },
     package_dir={"": "src"},
+    package_data={"oic": ["py.typed"]},
+    include_package_data=True,
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: Apache Software License",
