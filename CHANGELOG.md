@@ -7,13 +7,16 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
-### Fixed
-- [#669] Install as PEP561 compliant package
-
 ### Removed
 - [#671] Removed deprecated request/response_cls kwargs from Provider/Client methods
 
 [#671]: https://github.com/OpenIDC/pyoidc/pull/XXX
+
+## 1.0.1 [2019-06-30]
+
+### Fixed
+- [#669] Install as PEP561 compliant package
+
 [#669]: https://github.com/OpenIDC/pyoidc/issues/669
 
 ## 1.0.0 [2019-06-19]
