@@ -12,6 +12,7 @@ from requests import Response
 
 from oic.exception import RegistrationError
 from oic.oauth2.exception import OtherError
+from oic.oauth2.message import MessageTuple
 from oic.oic import DEF_SIGN_ALG
 from oic.oic import Client
 from oic.oic import Grant
@@ -29,6 +30,7 @@ from oic.oic.message import Claims
 from oic.oic.message import ClaimsRequest
 from oic.oic.message import EndSessionRequest
 from oic.oic.message import IdToken
+from oic.oic.message import OIDCMessageFactory
 from oic.oic.message import OpenIDRequest
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import RefreshAccessTokenRequest
@@ -151,12 +153,6 @@ class TestClient(object):
         assert _eq(resp.keys(), ["token_type", "state", "access_token", "scope"])
 
     def test_access_token_request_with_custom_response_class(self):
-        args = {"response_type": ["code"], "scope": ["openid"]}
-        r = self.client.do_authorization_request(state="state0", request_args=args)
-
-        self.client.parse_response(
-            AuthorizationResponse, r.headers["location"], sformat="urlencoded"
-        )
 
         # AccessTokenResponse wrapper class
         class AccessTokenResponseWrapper(AccessTokenResponse):
@@ -172,9 +168,23 @@ class TestClient(object):
                     self["raw_id_token"] = self["id_token"]
                 return super(AccessTokenResponseWrapper, self).verify(**kwargs)
 
-        resp = self.client.do_access_token_request(
-            scope="openid", state="state0", response_cls=AccessTokenResponseWrapper
+        args = {"response_type": ["code"], "scope": ["openid"]}
+
+        class CustomMessageFactory(OIDCMessageFactory):
+            token_endpoint = MessageTuple(
+                AccessTokenRequest, AccessTokenResponseWrapper
+            )
+
+        # Change message_factory
+        self.client.message_factory = CustomMessageFactory
+
+        r = self.client.do_authorization_request(state="state0", request_args=args)
+
+        self.client.parse_response(
+            AuthorizationResponse, r.headers["location"], sformat="urlencoded"
         )
+
+        resp = self.client.do_access_token_request(scope="openid", state="state0")
 
         assert isinstance(resp, AccessTokenResponse)
         assert isinstance(resp, AccessTokenResponseWrapper)

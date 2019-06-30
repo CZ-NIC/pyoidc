@@ -787,16 +787,10 @@ class Provider(AProvider):
 
         return req
 
-    def auth_init(self, request, request_class=None):
+    def auth_init(self, request):
         """Overriden since the filter_request can throw an InvalidRequest."""
-        if request_class is not None:
-            warnings.warn(
-                "Passing `request_class` is deprecated. Please use `message_factory` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
         try:
-            return super().auth_init(request, request_class)
+            return super().auth_init(request)
         except InvalidRequest as err:
             return error_response("invalid_request", "%s" % err)
 
@@ -1774,45 +1768,13 @@ class Provider(AProvider):
             status_code=403,
         )
 
-    def create_providerinfo(self, pcr_class=None, setup=None):
-        """
-        Overridden to use the proper message class.
-
-        Can be removed once pcr_class is dropped.
-        """
-        if pcr_class is not None:
-            warnings.warn(
-                "Passing `pcr_class` is deprecated. Please use `message_factory.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            pcr_class = self.server.message_factory.get_response_type(
-                "configuration_endpoint"
-            )
-        return super().create_providerinfo(pcr_class=pcr_class, setup=setup)
-
-    def provider_features(self, pcr_class=None, provider_config=None):
+    def provider_features(self, provider_config=None):
         """
         Specify what the server capabilities are.
 
-        :param pcr_class:
         :return: ProviderConfigurationResponse instance
         """
-        if pcr_class is not None:
-            warnings.warn(
-                "Passing `pcr_class` is deprecated. Please use `message_factory.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        else:
-            pcr_class = self.server.message_factory.get_response_type(
-                "configuration_endpoint"
-            )
-
-        _provider_info = super().provider_features(
-            pcr_class=pcr_class, provider_config=provider_config
-        )
+        _provider_info = super().provider_features(provider_config=provider_config)
 
         # Parse scopes - override the base class
         _scopes = list(SCOPE2CLAIMS.keys())
