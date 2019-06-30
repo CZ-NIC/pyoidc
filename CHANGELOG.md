@@ -7,6 +7,8 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+## 1.0.1 [2019-06-30]
+
 ### Fixed
 - [#669] Install as PEP561 compliant package
 
