@@ -1,7 +1,6 @@
 import copy
 import json
 import logging
-import warnings
 from collections import namedtuple
 from collections.abc import MutableMapping
 from json import JSONDecodeError
@@ -1158,35 +1157,6 @@ class ASConfigurationResponse(Message):
         "code_challenge_methods_supported": OPTIONAL_LIST_OF_STRINGS,
     }
     c_default = {"version": "3.0"}
-
-
-MSG = {
-    "Message": Message,
-    "ErrorResponse": ErrorResponse,
-    "AuthorizationErrorResponse": AuthorizationErrorResponse,
-    "TokenErrorResponse": TokenErrorResponse,
-    "AccessTokenRequest": AccessTokenRequest,
-    "AuthorizationRequest": AuthorizationRequest,
-    "AuthorizationResponse": AuthorizationResponse,
-    "AccessTokenResponse": AccessTokenResponse,
-    "NoneResponse": NoneResponse,
-    "ROPCAccessTokenRequest": ROPCAccessTokenRequest,
-    "CCAccessTokenRequest": CCAccessTokenRequest,
-    "RefreshAccessTokenRequest": RefreshAccessTokenRequest,
-    "ResourceRequest": ResourceRequest,
-    "ASConfigurationResponse": ASConfigurationResponse,
-}
-
-
-def factory(msgtype):
-    warnings.warn(
-        "`factory` is deprecated. Use `OauthMessageFactory` instead.",
-        DeprecationWarning,
-    )
-    try:
-        return MSG[msgtype]
-    except KeyError:
-        raise FormatError("Unknown message type: %s" % msgtype)
 
 
 MessageTuple = namedtuple("MessageTuple", ["request_cls", "response_cls"])

@@ -1,5 +1,4 @@
 import inspect
-import sys
 from urllib.parse import urlparse
 
 import requests
@@ -188,34 +187,6 @@ class ClientUpdateRequest(RegistrationRequest):
             "client_assertion": SINGLE_OPTIONAL_STRING,
         }
     )
-
-
-MSG = {
-    "RegistrationRequest": RegistrationRequest,
-    "ClientInfoResponse": ClientInfoResponse,
-    "ClientRegistrationError": ClientRegistrationError,
-    "ClientUpdateRequest": ClientUpdateRequest,
-    "TokenRevocationRequest": TokenRevocationRequest,
-    "TokenIntrospectionRequest": TokenIntrospectionRequest,
-    "TokenIntrospectionResponse": TokenIntrospectionResponse,
-    "SoftwareStatement": SoftwareStatement,
-    "StateJWT": StateJWT,
-}
-
-
-def factory(msgtype):
-    for _, obj in inspect.getmembers(sys.modules[__name__]):
-        if inspect.isclass(obj) and issubclass(obj, Message):
-            try:
-                if obj.__name__ == msgtype:
-                    return obj
-            except AttributeError:
-                pass
-
-    # check among standard OAuth2 messages
-    from oic.oauth2 import message
-
-    return message.factory(msgtype)
 
 
 def make_software_statement(keyjar, iss, **kwargs):
