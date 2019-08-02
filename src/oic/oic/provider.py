@@ -4,7 +4,6 @@ import json
 import logging
 import socket
 import time
-import warnings
 from functools import cmp_to_key
 from typing import Dict  # noqa
 from typing import List  # noqa
@@ -280,17 +279,6 @@ class Provider(AProvider):
         self.authn_as = None
         self.preferred_id_type = "public"
         self.hostname = hostname or socket.gethostname()
-
-        self.register_endpoint = None
-        for endp in self.endp:
-            if endp.etype == "registration":
-                endpoint = urljoin(self.baseurl, endp.url)
-                warnings.warn(
-                    "Using `register_endpoint` is deprecated, please use `registration_endpoint` instead.",
-                    DeprecationWarning,
-                )
-                self.register_endpoint = endpoint
-                break
 
         self.force_jws = {"request_object": False, "id_token": False, "userinfo": False}
 
