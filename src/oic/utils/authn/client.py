@@ -1,6 +1,5 @@
 import base64
 import logging
-import warnings
 from urllib.parse import quote_plus
 
 from jwkest import Invalid
@@ -254,22 +253,6 @@ class BearerBody(ClientAuthnMethod):
                 cis["access_token"] = self.cli.get_token(**kwargs).access_token
 
         return http_args
-
-
-def bearer_auth(req, authn):
-    """
-    Pick out the access token, either in HTTP_Authorization header or in request body.
-
-    :param req:
-    :param authn:
-    :return:
-    """
-    warnings.warn("`bearer_auth` is deprecated.", DeprecationWarning, stacklevel=2)
-    try:
-        return req["access_token"]
-    except KeyError:
-        assert authn.startswith("Bearer ")
-        return authn[7:]
 
 
 class JWSAuthnMethod(ClientAuthnMethod):

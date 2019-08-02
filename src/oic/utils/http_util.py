@@ -1,11 +1,9 @@
 import base64
-import cgi
 import hashlib
 import hmac
 import logging
 import os
 import time
-import warnings
 from http import client
 from http.cookies import SimpleCookie
 from typing import Dict  # noqa
@@ -220,26 +218,6 @@ R2C = {
 
 def factory(code, message, **kwargs):
     return R2C[code](message, **kwargs)
-
-
-def extract(environ, empty=False, err=False):
-    """
-    Extract strings in form data and returns a dict.
-
-    :param environ: WSGI environ
-    :param empty: Stops on empty fields (default: Fault)
-    :param err: Stops on errors in fields (default: Fault)
-    """
-    warnings.warn("This function is deprecated.", DeprecationWarning)
-    formdata = cgi.parse(environ["wsgi.input"], environ, empty, err)
-    # Remove single entries from lists
-    new_formdata = {}  # type: Dict[str, Union[str, List[str]]]
-    for key, value in formdata.items():
-        if len(value) == 1:
-            new_formdata[key] = value[0]
-        else:
-            new_formdata[key] = value
-    return new_formdata
 
 
 def geturl(environ, query=True, path=True):
