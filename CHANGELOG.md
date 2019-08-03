@@ -3,14 +3,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on the [KeepAChangeLog] project.
 
-[KeepAChangeLog]: http://keepachangelog.com/
+[KeepAChangeLog]: https://keepachangelog.com/
 
 ## Unreleased
 
 ### Removed
 - [#671] Removed deprecated request/response_cls kwargs from Provider/Client methods
 
-[#671]: https://github.com/OpenIDC/pyoidc/pull/XXX
+[#671]: https://github.com/OpenIDC/pyoidc/pull/671
 
 ## 1.0.1 [2019-06-30]
 
@@ -73,7 +73,7 @@ The format is based on the [KeepAChangeLog] project.
 [#638]: https://github.com/OpenIDC/pyoidc/issues/638
 [#146]: https://github.com/OpenIDC/pyoidc/issues/146
 [#664]: https://github.com/OpenIDC/pyoidc/pull/664
-[#644]: https://github.com/OpenIDC/pyoidc/pull/644
+[#644]: https://github.com/OpenIDC/pyoidc/issues/644
 
 ## 0.15.1 [2019-01-31]
 
@@ -111,17 +111,17 @@ The format is based on the [KeepAChangeLog] project.
 [#553]: https://github.com/OpenIDC/pyoidc/pull/553
 [#557]: https://github.com/OpenIDC/pyoidc/pull/557
 [#562]: https://github.com/OpenIDC/pyoidc/issues/562
-[#565]: https://github.com/OpenIDC/pyoidc/issues/565
+[#565]: https://github.com/OpenIDC/pyoidc/pull/565
 [#577]: https://github.com/OpenIDC/pyoidc/pull/577
 [#566]: https://github.com/OpenIDC/pyoidc/issues/566
 [#547]: https://github.com/OpenIDC/pyoidc/issues/547
 [#268]: https://github.com/OpenIDC/pyoidc/issues/268
-[#571]: https://github.com/OpenIDC/pyoidc/issues/571
+[#571]: https://github.com/OpenIDC/pyoidc/pull/571
 [#579]: https://github.com/OpenIDC/pyoidc/issues/579
 [#581]: https://github.com/OpenIDC/pyoidc/issues/581
 [#542]: https://github.com/OpenIDC/pyoidc/pull/542
 [#587]: https://github.com/OpenIDC/pyoidc/pull/587
-[#582]: https://github.com/OpenIDC/pyoidc/issues/582
+[#582]: https://github.com/OpenIDC/pyoidc/pull/582
 [#590]: https://github.com/OpenIDC/pyoidc/pull/590
 
 ## 0.14.0 [2018-05-15]
@@ -150,7 +150,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#496] Ability to specify additional supported scopes for oic.Provider
 - [#432] Ability to specify Initial Access Token for ``Client.register``
 
-[#494]: https://github/com/OpenIDC/issues/494
+[#494]: https://github.com/OpenIDC/pyoidc/issues/494
 [#496]: https://github.com/OpenIDC/pyoidc/issues/496
 [#503]: https://github.com/OpenIDC/pyoidc/issues/503
 [#508]: https://github.com/OpenIDC/pyoidc/issues/508
@@ -291,7 +291,7 @@ The format is based on the [KeepAChangeLog] project.
 
 [#401]: https://github.com/OpenIDC/pyoidc/pull/401
 [#386]: https://github.com/OpenIDC/pyoidc/pull/386
-[#380]: https://github.com/OpenIDC/pyoidc/pull/380
+[#380]: https://github.com/OpenIDC/pyoidc/issues/380
 [#317]: https://github.com/OpenIDC/pyoidc/pull/317
 [#313]: https://github.com/OpenIDC/pyoidc/issues/313
 [#387]: https://github.com/OpenIDC/pyoidc/pull/387
@@ -303,12 +303,12 @@ The format is based on the [KeepAChangeLog] project.
 [#349]: https://github.com/OpenIDC/pyoidc/issues/349
 [#358]: https://github.com/OpenIDC/pyoidc/pull/358
 [#362]: https://github.com/OpenIDC/pyoidc/pull/362
-[#363]: https://github.com/OpenIDC/pyoidc/issue/363
+[#363]: https://github.com/OpenIDC/pyoidc/issues/363
 [#368]: https://github.com/OpenIDC/pyoidc/issues/368
 [#369]: https://github.com/OpenIDC/pyoidc/pull/369
 [#373]: https://github.com/OpenIDC/pyoidc/pull/373
 [#374]: https://github.com/OpenIDC/pyoidc/pull/374
-[#392]: https://github.com/OpenIDC/pyoidc/issue/392
+[#392]: https://github.com/OpenIDC/pyoidc/issues/392
 
 ## 0.10.0.0 [2017-03-28]
 

@@ -43,6 +43,10 @@ matrix:
         - docker build docker/integration_tests -t oidctest-local
         - docker run --net=host --name=oidctest-it -d oidctest-local
         - docker container start oidctest-it -a
+    - language: ruby
+      rvm: 2.4.1
+      install: gem install awesome_bot
+      script: awesome_bot CHANGELOG.md
 
 notifications:
   email: false
