@@ -4,6 +4,7 @@ import logging
 import warnings
 from collections import MutableMapping
 from collections import namedtuple
+from json import JSONDecodeError
 from typing import Any  # noqa - This is used for MyPy
 from typing import List  # noqa - This is used for MyPy
 from typing import Mapping  # noqa - This is used for MyPy
@@ -356,7 +357,7 @@ class Message(MutableMapping):
                 if vtyp is bool:
                     self._dict[skey] = val
                 else:
-                    raise ValueError(
+                    raise ParameterError(
                         '"{}", wrong type of value for "{}"'.format(val, skey)
                     )
             elif isinstance(val, vtyp):  # Not necessary to do anything
@@ -371,13 +372,13 @@ class Message(MutableMapping):
                     try:
                         self._dict[skey] = int(val)
                     except (ValueError, TypeError):
-                        raise ValueError(
+                        raise ParameterError(
                             '"{}", wrong type of value for "{}"'.format(val, skey)
                         )
                     else:
                         return
                 elif vtyp is bool:
-                    raise ValueError(
+                    raise ParameterError(
                         '"{}", wrong type of value for "{}"'.format(val, skey)
                     )
 
@@ -455,8 +456,15 @@ class Message(MutableMapping):
         else:
             return json.dumps(self.to_dict(1), indent=indent)
 
-    def from_json(self, txt, **kwargs):
-        return self.from_dict(json.loads(txt))
+    def from_json(self, txt: str, **kwargs) -> "Message":
+        """Create the Message from json encoded string."""
+        try:
+            unpacked = json.loads(txt)
+        except JSONDecodeError:
+            raise DecodeError("Cannot unpack, not a valid JSON.")
+        if not isinstance(unpacked, dict):
+            raise DecodeError("Cannot unpack, not a valid message.")
+        return self.from_dict(unpacked)
 
     def to_jwt(self, key=None, algorithm="", lev=0):
         """

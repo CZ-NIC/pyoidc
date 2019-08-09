@@ -18,6 +18,7 @@ from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import AuthorizationErrorResponse
 from oic.oauth2.message import AuthorizationRequest
 from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import DecodeError
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import FormatError
 from oic.oauth2.message import GrantExpired
@@ -425,7 +426,7 @@ class TestClient(object):
                 AccessTokenResponse, info=jerr, sformat="urlencoded"
             )
 
-        with pytest.raises(ValueError):
+        with pytest.raises(DecodeError):
             self.client.parse_response(AccessTokenResponse, info=uerr)
 
         with pytest.raises(FormatError):
