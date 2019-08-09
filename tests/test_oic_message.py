@@ -72,7 +72,7 @@ def test_openidschema():
     ],
 )
 def test_openidschema_from_json(json_param):
-    with pytest.raises(ValueError):
+    with pytest.raises(MessageException):
         OpenIDSchema().from_json(json_param)
 
 
@@ -102,7 +102,7 @@ def test_claim_booleans(json_param):
     ],
 )
 def test_claim_not_booleans(json_param):
-    with pytest.raises(ValueError):
+    with pytest.raises(MessageException):
         OpenIDSchema().from_json(json_param)
 
 

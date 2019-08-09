@@ -1567,7 +1567,7 @@ class Provider(AProvider):
         )
         try:
             request = request_cls().deserialize(request, "json")
-        except ValueError:
+        except MessageException:
             request = request_cls().deserialize(request)
 
         logger.info("registration_request:%s" % sanitize(request.to_dict()))
