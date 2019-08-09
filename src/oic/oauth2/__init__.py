@@ -839,6 +839,7 @@ class Client(PBase):
             http_args = ht_args
         else:
             http_args.update(ht_args)
+            http_args.pop("password", None)
 
         if self.events is not None:
             self.events.store("request_url", url)
