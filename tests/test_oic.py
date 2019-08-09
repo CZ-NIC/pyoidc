@@ -97,7 +97,7 @@ class TestClient(object):
         }
         self.mfos = fake_oic_server("http://example.com")
         self.mfos.keyjar = KEYJ
-        self.client.http_request = self.mfos.http_request
+#        self.client.http_request = self.mfos.http_request
 
     def test_construct_authz_req_with_request_object(self, tmpdir):
         path = tmpdir.strpath
