@@ -2,9 +2,11 @@ import json
 import os
 import time
 from collections import Counter
+from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
 import pytest
+import responses
 from jwkest.jws import alg2keytype
 from jwkest.jws import left_hash
 from jwkest.jwt import JWT
@@ -82,22 +84,19 @@ def _eq(l1, l2):
 
 class TestClient(object):
     @pytest.fixture(autouse=True)
-    def create_client(self, fake_oic_server):
-        self.redirect_uri = "http://example.com/redirect"
+    def create_client(self):
+        self.redirect_uri = "https://example.com/redirect"
         self.client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
         self.client.redirect_uris = [self.redirect_uri]
-        self.client.authorization_endpoint = "http://example.com/authorization"
-        self.client.token_endpoint = "http://example.com/token"
-        self.client.userinfo_endpoint = "http://example.com/userinfo"
+        self.client.authorization_endpoint = "https://example.com/authorization"
+        self.client.token_endpoint = "https://example.com/token"
+        self.client.userinfo_endpoint = "https://example.com/userinfo"
         self.client.check_session_endpoint = "https://example.com/check_session"
         self.client.client_secret = "abcdefghijklmnop"
         self.client.keyjar[""] = KC_RSA
         self.client.behaviour = {
             "request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]
         }
-        self.mfos = fake_oic_server("http://example.com")
-        self.mfos.keyjar = KEYJ
-#        self.client.http_request = self.mfos.http_request
 
     def test_construct_authz_req_with_request_object(self, tmpdir):
         path = tmpdir.strpath
@@ -112,7 +111,7 @@ class TestClient(object):
         jwt = JWT().unpack(data)
         payload = jwt.payload()
 
-        assert payload["redirect_uri"] == "http://example.com/redirect"
+        assert payload["redirect_uri"] == "https://example.com/redirect"
         assert payload["client_id"] == CLIENT_ID
         assert "nonce" in payload
 
@@ -131,24 +130,52 @@ class TestClient(object):
 
     def test_do_authorization_request(self):
         args = {"response_type": ["code"], "scope": "openid"}
-        result = self.client.do_authorization_request(state="state0", request_args=args)
-        assert result.status_code == 302
+
+        location = "https://example.com/redirect?code=code&state=state0"
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                responses.GET,
+                "https://example.com/authorization",
+                status=302,
+                headers={"location": location},
+            )
+            result = self.client.do_authorization_request(
+                state="state0", request_args=args
+            )
         _loc = result.headers["location"]
-        assert _loc.startswith(self.client.redirect_uris[0])
         _, query = _loc.split("?")
 
         self.client.parse_response(
-            AuthorizationResponse, info=query, sformat="urlencoded"
+            AuthorizationResponse, info=_loc, sformat="urlencoded"
         )
 
     def test_access_token_request(self):
         args = {"response_type": ["code"], "scope": ["openid"]}
-        r = self.client.do_authorization_request(state="state0", request_args=args)
-        self.client.parse_response(
-            AuthorizationResponse, r.headers["location"], sformat="urlencoded"
-        )
+        location = "https://example.com/redirect?code=code&state=state0"
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                responses.GET,
+                "https://example.com/authorization",
+                status=302,
+                headers={"location": location},
+            )
+            rsps.add(
+                responses.POST,
+                "https://example.com/token",
+                content_type="application/json",
+                json={
+                    "token_type": "Bearer",
+                    "access_token": "token",
+                    "scope": "openid",
+                    "state": "state0",
+                },
+            )
+            r = self.client.do_authorization_request(state="state0", request_args=args)
+            self.client.parse_response(
+                AuthorizationResponse, r.headers["location"], sformat="urlencoded"
+            )
 
-        resp = self.client.do_access_token_request(scope="openid", state="state0")
+            resp = self.client.do_access_token_request(scope="openid", state="state0")
         assert isinstance(resp, AccessTokenResponse)
         assert _eq(resp.keys(), ["token_type", "state", "access_token", "scope"])
 
@@ -178,13 +205,34 @@ class TestClient(object):
         # Change message_factory
         self.client.message_factory = CustomMessageFactory
 
-        r = self.client.do_authorization_request(state="state0", request_args=args)
+        location = "https://example.com/redirect?code=code&state=state0"
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                responses.GET,
+                "https://example.com/authorization",
+                status=302,
+                headers={"location": location},
+            )
+            rsps.add(
+                responses.POST,
+                "https://example.com/token",
+                content_type="application/json",
+                json={
+                    "token_type": "Bearer",
+                    "access_token": "token",
+                    "scope": "openid",
+                    "state": "state0",
+                    "raw_id_token": "token",
+                },
+            )
 
-        self.client.parse_response(
-            AuthorizationResponse, r.headers["location"], sformat="urlencoded"
-        )
+            r = self.client.do_authorization_request(state="state0", request_args=args)
 
-        resp = self.client.do_access_token_request(scope="openid", state="state0")
+            self.client.parse_response(
+                AuthorizationResponse, r.headers["location"], sformat="urlencoded"
+            )
+
+            resp = self.client.do_access_token_request(scope="openid", state="state0")
 
         assert isinstance(resp, AccessTokenResponse)
         assert isinstance(resp, AccessTokenResponseWrapper)
@@ -204,8 +252,21 @@ class TestClient(object):
         token = Token(resp2)
         grant.tokens.append(token)
         self.client.grant["state0"] = grant
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                responses.POST,
+                "https://example.com/userinfo",
+                content_type="application/json",
+                json={
+                    "name": "Melody Gardot",
+                    "email": "some@example.com",
+                    "verified": False,
+                    "nickname": "Melody",
+                    "sub": "some sub",
+                },
+            )
 
-        resp3 = self.client.do_user_info_request(state="state0")
+            resp3 = self.client.do_user_info_request(state="state0")
         assert isinstance(resp3, OpenIDSchema)
         assert _eq(resp3.keys(), ["name", "email", "verified", "nickname", "sub"])
         assert resp3["name"] == "Melody Gardot"
@@ -216,17 +277,49 @@ class TestClient(object):
             "scope": ["openid", "offline_access"],
             "prompt": ["consent"],
         }
-        r = self.client.do_authorization_request(state="state0", request_args=args)
-        self.client.parse_response(
-            AuthorizationResponse, r.headers["location"], sformat="urlencoded"
-        )
-        self.client.do_access_token_request(
-            scope="openid offline_access", state="state0"
-        )
+        location = "https://example.com/redirect?code=code&state=state0"
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                responses.GET,
+                "https://example.com/authorization",
+                status=302,
+                headers={"location": location},
+            )
+            rsps.add(
+                responses.POST,
+                "https://example.com/token",
+                content_type="application/json",
+                json={
+                    "state": "state0",
+                    "access_token": "my_token",
+                    "token_type": "bearer",
+                    "refresh_token": "my_refresh",
+                    "scope": "openid offline_access",
+                },
+            )
+            rsps.add(
+                responses.POST,
+                "https://example.com/token",
+                content_type="application/json",
+                json={
+                    "state": "state0",
+                    "access_token": "my_token",
+                    "token_type": "bearer",
+                    "refresh_token": "my_refresh",
+                    "scope": "openid offline_access",
+                },
+            )
+            r = self.client.do_authorization_request(state="state0", request_args=args)
+            self.client.parse_response(
+                AuthorizationResponse, r.headers["location"], sformat="urlencoded"
+            )
+            self.client.do_access_token_request(
+                scope="openid offline_access", state="state0"
+            )
 
-        resp = self.client.do_access_token_refresh(
-            scope="openid offline_access", state="state0"
-        )
+            resp = self.client.do_access_token_refresh(
+                scope="openid offline_access", state="state0"
+            )
         assert len(self.client.grant["state0"].tokens) == 1
         assert isinstance(resp, AccessTokenResponse)
         assert _eq(
@@ -273,7 +366,16 @@ class TestClient(object):
         ktyp = alg2keytype(alg)
         _sign_key = self.client.keyjar.get_signing_key(ktyp)
         args = {"id_token": IDTOKEN.to_jwt(key=_sign_key, algorithm=alg)}
-        resp = self.client.do_check_session_request(request_args=args)
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                responses.GET,
+                "https://example.com/check_session",
+                content_type="application/json",
+                body=IDTOKEN.to_json(),
+            )
+            resp = self.client.do_check_session_request(request_args=args)
+            parsed = parse_qs(urlparse(rsps.calls[0].request.url).query)
+            assert parsed["id_token"] is not None
 
         assert isinstance(resp, IdToken)
         assert _eq(resp.keys(), ["nonce", "sub", "aud", "iss", "exp", "iat"])
@@ -292,26 +394,48 @@ class TestClient(object):
             "redirect_url": "http://example.com/end",
         }
 
-        resp = self.client.do_end_session_request(request_args=args, state="state1")
-
-        assert resp.status_code == 302
-        assert resp.headers["location"].startswith("http://example.com/end")
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                responses.GET,
+                "https://example.org/end_session",
+                status=302,
+                headers={"location": ""},
+            )
+            resp = self.client.do_end_session_request(request_args=args, state="state1")
+            parsed = parse_qs(urlparse(resp.request.url).query)
+            assert parsed["redirect_url"] == ["http://example.com/end"]
+            assert parsed["id_token"] is not None
 
     def test_do_registration_request(self):
-        self.client.registration_endpoint = "https://example.org/registration"
+        self.client.registration_endpoint = "https://example.com/registration"
 
         args = {
             "operation": "register",
             "application_type": "web",
             "application_name": "my service",
-            "redirect_uri": "http://example.com/authz",
+            "redirect_uri": "https://example.com/authz",
         }
-        resp = self.client.do_registration_request(request_args=args)
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                responses.POST,
+                "https://example.com/registration",
+                json={
+                    "client_secret": "some_secret",
+                    "client_id": "some_id",
+                    "redirect_uris": ["https://example.com/authz"],
+                    "application_type": "web",
+                    "client_secret_expires_at": 123456,
+                    "application_name": "my service",
+                    "registration_client_uri": "https://example.com/registration/client1",
+                    "registration_access_token": "token",
+                    "response_types": ["code"],
+                },
+            )
+            resp = self.client.do_registration_request(request_args=args)
         assert _eq(
             resp.keys(),
             [
                 "redirect_uris",
-                u"redirect_uri",
                 "application_type",
                 "registration_client_uri",
                 "client_secret_expires_at",
@@ -344,18 +468,48 @@ class TestClient(object):
             "scope": ["openid offline_access"],
             "prompt": "consent",
         }
-        r = self.client.do_authorization_request(state="state0", request_args=args)
-        self.client.parse_response(
-            AuthorizationResponse, r.headers["location"], sformat="urlencoded"
-        )
-        self.client.do_access_token_request(
-            scope="openid offline_access", state="state0"
-        )
+        location = "https://example.com/redirect?code=code&state=state0"
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                responses.GET,
+                "https://example.com/authorization",
+                status=302,
+                headers={"location": location},
+            )
+            rsps.add(
+                responses.POST,
+                "https://example.com/token",
+                content_type="application/json",
+                json={
+                    "state": "state0",
+                    "access_token": "my_token",
+                    "token_type": "bearer",
+                },
+            )
+            rsps.add(
+                responses.POST,
+                "https://example.com/userinfo",
+                content_type="application/json",
+                json={
+                    "name": "Melody Gardot",
+                    "sub": "some_sub",
+                    "email": "melody@example.com",
+                    "nickname": "gardot",
+                    "verified": True,
+                },
+            )
+            r = self.client.do_authorization_request(state="state0", request_args=args)
+            self.client.parse_response(
+                AuthorizationResponse, r.headers["location"], sformat="urlencoded"
+            )
+            self.client.do_access_token_request(
+                scope="openid offline_access", state="state0"
+            )
 
-        token = self.client.get_token(state="state0", scope="openid offline_access")
-        token.token_expiration_time = utc_time_sans_frac() - 86400
+            token = self.client.get_token(state="state0", scope="openid offline_access")
+            token.token_expiration_time = utc_time_sans_frac() - 86400
 
-        resp = self.client.do_user_info_request(state="state0")
+            resp = self.client.do_user_info_request(state="state0")
         assert isinstance(resp, OpenIDSchema)
         assert _eq(resp.keys(), ["name", "email", "verified", "nickname", "sub"])
         assert resp["name"] == "Melody Gardot"
@@ -512,7 +666,7 @@ class TestClient(object):
         self.client.parse_response(AccessTokenResponse, tresp.to_json(), state="state0")
 
         path, body, method, h_args = self.client.user_info_request(state="state0")
-        assert path == "http://example.com/userinfo"
+        assert path == "https://example.com/userinfo"
         assert method == "GET"
         assert body is None
         assert h_args == {"headers": {"Authorization": "Bearer access_token"}}
@@ -539,7 +693,7 @@ class TestClient(object):
             method="POST", state="state0"
         )
 
-        assert path == "http://example.com/userinfo"
+        assert path == "https://example.com/userinfo"
         assert method == "POST"
         assert body == "access_token=access_token"
         assert h_args == {
