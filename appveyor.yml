@@ -13,4 +13,4 @@ install:
   - "%PYTHON%\\python.exe -m pip install .[testing]"
 
 test_script:
-  - "%PYTHON%\\python.exe -m pytest tests/ -m \"not network\""
+  - "%PYTHON%\\python.exe -m pytest tests/"

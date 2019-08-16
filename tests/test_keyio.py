@@ -10,6 +10,7 @@ from unittest import TestCase
 from unittest.mock import sentinel
 
 import pytest
+import responses
 from freezegun import freeze_time
 from jwkest.jws import JWS
 
@@ -349,14 +350,32 @@ class TestKeyJar(object):
         enc_key = kj.get_encrypt_key("RSA", "abcdefgh")
         assert enc_key != []
 
-    @pytest.mark.network
     def test_provider(self):
         provider_info = {"jwks_uri": "https://connect-op.herokuapp.com/jwks.json"}
-
         ks = KeyJar()
         ks.load_keys(provider_info, "https://connect-op.heroku.com")
 
-        assert ks["https://connect-op.heroku.com"][0].keys()
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                responses.GET,
+                "https://connect-op.herokuapp.com/jwks.json",
+                json={
+                    "keys": [
+                        {
+                            "kty": "RSA",
+                            "e": "AQAB",
+                            "n": "pKybs0WaHU_y4cHxWbm8Wzj66HtcyFn7Fh3n-99qTXu5yNa30MRYIYfSDwe9JVc1JUoGw41yq2StdGBJ"
+                            "40HxichjE-Yopfu3B58QlgJvToUbWD4gmTDGgMGxQxtv1En2yedaynQ73sDpIK-12JJDY55pvf-PCiSQ9OjxZ"
+                            "LiVGKlClDus44_uv2370b9IN2JiEOF-a7JBqaTEYLPpXaoKWDSnJNonr79tL0T7iuJmO1l705oO3Y0TQ-INLY"
+                            "6jnKG_RpsvyvGNnwP9pMvcP1phKsWZ10ofuuhJGRp8IxQL9RfzT87OvF0RBSO1U73h09YP-corWDsnKIi6Tbz"
+                            "RpN5YDw",
+                            "use": "sig",
+                            "kid": "default",
+                        }
+                    ]
+                },
+            )
+            assert ks["https://connect-op.heroku.com"][0].keys()
 
     @freeze_time("2015-12-31")
     def test_issuer_mismatch(self):
