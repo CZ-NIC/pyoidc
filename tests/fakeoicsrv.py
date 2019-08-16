@@ -8,6 +8,7 @@ from jwkest import jws
 from jwkest.jws import alg2keytype
 
 from oic import rndstr
+from oic.oauth2.message import DecodeError
 from oic.oauth2.message import by_schema
 from oic.oic import Server
 from oic.oic.message import AccessTokenResponse
@@ -215,7 +216,7 @@ class MyFakeOICServer(Server):
     def registration_endpoint(self, data):
         try:
             req = self.parse_registration_request(data, "json")
-        except ValueError:
+        except DecodeError:
             req = self.parse_registration_request(data)
 
         client_secret = rndstr()

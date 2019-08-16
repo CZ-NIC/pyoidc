@@ -163,12 +163,22 @@ class TestMessage(object):
         assert _eq(item.keys(), ["req_str", "req_str_list", "opt_int"])
         assert item["opt_int"] == 9
 
+    def test_from_json_double_encoded(self):
+        jso = '"{\\"req_str\\": \\"Fair\\"}"'
+        with pytest.raises(DecodeError):
+            DummyMessage().from_json(jso)
+
+    def test_from_json_invalid(self):
+        jso = "{'req_str': 'Fair'}"
+        with pytest.raises(DecodeError):
+            DummyMessage().from_json(jso)
+
     def test_single_optional(self):
         jso = (
             '{"req_str": "Fair", "req_str_list": ["spike", "lee"], '
             '"opt_int": [9, 10]}'
         )
-        with pytest.raises(ValueError):
+        with pytest.raises(MessageException):
             DummyMessage().deserialize(jso, "json")
 
     def test_extra_param(self):
