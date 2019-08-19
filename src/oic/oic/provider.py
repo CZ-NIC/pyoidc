@@ -5,9 +5,10 @@ import logging
 import socket
 import time
 from functools import cmp_to_key
+from typing import Any
 from typing import Dict  # noqa
 from typing import List  # noqa
-from typing import Union  # noqa
+from typing import Optional
 from urllib.parse import parse_qs
 from urllib.parse import splitquery  # type: ignore
 from urllib.parse import unquote
@@ -75,9 +76,10 @@ from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
 from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed
-from oic.utils.sdb import AuthnEvent
 from oic.utils.sdb import ExpiredToken
 from oic.utils.sdb import WrongTokenType
+from oic.utils.sdb import session_get
+from oic.utils.session_backend import AuthnEvent
 from oic.utils.template_render import render_template
 from oic.utils.time_util import utc_time_sans_frac
 
@@ -558,7 +560,7 @@ class Provider(AProvider):
             if typ == "sso":
                 uid, client_id = value.split(DELIM)
                 try:
-                    sids = self.sdb.get_sids_from_uid(uid)
+                    sids = session_get(self.sdb, "uid", uid)
                 except (KeyError, IndexError):
                     raise SubMismatch("Mismatch uid")
         return cookie_dealer, client_id, sids
@@ -568,7 +570,7 @@ class Provider(AProvider):
             "endsession_endpoint"
         )().from_urlencoded(request)
 
-        logger.debug("End session request: {}", sanitize(esr.to_dict()))
+        logger.debug("End session request: %s", format(sanitize(esr.to_dict())))
 
         # 2 ways of find out client ID and user. Either through a cookie
         # or using the id_token_hint
@@ -609,7 +611,7 @@ class Provider(AProvider):
                     return error_response("invalid_request", "Wrong user")
             else:
                 try:
-                    sids = self.sdb.get_sids_by_sub(sub)
+                    sids = self.sdb.get_by_sub(sub)
                 except IndexError:
                     pass
 
@@ -802,7 +804,7 @@ class Provider(AProvider):
 
         req_user = self.required_user(areq)
         if req_user:
-            sids = self.sdb.get_sids_by_sub(req_user)
+            sids = self.sdb.get__by_sub(req_user)
             if sids:
                 # anyone will do
                 authn_event = self.sdb.get_authentication_event(sids[-1])
@@ -2027,3 +2029,23 @@ class Provider(AProvider):
                         kb.remove(key)
             if len(kb) == 0:
                 self.keyjar.issuer_keys[""].remove(kb)
+
+    def get_by_sub_and_(self, sub: str, key: str, val: Any) -> Optional[str]:
+        """
+        Get a session ID based on subject ID and an attribute value pair.
+
+        Matches sessions based on a subject identifier (sub) and
+        one other claim (key) having value (val).
+
+        :param sub: The subject identifier
+        :param key: A claim in the session information
+        :param val: A value
+        :return: A session ID
+        """
+        for sid in self.sdb.get_by_sub(sub):
+            try:
+                if self.sdb[sid][key] == val:
+                    return sid
+            except KeyError:
+                continue
+        return None

@@ -58,6 +58,7 @@ from oic.utils.keyio import KeyJar
 from oic.utils.keyio import ec_init
 from oic.utils.keyio import keybundle_from_local_file
 from oic.utils.sdb import AuthnEvent
+from oic.utils.sdb import DictSessionBackend
 from oic.utils.time_util import epoch_in_a_while
 from oic.utils.userinfo import UserInfo
 
@@ -211,7 +212,10 @@ class TestProvider(object):
         self.provider.baseurl = self.provider.name
 
         self.cons = Consumer(
-            {}, CONSUMER_CONFIG.copy(), CLIENT_CONFIG, server_info=SERVER_INFO
+            DictSessionBackend(),
+            CONSUMER_CONFIG.copy(),
+            CLIENT_CONFIG,
+            server_info=SERVER_INFO,
         )
         self.cons.behaviour = {
             "request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]
@@ -1631,7 +1635,7 @@ class TestProvider(object):
 
         assert isinstance(resp, SeeOther)
         assert "state=abcde" in resp.message
-        assert self.provider.sdb.get_sids_from_uid("username") == []
+        assert self.provider.sdb.get_by_uid("username") == []
         self._assert_cookies_expired(resp.headers)
 
     def test_end_session_endpoint_with_wrong_cookie(self):
@@ -1681,7 +1685,7 @@ class TestProvider(object):
 
         assert isinstance(resp, SeeOther)
         assert "state=abcde" in resp.message
-        assert self.provider.sdb.get_sids_from_uid("username") == []
+        assert self.provider.sdb.get_by_uid("username") == []
         self._assert_cookies_expired(resp.headers)
 
     def test_end_session_endpoint_with_cookie_dual_login_wrong_client(self):
@@ -1699,7 +1703,7 @@ class TestProvider(object):
 
     def test_end_session_endpoint_with_id_token_hint_only(self):
         id_token = self._auth_with_id_token()
-        assert self.provider.sdb.get_sids_by_sub(
+        assert self.provider.sdb.get_by_sub(
             id_token["sub"]
         )  # verify we got valid session
 
@@ -1711,14 +1715,14 @@ class TestProvider(object):
 
         assert isinstance(resp, SeeOther)
 
-        assert not self.provider.sdb.get_sids_by_sub(
+        assert not self.provider.sdb.get_by_sub(
             id_token["sub"]
         )  # verify session has been removed
         self._assert_cookies_expired(resp.headers)
 
     def test_end_session_endpoint_with_id_token_hint_and_cookie(self):
         id_token = self._auth_with_id_token()
-        assert self.provider.sdb.get_sids_by_sub(
+        assert self.provider.sdb.get_by_sub(
             id_token["sub"]
         )  # verify we got valid session
 
@@ -1731,7 +1735,7 @@ class TestProvider(object):
 
         assert isinstance(resp, SeeOther)
 
-        assert not self.provider.sdb.get_sids_by_sub(
+        assert not self.provider.sdb.get_by_sub(
             id_token["sub"]
         )  # verify session has been removed
         self._assert_cookies_expired(resp.headers)
@@ -1750,7 +1754,7 @@ class TestProvider(object):
             cookie=cookie,
         )
         assert isinstance(resp, SeeOther)
-        assert self.provider.sdb.get_sids_from_uid("username") == []
+        assert self.provider.sdb.get_by_uid("username") == []
         self._assert_cookies_expired(resp.headers)
 
     def test_end_session_endpoint_with_wrong_post_logout_redirect_uri(self):
@@ -2055,3 +2059,69 @@ class TestProvider(object):
         }
         self.provider.recuperate_keys("some_client", info)
         assert len(self.provider.keyjar.get_issuer_keys("some_client")) == 2
+
+    def test_get_by(self):
+        _sdb = self.provider.sdb
+
+        # First authn
+        authreq_1 = AuthorizationRequest(
+            state="state",
+            redirect_uri="http://example.com/authz",
+            client_id=CLIENT_ID,
+            response_type="code",
+            scope=["openid", "offline_access"],
+            prompt="consent",
+        )
+
+        sid = _sdb.access_token.key(user="sub", areq=authreq_1)
+        access_grant = _sdb.access_token(sid=sid)
+        ae = AuthnEvent("user", "salt")
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "authn_event": ae.to_json(),
+            "authzreq": authreq_1.to_json(),
+            "client_id": CLIENT_ID,
+            "code": access_grant,
+            "code_used": False,
+            "scope": ["openid", "offline_access"],
+            "redirect_uri": "http://example.com/authz",
+        }
+        _sdb.do_sub(sid, "client_salt")
+        _sdb.upgrade_to_token(access_grant, issue_refresh=True)
+
+        # Second authn
+        authreq_2 = AuthorizationRequest(
+            state="next_state",
+            redirect_uri="http://example.com/authz",
+            client_id=CLIENT_ID,
+            response_type="code",
+            scope=["openid", "offline_access"],
+        )
+
+        sid_2 = _sdb.access_token.key(user="sub", areq=authreq_2)
+        access_grant = _sdb.access_token(sid=sid_2)
+        ae = AuthnEvent("user", "salt")
+        _sdb[sid_2] = {
+            "oauth_state": "authz",
+            "authn_event": ae.to_json(),
+            "authzreq": authreq_1.to_json(),
+            "client_id": "2ndClient",
+            "code": access_grant,
+            "code_used": False,
+            "scope": ["openid", "offline_access"],
+            "redirect_uri": "http://example.com/authz",
+        }
+        _sdb.do_sub(sid_2, "client_salt")
+        _sdb.upgrade_to_token(access_grant, issue_refresh=True)
+
+        sub = _sdb[sid_2]["sub"]
+        assert self.provider.sdb.get_uid_by_sub(sub) == "user"
+        assert self.provider.sdb.get_uid_by_sid(sid_2) == "user"
+
+        assert self.provider.get_by_sub_and_(sub, "client_id", "2ndClient") == sid_2
+        assert self.provider.get_by_sub_and_(sub, "client_id", CLIENT_ID) == sid
+
+        # Error cases
+        assert self.provider.get_by_sub_and_(sub, "client_id", "unknown") is None
+        assert self.provider.get_by_sub_and_("who", "client_id", CLIENT_ID) is None
+        assert self.provider.get_by_sub_and_(sub, "foo", "bar") is None

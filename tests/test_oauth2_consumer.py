@@ -19,6 +19,7 @@ from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import TokenErrorResponse
 from oic.utils.http_util import make_cookie
+from oic.utils.sdb import DictSessionBackend
 
 __author__ = "rohe0002"
 
@@ -97,7 +98,7 @@ def test_stateID():
 
 
 def test_factory():
-    sdb = {}  # type: Dict[str, str]
+    sdb = DictSessionBackend()
     consumer = Consumer(
         sdb, client_config=CLIENT_CONFIG, server_info=SERVER_INFO, **CONSUMER_CONFIG
     )
@@ -127,20 +128,28 @@ class TestConsumer(object):
     @pytest.fixture(autouse=True)
     def create_consumer(self):
         self.consumer = Consumer(
-            {}, client_config=CLIENT_CONFIG, server_info=SERVER_INFO, **CONSUMER_CONFIG
+            DictSessionBackend(),
+            client_config=CLIENT_CONFIG,
+            server_info=SERVER_INFO,
+            **CONSUMER_CONFIG
         )
 
     def test_init(self):
         cons = Consumer(
-            {}, client_config=CLIENT_CONFIG, server_info=SERVER_INFO, **CONSUMER_CONFIG
+            DictSessionBackend(),
+            client_config=CLIENT_CONFIG,
+            server_info=SERVER_INFO,
+            **CONSUMER_CONFIG
         )
         cons._backup("123456")
         assert "123456" in cons.sdb
 
-        cons = Consumer({}, client_config=CLIENT_CONFIG, **CONSUMER_CONFIG)
+        cons = Consumer(
+            DictSessionBackend(), client_config=CLIENT_CONFIG, **CONSUMER_CONFIG
+        )
         assert cons.authorization_endpoint is None
 
-        cons = Consumer({}, **CONSUMER_CONFIG)
+        cons = Consumer(DictSessionBackend, **CONSUMER_CONFIG)
         assert cons.authorization_endpoint is None
 
     def test_begin(self):

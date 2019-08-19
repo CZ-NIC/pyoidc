@@ -26,6 +26,7 @@ from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
 from oic.utils.http_util import Response
 from oic.utils.sdb import AuthnEvent
+from oic.utils.sdb import DictSessionBackend
 
 CLIENT_CONFIG = {"client_id": "client1", "config": {"issuer": "https://example.com/as"}}
 
@@ -249,7 +250,7 @@ class TestProvider(object):
         assert msg["error"] == "invalid_request"
 
     def test_authenticated(self):
-        _session_db = {}  # type: Dict[str, Any]
+        _session_db = DictSessionBackend()
         cons = Consumer(
             _session_db,
             client_config=CLIENT_CONFIG,
@@ -303,7 +304,7 @@ class TestProvider(object):
         assert _eq(sorted(logcap.records[3].msg[22:-1].split(", ")), expected2)
 
     def test_authenticated_token(self):
-        _session_db = {}  # type: Dict[str, Any]
+        _session_db = DictSessionBackend()
         cons = Consumer(
             _session_db,
             client_config=CLIENT_CONFIG,

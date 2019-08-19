@@ -56,7 +56,7 @@ from oic.utils.http_util import Unauthorized
 from oic.utils.http_util import make_cookie
 from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed
-from oic.utils.sdb import AuthnEvent
+from oic.utils.session_backend import AuthnEvent
 
 __author__ = "rohe0002"
 
@@ -788,7 +788,7 @@ class Provider(object):
                 # I get back a dictionary
                 user = identity["uid"]
                 if "req_user" in kwargs:
-                    sids_for_sub = self.sdb.get_sids_by_sub(kwargs["req_user"])
+                    sids_for_sub = self.sdb.get_by_sub(kwargs["req_user"])
                     if (
                         sids_for_sub
                         and user
