@@ -381,6 +381,9 @@ class Client(oauth2.Client):
         self.kid = {"sig": {}, "enc": {}}
         self.requests_dir = requests_dir
 
+        # LOGOUT related
+        self.post_logout_redirect_uris = []
+
     def _get_id_token(self, **kwargs):
         try:
             return kwargs["id_token"]
