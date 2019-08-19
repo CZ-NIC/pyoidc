@@ -613,7 +613,7 @@ class RegistrationRequest(Message):
         "frontchannel_logout_uri": SINGLE_OPTIONAL_STRING,
         "frontchannel_logout_session_required": OPTIONAL_LOGICAL,
         "backchannel_logout_uri": SINGLE_OPTIONAL_STRING,
-        "backchannel_logout_session_required": OPTIONAL_LOGICAL,
+        "backchannel_logout_session_required": OPTIONAL_LOGICAL
     }
     c_default = {"application_type": "web", "response_types": ["code"]}
     c_allowed_values = {
