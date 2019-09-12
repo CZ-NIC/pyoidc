@@ -826,18 +826,16 @@ class CheckIDRequest(Message):
     c_param = {"access_token": SINGLE_REQUIRED_STRING}
 
 
-class EndSessionRequest(StateFullMessage):
-    c_param = StateFullMessage.c_param.copy()
-    c_param.update(
-        {
-            "id_token_hint": SINGLE_OPTIONAL_STRING,
-            "post_logout_redirect_uri": SINGLE_OPTIONAL_STRING,
-        }
-    )
+class EndSessionRequest(Message):
+    c_param = {
+        "id_token_hint": SINGLE_OPTIONAL_STRING,
+        "post_logout_redirect_uri": SINGLE_OPTIONAL_STRING,
+        "state": SINGLE_OPTIONAL_STRING,
+    }
 
 
-class EndSessionResponse(StateFullMessage):
-    pass
+class EndSessionResponse(Message):
+    c_param = {"state": SINGLE_OPTIONAL_STRING}
 
 
 class Claims(Message):
