@@ -9,6 +9,7 @@ The format is based on the [KeepAChangeLog] project.
 
 ### Fixed
 - [#602] Fixed uncaught error on unpacking of message
+- [#679] Make `state` optional in `EndSessionRequest`
 
 ### Removed
 - [#671] Removed deprecated request/response_cls kwargs from Provider/Client methods
@@ -17,6 +18,7 @@ The format is based on the [KeepAChangeLog] project.
 [#671]: https://github.com/OpenIDC/pyoidc/pull/671
 [#677]: https://github.com/OpenIDC/pyoidc/pull/677
 [#602]: https://github.com/OpenIDC/pyoidc/issues/602
+[#679]: https://github.com/OpenIDC/pyoidc/pull/679
 
 ## 1.0.1 [2019-06-30]
 
