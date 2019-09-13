@@ -35,6 +35,8 @@ from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import CheckSessionRequest
+from oic.oic.message import Claims
+from oic.oic.message import ClaimsRequest
 from oic.oic.message import IdToken
 from oic.oic.message import Message
 from oic.oic.message import OpenIDSchema
@@ -109,6 +111,7 @@ KEYJAR = KeyJar()
 KEYJAR[CLIENT_ID] = [KC_SYM, KC_RSA]
 KEYJAR["number5"] = [KC_SYM2, KC_RSA]
 KEYJAR[""] = KC_RSA
+KEYJAR["https://connect-op.heroku.com"] = KC_RSA
 
 CDB = {
     "number5": {
@@ -668,6 +671,48 @@ class TestProvider(object):
             atr.keys(),
             ["token_type", "id_token", "access_token", "scope", "refresh_token"],
         )
+
+    def test_code_grant_type_id_token_claims(self):
+        id_token_claims = Claims(name={"essential": True})
+        claims_req = ClaimsRequest(id_token=id_token_claims)
+        authreq = AuthorizationRequest(
+            state="state",
+            redirect_uri="http://example.com/authz",
+            client_id=CLIENT_ID,
+            response_type="code",
+            scope=["openid"],
+            claims=claims_req,
+        )
+
+        _sdb = self.provider.sdb
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
+        access_grant = _sdb.access_token(sid=sid)
+        ae = AuthnEvent("user", "salt")
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "authn_event": ae.to_json(),
+            "authzreq": authreq.to_json(),
+            "client_id": CLIENT_ID,
+            "code": access_grant,
+            "code_used": False,
+            "scope": ["openid"],
+            "redirect_uri": "http://example.com/authz",
+        }
+        _sdb.do_sub(sid, "client_salt")
+
+        # Construct Access token request
+        areq = AccessTokenRequest(
+            code=access_grant,
+            client_id=CLIENT_ID,
+            redirect_uri="http://example.com/authz",
+            client_secret=CLIENT_SECRET,
+            grant_type="authorization_code",
+        )
+        resp = self.provider.code_grant_type(areq)
+        atr = AccessTokenResponse().deserialize(resp.message, "json")
+        assert _eq(atr.keys(), ["token_type", "id_token", "access_token", "scope"])
+        assert atr.verify(keyjar=KEYJAR)
+        assert "name" in atr["id_token"]
 
     def test_client_credentials_grant_type(self):
         resp = self.provider.client_credentials_grant_type(Message())
