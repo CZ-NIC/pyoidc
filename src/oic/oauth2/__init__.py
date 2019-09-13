@@ -822,7 +822,12 @@ class Client(PBase):
         request = self.message_factory.get_request_type("token_endpoint")
         response_cls = self.message_factory.get_response_type("token_endpoint")
 
+        if extra_args is None:
+            extra_args = {}
         kwargs["authn_endpoint"] = "token"
+        if http_args is not None and "password" in http_args:
+            extra_args["password"] = http_args.pop("password")
+
         # method is default POST
         url, body, ht_args, csi = self.request_info(
             request,
@@ -839,7 +844,6 @@ class Client(PBase):
             http_args = ht_args
         else:
             http_args.update(ht_args)
-            http_args.pop("password", None)
 
         if self.events is not None:
             self.events.store("request_url", url)
