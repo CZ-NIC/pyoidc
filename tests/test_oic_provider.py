@@ -58,6 +58,7 @@ from oic.utils.keyio import KeyJar
 from oic.utils.keyio import ec_init
 from oic.utils.keyio import keybundle_from_local_file
 from oic.utils.sdb import AuthnEvent
+from oic.utils.sdb import DictSessionBackend
 from oic.utils.time_util import epoch_in_a_while
 from oic.utils.userinfo import UserInfo
 
@@ -211,7 +212,7 @@ class TestProvider(object):
         self.provider.baseurl = self.provider.name
 
         self.cons = Consumer(
-            {}, CONSUMER_CONFIG.copy(), CLIENT_CONFIG, server_info=SERVER_INFO
+            DictSessionBackend(), CONSUMER_CONFIG.copy(), CLIENT_CONFIG, server_info=SERVER_INFO
         )
         self.cons.behaviour = {
             "request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]
@@ -1631,7 +1632,7 @@ class TestProvider(object):
 
         assert isinstance(resp, SeeOther)
         assert "state=abcde" in resp.message
-        assert self.provider.sdb.get_sids_from_uid("username") == []
+        assert self.provider.sdb.get_by_uid("username") == []
         self._assert_cookies_expired(resp.headers)
 
     def test_end_session_endpoint_with_wrong_cookie(self):
@@ -1681,7 +1682,7 @@ class TestProvider(object):
 
         assert isinstance(resp, SeeOther)
         assert "state=abcde" in resp.message
-        assert self.provider.sdb.get_sids_from_uid("username") == []
+        assert self.provider.sdb.get_by_uid("username") == []
         self._assert_cookies_expired(resp.headers)
 
     def test_end_session_endpoint_with_cookie_dual_login_wrong_client(self):
@@ -1699,7 +1700,7 @@ class TestProvider(object):
 
     def test_end_session_endpoint_with_id_token_hint_only(self):
         id_token = self._auth_with_id_token()
-        assert self.provider.sdb.get_sids_by_sub(
+        assert self.provider.sdb.get_by_sub(
             id_token["sub"]
         )  # verify we got valid session
 
@@ -1711,14 +1712,14 @@ class TestProvider(object):
 
         assert isinstance(resp, SeeOther)
 
-        assert not self.provider.sdb.get_sids_by_sub(
+        assert not self.provider.sdb.get_by_sub(
             id_token["sub"]
         )  # verify session has been removed
         self._assert_cookies_expired(resp.headers)
 
     def test_end_session_endpoint_with_id_token_hint_and_cookie(self):
         id_token = self._auth_with_id_token()
-        assert self.provider.sdb.get_sids_by_sub(
+        assert self.provider.sdb.get_by_sub(
             id_token["sub"]
         )  # verify we got valid session
 
@@ -1731,7 +1732,7 @@ class TestProvider(object):
 
         assert isinstance(resp, SeeOther)
 
-        assert not self.provider.sdb.get_sids_by_sub(
+        assert not self.provider.sdb.get_by_sub(
             id_token["sub"]
         )  # verify session has been removed
         self._assert_cookies_expired(resp.headers)
@@ -1750,7 +1751,7 @@ class TestProvider(object):
             cookie=cookie,
         )
         assert isinstance(resp, SeeOther)
-        assert self.provider.sdb.get_sids_from_uid("username") == []
+        assert self.provider.sdb.get_by_uid("username") == []
         self._assert_cookies_expired(resp.headers)
 
     def test_end_session_endpoint_with_wrong_post_logout_redirect_uri(self):
