@@ -493,7 +493,7 @@ class TestSessionDB(object):
         sub = self.sdb.do_sub(sid, "client_salt")
 
         # given the sub find out whether the authn event is still valid
-        sids = self.sdb.get_sids_by_sub(sub)
+        sids = self.sdb.get_by_sub(sub)
         ae = self.sdb[sids[0]]["authn_event"]
         assert AuthnEvent.from_json(ae).valid()
 
