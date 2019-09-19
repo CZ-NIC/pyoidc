@@ -25,6 +25,7 @@ from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import keybundle_from_local_file
+from oic.utils.sdb import DictSessionBackend
 
 __author__ = "rohe0002"
 
@@ -131,7 +132,7 @@ class TestOICConsumer:
         }
 
         self.consumer = Consumer(
-            session_db_factory(SERVER_INFO["issuer"]),
+            DictSessionBackend(),
             CONFIG,
             client_config,
             SERVER_INFO,
