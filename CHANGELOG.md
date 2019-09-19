@@ -7,6 +7,10 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+### Changed
+
+- [#688] Second stage of adding logout support.
+
 ### Fixed
 - [#602] Fixed uncaught error on unpacking of message
 - [#679] Make `state` optional in `EndSessionRequest`
@@ -21,6 +25,7 @@ The format is based on the [KeepAChangeLog] project.
 [#602]: https://github.com/OpenIDC/pyoidc/issues/602
 [#679]: https://github.com/OpenIDC/pyoidc/pull/679
 [#683]: https://github.com/OpenIDC/pyoidc/issues/683
+[#688]: https://github.com/OpenIDC/pyoidc/pull/688
 
 ## 1.0.1 [2019-06-30]
 
