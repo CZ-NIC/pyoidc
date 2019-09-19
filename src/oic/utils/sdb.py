@@ -398,7 +398,7 @@ class DictRefreshDB(RefreshDB):
         warnings.warn(
             "Using `DictRefreshDB` is deprecated, please use `Token` and `refresh_token_factory` instead.",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=2
         )
         self._db = {}  # type: Dict[str, Dict[str, str]]
 
@@ -553,6 +553,57 @@ class DictSessionBackend(SessionBackend):
             if AuthnEvent.from_json(session["authn_event"]).uid == uid
         ]
 
+    def get_uid_by_sub(self, sub):
+        """Return User ids based on sub. Should only be one."""
+        for sid, session in self.storage.items():
+            if session.get("sub") == sub:
+                return AuthnEvent.from_json(session["authn_event"]).uid
+        return None
+
+    def get_uid_by_sid(self, sid):
+        return self.get_uid_by_sub(self.storage[sid]["sub"])
+
+    def get_sid_by_smid(self, smid):
+        """
+        Return the session management ID that maps to a session ID
+
+        :param smid: Session management ID
+        :return: Session ID
+        """
+        for sid, session in self.storage.items():
+            if session.get('smid') == smid:
+                return sid
+
+    def get_by_sub_and_x(self, sub, key, val):
+        """
+        Given a subject identifier and a key/value pair return the Id of a session
+        that matches those values.
+
+        :param sub: Subjecty Identifier
+        :param key: attribute name
+        :param val: attribute value
+        :return: Session identifier
+        """
+        for sid, session in self.storage.items():
+            if session.get("sub") == sub and session.get(key) == val:
+                return sid
+
+    def update(self, key, attribute, value):
+        """
+        Updates information stored. If the key is not know a new entry will be
+        constructed.
+
+        :param key: Key to the database
+        :param attribute: Attribute name
+        :param value: Attribute value
+        """
+        if key not in self.storage:
+            self.storage[key] = {attribute: value}
+        else:
+            item = self.storage[key]
+            item[attribute] = value
+            self.storage[key] = item
+
 
 class SessionDB(object):
     def __init__(
@@ -564,6 +615,7 @@ class SessionDB(object):
         token_factory=None,
         code_factory=None,
         refresh_token_factory=None,
+        sm_salt=''
     ):
         """
         Object to store the session related information.
@@ -583,6 +635,8 @@ class SessionDB(object):
                 DeprecationWarning,
             )
         self._db = db
+        if sm_salt:
+            self._db.set_sm_salt(sm_salt)
 
         self.token_factory = {"code": code_factory, "access_token": token_factory}
 
@@ -613,6 +667,7 @@ class SessionDB(object):
 
         self.access_token = self.token_factory["access_token"]
         self.token = self.access_token
+        self.sm_salt = sm_salt or rndstr(32)
 
     def _get_token_key(self, item, order=None):
         if order is None:
@@ -720,7 +775,9 @@ class SessionDB(object):
             ).hexdigest()
         else:
             sub = pairwise_id(uid, sector_id, "{}{}".format(client_salt, user_salt))
+        
         self.update(sid, "sub", sub)
+
         return sub
 
     def create_authz_session(self, aevent, areq, id_token=None, oidreq=None, **kwargs):
@@ -766,7 +823,9 @@ class SessionDB(object):
             _dic["id_token"] = id_token
         if oidreq:
             _dic["oidreq"] = oidreq.to_json()
+
         self._db[sid] = _dic
+
         return sid
 
     def get_authentication_event(self, sid):
@@ -1018,43 +1077,49 @@ class SessionDB(object):
 
     def get_client_ids_for_uid(self, uid: str) -> List[str]:
         """Return client_ids for a given uid."""
-        return self._db.get_client_ids_for_uid(uid)
+        return [self.get_client_id_for_session(sid) for sid in
+                self._db.get_by_uid(uid)]
 
-    def get_verify_logout(self, uid: str) -> str:
-        """Return the key for logout verification."""
-        return self._db.get_verified_logout(uid)
+    def get_verify_logout(self, uid: str) -> Dict:
+        """Return the dictionary for logout verification."""
+        res = {}
+        for sid in self._db.get_by_uid(uid):
+            _dict = self._db[sid]
+            try:
+                res[sid] = _dict["verified_logout"]
+            except KeyError:
+                res[sid] = None
+        return res
 
     def set_verify_logout(self, uid: str) -> None:
         """Save the key that is used for logout verification."""
-        logout_key = uuid.uuid4().urn
-        for sid in self.get_sids_from_uid(uid):
-            self.update(sid, "verified_logout", logout_key)
+        for sid in self._db.get_by_uid(uid):
+            _dict = self._db[sid]
+            _dict["verified_logout"] = uuid.uuid4().urn
 
-    def get_token_ids(self, uid: str) -> List[str]:
-        """Return id_tokens for given uid."""
-        return self._db.get_token_ids(uid)
+    def get_id_token(self, uid: str) -> Dict:
+        res = {}
+        for sid in self._db.get_by_uid(uid):
+            _dict = self._db[sid]
+            try:
+                res[_dict['client_id']] = _dict['id_token']
+            except KeyError:
+                pass
+        return res
 
-    def is_revoke_uid(self, uid: str) -> bool:
-        """Return if the uid session has been revoked."""
-        return self._db.is_revoke_uid(uid)
+    def is_revoke_uid(self, uid: str) -> Dict:
+        res = {}
+        for sid in self._db.get_by_uid(uid):
+            try:
+                res[sid] = self._db[sid]["revoked"]
+            except KeyError:
+                res[sid] = None
+        return res
 
     def revoke_uid(self, uid: str) -> None:
         """Mark all sessions for the given uid as revoked."""
-        for sid in self.get_sids_from_uid(uid):
+        for sid in self._db.get_by_uid(uid):
             self.update(sid, "revoked", True)
-
-    def get_sids_from_uid(self, uid: str) -> List[str]:
-        """
-        Return list of identifiers for sessions that are connected to this local identifier.
-
-        :param uid: local identifier (username)
-        :return: list of session identifiers
-        """
-        return self._db.get_by_uid(uid)
-
-    def get_sids_by_sub(self, sub: str) -> List[str]:
-        """Return the list of identifiers for session that are connected to this public identifier."""
-        return self._db.get_by_sub(sub)
 
     def duplicate(self, sinfo):
         _dic = copy.copy(sinfo)
@@ -1082,6 +1147,8 @@ class SessionDB(object):
                 pass
 
         self._db[sid] = _dic
+        self._db.update_sub2sid_map(_dic["sub"], sid)
+
         return sid
 
     def read(self, token):
@@ -1091,3 +1158,28 @@ class SessionDB(object):
             raise WrongTokenType("Not a grant token")
 
         return self._db[key]
+
+    def get_by_sub(self, sub):
+        return self._db.get_by_sub(sub)
+
+    def get_by_uid(self, uid):
+        return self._db.get_by_uid(uid)
+
+    def get_by_smid(self, smid):
+        return self._db.get_by_smid(smid)
+
+    def get_by_sub_and_client_id(self, sid, client_id):
+        return self._db.get_by_sub_and_x(sid, "client_id", client_id)
+
+    def get_by_sub_and_issuer(self, sid, issuer):
+        return self._db.get_by_sub_and_x(sid, "issuer", issuer)
+
+    def make_smid(self, sid):
+        """
+        Create a session management ID
+
+        :param sid:
+        :return: A session management ID
+        """
+
+        return hashlib.sha256("{}{}".format(sid, self.sm_salt).encode("utf-8")).hexdigest()
