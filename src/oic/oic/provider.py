@@ -558,7 +558,7 @@ class Provider(AProvider):
             if typ == "sso":
                 uid, client_id = value.split(DELIM)
                 try:
-                    sids = self.sdb.get_sids_from_uid(uid)
+                    sids = self.sdb.get_by_uid(uid)
                 except (KeyError, IndexError):
                     raise SubMismatch("Mismatch uid")
         return cookie_dealer, client_id, sids
@@ -609,7 +609,7 @@ class Provider(AProvider):
                     return error_response("invalid_request", "Wrong user")
             else:
                 try:
-                    sids = self.sdb.get_sids_by_sub(sub)
+                    sids = self.sdb.get_by_sub(sub)
                 except IndexError:
                     pass
 
