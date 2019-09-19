@@ -649,6 +649,9 @@ class Client(PBase):
             except KeyError:
                 self.grant[_state] = self.grant_class(resp=resp)
 
+            if 'id_token' in resp:
+                self.sdb.update(_state, "sub", resp["id_token"]["sub"])
+
         return resp
 
     def init_authentication_method(
