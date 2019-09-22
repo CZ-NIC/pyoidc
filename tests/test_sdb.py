@@ -30,7 +30,7 @@ AREQ = AuthorizationRequest(
     redirect_uri="http://example.com/authz",
     scope=["openid"],
     state="state000",
-    )
+)
 
 AREQN = AuthorizationRequest(
     response_type="code",
@@ -39,7 +39,7 @@ AREQN = AuthorizationRequest(
     scope=["openid"],
     state="state000",
     nonce="something",
-    )
+)
 
 AREQO = AuthorizationRequest(
     response_type="code",
@@ -48,7 +48,7 @@ AREQO = AuthorizationRequest(
     scope=["openid", "offlien_access"],
     prompt="consent",
     state="state000",
-    )
+)
 
 OIDR = OpenIDRequest(
     response_type="code",
@@ -56,7 +56,7 @@ OIDR = OpenIDRequest(
     redirect_uri="http://example.com/authz",
     scope=["openid"],
     state="state000",
-    )
+)
 
 
 def _eq(l1, l2):
@@ -83,7 +83,7 @@ class TestAuthnEvent(object):
             "authn_time": 1000,
             "valid_until": 1500,
             "authn_info": None,
-            }
+        }
 
 
 class TestDictRefreshDB(object):
@@ -94,14 +94,14 @@ class TestDictRefreshDB(object):
     def test_verify_token(self):
         token = self.rdb.create_token(
             "client1", "uid", "openid", "sub1", "authzreq", "sid"
-            )
+        )
         assert self.rdb.verify_token("client1", token)
         assert self.rdb.verify_token("client2", token) is False
 
     def test_revoke_token(self):
         token = self.rdb.create_token(
             "client1", "uid", "openid", "sub1", "authzreq", "sid"
-            )
+        )
         self.rdb.remove(token)
         assert self.rdb.verify_token("client1", token) is False
         with pytest.raises(KeyError):
@@ -112,7 +112,7 @@ class TestDictRefreshDB(object):
             self.rdb.get("token")
         token = self.rdb.create_token(
             "client1", "uid", ["openid"], "sub1", "authzreq", "sid"
-            )
+        )
         assert self.rdb.get(token) == {
             "client_id": "client1",
             "sub": "sub1",
@@ -120,7 +120,7 @@ class TestDictRefreshDB(object):
             "uid": "uid",
             "authzreq": "authzreq",
             "sid": "sid",
-            }
+        }
 
 
 class TestToken(object):
@@ -171,7 +171,7 @@ class TestToken(object):
         assert factory.is_expired(token, when=when) is True
 
 
-class TestSessionBackend(TestCase):
+class TestDictSessionBackend(TestCase):
     """Unittests for SessionBackend - using the DictSessionBackend."""
 
     @pytest.fixture(autouse=True)
@@ -210,7 +210,7 @@ class TestSessionBackend(TestCase):
         self.backend["session_id2"] = {"sub": "my_sub"}
         self.assertEqual(
             set(self.backend.get_by_sub("my_sub")), {"session_id1", "session_id2"}
-            )
+        )
 
     def test_get_by_uid(self):
         aevent = AuthnEvent("my_uid", "some_salt").to_json()
@@ -226,14 +226,14 @@ class TestSessionBackend(TestCase):
 
         self.assertEqual(
             set(self.backend.get_by_uid("my_uid")), {"session_id1", "session_id2"}
-            )
+        )
 
     def test_get_client_ids_for_uid(self):
         aevent = AuthnEvent("my_uid", "some_salt").to_json()
         self.backend["session_id"] = {"authn_event": aevent, "client_id": "my_client"}
         self.assertEqual(
             set(self.backend.get_client_ids_for_uid("my_uid")), {"my_client"}
-            )
+        )
         self.assertEqual(set(self.backend.get_client_ids_for_uid("missing")), set())
 
     def test_get_client_ids_for_uid_multiple(self):
@@ -245,20 +245,20 @@ class TestSessionBackend(TestCase):
         self.assertEqual(
             set(self.backend.get_client_ids_for_uid("my_uid")),
             {"my_client", "my_other"},
-            )
+        )
 
     def test_get_verified_logout(self):
         aevent1 = AuthnEvent("my_uid1", "some_salt").to_json()
         aevent2 = AuthnEvent("my_uid2", "some_salt").to_json()
         self.backend["session_id"] = {
             "authn_event": aevent1,
-            "verified_logout": "verification key"
-            }
+            "verified_logout": "verification key",
+        }
         self.backend["session_id2"] = {"authn_event": aevent2}
 
         self.assertEqual(
             self.backend.get_verified_logout("my_uid1"), "verification key"
-            )
+        )
         self.assertIsNone(self.backend.get_verified_logout("my_uid2"))
         self.assertIsNone(self.backend.get_verified_logout("missing"))
 
@@ -267,12 +267,12 @@ class TestSessionBackend(TestCase):
         aevent2 = AuthnEvent("my_uid", "some_salt").to_json()
         self.backend["session_id1"] = {
             "authn_event": aevent1,
-            "verified_logout": "verification key"
-            }
+            "verified_logout": "verification key",
+        }
         self.backend["session_id2"] = {
             "authn_event": aevent2,
-            "verified_logout": "verification key"
-            }
+            "verified_logout": "verification key",
+        }
         self.assertEqual(self.backend.get_verified_logout("my_uid"), "verification key")
 
     def test_get_token_ids(self):
@@ -288,7 +288,7 @@ class TestSessionBackend(TestCase):
         self.backend["session_id2"] = {"authn_event": aevent2, "id_token": "Id token 2"}
         self.assertEqual(
             set(self.backend.get_token_ids("my_uid")), {"Id token 1", "Id token 2"}
-            )
+        )
 
     def test_is_revoke_uid_false(self):
         aevent = AuthnEvent("my_uid", "some_salt").to_json()
@@ -389,8 +389,8 @@ class TestSessionDB(object):
                 "access_token_scope",
                 "sub",
                 "response_type",
-                ],
-            )
+            ],
+        )
 
         # can't update again
         with pytest.raises(AccessCodeUsed):
@@ -424,8 +424,8 @@ class TestSessionDB(object):
                 "access_token_scope",
                 "refresh_token",
                 "sub",
-                ],
-            )
+            ],
+        )
 
         # can't update again
         with pytest.raises(AccessCodeUsed):
@@ -460,8 +460,8 @@ class TestSessionDB(object):
                 "oauth_state",
                 "access_token_scope",
                 "sub",
-                ],
-            )
+            ],
+        )
 
         assert _dict["id_token"] == "id_token"
         assert isinstance(_dict["oidreq"], OpenIDRequest)
@@ -596,8 +596,8 @@ class TestSessionDB(object):
 
         info = self.sdb[sid]
         assert (
-                info["sub"]
-                == "179670cdee6375c48e577317b2abd7d5cd26a5cdb1cfb7ef84af3d703c71d013"
+            info["sub"]
+            == "179670cdee6375c48e577317b2abd7d5cd26a5cdb1cfb7ef84af3d703c71d013"
         )
 
         self.sdb.do_sub(
@@ -605,11 +605,11 @@ class TestSessionDB(object):
             "other_random_value",
             sector_id="http://example.com",
             subject_type="pairwise",
-            )
+        )
         info2 = self.sdb[sid]
         assert (
-                info2["sub"]
-                == "aaa50d80f8780cf1c4beb39e8e126556292f5091b9e39596424fefa2b99d9c53"
+            info2["sub"]
+            == "aaa50d80f8780cf1c4beb39e8e126556292f5091b9e39596424fefa2b99d9c53"
         )
 
         self.sdb.do_sub(
@@ -617,12 +617,12 @@ class TestSessionDB(object):
             "another_random_value",
             sector_id="http://other.example.com",
             subject_type="pairwise",
-            )
+        )
 
         info2 = self.sdb[sid]
         assert (
-                info2["sub"]
-                == "62fb630e29f0d41b88e049ac0ef49a9c3ac5418c029d6e4f5417df7e9443976b"
+            info2["sub"]
+            == "62fb630e29f0d41b88e049ac0ef49a9c3ac5418c029d6e4f5417df7e9443976b"
         )
 
     def test_get_authentication_event_dict(self):
@@ -632,7 +632,7 @@ class TestSessionDB(object):
             "salt": "salt",
             "authn_time": 1000,
             "valid_until": 1500,
-            }
+        }
         ae = self.sdb.get_authentication_event("123")
         assert ae.uid == "uid"
         assert ae.salt == "salt"
@@ -643,7 +643,7 @@ class TestSessionDB(object):
         self.sdb._db["123"] = {}
         self.sdb._db["123"]["authn_event"] = json.dumps(
             {"uid": "uid", "salt": "salt", "authn_time": 1000, "valid_until": 1500}
-            )
+        )
         ae = self.sdb.get_authentication_event("123")
         assert ae.uid == "uid"
         assert ae.salt == "salt"
@@ -699,7 +699,7 @@ class TestSessionDB(object):
         ae = AuthnEvent("my_uid", "salt")
         sid1 = self.sdb.create_authz_session(ae, AREQ)
         self.sdb.do_sub(sid1, "salt")
-        self.sdb.update(sid1, 'id_token', "Id token")
+        self.sdb.update(sid1, "id_token", "Id token")
         assert self.sdb.get_id_token("my_uid") == {"client1": "Id token"}
 
     def test_get_is_revoke_uid(self):

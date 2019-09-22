@@ -132,10 +132,7 @@ class TestOICConsumer:
         }
 
         self.consumer = Consumer(
-            DictSessionBackend(),
-            CONFIG,
-            client_config,
-            SERVER_INFO,
+            DictSessionBackend(), CONFIG, client_config, SERVER_INFO
         )
         self.consumer.behaviour = {
             "request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]

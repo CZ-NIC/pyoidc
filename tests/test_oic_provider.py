@@ -212,7 +212,10 @@ class TestProvider(object):
         self.provider.baseurl = self.provider.name
 
         self.cons = Consumer(
-            DictSessionBackend(), CONSUMER_CONFIG.copy(), CLIENT_CONFIG, server_info=SERVER_INFO
+            DictSessionBackend(),
+            CONSUMER_CONFIG.copy(),
+            CLIENT_CONFIG,
+            server_info=SERVER_INFO,
         )
         self.cons.behaviour = {
             "request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]

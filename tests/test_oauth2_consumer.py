@@ -128,20 +128,25 @@ class TestConsumer(object):
     @pytest.fixture(autouse=True)
     def create_consumer(self):
         self.consumer = Consumer(
-            DictSessionBackend(), client_config=CLIENT_CONFIG,
-            server_info=SERVER_INFO, **CONSUMER_CONFIG
+            DictSessionBackend(),
+            client_config=CLIENT_CONFIG,
+            server_info=SERVER_INFO,
+            **CONSUMER_CONFIG
         )
 
     def test_init(self):
         cons = Consumer(
-            DictSessionBackend(), client_config=CLIENT_CONFIG,
-            server_info=SERVER_INFO, **CONSUMER_CONFIG
+            DictSessionBackend(),
+            client_config=CLIENT_CONFIG,
+            server_info=SERVER_INFO,
+            **CONSUMER_CONFIG
         )
         cons._backup("123456")
         assert "123456" in cons.sdb
 
-        cons = Consumer(DictSessionBackend(), client_config=CLIENT_CONFIG,
-            **CONSUMER_CONFIG)
+        cons = Consumer(
+            DictSessionBackend(), client_config=CLIENT_CONFIG, **CONSUMER_CONFIG
+        )
         assert cons.authorization_endpoint is None
 
         cons = Consumer(DictSessionBackend, **CONSUMER_CONFIG)
