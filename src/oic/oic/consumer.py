@@ -1,5 +1,6 @@
 import logging
 import os.path
+import warnings
 
 from jwkest import as_unicode
 
@@ -16,13 +17,18 @@ from oic.oauth2.message import ErrorResponse
 from oic.oic import ENDPOINTS
 from oic.oic import Client
 from oic.oic.message import AccessTokenResponse
-from oic.oic.message import BackChannelLogoutRequest
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AuthorizationResponse
+from oic.oic.message import BackChannelLogoutRequest
 from oic.oic.message import Claims
 from oic.oic.message import ClaimsRequest
 from oic.utils import http_util
 from oic.utils.sanitize import sanitize
+from oic.utils.sdb import DictSessionBackend
+from oic.utils.sdb import SessionBackend
+from oic.utils.session_backend import session_extended_get
+from oic.utils.session_backend import session_get
+from oic.utils.session_backend import session_update
 
 __author__ = "rohe0002"
 
@@ -82,7 +88,16 @@ def clean_response(aresp):
     return atr
 
 
-IGNORE = ["request2endpoint", "response2error", "grant_class", "token_class"]
+IGNORE = [
+    "request2endpoint",
+    "response2error",
+    "grant_class",
+    "token_class",
+    "sdb",
+    "wf",
+    "events",
+    "message_factory",
+]
 
 CONSUMER_PREF_ARGS = [
     "token_endpoint_auth_method",
@@ -116,6 +131,7 @@ class Consumer(Client):
         server_info=None,
         debug=False,
         client_prefs=None,
+        sso_db=None,
     ):
         """
         Initialize a Consumer instance.
@@ -146,7 +162,23 @@ class Consumer(Client):
                 except KeyError:
                     setattr(self, endpoint, "")
 
+        if not isinstance(session_db, SessionBackend):
+            warnings.warn(
+                "Please use `SessionBackend` to ensure proper API for the database.",
+                DeprecationWarning,
+            )
         self.sdb = session_db
+
+        if sso_db:
+            if not isinstance(sso_db, SessionBackend):
+                warnings.warn(
+                    "Please use `SessionBackend` to ensure proper API for the database.",
+                    DeprecationWarning,
+                )
+            self.sso_db = sso_db
+        else:
+            self.sso_db = DictSessionBackend()
+
         self.debug = debug
         self.seed = ""
         self.nonce = ""
@@ -174,6 +206,7 @@ class Consumer(Client):
             if not _val and val:
                 setattr(self, key, val)
             elif key == "grant" and val:
+                # val is a Grant instance
                 val.update(_val)
                 setattr(self, key, val)
 
@@ -238,6 +271,7 @@ class Consumer(Client):
 
         self._backup(sid)
         self.sdb["seed:%s" % self.seed] = sid
+        self.sso_db[sid] = {}
 
         args = {
             "client_id": self.client_id,
@@ -372,7 +406,7 @@ class Consumer(Client):
                 idt = None
             else:
                 try:
-                    self.sdb.update(idt['sid'], "smid", _state)
+                    session_update(self.sdb, idt["sid"], "smid", _state)
                 except KeyError:
                     pass
 
@@ -400,7 +434,7 @@ class Consumer(Client):
                 idt = None
             else:
                 try:
-                    self.sdb.update(idt['sid'], "smid", _state)
+                    session_update(self.sso_db, idt["sid"], "smid", _state)
                 except KeyError:
                     pass
 
@@ -482,7 +516,7 @@ class Consumer(Client):
     def end_session(self):
         pass
 
-# LOGOUT related
+    # LOGOUT related
 
     def backchannel_logout(self, request=None, request_args=None):
         """
@@ -498,29 +532,28 @@ class Consumer(Client):
         else:
             req = BackChannelLogoutRequest(**request_args)
 
-        kwargs = {
-            'aud': self.client_id,
-            'iss': self.issuer,
-            'keyjar': self.keyjar
-        }
+        kwargs = {"aud": self.client_id, "iss": self.issuer, "keyjar": self.keyjar}
 
         try:
             req.verify(**kwargs)
         except (MessageException, ValueError, NotForMe) as err:
-            raise MessageException('Bogus logout request: {}'.format(err))
+            raise MessageException("Bogus logout request: {}".format(err))
 
         # Find the subject through 'sid' or 'sub'
 
         try:
-            sub = req['logout_token']['sub']
+            sub = req["logout_token"]["sub"]
         except KeyError:
             try:
-                sm_id = req['logout_token']['sid']
+                sm_id = req["logout_token"]["sid"]
             except KeyError:
                 raise MessageException('Neither "sid" nor "sub"')
             else:
-                _sid = self.sdb.get_by_smid(sm_id)
+                _sid = session_get(self.sso_db, "smid", sm_id)
         else:
-            _sid = self.sdb.get_by_sub_and_x(sub, "issuer", req["logout_token"]["iss"])
+            _sid = session_extended_get(
+                self.sso_db, sub, "issuer", req["logout_token"]["iss"]
+            )
+            # _sid = self.sdb.get_by_sub_and_(sub, "issuer", req["logout_token"]["iss"])
 
         return _sid
