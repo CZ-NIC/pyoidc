@@ -38,7 +38,7 @@ def lv_unpack(txt):
     while txt:
         l, v = txt.split(":", 1)
         res.append(v[: int(l)])
-        txt = v[int(l):]
+        txt = v[int(l) :]
     return res
 
 
@@ -352,7 +352,7 @@ class DictRefreshDB(RefreshDB):
         warnings.warn(
             "Using `DictRefreshDB` is deprecated, please use `Token` and `refresh_token_factory` instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         self._db = {}  # type: Dict[str, Dict[str, str]]
 
@@ -370,13 +370,13 @@ class DictRefreshDB(RefreshDB):
 
 
 def create_session_db(
-        base_url,
-        secret,
-        password,
-        db=None,
-        token_expires_in=3600,
-        grant_expires_in=600,
-        refresh_token_expires_in=86400,
+    base_url,
+    secret,
+    password,
+    db=None,
+    token_expires_in=3600,
+    grant_expires_in=600,
+    refresh_token_expires_in=86400,
 ):
     """
     Construct SessionDB instance.
@@ -413,15 +413,15 @@ def create_session_db(
 
 class SessionDB(object):
     def __init__(
-            self,
-            base_url,
-            db,
-            refresh_db=None,
-            refresh_token_expires_in=None,
-            token_factory=None,
-            code_factory=None,
-            refresh_token_factory=None,
-            sm_salt=''
+        self,
+        base_url,
+        db,
+        refresh_db=None,
+        refresh_token_expires_in=None,
+        token_factory=None,
+        code_factory=None,
+        refresh_token_factory=None,
+        sm_salt="",
     ):
         """
         Object to store the session related information.
@@ -649,13 +649,13 @@ class SessionDB(object):
             return self._db[sid]["access_token"]
 
     def upgrade_to_token(
-            self,
-            token=None,
-            issue_refresh=False,
-            id_token="",
-            oidreq=None,
-            key=None,
-            access_grant="",
+        self,
+        token=None,
+        issue_refresh=False,
+        id_token="",
+        oidreq=None,
+        key=None,
+        access_grant="",
     ):
         """
         Promote session to token.
@@ -883,8 +883,7 @@ class SessionDB(object):
 
     def get_client_ids_for_uid(self, uid: str) -> List[str]:
         """Return client_ids for a given uid."""
-        return [self.get_client_id_for_session(sid) for sid in
-                self._db.get_by_uid(uid)]
+        return [self.get_client_id_for_session(sid) for sid in self._db.get_by_uid(uid)]
 
     def get_verify_logout(self, uid: str) -> Dict:
         """Return the dictionary for logout verification."""
@@ -908,7 +907,7 @@ class SessionDB(object):
         for sid in self._db.get_by_uid(uid):
             _dict = self._db[sid]
             try:
-                res[_dict['client_id']] = _dict['id_token']
+                res[_dict["client_id"]] = _dict["id_token"]
             except KeyError:
                 pass
         return res
@@ -988,4 +987,6 @@ class SessionDB(object):
         :return: A session management ID
         """
 
-        return hashlib.sha256("{}{}".format(sid, self.sm_salt).encode("utf-8")).hexdigest()
+        return hashlib.sha256(
+            "{}{}".format(sid, self.sm_salt).encode("utf-8")
+        ).hexdigest()

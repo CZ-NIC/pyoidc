@@ -11,14 +11,14 @@ from oic.utils.time_util import time_sans_frac
 
 class AuthnEvent(object):
     def __init__(
-            self,
-            uid,
-            salt,
-            valid=3600,
-            authn_info=None,
-            time_stamp=0,
-            authn_time=None,
-            valid_until=None,
+        self,
+        uid,
+        salt,
+        valid=3600,
+        authn_info=None,
+        time_stamp=0,
+        authn_time=None,
+        valid_until=None,
     ):
         """
         Create a representation of an authentication event.
@@ -275,7 +275,7 @@ def session_extended_get(db, sub, attr, val):
     elif isinstance(db, dict):
         for _key, _val in db.items():
             try:
-                if _val['sub'] == sub and _val[attr] == val:
+                if _val["sub"] == sub and _val[attr] == val:
                     return _key
             except KeyError:
                 continue
