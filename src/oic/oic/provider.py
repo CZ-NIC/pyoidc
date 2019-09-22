@@ -7,7 +7,6 @@ import time
 from functools import cmp_to_key
 from typing import Dict  # noqa
 from typing import List  # noqa
-from typing import Union  # noqa
 from urllib.parse import parse_qs
 from urllib.parse import splitquery  # type: ignore
 from urllib.parse import unquote
@@ -75,9 +74,9 @@ from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
 from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed
-from oic.utils.sdb import AuthnEvent
 from oic.utils.sdb import ExpiredToken
 from oic.utils.sdb import WrongTokenType
+from oic.utils.session_backend import AuthnEvent
 from oic.utils.template_render import render_template
 from oic.utils.time_util import utc_time_sans_frac
 

@@ -56,7 +56,7 @@ from oic.utils.http_util import Unauthorized
 from oic.utils.http_util import make_cookie
 from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed
-from oic.utils.sdb import AuthnEvent
+from oic.utils.session_backend import AuthnEvent
 
 __author__ = "rohe0002"
 
