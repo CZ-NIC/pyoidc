@@ -14,6 +14,7 @@ from cryptography.fernet import InvalidToken
 
 from oic import rndstr
 from oic.exception import ImproperlyConfigured
+from oic.oic import AuthorizationRequest
 from oic.utils import tobytes
 from oic.utils.session_backend import AuthnEvent
 from oic.utils.session_backend import DictSessionBackend
@@ -952,7 +953,7 @@ class SessionDB(object):
                 pass
 
         self._db[sid] = _dic
-        self._db.update_sub2sid_map(_dic["sub"], sid)
+        self._db.update(sid, "sub", _dic["sub"])
 
         return sid
 
