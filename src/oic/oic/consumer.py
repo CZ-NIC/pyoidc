@@ -528,7 +528,7 @@ class Consumer(Client):
         :return: A Session Identifier
         """
         if request:
-            req = BackChannelLogoutRequest().from_urlencoded(as_unicode(request))
+            req = BackChannelLogoutRequest().from_urlencoded(request)
         else:
             req = BackChannelLogoutRequest(**request_args)
 
