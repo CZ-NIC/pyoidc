@@ -26,9 +26,9 @@ from oic.utils import http_util
 from oic.utils.sanitize import sanitize
 from oic.utils.sdb import DictSessionBackend
 from oic.utils.sdb import SessionBackend
-from oic.utils.session_backend import session_extended_get
-from oic.utils.session_backend import session_get
-from oic.utils.session_backend import session_update
+from oic.utils.sdb import session_extended_get
+from oic.utils.sdb import session_get
+from oic.utils.sdb import session_update
 
 __author__ = "rohe0002"
 
