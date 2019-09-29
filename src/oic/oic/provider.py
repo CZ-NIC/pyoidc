@@ -42,15 +42,14 @@ from oic.oauth2.exception import VerificationError
 from oic.oauth2.message import Message
 from oic.oauth2.message import by_schema
 from oic.oauth2.provider import DELIM
-from oic.oauth2.provider import STR
 from oic.oauth2.provider import Endpoint
 from oic.oauth2.provider import Provider as AProvider
+from oic.oauth2.provider import STR
 from oic.oic import PREFERENCE2PROVIDER
 from oic.oic import PROVIDER_DEFAULT
 from oic.oic import Server
 from oic.oic import claims_match
 from oic.oic import scope2claims
-from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import Claims
@@ -59,11 +58,12 @@ from oic.oic.message import IdToken
 from oic.oic.message import OIDCMessageFactory
 from oic.oic.message import OpenIDRequest
 from oic.oic.message import OpenIDSchema
+from oic.oic.message import SCOPE2CLAIMS
 from oic.utils import sort_sign_alg
-from oic.utils.http_util import OAUTH2_NOCACHE_HEADERS
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import CookieDealer
 from oic.utils.http_util import Created
+from oic.utils.http_util import OAUTH2_NOCACHE_HEADERS
 from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Unauthorized
@@ -76,6 +76,7 @@ from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed
 from oic.utils.sdb import ExpiredToken
 from oic.utils.sdb import WrongTokenType
+from oic.utils.sdb import session_get
 from oic.utils.session_backend import AuthnEvent
 from oic.utils.template_render import render_template
 from oic.utils.time_util import utc_time_sans_frac
@@ -210,31 +211,31 @@ CAPABILITIES = {
 
 class Provider(AProvider):
     def __init__(
-        self,
-        name,
-        sdb,
-        cdb,
-        authn_broker,
-        userinfo,
-        authz,
-        client_authn,
-        symkey=None,
-        urlmap=None,
-        keyjar=None,
-        hostname="",
-        template_lookup=None,
-        template=None,
-        verify_ssl=True,
-        capabilities=None,
-        schema=OpenIDSchema,
-        jwks_uri="",
-        jwks_name="",
-        baseurl=None,
-        client_cert=None,
-        extra_claims=None,
-        template_renderer=render_template,
-        extra_scope_dict=None,
-        message_factory=OIDCMessageFactory,
+            self,
+            name,
+            sdb,
+            cdb,
+            authn_broker,
+            userinfo,
+            authz,
+            client_authn,
+            symkey=None,
+            urlmap=None,
+            keyjar=None,
+            hostname="",
+            template_lookup=None,
+            template=None,
+            verify_ssl=True,
+            capabilities=None,
+            schema=OpenIDSchema,
+            jwks_uri="",
+            jwks_name="",
+            baseurl=None,
+            client_cert=None,
+            extra_claims=None,
+            template_renderer=render_template,
+            extra_scope_dict=None,
+            message_factory=OIDCMessageFactory,
     ):
 
         # This has to be defined before calling super()
@@ -353,17 +354,17 @@ class Provider(AProvider):
                     self.capabilities[val] = [_enc_enc]
 
     def id_token_as_signed_jwt(
-        self,
-        session,
-        loa="2",
-        alg="",
-        code=None,
-        access_token=None,
-        user_info=None,
-        auth_time=0,
-        exp=None,
-        extra_claims=None,
-        **kwargs
+            self,
+            session,
+            loa="2",
+            alg="",
+            code=None,
+            access_token=None,
+            user_info=None,
+            auth_time=0,
+            exp=None,
+            extra_claims=None,
+            **kwargs
     ):
 
         if alg == "":
@@ -557,7 +558,7 @@ class Provider(AProvider):
             if typ == "sso":
                 uid, client_id = value.split(DELIM)
                 try:
-                    sids = self.sdb.get_by_uid(uid)
+                    sids = session_get(self.sdb, "uid", uid)
                 except (KeyError, IndexError):
                     raise SubMismatch("Mismatch uid")
         return cookie_dealer, client_id, sids
@@ -764,7 +765,7 @@ class Provider(AProvider):
 
         if "response_type" in req:
             if not self.match_sp_sep(
-                [" ".join(req["response_type"])], _cap["response_types_supported"]
+                    [" ".join(req["response_type"])], _cap["response_types_supported"]
             ):
                 raise InvalidRequest("Contains unsupported response type")
 
@@ -933,7 +934,7 @@ class Provider(AProvider):
         return _jwe.encrypt(keys, context="public")
 
     def sign_encrypt_id_token(
-        self, sinfo, client_info, areq, code=None, access_token=None, user_info=None
+            self, sinfo, client_info, areq, code=None, access_token=None, user_info=None
     ):
         """
         Sign and or encrypt a IDToken.
@@ -1223,7 +1224,7 @@ class Provider(AProvider):
             _token = kwargs.get("authn", "") or ""
             if not _token.startswith("Bearer "):
                 raise ParameterError("Token is missing or malformed")
-            _token = _token[len("Bearer ") :]
+            _token = _token[len("Bearer "):]
             logger.debug("Bearer token {} chars".format(len(_token)))
         else:
             args = {"data": request}
@@ -1341,7 +1342,7 @@ class Provider(AProvider):
                             raise CapabilitiesMisMatch(_pref)
                     else:
                         if not set(request[_pref]).issubset(
-                            set(self.capabilities[_prov])
+                                set(self.capabilities[_prov])
                         ):
                             raise CapabilitiesMisMatch(_pref)
 
@@ -1363,8 +1364,8 @@ class Provider(AProvider):
                     err = ClientRegistrationErrorResponse(
                         error="invalid_configuration_parameter",
                         error_description="post_logout_redirect_uris "
-                        "contains "
-                        "fragment",
+                                          "contains "
+                                          "fragment",
                     )
                     return Response(
                         err.to_json(),
@@ -1693,7 +1694,7 @@ class Provider(AProvider):
         # database.
         if not authn.startswith("Bearer "):
             return error_response("invalid_request")
-        token = authn[len("Bearer ") :]
+        token = authn[len("Bearer "):]
 
         # Get client_id from request
         _info = parse_qs(request)
@@ -2026,3 +2027,23 @@ class Provider(AProvider):
                         kb.remove(key)
             if len(kb) == 0:
                 self.keyjar.issuer_keys[""].remove(kb)
+
+    def get_uid_by_sub(self, sub):
+        """
+        Should only be one so stop after the first is found.
+        """
+        for sid in self.sdb.get_by_sub(sub):
+            return AuthnEvent.from_json(self.sdb[sid]["authn_event"]).uid
+        return None
+
+    def get_uid_by_sid(self, sid):
+        return AuthnEvent.from_json(self.sdb[sid]["authn_event"]).uid
+
+    def get_by_sub_and_(self, sub, key, val):
+        for sid in self.sdb.get_by_sub(sub):
+            try:
+                if self.sdb[sid][key] == val:
+                    return sid
+            except KeyError:
+                continue
+        return None

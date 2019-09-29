@@ -111,25 +111,6 @@ class SessionBackend(metaclass=ABCMeta):
         # We do not care which session it is - once revoked, al are revoked
         return any([self[sid]["revoked"] for sid in self.get_by_uid(uid)])
 
-    def get_uid_by_sub(self, sub):
-        """
-        Should only be one so stop after the first is found.
-        """
-        for sid in self.get_by_sub(sub):
-            return AuthnEvent.from_json(self[sid]["authn_event"]).uid
-        return None
-
-    def get_uid_by_sid(self, sid):
-        return AuthnEvent.from_json(self[sid]["authn_event"]).uid
-
-    def get_by_sub_and_(self, sub, key, val):
-        for sid in self.get_by_sub(sub):
-            try:
-                if self[sid][key] == val:
-                    return sid
-            except KeyError:
-                continue
-        return None
 
     def update(self, key, attribute, value):
         """
@@ -204,20 +185,6 @@ class DictSessionBackend(SessionBackend):
     def get_uid_by_sid(self, sid):
         return self.get_uid_by_sub(self.storage[sid]["sub"])
 
-    def get_by_sub_and_(self, sub, key, val):
-        """
-        Given a subject identifier and a key/value pair return the Id of a session
-        that matches those values.
-
-        :param sub: Subjecty Identifier
-        :param key: attribute name
-        :param val: attribute value
-        :return: Session identifier
-        """
-        for sid, session in self.storage.items():
-            if session.get("sub") == sub and session.get(key) == val:
-                return sid
-
     def update(self, key, attribute, value):
         """
         Updates information stored. If the key is not know a new entry will be
@@ -235,59 +202,3 @@ class DictSessionBackend(SessionBackend):
             self.storage[key] = item
 
 
-def session_update(db, key, attr, val):
-    if isinstance(db, SessionBackend):
-        db.update(key, attr, val)
-    elif isinstance(db, dict):
-        item = db[key]
-        item[attr] = val
-        db[key] = item
-    else:
-        raise ValueError("Unknown session database type")
-
-
-def session_get(db, attr, val):
-    """Return session ID based on attribute having value val"""
-    if isinstance(db, SessionBackend):
-        db.get(attr, val)
-    elif isinstance(db, dict):
-        for _key, _val in db.items():
-            try:
-                if _val[attr] == val:
-                    return _key
-            except KeyError:
-                continue
-        return None
-    else:
-        raise ValueError("Unknown session database type")
-
-
-def session_extended_get(db, sub, attr, val):
-    """Return session ID based on subject_id and attribute attr having value val"""
-    if isinstance(db, SessionBackend):
-        for sid in db.get_by_sub(sub):
-            try:
-                if db[sid][attr] == val:
-                    return sid
-            except KeyError:
-                continue
-        return None
-    elif isinstance(db, dict):
-        for _key, _val in db.items():
-            try:
-                if _val["sub"] == sub and _val[attr] == val:
-                    return _key
-            except KeyError:
-                continue
-        return None
-    else:
-        raise ValueError("Unknown session database type")
-
-
-def session_set(db, attr, val):
-    if isinstance(db, SessionBackend):
-        db[attr] = val
-    elif isinstance(db, dict):
-        db[attr] = val
-    else:
-        raise ValueError("Unknown session database type")

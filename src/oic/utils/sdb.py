@@ -11,10 +11,10 @@ from typing import List  # noqa
 
 from cryptography.fernet import Fernet
 from cryptography.fernet import InvalidToken
+from oic.oauth2.message import AuthorizationRequest
 
 from oic import rndstr
 from oic.exception import ImproperlyConfigured
-from oic.oic import AuthorizationRequest
 from oic.utils import tobytes
 from oic.utils.session_backend import AuthnEvent
 from oic.utils.session_backend import DictSessionBackend
@@ -968,18 +968,6 @@ class SessionDB(object):
     def get_by_sub(self, sub):
         return self._db.get_by_sub(sub)
 
-    def get_by_uid(self, uid):
-        return self._db.get_by_uid(uid)
-
-    def get_by_smid(self, smid):
-        return self._db.get_by_smid(smid)
-
-    def get_by_sub_and_client_id(self, sid, client_id):
-        return self._db.get_by_sub_and_x(sid, "client_id", client_id)
-
-    def get_by_sub_and_issuer(self, sid, issuer):
-        return self._db.get_by_sub_and_x(sid, "issuer", issuer)
-
     def make_smid(self, sid):
         """
         Create a session management ID
@@ -991,3 +979,76 @@ class SessionDB(object):
         return hashlib.sha256(
             "{}{}".format(sid, self.sm_salt).encode("utf-8")
         ).hexdigest()
+
+    def get(self, attr, val):
+        self._db.get(attr, val)
+
+    def get_by_uid(self, uid: str) -> List[str]:
+        return self._db.get_by_uid(uid)
+
+
+def session_get(db, attr, val):
+    """Return session ID based on attribute having value val"""
+    if isinstance(db, (SessionBackend, SessionDB)):
+        if attr == "uid":
+            return db.get_by_uid(val)
+        else:
+            return db.get(attr, val)
+    elif isinstance(db, dict):
+        if attr == "uid":
+            for _key, _val in db.items():
+                if _val['authn_event']["uid"] == val:
+                    return _key
+        else:
+            for _key, _val in db.items():
+                if _val.get(attr) == val:
+                    return _key
+        return None
+    else:
+        raise ValueError("Unknown session database type")
+
+
+def session_extended_get(db, sub, attr, val):
+    """Return session ID based on subject_id and attribute attr having value val"""
+    if isinstance(db, (SessionBackend, SessionDB)):
+        for sid in db.get_by_sub(sub):
+            try:
+                if db[sid][attr] == val:
+                    return sid
+            except KeyError:
+                continue
+        return None
+    elif isinstance(db, dict):
+        for _key, _val in db.items():
+            try:
+                if _val["sub"] == sub and _val[attr] == val:
+                    return _key
+            except KeyError:
+                continue
+        return None
+    else:
+        raise ValueError("Unknown session database type")
+
+
+def session_set(db, attr, val):
+    if isinstance(db, SessionBackend):
+        db[attr] = val
+    elif isinstance(db, SessionDB):
+        db._db.set(attr, val)
+    elif isinstance(db, dict):
+        db[attr] = val
+    else:
+        raise ValueError("Unknown session database type")
+
+
+def session_update(db, key, attr, val):
+    if isinstance(db, SessionBackend):
+        db.update(key, attr, val)
+    elif isinstance(db, SessionDB):
+        db._db.update(key, attr, val)
+    elif isinstance(db, dict):
+        item = db[key]
+        item[attr] = val
+        db[key] = item
+    else:
+        raise ValueError("Unknown session database type")

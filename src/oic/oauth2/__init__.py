@@ -49,7 +49,7 @@ from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 from oic.utils.keyio import KeyJar
-from oic.utils.session_backend import session_update
+from oic.utils.sdb import session_update
 from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = "rohe0002"
