@@ -995,6 +995,12 @@ def session_get(db, attr, val):
         else:
             return db.get(attr, val)
     elif isinstance(db, dict):
+        warnings.warn(
+            "Using a regular dictionary is deprecated, please use `SessionDB` or `SessionBackend` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
         if attr == "uid":
             for _key, _val in db.items():
                 if _val['authn_event']["uid"] == val:
@@ -1019,6 +1025,11 @@ def session_extended_get(db, sub, attr, val):
                 continue
         return None
     elif isinstance(db, dict):
+        warnings.warn(
+            "Using a regular dictionary is deprecated, please use `SessionDB` or `SessionBackend` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         for _key, _val in db.items():
             try:
                 if _val["sub"] == sub and _val[attr] == val:
@@ -1036,6 +1047,11 @@ def session_set(db, attr, val):
     elif isinstance(db, SessionDB):
         db._db.set(attr, val)
     elif isinstance(db, dict):
+        warnings.warn(
+            "Using a regular dictionary is deprecated, please use `SessionDB` or `SessionBackend` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         db[attr] = val
     else:
         raise ValueError("Unknown session database type")
@@ -1047,6 +1063,11 @@ def session_update(db, key, attr, val):
     elif isinstance(db, SessionDB):
         db._db.update(key, attr, val)
     elif isinstance(db, dict):
+        warnings.warn(
+            "Using a regular dictionary is deprecated, please use `SessionDB` or `SessionBackend` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         item = db[key]
         item[attr] = val
         db[key] = item
