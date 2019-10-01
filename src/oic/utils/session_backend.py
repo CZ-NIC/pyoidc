@@ -111,7 +111,6 @@ class SessionBackend(metaclass=ABCMeta):
         # We do not care which session it is - once revoked, al are revoked
         return any([self[sid]["revoked"] for sid in self.get_by_uid(uid)])
 
-
     def update(self, key, attribute, value):
         """
         Updates information stored. If the key is not know a new entry will be
@@ -200,5 +199,3 @@ class DictSessionBackend(SessionBackend):
             item = self.storage[key]
             item[attribute] = value
             self.storage[key] = item
-
-

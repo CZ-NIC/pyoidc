@@ -11,10 +11,10 @@ from typing import List  # noqa
 
 from cryptography.fernet import Fernet
 from cryptography.fernet import InvalidToken
-from oic.oauth2.message import AuthorizationRequest
 
 from oic import rndstr
 from oic.exception import ImproperlyConfigured
+from oic.oauth2.message import AuthorizationRequest
 from oic.utils import tobytes
 from oic.utils.session_backend import AuthnEvent
 from oic.utils.session_backend import DictSessionBackend
@@ -1003,7 +1003,7 @@ def session_get(db, attr, val):
 
         if attr == "uid":
             for _key, _val in db.items():
-                if _val['authn_event']["uid"] == val:
+                if _val["authn_event"]["uid"] == val:
                     return _key
         else:
             for _key, _val in db.items():
