@@ -183,7 +183,7 @@ class DictSessionBackend(SessionBackend):
 
     def get_uid_by_sub(self, sub):
         """Return User ids based on sub. Should only be one."""
-        for sid, session in self.storage.items():
+        for session in self.storage.values():
             if session.get("sub") == sub:
                 return AuthnEvent.from_json(session["authn_event"]).uid
         return None

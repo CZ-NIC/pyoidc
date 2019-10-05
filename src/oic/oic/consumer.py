@@ -2,8 +2,6 @@ import logging
 import os.path
 import warnings
 
-from jwkest import as_unicode
-
 from oic import rndstr
 from oic.exception import AuthzError
 from oic.exception import MessageException
