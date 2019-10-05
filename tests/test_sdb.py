@@ -21,6 +21,7 @@ from oic.utils.sdb import DictSessionBackend
 from oic.utils.sdb import ExpiredToken
 from oic.utils.sdb import WrongTokenType
 from oic.utils.sdb import create_session_db
+from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = "rohe0002"
 
@@ -84,6 +85,13 @@ class TestAuthnEvent(object):
             "valid_until": 1500,
             "authn_info": None,
         }
+
+    def test_validity(self):
+        now = utc_time_sans_frac()
+        ae = AuthnEvent("uid", "salt", authn_time=now, valid_until=now + 1500)
+        # Some time has elapsed, so less then 1500 but not by much
+        assert ae.valid_for() < 1500
+        assert ae.valid_for() > 1499
 
 
 class TestDictRefreshDB(object):
@@ -188,7 +196,7 @@ class TestDictSessionBackend(TestCase):
         self.backend["key"] = {"foobar": "value"}
         self.assertEqual(self.backend["key"], {"foobar": "value"})
         with self.assertRaises(KeyError):
-            self.backend["missing"]
+            _ = self.backend["missing"]
 
     def test_delitem(self):
         self.backend["key"] = {"foobar": "value"}
@@ -306,6 +314,36 @@ class TestDictSessionBackend(TestCase):
         self.backend["session_id1"] = {"authn_event": aevent1, "revoked": True}
         self.backend["session_id2"] = {"authn_event": aevent2, "revoked": False}
         self.assertTrue(self.backend.is_revoke_uid("my_uid"))
+
+    def test_update(self):
+        self.backend["key"] = {"foobar": "value"}
+        aevent2 = AuthnEvent("my_uid", "some_salt").to_json()
+        self.backend.update("key", "authn_event", aevent2)
+        self.backend.update("key", "id_token", "unsigned.jwt.")
+        assert self.backend.get_token_ids("my_uid") == ["unsigned.jwt."]
+
+    def test_update_new(self):
+        aevent2 = AuthnEvent("my_uid", "some_salt").to_json()
+        self.backend.update("key", "authn_event", aevent2)
+        self.backend.update("key", "id_token", "unsigned.jwt.")
+        assert self.backend.get_token_ids("my_uid") == ["unsigned.jwt."]
+
+    def test_get(self):
+        self.backend["key"] = {"foobar": "value"}
+        self.backend.update("key", "id_token", "unsigned.jwt.")
+        assert self.backend.get("id_token", "unsigned.jwt.") == ["key"]
+
+    def test_uid_by_sub(self):
+        aevent2 = AuthnEvent("my_uid", "some_salt").to_json()
+        self.backend.update("key", "authn_event", aevent2)
+        self.backend.update("key", "sub", "subject_id")
+        assert self.backend.get_uid_by_sub("subject_id") == "my_uid"
+
+    def test_sub_by_sid(self):
+        aevent2 = AuthnEvent("my_uid", "some_salt").to_json()
+        self.backend.update("key", "authn_event", aevent2)
+        self.backend.update("key", "sub", "subject_id")
+        assert self.backend.get_uid_by_sid('key') == "my_uid"
 
 
 class TestSessionDB(object):
@@ -596,8 +634,8 @@ class TestSessionDB(object):
 
         info = self.sdb[sid]
         assert (
-            info["sub"]
-            == "179670cdee6375c48e577317b2abd7d5cd26a5cdb1cfb7ef84af3d703c71d013"
+                info["sub"]
+                == "179670cdee6375c48e577317b2abd7d5cd26a5cdb1cfb7ef84af3d703c71d013"
         )
 
         self.sdb.do_sub(
@@ -608,8 +646,8 @@ class TestSessionDB(object):
         )
         info2 = self.sdb[sid]
         assert (
-            info2["sub"]
-            == "aaa50d80f8780cf1c4beb39e8e126556292f5091b9e39596424fefa2b99d9c53"
+                info2["sub"]
+                == "aaa50d80f8780cf1c4beb39e8e126556292f5091b9e39596424fefa2b99d9c53"
         )
 
         self.sdb.do_sub(
@@ -621,8 +659,8 @@ class TestSessionDB(object):
 
         info2 = self.sdb[sid]
         assert (
-            info2["sub"]
-            == "62fb630e29f0d41b88e049ac0ef49a9c3ac5418c029d6e4f5417df7e9443976b"
+                info2["sub"]
+                == "62fb630e29f0d41b88e049ac0ef49a9c3ac5418c029d6e4f5417df7e9443976b"
         )
 
     def test_get_authentication_event_dict(self):

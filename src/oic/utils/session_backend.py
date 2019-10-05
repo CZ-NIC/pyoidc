@@ -132,7 +132,7 @@ class SessionBackend(metaclass=ABCMeta):
 
     def get_uid_by_sid(self, sid):
         """Return session ids based on uid"""
-        return self.get_uid_by_sub(self[sid]["sub"])
+        return AuthnEvent.from_json(self[sid]["authn_event"]).uid
 
 
 class DictSessionBackend(SessionBackend):
@@ -189,7 +189,7 @@ class DictSessionBackend(SessionBackend):
         return None
 
     def get_uid_by_sid(self, sid):
-        return self.get_uid_by_sub(self.storage[sid]["sub"])
+        return AuthnEvent.from_json(self.storage[sid]["authn_event"]).uid
 
     def update(self, key, attribute, value):
         """
