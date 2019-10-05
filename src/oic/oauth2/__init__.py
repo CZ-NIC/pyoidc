@@ -654,7 +654,8 @@ class Client(PBase):
             if "id_token" in resp and self.sso_db:
                 session_update(self.sso_db, _state, "sub", resp["id_token"]["sub"])
                 session_update(self.sso_db, _state, "issuer", resp["id_token"]["iss"])
-
+                if "sid" in resp["id_token"]:
+                    session_update(self.sso_db, _state, "smid", resp["id_token"]["sid"])
         return resp
 
     def init_authentication_method(
