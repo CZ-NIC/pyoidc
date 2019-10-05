@@ -7,9 +7,9 @@ from oic import rndstr
 from oic.exception import MessageException
 from oic.oic import AccessTokenResponse
 from oic.oic.consumer import Consumer
+from oic.oic.message import BACK_CHANNEL_LOGOUT_EVENT
 from oic.oic.message import AccessTokenRequest
 from oic.oic.message import AuthorizationRequest
-from oic.oic.message import BACK_CHANNEL_LOGOUT_EVENT
 from oic.oic.message import BackChannelLogoutRequest
 from oic.oic.provider import Provider
 from oic.utils.authn.authn_context import AuthnBroker
@@ -203,10 +203,7 @@ class TestOICConsumerLogout:
     def test_not_for_me(self):
         _sub = "sub"
 
-        logout_info = {
-            "sub": _sub,
-            "events": {BACK_CHANNEL_LOGOUT_EVENT: {}},
-        }
+        logout_info = {"sub": _sub, "events": {BACK_CHANNEL_LOGOUT_EVENT: {}}}
         alg = "RS256"
         _jws = JWT(
             self.provider.keyjar,
@@ -242,16 +239,15 @@ class TestOICConsumerLogout:
             grant_type="authorization_code",
         )
         token_resp = self.provider.code_grant_type(areq)
-        self.consumer.parse_response(AccessTokenResponse, token_resp.message, sformat="json")
+        self.consumer.parse_response(
+            AccessTokenResponse, token_resp.message, sformat="json"
+        )
         # Have to fake this until the provider changes are in place
         _smid = "session_management_id"
         self.consumer.sso_db.update(sid, "smid", _smid)
 
         # Now, for the backchannel logout. This happens on the OP
-        logout_info = {
-            "sid": _smid,
-            "events": {BACK_CHANNEL_LOGOUT_EVENT: {}},
-        }
+        logout_info = {"sid": _smid, "events": {BACK_CHANNEL_LOGOUT_EVENT: {}}}
         alg = "RS256"
         _jws = JWT(
             self.provider.keyjar,
@@ -273,9 +269,7 @@ class TestOICConsumerLogout:
 
     def test_logout_with_none(self):
         # Now, for the backchannel logout. This happens on the OP
-        logout_info = {
-            "events": {BACK_CHANNEL_LOGOUT_EVENT: {}},
-        }
+        logout_info = {"events": {BACK_CHANNEL_LOGOUT_EVENT: {}}}
         alg = "RS256"
         _jws = JWT(
             self.provider.keyjar,

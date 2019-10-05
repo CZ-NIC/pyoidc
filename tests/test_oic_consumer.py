@@ -9,9 +9,6 @@ from freezegun import freeze_time
 from jwkest import BadSignature
 from jwkest.jwk import SYMKey
 
-from oic.utils.sdb import session_get
-from oic.utils.time_util import utc_time_sans_frac
-
 from oic.oauth2.message import MissingSigningKey
 from oic.oic import DEF_SIGN_ALG
 from oic.oic import Server
@@ -29,6 +26,8 @@ from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import keybundle_from_local_file
 from oic.utils.sdb import DictSessionBackend
+from oic.utils.sdb import session_get
+from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = "rohe0002"
 
@@ -855,10 +854,10 @@ class TestOICConsumer:
             "nonce": "KUEYfRM2VzKDaaKD",
             "sub": "EndUserSubject",
             "iss": "https://example.com",
-            "exp": now+3600,
+            "exp": now + 3600,
             "iat": now,
             "aud": self.consumer.client_id,
-            "sid": smid
+            "sid": smid,
         }
         idts = IdToken(**idval)
 
@@ -867,7 +866,7 @@ class TestOICConsumer:
         _state = "state"
         self.consumer.sdb[_state] = {"redirect_uris": ["https://example.org/cb"]}
         resp = AuthorizationResponse(id_token=_signed_jwt, state=_state)
-        self.consumer.consumer_config['response_type'] = ["id_token"]
+        self.consumer.consumer_config["response_type"] = ["id_token"]
         part = self.consumer.parse_authz(resp.to_urlencoded())
-        assert self.consumer.sso_db.storage['state']['smid'] == smid
+        assert self.consumer.sso_db.storage["state"]["smid"] == smid
         assert session_get(self.consumer.sso_db, "smid", smid) == [_state]

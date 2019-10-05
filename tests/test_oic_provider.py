@@ -2095,7 +2095,7 @@ class TestProvider(object):
             redirect_uri="http://example.com/authz",
             client_id=CLIENT_ID,
             response_type="code",
-            scope=["openid", "offline_access"]
+            scope=["openid", "offline_access"],
         )
 
         sid_2 = _sdb.access_token.key(user="sub", areq=authreq_2)
