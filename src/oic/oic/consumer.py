@@ -434,7 +434,7 @@ class Consumer(Client):
                 idt = None
             else:
                 try:
-                    session_update(self.sso_db, idt["sid"], "smid", _state)
+                    session_update(self.sso_db, _state, "smid", idt["sid"])
                 except KeyError:
                     pass
 
