@@ -651,7 +651,7 @@ class Client(PBase):
             except KeyError:
                 self.grant[_state] = self.grant_class(resp=resp)
 
-            if "id_token" in resp:
+            if "id_token" in resp and self.sso_db:
                 session_update(self.sso_db, _state, "sub", resp["id_token"]["sub"])
                 session_update(self.sso_db, _state, "issuer", resp["id_token"]["iss"])
 
