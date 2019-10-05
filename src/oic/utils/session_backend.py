@@ -127,6 +127,13 @@ class SessionBackend(metaclass=ABCMeta):
             item[attribute] = value
             self[key] = item
 
+    def get_uid_by_sub(self, sub):
+        """Return User ids based on sub. Should only be one."""
+
+    def get_uid_by_sid(self, sid):
+        """Return session ids based on uid"""
+        return self.get_uid_by_sub(self[sid]["sub"])
+
 
 class DictSessionBackend(SessionBackend):
     """
