@@ -518,8 +518,7 @@ class Consumer(Client):
 
     def backchannel_logout(self, request=None, request_args=None):
         """
-        Receives a back channel logout request and returns a Session ID
-        if the request was OK.
+        Receives a back channel logout request and returns a Session ID if the request was OK.
 
         :param request: A urlencoded request
         :param request_args: The request as a dictionary
