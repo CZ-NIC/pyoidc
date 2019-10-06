@@ -1,5 +1,7 @@
 import os
 from time import time
+from typing import Any
+from typing import Dict
 
 import pytest
 
@@ -188,7 +190,6 @@ class TestOICConsumerLogout:
             lifetime=86400,
             sign_alg=alg,
         )
-        _jws.with_jti = True
         logout_token = _jws.pack(aud=CLIENT_ID, **logout_info)
 
         # The logout request that gets sent to the RP
@@ -211,7 +212,6 @@ class TestOICConsumerLogout:
             lifetime=86400,
             sign_alg=alg,
         )
-        _jws.with_jti = True
         logout_token = _jws.pack(aud="someone", **logout_info)
 
         # The logout request that gets sent to the RP
@@ -255,7 +255,6 @@ class TestOICConsumerLogout:
             lifetime=86400,
             sign_alg=alg,
         )
-        _jws.with_jti = True
         logout_token = _jws.pack(aud=CLIENT_ID, **logout_info)
 
         # The logout request that gets sent to the RP
@@ -277,7 +276,6 @@ class TestOICConsumerLogout:
             lifetime=86400,
             sign_alg=alg,
         )
-        _jws.with_jti = True
         logout_token = _jws.pack(aud=CLIENT_ID, **logout_info)
 
         # The logout request that gets sent to the RP
