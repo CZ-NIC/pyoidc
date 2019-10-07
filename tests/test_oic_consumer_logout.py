@@ -1,6 +1,8 @@
 import os
 from time import time
 from typing import Any
+from typing import Any
+from typing import Dict
 from typing import Dict
 
 import pytest
@@ -268,7 +270,7 @@ class TestOICConsumerLogout:
 
     def test_logout_with_none(self):
         # Now, for the backchannel logout. This happens on the OP
-        logout_info = {"events": {BACK_CHANNEL_LOGOUT_EVENT: {}}}
+        logout_info: Dict[str, Dict[str, Dict[Any, Any]]] = {"events": {BACK_CHANNEL_LOGOUT_EVENT: {}}}
         alg = "RS256"
         _jws = JWT(
             self.provider.keyjar,
