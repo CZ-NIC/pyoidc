@@ -558,7 +558,7 @@ class OpenIDSchema(Message):
     def verify(self, **kwargs):
         super().verify(**kwargs)
 
-        if "birthdate" in self:
+        if "birthdate" in self and self["birthdate"] is not None:
             # Either YYYY-MM-DD or just YYYY or 0000-MM-DD
             try:
                 time.strptime(self["birthdate"], "%Y-%m-%d")

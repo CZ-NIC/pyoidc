@@ -11,6 +11,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#602] Fixed uncaught error on unpacking of message
 - [#679] Make `state` optional in `EndSessionRequest`
 - [#683] Fix basic_auth with client password
+- [#692] Do not validate birthdate format if it is set to `None`
 
 ### Removed
 - [#671] Removed deprecated request/response_cls kwargs from Provider/Client methods
