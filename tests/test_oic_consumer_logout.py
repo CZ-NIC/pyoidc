@@ -1,4 +1,5 @@
 import os
+import sys
 from time import time
 from typing import Any
 from typing import Any
@@ -270,7 +271,12 @@ class TestOICConsumerLogout:
 
     def test_logout_with_none(self):
         # Now, for the backchannel logout. This happens on the OP
-        logout_info: Dict[str, Dict[str, Dict[Any, Any]]] = {"events": {BACK_CHANNEL_LOGOUT_EVENT: {}}}
+        # Python version 3.5 doesn't support variable annotation
+        if sys.version_info > (3, 5):
+            logout_info: Dict[str, Dict[str, Dict[Any, Any]]] = {"events": {BACK_CHANNEL_LOGOUT_EVENT: {}}}
+        else:
+            logout_info = {"events": {BACK_CHANNEL_LOGOUT_EVENT: {}}}
+
         alg = "RS256"
         _jws = JWT(
             self.provider.keyjar,
