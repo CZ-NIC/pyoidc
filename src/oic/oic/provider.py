@@ -568,7 +568,7 @@ class Provider(AProvider):
             "endsession_endpoint"
         )().from_urlencoded(request)
 
-        logger.debug("End session request: {}", sanitize(esr.to_dict()))
+        logger.debug("End session request: {}".format(sanitize(esr.to_dict())))
 
         # 2 ways of find out client ID and user. Either through a cookie
         # or using the id_token_hint
