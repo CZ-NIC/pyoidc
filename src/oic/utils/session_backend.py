@@ -2,8 +2,10 @@ import json
 import time
 from abc import ABCMeta
 from abc import abstractmethod
+from typing import Any
 from typing import Dict
 from typing import List
+from typing import NoReturn
 from typing import Optional
 
 from oic.utils.time_util import time_sans_frac
@@ -111,7 +113,7 @@ class SessionBackend(metaclass=ABCMeta):
         # We do not care which session it is - once revoked, al are revoked
         return any([self[sid]["revoked"] for sid in self.get_by_uid(uid)])
 
-    def update(self, key, attribute, value):
+    def update(self, key: str, attribute: str, value: Any) -> NoReturn:
         """
         Updates information stored. If the key is not know a new entry will be
         constructed.
