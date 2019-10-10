@@ -2032,12 +2032,13 @@ class Provider(AProvider):
         """
         Should only be one so stop after the first is found.
         """
-        for sid in self.sdb.get_by_sub(sub):
-            return AuthnEvent.from_json(self.sdb[sid]["authn_event"]).uid
+
+        for sid in session_get(self.sdb, "sub", sub):
+            return self.sdb.get_authentication_event(sid).uid
         return None
 
     def get_uid_by_sid(self, sid):
-        return AuthnEvent.from_json(self.sdb[sid]["authn_event"]).uid
+        return self.sdb.get_authentication_event(sid).uid
 
     def get_by_sub_and_(self, sub, key, val):
         for sid in self.sdb.get_by_sub(sub):
