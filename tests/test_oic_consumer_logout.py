@@ -353,8 +353,8 @@ class TestOICConsumerLogout:
         assert _sid == sid
 
     def test_attribute_error(self):
-        self.consumer.sdb.update('sid', 'foo', 'bar')
-        self.consumer.update('sid')
+        self.consumer.sdb.update("sid", "foo", "bar")
+        self.consumer.update("sid")
 
         with pytest.raises(AttributeError):
-            getattr(self.consumer, 'foo')
+            getattr(self.consumer, "foo")
