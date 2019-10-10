@@ -167,7 +167,7 @@ class Consumer(Client):
             )
         self.sdb = session_db
 
-        if sso_db:
+        if sso_db is not None:
             if not isinstance(sso_db, SessionBackend):
                 warnings.warn(
                     "Please use `SessionBackend` to ensure proper API for the database.",
