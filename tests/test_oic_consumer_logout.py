@@ -269,13 +269,10 @@ class TestOICConsumerLogout:
 
     def test_logout_with_none(self):
         # Now for the backchannel logout. This happens on the OP
-        # Python version 3.5 doesn't support variable annotation
-        if sys.version_info >= (3, 6):
-            logout_info: Dict[str, Dict[str, Dict[Any, Any]]] = {
-                "events": {BACK_CHANNEL_LOGOUT_EVENT: {}}
-            }
-        else:
-            logout_info = {"events": {BACK_CHANNEL_LOGOUT_EVENT: {}}}
+
+        logout_info = {
+            "events": {BACK_CHANNEL_LOGOUT_EVENT: {}}
+        }  # typing: Dict[str, Dict[str, Dict[Any, Any]]]
 
         alg = "RS256"
         _jws = JWT(

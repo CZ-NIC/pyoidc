@@ -131,6 +131,14 @@ class SessionBackend(metaclass=ABCMeta):
 
     def get_uid_by_sub(self, sub):
         """Return User ids based on sub. Should only be one."""
+        uid = ""
+        for sid in self.get_by_sub(sub):
+            if uid:
+                if uid != AuthnEvent.from_json(self[sid]["authn_event"]).uid:
+                    raise ValueError("More the one uid bound to one sub")
+            else:
+                uid = AuthnEvent.from_json(self[sid]["authn_event"]).uid
+        return uid
 
     def get_uid_by_sid(self, sid):
         """Return session ids based on uid"""
@@ -182,29 +190,3 @@ class DictSessionBackend(SessionBackend):
         return [
             sid for sid, session in self.storage.items() if session.get(attr) == val
         ]
-
-    def get_uid_by_sub(self, sub):
-        """Return User ids based on sub. Should only be one."""
-        for session in self.storage.values():
-            if session.get("sub") == sub:
-                return AuthnEvent.from_json(session["authn_event"]).uid
-        return None
-
-    def get_uid_by_sid(self, sid):
-        return AuthnEvent.from_json(self.storage[sid]["authn_event"]).uid
-
-    def update(self, key, attribute, value):
-        """
-        Updates information stored. If the key is not know a new entry will be
-        constructed.
-
-        :param key: Key to the database
-        :param attribute: Attribute name
-        :param value: Attribute value
-        """
-        if key not in self.storage:
-            self.storage[key] = {attribute: value}
-        else:
-            item = self.storage[key]
-            item[attribute] = value
-            self.storage[key] = item
