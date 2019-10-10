@@ -294,3 +294,67 @@ class TestOICConsumerLogout:
         # value) is returned.
         with pytest.raises(MessageException):
             _ = self.consumer.backchannel_logout(request_args=request.to_dict())
+
+    def test_sso_db_dict(self):
+        client_config = {
+            "client_id": CLIENT_ID,
+            "client_authn_method": CLIENT_AUTHN_METHOD,
+        }
+
+        _consumer = Consumer({}, CONFIG, client_config, SERVER_INFO, sso_db={})
+        _consumer.keyjar = CLIKEYS
+        _consumer.redirect_uris = ["https://example.com/authz"]
+        _consumer.client_secret = "hemlig"
+        _consumer.secret_type = "basic"
+        _consumer.issuer = ISSUER_ID
+
+        # Simulate an authorization
+        sid, request_location = _consumer.begin(
+            "openid", "code", path="https://example.com"
+        )
+        resp = self.provider.authorization_endpoint(request=request_location)
+        aresp = _consumer.parse_authz(resp.message)
+
+        assert _consumer.sdb[sid]["issuer"] == self.provider.baseurl
+
+        # Simulate an accesstoken request
+        areq = AccessTokenRequest(
+            code=aresp[0]["code"],
+            client_id=CLIENT_ID,
+            redirect_uri="http://example.com/authz",
+            client_secret=_consumer.client_secret,
+            grant_type="authorization_code",
+        )
+        token_resp = self.provider.code_grant_type(areq)
+        tresp = _consumer.parse_response(
+            AccessTokenResponse, token_resp.message, sformat="json"
+        )
+
+        # Now, for the backchannel logout. This happens on the OP
+        logout_info = {
+            "sub": tresp["id_token"]["sub"],
+            "events": {BACK_CHANNEL_LOGOUT_EVENT: {}},
+        }
+        alg = "RS256"
+        _jws = JWT(
+            self.provider.keyjar,
+            iss=self.provider.baseurl,
+            lifetime=86400,
+            sign_alg=alg,
+        )
+        logout_token = _jws.pack(aud=CLIENT_ID, **logout_info)
+
+        # The logout request that gets sent to the RP
+        request = BackChannelLogoutRequest(logout_token=logout_token)
+
+        # The RP evaluates the request. If everything is OK a session ID (== original state
+        # value) is returned.
+        _sid = _consumer.backchannel_logout(request_args=request.to_dict())
+        assert _sid == sid
+
+    def test_attribute_error(self):
+        self.consumer.sdb.update('sid', 'foo', 'bar')
+        self.consumer.update('sid')
+
+        with pytest.raises(AttributeError):
+            getattr(self.consumer, 'foo')
