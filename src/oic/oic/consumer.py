@@ -541,12 +541,9 @@ class Consumer(Client):
         try:
             sub = req["logout_token"]["sub"]
         except KeyError:
-            try:
-                sm_id = req["logout_token"]["sid"]
-            except KeyError:
-                raise MessageException('Neither "sid" nor "sub"')
-            else:
-                _sid = session_get(self.sso_db, "smid", sm_id)
+            # verify has guaranteed that there will be a sid if sub is missing
+            sm_id = req["logout_token"]["sid"]
+            _sid = session_get(self.sso_db, "smid", sm_id)
         else:
             _sid = session_extended_get(
                 self.sso_db, sub, "issuer", req["logout_token"]["iss"]

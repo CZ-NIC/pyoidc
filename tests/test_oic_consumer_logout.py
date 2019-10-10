@@ -202,6 +202,11 @@ class TestOICConsumerLogout:
 
         assert _sid == sid
 
+        # Test other coding
+        _sid = self.consumer.backchannel_logout(request=request.to_urlencoded())
+        assert _sid == sid
+
+
     def test_not_for_me(self):
         _sub = "sub"
 
@@ -290,3 +295,4 @@ class TestOICConsumerLogout:
         # value) is returned.
         with pytest.raises(MessageException):
             _ = self.consumer.backchannel_logout(request_args=request.to_dict())
+
