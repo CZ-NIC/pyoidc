@@ -548,6 +548,5 @@ class Consumer(Client):
             _sid = session_extended_get(
                 self.sso_db, sub, "issuer", req["logout_token"]["iss"]
             )
-            # _sid = self.sdb.get_by_sub_and_(sub, "issuer", req["logout_token"]["iss"])
 
         return _sid

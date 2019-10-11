@@ -47,10 +47,8 @@ CONFIG = {
     "authz_page": "authz",
     "scope": ["openid"],
     "response_type": "code",
-    # "request_method": "parameter",
     "password": "hemligt",
     "max_age": 3600,
-    # "user_info": {"name": None},
 }
 
 # Provider information
