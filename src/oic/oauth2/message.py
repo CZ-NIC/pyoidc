@@ -137,6 +137,9 @@ def gather_keys(comb, collection, jso, target):
 
 def convert_key_to_jwcrypto(jwkey):
     """Temporary helper to convert key from jwkest to jwcrypto."""
+    if isinstance(jwkey, JWK):
+        # Already converted
+        return jwkey
     temp = jwkey.serialize(private=True)
     if isinstance(jwkey, RSAKey) and jwkey.d != "":
         # Recalculate since they are not included in jwkest

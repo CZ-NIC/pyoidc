@@ -5,15 +5,20 @@ import logging
 import os
 import sys
 import time
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Union
+from typing import Any  # noqa
+from typing import Dict  # noqa
+from typing import List  # noqa
+from typing import NoReturn
+from typing import Optional  # noqa
+from typing import Tuple  # noqa
+from typing import Union  # noqa
 from urllib.parse import urlsplit
 
 import requests
 from Cryptodome.PublicKey import RSA
+from jwcrypto.common import JWException
+from jwcrypto.jwk import JWK
+from jwcrypto.jwk import InvalidJWKValue
 from jwkest import as_bytes
 from jwkest import as_unicode
 from jwkest import b64e
@@ -21,7 +26,6 @@ from jwkest import jwe
 from jwkest import jws
 from jwkest.ecc import NISTEllipticCurve
 from jwkest.jwk import ECKey
-from jwkest.jwk import JWKException
 from jwkest.jwk import RSAKey
 from jwkest.jwk import SYMKey
 from jwkest.jwk import rsa_load
@@ -135,25 +139,18 @@ class KeyBundle(object):
         for inst in keys:
             if not isinstance(inst, dict):
                 raise JWKSError("Illegal JWK")
-
-            typ = inst["kty"]
-            flag = 0
-            for _typ in [typ, typ.lower(), typ.upper()]:
-                try:
-                    _key = K2C[_typ](**inst)
-                except KeyError:
-                    continue
-                except TypeError:
-                    raise JWKSError("Inappropriate JWKS argument type")
-                except JWKException as err:
-                    logger.warning("Loading a key failed: %s", err)
-                else:
-                    if _key not in self._keys:
-                        self._keys.append(_key)
-                        flag = 1
-                        break
-            if not flag:
-                logger.warning("Unknown key type: %s", typ)
+            derived = inst.copy()
+            if derived['kty'] == 'oct' and 'k' not in derived:
+                # Derive the key
+                derived['k'] = derived['key']
+            try:
+                key = JWK(**derived)
+            except InvalidJWKValue:
+                raise JWKSError("Invalid usage.")
+            except JWException as err:
+                logger.warning("Loading a key failed: %s", err)
+            else:
+                self.append(key)
 
     def do_local_jwk(self, filename):
         try:
@@ -342,8 +339,17 @@ class KeyBundle(object):
             keys.append(key)
         return json.dumps({"keys": keys})
 
-    def append(self, key):
-        self._keys.append(key)
+    def append(self, key: JWK) -> NoReturn:
+        """Append only unique keys."""
+        thumbprint = key.thumbprint()
+        to_import = True
+        for _key in self._keys:
+            if _key.thumbprint() == thumbprint:
+                to_import = False
+                break
+        if to_import:
+            self._keys.append(key)
+
 
     def remove(self, key):
         self._keys.remove(key)
@@ -353,7 +359,7 @@ class KeyBundle(object):
 
     def get_key_with_kid(self, kid):
         for key in self._keys:
-            if key.kid == kid:
+            if key.key_id == kid:
                 return key
 
         # Try updating since there might have been an update to the key file
@@ -514,7 +520,8 @@ class KeyJar(object):
         if issuer not in self.issuer_keys:
             self.issuer_keys[issuer] = []
 
-        _key = b64e(as_bytes(key))
+        # TODO: Remove jwkest methods `b64e` and `as_bytes`
+        _key = b64e(as_bytes(key)).decode()
         if usage is None:
             self.issuer_keys[issuer].append(
                 self.keybundle_cls([{"kty": "oct", "k": _key}])

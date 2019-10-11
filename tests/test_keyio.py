@@ -75,7 +75,7 @@ def test_keybundle_from_local_jwk_file():
     assert len(keys) == 1
     key = keys[0]
     assert isinstance(key, RSAKey)
-    assert key.kid == "abc"
+    assert key.key_id == "abc"
 
 
 def test_key_export():
@@ -150,7 +150,7 @@ def test_dump_public_jwks():
     kb_public = KeyBundle(source="file://./foo.jwks")
     # All RSA keys
     for k in kb_public.keys():
-        if k.kty == "RSA":
+        if k.key_type == "RSA":
             assert not k.d
             assert not k.p
             assert not k.q
@@ -289,7 +289,7 @@ class TestKeyJar(object):
 
         _key = kj.get_key_by_kid("abc", "https://example.com")
         assert _key
-        assert _key.kid == "abc"
+        assert _key.key_id == "abc"
 
     def test_get_inactive_ver(self):
         ks = KeyJar()
