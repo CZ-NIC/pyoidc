@@ -986,6 +986,9 @@ class SessionDB(object):
     def get_by_uid(self, uid: str) -> List[str]:
         return self._db.get_by_uid(uid)
 
+    def get_uid_by_sub(self, sub):
+        return self._db.get_uid_by_sub(sub)
+
 
 def session_get(db, attr, val):
     """Return session ID based on attribute having value val"""

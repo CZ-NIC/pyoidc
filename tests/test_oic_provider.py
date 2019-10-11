@@ -2115,8 +2115,8 @@ class TestProvider(object):
         _sdb.upgrade_to_token(access_grant, issue_refresh=True)
 
         sub = _sdb[sid_2]["sub"]
-        assert self.provider.get_uid_by_sub(sub) == "user"
-        assert self.provider.get_uid_by_sid(sid_2) == "user"
+        assert self.provider.sdb.get_uid_by_sub(sub) == "user"
+        assert self.provider.sdb.get_uid_by_sid(sid_2) == "user"
 
         assert self.provider.get_by_sub_and_(sub, "client_id", "2ndClient") == sid_2
         assert self.provider.get_by_sub_and_(sub, "client_id", CLIENT_ID) == sid

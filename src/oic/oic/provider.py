@@ -2028,12 +2028,6 @@ class Provider(AProvider):
             if len(kb) == 0:
                 self.keyjar.issuer_keys[""].remove(kb)
 
-    def get_uid_by_sub(self, sub):
-        return self.sdb.get_uid_by_sub(sub)
-
-    def get_uid_by_sid(self, sid):
-        return self.sdb.get_authentication_event(sid).uid
-
     def get_by_sub_and_(self, sub, key, val):
         for sid in self.sdb.get_by_sub(sub):
             try:
