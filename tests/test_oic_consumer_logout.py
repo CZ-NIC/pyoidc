@@ -1,8 +1,5 @@
 import os
-import sys
 from time import time
-from typing import Any
-from typing import Dict
 
 import pytest
 
@@ -78,7 +75,7 @@ CDB = {
         "client_salt": "salted",
         "response_types": ["code"],
     }
-}  # type: Dict[str, Dict[str, Any]]
+}
 
 USERDB = {
     "username": {
@@ -223,7 +220,7 @@ class TestOICConsumerLogout:
         request = BackChannelLogoutRequest(logout_token=logout_token)
 
         with pytest.raises(MessageException):
-            _ = self.consumer.backchannel_logout(request_args=request.to_dict())
+            self.consumer.backchannel_logout(request_args=request.to_dict())
 
     def test_logout_without_sub(self):
         # Simulate an authorization
@@ -293,7 +290,7 @@ class TestOICConsumerLogout:
         # The RP evaluates the request. If everything is OK a session ID (== original state
         # value) is returned.
         with pytest.raises(MessageException):
-            _ = self.consumer.backchannel_logout(request_args=request.to_dict())
+            self.consumer.backchannel_logout(request_args=request.to_dict())
 
     def test_sso_db_dict(self):
         client_config = {

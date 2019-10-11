@@ -196,7 +196,7 @@ class TestDictSessionBackend(TestCase):
         self.backend["key"] = {"foobar": "value"}
         self.assertEqual(self.backend["key"], {"foobar": "value"})
         with self.assertRaises(KeyError):
-            _ = self.backend["missing"]
+            self.backend["missing"]
 
     def test_delitem(self):
         self.backend["key"] = {"foobar": "value"}

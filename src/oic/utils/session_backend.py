@@ -113,7 +113,7 @@ class SessionBackend(metaclass=ABCMeta):
         # We do not care which session it is - once revoked, al are revoked
         return any([self[sid]["revoked"] for sid in self.get_by_uid(uid)])
 
-    def update(self, key: str, attribute: str, value: Any) -> NoReturn:
+    def update(self, key: str, attribute: str, value: Any):
         """
         Updates information stored. If the key is not know a new entry will be
         constructed.

@@ -867,6 +867,6 @@ class TestOICConsumer:
         self.consumer.sdb[_state] = {"redirect_uris": ["https://example.org/cb"]}
         resp = AuthorizationResponse(id_token=_signed_jwt, state=_state)
         self.consumer.consumer_config["response_type"] = ["id_token"]
-        part = self.consumer.parse_authz(resp.to_urlencoded())
+        self.consumer.parse_authz(resp.to_urlencoded())
         assert self.consumer.sso_db.storage["state"]["smid"] == smid
         assert session_get(self.consumer.sso_db, "smid", smid) == [_state]
