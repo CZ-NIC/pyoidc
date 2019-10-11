@@ -1,8 +1,5 @@
 import os
-import sys
 from time import time
-from typing import Any
-from typing import Dict
 
 import pytest
 
@@ -14,6 +11,7 @@ from oic.oic.message import BACK_CHANNEL_LOGOUT_EVENT
 from oic.oic.message import AccessTokenRequest
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import BackChannelLogoutRequest
+from oic.oic.message import LogoutToken
 from oic.oic.provider import Provider
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
@@ -272,14 +270,7 @@ class TestOICConsumerLogout:
     def test_logout_with_none(self):
         # Now for the backchannel logout. This happens on the OP
 
-        if sys.version_info[:2] >= (3, 6):
-            logout_info: Dict[str, Dict[str, Dict[Any, Any]]] = {
-                "events": {BACK_CHANNEL_LOGOUT_EVENT: {}}
-            }
-        else:
-            logout_info = {
-                "events": {BACK_CHANNEL_LOGOUT_EVENT: {}}
-            }  # type: Dict[str, Dict[str, Dict[Any, Any]]]
+        logout_info = LogoutToken(events={BACK_CHANNEL_LOGOUT_EVENT: {}})
 
         alg = "RS256"
         _jws = JWT(
