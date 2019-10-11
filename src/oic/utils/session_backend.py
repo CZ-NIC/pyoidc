@@ -5,7 +5,6 @@ from abc import abstractmethod
 from typing import Any
 from typing import Dict
 from typing import List
-from typing import NoReturn
 from typing import Optional
 
 from oic.utils.time_util import time_sans_frac
@@ -115,8 +114,7 @@ class SessionBackend(metaclass=ABCMeta):
 
     def update(self, key: str, attribute: str, value: Any):
         """
-        Updates information stored. If the key is not know a new entry will be
-        constructed.
+        Updates information stored. If the key is not know a new entry will be constructed.
 
         :param key: Key to the database
         :param attribute: Attribute name
@@ -141,7 +139,7 @@ class SessionBackend(metaclass=ABCMeta):
         return uid
 
     def get_uid_by_sid(self, sid):
-        """Return session ids based on uid"""
+        """Return session ids based on uid."""
         return AuthnEvent.from_json(self[sid]["authn_event"]).uid
 
 

@@ -970,12 +970,11 @@ class SessionDB(object):
 
     def make_smid(self, sid):
         """
-        Create a session management ID
+        Create a session management ID.
 
         :param sid:
         :return: A session management ID
         """
-
         return hashlib.sha256(
             "{}{}".format(sid, self.sm_salt).encode("utf-8")
         ).hexdigest()
@@ -994,7 +993,7 @@ class SessionDB(object):
 
 
 def session_get(db, attr, val):
-    """Return session ID based on attribute having value val"""
+    """Return session ID based on attribute having value val."""
     if isinstance(db, (SessionBackend, SessionDB)):
         if attr == "uid":
             return db.get_by_uid(val)
@@ -1021,7 +1020,7 @@ def session_get(db, attr, val):
 
 
 def session_extended_get(db, sub, attr, val):
-    """Return session ID based on subject_id and attribute attr having value val"""
+    """Return session ID based on subject_id and attribute attr having value val."""
     if isinstance(db, (SessionBackend, SessionDB)):
         for sid in db.get_by_sub(sub):
             try:
