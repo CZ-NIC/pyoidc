@@ -5,11 +5,13 @@ import logging
 import os
 import sys
 import time
+from base64 import urlsafe_b64encode
 from typing import Any  # noqa
 from typing import Dict  # noqa
 from typing import List  # noqa
 from typing import NoReturn
 from typing import Optional  # noqa
+from typing import NoReturn
 from typing import Tuple  # noqa
 from typing import Union  # noqa
 from urllib.parse import urlsplit
@@ -140,9 +142,13 @@ class KeyBundle(object):
             if not isinstance(inst, dict):
                 raise JWKSError("Illegal JWK")
             derived = inst.copy()
-            if derived['kty'] == 'oct' and 'k' not in derived:
-                # Derive the key
-                derived['k'] = derived['key']
+            if derived["kty"] == "oct" and "k" not in derived:
+                if isinstance(derived["key"], str):
+                    derived["key"] = derived["key"].encode()
+                derived["k"] = urlsafe_b64encode(derived["key"]).decode()
+            if derived["kty"] == "RSA" and "key" in derived:
+                _key = derived.pop("key")
+                derived.update(_key)
             try:
                 key = JWK(**derived)
             except InvalidJWKValue:
@@ -165,16 +171,16 @@ class KeyBundle(object):
             self.last_updated = time.time()
 
     def do_local_der(self, filename, keytype, keyusage):
-        # This is only for RSA keys
-        _bkey = rsa_load(filename)
+        with open(filename, "rb") as f:
+            k = JWK.from_pem(f.read())
+        key_data = json.loads(k.export_private())
 
         if not keyusage:
             keyusage = ["enc", "sig"]
 
         for use in keyusage:
-            _key = RSAKey().load_key(_bkey)
-            _key.use = use
-            self._keys.append(_key)
+            _key = JWK(**key_data, use=use)
+            self.append(_key)
 
         self.last_updated = time.time()
 
@@ -297,7 +303,7 @@ class KeyBundle(object):
         _typs = [typ.lower(), typ.upper()]
 
         if typ:
-            return [k for k in self._keys if k.kty in _typs]
+            return [k for k in self._keys if k.key_type in _typs]
         else:
             return self._keys
 
@@ -331,9 +337,9 @@ class KeyBundle(object):
         keys = list()
         for k in self._keys:
             if private:
-                key = k.serialize(private)
+                key = json.loads(k.export_private())
             else:
-                key = k.to_dict()
+                key = json.loads(k.export_public())
                 for k, v in key.items():
                     key[k] = as_unicode(v)
             keys.append(key)
@@ -344,12 +350,13 @@ class KeyBundle(object):
         thumbprint = key.thumbprint()
         to_import = True
         for _key in self._keys:
-            if _key.thumbprint() == thumbprint:
+            if _key.thumbprint() == thumbprint and _key._params.get(
+                "use"
+            ) == key._params.get("use"):
                 to_import = False
                 break
         if to_import:
             self._keys.append(key)
-
 
     def remove(self, key):
         self._keys.remove(key)
@@ -403,14 +410,11 @@ class KeyBundle(object):
 def keybundle_from_local_file(filename, typ, usage):
     if typ.upper() == "RSA":
         kb = KeyBundle()
-        k = RSAKey()
-        k.load(filename)
-        k.use = usage[0]
-        kb.append(k)
-        for use in usage[1:]:
-            _k = RSAKey()
-            _k.use = use
-            _k.load_key(k.key)
+        with open(filename, "rb") as f:
+            k = JWK.from_pem(f.read())
+        key_data = json.loads(k.export_private())
+        for use in usage:
+            _k = JWK(**key_data, use=use)
             kb.append(_k)
     elif typ.lower() == "jwk":
         kb = KeyBundle(source=filename, fileformat="jwk", keyusage=usage)
@@ -434,7 +438,7 @@ def dump_jwks(kbl, target, private=False):
             [
                 k.serialize(private)
                 for k in kb.keys()
-                if k.kty != "oct" and not k.inactive_since
+                if k.key_type != "oct" and not k.inactive_since
             ]
         )
     res = {"keys": keys}
@@ -598,7 +602,7 @@ class KeyJar(object):
                     if kid and key.kid == kid:
                         lst = [key]
                         break
-                    if not key.use or use == key.use:
+                    if not key._params.get("use") or use == key._params["use"]:
                         lst.append(key)
                         continue
                     # Verification can be performed by both `sig` and `ver` keys
@@ -786,7 +790,7 @@ class KeyJar(object):
         res = []
         try:
             for kb in self.issuer_keys[issuer]:
-                res.extend([k.to_dict() for k in kb.keys()])
+                res.extend([json.loads(k.export()) for k in kb.keys()])
         except KeyError:
             pass
 
@@ -953,14 +957,15 @@ def key_setup(vault, **kwargs):
             _args = kwargs[usage]
             if _args["alg"].upper() == "RSA":
                 try:
-                    _key = rsa_load("%s%s" % (vault_path, "pyoidc"))
-                except Exception:
+                    with open("%s%s" % (vault_path, "pyoidc"), "rb") as f:
+                        _key = JWK.from_pem(f.read())
+                except IOError:
                     with open(os.devnull, "w") as devnull:
                         with RedirectStdStreams(stdout=devnull, stderr=devnull):
-                            _key = create_and_store_rsa_key_pair(path=vault_path)
-
-                k = RSAKey(key=_key, use=usage)
-                k.add_kid()
+                            k = create_and_store_rsa_key_pair(path=vault_path)
+                else:
+                    key_data = json.loads(_key.export_private())
+                    k = JWK(**key_data, use=usage)
                 kb.append(k)
     return kb
 
@@ -1010,7 +1015,9 @@ def key_export(baseurl, local_path, vault, keyjar, **kwargs):
 # ================= create RSA key ======================
 
 
-def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=2048):
+def create_and_store_rsa_key_pair(
+    name: str = "pyoidc", path: str = ".", size: int = 2048, use: str = "sig"
+) -> JWK:
     """
     Create RSA keypair.
 
@@ -1019,18 +1026,20 @@ def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=2048):
     :param size: RSA key size
     :return: RSA key
     """
-    key = RSA.generate(size)
+    key = JWK.generate(kty="RSA", size=size, use=use)
 
     os.makedirs(path, exist_ok=True)
 
     if name:
         with open(os.path.join(path, name), "wb") as f:
-            f.write(key.exportKey("PEM"))
+            f.write(key.export_to_pem(private_key=True, password=None))
 
-        _pub_key = key.publickey()
         with open(os.path.join(path, "{}.pub".format(name)), "wb") as f:
-            f.write(_pub_key.exportKey("PEM"))
+            f.write(key.export_to_pem(private_key=False))
 
+    # Reimport to properly initialize all params (kid)
+    key_dict = json.loads(key.export_private())
+    key = JWK(**key_dict, kid=key.thumbprint())
     return key
 
 
@@ -1066,14 +1075,18 @@ def ec_init(spec):
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
     :return: A KeyBundle instance
     """
-    _key = NISTEllipticCurve.by_name(spec["crv"])
+    #     _key = NISTEllipticCurve.by_name(spec["crv"])
     kb = KeyBundle(keytype="EC", keyusage=spec["use"])
     for use in spec["use"]:
-        priv, pub = _key.key_pair()
-        ec = ECKey(x=pub[0], y=pub[1], d=priv, crv=spec["crv"])
-        ec.serialize()
-        ec.use = use
-        kb.append(ec)
+        key = JWK.generate(kty="EC", crv=spec["crv"], use=use)
+        #         priv, pub = _key.key_pair()
+        #         ec = ECKey(x=pub[0], y=pub[1], d=priv, crv=spec["crv"])
+        #         ec.serialize()
+        #         ec.use = use
+        # Recreate to generate kid
+        key_dict = json.loads(key.export_private())
+        key = JWK(**key_dict, kid=key.thumbprint())
+        kb.append(key)
     return kb
 
 
@@ -1093,8 +1106,8 @@ def rsa_init(spec):
 
     kb = KeyBundle(keytype="RSA", keyusage=spec["use"])
     for use in spec["use"]:
-        _key = create_and_store_rsa_key_pair(**arg)
-        kb.append(RSAKey(use=use, key=_key))
+        _key = create_and_store_rsa_key_pair(**arg, use=use)
+        kb.append(_key)
     return kb
 
 
@@ -1185,14 +1198,12 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
             kb = ec_init(spec)
 
         for k in kb.keys():
-            if kid_template:
-                k.kid = kid_template % kid
-                kid += 1
-            else:
-                k.add_kid()
-            kidd[k.use][k.kty] = k.kid
+            # FIXME: This might not be necessary ...
+            kidd[k._params["use"]][k.key_type] = k.key_id
 
-        jwks["keys"].extend([k.serialize() for k in kb.keys() if k.kty != "oct"])
+        jwks["keys"].extend(
+            [json.loads(k.export_public()) for k in kb.keys() if k.key_type != "oct"]
+        )
 
         keyjar.add_kb("", kb)
 

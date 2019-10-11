@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 
 import pytest
 import responses
+from jwcrypto.jwk import JWK
 from jwkest.jws import alg2keytype
 from jwkest.jws import left_hash
 from jwkest.jwt import JWT
@@ -43,7 +44,6 @@ from oic.oic.message import UserInfoRequest
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
-from oic.utils.keyio import rsa_load
 from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = "rohe0002"
@@ -58,8 +58,9 @@ KC_SYM_S = KeyBundle(
 )
 
 BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/keys"))
-RSA_KEY = rsa_load(os.path.join(BASE_PATH, "rsa.key"))
-KC_RSA = KeyBundle({"key": RSA_KEY, "kty": "RSA", "use": "sig"})
+with open(os.path.join(BASE_PATH, "rsa.key"), "rb") as f:
+    _key_data = json.loads(JWK.from_pem(f.read()).export_private())
+KC_RSA = KeyBundle({"key": _key_data, "kty": "RSA", "use": "sig"})
 
 KEYJ = KeyJar()
 KEYJ[""] = [KC_RSA, KC_SYM_S]

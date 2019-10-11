@@ -100,7 +100,7 @@ def test_key_export():
     assert len(kb.get("RSA")) == 1
     k = kb.get("RSA")[0]
     # For signing
-    assert k.use == "sig"
+    assert k._params["use"] == "sig"
 
 
 def test_build_keyjar():
@@ -200,7 +200,7 @@ class TestKeyBundle(object):
         assert len(kc.get("RSA")) == 2
 
         key = kc.get("RSA")[0]
-        assert isinstance(key, RSAKey)
+        assert key.key_type == "RSA"
 
         kc.update()
         assert kc.remote is False
@@ -208,7 +208,7 @@ class TestKeyBundle(object):
         assert len(kc.get("RSA")) == 2
 
         key = kc.get("RSA")[0]
-        assert isinstance(key, RSAKey)
+        assert key.key_type == "RSA"
 
     def test_do_remote_no_source(self):
         kc = KeyBundle()
@@ -437,7 +437,7 @@ KEYDEFS = [
 def test_remove_after():
     # initial keyjar
     keyjar = build_keyjar(KEYDEFS)[1]
-    _old = [k.kid for k in keyjar.get_issuer_keys("") if k.kid]
+    _old = [k.key_id for k in keyjar.get_issuer_keys("") if k.key_id]
     assert len(_old) == 2
 
     # rotate_keys = create new keys + make the old as inactive
@@ -447,13 +447,13 @@ def test_remove_after():
     # None are remove since none are marked as inactive yet
     keyjar.remove_outdated()
 
-    _interm = [k.kid for k in keyjar.get_issuer_keys("") if k.kid]
+    _interm = [k.key_id for k in keyjar.get_issuer_keys("") if k.key_id]
     assert len(_interm) == 4
 
     # Now mark the keys to be inactivated
     _now = time.time()
     for k in keyjar.get_issuer_keys(""):
-        if k.kid in _old:
+        if k.key_id in _old:
             if not k.inactive_since:
                 k.inactive_since = _now
 
@@ -464,7 +464,7 @@ def test_remove_after():
         keyjar.remove_outdated()
 
     # The remainder are the new keys
-    _new = [k.kid for k in keyjar.get_issuer_keys("") if k.kid]
+    _new = [k.key_id for k in keyjar.get_issuer_keys("") if k.key_id]
     assert len(_new) == 2
 
     # should not be any overlap between old and new
