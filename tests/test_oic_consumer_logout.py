@@ -272,7 +272,7 @@ class TestOICConsumerLogout:
     def test_logout_with_none(self):
         # Now for the backchannel logout. This happens on the OP
 
-        if sys.version_info >= (3, 6):
+        if sys.version_info[:2] >= (3, 6):
             logout_info: Dict[str, Dict[str, Dict[Any, Any]]] = {
                 "events": {BACK_CHANNEL_LOGOUT_EVENT: {}}
             }
