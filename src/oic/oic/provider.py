@@ -2029,13 +2029,7 @@ class Provider(AProvider):
                 self.keyjar.issuer_keys[""].remove(kb)
 
     def get_uid_by_sub(self, sub):
-        """
-        Should only be one so stop after the first is found.
-        """
-
-        for sid in session_get(self.sdb, "sub", sub):
-            return self.sdb.get_authentication_event(sid).uid
-        return None
+        return self.sdb.get_uid_by_sub(sub)
 
     def get_uid_by_sid(self, sid):
         return self.sdb.get_authentication_event(sid).uid

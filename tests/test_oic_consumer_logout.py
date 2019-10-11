@@ -1,5 +1,7 @@
 import os
 from time import time
+from typing import Any
+from typing import Dict
 
 import pytest
 
@@ -273,7 +275,7 @@ class TestOICConsumerLogout:
 
         logout_info = {
             "events": {BACK_CHANNEL_LOGOUT_EVENT: {}}
-        }  # typing: Dict[str, Dict[str, Dict[Any, Any]]]
+        }  # type: Dict[str, Dict[str, Dict[Any, Any]]]
 
         alg = "RS256"
         _jws = JWT(
