@@ -114,7 +114,7 @@ class SessionBackend(metaclass=ABCMeta):
 
     def update(self, key: str, attribute: str, value: Any):
         """
-        Updates information stored. If the key is not know a new entry will be constructed.
+        Update information stored. If the key is not know a new entry will be constructed.
 
         :param key: Key to the database
         :param attribute: Attribute name
