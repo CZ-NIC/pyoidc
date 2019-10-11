@@ -22,7 +22,10 @@ else:
             # Configurations for the SP handler. (pyOpSamlProxy.client.sp.conf)
             self.sp_conf = importlib.import_module(spconf)
             ntf = NamedTemporaryFile(suffix="pyoidc.py", delete=True)
-            ntf.write(b"CONFIG = " + self.sp_conf.CONFIG.replace("%s", url))
+            ntf.write(
+                "CONFIG = "  # type: ignore
+                + str(self.sp_conf.CONFIG).replace("%s", url)
+            )
             ntf.seek(0)
             self.sp = Saml2Client(config_file="%s" % ntf.name)
             self.samlcache = self.sp_conf.SAML_CACHE
