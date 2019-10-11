@@ -981,7 +981,7 @@ class SessionDB(object):
         ).hexdigest()
 
     def get(self, attr, val):
-        self._db.get(attr, val)
+        return self._db.get(attr, val)
 
     def get_by_uid(self, uid: str) -> List[str]:
         return self._db.get_by_uid(uid)
