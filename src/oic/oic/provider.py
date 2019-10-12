@@ -2032,7 +2032,8 @@ class Provider(AProvider):
 
     def get_by_sub_and_(self, sub: str, key: str, val: Any) -> Optional[str]:
         """
-        Returns a session ID.
+        Get a session ID based on subject ID and an attribute value pair.
+
         Matches sessions based on a subject identifier (sub) and
         one other claim (key) having value (val).
 
