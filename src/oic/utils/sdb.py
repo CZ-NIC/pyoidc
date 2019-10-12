@@ -444,7 +444,6 @@ class SessionDB(object):
         self._db = db
 
         self.sm_salt = sm_salt or rndstr(32)
-        self._db.set_sm_salt(sm_salt)
 
         self.token_factory = {"code": code_factory, "access_token": token_factory}
 
