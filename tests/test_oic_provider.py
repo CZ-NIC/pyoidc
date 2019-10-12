@@ -2120,3 +2120,8 @@ class TestProvider(object):
 
         assert self.provider.get_by_sub_and_(sub, "client_id", "2ndClient") == sid_2
         assert self.provider.get_by_sub_and_(sub, "client_id", CLIENT_ID) == sid
+
+        # Error cases
+        assert self.provider.get_by_sub_and_(sub, "client_id", "unknown") is None
+        assert self.provider.get_by_sub_and_("who", "client_id", CLIENT_ID) is None
+        assert self.provider.get_by_sub_and_(sub, "foo", "bar") is None

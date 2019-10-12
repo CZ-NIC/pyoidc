@@ -127,7 +127,7 @@ class SessionBackend(metaclass=ABCMeta):
             item[attribute] = value
             self[key] = item
 
-    def get_uid_by_sub(self, sub):
+    def get_uid_by_sub(self, sub: str) -> str:
         """Return User ids based on sub. Should only be one."""
         uid = ""
         for sid in self.get_by_sub(sub):
@@ -138,8 +138,8 @@ class SessionBackend(metaclass=ABCMeta):
                 uid = AuthnEvent.from_json(self[sid]["authn_event"]).uid
         return uid
 
-    def get_uid_by_sid(self, sid):
-        """Return session ids based on uid."""
+    def get_uid_by_sid(self, sid: str) -> str:
+        """Return User id based on session ID."""
         return AuthnEvent.from_json(self[sid]["authn_event"]).uid
 
 

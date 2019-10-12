@@ -5,8 +5,10 @@ import logging
 import socket
 import time
 from functools import cmp_to_key
+from typing import Any
 from typing import Dict  # noqa
 from typing import List  # noqa
+from typing import Optional
 from urllib.parse import parse_qs
 from urllib.parse import splitquery  # type: ignore
 from urllib.parse import unquote
@@ -2028,7 +2030,17 @@ class Provider(AProvider):
             if len(kb) == 0:
                 self.keyjar.issuer_keys[""].remove(kb)
 
-    def get_by_sub_and_(self, sub, key, val):
+    def get_by_sub_and_(self, sub: str, key: str, val: Any) -> Optional[str]:
+        """
+        Returns a session ID.
+        Matches sessions based on a subject identifier (sub) and
+        one other claim (key) having value (val).
+
+        :param sub: The subject identifier
+        :param key: A claim in the session information
+        :param val: A value
+        :return: A session ID
+        """
         for sid in self.sdb.get_by_sub(sub):
             try:
                 if self.sdb[sid][key] == val:

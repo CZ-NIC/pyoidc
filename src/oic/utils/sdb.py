@@ -442,8 +442,9 @@ class SessionDB(object):
                 DeprecationWarning,
             )
         self._db = db
-        if sm_salt:
-            self._db.set_sm_salt(sm_salt)
+
+        self.sm_salt = sm_salt or rndstr(32)
+        self._db.set_sm_salt(sm_salt)
 
         self.token_factory = {"code": code_factory, "access_token": token_factory}
 
@@ -474,7 +475,6 @@ class SessionDB(object):
 
         self.access_token = self.token_factory["access_token"]
         self.token = self.access_token
-        self.sm_salt = sm_salt or rndstr(32)
 
     def _get_token_key(self, item, order=None):
         if order is None:
@@ -965,7 +965,7 @@ class SessionDB(object):
 
         return self._db[key]
 
-    def get_by_sub(self, sub):
+    def get_by_sub(self, sub: str) -> List[str]:
         return self._db.get_by_sub(sub)
 
     def make_smid(self, sid):
@@ -985,10 +985,10 @@ class SessionDB(object):
     def get_by_uid(self, uid: str) -> List[str]:
         return self._db.get_by_uid(uid)
 
-    def get_uid_by_sub(self, sub):
+    def get_uid_by_sub(self, sub: str) -> str:
         return self._db.get_uid_by_sub(sub)
 
-    def get_uid_by_sid(self, sub):
+    def get_uid_by_sid(self, sub: str) -> str:
         return self._db.get_uid_by_sid(sub)
 
 

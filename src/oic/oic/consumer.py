@@ -1,6 +1,8 @@
 import logging
 import os.path
 import warnings
+from typing import Dict
+from typing import Optional
 
 from oic import rndstr
 from oic.exception import AuthzError
@@ -516,9 +518,11 @@ class Consumer(Client):
 
     # LOGOUT related
 
-    def backchannel_logout(self, request=None, request_args=None):
+    def backchannel_logout(
+        self, request: Optional[str] = None, request_args: Optional[Dict] = None
+    ) -> str:
         """
-        Receives a back channel logout request and returns a Session ID if the request was OK.
+        Receives a back channel logout request.
 
         :param request: A urlencoded request
         :param request_args: The request as a dictionary
@@ -526,8 +530,10 @@ class Consumer(Client):
         """
         if request:
             req = BackChannelLogoutRequest().from_urlencoded(request)
-        else:
+        elif request_args is not None:
             req = BackChannelLogoutRequest(**request_args)
+        else:
+            raise ValueError("Missing request specification")
 
         kwargs = {"aud": self.client_id, "iss": self.issuer, "keyjar": self.keyjar}
 
