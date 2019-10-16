@@ -720,7 +720,6 @@ class TestSessionDB(object):
         self.sdb.do_sub(sid2, "salt")
         self.sdb.set_verify_logout("my_uid")
         assert self.sdb.get_verify_logout("my_uid")
-        assert set(self.sdb.get_verify_logout("my_uid").keys()) == {sid2}
 
     def test_set_verify_logout_multiple(self):
         ae = AuthnEvent("my_uid", "salt")
@@ -731,7 +730,6 @@ class TestSessionDB(object):
         self.sdb.do_sub(sid2, "salt")
         self.sdb.set_verify_logout("my_uid")
         assert self.sdb.get_verify_logout("my_uid") is not None
-        assert set(self.sdb.get_verify_logout("my_uid").keys()) == {sid1, sid2}
 
     def test_get_token_ids(self):
         ae = AuthnEvent("my_uid", "salt")
