@@ -888,7 +888,7 @@ class SessionDB(object):
         return [self.get_client_id_for_session(sid) for sid in self._db.get_by_uid(uid)]
 
     def get_verify_logout(self, uid: str) -> Optional[str]:
-        """Return the dictionary for logout verification."""
+        """Return logout verification key for given uid."""
         return self._db.get_verified_logout(uid)
 
     def get_token_ids(self, uid: str) -> List[str]:
