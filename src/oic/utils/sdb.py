@@ -885,7 +885,7 @@ class SessionDB(object):
 
     def get_client_ids_for_uid(self, uid: str) -> List[str]:
         """Return client_ids for a given uid."""
-        return [self.get_client_id_for_session(sid) for sid in self._db.get_by_uid(uid)]
+        return self._db.get_client_ids_for_uid(uid)
 
     def get_verify_logout(self, uid: str) -> Optional[str]:
         """Return logout verification key for given uid."""
