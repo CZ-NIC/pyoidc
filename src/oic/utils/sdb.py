@@ -6,6 +6,7 @@ import logging
 import uuid
 import warnings
 from binascii import Error
+from typing import Any
 from typing import Dict  # noqa
 from typing import List  # noqa
 from typing import Optional
@@ -961,7 +962,7 @@ class SessionDB(object):
         """Return session ids based on `sub` (external user identifier)."""
         return self._db.get_by_sub(sub)
 
-    def make_smid(self, sid):
+    def make_smid(self, sid: str) -> str:
         """
         Create a session management ID.
 
@@ -972,16 +973,20 @@ class SessionDB(object):
             "{}{}".format(sid, self.sm_salt).encode("utf-8")
         ).hexdigest()
 
-    def get(self, attr, val):
+    def get(self, attr: str, val: Any) -> List[str]:
+        """Return session ids based on attribute name and value."""
         return self._db.get(attr, val)
 
     def get_by_uid(self, uid: str) -> List[str]:
+        """Return session ids (keys) based on `uid` (internal user identifier)."""
         return self._db.get_by_uid(uid)
 
     def get_uid_by_sub(self, sub: str) -> str:
+        """Return session ids based on `sub` (external user identifier)."""
         return self._db.get_uid_by_sub(sub)
 
     def get_uid_by_sid(self, sub: str) -> str:
+        """Return User id based on sub."""
         return self._db.get_uid_by_sid(sub)
 
 

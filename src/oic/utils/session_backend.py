@@ -128,7 +128,7 @@ class SessionBackend(metaclass=ABCMeta):
             self[key] = item
 
     def get_uid_by_sub(self, sub: str) -> str:
-        """Return User ids based on sub. Should only be one."""
+        """Return User id based on sub."""
         uid = ""
         for sid in self.get_by_sub(sub):
             if uid:
