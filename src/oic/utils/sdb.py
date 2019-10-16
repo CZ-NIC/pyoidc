@@ -890,6 +890,10 @@ class SessionDB(object):
         """Return the dictionary for logout verification."""
         return self._db.get_verified_logout(uid)
 
+    def get_token_ids(self, uid: str) -> List[str]:
+        """Return id_tokens for given uid."""
+        return self._db.get_token_ids(uid)
+
     def set_verify_logout(self, uid: str) -> None:
         """Save the key that is used for logout verification."""
         for sid in self._db.get_by_uid(uid):
@@ -906,14 +910,9 @@ class SessionDB(object):
                 pass
         return res
 
-    def is_revoke_uid(self, uid: str) -> Dict:
-        res = {}
-        for sid in self._db.get_by_uid(uid):
-            try:
-                res[sid] = self._db[sid]["revoked"]
-            except KeyError:
-                res[sid] = None
-        return res
+    def is_revoke_uid(self, uid: str) -> bool:
+        """Return if the uid session has been revoked."""
+        return self._db.is_revoke_uid(uid)
 
     def revoke_uid(self, uid: str) -> None:
         """Mark all sessions for the given uid as revoked."""
@@ -959,6 +958,7 @@ class SessionDB(object):
         return self._db[key]
 
     def get_by_sub(self, sub: str) -> List[str]:
+        """Return session ids based on `sub` (external user identifier)."""
         return self._db.get_by_sub(sub)
 
     def make_smid(self, sid):
