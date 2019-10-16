@@ -8,6 +8,7 @@ import warnings
 from binascii import Error
 from typing import Dict  # noqa
 from typing import List  # noqa
+from typing import Optional
 
 from cryptography.fernet import Fernet
 from cryptography.fernet import InvalidToken
@@ -885,16 +886,9 @@ class SessionDB(object):
         """Return client_ids for a given uid."""
         return [self.get_client_id_for_session(sid) for sid in self._db.get_by_uid(uid)]
 
-    def get_verify_logout(self, uid: str) -> Dict:
+    def get_verify_logout(self, uid: str) -> Optional[str]:
         """Return the dictionary for logout verification."""
-        res = {}
-        for sid in self._db.get_by_uid(uid):
-            _dict = self._db[sid]
-            try:
-                res[sid] = _dict["verified_logout"]
-            except KeyError:
-                res[sid] = None
-        return res
+        return self._db.get_verified_logout(uid)
 
     def set_verify_logout(self, uid: str) -> None:
         """Save the key that is used for logout verification."""
