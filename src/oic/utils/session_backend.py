@@ -127,16 +127,11 @@ class SessionBackend(metaclass=ABCMeta):
             item[attribute] = value
             self[key] = item
 
-    def get_uid_by_sub(self, sub: str) -> str:
+    def get_uid_by_sub(self, sub: str) -> Optional[str]:
         """Return User id based on sub."""
-        uid = ""
         for sid in self.get_by_sub(sub):
-            if uid:
-                if uid != AuthnEvent.from_json(self[sid]["authn_event"]).uid:
-                    raise ValueError("More the one uid bound to one sub")
-            else:
-                uid = AuthnEvent.from_json(self[sid]["authn_event"]).uid
-        return uid
+            return AuthnEvent.from_json(self[sid]["authn_event"]).uid
+        return None
 
     def get_uid_by_sid(self, sid: str) -> str:
         """Return User id based on session ID."""
