@@ -901,16 +901,6 @@ class SessionDB(object):
             _dict = self._db[sid]
             _dict["verified_logout"] = uuid.uuid4().urn
 
-    def get_id_token(self, uid: str) -> Dict:
-        res = {}
-        for sid in self._db.get_by_uid(uid):
-            _dict = self._db[sid]
-            try:
-                res[_dict["client_id"]] = _dict["id_token"]
-            except KeyError:
-                pass
-        return res
-
     def is_revoke_uid(self, uid: str) -> bool:
         """Return if the uid session has been revoked."""
         return self._db.is_revoke_uid(uid)
