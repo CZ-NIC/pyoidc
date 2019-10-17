@@ -25,6 +25,9 @@ from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import keybundle_from_local_file
+from oic.utils.sdb import DictSessionBackend
+from oic.utils.sdb import session_get
+from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = "rohe0002"
 
@@ -131,10 +134,7 @@ class TestOICConsumer:
         }
 
         self.consumer = Consumer(
-            session_db_factory(SERVER_INFO["issuer"]),
-            CONFIG,
-            client_config,
-            SERVER_INFO,
+            DictSessionBackend(), CONFIG, client_config, SERVER_INFO
         )
         self.consumer.behaviour = {
             "request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]
@@ -846,3 +846,27 @@ class TestOICConsumer:
         query = urlparse(result.headers["location"]).query
         with pytest.raises(BadSignature):
             self.consumer.parse_authz(query=query)
+
+    def test_get_session_management_id(self):
+        now = utc_time_sans_frac()
+        smid = "session_management_id"
+        idval = {
+            "nonce": "KUEYfRM2VzKDaaKD",
+            "sub": "EndUserSubject",
+            "iss": "https://example.com",
+            "exp": now + 3600,
+            "iat": now,
+            "aud": self.consumer.client_id,
+            "sid": smid,
+        }
+        idts = IdToken(**idval)
+
+        _signed_jwt = idts.to_jwt(key=KC_RSA.keys(), algorithm="RS256")
+
+        _state = "state"
+        self.consumer.sdb[_state] = {"redirect_uris": ["https://example.org/cb"]}
+        resp = AuthorizationResponse(id_token=_signed_jwt, state=_state)
+        self.consumer.consumer_config["response_type"] = ["id_token"]
+        self.consumer.parse_authz(resp.to_urlencoded())
+        assert self.consumer.sso_db.storage["state"]["smid"] == smid
+        assert session_get(self.consumer.sso_db, "smid", smid) == [_state]

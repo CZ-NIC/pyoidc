@@ -1,8 +1,13 @@
 import logging
 import os.path
+import warnings
+from typing import Dict
+from typing import Optional
 
 from oic import rndstr
 from oic.exception import AuthzError
+from oic.exception import MessageException
+from oic.exception import NotForMe
 from oic.exception import PyoidcError
 from oic.oauth2 import Grant
 from oic.oauth2.consumer import TokenError
@@ -14,10 +19,16 @@ from oic.oic import Client
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AuthorizationRequest
 from oic.oic.message import AuthorizationResponse
+from oic.oic.message import BackChannelLogoutRequest
 from oic.oic.message import Claims
 from oic.oic.message import ClaimsRequest
 from oic.utils import http_util
 from oic.utils.sanitize import sanitize
+from oic.utils.sdb import DictSessionBackend
+from oic.utils.sdb import SessionBackend
+from oic.utils.sdb import session_extended_get
+from oic.utils.sdb import session_get
+from oic.utils.sdb import session_update
 
 __author__ = "rohe0002"
 
@@ -77,7 +88,16 @@ def clean_response(aresp):
     return atr
 
 
-IGNORE = ["request2endpoint", "response2error", "grant_class", "token_class"]
+IGNORE = [
+    "request2endpoint",
+    "response2error",
+    "grant_class",
+    "token_class",
+    "sdb",
+    "wf",
+    "events",
+    "message_factory",
+]
 
 CONSUMER_PREF_ARGS = [
     "token_endpoint_auth_method",
@@ -111,6 +131,7 @@ class Consumer(Client):
         server_info=None,
         debug=False,
         client_prefs=None,
+        sso_db=None,
     ):
         """
         Initialize a Consumer instance.
@@ -141,7 +162,23 @@ class Consumer(Client):
                 except KeyError:
                     setattr(self, endpoint, "")
 
+        if not isinstance(session_db, SessionBackend):
+            warnings.warn(
+                "Please use `SessionBackend` to ensure proper API for the database.",
+                DeprecationWarning,
+            )
         self.sdb = session_db
+
+        if sso_db is not None:
+            if not isinstance(sso_db, SessionBackend):
+                warnings.warn(
+                    "Please use `SessionBackend` to ensure proper API for the database.",
+                    DeprecationWarning,
+                )
+            self.sso_db = sso_db
+        else:
+            self.sso_db = DictSessionBackend()
+
         self.debug = debug
         self.seed = ""
         self.nonce = ""
@@ -161,10 +198,15 @@ class Consumer(Client):
         :param sid: Session identifier
         """
         for key, val in self.sdb[sid].items():
-            _val = getattr(self, key)
+            try:
+                _val = getattr(self, key)
+            except AttributeError:
+                continue
+
             if not _val and val:
                 setattr(self, key, val)
             elif key == "grant" and val:
+                # val is a Grant instance
                 val.update(_val)
                 setattr(self, key, val)
 
@@ -229,6 +271,7 @@ class Consumer(Client):
 
         self._backup(sid)
         self.sdb["seed:%s" % self.seed] = sid
+        self.sso_db[sid] = {}
 
         args = {
             "client_id": self.client_id,
@@ -361,6 +404,11 @@ class Consumer(Client):
                 idt = aresp["id_token"]
             except KeyError:
                 idt = None
+            else:
+                try:
+                    session_update(self.sdb, idt["sid"], "smid", _state)
+                except KeyError:
+                    pass
 
             return aresp, atr, idt
         elif "token" in self.consumer_config["response_type"]:  # implicit flow
@@ -384,6 +432,12 @@ class Consumer(Client):
                 idt = aresp["id_token"]
             except KeyError:
                 idt = None
+            else:
+                try:
+                    session_update(self.sso_db, _state, "smid", idt["sid"])
+                except KeyError:
+                    pass
+
             return None, None, idt
 
     def complete(self, state):
@@ -461,3 +515,44 @@ class Consumer(Client):
 
     def end_session(self):
         pass
+
+    # LOGOUT related
+
+    def backchannel_logout(
+        self, request: Optional[str] = None, request_args: Optional[Dict] = None
+    ) -> str:
+        """
+        Receives a back channel logout request.
+
+        :param request: A urlencoded request
+        :param request_args: The request as a dictionary
+        :return: A Session Identifier
+        """
+        if request:
+            req = BackChannelLogoutRequest().from_urlencoded(request)
+        elif request_args is not None:
+            req = BackChannelLogoutRequest(**request_args)
+        else:
+            raise ValueError("Missing request specification")
+
+        kwargs = {"aud": self.client_id, "iss": self.issuer, "keyjar": self.keyjar}
+
+        try:
+            req.verify(**kwargs)
+        except (MessageException, ValueError, NotForMe) as err:
+            raise MessageException("Bogus logout request: {}".format(err))
+
+        # Find the subject through 'sid' or 'sub'
+
+        try:
+            sub = req["logout_token"]["sub"]
+        except KeyError:
+            # verify has guaranteed that there will be a sid if sub is missing
+            sm_id = req["logout_token"]["sid"]
+            _sid = session_get(self.sso_db, "smid", sm_id)
+        else:
+            _sid = session_extended_get(
+                self.sso_db, sub, "issuer", req["logout_token"]["iss"]
+            )
+
+        return _sid
