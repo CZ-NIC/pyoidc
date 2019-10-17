@@ -356,7 +356,7 @@ def make_cookie(
     :type enc_key: byte string
     :return: A tuple to be added to headers
     """
-    cookie = SimpleCookie()
+    cookie = SimpleCookie()  # type: SimpleCookie
     if not timestamp:
         timestamp = str(int(time.time()))
 
@@ -465,7 +465,7 @@ def parse_cookie(name, seed, kaka, enc_key=None):
 
 def cookie_parts(name, kaka):
     if not isinstance(kaka, SimpleCookie):
-        cookie_obj = SimpleCookie(str(kaka))
+        cookie_obj = SimpleCookie(str(kaka))  # type: SimpleCookie
     else:
         cookie_obj = kaka
     morsel = cookie_obj.get(name)

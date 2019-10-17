@@ -49,6 +49,7 @@ from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 from oic.utils.keyio import KeyJar
+from oic.utils.sdb import SessionBackend  # noqa
 from oic.utils.sdb import session_update
 from oic.utils.time_util import utc_time_sans_frac
 
@@ -196,17 +197,19 @@ class Client(PBase):
             timeout=timeout,
         )
 
-        self.sso_db = None
+        self.sso_db = None  # type: Optional[SessionBackend]
         self.client_id = client_id
         self.client_authn_method = client_authn_method
 
-        self.nonce = None
+        self.nonce = None  # type: Optional[str]
 
         self.message_factory = message_factory
         self.grant = {}  # type: Dict[str, Grant]
         self.state2nonce = {}  # type: Dict[str, str]
         # own endpoint
         self.redirect_uris = []  # type: List[str]
+        # Default behaviour
+        self.response_type = ["code"]
 
         # service endpoints
         self.authorization_endpoint = None  # type: Optional[str]
@@ -651,7 +654,7 @@ class Client(PBase):
             except KeyError:
                 self.grant[_state] = self.grant_class(resp=resp)
 
-            if "id_token" in resp and self.sso_db:
+            if "id_token" in resp and self.sso_db is not None:
                 session_update(self.sso_db, _state, "sub", resp["id_token"]["sub"])
                 session_update(self.sso_db, _state, "issuer", resp["id_token"]["iss"])
                 if "sid" in resp["id_token"]:

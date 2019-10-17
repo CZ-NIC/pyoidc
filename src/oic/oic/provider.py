@@ -1700,7 +1700,10 @@ class Provider(AProvider):
 
         # Get client_id from request
         _info = parse_qs(request)
-        client_id = _info.get("client_id", [None])[0]
+        cid = _info.get("client_id")
+        if cid is None:
+            return Unauthorized()
+        client_id = cid[0]
 
         cdb_entry = self.cdb.get(client_id)
         if cdb_entry is None:

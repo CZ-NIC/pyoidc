@@ -139,7 +139,7 @@ def test_get_or_post_with_qp():
 def test_set_cookie():
     cookiejar = FileCookieJar()
     _cookie = {"value_0": "v_0", "value_1": "v_1", "value_2": "v_2"}
-    c = SimpleCookie(_cookie)
+    c = SimpleCookie(_cookie)  # type: SimpleCookie
 
     domain_0 = ".test_domain"
     domain_1 = "test_domain"

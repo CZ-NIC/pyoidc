@@ -166,7 +166,7 @@ class Provider(provider.Provider):
         self.jwks_uri = jwks_uri
         self.verify_ssl = verify_ssl
         self.scopes.extend(kwargs.get("scopes", []))
-        self.keyjar = keyjar
+        self.keyjar = keyjar  # type: KeyJar
         if self.keyjar is None:
             self.keyjar = KeyJar(verify_ssl=self.verify_ssl)
 
@@ -182,7 +182,7 @@ class Provider(provider.Provider):
         self.token_policy = {
             "access_token": {},
             "refresh_token": {},
-        }  # type: Dict[str, Dict[str, str]]
+        }  # type: Dict[str, Dict[str, Dict[str, int]]]
         if lifetime_policy is None:
             self.lifetime_policy = {
                 "access_token": {

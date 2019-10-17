@@ -1647,7 +1647,7 @@ class TestProvider(object):
             "{}][{}".format(user, client_id), c_type, self.provider.sso_cookie_name
         )
         cookies_string = set_cookie[1]
-        all_cookies = SimpleCookie()
+        all_cookies = SimpleCookie()  # type: SimpleCookie
 
         try:
             cookies_string = cookies_string.decode()
@@ -1851,7 +1851,7 @@ class TestProvider(object):
 
     def _assert_cookies_expired(self, http_headers):
         cookies_string = ";".join([c[1] for c in http_headers if c[0] == "Set-Cookie"])
-        all_cookies = SimpleCookie()
+        all_cookies = SimpleCookie()  # type: SimpleCookie
 
         all_cookies.load(cookies_string)
 

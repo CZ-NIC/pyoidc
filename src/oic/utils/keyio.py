@@ -8,6 +8,7 @@ import time
 from typing import Any  # noqa
 from typing import Dict  # noqa
 from typing import List  # noqa
+from typing import Optional  # noqa
 from typing import Tuple  # noqa
 from typing import Union  # noqa
 from urllib.parse import urlsplit
@@ -88,18 +89,18 @@ class KeyBundle(object):
             a single integer or as a tuple of integers. For more details, refer to
             ``requests`` documentation.
         """
-        self._keys = []  # type: Dict[str, KEYS]
+        self._keys = []  # type: List[KEYS]
         self.remote = False
         self.verify_ssl = verify_ssl
         self.cache_time = cache_time
         self.time_out = 0
         self.etag = ""
-        self.source = None
+        self.source = None  # type: Optional[str]
         self.fileformat = fileformat.lower()
         self.keytype = keytype
         self.keyusage = keyusage
-        self.imp_jwks = None  # type: Dict[str, Any]
-        self.last_updated = 0
+        self.imp_jwks = {}  # type: Dict[str, Any]
+        self.last_updated = 0  # type: float
         self.timeout = timeout
 
         if keys:
@@ -182,12 +183,15 @@ class KeyBundle(object):
         self.last_updated = time.time()
 
     def do_remote(self):
+        if self.source is None:
+            # Nothing to do
+            return False
         args = {"verify": self.verify_ssl, "timeout": self.timeout}
         if self.etag:
             args["headers"] = {"If-None-Match": self.etag}
 
         try:
-            logging.debug("KeyBundle fetch keys from: {}".format(self.source))
+            logging.debug("KeyBundle fetch keys from: %s", self.source)
             r = requests.get(self.source, **args)
         except Exception as err:
             logger.error(err)

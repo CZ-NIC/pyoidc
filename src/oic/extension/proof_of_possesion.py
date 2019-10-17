@@ -1,7 +1,7 @@
 import base64
 import json
 import time
-from typing import Mapping  # noqa
+from typing import Dict  # noqa
 from urllib.parse import parse_qs
 from urllib.parse import parse_qsl
 
@@ -11,6 +11,7 @@ from jwkest.jws import JWS
 
 from oic.extension.signed_http_req import SignedHttpRequest
 from oic.extension.signed_http_req import ValidationError
+from oic.oauth2 import error_response
 from oic.oic.message import AccessTokenRequest
 from oic.oic.message import AccessTokenResponse
 from oic.oic.provider import Provider
@@ -29,7 +30,7 @@ class PoPProvider(Provider):
         super(PoPProvider, self).__init__(*args, **kwargs)
 
         # mapping from signed pop token to access token in db
-        self.access_tokens = {}  # type: Mapping[JWS, str]
+        self.access_tokens = {}  # type: Dict[JWS, str]
 
     def token_endpoint(self, dtype="urlencoded", **kwargs):
         atr = AccessTokenRequest().deserialize(kwargs["request"], dtype)
@@ -76,7 +77,7 @@ class PoPProvider(Provider):
                 strict_headers_verification=False,
             )
         except ValidationError:
-            return self._error_response(
+            return error_response(
                 "access_denied", descr="Could not verify proof of " "possession"
             )
 

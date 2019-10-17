@@ -71,7 +71,6 @@ class TestClient(object):
 
         self.client = Client("1", config={"issuer": "https://example.com/as"})
         self.client.redirect_uris = [self.redirect_uri]
-        self.client.response_type = "code"
         self.client.authorization_endpoint = self.authorization_endpoint
 
     def test_construct_authz_req_no_optional_params(self):
@@ -86,7 +85,6 @@ class TestClient(object):
         assert "scope" not in areq
 
     def test_construct_authz_req_no_input(self):
-        self.client.response_type = ["code"]
         atr = self.client.construct_AuthorizationRequest()
 
         assert atr["redirect_uri"] == self.redirect_uri
@@ -216,7 +214,7 @@ class TestClient(object):
         token = _grant.tokens[0]
         assert token.access_token == "2YotnFZFEjr1zCsicMWpAA"
         assert token.token_type == "example"
-        assert token.expires_in == 3600
+        assert token.token_expiration_time > time_util.time_sans_frac()
         assert token.refresh_token == "tGzv3JOkF0XG5Qx2TlKWIA"
 
     def test_get_access_token_refresh_with_refresh_token(self):
@@ -276,7 +274,9 @@ class TestClient(object):
         grant.add_code(resp)
 
         self.client.grant["state"] = grant
-        assert self.client.grant_from_state("state").code == "code"
+        new_grant = self.client.grant_from_state("state")
+        assert new_grant is not None
+        assert new_grant.code == "code"
 
     def test_construct_access_token_req_with_extra_args(self):
         query = "code=SplxlOBeZQQYbYS6WxSbIA&state=abc"
@@ -430,7 +430,9 @@ class TestClient(object):
             self.client.parse_response(AccessTokenResponse, info=uerr)
 
         with pytest.raises(FormatError):
-            self.client.parse_response(AccessTokenResponse, info=jerr, sformat="focus")
+            self.client.parse_response(
+                AccessTokenResponse, info=jerr, sformat="focus"  # type: ignore
+            )
 
     def test_parse_access_token_resp_missing_attribute(self):
         atresp = AccessTokenResponse(

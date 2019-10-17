@@ -18,6 +18,7 @@ from oic.oauth2.message import AuthorizationErrorResponse
 from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import TokenErrorResponse
+from oic.utils import time_util
 from oic.utils.http_util import make_cookie
 from oic.utils.sdb import DictSessionBackend
 
@@ -319,5 +320,5 @@ class TestConsumer(object):
         grant = self.consumer.grant[_state]
         assert len(grant.tokens) == 1
         assert grant.tokens[0].access_token == "2YotnFZFEjr1zCsiAB"
-        assert grant.tokens[0].expires_in == 3600
-        assert grant.tokens[0].expires_in_hours == 1
+        assert grant.tokens[0].token_expiration_time > time_util.time_sans_frac()
+        assert grant.tokens[0].expires_in_hours == 1  # type: ignore

@@ -4,6 +4,7 @@ import logging
 from typing import Dict  # noqa
 from typing import Type  # noqa
 from typing import Union  # noqa
+from typing import cast
 from urllib.parse import urlsplit
 
 from oic import rndstr
@@ -15,7 +16,7 @@ from oic.oauth2 import AuthorizationResponse
 from oic.oauth2 import ErrorResponse
 from oic.oauth2 import ResponseError
 from oic.oauth2 import TokenError
-from oic.oic.message import ProviderConfigurationResponse
+from oic.oauth2.message import ASConfigurationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.http_util import Redirect
 from oic.utils.sanitize import sanitize
@@ -55,9 +56,10 @@ class OAuthClient(client.Client):
         self.kid = kid
         self.client_prefs = client_prefs
         # Make it the same. Been bitten by this too many times !
-        self.keyjar.verify_ssl = self.verify_ssl
+        self.keyjar.verify_ssl = verify_ssl
 
     def create_authn_request(self, session, acr_value=None, **kwargs):
+        assert self.registration_response is not None
         session["state"] = rndstr(32)
         request_args = {
             "response_type": self.behaviour["response_type"],
@@ -74,8 +76,11 @@ class OAuthClient(client.Client):
         cis = self.construct_AuthorizationRequest(request_args=request_args)
         logger.debug("request: %s" % sanitize(cis))
 
-        url, body, ht_args, cis = self.uri_and_body(
-            AuthorizationRequest, cis, method="GET", request_args=request_args
+        url, body, ht_args, cis = cast(
+            AuthorizationRequest,
+            self.uri_and_body(
+                AuthorizationRequest, cis, method="GET", request_args=request_args
+            ),
         )
 
         self.authz_req[request_args["state"]] = cis
@@ -139,10 +144,13 @@ class OAuthClient(client.Client):
 
         if self.behaviour["response_type"] == "code":
             # get the access token
+            assert self.registration_response is not None
             try:
                 args = {
                     "code": authresp["code"],
-                    "redirect_uri": self.registration_response["redirect_uris"][0],
+                    "redirect_uri": self.registration_response["redirect_uris"][
+                        0
+                    ],  # type: ignore
                     "client_id": self.client_id,
                     "client_secret": self.client_secret,
                 }
@@ -260,7 +268,7 @@ class OAuthClients(object):
             )
         elif _key_set == {"provider_info", "client_info"}:
             _client.handle_provider_config(
-                ProviderConfigurationResponse(**kwargs["provider_info"]),
+                ASConfigurationResponse(**kwargs["provider_info"]),
                 kwargs["provider_info"]["issuer"],
             )
             _client.register(
@@ -273,7 +281,7 @@ class OAuthClients(object):
             )
         elif _key_set == {"provider_info", "client_registration"}:
             _client.handle_provider_config(
-                ProviderConfigurationResponse(**kwargs["provider_info"]),
+                ASConfigurationResponse(**kwargs["provider_info"]),
                 kwargs["provider_info"]["issuer"],
             )
             _client.store_registration_info(
@@ -304,11 +312,8 @@ class OAuthClients(object):
             **self.jwks_info
         )
         if userid:
-            try:
-                issuer = client.wf.discovery_query(userid)
-            except AttributeError:
-                wf = WebFinger(httpd=client)
-                issuer = wf.discovery_query(userid)
+            wf = WebFinger(httpd=client)
+            issuer = wf.discovery_query(userid)
 
         if not issuer:
             raise OAuth2Error("Missing issuer")

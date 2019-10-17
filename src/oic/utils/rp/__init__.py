@@ -10,11 +10,11 @@ from oic.exception import MissingAttribute
 from oic.oauth2 import ErrorResponse
 from oic.oauth2 import ResponseError
 from oic.oauth2 import TokenError
+from oic.oauth2.message import ASConfigurationResponse
 from oic.oic import AuthorizationRequest
 from oic.oic import AuthorizationResponse
 from oic.oic import RegistrationResponse
 from oic.oic.message import OpenIDSchema
-from oic.oic.message import ProviderConfigurationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.http_util import Redirect
 from oic.utils.sanitize import sanitize
@@ -346,7 +346,7 @@ class OIDCClients(object):
             )
         elif _key_set == set(["provider_info", "client_info"]):
             client.handle_provider_config(
-                ProviderConfigurationResponse(**kwargs["provider_info"]),
+                ASConfigurationResponse(**kwargs["provider_info"]),
                 kwargs["provider_info"]["issuer"],
             )
             client.register(
@@ -359,7 +359,7 @@ class OIDCClients(object):
             )
         elif _key_set == set(["provider_info", "client_registration"]):
             client.handle_provider_config(
-                ProviderConfigurationResponse(**kwargs["provider_info"]),
+                ASConfigurationResponse(**kwargs["provider_info"]),
                 kwargs["provider_info"]["issuer"],
             )
             client.store_registration_info(

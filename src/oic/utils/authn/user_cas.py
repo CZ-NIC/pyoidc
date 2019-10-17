@@ -2,6 +2,7 @@ import base64
 import json
 import logging
 import uuid
+from typing import Optional  # noqa
 from urllib.parse import parse_qs
 from urllib.parse import urlencode
 
@@ -68,7 +69,7 @@ class CasAuthnMethod(UserAuthnMethod):
         """
         try:
             req = parse_qs(query)
-            acr = req["acr_values"][0]
+            acr = req["acr_values"][0]  # type: Optional[str]
         except KeyError:
             acr = None
 
@@ -79,11 +80,11 @@ class CasAuthnMethod(UserAuthnMethod):
             '{"'
             + self.CONST_NONCE
             + '": "'
-            + base64.b64encode(nonce)
+            + base64.b64encode(nonce).decode()
             + '", "'
             + self.CONST_QUERY
             + '": "'
-            + base64.b64encode(query)
+            + base64.b64encode(query).decode()
             + '"}',
             self.CONST_CAS_COOKIE,
             self.CONST_CAS_COOKIE,

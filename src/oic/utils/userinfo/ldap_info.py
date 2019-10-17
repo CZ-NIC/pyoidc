@@ -7,6 +7,8 @@ import logging
 from typing import Dict  # noqa
 from typing import List  # noqa
 
+from ldap import LDAPObject  # noqa
+
 from oic.utils.sanitize import sanitize
 from oic.utils.userinfo import UserInfo
 
@@ -63,7 +65,7 @@ class UserInfoLDAP(UserInfo):
         self.ldapuser = user
         self.ldappasswd = passwd
         self.bind()
-        self.ld = None
+        self.ld = None  # type: LDAPObject
         self.openid2ldap = attrmap
         self.ldap2openid = dict([(v, k) for k, v in self.openid2ldap.items()])
 

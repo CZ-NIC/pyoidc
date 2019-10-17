@@ -352,7 +352,7 @@ class Client(oauth2.Client):
         for endpoint in ENDPOINTS:
             setattr(self, endpoint, "")
 
-        self.id_token = None
+        self.id_token = {}  # type: Dict[str, Token]
         self.log = None
 
         self.request2endpoint = REQUEST2ENDPOINT
@@ -367,6 +367,7 @@ class Client(oauth2.Client):
         self.client_prefs = client_prefs or {}
 
         self.behaviour = {}  # type: Dict[str, Any]
+        self.scope = ["openid"]
 
         self.wf = WebFinger(OIC_ISSUER)
         self.wf.httpd = self

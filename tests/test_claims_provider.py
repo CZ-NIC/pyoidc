@@ -33,7 +33,7 @@ class TestClaimsClient(object):
     def create_claims_client(self):
         self.cc = ClaimsClient(client_id="client_1")
         self.cc.client_secret = "hemlig"
-        self.cc.userclaims_endpoint = "https://example.com/claims"
+        self.cc.userclaims_endpoint = "https://example.com/claims"  # type: ignore
 
     def test_construct_UserClaimsRequest(self):
         req = self.cc.construct_UserClaimsRequest(

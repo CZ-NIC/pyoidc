@@ -68,9 +68,9 @@ class Grant(object):
         self.grant_expiration_time = 0
         self.exp_in = exp_in
         self.seed = seed
-        self.tokens = []  # type: List[Token]
+        self.tokens = []
         self.id_token = None
-        self.code = None  # type: str
+        self.code = None  # type: Optional[str]
         if resp:
             self.add_code(resp)
             self.add_token(resp)
