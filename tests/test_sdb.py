@@ -731,13 +731,6 @@ class TestSessionDB(object):
         self.sdb.set_verify_logout("my_uid")
         assert self.sdb.get_verify_logout("my_uid") is not None
 
-    def test_get_token_ids(self):
-        ae = AuthnEvent("my_uid", "salt")
-        sid1 = self.sdb.create_authz_session(ae, AREQ)
-        self.sdb.do_sub(sid1, "salt")
-        self.sdb.update(sid1, "id_token", "Id token")
-        assert self.sdb.get_id_token("my_uid") == {"client1": "Id token"}
-
     def test_get_is_revoke_uid(self):
         ae = AuthnEvent("my_uid", "salt")
         sid1 = self.sdb.create_authz_session(ae, AREQ)
