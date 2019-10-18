@@ -15,6 +15,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#602] Fixed uncaught error on unpacking of message
 - [#679] Make `state` optional in `EndSessionRequest`
 - [#683] Fix basic_auth with client password
+- [#698] `state` in `EndSessionRequest` request args and kwargs different
 
 ### Removed
 - [#671] Removed deprecated request/response_cls kwargs from Provider/Client methods
@@ -26,6 +27,7 @@ The format is based on the [KeepAChangeLog] project.
 [#679]: https://github.com/OpenIDC/pyoidc/pull/679
 [#683]: https://github.com/OpenIDC/pyoidc/issues/683
 [#688]: https://github.com/OpenIDC/pyoidc/pull/688
+[#698]: https://github.com/OpenIDC/pyoidc/pull/698
 
 ## 1.0.1 [2019-06-30]
 
