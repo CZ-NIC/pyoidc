@@ -632,8 +632,20 @@ class TestClient(object):
 
         self.client.grant["foo"].tokens.append(Token(resp))
 
+        # state only in kwargs
         args = {"redirect_url": "http://example.com/end"}
         esr = self.client.construct_EndSessionRequest(state="foo", request_args=args)
+        assert _eq(esr.keys(), ["id_token", "redirect_url"])
+
+        # state both in request_args and kwargs
+        args.update({"state": "req_args_state"})
+        esr = self.client.construct_EndSessionRequest(state="foo", request_args=args)
+        assert _eq(esr.keys(), ["id_token", "state", "redirect_url"])
+        assert esr["state"] == "req_args_state"
+
+        # state only in request_args
+        args = {"redirect_url": "http://example.com/end", "state": "foo"}
+        esr = self.client.construct_EndSessionRequest(request_args=args)
         assert _eq(esr.keys(), ["id_token", "state", "redirect_url"])
 
     def test_construct_OpenIDRequest(self):
