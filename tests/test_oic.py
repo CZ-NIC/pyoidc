@@ -621,7 +621,7 @@ class TestClient(object):
             ],
         )
 
-    def test_construct_EndSessionRequest(self):
+    def test_construct_EndSessionRequest_kwargs_state(self):
         self.client.grant["foo"] = Grant()
         self.client.grant["foo"].grant_expiration_time = time.time() + 60
         self.client.grant["foo"].code = "access_code"
@@ -637,16 +637,38 @@ class TestClient(object):
         esr = self.client.construct_EndSessionRequest(state="foo", request_args=args)
         assert _eq(esr.keys(), ["id_token", "redirect_url"])
 
-        # state both in request_args and kwargs
-        args.update({"state": "req_args_state"})
-        esr = self.client.construct_EndSessionRequest(state="foo", request_args=args)
-        assert _eq(esr.keys(), ["id_token", "state", "redirect_url"])
-        assert esr["state"] == "req_args_state"
+    def test_construct_EndSessionRequest_reqargs_state(self):
+        self.client.grant["foo"] = Grant()
+        self.client.grant["foo"].grant_expiration_time = time.time() + 60
+        self.client.grant["foo"].code = "access_code"
+
+        resp = AccessTokenResponse(
+            id_token="id_id_id_id", access_token="access", scope=["openid"]
+        )
+
+        self.client.grant["foo"].tokens.append(Token(resp))
 
         # state only in request_args
         args = {"redirect_url": "http://example.com/end", "state": "foo"}
         esr = self.client.construct_EndSessionRequest(request_args=args)
         assert _eq(esr.keys(), ["id_token", "state", "redirect_url"])
+
+    def test_construct_EndSessionRequest_kwargs_and_reqargs_state(self):
+        self.client.grant["foo"] = Grant()
+        self.client.grant["foo"].grant_expiration_time = time.time() + 60
+        self.client.grant["foo"].code = "access_code"
+
+        resp = AccessTokenResponse(
+            id_token="id_id_id_id", access_token="access", scope=["openid"]
+        )
+
+        self.client.grant["foo"].tokens.append(Token(resp))
+
+        # state both in request_args and kwargs
+        args = {"redirect_url": "http://example.com/end", "state": "req_args_state"}
+        esr = self.client.construct_EndSessionRequest(state="foo", request_args=args)
+        assert _eq(esr.keys(), ["id_token", "state", "redirect_url"])
+        assert esr["state"] == "req_args_state"
 
     def test_construct_OpenIDRequest(self):
         self.client.scope = ["openid", "profile"]
