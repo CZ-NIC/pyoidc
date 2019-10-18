@@ -628,9 +628,7 @@ class Client(oauth2.Client):
         if request_args is None:
             request_args = {}
 
-        if "state" in kwargs:
-            request_args["state"] = kwargs["state"]
-        elif "state" in request_args:
+        if "state" in request_args and "state" not in kwargs:
             kwargs["state"] = request_args["state"]
 
         return self._id_token_based(request, request_args, extra_args, **kwargs)
