@@ -25,10 +25,10 @@ from oic.utils.authz import Implicit
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 from oic.utils.sdb import DefaultToken
-from oic.utils.sdb import DictSessionBackend
 from oic.utils.sdb import SessionDB
 from oic.utils.sdb import lv_pack
 from oic.utils.sdb import lv_unpack
+from oic.utils.session_backend import DictSessionBackend
 
 CLIENT_CONFIG = {"client_id": "client1", "config": {"issuer": "https://example.com/as"}}
 

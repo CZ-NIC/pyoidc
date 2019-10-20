@@ -6,11 +6,9 @@ from http.cookies import SimpleCookie
 from time import time
 from typing import Any  # noqa
 from typing import Dict  # noqa
-from typing import cast
 from unittest.mock import Mock
 from unittest.mock import patch
 from urllib.parse import parse_qs
-from urllib.parse import urlencode
 from urllib.parse import urlparse
 
 import pytest
@@ -54,13 +52,12 @@ from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
 from oic.utils.http_util import CookieDealer
 from oic.utils.http_util import Response
-from oic.utils.http_util import SeeOther
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import ec_init
 from oic.utils.keyio import keybundle_from_local_file
 from oic.utils.sdb import AuthnEvent
-from oic.utils.sdb import DictSessionBackend
+from oic.utils.session_backend import DictSessionBackend
 from oic.utils.time_util import epoch_in_a_while
 from oic.utils.userinfo import UserInfo
 
@@ -1348,7 +1345,10 @@ class TestProvider(object):
         assert len(logcap.records) == 2
         # First log record is from server...
         assert isinstance(logcap.records[1].msg, MissingSchema)
-        error = "Invalid URL 'example.com': No schema supplied. Perhaps you meant http://example.com?"
+        error = (
+            "Invalid URL 'example.com': No schema supplied. Perhaps you meant "
+            "http://example.com?"
+        )
         assert str(logcap.records[1].msg) == error
 
     def test_verify_sector_identifier_nonreachable(self):
@@ -1669,154 +1669,6 @@ class TestProvider(object):
             "openid", "code", path="http://www.example.org"
         )
         return self.provider.authorization_endpoint(request=location.split("?")[1])
-
-    def test_end_session_endpoint_with_cookie(self):
-        self._code_auth()
-        cookie = self._create_cookie("username", "number5")
-
-        resp = self.provider.end_session_endpoint(
-            urlencode({"state": "abcde"}), cookie=cookie
-        )
-
-        assert isinstance(resp, SeeOther)
-        assert "state=abcde" in resp.message
-        assert self.provider.sdb.get_by_uid("username") == []
-        self._assert_cookies_expired(resp.headers)
-
-    def test_end_session_endpoint_with_wrong_cookie(self):
-        self._code_auth()
-        cookie = self._create_cookie("username", "number5", c_type="session")
-
-        resp = self.provider.end_session_endpoint(
-            urlencode({"state": "abcde"}), cookie=cookie
-        )
-
-        assert isinstance(resp, Response)
-        _err = ErrorResponse().from_json(resp.message)
-        assert _err["error"] == "invalid_request"
-
-    def test_end_session_endpoint_with_cookie_wrong_user(self):
-        self._code_auth()
-        cookie = self._create_cookie("diggins", "number5")
-
-        resp = self.provider.end_session_endpoint(
-            urlencode({"state": "abcde"}), cookie=cookie
-        )
-
-        assert isinstance(resp, Response)
-        _err = ErrorResponse().from_json(resp.message)
-        assert _err["error"] == "invalid_request"
-
-    def test_end_session_endpoint_with_cookie_wrong_client(self):
-        self._code_auth()
-        cookie = self._create_cookie("username", "a1b2c3")
-
-        resp = self.provider.end_session_endpoint(
-            urlencode({"state": "abcde"}), cookie=cookie
-        )
-
-        assert isinstance(resp, Response)
-        _err = ErrorResponse().from_json(resp.message)
-        assert _err["error"] == "invalid_request"
-
-    def test_end_session_endpoint_with_cookie_dual_login(self):
-        self._code_auth()
-        self._code_auth2()
-        cookie = self._create_cookie("username", "client0")
-
-        resp = self.provider.end_session_endpoint(
-            urlencode({"state": "abcde"}), cookie=cookie
-        )
-
-        assert isinstance(resp, SeeOther)
-        assert "state=abcde" in resp.message
-        assert self.provider.sdb.get_by_uid("username") == []
-        self._assert_cookies_expired(resp.headers)
-
-    def test_end_session_endpoint_with_cookie_dual_login_wrong_client(self):
-        self._code_auth()
-        self._code_auth2()
-        cookie = self._create_cookie("username", "a1b2c3")
-
-        resp = self.provider.end_session_endpoint(
-            urlencode({"state": "abcde"}), cookie=cookie
-        )
-
-        assert isinstance(resp, Response)
-        _err = ErrorResponse().from_json(resp.message)
-        assert _err["error"] == "invalid_request"
-
-    def test_end_session_endpoint_with_id_token_hint_only(self):
-        id_token = self._auth_with_id_token()
-        assert self.provider.sdb.get_by_sub(
-            id_token["sub"]
-        )  # verify we got valid session
-
-        id_token_hint = id_token.to_jwt(algorithm="none")
-
-        resp = self.provider.end_session_endpoint(
-            urlencode({"id_token_hint": id_token_hint})
-        )
-
-        assert isinstance(resp, SeeOther)
-
-        assert not self.provider.sdb.get_by_sub(
-            id_token["sub"]
-        )  # verify session has been removed
-        self._assert_cookies_expired(resp.headers)
-
-    def test_end_session_endpoint_with_id_token_hint_and_cookie(self):
-        id_token = self._auth_with_id_token()
-        assert self.provider.sdb.get_by_sub(
-            id_token["sub"]
-        )  # verify we got valid session
-
-        id_token_hint = id_token.to_jwt(algorithm="none")
-        cookie = self._create_cookie("username", "number5")
-
-        resp = self.provider.end_session_endpoint(
-            urlencode({"id_token_hint": id_token_hint}), cookie=cookie
-        )
-
-        assert isinstance(resp, SeeOther)
-
-        assert not self.provider.sdb.get_by_sub(
-            id_token["sub"]
-        )  # verify session has been removed
-        self._assert_cookies_expired(resp.headers)
-
-    def test_end_session_endpoint_with_post_logout_redirect_uri(self):
-        self._code_auth()
-        # verify we got valid session
-        cookie = self._create_cookie("username", "number5")
-
-        client_id = cast(str, CLIENT_CONFIG["client_id"])  # type: str
-        post_logout_redirect_uri = CDB[client_id]["post_logout_redirect_uris"][0][0]
-        resp = self.provider.end_session_endpoint(
-            urlencode(
-                {"post_logout_redirect_uri": post_logout_redirect_uri, "state": "abcde"}
-            ),
-            cookie=cookie,
-        )
-        assert isinstance(resp, SeeOther)
-        assert self.provider.sdb.get_by_uid("username") == []
-        self._assert_cookies_expired(resp.headers)
-
-    def test_end_session_endpoint_with_wrong_post_logout_redirect_uri(self):
-        self._code_auth()
-        # verify we got valid session
-        cookie = self._create_cookie("username", "number5")
-
-        post_logout_redirect_uri = "https://www.example.com/logout"
-        resp = self.provider.end_session_endpoint(
-            urlencode(
-                {"post_logout_redirect_uri": post_logout_redirect_uri, "state": "abcde"}
-            ),
-            cookie=cookie,
-        )
-        assert isinstance(resp, Response)
-        _err = ErrorResponse().from_json(resp.message)
-        assert _err["error"] == "invalid_request"
 
     def test_session_state_in_auth_req_for_session_support(self, session_db_factory):
         provider = Provider(

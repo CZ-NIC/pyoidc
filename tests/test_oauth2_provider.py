@@ -26,7 +26,7 @@ from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
 from oic.utils.http_util import Response
 from oic.utils.sdb import AuthnEvent
-from oic.utils.sdb import DictSessionBackend
+from oic.utils.session_backend import DictSessionBackend
 
 CLIENT_CONFIG = {"client_id": "client1", "config": {"issuer": "https://example.com/as"}}
 
