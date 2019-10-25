@@ -22,8 +22,8 @@ from oic.utils.jwt import JWT
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import keybundle_from_local_file
-from oic.utils.sdb import DictSessionBackend
 from oic.utils.sdb import session_update
+from oic.utils.session_backend import DictSessionBackend
 from oic.utils.userinfo import UserInfo
 
 # -- CLIENT INFO ----

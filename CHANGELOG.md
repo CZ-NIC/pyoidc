@@ -10,6 +10,7 @@ The format is based on the [KeepAChangeLog] project.
 ### Changed
 
 - [#688] Second stage of adding logout support.
+- [#700] Third stage of adding logout support, provider side
 
 ### Fixed
 - [#602] Fixed uncaught error on unpacking of message
@@ -28,6 +29,7 @@ The format is based on the [KeepAChangeLog] project.
 [#683]: https://github.com/OpenIDC/pyoidc/issues/683
 [#688]: https://github.com/OpenIDC/pyoidc/pull/688
 [#698]: https://github.com/OpenIDC/pyoidc/pull/698
+[#700]: https://github.com/OpenIDC/pyoidc/pull/700
 
 ## 1.0.1 [2019-06-30]
 

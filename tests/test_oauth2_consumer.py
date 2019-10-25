@@ -20,7 +20,7 @@ from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import TokenErrorResponse
 from oic.utils import time_util
 from oic.utils.http_util import make_cookie
-from oic.utils.sdb import DictSessionBackend
+from oic.utils.session_backend import DictSessionBackend
 
 __author__ = "rohe0002"
 
