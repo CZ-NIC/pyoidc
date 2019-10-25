@@ -21,6 +21,7 @@ from oic.oic.message import AuthorizationResponse
 from oic.oic.message import IdToken
 from oic.oic.message import OpenIDSchema
 from oic.oic.message import ProviderConfigurationResponse
+from oic.oic.message import RegistrationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
@@ -143,7 +144,7 @@ class TestOICConsumer:
         self.consumer.redirect_uris = ["https://example.com/cb"]
         self.consumer.authorization_endpoint = "https://example.com/authorization"
         self.consumer.token_endpoint = "https://example.com/token"
-        self.consumer.userinfo_endpoint = "https://example.com/userinfo"
+        self.consumer.userinfo_endpoint = "https://example.com/userinfo"  # type: ignore
         self.consumer.client_secret = "hemlig"
         self.consumer.secret_type = "basic"
 
@@ -175,17 +176,20 @@ class TestOICConsumer:
 
         self.consumer.authorization_endpoint = authz_org_url
         self.consumer.token_endpoint = "https://example.org/token"
-        self.consumer.userinfo_endpoint = ""
+        self.consumer.userinfo_endpoint = ""  # type: ignore
 
         assert self.consumer.authorization_endpoint == authz_org_url
         assert self.consumer.token_endpoint == "https://example.org/token"
-        assert self.consumer.userinfo_endpoint == ""
+        assert self.consumer.userinfo_endpoint == ""  # type: ignore
 
         self.consumer.update("sid")
 
         assert self.consumer.authorization_endpoint == authz_org_url
         assert self.consumer.token_endpoint == "https://example.org/token"
-        assert self.consumer.userinfo_endpoint == "https://example.com/userinfo"
+        assert (
+            self.consumer.userinfo_endpoint  # type: ignore
+            == "https://example.com/userinfo"
+        )
 
     def test_begin(self):
         srv = Server()
@@ -451,8 +455,12 @@ class TestOICConsumer:
     def test_complete_auth_token_idtoken(self):
         _state = "state0"
         self.consumer.consumer_config["response_type"] = ["id_token", "token"]
-        self.consumer.registration_response = {"id_token_signed_response_alg": "RS256"}
-        self.consumer.provider_info = {"issuer": "https://example.com"}  # abs min
+        self.consumer.registration_response = RegistrationResponse(
+            id_token_signed_response_alg="RS256"
+        )
+        self.consumer.provider_info = ProviderConfigurationResponse(
+            issuer="https://example.com"
+        )  # abs min
         self.consumer.authz_req = {}  # Store AuthzReq with state as key
 
         args = {
@@ -677,7 +685,8 @@ class TestOICConsumer:
             )
             response = self.consumer.complete(_state)
             result = self.consumer.get_userinfo_claims(
-                response["access_token"], self.consumer.userinfo_endpoint
+                response["access_token"],
+                self.consumer.userinfo_endpoint,  # type: ignore
             )
         assert isinstance(result, OpenIDSchema)
         assert _eq(result.keys(), ["name", "email", "verified", "nickname", "sub"])
@@ -829,7 +838,8 @@ class TestOICConsumer:
     def test_faulty_idtoken_from_accesstoken_endpoint(self, mitm_server):
         mfos = mitm_server("http://localhost:8088")
         mfos.keyjar = SRVKEYS
-        self.consumer.http_request = mfos.http_request
+        # FIXME: Drop the MITM server in favor of responses
+        self.consumer.http_request = mfos.http_request  # type: ignore
         _state = "state0"
         self.consumer.consumer_config["response_type"] = ["id_token"]
 
@@ -868,5 +878,5 @@ class TestOICConsumer:
         resp = AuthorizationResponse(id_token=_signed_jwt, state=_state)
         self.consumer.consumer_config["response_type"] = ["id_token"]
         self.consumer.parse_authz(resp.to_urlencoded())
-        assert self.consumer.sso_db.storage["state"]["smid"] == smid
+        assert self.consumer.sso_db["state"]["smid"] == smid
         assert session_get(self.consumer.sso_db, "smid", smid) == [_state]

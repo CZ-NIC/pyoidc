@@ -58,7 +58,7 @@ class PBase(object):
         """Turn cookiejar into a dict."""
         cookie_dict = {}
 
-        for _, a in list(self.cookiejar._cookies.items()):
+        for _, a in list(self.cookiejar._cookies.items()):  # type: ignore
             for _, b in list(a.items()):
                 for cookie in list(b.values()):
                     cookie_dict[cookie.name] = cookie.value

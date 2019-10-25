@@ -2,9 +2,16 @@
 import os
 from base64 import b64decode
 from base64 import b64encode
+from typing import Union  # noqa
+from typing import cast
 
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
+from Cryptodome.Cipher._mode_ccm import CcmMode  # noqa
+from Cryptodome.Cipher._mode_eax import EaxMode  # noqa
+from Cryptodome.Cipher._mode_gcm import GcmMode  # noqa
+from Cryptodome.Cipher._mode_ocb import OcbMode  # noqa
+from Cryptodome.Cipher._mode_siv import SivMode  # noqa
 
 from oic.utils import tobytes
 
@@ -139,9 +146,21 @@ class AEAD(object):
         assert isinstance(key, bytes)
         assert isinstance(iv, bytes)
         self.key = key
+        # The code is written in such a way, that only these modes are actually supported
+        # The other ones are missing `encrypt_and_digest`, `decrypt_and_verify` and `update` methods
+        assert mode in (
+            AES.MODE_CCM,
+            AES.MODE_EAX,
+            AES.MODE_GCM,
+            AES.MODE_SIV,
+            AES.MODE_OCB,
+        )
         self.mode = mode
         self.iv = iv
-        self.kernel = AES.new(self.key, self.mode, self.iv)
+        self.kernel = cast(
+            Union[CcmMode, EaxMode, GcmMode, SivMode, OcbMode],
+            AES.new(self.key, self.mode, self.iv),
+        )
 
     def add_associated_data(self, data):
         """

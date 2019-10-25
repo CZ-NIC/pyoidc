@@ -175,7 +175,7 @@ class Consumer(Client):
                     "Please use `SessionBackend` to ensure proper API for the database.",
                     DeprecationWarning,
                 )
-            self.sso_db = sso_db
+            self.sso_db = sso_db  # type: SessionBackend
         else:
             self.sso_db = DictSessionBackend()
 

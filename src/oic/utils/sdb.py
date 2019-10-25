@@ -799,6 +799,8 @@ class SessionDB(object):
         :param client_id: Client ID, needed only for Refresh token
         """
         if token.startswith("Refresh_"):
+            if self._refresh_db is None:
+                return False
             return self._refresh_db.verify_token(client_id, token)
 
         try:

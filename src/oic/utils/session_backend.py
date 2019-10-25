@@ -6,6 +6,8 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Union
+from typing import cast
 
 from oic.utils.time_util import time_sans_frac
 
@@ -57,11 +59,11 @@ class SessionBackend(metaclass=ABCMeta):
     """Backend for storing sessionDB data."""
 
     @abstractmethod
-    def __setitem__(self, key: str, value: Dict[str, str]) -> None:
+    def __setitem__(self, key: str, value: Dict[str, Union[str, bool]]) -> None:
         """Store the session information under the session_id."""
 
     @abstractmethod
-    def __getitem__(self, key: str) -> Dict[str, str]:
+    def __getitem__(self, key: str) -> Dict[str, Union[str, bool]]:
         """
         Retrieve the session information based os session_id.
 
@@ -90,7 +92,7 @@ class SessionBackend(metaclass=ABCMeta):
 
     def get_client_ids_for_uid(self, uid: str) -> List[str]:
         """Return client ids that have a session for given uid."""
-        return [self[sid]["client_id"] for sid in self.get_by_uid(uid)]
+        return [cast(str, self[sid]["client_id"]) for sid in self.get_by_uid(uid)]
 
     def get_verified_logout(self, uid: str) -> Optional[str]:
         """Return logout verification key for given uid."""
@@ -101,11 +103,11 @@ class SessionBackend(metaclass=ABCMeta):
         _dict = self[sids[0]]
         if "verified_logout" not in _dict:
             return None
-        return _dict["verified_logout"]
+        return cast(str, _dict["verified_logout"])
 
     def get_token_ids(self, uid: str) -> List[str]:
         """Return id_tokens for the given uid."""
-        return [self[sid]["id_token"] for sid in self.get_by_uid(uid)]
+        return [cast(str, self[sid]["id_token"]) for sid in self.get_by_uid(uid)]
 
     def is_revoke_uid(self, uid: str) -> bool:
         """Return if the session is revoked."""
@@ -147,13 +149,13 @@ class DictSessionBackend(SessionBackend):
 
     def __init__(self):
         """Create the storage."""
-        self.storage = {}  # type: Dict[str, Dict[str, str]]
+        self.storage = {}  # type: Dict[str, Dict[str, Union[str, bool]]]
 
-    def __setitem__(self, key: str, value: Dict[str, str]) -> None:
+    def __setitem__(self, key: str, value: Dict[str, Union[str, bool]]) -> None:
         """Store the session info in the storage."""
         self.storage[key] = value
 
-    def __getitem__(self, key: str) -> Dict[str, str]:
+    def __getitem__(self, key: str) -> Dict[str, Union[str, bool]]:
         """Retrieve session information based on session id."""
         return self.storage[key]
 

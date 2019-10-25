@@ -10,7 +10,6 @@ import json
 import logging
 from typing import Dict  # noqa
 from typing import List  # noqa
-from typing import Mapping  # noqa
 from urllib.parse import parse_qs
 from urllib.parse import urlencode
 
@@ -68,7 +67,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
         self.userinfo = userinfo
 
         if cache is None:
-            self.cache_outstanding_queries = {}  # type: Mapping[str, str]
+            self.cache_outstanding_queries = {}  # type: Dict[str, str]
         else:
             self.cache_outstanding_queries = cache
         UserAuthnMethod.__init__(self, srv)
@@ -86,12 +85,12 @@ class SAMLAuthnMethod(UserAuthnMethod):
         self.verification_endpoint = ""
         # Configurations for the SP handler.
         self.sp_conf = importlib.import_module(spconf)
-        config = SPConfig().load(self.sp_conf.CONFIG)
+        config = SPConfig().load(self.sp_conf.CONFIG)  # type: ignore
         self.sp = Saml2Client(config=config)
         mte = lookup.get_template("unauthorized.mako")
         argv = {"message": "You are not authorized!"}
         self.not_authorized = mte.render(**argv)
-        self.samlcache = self.sp_conf.SAML_CACHE
+        self.samlcache = self.sp_conf.SAML_CACHE  # type: ignore
 
     def __call__(self, query="", end_point_index=None, *args, **kwargs):
 
@@ -173,8 +172,8 @@ class SAMLAuthnMethod(UserAuthnMethod):
             logger.error("Other error: %s" % (err,))
             return Unauthorized(self.not_authorized), False
 
-        if self.sp_conf.VALID_ATTRIBUTE_RESPONSE is not None:
-            for k, v in self.sp_conf.VALID_ATTRIBUTE_RESPONSE.items():
+        if self.sp_conf.VALID_ATTRIBUTE_RESPONSE is not None:  # type: ignore
+            for k, v in self.sp_conf.VALID_ATTRIBUTE_RESPONSE.items():  # type: ignore
                 if k not in response.ava:
                     return Unauthorized(self.not_authorized), False
                 else:
@@ -211,8 +210,11 @@ class SAMLAuthnMethod(UserAuthnMethod):
 
     def setup_userdb(self, uid, samldata):
         attributes = {}
-        if self.sp_conf.ATTRIBUTE_WHITELIST is not None:
-            for attr, allowed in self.sp_conf.ATTRIBUTE_WHITELIST.items():
+        if self.sp_conf.ATTRIBUTE_WHITELIST is not None:  # type: ignore
+            for (
+                attr,
+                allowed,
+            ) in self.sp_conf.ATTRIBUTE_WHITELIST.items():  # type: ignore
                 if attr in samldata:
                     if allowed is not None:
                         tmp_attr_list = []
@@ -228,10 +230,10 @@ class SAMLAuthnMethod(UserAuthnMethod):
             attributes = samldata
         userdb = {}  # type: Dict[str, List[str]]
 
-        if self.sp_conf.OPENID2SAMLMAP is None:
+        if self.sp_conf.OPENID2SAMLMAP is None:  # type: ignore
             userdb = attributes.copy()
         else:
-            for oic, saml in self.sp_conf.OPENID2SAMLMAP.items():
+            for oic, saml in self.sp_conf.OPENID2SAMLMAP.items():  # type: ignore
                 if saml in attributes:
                     userdb[oic] = attributes[saml]
         self.userdb[uid] = userdb
@@ -273,14 +275,14 @@ class SAMLAuthnMethod(UserAuthnMethod):
                 '{"'
                 + self.CONST_QUERY
                 + '": "'
-                + base64.b64encode(query)
+                + base64.b64encode(query).decode()
                 + '" , "'
                 + self.CONST_HASIDP
                 + '": "False" }',
                 self.CONST_SAML_COOKIE,
                 self.CONST_SAML_COOKIE,
             )
-            if self.sp_conf.WAYF:
+            if self.sp_conf.WAYF:  # type: ignore
                 if query:
                     try:
                         wayf_selected = query_dict["wayf_selected"][0]
@@ -289,7 +291,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
                     idp_entity_id = wayf_selected
                 else:
                     return self._wayf_redirect(cookie)
-            elif self.sp_conf.DISCOSRV:
+            elif self.sp_conf.DISCOSRV:  # type: ignore
                 if query:
                     idp_entity_id = _cli.parse_discovery_service_response(query=query)
                 if not idp_entity_id:
@@ -303,7 +305,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
                     ][0]
                     ret += "?sid=%s" % sid_
                     loc = _cli.create_discovery_service_request(
-                        self.sp_conf.DISCOSRV, eid, **{"return": ret}
+                        self.sp_conf.DISCOSRV, eid, **{"return": ret}  # type: ignore
                     )
                     return -1, SeeOther(loc, headers=[cookie])
             elif not len(idps):
@@ -320,7 +322,10 @@ class SAMLAuthnMethod(UserAuthnMethod):
         return (
             -1,
             SeeOther(
-                headers=[("Location", "%s?%s" % (self.sp_conf.WAYF, sid_)), cookie]
+                headers=[
+                    ("Location", "%s?%s" % (self.sp_conf.WAYF, sid_)),  # type: ignore
+                    cookie,
+                ]
             ),
         )
 

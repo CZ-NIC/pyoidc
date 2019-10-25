@@ -222,10 +222,7 @@ class Consumer(Client):
         self.sdb["seed:%s" % self.seed] = sid
 
         if not response_type:
-            if self.response_type:
-                response_type = self.response_type
-            else:
-                self.response_type = response_type = "code"
+            response_type = self.response_type
 
         location = self.request_info(
             AuthorizationRequest,

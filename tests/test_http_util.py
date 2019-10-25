@@ -64,7 +64,7 @@ class TestCookieDealer(object):
         value, timestamp, typ = cookie_dealer.get_cookie_value(kaka[1], "Foobar")
 
         assert (value, typ) == (cookie_value, cookie_typ)
-        t = SimpleCookie()
+        t = SimpleCookie()  # type: SimpleCookie
         t.load(kaka[1])
         morsel = t["Foobar"]
         assert morsel["secure"]
@@ -84,7 +84,7 @@ class TestCookieDealer(object):
         value, timestamp, typ = cookie_dealer.get_cookie_value(kaka[1], "Foobar")
 
         assert (value, typ) == (cookie_value, cookie_typ)
-        t = SimpleCookie()
+        t = SimpleCookie()  # type: SimpleCookie
         t.load(kaka[1])
         morsel = t["Foobar"]
         assert morsel["secure"]
@@ -104,7 +104,7 @@ class TestCookieDealer(object):
         value, timestamp, typ = cookie_dealer.get_cookie_value(kaka[1], "Foobar")
 
         assert (value, typ) == (cookie_value, cookie_typ)
-        t = SimpleCookie()
+        t = SimpleCookie()  # type: SimpleCookie
         t.load(kaka[1])
         morsel = t["Foobar"]
         assert not morsel["secure"]
@@ -144,7 +144,7 @@ class TestCookieDealer(object):
         cookie_name = "Foobar"
 
         kaka = cookie_dealer.create_cookie(cookie_value, cookie_typ, cookie_name)
-        C = SimpleCookie()
+        C = SimpleCookie()  # type: SimpleCookie
         C.load(kaka[1])
 
         assert C[cookie_name]["domain"] == "op.example.org"
@@ -162,7 +162,7 @@ class TestCookieDealer(object):
         cookie_name = "Foobar"
 
         kaka = cookie_dealer.create_cookie(cookie_value, cookie_typ, cookie_name)
-        C = SimpleCookie()
+        C = SimpleCookie()  # type: SimpleCookie
         C.load(kaka[1])
 
         assert C[cookie_name]["path"] == "/oidc"

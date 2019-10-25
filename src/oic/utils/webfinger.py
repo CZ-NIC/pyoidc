@@ -2,7 +2,7 @@ import json
 import logging
 import re
 from typing import Any  # noqa - Used for MyPy
-from typing import Mapping  # noqa - Used for MyPy
+from typing import Dict  # noqa - Used for MyPy
 from urllib.parse import urlencode
 from urllib.parse import urlparse
 
@@ -24,10 +24,10 @@ class WebFingerError(PyoidcError):
 
 
 class Base(object):
-    c_param = {}  # type: Mapping[str, Mapping[str, Any]]
+    c_param = {}  # type: Dict[str, Dict[str, Any]]
 
     def __init__(self, dic=None):
-        self._ava = {}  # type: Mapping[str, Any]
+        self._ava = {}  # type: Dict[str, Any]
         if dic is not None:
             self.load(dic)
 

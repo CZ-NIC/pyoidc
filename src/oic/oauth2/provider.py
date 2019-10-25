@@ -261,7 +261,7 @@ class Provider(object):
 
         if capabilities:
             self.verify_capabilities(capabilities)
-            self.capabilities = self.message_factory.get_response_type(
+            self.capabilities = message_factory.get_response_type(
                 "configuration_endpoint"
             )(**capabilities)
         else:

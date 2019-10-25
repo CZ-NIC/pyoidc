@@ -6,6 +6,7 @@ from collections import MutableMapping
 from collections import namedtuple
 from json import JSONDecodeError
 from typing import Any  # noqa - This is used for MyPy
+from typing import Dict  # noqa - This is used for MyPy
 from typing import List  # noqa - This is used for MyPy
 from typing import Mapping  # noqa - This is used for MyPy
 from typing import Optional  # noqa - This is used for MyPy
@@ -135,7 +136,7 @@ def jwt_header(txt):
 
 class Message(MutableMapping):
     c_param = {}  # type: Mapping[str, ParamDefinition]
-    c_default = {}  # type: Mapping[str, Any]
+    c_default = {}  # type: Dict[str, Any]
     c_allowed_values = {}  # type: ignore
 
     def __init__(self, **kwargs):
@@ -266,7 +267,7 @@ class Message(MutableMapping):
             cparam = self._extract_cparam(key, _spec)
             if cparam is None:
                 if len(val) == 1:
-                    val = val[0]
+                    val = val[0]  # type: ignore
 
                 self._dict[key] = val
                 continue

@@ -1,5 +1,6 @@
 from typing import Any  # noqa
 from typing import Dict  # noqa
+from typing import Union  # noqa
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
@@ -7,6 +8,8 @@ from jwkest import jws
 from jwkest.jws import alg2keytype
 
 from oic import rndstr
+from oic.oauth2.message import AccessTokenRequest  # noqa
+from oic.oauth2.message import RefreshAccessTokenRequest  # noqa
 from oic.oauth2.message import by_schema
 from oic.oic import Server
 from oic.oic.message import AccessTokenResponse
@@ -166,7 +169,9 @@ class MITMServer(Server):
 
     def token_endpoint(self, data):
         if "grant_type=refresh_token" in data:
-            req = self.parse_refresh_token_request(body=data)
+            req = self.parse_refresh_token_request(
+                body=data
+            )  # type: Union[AccessTokenRequest, RefreshAccessTokenRequest]
             _info = self.sdb.refresh_token(req["refresh_token"])
         elif "grant_type=authorization_code" in data:
             req = self.parse_token_request(body=data)

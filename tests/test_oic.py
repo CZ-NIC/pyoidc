@@ -90,8 +90,10 @@ class TestClient(object):
         self.client.redirect_uris = [self.redirect_uri]
         self.client.authorization_endpoint = "https://example.com/authorization"
         self.client.token_endpoint = "https://example.com/token"
-        self.client.userinfo_endpoint = "https://example.com/userinfo"
-        self.client.check_session_endpoint = "https://example.com/check_session"
+        self.client.userinfo_endpoint = "https://example.com/userinfo"  # type: ignore
+        self.client.check_session_endpoint = (  # type: ignore
+            "https://example.com/check_session"
+        )
         self.client.client_secret = "abcdefghijklmnop"
         self.client.keyjar[""] = KC_RSA
         self.client.behaviour = {
@@ -383,7 +385,9 @@ class TestClient(object):
     def test_do_end_session_request(self):
         self.client.redirect_uris = ["https://www.example.com/authz"]
         self.client.client_id = "a1b2c3"
-        self.client.end_session_endpoint = "https://example.org/end_session"
+        self.client.end_session_endpoint = (  # type: ignore
+            "https://example.org/end_session"
+        )
 
         # RSA signing
         alg = "RS256"
@@ -407,7 +411,9 @@ class TestClient(object):
             assert parsed["id_token"] is not None
 
     def test_do_registration_request(self):
-        self.client.registration_endpoint = "https://example.com/registration"
+        self.client.registration_endpoint = (  # type: ignore
+            "https://example.com/registration"
+        )
 
         args = {
             "operation": "register",
@@ -564,7 +570,7 @@ class TestClient(object):
 
     def test_construct_UserInfoRequest_2_with_token(self):
         self.client.grant["foo"] = Grant()
-        self.client.grant["foo"].grant_expiration_time = time.time() + 60
+        self.client.grant["foo"].grant_expiration_time = int(time.time() + 60)
         self.client.grant["foo"].code = "access_code"
 
         resp = AccessTokenResponse(
@@ -586,7 +592,7 @@ class TestClient(object):
 
     def test_construct_CheckSessionRequest_2(self):
         self.client.grant["foo"] = Grant()
-        self.client.grant["foo"].grant_expiration_time = time.time() + 60
+        self.client.grant["foo"].grant_expiration_time = int(time.time() + 60)
         self.client.grant["foo"].code = "access_code"
 
         resp = AccessTokenResponse(
@@ -623,7 +629,7 @@ class TestClient(object):
 
     def test_construct_EndSessionRequest_kwargs_state(self):
         self.client.grant["foo"] = Grant()
-        self.client.grant["foo"].grant_expiration_time = time.time() + 60
+        self.client.grant["foo"].grant_expiration_time = int(time.time() + 60)
         self.client.grant["foo"].code = "access_code"
 
         resp = AccessTokenResponse(
@@ -639,7 +645,7 @@ class TestClient(object):
 
     def test_construct_EndSessionRequest_reqargs_state(self):
         self.client.grant["foo"] = Grant()
-        self.client.grant["foo"].grant_expiration_time = time.time() + 60
+        self.client.grant["foo"].grant_expiration_time = int(time.time()) + 60
         self.client.grant["foo"].code = "access_code"
 
         resp = AccessTokenResponse(
@@ -655,7 +661,7 @@ class TestClient(object):
 
     def test_construct_EndSessionRequest_kwargs_and_reqargs_state(self):
         self.client.grant["foo"] = Grant()
-        self.client.grant["foo"].grant_expiration_time = time.time() + 60
+        self.client.grant["foo"].grant_expiration_time = int(time.time()) + 60
         self.client.grant["foo"].code = "access_code"
 
         resp = AccessTokenResponse(
@@ -671,8 +677,6 @@ class TestClient(object):
         assert esr["state"] == "req_args_state"
 
     def test_construct_OpenIDRequest(self):
-        self.client.scope = ["openid", "profile"]
-
         request_args = {"response_type": "code id_token", "state": "af0ifjsldkj"}
 
         areq = self.client.construct_AuthorizationRequest(request_args=request_args)
@@ -785,7 +789,7 @@ class TestClient(object):
 
     def test_clean_tokens_fresh(self):
         self.client.grant["foo"] = Grant()
-        self.client.grant["foo"].grant_expiration_time = time.time() + 60
+        self.client.grant["foo"].grant_expiration_time = int(time.time() + 60)
         self.client.grant["foo"].code = "access_code"
 
         resp = AccessTokenResponse(
@@ -801,7 +805,7 @@ class TestClient(object):
 
     def test_clean_tokens_replaced(self):
         self.client.grant["foo"] = Grant()
-        self.client.grant["foo"].grant_expiration_time = time.time() + 60
+        self.client.grant["foo"].grant_expiration_time = int(time.time() + 60)
         self.client.grant["foo"].code = "access_code"
 
         resp = AccessTokenResponse(
@@ -818,7 +822,7 @@ class TestClient(object):
 
     def test_clean_tokens_stale(self):
         self.client.grant["foo"] = Grant()
-        self.client.grant["foo"].grant_expiration_time = time.time() + 60
+        self.client.grant["foo"].grant_expiration_time = int(time.time() + 60)
         self.client.grant["foo"].code = "access_code"
 
         resp = AccessTokenResponse(

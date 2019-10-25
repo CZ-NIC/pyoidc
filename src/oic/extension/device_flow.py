@@ -44,7 +44,7 @@ class DeviceFlowServer(SingleService):
         # map between device_code and user_code
         self.client_id2device = {}  # type: Dict[str, str]
         self.device2user = {}  # type: Dict[str, str]
-        self.user_auth = {}  # type: Dict[str, str]
+        self.user_auth = {}  # type: Dict[str, bool]
         self.device_code_expire_at = {}  # type: Dict[str, int]
         self.device_code_life_time = 900  # 15 minutes
 

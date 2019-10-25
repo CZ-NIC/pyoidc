@@ -210,6 +210,10 @@ class TestKeyBundle(object):
         key = kc.get("RSA")[0]
         assert isinstance(key, RSAKey)
 
+    def test_do_remote_no_source(self):
+        kc = KeyBundle()
+        assert kc.do_remote() is False
+
 
 class TestKeyJar(object):
     def test_keyjar_group_keys(self):
