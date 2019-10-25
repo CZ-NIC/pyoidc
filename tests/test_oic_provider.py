@@ -879,7 +879,7 @@ class TestProvider(object):
         self.provider.capabilities = self.provider.provider_features()
 
         self.cons.client_secret = "drickyoughurt"
-        self.cons.consumer_config["user_info"] = {"extra_claim": None}
+        self.cons.consumer_config["user_info"] = {}
         self.cons.config["response_type"] = ["token"]
         self.cons.config["request_method"] = "parameter"
         # Request the extra scope
@@ -899,6 +899,33 @@ class TestProvider(object):
         resp = self.provider.userinfo_endpoint(request=uir.to_urlencoded())
         ident = OpenIDSchema().deserialize(resp.message, "json")
         assert _eq(ident.keys(), ["sub", "extra_claim"])
+
+    def test_userinfo_endpoint_extra_scopes_not_requested(self):
+        # We have to recreate the cache again
+        self.provider.extra_scope_dict = {"extra_scope": ["extra_claim"]}
+        self.provider.capabilities = self.provider.provider_features()
+
+        self.cons.client_secret = "drickyoughurt"
+        self.cons.consumer_config["user_info"] = {}
+        self.cons.config["response_type"] = ["token"]
+        self.cons.config["request_method"] = "parameter"
+        # Do not request the extra scope
+        state, location = self.cons.begin(
+            "openid", "token", path="http://localhost:8087"
+        )
+
+        resp = self.provider.authorization_endpoint(request=urlparse(location).query)
+
+        # redirect
+        atr = AuthorizationResponse().deserialize(
+            urlparse(resp.message).fragment, "urlencoded"
+        )
+
+        uir = UserInfoRequest(access_token=atr["access_token"], schema="openid")
+
+        resp = self.provider.userinfo_endpoint(request=uir.to_urlencoded())
+        ident = OpenIDSchema().deserialize(resp.message, "json")
+        assert _eq(ident.keys(), ["sub"])
 
     def test_userinfo_endpoint_authn(self):
         self.cons.client_secret = "drickyoughurt"
