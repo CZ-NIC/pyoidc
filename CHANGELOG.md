@@ -7,6 +7,8 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+## 1.1.0 [2019-10-25]
+
 ### Changed
 
 - [#688] Second stage of adding logout support.
