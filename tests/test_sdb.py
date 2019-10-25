@@ -19,6 +19,7 @@ from oic.utils.sdb import DefaultToken
 from oic.utils.sdb import DictRefreshDB
 from oic.utils.sdb import DictSessionBackend
 from oic.utils.sdb import ExpiredToken
+from oic.utils.sdb import SessionDB
 from oic.utils.sdb import WrongTokenType
 from oic.utils.sdb import create_session_db
 from oic.utils.time_util import utc_time_sans_frac
@@ -558,6 +559,18 @@ class TestSessionDB(object):
             self.sdb.is_valid(access_token)
         except KeyError:
             pass
+
+    def test_is_valid_refresh_db(self):
+        refresh_db = DictRefreshDB()
+        token = refresh_db.create_token(
+            "client1", "uid", "openid", "sub1", "authzreq", "sid"
+        )
+        sdb = SessionDB("http://example.com", {}, refresh_db=refresh_db)
+        assert sdb.is_valid(token, client_id="client1")
+
+    def test_is_valid_no_refresh_db(self):
+        sdb = SessionDB("http://example.com", {})
+        assert sdb.is_valid("Refresh_") is False
 
     def test_valid_grant(self):
         ae = AuthnEvent("another:user", "salt")

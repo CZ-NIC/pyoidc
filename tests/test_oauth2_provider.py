@@ -144,6 +144,24 @@ class TestProvider(object):
         )
         assert provider.urlmap["client1"] == ["https://example.com/authz"]
 
+    def test_init_capabilities(self, session_db_factory):
+        provider = Provider(
+            "pyoicserv",
+            session_db_factory(ISSUER),
+            CDB,
+            AUTHN_BROKER,
+            AUTHZ,
+            verify_client,
+            capabilities={
+                "grant_types_supported": ["authorization_code"],
+                "version": "1.0",
+                "response_types_supported": ["code", "token"],
+            },
+        )
+        assert provider
+        assert provider.capabilities["version"] == "1.0"
+        assert provider.capabilities["grant_types_supported"] == ["authorization_code"]
+
     def test_providerinfo(self):
         self.provider.baseurl = "http://example.com/path1/path2"
         resp = self.provider.create_providerinfo()
