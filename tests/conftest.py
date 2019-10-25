@@ -24,16 +24,6 @@ def session_db(session_db_factory):
 
 
 @pytest.fixture
-def mitm_server(session_db_factory):
-    from tests.mitmsrv import MITMServer
-
-    def fac(name):
-        return MITMServer(name, session_db_factory=session_db_factory)
-
-    return fac
-
-
-@pytest.fixture
 def provider(session_db):
     issuer = "https://op.example.com"
     client_db = {}  # type: Dict[str, Any]
