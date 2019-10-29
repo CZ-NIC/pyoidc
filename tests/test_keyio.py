@@ -499,7 +499,7 @@ def test_reload():
 
 
 def test_parse_remote_response(
-    caplog
+    caplog,
 ):  # noqa: D202 - inline class requires a blank line
     """Test parsing Content-Type header for _parse_remote_response."""
 

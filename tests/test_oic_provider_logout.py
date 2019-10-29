@@ -560,7 +560,7 @@ class TestProvider(object):
         assert _err["error"] == "invalid_request"
 
     def test_end_session_endpoint_with_registered_post_logout_redirect_uri_with_query_part(
-        self
+        self,
     ):
         self._code_auth()
         cookie = self._create_cookie("username", "number5")

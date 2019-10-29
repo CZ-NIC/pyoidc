@@ -1228,9 +1228,10 @@ class Provider(AProvider):
 
         if "sector_identifier_uri" in request:
             try:
-                _cinfo["si_redirects"], _cinfo[
-                    "sector_id"
-                ] = self._verify_sector_identifier(request)
+                (
+                    _cinfo["si_redirects"],
+                    _cinfo["sector_id"],
+                ) = self._verify_sector_identifier(request)
             except InvalidSectorIdentifier as err:
                 return error_response("invalid_configuration_parameter", descr=str(err))
         elif "redirect_uris" in request:
