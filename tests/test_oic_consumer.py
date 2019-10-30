@@ -835,11 +835,7 @@ class TestOICConsumer:
         with pytest.raises(ValueError):
             c.parse_response(AccessTokenResponse, _json, sformat="json")
 
-    def test_faulty_idtoken_from_accesstoken_endpoint(self, mitm_server):
-        mfos = mitm_server("http://localhost:8088")
-        mfos.keyjar = SRVKEYS
-        # FIXME: Drop the MITM server in favor of responses
-        self.consumer.http_request = mfos.http_request  # type: ignore
+    def test_faulty_idtoken_from_accesstoken_endpoint(self):
         _state = "state0"
         self.consumer.consumer_config["response_type"] = ["id_token"]
 
@@ -849,7 +845,23 @@ class TestOICConsumer:
             "scope": ["openid"],
         }
 
-        result = self.consumer.do_authorization_request(state=_state, request_args=args)
+        location = (
+            "https://example.com/cb?state=state0&id_token=eyJhbGciOiJSUzI1NiJ9"
+            ".eyJpc3MiOiAiaHR0cDovL2xvY2FsaG9zdDo4MDg4IiwgInN1YiI6ICJhNWRkMjRiMmYwOGE2ODZmZDM4NmMyMmM"
+            "zZmY4ZWUyODFlZjJmYmZmMWZkZTcwMDg2NjhjZGEzZGVjZmE0NjY5IiwgImF1ZCI6IFsiY2xpZW50XzEiXSwgImV"
+            "4cCI6IDE1NzIwOTk5NjAsICJhY3IiOiAiMiIsICJpYXQiOiAxNTcyMDEzNTYwLCAibm9uY2UiOiAibmdFTGZVdmN"
+            "PMWoyaXNWcXkwQWNwM0NOYlZnMGdFRDEifQ.aaa"
+        )
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                responses.GET,
+                "https://example.com/authorization",
+                status=302,
+                headers={"location": location},
+            )
+            result = self.consumer.do_authorization_request(
+                state=_state, request_args=args
+            )
         self.consumer._backup("state0")
 
         assert result.status_code == 302
