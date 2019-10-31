@@ -995,13 +995,7 @@ class Provider(AProvider):
                 raise FailedAuthentication("Unmatched sub claim")
 
         info["sub"] = session["sub"]
-        try:
-            logger.debug("user_info_response: {}".format(info))
-        except UnicodeEncodeError:
-            try:
-                logger.debug("user_info_response: {}".format(info.encode("utf-8")))
-            except Exception:
-                pass
+        logger.debug("user_info_response: %s", info)
 
         return info
 
@@ -1945,7 +1939,7 @@ class Provider(AProvider):
         try:
             tmp_id_token_hint = esr["id_token_hint"]
         except KeyError:
-            tmp_id_token_hint = ""
+            tmp_id_token_hint = ""  # nosec
 
         context = {
             "id_token_hint": tmp_id_token_hint,

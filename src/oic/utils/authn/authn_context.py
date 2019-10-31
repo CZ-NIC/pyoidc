@@ -16,7 +16,7 @@ MOBILETWOFACTORCONTRACT = (
 PASSWORDPROTECTEDTRANSPORT = (
     "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport"
 )
-PASSWORD = "urn:oasis:names:tc:SAML:2.0:ac:classes:Password"
+PASSWORD = "urn:oasis:names:tc:SAML:2.0:ac:classes:Password"  # nosec
 TLSCLIENT = "urn:oasis:names:tc:SAML:2.0:ac:classes:TLSClient"
 TIMESYNCTOKEN = "urn:oasis:names:tc:SAML:2.0:ac:classes:TimeSyncToken"
 

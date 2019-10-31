@@ -718,7 +718,11 @@ class Client(PBase):
                 else:
                     return err
             except Exception:
-                pass
+                logger.exception(
+                    "Failed to decode error response (%d) %s",
+                    reqresp.status_code,
+                    sanitize(reqresp.text),
+                )
 
         return reqresp
 

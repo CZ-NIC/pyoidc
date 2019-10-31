@@ -333,8 +333,8 @@ if __name__ == "__main__":
     _app = Application(oas)
 
     # Initiate the web server
-    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port),
-                                        _app.application)
+    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), _app.application) # nosec
+    
     https = ""
     if config.SERVICE_URL.startswith("https"):
         https = " using HTTPS"

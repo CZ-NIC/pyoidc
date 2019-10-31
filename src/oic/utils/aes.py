@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import os
 from base64 import b64decode
 from base64 import b64encode
 from typing import Union  # noqa
@@ -40,7 +39,8 @@ def build_cipher(key, iv, alg="aes_128_cbc"):
     if not iv:
         iv = Random.new().read(AES.block_size)
     else:
-        assert len(iv) == AES.block_size
+        if len(iv) != AES.block_size:
+            raise AESError("IV must have the AES block size of %d" % AES.block_size)
 
     if bits not in ["128", "192", "256"]:
         raise AESError("Unsupported key length")
@@ -107,9 +107,6 @@ def decrypt(key, msg, iv=None, padding="PKCS#7", b64dec=True):
     else:
         data = msg
 
-    _iv = data[: AES.block_size]
-    if iv:
-        assert iv == _iv
     cipher, iv = build_cipher(key, iv)
     res = cipher.decrypt(data)[AES.block_size :]
     if padding in ["PKCS#5", "PKCS#7"]:
@@ -143,12 +140,12 @@ class AEAD(object):
     """
 
     def __init__(self, key, iv, mode=AES.MODE_SIV):
-        assert isinstance(key, bytes)
-        assert isinstance(iv, bytes)
+        assert isinstance(key, bytes)  # nosec
+        assert isinstance(iv, bytes)  # nosec
         self.key = key
         # The code is written in such a way, that only these modes are actually supported
         # The other ones are missing `encrypt_and_digest`, `decrypt_and_verify` and `update` methods
-        assert mode in (
+        assert mode in (  # nosec
             AES.MODE_CCM,
             AES.MODE_EAX,
             AES.MODE_GCM,
@@ -187,7 +184,7 @@ class AEAD(object):
 
         :returns: 2-tuple of encrypted data and MAC
         """
-        assert isinstance(cleardata, bytes)
+        assert isinstance(cleardata, bytes)  # nosec
         return self.kernel.encrypt_and_digest(cleardata)
 
     def decrypt_and_verify(self, cipherdata, tag):
@@ -203,23 +200,9 @@ class AEAD(object):
         :param tag: The MAC tag
         :type tag: bytes
         """
-        assert isinstance(cipherdata, bytes)
-        assert isinstance(tag, bytes)
+        assert isinstance(cipherdata, bytes)  # nosec
+        assert isinstance(tag, bytes)  # nosec
         try:
             return self.kernel.decrypt_and_verify(cipherdata, tag)
         except ValueError:
             raise AESError("Failed to verify data")
-
-
-if __name__ == "__main__":
-    key_ = "1234523451234545"  # 16 byte key
-    # Iff padded the message doesn't have to be multiple of 16 in length
-    msg_ = "ToBeOrNotTobe W.S."
-    iv_ = os.urandom(16)
-    encrypted_msg = encrypt(key_, msg_, iv_)
-    txt = decrypt(key_, encrypted_msg, iv_)
-    assert txt == msg_
-
-    encrypted_msg = encrypt(key_, msg_, 0)
-    txt = decrypt(key_, encrypted_msg, 0)
-    assert txt == msg_

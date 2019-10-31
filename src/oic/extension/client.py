@@ -1,11 +1,10 @@
 import hashlib
 import logging
-import random
-import string
 
 from jwkest import b64e
 
 from oic import oauth2
+from oic import unreserved
 from oic.exception import AuthzError
 from oic.exception import PyoidcError
 from oic.extension.message import ClientRegistrationError
@@ -27,19 +26,6 @@ RESPONSE2ERROR = {
     "ClientInfoResponse": [ClientRegistrationError],
     "ClientUpdateRequest": [ClientRegistrationError],
 }
-
-BASECH = string.ascii_letters + string.digits + "-._~"
-
-
-def unreserved(size=64):
-    """
-    Return a string of random ascii characters, digits and unreserve characters.
-
-    :param size: The length of the string
-    :return: string
-    """
-    return "".join([random.choice(BASECH) for _ in range(size)])
-
 
 CC_METHOD = {"S256": hashlib.sha256, "S384": hashlib.sha384, "S512": hashlib.sha512}
 
@@ -99,7 +85,7 @@ class Client(oauth2.Client):
             try:
                 _token_type_hint = kwargs["token_type_hint"]
             except KeyError:
-                _token_type_hint = "access_token"
+                _token_type_hint = "access_token"  # nosec
 
             request_args = {
                 "token_type_hint": _token_type_hint,

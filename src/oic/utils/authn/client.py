@@ -379,11 +379,9 @@ class JWSAuthnMethod(ClientAuthnMethod):
         except KeyError:
             cid = bjwt["iss"]
 
-        try:
             # There might not be a client_id in the request
-            assert str(cid) in self.cli.cdb  # It's a client I know
-        except KeyError:
-            pass
+        if cid not in self.cli.cdb:
+            raise AuthnFailure("Unknown client id")
 
         # aud can be a string or a list
         _aud = bjwt["aud"]

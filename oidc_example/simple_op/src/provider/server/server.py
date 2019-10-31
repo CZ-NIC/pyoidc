@@ -6,15 +6,16 @@ import mimetypes
 import os
 from functools import partial
 from functools import wraps
+from urllib import parse as urlparse
 
 import cherrypy
 import yaml
 from cherrypy import wsgiserver
 from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
+from jinja2 import select_autoescape
 from jinja2.environment import Environment
 from jinja2.loaders import FileSystemLoader
 from provider.authn import make_cls_from_name
-from urllib import parse as urlparse
 
 from oic import rndstr
 from oic.oic.provider import AuthorizationEndpoint
@@ -184,12 +185,13 @@ def main():
 
     # Load configuration
     with open(args.settings, "r") as f:
-        settings = yaml.load(f)
+        settings = yaml.safe_load(f)
 
     issuer = args.base.rstrip("/")
 
     template_dirs = settings["server"].get("template_dirs", "templates")
-    jinja_env = Environment(loader=FileSystemLoader(template_dirs))
+    jinja_env = Environment(loader=FileSystemLoader(template_dirs),
+                            autoescape=select_autoescape(['html']))
     authn_broker, auth_routing = setup_authentication_methods(settings["authn"],
                                                               jinja_env)
 
@@ -233,7 +235,7 @@ def main():
     routing = dict(list(auth_routing.items()) + list(app_routing.items()))
     routing["/static"] = make_static_handler(path)
     dispatcher = WSGIPathInfoDispatcher(routing)
-    server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), dispatcher)
+    server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), dispatcher)  # nosec
 
     # Setup SSL
     if provider.baseurl.startswith("https://"):

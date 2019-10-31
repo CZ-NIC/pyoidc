@@ -484,7 +484,8 @@ class SessionDB(object):
         for key in order:
             try:
                 return self.token_factory[key].get_key(item)
-            except Exception:
+            except Exception:  # nosec
+                # FIXME: Catch specific exception
                 pass
 
         logger.info("Unknown token format")
@@ -497,7 +498,8 @@ class SessionDB(object):
         for key in order:
             try:
                 return self.token_factory[key].type_and_key(item)
-            except Exception:
+            except Exception:  # nosec
+                # FIXME: Catch specific exception.
                 pass
 
         logger.info("Unknown token format")
@@ -510,7 +512,8 @@ class SessionDB(object):
         for key in order:
             try:
                 return self.token_factory[key].get_type(item)
-            except Exception:
+            except Exception:  # nosec
+                # FIXME: Catch specific exception
                 pass
 
         logger.info("Unknown token format or invalid token")
@@ -650,7 +653,7 @@ class SessionDB(object):
         elif self._db[sid]["oauth_state"] == "token":
             return self._db[sid]["access_token"]
 
-    def upgrade_to_token(
+    def upgrade_to_token(  # nosec
         self,
         token=None,
         issue_refresh=False,
@@ -686,9 +689,9 @@ class SessionDB(object):
             _at = self.access_token(sid=key, sinfo=dic)
 
         dic["access_token"] = _at
-        dic["access_token_scope"] = "?"
+        dic["access_token_scope"] = "?"  # nosec
         dic["oauth_state"] = "token"
-        dic["token_type"] = "Bearer"
+        dic["token_type"] = "Bearer"  # nosec
 
         if id_token:
             dic["id_token"] = id_token
@@ -785,7 +788,7 @@ class SessionDB(object):
             raise ExpiredToken()
 
         dic["access_token"] = access_token
-        dic["token_type"] = "Bearer"
+        dic["token_type"] = "Bearer"  # nosec
         dic["refresh_token"] = rtoken
         dic["revoked"] = False
         self._db[sid] = dic

@@ -4,10 +4,12 @@ import smtplib
 import time
 from email.mime.text import MIMEText
 
+
 from provider.authn import AuthnModule
 from provider.authn import make_cls_from_name
 from provider.authn.user_pass import UserPass
 
+from oic import rndstr
 from oic.utils.http_util import Response
 
 
@@ -77,8 +79,10 @@ class MailTwoFactor(AuthnModule):
                 self.FAILED_AUTHN
 
             # Generate code and send it
-            code = hashlib.md5(str(time.time())).hexdigest()
-            self.codes[code] = {"username": username, "time": time.time()}
+            now = time.time()
+            secret = "%d%s" % (now, rndstr(16))
+            code = hashlib.sha256(secret.encode('utf-8')).hexdigest()
+            self.codes[code] = {"username": username, "time": now}
             self._send_mail(code, receiver)
 
             template = self.template_env.get_template(self.template)

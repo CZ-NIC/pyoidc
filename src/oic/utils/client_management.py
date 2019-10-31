@@ -103,7 +103,7 @@ class CDB(BaseClientDatabase):
         del self.cdb[key]
 
     def __setitem__(self, key, value):
-        self.cdb[key] = eval(value)
+        self.cdb[key] = value
 
     def load(self, filename):
         with open(filename) as f:
@@ -132,9 +132,8 @@ class CDB(BaseClientDatabase):
             else:
                 res.append([key, val])
 
-        fp = open(filename, "w")
-        json.dump(res, fp)
-        fp.close()
+        with open(filename, "w") as fp:
+            json.dump(res, fp)
 
 
 def run():
@@ -154,14 +153,14 @@ def run():
         "--create",
         dest="create",
         action="store_true",
-        help=("Create a new client, returns the stored " "information"),
+        help=("Create a new client, returns the stored information"),
     )
     parser.add_argument(
         "-s",
         "--show",
         dest="show",
         action="store_true",
-        help=("Show information connected to a specific" "client_id"),
+        help=("Show information connected to a specific client_id"),
     )
     parser.add_argument(
         "-i",
@@ -174,7 +173,7 @@ def run():
         "--replace",
         dest="replace",
         help=(
-            "Information that should replace what's there" "about a specific client_id"
+            "Information that should replace what's there about a specific client_id"
         ),
     )
     parser.add_argument(

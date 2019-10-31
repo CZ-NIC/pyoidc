@@ -467,8 +467,10 @@ class Client(oauth2.Client):
         if not os.path.isdir(_filedir):
             os.makedirs(_filedir)
 
-        assert webname.startswith(self.base_url)
-        return webname[len(self.base_url) :]
+        if webname.startswith(self.base_url):
+            return webname[len(self.base_url) :]
+        else:
+            raise ValueError("Invalid webname, must start with base_url")
 
     def construct_AuthorizationRequest(
         self, request=None, request_args=None, extra_args=None, **kwargs
@@ -537,9 +539,8 @@ class Client(oauth2.Client):
                     filename = self.filename_from_webname(_webname)
                 except KeyError:
                     filename, _webname = self.construct_redirect_uri(**kwargs)
-                fid = open(filename, mode="w")
-                fid.write(_req)
-                fid.close()
+                with open(filename, mode="w") as fid:
+                    fid.write(_req)
                 areq["request_uri"] = _webname
 
         return areq
@@ -929,9 +930,12 @@ class Client(oauth2.Client):
         if resp.status_code == 200:
             if "application/json" in resp.headers["content-type"]:
                 sformat = "json"
-            else:
-                assert "application/jwt" in resp.headers["content-type"]
+            elif "application/jwt" in resp.headers["content-type"]:
                 sformat = "jwt"
+            else:
+                raise PyoidcError(
+                    "ERROR: Unexpected content-type: %s" % resp.headers["content-type"]
+                )
         elif resp.status_code == 500:
             raise PyoidcError("ERROR: Something went wrong: %s" % resp.text)
         elif 400 <= resp.status_code < 500:
@@ -1006,7 +1010,13 @@ class Client(oauth2.Client):
             raise
 
         if resp.status_code == 200:
-            assert "application/json" in resp.headers["content-type"]
+            # FIXME: Could this also encounter application/jwt for encrypted userinfo
+            #        the do_userinfo_request method already handles it
+            if "application/json" not in resp.headers["content-type"]:
+                raise PyoidcError(
+                    "ERROR: content-type in response unexpected: %s"
+                    % resp.headers["content-type"]
+                )
         elif resp.status_code == 500:
             raise PyoidcError("ERROR: Something went wrong: %s" % resp.text)
         else:
@@ -1194,7 +1204,7 @@ class Client(oauth2.Client):
         self.registration_response = reginfo
         if "token_endpoint_auth_method" not in self.registration_response:
             self.registration_response[
-                "token_endpoint_auth_method"
+                "token_endpoint_auth_method"  # nosec
             ] = "client_secret_basic"
         self.client_id = reginfo["client_id"]
         try:
@@ -1625,12 +1635,12 @@ class Server(oauth2.Server):
 
     def parse_check_session_request(self, url=None, query=None):
         param = self._parse_urlencoded(url, query)
-        assert "id_token" in param  # ignore the rest
+        assert "id_token" in param  # nosec, ignore the rest
         return deser_id_token(self, param["id_token"][0])
 
     def parse_check_id_request(self, url=None, query=None):
         param = self._parse_urlencoded(url, query)
-        assert "access_token" in param  # ignore the rest
+        assert "access_token" in param  # nosec, ignore the rest
         return deser_id_token(self, param["access_token"][0])
 
     def _parse_request(self, request_cls, data, sformat, client_id=None, verify=True):

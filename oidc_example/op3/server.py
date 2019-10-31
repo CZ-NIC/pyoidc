@@ -154,10 +154,13 @@ class Application(object):
         try:
             authz = environ["HTTP_AUTHORIZATION"]
             (typ, code) = authz.split(" ")
-            assert typ == "Bearer"
         except KeyError:
             resp = BadRequest("Missing authorization information")
             return resp(environ, start_response)
+        else:
+           if typ != "Bearer":
+               resp = BadRequest("Unsupported authorization method")
+               return resp(environ, start_response)
 
         try:
             _sinfo = _srv.sdb[code]
@@ -251,14 +254,17 @@ class Application(object):
     def webfinger(self, environ, start_response):
         query = parse_qs(environ["QUERY_STRING"])
         try:
-            assert query["rel"] == [OIC_ISSUER]
+            rel = query["rel"]
             resource = query["resource"][0]
         except KeyError:
             resp = BadRequest("Missing parameter in request")
         else:
-            wf = WebFinger()
-            resp = Response(wf.response(subject=resource,
-                                        base=self.provider.baseurl))
+            if rel != [OIC_ISSUER]:
+                resp = BadRequest("Bad issuer in request")
+            else:
+                wf = WebFinger()
+                resp = Response(wf.response(subject=resource,
+                                            base=self.provider.baseurl))
         return resp(environ, start_response)
 
     def application(self, environ, start_response):
@@ -469,7 +475,7 @@ if __name__ == '__main__':
     _app = Application(provider, _urls)
 
     # Setup the web server
-    server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', config.PORT), _app.application)
+    server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', config.PORT), _app.application) # nosec
     server.ssl_adapter = BuiltinSSLAdapter(config.SERVER_CERT, config.SERVER_KEY)
 
     print("OIDC Provider server started (issuer={}, port={})".format(config.ISSUER, config.PORT))

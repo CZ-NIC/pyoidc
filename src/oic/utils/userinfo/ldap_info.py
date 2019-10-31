@@ -7,6 +7,7 @@ import logging
 from typing import Dict  # noqa
 from typing import List  # noqa
 
+from ldap import LDAPError  # noqa
 from ldap import LDAPObject  # noqa
 
 from oic.utils.sanitize import sanitize
@@ -41,7 +42,7 @@ OPENID2LDAP = {
 
 
 class UserInfoLDAP(UserInfo):
-    def __init__(
+    def __init__(  # nosec
         self,
         uri,
         base,
@@ -105,12 +106,10 @@ class UserInfoLDAP(UserInfo):
         arg = [self.base, self.scope, _filter, _attr, self.attrsonly]
         try:
             res = self.ld.search_s(*arg)
-        except Exception:
-            # FIXME: This should catch specific exception from `self.ld.search_s()`
+        except LDAPError:
             try:
                 self.ld.close()
-            except Exception:
-                # FIXME: This should catch specific exception from `self.ld.close()`
+            except LDAPError:
                 pass
             self.bind()
             res = self.ld.search_s(*arg)

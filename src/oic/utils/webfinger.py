@@ -40,8 +40,8 @@ class Base(object):
         try:
             t1, t2 = spec["type"]
             if t1 == list:  # Should always be
-                assert not isinstance(val, str)
-                assert isinstance(val, list)
+                assert not isinstance(val, str)  # nosec
+                assert isinstance(val, list)  # nosec
                 res = []
                 if t2 == LINK:
                     for v in val:
