@@ -106,3 +106,22 @@ a good place to start if you want to contribute.
 
 .. _our issues: https://github.com/OpenIDC/pyoidc/issues
 .. _newcomer-friendly: https://github.com/OpenIDC/pyoidc/issues?q=is%3Aopen+is%3Aissue+label%3Anewcomer-friendly
+
+Windows
+-------
+
+If you happen to work in a Windows environment, the above will not work out of the box due to the lack
+of a ``GNU Make`` on Windows. In addition one of the dependencies for ``ldap_authn`` is not available as a prebuilt
+wheel from pypi, so use these slightly modified instructions.
+
+With :command:`pipenv` in your path you run:
+
+.. code:: console
+
+   pipenv install --dev -e .[develop,testing,docs,quality]
+
+Next you can run the tests:
+
+.. code:: console
+   
+   pipenv run pytest tests
