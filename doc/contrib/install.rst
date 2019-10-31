@@ -11,7 +11,7 @@ Firstly, fork_ the project and get a local copy with:
 
 .. _fork: https://github.com/OpenIDC/pyoidc/issues#fork-destination-box
 
-PyOIDC supports Python 2 and 3.
+PyOIDC supports Python 3.
 
 Installation via a `virtual environment`_ is **highly** recommended.
 
