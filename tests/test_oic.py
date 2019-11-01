@@ -14,6 +14,7 @@ from requests import Response
 
 from oic.exception import RegistrationError
 from oic.oauth2.exception import OtherError
+from oic.oauth2.message import SINGLE_OPTIONAL_STRING
 from oic.oauth2.message import MessageTuple
 from oic.oic import DEF_SIGN_ALG
 from oic.oic import Client
@@ -22,7 +23,6 @@ from oic.oic import Server
 from oic.oic import Token
 from oic.oic import scope2claims
 from oic.oic.message import SCOPE2CLAIMS
-from oic.oic.message import SINGLE_OPTIONAL_STRING
 from oic.oic.message import AccessTokenRequest
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AuthorizationRequest
@@ -57,8 +57,8 @@ KC_SYM_S = KeyBundle(
 )
 
 BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/keys"))
-_key = rsa_load(os.path.join(BASE_PATH, "rsa.key"))
-KC_RSA = KeyBundle({"key": _key, "kty": "RSA", "use": "sig"})
+RSA_KEY = rsa_load(os.path.join(BASE_PATH, "rsa.key"))
+KC_RSA = KeyBundle({"key": RSA_KEY, "kty": "RSA", "use": "sig"})
 
 KEYJ = KeyJar()
 KEYJ[""] = [KC_RSA, KC_SYM_S]
@@ -182,7 +182,6 @@ class TestClient(object):
         assert _eq(resp.keys(), ["token_type", "state", "access_token", "scope"])
 
     def test_access_token_request_with_custom_response_class(self):
-
         # AccessTokenResponse wrapper class
         class AccessTokenResponseWrapper(AccessTokenResponse):
             c_param = AccessTokenResponse.c_param.copy()
@@ -595,14 +594,24 @@ class TestClient(object):
         self.client.grant["foo"].grant_expiration_time = int(time.time() + 60)
         self.client.grant["foo"].code = "access_code"
 
+        # Need a proper ID Token
+        self.client.keyjar.add_kb(IDTOKEN["iss"], KC_SYM_S)
+        _sig_key = self.client.keyjar.get_signing_key("oct", IDTOKEN["iss"])
+        _signed_jwt = IDTOKEN.to_jwt(_sig_key, algorithm="HS256")
+
         resp = AccessTokenResponse(
-            id_token="id_id_id_id", access_token="access", scope=["openid"]
+            id_token=_signed_jwt,
+            access_token="access",
+            scope=["openid"],
+            token_type="bearer",
         )
+
+        assert resp.verify(keyjar=self.client.keyjar)
 
         self.client.grant["foo"].tokens.append(Token(resp))
 
         csr = self.client.construct_CheckSessionRequest(state="foo", scope=["openid"])
-        assert csr["id_token"] == "id_id_id_id"
+        assert csr["id_token"] == _signed_jwt
 
     def test_construct_RegistrationRequest(self):
         request_args = {
@@ -632,9 +641,19 @@ class TestClient(object):
         self.client.grant["foo"].grant_expiration_time = int(time.time() + 60)
         self.client.grant["foo"].code = "access_code"
 
+        # Need a proper ID Token
+        self.client.keyjar.add_kb(IDTOKEN["iss"], KC_SYM_S)
+        _sig_key = self.client.keyjar.get_signing_key("oct", IDTOKEN["iss"])
+        _signed_jwt = IDTOKEN.to_jwt(_sig_key, algorithm="HS256")
+
         resp = AccessTokenResponse(
-            id_token="id_id_id_id", access_token="access", scope=["openid"]
+            id_token=_signed_jwt,
+            access_token="access",
+            scope=["openid"],
+            token_type="bearer",
         )
+
+        assert resp.verify(keyjar=self.client.keyjar)
 
         self.client.grant["foo"].tokens.append(Token(resp))
 
@@ -648,9 +667,20 @@ class TestClient(object):
         self.client.grant["foo"].grant_expiration_time = int(time.time()) + 60
         self.client.grant["foo"].code = "access_code"
 
+        # Need a proper ID Token
+        self.client.keyjar.add_kb(IDTOKEN["iss"], KC_SYM_S)
+        _sig_key = self.client.keyjar.get_signing_key("oct", IDTOKEN["iss"])
+        _signed_jwt = IDTOKEN.to_jwt(_sig_key, algorithm="HS256")
+
         resp = AccessTokenResponse(
-            id_token="id_id_id_id", access_token="access", scope=["openid"]
+            id_token=_signed_jwt,
+            access_token="access",
+            scope=["openid"],
+            token_type="bearer",
         )
+
+        # Need to do this to get things in place
+        assert resp.verify(keyjar=self.client.keyjar)
 
         self.client.grant["foo"].tokens.append(Token(resp))
 
@@ -664,9 +694,19 @@ class TestClient(object):
         self.client.grant["foo"].grant_expiration_time = int(time.time()) + 60
         self.client.grant["foo"].code = "access_code"
 
+        # Need a proper ID Token
+        self.client.keyjar.add_kb(IDTOKEN["iss"], KC_SYM_S)
+        _sig_key = self.client.keyjar.get_signing_key("oct", IDTOKEN["iss"])
+        _signed_jwt = IDTOKEN.to_jwt(_sig_key, algorithm="HS256")
+
         resp = AccessTokenResponse(
-            id_token="id_id_id_id", access_token="access", scope=["openid"]
+            id_token=_signed_jwt,
+            access_token="access",
+            scope=["openid"],
+            token_type="bearer",
         )
+
+        assert resp.verify(keyjar=self.client.keyjar)
 
         self.client.grant["foo"].tokens.append(Token(resp))
 
@@ -739,7 +779,7 @@ class TestClient(object):
         }
 
     def test_sign_enc_request(self):
-        KC_RSA_ENC = KeyBundle({"key": _key, "kty": "RSA", "use": "enc"})
+        KC_RSA_ENC = KeyBundle({"key": RSA_KEY, "kty": "RSA", "use": "enc"})
         self.client.keyjar["test_provider"] = [KC_RSA_ENC]
 
         request_args = {

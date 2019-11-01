@@ -404,7 +404,7 @@ class Client(oauth2.Client):
                     if not flag:
                         break
                 if token.id_token:
-                    return token.id_token
+                    return token.id_token.jwt
 
         return None
 
@@ -591,11 +591,11 @@ class Client(oauth2.Client):
         if _prop in request_args:
             pass
         else:
-            id_token = self._get_id_token(**kwargs)
-            if id_token is None:
+            raw_id_token = self._get_id_token(**kwargs)
+            if raw_id_token is None:
                 raise MissingParameter("No valid id token available")
 
-            request_args[_prop] = id_token
+            request_args[_prop] = raw_id_token
 
         return self.construct_request(request, request_args, extra_args)
 
