@@ -7,6 +7,8 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+## 1.1.1 [2019-11-04]
+
 ### Fixed
 - [#708] Wants the original non-parsed JWT and not an IDToken instance.
 
