@@ -114,7 +114,7 @@ If you happen to work in a Windows environment, the above will not work out of t
 of a ``GNU Make`` on Windows. In addition one of the dependencies for ``ldap_authn`` is not available as a prebuilt
 wheel from pypi, so use these slightly modified instructions.
 
-With :command:`pipenv` in your path you run:
+With :code:`pipenv` in your path you run:
 
 .. code:: console
 
@@ -123,5 +123,5 @@ With :command:`pipenv` in your path you run:
 Next you can run the tests:
 
 .. code:: console
-   
+
    pipenv run pytest tests
