@@ -348,7 +348,6 @@ class AccessTokenResponse(message.AccessTokenResponse):
     def verify(self, **kwargs):
         super().verify(**kwargs)
         if "id_token" in self:
-            self.raw_id_token = self["id_token"]
             # replace the JWT with the verified IdToken instance
             self["id_token"] = verify_id_token(self, **kwargs)
 
@@ -381,7 +380,6 @@ class AuthorizationResponse(message.AuthorizationResponse, message.AccessTokenRe
                     return False
 
         if "id_token" in self:
-            self.raw_id_token = self["id_token"]
             self["id_token"] = verify_id_token(self, check_hash=True, **kwargs)
 
         if "access_token" in self:
@@ -797,7 +795,6 @@ class RefreshSessionRequest(StateFullMessage):
     def verify(self, **kwargs):
         super(RefreshSessionRequest, self).verify(**kwargs)
         if "id_token" in self:
-            self.raw_id_token = self["id_token"]
             self["id_token"] = verify_id_token(self, check_hash=True, **kwargs)
 
 
@@ -808,7 +805,6 @@ class RefreshSessionResponse(StateFullMessage):
     def verify(self, **kwargs):
         super(RefreshSessionResponse, self).verify(**kwargs)
         if "id_token" in self:
-            self.raw_id_token = self["id_token"]
             self["id_token"] = verify_id_token(self, check_hash=True, **kwargs)
 
 
@@ -818,7 +814,6 @@ class CheckSessionRequest(Message):
     def verify(self, **kwargs):
         super(CheckSessionRequest, self).verify(**kwargs)
         if "id_token" in self:
-            self.raw_id_token = self["id_token"]
             self["id_token"] = verify_id_token(self, check_hash=True, **kwargs)
 
 

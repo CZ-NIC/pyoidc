@@ -7,6 +7,11 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+### Fixed
+- [#708] Wants the original non-parsed JWT and not an IDToken instance.
+
+[#708]: https://github.com/OpenIDC/pyoidc/pull/708
+
 ## 1.1.0 [2019-10-25]
 
 ### Changed

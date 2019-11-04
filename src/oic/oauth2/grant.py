@@ -17,6 +17,7 @@ class Token(object):
         self.refresh_token = None
         self.token_type = None  # type: Optional[str]
         self.replaced = False
+        self.id_token = None
 
         if resp:
             for prop, val in resp.items():
@@ -68,7 +69,7 @@ class Grant(object):
         self.grant_expiration_time = 0
         self.exp_in = exp_in
         self.seed = seed
-        self.tokens = []
+        self.tokens = []  # type: List[Token]
         self.id_token = None
         self.code = None  # type: Optional[str]
         if resp:

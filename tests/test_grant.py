@@ -120,6 +120,7 @@ class TestToken(object):
                 "refresh_token",
                 "scope",
                 "replaced",
+                "id_token",
             ],
         )
 
