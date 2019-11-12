@@ -7,6 +7,11 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+### Fixed
+- [#711] Deal with no post_logout_redirect_uri
+
+[#711]: https://github.com/OpenIDC/pyoidc/pull/711
+
 ## 1.1.1 [2019-11-04]
 
 ### Fixed

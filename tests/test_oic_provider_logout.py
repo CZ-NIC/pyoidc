@@ -444,6 +444,8 @@ class TestProvider(object):
     def test_end_session_endpoint_with_cookie_dual_login_wrong_client(self):
         self._code_auth()
         self._code_auth2()
+        # The cookie states that a user has a session at a client and this
+        # statement is false.
         cookie = self._create_cookie("username", "a1b2c3")
 
         resp = self.provider.end_session_endpoint(
@@ -519,6 +521,49 @@ class TestProvider(object):
         assert jwt_info["uid"] == "username"
         assert jwt_info["client_id"] == "number5"
         assert jwt_info["redirect_uri"] == "https://example.com/post_logout"
+
+    def test_end_session_endpoint_without_post_logout_redirect_uri(self):
+        # default post logout page registered
+        self.provider.post_logout_page = "https://foo.example.com/def_post"
+        # No post_logout_redirect_uris registered
+        _plru = self.provider.cdb["number5"]["post_logout_redirect_uris"]
+        del self.provider.cdb["number5"]["post_logout_redirect_uris"]
+        self._code_auth()
+        cookie = self._create_cookie("username", "number5")
+
+        resp = self.provider.end_session_endpoint(
+            urlencode({"state": "abcde"}), cookie=cookie
+        )
+
+        # returns a SeeOther instance
+        p = urlparse(resp.message)
+        qs = parse_qs(p.query)
+
+        jwt_info = self.provider.unpack_signed_jwt(qs["sjwt"][0])
+        assert jwt_info["state"] == "abcde"
+        assert jwt_info["uid"] == "username"
+        assert jwt_info["client_id"] == "number5"
+        assert jwt_info["redirect_uri"] == "https://foo.example.com/def_post"
+
+        # restore
+        self.provider.cdb["number5"]["post_logout_redirect_uris"] = _plru
+
+    def test_end_session_endpoint_without_post_logout_redirect_uri_no_default(self):
+        # No post_logout_redirect_uris registered
+        _plru = self.provider.cdb["number5"]["post_logout_redirect_uris"]
+        del self.provider.cdb["number5"]["post_logout_redirect_uris"]
+        self._code_auth()
+        cookie = self._create_cookie("username", "number5")
+
+        resp = self.provider.end_session_endpoint(
+            urlencode({"state": "abcde"}), cookie=cookie
+        )
+
+        assert isinstance(resp, Response)
+        _err = ErrorResponse().from_json(resp.message)
+        assert _err["error"] == "server_error"
+        # restore
+        self.provider.cdb["number5"]["post_logout_redirect_uris"] = _plru
 
     def test_end_session_endpoint_bogus_sjwt(self):
         self._code_auth()

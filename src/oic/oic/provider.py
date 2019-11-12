@@ -244,7 +244,7 @@ class Provider(AProvider):
         template_renderer=render_template,
         extra_scope_dict=None,
         message_factory=OIDCMessageFactory,
-        post_logout_page="",
+        post_logout_page=None,
         self_signing_alg="RS256",
         logout_path="",
     ):
@@ -2129,6 +2129,11 @@ class Provider(AProvider):
         # or using the id_token_hint. If I get information from both make sure they match
         _, client_id, uid = self._get_uid_from_cookie(cookie)
 
+        if uid is not None:
+            client_ids = self.sdb.get_client_ids_for_uid(uid)
+            if client_id not in client_ids:
+                return error_response("invalid_request", "Wrong user")
+
         sid = ""
 
         if "id_token_hint" in esr:
@@ -2183,7 +2188,6 @@ class Provider(AProvider):
         if client_id not in self.cdb:
             return error_response("invalid_request", "Unknown client")
 
-        redirect_uri = None
         if "post_logout_redirect_uri" in esr:
             redirect_uri = self.verify_post_logout_redirect_uri(esr, client_id)
             if not redirect_uri:
@@ -2193,23 +2197,28 @@ class Provider(AProvider):
             try:
                 _ruri = self.cdb[client_id]["post_logout_redirect_uris"]
             except KeyError:
-                msg = "Missing post_logout_redirect_uri"
-                return error_response("invalid_request", msg)
-
-            if len(_ruri) == 1:
-                _base, _query = _ruri[0]
-                if _query:
-                    query_string = urlencode(
-                        [(key, v) for key in _query for v in _query[key]]
+                if self.post_logout_page is None:
+                    logger.warning("No post logout page configured for %s", client_id)
+                    return error_response(
+                        "server_error", "Have no post logout page configured"
                     )
-                    redirect_uri = "%s?%s" % (_base, query_string)
                 else:
-                    redirect_uri = _base
+                    redirect_uri = self.post_logout_page
             else:
-                return error_response(
-                    "invalid_request",
-                    descr="Missing post_logout_redirect_uri and more then one post_logout_redirect_uris",
-                )
+                if len(_ruri) == 1:
+                    _base, _query = _ruri[0]
+                    if _query:
+                        query_string = urlencode(
+                            [(key, v) for key in _query for v in _query[key]]
+                        )
+                        redirect_uri = "%s?%s" % (_base, query_string)
+                    else:
+                        redirect_uri = _base
+                else:
+                    return error_response(
+                        "invalid_request",
+                        descr="Missing post_logout_redirect_uri and more then one post_logout_redirect_uris",
+                    )
 
         # redirect user to OP logout verification page
         payload = {
