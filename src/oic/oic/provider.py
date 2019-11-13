@@ -2282,13 +2282,17 @@ class Provider(AProvider):
         # take care of Back channel logout first
         if logout_spec["back_channel"]:
             failed = []
+            headers = {"Content-Type": "application/x-www-form-urlencoded"}
             for _cid, spec in logout_spec["back_channel"].items():
                 _url, sjwt = spec
                 logger.info("logging out from {} at {}".format(_cid, _url))
 
                 try:
                     res = self.httpc.http_request(
-                        _url, "POST", data="logout_token={}".format(sjwt)
+                        _url,
+                        "POST",
+                        data="logout_token={}".format(sjwt),
+                        headers=headers,
                     )
                 except Exception as err:
                     # Can't be more specific because I don't know which http client are used
