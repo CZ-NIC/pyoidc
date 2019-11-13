@@ -27,6 +27,7 @@ WORKDIR /root
 RUN git clone https://github.com/openid-certification/openid-client-conformance-tests.git --depth 1
 WORKDIR /root/openid-client-conformance-tests
 RUN npm install --production
+RUN npm install -g concurrently@5
 
 COPY run.sh /root/run.sh
 RUN chmod 755 /root/run.sh
