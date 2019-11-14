@@ -332,9 +332,13 @@ class TestProviderConfigurationResponse(object):
                 "request_parameter_supported",
                 "request_uri_parameter_supported",
                 "require_request_uri_registration",
+                "frontchannel_logout_supported",
+                "frontchannel_logout_session_supported",
+                "backchannel_logout_supported",
+                "backchannel_logout_session_supported",
             ]
         )
-        assert sorted(rk) == sorted(list(pcr.keys()))
+        assert set(rk) == set(pcr.keys())
 
     @pytest.mark.parametrize(
         "required_param",

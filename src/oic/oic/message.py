@@ -887,6 +887,10 @@ class ProviderConfigurationResponse(Message):
         "op_tos_uri": SINGLE_OPTIONAL_STRING,
         "check_session_iframe": SINGLE_OPTIONAL_STRING,
         "end_session_endpoint": SINGLE_OPTIONAL_STRING,
+        "frontchannel_logout_supported": SINGLE_OPTIONAL_BOOLEAN,
+        "frontchannel_logout_session_supported": SINGLE_OPTIONAL_BOOLEAN,
+        "backchannel_logout_supported": SINGLE_OPTIONAL_BOOLEAN,
+        "backchannel_logout_session_supported": SINGLE_OPTIONAL_BOOLEAN,
     }
     c_default = {
         "version": "3.0",
@@ -896,6 +900,10 @@ class ProviderConfigurationResponse(Message):
         "request_uri_parameter_supported": True,
         "require_request_uri_registration": False,
         "grant_types_supported": ["authorization_code", "implicit"],
+        "frontchannel_logout_supported": False,
+        "frontchannel_logout_session_supported": False,
+        "backchannel_logout_supported": False,
+        "backchannel_logout_session_supported": False,
     }
 
     def verify(self, **kwargs):
