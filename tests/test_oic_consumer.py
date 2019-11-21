@@ -791,6 +791,35 @@ class TestOICConsumer:
             header = rsps.calls[0].request.headers["Authorization"]
             assert header == "Bearer aW5pdGlhbF9yZWdpc3RyYXRpb25fdG9rZW4="
 
+    def test_client_register_token_b64(self):
+        c = Consumer(None, None)
+
+        c.redirect_uris = ["https://example.com/authz"]
+
+        client_info = {
+            "client_id": "clientid",
+            "redirect_uris": ["https://example.com/authz"],
+        }
+        registration_token = ("eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6IC"
+        "JlYjc1N2M3Yy00MWRlLTRmZDYtOTkwNy1hNGFiMDY1ZjEzMmEifQ.eyJqdGkiOiI2ZWY0MDZi"
+        "MC02YzA3LTQ0NzctOWU1YS1hY2FiZjNiMWNiMjgiLCJleHAiOjAsIm5iZiI6MCwiaWF0Ijox"
+        "NTczNzMxNjg5LCJpc3MiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFtcGxlLmNvbS9h"
+        "dXRoL3JlYWxtcy9tYXN0ZXIiLCJhdWQiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFt"
+        "cGxlLmNvbS9hdXRoL3JlYWxtcy9tYXN0ZXIiLCJ0eXAiOiJJbml0aWFsQWNjZXNzVG9rZW4i"
+        "fQ.0XTlit_JcxPZeIy8A4BzrHn1NvegVP7ws8KI0ySFex8")
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                rsps.POST,
+                "https://provider.example.com/registration/",
+                json=client_info,
+            )
+            c.register(
+                "https://provider.example.com/registration/",
+                registration_token=registration_token,
+            )
+            header = rsps.calls[0].request.headers["Authorization"]
+            assert header == "Bearer " + registration_token
+
     def _faulty_id_token(self):
         idval = {
             "nonce": "KUEYfRM2VzKDaaKD",
