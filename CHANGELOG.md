@@ -7,6 +7,8 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+## 1.1.2 [2019-11-23]
+
 ### Fixed
 - [#711] Deal with no post_logout_redirect_uri
 - [#712] Set Content-Type on BackChannel logout POST.
