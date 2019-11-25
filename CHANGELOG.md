@@ -10,6 +10,10 @@ The format is based on the [KeepAChangeLog] project.
 ### Added
 - [#719] Add support for JWT registration tokens
 
+[#719]: https://github.com/OpenIDC/pyoidc/pull/719
+
+## 1.1.2 [2019-11-23]
+
 ### Fixed
 - [#711] Deal with no post_logout_redirect_uri
 - [#712] Set Content-Type on BackChannel logout POST.
@@ -18,7 +22,6 @@ The format is based on the [KeepAChangeLog] project.
 [#711]: https://github.com/OpenIDC/pyoidc/pull/711
 [#712]: https://github.com/OpenIDC/pyoidc/pull/712
 [#717]: https://github.com/OpenIDC/pyoidc/pull/717
-[#719]: https://github.com/OpenIDC/pyoidc/pull/719
 
 ## 1.1.1 [2019-11-04]
 
