@@ -800,13 +800,15 @@ class TestOICConsumer:
             "client_id": "clientid",
             "redirect_uris": ["https://example.com/authz"],
         }
-        registration_token = ("eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6IC"
-        "JlYjc1N2M3Yy00MWRlLTRmZDYtOTkwNy1hNGFiMDY1ZjEzMmEifQ.eyJqdGkiOiI2ZWY0MDZi"
-        "MC02YzA3LTQ0NzctOWU1YS1hY2FiZjNiMWNiMjgiLCJleHAiOjAsIm5iZiI6MCwiaWF0Ijox"
-        "NTczNzMxNjg5LCJpc3MiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFtcGxlLmNvbS9h"
-        "dXRoL3JlYWxtcy9tYXN0ZXIiLCJhdWQiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFt"
-        "cGxlLmNvbS9hdXRoL3JlYWxtcy9tYXN0ZXIiLCJ0eXAiOiJJbml0aWFsQWNjZXNzVG9rZW4i"
-        "fQ.0XTlit_JcxPZeIy8A4BzrHn1NvegVP7ws8KI0ySFex8")
+        registration_token = (
+            "eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6IC"
+            "JlYjc1N2M3Yy00MWRlLTRmZDYtOTkwNy1hNGFiMDY1ZjEzMmEifQ.eyJqdGkiOiI2ZWY0MDZi"
+            "MC02YzA3LTQ0NzctOWU1YS1hY2FiZjNiMWNiMjgiLCJleHAiOjAsIm5iZiI6MCwiaWF0Ijox"
+            "NTczNzMxNjg5LCJpc3MiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFtcGxlLmNvbS9h"
+            "dXRoL3JlYWxtcy9tYXN0ZXIiLCJhdWQiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFt"
+            "cGxlLmNvbS9hdXRoL3JlYWxtcy9tYXN0ZXIiLCJ0eXAiOiJJbml0aWFsQWNjZXNzVG9rZW4i"
+            "fQ.0XTlit_JcxPZeIy8A4BzrHn1NvegVP7ws8KI0ySFex8"
+        )
         with responses.RequestsMock() as rsps:
             rsps.add(
                 rsps.POST,

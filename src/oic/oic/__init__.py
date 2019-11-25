@@ -15,11 +15,11 @@ from typing import cast  # noqa - Used for MyPy
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
+from jwkest import BadSyntax
 from jwkest import as_bytes
 from jwkest import jwe
 from jwkest import jws
 from jwkest import jwt
-from jwkest import BadSyntax
 from jwkest.jwe import JWE
 from requests import ConnectionError
 
@@ -1355,9 +1355,7 @@ class Client(oauth2.Client):
                 # no JWT
                 registration_token = b64encode(registration_token.encode()).decode()
             finally:
-                headers["Authorization"] = (
-                    "Bearer " + registration_token
-                )
+                headers["Authorization"] = "Bearer " + registration_token
 
         rsp = self.http_request(url, "POST", data=req.to_json(), headers=headers)
 
