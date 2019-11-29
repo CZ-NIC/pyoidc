@@ -2,7 +2,10 @@ import alabaster
 
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
 ]
+
+autoclass_content = 'both'  # Merge the __init__ docstring into the class docstring.
 
 templates_path = ['_templates']
 

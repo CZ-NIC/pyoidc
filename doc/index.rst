@@ -25,6 +25,7 @@ Getting a copy is simple with Pip_:
    examples/tls
 
    contrib/install
+   contrib/settings
    contrib/testing
    contrib/documentation
 
