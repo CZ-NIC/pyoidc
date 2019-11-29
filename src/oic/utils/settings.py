@@ -57,9 +57,13 @@ class OauthConsumerSettings(ConsumerSettings):
     """Specific settings for consumer OAuth 2.0 consumer."""
 
 
-class ProviderSettings(PyoidcSettings):
-    """Base settings for provider shared among OAuth 2.0 and OpenID Connect."""
+class ServerSettings(PyoidcSettings):
+    """Base settings for server shared among OAuth 2.0 and OpenID Connect."""
 
 
-class OauthProviderSettings(ProviderSettings):
+class OauthServerSettings(ServerSettings):
+    """Specific settings for OAuth 2.0 server."""
+
+
+class OauthProviderSettings(OauthServerSettings):
     """Specific settings for OAuth 2.0 provider."""
