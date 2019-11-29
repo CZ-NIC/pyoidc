@@ -187,7 +187,7 @@ the RP accordingly. And this is how you would do that::
     # op_info = ProviderConfigurationResponse(**info)
     # if you have the provider info in the form of a dictionary
 
-    client.provider_info = op_info
+    client.handle_provider_config(op_info, op_info['issuer'])
 
 Likewise if the client registration has been done out-of-band::
 
