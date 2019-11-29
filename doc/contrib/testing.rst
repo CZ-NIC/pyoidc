@@ -18,7 +18,7 @@ You can install it along with the rest of the test dependencies via Pip_:
 
 ::
 
-  $ pip install -r requirements/test.txt
+  $ pip install .[testing]
 
 Now, you can run the tests by simply invoking ``py.test``:
 
@@ -37,7 +37,7 @@ many versions of Python. You can install it via Pip_:
 
 ::
 
-  $ pip install -r requirements/test.txt
+  $ pip install tox
 
 Then, check the available environments with:
 
