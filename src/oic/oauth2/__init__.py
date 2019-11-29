@@ -1,4 +1,5 @@
 import logging
+import warnings
 from typing import Any  # noqa - This is used for MyPy
 from typing import Dict
 from typing import List  # noqa - This is used for MyPy
@@ -53,6 +54,7 @@ from oic.utils.http_util import SeeOther
 from oic.utils.keyio import KeyJar
 from oic.utils.sdb import SessionBackend  # noqa
 from oic.utils.sdb import session_update
+from oic.utils.settings import OauthConsumerSettings
 from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = "rohe0002"
@@ -170,35 +172,57 @@ class Client(PBase):
         client_id=None,
         client_authn_method=None,
         keyjar=None,
-        verify_ssl=True,
+        verify_ssl=None,
         config=None,
         client_cert=None,
-        timeout=5,
+        timeout=None,
         message_factory: Type[MessageFactory] = OauthMessageFactory,
+        settings: OauthConsumerSettings = None,
     ):
         """
         Initialize the instance.
+
+        Keyword Args:
+            settings
+                Instance of :class:`OauthConsumerSettings` with configuration options.
 
         :param client_id: The client identifier
         :param client_authn_method: Methods that this client can use to
             authenticate itself. It's a dictionary with method names as
             keys and method classes as values.
         :param keyjar: The keyjar for this client.
-        :param verify_ssl: Whether the SSL certificate should be verified.
-        :param client_cert: A client certificate to use.
+        :param verify_ssl: Whether the SSL certificate should be verified. Deprecated in favor of settings.
+        :param client_cert: A client certificate to use. Deprecated in favor of settings.
         :param timeout: Timeout for requests library. Can be specified either as
             a single integer or as a tuple of integers. For more details, refer to
-            ``requests`` documentation.
+            ``requests`` documentation. Deprecated in favor of settings.
         :param: message_factory: Factory for message classes, should inherit from OauthMessageFactory
         :return: Client instance
+
         """
-        PBase.__init__(
-            self,
-            verify_ssl=verify_ssl,
-            keyjar=keyjar,
-            client_cert=client_cert,
-            timeout=timeout,
-        )
+        self.settings = settings or OauthConsumerSettings()
+        if verify_ssl is not None:
+            warnings.warn(
+                "`verify_ssl` is deprecated, please use `settings` instead if you need to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.verify_ssl = verify_ssl
+        if client_cert is not None:
+            warnings.warn(
+                "`client_cert` is deprecated, please use `settings` instead if you need to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.client_cert = client_cert
+        if timeout is not None:
+            warnings.warn(
+                "`timeout` is deprecated, please use `settings` instead if you need to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.timeout = timeout
+        PBase.__init__(self, keyjar=keyjar, settings=self.settings)
 
         self.sso_db = None  # type: Optional[SessionBackend]
         self.client_id = client_id
