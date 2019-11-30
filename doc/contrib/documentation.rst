@@ -12,7 +12,7 @@ You can install it via Pip_:
 
 ::
 
-  $ pip install -r requirements/docs.txt
+  $ pip install .[docs]
 
 To build the documentation, run:
 
