@@ -173,9 +173,9 @@ if __name__ == '__main__':
 
         CONSUMER[name].client_secret = info["client_secret"]
 
-    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', RP_CONF.PORT),
+    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', RP_CONF.PORT),  # nosec
                                         SessionMiddleware(application,
-                                                          session_opts))
+                                                          session_opts)) 
 
     if RP_CONF.BASE.startswith("https"):
         from cherrypy.wsgiserver import ssl_pyopenssl

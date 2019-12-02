@@ -18,7 +18,7 @@ class LDAPCError(PyoidcError):
 
 
 class LDAPAuthn(UsernamePasswordMako):
-    def __init__(
+    def __init__(  # nosec
         self,
         srv,
         ldapsrv,

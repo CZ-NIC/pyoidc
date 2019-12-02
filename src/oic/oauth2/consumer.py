@@ -1,6 +1,6 @@
 import logging
 import time
-from hashlib import md5
+from hashlib import sha256
 from typing import Dict  # noqa
 
 from oic import rndstr
@@ -43,7 +43,8 @@ def stateID(url, seed):
     except AttributeError:
         pass
 
-    ident = md5()
+    # Mostly cargo cult, we could just use rndstr(16)
+    ident = sha256()
     ident.update(repr(time.time()).encode())
     ident.update(url.encode())
     ident.update(seed)

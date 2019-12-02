@@ -170,7 +170,7 @@ def main():
     args = parser.parse_args()
 
     with open(args.settings, "r") as f:
-        settings = yaml.load(f)
+        settings = yaml.safe_load(f)
 
     baseurl = args.base.rstrip("/")  # strip trailing slash if it exists
     registration_info = settings["registration_info"]
@@ -190,7 +190,7 @@ def main():
     cherrypy.config.update({
         'tools.sessions.on': True,
         'server.socket_port': args.port,
-        'server.socket_host': '0.0.0.0'
+        'server.socket_host': '0.0.0.0'  # nosec
     })
 
     if baseurl.startswith("https://"):

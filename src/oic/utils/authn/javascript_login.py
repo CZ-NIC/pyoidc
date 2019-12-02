@@ -35,8 +35,9 @@ class JavascriptFormMako(UsernamePasswordMako):
         logger.debug("passwd: %s" % self.passwd)
         # verify username and password
         try:
-            assert _dict["login_parameter"][0] == "logged_in"
-        except (AssertionError, KeyError):
+            if _dict["login_parameter"][0] != "logged_in":
+                raise KeyError()
+        except KeyError:
             return (
                 Unauthorized("You are not authorized. Javascript not executed"),
                 False,

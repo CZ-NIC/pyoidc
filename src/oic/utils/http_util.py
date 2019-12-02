@@ -270,7 +270,7 @@ def cookie_signature(key, *parts):
     :type parts: list of bytes or strings
     :returns: hexdigest of the HMAC
     """
-    assert isinstance(key, bytes)
+    assert isinstance(key, bytes)  # nosec
     sha1 = hmac.new(key, digestmod=hashlib.sha1)
     for part in parts:
         if part:
@@ -293,7 +293,7 @@ def verify_cookie_signature(sig, key, *parts):
     :type parts: list of bytes or strings
     :raises: `InvalidCookieSign` when the signature is wrong
     """
-    assert isinstance(sig, str)
+    assert isinstance(sig, str)  # nosec
     return hmac.compare_digest(sig, cookie_signature(key, *parts))
 
 

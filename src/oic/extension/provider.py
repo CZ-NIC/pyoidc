@@ -766,9 +766,9 @@ class Provider(provider.Provider):
                 except Exception:
                     return self._return_inactive()
                 else:
-                    token_type = "refresh_token"
+                    token_type = "refresh_token"  # nosec
             else:
-                token_type = "access_token"
+                token_type = "access_token"  # nosec
         else:
             try:
                 _info = self.sdb.token_factory[token_type].get_info(req["token"])

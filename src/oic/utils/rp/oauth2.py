@@ -59,7 +59,7 @@ class OAuthClient(client.Client):
         self.keyjar.verify_ssl = verify_ssl
 
     def create_authn_request(self, session, acr_value=None, **kwargs):
-        assert self.registration_response is not None
+        assert self.registration_response is not None  # nosec
         session["state"] = rndstr(32)
         request_args = {
             "response_type": self.behaviour["response_type"],
@@ -144,7 +144,7 @@ class OAuthClient(client.Client):
 
         if self.behaviour["response_type"] == "code":
             # get the access token
-            assert self.registration_response is not None
+            assert self.registration_response is not None  # nosec
             try:
                 args = {
                     "code": authresp["code"],

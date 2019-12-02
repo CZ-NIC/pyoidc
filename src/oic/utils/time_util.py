@@ -77,7 +77,7 @@ def parse_duration(duration):
         index += 1
     else:
         sign = "+"
-    assert duration[index] == "P"
+    assert duration[index] == "P"  # nosec
     index += 1
 
     dic = dict([(typ, 0) for (code, typ) in D_FORMAT])  # type: Dict[str, float]

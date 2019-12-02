@@ -126,7 +126,7 @@ class OpenIDConnect(object):
             if client is not None and self.srv_discovery_url:
                 data = {"client_id": client.client_id}
                 resp = requests.get(self.srv_discovery_url + "verifyClientId",
-                                    params=data, verify=False)
+                                    params=data, verify=self.extra["ca_bundle"])
                 if not resp.ok and resp.status_code == 400:
                     client = None
                     server_env["OIC_CLIENT"].pop(key, None)
@@ -273,8 +273,8 @@ class OpenIDConnect(object):
             return False, "Access denied"
         try:
             client.id_token = authresp["id_token"]
-        except:
-            pass
+        except KeyError:
+            logger.warning("No id_token in response")
         # session.session_id = msg["state"]
 
         logger.debug("callback environ: %s", environ)

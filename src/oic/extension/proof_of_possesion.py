@@ -57,7 +57,7 @@ class PoPProvider(Provider):
         self.access_tokens[_jws] = data["access_token"]
 
         atr["access_token"] = _jws
-        atr["token_type"] = "pop"
+        atr["token_type"] = "pop"  # nosec
         return Response(atr.to_json(), content="application/json")
 
     def userinfo_endpoint(self, request, **kwargs):

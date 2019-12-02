@@ -550,7 +550,7 @@ if __name__ == '__main__':
     _app = Application(**app_args)
 
     SRV = wsgiserver.CherryPyWSGIServer(
-        ('0.0.0.0', int(args.port)),
+        ('0.0.0.0', int(args.port)), # nosec
         SessionMiddleware(_app.application, session_opts))
 
     if _conf.BASE.startswith("https"):

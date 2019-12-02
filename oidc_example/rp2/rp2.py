@@ -54,7 +54,8 @@ def setup_server_env(conf):
 
 class Httpd(object):
     def http_request(self, url):
-        return requests.get(url, verify=False)
+        # ignore cert validation for the example...
+        return requests.get(url, verify=False) # nosec
 
 
 class Session(object):
@@ -177,7 +178,7 @@ def application(environ, start_response):
             resp = SeeOther(str(logoutUrl))
             return resp(environ, start_response)
         except Exception as err:
-            pass
+            LOGGER.exception("Failed to handle logout")
 
     if path == "post_logout":
         return post_logout(environ, start_response)
@@ -214,9 +215,9 @@ def application(environ, start_response):
                 return resp(environ, start_response)
 
             RP.srv_discovery_url = link
-            md5 = hashlib.md5()
-            md5.update(link.encode("utf-8"))
-            opkey = base64.b16encode(md5.digest()).decode("utf-8")
+            h = hashlib.sha256()
+            h.update(link.encode("utf-8"))
+            opkey = base64.b16encode(h.digest()).decode("utf-8")
             session['callback'] = True
             func = getattr(RP, "begin")
             return func(environ, SERVER_ENV, start_response, session, opkey)
@@ -241,7 +242,7 @@ if __name__ == '__main__':
     RP = OpenIDConnect(registration_info=conf.ME,
                        ca_bundle=conf.CA_BUNDLE)
 
-    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', conf.PORT),
+    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', conf.PORT),  # nosec
                                         SessionMiddleware(application,
                                                           session_opts))
 

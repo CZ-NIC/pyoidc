@@ -195,7 +195,9 @@ def claims_ser(val, sformat="urlencoded", lev=0):
         return item.serialize(method=sformat, lev=lev + 1)
 
     if sformat == "urlencoded":
-        assert isinstance(item, dict)  # We cannot urlencode anything else than Mapping
+        assert isinstance(  # nosec
+            item, dict
+        )  # We cannot urlencode anything else than Mapping
         res = urlencode(item)
     elif sformat == "json":
         if lev:
