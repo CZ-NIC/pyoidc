@@ -9,6 +9,7 @@ Settings for oic objects.
 In order to configure some objects in PyOIDC, you need a settings object.
 If you need to add some settings, make sure that you settings class inherits from the appropriate class in this module.
 """
+import typing
 from typing import Tuple
 from typing import Union
 
@@ -47,6 +48,29 @@ class PyoidcSettings:
         self.verify_ssl = verify_ssl
         self.client_cert = client_cert
         self.timeout = timeout
+
+    def __setattr__(self, name, value):
+        """This attempts to check if value matches the expected value."""
+        annotation = typing.get_type_hints(self.__init__)[name]
+        # Expand Union -> Since 3.8, this can be written as typing.get_origin
+        if getattr(annotation, '__origin__', annotation) is Union:
+            expanded = (an for an in annotation.__args__)
+        else:
+            expanded = (annotation, )
+        # Convert Generics
+        # FIXME: this doesn't check the args of the generic
+        resolved = tuple(getattr(an, '__origin__', an) for an in expanded)
+        # Add int if float is present
+        if float in resolved:
+            resolved = resolved + (int, )
+        # FIXME: Add more valid substitution
+        if isinstance(value, resolved):
+            super().__setattr__(name, value)
+        else:
+            raise SettingsException(
+                "%s has a type of %s, expected any of %s."
+                % (name, type(value), resolved),
+            )
 
 
 class ConsumerSettings(PyoidcSettings):
