@@ -1109,7 +1109,7 @@ class TestProvider(object):
             res = self.provider.do_verified_logout(_sid, "number5", alla=True)
 
         # Accepted the 501
-        assert set(res.keys()) == {'cookie'}
+        assert set(res.keys()) == {"cookie"}
 
     def test_do_bc_logout_504_response(self):
         self._code_auth()
@@ -1134,4 +1134,4 @@ class TestProvider(object):
             res = self.provider.do_verified_logout(_sid, "number5", alla=True)
 
         # Accepted the 504
-        assert set(res.keys()) == {'cookie'}
+        assert set(res.keys()) == {"cookie"}
