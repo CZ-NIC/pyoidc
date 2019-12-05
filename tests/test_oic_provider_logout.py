@@ -1085,3 +1085,53 @@ class TestProvider(object):
         assert set(res.keys()) == {"back_channel", "front_channel"}
         assert set(res["back_channel"].keys()) == {"number5"}
         assert set(res["front_channel"].keys()) == {"number5"}
+
+    def test_do_bc_logout_501_response(self):
+        self._code_auth()
+
+        # client0
+        self.provider.cdb["number5"][
+            "backchannel_logout_uri"
+        ] = "https://example.com/bc_logout"
+        self.provider.cdb["number5"]["client_id"] = "number5"
+
+        try:
+            del self.provider.cdb["number5"]["frontchannel_logout_uri"]
+        except KeyError:
+            pass
+
+        # Get a session ID, anyone will do.
+        # I know the session backend DB is a DictSessionBackend so I can use that
+        _sid = list(self.provider.sdb._db.storage.keys())[0]
+
+        with responses.RequestsMock() as rsps:
+            rsps.add(rsps.POST, "https://example.com/bc_logout", status=501)
+            res = self.provider.do_verified_logout(_sid, "number5", alla=True)
+
+        # Accepted the 501
+        assert set(res.keys()) == {"cookie"}
+
+    def test_do_bc_logout_504_response(self):
+        self._code_auth()
+
+        # client0
+        self.provider.cdb["number5"][
+            "backchannel_logout_uri"
+        ] = "https://example.com/bc_logout"
+        self.provider.cdb["number5"]["client_id"] = "number5"
+
+        try:
+            del self.provider.cdb["number5"]["frontchannel_logout_uri"]
+        except KeyError:
+            pass
+
+        # Get a session ID, anyone will do.
+        # I know the session backend DB is a DictSessionBackend so I can use that
+        _sid = list(self.provider.sdb._db.storage.keys())[0]
+
+        with responses.RequestsMock() as rsps:
+            rsps.add(rsps.POST, "https://example.com/bc_logout", status=504)
+            res = self.provider.do_verified_logout(_sid, "number5", alla=True)
+
+        # Accepted the 504
+        assert set(res.keys()) == {"cookie"}

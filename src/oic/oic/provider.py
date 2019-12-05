@@ -2298,6 +2298,11 @@ class Provider(AProvider):
 
                 if res.status_code < 300:
                     logger.info("Logged out from {}".format(_cid))
+                elif res.status_code in [501, 504]:
+                    logger.info(
+                        "Received a %s error, which is OK according to the spec",
+                        res.status_code,
+                    )
                 else:
                     _errstr = "failed to logout from {}".format(_cid)
                     if self.events:

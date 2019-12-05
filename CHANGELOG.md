@@ -9,8 +9,10 @@ The format is based on the [KeepAChangeLog] project.
 
 ### Added
 - [#719] Add support for JWT registration tokens
+- [#725] Accepting 501 and 504 responses on backchannel logout request
 
 [#719]: https://github.com/OpenIDC/pyoidc/pull/719
+[#725]: https://github.com/OpenIDC/pyoidc/pull/725
 
 ## 1.1.2 [2019-11-23]
 
