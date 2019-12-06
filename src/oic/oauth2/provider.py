@@ -58,6 +58,7 @@ from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed
 from oic.utils.session_backend import AuthnEvent
 from oic.utils.settings import OauthProviderSettings
+from oic.utils.settings import PyoidcSettings
 
 __author__ = "rohe0002"
 
@@ -202,7 +203,7 @@ class Provider(object):
         message_factory=OauthMessageFactory,
         capabilities=None,
         jwks_uri="",
-        settings: OauthProviderSettings = None,
+        settings: PyoidcSettings = None,
     ):
         self.settings = settings or OauthProviderSettings()
         if verify_ssl is not None:
@@ -229,9 +230,7 @@ class Provider(object):
             )
         self.cdb = cdb
         self.server = server_cls(
-            keyjar=keyjar,
-            message_factory=message_factory,
-            settings=self.settings,
+            keyjar=keyjar, message_factory=message_factory, settings=self.settings,
         )
 
         self.authn_broker = authn_broker
@@ -269,7 +268,7 @@ class Provider(object):
         self.session_cookie_name = "pyoic_session"
         self.sso_cookie_name = "pyoidc_sso"
         self.baseurl = baseurl
-        self.keyjar = None
+        self.keyjar = None  # type: KeyJar
         self.trace = None
         self.events = None
         self.scopes = ["offline_access"]

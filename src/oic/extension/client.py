@@ -39,6 +39,7 @@ class Client(oauth2.Client):
         verify_ssl=True,
         config=None,
         message_factory=ExtensionMessageFactory,
+        settings=None,
     ):
         super().__init__(
             client_id=client_id,

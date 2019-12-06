@@ -54,8 +54,9 @@ from oic.utils.http_util import SeeOther
 from oic.utils.keyio import KeyJar
 from oic.utils.sdb import SessionBackend  # noqa
 from oic.utils.sdb import session_update
+from oic.utils.settings import OauthClientSettings
 from oic.utils.settings import OauthServerSettings
-from oic.utils.settings import OauthConsumerSettings
+from oic.utils.settings import PyoidcSettings
 from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = "rohe0002"
@@ -178,14 +179,18 @@ class Client(PBase):
         client_cert=None,
         timeout=None,
         message_factory: Type[MessageFactory] = OauthMessageFactory,
-        settings: OauthConsumerSettings = None,
+        settings: OauthClientSettings = None,
     ):
         """
         Initialize the instance.
 
         Keyword Args:
             settings
-                Instance of :class:`OauthConsumerSettings` with configuration options.
+                Instance of :class:`OauthClientSettings` with configuration options.
+                Currently used settings are:
+                 - verify_ssl
+                 - client_cert
+                 - timeout
 
         :param client_id: The client identifier
         :param client_authn_method: Methods that this client can use to
@@ -201,7 +206,7 @@ class Client(PBase):
         :return: Client instance
 
         """
-        self.settings = settings or OauthConsumerSettings()
+        self.settings = settings or OauthClientSettings()
         if verify_ssl is not None:
             warnings.warn(
                 "`verify_ssl` is deprecated, please use `settings` instead if you need to set a non-default value.",
@@ -1149,7 +1154,7 @@ class Server(PBase):
         client_cert: Union[str, Tuple[str, str]] = None,
         timeout: float = None,
         message_factory: Type[MessageFactory] = OauthMessageFactory,
-        settings: OauthServerSettings = None
+        settings: PyoidcSettings = None,
     ):
         """
         Initialize the server.

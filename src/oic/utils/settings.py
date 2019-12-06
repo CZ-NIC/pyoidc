@@ -53,18 +53,19 @@ class PyoidcSettings:
         """This attempts to check if value matches the expected value."""
         annotation = typing.get_type_hints(self.__init__)[name]
         # Expand Union -> Since 3.8, this can be written as typing.get_origin
-        if getattr(annotation, '__origin__', annotation) is Union:
-            expanded = (an for an in annotation.__args__)
+        if getattr(annotation, "__origin__", annotation) is Union:
+            expanded = tuple(an for an in annotation.__args__)
         else:
-            expanded = (annotation, )
+            expanded = (annotation,)
         # Convert Generics
         # FIXME: this doesn't check the args of the generic
-        resolved = tuple(getattr(an, '__origin__', an) for an in expanded)
+        resolved = tuple(getattr(an, "__origin__", an) for an in expanded)
         # Add int if float is present
         if float in resolved:
-            resolved = resolved + (int, )
+            resolved = resolved + (int,)
         # FIXME: Add more valid substitution
         if isinstance(value, resolved):
+            # FIXME: Handle bool being an instance of int...
             super().__setattr__(name, value)
         else:
             raise SettingsException(
@@ -73,12 +74,16 @@ class PyoidcSettings:
             )
 
 
-class ConsumerSettings(PyoidcSettings):
+class ClientSettings(PyoidcSettings):
     """Base settings for consumer shared among OAuth 2.0 and OpenID Connect."""
 
 
-class OauthConsumerSettings(ConsumerSettings):
-    """Specific settings for consumer OAuth 2.0 consumer."""
+class OauthClientSettings(ClientSettings):
+    """Specific settings for OAuth 2.0 consumer."""
+
+
+class OauthConsumerSettings(OauthClientSettings):
+    """Settings for OAuth 2.0 client."""
 
 
 class ServerSettings(PyoidcSettings):
@@ -89,5 +94,16 @@ class OauthServerSettings(ServerSettings):
     """Specific settings for OAuth 2.0 server."""
 
 
+class OicServerSettings(OauthServerSettings):
+    """Specific settings for OpenID Connect server."""
+
+
 class OauthProviderSettings(OauthServerSettings):
     """Specific settings for OAuth 2.0 provider."""
+
+
+class OicProviderSettings(OicServerSettings):
+    """Specific settings for OpenID Connect provider."""
+
+    # TODO: Decide on inheritance...
+    # It might be better to have a mixin providing OIC specific stuff?
