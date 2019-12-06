@@ -8,6 +8,7 @@ import warnings
 from functools import cmp_to_key
 from typing import Dict  # noqa - This is used for MyPy
 from typing import List  # noqa - This is used for MyPy
+from typing import Optional  # noqa - This is used for MyPy
 from typing import Union  # noqa - This is used for MyPy
 from urllib.parse import parse_qs
 from urllib.parse import splitquery  # type: ignore
@@ -54,6 +55,7 @@ from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Unauthorized
 from oic.utils.http_util import make_cookie
+from oic.utils.keyio import KeyJar  # noqa
 from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed
 from oic.utils.session_backend import AuthnEvent
@@ -268,7 +270,7 @@ class Provider(object):
         self.session_cookie_name = "pyoic_session"
         self.sso_cookie_name = "pyoidc_sso"
         self.baseurl = baseurl
-        self.keyjar = None  # type: KeyJar
+        self.keyjar = None  # type: Optional[KeyJar]
         self.trace = None
         self.events = None
         self.scopes = ["offline_access"]
@@ -671,7 +673,7 @@ class Provider(object):
         try:
             keyjar = self.keyjar
         except AttributeError:
-            keyjar = ""
+            keyjar = None
 
         try:
             # verify that the request message is correct

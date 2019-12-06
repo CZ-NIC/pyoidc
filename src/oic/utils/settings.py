@@ -27,7 +27,7 @@ class PyoidcSettings:
             Control TLS server certificate validation.
             If set to True the certificate is validated against the global settings,
             if set to False, no validation is performed.
-            If set to a filename his is used as a certificate bundle in openssl format.
+            If set to a filename this is used as a certificate bundle in openssl format.
             If set to a directory name this is used as a CA directory in the openssl format.
         client_cert
             Local cert to use as client side certificate.
@@ -51,7 +51,7 @@ class PyoidcSettings:
 
     def __setattr__(self, name, value):
         """This attempts to check if value matches the expected value."""
-        annotation = typing.get_type_hints(self.__init__)[name]
+        annotation = typing.get_type_hints(self.__init__)[name]  # type: ignore
         # Expand Union -> Since 3.8, this can be written as typing.get_origin
         if getattr(annotation, "__origin__", annotation) is Union:
             expanded = tuple(an for an in annotation.__args__)
@@ -80,6 +80,10 @@ class ClientSettings(PyoidcSettings):
 
 class OauthClientSettings(ClientSettings):
     """Specific settings for OAuth 2.0 consumer."""
+
+
+class OicClientSettings(OauthClientSettings):
+    """Settings for OpenID Connect Client."""
 
 
 class OauthConsumerSettings(OauthClientSettings):

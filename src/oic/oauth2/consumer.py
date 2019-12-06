@@ -160,7 +160,7 @@ class Consumer(Client):
             )
             self.settings.timeout = client_config.pop("timeout")
 
-        Client.__init__(self, **client_config, settings=self.settings)
+        Client.__init__(self, settings=self.settings, **client_config)
 
         self.authz_page = authz_page
         self.response_type = response_type

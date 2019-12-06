@@ -21,12 +21,13 @@ from oic.oauth2.message import TokenErrorResponse
 from oic.utils import time_util
 from oic.utils.http_util import make_cookie
 from oic.utils.session_backend import DictSessionBackend
+from oic.utils.settings import OauthClientSettings
 
 __author__ = "rohe0002"
 
+CLIENT_SETTINGS = OauthClientSettings(verify_ssl="/usr/local/etc/oic/ca_certs.txt")
 CLIENT_CONFIG = {
     "client_id": "number5",
-    "verify_ssl": "/usr/local/etc/oic/ca_certs.txt",
 }
 
 CONSUMER_CONFIG = {
@@ -101,7 +102,11 @@ def test_stateID():
 def test_factory():
     sdb = DictSessionBackend()
     consumer = Consumer(
-        sdb, client_config=CLIENT_CONFIG, server_info=SERVER_INFO, **CONSUMER_CONFIG
+        sdb,
+        client_config=CLIENT_CONFIG,
+        server_info=SERVER_INFO,
+        settings=CLIENT_SETTINGS,
+        **CONSUMER_CONFIG,
     )
     sid = stateID("https://example.org/", consumer.seed)
     _state = sid
@@ -118,7 +123,7 @@ def test_factory():
         CLIENT_CONFIG["client_id"],
         client_config=CLIENT_CONFIG,
         server_info=SERVER_INFO,
-        **CONSUMER_CONFIG
+        **CONSUMER_CONFIG,
     )
 
     assert _oac.client_id == consumer.client_id
@@ -132,7 +137,8 @@ class TestConsumer(object):
             DictSessionBackend(),
             client_config=CLIENT_CONFIG,
             server_info=SERVER_INFO,
-            **CONSUMER_CONFIG
+            settings=CLIENT_SETTINGS,
+            **CONSUMER_CONFIG,
         )
 
     def test_init(self):
@@ -140,13 +146,17 @@ class TestConsumer(object):
             DictSessionBackend(),
             client_config=CLIENT_CONFIG,
             server_info=SERVER_INFO,
-            **CONSUMER_CONFIG
+            settings=CLIENT_SETTINGS,
+            **CONSUMER_CONFIG,
         )
         cons._backup("123456")
         assert "123456" in cons.sdb
 
         cons = Consumer(
-            DictSessionBackend(), client_config=CLIENT_CONFIG, **CONSUMER_CONFIG
+            DictSessionBackend(),
+            client_config=CLIENT_CONFIG,
+            settings=CLIENT_SETTINGS,
+            **CONSUMER_CONFIG,
         )
         assert cons.authorization_endpoint is None
 
