@@ -57,6 +57,7 @@ from oic.utils.http_util import make_cookie
 from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed
 from oic.utils.session_backend import AuthnEvent
+from oic.utils.settings import OauthProviderSettings
 
 __author__ = "rohe0002"
 
@@ -192,7 +193,7 @@ class Provider(object):
         urlmap=None,
         iv=0,
         default_scope="",
-        verify_ssl=True,
+        verify_ssl=None,
         default_acr="",
         keyjar=None,
         baseurl="",
@@ -201,7 +202,24 @@ class Provider(object):
         message_factory=OauthMessageFactory,
         capabilities=None,
         jwks_uri="",
+        settings: OauthProviderSettings = None,
     ):
+        self.settings = settings or OauthProviderSettings()
+        if verify_ssl is not None:
+            warnings.warn(
+                "`verify_ssl` is deprecated, please use `settings` instead if you need to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.verify_ssl = verify_ssl
+        if client_cert is not None:
+            warnings.warn(
+                "`client_cert` is deprecated, please use `settings` instead if you need to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.client_cert = client_cert
+
         self.name = name
         self.sdb = sdb
         if not isinstance(cdb, BaseClientDatabase):
@@ -211,10 +229,9 @@ class Provider(object):
             )
         self.cdb = cdb
         self.server = server_cls(
-            verify_ssl=verify_ssl,
-            client_cert=client_cert,
             keyjar=keyjar,
             message_factory=message_factory,
+            settings=self.settings,
         )
 
         self.authn_broker = authn_broker
