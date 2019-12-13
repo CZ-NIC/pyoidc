@@ -7,7 +7,6 @@ import pytest
 import responses
 from freezegun import freeze_time
 from jwcrypto.jws import InvalidJWSSignature
-from jwkest.jwk import SYMKey
 
 from oic.oauth2.exception import VerificationError
 from oic.oauth2.message import MissingSigningKey
@@ -28,6 +27,7 @@ from oic.oic.message import RegistrationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
+from oic.utils.keyio import PyoidcJWK
 from oic.utils.keyio import keybundle_from_local_file
 from oic.utils.sdb import DictSessionBackend
 from oic.utils.sdb import session_get
@@ -1090,7 +1090,7 @@ class TestOICConsumer:
         }
         idts = IdToken(**idval)
 
-        _signed_jwt = idts.to_jwt(key=[SYMKey(key="TestPassword")], algorithm="HS256")
+        _signed_jwt = idts.to_jwt(key=[PyoidcJWK(kty='oct', key="TestPassword")], algorithm="HS256")
 
         # Mess with the signed id_token
         p = _signed_jwt.split(".")
@@ -1102,7 +1102,7 @@ class TestOICConsumer:
         _faulty_signed_jwt = self._faulty_id_token()
 
         with pytest.raises(InvalidJWSSignature):
-            IdToken().from_jwt(_faulty_signed_jwt, key=[SYMKey(key="TestPassword")])
+            IdToken().from_jwt(_faulty_signed_jwt, key=[PyoidcJWK(kty='oct', key="TestPassword")])
 
         # What if no verification key is given ?
         # Should also result in an exception

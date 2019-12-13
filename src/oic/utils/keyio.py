@@ -69,6 +69,43 @@ K2C = {"RSA": RSAKey, "EC": ECKey, "oct": SYMKey}
 KEYS = Union[RSAKey, SYMKey, ECKey]
 
 
+class PyoidcJWK(JWK):
+    """Extended class to include `inactive_since` and `kid`."""
+
+    inactive_since = 0
+    use = None
+
+    def __init__(self, **kwargs):
+        """Derive the key for OCT."""
+        if "k" not in kwargs and kwargs.get("kty") == "oct" and "key" in kwargs:
+            kwargs["k"] = urlsafe_b64encode(kwargs["key"].encode()).decode()
+        super().__init__(**kwargs)
+
+    @property
+    def kty(self):
+        """Compatibility wrapper for jwkest."""
+        #FIXME: Drop once complete transformation
+        return self.key_type
+
+    @property
+    def alg(self):
+        """Compatibility wrapper for jwkest."""
+        #FIXME: Do we need it after conversion?
+        #FIXME: There seems to be no way how to get the alg from the key after generation, do we need to store it?
+        return None
+
+    @property
+    def kid(self) -> str:
+        """Return thumbprint if there is no kid.
+
+        This might not be entirely necessary?
+        """
+        if self.key_id is None:
+            return self.thumbprint()
+        else:
+            return self.key_id
+
+
 class KeyBundle(object):
     def __init__(
         self,
@@ -142,6 +179,7 @@ class KeyBundle(object):
             if not isinstance(inst, dict):
                 raise JWKSError("Illegal JWK")
             derived = inst.copy()
+            #FIXME: Paritaly handled in PyoidcJWK, drop it here?
             if derived["kty"] == "oct" and "k" not in derived:
                 if isinstance(derived["key"], str):
                     derived["key"] = derived["key"].encode()
@@ -150,7 +188,7 @@ class KeyBundle(object):
                 _key = derived.pop("key")
                 derived.update(_key)
             try:
-                key = JWK(**derived)
+                key = PyoidcJWK(**derived)
             except InvalidJWKValue:
                 raise JWKSError("Invalid usage.")
             except JWException as err:
@@ -172,14 +210,14 @@ class KeyBundle(object):
 
     def do_local_der(self, filename, keytype, keyusage):
         with open(filename, "rb") as f:
-            k = JWK.from_pem(f.read())
+            k = PyoidcJWK.from_pem(f.read())
         key_data = json.loads(k.export_private())
 
         if not keyusage:
             keyusage = ["enc", "sig"]
 
         for use in keyusage:
-            _key = JWK(**key_data, use=use)
+            _key = PyoidcJWK(**key_data, use=use)
             self.append(_key)
 
         self.last_updated = time.time()
@@ -324,10 +362,10 @@ class KeyBundle(object):
         """
         if val:
             self._keys = [
-                k for k in self._keys if not (k.kty == typ and k.key == val.key)
+                k for k in self._keys if not (k.key_type == typ and k.key == val.key)
             ]
         else:
-            self._keys = [k for k in self._keys if not k.kty == typ]
+            self._keys = [k for k in self._keys if not k.key_type == typ]
 
     def __str__(self):
         return str(self.jwks())
@@ -345,7 +383,7 @@ class KeyBundle(object):
             keys.append(key)
         return json.dumps({"keys": keys})
 
-    def append(self, key: JWK) -> NoReturn:
+    def append(self, key: PyoidcJWK) -> NoReturn:
         """Append only unique keys."""
         thumbprint = key.thumbprint()
         to_import = True
@@ -411,10 +449,10 @@ def keybundle_from_local_file(filename, typ, usage):
     if typ.upper() == "RSA":
         kb = KeyBundle()
         with open(filename, "rb") as f:
-            k = JWK.from_pem(f.read())
+            k = PyoidcJWK.from_pem(f.read())
         key_data = json.loads(k.export_private())
         for use in usage:
-            _k = JWK(**key_data, use=use)
+            _k = PyoidcJWK(**key_data, use=use)
             kb.append(_k)
     elif typ.lower() == "jwk":
         kb = KeyBundle(source=filename, fileformat="jwk", keyusage=usage)
@@ -958,14 +996,14 @@ def key_setup(vault, **kwargs):
             if _args["alg"].upper() == "RSA":
                 try:
                     with open("%s%s" % (vault_path, "pyoidc"), "rb") as f:
-                        _key = JWK.from_pem(f.read())
+                        _key = PyoidcJWK.from_pem(f.read())
                 except IOError:
                     with open(os.devnull, "w") as devnull:
                         with RedirectStdStreams(stdout=devnull, stderr=devnull):
                             k = create_and_store_rsa_key_pair(path=vault_path)
                 else:
                     key_data = json.loads(_key.export_private())
-                    k = JWK(**key_data, use=usage)
+                    k = PyoidcJWK(**key_data, use=usage)
                 kb.append(k)
     return kb
 
@@ -1017,7 +1055,7 @@ def key_export(baseurl, local_path, vault, keyjar, **kwargs):
 
 def create_and_store_rsa_key_pair(
     name: str = "pyoidc", path: str = ".", size: int = 2048, use: str = "sig"
-) -> JWK:
+) -> PyoidcJWK:
     """
     Create RSA keypair.
 
@@ -1026,7 +1064,7 @@ def create_and_store_rsa_key_pair(
     :param size: RSA key size
     :return: RSA key
     """
-    key = JWK.generate(kty="RSA", size=size, use=use)
+    key = PyoidcJWK.generate(kty="RSA", size=size, use=use)
 
     os.makedirs(path, exist_ok=True)
 
@@ -1039,7 +1077,7 @@ def create_and_store_rsa_key_pair(
 
     # Reimport to properly initialize all params (kid)
     key_dict = json.loads(key.export_private())
-    key = JWK(**key_dict, kid=key.thumbprint())
+    key = PyoidcJWK(**key_dict, kid=key.thumbprint())
     return key
 
 
@@ -1078,14 +1116,14 @@ def ec_init(spec):
     #     _key = NISTEllipticCurve.by_name(spec["crv"])
     kb = KeyBundle(keytype="EC", keyusage=spec["use"])
     for use in spec["use"]:
-        key = JWK.generate(kty="EC", crv=spec["crv"], use=use)
+        key = PyoidcJWK.generate(kty="EC", crv=spec["crv"], use=use)
         #         priv, pub = _key.key_pair()
         #         ec = ECKey(x=pub[0], y=pub[1], d=priv, crv=spec["crv"])
         #         ec.serialize()
         #         ec.use = use
         # Recreate to generate kid
         key_dict = json.loads(key.export_private())
-        key = JWK(**key_dict, kid=key.thumbprint())
+        key = PyoidcJWK(**key_dict, kid=key.thumbprint())
         kb.append(key)
     return kb
 
@@ -1226,9 +1264,9 @@ def key_summary(keyjar, issuer):
         for kb in kbl:
             for key in kb.keys():
                 if key.inactive_since:
-                    key_list.append("*{}:{}:{}".format(key.kty, key.use, key.kid))
+                    key_list.append("*{}:{}:{}".format(key.key_type, key.use, key.kid))
                 else:
-                    key_list.append("{}:{}:{}".format(key.kty, key.use, key.kid))
+                    key_list.append("{}:{}:{}".format(key.key_type, key.use, key.kid))
         return ", ".join(key_list)
 
 

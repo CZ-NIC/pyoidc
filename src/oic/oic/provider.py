@@ -27,7 +27,6 @@ from jwkest import safe_str_cmp
 from jwkest.jwe import JWE
 from jwkest.jwe import JWEException
 from jwkest.jwe import NotSupportedAlgorithm
-from jwkest.jwk import SYMKey
 from jwkest.jws import NoSuitableSigningKeys
 from jwkest.jws import alg2keytype
 from requests import RequestException
@@ -77,7 +76,8 @@ from oic.utils.http_util import Unauthorized
 from oic.utils.jwt import JWT
 from oic.utils.keyio import KEYS
 from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar
+from oic.utils.keyio import KeyJar  # noqa
+from oic.utils.keyio import PyoidcJWK
 from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
 from oic.utils.sanitize import sanitize
@@ -441,7 +441,7 @@ class Provider(AProvider):
                 ckey = _keyjar.get_signing_key(alg2keytype(alg), session["client_id"])
                 if not ckey:  # create a new key
                     _secret = self.cdb[session["client_id"]]["client_secret"]
-                    ckey = [SYMKey(key=_secret)]
+                    ckey = [PyoidcJWK(kty='oct', key=_secret)]
             else:
                 if "" in self.keyjar:
                     ckey = _keyjar.get_signing_key(alg2keytype(alg), "", alg=alg)

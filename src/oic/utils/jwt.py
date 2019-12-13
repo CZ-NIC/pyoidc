@@ -3,8 +3,9 @@ import uuid
 
 from jwkest import jwe
 from jwkest import jws
-from jwkest.jwe import JWE
 from jwkest.jws import NoSuitableSigningKeys
+from jwcrypto.jwe import JWE as crypto_JWE
+from jwcrypto.common import json_encode
 
 from oic.oic.message import JasonWebToken
 from oic.utils.time_util import utc_time_sans_frac
@@ -41,8 +42,10 @@ class JWT(object):
             kwargs["cty"] = cty
 
         # use the clients public key for encryption
-        _jwe = JWE(payload, **kwargs)
-        return _jwe.encrypt(keys, context="public")
+        _crypto_jwe = crypto_JWE(payload, json_encode(kwargs))
+        for key in keys:
+            _crypto_jwe.add_recipient(key)
+        return _crypto_jwe.serialize(compact=True)
 
     def pack_init(self):
         argv = {"iss": self.iss, "iat": utc_time_sans_frac()}
@@ -106,7 +109,8 @@ class JWT(object):
         keys = self.keyjar.get_verify_key(
             jws.alg2keytype(rj.jwt.headers["alg"]), owner=owner
         )
-        return rj.verify_compact(token, keys)
+        allow_none = token.endswith('.')  # No signature, just verify
+        return rj.verify_compact(token, keys, allow_none=allow_none)
 
     def _decrypt(self, rj, token):
         keys = self.keyjar.get_verify_key(owner="")

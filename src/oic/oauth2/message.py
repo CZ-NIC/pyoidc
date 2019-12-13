@@ -165,7 +165,7 @@ def pick_keys(keys: List[Key], alg: str, usage: str = "sig") -> Key:
     else:
         return None
     for key in keys:
-        if key.kty == key_type and (key.use == "" or key.use == usage):
+        if key.key_type == key_type and (key.use == "" or key.use is None or key.use == usage):
             return key
     return None
 
