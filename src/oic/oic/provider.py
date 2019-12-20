@@ -679,7 +679,7 @@ class Provider(AProvider):
             aresp["session_state"] = self._compute_session_state(
                 state, salt, areq["client_id"], redirect_uri
             )
-            headers.append(self.write_session_cookie(state))
+            headers.append(self.write_session_cookie(state, http_only=False))
 
         # as per the mix-up draft don't add iss and client_id if they are
         # already in the id_token.
@@ -2256,7 +2256,7 @@ class Provider(AProvider):
 
     def do_verified_logout(
         self, sid: str, client_id: str, alla: bool = False, **kwargs
-    ) -> Dict:
+    ) -> Union[None, dict, Dict[str, list]]:
         """
         Perform back channel logout and prepares the information needed for front channel logout.
 
@@ -2281,7 +2281,12 @@ class Provider(AProvider):
             self.events.store("object args", "{}".format(logout_spec))
 
         if not logout_spec["back_channel"] and not logout_spec["front_channel"]:
-            return {}
+            # kill cookies
+            kaka1 = self.write_session_cookie("removed", http_only=False)
+            kaka2 = self.cookie_func(
+                "", typ="sso", cookie_name=self.sso_cookie_name, kill=True
+            )
+            return {"cookie": [kaka1, kaka2]}
 
         # take care of Back channel logout first
         if logout_spec["back_channel"]:
@@ -2321,7 +2326,7 @@ class Provider(AProvider):
                     return {}
 
         # kill cookies
-        kaka1 = self.write_session_cookie("removed")
+        kaka1 = self.write_session_cookie("removed", http_only=False)
         kaka2 = self.cookie_func(
             "", typ="sso", cookie_name=self.sso_cookie_name, kill=True
         )
