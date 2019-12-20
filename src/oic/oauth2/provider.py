@@ -1115,8 +1115,8 @@ class Provider(object):
         kwargs["cookie"] = cookie
         return authn.verify(_req, **kwargs)
 
-    def write_session_cookie(self, value):
-        return make_cookie(self.session_cookie_name, value, self.seed, path="/")
+    def write_session_cookie(self, value, http_only=True):
+        return make_cookie(self.session_cookie_name, value, self.seed, path="/", httponly=http_only)
 
     def delete_session_cookie(self):
         return make_cookie(self.session_cookie_name, "", b"", path="/", expire=-1)
@@ -1124,5 +1124,9 @@ class Provider(object):
     def _compute_session_state(self, state, salt, client_id, redirect_uri):
         parsed_uri = urlparse(redirect_uri)
         rp_origin_url = "{uri.scheme}://{uri.netloc}".format(uri=parsed_uri)
+
+        logger.debug("Calculating sessions state using, client_id:%s origin:%s state:%s salt:%s",
+                     client_id, rp_origin_url, state, salt)
+
         session_str = client_id + " " + rp_origin_url + " " + state + " " + salt
         return hashlib.sha256(session_str.encode("utf-8")).hexdigest() + "." + salt
