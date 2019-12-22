@@ -104,6 +104,10 @@ class InvalidSectorIdentifier(Exception):
     pass
 
 
+class InvalidPostLogoutUri(Exception):
+    """Raised when the post_logout_redirect_uris are not valid."""
+
+
 def devnull(txt):
     pass
 
@@ -1187,25 +1191,17 @@ class Provider(AProvider):
                 _cinfo[key] = val
 
         if "post_logout_redirect_uris" in request:
-            plruri = []
-            for uri in request["post_logout_redirect_uris"]:
-                if urlparse(uri).fragment:
-                    err = ClientRegistrationErrorResponse(
-                        error="invalid_configuration_parameter",
-                        error_description="post_logout_redirect_uris "
-                        "contains "
-                        "fragment",
-                    )
-                    return Response(
-                        err.to_json(),
-                        content="application/json",
-                        status="400 Bad Request",
-                    )
-                base, query = splitquery(uri)
-                if query:
-                    plruri.append((base, parse_qs(query)))
-                else:
-                    plruri.append((base, query))
+            try:
+                plruri = self._verify_post_logout_uri(request)
+            except InvalidPostLogoutUri as err:
+                error = ClientRegistrationErrorResponse(
+                    error="invalid_configuration_parameter", error_description=str(err)
+                )
+                return Response(
+                    error.to_json(),
+                    content="application/json",
+                    status="400 Bad Request",
+                )
             _cinfo["post_logout_redirect_uris"] = plruri
 
         if "redirect_uris" in request:
@@ -1213,11 +1209,11 @@ class Provider(AProvider):
                 ruri = self.verify_redirect_uris(request)
                 _cinfo["redirect_uris"] = ruri
             except InvalidRedirectURIError as e:
-                err = ClientRegistrationErrorResponse(
+                error = ClientRegistrationErrorResponse(
                     error="invalid_redirect_uri", error_description=str(e)
                 )
                 return Response(
-                    err.to_json(), content="application/json", status_code=400
+                    error.to_json(), content="application/json", status_code=400
                 )
 
         if "sector_identifier_uri" in request:
@@ -1228,21 +1224,20 @@ class Provider(AProvider):
                 ) = self._verify_sector_identifier(request)
             except InvalidSectorIdentifier as err:
                 return error_response("invalid_configuration_parameter", descr=str(err))
-        elif "redirect_uris" in request:
-            if len(request["redirect_uris"]) > 1:
-                # check that the hostnames are the same
-                host = ""
-                for url in request["redirect_uris"]:
-                    part = urlparse(url)
-                    _host = part.netloc.split(":")[0]
-                    if not host:
-                        host = _host
-                    else:
-                        if host != _host:
-                            return error_response(
-                                "invalid_configuration_parameter",
-                                descr="'sector_identifier_uri' must be registered",
-                            )
+        elif "redirect_uris" in request and len(request["redirect_uris"]) > 1:
+            # check that the hostnames are the same
+            host = ""
+            for url in request["redirect_uris"]:
+                part = urlparse(url)
+                _host = part.netloc.split(":")[0]
+                if not host:
+                    host = _host
+                else:
+                    if host != _host:
+                        return error_response(
+                            "invalid_configuration_parameter",
+                            descr="'sector_identifier_uri' must be registered",
+                        )
 
         for item in ["policy_uri", "logo_uri", "tos_uri"]:
             if item in request:
@@ -1333,6 +1328,21 @@ class Provider(AProvider):
                 verified_redirect_uris.append((base, query))
 
         return verified_redirect_uris
+
+    def _verify_post_logout_uri(self, request):
+        """Verify correct format of post_logout_redirect_uris."""
+        plruri = []
+        for uri in request["post_logout_redirect_uris"]:
+            if urlparse(uri).fragment:
+                raise InvalidPostLogoutUri(
+                    "post_logout_redirect_uris contains fragment"
+                )
+            base, query = splitquery(uri)
+            if query:
+                plruri.append((base, parse_qs(query)))
+            else:
+                plruri.append((base, query))
+        return plruri
 
     def _verify_sector_identifier(self, request):
         """
