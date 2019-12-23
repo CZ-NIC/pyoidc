@@ -22,6 +22,7 @@ from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import CCAccessTokenRequest
 from oic.oauth2.message import DecodeError
 from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import ExtensionTokenRequest
 from oic.oauth2.message import FormatError
 from oic.oauth2.message import GrantExpired
 from oic.oauth2.message import MessageTuple
@@ -197,6 +198,17 @@ class TestClient(object):
 
         assert atr["grant_type"] == "client_credentials"
         assert atr["state"] == "stat"
+
+    def test_construct_access_token_req_extension_grant(self):
+        request_args = {
+            "grant_type": "urn:ietf:params:oauth:grant-type:saml2-bearer",
+            "assertion": "saml assertion",
+        }
+        atr = self.client.construct_AccessTokenRequest(
+            request=ExtensionTokenRequest, request_args=request_args
+        )
+        assert atr["grant_type"] == "urn:ietf:params:oauth:grant-type:saml2-bearer"
+        assert atr["assertion"] == "saml assertion"
 
     def test_construct_access_token_request_fail(self):
         with pytest.raises(GrantError):
@@ -553,6 +565,35 @@ class TestClient(object):
 
             resp = self.client.do_access_token_request()
             assert rsps.calls[0].request.body == "grant_type=client_credentials"
+
+        assert isinstance(resp, AccessTokenResponse)
+        assert resp["access_token"] == "Token"
+
+    def test_do_access_token_request_extension_grant(self):
+        class ExtensionMessageFactory(OauthMessageFactory):
+            """We are doing Extension grant."""
+
+            token_endpoint = MessageTuple(ExtensionTokenRequest, AccessTokenResponse)
+
+        self.client.message_factory = ExtensionMessageFactory
+        request_args = {
+            "assertion": "saml assertion",
+            "grant_type": "urn:ietf:params:oauth:grant-type:saml2-bearer",
+        }
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                rsps.POST,
+                self.token_endpoint,
+                json={"access_token": "Token", "token_type": "bearer"},
+            )
+
+            resp = self.client.do_access_token_request(request_args=request_args)
+            request = parse_qs(rsps.calls[0].request.body)
+            assert request["assertion"][0] == "saml assertion"
+            assert (
+                request["grant_type"][0]
+                == "urn:ietf:params:oauth:grant-type:saml2-bearer"
+            )
 
         assert isinstance(resp, AccessTokenResponse)
         assert resp["access_token"] == "Token"
