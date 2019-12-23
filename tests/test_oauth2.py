@@ -72,10 +72,12 @@ class TestClient(object):
     def create_client(self):
         self.redirect_uri = "https://example.com/redirect"
         self.authorization_endpoint = "https://example.com/authz"
+        self.token_endpoint = "https://example.com/token"
 
         self.client = Client("1", config={"issuer": "https://example.com/as"})
         self.client.redirect_uris = [self.redirect_uri]
         self.client.authorization_endpoint = self.authorization_endpoint
+        self.client.token_endpoint = self.token_endpoint
 
     def test_construct_authz_req_no_optional_params(self):
         areq = self.client.construct_AuthorizationRequest(
@@ -545,7 +547,7 @@ class TestClient(object):
         with responses.RequestsMock() as rsps:
             rsps.add(
                 rsps.POST,
-                "https://example.com/authz",
+                self.token_endpoint,
                 json={"access_token": "Token", "token_type": "bearer"},
             )
 

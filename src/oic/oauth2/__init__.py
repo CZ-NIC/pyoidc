@@ -68,8 +68,8 @@ HTTP_ARGS = ["headers", "redirections", "connection_type"]
 REQUEST2ENDPOINT = {
     "AuthorizationRequest": "authorization_endpoint",
     "AccessTokenRequest": "token_endpoint",
-    # ROPCAccessTokenRequest: "authorization_endpoint",
-    "CCAccessTokenRequest": "authorization_endpoint",
+    "ROPCAccessTokenRequest": "token_endpoint",
+    "CCAccessTokenRequest": "token_endpoint",
     "RefreshAccessTokenRequest": "token_endpoint",
     "TokenRevocationRequest": "token_endpoint",
 }
@@ -415,7 +415,7 @@ class Client(PBase):
             request = self.message_factory.get_request_type("token_endpoint")
         if request_args is None:
             request_args = {}
-        if request not in (ROPCAccessTokenRequest, CCAccessTokenRequest):
+        if not issubclass(request, (ROPCAccessTokenRequest, CCAccessTokenRequest)):
             grant = self.get_grant(**kwargs)
 
             if not grant.is_valid():
