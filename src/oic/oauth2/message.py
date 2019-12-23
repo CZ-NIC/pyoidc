@@ -1110,6 +1110,12 @@ class CCAccessTokenRequest(Message):
     c_allowed_values = {"grant_type": ["client_credentials"]}
 
 
+class ExtensionTokenRequest(Message):
+    """Extension Grant defined by RFC6749 4.5."""
+
+    c_param = {"grant_type": SINGLE_REQUIRED_STRING}
+
+
 class RefreshAccessTokenRequest(Message):
     c_param = {
         "grant_type": SINGLE_REQUIRED_STRING,
