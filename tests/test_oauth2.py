@@ -5,6 +5,7 @@ from urllib.parse import urlencode
 from urllib.parse import urlparse
 
 import pytest
+import responses
 
 from oic.oauth2 import Client
 from oic.oauth2 import Grant
@@ -18,11 +19,14 @@ from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import AuthorizationErrorResponse
 from oic.oauth2.message import AuthorizationRequest
 from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import CCAccessTokenRequest
 from oic.oauth2.message import DecodeError
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import FormatError
 from oic.oauth2.message import GrantExpired
+from oic.oauth2.message import MessageTuple
 from oic.oauth2.message import MissingRequiredAttribute
+from oic.oauth2.message import OauthMessageFactory
 from oic.oauth2.message import RefreshAccessTokenRequest
 from oic.utils import time_util
 from oic.utils.keyio import KeyBundle
@@ -181,6 +185,16 @@ class TestClient(object):
         assert atr["grant_type"] == "authorization_code"
         assert atr["code"] == "AbCdEf"
         assert atr["redirect_uri"] == self.redirect_uri
+
+    def test_construct_access_token_req_client_credentials(self):
+        # scope is default=""
+        request_args = {"grant_type": "client_credentials"}
+        atr = self.client.construct_AccessTokenRequest(
+            state="stat", request=CCAccessTokenRequest, request_args=request_args
+        )
+
+        assert atr["grant_type"] == "client_credentials"
+        assert atr["state"] == "stat"
 
     def test_construct_access_token_request_fail(self):
         with pytest.raises(GrantError):
@@ -520,6 +534,26 @@ class TestClient(object):
         with pytest.raises(MissingEndpoint):
             self.client._endpoint("token_endpoint")
             self.client._endpoint("foo_endpoint")
+
+    def test_do_access_token_request_client_credentials(self):
+        class CCMessageFactory(OauthMessageFactory):
+            """We are doing client credentials."""
+
+            token_endpoint = MessageTuple(CCAccessTokenRequest, AccessTokenResponse)
+
+        self.client.message_factory = CCMessageFactory
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                rsps.POST,
+                "https://example.com/authz",
+                json={"access_token": "Token", "token_type": "bearer"},
+            )
+
+            resp = self.client.do_access_token_request()
+            assert rsps.calls[0].request.body == "grant_type=client_credentials"
+
+        assert isinstance(resp, AccessTokenResponse)
+        assert resp["access_token"] == "Token"
 
 
 class TestServer(object):
