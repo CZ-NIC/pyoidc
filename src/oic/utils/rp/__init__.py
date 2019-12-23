@@ -110,6 +110,42 @@ class Client(oic.Client):
         logger.error(sanitize(txt))
         raise OIDCError(txt)
 
+    def _do_code(self, response, authresp):
+        """Perform code flow."""
+        # get the access token
+        try:
+            args = {
+                "code": authresp["code"],
+                "redirect_uri": self.registration_response["redirect_uris"][0],
+                "client_id": self.client_id,
+                "client_secret": self.client_secret,
+            }
+
+            try:
+                args["scope"] = response["scope"]
+            except KeyError:
+                pass
+
+            atresp = self.do_access_token_request(
+                state=authresp["state"],
+                request_args=args,
+                authn_method=self.registration_response["token_endpoint_auth_method"],
+            )
+            msg = "Access token response: {}"
+            logger.info(msg.format(sanitize(atresp)))
+        except Exception as err:
+            logger.error("%s" % err)
+            raise
+
+        if isinstance(atresp, ErrorResponse):
+            msg = "Error response: {}"
+            self._err(msg.format(sanitize(atresp.to_dict())))
+
+        _token = atresp["access_token"]
+
+        _id_token = atresp.get("id_token")
+        return _token, _id_token
+
     def callback(self, response, session, format="dict"):
         """
         Call when an AuthN response has been received from the OP.
@@ -135,52 +171,17 @@ class Client(oic.Client):
 
         _state = authresp["state"]
 
-        try:
-            _id_token = authresp["id_token"]
-        except KeyError:
-            _id_token = None
-        else:
-            if _id_token["nonce"] != self.authz_req[_state]["nonce"]:
-                self._err("Received nonce not the same as expected.")
+        _id_token = authresp.get("id_token")
+        if (
+            _id_token is not None
+            and _id_token["nonce"] != self.authz_req[_state]["nonce"]
+        ):
+            self._err("Received nonce not the same as expected.")
 
         if self.behaviour["response_type"] == "code":
-            # get the access token
-            try:
-                args = {
-                    "code": authresp["code"],
-                    "redirect_uri": self.registration_response["redirect_uris"][0],
-                    "client_id": self.client_id,
-                    "client_secret": self.client_secret,
-                }
-
-                try:
-                    args["scope"] = response["scope"]
-                except KeyError:
-                    pass
-
-                atresp = self.do_access_token_request(
-                    state=authresp["state"],
-                    request_args=args,
-                    authn_method=self.registration_response[
-                        "token_endpoint_auth_method"
-                    ],
-                )
-                msg = "Access token response: {}"
-                logger.info(msg.format(sanitize(atresp)))
-            except Exception as err:
-                logger.error("%s" % err)
-                raise
-
-            if isinstance(atresp, ErrorResponse):
-                msg = "Error response: {}"
-                self._err(msg.format(sanitize(atresp.to_dict())))
-
-            _token = atresp["access_token"]
-
-            try:
-                _id_token = atresp["id_token"]
-            except KeyError:
-                pass
+            _token, new_id_token = self._do_code(response, authresp)
+            if new_id_token is not None:
+                _id_token = new_id_token
         else:
             _token = authresp["access_token"]
 
