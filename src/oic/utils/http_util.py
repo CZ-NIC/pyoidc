@@ -324,6 +324,7 @@ def make_cookie(
     enc_key=None,
     secure=True,
     httponly=True,
+    same_site=""
 ):
     """
     Create and return a cookie.
@@ -353,6 +354,13 @@ def make_cookie(
     :param timestamp: A time stamp
     :type timestamp: text
     :param enc_key: The key to use for cookie encryption.
+    :type enc_key: byte string
+    :param secure: A secure cookie is only sent to the server with an encrypted request over the
+    HTTPS protocol.
+    :type enc_key: boolean
+    :param httponly: HttpOnly cookies are inaccessible to JavaScript's Document.cookie API
+    :type enc_key: boolean
+    :param same_site: Whether SameSite (None,Strict or Lax) should be added to the cookie
     :type enc_key: byte string
     :return: A tuple to be added to headers
     """
@@ -401,9 +409,11 @@ def make_cookie(
     if expire:
         cookie[name]["expires"] = _expiration(expire, "%a, %d-%b-%Y %H:%M:%S GMT")
     if secure:
-        cookie[name]["secure"] = secure
+        cookie[name]["Secure"] = secure
     if httponly:
         cookie[name]["httponly"] = httponly
+    if same_site:
+        cookie[name]["SameSite"] = same_site
 
     return tuple(cookie.output().split(": ", 1))
 

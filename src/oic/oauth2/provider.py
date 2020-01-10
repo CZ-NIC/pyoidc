@@ -1115,8 +1115,9 @@ class Provider(object):
         kwargs["cookie"] = cookie
         return authn.verify(_req, **kwargs)
 
-    def write_session_cookie(self, value, http_only=True):
-        return make_cookie(self.session_cookie_name, value, self.seed, path="/", httponly=http_only)
+    def write_session_cookie(self, value, http_only=True, same_site=""):
+        return make_cookie(self.session_cookie_name, value, self.seed, path="/",
+                           httponly=http_only, same_site=same_site)
 
     def delete_session_cookie(self):
         return make_cookie(self.session_cookie_name, "", b"", path="/", expire=-1)
