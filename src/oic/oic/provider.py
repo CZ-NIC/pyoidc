@@ -2246,7 +2246,7 @@ class Provider(AProvider):
 
     def do_verified_logout(
         self, sid: str, client_id: str, alla: bool = False, **kwargs
-    ) -> Union[None, dict, Dict[str, list]]:
+    ) -> Union[dict, Dict[str, list]]:
         """
         Perform back channel logout and prepares the information needed for front channel logout.
 

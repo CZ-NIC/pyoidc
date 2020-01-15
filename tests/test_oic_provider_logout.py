@@ -982,7 +982,8 @@ class TestProvider(object):
             sid=list(self.provider.sdb._db.storage.keys())[0], client_id="number5"
         )
 
-        assert resp == {}
+        # only cookies
+        assert set(resp.keys()) == {"cookie"}
 
     def test_back_channel_logout_fails(self):
         self._code_auth()
