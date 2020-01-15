@@ -5,12 +5,11 @@ import logging
 import os
 import time
 from http import client
-from http.cookies import Morsel
+
+# from http.cookies import Morsel
 from http.cookies import SimpleCookie
-from typing import Dict  # noqa
 from typing import List  # noqa
 from typing import Tuple  # noqa
-from typing import Union  # noqa
 from urllib.parse import quote
 
 from jwkest import as_unicode
@@ -314,8 +313,8 @@ def _make_hashed_key(parts, hashfunc="sha256"):
     return h.digest()
 
 
-#
-Morsel._reserved[str('samesite')] = str('SameSite')
+# Might need this
+# Morsel._reserved[str("samesite")] = str("SameSite")
 
 
 def make_cookie(
