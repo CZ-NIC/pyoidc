@@ -675,7 +675,9 @@ class Provider(AProvider):
             aresp["session_state"] = self._compute_session_state(
                 state, salt, areq["client_id"], redirect_uri
             )
-            headers.append(self.write_session_cookie(state, http_only=False))
+            headers.append(
+                self.write_session_cookie(state, http_only=False, same_site="None")
+            )
 
         # as per the mix-up draft don't add iss and client_id if they are
         # already in the id_token.
@@ -2272,7 +2274,9 @@ class Provider(AProvider):
 
         if not logout_spec["back_channel"] and not logout_spec["front_channel"]:
             # kill cookies
-            kaka1 = self.write_session_cookie("removed", http_only=False)
+            kaka1 = self.write_session_cookie(
+                "removed", http_only=False, same_site="None"
+            )
             kaka2 = self.cookie_func(
                 "", typ="sso", cookie_name=self.sso_cookie_name, kill=True
             )
@@ -2316,7 +2320,7 @@ class Provider(AProvider):
                     return {}
 
         # kill cookies
-        kaka1 = self.write_session_cookie("removed", http_only=False)
+        kaka1 = self.write_session_cookie("removed", http_only=False, same_site="None")
         kaka2 = self.cookie_func(
             "", typ="sso", cookie_name=self.sso_cookie_name, kill=True
         )
