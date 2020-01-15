@@ -324,7 +324,7 @@ def make_cookie(
     enc_key=None,
     secure=True,
     httponly=True,
-    same_site=""
+    same_site="",
 ):
     """
     Create and return a cookie.
