@@ -6,7 +6,7 @@ import os
 import time
 from http import client
 
-# from http.cookies import Morsel
+from http.cookies import Morsel
 from http.cookies import SimpleCookie
 from typing import List  # noqa
 from typing import Tuple  # noqa
@@ -313,8 +313,7 @@ def _make_hashed_key(parts, hashfunc="sha256"):
     return h.digest()
 
 
-# Might need this
-# Morsel._reserved[str("samesite")] = str("SameSite")
+Morsel._reserved[str("samesite")] = str("SameSite")
 
 
 def make_cookie(
