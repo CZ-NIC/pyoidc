@@ -7,10 +7,16 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+### Fixed
+- [#727] OAuth client request using Client Credentials grant
+
 ### Added
 - [#719] Add support for JWT registration tokens
+- [#728] OAuth client request using Extension grant
 
 [#719]: https://github.com/OpenIDC/pyoidc/pull/719
+[#727]: https://github.com/OpenIDC/pyoidc/issues/727
+[#728]: https://github.com/OpenIDC/pyoidc/issues/728
 
 ## 1.1.2 [2019-11-23]
 

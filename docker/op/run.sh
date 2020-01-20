@@ -18,7 +18,7 @@ service ntp start
 service apache2 start
 
 echo -n "Starting node example ... "
-node example/standalone &
+node certification/oidc &
 pid="$!"
 if [ $? -eq 0 ] ; then
   echo "OK"

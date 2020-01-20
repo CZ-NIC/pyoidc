@@ -31,7 +31,9 @@ from oic.oauth2.message import ASConfigurationResponse
 from oic.oauth2.message import AuthorizationErrorResponse
 from oic.oauth2.message import AuthorizationRequest
 from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import CCAccessTokenRequest
 from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import ExtensionTokenRequest
 from oic.oauth2.message import GrantExpired
 from oic.oauth2.message import Message
 from oic.oauth2.message import MessageFactory
@@ -67,9 +69,10 @@ HTTP_ARGS = ["headers", "redirections", "connection_type"]
 REQUEST2ENDPOINT = {
     "AuthorizationRequest": "authorization_endpoint",
     "AccessTokenRequest": "token_endpoint",
-    # ROPCAccessTokenRequest: "authorization_endpoint",
-    # CCAccessTokenRequest: "authorization_endpoint",
+    "ROPCAccessTokenRequest": "token_endpoint",
+    "CCAccessTokenRequest": "token_endpoint",
     "RefreshAccessTokenRequest": "token_endpoint",
+    "ExtensionTokenRequest": "token_endpoint",
     "TokenRevocationRequest": "token_endpoint",
 }
 
@@ -400,7 +403,12 @@ class Client(PBase):
 
     def construct_AccessTokenRequest(
         self,
-        request: Type[AccessTokenRequest] = None,
+        request: Union[
+            Type[AccessTokenRequest],
+            Type[ROPCAccessTokenRequest],
+            Type[CCAccessTokenRequest],
+            Type[ExtensionTokenRequest],
+        ] = None,
         request_args=None,
         extra_args=None,
         **kwargs
@@ -410,7 +418,10 @@ class Client(PBase):
             request = self.message_factory.get_request_type("token_endpoint")
         if request_args is None:
             request_args = {}
-        if request is not ROPCAccessTokenRequest:
+        if not issubclass(
+            request,
+            (ROPCAccessTokenRequest, CCAccessTokenRequest, ExtensionTokenRequest,),
+        ):
             grant = self.get_grant(**kwargs)
 
             if not grant.is_valid():
