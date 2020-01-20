@@ -400,7 +400,7 @@ def make_cookie(
         ]
 
     cookie[name] = (b"|".join(cookie_payload)).decode("utf-8")
-    cookie[name]._reserved[str("samesite")] = str("SameSite")
+    cookie[name]._reserved[str("samesite")] = str("SameSite")  # type: ignore
 
     if path:
         cookie[name]["path"] = path
