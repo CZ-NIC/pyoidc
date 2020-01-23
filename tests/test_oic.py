@@ -12,6 +12,7 @@ from jwkest.jws import left_hash
 from jwkest.jwt import JWT
 from requests import Response
 
+from oic.exception import CommunicationError
 from oic.exception import RegistrationError
 from oic.oauth2.exception import OtherError
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING
@@ -271,6 +272,28 @@ class TestClient(object):
         assert isinstance(resp3, OpenIDSchema)
         assert _eq(resp3.keys(), ["name", "email", "verified", "nickname", "sub"])
         assert resp3["name"] == "Melody Gardot"
+
+    def test_do_user_info_request_http_errors(self):
+        resp = AuthorizationResponse(code="code", state="state")
+        grant = Grant(10)  # expired grant
+        grant.add_code(resp)
+        resp2 = AccessTokenResponse(
+            refresh_token="refresh_with_me", access_token="access", token_type="Bearer"
+        )
+        token = Token(resp2)
+        grant.tokens.append(token)
+        self.client.grant["state0"] = grant
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                responses.POST,
+                "https://example.com/userinfo",
+                status=405,
+                headers={"Allow": "GET"},
+            )
+            with pytest.raises(CommunicationError) as excp:
+                self.client.do_user_info_request(state="state0")
+            assert excp.value.args[0] == "Server responded with HTTP Error Code 405"
+            assert excp.value.args[1] == ["GET"]
 
     def test_do_access_token_refresh(self):
         args = {

@@ -28,6 +28,7 @@ from oic import rndstr
 from oic.exception import AccessDenied
 from oic.exception import AuthnToOld
 from oic.exception import AuthzError
+from oic.exception import CommunicationError
 from oic.exception import MissingParameter
 from oic.exception import ParameterError
 from oic.exception import PyoidcError
@@ -938,6 +939,12 @@ class Client(oauth2.Client):
                 )
         elif resp.status_code == 500:
             raise PyoidcError("ERROR: Something went wrong: %s" % resp.text)
+        elif resp.status_code == 405:
+            # Method not allowed error
+            allowed_methods = [x.strip() for x in resp.headers["allow"].split(",")]
+            raise CommunicationError(
+                "Server responded with HTTP Error Code 405", "", allowed_methods
+            )
         elif 400 <= resp.status_code < 500:
             # the response text might be a OIDC message
             try:
