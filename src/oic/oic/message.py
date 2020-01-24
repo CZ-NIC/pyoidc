@@ -98,7 +98,7 @@ def json_rest(val, sformat=None, lev=0):
 
 
 # value type, required, serializer, deserializer, null value allowed
-SINGLE_OPTIONAL_BOOLEAN = ParamDefinition(bool, False, None, None, False)
+SINGLE_OPTIONAL_BOOLEAN = ParamDefinition(bool, False, json_ser, json_deser, False)
 SINGLE_OPTIONAL_JSON_WN = ParamDefinition(dict, False, json_ser, json_deser, True)
 SINGLE_OPTIONAL_JSON_CONV = ParamDefinition(dict, False, json_conv, json_rest, True)
 SINGLE_REQUIRED_INT = ParamDefinition(int, True, None, None, False)
