@@ -2,8 +2,8 @@ import copy
 import json
 import logging
 import warnings
-from collections.abc import MutableMapping
 from collections import namedtuple
+from collections.abc import MutableMapping
 from json import JSONDecodeError
 from typing import Any  # noqa - This is used for MyPy
 from typing import Dict  # noqa - This is used for MyPy
