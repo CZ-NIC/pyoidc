@@ -13,10 +13,12 @@ The format is based on the [KeepAChangeLog] project.
 ### Added
 - [#719] Add support for JWT registration tokens
 - [#728] OAuth client request using Extension grant
+- [#731] Session cookie need to be visible to OP IFrame.
 
 [#719]: https://github.com/OpenIDC/pyoidc/pull/719
 [#727]: https://github.com/OpenIDC/pyoidc/issues/727
 [#728]: https://github.com/OpenIDC/pyoidc/issues/728
+[#731]: https://github.com/OpenIDC/pyoidc/pull/731
 
 ## 1.1.2 [2019-11-23]
 
