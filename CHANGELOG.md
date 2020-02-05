@@ -7,6 +7,8 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+## 1.2.0 [2020-02-05]
+
 ### Fixed
 - [#727] OAuth client request using Client Credentials grant
 
