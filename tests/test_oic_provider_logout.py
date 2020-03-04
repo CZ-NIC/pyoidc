@@ -348,7 +348,7 @@ class TestProvider(object):
         assert txt in res.message
 
     def test_end_session_endpoint_with_cookie(self):
-        self.provider.events = DummyEventStore()
+        self.provider.events = DummyEventStore()  # type: ignore
 
         self._code_auth()
         cookie = self._create_cookie("username", "number5")
@@ -818,7 +818,7 @@ class TestProvider(object):
         assert set(res.keys()) == {"iframe", "cookie"}
 
     def test_do_verified_logout_just_the_one(self):
-        self.provider.events = DummyEventStore()
+        self.provider.events = DummyEventStore()  # type: ignore
 
         self._code_auth()
         self._code_auth2()

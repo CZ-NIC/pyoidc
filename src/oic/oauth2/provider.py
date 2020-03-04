@@ -8,6 +8,7 @@ import warnings
 from functools import cmp_to_key
 from typing import Dict  # noqa - This is used for MyPy
 from typing import List  # noqa - This is used for MyPy
+from typing import Optional  # noqa - This is used for MyPy
 from typing import Union  # noqa - This is used for MyPy
 from urllib.parse import parse_qs
 from urllib.parse import splitquery  # type: ignore
@@ -54,9 +55,12 @@ from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Unauthorized
 from oic.utils.http_util import make_cookie
+from oic.utils.keyio import KeyJar  # noqa
 from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed
 from oic.utils.session_backend import AuthnEvent
+from oic.utils.settings import OauthProviderSettings
+from oic.utils.settings import PyoidcSettings
 
 __author__ = "rohe0002"
 
@@ -192,7 +196,7 @@ class Provider(object):
         urlmap=None,
         iv=0,
         default_scope="",
-        verify_ssl=True,
+        verify_ssl=None,
         default_acr="",
         keyjar=None,
         baseurl="",
@@ -201,7 +205,24 @@ class Provider(object):
         message_factory=OauthMessageFactory,
         capabilities=None,
         jwks_uri="",
+        settings: PyoidcSettings = None,
     ):
+        self.settings = settings or OauthProviderSettings()
+        if verify_ssl is not None:
+            warnings.warn(
+                "`verify_ssl` is deprecated, please use `settings` instead if you need to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.verify_ssl = verify_ssl
+        if client_cert is not None:
+            warnings.warn(
+                "`client_cert` is deprecated, please use `settings` instead if you need to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.client_cert = client_cert
+
         self.name = name
         self.sdb = sdb
         if not isinstance(cdb, BaseClientDatabase):
@@ -211,10 +232,7 @@ class Provider(object):
             )
         self.cdb = cdb
         self.server = server_cls(
-            verify_ssl=verify_ssl,
-            client_cert=client_cert,
-            keyjar=keyjar,
-            message_factory=message_factory,
+            keyjar=keyjar, message_factory=message_factory, settings=self.settings,
         )
 
         self.authn_broker = authn_broker
@@ -252,7 +270,7 @@ class Provider(object):
         self.session_cookie_name = "pyoic_session"
         self.sso_cookie_name = "pyoidc_sso"
         self.baseurl = baseurl
-        self.keyjar = None
+        self.keyjar = None  # type: Optional[KeyJar]
         self.trace = None
         self.events = None
         self.scopes = ["offline_access"]
@@ -655,7 +673,7 @@ class Provider(object):
         try:
             keyjar = self.keyjar
         except AttributeError:
-            keyjar = ""
+            keyjar = None
 
         try:
             # verify that the request message is correct

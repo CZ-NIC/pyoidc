@@ -1,6 +1,7 @@
 import copy
 import http.cookiejar as cookielib
 import logging
+import warnings
 from http.cookies import CookieError
 from http.cookies import SimpleCookie
 
@@ -10,6 +11,7 @@ from oic.oauth2.exception import NonFatalException
 from oic.oauth2.util import set_cookie
 from oic.utils.keyio import KeyJar
 from oic.utils.sanitize import sanitize
+from oic.utils.settings import PyoidcSettings
 
 __author__ = "roland"
 
@@ -19,10 +21,22 @@ logger = logging.getLogger(__name__)
 class PBase(object):
     """Class for OAuth2 clients and servers."""
 
-    def __init__(self, verify_ssl=True, keyjar=None, client_cert=None, timeout=5):
+    def __init__(
+        self,
+        verify_ssl=None,
+        keyjar=None,
+        client_cert=None,
+        timeout=None,
+        settings: PyoidcSettings = None,
+    ):
         """
         Initialize the instance.
 
+        Keyword Args:
+            settings
+                Instance of :class:`PyoidcSettings` with configuration options.
+
+        Note that the following params are deprecated in favor of settings.
         :param verify_ssl: Control TLS server certificate validation. If set to
             True the certificate is validated against the global settings,
             if set to False, no validation is performed. If set to a filename
@@ -37,17 +51,41 @@ class PBase(object):
         :param timeout: Timeout for requests library. Can be specified either as
             a single integer or as a tuple of integers. For more details, refer to
             ``requests`` documentation.
+
         """
-        self.keyjar = keyjar or KeyJar(verify_ssl=verify_ssl)
+        self.settings = settings or PyoidcSettings()
+        if verify_ssl is not None:
+            warnings.warn(
+                "`verify_ssl` is deprecated, please use `settings` instead if you need to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.verify_ssl = verify_ssl
+        if client_cert is not None:
+            warnings.warn(
+                "`client_cert` is deprecated, please use `settings` instead if you need to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.client_cert = client_cert
+        if timeout is not None:
+            warnings.warn(
+                "`timeout` is deprecated, please use `settings` instead if you need to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.timeout = timeout
+
+        self.keyjar = keyjar or KeyJar(verify_ssl=self.settings.verify_ssl)
 
         self.cookiejar = cookielib.FileCookieJar()
 
         # Additional args for the requests library calls
         self.request_args = {
             "allow_redirects": False,
-            "cert": client_cert,
-            "verify": verify_ssl,
-            "timeout": timeout,
+            "cert": self.settings.client_cert,
+            "verify": self.settings.verify_ssl,
+            "timeout": self.settings.timeout,
         }
 
         # Event collector, for tracing
@@ -84,7 +122,7 @@ class PBase(object):
 
         if self.cookiejar:
             _kwargs["cookies"] = self._cookies()
-            logger.debug("SENT {} COOKIES".format(len(_kwargs["cookies"])))
+            logger.debug("SENT %s COOKIES", len(_kwargs["cookies"]))  # type: ignore
 
         if self.req_callback is not None:
             _kwargs = self.req_callback(method, url, **_kwargs)

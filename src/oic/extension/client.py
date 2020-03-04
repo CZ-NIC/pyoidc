@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import warnings
 
 from jwkest import b64e
 
@@ -13,6 +14,7 @@ from oic.oauth2.exception import Unsupported
 from oic.oauth2.message import ErrorResponse
 from oic.utils.http_util import SUCCESSFUL
 from oic.utils.sanitize import sanitize
+from oic.utils.settings import OauthClientSettings
 
 logger = logging.getLogger(__name__)
 
@@ -36,17 +38,26 @@ class Client(oauth2.Client):
         client_id=None,
         client_authn_method=None,
         keyjar=None,
-        verify_ssl=True,
+        verify_ssl=None,
         config=None,
         message_factory=ExtensionMessageFactory,
+        settings=None,
     ):
+        self.settings = settings or OauthClientSettings()
+        if verify_ssl is not None:
+            warnings.warn(
+                "`verify_ssl` is deprecated, please use `settings` instead if you need to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.verify_ssl = verify_ssl
         super().__init__(
             client_id=client_id,
             client_authn_method=client_authn_method,
             keyjar=keyjar,
-            verify_ssl=verify_ssl,
             config=config,
             message_factory=message_factory,
+            settings=self.settings,
         )
         self.allow = {}
         self.request2endpoint.update(

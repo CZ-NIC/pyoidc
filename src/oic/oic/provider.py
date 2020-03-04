@@ -5,6 +5,7 @@ import logging
 import socket
 import time
 import uuid
+import warnings
 from functools import cmp_to_key
 from http.cookies import SimpleCookie
 from typing import Any
@@ -86,6 +87,8 @@ from oic.utils.sdb import ExpiredToken
 from oic.utils.sdb import WrongTokenType
 from oic.utils.sdb import session_get
 from oic.utils.session_backend import AuthnEvent
+from oic.utils.settings import OicProviderSettings
+from oic.utils.settings import PyoidcSettings
 from oic.utils.template_render import render_template
 from oic.utils.time_util import utc_time_sans_frac
 
@@ -237,7 +240,7 @@ class Provider(AProvider):
         hostname="",
         template_lookup=None,
         template=None,
-        verify_ssl=True,
+        verify_ssl=None,
         capabilities=None,
         schema=OpenIDSchema,
         jwks_uri="",
@@ -251,7 +254,23 @@ class Provider(AProvider):
         post_logout_page=None,
         self_signing_alg="RS256",
         logout_path="",
+        settings: PyoidcSettings = None,
     ):
+        self.settings = settings or OicProviderSettings()
+        if verify_ssl is not None:
+            warnings.warn(
+                "`verify_ssl` is deprecated, please use `settings` instead if you need to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.verify_ssl = verify_ssl
+        if client_cert is not None:
+            warnings.warn(
+                "`client_cert` is deprecated, please use `settings` instead if you need to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.client_cert = client_cert
 
         # This has to be defined before calling super()
         self.extra_claims = extra_claims
@@ -267,13 +286,12 @@ class Provider(AProvider):
             client_authn,
             symkey,
             urlmap,
-            verify_ssl=verify_ssl,
-            client_cert=client_cert,
             message_factory=message_factory,
+            settings=self.settings,
         )
         # Should be a OIC Server not an OAuth2 server
         self.server = Server(
-            keyjar=keyjar, verify_ssl=verify_ssl, message_factory=message_factory
+            keyjar=keyjar, message_factory=message_factory, settings=self.settings
         )
         # Same keyjar
         self.keyjar = self.server.keyjar  # type: KeyJar
@@ -308,7 +326,7 @@ class Provider(AProvider):
         self.schema = schema
 
         # Logout connected attributes
-        self.httpc = PBase(verify_ssl=verify_ssl, keyjar=self.keyjar)
+        self.httpc = PBase(keyjar=self.keyjar, settings=self.settings)
         self.post_logout_page = post_logout_page
         self.signing_alg = self_signing_alg
         self.logout_path = logout_path

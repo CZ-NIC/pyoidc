@@ -1,4 +1,5 @@
 import logging
+import warnings
 from typing import Any  # noqa
 from typing import Dict  # noqa
 from typing import Optional  # noqa
@@ -19,6 +20,8 @@ from oic.oic.provider import Provider
 from oic.utils.http_util import Response
 from oic.utils.keyio import KeyJar
 from oic.utils.sanitize import sanitize
+from oic.utils.settings import OicClientSettings
+from oic.utils.settings import OicProviderSettings
 
 __author__ = "rohe0002"
 
@@ -67,8 +70,17 @@ class ClaimsServer(Provider):
         keyjar=None,
         hostname="",
         dist_claims_mode=None,
-        verify_ssl=True,
+        verify_ssl=None,
+        settings=None,
     ):
+        self.settings = settings or OicProviderSettings()
+        if verify_ssl is not None:
+            warnings.warn(
+                "`verify_ssl` is deprecated, please use `settings` instead if you need to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.verify_ssl = verify_ssl
         Provider.__init__(
             self,
             name,
@@ -82,7 +94,7 @@ class ClaimsServer(Provider):
             urlmap,
             keyjar,
             hostname,
-            verify_ssl=verify_ssl,
+            settings=self.settings,
         )
 
         if keyjar is None:
@@ -176,9 +188,17 @@ class ClaimsServer(Provider):
 
 
 class ClaimsClient(Client):
-    def __init__(self, client_id=None, verify_ssl=True):
+    def __init__(self, client_id=None, verify_ssl=None, settings=None):
+        self.settings = settings or OicClientSettings()
+        if verify_ssl is not None:
+            warnings.warn(
+                "`verify_ssl` is deprecated, please use `settings` instead if you need to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.verify_ssl = verify_ssl
 
-        Client.__init__(self, client_id, verify_ssl=verify_ssl)
+        Client.__init__(self, client_id, settings=self.settings)
 
         self.request2endpoint = REQUEST2ENDPOINT.copy()
         self.request2endpoint["UserClaimsRequest"] = "userclaims_endpoint"

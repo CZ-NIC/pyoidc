@@ -2,7 +2,11 @@ import alabaster
 
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
 ]
+
+autoclass_content = 'both'  # Merge the __init__ docstring into the class docstring.
+autodoc_member_order = 'bysource'  # Order by source ordering
 
 templates_path = ['_templates']
 

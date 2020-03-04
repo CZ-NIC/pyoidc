@@ -1,5 +1,6 @@
 import logging
 import time
+import warnings
 from hashlib import sha256
 from typing import Dict  # noqa
 
@@ -15,6 +16,7 @@ from oic.oauth2.message import AuthorizationResponse
 from oic.oauth2.message import Message
 from oic.utils import http_util
 from oic.utils.sanitize import sanitize
+from oic.utils.settings import OauthConsumerSettings
 
 __author__ = "rohe0002"
 
@@ -108,9 +110,18 @@ class Consumer(Client):
         scope="",
         flow_type="",
         password=None,
+        settings=None,
     ):
         """
         Initialize a Consumer instance.
+
+        Keyword Args:
+            settings
+                Instance of :class:`OauthConsumerSettings` with configuration options.
+                Currently used settings are:
+                 - verify_ssl
+                 - client_cert
+                 - timeout
 
         :param session_db: Where info are kept about sessions acts like a
             dictionary
@@ -121,10 +132,35 @@ class Consumer(Client):
         :param scope:
         :param flow_type:
         """
+        self.settings = settings or OauthConsumerSettings()
         if client_config is None:
             client_config = {}
+        if "verify_ssl" in client_config:
+            warnings.warn(
+                "Setting `verify_ssl` in `client_config` is deprecated, please use `settings` instead if you need "
+                "to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.verify_ssl = client_config.pop("verify_ssl")
+        if "client_cert" in client_config:
+            warnings.warn(
+                "Setting `client_cert` in `client_config` is deprecated, please use `settings` instead if you need "
+                "to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.client_cert = client_config.pop("client_cert")
+        if "timeout" in client_config:
+            warnings.warn(
+                "Setting `timeout` in `client_config` is deprecated, please use `settings` instead if you need "
+                "to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.timeout = client_config.pop("timeout")
 
-        Client.__init__(self, **client_config)
+        Client.__init__(self, settings=self.settings, **client_config)
 
         self.authz_page = authz_page
         self.response_type = response_type

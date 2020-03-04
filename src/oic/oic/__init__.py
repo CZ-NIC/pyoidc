@@ -69,6 +69,9 @@ from oic.utils import time_util
 from oic.utils.http_util import Response
 from oic.utils.keyio import KeyJar
 from oic.utils.sanitize import sanitize
+from oic.utils.settings import OicClientSettings
+from oic.utils.settings import OicServerSettings
+from oic.utils.settings import PyoidcSettings
 from oic.utils.webfinger import OIC_ISSUER
 from oic.utils.webfinger import WebFinger
 
@@ -329,22 +332,47 @@ class Client(oauth2.Client):
         client_prefs=None,
         client_authn_method=None,
         keyjar=None,
-        verify_ssl=True,
+        verify_ssl=None,
         config=None,
         client_cert=None,
         requests_dir="requests",
         message_factory: Type[MessageFactory] = OIDCMessageFactory,
+        settings: PyoidcSettings = None,
     ):
+        """
+        Initialize the instance.
 
+        Keyword Args:
+            settings
+                Instance of :class:`OauthClientSettings` with configuration options.
+                Currently used settings are:
+                 - verify_ssl
+                 - client_cert
+                 - timeout
+        """
+        self.settings = settings or OicClientSettings()
+        if verify_ssl is not None:
+            warnings.warn(
+                "`verify_ssl` is deprecated, please use `settings` instead if you need to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.verify_ssl = verify_ssl
+        if client_cert is not None:
+            warnings.warn(
+                "`client_cert` is deprecated, please use `settings` instead if you need to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.client_cert = client_cert
         oauth2.Client.__init__(
             self,
             client_id,
             client_authn_method=client_authn_method,
             keyjar=keyjar,
-            verify_ssl=verify_ssl,
             config=config,
-            client_cert=client_cert,
             message_factory=message_factory,
+            settings=self.settings,
         )
 
         self.file_store = "./file/"
@@ -1479,19 +1507,39 @@ class Server(oauth2.Server):
 
     def __init__(
         self,
-        verify_ssl: bool = True,
+        verify_ssl: bool = None,
         keyjar: KeyJar = None,
         client_cert: Union[str, Tuple[str, str]] = None,
-        timeout: int = 5,
+        timeout: float = None,
         message_factory: Type[MessageFactory] = OIDCMessageFactory,
+        settings: PyoidcSettings = None,
     ):
         """Initialize the server."""
+        self.settings = settings or OicServerSettings()
+        if verify_ssl is not None:
+            warnings.warn(
+                "`verify_ssl` is deprecated, please use `settings` instead if you need to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.verify_ssl = verify_ssl
+        if client_cert is not None:
+            warnings.warn(
+                "`client_cert` is deprecated, please use `settings` instead if you need to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.client_cert = client_cert
+        if timeout is not None:
+            warnings.warn(
+                "`timeout` is deprecated, please use `settings` instead if you need to set a non-default value.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.settings.timeout = timeout
+
         super().__init__(
-            verify_ssl=verify_ssl,
-            keyjar=keyjar,
-            client_cert=client_cert,
-            timeout=timeout,
-            message_factory=message_factory,
+            keyjar=keyjar, message_factory=message_factory, settings=self.settings,
         )
 
     @staticmethod
