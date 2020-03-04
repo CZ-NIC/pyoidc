@@ -10,7 +10,11 @@ The format is based on the [KeepAChangeLog] project.
 ### Added
 - [#739] Better error message for providers which return HTTP Error 405 on userinfo
 
-[#739] https://github.com/OpenIDC/pyoidc/pull/739/
+### Removed
+- [#676] Removed deprecated message factory and related stuff
+
+[#676]: https://github.com/OpenIDC/pyoidc/pull/676
+[#739]: https://github.com/OpenIDC/pyoidc/pull/739/
 
 ## 1.2.0 [2020-02-05]
 
