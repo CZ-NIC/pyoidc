@@ -1362,30 +1362,9 @@ def token_callback(endp):
     return "abcdef"
 
 
-def fake_request(*args, **kwargs):
-    # FIXME: Replace with responses
-    r = Response()
-    r.status_code = 200
-
-    try:
-        _token = kwargs["headers"]["Authorization"]
-    except KeyError:
-        r._content = b'{"shoe_size": 10}'  # type: ignore
-    else:
-        _token = _token[7:]
-        if _token == "abcdef":
-            r._content = b'{"shoe_size": 11}'  # type: ignore
-        else:
-            r._content = b'{"shoe_size": 12}'  # type: ignore
-
-    r.headers = {"content-type": "application/json"}
-    return r
-
-
 def test_fetch_distributed_claims_with_callback():
     client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
 
-    client.http_request = fake_request  # type: ignore # FIXME: Replace with responses?
     userinfo = {
         "sub": "foobar",
         "_claim_names": {"shoe_size": "src1"},
@@ -1394,7 +1373,15 @@ def test_fetch_distributed_claims_with_callback():
         },
     }
 
-    _ui = client.fetch_distributed_claims(userinfo, token_callback)
+    with responses.RequestsMock() as rsps:
+        rsps.add(
+            rsps.GET,
+            "https://bank.example.com/claim_source",
+            content_type="application/json",
+            json={"shoe_size": 11},
+        )
+        _ui = client.fetch_distributed_claims(userinfo, token_callback)
+        assert rsps._calls[0].request.headers["Authorization"] == "Bearer abcdef"
 
     assert _ui["shoe_size"] == 11
     assert _ui["sub"] == "foobar"
@@ -1405,7 +1392,6 @@ def test_fetch_distributed_claims_with_callback():
 def test_fetch_distributed_claims_with_no_callback():
     client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
 
-    client.http_request = fake_request  # type: ignore # FIXME: Replace with responses?
     userinfo = {
         "sub": "foobar",
         "_claim_names": {"shoe_size": "src1"},
@@ -1414,7 +1400,15 @@ def test_fetch_distributed_claims_with_no_callback():
         },
     }
 
-    _ui = client.fetch_distributed_claims(userinfo, callback=None)
+    with responses.RequestsMock() as rsps:
+        rsps.add(
+            rsps.GET,
+            "https://bank.example.com/claim_source",
+            content_type="application/json",
+            json={"shoe_size": 10},
+        )
+        _ui = client.fetch_distributed_claims(userinfo, callback=None)
+        assert "Authorization" not in rsps._calls[0].request.headers.keys()
 
     assert _ui["shoe_size"] == 10
     assert _ui["sub"] == "foobar"
@@ -1423,7 +1417,6 @@ def test_fetch_distributed_claims_with_no_callback():
 def test_fetch_distributed_claims_with_explicit_no_token():
     client = Client(CLIENT_ID, client_authn_method=CLIENT_AUTHN_METHOD)
 
-    client.http_request = fake_request  # type: ignore # FIXME: Replace with responses?
     userinfo = {
         "sub": "foobar",
         "_claim_names": {"shoe_size": "src1"},
@@ -1435,7 +1428,15 @@ def test_fetch_distributed_claims_with_explicit_no_token():
         },
     }
 
-    _ui = client.fetch_distributed_claims(userinfo, callback=None)
+    with responses.RequestsMock() as rsps:
+        rsps.add(
+            rsps.GET,
+            "https://bank.example.com/claim_source",
+            content_type="application/json",
+            json={"shoe_size": 10},
+        )
+        _ui = client.fetch_distributed_claims(userinfo, callback=None)
+        assert "Authorization" not in rsps._calls[0].request.headers.keys()
 
     assert _ui["shoe_size"] == 10
     assert _ui["sub"] == "foobar"
