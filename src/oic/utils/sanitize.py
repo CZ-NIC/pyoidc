@@ -1,5 +1,5 @@
 import re
-from collections import Mapping
+from collections.abc import Mapping
 from textwrap import dedent
 
 SENSITIVE_THINGS = {
