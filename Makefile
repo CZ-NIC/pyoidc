@@ -43,10 +43,10 @@ test:
 .PHONY: test
 
 isort:
-	@pipenv run isort --recursive $(OICDIR) $(TESTDIR)
+	@pipenv run isort $(OICDIR) $(TESTDIR)
 
 check-isort:
-	@pipenv run isort --recursive --diff --check-only $(OICDIR) $(TESTDIR)
+	@pipenv run isort --diff --check-only $(OICDIR) $(TESTDIR)
 .PHONY: isort check-isort
 
 blacken:
