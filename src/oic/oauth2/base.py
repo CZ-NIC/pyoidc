@@ -1,7 +1,7 @@
 import copy
-import http.cookiejar as cookielib
 import logging
 import warnings
+from http import cookiejar as cookielib
 from http.cookies import CookieError
 from http.cookies import SimpleCookie
 
