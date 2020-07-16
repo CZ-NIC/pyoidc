@@ -7,9 +7,9 @@ from oic.oic.message import AuthorizationRequest
 from oic.utils.authn.client import get_client_id
 
 CDB = {
-    "number5": {"client_secret": "drickyoughurt"},
+    "number5": {"client_secret": "drickyoughurt*"},
     "token_client": {},
-    "expired": {"client_secret": "drickyoughurt", "client_secret_expires_at": 1},
+    "expired": {"client_secret": "drickyoughurt*", "client_secret_expires_at": 1},
     "secret_token": "token_client",
     "expired_token": "expired",
 }
@@ -45,11 +45,11 @@ class TestGetClientID(object):
             get_client_id(self.cdb, AuthorizationRequest(), "mumbo jumbo")
 
     def test_basic_authn_client_ok(self):
-        authn = "Basic " + b64encode(b"number5:drickyoughurt").decode()
+        authn = "Basic " + b64encode(b"number5:drickyoughurt*").decode()
         assert get_client_id(self.cdb, AuthorizationRequest(), authn)
 
     def test_basic_authn_client_missing(self):
-        authn = "Basic " + b64encode(b"missing:drickyoughurt").decode()
+        authn = "Basic " + b64encode(b"missing:drickyoughurt*").decode()
         with pytest.raises(FailedAuthentication):
             get_client_id(self.cdb, AuthorizationRequest(), authn)
 
@@ -59,7 +59,7 @@ class TestGetClientID(object):
             get_client_id(self.cdb, AuthorizationRequest(), authn)
 
     def test_basic_authn_client_invalid(self):
-        authn = "Basic " + b64encode(b"expired:drickyoughurt").decode()
+        authn = "Basic " + b64encode(b"expired:drickyoughurt*").decode()
         with pytest.raises(FailedAuthentication):
             get_client_id(self.cdb, AuthorizationRequest(), authn)
 
