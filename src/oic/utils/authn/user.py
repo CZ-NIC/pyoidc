@@ -3,7 +3,6 @@ import hmac
 import logging
 import time
 from urllib.parse import parse_qs
-from urllib.parse import unquote_plus
 from urllib.parse import urlencode
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
@@ -394,8 +393,6 @@ class BasicAuthn(UserAuthnMethod):
 
         _decoded = as_unicode(base64.b64decode(authorization))
         (user, pwd) = _decoded.split(":")
-        user = unquote_plus(user)
-        pwd = unquote_plus(pwd)
         self.verify_password(user, pwd)
         return {"uid": user}, time.time()
 

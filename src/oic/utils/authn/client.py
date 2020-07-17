@@ -1,6 +1,5 @@
 import base64
 import logging
-from urllib.parse import quote_plus
 
 from jwkest import Invalid
 from jwkest import MissingKey

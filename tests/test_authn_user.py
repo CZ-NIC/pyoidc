@@ -1,5 +1,4 @@
 import base64
-from urllib.parse import quote_plus
 
 import pytest
 
@@ -21,7 +20,7 @@ def test_basic_authn_authenticate_as():
     ba = BasicAuthn(None, pwd=pwd_database)
 
     for user, passwd in pwd_database.items():
-        credentials = "{}:{}".format(quote_plus(user), quote_plus(passwd))
+        credentials = "{}:{}".format(user, passwd)
 
         authz = base64.b64encode(credentials.encode("utf-8")).decode("utf-8")
         authorization_string = "Basic {}".format(authz)

@@ -2,7 +2,6 @@ import base64
 import os
 from unittest.mock import Mock
 from unittest.mock import patch
-from urllib.parse import quote_plus
 
 import pytest
 from jwkest import as_bytes
@@ -63,7 +62,7 @@ class TestClientSecretBasic(object):
 
         csb = ClientSecretBasic(client)
         http_args = csb.construct(cis)
-        cred = "{}:{}".format(quote_plus("A"), quote_plus("boarding pass"))
+        cred = "{}:{}".format("A", "boarding pass")
         assert http_args == {
             "headers": {
                 "Authorization": "Basic {}".format(
