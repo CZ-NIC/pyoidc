@@ -8,9 +8,12 @@ The format is based on the [KeepAChangeLog] project.
 ## Unreleased
 
 ### Added
+- [#755] Kwargs for ClientCredential encoding. If `encoding` is `"application/x-www-form-urlencoded"` or is not 
+provided, the user-pass will be encoded using the `quote_plus`. If provided, the encoding will be used directly.
 - [#739] Better error message for providers which return HTTP Error 405 on userinfo
 - [#723] Add settings class to handle settings related to Client and Server
 
+[#755]: https://github.com/OpenIDC/pyoidc/pull/755/
 [#723]: https://github.com/OpenIDC/pyoidc/pull/723/
 [#739]: https://github.com/OpenIDC/pyoidc/pull/739/
 

@@ -129,11 +129,16 @@ class ClientSecretBasic(ClientAuthnMethod):
                 user.encode(kwargs["encoding"]),
                 passwd.encode(kwargs["encoding"]),
             )
+            encoding = kwargs["encoding"]
         else:
-            user, passwd = quote_plus(user), quote_plus(passwd)
+            user, passwd = (
+                quote_plus(user).encode("utf-8"),
+                quote_plus(passwd).encode("utf-8"),
+            )
+            encoding = "utf-8"
 
         credentials = "{}:{}".format(user, passwd)
-        authz = base64.b64encode(credentials.encode("utf-8")).decode("utf-8")
+        authz = base64.b64encode(credentials).decode(encoding)
         http_args["headers"]["Authorization"] = "Basic {}".format(authz)
 
         try:
