@@ -8,8 +8,9 @@ The format is based on the [KeepAChangeLog] project.
 ## Unreleased
 
 ### Added
-- [#755] Kwargs for ClientCredential encoding. If `encoding` is `"application/x-www-form-urlencoded"` or is not 
-provided, the user-pass will be encoded using the `quote_plus`. If provided, the encoding will be used directly.
+- [#755] Kwargs for ClientCredential encoding and url_encoded. If `url_encoded` is `True` or is not 
+provided, the user-pass will be encoded using `quote_plus`. The `encoding` kwargs will be used to `encode` to bytes
+before encoding in base64. Then, the base64 will be decoded using this encoding also.
 - [#739] Better error message for providers which return HTTP Error 405 on userinfo
 - [#723] Add settings class to handle settings related to Client and Server
 

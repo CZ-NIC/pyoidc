@@ -123,21 +123,20 @@ class ClientSecretBasic(ClientAuthnMethod):
 
         if (
             "encoding" in kwargs
-            and kwargs["encoding"] != "application/x-www-form-urlencoded"
         ):
-            user, passwd = (
-                user.encode(kwargs["encoding"]),
-                passwd.encode(kwargs["encoding"]),
-            )
             encoding = kwargs["encoding"]
         else:
-            user, passwd = (
-                quote_plus(user).encode("utf-8"),
-                quote_plus(passwd).encode("utf-8"),
-            )
             encoding = "utf-8"
 
-        credentials = b':'.join((user, passwd))
+        if "url_encoded" in kwargs:
+            url_encoded = kwargs["url_encoded"]
+        else:
+            url_encoded = True
+
+        if url_encoded:
+            user, passwd = quote_plus(user), quote_plus(passwd)
+
+        credentials = b':'.join((user.encode(encoding), passwd.encode(encoding)))
         authz = base64.b64encode(credentials).decode(encoding)
         http_args["headers"]["Authorization"] = "Basic {}".format(authz)
 
