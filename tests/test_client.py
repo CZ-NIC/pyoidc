@@ -57,37 +57,26 @@ def client():
     return cli
 
 
-@pytest.fixture
-def client_factory():
-    def _client_factory(**kwargs):
-        cli = Client(
-            client_id="A", config={"issuer": "https://example.com/as"}, **kwargs
-        )
-        cli.client_secret = "boarding pass"
-        return cli
-
-    return _client_factory
-
-
 class TestClientSecretBasic(object):
     @pytest.mark.parametrize(
         "encoding", ("latin1", "application/x-www-form-urlencoded", None)
     )
-    def test_construct(self, client_factory, encoding):
+    def test_construct(self, client, encoding):
+
+        cis = AccessTokenRequest(code="foo", redirect_uri="http://example.com")
+        csb = ClientSecretBasic(client)
 
         if encoding is None:
-            client = client_factory()
             cred = "{}:{}".format(quote_plus("A"), quote_plus("boarding pass"))
+            http_args = csb.construct(cis)
+        elif encoding == "application/x-www-form-urlencoded":
+            cred = "{}:{}".format(quote_plus("A"), quote_plus("boarding pass"))
+            http_args = csb.construct(cis, encoding=encoding)
         else:
-            client = client_factory(encoding=encoding)
+            http_args = csb.construct(cis, encoding=encoding)
             cred = "{}:{}".format(
                 "A".encode(encoding), "boarding pass".encode(encoding)
             )
-
-        cis = AccessTokenRequest(code="foo", redirect_uri="http://example.com")
-
-        csb = ClientSecretBasic(client)
-        http_args = csb.construct(cis)
 
         assert http_args == {
             "headers": {
