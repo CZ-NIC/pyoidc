@@ -121,7 +121,18 @@ class ClientSecretBasic(ClientAuthnMethod):
         if "headers" not in http_args:
             http_args["headers"] = {}
 
-        credentials = "{}:{}".format(quote_plus(user), quote_plus(passwd))
+        if (
+            "encoding" in kwargs
+            and kwargs["encoding"] != "application/x-www-form-urlencoded"
+        ):
+            user, passwd = (
+                user.encode(kwargs["encoding"]),
+                passwd.encode(kwargs["encoding"]),
+            )
+        else:
+            user, passwd = quote_plus(user), quote_plus(passwd)
+
+        credentials = "{}:{}".format(user, passwd)
         authz = base64.b64encode(credentials.encode("utf-8")).decode("utf-8")
         http_args["headers"]["Authorization"] = "Basic {}".format(authz)
 
