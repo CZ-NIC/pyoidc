@@ -137,7 +137,7 @@ class ClientSecretBasic(ClientAuthnMethod):
             )
             encoding = "utf-8"
 
-        credentials = "{}:{}".format(user, passwd)
+        credentials = b':'.join((user, passwd))
         authz = base64.b64encode(credentials).decode(encoding)
         http_args["headers"]["Authorization"] = "Basic {}".format(authz)
 
