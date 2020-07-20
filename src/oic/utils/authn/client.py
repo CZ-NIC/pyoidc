@@ -121,9 +121,7 @@ class ClientSecretBasic(ClientAuthnMethod):
         if "headers" not in http_args:
             http_args["headers"] = {}
 
-        if (
-            "encoding" in kwargs
-        ):
+        if "encoding" in kwargs:
             encoding = kwargs["encoding"]
         else:
             encoding = "utf-8"
@@ -136,7 +134,7 @@ class ClientSecretBasic(ClientAuthnMethod):
         if url_encoded:
             user, passwd = quote_plus(user), quote_plus(passwd)
 
-        credentials = b':'.join((user.encode(encoding), passwd.encode(encoding)))
+        credentials = b":".join((user.encode(encoding), passwd.encode(encoding)))
         authz = base64.b64encode(credentials).decode(encoding)
         http_args["headers"]["Authorization"] = "Basic {}".format(authz)
 
