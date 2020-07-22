@@ -92,7 +92,7 @@ class ClientSecretBasic(ClientAuthnMethod):
 
     def construct(
         self,
-        cis,
+        cis=None,
         request_args=None,
         http_args=None,
         url_encoded: bool = True,
