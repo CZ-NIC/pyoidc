@@ -232,7 +232,9 @@ class Provider(object):
             )
         self.cdb = cdb
         self.server = server_cls(
-            keyjar=keyjar, message_factory=message_factory, settings=self.settings,
+            keyjar=keyjar,
+            message_factory=message_factory,
+            settings=self.settings,
         )
 
         self.authn_broker = authn_broker

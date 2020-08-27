@@ -330,8 +330,10 @@ class TestClient(object):
 
         assert uri == self.authorization_endpoint
         body_elts = body.split("&")
-        expected_body = "state=hmm&redirect_uri={}&response_type=code&client_id=1".format(
-            quote(self.redirect_uri, safe="")
+        expected_body = (
+            "state=hmm&redirect_uri={}&response_type=code&client_id=1".format(
+                quote(self.redirect_uri, safe="")
+            )
         )
         expected_body_elts = expected_body.split("&")
         assert set(body_elts) == set(expected_body_elts)

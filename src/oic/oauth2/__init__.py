@@ -450,7 +450,11 @@ class Client(PBase):
             request_args = {}
         if not issubclass(
             request,
-            (ROPCAccessTokenRequest, CCAccessTokenRequest, ExtensionTokenRequest,),
+            (
+                ROPCAccessTokenRequest,
+                CCAccessTokenRequest,
+                ExtensionTokenRequest,
+            ),
         ):
             grant = self.get_grant(**kwargs)
 

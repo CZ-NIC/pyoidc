@@ -590,8 +590,8 @@ class TestAuthorizationRequest(object):
         )
         ue = ar.to_urlencoded()
         ue_splits = ue.split("&")
-        expected_ue_splits = "scope=openid+foxtrot&response_type=code+token&client_id=foobar".split(
-            "&"
+        expected_ue_splits = (
+            "scope=openid+foxtrot&response_type=code+token&client_id=foobar".split("&")
         )
         assert _eq(ue_splits, expected_ue_splits)
 

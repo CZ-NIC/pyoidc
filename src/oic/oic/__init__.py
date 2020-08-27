@@ -1539,7 +1539,9 @@ class Server(oauth2.Server):
             self.settings.timeout = timeout
 
         super().__init__(
-            keyjar=keyjar, message_factory=message_factory, settings=self.settings,
+            keyjar=keyjar,
+            message_factory=message_factory,
+            settings=self.settings,
         )
 
     @staticmethod
