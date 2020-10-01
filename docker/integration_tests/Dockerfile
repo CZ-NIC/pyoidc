@@ -9,12 +9,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends\
     libgconf-2-4 \
     libnss3-tools \
     ntp \
-    wget
+    wget \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 RUN wget -q https://deb.nodesource.com/setup_12.x -O - | bash -
 RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
 RUN echo 'deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main' | tee /etc/apt/sources.list.d/google-chrome.list
 RUN apt-get update && apt-get install -y --no-install-recommends \
     google-chrome-stable \
+    libxss1 \
     nodejs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
