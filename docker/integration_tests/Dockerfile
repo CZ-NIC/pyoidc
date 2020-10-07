@@ -18,6 +18,7 @@ RUN echo 'deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main' |
 RUN apt-get update && apt-get install -y --no-install-recommends \
     google-chrome-stable \
     libxss1 \
+    libxtst6 \
     nodejs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
