@@ -1,8 +1,8 @@
 import logging
 from http import cookiejar as http_cookiejar
 from http.cookiejar import http2time  # type: ignore
-from typing import Any  # noqa
-from typing import Dict  # noqa
+from typing import Any
+from typing import Dict
 from urllib.parse import parse_qs
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
@@ -26,7 +26,7 @@ PAIRS = {
     "path": "path_specified",
 }
 
-ATTRS = {
+ATTRS: Dict[str, Any] = {
     "version": None,
     "name": "",
     "value": None,
@@ -44,7 +44,7 @@ ATTRS = {
     "comment_url": None,
     "rest": "",
     "rfc2109": True,
-}  # type: Dict[str, Any]
+}
 
 
 def get_or_post(

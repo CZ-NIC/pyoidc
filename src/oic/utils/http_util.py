@@ -6,8 +6,8 @@ import os
 import time
 from http import client
 from http.cookies import SimpleCookie
-from typing import List  # noqa
-from typing import Tuple  # noqa
+from typing import List
+from typing import Tuple
 from urllib.parse import quote
 
 from jwkest import as_unicode
@@ -50,7 +50,7 @@ class Response(object):
 
         self.message = message
 
-        self.headers = []  # type: List[Tuple[str, str]]
+        self.headers: List[Tuple[str, str]] = []
         self.headers.extend(kwargs.get("headers", []))
         _content_type = kwargs.get("content", self._content_type)
 
@@ -362,7 +362,7 @@ def make_cookie(
     :type enc_key: byte string
     :return: A tuple to be added to headers
     """
-    cookie = SimpleCookie()  # type: SimpleCookie
+    cookie: SimpleCookie = SimpleCookie()
     if not timestamp:
         timestamp = str(int(time.time()))
 
@@ -475,7 +475,7 @@ def parse_cookie(name, seed, kaka, enc_key=None):
 
 def cookie_parts(name, kaka):
     if not isinstance(kaka, SimpleCookie):
-        cookie_obj = SimpleCookie(str(kaka))  # type: SimpleCookie
+        cookie_obj: SimpleCookie = SimpleCookie(str(kaka))
     else:
         cookie_obj = kaka
     morsel = cookie_obj.get(name)

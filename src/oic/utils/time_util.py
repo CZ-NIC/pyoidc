@@ -18,7 +18,7 @@ import sys
 import time
 from datetime import datetime
 from datetime import timedelta
-from typing import Dict  # noqa
+from typing import Dict
 
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 TIME_FORMAT_WITH_FRAGMENT = re.compile(
@@ -80,7 +80,7 @@ def parse_duration(duration):
     assert duration[index] == "P"  # nosec
     index += 1
 
-    dic = dict([(typ, 0) for (code, typ) in D_FORMAT])  # type: Dict[str, float]
+    dic: Dict[str, float] = dict([(typ, 0) for (code, typ) in D_FORMAT])
 
     for code, typ in D_FORMAT:
         if duration[index] == "-":

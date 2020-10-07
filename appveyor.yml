@@ -1,10 +1,10 @@
 environment:
   matrix:
-    - PYTHON: "C:\\Python35-x64"
-      PYTHON_ARCH: "64"
     - PYTHON: "C:\\Python36-x64"
       PYTHON_ARCH: "64"
     - PYTHON: "C:\\Python37-x64"
+      PYTHON_ARCH: "64"
+    - PYTHON: "C:\\Python38-x64"
       PYTHON_ARCH: "64"
 
 build: off

@@ -1,6 +1,6 @@
 import json
 import uuid
-from typing import Dict  # noqa
+from typing import Dict
 
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import SINGLE_REQUIRED_STRING
@@ -34,7 +34,7 @@ class JWTToken(Token, JWT):
         kwargs.pop("token_storage", None)
         JWT.__init__(self, keyjar, msgtype=TokenAssertion, **kwargs)
         self.lt_pattern = lt_pattern or {}
-        self.db = {}  # type: Dict[str,str]
+        self.db: Dict[str, str] = {}
         self.session_info = {"": 600}
         self.exp_args = ["sinfo"]
         self.extra_claims = extra_claims or {}

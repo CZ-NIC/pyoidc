@@ -1,6 +1,6 @@
 import time
-from typing import List  # noqa
-from typing import Optional  # noqa
+from typing import List
+from typing import Optional
 
 from oic.oauth2.message import AccessTokenResponse
 from oic.oauth2.message import AuthorizationResponse
@@ -11,11 +11,11 @@ __author__ = "roland"
 
 class Token(object):
     def __init__(self, resp=None):
-        self.scope = []  # type: List[str]
+        self.scope: List[str] = []
         self.token_expiration_time = 0
         self.access_token = None
         self.refresh_token = None
-        self.token_type = None  # type: Optional[str]
+        self.token_type: Optional[str] = None
         self.replaced = False
         self.id_token = None
 
@@ -69,9 +69,9 @@ class Grant(object):
         self.grant_expiration_time = 0
         self.exp_in = exp_in
         self.seed = seed
-        self.tokens = []  # type: List[Token]
+        self.tokens: List[Token] = []
         self.id_token = None
-        self.code = None  # type: Optional[str]
+        self.code: Optional[str] = None
         if resp:
             self.add_code(resp)
             self.add_token(resp)

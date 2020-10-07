@@ -1,8 +1,6 @@
 import json
 import logging
 import time
-from typing import Any  # noqa
-from typing import Dict  # noqa
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
@@ -273,7 +271,7 @@ class TestProvider(object):
             _session_db,
             client_config=CLIENT_CONFIG,
             server_info=SERVER_INFO,
-            **CONSUMER_CONFIG
+            **CONSUMER_CONFIG,
         )
 
         sid, location = cons.begin(
@@ -327,7 +325,7 @@ class TestProvider(object):
             _session_db,
             client_config=CLIENT_CONFIG,
             server_info=SERVER_INFO,
-            **CONSUMER_CONFIG
+            **CONSUMER_CONFIG,
         )
 
         sid, location = cons.begin(
@@ -379,11 +377,11 @@ class TestProvider(object):
         )
         assert _eq(parse_qs(logcap.records[1].msg[15:]), parse_qs(expected[15:]))
         expected2 = {
-            u"code": "<REDACTED>",
-            u"client_secret": "<REDACTED>",
-            u"redirect_uri": u"http://example.com/authz",
-            u"client_id": "client1",
-            u"grant_type": "authorization_code",
+            "code": "<REDACTED>",
+            "client_secret": "<REDACTED>",
+            "redirect_uri": "http://example.com/authz",
+            "client_id": "client1",
+            "grant_type": "authorization_code",
         }
         # Don't try this at home, kids!
         # We have to eval() to a dict here because otherwise the arbitrary
@@ -391,9 +389,9 @@ class TestProvider(object):
         assert _eq(eval(logcap.records[2].msg[4:]), expected2)
         assert _eq(logcap.records[3].msg, "Verified Client ID: client1")
         expected3 = {
-            "redirect_uri": u"http://example.com/authz",
+            "redirect_uri": "http://example.com/authz",
             "client_secret": "<REDACTED>",
-            "code": u"<REDACTED>",
+            "code": "<REDACTED>",
             "client_id": "client1",
             "grant_type": "authorization_code",
         }
@@ -413,7 +411,7 @@ class TestProvider(object):
         }
         assert _eq(eval(logcap.records[5].msg[7:]), expected4)
         expected5 = {
-            "access_token": u"<REDACTED>",
+            "access_token": "<REDACTED>",
             "token_type": "Bearer",
             "refresh_token": "<REDACTED>",
         }

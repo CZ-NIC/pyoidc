@@ -1,7 +1,7 @@
 import copy
 import hashlib
 import logging
-from typing import Dict  # noqa
+from typing import Dict
 from urllib.parse import urlsplit
 
 from oic import oic
@@ -252,12 +252,12 @@ class OIDCClients(object):
         :param config: Imported configuration module
         :return:
         """
-        self.client = {}  # type: Dict[str, Client]
+        self.client: Dict[str, Client] = {}
         self.client_cls = Client
         self.config = config
         self.seed = seed or rndstr(16)
         self.seed = self.seed.encode("utf8")
-        self.path = {}  # type: Dict[str, str]
+        self.path: Dict[str, str] = {}
         self.base_url = base_url
         self.jwks_info = jwks_info
         self.verify_ssl = verify_ssl
@@ -388,7 +388,7 @@ class OIDCClients(object):
         client = self.client_cls(
             client_authn_method=CLIENT_AUTHN_METHOD,
             verify_ssl=self.verify_ssl,
-            **self.jwks_info
+            **self.jwks_info,
         )
 
         if userid:

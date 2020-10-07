@@ -1,8 +1,8 @@
 import logging
 import warnings
-from typing import Any  # noqa
-from typing import Dict  # noqa
-from typing import Optional  # noqa
+from typing import Any
+from typing import Dict
+from typing import Optional
 
 from oic import rndstr
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
@@ -108,7 +108,7 @@ class ClaimsServer(Provider):
 
         self.srvmethod = OICCServer(keyjar=keyjar)
         self.dist_claims_mode = dist_claims_mode
-        self.info_store = {}  # type: Dict[str, Any]
+        self.info_store: Dict[str, Any] = {}
         self.claims_userinfo_endpoint = ""
 
     def _aggregation(self, info):
@@ -149,7 +149,7 @@ class ClaimsServer(Provider):
 
         if "claims_names" in ucreq:
             claim_args = dict([(n, {"optional": True}) for n in ucreq["claims_names"]])
-            uic = Claims(**claim_args)  # type: Optional[Claims]
+            uic: Optional[Claims] = Claims(**claim_args)
         else:
             uic = None
 

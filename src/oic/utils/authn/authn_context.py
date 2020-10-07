@@ -1,6 +1,6 @@
 from functools import cmp_to_key
-from typing import Any  # noqa
-from typing import Dict  # noqa
+from typing import Any
+from typing import Dict
 
 from oic.utils.http_util import extract_from_request
 
@@ -25,7 +25,7 @@ CMP_TYPE = ["exact", "minimum", "maximum", "better"]
 
 class AuthnBroker(object):
     def __init__(self):
-        self.db = {"info": {}, "key": {}}  # type: Dict[str, Any]
+        self.db: Dict[str, Any] = {"info": {}, "key": {}}
         self.next = 0
 
     @staticmethod

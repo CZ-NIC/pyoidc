@@ -4,8 +4,8 @@ import logging
 import os
 from http.cookies import SimpleCookie
 from time import time
-from typing import Any  # noqa
-from typing import Dict  # noqa
+from typing import Any
+from typing import Dict
 from unittest.mock import Mock
 from unittest.mock import patch
 from urllib.parse import parse_qs
@@ -110,7 +110,7 @@ KEYJAR["number5"] = [KC_SYM2, KC_RSA]
 KEYJAR[""] = KC_RSA
 KEYJAR["https://connect-op.heroku.com"] = KC_RSA
 
-CDB = {
+CDB: Dict[str, Dict[str, Any]] = {
     "number5": {
         "password": "hemligt",
         "client_secret": "drickyoughurt",
@@ -146,7 +146,7 @@ CDB = {
         "token_endpoint_auth_method": "client_secret_post",
         "response_types": ["code", "token", "code id_token"],
     },
-}  # type: Dict[str, Dict[str, Any]]
+}
 
 USERDB = {
     "user": {
@@ -1647,7 +1647,7 @@ class TestProvider(object):
             "{}][{}".format(user, client_id), c_type, self.provider.sso_cookie_name
         )
         cookies_string = set_cookie[1]
-        all_cookies = SimpleCookie()  # type: SimpleCookie
+        all_cookies: SimpleCookie = SimpleCookie()
 
         try:
             cookies_string = cookies_string.decode()
@@ -1703,7 +1703,7 @@ class TestProvider(object):
 
     def _assert_cookies_expired(self, http_headers):
         cookies_string = ";".join([c[1] for c in http_headers if c[0] == "Set-Cookie"])
-        all_cookies = SimpleCookie()  # type: SimpleCookie
+        all_cookies: SimpleCookie = SimpleCookie()
 
         all_cookies.load(cookies_string)
 

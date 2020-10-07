@@ -175,7 +175,7 @@ class Consumer(Client):
                     "Please use `SessionBackend` to ensure proper API for the database.",
                     DeprecationWarning,
                 )
-            self.sso_db = sso_db  # type: SessionBackend
+            self.sso_db: SessionBackend = sso_db
         else:
             self.sso_db = DictSessionBackend()
 
@@ -418,7 +418,7 @@ class Consumer(Client):
                 info=query,
                 sformat="urlencoded",
                 keyjar=self.keyjar,
-                **kwargs
+                **kwargs,
             )
             if isinstance(atr, ErrorResponse):
                 raise TokenError(atr.get("error"), atr)

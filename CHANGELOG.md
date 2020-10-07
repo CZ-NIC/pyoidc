@@ -7,12 +7,16 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+### Changed
+- [#763] Drop python 3.5 support
+
 ### Added
 - [#739] Better error message for providers which return HTTP Error 405 on userinfo
 - [#723] Add settings class to handle settings related to Client and Server
 
 [#723]: https://github.com/OpenIDC/pyoidc/pull/723/
 [#739]: https://github.com/OpenIDC/pyoidc/pull/739/
+[#763]: https://github.com/OpenIDC/pyoidc/pull/763/
 
 ## 1.2.0 [2020-02-05]
 

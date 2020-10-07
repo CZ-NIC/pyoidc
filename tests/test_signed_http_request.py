@@ -112,7 +112,7 @@ def test_verify_strict_with_too_many(param):
             signature=result,
             strict_query_params_verification=True,
             strict_headers_verification=True,
-            **request_with_extra_params
+            **request_with_extra_params,
         )
 
 
@@ -138,7 +138,7 @@ def test_verify_not_strict(param):
         signature=result,
         strict_query_params_verification=False,
         strict_headers_verification=False,
-        **DEFAULT_DATA
+        **DEFAULT_DATA,
     )
 
 

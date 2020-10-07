@@ -1,8 +1,8 @@
 """Unittests for ClientDatabases."""
 import json
 from operator import itemgetter
-from typing import Any  # noqa
-from typing import Dict  # noqa
+from typing import Any
+from typing import Dict
 
 import pytest
 import responses
@@ -17,7 +17,7 @@ class TestBaseClientDatabase(object):
         """Test implementation."""
 
         def __init__(self):
-            self.db = {}  # type: Dict[str, Dict[str, Any]]
+            self.db: Dict[str, Dict[str, Any]] = {}
 
         def __getitem__(self, key):
             return self.db[key]

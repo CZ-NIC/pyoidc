@@ -6,10 +6,10 @@ import sys
 import traceback
 import warnings
 from functools import cmp_to_key
-from typing import Dict  # noqa - This is used for MyPy
-from typing import List  # noqa - This is used for MyPy
-from typing import Optional  # noqa - This is used for MyPy
-from typing import Union  # noqa - This is used for MyPy
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Union
 from urllib.parse import parse_qs
 from urllib.parse import splitquery  # type: ignore
 from urllib.parse import unquote
@@ -55,7 +55,7 @@ from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Unauthorized
 from oic.utils.http_util import make_cookie
-from oic.utils.keyio import KeyJar  # noqa
+from oic.utils.keyio import KeyJar
 from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed
 from oic.utils.session_backend import AuthnEvent
@@ -259,7 +259,7 @@ class Provider(object):
         self.default_acr = default_acr
 
         if urlmap is None:
-            self.urlmap = {}  # type: Dict[str, List[str]]
+            self.urlmap: Dict[str, List[str]] = {}
         else:
             self.urlmap = urlmap
 
@@ -272,7 +272,7 @@ class Provider(object):
         self.session_cookie_name = "pyoic_session"
         self.sso_cookie_name = "pyoidc_sso"
         self.baseurl = baseurl
-        self.keyjar = None  # type: Optional[KeyJar]
+        self.keyjar: Optional[KeyJar] = None
         self.trace = None
         self.events = None
         self.scopes = ["offline_access"]
@@ -391,7 +391,7 @@ class Provider(object):
         treated as a dictionary.
         """
         _pinfo = self.provider_features()
-        not_supported = {}  # type: Dict[str, Union[str, List[str]]]
+        not_supported: Dict[str, Union[str, List[str]]] = {}
         for key, val in capabilities.items():
             if isinstance(val, str):
                 if val not in _pinfo.get(key, ""):

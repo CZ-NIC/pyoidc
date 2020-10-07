@@ -136,7 +136,7 @@ class Client(oauth2.Client):
         extra_args=None,
         http_args=None,
         response_cls=None,
-        **kwargs
+        **kwargs,
     ):
 
         url, body, ht_args, _ = self.request_info(
@@ -161,7 +161,7 @@ class Client(oauth2.Client):
         request_args=None,
         extra_args=None,
         http_args=None,
-        **kwargs
+        **kwargs,
     ):
         request = self.message_factory.get_request_type("registration_endpoint")
         response_cls = self.message_factory.get_response_type("registration_endpoint")
@@ -173,7 +173,7 @@ class Client(oauth2.Client):
             extra_args=extra_args,
             http_args=http_args,
             response_cls=response_cls,
-            **kwargs
+            **kwargs,
         )
 
     def do_client_read_request(
@@ -183,7 +183,7 @@ class Client(oauth2.Client):
         request_args=None,
         extra_args=None,
         http_args=None,
-        **kwargs
+        **kwargs,
     ):
         request = self.message_factory.get_request_type("update_endpoint")
         response_cls = self.message_factory.get_response_type("update_endpoint")
@@ -195,7 +195,7 @@ class Client(oauth2.Client):
             extra_args=extra_args,
             http_args=http_args,
             response_cls=response_cls,
-            **kwargs
+            **kwargs,
         )
 
     def do_client_update_request(
@@ -205,7 +205,7 @@ class Client(oauth2.Client):
         request_args=None,
         extra_args=None,
         http_args=None,
-        **kwargs
+        **kwargs,
     ):
         request = self.message_factory.get_request_type("update_endpoint")
         response_cls = self.message_factory.get_response_type("update_endpoint")
@@ -217,7 +217,7 @@ class Client(oauth2.Client):
             extra_args=extra_args,
             http_args=http_args,
             response_cls=response_cls,
-            **kwargs
+            **kwargs,
         )
 
     def do_client_delete_request(
@@ -227,7 +227,7 @@ class Client(oauth2.Client):
         request_args=None,
         extra_args=None,
         http_args=None,
-        **kwargs
+        **kwargs,
     ):
         request = self.message_factory.get_request_type("delete_endpoint")
         response_cls = self.message_factory.get_response_type("delete_endpoint")
@@ -239,7 +239,7 @@ class Client(oauth2.Client):
             extra_args=extra_args,
             http_args=http_args,
             response_cls=response_cls,
-            **kwargs
+            **kwargs,
         )
 
     def do_token_introspection(
@@ -249,7 +249,7 @@ class Client(oauth2.Client):
         request_args=None,
         extra_args=None,
         http_args=None,
-        **kwargs
+        **kwargs,
     ):
         request = self.message_factory.get_request_type("introspection_endpoint")
         response_cls = self.message_factory.get_response_type("introspection_endpoint")
@@ -261,7 +261,7 @@ class Client(oauth2.Client):
             extra_args=extra_args,
             http_args=http_args,
             response_cls=response_cls,
-            **kwargs
+            **kwargs,
         )
 
     def do_token_revocation(
@@ -271,7 +271,7 @@ class Client(oauth2.Client):
         request_args=None,
         extra_args=None,
         http_args=None,
-        **kwargs
+        **kwargs,
     ):
         request = self.message_factory.get_request_type("revocation_endpoint")
         response_cls = self.message_factory.get_response_type("revocation_endpoint")
@@ -283,7 +283,7 @@ class Client(oauth2.Client):
             extra_args=extra_args,
             http_args=http_args,
             response_cls=response_cls,
-            **kwargs
+            **kwargs,
         )
 
     def add_code_challenge(self):
@@ -321,7 +321,7 @@ class Client(oauth2.Client):
         request_args=None,
         extra_args=None,
         http_args=None,
-        **kwargs
+        **kwargs,
     ):
         if "code_challenge" in self.config and self.config["code_challenge"]:
             _args, code_verifier = self.add_code_challenge()
@@ -335,7 +335,7 @@ class Client(oauth2.Client):
             request_args=request_args,
             extra_args=extra_args,
             http_args=http_args,
-            **kwargs
+            **kwargs,
         )
 
     def store_registration_info(self, reginfo):

@@ -542,7 +542,7 @@ class TestClient(object):
 
         auth_endpoint = self.client._endpoint(
             "authorization_endpoint",
-            **{"authorization_endpoint": "https://example.com/as"}
+            **{"authorization_endpoint": "https://example.com/as"},
         )
         assert auth_endpoint == "https://example.com/as"
 

@@ -9,8 +9,8 @@ import warnings
 from functools import cmp_to_key
 from http.cookies import SimpleCookie
 from typing import Any
-from typing import Dict  # noqa
-from typing import List  # noqa
+from typing import Dict
+from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import Union
@@ -76,9 +76,9 @@ from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Unauthorized
 from oic.utils.jwt import JWT
-from oic.utils.keyio import KEYS  # noqa
+from oic.utils.keyio import KEYS
 from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar  # noqa
+from oic.utils.keyio import KeyJar
 from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
 from oic.utils.sanitize import sanitize
@@ -294,7 +294,7 @@ class Provider(AProvider):
             keyjar=keyjar, message_factory=message_factory, settings=self.settings
         )
         # Same keyjar
-        self.keyjar = self.server.keyjar  # type: KeyJar
+        self.keyjar: KeyJar = self.server.keyjar
 
         self.endp.extend([UserinfoEndpoint, RegistrationEndpoint, EndSessionEndpoint])
 
@@ -315,11 +315,11 @@ class Provider(AProvider):
 
         self.force_jws = {"request_object": False, "id_token": False, "userinfo": False}
 
-        self.jwx_def = {}  # type: Dict[str, Dict[str,str]]
+        self.jwx_def: Dict[str, Dict[str, str]] = {}
 
         self.build_jwx_def()
 
-        self.kid = {"sig": {}, "enc": {}}  # type: Dict[str, Dict[str, str]]
+        self.kid: Dict[str, Dict[str, str]] = {"sig": {}, "enc": {}}
 
         # Allow custom schema (inheriting from OpenIDSchema) to be used -
         # additional attributes
@@ -404,7 +404,7 @@ class Provider(AProvider):
         auth_time=0,
         exp=None,
         extra_claims=None,
-        **kwargs
+        **kwargs,
     ):
 
         if alg == "":
@@ -1038,7 +1038,7 @@ class Provider(AProvider):
             algo = self.jwx_def["signing_alg"]["userinfo"]
 
         if algo == "none":
-            key = []  # type: List[KEYS]
+            key: List[KEYS] = []
         else:
             if algo.startswith("HS"):
                 key = self.keyjar.get_signing_key(
@@ -1635,7 +1635,7 @@ class Provider(AProvider):
         _provider_info["scopes_supported"] = list(set(_scopes))
 
         # Add claims
-        _claims = []  # type: List[str]
+        _claims: List[str] = []
         for _cl in SCOPE2CLAIMS.values():
             _claims.extend(_cl)
         if self.extra_claims is not None:
@@ -1783,7 +1783,7 @@ class Provider(AProvider):
 
                 client_info = self.cdb[str(areq["client_id"])]
 
-                hargs = {}  # type: Dict[str, str]
+                hargs: Dict[str, str] = {}
                 rt_set = set(areq["response_type"])
                 if {"code", "id_token", "token"}.issubset(rt_set):
                     hargs = {"code": _code, "access_token": _access_token}
@@ -2105,10 +2105,10 @@ class Provider(AProvider):
         :param client_id: Client ID
         :return: Dictionary with back_channel and front_channel logout info.
         """
-        logout_spec = {
+        logout_spec: Dict[str, Dict[str, Union[None, str, Tuple[str, str]]]] = {
             "back_channel": {},  # back-channel logout information
             "front_channel": {},  # front-channel logout information
-        }  # type: Dict[str, Dict[str, Union[None, str, Tuple[str,str]]]]
+        }
 
         if "backchannel_logout_uri" in self.cdb[client_id]:
             _subject_id = self.sdb[session_id]["sub"]
@@ -2130,7 +2130,7 @@ class Provider(AProvider):
         self,
         request: str = "",
         cookie: Optional[Union[str, SimpleCookie]] = None,
-        **kwargs
+        **kwargs,
     ) -> Response:
         """
         Handle a RP initiated Logout request.

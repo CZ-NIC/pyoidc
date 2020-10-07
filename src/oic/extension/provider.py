@@ -1,7 +1,7 @@
 import json
 import logging
 import socket
-from typing import Dict  # noqa
+from typing import Dict
 from urllib.parse import parse_qs
 from urllib.parse import splitquery  # type: ignore
 
@@ -117,7 +117,7 @@ class Provider(provider.Provider):
         behavior=None,
         lifetime_policy=None,
         message_factory=ExtensionMessageFactory,
-        **kwargs
+        **kwargs,
     ):
 
         if not name.endswith("/"):
@@ -141,7 +141,7 @@ class Provider(provider.Provider):
             default_scope,
             ca_bundle,
             message_factory=message_factory,
-            **args
+            **args,
         )
 
         self.endp.extend(
@@ -166,7 +166,7 @@ class Provider(provider.Provider):
         self.jwks_uri = jwks_uri
         self.verify_ssl = verify_ssl
         self.scopes.extend(kwargs.get("scopes", []))
-        self.keyjar = keyjar  # type: KeyJar
+        self.keyjar: KeyJar = keyjar
         if self.keyjar is None:
             self.keyjar = KeyJar(verify_ssl=self.verify_ssl)
 
@@ -176,13 +176,13 @@ class Provider(provider.Provider):
             self.capabilities = self.provider_features()
         self.baseurl = baseurl or name
         self.hostname = hostname or socket.gethostname()
-        self.kid = {"sig": {}, "enc": {}}  # type: Dict[str, Dict[str, str]]
+        self.kid: Dict[str, Dict[str, str]] = {"sig": {}, "enc": {}}
         self.config = config or {}
         self.behavior = behavior or {}
-        self.token_policy = {
+        self.token_policy: Dict[str, Dict[str, Dict[str, int]]] = {
             "access_token": {},
             "refresh_token": {},
-        }  # type: Dict[str, Dict[str, Dict[str, int]]]
+        }
         if lifetime_policy is None:
             self.lifetime_policy = {
                 "access_token": {

@@ -3,8 +3,8 @@ import os
 import re
 from http.cookies import SimpleCookie
 from time import time
-from typing import Any  # noqa
-from typing import Dict  # noqa
+from typing import Any
+from typing import Dict
 from urllib.parse import parse_qs
 from urllib.parse import urlencode
 from urllib.parse import urlparse
@@ -107,7 +107,7 @@ URLMAP = {CLIENT_ID: ["https://example.com/authz"]}
 
 class DummyEventStore(object):
     def __init__(self):
-        self.db = {}  # type: Dict[str, str]
+        self.db: Dict[str, str] = {}
 
     def store(self, typ, val):
         self.db[typ] = val
@@ -139,7 +139,7 @@ USERINFO = UserInfo(USERDB)
 
 
 class TestProvider(object):
-    CDB = {
+    CDB: Dict[str, Dict[str, Any]] = {
         "number5": {
             "password": "hemligt",
             "client_secret": "drickyoughurt",
@@ -177,7 +177,7 @@ class TestProvider(object):
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token"],
         },
-    }  # type: Dict[str, Dict[str, Any]]
+    }
 
     @pytest.fixture(autouse=True)
     def create_provider(self, session_db_factory):
@@ -246,7 +246,7 @@ class TestProvider(object):
             "{}][{}".format(user, client_id), c_type, self.provider.sso_cookie_name
         )
         cookies_string = set_cookie[1]
-        all_cookies = SimpleCookie()  # type: SimpleCookie
+        all_cookies: SimpleCookie = SimpleCookie()
 
         try:
             cookies_string = cookies_string.decode()

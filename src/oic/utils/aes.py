@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 from base64 import b64decode
 from base64 import b64encode
-from typing import Union  # noqa
+from typing import Union
 from typing import cast
 
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
-from Cryptodome.Cipher._mode_ccm import CcmMode  # noqa
-from Cryptodome.Cipher._mode_eax import EaxMode  # noqa
-from Cryptodome.Cipher._mode_gcm import GcmMode  # noqa
-from Cryptodome.Cipher._mode_ocb import OcbMode  # noqa
-from Cryptodome.Cipher._mode_siv import SivMode  # noqa
+from Cryptodome.Cipher._mode_ccm import CcmMode
+from Cryptodome.Cipher._mode_eax import EaxMode
+from Cryptodome.Cipher._mode_gcm import GcmMode
+from Cryptodome.Cipher._mode_ocb import OcbMode
+from Cryptodome.Cipher._mode_siv import SivMode
 
 from oic.utils import tobytes
 
