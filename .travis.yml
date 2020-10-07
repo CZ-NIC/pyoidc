@@ -37,6 +37,9 @@ matrix:
     # Add python 3.8
     - python: 3.8
       env: TOXENV=py38
+    # Add python 3.9
+    - python: 3.9
+      env: TOXENV=py39
     - install:
         - docker-compose -f docker/docker-compose.yml up -d
       script:
