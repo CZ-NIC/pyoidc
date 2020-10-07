@@ -1,16 +1,14 @@
 environment:
-  matrix:
-    - PYTHON: "C:\\Python36-x64"
-      PYTHON_ARCH: "64"
-    - PYTHON: "C:\\Python37-x64"
-      PYTHON_ARCH: "64"
-    - PYTHON: "C:\\Python38-x64"
-      PYTHON_ARCH: "64"
+    matrix:
+        - TOXENV: py36
+        - TOXENV: py37
+        - TOXENV: py38
+        - TOXENV: py39
 
 build: off
 
 install:
-  - "%PYTHON%\\python.exe -m pip install .[testing]"
+  - pip install tox
 
 test_script:
-  - "%PYTHON%\\python.exe -m pytest tests/"
+  - tox
