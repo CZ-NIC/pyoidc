@@ -1,8 +1,8 @@
 import logging
 import warnings
-from typing import Any  # noqa - This is used for MyPy
+from typing import Any
 from typing import Dict
-from typing import List  # noqa - This is used for MyPy
+from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import Type
@@ -52,7 +52,7 @@ from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 from oic.utils.keyio import KeyJar
-from oic.utils.sdb import SessionBackend  # noqa
+from oic.utils.sdb import SessionBackend
 from oic.utils.sdb import session_update
 from oic.utils.settings import OauthClientSettings
 from oic.utils.settings import OauthServerSettings
@@ -80,10 +80,10 @@ REQUEST2ENDPOINT = {
     "TokenRevocationRequest": "token_endpoint",
 }
 
-RESPONSE2ERROR = {
+RESPONSE2ERROR: Dict[str, List] = {
     "AuthorizationResponse": [AuthorizationErrorResponse, TokenErrorResponse],
     "AccessTokenResponse": [TokenErrorResponse],
-}  # type: Dict[str, List]
+}
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint", "token_revocation_endpoint"]
 
@@ -230,34 +230,34 @@ class Client(PBase):
             self.settings.timeout = timeout
         PBase.__init__(self, keyjar=keyjar, settings=self.settings)
 
-        self.sso_db = None  # type: Optional[SessionBackend]
+        self.sso_db: Optional[SessionBackend] = None
         self.client_id = client_id
         self.client_authn_method = client_authn_method
 
-        self.nonce = None  # type: Optional[str]
+        self.nonce: Optional[str] = None
 
         self.message_factory = message_factory
-        self.grant = {}  # type: Dict[str, Grant]
-        self.state2nonce = {}  # type: Dict[str, str]
+        self.grant: Dict[str, Grant] = {}
+        self.state2nonce: Dict[str, str] = {}
         # own endpoint
-        self.redirect_uris = []  # type: List[str]
+        self.redirect_uris: List[str] = []
         # Default behaviour
         self.response_type = ["code"]
 
         # service endpoints
-        self.authorization_endpoint = None  # type: Optional[str]
-        self.token_endpoint = None  # type: Optional[str]
-        self.token_revocation_endpoint = None  # type: Optional[str]
+        self.authorization_endpoint: Optional[str] = None
+        self.token_endpoint: Optional[str] = None
+        self.token_revocation_endpoint: Optional[str] = None
 
         self.request2endpoint = REQUEST2ENDPOINT
-        self.response2error = RESPONSE2ERROR  # type: Dict[str, List]
+        self.response2error: Dict[str, List] = RESPONSE2ERROR
         self.grant_class = Grant
         self.token_class = Token
 
-        self.provider_info = ASConfigurationResponse()  # type: Message
-        self._c_secret = ""  # type: str
-        self.kid = {"sig": {}, "enc": {}}  # type: Dict[str, Dict]
-        self.authz_req = {}  # type: Dict[str, Message]
+        self.provider_info: Message = ASConfigurationResponse()
+        self._c_secret: str = ""
+        self.kid: Dict[str, Dict] = {"sig": {}, "enc": {}}
+        self.authz_req: Dict[str, Message] = {}
 
         # the OAuth issuer is the URL of the authorization server's
         # configuration information location
@@ -266,7 +266,7 @@ class Client(PBase):
             self.issuer = self.config["issuer"]
         except KeyError:
             self.issuer = ""
-        self.allow = {}  # type: Dict[str, Any]
+        self.allow: Dict[str, Any] = {}
 
     def store_response(self, clinst, text):
         pass
@@ -399,7 +399,7 @@ class Client(PBase):
         request: Type[Message] = Message,
         request_args=None,
         extra_args=None,
-        **kwargs
+        **kwargs,
     ) -> Message:
 
         return self.construct_request(request, request_args, extra_args)
@@ -409,7 +409,7 @@ class Client(PBase):
         request: Type[AuthorizationRequest] = None,
         request_args=None,
         extra_args=None,
-        **kwargs
+        **kwargs,
     ) -> AuthorizationRequest:
 
         if request is None:
@@ -441,7 +441,7 @@ class Client(PBase):
         ] = None,
         request_args=None,
         extra_args=None,
-        **kwargs
+        **kwargs,
     ) -> AccessTokenRequest:
 
         if request is None:
@@ -485,7 +485,7 @@ class Client(PBase):
         request: Type[RefreshAccessTokenRequest] = None,
         request_args=None,
         extra_args=None,
-        **kwargs
+        **kwargs,
     ) -> RefreshAccessTokenRequest:
 
         if request is None:
@@ -509,7 +509,7 @@ class Client(PBase):
         request: Type[ResourceRequest] = None,
         request_args=None,
         extra_args=None,
-        **kwargs
+        **kwargs,
     ) -> ResourceRequest:
 
         if request is None:
@@ -528,7 +528,7 @@ class Client(PBase):
         cis: Message,
         method="POST",
         request_args=None,
-        **kwargs
+        **kwargs,
     ) -> Tuple[str, str, Dict, Message]:
         if "endpoint" in kwargs and kwargs["endpoint"]:
             uri = kwargs["endpoint"]
@@ -550,7 +550,7 @@ class Client(PBase):
         request_args=None,
         extra_args=None,
         lax=False,
-        **kwargs
+        **kwargs,
     ) -> Tuple[str, str, Dict, Message]:
 
         if request_args is None:
@@ -591,7 +591,7 @@ class Client(PBase):
             "GET",
             request_args,
             extra_args,
-            **kwargs
+            **kwargs,
         )
 
     @staticmethod
@@ -612,7 +612,7 @@ class Client(PBase):
         info: str = "",
         sformat: ENCODINGS = "json",
         state: str = "",
-        **kwargs
+        **kwargs,
     ) -> Message:
         """
         Parse a response.
@@ -638,7 +638,7 @@ class Client(PBase):
 
         if "error" in resp and not isinstance(resp, ErrorResponse):
             resp = None
-            errmsgs = []  # type: List[Any]
+            errmsgs: List[Any] = []
             try:
                 errmsgs = _r2e[response.__name__]
             except KeyError:
@@ -780,7 +780,7 @@ class Client(PBase):
         body_type: ENCODINGS = "json",
         state: str = "",
         http_args=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Perform a request and return the response.
@@ -815,7 +815,7 @@ class Client(PBase):
         request_args=None,
         extra_args=None,
         http_args=None,
-        **kwargs
+        **kwargs,
     ) -> AuthorizationResponse:
 
         request = self.message_factory.get_request_type("authorization_endpoint")
@@ -875,7 +875,7 @@ class Client(PBase):
         extra_args=None,
         http_args=None,
         authn_method="",
-        **kwargs
+        **kwargs,
     ) -> AccessTokenResponse:
 
         request = self.message_factory.get_request_type("token_endpoint")
@@ -896,7 +896,7 @@ class Client(PBase):
             scope=scope,
             state=state,
             authn_method=authn_method,
-            **kwargs
+            **kwargs,
         )
 
         if http_args is None:
@@ -920,7 +920,7 @@ class Client(PBase):
             body_type,
             state=state,
             http_args=http_args,
-            **kwargs
+            **kwargs,
         )
 
     def do_access_token_refresh(
@@ -932,7 +932,7 @@ class Client(PBase):
         extra_args=None,
         http_args=None,
         authn_method="",
-        **kwargs
+        **kwargs,
     ) -> AccessTokenResponse:
 
         request = self.message_factory.get_request_type("refresh_endpoint")
@@ -1218,7 +1218,7 @@ class Server(PBase):
         txt: str = "",
         keyjar: KeyJar = None,
         verify: bool = True,
-        **kwargs
+        **kwargs,
     ) -> Message:
 
         if not keyjar:

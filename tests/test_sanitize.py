@@ -14,17 +14,17 @@ from oic.utils.sanitize import sanitize
         (
             AccessTokenRequest(
                 grant_type="authorization_code",
-                redirect_uri=u"http://example.com/authz",
+                redirect_uri="http://example.com/authz",
                 client_id="client1",
                 client_secret="hemlighet",
-                code=u"0x+QZlw/S2O9NJKVqB/LDzzhod4v/FVh6ULK/0OnFsfOFRQcux5ow==",
+                code="0x+QZlw/S2O9NJKVqB/LDzzhod4v/FVh6ULK/0OnFsfOFRQcux5ow==",
             ),
             {
                 "grant_type": "authorization_code",
-                "redirect_uri": u"http://example.com/authz",
+                "redirect_uri": "http://example.com/authz",
                 "client_id": "client1",
                 "client_secret": "<REDACTED>",
-                "code": u"<REDACTED>",
+                "code": "<REDACTED>",
             },
         ),
         (
@@ -57,10 +57,10 @@ from oic.utils.sanitize import sanitize
         ),
         ("Password=ubar&param=foo", "Password=<REDACTED>&param=foo"),
         (
-            {"password": u"bar", "client_secret": b"foo"},
+            {"password": "bar", "client_secret": b"foo"},
             {"password": "<REDACTED>", "client_secret": "<REDACTED>"},
         ),
-        (u"code=ščřžáíé", "code=<REDACTED>"),
+        ("code=ščřžáíé", "code=<REDACTED>"),
         ({"code": "ščřžáíé"}, {"code": "<REDACTED>"}),
     ],
 )

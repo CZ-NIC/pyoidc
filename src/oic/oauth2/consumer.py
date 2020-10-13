@@ -2,7 +2,7 @@ import logging
 import time
 import warnings
 from hashlib import sha256
-from typing import Dict  # noqa
+from typing import Dict
 
 from oic import rndstr
 from oic.exception import AuthzError
@@ -340,8 +340,8 @@ class Consumer(Client):
     def client_auth_info(self):
         if self.password:
             http_args = {"client_password": self.password}
-            request_args = {}  # type: Dict[str, str]
-            extra_args = {}  # type: Dict[str, str]
+            request_args: Dict[str, str] = {}
+            extra_args: Dict[str, str] = {}
         elif self.client_secret:
             http_args = {}
             request_args = {

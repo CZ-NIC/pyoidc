@@ -1,7 +1,7 @@
 import base64
 import json
 import time
-from typing import Dict  # noqa
+from typing import Dict
 from urllib.parse import parse_qs
 from urllib.parse import parse_qsl
 
@@ -30,7 +30,7 @@ class PoPProvider(Provider):
         super(PoPProvider, self).__init__(*args, **kwargs)
 
         # mapping from signed pop token to access token in db
-        self.access_tokens = {}  # type: Dict[JWS, str]
+        self.access_tokens: Dict[JWS, str] = {}
 
     def token_endpoint(self, dtype="urlencoded", **kwargs):
         atr = AccessTokenRequest().deserialize(kwargs["request"], dtype)

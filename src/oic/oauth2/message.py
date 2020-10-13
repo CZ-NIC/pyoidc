@@ -5,13 +5,13 @@ import warnings
 from collections import namedtuple
 from collections.abc import MutableMapping
 from json import JSONDecodeError
-from typing import Any  # noqa - This is used for MyPy
-from typing import Dict  # noqa - This is used for MyPy
-from typing import List  # noqa - This is used for MyPy
-from typing import Mapping  # noqa - This is used for MyPy
-from typing import Optional  # noqa - This is used for MyPy
-from typing import Tuple  # noqa - This is used for MyPy
-from typing import Union  # noqa - This is used for MyPy
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Mapping
+from typing import Optional
+from typing import Tuple
+from typing import Union
 from urllib.parse import parse_qs
 from urllib.parse import urlencode
 
@@ -34,6 +34,11 @@ from oic.utils.keyio import update_keyjar
 from oic.utils.sanitize import sanitize
 
 logger = logging.getLogger(__name__)
+
+ParamDefinition = namedtuple(
+    "ParamDefinition",
+    ["type", "required", "serializer", "deserializer", "null_allowed"],
+)
 
 
 class FormatError(PyoidcError):
@@ -135,8 +140,8 @@ def jwt_header(txt):
 
 
 class Message(MutableMapping):
-    c_param = {}  # type: Mapping[str, ParamDefinition]
-    c_default = {}  # type: Dict[str, Any]
+    c_param: Mapping[str, ParamDefinition] = {}
+    c_default: Dict[str, Any] = {}
     c_allowed_values = {}  # type: ignore
 
     def __init__(self, **kwargs):
@@ -186,7 +191,7 @@ class Message(MutableMapping):
                 if cparam.required and attribute not in self._dict:
                     raise MissingRequiredAttribute("%s" % attribute, "%s" % self)
 
-        params = []  # type: List[Tuple[str, Optional[Union[str, bytes, Message]]]]
+        params: List[Tuple[str, Optional[Union[str, bytes, Message]]]] = []
 
         for key, val in self._dict.items():
             cparam = self._extract_cparam(key, _spec)
@@ -225,7 +230,7 @@ class Message(MutableMapping):
         try:
             return urlencode(params)
         except UnicodeEncodeError:
-            _val2 = []  # type: List[Tuple[str, Optional[Union[str, bytes, Message]]]]
+            _val2: List[Tuple[str, Optional[Union[str, bytes, Message]]]] = []
             for k, v in params:
                 if isinstance(v, str):
                     _val2.append((k, v.encode("utf-8")))
@@ -950,10 +955,6 @@ VSER = 2
 VDESER = 3
 VNULLALLOWED = 4
 
-ParamDefinition = namedtuple(
-    "ParamDefinition",
-    ["type", "required", "serializer", "deserializer", "null_allowed"],
-)
 SINGLE_REQUIRED_STRING = ParamDefinition(str, True, None, None, False)
 SINGLE_OPTIONAL_STRING = ParamDefinition(str, False, None, None, False)
 SINGLE_OPTIONAL_INT = ParamDefinition(int, False, None, None, False)

@@ -29,11 +29,8 @@ env:
 script:
   - tox -e $TOXENV
 
-# Everything behaves under python 3.6 except python3.5
 matrix:
   include:
-    - python: 3.5
-      env: TOXENV=py35
     # Add python 3.7
     - python: 3.7
       env: TOXENV=py37

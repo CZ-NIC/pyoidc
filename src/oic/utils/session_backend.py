@@ -149,7 +149,7 @@ class DictSessionBackend(SessionBackend):
 
     def __init__(self):
         """Create the storage."""
-        self.storage = {}  # type: Dict[str, Dict[str, Union[str, bool]]]
+        self.storage: Dict[str, Dict[str, Union[str, bool]]] = {}
 
     def __setitem__(self, key: str, value: Dict[str, Union[str, bool]]) -> None:
         """Store the session info in the storage."""

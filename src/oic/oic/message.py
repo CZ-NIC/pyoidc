@@ -4,8 +4,8 @@ import logging
 import sys
 import time
 import warnings
-from typing import Dict  # noqa
-from typing import List  # noqa
+from typing import Dict
+from typing import List
 from urllib.parse import urlencode
 from urllib.parse import urlparse
 
@@ -993,7 +993,7 @@ class ResourceRequest(Message):
     c_param = {"access_token": SINGLE_OPTIONAL_STRING}
 
 
-SCOPE2CLAIMS = {
+SCOPE2CLAIMS: Dict[str, List[str]] = {
     "openid": ["sub"],
     "profile": [
         "name",
@@ -1015,7 +1015,7 @@ SCOPE2CLAIMS = {
     "address": ["address"],
     "phone": ["phone_number", "phone_number_verified"],
     "offline_access": [],
-}  # type: Dict[str, List[str]]
+}
 
 # LOGOUT related messages
 

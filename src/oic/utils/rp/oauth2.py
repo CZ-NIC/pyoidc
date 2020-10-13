@@ -1,9 +1,9 @@
 import copy
 import hashlib
 import logging
-from typing import Dict  # noqa
-from typing import Type  # noqa
-from typing import Union  # noqa
+from typing import Dict
+from typing import Type
+from typing import Union
 from typing import cast
 from urllib.parse import urlsplit
 
@@ -116,9 +116,9 @@ class OAuthClient(client.Client):
         :return:
         """
         if self.behaviour["response_type"] == "code":
-            respcls = (
-                AuthorizationResponse
-            )  # type: Union[Type[AuthorizationResponse], Type[AccessTokenResponse]]
+            respcls: Union[
+                Type[AuthorizationResponse], Type[AccessTokenResponse]
+            ] = AuthorizationResponse
         else:
             respcls = AccessTokenResponse
 
@@ -190,12 +190,12 @@ class OAuthClients(object):
         :param config: Imported configuration module
         :return:
         """
-        self.client = {}  # type: Dict[str, OAuthClient]
+        self.client: Dict[str, OAuthClient] = {}
         self.client_cls = OAuthClient
         self.config = config
         self.seed = seed or rndstr(16)
         self.seed = self.seed.encode("utf8")
-        self.path = {}  # type: Dict[str, str]
+        self.path: Dict[str, str] = {}
         self.base_url = base_url
         self.jwks_info = jwks_info
         self.verify_ssl = verify_ssl
@@ -309,7 +309,7 @@ class OAuthClients(object):
         client = self.client_cls(
             client_authn_method=CLIENT_AUTHN_METHOD,
             verify_ssl=self.verify_ssl,
-            **self.jwks_info
+            **self.jwks_info,
         )
         if userid:
             wf = WebFinger(httpd=client)

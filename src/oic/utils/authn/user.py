@@ -36,9 +36,9 @@ LOC = {
     },
     "se": {
         "title": "Logga in",
-        "login_title": u"Användarnamn",
-        "passwd_title": u"Lösenord",
-        "submit_text": u"Sänd",
+        "login_title": "Användarnamn",
+        "passwd_title": "Lösenord",
+        "submit_text": "Sänd",
         "client_policy_title": "Klientens sekretesspolicy",
     },
 }

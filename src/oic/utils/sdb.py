@@ -7,8 +7,8 @@ import uuid
 import warnings
 from binascii import Error
 from typing import Any
-from typing import Dict  # noqa
-from typing import List  # noqa
+from typing import Dict
+from typing import List
 from typing import Optional
 
 from cryptography.fernet import Fernet
@@ -357,7 +357,7 @@ class DictRefreshDB(RefreshDB):
             DeprecationWarning,
             stacklevel=2,
         )
-        self._db = {}  # type: Dict[str, Dict[str, str]]
+        self._db: Dict[str, Dict[str, str]] = {}
 
     def get(self, refresh_token):
         """Retrieve info for given token from dictionary."""

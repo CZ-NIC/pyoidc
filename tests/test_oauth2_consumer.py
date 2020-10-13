@@ -1,4 +1,3 @@
-from typing import Dict  # noqa
 from urllib.parse import parse_qs
 from urllib.parse import urlencode
 from urllib.parse import urlparse

@@ -1,4 +1,4 @@
-from typing import Dict  # noqa
+from typing import Dict
 
 from oic import rndstr
 from oic.extension.single import SingleClient
@@ -42,10 +42,10 @@ class DeviceFlowServer(SingleService):
         SingleService.__init__(self, host)
         self.host = host
         # map between device_code and user_code
-        self.client_id2device = {}  # type: Dict[str, str]
-        self.device2user = {}  # type: Dict[str, str]
-        self.user_auth = {}  # type: Dict[str, bool]
-        self.device_code_expire_at = {}  # type: Dict[str, int]
+        self.client_id2device: Dict[str, str] = {}
+        self.device2user: Dict[str, str] = {}
+        self.user_auth: Dict[str, bool] = {}
+        self.device_code_expire_at: Dict[str, int] = {}
         self.device_code_life_time = 900  # 15 minutes
 
     def device_endpoint(self, request, authn=None):

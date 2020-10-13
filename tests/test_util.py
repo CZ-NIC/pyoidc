@@ -40,7 +40,7 @@ def url_compare(url1, url2):
 
 
 def test_get_or_post():
-    uri = u"https://localhost:8092/authorization"
+    uri = "https://localhost:8092/authorization"
     method = "GET"
     values = {
         "acr_values": "PASSWORD",
@@ -56,7 +56,7 @@ def test_get_or_post():
 
     assert url_compare(
         path,
-        u"https://localhost:8092/authorization?acr_values=PASSWORD&state=urn%3A"
+        "https://localhost:8092/authorization?acr_values=PASSWORD&state=urn%3A"
         "uuid%3A92d81fb3-72e8-4e6c-9173-c360b782148a&"
         "redirect_uri=https%3A%2F%2Flocalhost%3A8666%2F919D3F697FDAAF138124B83E09ECB0B7&"
         "response_type=code&client_id=ok8tx7ulVlNV&scope=openid+profile+email+address+phone",
@@ -65,7 +65,7 @@ def test_get_or_post():
     assert not ret_kwargs
 
     method = "POST"
-    uri = u"https://localhost:8092/token"
+    uri = "https://localhost:8092/token"
     values = {
         "redirect_uri": "https://localhost:8666/919D3F697FDAAF138124B83E09ECB0B7",
         "code": "Je1iKfPN1vCiN7L43GiXAuAWGAnm0mzA7QIjl/YLBBZDB9wefNExQlLDUIIDM2rT"
@@ -86,7 +86,7 @@ def test_get_or_post():
 
     path, body, ret_kwargs = util.get_or_post(uri, method, request2, **kwargs)
 
-    assert path == u"https://localhost:8092/token"
+    assert path == "https://localhost:8092/token"
     assert url_compare(
         "http://test/#{}".format(body),
         "http://test/#code=Je1iKfPN1vCiN7L43GiXAuAWGAnm0mzA7QIjl%2FYLBBZDB9wefNExQlLDUIIDM2rT2t%2BgwuoR"
@@ -111,7 +111,7 @@ def test_get_or_post():
 
 
 def test_get_or_post_with_qp():
-    uri = u"https://localhost:8092/authorization?test=testslice"
+    uri = "https://localhost:8092/authorization?test=testslice"
     method = "GET"
     values = {
         "acr_values": "PASSWORD",
@@ -127,7 +127,7 @@ def test_get_or_post_with_qp():
 
     assert url_compare(
         path,
-        u"https://localhost:8092/authorization?test=testslice&acr_values=PASSWORD&state=urn%3A"
+        "https://localhost:8092/authorization?test=testslice&acr_values=PASSWORD&state=urn%3A"
         "uuid%3A92d81fb3-72e8-4e6c-9173-c360b782148a&"
         "redirect_uri=https%3A%2F%2Flocalhost%3A8666%2F919D3F697FDAAF138124B83E09ECB0B7&"
         "response_type=code&client_id=ok8tx7ulVlNV&scope=openid+profile+email+address+phone",
@@ -139,7 +139,7 @@ def test_get_or_post_with_qp():
 def test_set_cookie():
     cookiejar = FileCookieJar()
     _cookie = {"value_0": "v_0", "value_1": "v_1", "value_2": "v_2"}
-    c = SimpleCookie(_cookie)  # type: SimpleCookie
+    c: SimpleCookie = SimpleCookie(_cookie)
 
     domain_0 = ".test_domain"
     domain_1 = "test_domain"

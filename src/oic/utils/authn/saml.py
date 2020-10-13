@@ -8,8 +8,8 @@ import base64
 import importlib
 import json
 import logging
-from typing import Dict  # noqa
-from typing import List  # noqa
+from typing import Dict
+from typing import List
 from urllib.parse import parse_qs
 from urllib.parse import urlencode
 
@@ -67,7 +67,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
         self.userinfo = userinfo
 
         if cache is None:
-            self.cache_outstanding_queries = {}  # type: Dict[str, str]
+            self.cache_outstanding_queries: Dict[str, str] = {}
         else:
             self.cache_outstanding_queries = cache
         UserAuthnMethod.__init__(self, srv)
@@ -228,7 +228,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
                         attributes[attr] = samldata[attr]
         else:
             attributes = samldata
-        userdb = {}  # type: Dict[str, List[str]]
+        userdb: Dict[str, List[str]] = {}
 
         if self.sp_conf.OPENID2SAMLMAP is None:  # type: ignore
             userdb = attributes.copy()
@@ -240,7 +240,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
 
     def _pick_idp(self, query, end_point_index):
         """If more than one idp and if none is selected, I have to do wayf or disco."""
-        query_dict = {}  # type: Dict[str, List[str]]
+        query_dict: Dict[str, List[str]] = {}
         if isinstance(query, str):
             query_dict = dict(parse_qs(query))
         else:
@@ -352,7 +352,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
                     sign=_cli.authn_requests_signed,
                     message_id=_sid,
                     extensions=extensions,
-                    **kwargs
+                    **kwargs,
                 )
                 _sid = req_id
             else:
@@ -391,7 +391,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
             self.CONST_SAML_COOKIE,
         )
         if binding == BINDING_HTTP_ARTIFACT:
-            resp = SeeOther()  # type: Response
+            resp: Response = SeeOther()
         elif binding == BINDING_HTTP_REDIRECT:
             for param, value in http_args["headers"]:
                 if param == "Location":

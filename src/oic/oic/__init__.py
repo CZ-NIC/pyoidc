@@ -4,14 +4,14 @@ import os
 import warnings
 from base64 import b64encode
 from json import JSONDecodeError
-from typing import Any  # noqa - Used for MyPy
-from typing import Dict  # noqa - Used for MyPy
-from typing import List  # noqa - Used for MyPy
-from typing import Optional  # noqa - Used for MyPy
-from typing import Tuple  # noqa - Used for MyPy
-from typing import Type  # noqa - Used for MyPy
-from typing import Union  # noqa - Used for MyPy
-from typing import cast  # noqa - Used for MyPy
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Type
+from typing import Union
+from typing import cast
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
@@ -89,13 +89,13 @@ ENDPOINTS = [
     "check_id_endpoint",
 ]
 
-RESPONSE2ERROR = {
+RESPONSE2ERROR: Dict[str, List] = {
     "AuthorizationResponse": [AuthorizationErrorResponse, TokenErrorResponse],
     "AccessTokenResponse": [TokenErrorResponse],
     "IdToken": [ErrorResponse],
     "RegistrationResponse": [ClientRegistrationErrorResponse],
     "OpenIDSchema": [UserInfoErrorResponse],
-}  # type: Dict[str, List]
+}
 
 REQUEST2ENDPOINT = {
     "AuthorizationRequest": "authorization_endpoint",
@@ -165,7 +165,7 @@ def make_openid_request(
     userinfo_claims=None,
     idtoken_claims=None,
     request_object_signing_alg=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Construct the specification of what I want returned.
@@ -383,7 +383,7 @@ class Client(oauth2.Client):
         for endpoint in ENDPOINTS:
             setattr(self, endpoint, "")
 
-        self.id_token = {}  # type: Dict[str, Token]
+        self.id_token: Dict[str, Token] = {}
         self.log = None
 
         self.request2endpoint = REQUEST2ENDPOINT
@@ -392,18 +392,16 @@ class Client(oauth2.Client):
         self.grant_class = Grant
         self.token_class = Token
         self.provider_info = Message()
-        self.registration_response = (
-            RegistrationResponse()
-        )  # type: RegistrationResponse
+        self.registration_response: RegistrationResponse = RegistrationResponse()
         self.client_prefs = client_prefs or {}
 
-        self.behaviour = {}  # type: Dict[str, Any]
+        self.behaviour: Dict[str, Any] = {}
         self.scope = ["openid"]
 
         self.wf = WebFinger(OIC_ISSUER)
         self.wf.httpd = self
         self.allow = {}
-        self.post_logout_redirect_uris = []  # type: List[str]
+        self.post_logout_redirect_uris: List[str] = []
         self.registration_expires = 0
         self.registration_access_token = None
         self.id_token_max_age = 0
@@ -671,7 +669,7 @@ class Client(oauth2.Client):
         request_args=None,
         extra_args=None,
         http_args=None,
-        **kwargs
+        **kwargs,
     ):
         algs = self.sign_enc_algs("id_token")
 
@@ -699,7 +697,7 @@ class Client(oauth2.Client):
         extra_args=None,
         http_args=None,
         authn_method="client_secret_basic",
-        **kwargs
+        **kwargs,
     ):
         atr = super().do_access_token_request(
             scope=scope,
@@ -710,7 +708,7 @@ class Client(oauth2.Client):
             extra_args=extra_args,
             http_args=http_args,
             authn_method=authn_method,
-            **kwargs
+            **kwargs,
         )
         try:
             _idt = atr["id_token"]
@@ -851,7 +849,7 @@ class Client(oauth2.Client):
     def user_info_request(self, method="GET", state="", scope="", **kwargs):
         uir = self.message_factory.get_request_type("userinfo_endpoint")()
         logger.debug("[user_info_request]: kwargs:%s" % (sanitize(kwargs),))
-        token = None  # type: Optional[Token]
+        token: Optional[Token] = None
         if "token" in kwargs:
             if kwargs["token"]:
                 uir["access_token"] = kwargs["token"]
@@ -1611,7 +1609,7 @@ class Server(oauth2.Server):
         if self.events:
             self.events.store("Request", _req)
 
-        _req_req = {}  # type: Union[Message, Dict[str, Any]]
+        _req_req: Union[Message, Dict[str, Any]] = {}
         try:
             _request = _req["request"]
         except KeyError:
@@ -1676,7 +1674,7 @@ class Server(oauth2.Server):
         keyjar=None,
         verify=True,
         sender="",
-        **kwargs
+        **kwargs,
     ):
         """Overridden to use OIC Message type."""
         if "keys" in kwargs:
@@ -1808,7 +1806,7 @@ class Server(oauth2.Server):
         :param session: Session information
         :return: The IdToken claims
         """
-        itc = {}  # type: Dict[str, str]
+        itc: Dict[str, str] = {}
         itc = self.update_claims(session, "authzreq", "id_token", itc)
         itc = self.update_claims(session, "oidreq", "id_token", itc)
         return itc
@@ -1863,7 +1861,7 @@ class Server(oauth2.Server):
                 extra["acr"] = loa
 
         if not user_info:
-            _args = {}  # type: Dict[str, str]
+            _args: Dict[str, str] = {}
         else:
             try:
                 _args = user_info.to_dict()
@@ -1893,7 +1891,7 @@ class Server(oauth2.Server):
             exp=time_util.epoch_in_a_while(**inawhile),
             acr=loa,
             iat=time_util.utc_time_sans_frac(),
-            **_args
+            **_args,
         )
 
         for key, val in extra.items():
@@ -1906,9 +1904,9 @@ class Server(oauth2.Server):
 
 
 def scope2claims(scopes, extra_scope_dict=None):
-    res = {}  # type: Dict[str, None]
+    res: Dict[str, None] = {}
     # Construct the scope translation map
-    trans_map = SCOPE2CLAIMS.copy()  # type: Dict[str, Any]
+    trans_map: Dict[str, Any] = SCOPE2CLAIMS.copy()
     if extra_scope_dict is not None:
         trans_map.update(extra_scope_dict)
     for scope in scopes:
