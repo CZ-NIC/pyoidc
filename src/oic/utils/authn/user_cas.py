@@ -185,7 +185,7 @@ class CasAuthnMethod(UserAuthnMethod):
             return SeeOther(return_to, headers=[cookie])
         except Exception:
             # FIXME: This should catch specific exception thrown from methods in the block
-            logger.fatal(
+            logger.critical(
                 "Metod verify in user_cas.py had a fatal exception.", exc_info=True
             )
             return Unauthorized("You are not authorized!")

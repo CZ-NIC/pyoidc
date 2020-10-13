@@ -313,7 +313,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
                     "Misconfiguration for the SAML Service Provider!"
                 )
             else:
-                return -1, NotImplemented("No WAYF or DS present!")
+                return -1, NotImplemented
         return 0, idp_entity_id
 
     def _wayf_redirect(self, cookie):
