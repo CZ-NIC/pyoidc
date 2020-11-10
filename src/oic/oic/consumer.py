@@ -400,6 +400,8 @@ class Consumer(Client):
 
         _log_info("response: %s" % sanitize(query))
 
+        if "algs" not in kwargs:
+            kwargs["algs"] = self.sign_enc_algs("id_token")
         if "code" in self.consumer_config["response_type"]:
             aresp, _state = self._parse_authz(query, **kwargs)
 
