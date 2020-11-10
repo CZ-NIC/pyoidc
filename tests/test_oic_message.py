@@ -5,6 +5,7 @@ from urllib.parse import parse_qs
 from urllib.parse import urlencode
 
 import pytest
+from freezegun import freeze_time
 from jwkest import BadSignature
 from jwkest.jwk import SYMKey
 from jwkest.jws import left_hash
@@ -24,7 +25,9 @@ from oic.oic.message import AuthorizationResponse
 from oic.oic.message import BackChannelLogoutRequest
 from oic.oic.message import CHashError
 from oic.oic.message import Claims
+from oic.oic.message import EXPError
 from oic.oic.message import FrontChannelLogoutRequest
+from oic.oic.message import IATError
 from oic.oic.message import IdToken
 from oic.oic.message import LogoutToken
 from oic.oic.message import OpenIDSchema
@@ -607,6 +610,69 @@ class TestAccessTokenResponse(object):
         at = AccessTokenResponse(**_info)
         with pytest.raises(MissingRequiredAttribute):
             at.verify()
+
+
+class TestIdToken(object):
+    """Unittests for IdToken class."""
+
+    @freeze_time("2020-01-01 11:00:00")
+    def test_verify_iat_in_future(self):
+        now = time_util.utc_time_sans_frac()
+
+        idt = IdToken(
+            **{
+                "sub": "553df2bcf909104751cfd8b2",
+                "aud": ["5542958437706128204e0000", "554295ce3770612820620000"],
+                "auth_time": 1441364872,
+                "azp": "554295ce3770612820620000",
+                "at_hash": "L4Ign7TCAD_EppRbHAuCyw",
+                "iat": now + 7200,
+                "exp": now + 3600,
+                "iss": "https://sso.qa.7pass.ctf.prosiebensat1.com",
+            }
+        )
+
+        with pytest.raises(IATError):
+            idt.verify()
+
+    @freeze_time("2020-01-01 11:00:00")
+    def test_verify_iat_in_future_expired(self):
+        now = time_util.utc_time_sans_frac()
+
+        idt = IdToken(
+            **{
+                "sub": "553df2bcf909104751cfd8b2",
+                "aud": ["5542958437706128204e0000", "554295ce3770612820620000"],
+                "auth_time": 1441364872,
+                "azp": "554295ce3770612820620000",
+                "at_hash": "L4Ign7TCAD_EppRbHAuCyw",
+                "iat": now + 3600,
+                "exp": now,
+                "iss": "https://sso.qa.7pass.ctf.prosiebensat1.com",
+            }
+        )
+
+        with pytest.raises(EXPError):
+            idt.verify(skew=7200)
+
+    @freeze_time("2020-01-01 11:00:00")
+    def test_verify_iat_in_future_skew(self):
+        now = time_util.utc_time_sans_frac()
+
+        idt = IdToken(
+            **{
+                "sub": "553df2bcf909104751cfd8b2",
+                "aud": ["5542958437706128204e0000", "554295ce3770612820620000"],
+                "auth_time": 1441364872,
+                "azp": "554295ce3770612820620000",
+                "at_hash": "L4Ign7TCAD_EppRbHAuCyw",
+                "iat": now + 7200,
+                "exp": now + 7600,
+                "iss": "https://sso.qa.7pass.ctf.prosiebensat1.com",
+            }
+        )
+
+        idt.verify(skew=7200)
 
 
 def test_id_token():
