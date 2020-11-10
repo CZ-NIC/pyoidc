@@ -780,6 +780,11 @@ class IdToken(OpenIDSchema):
         else:
             if (_iat + _storage_time) < (_now - _skew):
                 raise IATError("Issued too long ago")
+            if _now < (_iat - _skew):
+                raise IATError("Issued in the future")
+
+        if _exp < _iat:
+            raise EXPError("Invalid expiration time")
 
         return True
 
