@@ -159,13 +159,16 @@ class TestOICConsumerLogout:
             "openid", "code", path="https://example.com"
         )
         resp = self.provider.authorization_endpoint(request=request_location)
-        aresp = self.consumer.parse_authz(resp.message)
+        part = self.consumer.parse_authz(resp.message)
+        assert isinstance(part, tuple)
+        aresp = part[0]
+        assert aresp
 
         assert self.consumer.sdb[sid]["issuer"] == self.provider.baseurl
 
         # Simulate an accesstoken request
         areq = AccessTokenRequest(
-            code=aresp[0]["code"],
+            code=aresp["code"],
             client_id=CLIENT_ID,
             redirect_uri="http://example.com/authz",
             client_secret=self.consumer.client_secret,
@@ -228,13 +231,16 @@ class TestOICConsumerLogout:
             "openid", "code", path="https://example.com"
         )
         resp = self.provider.authorization_endpoint(request=request_location)
-        aresp = self.consumer.parse_authz(resp.message)
+        part = self.consumer.parse_authz(resp.message)
+        assert isinstance(part, tuple)
+        aresp = part[0]
+        assert aresp
 
         assert self.consumer.sdb[sid]["issuer"] == self.provider.baseurl
 
         # Simulate an accesstoken request
         areq = AccessTokenRequest(
-            code=aresp[0]["code"],
+            code=aresp["code"],
             client_id=CLIENT_ID,
             redirect_uri="http://example.com/authz",
             client_secret=self.consumer.client_secret,
@@ -308,13 +314,16 @@ class TestOICConsumerLogout:
             "openid", "code", path="https://example.com"
         )
         resp = self.provider.authorization_endpoint(request=request_location)
-        aresp = _consumer.parse_authz(resp.message)
+        part = _consumer.parse_authz(resp.message)
+        assert isinstance(part, tuple)
+        aresp = part[0]
+        assert aresp
 
         assert _consumer.sdb[sid]["issuer"] == self.provider.baseurl
 
         # Simulate an accesstoken request
         areq = AccessTokenRequest(
-            code=aresp[0]["code"],
+            code=aresp["code"],
             client_id=CLIENT_ID,
             redirect_uri="http://example.com/authz",
             client_secret=_consumer.client_secret,
