@@ -3,6 +3,8 @@ import os.path
 import warnings
 from typing import Dict
 from typing import Optional
+from typing import Tuple
+from typing import Union
 
 from oic import rndstr
 from oic.exception import AuthzError
@@ -22,6 +24,7 @@ from oic.oic.message import AuthorizationResponse
 from oic.oic.message import BackChannelLogoutRequest
 from oic.oic.message import Claims
 from oic.oic.message import ClaimsRequest
+from oic.oic.message import IdToken
 from oic.utils import http_util
 from oic.utils.sanitize import sanitize
 from oic.utils.sdb import DictSessionBackend
@@ -340,6 +343,7 @@ class Consumer(Client):
         if self.debug:
             _log_info("Redirecting to: %s" % location)
 
+        self.authz_req[areq["state"]] = areq
         return sid, location
 
     def _parse_authz(self, query="", **kwargs):
@@ -364,7 +368,16 @@ class Consumer(Client):
         self.redirect_uris = [self.sdb[_state]["redirect_uris"]]
         return aresp, _state
 
-    def parse_authz(self, query="", **kwargs):
+    def parse_authz(
+        self, query="", **kwargs
+    ) -> Union[
+        http_util.BadRequest,
+        Tuple[
+            Optional[AuthorizationResponse],
+            Optional[AccessTokenResponse],
+            Optional[IdToken],
+        ],
+    ]:
         """
         Parse authorization response from server.
 
@@ -375,12 +388,13 @@ class Consumer(Client):
         ["id_token"]
         ["id_token", "token"]
         ["token"]
-
-        :return: A AccessTokenResponse instance
         """
         _log_info = logger.info
         logger.debug("- authorization -")
 
+        # FIXME: This shouldn't be here... We should rather raise a sepcific Client error
+        # That would simplify the return value of this function
+        # and drop bunch of assertions from tests added in this commit.
         if not query:
             return http_util.BadRequest("Missing query")
 
@@ -410,9 +424,10 @@ class Consumer(Client):
                 except KeyError:
                     pass
 
-            return aresp, atr, idt
         elif "token" in self.consumer_config["response_type"]:  # implicit flow
             _log_info("Expect Access Token Response")
+            aresp = None
+            _state = None
             atr = self.parse_response(
                 AccessTokenResponse,
                 info=query,
@@ -423,8 +438,8 @@ class Consumer(Client):
             if isinstance(atr, ErrorResponse):
                 raise TokenError(atr.get("error"), atr)
 
-            idt = None
-            return None, atr, idt
+            idt = atr.get("id_token")
+
         else:  # only id_token
             aresp, _state = self._parse_authz(query, **kwargs)
 
@@ -437,8 +452,13 @@ class Consumer(Client):
                     session_update(self.sso_db, _state, "smid", idt["sid"])
                 except KeyError:
                     pass
+            # Null the aresp as only id_token should be returned
+            aresp = atr = None
 
-            return None, None, idt
+        # Verify the IdToken if it was present
+        if idt is not None:
+            self.verify_id_token(idt, self.authz_req.get(_state or atr["state"]))
+        return aresp, atr, idt
 
     def complete(self, state):
         """

@@ -16,6 +16,7 @@ from oic.oic import response_types_to_grant_types
 from oic.oic.consumer import IGNORE
 from oic.oic.consumer import Consumer
 from oic.oic.consumer import clean_response
+from oic.oic.message import AccessTokenRequest
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import AuthorizationResponse
 from oic.oic.message import IdToken
@@ -147,6 +148,9 @@ class TestOICConsumer:
         self.consumer.userinfo_endpoint = "https://example.com/userinfo"  # type: ignore
         self.consumer.client_secret = "hemlig"
         self.consumer.secret_type = "basic"
+        self.consumer.provider_info = ProviderConfigurationResponse(
+            issuer="https://example.com"
+        )  # abs min
 
     def test_backup_keys(self):
         keys = self.consumer.__dict__.keys()
@@ -326,6 +330,7 @@ class TestOICConsumer:
         self.consumer._backup(_state)
 
         part = self.consumer.parse_authz(query=result.headers["location"])
+        assert isinstance(part, tuple)
         atr = part[0]
         assert part[1] is None
         assert part[2] is None
@@ -359,6 +364,7 @@ class TestOICConsumer:
             )
 
         part = self.consumer.parse_authz(query=result.headers["location"])
+        assert isinstance(part, tuple)
         assert part[0] is None
         atr = part[1]
         assert part[2] is None
@@ -440,6 +446,7 @@ class TestOICConsumer:
 
         parsed = urlparse(result.headers["location"])
         part = self.consumer.parse_authz(query=parsed.query)
+        assert isinstance(part, tuple)
         auth = part[0]
         acc = part[1]
         assert part[2] is None
@@ -458,9 +465,6 @@ class TestOICConsumer:
         self.consumer.registration_response = RegistrationResponse(
             id_token_signed_response_alg="RS256"
         )
-        self.consumer.provider_info = ProviderConfigurationResponse(
-            issuer="https://example.com"
-        )  # abs min
         self.consumer.authz_req = {}  # Store AuthzReq with state as key
 
         args = {
@@ -507,20 +511,18 @@ class TestOICConsumer:
             part = self.consumer.parse_authz(
                 query=parsed.query, algs=self.consumer.sign_enc_algs("id_token")
             )
+        assert isinstance(part, tuple)
         auth = part[0]
         atr = part[1]
-        assert part[2] is None
+        idt = part[2]
 
+        assert isinstance(part, tuple)
         assert auth is None
         assert isinstance(atr, AccessTokenResponse)
         assert _eq(
             atr.keys(), ["access_token", "id_token", "token_type", "state", "scope"]
         )
-
-        with freeze_time("2019-08-09 11:00:00"):
-            self.consumer.verify_id_token(
-                atr["id_token"], self.consumer.authz_req[atr["state"]]
-            )
+        assert isinstance(idt, IdToken)
 
     def test_userinfo(self):
         _state = "state0"
@@ -920,6 +922,7 @@ class TestOICConsumer:
         self.consumer.sdb[_state] = {"redirect_uris": ["https://example.org/cb"]}
         resp = AuthorizationResponse(id_token=_signed_jwt, state=_state)
         self.consumer.consumer_config["response_type"] = ["id_token"]
+        self.consumer.authz_req[_state] = AccessTokenRequest(nonce="KUEYfRM2VzKDaaKD")
         self.consumer.parse_authz(resp.to_urlencoded())
         assert self.consumer.sso_db["state"]["smid"] == smid
         assert session_get(self.consumer.sso_db, "smid", smid) == [_state]

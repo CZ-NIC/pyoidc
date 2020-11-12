@@ -38,6 +38,7 @@ from oic.oic.message import ClaimsRequest
 from oic.oic.message import IdToken
 from oic.oic.message import Message
 from oic.oic.message import OpenIDSchema
+from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import RefreshAccessTokenRequest
 from oic.oic.message import RegistrationRequest
 from oic.oic.message import RegistrationResponse
@@ -224,6 +225,9 @@ class TestProvider(object):
         self.cons.keyjar.import_jwks(
             self.provider.keyjar.export_jwks(), self.cons.issuer
         )
+        self.cons.provider_info = ProviderConfigurationResponse(
+            issuer=SERVER_INFO["issuer"]
+        )
 
         self.cons2 = Consumer(
             {}, CONSUMER_CONFIG.copy(), CLIENT_CONFIG_2, server_info=SERVER_INFO
@@ -373,6 +377,7 @@ class TestProvider(object):
 
         part = self.cons.parse_authz(query=resp.message)
 
+        assert isinstance(part, tuple)
         aresp = part[0]
         assert part[1] is None
         assert part[2] is None
@@ -410,9 +415,10 @@ class TestProvider(object):
 
         part = self.cons.parse_authz(resp.message)
 
+        assert isinstance(part, tuple)
         aresp = part[0]
         assert part[1] is None
-        assert part[2] is not None
+        id_token = part[2]
 
         assert isinstance(aresp, AuthorizationResponse)
         assert _eq(aresp.keys(), ["scope", "state", "id_token", "client_id", "code"])
@@ -421,7 +427,6 @@ class TestProvider(object):
             self.cons.grant[_state].keys(),
             ["code", "id_token", "tokens", "exp_in", "grant_expiration_time", "seed"],
         )
-        id_token = part[2]
         assert isinstance(id_token, IdToken)
         assert _eq(
             id_token.keys(),
