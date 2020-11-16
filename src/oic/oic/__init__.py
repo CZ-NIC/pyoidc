@@ -44,6 +44,7 @@ from oic.oauth2.exception import ParseError
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import Message
 from oic.oauth2.message import MessageFactory
+from oic.oauth2.message import WrongSigningAlgorithm
 from oic.oauth2.util import get_or_post
 from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.message import AccessTokenResponse
@@ -1432,7 +1433,13 @@ class Client(oauth2.Client):
         return resp
 
     def _verify_id_token(
-        self, id_token, nonce="", acr_values=None, auth_time=0, max_age=0
+        self,
+        id_token,
+        nonce="",
+        acr_values=None,
+        auth_time=0,
+        max_age=0,
+        response_type="",
     ):
         """
         Verify IdToken.
@@ -1465,6 +1472,11 @@ class Client(oauth2.Client):
         if _now > id_token["exp"]:
             raise OtherError("Passed best before date")
 
+        if response_type != ["code"] and id_token.jws_header["alg"] == "none":
+            raise WrongSigningAlgorithm(
+                "none is not allowed outside Authorization Flow."
+            )
+
         if (
             self.id_token_max_age
             and _now > int(id_token["iat"]) + self.id_token_max_age
@@ -1491,7 +1503,7 @@ class Client(oauth2.Client):
         except KeyError:
             pass
 
-        for param in ["acr_values", "max_age"]:
+        for param in ["acr_values", "max_age", "response_type"]:
             try:
                 kwa[param] = authn_req[param]
             except KeyError:

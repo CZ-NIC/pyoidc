@@ -510,25 +510,11 @@ class TestOICConsumer:
 
         with freeze_time("2019-08-09 11:00:00"):
             part = self.consumer.parse_authz(query=parsed.query)
-        auth = part[0]
-        atr = part[1]
-        assert part[2] is None
-
-        assert auth is None
-        assert isinstance(atr, AccessTokenResponse)
-        assert _eq(
-            atr.keys(), ["access_token", "id_token", "token_type", "state", "scope"]
-        )
-
-        with freeze_time("2019-08-09 11:00:00"):
-            self.consumer.verify_id_token(
-                atr["id_token"], self.consumer.authz_req[atr["state"]]
-            )
+        assert isinstance(part, tuple)
         auth = part[0]
         atr = part[1]
         idt = part[2]
 
-        assert isinstance(part, tuple)
         assert auth is None
         assert isinstance(atr, AccessTokenResponse)
         assert _eq(
@@ -586,17 +572,142 @@ class TestOICConsumer:
 
         with freeze_time("2019-08-09 11:00:00"):
             part = self.consumer.parse_authz(query=parsed.query, algs={"sign": "HS256"})
+        assert isinstance(part, tuple)
         auth = part[0]
         atr = part[1]
         idt = part[2]
 
-        assert isinstance(part, tuple)
         assert auth is None
         assert isinstance(atr, AccessTokenResponse)
         assert _eq(
             atr.keys(), ["access_token", "id_token", "token_type", "state", "scope"]
         )
         assert isinstance(idt, IdToken)
+
+    def test_complete_auth_token_idtoken_none_cipher_code(self):
+        _state = "state0"
+        self.consumer.consumer_config["response_type"] = ["code"]
+        self.consumer.registration_response = RegistrationResponse(
+            id_token_signed_response_alg="none"
+        )
+        self.consumer.provider_info = ProviderConfigurationResponse(
+            issuer="https://example.com"
+        )  # abs min
+        self.consumer.authz_req = {}  # Store AuthzReq with state as key
+        self.consumer.sdb[_state] = {"redirect_uris": []}
+
+        args = {
+            "client_id": self.consumer.client_id,
+            "response_type": self.consumer.consumer_config["response_type"],
+            "scope": ["openid"],
+            "nonce": "nonce",
+        }
+        token = IdToken(
+            iss="https://example.com",
+            aud="client_1",
+            sub="some_sub",
+            exp=1565348600,
+            iat=1565348300,
+            nonce="nonce",
+            at_hash="aaa",
+        )
+        # Downgrade the algorithm to `none`
+        location = (
+            "https://example.com/cb?state=state0&access_token=token&token_type=bearer&"
+            "scope=openid&id_token={}".format(
+                token.to_jwt(key=KC_RSA.keys(), algorithm="none")
+            )
+        )
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                responses.GET,
+                "https://example.com/authorization",
+                status=302,
+                headers={"location": location},
+            )
+            result = self.consumer.do_authorization_request(
+                state=_state, request_args=args
+            )
+            query = parse_qs(urlparse(result.request.url).query)
+            assert query["client_id"] == ["client_1"]
+            assert query["scope"] == ["openid"]
+            assert query["response_type"] == ["code"]
+            assert query["state"] == ["state0"]
+            assert query["nonce"] == ["nonce"]
+            assert query["redirect_uri"] == ["https://example.com/cb"]
+
+        parsed = urlparse(result.headers["location"])
+
+        with freeze_time("2019-08-09 11:00:00"):
+            part = self.consumer.parse_authz(query=parsed.query)
+        assert isinstance(part, tuple)
+        auth = part[0]
+        atr = part[1]
+        idt = part[2]
+
+        assert isinstance(auth, AuthorizationResponse)
+        assert isinstance(atr, AccessTokenResponse)
+        assert _eq(
+            atr.keys(), ["access_token", "id_token", "token_type", "state", "scope"]
+        )
+        assert isinstance(idt, IdToken)
+
+    def test_complete_auth_token_idtoken_none_cipher_token(self):
+        _state = "state0"
+        self.consumer.consumer_config["response_type"] = ["token"]
+        self.consumer.registration_response = RegistrationResponse(
+            id_token_signed_response_alg="none"
+        )
+        self.consumer.provider_info = ProviderConfigurationResponse(
+            issuer="https://example.com"
+        )  # abs min
+        self.consumer.authz_req = {}  # Store AuthzReq with state as key
+        self.consumer.sdb[_state] = {"redirect_uris": []}
+
+        args = {
+            "client_id": self.consumer.client_id,
+            "response_type": self.consumer.consumer_config["response_type"],
+            "scope": ["openid"],
+            "nonce": "nonce",
+        }
+        token = IdToken(
+            iss="https://example.com",
+            aud="client_1",
+            sub="some_sub",
+            exp=1565348600,
+            iat=1565348300,
+            nonce="nonce",
+        )
+        # Downgrade the algorithm to `none`
+        location = (
+            "https://example.com/cb?state=state0&access_token=token&token_type=bearer&"
+            "scope=openid&id_token={}".format(
+                token.to_jwt(key=KC_RSA.keys(), algorithm="none")
+            )
+        )
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                responses.GET,
+                "https://example.com/authorization",
+                status=302,
+                headers={"location": location},
+            )
+            result = self.consumer.do_authorization_request(
+                state=_state, request_args=args
+            )
+            query = parse_qs(urlparse(result.request.url).query)
+            assert query["client_id"] == ["client_1"]
+            assert query["scope"] == ["openid"]
+            assert query["response_type"] == ["token"]
+            assert query["state"] == ["state0"]
+            assert query["nonce"] == ["nonce"]
+            assert query["redirect_uri"] == ["https://example.com/cb"]
+
+        parsed = urlparse(result.headers["location"])
+
+        with freeze_time("2019-08-09 11:00:00"):
+            with pytest.raises(WrongSigningAlgorithm):
+                self.consumer.parse_authz(query=parsed.query)
 
     def test_complete_auth_token_idtoken_cipher_downgrade(self):
         _state = "state0"
@@ -649,7 +760,7 @@ class TestOICConsumer:
 
         with freeze_time("2019-08-09 11:00:00"):
             with pytest.raises(WrongSigningAlgorithm):
-                part = self.consumer.parse_authz(query=parsed.query)
+                self.consumer.parse_authz(query=parsed.query)
 
     def test_userinfo(self):
         _state = "state0"
