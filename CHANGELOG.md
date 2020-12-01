@@ -7,6 +7,11 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+## 1.2.1 [2020-12-01]
+
+### Fixed
+- Fixed several client vulnerabilities (CVE-2020-26244)
+
 ## 1.2.0 [2020-02-05]
 
 ### Fixed
