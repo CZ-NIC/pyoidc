@@ -313,17 +313,19 @@ def verify_id_token(instance, check_hash=False, **kwargs):
 
     if check_hash:
         _alg = idt.jws_header["alg"]
-        # What if _alg == 'none'
+        if _alg != "none":
+            hfunc = "HS" + _alg[-3:]
+        else:
+            # This is allowed only for `code` and it needs to be checked by a Client
+            hfunc = None
 
-        hfunc = "HS" + _alg[-3:]
-
-        if "access_token" in instance:
+        if "access_token" in instance and hfunc is not None:
             if "at_hash" not in idt:
                 raise MissingRequiredAttribute("Missing at_hash property", idt)
             if idt["at_hash"] != jws.left_hash(instance["access_token"], hfunc):
                 raise AtHashError("Failed to verify access_token hash", idt)
 
-        if "code" in instance:
+        if "code" in instance and hfunc is not None:
             if "c_hash" not in idt:
                 raise MissingRequiredAttribute("Missing c_hash property", idt)
             if idt["c_hash"] != jws.left_hash(instance["code"], hfunc):
@@ -780,6 +782,11 @@ class IdToken(OpenIDSchema):
         else:
             if (_iat + _storage_time) < (_now - _skew):
                 raise IATError("Issued too long ago")
+            if _now < (_iat - _skew):
+                raise IATError("Issued in the future")
+
+        if _exp < _iat:
+            raise EXPError("Invalid expiration time")
 
         return True
 
