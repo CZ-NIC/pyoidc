@@ -35,8 +35,8 @@ that has to decide on whether it supports dynamic provider information
 gathering and/or dynamic client registration.
 
 If the OP doesn't support client registration then you have to statically register
-your client with the provider. Typically this is accomplished using a web
-page provided by the organization that runs the OP. I Can't help
+your client with the provider. Typically, this is accomplished using a web
+page provided by the organization that runs the OP. I can't help
 you with this since each provider does it differently. What you eventually
 must get from the provider is a client id and a client secret.
 
@@ -48,10 +48,10 @@ you will learn what information to look for.
 Issuer discovery
 ----------------
 
-OIDC uses `webfinger`_ to to do the OP discovery. In very general terms this means
+OIDC uses `webfinger`_ to do the OP discovery. In very general terms this means
 that the user that accesses the RP provides an identifier. There are a number
 of different syntaxes that this identifier can adhere to. The most common is
-probably the e-mail address syntax. It's something that looks like an e-mail
+probably the email address syntax. It looks like an email
 address (local@domain) but is not necessarily one.
 
 .. _webfinger: http://tools.ietf.org/html/rfc7033
@@ -74,8 +74,8 @@ The discover method will use webfinger to find the OIDC OP given the user
 identifier provided. If the user identifier follows another syntax/scheme
 the same method can still be used, you just have to preface the 'uid'
 value with the scheme used.
-The returned issuer must, according to the standard, be an https url, but some
-implementers have decided differently on this, so you may get a http url.
+The returned issuer must, according to the standard, be an HTTPS URL, but some
+implementers have decided differently on this, so you may get a HTTP URL.
 
 Provider Info discovery
 -----------------------
@@ -103,7 +103,7 @@ necessary information::
     >> provider_info["authorization_endpoint"]
     'https://example.com/op/authz_endp'
 
-The provider info is also automatically stored in the client instance.::
+The provider info is also automatically stored in the client instance::
 
     >> client.provider_info["scopes_supported"]
     ['openid', 'profile', 'email']
@@ -132,7 +132,7 @@ Things like:
     If omitted, the default is that the Client will use only the code Response
     Type.
 * contacts
-    OPTIONAL. Array of e-mail addresses of people responsible for this Client.
+    OPTIONAL. Array of email addresses of people responsible for this Client.
 
 The whole list of possible parameters can be found `here`__:
 
@@ -171,7 +171,7 @@ will be unpacked and set as attributes on the client instance.
     like provider information and client registration information outside the
     RP and then setup the RP every time you want to talk to a new OP.
 
-Now back to the static variant. If you can not do the Provider discovery
+Now back to the static variant. If you cannot do the Provider discovery
 dynamically you have to get the information out-of-band and then configure
 the RP accordingly. And this is how you would do that::
 
@@ -189,7 +189,7 @@ the RP accordingly. And this is how you would do that::
 
     client.handle_provider_config(op_info, op_info['issuer'])
 
-Likewise if the client registration has been done out-of-band::
+Likewise, if the client registration has been done out-of-band::
 
     from oic.oic.message import RegistrationResponse
 
@@ -202,8 +202,7 @@ Likewise if the client registration has been done out-of-band::
 Authorization query
 -------------------
 
-Once the client knows about the OP and the OP knows about the client we can
-start doing business, that is get information about users.
+Once the client knows about the OP and the OP knows about the client information about users can be retrieved.
 
 The request you then want to make is the authentication request.
 
