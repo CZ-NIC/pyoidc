@@ -10,6 +10,7 @@ environment:
 build: off
 
 install:
+  - "%PYTHON%\\python.exe -m pip install --upgrade pip"
   - "%PYTHON%\\python.exe -m pip install .[testing]"
 
 test_script:
