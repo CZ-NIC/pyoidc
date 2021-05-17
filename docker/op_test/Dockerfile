@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     python3-setuptools && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN pip install -U pip setuptools
+RUN python3 -mpip install -U pip setuptools
 RUN git clone --depth=1 https://github.com/openid-certification/otest.git ${SRCDIR}/otest
 WORKDIR ${SRCDIR}/otest
 RUN python3 setup.py install
