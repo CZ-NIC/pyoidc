@@ -1,7 +1,9 @@
+language: python
+dist: bionic
+
+sudo: required
 services:
   docker
-
-python: 3.6
 
 addons:
   hosts:
