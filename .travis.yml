@@ -1,6 +1,14 @@
 services:
   docker
 
+python: 3.6
+
+addons:
+  hosts:
+     op-test
+     rp-test
+     op
+
 matrix:
   include:
     - install:
