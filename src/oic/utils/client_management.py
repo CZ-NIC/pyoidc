@@ -9,7 +9,6 @@ from builtins import input
 from typing import Any
 from typing import List
 from urllib.parse import parse_qs
-from urllib.parse import splitquery  # type: ignore
 from urllib.parse import urlparse
 
 from oic import rndstr
@@ -33,13 +32,15 @@ def unpack_redirect_uri(redirect_uris):
 def pack_redirect_uri(redirect_uris):
     ruri = []
     for uri in redirect_uris:
-        if urlparse(uri).fragment:
+        parts = urlparse(uri)
+        if parts.fragment:
             print("Faulty redirect uri, contains fragment", file=sys.stderr)
-        base, query = splitquery(uri)
+        query = parts.query
+        base = parts._replace(query="").geturl()
         if query:
             ruri.append([base, parse_qs(query)])
         else:
-            ruri.append([base, query])
+            ruri.append([base, None])
 
     return ruri
 

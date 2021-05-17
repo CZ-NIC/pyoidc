@@ -11,7 +11,6 @@ from typing import List
 from typing import Optional
 from typing import Union
 from urllib.parse import parse_qs
-from urllib.parse import splitquery  # type: ignore
 from urllib.parse import unquote
 from urllib.parse import urljoin
 from urllib.parse import urlparse
@@ -322,9 +321,8 @@ class Provider(object):
             if part.fragment:
                 raise URIError("Contains fragment")
 
-            (_base, _query) = splitquery(_redirect_uri)
-            if _query:
-                _query = parse_qs(_query)
+            _query = parse_qs(part.query) if part.query else None
+            _base = part._replace(query="").geturl()
 
             match = False
             for regbase, rquery in self.cdb[str(areq["client_id"])]["redirect_uris"]:

@@ -3,7 +3,7 @@ import logging
 import socket
 from typing import Dict
 from urllib.parse import parse_qs
-from urllib.parse import splitquery  # type: ignore
+from urllib.parse import urlparse
 
 from jwkest import b64e
 
@@ -213,7 +213,9 @@ class Provider(provider.Provider):
     def _uris_to_tuples(uris):
         tup = []
         for uri in uris:
-            base, query = splitquery(uri)
+            part = urlparse(uri)
+            query = part.query
+            base = part._replace(query="").geturl()
             if query:
                 tup.append((base, query))
             else:

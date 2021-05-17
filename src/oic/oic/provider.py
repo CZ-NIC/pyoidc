@@ -15,7 +15,6 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 from urllib.parse import parse_qs
-from urllib.parse import splitquery  # type: ignore
 from urllib.parse import unquote
 from urllib.parse import urlencode
 from urllib.parse import urljoin
@@ -481,8 +480,7 @@ class Provider(AProvider):
         part = urlparse(_redirect_uri)
         if part.fragment:
             raise ValueError
-
-        (_base, _query) = splitquery(_redirect_uri)
+        _base = part._replace(query="").geturl()
 
         sid = ""
         try:
@@ -1341,7 +1339,8 @@ class Provider(AProvider):
             elif p.fragment:
                 raise InvalidRedirectURIError("redirect_uri contains fragment")
 
-            base, query = splitquery(uri)
+            query = p.query if p.query else None
+            base = p._replace(query="").geturl()
             if query:
                 verified_redirect_uris.append((base, parse_qs(query)))
             else:
@@ -1353,11 +1352,13 @@ class Provider(AProvider):
         """Verify correct format of post_logout_redirect_uris."""
         plruri = []
         for uri in request["post_logout_redirect_uris"]:
-            if urlparse(uri).fragment:
+            part = urlparse(uri)
+            if part.fragment:
                 raise InvalidPostLogoutUri(
                     "post_logout_redirect_uris contains fragment"
                 )
-            base, query = splitquery(uri)
+            query = part.query if part.query else None
+            base = part._replace(query="").geturl()
             if query:
                 plruri.append((base, parse_qs(query)))
             else:
