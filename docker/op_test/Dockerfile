@@ -7,6 +7,7 @@ ENV SUBDIR ${SRCDIR}/${INSTDIR}/oidc_op
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    cargo \
     git \
     libffi-dev \
     libssl-dev \
