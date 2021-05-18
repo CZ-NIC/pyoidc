@@ -1,5 +1,15 @@
+language: python
+dist: bionic
+
+sudo: required
 services:
   docker
+
+addons:
+  hosts:
+     op-test
+     rp-test
+     op
 
 matrix:
   include:
