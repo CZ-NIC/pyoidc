@@ -1,4 +1,4 @@
 cherrypy==3.2.4
 pyaml==15.03.1
-Jinja2==2.10.1
+Jinja2==2.11.3
 yubico-client==1.9.1
