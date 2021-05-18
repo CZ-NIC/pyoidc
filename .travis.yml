@@ -1,42 +1,8 @@
-language: python
-dist: xenial
-
-sudo: required
 services:
-    docker
-
-python: 3.6
-
-addons:
-  apt:
-    packages:
-    - libffi-dev
-    - libsasl2-dev
-    - libldap2-dev
-  hosts:
-     op-test
-     rp-test
-     op
-
-install:
-  - pip install tox
-
-env:
-   - TOXENV=py36
-   - TOXENV=quality
-   - TOXENV=docs
-
-script:
-  - tox -e $TOXENV
+  docker
 
 matrix:
   include:
-    # Add python 3.7
-    - python: 3.7
-      env: TOXENV=py37
-    # Add python 3.8
-    - python: 3.8
-      env: TOXENV=py38
     - install:
         - docker-compose -f docker/docker-compose.yml up -d
       script:
@@ -49,4 +15,4 @@ matrix:
       script: awesome_bot CHANGELOG.md
 
 notifications:
-  email: false
+  email: False
