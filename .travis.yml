@@ -22,7 +22,7 @@ matrix:
     - language: ruby
       rvm: 2.4.1
       install: gem install awesome_bot
-      script: awesome_bot -d 1 CHANGELOG.md
+      script: awesome_bot -d 2 CHANGELOG.md
 
 notifications:
   email: False
