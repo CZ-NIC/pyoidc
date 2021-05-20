@@ -590,7 +590,7 @@ class TestClient(object):
             )
 
             resp = self.client.do_access_token_request(request_args=request_args)
-            request = parse_qs(rsps.calls[0].request.body)
+            request = parse_qs(str(rsps.calls[0].request.body))
             assert request["assertion"][0] == "saml assertion"
             assert (
                 request["grant_type"][0]

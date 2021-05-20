@@ -398,7 +398,7 @@ class TestClient(object):
                 body=IDTOKEN.to_json(),
             )
             resp = self.client.do_check_session_request(request_args=args)
-            parsed = parse_qs(urlparse(rsps.calls[0].request.url).query)
+            parsed = parse_qs(str(urlparse(rsps.calls[0].request.url).query))
             assert parsed["id_token"] is not None
 
         assert isinstance(resp, IdToken)

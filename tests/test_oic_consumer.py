@@ -998,7 +998,7 @@ class TestOICConsumer:
         with responses.RequestsMock() as rsps:
             rsps.add(responses.POST, "https://example.com/register/", json=reg_resp)
             c.register("https://example.com/register/")
-            assert json.loads(rsps.calls[0].request.body) == {
+            assert json.loads(str(rsps.calls[0].request.body)) == {
                 "application_type": "web",
                 "response_types": ["code"],
                 "redirect_uris": ["https://example.com/authz"],
