@@ -69,15 +69,13 @@ Maintainers Needed
 If you're interested in helping maintain and improve this package, we're
 looking for you! We're working on the project on a best effort basis but we
 still maintain a good flow of reviewing each others pull requests and driving
-discussions on what should be done. We also use a `mailing list`_ to have long
-form discussions.
+discussions on what should be done.
 
 Please contact one of the current maintainers `@rohe`_, `@tpazderka`_ or `@schlenk`_.
 
 .. _@rohe: https://github.com/rohe/
 .. _@tpazderka: https://github.com/tpazderka/
 .. _@schlenk: https://github.com/schlenk
-.. _mailing list: https://lists.sunet.se/listinfo/pyoidc-dev
 
 Contribute
 ==========
