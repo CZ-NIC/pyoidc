@@ -190,7 +190,7 @@ class KeyBundle(object):
             args["headers"] = {"If-None-Match": self.etag}
 
         try:
-            logging.debug("KeyBundle fetch keys from: %s", self.source)
+            logger.debug("KeyBundle fetch keys from: %s", self.source)
             r = requests.get(self.source, **args)
         except Exception as err:
             logger.error(err)
