@@ -78,6 +78,7 @@ setup(
         'testing': tests_requires,
         'docs': ['Sphinx', 'sphinx-autobuild', 'alabaster'],
         'quality': ['pylama', 'isort', 'eradicate', 'mypy', 'black', 'bandit', 'readme_renderer[md]'],
+        'types': ['types-requests'],
         'ldap_authn': ['pyldap'],
     },
     install_requires=[
