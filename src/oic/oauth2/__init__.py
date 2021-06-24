@@ -955,7 +955,7 @@ class Client(PBase):
             http_args.update(ht_args)
 
         response = self.request_and_return(
-            url, response_cls, method, body, body_type, state=state, http_args=http_args
+            url, response_cls, method, body, body_type, state=state, http_args=http_args, **kwargs
         )
         if token.replaced:
             grant = self.get_grant(state)
