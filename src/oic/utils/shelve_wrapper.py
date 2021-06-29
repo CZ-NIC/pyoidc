@@ -1,4 +1,4 @@
-import shelve
+import shelve  # nosec
 
 __author__ = "danielevertsson"
 
@@ -39,7 +39,7 @@ class ShelfWrapper(object):
         db.__delitem__(key)
 
     def _reopen_database(self):
-        return shelve.open(self.filename, writeback=True)
+        return shelve.open(self.filename, writeback=True)  # nosec
 
 
 def open(filename):

@@ -479,7 +479,7 @@ class TestProvider(Provider):
 
 if __name__ == '__main__':
     import argparse
-    import shelve
+    import shelve  # nosec
     import importlib
 
     from cherrypy import wsgiserver
@@ -502,7 +502,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Client data base
-    cdb = shelve.open("client_db", writeback=True)
+    cdb = shelve.open("client_db", writeback=True)  # nosec
 
     sys.path.insert(0, ".")
     config = importlib.import_module(args.config)
