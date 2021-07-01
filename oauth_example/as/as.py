@@ -191,7 +191,7 @@ START_MESG = "OAuth2 server starting listening on port:{} at {}"
 
 if __name__ == "__main__":
     import argparse
-    import shelve
+    import shelve  # nosec
     import importlib
 
     from cherrypy import wsgiserver
@@ -213,7 +213,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Client data base
-    cdb = shelve.open("client_db", writeback=True)
+    cdb = shelve.open("client_db", writeback=True)  # nosec
 
     # Load the configuration file, which must be a python file
     # The default; first look for it in the directory from where this program

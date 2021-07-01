@@ -3,7 +3,7 @@ import argparse
 import copy
 import json
 import os
-import shelve
+import shelve  # nosec
 import sys
 from builtins import input
 from typing import Any
@@ -49,7 +49,7 @@ class CDB(BaseClientDatabase):
     """Implementation of ClientDatabase with shelve."""
 
     def __init__(self, filename):
-        self.cdb = shelve.open(filename, writeback=True)
+        self.cdb = shelve.open(filename, writeback=True)  # nosec
         self.seed = rndstr(32).encode("utf-8")
 
     def __getitem__(self, item):
