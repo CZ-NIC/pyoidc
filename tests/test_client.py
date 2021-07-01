@@ -58,16 +58,40 @@ def client():
 
 
 class TestClientSecretBasic(object):
-    def test_construct(self, client):
-        cis = AccessTokenRequest(code="foo", redirect_uri="http://example.com")
+    @pytest.mark.parametrize(
+        "url_encoded, encoding",
+        ((False, "latin1"), (True, "latin1"), (None, None), (False, None)),
+    )
+    def test_construct(self, client, url_encoded, encoding):
 
+        cis = AccessTokenRequest(code="foo", redirect_uri="http://example.com")
         csb = ClientSecretBasic(client)
-        http_args = csb.construct(cis)
-        cred = "{}:{}".format(quote_plus("A"), quote_plus("boarding pass"))
+
+        user, passwd = "A", "boarding pass"
+        kwargs = {}
+        if url_encoded is None or url_encoded:
+            user, passwd = (
+                quote_plus(user),
+                quote_plus(passwd),
+            )
+
+        if url_encoded is not None:
+            kwargs.update({"url_encoded": url_encoded})
+
+        if encoding is None:
+            encoding = "utf-8"
+        else:
+            kwargs.update({"encoding": encoding})
+
+        http_args = csb.construct(cis, **kwargs)
+
+        user, passwd = user.encode(encoding), passwd.encode(encoding)
+
+        cred = b":".join((user, passwd))
         assert http_args == {
             "headers": {
                 "Authorization": "Basic {}".format(
-                    base64.b64encode(cred.encode("utf-8")).decode("utf-8")
+                    base64.b64encode(cred).decode(encoding)
                 )
             }
         }

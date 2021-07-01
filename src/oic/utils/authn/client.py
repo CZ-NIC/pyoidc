@@ -90,13 +90,23 @@ class ClientSecretBasic(ClientAuthnMethod):
     Section 3.2.1 of OAuth 2.0 [RFC6749] using HTTP Basic authentication scheme.
     """
 
-    def construct(self, cis, request_args=None, http_args=None, **kwargs):
+    def construct(
+        self,
+        cis=None,
+        request_args=None,
+        http_args=None,
+        url_encoded: bool = True,
+        encoding: str = "utf-8",
+        **kwargs
+    ):
         """
         Create the request.
 
         :param cis: Request class instance
         :param request_args: Request arguments
         :param http_args: HTTP arguments
+        :param url_encoded: url encode the user-pass before converting to base64
+        :param encoding: encoding format of user-pass before converting to base64
         :return: dictionary of HTTP arguments
         """
         if http_args is None:
@@ -121,8 +131,11 @@ class ClientSecretBasic(ClientAuthnMethod):
         if "headers" not in http_args:
             http_args["headers"] = {}
 
-        credentials = "{}:{}".format(quote_plus(user), quote_plus(passwd))
-        authz = base64.b64encode(credentials.encode("utf-8")).decode("utf-8")
+        if url_encoded:
+            user, passwd = quote_plus(user), quote_plus(passwd)
+
+        credentials = b":".join((user.encode(encoding), passwd.encode(encoding)))
+        authz = base64.b64encode(credentials).decode(encoding)
         http_args["headers"]["Authorization"] = "Basic {}".format(authz)
 
         try:

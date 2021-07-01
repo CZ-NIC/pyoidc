@@ -11,9 +11,13 @@ The format is based on the [KeepAChangeLog] project.
 - [#763] Drop python 3.5 support
 
 ### Added
+- [#755] Kwargs for ClientCredential encoding and url_encoded. If `url_encoded` is `True` or is not 
+provided, the user-pass will be encoded using `quote_plus`. The `encoding` kwargs will be used to `encode` to bytes
+before encoding in base64. Then, the base64 will be decoded using this encoding also.
 - [#739] Better error message for providers which return HTTP Error 405 on userinfo
 - [#723] Add settings class to handle settings related to Client and Server
 
+[#755]: https://github.com/OpenIDC/pyoidc/pull/755/
 [#723]: https://github.com/OpenIDC/pyoidc/pull/723/
 [#739]: https://github.com/OpenIDC/pyoidc/pull/739/
 [#763]: https://github.com/OpenIDC/pyoidc/pull/763/
