@@ -145,14 +145,10 @@ class TestClient(object):
         assert self.client.grant["hij"].code == aresp["code"]
         assert self.client.grant["hij"].grant_expiration_time
 
-
     def test_parse_authz_resp_dict(self):
         code = "SplxlOBeZQQYbYS6WxSbIA"
         state = "ghi"
-        resp = dict(
-            code=code,
-            state=state
-        )
+        resp = dict(code=code, state=state)
         aresp = self.client.parse_response(
             AuthorizationResponse, info=resp, sformat="dict"
         )
