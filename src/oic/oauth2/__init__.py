@@ -87,7 +87,7 @@ RESPONSE2ERROR: Dict[str, List] = {
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint", "token_revocation_endpoint"]
 
-ENCODINGS = Literal["json", "urlencoded"]
+ENCODINGS = Literal["json", "urlencoded", "dict"]
 
 
 class ExpiredToken(PyoidcError):
@@ -609,7 +609,7 @@ class Client(PBase):
     def parse_response(
         self,
         response: Type[Message],
-        info: str = "",
+        info: Union[str, Dict] = "",
         sformat: ENCODINGS = "json",
         state: str = "",
         **kwargs,
