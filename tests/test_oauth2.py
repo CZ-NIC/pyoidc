@@ -145,6 +145,20 @@ class TestClient(object):
         assert self.client.grant["hij"].code == aresp["code"]
         assert self.client.grant["hij"].grant_expiration_time
 
+    def test_parse_authz_resp_dict(self):
+        code = "SplxlOBeZQQYbYS6WxSbIA"
+        state = "ghi"
+        resp = dict(code=code, state=state)
+        aresp = self.client.parse_response(
+            AuthorizationResponse, info=resp, sformat="dict"
+        )
+
+        assert aresp["code"] == code
+        assert aresp["state"] == state
+
+        assert self.client.grant[state].code == aresp["code"]
+        assert self.client.grant[state].grant_expiration_time
+
     def test_parse_authz_resp_query_multi_scope(self):
         code = "SplxlOBeZQQYbYS6WxSbIA"
         states = ["ghi", "hij", "klm"]
