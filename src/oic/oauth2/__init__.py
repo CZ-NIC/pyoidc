@@ -7,6 +7,7 @@ from typing import Optional
 from typing import Tuple
 from typing import Type
 from typing import Union
+from typing import cast
 from urllib.parse import urlparse
 
 from jwkest import b64e
@@ -627,8 +628,11 @@ class Client(PBase):
         """
         _r2e = self.response2error
 
+        if isinstance(info, dict) and sformat != "dict":
+            raise TypeError("If info is a dict sformat must be dict")
+
         if sformat == "urlencoded":
-            info = self.get_urlinfo(info)
+            info = self.get_urlinfo(cast(str, info))
 
         resp = response().deserialize(info, sformat, **kwargs)
         msg = 'Initial response parsing => "{}"'
