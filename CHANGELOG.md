@@ -7,6 +7,8 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+## 1.3.0 [2021-07-09]
+
 ### Changed
 - [#763] Drop python 3.5 support
 
@@ -19,6 +21,11 @@ The format is based on the [KeepAChangeLog] project.
 [#739]: https://github.com/OpenIDC/pyoidc/pull/739/
 [#763]: https://github.com/OpenIDC/pyoidc/pull/763/
 [#790]: https://github.com/OpenIDC/pyoidc/pull/790
+
+## 1.2.1 [2020-12-01]
+
+### Fixed
+- Fixed several client vulnerabilities (CVE-2020-26244)
 
 ## 1.2.0 [2020-02-05]
 
