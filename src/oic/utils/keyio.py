@@ -235,7 +235,7 @@ class KeyBundle(object):
         """
         Parse JWKS from the HTTP response.
 
-        Should be overriden by subclasses for adding support of e.g. signed
+        Should be overridden by subclasses for adding support of e.g. signed
         JWKS.
         :param response: HTTP response from the 'jwks_uri' endpoint
         :return: response parsed as JSON
