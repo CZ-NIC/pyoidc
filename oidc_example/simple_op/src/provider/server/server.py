@@ -107,17 +107,24 @@ def resp2flask(resp):
     return resp.message, resp.status, resp.headers
 
 
+"""
+Creates an AuthnBroker with the authentication methods set in settings.yaml.
+
+:returns an AuthnBroker and the routing.
+"""
 def setup_authentication_methods(authn_config, template_env):
     """Add all authentication methods specified in the configuration."""
     routing = {}
     ac = AuthnBroker()
     for authn_method in authn_config:
 
-        # Create instance of each auth class
+        # Create instance of the appropiate auth class.
         cls = make_cls_from_name(authn_method["class"])
         instance = cls(template_env=template_env, **authn_method["kwargs"])
 
+        # Adds the auth method name to the broker.
         ac.add(authn_method["acr"], instance)
+
         routing[instance.url_endpoint] = VerifierMiddleware(instance)
 
     return ac, routing
@@ -126,6 +133,8 @@ def setup_authentication_methods(authn_config, template_env):
 def setup_endpoints(provider):
     """Setup the OpenID Connect Provider endpoints."""
     app_routing = {}
+
+    # Each provider.***** is a pointer to a function
     endpoints = [
         AuthorizationEndpoint(
             pyoidcMiddleware(provider.authorization_endpoint)),
@@ -207,6 +216,8 @@ def main():
     client_db = {}
     session_db = create_session_db(issuer,
                                    secret=rndstr(32), password=rndstr(32))
+
+    # verify_client is a pointer to that function which is used in the token endpoint.
     provider = Provider(issuer, session_db, client_db, authn_broker,
                         userinfo, AuthzHandling(), verify_client, None)
     provider.baseurl = issuer
