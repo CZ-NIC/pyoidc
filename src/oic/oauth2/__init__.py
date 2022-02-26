@@ -559,7 +559,8 @@ class Client(PBase):
 
         try:
             cls = getattr(self, "construct_%s" % request.__name__)
-            cis = cls(request_args=request_args, extra_args=extra_args, **kwargs)
+            cis = cls(request=request, request_args=request_args,
+                      extra_args=extra_args, **kwargs)
         except AttributeError:
             cis = self.construct_request(request, request_args, extra_args)
 
@@ -875,6 +876,7 @@ class Client(PBase):
         state: str = "",
         body_type: ENCODINGS = "json",
         method="POST",
+        request=None,
         request_args=None,
         extra_args=None,
         http_args=None,
@@ -882,7 +884,8 @@ class Client(PBase):
         **kwargs,
     ) -> AccessTokenResponse:
 
-        request = self.message_factory.get_request_type("token_endpoint")
+        if not request:
+            request = self.message_factory.get_request_type("token_endpoint")
         response_cls = self.message_factory.get_response_type("token_endpoint")
 
         if extra_args is None:
