@@ -1,7 +1,8 @@
+import hashlib
 import logging
 import time
 import warnings
-from hashlib import sha256
+
 from typing import Dict
 
 from oic import rndstr
@@ -46,7 +47,7 @@ def stateID(url, seed):
         pass
 
     # Mostly cargo cult, we could just use rndstr(16)
-    ident = sha256()
+    ident = hashlib.new('sha256')
     ident.update(repr(time.time()).encode())
     ident.update(url.encode())
     ident.update(seed)
