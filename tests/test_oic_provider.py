@@ -1351,7 +1351,7 @@ class TestProvider(object):
         # First log record is from server...
         assert isinstance(logcap.records[1].msg, MissingSchema)
         error = (
-            "Invalid URL 'example.com': No schema supplied. Perhaps you meant "
+            "Invalid URL 'example.com': No scheme supplied. Perhaps you meant "
             "http://example.com?"
         )
         assert str(logcap.records[1].msg) == error

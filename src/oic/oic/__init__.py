@@ -855,7 +855,7 @@ class Client(oauth2.Client):
             if kwargs["token"]:
                 uir["access_token"] = kwargs["token"]
                 token = Token()
-                token.token_type = "Bearer"
+                token.token_type = "Bearer"  # nosec
                 token.access_token = kwargs["token"]
                 kwargs["behavior"] = "use_authorization_header"
             else:
@@ -1326,7 +1326,7 @@ class Client(oauth2.Client):
 
         :return: A list of uris
         """
-        m = hashlib.sha256()
+        m = hashlib.new("sha256")
         m.update(as_bytes(self.provider_info["issuer"]))
         m.update(as_bytes(self.base_url))
         return "{}{}/{}".format(self.base_url, request_dir, m.hexdigest())
