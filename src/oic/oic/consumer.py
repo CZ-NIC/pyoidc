@@ -189,7 +189,7 @@ class Consumer(Client):
         self.request_uri = ""
         self.user_info = None
         self.registration_expires_at = 0
-        self.secret_type = "Bearer"
+        self.secret_type = "Bearer"  # nosec
 
     def update(self, sid):
         """

@@ -855,7 +855,7 @@ class Client(oauth2.Client):
             if kwargs["token"]:
                 uir["access_token"] = kwargs["token"]
                 token = Token()
-                token.token_type = "Bearer"
+                token.token_type = "Bearer"  # nosec
                 token.access_token = kwargs["token"]
                 kwargs["behavior"] = "use_authorization_header"
             else:
