@@ -277,7 +277,7 @@ class Client(PBase):
 
     def set_client_secret(self, val: str):
         if not val:
-            self._c_secret = ""
+            self._c_secret = ""  # nosec
         else:
             self._c_secret = val
             # client uses it for signing
