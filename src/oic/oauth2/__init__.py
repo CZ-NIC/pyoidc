@@ -559,8 +559,12 @@ class Client(PBase):
 
         try:
             cls = getattr(self, "construct_%s" % request.__name__)
-            cis = cls(request=request, request_args=request_args,
-                      extra_args=extra_args, **kwargs)
+            cis = cls(
+                request=request,
+                request_args=request_args,
+                extra_args=extra_args,
+                **kwargs,
+            )
         except AttributeError:
             cis = self.construct_request(request, request_args, extra_args)
 
