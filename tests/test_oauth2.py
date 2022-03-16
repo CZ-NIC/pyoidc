@@ -204,7 +204,6 @@ class TestClient(object):
         assert atr["redirect_uri"] == self.redirect_uri
 
     def test_construct_request_client_credentials(self):
-        # scope is default=""
         request_args = {
             "grant_type": "client_credentials",
             "client_id": "client_id1",
@@ -576,6 +575,12 @@ class TestClient(object):
             self.client._endpoint("foo_endpoint")
 
     def test_do_access_token_request_client_credentials(self):
+        class CCMessageFactory(OauthMessageFactory):
+            """We are doing client credentials."""
+
+            token_endpoint = MessageTuple(CCAccessTokenRequest, AccessTokenResponse)
+
+        self.client.message_factory = CCMessageFactory
         with responses.RequestsMock() as rsps:
             rsps.add(
                 rsps.POST,
@@ -583,7 +588,7 @@ class TestClient(object):
                 json={"access_token": "Token", "token_type": "bearer"},
             )
 
-            resp = self.client.do_access_token_request(request=CCAccessTokenRequest)
+            resp = self.client.do_access_token_request()
             assert rsps.calls[0].request.body == "grant_type=client_credentials"
 
         assert isinstance(resp, AccessTokenResponse)
