@@ -425,6 +425,8 @@ class Client(PBase):
         else:
             request_args = {}
 
+        request_args.update(kwargs)
+
         if "client_id" not in request_args:
             request_args["client_id"] = self.client_id
         elif not request_args["client_id"]:

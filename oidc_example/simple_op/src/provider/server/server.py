@@ -7,7 +7,6 @@ import os
 from functools import partial
 from functools import wraps
 from urllib import parse as urlparse
-
 import cherrypy
 import yaml
 from cherrypy import wsgiserver
@@ -70,13 +69,16 @@ def VerifierMiddleware(verifier):
 
             url = "{base_url}?{query_string}".format(
                 base_url="/authorization",
-                query_string=kwargs["state"]["query"])
+                query_string=urlparse.urlparse(environ.get("HTTP_REFERER")).query)
             response = SeeOther(url, headers=[(set_cookie, cookie_value)])
             return response(environ, start_response)
+
         else:  # Unsuccessful authentication
             url = "{base_url}?{query_string}".format(
                 base_url="/authorization",
-                query_string=kwargs["state"]["query"])
+                query_string=urlparse.urlparse(environ.get("HTTP_REFERER")).query)
+            response = SeeOther(url, headers=[(set_cookie, cookie_value)])
+            return response(environ, start_response)
             response = SeeOther(url)
             return response(environ, start_response)
 
