@@ -95,7 +95,11 @@ def pyoidcMiddleware(func):
     def wrapper(environ, start_response):
         data = get_or_post(environ)
         cookies = environ.get("HTTP_COOKIE", "")
-        resp = func(request=data, cookie=cookies)
+        if(environ.get("REQUEST_URI", "") == "/token"):
+            # This is correct at least for our case which is the authorization code flow.
+            resp = func(request=data, cookie=cookies, authn=environ.get("HTTP_AUTHORIZATION", ""))
+        else:
+            resp = func(request=data, cookie=cookies)
         return resp(environ, start_response)
 
     return wrapper
