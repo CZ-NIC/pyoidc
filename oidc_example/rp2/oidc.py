@@ -37,7 +37,7 @@ class OpenIDConnect(object):
         self.authenticating_authority = authenticating_authority
         self.name = name
         self.client_id = ""
-        self.client_secret = ""
+        self.client_secret = ""  # nosec
 
         for param in ["client_id", "client_secret"]:
             try:

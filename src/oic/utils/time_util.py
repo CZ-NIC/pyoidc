@@ -286,7 +286,7 @@ def shift_time(dtime, shift):
 
 def str_to_time(timestr, time_format=TIME_FORMAT):
     """
-    Convert string to time accordign to TIME_FORMAT.
+    Convert string to time according to TIME_FORMAT.
 
     :param timestr:
     :param time_format:

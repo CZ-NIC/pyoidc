@@ -12,7 +12,6 @@ except ImportError:
     class AaUserInfo(UserInfo):
         pass
 
-
 else:
 
     class AaUserInfo(UserInfo):  # type: ignore

@@ -215,7 +215,7 @@ def application(environ, start_response):
                 return resp(environ, start_response)
 
             RP.srv_discovery_url = link
-            h = hashlib.sha256()
+            h = hashlib.new('sha256')
             h.update(link.encode("utf-8"))
             opkey = base64.b16encode(h.digest()).decode("utf-8")
             session['callback'] = True

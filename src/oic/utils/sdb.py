@@ -384,7 +384,7 @@ def create_session_db(
     """
     Construct SessionDB instance.
 
-    Using this you can create a very basic non persistant
+    Using this you can create a very basic non persistent
     session database that issues opaque DefaultTokens.
 
     :param base_url: Same as base_url parameter of `SessionDB`.
