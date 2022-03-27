@@ -518,7 +518,7 @@ class TestOICConsumer:
         assert auth is None
         assert isinstance(atr, AccessTokenResponse)
         assert _eq(
-            atr.keys(), ["access_token", "id_token", "token_type", "state", "scope"]
+            atr.keys(), ["access_token", "id_token", "id_token_jwt", "token_type", "state", "scope"]
         )
         assert isinstance(idt, IdToken)
 
@@ -580,7 +580,7 @@ class TestOICConsumer:
         assert auth is None
         assert isinstance(atr, AccessTokenResponse)
         assert _eq(
-            atr.keys(), ["access_token", "id_token", "token_type", "state", "scope"]
+            atr.keys(), ["access_token", "id_token", "id_token_jwt", "token_type", "state", "scope"]
         )
         assert isinstance(idt, IdToken)
 
