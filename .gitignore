@@ -6,7 +6,6 @@
 Vagrantfile
 Pipfile
 Pipfile.lock
-venv
 
 # setup.py-related folders and files
 build
@@ -36,7 +35,6 @@ foo.*
 .cache/
 .pytest_cache
 .mypy_cache
-tests/Users
 
 # Dynamically created doc folders
 doc/_build
