@@ -13,6 +13,8 @@ import typing
 from typing import Tuple
 from typing import Union
 
+import requests
+
 
 class SettingsException(Exception):
     """Exception raised by misconfigured settings class."""
@@ -75,7 +77,27 @@ class PyoidcSettings:
 
 
 class ClientSettings(PyoidcSettings):
-    """Base settings for consumer shared among OAuth 2.0 and OpenID Connect."""
+    """
+    Base settings for consumer shared among OAuth 2.0 and OpenID Connect.
+
+    Keyword Args:
+        requests_session
+            Instance of `requests.Session` with configuration options.
+
+    """
+
+    def __init__(
+        self,
+        verify_ssl: Union[bool, str] = True,
+        client_cert: Union[str, Tuple[str, str]] = None,
+        timeout: Union[float, Tuple[float, float]] = 5,
+        requests_session: requests.Session = None,
+    ):
+        super().__init__(
+            verify_ssl=verify_ssl, client_cert=client_cert, timeout=timeout
+        )
+        # For session persistence
+        self.requests_session = requests_session
 
 
 class OauthClientSettings(ClientSettings):
