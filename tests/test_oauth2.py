@@ -427,10 +427,10 @@ class TestClient(object):
     def test_request_info_when_request_is_cc_access_token_request(self):
         uri, body, h_args, cis = self.client.request_info(request=CCAccessTokenRequest)
         assert isinstance(cis, CCAccessTokenRequest)
-        assert cis['grant_type'] == 'client_credentials'
-        assert body == 'grant_type=client_credentials'
+        assert cis["grant_type"] == "client_credentials"
+        assert body == "grant_type=client_credentials"
         assert uri == self.token_endpoint
-        assert 'headers' in h_args
+        assert "headers" in h_args
 
     def test_construct_access_token_req_expired_grant(self):
         resp = AuthorizationResponse(code="code", state="state")
