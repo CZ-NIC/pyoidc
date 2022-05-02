@@ -203,15 +203,19 @@ class TestClient(object):
         assert atr["code"] == "AbCdEf"
         assert atr["redirect_uri"] == self.redirect_uri
 
-    def test_construct_access_token_req_client_credentials(self):
-        # scope is default=""
-        request_args = {"grant_type": "client_credentials"}
-        atr = self.client.construct_AccessTokenRequest(
-            state="stat", request=CCAccessTokenRequest, request_args=request_args
+    def test_construct_request_client_credentials(self):
+        request_args = {
+            "grant_type": "client_credentials",
+            "client_id": "client_id1",
+            "client_secret": "client_secret1",
+            "scope": "read write",
+            "audience": ["client_id1", "client_id2"],
+        }
+        atr = self.client.construct_request(
+            request=CCAccessTokenRequest, request_args=request_args
         )
 
         assert atr["grant_type"] == "client_credentials"
-        assert atr["state"] == "stat"
 
     def test_construct_access_token_req_extension_grant(self):
         request_args = {
@@ -419,6 +423,14 @@ class TestClient(object):
         assert body is None
         assert h_args == {}
         assert isinstance(cis, AuthorizationRequest)
+
+    def test_request_info_when_request_is_cc_access_token_request(self):
+        uri, body, h_args, cis = self.client.request_info(request=CCAccessTokenRequest)
+        assert isinstance(cis, CCAccessTokenRequest)
+        assert cis["grant_type"] == "client_credentials"
+        assert body == "grant_type=client_credentials"
+        assert uri == self.token_endpoint
+        assert "headers" in h_args
 
     def test_construct_access_token_req_expired_grant(self):
         resp = AuthorizationResponse(code="code", state="state")
