@@ -11,7 +11,6 @@ from typing import cast
 from urllib.parse import urlparse
 
 from jwkest import b64e
-from requests import Session
 from typing_extensions import Literal
 
 from oic import CC_METHOD
@@ -181,8 +180,7 @@ class Client(PBase):
         client_cert=None,
         timeout=None,
         message_factory: Type[MessageFactory] = OauthMessageFactory,
-        settings: PyoidcSettings = None,
-        request_session: Session = None
+        settings: PyoidcSettings = None
     ):
         """
         Initialize the instance.
@@ -194,8 +192,6 @@ class Client(PBase):
                  - verify_ssl
                  - client_cert
                  - timeout
-            request_session
-                Instance of :class:`Session` with configuration options.
 
         :param client_id: The client identifier
         :param client_authn_method: Methods that this client can use to
@@ -233,7 +229,7 @@ class Client(PBase):
                 stacklevel=2,
             )
             self.settings.timeout = timeout
-        PBase.__init__(self, keyjar=keyjar, settings=self.settings, request_session=request_session)
+        PBase.__init__(self, keyjar=keyjar, settings=self.settings)
 
         self.sso_db: Optional[SessionBackend] = None
         self.client_id = client_id

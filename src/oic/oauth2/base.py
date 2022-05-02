@@ -27,8 +27,7 @@ class PBase(object):
         keyjar=None,
         client_cert=None,
         timeout=None,
-        settings: PyoidcSettings = None,
-        request_session: requests.Session = None
+        settings: PyoidcSettings = None
     ):
         """
         Initialize the instance.
@@ -36,8 +35,6 @@ class PBase(object):
         Keyword Args:
             settings
                 Instance of :class:`PyoidcSettings` with configuration options.
-            request_session
-                Instance of :class:`Session` with configuration options.
 
         Note that the following params are deprecated in favor of settings.
         :param verify_ssl: Control TLS server certificate validation. If set to
@@ -95,9 +92,6 @@ class PBase(object):
         self.events = None
         self.req_callback = None
 
-        # For session persistence
-        self.request_session = request_session
-
     def _cookies(self):
         """Turn cookiejar into a dict."""
         cookie_dict = {}
@@ -134,8 +128,8 @@ class PBase(object):
             _kwargs = self.req_callback(method, url, **_kwargs)
 
         try:
-            if self.request_session:
-                r = self.request_session.request(method, url, **_kwargs)
+            if self.settings.request_session:
+                r = self.settings.request_session.request(method, url, **_kwargs)
             else:
                 r = requests.request(method, url, **_kwargs)  # type: ignore
         except Exception as err:

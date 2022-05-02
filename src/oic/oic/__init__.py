@@ -21,7 +21,7 @@ from jwkest import jwe
 from jwkest import jws
 from jwkest import jwt
 from jwkest.jwe import JWE
-from requests import ConnectionError, Session
+from requests import ConnectionError
 
 from oic import oauth2
 from oic import rndstr
@@ -338,8 +338,7 @@ class Client(oauth2.Client):
         client_cert=None,
         requests_dir="requests",
         message_factory: Type[MessageFactory] = OIDCMessageFactory,
-        settings: PyoidcSettings = None,
-        request_session: Session = None
+        settings: PyoidcSettings = None
     ):
         """
         Initialize the instance.
@@ -351,8 +350,6 @@ class Client(oauth2.Client):
                  - verify_ssl
                  - client_cert
                  - timeout
-            request_session
-                Instance of :class:`Session` with configuration options.
         """
         self.settings = settings or OicClientSettings()
         if verify_ssl is not None:
@@ -376,8 +373,7 @@ class Client(oauth2.Client):
             keyjar=keyjar,
             config=config,
             message_factory=message_factory,
-            settings=self.settings,
-            request_session=request_session
+            settings=self.settings
         )
 
         self.file_store = "./file/"

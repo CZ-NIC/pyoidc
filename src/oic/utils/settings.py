@@ -13,6 +13,8 @@ import typing
 from typing import Tuple
 from typing import Union
 
+import requests
+
 
 class SettingsException(Exception):
     """Exception raised by misconfigured settings class."""
@@ -44,10 +46,13 @@ class PyoidcSettings:
         verify_ssl: Union[bool, str] = True,
         client_cert: Union[str, Tuple[str, str]] = None,
         timeout: Union[float, Tuple[float, float]] = 5,
+        request_session: requests.Session = None
     ):
         self.verify_ssl = verify_ssl
         self.client_cert = client_cert
         self.timeout = timeout
+        # For session persistence
+        self.request_session = request_session
 
     def __setattr__(self, name, value):
         """This attempts to check if value matches the expected value."""
