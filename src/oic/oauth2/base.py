@@ -27,7 +27,7 @@ class PBase(object):
         keyjar=None,
         client_cert=None,
         timeout=None,
-        settings: PyoidcSettings = None
+        settings: PyoidcSettings = None,
     ):
         """
         Initialize the instance.

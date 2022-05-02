@@ -338,7 +338,7 @@ class Client(oauth2.Client):
         client_cert=None,
         requests_dir="requests",
         message_factory: Type[MessageFactory] = OIDCMessageFactory,
-        settings: PyoidcSettings = None
+        settings: PyoidcSettings = None,
     ):
         """
         Initialize the instance.
@@ -373,7 +373,7 @@ class Client(oauth2.Client):
             keyjar=keyjar,
             config=config,
             message_factory=message_factory,
-            settings=self.settings
+            settings=self.settings,
         )
 
         self.file_store = "./file/"
