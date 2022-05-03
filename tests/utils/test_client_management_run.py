@@ -1,4 +1,3 @@
-import sys
 import tempfile
 from subprocess import PIPE
 from subprocess import STDOUT
@@ -23,13 +22,11 @@ def db_file_path():
 
 
 class TestClientManagementRun(object):
-    @pytest.mark.xfail(sys.version_info < (3, 6), reason="Deprecation in cryptography")
     def test_help_prints_usage_instructions(self):
         result = run(CLI_INVOCATION + "--help", shell=True, stdout=PIPE, stderr=PIPE)
         assert result.stdout.decode().startswith("usage: ")
         assert result.stderr.decode() == ""
 
-    @pytest.mark.xfail(sys.version_info < (3, 6), reason="Deprecation in cryptography")
     def test_list_option_with_empty_db_lists_nothing(self, db_file_path):
         for list_option_form in ("-l", "--list"):
             result = run(
