@@ -38,8 +38,6 @@ class PyoidcSettings:
             Timeout for requests library.
             Can be specified either as a single float or as a tuple of floats.
             For more details, refer to ``requests`` documentation.
-        request_session
-                Instance of :class:`Session` with configuration options.
 
     """
 
@@ -48,13 +46,10 @@ class PyoidcSettings:
         verify_ssl: Union[bool, str] = True,
         client_cert: Union[str, Tuple[str, str]] = None,
         timeout: Union[float, Tuple[float, float]] = 5,
-        request_session: requests.Session = None,
     ):
         self.verify_ssl = verify_ssl
         self.client_cert = client_cert
         self.timeout = timeout
-        # For session persistence
-        self.request_session = request_session
 
     def __setattr__(self, name, value):
         """This attempts to check if value matches the expected value."""
@@ -82,7 +77,25 @@ class PyoidcSettings:
 
 
 class ClientSettings(PyoidcSettings):
-    """Base settings for consumer shared among OAuth 2.0 and OpenID Connect."""
+    """Base settings for consumer shared among OAuth 2.0 and OpenID Connect.
+
+    Keyword Args:
+        request_session
+            Instance of `requests.Session` with configuration options.
+    """
+
+    def __init__(
+        self,
+        verify_ssl: Union[bool, str] = True,
+        client_cert: Union[str, Tuple[str, str]] = None,
+        timeout: Union[float, Tuple[float, float]] = 5,
+        request_session: requests.Session = None,
+    ):
+        super().__init__(
+            verify_ssl=verify_ssl, client_cert=client_cert, timeout=timeout
+        )
+        # For session persistence
+        self.request_session = request_session
 
 
 class OauthClientSettings(ClientSettings):
