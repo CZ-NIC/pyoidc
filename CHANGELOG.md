@@ -7,6 +7,11 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+### Changed
+- [#810] Drop python 3.6 support
+
+[#810]: https://github.com/OpenIDC/pyoidc/pull/810
+
 ## 1.3.0 [2021-07-09]
 
 ### Changed
