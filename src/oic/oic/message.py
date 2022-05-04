@@ -352,6 +352,10 @@ class AccessTokenResponse(message.AccessTokenResponse):
     def verify(self, **kwargs):
         super().verify(**kwargs)
         if "id_token" in self:
+            # The ID token JWT needs to be passed in the access token response
+            # to be usable as id_token_hint for RP-Initiated Logout. Refer to
+            # https://openid.net/specs/openid-connect-rpinitiated-1_0.html#RPLogout
+            self["id_token_jwt"] = self["id_token"]
             # replace the JWT with the verified IdToken instance
             self["id_token"] = verify_id_token(self, **kwargs)
 
