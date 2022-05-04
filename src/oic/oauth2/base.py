@@ -129,7 +129,7 @@ class PBase(object):
 
         try:
             if self.settings.request_session:
-                r = self.settings.request_session.request(method, url, **_kwargs)
+                r = self.settings.request_session.request(method, url, **_kwargs)  # type: ignore
             else:
                 r = requests.request(method, url, **_kwargs)  # type: ignore
         except Exception as err:

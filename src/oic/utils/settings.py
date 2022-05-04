@@ -38,6 +38,8 @@ class PyoidcSettings:
             Timeout for requests library.
             Can be specified either as a single float or as a tuple of floats.
             For more details, refer to ``requests`` documentation.
+        request_session
+                Instance of :class:`Session` with configuration options.
 
     """
 
