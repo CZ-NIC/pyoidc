@@ -128,8 +128,8 @@ class PBase(object):
             _kwargs = self.req_callback(method, url, **_kwargs)
 
         try:
-            if getattr(self.settings, "request_session", None) is not None:
-                r = self.settings.request_session.request(method, url, **_kwargs)  # type: ignore
+            if getattr(self.settings, "requests_session", None) is not None:
+                r = self.settings.requests_session.request(method, url, **_kwargs)  # type: ignore
             else:
                 r = requests.request(method, url, **_kwargs)  # type: ignore
         except Exception as err:
