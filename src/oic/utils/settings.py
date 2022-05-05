@@ -77,11 +77,13 @@ class PyoidcSettings:
 
 
 class ClientSettings(PyoidcSettings):
-    """Base settings for consumer shared among OAuth 2.0 and OpenID Connect.
+    """
+    Base settings for consumer shared among OAuth 2.0 and OpenID Connect.
 
     Keyword Args:
         request_session
             Instance of `requests.Session` with configuration options.
+
     """
 
     def __init__(
