@@ -198,5 +198,5 @@ def test_do_token_revocation():
     )
     parsed_request: dict = parse_qs(responses.calls[0].request.body)
     assert resp == 200
-    assert parsed_request['token'] == ['access_token']
-    assert parsed_request['token_type_hint'] == ['access_token']
+    assert parsed_request["token"] == ["access_token"]
+    assert parsed_request["token_type_hint"] == ["access_token"]
