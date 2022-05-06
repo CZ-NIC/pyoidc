@@ -1,3 +1,7 @@
+from urllib.parse import parse_qs
+
+import responses
+
 from oic import rndstr
 from oic.extension.client import Client
 from oic.extension.provider import Provider
@@ -170,3 +174,29 @@ def test_pkce_token():
     _info = constructor.get_info(access_grant)
     assert _info["code_challenge_method"] == args["code_challenge_method"]
     assert _info["code_challenge"] == args["code_challenge"]
+
+
+@responses.activate
+def test_do_token_revocation():
+    request_args = {
+        "token": "access_token",
+        "token_type_hint": "access_token",
+        "client_id": "client_id",
+        "client_secret": "client_secret",
+    }
+    token_revocation_endpoint = "https://example.com/revoke"
+    # Mock zero content length body.
+    responses.add(
+        responses.POST,
+        token_revocation_endpoint,
+        body="",
+        status=200,
+        headers={"content-length": "0"},
+    )
+    resp = Client().do_token_revocation(
+        request_args=request_args, endpoint=token_revocation_endpoint
+    )
+    parsed_request: dict = parse_qs(responses.calls[0].request.body)
+    assert resp == 200
+    assert parsed_request["token"] == ["access_token"]
+    assert parsed_request["token_type_hint"] == ["access_token"]

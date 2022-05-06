@@ -185,6 +185,8 @@ def verify_header(reqresp, body_type):
     logger.debug("resp.txt: %s" % (sanitize(reqresp.text),))
 
     if body_type == "":
+        if int(reqresp.headers["content-length"]) == 0:
+            return None
         _ctype = reqresp.headers["content-type"]
         if match_to_("application/json", _ctype):
             body_type = "json"
