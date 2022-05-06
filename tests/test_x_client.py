@@ -1,3 +1,5 @@
+from urllib.parse import parse_qs
+
 import responses
 
 from oic import rndstr
@@ -194,4 +196,7 @@ def test_do_token_revocation():
     resp = Client().do_token_revocation(
         request_args=request_args, endpoint=token_revocation_endpoint
     )
+    parsed_request: dict = parse_qs(responses.calls[0].request.body)
     assert resp == 200
+    assert parsed_request['token'] == ['access_token']
+    assert parsed_request['token_type_hint'] == ['access_token']
