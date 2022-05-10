@@ -5,8 +5,8 @@ from urllib.parse import urlencode
 from urllib.parse import urlparse
 
 import pytest
-import responses
 import requests
+import responses
 
 from oic.oauth2 import Client
 from oic.oauth2 import Grant
