@@ -204,14 +204,15 @@ def test_match_to():
 def test_verify_header():
     class FakeResponse:
         def __init__(self, header):
-            self.headers = {"content-type": header}
+            self.headers = header
             self.text = "TEST_RESPONSE"
 
-    json_header = "application/json"
-    jwt_header = "application/jwt"
-    default_header = util.DEFAULT_POST_CONTENT_TYPE
-    plain_text_header = "text/plain"
-    undefined_header = "undefined"
+    json_header = {"content-type": "application/json"}
+    jwt_header = {"content-type": "application/jwt"}
+    default_header = {"content-type": util.DEFAULT_POST_CONTENT_TYPE}
+    plain_text_header = {"content-type": "text/plain"}
+    undefined_header = {"content-type": "undefined"}
+    zero_content_length_header = {"content-length": "0"}
 
     assert util.verify_header(FakeResponse(json_header), "json") == "json"
     assert util.verify_header(FakeResponse(jwt_header), "json") == "jwt"
@@ -223,6 +224,7 @@ def test_verify_header():
         util.verify_header(FakeResponse(plain_text_header), "urlencoded")
         == "urlencoded"
     )
+    assert util.verify_header(FakeResponse(zero_content_length_header), "") is None
 
     with pytest.raises(ValueError):
         util.verify_header(FakeResponse(json_header), "urlencoded")
