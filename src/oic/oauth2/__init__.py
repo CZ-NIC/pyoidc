@@ -747,7 +747,10 @@ class Client(PBase):
             )
 
         if response:
-            if body_type == "txt":
+            if body_type is None:
+                # There is no content-type for zero content length. Return the status code.
+                return reqresp.status_code
+            elif body_type == "txt":
                 # no meaning trying to parse unstructured text
                 return reqresp.text
             return self.parse_response(

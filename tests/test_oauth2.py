@@ -5,6 +5,7 @@ from urllib.parse import urlencode
 from urllib.parse import urlparse
 
 import pytest
+import requests
 import responses
 
 from oic.oauth2 import Client
@@ -25,6 +26,7 @@ from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import ExtensionTokenRequest
 from oic.oauth2.message import FormatError
 from oic.oauth2.message import GrantExpired
+from oic.oauth2.message import Message
 from oic.oauth2.message import MessageTuple
 from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import OauthMessageFactory
@@ -625,6 +627,19 @@ class TestClient(object):
 
         assert isinstance(resp, AccessTokenResponse)
         assert resp["access_token"] == "Token"
+
+    def test_parse_request_response_should_return_status_code_if_content_length_zero(
+        self,
+    ):
+
+        resp = requests.Response()
+        resp.headers = requests.models.CaseInsensitiveDict(data={"content-length": "0"})
+        resp.status_code = 200
+        parsed_response = self.client.parse_request_response(
+            reqresp=resp, response=Message, body_type=""
+        )
+
+        assert parsed_response == 200
 
 
 class TestServer(object):
