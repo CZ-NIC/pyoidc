@@ -80,7 +80,7 @@ setup(
         'docs': ['Sphinx', 'sphinx-autobuild', 'alabaster'],
         'quality': ['pylama', 'isort', 'eradicate', 'mypy', 'black', 'bandit', 'readme_renderer[md]'],
         'types': ['types-requests'],
-        'ldap_authn': ['pyldap'],
+        'ldap_authn': ['python-ldap'],
     },
     install_requires=[
         "requests",
