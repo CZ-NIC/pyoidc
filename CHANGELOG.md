@@ -7,6 +7,8 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+## 1.4.0 [2022-05-23]
+
 ### Changed
 - [#810] Drop python 3.6 support
 
