@@ -14,6 +14,7 @@ from jwkest.jwe import JWEException
 from jwkest.jwe import factory as JWE_factory
 from jwkest.jwt import JWT
 
+from oic import CC_METHOD
 from oic.exception import InvalidRequest
 from oic.exception import IssuerMismatch
 from oic.exception import MessageException
@@ -886,6 +887,7 @@ class ProviderConfigurationResponse(Message):
         "request_object_encryption_enc_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "token_endpoint_auth_methods_supported": OPTIONAL_LIST_OF_STRINGS,
         "token_endpoint_auth_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
+        "code_challenge_methods_supported": REQUIRED_LIST_OF_STRINGS,
         "display_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "claim_types_supported": OPTIONAL_LIST_OF_STRINGS,
         "claims_supported": OPTIONAL_LIST_OF_STRINGS,
@@ -917,6 +919,7 @@ class ProviderConfigurationResponse(Message):
         "frontchannel_logout_session_supported": False,
         "backchannel_logout_supported": False,
         "backchannel_logout_session_supported": False,
+        "code_challenge_methods_supported": list(CC_METHOD.keys())
     }
 
     def verify(self, **kwargs):
