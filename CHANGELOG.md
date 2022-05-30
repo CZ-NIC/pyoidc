@@ -9,6 +9,9 @@ The format is based on the [KeepAChangeLog] project.
 
 ## 1.4.0 [2022-05-23]
 
+### Added
+- [#815] New Provider Configuration `code_challenge_methods_supported` added
+
 ### Changed
 - [#810] Drop python 3.6 support
 
@@ -17,6 +20,7 @@ The format is based on the [KeepAChangeLog] project.
 
 [#810]: https://github.com/OpenIDC/pyoidc/pull/810
 [#812]: https://github.com/OpenIDC/pyoidc/pull/812
+[#815]: https://github.com/OpenIDC/pyoidc/pull/815
 
 ## 1.3.0 [2021-07-09]
 
