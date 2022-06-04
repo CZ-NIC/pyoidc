@@ -6,6 +6,7 @@ from oic import rndstr
 from oic.extension.client import Client
 from oic.extension.provider import Provider
 from oic.extension.token import JWTToken
+from oic.oic.message import RegistrationResponse
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
@@ -200,3 +201,22 @@ def test_do_token_revocation():
     assert resp == 200
     assert parsed_request["token"] == ["access_token"]
     assert parsed_request["token_type_hint"] == ["access_token"]
+
+
+def test_store_registration_info():
+    registration_response_args = {
+        "client_id": "client_id",
+        "client_secret": "client_secret",
+        "redirect_uris": [
+            "https://example.com/redirect_uri1",
+            "https://example.com/redirect_uri2",
+        ],
+    }
+    reginfo = RegistrationResponse(**registration_response_args)
+    client = Client()
+    client.store_registration_info(reginfo=reginfo)
+
+    assert client.registration_response == reginfo
+    assert client.client_id == registration_response_args["client_id"]
+    assert client.client_secret == registration_response_args["client_secret"]
+    assert client.redirect_uris == registration_response_args["redirect_uris"]
