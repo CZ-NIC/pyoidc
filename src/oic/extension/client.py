@@ -340,9 +340,9 @@ class Client(oauth2.Client):
 
     def store_registration_info(self, reginfo):
         self.registration_response = reginfo
-        self.client_secret = reginfo["client_secret"]
-        self.client_id = reginfo["client_id"]
-        self.redirect_uris = reginfo["redirect_uris"]
+        self.client_secret = reginfo.get("client_secret")
+        self.client_id = reginfo.get("client_id")
+        self.redirect_uris = reginfo.get("redirect_uris")
 
     def handle_registration_info(self, response):
         if response.status_code in SUCCESSFUL:
