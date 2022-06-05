@@ -8,7 +8,6 @@ from urllib.parse import parse_qs
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
 
-import requests
 from typing_extensions import Literal
 
 from oic.exception import UnSupported
