@@ -762,7 +762,7 @@ class Client(PBase):
             if body_type == "txt":
                 body_type = "urlencoded"
             try:
-                err = ErrorResponse().deserialize(reqresp.message, method=body_type)
+                err = ErrorResponse().deserialize(reqresp.text, method=body_type)
                 try:
                     err.verify()
                 except PyoidcError:
