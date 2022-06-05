@@ -10,8 +10,8 @@ from typing import Union
 from typing import cast
 from urllib.parse import urlparse
 
+import requests
 from jwkest import b64e
-from typing_extensions import Literal
 
 from oic import CC_METHOD
 from oic import OIDCONF_PATTERN
@@ -47,6 +47,7 @@ from oic.oauth2.message import ResourceRequest
 from oic.oauth2.message import ROPCAccessTokenRequest
 from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.message import sanitize
+from oic.oauth2.util import ENCODINGS
 from oic.oauth2.util import get_or_post
 from oic.oauth2.util import verify_header
 from oic.utils.http_util import BadRequest
@@ -87,8 +88,6 @@ RESPONSE2ERROR: Dict[str, List] = {
 }
 
 ENDPOINTS = ["authorization_endpoint", "token_endpoint", "token_revocation_endpoint"]
-
-ENCODINGS = Literal["json", "urlencoded", "dict"]
 
 
 class ExpiredToken(PyoidcError):
@@ -726,40 +725,52 @@ class Client(PBase):
         else:
             return http_args
 
-    def parse_request_response(self, reqresp, response, body_type, state="", **kwargs):
+    def parse_request_response(
+        self,
+        reqresp: requests.Response,
+        response: Type[Message] = None,
+        body_type: ENCODINGS = None,
+        state="",
+        **kwargs,
+    ) -> Union[Message, requests.Response]:
 
-        if reqresp.status_code in SUCCESSFUL:
-            body_type = verify_header(reqresp, body_type)
-        elif reqresp.status_code in [302, 303]:  # redirect
+        # Handle the early return stuff
+        if reqresp.status_code in [302, 303]:  # redirect
             return reqresp
         elif reqresp.status_code == 500:
             logger.error("(%d) %s" % (reqresp.status_code, sanitize(reqresp.text)))
             raise ParseError("ERROR: Something went wrong: %s" % reqresp.text)
-        elif reqresp.status_code in [400, 401]:
-            # expecting an error response
-            if issubclass(response, ErrorResponse):
-                pass
+
+        if reqresp.status_code in SUCCESSFUL:
+            verified_body_type = verify_header(reqresp, body_type)
+        elif (
+            reqresp.status_code in [400, 401]
+            and response
+            and issubclass(response, ErrorResponse)
+        ):
+            # This is okay if we are expecting an error response, do not log
+            verified_body_type = verify_header(reqresp, body_type)
         else:
+            # Any other error
             logger.error("(%d) %s" % (reqresp.status_code, sanitize(reqresp.text)))
             raise HttpError(
                 "HTTP ERROR: %s [%s] on %s"
                 % (reqresp.text, reqresp.status_code, reqresp.url)
             )
 
+        # we expect some specific response message type, try to parse it
         if response:
-            if body_type is None:
-                # There is no content-type for zero content length. Return the status code.
-                return reqresp.status_code
-            elif body_type == "txt":
-                # no meaning trying to parse unstructured text
-                return reqresp.text
+            # Just let the parser throw if we cannot parse it.
+            if verified_body_type is None:
+                verified_body_type = "urlencoded"
+
             return self.parse_response(
-                response, reqresp.text, body_type, state, **kwargs
+                response, reqresp.text, verified_body_type, state, **kwargs
             )
 
-        # could be an error response
+        # No one told us what to expect, so try to decode an error response
         if reqresp.status_code in [200, 400, 401]:
-            if body_type == "txt":
+            if verified_body_type == "txt":
                 body_type = "urlencoded"
             try:
                 err = ErrorResponse().deserialize(reqresp.text, method=body_type)
@@ -796,7 +807,7 @@ class Client(PBase):
         :param response: Response type
         :param method: Which HTTP method to use
         :param body: A message body if any
-        :param body_type: The format of the body of the return message
+        :param body_type: The expected format of the body of the return message.
         :param http_args: Arguments for the HTTP client
         :return: A cls or ErrorResponse instance or the HTTP response instance if no response body was expected.
         """
@@ -804,13 +815,13 @@ class Client(PBase):
         if http_args is None:
             http_args = {}
 
-        try:
-            resp = self.http_request(url, method, data=body, **http_args)
-        except Exception:
-            raise
+        resp = self.http_request(url, method, data=body, **http_args)
 
-        if "keyjar" not in kwargs:
-            kwargs["keyjar"] = self.keyjar
+        kwargs.setdefault("keyjar", self.keyjar)
+
+        # Handle older usage, does not match type annotations
+        if body_type == "":
+            body_type = None
 
         return self.parse_request_response(resp, response, body_type, state, **kwargs)
 
