@@ -237,7 +237,7 @@ def test_verify_header():
         util.verify_header(FakeResponse(default_header), "json")
         util.verify_header(FakeResponse(plain_text_header), "jwt")
         util.verify_header(FakeResponse(undefined_header), "json")
-        util.verify_header(FakeResponse(json_header), "undefined")
+        util.verify_header(FakeResponse(json_header), "undefined")  # type: ignore
 
 
 class TestRenderTemplate(object):

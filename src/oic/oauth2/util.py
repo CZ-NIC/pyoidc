@@ -187,8 +187,8 @@ def match_to_(val, vlist):
     return False
 
 
-def guess_body_type(reqresp: requests.Response):
-    "Try to guess the body type of the message from a response object"
+def guess_body_type(reqresp):
+    """Try to guess the body type of the message from a response object."""
     # try to handle chunked responses.
     if "chunked" not in reqresp.headers.get("transfer-encoding", ""):
         if int(reqresp.headers["content-length"]) == 0:
@@ -208,9 +208,7 @@ def guess_body_type(reqresp: requests.Response):
     return body_type
 
 
-def verify_header(
-    reqresp: requests.Response, body_type: Optional[ENCODINGS]
-) -> Optional[ENCODINGS]:
+def verify_header(reqresp, body_type: Optional[ENCODINGS]) -> Optional[ENCODINGS]:
     logger.debug("resp.headers: %s" % (sanitize(reqresp.headers),))
     logger.debug("resp.txt: %s" % (sanitize(reqresp.text),))
 
