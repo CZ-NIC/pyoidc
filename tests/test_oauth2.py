@@ -5,7 +5,6 @@ from urllib.parse import urlencode
 from urllib.parse import urlparse
 
 import pytest
-import requests
 import responses
 
 from oic.oauth2 import Client
@@ -26,7 +25,6 @@ from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import ExtensionTokenRequest
 from oic.oauth2.message import FormatError
 from oic.oauth2.message import GrantExpired
-from oic.oauth2.message import Message
 from oic.oauth2.message import MessageTuple
 from oic.oauth2.message import MissingRequiredAttribute
 from oic.oauth2.message import OauthMessageFactory

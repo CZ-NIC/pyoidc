@@ -188,9 +188,7 @@ def match_to_(val, vlist):
 
 
 def guess_body_type(reqresp: requests.Response):
-    """
-    Try to guess the body type of the message from a response object
-    """
+    "Try to guess the body type of the message from a response object"
     # try to handle chunked responses.
     if "chunked" not in reqresp.headers.get("transfer-encoding", ""):
         if int(reqresp.headers["content-length"]) == 0:
