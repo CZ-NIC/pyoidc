@@ -213,6 +213,10 @@ def test_verify_header():
     plain_text_header = {"content-type": "text/plain"}
     undefined_header = {"content-type": "undefined"}
     zero_content_length_header = {"content-length": "0"}
+    chunked_header_json = {
+        "transfer-encoding": "chunked",
+        "content-type": "application/json",
+    }
 
     assert util.verify_header(FakeResponse(json_header), "json") == "json"
     assert util.verify_header(FakeResponse(jwt_header), "json") == "jwt"
@@ -224,7 +228,8 @@ def test_verify_header():
         util.verify_header(FakeResponse(plain_text_header), "urlencoded")
         == "urlencoded"
     )
-    assert util.verify_header(FakeResponse(zero_content_length_header), "") is None
+    assert util.verify_header(FakeResponse(zero_content_length_header), None) is None
+    assert util.verify_header(FakeResponse(chunked_header_json), None) == "json"
 
     with pytest.raises(ValueError):
         util.verify_header(FakeResponse(json_header), "urlencoded")
@@ -232,7 +237,7 @@ def test_verify_header():
         util.verify_header(FakeResponse(default_header), "json")
         util.verify_header(FakeResponse(plain_text_header), "jwt")
         util.verify_header(FakeResponse(undefined_header), "json")
-        util.verify_header(FakeResponse(json_header), "undefined")
+        util.verify_header(FakeResponse(json_header), "undefined")  # type: ignore
 
 
 class TestRenderTemplate(object):

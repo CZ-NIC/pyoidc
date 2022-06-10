@@ -1,11 +1,14 @@
 from urllib.parse import parse_qs
 
+import pytest
 import responses
 
 from oic import rndstr
+from oic.exception import PyoidcError
 from oic.extension.client import Client
 from oic.extension.provider import Provider
 from oic.extension.token import JWTToken
+from oic.oauth2.message import ErrorResponse
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
@@ -189,7 +192,7 @@ def test_do_token_revocation():
     responses.add(
         responses.POST,
         token_revocation_endpoint,
-        body="",
+        body=None,
         status=200,
         headers={"content-length": "0"},
     )
@@ -200,3 +203,49 @@ def test_do_token_revocation():
     assert resp == 200
     assert parsed_request["token"] == ["access_token"]
     assert parsed_request["token_type_hint"] == ["access_token"]
+
+
+@responses.activate
+def test_do_token_revocation_error_unsupported_type():
+    request_args = {
+        "token": "access_token",
+        "token_type_hint": "access_token",
+        "client_id": "client_id",
+        "client_secret": "client_secret",
+    }
+    token_revocation_endpoint = "https://example.com/revoke"
+    # Mock zero content length body.
+    responses.add(
+        responses.POST,
+        token_revocation_endpoint,
+        body=ErrorResponse(error="unsupported_token_type").serialize(),
+        status=400,
+    )
+    resp = Client().do_token_revocation(
+        request_args=request_args, endpoint=token_revocation_endpoint
+    )
+    assert isinstance(resp, ErrorResponse)
+    assert resp["error"] == "unsupported_token_type"
+
+
+@responses.activate
+def test_do_token_revocation_retry_later():
+    request_args = {
+        "token": "access_token",
+        "token_type_hint": "access_token",
+        "client_id": "client_id",
+        "client_secret": "client_secret",
+    }
+    token_revocation_endpoint = "https://example.com/revoke"
+
+    responses.add(
+        responses.POST,
+        token_revocation_endpoint,
+        body=None,
+        status=503,
+        headers={"content-length": "0"},
+    )
+    with pytest.raises(PyoidcError):
+        Client().do_token_revocation(
+            request_args=request_args, endpoint=token_revocation_endpoint
+        )

@@ -4,6 +4,7 @@ import warnings
 from http import cookiejar as cookielib
 from http.cookies import CookieError
 from http.cookies import SimpleCookie
+from typing import cast
 
 import requests
 
@@ -103,7 +104,7 @@ class PBase(object):
 
         return cookie_dict
 
-    def http_request(self, url, method="GET", **kwargs):
+    def http_request(self, url: str, method="GET", **kwargs) -> requests.Response:
         """
         Run a HTTP request to fetch the given url.
 
@@ -117,8 +118,7 @@ class PBase(object):
 
         """
         _kwargs = copy.copy(self.request_args)
-        if kwargs:
-            _kwargs.update(kwargs)
+        _kwargs.update(kwargs)
 
         if self.cookiejar:
             _kwargs["cookies"] = self._cookies()
@@ -129,7 +129,10 @@ class PBase(object):
 
         try:
             if getattr(self.settings, "requests_session", None) is not None:
-                r = self.settings.requests_session.request(method, url, **_kwargs)  # type: ignore
+                r = cast(
+                    requests.Response,
+                    self.settings.requests_session.request(method, url, **_kwargs),  # type: ignore
+                )
             else:
                 r = requests.request(method, url, **_kwargs)  # type: ignore
         except Exception as err:

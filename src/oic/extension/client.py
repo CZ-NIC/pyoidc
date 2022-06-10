@@ -146,7 +146,7 @@ class Client(oauth2.Client):
         if http_args is None:
             http_args = ht_args
         else:
-            http_args.update(http_args)
+            http_args.update(ht_args)
 
         resp = self.request_and_return(
             url, response_cls, method, body, body_type, http_args=http_args
@@ -266,7 +266,7 @@ class Client(oauth2.Client):
 
     def do_token_revocation(
         self,
-        body_type="",
+        body_type=None,
         method="POST",
         request_args=None,
         extra_args=None,
@@ -274,17 +274,44 @@ class Client(oauth2.Client):
         **kwargs,
     ):
         request = self.message_factory.get_request_type("revocation_endpoint")
-        response_cls = self.message_factory.get_response_type("revocation_endpoint")
-        return self.do_op(
-            request=request,
-            body_type=body_type,
-            method=method,
-            request_args=request_args,
-            extra_args=extra_args,
-            http_args=http_args,
-            response_cls=response_cls,
-            **kwargs,
+        # There is no expected response, only the status code is important,
+        # so do not use do_op().
+
+        url, body, ht_args, _ = self.request_info(
+            request, method, request_args, extra_args, **kwargs
         )
+
+        if http_args is None:
+            http_args = ht_args
+        else:
+            http_args.update(ht_args)
+
+        resp = self.http_request(url, method, data=body, **http_args)
+
+        if resp.status_code == 200:
+            return 200
+        if resp.status_code == 503:
+            # Revoke failed, should retry later
+            raise PyoidcError("Retry revocation later.")
+
+        if 400 <= resp.status_code < 500:
+            # check for error response
+            try:
+                err = ErrorResponse().deserialize(resp.text)
+                try:
+                    err.verify()
+                except PyoidcError:
+                    pass
+                else:
+                    return err
+            except Exception:
+                logger.exception(
+                    "Failed to decode error response (%d) %s",
+                    resp.status_code,
+                    sanitize(resp.text),
+                )
+
+        return resp
 
     def add_code_challenge(self):
         try:

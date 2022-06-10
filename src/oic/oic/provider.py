@@ -2320,7 +2320,7 @@ class Provider(AProvider):
                 logger.info("logging out from {} at {}".format(_cid, _url))
 
                 try:
-                    res = self.httpc.http_request(
+                    resp = self.httpc.http_request(
                         _url,
                         "POST",
                         data="logout_token={}".format(sjwt),
@@ -2334,7 +2334,7 @@ class Provider(AProvider):
                     failed.append(_cid)
                     continue
 
-                if res.status_code < 300:
+                if resp.status_code < 300:
                     logger.info("Logged out from {}".format(_cid))
                 else:
                     _errstr = "failed to logout from {}".format(_cid)

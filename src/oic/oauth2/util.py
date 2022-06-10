@@ -3,9 +3,12 @@ from http import cookiejar as http_cookiejar
 from http.cookiejar import http2time  # type: ignore
 from typing import Any
 from typing import Dict
+from typing import Optional
 from urllib.parse import parse_qs
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
+
+from typing_extensions import Literal
 
 from oic.exception import UnSupported
 from oic.oauth2.exception import TimeFormatError
@@ -45,6 +48,9 @@ ATTRS: Dict[str, Any] = {
     "rest": "",
     "rfc2109": True,
 }
+
+# The encodings understood by our Message class
+ENCODINGS = Literal["json", "urlencoded", "dict", "jwt", "jwe"]
 
 
 def get_or_post(
@@ -180,23 +186,35 @@ def match_to_(val, vlist):
     return False
 
 
-def verify_header(reqresp, body_type):
+def guess_body_type(reqresp):
+    """Try to guess the body type of the message from a response object."""
+    # try to handle chunked responses.
+    if "chunked" not in reqresp.headers.get("transfer-encoding", ""):
+        if int(reqresp.headers["content-length"]) == 0:
+            return None
+
+    _ctype = reqresp.headers["content-type"]
+    if match_to_("application/json", _ctype):
+        body_type = "json"
+    elif match_to_("application/jwt", _ctype):
+        body_type = "jwt"
+    elif match_to_("application/jwe", _ctype):
+        body_type = "jwe"
+    elif match_to_(URL_ENCODED, _ctype):
+        body_type = "urlencoded"
+    else:
+        body_type = None
+    return body_type
+
+
+def verify_header(reqresp, body_type: Optional[ENCODINGS]) -> Optional[ENCODINGS]:
     logger.debug("resp.headers: %s" % (sanitize(reqresp.headers),))
     logger.debug("resp.txt: %s" % (sanitize(reqresp.text),))
 
-    if body_type == "":
-        if int(reqresp.headers["content-length"]) == 0:
-            return None
-        _ctype = reqresp.headers["content-type"]
-        if match_to_("application/json", _ctype):
-            body_type = "json"
-        elif match_to_("application/jwt", _ctype):
-            body_type = "jwt"
-        elif match_to_(URL_ENCODED, _ctype):
-            body_type = "urlencoded"
-        else:
-            body_type = "txt"  # reasonable default ??
-    elif body_type == "json":
+    if body_type is None:
+        return guess_body_type(reqresp)
+
+    if body_type == "json":
         if not match_to_("application/json", reqresp.headers["content-type"]):
             if match_to_("application/jwt", reqresp.headers["content-type"]):
                 body_type = "jwt"
