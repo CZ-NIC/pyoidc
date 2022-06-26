@@ -312,7 +312,8 @@ class TestClient(object):
         assert resp["state"] == state
 
     def test_return_non_existant_grant(self):
-        assert self.client.grant_from_state("123456abcdef") is None
+        with pytest.raises(GrantError):
+            self.client.get_grant("123456abcdef")
 
     def test_get_grant(self):
         resp = AuthorizationResponse(code="code", state="state")
@@ -320,7 +321,7 @@ class TestClient(object):
         grant.add_code(resp)
 
         self.client.grant["state"] = grant
-        new_grant = self.client.grant_from_state("state")
+        new_grant = self.client.get_grant("state")
         assert new_grant is not None
         assert new_grant.code == "code"
 

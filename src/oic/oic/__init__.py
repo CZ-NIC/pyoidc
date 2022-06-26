@@ -390,8 +390,6 @@ class Client(oauth2.Client):
         self.request2endpoint = REQUEST2ENDPOINT
         self.response2error = RESPONSE2ERROR
 
-        self.grant_class = Grant
-        self.token_class = Token
         self.provider_info = Message()
         self.registration_response: RegistrationResponse = RegistrationResponse()
         self.client_prefs = client_prefs or {}
@@ -882,7 +880,10 @@ class Client(oauth2.Client):
                     self.log.info("do access token refresh")
                 try:
                     self.do_access_token_refresh(token=token, state=state)
-                    token = cast(Token, self.grant[state].get_token(scope))
+                    tokenval = self.get_grant(state).get_token(scope)
+                    if tokenval is None:
+                        raise KeyError("No token")
+                    token = cast(Token, tokenval)
                     uir["access_token"] = token.access_token
                 except Exception:
                     raise
@@ -1010,7 +1011,7 @@ class Client(oauth2.Client):
 
         if state:
             # Verify userinfo sub claim against what's returned in the ID Token
-            idt = self.grant[state].get_id_token()
+            idt = self.get_grant(state).get_id_token()
             if idt:
                 if idt["sub"] != res["sub"]:
                     raise SubMismatch(

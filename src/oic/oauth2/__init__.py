@@ -297,13 +297,6 @@ class Client(PBase):
         self.token_endpoint = None
         self.redirect_uris = []
 
-    def grant_from_state(self, state: str) -> Optional[Grant]:
-        for key, grant in self.grant.items():
-            if key == state:
-                return grant
-
-        return None
-
     def _parse_args(self, request: Type[Message], **kwargs) -> Dict:
         ar_args = kwargs.copy()
 
@@ -342,14 +335,30 @@ class Client(PBase):
         return uri
 
     def get_grant(self, state: str, **kwargs) -> Grant:
+        """
+        Get the Grant associated with the given state.
+
+        :param state: The state to check
+        :return: The `Grant`.
+        :raises GrantError: When the state has no associated grant.
+        """
         try:
             return self.grant[state]
         except KeyError:
             raise GrantError("No grant found for state:'%s'" % state)
 
     def get_token(self, also_expired: bool = False, **kwargs) -> Token:
+        """
+        Get a specific token.
+
+        :param also_expired: Return tokens that have expired
+        :param state: The state associated with the token grant. Optional.
+        :param scope: The scope associated with the token. Optional.
+        :param token: Pass through the token. Optional.
+        :raises TokenError: If no acceptable Token could be found.
+        """
         try:
-            return kwargs["token"]
+            token = kwargs["token"]
         except KeyError:
             grant = self.get_grant(**kwargs)
 
@@ -359,8 +368,8 @@ class Client(PBase):
                 token = grant.get_token("")
                 if not token:
                     try:
-                        token = self.grant[kwargs["state"]].get_token("")
-                    except KeyError:
+                        token = self.get_grant(kwargs["state"]).get_token("")
+                    except (KeyError, GrantError):
                         raise TokenError("No token found for scope")
 
         if token is None:
@@ -375,8 +384,7 @@ class Client(PBase):
 
     def clean_tokens(self) -> None:
         """Clean replaced and invalid tokens."""
-        for state in self.grant:
-            grant = self.get_grant(state)
+        for grant in self.grant.values():
             for token in grant.tokens:
                 if token.replaced or not token.is_valid():
                     grant.delete_token(token)
@@ -698,8 +706,8 @@ class Client(PBase):
                 _state = state
 
             try:
-                self.grant[_state].update(resp)
-            except KeyError:
+                self.get_grant(_state).update(resp)
+            except GrantError:
                 self.grant[_state] = self.grant_class(resp=resp)
 
             if "id_token" in resp and self.sso_db is not None:
