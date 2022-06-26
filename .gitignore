@@ -3,6 +3,7 @@
 
 # Other dev-env folders and files
 .vagrant
+.vscode
 Vagrantfile
 Pipfile
 Pipfile.lock
@@ -16,6 +17,7 @@ dist
 
 # Compiled files
 *.pyc
+*.pyo
 
 # Logs
 *.log
