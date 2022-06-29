@@ -11,7 +11,6 @@ from oic.exception import AuthzError
 from oic.exception import MessageException
 from oic.exception import NotForMe
 from oic.exception import PyoidcError
-from oic.oauth2 import Grant
 from oic.oauth2.consumer import TokenError
 from oic.oauth2.consumer import UnknownState
 from oic.oauth2.consumer import stateID
@@ -270,7 +269,7 @@ class Consumer(Client):
             response_type = self.consumer_config["response_type"]
 
         sid = stateID(path, self.seed)
-        self.grant[sid] = Grant(seed=self.seed)
+        self.grant[sid] = self.grant_class(seed=self.seed)
 
         self._backup(sid)
         self.sdb["seed:%s" % self.seed] = sid

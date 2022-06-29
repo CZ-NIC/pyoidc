@@ -7,6 +7,12 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+## Removed
+
+- [#820] Removed Client.grant_from_state method.
+
+[#820]: https://github.com/OpenIDC/pyoidc/pull/820
+
 ## 1.4.0 [2022-05-23]
 
 ### Changed
