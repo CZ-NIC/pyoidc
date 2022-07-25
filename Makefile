@@ -35,7 +35,7 @@ livehtml:
 .PHONY: livehtml
 
 install:
-	@pipenv install --dev -e .[develop,testing,docs,quality,ldap_authn]
+	@pipenv install --dev -e .[develop,testing,docs,quality,ldap_authn,examples]
 .PHONY: install
 
 test:
