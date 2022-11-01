@@ -10,6 +10,7 @@ In order to configure some objects in PyOIDC, you need a settings object.
 If you need to add some settings, make sure that you settings class inherits from the appropriate class in this module.
 """
 import typing
+from typing import Optional
 from typing import Tuple
 from typing import Union
 
@@ -44,7 +45,7 @@ class PyoidcSettings:
     def __init__(
         self,
         verify_ssl: Union[bool, str] = True,
-        client_cert: Union[str, Tuple[str, str]] = None,
+        client_cert: Union[None, str, Tuple[str, str]] = None,
         timeout: Union[float, Tuple[float, float]] = 5,
     ):
         self.verify_ssl = verify_ssl
@@ -89,9 +90,9 @@ class ClientSettings(PyoidcSettings):
     def __init__(
         self,
         verify_ssl: Union[bool, str] = True,
-        client_cert: Union[str, Tuple[str, str]] = None,
+        client_cert: Union[None, str, Tuple[str, str]] = None,
         timeout: Union[float, Tuple[float, float]] = 5,
-        requests_session: requests.Session = None,
+        requests_session: Optional[requests.Session] = None,
     ):
         super().__init__(
             verify_ssl=verify_ssl, client_cert=client_cert, timeout=timeout

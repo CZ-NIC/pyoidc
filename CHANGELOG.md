@@ -7,11 +7,15 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+### Changed
+- [#827] Added support for python 3.11
+
 ## Removed
 
 - [#820] Removed Client.grant_from_state method.
 
 [#820]: https://github.com/OpenIDC/pyoidc/pull/820
+[#827]: https://github.com/OpenIDC/pyoidc/issues/827
 
 ## 1.4.0 [2022-05-23]
 
