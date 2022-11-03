@@ -647,7 +647,12 @@ class Client(oauth2.Client):
         )
 
     def construct_EndSessionRequest(
-        self, request=None, request_args=None, extra_args=None, **kwargs
+        self,
+        request=None,
+        request_args=None,
+        extra_args=None,
+        prop="id_token_hint",
+        **kwargs,
     ):
 
         if request is None:
@@ -658,7 +663,9 @@ class Client(oauth2.Client):
         if "state" in request_args and "state" not in kwargs:
             kwargs["state"] = request_args["state"]
 
-        return self._id_token_based(request, request_args, extra_args, **kwargs)
+        return self._id_token_based(
+            request, request_args, extra_args, prop=prop, **kwargs
+        )
 
     def do_authorization_request(
         self,
@@ -824,6 +831,7 @@ class Client(oauth2.Client):
         request_args=None,
         extra_args=None,
         http_args=None,
+        prop="id_token_hint",
     ):
         request = self.message_factory.get_request_type("endsession_endpoint")
         response_cls = self.message_factory.get_response_type("endsession_endpoint")
@@ -834,6 +842,7 @@ class Client(oauth2.Client):
             extra_args=extra_args,
             scope=scope,
             state=state,
+            prop=prop,
         )
 
         if http_args is None:
