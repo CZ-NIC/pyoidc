@@ -10,12 +10,17 @@ The format is based on the [KeepAChangeLog] project.
 ### Changed
 - [#827] Added support for python 3.11
 
+### Fixed
+- [#826], [#829] Fixed RP-Initiated Logout To Accept id_token_hint
+
 ## Removed
 
 - [#820] Removed Client.grant_from_state method.
 
 [#820]: https://github.com/OpenIDC/pyoidc/pull/820
 [#827]: https://github.com/OpenIDC/pyoidc/issues/827
+[#826]: https://github.com/OpenIDC/pyoidc/issues/826
+[#829]: https://github.com/OpenIDC/pyoidc/pull/829
 
 ## 1.4.0 [2022-05-23]
 
