@@ -338,7 +338,7 @@ class Client(oauth2.Client):
         client_cert=None,
         requests_dir="requests",
         message_factory: Type[MessageFactory] = OIDCMessageFactory,
-        settings: PyoidcSettings = None,
+        settings: Optional[PyoidcSettings] = None,
     ):
         """
         Initialize the instance.
@@ -1527,12 +1527,12 @@ class Server(oauth2.Server):
 
     def __init__(
         self,
-        verify_ssl: bool = None,
-        keyjar: KeyJar = None,
-        client_cert: Union[str, Tuple[str, str]] = None,
-        timeout: float = None,
+        verify_ssl: Optional[bool] = None,
+        keyjar: Optional[KeyJar] = None,
+        client_cert: Optional[Union[str, Tuple[str, str]]] = None,
+        timeout: Optional[float] = None,
         message_factory: Type[MessageFactory] = OIDCMessageFactory,
-        settings: PyoidcSettings = None,
+        settings: Optional[PyoidcSettings] = None,
     ):
         """Initialize the server."""
         self.settings = settings or OicServerSettings()

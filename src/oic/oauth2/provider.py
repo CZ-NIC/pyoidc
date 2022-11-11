@@ -204,7 +204,7 @@ class Provider(object):
         message_factory=OauthMessageFactory,
         capabilities=None,
         jwks_uri="",
-        settings: PyoidcSettings = None,
+        settings: Optional[PyoidcSettings] = None,
     ):
         self.settings = settings or OauthProviderSettings()
         if verify_ssl is not None:
