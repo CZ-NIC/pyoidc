@@ -415,9 +415,10 @@ class TestClient(object):
         alg = "RS256"
         ktyp = alg2keytype(alg)
         _sign_key = self.client.keyjar.get_signing_key(ktyp)
+        id_token_jwt = IDTOKEN.to_jwt(key=_sign_key, algorithm=alg)
         args = {
-            "id_token": IDTOKEN.to_jwt(key=_sign_key, algorithm=alg),
-            "redirect_url": "http://example.com/end",
+            "id_token_hint": id_token_jwt,
+            "post_logout_redirect_uri": "http://example.com/end",
         }
 
         with responses.RequestsMock() as rsps:
@@ -427,10 +428,10 @@ class TestClient(object):
                 status=302,
                 headers={"location": ""},
             )
-            resp = self.client.do_end_session_request(request_args=args, state="state1")
+            resp = self.client.do_end_session_request(request_args=args)
             parsed = parse_qs(urlparse(resp.request.url).query)
-            assert parsed["redirect_url"] == ["http://example.com/end"]
-            assert parsed["id_token"] is not None
+            assert parsed["post_logout_redirect_uri"] == ["http://example.com/end"]
+            assert parsed["id_token_hint"] == [id_token_jwt]
 
     def test_do_registration_request(self):
         self.client.registration_endpoint = (  # type: ignore
@@ -681,9 +682,9 @@ class TestClient(object):
         self.client.grant["foo"].tokens.append(Token(resp))
 
         # state only in kwargs
-        args = {"redirect_url": "http://example.com/end"}
+        args = {"post_logout_redirect_uri": "http://example.com/end"}
         esr = self.client.construct_EndSessionRequest(state="foo", request_args=args)
-        assert _eq(esr.keys(), ["id_token", "redirect_url"])
+        assert _eq(esr.keys(), ["id_token_hint", "post_logout_redirect_uri"])
 
     def test_construct_EndSessionRequest_reqargs_state(self):
         self.client.grant["foo"] = Grant()
@@ -708,9 +709,9 @@ class TestClient(object):
         self.client.grant["foo"].tokens.append(Token(resp))
 
         # state only in request_args
-        args = {"redirect_url": "http://example.com/end", "state": "foo"}
+        args = {"post_logout_redirect_uri": "http://example.com/end", "state": "foo"}
         esr = self.client.construct_EndSessionRequest(request_args=args)
-        assert _eq(esr.keys(), ["id_token", "state", "redirect_url"])
+        assert _eq(esr.keys(), ["id_token_hint", "state", "post_logout_redirect_uri"])
 
     def test_construct_EndSessionRequest_kwargs_and_reqargs_state(self):
         self.client.grant["foo"] = Grant()
@@ -734,10 +735,28 @@ class TestClient(object):
         self.client.grant["foo"].tokens.append(Token(resp))
 
         # state both in request_args and kwargs
-        args = {"redirect_url": "http://example.com/end", "state": "req_args_state"}
+        args = {
+            "post_logout_redirect_uri": "http://example.com/end",
+            "state": "req_args_state",
+        }
         esr = self.client.construct_EndSessionRequest(state="foo", request_args=args)
-        assert _eq(esr.keys(), ["id_token", "state", "redirect_url"])
+        assert _eq(esr.keys(), ["id_token_hint", "state", "post_logout_redirect_uri"])
         assert esr["state"] == "req_args_state"
+
+    def test_construct_EndSessionRequest_with_id_token_hint_and_post_logout_redirect_uri(
+        self,
+    ):
+        """Should construct end session request using id_token_hint and post_logout_redirect_uri"""
+        self.client.keyjar.add_kb(IDTOKEN["iss"], KC_SYM_S)
+        _sig_key = self.client.keyjar.get_signing_key("oct", IDTOKEN["iss"])
+        _signed_jwt = IDTOKEN.to_jwt(_sig_key, algorithm="HS256")
+
+        args = {
+            "post_logout_redirect_uri": "http://example.com/end",
+            "id_token_hint": _signed_jwt,
+        }
+        esr = self.client.construct_EndSessionRequest(request_args=args)
+        assert _eq(esr.keys(), ["id_token_hint", "post_logout_redirect_uri"])
 
     def test_construct_OpenIDRequest(self):
         request_args = {"response_type": "code id_token", "state": "af0ifjsldkj"}
