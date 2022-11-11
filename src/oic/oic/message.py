@@ -561,6 +561,16 @@ class OpenIDSchema(Message):
         "_claim_sources": OPTIONAL_MESSAGE,
     }
 
+    def from_dict(self, dictionary, **kwargs):
+        result = super().from_dict(dictionary, **kwargs)
+        # The spec allows empty fields in the UserInfo/IdToken response, but suggests
+        # the OP should omit those. So lets drop them here.
+        for key_ in [
+            key_ for key_, val in self._dict.items() if val is None or val == ""
+        ]:
+            del self[key_]
+        return result
+
     def verify(self, **kwargs):
         super().verify(**kwargs)
 
