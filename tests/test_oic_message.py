@@ -59,10 +59,24 @@ def _eq(l1, l2):
     return set(l1) == set(l2)
 
 
-def test_openidschema():
-    inp = '{"middle_name":null, "updated_at":"20170328081544", "sub":"abc", "birthdate": null}'
-    ois = OpenIDSchema().from_json(inp)
-    assert ois.verify() is False
+@pytest.mark.parametrize(
+    "json_param,claim",
+    [
+        (
+            '{"middle_name":null, "updated_at":"20170328081544", "sub":"abc"}',
+            "middle_name",
+        ),
+        ('{"birthdate":null, "updated_at":"20170328081544", "sub":"abc"}', "birthdate"),
+        (
+            '{"family_name": "", "updated_at":"20170328081544", "sub":"abc"}',
+            "family_name",
+        ),
+    ],
+)
+def test_openidschema(json_param, claim):
+    ois = OpenIDSchema().from_json(json_param)
+    assert ois.verify() is True
+    assert claim not in ois
 
 
 @pytest.mark.parametrize(
