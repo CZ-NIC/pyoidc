@@ -60,7 +60,7 @@ def _eq(l1, l2):
 
 
 def test_openidschema():
-    inp = '{"middle_name":null, "updated_at":"20170328081544", "sub":"abc"}'
+    inp = '{"middle_name":null, "updated_at":"20170328081544", "sub":"abc", "birthdate": null}'
     ois = OpenIDSchema().from_json(inp)
     assert ois.verify() is False
 
