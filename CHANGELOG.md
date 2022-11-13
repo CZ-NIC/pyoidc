@@ -10,6 +10,7 @@ The format is based on the [KeepAChangeLog] project.
 ### Changed
 - [#827] Added support for python 3.11
 - [#830], [#831] Allow null and empty values in UserInfo responses, but filter them out. 
+- [#832] Added support for mypy with --no_implicit_optional=True
 
 ### Fixed
 - [#826], [#829] Fixed RP-Initiated Logout To Accept id_token_hint
@@ -19,11 +20,12 @@ The format is based on the [KeepAChangeLog] project.
 - [#820] Removed Client.grant_from_state method.
 
 [#820]: https://github.com/OpenIDC/pyoidc/pull/820
-[#827]: https://github.com/OpenIDC/pyoidc/issues/827
 [#826]: https://github.com/OpenIDC/pyoidc/issues/826
+[#827]: https://github.com/OpenIDC/pyoidc/issues/827
 [#829]: https://github.com/OpenIDC/pyoidc/pull/829
 [#830]: https://github.com/OpenIDC/pyoidc/issues/830
 [#831]: https://github.com/OpenIDC/pyoidc/pull/831
+[#832]: https://github.com/OpenIDC/pyoidc/pull/832
 
 ## 1.4.0 [2022-05-23]
 

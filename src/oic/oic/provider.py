@@ -253,7 +253,7 @@ class Provider(AProvider):
         post_logout_page=None,
         self_signing_alg="RS256",
         logout_path="",
-        settings: PyoidcSettings = None,
+        settings: Optional[PyoidcSettings] = None,
     ):
         self.settings = settings or OicProviderSettings()
         if verify_ssl is not None:
