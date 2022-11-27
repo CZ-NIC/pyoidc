@@ -129,13 +129,11 @@ class PBase(object):
             _kwargs = self.req_callback(method, url, **_kwargs)
 
         try:
-            if getattr(self.settings, "requests_session", None) is not None:
-                r = cast(
-                    requests.Response,
-                    self.settings.requests_session.request(method, url, **_kwargs),  # type: ignore
-                )
-            else:
-                r = requests.request(method, url, **_kwargs)  # type: ignore
+            req = getattr(self.settings, "requests_session", None) or requests
+            r = cast(
+                requests.Response,
+                req.request(method, url, **_kwargs),
+            )
         except Exception as err:
             logger.error(
                 "http_request failed: %s, url: %s, htargs: %s, method: %s"
