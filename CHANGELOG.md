@@ -7,6 +7,8 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+## 1.5.0 [2022-12-14]
+
 ### Changed
 - [#827] Added support for python 3.11
 - [#830], [#831] Allow null and empty values in UserInfo responses, but filter them out. 
