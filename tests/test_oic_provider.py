@@ -1352,7 +1352,7 @@ class TestProvider(object):
         assert isinstance(logcap.records[1].msg, MissingSchema)
         error = (
             "Invalid URL 'example.com': No scheme supplied. Perhaps you meant "
-            "http://example.com?"
+            "https://example.com?"
         )
         assert str(logcap.records[1].msg) == error
 
