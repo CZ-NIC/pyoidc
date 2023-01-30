@@ -4,7 +4,7 @@ import traceback
 __author__ = "rohe0002"
 
 
-def tobytes(value):
+def tobytes(value) -> bytes:
     """Convert value to bytes."""
     if isinstance(value, bytes):
         return value

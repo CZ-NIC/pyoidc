@@ -91,7 +91,7 @@ setup(
         "mako",
         "cryptography",
         "defusedxml",
-        "typing_extensions",
+        'typing_extensions; python_version<"3.8"',
     ],
     tests_require=tests_requires,
     long_description_content_type="text/x-rst",

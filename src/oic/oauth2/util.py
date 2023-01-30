@@ -1,4 +1,5 @@
 import logging
+import sys
 from http import cookiejar as http_cookiejar
 from http.cookiejar import http2time  # type: ignore
 from typing import Any
@@ -8,11 +9,14 @@ from urllib.parse import parse_qs
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
 
-from typing_extensions import Literal
-
 from oic.exception import UnSupported
 from oic.oauth2.exception import TimeFormatError
 from oic.utils.sanitize import sanitize
+
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
 
 logger = logging.getLogger(__name__)
 
