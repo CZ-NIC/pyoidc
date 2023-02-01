@@ -104,7 +104,6 @@ class TestTokenHandler(object):
             pass
 
     def test_from_access_to_refresh_token(self):
-
         token = self.th.get_access_token(
             "https://example.org/rp", "foo bar", "client_credentials"
         )
