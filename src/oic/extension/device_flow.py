@@ -49,7 +49,6 @@ class DeviceFlowServer(SingleService):
         self.device_code_life_time = 900  # 15 minutes
 
     def device_endpoint(self, request, authn=None):
-
         _req = AuthorizationRequest(**request)
         device_code = rndstr(10)
         user_code = rndstr(6)

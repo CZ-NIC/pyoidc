@@ -501,7 +501,6 @@ class Client(oauth2.Client):
     def construct_AuthorizationRequest(
         self, request=None, request_args=None, extra_args=None, **kwargs
     ):
-
         if request_args is not None:
             if "nonce" not in request_args:
                 _rt = request_args["response_type"]
@@ -574,7 +573,6 @@ class Client(oauth2.Client):
     def construct_UserInfoRequest(
         self, request=None, request_args=None, extra_args=None, **kwargs
     ):
-
         if request is None:
             request = self.message_factory.get_request_type("userinfo_endpoint")
         if request_args is None:
@@ -608,7 +606,6 @@ class Client(oauth2.Client):
         return self.construct_request(request, request_args, extra_args)
 
     def _id_token_based(self, request, request_args=None, extra_args=None, **kwargs):
-
         if request_args is None:
             request_args = {}
 
@@ -654,7 +651,6 @@ class Client(oauth2.Client):
         prop="id_token_hint",
         **kwargs,
     ):
-
         if request is None:
             request = self.message_factory.get_request_type("endsession_endpoint")
         if request_args is None:
@@ -769,7 +765,6 @@ class Client(oauth2.Client):
         extra_args=None,
         http_args=None,
     ):
-
         request = self.message_factory.get_request_type("checksession_endpoint")
         response_cls = self.message_factory.get_response_type("checksession_endpoint")
 
@@ -944,7 +939,6 @@ class Client(oauth2.Client):
     def do_user_info_request(
         self, method="POST", state="", scope="openid", request="openid", **kwargs
     ):
-
         kwargs["request"] = request
         path, body, method, h_args = self.user_info_request(
             method, state, scope, **kwargs
@@ -1034,7 +1028,6 @@ class Client(oauth2.Client):
     def get_userinfo_claims(
         self, access_token, endpoint, method="POST", schema_class=OpenIDSchema, **kwargs
     ):
-
         uir = UserInfoRequest(access_token=access_token)
 
         h_args = dict([(k, v) for k, v in kwargs.items() if k in HTTP_ARGS])

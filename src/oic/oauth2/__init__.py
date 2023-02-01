@@ -409,7 +409,6 @@ class Client(PBase):
         extra_args=None,
         **kwargs,
     ) -> Message:
-
         return self.construct_request(request, request_args, extra_args)
 
     def construct_AuthorizationRequest(
@@ -419,7 +418,6 @@ class Client(PBase):
         extra_args=None,
         **kwargs,
     ) -> AuthorizationRequest:
-
         if request is None:
             request = self.message_factory.get_request_type("authorization_endpoint")
         if request_args is not None:
@@ -453,7 +451,6 @@ class Client(PBase):
         extra_args=None,
         **kwargs,
     ) -> AccessTokenRequest:
-
         if request is None:
             request = self.message_factory.get_request_type("token_endpoint")
         if request_args is None:
@@ -497,7 +494,6 @@ class Client(PBase):
         extra_args=None,
         **kwargs,
     ) -> RefreshAccessTokenRequest:
-
         if request is None:
             request = self.message_factory.get_request_type("refresh_endpoint")
         if request_args is None:
@@ -521,7 +517,6 @@ class Client(PBase):
         extra_args=None,
         **kwargs,
     ) -> ResourceRequest:
-
         if request is None:
             request = self.message_factory.get_request_type("resource_endpoint")
         if request_args is None:
@@ -562,7 +557,6 @@ class Client(PBase):
         lax=False,
         **kwargs,
     ) -> Tuple[str, str, Dict, Message]:
-
         if request_args is None:
             request_args = {}
 
@@ -722,7 +716,6 @@ class Client(PBase):
     def init_authentication_method(
         self, cis, authn_method, request_args=None, http_args=None, **kwargs
     ):
-
         if http_args is None:
             http_args = {}
         if request_args is None:
@@ -743,7 +736,6 @@ class Client(PBase):
         state="",
         **kwargs,
     ) -> Union[Message, requests.Response]:
-
         # Handle the early return stuff
         if reqresp.status_code in [302, 303]:  # redirect
             return reqresp
@@ -845,7 +837,6 @@ class Client(PBase):
         http_args=None,
         **kwargs,
     ) -> AuthorizationResponse:
-
         request = self.message_factory.get_request_type("authorization_endpoint")
         response_cls = self.message_factory.get_response_type("authorization_endpoint")
 
@@ -905,7 +896,6 @@ class Client(PBase):
         authn_method="",
         **kwargs,
     ) -> AccessTokenResponse:
-
         request = self.message_factory.get_request_type("token_endpoint")
         response_cls = self.message_factory.get_response_type("token_endpoint")
 
@@ -962,7 +952,6 @@ class Client(PBase):
         authn_method="",
         **kwargs,
     ) -> AccessTokenResponse:
-
         request = self.message_factory.get_request_type("refresh_endpoint")
         response_cls = self.message_factory.get_response_type("refresh_endpoint")
 
@@ -1011,7 +1000,6 @@ class Client(PBase):
         response: Optional[Type[Message]] = None,
         authn_method="",
     ) -> Message:
-
         url, body, ht_args, _ = self.request_info(
             request,
             method=method,
@@ -1035,7 +1023,6 @@ class Client(PBase):
     def fetch_protected_resource(
         self, uri, method="GET", headers=None, state="", **kwargs
     ):
-
         if "token" in kwargs and kwargs["token"]:
             token = kwargs["token"]
             request_args = {"access_token": token}
@@ -1156,7 +1143,6 @@ class Client(PBase):
         endpoints: bool = True,
         serv_pattern: str = OIDCONF_PATTERN,
     ) -> ASConfigurationResponse:
-
         response_cls = self.message_factory.get_response_type("configuration_endpoint")
         if issuer.endswith("/"):
             _issuer = issuer[:-1]
@@ -1255,7 +1241,6 @@ class Server(PBase):
         verify: bool = True,
         **kwargs,
     ) -> Message:
-
         if not keyjar:
             keyjar = self.keyjar
 

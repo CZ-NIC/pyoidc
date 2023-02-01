@@ -53,7 +53,6 @@ class DistributedAggregatedUserInfo(UserInfo):
         return res
 
     def _collect_distributed(self, srv, cc, sub, what, alias=""):
-
         try:
             resp = cc.do_claims_request(request_args={"sub": sub, "claims_names": what})
         except Exception:

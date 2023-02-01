@@ -208,6 +208,7 @@ def make_auth_verify(callback, next_module_instance=None):
     setup_multi_auth (in multi_auth.py)
     :return: function encapsulating the specified callback which properly handles a multi auth chain.
     """
+
     # This has to be here ...
     def auth_verify(environ, start_response, logger=None):
         kwargs = extract_from_request(environ)

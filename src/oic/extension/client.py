@@ -138,7 +138,6 @@ class Client(oauth2.Client):
         response_cls=None,
         **kwargs,
     ):
-
         url, body, ht_args, _ = self.request_info(
             request, method, request_args, extra_args, **kwargs
         )

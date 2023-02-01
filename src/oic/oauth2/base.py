@@ -168,5 +168,4 @@ class PBase(object):
     def save_cookies_to_file(
         self, filename, ignore_discard=False, ignore_expires=False
     ):
-
         self.cookiejar.save(filename, ignore_discard, ignore_expires)

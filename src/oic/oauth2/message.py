@@ -483,7 +483,6 @@ class Message(MutableMapping):
         return _jws.sign_compact(key)
 
     def _add_key(self, keyjar, issuer, key, key_type="", kid="", no_kid_issuer=None):
-
         if issuer not in keyjar:
             logger.error('Issuer "{}" not in keyjar'.format(issuer))
             return

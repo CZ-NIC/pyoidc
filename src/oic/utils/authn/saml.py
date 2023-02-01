@@ -93,7 +93,6 @@ class SAMLAuthnMethod(UserAuthnMethod):
         self.samlcache = self.sp_conf.SAML_CACHE  # type: ignore
 
     def __call__(self, query="", end_point_index=None, *args, **kwargs):
-
         (done, response) = self._pick_idp(query, end_point_index)
         if done == 0:
             entity_id = response

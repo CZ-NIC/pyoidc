@@ -405,7 +405,6 @@ class Provider(AProvider):
         extra_claims=None,
         **kwargs,
     ):
-
         if alg == "":
             alg = self.jwx_def["signing_alg"]["id_token"]
 

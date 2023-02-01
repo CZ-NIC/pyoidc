@@ -119,7 +119,6 @@ class Provider(provider.Provider):
         message_factory=ExtensionMessageFactory,
         **kwargs,
     ):
-
         if not name.endswith("/"):
             name += "/"
 

@@ -112,7 +112,6 @@ class ClaimsServer(Provider):
         self.claims_userinfo_endpoint = ""
 
     def _aggregation(self, info):
-
         jwt_key = self.keyjar.get_signing_key()
         cresp = UserClaimsResponse(
             jwt=info.to_jwt(key=jwt_key, algorithm="RS256"),
@@ -208,7 +207,6 @@ class ClaimsClient(Client):
     def construct_UserClaimsRequest(
         self, request=UserClaimsRequest, request_args=None, extra_args=None, **kwargs
     ):
-
         return self.construct_request(request, request_args, extra_args)
 
     def do_claims_request(
@@ -221,7 +219,6 @@ class ClaimsClient(Client):
         extra_args=None,
         http_args=None,
     ):
-
         url, body, ht_args, _ = self.request_info(
             request, method=method, request_args=request_args, extra_args=extra_args
         )
