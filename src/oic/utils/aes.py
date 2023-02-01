@@ -1,6 +1,8 @@
 #!/usr/bin/env python
+import sys
 from base64 import b64decode
 from base64 import b64encode
+from typing import Dict
 from typing import Union
 from typing import cast
 
@@ -14,9 +16,18 @@ from Cryptodome.Cipher._mode_siv import SivMode
 
 from oic.utils import tobytes
 
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
+
 __author__ = "rolandh"
 
-POSTFIX_MODE = {"cbc": AES.MODE_CBC, "cfb": AES.MODE_CFB, "ecb": AES.MODE_CFB}
+POSTFIX_MODE: Dict[str, Union[Literal[2], Literal[3]]] = {
+    "cbc": AES.MODE_CBC,
+    "cfb": AES.MODE_CFB,
+    "ecb": AES.MODE_CFB,
+}
 
 BLOCK_SIZE = 16
 
