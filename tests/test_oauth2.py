@@ -11,6 +11,7 @@ from oic.oauth2 import Client
 from oic.oauth2 import Grant
 from oic.oauth2 import Server
 from oic.oauth2 import Token
+from oic.oauth2 import TokenErrorResponse
 from oic.oauth2.exception import GrantError
 from oic.oauth2.exception import MissingEndpoint
 from oic.oauth2.exception import ResponseError
@@ -597,6 +598,27 @@ class TestClient(object):
 
         assert isinstance(resp, AccessTokenResponse)
         assert resp["access_token"] == "Token"
+
+    def test_do_access_token_request_handle_error_response(self):
+        class CCMessageFactory(OauthMessageFactory):
+            """We are doing client credentials."""
+
+            token_endpoint = MessageTuple(CCAccessTokenRequest, AccessTokenResponse)
+
+        self.client.message_factory = CCMessageFactory
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                rsps.POST,
+                self.token_endpoint,
+                status=400,
+                json={"error": "invalid_request", "error_description": "test error"},
+            )
+
+            resp = self.client.do_access_token_request()
+            assert rsps.calls[0].request.body == "grant_type=client_credentials"
+
+        assert isinstance(resp, TokenErrorResponse)
+        assert resp["error"] == "invalid_request"
 
     def test_do_access_token_request_extension_grant(self):
         class ExtensionMessageFactory(OauthMessageFactory):
