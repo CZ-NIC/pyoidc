@@ -743,7 +743,9 @@ class Client(PBase):
             logger.error("(%d) %s" % (reqresp.status_code, sanitize(reqresp.text)))
             raise ParseError("ERROR: Something went wrong: %s" % reqresp.text)
 
-        if reqresp.status_code in SUCCESSFUL or (reqresp.status_code in [400, 401] and response):
+        if reqresp.status_code in SUCCESSFUL or (
+            reqresp.status_code in [400, 401] and response
+        ):
             verified_body_type = verify_header(reqresp, body_type)
         else:
             # Any other error
