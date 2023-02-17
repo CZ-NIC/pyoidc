@@ -7,7 +7,7 @@ In order to get started, you'll need to install Docker_. Once installed, please
 run the `runOpRp.sh`_ script in the root of the repository.
 
 .. _Docker: https://docs.docker.com/get-docker/
-.. _runOpRp.sh: https://github.com/OpenIDC/pyoidc/blob/master/runOpRp.sh
+.. _runOpRp.sh: https://github.com/CZ-NIC/pyoidc/blob/master/runOpRp.sh
 
 This will set up the following:
 

@@ -52,7 +52,7 @@ setup(
     author="Roland Hedberg",
     author_email="roland@catalogix.se",
     license="Apache 2.0",
-    url='https://github.com/OpenIDC/pyoidc/',
+    url='https://github.com/CZ-NIC/pyoidc/',
     packages=[
         "oic", "oic/oauth2", "oic/oic", "oic/utils", "oic/utils/authn",
         "oic/utils/userinfo", 'oic/utils/rp', 'oic/extension'

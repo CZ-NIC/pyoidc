@@ -460,7 +460,7 @@ if __name__ == '__main__':
             _urls.append((r'^' + end_point, make_auth_verify(authn.verify)))
 
         if authkey in {"SAML", "SamlPass"}:
-            # https://github.com/OpenIDC/pyoidc/issues/33
+            # https://github.com/CZ-NIC/pyoidc/issues/33
             # noinspection PyUnresolvedReferences
             from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
             from oic.utils.authn.saml import SAMLAuthnMethod
