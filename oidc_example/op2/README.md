@@ -4,7 +4,7 @@ OP2 Example
 Getting Started
 ---------------
 
-    git clone https://github.com/OpenIDC/pyoidc.git
+    git clone https://github.com/CZ-NIC/pyoidc.git
     cd pyoidc/oidc_example/op2/
     python3 -m venv venv && . venv/bin/activate
     pip install -r requirements.txt -c constraints.txt

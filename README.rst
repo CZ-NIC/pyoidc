@@ -10,11 +10,11 @@
 .. image:: https://readthedocs.org/projects/pyoidc/badge/?version=latest
     :target: http://pyoidc.readthedocs.io/en/latest/?badge=latest
 
-.. image:: https://codecov.io/gh/OpenIDC/pyoidc/branch/master/graph/badge.svg
-  :target: https://codecov.io/gh/OpenIDC/pyoidc
+.. image:: https://codecov.io/gh/CZ-NIC/pyoidc/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/CZ-NIC/pyoidc
 
 .. image:: https://api.codacy.com/project/badge/Grade/2038cfa7c56b480db6ae18b8320d7157
-    :target: https://www.codacy.com/app/tpazderka/pyoidc?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=OpenIDC/pyoidc&amp;utm_campaign=Badge_Grade
+    :target: https://www.codacy.com/app/tpazderka/pyoidc?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=CZ-NIC/pyoidc&amp;utm_campaign=Badge_Grade
 
 A Python OpenID Connect implementation
 ======================================
@@ -26,7 +26,7 @@ of OAuth2.0 too.
 Please see the `CHANGELOG.md`_ to review the latest changes.
 
 .. _OpenID Connect Core specification: http://openid.net/specs/openid-connect-core-1_0.html
-.. _CHANGELOG.md: https://github.com/OpenIDC/pyoidc/blob/master/CHANGELOG.md
+.. _CHANGELOG.md: https://github.com/CZ-NIC/pyoidc/blob/master/CHANGELOG.md
 
 Documentation
 ==============
@@ -39,7 +39,7 @@ improve the documentation.
 
 .. _documentation: http://pyoidc.rtfd.io
 .. _Read the Docs: https://readthedocs.org/
-.. _there are various issues: https://github.com/OpenIDC/pyoidc/issues?q=is%3Aopen+is%3Aissue+label%3Adocumentation
+.. _there are various issues: https://github.com/CZ-NIC/pyoidc/issues?q=is%3Aopen+is%3Aissue+label%3Adocumentation
 
 Examples
 ========
@@ -51,7 +51,7 @@ the current examples largely do not work. Please help us by submitting pull
 requests that may bring these examples back into a working condition if you
 get something working locally.
 
-.. _there are many issues: https://github.com/OpenIDC/pyoidc/issues?q=is%3Aopen+is%3Aissue+label%3Aexamples
+.. _there are many issues: https://github.com/CZ-NIC/pyoidc/issues?q=is%3Aopen+is%3Aissue+label%3Aexamples
 
 Acknowledgements
 ================
@@ -79,7 +79,7 @@ Contribute
 
 `Fork the repository`_, clone your copy and `install pipenv`_.
 
-.. _Fork the repository: https://github.com/OpenIDC/pyoidc#fork-destination-box
+.. _Fork the repository: https://github.com/CZ-NIC/pyoidc#fork-destination-box
 .. _install pipenv: https://pipenv.readthedocs.io/en/latest/
 
 Then just run:
@@ -99,8 +99,8 @@ issues`_ to see what needs working on. Do not hesitate to ask questions if
 something is unclear. We mark easy issues as `newcomer-friendly`_, so they are
 a good place to start if you want to contribute.
 
-.. _our issues: https://github.com/OpenIDC/pyoidc/issues
-.. _newcomer-friendly: https://github.com/OpenIDC/pyoidc/issues?q=is%3Aopen+is%3Aissue+label%3Anewcomer-friendly
+.. _our issues: https://github.com/CZ-NIC/pyoidc/issues
+.. _newcomer-friendly: https://github.com/CZ-NIC/pyoidc/issues?q=is%3Aopen+is%3Aissue+label%3Anewcomer-friendly
 
 Windows
 -------

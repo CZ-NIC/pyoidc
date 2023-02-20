@@ -9,7 +9,7 @@ Firstly, fork_ the project and get a local copy with:
 
   $ git clone git@github.com:<your-username>/pyoidc.git
 
-.. _fork: https://github.com/OpenIDC/pyoidc/issues#fork-destination-box
+.. _fork: https://github.com/CZ-NIC/pyoidc/issues#fork-destination-box
 
 PyOIDC supports Python 3.
 
