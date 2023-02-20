@@ -78,7 +78,7 @@ setup(
     extras_require={
         'develop': ["cherrypy==3.2.4", "pyOpenSSL"],
         'testing': tests_requires,
-        'docs': ['Sphinx', 'sphinx-autobuild', 'alabaster'],
+        'docs': ['Sphinx', 'sphinx-autobuild', 'alabaster', 'autodoc_pydantic'],
         'quality': ['pylama', 'isort', 'eradicate', 'mypy', 'black', 'bandit', 'readme_renderer[md]'],
         'types': ['types-requests'],
         'ldap_authn': ['python-ldap'],
@@ -87,6 +87,7 @@ setup(
     install_requires=[
         "requests",
         "pycryptodomex",
+        "pydantic",
         "pyjwkest>=1.3.6",
         "mako",
         "cryptography",

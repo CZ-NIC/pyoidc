@@ -1,12 +1,19 @@
 import alabaster
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
+    'sphinxcontrib.autodoc_pydantic',
 ]
 
 autoclass_content = 'both'  # Merge the __init__ docstring into the class docstring.
 autodoc_member_order = 'bysource'  # Order by source ordering
+autodoc_pydantic_model_show_config = True
+autodoc_pydantic_settings_show_json = False
 
 templates_path = ['_templates']
 
