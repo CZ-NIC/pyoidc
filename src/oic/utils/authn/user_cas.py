@@ -41,7 +41,9 @@ class CasAuthnMethod(UserAuthnMethod):
     # The name for the CAS cookie, containing query parameters and nonce.
     CONST_CAS_COOKIE = "cascookie"
 
-    def __init__(self, srv, cas_server, service_url, return_to, extra_validation=None):
+    def __init__(
+        self, srv, cas_server, service_url, return_to, extra_validation=None, timeout=5
+    ):
         """
         Construct the class.
 
@@ -51,12 +53,14 @@ class CasAuthnMethod(UserAuthnMethod):
         this case the oic server's verify URL.
         :param return_to: The URL to return to after a successful
         authentication.
+        :param timeout: Timeout for requests library.
         """
         UserAuthnMethod.__init__(self, srv)
         self.cas_server = cas_server
         self.service_url = service_url
         self.return_to = return_to
         self.extra_validation = extra_validation
+        self.timeout = timeout
 
     def create_redirect(self, query):
         """
@@ -101,7 +105,11 @@ class CasAuthnMethod(UserAuthnMethod):
         :return: Uid if the login was successful otherwise None.
         """
         data = {self.CONST_TICKET: ticket, self.CONST_SERVICE: service_url}
-        resp = requests.get(self.cas_server + self.CONST_CAS_VERIFY_TICKET, params=data)
+        resp = requests.get(
+            self.cas_server + self.CONST_CAS_VERIFY_TICKET,
+            params=data,
+            timeout=self.timeout,
+        )
         root = ET.fromstring(resp.content)
         for l1 in root:
             if self.CONST_AUTHSUCCESS in l1.tag:

@@ -74,15 +74,16 @@ class BaseClientDatabase(metaclass=ABCMeta):
 class MDQClient(BaseClientDatabase):
     """Implementation of remote client database."""
 
-    def __init__(self, url):
-        """Set the remote storage url."""
+    def __init__(self, url, timeout=5):
+        """Set the remote storage url and timeout for requests."""
         self.url = url
+        self.timeout = timeout
         self.headers = {"Accept": "application/json", "Accept-Encoding": "gzip"}
 
     def __getitem__(self, item):
         """Retrieve a single entity."""
         mdx_url = urljoin(self.url, "entities/{}".format(quote(item, safe="")))
-        response = requests.get(mdx_url, headers=self.headers)
+        response = requests.get(mdx_url, headers=self.headers, timeout=self.timeout)
         if response.status_code == 200:
             return response.json()
         else:
@@ -101,7 +102,7 @@ class MDQClient(BaseClientDatabase):
     def keys(self):
         """Get all registered entitites."""
         mdx_url = urljoin(self.url, "entities")
-        response = requests.get(mdx_url, headers=self.headers)
+        response = requests.get(mdx_url, headers=self.headers, timeout=self.timeout)
         if response.status_code == 200:
             return [item["client_id"] for item in response.json()]
         else:
@@ -112,7 +113,7 @@ class MDQClient(BaseClientDatabase):
     def items(self):
         """Geting all registered entities."""
         mdx_url = urljoin(self.url, "entities")
-        response = requests.get(mdx_url, headers=self.headers)
+        response = requests.get(mdx_url, headers=self.headers, timeout=self.timeout)
         if response.status_code == 200:
             return response.json()
         else:
