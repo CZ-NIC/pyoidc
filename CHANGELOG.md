@@ -6,6 +6,10 @@ The format is based on the [KeepAChangeLog] project.
 [KeepAChangeLog]: https://keepachangelog.com/
 
 ## Unreleased
+### Changed
+- [#847] Using pydantic for settings instead of custom class
+
+[#847]: https://github.com/CZ-NIC/pyoidc/pull/847
 
 ## 1.5.0 [2022-12-14]
 
