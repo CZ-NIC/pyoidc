@@ -185,13 +185,13 @@ class KeyBundle(object):
         if self.source is None:
             # Nothing to do
             return False
-        args = {"verify": self.verify_ssl, "timeout": self.timeout}
+        args = {"verify": self.verify_ssl}
         if self.etag:
             args["headers"] = {"If-None-Match": self.etag}
 
         try:
             logger.debug("KeyBundle fetch keys from: %s", self.source)
-            r = requests.get(self.source, **args)
+            r = requests.get(self.source, timeout=self.timeout, **args)
         except Exception as err:
             logger.error(err)
             raise_exception(UpdateFailed, REMOTE_FAILED.format(self.source, str(err)))

@@ -126,7 +126,8 @@ class OpenIDConnect(object):
             if client is not None and self.srv_discovery_url:
                 data = {"client_id": client.client_id}
                 resp = requests.get(self.srv_discovery_url + "verifyClientId",
-                                    params=data, verify=self.extra["ca_bundle"])
+                                    params=data, verify=self.extra["ca_bundle"],
+                                    timeout=10)
                 if not resp.ok and resp.status_code == 400:
                     client = None
                     server_env["OIC_CLIENT"].pop(key, None)
