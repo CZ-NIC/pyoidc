@@ -5,7 +5,7 @@ This is a complete implementation of OpenID Connect as specified in the `OpenID
 Connect Core specification`_. And as a side effect, a complete implementation
 of OAuth2.0 too.
 
-.. _OpenID Connect Core specification: http://openid.net/specs/openid-connect-core-1_0.html.
+.. _OpenID Connect Core specification: http://openid.net/specs/openid-connect-core-1_0.html
 
 Getting a copy is simple with Pip_:
 
