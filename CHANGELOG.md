@@ -8,8 +8,11 @@ The format is based on the [KeepAChangeLog] project.
 ## Unreleased
 ### Changed
 - [#847] Using pydantic for settings instead of custom class
+- [#851], [#852] Add `authn_method` to `Consumer.complete`
 
 [#847]: https://github.com/CZ-NIC/pyoidc/pull/847
+[#851]: https://github.com/CZ-NIC/pyoidc/issues/851
+[#852]: https://github.com/CZ-NIC/pyoidc/pull/852
 
 ## 1.5.0 [2022-12-14]
 
