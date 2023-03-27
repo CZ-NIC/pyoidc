@@ -461,7 +461,7 @@ class Consumer(Client):
             self.verify_id_token(idt, self.authz_req.get(_state or atr["state"]))
         return aresp, atr, idt
 
-    def complete(self, state):
+    def complete(self, state, authn_method: str = "client_secret_basic"):
         """
         Do the access token request, the last step in a code flow.
 
@@ -485,7 +485,10 @@ class Consumer(Client):
             raise PyoidcError("Nothing to authenticate with")
 
         resp = self.do_access_token_request(
-            state=state, request_args=args, http_args=http_args
+            state=state,
+            request_args=args,
+            http_args=http_args,
+            authn_method=authn_method,
         )
 
         logger.info("Access Token Response: %s" % sanitize(resp))
