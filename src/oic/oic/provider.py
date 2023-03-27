@@ -441,7 +441,7 @@ class Provider(AProvider):
                 ckey = _keyjar.get_signing_key(alg2keytype(alg), session["client_id"])
                 if not ckey:  # create a new key
                     _secret = self.cdb[session["client_id"]]["client_secret"]
-                    ckey = [PyoidcJWK(kty='oct', key=_secret)]
+                    ckey = [PyoidcJWK(kty="oct", key=_secret)]
             else:
                 if "" in self.keyjar:
                     ckey = _keyjar.get_signing_key(alg2keytype(alg), "", alg=alg)

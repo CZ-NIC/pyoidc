@@ -3,7 +3,6 @@ import json
 import logging
 import warnings
 from base64 import b64encode
-from collections import MutableMapping
 from collections import namedtuple
 from collections.abc import MutableMapping
 from json import JSONDecodeError
@@ -165,7 +164,9 @@ def pick_keys(keys: List[Key], alg: str, usage: str = "sig") -> Key:
     else:
         return None
     for key in keys:
-        if key.key_type == key_type and (key.use == "" or key.use is None or key.use == usage):
+        if key.key_type == key_type and (
+            key.use == "" or key.use is None or key.use == usage
+        ):
             return key
     return None
 

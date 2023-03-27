@@ -1090,7 +1090,9 @@ class TestOICConsumer:
         }
         idts = IdToken(**idval)
 
-        _signed_jwt = idts.to_jwt(key=[PyoidcJWK(kty='oct', key="TestPassword")], algorithm="HS256")
+        _signed_jwt = idts.to_jwt(
+            key=[PyoidcJWK(kty="oct", key="TestPassword")], algorithm="HS256"
+        )
 
         # Mess with the signed id_token
         p = _signed_jwt.split(".")
@@ -1102,7 +1104,9 @@ class TestOICConsumer:
         _faulty_signed_jwt = self._faulty_id_token()
 
         with pytest.raises(InvalidJWSSignature):
-            IdToken().from_jwt(_faulty_signed_jwt, key=[PyoidcJWK(kty='oct', key="TestPassword")])
+            IdToken().from_jwt(
+                _faulty_signed_jwt, key=[PyoidcJWK(kty="oct", key="TestPassword")]
+            )
 
         # What if no verification key is given ?
         # Should also result in an exception

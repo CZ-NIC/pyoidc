@@ -1,11 +1,11 @@
 import json
 import uuid
 
+from jwcrypto.common import json_encode
+from jwcrypto.jwe import JWE as crypto_JWE
 from jwkest import jwe
 from jwkest import jws
 from jwkest.jws import NoSuitableSigningKeys
-from jwcrypto.jwe import JWE as crypto_JWE
-from jwcrypto.common import json_encode
 
 from oic.oic.message import JasonWebToken
 from oic.utils.time_util import utc_time_sans_frac
@@ -109,7 +109,7 @@ class JWT(object):
         keys = self.keyjar.get_verify_key(
             jws.alg2keytype(rj.jwt.headers["alg"]), owner=owner
         )
-        allow_none = token.endswith('.')  # No signature, just verify
+        allow_none = token.endswith(".")  # No signature, just verify
         return rj.verify_compact(token, keys, allow_none=allow_none)
 
     def _decrypt(self, rj, token):

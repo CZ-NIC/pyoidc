@@ -11,7 +11,6 @@ from typing import Dict  # noqa
 from typing import List  # noqa
 from typing import NoReturn
 from typing import Optional  # noqa
-from typing import NoReturn
 from typing import Tuple  # noqa
 from typing import Union  # noqa
 from urllib.parse import urlsplit
@@ -84,14 +83,14 @@ class PyoidcJWK(JWK):
     @property
     def kty(self):
         """Compatibility wrapper for jwkest."""
-        #FIXME: Drop once complete transformation
+        # FIXME: Drop once complete transformation
         return self.key_type
 
     @property
     def alg(self):
         """Compatibility wrapper for jwkest."""
-        #FIXME: Do we need it after conversion?
-        #FIXME: There seems to be no way how to get the alg from the key after generation, do we need to store it?
+        # FIXME: Do we need it after conversion?
+        # FIXME: There seems to be no way how to get the alg from the key after generation, do we need to store it?
         return None
 
     @property
@@ -179,7 +178,7 @@ class KeyBundle(object):
             if not isinstance(inst, dict):
                 raise JWKSError("Illegal JWK")
             derived = inst.copy()
-            #FIXME: Paritaly handled in PyoidcJWK, drop it here?
+            # FIXME: Paritaly handled in PyoidcJWK, drop it here?
             if derived["kty"] == "oct" and "k" not in derived:
                 if isinstance(derived["key"], str):
                     derived["key"] = derived["key"].encode()

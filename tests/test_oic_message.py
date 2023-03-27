@@ -576,7 +576,7 @@ class TestAccessTokenResponse(object):
             "aud": "TestClient",
         }
         idts = IdToken(**idval)
-        key = PyoidcJWK(kty='oct', key="TestPassword")
+        key = PyoidcJWK(kty="oct", key="TestPassword")
         _signed_jwt = idts.to_jwt(key=[key], algorithm="HS256")
 
         # Mess with the signed id_token
@@ -606,7 +606,7 @@ class TestAccessTokenResponse(object):
             "aud": "TestClient",
         }
         idts = IdToken(**idval)
-        key = PyoidcJWK(kty='oct', key="TestPassword")
+        key = PyoidcJWK(kty="oct", key="TestPassword")
         _signed_jwt = idts.to_jwt(key=[key], algorithm="HS256")
 
         _info = {
