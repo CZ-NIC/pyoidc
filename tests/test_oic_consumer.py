@@ -486,7 +486,7 @@ class TestOICConsumer:
         location = (
             "https://example.com/cb?state=state0&access_token=token&token_type=bearer&"
             "scope=openid&id_token={}".format(
-                token.to_jwt(key=[SYMKey(key="hemlig")], algorithm="HS256")
+                token.to_jwt(key=[PyoidcJWK(kty="oct", key="hemlig", use="sign")], algorithm="HS256")
             )
         )
         with responses.RequestsMock() as rsps:
@@ -556,7 +556,7 @@ class TestOICConsumer:
         location = (
             "https://example.com/cb?state=state0&access_token=token&token_type=bearer&"
             "scope=openid&id_token={}".format(
-                token.to_jwt(key=[SYMKey(key="hemlig")], algorithm="HS256")
+                token.to_jwt(key=[PyoidcJWK(kty="oct", key="hemlig", use="sign")], algorithm="HS256")
             )
         )
         with responses.RequestsMock() as rsps:
@@ -1091,7 +1091,7 @@ class TestOICConsumer:
         idts = IdToken(**idval)
 
         _signed_jwt = idts.to_jwt(
-            key=[PyoidcJWK(kty="oct", key="TestPassword")], algorithm="HS256"
+            key=[PyoidcJWK(kty="oct", key="TestPassword", use="sig")], algorithm="HS256"
         )
 
         # Mess with the signed id_token

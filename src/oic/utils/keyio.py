@@ -72,13 +72,15 @@ class PyoidcJWK(JWK):
     """Extended class to include `inactive_since` and `kid`."""
 
     inactive_since = 0
-    use = None
 
     def __init__(self, **kwargs):
         """Derive the key for OCT."""
         if "k" not in kwargs and kwargs.get("kty") == "oct" and "key" in kwargs:
             kwargs["k"] = urlsafe_b64encode(kwargs["key"].encode()).decode()
         super().__init__(**kwargs)
+        if "use" in kwargs:
+            # FIXME: This is only needed for direct object creation which should really not be used...
+            self["use"] = kwargs["use"]
 
     @property
     def kty(self):
@@ -104,6 +106,17 @@ class PyoidcJWK(JWK):
         else:
             return self.key_id
 
+    @property
+    def use(self) -> str:
+        """Compatibility wrapper for jwkest."""
+        # FIXME: Do we need it after full conversion?
+        #  import pytest;pytest.set_trace()
+        return self.get("use")
+
+    def encryption_key(self, alg=None, private=True):
+        """Compatibility for jwkest."""
+        import  pytest;pytest.set_trace()
+        return self.get_op_key(operation="encrypt", arg=alg)
 
 class KeyBundle(object):
     def __init__(
@@ -387,9 +400,7 @@ class KeyBundle(object):
         thumbprint = key.thumbprint()
         to_import = True
         for _key in self._keys:
-            if _key.thumbprint() == thumbprint and _key._params.get(
-                "use"
-            ) == key._params.get("use"):
+            if _key.thumbprint() == thumbprint and _key.use == key.use:
                 to_import = False
                 break
         if to_import:
@@ -639,7 +650,7 @@ class KeyJar(object):
                     if kid and key.kid == kid:
                         lst = [key]
                         break
-                    if not key._params.get("use") or use == key._params["use"]:
+                    if not key.get("use") or use == key.get("use"):
                         lst.append(key)
                         continue
                     # Verification can be performed by both `sig` and `ver` keys
@@ -837,7 +848,7 @@ class KeyJar(object):
         keys = []
         for kb in self.issuer_keys[issuer]:
             keys.extend(
-                [k.serialize(private) for k in kb.keys() if k.inactive_since == 0]
+                [k.export(private_key=private, as_dict=True) for k in kb.keys() if k.inactive_since == 0]
             )
         return {"keys": keys}
 
@@ -1236,7 +1247,7 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
 
         for k in kb.keys():
             # FIXME: This might not be necessary ...
-            kidd[k._params["use"]][k.key_type] = k.key_id
+            kidd[k.use][k.key_type] = k.key_id
 
         jwks["keys"].extend(
             [json.loads(k.export_public()) for k in kb.keys() if k.key_type != "oct"]

@@ -20,6 +20,8 @@ from urllib.parse import urlencode
 from urllib.parse import urljoin
 from urllib.parse import urlparse
 
+from jwcrypto.common import json_encode
+from jwcrypto.jwe import JWE as JWE_jwc
 from jwkest import b64d
 from jwkest import jwe
 from jwkest import jws
@@ -96,6 +98,19 @@ __author__ = "rohe0002"
 logger = logging.getLogger(__name__)
 
 SWD_ISSUER = "http://openid.net/specs/connect/1.0/issuer"
+
+
+def alg2keytype(alg):
+    if not alg or alg.lower() == "none":
+        return "none"
+    elif alg.startswith("RS") or alg.startswith("PS"):
+        return "RSA"
+    elif alg.startswith("HS") or alg.startswith("A"):
+        return "oct"
+    elif alg.startswith("ES") or alg.startswith("ECDH-ES"):
+        return "EC"
+    else:
+        return None
 
 
 class InvalidRedirectURIError(Exception):
@@ -780,14 +795,15 @@ class Provider(AProvider):
         logger.debug("alg=%s, enc=%s, val_type=%s" % (alg, enc, val_type))
         if cid not in self.keyjar:
             self.recuperate_keys(cid, client_info)
-        keys = self.keyjar.get_encrypt_key(owner=cid)
+        keys = self.keyjar.get_encrypt_key(owner=cid, key_type=alg2keytype(alg))
         kwargs = {"alg": alg, "enc": enc}
         if cty:
             kwargs["cty"] = cty
 
         # use the clients public key for encryption
-        _jwe = JWE(payload, **kwargs)
-        return _jwe.encrypt(keys, context="public")
+        _jwe = JWE_jwc(payload, json_encode(kwargs))
+        # FIXME: jwkest is using first key... wouldn't it be safer to try to find the correct one?
+        return _jwe.add_recipient(keys[0])
 
     def sign_encrypt_id_token(
         self, sinfo, client_info, areq, code=None, access_token=None, user_info=None

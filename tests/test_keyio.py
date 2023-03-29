@@ -100,7 +100,7 @@ def test_key_export():
     assert len(kb.get("RSA")) == 1
     k = kb.get("RSA")[0]
     # For signing
-    assert k._params["use"] == "sig"
+    assert k["use"] == "sig"
 
 
 def test_build_keyjar():
