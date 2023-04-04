@@ -3,6 +3,8 @@ import uuid
 
 from jwcrypto.common import json_encode
 from jwcrypto.jwe import JWE as crypto_JWE
+from jwcrypto.jws import JWS
+from jwcrypto.jws import InvalidJWSSignature
 from jwkest import jwe
 from jwkest import jws
 from jwkest.jws import NoSuitableSigningKeys
@@ -100,17 +102,25 @@ class JWT(object):
             return _jws
 
     def _verify(self, rj, token):
-        _msg = json.loads(rj.jwt.part[1].decode("utf8"))
+        _msg = json.loads(rj.objects['payload'])
         if _msg["iss"] == self.iss:
             owner = ""
         else:
             owner = _msg["iss"]
 
         keys = self.keyjar.get_verify_key(
-            jws.alg2keytype(rj.jwt.headers["alg"]), owner=owner
+            jws.alg2keytype(rj.jose_header["alg"]), owner=owner
         )
         allow_none = token.endswith(".")  # No signature, just verify
-        return rj.verify_compact(token, keys, allow_none=allow_none)
+        for key in keys:
+            # Possibly multiple keys... try all of them
+            try:
+                rj.verify(key, alg=rj.jose_header['alg'])
+            except InvalidJWSSignature:
+                pass
+            else:
+                return json.loads(rj.payload.decode())
+        raise InvalidJWSSignature()
 
     def _decrypt(self, rj, token):
         keys = self.keyjar.get_verify_key(owner="")
@@ -125,7 +135,7 @@ class JWT(object):
         if not token:
             raise KeyError
 
-        _rj = jws.factory(token)
+        _rj = JWS().from_jose_token(token)
         if _rj:
             info = self._verify(_rj, token)
         else:

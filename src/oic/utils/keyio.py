@@ -76,7 +76,7 @@ class PyoidcJWK(JWK):
     def __init__(self, **kwargs):
         """Derive the key for OCT."""
         if "k" not in kwargs and kwargs.get("kty") == "oct" and "key" in kwargs:
-            kwargs["k"] = urlsafe_b64encode(kwargs["key"].encode()).decode()
+            kwargs["k"] = urlsafe_b64encode(bytes(kwargs["key"])).decode()
         super().__init__(**kwargs)
         if "use" in kwargs:
             # FIXME: This is only needed for direct object creation which should really not be used...
@@ -115,7 +115,6 @@ class PyoidcJWK(JWK):
 
     def encryption_key(self, alg=None, private=True):
         """Compatibility for jwkest."""
-        import  pytest;pytest.set_trace()
         return self.get_op_key(operation="encrypt", arg=alg)
 
 class KeyBundle(object):
