@@ -6,6 +6,9 @@ The format is based on the [KeepAChangeLog] project.
 [KeepAChangeLog]: https://keepachangelog.com/
 
 ## Unreleased
+
+- [#854] Improve OIDC Session Management support by using the `session_state` parameter from an *Authentication Response* (if available) as a key to store `Consumer` data.
+
 ### Changed
 - [#847] Using pydantic for settings instead of custom class
 - [#851], [#852] Add `authn_method` to `Consumer.complete`

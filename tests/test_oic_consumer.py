@@ -306,8 +306,59 @@ class TestOICConsumer:
             resp = self.consumer.complete(_state)
         assert isinstance(resp, AccessTokenResponse)
         assert _eq(resp.keys(), ["token_type", "state", "access_token", "scope"])
-
+        assert _state in self.consumer.sdb  # Consumer has been saved using 'state'
         assert resp["state"] == _state
+
+    def test_complete_with_session_management(self):
+        _state = "state0"
+        _session_state = "o75rvk4#5#JDYD`w"
+        args = {
+            "client_id": self.consumer.client_id,
+            "response_type": "code",
+            "scope": ["openid"],
+        }
+
+        location = "https://example.com/cb?code=code&state=state0"
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                responses.GET,
+                "https://example.com/authorization",
+                status=302,
+                headers={"location": location},
+            )
+            rsps.add(
+                responses.POST,
+                "https://example.com/token",
+                content_type="application/json",
+                json={
+                    "access_token": "some_token",
+                    "token_type": "bearer",
+                    "state": "state0",
+                    "scope": "openid",
+                    "session_state": _session_state,
+                },
+            )
+            result = self.consumer.do_authorization_request(
+                state=_state, request_args=args
+            )
+            parsed = urlparse(result.headers["location"])
+
+            self.consumer.parse_response(
+                AuthorizationResponse, info=parsed.query, sformat="urlencoded"
+            )
+
+            resp = self.consumer.complete(_state, session_state=_session_state)
+
+        assert isinstance(resp, AccessTokenResponse)
+        assert _eq(
+            resp.keys(),
+            ["token_type", "state", "access_token", "scope", "session_state"],
+        )
+        assert (
+            _session_state in self.consumer.sdb
+        )  # Consumer has been saved using 'session_state'
+        assert resp["state"] == _state
+        assert resp["session_state"] == _session_state
 
     def test_parse_authz(self):
         _state = "state0"
