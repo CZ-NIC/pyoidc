@@ -3,8 +3,11 @@ import uuid
 
 from jwcrypto.common import json_encode
 from jwcrypto.jwe import JWE as crypto_JWE
+from jwcrypto.jwe import default_allowed_algs
 from jwcrypto.jws import JWS
 from jwcrypto.jws import InvalidJWSSignature
+from jwcrypto.jws import InvalidJWSObject
+from jwcrypto.jwt import JWT as crypt_JWT
 from jwkest import jwe
 from jwkest import jws
 from jwkest.jws import NoSuitableSigningKeys
@@ -13,6 +16,9 @@ from oic.oic.message import JasonWebToken
 from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = "roland"
+
+
+ALLOWED_ALGS = ['RSA1_5'] + default_allowed_algs
 
 
 class JWT(object):
@@ -44,7 +50,7 @@ class JWT(object):
             kwargs["cty"] = cty
 
         # use the clients public key for encryption
-        _crypto_jwe = crypto_JWE(payload, json_encode(kwargs))
+        _crypto_jwe = crypto_JWE(payload, json_encode(kwargs), algs=ALLOWED_ALGS)
         for key in keys:
             _crypto_jwe.add_recipient(key)
         return _crypto_jwe.serialize(compact=True)
@@ -122,10 +128,11 @@ class JWT(object):
                 return json.loads(rj.payload.decode())
         raise InvalidJWSSignature()
 
-    def _decrypt(self, rj, token):
+    def _decrypt(self, token):
         keys = self.keyjar.get_verify_key(owner="")
-        msg = rj.decrypt(token, keys)
-        _rj = jws.factory(msg)
+        import pytest;pytest.set_trace()
+        ET = crypt_JWT(key=keys[0], jwt=token, expected_type='JWE')
+        _rj = JWS().from_jose_token(ET.claims) 
         if not _rj:
             raise KeyError()
         else:
@@ -135,14 +142,17 @@ class JWT(object):
         if not token:
             raise KeyError
 
-        _rj = JWS().from_jose_token(token)
-        if _rj:
+        try:
+            # JWS
+            _rj = JWS().from_jose_token(token)
+        except InvalidJWSObject:
+            # JWT - decrypt first...
+            _rj = self._decrypt(token)
+        if isinstance(_rj, JWS):
             info = self._verify(_rj, token)
         else:
-            _rj = jwe.factory(token)
-            if not _rj:
-                raise KeyError()
-            info = self._decrypt(_rj, token)
+            # WTF?
+            pass
 
         if self.message_type:
             return self.message_type(**info)

@@ -74,7 +74,7 @@ JWKS = {
             "-fo1rYx_8g-wCRrm5zeA5pYJdwdhOBnmKOqw_GsXJEcYeUod1xkcfU",
             "e": "AQAB",
             "ext": "true",
-            "key_ops": ["sign", "verify"],
+            "key_ops": ["sign", "verify", "wrapKey"],
             "kty": "RSA",
             "n": "wl0DPln-EFLqr_Ftn6A87wEQAUVbpZsUTN2OCEsJV0nhlvmX3GUzyZx5UXdlM3Dz68PfUWCgfx67Il6sURqWVCnjnU-"
             "_gr3GeDyzedj-lZejnBx-lEy_3j6B98SbcDfkJF6saXnPd7_kgilJT1_g-EVI9ifFB1cxZXHCd2WBeRABSCprAlCglF-YmnU"
