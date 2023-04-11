@@ -76,9 +76,8 @@ from oic.utils.http_util import Response
 from oic.utils.http_util import SeeOther
 from oic.utils.http_util import Unauthorized
 from oic.utils.jwt import JWT
-from oic.utils.keyio import KEYS
 from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar  # noqa
+from oic.utils.keyio import KeyJar
 from oic.utils.keyio import PyoidcJWK
 from oic.utils.keyio import dump_jwks
 from oic.utils.keyio import key_export
@@ -1051,7 +1050,7 @@ class Provider(AProvider):
             algo = self.jwx_def["signing_alg"]["userinfo"]
 
         if algo == "none":
-            key: List[KEYS] = []
+            key: List[PyoidcJWK] = []
         else:
             if algo.startswith("HS"):
                 key = self.keyjar.get_signing_key(

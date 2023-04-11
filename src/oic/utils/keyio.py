@@ -16,7 +16,6 @@ from typing import Union  # noqa
 from urllib.parse import urlsplit
 
 import requests
-from Cryptodome.PublicKey import RSA
 from jwcrypto.common import JWException
 from jwcrypto.jwk import JWK
 from jwcrypto.jwk import InvalidJWKValue
@@ -25,11 +24,6 @@ from jwkest import as_unicode
 from jwkest import b64e
 from jwkest import jwe
 from jwkest import jws
-from jwkest.ecc import NISTEllipticCurve
-from jwkest.jwk import ECKey
-from jwkest.jwk import RSAKey
-from jwkest.jwk import SYMKey
-from jwkest.jwk import rsa_load
 
 from oic.exception import MessageException
 from oic.exception import PyoidcError
@@ -64,10 +58,6 @@ class JWKSError(KeyIOError):
     pass
 
 
-K2C = {"RSA": RSAKey, "EC": ECKey, "oct": SYMKey}
-KEYS = Union[RSAKey, SYMKey, ECKey]
-
-
 class PyoidcJWK(JWK):
     """Extended class to include `inactive_since` and `kid`."""
 
@@ -76,7 +66,10 @@ class PyoidcJWK(JWK):
     def __init__(self, **kwargs):
         """Derive the key for OCT."""
         if "k" not in kwargs and kwargs.get("kty") == "oct" and "key" in kwargs:
-            kwargs["k"] = urlsafe_b64encode(bytes(kwargs["key"])).decode()
+            key = kwargs["key"]
+            if isinstance(key, str):
+                key = key.encode()
+            kwargs["k"] = urlsafe_b64encode(key).decode()
         super().__init__(**kwargs)
         if "use" in kwargs:
             # FIXME: This is only needed for direct object creation which should really not be used...
@@ -142,7 +135,7 @@ class KeyBundle(object):
             a single integer or as a tuple of integers. For more details, refer to
             ``requests`` documentation.
         """
-        self._keys: List[KEYS] = []
+        self._keys: List[PyoidcJWK] = []
         self.remote = False
         self.verify_ssl = verify_ssl
         self.cache_time = cache_time
@@ -190,11 +183,6 @@ class KeyBundle(object):
             if not isinstance(inst, dict):
                 raise JWKSError("Illegal JWK")
             derived = inst.copy()
-            # FIXME: Paritaly handled in PyoidcJWK, drop it here?
-            if derived["kty"] == "oct" and "k" not in derived:
-                if isinstance(derived["key"], str):
-                    derived["key"] = derived["key"].encode()
-                derived["k"] = urlsafe_b64encode(derived["key"]).decode()
             if derived["kty"] == "RSA" and "key" in derived:
                 _key = derived.pop("key")
                 derived.update(_key)
@@ -373,7 +361,7 @@ class KeyBundle(object):
         """
         if val:
             self._keys = [
-                k for k in self._keys if not (k.key_type == typ and k.key == val.key)
+                k for k in self._keys if not (k.key_type == typ and k.kid== val.kid)
             ]
         else:
             self._keys = [k for k in self._keys if not k.key_type == typ]
@@ -483,7 +471,7 @@ def dump_jwks(kbl, target, private=False):
     for kb in kbl:
         keys.extend(
             [
-                k.serialize(private)
+                json.loads(k.export(private_key=private))
                 for k in kb.keys()
                 if k.key_type != "oct" and not k.inactive_since
             ]
@@ -635,7 +623,7 @@ class KeyJar(object):
             except KeyError:
                 _keys = []
 
-        lst: List[KEYS] = []
+        lst: List[PyoidcJWK] = []
         if _keys:
             for bundle in _keys:
                 if key_type:
@@ -917,7 +905,7 @@ class KeyJar(object):
         return self.get(usage, ktype, issuer)
 
     def get_issuer_keys(self, issuer):
-        res: List[KEYS] = []
+        res: List[PyoidcJWK] = []
         for kbl in self.issuer_keys[issuer]:
             res.extend(kbl.keys())
         return res

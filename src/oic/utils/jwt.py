@@ -3,22 +3,19 @@ import uuid
 
 from jwcrypto.common import json_encode
 from jwcrypto.jwe import JWE as crypto_JWE
-from jwcrypto.jwe import default_allowed_algs
 from jwcrypto.jws import JWS
-from jwcrypto.jws import InvalidJWSSignature
 from jwcrypto.jws import InvalidJWSObject
+from jwcrypto.jws import InvalidJWSSignature
 from jwcrypto.jwt import JWT as crypt_JWT
 from jwkest import jwe
 from jwkest import jws
 from jwkest.jws import NoSuitableSigningKeys
 
+from oic.constants import ALLOWED_ALGS
 from oic.oic.message import JasonWebToken
 from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = "roland"
-
-
-ALLOWED_ALGS = ['RSA1_5'] + default_allowed_algs
 
 
 class JWT(object):
@@ -130,8 +127,7 @@ class JWT(object):
 
     def _decrypt(self, token):
         keys = self.keyjar.get_verify_key(owner="")
-        import pytest;pytest.set_trace()
-        ET = crypt_JWT(key=keys[0], jwt=token, expected_type='JWE')
+        ET = crypt_JWT(key=keys[0], jwt=token, expected_type='JWE', algs=ALLOWED_ALGS)
         _rj = JWS().from_jose_token(ET.claims) 
         if not _rj:
             raise KeyError()

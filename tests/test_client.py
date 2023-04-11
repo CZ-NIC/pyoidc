@@ -1,14 +1,15 @@
 import base64
+import json
 import os
 from unittest.mock import Mock
 from unittest.mock import patch
 from urllib.parse import quote_plus
 
 import pytest
+from jwcrypto.jwk import JWK
 from jwkest import as_bytes
 from jwkest import b64e
 from jwkest.jwk import SYMKey
-from jwkest.jwk import rsa_load
 from jwkest.jws import JWS
 from jwkest.jwt import JWT
 
@@ -196,7 +197,9 @@ class TestClientSecretPost(object):
 
 class TestPrivateKeyJWT(object):
     def test_construct(self, client):
-        _key = rsa_load(os.path.join(BASE_PATH, "data/keys/rsa.key"))
+        with open(os.path.join(BASE_PATH, "data/keys/rsa.key"), 'rb') as key_file:
+            _key = JWK.from_pem(key_file.read())
+            _key = json.loads(_key.export_private())
         kc_rsa = KeyBundle(
             [
                 {"key": _key, "kty": "RSA", "use": "ver"},

@@ -822,7 +822,9 @@ class TestClient(object):
         }
 
     def test_sign_enc_request(self):
-        KC_RSA_ENC = KeyBundle({"key": RSA_KEY, "kty": "RSA", "use": "enc"})
+        with open(os.path.join(BASE_PATH, "rsa.key"), "rb") as f:
+            _key_data = json.loads(JWK.from_pem(f.read()).export_private())
+        KC_RSA_ENC = KeyBundle({"key": _key_data, "kty": "RSA", "use": "enc"})
         self.client.keyjar["test_provider"] = [KC_RSA_ENC]
 
         request_args = {

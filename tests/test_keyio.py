@@ -20,7 +20,7 @@ from oic.oic.provider import Provider
 from oic.utils.keyio import JWKSError
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import KeyJar
-from oic.utils.keyio import RSAKey
+from oic.utils.keyio import PyoidcJWK
 from oic.utils.keyio import build_keyjar
 from oic.utils.keyio import check_key_availability
 from oic.utils.keyio import dump_jwks
@@ -74,7 +74,7 @@ def test_keybundle_from_local_jwk_file():
     keys = kj.get_signing_key()
     assert len(keys) == 1
     key = keys[0]
-    assert isinstance(key, RSAKey)
+    assert isinstance(key, PyoidcJWK)
     assert key.key_id == "abc"
 
 
@@ -150,12 +150,8 @@ def test_dump_public_jwks():
     kb_public = KeyBundle(source="file://./foo.jwks")
     # All RSA keys
     for k in kb_public.keys():
-        if k.key_type == "RSA":
-            assert not k.d
-            assert not k.p
-            assert not k.q
-        else:  # MUST be 'EC'
-            assert not k.d
+        assert k.has_public
+        assert not k.has_private
 
 
 def test_dump_private_jwks():
@@ -169,14 +165,9 @@ def test_dump_private_jwks():
     kbl = keyjar.issuer_keys[""]
     dump_jwks(kbl, "foo.jwks", private=True)
     kb_public = KeyBundle(source="file://./foo.jwks")
-    # All RSA keys
     for k in kb_public.keys():
-        if k.kty == "RSA":
-            assert k.d
-            assert k.p
-            assert k.q
-        else:  # MUST be 'EC'
-            assert k.d
+        assert k.has_public
+        assert k.has_private
 
 
 class TestKeyBundle(object):

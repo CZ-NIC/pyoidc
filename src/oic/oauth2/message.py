@@ -31,6 +31,7 @@ from jwkest.jwk import RSAKey
 from jwkest.jwk import keyitems2keyreps
 from jwkest.jws import alg2keytype
 
+from oic.constants import ALLOWED_ALGS
 from oic.exception import MessageException
 from oic.exception import PyoidcError
 from oic.oauth2.exception import VerificationError
@@ -917,7 +918,7 @@ class Message(MutableMapping):
         if isinstance(keys, dict):
             keys = keyitems2keyreps(keys)
 
-        cr_jwe = crypt_JWE(self.to_json(), json_encode({"alg": alg, "enc": enc}))
+        cr_jwe = crypt_JWE(self.to_json(), json_encode({"alg": alg, "enc": enc}), algs=ALLOWED_ALGS)
         for key in keys:
             cr_jwe.add_recipient(convert_key_to_jwcrypto(key))
         return cr_jwe.serialize(compact=True)
@@ -933,7 +934,7 @@ class Message(MutableMapping):
         if isinstance(keys, dict):
             keys = keyitems2keyreps(keys)
 
-        jwe = crypt_JWE()
+        jwe = crypt_JWE(algs=ALLOWED_ALGS)
         jwe.deserialize(msg)
         for key in keys:
             try:

@@ -2,7 +2,7 @@ import os
 from urllib.parse import parse_qs
 
 import pytest
-from jwkest.jwk import SYMKey
+from oic.utils.keyio import PyoidcJWK
 
 from oic.oic.claims_provider import ClaimsClient
 from oic.oic.claims_provider import ClaimsServer
@@ -81,7 +81,7 @@ class TestUserClaimsResponse(object):
     def test_init(self):
         info = user_info(None, USERDB, "diana")
 
-        keys = [SYMKey(key="hemlig")]
+        keys = [PyoidcJWK(key=b"hemlig", kty="oct")]
         cresp = UserClaimsResponse(
             jwt=info.to_jwt(key=keys, algorithm="HS256"), claims_names=list(info.keys())
         )

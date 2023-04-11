@@ -4,7 +4,6 @@ from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
 import pytest
-from jwkest.jwk import SYMKey
 
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
@@ -32,6 +31,7 @@ from oic.oauth2.message import TokenErrorResponse
 from oic.oauth2.message import json_deserializer
 from oic.oauth2.message import json_serializer
 from oic.oauth2.message import sp_sep_list_deserializer
+from oic.utils.keyio import PyoidcJWK
 from oic.utils.keyio import build_keyjar
 
 __author__ = "rohe0002"
@@ -197,7 +197,7 @@ class TestMessage(object):
             req_str_list=["spike", "lee"],
             opt_json='{"ford": "green"}',
         )
-        keys = [SYMKey(key="A1B2C3D4")]
+        keys = [PyoidcJWK(key="A1B2C3D4", kty='oct')]
         jws = item.to_jwt(keys, "HS256")
 
         jitem = DummyMessage().from_jwt(jws, key=keys)
