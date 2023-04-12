@@ -7,7 +7,6 @@ from jwcrypto.jws import JWS
 from jwcrypto.jws import InvalidJWSObject
 from jwcrypto.jws import InvalidJWSSignature
 from jwcrypto.jwt import JWT as crypt_JWT
-from jwkest import jwe
 from jwkest import jws
 from jwkest.jws import NoSuitableSigningKeys
 
@@ -46,11 +45,12 @@ class JWT(object):
         if cty:
             kwargs["cty"] = cty
 
+        import pytest;pytest.set_trace()
         # use the clients public key for encryption
-        _crypto_jwe = crypto_JWE(payload, json_encode(kwargs), algs=ALLOWED_ALGS)
+        _crypto_jwt = crypt_JWT(claims=payload, header=kwargs, algs=ALLOWED_ALGS)
         for key in keys:
-            _crypto_jwe.add_recipient(key)
-        return _crypto_jwe.serialize(compact=True)
+            _crypto_jwt.make_encrypted_token(key)
+        return _crypto_jwt.serialize(compact=True)
 
     def pack_init(self):
         argv = {"iss": self.iss, "iat": utc_time_sans_frac()}
@@ -126,8 +126,10 @@ class JWT(object):
         raise InvalidJWSSignature()
 
     def _decrypt(self, token):
-        keys = self.keyjar.get_verify_key(owner="")
-        ET = crypt_JWT(key=keys[0], jwt=token, expected_type='JWE', algs=ALLOWED_ALGS)
+        ET = crypt_JWT(jwt=token, expected_type='JWE', algs=ALLOWED_ALGS)
+        keys = self.keyjar.get_verify_key(owner="", alg=ET.token.jose_header['alg'])
+        import pytest;pytest.set_trace()
+        ET.deserialize(jwt=token, key=keys[0])
         _rj = JWS().from_jose_token(ET.claims) 
         if not _rj:
             raise KeyError()

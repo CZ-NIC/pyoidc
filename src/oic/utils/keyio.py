@@ -1,5 +1,6 @@
 import builtins
 import copy
+import hashlib
 import json
 import logging
 import os
@@ -68,7 +69,7 @@ class PyoidcJWK(JWK):
         if "k" not in kwargs and kwargs.get("kty") == "oct" and "key" in kwargs:
             key = kwargs["key"]
             if isinstance(key, str):
-                key = key.encode()
+                key = key.encode("utf-8")
             kwargs["k"] = urlsafe_b64encode(key).decode()
         super().__init__(**kwargs)
         if "use" in kwargs:
@@ -103,7 +104,6 @@ class PyoidcJWK(JWK):
     def use(self) -> str:
         """Compatibility wrapper for jwkest."""
         # FIXME: Do we need it after full conversion?
-        #  import pytest;pytest.set_trace()
         return self.get("use")
 
     def encryption_key(self, alg=None, private=True):
@@ -588,7 +588,7 @@ class KeyJar(object):
     def items(self):
         return self.issuer_keys.items()
 
-    def get(self, key_use, key_type="", issuer="", kid=None, **kwargs):
+    def get(self, key_use, key_type="", issuer="", kid=None, alg=None, **kwargs):
         """
         Return keys matching the args.
 
@@ -596,6 +596,7 @@ class KeyJar(object):
         :param key_type: Type of key (rsa, ec, symmetric, ..)
         :param issuer: Who is responsible for the keys, "" == me
         :param kid: A Key Identifier
+        :param alg: Algorithm with which the key should be used
         :return: A possibly empty list of keys
         """
         if key_use in ["dec", "enc"]:
@@ -662,19 +663,52 @@ class KeyJar(object):
                     if not key.use or key.use == use:
                         lst.append(key)
 
+        for index, lkey in enumerate(lst):
+            # Create proper keys from oct representations
+            if lkey.key_type == 'oct':
+                lst[index] = self._generate_oct_key(lkey, alg)
         return lst
 
-    def get_signing_key(self, key_type="", owner="", kid=None, **kwargs):
-        return self.get("sig", key_type, owner, kid, **kwargs)
+    def get_signing_key(self, key_type="", owner="", kid=None, alg=None, **kwargs):
+        return self.get("sig", key_type, owner, kid, alg, **kwargs)
 
-    def get_verify_key(self, key_type="", owner="", kid=None, **kwargs):
-        return self.get("ver", key_type, owner, kid, **kwargs)
+    def get_verify_key(self, key_type="", owner="", kid=None, alg=None, **kwargs):
+        return self.get("ver", key_type, owner, kid, alg, **kwargs)
 
-    def get_encrypt_key(self, key_type="", owner="", kid=None, **kwargs):
-        return self.get("enc", key_type, owner, kid, **kwargs)
+    def get_encrypt_key(self, key_type="", owner="", kid=None, alg=None, **kwargs):
+        return self.get("enc", key_type, owner, kid, alg, **kwargs)
 
-    def get_decrypt_key(self, key_type="", owner="", kid=None, **kwargs):
-        return self.get("dec", key_type, owner, kid, **kwargs)
+    def get_decrypt_key(self, key_type="", owner="", kid=None, alg=None, **kwargs):
+        return self.get("dec", key_type, owner, kid, alg, **kwargs)
+
+    @staticmethod
+    def _generate_oct_key(key: PyoidcJWK, alg: str) -> str:
+        """Generate a key from shared secret.
+
+        Create a key per http://openid.net/specs/openid-connect-core-1_0.html#Encryption.
+        """
+        ALG2KEYLEN = {
+            "A128KW": 16,
+            "A192KW": 24,
+            "A256KW": 32,
+            "HS256": 32,
+            "HS384": 48,
+            "HS512": 64
+        }
+        tsize = ALG2KEYLEN.get(alg, None)
+        if tsize is None:
+            return key
+        key_text = key.k.encode()
+        if tsize <= 32:
+            # SHA256
+            _enc_key = hashlib.sha256(key_text).digest()[:tsize]
+        elif tsize <= 48:
+            # SHA384
+            _enc_key = hashlib.sha384(key_text).digest()[:tsize]
+        elif tsize <= 64:
+            # SHA512
+            _enc_key = hashlib.sha512(key_text).digest()[:tsize]
+        return PyoidcJWK(kty='oct', key=_enc_key)
 
     def get_key_by_kid(self, kid, owner=""):
         """

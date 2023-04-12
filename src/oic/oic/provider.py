@@ -794,7 +794,7 @@ class Provider(AProvider):
         logger.debug("alg=%s, enc=%s, val_type=%s" % (alg, enc, val_type))
         if cid not in self.keyjar:
             self.recuperate_keys(cid, client_info)
-        keys = self.keyjar.get_encrypt_key(owner=cid, key_type=alg2keytype(alg))
+        keys = self.keyjar.get_encrypt_key(owner=cid, key_type=alg2keytype(alg), alg=alg)
         kwargs = {"alg": alg, "enc": enc}
         if cty:
             kwargs["cty"] = cty
@@ -802,7 +802,11 @@ class Provider(AProvider):
         # use the clients public key for encryption
         _jwe = JWE_jwc(payload, json_encode(kwargs))
         # FIXME: jwkest is using first key... wouldn't it be safer to try to find the correct one?
-        return _jwe.add_recipient(keys[0])
+        if len(keys) == 0:
+            # FIXME: Add own exception to raise ...
+            raise JWEException('No keys')
+        _jwe.add_recipient(keys[0])
+        return _jwe.serialize(compact=True)
 
     def sign_encrypt_id_token(
         self, sinfo, client_info, areq, code=None, access_token=None, user_info=None

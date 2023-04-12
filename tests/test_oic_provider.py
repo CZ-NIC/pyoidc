@@ -1853,6 +1853,7 @@ class TestProvider(object):
 
     def test_encrypt_missing_recuperated(self):
         self.provider.keyjar = KeyJar()  # Empty keyjar, all keys are lost
+        self.provider.keyjar[""] = KC_RSA  # Except own keys
         with open(os.path.join(BASE_PATH, "jwk_enc.json")) as keyf:
             key = keyf.read()
         info = {
@@ -1886,6 +1887,7 @@ class TestProvider(object):
 
     def test_encrypt_userinfo_missing_recuperated(self):
         self.provider.keyjar = KeyJar()  # Empty keyjar, all keys are lost
+        self.provider.keyjar[""] = KC_RSA  # Except own keys
         with open(os.path.join(BASE_PATH, "jwk_enc.json")) as keyf:
             key = keyf.read()
         info = {

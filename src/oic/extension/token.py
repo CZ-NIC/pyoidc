@@ -102,6 +102,7 @@ class JWTToken(Token, JWT):
         except KeyError:
             pass
 
+        import pytest;pytest.set_trace()
         _jti = "{}-{}".format(self.type, uuid.uuid4().hex)
         _jwt = self.pack(jti=_jti, exp=exp, **kwargs)
         self.db[_jti] = sid
